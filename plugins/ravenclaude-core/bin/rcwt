@@ -66,6 +66,49 @@ fi
 # realpath of a directory, portably (pwd -P resolves symlinks; no realpath(1)).
 _rcwt_realpath() { ( cd "$1" 2>/dev/null && pwd -P ) 2>/dev/null; }
 
+# Merge lane VS Code settings add-absent-keys only. Never overwrite a key the
+# consumer already set. Parent-walk pin always; sandbox only if RCWT_CHAT_CEILING=1.
+_rcwt_merge_lane_settings() {
+  local dest="$1" snippet
+  snippet="$PLUGIN_ROOT/templates/worktree-lane/settings.json"
+  [ -f "$snippet" ] || return 0
+  mkdir -p "$dest/.vscode"
+  SETTINGS_SRC="$snippet" SETTINGS_FILE="$dest/.vscode/settings.json" \
+    RCWT_CHAT_CEILING="${RCWT_CHAT_CEILING:-}" python3 - <<'PY'
+import json, os, sys
+
+src_path = os.environ["SETTINGS_SRC"]
+dst_path = os.environ["SETTINGS_FILE"]
+with open(src_path) as f:
+    wanted = json.load(f)
+if os.environ.get("RCWT_CHAT_CEILING") == "1":
+    wanted["chat.agent.sandbox.enabled"] = True
+
+existing = {}
+if os.path.exists(dst_path):
+    try:
+        with open(dst_path) as f:
+            existing = json.load(f)
+    except (json.JSONDecodeError, ValueError):
+        print("  WARN: existing settings.json is not strict JSON. Not overwriting.")
+        sys.exit(0)
+
+added = []
+for k, v in wanted.items():
+    if k in existing:
+        continue
+    existing[k] = v
+    added.append(k)
+
+if added:
+    tmp = dst_path + ".tmp"
+    with open(tmp, "w") as f:
+        json.dump(existing, f, indent=2)
+        f.write("\n")
+    os.replace(tmp, dst_path)
+PY
+}
+
 cmd="${1:-}"
 shift || true
 
@@ -78,8 +121,18 @@ case "$cmd" in
     mkdir -p "$WT_ROOT"
     git -C "$PRIMARY" fetch --prune origin "$base"
     git -C "$PRIMARY" worktree add "$dest" -b "$branch" "origin/$base"
+    stamp="$PLUGIN_ROOT/scripts/write-lane-stamp.sh"
+    if [ -x "$stamp" ]; then
+      bash "$stamp" "$dest" "$task" "$branch" rcwt
+    fi
+    _rcwt_merge_lane_settings "$dest"
     echo "OK worktree: $dest   (branch $branch off origin/$base)"
-    command -v code >/dev/null 2>&1 && code "$dest" || echo "  open it: code \"$dest\""
+    echo "LANE window: $dest  (do not add another worktree folder to this window)"
+    if command -v code >/dev/null 2>&1; then
+      code -n "$dest"
+    else
+      echo "  open it: code -n \"$dest\""
+    fi
     ;;
 
   ls|list)
@@ -130,9 +183,18 @@ case "$cmd" in
     # rcwt runs in-plugin; a copy in ~/.local/bin won't find it -> plain fallback).
     guard="${RCWT_GUARD:-$PLUGIN_ROOT/hooks/worktree-guard.sh}"
     if [ -f "$guard" ]; then
-      # Feed a minimal payload so the guard keys on the right repo even without jq's
-      # $CLAUDE_PROJECT_DIR; run it from PRIMARY so the no-jq path also sees the repo.
-      ( cd "$PRIMARY" 2>/dev/null && printf '{"cwd":"%s"}\n' "$PRIMARY" | bash "$guard" status --json )
+      # ⛔ Say which repo we mean EXPLICITLY — do not pipe a payload.
+      # `status` does not read stdin (it carries no payload and would otherwise pay
+      # the full stdin deadline on every call), so the `{"cwd":…}` this used to pipe
+      # was inert and the guard fell through to ${CLAUDE_PROJECT_DIR:-$PWD}. In a
+      # Claude Code session CLAUDE_PROJECT_DIR is always set — to the WORKTREE — so
+      # `rcwt status` reported the worktree's posture instead of PRIMARY's.
+      # control: two git repos, postures warn/warn and block/block; cd A with
+      #   CLAUDE_PROJECT_DIR unset -> mode=warn (correct), and cd A with
+      #   CLAUDE_PROJECT_DIR=B -> mode=block (the wrong tree). Measured 2026-08-25.
+      # `cwd` selects only the posture file; toplevel/path_key/branch come from $PWD,
+      # so the `cd` is still required and the env var is not a substitute for it.
+      ( cd "$PRIMARY" 2>/dev/null && CLAUDE_PROJECT_DIR="$PRIMARY" bash "$guard" status --json )
     else
       echo "rcwt: worktree-guard.sh not reachable (set \$RCWT_GUARD to override) — plain worktree list:" >&2
       git -C "$PRIMARY" worktree list

@@ -1,0 +1,30 @@
+{
+  "name": "graph-engineering",
+  "version": "0.1.0",
+  "description": "Graph-engineering team — agents (graph-data-modeler, graph-query-engineer) for property-graph and RDF craft: when a graph beats relational, LPG vs RDF, labeled/typed modeling, supernodes, Cypher/ISO GQL/openCypher/Gremlin/SPARQL traversals, and GraphRAG construction (skill + command, not a dedicated agent). skills, commands, knowledge files (graph-vs-relational tree, LPG catalog, dated 2026 language/engine map, GraphRAG construction), best-practices, templates, scenarios, an advisory hook, a stdlib shape linter. Advisory only — snippets the user runs; no live graph runtime. Seams: when NOT a graph → database-engineering; vector/hybrid RAG → ai-rag-engineering; whether a memory graph beats BM25 → memory-engineering; GraphQL → graphql-engineering; Microsoft Graph API → microsoft-graph; Fabric Graph SKU → microsoft-fabric. Requires ravenclaude-core@>=0.7.0.",
+  "author": {
+    "name": "Matt Corbett"
+  },
+  "homepage": "https://github.com/mcorbett51090/RavenClaude",
+  "license": "MIT",
+  "keywords": [
+    "graph",
+    "property-graph",
+    "lpg",
+    "cypher",
+    "gql",
+    "opencypher",
+    "gremlin",
+    "sparql",
+    "rdf",
+    "graphrag",
+    "neo4j",
+    "neptune",
+    "spanner-graph",
+    "janusgraph",
+    "supernode"
+  ],
+  "requires": {
+    "plugins": ["ravenclaude-core@>=0.7.0"]
+  }
+}

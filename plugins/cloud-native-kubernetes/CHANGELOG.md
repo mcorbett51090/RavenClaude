@@ -2,6 +2,12 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.3.8] — 2026-08-14
+
+### Changed
+
+- Dropped hand-maintained artifact-count literals from the plugin description (D1). The roster enumerates itself; Gate 206 forbids the digit.
+
 ## [0.3.6] — 2026-07-08
 
 Research-sweep **correction** — the ingress/Gateway controller decision tree recommended community **`ingress-nginx`** for new clusters, but the Kubernetes project **retired** it: best-effort maintenance ended **March 2026**, after which there are no releases, bug fixes, or **security patches** (repos read-only). Recommending it for a new cluster now signs up for un-patched CVEs. Verified 2026-07-08 against [kubernetes.io](https://kubernetes.io/blog/2025/11/11/ingress-nginx-retirement/) (Nov 11 2025 notice + [Jan 29 2026 Steering/SRC statement](https://kubernetes.io/blog/2026/01/29/ingress-nginx-statement/)).

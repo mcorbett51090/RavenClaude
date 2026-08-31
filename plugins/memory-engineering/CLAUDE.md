@@ -22,6 +22,7 @@
 
 - Whether to build an agent at all, and where state sits inside its topology → [`ai-agent-engineering`](../ai-agent-engineering/) (`agentic-systems-architect`).
 - Corpus retrieval, chunking, retrieval quality → [`ai-rag-engineering`](../ai-rag-engineering/).
+- **How to model and query a retrieval graph after paradigm III.a is a “yes”** (labels, typed edges, bounded Cypher/GQL, GraphRAG construction) → [`graph-engineering`](../graph-engineering/). This team still owns *whether* a memory graph beats no-memory and BM25.
 - Generic LLM eval harnesses, judges, ship-gates → [`llm-evaluation-engineering`](../llm-evaluation-engineering/).
 - DSAR process, legal basis, records-retention policy → [`data-governance-privacy`](../data-governance-privacy/). This team names the engineering residue; it does not make the legal determination.
 - Offensive testing of a memory store → [`ai-red-teaming`](../ai-red-teaming/).

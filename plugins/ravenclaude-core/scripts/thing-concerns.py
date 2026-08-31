@@ -141,8 +141,16 @@ def _match_variants(command: str) -> tuple[str, ...]:
     """
 
     def _flatten(s: str) -> str:
-        s = re.sub(r"\\\n", " ", s)  # shell line-continuation -> space
-        return re.sub(r"\s*\n\s*", " ", s)  # any remaining bare newline -> space
+        s = re.sub(r"\\\n", " ", s)  # shell line-continuation -> space (still ONE command)
+        # A BARE newline is a command SEPARATOR, not whitespace inside one command.
+        # It was previously flattened to a space, which let a trigger's `.*` bleed out of
+        # the dangerous program on line 1 and match an UNRELATED later command's flags.
+        # Measured (issue #861): a benign multi-line block was hard-denied because a later
+        # line carried a short flag the rule was scanning for. Emitting `;` keeps the
+        # flatten's real purpose — a line-continuation can no longer hide a dangerous flag
+        # from `.*` — while keeping segment-scoped triggers (`[^|&;]`) bounded to ONE
+        # command, which is what they were written to mean.
+        return re.sub(r"\s*\n\s*", "; ", s)
 
     forms = [command, _normalize_for_match(command)]
     forms += [_flatten(f) for f in list(forms)]
@@ -181,21 +189,20 @@ DECODE_MAX_RUNS = 200
 DECODE_MAX_BYTES = 256 * 1024
 
 
-def _decoded_payload_concerns(
-    catalog: dict, command: str, category: str | None, _depth: int = 0, _budget: dict | None = None
-) -> set[str]:
-    """Base64-decode long tokens in the command and re-check the DECODED text for
-    concerns (assessment #14 — base64 is a common obfuscation vector; the raw
-    triggers only see the encoded blob). Returns the concern ids found inside any
-    decoded payload (excluding the base64 concern itself). Bounded recursion for
-    nested encodings AND bounded by DECODE_MAX_RUNS / DECODE_MAX_BYTES; only acts
-    when a token decodes to mostly-printable text, so a benign binary blob adds
-    nothing (we escalate on CONTENT, not mere length)."""
+def _iter_decoded_texts(command: str, _depth: int = 0, _budget: dict | None = None):
+    """Yield the base64-decoded, mostly-printable texts embedded in `command`.
+
+    Base64 is a common obfuscation vector; the raw triggers only see the encoded
+    blob (assessment #14). Bounded recursion for nested encodings AND bounded by
+    DECODE_MAX_RUNS / DECODE_MAX_BYTES (shared across the whole DFS via `_budget`);
+    only yields a token that decodes to mostly-printable text, so a benign binary
+    blob is skipped (we escalate on CONTENT, not mere length). Shared by the
+    evaluate() concern-decode pass and the category-independent `screen_always`
+    decode pass so both see the same decoded surface."""
     if _depth > 1:
-        return set()
+        return
     if _budget is None:
         _budget = {"runs": 0, "bytes": 0}
-    found: set[str] = set()
     for m in _B64_RUN.finditer(command):
         remaining = DECODE_MAX_BYTES - _budget["bytes"]
         if _budget["runs"] >= DECODE_MAX_RUNS or remaining <= 0:
@@ -217,10 +224,20 @@ def _decoded_payload_concerns(
         printable = sum(c.isprintable() or c.isspace() for c in text)
         if printable / len(text) < 0.8:
             continue  # binary noise, not a hidden command
-        for c in _concerns_for(catalog, category):
+        yield text
+        yield from _iter_decoded_texts(text, _depth + 1, _budget)
+
+
+def _decoded_payload_concerns(catalog: dict, command: str, category: str | None) -> set[str]:
+    """Base64-decode long tokens in the command and re-check the DECODED text for
+    concerns. Returns the concern ids found inside any decoded payload (excluding
+    the base64 concern itself)."""
+    concerns = _concerns_for(catalog, category)
+    found: set[str] = set()
+    for text in _iter_decoded_texts(command):
+        for c in concerns:
             if c["id"] != "sce.embedded-base64-payload" and _matches(c, text):
                 found.add(c["id"])
-        found |= _decoded_payload_concerns(catalog, text, category, _depth + 1, _budget)
     return found
 
 
@@ -328,6 +345,71 @@ def revalidate(
 
 _SELF_DISABLE_ID = "xc.tribunal-self-disable"
 
+# ─────────────────────────────────────────────────────────────────────────────
+# READ-ONLY DISCRIMINATOR — scoped to xc.tribunal-self-disable ONLY.
+#
+# A command that provably cannot WRITE cannot disable the Thing. Without this,
+# the self-disable screen denies pre-LLM and non-overridably on commands that
+# merely NAME the substrate — which is how a session ends up tunnelling around
+# the guard instead of using it. Measured 2026-08-18: three consecutive
+# legitimate maintenance operations denied in ~3 minutes — a rename of a gate
+# TEST file, a stage-and-commit whose COMMIT MESSAGE described that denial, and
+# a read-only search of comfort-posture.yaml whose SEARCH PATTERN contained
+# `command_review:`. The guard's own printed remedy ("turn the Thing off in the
+# dashboard") was already applied — command review was disabled in the posture —
+# and does not help, because always_screen is evaluated before the enabled gate.
+#
+# The safety argument, and it is the whole basis for this carve-out: with a
+# read-only FIRST TOKEN and no shell metacharacters, nothing else on the command
+# line can execute. Later words are ARGUMENTS — inert data to a program that
+# does not write. That is why naming a mutating verb or a substrate path inside
+# a search pattern is not a mutation, and why the fix is to classify the COMMAND
+# rather than to weaken any trigger. No trigger is relaxed by this change.
+#
+# FAIL-CLOSED, in this order:
+#   1. Quoted spans are removed FIRST and treated as inert data. This is sound
+#      ONLY because the first token must be a non-interpreter reader — quoted
+#      text is data to a search tool, but it is CODE to an interpreter's -c, and
+#      no interpreter appears in the allowlist. Do NOT add one.
+#   2. ANY shell metacharacter (semicolon, ampersand, pipe, redirect, backtick,
+#      command/parameter substitution, newline) outside quotes => NOT read-only.
+#      Chaining, redirection and substitution all re-open a write.
+#   3. ANY in-place/output flag => NOT read-only.
+#   4. The first token must match a STRICT allowlist of programs with no write
+#      mode. `find` is excluded deliberately (-delete/-exec mutate), as are the
+#      stream editors (-i), `sort` (-o), `tee`, and `dd`.
+#
+# This does NOT touch the hard-rule concerns (protected-branch force push, a
+# fetch piped into an interpreter, an inline secret) — none is read-only by
+# construction, and scoping the carve-out to the self-disable id keeps that
+# guarantee explicit rather than incidental.
+# ─────────────────────────────────────────────────────────────────────────────
+_RO_QUOTED = re.compile(r"'[^']*'|\"[^\"]*\"")
+_RO_META = re.compile(r"[;&|><`\n]|\$\(|\$\{")
+_RO_WRITE_FLAG = re.compile(r"--in-?place|--output\b", re.IGNORECASE)
+_RO_ALLOW_FIRST = re.compile(
+    r"\A\s*(?:"
+    r"grep|egrep|fgrep|rg|ugrep|cat|head|tail|wc|ls|stat|file|nl|od|xxd|cmp|diff|"
+    r"basename|dirname|realpath|readlink|"
+    r"git\s+(?:-C\s+\S+\s+)?"
+    r"(?:log|show|status|diff|blame|cat-file|ls-files|ls-tree|rev-parse|describe|shortlog)"
+    r")\b",
+    re.IGNORECASE,
+)
+
+
+def _self_disable_read_only(command: str) -> bool:
+    """True when `command` provably cannot write, so it cannot self-disable.
+
+    Conservative by construction: every ambiguity resolves to False (screened).
+    """
+    stripped = _RO_QUOTED.sub(" ", command)
+    if _RO_META.search(stripped):
+        return False
+    if _RO_WRITE_FLAG.search(stripped):
+        return False
+    return bool(_RO_ALLOW_FIRST.match(stripped))
+
 
 def screen_always(catalog: dict, command: str) -> dict:
     """Category-independent hard screen (design §B.9.3 + §B.9.5).
@@ -345,10 +427,23 @@ def screen_always(catalog: dict, command: str) -> dict:
 
     Scans cross-cutting AND every category's concern list (a hard-rule concern
     like srm.force-push lives under a category). Matching unions the raw and
-    normalized command. Returns the self-disable verdict (unchanged contract) AND
-    a parallel hard-rule verdict; the orchestrator denies pre-LLM on either.
+    normalized command AND the base64-DECODED forms of the command — so an
+    obfuscated hard-rule / self-disable command (e.g. `source <(echo <b64> |
+    base64 -d)` decoding to `curl … | sh`) that classifies to None / an
+    untoggled category — and therefore never reaches evaluate()'s decode pass —
+    is still caught here, closing the "cannot be evaded via mis-classification"
+    invariant this screen exists to hold. Returns the self-disable verdict
+    (unchanged contract) AND a parallel hard-rule verdict; the orchestrator denies
+    pre-LLM on either.
     """
-    variants = _match_variants(command)
+    variants: list[str] = list(_match_variants(command))
+    # Extend the scanned surface with the decoded payloads (each normalized the
+    # same way as the raw command), mirroring evaluate()'s base64 pass but applied
+    # to the always_screen pools. Bounded by DECODE_MAX_RUNS / DECODE_MAX_BYTES.
+    for _decoded in _iter_decoded_texts(command):
+        for _v in _match_variants(_decoded):
+            if _v not in variants:
+                variants.append(_v)
     pools: list[list] = [catalog.get("cross_cutting") or []]
     for cat_concerns in (catalog.get("categories") or {}).values():
         if isinstance(cat_concerns, list):
@@ -375,6 +470,11 @@ def screen_always(catalog: dict, command: str) -> dict:
             if not matched:
                 continue
             if c["id"] == _SELF_DISABLE_ID:
+                # A provably-non-writing command cannot disable the Thing. Scoped
+                # to this concern ONLY — the hard rules below keep screening every
+                # command, read-only or not. See _self_disable_read_only().
+                if _self_disable_read_only(command):
+                    continue
                 self_hit = self_hit or c["id"]
             else:
                 hard_hit = hard_hit or c["id"]

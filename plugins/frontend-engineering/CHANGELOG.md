@@ -2,6 +2,12 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.4.3] — 2026-08-14
+
+### Changed
+
+- Dropped hand-maintained artifact-count literals from the plugin description (D1). The roster enumerates itself; Gate 206 forbids the digit.
+
 ## [0.4.2] — 2026-07-08
 
 Weekly Tier-A news sweep (2026-07-08) — **correction** in `CLAUDE.md`: `chrome-devtools-mcp` is **v1.5.0** (past a v1.0.0 GA), not the documented **~v0.21.0**. Re-verified via the GitHub releases API. **Migration:** none — knowledge-file content only.

@@ -36,7 +36,7 @@ Standardizes clinical protocols to reduce variation, instruments production per 
 
 ## Knowledge bank
 
-6 research-grounded reference docs under [`knowledge/`](knowledge/) — figures carry a source + date, advisory numbers are marked `[ESTIMATE]`, and anything from training knowledge is marked `[unverified — training knowledge]`. Includes two **Mermaid decision trees** (add-an-associate vs. extend-capacity; in-house vs. send-out lab) and a cited-benchmark KPI glossary.
+research-grounded reference docs under [`knowledge/`](knowledge/) — figures carry a source + date, advisory numbers are marked `[ESTIMATE]`, and anything from training knowledge is marked `[unverified — training knowledge]`. Includes two **Mermaid decision trees** (add-an-associate vs. extend-capacity; in-house vs. send-out lab) and a cited-benchmark KPI glossary.
 
 ## Scenarios bank
 
@@ -47,8 +47,8 @@ Dated, scope-tagged engagement narratives under [`scenarios/`](scenarios/) — s
 [`scripts/vet_calc.py`](scripts/vet_calc.py) (stdlib only, Python 3.8+) — three decision-support modes:
 
 ```shell
-python3 scripts/vet_calc.py associate-roi  --ramp-months 12 --target-production 40000 --monthly-comp 9000 --variable-load 35%
-python3 scripts/vet_calc.py lab-breakeven  --analyzer-cost 24000 --consumables 6 --tech-time 4 --sendout 18 --volume 250
+python3 scripts/vet_calc.py associate-roi --ramp-months 12 --target-production 40000 --monthly-comp 9000 --variable-load 35%
+python3 scripts/vet_calc.py lab-breakeven --analyzer-cost 24000 --consumables 6 --tech-time 4 --sendout 18 --volume 250
 python3 scripts/vet_calc.py wellness-margin --fee 55 --service-cost 40 --redemption 70%
 ```
 
@@ -57,7 +57,7 @@ It is a calculator, not a data source — you supply every input; outputs are de
 ## Install
 
 ```shell
-/plugin marketplace add ./            # from a separate Claude Code project
+/plugin marketplace add ./ # from a separate Claude Code project
 /plugin install veterinary-practice@ravenclaude
 ```
 

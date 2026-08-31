@@ -8,11 +8,11 @@ A **Sales & Revenue Operations specialist team** for a RevOps leader, sales ops 
 
 | Surface | Contents |
 |---|---|
-| **4 agents** | `revops-lead`, `pipeline-forecast-analyst`, `funnel-conversion-strategist`, `quota-territory-architect` |
-| **5 skills / commands** | `build-forecast` · `read-pipeline-coverage` · `diagnose-funnel` · `model-velocity` · `design-quota` |
-| **4-file knowledge bank** | KPI glossary · unit economics · 2025–2026 context · Mermaid decision trees |
-| **4 templates** | scorecard · exec readout · forecast-worksheet.md · quota-capacity-model.md |
-| **1 advisory hook** | flags anti-patterns (unbaselined metric, unsourced benchmark, customer/rep PII) in generated deliverables |
+| **agents** | `revops-lead`, `pipeline-forecast-analyst`, `funnel-conversion-strategist`, `quota-territory-architect` |
+| **skills / commands** | `build-forecast` · `read-pipeline-coverage` · `diagnose-funnel` · `model-velocity` · `design-quota` |
+| **knowledge bank** | KPI glossary · unit economics · 2025–2026 context · Mermaid decision trees |
+| **templates** | scorecard · exec readout · forecast-worksheet.md · quota-capacity-model.md |
+| **an advisory hook** | flags anti-patterns (unbaselined metric, unsourced benchmark, customer/rep PII) in generated deliverables |
 | **`scripts/revops_calc.py`** | stdlib calculator — `coverage` · `forecast` · `funnel` · `velocity` · `quota-capacity` |
 
 ## Install

@@ -20,11 +20,11 @@ Running a craft-beverage producer well: each unit made at a known, defensible co
 
 ## What's inside
 
-- **4 skills** — production-planning-and-cogs, tasting-room-throughput-and-conversion, club-membership-and-dtc-revenue, three-tier-and-self-distribution-economics.
-- **Knowledge bank** — [`craft-beverage-decision-trees.md`](knowledge/craft-beverage-decision-trees.md) (4 Mermaid trees: channel mix, add production capacity, design the club, self-distribute vs distributor) + [`craft-beverage-reference-2026.md`](knowledge/craft-beverage-reference-2026.md) (dated reference, verify-at-use).
-- **5 best-practices** — see [`best-practices/README.md`](best-practices/README.md).
-- **2 templates** — craft-beverage KPI dashboard, channel-margin & COGS worksheet.
-- **2 commands** — `/model-channel-mix`, `/design-club-tier`.
+- **skills** — production-planning-and-cogs, tasting-room-throughput-and-conversion, club-membership-and-dtc-revenue, three-tier-and-self-distribution-economics.
+- **Knowledge bank** — [`craft-beverage-decision-trees.md`](knowledge/craft-beverage-decision-trees.md) (Mermaid trees: channel mix, add production capacity, design the club, self-distribute vs distributor) + [`craft-beverage-reference-2026.md`](knowledge/craft-beverage-reference-2026.md) (dated reference, verify-at-use).
+- **best-practices** — see [`best-practices/README.md`](best-practices/README.md).
+- **templates** — craft-beverage KPI dashboard, channel-margin & COGS worksheet.
+- **commands** — `/model-channel-mix`, `/design-club-tier`.
 
 ## Seams
 
@@ -33,7 +33,7 @@ Three-tier / franchise law, TTB and state licensing, direct-ship permits, excise
 ## Install
 
 ```shell
-/plugin marketplace add ./        # from a separate Claude Code project, pointed at this repo
+/plugin marketplace add ./ # from a separate Claude Code project, pointed at this repo
 /plugin install craft-beverage-operations@ravenclaude
 ```
 

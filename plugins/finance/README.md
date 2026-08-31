@@ -8,7 +8,7 @@ Ships seven specialist agents (FP&A analyst, financial modeler, controller, trea
 
 ```shell
 /plugin marketplace add mcorbett51090/RavenClaude
-/plugin install ravenclaude-core@ravenclaude     # prerequisite
+/plugin install ravenclaude-core@ravenclaude # prerequisite
 /plugin install finance@ravenclaude
 /reload-plugins
 ```
@@ -30,13 +30,13 @@ See [`CLAUDE.md`](CLAUDE.md) for the full team constitution (roster, routing rul
 ## When to dispatch
 
 ```text
-"Why is gross margin off this quarter?"      → fpa-analyst
-"Build a three-statement model for X"        → financial-modeler
-"Help me prep for next month's close"        → controller
-"Cash runway looks tight"                    → treasury-analyst
-"Need a 409A refresh"                        → valuation-analyst
-"Audit kicks off in 6 weeks"                 → audit-prep-specialist
-"Quarterly board pack is due Friday"         → board-pack-composer
+"Why is gross margin off this quarter?" → fpa-analyst
+"Build a three-statement model for X" → financial-modeler
+"Help me prep for next month's close" → controller
+"Cash runway looks tight" → treasury-analyst
+"Need a 409A refresh" → valuation-analyst
+"Audit kicks off in 6 weeks" → audit-prep-specialist
+"Quarterly board pack is due Friday" → board-pack-composer
 ```
 
 The Team Lead in the consumer's Claude Code session reads this plugin's `CLAUDE.md` and dispatches the right specialist via `ravenclaude-core/skills/spawn-team/SKILL.md`.
@@ -54,7 +54,7 @@ The Team Lead in the consumer's Claude Code session reads this plugin's `CLAUDE.
 9. Plain English first, then the technical.
 10. Confidentiality by default.
 
-The full list (plus the 13 anti-patterns every agent flags) is in [`CLAUDE.md`](CLAUDE.md) §3 / §4.
+The full list (plus the anti-patterns every agent flags) is in [`CLAUDE.md`](CLAUDE.md) §3 / §4.
 
 ## Hooks
 

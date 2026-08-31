@@ -8,11 +8,11 @@ A **Automotive Dealership Operations specialist team** for a dealer principal, g
 
 | Surface | Contents |
 |---|---|
-| **4 agents** | `dealership-operations-lead`, `sales-desking-analyst`, `fixed-ops-service-specialist`, `fi-products-specialist` |
-| **5 skills / commands** | `read-days-supply` · `compute-total-gross` · `compute-absorption` · `diagnose-sales-funnel` · `frame-fi-penetration` |
-| **4-file knowledge bank** | KPI glossary · unit economics · 2025–2026 context · Mermaid decision trees |
-| **4 templates** | scorecard · exec readout · inventory-floorplan.md · total-gross-worksheet.md |
-| **1 advisory hook** | flags anti-patterns (unbaselined metric, unsourced benchmark, customer PII) in generated deliverables |
+| **agents** | `dealership-operations-lead`, `sales-desking-analyst`, `fixed-ops-service-specialist`, `fi-products-specialist` |
+| **skills / commands** | `read-days-supply` · `compute-total-gross` · `compute-absorption` · `diagnose-sales-funnel` · `frame-fi-penetration` |
+| **knowledge bank** | KPI glossary · unit economics · 2025–2026 context · Mermaid decision trees |
+| **templates** | scorecard · exec readout · inventory-floorplan.md · total-gross-worksheet.md |
+| **an advisory hook** | flags anti-patterns (unbaselined metric, unsourced benchmark, customer PII) in generated deliverables |
 | **`scripts/automotive_dealership_calc.py`** | stdlib calculator — `days-supply` · `absorption` · `gross-per-unit` |
 
 ## Install

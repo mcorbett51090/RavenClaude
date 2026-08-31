@@ -105,6 +105,20 @@ chk "diagnosis with NO certainty stamp -> allowed"   0 "$(pre "$(mkw "$P/docs/fi
 chk "premise-ok: with nothing after it -> DENIED"    2 "$(pre "$(mkw "$P/docs/finding.md" "$DIAG\npremise-ok:")")"
 chk "premise-ok: <named control> -> allowed"         0 "$(pre "$(mkw "$P/docs/finding.md" "$DIAG\npremise-ok: browser render check, run 2026-08-08")")"
 
+# (5) A CONDITIONAL CLAUSE IS NOT AN ASSERTION. These three differ ONLY in what
+# precedes the identical <subject>+<predicate> span, which is the whole discriminator.
+# The first is the boilerplate section header carried by ALL 35 best-practice files —
+# it tripped the gate on the file's OWN structure, which no author chose.
+COND='## Edge cases / when the rule does NOT apply\n\nSome body text.\nmeasured 2026-08-12'
+ASSERT='The rule does not apply.\nmeasured 2026-08-12'
+PREAMBLE='When we checked, the decoder is broken.\nmeasured 2026-08-12'
+chk "conditional clause (the boilerplate BP heading) -> allowed" \
+                                                     0 "$(pre "$(mkw "$P/docs/finding.md" "$COND")")"
+chk "same subject+predicate as a bare ASSERTION -> still DENIED" \
+                                                     2 "$(pre "$(mkw "$P/docs/finding.md" "$ASSERT")")"
+chk "temporal preamble is not a conditional -> still DENIED" \
+                                                     2 "$(pre "$(mkw "$P/docs/finding.md" "$PREAMBLE")")"
+
 echo "-- 7. A project root that LIVES UNDER /tmp (the Linux mktemp shape) --"
 # ⛔ REGRESSION GUARD, and it is platform-independent ON PURPOSE. macOS `mktemp -d`
 # yields /var/folders/...; Linux yields /tmp/tmp.XXXX. The scratch exemption was once

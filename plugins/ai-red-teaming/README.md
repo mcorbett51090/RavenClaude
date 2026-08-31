@@ -19,19 +19,19 @@ Part of the [RavenClaude](../../README.md) marketplace. Extends `ravenclaude-cor
 
 ## What's inside
 
-- **2 agents** — `ai-redteam-lead` (scopes the threat model, rules of engagement, prioritized attack taxonomy, safety-vs-security split, and success/severity criteria) and `adversarial-testing-engineer` (executes the attacks, builds the automated harness, triages by likelihood×impact, and drives defense-in-depth remediation + retest).
-- **3 skills** — `design-ai-redteam-plan`, `run-adversarial-attacks-and-jailbreaks`, `harden-and-remediate-ai-system`.
-- **2 knowledge files** — a Mermaid AI attack-taxonomy decision tree (+ OWASP LLM Top 10 2025 map + MITRE ATLAS anchor + likelihood×impact severity table) and a 2026 AI-red-teaming-patterns reference (safety-vs-security, the jailbreak catalog, agentic tool-abuse, automated red-teaming, defense-in-depth, responsible disclosure, tooling map).
-- **2 templates** — an AI red-team plan and an AI red-team findings report.
+- **agents** — `ai-redteam-lead` (scopes the threat model, rules of engagement, prioritized attack taxonomy, safety-vs-security split, and success/severity criteria) and `adversarial-testing-engineer` (executes the attacks, builds the automated harness, triages by likelihood×impact, and drives defense-in-depth remediation + retest).
+- **skills** — `design-ai-redteam-plan`, `run-adversarial-attacks-and-jailbreaks`, `harden-and-remediate-ai-system`.
+- **knowledge files** — a Mermaid AI attack-taxonomy decision tree (+ OWASP LLM Top 10 2025 map + MITRE ATLAS anchor + likelihood×impact severity table) and a 2026 AI-red-teaming-patterns reference (safety-vs-security, the jailbreak catalog, agentic tool-abuse, automated red-teaming, defense-in-depth, responsible disclosure, tooling map).
+- **templates** — an AI red-team plan and an AI red-team findings report.
 
 ## Where it sits in the AI stack
 
 ```
-claude-app-engineering    →  BUILD the AI app / agent            ("make it work")
-ai-rag-engineering        →  retrieval / grounding architecture  ("ground it in our data")
-llm-evaluation-engineering→  quality / capability regression     ("is it GOOD?")
-trust-and-safety          →  content-moderation / T&S policy     ("is the CONTENT safe / on-policy")
-ai-red-teaming (HERE)     →  can an ADVERSARY break / abuse it    ("can it be MADE to do harm / leak / over-reach")
+claude-app-engineering → BUILD the AI app / agent ("make it work")
+ai-rag-engineering → retrieval / grounding architecture ("ground it in our data")
+llm-evaluation-engineering→ quality / capability regression ("is it GOOD?")
+trust-and-safety → content-moderation / T&S policy ("is the CONTENT safe / on-policy")
+ai-red-teaming (HERE) → can an ADVERSARY break / abuse it ("can it be MADE to do harm / leak / over-reach")
 ```
 
 This plugin is the **adversarial-security layer** *over* the others: it attacks the apps `claude-app-engineering` builds and the retrieval `ai-rag-engineering` grounds, stays distinct from the *quality* question `llm-evaluation-engineering` owns ("is it good?" ≠ "can it be broken?"), takes the *security* half of the safety-vs-security split while `trust-and-safety` takes the *safety*/content-policy half, and leaves the non-AI attack surface (network, auth, infra) to `security-engineering`.

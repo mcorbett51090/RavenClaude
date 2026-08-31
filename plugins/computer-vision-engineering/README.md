@@ -22,11 +22,11 @@ Building vision systems well: framing the task correctly (is it classification, 
 
 ## What's inside
 
-- **4 skills** — cv-task-and-data-strategy, cv-model-training-and-evaluation, vision-inference-optimization, video-pipeline-and-edge-deployment.
-- **Knowledge bank** — [`cv-decision-trees.md`](knowledge/cv-decision-trees.md) (4 Mermaid trees: vision-task selection, build-vs-fine-tune-vs-API, model-family choice, deployment-target choice) + [`cv-reference-2026.md`](knowledge/cv-reference-2026.md) (dated model/accelerator/runtime/annotation-tool landscape + metric definitions, verify-at-use).
-- **5 best-practices** — see [`best-practices/README.md`](best-practices/README.md).
-- **2 templates** — CV project architecture, CV evaluation plan.
-- **2 commands** — `/choose-cv-approach`, `/plan-cv-evaluation`.
+- **skills** — cv-task-and-data-strategy, cv-model-training-and-evaluation, vision-inference-optimization, video-pipeline-and-edge-deployment.
+- **Knowledge bank** — [`cv-decision-trees.md`](knowledge/cv-decision-trees.md) (Mermaid trees: vision-task selection, build-vs-fine-tune-vs-API, model-family choice, deployment-target choice) + [`cv-reference-2026.md`](knowledge/cv-reference-2026.md) (dated model/accelerator/runtime/annotation-tool landscape + metric definitions, verify-at-use).
+- **best-practices** — see [`best-practices/README.md`](best-practices/README.md).
+- **templates** — CV project architecture, CV evaluation plan.
+- **commands** — `/choose-cv-approach`, `/plan-cv-evaluation`.
 
 ## Seams
 
@@ -35,7 +35,7 @@ Broad MLOps / non-vision modeling → [`ml-engineering`](../ml-engineering/) · 
 ## Install
 
 ```shell
-/plugin marketplace add ./        # from a separate Claude Code project, pointed at this repo
+/plugin marketplace add ./ # from a separate Claude Code project, pointed at this repo
 /plugin install computer-vision-engineering@ravenclaude
 ```
 

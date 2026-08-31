@@ -20,19 +20,19 @@ Part of the [RavenClaude](../../README.md) marketplace. Extends `ravenclaude-cor
 
 ## What's inside
 
-- **2 agents** — `internal-audit-lead` (the risk-based audit universe & annual plan, IIA-Standards conformance, independence & objectivity, the audit-committee reporting line, and the QAIP) and `audit-engagement-specialist` (the planning memo, risk & control matrix, tests of design & operating effectiveness, sampling, workpapers, 5-C findings, ratings, and follow-up).
-- **3 skills** — `build-risk-based-audit-plan`, `plan-and-execute-audit-engagement`, `rate-and-report-audit-findings`.
-- **2 knowledge files** — a Mermaid internal-audit decision tree (assurance-vs-advisory, risk-ranking the universe, sampling approach, issue-rating matrix + trade-off tables) and a 2026 internal-audit-patterns reference (IIA Global Internal Audit Standards / 5 domains / 15 principles, COSO Internal Control / 5 components, COSO ERM, the Three Lines Model, the engagement lifecycle, common audit programs, KPIs, and the QAIP / external-quality-assessment cadence).
-- **2 templates** — an audit-engagement planning memo and an audit-finding & issue log.
+- **agents** — `internal-audit-lead` (the risk-based audit universe & annual plan, IIA-Standards conformance, independence & objectivity, the audit-committee reporting line, and the QAIP) and `audit-engagement-specialist` (the planning memo, risk & control matrix, tests of design & operating effectiveness, sampling, workpapers, 5-C findings, ratings, and follow-up).
+- **skills** — `build-risk-based-audit-plan`, `plan-and-execute-audit-engagement`, `rate-and-report-audit-findings`.
+- **knowledge files** — a Mermaid internal-audit decision tree (assurance-vs-advisory, risk-ranking the universe, sampling approach, issue-rating matrix + trade-off tables) and a 2026 internal-audit-patterns reference (IIA Global Internal Audit Standards / 5 domains / 15 principles, COSO Internal Control / 5 components, COSO ERM, the Three Lines Model, the engagement lifecycle, common audit programs, KPIs, and the QAIP / external-quality-assessment cadence).
+- **templates** — an audit-engagement planning memo and an audit-finding & issue log.
 
 ## Where it sits in the assurance stack
 
 ```
-internal-audit (HERE)          →  INDEPENDENT assurance & advisory over ALL risk  ("what to audit, how to test, how bad, report to the board")
-cybersecurity-grc              →  deep security-control assurance                 ("ISO 27001 / NIST / SOC 2 control testing")
-regulatory-compliance          →  AML / financial-regulatory obligations          ("the regulated-conduct rules")
-esg-sustainability-reporting   →  ESG / sustainability assurance                  ("the ESG disclosures")
-process-improvement            →  redesigning the audited process                 ("fix the process, don't just assure it")
+internal-audit (HERE) → INDEPENDENT assurance & advisory over ALL risk ("what to audit, how to test, how bad, report to the board")
+cybersecurity-grc → deep security-control assurance ("ISO 27001 / NIST / SOC 2 control testing")
+regulatory-compliance → AML / financial-regulatory obligations ("the regulated-conduct rules")
+esg-sustainability-reporting → ESG / sustainability assurance ("the ESG disclosures")
+process-improvement → redesigning the audited process ("fix the process, don't just assure it")
 ```
 
 This plugin is the **independent assurance function**: it decides what to audit, tests whether controls over the in-scope risks are designed and operating effectively, rates and reports what it finds to the audit committee, and validates remediation — while staying clear of the *deep security-control* work (`cybersecurity-grc`), the *AML/financial-regulatory* obligations (`regulatory-compliance`), the *ESG assurance* (`esg-sustainability-reporting`), and *owning the control* it assures.

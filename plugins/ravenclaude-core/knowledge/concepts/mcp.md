@@ -6,7 +6,7 @@ kind: platform-fact
 order: 5
 summary: "The Model Context Protocol is a standard way to plug external tools and data into any agent. Write a server once; every MCP-aware client can use it — no per-app glue."
 see_also: [tool-use, agent-harness-loop]
-last_verified: 2026-06-05
+last_verified: 2026-08-24
 refresh_when: "The MCP spec changes its primitives (tools/resources/prompts), transport set, or Claude Code changes how MCP servers are configured."
 sources:
   - label: "Model Context Protocol — specification"

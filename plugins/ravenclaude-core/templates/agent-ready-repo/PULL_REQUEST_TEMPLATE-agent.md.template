@@ -1,0 +1,44 @@
+<!--
+  Agent-authored PR template (OPT-IN). Scaffolded by /init-agent-ready.
+  To use: rename to .github/PULL_REQUEST_TEMPLATE/agent_pr_template.md in your repo, then have the
+  agent open its PR with ?template=agent_pr_template.md on the PR-creation URL so this template is
+  chosen over the human default. Convention modelled on Devin's per-agent PR template.
+
+  Attribution policy (self-contained — see the agent-pr-identity knowledge for the full rationale):
+  an agent PROPOSES; the human APPROVES the merge. Attribute agent work with a Co-Authored-By trailer.
+  This repo ships NO bot account by default — the agent commits under the human's git identity + the
+  trailer. If you want a "verified" signature instead, sign via a GitHub App / dedicated account.
+-->
+
+## Summary
+
+<!-- What changed, in one or two sentences. -->
+
+## Why
+
+<!-- The motivation. Link the issue this addresses. -->
+
+## Approach
+
+<!-- The approach taken; note any alternatives considered and why this one. -->
+
+## Verification performed
+
+<!-- What the agent ran to confirm this works. Paste the command-output summary, not just a claim. -->
+
+- [ ] Tests pass
+- [ ] Lint / format clean
+- [ ] Manually confirmed the change does what it claims
+
+## Risk & rollback
+
+<!-- Blast radius + how to revert if needed. -->
+
+## Agent provenance
+
+<!--
+  An agent authored this PR. Keep the human as the merge approver — an agent proposes, the human
+  approves the merge (do not self-merge). Fill in the trailer below with the agent's identity.
+-->
+
+Co-Authored-By: <agent-name> <agent@users.noreply.github.com>

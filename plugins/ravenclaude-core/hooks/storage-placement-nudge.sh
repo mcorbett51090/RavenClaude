@@ -23,6 +23,13 @@
 # Opt out per-write by including `placement-ok` anywhere in the file.
 set -uo pipefail
 
+# ── ADVISORY DELIVERY (added 2026-08-19) ────────────────────────────────────
+# stderr at exit 0 is MEASURED UNDELIVERED to the model (see _advise.sh header).
+# Buffer fd2 and re-emit it at exit as additionalContext, which IS delivered,
+# while still printing the original UI notice. No call site below changes.
+_rc_hd="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" 2>/dev/null && pwd || printf '.')"
+if [ -f "$_rc_hd/_advise.sh" ]; then . "$_rc_hd/_advise.sh"; rc_advise_init PostToolUse; fi
+
 command -v jq >/dev/null 2>&1 || exit 0
 
 payload=""

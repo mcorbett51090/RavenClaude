@@ -2,7 +2,71 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
-## [0.9.12] — 2026-08-06
+## 0.9.17 — 2026-08-27
+
+### Changed
+
+- **Research-sweep refresh of the capability map (PRIMARY-VERIFIED).** The
+  `platform.claude.com` release notes were fetched directly this session (not 403), so six
+  platform facts from the 2026-08-05..26 window that the 2026-08-13 review predated are folded in
+  with primary dates/ids:
+  - **Python SDK `anthropic` v1.0 (2026-08-20)** — new capability row; BREAKING (httpx→`httpx2`,
+    Python ≥3.10, removed Text Completions API + `temperature`/`top_p`/`top_k` on Messages +
+    tool-runner `compaction_control`; async `.with_raw_response` needs `await response.parse()`;
+    `AnthropicBedrock` errors without an AWS region).
+  - **Computer use out of beta** (`computer_toolset_20260801`) **+ the new `browser_toolset_20260801`
+    browser use tool** (2026-08-19) — computer-use row corrected (was "still requires your sandbox",
+    no toolset id), browser use added.
+  - **Files API + Agent Skills/Skills API out of beta** (2026-08-19; `files-api-2025-04-14` /
+    `skills-2025-10-02` headers dropped).
+  - **Managed Agents** row expanded — session budgets, session advisor, `inference_geo`, GitHub-repo
+    skills, `web_search`/`web_fetch` domain allowlisting, self-hosted-sandbox memory, model `effort`.
+  - **Workbench → Playground** rename (2026-08-18; legacy Workbench + experimental prompt-tools APIs
+    sunset 2026-08-17) — corrected in `claude-build-surface-decision-tree.md` (dated header note).
+- All new claims carry a `[verify-at-use]` marker and a primary release-notes citation. No model
+  lineup / default changed. **Migration:** none. Reviewed via a 3-seat usefulness panel + a
+  detailed-review pass (recorded in the PR).
+
+## 0.9.16 — 2026-08-14
+
+### Fixed
+
+- **Sonnet 5 pricing correction (replay of #886 onto current main).** The capability map still
+  said intro $2/$10 through 2026-08-31 then $3/$15. Anthropic made $2/$10 permanent on 2026-08-10.
+  Header re-dated 2026-08-13. Source: Claude on X, 2026-08-10 `[verify-at-use]`.
+  0.9.15 was already used on main for the Gate 206 count-literal drop, so this is 0.9.16.
+
+## 0.9.14 — 2026-08-12
+
+### Changed
+
+- **`mcp-server-authoring.md` — the 2026-07-28 MCP spec revision (stateless core).** Landed from
+  PR #826, renumbered from its authored 0.9.12 (`main` had moved to 0.9.13). Adds the protocol-level
+  rewrite note: the `Mcp-Session-Id` header and the `initialize`/`initialized` handshake are removed,
+  Multi Round-Trip Requests replace held-open server-initiated requests, Tasks move to an extension,
+  and Sampling / Roots / legacy HTTP+SSE enter a 12-month deprecation window. Framed as
+  *spec published, SDKs still catching up* — author against the version your client negotiates.
+
+⛔ PR #826's second hunk (the model-selection capability map) was **rejected, not merged**: `main`
+already documents Opus 5 and its review date is newer (2026-08-12 vs the branch's 2026-08-05), so
+taking the branch's side would have rolled the file backwards.
+
+## [0.9.15] — 2026-08-14
+
+### Changed
+
+- Dropped hand-maintained artifact-count literals from the plugin description (D1). The roster enumerates itself; Gate 206 forbids the digit.
+
+## [0.9.13] — 2026-08-12
+
+### Changed
+
+**Recorded a new flagship-Opus GA in the model-selection capability map: Claude Opus 5 supersedes Opus 4.8.** Verified 2026-08-12 against the [platform.claude.com models overview](https://platform.claude.com/docs/en/about-claude/models/overview) (GA date corroborated by [9to5Mac 2026-07-24](https://9to5mac.com/2026/07/24/anthropic-upgrades-claude-with-new-opus-5-model-details-here/), which the overview page does not carry).
+
+- **`knowledge/model-selection-and-2026-capability-map.md`** — added **Opus 5** (`claude-opus-5`) to the lineup table as the current recommended Opus-tier default ($5/$25 per Mtok, 1M context / 128K output, adaptive thinking on / no extended-thinking mode, `effort` defaults to `high` on Claude API + Claude Code, reliable knowledge cutoff May 2026); demoted **Opus 4.8** to prior default (Anthropic now lists it under **Legacy models** with a "Migrating to Claude Opus 5" guide); updated the routing ladder to reserve **Opus 5** for the hard tail; added Opus 5 / Sonnet 5 to the 1M-context capability row; re-stamped **Last reviewed 2026-08-12** with citations + a `[verify-at-use]` rider.
+- **Left intact:** the Fable-5 safety-fallback-target references to Opus 4.8 (still correct per the platform docs) and all operational/runtime model IDs. The doc now carries an **operational-vs-advisory** note: the decision-review tribunal + dashboards still run on Opus 4.8 (`model-catalog.json`) until the maintainer runs the operational catalog bump — that bump is deferred as a high-blast governance decision.
+
+
 
 ### Fixed
 

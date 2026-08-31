@@ -2,6 +2,12 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.3.4] — 2026-08-14
+
+### Changed
+
+- Dropped hand-maintained artifact-count literals from the plugin description (D1). The roster enumerates itself; Gate 206 forbids the digit.
+
 ## [0.3.1] — 2026-06-22
 
 Weekly news-cadence sweep correction (Tier-A, `data_and_bi`). See [`docs/research/2026-06-22-weekly-sweep-findings.md`](../../docs/research/2026-06-22-weekly-sweep-findings.md).

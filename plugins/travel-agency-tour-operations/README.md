@@ -20,11 +20,11 @@ Running a travel agency well: a revenue model that prices the advisor's expertis
 
 ## What's inside
 
-- **4 skills** — itinerary-design-and-quoting, supplier-and-commission-management, group-vs-fit-trip-operations, service-recovery-and-disruption.
-- **Knowledge bank** — [`travel-agency-decision-trees.md`](knowledge/travel-agency-decision-trees.md) (4 Mermaid trees: revenue model, group vs FIT, disruption/service-recovery, commission-recovery chase) + [`travel-agency-reference-2026.md`](knowledge/travel-agency-reference-2026.md) (dated reference, verify-at-use).
-- **5 best-practices** — see [`best-practices/README.md`](best-practices/README.md).
-- **2 templates** — itinerary & quote, supplier commission tracker.
-- **2 commands** — `/build-itinerary-quote`, `/reconcile-commissions`.
+- **skills** — itinerary-design-and-quoting, supplier-and-commission-management, group-vs-fit-trip-operations, service-recovery-and-disruption.
+- **Knowledge bank** — [`travel-agency-decision-trees.md`](knowledge/travel-agency-decision-trees.md) (Mermaid trees: revenue model, group vs FIT, disruption/service-recovery, commission-recovery chase) + [`travel-agency-reference-2026.md`](knowledge/travel-agency-reference-2026.md) (dated reference, verify-at-use).
+- **best-practices** — see [`best-practices/README.md`](best-practices/README.md).
+- **templates** — itinerary & quote, supplier commission tracker.
+- **commands** — `/build-itinerary-quote`, `/reconcile-commissions`.
 
 ## Seams
 
@@ -33,7 +33,7 @@ Domain-neutral protocols, structured output, and security/privacy verdicts → [
 ## Install
 
 ```shell
-/plugin marketplace add ./        # from a separate Claude Code project, pointed at this repo
+/plugin marketplace add ./ # from a separate Claude Code project, pointed at this repo
 /plugin install travel-agency-tour-operations@ravenclaude
 ```
 

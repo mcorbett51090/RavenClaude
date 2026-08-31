@@ -26,6 +26,10 @@ description: Create an isolated git worktree under .claude/worktrees/ for a sub-
 6. **Install dependencies if needed.** If the project requires a per-tree install (e.g. `pnpm install`), run it once in the new worktree before handing off.
 7. **Report the path and branch back to the Team Lead.** The Team Lead then briefs the agent and points it at this directory.
 
+## Peer-process / IDE
+
+After create, write the lane stamp (`plugins/ravenclaude-core/scripts/write-lane-stamp.sh <dest> <task> <branch> <created_by>`) and open a **dedicated** VS Code window (`rcwt new` / `code -n <path>`). Never add the new worktree as a second folder in an existing window — multi-root pools Chat context. Do not restyle the sub-agent procedure above.
+
 ## Cleanup
 Worktrees are NOT auto-removed. Use [`cleanup-worktrees`](../cleanup-worktrees/SKILL.md) when the task is integrated.
 

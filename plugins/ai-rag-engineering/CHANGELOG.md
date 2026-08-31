@@ -2,6 +2,18 @@
 
 All notable changes to this plugin are documented here. Versioning is semver; bump on every user-visible change (AGENTS.md).
 
+## [0.1.3] — 2026-08-14
+
+### Added
+
+- Seam: GraphRAG *construction* (model/query of a retrieval graph) → [`graph-engineering`](../graph-engineering/). Vector/hybrid RAG, chunking, and recall@k stay here. Paradigm III.a vs BM25 stays in `memory-engineering`.
+
+## [0.1.2] — 2026-08-14
+
+### Changed
+
+- Dropped hand-maintained artifact-count literals from the plugin description (D1). The roster enumerates itself; Gate 206 forbids the digit.
+
 ## [0.1.1] — 2026-07-09
 
 ### Fixed

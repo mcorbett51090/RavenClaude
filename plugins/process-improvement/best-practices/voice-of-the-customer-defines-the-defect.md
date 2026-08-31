@@ -47,7 +47,7 @@ CTQ statement example:
 ## See also
 
 - [`../agents/lean-six-sigma-blackbelt.md`](../agents/lean-six-sigma-blackbelt.md) — owns the Define phase and the CTQ tree; routes VoC collection as a Measure-phase gate requirement
-- [`./operational-definition-of-the-metric.md`](./operational-definition-of-the-metric.md) — companion rule: once the CTQ is defined, the metric that measures it needs an operational definition
+- [`./operational-definition-before-you-measure.md`](./operational-definition-before-you-measure.md) — companion rule: once the CTQ is defined, the metric that measures it needs an operational definition
 
 ## Provenance
 

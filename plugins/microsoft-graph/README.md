@@ -4,7 +4,7 @@ A Claude Code plugin: a specialist **Microsoft Graph developer team** for the Gr
 
 ## What's inside
 
-- **3 agents** — `graph-api-engineer` (OData query/paging/`$batch`/delta, throttling, SDKs), `graph-identity-engineer` (Entra app registration, delegated vs application permissions, scopes/consent, auth flows, least-privilege), `graph-workloads-engineer` (users/groups, mail/calendar, Teams, files, change notifications/subscriptions).
+- **agents** — `graph-api-engineer` (OData query/paging/`$batch`/delta, throttling, SDKs), `graph-identity-engineer` (Entra app registration, delegated vs application permissions, scopes/consent, auth flows, least-privilege), `graph-workloads-engineer` (users/groups, mail/calendar, Teams, files, change notifications/subscriptions).
 - **knowledge/** — citation-grounded reference with Mermaid **decision trees** (permission type, auth flow, query vs delta vs subscription, paging/batching, throttling response, large-file upload).
 - **best-practices/** — named, citable rules surfaced in the marketplace repo-guide + dashboard Guidance tab.
 

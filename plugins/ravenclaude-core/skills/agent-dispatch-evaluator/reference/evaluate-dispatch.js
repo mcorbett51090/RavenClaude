@@ -31,13 +31,45 @@ let _wfClock = 0;
 const _now = () => (_wfClock += 1); // monotonic ordinal, NOT wall-clock ms
 const _isoNow = () => "1970-01-01T00:00:00.000Z";
 
-// ─── Tier → SKU map (single source of truth; verify-at-use — 2026-05-31) ────────
-// Sourced from adaptive-run-classifier/SKILL.md §"Substrate tier table".
-// Do NOT re-author the table; copy updates from there.
+// ─── Tier → SKU map (generated from knowledge/substrate-tier-map.json — 2026-08-14)
+// Workflow scripts cannot require() the sibling module. Keep this block lockstep
+// with plugins/ravenclaude-core/scripts/substrate-tier-map.js. Default host = claude.
+function _dispatchHost() {
+  try {
+    if (typeof process !== "undefined" && process.env && process.env.RAVENCLAUDE_HOST) {
+      const h = String(process.env.RAVENCLAUDE_HOST).trim();
+      if (h) return h;
+    }
+  } catch (e) {}
+  return "claude";
+}
+function resolveTier(host, tier) {
+  const MAP = {
+    claude: {
+      fast: "claude-haiku-4-5-20251001",
+      balanced: "claude-sonnet-5",
+      top: "claude-opus-4-8",
+    },
+    grok: {
+      fast: { model: "grok-4.5", effort: "low", perspective: "scanner" },
+      balanced: { model: "grok-4.5", effort: "high", perspective: "architect" },
+      top: { model: "grok-4.6", effort: "high", perspective: "critic" },
+    },
+    codex: { fast: "gpt-5.6-luna", balanced: "gpt-5.6-terra", top: "gpt-5.6-sol" },
+    copilot: { fast: "Claude Haiku 4.5", balanced: "Claude Sonnet 5", top: "Claude Opus 5" },
+  };
+  let h = host && String(host).trim() ? String(host).trim() : "claude";
+  if (!MAP[h]) h = "claude";
+  let t = tier && String(tier).trim() ? String(tier).trim() : "balanced";
+  const table = MAP[h];
+  if (!table[t]) t = "balanced";
+  const row = table[t];
+  return typeof row === "string" ? { model: row } : row;
+}
 const TIER_MODEL = {
-  fast: "claude-haiku-4-5-20251001",
-  balanced: "claude-sonnet-5",
-  top: "claude-opus-4-8",
+  fast: resolveTier("claude", "fast").model,
+  balanced: resolveTier("claude", "balanced").model,
+  top: resolveTier("claude", "top").model,
 };
 
 // ─── Audit log path template ──────────────────────────────────────────────────
@@ -203,7 +235,8 @@ async function evaluatedAgent(prompt, opts = {}, dispatchCfg) {
     } else if (callerContext === "workflow" && opts._run_config_phase) {
       // Inside a run_config context: downgrade is binding; upgrade is advisory.
       if (verdict.verdict === "downgrade") {
-        appliedOpts.model = TIER_MODEL[verdict.suggested_tier] || appliedOpts.model;
+        appliedOpts.model =
+          resolveTier(_dispatchHost(), verdict.suggested_tier).model || appliedOpts.model;
         applied = "binding";
       } else if (verdict.verdict === "upgrade") {
         applied = "advisory"; // log only; keep original model
@@ -213,7 +246,8 @@ async function evaluatedAgent(prompt, opts = {}, dispatchCfg) {
     } else {
       // Top-level or plain workflow: full binding both directions.
       if (verdict.verdict === "downgrade" || verdict.verdict === "upgrade") {
-        appliedOpts.model = TIER_MODEL[verdict.suggested_tier] || appliedOpts.model;
+        appliedOpts.model =
+          resolveTier(_dispatchHost(), verdict.suggested_tier).model || appliedOpts.model;
         applied = "binding";
       } else {
         applied = "keep";

@@ -1,0 +1,7 @@
+{
+  "surface": "web",
+  "design_schema": {
+    "candidate": "tests/fixtures/visual-feedback-loop/design-schema/candidate-diverge.json",
+    "reference": "tests/fixtures/visual-feedback-loop/design-schema/reference.json"
+  }
+}

@@ -6,7 +6,7 @@ Named, citable rules for the `process-improvement` plugin's Lean Six Sigma metho
 
 ## Index
 
-_17 rules, in DMAIC flow. Each file is one named, citable rule; read and apply it whole._
+_20 rules, in DMAIC flow. Each file is one named, citable rule; read and apply it whole._
 
 | Doc | Status | Use when |
 |---|---|---|
@@ -18,7 +18,6 @@ _17 rules, in DMAIC flow. Each file is one named, citable rule; read and apply i
 | [`pilot-before-you-roll-out.md`](./pilot-before-you-roll-out.md) | Pattern — prove the fix on a small, reversible slice (re-measuring the same metric) before betting the whole process; the pilot also rehearses the control plan. | An Improve-phase solution is ready; someone proposes an org-wide rollout off a plausible mechanism; the change could have unintended downstream effects. |
 | [`a-fix-without-a-control-plan-didnt-happen.md`](./a-fix-without-a-control-plan-didnt-happen.md) | Absolute rule — an improvement without a control plan is a temporary deviation from the old process. Regression is the default; sustainment requires a system. | A DMAIC project is approaching close; any improvement is being declared "done"; a prior fix has regressed and the team is re-running the same analysis. |
 | [`voice-of-the-customer-defines-the-defect.md`](./voice-of-the-customer-defines-the-defect.md) | Absolute rule — a defect is a failure against a customer CTQ, not an internal preference. | Defining what to count as a defect; before writing an operational definition; any time a "defect" is proposed using an internal SLA rather than a customer requirement. |
-| [`operational-definition-of-the-metric.md`](./operational-definition-of-the-metric.md) | Absolute rule — a metric without an unambiguous operational definition cannot be measured consistently. | Before any data collection; when two people disagree on a measurement; before Gage R&R. |
 | [`control-chart-limits-are-not-spec-limits.md`](./control-chart-limits-are-not-spec-limits.md) | Absolute rule — control limits are computed from process data (±3σ); spec limits come from the customer. They are different questions on the same chart. | Building a control chart; anyone draws lines at the spec limits on a control chart; comparing Cpk to a control-chart signal. |
 | [`dmaic-phase-gates-are-not-optional.md`](./dmaic-phase-gates-are-not-optional.md) | Absolute rule — each DMAIC phase ends with a tollgate; skipping or compressing a gate breaks the evidence chain and converts data-driven work into expensive opinion. | Starting a DMAIC project; the team wants to jump from Define to Improve; schedule pressure is cited as a reason to skip Measure or Analyze. |
 | [`ctq-tree-links-voc-to-measurable-spec.md`](./ctq-tree-links-voc-to-measurable-spec.md) | Absolute rule — raw VOC language must be translated to a CTQ with a spec limit before data collection begins. | Define phase; before the baseline measurement plan is written; any time a vague complaint is being turned into a project metric. |

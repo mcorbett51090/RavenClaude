@@ -188,10 +188,16 @@ The three failure modes you'll actually hit when running a swarm:
   `isolation: "worktree"` for fire-and-forget parallel sub-agents, or dispatch
   sub-agents in-session via the Agent/Task tool. `scripts/worktree-swarm.sh`
   still usefully pre-creates the isolated trees regardless.
-- **A worktree won't delete (`worktree-clean.sh` refuses)** — the tree has
-  uncommitted changes. Run `worktree-swarm.sh --status` (or
-  `worktree-clean.sh --status`) to see which trees are dirty first, then either
-  commit/stash the work in that tree, or pass `--force` to discard it.
+- **A worktree won't delete (`worktree-clean.sh` refuses)** — run
+  `worktree-swarm.sh --status` (or `worktree-clean.sh --status`) first, because
+  there are now **two** reasons it refuses and they need opposite responses:
+  - **DIRTY** — the tree has uncommitted changes. Commit/stash the work, or
+    pass `--force` to discard it.
+  - **UNKNOWN** — `git status` itself failed for that tree, so nobody knows
+    whether it holds work. ⛔ `--force` is **deliberately refused** here; it
+    discards uncommitted work and the whole point is that we could not rule any
+    out. Repair the tree first (`git -C <repo> worktree repair`, or
+    `worktree prune` for a stale entry), or move it aside — then re-run.
 - **An `agent/<slug>` branch lingers after cleanup** — `worktree-clean.sh` only
   auto-deletes the branch when it's fully merged; an unmerged branch is left
   intentionally so work isn't lost. Merge or archive it, then remove the branch.

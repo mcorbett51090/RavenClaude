@@ -1,5 +1,7 @@
 # GitHub Copilot CLI — the customization surface
 
+> **Chat is a separate product.** VS Code Copilot Chat (the editor Agent / Chat panel) is documented in [`copilot-chat-customization.md`](copilot-chat-customization.md). This file is CLI-only. Projecting `.github/hooks` via `generate-copilot-hooks.py` is **not** Chat coverage. Chat Preview *may* load those same files when enabled; live fire is `[unverified]` until probed. Do not write "Copilot is protected" and mean Chat.
+
 **Last reviewed:** 2026-06-09 · **Confidence:** high (verified against the GitHub Copilot CLI customization docs — custom instructions, custom agents, agent skills, hooks, and the using-the-CLI reference; URLs in § Sources, retrieved 2026-06-09). GA Feb 2026 ([changelog](https://github.blog/changelog/2026-02-25-github-copilot-cli-is-now-generally-available/)).
 **Owner:** the Copilot CLI bridge in [`../CLAUDE.md`](../CLAUDE.md) § "GitHub Copilot CLI bridge". This file is the **canonical, complete** reference; the bridge prose is the RavenClaude-specific wiring on top of it.
 
@@ -42,6 +44,7 @@ Copilot CLI **automatically adds** these to every request at session start — *
 - **`SKILL.md` frontmatter:** `name` (required, lowercase-hyphenated) · `description` (required — what it does + *when* Copilot should use it) · optional `license` · optional **`allowed-tools`** (pre-approves tools, e.g. `shell`, without per-use confirmation).
 - **Discovery/invocation:** auto-discovered; Copilot decides from the prompt + `description`, or the user forces it with `/skill-name`. When invoked, **all** files in the skill dir become available to the agent.
 - **Instructions vs. skills (the docs' own guidance):** custom instructions for simple guidance relevant to *almost every* task; skills for detailed guidance Copilot should load *only when relevant*.
+- **VS Code Copilot Chat / agent mode** can *load* project skills from `.claude/skills` (`[docs-verified 2026-08-14]` — [VS Code Agent Skills](https://code.visualstudio.com/docs/agent-customization/agent-skills)). That is **not** this file's `copilot` host row (GitHub Copilot CLI). FORGE helpers resolve via `scripts/resolve-plugin-root.sh`, not `${CLAUDE_PLUGIN_ROOT}`. Chat is not a first-class RavenClaude host.
 
 ## 4. Hooks
 

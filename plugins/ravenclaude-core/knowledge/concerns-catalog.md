@@ -180,8 +180,25 @@ cross_cutting:
       # (1) redirection / tee INTO a substrate path
       regex:
         - '(>>?|\btee\b)\s*\S*(ravenclaude-core/(hooks|scripts)|thing-orchestrator\.sh|thing-seat\.sh|thing-concerns\.py|thing-decision\.py|\.ravenclaude/thing\.yaml)'
-        # (2) a mutating verb (incl. tee, tolerant of intervening flags) on a substrate path
-        - '(?s)\b(rm|unlink|shred|mv|cp|install|ln|tee|sed|perl|awk|truncate|dd|chmod|chown|patch|sponge)\b.{0,200}(ravenclaude-core/(hooks|scripts)|thing-orchestrator\.sh|thing-seat\.sh|thing-concerns\.py|thing-decision\.py|\.ravenclaude/thing\.yaml)'
+        # (2a) an INHERENTLY-mutating verb (incl. tee, tolerant of intervening
+        #      flags) on a substrate path. These verbs have no read mode — naming
+        #      one alongside a substrate path is already the mutation.
+        - '(?s)\b(rm|unlink|shred|mv|cp|install|ln|tee|truncate|dd|chmod|chown|patch|sponge)\b.{0,200}(ravenclaude-core/(hooks|scripts)|thing-orchestrator\.sh|thing-seat\.sh|thing-concerns\.py|thing-decision\.py|\.ravenclaude/thing\.yaml)'
+        # (2b) a STREAM EDITOR on a substrate path — but only in IN-PLACE mode.
+        #      sed/perl/awk are read-by-default: without an in-place flag they
+        #      write to stdout, so a pattern-print or line-range print of a hook
+        #      is a READ. Lumping them in with (2a) hard-denied ordinary
+        #      verification reads of the Thing's own files, pre-LLM and
+        #      non-overridably — which is how a session ends up tunnelling around
+        #      the guard instead of using it.
+        #      ⛔ Do NOT "complete" this by treating print-mode as a mutation
+        #      signal: print-mode without the in-place flag writes to stdout, so
+        #      such a rule would re-deny exactly the reads this discriminator
+        #      releases. The window is separator-bounded so an in-place flag in a
+        #      LATER chained command cannot arm a read in an earlier one.
+        #      Fail-closed is preserved: the in-place flag still denies here, and
+        #      a redirect or a tee-pipe onto a substrate path is trigger (1)/(2a).
+        - '(?s)\b(sed|perl|awk)\b[^;|&\n]{0,120}?(?:--in-place|-[A-Za-z0-9.]*i[A-Za-z0-9.]*\b|\binplace\b)[^;|&\n]{0,120}?(ravenclaude-core/(hooks|scripts)|thing-orchestrator\.sh|thing-seat\.sh|thing-concerns\.py|thing-decision\.py|\.ravenclaude/thing\.yaml)'
         # (3) turning the per-category toggle OFF in comfort-posture.yaml (bounded
         #     lookaheads so a large heredoc body is not scanned twice unbounded)
         - '(?s)\A(?=.{0,4000}comfort-posture\.yaml)(?=.{0,4000}thing:\s*(off|false|no)\b)'
@@ -248,7 +265,7 @@ cross_cutting:
       regex:
         # --force-with-lease is reversible-ish (it refuses to clobber unseen work),
         # so exclude it — matching srm.force-push, which the two concerns must agree on.
-        - 'git push\b.*(--force(?!-with-lease)\b|\s-f\b)'
+        - 'git push\b[^|&;\n]*(--force(?!-with-lease)\b|(?-i:\s-[A-Za-z]*f[A-Za-z]*(\s|$)))'
         - 'rm\s+-[a-z]*r[a-z]*f[a-z]*|rm\s+-[a-z]*f[a-z]*r[a-z]*'
         - '(npm|pnpm|yarn)\s+publish'
         - 'cargo\s+publish'
@@ -605,7 +622,12 @@ categories:
       severity: medium
       judgment_only: true
       description: GitHub API has rate limits; agents in loops have hit them and broken downstream tooling.
-      resolution: EDIT to batch via gh api graphql if N > 10. ALLOW otherwise.
+      resolution: >-
+        EDIT to batch via gh api graphql if N > 10. ALLOW otherwise. The
+        rate-conscious pattern also means SEARCHING existing issues before
+        creating a new one (dedupe via a search query first) — so a triage loop
+        neither burns calls it could have avoided nor files duplicates that a
+        prior search would have surfaced.
     - id: shr.git-log-sensitive-files
       name: git log / git show on a file matching secret heuristics
       severity: medium
@@ -736,8 +758,8 @@ categories:
         # It is scoped to the push segment ([^|&;]) so a ` +token` in a LATER
         # chained command (`git push origin main && echo "+1"`) does not match.
         regex:
-          - 'git\s+push\b.*(--force(?!-with-lease)\b|\s-f\b)'
-          - 'git\s+push\b[^|&;]*\s\+\S'
+          - 'git\s+push\b[^|&;\n]*(--force(?!-with-lease)\b|(?-i:\s-[A-Za-z]*f[A-Za-z]*(\s|$)))'
+          - 'git\s+push\b[^|&;\n]*\s\+\S'
     - id: srm.pr-merge-without-checks
       name: gh pr merge on a PR whose CI is not passing
       severity: high
@@ -766,7 +788,16 @@ categories:
       severity: medium
       judgment_only: true
       description: Closes an issue with no audit trail. Reversible but ugly.
-      resolution: EDIT to include `--comment "closing because <reason>"` minimum. ALLOW with banner.
+      resolution: >-
+        EDIT to include `--comment "closing because <reason>"` minimum, plus a
+        reference to the resolving PR/commit. ALLOW with banner. Two API traps a
+        triage agent must clear before trusting the close: `state_reason`
+        (completed / not_planned / duplicate, with `duplicate_issue_id` on a
+        dupe) is IGNORED unless the issue's `state` also changes in the same
+        call, and the issues API SILENTLY DROPS a mutation the token lacks
+        permission for — so a "close" can be a no-op. The agent must send a
+        reference AND verify the close actually landed, never assume it did.
+      see_also: knowledge/agent-issue-triage.md
     - id: srm.pr-comment-on-closed
       name: gh pr comment on a PR that's already merged or closed
       severity: low
@@ -789,8 +820,8 @@ categories:
       resolution: DENY.
       triggers:
         regex:
-          - 'curl\b.*\|\s*(sudo\s+)?(sh|bash)\b'
-          - 'wget\b.*\|\s*(sudo\s+)?(sh|bash)\b'
+          - 'curl\b[^&;\n]*\|\s*(sudo\s+)?(sh|bash)\b'
+          - 'wget\b[^&;\n]*\|\s*(sudo\s+)?(sh|bash)\b'
     - id: sce.embedded-base64-payload
       name: Code body contains a base64 string > 100 chars decoding to a shell command
       severity: critical

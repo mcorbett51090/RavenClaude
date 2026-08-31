@@ -2,9 +2,15 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
-## [0.18.4] — 2026-08-31
+## [0.18.5] — 2026-08-31
 
 **P2 — `scan-finance-secrets.sh` fail-open on macOS/BSD grep (2026-08-31 autonomous repo review).** The US-SSN, credit-card-PAN, and IBAN rules used `\b` for word-boundary anchoring — a GNU grep extension undefined by POSIX ERE. Stock/BSD grep (macOS) doesn't honor it, so on macOS these three rules matched **nothing**: a silent fail-open on exactly the highest-sensitivity secret/PII shapes this gate exists to catch, on both the advisory PostToolUse path and the `--ci` pre-merge gate. Replaced with portable `(^|[^X])...([^X]|$)` boundary patterns (pure POSIX ERE, no GNU extension); the 13-test acceptance suite (`scripts/test_secrets_gate.py`) passes unchanged, confirming detection behavior is preserved on GNU grep.
+
+## [0.18.4] — 2026-08-14
+
+### Changed
+
+- Dropped hand-maintained artifact-count literals from the plugin description (D1). The roster enumerates itself; Gate 206 forbids the digit.
 
 ## [0.18.3] — 2026-07-13
 

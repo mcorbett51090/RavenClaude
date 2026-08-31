@@ -20,12 +20,12 @@ Running an eye-care practice well: a full schedule fed by recall, an exam lane t
 
 ## What's inside
 
-- **5 skills** — schedule-and-recall-management, exam-flow-and-pretesting, optical-capture-and-dispensary, medical-vs-vision-billing, eligibility-and-claims.
-- **Knowledge bank** — [`eyecare-practice-decision-trees.md`](knowledge/eyecare-practice-decision-trees.md) (4 Mermaid trees: medical-vs-vision routing, recall cadence by exam type, optical capture improvement, denial triage) + [`eyecare-practice-reference-2026.md`](knowledge/eyecare-practice-reference-2026.md) (dated reference, verify-at-use).
-- **8 best-practices** — see [`best-practices/README.md`](best-practices/README.md).
-- **3 templates** — practice KPI dashboard, recall campaign plan, billing-route decision.
-- **3 commands** — `/route-claim`, `/plan-recall`, `/review-optical-capture`.
-- **1 advisory hook** — `check-eyecare-billing-smells.sh` (refraction note with no medical-vs-vision route, recall plan with no interval, payor reference with no date/verify-at-use). `EYECARE_STRICT=1` to block.
+- **skills** — schedule-and-recall-management, exam-flow-and-pretesting, optical-capture-and-dispensary, medical-vs-vision-billing, eligibility-and-claims.
+- **Knowledge bank** — [`eyecare-practice-decision-trees.md`](knowledge/eyecare-practice-decision-trees.md) (Mermaid trees: medical-vs-vision routing, recall cadence by exam type, optical capture improvement, denial triage) + [`eyecare-practice-reference-2026.md`](knowledge/eyecare-practice-reference-2026.md) (dated reference, verify-at-use).
+- **best-practices** — see [`best-practices/README.md`](best-practices/README.md).
+- **templates** — practice KPI dashboard, recall campaign plan, billing-route decision.
+- **commands** — `/route-claim`, `/plan-recall`, `/review-optical-capture`.
+- **an advisory hook** — `check-eyecare-billing-smells.sh` (refraction note with no medical-vs-vision route, recall plan with no interval, payor reference with no date/verify-at-use). `EYECARE_STRICT=1` to block.
 
 ## Seams
 
@@ -34,7 +34,7 @@ General medical revenue-cycle mechanics → [`medical-revenue-cycle`](../medical
 ## Install
 
 ```shell
-/plugin marketplace add ./        # from a separate Claude Code project, pointed at this repo
+/plugin marketplace add ./ # from a separate Claude Code project, pointed at this repo
 /plugin install optometry-eyecare-practice@ravenclaude
 ```
 

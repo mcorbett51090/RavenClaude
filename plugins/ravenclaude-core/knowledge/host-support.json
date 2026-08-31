@@ -1,37 +1,44 @@
 {
   "_note": "MH-21 — the single source of truth for WHICH RAVENCLAUDE COMPONENTS ACTUALLY WORK ON WHICH HOST. Created 2026-07-28 by the multi-host audit. Before this file, every surface that needed the answer either hardcoded it (generate-dashboards.py's _HOOK_CAPABLE_HOSTS) or, more often, silently assumed 'everywhere' — which is how the Pipeline tab came to imply guardrails on hosts that run none, and how Heimdall came to report an unwatched perimeter as clean. A per-component annotation would have been ~20 copies of the same few facts, each free to rot independently; ONE map keeps them honest together.",
-  "_contract": "`supported` is a claim about whether the component RUNS on that host today, in this repo, as wired by `scripts/ravenclaude`. It is NOT a claim about whether the host is capable in principle — a host can speak a contract perfectly and still be unsupported here because nothing wires it, in which case `supported` is false and `blocked_by` says exactly that. Codex WAS this file's worked example of that distinction until 2026-07-28, when `--host codex` shipped and flipped its hooks + skills cells to true; Cursor is the current example. When a host gains an install path, update this file; do not add a second list somewhere else.",
+  "_contract": "`supported` is a claim about whether the component RUNS on that host today, in this repo, as wired by `scripts/ravenclaude`. It is NOT a claim about whether the host is capable in principle — a host can speak a contract perfectly and still be unsupported here because nothing wires it, in which case `supported` is false and `blocked_by` says exactly that. Codex WAS this file's worked example of that distinction until 2026-07-28, when `--host codex` shipped and flipped its hooks + skills cells to true; Cursor is the current example. When a host gains an install path, update this file; do not add a second list somewhere else. `activation_gate` is the per-host silent-disarm class (`hash_trust` | `version_floor` | `none`), consumed by the shared `_rc_rearm_notice` helper at install/update/status (PR 10 / Gate 207). Codex is hash_trust (MH-17); Copilot is version_floor (MH-23). A host whose canary cannot be confirmed to fire ships as unsupported, not silently assumed working.",
   "_provenance": "verified = confirmed in-repo this session by a visible tool call. docs-verified = read from the host's own documentation this session, url given. inferred = neither; MUST be verified before anything is built on it.",
   "schema_version": 1,
-  "updated": "2026-07-29",
+  "updated": "2026-08-14",
   "hosts": {
     "claude-code": {
       "label": "Claude Code",
-      "native": true
+      "native": true,
+      "activation_gate": "none"
     },
     "copilot": {
       "label": "GitHub Copilot CLI",
-      "native": false
+      "native": false,
+      "activation_gate": "version_floor"
     },
     "codex": {
       "label": "OpenAI Codex CLI",
-      "native": false
+      "native": false,
+      "activation_gate": "hash_trust"
     },
     "cursor": {
       "label": "Cursor",
-      "native": false
+      "native": false,
+      "activation_gate": "none"
     },
     "gemini": {
       "label": "Gemini CLI",
-      "native": false
+      "native": false,
+      "activation_gate": "none"
     },
     "aider": {
       "label": "Aider",
-      "native": false
+      "native": false,
+      "activation_gate": "none"
     },
     "windsurf": {
       "label": "Windsurf / Devin Desktop",
-      "native": false
+      "native": false,
+      "activation_gate": "none"
     }
   },
   "components": {
@@ -45,7 +52,14 @@
       "copilot": {
         "supported": true,
         "how": "repo-level .github/hooks, wired by `ravenclaude install`, envelope translated by hooks/copilot-hook-adapter.sh",
-        "caveat": "PLUGIN-level hooks never fire (github/copilot-cli#2540), which is why they ship repo-level. Tool-name VALUES are lowercase and are normalised in the adapter (f55039ec) — before that fix the tribunal and web guard were silent no-ops.",
+        "caveat": "PLUGIN-level hooks never fire (github/copilot-cli#2540), which is why they ship repo-level. Tool-name VALUES are lowercase and are normalised in the adapter (f55039ec) — before that fix the tribunal and web guard were silent no-ops. CLI projection ≠ Chat Preview: VS Code Copilot Chat is a distinct product (see knowledge/copilot-chat-customization.md). Chat Preview may load .github/hooks when org policy / chat.hooks.enabled allows; matchers are ignored; live fire on a given machine is [unverified] until probed (CL-19). CONTENTION is two-writers-one-tree, not Chat context isolation.",
+        "surfaces": {
+          "chat": {
+            "supported": false,
+            "basis": "docs-verified only — Preview hooks documented 2026-08-14; live PreToolUse fire not confirmed on the owner's machine",
+            "note": "Do not flip supported to true without a Phase 0 payload dump."
+          }
+        },
         "basis": "verified + docs-verified (https://docs.github.com/en/copilot/concepts/agents/hooks)"
       },
       "codex": {
@@ -268,7 +282,9 @@
       "windsurf": {
         "supported": false,
         "blocked_by": "unverified, and the product was reportedly renamed to Devin Desktop (2026-06-02)",
-        "basis": "inferred"
+        "basis": "inferred",
+        "how": "",
+        "caveat": "⛔ DECLARED OUT OF SCOPE, not overlooked (verify-before-assert Phase 8). The portable cause floor reaches aider via CONVENTIONS.md and Copilot Chat via the projected instructions; Windsurf has no projector and is NOT getting a half-lane. The plan offered two options — write scripts/generate-windsurf-rules.py (~40 lines) or declare the lane out of scope here — and the declaration is the honest one: this repo's own record has the product RENAMED to Devin Desktop (2026-06-02) and the lane unmaintained pending re-verification. Building a .windsurfrules projector for a product whose current name and file convention are unverified is wired-and-hopeful, the exact posture R7 refuses on Cursor and Gemini. To open the lane: re-verify the product identity and its instruction-file convention with a dated source, then add the projector and flip this cell."
       }
     }
   }

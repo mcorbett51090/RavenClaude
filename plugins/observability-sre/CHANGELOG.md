@@ -2,6 +2,12 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.4.4] — 2026-08-14
+
+### Changed
+
+- Dropped hand-maintained artifact-count literals from the plugin description (D1). The roster enumerates itself; Gate 206 forbids the digit.
+
 ## [0.4.1] — 2026-06-13
 
 Research-sweep **correction** (Tier-A weekly news sweep) — the capability map said OpenTelemetry **logs** were still "maturing"; they have **reached Stable**. Verified against the primary [OpenTelemetry spec status](https://opentelemetry.io/docs/specs/status/) (Logs Data Model + Logs API = Stable). Routed through two expert panels (usefulness → USEFUL; detailed review → APPROVE-WITH-FIX, the per-language-SDK rider applied); panels concurred, no tiebreak. (Patch on top of **0.4.0**, which folded in chaos engineering via #452 and shipped without its own CHANGELOG entry.)

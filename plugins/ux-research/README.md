@@ -20,19 +20,19 @@ Part of the [RavenClaude](../../README.md) marketplace. Extends `ravenclaude-cor
 
 ## What's inside
 
-- **2 agents** — `ux-research-lead` (question framing, method selection, sample/recruit, research-ops, ethics/participant-PII) and `research-execution-and-synthesis-specialist` (protocol & task design, non-leading moderation, usability testing, survey design, and synthesis from raw notes to prioritized insight).
-- **3 skills** — `plan-the-research-study`, `run-usability-and-interview-sessions`, `synthesize-research-into-insight`.
-- **2 knowledge files** — a Mermaid UX-research decision tree (research-theater gate, which-method, sample-size & rigor, consent/PII path) with method→answer trade-off tables and the bias catalog, and a dated 2026 UX-research-patterns reference (method matrix, moderation & survey best practices, bias counters, evidence-strength framing, research-ops/repository patterns, ethics/PII discipline, and a tooling map).
-- **2 templates** — a research plan and a research findings report.
+- **agents** — `ux-research-lead` (question framing, method selection, sample/recruit, research-ops, ethics/participant-PII) and `research-execution-and-synthesis-specialist` (protocol & task design, non-leading moderation, usability testing, survey design, and synthesis from raw notes to prioritized insight).
+- **skills** — `plan-the-research-study`, `run-usability-and-interview-sessions`, `synthesize-research-into-insight`.
+- **knowledge files** — a Mermaid UX-research decision tree (research-theater gate, which-method, sample-size & rigor, consent/PII path) with method→answer trade-off tables and the bias catalog, and a dated 2026 UX-research-patterns reference (method matrix, moderation & survey best practices, bias counters, evidence-strength framing, research-ops/repository patterns, ethics/PII discipline, and a tooling map).
+- **templates** — a research plan and a research findings report.
 
 ## Where it sits among the product & design plugins
 
 ```
-product-management               →  turns insight into ROADMAP / prioritization   ("the decision, not the research")
-web-design                       →  the visual / interaction / IA DESIGN itself   ("build the screen; run its a11y audit")
-experimentation-growth-engineering →  online A/B & significance AT SCALE           ("is A significantly better than B?")
-data-science-research            →  advanced quant / statistical MODELING          ("regression, segmentation, multivariate")
-ux-research (HERE)               →  FRAME the question · RUN the study · SYNTHESIZE evidence   ("what do we study, how rigorously, and what did we learn?")
+product-management → turns insight into ROADMAP / prioritization ("the decision, not the research")
+web-design → the visual / interaction / IA DESIGN itself ("build the screen; run its a11y audit")
+experimentation-growth-engineering → online A/B & significance AT SCALE ("is A significantly better than B?")
+data-science-research → advanced quant / statistical MODELING ("regression, segmentation, multivariate")
+ux-research (HERE) → FRAME the question · RUN the study · SYNTHESIZE evidence ("what do we study, how rigorously, and what did we learn?")
 ```
 
 This plugin **runs the research discipline** and **feeds** those teams rather than replacing them: it hands the roadmap decision to `product-management`, the design change to `web-design`, the at-scale A/B to `experimentation-growth-engineering`, and the heavy stats to `data-science-research` — while owning the framing, method rigor, moderation craft, ethics, and synthesis that make the evidence trustworthy in the first place.

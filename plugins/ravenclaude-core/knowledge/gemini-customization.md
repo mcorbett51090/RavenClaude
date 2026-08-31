@@ -1,5 +1,7 @@
 # Gemini CLI — the customization surface, and why the lane is cheap
 
+> **Worktree bound.** `GEMINI.md` is loaded from `~/.gemini/`, then workspace directories and parents, then **just-in-time** when a tool accesses a path. A Read of a sibling worktree can pull that tree's `GEMINI.md` into context. FOREIGN-TREE does **not** deny Read by default. Do **not** turn on `experimental.worktrees`.
+
 **Status:** `[docs-verified 2026-07-29]` against <https://geminicli.com/docs/hooks/>,
 <https://geminicli.com/docs/hooks/reference/> and <https://geminicli.com/docs/cli/gemini-md/>.
 Every platform claim carries its provenance; repo claims are `[verified]`.
@@ -13,7 +15,8 @@ own docs (MH-15).
 ## The headline: Gemini's hook contract is nearly Claude's
 
 The audit recorded Gemini as *"name-checked 17 times, supported zero times"* and framed it as an
-open question — support it, or formally unsupport it. The answer turns out to be cheap, because
+open question — support it, or formally unsupport it. The answer (now in
+[`host-support.json`](host-support.json), `hooks.gemini.supported`) turns out to be cheap, because
 Gemini CLI ships a **real hooks API** whose contract is closer to Claude Code's than Copilot's is.
 
 | Surface | Claude Code | **Gemini CLI** | Copilot CLI |

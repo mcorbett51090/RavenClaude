@@ -8,11 +8,11 @@ A **FinOps & Cloud Cost specialist team** for a FinOps lead, cloud cost analyst,
 
 | Surface | Contents |
 |---|---|
-| **4 agents** | `finops-lead`, `cost-allocation-analyst`, `commitment-planning-specialist`, `unit-economics-strategist` |
-| **5 skills / commands** | `measure-allocation` · `read-unit-economics` · `harvest-waste` · `plan-commitments` · `forecast-and-alert` |
-| **4-file knowledge bank** | KPI glossary · unit economics · 2025–2026 context · Mermaid decision trees |
-| **4 templates** | scorecard · exec readout · commitment-plan.md · unit-economics-sheet.md |
-| **1 advisory hook** | flags anti-patterns (unbaselined metric, unsourced benchmark, billing/account PII) in generated deliverables |
+| **agents** | `finops-lead`, `cost-allocation-analyst`, `commitment-planning-specialist`, `unit-economics-strategist` |
+| **skills / commands** | `measure-allocation` · `read-unit-economics` · `harvest-waste` · `plan-commitments` · `forecast-and-alert` |
+| **knowledge bank** | KPI glossary · unit economics · 2025–2026 context · Mermaid decision trees |
+| **templates** | scorecard · exec readout · commitment-plan.md · unit-economics-sheet.md |
+| **an advisory hook** | flags anti-patterns (unbaselined metric, unsourced benchmark, billing/account PII) in generated deliverables |
 | **`scripts/finops_cloud_cost_calc.py`** | stdlib calculator — `commitment` · `unit-cost` · `rightsizing` |
 
 ## Install

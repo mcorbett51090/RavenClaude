@@ -26,7 +26,7 @@ Stripe, Square, and Shopify sit at different layers — Stripe is payments-only,
 ## Install
 
 ```shell
-/plugin marketplace add mcorbett51090/RavenClaude   # or a local path
+/plugin marketplace add mcorbett51090/RavenClaude # or a local path
 /plugin install web-commerce@ravenclaude
 ```
 

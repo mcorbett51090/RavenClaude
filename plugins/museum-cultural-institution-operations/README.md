@@ -22,19 +22,19 @@ Part of the [RavenClaude](../../README.md) marketplace. Extends `ravenclaude-cor
 
 ## What's inside
 
-- **2 agents** — `museum-operations-lead` (admissions/pricing, membership/development, visitor experience, facilities, board/accreditation, earned-vs-contributed mix) and `collections-and-engagement-specialist` (accessioning/deaccessioning ethics, cataloging, provenance/NAGPRA, loans, condition/environment, CMS, exhibitions, and digital collections/IIIF access).
-- **3 skills** — `manage-collections-and-exhibitions`, `grow-membership-and-visitor-revenue`, `publish-digital-collections-and-access`.
-- **2 knowledge files** — a Mermaid museum-operations decision tree (accession/deaccession ethics gate, pricing model, CMS choice, digital-publish rights gate, revenue-mix target) and a 2026 museum-operations-patterns reference (collections lifecycle & ethics, exhibition lifecycle, membership/revenue-mix patterns, admissions models, digital access, governance/accreditation, dated CMS/tooling map).
-- **2 templates** — an exhibition project plan and a membership program plan.
+- **agents** — `museum-operations-lead` (admissions/pricing, membership/development, visitor experience, facilities, board/accreditation, earned-vs-contributed mix) and `collections-and-engagement-specialist` (accessioning/deaccessioning ethics, cataloging, provenance/NAGPRA, loans, condition/environment, CMS, exhibitions, and digital collections/IIIF access).
+- **skills** — `manage-collections-and-exhibitions`, `grow-membership-and-visitor-revenue`, `publish-digital-collections-and-access`.
+- **knowledge files** — a Mermaid museum-operations decision tree (accession/deaccession ethics gate, pricing model, CMS choice, digital-publish rights gate, revenue-mix target) and a 2026 museum-operations-patterns reference (collections lifecycle & ethics, exhibition lifecycle, membership/revenue-mix patterns, admissions models, digital access, governance/accreditation, dated CMS/tooling map).
+- **templates** — an exhibition project plan and a membership program plan.
 
 ## Where it sits among the nonprofit/cultural plugins
 
 ```
-nonprofit-fundraising   →  generic individual-donor STRATEGY   ("the annual fund / major-gift / planned-giving engine")
-event-management        →  generic event PRODUCTION            ("logistics / AV / run-of-show for the gala or opening")
-grants-management       →  the grant LIFECYCLE                 ("prospect → write → comply → report")
-marketing-operations    →  audience marketing & campaigns      ("promote the membership / the exhibition")
-museum-cultural-institution-operations (HERE)  →  STEWARD the collection + RUN the institution  ("care for the objects; keep the museum solvent, accredited, and open")
+nonprofit-fundraising → generic individual-donor STRATEGY ("the annual fund / major-gift / planned-giving engine")
+event-management → generic event PRODUCTION ("logistics / AV / run-of-show for the gala or opening")
+grants-management → the grant LIFECYCLE ("prospect → write → comply → report")
+marketing-operations → audience marketing & campaigns ("promote the membership / the exhibition")
+museum-cultural-institution-operations (HERE) → STEWARD the collection + RUN the institution ("care for the objects; keep the museum solvent, accredited, and open")
 ```
 
 This plugin **runs the museum** and **consumes** those disciplines rather than replacing them: it names the contributed-revenue need `grants-management` fills, the event `event-management` produces, and the donor engine `nonprofit-fundraising` runs — while owning the museum-*specific* work (collections ethics, exhibitions, membership, admissions, accreditation, digital collections) that none of them cover.

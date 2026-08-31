@@ -56,6 +56,25 @@ def esc(s) -> str:
     return html.escape(str(s), quote=True)
 
 
+# A column `key` from data.json is interpolated into an HTML attribute NAME
+# (data-<key>=...). html.escape neutralizes &<>"' but NOT whitespace or `=`, so a
+# key like `x onmouseover=alert(1) y` would break out of the intended data-*
+# attribute and inject event handlers (2026-08 review). Attribute names cannot be
+# quote-escaped — they must be constrained to a safe charset. A key already matching
+# the safe identifier grammar (every shipped key does) passes through UNCHANGED, so
+# committed report.html output is byte-identical; only a malformed/adversarial key
+# is sanitized (unsafe chars -> `-`).
+_SAFE_ATTR_KEY = re.compile(r"^[A-Za-z_][A-Za-z0-9_-]*$")
+
+
+def _safe_attr_key(key) -> str:
+    k = str(key)
+    if _SAFE_ATTR_KEY.match(k):
+        return k
+    cleaned = re.sub(r"[^A-Za-z0-9_-]", "-", k).strip("-")
+    return cleaned or "col"
+
+
 # ── Consumer theme override ─────────────────────────────────────────────────
 # A `theme` block in data.json lets a plugin's users recolour the whole report
 # without touching code or the shared design tokens. Keys map to the --rc-*
@@ -770,7 +789,10 @@ def color_of(c: str) -> str:
 def _render_kpis(kpis) -> str:
     out = []
     for k in kpis:
-        d = k.get("delta", 0)
+        # Mirror render_report's KPI loop (~line 522): a hand-authored data.json
+        # can quote delta or omit label/value, and an unguarded k["label"] /
+        # unguarded `d > 0` on a string aborts the whole multi-plugin run.
+        d = _num(k.get("delta", 0))
         good = k.get("good", "up")
         unit = k.get("unit", "")
         if d == 0:
@@ -781,9 +803,9 @@ def _render_kpis(kpis) -> str:
             cls = "up" if is_good else "down"
             arrow = "▲" if rising else "▼"
         out.append(
-            f'<div class="kpi"><div class="k">{esc(k["label"])}'
+            f'<div class="kpi"><div class="k">{esc(k.get("label", ""))}'
             f'<span class="info" tabindex="0" title="{esc(k.get("plain", ""))}">?</span></div>'
-            f'<div class="v">{esc(k["value"])}{esc(unit)}</div>'
+            f'<div class="v">{esc(k.get("value", ""))}{esc(unit)}</div>'
             f'<div class="d {cls}">{arrow} {abs(d)}{esc(unit) if unit == "%" else ""} vs last period</div>'
             f'<div class="full">{esc(k.get("short", ""))}</div></div>'
         )
@@ -904,7 +926,11 @@ def svg_range2(cfg) -> str:
     def x(v):
         return pad + iw * (v - vmin) / rng
 
-    band = cfg.get("band", [vmin, vmax])
+    band = cfg.get("band")
+    # A hand-authored data.json may give `band` as a scalar, a 1-element list, or
+    # omit it — band[0]/band[1] below would IndexError/TypeError unchecked.
+    if not (isinstance(band, (list, tuple)) and len(band) >= 2):
+        band = [vmin, vmax]
     marker = cfg.get("marker", (band[0] + band[1]) / 2)
     ty = 58
     out = [
@@ -923,9 +949,10 @@ def svg_range2(cfg) -> str:
         f'<text x="{x(marker):.1f}" y="{ty - 18}" text-anchor="middle" font-size="10" fill="var(--accent)">{esc(cfg.get("markerLabel", "middle"))}</text>'
     )
     for p in cfg.get("points", []):
+        pv = p.get("value", 0)
         out.append(
-            f'<circle cx="{x(p["value"]):.1f}" cy="{ty}" r="5" fill="{color_of(p.get("color", "teal"))}" '
-            f'stroke="var(--rc-surface)" stroke-width="1.5"><title>{esc(p.get("label", ""))}: {esc(p["value"])}</title></circle>'
+            f'<circle cx="{x(pv):.1f}" cy="{ty}" r="5" fill="{color_of(p.get("color", "teal"))}" '
+            f'stroke="var(--rc-surface)" stroke-width="1.5"><title>{esc(p.get("label", ""))}: {esc(pv)}</title></circle>'
         )
     for gv in (vmin, (vmin + vmax) / 2, vmax):
         out.append(
@@ -1041,7 +1068,7 @@ def _render_table(sec, band_words) -> str:
         data_attrs = [f'data-band="{esc(r.get("band", ""))}"', f'data-search="{esc(searchable)}"']
         for c in cols:
             if c.get("key") in sortable:
-                data_attrs.append(f'data-{esc(c["key"])}="{esc(r.get(c["key"], ""))}"')
+                data_attrs.append(f'data-{_safe_attr_key(c["key"])}="{esc(r.get(c["key"], ""))}"')
         cells = "".join(_cell(c, r, band_words) for c in cols)
         body.append(f'<tr class="prow" {" ".join(data_attrs)}>{cells}</tr>')
         drill = r.get("drill")

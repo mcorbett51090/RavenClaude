@@ -37,7 +37,7 @@ grounding an inference drawn from it** — that is the gap, and `kind` is the co
 
 ## Trigger — three conjuncts, all required
 
-1. **`kind: inference`** on the cited claims-table row, as typed by `scripts/classify_claim.py`
+1. **`kind: inference`** on the cited claims-table row, as typed by `"$FORGE_PLUGIN_ROOT/scripts/classify_claim.py"` (resolve once per skill §0.4; `${CLAUDE_PLUGIN_ROOT}` is the Claude Code equivalent)
    (grammatical, **upward-only**: an author may raise a row to `inference`, never lower it — which is
    what makes it not-self-report).
 2. **Cited by a build phase** via that phase's `depends_on_claims: [...]`. This conjunct is the friction
@@ -80,7 +80,7 @@ been observed — otherwise you cannot tell "the subject is broken" from "I prob
 
 Each claim therefore carries `expected_if_true` and `expected_if_false`, and **they must differ**. If
 they do not, the probe cannot discriminate and does not settle anything, however green it comes back.
-`scripts/probe-kit.sh` ships ready-made control probes for the common subsystems.
+`rc probe` (engine: the plugin's `bin/probe-kit.sh`) ships ready-made control probes for the common subsystems.
 
 ## Exit codes (a contract — do not conflate)
 

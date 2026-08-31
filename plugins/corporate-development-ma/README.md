@@ -1,6 +1,6 @@
 # corporate-development-ma
 
-A **buy-side deal team** for a corp-dev, strategy, or finance lead — 3 specialist agents
+A **buy-side deal team** for a corp-dev, strategy, or finance lead — specialist agents
 that frame the deal thesis before the model, triangulate a valuation, run diligence to
 confirm or kill the thesis, and price the integration that captures the value.
 

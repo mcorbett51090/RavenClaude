@@ -23,7 +23,7 @@ The cloud plugins (`aws-cloud` / `azure-cloud` / `gcp-cloud`) own **VPC/VNet-lev
 
 ## Knowledge bank
 
-- `network-topology-decision-trees.md` — 4 Mermaid decision trees (topology, routing-protocol, segmentation, troubleshooting triage) + a redundancy quick-reference. **High confidence** (durable principles).
+- `network-topology-decision-trees.md` — Mermaid decision trees (topology, routing-protocol, segmentation, troubleshooting triage) + a redundancy quick-reference. **High confidence** (durable principles).
 - `network-engineering-2026-capability-map.md` — dated vendor/platform/standard map + the seam table. **Medium confidence**; carries a re-verify-at-use rider.
 
 ## Templates

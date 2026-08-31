@@ -22,6 +22,9 @@
 #                                         open the comfort-posture dashboard scoped to a repo
 #   ravenclaude init-codespace [--project DIR]
 #                                         stamp the Codespace auto-setup .devcontainer/ into a repo
+#   ravenclaude init-agent-ci [--project DIR] [--only <list>] [--force]
+#                                         scaffold the agent-in-CI GitHub protocol templates into a repo
+#                                         (host-agnostic; --only cherry-picks; never overwrites without --force)
 #
 # Re-running any subcommand is safe (idempotent). After `update`, run `/skills reload`
 # in your Copilot session (or relaunch) to pick up changes — no re-install ever.
@@ -39,6 +42,29 @@ CODEX_SHIM="$CORE/hooks/codex-hook-env.sh"
 note() { printf '  %s\n' "$*"; }
 ok()   { printf '\033[32m✓\033[0m %s\n' "$*"; }
 warn() { printf '\033[33m!\033[0m %s\n' "$*" >&2; }
+
+# Shared host-activation helpers (PR 10 / Gate 207). Sourced, not executed.
+# `_rc_rearm_notice` is the one abstraction for Codex hash-trust + Copilot
+# version-floor; `_rc_host_canary` is the planted-marker round-trip at the
+# end of each --host install. Missing files degrade to no-ops so an install
+# never dies because a helper is absent.
+# shellcheck source=/dev/null
+[ -f "$CORE/hooks/_rearm-notice.sh" ] && . "$CORE/hooks/_rearm-notice.sh"
+# shellcheck source=/dev/null
+[ -f "$CORE/hooks/_host-canary.sh" ] && . "$CORE/hooks/_host-canary.sh"
+
+# _rc_finish_host_install HOST PROJECT — canary (advisory) then re-arm notice.
+# D4: a canary miss WARNS and the install continues. Gate 207 is the teeth.
+_rc_finish_host_install() {
+  local host="$1" project="$2"
+  # D4: a canary miss WARNS inside _rc_host_canary and the install continues.
+  if command -v _rc_host_canary >/dev/null 2>&1; then
+    _rc_host_canary "$host" "$project" || true
+  fi
+  if command -v _rc_rearm_notice >/dev/null 2>&1; then
+    _rc_rearm_notice "$host" "install" "$project"
+  fi
+}
 
 # detect_host — which agentic CLI is this install for? (multi-host audit MH-07)
 #
@@ -78,8 +104,16 @@ detect_host() {
 # WHY THIS ONLY WARNS: every host-condition guard in this repo is fail-safe. An
 # install that works for everything except sub-agent hook coverage is still worth
 # completing; a hard block would strand users whose setup is otherwise fine. And
-# `copilot` absent / unparseable version / no `sort -V` all degrade to a note —
+# `copilot` absent / unparseable version / no `sort -V` all degrade to a message —
 # never a failed install, never a false "you are fine".
+#
+# LOUD IS NOT THE SAME AS FATAL. An unparseable version now prints a full diagnostic
+# (the raw `copilot --version` line, the expected x.y.z shape, the required floor)
+# instead of a one-line shrug — but it still `return 0`s. Owner ruling 2026-08-13:
+# make the message clear, do NOT make it exit non-zero. Gate 157 pins all three
+# unparseable paths at exit 0 precisely because an earlier revision of this check
+# DID abort `ravenclaude status`/`install` mid-run. Do not "finish the job" by
+# turning these into a hard failure — that is the reverted incident, not a TODO.
 COPILOT_FLOOR="1.0.52"
 COPILOT_RECOMMENDED="1.0.57"
 
@@ -99,10 +133,37 @@ copilot_version_check() {
   # version check — it is the same fail-in-the-dangerous-direction defect this
   # whole audit exists to close, committed by the guard against it.
   raw="$(copilot --version 2>/dev/null | head -1 || true)"
-  # First dotted triple anywhere in the output; tolerant of "copilot version X" etc.
-  ver="$(printf '%s' "$raw" | tr -c '0-9.\n' ' ' | tr ' ' '\n' | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | head -1 || true)"
+  # FIRST semantic-version token (x.y.z) anywhere in the line — matched as a
+  # SUBSTRING, not as a whole space-delimited token. That distinction is the fix:
+  # the previous form (`tr` to one-token-per-line + `grep -E '^x\.y\.z$'`) required
+  # the ENTIRE token to be exactly three components, so a build-qualified version
+  # like `1.0.52.3` matched NOTHING and the floor silently went unverified on a
+  # copilot that is comfortably above it. Verified this session: old form on
+  # "copilot 1.0.52.3" -> empty; new form -> 1.0.52.
+  #
+  # POSIX ERE is leftmost-LONGEST and `[0-9]+` cannot cross a `.`, so `1.0.52.3`
+  # yields `1.0.52` — the first three components, which is what we want to compare.
+  # Tolerant of the shapes seen in the wild: "copilot version 1.0.52", "v1.0.52-beta.1",
+  # "copilot@1.0.52 (2026-05-23)".
+  #
+  # `grep -Eo`, never `grep -P`: BSD/macOS grep has no -P and exits 2, which reads
+  # as NO MATCH inside a conditional — the silent-fail-open shape of macOS door 3.
+  ver="$(printf '%s' "$raw" | grep -Eo '[0-9]+\.[0-9]+\.[0-9]+' | head -1 || true)"
   if [ -z "$ver" ]; then
-    note "could not parse a version from 'copilot --version' — floor unverified (need >= $COPILOT_FLOOR)"
+    # Say exactly what we saw and exactly what we needed — the old one-liner named
+    # neither, so an operator had no way to tell a nightly build from a broken shim
+    # without re-running `copilot --version` by hand. Control chars are stripped and
+    # the line is capped so a garbled/hostile version line cannot scramble the
+    # terminal or push the remediation off screen.
+    local shown
+    shown="$(printf '%s' "$raw" | tr -d '[:cntrl:]' | cut -c1-200)"
+    [ -n "$shown" ] || shown="(no output)"
+    warn "could not parse a version from 'copilot --version'."
+    note "  raw output : '$shown'"
+    note "  expected   : a semantic version token x.y.z (e.g. $COPILOT_FLOOR)"
+    note "  required   : >= $COPILOT_FLOOR"
+    note "  The Copilot CLI version floor is UNVERIFIED — a sub-agent's tool calls"
+    note "  may not be hooked. Update Copilot CLI, then re-run."
     return 0
   fi
   # Pure-sort comparison: the LOWEST of {ver, floor} equals floor  =>  ver >= floor.
@@ -150,6 +211,7 @@ wire_cursor() {
       --out "$project/.cursor/hooks.json" \
       && ok "wired guardrails into .cursor/hooks.json (projected from the manifest)" \
       || warn "cursor hook projection FAILED — no guardrails wired for this project"
+    note "If .cursor/hooks.json already existed it was OVERWRITTEN — merge by hand if you had other hooks in it."
   else
     warn "generate-cursor-hooks.py missing — Cursor guardrails NOT wired"
   fi
@@ -372,16 +434,17 @@ PY
 # off the trust check to make trust convenient is governance theatre, and the
 # onboarding skill lists that anti-pattern by name.
 codex_retrust_notice() {
+  # Thin wrapper — the notice now lives in `_rc_rearm_notice` (activation_gate:
+  # hash_trust). Kept so any lingering call site still emits the same text.
+  if command -v _rc_rearm_notice >/dev/null 2>&1; then
+    _rc_rearm_notice "codex" "install" "$1"
+    return 0
+  fi
   local project="$1"
   local n; n="$(codex_hook_count "$project/.codex/hooks.json")"
   printf '\n'
   warn "Codex trusts hooks BY HASH — re-trust after every update."
   note "Run /hooks inside Codex and trust the $n RavenClaude hook(s)."
-  note "Until you do, they are SKIPPED — and no banner will say so, because the"
-  note "SessionStart banner is itself a hook. Re-run /hooks after every 'git pull'."
-  note "For teams: Codex's requirements.toml managed-hooks path auto-trusts by"
-  note "policy and is the only configuration where these survive an update"
-  note "unattended. Do NOT reach for --dangerously-bypass-hook-trust."
 }
 
 # Install the one-word `rc` launcher into ~/.bashrc — as a FUNCTION, not an alias.
@@ -422,8 +485,12 @@ add_rc_alias() {
       printf '    # any verb goes to the real front-door dispatcher (rc dashboard, rc streams…)\n'
       printf '    command bash "%s/plugins/ravenclaude-core/bin/rc" "$@"\n' "$MARKET"
       printf '  else\n'
-      printf '    # bare `rc` keeps the one-word "update and launch Copilot" behaviour\n'
-      printf '    "%s/scripts/ravenclaude" update && copilot --plugin-dir "%s"\n' "$MARKET" "$COPILOT_PKG"
+      printf '    # bare `rc` keeps the one-word "update and launch Copilot" behaviour.\n'
+      printf '    # `;` NOT `&&`: update now exits non-zero when the pull was attempted\n'
+      printf '    # and failed, and the commonest cause is a locally-tuned posture file.\n'
+      printf '    # Under `&&` that would stop launching Copilot for exactly the people\n'
+      printf '    # hitting it — a stale checkout is still a working checkout.\n'
+      printf '    "%s/scripts/ravenclaude" update ; copilot --plugin-dir "%s"\n' "$MARKET" "$COPILOT_PKG"
       printf '  fi\n'
       printf '}\n'
     } >>"$bashrc"
@@ -463,6 +530,55 @@ regen() {
   fi
 }
 
+# Redact credentials embedded in a URL before echoing git's own stderr.
+# `git pull` names the remote in its error text, and a clone whose origin carries
+# a token (https://x-access-token:<token>@github.com/…) puts that token in the
+# message. This path prints git's stderr verbatim, so without this the fix for one
+# honesty bug would open a credential-echo. URL-embedded creds only — this is not
+# a general secret scanner, and it does not pretend to be.
+_rc_redact_urls() {
+  printf '%s\n' "$1" | sed -E 's#://[^/@[:space:]]*:[^/@[:space:]]*@#://[REDACTED]@#g'
+}
+
+# The git-pull step, extracted from cmd_update so it can be driven on its own.
+# cmd_update also runs `regen` and the launcher self-heal — heavy and
+# side-effecting — so a gate that had to call the whole command could not assert
+# on the pull report without those. Gate 228 drives this function directly.
+#
+# ⛔ THREE OUTCOMES, AND THE THIRD IS NOT A FAILURE:
+#   0  pulled
+#   1  a pull was ATTEMPTED and FAILED   -> the caller must not report success
+#   2  not a git checkout, so NOTHING WAS ATTEMPTED. Reporting "the pull failed"
+#      here would announce a failure that never happened — the mirror image of
+#      the bug this whole change exists to fix.
+_rc_pull_marketplace() {
+  local market="$1"
+  if ! git -C "$market" rev-parse --git-dir >/dev/null 2>&1; then
+    warn "$market is not a git checkout — nothing to pull"
+    return 2
+  fi
+  local branch; branch="$(git -C "$market" symbolic-ref --short HEAD 2>/dev/null || echo HEAD)"
+  local pull_out
+  if pull_out="$(git -C "$market" pull --ff-only 2>&1)"; then
+    ok "pulled latest ($branch)"
+    return 0
+  fi
+  warn "git pull --ff-only failed on $market ($branch) — NOT updated"
+  _rc_redact_urls "$pull_out" | sed 's/^/      /' >&2
+  local dirty
+  dirty="$(git -C "$market" status --porcelain --untracked-files=no 2>/dev/null || true)"
+  if [ -n "$dirty" ]; then
+    warn "tracked files are modified in the marketplace clone:"
+    printf '%s\n' "$dirty" | sed 's/^/      /' >&2
+    note "Keep them (robust):  git -C $market switch -c local-posture && git -C $market commit -am 'local tuning' && git -C $market switch main && git -C $market pull --ff-only"
+    note "Stash/pop is the quick form, but it CONFLICTS whenever upstream edited the same file:"
+    note "                     git -C $market stash push -m rc-update && git -C $market pull --ff-only && git -C $market stash pop"
+    note "Discard a formatting-only diff:  git -C $market checkout -- <path>"
+  fi
+  note "Skills/hooks below are re-materialized from the CURRENT (unchanged) checkout."
+  return 1
+}
+
 cmd_update() {
   local project="$PWD"
   while [ $# -gt 0 ]; do
@@ -472,16 +588,14 @@ cmd_update() {
     esac
   done
   printf '== ravenclaude update ==\n'
-  if git -C "$MARKET" rev-parse --git-dir >/dev/null 2>&1; then
-    local branch; branch="$(git -C "$MARKET" symbolic-ref --short HEAD 2>/dev/null || echo HEAD)"
-    if git -C "$MARKET" pull --ff-only >/dev/null 2>&1; then
-      ok "pulled latest ($branch)"
-    else
-      warn "git pull --ff-only failed (local changes or diverged?) — skills/hooks still update from whatever is checked out"
-    fi
-  else
-    warn "$MARKET is not a git checkout — nothing to pull"
-  fi
+  # `pull_rc` gates BOTH the closing line and this command's exit status: a
+  # failed pull must not report "up to date", and must not exit 0 either.
+  # Discarding git's stderr here used to turn the single most common failure
+  # (locally-tuned .ravenclaude/comfort-posture.yaml, a tracked file upstream
+  # also edits) into a one-line guess — and the run still ended with a green
+  # "up to date" over a stale checkout.
+  local pull_rc=0
+  _rc_pull_marketplace "$MARKET" || pull_rc=$?
   regen
   # Self-heal the repo-local dashboard launchers when update is run from inside a wired
   # consumer repo, so an improved launcher / README arrives on `update` (or the `rc` alias),
@@ -496,18 +610,40 @@ cmd_update() {
       fi
       ;;
   esac
-  ok "up to date. In your Copilot session run '/skills reload' (or relaunch) to apply."
+  if [ "$pull_rc" -eq 0 ]; then
+    ok "up to date. In your Copilot session run '/skills reload' (or relaunch) to apply."
+  elif [ "$pull_rc" -eq 2 ]; then
+    # Nothing was attempted. Saying "the pull above failed" here would be the
+    # same class of dishonesty this change is closing, pointed the other way.
+    warn "re-materialized from the existing checkout. $MARKET is not a git checkout, so there was nothing to pull."
+  else
+    warn "re-materialized from the existing checkout, but NOT up to date — the pull above failed."
+  fi
 
-  # MH-17 — the update path is exactly where the Codex silent-disarm happens, so
-  # this is exactly where it has to be said. A pull that changed any hook byte just
-  # invalidated that hook's trust hash; Codex will SKIP it until re-trusted, and
-  # the banner that would have told you is itself a skipped hook.
-  #
-  # Gated on the project actually being Codex-wired so a Copilot-only user never
-  # sees a Codex instruction (the cross-host noise this audit is full of).
-  if [ -f "$project/.codex/hooks.json" ]; then
+  # P18 — the update path is exactly where silent-disarm happens (Codex hash-trust
+  # after a pull that changed a hook byte; Copilot version-floor if the CLI was
+  # downgraded). One shared helper, keyed off activation_gate, so a new host
+  # cannot ship a third copy of this notice. Only wired hosts are addressed.
+  if command -v _rc_rearm_wired_hosts >/dev/null 2>&1; then
+    _rc_rearm_wired_hosts "$project" "update"
+  elif [ -f "$project/.codex/hooks.json" ]; then
+    # Fallback if the helper failed to source: keep the Codex notice alive.
     codex_retrust_notice "$project"
   fi
+
+  # ⛔ THE EXIT STATUS IS PART OF THE REPORT. Fixing only the printed line leaves
+  # every automated caller reading a green signal over a stale checkout — and one
+  # exists: serve-dashboards.py's /__run sets the dashboard's success flag to
+  # `proc.returncode == 0`, so the Update button showed ok:true for a run that
+  # did not update. Prose honesty that stops at the human surface is half a fix.
+  #
+  # Only an ATTEMPTED-and-FAILED pull is non-zero. `not a git checkout` (rc 2)
+  # stays 0: nothing was attempted, the re-materialize genuinely succeeded, and
+  # a consumer whose MARKET is a tarball must not start seeing failures.
+  if [ "$pull_rc" -eq 1 ]; then
+    return 1
+  fi
+  return 0
 }
 
 # Symlink one plugin's skills into <project>/.claude/skills. Used by cmd_install
@@ -626,10 +762,15 @@ cmd_install() {
       local tmpcfg="$project/.gemini/.ravenclaude-hooks.json"
       if python3 "$ggen" --adapter "$gad" --hooks-dir "$CORE/hooks" --out "$tmpcfg"; then
         # Merge into .gemini/settings.json rather than overwriting: that file also
-        # carries the user's model, theme and MCP config. Only the `hooks` key is
-        # replaced, and only ours.
-        python3 - "$project/.gemini/settings.json" "$tmpcfg" <<'PY2'
+        # carries the user's model, theme and MCP config, and `hooks` is Gemini's
+        # OWN native key (not RavenClaude-namespaced). Preserve every hook the user
+        # configured themselves; strip + re-splice ONLY our own (name-prefixed
+        # `ravenclaude-`). The old code did `cur["hooks"] = add["hooks"]`, which
+        # silently dropped any hook the user had. Fail-safe: the write happens only
+        # at the very end, so on any error the file is left untouched.
+        gem_merge_err="$(python3 - "$project/.gemini/settings.json" "$tmpcfg" 2>&1 1>/dev/null <<'PY2'
 import json, sys, pathlib
+
 dest, src = pathlib.Path(sys.argv[1]), pathlib.Path(sys.argv[2])
 try:
     cur = json.loads(dest.read_text()) if dest.is_file() else {}
@@ -638,12 +779,71 @@ try:
 except Exception:
     cur = {}
 add = json.loads(src.read_text())
-cur["hooks"] = add.get("hooks", {})
+RC = "ravenclaude-"
+
+
+def is_rc(item):
+    return isinstance(item, dict) and str(item.get("name", "")).startswith(RC)
+
+
+old = cur.get("hooks", {})
+preserved = {}
+foreign = 0
+if isinstance(old, dict):
+    for event, blocks in old.items():
+        if not isinstance(blocks, list):
+            preserved[event] = blocks
+            foreign += 1
+            continue
+        kept_blocks = []
+        for block in blocks:
+            if not isinstance(block, dict) or not isinstance(block.get("hooks"), list):
+                kept_blocks.append(block)
+                foreign += 1
+                continue
+            kept_items = [it for it in block["hooks"] if not is_rc(it)]
+            if kept_items:
+                foreign += len(kept_items)
+                nb = dict(block)
+                nb["hooks"] = kept_items
+                kept_blocks.append(nb)
+        if kept_blocks:
+            preserved[event] = kept_blocks
+elif old:
+    # A non-dict, non-empty hooks value we cannot interpret: preserve verbatim.
+    # NOTE: keep this here-doc free of the apostrophe character. It sits inside
+    # a $( ) command substitution, and bash 3.2 (stock macOS) lexes the body for
+    # quotes even under a quoted <<PY2 tag, so ONE unpaired apostrophe swallows
+    # the rest of the FILE and the whole installer stops parsing. See PR #828.
+    # under a side key rather than silently discard it, and flag it.
+    cur["_ravenclaude_preserved_unknown_hooks"] = old
+    foreign += 1
+
+merged = {}
+for event, blocks in preserved.items():
+    if isinstance(blocks, list):
+        merged.setdefault(event, []).extend(blocks)
+    else:
+        merged[event] = blocks
+for event, blocks in add.get("hooks", {}).items():
+    merged.setdefault(event, []).extend(blocks)
+cur["hooks"] = merged
 cur["_ravenclaude_not_wired"] = add.get("_not_wired", [])
 dest.write_text(json.dumps(cur, indent=2) + "\n")
+if foreign:
+    sys.stderr.write("RC_GEMINI_FOREIGN_HOOKS=1\n")
 PY2
+)" && gem_merge_ok=1 || gem_merge_ok=0
         rm -f "$tmpcfg"
-        ok "wired guardrails into .gemini/settings.json (projected; merged, not clobbered)"
+        if [ "$gem_merge_ok" = 1 ]; then
+          if printf '%s' "$gem_merge_err" | grep -q RC_GEMINI_FOREIGN_HOOKS; then
+            ok "wired guardrails into .gemini/settings.json (merged — your existing non-RavenClaude hooks were preserved)"
+          else
+            ok "wired guardrails into .gemini/settings.json (projected; merged, not clobbered)"
+          fi
+        else
+          warn "gemini hooks merge FAILED — .gemini/settings.json left unchanged; no guardrails wired"
+        fi
       else
         warn "gemini hook projection FAILED — no guardrails wired"
       fi
@@ -670,6 +870,7 @@ PY2
     note "  enforced while silently no-opping. CI is the backstop; see the skip list"
     note "  in .gemini/settings.json (_ravenclaude_not_wired)."
     wire_dashboard_launchers "$project"
+    _rc_finish_host_install "$host" "$project"
     if [ -z "${RC_FROM_SETUP:-}" ]; then
       printf '\n'
       ok "install complete. Launch: gemini (reads .gemini/settings.json from this dir)."
@@ -701,6 +902,7 @@ PY2
     note "If .aider.conf.yml already existed it was OVERWRITTEN — merge by hand if"
     note "  you had other keys in it."
     wire_dashboard_launchers "$project"
+    _rc_finish_host_install "$host" "$project"
     if [ -z "${RC_FROM_SETUP:-}" ]; then
       printf '\n'
       ok "install complete. Launch: aider (it reads .aider.conf.yml from this dir)."
@@ -712,6 +914,7 @@ PY2
   if [ "$host" = "cursor" ]; then
     wire_cursor "$project"
     wire_dashboard_launchers "$project"
+    _rc_finish_host_install "$host" "$project"
     if [ -z "${RC_FROM_SETUP:-}" ]; then
       printf '\n'
       ok "install complete. Open this project in Cursor as usual."
@@ -738,6 +941,7 @@ PY2
 
     wire_codex_hooks "$project"
     ok "wired hooks into .codex/hooks.json (native contract — no adapter)"
+    note "If .codex/hooks.json already existed it was OVERWRITTEN — merge by hand if you had other hooks in it."
 
     # AGENTS.md is read natively from the repo root by Codex [docs-verified], so
     # unlike Copilot (MH-09) no instruction-pointer file is needed here.
@@ -813,7 +1017,7 @@ PY2
     fi
 
     wire_dashboard_launchers "$project"
-    codex_retrust_notice "$project"
+    _rc_finish_host_install "$host" "$project"
     if [ -z "${RC_FROM_SETUP:-}" ]; then
       printf '\n'
       ok "install complete. Launch Codex from $project as usual."
@@ -901,11 +1105,17 @@ PY2
 
   # 4. The launch alias — one command that updates then launches Copilot live.
   #    Suppressed when invoked by `setup`, which writes the alias to ~/.bashrc itself.
+  _rc_finish_host_install "$host" "$project"
   if [ -z "${RC_FROM_SETUP:-}" ]; then
     printf '\nAdd this to your shell rc (~/.bashrc / ~/.zshrc) for one-command use:\n\n'
-    printf "  alias rc='%s/scripts/ravenclaude update && copilot --plugin-dir %s'\n\n" "$MARKET" "$COPILOT_PKG"
+    # `;` NOT `&&` — see the rc() function above: a failed pull is now a non-zero
+    # exit, and `&&` would turn "your posture file blocks the pull" into "Copilot
+    # will not start".
+    printf '  alias rc='\''"%s/scripts/ravenclaude" update ; copilot --plugin-dir "%s"'\''\n\n' "$MARKET" "$COPILOT_PKG"
     ok "install complete. Launch with:  copilot --plugin-dir $COPILOT_PKG"
     note "Updates from now on: just run 'ravenclaude update' (or 'rc'). No re-install, ever."
+    note "VS Code Copilot Chat is a separate product — CLI hooks are not Chat coverage."
+    note "One window per worktree; never add a sibling folder. See knowledge/copilot-chat-customization.md."
   fi
 }
 
@@ -983,6 +1193,30 @@ cmd_status() {
       [ ! -f "$readme" ]   && note "          ↳ .ravenclaude/README.md absent"
       [ ! -f "$vstask" ]   && note "          ↳ .vscode/tasks.json absent"
     fi
+  fi
+
+  # Agent-in-CI protocol scaffold (v0.252.0) — the github-protocol / agent-approval
+  # workflows a consumer adopts via `ravenclaude init-agent-ci`. Reported like the
+  # other lanes: present -> count; absent -> the one command that scaffolds it. These
+  # are host-agnostic GitHub artifacts (a non-Claude host reads the knowledge as
+  # context, not as an enforced hook), so this line is not host-conditional.
+  # Guard the dir first: under `set -euo pipefail`, a `find` over a missing dir exits
+  # non-zero and pipefail propagates it, which would abort cmd_status (matches the
+  # `[ -d ] && … || …` guard the skills/codex lines above already use).
+  local _aci_n=0
+  if [ -d "$project/.github/workflows" ]; then
+    _aci_n="$(find "$project/.github/workflows" -maxdepth 1 -type f \( -name 'github-protocol-*.yml' -o -name 'agent-approval-check.yml' \) 2>/dev/null | wc -l | tr -d ' ')"
+  fi
+  if [ "${_aci_n:-0}" -gt 0 ]; then
+    note "agent-ci: $_aci_n github-protocol/agent-approval workflow(s) in .github/workflows"
+  else
+    note "agent-ci: not scaffolded — run 'ravenclaude init-agent-ci' to add the agent-in-CI protocol (opt-in, host-agnostic)"
+  fi
+
+  # P18 — one-line re-arm reminder for every wired host whose activation_gate
+  # is not `none`. Shared helper; do not add a third per-host copy here.
+  if command -v _rc_rearm_wired_hosts >/dev/null 2>&1; then
+    _rc_rearm_wired_hosts "$project" "status"
   fi
 }
 
@@ -1126,6 +1360,110 @@ PY
   chmod +x "$project/.devcontainer/ravenclaude-post-create.sh"
   ok "wrote .devcontainer/ravenclaude-post-create.sh"
   note "Commit .devcontainer/ and (re)build the Codespace — setup then runs automatically."
+}
+
+# init-agent-ci: scaffold the agent-in-CI GitHub protocol templates into a CONSUMER's
+# .github/ so a Copilot/Codex (or any bash) consumer can adopt what only Claude Code's
+# /init-agent-ready reaches today. Reads the canonical source templates/agent-ready-repo/
+# and writes ONLY into the consumer's repo — never into a generated plugin dir.
+# bash-3.2-safe by construction (no `declare -A` / `mapfile` / `${x^^}`); non-destructive
+# (skip-if-exists unless --force). `--only <comma-list>` cherry-picks by target basename.
+cmd_init_agent_ci() {
+  local project="$PWD" only="" only_set=0 force=0
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --project) project="$2"; shift 2 ;;
+      --only)    only="$2"; only_set=1; shift 2 ;;
+      --force)   force=1; shift ;;
+      *)         project="$1"; shift ;;
+    esac
+  done
+  local _proj_in="$project"
+  if ! project="$(cd "$project" 2>/dev/null && pwd)"; then
+    warn "init-agent-ci: no such project dir: $_proj_in"; return 1
+  fi
+  printf '== ravenclaude init-agent-ci -> %s ==\n' "$project"
+  local tpl="$CORE/templates/agent-ready-repo"
+  [ -d "$tpl" ] || { warn "template dir missing: $tpl"; return 1; }
+
+  # Fixed allow-list of TARGET basenames (RT-G5-5a — never derive a path from raw input).
+  local allow="github-protocol-workflow-hygiene.yml github-protocol-pr-title.yml github-protocol-commit-lint.yml github-protocol-secret-scan.yml agent-approval-check.yml agent_pr_template.md check-workflow-hygiene.py"
+  local want="" tok
+  if [ "$only_set" -eq 1 ]; then
+    for tok in $(printf '%s' "$only" | tr ',' ' '); do
+      case " $allow " in
+        *" $tok "*) want="$want $tok" ;;
+        *) warn "--only: unknown template '$tok'. Allowed:"; warn "  $allow"; return 2 ;;
+      esac
+    done
+    # --only was given but parsed to nothing (empty / all-commas / whitespace):
+    # the caller asked for a SUBSET, so copying all 7 would violate the cherry-pick
+    # contract. Treat it as an error, not "no filter". (A valid token leaves $want
+    # non-empty — it accumulates with a leading space.)
+    if [ -z "$want" ]; then
+      warn "--only: no valid template names in '$only'. Allowed:"; warn "  $allow"; return 2
+    fi
+  fi
+
+  # Copy set (CE-1): 7 files across 3 target dirs. The companion check-workflow-hygiene.py
+  # is REQUIRED — the copied github-protocol-workflow-hygiene.yml invokes it at runtime.
+  # Rows are src-basename|target-subdir|target-basename (bash-3.2-safe while-read, no arrays).
+  local copied=0 skipped=0 src sub dst target
+  while IFS='|' read -r src sub dst; do
+    [ -n "$src" ] || continue
+    if [ -n "$want" ]; then
+      case " $want " in *" $dst "*) : ;; *) continue ;; esac
+    fi
+    target="$project/$sub/$dst"
+    mkdir -p "$project/$sub"
+    if [ -f "$target" ] && [ "$force" -ne 1 ]; then
+      warn "skip (exists): $sub/$dst — re-run with --force to overwrite"
+      skipped=$((skipped + 1)); continue
+    fi
+    # --force path only (no-force already skipped above): remove the target first
+    # so cp writes a fresh regular file and never follows a pre-existing symlink
+    # to write OUTSIDE .github/. `-L` also catches a dangling symlink.
+    if [ "$force" -eq 1 ] && { [ -e "$target" ] || [ -L "$target" ]; }; then
+      rm -f "$target"
+    fi
+    cp "$tpl/$src" "$target"
+    ok "wrote $sub/$dst"
+    copied=$((copied + 1))
+  done <<'ROWS'
+github-protocol-workflow-hygiene.yml.template|.github/workflows|github-protocol-workflow-hygiene.yml
+github-protocol-pr-title.yml.template|.github/workflows|github-protocol-pr-title.yml
+github-protocol-commit-lint.yml.template|.github/workflows|github-protocol-commit-lint.yml
+github-protocol-secret-scan.yml.template|.github/workflows|github-protocol-secret-scan.yml
+agent-approval-check.yml.template|.github/workflows|agent-approval-check.yml
+PULL_REQUEST_TEMPLATE-agent.md.template|.github/PULL_REQUEST_TEMPLATE|agent_pr_template.md
+check-workflow-hygiene.py.template|.github/scripts|check-workflow-hygiene.py
+ROWS
+  printf '  (%d written, %d skipped)\n' "$copied" "$skipped"
+
+  # RT-G5-5b: the consumer's own layout allow-list must admit these paths.
+  if [ -f "$project/.repo-layout.json" ] && ! grep -q '.github/' "$project/.repo-layout.json" 2>/dev/null; then
+    warn ".repo-layout.json has no .github/ glob — add '.github/**' (or .github/workflows/** + .github/scripts/**), or your next commit trips your own validate-layout."
+  fi
+
+  # RT-G5-1: the hygiene workflow scans ALL of .github/workflows/* with HARD rules.
+  note ""
+  note "Heads-up: github-protocol-workflow-hygiene.yml runs the copied scanner over ALL of"
+  note "  .github/workflows/* and enforces a top-level permissions: floor + 40-hex SHA-pinned actions,"
+  note "  so any pre-existing workflow that isn't compliant will fail that check on your next PR."
+  note "  Preview now:  python3 .github/scripts/check-workflow-hygiene.py .github/workflows"
+
+  # NEW-2: the anti-self-approval control is inert until the consumer wires it.
+  note ""
+  note "agent-approval-check.yml is inert until you CODEOWNERS-protect it, make it a REQUIRED status"
+  note "  check, and add your agent's login to its EXCLUDED_APPROVERS — see plugins/ravenclaude-core/"
+  note "  knowledge/claude-in-ci.md. Optional manual bootstrap (not copied here):"
+  note "  templates/agent-ready-repo/setup-branch-protection.sh."
+
+  # claim 18: honest cross-host limit (noun forms only).
+  note ""
+  note "These are host-agnostic GitHub artifacts you now own — they work regardless of which agent CLI"
+  note "  you run. A non-Claude host reads the accompanying knowledge as context, never as an enforced"
+  note "  hook. SHA-pin each action to the current release for your adoption date before you rely on it."
 }
 
 cmd_dashboard() {
@@ -1296,5 +1634,6 @@ case "${1:-}" in
   dashboard)      shift; cmd_dashboard "$@" ;;
   doctor)         shift; cmd_doctor "$@" ;;
   init-codespace) shift; cmd_init_codespace "$@" ;;
-  *) printf 'usage: ravenclaude {setup|install|update|status|dashboard|doctor|init-codespace} [--project DIR]\n'; exit 2 ;;
+  init-agent-ci)  shift; cmd_init_agent_ci "$@" ;;
+  *) printf 'usage: ravenclaude {setup|install|update|status|dashboard|doctor|init-codespace|init-agent-ci} [--project DIR]\n'; exit 2 ;;
 esac

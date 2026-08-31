@@ -229,7 +229,7 @@ def build_parser() -> argparse.ArgumentParser:
     ar.add_argument("--avg-daily-charges", type=float, required=True,
                     help="average daily charges (e.g. trailing-90-day charges / 90)")
     ar.add_argument("--over-90", type=float, default=None,
-                    help="dollars of A/R aged over 90 days (optional; flags vs <10% target)")
+                    help="dollars of A/R aged over 90 days (optional; flags vs <10%% target)")
     ar.set_defaults(func=cmd_ar_days)
 
     nc = sub.add_parser("net-collection", help="Net collection rate (vs allowed, not gross)")

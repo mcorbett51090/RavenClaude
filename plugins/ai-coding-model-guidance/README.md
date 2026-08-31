@@ -35,12 +35,12 @@ Requires `ravenclaude-core@>=0.7.0`.
 ```
 ai-coding-model-guidance/
 ├── .claude-plugin/plugin.json
-├── CLAUDE.md                                  team constitution
+├── CLAUDE.md team constitution
 ├── README.md
 ├── agents/
-│   ├── copilot-model-strategist.md
-│   ├── codex-model-strategist.md
-│   └── grok-model-strategist.md
+│ ├── copilot-model-strategist.md
+│ ├── codex-model-strategist.md
+│ └── grok-model-strategist.md
 └── knowledge/
-    └── cross-tool-model-lineup-2026.md        single source of truth (dated + cited)
+ └── cross-tool-model-lineup-2026.md single source of truth (dated + cited)
 ```

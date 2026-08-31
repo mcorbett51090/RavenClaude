@@ -13,6 +13,9 @@ You are helping the user make this repository agent-readable. Your goal is to cr
 5. **(optional) `.github/workflows/validate-layout.yml`** — CI backstop that fails PRs adding files outside the allow-list. Recommended for any repo with a GitHub remote.
 6. **(optional) CI-hygiene scaffold** — `.prettierrc.json`, `.prettierignore`, and `scripts/audit-gates.sh` (the gate-audit scaffold defined by [`audit-ci-gates`](../skills/audit-ci-gates/SKILL.md)). Recommended for any repo that ships CI workflows meant to enforce properties — see [`docs/best-practices/ci-gate-audit.md`](https://github.com/mcorbett51090/RavenClaude/blob/main/docs/best-practices/ci-gate-audit.md) in the marketplace for the rule this scaffold encodes.
 7. **(optional) Portable quality gates** — `.github/workflows/validate-quality.yml` (a language-agnostic LINT / FORMAT / SYNTAX CI: Prettier format-check, **Ruff** Python lint+format, shell `bash -n`, JSON/YAML config-parse, and checksum-pinned actionlint) plus `ruff.toml` (a conservative starting ruleset). This is the installable version of the gates RavenClaude runs on itself — each step is a real gate (fails on bad input, passes on good). Recommended for any repo with a GitHub remote; tailor by deleting jobs for languages you don't use.
+8. **(default-selected) Gold-standard GitHub protocol** — the highest-leverage GitHub hardening as opt-in-but-default-selected CI: four workflows (`github-protocol-workflow-hygiene.yml`, `github-protocol-pr-title.yml`, `github-protocol-commit-lint.yml`, `github-protocol-secret-scan.yml`) + the stdlib-only `check-workflow-hygiene.py` scanner. Each workflow **dogfoods** the rules in [`../knowledge/github-actions-hardening.md`](../knowledge/github-actions-hardening.md): a deny-all top-level `permissions:` floor, every third-party action pinned to a 40-hex commit SHA, and **no `paths:`/`branches:` filter on any `pull_request` trigger** (the trap that hangs a would-be-required check forever). Recommended for any repo with a GitHub remote.
+9. **(guidance-first, dry-run default) Branch-protection setup helper + CODEOWNERS starter** — `setup-branch-protection.sh` (a **dry-run-by-default** helper that prints the `gh api` repository-ruleset body it *would* send to protect the default branch — require-a-PR-before-merge + the four gold-standard workflows above as required status checks + optional linear history — and self-checks that none of those workflows is path-filtered before it could be made required) plus a commented-out `CODEOWNERS` starter. This is **guidance, not a default-on control**: the helper changes nothing unless *you* run it with `--apply`, and `--apply` is deliberately un-automatable (it needs a live `gh` login **and** a typed, terminal-only confirmation). See [`../knowledge/github-actions-hardening.md`](../knowledge/github-actions-hardening.md) § "Branch protection — how to set it".
+10. **(OPT-IN, NOT default-selected) Agent-in-CI scaffolds** — for a repo where an AI agent operates GitHub from inside CI. Two files, **off by default** (a second PR template and an anti-self-approval workflow change a consumer's PR/CI behavior, so unlike items 8–9 they are **not** pre-selected): (a) `PULL_REQUEST_TEMPLATE-agent.md` — a Devin-convention agent PR template (structured summary / approach / verification + a `Co-Authored-By:` provenance footer); (b) `agent-approval-check.yml` — a hardened structural anti-self-approval workflow that stops an agent-authored PR from self-approving (the PR initiator is excluded from the required-approval count; the check is evaluated from the base ref so a PR editing it cannot self-green-light). See [`../knowledge/claude-in-ci.md`](../knowledge/claude-in-ci.md) + [`../knowledge/agent-pr-identity.md`](../knowledge/agent-pr-identity.md).
 
 ## How to proceed
 
@@ -31,15 +34,18 @@ Inspect the working directory. Note which of these already exist: `AGENTS.md`, `
 - `notebooks/`, `dvc.yaml`, `mlflow/` → data / ML pipeline
 - `.claude-plugin/marketplace.json` → Claude Code plugin marketplace (this is RavenClaude itself or similar)
 
-### Step 2 — Ask the user four questions (use AskUserQuestion)
+### Step 2 — Ask the user (use AskUserQuestion)
 
 Ask in one batch:
 
 1. **What kind of repo is this?** Options: application, library, monorepo, documentation, data/ML pipeline, infrastructure-as-code, plugin marketplace, other. Pre-select the most likely option based on your detection in Step 1.
 2. **Should we add the CI workflow `.github/workflows/validate-layout.yml`?** Options: yes (recommended) / no.
-3. **Should we add the portable quality gates (`.github/workflows/validate-quality.yml` + `ruff.toml`)?** Options: yes (recommended) / no. This is the lint/format/syntax CI — Prettier, Ruff (Python), shell `bash -n`, config-parse, actionlint. Mention the conservative-ruleset-first discipline: the first `ruff check --fix . && ruff format .` will surface and fix a lot on a never-linted codebase, so run it once and commit before turning the gate on.
-4. **Should we add the CI-hygiene scaffold (`.prettierrc.json`, `.prettierignore`, `scripts/audit-gates.sh`)?** Options: yes (recommended if your repo has CI workflows that enforce properties) / no. Adding `audit-gates.sh` as a scaffold ships with one example fixture — fill in real gates (incl. fixtures for the quality gates above) as you wire CI.
-5. **For any boundary file that already exists, what should we do?** Options: skip / overwrite / merge intelligently. Only ask this if at least one already exists.
+3. **Should we add the gold-standard GitHub protocol workflows?** Options: **yes (default — pre-select this)** / no. Only ask (and only default to yes) if the repo has a GitHub remote. This scaffolds the four `github-protocol-*.yml` workflows (workflow-hygiene, PR-title, commit-lint, secret-scan) + `check-workflow-hygiene.py` — the highest-leverage GitHub hardening, each dogfooding a deny-all `permissions:` floor, SHA-pinned actions, and path-filter-free triggers. Tell the user they must SHA-pin each action to the current release for their adoption date and keep any would-be-required trigger path-filter-free.
+4. **Should we add the branch-protection setup helper + CODEOWNERS starter?** Options: **yes (default — pre-select this)** / no. Only ask (and only default to yes) if the repo has a GitHub remote AND the gold-standard workflows were accepted in #3 (they supply the required-status-check names). This scaffolds `setup-branch-protection.sh` and a commented-out `CODEOWNERS`. Make it explicit that this is **guidance-first, not a control**: the helper is **dry-run by default** (prints the `gh api` ruleset body, changes nothing), and turning protection on is a separate `--apply` step *the user* runs — it requires a live `gh` login and a typed confirmation and can never be auto-applied by an agent.
+5. **Should we add the agent-in-CI scaffolds?** Options: **no (default — do NOT pre-select this)** / yes. Only offer if the repo runs (or plans to run) an AI agent as a GitHub actor in CI. Unlike #3/#4 these are **opt-in, NOT default-selected** — a second PR template and an anti-self-approval workflow change PR/CI behavior, so the consumer must explicitly ask. If yes, scaffold `PULL_REQUEST_TEMPLATE-agent.md` + `agent-approval-check.yml`, and tell the user the anti-self-approval workflow is only sound once its `EXCLUDED_APPROVERS` list names the agent's account AND the workflow path is CODEOWNERS-protected (so a PR can't edit the check to approve itself).
+6. **Should we add the portable quality gates (`.github/workflows/validate-quality.yml` + `ruff.toml`)?** Options: yes (recommended) / no. This is the lint/format/syntax CI — Prettier, Ruff (Python), shell `bash -n`, config-parse, actionlint. Mention the conservative-ruleset-first discipline: the first `ruff check --fix . && ruff format .` will surface and fix a lot on a never-linted codebase, so run it once and commit before turning the gate on.
+7. **Should we add the CI-hygiene scaffold (`.prettierrc.json`, `.prettierignore`, `scripts/audit-gates.sh`)?** Options: yes (recommended if your repo has CI workflows that enforce properties) / no. Adding `audit-gates.sh` as a scaffold ships with one example fixture — fill in real gates (incl. fixtures for the quality gates above) as you wire CI.
+8. **For any boundary file that already exists, what should we do?** Options: skip / overwrite / merge intelligently. Only ask this if at least one already exists.
 
 ### Step 3 — Plan the files and show Keep / Update / Deny
 
@@ -50,9 +56,18 @@ About to create / update:
 - AGENTS.md           (NEW, ~80 lines)
 - CLAUDE.md           (NEW, ~30 lines)
 - .repo-layout.json   (NEW, allow-list tailored to <repo-type>)
-- .github/workflows/validate-layout.yml   (NEW, optional CI gate)
-- .github/workflows/validate-quality.yml  (NEW, optional lint/format/syntax gates)
-- ruff.toml                                (NEW, optional — Python repos only)
+- .github/workflows/validate-layout.yml            (NEW, optional CI gate)
+- .github/workflows/github-protocol-workflow-hygiene.yml  (NEW, gold-standard — default-selected)
+- .github/workflows/github-protocol-pr-title.yml          (NEW, gold-standard — default-selected)
+- .github/workflows/github-protocol-commit-lint.yml       (NEW, gold-standard — default-selected)
+- .github/workflows/github-protocol-secret-scan.yml       (NEW, gold-standard — default-selected)
+- .github/scripts/check-workflow-hygiene.py               (NEW, gold-standard — default-selected)
+- .github/scripts/setup-branch-protection.sh              (NEW, branch protection — dry-run helper, default-selected)
+- CODEOWNERS                                              (NEW, branch protection — commented starter, default-selected)
+- .github/PULL_REQUEST_TEMPLATE/agent_pr_template.md      (NEW, agent-in-CI — OPT-IN, off by default)
+- .github/workflows/agent-approval-check.yml              (NEW, agent-in-CI — OPT-IN, off by default)
+- .github/workflows/validate-quality.yml           (NEW, optional lint/format/syntax gates)
+- ruff.toml                                        (NEW, optional — Python repos only)
 ```
 
 Then ask the user via AskUserQuestion: Keep all / Update specific files / Deny.
@@ -110,6 +125,46 @@ Always include `AGENTS.md`, `CLAUDE.md`, `README.md`, `.repo-layout.json`, and `
 
 **`.github/workflows/validate-layout.yml`** (only if user approved): copy the structure from RavenClaude's own workflow at `${CLAUDE_PLUGIN_ROOT}/templates/agent-ready-repo/validate-layout.yml.template` — adjust nothing except header comments.
 
+**Gold-standard GitHub protocol** (default-selected — write these UNLESS the user opted out): copy five files from `${CLAUDE_PLUGIN_ROOT}/templates/agent-ready-repo/` (strip the `.template` suffix on each):
+
+- `github-protocol-workflow-hygiene.yml.template` → `.github/workflows/github-protocol-workflow-hygiene.yml`
+- `github-protocol-pr-title.yml.template` → `.github/workflows/github-protocol-pr-title.yml`
+- `github-protocol-commit-lint.yml.template` → `.github/workflows/github-protocol-commit-lint.yml`
+- `github-protocol-secret-scan.yml.template` → `.github/workflows/github-protocol-secret-scan.yml`
+- `check-workflow-hygiene.py.template` → `.github/scripts/check-workflow-hygiene.py` (the stdlib-only scanner the hygiene workflow runs — no `chmod` needed; the workflow invokes it as `python3 …`).
+
+Then, in the same pass:
+
+- **Ensure `.github/**` is in `.repo-layout.json` `allowed_globs`** (every starter set already includes it; if the consumer uses a narrower list, add `.github/workflows/**` and `.github/scripts/**`).
+- **Instruct the consumer to SHA-pin each action to the CURRENT release for their adoption date.** The templates ship real 40-hex pins (`actions/checkout`, and TruffleHog in the secret-scan workflow) that were current when the templates were authored — a consumer should re-resolve each tag to its latest commit SHA (`gh api repos/<owner>/<repo>/commits/<tag> --jq .sha`) and re-pin, keeping the `# vX.Y.Z` trailing comment. **Keep every would-be-required trigger path-filter-free** (a `paths:`/`branches:` filter on a `pull_request` trigger that later becomes a required check leaves it Pending and hangs the PR forever).
+- **Native secret-scanning push protection** is the stronger complement to the PR-time secret-scan workflow — a repo Settings toggle the template can't set. Point the consumer at **Settings → Code security → Secret scanning → Push protection**.
+- **Point the consumer at the [`audit-ci-gates`](../skills/audit-ci-gates/SKILL.md) skill** to add a fail-on-bad/pass-on-good fixture per gate — the same discipline RavenClaude proves these very templates with (its Gate 188 renders each `github-protocol-*.yml.template`, asserts the top-level `permissions:` floor + every `uses:` SHA-pinned + no path-filtered `pull_request` trigger, and runs actionlint over them).
+
+**Branch protection — the final guided step** (default-selected — write these UNLESS the user opted out in #4): copy two files from `${CLAUDE_PLUGIN_ROOT}/templates/agent-ready-repo/` (strip the `.template` suffix):
+
+- `setup-branch-protection.sh.template` → `.github/scripts/setup-branch-protection.sh` — the **dry-run-by-default** ruleset helper. After writing, make it executable: `chmod +x .github/scripts/setup-branch-protection.sh`.
+- `CODEOWNERS.template` → `CODEOWNERS` (repo root) — a commented-out starter. Leave it commented; the user fills in real `@user`/`@org/team` owners.
+
+Then, as the closing action of this command — **guidance-first, never a control**:
+
+- **Run the dry-run FOR the user and show them the output.** `bash .github/scripts/setup-branch-protection.sh` is read-only — it prints the `gh api` ruleset body it *would* send (require-a-PR-before-merge + the four `github-protocol-*` workflows as required status checks) and self-checks that none of those workflows is path-filtered. Running it is safe and changes nothing, so **do run it** and surface the body + self-check result. (Add `--linear-history` to preview linear-history enforcement; `--require-codeowner-review` to pair it with the CODEOWNERS file.)
+- **Do NOT run `--apply`, and do not offer to.** Turning protection on is the user's to do: `--apply` requires a live `gh auth status` **and** a typed confirmation in an interactive terminal, and it **refuses** if any required workflow is path-filtered. Hand it back as their one-line next step, e.g. *"When you're ready to enforce it: `gh auth status` then `.github/scripts/setup-branch-protection.sh --apply`."*
+- **The required-check CONTEXT strings must equal each workflow's job `name:`** — GitHub keys a required status check by the job display name. If the user renames a `github-protocol-*` job's `name:`, they must rename the matching context in `setup-branch-protection.sh`, or the check never matches and the PR hangs. The script's header comment says this too.
+- **Ensure `.github/**` and `CODEOWNERS` are in `.repo-layout.json` `allowed_globs`** (every starter set already includes `.github/**`; add a `CODEOWNERS` entry if the consumer uses a narrow list).
+
+**Agent-in-CI scaffolds** (OPT-IN — write these ONLY if the user explicitly asked in #5; they are **NOT** default-selected): copy two files from `${CLAUDE_PLUGIN_ROOT}/templates/agent-ready-repo/` (strip the `.template` suffix):
+
+- `PULL_REQUEST_TEMPLATE-agent.md.template` → `.github/PULL_REQUEST_TEMPLATE/agent_pr_template.md` — the agent PR template. The agent selects it with `?template=agent_pr_template.md` on the PR-creation URL.
+- `agent-approval-check.yml.template` → `.github/workflows/agent-approval-check.yml` — the structural anti-self-approval workflow.
+
+Then, before relying on the anti-self-approval workflow, tell the user (it is guidance, not something the agent enables):
+
+- **Configure `EXCLUDED_APPROVERS`** — the workflow ships with `dependabot[bot]` seeded; add the agent's own account so its approval never counts toward the required approvals (essential when the agent runs as a write-access collaborator, whose approval would otherwise be trusted). The branch-protection helper's dry-run WARNs if this list is left empty.
+- **CODEOWNERS-protect the workflow path** — add `.github/workflows/agent-approval-check.yml` to `CODEOWNERS` with a human owner and make code-owner review required, so a PR editing the check cannot self-green-light from its own head. The workflow already evaluates the approver set from the base ref for the same reason.
+- **SHA-pin any action** the workflow references to the current release for the adoption date (same discipline as the gold-standard workflows).
+- Ensure `.github/**` is in `.repo-layout.json` `allowed_globs` (the default starter already includes it).
+- **Native branch-protection UI** is the equivalent point-and-click path if the user prefers it: **Settings → Rules → Rulesets → New branch ruleset** (or the older **Settings → Branches**). The script is the reproducible, reviewable version of the same thing.
+
 **Portable quality gates** (only if user approved): copy two files from `${CLAUDE_PLUGIN_ROOT}/templates/agent-ready-repo/`:
 
 - `validate-quality.yml.template` → `.github/workflows/validate-quality.yml` (the lint/format/syntax CI). **Tailor it:** delete the Ruff job if there's no Python, the Prettier job if there's no JS/TS/JSON/YAML/CSS, etc. — keep only the gates that apply.
@@ -137,8 +192,9 @@ After writing, summarize for the user:
 What now:
 1. The plugin's enforce-layout hook is already active — it will read .repo-layout.json on every Write/Edit and block off-pattern paths.
 2. If you push this branch, the CI workflow runs on PRs.
-3. Edit .repo-layout.json whenever you add a new top-level directory.
-4. Which hosts actually read AGENTS.md (corrected 2026-07-29, audit MH-28 — this line
+3. Branch protection is scaffolded but NOT on — it is guidance, not a default-on control. The dry-run above showed the ruleset body; when you're ready to enforce it, run `gh auth status` then `.github/scripts/setup-branch-protection.sh --apply` yourself (it needs a typed confirmation and refuses if a required workflow is path-filtered).
+4. Edit .repo-layout.json whenever you add a new top-level directory.
+5. Which hosts actually read AGENTS.md (corrected 2026-07-29, audit MH-28 — this line
    used to claim "Cursor / Codex / Aider / Copilot natively", and it was WRONG for Aider):
      - GitHub Copilot CLI  — yes, natively  [docs-verified]
      - OpenAI Codex CLI    — yes, from the repo root  [docs-verified]

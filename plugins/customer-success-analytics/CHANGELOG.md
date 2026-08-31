@@ -22,3 +22,10 @@ Value-add build-out on top of PR #315's consolidated decision-trees + best-pract
 ## 0.1.x
 
 - Initial release + PR #315: 2 agents, 5 skills, 20 best-practice rules, consolidated `customer-success-decision-trees.md`, 2-doc knowledge bank, 4 templates.
+
+## [0.2.1] — 2026-08-14
+
+### Changed
+
+- Dropped hand-maintained artifact-count literals from the plugin description (D1). The roster enumerates itself; Gate 206 forbids the digit.
+

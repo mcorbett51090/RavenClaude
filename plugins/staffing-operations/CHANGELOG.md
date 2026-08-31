@@ -2,6 +2,12 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.2.3] — 2026-08-14
+
+### Changed
+
+- Dropped hand-maintained artifact-count literals from the plugin description (D1). The roster enumerates itself; Gate 206 forbids the digit.
+
 ## [0.2.0] — 2026-06-05
 
 Value-add build-out for a **pure non-code (healthcare + education staffing) vertical** — adds the scenarios bank, two new Mermaid decision-tree sections, and a runnable staffing-analytics calculator; honestly dispositions the code-runtime tier as N-A. Builds on PR #315 (which added the consolidated decision-trees file, best-practices set, and templates).

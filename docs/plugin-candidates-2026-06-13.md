@@ -53,7 +53,7 @@ The systems that put mail in the inbox: SPF/DKIM/DMARC alignment + rollout, deli
 
 **Dependencies/seams.** `platform-engineering-idp` (golden paths), `devops-cicd` (the pipeline that runs the build), `frontend/backend-engineering` (the code it builds). High demand, slightly more volatile tooling (re-verify riders).
 
-## 4. graph-knowledge-engineering (P1)
+## 4. graph-knowledge-engineering (P1) — **BUILT 2026-08-14** as [`graph-engineering`](../plugins/graph-engineering/) (2 agents; GraphRAG as skill + command)
 
 **Gap.** Graph databases and knowledge graphs: Neo4j/Cypher, property-graph modeling, graph algorithms (pathfinding, centrality, community), RDF/SPARQL, and **GraphRAG**. `database-engineering` is OLTP/relational; `ai-rag-engineering` is vector RAG; neither owns graph data modeling or graph-augmented retrieval.
 

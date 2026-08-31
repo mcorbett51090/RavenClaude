@@ -100,6 +100,10 @@ For a **card / tile** ("Intercom-style", dashboard, inbox, clean-SaaS) surface, 
 
 Verify the design against the *rendered* result, not the spec in your head. When the surface renders in a browser, drive `chrome-devtools-mcp` to screenshot it (your eyes on the render) and run the referee — [`visual-feedback-loop`](../../ravenclaude-core/skills/visual-feedback-loop/SKILL.md) — which folds the screenshot's companion signals (console, Lighthouse a11y/contrast) into one verdict against **objective stopping signals**, so a visual change is checked, not assumed. **Conditional / never stall:** if `chrome-devtools-mcp` isn't installed, fall back to the structural read and name the one optional install that unlocks the visual half. Full discipline + security rules: [`visual-feedback-loop.md`](../../ravenclaude-core/knowledge/visual-feedback-loop.md).
 
+## Design-schema mimicry
+
+**Clone the craft, swap the identity.** When the ask is "make it look like `<reference site>`", drive [`design-clone`](../../ravenclaude-core/skills/design-clone/SKILL.md): it captures the reference's full design schema — spacing scale, type scale, grid/breakpoints, elevation ramp, component recipes — and re-skins it with the target's **own** brand, while structurally blocking the reference's identity (logo, signature color, mascot) from the output. **Fidelity is browser-gated, up front:** the apply path is an offline, declared-CSS transform — a structural clone of the design *system*, never a pixel-fidelity claim. Verifying it actually *looks* like the reference is the render→compare loop's `ssim_score` gate, present only when a browser tool is; offline it degrades to a structural sanity check ("does it declare the same design system?") and reports fidelity **unverified**. Trade dress is **not** cleared here — a distinctive whole-composition clone routes to `security-reviewer`.
+
 ## Output Contract
 Use the standard web-design output block (see [`../CLAUDE.md`](../CLAUDE.md) §6). For tokens / color work, the `Standards cited:` line includes WCAG 2.2 contrast ratios.
 

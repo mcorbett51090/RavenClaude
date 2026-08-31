@@ -11,7 +11,7 @@ The **technical-writing-docs** plugin — developer and product documentation do
 ## Knowledge, scenarios & tooling
 
 - **Decision-tree knowledge bank** — Diátaxis content-type selection (with the mixed-kind split), docs-tooling choice, content-home, examples-from-stale, stale-doc handling, API-docs structure, and **lint-in-CI-vs-manual-review**, plus a dated 2026 capability map.
-- **Scenarios bank** (`scenarios/`) — 4 unverified field notes (API-docs drift from code, no-IA findability, tutorial/reference confusion, docs-review bottleneck), surfaced behind the mandatory unverified-scenario preamble.
+- **Scenarios bank** (`scenarios/`) — unverified field notes (API-docs drift from code, no-IA findability, tutorial/reference confusion, docs-review bottleneck), surfaced behind the mandatory unverified-scenario preamble.
 - **Prose-linter LSP tier** (`.lsp.json`) — Vale-LS (prose/style) + Marksman (markdown structure). Ships the config; binaries install separately (loud-but-non-fatal if missing).
 - **Runnable checker** (`scripts/docs_check.py`) — stdlib-only Flesch readability + prose-hygiene triage; `python3 scripts/docs_check.py all path/to/doc.md`.
 

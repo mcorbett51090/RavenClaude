@@ -52,6 +52,10 @@ const pieces = [
   extract(app, "const RUNAWAY_DEFAULT ="),
   extract(app, "const PARALLELISM_DEFAULT ="),
   extract(app, "const DOD_DEFAULT ="),
+  // Advisory scalar knobs (probe_validity + the four cause_*). Object literals,
+  // so they need the brace-matching extractor rather than a `[^;]*;` regex.
+  extract(app, "const ADVISORY_KNOB_VALUES ="),
+  extract(app, "const ADVISORY_KNOBS_DEFAULT ="),
   // simple scalar/array consts the functions reference
   app.match(/const CR_SEATS = \[[^\]]*\];/)[0],
   app.match(/const TIER_SEATS = \[[^\]]*\];/)[0],
@@ -60,6 +64,8 @@ const pieces = [
   app.match(/const DECISION_REVIEW_DEFAULT = [^;]*;/)[0],
   app.match(/const WORKTREE_GUARD_VALUES = \[[^\]]*\];/)[0],
   app.match(/const WORKTREE_GUARD_DEFAULT = [^;]*;/)[0],
+  app.match(/const WORKTREE_BOUND_VALUES = \[[^\]]*\];/)[0],
+  app.match(/const WORKTREE_BOUND_DEFAULT = [^;]*;/)[0],
   app.match(/const DASHBOARD_AUTOSTART_VALUES = \[[^\]]*\];/)[0],
   app.match(/const DASHBOARD_AUTOSTART_DEFAULT = [^;]*;/)[0],
   app.match(/const ORCHESTRATOR_VALUES = \[[^\]]*\];/)[0],
@@ -72,6 +78,24 @@ const pieces = [
   app.match(/const STREAM_THRESHOLD_DEFAULT = [^;]*;/)[0],
   app.match(/const STREAM_THRESHOLD_MIN = [^;]*;/)[0],
   app.match(/const STREAM_THRESHOLD_MAX = [^;]*;/)[0],
+  // Conserve-tokens exception (v0.273.0) — the persistent trigger + its threshold.
+  app.match(/const CONSERVE_TOKENS_DEFAULT = [^;]*;/)[0],
+  app.match(/const CONSERVE_AUTO_PCT_DEFAULT = [^;]*;/)[0],
+  app.match(/const CONSERVE_AUTO_PCT_MIN = [^;]*;/)[0],
+  app.match(/const CONSERVE_AUTO_PCT_MAX = [^;]*;/)[0],
+  // Session-context handoff (v0.61.0 data-loss class) — mode enum + spawn union + freeze default.
+  app.match(/const CONTEXT_HANDOFF_MODE_VALUES = \[[^\]]*\];/)[0],
+  app.match(/const CONTEXT_HANDOFF_MODE_DEFAULT = [^;]*;/)[0],
+  app.match(/const CONTEXT_HANDOFF_SPAWN_VALUES = \[[^\]]*\];/)[0],
+  extract(app, "const CONTEXT_HANDOFF_DEFAULT ="),
+  // Cheap lane (v0.61.0 data-loss class, closed same shape as context_handoff).
+  app.match(/const CHEAP_LANE_MODE_VALUES = \[[^\]]*\];/)[0],
+  app.match(/const CHEAP_LANE_MODE_DEFAULT = [^;]*;/)[0],
+  app.match(/const CHEAP_LANE_TIER_VALUES = \[[^\]]*\];/)[0],
+  app.match(/const CHEAP_LANE_TIER_DEFAULT = [^;]*;/)[0],
+  app.match(/const CHEAP_LANE_AGENT_VALUES = \[[^\]]*\];/)[0],
+  app.match(/const CHEAP_LANE_AGENT_DEFAULT = [^;]*;/)[0],
+  extract(app, "const CHEAP_LANE_DEFAULT ="),
   extract(app, "function freshTiers()"),
   extract(app, "function quoteYamlKey("),
   extract(app, "function applyGuardrailConfig("),
@@ -113,8 +137,11 @@ function _freshState() {
     command_review: Object.assign({}, CR_DEFAULT, { tiers: freshTiers(), mcp_allowed_servers: [] }),
     runaway: Object.assign({}, RUNAWAY_DEFAULT),
     parallelism: Object.assign({}, PARALLELISM_DEFAULT),
+    conserve_tokens: CONSERVE_TOKENS_DEFAULT,
+    conserve_tokens_auto_pct: CONSERVE_AUTO_PCT_DEFAULT,
     decision_review: DECISION_REVIEW_DEFAULT,
     worktree_guard: WORKTREE_GUARD_DEFAULT,
+    worktree_bound: WORKTREE_BOUND_DEFAULT,
     dashboard_autostart: DASHBOARD_AUTOSTART_DEFAULT,
     definition_of_done: Object.assign({}, DOD_DEFAULT),
     orchestrator: ORCHESTRATOR_DEFAULT,
@@ -124,13 +151,17 @@ function _freshState() {
     orchestrator_pseudonymize: false,
     stream_classify: STREAM_CLASSIFY_DEFAULT,
     stream_threshold: STREAM_THRESHOLD_DEFAULT,
+    context_handoff: Object.assign({}, CONTEXT_HANDOFF_DEFAULT),
+    advisory_knobs: Object.assign({}, ADVISORY_KNOBS_DEFAULT),
+    cheap_lane: Object.assign({}, CHEAP_LANE_DEFAULT),
     expanded: {},
   };
 }
 function _set(s) { state = s; }
 function _get() { return state; }
 return { emitYaml, applyGuardrailConfig, emitWebAccessYaml, applyWebAccess,
-         _freshState, _set, _get, _setWA, _getWA };
+         _freshState, _set, _get, _setWA, _getWA,
+         _defaults: { PARALLELISM_DEFAULT, CONSERVE_TOKENS_DEFAULT, CONSERVE_AUTO_PCT_DEFAULT } };
 `;
 const api = new Function(harness)();
 
@@ -149,6 +180,7 @@ function check(name, cond) {
   s.parallelism = { enabled: true, max_workers: 6, unlimited: false };
   s.decision_review = "binding";
   s.worktree_guard = "block";
+  s.worktree_bound = "off";
   s.dashboard_autostart = "open";
   s.definition_of_done = { cmd: "npm test && npm run lint", max_blocks: 4 };
   s.command_review.dev_repo_exempt = true;
@@ -159,6 +191,10 @@ function check(name, cond) {
   s.orchestrator_pseudonymize = true;
   s.stream_classify = "auto";
   s.stream_threshold = 0.42;
+  s.conserve_tokens = true;
+  s.conserve_tokens_auto_pct = 65;
+  s.context_handoff = { mode: "nag", spawn: "os-terminal", context_window_tokens: 150000 };
+  s.cheap_lane = { mode: "agent", tier: "top", agent: "copilot" };
   api._set(s);
 
   const yaml = api.emitYaml();
@@ -168,6 +204,7 @@ function check(name, cond) {
   check("parallelism.max_workers emitted", /^  max_workers: 6$/m.test(yaml));
   check("decision_review emitted", /^decision_review: binding$/m.test(yaml));
   check("worktree_guard emitted", /^worktree_guard: block$/m.test(yaml));
+  check("worktree_bound emitted", /^worktree_bound: off$/m.test(yaml));
   check("dashboard_autostart emitted", /^dashboard_autostart: open$/m.test(yaml));
   check("definition_of_done.cmd emitted", /^  cmd: "npm test && npm run lint"$/m.test(yaml));
   check("definition_of_done.max_blocks emitted", /^  max_blocks: 4$/m.test(yaml));
@@ -179,6 +216,19 @@ function check(name, cond) {
   check("orchestrator_pseudonymize emitted", /^orchestrator_pseudonymize: true$/m.test(yaml));
   check("stream_classify emitted", /^stream_classify: auto$/m.test(yaml));
   check("stream_threshold emitted", /^stream_threshold: 0\.42$/m.test(yaml));
+  check("conserve_tokens emitted", /^conserve_tokens: true$/m.test(yaml));
+  check("conserve_tokens_auto_pct emitted", /^conserve_tokens_auto_pct: 65$/m.test(yaml));
+  check("context_handoff block emitted", /^context_handoff:$/m.test(yaml));
+  check("context_handoff.mode emitted", /^  mode: nag$/m.test(yaml));
+  check("context_handoff.spawn emitted", /^  spawn: os-terminal$/m.test(yaml));
+  check(
+    "context_handoff.context_window_tokens emitted",
+    /^  context_window_tokens: 150000$/m.test(yaml),
+  );
+  check("cheap_lane block emitted", /^cheap_lane:$/m.test(yaml));
+  check("cheap_lane.mode emitted", /^  mode: agent$/m.test(yaml));
+  check("cheap_lane.tier emitted", /^  tier: top$/m.test(yaml));
+  check("cheap_lane.agent emitted", /^  agent: copilot$/m.test(yaml));
 
   // And the hydrator reads them back into a fresh state.
   api._set(api._freshState());
@@ -187,6 +237,7 @@ function check(name, cond) {
     parallelism: { enabled: true, max_workers: 6 },
     decision_review: "binding",
     worktree_guard: "block",
+    worktree_bound: "off",
     dashboard_autostart: "open",
     definition_of_done: { cmd: "npm test && npm run lint", max_blocks: 4 },
     command_review: { dev_repo_exempt: true },
@@ -197,6 +248,10 @@ function check(name, cond) {
     orchestrator_pseudonymize: true,
     stream_classify: "auto",
     stream_threshold: 0.42,
+    conserve_tokens: true,
+    conserve_tokens_auto_pct: 65,
+    context_handoff: { mode: "nag", spawn: "os-terminal", context_window_tokens: 150000 },
+    cheap_lane: { mode: "agent", tier: "top", agent: "copilot" },
   });
   const h = api._get();
   check("hydrate runaway.max_total", h.runaway.max_total === 500);
@@ -204,6 +259,7 @@ function check(name, cond) {
   check("hydrate parallelism.enabled", h.parallelism.enabled === true);
   check("hydrate decision_review", h.decision_review === "binding");
   check("hydrate worktree_guard", h.worktree_guard === "block");
+  check("hydrate worktree_bound", h.worktree_bound === "off");
   check("hydrate dashboard_autostart", h.dashboard_autostart === "open");
   check("hydrate dod.cmd", /npm test/.test(h.definition_of_done.cmd));
   check("hydrate dev_repo_exempt", h.command_review.dev_repo_exempt === true);
@@ -214,6 +270,17 @@ function check(name, cond) {
   check("hydrate orchestrator_pseudonymize", h.orchestrator_pseudonymize === true);
   check("hydrate stream_classify", h.stream_classify === "auto");
   check("hydrate stream_threshold", h.stream_threshold === 0.42);
+  check("hydrate conserve_tokens", h.conserve_tokens === true);
+  check("hydrate conserve_tokens_auto_pct", h.conserve_tokens_auto_pct === 65);
+  check("hydrate context_handoff.mode", h.context_handoff.mode === "nag");
+  check("hydrate context_handoff.spawn", h.context_handoff.spawn === "os-terminal");
+  check(
+    "hydrate context_handoff.context_window_tokens",
+    h.context_handoff.context_window_tokens === 150000,
+  );
+  check("hydrate cheap_lane.mode", h.cheap_lane.mode === "agent");
+  check("hydrate cheap_lane.tier", h.cheap_lane.tier === "top");
+  check("hydrate cheap_lane.agent", h.cheap_lane.agent === "copilot");
 }
 
 // ── Test 2: defaults are NOT emitted (absent ⇒ default; no posture bloat) ─────
@@ -224,6 +291,7 @@ function check(name, cond) {
   check("no parallelism block at default", !/parallelism:/.test(yaml));
   check("no decision_review at default", !/decision_review:/.test(yaml));
   check("no worktree_guard at default", !/^worktree_guard:/m.test(yaml));
+  check("no worktree_bound at default", !/^worktree_bound:/m.test(yaml));
   check("no dashboard_autostart at default", !/^dashboard_autostart:/m.test(yaml));
   check("no definition_of_done at default", !/definition_of_done:/.test(yaml));
   check("no dev_repo_exempt at default", !/dev_repo_exempt:/.test(yaml));
@@ -234,6 +302,10 @@ function check(name, cond) {
   check("no orchestrator_pseudonymize at default", !/orchestrator_pseudonymize:/.test(yaml));
   check("no stream_classify at default", !/^stream_classify:/m.test(yaml));
   check("no stream_threshold at default", !/^stream_threshold:/m.test(yaml));
+  check("no conserve_tokens at default", !/^conserve_tokens:/m.test(yaml));
+  check("no conserve_tokens_auto_pct at default", !/^conserve_tokens_auto_pct:/m.test(yaml));
+  check("no context_handoff block at default", !/^context_handoff:/m.test(yaml));
+  check("no cheap_lane block at default", !/^cheap_lane:/m.test(yaml));
 }
 
 // ── Test 3: runaway: off scalar form ─────────────────────────────────────────
@@ -245,10 +317,28 @@ function check(name, cond) {
   check("runaway: off scalar emitted", /^runaway: off$/m.test(yaml));
 }
 
-// ── Test 4: parallelism unlimited sentinel round-trips ───────────────────────
+// ── Test 4: parallelism defaults to MAXIMUM, and the unlimited sentinel still
+//            round-trips (v0.273.0).
+//
+// The pre-v0.273.0 form of this test asserted that {enabled:true, workers:4,
+// unlimited:true} EMITS a block. That state is now the DEFAULT, so under the
+// emit-when-non-default rule it must emit NOTHING — asserting the old thing
+// would have pinned the bug the flip exists to remove. The unlimited sentinel
+// is still exercised, on a state that genuinely differs from the default.
 {
+  const d = api._defaults.PARALLELISM_DEFAULT;
+  check("PARALLELISM_DEFAULT is maximum (enabled)", d.enabled === true);
+  check("PARALLELISM_DEFAULT is maximum (unlimited)", d.unlimited === true);
+
+  // The max state is the default -> absent from the emitted posture.
+  const s0 = api._freshState();
+  s0.parallelism = { enabled: true, max_workers: 4, unlimited: true };
+  api._set(s0);
+  check("max parallelism emits NO block (absent ⇒ max)", !/^parallelism:$/m.test(api.emitYaml()));
+
+  // A non-default state that is still unlimited must emit the sentinel.
   const s = api._freshState();
-  s.parallelism = { enabled: true, max_workers: 4, unlimited: true };
+  s.parallelism = { enabled: true, max_workers: 8, unlimited: true };
   api._set(s);
   const yaml = api.emitYaml();
   check("parallelism unlimited emitted", /^  max_workers: unlimited$/m.test(yaml));
@@ -256,6 +346,52 @@ function check(name, cond) {
   api._set(api._freshState());
   api.applyGuardrailConfig({ parallelism: { enabled: true, max_workers: "unlimited" } });
   check("hydrate parallelism unlimited", api._get().parallelism.unlimited === true);
+
+  // Sequential must be written EXPLICITLY, or "absent ⇒ max" would silently
+  // convert an opt-out into an opt-in on the next Save.
+  const sq = api._freshState();
+  sq.parallelism = { enabled: false, max_workers: 4, unlimited: true };
+  api._set(sq);
+  const yseq = api.emitYaml();
+  check("sequential parallelism IS emitted", /^parallelism:$/m.test(yseq));
+  check("sequential emits enabled:false", /^  enabled: false$/m.test(yseq));
+
+  // Hydrating a block that sets ONLY `enabled` must not clobber `unlimited`.
+  api._set(api._freshState());
+  api.applyGuardrailConfig({ parallelism: { enabled: false } });
+  check("hydrate enabled-only keeps unlimited default", api._get().parallelism.unlimited === true);
+  check("hydrate enabled-only sets enabled false", api._get().parallelism.enabled === false);
+
+  // The scalar `parallelism: off` idiom (YAML `off` -> boolean false) must mean
+  // sequential. Unhandled, the flipped default would make it mean MAXIMUM --
+  // the opposite of what it reads.
+  api._set(api._freshState());
+  api.applyGuardrailConfig({ parallelism: false });
+  check(
+    "scalar `parallelism: off` hydrates to sequential",
+    api._get().parallelism.enabled === false,
+  );
+  api._set(api._freshState());
+  api.applyGuardrailConfig({ parallelism: true });
+  check("scalar `parallelism: on` hydrates to enabled", api._get().parallelism.enabled === true);
+}
+
+// ── Test 4b: conserve-tokens threshold bounds ────────────────────────────────
+{
+  api._set(api._freshState());
+  api.applyGuardrailConfig({ conserve_tokens_auto_pct: 101 });
+  check(
+    "out-of-range auto_pct rejected",
+    api._get().conserve_tokens_auto_pct === api._defaults.CONSERVE_AUTO_PCT_DEFAULT,
+  );
+  api._set(api._freshState());
+  api.applyGuardrailConfig({ conserve_tokens_auto_pct: 0 });
+  check(
+    "auto_pct 0 accepted (disables the automatic trigger)",
+    api._get().conserve_tokens_auto_pct === 0,
+  );
+  const yz = api.emitYaml();
+  check("auto_pct 0 IS emitted (differs from default)", /^conserve_tokens_auto_pct: 0$/m.test(yz));
 }
 
 // ── Test 5: the web-access serializer round-trips (P3) ───────────────────────
@@ -280,6 +416,134 @@ function check(name, cond) {
   check("hydrate web-access deny", wa.deny.split("\n").includes("evil.test"));
   const yaml2 = api.emitWebAccessYaml();
   check("web-access round-trip is stable", yaml2 === yaml);
+}
+
+// ── Test 6: context_handoff round-trips with ONLY spawn set (the live-posture
+//            shape: `context_handoff: { spawn: os-terminal }`). mode stays the
+//            default `off` (never emitted), but the block MUST still be written so
+//            the spawn recipe survives a Save. This is the exact key the v0.61.0
+//            data-loss class would have silently dropped before it was modelled. ─
+{
+  const s = api._freshState();
+  s.context_handoff = { mode: "off", spawn: "os-terminal", context_window_tokens: null };
+  api._set(s);
+  const yaml = api.emitYaml();
+  check("context_handoff block emitted for spawn-only", /^context_handoff:$/m.test(yaml));
+  check("context_handoff.spawn emitted (spawn-only)", /^  spawn: os-terminal$/m.test(yaml));
+  check("context_handoff.mode NOT emitted when default off", !/^  mode:/m.test(yaml));
+
+  // An unknown spawn value is rejected by the union guard, so an otherwise-default
+  // block emits nothing (a Save neither invents nor corrupts a value).
+  api._set(api._freshState());
+  api.applyGuardrailConfig({ context_handoff: { spawn: "not-a-real-value" } });
+  check("unknown spawn ignored on hydrate", api._get().context_handoff.spawn === "");
+  api._set(api._get());
+  check("all-default context_handoff emits no block", !/^context_handoff:/m.test(api.emitYaml()));
+
+  // The union accepts all three readers' spawn values (preserve, don't canonicalize).
+  for (const v of ["copy-paste-only", "same-host", "os-terminal"]) {
+    api._set(api._freshState());
+    api.applyGuardrailConfig({ context_handoff: { spawn: v } });
+    check(`spawn union accepts ${v}`, api._get().context_handoff.spawn === v);
+  }
+}
+
+// ── Test 7: the advisory scalar knobs (probe_validity + the four cause_*). ─────
+// ⛔ THE POINT IS THE v0.61.0 DATA-LOSS CLASS, ONE MORE TIME. emitYaml rebuilds
+// the WHOLE posture from state, so a top-level key with no state slot is silently
+// DELETED on the next Save & apply. `probe_validity` was already unmodelled AND
+// already live in this repo's posture, so one Save would have dropped it. The four
+// `cause_*` knobs are Phase 11's posture seeding — without them the entire
+// verify-before-assert mechanism is inert by default, which is CE-6.
+{
+  const s = api._freshState();
+  s.advisory_knobs = {
+    probe_validity: "warn",
+    cause_triage: "warn",
+    cause_preflight: "warn",
+    cause_remediation: "warn",
+    cause_closure: "warn",
+  };
+  api._set(s);
+  const yaml = api.emitYaml();
+  for (const kn of [
+    "probe_validity",
+    "cause_triage",
+    "cause_preflight",
+    "cause_remediation",
+    "cause_closure",
+  ]) {
+    check(`${kn} survives emit`, new RegExp(`^${kn}: warn$`, "m").test(yaml));
+  }
+
+  // Absent ⇒ default: an untouched posture must not be bloated with these keys.
+  const s2 = api._freshState();
+  api._set(s2);
+  const bare = api.emitYaml();
+  check("advisory knobs absent when unset", !/^cause_remediation:/m.test(bare));
+  check("probe_validity absent when unset", !/^probe_validity:/m.test(bare));
+
+  // Hydrate back, and REJECT a value outside the knob's own vocabulary rather
+  // than canonicalizing it — a Save must not silently rewrite a knob nobody
+  // asked it to change. `cause_preflight` has no `block` by construction.
+  const s3 = api._freshState();
+  api._set(s3);
+  api.applyGuardrailConfig({
+    probe_validity: "warn",
+    cause_remediation: "block",
+    cause_preflight: "block", // not in its vocabulary -> dropped
+    cause_closure: "nonsense", // not in any vocabulary  -> dropped
+  });
+  const got = api._get().advisory_knobs;
+  check("hydrate: probe_validity warn", got.probe_validity === "warn");
+  check("hydrate: cause_remediation block accepted", got.cause_remediation === "block");
+  check(
+    "hydrate: cause_preflight block REJECTED (no deny path exists)",
+    got.cause_preflight === "",
+  );
+  check("hydrate: unknown value rejected, not canonicalized", got.cause_closure === "");
+}
+
+// ── Test 8: cheap_lane round-trips with ONLY mode set (the live-posture shape:
+//            `cheap_lane: { mode: agent, tier: fast }`, where tier is already the
+//            default). tier/agent stay their defaults (never emitted), but the
+//            block MUST still be written so the mode survives a Save — this is
+//            the exact key a real dashboard Save would have silently dropped
+//            before this fix (verified absent from emitYaml() prior to it). ──
+{
+  const s = api._freshState();
+  s.cheap_lane = { mode: "advise", tier: "fast", agent: "grok" };
+  api._set(s);
+  const yaml = api.emitYaml();
+  check("cheap_lane block emitted for mode-only", /^cheap_lane:$/m.test(yaml));
+  check("cheap_lane.mode emitted (mode-only)", /^  mode: advise$/m.test(yaml));
+  check("cheap_lane.tier NOT emitted when default fast", !/^  tier:/m.test(yaml));
+  check("cheap_lane.agent NOT emitted when default grok", !/^  agent:/m.test(yaml));
+
+  // An unknown mode/tier/agent value is rejected by the enum guard, so an
+  // otherwise-default block emits nothing (a Save neither invents nor
+  // corrupts a value).
+  api._set(api._freshState());
+  api.applyGuardrailConfig({ cheap_lane: { mode: "not-a-real-mode" } });
+  check("unknown mode ignored on hydrate", api._get().cheap_lane.mode === "off");
+  check("all-default cheap_lane emits no block", !/^cheap_lane:/m.test(api.emitYaml()));
+
+  // Every accepted value round-trips.
+  for (const v of ["off", "advise", "agent"]) {
+    api._set(api._freshState());
+    api.applyGuardrailConfig({ cheap_lane: { mode: v } });
+    check(`mode enum accepts ${v}`, api._get().cheap_lane.mode === v);
+  }
+  for (const v of ["fast", "balanced", "top"]) {
+    api._set(api._freshState());
+    api.applyGuardrailConfig({ cheap_lane: { tier: v } });
+    check(`tier enum accepts ${v}`, api._get().cheap_lane.tier === v);
+  }
+  for (const v of ["grok", "copilot"]) {
+    api._set(api._freshState());
+    api.applyGuardrailConfig({ cheap_lane: { agent: v } });
+    check(`agent enum accepts ${v}`, api._get().cheap_lane.agent === v);
+  }
 }
 
 if (failures) {

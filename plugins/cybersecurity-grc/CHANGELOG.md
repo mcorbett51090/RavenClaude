@@ -29,3 +29,10 @@ Initial release. The security governance, risk & compliance (GRC) program layer 
 - Seams: AppSec/secure-coding → `security-engineering`; financial-regulator compliance → `regulatory-compliance`;
   data-subject/privacy mechanics → `data-governance-privacy`; cloud config controls → `aws-cloud` / `azure-cloud` / `gcp-cloud`.
   Requires `ravenclaude-core@>=0.7.0`.
+
+## [0.2.2] — 2026-08-14
+
+### Changed
+
+- Dropped hand-maintained artifact-count literals from the plugin description (D1). The roster enumerates itself; Gate 206 forbids the digit.
+

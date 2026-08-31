@@ -28,6 +28,15 @@ on:
       - ".github/workflows/validate-schemas.yml"
   workflow_dispatch:
 
+# Supersede in-flight runs for the same ref. Measured 2026-08-24: 35 of 1,000
+# sampled RavenClaude runs (9% of compute) were still running when a newer push
+# to the same branch started. Safe here — this workflow only READS the repo.
+# Same shape as validate-macos.yml. Do NOT add `paths:` to pull_request (this
+# is a required check — a skipped workflow hangs the PR forever).
+concurrency:
+  group: validate-schemas-${{ github.ref }}
+  cancel-in-progress: true
+
 # Least-privilege GITHUB_TOKEN: this workflow only reads the repo to validate it.
 permissions:
   contents: read
@@ -39,6 +48,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Set up Python
         uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0

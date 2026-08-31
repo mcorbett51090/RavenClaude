@@ -94,7 +94,7 @@ Forced `tool_choice: {"type": "tool", "name": "classify_dispatch"}` (suppresses 
 
 ## Substrate tier table
 
-**Single source of truth: [`adaptive-run-classifier/SKILL.md` §"Substrate tier table"](../adaptive-run-classifier/SKILL.md#substrate-tier-table).** Do NOT re-author the table here. Both classifiers share the same tier vocabulary (`fast` / `balanced` / `top` → Claude / Codex / Copilot SKU map), with `[verify-at-use — 2026-05-31]` markers on every SKU (the underlying lineup re-dates monthly).
+**Single source of truth: [`adaptive-run-classifier/SKILL.md` §"Substrate tier table"](../adaptive-run-classifier/SKILL.md#substrate-tier-table)** and [`knowledge/substrate-tier-map.json`](../../knowledge/substrate-tier-map.json). Do NOT re-author the table here. Both classifiers share the same tier vocabulary (`fast` / `balanced` / `top` → host × SKU map), with `[verify-at-use — 2026-08-14]` markers on every SKU.
 
 The adapter (workflow wrapper or SubagentStart hook) holds the ONE mapping table; the evaluator emits *labels*, never SKUs. SKU rotation happens in the tier table; this skill stays substrate-neutral.
 

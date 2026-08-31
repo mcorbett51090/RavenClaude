@@ -20,18 +20,18 @@ This is the **build-tooling** layer, deliberately distinct from `devops-cicd` (w
 
 ## What's inside
 
-- **2 agents** — `build-systems-architect` (tool selection, build performance, cache architecture, the "do we even need this?" call) and `monorepo-engineer` (hands-on monorepo wiring, task-graph config, workspace protocol, dependency policy, codegen/scaffolding).
-- **3 skills** — `choose-monorepo-tooling`, `optimize-build-and-cache`, `manage-dependencies`.
-- **2 knowledge files** — a Mermaid monorepo-tooling decision tree, and a build-caching & performance reference (task graph, affected/since, content-addressable + remote caching, hermeticity).
-- **2 templates** — a monorepo-adoption plan, and a dependency-upgrade runbook.
+- **agents** — `build-systems-architect` (tool selection, build performance, cache architecture, the "do we even need this?" call) and `monorepo-engineer` (hands-on monorepo wiring, task-graph config, workspace protocol, dependency policy, codegen/scaffolding).
+- **skills** — `choose-monorepo-tooling`, `optimize-build-and-cache`, `manage-dependencies`.
+- **knowledge files** — a Mermaid monorepo-tooling decision tree, and a build-caching & performance reference (task graph, affected/since, content-addressable + remote caching, hermeticity).
+- **templates** — a monorepo-adoption plan, and a dependency-upgrade runbook.
 
 ## How it seams with the neighbors
 
 ```
-developer-tooling  →  picks & tunes the build tool, task graph, cache, dep policy
-devops-cicd        →  runs them in a pipeline (the CI that calls `nx affected`, the cache backend infra)
-backend / frontend →  the service code the build tool builds
-cloud plugins      →  the container image / IaC the artifacts deploy into
+developer-tooling → picks & tunes the build tool, task graph, cache, dep policy
+devops-cicd → runs them in a pipeline (the CI that calls `nx affected`, the cache backend infra)
+backend / frontend → the service code the build tool builds
+cloud plugins → the container image / IaC the artifacts deploy into
 ```
 
 We hand the *pipeline* to `devops-cicd` (it owns the runner config and the remote-cache backend hosting); we own the *build-tool configuration* the pipeline invokes. We hand the *service code* to the app plugins; we own how it's wired into the workspace and built.

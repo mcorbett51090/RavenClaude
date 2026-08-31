@@ -40,6 +40,18 @@ SERVER="$ROOT/scripts/serve-dashboards.py"
   exit 1
 }
 
+# Portable bounded-timeout helper (timeout → gtimeout → perl alarm → unbounded).
+# Without it, the browser-open fallback below runs a bare `timeout`, which on stock
+# macOS is command-not-found (exit 127) — swallowed by `|| true`, so the browser
+# silently never opens with no error. Degrade to an unbounded stub if unavailable.
+# shellcheck source=/dev/null
+[ -r "$ROOT/plugins/ravenclaude-core/hooks/_portable.sh" ] &&
+  . "$ROOT/plugins/ravenclaude-core/hooks/_portable.sh"
+command -v _rc_timeout >/dev/null 2>&1 || _rc_timeout() {
+  shift
+  "$@"
+}
+
 # ── Parse args ──────────────────────────────────────────────────────────────────
 PORT=8000
 ACTION=start
@@ -52,6 +64,16 @@ while [ $# -gt 0 ]; do
     --port)
       shift
       PORT="${1:?--port needs a value}"
+      # Validate the flag form too, not just the bare-positional form below: an
+      # unvalidated non-numeric PORT flows into `seq "$PORT" …` / `$((PORT + WALK))`
+      # and silently makes every port loop iterate zero times, ending in the
+      # misleading "dashboard server did not come up" instead of a clear error.
+      case "$PORT" in
+      '' | *[!0-9]*)
+        echo "--port needs a numeric value, got: $PORT" >&2
+        exit 2
+        ;;
+      esac
       ;;
     -h | --help)
       usage
@@ -134,7 +156,7 @@ announce_and_open() { # $1 = bound port
       read -ra browser_cmd <<<"$BROWSER"
       "${browser_cmd[@]}" "$url" >/dev/null 2>&1 || true
     else
-      timeout 5 python3 -m webbrowser "$url" >/dev/null 2>&1 || true
+      _rc_timeout 5 python3 -m webbrowser "$url" >/dev/null 2>&1 || true
     fi
   fi
   echo "Dashboard: $url"
@@ -173,7 +195,12 @@ if [ -z "${CODESPACE_NAME:-}" ]; then
   # reachable — the pre-existing deliberate branch, safe because nothing auto-starts.
   bind_args=(--bind 127.0.0.1)
 fi
-nohup python3 "$SERVER" --port "$PORT" --no-open "${bind_args[@]}" >"$LOG" 2>&1 &
+# `${bind_args[@]+"${bind_args[@]}"}` is the set-u-safe expansion of a possibly-empty
+# array: on bash 3.2 (the stock-macOS portability target) a bare "${bind_args[@]}" on
+# an empty array raises "unbound variable" under `set -u`. The empty case (a Codespace,
+# where the server defaults to 0.0.0.0) only happens on modern bash today, so this is
+# latent — but the guard makes the safety explicit rather than resting on that coincidence.
+nohup python3 "$SERVER" --port "$PORT" --no-open ${bind_args[@]+"${bind_args[@]}"} >"$LOG" 2>&1 &
 disown 2>/dev/null || true
 
 # Wait until it answers, discovering the ACTUAL bound port. The server reclaims a

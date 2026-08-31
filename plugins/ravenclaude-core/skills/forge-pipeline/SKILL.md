@@ -53,6 +53,42 @@ red-team in context through G6. Reading from disk hands each downstream gate the
 at a fraction of the resident context. This buys efficiency with **no** loss of gate input; it is the
 single largest cost lever in the pipeline, and it is free.
 
+## 0.4 Resolve helpers once
+
+`${CLAUDE_PLUGIN_ROOT}` is the Claude Code equivalent. **Do not require it.** VS Code Copilot
+Chat (and a consumer tree after `ravenclaude install`) never sets that variable
+`[docs-verified 2026-08-14]` — Chat can *load* this skill from `.claude/skills` and can run a
+terminal, but it is **not** a first-class RavenClaude host and there is **no** skill named
+`forge` (this skill's `name` is `forge-pipeline`; `/forge` is Claude Code only). A Chat pane
+with no Bash cannot run FORGE; that limit is accepted.
+
+Resolve the plugin root **once** per run, then use `$FORGE_PLUGIN_ROOT/scripts/…` for every
+helper. Partial sets are a fail — never invent a "routing exists, premise/worktree do not"
+split.
+
+```bash
+# Locate resolve-plugin-root.sh (first existing path), then let it confirm the
+# three-file conjunct (forge-route.py + forge-worktree.sh + premise-gate.py).
+_rpr=""
+if [ -n "${CLAUDE_PLUGIN_ROOT:-}" ] && [ -f "${CLAUDE_PLUGIN_ROOT}/scripts/resolve-plugin-root.sh" ]; then
+  _rpr="${CLAUDE_PLUGIN_ROOT}/scripts/resolve-plugin-root.sh"
+elif [ -L .claude/skills/forge-pipeline ]; then
+  _rpr="$(cd "$(dirname "$(readlink .claude/skills/forge-pipeline)")/../../scripts" && pwd)/resolve-plugin-root.sh"
+elif [ -L .agents/skills/forge-pipeline ]; then
+  _rpr="$(cd "$(dirname "$(readlink .agents/skills/forge-pipeline)")/../../scripts" && pwd)/resolve-plugin-root.sh"
+elif [ -f plugins/ravenclaude-core/scripts/resolve-plugin-root.sh ]; then
+  _rpr="plugins/ravenclaude-core/scripts/resolve-plugin-root.sh"
+fi
+FORGE_PLUGIN_ROOT="$(bash "${_rpr}")" || { echo "FORGE helpers unresolved" >&2; exit 2; }
+export FORGE_PLUGIN_ROOT
+```
+
+Then: `bash "$FORGE_PLUGIN_ROOT/scripts/forge-worktree.sh …"` and
+`python3 "$FORGE_PLUGIN_ROOT/scripts/premise-gate.py …"` /
+`python3 "$FORGE_PLUGIN_ROOT/scripts/forge-route.py …"` /
+`python3 "$FORGE_PLUGIN_ROOT/scripts/classify_claim.py …"`.
+Do **not** markdown-link those helper bodies from this skill (they are not skill resources).
+
 ## 0.5 Provisioning — **always a worktree, always checkpointed** (every depth)
 
 Before G0 at **every** depth, FORGE provisions an isolated git worktree and checkpoints the run's
@@ -60,7 +96,7 @@ tracked work at each gate boundary. This is a **deterministic script step, not a
 dispatches no subagent and costs ~0 tokens, so it runs identically at `micro` through `deep`.
 
 **Provision (once, at run start).** Run
-`bash ${CLAUDE_PLUGIN_ROOT}/scripts/forge-worktree.sh init <slug>` — it creates (or, on a
+`bash "$FORGE_PLUGIN_ROOT/scripts/forge-worktree.sh" init <slug>` — it creates (or, on a
 `--resume`, **reuses**) the branch `forge/<slug>` in the worktree `.claude/worktrees/forge-<slug>/`.
 The plan's landing (G7 `landing=pr` writes `plan.md` there) **and** any subsequent implementation
 happen on that branch, isolated from the primary checkout — which is exactly what the `worktree_guard`
@@ -68,8 +104,22 @@ posture nudges toward, and what keeps two concurrent `/forge` runs (or a forge r
 edits on `main`) from stomping one shared tree. It prints a JSON receipt and, on success, a
 `FORGE_WORKTREE <abs-path>` line; hand that path to the implementation phase.
 
+⛔ **The base ref is `origin/main`, not local `main`** (precedence: an explicit `--base` > `origin/main` >
+`origin/master` > `main` > `HEAD`), preceded by a bounded, fail-safe `git fetch` of the remote-tracking
+refs only. Branching off a local `main` that lags origin yields a plausible checkout **from the past** —
+every file present, every gate green, and the diff built there silently **reverts** everything landed
+since. The receipt carries `base` + `behind` and the run prints
+`FORGE_WORKTREE_BASE <ref> (<n> commits behind origin/main)`: **read that count.** A non-zero `behind` on
+a fresh provision means you are about to build on stale ground. When there is no `origin/main` the count
+is empty — printed as `no origin/main — staleness NOT comparable`, which means *unknown*, never *up to
+date*.
+control: `init` in a fresh repo with no origin -> `base=main, behind=""`; adding an origin to that same
+repo and re-running -> `base=origin/main, behind="0"` (2026-08-17, both directions observed).
+Skip the fetch with `--no-fetch`
+or `FORGE_WORKTREE_FETCH=off`; the base **preference** is deliberately not opt-out-able.
+
 **Checkpoint (at each gate boundary and at exit).** After each gate and before the single exit, run
-`bash ${CLAUDE_PLUGIN_ROOT}/scripts/forge-worktree.sh checkpoint <slug> <gate>` — it commits the
+`bash "$FORGE_PLUGIN_ROOT/scripts/forge-worktree.sh" checkpoint <slug> <gate>` — it commits the
 worktree's tracked changes as `forge(<slug>): checkpoint — <gate>`. During pure planning most
 checkpoints are **no-ops** (the run-dir under `.ravenclaude/runs/forge/<slug>/` is git-ignored, so
 there is nothing tracked to commit); the checkpoints that carry weight are the landed `plan.md` (G6/G7)
@@ -129,7 +179,7 @@ through. G1's BLOCK/WARN split keys on *provenance* ("is it sourced?"), and the 
 this pipeline has seen **was** sourced: an in-session `curl` returned 404, and from that true
 OBSERVATION an agent drew the false INFERENCE "the decoder is broken, every visitor is affected" —
 then built 16 files on it. Grounding an observation ≠ grounding an inference drawn from it. Type each
-row with `python3 scripts/classify_claim.py` (grammatical, **upward-only** — an author may raise a row
+row with `python3 "$FORGE_PLUGIN_ROOT/scripts/classify_claim.py"` (grammatical, **upward-only** — an author may raise a row
 to `inference`, never lower it) and settle any `inference` a build phase depends on at **G3b**.
 
 → `claims-table.md` (columns: claim · **kind** · tier · source/marker · settling-gate). This is the accuracy
@@ -137,8 +187,26 @@ discipline from `docs/accuracy-near-guarantee-design.md` applied to planning: a 
 **tested facts, not assumptions**.
 
 ### G2 / G3 — Two divergent panels (different models, in parallel)
-Dispatch **one worker subagent per panel**, models pinned per `--models` (B **must** differ from A —
-cross-model divergence is the improvement over Ultraplan's same-model critic). Each panel **writes**
+`--models` aliases: `haiku`=`fast`, `sonnet`=`balanced`, `opus`=`top`; a raw SKU
+passes through. Resolve each alias with `resolveTier(host, alias)` from
+`plugins/ravenclaude-core/knowledge/substrate-tier-map.json` (host =
+`RAVENCLAUDE_HOST` or the CLI `/forge` is running in; default `claude`).
+Compare the resolved **`(model, effort, perspective)`** triples — same triple
+is fail-closed. Same model with different `effort` or `perspective` is allowed
+(Grok Build CLI only dispatches `grok-4.5` / `grok-4.6`; `fast` vs `balanced`
+share `grok-4.5` and diverge on `effort=low`/`perspective=scanner` vs
+`effort=high`/`perspective=architect`). Spec: Claude `A=opus,B=sonnet` →
+`claude-opus-4-8` vs `claude-sonnet-5`. Grok `A=opus,B=sonnet` → `grok-4.6` vs
+`grok-4.5`. Grok `A=sonnet,B=haiku` → `grok-4.5`/`high`/`architect` vs
+`grok-4.5`/`low`/`scanner`. Inject into each panel brief:
+`You are the <perspective> lens. Do not adopt the other panel's framing.`
+(`scanner` = cheap, failure-first; `architect` = SSOT, smallest surface;
+`critic` = adversarial). Pass `--effort` / `reasoning_effort` from the resolved
+row (`low`|`medium`|`high` on Grok CLI — `xhigh` is rejected). `fable` is
+pass-through. Dispatch **one worker subagent per panel**, models pinned per
+`--models` after that resolve (B **must** differ from A on the triple —
+cross-model, or same-model + effort/perspective, divergence is the improvement
+over Ultraplan's same-model critic). Each panel **writes**
 a complete phased plan that must include: per-phase acceptance tests + pre-build gates, a
 **dependency DAG** (what blocks what; what parallelizes; the critical path), **≥2 alternative
 approaches** with one-line trade-offs (the Ultraplan deep-plan structural inheritance — a plan, not a
@@ -160,7 +228,7 @@ never A's text inline, and B must draft *its own* plan **before** reading A, or 
 whole design rests on collapses into anchoring.
 
 ### G3b — Premise gate (deterministic — no model judgment)
-`python3 scripts/premise-gate.py --run-dir <run-dir>` after the panels, **before** G6. Fails closed
+`python3 "$FORGE_PLUGIN_ROOT/scripts/premise-gate.py" --run-dir <run-dir>` after the panels, **before** G6. Fails closed
 when a phase's `depends_on_claims` names a row that is `kind: inference` **and** unsettled **and** the
 phase's blast radius is over the floor. Three exits, none of which is "block and stop": run the probe
 (`cost ≤ CHEAP_FLOOR`), run the **cheapest partial** (mandatory when the full kill-shot needs prod or
@@ -178,7 +246,7 @@ settle it. This is the authoritative artifact — and the only one the orchestra
 (once, at G8).
 
 ### G7 — Route (deterministic — no model judgment)
-`python3 ${CLAUDE_PLUGIN_ROOT}/scripts/forge-route.py --plan <run-dir>/plan.md --size
+`python3 "$FORGE_PLUGIN_ROOT/scripts/forge-route.py" --plan <run-dir>/plan.md --size
 small|medium|large [--research-done] [--privacy clean|sensitive]` → JSON:
 - **`execution`** ∈ `use_local` | `consider_ultraplan` | `lean_ultraplan` (three-signal rubric;
   privacy=sensitive is a hard cap to local).
@@ -197,8 +265,19 @@ artifact whose count is encoded in marketplace prose, load
 [`reference/regen-discipline.md`](reference/regen-discipline.md) now** and fold its criteria into that
 phase's DoD — skipping this is what caused the 2026-06-03 three-PR hotfix chain (PRs #244-#247).
 
+**Publish the host session plan before any exit.** Grok's `exit_plan_mode` reads
+`~/.grok/sessions/<encoded-cwd>/<session-id>/plan.md` (Grok user-guide *The Plan File*),
+**not** the Sága run-dir `plan.md`. Those are different files. Skipping the copy
+opens the approval surface with **No plan written yet**. Run:
+
+`bash "$FORGE_PLUGIN_ROOT/scripts/forge-publish-session-plan.sh" --plan <run-dir>/plan.md`
+
+Refuse `ExitPlanMode` unless that command printed `FORGE_SESSION_PLAN` (published,
+non-empty, size-matched) **or** an honest `skip` (no Grok session tree — Claude
+Code / Copilot / Codex). A missing/empty source is exit 2 — do not exit plan mode.
+
 Then the single exit:
-- `execution=use_local` → call **`ExitPlanMode(plan.md)`**.
+- `execution=use_local` → call **`ExitPlanMode`** only after the publish step above.
 - `execution=lean_ultraplan`/`consider_ultraplan` → **decline `ExitPlanMode` with a "sending to
   Ultraplan" note** (the harness opens the browser session, seeded with `plan.md`).
 - `reject` (G5 left an unmitigated blocker, or G0 scope is incoherent) → report the blocker, no exit.
@@ -216,8 +295,10 @@ Then the single exit:
   is already 15-min URL-cached.
 - **Parallel where independent** (G1 explore subagents; G2/G3 panels = one batch of `Task` calls),
   **serial where dependent** (G4→G5→G6) — capped by the `.ravenclaude/comfort-posture.yaml`
-  `parallelism:` posture like [`spawn-team`](../spawn-team/SKILL.md) Step 5 (`enabled: false` → serial;
-  `max_workers: N` → batches of ≤N; absent → unchanged). A **cap, not a floor**.
+  `parallelism:` posture like [`spawn-team`](../spawn-team/SKILL.md) Step 5 (**absent → MAXIMUM**, the
+  v0.273.0 default; `enabled: false` / `parallelism: off` → serial; `max_workers: N` → batches of ≤N),
+  and released to serial while the **conserve-tokens exception** is engaged (posture switch, a prompt
+  phrase, or context pressure — precedence in Step 5). A **cap, not a floor**.
 - **Brakes reused:** `runaway-brake.sh` (PreToolUse call caps) + `guard-recursive-spawn.sh` (tree
   topology) fire automatically — a thrashing gate trips the brake deterministically.
 - **Fail-fast:** G1 BLOCK and a G7 `reject` short-circuit the expensive G2–G6 core when an idea is

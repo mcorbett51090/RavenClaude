@@ -440,18 +440,91 @@ _is_dangerous_git_branch_delete() {
   return 1
 }
 
+# Remote branch deletion via `git push` (added after the 2026-08 review). The
+# deny_patterns git-push rules only cover FORCE-push (--force / -f / +refspec);
+# they miss OUTRIGHT remote-branch DELETION, which is equally destructive
+# (deleting a remote branch — including an unprotected main/master — is
+# unrecoverable outside someone's local clone/reflog). Two forms, neither of
+# which contains --force/-f/+ nor the literal `branch` subcommand, so no existing
+# rule matches: the flag form `git push <remote> --delete <ref>` / `-d` (any
+# order), and the colon-refspec form `git push <remote> :<ref>` (empty source
+# side = delete). Mirrors _is_dangerous_git_branch_delete's order-independent
+# shape. The sanctioned escape hatch for a genuinely-needed remote delete is the
+# same as for local branch delete: scripts/archive-branch.sh / cleanup-branches.sh
+# (their internal push runs as a subprocess, which this PreToolUse hook does not
+# intercept), or GitHub's own delete-branch UI.
+_is_dangerous_git_push_delete() {
+  local c="$1" seg found=1
+  [[ "$c" =~ ${_CMD_BOUNDARY}git[[:space:]]+push([[:space:]]|$) ]] || return 1
+
+  # ⛔ THE FLAG SEARCH IS SCOPED TO THE `git push` SEGMENT. It used to run over
+  # the WHOLE command string, so a `-d` belonging to an entirely different
+  # command in the same line was read as `git push --delete`.
+  #
+  # control (2026-08-18): `git push -u origin b; echo $(wc -w | tr -d ' ')`
+  # -> DENIED as git-push-remote-branch-delete. Nothing is deleted there; the
+  # `-d` is `tr`'s. The same command with the `tr` removed -> allowed, so the
+  # trigger was the unrelated token, not the push.
+  #
+  # The header comment claimed "-d is the ONLY push short flag containing a
+  # lowercase d", which is true of `git push` and irrelevant: the regex was
+  # never looking only at `git push`. This is the third instance of that class
+  # in this file's family (srm.force-push v0.242.0, sce.curl-pipe-shell
+  # v0.244.0) — when a rule matches on a token, scope it to the command that
+  # token belongs to.
+  #
+  # Splitting on ; & | is correct HERE because a push flag never crosses a
+  # separator. (curl-pipe-shell deliberately does NOT exclude `|` — same defect
+  # class, opposite correct remedy, because a fetch piped into a shell is the
+  # very thing it hunts.)
+  while IFS= read -r seg; do
+    case "$seg" in *"git push"*) ;; *) continue ;; esac
+    # long delete flag
+    [[ "$seg" =~ (^|[[:space:]])--delete([[:space:]]|$) ]] && { found=0; break; }
+    # short delete flag `-d`, standalone or bundled
+    [[ "$seg" =~ (^|[[:space:]])-[a-zA-Z]*d[a-zA-Z]*([[:space:]]|$) ]] && { found=0; break; }
+    # colon-refspec deletion: a refspec whose SOURCE side is empty (`:<ref>`). A
+    # normal refspec `src:dst` has no space before the colon, so requiring a
+    # space immediately before `:` matches only the deletion form and never
+    # `main:main` / `HEAD:refs/heads/main`.
+    [[ "$seg" =~ [[:space:]]:[A-Za-z0-9_./@^~*-]+([[:space:]]|$) ]] && { found=0; break; }
+  done <<EOF
+$(printf '%s' "$c" | tr ';&|' '\n\n\n')
+EOF
+  return $found
+}
+
+# `git clean` force, order-independent (added after the 2026-08 review). The
+# prior single pattern `git[[:space:]]+clean[[:space:]]+(-[a-z]*f|--force)`
+# anchored the force flag IMMEDIATELY after `clean`, so it caught the bundled
+# `git clean -df` but MISSED the separated-token idiom `git clean -d -f` /
+# `git clean -x -f .` (force flag preceded by another flag). Scan the whole
+# invocation for a force flag anywhere, mirroring _has_recursive. `git clean`
+# is a no-op without a force flag, so any force flag = a real untracked-file
+# wipe (deletes files git never tracked — no history recovery).
+_is_dangerous_git_clean() {
+  local c="$1"
+  [[ "$c" =~ ${_CMD_BOUNDARY}git[[:space:]]+clean([[:space:]]|$) ]] || return 1
+  # -f in ANY bundled short-flag cluster (-f / -fd / -df / -xf), any position
+  [[ "$c" =~ (^|[[:space:]])-[a-zA-Z]*f[a-zA-Z]*([[:space:]]|$) ]] && return 0
+  [[ "$c" =~ (^|[[:space:]])--force([[:space:]]|$) ]] && return 0
+  return 1
+}
+
 # --- Pattern array (matched against the normalized command) ----------------
 # The settings.json deny-list catches the top-level form; this catches them
 # when nested / wrapped / reordered.
 deny_patterns=(
   # git history / branch destruction
-  'git[[:space:]]+push[[:space:]]+.*--force([[:space:]]|$)'        # --force (allows --force-with-lease)
-  'git[[:space:]]+push[[:space:]]+(.*[[:space:]])?-[A-Za-z]*f[A-Za-z]*([[:space:]]|$)'  # -f in ANY bundled short-flag cluster (git push -uf), order-independent like _has_recursive; does NOT match --force-with-lease
-  'git[[:space:]]+push[[:space:]].*[[:space:]]\+[A-Za-z0-9_./@~^-]+'  # refspec force-push: git push origin +HEAD:main
+  'git[[:space:]]+push[[:space:]]+[^;&|]*--force([[:space:]]|$)'        # --force (allows --force-with-lease)
+  'git[[:space:]]+push[[:space:]]+([^;&|]*[[:space:]])?-[A-Za-z]*f[A-Za-z]*([[:space:]]|$)'  # -f in ANY bundled short-flag cluster (git push -uf), order-independent like _has_recursive; does NOT match --force-with-lease
+  'git[[:space:]]+push[[:space:]][^;&|]*[[:space:]]\+[A-Za-z0-9_./@~^-]+'  # refspec force-push: git push origin +HEAD:main
   'git[[:space:]]+reset[[:space:]]+--hard([[:space:]]+|$)'
-  'git[[:space:]]+clean[[:space:]]+(-[a-z]*f|--force)'             # clean -fd / -df / --force (order-independent)
-  # NB: git force-branch-delete is handled by _is_dangerous_git_branch_delete
-  # (order-independent, incl. the `--delete --force` long form), not a pattern.
+  # NB: git force-branch-delete (_is_dangerous_git_branch_delete), remote-branch
+  # deletion (_is_dangerous_git_push_delete), and `git clean` force
+  # (_is_dangerous_git_clean) are handled by the order-independent structural
+  # helpers below, not a pattern — the old contiguous-anchor `git clean` pattern
+  # missed the separated-token `git clean -d -f` form.
   # remote-code-exec via pipe / process- or command-substitution to an interpreter
   '(curl|wget)[^|]*\|[[:space:]]*(sudo[[:space:]]+)?(env[[:space:]]+[^[:space:]]+[[:space:]]+)?([^[:space:]|]*/)?([a-z]*sh|python[0-9.]*|perl|ruby|node)([[:space:]]|$)'
   # …and the multi-pipe / filter-then-execute evasion of the above: the single-pipe
@@ -494,6 +567,8 @@ if _is_dangerous_chmod "$norm";    then _deny "recursive-chmod-world-or-lockout"
 if _is_dangerous_find "$norm";     then _deny "find-delete-of-dangerous-target"; fi
 if _is_dangerous_truncate "$norm"; then _deny "truncate-zero-of-dangerous-target"; fi
 if _is_dangerous_git_branch_delete "$norm"; then _deny "git-branch-force-delete"; fi
+if _is_dangerous_git_push_delete "$norm";   then _deny "git-push-remote-branch-delete"; fi
+if _is_dangerous_git_clean "$norm";         then _deny "git-clean-force"; fi
 
 # Then the pattern array.
 for pat in "${deny_patterns[@]}"; do

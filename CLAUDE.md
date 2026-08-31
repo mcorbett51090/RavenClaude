@@ -10,7 +10,9 @@ This file is Claude Code's entry point. The `@AGENTS.md` import above pulls in t
 
 > **This capability has flip-flopped across sessions — treat the table below as "last observed," not a constant.** 2026-06-02 saw `gh` working; 2026-06-11 saw it absent + the direct API 403ing (MCP-only); **2026-07-06 saw `gh` + the token working again** (created *and* auto-merged PRs #568 and #570 with `gh pr create` / `gh pr merge --auto --squash`, while the github MCP server was *not* connected). The durable rule is the two enduring lessons below: **probe each route this session before concluding anything** — a stale row here has been wrong in both directions.
 
-> **CI auto-run also varies (note added 2026-06-22; updated 2026-07-06).** In some remote sessions a `git push` updated the PR head **without** Actions creating a run — the PR then had *no checks* and "merge when green" never fired (detect + re-trigger per [`docs/remote-ci-autotrigger-runbook.md`](docs/remote-ci-autotrigger-runbook.md); a successful `workflow_dispatch` disproves "Actions minutes exhausted", as on PR #452). **But on 2026-07-06 CI auto-ran normally** on both PRs (Validate Layout / Manifests / Schemas fired on the `pull_request` event within seconds). So after every push: **confirm a run exists for the current head** (`gh pr checks <n>` / `gh run list --branch <b>`, or the MCP `get_check_runs`); if none, re-trigger via `workflow_dispatch`; if present, just wait for green. Don't assume either way.
+> **CI auto-run also varies (note added 2026-06-22; updated 2026-07-06; status-check step added 2026-08-26).** In some remote sessions a `git push` updated the PR head **without** Actions creating a run — the PR then had *no checks* and "merge when green" never fired (detect + re-trigger per [`docs/remote-ci-autotrigger-runbook.md`](docs/remote-ci-autotrigger-runbook.md); a successful `workflow_dispatch` disproves "Actions minutes exhausted", as on PR #452). **But on 2026-07-06 CI auto-ran normally** on both PRs (Validate Layout / Manifests / Schemas fired on the `pull_request` event within seconds). So after every push: **confirm a run exists for the current head** (`gh pr checks <n>` / `gh run list --branch <b>`, or the MCP `get_check_runs`); if none, re-trigger via `workflow_dispatch`; if present, just wait for green. Don't assume either way.
+
+**If checks are stuck queued forever (not "0 checks", but runs that exist and never start), run `scripts/check-github-status.sh` before spending time diagnosing further** — on 2026-08-26 this exact symptom (queued forever, 0 jobs provisioned, contradictory cancel/delete errors) was a live GitHub-wide Actions outage, confirmed in seconds by that script; see the runbook's "stuck queued with zero jobs provisioned" section for the full symptom/fix writeup.
 
 **Don't generalize a failure on one route into "can't create a PR" — and don't assume a past dead-end still holds.** A prior session (2026-05-31) wrongly reported it "couldn't create a PR" after a CLI/API dead-end; that lesson stands. Its equally-real counter-lesson: the routes below have **changed between sessions**, so re-probe every time rather than trusting a stale row (2026-07-06 found `gh` working after 2026-06-11 found it absent).
 
@@ -31,6 +33,32 @@ The capability chain (last verified 2026-07-06):
 2. **A `command not found`, a `401`/`403`, or a missing schema is evidence about ONE route, not the goal.** Don't generalize a CLI/API failure into "no PR capability." The session-start capability hook says it plainly: *consult it before claiming you "can't" do something.* Read the actual error first, name the specific mechanical cause (401 vs 403 vs not-found vs not-loaded-yet), then pick the next-easiest path. The cause selects the fix and is not interchangeable.
 
 **Owner/repo casing:** the git remote reads `mcorbett51090/RavenClaude` (capital R); the MCP scope is `mcorbett51090/ravenclaude` (lowercase). GitHub is case-insensitive, so either works — don't hard-fail on the mismatch.
+
+## ⛔ Verify the branch before you write — a denied compound command leaves you where you were
+
+On 2026-08-11 a session ran `git checkout <branch> && git mv …` **in this repo**. The command-review
+tribunal denied it — correctly, the destination was `plugins/ravenclaude-core/scripts/`, its own
+substrate — but it denied **the whole command, so the `checkout` never ran either**. The session
+carried on believing it was on the feature branch. Six file operations later the work was sitting on
+`main`, which this repo's multi-session convention keeps as the shared anchor. Nothing failed;
+the work simply landed in the wrong place, and it surfaced only by chance.
+
+1. **`&&` means the right-hand side never ran.** After any denied, blocked, or non-zero compound
+   command, **re-establish the state it was supposed to create.** A hook denial, a tribunal DENY and
+   a plain failure are identical in this respect — and a tribunal DENY is *more* likely to be
+   compound, because the risky verb is usually the second half.
+2. **Print the branch before a run of edits.** `git branch --show-current` costs nothing. It prints
+   **empty** on a detached HEAD — indistinguishable from a failure — so an empty answer is a state to
+   resolve, never a pass.
+3. **`~/RavenClaude` is the anchor.** Work goes in a worktree (`rcwt`) or on a branch. If you find
+   uncommitted plugin changes on `main` here, that is the defect above, not a workflow.
+
+This is prose, and prose has no gate — which is exactly the objection
+[`verification-discipline.md`](plugins/ravenclaude-core/knowledge/verification-discipline.md) closes
+with. The enforceable half shipped in the consumer repo that hit it hardest
+(`RavenPower-Website`'s `check:branch`, wired into `npm run check`, failing on modified tracked files
+on `main` with an `RP_ALLOW_MAIN=1` escape). Porting that as a marketplace gate is a live follow-up,
+not a claim.
 
 ## Plan-mode default
 
@@ -95,7 +123,9 @@ Why both: Claude Code issue [#23478](https://github.com/anthropics/claude-code/i
 
 ## Slash commands shipped by the plugin
 
-After installing the plugin in any project, consumers get:
+`ravenclaude-core` ships 9 slash commands (`plugins/ravenclaude-core/commands/`) — the full,
+gate-checked list is in [README.md](README.md)'s "What's in each plugin" table. One is worth calling
+out here because it's the marketplace-dev-facing setup path:
 
 - `/init-agent-ready` — guided setup: creates `AGENTS.md`, `CLAUDE.md`, `.repo-layout.json`, and optionally a CI workflow tailored to the consumer's repo type (application / library / monorepo / docs / data / IaC).
 

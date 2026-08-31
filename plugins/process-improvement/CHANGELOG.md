@@ -2,6 +2,27 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.3.0] — 2026-08-17
+
+Gold-standard harden. Three real defects from a verified audit of the plugin (both agents already scored 28/30 on the repo's agent-quality-rubric, the advisory hook already fired correctly in both directions under stock bash 3.2, and `lss_calc.py` was already numerically correct on all four modes — so the finding was **missing measurement**, not broken behaviour).
+
+### Added
+
+- **Control-chart constants, §3a of [`knowledge/six-sigma-statistics-and-spc.md`](knowledge/six-sigma-statistics-and-spc.md).** §3 recommended Xbar-R / Xbar-S as the majority-case chart and then shipped no d2/A2/D3/D4 or c4/A3/B3/B4, so a reader who followed the recommendation could not actually draw the chart — the advice was aspirational rather than executable. Both tables now ship for n = 2–10, with the Xbar/R/S limit formulas, the `sigma-hat = R-bar/d2` link back to the Cp/Cpk section, and the I-MR n=2 derivation of the 2.66 and 3.267 the calculator hard-codes. **A wrong control-limit constant is worse than an absent one** — it moves the line a plant reacts to and looks exactly like a correct number — so the values were *recomputed*, not recalled: d2/d3 by numerical integration of the range distribution of n standard normals, c4 exactly from `sqrt(2/(n-1))·Γ(n/2)/Γ((n-1)/2)`. 17 of 18 rows reproduced the published ASTM E2587 / AIAG table to 3 decimals; the single difference (D4 at n=3) is the published tables' own rounding convention, and that convention is stated inline so a reader reconciling against Minitab/JMP is not left guessing.
+- **Gate 218 — `scripts/check-lss-calc.py`.** `lss_calc.py` is the plugin's only executable and had **zero** CI coverage anywhere in the repo: no gate, no workflow, no test, while every number it prints (a capability index, a sigma level, a control limit, a COPQ recovery figure) goes straight into a tollgate deck. The gate drives all four advertised modes against hand-checkable values (3.4 DPMO → 6.00σ long-term / 4.50σ short-term; 5,7,5,7,5,7 → X-bar 6.0000, MR-bar 2.0000, I limits 6 ± 2.66×2; 120k+80k+40k COPQ = 240,000 = 4.80% of 5M), so a reviewer can audit the **expectation** and not merely re-run the implementation against itself. `--self-test` proves teeth on six real arithmetic mutants (both I-MR constants, an inverted Cpk, a wrong Cp denominator, a re-based 1.5σ shift, a dropped COPQ category) and asserts the unmutated control stays clean; `--must-fail` plants a wrong D4 and the gate asserts it fails **closed at exit 2**, not at a non-blocking 1.
+
+### Fixed
+
+- **Gate 30 now covers this plugin's hook.** `scripts/audit-gates.sh` Gate 30 proves both directions (fires on an anti-pattern, silent on a clean file) for eleven sibling plugins' advisory hooks and omitted `hooks/flag-process-improvement-antipatterns.sh` entirely — so the one hook this plugin ships was the one hook nothing measured. Added with the same fires/silent fixture pair the other eleven use.
+- **The duplicated operational-definition rule is consolidated.** `best-practices/` shipped the same Measure-phase rule twice — `operational-definition-before-you-measure.md` and `operational-definition-of-the-metric.md`, the latter's own Provenance section conceding it "covers the same gate". Two files for one rule means a citation can name either, and a later edit fixes only one. The duplicate's genuinely unique material (the four-element fill-in template, the worked cycle-time example, the attribute-agreement caveat) was **merged into** the surviving canonical rule before deletion, so nothing was lost, and the one inbound cross-reference was repointed.
+- **The best-practices index count is no longer stale.** `best-practices/README.md` advertised "17 rules" over a table of 21 rows. Now 20, matching both the table and the file count after the consolidation above.
+
+## [0.2.2] — 2026-08-14
+
+### Changed
+
+- Dropped hand-maintained artifact-count literals from the plugin description (D1). The roster enumerates itself; Gate 206 forbids the digit.
+
 ## [0.2.1] — 2026-07-09
 
 ### Fixed

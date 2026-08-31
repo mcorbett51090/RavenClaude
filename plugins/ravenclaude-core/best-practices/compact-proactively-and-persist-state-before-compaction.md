@@ -29,14 +29,23 @@ MCP server (its schemas ride in the window —
 [`./mcp-tool-context-is-a-budget-enable-only-what-you-need.md`](./mcp-tool-context-is-a-budget-enable-only-what-you-need.md))
 can buy back enough room to skip the compaction entirely.
 
-**Half two — compaction _discards_, so persist first.** A compact recap is a
+**Half two — compaction drops things from the WINDOW, so re-anchor them.** A compact recap is a
 _summary_. Intermediate reasoning, the approaches you tried and rejected, and
-verbose tool output do **not** survive it — only what the summarizer judged worth
-keeping. A plan, a decision-and-its-rationale, or a "we ruled X out because Y" that
-lives **only in the conversation** is gone after compaction, and the post-compact
-agent will happily re-explore the dead end you already killed. Anything
-load-bearing has to be written somewhere durable — a file, a commit, a test —
-_before_ the window compacts, not recalled from a summary after.
+verbose tool output are **not** carried into the new window — only what the summarizer judged worth
+keeping. So a "we ruled X out because Y" that lives **only in the conversation** leaves the model's
+working context, and the post-compact agent will happily re-explore the dead end you already killed.
+
+> ⛔ **Scoping correction, 2026-08-12 — this is a window loss, not a disk loss.** An earlier version of
+> this paragraph said such a decision "is gone after compaction." It is not. The session transcript is
+> **append-only across a boundary** — every pre-compaction turn, including `thinking` blocks, is still
+> on disk, and the `compact_boundary` record even states what was dropped. Do **not** conclude from
+> this rule that you need a `PreCompact` hook to rescue the data;
+> [`./precompact-hook-is-the-deterministic-enforcer-of-persist-before-compaction.md`](./precompact-hook-is-the-deterministic-enforcer-of-persist-before-compaction.md)
+> retracts exactly that prescription and shows the measurements.
+
+Anything load-bearing should still be written somewhere durable — a file, a commit, a test — but the
+reason is **legibility and reach** (a teammate, CI, or another CLI can read `docs/decisions/`; none of
+them can read your transcript), not rescue from destruction.
 
 ## How to apply
 

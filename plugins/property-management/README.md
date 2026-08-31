@@ -8,11 +8,11 @@ A **Property Management Operations specialist team** for a property manager, reg
 
 | Surface | Contents |
 |---|---|
-| **4 agents** | `property-management-lead`, `occupancy-leasing-analyst`, `maintenance-operations-specialist`, `noi-financial-analyst` |
-| **5 skills / commands** | `build-noi` · `project-occupancy` · `diagnose-leasing-funnel` · `quantify-turn-loss` · `age-delinquency` |
-| **4-file knowledge bank** | KPI glossary · unit economics · 2025–2026 context · Mermaid decision trees |
-| **4 templates** | scorecard · exec readout · noi-bridge.md · occupancy-flow.md |
-| **1 advisory hook** | flags anti-patterns (unbaselined metric, unsourced benchmark, tenant PII) in generated deliverables |
+| **agents** | `property-management-lead`, `occupancy-leasing-analyst`, `maintenance-operations-specialist`, `noi-financial-analyst` |
+| **skills / commands** | `build-noi` · `project-occupancy` · `diagnose-leasing-funnel` · `quantify-turn-loss` · `age-delinquency` |
+| **knowledge bank** | KPI glossary · unit economics · 2025–2026 context · Mermaid decision trees |
+| **templates** | scorecard · exec readout · noi-bridge.md · occupancy-flow.md |
+| **an advisory hook** | flags anti-patterns (unbaselined metric, unsourced benchmark, tenant PII) in generated deliverables |
 | **`scripts/property_management_calc.py`** | stdlib calculator — `noi` · `occupancy-rev` · `turn-time` |
 
 ## Install

@@ -815,15 +815,30 @@ _PIPELINE_LANES = [
                 "title": "Parallel workers",
                 "badge": "dynamic",
                 "controls": "parallelism",
-                "tip": "Lets the robot split a job across several helpers at once — and caps how many run together.",
+                "tip": "By default the robot splits a job across as many helpers at once as the job allows.",
                 "detail": {
                     "steps": [
                         "Watches when the robot wants to fan work out to helpers (subagents / worktrees).",
-                        "If parallel workers are allowed, lets several run side by side.",
-                        "Caps how many run at once to your limit.",
+                        "By default it runs every independent piece at the same time, with no limit.",
+                        "Caps how many run at once if you set a limit — or works one at a time if you turn it off.",
                     ],
-                    "trip": "When off, helpers run one at a time; when on, up to your worker limit run together.",
-                    "set": "Turn parallel workers on and set the most-at-once limit in the boxes below.",
+                    "trip": "Nothing is blocked. This only tells the robot how wide to spread the work.",
+                    "set": "Set a most-at-once limit, or tick “Conserve tokens” to make it work one step at a time.",
+                },
+            },
+            {
+                "id": "memory-compaction",
+                "title": "Memory safety net",
+                "badge": "dynamic",
+                "controls": "files",
+                "tip": "Keeps a copy of the robot's long-term notes before it rewrites them, and stops it from throwing most of them away in one go.",
+                "detail": {
+                    "steps": [
+                        "Saves a copy of the robot's long-term notes before every rewrite.",
+                        "Stops a rewrite that would delete more than 15% of them, and asks for a diff instead.",
+                    ],
+                    "trip": "Growing the notes, or trimming a little, is always fine — only a big one-shot deletion is stopped.",
+                    "set": "Set `memory_guard: max_shrink_pct: N`, or allow one deliberate cleanup with RC_MEMORY_COMPACTION_OK=1.",
                 },
             },
             {
@@ -911,6 +926,22 @@ _PIPELINE_LANES = [
                     "set": "Pick off / decide / full below. Inert under Claude Code (host already IS Claude).",
                 },
             },
+            {
+                "id": "cheap-lane-delegation",
+                "title": "Cheap lane (Grok/Copilot)",
+                "badge": "dynamic",
+                "controls": "cheap_lane",
+                "tip": "Routes well-defined everyday work (tests, summaries, mechanical edits) to a cheaper coding agent instead of spending Claude's own turn on it.",
+                "detail": {
+                    "steps": [
+                        "A deterministic router decides whether a task is well-defined enough to leave the Claude session.",
+                        "advise: the delegated agent's output comes back as a suggestion only — nothing is applied automatically.",
+                        "agent: the delegated agent writes to a disposable, sandboxed git worktree — you review the diff before it merges.",
+                    ],
+                    "trip": "An ambiguous or escalation-shaped task always stays with Claude — the router defaults to keeping work local.",
+                    "set": "Pick off / advise / agent, the tier, and the coding agent below.",
+                },
+            },
         ],
     },
     {
@@ -920,6 +951,20 @@ _PIPELINE_LANES = [
         # gate below and is deliberately not its own card — see _PIPELINE_EXCLUDED_HOOKS.
         "tip": "After something happens, these tidy up and double-check the work.",
         "stages": [
+            {
+                "id": "sanitize-webfetch-output",
+                "title": "Fetched-page cleaner",
+                "badge": "always",
+                "tip": "Strips instruction-shaped junk from a page the robot just fetched, before it reads it.",
+                "detail": {
+                    "steps": [
+                        "After a web fetch, strips fake system-reminder blocks from the page body.",
+                        "If the cleaner crashes, the original page is left in place (fail-open).",
+                    ],
+                    "trip": "Rewrites the fetched body the robot sees. Never blocks the fetch. Does not touch MCP results.",
+                    "set": "Built in.",
+                },
+            },
             {
                 "id": "format-on-write",
                 "title": "Auto-tidy",
@@ -947,6 +992,21 @@ _PIPELINE_LANES = [
                     ],
                     "trip": "Warns (it doesn't hard-block) so you can step in.",
                     "set": "Built in.",
+                },
+            },
+            {
+                "id": "triage-outcome",
+                "title": "Why did that come back empty?",
+                "badge": "advisory",
+                "tip": "When a command fails or returns nothing, lists the possible reasons instead of letting the robot guess one.",
+                "detail": {
+                    "steps": [
+                        "Watches commands that come back angry or empty.",
+                        "Lists the CANDIDATE causes, each with the one check that tells them apart.",
+                        "Refuses to let 'the thing is absent' be the top answer without a positive control.",
+                    ],
+                    "trip": "Advises only, never blocks. Wired after its fire rate was measured at 2.588% over 46,557 real commands (the bar was 3%).",
+                    "set": "`cause_triage: off` in .ravenclaude/comfort-posture.yaml.",
                 },
             },
             {
@@ -1036,8 +1096,8 @@ _PIPELINE_LANES = [
 
 # ── The lane→hook contract (the ONLY thing that keeps the map "grounded") ─────
 # Maps every _PIPELINE_LANES stage id -> the registered hook basename it stands
-# for, or None for the two BEHAVIORAL guardrails (comfort-posture knobs read by
-# spawn-team at dispatch time, not hooks). Gate 133 asserts this dict's keys are
+# for, or None for the three BEHAVIORAL guardrails (comfort-posture knobs read by
+# spawn-team / cheap-lane-delegation at dispatch time, not hooks). Gate 133 asserts this dict's keys are
 # EXACTLY the set of stage ids in _PIPELINE_LANES — so a stage cannot be added
 # without declaring the hook it represents (or None) — and reconciles the mapped
 # hooks against hooks/hooks.json.
@@ -1050,12 +1110,16 @@ _PIPELINE_STAGE_HOOKS = {
     "runaway-brake": "runaway-brake.sh",
     "parallel-workers": None,  # behavioral: spawn-team reads `parallelism:` — no hook
     "enforce-layout": "enforce-layout.sh",
+    "memory-compaction": "guard-memory-compaction.sh",
     "guard-premise": "guard-premise.sh",
     "route-decision-review": "route-decision-review.sh",
     "guard-web-access": "guard-web-access.sh",
     "claude-orchestrator": None,  # behavioral: spawn-team reads `orchestrator:` — no hook
+    "cheap-lane-delegation": None,  # behavioral: cheap-lane-delegation skill reads `cheap_lane:` — no hook
+    "sanitize-webfetch-output": "sanitize-webfetch-output.sh",
     "format-on-write": "format-on-write.sh",
     "guard-recursive-spawn": "guard-recursive-spawn.sh",
+    "triage-outcome": "triage-outcome.sh",
     "claim-grounding-lint": "claim-grounding-lint.sh",
     "delegation-nudge": "delegation-nudge.sh",
     "storage-placement-nudge": "storage-placement-nudge.sh",
@@ -1077,13 +1141,60 @@ _PIPELINE_EXCLUDED_HOOKS = {
     "stream-session-close.sh": "work-stream tracking (Stop); observability, not a guardrail",
     "stream-prompt-attribute.sh": "work-stream tracking (UserPromptSubmit); observability, not a guardrail",
     "agent-dispatch-evaluator.sh": "audit-only shadow (SubagentStart), opt-in; never denies",
-    "worktree-guard.sh": "worktree_guard knob is surfaced Settings-only (DOM-budget-exempt panel) "
-    "+ its live status as the Activity-tab Sleipnir badges; deliberately NOT a Pipeline stage card",
+    "worktree-guard.sh": "worktree_guard + worktree_bound knobs are surfaced Settings-only "
+    "(DOM-budget-exempt panel) + live status as the Activity-tab Sleipnir badges; "
+    "FOREIGN-TREE is the third clause (sibling Write / git -C); deliberately NOT a Pipeline stage card",
     "thing-denial-kb-sync.sh": "Muninn denial-KB materialiser (Stop); learns from tribunal denials, not itself a guardrail",
     "thing-denial-kb-recall.sh": "Muninn denial-KB recall (SessionStart); surfaces known denials + fixes, not a guardrail",
     "dashboard-autostart.sh": "opt-in convenience launcher (SessionStart) for the dashboard itself; "
     "gates nothing, denies nothing, and never inspects a tool call — its knob is `dashboard_autostart` "
     "in comfort-posture.yaml, deliberately NOT a Pipeline stage card",
+    "keep-awake.sh": "opt-in sleep-assertion hook (SessionStart) whose knob is `keep_awake` in "
+    "comfort-posture.yaml; same class as dashboard-autostart.sh — it gates nothing, denies nothing, "
+    "and never inspects a tool call. It holds a `caffeinate -s` assertion on AC (and on battery holds "
+    "nothing and warns, because no software-only method beats Clamshell Sleep there) so a closed lid "
+    "cannot silently suspend the session. That is host-environment hygiene, not an agent guardrail, "
+    "so it is deliberately NOT a Pipeline stage card",
+    "compact-anchor.sh": "post-compaction addressability pointer (SessionStart, matcher `compact`); "
+    "injects the transcript path + boundary line so the post-compact agent knows its earlier turns "
+    "are still on disk. Same class as thing-denial-kb-recall.sh — informational context, gates "
+    "nothing, denies nothing, never inspects a tool call — so deliberately NOT a Pipeline stage card",
+    "enforce-git-protocol.sh": "advisory git-convention nudge (PreToolUse Bash) governed by the "
+    "`git_protocol:` comfort-posture knob — default WARN on a non-Conventional-Commits `git commit -m` "
+    "subject or an off-convention new branch, denies only at `git_protocol: block`, and a push to "
+    "main/master is always advisory. Its knob is surfaced with the other posture settings and it "
+    "enforces commit/branch STYLE conventions rather than the safety floor the drawn PreToolUse cards "
+    "represent, so — like worktree-guard.sh — it is deliberately NOT a Pipeline stage card",
+    "enforce-portability.sh": "in-loop macOS-portability lint (PreToolUse Write|Edit|MultiEdit) "
+    "governed by the `macos_portability_lint:` comfort-posture knob — default WARN on a bash-4 / "
+    "GNU-only construct in a shell surface, denies only at `block`. Same class as "
+    "enforce-git-protocol.sh: it enforces an authoring CONVENTION (portability) rather than the "
+    "safety floor the drawn PreToolUse cards represent, and its knob is surfaced with the other "
+    "posture settings — so it is deliberately NOT a Pipeline stage card",
+    "guard-foreground-suite.sh": "foreground long-suite guard (PreToolUse Bash). DENIES (exit 2) a "
+    "FOREGROUND invocation of scripts/audit-gates.sh, because the Bash tool clamps `timeout` at "
+    "600000ms and the 917-gate suite outgrew it — so the run wedges the session for ten minutes and "
+    "is auto-backgrounded anyway. Three escapes: run_in_background:true, `--check N`, and a literal "
+    "RC_SUITE_FOREGROUND_ACK=1 prefix. ⛔ Unlike the other excluded PreToolUse hooks this one really "
+    "does exit 2 — but it is excluded for the same reason enforce-git-protocol.sh is (which also "
+    "blocks at its `block` knob): what it enforces is a WORKFLOW constraint imposed by the tool "
+    "harness, not the safety floor the drawn PreToolUse cards represent. It protects the operator's "
+    "ten minutes, not the repo or the user's data — so it is deliberately NOT a Pipeline stage card",
+    "guard-probe-validity.sh": "advisory probe-validity nudge (PreToolUse Bash) governed by the "
+    "`probe_validity:` comfort-posture knob — WARN is its ONLY verdict (there is no `block` value "
+    "and no exit-2 path), on exactly one shape: `grep -v` used in quiet mode, where the exit status "
+    "stops answering \"is there a line that does NOT match?\" and starts reporting whether the "
+    "pattern is ABSENT. Same class as enforce-git-protocol.sh and enforce-portability.sh — it flags "
+    "a correctness hazard in how the agent PHRASED a probe rather than the safety floor the drawn "
+    "PreToolUse cards represent, and its knob is surfaced with the other posture settings — so it is "
+    "deliberately NOT a Pipeline stage card",
+    "handoff-successor-ack.sh": "SessionStart(startup) handshake writer for session-handoff. "
+    "Writes successor-ack.json when a pending marker exists so the originating spawn "
+    "knows the new session started. File write only; not a Pipeline stage card",
+    "handoff-nudge.sh": "Stop advisory context-hot quality-reset nudge (session-handoff). "
+    "Opt-in via `context_handoff.mode` (default off). Never writes the brief, never "
+    "blocks unless the owner set `mode: block`, and is not a safety-floor card — same "
+    "class as compact-anchor.sh (informational Stop/SessionStart context, not a drawn Pipeline stage)",
 }
 
 _PIPELINE_CONTROLS = {
@@ -1112,8 +1223,14 @@ _PIPELINE_CONTROLS = {
         "No limit (unlimited workers)</label>"
         '<label class="pipe-ctl">Most workers at once '
         '<input type="number" id="pipe-parallelism-workers" min="1" step="1"></label>'
-        '<p class="pipe-hint">When on, fan-out work (subagents / worktrees) may run in parallel. '
-        "Tick “No limit” for unlimited workers, or set a cap. Off keeps the work sequential.</p>"
+        '<label class="pipe-ctl"><input type="checkbox" id="pipe-conserve-tokens"> '
+        "Conserve tokens (work one step at a time)</label>"
+        '<p class="pipe-hint">The default is MAXIMUM: fan-out work '
+        "(subagents / worktrees) runs in parallel with no limit. Untick “No limit” and set a "
+        "cap to batch it, or untick “Allow parallel workers” to keep the work sequential. "
+        "“Conserve tokens” is the standing exception — it makes the robot work one step at a "
+        "time until you turn it back off. It also switches on by itself when a prompt says "
+        "“conserve tokens” or the session runs low on room.</p>"
     ),
     "decision": (
         '<label class="pipe-ctl">Mode '
@@ -1170,6 +1287,39 @@ _PIPELINE_CONTROLS = {
         "restored locally on return. Defense-in-depth on <em>top</em> of the floor — <strong>not</strong> a "
         "guarantee: pattern detection does not catch free-text names or addresses, which is exactly why "
         "the floor above is the real protection.</p></div>"
+    ),
+    "cheap_lane": (
+        '<label class="pipe-ctl">Mode '
+        '<select id="pipe-cheap-lane-mode">'
+        '<option value="off">off — every task stays with Claude (default, zero extra cost)</option>'
+        "<option value=\"advise\">advise — the delegated agent's output comes back as a "
+        "suggestion only</option>"
+        '<option value="agent">agent — the delegated agent writes to a disposable worktree; '
+        "you review the diff before it merges</option>"
+        "</select></label>"
+        '<label class="pipe-ctl">Tier — how much runway the delegated task gets '
+        '<select id="pipe-cheap-lane-tier">'
+        '<option value="fast">fast — cheapest model, low effort, 15 turns / 300s (default)</option>'
+        '<option value="balanced">balanced — stronger model, high effort, 30 turns / 600s</option>'
+        '<option value="top">top — strongest model, high effort, 60 turns / 1200s '
+        "(pick this yourself; never auto-assigned)</option>"
+        "</select></label>"
+        '<label class="pipe-ctl">Coding agent '
+        '<select id="pipe-cheap-lane-agent">'
+        "<option value=\"grok\">Grok — kernel-sandboxed (Seatbelt / Landlock), the stronger "
+        "containment (default)</option>"
+        '<option value="copilot">Copilot — CLI-documented path restriction, not a kernel '
+        "sandbox</option>"
+        "</select></label>"
+        '<p class="pipe-hint">Off by default — nothing here executes until mode is set to '
+        "<em>advise</em> or <em>agent</em>. <strong>advise</strong> — the delegated agent runs in "
+        "an isolated scratch dir with no repo access; its output is a suggestion for you to apply, "
+        "never applied automatically. <strong>agent</strong> — the delegated agent runs in a "
+        "disposable git worktree with write access; <strong>you review the diff before it "
+        "merges.</strong> A task the router judges ambiguous, escalation-shaped, or "
+        "security-sensitive always stays on Claude regardless of this setting — the routing "
+        "asymmetry is deliberate. See "
+        "<code>skills/cheap-lane-delegation/SKILL.md</code>.</p>"
     ),
     "files": (
         '<div class="pipe-file" data-file=".repo-layout.json">'
@@ -1456,13 +1606,15 @@ def _render_pipeline_tab() -> str:
                 if controls
                 else ""
             )
-            # P5a: mark the BEHAVIORAL-flag stages (decision_review, orchestrator)
-            # so the Pipeline surface makes the same permission-vs-behavior
+            # P5a: mark the BEHAVIORAL-flag stages (decision_review, orchestrator,
+            # cheap_lane) so the Pipeline surface makes the same permission-vs-behavior
             # distinction the Settings tab does — these do NOT gate a tool-call
             # permission. (worktree_guard is a behavioral flag too, but it is
             # surfaced Settings-only, so it carries the badge there, not here.)
             behavioral_html = (
-                _render_behavioral_flag_badge() if controls in ("decision", "orchestrator") else ""
+                _render_behavioral_flag_badge()
+                if controls in ("decision", "orchestrator", "cheap_lane")
+                else ""
             )
             detail = st.get("detail")
             detail_html = ""
@@ -1712,7 +1864,58 @@ def _render_concept_card(plugin_dir: Path, c: dict, titles: dict[str, str]) -> s
             f'<span class="concept-verified">verified {html.escape(c["last_verified"])}</span>'
         )
 
-    search_blob = html.escape(f"{c['title']} {c['summary']} {c['body_md']}".lower(), quote=True)
+    # ── ⛔ R12: the verification-strength badge, rendered NEXT TO the kind badge ──
+    # ~60% of the inventory (54 skills, 15 agents, 27 uncalled scripts) gets
+    # findability and reference integrity ONLY. Both panel plans recorded that
+    # honestly in the plan and then left the distinction INVISIBLE here — on the one
+    # surface the project exists to make legible. A weak check and a strong one that
+    # look identical is the inert-gate defect wearing a badge.
+    #
+    # The text comes from concepts.py `strength_badge`; this renderer does not get
+    # to choose a friendlier word. Each label states the LIMIT, because a reader
+    # skims the first word:
+    #   Probed     a real payload ran and a real observable was asserted
+    #   Findable   frontmatter parses and references resolve. NOTHING executed it
+    #   Observed   seen after the fact, not gate-capable before it
+    #   Unverified with the written rationale shown inline
+    strength = ""
+    sb = c.get("strength_badge")
+    if sb:
+        cls = {"Probed": "probed", "Findable": "findable",
+               "Observed": "observed"}.get(sb, "unverified")
+        rationale = (c.get("verify") or {}).get("rationale") or ""
+        title_attr = f' title="{html.escape(rationale)}"' if rationale else ""
+        strength = (
+            f'<span class="concept-strength {cls}" data-strength="{html.escape(sb)}"'
+            f"{title_attr}>{html.escape(sb)}</span>"
+        )
+
+    nuance_block = ""
+    if c.get("nuance"):
+        ev = c.get("nuance_evidence") or {}
+        probe = str(ev.get("probe") or "")
+        # An `unprobed:` value is rendered AS SUCH, never blanked. An absence shown
+        # as nothing reads as "fine"; shown as "unprobed" it reads as what it is.
+        probe_html = (
+            f'<span class="concept-unprobed">{html.escape(probe)}</span>'
+            if probe.startswith("unprobed: ")
+            else f'<code>{html.escape(probe)}</code>'
+        )
+        rat = (c.get("verify") or {}).get("rationale")
+        rat_html = f'<p class="concept-rationale">{html.escape(rat)}</p>' if rat else ""
+        nuance_block = (
+            f'<div class="concept-nuance">'
+            f'<p class="concept-nuance-text">{html.escape(c["nuance"])}</p>'
+            f'<p class="concept-evidence">'
+            f'<span class="ev-k">control:</span> {html.escape(str(ev.get("control") or ""))} · '
+            f'<span class="ev-k">falsifier:</span> {html.escape(str(ev.get("falsifier") or ""))} · '
+            f'<span class="ev-k">probe:</span> {probe_html}'
+            f"</p>{rat_html}</div>"
+        )
+
+    search_blob = html.escape(
+        f"{c['title']} {c['summary']} {c['body_md']} {c.get('nuance') or ''}".lower(), quote=True
+    )
 
     # The card is a native <details> (collapsed by default). The <summary> carries
     # the title + kind badge + one-line deck so the collapsed row is informative;
@@ -1729,10 +1932,12 @@ def _render_concept_card(plugin_dir: Path, c: dict, titles: dict[str, str]) -> s
         f'<div class="concept-head">'
         f'<h3 class="concept-title">{html.escape(c["title"])}</h3>'
         f'<span class="concept-badge {badge_cls}">{badge_icon}{html.escape(badge_label)}</span>'
+        f"{strength}"
         f"</div>"
         f'<p class="concept-deck">{html.escape(c["summary"])}</p>'
         f"</summary>"
         f'<div class="concept-card-body">'
+        f"{nuance_block}"
         f"{well}{stepper}"
         f'<div class="concept-body">{_md_to_html(c["body_md"])}</div>'
         f"{_CONCEPT_WIDGETS.get(c.get('widget') or '', '')}"
@@ -1826,9 +2031,72 @@ def _render_learn_tab(plugin_dir: Path) -> str:
         '<span class="learn-legend-item"><span class="learn-swatch fact"></span>How agentic AI works</span>'
         '<span class="learn-legend-item"><span class="learn-swatch built"></span>RavenClaude feature</span>'
         "</div>"
+        + _operator_health_card(concepts)
         + "".join(tiers_html)
         + '<div class="stub learn-noresults" id="learn-noresults" hidden>'
         "<h2>No matching concepts</h2><p>Try a different search term.</p></div>" + "</div>"
+    )
+
+
+def _operator_health_card(concepts: list[dict]) -> str:
+    """⛔ P10 — THE OPERATOR HEALTH CARD.
+
+    The Learn tab is where a READER browses; it is not where an OPERATOR looks.
+    These figures are OPERATIONAL STATE, not knowledge, and burying them inside a
+    collapsed concept card is how a corpus rots while every surface reads fine.
+
+    Every number here is DERIVED FROM THE REGISTRY at build time. It renders only
+    when inventory entries exist, and when the numbers are unavailable it says so
+    rather than showing a reassuring zero — an absent measurement and a measured
+    zero are different facts.
+    """
+    entries = [c for c in concepts if c.get("entry_class") == "inventory"]
+    if not entries:
+        return ""
+
+    covered: set[str] = set()
+    for e in entries:
+        covered.update(e.get("covers") or [])
+    tier_none = [e for e in entries if (e.get("verify") or {}).get("tier") == "none"]
+    unprobed = [
+        e for e in entries
+        if str((e.get("nuance_evidence") or {}).get("probe") or "").startswith("unprobed: ")
+    ]
+    by_strength: dict[str, int] = {}
+    for e in entries:
+        by_strength[e.get("strength_badge") or "Unverified"] = (
+            by_strength.get(e.get("strength_badge") or "Unverified", 0) + 1
+        )
+
+    def cell(label: str, value: str, note: str = "") -> str:
+        n = f'<span class="ohc-note">{html.escape(note)}</span>' if note else ""
+        return (
+            f'<div class="ohc-cell"><span class="ohc-v">{html.escape(value)}</span>'
+            f'<span class="ohc-k">{html.escape(label)}</span>{n}</div>'
+        )
+
+    cells = [
+        cell("inventory entries", str(len(entries))),
+        cell("artifacts covered", str(len(covered)), "per artifact, not per entry"),
+        cell("tier: none", str(len(tier_none)), "rationale required"),
+        cell("unprobed", str(len(unprobed)), "honest, and counted"),
+    ]
+    for badge in ("Probed", "Findable", "Observed", "Unverified"):
+        if by_strength.get(badge):
+            cells.append(cell(badge.lower(), str(by_strength[badge])))
+
+    return (
+        '<details class="ohc" id="operator-health-card">'
+        '<summary class="ohc-head">Operator health card '
+        '<span class="ohc-sub">harness state — operational, not knowledge</span></summary>'
+        '<div class="ohc-grid">' + "".join(cells) + "</div>"
+        '<p class="ohc-foot">⛔ These are counts, never probe output. The live sweep '
+        "numbers — probes registered vs executed, the independent git census, and the "
+        "permanently-red canary — come from "
+        "<code>scripts/inventory-sweep.py</code>; a downward move in any of them with "
+        "no artifact deletion in the same diff means the sweep is going blind, not "
+        "that the repo shrank.</p>"
+        "</details>"
     )
 
 
@@ -5990,6 +6258,19 @@ footer.page-footer a:hover { text-decoration: underline; }
 }
 .learn-search:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 .learn-count { color: var(--muted); font-size: 13px; font-variant-numeric: tabular-nums; }
+/* ── Operator health card (P10). Deliberately plain: it is an instrument
+   panel, not a scoreboard, and a celebratory treatment would invite reading
+   a high number as a good number. */
+.ohc { border: 1px solid var(--border); border-radius: 8px; margin: 0 0 16px; background: var(--surface-2); }
+.ohc-head { cursor: pointer; padding: 10px 14px; font-size: 13px; font-weight: 700; list-style: none; }
+.ohc-head::-webkit-details-marker { display: none; }
+.ohc-sub { font-weight: 400; color: var(--muted); font-size: 12px; margin-left: 8px; }
+.ohc-grid { display: flex; flex-wrap: wrap; gap: 10px; padding: 0 14px 12px; }
+.ohc-cell { min-width: 110px; padding: 8px 10px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); }
+.ohc-v { display: block; font-size: 20px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.ohc-k { display: block; font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .03em; }
+.ohc-note { display: block; font-size: 10.5px; color: var(--muted); font-style: italic; margin-top: 2px; }
+.ohc-foot { font-size: 11.5px; color: var(--muted); margin: 0; padding: 0 14px 12px; line-height: 1.55; }
 .learn-toolbar-spacer { flex: 1 1 auto; }
 .learn-linkbtn {
   background: none; border: none; color: var(--accent); cursor: pointer;
@@ -6108,6 +6389,28 @@ footer.page-footer a:hover { text-decoration: underline; }
 .concept-badge svg { width: 11px; height: 11px; }
 .concept-badge.fact { color: var(--muted); border-color: var(--muted); background: rgba(148, 163, 184, 0.1); }
 .concept-badge.built { color: var(--accent); border-color: var(--accent); background: rgba(86, 208, 138, 0.1); }
+/* ── ⛔ R12: verification-strength badge. NON-DECORATIVE BY DESIGN. ──────────
+   These four are deliberately NOT a green/amber/red confidence scale. A scale
+   invites a reader to average them; these are different KINDS of claim. Only
+   `probed` gets the accent colour, because only it means something executed.
+   `findable` is deliberately muted and outlined: it must not read as a weaker
+   shade of verified, because 96 of 162 artifacts will carry it. */
+.concept-strength {
+  display: inline-flex; align-items: center; flex: none;
+  font-size: 10.5px; font-weight: 700; letter-spacing: 0.02em;
+  padding: 2px 8px; border-radius: 4px; border: 1px solid; white-space: nowrap;
+  text-transform: uppercase;
+}
+.concept-strength.probed { color: var(--accent); border-color: var(--accent); background: rgba(86, 208, 138, 0.12); }
+.concept-strength.findable { color: var(--muted); border-color: var(--muted); background: transparent; border-style: dashed; }
+.concept-strength.observed { color: var(--muted); border-color: var(--muted); background: transparent; }
+.concept-strength.unverified { color: #f0b429; border-color: #f0b429; background: rgba(240, 180, 41, 0.1); }
+.concept-nuance { border-left: 3px solid var(--accent); padding: 10px 14px; margin: 0 0 14px; background: var(--surface-2); border-radius: 0 6px 6px 0; }
+.concept-nuance-text { font-size: 14px; line-height: 1.55; margin: 0 0 8px; }
+.concept-evidence { font-size: 12px; color: var(--muted); margin: 0; line-height: 1.6; }
+.concept-evidence .ev-k { font-weight: 700; }
+.concept-unprobed { color: #f0b429; font-weight: 600; }
+.concept-rationale { font-size: 12px; color: var(--muted); margin: 8px 0 0; font-style: italic; }
 .concept-deck { font-size: 13.5px; color: var(--muted); margin: 8px 0 12px; line-height: 1.5; }
 .concept-diagram-well {
   background: var(--surface-2); border: 1px solid var(--border);
@@ -8055,7 +8358,24 @@ _JS = r"""
    * user changed it — preserving "absent ⇒ default" so a consumer's untouched
    * posture is never bloated and nothing changes on /plugin marketplace update. */
   const RUNAWAY_DEFAULT = Object.freeze({ max_total: 1200, max_consecutive: 8, off: false });
-  const PARALLELISM_DEFAULT = Object.freeze({ enabled: false, max_workers: 4, unlimited: false });
+  /* Parallelism default flipped to MAXIMUM (v0.273.0, owner decision). `absent ⇒ max`:
+   * an untouched posture now means "fan independent work out as wide as the work
+   * allows". `enabled: false` (or the scalar `parallelism: off`) still means sequential
+   * and `max_workers: N` still means batches of ≤N, so a consumer who ever tuned the
+   * block sees ZERO change — only the absent case moves. emitYaml writes the block only
+   * when it DIFFERS from this default, so "absent ⇒ default" still holds in both
+   * directions (a max-parallelism posture stays absent; a sequential one is written). */
+  const PARALLELISM_DEFAULT = Object.freeze({ enabled: true, max_workers: 4, unlimited: true });
+  /* Conserve-tokens exception (v0.273.0). The persistent half of the three-trigger
+   * exception to maximum parallelism (the other two are per-session: a prompt phrase and
+   * automatic context/budget pressure — both live in hooks, not here). When engaged, the
+   * parallelism posture is read as `enabled: false` (sequential). Default OFF, so emitYaml
+   * writes it only when the user turns it on. `conserve_tokens_auto_pct` is the pressure
+   * threshold in percent of the context window; 0 disables the automatic trigger. */
+  const CONSERVE_TOKENS_DEFAULT = false;
+  const CONSERVE_AUTO_PCT_DEFAULT = 80;
+  const CONSERVE_AUTO_PCT_MIN = 0;
+  const CONSERVE_AUTO_PCT_MAX = 100;
   const DOD_DEFAULT = Object.freeze({ cmd: "", max_blocks: 8 });
   const DECISION_REVIEW_VALUES = ["off", "advisory", "binding"];
   const DECISION_REVIEW_DEFAULT = "off";
@@ -8064,13 +8384,19 @@ _JS = r"""
    * user picks off or block, preserving "absent ⇒ warn". */
   const WORKTREE_GUARD_VALUES = ["off", "warn", "block"];
   const WORKTREE_GUARD_DEFAULT = "warn";
+  /* FOREIGN-TREE bound (read by hooks/worktree-guard.sh). Default `block`
+   * (leaving the tree is never a preference), so emitYaml writes it only when
+   * the user picks off or warn, preserving "absent ⇒ block". Independent of
+   * worktree_guard. Settings-only — no new DOM toggle (Gate 132 slack is zero;
+   * dashboard_autostart is the state-slot-without-toggle pattern). */
+  const WORKTREE_BOUND_VALUES = ["off", "warn", "block"];
+  const WORKTREE_BOUND_DEFAULT = "block";
   /* Dashboard autostart (read by hooks/dashboard-autostart.sh). OPT-IN — default
    * `off`, so emitYaml writes it only when the user picks serve or open,
    * preserving "absent ⇒ off". Wired here for the same reason worktree_guard is:
    * emitYaml rebuilds the WHOLE comfort-posture.yaml from `state`, so a key with
    * no state slot is silently DELETED on the next Save (the v0.61.0 data-loss
-   * class). No DOM control ships with it — Gate 132's budget is at zero slack and
-   * a visible toggle costs an owner-approved ratchet raise. */
+   * class). Settings renders the control via `_render_dashboard_autostart()`. */
   const DASHBOARD_AUTOSTART_VALUES = ["off", "serve", "open"];
   const DASHBOARD_AUTOSTART_DEFAULT = "off";
   const ORCHESTRATOR_VALUES = ["off", "decide", "full"];
@@ -8086,6 +8412,50 @@ _JS = r"""
   const STREAM_THRESHOLD_DEFAULT = 0.18;
   const STREAM_THRESHOLD_MIN = 0.05;
   const STREAM_THRESHOLD_MAX = 0.95;
+  /* Session-context handoff (read by hooks/handoff-nudge.sh (Stop nudge) +
+   * scripts/handoff-spawn.sh (successor spawn) + scripts/context-usage-meter.py).
+   * A NESTED block, round-tripped here so a Save no longer strips it — the last
+   * unmodelled behavioral key of the v0.61.0 data-loss class (like stream_* / F4).
+   * `spawn` accepts the UNION of both readers' enums (handoff-spawn.sh reads
+   * same-host|os-terminal; context-usage-meter.py reads copy-paste-only|os-terminal)
+   * so a Save PRESERVES whatever the owner set instead of canonicalizing; absence =
+   * "not set" (the launcher's copy-paste fallback) and stays absent. NO DOM control —
+   * state-slot round-trip only, exactly like worktree_bound. */
+  const CONTEXT_HANDOFF_MODE_VALUES = ["off", "nag", "block"];
+  const CONTEXT_HANDOFF_MODE_DEFAULT = "off";
+  const CONTEXT_HANDOFF_SPAWN_VALUES = ["copy-paste-only", "same-host", "os-terminal"];
+  const CONTEXT_HANDOFF_DEFAULT = Object.freeze({ mode: "off", spawn: "", context_window_tokens: null });
+  /* Advisory scalar knobs held only so a Save round-trips them. Values are
+   * validated against each knob's OWN vocabulary, because they differ:
+   * cause_preflight has NO block value by construction (its hook scans its own
+   * source for a deny exit and fails if one appears), while cause_remediation and
+   * cause_closure do — gated behind Phase 9's measured false-positive result. */
+  const ADVISORY_KNOB_VALUES = Object.freeze({
+    probe_validity: ["off", "warn"],
+    cause_triage: ["off", "warn"],
+    cause_preflight: ["off", "warn"],
+    cause_remediation: ["off", "warn", "block"],
+    cause_closure: ["off", "warn", "block"],
+  });
+  const ADVISORY_KNOBS_DEFAULT = Object.freeze({
+    probe_validity: "", cause_triage: "", cause_preflight: "",
+    cause_remediation: "", cause_closure: "",
+  });
+  /* Cheap lane — route everyday work to Grok/Copilot instead of the main Claude
+   * session (v0.303.0-v0.305.0). Round-tripped here so a Save no longer strips
+   * it — it shipped in the same release arc as context_handoff above but was
+   * never wired into emitYaml()/applyGuardrailConfig, so it was the one
+   * unmodelled key of the v0.61.0 data-loss class left in this file. Values
+   * mirror cheap-lane-delegate.sh / grok-delegate.sh / route-task.py's own
+   * accepted set exactly. NO DOM control — state-slot round-trip only, same
+   * pattern as worktree_bound / context_handoff. */
+  const CHEAP_LANE_MODE_VALUES = ["off", "advise", "agent"];
+  const CHEAP_LANE_MODE_DEFAULT = "off";
+  const CHEAP_LANE_TIER_VALUES = ["fast", "balanced", "top"];
+  const CHEAP_LANE_TIER_DEFAULT = "fast";
+  const CHEAP_LANE_AGENT_VALUES = ["grok", "copilot"];
+  const CHEAP_LANE_AGENT_DEFAULT = "grok";
+  const CHEAP_LANE_DEFAULT = Object.freeze({ mode: "off", tier: "fast", agent: "grok" });
 
   /* Per-tier panel defaults — mirror thing-decision.py's built-in tier table.
    * Seats are forseti | mimir | heimdall (thor is the tie-breaker, never a seat).
@@ -8156,8 +8526,11 @@ _JS = r"""
      * constants; emitYaml writes each block only when it differs from default. */
     runaway: Object.assign({}, RUNAWAY_DEFAULT),
     parallelism: Object.assign({}, PARALLELISM_DEFAULT),
+    conserve_tokens: CONSERVE_TOKENS_DEFAULT,
+    conserve_tokens_auto_pct: CONSERVE_AUTO_PCT_DEFAULT,
     decision_review: DECISION_REVIEW_DEFAULT,
     worktree_guard: WORKTREE_GUARD_DEFAULT,
+    worktree_bound: WORKTREE_BOUND_DEFAULT,
     dashboard_autostart: DASHBOARD_AUTOSTART_DEFAULT,
     orchestrator: ORCHESTRATOR_DEFAULT,
     orchestrator_scope: ORCHESTRATOR_SCOPE_DEFAULT,
@@ -8169,6 +8542,26 @@ _JS = r"""
     stream_classify: STREAM_CLASSIFY_DEFAULT,
     stream_threshold: STREAM_THRESHOLD_DEFAULT,
     definition_of_done: Object.assign({}, DOD_DEFAULT),
+    /* Session-context handoff (v0.61.0 data-loss class). Held in state so a Save
+     * round-trips it instead of silently dropping it. No DOM control (worktree_bound
+     * pattern) — the launcher/nudge/meter own the semantics, we only preserve. */
+    context_handoff: Object.assign({}, CONTEXT_HANDOFF_DEFAULT),
+    /* ⛔ ADVISORY SCALAR KNOBS — the v0.61.0 data-loss class, again.
+     * emitYaml rebuilds the WHOLE posture from state, so any top-level key with
+     * no state slot is SILENTLY DELETED on the next Save & apply. These five are
+     * held here purely so a Save round-trips them; there is no DOM control
+     * (worktree_bound / context_handoff pattern), so this costs zero elements
+     * and needs no ratchet raise.
+     * `probe_validity` was ALREADY unmodelled and already exposed: the live
+     * posture carries `probe_validity: warn` and one Save would have dropped it.
+     * The four `cause_*` knobs are Phase 11's posture seeding — without them the
+     * whole verify-before-assert mechanism is inert by default, which is CE-6. */
+    advisory_knobs: Object.assign({}, ADVISORY_KNOBS_DEFAULT),
+    /* Cheap lane (v0.61.0 data-loss class, closed same shape as context_handoff).
+     * Held in state so a Save round-trips it instead of silently dropping it.
+     * No DOM control (worktree_bound pattern) — cheap-lane-delegate.sh /
+     * grok-delegate.sh / route-task.py own the semantics, we only preserve. */
+    cheap_lane: Object.assign({}, CHEAP_LANE_DEFAULT),
     expanded: {},   /* category -> boolean */
   };
 
@@ -8556,19 +8949,39 @@ _JS = r"""
       if (typeof pl.enabled === "boolean") { state.parallelism.enabled = pl.enabled; touched = true; }
       if (pl.max_workers === "unlimited" || pl.unlimited === true) {
         state.parallelism.unlimited = true; touched = true;
-      } else {
+      } else if (pl.max_workers !== undefined && pl.max_workers !== null) {
+        /* Only a PRESENT max_workers may clear `unlimited`. Reading an absent key as
+         * "not unlimited" would silently downgrade the max default on a posture that
+         * only set `enabled:` — the round-trip data-loss class in a new place. */
         const mw = parseInt(pl.max_workers, 10);
         if (Number.isFinite(mw) && mw > 0) { state.parallelism.max_workers = mw; state.parallelism.unlimited = false; touched = true; }
       }
     } else if (pl === true || pl === "on") {
       /* scalar `parallelism: on` form (YAML `on` parses to boolean true) */
       state.parallelism.enabled = true; touched = true;
+    } else if (pl === false || pl === "off") {
+      /* scalar `parallelism: off` form (YAML `off` parses to boolean false). Handled
+       * explicitly since the default flipped to MAX: leaving it unhandled would make
+       * the established `<knob>: off` idiom mean the OPPOSITE of what it reads. */
+      state.parallelism.enabled = false; touched = true;
+    }
+    if (typeof src.conserve_tokens === "boolean") {
+      state.conserve_tokens = src.conserve_tokens; touched = true;
+    }
+    {
+      const cp = parseInt(src.conserve_tokens_auto_pct, 10);
+      if (Number.isFinite(cp) && cp >= CONSERVE_AUTO_PCT_MIN && cp <= CONSERVE_AUTO_PCT_MAX) {
+        state.conserve_tokens_auto_pct = cp; touched = true;
+      }
     }
     if (DECISION_REVIEW_VALUES.includes(src.decision_review)) {
       state.decision_review = src.decision_review; touched = true;
     }
     if (WORKTREE_GUARD_VALUES.includes(src.worktree_guard)) {
       state.worktree_guard = src.worktree_guard; touched = true;
+    }
+    if (WORKTREE_BOUND_VALUES.includes(src.worktree_bound)) {
+      state.worktree_bound = src.worktree_bound; touched = true;
     }
     if (DASHBOARD_AUTOSTART_VALUES.includes(src.dashboard_autostart)) {
       state.dashboard_autostart = src.dashboard_autostart; touched = true;
@@ -8605,6 +9018,32 @@ _JS = r"""
       if (typeof dod.cmd === "string") { state.definition_of_done.cmd = dod.cmd; touched = true; }
       const mb = parseInt(dod.max_blocks, 10);
       if (Number.isFinite(mb) && mb > 0) { state.definition_of_done.max_blocks = mb; touched = true; }
+    }
+    /* Session-context handoff (v0.61.0 data-loss class). Validate against the readers'
+     * enums; spawn accepts the UNION so a set value is preserved, not canonicalized. */
+    const ch = src.context_handoff;
+    if (ch && typeof ch === "object") {
+      if (CONTEXT_HANDOFF_MODE_VALUES.includes(ch.mode)) { state.context_handoff.mode = ch.mode; touched = true; }
+      if (CONTEXT_HANDOFF_SPAWN_VALUES.includes(ch.spawn)) { state.context_handoff.spawn = ch.spawn; touched = true; }
+      const cw = parseInt(ch.context_window_tokens, 10);
+      if (Number.isFinite(cw) && cw > 0) { state.context_handoff.context_window_tokens = cw; touched = true; }
+    }
+    /* Advisory scalar knobs — hydrate each against its OWN vocabulary. An
+     * unknown value is DROPPED rather than canonicalized, so a Save cannot
+     * silently rewrite a knob nobody asked it to change. */
+    for (const kn of Object.keys(ADVISORY_KNOB_VALUES)) {
+      const v = src[kn];
+      if (typeof v === "string" && ADVISORY_KNOB_VALUES[kn].includes(v)) {
+        state.advisory_knobs[kn] = v; touched = true;
+      }
+    }
+    /* Cheap lane (v0.61.0 data-loss class). Validate against the same accepted
+     * sets cheap-lane-delegate.sh / grok-delegate.sh / route-task.py enforce. */
+    const cl = src.cheap_lane;
+    if (cl && typeof cl === "object") {
+      if (CHEAP_LANE_MODE_VALUES.includes(cl.mode)) { state.cheap_lane.mode = cl.mode; touched = true; }
+      if (CHEAP_LANE_TIER_VALUES.includes(cl.tier)) { state.cheap_lane.tier = cl.tier; touched = true; }
+      if (CHEAP_LANE_AGENT_VALUES.includes(cl.agent)) { state.cheap_lane.agent = cl.agent; touched = true; }
     }
     const cr = src.command_review;
     if (cr && typeof cr === "object" && typeof cr.dev_repo_exempt === "boolean") {
@@ -8706,11 +9145,29 @@ _JS = r"""
     }
 
     const pl = state.parallelism;
-    if (pl.enabled === true || pl.unlimited === true || pl.max_workers !== PARALLELISM_DEFAULT.max_workers) {
-      lines.push("# Parallelism — allow fan-out workers (subagents / worktrees); cap how many run at once.");
+    /* Emit ONLY when the block differs from the (now MAXIMUM) default, so a
+     * max-parallelism posture stays absent and "absent ⇒ default" holds. */
+    if (pl.enabled !== PARALLELISM_DEFAULT.enabled
+        || pl.unlimited !== PARALLELISM_DEFAULT.unlimited
+        || pl.max_workers !== PARALLELISM_DEFAULT.max_workers) {
+      lines.push("# Parallelism — fan-out workers (subagents / worktrees). Default (block absent) is MAXIMUM.");
       lines.push("parallelism:");
       lines.push(`  enabled: ${pl.enabled === true}`);
       lines.push(`  max_workers: ${pl.unlimited === true ? "unlimited" : pl.max_workers}`);
+      lines.push("");
+    }
+
+    if (state.conserve_tokens === true) {
+      lines.push("# Conserve tokens — the standing exception to maximum parallelism (sequential work).");
+      lines.push(`conserve_tokens: ${state.conserve_tokens === true}`);
+      lines.push("");
+    }
+    if (Number.isFinite(state.conserve_tokens_auto_pct)
+        && state.conserve_tokens_auto_pct !== CONSERVE_AUTO_PCT_DEFAULT
+        && state.conserve_tokens_auto_pct >= CONSERVE_AUTO_PCT_MIN
+        && state.conserve_tokens_auto_pct <= CONSERVE_AUTO_PCT_MAX) {
+      lines.push("# Context-pressure percent at which conserve-tokens engages automatically (0 = never).");
+      lines.push(`conserve_tokens_auto_pct: ${state.conserve_tokens_auto_pct}`);
       lines.push("");
     }
 
@@ -8725,6 +9182,13 @@ _JS = r"""
         && state.worktree_guard !== WORKTREE_GUARD_DEFAULT) {
       lines.push("# Worktree-hygiene guard — nudge/deny when a working tree is shared or you're on the anchor (off | warn | block; default warn).");
       lines.push(`worktree_guard: ${state.worktree_guard}`);
+      lines.push("");
+    }
+
+    if (WORKTREE_BOUND_VALUES.includes(state.worktree_bound)
+        && state.worktree_bound !== WORKTREE_BOUND_DEFAULT) {
+      lines.push("# Sibling-worktree bound — deny a Write / git -C into another listed worktree (off | warn | block; default block).");
+      lines.push(`worktree_bound: ${state.worktree_bound}`);
       lines.push("");
     }
 
@@ -8794,6 +9258,63 @@ _JS = r"""
       lines.push("");
     }
 
+    /* Session-context handoff (v0.61.0 data-loss class). Emit the block when ANY
+     * sub-field is non-default, and emit only the set sub-fields — so `spawn:
+     * os-terminal` alone round-trips and a default/absent block emits nothing
+     * ("absent ⇒ default"). Read back by handoff-nudge.sh / handoff-spawn.sh /
+     * context-usage-meter.py. No editable control (worktree_bound pattern). */
+    const cth = state.context_handoff;
+    const cthMode = cth.mode && cth.mode !== CONTEXT_HANDOFF_MODE_DEFAULT
+      && CONTEXT_HANDOFF_MODE_VALUES.includes(cth.mode);
+    const cthSpawn = cth.spawn && CONTEXT_HANDOFF_SPAWN_VALUES.includes(cth.spawn);
+    const cthWin = Number.isFinite(cth.context_window_tokens) && cth.context_window_tokens > 0;
+    if (cthMode || cthSpawn || cthWin) {
+      lines.push("# Session-context handoff — Stop quality-reset nudge + successor spawn.");
+      lines.push("context_handoff:");
+      if (cthMode) lines.push(`  mode: ${cth.mode}`);
+      if (cthSpawn) lines.push(`  spawn: ${cth.spawn}`);
+      if (cthWin) lines.push(`  context_window_tokens: ${cth.context_window_tokens}`);
+      lines.push("");
+    }
+
+    /* Advisory scalar knobs. Emitted ONLY when set, so "absent ⇒ default" holds
+     * and an untouched posture is not bloated — but once set they SURVIVE a Save
+     * instead of being silently dropped. */
+    const knobLines = [];
+    for (const kn of Object.keys(ADVISORY_KNOB_VALUES)) {
+      const v = state.advisory_knobs[kn];
+      if (v && ADVISORY_KNOB_VALUES[kn].includes(v)) knobLines.push(`${kn}: ${v}`);
+    }
+    if (knobLines.length) {
+      lines.push("# Advisory guardrail knobs (off | warn [| block where a deny path exists]).");
+      lines.push("# Absent ⇒ the hook is a no-op. These are what make the cause");
+      lines.push("# discipline active rather than inert — see CE-6.");
+      for (const l of knobLines) lines.push(l);
+      lines.push("");
+    }
+
+    /* Cheap lane (v0.61.0 data-loss class). Emit the block when ANY sub-field is
+     * non-default, and emit only the set sub-fields — so a Save preserves
+     * whatever the owner set instead of silently dropping it ("absent ⇒
+     * default" holds for an untouched dashboard). Read back by
+     * cheap-lane-delegate.sh / grok-delegate.sh / route-task.py via
+     * skills/cheap-lane-delegation/SKILL.md. No editable control. */
+    const cln = state.cheap_lane;
+    const clnMode = cln.mode && cln.mode !== CHEAP_LANE_MODE_DEFAULT
+      && CHEAP_LANE_MODE_VALUES.includes(cln.mode);
+    const clnTier = cln.tier && cln.tier !== CHEAP_LANE_TIER_DEFAULT
+      && CHEAP_LANE_TIER_VALUES.includes(cln.tier);
+    const clnAgent = cln.agent && cln.agent !== CHEAP_LANE_AGENT_DEFAULT
+      && CHEAP_LANE_AGENT_VALUES.includes(cln.agent);
+    if (clnMode || clnTier || clnAgent) {
+      lines.push("# Cheap lane — route everyday work to Grok/Copilot instead of the main Claude session.");
+      lines.push("cheap_lane:");
+      if (clnMode) lines.push(`  mode: ${cln.mode}`);
+      if (clnTier) lines.push(`  tier: ${cln.tier}`);
+      if (clnAgent) lines.push(`  agent: ${cln.agent}`);
+      lines.push("");
+    }
+
     /* security_deny */
     const activeDeny = state.security_deny_baseline.filter(
       p => state.security_deny.includes(p)
@@ -8844,8 +9365,11 @@ _JS = r"""
         command_review: state.command_review,
         runaway: state.runaway,
         parallelism: state.parallelism,
+        conserve_tokens: state.conserve_tokens,
+        conserve_tokens_auto_pct: state.conserve_tokens_auto_pct,
         decision_review: state.decision_review,
         worktree_guard: state.worktree_guard,
+        worktree_bound: state.worktree_bound,
         dashboard_autostart: state.dashboard_autostart,
         orchestrator: state.orchestrator,
         orchestrator_scope: state.orchestrator_scope,
@@ -10699,11 +11223,17 @@ _JS = r"""
     if (pu) pu.checked = state.parallelism.unlimited === true;
     const pw = document.getElementById("pipe-parallelism-workers");
     if (pw) { pw.value = state.parallelism.max_workers; pw.disabled = state.parallelism.unlimited === true; }
+    const pct = document.getElementById("pipe-conserve-tokens");
+    if (pct) pct.checked = state.conserve_tokens === true;
+    /* Conserve-tokens is the standing exception: it reads OVER the parallelism
+     * block, so the badge must show what the agent will actually do. */
     pipeBadge("parallel-workers",
-              state.parallelism.enabled
-                ? (state.parallelism.unlimited ? "On · unlimited" : ("On · " + state.parallelism.max_workers + " workers"))
-                : "Off",
-              state.parallelism.enabled ? "pipe-badge-on" : "pipe-badge-off");
+              state.conserve_tokens === true
+                ? "Conserving — one at a time"
+                : state.parallelism.enabled
+                  ? (state.parallelism.unlimited ? "On · unlimited" : ("On · " + state.parallelism.max_workers + " workers"))
+                  : "Off",
+              (state.conserve_tokens !== true && state.parallelism.enabled) ? "pipe-badge-on" : "pipe-badge-off");
     const dr = document.getElementById("pipe-decision-review");
     if (dr) dr.value = state.decision_review;
     pipeBadge("route-decision-review", state.decision_review,
@@ -10723,6 +11253,15 @@ _JS = r"""
     const orelay = document.getElementById("pipe-orch-relay-opts");
     if (orelay) orelay.style.display =
       (state.orchestrator_scope === "all" && state.orchestrator !== "off") ? "" : "none";
+    const clm = document.getElementById("pipe-cheap-lane-mode");
+    if (clm) clm.value = state.cheap_lane.mode;
+    const clt = document.getElementById("pipe-cheap-lane-tier");
+    if (clt) clt.value = state.cheap_lane.tier;
+    const cla = document.getElementById("pipe-cheap-lane-agent");
+    if (cla) cla.value = state.cheap_lane.agent;
+    pipeBadge("cheap-lane-delegation",
+              state.cheap_lane.mode === "off" ? "Off" : (state.cheap_lane.mode + " · " + state.cheap_lane.agent),
+              state.cheap_lane.mode === "off" ? "pipe-badge-off" : "pipe-badge-on");
     const dc = document.getElementById("pipe-dod-cmd");
     if (dc) dc.value = state.definition_of_done.cmd || "";
     const dm = document.getElementById("pipe-dod-maxblocks");
@@ -10797,9 +11336,13 @@ _JS = r"""
     onChange("pipe-parallelism-enabled", el => { state.parallelism.enabled = el.checked; });
     onChange("pipe-parallelism-unlimited", el => { state.parallelism.unlimited = el.checked; });
     onInput("pipe-parallelism-workers", el => { const v = parseInt(el.value, 10); if (Number.isFinite(v) && v > 0) state.parallelism.max_workers = v; });
+    onChange("pipe-conserve-tokens", el => { state.conserve_tokens = el.checked; });
     onChange("pipe-decision-review", el => { if (DECISION_REVIEW_VALUES.includes(el.value)) state.decision_review = el.value; });
     onChange("pipe-orchestrator", el => { if (ORCHESTRATOR_VALUES.includes(el.value)) { state.orchestrator = el.value; syncPipelineTab(); } });
     onChange("pipe-orchestrator-scope", el => { if (ORCHESTRATOR_SCOPE_VALUES.includes(el.value)) { state.orchestrator_scope = el.value; syncPipelineTab(); } });
+    onChange("pipe-cheap-lane-mode", el => { if (CHEAP_LANE_MODE_VALUES.includes(el.value)) { state.cheap_lane.mode = el.value; syncPipelineTab(); } });
+    onChange("pipe-cheap-lane-tier", el => { if (CHEAP_LANE_TIER_VALUES.includes(el.value)) { state.cheap_lane.tier = el.value; syncPipelineTab(); } });
+    onChange("pipe-cheap-lane-agent", el => { if (CHEAP_LANE_AGENT_VALUES.includes(el.value)) { state.cheap_lane.agent = el.value; syncPipelineTab(); } });
     onChange("pipe-orch-zdr", el => { state.orchestrator_zdr_confirmed = el.checked; });
     onChange("pipe-orch-nopii", el => { state.orchestrator_repo_pii = !el.checked; });
     onChange("pipe-orch-pseudo", el => { state.orchestrator_pseudonymize = el.checked; });

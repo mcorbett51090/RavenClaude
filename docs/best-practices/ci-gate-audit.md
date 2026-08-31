@@ -24,6 +24,9 @@ For every CI step that claims to enforce a property, write **two fixtures** and 
 
 - **`must_fail_on`** — an input that violates the gate's target property. The step must exit nonzero (or set `status=1`, or whatever the failure signal is for that workflow).
 - **`must_pass_on`** — a legitimate input that satisfies the property. The step must exit zero AND not surface a confusing error.
+- **`must_flag_unwired_on`** *(third category, added 2026-08-13 — a convention for new gates, not a retroactive claim)* — an input where the gate's **detector has nothing to read**: the file it scans is absent, the config key it keys on is unset, the upstream step that produces its input didn't run. A gate whose detector silently no-ops on a missing input reports **exactly the same green** as one that checked everything and found nothing wrong. So state, in the gate's own fixture, what "unwired" looks like and assert the gate says so — loudly skipping or hard-failing, never passing. Gate 179's UNWIRED verdict is the shipped precedent; [`validating-a-measuring-instrument.md`](validating-a-measuring-instrument.md) is why an empty result is a claim about the probe until you show the probe can return the opposite.
+
+  **Honest scope:** this is a convention for gates written from here on. Whether each of the ~194 existing gates silently no-ops on a missing input is a *runtime* property that a static read of `audit-gates.sh` cannot see, and **no retroactive scan of them has been performed.** Gate 195 checks reachability, number-uniqueness and exit-2 specificity — it does **not** check this one.
 
 Both fixtures live in [`scripts/audit-gates.sh`](../../scripts/audit-gates.sh). Run it from the repo root:
 
@@ -51,6 +54,18 @@ The same script runs in [`.github/workflows/validate-marketplace.yml`](../../.gi
 - Trust a green CI run as proof of CI correctness. CI conclusion is signal, not proof.
 - Wire a third-party linter that exits 0 on findings without wrapping it.
 - Conflate "the step ran" with "the step gated."
+
+### Before you act on a new checker's first run over the corpus
+
+A new checker's **first** number is the least trustworthy one it will ever produce, and the moment you act on it is the moment it does damage. Two shapes recur: a flood that gets the checker disabled on day one, and a suspiciously clean zero that is really a checker looking at nothing. Both are covered by [`validating-a-measuring-instrument.md`](validating-a-measuring-instrument.md); this is the short list to run **before** the remediation, not after.
+
+1. **Classify before you remediate.** Read enough individual findings to know what class they are. A gate's remedy applied to a false positive is its own defect — and at scale it is a *large* one, because the remedy gets scripted. (The 3,337-finding incident is the canonical case; a ratchet reading 92 against a bar of 7 turned out to be 85 rows of one unbucketed file, where the "obvious" fix would have been actively wrong.)
+2. **Sanity-check the magnitude against the corpus.** Ask what fraction of the scanned population is flagged, and whether that fraction is plausible for a defect the repo has been shipping around. "Every file has it" almost always means the detector is matching a *description* rather than an *occurrence* — the source-scan-matches-prose failure this repo has hit repeatedly.
+3. **Prove a zero is a finding, not a blindfold.** An empty result is a claim about the probe until you show the probe can return the opposite. Plant a known-bad and watch it fire; a `--self-test` with a must-fail fixture per rule is the durable form.
+4. **Ask what the checker is actually reading.** Point it somewhere it must fail and confirm it does. Grepping for a variable *name* answers "is this string present", not "does the resolved value use it".
+5. **Only then set the enforcement level.** Warn first when the population is repo-wide; a lint that hard-blocks on its first noisy day gets switched off, and a switched-off guard protects nothing. The shipped `git_protocol` and `macos_portability_lint` knobs are the warn→block precedent.
+
+**A dated instance of step 1 paying for itself** (2026-08-13, while building the portability lint): the first pass over the live tree returned **16 findings, and every one was a false positive** — warning comments naming the banned token, quoted fixture strings inside a test corpus, case-glob matcher data, and deliberate GNU-then-BSD fallback pairs. Remediating them would have "fixed" sixteen non-defects and taught the detector nothing. Classifying them instead reframed the detector from a string question to a behavioural one (*is this construct invoked here?*), after which the same tree returned **0 findings across 175 scoped files** with the must-fail teeth intact.
 
 ## Edge cases / when the rule does NOT apply
 

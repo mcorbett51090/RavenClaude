@@ -44,7 +44,10 @@ const region = html.slice(si, ei + END.length);
 // Assumes sinks are written via dot-notation — the region uses the pbEl createElement
 // factory exclusively, so a bracket-notation sink (el["innerHTML"] = …) would evade this
 // grep. That is acceptable under the no-allowlist stance; flagged so a future editor knows.
-const SINK_RE = /\.(?:inner|outer)HTML\s*=(?!=)|insertAdjacentHTML|\bdocument\.write\b/;
+// `\+?=` catches BOTH plain assignment (innerHTML = …) and the append form (innerHTML += …),
+// which is an equally-real HTML-string sink the old `\s*=` could not match past the `+`;
+// (?!=) still excludes the == / === comparisons.
+const SINK_RE = /\.(?:inner|outer)HTML\s*\+?=(?!=)|insertAdjacentHTML|\bdocument\.write\b/;
 function firstSink(src) {
   const m = SINK_RE.exec(src);
   if (!m) return null;
@@ -350,6 +353,14 @@ const tampered = region.replace(
 if (firstSink(tampered))
   ok("must-fail half: a reintroduced innerHTML sink is caught by the static grep (gate has teeth)");
 else fail("must-fail half: the static grep FAILED to catch an injected innerHTML sink");
+// …and the append (+=) form, which was the actual gap the SINK_RE broadening closed.
+const tamperedAppend = region.replace(
+  "/* PROMPT-BUILDER:END */",
+  "preview.innerHTML += issue.label;\n/* PROMPT-BUILDER:END */",
+);
+if (firstSink(tamperedAppend))
+  ok("must-fail half: a reintroduced innerHTML += append sink is caught (gate has teeth)");
+else fail("must-fail half: the static grep FAILED to catch an injected innerHTML += sink");
 
 if (failures) {
   console.error(`\nprompt-builder render gate: ${failures} failure(s)`);

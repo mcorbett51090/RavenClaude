@@ -246,7 +246,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     mat = sub.add_parser("match", help="required cost-share and the shortfall")
     mat.add_argument("--total", type=float, required=True, help="total project cost (or federal share with --of-federal)")
-    mat.add_argument("--rate", type=float, required=True, help="required match/cost-share rate 0..100 (% of total)")
+    mat.add_argument("--rate", type=float, required=True, help="required match/cost-share rate 0..100 (%% of total)")
     mat.add_argument("--sourced", type=float, default=0.0, help="non-federal match already sourced (default 0)")
     mat.add_argument(
         "--of-federal",
@@ -255,7 +255,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     mat.set_defaults(func=cmd_match)
 
-    bud = sub.add_parser("budget", help="category roll-up + % of total + personnel build")
+    bud = sub.add_parser("budget", help="category roll-up + %% of total + personnel build")
     bud.add_argument(
         "--line",
         action="append",

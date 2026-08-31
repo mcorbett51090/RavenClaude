@@ -19,19 +19,19 @@ Part of the [RavenClaude](../../README.md) marketplace. Extends `ravenclaude-cor
 
 ## What's inside
 
-- **2 agents** — `digital-twin-architect` (chooses scope/type, shadow-vs-bidirectional, fidelity, modeling approach, sync, and platform) and `twin-integration-engineer` (ingests telemetry, wires the model, runs simulation/what-if, builds visualization, and validates fidelity + reconciles drift).
-- **3 skills** — `choose-digital-twin-architecture`, `design-twin-data-and-sync-model`, `implement-twin-integration-and-simulation`.
-- **2 knowledge files** — a Mermaid architecture decision tree (twin type → shadow-vs-bidirectional → maturity → modeling approach → fidelity → sync → platform, + trade-off table) and a 2026 digital-twin-patterns reference (taxonomy, the fidelity principle, modeling approaches, telemetry & sync, standards, simulation, drift/calibration, validation, platform map).
-- **2 templates** — a digital-twin design spec and a twin-fidelity validation report.
+- **agents** — `digital-twin-architect` (chooses scope/type, shadow-vs-bidirectional, fidelity, modeling approach, sync, and platform) and `twin-integration-engineer` (ingests telemetry, wires the model, runs simulation/what-if, builds visualization, and validates fidelity + reconciles drift).
+- **skills** — `choose-digital-twin-architecture`, `design-twin-data-and-sync-model`, `implement-twin-integration-and-simulation`.
+- **knowledge files** — a Mermaid architecture decision tree (twin type → shadow-vs-bidirectional → maturity → modeling approach → fidelity → sync → platform, + trade-off table) and a 2026 digital-twin-patterns reference (taxonomy, the fidelity principle, modeling approaches, telemetry & sync, standards, simulation, drift/calibration, validation, platform map).
+- **templates** — a digital-twin design spec and a twin-fidelity validation report.
 
 ## Where it sits in the physical-systems stack
 
 ```
-embedded-iot-engineering              →  device firmware / sensors / edge / connectivity   ("get the signal off the machine")
-robotics-autonomous-systems-eng.      →  robot control loops / motion / autonomy           ("make it move / decide in real time")
-data-platform                         →  warehouse / lakehouse / BI                         ("store & serve the history")
-manufacturing-operations              →  MES / OEE / production scheduling                  ("run the shop floor")
-digital-twin-engineering (HERE)       →  MODEL, SIMULATE & VALIDATE the physical asset      ("does the model match reality, and what if…")
+embedded-iot-engineering → device firmware / sensors / edge / connectivity ("get the signal off the machine")
+robotics-autonomous-systems-eng. → robot control loops / motion / autonomy ("make it move / decide in real time")
+data-platform → warehouse / lakehouse / BI ("store & serve the history")
+manufacturing-operations → MES / OEE / production scheduling ("run the shop floor")
+digital-twin-engineering (HERE) → MODEL, SIMULATE & VALIDATE the physical asset ("does the model match reality, and what if…")
 ```
 
 This plugin is the **twin layer** *over* the others: it consumes the telemetry `embedded-iot-engineering` gets off the asset, models and simulates it, stores its history in `data-platform`, informs `manufacturing-operations`, and hands real-time actuation to `robotics-autonomous-systems-engineering` when a twin goes bidirectional.

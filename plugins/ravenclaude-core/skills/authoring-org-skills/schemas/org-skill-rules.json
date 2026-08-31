@@ -1,0 +1,547 @@
+{
+  "schema_version": 1,
+  "artifact_kind": "org-skill",
+  "retrieved": "2026-08-20",
+  "stale_after": "2026-11-20",
+  "staleness_note": "Platform constraints move. S9 (skill/plugin scanning) is explicitly Beta/Enterprise, and this studio's user authors roughly one skill a quarter — so an unswept snapshot means confidently enforcing constraints that have moved, with a green verdict and a citation. Registered with knowledge-file-staleness-sweep.",
+  "invariants": [
+    "class == 'advisory'  =>  tier == 'warn'",
+    "class == 'advisory'  =>  fire_rate is non-null",
+    "every rule has a non-empty remediation",
+    "every claim is a real S-id in S1..S27",
+    "no numeric limit appears anywhere except this file",
+    "id in {R1,R2,R3,R4}  =>  tier == 'fail' AND class == 'ground-truth' AND no_override == true",
+    "ZP02's tier is READ from reference/platform-constraints.md, never hand-set in this file"
+  ],
+  "fire_rate_caveat": "Every fire_rate below was measured on 934 expert-authored Claude CODE skills in this marketplace, NOT on novice-authored claude.ai ORGANIZATION Skills — the population this studio actually serves (S23, owner-gated). A 0.0% rate here means 'these authors already do this', never 'the check is worthless'. The rates are recorded so a reader can discount them, not so they can be cited as authority. ⛔ The corpus was 934 SKILL.md files when these rates were measured. Adding this studio's own SKILL.md in Phase 5 made it 935, so every n/934 is a DATED SNAPSHOT and is one skill behind by construction. It is deliberately NOT re-measured to chase the delta: the rates are recorded so a reader can discount a heuristic, and no decision here turns on the third decimal place. Re-measure when the sweep falls due (stale_after), not when the denominator moves by one.",
+  "rules": [
+    {
+      "id": "FM01",
+      "tier": "fail",
+      "class": "ground-truth",
+      "claim": "S1",
+      "rule": "SKILL.md begins with a YAML frontmatter block delimited by --- and it parses",
+      "rationale": "An unparseable frontmatter means the skill cannot be discovered at all; the failure is total and silent.",
+      "remediation": "Ensure the first line is `---`, the block closes with `---`, and the contents are valid YAML.",
+      "fire_rate": null
+    },
+    {
+      "id": "FM02",
+      "tier": "fail",
+      "class": "ground-truth",
+      "claim": "S1",
+      "rule": "frontmatter carries a non-empty `name`",
+      "rationale": "Required field; absent means the upload is malformed.",
+      "remediation": "Add `name: <lowercase-hyphenated-id>` to the frontmatter.",
+      "fire_rate": null
+    },
+    {
+      "id": "FM03",
+      "tier": "fail",
+      "class": "ground-truth",
+      "claim": "S1",
+      "rule": "`name` is at most 64 characters",
+      "rationale": "Documented hard limit.",
+      "remediation": "Shorten the name. Keep the distinctive noun or gerund and drop qualifiers.",
+      "fire_rate": null
+    },
+    {
+      "id": "FM04",
+      "tier": "fail",
+      "class": "ground-truth",
+      "claim": "S1",
+      "rule": "`name` matches ^[a-z0-9-]+$ (lowercase letters, digits, hyphens only)",
+      "rationale": "Documented character class. An uppercase letter or underscore is a hard reject.",
+      "remediation": "Lowercase the name and replace underscores or spaces with hyphens.",
+      "fire_rate": null
+    },
+    {
+      "id": "FM05",
+      "tier": "fail",
+      "class": "ground-truth",
+      "claim": "S1",
+      "rule": "`name` contains no XML tags",
+      "rationale": "Documented prohibition.",
+      "remediation": "Remove angle-bracket markup from the name.",
+      "fire_rate": null
+    },
+    {
+      "id": "FM06",
+      "tier": "fail",
+      "class": "ground-truth",
+      "claim": "S1",
+      "rule": "frontmatter carries a non-empty `description`",
+      "rationale": "The description is the sole discovery signal (S3). Absent, the skill can never be selected.",
+      "remediation": "Add a `description:` stating what the skill does AND when to use it.",
+      "fire_rate": null
+    },
+    {
+      "id": "FM07",
+      "tier": "fail",
+      "class": "ground-truth",
+      "claim": "S1",
+      "rule": "`description` is at most 1024 characters",
+      "rationale": "Documented hard limit.",
+      "remediation": "Trim to the capability plus its trigger conditions; move detail into the body.",
+      "fire_rate": null
+    },
+    {
+      "id": "FM08",
+      "tier": "fail",
+      "class": "ground-truth",
+      "claim": "S1",
+      "rule": "`description` contains no XML tags",
+      "rationale": "Documented prohibition; the description is injected into a system prompt.",
+      "remediation": "Remove angle-bracket markup from the description.",
+      "fire_rate": null,
+      "predicate_note": "TAG-SHAPED ONLY: </?name .../>. S1 prohibits XML TAGS, not the characters `<` and `>`. Measured 2026-08-24 on 934 skills: a bare-angle-bracket predicate fired 63 times and inspection showed most were ASCII arrows (inquiry->apply->admit); the tag-shaped predicate fires 15 times, all genuine tags. A FAIL-tier predicate broader than its own sourced claim is a heuristic wearing a citation."
+    },
+    {
+      "id": "FM09",
+      "tier": "warn",
+      "class": "ground-truth",
+      "claim": "S7",
+      "rule": "`name` equals the containing directory name",
+      "rationale": "WARN, not FAIL — DEMOTED 2026-08-24 on Anthropic's own worked example. Support article 12512198 says 'Ensure the folder name matches your skill's name', but the example on the same page pairs a skill named 'Brand Guidelines' with a folder 'my-skill/'. Byte-equality is therefore not demonstrated by the vendor, and nothing anywhere states that an upload FAILS on a mismatch. This table's own discipline says a FAIL needs ground truth that does not depend on who authored the skill; an equality rule the vendor's own example violates is not that. Anthropic's upload-error list (12512180) does name 'Skill folder name doesn't match the skill name' as a failure cause, so the two Anthropic sources CONTRADICT each other — which is precisely the condition under which this table warns rather than blocks (cf. ZP02 on root layout, ZP10 on filename case).",
+      "remediation": "Match them if you can — it is the safer reading of 12512180's error list. Nothing demonstrates an upload fails on a mismatch, and Anthropic's own example does not match, so this does not block.",
+      "fire_rate": null,
+      "demotion_evidence": "reference/platform-constraints.md#zip-root-settlement, unresolved side-issues. RE-PROMOTION TO FAIL REQUIRES NEW EVIDENCE, not a preference: an observed upload that rejects a mismatched pair. The packer is unaffected either way — it roots the archive at the DIRECTORY name, which is what Anthropic's example does."
+    },
+    {
+      "id": "FM10",
+      "tier": "fail",
+      "class": "ground-truth",
+      "claim": "S2",
+      "rule": "the body after the frontmatter is non-empty",
+      "rationale": "A skill with a description and no instructions is discoverable and useless.",
+      "remediation": "Write the procedure the skill should follow when selected.",
+      "fire_rate": null
+    },
+    {
+      "id": "FM11",
+      "tier": "fail",
+      "class": "ground-truth",
+      "claim": "S1",
+      "rule": "`name` is not a reserved word",
+      "rationale": "S1 states names may not use reserved words. The list ships EMPTY-BUT-PRESENT: the constraint is real, its contents are not published, and an empty list enforces nothing while keeping the slot honest and greppable.",
+      "remediation": "If an upload is rejected for a reserved name, add the rejected token to reserved_words here and record the rejection in reference/platform-constraints.md.",
+      "reserved_words": [],
+      "unverified": "S1 says 'no reserved words' and the claims table does not enumerate them — verified by: re-reading platform.claude.com best-practices, or an upload attempt. Routed to plan section 8.",
+      "fire_rate": null
+    },
+    {
+      "id": "FM12",
+      "tier": "warn",
+      "class": "ground-truth",
+      "claim": "S1",
+      "rule": "frontmatter carries no keys outside {name, description}",
+      "rationale": "Only name and description are documented. An extra key may be ignored, may be rejected, or may be meaningful — unknown, so this warns rather than fails.",
+      "remediation": "Remove the extra key, or record an upload attempt that proves it is accepted.",
+      "unverified": "Which additional keys claude.ai Organization Skills accept is not in the claims table — verified by: an upload attempt with an extra key. Routed to plan section 8.",
+      "fire_rate": null
+    },
+    {
+      "id": "BD01",
+      "tier": "warn",
+      "class": "ground-truth",
+      "claim": "S2",
+      "rule": "the SKILL.md body is at most 500 lines",
+      "rationale": "Documented performance guidance, not a hard limit — so this warns rather than fails. Overflow belongs in bundled resources, which cost nothing until accessed (S2).",
+      "remediation": "Move reference material into bundled files and link to them from the body.",
+      "fire_rate": null
+    },
+    {
+      "id": "BD02",
+      "tier": "fail",
+      "class": "ground-truth",
+      "claim": "S2",
+      "rule": "every bundled file referenced from the body exists in the bundle",
+      "rationale": "A dead reference is a silent capability gap — the model follows the pointer and finds nothing. Objectively checkable and population-independent.",
+      "remediation": "Add the missing file to the bundle, or remove the reference.",
+      "fire_rate": null
+    },
+    {
+      "id": "BD03",
+      "tier": "fail",
+      "class": "ground-truth",
+      "claim": "S2",
+      "rule": "no bundled file is referenced by an absolute path or a parent-directory traversal",
+      "rationale": "A path that escapes the bundle cannot resolve after upload, and a traversal is a packaging hazard.",
+      "remediation": "Reference bundled files relative to SKILL.md, with no leading slash and no parent traversal.",
+      "fire_rate": null
+    },
+    {
+      "id": "ZP01",
+      "tier": "fail",
+      "class": "ground-truth",
+      "claim": "S7",
+      "rule": "the archive contains exactly one SKILL.md",
+      "rationale": "Zero means nothing installs; more than one is ambiguous.",
+      "remediation": "Rebuild the archive from a single skill directory.",
+      "fire_rate": null
+    },
+    {
+      "id": "ZP02",
+      "tier": "warn",
+      "class": "ground-truth",
+      "claim": "S7",
+      "tier_derivation": "reference/platform-constraints.md#zip-root-settlement",
+      "rule": "the archive root layout matches the settled convention",
+      "rationale": "UNSETTLED. S7 reads 'the ZIP root must be the skill folder itself, not a wrapper', which does not disambiguate `<name>/SKILL.md` from `SKILL.md` at depth 0 — the two planning panels read it in OPPOSITE directions and neither marked it unverified. This rule's tier is DERIVED from the evidence file, not hand-set: while that file records no settlement, the tier is warn. Promotion to fail is a data edit plus a fixture flip, never a code change.",
+      "remediation": "Both readings ship as fixtures (rootA-folder.zip, rootB-flat.zip). Upload each at Organization settings > Skills and record which installs, with the date, in reference/platform-constraints.md.",
+      "fire_rate": null
+    },
+    {
+      "id": "ZP03",
+      "tier": "fail",
+      "class": "ground-truth",
+      "claim": "S7",
+      "rule": "the archive contains no symlinks and no absolute or traversing member paths",
+      "rationale": "Archive-extraction safety; a traversing member is a packaging exploit shape regardless of intent.",
+      "remediation": "Rebuild the archive from a clean directory containing only regular files.",
+      "fire_rate": null
+    },
+    {
+      "id": "ZP04",
+      "tier": "fail",
+      "class": "ground-truth",
+      "claim": "S20",
+      "rule": "the archive does not contain the studio's own lint report",
+      "rationale": "A lint-clean stamp travelling inside the shipped bundle is a credibility transfer: it suppresses the only human review S10 leaves in place, because org-wide sharing has no approval step. The report is a local artifact, never a shipped one.",
+      "remediation": "Exclude the report from the archive. The packer does this by construction; this rule asserts that it did.",
+      "fire_rate": null
+    },
+    {
+      "id": "DS01",
+      "tier": "warn",
+      "class": "advisory",
+      "claim": "S3",
+      "rule": "the description names no capability verb",
+      "rationale": "S3 requires the description to state what the skill does AND when to use it. A description with no verb states neither.",
+      "remediation": "Open with what it does: 'Extracts…', 'Generates…', 'Reviews…'.",
+      "fire_rate": {
+        "value": 0.2173,
+        "n": 203,
+        "total": 934,
+        "population": "expert-authored Claude Code skills in this marketplace",
+        "measured_on": "2026-08-24"
+      }
+    },
+    {
+      "id": "DS02",
+      "tier": "warn",
+      "class": "advisory",
+      "claim": "S3",
+      "rule": "the description carries no when-to-use trigger clause",
+      "rationale": "S3: the description is how Claude chooses this skill from potentially 100+ available. Without a trigger clause it competes on capability alone.",
+      "remediation": "Append a trigger sentence: 'Use when the user asks to …'.",
+      "fire_rate": {
+        "value": 0.4507,
+        "n": 421,
+        "total": 934,
+        "population": "934 Claude Code skills authored by an expert in this repo, 2026-08-24 — NOT claude.ai Organization Skills authored by non-technical admins, who are this tool's actual population",
+        "measured_on": "2026-08-24",
+        "note": "Measured against the CORPUS-DERIVED marker list, not an authored one. Three implementations, three rates, one corpus: plan-A's hand-written two-stage list 31.7%, an ad-hoc broader list 59.4%, the derived list 45.1%. The derivation independently reproduced the critic's finding — 'reach for this ON' has support 150 against 'reach for this WHEN' at 166, and plan-A's list contained only the latter. That single omission is the ~47% false-positive rate. Re-run derive_markers.py and re-measure if the list changes."
+      },
+      "marker_source": "reference/ds02-markers.json (derived by scripts/derive_markers.py)"
+    },
+    {
+      "id": "DS03",
+      "tier": "warn",
+      "class": "advisory",
+      "claim": "S5",
+      "rule": "the description matches the documented vague stoplist",
+      "rationale": "S5 names 'Helps with documents', 'Processes data' and 'Does stuff with files' as explicit anti-examples.",
+      "remediation": "Replace with a specific capability and a trigger.",
+      "fire_rate": {
+        "value": 0.0,
+        "n": 0,
+        "total": 934,
+        "population": "expert-authored Claude Code skills in this marketplace",
+        "measured_on": "2026-08-24",
+        "note": "Never fires on this corpus. Cheap insurance against a placeholder shipped by accident; it discriminates nothing here and must not be cited as evidence the corpus was checked."
+      }
+    },
+    {
+      "id": "NM01",
+      "tier": "warn",
+      "class": "advisory",
+      "claim": "S5",
+      "rule": "the name contains a placeholder token (helper, utils, tools, misc, common, stuff, things)",
+      "rationale": "S5 rejects these by name. Demoted from plan-A's FAIL to WARN: it is a stoplist, i.e. a heuristic, and the tier discipline admits no exceptions. Its 0.1% rate means the demotion costs almost nothing.",
+      "remediation": "Name the activity, not the category.",
+      "fire_rate": {
+        "value": 0.0011,
+        "n": 1,
+        "total": 934,
+        "population": "934 Claude Code skills authored by an expert in this repo, 2026-08-24 — NOT claude.ai Organization Skills authored by non-technical admins, who are this tool's actual population",
+        "measured_on": "2026-08-24"
+      }
+    },
+    {
+      "id": "NM02",
+      "tier": "warn",
+      "class": "advisory",
+      "claim": "S5",
+      "rule": "the name leans on a generic domain noun (test, agent, framework, system, service, engine, module, manager, handler, tool)",
+      "rationale": "S5 wants a name that says what the skill does. A generic noun often signals a category label rather than an activity.",
+      "remediation": "Name the activity. If the generic noun IS the domain — choose-statistical-test, framework-selection — ignore this warning; that case is legitimate and common.",
+      "fire_rate": {
+        "value": 0.0492,
+        "n": 46,
+        "total": 934,
+        "population": "934 Claude Code skills authored by an expert in this repo, 2026-08-24 — NOT claude.ai Organization Skills authored by non-technical admins, who are this tool's actual population",
+        "measured_on": "2026-08-24",
+        "note": "Top tokens: test 11, agent 11, system 5, framework 4, service 4, engine 4. Inspected examples are overwhelmingly LEGITIMATE domain nouns (choose-statistical-test, framework-selection-and-control-mapping, stress-test-feasibility), which is why the remediation text names that case explicitly instead of implying the name is wrong."
+      }
+    },
+    {
+      "id": "NM03",
+      "tier": "warn",
+      "class": "advisory",
+      "claim": "S5",
+      "rule": "the name is not in gerund form",
+      "rationale": "S5 prefers gerund (processing-pdfs) but explicitly ACCEPTS noun phrases and action forms. A style preference, never a defect.",
+      "remediation": "Consider a gerund if it reads naturally. Ignore this warning if a noun phrase is clearer.",
+      "fire_rate": {
+        "value": 0.9689,
+        "n": 905,
+        "total": 934,
+        "population": "expert-authored Claude Code skills in this marketplace",
+        "measured_on": "2026-08-24",
+        "note": "Fires on 96.9% of a working corpus authored by this repo's own maintainers. Anthropic's stated preference and this repo's actual practice DISAGREE. Enforcing gerund naming would enforce against the grain of every skill its own authors have written. Advisory only, and a strong candidate for deletion."
+      }
+    },
+    {
+      "id": "PV01",
+      "tier": "warn",
+      "class": "advisory",
+      "claim": "S4",
+      "rule": "the description uses first person outside quoted text",
+      "rationale": "S4 warns that inconsistent point-of-view causes discovery problems, since the description is injected into the system prompt.",
+      "remediation": "Rewrite in third person: 'Processes Excel files', not 'I can help you process Excel files'.",
+      "fire_rate": {
+        "value": 0.0,
+        "n": 0,
+        "total": 934,
+        "population": "expert-authored Claude Code skills in this marketplace",
+        "measured_on": "2026-08-24",
+        "note": "MUST exclude quoted spans before matching. A naive version measured 0.3% (3/934) on this corpus and ALL THREE were false positives — every hit was 'I can' inside a quoted user utterance ('report I can show leadership'), i.e. it fired precisely on descriptions following best practice by quoting real user phrasing. With quoted spans excluded the rate is 0.0%. This is the run's clearest evidence that an unmeasured heuristic can be net-negative."
+      }
+    },
+    {
+      "id": "PV02",
+      "tier": "warn",
+      "class": "advisory",
+      "claim": "S4",
+      "rule": "the description addresses the reader in second person outside quoted text",
+      "rationale": "Same S4 warning; 'You can use this to…' is a named anti-example.",
+      "remediation": "Rewrite in third person.",
+      "fire_rate": {
+        "value": 0.0,
+        "n": 0,
+        "total": 934,
+        "population": "expert-authored Claude Code skills in this marketplace",
+        "measured_on": "2026-08-24",
+        "note": "Same quoted-span exclusion as PV01."
+      }
+    },
+    {
+      "id": "R1",
+      "tier": "fail",
+      "class": "ground-truth",
+      "claim": "S20",
+      "rule": "no literal credential of any shape appears in the description, the body, or any bundled file",
+      "rationale": "S20: the studio is a supply-chain surface. A provider-prefixed key is ground truth by construction (AKIA + 16 uppercase alnum IS an AWS key id), not a claim about author habits — which is why this may sit at FAIL where the entropy heuristic R1B may not.",
+      "remediation": "Remove the literal. If you are DOCUMENTING credential handling, use a placeholder (<TOKEN>, $API_KEY, YOUR_KEY) — those are recognised and do not fire.",
+      "fire_rate": null,
+      "no_override": true,
+      "quarantine": "fence + frame + handling instruction + a named reviewer in the EXTERNAL run record. Three of four is still FAIL.",
+      "measured_note": "1/934 on the corpus: AWS's own documentation example key AWS's own documentation example key, inside a secrets-detection skill. Deliberately NOT special-cased to a pass. It is credential-SHAPED, and the unappealable scanner (S9) reads shapes; and an ends-with-EXAMPLE carve-out is the exact cleverness that lets a real key through when someone names a variable EXAMPLE. The quarantine path exists for precisely this case."
+    },
+    {
+      "id": "R1B",
+      "tier": "warn",
+      "class": "advisory",
+      "claim": "S20",
+      "rule": "no unexplained high-entropy string (40+ chars, mixed case and digits, not a slug or a hex hash)",
+      "rationale": "An entropy heuristic cannot distinguish a secret from an opaque identifier, so it may not block. It is the backstop for a credential whose provider prefix R1 does not know.",
+      "remediation": "If it is a secret, remove it. If it is an opaque identifier, say what it is in a sentence beside it.",
+      "fire_rate": {
+        "value": 0.0,
+        "n": 0,
+        "total": 934,
+        "population": "expert-authored Claude Code skills in this marketplace",
+        "measured_on": "2026-08-24",
+        "note": "0/934 WITH A WORKING POSITIVE CONTROL — an opaque 44-char mixed-case token is caught (asserted in the battery). A 0.0% rate here means these authors do not paste secrets, NOT that the check is inert. Reaching 0 took two narrowings, both measured: admitting `/` in the charset made every long PATH match (2 of 3 hits), and an unbounded `(?=[^\\s]*[A-Z])` lookahead was satisfied by an uppercase letter beyond the candidate, so an all-lowercase slug matched a rule requiring uppercase."
+      }
+    },
+    {
+      "id": "R2",
+      "tier": "fail",
+      "class": "ground-truth",
+      "claim": "S20",
+      "rule": "no global-posture override imperative (an instruction to set aside prior guidance, and its family)",
+      "rationale": "Provisioned org-wide, unreviewed if org sharing is on (S10), and injected into system prompts. An override imperative in that position is not a quotation.",
+      "remediation": "Paraphrase it FIRST: 'a message attempting to override the assistant's prior guidance' loses nothing operational and needs no reviewer. Only if the literal is genuinely required, use the quarantine path.",
+      "fire_rate": null,
+      "no_override": true,
+      "quarantine": "fence + frame + handling instruction + a named reviewer in the EXTERNAL run record. Three of four is still FAIL.",
+      "measured_note": "2/934, both in skills ABOUT injection — one an imperative to set aside prior guidance, one a new-instructions header. The literals are PARAPHRASED here rather than quoted: dogfooding the studio on itself showed R2 firing on this very file, and paraphrase-first is the remedy this table's own refusals.md prescribes. It costs nothing — the note's content is the measurement, not the string. These are the quarantine cases, not false positives — the literal really is in the archive the classifier reads."
+    },
+    {
+      "id": "R3",
+      "tier": "fail",
+      "class": "ground-truth",
+      "claim": "S20",
+      "rule": "no covert channel: self-concealment from the user, or egress combined with a reference to conversation/user content",
+      "rationale": "The exfiltration half requires BOTH an egress imperative AND a conversation reference, because either alone is ordinary — a skill that POSTs to a ticketing API is normal, and one that discusses the transcript is normal. The conjunction is the covert channel.",
+      "remediation": "Make the call user-visible and scoped, and drop any instruction to withhold information from the user.",
+      "fire_rate": null,
+      "no_override": true,
+      "quarantine": "fence + frame + handling instruction + a named reviewer in the EXTERNAL run record. Three of four is still FAIL.",
+      "measured_note": "0/934. The negative control that matters is asserted in the battery: a documented, scoped, user-visible external API call must NOT fire."
+    },
+    {
+      "id": "R4",
+      "tier": "fail",
+      "class": "ground-truth",
+      "claim": "S20",
+      "rule": "no tool-authority expansion (pipe-to-shell, install from an arbitrary URL)",
+      "rationale": "A bundle that instructs an install from an arbitrary URL hands the org's blast radius to whoever controls that URL.",
+      "remediation": "Pin the artifact and verify it. If you are documenting the anti-pattern, paraphrase it — 'piping a downloaded script straight into a shell' — which needs no reviewer.",
+      "fire_rate": null,
+      "no_override": true,
+      "quarantine": "fence + frame + handling instruction + a named reviewer in the EXTERNAL run record. Three of four is still FAIL.",
+      "measured_note": "4/934, every one inside a skill DOCUMENTING the anti-pattern. This is gap-delta's 'a grep is satisfied by the thing being described', and it is why paraphrase-first is the documented first remedy rather than the quarantine path."
+    },
+    {
+      "id": "R5",
+      "tier": "warn",
+      "class": "advisory",
+      "claim": "S10",
+      "rule": "no persona override on a binding matter (an instruction to assume the identity of a lawyer, clinician or auditor)",
+      "rationale": "S10: there is no approval workflow, so a persona instruction reaches every member unreviewed. It is a judgement call whether a given persona overrides binding guidance, so it may not block.",
+      "remediation": "State the role as scope ('this skill covers contract review') rather than as an identity Claude should assume, and keep the escalation path.",
+      "fire_rate": {
+        "value": 0.0,
+        "n": 0,
+        "total": 934,
+        "population": "expert-authored Claude Code skills in this marketplace",
+        "measured_on": "2026-08-24",
+        "note": "0/934. Acknowledge it in the run record if it fires; it is not a blocker."
+      }
+    },
+    {
+      "id": "R6",
+      "tier": "warn",
+      "class": "advisory",
+      "claim": "S10",
+      "rule": "no org-confidential material that need not be resident org-wide",
+      "rationale": "With org sharing on, the bundle is resident for every member (S10). Confidentiality is contextual, so this may not block.",
+      "remediation": "Move the confidential specifics to a linked internal system and keep the skill's procedure generic.",
+      "fire_rate": {
+        "value": 0.0011,
+        "n": 1,
+        "total": 934,
+        "population": "expert-authored Claude Code skills in this marketplace",
+        "measured_on": "2026-08-24",
+        "note": "1/934: a non-disclosure marker in a data-room skill that DISCUSSES NDAs and contains no confidential material — a described-vs-present false positive, which is exactly what the WARN tier is for. Disclosed rather than pattern-tuned away."
+      }
+    },
+    {
+      "id": "R7",
+      "tier": "warn",
+      "class": "advisory",
+      "claim": "S3",
+      "rule": "no description whose only content is a generic claim (DS01 promoted to the refusal set)",
+      "rationale": "Plan-A promotes this to a refusal. It stays at WARN because DS01 is a heuristic and the tier discipline admits no exceptions — including for a refusal wearing a rule id.",
+      "remediation": "Name the capability and the trigger. See DS01.",
+      "fire_rate": {
+        "value": 0.2173,
+        "n": 203,
+        "total": 934,
+        "population": "expert-authored Claude Code skills in this marketplace",
+        "measured_on": "2026-08-24",
+        "note": "IDENTICAL to DS01's measurement — R7 IS DS01, listed here so the refusal set is complete and so the reader can see it was deliberately NOT promoted to FAIL. The check is emitted ONCE, by DS01; R7 does not double-report."
+      }
+    },
+    {
+      "id": "ZP05",
+      "tier": "fail",
+      "class": "ground-truth",
+      "claim": "S7",
+      "rule": "the archive has exactly one distinct top-level path component",
+      "rationale": "Two top-level components means the unpacker has no unambiguous root to install. This is the wrapper-directory failure and its mirror, the loose-files failure.",
+      "remediation": "Rebuild from a single skill directory with `orgskill pack`.",
+      "fire_rate": null
+    },
+    {
+      "id": "ZP06",
+      "tier": "fail",
+      "class": "ground-truth",
+      "claim": "S7",
+      "rule": "SKILL.md is present and non-empty at the archive's root, and is valid UTF-8",
+      "rationale": "An archive whose SKILL.md is missing, empty or mis-encoded installs into nothing. Checked from the archive bytes, not the source tree.",
+      "remediation": "Rebuild the archive; if SKILL.md is non-empty on disk but empty here, the packer excluded or truncated it.",
+      "fire_rate": null
+    },
+    {
+      "id": "ZP07",
+      "tier": "fail",
+      "class": "ground-truth",
+      "claim": "S7",
+      "rule": "the archive contains no non-shippable entry (macOS Finder artifacts, VCS metadata, caches)",
+      "rationale": "The macOS Compress context-menu action emits __MACOSX/ sidecars and ._* resource forks the author never sees in Finder. An entry the author cannot see is an entry they cannot audit.",
+      "remediation": "Rebuild with `orgskill pack`, which excludes these by construction, rather than compressing the folder in Finder.",
+      "fire_rate": null
+    },
+    {
+      "id": "ZP08",
+      "tier": "fail",
+      "class": "ground-truth",
+      "claim": "S2",
+      "rule": "every relative link in the archived SKILL.md resolves to an entry present IN THE ARCHIVE",
+      "rationale": "S2 puts overflow in bundled files. The source tree can be complete while the archive is not — a dead bundled reference emits nothing at author time and fails only in production. Resolution is against the archive namelist, never the disk.",
+      "remediation": "Add the referenced file to the skill directory, or remove the link.",
+      "fire_rate": null
+    },
+    {
+      "id": "ZP09",
+      "tier": "fail",
+      "class": "ground-truth",
+      "claim": "S7",
+      "rule": "the archive extracts, and the EXTRACTED tree passes the linter",
+      "rationale": "Verification by attempt (gap-delta D4). A source tree that lints clean can still ship a broken bundle; case-collisions on a case-insensitive filesystem and encoding mangles also surface here rather than at upload. The source directory is not consulted.",
+      "remediation": "Read the underlying finding: it names the rule the extracted tree failed.",
+      "fire_rate": null
+    },
+    {
+      "id": "ZP10",
+      "tier": "warn",
+      "class": "ground-truth",
+      "claim": "S7",
+      "rule": "the SKILL.md filename uses the canonical casing",
+      "rationale": "WARN, not FAIL, because ANTHROPIC'S OWN SOURCES DISAGREE and none adjudicates: support article 12512198 writes lowercase skill.md throughout and never uses the uppercase form, while article 13119606 and the anthropics/skills repo write SKILL.md. Neither casing is demonstrably rejected by the platform. Hard-rejecting one of them would block an archive built by following Anthropic's own worked example — measured 2026-08-24: verify() did exactly that, reporting ZP01 'contains 0 SKILL.md entries' on an otherwise valid bundle.",
+      "remediation": "Rename to SKILL.md — it matches the org-facing article and Anthropic's repo. This is a preference, not a known requirement; nothing states an upload fails on the other casing.",
+      "fire_rate": null,
+      "casing_note": "Resolution needs an upload attempt, which is also what would settle ZP02. Recorded in reference/platform-constraints.md under the research block's unresolved side-issues."
+    }
+  ],
+  "id_note": "Rule ids are this implementation's, and they DEVIATE from plan-A's draft numbering in two places: plan-A used FM06 for reserved-words and FM10 for extra-frontmatter-keys, which this table had already assigned to description-present and body-present before those rules were specified. Renumbering committed ids is churn with no benefit, so the new rules take FM11/FM12 and this note records the mapping. ZP ids deviate from the plan's draft numbering for the same reason: ZP01-ZP04 were committed in Phase 0 before the archive checks were specified, so the new checks take ZP05-ZP09 rather than renumbering committed ids. Mapping — plan ZP01 (one top-level component) = ZP05; plan ZP03 (SKILL.md present/non-empty) = ZP06; plan ZP04 (Finder artifacts) = ZP07; plan ZP05+ZP06 (traversal, symlinks) = the committed combined ZP03, which emits a distinguishing message per shape; plan ZP07 (links resolve in-archive) = ZP08; plan ZP08 (extract and re-lint) = ZP09. This table's ZP01 (exactly one SKILL.md) and ZP04 (the report must not travel) have no plan counterpart and are additional.",
+  "refusal_note": "R1-R4 are hard refusals with NO override flag, env var or config key. Their only path is quarantine: fence + frame + handling instruction + A NAMED HUMAN REVIEWER RECORDED IN THE EXTERNAL RUN RECORD. The fourth condition is the one the author cannot supply alone — plan-A's three-part incantation is authored entirely by whoever wrote the adversarial string, which is self-attestation with extra steps, i.e. a --force spelled out in the documentation. A reviewer line inside SKILL.md clears nothing. An adversarial literal in the frontmatter DESCRIPTION has no quarantine path at all: it is injected verbatim into every member's system prompt. ⛔ THIS TABLE PARAPHRASES EVERY ADVERSARIAL LITERAL IT DESCRIBES. Dogfooding the studio on its own directory showed R1/R2/R5 firing on this file's rule text and measured_note fields — the studio would have refused to pack itself, on the exact defect its own refusals.md tells authors to fix by paraphrasing. Nothing operational was lost: a rule's content is the constraint and the measurement, never the string. Do not restore the literals for 'clarity'.",
+  "non_shippable": [
+    "__MACOSX/*",
+    "__MACOSX",
+    ".DS_Store",
+    "._*",
+    ".git/*",
+    ".git",
+    ".gitignore",
+    "*.pyc",
+    "__pycache__/*",
+    "__pycache__",
+    "*.swp",
+    "Thumbs.db"
+  ]
+}

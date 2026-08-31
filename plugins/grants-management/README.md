@@ -22,18 +22,18 @@ Part of the [RavenClaude](../../README.md) marketplace. Extends `ravenclaude-cor
 
 ## What's inside
 
-- **2 agents** — `grants-strategy-lead` (builds the pipeline, scores funder fit, runs go/no-go, and drives the logic model + proposal narrative + assembly) and `grants-compliance-and-reporting-specialist` (runs 2 CFR 200 cost allowability, indirect rates, time & effort, FFR/RPPR reporting, subrecipient monitoring, Single Audit, and closeout).
-- **3 skills** — `build-grant-pipeline-and-prospect-fit`, `write-and-assemble-grant-proposals`, `manage-post-award-compliance-and-reporting`.
-- **2 knowledge files** — a Mermaid grants-lifecycle decision tree (grant type → fit → go/no-go → apply → award → comply → report → close, + the funder/grant-type matrix + the subrecipient-vs-contractor test) and a 2026 grants-management-patterns reference (funder & grant types, logic model / theory of change, federal mechanics, 2 CFR 200 cost principles & indirect rates, reporting forms, subrecipient monitoring, Single Audit, tooling map).
-- **2 templates** — a full grant-proposal outline (with a NOFO-criteria crosswalk) and a post-award compliance & reporting tracker.
+- **agents** — `grants-strategy-lead` (builds the pipeline, scores funder fit, runs go/no-go, and drives the logic model + proposal narrative + assembly) and `grants-compliance-and-reporting-specialist` (runs 2 CFR 200 cost allowability, indirect rates, time & effort, FFR/RPPR reporting, subrecipient monitoring, Single Audit, and closeout).
+- **skills** — `build-grant-pipeline-and-prospect-fit`, `write-and-assemble-grant-proposals`, `manage-post-award-compliance-and-reporting`.
+- **knowledge files** — a Mermaid grants-lifecycle decision tree (grant type → fit → go/no-go → apply → award → comply → report → close, + the funder/grant-type matrix + the subrecipient-vs-contractor test) and a 2026 grants-management-patterns reference (funder & grant types, logic model / theory of change, federal mechanics, 2 CFR 200 cost principles & indirect rates, reporting forms, subrecipient monitoring, Single Audit, tooling map).
+- **templates** — a full grant-proposal outline (with a NOFO-criteria crosswalk) and a post-award compliance & reporting tracker.
 
 ## Where it sits in the funding stack
 
 ```
-nonprofit-fundraising      →  individuals / major donors / annual fund / events   ("raise philanthropic dollars from people")
-public-sector-govtech      →  the GRANTMAKER: design a funding program / NOFO      ("run a funding program as an agency")
-accounting-bookkeeping     →  the general ledger / payroll / the 990               ("keep the books")
-grants-management (HERE)   →  WIN the right grants, then run them CLEAN            ("pursue, win & administer institutional grants")
+nonprofit-fundraising → individuals / major donors / annual fund / events ("raise philanthropic dollars from people")
+public-sector-govtech → the GRANTMAKER: design a funding program / NOFO ("run a funding program as an agency")
+accounting-bookkeeping → the general ledger / payroll / the 990 ("keep the books")
+grants-management (HERE) → WIN the right grants, then run them CLEAN ("pursue, win & administer institutional grants")
 ```
 
 This plugin is the **grantee-side lifecycle** (with light grantmaker admin): it pursues, wins, and administers institutional/competitive grants — distinct from raising individual gifts (`nonprofit-fundraising`), from *being* the funder (`public-sector-govtech`), and from the ledger itself (`accounting-bookkeeping`). It does grant *cost allowability + fund reporting*, not the books.

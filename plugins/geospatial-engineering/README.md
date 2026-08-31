@@ -18,20 +18,20 @@ Part of the [RavenClaude](../../README.md) marketplace. Extends `ravenclaude-cor
 
 ## What's inside
 
-- **2 agents** — `geospatial-data-engineer` (PostGIS, SRID/projections, spatial SQL, GDAL/OGR, geocoding, routing) and `mapping-visualization-engineer` (vector tiles/MVT, tile servers, MapLibre styling, raster vs vector).
-- **3 skills** — `design-postgis-schema`, `write-spatial-query`, `serve-vector-tiles`.
-- **2 knowledge files** — a projection/CRS Mermaid decision tree (pick the SRID + geometry-vs-geography by use-case) and a dated 2026 stack reference (PostGIS, GDAL, pg_tileserv/Martin/Tegola, MapLibre, OSRM/Valhalla).
-- **2 templates** — spatial data model, tile-serving architecture.
-- **3 best-practice rules** — always-store-an-SRID, index-geometry-with-GiST, vector-tiles-over-GeoJSON-at-scale.
-- **1 advisory hook** — `flag-geo-smells.sh` (geometry-without-SRID, degree-distance, `ST_Distance(...) <` index-defeating filter).
+- **agents** — `geospatial-data-engineer` (PostGIS, SRID/projections, spatial SQL, GDAL/OGR, geocoding, routing) and `mapping-visualization-engineer` (vector tiles/MVT, tile servers, MapLibre styling, raster vs vector).
+- **skills** — `design-postgis-schema`, `write-spatial-query`, `serve-vector-tiles`.
+- **knowledge files** — a projection/CRS Mermaid decision tree (pick the SRID + geometry-vs-geography by use-case) and a dated 2026 stack reference (PostGIS, GDAL, pg_tileserv/Martin/Tegola, MapLibre, OSRM/Valhalla).
+- **templates** — spatial data model, tile-serving architecture.
+- **best-practice rules** — always-store-an-SRID, index-geometry-with-GiST, vector-tiles-over-GeoJSON-at-scale.
+- **an advisory hook** — `flag-geo-smells.sh` (geometry-without-SRID, degree-distance, `ST_Distance(...) <` index-defeating filter).
 
 ## How it seams with adjacent plugins
 
 ```
-geospatial-engineering   →  the engineering of location data (PostGIS, spatial SQL, tiles, maps)
-data-platform            →  generic warehouse / ELT of non-spatial facts
-database-engineering     →  the non-spatial OLTP schema (keys, normalization, migrations)
-frontend-engineering     →  surrounding map UI chrome, layout, CSS
+geospatial-engineering → the engineering of location data (PostGIS, spatial SQL, tiles, maps)
+data-platform → generic warehouse / ELT of non-spatial facts
+database-engineering → the non-spatial OLTP schema (keys, normalization, migrations)
+frontend-engineering → surrounding map UI chrome, layout, CSS
 ```
 
 Precision-agriculture and fleet-logistics plugins are **consumers** of this engineering layer, not part of it.

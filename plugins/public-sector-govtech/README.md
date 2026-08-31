@@ -21,12 +21,12 @@ Government and civic-tech delivery for teams building and operating digital serv
 
 ## What's inside
 
-- **4 agents** — `govtech-delivery-lead`, `public-procurement-strategist`, `grants-management-analyst`, `gov-accessibility-and-records-advisor`.
-- **3 skills** — `public-procurement-and-rfp`, `grants-management`, `accessibility-508-and-records`.
-- **3 commands** — `/public-sector-govtech:respond-to-rfp`, `:manage-grant-lifecycle`, `:audit-508-accessibility`.
-- **2 templates** — `rfp-response-outline.md`, `grant-narrative.md`.
+- **agents** — `govtech-delivery-lead`, `public-procurement-strategist`, `grants-management-analyst`, `gov-accessibility-and-records-advisor`.
+- **skills** — `public-procurement-and-rfp`, `grants-management`, `accessibility-508-and-records`.
+- **commands** — `/public-sector-govtech:respond-to-rfp`, `:manage-grant-lifecycle`, `:audit-508-accessibility`.
+- **templates** — `rfp-response-outline.md`, `grant-narrative.md`.
 - **Knowledge bank** — `knowledge/govtech-decision-trees.md`: Mermaid trees for bid-no-bid, FedRAMP/StateRAMP needed, and the 508 conformance path; plus a dated 2026 capability map (SAM.gov, grants.gov, FedRAMP/StateRAMP, accessibility tooling).
-- **6 best-practices** and **1 advisory hook** (flags missing mandatory-requirement markers, absent 508 notes, untracked grant funds, and jargon in citizen-facing text).
+- **best-practices** and **an advisory hook** (flags missing mandatory-requirement markers, absent 508 notes, untracked grant funds, and jargon in citizen-facing text).
 
 ## House opinions (the short list)
 

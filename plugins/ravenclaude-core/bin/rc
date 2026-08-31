@@ -48,6 +48,17 @@ Usage:
   rc streams [list]                     List logical work-streams in this project (default).
 
   rc artifacts list|new <id>   where work files go, across CLIs
+  rc handoff --task-id <id> [--dry-run] [--host claude-code|grok|cli|chat|other]
+                                        [--recipe copy-paste|same-host|os-terminal]
+                                        Print (and optionally spawn) a same-host
+                                        successor from a run-dir handoff.md.
+  rc forge-worktree init|checkpoint|path|--self-test
+                                        FORGE worktree provisioner (plugin scripts/).
+  rc forge-route --plan PATH | --self-test
+                                        FORGE G7 router.
+  rc premise-gate --run-dir DIR | --self-test | --must-fail
+                                        FORGE G3b premise gate.
+  rc classify-claim --text "…"          Grammatical claim classifier (upward-only).
   rc streams show <id> [--limit N]      Show a stream's resume state + recent DERIVED history.
   rc streams status                     One-line summary: active stream + stream count.
   rc streams create <name>              Create a named stream (slugified).
@@ -81,10 +92,28 @@ case "$cmd" in
     # 2026-08-08: a 404 on an href PLACEHOLDER (supposed to 404) produced an
     # 85-line component, 10 converted call sites and two turns of owner-facing
     # architectural advice. One control probe would have cost ten seconds.
-    kit="$PLUGIN_ROOT/../../scripts/probe-kit.sh"
+    # ⛔ THE PLUGIN COPY IS TRIED FIRST, AND IT IS THE ONE THAT SHIPS.
+    # Until 0.241.0 the engine lived ONLY at the marketplace root's scripts/,
+    # which is not part of the distributed plugin — so from an installed cache
+    # `rc probe` found nothing and the whole control-probe feature was dead for
+    # every consumer, while the probe-kit SKILL shipped and told them to run it.
+    # It now lives in the plugin's bin/ (beside this launcher) so it travels with
+    # the install. The marketplace-root path is kept last, for a dev checkout
+    # that still has one.
+    #
+    # bin/ rather than scripts/ on purpose: probe-kit is a tool a human or agent
+    # INVOKES, like this launcher — not one of the Thing's engines. The plugin's
+    # scripts/ is the tribunal's own substrate and is write-guarded, so parking a
+    # general-purpose tool there would make every future edit fight that guard.
+    kit="$PLUGIN_ROOT/bin/probe-kit.sh"
     [ -f "$kit" ] || kit="$PLUGIN_ROOT/scripts/probe-kit.sh"
+    [ -f "$kit" ] || kit="$PLUGIN_ROOT/../../scripts/probe-kit.sh"
     if [ ! -f "$kit" ]; then
-      echo "rc: cannot find probe-kit.sh (looked beside the marketplace root and in the plugin)" >&2
+      # ⛔ EXIT 1, NOT 0. This used to exit 0, so a caller written as
+      # `rc probe … || fallback` took the SUCCESS branch having probed nothing —
+      # a control-runner that fails OPEN is worse than none, because the session
+      # believes it ran a control.
+      echo "rc: cannot find probe-kit.sh (looked in the plugin bin/, scripts/, and beside the marketplace root)" >&2
       exit 1
     fi
     exec bash "$kit" "$@"
@@ -214,6 +243,54 @@ PY
     # No verb is an error (so scripts catch it); explicit help is a success.
     [ -z "$cmd" ] && exit 1 || exit 0
     ;;
+  forge-worktree)
+    shift
+    exec bash "$PLUGIN_ROOT/scripts/forge-worktree.sh" "$@"
+    ;;
+  forge-route)
+    shift
+    command -v python3 >/dev/null 2>&1 || {
+      echo "rc: python3 not found in PATH — 'rc forge-route' needs python3." >&2
+      exit 1
+    }
+    exec python3 "$PLUGIN_ROOT/scripts/forge-route.py" "$@"
+    ;;
+  premise-gate)
+    shift
+    command -v python3 >/dev/null 2>&1 || {
+      echo "rc: python3 not found in PATH — 'rc premise-gate' needs python3." >&2
+      exit 1
+    }
+    exec python3 "$PLUGIN_ROOT/scripts/premise-gate.py" "$@"
+    ;;
+  classify-claim)
+    shift
+    command -v python3 >/dev/null 2>&1 || {
+      echo "rc: python3 not found in PATH — 'rc classify-claim' needs python3." >&2
+      exit 1
+    }
+    exec python3 "$PLUGIN_ROOT/scripts/classify_claim.py" "$@"
+    ;;
+  ledger)
+    shift
+    command -v python3 >/dev/null 2>&1 || {
+      echo "rc: python3 not found in PATH — 'rc ledger' needs python3." >&2
+      exit 1
+    }
+    exec python3 "$PLUGIN_ROOT/scripts/ledger.py" "$@"
+    ;;
+  set-conservation)
+    shift
+    command -v python3 >/dev/null 2>&1 || {
+      echo "rc: python3 not found in PATH — 'rc set-conservation' needs python3." >&2
+      exit 1
+    }
+    exec python3 "$PLUGIN_ROOT/scripts/set_conservation.py" "$@"
+    ;;
+  handoff)
+    shift
+    exec bash "$PLUGIN_ROOT/scripts/handoff-spawn.sh" "$@"
+    ;;
   artifacts)
     shift
     # The cross-CLI work-file index. Lives at the MARKETPLACE root scripts/ (not
@@ -236,7 +313,7 @@ PY
     ;;
 
   *)
-    echo "rc: unknown command '$cmd' (try: rc dashboard | rc streams | rc converge | rc artifacts)" >&2
+    echo "rc: unknown command '$cmd' (try: rc dashboard | rc streams | rc converge | rc artifacts | rc handoff | rc forge-worktree | rc forge-route | rc premise-gate | rc classify-claim)" >&2
     _usage
     exit 1
     ;;

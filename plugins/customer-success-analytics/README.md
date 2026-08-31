@@ -62,7 +62,7 @@ The handoff is explicit in every agent's output (a mandatory `Handoff to data-pl
 ```bash
 /plugin marketplace add ravenclaude
 /plugin install customer-success-analytics@ravenclaude
-/plugin install data-platform@ravenclaude   # the technical layer this one pairs with
+/plugin install data-platform@ravenclaude # the technical layer this one pairs with
 ```
 
 ## Companion plugins (recommended when relevant)

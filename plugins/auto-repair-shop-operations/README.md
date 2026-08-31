@@ -20,11 +20,11 @@ Running a repair shop well: an effective labor rate that survives discounts and 
 
 ## What's inside
 
-- **4 skills** — effective-labor-rate-and-gross-profit, estimate-and-dvi-workflow, technician-productivity-and-efficiency, ro-lifecycle-and-comeback-control.
-- **Knowledge bank** — [`auto-repair-shop-decision-trees.md`](knowledge/auto-repair-shop-decision-trees.md) (4 Mermaid trees: price a job / labor + parts matrix, comeback root-cause triage, declined-work follow-up, tech pay flat-rate vs hourly) + [`auto-repair-shop-reference-2026.md`](knowledge/auto-repair-shop-reference-2026.md) (dated reference, verify-at-use).
-- **5 best-practices** — see [`best-practices/README.md`](best-practices/README.md).
-- **2 templates** — repair-order workflow, shop KPI dashboard.
-- **2 commands** — `/build-estimate`, `/diagnose-comebacks`.
+- **skills** — effective-labor-rate-and-gross-profit, estimate-and-dvi-workflow, technician-productivity-and-efficiency, ro-lifecycle-and-comeback-control.
+- **Knowledge bank** — [`auto-repair-shop-decision-trees.md`](knowledge/auto-repair-shop-decision-trees.md) (Mermaid trees: price a job / labor + parts matrix, comeback root-cause triage, declined-work follow-up, tech pay flat-rate vs hourly) + [`auto-repair-shop-reference-2026.md`](knowledge/auto-repair-shop-reference-2026.md) (dated reference, verify-at-use).
+- **best-practices** — see [`best-practices/README.md`](best-practices/README.md).
+- **templates** — repair-order workflow, shop KPI dashboard.
+- **commands** — `/build-estimate`, `/diagnose-comebacks`.
 
 ## Seams
 
@@ -33,7 +33,7 @@ Dealer-service-department fixed ops → [`automotive-dealership`](../automotive-
 ## Install
 
 ```shell
-/plugin marketplace add ./        # from a separate Claude Code project, pointed at this repo
+/plugin marketplace add ./ # from a separate Claude Code project, pointed at this repo
 /plugin install auto-repair-shop-operations@ravenclaude
 ```
 

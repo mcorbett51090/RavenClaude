@@ -114,7 +114,7 @@ def build_parser():
     sp.add_argument('--target-days-supply', type=float, default=45.0, help='target days-supply')
     sp.set_defaults(func=cmd_days_supply)
 
-    sp = sub.add_parser('absorption', help='fixed-ops gross / total fixed overhead => absorption % + flag')
+    sp = sub.add_parser('absorption', help='fixed-ops gross / total fixed overhead => absorption %% + flag')
     sp.add_argument('--fixed-ops-gross', type=float, required=True, help='service + parts gross profit $')
     sp.add_argument('--total-fixed-expense', type=float, required=True, help='total fixed overhead $')
     sp.set_defaults(func=cmd_absorption)

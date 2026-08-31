@@ -1,0 +1,4 @@
+{
+  "surface": "web",
+  "ssim": "tests/fixtures/visual-feedback-loop/ssim-non-finite.json"
+}

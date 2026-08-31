@@ -19,19 +19,19 @@ Part of the [RavenClaude](../../README.md) marketplace. Extends `ravenclaude-cor
 
 ## What's inside
 
-- **2 agents** — `event-taxonomy-architect` (tracking plan, event taxonomy, identity model, CDP/collection-architecture choice) and `instrumentation-engineer` (SDK/server-side calls, typed tracking library, schema validation in CI, consent wiring, destinations + reverse ETL, stream QA).
-- **3 skills** — `design-a-tracking-plan`, `choose-cdp-and-collection-architecture`, `implement-event-instrumentation-and-consent`.
-- **2 knowledge files** — a Mermaid CDP/collection decision tree (+ trade-off table) and a 2026 event-instrumentation-patterns reference (naming, identity/stitching, client-vs-server, schema-first/typed tracking, consent & privacy-by-design, destinations/reverse ETL, a dated tooling map).
-- **2 templates** — a canonical tracking-plan and a single-event schema spec.
+- **agents** — `event-taxonomy-architect` (tracking plan, event taxonomy, identity model, CDP/collection-architecture choice) and `instrumentation-engineer` (SDK/server-side calls, typed tracking library, schema validation in CI, consent wiring, destinations + reverse ETL, stream QA).
+- **skills** — `design-a-tracking-plan`, `choose-cdp-and-collection-architecture`, `implement-event-instrumentation-and-consent`.
+- **knowledge files** — a Mermaid CDP/collection decision tree (+ trade-off table) and a 2026 event-instrumentation-patterns reference (naming, identity/stitching, client-vs-server, schema-first/typed tracking, consent & privacy-by-design, destinations/reverse ETL, a dated tooling map).
+- **templates** — a canonical tracking-plan and a single-event schema spec.
 
 ## Where it sits in the stack
 
 ```
-martech-event-instrumentation (HERE) →  DEFINE & CAPTURE the events         ("what we track, with what schema/identity, routed where")
-analytics-engineering                →  dbt models the events downstream    ("model the captured events")
-experimentation-growth-engineering   →  runs A/B tests on the events        ("use the events to decide")
-marketing-operations                 →  campaign strategy / activation      ("what the business does with them")
-data-platform                        →  warehouse the events land in        ("store & serve")
+martech-event-instrumentation (HERE) → DEFINE & CAPTURE the events ("what we track, with what schema/identity, routed where")
+analytics-engineering → dbt models the events downstream ("model the captured events")
+experimentation-growth-engineering → runs A/B tests on the events ("use the events to decide")
+marketing-operations → campaign strategy / activation ("what the business does with them")
+data-platform → warehouse the events land in ("store & serve")
 ```
 
 This plugin is the **event-collection layer** the others sit on top of. It owns the tracking plan, the schema, and the identity/consent model; the analytics, experimentation, and marketing teams all consume the events it captures. It is **engineering/instrumentation**, deliberately distinct from `marketing-operations` (business campaign strategy), `data-governance-privacy` (org-wide policy / DSAR / PII governance), and `analytics-engineering` (dbt transforms).

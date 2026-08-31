@@ -134,7 +134,14 @@ case "$mode" in
     cmd="$(_field command)"
     [ -z "$cmd" ] && exit 0
     stdin_json="$(_claude_stdin Bash "$cmd")" || exit 0
-    printf '%s' "$stdin_json" | bash "$real" "$@" >/dev/null 2>&1
+    # ⛔ stdout suppressed, stderr preserved (was `2>&1` until 2026-08-12, which
+    # discarded the guard's deny reason entirely — same defect as the Gemini
+    # adapter, found the same way). The JSON verdict below stays a FIXED literal:
+    # Cursor fails OPEN on malformed JSON, so interpolating guard stderr into the
+    # verdict would turn a noisy reason into a silently-allowed command. Sending
+    # it to the adapter's own stderr keeps the reason visible in logs while the
+    # deny path stays byte-fixed. Do not merge the two.
+    printf '%s' "$stdin_json" | bash "$real" "$@" >/dev/null
     rc=$?
     # exit 2 is how every guardrail here blocks. Translate it, and ONLY it.
     [ "$rc" -eq 2 ] && _rc_deny

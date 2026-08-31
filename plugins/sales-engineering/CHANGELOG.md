@@ -14,3 +14,10 @@ Initial release. The pre-sales / sales-engineering team — the technical side o
 - **2-scenario bank:** POC sprawl with no exit criteria; security questionnaire with an unverifiable "yes."
 - **1 advisory hook:** `flag-se-antipatterns.sh` (POC-with-no-exit-criteria, security-yes-with-no-evidence, overpromise absolutes, demo-with-no-pain-mapping). `SE_STRICT=1` makes it blocking.
 - Seams: distinct from `sales-revops` (CRM/forecast/quota ops) and `product-management` (what to build); security claims route to `ravenclaude-core/security-reviewer`. Requires `ravenclaude-core@>=0.7.0`.
+
+## [0.1.2] — 2026-08-14
+
+### Changed
+
+- Dropped hand-maintained artifact-count literals from the plugin description (D1). The roster enumerates itself; Gate 206 forbids the digit.
+

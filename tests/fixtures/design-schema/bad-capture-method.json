@@ -1,0 +1,35 @@
+{
+  "$schema": "https://github.com/mcorbett51090/RavenClaude/schemas/design-schema.schema.json",
+  "source": {
+    "url": "https://example.com",
+    "fetched_at": "2026-08-13T00:00:00Z",
+    "title": "Example Co."
+  },
+  "capture_method": "static",
+  "spacing": {
+    "base_unit": 8,
+    "scale": [4, 8, 16, 24],
+    "capture_method": "computed"
+  },
+  "type_scale": {
+    "base_size": 16,
+    "ratio": 1.25,
+    "sizes": [12, 14, 16, 20],
+    "capture_method": "static"
+  },
+  "grid": {
+    "breakpoints": ["640px", "1024px"],
+    "columns": 12,
+    "gutter": "24px",
+    "container_max": "1200px",
+    "capture_method": "static"
+  },
+  "elevation": {
+    "shadows": ["0 2px 8px rgba(0,0,0,0.1)"],
+    "capture_method": "static"
+  },
+  "components": [],
+  "brand_kit_ref": null,
+  "identity_flags": [],
+  "confidence_notes": []
+}

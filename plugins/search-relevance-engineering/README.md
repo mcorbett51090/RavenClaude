@@ -8,11 +8,11 @@ A **Search & Relevance Engineering specialist team** for a search relevance engi
 
 | Surface | Contents |
 |---|---|
-| **4 agents** | `search-relevance-lead`, `relevance-tuning-analyst`, `indexing-mapping-specialist`, `query-performance-specialist` |
-| **5 skills / commands** | `measure-relevance` · `build-judgment-list` · `fix-analyzer` · `validate-online` · `set-latency-budget` |
-| **4-file knowledge bank** | KPI glossary · unit economics · 2025–2026 context · Mermaid decision trees |
-| **4 templates** | scorecard · exec readout · relevance-eval-sheet.md · index-sizing-sheet.md |
-| **1 advisory hook** | flags anti-patterns (unbaselined metric, unsourced benchmark, query/user PII) in generated deliverables |
+| **agents** | `search-relevance-lead`, `relevance-tuning-analyst`, `indexing-mapping-specialist`, `query-performance-specialist` |
+| **skills / commands** | `measure-relevance` · `build-judgment-list` · `fix-analyzer` · `validate-online` · `set-latency-budget` |
+| **knowledge bank** | KPI glossary · unit economics · 2025–2026 context · Mermaid decision trees |
+| **templates** | scorecard · exec readout · relevance-eval-sheet.md · index-sizing-sheet.md |
+| **an advisory hook** | flags anti-patterns (unbaselined metric, unsourced benchmark, query/user PII) in generated deliverables |
 | **`scripts/search_relevance_engineering_calc.py`** | stdlib calculator — `relevance` · `latency-budget` · `index-sizing` |
 
 ## Install

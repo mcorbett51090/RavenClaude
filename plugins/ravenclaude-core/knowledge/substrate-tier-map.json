@@ -1,0 +1,44 @@
+{
+  "schema_version": 1,
+  "retrieved": "2026-08-14",
+  "hosts": {
+    "claude": {
+      "fast": "claude-haiku-4-5-20251001",
+      "balanced": "claude-sonnet-5",
+      "top": "claude-opus-4-8"
+    },
+    "grok": {
+      "fast": {
+        "model": "grok-4.5",
+        "effort": "low",
+        "perspective": "scanner"
+      },
+      "balanced": {
+        "model": "grok-4.5",
+        "effort": "high",
+        "perspective": "architect"
+      },
+      "top": {
+        "model": "grok-4.6",
+        "effort": "high",
+        "perspective": "critic"
+      }
+    },
+    "codex": {
+      "fast": "gpt-5.6-luna",
+      "balanced": "gpt-5.6-terra",
+      "top": "gpt-5.6-sol"
+    },
+    "copilot": {
+      "fast": "Claude Haiku 4.5",
+      "balanced": "Claude Sonnet 5",
+      "top": "Claude Opus 5"
+    }
+  },
+  "notes": {
+    "grok_distinct": "fast=grok-4.5/low/scanner balanced=grok-4.5/high/architect top=grok-4.6/high/critic",
+    "codex_pro_mode": "reasoning.mode pro on sol — not a separate slug",
+    "copilot_balanced": "Sonnet 5 primary; Auto footnote",
+    "seats": "Thing seats stay Claude; not this map"
+  }
+}

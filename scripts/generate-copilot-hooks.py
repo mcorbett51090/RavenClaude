@@ -1,6 +1,11 @@
 #!/usr/bin/env python3
 """Project the canonical hook manifest onto GitHub Copilot CLI's hooks config.
 
+Projected hooks are CLI **and** Chat-Preview-when-enabled (VS Code Copilot Chat
+Preview can parse Copilot CLI hook files). Chat is still not session-isolated
+by CONTENTION alone — see knowledge/copilot-chat-customization.md. Do not add
+worktree-guard.sh to _SKIP.
+
 Multi-host audit **MH-12**. The Copilot wiring used to be a Python heredoc inside
 `scripts/ravenclaude` that listed hooks by hand. It had drifted badly: the
 canonical manifest registers 25 hook entries and the heredoc wired 11, so **14
@@ -103,13 +108,15 @@ _SKIP = {
 
 
 def _script_of(command: str) -> str:
-    m = re.search(r"/hooks/([A-Za-z0-9._-]+\.sh)", command)
+    m = re.search(r"/(?:hooks|scripts)/([A-Za-z0-9._-]+\.sh)", command)
     return m.group(1) if m else ""
 
 
 def _extra_args(command: str, script: str) -> str:
     """Everything after the script path, minus Claude-only argv placeholders."""
     marker = "/hooks/" + script
+    if marker not in command:
+        marker = "/scripts/" + script
     tail = command.split(marker, 1)[1].strip() if marker in command else ""
     # The tool-file-path placeholder is supplied by the adapter in file/post modes.
     return tail.replace(_ARGV_TOKEN, "").strip()

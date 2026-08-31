@@ -6,7 +6,7 @@ kind: platform-fact
 order: 3
 summary: "Everything the model 'knows' this turn is the text in its context window — system prompt, tools, history, files. It's finite, it fills up, and when it's full the harness compacts."
 see_also: [agent-harness-loop, tool-use, session-start-context]
-last_verified: 2026-06-05
+last_verified: 2026-08-24
 refresh_when: "Frontier context-window sizes change materially, or Claude Code changes its compaction / auto-compact behavior."
 sources:
   - label: "Context windows — Claude API"

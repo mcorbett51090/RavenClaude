@@ -13,11 +13,11 @@ When a breaking change requires retiring an existing API version (major bump), o
 
 | Term | Meaning | Header |
 |---|---|---|
-| **Deprecated** | Still works; consumers should migrate | `Deprecation: <date>` |
+| **Deprecated** | Still works; consumers should migrate | `Deprecation: @<unix-ts>` (RFC 9745) |
 | **Sunset** | Will stop working on this date | `Sunset: <date>` |
 | **Retired** | Endpoint returns `410 Gone` | No header needed |
 
-Both headers use RFC 7231 HTTP-date format: `Deprecation: Sat, 01 Feb 2025 00:00:00 GMT`.
+`Sunset` uses the RFC 7231 HTTP-date format (`Sunset: Sat, 01 Aug 2025 00:00:00 GMT`); `Deprecation` (RFC 9745) uses a Structured-Fields Date — an `@` followed by a Unix timestamp in seconds (`Deprecation: @1738368000`).
 
 ## 2. Rollout Timeline Template
 
@@ -32,7 +32,7 @@ Both headers use RFC 7231 HTTP-date format: `Deprecation: Sat, 01 Feb 2025 00:00
 ## 3. Required Headers on Every Response (deprecated endpoint)
 
 ```
-Deprecation: Sat, 01 Feb 2025 00:00:00 GMT
+Deprecation: @1738368000                     # RFC 9745: @ + Unix seconds (2025-02-01T00:00:00Z)
 Sunset: Fri, 01 Aug 2025 00:00:00 GMT
 Link: <https://api.example.com/v2/orders>; rel="successor-version",
       <https://developer.example.com/migration/v1-to-v2>; rel="deprecation"

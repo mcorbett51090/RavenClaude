@@ -8,11 +8,11 @@ A **Pharmacy Operations specialist team** for a pharmacy manager, PIC, or operat
 
 | Surface | Contents |
 |---|---|
-| **4 agents** | `pharmacy-operations-lead`, `fill-workflow-analyst`, `inventory-reimbursement-specialist`, `adherence-clinical-specialist` |
-| **5 skills / commands** | `size-throughput-staffing` · `compute-real-margin` · `balance-inventory` · `translate-adherence` · `protect-dispensing-safety` |
-| **4-file knowledge bank** | KPI glossary · unit economics · 2025–2026 context · Mermaid decision trees |
-| **4 templates** | scorecard · exec readout · staffing-safety-model.md · real-margin-model.md |
-| **1 advisory hook** | flags anti-patterns (unbaselined metric, unsourced benchmark, patient PHI) in generated deliverables |
+| **agents** | `pharmacy-operations-lead`, `fill-workflow-analyst`, `inventory-reimbursement-specialist`, `adherence-clinical-specialist` |
+| **skills / commands** | `size-throughput-staffing` · `compute-real-margin` · `balance-inventory` · `translate-adherence` · `protect-dispensing-safety` |
+| **knowledge bank** | KPI glossary · unit economics · 2025–2026 context · Mermaid decision trees |
+| **templates** | scorecard · exec readout · staffing-safety-model.md · real-margin-model.md |
+| **an advisory hook** | flags anti-patterns (unbaselined metric, unsourced benchmark, patient PHI) in generated deliverables |
 | **`scripts/pharmacy_operations_calc.py`** | stdlib calculator — `throughput-staffing` · `margin` · `adherence` |
 
 ## Install

@@ -1,0 +1,38 @@
+{
+  "$schema": "https://github.com/mcorbett51090/RavenClaude/schemas/design-schema.schema.json",
+  "source": {
+    "url": "https://reference.example.com",
+    "fetched_at": "2026-08-13T00:00:00Z",
+    "title": "Reference site"
+  },
+  "capture_method": "static",
+  "spacing": {
+    "base_unit": 8,
+    "scale": [8, 16, 24, 32],
+    "capture_method": "static"
+  },
+  "type_scale": {
+    "base_size": 16,
+    "ratio": 1.25,
+    "sizes": [16, 20, 25, 31],
+    "capture_method": "static"
+  },
+  "grid": {
+    "breakpoints": ["768px", "1024px"],
+    "columns": 12,
+    "gutter": "24px",
+    "container_max": "1200px",
+    "capture_method": "static"
+  },
+  "elevation": {
+    "shadows": [
+      "0 1px 2px rgba(0,0,0,0.1)",
+      "0 2px 8px rgba(0,0,0,0.1)",
+      "0 8px 24px rgba(0,0,0,0.2)"
+    ],
+    "capture_method": "static"
+  },
+  "components": [{ "name": "button" }, { "name": "card" }, { "name": "nav" }],
+  "identity_flags": [],
+  "confidence_notes": []
+}

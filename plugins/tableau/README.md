@@ -4,7 +4,7 @@ A Claude Code plugin: a specialist **Tableau analytics team** for Tableau Deskto
 
 ## What's inside
 
-- **3 agents** — `tableau-viz-engineer` (VizQL, calculations/LOD/table-calcs, dashboard design), `tableau-data-architect` (modeling, extracts vs live, Prep, performance), `tableau-admin` (governance, RLS, content ALM, embedding, Pulse/Tableau-Next).
+- **agents** — `tableau-viz-engineer` (VizQL, calculations/LOD/table-calcs, dashboard design), `tableau-data-architect` (modeling, extracts vs live, Prep, performance), `tableau-admin` (governance, RLS, content ALM, embedding, Pulse/Tableau-Next).
 - **knowledge/** — citation-grounded reference with Mermaid **decision trees** (chart selection, relationship vs join vs blend, extract vs live, LOD vs table calc, RLS mechanism, embedding auth, content promotion).
 - **best-practices/** — named, citable rules (one per file) surfaced in the marketplace repo-guide + dashboard Guidance tab.
 

@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Hostile Custom-Prop Reference</title>
+    <!-- [RT1-#5] --x carries a url() beacon riding alongside a color. The value HAS a
+         color so it survives the color-props filter, but _write_brand_css must DROP the
+         whole declaration (no partial salvage) so the url() beacon never reaches
+         brand.css. The benign --brand-teal color survives. -->
+    <style>
+      :root {
+        --brand-teal: #009688;
+        --x: #ff0066 url(https://attacker.example/beacon.png);
+      }
+      body {
+        color: #009688;
+      }
+    </style>
+  </head>
+  <body>
+    <p>Hostile custom-property fixture.</p>
+  </body>
+</html>

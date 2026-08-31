@@ -1,4 +1,16 @@
 #!/usr/bin/env bash
+#
+# rc-state-key: cwd-anchored ledger dir + a scope digest derived from the path's
+#               .ravenclaude/ segment (see rc_rel) — varies per worktree
+# rc-state-scope: worktree
+# rc-state-rationale: the decision is about SOURCE FILES IN ONE WORKING TREE. Keyed
+#   on (project, session_id) it was measurably wrong: one session_id carried 14,322
+#   events across 49 cwd values and 15+ worktrees into a single 2,825-entry ledger,
+#   so a negative recorded in worktree A denied an unrelated new module in B.
+# rc-state-escape: a premise control.md file under the run dir — file-based on
+#   purpose, because RC_PREMISE_CONTROL as an env var never reached this process
+#   from a dispatched subagent's Bash call, and an unreachable exit gets tunnelled.
+#
 # guard-premise.sh — PreToolUse(Write). TWO independent triggers, OR-ed:
 #
 #   T-SHAPE  Blocks a NEW SOURCE MODULE from being created while an unresolved
@@ -76,13 +88,19 @@
 # line, and it exits at conjunct 1 for every run-dir and scratch write. A Write
 # with no content, or content carrying no defect predicate, costs one pass.
 #
-# ── ESCAPE HATCHES (all four are recorded, none is silent) ──────────────────
-#   RC_PREMISE_CONTROL="<subject>"  the control you ran; resolves that subject
-#   RC_PREMISE_OVERRIDE=1           proceed anyway; writes an override marker
+# ── ESCAPE HATCHES (all five are recorded, none is silent) ──────────────────
 #   run the control probe           the natural exit — the ledger clears itself
 #   premise-ok: <named control>     T-PROSE only, written INTO the artifact.
 #                                   EMPTY does NOT clear — an escape hatch
 #                                   nobody tested is one everybody uses.
+#   RC_PREMISE_CONTROL="<subject>"  the control you ran; resolves that subject
+#   RC_PREMISE_OVERRIDE=1           proceed anyway; writes an override marker
+#   .../scopes/<scope>/control.md   the FILE-BASED control — the only one of
+#                                   these a dispatched SUBAGENT can reach, since
+#                                   a variable exported inside a Bash call never
+#                                   reaches this hook process. Requires
+#                                   premise-control: / who: / subject: / control:
+#                                   and appends to overrides.log on every use.
 #
 # Deny mechanism matches enforce-layout.sh: hookSpecificOutput JSON on stdout
 # (Claude Code issue #40580) AND exit 2 for older clients.
@@ -95,14 +113,21 @@ _input="$(cat 2>/dev/null || true)"
 _dir="${CLAUDE_PROJECT_DIR:-$PWD}"
 
 _verdict="$(printf '%s' "$_input" | python3 -c '
-import json, os, re, sys
+import hashlib, json, os, re, sys
 
 try:
     d = json.load(sys.stdin)
 except Exception:
     sys.exit(0)                      # malformed input -> allow (never break a session)
 
-if d.get("tool_name") != "Write":
+# Screened tools. Write was the only one until 2026-08-13, which meant an Edit or
+# MultiEdit carrying the identical diagnosis prose evaded the screen entirely —
+# both a false-negative and the exact surface a session tunnels through when the
+# guard denies a Write. The correct response to a false positive is the sanctioned
+# escape below (an in-block `premise-ok:` / `control:` marker, RC_PREMISE_CONTROL,
+# or the durable control.md), never a tool switch.
+_TOOL = d.get("tool_name")
+if _TOOL not in ("Write", "Edit", "MultiEdit"):
     sys.exit(0)
 
 proj = sys.argv[1] if len(sys.argv) > 1 else os.getcwd()
@@ -113,18 +138,208 @@ sid  = d.get("session_id", "nosession")
 if not path:
     sys.exit(0)
 
+
+def rc_rel(p, root):
+    """Project-relative path, correct when `root` is not a literal prefix of `p`.
+
+    The old idiom was `p.replace(root, "").lstrip("/")`. That is a SUBSTRING
+    operation, not a path operation, so it silently produced the full absolute
+    path whenever the two disagreed textually — a nested worktree, a symlinked
+    root (macOS /tmp vs /private/tmp), a trailing slash. An absolute string never
+    startswith(".ravenclaude/"), so the exemptions keyed on it evaporated and the
+    guard denied legitimate run-artifact writes. Both call sites below use this.
+    """
+    # A run artifact is a run artifact wherever it lives. In a NESTED worktree the
+    # tree sits at <proj>/.claude/worktrees/<wt>/, so even a correct relpath yields
+    # `.claude/worktrees/<wt>/.ravenclaude/runs/...` — which does not startswith
+    # ".ravenclaude/" either. Anchoring on the LAST `.ravenclaude/` segment is what
+    # makes the exemption hold in a worktree, which is where the parallel agents
+    # that hit this actually run.
+    marker = os.sep + ".ravenclaude" + os.sep
+    if marker in p:
+        return ".ravenclaude/" + p.rsplit(marker, 1)[1]
+    try:
+        rp, rr = os.path.realpath(p), os.path.realpath(root)
+        rel = os.path.relpath(rp, rr)
+        if not rel.startswith(".." + os.sep) and rel != "..":
+            return rel
+    except Exception:
+        pass
+    return p.replace(root, "").lstrip("/")
+
+# ═══ SCOPE — WHOSE LEDGER IS THIS? ═════════════════════════════════════════
+# ⛔ KEEP THIS BLOCK IN SYNC WITH ITS TWIN IN log-probe.sh. The recorder and the
+# gate must derive the SAME key, or the gate reads a ledger nobody writes and
+# reports clean forever.
+#
+# The ledger used to be keyed on (project, session_id). MEASURED 2026-08-12 on a
+# real 6-agent parallel run: ONE session_id carried 14,322 transcript events
+# spanning 49 distinct `cwd` values across 15+ git worktrees, and its single
+# ledger held 2,825 entries with 50 UNRESOLVED negative families. Neither key
+# component varies per agent, so every sibling agent shared one ledger and a
+# negative recorded in worktree A denied an unrelated new module in worktree B.
+#
+# `cwd` is the one payload field that DOES vary per agent, so the scope is the git
+# worktree root containing it (a LINKED worktree carries its own `.git` FILE, so
+# the walk stops at the worktree, not the primary checkout). When the payload
+# carries no `cwd`, the WRITE TARGET stands in — it is the other thing that is
+# always present and always agent-specific.
+#
+# ⛔ This narrows WHO a negative blocks. It does not narrow WHAT counts as one:
+# a probe and the module built on it share a working context, so the incident
+# this gate was built from still trips it.
+def rc_worktree_root(start, fallback):
+    try:
+        p = os.path.abspath(str(start))
+        if not os.path.isdir(p):
+            p = os.path.dirname(p)
+        for _ in range(48):
+            if os.path.exists(os.path.join(p, ".git")):
+                return p
+            up = os.path.dirname(p)
+            if up == p:
+                break
+            p = up
+    except Exception:
+        pass
+    return os.path.abspath(str(fallback))
+
+def rc_scope_key(start, fallback):
+    forced = os.environ.get("RC_PREMISE_SCOPE", "").strip()
+    base = forced if forced else rc_worktree_root(start, fallback)
+    slug = re.sub(r"[^A-Za-z0-9._-]", "-", os.path.basename(str(base).rstrip("/")))[:32]
+    digest = hashlib.sha1(str(base).encode("utf-8", "replace")).hexdigest()[:10]
+    return (slug or "root") + "-" + digest
+
+sess_dir  = os.path.join(proj, ".ravenclaude", "runs", "premise", sid)
+scope     = rc_scope_key(str(d.get("cwd", "") or "") or path, proj)
+run       = os.path.join(sess_dir, "scopes", scope)
+ctrl_path = os.path.join(run, "control.md")
+
+# ═══ THE FILE-BASED CONTROL — the escape a SUBAGENT can actually reach ═════
+# ⛔ RC_PREMISE_CONTROL and RC_PREMISE_OVERRIDE are ENVIRONMENT VARIABLES, and a
+# variable exported inside a Bash tool call does not reach this hook process. So
+# a dispatched subagent that has genuinely run the control work had NO sanctioned
+# way to say so. Measured consequence (2026-08-12): one agent lost a finished
+# harness rather than tunnel, and one agent routed around the hook by writing via
+# Bash heredocs instead of the Write tool. A guardrail whose only exit is
+# unreachable does not get respected — it gets tunnelled.
+#
+# The file is reachable with the Write tool (it lives under `.ravenclaude/`, which
+# both triggers already exempt), it is scoped to ONE session and ONE worktree so
+# it cannot clear anybody else, and it is INERT unless it names who ran the
+# control, what subject it covers, and what the control was.
+#
+# ⛔ An escape hatch nobody tested is one everybody uses: a file missing any of
+# who: / subject: / control: (or with an EMPTY value after the colon) clears
+# NOTHING, and the deny says so by name rather than failing silently.
+_CTRL_CACHE = {}
+
+def rc_load_control():
+    if _CTRL_CACHE:
+        return _CTRL_CACHE
+    fc = {"exists": False, "valid": False, "subjects": [],
+          "who": "", "subject": "", "control": "", "sig": ""}
+    try:
+        with open(ctrl_path) as fh:
+            txt = fh.read(65536)
+        fc["exists"] = True
+    except Exception:
+        txt = ""
+    if txt:
+        def kv(key):
+            m = re.search(r"(?im)^[ \t>*-]*" + key + r"[ \t]*:[ \t]*(\S.*)$", txt)
+            return m.group(1).strip() if m else ""
+        fc["who"] = kv("who")
+        fc["subject"] = kv("subject")
+        fc["control"] = kv("control")
+        fc["subjects"] = [s.strip() for s in re.findall(
+            r"(?im)^[ \t>*-]*premise-control[ \t]*:[ \t]*(\S.*)$", txt) if s.strip()]
+        fc["sig"] = hashlib.sha1(txt.encode("utf-8", "replace")).hexdigest()[:16]
+        fc["valid"] = bool(fc["who"] and fc["subject"] and fc["control"] and fc["subjects"])
+    _CTRL_CACHE.update(fc)
+    return _CTRL_CACHE
+
+def rc_control_blanket(fc):
+    return "*" in [s.strip() for s in fc.get("subjects", [])]
+
+def rc_control_covers(fc, target):
+    if rc_control_blanket(fc):
+        return True
+    t = str(target).lower()
+    for want in fc.get("subjects", []):
+        w = str(want).strip().lower()
+        if w and (w in t or t in w):
+            return True
+    return False
+
+def rc_record_control(fc, cleared):
+    """Durable, deduped audit line. Recording is the price of the escape."""
+    applied = os.path.join(run, "control.applied")
+    try:
+        prev = open(applied).read().strip()
+    except Exception:
+        prev = ""
+    if prev == fc.get("sig", ""):
+        return
+    line = ("file-control\tscope=%s\twho=%s\tsubject=%s\tcontrol=%s\tclears=%s"
+            % (scope, fc.get("who", ""), fc.get("subject", ""),
+               fc.get("control", ""), cleared))
+    line = re.sub(r"[\r\n]+", " ", line)[:1000]
+    try:
+        os.makedirs(os.path.join(proj, ".ravenclaude", "runs", "premise"), exist_ok=True)
+        import time as _t
+        with open(os.path.join(proj, ".ravenclaude", "runs", "premise",
+                               "overrides.log"), "a") as fh:
+            fh.write(_t.strftime("%Y-%m-%dT%H:%M:%SZ", _t.gmtime()) + "\t" + line + "\n")
+        os.makedirs(run, exist_ok=True)
+        open(applied, "w").write(fc.get("sig", ""))
+    except Exception:
+        pass
+
+def rc_note():
+    """One line naming a control file that exists but clears nothing, and why."""
+    fc = rc_load_control()
+    if not fc.get("exists") or fc.get("valid"):
+        return ""
+    missing = [k for k in ("who", "subject", "control") if not fc.get(k)]
+    if not fc.get("subjects"):
+        missing.append("premise-control")
+    return ("a control file EXISTS but is INERT: missing a non-empty "
+            + " / ".join(missing) + " line")
+
+def say(kind, fname, why, note=""):
+    def flat(s):
+        return re.sub(r"[\t\r\n]+", " ", str(s))
+    # Field 6 is the TOOL NAME, carried out for the substrate emit below. It is
+    # read straight off the payload (a fixed Claude Code enum), so passing it
+    # here costs nothing and saves the shell half a second python fork.
+    print("%s\t%s\t%s\t%s\t%s\t%s" % (flat(kind), flat(fname), flat(why),
+                                      flat(ctrl_path), flat(note), flat(_TOOL)))
+
 # ═══ T-PROSE ═══════════════════════════════════════════════════════════════
 # Evaluated FIRST and independently. OR-ed with T-SHAPE below, never AND-ed:
 # none of the T-SHAPE exemptions that follow (new-file-only, source-extension-
 # only, docs/) may suppress this one, because a diagnosis written into docs/ or
 # over a file that already exists IS the damage. It reads no ledger — that
 # independence is the whole reason it exists.
-content = str(ti.get("content", "") or "")[:200000]
+# Per-tool content field. Write carries `content`; Edit carries the replacement
+# text; MultiEdit carries a list of them. Reading only `content` would have left
+# Edit/MultiEdit screened-but-blind — a screen that runs and sees nothing.
+if _TOOL == "Write":
+    content = str(ti.get("content", "") or "")
+elif _TOOL == "Edit":
+    content = str(ti.get("new_string", "") or "")
+else:
+    content = "\n".join(
+        str((e or {}).get("new_string", "") or "") for e in (ti.get("edits") or [])
+    )
+content = content[:200000]
 
 # (1) DURABLE ARTIFACT. Judged on the PROJECT-RELATIVE path, so a tree that
 #     happens to live under a temp root is still judged on docs/ vs scratch/
 #     rather than on wherever mktemp put it.
-rel_p = path.replace(proj, "").lstrip("/")
+rel_p = rc_rel(path, proj)
 _SCRATCH_SEG = ("tmp", ".tmp", "temp", "scratch", "scratchpad", ".scratch", ".cache")
 durable = not (
     rel_p.startswith(".ravenclaude/")
@@ -186,6 +401,35 @@ if content and durable:
         r"(?i:\bcontrol\s*(?::|probe)|\bpositive\s+control\b"
         r"|\bpremise-ok:[ \t]*\S|\bdisconfirm(?:ing|ed|s)?\b|\brc\s+probe\b)"
     )
+    # (5) A CONDITIONAL CLAUSE IS NOT AN ASSERTION. "when the rule does not apply"
+    #     states a CASE; "the rule does not apply" states a FACT. Only the second is
+    #     a premise, and this gate exists for premises. Measured 2026-08-12: the
+    #     boilerplate heading "## Edge cases / when the rule does NOT apply" is in ALL
+    #     35 best-practice files and parses as <subject>+<failure predicate>, so it
+    #     tripped (2) on any file with a date inside the +/-6-line window of (3) —
+    #     4 of 35 on that day — firing on the section header of the file itself,
+    #     which no author chose. Scoped to the text BEFORE the match on the SAME
+    #     line, so a real assertion later in the file is untouched.
+    #
+    #     ⛔ NO APOSTROPHES ANYWHERE IN THIS PYTHON BLOCK. It is embedded in a
+    #     single-quoted bash $(...), so one apostrophe in a COMMENT closes the
+    #     string and the whole hook dies with "bad substitution" -> exit 1, which
+    #     Claude Code treats as a NON-BLOCKING error, i.e. the gate fails OPEN and
+    #     silently stops gating. That is why the code above writes doesn\x27t.
+    #
+    #     ⛔ The tempting fixes are both worse. Dropping `apply|applies` from _FAILS
+    #     loses a genuine predicate ("the patch does not apply"). Skipping markdown
+    #     headings loses MORE: this repo routinely states real diagnoses in headings
+    #     ("## macOS door 2 — `timeout` is absent…", "## The gate that never ran"),
+    #     which are exactly the confident claims (2) is for.
+    #     The window excludes `,` as well as `.!?` on purpose: without the comma,
+    #     "When we checked, the decoder is broken" would be skipped, and that is an
+    #     ASSERTION with a temporal preamble, not a conditional. Narrower is right —
+    #     a missed skip costs one `control:` line; a missed DENY costs a false premise.
+    _COND = re.compile(
+        r"(?i:\b(?:when|whenever|if|unless|whether|where|in\s+case|cases?\s+where)\b)"
+        r"[^.!?,]{0,24}$"
+    )
 
     lines = [_ln[:2000] for _ln in content.split("\n")[:4000]]
     prose_ctrl = os.environ.get("RC_PREMISE_CONTROL", "")
@@ -197,14 +441,21 @@ if content and durable:
                 break
         if not dm:
             continue
+        if _COND.search(_ln[:dm.start()]):
+            continue                  # (5) conditional clause -> a case, not a premise
         block = "\n".join(lines[max(0, i - 6):i + 7])
         if not _STAMP.search(block):
             continue                  # (3) unstamped -> a hypothesis, not a premise
         if prose_ctrl or _CTRL.search(block):
             continue                  # (4) a control IS cited -> allowed
-        say = re.sub(r"\s+", " ", dm.group(0)).strip()[:120]
-        print("PROSE\t%s\t%s" % (os.path.basename(path),
-              "line %d writes a diagnosis as established fact: %s" % (i + 1, say)))
+        claim = re.sub(r"\s+", " ", dm.group(0)).strip()[:120]
+        _fc = rc_load_control()
+        if _fc.get("valid") and rc_control_covers(_fc, claim):
+            rc_record_control(_fc, "prose:" + claim[:60])
+            continue                  # a durable, attributed control file covers it
+        say("PROSE", os.path.basename(path),
+            "line %d writes a diagnosis as established fact: %s" % (i + 1, claim),
+            rc_note())
         sys.exit(0)
 
 # (b) CREATES a file — an edit to something that exists is not a new premise-bearer.
@@ -213,7 +464,7 @@ if os.path.exists(path):
 
 # (c) a SOURCE MODULE. Everything below is deliberately exempt: none of it is a
 #     thing whose reason for existing can be a false diagnosis.
-rel = path.replace(proj, "").lstrip("/")
+rel = rc_rel(path, proj)
 # Prefix-exempt: these are top-level areas that never hold a premise-bearing module.
 if rel.startswith((".ravenclaude/", "docs/", "node_modules/", ".git/", ".claude/")):
     sys.exit(0)
@@ -243,9 +494,12 @@ SRC_EXT = (".py", ".sh", ".ts", ".tsx", ".js", ".jsx", ".astro", ".vue", ".svelt
 if not path.endswith(SRC_EXT):
     sys.exit(0)
 
-run    = os.path.join(proj, ".ravenclaude", "runs", "premise", sid)
 ledger = os.path.join(run, "probe-ledger.jsonl")
-beacon = os.path.join(run, "recorder-alive")
+# ⛔ The beacon is SESSION-level, not per-scope. A per-scope beacon would make a
+# never-probed worktree indistinguishable from an unwired recorder, and this gate
+# fails CLOSED on that — so the first write in every fresh worktree would be
+# denied as blind. Blindness is a property of the recorder, not of a scope.
+beacon = os.path.join(sess_dir, "recorder-alive")
 
 # ── FAIL CLOSED: is the recorder alive at all? ─────────────────────────────
 if not os.path.exists(beacon):
@@ -256,8 +510,17 @@ if not os.path.exists(beacon):
     rec = os.path.join(proj, "plugins", "ravenclaude-core", "hooks", "log-probe.sh")
     if os.path.exists(rec):
         sys.exit(0)
-    print("BLIND\t\t" + "the premise recorder (log-probe.sh) is not installed, "
-          "so this check cannot see whether an unresolved negative probe exists")
+    # A BLANKET control file is the recorded, attributed equivalent of
+    # RC_PREMISE_OVERRIDE=1 — same power, reachable from a subagent, and it names
+    # who took the decision. A subject-scoped file does NOT clear blindness:
+    # blindness is not a claim about one subject.
+    _fcb = rc_load_control()
+    if _fcb.get("valid") and rc_control_blanket(_fcb):
+        rc_record_control(_fcb, "blind")
+        sys.exit(0)
+    say("BLIND", "",
+        "the premise recorder (log-probe.sh) is not installed, so this check "
+        "cannot see whether an unresolved negative probe exists", rc_note())
     sys.exit(0)
 
 # ── (a) unresolved negative: a negative with no later positive on the SAME subject
@@ -279,6 +542,14 @@ def family(subject):
     s = str(subject)
     return s.split("/")[0] if "/" in s else s
 
+# ⛔ `indeterminate` (rate-limited / server-error / timeout / unreachable) is
+# DELIBERATELY neither arm below. It is a NON-result — the probe never reached
+# the question — so it is not evidence of absence and must not block, and it
+# proves no capability so it must not resolve. Do NOT "complete" this by
+# folding it into the negative arm: a rate-limited probe returns the same 429
+# on every retry, so it would be an unclearable block whose only exit is
+# RC_PREMISE_OVERRIDE — and a gate whose sole remedy is its own override
+# teaches the override, which costs more than the case it covers.
 resolved, unresolved = set(), {}
 for e in entries:
     fam = family(e.get("subject", ""))
@@ -293,9 +564,19 @@ if ctrl:
     unresolved.pop(family(ctrl), None)
 
 if unresolved:
+    _fc = rc_load_control()
+    if _fc.get("valid"):
+        _cleared = [f for f in list(unresolved) if rc_control_covers(_fc, f)]
+        for f in _cleared:
+            unresolved.pop(f, None)
+        if _cleared:
+            rc_record_control(_fc, ",".join(str(c)[:40] for c in _cleared[:5]))
+
+if unresolved:
     fam, e = next(iter(unresolved.items()))
-    print("DENY\t%s\t%s" % (os.path.basename(path),
-          "%s returned %s (%s)" % (e.get("subject"), e.get("label"), e.get("tool"))))
+    say("DENY", os.path.basename(path),
+        "%s returned %s (%s)" % (e.get("subject"), e.get("label"), e.get("tool")),
+        rc_note())
 ' "$_dir" 2>/dev/null || true)"
 
 [ -z "$_verdict" ] && exit 0
@@ -303,6 +584,71 @@ if unresolved:
 _kind="$(printf '%s' "$_verdict" | cut -f1)"
 _file="$(printf '%s' "$_verdict" | cut -f2)"
 _why="$(printf '%s' "$_verdict" | cut -f3)"
+_ctrl="$(printf '%s' "$_verdict" | cut -f4)"
+_note="$(printf '%s' "$_verdict" | cut -f5)"
+_tool="$(printf '%s' "$_verdict" | cut -f6)"
+
+# ── SUBSTRATE EMIT — this gate was UNMEASURABLE until 2026-08-18 ────────────
+# ⛔ MEASURED: 463 hook events across 4 real sessions on this machine, from SIX
+# hooks (enforce-layout 282, thing-orchestrator 88, guard-destructive 67,
+# worktree-guard 18, dod-gate 4, enforce-git-protocol 4) — and ZERO from this
+# one, because it never called the emitter. Consequences, both real:
+#   * Heimdall and Víðarr showed a clean perimeter while this gate was denying.
+#   * Its own false-positive rate could not be measured from the substrate at
+#     all. "I have no events" and "I never fire" are indistinguishable — which
+#     is this repo's own recorded silent-green shape, on the guard whose
+#     precision matters most.
+# The 463 IS the positive control: the substrate demonstrably records other
+# hooks from the same runs dir, so the empty guard-premise result was a real
+# absence, not a broken probe.
+#
+# ⛔ DERIVED VALUES ONLY. The hook name, a fixed rule token, the tool enum and
+# the target BASENAME. The unresolved subject and the prose claim are NOT
+# emitted: both are attacker-influenceable text and this log is read back into
+# the dashboard and the SessionStart banner. Same invariant as
+# capability-orientation.sh / watch-run-state.sh / compact-anchor.sh.
+#
+# Fail-safe: every step degrades to a no-op. A telemetry write must never be
+# able to change a guardrail verdict — the deny below runs either way.
+_gp_emit() {
+  _gp_helper="$(dirname "${BASH_SOURCE[0]:-$0}")/_emit-event.sh"
+  [ -f "$_gp_helper" ] || return 0
+  # _emit-event.sh resolves the session id from the caller-scope `payload` var.
+  payload="$_input"
+  # shellcheck source=/dev/null
+  . "$_gp_helper" 2>/dev/null || return 0
+  command -v _emit_hook_event >/dev/null 2>&1 || return 0
+  _emit_hook_event "guard-premise.sh" "deny" "${_tool:-Write}" \
+    "${_file:-}" "${1:-premise-deny}" 2 2>/dev/null || true
+}
+
+case "$_kind" in
+  BLIND) _gp_rule="premise-recorder-blind" ;;
+  PROSE) _gp_rule="premise-unverified-diagnosis" ;;
+  *)     _gp_rule="premise-unresolved-negative" ;;
+esac
+
+# The file-based escape, printed VERBATIM in every deny. It is the only exit a
+# dispatched subagent can actually take: RC_PREMISE_* are environment variables,
+# and a variable exported inside a Bash call never reaches this hook process.
+# ⛔ It is scoped to this session AND this worktree, so it cannot clear a sibling
+# agent, and it is INERT unless all four keys carry a non-empty value.
+_ESCAPE="  FILE-BASED CONTROL (works from a SUBAGENT — the env vars do not).
+  Write this file with the Write tool, then retry:
+
+    $_ctrl
+
+    premise-control: <subject this covers, or * for all>
+    who: <which agent/session ran the control>
+    subject: <the claim that was under test>
+    control: <the probe you ran -> the result it returned>
+
+  All four keys are REQUIRED and an empty value clears nothing. Every use is
+  appended to .ravenclaude/runs/premise/overrides.log — the escape is recorded,
+  not silent."
+[ -n "$_note" ] && _ESCAPE="⚠ $_note
+
+$_ESCAPE"
 
 if [ "${RC_PREMISE_OVERRIDE:-0}" = "1" ]; then
   # An override is a decision, not a bypass — it leaves a trace on purpose.
@@ -318,7 +664,11 @@ if [ "$_kind" = "BLIND" ]; then
 $_why
 
 A check that cannot see must never allow. Install/wire log-probe.sh, or set
-RC_PREMISE_OVERRIDE=1 to proceed and record the override."
+RC_PREMISE_OVERRIDE=1 to proceed and record the override.
+
+$_ESCAPE
+  (blindness is not a claim about one subject, so only \`premise-control: *\`
+   clears it here.)"
 elif [ "$_kind" = "PROSE" ]; then
   _reason="⛔ PREMISE GATE: a diagnosis is being written down as established fact.
 
@@ -341,7 +691,9 @@ cite it in the same block:
   1. control: <probe> -> <result>    a positive control on the same subject
   2. premise-ok: <named control>     you already ran it (EMPTY does NOT clear)
   3. RC_PREMISE_CONTROL='<subject>'  same, supplied out of band
-  4. RC_PREMISE_OVERRIDE=1           proceed anyway; the override is recorded"
+  4. RC_PREMISE_OVERRIDE=1           proceed anyway; the override is recorded
+
+$_ESCAPE"
 else
   _reason="⛔ PREMISE GATE: creating a new source module on an unresolved negative result.
 
@@ -359,8 +711,17 @@ user ever experienced. The control probe would have cost ten seconds.
 
   1. run the control   → the ledger resolves itself, nothing else needed
   2. RC_PREMISE_CONTROL='<subject>'  → you already ran it
-  3. RC_PREMISE_OVERRIDE=1           → proceed anyway; the override is recorded"
+  3. RC_PREMISE_OVERRIDE=1           → proceed anyway; the override is recorded
+
+⛔ The ledger is scoped to THIS git worktree, so what you see above was recorded
+by work in this tree — not by a sibling agent in another one.
+
+$_ESCAPE"
 fi
+
+# Emitted immediately before the deny, never on the override path above — an
+# override is already recorded in overrides.log and is not a perimeter event.
+_gp_emit "$_gp_rule"
 
 printf '%s' "$(python3 -c '
 import json,sys

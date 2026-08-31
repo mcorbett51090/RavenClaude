@@ -13,3 +13,10 @@ package it*, the question no other RavenClaude plugin answered.
 - **Knowledge bank (3 docs):** pricing decision trees (model / value-metric / WTP-method, Mermaid), monetization-metrics glossary with formulas, dated 2026 reference.
 - **10 best-practices** and **3 templates** (packaging worksheet, price-change rollout plan, WTP-study brief).
 - Seams: `finance`, `product-management`, `sales-revops`, `applied-statistics`, `fintech-payments-engineering`/`backend-engineering`, `legal-ops-clm`. Requires `ravenclaude-core@>=0.7.0`.
+
+## [0.1.1] — 2026-08-14
+
+### Changed
+
+- Dropped hand-maintained artifact-count literals from the plugin description (D1). The roster enumerates itself; Gate 206 forbids the digit.
+

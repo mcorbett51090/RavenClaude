@@ -20,11 +20,11 @@ Building voice agents well: picking the pipeline shape (cascade STT->LLM->TTS vs
 
 ## What's inside
 
-- **4 skills** — voice-agent-architecture-and-latency, speech-recognition-and-synthesis, dialog-management-and-tool-calling, telephony-and-call-flow-integration.
-- **Knowledge bank** — [`voice-ai-decision-trees.md`](knowledge/voice-ai-decision-trees.md) (4 Mermaid trees: cascade vs speech-to-speech, build-vs-platform, channel choice telephony-vs-web/app, latency-budget triage) + [`voice-ai-reference-2026.md`](knowledge/voice-ai-reference-2026.md) (dated ASR/TTS/platform/telephony landscape + per-hop latency targets, verify-at-use).
-- **5 best-practices** — see [`best-practices/README.md`](best-practices/README.md).
-- **2 templates** — voice-agent architecture, voice latency budget.
-- **2 commands** — `/design-voice-agent`, `/plan-voice-latency-budget`.
+- **skills** — voice-agent-architecture-and-latency, speech-recognition-and-synthesis, dialog-management-and-tool-calling, telephony-and-call-flow-integration.
+- **Knowledge bank** — [`voice-ai-decision-trees.md`](knowledge/voice-ai-decision-trees.md) (Mermaid trees: cascade vs speech-to-speech, build-vs-platform, channel choice telephony-vs-web/app, latency-budget triage) + [`voice-ai-reference-2026.md`](knowledge/voice-ai-reference-2026.md) (dated ASR/TTS/platform/telephony landscape + per-hop latency targets, verify-at-use).
+- **best-practices** — see [`best-practices/README.md`](best-practices/README.md).
+- **templates** — voice-agent architecture, voice latency budget.
+- **commands** — `/design-voice-agent`, `/plan-voice-latency-budget`.
 
 ## Seams
 
@@ -33,7 +33,7 @@ Knowledge-base grounding / retrieval → [`ai-rag-engineering`](../ai-rag-engine
 ## Install
 
 ```shell
-/plugin marketplace add ./        # from a separate Claude Code project, pointed at this repo
+/plugin marketplace add ./ # from a separate Claude Code project, pointed at this repo
 /plugin install conversational-ai-voice-engineering@ravenclaude
 ```
 

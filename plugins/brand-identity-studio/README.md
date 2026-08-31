@@ -15,12 +15,12 @@ AI drafts in bulk; **a human curates**. The plugin composes with siblings instea
 > **`web-design:visual-designer`**). web-design's visual-designer/content-strategist stay site-scoped.
 
 - **Design tokens** → `web-design:design-tokens-scaffolding` (DTCG → Style Dictionary → CSS vars / Tailwind).
-  This plugin ships **no** token bridge.
+ This plugin ships **no** token bridge.
 - **Raw generation + the license/indemnity decision** → `generative-web-media`. This plugin only sets
-  `indemnity_required` in the generation brief; the provider is chosen per-asset by media's license gate.
+ `indemnity_required` in the generation brief; the provider is chosen per-asset by media's license gate.
 - **Site application** → `web-design:visual-designer`.
 - **The logo/wordmark deliverable IS the curated Recraft/Ideogram-class vector** — never regenerated in
-  Firefly (regeneration voids the human curation the value promise rests on).
+ Firefly (regeneration voids the human curation the value promise rests on).
 
 ## What's inside
 
@@ -40,24 +40,24 @@ AI drafts in bulk; **a human curates**. The plugin composes with siblings instea
 1. **strategy-before-visuals** — concept generation refuses without a strategy brief.
 2. **human-curation** — a person selects from the bulk-generated concepts (`/curate-concepts`).
 3. **documented-human-authorship** — the curation logs a substantial human modification so the resale
-   deliverable is copyright-ownable/assignable.
+ deliverable is copyright-ownable/assignable.
 4. **font-license-class** — a non-self-hostable font (Adobe/Monotype) is blocked from the token export.
 5. **WCAG-pair validation** — every text/background pair validated to AA before the palette ships.
 6. **legal-sign-off** — the brand book can't be marked client-ready until curation + authorship exist and
-   every IP/registrability/font claim has been routed to `security-reviewer`.
+ every IP/registrability/font claim has been routed to `security-reviewer`.
 
 ## Honesty
 
 - **Not legal advice.** Facts are stated; conclusions are not. Every client-facing IP / trademark /
-  registrability / font-license claim routes to `ravenclaude-core:security-reviewer` (and counsel).
+ registrability / font-license claim routes to `ravenclaude-core:security-reviewer` (and counsel).
 - **Prices are `[unverified]`.** Tier calibrations are aggregator ranges, never quotes.
 - **Tool landscape is volatile.** Provider/API facts carry `[verify-at-use]`; the indemnity decision is
-  `generative-web-media`'s.
+ `generative-web-media`'s.
 
 ## Install
 
 ```shell
-/plugin marketplace add ./            # from a separate Claude Code project
+/plugin marketplace add ./ # from a separate Claude Code project
 /plugin install brand-identity-studio@ravenclaude
 ```
 

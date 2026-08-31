@@ -36,12 +36,12 @@ Builds spend visibility and category segmentation, runs sourcing on TCO and shou
 
 ## Knowledge bank
 
-4 research-grounded reference docs under [`knowledge/`](knowledge/) — figures carry a source + date, advisory numbers are marked `[ESTIMATE]`, and anything from training knowledge is marked `[unverified — training knowledge]`.
+research-grounded reference docs under [`knowledge/`](knowledge/) — figures carry a source + date, advisory numbers are marked `[ESTIMATE]`, and anything from training knowledge is marked `[unverified — training knowledge]`.
 
 ## Install
 
 ```shell
-/plugin marketplace add ./            # from a separate Claude Code project
+/plugin marketplace add ./ # from a separate Claude Code project
 /plugin install procurement-sourcing@ravenclaude
 ```
 

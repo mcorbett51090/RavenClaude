@@ -59,6 +59,12 @@ GROUNDING_SECTION_HEADER = "## Accuracy discipline (cross-tool pointer)"
 # the same class of gap as one making unverified claims — invisible until the
 # next tool cannot find the work.
 STORAGE_SECTION_HEADER = "## Where work files go — the cross-CLI storage contract (READ THIS BEFORE WRITING ANY FILE)"
+# verify-before-assert Phase 8 — the portable text floor. Copilot CHAT's hooks are
+# `supported: false`, so on that surface this projection is the ONLY form the cause
+# discipline takes: there is no event to gate, and the section says so rather than
+# implying enforcement it does not have. Same class of gap as the two above —
+# invisible until a confident wrong cause has already been acted on.
+CAUSE_FLOOR_SECTION_HEADER = "## Naming a cause (the portable floor)"
 
 # "Launch the dashboard" directive appended to copilot/AGENTS.md. The `/dashboard`
 # slash command is Claude-Code-only and does not exist in Copilot CLI, so without
@@ -104,6 +110,37 @@ bash "$(find . "$HOME" /workspaces -path '*ravenclaude-core/bin/rc' 2>/dev/null 
   (or `serve`) in `.ravenclaude/comfort-posture.yaml` starts it at session start.
   It is **off unless set** — nothing auto-launches a dashboard by default outside a
   Codespace, so "it didn't open by itself" is expected until they opt in.
+"""
+
+# "Scaffold the agent-in-CI protocol" directive appended to copilot/AGENTS.md.
+# `init-agent-ci` is a plain-bash installer subcommand (no slash command exists on
+# any host), and it is the ONLY path a Copilot/Codex consumer has to the agent-in-CI
+# GitHub protocol templates that Claude Code's /init-agent-ready scaffolds. Always
+# applicable (like DASHBOARD_BLOCK, not gated like Relay mode). States claim-18's
+# host-agnostic honest limit so Copilot does not present the artifacts as enforced hooks.
+AGENT_CI_BLOCK = """
+---
+
+## Scaffold the agent-in-CI GitHub protocol
+
+When the user wants their repo's CI to enforce the **agent-in-CI protocol** — the
+`github-protocol-*` workflows, the anti-self-approval `agent-approval-check.yml`, and
+an agent PR template — run the installer subcommand from their **project root**:
+
+```shell
+bash <marketplace-clone>/scripts/ravenclaude init-agent-ci --project .
+```
+
+- It copies the set into `.github/` (`workflows/`, `PULL_REQUEST_TEMPLATE/`, `scripts/`),
+  **including** `check-workflow-hygiene.py` — the hygiene workflow invokes it, so they are
+  copied together (a scaffold missing it is green-but-broken on the first PR).
+- It is **opt-in and non-destructive**: it never overwrites an existing file without
+  `--force`, and `--only <comma-list>` cherry-picks a subset.
+- **Honest limit (host-agnostic):** these are **GitHub Actions artifacts** — they run in
+  the repo's CI regardless of which agent CLI is used, but Copilot reads the accompanying
+  knowledge (identity, issue-triage, CI-signing) as **context, not as an enforced hook**.
+  The anti-self-approval workflow stays inert until it is CODEOWNERS-protected, made a
+  required status check, and given an `EXCLUDED_APPROVERS` list.
 """
 
 # Self-gating "Relay mode" directive appended to copilot/AGENTS.md. Copilot reads
@@ -487,8 +524,9 @@ def build_readme() -> str:
         "> BEHAVIOUR (can it write?), never the description.\n"
         "- `AGENTS.md` — the cross-tool claim-grounding discipline, projected\n"
         "  verbatim from RavenClaude's root `AGENTS.md`. Copilot reads `AGENTS.md`\n"
-        "  natively, but only from *your* repo — so this travels the discipline\n"
-        "  with the agents. Wire it via `COPILOT_CUSTOM_INSTRUCTIONS_DIRS` (below).\n"
+        "  natively `[docs-verified 2026-05-31]`, but only from *your* repo — so\n"
+        "  this travels the discipline with the agents. Wire it via\n"
+        "  `COPILOT_CUSTOM_INSTRUCTIONS_DIRS` (below).\n"
         "\n"
         "## Launching\n"
         "\n"
@@ -643,6 +681,9 @@ def build_agents_md() -> str:
     # The storage contract travels too — a Copilot session that writes its work
     # where no other CLI looks has produced nothing the next tool can use.
     section = section.rstrip() + "\n\n" + extract_section(root_agents, STORAGE_SECTION_HEADER)
+    section = section.rstrip() + "\n\n" + extract_section(
+        root_agents, CAUSE_FLOOR_SECTION_HEADER
+    )
     banner = (
         "# ravenclaude-core — Copilot grounding instructions\n"
         "\n"
@@ -652,7 +693,8 @@ def build_agents_md() -> str:
         "\n"
         "GitHub Copilot reads `AGENTS.md` natively from the repo root, the current\n"
         "working directory, or any directory named in the\n"
-        "`COPILOT_CUSTOM_INSTRUCTIONS_DIRS` environment variable. When you install\n"
+        "`COPILOT_CUSTOM_INSTRUCTIONS_DIRS` environment variable\n"
+        "`[docs-verified 2026-05-31]`. When you install\n"
         "the `ravenclaude-core` agents into your own repo via\n"
         "`copilot --plugin-dir plugins/ravenclaude-core/copilot`, add this\n"
         "directory to that variable so the claim-grounding discipline below loads\n"
@@ -666,7 +708,7 @@ def build_agents_md() -> str:
         "---\n"
         "\n"
     )
-    return banner + section + "\n" + DASHBOARD_BLOCK + RELAY_MODE_BLOCK
+    return banner + section + "\n" + DASHBOARD_BLOCK + AGENT_CI_BLOCK + RELAY_MODE_BLOCK
 
 
 def generate() -> dict[str, str]:

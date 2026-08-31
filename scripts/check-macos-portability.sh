@@ -9,6 +9,19 @@
 #                         engine was never consulted; every routed yes/no auto-allowed.
 #   door 3  BSD grep      no `-P` -> exit 2 -> reads as NO MATCH inside `if grep -Pzi`;
 #                         12 anti-pattern hooks silently never fired.
+#   door 5  bash 3.2      a here-doc INSIDE a $( ) command substitution is re-lexed for
+#          $()+here-doc   quotes even under a quoted <<TAG. One unpaired apostrophe in a
+#                         Python COMMENT (`we don-t understand`, PR #828) swallowed the
+#                         rest of scripts/ravenclaude and the whole installer stopped
+#                         parsing on stock macOS -- setup/install/update/status/dashboard
+#                         all dead for every Copilot, Codex and Gemini consumer. Found
+#                         2026-08-13, one day after it landed.
+#
+# ⛔ DOOR 5 IS WHY THIS FILE ALSO CHECKS PARSE, NOT JUST RUNTIME. The header below says
+# "a runner and not a linter" -- that is still right about doors 1-3, and door 5 is the
+# exception that proves the scope: it IS bash syntax, but syntax only bash 3.2 rejects,
+# so Linux `bash -n` is green and cannot see it. The repo's own syntax check globs
+# `scripts/*.sh` and `scripts/ravenclaude` HAS NO EXTENSION, so it was in neither net.
 #
 # WHY A RUNNER AND NOT A LINTER: none of the three is bash *syntax*. `bash -n` cannot see
 # them (valid syntax, runtime failure, conditional code paths), and a static linter is
@@ -124,6 +137,44 @@ _tf() {
 "${STOCK[@]}" /bin/bash -c ". '$CORE/hooks/_portable.sh'; _rc_pcre_match '$TD/empty.tf' 'source\s*='" \
   && bad "empty file reported a MATCH — the BEGIN/END guard regressed" \
   || ok "empty file -> no-match (the BEGIN/END guard holds)"
+
+# ── door 5: the EXTENSIONLESS shell entry points must PARSE under bash 3.2 ───────────
+# `scripts/*.sh` misses these by construction, and Linux bash 5 parses constructs 3.2
+# rejects — so this is the only net that sees them. Parse only: running `ravenclaude`
+# for real would mutate a repo.
+echo
+echo "── door 5: extensionless entry points parse under stock bash 3.2 ──"
+_d5_targets=()
+for _t in "$ROOT/scripts/ravenclaude" "$CORE/bin/rc"; do
+  [ -f "$_t" ] && _d5_targets+=("$_t")
+done
+if [ "${#_d5_targets[@]}" -eq 0 ]; then
+  bad "door 5: found NO extensionless entry points — the target list has rotted"
+else
+  for _t in "${_d5_targets[@]}"; do
+    if "${STOCK[@]}" /bin/bash -n "$_t" 2>/dev/null; then
+      ok "parses under bash 3.2: ${_t#"$ROOT"/}"
+    else
+      bad "DOES NOT PARSE under bash 3.2: ${_t#"$ROOT"/} (every subcommand is dead on macOS)"
+    fi
+  done
+fi
+# must-fail: re-introduce the exact PR #828 shape and prove we catch it. The apostrophe
+# is injected via printf so this file never contains the poison itself.
+_d5_mut="$(mktemp)"
+{
+  printf 'out="$(python3 - <<%sPY%s\n' "'" "'"
+  printf '# a value we don%st understand\n' "'"
+  printf 'print(1)\n'
+  printf 'PY\n)"\n'
+  printf 'echo "a later line (with a paren)"\n'
+} > "$_d5_mut"
+if "${STOCK[@]}" /bin/bash -n "$_d5_mut" 2>/dev/null; then
+  bad "TEETH FAILED: the apostrophe-in-heredoc-in-\$() shape PARSED — this host is not bash 3.2"
+else
+  ok "TEETH: an apostrophe inside a here-doc inside \$( ) still breaks the parse (door 5 is real)"
+fi
+rm -f "$_d5_mut"
 
 echo
 echo "──────────────────────────────────────────────"

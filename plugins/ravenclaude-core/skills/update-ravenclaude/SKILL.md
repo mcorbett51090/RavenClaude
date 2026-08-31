@@ -35,6 +35,51 @@ Notes:
 - **`ravenclaude setup` is idempotent** — safe to re-run at any time. It re-wires the live surfaces and never clobbers an existing `.ravenclaude/comfort-posture.yaml`.
 - `ravenclaude update` (a bare `git pull` + regenerate, no project re-wire) is the lighter form when you only need fresh marketplace content and don't need the current project re-wired.
 
+### When the pull stalls on local changes (the common Copilot stall)
+
+The marketplace clone is **both** the git checkout you pull into **and** the live runtime surface
+Copilot reads from — so two tracked files get written by normal use and then block `git pull`:
+
+| File | Written by | Upstream also edits it? |
+|---|---|---|
+| `.ravenclaude/comfort-posture.yaml` | you, `/set-posture`, the dashboard | yes |
+| `.claude/settings.json` | `apply-comfort-posture.py` at session start | yes |
+
+`git pull --ff-only` refuses to overwrite them, so the update stops before it starts. Resolve it
+**before** re-running the update — do not let the session guess:
+
+```shell
+# See exactly what is dirty
+git -C ~/RavenClaude status --porcelain --untracked-files=no
+
+# Keep local tuning (robust — survives upstream editing the same file)
+git -C ~/RavenClaude switch -c local-posture
+git -C ~/RavenClaude commit -am 'local posture tuning'
+git -C ~/RavenClaude switch main && git -C ~/RavenClaude pull --ff-only
+
+# Discard a formatting-only diff (e.g. a stray space before a SKILL.md `---`)
+git -C ~/RavenClaude checkout -- <path>
+```
+
+`git stash push … && git pull && git stash pop` is the quicker form, but it **conflicts whenever
+upstream edited the same file** — which is exactly the posture/settings case above. Prefer the
+branch. Untracked files (a staged contribution under `docs/staging/incoming/`) never block a pull;
+leave them alone.
+
+`ravenclaude update` reports the real git error and the dirty file list when this happens, and says
+**"NOT up to date"** rather than a green "up to date" — it still re-materializes skills/hooks from
+the unchanged checkout, so a stalled pull leaves you running the *old* content.
+
+**It also exits non-zero**, so the signal survives for anything that reads an exit code rather than
+the terminal — the dashboard's Update button derives its success flag from exactly that. Two
+deliberate boundaries:
+
+- **Only an attempted-and-failed pull is non-zero.** A `$MARKET` that is not a git checkout exits
+  **0**: nothing was attempted, and the re-materialize genuinely succeeded.
+- **Chain with `;`, not `&&`.** The `rc` function and the suggested alias both use `;` for this
+  reason — the commonest cause of a failed pull is your own posture tuning, and `&&` would turn that
+  into "Copilot will not start". A stale checkout is still a working checkout.
+
 ## Path A — Claude Code (the marketplace-update flow)
 
 Claude Code caches installed plugins, so the refresh is a marketplace update followed by a reload:

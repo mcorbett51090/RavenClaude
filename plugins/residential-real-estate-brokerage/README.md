@@ -20,11 +20,11 @@ Running a residential brokerage well: a pipeline you can read stage by stage, a 
 
 ## What's inside
 
-- **4 skills** — cma-and-pricing-strategy, listing-launch-and-marketing, transaction-timeline-management, commission-split-and-cap-economics.
-- **Knowledge bank** — [`residential-brokerage-decision-trees.md`](knowledge/residential-brokerage-decision-trees.md) (4 Mermaid trees: price a listing/CMA, represent buyer vs seller / dual-agency conflict, offer & counter strategy, commission split-vs-cap model) + [`residential-brokerage-reference-2026.md`](knowledge/residential-brokerage-reference-2026.md) (dated reference, verify-at-use).
-- **5 best-practices** — see [`best-practices/README.md`](best-practices/README.md).
-- **2 templates** — listing launch plan, transaction timeline checklist.
-- **2 commands** — `/build-cma`, `/manage-transaction-timeline`.
+- **skills** — cma-and-pricing-strategy, listing-launch-and-marketing, transaction-timeline-management, commission-split-and-cap-economics.
+- **Knowledge bank** — [`residential-brokerage-decision-trees.md`](knowledge/residential-brokerage-decision-trees.md) (Mermaid trees: price a listing/CMA, represent buyer vs seller / dual-agency conflict, offer & counter strategy, commission split-vs-cap model) + [`residential-brokerage-reference-2026.md`](knowledge/residential-brokerage-reference-2026.md) (dated reference, verify-at-use).
+- **best-practices** — see [`best-practices/README.md`](best-practices/README.md).
+- **templates** — listing launch plan, transaction timeline checklist.
+- **commands** — `/build-cma`, `/manage-transaction-timeline`.
 
 ## Seams
 
@@ -33,7 +33,7 @@ Buyer financing mechanics → [`mortgage-lending`](../mortgage-lending/) · titl
 ## Install
 
 ```shell
-/plugin marketplace add ./        # from a separate Claude Code project, pointed at this repo
+/plugin marketplace add ./ # from a separate Claude Code project, pointed at this repo
 /plugin install residential-real-estate-brokerage@ravenclaude
 ```
 

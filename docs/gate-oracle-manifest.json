@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "description": "Declared external oracles and reasoned waivers for scripts/check-self-certifying-change.py (Gate 204, P10). A gate re-authored in the same commit as the artifact it asserts over certifies its own target — its green proves nothing, because one edit moved both the claim and the evidence. The remedy this repo already proved (v0.208.0 P3, Gate 51) is an EXTERNAL oracle the commit leaves UNCHANGED, which still trips the re-authored checker. This file is the declared form of that remedy. It lives OUTSIDE the checker on purpose: adding a suppression must never require editing the checker that reads it — that would be the very defect, committed while closing it. Every entry carries a reason; an empty reason is a silenced finding, not a waiver, and the checker rejects it.",
+  "oracles": {
+    "scripts/check-shell-router.mjs": {
+      "oracles": ["scripts/check-shell-router.selftest.mjs"],
+      "reason": "The shipped precedent and the reason this gate exists. Gate 51's shell-router half is deliberately re-authored alongside dashboard IA re-cuts (v0.208.0 P3 did exactly that). The selftest applies three STRUCTURAL, anchor-agnostic mutations to a freshly-rendered index.html and spawns the checker as a subprocess, so it needs no edit across an IA re-cut — which is precisely what lets a reviewer confirm the re-authored checker is not weaker: the oracle is unchanged in the diff and still trips all three mutations."
+    }
+  },
+  "waivers": [
+    {
+      "checker": "scripts/audit-gates.sh",
+      "target": "scripts/check-self-certifying-change.py",
+      "reason": "Gate 204's own introducing commit. Registering a gate necessarily edits audit-gates.sh in the same commit that writes the checker, so this detector flags its own arrival — correct behaviour, declared rather than carved out. It is NOT self-certification in substance: on the introducing commit the checker is ADDED, not re-authored, so nothing pre-existing was certified; and the gate is verified by an oracle the diff cannot weaken — scripts/check-gate-registration.py (Gate 195), which is unchanged here and independently proves 204 is reachable in the main sequence, uniquely numbered, and exit-2-specific. This waiver stays because any later fix that touches both the gate block and the checker is exactly the co-change a reviewer must see argued, and the entry is where that argument lives."
+    }
+  ]
+}

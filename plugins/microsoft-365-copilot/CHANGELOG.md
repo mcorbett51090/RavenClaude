@@ -2,6 +2,27 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.5.7] — 2026-08-28
+
+Weekly research sweep. Latest declarative-agent manifest schema is **v1.8** (adds `EmailActions` + `MeetingActions` over v1.7); pin target moved in lockstep across knowledge, CLAUDE.md, the agent, skill, command, template, best-practices, and the anti-pattern hook. Pin-don't-chase and `[verify-at-build]` kept. Verified 2026-08-28 against MS Learn [`declarative-agent-manifest-1.8`](https://learn.microsoft.com/microsoft-365/copilot/extensibility/declarative-agent-manifest-1.8) (the v1.7 page's own "Important" callout names v1.8 as latest). **Migration:** none — knowledge/pin-target only.
+
+## [0.5.6] — 2026-08-14
+
+### Changed
+
+- Dropped hand-maintained artifact-count literals from the plugin description (D1). The roster enumerates itself; Gate 206 forbids the digit.
+
+## [0.5.5] — 2026-08-11
+
+Research-sweep **refresh** (deferred Microsoft-stack finding from the 2026-08-08 Tier-A sweep, picked up and panel-reviewed 2026-08-11). The knowledge bank stated **Microsoft Agent 365** was "emerging … deferred until GA"; **Agent 365 (the control-plane service) reached GA 2026-05-01** for the Commercial segment (per-user; included in Microsoft 365 E7). Verified 2026-08-11 against MS Learn [`microsoft-agent-365/overview`](https://learn.microsoft.com/microsoft-agent-365/overview) + [Partner Center May-2026 announcement](https://learn.microsoft.com/partner-center/announcements/2026-may). Panels: usefulness → USEFUL ×3 (0.9/0.85/0.9); detailed source-verified → CONFIRMED (no overstatement — the SDK/registry-sync developer surface is correctly kept hedged as still-preview).
+
+### Fixed
+
+- **`knowledge/copilot-admin-governance-2026.md`** — the "Agent 365 (track, don't over-invest)" section now records the **control-plane service GA (2026-05-01)** with citations, while keeping the **Agent 365 SDK / external-platform registry-sync** developer surface hedged `[verify-at-build]` (still partly preview per `connect-existing-agents`). Confidence note split accordingly; the fired "Agent 365 reaches GA" refresh trigger replaced with the remaining open "SDK/registry-sync reaches GA" trigger.
+- **`knowledge/agent-platform-decision-2026.md`** + **`knowledge/agents-sdk-and-toolkit-2026.md`** — the `agent-365-engineer` re-evaluation triggers re-pointed to the still-preview **SDK/registry-sync** GA (service GA noted inline).
+- **`CLAUDE.md`** — the v0.2.0 `agent-365-engineer` deferral note records that the **GA trigger fired 2026-05-01** and that building the agent is a **pending maintainer decision, not yet built** (autonomous boundary: correct the fact, don't create the agent).
+- Version **0.5.4 → 0.5.5** in `.claude-plugin/plugin.json` **and** `marketplace.json` (lockstep). **Migration:** none — knowledge-file + constitution content only; no agent added, no consumer break on `/plugin marketplace update`.
+
 ## [0.5.3] — 2026-07-01
 
 Research-sweep **refresh** (Tier-A weekly news sweep) — the PAYG-metering hedge's self-declared refresh trigger **fired**. `knowledge/copilot-admin-governance-2026.md` deferred "Pay-as-you-go (PAYG) metering for some agent consumption `[verify-at-build]`" to a future "when PAYG metering … reach GA" trigger; **Copilot Cowork went GA 2026-06-16 with usage-based "Copilot Credits" billing** (also the Work IQ API) — a concrete GA instance of that metering. Verified 2026-07-01 against MS Learn Cowork what's-new + Partner Center June 2026.

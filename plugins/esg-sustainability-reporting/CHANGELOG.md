@@ -48,3 +48,10 @@ pipeline, and the regulatory filing route.
 - Seams: financial-statement reporting → `finance`; data lineage/controls → `data-governance-privacy`;
   financial-regulator filing → `regulatory-compliance`. NOT a legal or financial-audit opinion.
   Requires `ravenclaude-core@>=0.7.0`.
+
+## [0.2.2] — 2026-08-14
+
+### Changed
+
+- Dropped hand-maintained artifact-count literals from the plugin description (D1). The roster enumerates itself; Gate 206 forbids the digit.
+

@@ -2,6 +2,21 @@
 
 All notable changes to this plugin are documented here. Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.8.9] — 2026-08-14
+
+### Changed
+
+- Dropped hand-maintained artifact-count literals from the plugin description (D1). The roster enumerates itself; Gate 206 forbids the digit.
+
+## [0.8.8] — 2026-08-11
+
+Research-sweep **correction** (deferred Microsoft-stack finding from the 2026-08-08 Tier-A sweep, picked up and panel-reviewed 2026-08-11) in `knowledge/fabric-2026-capability-map.md`: **Fabric Runtime 2.0 bundles Delta Lake 4.2**, not Delta 4.1 as previously documented (Spark 4.1 / Python 3.13 unchanged; Runtime 2.0 remains **public preview**, not the production default). Verified 2026-08-11 against the Microsoft-Learn MCP: [Runtime 2.0](https://learn.microsoft.com/fabric/data-engineering/runtime-2-0) ("Delta Lake: 4.2") + the [runtime comparison table](https://learn.microsoft.com/fabric/data-engineering/runtime) ("Delta Lake version | 3.2 | 4.2"). Panels: usefulness → USEFUL (2 of 3; one seat scored it churn — a preview, non-default runtime — noted); detailed source-verified → CONFIRMED. Materially, the line's own "re-verified 2026-06-11" stamp was vouching for the stale "Delta 4.1" digit on a client-facing, quotable capability map — so the fix re-dates that clause to the 2026-08-11 re-verification.
+
+### Fixed
+
+- **`knowledge/fabric-2026-capability-map.md`** — Runtime 2.0 row + header: **Delta 4.1 → 4.2** (both the "Spark/Delta 4.1" header clause and the table cell + inline "Delta 4.0→4.1" note); the Delta portion's "re-verified 2026-06-11" stamp re-dated to **2026-08-11** with the Runtime-2.0 + comparison-table citations (the OneLake-security 2026-06-11 stamp on the same clause is preserved — not re-verified this session). `medallion-on-onelake.md:55` ("Runtime 2.0 (Spark 4.1)") is Spark-only with no Delta digit → deliberately left unchanged.
+- Version **0.8.7 → 0.8.8** in `.claude-plugin/plugin.json` **and** `marketplace.json` (lockstep). **Migration:** none — knowledge-file content only; no consumer break on `/plugin marketplace update`.
+
 ## [0.8.7] — 2026-07-08
 
 Weekly Tier-A news sweep (2026-07-08) — **correction** in `knowledge/fabric-2026-capability-map.md`: the Eventstream **Apache Kafka + Azure Service Bus** source doc pages are no longer titled **"(preview)"** (the eventstream source table lists both without the tag) — the docs caught up to the June-2026 GA, so the prior "GA-announced / page-still-preview" caveat is resolved; treat the connectors as **GA**. Re-verified via the Microsoft-Learn MCP. **Migration:** none — knowledge-file content only.

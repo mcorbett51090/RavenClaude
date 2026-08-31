@@ -2,6 +2,18 @@
 
 All notable changes to this plugin are documented here. Versioning is semver; bump on every user-visible change (AGENTS.md).
 
+## [0.1.2] — 2026-08-14
+
+### Added
+
+- Boundary: after III.a is chosen, model/query of the retrieval graph → [`graph-engineering`](../graph-engineering/). This plugin still owns the paradigm decision.
+
+## [0.1.1] — 2026-08-14
+
+### Changed
+
+- Dropped hand-maintained artifact-count literals from the plugin description (D1). The roster enumerates itself; Gate 206 forbids the digit.
+
 ## [0.1.0] — 2026-08-06
 
 Initial release. Advisory only — no surface in this plugin reads or mutates a real memory store.

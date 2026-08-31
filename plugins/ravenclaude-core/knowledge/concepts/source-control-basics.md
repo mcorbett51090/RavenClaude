@@ -6,7 +6,7 @@ kind: platform-fact
 order: 7
 summary: "Git is a time-machine for your files. RavenClaude does most of the git work for you — this page is the vocabulary so you can follow along."
 see_also: [getting-started, layout-hook]
-last_verified: 2026-06-04
+last_verified: 2026-08-24
 refresh_when: "Git or GitHub change a load-bearing default (branch name, PR flow), or the marketplace's PR conventions or branch-archive contract change."
 sources:
   - label: "AGENTS.md — PR conventions"

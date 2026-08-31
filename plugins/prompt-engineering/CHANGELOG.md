@@ -23,3 +23,10 @@ and system attack).
   `ai-rag-engineering`, `llm-evaluation-engineering`, `ai-red-teaming`,
   `claude-app-engineering` / `backend-engineering`, `security-engineering`. Requires
   `ravenclaude-core@>=0.7.0`.
+
+## [0.1.1] — 2026-08-14
+
+### Changed
+
+- Dropped hand-maintained artifact-count literals from the plugin description (D1). The roster enumerates itself; Gate 206 forbids the digit.
+

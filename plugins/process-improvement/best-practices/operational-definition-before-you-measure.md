@@ -33,6 +33,29 @@ Before collecting any data, write down — in one place a stranger could execute
 - Accept a metric name ("cycle time") as a definition — names are not operational.
 - Let the definition drift between baseline and post-improvement measure (it silently invalidates the comparison).
 - Define a "defect" by internal opinion rather than the customer CTQ / spec.
+- Accept a definition that requires a human judgment call unless you have also run an attribute agreement analysis.
+
+### The four required elements, as a fill-in template
+
+All four must be recorded before the first data pull — even when the data already exists.
+
+| Element | Question it answers | Example |
+|---|---|---|
+| **Start event** | When does a unit's clock start? | "Timestamp of PO receipt in the ERP system" |
+| **Stop event** | When does the clock stop / the judgment happen? | "Timestamp of shipment confirmation scan" |
+| **Inclusion/exclusion rule** | Which units count? | "All domestic orders; exclude returns and cancelled POs" |
+| **Data source** | Exactly where is the value recorded? | "Field `ship_confirmed_at` in table `orders`, warehouse DB" |
+
+```
+Example — "Order fulfillment cycle time"
+  Start event:   `order_received_at` timestamp, orders table (ERP), UTC
+  Stop event:    `ship_confirmed_at` timestamp, same table (ERP), UTC
+  Inclusion:     Status = 'shipped'; domestic (country = 'US'); exclude RMA
+  Unit:          Each order ID in the measurement window
+  Recorded by:   ERP system (automatic); no manual entry
+```
+
+Store the finished definition in the project charter's Measure-phase section so it can be cited from the control-plan documentation.
 
 ## Edge cases / when the rule has nuance
 
@@ -42,6 +65,8 @@ Before collecting any data, write down — in one place a stranger could execute
 ## See also
 
 - Best-practice: [`./measure-the-baseline-before-you-change-anything.md`](./measure-the-baseline-before-you-change-anything.md) — the baseline this definition makes trustworthy
+- Best-practice: [`./voice-of-the-customer-defines-the-defect.md`](./voice-of-the-customer-defines-the-defect.md) — defines *what* a defect is; this rule specifies *how* you measure whether it occurred
+- Agent: [`../agents/process-analyst.md`](../agents/process-analyst.md) — runs data-collection planning; the operational definition is that work's first deliverable
 - Knowledge: [`../knowledge/process-improvement-decision-trees.md`](../knowledge/process-improvement-decision-trees.md) — the MSA / Gage R&R measurement-trust tree (operational definition is its first gate)
 - Skill: [`../skills/process-capability-and-spc/SKILL.md`](../skills/process-capability-and-spc/SKILL.md)
 

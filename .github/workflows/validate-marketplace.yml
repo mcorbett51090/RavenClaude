@@ -47,6 +47,16 @@ on:
       - ".github/workflows/**"
   workflow_dispatch:
 
+# Supersede in-flight runs for the same ref. Measured 2026-08-24: 35 of 1,000
+# sampled RavenClaude runs (9% of compute) were still running when a newer push
+# to the same branch started. Safe here — this workflow only READS the repo;
+# there is no deploy, no migration and no write, so a cancelled run strands
+# nothing. Same shape as validate-macos.yml. Do NOT add `paths:` to pull_request
+# (this is a required check — a skipped workflow hangs the PR forever).
+concurrency:
+  group: validate-marketplace-${{ github.ref }}
+  cancel-in-progress: true
+
 # Least-privilege GITHUB_TOKEN: this workflow only reads the repo to validate it.
 permissions:
   contents: read
@@ -58,6 +68,26 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # ⛔ 2, not the default 1. Three gates here diff against the PR base via
+          # scripts/_base_ref.py, and on a PUSH TO MAIN that base is HEAD^1 —
+          # "what did this push change?". A depth-1 checkout cannot see it.
+          #
+          # control 2026-08-24, same upstream cloned twice:
+          #   git clone --depth 1  -> is_shallow=true, HEAD resolves, HEAD^1 does NOT
+          #   git clone --depth 2  -> HEAD^1 DOES resolve
+          # So the probe was capable of returning the other answer, and depth is
+          # the only variable. Corroborated on main at 11869939: inception-coverage,
+          # changed-concept-renders AND ratchet-freshness went red together — the
+          # single UNKNOWN signature, not three separate defects.
+          #
+          # ⛔ Do NOT "fix" this by making _base_ref fall back to HEAD. That is the
+          # vacuous-empty-diff bug it was written to remove: two of those three
+          # gates then report clean having compared a commit against itself.
+          # Give CI the parent instead. 0 also works (regenerate-artifacts.yml
+          # uses it); 2 is the cheapest depth that suffices.
+          fetch-depth: 2
+          persist-credentials: false
 
       - name: Set up Node.js
         # The render/round-trip *.mjs gates and the prettier check run under node/npx.
@@ -115,10 +145,22 @@ jobs:
           set -euo pipefail
           status=0
           shopt -s nullglob
-          # Cover both the plugin hooks AND the top-level scripts/*.sh (archive /
-          # cleanup / worktree / notify tooling) — a syntax error in the latter
-          # would otherwise land on green CI and only surface at invocation time.
-          hooks=(plugins/*/hooks/*.sh scripts/*.sh)
+          # Cover the plugin hooks, the top-level scripts/*.sh (archive / cleanup /
+          # worktree / notify tooling), AND the EXTENSIONLESS entry points — a syntax
+          # error in any of them would otherwise land on green CI and only surface at
+          # invocation time.
+          #
+          # ⛔ The extensionless ones are listed BY NAME because `scripts/*.sh` does not
+          # match them. This comment used to claim it covered "the top-level scripts"
+          # while the glob silently excluded the largest one — `scripts/ravenclaude`,
+          # the installer every Copilot/Codex/Gemini consumer runs. It shipped
+          # unparseable on 2026-08-12 (PR #828) and no net saw it.
+          #
+          # ⛔ AND THIS STEP ALONE IS NOT ENOUGH: it runs on ubuntu/bash 5, which parses
+          # constructs bash 3.2 rejects. The bug that motivated this line was green here
+          # the whole time. The real guard is door 5 in scripts/check-macos-portability.sh,
+          # which parses these same files under stock /bin/bash on macos-latest.
+          hooks=(plugins/*/hooks/*.sh scripts/*.sh scripts/ravenclaude plugins/*/bin/rc)
           if [[ ${#hooks[@]} -eq 0 ]]; then
             echo "No shell scripts found — skipping."
             exit 0
@@ -329,6 +371,21 @@ jobs:
           python3 -m pip install --quiet 'ruff==0.15.8'
           ruff check .
 
+      - name: macOS-portability lint (banned bash-4 / GNU-only tokens)
+        # The CI backstop for the in-loop enforce-portability hook. Both read the
+        # SAME token table (plugins/ravenclaude-core/knowledge/portability-tokens.json),
+        # so the two surfaces cannot drift — neither hard-codes a pattern.
+        #
+        # A STEP inside this required workflow, deliberately NOT a new workflow and
+        # NOT a paths: filter: a path filter on a required check leaves it Pending
+        # forever, and this reads a whole-tree glob set anyway, so no glob list could
+        # be correct. A skipped job reports Success; a skipped workflow reports nothing.
+        #
+        # Scope reaches past hooks/** on purpose — the two most recent real breaks
+        # were an extension-less installer and a monitors script.
+        run: |
+          python3 scripts/check-portability-lint.py
+
       - name: Install jsonschema (for audit-gates Gate 47 validate-schemas fixtures)
         # audit-gates Gate 47 shells out to `python3 -m jsonschema` against the
         # {good,bad}-{plugin,marketplace}.json fixtures. Without the module on
@@ -418,6 +475,18 @@ jobs:
         # and the generated copilot/ tree). See scripts/check-md-links.py.
         run: python3 scripts/check-md-links.py
 
+      - name: Verify shipped plugin files only cite scripts/hooks they ship
+        # Closes the CLASS of the P1 defect: a file shipped inside the plugin
+        # (skills/rules/commands/agents/templates/hooks) points at a script or
+        # hook by a path a CONSUMER cannot resolve, because the target lives only
+        # at the marketplace-root scripts/ and never ships in the plugin (the
+        # guard-destructive branch-recovery escape hatch was exactly this). Checks
+        # ${CLAUDE_PLUGIN_ROOT}/(scripts|hooks)/X, in-plugin markdown links, and
+        # bare marketplace-root references in operational surfaces against "does
+        # plugins/ravenclaude-core/(scripts|hooks)/<basename> ship". Teeth audited
+        # in audit-gates.sh Gate 187. See scripts/check-shipped-references-resolve.py.
+        run: python3 scripts/check-shipped-references-resolve.py
+
       - name: Verify no PCRE constructs inside grep -E (dead-check guard)
         # A PCRE-only construct ((?:..)/(?!..)/[\s\S]) inside `grep -E` (POSIX ERE)
         # is silently misparsed by GNU grep, so the advisory-hook check is DEAD and
@@ -477,3 +546,52 @@ jobs:
             fi
           done < <(jq -r '.plugins[].name' .claude-plugin/marketplace.json)
           exit $status
+
+      - name: Flag a gate re-authored with its own target (advisory — does not fail the job)
+        # P10 / Gate 204. Diff-scan half: a checker + the artifact it asserts
+        # over, both modified in one PR. ADVISORY on purpose — most co-changes
+        # are legitimate; a hard block would train reviewers to bypass it.
+        # The blocking half is the oracle-manifest integrity check inside
+        # audit-gates.sh Gate 204 (exit 2 on rot). This step never fails the
+        # job: a finding is a ::warning:: + job-summary note, not a red X.
+        # Least-privilege: no pull-requests: write — the warning is the comment.
+        # A STEP inside this required workflow, not a new workflow and not a
+        # paths: filter (a path filter on a required check hangs the PR).
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          set -uo pipefail
+          if ! git fetch --no-tags origin "$BASE_SHA"; then
+            echo "advisory: could not fetch base $BASE_SHA; skipping the diff-scan"
+            exit 0
+          fi
+          out="$(mktemp)"
+          rc=0
+          python3 scripts/check-self-certifying-change.py --range "${BASE_SHA}...HEAD" >"$out" 2>&1 || rc=$?
+          cat "$out"
+          if [ "$rc" -eq 2 ]; then
+            echo "::warning::self-certifying-change: a gate moved in the same diff as the thing it gates (advisory; see the job summary). Declare an unchanged external oracle or a reasoned waiver in docs/gate-oracle-manifest.json."
+            {
+              echo "## Self-certifying-change (advisory)"
+              echo
+              echo "A gate was re-authored in the same diff as the thing it gates."
+              echo "The checker's green proves nothing here. This step does not fail the job."
+              echo
+              echo '```'
+              cat "$out"
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+          elif [ "$rc" -ne 0 ]; then
+            echo "::warning::self-certifying-change: checker exited $rc (advisory; not a build failure). See the job summary."
+            {
+              echo "## Self-certifying-change (advisory)"
+              echo
+              echo "Checker exited \`$rc\` — not a finding, and not a build failure."
+              echo
+              echo '```'
+              cat "$out"
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+          exit 0

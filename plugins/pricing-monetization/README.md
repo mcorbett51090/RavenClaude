@@ -5,7 +5,7 @@
 
 ## What it is
 
-A domain-neutral, 2-agent team for pricing strategy and monetization. It selects the
+A domain-neutral, team for pricing strategy and monetization. It selects the
 pricing model and value metric, designs packaging and tiers, runs (or specs)
 willingness-to-pay research, sets discount and price-change governance, and
 instruments the monetization metrics — then hands the *modeling* to `finance`, the
@@ -34,10 +34,10 @@ Three plugins sit *around* a price but none owns it:
 
 ## What's inside
 
-- **5 skills** — `pricing-model-selection`, `value-metric-design`, `packaging-and-tiering`, `willingness-to-pay-research`, `price-change-rollout`.
-- **Knowledge bank (3 docs)** — three Mermaid decision trees (model / value-metric / WTP-method), a monetization-metric glossary with formulas, and a dated 2026 reference (model trends, AI-product pricing, packaging patterns, the price-change playbook).
-- **10 best-practices** — value-not-cost, value-metric-first, WTP-is-researched, fence-don't-list, realized-price, change-is-a-migration, NRR-scoreboard, freemium-is-a-CAC-line, decompose-lift-from-mix-shift, not-legal-advice.
-- **3 templates** — packaging-design worksheet, price-change rollout plan, WTP-study brief.
+- **skills** — `pricing-model-selection`, `value-metric-design`, `packaging-and-tiering`, `willingness-to-pay-research`, `price-change-rollout`.
+- **Knowledge bank (docs)** — three Mermaid decision trees (model / value-metric / WTP-method), a monetization-metric glossary with formulas, and a dated 2026 reference (model trends, AI-product pricing, packaging patterns, the price-change playbook).
+- **best-practices** — value-not-cost, value-metric-first, WTP-is-researched, fence-don't-list, realized-price, change-is-a-migration, NRR-scoreboard, freemium-is-a-CAC-line, decompose-lift-from-mix-shift, not-legal-advice.
+- **templates** — packaging-design worksheet, price-change rollout plan, WTP-study brief.
 
 ## Install
 

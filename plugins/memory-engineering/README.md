@@ -10,13 +10,13 @@ A **memory-engineering specialist team** for the engineer who has to design, cos
 
 | Surface | Contents |
 |---|---|
-| **3 agents** | [`memory-architect-lead`](agents/memory-architect-lead.md), [`memory-retention-and-erasure-engineer`](agents/memory-retention-and-erasure-engineer.md), [`memory-eval-cost-analyst`](agents/memory-eval-cost-analyst.md) |
-| **6 skills / 6 commands** | `choose-memory-paradigm` · `map-memory-surface` · `design-forgetting-policy` · `budget-memory-costs` · `memory-poisoning-review` · `build-memory-eval` |
-| **5-file knowledge bank** | paradigms + corrections · the shipped memory surfaces, dated · unit economics · security & privacy (OWASP ASI06) · Mermaid decision trees |
-| **8 best-practice rules** | one per house opinion — [`best-practices/`](best-practices/README.md) |
-| **4 templates** | design record · eval sheet · cost sheet · threat model |
-| **3 scenarios** | dated, unverified engagement narratives — [`scenarios/`](scenarios/README.md) |
-| **1 advisory hook** | flags an unsourced benchmark number and a metric cited with no baseline in generated deliverables |
+| **agents** | [`memory-architect-lead`](agents/memory-architect-lead.md), [`memory-retention-and-erasure-engineer`](agents/memory-retention-and-erasure-engineer.md), [`memory-eval-cost-analyst`](agents/memory-eval-cost-analyst.md) |
+| **skills / commands** | `choose-memory-paradigm` · `map-memory-surface` · `design-forgetting-policy` · `budget-memory-costs` · `memory-poisoning-review` · `build-memory-eval` |
+| **knowledge bank** | paradigms + corrections · the shipped memory surfaces, dated · unit economics · security & privacy (OWASP ASI06) · Mermaid decision trees |
+| **best-practice rules** | one per house opinion — [`best-practices/`](best-practices/README.md) |
+| **templates** | design record · eval sheet · cost sheet · threat model |
+| **scenarios** | dated, unverified engagement narratives — [`scenarios/`](scenarios/README.md) |
+| **an advisory hook** | flags an unsourced benchmark number and a metric cited with no baseline in generated deliverables |
 | **`scripts/memory_engineering_calc.py`** | stdlib calculator — `cost-per-correct` (the spine) · `amortize` · `store-growth` · `cache-economics` |
 
 ## Install

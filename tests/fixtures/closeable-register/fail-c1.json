@@ -1,0 +1,8 @@
+{
+  "id": "hosted-runtime",
+  "lattice_id": "C01",
+  "ships_in": "https://hosted.example/cloud-agent",
+  "acceptance_test": "curl https://hosted.example/health",
+  "local_known_bad": "evals/cases/ravenclaude-core/decision-review.yaml",
+  "user_visible": "a hosted coding agent"
+}

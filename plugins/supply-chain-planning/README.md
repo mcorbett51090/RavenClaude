@@ -25,19 +25,19 @@ policies that balance service level against working capital, and design the plan
 
 ## What's inside
 
-- **4 agents** — `supply-chain-planner`, `demand-planning-analyst`,
-  `inventory-optimization-engineer`, `sop-process-lead`.
-- **3 skills** — `demand-forecasting`, `inventory-policy-and-safety-stock`, `sop-process`.
-- **3 commands** — `/supply-chain-planning:build-demand-forecast`,
-  `:set-inventory-policy`, `:run-sop-cycle`.
-- **2 templates** — `sop-deck`, `safety-stock-model`.
+- **agents** — `supply-chain-planner`, `demand-planning-analyst`,
+ `inventory-optimization-engineer`, `sop-process-lead`.
+- **skills** — `demand-forecasting`, `inventory-policy-and-safety-stock`, `sop-process`.
+- **commands** — `/supply-chain-planning:build-demand-forecast`,
+ `:set-inventory-policy`, `:run-sop-cycle`.
+- **templates** — `sop-deck`, `safety-stock-model`.
 - **Knowledge bank** — `knowledge/supply-chain-planning-decision-trees.md`: Mermaid trees for
-  forecast-method selection, inventory-policy selection, and make-vs-buy/supply-network positioning,
-  plus a dated 2026 capability map.
-- **6 best-practices** and **1 advisory hook** (flags ungrounded safety-stock numbers, forecasts
-  without accuracy metrics, hard-coded demand figures, and unqualified "just-in-time" language).
+ forecast-method selection, inventory-policy selection, and make-vs-buy/supply-network positioning,
+ plus a dated 2026 capability map.
+- **best-practices** and **an advisory hook** (flags ungrounded safety-stock numbers, forecasts
+ without accuracy metrics, hard-coded demand figures, and unqualified "just-in-time" language).
 - **`scripts/supply_calc.py`** — stdlib calculator: EOQ, safety stock, reorder point, fill rate,
-  MAPE and bias.
+ MAPE and bias.
 
 ## House opinions (the short list)
 

@@ -111,6 +111,15 @@ when authored programmatically, the `calloutValue`-on-`card` trap) live in
 power-platform `knowledge/pbir-enhanced-reference.md` — consult it *first*; the gate
 is the backstop for when a render still surprises you.
 
+## Design-schema mimicry — two fidelity mechanisms, honestly labelled
+
+When you *clone a reference site's design craft* onto your own brand (the [`design-clone`](../skills/design-clone/SKILL.md) skill), the referee gains two independent checks — and the honesty pivot is that **only one of them is fidelity**:
+
+- **Offline static-seed structural diff — the FLOOR, never fidelity.** A per-dimension asymmetric diff of a candidate `design-schema.json` against the reference one (spacing base-unit / type ratio / elevation-ramp count / breakpoints / component recipes), driven by `driver.py`'s `design_schema` gate. It answers one question only: *"does the candidate declare the same design system?"* — a stdlib check over **declared** CSS (every value stamped `capture_method:"static"`), with no browser and no pixels. It **fails** on what the candidate is *missing* relative to the reference and **passes** benign additions, exactly like the parity gate. Call it a structural sanity check; **never** call it fidelity.
+- **Browser-captured `ssim_score` — the fidelity VERIFIER.** The `ssim` gate reads a browser/harness-computed `{"ssim_score": <0..1 float>}` (the Lighthouse-evidence pattern) and passes iff `>= ssim_min`. This is the *only* pixel-fidelity signal, and it exists **only when a browser tool captured it** (SSIM computed out-of-page over harness screenshots — never inside the measured page; the score is domain-clamped to `[0,1]`, a non-finite/out-of-domain value is an error, never a pass).
+
+**The boundary is load-bearing:** a green structural diff with `ssim` absent reads as *"fidelity unverified"* (`next_action: capture-ssim-evidence` + a loud note), never as a pass. Structural-clean is "declares the same design system"; pixel-faithful is a separate, browser-only claim. Full apply-side contract + the identity-swap discipline: [`design-clone`](../skills/design-clone/SKILL.md).
+
 ## Graceful degradation (the loop must not stall for consumers)
 
 `chrome-devtools-mcp` and `pbix-mcp` (Power BI editor) are **optional, externally

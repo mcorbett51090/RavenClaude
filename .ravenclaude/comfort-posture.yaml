@@ -52,6 +52,53 @@ command_review:
 # Runaway brake — disabled for this repo.
 runaway: off
 
+# Linked-worktree edits: warn, do not deny (owner decision 2026-08-18).
+# `worktree-guard.sh` has two arms that contradicted each other: the advisory arm
+# nudges you OUT of a shared primary checkout when another session is live in it,
+# while the `bound` arm DENIED every Edit whose target resolved under a linked
+# worktree — including one created inside the repo at .claude/worktrees/. Together
+# they left no legal place to edit: the tree it pushes you toward is the tree it
+# refuses to write in. `warn` kept the signal and dropped the deadlock.
+#
+# ⛔ ROOT CAUSE FIXED 2026-08-18 — but this knob deliberately STAYS `warn` for now.
+# The deadlock was not the knob: `_wg_is_foreign` returned on the FIRST worktree
+# whose path prefixed the target, and worktrees live at
+# `<primary>/.claude/worktrees/<name>`, so the primary is an ANCESTOR of every
+# linked worktree and always matched first — every write in every linked worktree
+# read as foreign. Ownership is now the LONGEST matching prefix.
+#
+# ⛔ WHY IT IS NOT FLIPPED IN THE SAME CHANGE (owner decision 2026-08-18): hooks
+# execute from the INSTALLED PLUGIN CACHE, not this checkout. Setting `block`
+# while a session's cache still holds the old predicate re-arms the BUGGY guard
+# and re-creates the very deadlock this fixes — observed while building it. Flip
+# to `block` AFTER `/plugin marketplace update ravenclaude` has refreshed the
+# caches of every live session. Gate 229 pins both directions either way; the
+# knob only decides whether a correct verdict blocks or warns.
+worktree_bound: warn
+
+# ── Session lease: one worktree, one session ────────────────────────────────
+# CONTENTION above only NUDGES — it reports that another session is in this tree
+# and lets both proceed. The lease is the enforcement: a session claims a
+# worktree and another session's mutating ops there are DENIED.
+#
+# ⛔ The stale fallback is what makes enforcement safe. A lock with no expiry
+# strands the tree the moment a session crashes or is closed, and a lock nobody
+# can get out of is a lock people route around. After
+# `worktree_lease_idle_minutes` with no activity from the holder, the next
+# session TAKES OVER — auto-committing the holder's work first (tracked AND
+# untracked; .gitignore still applies) as a `wip(worktree-lease)` checkpoint, so
+# the takeover cannot lose work. On the anchor branch it REFUSES to auto-commit
+# and reports instead: main is the shared anchor.
+#
+#   on   (default) deny a foreign session's writes; auto-take over when stale
+#   warn           report and proceed (useful while adopting)
+#   off            no cross-session exclusion
+#
+# Independent of worktree_guard / worktree_bound — switching those off does not
+# silence this one.
+worktree_lease: on
+worktree_lease_idle_minutes: 20
+
 # Parallelism — allow fan-out workers (subagents / worktrees); cap how many run at once.
 parallelism:
   enabled: true
@@ -62,6 +109,47 @@ decision_review: binding
 
 # Claude orchestrator for non-Claude CLIs (off | decide | full). No-op under Claude Code.
 orchestrator: off
+
+# Cheap lane — route everyday, well-defined work to Grok instead of the main
+# Claude session (off | advise | agent). advise = suggestion only, never
+# applied automatically. See skills/cheap-lane-delegation/SKILL.md.
+cheap_lane:
+  mode: agent
+  tier: fast
+
+# Probe-validity advisory (off | warn; default warn). ONE rule, WARN only —
+# `guard-probe-validity.sh` flags `grep -v` used in QUIET MODE, where the exit
+# status stops answering "is there a line that does NOT match?" and starts
+# reporting whether the pattern is ABSENT. Quiet is entered by a -q/--quiet/
+# --silent flag (possibly bundled: -qv, -vq, -rqv) OR by stdout going to
+# /dev/null with no -q at all. It fired once in 17,410 real agent commands and
+# that catch was a PR ALL_GREEN verdict. There is no `block` value: the hook has
+# no deny path by design (see its header for why a host probe cannot decide one).
+probe_validity: warn
+
+# ── The cause discipline (verify-before-assert) ─────────────────────────────
+# ⛔ ABSENT MEANS INERT. Every hook below no-ops entirely when its key is
+# missing, so a rollout with no step that WRITES these keys ships a mechanism
+# that is off by default in exactly the repos where the complaint is newest.
+# That is CE-6, and this block is the fix.
+#
+#   cause_triage       off | warn          post-failure triage (PostToolUse)
+#   cause_preflight    off | warn          pre-flight review; NO block value
+#                                          exists by construction — the hook
+#                                          scans its own source for a deny exit
+#                                          and fails if one appears
+#   cause_remediation  off | warn | block  the primary D1 gate (PreToolUse Bash)
+#   cause_closure      off | warn | block  the write-path gate
+#
+# ⛔ ALL FOUR SHIP AT `warn`. Neither `block` value may be set until Phase 9's
+# with-hook arm exists and its measured false-positive gate passes; a gate that
+# starts by blocking is one that gets switched off before anyone measured
+# whether it was right. `scripts/check-cause-eval.py --check` fails if a knob is
+# set to `block` while that arm is still unverified.
+cause_triage: warn
+cause_preflight: warn
+cause_remediation: warn
+cause_closure: warn
 
 # Bring this dashboard up at session start (off | serve | open; default off).
 # serve = start the local server headless; open = also open a browser tab.
@@ -157,3 +245,46 @@ categories:
 definition_of_done:
   cmd: "bash scripts/dod-fast.sh"
   max_blocks: 8
+  # Authorized by the owner 2026-08-18. `scripts/dod-fast.sh` is a git-tracked,
+  # read-only repo script (storage-contract check + ruff-if-installed); the
+  # first-run trust prompt was firing every session and did NOT self-clear at
+  # max_blocks as its docs imply.
+  trusted: true
+
+# Hold a sleep assertion for the session so a closed lid does not silently
+# suspend it (on | off; default off, and off when the key is absent).
+# AC only: on battery the hook holds nothing and warns instead.
+keep_awake: on
+
+# /handoff spawns the successor session itself instead of printing a copy-paste
+# block. Owner-flagged on purpose: it launches a process, so it stays opt-in.
+#   same-host   detect the UI and open a new session there.
+#   os-terminal always Terminal.app via `open -na`, regardless of UI.
+#
+# `os-terminal` is chosen on a MEASUREMENT, not a guess. handoff-spawn.sh reports
+# `detected-ui=vscode` in this environment (dry-run, 2026-08-24), so `same-host`
+# would take the VS Code KEYSTROKE path — which needs Accessibility permission and
+# degrades to "keystroke launch failed (Accessibility?)" + the copy-paste block.
+# That is precisely the outcome this flag is being set to avoid. `os-terminal` uses
+# `open -na Terminal`, which needs no permission and cannot fail that way.
+#
+# Trade-off, stated: the successor opens in Terminal.app, OUTSIDE the editor. If you
+# would rather it open as a VS Code integrated terminal and you have granted
+# Accessibility to your host app, switch this to `same-host`. Either value falls back
+# to the copy-paste block on failure, so this can only add a path, never remove one.
+#
+# context_handoff is now MODELLED + round-tripped by the dashboard serializer
+# (v0.297.0, like worktree_bound), so a "Save & apply" PRESERVES this block instead of
+# stripping it. It still has no editable control — set it here by hand. (A dashboard
+# Save rebuilds the file from state and drops hand-written COMMENTS like this one, but
+# the `context_handoff:` block itself now survives.)
+context_handoff:
+  spawn: os-terminal
+  # mode: nag added 2026-08-26 — dogfooding the Claude Code fix. Before this,
+  # context-usage-meter.py had no Claude Code read path at all, so this knob
+  # was silently inert on every session run under Claude Code (the meter
+  # always returned status=unknown regardless of `mode`). With the Claude Code
+  # path now wired in, `nag` actually fires: a Stop-hook additionalContext
+  # nudge once live usage crosses the soft threshold, before the real
+  # auto-compact cliff.
+  mode: nag

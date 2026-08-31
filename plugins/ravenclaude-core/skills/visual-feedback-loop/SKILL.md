@@ -60,11 +60,18 @@ python3 plugins/ravenclaude-core/skills/visual-feedback-loop/driver.py <config.j
   },
   "console": "path/to/console.json",       // optional → agent-captured browser console
   "lighthouse": "path/to/lighthouse.json", // optional → agent-captured Lighthouse run
+  "design_schema": {                       // optional → offline "declares the same design system?" floor
+    "candidate": "path/to/candidate-design-schema.json",
+    "reference": "path/to/reference-design-schema.json"
+  },
+  "ssim": "path/to/ssim.json",             // optional → agent-captured {"ssim_score": <0..1 float>}
   "thresholds": {                          // optional — overrides the defaults
     "lighthouse_accessibility_min": 90,
     "lighthouse_performance_min": 80,
     "lighthouse_best_practices_min": 80,
-    "max_console_errors": 0
+    "max_console_errors": 0,
+    "ssim_min": 0.90,
+    "design_ratio_tolerance": 0.05
   }
 }
 ```
@@ -86,13 +93,59 @@ into a pass). Highest-leverage move when a deploy renders blank with no error:
 replicate the nearest *genuinely-working* exemplar instead of guess-and-check.
 (PBIR `visual.json` today; the *technique* generalizes — see the canon.)
 
+**Design-schema mimicry — two fidelity mechanisms, honestly labelled.** When cloning
+a reference's *design craft* (spacing scale, type scale, elevation, breakpoints,
+components) onto your own brand, the referee gains two independent checks:
+
+- **`design_schema` — the offline structural FLOOR (NOT fidelity).** A per-dimension
+  **asymmetric** diff of a candidate `design-schema.json` against a reference one:
+  *"does the candidate declare the same design system?"* It **fails** on what the
+  candidate is **MISSING** relative to the reference — a different spacing base-unit, a
+  type ratio outside `design_ratio_tolerance`, fewer elevation levels, missing
+  breakpoints, a missing component recipe — and **passes benign additions** (an extra
+  breakpoint/component/shadow), exactly like the parity gate. Each divergence is
+  localized as a `{dimension, expected, actual}` delta. A missing/unparseable/non-schema
+  file → `not_captured` (absence is not failure). **This is a stdlib "same design
+  system?" sanity check — it does NOT and cannot compare pixels.** Every value it reads
+  self-declares `capture_method` (`static` = parsed declared CSS, no browser).
+- **`ssim` — the browser-captured fidelity GATE.** Reads `{"ssim_score": <float>}`
+  (the Lighthouse-evidence pattern) and passes iff `ssim_score >= ssim_min`. This is the
+  *only* pixel-fidelity signal, and it exists **only when a browser tool captured it**.
+  The score is **domain-clamped**: a value that is non-finite (NaN/inf) or outside
+  `[0,1]` is corrupt/hostile evidence → a determinate **error**, **never** a pass; an
+  absent field → `not_captured`. (The same clamp now guards `lighthouse` category scores
+  — a page-injected `5.0` no longer rescales to a fake pass.)
+
+**LOUD degradation — a green verdict with `ssim` absent reads as "fidelity unverified".**
+When the structural floor passes but no `ssim` pass verified fidelity, the referee does
+**not** emit a bare ship: `next_action` is `capture-ssim-evidence` and `notes` carries
+`"visual fidelity not verified — no browser tool"`. Structural-clean is never mistaken
+for pixel-faithful.
+
+> **Security invariant (SSIM).** The SSIM score MUST be computed **out-of-page** over
+> harness-controlled screenshot buffers (the browser/MCP layer), **NEVER** via
+> `page.evaluate` inside the measured page — a page that can compute its own fidelity
+> number can forge a pass. `driver.py` reads the captured *number* only and clamps it to
+> `[0,1]`; it never trusts a page-controllable value as fidelity.
+
+> **Stateless-loop boundary (read this LOUD).** `driver.py` is **stateless per
+> invocation** — it builds its gates fresh from one config and holds **no** iteration
+> history. **The determinate structural + `ssim` gate is the only stopping proof; one
+> pass is NOT convergence.** Non-improving-iteration patience (did this edit actually
+> move the score? are we oscillating?) is the **agent's** cross-iteration job — the
+> referee cannot and does not track it.
+
 **Agent-captured evidence shapes** (the contract you fill from `chrome-devtools-mcp`):
 
 - `console.json` — `{"messages": [{"level": "error|warning|info"}, ...]}` (the
   driver counts `level == "error"`; it never reads the message text).
 - `lighthouse.json` — Lighthouse's native shape `{"categories": {"accessibility":
   {"score": 0.96}, "performance": {"score": 0.85}, ...}}` (scores are 0–1; the
-  driver surfaces them as 0–100 and compares to the threshold).
+  driver surfaces them as 0–100 and compares to the threshold, and now **clamps** each
+  score to `[0,1]` — a non-finite / out-of-domain value is skipped, never a fake pass).
+- `ssim.json` — `{"ssim_score": <float 0..1>}` (a browser/harness-computed structural
+  similarity index vs. the reference render; the driver reads the number only, clamps it
+  to `[0,1]`, and never echoes page content — see the SSIM security invariant above).
 
 ### Exit codes & verdict
 
@@ -107,7 +160,8 @@ next_action, notes}`. `passed` is a **pure function of the determinate gates**
 (`pass`/`fail`/`error`); `not_captured` and `degraded` gates are excluded — so
 "evidence not captured yet" and "tooling absent" are first-class states, never
 silent failures. `next_action` is the loop's instruction: `ship` /
-`capture-runtime-evidence` / `fix-layout` / `match-reference-exemplar` /
+`capture-runtime-evidence` / `capture-ssim-evidence` / `fix-layout` /
+`match-reference-exemplar` / `match-design-schema` / `improve-visual-fidelity` /
 `fix-console-errors` / `improve-accessibility` / `manual-visual-review`.
 
 ### How the layout gate maps the linter's exit codes

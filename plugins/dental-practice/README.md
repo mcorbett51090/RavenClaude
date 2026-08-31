@@ -36,7 +36,7 @@ Holds overhead to benchmark, protects the collection ratio, raises case acceptan
 
 ## Knowledge bank
 
-6 research-grounded reference docs under [`knowledge/`](knowledge/) — including 2 **Mermaid decision trees** (PPO keep/re-negotiate/drop; hygiene capacity fill-before-expand) and an enriched, cited KPI glossary. Figures carry a source + date, advisory numbers are marked `[ESTIMATE]`, and anything from training knowledge is marked `[unverified — training knowledge]`.
+research-grounded reference docs under [`knowledge/`](knowledge/) — including 2 **Mermaid decision trees** (PPO keep/re-negotiate/drop; hygiene capacity fill-before-expand) and an enriched, cited KPI glossary. Figures carry a source + date, advisory numbers are marked `[ESTIMATE]`, and anything from training knowledge is marked `[unverified — training knowledge]`.
 
 ## Scenarios & tooling
 
@@ -46,7 +46,7 @@ Holds overhead to benchmark, protects the collection ratio, raises case acceptan
 ## Install
 
 ```shell
-/plugin marketplace add ./            # from a separate Claude Code project
+/plugin marketplace add ./ # from a separate Claude Code project
 /plugin install dental-practice@ravenclaude
 ```
 

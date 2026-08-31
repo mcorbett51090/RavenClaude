@@ -5,7 +5,7 @@ argument-hint: "[the policy + regime, e.g. 'an AML policy refresh for a Bermuda 
 
 # Write a compliance policy
 
-You are running `/regulatory-compliance:write-compliance-policy`. Draft or refresh the policy the user described (`$ARGUMENTS`), following this plugin's `policy-and-procedure-writer` discipline. A 100-page policy nobody reads is worse than a 12-page policy everyone reads — and the extra length is usually procedure that doesn't belong there.
+You are running `/regulatory-compliance:write-compliance-policy`. Draft or refresh the policy the user described (`$ARGUMENTS`), following this plugin's `policy-and-procedure-writer` discipline. The agent-consumed playbook is [`../skills/compliance-policy-authoring/SKILL.md`](../skills/compliance-policy-authoring/SKILL.md); keep this command and that skill in lockstep. A 100-page policy nobody reads is worse than a 12-page policy everyone reads — and the extra length is usually procedure that doesn't belong there.
 
 ## When to use this
 

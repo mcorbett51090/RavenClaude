@@ -8,11 +8,11 @@ A **AI / RAG Engineering specialist team** for a RAG architect, ML engineer, or 
 
 | Surface | Contents |
 |---|---|
-| **4 agents** | `rag-architect-lead`, `retrieval-eval-analyst`, `ingestion-chunking-specialist`, `llm-serving-cost-specialist` |
-| **5 skills / commands** | `build-rag-eval` · `diagnose-retrieval` · `tune-chunking` · `budget-tokens` · `ground-and-guardrail` |
-| **4-file knowledge bank** | KPI glossary · unit economics · 2025–2026 context · Mermaid decision trees |
-| **4 templates** | scorecard · exec readout · rag-eval-sheet.md · serving-cost-sheet.md |
-| **1 advisory hook** | flags anti-patterns (unbaselined metric, unsourced benchmark, user data / prompt PII) in generated deliverables |
+| **agents** | `rag-architect-lead`, `retrieval-eval-analyst`, `ingestion-chunking-specialist`, `llm-serving-cost-specialist` |
+| **skills / commands** | `build-rag-eval` · `diagnose-retrieval` · `tune-chunking` · `budget-tokens` · `ground-and-guardrail` |
+| **knowledge bank** | KPI glossary · unit economics · 2025–2026 context · Mermaid decision trees |
+| **templates** | scorecard · exec readout · rag-eval-sheet.md · serving-cost-sheet.md |
+| **an advisory hook** | flags anti-patterns (unbaselined metric, unsourced benchmark, user data / prompt PII) in generated deliverables |
 | **`scripts/ai_rag_engineering_calc.py`** | stdlib calculator — `retrieval-eval` · `token-cost` · `chunk-budget` |
 
 ## Install

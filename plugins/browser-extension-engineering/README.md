@@ -15,16 +15,16 @@ pipelines.
 ## What this plugin gives you
 
 - The **MV3 architecture** done right — the ephemeral service-worker background
-  (and the MV2→MV3 "background page is gone" trap), content-script isolation,
-  message passing, and `chrome.storage`.
+ (and the MV2→MV3 "background page is gone" trap), content-script isolation,
+ message passing, and `chrome.storage`.
 - A **least-privilege permissions** posture — narrow `host_permissions`,
-  `activeTab` over broad host access, optional permissions requested at runtime,
-  and the review-risk each permission carries.
+ `activeTab` over broad host access, optional permissions requested at runtime,
+ and the review-risk each permission carries.
 - A **store-submission readiness** path for the **Chrome Web Store**, **Edge
-  Add-ons**, and **Firefox AMO** — the metadata, the privacy/permissions
-  justification, and the common rejection reasons.
+ Add-ons**, and **Firefox AMO** — the metadata, the privacy/permissions
+ justification, and the common rejection reasons.
 - The **cross-browser delta** — Chrome's callback APIs vs Firefox's promise-based
-  `browser.*`, and where the WebExtensions surface diverges.
+ `browser.*`, and where the WebExtensions surface diverges.
 
 ## The two agents
 
@@ -43,20 +43,20 @@ pipelines.
 ## When to use it
 
 - You're starting an extension and need the MV3 architecture + permissions model
-  right before you write code.
+ right before you write code.
 - Your extension was rejected (often for excessive permissions or a missing
-  justification) and you need to fix the manifest and resubmit.
+ justification) and you need to fix the manifest and resubmit.
 - You're migrating an MV2 extension to MV3 and hit the service-worker lifecycle
-  and background-page removal.
+ and background-page removal.
 
 ## When *not* to use it
 
 - You need app-grade React UI architecture (a popup that's basically an app) —
-  that's `frontend-engineering`. This plugin owns the *extension shell* around it.
+ that's `frontend-engineering`. This plugin owns the *extension shell* around it.
 - You're building a desktop app (Electron/Tauri) — that's `desktop-app-engineering`.
 - You need a security *verdict* — escalate to `security-engineering` /
-  `ravenclaude-core/security-reviewer`. This plugin owns the extension-specific
-  least-privilege posture and escalates verdicts.
+ `ravenclaude-core/security-reviewer`. This plugin owns the extension-specific
+ least-privilege posture and escalates verdicts.
 
 ## Seams to neighbouring plugins
 

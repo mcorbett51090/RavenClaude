@@ -21,16 +21,16 @@ Part of the [RavenClaude](../../README.md) marketplace. Extends `ravenclaude-cor
 
 ## What's inside
 
-- **2 agents** — `funeral-operations-lead` (runs the case-flow / staffing / capacity / pre-need / aftercare / margin side and routes) and `funeral-arrangement-and-compliance-specialist` (the arrangement conference, the FTC Funeral Rule, cremation authorization & chain-of-custody, vital records & permits).
-- **3 skills** — `run-funeral-arrangement-and-intake`, `manage-case-logistics-and-fulfillment`, `ensure-deathcare-compliance-and-pricing`.
-- **2 knowledge files** — a Mermaid deathcare-compliance decision tree (at-need vs pre-need → disposition → which price lists & disclosures fire → authorization & permits) and a 2026 funeral-operations-patterns reference (case-flow pipeline, disposition mix & the cremation-rate shift, staffing/on-call, pre-need funding, aftercare, family experience, technology, dated benchmarks).
-- **2 templates** — an at-need arrangement worksheet and a General Price List compliance checklist.
+- **agents** — `funeral-operations-lead` (runs the case-flow / staffing / capacity / pre-need / aftercare / margin side and routes) and `funeral-arrangement-and-compliance-specialist` (the arrangement conference, the FTC Funeral Rule, cremation authorization & chain-of-custody, vital records & permits).
+- **skills** — `run-funeral-arrangement-and-intake`, `manage-case-logistics-and-fulfillment`, `ensure-deathcare-compliance-and-pricing`.
+- **knowledge files** — a Mermaid deathcare-compliance decision tree (at-need vs pre-need → disposition → which price lists & disclosures fire → authorization & permits) and a 2026 funeral-operations-patterns reference (case-flow pipeline, disposition mix & the cremation-rate shift, staffing/on-call, pre-need funding, aftercare, family experience, technology, dated benchmarks).
+- **templates** — an at-need arrangement worksheet and a General Price List compliance checklist.
 
 ## The seam between the two agents
 
 ```
-funeral-operations-lead                         →  RUN THE BUSINESS   (case flow · staffing · capacity · pre-need · aftercare · margins)
-funeral-arrangement-and-compliance-specialist   →  ARRANGE & COMPLY   (the conference · FTC Funeral Rule · cremation auth · vital records)
+funeral-operations-lead → RUN THE BUSINESS (case flow · staffing · capacity · pre-need · aftercare · margins)
+funeral-arrangement-and-compliance-specialist → ARRANGE & COMPLY (the conference · FTC Funeral Rule · cremation auth · vital records)
 ```
 
 The lead is first contact for any new problem; it scopes, reads the operational picture, and hands the arrangement conference, pricing/disclosures, authorization, and vital records to the specialist. The specialist owns the regulatory spine — GPL/CPL/OBC lists, itemization, the telephone-price and embalming-not-required disclosures, no-misrepresentation, cremation ID/authorization/custody, and permits.
@@ -38,10 +38,10 @@ The lead is first contact for any new problem; it scopes, reads the operational 
 ## Where it sits (and where it stops)
 
 ```
-funeral-home-operations (HERE)  →  arrange · price · disclose · authorize · fulfill the services   ("serve the family, compliantly & solvently")
-cemetery / interment            →  grounds · grave opening/closing · plot operations               (ADJACENT — out of scope; coordinate with, don't run)
-behavioral-health-practice      →  clinical grief / bereavement therapy                            ("treatment" — this team refers, does not treat)
-accounting-bookkeeping          →  the books · payroll · tax · the accounting behind the statement ("the ledger itself")
+funeral-home-operations (HERE) → arrange · price · disclose · authorize · fulfill the services ("serve the family, compliantly & solvently")
+cemetery / interment → grounds · grave opening/closing · plot operations (ADJACENT — out of scope; coordinate with, don't run)
+behavioral-health-practice → clinical grief / bereavement therapy ("treatment" — this team refers, does not treat)
+accounting-bookkeeping → the books · payroll · tax · the accounting behind the statement ("the ledger itself")
 ```
 
 This plugin does deathcare **operations and arrangement compliance**. It coordinates *with* the cemetery but does not run interment; it *refers* grief to clinical care but does not treat; it owns the itemized statement's structure but hands the books to `accounting-bookkeeping`.
