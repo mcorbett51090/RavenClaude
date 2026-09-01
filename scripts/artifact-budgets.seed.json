@@ -37,6 +37,11 @@
         "merge: #1025 <- origin/main after #1023 stall-watchdog (2026-08-28)",
         10420000,
         "MERGE-TIME RE-MEASURE. After #1004 and #1023 landed, merging origin/main into forge/vba-impl regenerates dashboard.html to 10,417,453 bytes (island payload 31,181 <= 31,500). The prior 10,412,000 ceiling was measured before stall-watchdog inventory entries were on main; this is the same PR #991 shape applied to the byte ceiling. Appended, never edited. Headroom to 10,420,000 (+0.03%)."
+      ],
+      [
+        "analog-closeness-scorecard — 1 inventory entry (Q2, analog-repos-gap-fill leftovers, 2026-08-30/31)",
+        10428000,
+        "One new analog-closeness-quality-bar-is-independent-of-score inventory entry (nuance + evidence block) plus the merged origin/main state (0.307.2, includes a research-sweep knowledge edit) push dashboard.html to 10,425,179 bytes (island payload unchanged within budget, no DOM growth — no new stage card in this PR). Appended, never edited. Headroom to 10,428,000 (+0.03%)."
       ]
     ],
     "index.html": [
@@ -48,5 +53,5 @@
       ]
     ]
   },
-  "measured_against": "0a3f49be2e082581107a6a959e4f8ee8157db69b"
+  "measured_against": "0b6593f3f48a1c72b1c79c576711cdb9bb2f89a4"
 }

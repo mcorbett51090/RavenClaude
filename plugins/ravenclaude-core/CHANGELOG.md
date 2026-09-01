@@ -2,6 +2,19 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.308.0 — 2026-08-30
+
+### Added
+
+- **`analog-closeness-scorecard` skill** — recomputes the M/H/G/O/E/I/T/V weighted
+  closeness score from the 2026-08-14 analog-repos-gap-fill survey as a reusable,
+  self-tested script, instead of hand-deriving the arithmetic for a future
+  comparison. `--self-test` pins two published survey rows verbatim (regression
+  proof) plus a must-fail-shaped fixture (a high arithmetic score with M=H=G=0 and
+  every dimension inferred, not observed) that the quality bar must still reject.
+  Q2 of the analog-repos-gap-fill leftovers, unparked on owner request. Skill
+  count 56 → 57.
+
 ## 0.307.2 — 2026-08-31
 
 ### Added
