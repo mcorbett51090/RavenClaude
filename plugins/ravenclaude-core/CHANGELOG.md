@@ -6,6 +6,12 @@ All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the 
 
 ### Added
 
+- **`check-trigger-scoping-consistency.py` (Gate 253)** — PR 6 / Phase 9 of the
+  2026-08-13 recurring-defect-hardening initiative, the last un-shipped PR from
+  that 17-PR set. Statically flags a bare unscoped `.*` trigger sitting beside
+  a properly separator-scoped sibling in the same command-review category —
+  the exact shape of the `srm.force-push` (v0.242.0) and `sce.curl-pipe-shell`
+  (v0.244.0/.1) incidents, this time caught before merge instead of after.
 - **`analog-closeness-scorecard` skill** — recomputes the M/H/G/O/E/I/T/V weighted
   closeness score from the 2026-08-14 analog-repos-gap-fill survey as a reusable,
   self-tested script, instead of hand-deriving the arithmetic for a future
@@ -14,6 +20,18 @@ All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the 
   every dimension inferred, not observed) that the quality bar must still reject.
   Q2 of the analog-repos-gap-fill leftovers, unparked on owner request. Skill
   count 56 → 57.
+
+### Fixed
+
+- **Two previously-uncaught instances of that same defect class**, found by
+  the new checker's first real run and fixed in the same change:
+  `xc.no-undo`'s `curl … -X DELETE` trigger and
+  `srm.push-to-protected-branch`'s trigger both used a bare `.*` beside an
+  already-scoped sibling in their own category/entry. Both now use the same
+  `[^|&;\n]*` convention as their siblings. Neither was independently
+  exploitable as a security bypass (the bare `.*` only risked over-triggering
+  across a chained command, never under-detecting); both are real consistency
+  defects the new gate exists to catch.
 
 ## 0.307.2 — 2026-08-31
 
