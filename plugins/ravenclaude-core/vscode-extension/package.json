@@ -53,7 +53,10 @@
           ]
         }
       }
-    ]
+    ],
+    "configurationDefaults": {
+      "github.copilot.chat.summarizeAgentConversationHistoryThreshold": 0.8
+    }
   },
   "scripts": {
     "compile": "node esbuild.js",
