@@ -2,6 +2,12 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.16.3] — 2026-09-01
+
+### Added
+
+- **`knowledge/design-md-token-interop.md`** — verified this repo's `design-tokens-scaffolding` W3C DTCG pipeline against `google-labs-code/design.md` (Google Labs' alpha-stage `DESIGN.md` spec for handing design tokens + visual-identity rationale to a coding agent in one file). Same token vocabulary (DTCG), different delivery envelope: an optional, opt-in export at the `brand-identity-studio` `assemble-brand-book` handoff, never a pipeline change. Cross-linked from the knowledge bank (`CLAUDE.md` §8a) and `design-tokens-scaffolding/SKILL.md` §5. Prompted by a review of [generativeprogrammer.com's survey of emerging agent-facing markdown formats](https://generativeprogrammer.com/p/emerging-markdown-formats-that-shape) — most of the formats it describes (`AGENTS.md`, `CLAUDE.md`, `SKILL.md`, `MEMORY.md`) this marketplace already implements; `DESIGN.md` was the one genuinely new, verified, actionable gap.
+
 ## [0.16.2] — 2026-08-17
 
 ### Fixed

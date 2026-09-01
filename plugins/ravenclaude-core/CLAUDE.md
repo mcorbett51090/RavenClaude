@@ -3501,3 +3501,57 @@ knob), the extension is an opt-in separate install with its own tooling, and not
 plugin's default behavior changes on `/plugin marketplace update`.
 
 **Migration:** none — documentation + knowledge only.
+
+## DESIGN.md — a house default for ad-hoc HTML, cross-cutting across every plugin (added 2026-09-01, v0.310.0)
+
+A review of an article on emerging agent-facing markdown formats verified
+[`google-labs-code/design.md`](https://github.com/google-labs-code/design.md) (Google Labs, alpha) as a
+real spec for handing design tokens + visual-identity rationale to a coding agent in one file. The
+initial read placed it entirely in `web-design`/`brand-identity-studio` — a client's own brand is
+domain-specific, and that plugin already got a cross-linked knowledge note (PR #1063). **That
+placement was incomplete, not wrong**, once the owner named the actual gap: *"I'm always creating
+html files so that I can learn what's happening and we need a consistent format across all repos."*
+That is a **different** case from a client brand — an agent in *any* plugin occasionally generates
+an ad-hoc informational HTML artifact (a diagnostic report, an audit summary, a status dashboard, an
+`Artifact`-tool explainer page) with no client to brand, and it should look consistent by default
+without every session re-inventing a look.
+
+**Two ships, two placements, same underlying idea:**
+
+- [`templates/DESIGN.md`](templates/DESIGN.md) — the shipped **house default**, real tokens (not
+  placeholders): the same "cool near-black canvas + one green accent" look
+  [`dashboard-assets/shared-tokens.css`](dashboard-assets/shared-tokens.css) already uses for this
+  repo's own `index.html`/`dashboard.html`, expressed here in the real `google-labs-code/design.md`
+  YAML-frontmatter-plus-prose format (fetched and verified against its own `docs/spec.md` this
+  session, not guessed) so a project's override, if it adds one, is also readable by that project's
+  own `npx @google/design.md` CLI.
+- [`knowledge/design-md-resolution.md`](knowledge/design-md-resolution.md) — the **two-tier
+  resolution rule**: a project-root `DESIGN.md` in the current repo wins outright for that repo; its
+  absence falls through to the shipped template. Mirrors the existing
+  `.ravenclaude/comfort-posture.yaml` / `environment-context.md` shape (a shipped default,
+  overridable per-repo by dropping a file at the expected path) rather than inventing a new pattern.
+
+**Why core, and why this is genuinely different from `web-design`'s note, not a duplicate of it:**
+every plugin's agents occasionally produce a diagnostic/report artifact — a finance compliance
+check, a Power Platform solution audit, a PM status report rendered as HTML — not just `web-design`.
+That is the domain-neutral test this constitution's own house rule sets. A client's branded product
+is the opposite case: always project-specific, no house default, correctly staying in `web-design`.
+Conflating the two would be the actual defect — a client's marketing page must never silently inherit
+this repo's own house look, and an internal diagnostic report gains nothing from per-engagement brand
+work.
+
+**Deliberately NOT auto-scaffolded** into every consumer repo by `/init-agent-ready` — most consumer
+repos never generate ad-hoc HTML, and pre-seeding an unused `DESIGN.md` everywhere is exactly the
+kind of file bloat this repo's own layout discipline argues against elsewhere. Resolution falls
+through to the shipped template with zero per-repo setup; a repo opts into a different look only by
+choosing to add its own file.
+
+**Behavioral, not (yet) machine-enforced** — like `design_checkins`/`decision_review`, this is a
+convention an agent follows, not a hook-gated rule. No gate currently checks that a generated HTML
+artifact actually resolved and applied these tokens. If that becomes a recurring miss, a lint over
+generated `.html` (the same shape as `claim-grounding-lint.sh`) is the enforceable sliver, not yet
+built — named here rather than left unstated.
+
+**Migration:** none — a new template + knowledge file; nothing in an installed plugin's default
+behavior changes on `/plugin marketplace update`. A consumer sees the difference only when an agent
+generates an ad-hoc HTML artifact and resolves this file for its look.

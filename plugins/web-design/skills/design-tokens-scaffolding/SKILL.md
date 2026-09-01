@@ -145,6 +145,13 @@ Pick W3C-aligned format for forward compatibility:
 
 The `$value`, `$type`, `$description` triple is the W3C convention. References use `{path.to.token}` syntax.
 
+**Optional cross-agent export.** If the tokens need to stay legible to a coding agent operating
+outside this repo's build tooling (a different session, a different host), an emerging
+alpha-stage format — `DESIGN.md` (Google Labs) — exports this same W3C DTCG token set to a single
+git-committed file alongside a Tailwind config. It is an optional additional artifact, not a
+replacement for the pipeline below — see
+[`../../knowledge/design-md-token-interop.md`](../../knowledge/design-md-token-interop.md).
+
 ## 6. Build pipeline
 
 The pipeline is the contract:
@@ -236,5 +243,6 @@ Once the system ships, drift is the failure mode:
 - Skill: [`../accessibility-review/SKILL.md`](../accessibility-review/SKILL.md) — color contrast checks live here
 - Template: [`../../templates/design-system-spec.md`](../../templates/design-system-spec.md)
 - Knowledge: [`../../knowledge/design-references.md`](../../knowledge/design-references.md)
+- Knowledge: [`../../knowledge/design-md-token-interop.md`](../../knowledge/design-md-token-interop.md) — the optional `DESIGN.md` cross-agent export
 - Agent: [`../../agents/visual-designer.md`](../../agents/visual-designer.md)
 - Agent: [`../../agents/frontend-implementer.md`](../../agents/frontend-implementer.md)

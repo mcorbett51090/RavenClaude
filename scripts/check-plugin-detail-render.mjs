@@ -162,7 +162,9 @@ const RC_BASELINE = {
   //        30 -> 31: enforce-git-protocol.sh (v0.246.0, the in-loop git-protocol hook)
   //        31 -> 32: enforce-portability.sh (v0.255.0, the in-loop macOS-portability lint)
   rules: 5,
-  templates: 25, // 24 -> 25: templates/ledger/ (task-ledger Phase 0 — the event +
+  templates: 26, // 25 -> 26: templates/DESIGN.md (v0.310.0, the house-default visual
+  //        identity for ad-hoc HTML artifacts). Top-level scan only.
+  //        24 -> 25: templates/ledger/ (task-ledger Phase 0 — the event +
   //        config JSON Schemas). Top-level scan only, so the TWO schema files
   //        inside that dir increment this by one, not by two — the same rule the
   //        worktree-lane note below records.
