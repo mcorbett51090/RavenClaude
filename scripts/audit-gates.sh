@@ -720,6 +720,13 @@ PY
       bash plugins/ravenclaude-core/hooks/tests/test-gate254-precompact-digest.sh --must-fail-block || rc=$?
       exit $rc
       ;;
+    255)
+      echo "── Gate 255: agent-routing-matrix.json schema + anti-duplication + totality ──"
+      rc=0
+      python3 plugins/ravenclaude-core/scripts/check-agent-routing-matrix.py || rc=$?
+      rc_mustfail python3 plugins/ravenclaude-core/scripts/check-agent-routing-matrix.py || rc=$?
+      exit $rc
+      ;;
     243)
       echo "── Gate 243: scheduled sweep contract + operator health card ──"
       bash plugins/ravenclaude-core/hooks/tests/test-gate243-sweep-and-health-card.sh
@@ -1524,7 +1531,7 @@ PY
       ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254, 255. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -9382,6 +9389,37 @@ gate "PreCompact digest hook fires-and-forgets on every error path" must_pass "$
 rc=0
 bash plugins/ravenclaude-core/hooks/tests/test-gate254-precompact-digest.sh --must-fail-block >/dev/null 2>&1 || rc=$?
 gate "PreCompact digest hook fail-safe wrapping has teeth (mutant blocks)" must_pass "$rc"
+
+echo
+echo "── Gate 255: agent-routing-matrix.json schema + anti-duplication + totality ──"
+# The agent + model + effort-level routing matrix (plugins/ravenclaude-core/knowledge/
+# agent-routing-matrix.{json,schema.json,md}). 9 checks (A-I): hand-rolled schema
+# validation (A, meta-teeth mutates the SCHEMA itself); a vendor-fact ban-list DERIVED
+# at gate time from substrate-tier-map.json + model-catalog.json's own leaf values,
+# scanned against both the JSON and the whitespace/markdown-normalized .md (B) --
+# this build's own first draft tripped it for real, on a SKU embedded in a rationale
+# string and a display-name form left in the doc's own prose, before either was fixed;
+# no numeric confidence anywhere (C, split exact-on-JSON / shape-match-on-.md so the
+# doc's own explanatory paragraph doesn't trip it); agent_hosts + every model_ref
+# checked by STRICT KEY MEMBERSHIP on the parsed substrate map, deliberately never via
+# resolve_tier() (D1/D2 -- that resolver has silent unknown-host/unknown-tier
+# fallbacks, so a resolver-based check would pass an agent-id-typo'd into a host field
+# silently); every framework-rule quote verified to exist verbatim in its cited source
+# file (E, existence not relevance, stated honestly); ownership metadata carries real
+# values not just presence (F); route-task.py --self-test reports an N/N (never a
+# hardcoded 17) pass line (G, framed as new coverage -- that script was not previously
+# in this suite at all); and per-task_class totality bounded to the 4 grounded cells
+# (I -- inline/chat/agent+reversible/agent+irreversible; NOT the full 3x2 product,
+# because inline/chat x irreversible is not a combination the source decision trees
+# define, and requiring it would manufacture fabricated content the way an earlier
+# 6-cell design would have).
+rc=0
+python3 plugins/ravenclaude-core/scripts/check-agent-routing-matrix.py >/dev/null 2>&1 || rc=$?
+gate "agent-routing-matrix: all 9 checks pass against the shipped data" must_pass "$rc"
+
+rc=0
+rc_mustfail python3 plugins/ravenclaude-core/scripts/check-agent-routing-matrix.py >/dev/null 2>&1 || rc=$?
+gate "agent-routing-matrix: --must-fail teeth (13 mutants + 1 live G control)" must_pass "$rc"
 
 echo "── analog-closeness-scorecard (Q2 leftover, docs/follow-ups/2026-08-14-analog-repos-leftovers.md) ──"
 # Recomputes the 2026-08-14 analog survey's own M/H/G/O/E/I/T/V weighted-closeness

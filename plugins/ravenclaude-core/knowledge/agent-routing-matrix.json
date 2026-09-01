@@ -1,0 +1,365 @@
+{
+  "schema_version": "1",
+  "owner": "ravenclaude-core (domain-neutral, per AGENTS.md house rule 1 -- no per-agent owner)",
+  "staleness_tier": "Tier-4",
+  "review_trigger": "weekly researcher-reminder.yml sweep -- ravenclaude-core is already tier_a_news in .ravenclaude/plugins/sweep-tiers.yaml (no new mechanism); re-verify every model_ref against substrate-tier-map.json and model-catalog.json on any sweep that touches either file",
+  "last_reviewed": "2026-09-01",
+  "sources": [
+    {
+      "id": "lineup",
+      "path": "plugins/ai-coding-model-guidance/knowledge/cross-tool-model-lineup-2026.md"
+    },
+    {
+      "id": "claude-caps",
+      "path": "plugins/claude-app-engineering/knowledge/model-selection-and-2026-capability-map.md"
+    },
+    {
+      "id": "substrate",
+      "path": "plugins/ravenclaude-core/knowledge/substrate-tier-map.json"
+    },
+    {
+      "id": "catalog",
+      "path": "plugins/ravenclaude-core/knowledge/model-catalog.json"
+    },
+    {
+      "id": "mode-tree",
+      "path": "plugins/ai-coding-model-guidance/knowledge/ai-coding-mode-selection-decision-tree.md"
+    },
+    {
+      "id": "cost-tree",
+      "path": "plugins/ai-coding-model-guidance/knowledge/ai-coding-right-size-cost-decision-tree.md"
+    },
+    {
+      "id": "cheap-lane",
+      "path": "plugins/ravenclaude-core/skills/cheap-lane-delegation/SKILL.md"
+    },
+    {
+      "id": "copilot-chat-c8",
+      "note": "GitHub Copilot docs (docs.github.com/en/copilot/reference/ai-models/supported-models), retrieved 2026-09-01 this build -- no per-Chat model-availability table; Chat inherits its client's (VS Code's) row in the documented per-client table. Copilot CLI and Chat are NOT equivalent for model SELECTABILITY -- see agent-routing-matrix.md."
+    }
+  ],
+  "agent_hosts": {
+    "claude-code": "claude",
+    "codex-cli": "codex",
+    "copilot-cli": "copilot",
+    "copilot-chat": "copilot",
+    "grok-build-cli": "grok"
+  },
+  "task_classes": {
+    "coding-implementation": {
+      "label": "Writing / editing code -- everyday implementation",
+      "complexity_note": "Spans the full interaction-mode range by design: the same content (implementing or changing code) shows up as an inline suggestion, a supervised chat edit, or an autonomous multi-file run. Cheap-lever-tried-first: the default/balanced tier resolves most of it; escalate on demonstrated difficulty, never pre-emptively.",
+      "recommendations": [
+        {
+          "interaction_mode": "inline",
+          "blast_radius": "reversible",
+          "agent": "claude-code",
+          "model_ref": { "host": "claude", "tier": "fast" },
+          "rank": 1,
+          "basis": "framework-rule",
+          "quote": "Inline completion ⇒ fast/cheap tier only. Latency is the binding constraint; a heavy model here is wasted reasoning, added lag, and added cost",
+          "rationale": "Inline completion is never the place to pay for reasoning depth -- the mode tree gates this at fast/cheap tier unconditionally, before any difficulty judgment.",
+          "sources": ["mode-tree"]
+        },
+        {
+          "interaction_mode": "inline",
+          "blast_radius": "reversible",
+          "agent": "codex-cli",
+          "model_ref": { "host": "codex", "tier": "fast" },
+          "rank": 2,
+          "basis": "framework-rule",
+          "quote": "a frontier model on a one-liner wastes latency AND money for no quality gain",
+          "rationale": "Same rule, second host -- the cost tree's FAST leaf names the exact failure mode (frontier on a one-liner) this cell exists to avoid regardless of which CLI is in play.",
+          "sources": ["cost-tree"]
+        },
+        {
+          "interaction_mode": "chat",
+          "blast_radius": "reversible",
+          "agent": "claude-code",
+          "model_ref": { "host": "claude", "tier": "balanced" },
+          "rank": 1,
+          "basis": "framework-rule",
+          "quote": "Chat / edit ⇒ balanced default, escalate per task. You are supervising each diff, so the gate is built in; reserve a tier bump for a demonstrably hard sub-task.",
+          "rationale": "The mode tree's chat/edit leaf: you review every diff, so the balanced default is the right standing choice and a tier bump is reserved for a sub-task that proves it needs one.",
+          "sources": ["mode-tree"]
+        },
+        {
+          "interaction_mode": "chat",
+          "blast_radius": "reversible",
+          "agent": "copilot-chat",
+          "model_ref": { "host": "copilot", "tier": "balanced" },
+          "rank": 2,
+          "basis": "framework-rule",
+          "quote": "Try the default model first; on Codex raise the reasoning level before upgrading the model - reasoning level costs latency, not dollars",
+          "rationale": "Same cheap-lever-first discipline on the VS Code Copilot Chat surface. Chat's own in-UI model picker is the escalation lever when the balanced default proves insufficient.",
+          "sources": ["cost-tree", "copilot-chat-c8"]
+        },
+        {
+          "interaction_mode": "agent",
+          "blast_radius": "reversible",
+          "agent": "claude-code",
+          "model_ref": { "host": "claude", "tier": "balanced" },
+          "rank": 1,
+          "basis": "framework-rule",
+          "quote": "Agent (autonomous) ⇒ tier follows blast radius, and scope must be defined first. Reversible/PR-opening runs → balanced or raised reasoning",
+          "rationale": "A well-scoped autonomous run that opens a PR is gated by that review, not by a human approving each step -- the mode tree puts this at balanced/raised-reasoning, not frontier.",
+          "sources": ["mode-tree"]
+        },
+        {
+          "interaction_mode": "agent",
+          "blast_radius": "reversible",
+          "agent": "codex-cli",
+          "model_ref": { "host": "codex", "tier": "balanced" },
+          "rank": 2,
+          "basis": "framework-rule",
+          "quote": "Balanced default tier - best cost-per-resolved-task for most work; measure cost-per-RESOLVED-task, not per-call",
+          "rationale": "Codex's own reasoning-level dial is the cheaper escalation lever before a bigger SKU for a run that turns out harder than expected mid-flight.",
+          "sources": ["cost-tree"]
+        },
+        {
+          "interaction_mode": "agent",
+          "blast_radius": "reversible",
+          "agent": "grok-build-cli",
+          "model_ref": { "host": "grok", "tier": "balanced" },
+          "rank": 3,
+          "basis": "capability-fact",
+          "rationale": "Grok Build CLI's balanced tier already carries the architect perspective (SSOT, smallest surface) with high effort -- a reasonable third option for a reversible autonomous run, resolved entirely through the tier map with no independent effort field on this recommendation.",
+          "sources": ["substrate", "cheap-lane"]
+        },
+        {
+          "interaction_mode": "agent",
+          "blast_radius": "irreversible",
+          "agent": "claude-code",
+          "model_ref": { "host": "claude", "tier": "top" },
+          "rank": 1,
+          "basis": "framework-rule",
+          "quote": "AGENT mode with a HUMAN GATE - frontier tier; approval before and at each irreversible step",
+          "rationale": "An irreversible autonomous step (DB writes, deploys, secret rotation, force-push) is never a cost-optimization decision -- the mode tree's rule is unconditional: frontier tier, plus a human gate, no exceptions.",
+          "sources": ["mode-tree"]
+        },
+        {
+          "interaction_mode": "agent",
+          "blast_radius": "irreversible",
+          "agent": "codex-cli",
+          "model_ref": { "host": "codex", "tier": "top" },
+          "rank": 2,
+          "basis": "framework-rule",
+          "quote": "irreversible runs → frontier plus a human gate",
+          "rationale": "Same unconditional rule, second host -- an irreversible step never skips the human gate regardless of which CLI is driving it.",
+          "sources": ["mode-tree"]
+        }
+      ]
+    },
+    "coding-debugging-design": {
+      "label": "Hard tail: rare debugging, system design, eval rubrics",
+      "complexity_note": "Genuine hard tail: the cost of a wrong output exceeds the model premium. Pin frontier for the bounded hard session, then drop back -- never as a standing default. Even hard-tail work starts with cheap triage before it's known to be hard.",
+      "recommendations": [
+        {
+          "interaction_mode": "inline",
+          "blast_radius": "reversible",
+          "agent": "claude-code",
+          "model_ref": { "host": "claude", "tier": "fast" },
+          "rank": 1,
+          "basis": "framework-rule",
+          "quote": "a frontier model on a one-liner wastes latency AND money for no quality gain",
+          "rationale": "Initial triage of a bug (narrowing a stack trace, a quick syntax fix while investigating) is still latency-bound -- the hard-tail premium applies once the problem is confirmed hard, not to every keystroke along the way.",
+          "sources": ["cost-tree"]
+        },
+        {
+          "interaction_mode": "chat",
+          "blast_radius": "reversible",
+          "agent": "claude-code",
+          "model_ref": { "host": "claude", "tier": "top" },
+          "rank": 1,
+          "basis": "framework-rule",
+          "quote": "Frontier tier is justified FOR THIS TASK - the cost of a wrong output exceeds the model premium; pin it only for the bounded hard session, then drop back",
+          "rationale": "A rare-debugging or system-design chat session is exactly the cost tree's FRONTIER leaf: the premium is worth it because a wrong answer costs more than the model does. Still chat mode -- you review the output.",
+          "sources": ["cost-tree"]
+        },
+        {
+          "interaction_mode": "agent",
+          "blast_radius": "reversible",
+          "agent": "claude-code",
+          "model_ref": { "host": "claude", "tier": "top" },
+          "rank": 1,
+          "basis": "cost-heuristic",
+          "rationale": "An autonomous run tasked with a confirmed-hard bug (not just 'debug this' unscoped) extends the FRONTIER leaf's reasoning to agent mode: pin the premium tier for the bounded hard session, gated by the PR review since the run stays reversible.",
+          "sources": ["cost-tree", "mode-tree"]
+        },
+        {
+          "interaction_mode": "agent",
+          "blast_radius": "irreversible",
+          "agent": "claude-code",
+          "model_ref": { "host": "claude", "tier": "top" },
+          "rank": 1,
+          "basis": "framework-rule",
+          "quote": "AGENT mode with a HUMAN GATE - frontier tier; approval before and at each irreversible step",
+          "rationale": "A hard-tail fix that also touches an irreversible surface (e.g. an autonomous fix-and-deploy) compounds two independent frontier-tier triggers -- difficulty and blast radius both point the same direction, with the human gate non-negotiable either way.",
+          "sources": ["mode-tree"]
+        },
+        {
+          "interaction_mode": "agent",
+          "blast_radius": "irreversible",
+          "agent": "codex-cli",
+          "model_ref": { "host": "codex", "tier": "top" },
+          "rank": 2,
+          "basis": "framework-rule",
+          "quote": "irreversible runs → frontier plus a human gate",
+          "rationale": "Same compounding logic, second host.",
+          "sources": ["mode-tree"]
+        }
+      ]
+    },
+    "research-deep": {
+      "label": "Multi-source research / fact verification (non-coding)",
+      "complexity_note": "Not a coding task, so no in-repo framework rule names it directly -- routed by extending the same cost-per-resolved-task discipline the coding trees establish, hence basis=cost-heuristic for the class-specific reasoning even where a general framework-rule quote is reused verbatim.",
+      "recommendations": [
+        {
+          "interaction_mode": "inline",
+          "blast_radius": "reversible",
+          "agent": "claude-code",
+          "model_ref": { "host": "claude", "tier": "fast" },
+          "rank": 1,
+          "basis": "cost-heuristic",
+          "rationale": "A single fact lookup or quick source check mid-task is latency-bound in the same sense an inline code edit is -- it is not the whole research loop, so it does not warrant the loop's own escalated tiers.",
+          "sources": ["cost-tree"]
+        },
+        {
+          "interaction_mode": "chat",
+          "blast_radius": "reversible",
+          "agent": "claude-code",
+          "model_ref": { "host": "claude", "tier": "balanced" },
+          "rank": 1,
+          "basis": "cost-heuristic",
+          "rationale": "A single research question is everyday work in disguise: the balanced default resolves most of it, escalating only when the question is genuinely contested (multiple disagreeing sources).",
+          "sources": ["cost-tree"]
+        },
+        {
+          "interaction_mode": "agent",
+          "blast_radius": "reversible",
+          "agent": "claude-code",
+          "model_ref": { "host": "claude", "tier": "top" },
+          "rank": 1,
+          "basis": "cost-heuristic",
+          "rationale": "A multi-phase, multi-source deep-research run (fan-out search, adversarial verification, synthesis) is the genuine hard tail of research: contested claims need the frontier tier's reconciliation strength during synthesis, even though the per-search-angle phases stay cheap.",
+          "sources": ["cost-tree"]
+        },
+        {
+          "interaction_mode": "agent",
+          "blast_radius": "irreversible",
+          "agent": "claude-code",
+          "model_ref": { "host": "claude", "tier": "top" },
+          "rank": 1,
+          "basis": "framework-rule",
+          "quote": "AGENT mode with a HUMAN GATE - frontier tier; approval before and at each irreversible step",
+          "rationale": "Research becomes irreversible the moment its output is published, sent, or written into a durable knowledge file others will trust -- the mode tree's unconditional gate rule applies regardless of the task's domain.",
+          "sources": ["mode-tree"]
+        }
+      ]
+    },
+    "writing-documentation": {
+      "label": "Long-form writing / documentation (non-coding)",
+      "complexity_note": "Structurally close to chat/edit: a human reviews the draft. Balanced default for most writing; escalate for a piece whose stakes justify the premium (a public-facing or legally-reviewed document).",
+      "recommendations": [
+        {
+          "interaction_mode": "inline",
+          "blast_radius": "reversible",
+          "agent": "claude-code",
+          "model_ref": { "host": "claude", "tier": "fast" },
+          "rank": 1,
+          "basis": "cost-heuristic",
+          "rationale": "Autocomplete while drafting a sentence is the same latency-bound case as inline code completion -- fast tier, no exceptions for the writing domain.",
+          "sources": ["cost-tree"]
+        },
+        {
+          "interaction_mode": "chat",
+          "blast_radius": "reversible",
+          "agent": "claude-code",
+          "model_ref": { "host": "claude", "tier": "balanced" },
+          "rank": 1,
+          "basis": "cost-heuristic",
+          "rationale": "Drafting prose is a supervised, reversible activity like any other chat/edit work -- the reviewer catches a wrong tone or a factual slip before it ships, so the balanced default is the right standing choice.",
+          "sources": ["mode-tree", "cost-tree"]
+        },
+        {
+          "interaction_mode": "chat",
+          "blast_radius": "reversible",
+          "agent": "grok-build-cli",
+          "model_ref": { "host": "grok", "tier": "balanced" },
+          "rank": 2,
+          "basis": "cost-heuristic",
+          "rationale": "A reasonable second option on the same reasoning -- Grok's balanced tier is priced and positioned as the everyday-work rung in the cited lineup, not just for coding tasks.",
+          "sources": ["lineup"]
+        },
+        {
+          "interaction_mode": "agent",
+          "blast_radius": "reversible",
+          "agent": "claude-code",
+          "model_ref": { "host": "claude", "tier": "balanced" },
+          "rank": 1,
+          "basis": "cost-heuristic",
+          "rationale": "An autonomous multi-file documentation pass (e.g. updating a whole docs site) that lands as a reviewable PR follows the same reversible-agent rule coding work does: balanced tier, the PR review is the gate.",
+          "sources": ["mode-tree"]
+        },
+        {
+          "interaction_mode": "agent",
+          "blast_radius": "irreversible",
+          "agent": "claude-code",
+          "model_ref": { "host": "claude", "tier": "top" },
+          "rank": 1,
+          "basis": "framework-rule",
+          "quote": "AGENT mode with a HUMAN GATE - frontier tier; approval before and at each irreversible step",
+          "rationale": "Publishing or sending a document autonomously (an email, a public page, a legally-reviewed filing) is an irreversible external action -- the unconditional gate rule applies.",
+          "sources": ["mode-tree"]
+        }
+      ]
+    },
+    "data-analysis": {
+      "label": "Exploratory data analysis / a one-off data question (non-coding)",
+      "complexity_note": "Usually latency- and cost-sensitive (many small queries) with an occasional genuinely hard reconciliation step (conflicting numbers, an ambiguous methodology) -- mirrors the cost tree's own cheap-lever-then-escalate ladder.",
+      "recommendations": [
+        {
+          "interaction_mode": "inline",
+          "blast_radius": "reversible",
+          "agent": "codex-cli",
+          "model_ref": { "host": "codex", "tier": "fast" },
+          "rank": 1,
+          "basis": "cost-heuristic",
+          "rationale": "A quick inline query suggestion (autocompleting a filter clause, a column name) is latency-bound the same way an inline code edit is.",
+          "sources": ["cost-tree"]
+        },
+        {
+          "interaction_mode": "chat",
+          "blast_radius": "reversible",
+          "agent": "claude-code",
+          "model_ref": { "host": "claude", "tier": "balanced" },
+          "rank": 1,
+          "basis": "cost-heuristic",
+          "rationale": "Most one-off data questions are everyday work: the balanced default handles a query-and-interpret loop with the human reviewing each result, escalating only when a sub-question proves genuinely hard.",
+          "sources": ["cost-tree"]
+        },
+        {
+          "interaction_mode": "agent",
+          "blast_radius": "reversible",
+          "agent": "claude-code",
+          "model_ref": { "host": "claude", "tier": "top" },
+          "rank": 1,
+          "basis": "cost-heuristic",
+          "rationale": "An unsupervised multi-step analysis that must reconcile genuinely conflicting sources or an ambiguous methodology before reporting a conclusion is the hard tail: the frontier tier's reconciliation strength justifies its premium here, same logic as research-deep's agent/reversible cell.",
+          "sources": ["cost-tree"]
+        },
+        {
+          "interaction_mode": "agent",
+          "blast_radius": "irreversible",
+          "agent": "claude-code",
+          "model_ref": { "host": "claude", "tier": "top" },
+          "rank": 1,
+          "basis": "framework-rule",
+          "quote": "AGENT mode with a HUMAN GATE - frontier tier; approval before and at each irreversible step",
+          "rationale": "A data-analysis run that writes back to a production system or triggers a downstream action (not just reads and reports) is irreversible -- the gate rule applies regardless of domain.",
+          "sources": ["mode-tree"]
+        }
+      ]
+    }
+  }
+}
