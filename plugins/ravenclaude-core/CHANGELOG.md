@@ -41,6 +41,21 @@ All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the 
   Fixed at all 5 sites in one commit; Gate 126 (the mirror byte-identity gate) confirmed the two
   `.js` copies stayed identical throughout.
 
+## 0.310.1 — 2026-09-01
+
+### Fixed
+
+- **Prompt Builder threw on a cold `#/prompt-builder` deep-link/reload** — `PB_MODELS`/`PB_PRESETS`
+  (`var`, not hoisted-with-value) are declared later in the dashboard's single concatenated `<script>`
+  than the initial `applyHash()` dispatch, so a direct hash-load called `initPromptBuilder()` →
+  `pbBuildControls()` before those arrays were assigned, throwing `Cannot read properties of undefined
+  (reading 'forEach')`. Normal in-app click navigation was unaffected (the whole script had already
+  finished executing by then), which is why this only surfaced on a bookmarked/direct-loaded URL.
+  Fixed at the call site with `setTimeout(initPromptBuilder, 0)` — the same ordering-bug class as the
+  documented `pipelineServerAvailable` TDZ fix, resolved by deferring the call instead of relocating
+  the (non-stub-able, real) Prompt Builder data arrays. Verified with a real headless-Chrome render:
+  zero console errors and correct data (5 models, 6 templates) on both the deep-link and click paths.
+
 ## 0.310.0 — 2026-09-01
 
 ### Added

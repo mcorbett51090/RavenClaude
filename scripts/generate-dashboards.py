@@ -10765,7 +10765,18 @@ _JS = r"""
     if (tab === "pipeline") syncPipelineTab();
     if (tab === "plugin-vars") activatePluginVars(sub);
     if (tab === "web-access") hydrateWebAccess();
-    if (tab === "prompt-builder" && !pbLoaded) { pbLoaded = true; initPromptBuilder(); }
+    if (tab === "prompt-builder" && !pbLoaded) {
+      pbLoaded = true;
+      // Deferred, not called inline: PB_MODELS/PB_PRESETS (var, not hoisted-with-value)
+      // are declared LATER in this same script than the initial applyHash() call
+      // below, so a cold #/prompt-builder deep-link/reload calling initPromptBuilder()
+      // synchronously here would read them as undefined mid-script (TypeError on
+      // .forEach). setTimeout defers to after the whole script finishes executing,
+      // by which point every var in this file is assigned -- the same ordering bug
+      // class as the pipelineServerAvailable TDZ fix below, fixed at the call site
+      // instead of by relocating PB_MODELS/PB_PRESETS (real data, not a stub-able flag).
+      setTimeout(initPromptBuilder, 0);
+    }
     if (tab === "host-context" && !hcLoaded) { hcLoaded = true; initHostContext(); }
   }
   // Navigate: activate immediately, then reflect the page in the URL hash for

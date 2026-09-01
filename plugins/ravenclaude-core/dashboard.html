@@ -9828,7 +9828,7 @@ footer.page-footer a:hover { text-decoration: underline; }
         "scripts/sync-plugin-versions.py",
         "scripts/generate-copilot-plugin.py"
       ],
-      "covers_digest": "sha256:cdc7f2bf93946c8962264a8ec663d7cf81cc104d275dd86fc47b38bb65d7ba23",
+      "covers_digest": "sha256:b0e0b14ecc768a9aeaf48a7f08e9483d7f051163466dbcfa2baa1b237dc8ef44",
       "nuance": "The cache key is the `version` string, never a content hash, so `sync-plugin-versions.py` can report clean while every installed session keeps running the old `hooks/` code.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -10296,7 +10296,7 @@ footer.page-footer a:hover { text-decoration: underline; }
         "scripts/generate-dashboards.py",
         "scripts/generate-index-dashboard.py"
       ],
-      "covers_digest": "sha256:35da4bc065282b1e51f6e2622ec36a5dcbb069dffa2b67ec1b7a19d802deb5df",
+      "covers_digest": "sha256:15f3e392be2a9411ac61ffb08950bb1ef875b9feef331761c064087c85aa1eae",
       "nuance": "`ISLANDED_PANEL_COST` is a flat 2 because the parser reads the payload as CDATA, so `check-dom-budget.py` cannot fire on `learn-payload` no matter how far past 23,861 elements it grows.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -11439,9 +11439,9 @@ footer.page-footer a:hover { text-decoration: underline; }
     },
     {
       "drift": false,
-      "marketplace_version": "0.310.0",
+      "marketplace_version": "0.310.1",
       "plugin": "ravenclaude-core",
-      "plugin_version": "0.310.0"
+      "plugin_version": "0.310.1"
     },
     {
       "drift": false,
@@ -14165,7 +14165,18 @@ footer.page-footer a:hover { text-decoration: underline; }
     if (tab === "pipeline") syncPipelineTab();
     if (tab === "plugin-vars") activatePluginVars(sub);
     if (tab === "web-access") hydrateWebAccess();
-    if (tab === "prompt-builder" && !pbLoaded) { pbLoaded = true; initPromptBuilder(); }
+    if (tab === "prompt-builder" && !pbLoaded) {
+      pbLoaded = true;
+      // Deferred, not called inline: PB_MODELS/PB_PRESETS (var, not hoisted-with-value)
+      // are declared LATER in this same script than the initial applyHash() call
+      // below, so a cold #/prompt-builder deep-link/reload calling initPromptBuilder()
+      // synchronously here would read them as undefined mid-script (TypeError on
+      // .forEach). setTimeout defers to after the whole script finishes executing,
+      // by which point every var in this file is assigned -- the same ordering bug
+      // class as the pipelineServerAvailable TDZ fix below, fixed at the call site
+      // instead of by relocating PB_MODELS/PB_PRESETS (real data, not a stub-able flag).
+      setTimeout(initPromptBuilder, 0);
+    }
     if (tab === "host-context" && !hcLoaded) { hcLoaded = true; initHostContext(); }
   }
   // Navigate: activate immediately, then reflect the page in the URL hash for
