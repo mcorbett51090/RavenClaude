@@ -2796,3 +2796,46 @@ _Last verified: 2026-08-30_
 
 
 ---
+
+### The PreCompact digest hook never waits on its own engine · _RavenClaude-built_
+
+> precompact-digest.sh detaches its engine call so the archival hook can never turn into a synchronous ceiling on a turn.
+
+## What a reader would have assumed instead
+
+That a `PreCompact` archival hook calling a Python digest engine would run synchronously — wait for
+the engine, then return — the same shape most hooks in this repo use for a short-lived call.
+
+## The discriminator
+
+control: driven against a deliberately 3s-slow stub delegate — the hook returned in under 2000ms while
+the digest file appeared only afterward, proving detachment structurally rather than assuming the real
+path happens to be fast.
+
+Measured 2026-09-01: `precompact-digest.sh` backgrounds its engine call (`( _pcd_worker & )` inside a
+subshell that itself exits immediately) rather than waiting on it. A prior synchronous design ran the
+engine under a 10s ceiling — far below the engine's own 60s/90s subprocess budgets — so on the real
+path no digest was ever produced, while any egress to an external processor had already happened
+before the reader was killed. The detached shape fixes both: this hook adds no ceiling of its own on
+top of the engine's own internal timeouts, and it never blocks a turn regardless of how long extraction
+takes.
+
+## Why it matters
+
+Falsifier: the hook blocking on the digest engine before returning.
+
+Probe: `plugins/ravenclaude-core/hooks/tests/test-gate254-precompact-digest.sh`
+
+`PreCompact` fires just before a session's context is summarized away — the same moment its own
+digest engine is racing to read the untouched transcript. A hook that can block on that engine, even
+briefly, risks becoming exactly the "data left, no benefit arrived" failure the P4 security review
+found in the prior design: egress happens, but the digest the hook was supposed to produce never does,
+because the reader was killed first. Detachment removes that race by construction rather than by
+tuning a timeout.
+
+**Sources:** [P2 of the precompact-critical-context FORGE plan, hardened per the P4 security review](../plugins/ravenclaude-core/hooks/precompact-digest.sh)
+
+_Last verified: 2026-09-01_
+
+
+---

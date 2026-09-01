@@ -2,6 +2,37 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.309.0 — 2026-09-01
+
+### Added
+
+- **Pre-compaction critical-info capture — Tier 1 hook + Tier 2 VS Code extension.** Built via
+  `/forge` (`.ravenclaude/runs/forge/precompact-critical-context/`) against the ask "warn me before
+  an imminent compact, composed with the critical info to retain." Two research passes falsified the
+  premise both draft panels shared — `PreCompact`'s `systemMessage`/`stopReason` are a verified no-op
+  on VS Code Copilot Chat — and found the actual mechanism: a VS Code extension can trigger
+  `/compact <text>` via the stable, public `workbench.action.chat.open` command.
+  - **`hooks/precompact-digest.sh` + `scripts/precompact-digest.py`** — a new `PreCompact` hook (first
+    of its kind in this manifest's history), host-differentiated (fire-and-forget archival digest on
+    Claude Code + projected Copilot/skipped-with-reason on Cursor/Gemini), gated by the existing
+    `cheap_lane.mode` knob (no new knob invented) plus a fail-closed egress floor
+    (`orchestrator_repo_pii: false` OR `cheap_lane_zdr_confirmed: true`) mirroring
+    `claude-orchestrate.sh`'s own A-on-C floor. `compact-anchor.py` extended to also surface the
+    newest digest's path — derived values only, never digest/transcript content.
+  - **`vscode-extension/` (`ravenclaude-precompact-guard`)** — a new, standalone VS Code extension
+    (not a Claude Code plugin component) registering a Language Model Tool + a manual command +
+    status-bar item, all driving `workbench.action.chat.open({query: '/compact ' + digest})`. Honest
+    limit: works only for explicit/triggered compaction, never automatic background compaction
+    (`summarizationInstructions` has zero references in the auto-compact code path). VS Code
+    Marketplace publishing needs the owner's own publisher account — not attempted; `.vsix` is locally
+    buildable via `code --install-extension`.
+  - New inventory concept [`precompact-digest`](knowledge/concepts/precompact-digest.md) — the
+    detached-worker proof (the hook returns near-instantly even under a deliberately slow digest
+    engine, so it can never become a synchronous ceiling on a turn).
+  - Hooks count 50 → 51. See the CLAUDE.md milestone for the full P4 security-review disposition and
+    the three-projector (`generate-copilot-hooks.py` / `generate-cursor-hooks.py` /
+    `generate-gemini-hooks.py`) wiring.
+
 ## 0.308.0 — 2026-08-30
 
 ### Added

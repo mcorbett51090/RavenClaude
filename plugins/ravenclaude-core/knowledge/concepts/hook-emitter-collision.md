@@ -9,7 +9,7 @@ summary: "Two hooks registered on one event both emit. What the host does with t
 last_verified: 2026-08-25
 covers:
   - plugins/ravenclaude-core/hooks/hooks.json
-covers_digest: "sha256:1a12b8760b38b8ece06bb6f2c5b55e664bf62828178ac45eea27a1177d310a51"
+covers_digest: "sha256:f05c0f96e57b5e27ef6273ec2c44d9632b2fb1d9a60488a1c3edaf20a35b402a"
 nuance: "Two `additionalContext` emitters on one event concatenate rather than last-write-wins, but two `updatedToolOutput` emitters replace, so the second silently discards the first."
 nuance_evidence:
   measured: 2026-08-19

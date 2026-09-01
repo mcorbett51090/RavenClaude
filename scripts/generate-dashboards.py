@@ -1199,6 +1199,12 @@ _PIPELINE_EXCLUDED_HOOKS = {
     "Opt-in via `context_handoff.mode` (default off). Never writes the brief, never "
     "blocks unless the owner set `mode: block`, and is not a safety-floor card — same "
     "class as compact-anchor.sh (informational Stop/SessionStart context, not a drawn Pipeline stage)",
+    "precompact-digest.sh": "PreCompact archival hook (P2, precompact-critical-context "
+    "FORGE plan). Writes a curated pre-compaction digest to disk when it can; never "
+    "denies, never warns, and its output is never injected anywhere (PreCompact's "
+    "stdout is not read on Claude Code, and claim 20 proves it is a verified no-op on "
+    "VS Code). Same class as compact-anchor.sh and handoff-nudge.sh — informational, "
+    "not a safety-floor card, so deliberately NOT a Pipeline stage",
 }
 
 _PIPELINE_CONTROLS = {

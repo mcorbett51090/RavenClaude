@@ -1111,6 +1111,7 @@ Any plugin template that renders an HTML `<head>` (e.g. `templates/repo-build-st
 - `commands/` — slash commands shipped to consumers: `/init-agent-ready`, `/wrap`, `/set-posture`, `/dashboard` (launches the bundled `serve-dashboards.py` so the consumer gets the fully-functioning comfort-posture dashboard with one-click Save & apply), `/stream` (inspect/override the active Agentic Work-Stream — list/set/new/show/status, over the `rc streams` CLI), and `/reset-plugin-cache` (alias `/ragnarok`) — the high-blast-radius plugin-cache disaster-recovery command (see the callout below)
 - `knowledge/` — reference material the Researcher cross-checks (incl. `concerns-catalog.md`, the tribunal constitution; `visual-feedback-loop.md` — the render→see→critique→iterate canon for visual-output agents; `thing-denial-kb.md` + `thing-denial-resolutions.json` — the Muninn denial-KB mechanism + its seed resolutions map)
 - `monitors/` — reactive run-state monitor (`monitors.json` + `watch-run-state.sh`); declared via `experimental.monitors` in `plugin.json`. The push complement to the read-only Heimdall/Víðarr tabs — see the milestone above and [`knowledge/run-state-monitor.md`](knowledge/run-state-monitor.md). Claude-Code-only; scoped `on-skill-invoke:spawn-team`.
+- `vscode-extension/` — `ravenclaude-precompact-guard`, a standalone VS Code extension (its own `package.json`/`tsconfig.json`/`esbuild.js`/`src/`, built + installed with the native `vsce`/`code --install-extension` tooling, not Claude Code's plugin loader). Registers a Language Model Tool + a manual command + a status-bar affordance that trigger Copilot Chat's `/compact <digest>` via the stable `workbench.action.chat.open` command. No `plugin.json` field declares it — unlike `monitors/`, it has no Claude-Code-recognized manifest surface to hook into; the directory is authorized only via a `.repo-layout.json` glob, same as `bin/`. See the precompact-critical-context milestone below.
 
 ### Command review (the Thing) — tribunal T5 (updated 2026-05-26, v0.28.0)
 
@@ -3441,5 +3442,62 @@ unchanged.
 Deferred 14 synthesis-only findings remain in
 [`docs/research/2026-08-19-plugin-news-scan/`](../../docs/research/2026-08-19-plugin-news-scan/README.md).
 The Fabric Assistants-API P0 deadline (2026-08-26) has passed; re-verify before quoting.
+
+## Pre-compaction critical-info capture — Tier 1 hook + Tier 2 VS Code extension (added 2026-09-01, v0.309.0)
+
+Built via `/forge` (run in `.ravenclaude/runs/forge/precompact-critical-context/`) against the ask
+"warn me before an imminent compact, composed with the critical info to retain." Two independent
+research passes falsified the premise both draft panels shared — `PreCompact`'s `systemMessage`/
+`stopReason` are a verified no-op on VS Code Copilot Chat (`executePreCompactHook()` has no consumer
+for any of them, and `PreCompact` never fires there on a manual `/compact` at all) — and found the
+actual mechanism that satisfies the ask: a VS Code extension can programmatically trigger
+`/compact <text>` via the stable, public `workbench.action.chat.open` command, and that text lands
+verbatim in the summarization system prompt (the same call Microsoft's own Copilot extension uses for
+its "compact" button). The design ships in two tiers because they answer different halves of the ask.
+
+**Tier 1 — `hooks/precompact-digest.sh` + `scripts/precompact-digest.py` (host-agnostic, archival
+only).** A new `PreCompact` hook — first of its kind in this manifest's history — reads the
+`transcript_path` off the trusted `PreCompact` payload and launches the digest engine **detached**
+(fire-and-forget; see the `precompact-digest` inventory concept for the measured detachment proof),
+writing a curated critical-info digest to `.ravenclaude/runs/<session>/precompact-digest-<ts>.md`.
+Gated by the existing `cheap_lane.mode` knob (absent/off ⇒ fully inert — no new knob invented) plus a
+fail-closed egress floor (`orchestrator_repo_pii: false` OR `cheap_lane_zdr_confirmed: true`) enforced
+inside the engine, mirroring `claude-orchestrate.sh`'s own A-on-C floor. `compact-anchor.py` (Claude
+Code's existing post-compaction pointer) was extended to also surface the newest digest's path
+alongside its existing transcript pointer — derived-values-only, matching Gate 186's invariant. On
+VS Code this hook cannot warn or block (claim 20, above) — it is archival, matching its own upstream
+source comment; it ships regardless of the extension because Claude Code gets real value from it
+independent of VS Code. The three-projector contract was extended in the same commit:
+`generate-copilot-hooks.py` gained a `precompact` `_EVENT_MODE` entry +
+`copilot-hook-adapter.sh`'s matching case; `generate-cursor-hooks.py` / `generate-gemini-hooks.py`
+gained an explicit `_SKIP` with a stated reason (neither host has a verified compaction-hook event).
+
+**Tier 2 — `vscode-extension/` (`ravenclaude-precompact-guard`) — the actual differentiator.** A new
+component type, first of its kind in this repo (see the Layout entry above for why it carries no
+`plugin.json` field). Registers a Language Model Tool the Copilot agent can call autonomously from
+inside its own turn (it already has full conversation context there — no external heuristic needed),
+plus a manual command + status-bar item as a human-triggered backstop, because a non-participant
+extension cannot see live chat history and so has no reliable way to detect context pressure from
+outside the conversation. Both paths call the same mechanical trigger:
+`vscode.commands.executeCommand('workbench.action.chat.open', {query: '/compact ' + digest,
+preserveInput: true})`. Built with `esbuild` (bundled dev dependency only, matching this repo's
+no-consumer-facing-runtime-dependency bar). Ships `.vsix`-buildable + `code --install-extension`
+documented; **not** published to the VS Code Marketplace — that needs a publisher account/token this
+session did not hold, named explicitly rather than silently dropped.
+
+**Honest limit, stated plainly:** neither tier can influence *automatic* background compaction
+(`summarizationInstructions` has zero references in the auto-compact code path, positive-controlled).
+The design responds by triggering compaction proactively instead, which is what "before an imminent
+compact" already implied.
+
+**Security review (P4):** the egress path (cheap-lane call inside `precompact-digest.py`) was reviewed
+against the real implementation — scrub coverage against `_scrub.sh`'s pattern set, independent
+input-size bounding, and an explicit written disposition on the residual business-logic/PII exposure
+no regex scrub catches, matching this repo's own honest-limit framing for `orchestrator_scope: all`'s
+A-on-C floor.
+
+**Migration:** none — the hook is gated by the existing `cheap_lane` knob (absent/off ⇒ inert, no new
+knob), the extension is an opt-in separate install with its own tooling, and nothing in an installed
+plugin's default behavior changes on `/plugin marketplace update`.
 
 **Migration:** none — documentation + knowledge only.

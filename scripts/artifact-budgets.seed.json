@@ -42,6 +42,11 @@
         "MCP result quarantine + analog-closeness-scorecard — 2 inventory entries (Q1+Q2, analog-repos-gap-fill leftovers, 2026-08-30/31)",
         10436000,
         "Two independent PRs each added one inventory entry (mcp-quarantine-matcher-is-a-prefix and analog-closeness-quality-bar-is-independent-of-score) and each stayed under a 10,428,000 ceiling in isolation; merging them combines both entries' nuance+evidence blocks on the one dashboard.html surface, measured at 10,432,946 bytes. MCP quarantine's Pipeline-tab mention was folded into the existing sanitize-webfetch-output card (not a new card) to stay within the DOM-budget ratchet, so this is a pure JS-source/content bytes raise, no DOM growth beyond that. Re-measured on the merge; appended, never edited."
+      ],
+      [
+        "precompact-digest inventory entry (precompact-critical-context FORGE plan, P6 regen-discipline, 2026-09-01)",
+        10447000,
+        "The precompact-critical-context feature's P6 regen-discipline pass added one new inventory concept (precompact-digest — the detached-worker proof for hooks/precompact-digest.sh + scripts/precompact-digest.py) plus cosmetic covers_digest restamps on five pre-existing concepts whose covered artifacts (copilot-hook-adapter.sh, hooks.json, plugin.json, audit-gates.sh, generate-dashboards.py) legitimately changed content earlier in the same feature. Measured at 10,443,430 bytes (island payload 31,294 <= 31,500, unaffected — same no-diagrams-for-inventory-entries shape as every prior wave). Re-measured on the regenerated artifact; appended, never edited."
       ]
     ],
     "index.html": [

@@ -79,6 +79,13 @@ _SKIP = {
     "mark-web-domain-seen.sh": (
         "PostToolUse on WebFetch; pairs with guard-web-access.sh, which is skipped."
     ),
+    "precompact-digest.sh": (
+        "PreCompact. Cursor has no verified compaction-hook event (nothing analogous "
+        "to Claude Code's PreCompact is published on the pages verified), so wiring "
+        "this would claim coverage that does not exist. This hook is archival-only "
+        "and never denies, so the cost of the gap is one un-archived digest, not "
+        "lost enforcement."
+    ),
     # ⛔ R7 — THE THREE verify-before-assert CELLS SHIP **UNWIRED AND DECLARED**.
     # This is a deliberate DOWNGRADE from what the lane would otherwise do: both
     # Bash-shaped hooks below would map cleanly onto beforeShellExecution, and the
