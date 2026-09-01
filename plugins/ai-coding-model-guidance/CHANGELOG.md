@@ -2,6 +2,19 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.3.18] — 2026-08-31
+
+Scheduled research-routine sweep (17 days since 0.3.15) — folded into
+`knowledge/cross-tool-model-lineup-2026.md`: **xAI/Grok became a fifth vendor in the GitHub
+Copilot picker** (Grok 4.6 GA'd in Copilot 2026-08-14, rolling out to Pro/Pro+/Max/Business/
+Enterprise across 8 surfaces, off by default for Business/Enterprise). Passed a usefulness
+panel, a detailed-review panel, and independent grounding re-verification; `WebFetch` was
+network-blocked this session so the finding carries `[verify-at-use]`. Two other candidate
+findings from the same sweep were dropped: a GPT-5.4/GPT-5.4-mini Codex-retirement finding
+(a concurrent session shipped the same fact with better primary sourcing as 0.3.17 — see
+below, not duplicated here) and a GPT-5.6 Sol promotional price cut, rejected by the
+usefulness panel as too ephemeral to hardcode.
+
 ## [0.3.17] — 2026-08-31
 
 Scheduled news-sweep **refresh** — folded into `knowledge/cross-tool-model-lineup-2026.md`.

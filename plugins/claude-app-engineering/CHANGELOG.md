@@ -2,6 +2,24 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## 0.9.19 — 2026-08-31
+
+### Added
+
+- **Browser use tool** (`browser_toolset_20260801`, launched 2026-08-19) documented in
+  `knowledge/server-side-tools-and-files.md` — client-side in-page browser automation via the
+  accessibility tree, distinct from computer use. Available on Fable 5 / Mythos 5 / Opus 5 /
+  Sonnet 5 / Opus 4.8, Claude API + Google Cloud only.
+- **Computer use tool exited beta** as `computer_toolset_20260801` (2026-08-19) — no beta
+  header, batch actions, `zoom` on by default; breaking shape change from `computer_20251124`.
+  GA on Claude API + Google Cloud; still beta on AWS/Bedrock/Microsoft Foundry.
+
+Same facts as the 0.9.17 capability-map refresh below, applied to the sibling
+`server-side-tools-and-files.md` file (0.9.17 touched the capability map + build-surface tree,
+not this file — it was still stale). Verified against `platform.claude.com` release notes and
+tool docs; passed a usefulness panel and a detailed-review panel as part of the scheduled
+research routine.
+
 ## 0.9.18 — 2026-08-31
 
 ### Fixed
