@@ -47,6 +47,11 @@
         "precompact-digest inventory entry (precompact-critical-context FORGE plan, P6 regen-discipline, 2026-09-01)",
         10447000,
         "The precompact-critical-context feature's P6 regen-discipline pass added one new inventory concept (precompact-digest — the detached-worker proof for hooks/precompact-digest.sh + scripts/precompact-digest.py) plus cosmetic covers_digest restamps on five pre-existing concepts whose covered artifacts (copilot-hook-adapter.sh, hooks.json, plugin.json, audit-gates.sh, generate-dashboards.py) legitimately changed content earlier in the same feature. Measured at 10,443,430 bytes (island payload 31,294 <= 31,500, unaffected — same no-diagrams-for-inventory-entries shape as every prior wave). Re-measured on the regenerated artifact; appended, never edited."
+      ],
+      [
+        "agent-routing-matrix inventory entry (agent-routing-matrix FORGE plan, inception-coverage fix, 2026-09-01)",
+        10460000,
+        "The agent-routing-matrix build's Gate-242 inception-coverage fix added one new inventory concept (agent-routing-matrix-ban-list-scope — the scoped-vs-every-leaf-string ban-list correction for check-agent-routing-matrix.py's Gate 255 check B) plus cosmetic covers_digest restamps on three pre-existing concepts (cheap-lane-agent-matrix, plugin-cache-is-version-keyed, must-fail-conventions-diverge) whose covered artifacts drifted from this PR's own plugin.json version bump plus the merged origin/main's own bump. Measured at 10,457,685 bytes (island payload 31,346 <= 31,500, unaffected — same no-diagrams-for-inventory-entries shape as every prior wave). Re-measured on the regenerated artifact; appended, never edited."
       ]
     ],
     "index.html": [
