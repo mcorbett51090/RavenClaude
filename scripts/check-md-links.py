@@ -61,6 +61,12 @@ def is_excluded(p: Path) -> bool:
     # Generated projection tree.
     if any(part == "copilot" for part in rel.parts):
         return True
+    # Vendored third-party dependency trees (e.g. a bundled npm/esbuild toolchain's
+    # node_modules/**/*.md). These ship gitignored (never committed) and their docs'
+    # relative links are validated by their own upstream package, not by us — scanning
+    # them here fails on a broken link this repo neither authored nor can fix.
+    if any(part == "node_modules" for part in rel.parts):
+        return True
     # Template/example files carry illustrative placeholder links.
     if p.name.startswith("_"):
         return True

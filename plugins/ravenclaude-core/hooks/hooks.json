@@ -328,7 +328,19 @@
             "type": "command",
             "command": "${CLAUDE_PLUGIN_ROOT}/hooks/compact-anchor.sh",
             "timeout": 10,
-            "comment": "Post-compaction addressability pointer. Scoped `matcher: \"compact\"` so it fires ONLY when a session resumes from a compaction — never on startup/resume/clear/fork. Compaction is append-only: the transcript keeps every pre-boundary turn (text, thinking, tool_use, tool_result) and the compact_boundary record states what was dropped, so the post-compaction agent does not lack the data, it lacks the knowledge that the data exists. This injects the transcript path, where the boundary fell, and how to grep it. SessionStart is the ONLY placement that works — PreCompact's stdout is not injected. DERIVED VALUES ONLY: fixed strings, validated integers, an allowlisted `trigger`, and the path from the trusted payload — never a line of transcript content (it holds untrusted tool output; Gate 186 proves this with a sentinel). Fail-safe: EXIT trap armed first, always exits 0."
+            "comment": "Post-compaction addressability pointer. Scoped `matcher: \"compact\"` so it fires ONLY when a session resumes from a compaction — never on startup/resume/clear/fork. Compaction is append-only: the transcript keeps every pre-boundary turn (text, thinking, tool_use, tool_result) and the compact_boundary record states what was dropped, so the post-compaction agent does not lack the data, it lacks the knowledge that the data exists. This injects the transcript path, where the boundary fell, and how to grep it — plus the newest PreCompact digest file for this session's run-dir, if precompact-digest.sh wrote one. SessionStart is the ONLY placement that works — PreCompact's stdout is not injected. DERIVED VALUES ONLY: fixed strings, validated integers, an allowlisted `trigger`, and paths from the trusted payload/filesystem — never a line of transcript OR digest content (Gate 186 proves this with a sentinel). Fail-safe: EXIT trap armed first, always exits 0."
+          }
+        ]
+      }
+    ],
+    "PreCompact": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/precompact-digest.sh",
+            "timeout": 10,
+            "comment": "Pre-compaction critical-info archive (P2 of the precompact-critical-context FORGE plan). Reads the PreCompact stdin payload's `transcript_path` (optional on the documented schema) and, if present, launches scripts/precompact-digest.py DETACHED (backgrounded + disowned, no `_rc_timeout` wrap, no synchronous wait) to extract a curated digest (open decisions, TODOs, key facts, file paths, unresolved questions) BEFORE the transcript is summarized away, writing it to .ravenclaude/runs/<session>/precompact-digest-<timestamp>.md. Gated by B1 (`cheap_lane.mode` absent/off => fully inert, no engine call at all) and a fail-closed egress floor enforced inside the engine (`orchestrator_repo_pii: false` OR `cheap_lane_zdr_confirmed: true`) — see the P4 security review (security-review-p4.md). This hook's own `timeout: 10` bounds only its SYNCHRONOUS return (which is near-instant, well under 1s in practice) — the detached worker is bounded solely by the ENGINE's own internal budgets (60s cheap-lane / 90s claude-fallback), never by this hook. FIRE-AND-FORGET BY DESIGN: this is archival, never gating — claim 20 of the precompact-critical-context claims-table proves PreCompact's systemMessage/stopReason/exit-code are a verified no-op on VS Code Copilot Chat (and PreCompact never fires there on manual /compact at all), while on Claude Code `PreCompact` CAN block via exit 2 (CLAUDE.md v0.244.1) — this hook deliberately never does, on either host. A `precompact-digest.py` exit 3 (both extraction paths exhausted) is an expected non-fatal outcome: no digest, never a block. EXIT trap armed first, no `set -e`, bash 3.2-safe, no GNU-only tools."
           }
         ]
       }

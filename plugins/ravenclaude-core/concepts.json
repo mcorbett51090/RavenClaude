@@ -2804,7 +2804,7 @@
         "plugins/ravenclaude-core/hooks/triage-outcome.sh",
         "plugins/ravenclaude-core/hooks/worktree-guard.sh"
       ],
-      "covers_digest": "sha256:ab6e69ecfd3a31acdccdc5f07992dfba2d5d7bd756a2a9ea88a299428d26184f",
+      "covers_digest": "sha256:4786d087a45ae46a4605ffcf51fcb48ceefdba0fc8b98b5d3dc624b190ea40ef",
       "nuance": "A hook writing to stderr at `exit 0` reaches the model on no event; only `hookSpecificOutput.additionalContext` and `updatedToolOutput` are delivered, so `_advise.sh` advised the terminal for its entire service life.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -2851,7 +2851,7 @@
       "covers": [
         "plugins/ravenclaude-core/hooks/hooks.json"
       ],
-      "covers_digest": "sha256:1a12b8760b38b8ece06bb6f2c5b55e664bf62828178ac45eea27a1177d310a51",
+      "covers_digest": "sha256:f05c0f96e57b5e27ef6273ec2c44d9632b2fb1d9a60488a1c3edaf20a35b402a",
       "nuance": "Two `additionalContext` emitters on one event concatenate rather than last-write-wins, but two `updatedToolOutput` emitters replace, so the second silently discards the first.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -2945,7 +2945,7 @@
         "scripts/sync-plugin-versions.py",
         "scripts/generate-copilot-plugin.py"
       ],
-      "covers_digest": "sha256:75b8d2216df1fc38352f58eb945a484eef173a4fc17897481bb54ee6bac58873",
+      "covers_digest": "sha256:edc920df3f7ce53f46c5dc31e4120f1c974e430247818e0d28a036611d2fada8",
       "nuance": "The cache key is the `version` string, never a content hash, so `sync-plugin-versions.py` can report clean while every installed session keeps running the old `hooks/` code.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -3006,7 +3006,7 @@
         "scripts/inventory-coverage.py",
         "scripts/inventory-nuance-judge.py"
       ],
-      "covers_digest": "sha256:73a79ed8e22d06851f9084f8547a6beff9bc13442154ffde19349151f7da8722",
+      "covers_digest": "sha256:bf64b1acff7cc9a7ff27fadcb6f59ad030185c7d5167723e6dc5924899daa4f7",
       "nuance": "The teeth bit is the exit a tool own CHECK returns on a planted defect, never the exit `--must-fail` itself returns: `premise-gate.py` denies at `exit 0` while `sync-plugin-versions.py` reddens at `exit 2`, so an auditor that hard-codes one number can never be right for both.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -3413,7 +3413,7 @@
         "scripts/generate-dashboards.py",
         "scripts/generate-index-dashboard.py"
       ],
-      "covers_digest": "sha256:c5bfc1f57946d4234d546ed134656c19d17e6f1786dfb3685741d11e855ab1dd",
+      "covers_digest": "sha256:35da4bc065282b1e51f6e2622ec36a5dcbb069dffa2b67ec1b7a19d802deb5df",
       "nuance": "`ISLANDED_PANEL_COST` is a flat 2 because the parser reads the payload as CDATA, so `check-dom-budget.py` cannot fire on `learn-payload` no matter how far past 23,861 elements it grows.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -3674,6 +3674,54 @@
         "strength": "executed",
         "class": "script-selftest",
         "probe": "plugins/ravenclaude-core/hooks/sanitize-mcp-output.py",
+        "teeth_exit": 1
+      },
+      "strength_badge": "Probed"
+    },
+    {
+      "id": "precompact-digest",
+      "title": "The PreCompact digest hook never waits on its own engine",
+      "category": "Inventory — measured mechanisms",
+      "kind": "ravenclaude-built",
+      "order": 915,
+      "summary": "precompact-digest.sh detaches its engine call so the archival hook can never turn into a synchronous ceiling on a turn.",
+      "see_also": [],
+      "widget": null,
+      "try_it": null,
+      "node_links": {},
+      "last_verified": "2026-09-01",
+      "refresh_when": null,
+      "sources": [
+        {
+          "label": "P2 of the precompact-critical-context FORGE plan, hardened per the P4 security review",
+          "url": "plugins/ravenclaude-core/hooks/precompact-digest.sh"
+        }
+      ],
+      "body_md": "## What a reader would have assumed instead\n\nThat a `PreCompact` archival hook calling a Python digest engine would run synchronously — wait for\nthe engine, then return — the same shape most hooks in this repo use for a short-lived call.\n\n## The discriminator\n\ncontrol: driven against a deliberately 3s-slow stub delegate — the hook returned in under 2000ms while\nthe digest file appeared only afterward, proving detachment structurally rather than assuming the real\npath happens to be fast.\n\nMeasured 2026-09-01: `precompact-digest.sh` backgrounds its engine call (`( _pcd_worker & )` inside a\nsubshell that itself exits immediately) rather than waiting on it. A prior synchronous design ran the\nengine under a 10s ceiling — far below the engine's own 60s/90s subprocess budgets — so on the real\npath no digest was ever produced, while any egress to an external processor had already happened\nbefore the reader was killed. The detached shape fixes both: this hook adds no ceiling of its own on\ntop of the engine's own internal timeouts, and it never blocks a turn regardless of how long extraction\ntakes.\n\n## Why it matters\n\nFalsifier: the hook blocking on the digest engine before returning.\n\nProbe: `plugins/ravenclaude-core/hooks/tests/test-gate254-precompact-digest.sh`\n\n`PreCompact` fires just before a session's context is summarized away — the same moment its own\ndigest engine is racing to read the untouched transcript. A hook that can block on that engine, even\nbriefly, risks becoming exactly the \"data left, no benefit arrived\" failure the P4 security review\nfound in the prior design: egress happens, but the digest the hook was supposed to produce never does,\nbecause the reader was killed first. Detachment removes that race by construction rather than by\ntuning a timeout.",
+      "diagram": null,
+      "diagram_mini": null,
+      "steps": [],
+      "svg": null,
+      "svg_mini": null,
+      "entry_class": "inventory",
+      "covers": [
+        "plugins/ravenclaude-core/hooks/precompact-digest.sh",
+        "plugins/ravenclaude-core/scripts/precompact-digest.py"
+      ],
+      "covers_digest": "sha256:aeac8a553d4278ae3b506bbb99d9bfbb80af9cb6b0472c867d88d29975cd3d31",
+      "nuance": "The hook returns near-instantly even when its digest engine takes seconds: extraction runs as a detached, disowned worker the hook never waits on, so a digest (when one appears at all) shows up seconds after the hook process has already exited.",
+      "nuance_evidence": {
+        "measured": "2026-09-01",
+        "control": "driven against a deliberately 3s-slow stub delegate: the hook returned in under 2000ms while the digest file appeared only afterward, proving detachment structurally rather than assuming the real path happens to be fast",
+        "falsifier": "the hook blocking on the digest engine before returning (LAST_MS exceeding the 2000ms bound in Gate 254's success case)",
+        "probe": "plugins/ravenclaude-core/hooks/tests/test-gate254-precompact-digest.sh"
+      },
+      "nuance_source": "plugins/ravenclaude-core/hooks/precompact-digest.sh:28-46",
+      "verify": {
+        "tier": "effect",
+        "strength": "executed",
+        "class": "hook-selftest",
+        "probe": "plugins/ravenclaude-core/hooks/tests/test-gate254-precompact-digest.sh",
         "teeth_exit": 1
       },
       "strength_badge": "Probed"

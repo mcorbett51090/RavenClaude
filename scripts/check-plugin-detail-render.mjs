@@ -61,7 +61,11 @@ const RC_BASELINE = {
   //        53 -> 54: skills/session-handoff (v0.266.0, context-quality reset)
   //        52 -> 53: skills/design-clone (v0.253.0, design-schema capture+apply)
   //        51 -> 52: skills/github-gold-standard (v0.246.0, the gold-standard scorecard)
-  tools: 41, // 38 -> 41 AT MERGE (#1025 <- origin/main after #1023): this
+  tools: 42, // 41 -> 42: scripts/precompact-digest.py (P1 of the precompact-critical-context
+  //   FORGE plan — the shared digest-extraction engine for the new PreCompact archival hook).
+  //   COUNTED, not inferred: _scan_scripts globs 42 *.py in plugins/ravenclaude-core/scripts/
+  //   on this tree; precompact-digest.sh is bash, so it does not also raise this count.
+  //        38 -> 41 AT MERGE (#1025 <- origin/main after #1023): this
   //   branch's cause-taxonomy tools (38 on forge/vba-impl) PLUS the three
   //   stall-watchdog scripts that landed on main via #1023 (stall_watch.py +
   //   stall_reach.py + install_stall_watch.py). COUNTED, not inferred: _scan_scripts
@@ -103,7 +107,11 @@ const RC_BASELINE = {
   //        19 -> 22: premise-gate.py + classify_claim.py + check-design-schema.py
   //                  (v0.263.0, PR 3b packaging move)
   scenarios: 4,
-  hooks: 44, // 43 -> 44: sanitize-mcp-output.sh WIRED on PostToolUse(mcp__.*) — Q1/L4,
+  hooks: 45, // 44 -> 45: precompact-digest.sh WIRED on the new PreCompact key (first of its
+  //   kind in this manifest's history) — P2 of the precompact-critical-context FORGE plan.
+  //   COUNTED, not inferred: hooks.json on this tree holds 45 registrations (_scan_hooks
+  //   indexes hooks.json REGISTRATIONS, not files on disk).
+  //        43 -> 44: sanitize-mcp-output.sh WIRED on PostToolUse(mcp__.*) — Q1/L4,
   //   analog-repos-gap-fill leftovers; extends the WebFetch quarantine to MCP results.
   //        42 -> 43: guard-foreground-suite.sh WIRED on PreToolUse(Bash), merged
   //   in from origin/main — denies a foreground full-suite run that cannot finish

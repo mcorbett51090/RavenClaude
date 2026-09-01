@@ -18,7 +18,8 @@
 #
 # Usage (from a Copilot hooks.json `bash` entry):
 #   copilot-hook-adapter.sh <mode> <real-hook> [real-hook-args...]
-#     mode = bash-pretool | file-pretool | sessionstart | posttool | stop | userpromptsubmit
+#     mode = bash-pretool | file-pretool | sessionstart | posttool | stop |
+#            userpromptsubmit | precompact
 #
 # Fail-open is Copilot's default on hook error; for the PreToolUse command hooks
 # we translate a Claude `exit 2` (block) into a Copilot `deny` so the block still
@@ -204,15 +205,30 @@ case "$mode" in
     exit 0
     ;;
   userpromptsubmit)
-    # UserPromptSubmit hooks (stream-prompt-attribute) — FAIL-OPEN, never block. Reshape
-    # Copilot's userPromptSubmitted payload to the Claude stdin {prompt, session_id, cwd}
-    # and run the hook; it derives + attributes and emits nothing. Output is ignored
-    # (the hook never alters the prompt), so a failure here can never stall a prompt.
+    # UserPromptSubmit hooks (stream-prompt-attribute, ask-on-ambiguity) — FAIL-OPEN,
+    # never block. Reshape Copilot's userPromptSubmitted payload to the Claude stdin
+    # {prompt, session_id, cwd} and run the hook.
+    #
+    # (P2c, claim 21) FIXED — this used to `>/dev/null 2>&1` the wrapped hook's
+    # stdout unconditionally, on the theory that "the hook never alters the prompt".
+    # That's true, but wrong reasoning for discarding EVERYTHING: a UserPromptSubmit
+    # hook can still emit hookSpecificOutput.additionalContext (ask-on-ambiguity.sh
+    # does, exactly like SessionStart hooks do) — and claim 20/21 establish that VS
+    # Code natively supports additionalContext injection on UserPromptSubmit, so
+    # dropping it here was OUR OWN adapter bug, not a platform limitation. Forward it
+    # through, mirroring the sessionstart mode's dual-emit (a structured field AND
+    # plain stdout, since the exact Copilot envelope for this event is unverified —
+    # see VERIFY-IN-COPILOT at the top of this file).
     claude_stdin="$(printf '%s' "$payload" | jq -c \
       '{prompt: (.prompt // .promptText // .userPrompt // ""),
         cwd: (.cwd // .workspaceRoot // "."),
         session_id: (.sessionId // .session_id // "")}' 2>/dev/null)"
-    printf '%s' "$claude_stdin" | CLAUDE_PROJECT_DIR="$cw" bash "$real" "$@" >/dev/null 2>&1 || true
+    out="$(printf '%s' "$claude_stdin" | CLAUDE_PROJECT_DIR="$cw" bash "$real" "$@" 2>/dev/null)"
+    ctx="$(printf '%s' "$out" | jq -r '.hookSpecificOutput.additionalContext // empty' 2>/dev/null)"
+    if [ -n "$ctx" ]; then
+      jq -cn --arg c "$ctx" '{additionalContext:$c}'
+      printf '%s\n' "$ctx"
+    fi
     exit 0
     ;;
   stop)
@@ -233,6 +249,19 @@ case "$mode" in
       jq -cn --arg r "$reason" '{decision:"block",reason:$r}'
       printf '%s\n' "$reason" >&2
     fi
+    exit 0
+    ;;
+  precompact)
+    # PreCompact hooks (precompact-digest.sh) — ARCHIVAL ONLY, must never block or
+    # warn. Claim 20 (precompact-critical-context claims-table) proves PreCompact's
+    # continue/stopReason/systemMessage are a VERIFIED NO-OP on VS Code Copilot
+    # Chat — executePreCompactHook() has no consumer for any of them, and the event
+    # never fires there on a manual /compact at all — so this mode deliberately
+    # discards BOTH the wrapped hook's stdout and its exit code and always exits 0,
+    # regardless of what the real hook does. The payload's field names
+    # (transcript_path, session_id, cwd, timestamp) already match Claude Code's own
+    # PreCompact schema, so it is passed straight through as stdin with no reshape.
+    printf '%s' "$payload" | CLAUDE_PROJECT_DIR="$cw" bash "$real" "$@" >/dev/null 2>&1 || true
     exit 0
     ;;
   *)
