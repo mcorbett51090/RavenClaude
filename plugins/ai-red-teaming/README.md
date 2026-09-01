@@ -21,7 +21,7 @@ Part of the [RavenClaude](../../README.md) marketplace. Extends `ravenclaude-cor
 
 - **agents** — `ai-redteam-lead` (scopes the threat model, rules of engagement, prioritized attack taxonomy, safety-vs-security split, and success/severity criteria) and `adversarial-testing-engineer` (executes the attacks, builds the automated harness, triages by likelihood×impact, and drives defense-in-depth remediation + retest).
 - **skills** — `design-ai-redteam-plan`, `run-adversarial-attacks-and-jailbreaks`, `harden-and-remediate-ai-system`.
-- **knowledge files** — a Mermaid AI attack-taxonomy decision tree (+ OWASP LLM Top 10 2025 map + MITRE ATLAS anchor + likelihood×impact severity table) and a 2026 AI-red-teaming-patterns reference (safety-vs-security, the jailbreak catalog, agentic tool-abuse, automated red-teaming, defense-in-depth, responsible disclosure, tooling map).
+- **knowledge files** — a Mermaid AI attack-taxonomy decision tree (+ OWASP LLM Top 10 2026 map + MITRE ATLAS anchor + likelihood×impact severity table) and a 2026 AI-red-teaming-patterns reference (safety-vs-security, the jailbreak catalog, agentic tool-abuse, automated red-teaming, defense-in-depth, responsible disclosure, tooling map).
 - **templates** — an AI red-team plan and an AI red-team findings report.
 
 ## Where it sits in the AI stack
@@ -38,7 +38,7 @@ This plugin is the **adversarial-security layer** *over* the others: it attacks 
 
 ## Tooling stance
 
-Concept-first (OWASP LLM Top 10 2025, MITRE ATLAS, direct-vs-indirect injection, the jailbreak families, agentic tool-abuse, defense-in-depth, likelihood×impact severity, responsible disclosure), fluent across the automated red-team harnesses — **PyRIT**, **Garak**, **Promptfoo red-team**, and **Giskard**. Model-version behaviors, named jailbreak techniques, harness feature sets, and OWASP/ATLAS IDs are volatile and carry retrieval dates — the jailbreak landscape moves weekly, so re-verify before pinning in a client deliverable.
+Concept-first (OWASP LLM Top 10 2026, MITRE ATLAS, direct-vs-indirect injection, the jailbreak families, agentic tool-abuse, defense-in-depth, likelihood×impact severity, responsible disclosure), fluent across the automated red-team harnesses — **PyRIT**, **Garak**, **Promptfoo red-team**, and **Giskard**. Model-version behaviors, named jailbreak techniques, harness feature sets, and OWASP/ATLAS IDs are volatile and carry retrieval dates — the jailbreak landscape moves weekly, so re-verify before pinning in a client deliverable.
 
 ## Install
 
