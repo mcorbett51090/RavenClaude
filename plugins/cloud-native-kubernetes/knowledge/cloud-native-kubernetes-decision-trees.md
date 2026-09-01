@@ -1,6 +1,6 @@
 # Cloud-Native & Kubernetes — Decision Trees
 
-_Decision trees + a dated capability map. Capability rows are `[verify-at-build]` — re-check against the vendor before quoting. Last reviewed: 2026-08-31 (Kubernetes core row re-verified for 1.37 GA)._
+_Decision trees + a dated capability map. Capability rows are `[verify-at-build]` — re-check against the vendor before quoting. Last reviewed: 2026-06-04._
 
 Traverse before choosing a workload kind or installing a mesh.
 
@@ -97,7 +97,7 @@ _A namespace shares a kernel and nodes; it is not a security boundary against a 
 
 | Capability | 2026 state `[verify-at-build]` | Notes |
 |---|---|---|
-| **Kubernetes core** | current GA **1.37** (2026-08-26); 1.36 / 1.35 in support | re-verified 2026-08-31; ~12-mo support window — [1.37 CHANGELOG](https://github.com/kubernetes/kubernetes/blob/master/CHANGELOG/CHANGELOG-1.37.md). **ACTION REQUIRED before upgrading to 1.37** (summary, not exhaustive — read the full changelog before a production upgrade): (1) `SELinuxMount` feature gate is now GA and **enabled by default** — can break workloads on SELinux-enabled clusters, audit before upgrading; (2) the `scheduling.k8s.io` API group dropped `v1alpha2` entirely (promoted to `v1alpha3`) — remove all `v1alpha2` objects from `kube-apiserver` first; (3) kubelet's embedded cAdvisor was swapped to a leaner module — several long-deprecated flags are now rejected (**kubelet fails to start** if any are still set) and some cadvisor metrics stop emitting — audit kubelet flags before upgrading. `[verify-at-build]` |
+| **Kubernetes core** | current GA **1.37** ("Garhwal", 2026-08-26); 1.36 / 1.35 in support | re-verified 2026-08-31 (WebSearch cross-referenced against kubernetes.io — direct WebFetch to kubernetes.io was egress-blocked this session); ~12-mo support window — [1.37 release](https://kubernetes.io/blog/2026/08/26/kubernetes-v1-37-release/) |
 | Gateway API | GA; latest v1.6.0 (2026-06-29) | Role-oriented, expressive routing; **UDPRoute + TCPRoute now GA (v1)** — stable L4 TCP/UDP routing, not just HTTP. [v1.6.0](https://github.com/kubernetes-sigs/gateway-api/releases/tag/v1.6.0) |
 | Community **`ingress-nginx`** | **RETIRED** — best-effort maint. ended **March 2026**; no further releases/bugfixes/**security patches**, repos read-only | Do **not** deploy on new clusters (un-patched CVEs); migrate to Gateway API or a supported controller — [retirement notice](https://kubernetes.io/blog/2025/11/11/ingress-nginx-retirement/), [Steering/SRC statement](https://kubernetes.io/blog/2026/01/29/ingress-nginx-statement/) `[verified 2026-07-08]` |
 | HPA / VPA | GA | HPA on custom/external metrics; VPA for right-sizing |

@@ -2,7 +2,7 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
-## 0.9.18 — 2026-08-31
+## 0.9.19 — 2026-08-31
 
 ### Added
 
@@ -19,6 +19,12 @@ Same facts as the 0.9.17 capability-map refresh below, applied to the sibling
 not this file — it was still stale). Verified against `platform.claude.com` release notes and
 tool docs; passed a usefulness panel and a detailed-review panel as part of the scheduled
 research routine.
+
+## 0.9.18 — 2026-08-31
+
+### Fixed
+
+- **Workbench → Playground rename, second file (research-sweep).** `knowledge/prompt-engineering-techniques.md` still told readers to use "the Workbench prompt improver" — the same stale name the 0.9.17 sweep had already fixed in the sibling `claude-build-surface-decision-tree.md` (Console "Workbench" renamed to [Playground](https://platform.claude.com/playground) 2026-08-18; legacy Workbench + the experimental prompt-tools APIs sunset 2026-08-17). Added the same dated naming-update note and updated both references. Source: [release notes](https://platform.claude.com/docs/en/release-notes/overview) (fetched directly this session).
 
 ## 0.9.17 — 2026-08-27
 
