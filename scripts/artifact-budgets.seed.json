@@ -40,8 +40,8 @@
       ],
       [
         "MCP result quarantine + analog-closeness-scorecard — 2 inventory entries (Q1+Q2, analog-repos-gap-fill leftovers, 2026-08-30/31)",
-        10432000,
-        "Two independent PRs each added one inventory entry (mcp-quarantine-matcher-is-a-prefix and analog-closeness-quality-bar-is-independent-of-score) and each stayed under a 10,428,000 ceiling in isolation; merging them combines both entries' nuance+evidence blocks on the one dashboard.html surface. MCP quarantine's Pipeline-tab mention was folded into the existing sanitize-webfetch-output card (not a new card) to stay within the DOM-budget ratchet, so this is a pure JS-source/content bytes raise, no DOM growth beyond that. Re-measured on the merge; appended, never edited."
+        10436000,
+        "Two independent PRs each added one inventory entry (mcp-quarantine-matcher-is-a-prefix and analog-closeness-quality-bar-is-independent-of-score) and each stayed under a 10,428,000 ceiling in isolation; merging them combines both entries' nuance+evidence blocks on the one dashboard.html surface, measured at 10,432,946 bytes. MCP quarantine's Pipeline-tab mention was folded into the existing sanitize-webfetch-output card (not a new card) to stay within the DOM-budget ratchet, so this is a pure JS-source/content bytes raise, no DOM growth beyond that. Re-measured on the merge; appended, never edited."
       ]
     ],
     "index.html": [
@@ -53,5 +53,5 @@
       ]
     ]
   },
-  "measured_against": "0b6593f3f48a1c72b1c79c576711cdb9bb2f89a4"
+  "measured_against": "b0bcc7d9b15160ac2828370be2a4e57ac50db75d"
 }

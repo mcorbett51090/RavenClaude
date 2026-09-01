@@ -3006,7 +3006,7 @@
         "scripts/inventory-coverage.py",
         "scripts/inventory-nuance-judge.py"
       ],
-      "covers_digest": "sha256:4c9c22bd62527c5a2262aeaf6be5c0f6fc28415690d1abeb34d846061cd50708",
+      "covers_digest": "sha256:2d1dc16fb1bd534442138177876ffcda9eaad99596ced33c329d6e8587d96093",
       "nuance": "The teeth bit is the exit a tool own CHECK returns on a planted defect, never the exit `--must-fail` itself returns: `premise-gate.py` denies at `exit 0` while `sync-plugin-versions.py` reddens at `exit 2`, so an auditor that hard-codes one number can never be right for both.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -3578,6 +3578,54 @@
         "strength": "executed",
         "class": "script-selftest",
         "probe": "plugins/ravenclaude-core/hooks/tests/test-stall-watch.py",
+        "teeth_exit": 1
+      },
+      "strength_badge": "Probed"
+    },
+    {
+      "id": "analog-closeness-quality-bar-is-independent-of-score",
+      "title": "A high closeness score can still fail the quality bar",
+      "category": "Inventory — measured mechanisms",
+      "kind": "ravenclaude-built",
+      "order": 914,
+      "summary": "analog-closeness-scorecard's weighted score and its observed-vs-inferred quality bar are scored independently — a row can rank high on arithmetic and still be dropped.",
+      "see_also": [],
+      "widget": null,
+      "try_it": null,
+      "node_links": {},
+      "last_verified": "2026-08-30",
+      "refresh_when": null,
+      "sources": [
+        {
+          "label": "Q2 of the analog-repos-gap-fill leftovers, unparked on owner request",
+          "url": "https://github.com/mcorbett51090/RavenClaude/pull/1047"
+        }
+      ],
+      "body_md": "## What a reader would have assumed instead\n\nA single weighted-score threshold decides closeness — a row that scores high enough on the\n`3M+3H+3G+2O+2E+2I+2T+1V` arithmetic passes.\n\n## The discriminator\n\ncontrol: `compute()` on `{M:0,H:0,G:0,O:2,E:2,I:2,T:2,V:2}` with every dimension `kind:\"inf\"`\nreturns a weighted score >= 18 (well into the closeness-4 band) AND `quality_bar_pass: False`,\nwith both failure reasons named (`none of M/H/G scored >= 1` and the observed-count shortfall).\nMeasured 2026-08-30: the survey's own quality bar — at least one of M/H/G >= 1, and at least 3 of\n8 dimensions actually observed — is checked independently of the arithmetic total, exactly\nmirroring the 2026-08-14 survey's own `dropped.md` discipline.\n\n## Why it matters\n\nFalsifier: the same high-arithmetic, all-inferred row passing `quality_bar_pass`.\n\nProbe: `plugins/ravenclaude-core/skills/analog-closeness-scorecard/score_closeness.py`",
+      "diagram": null,
+      "diagram_mini": null,
+      "steps": [],
+      "svg": null,
+      "svg_mini": null,
+      "entry_class": "inventory",
+      "covers": [
+        "plugins/ravenclaude-core/skills/analog-closeness-scorecard/SKILL.md",
+        "plugins/ravenclaude-core/skills/analog-closeness-scorecard/score_closeness.py"
+      ],
+      "covers_digest": "sha256:ab0fb7dd893151b6c78de30fd20be77d1dcd09e9825eb01d9b6a7408992f2bf9",
+      "nuance": "A row scoring M=H=G=0 (arithmetic weighted >=18 via O/E/I/T/V alone) with every dimension inferred, not observed, still fails the quality bar — the two checks are independent, not one gate.",
+      "nuance_evidence": {
+        "measured": "2026-08-30",
+        "control": "compute({M:0,H:0,G:0,O:2,E:2,I:2,T:2,V:2}, all-inf) returns weighted>=18 AND quality_bar_pass=False with 2 named reasons in the self-test",
+        "falsifier": "the same high-arithmetic row passing quality_bar_pass",
+        "probe": "plugins/ravenclaude-core/skills/analog-closeness-scorecard/score_closeness.py"
+      },
+      "nuance_source": null,
+      "verify": {
+        "tier": "effect",
+        "strength": "executed",
+        "class": "script-selftest",
+        "probe": "plugins/ravenclaude-core/skills/analog-closeness-scorecard/score_closeness.py",
         "teeth_exit": 1
       },
       "strength_badge": "Probed"
