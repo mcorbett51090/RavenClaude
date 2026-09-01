@@ -55,7 +55,8 @@ const ISLANDED_AGENT_KEYS = ["scenarios", "quickstart", "works_with"];
 const RC = "ravenclaude-core";
 const RC_BASELINE = {
   agents: 15,
-  skills: 56, // 55 -> 56: skills/cheap-lane-delegation (route everyday work to Grok)
+  skills: 57, // 56 -> 57: skills/analog-closeness-scorecard (Q2, analog-repos-gap-fill leftovers)
+  //        55 -> 56: skills/cheap-lane-delegation (route everyday work to Grok)
   //        54 -> 55: skills/authoring-org-skills (org-skill studio, Phase 5)
   //        53 -> 54: skills/session-handoff (v0.266.0, context-quality reset)
   //        52 -> 53: skills/design-clone (v0.253.0, design-schema capture+apply)
