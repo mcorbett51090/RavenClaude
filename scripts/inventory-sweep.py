@@ -98,17 +98,47 @@ GLOBAL_LOCK_HOOKS = {
     "route-decision-review.sh": "routes to the tribunal; can invoke a model",
 }
 
+# ⛔ SAME SHAPE AS GLOBAL_LOCK_HOOKS, FOR THE ORPHAN PROBE. Surfaced by the
+# self-match fix to _script_callgraph (the haystack no longer self-confirms a
+# script via its own docstring): these scripts are unreachable via any
+# automated call site BY DESIGN — each one's own header states it is a
+# manually/ad-hoc invoked authoring or diagnostic tool, never a pipeline step.
+# "No automated caller" is the CORRECT state for this class, not a defect —
+# exactly the distinction GLOBAL_LOCK_HOOKS already draws for a different probe.
+# SKIP, never PASS: this is a documented exemption, not a verified reachability
+# claim (R8 — the sweep must not manufacture confidence it doesn't have).
+STANDALONE_SCRIPTS = {
+    "author-wave1-entries.py": "one-off inventory-entry generator; header says run once, by hand",
+    "content-scan.py": "ad hoc research tool mirroring reddit-scan.py; invoked manually per topic",
+    "generate-document-map.py": "seeds a doc map once, then hand-curated; header says run once",
+    "gh-health.py": "manual diagnostic ('is this GitHub's problem or mine?'), run when CI looks wrong",
+}
+
 # Verdict vocabulary. ⛔ CLOSED SET. A record may never carry free text derived
 # from probe output — that is how payloads leak into a durable store.
 PASS, FAIL, UNKNOWN, SKIP = "pass", "fail", "unknown", "skip"
 
 # Detail labels: also a closed set, for the same reason.
 LABELS = {
-    "ok", "unregistered", "frontmatter-unparseable", "missing-description", "dangling-reference", "empty-tools", "orphan",
-    "selftest-failed", "convention-mismatch", "no-selftest-declared",
-    "denies-benign-payload", "hook-not-executable", "canary-red-as-designed",
-    "canary-UNEXPECTEDLY-GREEN", "no-cheap-observable", "probe-timeout",
-    "global-lock-hook", "self-probe-would-recurse",
+    "ok",
+    "unregistered",
+    "frontmatter-unparseable",
+    "missing-description",
+    "dangling-reference",
+    "empty-tools",
+    "orphan",
+    "standalone-manual-tool",
+    "selftest-failed",
+    "convention-mismatch",
+    "no-selftest-declared",
+    "denies-benign-payload",
+    "hook-not-executable",
+    "canary-red-as-designed",
+    "canary-UNEXPECTEDLY-GREEN",
+    "no-cheap-observable",
+    "probe-timeout",
+    "global-lock-hook",
+    "self-probe-would-recurse",
 }
 
 _MD_LINK = re.compile(r"\[[^\]]*\]\(([^)\s#]+)(?:#[^)]*)?\)")
@@ -158,8 +188,12 @@ CLASSES: dict[str, dict] = {}
 def probe_class(name, *, tier, strength, population, control, requires="T0"):
     def deco(fn):
         CLASSES[name] = {
-            "name": name, "tier": tier, "strength": strength,
-            "population": population, "control": control, "requires": requires,
+            "name": name,
+            "tier": tier,
+            "strength": strength,
+            "population": population,
+            "control": control,
+            "requires": requires,
             "run": fn,
         }
         return fn
@@ -168,7 +202,9 @@ def probe_class(name, *, tier, strength, population, control, requires="T0"):
 
 
 @probe_class(
-    "hook-registration", tier="reachability", strength="static",
+    "hook-registration",
+    tier="reachability",
+    strength="static",
     population="every hook in the census",
     control="a fixture hook absent from hooks.json must be reported unregistered",
 )
@@ -192,7 +228,13 @@ def _hook_registration(root: Path, paths: list[str], ctx: dict) -> dict:
         name = Path(p).name
         if name in registered:
             out[p] = (PASS, "ok")
-        elif name in called:
+        # ⛔ SELF-MATCH. `called` is keyed by contributing file so a probed hook's
+        # own bytes (it almost always names itself in a header comment) can be
+        # excluded — otherwise `name in called` is true for nearly any hook
+        # regardless of whether anything else actually calls it. Measured: 49/49
+        # real hooks self-reference, so the un-excluded form passed every hook
+        # unconditionally, planted orphans included.
+        elif any(name in content for rp, content in called.items() if rp != p):
             out[p] = (PASS, "ok")
         else:
             out[p] = (FAIL, "unregistered")
@@ -200,7 +242,9 @@ def _hook_registration(root: Path, paths: list[str], ctx: dict) -> dict:
 
 
 @probe_class(
-    "skill-static", tier="reachability", strength="static",
+    "skill-static",
+    tier="reachability",
+    strength="static",
     population="every SKILL.md in the census",
     control="a fixture skill with a dangling markdown link must be reported",
 )
@@ -209,7 +253,9 @@ def _skill_static(root: Path, paths: list[str], ctx: dict) -> dict:
 
 
 @probe_class(
-    "agent-static", tier="reachability", strength="static",
+    "agent-static",
+    tier="reachability",
+    strength="static",
     population="every agent .md in the census",
     control="a fixture agent with an empty tools: line must be reported",
 )
@@ -218,7 +264,9 @@ def _agent_static(root: Path, paths: list[str], ctx: dict) -> dict:
 
 
 @probe_class(
-    "command-static", tier="reachability", strength="static",
+    "command-static",
+    tier="reachability",
+    strength="static",
     population="every command .md in the census",
     control="a fixture command with a dangling markdown link must be reported",
 )
@@ -242,7 +290,9 @@ def _command_static(root: Path, paths: list[str], ctx: dict) -> dict:
 
 
 @probe_class(
-    "script-callgraph", tier="reachability", strength="static",
+    "script-callgraph",
+    tier="reachability",
+    strength="static",
     population="every script in the census",
     control="a planted orphan script must be reported unreachable",
 )
@@ -251,16 +301,32 @@ def _script_callgraph(root: Path, paths: list[str], ctx: dict) -> dict:
     out = {}
     for p in paths:
         name = Path(p).name
+        if name in STANDALONE_SCRIPTS:
+            out[p] = (SKIP, "standalone-manual-tool")
+            continue
+        stem = Path(p).stem
+        import_re = (
+            re.compile(rf"(?:import|from)\s+{re.escape(stem)}\b") if p.endswith(".py") else None
+        )
+        # ⛔ SELF-MATCH. `hay` is keyed by contributing file so a probed script's
+        # own bytes (129/140 real scripts name themselves in a docstring/usage
+        # line) can be excluded — otherwise `name in hay` self-confirms nearly
+        # every script regardless of whether anything else actually calls it.
         # A python module is imported by MODULE name, never by filename, so a
         # filename-only search reports every helper module as an orphan.
-        stem = Path(p).stem
-        imported = p.endswith(".py") and re.search(rf"(?:import|from)\s+{re.escape(stem)}\b", hay)
-        out[p] = (PASS, "ok") if (name in hay or imported) else (FAIL, "orphan")
+        reachable = any(
+            name in content or (import_re and import_re.search(content))
+            for rp, content in hay.items()
+            if rp != p
+        )
+        out[p] = (PASS, "ok") if reachable else (FAIL, "orphan")
     return out
 
 
 @probe_class(
-    "script-selftest", tier="effect", strength="executed",
+    "script-selftest",
+    tier="effect",
+    strength="executed",
     population="scripts whose SOURCE contains --must-fail-convention (grep, then run)",
     control="the tool OWN declared teeth-bit exit — divergent per tool, never hard-coded",
 )
@@ -315,10 +381,12 @@ def _script_selftest(root: Path, paths: list[str], ctx: dict) -> dict:
 
 
 @probe_class(
-    "hook-benign-passthrough", tier="effect", strength="executed",
+    "hook-benign-passthrough",
+    tier="effect",
+    strength="executed",
     population="every hook in the census",
     control="TWO-SIDED: a hook that denies this benign payload is caught. A prober "
-            "that reports every hook fine is caught by the permanently-red canary.",
+    "that reports every hook fine is caught by the permanently-red canary.",
     requires="T1",
 )
 def _hook_benign(root: Path, paths: list[str], ctx: dict) -> dict:
@@ -348,20 +416,21 @@ def _hook_benign(root: Path, paths: list[str], ctx: dict) -> dict:
             "CLAUDE_PROJECT_DIR": str(sandbox),
             "CLAUDE_PLUGIN_ROOT": str(root / PLUGIN),
         }
-        payload = json.dumps({
-            "tool_name": "Read",
-            "tool_input": {"file_path": str(sandbox / "README.md")},
-            "session_id": "inventory-sweep-benign",
-            "cwd": str(sandbox),
-        })
+        payload = json.dumps(
+            {
+                "tool_name": "Read",
+                "tool_input": {"file_path": str(sandbox / "README.md")},
+                "session_id": "inventory-sweep-benign",
+                "cwd": str(sandbox),
+            }
+        )
         for p in paths:
             name = Path(p).name
             if name in GLOBAL_LOCK_HOOKS:
                 out[p] = (SKIP, "global-lock-hook")
                 continue
             fp = root / p
-            r = _run(sandbox, ["bash", str(fp), str(sandbox)], stdin=payload,
-                     timeout=8, env=env)
+            r = _run(sandbox, ["bash", str(fp), str(sandbox)], stdin=payload, timeout=8, env=env)
             if r.returncode == 124:
                 # ⛔ A TIMEOUT IS UNKNOWN, NEVER A PASS. "did not deny within 8s"
                 # and "does not deny" are different facts, and recording the second
@@ -377,10 +446,12 @@ def _hook_benign(root: Path, paths: list[str], ctx: dict) -> dict:
 
 
 @probe_class(
-    "canary-permanently-red", tier="effect", strength="executed",
+    "canary-permanently-red",
+    tier="effect",
+    strength="executed",
     population="the single fixture under tests/fixtures/inventory-canary/",
     control="IT IS the control. It asserts a sentinel on a channel measured to be "
-            "undelivered, so it must stay red. A green run means the sweep is broken.",
+    "undelivered, so it must stay red. A green run means the sweep is broken.",
 )
 def _canary(root: Path, paths: list[str], ctx: dict) -> dict:
     out = {}
@@ -395,27 +466,39 @@ def _canary(root: Path, paths: list[str], ctx: dict) -> dict:
         # has rewritten either the canary or the assertion.
         r = _run(root, ["bash", str(fp)], stdin="{}", timeout=20)
         delivered = "additionalContext" in (r.stdout or "")
-        out[p] = (FAIL, "canary-UNEXPECTEDLY-GREEN") if delivered else (PASS, "canary-red-as-designed")
+        out[p] = (
+            (FAIL, "canary-UNEXPECTEDLY-GREEN") if delivered else (PASS, "canary-red-as-designed")
+        )
     return out
 
 
 # ── helpers ─────────────────────────────────────────────────────────────────
-def _run(root: Path, cmd: list[str], stdin: str | None = None, timeout: int = 60,
-         env: dict | None = None):
+def _run(
+    root: Path, cmd: list[str], stdin: str | None = None, timeout: int = 60, env: dict | None = None
+):
     """⛔ LIST FORM, NEVER shell=True. A probe that interpolates a repo path into a
     shell is the injection surface this whole initiative is trying to close."""
     try:
         return subprocess.run(
-            cmd, cwd=str(root), input=stdin, capture_output=True, text=True,
-            timeout=timeout, env=env,
+            cmd,
+            cwd=str(root),
+            input=stdin,
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+            env=env,
         )
     except subprocess.TimeoutExpired:
+
         class _T:
             returncode, stdout, stderr = 124, "", ""
+
         return _T()
     except (OSError, subprocess.SubprocessError):
+
         class _R:
             returncode, stdout, stderr = 127, "", ""
+
         return _R()
 
 
@@ -469,34 +552,70 @@ def _registered_hook_names(root: Path) -> set[str]:
     return names
 
 
-def _hook_call_haystack(root: Path) -> str:
+def _haystack_parts(root: Path, patterns: tuple[str, ...]) -> dict[str, str]:
+    # ⛔ KEYED BY CONTRIBUTING FILE, NOT JOINED INTO ONE STRING. A probed
+    # artifact's own bytes are themselves one of the globbed files (a hook's own
+    # header comment almost always names the hook; a script's own docstring
+    # almost always names the script). A joined haystack makes `name in hay`
+    # self-confirm regardless of whether anything ELSE references the artifact.
+    # Keeping parts separate lets each probe exclude its own contribution.
+    parts: dict[str, str] = {}
+    for pat in patterns:
+        for f in root.glob(pat):
+            if f.is_file():
+                try:
+                    parts[str(f.relative_to(root))] = f.read_text(
+                        encoding="utf-8", errors="replace"
+                    )
+                except OSError:
+                    pass
+    return parts
+
+
+def _hook_call_haystack(root: Path) -> dict[str, str]:
     """Everything that could NAME a hook: sibling hooks (source/exec), other-host
     configs, and the installer that wires them."""
-    parts = []
-    for pat in (f"{PLUGIN}/hooks/*.sh", f"{PLUGIN}/hooks/hooks.json", f"{PLUGIN}/codex/**/*",
-                f"{PLUGIN}/copilot/**/*", ".claude/settings.json", ".codex/*", ".github/hooks/*",
-                "scripts/ravenclaude", "scripts/*.py"):
-        for f in root.glob(pat):
-            if f.is_file():
-                try:
-                    parts.append(f.read_text(encoding="utf-8", errors="replace"))
-                except OSError:
-                    pass
-    return "\n".join(parts)
+    return _haystack_parts(
+        root,
+        (
+            f"{PLUGIN}/hooks/*.sh",
+            f"{PLUGIN}/hooks/hooks.json",
+            f"{PLUGIN}/codex/**/*",
+            f"{PLUGIN}/copilot/**/*",
+            ".claude/settings.json",
+            ".codex/*",
+            ".github/hooks/*",
+            "scripts/ravenclaude",
+            "scripts/*.py",
+        ),
+    )
 
 
-def _callgraph_haystack(root: Path) -> str:
-    parts = []
-    for pat in (".github/workflows/*.yml", f"{PLUGIN}/hooks/*.sh", f"{PLUGIN}/skills/*/SKILL.md",
-                f"{PLUGIN}/commands/*.md", "scripts/*", f"{PLUGIN}/scripts/*", f"{PLUGIN}/bin/*",
-                f"{PLUGIN}/CLAUDE.md", "AGENTS.md", "CLAUDE.md"):
-        for f in root.glob(pat):
-            if f.is_file():
-                try:
-                    parts.append(f.read_text(encoding="utf-8", errors="replace"))
-                except OSError:
-                    pass
-    return "\n".join(parts)
+def _callgraph_haystack(root: Path) -> dict[str, str]:
+    # ⛔ COVERAGE GAP, FOUND BY THE SELF-MATCH FIX ITSELF. Once a probed file's own
+    # bytes stopped self-confirming it, two real call sites this list never covered
+    # surfaced as false "orphan" verdicts: `.ravenclaude/comfort-posture.yaml`'s
+    # `definition_of_done.cmd` (a genuine, git-tracked invocation of a script by
+    # name) and `.devcontainer/post-create.sh` (the Codespace bootstrap, which
+    # names setup scripts by path). Both are real, committed sources that can name
+    # a script — the same standard every other pattern in this list is held to.
+    return _haystack_parts(
+        root,
+        (
+            ".github/workflows/*.yml",
+            f"{PLUGIN}/hooks/*.sh",
+            f"{PLUGIN}/skills/*/SKILL.md",
+            f"{PLUGIN}/commands/*.md",
+            "scripts/*",
+            f"{PLUGIN}/scripts/*",
+            f"{PLUGIN}/bin/*",
+            f"{PLUGIN}/CLAUDE.md",
+            "AGENTS.md",
+            "CLAUDE.md",
+            ".devcontainer/*.sh",
+            ".ravenclaude/comfort-posture.yaml",
+        ),
+    )
 
 
 def _derive(rel: str, cls: str, verdict: str, label: str, ms: int) -> dict:
@@ -514,8 +633,11 @@ def _derive(rel: str, cls: str, verdict: str, label: str, ms: int) -> dict:
 
 def build_populations(root: Path, c: dict) -> dict[str, list[str]]:
     scripts = c["root-script"] + c["plugin-script"]
-    canary = [str(p.relative_to(root)) for p in sorted((root / CANARY_DIR).glob("*.sh"))] \
-        if (root / CANARY_DIR).is_dir() else []
+    canary = (
+        [str(p.relative_to(root)) for p in sorted((root / CANARY_DIR).glob("*.sh"))]
+        if (root / CANARY_DIR).is_dir()
+        else []
+    )
     return {
         "hook-registration": c["hook"],
         "skill-static": c["skill"],
@@ -584,9 +706,13 @@ def sweep(root: Path, tier: str = "T0") -> dict:
             "ok": not (set(CLASSES) - set(executed) - set(deferred)),
         },
     }
-    return {"records": records, "assertions": assertions, "census": c, "tier": tier,
-            "classes": {k: {kk: vv for kk, vv in v.items() if kk != "run"}
-                        for k, v in CLASSES.items()}}
+    return {
+        "records": records,
+        "assertions": assertions,
+        "census": c,
+        "tier": tier,
+        "classes": {k: {kk: vv for kk, vv in v.items() if kk != "run"} for k, v in CLASSES.items()},
+    }
 
 
 def write_records(root: Path, result: dict, stamp: str) -> Path:
@@ -627,8 +753,13 @@ def main() -> int:
     rec_path = write_records(root, result, args.stamp)
 
     if args.json:
-        print(json.dumps({"assertions": result["assertions"],
-                          "records": result["records"]}, indent=2, sort_keys=True))
+        print(
+            json.dumps(
+                {"assertions": result["assertions"], "records": result["records"]},
+                indent=2,
+                sort_keys=True,
+            )
+        )
         return 0
 
     by_class: dict[str, dict[str, int]] = {}
@@ -646,8 +777,11 @@ def main() -> int:
         # facts. Printing the first for the second reads as "there are no hooks",
         # which is the manufactured-clean shape one line lower than usual.
         if not counts:
-            summary = ("deferred to --tier T1" if spec["requires"] != "T0"
-                       else "(EMPTY POPULATION — not a clean result)")
+            summary = (
+                "deferred to --tier T1"
+                if spec["requires"] != "T0"
+                else "(EMPTY POPULATION — not a clean result)"
+            )
         else:
             summary = "  ".join(f"{k}={v}" for k, v in sorted(counts.items()))
         print(f"  {name:<26} {spec['tier']:<13} {spec['strength']:<13} {summary}")
@@ -656,16 +790,24 @@ def main() -> int:
     print("── ⛔ R8: the sweep-of-the-sweep (source: git ls-files, NOT concepts.json) ──")
     a = result["assertions"]
     print(f"  independent census      : {a['census_vs_enumerated']['census']}")
-    print(f"  artifacts enumerated    : {a['census_vs_enumerated']['enumerated']}"
-          f"  {'✓' if a['census_vs_enumerated']['ok'] else '✗ DIVERGENCE — the sweep is going blind'}")
+    print(
+        f"  artifacts enumerated    : {a['census_vs_enumerated']['enumerated']}"
+        f"  {'✓' if a['census_vs_enumerated']['ok'] else '✗ DIVERGENCE — the sweep is going blind'}"
+    )
     print(f"  probes registered       : {a['registered_vs_executed']['registered']}")
-    print(f"  probes executed         : {a['registered_vs_executed']['executed']}"
-          f"  {'✓' if a['registered_vs_executed']['ok'] else '✗'}")
+    print(
+        f"  probes executed         : {a['registered_vs_executed']['executed']}"
+        f"  {'✓' if a['registered_vs_executed']['ok'] else '✗'}"
+    )
     _def = a["registered_vs_executed"]["deferred_to_higher_tier"]
-    print(f"  deferred to a T1 sweep  : {', '.join(_def) if _def else 'none'}"
-          "   (NAMED, never silently dropped)")
-    print(f"  classes never invoked   : {a['every_class_invoked']['uninvoked'] or 'none'}"
-          f"  {'✓' if a['every_class_invoked']['ok'] else '✗'}")
+    print(
+        f"  deferred to a T1 sweep  : {', '.join(_def) if _def else 'none'}"
+        "   (NAMED, never silently dropped)"
+    )
+    print(
+        f"  classes never invoked   : {a['every_class_invoked']['uninvoked'] or 'none'}"
+        f"  {'✓' if a['every_class_invoked']['ok'] else '✗'}"
+    )
     print()
     print("  ⛔ THE TELL: any of these three moving DOWN with no artifact deletion")
     print("     in the same diff. That is the sweep losing sight, not the repo shrinking.")
@@ -676,7 +818,9 @@ def main() -> int:
 
     print()
     if canary:
-        print(f"  permanently-red canary  : {'RED (correct)' if canary_red else '⛔ GREEN — THE SWEEP IS BROKEN'}")
+        print(
+            f"  permanently-red canary  : {'RED (correct)' if canary_red else '⛔ GREEN — THE SWEEP IS BROKEN'}"
+        )
     else:
         print("  permanently-red canary  : ⛔ ABSENT — every result above is untrusted")
 
@@ -709,7 +853,11 @@ def _capping_table(root: Path) -> int:
         pop = len([r for r in result["records"] if r["class"] == name])
         obs = "yes" if pop else "EMPTY"
         fired = controls.get(name)
-        mark = "yes" if fired else ("NO — demote to tier: none" if fired is False else "n/a (is the control)")
+        mark = (
+            "yes"
+            if fired
+            else ("NO — demote to tier: none" if fired is False else "n/a (is the control)")
+        )
         print(f"  {name:<26} {spec['tier']:<13} {obs:<12} {mark}")
         if fired is False:
             demote.append(name)
@@ -719,7 +867,9 @@ def _capping_table(root: Path) -> int:
         print(f"    control: {spec['control']}")
     if demote:
         print()
-        print(f"  ⛔ {len(demote)} class(es) have a control that does not fire: {', '.join(demote)}")
+        print(
+            f"  ⛔ {len(demote)} class(es) have a control that does not fire: {', '.join(demote)}"
+        )
         print("     Per the plan exit condition these are tier: none until fixed.")
         return 1
     return 0
@@ -730,12 +880,36 @@ def _control_results(root: Path) -> dict[str, bool | None]:
     out: dict[str, bool | None] = {}
     with tempfile.TemporaryDirectory() as td:
         fake = Path(td)
-        ctx = {"registered_hooks": set(), "callgraph_haystack": "", "hook_call_haystack": ""}
 
-        # hook-registration: a hook absent from hooks.json must be unregistered.
-        out["hook-registration"] = (
-            _hook_registration(fake, ["a/unregistered.sh"], ctx)["a/unregistered.sh"][0] == FAIL
+        # ⛔ SELF-MATCH REGRESSION FIXTURE. A genuinely orphaned artifact almost
+        # always names itself (a header comment, a docstring) — a reachability
+        # probe that doesn't exclude the artifact's OWN bytes from its "is this
+        # named anywhere" search self-confirms unconditionally, regardless of
+        # whether anything else actually references it. Planted here BEFORE the
+        # real haystack builders run, so ctx reflects production: the probed
+        # file is itself one of the globbed contributors.
+        hooks_dir = fake / PLUGIN / "hooks"
+        hooks_dir.mkdir(parents=True, exist_ok=True)
+        (hooks_dir / "unregistered.sh").write_text(
+            "#!/usr/bin/env bash\n# unregistered.sh -- nobody calls this, nobody registers this\nexit 0\n",
+            encoding="utf-8",
         )
+        (fake / "scripts").mkdir(parents=True, exist_ok=True)
+        (fake / "scripts" / "orphan.py").write_text(
+            '"""orphan.py -- nobody imports this, nobody invokes this."""\n', encoding="utf-8"
+        )
+
+        ctx = {
+            "registered_hooks": set(),
+            "callgraph_haystack": _callgraph_haystack(fake),
+            "hook_call_haystack": _hook_call_haystack(fake),
+        }
+
+        # hook-registration: a hook absent from hooks.json, and self-naming in
+        # its own header the way every real hook does, must still be reported
+        # unregistered — not self-confirmed by its own bytes.
+        hook_path = f"{PLUGIN}/hooks/unregistered.sh"
+        out["hook-registration"] = _hook_registration(fake, [hook_path], ctx)[hook_path][0] == FAIL
 
         # skill-static: a skill with a dangling markdown link must be reported.
         sk = fake / "skills" / "bad"
@@ -743,15 +917,22 @@ def _control_results(root: Path) -> dict[str, bool | None]:
         (sk / "SKILL.md").write_text(
             "---\nname: bad\ndescription: fixture\n---\n[gone](./nope.md)\n", encoding="utf-8"
         )
-        out["skill-static"] = _skill_static(fake, ["skills/bad/SKILL.md"], ctx)["skills/bad/SKILL.md"][0] == FAIL
+        out["skill-static"] = (
+            _skill_static(fake, ["skills/bad/SKILL.md"], ctx)["skills/bad/SKILL.md"][0] == FAIL
+        )
 
         # agent-static: an agent with no tools: must be reported.
         ag = fake / "agents"
         ag.mkdir(parents=True)
-        (ag / "bad.md").write_text("---\nname: bad\ndescription: fixture\n---\nbody\n", encoding="utf-8")
-        out["agent-static"] = _agent_static(fake, ["agents/bad.md"], ctx)["agents/bad.md"][0] == FAIL
+        (ag / "bad.md").write_text(
+            "---\nname: bad\ndescription: fixture\n---\nbody\n", encoding="utf-8"
+        )
+        out["agent-static"] = (
+            _agent_static(fake, ["agents/bad.md"], ctx)["agents/bad.md"][0] == FAIL
+        )
 
-        # script-callgraph: a planted orphan must be reported unreachable.
+        # script-callgraph: a planted, self-naming orphan must be reported
+        # unreachable — not self-confirmed by its own docstring.
         out["script-callgraph"] = (
             _script_callgraph(fake, ["scripts/orphan.py"], ctx)["scripts/orphan.py"][0] == FAIL
         )
@@ -782,7 +963,9 @@ def _control_results(root: Path) -> dict[str, bool | None]:
         cm = fake / "commands"
         cm.mkdir(parents=True, exist_ok=True)
         (cm / "bad.md").write_text("# bad\n\n[gone](./nope.md)\n", encoding="utf-8")
-        out["command-static"] = _command_static(fake, ["commands/bad.md"], ctx)["commands/bad.md"][0] == FAIL
+        out["command-static"] = (
+            _command_static(fake, ["commands/bad.md"], ctx)["commands/bad.md"][0] == FAIL
+        )
 
         out["canary-permanently-red"] = None  # it IS the control
     return out

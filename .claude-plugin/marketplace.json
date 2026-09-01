@@ -323,7 +323,7 @@
       "name": "finance",
       "source": "./plugins/finance",
       "description": "Corporate finance & FP&A specialist team \u2014 FP&A analyst (budgets, forecasts, variance commentary), financial modeler (3-statement, DCF, scenarios), controller (close, JEs, reconciliations), treasury analyst (cash, covenants, FX), valuation analyst (DCF + comps + precedent), audit-prep specialist (PBC, walkthroughs, SOC1/2 narratives), and board-pack composer. skills incl. a gold-standard NetSuite close (OAuth2 M2M + SuiteQL BS/IS trial balance, layperson runbook), templates, a knowledge bank (ASC 805 / 718 / 740, accrual-cutoff, WACC, cost accounting, FP&A operating model + decision support, NetSuite integration landscape), advisory hooks (hardcoded rates / plaintext PII / missing Sources / Assumptions; secrets-PII scan). Inherits ravenclaude-core protocols.",
-      "version": "0.18.4",
+      "version": "0.18.5",
       "author": {
         "name": "Matt Corbett"
       },
@@ -554,7 +554,7 @@
       "name": "claude-app-engineering",
       "source": "./plugins/claude-app-engineering",
       "description": "Claude app-engineering specialist team \u2014 agents (claude-solution-architect, prompt-and-context-engineer, mcp-and-server-tools-engineer, agent-sdk-engineer, eval-engineer, claude-app-ops-engineer) for building production applications on the Claude API, the Claude Agent SDK, and MCP. Covers the build-surface decision (Messages API / Agent SDK / Managed Agents), model right-sizing (Opus 4.8 / Sonnet 4.6 / Haiku 4.5, 1M context), prompt caching, tool use + structured output, MCP server authoring + Anthropic-hosted server tools (computer use, code execution, Files API, memory, advisor tool), evals (golden sets, LLM-as-judge), and FinOps + reliability (batch, model routing, backoff, observability). dated-and-cited knowledge bank, templates, an advisory hook (house opinions). Seams: prompt-as-artifact, security, and cross-domain architecture escalate to ravenclaude-core. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.9.17",
+      "version": "0.9.19",
       "author": {
         "name": "Matt Corbett"
       },
@@ -705,7 +705,7 @@
       "name": "ai-coding-model-guidance",
       "source": "./plugins/ai-coding-model-guidance",
       "description": "Cross-tool AI-coding model guidance \u2014 three strategist agents that help you reason about model selection in the non-Claude coding ecosystems: GitHub Copilot's model picker (completions / chat / coding agent / cloud agent + org model rules), OpenAI Codex (CLI + cloud model lineup, reasoning levels, /model), and xAI Grok (Grok 4.x lineup + the coding-tool surface). Teaches the DURABLE reasoning \u2014 task-complexity \u2192 reasoning-level \u2192 cost-tier \u2192 surface \u2014 over a single citation-grounded, dated lineup that is the marketplace's freshness anchor for non-Claude model facts. Volatile specifics (prices, context windows, picker availability) carry retrieval dates + a re-verify-at-use rider, and the agents fetch live before quoting. Seam: when the answer is a CLAUDE model or a Claude-app build, escalate to claude-app-engineering/claude-solution-architect \u2014 this plugin owns the non-Claude tools. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.3.16",
+      "version": "0.3.18",
       "author": {
         "name": "Matt Corbett"
       },
@@ -1272,7 +1272,7 @@
       "name": "cloud-native-kubernetes",
       "source": "./plugins/cloud-native-kubernetes",
       "description": "Cloud-native & Kubernetes team \u2014 agents (kubernetes-architect, container-build-engineer, k8s-platform-operator, service-mesh-networking-engineer) for running workloads on Kubernetes well: workload design (Deployment/StatefulSet/Job, probes, requests/limits, PDBs, HPA/VPA), container build hygiene (minimal non-root images, distroless, multi-stage), platform ops (namespaces, RBAC, network policies, resource quotas, admission control, upgrades), and service-mesh networking (ingress/gateway, mTLS, traffic-splitting, observability). Cloud-agnostic. skills, a decision-tree knowledge bank (workload-type + ingress trees + a dated 2026 ecosystem map), best-practices, templates, commands, an advisory hook. Seams: managed control plane (AKS/EKS/GKE) -> azure/aws/gcp-cloud, GitOps reconcile -> devops-cicd, telemetry/SLOs -> observability-sre. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.3.9",
+      "version": "0.3.10",
       "author": {
         "name": "Matt Corbett"
       },
@@ -3294,7 +3294,7 @@
       "name": "ai-red-teaming",
       "source": "./plugins/ai-red-teaming",
       "description": "AI/LLM red-teaming team \u2014 agents (ai-redteam-lead, adversarial-testing-engineer) for the layer answering 'can this AI system be made to do harm, leak data, or exceed its authority \u2014 and how do we harden it?': threat modeling + rules of engagement, the attack taxonomy (OWASP LLM Top 10 2025 + MITRE ATLAS), direct vs indirect prompt injection, jailbreaks (roleplay/encoding/many-shot/crescendo), data exfiltration & training-data extraction, agentic tool-abuse / excessive agency, multimodal attacks, and defense-in-depth remediation. Fluent in automated red-team harnesses (PyRIT, Garak, Promptfoo red-team, Giskard) and likelihood\u00d7impact severity. skills, a knowledge bank (attack-taxonomy decision tree + 2026 patterns), and templates. Distinct from llm-evaluation-engineering (quality-regression eval), trust-and-safety (content-moderation / T&S policy), and security-engineering (app/infra pentest) \u2014 the adversarial AI-security layer over model- and agent-based systems. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.2.1",
+      "version": "0.2.2",
       "author": {
         "name": "Matt Corbett"
       },
