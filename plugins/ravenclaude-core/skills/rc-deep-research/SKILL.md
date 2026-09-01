@@ -1,6 +1,6 @@
 ---
 name: rc-deep-research
-description: "Deep research harness — fan-out web searches, fetch sources, adversarially verify claims, synthesize a cited report. Includes an inline substrate adapter that reads .ravenclaude/run-config.json once at startup; when enabled:false (the default) all agent() calls are byte-identical to the pre-port baseline (Gate 51)."
+description: "Deep research harness — fan-out web searches, fetch sources, adversarially verify claims, synthesize a cited report. Includes an inline substrate adapter that reads .ravenclaude/run-config.json once at startup; when enabled:false (the default) all agent() calls are byte-identical to the pre-port baseline (a behavioral invariant — no gate currently CI-enforces it)."
 ---
 
 # Skill: rc-deep-research
@@ -34,7 +34,7 @@ files out of the marketplace.
 The harness carries an inline adapter that reads `.ravenclaude/run-config.json` **once at startup**
 for per-phase model-tier / reasoning routing. **It is disabled and safe when that file is absent**
 — with no `run-config.json` (or `enabled:false`, the default) `adapterOpts()` returns `{}` on every
-call, so every `agent()` invocation is byte-identical to the unconfigured baseline (Gate 51 invariant).
+call, so every `agent()` invocation is byte-identical to the unconfigured baseline (a behavioral invariant, not currently CI-gated).
 A consumer who never creates the file pays nothing and sees the plain harness.
 
 ## Runtime facts (re-verify at use — research-preview feature)
