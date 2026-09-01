@@ -2733,3 +2733,34 @@ _Last verified: 2026-08-25_
 
 
 ---
+
+### A high closeness score can still fail the quality bar · _RavenClaude-built_
+
+> analog-closeness-scorecard's weighted score and its observed-vs-inferred quality bar are scored independently — a row can rank high on arithmetic and still be dropped.
+
+## What a reader would have assumed instead
+
+A single weighted-score threshold decides closeness — a row that scores high enough on the
+`3M+3H+3G+2O+2E+2I+2T+1V` arithmetic passes.
+
+## The discriminator
+
+control: `compute()` on `{M:0,H:0,G:0,O:2,E:2,I:2,T:2,V:2}` with every dimension `kind:"inf"`
+returns a weighted score >= 18 (well into the closeness-4 band) AND `quality_bar_pass: False`,
+with both failure reasons named (`none of M/H/G scored >= 1` and the observed-count shortfall).
+Measured 2026-08-30: the survey's own quality bar — at least one of M/H/G >= 1, and at least 3 of
+8 dimensions actually observed — is checked independently of the arithmetic total, exactly
+mirroring the 2026-08-14 survey's own `dropped.md` discipline.
+
+## Why it matters
+
+Falsifier: the same high-arithmetic, all-inferred row passing `quality_bar_pass`.
+
+Probe: `plugins/ravenclaude-core/skills/analog-closeness-scorecard/score_closeness.py`
+
+**Sources:** [Q2 of the analog-repos-gap-fill leftovers, unparked on owner request](https://github.com/mcorbett51090/RavenClaude/pull/1047)
+
+_Last verified: 2026-08-30_
+
+
+---

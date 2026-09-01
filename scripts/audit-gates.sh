@@ -9345,6 +9345,17 @@ rc=0
 python3 scripts/check-trigger-scoping-consistency.py --self-test >/dev/null 2>&1 || rc=$?
 gate "trigger-scoping-consistency --self-test (bare-wildcard detection + 2 live fixes)" must_pass "$rc"
 
+echo "── analog-closeness-scorecard (Q2 leftover, docs/follow-ups/2026-08-14-analog-repos-leftovers.md) ──"
+# Recomputes the 2026-08-14 analog survey's own M/H/G/O/E/I/T/V weighted-closeness
+# formula. --self-test pins two of the survey's own published rows (verbatim
+# arithmetic regression) plus a must-fail-shaped fixture: a row that scores high
+# on the weighted arithmetic alone but carries M=H=G=0 and every dim inferred
+# (not observed) — the quality bar must reject it, proving the bar is load-bearing
+# rather than a number nobody checks.
+rc=0
+python3 plugins/ravenclaude-core/skills/analog-closeness-scorecard/score_closeness.py --self-test >/dev/null 2>&1 || rc=$?
+gate "analog-closeness-scorecard --self-test (rows + buckets + quality-bar teeth)" must_pass "$rc"
+
 echo
 echo "═══════════════════════════════════════════════════════════════════════════"
 printf '  %d pass, %d fail, %d skipped\n' "$PASS" "$FAIL" "$SKIP"
