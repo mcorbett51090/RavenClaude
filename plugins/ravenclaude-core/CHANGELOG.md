@@ -25,6 +25,12 @@ All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the 
   across a chained command, never under-detecting); both are real consistency
   defects the new gate exists to catch.
 
+## 0.307.2 — 2026-08-31
+
+### Added
+
+- **Hook-event catalog gained `PreModelSwitch`/`PostModelSwitch` (research-sweep).** `knowledge/claude-code-permissions.md`'s ~30-event hook-event catalog table was missing the two new hook events Claude Code v2.1.251 (2026-08-28) added — before/after a mid-session model switch, letting a hook block/confirm/annotate it. Added the row plus a dated pass note in the header blockquote. Source: [Claude Code v2.1.251 release](https://github.com/anthropics/claude-code/releases/tag/v2.1.251) (fetched directly this session).
+
 ## 0.307.0 — 2026-08-28
 
 ### Fixed

@@ -24,7 +24,7 @@
 - **Security (this team):** <adversary-induced boundary violations in scope>
 - **Safety (→ trust-and-safety):** <harmful-content / model-behavior concerns routed out>
 
-## Attack taxonomy — prioritized (OWASP LLM Top 10 2025 + MITRE ATLAS)
+## Attack taxonomy — prioritized (OWASP LLM Top 10 2026 + MITRE ATLAS)
 | Priority | Class (OWASP LLM / ATLAS) | Why (likelihood × impact) | Where it applies |
 |---|---|---|---|
 | P0 | <e.g. LLM01 indirect prompt injection> | <high reachability × high blast radius> | <the untrusted-content seam> |

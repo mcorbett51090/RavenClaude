@@ -3,6 +3,8 @@
 **Last reviewed:** 2026-05-28 · **Confidence:** high (Anthropic prompt-engineering guidance; durable). 
 **Owner:** `prompt-and-context-engineer`. This is the **quality** craft — distinct from [`prompt-caching-playbook.md`](prompt-caching-playbook.md) (cost/latency) and the *artifact* work `ravenclaude-core/prompt-engineer` owns (agent/skill files). Here: making a *running app's* prompt produce the right output.
 
+> **Naming update (primary-verified 2026-08-31):** the Console's **"Workbench"** prompt improver referenced below was **renamed to [Playground](https://platform.claude.com/playground)** on **2026-08-18**, and the *legacy* Workbench (`platform.claude.com/workbench`) — along with the experimental prompt-tools APIs (`/v1/experimental/{generate,improve,templatize}_prompt`) — was **sunset 2026-08-17**. Read "Workbench" below as "Playground." Source: [release notes](https://platform.claude.com/docs/en/release-notes/overview) (fetched directly this session). `[verify-at-use]`
+
 ## The ladder — apply in order, stop when it's good enough
 Anthropic's rough order of leverage (cheapest/most-effective first):
 1. **Be clear, direct, and specific.** State the task, the audience, the format, and the constraints explicitly. Most "bad output" is an underspecified prompt. Tell Claude what TO do, not just what to avoid.
@@ -24,10 +26,10 @@ Anthropic's rough order of leverage (cheapest/most-effective first):
 - **Guardrails:** keep untrusted/user content clearly delimited and labeled as data, never as instructions (injection — [`claude-app-finops-reliability-and-security.md`](claude-app-finops-reliability-and-security.md)).
 
 ## The loop (don't hand-tune blind)
-Write the prompt → build a small **eval** set → measure → change one thing → re-measure ([`evals-and-quality.md`](evals-and-quality.md)). Use Anthropic's **prompt improver / Workbench** to generate a strong first draft, then iterate against the eval — not vibes (house opinion #4).
+Write the prompt → build a small **eval** set → measure → change one thing → re-measure ([`evals-and-quality.md`](evals-and-quality.md)). Use Anthropic's **prompt improver / Playground** (formerly "Workbench" — see the naming-update note above) to generate a strong first draft, then iterate against the eval — not vibes (house opinion #4).
 
 ## Model-specific notes (dated)
 Newer Claude models need *less* hand-holding and *fewer* "think step by step" nudges (they reason well by default; over-prompting can hurt). Adaptive thinking on Sonnet 4.6 supersedes manual CoT for hard tasks. Keep model-version-specific tactics in [`model-selection-and-2026-capability-map.md`](model-selection-and-2026-capability-map.md), not baked into every prompt.
 
 ## Sources (retrieved 2026-05-28)
-Anthropic prompt-engineering docs (be-clear-and-direct, multishot, chain-of-thought, use-XML-tags, system-prompts, prefill, chain-prompts, reduce-hallucinations) on platform.claude.com; the Workbench prompt improver.
+Anthropic prompt-engineering docs (be-clear-and-direct, multishot, chain-of-thought, use-XML-tags, system-prompts, prefill, chain-prompts, reduce-hallucinations) on platform.claude.com; the Playground prompt improver (formerly Workbench, renamed 2026-08-18).
