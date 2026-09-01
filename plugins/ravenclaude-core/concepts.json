@@ -2851,7 +2851,7 @@
       "covers": [
         "plugins/ravenclaude-core/hooks/hooks.json"
       ],
-      "covers_digest": "sha256:1666112d0fa4644677177074443743ce511f091ff1a4eaacd44e67dc9d3e2f61",
+      "covers_digest": "sha256:1a12b8760b38b8ece06bb6f2c5b55e664bf62828178ac45eea27a1177d310a51",
       "nuance": "Two `additionalContext` emitters on one event concatenate rather than last-write-wins, but two `updatedToolOutput` emitters replace, so the second silently discards the first.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -3006,7 +3006,7 @@
         "scripts/inventory-coverage.py",
         "scripts/inventory-nuance-judge.py"
       ],
-      "covers_digest": "sha256:25503420d08cd66f0bb8a54e3d8e5dcb7ae01210fd7b01df6eeaa060d165fd90",
+      "covers_digest": "sha256:73a79ed8e22d06851f9084f8547a6beff9bc13442154ffde19349151f7da8722",
       "nuance": "The teeth bit is the exit a tool own CHECK returns on a planted defect, never the exit `--must-fail` itself returns: `premise-gate.py` denies at `exit 0` while `sync-plugin-versions.py` reddens at `exit 2`, so an auditor that hard-codes one number can never be right for both.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -3413,7 +3413,7 @@
         "scripts/generate-dashboards.py",
         "scripts/generate-index-dashboard.py"
       ],
-      "covers_digest": "sha256:5f7eae16a02a5fea66c7a845d3064296652405f79dd588669746d8d6c5a8d505",
+      "covers_digest": "sha256:c5bfc1f57946d4234d546ed134656c19d17e6f1786dfb3685741d11e855ab1dd",
       "nuance": "`ISLANDED_PANEL_COST` is a flat 2 because the parser reads the payload as CDATA, so `check-dom-budget.py` cannot fire on `learn-payload` no matter how far past 23,861 elements it grows.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -3626,6 +3626,54 @@
         "strength": "executed",
         "class": "script-selftest",
         "probe": "plugins/ravenclaude-core/skills/analog-closeness-scorecard/score_closeness.py",
+        "teeth_exit": 1
+      },
+      "strength_badge": "Probed"
+    },
+    {
+      "id": "mcp-quarantine-matcher-is-a-prefix",
+      "title": "The MCP quarantine hook matches a prefix, not WebFetch's exact string",
+      "category": "Inventory — measured mechanisms",
+      "kind": "ravenclaude-built",
+      "order": 914,
+      "summary": "sanitize-mcp-output.py extends F1's WebFetch quarantine to mcp__* tool results — but the tool-name match has to be a prefix check, and a substring match had to be deliberately excluded.",
+      "see_also": [],
+      "widget": null,
+      "try_it": null,
+      "node_links": {},
+      "last_verified": "2026-08-30",
+      "refresh_when": null,
+      "sources": [
+        {
+          "label": "Q1/L4 of the analog-repos-gap-fill leftovers, unparked on owner request",
+          "url": "https://github.com/mcorbett51090/RavenClaude/pull/928"
+        }
+      ],
+      "body_md": "## What a reader would have assumed instead\n\nCopy F1's WebFetch matcher verbatim (`tool_name == \"WebFetch\"`) and swap the string — an\nexact-match check would silently never fire, because MCP tool names are dynamic\n(`mcp__<server>__<verb>`), not a fixed string.\n\n## The discriminator\n\ncontrol: `handle()` on a payload naming `not_mcp__lookalike` returns `None` (no-op) in the\nself-test — proving the prefix check correctly rejects a substring match, not just an\nexact-match miss.\nMeasured 2026-08-30: the matcher is `tool_name.startswith(\"mcp__\")`, a prefix check — and the\nself-test asserts both the negative direction (a real MCP name is quarantined) and the false-prefix\ndirection (a name merely containing `mcp__` is not).\n\n## Why it matters\n\nFalsifier: the same fixture producing a sanitize envelope instead of `None`.\n\nProbe: `plugins/ravenclaude-core/hooks/sanitize-mcp-output.py` (`--self-test`)",
+      "diagram": null,
+      "diagram_mini": null,
+      "steps": [],
+      "svg": null,
+      "svg_mini": null,
+      "entry_class": "inventory",
+      "covers": [
+        "plugins/ravenclaude-core/hooks/sanitize-mcp-output.sh",
+        "plugins/ravenclaude-core/hooks/sanitize-mcp-output.py"
+      ],
+      "covers_digest": "sha256:bb407a5232955ea122bc4bbef58c24e4f5c7bc8edc5f95e2ea6fac2752b6503d",
+      "nuance": "F1's WebFetch hook matches one exact tool name. This one must be a PREFIX check (mcp__ names are dynamic) — and a tool name merely CONTAINING 'mcp__' without starting with it must NOT match.",
+      "nuance_evidence": {
+        "measured": "2026-08-30",
+        "control": "handle() on {tool_name: 'not_mcp__lookalike', ...} returns None (no-op) in the self-test, proving the prefix check rejects a substring match",
+        "falsifier": "the same fixture producing a sanitize envelope instead of None",
+        "probe": "plugins/ravenclaude-core/hooks/sanitize-mcp-output.py"
+      },
+      "nuance_source": "plugins/ravenclaude-core/hooks/sanitize-mcp-output.py:1-140 (_is_mcp_tool + handle)",
+      "verify": {
+        "tier": "effect",
+        "strength": "executed",
+        "class": "script-selftest",
+        "probe": "plugins/ravenclaude-core/hooks/sanitize-mcp-output.py",
         "teeth_exit": 1
       },
       "strength_badge": "Probed"
