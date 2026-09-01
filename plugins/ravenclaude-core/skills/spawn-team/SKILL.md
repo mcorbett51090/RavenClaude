@@ -70,6 +70,8 @@ this step needs re-reading, not copying.
 
 **Before you fan out, pick the orchestration *shape*.** A multi-agent request is not automatically a turn-by-turn subagent dispatch. Traverse the table in [`../../knowledge/dynamic-workflows.md`](../../knowledge/dynamic-workflows.md) `## Choosing an orchestration shape` first: if the work is massively-parallel or adversarial, you'll rerun it, or you're coordinating more agents than this conversation can track, it's a **dynamic workflow** (`ultracode`) — not a hand-orchestrated dispatch. If the deliverable is a reviewed *plan* from a raw idea, it's `/forge`. Otherwise the playbooks below (you, the Team Lead, dispatching specialists turn by turn) are the right shape. Say which shape you chose in your summary.
 
+**Choosing a non-Claude host for a piece of work** (distinct from the shape question above): [`../../knowledge/agent-routing-matrix.json`](../../knowledge/agent-routing-matrix.json) is an optional reference for which agent (Claude Code / Codex CLI / Copilot CLI / Copilot Chat / Grok Build CLI) a given task shape probably fits best — a prose pointer, not a required lookup; nothing here reads the file automatically.
+
 These are the standard dispatch patterns. Pick the one that matches the request, adapt as needed, and *say which playbook you're running* in your final summary.
 
 ### Software change (feature, bugfix, refactor)
