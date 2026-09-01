@@ -61,7 +61,11 @@ const RC_BASELINE = {
   //        53 -> 54: skills/session-handoff (v0.266.0, context-quality reset)
   //        52 -> 53: skills/design-clone (v0.253.0, design-schema capture+apply)
   //        51 -> 52: skills/github-gold-standard (v0.246.0, the gold-standard scorecard)
-  tools: 42, // 41 -> 42: scripts/precompact-digest.py (P1 of the precompact-critical-context
+  tools: 43, // 42 -> 43: scripts/check-agent-routing-matrix.py (Gate 255, the agent-routing-matrix
+  //   FORGE plan — the routing table's own schema/anti-duplication/totality gate driver).
+  //   COUNTED, not inferred: `find plugins/ravenclaude-core/scripts -maxdepth 1 -name "*.py" | wc -l`
+  //   -> 43 on this tree.
+  //        41 -> 42: scripts/precompact-digest.py (P1 of the precompact-critical-context
   //   FORGE plan — the shared digest-extraction engine for the new PreCompact archival hook).
   //   COUNTED, not inferred: _scan_scripts globs 42 *.py in plugins/ravenclaude-core/scripts/
   //   on this tree; precompact-digest.sh is bash, so it does not also raise this count.

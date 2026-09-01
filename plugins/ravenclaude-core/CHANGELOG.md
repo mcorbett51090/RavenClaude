@@ -2,6 +2,45 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.311.0 — 2026-09-01
+
+### Added
+
+- **`knowledge/agent-routing-matrix.{json,schema.json,md}`** — a host-agnostic task-shape →
+  {agent, model tier, basis, rationale, sources} routing table covering 5 agent surfaces (Claude
+  Code, Codex CLI, Copilot CLI, Copilot Chat, Grok Build CLI) and 5 task classes (2 coding, 3
+  non-coding: research/writing/data-analysis). Heuristic only — no numeric confidence field, ranked
+  by ordinal `rank` + a `basis` provenance tag instead. Every vendor fact is cited via `sources[]`,
+  never duplicated; volatile facts stay owned by `cross-tool-model-lineup-2026.md`,
+  `model-selection-and-2026-capability-map.md`, and `substrate-tier-map.json`. Built via `/forge`
+  `standard` (two divergent cross-model panels → a correlated-error critic that found and fixed 5
+  real blockers → 11 tiebreak rulings → an adversarial red-team pass that found and fixed 3 more,
+  including this build's own reconciled design → synthesis). See the `CLAUDE.md` milestone for the
+  full arc, including a corrected false claim about Gate 51 this build's own review caught and fixed
+  at all 5 sites it had spread to.
+- **Gate 255** (`scripts/check-agent-routing-matrix.py`) — 9 checks (schema validation with
+  schema-mutating meta-teeth; a vendor-fact ban-list derived at gate time from
+  `substrate-tier-map.json` + `model-catalog.json`'s own values, scanned against both the JSON and
+  the whitespace-normalized `.md`; no numeric confidence; strict host/tier referential integrity,
+  deliberately never via `resolve_tier()`; framework-rule quote verification; ownership-metadata
+  value checks; `route-task.py --self-test` coverage; bounded per-task_class totality). 13 mutants +
+  2 must-NOT-fire companions + 1 live positive control, all verified this session.
+- One-paragraph, prose-only pointers from `cheap-lane-delegation/SKILL.md` and `spawn-team/SKILL.md`
+  to the new matrix as an optional input to their existing agent/host choices — no code or schema
+  change to either; `route-task.py --self-test` stays 17/17, verified before and after.
+
+### Fixed
+
+- **A false claim — "Gate 51 enforces the `run_config` byte-identical-when-disabled floor" — was
+  spread across 5 files** (`adaptive-run-classifier/SKILL.md`, `rc-deep-research/SKILL.md`, both
+  `rc-deep-research.js` mirror copies, and an unrelated wrong-gate-number in
+  `pbir-layout-engine/lint.py`). Gate 51 is the portal shell-router gate; no gate currently
+  CI-enforces the `run_config` disabled floor — it holds today as a behavioral invariant only. Found
+  by this build's own correlated-error critic pass (both independent design panels had inherited the
+  false claim from one upstream source and neither verified it against `scripts/audit-gates.sh`).
+  Fixed at all 5 sites in one commit; Gate 126 (the mirror byte-identity gate) confirmed the two
+  `.js` copies stayed identical throughout.
+
 ## 0.310.1 — 2026-09-01
 
 ### Fixed

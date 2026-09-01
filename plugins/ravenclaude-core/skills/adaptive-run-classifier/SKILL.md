@@ -156,7 +156,7 @@ The classifier prompt is intentionally **small**. Per [`prompt-caching-playbook.
 
 **Semantics:**
 
-- `enabled: false` (default) — `loadRunConfig()` returns the hardcoded baseline matching pre-port behavior. **Byte-identical** to the legacy workflow (this is the regression floor; Gate 51 enforces it).
+- `enabled: false` (default) — `loadRunConfig()` returns the hardcoded baseline matching pre-port behavior. **Byte-identical** to the legacy workflow (this is the regression floor — held today as a **behavioral invariant**: no gate currently CI-enforces the `run_config` disabled floor; `Gate 51` is an unrelated gate, the portal shell router. Corrected 2026-09-01 after a shared-anchoring correlated error — see [`agent-routing-matrix.md`](../../knowledge/agent-routing-matrix.md)'s closing section for the full trace).
 - `enabled: true` — `loadRunConfig()` invokes the classifier (one Haiku call), persists the returned envelope to `.ravenclaude/runs/run-classifier/<timestamp>.json`, and snapshots the result into the workflow run.
 - A consumer can also pre-fill the JSON with a hand-crafted `run_config` (skip the classifier) for deterministic runs / debugging.
 

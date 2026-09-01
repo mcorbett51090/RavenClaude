@@ -3555,3 +3555,101 @@ built — named here rather than left unstated.
 **Migration:** none — a new template + knowledge file; nothing in an installed plugin's default
 behavior changes on `/plugin marketplace update`. A consumer sees the difference only when an agent
 generates an ad-hoc HTML artifact and resolves this file for its look.
+
+## Agent routing matrix — task shape → {agent, model, effort tier}, host-agnostic (added 2026-09-01, v0.311.0)
+
+Built via `/forge` `standard` (two divergent cross-model panels → a correlated-error critic → 11
+tiebreak rulings → an adversarial red-team pass → synthesis) in answer to: *"a matrix so that the
+harness or orchestrator, no matter which coding agent, knows which coding agents and models are
+available and which to call, to get the best outcome probabilistically."* Ships
+[`knowledge/agent-routing-matrix.json`](knowledge/agent-routing-matrix.json) (+ `.schema.json` + a
+companion `.md`) covering 5 agent surfaces (Claude Code, Codex CLI, Copilot CLI, Copilot Chat, Grok
+Build CLI) and 5 task classes (2 coding, 3 non-coding: research-deep, writing-documentation,
+data-analysis) — an **open, data-level registry**, not a schema enum, so a consumer adds a class
+without touching schema or gate code.
+
+**Deliberately heuristic, not empirical.** Every recommendation cites the existing dated knowledge
+files (`cross-tool-model-lineup-2026.md`, `model-selection-and-2026-capability-map.md`,
+`substrate-tier-map.json`) — this artifact owns the **routing logic**, never a duplicated vendor
+fact. Ranking is an ordinal `rank` + a `basis` provenance tag (`framework-rule` /
+`capability-fact` / `cost-heuristic` / `editorial-judgment`) — **no numeric confidence field
+anywhere**, a deliberate choice both design panels initially made and the critic/red-team pass
+overturned: a float invites arithmetic (averaging, thresholding) that an ungrounded heuristic cannot
+bear.
+
+**Two design corrections the pipeline's own adversarial gates caught before ship, worth recording
+because they generalize:**
+
+1. **The axis product is 4 grounded cells, not 6.** `interaction_mode` (3 values: `inline`/`chat`/
+   `agent`, verbatim from the mode-selection tree) × `blast_radius` (`reversible`/`irreversible`,
+   meaningful only inside `agent` mode — the source tree never asks the irreversibility question
+   for `inline`/`chat`, both of which are reversible by their own definition). Requiring
+   `inline × irreversible` or `chat × irreversible` cells would have manufactured exactly the
+   compelled-invention failure the critic flagged elsewhere (a coined `difficulty_tier` axis was
+   rejected for the same reason — `frontier` names a model **tier** in every source occurrence,
+   never a task property).
+2. **Anti-duplication is a *derived* ban-list, not a hand-written regex.** Both design panels
+   proposed a regex banning SKU-shaped strings; the critic proved live that regex missed the
+   display-name form (`"Claude Opus 5"`) `substrate-tier-map.json`'s own `copilot` lane already
+   uses. The red-team then found the critic's own fix ("ban every leaf string in the cited files")
+   was **too broad** — it banned ordinary English words (`high`/`low`/`architect`/`scanner`) and the
+   cited source's own retrieval date, which would have put the ban-list in direct contradiction
+   with the artifact's own staleness-citation requirement. The shipped version derives the ban-list
+   from a **scoped projection** — `model-catalog.json`'s `current`∪`stale` values plus
+   `substrate-tier-map.json`'s per-host-per-tier `model` leaves only — with a **positive control on
+   the derivation itself** (Gate 255 check B refuses to pass on an empty or under-scoped ban-list).
+   This build's own first draft tripped the finished check for real, on a SKU embedded in a
+   `rationale` prose string and a display-name form left in the doc's own illustrative prose —
+   confirming the check has genuine teeth on authored content, not just synthetic mutants.
+
+**A shared-anchoring correlated error was caught and fixed, not just documented.** Both design
+panels' plans asserted *"Gate 51 enforces the `run_config` byte-identical-when-disabled floor."*
+False — Gate 51 is the unrelated portal shell-router gate; **no gate currently CI-enforces the
+`run_config` disabled floor**, which holds today only by convention (nobody edits the file). Both
+panels inherited the claim from the same upstream paraphrase in `adaptive-run-classifier/SKILL.md`
+and neither independently verified it against `scripts/audit-gates.sh` — textbook correlated error,
+caught by this build's own G4a critic gate. Fixed at all 5 sites it had spread to
+(`adaptive-run-classifier/SKILL.md`, `rc-deep-research/SKILL.md`, both `rc-deep-research.js` mirror
+copies — edited identically in one commit, Gate 126 confirmed the mirror stayed byte-identical —
+and an unrelated wrong-gate-number in `pbir-layout-engine/lint.py`, corrected 51→92, its real gate).
+
+**Composition — prose pointers only, no code/schema change.** One paragraph each in
+`cheap-lane-delegation/SKILL.md` (an optional input to the `cheap_lane.agent: grok | copilot`
+choice, which today has no principled basis) and `spawn-team/SKILL.md` (an optional reference when
+choosing a non-Claude host). `adaptive-run-classifier`'s `run_config` schema is deliberately
+**untouched** — that schema is purpose-built for RavenClaude's own internal research-loop phases,
+and widening it to a 5-surface agent choice was judged not worth risking its (behavioral, per the
+correction above) disabled-floor invariant. `route-task.py --self-test` stays **17/17**, verified
+unchanged before and after every edit.
+
+**Gate 255** (`scripts/check-agent-routing-matrix.py`, the next open slot — max prior header was
+254) — 9 checks, each with real teeth: (A) hand-rolled schema validation, whose must-fail mutant
+mutates the **schema itself** (deleting a `required` entry), proving the validator enforces
+`required`, not just that the JSON parses; (B) the derived-ban-list anti-duplication above, scanned
+against the JSON (both `json.load`'d values and raw text — closing a JSON-key-shaped evasion) and
+the `.md` with whitespace/markdown normalization (closing a hard-wrapped-across-a-line-break
+evasion — one already existed live in this repo's own `forge-pipeline/reference/provenance.md`);
+(C) no numeric confidence, split exact-on-JSON / shape-match-on-`.md` so the doc's own explanatory
+paragraph about the design doesn't trip its own gate; (D1/D2) `agent_hosts` + every `model_ref`
+checked by **strict key membership** on the parsed `substrate-tier-map.json`, deliberately **never**
+via `resolve_tier()` — that resolver has silent unknown-host/unknown-tier fallbacks (an unknown host
+silently resolves to `claude`), so a resolver-based check would pass an agent-id typo'd into a host
+field (`{agent: "copilot-cli", model_ref: {host: "copilot-chat", ...}}`) silently; a must-fail
+mutant proves exactly this shape is caught; (E) every `framework-rule` citation's `quote` verified
+to exist verbatim (normalized) in its cited source file — stated honestly in the `.md` as proving
+*existence*, not relevance or correct-section placement, a deliberately narrower guarantee than an
+earlier heading-span design; (F) ownership metadata (`owner`/`staleness_tier`/`review_trigger`)
+checked for real values, not just key presence; (G) `route-task.py --self-test` exits 0 with an
+`N/N` (equal) pass line — never a hardcoded literal `17`, so an 18th router case added later doesn't
+redden this unrelated gate — framed honestly as **new** CI coverage (`route-task.py` was not
+previously in `scripts/audit-gates.sh` at all), not a regression-proof of an existing floor; (I)
+per-`task_class` totality bounded to the 4 grounded cells, contiguous `1..N` ranks per cell, no
+duplicates or gaps. Registered in all three surfaces (the `--check` dispatcher arm, the main
+sequence, the `Supported:` string) — verified directly by grep for each, and independently by Gate
+195 (the gate-introspection meta-gate), rather than trusting Gate 195 alone (a main-sequence-only
+registration is a real, documented Gate-195 blind spot from an earlier release).
+
+**Migration:** none — four new files (JSON, schema, doc, gate script) plus a corrected false claim
+in 5 existing files and two prose-only pointer paragraphs; nothing in a consumer's installed plugin
+behaves differently on `/plugin marketplace update` until they read the new knowledge file or open
+`agent-routing-matrix.md`.
