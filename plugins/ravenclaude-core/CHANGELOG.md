@@ -2,6 +2,28 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.311.0 — 2026-09-01
+
+### Fixed
+
+- **VS Code Copilot Chat context-overflow — proactive compaction, no custom trigger needed.** Built
+  via `/forge` (`.ravenclaude/runs/forge/copilot-preemptive-compact/`) against the ask "force
+  autocompaction before a prompt would overflow the context window, plus a fallback." Research
+  (verified against the shipping Copilot Chat bundle, not docs) found the literal "predict and block"
+  mechanism is not buildable — no VS Code API exposes a third-party extension the active session's
+  accumulated token usage — but Copilot Chat already has a native, mis-defaulted setting for exactly
+  this:  `github.copilot.chat.summarizeAgentConversationHistoryThreshold` defaults to `null` (only
+  compact at 100% full). `vscode-extension/` (`ravenclaude-precompact-guard`, bumped 0.1.0 → 0.2.0) now
+  contributes `0.8` as the default for that setting via `contributes.configurationDefaults` — a
+  ~3-line manifest addition, no custom file-writing, no cross-platform path resolution, no VS Code
+  Profiles risk. Direct code-trace confirmed this setting genuinely gates a background summarization
+  applied before the next request renders. Fallback (ask #2 in the original request) was already
+  satisfied natively: `github.copilot.chat.compact` (a real command) + Copilot's own context-window
+  usage indicator + the already-shipped `ravenclaude.forceCompactWithDigest` command.
+- **The extension was silently disabled in VS Code's Restricted Mode** (found by the FORGE run's own
+  red-team pass) — a default-path trigger on any unfamiliar/large repo, correlating with exactly the
+  sessions most likely to overflow. Fixed with `capabilities.untrustedWorkspaces: "limited"`.
+
 ## 0.310.0 — 2026-09-01
 
 ### Added

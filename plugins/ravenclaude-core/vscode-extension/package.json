@@ -2,7 +2,7 @@
   "name": "ravenclaude-precompact-guard",
   "displayName": "RavenClaude Precompact Guard",
   "description": "Force GitHub Copilot Chat to /compact with a critical-info digest you (or the agent) author, before context is lost to automatic compaction.",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "publisher": "ravenclaude",
   "private": true,
   "license": "MIT",
@@ -26,6 +26,12 @@
   "activationEvents": [
     "onStartupFinished"
   ],
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": "limited",
+      "description": "Contributes a Copilot Chat compaction-threshold default and a manually-invoked compact command; neither reads workspace content."
+    }
+  },
   "contributes": {
     "commands": [
       {
