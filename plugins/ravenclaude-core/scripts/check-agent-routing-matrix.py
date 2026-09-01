@@ -28,7 +28,6 @@ import json
 import re
 import subprocess
 import sys
-import tempfile
 from pathlib import Path
 
 MUST_FAIL_TEETH_EXIT = 3
@@ -519,8 +518,6 @@ def _first_rec(data: dict, tc_id: str | None = None) -> dict:
 
 
 def must_fail() -> int:
-    mutants: list[tuple[str, str, object]] = []  # (check, description, mutate_fn)
-
     def m_a(data, schema, doc, sub, cat):
         schema["required"] = []
         return data, schema, doc, sub, cat
