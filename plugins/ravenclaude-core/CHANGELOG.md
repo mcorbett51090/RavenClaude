@@ -13,6 +13,14 @@ All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the 
   prefix-boundary matcher (`mcp__` prefix, not substring). Q1/L4 of the analog-repos-gap-fill
   leftovers, unparked on owner request. See
   [`docs/decisions/2026-08-30-mcp-result-quarantine.md`](../../docs/decisions/2026-08-30-mcp-result-quarantine.md).
+- **`analog-closeness-scorecard` skill** — recomputes the M/H/G/O/E/I/T/V weighted
+  closeness score from the 2026-08-14 analog-repos-gap-fill survey as a reusable,
+  self-tested script, instead of hand-deriving the arithmetic for a future
+  comparison. `--self-test` pins two published survey rows verbatim (regression
+  proof) plus a must-fail-shaped fixture (a high arithmetic score with M=H=G=0 and
+  every dimension inferred, not observed) that the quality bar must still reject.
+  Q2 of the analog-repos-gap-fill leftovers, unparked on owner request. Skill
+  count 56 → 57.
 
 ## 0.307.2 — 2026-08-31
 

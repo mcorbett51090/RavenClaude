@@ -39,9 +39,9 @@
         "MERGE-TIME RE-MEASURE. After #1004 and #1023 landed, merging origin/main into forge/vba-impl regenerates dashboard.html to 10,417,453 bytes (island payload 31,181 <= 31,500). The prior 10,412,000 ceiling was measured before stall-watchdog inventory entries were on main; this is the same PR #991 shape applied to the byte ceiling. Appended, never edited. Headroom to 10,420,000 (+0.03%)."
       ],
       [
-        "MCP result quarantine — 1 inventory entry + a merged Pipeline-tab stage card (2026-08-30)",
-        10428000,
-        "One new mcp-quarantine-matcher-is-a-prefix inventory entry (nuance + evidence block) plus the 'Fetched-page / MCP-result cleaner' stage card text (folded into the existing sanitize-webfetch-output card, not a new card, to stay within the DOM-budget ratchet) push dashboard.html to 10,425,266 bytes (island payload 31,220 <= 31,500, still within budget — no DOM growth from this change beyond the folded card text). Appended, never edited. Headroom to 10,428,000 (+0.03%)."
+        "MCP result quarantine + analog-closeness-scorecard — 2 inventory entries (Q1+Q2, analog-repos-gap-fill leftovers, 2026-08-30/31)",
+        10432000,
+        "Two independent PRs each added one inventory entry (mcp-quarantine-matcher-is-a-prefix and analog-closeness-quality-bar-is-independent-of-score) and each stayed under a 10,428,000 ceiling in isolation; merging them combines both entries' nuance+evidence blocks on the one dashboard.html surface. MCP quarantine's Pipeline-tab mention was folded into the existing sanitize-webfetch-output card (not a new card) to stay within the DOM-budget ratchet, so this is a pure JS-source/content bytes raise, no DOM growth beyond that. Re-measured on the merge; appended, never edited."
       ]
     ],
     "index.html": [
