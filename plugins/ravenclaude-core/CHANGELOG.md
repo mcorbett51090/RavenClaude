@@ -2,6 +2,20 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.310.0 — 2026-09-01
+
+### Added
+
+- **`templates/DESIGN.md` + `knowledge/design-md-resolution.md`** — a house-default visual identity
+  (the real [`google-labs-code/design.md`](https://github.com/google-labs-code/design.md) alpha
+  format, verified against its own spec) for ad-hoc HTML any agent generates to explain/diagnose/report
+  something — not a client's branded product (that stays `web-design`/`brand-identity-studio`'s job,
+  always project-specific). Two-tier resolution: a project-root `DESIGN.md` wins for that repo; its
+  absence falls through to this shipped default (the same "cool near-black canvas + one green accent"
+  look as `dashboard-assets/shared-tokens.css`). Not auto-scaffolded into consumer repos. See the
+  `CLAUDE.md` milestone for the full rationale, including why this is core rather than a duplicate of
+  `web-design`'s DESIGN.md note (PR #1063).
+
 ## 0.309.0 — 2026-09-01
 
 ### Added
