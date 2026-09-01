@@ -26,13 +26,34 @@
 # holds. Always exits 0 after emitting (so a translation hiccup never wedges the
 # tool); the decision is carried in the emitted JSON, not the exit code.
 #
-# VERIFY-IN-COPILOT (could not be tested without a live Copilot CLI):
-#   - the exact SessionStart context-injection shape (we emit BOTH a structured
-#     {additionalContext} and the plain banner text, which covers both documented
-#     behaviors);
-#   - the "modify tool call" (updatedInput) shape — we pass the revised command
-#     through as `updatedInput` best-effort and fall back to surfacing it in the
-#     reason if Copilot ignores it.
+# CONFIRMED 2026-09-01 (docs.github.com/en/copilot/reference/hooks-reference, cross-corroborated by
+# 4 more official docs.github.com pages + github/copilot-cli issues #2013/#3349 — see
+# docs/research/2026-09-01-copilot-chat-grandmaster/synthesis.md):
+#   - the PreToolUse response envelope really is top-level {permissionDecision,
+#     permissionDecisionReason} with NO hookSpecificOutput wrapper (a verbatim-quote search of the
+#     reference page found zero occurrences, and copilot-cli#2013 confirms a Claude-shaped wrapped
+#     payload is silently ignored);
+#   - toolArgs really is a stringified JSON string (not a nested object) — 4 independent sources
+#     plus copilot-cli#3349;
+#   - SessionStart injects context via the additionalContext JSON key (the structured half of the
+#     dual-emit below is load-bearing); plain unstructured stdout is preserved in the hook's output
+#     stream but is NOT itself parsed into model context, so the plain-text half is likely inert for
+#     injection — harmless to keep, not worth removing;
+#   - PreCompact is notification-only (cannot block/modify compaction), independently confirming
+#     this file's own precompact-mode reasoning below;
+#   - the Stop/agentStop block shape ({decision:"block", reason}) is confirmed, and `reason` becomes
+#     the PROMPT for the forced next turn, not just a rejection message.
+#
+# STILL VERIFY-IN-COPILOT (not settled by the 2026-09-01 research — needs a live Copilot session):
+#   - the exact "modify tool call" (updatedInput) wire shape — passed through best-effort, falling
+#     back to surfacing it in the reason if Copilot ignores it;
+#   - whether Copilot's PascalCase / "Claude matcher semantics" mode (>=1.0.62, see the TOOL-NAME
+#     NORMALISATION comment below) does its OWN native tool-name translation before evaluating a
+#     projected matcher, and if so, whether that translation covers `powershell` the same way it
+#     must already cover `bash`/`edit`/`view` for the existing wiring to work at all. Unverified
+#     either way — this determines whether a `powershell` call reaches THIS adapter on modern
+#     Copilot in the first place. See scripts/generate-copilot-hooks.py's "MATCHERS ARE PROJECTED"
+#     section and .ravenclaude/runs/forge/copilot-adapter-tool-names/claims-table.md.
 
 set -uo pipefail
 
@@ -64,13 +85,13 @@ case "$mode" in
   bash-pretool)
     # Copilot toolArgs is a JSON STRING; parse it, then re-shape to Claude stdin.
     #
-    # TOOL-NAME NORMALISATION (added 2026-07-28 — this was a silent P0).
+    # TOOL-NAME NORMALISATION (added 2026-07-28 — this was a silent P0; extended 2026-09-01).
     # The envelope was translated but the tool-name VALUE was passed through
     # verbatim, and Copilot's vocabulary is not Claude's: GitHub documents its
     # tools as lowercase `bash` / `edit` / `view`
     # (docs.github.com/en/copilot/concepts/agents/hooks, retrieved 2026-07-28:
     # "before the agent uses any tool (such as `bash`, `edit`, `view`)").
-    # thing-orchestrator.sh:113-116 dispatches on a CASE-SENSITIVE
+    # thing-orchestrator.sh:126 dispatches on a CASE-SENSITIVE
     # `Bash | Read | Write | Edit | MultiEdit | WebFetch | WebSearch | mcp__*`
     # and falls to `*) exit 0` — "no decision, proceed". So under Copilot the
     # command-review tribunal AND guard-web-access.sh were complete, silent
@@ -80,24 +101,63 @@ case "$mode" in
     # was reviewed as Bash, while a PRESENT lowercase name was skipped. Now an
     # absent name maps to "" and is handled by the unmapped branch below.
     #
-    # SOURCING, stated honestly: `bash`/`edit`/`view` are docs-verified above.
-    # `create`, `str_replace`, `web_fetch`, `web_search` are NOT — GitHub's page
-    # gives only that partial "such as" list, so they are mapped defensively on
-    # the same lowercase convention and marked here so a future editor knows
-    # which lines rest on a source and which do not.
+    # SOURCING (2026-09-01 update): the FULL authoritative Copilot CLI tool list is now confirmed —
+    # docs.github.com/en/copilot/reference/hooks-reference, cross-corroborated (see
+    # docs/research/2026-09-01-copilot-chat-grandmaster/synthesis.md §3.4):
+    #   ask_user, bash, create, edit, glob, grep, powershell, task, view, web_fetch, web_search.
+    # `create`, `web_fetch`, `web_search` (previously marked defensive/unconfirmed) are now
+    # CONFIRMED real. `str_replace` (mapped below to Edit) is NOT in the authoritative list — kept
+    # as a harmless dead/speculative alias; costs nothing, never fires against real Copilot output.
+    #
+    # `powershell` -> Bash closes a REAL gap: it is Copilot's Windows command-execution tool, the
+    # direct analogue of bash — an unmapped `powershell` command silently bypassed the tribunal
+    # exactly like the original bash/edit/view P0. ⛔ RESIDUAL RISK, security-reviewed 2026-09-01
+    # (verdict: CLEAR-WITH-CHANGES, applied below): (1) whether a `powershell` call reaches this
+    # adapter AT ALL on Copilot >=1.0.62 is unverified — see the VERIFY-IN-COPILOT block above; (2)
+    # the tribunal's Bash-shaped catalog triggers (knowledge/concerns-catalog.md) are POSIX-only by
+    # construction and were measured (thing-decision.py classify, this session) to NOT trip on
+    # PowerShell-native dangerous forms (`iwr|iex`, `-EncodedCommand`, `Invoke-Expression`,
+    # `DownloadString`) — coverage is gained for shell-portable text (git/npm/gh/curl-literal
+    # commands) and the category-independent hard-rule + self-disable floor, not for
+    # PowerShell-specific attack syntax. A catalog extension for PowerShell-shaped triggers is
+    # tracked follow-up work, not done here. (3) the command-text JSON key Copilot's `powershell`
+    # tool actually uses is unverified (assumed `.command` like bash) — defended below by
+    # coalescing `.command // .script // .commandLine`, scoped to Bash-mapped calls only so
+    # non-Bash tool_input shapes are untouched.
+    #
+    # `glob` / `grep` / `task` are mapped for NAMING ACCURACY ONLY — hygiene, not a security fix.
+    # thing-orchestrator.sh's dispatch case (line 126) does not include Glob/Grep/Task either, so
+    # neither the Claude nor the Copilot version of these tool types is tribunal-reviewed — this is
+    # PARITY, not a gap. Mapping them removes the false "unmapped tool name" warning below for tool
+    # types that are correctly, deliberately unreviewed.
+    #
+    # `ask_user` is DELIBERATELY LEFT UNMAPPED — do not "fix" this without reading
+    # scripts/generate-copilot-hooks.py's `_SKIP` entry for route-decision-review.sh first. That
+    # hook (the Claude-side AskUserQuestion handler — ask_user's semantic equivalent) is
+    # EXPLICITLY, deliberately never wired for Copilot: below Copilot 1.0.62 an unhonored matcher
+    # makes a hook fire for EVERY tool call, and route-decision-review.sh expects an
+    # AskUserQuestion-shaped payload — wiring it "would be a liability on exactly the versions
+    # where the matcher cannot protect it" (generate-copilot-hooks.py comment, verbatim). Mapping
+    # ask_user -> "AskUserQuestion" here would be purely cosmetic (that hook is never invoked under
+    # Copilot regardless of tool_name) and would misrepresent a security decision the maintainers
+    # already made on purpose. Full reasoning chain:
+    # .ravenclaude/runs/forge/copilot-adapter-tool-names/claims-table.md.
     claude_stdin="$(printf '%s' "$payload" | jq -c \
       '(.toolName // .tool_name // "") as $raw
        | ($raw | ascii_downcase) as $lc
        | {
-           bash: "Bash", shell: "Bash",
+           bash: "Bash", shell: "Bash", powershell: "Bash",
            view: "Read", read: "Read",
            create: "Write", write: "Write",
            edit: "Edit", str_replace: "Edit", multiedit: "MultiEdit",
            web_fetch: "WebFetch", webfetch: "WebFetch",
-           web_search: "WebSearch", websearch: "WebSearch"
+           web_search: "WebSearch", websearch: "WebSearch",
+           glob: "Glob", grep: "Grep", task: "Task"
          } as $map
-       | {tool_name: ($map[$lc] // $raw),
-          tool_input: ((.toolArgs // "{}") | (try fromjson catch {command: .})),
+       | ($map[$lc] // $raw) as $tn
+       | ((.toolArgs // "{}") | (try fromjson catch {command: .})) as $ti
+       | {tool_name: $tn,
+          tool_input: (if $tn == "Bash" then ($ti + {command: ($ti.command // $ti.script // $ti.commandLine // "")}) else $ti end),
           cwd: (.cwd // .workspaceRoot // "."),
           session_id: (.sessionId // .session_id // "")}' 2>/dev/null)"
     # An unmapped tool name still passes through UNCHANGED (behaviour preserved
