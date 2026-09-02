@@ -168,6 +168,11 @@ output back to the model. The controls:
 - **The model's visual taste is good, not perfect.** It reliably catches broken
   layouts and obvious ugliness; it's weaker on subtle brand polish. That's exactly why
   the loop is anchored on the *objective* signals, with vision as the complement.
+  For the brand-polish half specifically, `web-design` now ships a structured
+  self-check — a project-scoped anti-pattern catalogue plus a checklist pass in a
+  fresh context — which converts "weaker on brand polish" from an unaddressed caveat
+  into a named checklist. It is a self-check, not an objective signal: it does not
+  join the stopping-signal list above.
 - **BI screenshots need infrastructure.** A Power BI/Fabric report must be
   published/embedded + authenticated to screenshot; absent that, the structural read
   is the whole loop — and a complete one.
@@ -177,3 +182,4 @@ output back to the model. The controls:
 - [`../skills/visual-feedback-loop/SKILL.md`](../skills/visual-feedback-loop/SKILL.md) — the runnable referee + its contract
 - [`../skills/pbir-layout-engine/SKILL.md`](../skills/pbir-layout-engine/SKILL.md) — the structural layout linter for PBIR/web-dashboard pages
 - [`webfetch-hardening`](../skills/webfetch-hardening/SKILL.md) / the containment-posture milestone in this plugin's CLAUDE.md — the trust-boundary discipline a render loop inherits
+- [`../../web-design/skills/brand-guidance-authoring/reference/brand-polish-checklist.md`](../../web-design/skills/brand-guidance-authoring/reference/brand-polish-checklist.md) — the fresh-context brand-polish self-check named above

@@ -364,7 +364,7 @@
       "name": "web-design",
       "source": "./plugins/web-design",
       "description": "Web design & build specialist team \u2014 web architect (IA, stack, hosting), UX designer (wireframes, flows, conversion), visual designer (brand, typography, tokens), frontend implementer (HTML/CSS/JS, React, Astro, Next), content strategist (copy, microcopy, SEO content), accessibility auditor (WCAG 2.2 AA/AAA), and performance engineer (Core Web Vitals, image/font optimization). skills (the gold-standard-website-pipeline gated build pipeline, static-site build, design-system audit, card/tile UI, accessibility review, Core Web Vitals tuning, technical SEO audit, information architecture, conversion design, content audit, design-tokens scaffolding, third-party hygiene, Fluent UI v9 + React implementation), templates, an advisory hook, and a knowledge bank seeded with a curated 2026 reference set of \"cutting edge yet simple\" marketing-site donors \u2014 the design agents carry compact inline priors plus a pointer to the full brief. Inherits ravenclaude-core protocols.",
-      "version": "0.17.1",
+      "version": "0.18.1",
       "author": {
         "name": "Matt Corbett"
       },
@@ -3590,7 +3590,7 @@
       "name": "brand-identity-studio",
       "source": "./plugins/brand-identity-studio",
       "description": "Standalone brand-CREATION service for a web studio's commission customers \u2014 agents (brand-strategist, identity-systems-designer): strategy/positioning/archetype, naming & tagline, curated logo suite, color/type systems (WCAG-paired), brand book, legal/IP posture, collateral, sellable tiers. AI-drafts + MANDATORY human curation. Thin orchestration layer: delegates design tokens to web-design:design-tokens-scaffolding, raw generation + license/indemnity to generative-web-media, and hands the finished system to web-design:visual-designer. skills, commands, a knowledge bank (Mermaid trees), best-practices, templates, a stdlib WCAG-pair checker, an advisory hook. Not legal advice \u2014 every IP / font-license / registrability claim routes to security-reviewer. Prices [unverified]. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.1.1",
+      "version": "0.1.2",
       "author": {
         "name": "Matt Corbett"
       },
