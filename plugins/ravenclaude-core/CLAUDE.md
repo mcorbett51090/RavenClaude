@@ -1377,6 +1377,14 @@ Closes the recurring failure where the agent **tells the user to check/do someth
 
 **"Claude Design"** = the user's **claude.ai/design** design-system projects (tokens / components / guidelines / UI kits), reached through the built-in **`DesignSync`** tool + the built-in **`/design-sync`** skill. **Access is an authorization on the claude.ai login, not a repo file** — the first `DesignSync` call auto-grants the `user:design:read`/`user:design:write` scopes (or `/design-login` once for a session with no claude.ai login). So a "this environment can't see design projects" message is the un-granted scope, **not** a missing skill file — adding repo files does not grant access (the Capability-Grounding "a missing-looking capability is one route" lesson). Canon: [`knowledge/design-project-binding.md`](knowledge/design-project-binding.md).
 
+> **Corrected 2026-09-01.** This milestone described the built-in `DesignSync`/`/design-sync` route as
+> if it were the only one. A **separate, additive MCP-server route** also reaches these projects
+> (`claude mcp add --scope user --transport http claude-design https://api.anthropic.com/v1/design/mcp`,
+> then `/design-login`) — `[docs-verified — Anthropic Help Center, 2026-09-01]`. Both are real; this
+> file's own stated refresh trigger ("the DesignSync tool surface or the `/design-login`/`/design-sync`
+> flow changes") had fired 69 days earlier, under the 90-day calendar-sweep flag that would have caught
+> it eventually. See the canon file's "Two connection routes" section for the current state.
+
 What a repo *can* add — so the agent auto-knows **which** of the user's projects is **this repo's** (instead of asking every session) — is a small **binding**, mirroring the `environment-context.md` pattern:
 
 - **[`templates/design-project.json`](templates/design-project.json)** — `{project_id, name, mirror_dir, notes}`. `project_id` is a **non-secret UUID** (safe to commit); the binding is a pointer, never a credential.

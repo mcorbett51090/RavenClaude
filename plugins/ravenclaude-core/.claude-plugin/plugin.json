@@ -2,7 +2,7 @@
   "name": "ravenclaude-core",
   "displayName": "RavenClaude Core",
   "description": "Domain-neutral Team Lead + specialist-agents pattern for Claude Code: specialists, skills, gates, hooks, rules, templates. Capability Grounding Protocol, Structured Output Protocol, Researcher meta-skill, comfort-posture dashboard, opt-in command-review tribunal (the Thing), WebFetch sanitizer, branch-archive escape hatch, brand-extraction (homepage → brand kit), authoring-org-skills (claude.ai Organization Skills: lint/pack/verify against measured platform constraints), /wireframe (describe anything → validated model + high-fi Artifact + Mermaid), and declarative-visualization (Vega-Lite/Deneb/SVG, Gate 101 + Gate 103 svg-report-lint, viz-spec-reviewer). Slash commands: /init-agent-ready, /wrap, /set-posture, /dashboard, /forge, /wireframe, /reset-plugin-cache, /handoff.",
-  "version": "0.311.1",
+  "version": "0.311.2",
   "author": {
     "name": "Matt Corbett"
   },
