@@ -62,6 +62,23 @@ _SKIP = {
         "schemas were not published on the verified pages — mapping by name "
         "similarity would assert coverage that may not exist."
     ),
+    # ⛔ NEWLY VISIBLE, NOT NEWLY BROKEN. `ask-on-ambiguity.sh` has been registered
+    # since v0.273.0 and was DROPPED SILENTLY by all three host projectors for its
+    # whole service life, because `_script_of` matched only `/hooks/` and this hook
+    # body lives under `/scripts/` (the packaging exception the tribunal's
+    # substrate guard forces). The generator's own "explicit skip or raise"
+    # contract never fired, because a hook it cannot see is a hook it cannot
+    # refuse. Widening the resolver surfaced it and this entry is the decision the
+    # contract was always supposed to demand.
+    # control: with the widened resolver, 42 of 42 registered commands resolve to a
+    # script name and 0 are dropped; before it, 4 were dropped and none of the
+    # three generators said a word.
+    "ask-on-ambiguity.sh": (
+        "UserPromptSubmit — same unverified lifecycle mapping as "
+        "stream-prompt-attribute.sh above. It is an advisory nudge that never "
+        "blocks, so the cost of the gap is one un-nudged prompt, not lost "
+        "enforcement."
+    ),
     "dod-gate.sh": (
         "Stop. Gemini's AfterAgent/SessionEnd are plausible counterparts but "
         "unverified; a definition-of-done gate that fires on the wrong lifecycle "
@@ -90,16 +107,46 @@ _SKIP = {
         "SubagentStart. Gemini exposes no verified subagent hook event; this hook is "
         "an audit-only shadow that never denies, so the cost is observability."
     ),
+    "precompact-digest.sh": (
+        "PreCompact. Gemini exposes no verified compaction-hook event on the pages "
+        "verified, so mapping it by name-similarity would assert coverage that may "
+        "not exist. Archival-only and never denies — the cost of the gap is one "
+        "un-archived digest, not lost enforcement."
+    ),
+    # ⛔ R7 — THE THREE verify-before-assert CELLS SHIP **UNWIRED AND DECLARED**,
+    # for the same reason as the Cursor lane: docs-verified only, never
+    # round-tripped against the live product. A guardrail fully wired and
+    # reviewing nothing is the exact MH-01 shape, and tool-name normalisation
+    # (run_shell_command -> Bash) is not optional when these are eventually wired.
+    # control (G7.2, 2026-08-25): host-support.json still reads updated
+    # 2026-08-14 — no newer evidence than the plan had — so the downgrade stands.
+    "preflight-command-review.sh": (
+        "UNWIRED — declared (R7). Not round-tripped against the live product; "
+        "ships skipped rather than wired-and-hopeful. Host degrades to the "
+        "portable text floor."
+    ),
+    "guard-remediation-cause.sh": (
+        "UNWIRED — declared (R7). Same basis; carries a deny path at "
+        "cause_remediation: block, so a silent no-op would claim a fail-closed "
+        "surface that does not exist."
+    ),
+    "guard-cause-closure.sh": (
+        "UNWIRED — declared (R7). Write-shaped, and the tool_input FIELD NAME "
+        "carrying a file path is unverified here — the same gap that keeps "
+        "enforce-layout.sh skipped above."
+    ),
 }
 
 
 def _script_of(command: str) -> str:
-    m = re.search(r"/hooks/([A-Za-z0-9._-]+\.sh)", command)
+    m = re.search(r"/(?:hooks|scripts)/([A-Za-z0-9._-]+\.sh)", command)
     return m.group(1) if m else ""
 
 
 def _extra_args(command: str, script: str) -> str:
     marker = "/hooks/" + script
+    if marker not in command:
+        marker = "/scripts/" + script
     tail = command.split(marker, 1)[1].strip() if marker in command else ""
     return tail.replace(_ARGV_TOKEN, "").strip()
 

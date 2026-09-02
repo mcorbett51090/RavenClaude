@@ -1,12 +1,19 @@
 # Anthropic-hosted server tools & the Files API
 
-**Last reviewed:** 2026-06-12 (advisor tool added — verified against the [advisor-tool docs](https://platform.claude.com/docs/en/agents-and-tools/tool-use/advisor-tool); rest of bank 2026-05-28) · **Confidence:** medium-high — several of these are beta/recent; dated, verify before quoting. ([API overview](https://platform.claude.com/docs/en/api/overview), retrieved 2026-05-28.)
+**Last reviewed:** 2026-08-19 (browser use tool launched + computer use tool exited beta — verified against the [release notes](https://platform.claude.com/docs/en/release-notes/overview) and the tool-specific docs; advisor tool added 2026-06-12 — verified against the [advisor-tool docs](https://platform.claude.com/docs/en/agents-and-tools/tool-use/advisor-tool); rest of bank 2026-05-28) · **Confidence:** medium-high — several of these are beta/recent; dated, verify before quoting. ([API overview](https://platform.claude.com/docs/en/api/overview), retrieved 2026-05-28.)
 **Owner:** `mcp-and-server-tools-engineer`.
 
 These are tools and APIs Anthropic runs (distinct from MCP servers you author and from the Agent SDK's local built-in tools). They're requested via the Messages API and often gated by a beta header.
 
 ## Computer use
 Claude controls a computer via screenshots + mouse/keyboard tool calls. **GA on claude.ai (March 2026)**; via the API, **you still run the actions in a sandboxed VM** (X11/Xvfb display, lightweight desktop, pre-installed apps). High blast radius — sandbox hard, never point it at a machine with credentials/state, and route the sandboxing design to `ravenclaude-core/security-reviewer`. Use only when DOM/API automation can't do the job.
+
+**`computer_toolset_20260801` (2026-08-19) — out of beta on the Claude API.** No beta header required; adds batch actions (several actions per turn) and `zoom` enabled by default, with per-member configuration via a `configs` object. **Breaking shape change** from the prior `computer_20251124` beta tool (a single tool declaration with `name` / `display_width_px` / `display_height_px` / `display_number` / `enable_zoom` params) — the new toolset rejects that shape; re-declare the tool, don't just bump the version string. Available for **Fable 5, Mythos 5, Opus 5, Sonnet 5, Opus 4.8** — **Claude API and Google Cloud: GA**; **Claude Platform on AWS, Amazon Bedrock, and Microsoft Foundry: still beta**. Earlier beta tool versions remain available for older models. See "## Browser use" below for the desktop-vs-in-page decision. [computer-use-tool docs](https://platform.claude.com/docs/en/agents-and-tools/tool-use/computer-use-tool) `[verify-at-use — dated 2026-08-19]`
+
+## Browser use
+Claude drives a browser **your application hosts** (not a full desktop) — distinct from computer use.
+
+**`browser_toolset_20260801` (2026-08-19).** Client-side toolset: Claude reads the page's accessibility tree/elements/forms/tabs and gets element references, `form_input`, native tab management (`new_tab` / `switch_tab` / `close_tab` / `list_tabs`), download reporting, and opt-in file upload — on top of screenshot-and-click control. Available for **Fable 5, Mythos 5, Opus 5, Sonnet 5, Opus 4.8** on the **Claude API and Google Cloud**; **not yet on AWS / Amazon Bedrock / Microsoft Foundry** (as of 2026-08-19). **Computer use vs browser use:** reach for browser use when the target is in-page web automation and an accessibility-tree element reference is enough; reach for computer use when the task spans the whole desktop or multiple applications. [browser-use-tool docs](https://platform.claude.com/docs/en/agents-and-tools/tool-use/browser-use-tool) `[verify-at-use — dated 2026-08-19]`
 
 ## Code execution tool
 Claude runs code in an Anthropic-hosted sandbox and uses the result. Good for data analysis, math, and verifying generated code. Verify GA/beta + the sandbox's network/package posture before relying on it for sensitive data.

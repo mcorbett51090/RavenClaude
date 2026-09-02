@@ -1,0 +1,80 @@
+{
+  "name": "ravenclaude-precompact-guard",
+  "displayName": "RavenClaude Precompact Guard",
+  "description": "Force GitHub Copilot Chat to /compact with a critical-info digest you (or the agent) author, before context is lost to automatic compaction.",
+  "version": "0.2.0",
+  "publisher": "ravenclaude",
+  "private": true,
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.134.0"
+  },
+  "categories": [
+    "AI",
+    "Chat",
+    "Other"
+  ],
+  "keywords": [
+    "copilot",
+    "copilot-chat",
+    "compact",
+    "compaction",
+    "context",
+    "ravenclaude"
+  ],
+  "main": "./dist/extension.js",
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": "limited",
+      "description": "Contributes a Copilot Chat compaction-threshold default and a manually-invoked compact command; neither reads workspace content."
+    }
+  },
+  "contributes": {
+    "commands": [
+      {
+        "command": "ravenclaude.forceCompactWithDigest",
+        "title": "RavenClaude: Force Compact with Critical-Info Digest",
+        "category": "RavenClaude"
+      }
+    ],
+    "languageModelTools": [
+      {
+        "name": "ravenclaude_forceCompactWithDigest",
+        "displayName": "Force Compact with Critical-Info Digest",
+        "modelDescription": "Call this when you judge the current Copilot Chat conversation is approaching its context limit and you want to compact NOW while explicitly preserving what matters. You author the digest yourself, from your own in-turn understanding of the conversation (open decisions, pending TODOs, key file paths, unresolved questions) — this tool cannot read the chat history for you. Calling this triggers VS Code's /compact command with your digest appended as steering text, which is injected verbatim into the summarization system prompt so it survives compaction.",
+        "canBeReferencedInPrompt": false,
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "digest": {
+              "type": "string",
+              "description": "Your own summary (authored by you, the model, from your in-turn context) of what must survive compaction: open decisions, pending TODOs, key facts, file paths, and unresolved questions. Plain text, no special formatting required."
+            }
+          },
+          "required": [
+            "digest"
+          ]
+        }
+      }
+    ],
+    "configurationDefaults": {
+      "github.copilot.chat.summarizeAgentConversationHistoryThreshold": 0.8
+    }
+  },
+  "scripts": {
+    "compile": "node esbuild.js",
+    "watch": "node esbuild.js --watch",
+    "typecheck": "tsc --noEmit",
+    "package": "npx vsce package"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.134.0",
+    "@types/node": "^22.0.0",
+    "esbuild": "^0.28.2",
+    "typescript": "^5.9.0 || ^7.0.0",
+    "@vscode/vsce": "^3.9.2"
+  }
+}

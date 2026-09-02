@@ -926,6 +926,22 @@ _PIPELINE_LANES = [
                     "set": "Pick off / decide / full below. Inert under Claude Code (host already IS Claude).",
                 },
             },
+            {
+                "id": "cheap-lane-delegation",
+                "title": "Cheap lane (Grok/Copilot)",
+                "badge": "dynamic",
+                "controls": "cheap_lane",
+                "tip": "Routes well-defined everyday work (tests, summaries, mechanical edits) to a cheaper coding agent instead of spending Claude's own turn on it.",
+                "detail": {
+                    "steps": [
+                        "A deterministic router decides whether a task is well-defined enough to leave the Claude session.",
+                        "advise: the delegated agent's output comes back as a suggestion only — nothing is applied automatically.",
+                        "agent: the delegated agent writes to a disposable, sandboxed git worktree — you review the diff before it merges.",
+                    ],
+                    "trip": "An ambiguous or escalation-shaped task always stays with Claude — the router defaults to keeping work local.",
+                    "set": "Pick off / advise / agent, the tier, and the coding agent below.",
+                },
+            },
         ],
     },
     {
@@ -937,15 +953,15 @@ _PIPELINE_LANES = [
         "stages": [
             {
                 "id": "sanitize-webfetch-output",
-                "title": "Fetched-page cleaner",
+                "title": "Fetched-page / MCP-result cleaner",
                 "badge": "always",
-                "tip": "Strips instruction-shaped junk from a page the robot just fetched, before it reads it.",
+                "tip": "Strips instruction-shaped junk from a page or MCP tool result the robot just received, before it reads it.",
                 "detail": {
                     "steps": [
-                        "After a web fetch, strips fake system-reminder blocks from the page body.",
-                        "If the cleaner crashes, the original page is left in place (fail-open).",
+                        "After a web fetch or any mcp__* tool call, strips fake system-reminder blocks from the result.",
+                        "If the cleaner crashes, the original result is left in place (fail-open).",
                     ],
-                    "trip": "Rewrites the fetched body the robot sees. Never blocks the fetch. Does not touch MCP results.",
+                    "trip": "Rewrites the fetched body or MCP result the robot sees. Never blocks the call.",
                     "set": "Built in.",
                 },
             },
@@ -1080,8 +1096,8 @@ _PIPELINE_LANES = [
 
 # ── The lane→hook contract (the ONLY thing that keeps the map "grounded") ─────
 # Maps every _PIPELINE_LANES stage id -> the registered hook basename it stands
-# for, or None for the two BEHAVIORAL guardrails (comfort-posture knobs read by
-# spawn-team at dispatch time, not hooks). Gate 133 asserts this dict's keys are
+# for, or None for the three BEHAVIORAL guardrails (comfort-posture knobs read by
+# spawn-team / cheap-lane-delegation at dispatch time, not hooks). Gate 133 asserts this dict's keys are
 # EXACTLY the set of stage ids in _PIPELINE_LANES — so a stage cannot be added
 # without declaring the hook it represents (or None) — and reconciles the mapped
 # hooks against hooks/hooks.json.
@@ -1099,6 +1115,7 @@ _PIPELINE_STAGE_HOOKS = {
     "route-decision-review": "route-decision-review.sh",
     "guard-web-access": "guard-web-access.sh",
     "claude-orchestrator": None,  # behavioral: spawn-team reads `orchestrator:` — no hook
+    "cheap-lane-delegation": None,  # behavioral: cheap-lane-delegation skill reads `cheap_lane:` — no hook
     "sanitize-webfetch-output": "sanitize-webfetch-output.sh",
     "format-on-write": "format-on-write.sh",
     "guard-recursive-spawn": "guard-recursive-spawn.sh",
@@ -1129,6 +1146,10 @@ _PIPELINE_EXCLUDED_HOOKS = {
     "FOREIGN-TREE is the third clause (sibling Write / git -C); deliberately NOT a Pipeline stage card",
     "thing-denial-kb-sync.sh": "Muninn denial-KB materialiser (Stop); learns from tribunal denials, not itself a guardrail",
     "thing-denial-kb-recall.sh": "Muninn denial-KB recall (SessionStart); surfaces known denials + fixes, not a guardrail",
+    "sanitize-mcp-output.sh": "same PostToolUse quarantine as sanitize-webfetch-output.sh, extended "
+    "from WebFetch to mcp__* tool results (Q1/L4, analog-repos-gap-fill leftovers). One stage card "
+    "covers both — the 'Fetched-page / MCP-result cleaner' stage, mapped to sanitize-webfetch-output.sh "
+    "above; a second card would duplicate the same mechanism at DOM-budget cost for no reader value",
     "dashboard-autostart.sh": "opt-in convenience launcher (SessionStart) for the dashboard itself; "
     "gates nothing, denies nothing, and never inspects a tool call — its knob is `dashboard_autostart` "
     "in comfort-posture.yaml, deliberately NOT a Pipeline stage card",
@@ -1154,6 +1175,15 @@ _PIPELINE_EXCLUDED_HOOKS = {
     "enforce-git-protocol.sh: it enforces an authoring CONVENTION (portability) rather than the "
     "safety floor the drawn PreToolUse cards represent, and its knob is surfaced with the other "
     "posture settings — so it is deliberately NOT a Pipeline stage card",
+    "guard-foreground-suite.sh": "foreground long-suite guard (PreToolUse Bash). DENIES (exit 2) a "
+    "FOREGROUND invocation of scripts/audit-gates.sh, because the Bash tool clamps `timeout` at "
+    "600000ms and the 917-gate suite outgrew it — so the run wedges the session for ten minutes and "
+    "is auto-backgrounded anyway. Three escapes: run_in_background:true, `--check N`, and a literal "
+    "RC_SUITE_FOREGROUND_ACK=1 prefix. ⛔ Unlike the other excluded PreToolUse hooks this one really "
+    "does exit 2 — but it is excluded for the same reason enforce-git-protocol.sh is (which also "
+    "blocks at its `block` knob): what it enforces is a WORKFLOW constraint imposed by the tool "
+    "harness, not the safety floor the drawn PreToolUse cards represent. It protects the operator's "
+    "ten minutes, not the repo or the user's data — so it is deliberately NOT a Pipeline stage card",
     "guard-probe-validity.sh": "advisory probe-validity nudge (PreToolUse Bash) governed by the "
     "`probe_validity:` comfort-posture knob — WARN is its ONLY verdict (there is no `block` value "
     "and no exit-2 path), on exactly one shape: `grep -v` used in quiet mode, where the exit status "
@@ -1169,6 +1199,12 @@ _PIPELINE_EXCLUDED_HOOKS = {
     "Opt-in via `context_handoff.mode` (default off). Never writes the brief, never "
     "blocks unless the owner set `mode: block`, and is not a safety-floor card — same "
     "class as compact-anchor.sh (informational Stop/SessionStart context, not a drawn Pipeline stage)",
+    "precompact-digest.sh": "PreCompact archival hook (P2, precompact-critical-context "
+    "FORGE plan). Writes a curated pre-compaction digest to disk when it can; never "
+    "denies, never warns, and its output is never injected anywhere (PreCompact's "
+    "stdout is not read on Claude Code, and claim 20 proves it is a verified no-op on "
+    "VS Code). Same class as compact-anchor.sh and handoff-nudge.sh — informational, "
+    "not a safety-floor card, so deliberately NOT a Pipeline stage",
 }
 
 _PIPELINE_CONTROLS = {
@@ -1261,6 +1297,39 @@ _PIPELINE_CONTROLS = {
         "restored locally on return. Defense-in-depth on <em>top</em> of the floor — <strong>not</strong> a "
         "guarantee: pattern detection does not catch free-text names or addresses, which is exactly why "
         "the floor above is the real protection.</p></div>"
+    ),
+    "cheap_lane": (
+        '<label class="pipe-ctl">Mode '
+        '<select id="pipe-cheap-lane-mode">'
+        '<option value="off">off — every task stays with Claude (default, zero extra cost)</option>'
+        "<option value=\"advise\">advise — the delegated agent's output comes back as a "
+        "suggestion only</option>"
+        '<option value="agent">agent — the delegated agent writes to a disposable worktree; '
+        "you review the diff before it merges</option>"
+        "</select></label>"
+        '<label class="pipe-ctl">Tier — how much runway the delegated task gets '
+        '<select id="pipe-cheap-lane-tier">'
+        '<option value="fast">fast — cheapest model, low effort, 15 turns / 300s (default)</option>'
+        '<option value="balanced">balanced — stronger model, high effort, 30 turns / 600s</option>'
+        '<option value="top">top — strongest model, high effort, 60 turns / 1200s '
+        "(pick this yourself; never auto-assigned)</option>"
+        "</select></label>"
+        '<label class="pipe-ctl">Coding agent '
+        '<select id="pipe-cheap-lane-agent">'
+        "<option value=\"grok\">Grok — kernel-sandboxed (Seatbelt / Landlock), the stronger "
+        "containment (default)</option>"
+        '<option value="copilot">Copilot — CLI-documented path restriction, not a kernel '
+        "sandbox</option>"
+        "</select></label>"
+        '<p class="pipe-hint">Off by default — nothing here executes until mode is set to '
+        "<em>advise</em> or <em>agent</em>. <strong>advise</strong> — the delegated agent runs in "
+        "an isolated scratch dir with no repo access; its output is a suggestion for you to apply, "
+        "never applied automatically. <strong>agent</strong> — the delegated agent runs in a "
+        "disposable git worktree with write access; <strong>you review the diff before it "
+        "merges.</strong> A task the router judges ambiguous, escalation-shaped, or "
+        "security-sensitive always stays on Claude regardless of this setting — the routing "
+        "asymmetry is deliberate. See "
+        "<code>skills/cheap-lane-delegation/SKILL.md</code>.</p>"
     ),
     "files": (
         '<div class="pipe-file" data-file=".repo-layout.json">'
@@ -1547,13 +1616,15 @@ def _render_pipeline_tab() -> str:
                 if controls
                 else ""
             )
-            # P5a: mark the BEHAVIORAL-flag stages (decision_review, orchestrator)
-            # so the Pipeline surface makes the same permission-vs-behavior
+            # P5a: mark the BEHAVIORAL-flag stages (decision_review, orchestrator,
+            # cheap_lane) so the Pipeline surface makes the same permission-vs-behavior
             # distinction the Settings tab does — these do NOT gate a tool-call
             # permission. (worktree_guard is a behavioral flag too, but it is
             # surfaced Settings-only, so it carries the badge there, not here.)
             behavioral_html = (
-                _render_behavioral_flag_badge() if controls in ("decision", "orchestrator") else ""
+                _render_behavioral_flag_badge()
+                if controls in ("decision", "orchestrator", "cheap_lane")
+                else ""
             )
             detail = st.get("detail")
             detail_html = ""
@@ -8364,6 +8435,37 @@ _JS = r"""
   const CONTEXT_HANDOFF_MODE_DEFAULT = "off";
   const CONTEXT_HANDOFF_SPAWN_VALUES = ["copy-paste-only", "same-host", "os-terminal"];
   const CONTEXT_HANDOFF_DEFAULT = Object.freeze({ mode: "off", spawn: "", context_window_tokens: null });
+  /* Advisory scalar knobs held only so a Save round-trips them. Values are
+   * validated against each knob's OWN vocabulary, because they differ:
+   * cause_preflight has NO block value by construction (its hook scans its own
+   * source for a deny exit and fails if one appears), while cause_remediation and
+   * cause_closure do — gated behind Phase 9's measured false-positive result. */
+  const ADVISORY_KNOB_VALUES = Object.freeze({
+    probe_validity: ["off", "warn"],
+    cause_triage: ["off", "warn"],
+    cause_preflight: ["off", "warn"],
+    cause_remediation: ["off", "warn", "block"],
+    cause_closure: ["off", "warn", "block"],
+  });
+  const ADVISORY_KNOBS_DEFAULT = Object.freeze({
+    probe_validity: "", cause_triage: "", cause_preflight: "",
+    cause_remediation: "", cause_closure: "",
+  });
+  /* Cheap lane — route everyday work to Grok/Copilot instead of the main Claude
+   * session (v0.303.0-v0.305.0). Round-tripped here so a Save no longer strips
+   * it — it shipped in the same release arc as context_handoff above but was
+   * never wired into emitYaml()/applyGuardrailConfig, so it was the one
+   * unmodelled key of the v0.61.0 data-loss class left in this file. Values
+   * mirror cheap-lane-delegate.sh / grok-delegate.sh / route-task.py's own
+   * accepted set exactly. NO DOM control — state-slot round-trip only, same
+   * pattern as worktree_bound / context_handoff. */
+  const CHEAP_LANE_MODE_VALUES = ["off", "advise", "agent"];
+  const CHEAP_LANE_MODE_DEFAULT = "off";
+  const CHEAP_LANE_TIER_VALUES = ["fast", "balanced", "top"];
+  const CHEAP_LANE_TIER_DEFAULT = "fast";
+  const CHEAP_LANE_AGENT_VALUES = ["grok", "copilot"];
+  const CHEAP_LANE_AGENT_DEFAULT = "grok";
+  const CHEAP_LANE_DEFAULT = Object.freeze({ mode: "off", tier: "fast", agent: "grok" });
 
   /* Per-tier panel defaults — mirror thing-decision.py's built-in tier table.
    * Seats are forseti | mimir | heimdall (thor is the tie-breaker, never a seat).
@@ -8454,6 +8556,22 @@ _JS = r"""
      * round-trips it instead of silently dropping it. No DOM control (worktree_bound
      * pattern) — the launcher/nudge/meter own the semantics, we only preserve. */
     context_handoff: Object.assign({}, CONTEXT_HANDOFF_DEFAULT),
+    /* ⛔ ADVISORY SCALAR KNOBS — the v0.61.0 data-loss class, again.
+     * emitYaml rebuilds the WHOLE posture from state, so any top-level key with
+     * no state slot is SILENTLY DELETED on the next Save & apply. These five are
+     * held here purely so a Save round-trips them; there is no DOM control
+     * (worktree_bound / context_handoff pattern), so this costs zero elements
+     * and needs no ratchet raise.
+     * `probe_validity` was ALREADY unmodelled and already exposed: the live
+     * posture carries `probe_validity: warn` and one Save would have dropped it.
+     * The four `cause_*` knobs are Phase 11's posture seeding — without them the
+     * whole verify-before-assert mechanism is inert by default, which is CE-6. */
+    advisory_knobs: Object.assign({}, ADVISORY_KNOBS_DEFAULT),
+    /* Cheap lane (v0.61.0 data-loss class, closed same shape as context_handoff).
+     * Held in state so a Save round-trips it instead of silently dropping it.
+     * No DOM control (worktree_bound pattern) — cheap-lane-delegate.sh /
+     * grok-delegate.sh / route-task.py own the semantics, we only preserve. */
+    cheap_lane: Object.assign({}, CHEAP_LANE_DEFAULT),
     expanded: {},   /* category -> boolean */
   };
 
@@ -8920,6 +9038,23 @@ _JS = r"""
       const cw = parseInt(ch.context_window_tokens, 10);
       if (Number.isFinite(cw) && cw > 0) { state.context_handoff.context_window_tokens = cw; touched = true; }
     }
+    /* Advisory scalar knobs — hydrate each against its OWN vocabulary. An
+     * unknown value is DROPPED rather than canonicalized, so a Save cannot
+     * silently rewrite a knob nobody asked it to change. */
+    for (const kn of Object.keys(ADVISORY_KNOB_VALUES)) {
+      const v = src[kn];
+      if (typeof v === "string" && ADVISORY_KNOB_VALUES[kn].includes(v)) {
+        state.advisory_knobs[kn] = v; touched = true;
+      }
+    }
+    /* Cheap lane (v0.61.0 data-loss class). Validate against the same accepted
+     * sets cheap-lane-delegate.sh / grok-delegate.sh / route-task.py enforce. */
+    const cl = src.cheap_lane;
+    if (cl && typeof cl === "object") {
+      if (CHEAP_LANE_MODE_VALUES.includes(cl.mode)) { state.cheap_lane.mode = cl.mode; touched = true; }
+      if (CHEAP_LANE_TIER_VALUES.includes(cl.tier)) { state.cheap_lane.tier = cl.tier; touched = true; }
+      if (CHEAP_LANE_AGENT_VALUES.includes(cl.agent)) { state.cheap_lane.agent = cl.agent; touched = true; }
+    }
     const cr = src.command_review;
     if (cr && typeof cr === "object" && typeof cr.dev_repo_exempt === "boolean") {
       state.command_review.dev_repo_exempt = cr.dev_repo_exempt; touched = true;
@@ -9149,6 +9284,44 @@ _JS = r"""
       if (cthMode) lines.push(`  mode: ${cth.mode}`);
       if (cthSpawn) lines.push(`  spawn: ${cth.spawn}`);
       if (cthWin) lines.push(`  context_window_tokens: ${cth.context_window_tokens}`);
+      lines.push("");
+    }
+
+    /* Advisory scalar knobs. Emitted ONLY when set, so "absent ⇒ default" holds
+     * and an untouched posture is not bloated — but once set they SURVIVE a Save
+     * instead of being silently dropped. */
+    const knobLines = [];
+    for (const kn of Object.keys(ADVISORY_KNOB_VALUES)) {
+      const v = state.advisory_knobs[kn];
+      if (v && ADVISORY_KNOB_VALUES[kn].includes(v)) knobLines.push(`${kn}: ${v}`);
+    }
+    if (knobLines.length) {
+      lines.push("# Advisory guardrail knobs (off | warn [| block where a deny path exists]).");
+      lines.push("# Absent ⇒ the hook is a no-op. These are what make the cause");
+      lines.push("# discipline active rather than inert — see CE-6.");
+      for (const l of knobLines) lines.push(l);
+      lines.push("");
+    }
+
+    /* Cheap lane (v0.61.0 data-loss class). Emit the block when ANY sub-field is
+     * non-default, and emit only the set sub-fields — so a Save preserves
+     * whatever the owner set instead of silently dropping it ("absent ⇒
+     * default" holds for an untouched dashboard). Read back by
+     * cheap-lane-delegate.sh / grok-delegate.sh / route-task.py via
+     * skills/cheap-lane-delegation/SKILL.md. No editable control. */
+    const cln = state.cheap_lane;
+    const clnMode = cln.mode && cln.mode !== CHEAP_LANE_MODE_DEFAULT
+      && CHEAP_LANE_MODE_VALUES.includes(cln.mode);
+    const clnTier = cln.tier && cln.tier !== CHEAP_LANE_TIER_DEFAULT
+      && CHEAP_LANE_TIER_VALUES.includes(cln.tier);
+    const clnAgent = cln.agent && cln.agent !== CHEAP_LANE_AGENT_DEFAULT
+      && CHEAP_LANE_AGENT_VALUES.includes(cln.agent);
+    if (clnMode || clnTier || clnAgent) {
+      lines.push("# Cheap lane — route everyday work to Grok/Copilot instead of the main Claude session.");
+      lines.push("cheap_lane:");
+      if (clnMode) lines.push(`  mode: ${cln.mode}`);
+      if (clnTier) lines.push(`  tier: ${cln.tier}`);
+      if (clnAgent) lines.push(`  agent: ${cln.agent}`);
       lines.push("");
     }
 
@@ -10592,7 +10765,18 @@ _JS = r"""
     if (tab === "pipeline") syncPipelineTab();
     if (tab === "plugin-vars") activatePluginVars(sub);
     if (tab === "web-access") hydrateWebAccess();
-    if (tab === "prompt-builder" && !pbLoaded) { pbLoaded = true; initPromptBuilder(); }
+    if (tab === "prompt-builder" && !pbLoaded) {
+      pbLoaded = true;
+      // Deferred, not called inline: PB_MODELS/PB_PRESETS (var, not hoisted-with-value)
+      // are declared LATER in this same script than the initial applyHash() call
+      // below, so a cold #/prompt-builder deep-link/reload calling initPromptBuilder()
+      // synchronously here would read them as undefined mid-script (TypeError on
+      // .forEach). setTimeout defers to after the whole script finishes executing,
+      // by which point every var in this file is assigned -- the same ordering bug
+      // class as the pipelineServerAvailable TDZ fix below, fixed at the call site
+      // instead of by relocating PB_MODELS/PB_PRESETS (real data, not a stub-able flag).
+      setTimeout(initPromptBuilder, 0);
+    }
     if (tab === "host-context" && !hcLoaded) { hcLoaded = true; initHostContext(); }
   }
   // Navigate: activate immediately, then reflect the page in the URL hash for
@@ -11090,6 +11274,15 @@ _JS = r"""
     const orelay = document.getElementById("pipe-orch-relay-opts");
     if (orelay) orelay.style.display =
       (state.orchestrator_scope === "all" && state.orchestrator !== "off") ? "" : "none";
+    const clm = document.getElementById("pipe-cheap-lane-mode");
+    if (clm) clm.value = state.cheap_lane.mode;
+    const clt = document.getElementById("pipe-cheap-lane-tier");
+    if (clt) clt.value = state.cheap_lane.tier;
+    const cla = document.getElementById("pipe-cheap-lane-agent");
+    if (cla) cla.value = state.cheap_lane.agent;
+    pipeBadge("cheap-lane-delegation",
+              state.cheap_lane.mode === "off" ? "Off" : (state.cheap_lane.mode + " · " + state.cheap_lane.agent),
+              state.cheap_lane.mode === "off" ? "pipe-badge-off" : "pipe-badge-on");
     const dc = document.getElementById("pipe-dod-cmd");
     if (dc) dc.value = state.definition_of_done.cmd || "";
     const dm = document.getElementById("pipe-dod-maxblocks");
@@ -11168,6 +11361,9 @@ _JS = r"""
     onChange("pipe-decision-review", el => { if (DECISION_REVIEW_VALUES.includes(el.value)) state.decision_review = el.value; });
     onChange("pipe-orchestrator", el => { if (ORCHESTRATOR_VALUES.includes(el.value)) { state.orchestrator = el.value; syncPipelineTab(); } });
     onChange("pipe-orchestrator-scope", el => { if (ORCHESTRATOR_SCOPE_VALUES.includes(el.value)) { state.orchestrator_scope = el.value; syncPipelineTab(); } });
+    onChange("pipe-cheap-lane-mode", el => { if (CHEAP_LANE_MODE_VALUES.includes(el.value)) { state.cheap_lane.mode = el.value; syncPipelineTab(); } });
+    onChange("pipe-cheap-lane-tier", el => { if (CHEAP_LANE_TIER_VALUES.includes(el.value)) { state.cheap_lane.tier = el.value; syncPipelineTab(); } });
+    onChange("pipe-cheap-lane-agent", el => { if (CHEAP_LANE_AGENT_VALUES.includes(el.value)) { state.cheap_lane.agent = el.value; syncPipelineTab(); } });
     onChange("pipe-orch-zdr", el => { state.orchestrator_zdr_confirmed = el.checked; });
     onChange("pipe-orch-nopii", el => { state.orchestrator_repo_pii = !el.checked; });
     onChange("pipe-orch-pseudo", el => { state.orchestrator_pseudonymize = el.checked; });

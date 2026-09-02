@@ -19,8 +19,8 @@ Pin the manifest schema (never "latest"), keep `instructions` under the ~8,000-c
 ```jsonc
 {
   // PIN the schema — the manifest ships ~monthly; "latest" is a time bomb (#2)
-  "$schema": "https://developer.microsoft.com/json-schemas/copilot/declarative-agent/v1.7/schema.json",
-  "version": "v1.7",
+  "$schema": "https://developer.microsoft.com/json-schemas/copilot/declarative-agent/v1.8/schema.json",
+  "version": "v1.8",
   "name": "Contoso Policy Assistant",
   "description": "Answers HR-policy questions from the indexed policy library.",
   // ~8,000-char budget: role + scope + tone + refusal rules ONLY.
@@ -35,7 +35,7 @@ Pin the manifest schema (never "latest"), keep `instructions` under the ~8,000-c
 **Do:**
 - Budget to **~66%** of 50 grounding / 25 plugin-response / ~4,096 tokens / 45 s — they are inclusive of overhead.
 - Keep orchestration to a single grounding op + single tool call, sequential.
-- Pin `$schema`/`version` to a known manifest version (currently v1.7) and bump deliberately.
+- Pin `$schema`/`version` to a known manifest version (currently v1.8) and bump deliberately.
 - Move reference detail into grounding sources; keep `instructions` lean and under ~8,000 chars.
 
 **Don't:**

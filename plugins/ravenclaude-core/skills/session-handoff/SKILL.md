@@ -1,6 +1,6 @@
 ---
 name: session-handoff
-description: "Write a host-paired handoff and start a fresh window before auto-compact — Claude Code, Grok TUI, Copilot Chat new session, or Copilot CLI. Use for /handoff, 'context is full', 'fresh window', or a Stop-hook hot-window nag."
+description: "Write a run-dir handoff and start a NEW interactive session (unbounded TUI — never a headless print-flag). Use for /handoff, context full, fresh window, quota host-switch, 'pass remaining work to Grok'. NOT for one bounded Grok/Copilot job → cheap-lane-delegation."
 user-invocable: true
 allowed-tools: Bash, Read, Write, Edit
 ---
@@ -42,6 +42,7 @@ session ending. **Skipping step 6 is a supported outcome, not an abandoned hando
 - **The hook cannot write the narrative.** `handoff-nudge` only nags. You fill `<!-- MODEL FILL -->` sections.
 - **Seed is host-paired.** Grok: positional `grok "…"`. Chat: `chat-resume.md` + Cmd+N / New Chat + paste. CLI: interactive `copilot` (never a one-shot flag). **A Chat or CLI successor must not launch grok.**
 - **Never `grok -p`**, never `--single`, never `--prompt-file`, never `--prompt-json`.
+- **Cheap-lane is a different product.** One well-defined job with `cheap_lane: advise|agent` is `cheap-lane-delegation` (bounded, returns) — **do not spawn**. Quota escape, leftover multi-item work, plugin-cache reload, or "the next reader is not this session" is this skill. When `cheap_lane` is on and you still hand off, state in one clause why.
 - **Never `/fork`.** Fork copies the bloated history — the opposite of a reset.
 - **Never a Grok `SessionStart` injection as the seed.** Grok ignores SessionStart stdout.
 - **Never a PreCompact persist hook.** Compaction is append-only.
@@ -57,7 +58,7 @@ session ending. **Skipping step 6 is a supported outcome, not an abandoned hando
 3. `bash plugins/ravenclaude-core/bin/rc artifacts new <task-id>` (continue-in-place).
 4. `python3 plugins/ravenclaude-core/scripts/context-handoff.py write --task-id <id> --host <pair>` to refresh the derive-fill skeleton.
 5. **Fill** every `<!-- MODEL FILL -->` section in `.ravenclaude/runs/<id>/handoff.md`. Update `summary.md` / `decisions.md` only when there is real content — never stamp empty files.
-6. Spawn: `bash plugins/ravenclaude-core/bin/rc handoff --task-id <id> --host <pair> --recipe same-host`. If spawn is `copy-paste-only` or fails, print the exact copy-paste block. Report which path was taken.
+6. Spawn: `bash plugins/ravenclaude-core/bin/rc handoff --task-id <id> --host <pair> --recipe same-host`. The script prints a `PRODUCT` line (`NEW interactive session` / `not cheap-lane-delegation`) **before** it launches — that line is the product label; do not treat a launch as cheap-lane. If `cheap_lane` is `advise`/`agent`, it also prints that the spawn is a host-switch. If spawn is `copy-paste-only` or fails, print the exact copy-paste block. Report which path was taken.
 7. If stdout contains `SUCCESSOR_ACK`, the successor has begun. **Stop this session.** You cannot `/quit` — the user closes the tab.
 
 ## Out of scope for this skill

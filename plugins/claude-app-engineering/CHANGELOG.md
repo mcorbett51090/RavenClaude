@@ -2,6 +2,55 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## 0.9.19 — 2026-08-31
+
+### Added
+
+- **Browser use tool** (`browser_toolset_20260801`, launched 2026-08-19) documented in
+  `knowledge/server-side-tools-and-files.md` — client-side in-page browser automation via the
+  accessibility tree, distinct from computer use. Available on Fable 5 / Mythos 5 / Opus 5 /
+  Sonnet 5 / Opus 4.8, Claude API + Google Cloud only.
+- **Computer use tool exited beta** as `computer_toolset_20260801` (2026-08-19) — no beta
+  header, batch actions, `zoom` on by default; breaking shape change from `computer_20251124`.
+  GA on Claude API + Google Cloud; still beta on AWS/Bedrock/Microsoft Foundry.
+
+Same facts as the 0.9.17 capability-map refresh below, applied to the sibling
+`server-side-tools-and-files.md` file (0.9.17 touched the capability map + build-surface tree,
+not this file — it was still stale). Verified against `platform.claude.com` release notes and
+tool docs; passed a usefulness panel and a detailed-review panel as part of the scheduled
+research routine.
+
+## 0.9.18 — 2026-08-31
+
+### Fixed
+
+- **Workbench → Playground rename, second file (research-sweep).** `knowledge/prompt-engineering-techniques.md` still told readers to use "the Workbench prompt improver" — the same stale name the 0.9.17 sweep had already fixed in the sibling `claude-build-surface-decision-tree.md` (Console "Workbench" renamed to [Playground](https://platform.claude.com/playground) 2026-08-18; legacy Workbench + the experimental prompt-tools APIs sunset 2026-08-17). Added the same dated naming-update note and updated both references. Source: [release notes](https://platform.claude.com/docs/en/release-notes/overview) (fetched directly this session).
+
+## 0.9.17 — 2026-08-27
+
+### Changed
+
+- **Research-sweep refresh of the capability map (PRIMARY-VERIFIED).** The
+  `platform.claude.com` release notes were fetched directly this session (not 403), so six
+  platform facts from the 2026-08-05..26 window that the 2026-08-13 review predated are folded in
+  with primary dates/ids:
+  - **Python SDK `anthropic` v1.0 (2026-08-20)** — new capability row; BREAKING (httpx→`httpx2`,
+    Python ≥3.10, removed Text Completions API + `temperature`/`top_p`/`top_k` on Messages +
+    tool-runner `compaction_control`; async `.with_raw_response` needs `await response.parse()`;
+    `AnthropicBedrock` errors without an AWS region).
+  - **Computer use out of beta** (`computer_toolset_20260801`) **+ the new `browser_toolset_20260801`
+    browser use tool** (2026-08-19) — computer-use row corrected (was "still requires your sandbox",
+    no toolset id), browser use added.
+  - **Files API + Agent Skills/Skills API out of beta** (2026-08-19; `files-api-2025-04-14` /
+    `skills-2025-10-02` headers dropped).
+  - **Managed Agents** row expanded — session budgets, session advisor, `inference_geo`, GitHub-repo
+    skills, `web_search`/`web_fetch` domain allowlisting, self-hosted-sandbox memory, model `effort`.
+  - **Workbench → Playground** rename (2026-08-18; legacy Workbench + experimental prompt-tools APIs
+    sunset 2026-08-17) — corrected in `claude-build-surface-decision-tree.md` (dated header note).
+- All new claims carry a `[verify-at-use]` marker and a primary release-notes citation. No model
+  lineup / default changed. **Migration:** none. Reviewed via a 3-seat usefulness panel + a
+  detailed-review pass (recorded in the PR).
+
 ## 0.9.16 — 2026-08-14
 
 ### Fixed

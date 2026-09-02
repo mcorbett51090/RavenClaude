@@ -1,10 +1,44 @@
 # Design references — "cutting edge yet simple" (2026)
 
-> **Last reviewed:** 2026-05-21. Refresh when (a) a new "Linear-style refresh" moment lands for a flagship dev tool, (b) Awwwards / Site of the Year shifts the consensus, or (c) at least 12 months pass — the design discourse cycles roughly annually.
+> **Last reviewed:** 2026-09-01 (Catalogs section added; the eight donors below untouched, still dated 2026-05-21). Refresh when (a) a new "Linear-style refresh" moment lands for a flagship dev tool, (b) Awwwards / Site of the Year shifts the consensus, or (c) at least 12 months pass — the design discourse cycles roughly annually.
 
 A curated, opinionated reference set for any web-design work that wants to feel **modern, restrained, and developer-credible** without chasing trends that age in six months. Use this as the visual + interaction north star for marketing sites, product pages, design-system rebuilds, and dashboards intended for technical buyers.
 
+**For a dashboard specifically** (as opposed to a marketing/product surface), the restraint principle
+below is generalized into dashboard-specific craft — information hierarchy, KPI/whitespace/color
+discipline, and chart-type selection — in `data-platform`'s
+[`knowledge/dashboard-visual-craft-2026.md`](../../data-platform/knowledge/dashboard-visual-craft-2026.md),
+cross-linked from that plugin's `dashboard-builder` agent. Same pattern as `design-clone`'s
+cross-link into this plugin: the craft canon lives with its primary consumer, referenced from here.
+
 The whole frame is **restraint plus one or two memorable interactive beats**. Most of the work is the restraint. The "wow" beats are surgical and earn their motion budget.
+
+---
+
+## Catalogs (breadth, when the 8 donors don't fit)
+
+The eight donors below are hand-curated — a small, deep set with explicit borrow/don't-borrow judgments
+for each. Sometimes the job needs **breadth** instead: a direction the eight donors don't cover, or a
+starting point when the brief itself is vague ("make it look premium" with no reference point at all).
+
+**[Refero Styles](https://styles.refero.design/)** — a searchable catalog of **2,000+ AI-readable
+design systems** extracted from real product websites, each exposing colour palette, typography,
+spacing, components, and a `DESIGN.md` export in the same format this repo's own
+[`templates/DESIGN.md`](../../ravenclaude-core/templates/DESIGN.md) house default uses (see
+[`knowledge/design-md-token-interop.md`](design-md-token-interop.md)). Sortable by Trending / Popular /
+Newest, with a search box; a directional-category browse (minimal, brutalist, monochrome, etc.) is
+described in third-party coverage of the tool but was not independently re-confirmed against the live
+page this session — verify the exact filter set at use.
+`[docs-verified — fetched and confirmed 2,000+ figure + per-entry contents this session, 2026-09-01]`
+
+**Use it to extract a visual language, not to clone a product.** Ask for the parts that matter — type
+scale, spacing rhythm, colour role, hierarchy — and build an *original* interface from them, exactly
+the discipline the eight donors below already apply per-entry. This repo's own
+[`design-clone`](../../ravenclaude-core/skills/design-clone/SKILL.md) skill states the same boundary at
+length for a single reference site: cloning functional *craft* (spacing, grid, elevation, component
+recipes) is the lower-risk path; faithfully reproducing a distinctive *whole composition* is not, and
+neither that skill nor this catalog note clears trade-dress risk — a Refero entry read as "the parts to
+borrow," never as "the site to copy."
 
 ---
 
@@ -60,6 +94,25 @@ The whole frame is **restraint plus one or two memorable interactive beats**. Mo
 
 ---
 
+## A ninth category — component/motion donors (not whole-site)
+
+The eight donors above are whole-site aesthetic exemplars — canvas, hierarchy, section rhythm. A
+different, narrower kind of donor is worth naming separately: sites/libraries you raid for **one
+technique**, not an overall direction.
+
+- **ReactBits — <https://reactbits.dev>** (165+ animated React components, 46.6k★, MIT+Commons
+  Clause). Not a fit for "what should this site feel like overall" — it's a fit for "I need one
+  memorable motion moment" (animated text, ambient/WebGL backgrounds, scroll-triggered reveals). The
+  transferable lesson isn't the components themselves (they'll drift as the site updates) but the
+  **per-component dependency-minimalism**: pick the lightest animation engine per effect (CSS-only,
+  GSAP, OGL/three.js, Matter.js) rather than one house animation runtime for everything. Full note +
+  refresh guidance: [`design-sources/reactbits.md`](design-sources/reactbits.md).
+- **Astro official Showcase — <https://astro.build/showcase/>** — the reference for what Astro looks
+  like at *enterprise* production scale (The Guardian, Google Firebase, Trivago, Microsoft
+  properties), distinct from this file's marketing-site aesthetic donors. Use when the brief is
+  specifically an Astro build and needs a same-stack precedent, not just an aesthetic one. See
+  [`design-sources/additional-sources.md`](design-sources/additional-sources.md).
+
 ## Synthesis — what these sites have in common
 
 1. **Monochrome canvas with one accent color**, used sparingly on CTAs and category markers. Never two accents.
@@ -102,6 +155,14 @@ When reviewing an existing site against this reference:
 - **High confidence** on Linear, Vercel, Raycast as donors — these are repeatedly cited in 2024–2026 design discourse and have stable design teams behind them.
 - **Medium confidence** on Resend, Cursor, v0, Tldraw, Cal.com — strong recent reputation, less longitudinal evidence. Re-check at the next refresh.
 - **Open question** flagged by the original research: hero choice (input-driven vs. canvas-driven) depends on whether the site's primary job is *catalog browsing* or *walkthrough demonstration*. Decide upfront.
+
+## Related — the raw source layer
+
+[`design-sources/`](design-sources/) holds the broader, less-curated research this file and
+`gold-standard-website-references-2026.md` draw from — dated, sourced notes on specific external
+repos/sites (including CollectUI's pattern-category taxonomy and a 12-source broad sweep across
+Astro, component libraries, and accessibility pattern references). Check there before re-researching
+a source from scratch.
 
 ## Sources
 

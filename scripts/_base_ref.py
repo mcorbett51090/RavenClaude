@@ -21,16 +21,52 @@ THE RESOLUTION ORDER, cheapest and most trustworthy first:
   1. the caller's explicit --base, when it resolves
   2. origin/main, origin/master (a normal local clone)
   3. origin/$GITHUB_BASE_REF, then $GITHUB_BASE_REF (CI names the PR base branch)
-  4. ⛔ HEAD^1 when HEAD is a MERGE commit — on a pull_request event
-     `actions/checkout` checks out the merge commit refs/pull/N/merge, whose FIRST
-     parent IS the base. This is the one that actually works in CI, and it needs no
-     network at all.
-  5. a bounded, fail-safe `git fetch --depth=1` of the base branch
+  4. ⛔ HEAD^1 when HEAD is a MERGE commit, on a PUSH event only (not
+     pull_request — see the 2026-09-02 correction below). This needs no network
+     at all, and on a push to main it is unambiguous: HEAD^1 is "what was there
+     immediately before this push."
+  5. a bounded, fail-safe `git fetch --unshallow` of the base branch (⛔ NOT
+     `--depth=1` — see the control note at this step's implementation. A
+     depth-1 fetch creates a parentless commit that can never share history
+     with a shallow HEAD, so `git merge-base` structurally cannot resolve
+     against it; `--unshallow` converts the local repo to full history in one
+     bounded fetch, which is what actually lets the two sides meet)
   6. give up -> return None, and the caller reports UNKNOWN
 
 ⛔ NONE IS STILL UNKNOWN, NEVER "UP TO DATE". Step 6 returning None must keep
 failing the caller. The point of this module is to make the resolvable cases
 resolve — never to invent a base so a check can report green without one.
+
+⛔ CORRECTION, 2026-09-02 — rule 4's premise was FALSE for a pull_request event.
+Step 4's original comment claimed "on a pull_request event the checked-out
+commit is the MERGE of head into base, so HEAD^1 is the base tip" — i.e. that
+`actions/checkout` fetches GitHub's synthetic `refs/pull/N/merge` ref. It does
+NOT: this repo's `validate-marketplace.yml` (no `ref:` override) checks out the
+PR's literal HEAD SHA — verified directly from a real run's job metadata
+(`headSha` == the pushed branch tip, not a synthetic merge SHA).
+
+So "HEAD is a merge commit" on a pull_request event means only that the PR
+AUTHOR merged the base branch into their own feature branch — the exact,
+repo-recommended way to refresh a stale or conflicting PR before merge. HEAD^1
+is then that author's own PREVIOUS commit, not the base tip.
+
+control (this session, PR #1070): a `git clone --depth 2 --single-branch` of a
+real PR branch whose tip was `git merge origin/main` resolved `HEAD^1` to the
+branch's own prior commit — reproduced directly (`git rev-list --parents -n 1
+HEAD` showed 2 parents; `git rev-parse HEAD^1` returned the WRONG one), not
+inferred. Every PR that self-heals a merge conflict this way — which this
+repo's own runbooks and git-workflow rules actively recommend — hit this: the
+ratchet/inception/changed-concept-render gates failed on that PR no matter how
+correctly the ratchet was re-stamped immediately before push, because the
+"base" they compared against was flatly wrong, not merely stale. Confirmed on
+PR #1070: three separate re-stamp-and-push cycles all failed identically.
+
+Rule 4 is now scoped to non-pull_request CI runs only (a genuine push event,
+where the premise holds). A pull_request run with an unresolvable origin/main
+falls through to the live-fetch fallback (step 5), which computes a real
+merge-base against CURRENT origin/main regardless of what shape HEAD's own
+history takes — the correct behavior for both a linear PR and one that
+contains its own merge-from-base commit.
 """
 
 from __future__ import annotations
@@ -39,7 +75,11 @@ import os
 import subprocess
 from pathlib import Path
 
-FETCH_TIMEOUT = 20
+# ⛔ 60, not 20. `--unshallow` (below) fetches full history rather than one
+# commit — measured at ~9s over a local `file://` remote for this repo's 1178
+# commits; a real network fetch over HTTPS is slower and 20s cut it close for no
+# reason, since a slow fetch just falls through to UNKNOWN (fail-safe either way).
+FETCH_TIMEOUT = 60
 
 
 def _git(root: Path, *args: str, timeout: int = 60) -> tuple[int, str]:
@@ -81,14 +121,43 @@ def resolve_base(root: Path, requested: str = "origin/main") -> tuple[str | None
             if _resolves(root, ref):
                 return ref, f"GITHUB_BASE_REF -> {ref}"
 
-    # ⛔ THE ONE THAT WORKS IN CI, and it is offline. On a pull_request event the
-    # checked-out commit is the MERGE of head into base, so HEAD^1 is the base tip.
-    if _is_merge_commit(root) and _resolves(root, "HEAD^1"):
-        return "HEAD^1", "PR merge commit — first parent is the base"
+    # ⛔ PUSH EVENTS ONLY (see the 2026-09-02 correction in this module's
+    # docstring) — on a pull_request run, `actions/checkout` here checks out
+    # the PR's literal head SHA, so a merge-commit HEAD just means the PR
+    # author merged the base branch into their own feature branch. HEAD^1 is
+    # then that author's own prior commit, not the base tip; using it there
+    # produces a confidently WRONG answer, not merely a stale one, and this
+    # module's whole contract is "unresolvable is UNKNOWN, never invented."
+    if os.environ.get("GITHUB_EVENT_NAME") != "pull_request":
+        if _is_merge_commit(root) and _resolves(root, "HEAD^1"):
+            return "HEAD^1", "push event merge commit — first parent is the base"
 
     # Last resort: ask the network, bounded, and never let a failure propagate.
+    #
+    # ⛔ `--unshallow`, NOT `--depth=1`. control 2026-08-26: reproduced the real CI
+    # checkout shape (actions/checkout, fetch-depth 2, single-branch, so
+    # `origin/main` never resolves — matches the module docstring's own
+    # measurement). A `--depth=1` fetch of `main` creates a commit with NO parent
+    # pointers, so `git merge-base HEAD FETCH_HEAD` fails (both sides are shallow
+    # and share no walkable history) — the "no shared history — using the base
+    # tip" branch below then fires and hands back whatever `main`'s tip happened
+    # to be AT FETCH TIME. That is not the merge base; it is a moving target that
+    # only matches a properly-stamped ratchet value by accident, so every
+    # consumer of this fallback (check-ratchet-freshness.py,
+    # check-inception-coverage.py, check-changed-concept-renders.py) fails on any
+    # workflow_dispatch run once the checked-out branch is more than 0 commits
+    # behind `main` — which is most of the time, not an edge case. `--unshallow`
+    # converts the WHOLE local repo to full history in one bounded fetch (works
+    # even though `origin`'s configured refspec is narrowed to the single
+    # checked-out branch — verified this session: `origin/main` still never
+    # appears as a ref, but `FETCH_HEAD` and `HEAD` now share real history, and
+    # the resulting `git merge-base` matches the SHA a full local clone computes,
+    # byte for byte). Errors harmlessly (exit 128, caught by `_git`'s try/except)
+    # if the repo is already non-shallow when this line is reached — which the
+    # earlier steps make rare, since a fully-cloned repo resolves `origin/main`
+    # directly at step 2 and never reaches here.
     branch = ci_base or ("main" if requested.endswith("main") else "master")
-    _git(root, "fetch", "--quiet", "--depth=1", "origin", branch, timeout=FETCH_TIMEOUT)
+    _git(root, "fetch", "--quiet", "--unshallow", "origin", branch, timeout=FETCH_TIMEOUT)
     for ref in (f"origin/{branch}", "FETCH_HEAD"):
         if _resolves(root, ref):
             return ref, f"fetched {ref}"
@@ -199,6 +268,43 @@ def _fixture(td, *, feature=False, root_only=False):
     return r, b, "feature branch -> the real merge base, NOT HEAD^1"
 
 
+def _fixture_pr_merge_commit(td):
+    """PR #1070 regression shape: a feature branch whose OWN tip is a merge of
+    the (advanced) base branch into itself — the repo-recommended way to
+    refresh a stale/conflicting PR — with `origin/main` deliberately left
+    unresolvable as a ref (the real shallow single-branch CI checkout has no
+    such ref; only `HEAD^1` as an object, reachable but structurally wrong).
+
+    Returns (root, wrong_answer) where wrong_answer is what the pre-fix rule 4
+    would confidently (and incorrectly) return: the feature branch's own prior
+    commit, not the base tip.
+    """
+    import subprocess as sp
+
+    r = Path(td)
+    q = {"cwd": str(r), "capture_output": True, "text": True, "timeout": 60}
+    sp.run(["git", "init", "-q", "-b", "main", str(r)], capture_output=True, timeout=60)
+    sp.run(["git", "config", "user.email", "t@t"], **q)
+    sp.run(["git", "config", "user.name", "t"], **q)
+
+    def commit(name):
+        (r / name).write_text(name, encoding="utf-8")
+        sp.run(["git", "add", "-A"], **q)
+        sp.run(["git", "commit", "-q", "-m", name], **q)
+        return sp.run(["git", "rev-parse", "HEAD"], **q).stdout.strip()
+
+    commit("a.txt")
+    sp.run(["git", "checkout", "-q", "-b", "feat"], **q)
+    feat1 = commit("feat1.txt")
+    sp.run(["git", "checkout", "-q", "main"], **q)
+    commit("main2.txt")  # main advances past the feature branch's fork point
+    sp.run(["git", "checkout", "-q", "feat"], **q)
+    sp.run(["git", "merge", "-q", "--no-ff", "main"], **q)  # the author's own refresh
+    # `origin/main` is deliberately never created here — that absence IS the
+    # real shallow single-branch CI shape this fixture reproduces.
+    return r, feat1
+
+
 def _self_test():
     import tempfile
 
@@ -222,6 +328,44 @@ def _self_test():
             else:
                 fail += 1
                 print(f"  FAIL {label}: want {want}, got {got} ({how})")
+
+    # PR #1070 regression: a pull_request run must never mistake the PR
+    # author's own merge-from-base commit for the base tip.
+    #
+    # ⛔ BOTH GITHUB_EVENT_NAME AND GITHUB_BASE_REF are isolated here, not just
+    # the one this fix reads. Caught live in this session's own CI run: the
+    # fixture's scratch repo is `git init -b main` (its default branch is
+    # literally named "main"), so under a REAL CI job's ambient
+    # `GITHUB_BASE_REF=main`, rule 3 resolved the fixture's own local `main`
+    # branch and returned the CORRECT answer — which then failed the original
+    # `got is None` assertion, because that assertion implicitly assumed no
+    # other rule could resolve inside this fixture. A self-test whose pass/fail
+    # depends on what's ambiently set in the process running it is not a
+    # self-test; isolating every env var this module reads is what makes the
+    # fixture's outcome deterministic regardless of where `--self-test` runs.
+    label = "PR merge-from-base HEAD on pull_request -> never HEAD^1 (rule 4 scoped off)"
+    with tempfile.TemporaryDirectory() as td:
+        root, wrong_answer = _fixture_pr_merge_commit(td)
+        _prior_event = os.environ.get("GITHUB_EVENT_NAME")
+        _prior_base = os.environ.get("GITHUB_BASE_REF")
+        os.environ["GITHUB_EVENT_NAME"] = "pull_request"
+        os.environ.pop("GITHUB_BASE_REF", None)
+        try:
+            got, how = merge_base(root)
+        finally:
+            if _prior_event is None:
+                os.environ.pop("GITHUB_EVENT_NAME", None)
+            else:
+                os.environ["GITHUB_EVENT_NAME"] = _prior_event
+            if _prior_base is not None:
+                os.environ["GITHUB_BASE_REF"] = _prior_base
+        if got is None and got != wrong_answer:
+            ok += 1
+            print(f"  ok   {label}")
+        else:
+            fail += 1
+            print(f"  FAIL {label}: got {got} ({how}) — want None, never {wrong_answer}")
+
     print(f"  pass={ok} fail={fail}")
     return 0 if fail == 0 else 1
 

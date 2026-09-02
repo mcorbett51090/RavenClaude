@@ -18,8 +18,8 @@ Write `name` / `description` / `instructions` in neutral, scoped, refusal-aware 
 
 ```jsonc
 {
-  "$schema": "https://developer.microsoft.com/json-schemas/copilot/declarative-agent/v1.7/schema.json",
-  "version": "v1.7",
+  "$schema": "https://developer.microsoft.com/json-schemas/copilot/declarative-agent/v1.8/schema.json",
+  "version": "v1.8",
   "name": "Contoso Policy Assistant",
   "description": "Answers HR-policy questions from the indexed policy library.",
   // RAI-safe: scoped, neutral, refusal-aware. NOT "persuade", "prove", "ignore the rules".

@@ -97,7 +97,7 @@ _A namespace shares a kernel and nodes; it is not a security boundary against a 
 
 | Capability | 2026 state `[verify-at-build]` | Notes |
 |---|---|---|
-| **Kubernetes core** | current GA **1.36** ("Haru", 2026-04-22); 1.35 / 1.34 in support | re-verified 2026-06-11; ~12-mo support window — [1.36 release](https://kubernetes.io/blog/2026/04/22/kubernetes-v1-36-release/) |
+| **Kubernetes core** | current GA **1.37** ("Garhwal", 2026-08-26); 1.36 / 1.35 in support | re-verified 2026-08-31 (WebSearch cross-referenced against kubernetes.io — direct WebFetch to kubernetes.io was egress-blocked this session); ~12-mo support window — [1.37 release](https://kubernetes.io/blog/2026/08/26/kubernetes-v1-37-release/) |
 | Gateway API | GA; latest v1.6.0 (2026-06-29) | Role-oriented, expressive routing; **UDPRoute + TCPRoute now GA (v1)** — stable L4 TCP/UDP routing, not just HTTP. [v1.6.0](https://github.com/kubernetes-sigs/gateway-api/releases/tag/v1.6.0) |
 | Community **`ingress-nginx`** | **RETIRED** — best-effort maint. ended **March 2026**; no further releases/bugfixes/**security patches**, repos read-only | Do **not** deploy on new clusters (un-patched CVEs); migrate to Gateway API or a supported controller — [retirement notice](https://kubernetes.io/blog/2025/11/11/ingress-nginx-retirement/), [Steering/SRC statement](https://kubernetes.io/blog/2026/01/29/ingress-nginx-statement/) `[verified 2026-07-08]` |
 | HPA / VPA | GA | HPA on custom/external metrics; VPA for right-sizing |
@@ -106,7 +106,7 @@ _A namespace shares a kernel and nodes; it is not a security boundary against a 
 | Istio / Linkerd | GA | mTLS, traffic-split; weigh sidecar cost (ambient mode emerging) |
 | Distroless / minimal base images | mature | non-root, no shell; quiets CVE scans |
 | **DRA** (Dynamic Resource Allocation) | **GA since 1.34**; further enhancements GA in 1.36 | first-class GPU/accelerator scheduling — [1.34 DRA GA](https://kubernetes.io/blog/2025/09/01/kubernetes-v1-34-dra-updates/) |
-| **cgroup v1** | **removed** — nodes must run **cgroup v2** | exact removal minor (1.35 vs 1.36) `[verify-at-use]`; confirm node runtime is cgroup-v2 (and containerd ≥1.7) before upgrading clusters |
+| **cgroup v1** | **fail-by-default since 1.35** — kubelet `FailCgroupV1` defaults `true`, so a cgroup-v1 node won't start kubelet unless the operator sets `FailCgroupV1=false` (override still available); **not yet code-removed** — [KEP-5573](https://github.com/kubernetes/enhancements/blob/master/keps/sig-node/5573-remove-cgroup-v1/README.md) targets removal no earlier than 1.38, no committed date `[verify-at-use]` | prefer **cgroup v2** (and containerd ≥1.7); confirm before upgrading clusters |
 | **User Namespaces** (`hostUsers: false`) | **GA in 1.36** | enabled-by-default since 1.33; rootless UID-mapping pod isolation — [1.36 userns GA](https://kubernetes.io/blog/2026/04/23/kubernetes-v1-36-userns-ga/) |
 
 ---

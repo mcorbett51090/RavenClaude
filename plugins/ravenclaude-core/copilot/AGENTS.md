@@ -59,8 +59,8 @@ that should not have travelled is not.
 
 ### What a run directory looks like
 
-Create it with `bin/rc artifacts new <task-id>` so the shape and the provenance stamp are right
-without anyone memorising this:
+Create it with `plugins/ravenclaude-core/bin/rc artifacts new <task-id>` so the shape and the
+provenance stamp are right without anyone memorising this:
 
 ```
 .ravenclaude/runs/<task-id>/
@@ -76,7 +76,7 @@ Every file is optional except `meta.json`. **Write the ones you actually have co
 
 ### Picking work up from another CLI
 
-1. `bin/rc artifacts list` — shows both tiers, newest first, with **which CLI wrote each one**. It is
+1. `plugins/ravenclaude-core/bin/rc artifacts list` — shows both tiers, newest first, with **which CLI wrote each one**. It is
    computed by scanning, so it cannot go stale.
 2. Read `meta.json` first. If it was written by a different CLI, nothing special is required — the
    layout is identical — but knowing the origin tells you what *else* might exist (e.g. a Claude Code
@@ -96,6 +96,32 @@ Naming this is part of the contract — an honest gap beats a false promise of p
 
 If work needs to survive across CLIs, **it has to be written into one of the two tiers above.** Nothing
 in a host's private area crosses over — assume it is lost the moment the session ends.
+
+## Naming a cause (the portable floor)
+
+Projected from [`plugins/ravenclaude-core/knowledge/cause-taxonomy.md`](plugins/ravenclaude-core/knowledge/cause-taxonomy.md), which is the single source. Edit it there, not here.
+
+A negative or empty result names ONE outcome. It never names its cause. The ritual, in three steps:
+
+> (1) Before asserting a cause, list the classes that could produce **this exact output**.
+> (2) Name the ONE discriminating probe that splits the top two.
+> (3) Run it, then assert — and if you cannot run it, **write the cause as a hypothesis, not a fact.**
+
+The classes, so step 1 has something to enumerate against:
+
+| class | the output looked that way because… |
+|---|---|
+| **E** | the command did not run as intended — the shell never reached the subject, so nothing in the output is evidence about the subject at all |
+| **F** | the read looked in the wrong place — the subject exists, but the target examined was not the one holding the answer |
+| **G** | the answer was produced and then discarded — the subject answered correctly and the answer was lost between producer and reader |
+| **H** | the subject genuinely has no such thing — the only class that licenses an absence conclusion, reachable only after E, F and G are excluded |
+| **I** | indeterminate — the transport failed, which is evidence about reachability and never about the subject |
+
+⛔ **`H1` — "the thing is absent" — is never available as the rank-1 answer.** It becomes credible only once E, F and G are excluded **and** a positive control on the same subsystem shows the probe was capable of returning something else. An empty result from a blind probe and an empty result from an empty subject are the same bytes; only the control separates them.
+
+**The honest limit.** No hook on any host carries the model's chat text, so the place the confident inference is most often spoken is structurally out of reach. This is a behavioural rule with an enforced sliver beneath it — not the rule's enforcement.
+
+What the sliver covers: a failed or empty Bash result is triaged after the fact, and a durable write or a remediating command that rests on an unsettled cause meets a gate. What it does not cover: a cause asserted in conversation and acted on in the same breath.
 
 ---
 

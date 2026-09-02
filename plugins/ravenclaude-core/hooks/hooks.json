@@ -54,6 +54,16 @@
         ]
       },
       {
+        "matcher": "mcp__.*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/sanitize-mcp-output.sh",
+            "comment": "Q1/L4 leftover of analog-repos-gap-fill (docs/follow-ups/2026-08-14-analog-repos-leftovers.md): the same deterministic quarantine as sanitize-webfetch-output.sh (F1, #928), extended from WebFetch-only to any mcp__* tool call, closing the accepted-limit that hook's own comment names. Reuses sanitize-webfetch-body.py unchanged. Fail-open: parse/IO/sanitizer errors exit 0 and leave the original result in place. House Rule 3: this rewrites every MCP tool result a consumer's agent sees on every host that projects MCP tool calls through this matcher; fail-open is the default-break mitigator, matching F1's own precedent."
+          }
+        ]
+      },
+      {
         "matcher": "Bash|WebFetch",
         "hooks": [
           {
@@ -104,8 +114,21 @@
           },
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/enforce-git-protocol.sh",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/enforce-git-protocol.sh"
+          },
+          {
+            "type": "command",
+            "command": "bash ${CLAUDE_PLUGIN_ROOT}/scripts/preflight-command-review.sh"
+          },
+          {
+            "type": "command",
+            "command": "bash ${CLAUDE_PLUGIN_ROOT}/scripts/guard-remediation-cause.sh",
             "comment": "Git-protocol nudge (default WARN). PreToolUse(Bash). No-ops unless .ravenclaude/comfort-posture.yaml is present; reads the `git_protocol: off|warn|block` knob (default warn). WARNs (stderr, exit 0) on a non-Conventional-Commits `git commit -m` subject or a new-branch creation off the (feat|fix|chore|docs|refactor|agent)/ prefix convention; BLOCKS (exit 2) only when the knob is `block`. A direct non-force push to main/master is advisory-only and NEVER blocks at any knob. Deliberately does NOT touch force operations / branch force-delete / recursive-remove / hard reset — guard-destructive.sh owns those, and force pushes are force-EXCLUDED here so the two never collide. Fail-open on any error / missing git / missing python3 / absent posture."
+          },
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/guard-foreground-suite.sh",
+            "comment": "Foreground long-suite guard (DENY, exit 2). PreToolUse(Bash). The Bash tool's `timeout` is clamped at 600000ms and scripts/audit-gates.sh (917 gates) outgrew it, so a FOREGROUND full-suite run is structurally guaranteed to wedge the session for the full 10 minutes and then be auto-backgrounded anyway. control, session 94d2ba9f 2026-08-25: foreground call 02:21:45Z -> 02:31:49Z 'did not complete within its 600s timeout and was moved to the background'. ⛔ RAISING THE TIMEOUT IS A NON-FIX AND FAILS SILENTLY — the same session's `timeout: 900000` returned the byte-identical 600s message, so the hook calls the clamp out explicitly. Three escapes, all allowed: run_in_background:true, `--check N` (one gate, seconds), and a literal RC_SUITE_FOREGROUND_ACK=1 prefix — read out of the COMMAND TEXT because an env var cannot reach a PreToolUse hook from inside the command it gates. ⛔ Matching is INVOCATION-only, never substring: the command is split into segments and each segment's FIRST WORD is checked, so `grep`/`sed`/`git show`/`wc` that merely NAME the suite still run — a guard that cannot tell a command from a description of one blocks its own repair. Suite list is RC_FOREGROUND_SUITES (default audit-gates.sh). Reads its payload with _rc_timeout+cat (never `read -t`, which deadlines a LINE and makes the bound a payload-size cap). ERGONOMIC guard, so it FAILS OPEN: unreadable payload / no jq / no python3 all ALLOW and emit a warn event. Pinned by Gate 251."
           }
         ]
       },
@@ -169,6 +192,11 @@
           {
             "type": "command",
             "command": "${CLAUDE_PLUGIN_ROOT}/hooks/enforce-portability.sh"
+          },
+          {
+            "type": "command",
+            "command": "bash ${CLAUDE_PLUGIN_ROOT}/scripts/guard-cause-closure.sh",
+            "comment": "verify-before-assert Phase 6 — the SECOND fail-closed surface. Asks whether the ALTERNATIVE CAUSE SET IS CLOSED, a different axis from guard-premise.sh's T-PROSE (which asks whether a control is CITED). A diagnosis can cite a real control and still be the wrong member of an unenumerated set. Ships at `warn` behind cause_closure; absent posture is a no-op; blindness advises and never denies."
           }
         ]
       }
@@ -241,11 +269,13 @@
           {
             "type": "command",
             "command": "${CLAUDE_PLUGIN_ROOT}/hooks/reapply-posture.sh",
+            "timeout": 10,
             "comment": "Regenerates the comfort-posture project-layer rules from .ravenclaude/comfort-posture.yaml at session start so the dashboard-composed posture is active without a manual /set-posture. No posture file -> silent no-op. Always exits 0; never blocks. This is the load-bearing wiring for the web flow, where only the committed project layer survives a fresh container."
           },
           {
             "type": "command",
             "command": "${CLAUDE_PLUGIN_ROOT}/hooks/ensure-default-mode.sh",
+            "timeout": 10,
             "comment": "Advisory: warns when a session loads in acceptEdits/bypassPermissions mode, which bypasses the comfort-posture allow/ask/deny rules. The real pin is permissions.defaultMode=default (written by /set-posture). Reads permission_mode from stdin; never blocks."
           },
           {
@@ -263,7 +293,8 @@
           {
             "type": "command",
             "command": "${CLAUDE_PLUGIN_ROOT}/hooks/worktree-guard.sh register",
-            "comment": "Worktree-hygiene guard (register). Records this session's own registry file under ${RC_WORKTREE_GUARD_HOME:-$HOME/.ravenclaude/worktree-guard} and GC-sweeps its PATH_KEY bucket (never depends on Stop firing) when worktree_guard != off. Reads `worktree_guard: off|warn|block` (default warn) and `worktree_bound: off|warn|block` (default block). On worktree_guard warn/block emits a SessionStart nudge only on CONTENTION or ANCHOR-WORK. When worktree_bound != off and sibling worktrees exist, also emits a LANE pin (toplevel/branch/host/siblings[/task]) \u2014 the context-isolation floor. worktree_guard=off still writes nothing to the registry (T7). Both-off short-circuits before any git shell-out. Fail-open on missing git/jq; SessionStart cannot block. Emits a hook-event audit line on a verdict."
+            "timeout": 10,
+            "comment": "Worktree-hygiene guard (register). Records this session's own registry file under ${RC_WORKTREE_GUARD_HOME:-$HOME/.ravenclaude/worktree-guard} and GC-sweeps its PATH_KEY bucket (never depends on Stop firing) when worktree_guard != off. Reads `worktree_guard: off|warn|block` (default warn) and `worktree_bound: off|warn|block` (default block). On worktree_guard warn/block emits a SessionStart nudge only on CONTENTION or ANCHOR-WORK. When worktree_bound != off and sibling worktrees exist, also emits a LANE pin (toplevel/branch/host/siblings[/task]) \u2014 the context-isolation floor. worktree_guard=off still writes nothing to the registry (T7). Both-off short-circuits before any git shell-out. Fail-open on missing git/jq; SessionStart cannot block. Emits a hook-event audit line on a verdict. timeout: 10 is defense-in-depth so an open-stdin stall cannot hold SessionStart unbounded (the host still treats SessionStart as non-blocking, but the subprocess is capped)."
           },
           {
             "type": "command",
@@ -297,7 +328,19 @@
             "type": "command",
             "command": "${CLAUDE_PLUGIN_ROOT}/hooks/compact-anchor.sh",
             "timeout": 10,
-            "comment": "Post-compaction addressability pointer. Scoped `matcher: \"compact\"` so it fires ONLY when a session resumes from a compaction — never on startup/resume/clear/fork. Compaction is append-only: the transcript keeps every pre-boundary turn (text, thinking, tool_use, tool_result) and the compact_boundary record states what was dropped, so the post-compaction agent does not lack the data, it lacks the knowledge that the data exists. This injects the transcript path, where the boundary fell, and how to grep it. SessionStart is the ONLY placement that works — PreCompact's stdout is not injected. DERIVED VALUES ONLY: fixed strings, validated integers, an allowlisted `trigger`, and the path from the trusted payload — never a line of transcript content (it holds untrusted tool output; Gate 186 proves this with a sentinel). Fail-safe: EXIT trap armed first, always exits 0."
+            "comment": "Post-compaction addressability pointer. Scoped `matcher: \"compact\"` so it fires ONLY when a session resumes from a compaction — never on startup/resume/clear/fork. Compaction is append-only: the transcript keeps every pre-boundary turn (text, thinking, tool_use, tool_result) and the compact_boundary record states what was dropped, so the post-compaction agent does not lack the data, it lacks the knowledge that the data exists. This injects the transcript path, where the boundary fell, and how to grep it — plus the newest PreCompact digest file for this session's run-dir, if precompact-digest.sh wrote one. SessionStart is the ONLY placement that works — PreCompact's stdout is not injected. DERIVED VALUES ONLY: fixed strings, validated integers, an allowlisted `trigger`, and paths from the trusted payload/filesystem — never a line of transcript OR digest content (Gate 186 proves this with a sentinel). Fail-safe: EXIT trap armed first, always exits 0."
+          }
+        ]
+      }
+    ],
+    "PreCompact": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/precompact-digest.sh",
+            "timeout": 10,
+            "comment": "Pre-compaction critical-info archive (P2 of the precompact-critical-context FORGE plan). Reads the PreCompact stdin payload's `transcript_path` (optional on the documented schema) and, if present, launches scripts/precompact-digest.py DETACHED (backgrounded + disowned, no `_rc_timeout` wrap, no synchronous wait) to extract a curated digest (open decisions, TODOs, key facts, file paths, unresolved questions) BEFORE the transcript is summarized away, writing it to .ravenclaude/runs/<session>/precompact-digest-<timestamp>.md. Gated by B1 (`cheap_lane.mode` absent/off => fully inert, no engine call at all) and a fail-closed egress floor enforced inside the engine (`orchestrator_repo_pii: false` OR `cheap_lane_zdr_confirmed: true`) — see the P4 security review (security-review-p4.md). This hook's own `timeout: 10` bounds only its SYNCHRONOUS return (which is near-instant, well under 1s in practice) — the detached worker is bounded solely by the ENGINE's own internal budgets (60s cheap-lane / 90s claude-fallback), never by this hook. FIRE-AND-FORGET BY DESIGN: this is archival, never gating — claim 20 of the precompact-critical-context claims-table proves PreCompact's systemMessage/stopReason/exit-code are a verified no-op on VS Code Copilot Chat (and PreCompact never fires there on manual /compact at all), while on Claude Code `PreCompact` CAN block via exit 2 (CLAUDE.md v0.244.1) — this hook deliberately never does, on either host. A `precompact-digest.py` exit 3 (both extraction paths exhausted) is an expected non-fatal outcome: no digest, never a block. EXIT trap armed first, no `set -e`, bash 3.2-safe, no GNU-only tools."
           }
         ]
       }

@@ -25,7 +25,7 @@ It reads exactly two kinds of input from the filesystem:
      to obtain the set of valid `visualType` strings used by check-7.  This is
      the ONLY cross-plugin filesystem dependency in the linter, and it is
      deliberate: the enum lives in the power-platform plugin's knowledge bank,
-     not duplicated here, so the two cannot silently drift (audit-gates Gate 51
+     not duplicated here, so the two cannot silently drift (audit-gates Gate 92
      watches that drift; this linter is the runtime consumer).  If § 1 cannot be
      located or parsed, check-7 cannot run and the process exits 3
      (schema-enum parse failure).  When the reference file is genuinely absent

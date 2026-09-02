@@ -1,4 +1,4 @@
-# Use upload sessions for SharePoint/OneDrive files above 4 MB — not single PUT
+# Use upload sessions for large SharePoint/OneDrive files — a single PUT caps at 250 MB
 
 **Status:** Absolute rule
 **Domain:** Microsoft Graph / SharePoint and OneDrive workloads
@@ -8,7 +8,7 @@
 
 ## Why this exists
 
-The Microsoft Graph simple upload endpoint (`PUT /drive/items/{id}/content`) has a hard maximum of **4 MB per request** `[verify-at-build]`. Sending a file larger than the limit produces a `413 Request Entity Too Large` or a `400` depending on the client stack. Developers who test with small files in dev and then encounter real-world document uploads in prod discover the limit at runtime. The upload session API (`createUploadSession`) handles files of any size by uploading in fragments and is the only supportable path for user-generated file uploads where file size is not bounded.
+The Microsoft Graph simple upload endpoint (`PUT /drive/items/{id}/content`) has a hard maximum of **250 MB per request** (Graph v1.0 — [driveItem: PUT content](https://learn.microsoft.com/graph/api/driveitem-put-content?view=graph-rest-1.0)) `[verify-at-build]`; Microsoft nonetheless recommends switching to an upload session for files larger than ~10 MiB (resumability). Sending a file larger than the cap produces a `413 Request Entity Too Large` or a `400` depending on the client stack. Developers who test with small files in dev and then encounter real-world document uploads in prod discover the limit at runtime. The upload session API (`createUploadSession`) handles files of any size by uploading in fragments and is the only supportable path for user-generated file uploads where file size is not bounded.
 
 ## How to apply
 
@@ -54,7 +54,7 @@ Rules:
 - Confirm the target drive supports the file size: OneDrive personal has different quotas than SharePoint document libraries `[verify-at-build]`.
 
 **Don't:**
-- Use the simple PUT endpoint for any upload where the file size is not strictly controlled to < 4 MB.
+- Use the simple PUT endpoint for any upload where the file size is not strictly controlled to < 250 MB (and prefer an upload session above ~10 MiB for resumability).
 - Store the `uploadUrl` in a long-lived cache — it is session-scoped and expires.
 - Send concurrent requests to the same upload session — the upload is sequential by byte range.
 

@@ -2,6 +2,18 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.14.4] — 2026-09-01
+
+### Added
+
+- **`knowledge/dashboard-visual-craft-2026.md`** — dashboard-specific visual/UX craft (information hierarchy, one-dominant-KPI + whitespace + status-only color, chart-type selection — avoid pie/3D/gauge, prefer bar/sparkline — and the WCAG 2.2 accessibility floor), closing the gap between framework selection (`embedded-analytics-landscape-2026.md`) and latency budgets (`dashboard-performance-tuning`): neither addressed *taste*. Sourced via an adversarially-verified `rc-deep-research` pass — 5 of the extracted claims survived skeptical refutation; the pass explicitly found no claim about the React/D3/Recharts/Tremor/Cube/Evidence.dev/shadcn tool landscape survived verification, so this file stays scoped to craft and does not touch stack recommendations. Wired into `dashboard-builder.md` (Surface area + References) and cross-linked from `web-design/knowledge/design-references.md`'s dashboard mention, mirroring the `design-clone`↔`web-design` cross-plugin precedent. **Migration:** none — additive knowledge file.
+
+## [0.14.3] — 2026-08-28
+
+### Added
+
+- **`skills/airbyte-cdk-authoring/SKILL.md`** — agent-consumed playbook for custom Airbyte connectors (monthly skill-gap audit #821). Promotes `/build-incremental-connector` so spawned `connector-developer` loads it. Retargeted `edtech-lms-connector-gap.md` off `connector-configuration`. **Migration:** none.
+
 ## [0.14.2] — 2026-08-14
 
 ### Changed

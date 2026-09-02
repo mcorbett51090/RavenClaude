@@ -2,6 +2,10 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.5.7] — 2026-08-28
+
+Weekly research sweep. Latest declarative-agent manifest schema is **v1.8** (adds `EmailActions` + `MeetingActions` over v1.7); pin target moved in lockstep across knowledge, CLAUDE.md, the agent, skill, command, template, best-practices, and the anti-pattern hook. Pin-don't-chase and `[verify-at-build]` kept. Verified 2026-08-28 against MS Learn [`declarative-agent-manifest-1.8`](https://learn.microsoft.com/microsoft-365/copilot/extensibility/declarative-agent-manifest-1.8) (the v1.7 page's own "Important" callout names v1.8 as latest). **Migration:** none — knowledge/pin-target only.
+
 ## [0.5.6] — 2026-08-14
 
 ### Changed

@@ -2,6 +2,45 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.3.18] — 2026-08-31
+
+Scheduled research-routine sweep (17 days since 0.3.15) — folded into
+`knowledge/cross-tool-model-lineup-2026.md`: **xAI/Grok became a fifth vendor in the GitHub
+Copilot picker** (Grok 4.6 GA'd in Copilot 2026-08-14, rolling out to Pro/Pro+/Max/Business/
+Enterprise across 8 surfaces, off by default for Business/Enterprise). Passed a usefulness
+panel, a detailed-review panel, and independent grounding re-verification; `WebFetch` was
+network-blocked this session so the finding carries `[verify-at-use]`. Two other candidate
+findings from the same sweep were dropped: a GPT-5.4/GPT-5.4-mini Codex-retirement finding
+(a concurrent session shipped the same fact with better primary sourcing as 0.3.17 — see
+below, not duplicated here) and a GPT-5.6 Sol promotional price cut, rejected by the
+usefulness panel as too ephemeral to hardcode.
+
+## [0.3.17] — 2026-08-31
+
+Scheduled news-sweep **refresh** — folded into `knowledge/cross-tool-model-lineup-2026.md`.
+**Codex GPT-5.4 / GPT-5.4-mini retirement:** OpenAI retires both from **Codex on 2026-08-31 for
+ChatGPT-account sessions only**; they remain available on the **direct OpenAI API and Codex
+API-key sessions** (unaffected). Migration for ChatGPT-auth Codex use: `gpt-5.4→gpt-5.6-terra`,
+`gpt-5.4-mini→gpt-5.6-luna`. The Codex table row moved from "Current, not deprecated" to a
+surface+auth-scoped retirement warning (not full strikethrough — the model is still callable on
+two surfaces), correcting the 2026-08-14 sweep's "OpenAI/Codex rows unchanged" note. Copilot-surface
+GPT-5.4 mentions left unchanged (different surface). Mermaid trees + closed-world list unchanged.
+Primary: @OpenAIDevs + openai/codex Discussion #17038. **Deferred:** a secondary-only 2026-07-30
+GPT-5.6 Luna −80% / Terra −20% price cut (no verified absolute numbers — both panels: DEFER).
+Reviewed by two expert panels (usefulness 3/3 useful; detailed review 3/3 ship). **Migration:**
+none — knowledge-file content only.
+
+## [0.3.16] — 2026-08-27
+
+Research-sweep **refresh** of `knowledge/cross-tool-model-lineup-2026.md` — folded in the **Gemini
+_Flash_ lane in the GitHub Copilot picker** the 2026-08-13/14 review missed: **Gemini 3.7 Flash GA in
+Copilot 2026-08-13** (same-day as the prior sweep stamp) and **Gemini 3.6 Flash 2026-07-21**.
+**Secondary-sourced** — github.blog 403s automated fetch, so availability rests on the dated primary
+changelog URLs + GitHub's official X post, and the reported $0.75/$3.75 intro pricing is secondary; both
+availability and pricing ship with `[verify-at-use]`, not primary-verified. No model-tier default
+changed. Closed-world list unchanged. **Migration:** none. Reviewed via a 3-seat usefulness panel + a
+detailed-review pass (recorded in the PR).
+
 ## [0.3.15] — 2026-08-14
 
 Substrate-tier refresh — Grok Build CLI default is **Grok 4.6**; **Grok 4.5** remains the selectable balanced rung. Adapter `fast`/`balanced` share `grok-4.5` and diverge on `effort` + `perspective` (CLI probe: `grok-build-0.1` / `grok-4.3` are unknown model ids). Codex live three-rung is GPT-5.6 Luna / Terra / Sol (pro = `reasoning.mode`, not a `*-pro` slug). Copilot Claude `top` = Opus 5. Decision-tree leaves retargeted. `[verify-at-use]`.

@@ -31,7 +31,7 @@ This marketplace follows the **orchestrator-worker / hierarchical** pattern, whi
 
 **Sub-agents should not freely spawn or directly invoke other sub-agents.** Only the Team Lead performs dispatching and orchestration.
 
-> **This is a deliberate house policy, not a platform constraint (clarified 2026-06-16).** Claude Code **v2.1.172 (2026-06-10)** now *permits* sub-agents to spawn sub-agents up to **5 levels deep**; RavenClaude keeps the single-orchestrator pattern on purpose (observability, debuggability, loop-avoidance, token-spend control), enforced **soft** by `guard-recursive-spawn.sh` (warn, not block). The canonical statement + rationale lives in [`rules/agent-collaboration.md`](rules/agent-collaboration.md); the same rule is restated in several plugin constitutions and a downstream consistency sweep to align that phrasing is tracked separately. `[platform fact verified 2026-06-16 against the Claude Code changelog]`
+> **This is a deliberate house policy, not a platform constraint (clarified 2026-06-16; platform fact corrected 2026-08-19).** Claude Code *permits* sub-agents to spawn sub-agents, but the platform default has tightened since the original v2.1.172 note — the "up to 5 levels deep" figure is **stale**: **v2.1.217 (2026-07-21)** changed subagents to *not* nest by default, then **v2.1.219 (2026-07-24)** set the default nesting depth to **3** (was 1), controlled by `CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH` (`=1` disables nesting). RavenClaude keeps the single-orchestrator pattern on purpose (observability, debuggability, loop-avoidance, token-spend control), enforced **soft** by `guard-recursive-spawn.sh` (warn, not block) — so the house policy is unchanged regardless of the platform default. The canonical statement + rationale lives in [`rules/agent-collaboration.md`](rules/agent-collaboration.md); the same rule is restated in several plugin constitutions and a downstream consistency sweep to align that phrasing is tracked separately. `[platform fact re-verified 2026-08-19 against the Claude Code changelog; changelog through 2.1.250 on 2026-08-28 does not reverse it]`
 
 **How cross-boundary work is handled:**
 
@@ -53,6 +53,76 @@ When the Team Lead fans work out across multiple git branches, **how** the sub-a
 ### Sleipnir — the worktree-traversal labeling convention (added 2026-05-31, v0.76.0)
 
 Worktree traversal is named **Sleipnir** — Odin's eight-legged horse, the one mount that crosses realm boundaries safely. In **user-facing dispatch prose**, prefer "I'll send Sleipnir to that branch" over narrating the raw `EnterWorktree`/`git worktree` call; the label anchors the user's intuition while the underlying mechanism is unchanged. This is **labeling only** — there is deliberately **no `/sleipnir` slash command, no Sleipnir agent, no new component** (architect's veto). The convention is surfaced in the worktree skills ([`skills/new-worktree`](skills/new-worktree/SKILL.md), [`skills/cleanup-worktrees`](skills/cleanup-worktrees/SKILL.md), [`skills/spawn-team`](skills/spawn-team/SKILL.md)) and as a read-only **"Sleipnir's stables"** widget at the top of the dashboard's Activity tab (the current `.claude/worktrees/` list + count, served via `/__sleipnir`; honest empty state on a static host). ASCII form `sleipnir` (no diacritics; CLI form == display form). Proven by **Gate 43**. **Migration:** none — copy/labeling + one read-only widget.
+
+### The cheap lane — routing everyday work off Claude entirely (added 2026-08-26, v0.303.0)
+
+**Scope: a second dispatch target, not a replacement for sub-agent dispatch.** The
+Team Lead already dispatches Claude sub-agents (`skills/spawn-team`) and, for
+subagent *tier* selection, defers to `agent-dispatch-evaluator` when it is enabled.
+This is a third, narrower question, upstream of both: **does this task need to be
+in the main session's reasoning loop at all?**
+
+**Why this exists.** Measured on the owner's account (14 days, main-loop output):
+41.2M tokens, 83.2% top-tier model, essentially none on a cheap model — and all of
+it main-loop, not sub-agent spend. Tuning sub-agent tiers cannot touch that; the
+spend is in the conversation itself. `skills/cheap-lane-delegation` is the answer:
+a **deterministic router** (`scripts/route-task.py`, no model call, self-tested)
+decides `claude` vs `grok` for one well-defined task, and `scripts/grok-delegate.sh`
+is the transport when the answer is `grok`.
+
+**Off by default, exactly like `design_checkins` / `decision_review` / `parallelism`
+/ `orchestrator`.** `cheap_lane: { mode: off | advise | agent, tier: fast | balanced }`
+in `.ravenclaude/comfort-posture.yaml`. **`off` is the default and the skill is
+inert** — nothing here changes today's behavior for a consumer who has not set the
+knob. `advise` returns Grok's output as a suggestion only; `agent` runs Grok in a
+disposable worktree for review before merge. Full contract, the escalation-vs-cheap
+rule table, and the exit-code contract: [`skills/cheap-lane-delegation/SKILL.md`](skills/cheap-lane-delegation/SKILL.md).
+
+⛔ **"Give this to Grok" is two products, not one.** Cheap-lane is **one bounded
+job** (`cheap-lane-delegate.sh`, returns). A quota escape, a leftover multi-item
+list, a plugin-cache reload, or "pass remaining work to Grok to finish" is
+**session-handoff** (a new unbounded interactive TUI). Do not treat those as the
+same action. When `cheap_lane` is on and you still hand off, say in one clause
+why it is not a cheap-lane job.
+
+⛔ **The routing asymmetry is deliberate and load-bearing.** An unmatched task, an
+ambiguous one, and one matching *both* an escalation and a cheap-lane rule all
+resolve to `claude` — escalation always dominates. A task wrongly sent to Grok can
+produce a confidently wrong multi-file change that costs more to unwind than it
+saved; one wrongly kept on Claude only costs money. Do not "balance" this rule to
+route more aggressively without re-running `route-task.py --self-test`'s teeth
+checks (one proves the router is not a constant `claude`; one proves escalation
+dominates rather than merely co-occurring).
+
+⛔ **Containment is a disposable worktree/scratch-dir AND the kernel sandbox
+(`grok --sandbox`), deliberately both — not Grok's own permission flags alone.**
+`grok-delegate.sh`'s header carries the measured, positive-controlled proof: an
+`--sandbox read-only` probe run *inside* one of Grok's own always-writable temp
+paths (`/tmp`) looked like a containment failure and was not one — re-tested
+outside every allowlisted path, the kernel (Seatbelt/Landlock) genuinely refused
+the write and logged it to `~/.grok/sandbox-events.jsonl`. Before touching either
+layer, re-run that probe outside `/tmp`/`/var/tmp`/`~/.grok` and read the event log
+— a probe run inside the tool's own writable scratch space will always look like a
+containment failure whether or not one exists.
+
+**Composition with the orchestrator-worker rule (unchanged).** Only the Team Lead
+dispatches — to a Claude sub-agent, or, when this knob is on, to Grok. A dispatched
+Claude sub-agent does not itself reach for this skill; that would be a sub-agent
+spawning further work outside the Team Lead's view, which
+[`rules/agent-collaboration.md`](rules/agent-collaboration.md) already governs
+against.
+
+**`agent-dispatch-evaluator` is a separate mechanism and this does not flip its
+default.** The evaluator tunes which *tier* a Claude sub-agent dispatch uses;
+`dispatch-config.json`'s own template ships `enabled: false, mode: "shadow"`
+because its documented readiness gate (a live eval run, a pre-merge re-confirm) is
+not yet met — this milestone does not override that gate. If you want it live for
+this repo's own dev use, its safe, already-designed step is enabling **shadow
+mode** locally (a repo-local `.ravenclaude/dispatch-config.json`), not flipping the
+shipped template's default for every consumer.
+
+**Migration:** none — `cheap_lane` defaults to `off`; the skill, the router, and
+the transport ship inert until a consumer sets the knob. Skill count 55 → 56.
 
 ### Agent-routing decision tree (priors — for the Team Lead)
 
@@ -1041,6 +1111,7 @@ Any plugin template that renders an HTML `<head>` (e.g. `templates/repo-build-st
 - `commands/` — slash commands shipped to consumers: `/init-agent-ready`, `/wrap`, `/set-posture`, `/dashboard` (launches the bundled `serve-dashboards.py` so the consumer gets the fully-functioning comfort-posture dashboard with one-click Save & apply), `/stream` (inspect/override the active Agentic Work-Stream — list/set/new/show/status, over the `rc streams` CLI), and `/reset-plugin-cache` (alias `/ragnarok`) — the high-blast-radius plugin-cache disaster-recovery command (see the callout below)
 - `knowledge/` — reference material the Researcher cross-checks (incl. `concerns-catalog.md`, the tribunal constitution; `visual-feedback-loop.md` — the render→see→critique→iterate canon for visual-output agents; `thing-denial-kb.md` + `thing-denial-resolutions.json` — the Muninn denial-KB mechanism + its seed resolutions map)
 - `monitors/` — reactive run-state monitor (`monitors.json` + `watch-run-state.sh`); declared via `experimental.monitors` in `plugin.json`. The push complement to the read-only Heimdall/Víðarr tabs — see the milestone above and [`knowledge/run-state-monitor.md`](knowledge/run-state-monitor.md). Claude-Code-only; scoped `on-skill-invoke:spawn-team`.
+- `vscode-extension/` — `ravenclaude-precompact-guard`, a standalone VS Code extension (its own `package.json`/`tsconfig.json`/`esbuild.js`/`src/`, built + installed with the native `vsce`/`code --install-extension` tooling, not Claude Code's plugin loader). Registers a Language Model Tool + a manual command + a status-bar affordance that trigger Copilot Chat's `/compact <digest>` via the stable `workbench.action.chat.open` command. No `plugin.json` field declares it — unlike `monitors/`, it has no Claude-Code-recognized manifest surface to hook into; the directory is authorized only via a `.repo-layout.json` glob, same as `bin/`. See the precompact-critical-context milestone below.
 
 ### Command review (the Thing) — tribunal T5 (updated 2026-05-26, v0.28.0)
 
@@ -1306,6 +1377,14 @@ Closes the recurring failure where the agent **tells the user to check/do someth
 
 **"Claude Design"** = the user's **claude.ai/design** design-system projects (tokens / components / guidelines / UI kits), reached through the built-in **`DesignSync`** tool + the built-in **`/design-sync`** skill. **Access is an authorization on the claude.ai login, not a repo file** — the first `DesignSync` call auto-grants the `user:design:read`/`user:design:write` scopes (or `/design-login` once for a session with no claude.ai login). So a "this environment can't see design projects" message is the un-granted scope, **not** a missing skill file — adding repo files does not grant access (the Capability-Grounding "a missing-looking capability is one route" lesson). Canon: [`knowledge/design-project-binding.md`](knowledge/design-project-binding.md).
 
+> **Corrected 2026-09-01.** This milestone described the built-in `DesignSync`/`/design-sync` route as
+> if it were the only one. A **separate, additive MCP-server route** also reaches these projects
+> (`claude mcp add --scope user --transport http claude-design https://api.anthropic.com/v1/design/mcp`,
+> then `/design-login`) — `[docs-verified — Anthropic Help Center, 2026-09-01]`. Both are real; this
+> file's own stated refresh trigger ("the DesignSync tool surface or the `/design-login`/`/design-sync`
+> flow changes") had fired 69 days earlier, under the 90-day calendar-sweep flag that would have caught
+> it eventually. See the canon file's "Two connection routes" section for the current state.
+
 What a repo *can* add — so the agent auto-knows **which** of the user's projects is **this repo's** (instead of asking every session) — is a small **binding**, mirroring the `environment-context.md` pattern:
 
 - **[`templates/design-project.json`](templates/design-project.json)** — `{project_id, name, mirror_dir, notes}`. `project_id` is a **non-secret UUID** (safe to commit); the binding is a pointer, never a credential.
@@ -1348,7 +1427,7 @@ and one honest non-lever:
    cost-cutting pass doesn't reach for them.
 
 **Latent bug fixed in passing:** the regen list told agents to run `scripts/generate-repo-guide.py` —
-**deleted in v0.124.0** along with `repo-guide.html` (Gate 11 retired; see `scripts/audit-gates.sh:761`),
+**deleted in v0.124.0** along with `repo-guide.html` (Gate 11 retired; see `scripts/audit-gates.sh:1128`),
 so the instruction had been dead for months — and it omitted the live `generate-index-dashboard.py`
 freshness gate. Corrected against the actual harness, with a staleness note pointing at
 `audit-gates.sh` as the source of truth.
@@ -3127,3 +3206,566 @@ DOM-budget ratchet is untouched (a 10-char date replacing a 10-char date changes
 
 **Migration:** none — knowledge-freshness metadata only; nothing in an installed plugin behaves differently
 on `/plugin marketplace update`.
+
+## ⛔ A stall has no turn boundary, so no hook can see one (added 2026-08-25, v0.301.0)
+
+A session wedged for **six hours** with four prompts queued behind it. The turn never ended, so
+nothing in this repo's guardrail set ever fired. That is not a gap in the hooks — it is a property
+of what a hook IS.
+
+control: the same enumeration returned **39 hooks across 6 event types**, so an empty in-turn set is
+the event map and not a failed read.
+Measured 2026-08-25: every registered hook fires on a turn or tool boundary (`SessionStart`,
+`UserPromptSubmit`, `PreToolUse`, `PostToolUse`, `SubagentStart`, `Stop`). A stall is **defined** by
+the absence of a turn boundary, so it is unobservable from any of them.
+
+⛔ **The sharpest instance is the guard built for exactly this case.** `handoff-nudge.sh` exists to
+nudge a context-hot session toward a handoff, and it is a **`Stop`** hook. If the turn never stops it
+never runs — the one hook authored for a hot window is structurally silent during the failure it was
+written for. **Do not try to build a hook for this class.** Detection has to live in a separate
+process on a timer, which is what `scripts/stall_watch.py` + the LaunchAgent are.
+
+### ⛔ The observable is last-ASSISTANT-record age. Every alternative fails toward "looks alive"
+
+| candidate | measured failure |
+|---|---|
+| last-entry-of-ANY-type | **masked the real stall by 44.3 min** — the owner's queued prompts and a product-generated `system/away_summary` reset the clock. The stalled session's last SIX timestamped records contain **zero** assistant records. Typing into a session you suspect is stuck silences a last-any detector for a full window, so investigating hides the thing being investigated. |
+| file mtime | diverges from the last entry by up to **100 min** in the looks-alive direction; **99.03%** of transcripts end in an UNTIMESTAMPED record |
+| registry `statusUpdatedAt` | a genuine but COARSE progress signal at a **~17-min bump cadence** — **NOT** the "transition latch" two short samples (90s, 120s) concluded. It is superseded, not inert: the assistant-record distribution has **p99.9 = 4.52 min** |
+
+Threshold 20 min: only **4 of 128,130** within-turn gaps before an assistant record reach 20 min
+(0.003%). An earlier figure of 13.15 min was wrong because it included between-turn idle.
+
+### ⛔ `~/.claude/sessions/<pid>.json` — an undocumented live registry, and what it is NOT
+
+`{sessionId, pid, status: busy|idle|waiting, statusUpdatedAt, procStart, cwd, version}`. Exited
+sessions leave no file (3 files vs 2,055 transcripts), and it is the **only** pid↔session↔cwd map.
+
+- ⛔ **SIGKILL ORPHANS IT.** Measured: `.json`/`.key`/`.sock` all survive `kill -9`, with a clean-exit
+  positive control that DID remove them. **Registry presence never proves a session runs**, so dedup
+  state is retained rather than demoted.
+- ⛔ `procStart` renders **UTC** while `ps` prints **local** — a naive identity check mismatches on
+  every session and fails toward SILENCE. Use `ps -o etime=`, a timezone-free duration.
+- The `*.key` siblings are `0600` secrets and are never opened.
+
+### Resolution must be observable, and there is no mute
+
+The ladder never reaches zero (a real ongoing stall must not go quiet), so an episode that is never
+closed nags forever. "Ended" is therefore something the watchdog can SEE:
+`resolved := a new assistant record OR the process is gone OR the registry reports idle`. There is
+deliberately **no acknowledge/mute** — a mute button on a detector is the thing that gets used.
+
+### Gate 244 — one slot, six check groups
+
+Each must-fail half is **proven to flip**: the masking mutant drops a naive detector to 1.0 min while
+the whitelist detector still reads 141.0 min. Fixtures are **derived skeletons** — timestamps and
+record types only, 14.7 MB → 606 KB — because raw transcripts carry credentials and fetched web
+bodies and must never be committed. The mechanism detail lives in the inventory concept
+[`stall-has-no-turn-boundary`](knowledge/concepts/stall-has-no-turn-boundary.md).
+
+⛔ **A gate that reads the host's timezone is red on CI forever.** Check 246b compared against local
+time and refused to discriminate on a UTC host — and CI runners are UTC, so the gate passed locally
+(16/16) and could never go green in CI. The instinct (refuse a vacuous pass) was right; converting it
+into a hard failure was not. It now **imposes** a zone, so it discriminates everywhere instead of
+abstaining somewhere.
+
+### Open, stated rather than implied
+
+- **C13 unsettled** — whether a LaunchAgent-fired banner is VISIBLE cannot be observed
+  programmatically: Focus state and the Notification Center DB are **both TCC-denied**, each
+  positive-controlled. Owner-gated; the banner is capped behind `banner_enabled`, default off.
+- **P7 install sign-off incomplete** — until the owner subscribes to the sink, every tick returns
+  "accepted by the sink", which is **not** "reached a human". A 200 from a zero-subscriber topic is
+  still a 200.
+- **C17 generalization pending** — the backtest is n=4 with one positive. `soak.jsonl` accumulates the
+  forward series (derived values only, capped) because the heartbeat is overwritten each tick and a
+  snapshot cannot answer a generalization question.
+
+**Migration:** none — a new out-of-session tool plus one gate; nothing in an installed plugin behaves
+differently on `/plugin marketplace update`. The LaunchAgent is opt-in via `install_stall_watch.py`.
+
+## The context-usage meter had no Claude Code path — the handoff nudge was inert on the most common host (added 2026-08-26, v0.303.0)
+
+`scripts/context-usage-meter.py` powers `handoff-nudge.sh` (the Stop-hook context-hot warning) and,
+since v0.274.0, the `conserve_tokens_auto_pct` trigger — the two mechanisms meant to warn a session
+*before* it hits the real auto-compact cliff. Both were silently inert under Claude Code, every session,
+regardless of `context_handoff.mode`.
+
+⛔ **Root cause: the meter was Grok-only from its first line, and nobody had a Claude Code path to fall
+back to.** `session_dir_from_env` / `last_total_tokens` read `GROK_SESSION_ID` and
+`~/.grok/sessions/<cwd>/<sid>/updates.jsonl` — a format that does not exist for a Claude Code session
+(Claude Code writes `~/.claude/projects/<encoded-cwd>/<sid>.jsonl`, an entirely different transcript
+shape). So under Claude Code `last_total_tokens` always returned `None`, `measure()` always returned
+`status: "unknown"`, and `handoff-nudge.py`'s `if result.get("status") != "ok" ... return 0` made it a
+no-op on every turn — independent of, and compounding, this repo's own posture never having set
+`context_handoff.mode` (it defaulted `off`, per `read_posture`'s own default dict). Two independent
+reasons the mechanism never fired, on the host most sessions run on.
+
+control: driven against this session's own live transcript —
+`meter.measure(None, None, 70, None, claude_payload={"transcript_path": <this session's .jsonl>})` →
+`{"status":"ok","used":85676,"window":200000,"percent":42.8,"source":"claude-code", ...}` — where the
+unpatched code returned `status: "unknown"` on the identical input (no Claude Code branch existed to
+resolve it).
+
+**The fix — a second, purely additive resolution path, tried only when Grok's resolves nothing.**
+`claude_transcript_path(payload)` prefers the hook payload's own `transcript_path` field (present on
+every Claude Code hook invocation — the same field `compact-anchor.py` already uses), falling back to
+reconstructing `~/.claude/projects/<encoded-cwd>/<sid>.jsonl` only when that field is absent (a test
+harness building its own payload). `last_total_tokens_claude(path)` reads the **last `assistant` turn's
+`message.usage`** — `input_tokens + cache_read_input_tokens + cache_creation_input_tokens` (what was
+actually sent as context for that turn; `output_tokens` is deliberately excluded — it is what the model
+*produced*, not part of the next turn's input) — via a **bounded tail read** (4 MiB), not a full-file
+read like Grok's `updates.jsonl` path, because a Claude Code transcript can be large. Window falls back
+to a Claude-appropriate default (200000) only when nothing else resolved one **and** the reading came
+from the Claude Code path — a Grok session with no resolvable window still reports `unknown`, unchanged.
+`measure()` gained one new keyword-only parameter, `claude_payload=None`; every existing call site is
+byte-identical (the parameter defaults to inert), and `handoff-nudge.py` + `conserve-tokens.py`'s
+`context_percent()` now pass their already-available hook `payload` through.
+
+**Dogfooded, not just built:** this repo's own `.ravenclaude/comfort-posture.yaml` had `context_handoff:
+{spawn: os-terminal}` with no `mode:` — meaning the nudge was doubly dark here even before this fix.
+`mode: nag` is now set, with an inline comment explaining why it was previously a no-op.
+
+**Migration:** none in the Grok direction — every existing test (`test-context-usage-meter.py`, 9
+pre-existing cases) passes unchanged, and a Grok session's reading is never overridden by the Claude
+fallback (asserted directly: `test_grok_reading_never_overridden_by_claude_fallback`). A consumer running
+Claude Code with `context_handoff.mode: nag` or `block` set will, for the first time, actually see the
+nudge fire as context climbs — this is the mechanism working as originally documented, not a new
+behavior being introduced.
+
+## Cheap-lane delegation gains a real matrix — per-tier turn/timeout budget + an `--effort` override (added 2026-08-26, v0.304.0)
+
+The cheap-lane's `--tier` flag already resolved model + effort + perspective from the
+shared `substrate-tier-map.json`, but every delegated task then paid the same flat
+30-turn/600s budget regardless of tier — a one-line regex and a multi-file mechanical
+refactor got identical runway, and `top` (reserved for the hardest cheap-lane-adjacent
+work a human explicitly picks) had no extra room to use its stronger model.
+
+`grok-delegate.sh` now resolves a **per-tier turn/timeout budget** alongside the
+existing model/effort/perspective resolution — `fast`=15 turns/300s,
+`balanced`=30/600 (unchanged from before, so a bare `--tier balanced` call is
+byte-identical), `top`=60/1200. An explicit `--timeout`/`--max-turns` always wins over
+the tier's row, exactly as before. A new `--effort low|medium|high` flag lets a caller
+override the tier-resolved effort directly (validated against Grok CLI's real set —
+`xhigh` is rejected by the CLI itself, per the forge-pipeline skill's own note), for
+the case a `fast`-tier task needs more reasoning depth without paying for
+`balanced`'s whole budget.
+
+The full matrix — model × effort × perspective × mode × turn/timeout budget — is now
+documented as one table in [`skills/cheap-lane-delegation/SKILL.md`](skills/cheap-lane-delegation/SKILL.md#the-matrix--every-lever-this-tool-tunes-not-just-the-model)
+rather than left implicit across two files.
+
+Verified end-to-end against the real `grok` CLI (1.0.5) this session: a `--tier fast`
+`advise`-mode call resolved model=grok-4.5/effort=low, the new 15-turn/300s budget,
+and returned exit 0 with the expected output; `--effort xhigh` was correctly rejected
+before any egress; `route-task.py --self-test` stayed 17/17.
+
+**Migration:** none — `balanced`'s defaults are unchanged (30/600, the prior flat
+default for every tier), so any existing call that never specified `--tier` sees
+byte-identical behavior. `fast` and `top` calls now get a scaled budget instead of
+`balanced`'s; `--effort` is a new opt-in flag.
+
+## The cheap lane was a Grok integration wearing a generic name — now it is genuinely agent-agnostic (added 2026-08-26, v0.305.0)
+
+Everything the cheap lane shipped with — `grok-delegate.sh`, the `cheap_lane.mode` knob,
+`route-task.py`'s `lane: "grok"` output — was Grok-specific by construction, despite the
+skill and its matrix table presenting themselves as the general "route work off Claude"
+mechanism. An owner review caught it directly: *"make sure the matrix is by coding agent,
+by model, by effort level — and not just geared toward one coding agent."*
+
+**New: [`scripts/cheap-lane-delegate.sh`](scripts/cheap-lane-delegate.sh)**, an
+agent-agnostic dispatcher — `--agent grok|copilot` selects the target CLI; every other
+flag passes through verbatim to that agent's own delegate script, because the two CLIs'
+real flag shapes genuinely differ and a shared shape would have to be the lowest common
+denominator of both (a strictly worse design than each script owning its own real
+capabilities).
+
+**New: [`scripts/copilot-delegate.sh`](scripts/copilot-delegate.sh)**, the Copilot
+sibling of `grok-delegate.sh` — same contract (args, exit codes, containment shape),
+built the same way grok-delegate.sh was: **live-probed against the installed CLI, not
+guessed from docs.** What that probing found, stated because it changes what the tier
+matrix can honestly promise:
+
+- `-p`/`--prompt`, `--model`, `--effort` (choices `none|minimal|low|medium|high|xhigh|max`
+  — a WIDER set than Grok's `low|medium|high`), `-C`, and `--deny-tool write --deny-tool
+  shell` (paired with `--allow-all-tools`, since denial takes precedence over allow) all
+  verified working via real non-interactive calls.
+- ⛔ **Read-only ("advise") containment was verified with a positive control, not
+  assumed**: a real call instructed to write `canary.txt` and report success returned
+  *"I was unable to create the file due to permission restrictions… I failed to create
+  canary.txt"* — the deny-tool pairing genuinely blocks writes, the same rigor
+  `grok-delegate.sh`'s header applies to Grok's kernel sandbox.
+- ⛔ **`--model auto` (the only value confirmed to work as a literal `--model` argument)
+  REJECTS `--effort` outright** — `"Model \"auto\" does not support reasoning effort
+  configuration"`, a real runtime error hit on the first live test, not a hypothetical.
+  Six distinct guessed pinned slugs (`claude-sonnet-5`, `claude-sonnet-4.5`,
+  `claude-opus-4-8`, `gpt-5`, the display-name string, and — surprisingly — the literal
+  internal id `auto` itself resolved to on a real call, `claude-haiku-4.5`, read back via
+  `--output-format json`) were all rejected as `--model` values. There is no
+  non-interactive way to enumerate the valid catalog; the picker is the interactive
+  `/model` command only. **Consequence, shipped honestly rather than glossed over:** with
+  the default `auto` model, `--effort` is omitted entirely — the Copilot lane's tier
+  ladder differentiates by timeout budget only, out of the box. `--model <slug>` is an
+  explicit override for a caller who has confirmed their own effort-capable slug.
+
+⛔ **codex is deliberately NOT a third `--agent` value.** The Codex CLI was not
+installed on the host this work was verified against. `command -v codex` alone was not
+trusted as the verdict — the premise gate this repo runs on new source modules caught
+exactly this (a new file referencing an unresolved negative), and the positive control it
+demanded was run for real: `command -v bash` proved the probe mechanism itself works, and
+a broader search (`~/.local/bin`, `~/.codex/bin`, `/usr/local/bin`, `/opt/homebrew/bin`,
+`brew list`) confirmed Codex is genuinely absent, not merely unresolved by a narrow PATH
+check. `cheap-lane-delegate.sh --agent codex` refuses with a message pointing at exactly
+what a future session needs to verify before adding it for real.
+
+**`route-task.py`'s `lane` output renamed `"grok"` → `"cheap"`** (17/17 self-test
+unchanged, verified before and after the rename) — the router decides *whether* work
+leaves the Claude session, never *which* agent it goes to; keeping the literal string
+`"grok"` in an agent-neutral field was itself part of the one-vendor framing this release
+corrects. `cheap_lane.agent: grok | copilot` (default `grok`, preserving today's
+behavior) is the new, separate posture knob that actually selects the agent.
+
+**Migration:** none in the permissive/default direction — `cheap_lane.agent` defaults to
+`grok`, so an existing posture with `cheap_lane.mode` set continues to route to Grok
+exactly as before. The one consumer-visible rename is `route-task.py`'s `lane` value
+(`"grok"` → `"cheap"`) — any external caller pattern-matching on the literal string
+`"grok"` in that JSON field (none exist inside this plugin; verified by grep) would need
+updating.
+
+## Claude Code platform-fact tracking refreshed — subagent caps, nesting depth, plugin install (added 2026-08-28, v0.307.0)
+
+Draft #987 (2026-08-19) verified four changelog facts first-hand, then sat unmerged while
+the plugin moved 0.283.0 → 0.306.1. Recut here from current `main` so the version bump
+does not rewind the catalog. Changelog through **2.1.250 (2026-08-28)** does not reverse
+them. House policy (single-orchestrator, `guard-recursive-spawn.sh` soft-warn) is
+unchanged.
+
+- **"5 levels deep (v2.1.172)" was wrong.** v2.1.217 disabled nesting by default; v2.1.219
+  set default depth **3** (`CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH`, `=1` disables).
+- **Native concurrent cap 20** (`CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS`, v2.1.217). The
+  v2.1.212 **200 per-session cap was removed in v2.1.224**.
+- **`/reload-plugins` is often unnecessary** since v2.1.221.
+- **Marketplace `archive` (v2.1.224) and `command` (v2.1.229)** source types.
+
+Deferred 14 synthesis-only findings remain in
+[`docs/research/2026-08-19-plugin-news-scan/`](../../docs/research/2026-08-19-plugin-news-scan/README.md).
+The Fabric Assistants-API P0 deadline (2026-08-26) has passed; re-verify before quoting.
+
+## Pre-compaction critical-info capture — Tier 1 hook + Tier 2 VS Code extension (added 2026-09-01, v0.309.0)
+
+Built via `/forge` (run in `.ravenclaude/runs/forge/precompact-critical-context/`) against the ask
+"warn me before an imminent compact, composed with the critical info to retain." Two independent
+research passes falsified the premise both draft panels shared — `PreCompact`'s `systemMessage`/
+`stopReason` are a verified no-op on VS Code Copilot Chat (`executePreCompactHook()` has no consumer
+for any of them, and `PreCompact` never fires there on a manual `/compact` at all) — and found the
+actual mechanism that satisfies the ask: a VS Code extension can programmatically trigger
+`/compact <text>` via the stable, public `workbench.action.chat.open` command, and that text lands
+verbatim in the summarization system prompt (the same call Microsoft's own Copilot extension uses for
+its "compact" button). The design ships in two tiers because they answer different halves of the ask.
+
+**Tier 1 — `hooks/precompact-digest.sh` + `scripts/precompact-digest.py` (host-agnostic, archival
+only).** A new `PreCompact` hook — first of its kind in this manifest's history — reads the
+`transcript_path` off the trusted `PreCompact` payload and launches the digest engine **detached**
+(fire-and-forget; see the `precompact-digest` inventory concept for the measured detachment proof),
+writing a curated critical-info digest to `.ravenclaude/runs/<session>/precompact-digest-<ts>.md`.
+Gated by the existing `cheap_lane.mode` knob (absent/off ⇒ fully inert — no new knob invented) plus a
+fail-closed egress floor (`orchestrator_repo_pii: false` OR `cheap_lane_zdr_confirmed: true`) enforced
+inside the engine, mirroring `claude-orchestrate.sh`'s own A-on-C floor. `compact-anchor.py` (Claude
+Code's existing post-compaction pointer) was extended to also surface the newest digest's path
+alongside its existing transcript pointer — derived-values-only, matching Gate 186's invariant. On
+VS Code this hook cannot warn or block (claim 20, above) — it is archival, matching its own upstream
+source comment; it ships regardless of the extension because Claude Code gets real value from it
+independent of VS Code. The three-projector contract was extended in the same commit:
+`generate-copilot-hooks.py` gained a `precompact` `_EVENT_MODE` entry +
+`copilot-hook-adapter.sh`'s matching case; `generate-cursor-hooks.py` / `generate-gemini-hooks.py`
+gained an explicit `_SKIP` with a stated reason (neither host has a verified compaction-hook event).
+
+**Tier 2 — `vscode-extension/` (`ravenclaude-precompact-guard`) — the actual differentiator.** A new
+component type, first of its kind in this repo (see the Layout entry above for why it carries no
+`plugin.json` field). Registers a Language Model Tool the Copilot agent can call autonomously from
+inside its own turn (it already has full conversation context there — no external heuristic needed),
+plus a manual command + status-bar item as a human-triggered backstop, because a non-participant
+extension cannot see live chat history and so has no reliable way to detect context pressure from
+outside the conversation. Both paths call the same mechanical trigger:
+`vscode.commands.executeCommand('workbench.action.chat.open', {query: '/compact ' + digest,
+preserveInput: true})`. Built with `esbuild` (bundled dev dependency only, matching this repo's
+no-consumer-facing-runtime-dependency bar). Ships `.vsix`-buildable + `code --install-extension`
+documented; **not** published to the VS Code Marketplace — that needs a publisher account/token this
+session did not hold, named explicitly rather than silently dropped.
+
+**Honest limit, stated plainly:** neither tier can influence *automatic* background compaction
+(`summarizationInstructions` has zero references in the auto-compact code path, positive-controlled).
+The design responds by triggering compaction proactively instead, which is what "before an imminent
+compact" already implied.
+
+**Security review (P4):** the egress path (cheap-lane call inside `precompact-digest.py`) was reviewed
+against the real implementation — scrub coverage against `_scrub.sh`'s pattern set, independent
+input-size bounding, and an explicit written disposition on the residual business-logic/PII exposure
+no regex scrub catches, matching this repo's own honest-limit framing for `orchestrator_scope: all`'s
+A-on-C floor.
+
+**Migration:** none — the hook is gated by the existing `cheap_lane` knob (absent/off ⇒ inert, no new
+knob), the extension is an opt-in separate install with its own tooling, and nothing in an installed
+plugin's default behavior changes on `/plugin marketplace update`.
+
+**Migration:** none — documentation + knowledge only.
+
+## DESIGN.md — a house default for ad-hoc HTML, cross-cutting across every plugin (added 2026-09-01, v0.310.0)
+
+A review of an article on emerging agent-facing markdown formats verified
+[`google-labs-code/design.md`](https://github.com/google-labs-code/design.md) (Google Labs, alpha) as a
+real spec for handing design tokens + visual-identity rationale to a coding agent in one file. The
+initial read placed it entirely in `web-design`/`brand-identity-studio` — a client's own brand is
+domain-specific, and that plugin already got a cross-linked knowledge note (PR #1063). **That
+placement was incomplete, not wrong**, once the owner named the actual gap: *"I'm always creating
+html files so that I can learn what's happening and we need a consistent format across all repos."*
+That is a **different** case from a client brand — an agent in *any* plugin occasionally generates
+an ad-hoc informational HTML artifact (a diagnostic report, an audit summary, a status dashboard, an
+`Artifact`-tool explainer page) with no client to brand, and it should look consistent by default
+without every session re-inventing a look.
+
+**Two ships, two placements, same underlying idea:**
+
+- [`templates/DESIGN.md`](templates/DESIGN.md) — the shipped **house default**, real tokens (not
+  placeholders): the same "cool near-black canvas + one green accent" look
+  [`dashboard-assets/shared-tokens.css`](dashboard-assets/shared-tokens.css) already uses for this
+  repo's own `index.html`/`dashboard.html`, expressed here in the real `google-labs-code/design.md`
+  YAML-frontmatter-plus-prose format (fetched and verified against its own `docs/spec.md` this
+  session, not guessed) so a project's override, if it adds one, is also readable by that project's
+  own `npx @google/design.md` CLI.
+- [`knowledge/design-md-resolution.md`](knowledge/design-md-resolution.md) — the **two-tier
+  resolution rule**: a project-root `DESIGN.md` in the current repo wins outright for that repo; its
+  absence falls through to the shipped template. Mirrors the existing
+  `.ravenclaude/comfort-posture.yaml` / `environment-context.md` shape (a shipped default,
+  overridable per-repo by dropping a file at the expected path) rather than inventing a new pattern.
+
+**Why core, and why this is genuinely different from `web-design`'s note, not a duplicate of it:**
+every plugin's agents occasionally produce a diagnostic/report artifact — a finance compliance
+check, a Power Platform solution audit, a PM status report rendered as HTML — not just `web-design`.
+That is the domain-neutral test this constitution's own house rule sets. A client's branded product
+is the opposite case: always project-specific, no house default, correctly staying in `web-design`.
+Conflating the two would be the actual defect — a client's marketing page must never silently inherit
+this repo's own house look, and an internal diagnostic report gains nothing from per-engagement brand
+work.
+
+**Deliberately NOT auto-scaffolded** into every consumer repo by `/init-agent-ready` — most consumer
+repos never generate ad-hoc HTML, and pre-seeding an unused `DESIGN.md` everywhere is exactly the
+kind of file bloat this repo's own layout discipline argues against elsewhere. Resolution falls
+through to the shipped template with zero per-repo setup; a repo opts into a different look only by
+choosing to add its own file.
+
+**Behavioral, not (yet) machine-enforced** — like `design_checkins`/`decision_review`, this is a
+convention an agent follows, not a hook-gated rule. No gate currently checks that a generated HTML
+artifact actually resolved and applied these tokens. If that becomes a recurring miss, a lint over
+generated `.html` (the same shape as `claim-grounding-lint.sh`) is the enforceable sliver, not yet
+built — named here rather than left unstated.
+
+**Migration:** none — a new template + knowledge file; nothing in an installed plugin's default
+behavior changes on `/plugin marketplace update`. A consumer sees the difference only when an agent
+generates an ad-hoc HTML artifact and resolves this file for its look.
+
+## Agent routing matrix — task shape → {agent, model, effort tier}, host-agnostic (added 2026-09-01, v0.311.0)
+
+Built via `/forge` `standard` (two divergent cross-model panels → a correlated-error critic → 11
+tiebreak rulings → an adversarial red-team pass → synthesis) in answer to: *"a matrix so that the
+harness or orchestrator, no matter which coding agent, knows which coding agents and models are
+available and which to call, to get the best outcome probabilistically."* Ships
+[`knowledge/agent-routing-matrix.json`](knowledge/agent-routing-matrix.json) (+ `.schema.json` + a
+companion `.md`) covering 5 agent surfaces (Claude Code, Codex CLI, Copilot CLI, Copilot Chat, Grok
+Build CLI) and 5 task classes (2 coding, 3 non-coding: research-deep, writing-documentation,
+data-analysis) — an **open, data-level registry**, not a schema enum, so a consumer adds a class
+without touching schema or gate code.
+
+**Deliberately heuristic, not empirical.** Every recommendation cites the existing dated knowledge
+files (`cross-tool-model-lineup-2026.md`, `model-selection-and-2026-capability-map.md`,
+`substrate-tier-map.json`) — this artifact owns the **routing logic**, never a duplicated vendor
+fact. Ranking is an ordinal `rank` + a `basis` provenance tag (`framework-rule` /
+`capability-fact` / `cost-heuristic` / `editorial-judgment`) — **no numeric confidence field
+anywhere**, a deliberate choice both design panels initially made and the critic/red-team pass
+overturned: a float invites arithmetic (averaging, thresholding) that an ungrounded heuristic cannot
+bear.
+
+**Two design corrections the pipeline's own adversarial gates caught before ship, worth recording
+because they generalize:**
+
+1. **The axis product is 4 grounded cells, not 6.** `interaction_mode` (3 values: `inline`/`chat`/
+   `agent`, verbatim from the mode-selection tree) × `blast_radius` (`reversible`/`irreversible`,
+   meaningful only inside `agent` mode — the source tree never asks the irreversibility question
+   for `inline`/`chat`, both of which are reversible by their own definition). Requiring
+   `inline × irreversible` or `chat × irreversible` cells would have manufactured exactly the
+   compelled-invention failure the critic flagged elsewhere (a coined `difficulty_tier` axis was
+   rejected for the same reason — `frontier` names a model **tier** in every source occurrence,
+   never a task property).
+2. **Anti-duplication is a *derived* ban-list, not a hand-written regex.** Both design panels
+   proposed a regex banning SKU-shaped strings; the critic proved live that regex missed the
+   display-name form (`"Claude Opus 5"`) `substrate-tier-map.json`'s own `copilot` lane already
+   uses. The red-team then found the critic's own fix ("ban every leaf string in the cited files")
+   was **too broad** — it banned ordinary English words (`high`/`low`/`architect`/`scanner`) and the
+   cited source's own retrieval date, which would have put the ban-list in direct contradiction
+   with the artifact's own staleness-citation requirement. The shipped version derives the ban-list
+   from a **scoped projection** — `model-catalog.json`'s `current`∪`stale` values plus
+   `substrate-tier-map.json`'s per-host-per-tier `model` leaves only — with a **positive control on
+   the derivation itself** (Gate 255 check B refuses to pass on an empty or under-scoped ban-list).
+   This build's own first draft tripped the finished check for real, on a SKU embedded in a
+   `rationale` prose string and a display-name form left in the doc's own illustrative prose —
+   confirming the check has genuine teeth on authored content, not just synthetic mutants.
+
+**A shared-anchoring correlated error was caught and fixed, not just documented.** Both design
+panels' plans asserted *"Gate 51 enforces the `run_config` byte-identical-when-disabled floor."*
+False — Gate 51 is the unrelated portal shell-router gate; **no gate currently CI-enforces the
+`run_config` disabled floor**, which holds today only by convention (nobody edits the file). Both
+panels inherited the claim from the same upstream paraphrase in `adaptive-run-classifier/SKILL.md`
+and neither independently verified it against `scripts/audit-gates.sh` — textbook correlated error,
+caught by this build's own G4a critic gate. Fixed at all 5 sites it had spread to
+(`adaptive-run-classifier/SKILL.md`, `rc-deep-research/SKILL.md`, both `rc-deep-research.js` mirror
+copies — edited identically in one commit, Gate 126 confirmed the mirror stayed byte-identical —
+and an unrelated wrong-gate-number in `pbir-layout-engine/lint.py`, corrected 51→92, its real gate).
+
+**Composition — prose pointers only, no code/schema change.** One paragraph each in
+`cheap-lane-delegation/SKILL.md` (an optional input to the `cheap_lane.agent: grok | copilot`
+choice, which today has no principled basis) and `spawn-team/SKILL.md` (an optional reference when
+choosing a non-Claude host). `adaptive-run-classifier`'s `run_config` schema is deliberately
+**untouched** — that schema is purpose-built for RavenClaude's own internal research-loop phases,
+and widening it to a 5-surface agent choice was judged not worth risking its (behavioral, per the
+correction above) disabled-floor invariant. `route-task.py --self-test` stays **17/17**, verified
+unchanged before and after every edit.
+
+**Gate 255** (`scripts/check-agent-routing-matrix.py`, the next open slot — max prior header was
+254) — 9 checks, each with real teeth: (A) hand-rolled schema validation, whose must-fail mutant
+mutates the **schema itself** (deleting a `required` entry), proving the validator enforces
+`required`, not just that the JSON parses; (B) the derived-ban-list anti-duplication above, scanned
+against the JSON (both `json.load`'d values and raw text — closing a JSON-key-shaped evasion) and
+the `.md` with whitespace/markdown normalization (closing a hard-wrapped-across-a-line-break
+evasion — one already existed live in this repo's own `forge-pipeline/reference/provenance.md`);
+(C) no numeric confidence, split exact-on-JSON / shape-match-on-`.md` so the doc's own explanatory
+paragraph about the design doesn't trip its own gate; (D1/D2) `agent_hosts` + every `model_ref`
+checked by **strict key membership** on the parsed `substrate-tier-map.json`, deliberately **never**
+via `resolve_tier()` — that resolver has silent unknown-host/unknown-tier fallbacks (an unknown host
+silently resolves to `claude`), so a resolver-based check would pass an agent-id typo'd into a host
+field (`{agent: "copilot-cli", model_ref: {host: "copilot-chat", ...}}`) silently; a must-fail
+mutant proves exactly this shape is caught; (E) every `framework-rule` citation's `quote` verified
+to exist verbatim (normalized) in its cited source file — stated honestly in the `.md` as proving
+*existence*, not relevance or correct-section placement, a deliberately narrower guarantee than an
+earlier heading-span design; (F) ownership metadata (`owner`/`staleness_tier`/`review_trigger`)
+checked for real values, not just key presence; (G) `route-task.py --self-test` exits 0 with an
+`N/N` (equal) pass line — never a hardcoded literal `17`, so an 18th router case added later doesn't
+redden this unrelated gate — framed honestly as **new** CI coverage (`route-task.py` was not
+previously in `scripts/audit-gates.sh` at all), not a regression-proof of an existing floor; (I)
+per-`task_class` totality bounded to the 4 grounded cells, contiguous `1..N` ranks per cell, no
+duplicates or gaps. Registered in all three surfaces (the `--check` dispatcher arm, the main
+sequence, the `Supported:` string) — verified directly by grep for each, and independently by Gate
+195 (the gate-introspection meta-gate), rather than trusting Gate 195 alone (a main-sequence-only
+registration is a real, documented Gate-195 blind spot from an earlier release).
+
+**Migration:** none — four new files (JSON, schema, doc, gate script) plus a corrected false claim
+in 5 existing files and two prose-only pointer paragraphs; nothing in a consumer's installed plugin
+behaves differently on `/plugin marketplace update` until they read the new knowledge file or open
+`agent-routing-matrix.md`.
+
+## `session-relay` — hand a mid-flight finding to the peer session already in the right worktree (added 2026-09-01, v0.312.0)
+
+Claude Code's built-in `ListAgents`/`SendMessage` reach any live peer session — subagents, other
+local sessions, cloud sessions, Remote Control peers — with no team setup and no experimental flag,
+a genuinely **broader** capability than the flag-gated Agent Teams feature `dynamic-workflows.md`
+already documented. Neither tool had a RavenClaude-specific procedure for using them across this
+repo's own multi-session worktree convention. Requested: research the capability, build an
+enhancement, in a new worktree — done via `forge-worktree.sh init` (per the FORGE convention this
+repo already uses for isolating exactly this kind of change), not the full `/forge` pipeline.
+
+**The research** — [`knowledge/cross-session-messaging.md`](knowledge/cross-session-messaging.md) —
+distinguishes the two features (table + cross-links from `dynamic-workflows.md`), records the
+version timeline and security/audit boundaries a dispatched research agent found (marked
+`[subagent-researched]`, not independently re-verified), and documents a **verified negative**: the
+obvious hypothesis that `ListAgents`' bracketed `[ref]` derives from a session's internal
+`session_id` is false (checked against this authoring session's own id vs. its displayed name).
+
+**The mechanism** — [`scripts/resolve-worktree-session.sh`](scripts/resolve-worktree-session.sh) —
+answers "which live session is bound to worktree X, and what's its `SendMessage`-addressable name?"
+by chaining two existing registries RavenClaude already writes: `worktree-guard.sh`'s own
+`sha256(realpath(toplevel))`-keyed session registry (worktree → `session_id`/`pid`/`branch`, same
+key algorithm and `kill -0` + mtime liveness check, so the two never disagree) into
+`~/.claude/sessions/<pid>.json`'s `name` field — verified live end-to-end against this real
+checkout (a call from inside this worktree correctly resolves `peer_name: "matthewcorbett-bc"`,
+exactly matching what `ListAgents` displayed for this session). Read-only, bash 3.2-safe, no GNU
+`timeout`/`grep -P`/`sed -i`; **self-tested (8/8), not a formal audit gate** — the same tier as
+`forge-route.py`/`forge-worktree.sh`.
+
+**The skill** — [`skills/session-relay/SKILL.md`](skills/session-relay/SKILL.md) — the procedure: resolve
+the peer (above), compose a structured non-imperative report envelope (confidence labeled per
+Claim-Grounding Rule 1b), `SendMessage`, and log the relay locally under `.ravenclaude/runs/` (closing,
+for this repo's own runs, the "peer messaging isn't captured by the SOP/run-artifact discipline" gap
+`dynamic-workflows.md` already names for Agent Teams' mailbox traffic — upstream Claude Code itself
+has no dedicated audit-log doc for cross-session messages beyond the collapsed transcript preview).
+Explicitly states the permission-boundary rule (never relay around your own denied gate), the
+hub-and-spoke composition (a dispatched sub-agent escalates to its Team Lead, which relays — it does
+not `SendMessage` a peer directly), and that a received message is untrusted data per Memory
+Engineering Rule 2, never an instruction or an authorization. Wired as a `spawn-team` re-routing-table
+row and a `dynamic-workflows.md` cross-link.
+
+**Honest scope.** Only the worktree→session-name resolution is mechanically verified; the message
+envelope, confidence labeling, and guardrail prose are behavioral, like `design_checkins` — no hook
+enforces the envelope shape or scrubs an outgoing secret. If relays become frequent, wiring the local
+`relay-events.jsonl` log into Heimdall is the natural next step, not built here.
+
+**Migration:** none — a new skill + knowledge file + read-only helper script; nothing in a consumer's
+installed plugin changes on `/plugin marketplace update` until they invoke `session-relay`.
+
+## Copilot adapter tool-name map — powershell closed, ask_user deliberately not (added 2026-09-01, v0.311.1)
+
+Grew out of this session's `docs/research/2026-09-01-copilot-chat-grandmaster/synthesis.md`, whose
+gap-closure list recommended adding 5 missing tool names to `copilot-hook-adapter.sh`'s map as one
+undifferentiated fix. **Grounding that recommendation against the real dispatch code narrowed it
+substantially** — the worked example of "Verify the load-bearing assumption before a high-impact
+activity" and "Check why a constraint exists before obeying it" above, applied to a piece of research
+this same session had just produced.
+
+`thing-orchestrator.sh`'s dispatch case (line 126) is `Bash | Read | Write | Edit | MultiEdit |
+WebFetch | WebSearch | mcp__*` — Claude Code's OWN `Glob`/`Grep`/`Task` tools are not in it either, so
+a Copilot `glob`/`grep`/`task` call falling through unreviewed is **parity with native Claude Code
+behavior, not a gap**. And `route-decision-review.sh` (the `AskUserQuestion` handler — the semantic
+Claude-side equivalent of Copilot's `ask_user`) turned out to already have an **explicit, deliberate**
+`_SKIP` entry in `scripts/generate-copilot-hooks.py`: below Copilot 1.0.62 an unhonored matcher fires a
+hook for every tool, and that hook expects an AskUserQuestion-shaped payload — wiring it "would be a
+liability on exactly the versions where the matcher cannot protect it" (verbatim). Mapping `ask_user`
+→ `"AskUserQuestion"` in the adapter would have been purely cosmetic (that hook is never invoked under
+Copilot regardless of tool_name) **and would have quietly relitigated a security decision the
+maintainers already made on purpose.**
+
+So the real, actionable scope was one security fix and three hygiene fixes: `powershell` (Copilot's
+Windows command-execution tool, the direct analogue of `bash`) was genuinely unmapped and silently
+bypassed the tribunal exactly like the original bash/edit/view P0 (2026-07-28) — mapped to `Bash`.
+`glob`/`grep`/`task` mapped for naming accuracy only (removes a false "unmapped tool name" stderr
+warning; zero behavior change, since none of the three is tribunal-reviewed under either host).
+`ask_user` deliberately left unmapped, documented inline so a future editor doesn't "fix" it without
+reading the `_SKIP` reasoning first.
+
+**An independent `security-reviewer` critic dispatch (this session's substitute for FORGE's full
+G2/G3 divergent-panel machinery — the decision space here was too narrow to manufacture a genuine
+second design without inventing a strawman) caught what self-review missed:** `generate-copilot-hooks.py`
+projects the canonical **Claude-shaped, PascalCase** matcher string verbatim into the Copilot config.
+Copilot CLI ≥1.0.62 applies its own "Claude matcher semantics" translation before invoking a hook — but
+whether that native translation covers `powershell` the same way it must already cover `bash`/`edit`/
+`view` for the *existing* wiring to work at all is **undocumented and unverified**. The fix is real and
+net-positive (the tribunal's Bash-shaped catalog triggers do cover shell-portable command text —
+git/npm/gh/curl-literal — measured via `thing-decision.py classify` this session), but it does **not**
+close the gap for PowerShell-native attack syntax (`iex`, `-EncodedCommand`, `Invoke-Expression`,
+`DownloadString` — the catalog is POSIX-only by construction, tracked follow-up, not fixed here), and
+whether a `powershell` call reaches the adapter at all on modern Copilot is honestly flagged
+`VERIFY-IN-COPILOT` rather than claimed closed. The reviewer also found the powershell tool's
+command-text JSON key is unverified (assumed `.command` like bash) — defended with a
+`.command // .script // .commandLine` coalescing, scoped to Bash-mapped calls only so non-Bash
+`tool_input` shapes are untouched (verified: an `Edit`-shaped payload gets no stray `command` key).
+
+Extended `hooks/tests/test-gate167-copilot-tribunal-e2e.sh` (the existing MH-01-regression e2e gate)
+with 7 new assertions rather than opening a new gate number: G167.4/.5 prove the mapping + the
+field-coalescing both work end-to-end through the real adapter+orchestrator; G167.6 is a teeth half
+that removes the `powershell` map entry and confirms the deny disappears (reproducing the exact gap
+being closed); G167.7 proves `glob`/`grep`/`task` no longer trigger the false warning; G167.8 proves
+`ask_user` **still** triggers it — a regression guard on the *deliberate non-fix*, not just the fix.
+10/10 assertions pass; Gate 20 (adapter diagnostics, unrelated but same file) re-run clean, 0
+regressions.
+
+**Migration:** none — the map only ADDS entries (no existing mapping changed), so a Copilot session
+already relying on `bash`/`edit`/`view`/etc. is byte-identical. A `powershell` command that previously
+sailed through unreviewed will now be reviewed on hosts where it reaches the adapter at all (see the
+VERIFY-IN-COPILOT caveat above) — this is the guardrail newly firing, not a regression.

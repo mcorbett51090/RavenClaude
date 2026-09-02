@@ -10,7 +10,7 @@
 
 ## Why this exists
 
-The declarative-agent manifest schema is versioned and advances roughly monthly — v1.0 through **v1.7** is the visible run as of 2026-05-30, each minor version *adding* capabilities (graphic art + code interpreter in 1.2; Dataverse / Teams messages / Email / unscoped People in 1.3; `behavior_overrides` + connector-scoping in 1.4; Meetings in 1.5; embedded knowledge + `sensitivity_label` + `worker_agents` + `user_overrides` in 1.6). If you author against "latest" or omit the version, the manifest the toolkit validates today is not the one it validates next month: a capability you relied on may shift shape, a new required field may appear, and your RAI/schema validation can flip from pass to fail with no code change on your side. Pinning makes the version a deliberate, reviewed dependency — you bump it on purpose, re-verify, and re-run the golden-prompt set. This is house opinion #2, and the plugin hook flags an unpinned manifest.
+The declarative-agent manifest schema is versioned and advances roughly monthly — v1.0 through **v1.8** is the visible run (v1.7 was latest as of 2026-05-30; **v1.8** — adding `EmailActions` + `MeetingActions` — re-verified 2026-08-28), each minor version *adding* capabilities (graphic art + code interpreter in 1.2; Dataverse / Teams messages / Email / unscoped People in 1.3; `behavior_overrides` + connector-scoping in 1.4; Meetings in 1.5; embedded knowledge + `sensitivity_label` + `worker_agents` + `user_overrides` in 1.6). If you author against "latest" or omit the version, the manifest the toolkit validates today is not the one it validates next month: a capability you relied on may shift shape, a new required field may appear, and your RAI/schema validation can flip from pass to fail with no code change on your side. Pinning makes the version a deliberate, reviewed dependency — you bump it on purpose, re-verify, and re-run the golden-prompt set. This is house opinion #2, and the plugin hook flags an unpinned manifest.
 
 ## How to apply
 
@@ -19,8 +19,8 @@ Set both the `$schema` URL and the `version` string to a concrete version. Bump 
 ```jsonc
 {
   // Pin BOTH — the $schema URL carries the version, and `version` must agree with it.
-  "$schema": "https://developer.microsoft.com/json-schemas/copilot/declarative-agent/v1.7/schema.json",
-  "version": "v1.7",
+  "$schema": "https://developer.microsoft.com/json-schemas/copilot/declarative-agent/v1.8/schema.json",
+  "version": "v1.8",
   "name": "Contoso Policy Assistant",
   "description": "Answers HR-policy questions from the indexed policy library.",
   "instructions": "You are an HR-policy assistant...",
@@ -31,7 +31,7 @@ Set both the `$schema` URL and the `version` string to a concrete version. Bump 
 ```
 
 **Do:**
-- Pin `$schema` and `version` to a known version (currently **v1.7**, `[verify-at-build]`).
+- Pin `$schema` and `version` to a known version (currently **v1.8**, `[verify-at-build]`).
 - Bump the version as a reviewed change: read that version's "Changes from previous version" page, re-validate, re-run the golden-prompt set.
 - Keep the API **plugin** manifest version pinned too — it is a *separate* schema (currently **v2.4**, which added MCP `RemoteMCPServer` runtime support) — see [`./apiplugin-pin-plugin-manifest-and-map-operationid-both-ways.md`](./apiplugin-pin-plugin-manifest-and-map-operationid-both-ways.md).
 
@@ -49,7 +49,7 @@ Set both the `$schema` URL and the `version` string to a concrete version. Bump 
 - [`./design-to-66-percent-of-the-declarative-agent-wall.md`](./design-to-66-percent-of-the-declarative-agent-wall.md) — the budget wall the pinned manifest sits inside
 - [`./da-pass-rai-validation-design-the-prompt-for-it.md`](./da-pass-rai-validation-design-the-prompt-for-it.md) — what schema-valid does NOT buy you
 - [`../knowledge/declarative-agent-manifest-2026.md`](../knowledge/declarative-agent-manifest-2026.md) · [`../agents/declarative-agent-engineer.md`](../agents/declarative-agent-engineer.md)
-- [Declarative agent schema 1.7](https://learn.microsoft.com/microsoft-365/copilot/extensibility/declarative-agent-manifest-1.7) — the current schema and its change log
+- [Declarative agent schema 1.8](https://learn.microsoft.com/microsoft-365/copilot/extensibility/declarative-agent-manifest-1.8) — the current schema and its change log
 
 ## Provenance
 

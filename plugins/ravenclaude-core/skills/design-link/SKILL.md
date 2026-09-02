@@ -17,6 +17,13 @@ agent stops having to ask each session. This is the *binding* step only — the 
 > `/design-login` once. A "this environment can't see design projects" message is almost always the
 > un-granted scope, **not** a missing repo file — adapt accordingly (Capability Grounding: a missing-
 > looking capability is one route, not proof it's absent).
+>
+> **A separate, additive MCP-server route also exists** (`claude mcp add --scope user --transport
+> http claude-design https://api.anthropic.com/v1/design/mcp`, then `/design-login`) — for a context
+> where the built-in `DesignSync` tool above isn't already present. Both routes reach the same
+> claude.ai/design projects; neither supersedes the other. See
+> [`../../knowledge/design-project-binding.md`](../../knowledge/design-project-binding.md) "Two
+> connection routes." `[docs-verified — Anthropic Help Center, 2026-09-01]`
 
 ## Steps
 

@@ -253,7 +253,13 @@ def context_percent(payload: dict, root: Path) -> float | None:
     try:
         session = mod.session_dir_from_env(payload)
         posture = mod.read_posture(root)
-        result = mod.measure(session, posture.get("window"), posture.get("threshold"), None)
+        result = mod.measure(
+            session,
+            posture.get("window"),
+            posture.get("threshold"),
+            None,
+            claude_payload=payload,
+        )
     except Exception:
         return None
     if not isinstance(result, dict) or result.get("status") != "ok":

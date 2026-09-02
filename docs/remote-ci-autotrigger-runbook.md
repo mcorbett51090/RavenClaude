@@ -2,6 +2,8 @@
 
 > **TL;DR** — In a Claude-Code-on-the-web session, a `git push` can update the PR head on GitHub **without** GitHub Actions creating any workflow runs for that commit. The PR then sits with **no checks** forever, so "merge when green" never fires. **Detect it** by comparing the latest workflow-run `head_sha` to the PR head; **fix it** by manually dispatching each workflow with `workflow_dispatch`. First observed 2026-06-22 on PR #452.
 
+> **Before diagnosing ANY abnormal CI behavior (this runbook's "0 checks" case, or the "stuck queued forever" case below), run `scripts/check-github-status.sh` first.** It checks GitHub's own incident status (githubstatus.com) for Actions/Pages/API/Git outages in ~1 second, for free. On 2026-08-26 a session spent ~150 turns and a full research pass diagnosing what turned out to be a live, GitHub-acknowledged critical Actions outage (see "Stuck queued with zero jobs provisioned" below) — a single status check would have confirmed the cause and correct response (wait) in seconds instead. This does **not** replace the detection steps below when the status page is clean — an "Operational" reading is not proof of health (a runner-image rollout has separately broken every PR while the status page stayed green — no repo-internal writeup of that incident exists yet). But a **live incident shown** on the affected component (Actions) is strong, immediate evidence — treat it as the working hypothesis before spending tokens on deeper diagnosis.
+
 ## What happened (the incident)
 
 On PR #452 the first two pushes (`8510ddf`, `922bb13`) auto-triggered the three PR workflows (Validate Layout / Schemas / Marketplace) normally. The next two pushes — `cf63669` (real changes) and `f84a62d` (empty re-trigger commit) — produced **zero** workflow runs:
@@ -48,3 +50,27 @@ Notes:
 ## One-line procedure for future sessions
 
 > After pushing to a PR in a remote session: confirm a run exists for the current head (`get_check_runs` / `list_workflow_runs` head_sha); if none, `workflow_dispatch` each PR workflow on the branch, wait, then merge when all are `success`. Never conclude "minutes exhausted" — a successful dispatch disproves it.
+
+---
+
+## A different failure mode: stuck queued with zero jobs provisioned
+
+This is **not** the "no runs created" case above — here, runs **are** created (webhook delivery is working), but they sit in `status: "queued"` forever with `startedAt: null` and an **empty `jobs[]` array** (`GET .../actions/runs/{id}/jobs` → `total_count: 0`). First observed 2026-08-26 on PR #1031 (`fix/base-ref-unshallow-fetch`), persisting ~50 minutes.
+
+**Symptoms:**
+- `gh run list --status in_progress` returns `[]` account-wide, repeatedly, over many minutes.
+- The stuck run's `jobs[]` array is empty — no job was ever provisioned to a runner.
+- `gh run cancel <id>` / `POST .../cancel` → **HTTP 409 "Cannot cancel a workflow run that has not been queued yet"** — contradicting the run's own `status: "queued"` field.
+- `DELETE .../runs/{id}` → **HTTP 403 "Could not delete the workflow run"**.
+- A `git commit --allow-empty` push DOES create a fresh `pull_request`-triggered run (unlike the "0 checks" case above) — but the fresh run gets stuck the same way.
+- `gh run rerun <id>` on a run that GitHub eventually gave up on and marked `completed`/`conclusion: failure` (after a long enough queue timeout) resets it to `queued` — but it can get stuck again if the underlying cause hasn't cleared.
+
+**Root cause: a known, recurring GitHub Actions backend bug class, usually triggered by a live GitHub-side incident.** GitHub creates the run record before provisioning jobs; when a backend incident (auth failures, database/Vitess issues, capacity saturation) interrupts that window, the run is orphaned — record exists, jobs never provisioned. The 409/403 errors are consistent with this: cancel/delete require a job or a fully-queued state that never materialized. This exact symptom (409 "not been queued yet") has been reported on GitHub's community forums going back to Aug 2024, was called "fixed," and recurred — so it is not durably fixed, and self-resolves only when GitHub's incident/capacity issue clears.
+
+**Fix: check `scripts/check-github-status.sh` FIRST (see the callout at the top of this doc).** If it shows a live incident affecting Actions:
+1. **Don't keep retrying** cancel/delete/rerun/re-dispatch — none of it helps while the incident is active; community reports confirm force-cancel fails too.
+2. **Don't disable/re-enable Actions, rotate tokens, or otherwise change local config** — this is GitHub-side, not a repo/account/token problem (confirmed by checking: Actions permissions enabled, no self-hosted-runner requirement, no account-wide concurrency saturation from other repos, not an Actions-minutes/billing issue).
+3. **Wait, checking `scripts/check-github-status.sh` periodically** (every several minutes, not continuously — it won't resolve faster for being polled more) until the incident moves to `resolved` or drops out of the unresolved list.
+4. Once resolved, the next `pull_request` push or `workflow_dispatch` should provision jobs normally. If a specific run is still stuck after resolution, `gh run rerun <id>` on it (or a fresh empty-commit push) is usually enough — no further diagnosis needed.
+
+If `check-github-status.sh` shows nothing relevant, this failure mode is unexplained by that route — fall back to checking account-wide concurrency (`gh run list --status in_progress` across the account's other repos), Actions permissions (`gh api repos/<owner>/<repo>/actions/permissions`), and org/enterprise-level policy before assuming it's transient.

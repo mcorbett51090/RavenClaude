@@ -58,7 +58,7 @@ case "$file" in
       # A pinned manifest names a concrete version: $schema URL ending in vN.N(.N) or a
       # "schema_version"/"version" field with a dotted version literal.
       if ! grep -Eqi '("\$schema"[^,]*v[0-9]+\.[0-9]+|"schema_version"[[:space:]]*:[[:space:]]*"[0-9]+\.[0-9]+|"version"[[:space:]]*:[[:space:]]*"[0-9]+\.[0-9]+)' "$file" 2>/dev/null; then
-        violations+=("  [unpinned-manifest-schema] $file looks like a declarative-agent manifest but has no pinned \$schema / schema_version (e.g. v1.7). 'latest' is a moving target — the manifest ships ~monthly. Pin it. See CLAUDE.md §3 #2.")
+        violations+=("  [unpinned-manifest-schema] $file looks like a declarative-agent manifest but has no pinned \$schema / schema_version (e.g. v1.8). 'latest' is a moving target — the manifest ships ~monthly. Pin it. See CLAUDE.md §3 #2.")
       fi
     fi
     ;;

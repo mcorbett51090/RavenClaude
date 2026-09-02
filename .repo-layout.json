@@ -78,7 +78,8 @@
     "plugins/*/dashboard-assets/**",
     "plugins/*/scripts/**",
     "plugins/*/bin/**",
-    "plugins/*/.lsp.json"
+    "plugins/*/.lsp.json",
+    "plugins/ravenclaude-core/vscode-extension/**"
   ],
   "forbidden_globs": [".ravenclaude/runs/thing/**", ".ravenclaude/runs/*/hook-events.jsonl"],
   "suggestions": {

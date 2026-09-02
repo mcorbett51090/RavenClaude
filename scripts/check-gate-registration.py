@@ -69,6 +69,10 @@ HOOK_PATH_ANYWHERE_RE = re.compile(r"hooks/[A-Za-z0-9_.-]+\.sh")
 HOOK_IN_CMD_POS_RE = re.compile(r"^\S*hooks/[A-Za-z0-9_.-]+\.sh\b")
 ENV_ASSIGN_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*=(?:\"[^\"]*\"|'[^']*'|\S*)\s+")
 INTERPRETER_RE = re.compile(r"^(?:sh|bash|zsh)\s+(?!-)")
+# `name() {` at the start of a stripped line. Used to close assertion-reachability
+# over helper functions (Gate 30's assert_hook_fires / assert_hook_silent).
+FUNC_DEF_RE = re.compile(r"^([A-Za-z_][A-Za-z0-9_]*)\(\)\s*\{")
+FUNC_NAME_RE = re.compile(r"^([A-Za-z_][A-Za-z0-9_]*)\b")
 RC_CAPTURE_RE = re.compile(r"\|\|\s*([A-Za-z_][A-Za-z0-9_]*)=\$\?")
 MUST_FAIL_RE = re.compile(r"^\s*gate\s+\".*?\"\s+must_fail\s+\"\$\{?([A-Za-z_][A-Za-z0-9_]*)\}?\"")
 EXIT_TWO_RE = re.compile(r"-eq\s+2\b")
@@ -121,6 +125,105 @@ def is_hook_invocation(line: str) -> bool:
     for segment in re.split(r"\|\||&&|[;|]", line):
         cmd = _strip_to_command(segment)
         if cmd and HOOK_IN_CMD_POS_RE.search(cmd):
+            return True
+    return False
+
+
+def _parse_functions(lines: list[str]) -> dict[str, tuple[int, int]]:
+    """name -> [start, end) line indices of each `name() { ... }` body."""
+    out: dict[str, tuple[int, int]] = {}
+    i = 0
+    n = len(lines)
+    while i < n:
+        m = FUNC_DEF_RE.match(lines[i].lstrip())
+        if not m:
+            i += 1
+            continue
+        name = m.group(1)
+        depth = lines[i].count("{") - lines[i].count("}")
+        start = i
+        i += 1
+        while i < n and depth > 0:
+            depth += lines[i].count("{") - lines[i].count("}")
+            i += 1
+        out[name] = (start, i)
+    return out
+
+
+def _cmd_pos_func_calls(line: str, func_names: set[str]) -> set[str]:
+    """Functions invoked in command position on this line — never a definition
+    and never a name mentioned in a comment or string-only occurrence.
+
+    A naive name match would re-green a block that DEFINES an assertion-bearing
+    helper and never calls it (the same accident-of-layout Gate 30 is green
+    today). Call-site, not mention. Same doctrine as is_hook_invocation.
+    """
+    stripped = line.lstrip()
+    if not stripped or stripped.startswith("#") or FUNC_DEF_RE.match(stripped):
+        return set()
+    found: set[str] = set()
+    for segment in re.split(r"\|\||&&|[;|]", line):
+        cmd = _strip_to_command(segment)
+        m = FUNC_NAME_RE.match(cmd)
+        if m and m.group(1) in func_names:
+            found.add(m.group(1))
+    return found
+
+
+def _line_is_assertion(line: str) -> bool:
+    return bool(GATE_CALL_RE.match(line) or SKIP_CALL_RE.match(line))
+
+
+def _asserting_functions(lines: list[str], funcs: dict[str, tuple[int, int]]) -> set[str]:
+    """Fixpoint: a function asserts if its body contains a gate/_skip_or_fail
+    call, or a command-position call to a function that asserts."""
+    names = set(funcs)
+    asserting = {
+        name
+        for name, (start, end) in funcs.items()
+        if any(_line_is_assertion(lines[j]) for j in range(start, end))
+    }
+    changed = True
+    while changed:
+        changed = False
+        for name, (start, end) in funcs.items():
+            if name in asserting:
+                continue
+            for j in range(start, end):
+                if _cmd_pos_func_calls(lines[j], names) & asserting:
+                    asserting.add(name)
+                    changed = True
+                    break
+    return asserting
+
+
+def _block_asserts(
+    lines: list[str],
+    start: int,
+    end: int,
+    funcs: dict[str, tuple[int, int]],
+    asserting: set[str],
+) -> bool:
+    """True iff this header block actually fires an assertion.
+
+    Direct `gate` / `_skip_or_fail` OR a command-position call to a function
+    whose body (transitively) contains one. Defining such a helper without
+    calling it does not count — that is the false-green a name match would
+    restore. Measured: Gate 30's 28 assertions all arrive via assert_hook_fires
+    / assert_hook_silent; those two defs sitting inside the block is an
+    accident of layout, not a detection (hoisting them currently false-REDs).
+    """
+    names = set(funcs)
+    for j in range(start, end):
+        # A `gate` call inside a helper body is the helper asserting, not the
+        # block. Counting it here is what made Gate 30 look reachable by
+        # accident-of-layout, and what would false-green a define-but-never-call
+        # block.
+        if any(s <= j < e for s, e in funcs.values()):
+            continue
+        if _line_is_assertion(lines[j]):
+            return True
+        if _cmd_pos_func_calls(lines[j], names) & asserting:
             return True
     return False
 
@@ -228,11 +331,11 @@ def audit(path: Path) -> list[Finding]:
     # A number is reachable when the full-suite region actually asserts it. Three
     # registration shapes are legitimate and all three are honoured, because the
     # live suite uses all three (calibrated against the real file, not assumed).
+    funcs = _parse_functions(lines)
+    asserting_funcs = _asserting_functions(lines, funcs)
     reachable: set[int] = set()
     for _label, nums, start, end in blocks:
-        asserts = any(
-            GATE_CALL_RE.match(lines[j]) or SKIP_CALL_RE.match(lines[j]) for j in range(start, end)
-        )
+        asserts = _block_asserts(lines, start, end, funcs, asserting_funcs)
         if asserts:
             reachable.update(nums)
         for j in range(start, end):
@@ -327,6 +430,36 @@ def audit(path: Path) -> list[Finding]:
 # as one that flags nothing, and would get this keystone switched off.
 
 
+def _hoist_gate30_helpers(lines: list[str]) -> list[str]:
+    """Move assert_hook_fires + assert_hook_silent above the Gate 30 header.
+
+    Behaviour-preserving: the two helpers still exist, the 28 call sites still
+    sit under the header. Only the accident-of-layout (defs inside the block)
+    is removed.
+    """
+    funcs = _parse_functions(lines)
+    if "assert_hook_fires" not in funcs or "assert_hook_silent" not in funcs:
+        raise Ambiguity("Gate 30 helpers missing - hoist fixture cannot be built")
+    s1, e1 = funcs["assert_hook_fires"]
+    s2, e2 = funcs["assert_hook_silent"]
+    lo, hi = (s1, e2) if s1 < s2 else (s2, e1)
+    header_i = next(
+        (
+            i
+            for i, ln in enumerate(lines)
+            if (m := HEADER_RE.search(ln)) and m.group(1) == "30"
+        ),
+        None,
+    )
+    if header_i is None:
+        raise Ambiguity("no Gate 30 header - hoist fixture cannot be built")
+    if lo <= header_i:
+        raise Ambiguity("Gate 30 helpers are already above the header")
+    chunk = lines[lo:hi]
+    without = lines[:lo] + lines[hi:]
+    return without[:header_i] + chunk + [""] + without[header_i:]
+
+
 def _extend_supported(lines: list[str], extra: str) -> list[str]:
     """Append gate numbers to the `Supported:` list.
 
@@ -393,6 +526,19 @@ def _mutants(src: Path, work: Path) -> list[tuple[str, Path, str]]:
     p4.write_text("\n".join(m4) + "\n", encoding="utf-8")
     out.append(("dispatcher arm missing from Supported:", p4, "supported-parity"))
 
+    # M5 - a block that DEFINES an assertion-bearing helper and never calls it.
+    # A name-match closure would mark this reachable (false green). Call-site
+    # closure must still say unreachable.
+    m5 = base + (
+        '\necho "── Gate 908: defines an assertion helper and never calls it ──"\n'
+        "never_called_assert() {\n"
+        '  gate "inside helper" must_pass "0"\n'
+        "}\n"
+    )
+    p5 = work / "m5-define-only.sh"
+    p5.write_text(m5, encoding="utf-8")
+    out.append(("block defines assertion helper and never calls it", p5, "unreachable"))
+
     return out
 
 
@@ -447,6 +593,14 @@ def _companions(src: Path, work: Path) -> list[tuple[str, Path]]:
     p3 = work / "c3-grouped.sh"
     p3.write_text("\n".join(c3) + "\n", encoding="utf-8")
     out.append(("a grouped-range header covering several numbers", p3))
+
+    # C4 - Gate 30 helpers hoisted ABOVE the header. Pre-closure this is a
+    # false RED (28 live assertions via assert_hook_fires/silent, defs no
+    # longer inside the block). Post-closure it must stay clean.
+    c4_lines = _hoist_gate30_helpers(base.splitlines())
+    p4 = work / "c4-hoist-gate30.sh"
+    p4.write_text("\n".join(c4_lines) + "\n", encoding="utf-8")
+    out.append(("Gate 30 helpers hoisted above the header (still 28 calls)", p4))
 
     return out
 
