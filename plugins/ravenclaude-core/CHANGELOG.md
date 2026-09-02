@@ -2,6 +2,203 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.312.0 — 2026-09-01
+
+### Fixed
+
+- **VS Code Copilot Chat context-overflow — proactive compaction, no custom trigger needed.** Built
+  via `/forge` (`.ravenclaude/runs/forge/copilot-preemptive-compact/`) against the ask "force
+  autocompaction before a prompt would overflow the context window, plus a fallback." Research
+  (verified against the shipping Copilot Chat bundle, not docs) found the literal "predict and block"
+  mechanism is not buildable — no VS Code API exposes a third-party extension the active session's
+  accumulated token usage — but Copilot Chat already has a native, mis-defaulted setting for exactly
+  this:  `github.copilot.chat.summarizeAgentConversationHistoryThreshold` defaults to `null` (only
+  compact at 100% full). `vscode-extension/` (`ravenclaude-precompact-guard`, bumped 0.1.0 → 0.2.0) now
+  contributes `0.8` as the default for that setting via `contributes.configurationDefaults` — a
+  ~3-line manifest addition, no custom file-writing, no cross-platform path resolution, no VS Code
+  Profiles risk. Direct code-trace confirmed this setting genuinely gates a background summarization
+  applied before the next request renders. Fallback (ask #2 in the original request) was already
+  satisfied natively: `github.copilot.chat.compact` (a real command) + Copilot's own context-window
+  usage indicator + the already-shipped `ravenclaude.forceCompactWithDigest` command.
+- **The extension was silently disabled in VS Code's Restricted Mode** (found by the FORGE run's own
+  red-team pass) — a default-path trigger on any unfamiliar/large repo, correlating with exactly the
+  sessions most likely to overflow. Fixed with `capabilities.untrustedWorkspaces: "limited"`.
+- **Gate 256** (`scripts/check-vscode-extension-config-defaults.py`) — the FORGE run's own red-team
+  found VS Code silently drops a `contributes.configurationDefaults` override on three distinct
+  shapes (unregistered key, `disallowConfigurationDefault`, disallowed scope) with no error surfaced
+  anywhere, and `vscode-extension/package.json` had zero gate coverage before this. `--self-test` and
+  `--must-fail` are fully synthetic (CI-safe, no real VS Code needed); `--check` runs against a real
+  installed Copilot Chat when one is present and exits 0 (loud-skip) rather than failing when VS Code
+  is absent `[verified this session: scripts/check-vscode-extension-config-defaults.py:54,388]`.
+  Landed as Gate 256, not 255 — 255 was independently claimed by the concurrent `agent-routing-matrix`
+  PR (#1067), which merged first.
+
+## 0.311.0 — 2026-09-01
+
+### Added
+
+- **`knowledge/agent-routing-matrix.{json,schema.json,md}`** — a host-agnostic task-shape →
+  {agent, model tier, basis, rationale, sources} routing table covering 5 agent surfaces (Claude
+  Code, Codex CLI, Copilot CLI, Copilot Chat, Grok Build CLI) and 5 task classes (2 coding, 3
+  non-coding: research/writing/data-analysis). Heuristic only — no numeric confidence field, ranked
+  by ordinal `rank` + a `basis` provenance tag instead. Every vendor fact is cited via `sources[]`,
+  never duplicated; volatile facts stay owned by `cross-tool-model-lineup-2026.md`,
+  `model-selection-and-2026-capability-map.md`, and `substrate-tier-map.json`. Built via `/forge`
+  `standard` (two divergent cross-model panels → a correlated-error critic that found and fixed 5
+  real blockers → 11 tiebreak rulings → an adversarial red-team pass that found and fixed 3 more,
+  including this build's own reconciled design → synthesis). See the `CLAUDE.md` milestone for the
+  full arc, including a corrected false claim about Gate 51 this build's own review caught and fixed
+  at all 5 sites it had spread to.
+- **Gate 255** (`scripts/check-agent-routing-matrix.py`) — 9 checks (schema validation with
+  schema-mutating meta-teeth; a vendor-fact ban-list derived at gate time from
+  `substrate-tier-map.json` + `model-catalog.json`'s own values, scanned against both the JSON and
+  the whitespace-normalized `.md`; no numeric confidence; strict host/tier referential integrity,
+  deliberately never via `resolve_tier()`; framework-rule quote verification; ownership-metadata
+  value checks; `route-task.py --self-test` coverage; bounded per-task_class totality). 13 mutants +
+  2 must-NOT-fire companions + 1 live positive control, all verified this session.
+- One-paragraph, prose-only pointers from `cheap-lane-delegation/SKILL.md` and `spawn-team/SKILL.md`
+  to the new matrix as an optional input to their existing agent/host choices — no code or schema
+  change to either; `route-task.py --self-test` stays 17/17, verified before and after.
+
+### Fixed
+
+- **A false claim — "Gate 51 enforces the `run_config` byte-identical-when-disabled floor" — was
+  spread across 5 files** (`adaptive-run-classifier/SKILL.md`, `rc-deep-research/SKILL.md`, both
+  `rc-deep-research.js` mirror copies, and an unrelated wrong-gate-number in
+  `pbir-layout-engine/lint.py`). Gate 51 is the portal shell-router gate; no gate currently
+  CI-enforces the `run_config` disabled floor — it holds today as a behavioral invariant only. Found
+  by this build's own correlated-error critic pass (both independent design panels had inherited the
+  false claim from one upstream source and neither verified it against `scripts/audit-gates.sh`).
+  Fixed at all 5 sites in one commit; Gate 126 (the mirror byte-identity gate) confirmed the two
+  `.js` copies stayed identical throughout.
+
+## 0.311.1 — 2026-09-01
+
+### Fixed
+
+- **`copilot-hook-adapter.sh`'s tool-name map was missing `powershell`, Copilot's Windows
+  command-execution tool** — the direct analogue of `bash`, and until now unmapped, so a `powershell`
+  command silently bypassed the command-review tribunal and `guard-web-access.sh` under Copilot exactly
+  like the original bash/edit/view P0 (2026-07-28). Mapped to `Bash`, with a defensive
+  `.command // .script // .commandLine` coalescing (the exact JSON key Copilot's `powershell` tool
+  uses for its command text is not docs-verified, so this doesn't assume `.command`). Security-reviewed
+  (verdict CLEAR-WITH-CHANGES, applied): the fix is real and net-positive for shell-portable command
+  text, but does NOT close the gap for PowerShell-native attack syntax (`iex`, `-EncodedCommand`, …) —
+  the tribunal's catalog triggers are POSIX-only by construction (tracked follow-up, not fixed here) —
+  and whether a `powershell` call even reaches the adapter on Copilot CLI ≥1.0.62 depends on
+  undocumented native matcher-translation behavior, honestly flagged VERIFY-IN-COPILOT rather than
+  claimed closed. `glob`/`grep`/`task` also mapped (naming-accuracy hygiene only — Claude Code's own
+  dispatch case doesn't tribunal-review those tool types either, so this only removes a false
+  "unmapped tool name" warning, no behavior change). `ask_user` deliberately left unmapped — mapping it
+  to `AskUserQuestion` would misrepresent `generate-copilot-hooks.py`'s own explicit decision to never
+  wire `route-decision-review.sh` for Copilot. Extended `test-gate167-copilot-tribunal-e2e.sh` with 7
+  new assertions (incl. a teeth half reproducing the closed gap) — 10/10 pass. Grounded in this
+  session's Copilot Chat/CLI research: `docs/research/2026-09-01-copilot-chat-grandmaster/synthesis.md`.
+
+## 0.310.1 — 2026-09-01
+
+### Fixed
+
+- **Prompt Builder threw on a cold `#/prompt-builder` deep-link/reload** — `PB_MODELS`/`PB_PRESETS`
+  (`var`, not hoisted-with-value) are declared later in the dashboard's single concatenated `<script>`
+  than the initial `applyHash()` dispatch, so a direct hash-load called `initPromptBuilder()` →
+  `pbBuildControls()` before those arrays were assigned, throwing `Cannot read properties of undefined
+  (reading 'forEach')`. Normal in-app click navigation was unaffected (the whole script had already
+  finished executing by then), which is why this only surfaced on a bookmarked/direct-loaded URL.
+  Fixed at the call site with `setTimeout(initPromptBuilder, 0)` — the same ordering-bug class as the
+  documented `pipelineServerAvailable` TDZ fix, resolved by deferring the call instead of relocating
+  the (non-stub-able, real) Prompt Builder data arrays. Verified with a real headless-Chrome render:
+  zero console errors and correct data (5 models, 6 templates) on both the deep-link and click paths.
+
+## 0.310.0 — 2026-09-01
+
+### Added
+
+- **`templates/DESIGN.md` + `knowledge/design-md-resolution.md`** — a house-default visual identity
+  (the real [`google-labs-code/design.md`](https://github.com/google-labs-code/design.md) alpha
+  format, verified against its own spec) for ad-hoc HTML any agent generates to explain/diagnose/report
+  something — not a client's branded product (that stays `web-design`/`brand-identity-studio`'s job,
+  always project-specific). Two-tier resolution: a project-root `DESIGN.md` wins for that repo; its
+  absence falls through to this shipped default (the same "cool near-black canvas + one green accent"
+  look as `dashboard-assets/shared-tokens.css`). Not auto-scaffolded into consumer repos. See the
+  `CLAUDE.md` milestone for the full rationale, including why this is core rather than a duplicate of
+  `web-design`'s DESIGN.md note (PR #1063).
+
+## 0.309.0 — 2026-09-01
+
+### Added
+
+- **Pre-compaction critical-info capture — Tier 1 hook + Tier 2 VS Code extension.** Built via
+  `/forge` (`.ravenclaude/runs/forge/precompact-critical-context/`) against the ask "warn me before
+  an imminent compact, composed with the critical info to retain." Two research passes falsified the
+  premise both draft panels shared — `PreCompact`'s `systemMessage`/`stopReason` are a verified no-op
+  on VS Code Copilot Chat — and found the actual mechanism: a VS Code extension can trigger
+  `/compact <text>` via the stable, public `workbench.action.chat.open` command.
+  - **`hooks/precompact-digest.sh` + `scripts/precompact-digest.py`** — a new `PreCompact` hook (first
+    of its kind in this manifest's history), host-differentiated (fire-and-forget archival digest on
+    Claude Code + projected Copilot/skipped-with-reason on Cursor/Gemini), gated by the existing
+    `cheap_lane.mode` knob (no new knob invented) plus a fail-closed egress floor
+    (`orchestrator_repo_pii: false` OR `cheap_lane_zdr_confirmed: true`) mirroring
+    `claude-orchestrate.sh`'s own A-on-C floor. `compact-anchor.py` extended to also surface the
+    newest digest's path — derived values only, never digest/transcript content.
+  - **`vscode-extension/` (`ravenclaude-precompact-guard`)** — a new, standalone VS Code extension
+    (not a Claude Code plugin component) registering a Language Model Tool + a manual command +
+    status-bar item, all driving `workbench.action.chat.open({query: '/compact ' + digest})`. Honest
+    limit: works only for explicit/triggered compaction, never automatic background compaction
+    (`summarizationInstructions` has zero references in the auto-compact code path). VS Code
+    Marketplace publishing needs the owner's own publisher account — not attempted; `.vsix` is locally
+    buildable via `code --install-extension`.
+  - New inventory concept [`precompact-digest`](knowledge/concepts/precompact-digest.md) — the
+    detached-worker proof (the hook returns near-instantly even under a deliberately slow digest
+    engine, so it can never become a synchronous ceiling on a turn).
+  - Hooks count 50 → 51. See the CLAUDE.md milestone for the full P4 security-review disposition and
+    the three-projector (`generate-copilot-hooks.py` / `generate-cursor-hooks.py` /
+    `generate-gemini-hooks.py`) wiring.
+
+## 0.308.0 — 2026-08-30
+
+### Added
+
+- **MCP result quarantine (`sanitize-mcp-output.sh`/`.py`)** — extends F1's WebFetch
+  injection-quarantine ([#928](https://github.com/mcorbett51090/RavenClaude/pull/928)) to any
+  `mcp__*` tool result, closing the accepted-limit that hook's own comment named. Same fail-open
+  contract, same underlying `sanitize()`; new envelope handling for MCP's content-array shape and a
+  prefix-boundary matcher (`mcp__` prefix, not substring). Q1/L4 of the analog-repos-gap-fill
+  leftovers, unparked on owner request. See
+  [`docs/decisions/2026-08-30-mcp-result-quarantine.md`](../../docs/decisions/2026-08-30-mcp-result-quarantine.md).
+- **`check-trigger-scoping-consistency.py` (Gate 253)** — PR 6 / Phase 9 of the
+  2026-08-13 recurring-defect-hardening initiative, the last un-shipped PR from
+  that 17-PR set. Statically flags a bare unscoped `.*` trigger sitting beside
+  a properly separator-scoped sibling in the same command-review category —
+  the exact shape of the `srm.force-push` (v0.242.0) and `sce.curl-pipe-shell`
+  (v0.244.0/.1) incidents, this time caught before merge instead of after.
+- **`analog-closeness-scorecard` skill** — recomputes the M/H/G/O/E/I/T/V weighted
+  closeness score from the 2026-08-14 analog-repos-gap-fill survey as a reusable,
+  self-tested script, instead of hand-deriving the arithmetic for a future
+  comparison. `--self-test` pins two published survey rows verbatim (regression
+  proof) plus a must-fail-shaped fixture (a high arithmetic score with M=H=G=0 and
+  every dimension inferred, not observed) that the quality bar must still reject.
+  Q2 of the analog-repos-gap-fill leftovers, unparked on owner request. Skill
+  count 56 → 57.
+
+### Fixed
+
+- **Two previously-uncaught instances of that same defect class**, found by
+  the new checker's first real run and fixed in the same change:
+  `xc.no-undo`'s `curl … -X DELETE` trigger and
+  `srm.push-to-protected-branch`'s trigger both used a bare `.*` beside an
+  already-scoped sibling in their own category/entry. Both now use the same
+  `[^|&;\n]*` convention as their siblings. Neither was independently
+  exploitable as a security bypass (the bare `.*` only risked over-triggering
+  across a chained command, never under-detecting); both are real consistency
+  defects the new gate exists to catch.
+
+## 0.307.2 — 2026-08-31
+
+### Added
+
+- **Hook-event catalog gained `PreModelSwitch`/`PostModelSwitch` (research-sweep).** `knowledge/claude-code-permissions.md`'s ~30-event hook-event catalog table was missing the two new hook events Claude Code v2.1.251 (2026-08-28) added — before/after a mid-session model switch, letting a hook block/confirm/annotate it. Added the row plus a dated pass note in the header blockquote. Source: [Claude Code v2.1.251 release](https://github.com/anthropics/claude-code/releases/tag/v2.1.251) (fetched directly this session).
+
 ## 0.307.0 — 2026-08-28
 
 ### Fixed

@@ -953,15 +953,15 @@ _PIPELINE_LANES = [
         "stages": [
             {
                 "id": "sanitize-webfetch-output",
-                "title": "Fetched-page cleaner",
+                "title": "Fetched-page / MCP-result cleaner",
                 "badge": "always",
-                "tip": "Strips instruction-shaped junk from a page the robot just fetched, before it reads it.",
+                "tip": "Strips instruction-shaped junk from a page or MCP tool result the robot just received, before it reads it.",
                 "detail": {
                     "steps": [
-                        "After a web fetch, strips fake system-reminder blocks from the page body.",
-                        "If the cleaner crashes, the original page is left in place (fail-open).",
+                        "After a web fetch or any mcp__* tool call, strips fake system-reminder blocks from the result.",
+                        "If the cleaner crashes, the original result is left in place (fail-open).",
                     ],
-                    "trip": "Rewrites the fetched body the robot sees. Never blocks the fetch. Does not touch MCP results.",
+                    "trip": "Rewrites the fetched body or MCP result the robot sees. Never blocks the call.",
                     "set": "Built in.",
                 },
             },
@@ -1146,6 +1146,10 @@ _PIPELINE_EXCLUDED_HOOKS = {
     "FOREIGN-TREE is the third clause (sibling Write / git -C); deliberately NOT a Pipeline stage card",
     "thing-denial-kb-sync.sh": "Muninn denial-KB materialiser (Stop); learns from tribunal denials, not itself a guardrail",
     "thing-denial-kb-recall.sh": "Muninn denial-KB recall (SessionStart); surfaces known denials + fixes, not a guardrail",
+    "sanitize-mcp-output.sh": "same PostToolUse quarantine as sanitize-webfetch-output.sh, extended "
+    "from WebFetch to mcp__* tool results (Q1/L4, analog-repos-gap-fill leftovers). One stage card "
+    "covers both — the 'Fetched-page / MCP-result cleaner' stage, mapped to sanitize-webfetch-output.sh "
+    "above; a second card would duplicate the same mechanism at DOM-budget cost for no reader value",
     "dashboard-autostart.sh": "opt-in convenience launcher (SessionStart) for the dashboard itself; "
     "gates nothing, denies nothing, and never inspects a tool call — its knob is `dashboard_autostart` "
     "in comfort-posture.yaml, deliberately NOT a Pipeline stage card",
@@ -1195,6 +1199,12 @@ _PIPELINE_EXCLUDED_HOOKS = {
     "Opt-in via `context_handoff.mode` (default off). Never writes the brief, never "
     "blocks unless the owner set `mode: block`, and is not a safety-floor card — same "
     "class as compact-anchor.sh (informational Stop/SessionStart context, not a drawn Pipeline stage)",
+    "precompact-digest.sh": "PreCompact archival hook (P2, precompact-critical-context "
+    "FORGE plan). Writes a curated pre-compaction digest to disk when it can; never "
+    "denies, never warns, and its output is never injected anywhere (PreCompact's "
+    "stdout is not read on Claude Code, and claim 20 proves it is a verified no-op on "
+    "VS Code). Same class as compact-anchor.sh and handoff-nudge.sh — informational, "
+    "not a safety-floor card, so deliberately NOT a Pipeline stage",
 }
 
 _PIPELINE_CONTROLS = {
@@ -10755,7 +10765,18 @@ _JS = r"""
     if (tab === "pipeline") syncPipelineTab();
     if (tab === "plugin-vars") activatePluginVars(sub);
     if (tab === "web-access") hydrateWebAccess();
-    if (tab === "prompt-builder" && !pbLoaded) { pbLoaded = true; initPromptBuilder(); }
+    if (tab === "prompt-builder" && !pbLoaded) {
+      pbLoaded = true;
+      // Deferred, not called inline: PB_MODELS/PB_PRESETS (var, not hoisted-with-value)
+      // are declared LATER in this same script than the initial applyHash() call
+      // below, so a cold #/prompt-builder deep-link/reload calling initPromptBuilder()
+      // synchronously here would read them as undefined mid-script (TypeError on
+      // .forEach). setTimeout defers to after the whole script finishes executing,
+      // by which point every var in this file is assigned -- the same ordering bug
+      // class as the pipelineServerAvailable TDZ fix below, fixed at the call site
+      // instead of by relocating PB_MODELS/PB_PRESETS (real data, not a stub-able flag).
+      setTimeout(initPromptBuilder, 0);
+    }
     if (tab === "host-context" && !hcLoaded) { hcLoaded = true; initHostContext(); }
   }
   // Navigate: activate immediately, then reflect the page in the URL hash for

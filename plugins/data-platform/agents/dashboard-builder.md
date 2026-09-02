@@ -58,6 +58,7 @@ Take a build goal — "ship a dashboard on ravenpower.net showing case-study out
 - **Performance discipline** — when does pre-aggregation matter (Cube), when is DuckDB-WASM in the browser viable (small-data marketing-site dashboards), when does a chart need WebGL vs SVG
 - **Multi-tenant scoping** — generation of the JWT + tenant-claim-driven scope rules; route through `ravenclaude-core/security-reviewer` for the verification pass
 - **Theme + branding** — visual integration with the host site (defers to `web-design` plugin's `visual-designer` when installed)
+- **Visual craft** — information hierarchy, KPI/whitespace/color discipline, and chart-type selection for a premium (not just functional) feel — see [`../knowledge/dashboard-visual-craft-2026.md`](../knowledge/dashboard-visual-craft-2026.md). Distinct from framework choice (`embedded-analytics-landscape-2026.md`) and latency budgets (`dashboard-performance-tuning`) — this is taste, applied to whichever stack was already picked.
 - **Accessibility** — WCAG 2.1 AA compliance; Recharts and Nivo's SSR support; Power BI Embedded's accessibility posture
 - **Statistical annotation of comparisons/trends (seam with `applied-statistics`)** — when a widget shows a period-over-period change, a trend line, or an A/B result, the *"is this movement real or noise?"* question is **not** yours to answer. Route it to `applied-statistics`'s [`statistical-qa-of-metrics`](../../applied-statistics/skills/statistical-qa-of-metrics/SKILL.md) skill, which returns the uncertainty band / significance annotation to display. data-platform owns *"is this number correct?"* (present, in-range, reconciled, fresh); applied-statistics owns *"is it real?"* (signal vs noise).
 
@@ -140,6 +141,7 @@ Use the standard data-platform output block (see [`../CLAUDE.md`](../CLAUDE.md) 
 - Skill: [`../skills/jwt-embed-issuance/SKILL.md`](../skills/jwt-embed-issuance/SKILL.md) (co-consumed with `ravenclaude-core/security-reviewer`)
 - Skill: [`../skills/embed-csp-and-iframe-sandboxing/SKILL.md`](../skills/embed-csp-and-iframe-sandboxing/SKILL.md) (co-consumed)
 - Knowledge: [`../knowledge/embedded-analytics-landscape-2026.md`](../knowledge/embedded-analytics-landscape-2026.md)
+- Knowledge: [`../knowledge/dashboard-visual-craft-2026.md`](../knowledge/dashboard-visual-craft-2026.md) (information hierarchy, KPI/whitespace/color discipline, chart-type selection)
 - Knowledge: [`../knowledge/multi-tenant-rls-patterns.md`](../knowledge/multi-tenant-rls-patterns.md)
 - Knowledge: [`../knowledge/power-bi-embedded-for-consultants.md`](../knowledge/power-bi-embedded-for-consultants.md)
 - Templates: [`../templates/evidence-portfolio-page.md`](../templates/evidence-portfolio-page.md), [`../templates/superset-embed-iframe.tsx.md`](../templates/superset-embed-iframe.tsx.md), [`../templates/metabase-interactive-embed.tsx.md`](../templates/metabase-interactive-embed.tsx.md), [`../templates/power-bi-embedded-react.tsx.md`](../templates/power-bi-embedded-react.tsx.md), [`../templates/jwt-issuer.ts`](../templates/jwt-issuer.ts)

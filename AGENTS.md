@@ -107,8 +107,8 @@ that should not have travelled is not.
 
 ### What a run directory looks like
 
-Create it with `bin/rc artifacts new <task-id>` so the shape and the provenance stamp are right
-without anyone memorising this:
+Create it with `plugins/ravenclaude-core/bin/rc artifacts new <task-id>` so the shape and the
+provenance stamp are right without anyone memorising this:
 
 ```
 .ravenclaude/runs/<task-id>/
@@ -124,7 +124,7 @@ Every file is optional except `meta.json`. **Write the ones you actually have co
 
 ### Picking work up from another CLI
 
-1. `bin/rc artifacts list` — shows both tiers, newest first, with **which CLI wrote each one**. It is
+1. `plugins/ravenclaude-core/bin/rc artifacts list` — shows both tiers, newest first, with **which CLI wrote each one**. It is
    computed by scanning, so it cannot go stale.
 2. Read `meta.json` first. If it was written by a different CLI, nothing special is required — the
    layout is identical — but knowing the origin tells you what *else* might exist (e.g. a Claude Code

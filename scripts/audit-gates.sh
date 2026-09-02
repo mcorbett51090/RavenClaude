@@ -708,6 +708,33 @@ PY
       python3 plugins/ravenclaude-core/scripts/build-outcome-corpus.py --must-fail || rc=$?
       exit $rc
       ;;
+    253)
+      echo "── Gate 253: trigger-scoping consistency (bare wildcard beside a scoped sibling) ──"
+      python3 scripts/check-trigger-scoping-consistency.py --self-test
+      exit $?
+      ;;
+    254)
+      echo "── Gate 254: PreCompact digest hook (fire-and-forget archiving, never blocks) ──"
+      rc=0
+      bash plugins/ravenclaude-core/hooks/tests/test-gate254-precompact-digest.sh || rc=$?
+      bash plugins/ravenclaude-core/hooks/tests/test-gate254-precompact-digest.sh --must-fail-block || rc=$?
+      exit $rc
+      ;;
+    255)
+      echo "── Gate 255: agent-routing-matrix.json schema + anti-duplication + totality ──"
+      rc=0
+      python3 plugins/ravenclaude-core/scripts/check-agent-routing-matrix.py || rc=$?
+      rc_mustfail python3 plugins/ravenclaude-core/scripts/check-agent-routing-matrix.py || rc=$?
+      exit $rc
+      ;;
+    256)
+      echo "── Gate 256: vscode-extension configurationDefaults — silent-no-op class ──"
+      rc=0
+      python3 scripts/check-vscode-extension-config-defaults.py --self-test || rc=$?
+      python3 scripts/check-vscode-extension-config-defaults.py --must-fail || rc=$?
+      python3 scripts/check-vscode-extension-config-defaults.py --check || rc=$?
+      exit $rc
+      ;;
     243)
       echo "── Gate 243: scheduled sweep contract + operator health card ──"
       bash plugins/ravenclaude-core/hooks/tests/test-gate243-sweep-and-health-card.sh
@@ -1512,7 +1539,7 @@ PY
       ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254, 255, 256. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -4941,6 +4968,19 @@ gate "sanitize-webfetch-body (no injection markers survive in sanitized output)"
 # the injections (the IBCS line must survive).
 rc=0; grep -q "IBCS SUCCESS rules" "$POISONED_OUT" || rc=$?
 gate "sanitize-webfetch-body (canonical content preserved across strips)" must_pass "$rc"
+
+# Q1 / L4 (analog-repos-gap-fill leftover, docs/follow-ups/2026-08-14-analog-repos-leftovers.md):
+# the same quarantine extended to mcp__* tool output. sanitize-mcp-output.py's
+# own --self-test exercises the full PostToolUse envelope (MCP content-array
+# shape, additionalContext tool-name attribution, and the mcp__ prefix boundary
+# — a substring match must NOT trigger), not just the shared body sanitizer
+# CLI above. Depends on F1 (this same file) already shipped; matcher stays
+# disjoint from WebFetch (F1's own accepted-limit) by construction.
+MCP_SELFTEST_OUT="$TMP/sanitize-mcp-selftest.txt"
+rc=0; python3 plugins/ravenclaude-core/hooks/sanitize-mcp-output.py --self-test > "$MCP_SELFTEST_OUT" 2>&1 || rc=$?
+gate "sanitize-mcp-output --self-test (all envelope + boundary checks OK)" must_pass "$rc"
+rc=0; grep -q "^FAIL" "$MCP_SELFTEST_OUT" && rc=1 || rc=0
+gate "sanitize-mcp-output --self-test (zero FAIL lines)" must_pass "$rc"
 
 echo "── Gate 54: R-PRIV run-context bundler allowlist (never-capture) ─────────"
 # The run-context bundler (scripts/capture-run-context.py) attaches a minimal,
@@ -9324,6 +9364,108 @@ python3 plugins/ravenclaude-core/hooks/tests/test-stall-watch.py >/dev/null 2>&1
 gate "stall observable, UTC parse, receipt-gated ladder, payload safety" must_pass "$rc"
 
 echo
+
+echo "── Gate 253: trigger-scoping consistency (bare wildcard beside a scoped sibling) ──"
+# PR 6 / Phase 9 of docs/plans/2026-08-13-recurring-defect-hardening/build-plan.md.
+# check-trigger-scoping-consistency.py's --self-test covers: the core must-fail
+# case (a bare '.*' beside a scoped sibling in a synthetic category), a
+# regression replay of the historical incident shape, pass-on-good against the
+# live catalog, a no-established-convention category correctly NOT flagged, and
+# an unparseable catalog failing closed. Its first real run against the live
+# catalog found two previously-uncaught instances of the exact defect class
+# (xc.no-undo's curl-DELETE trigger, srm.push-to-protected-branch) — both fixed
+# in this same change, so this gate's pass-on-good check is a real regression
+# proof, not a vacuous one.
+rc=0
+python3 scripts/check-trigger-scoping-consistency.py --self-test >/dev/null 2>&1 || rc=$?
+gate "trigger-scoping-consistency --self-test (bare-wildcard detection + 2 live fixes)" must_pass "$rc"
+
+echo
+
+echo "── Gate 254: PreCompact digest hook (fire-and-forget archiving, never blocks) ──"
+# P2 of the precompact-critical-context FORGE plan
+# (.ravenclaude/runs/forge/precompact-critical-context/plan.md). Proves
+# hooks/precompact-digest.sh never blocks a turn on any error path (missing
+# transcript_path, missing transcript file, the digest engine exiting 3,
+# malformed/empty stdin) and that the fail-safe wrapping is load-bearing, not
+# decorative — the --must-fail-block half strips the EXIT trap / set -e guard
+# and asserts the mutant DOES block.
+rc=0
+bash plugins/ravenclaude-core/hooks/tests/test-gate254-precompact-digest.sh >/dev/null 2>&1 || rc=$?
+gate "PreCompact digest hook fires-and-forgets on every error path" must_pass "$rc"
+
+rc=0
+bash plugins/ravenclaude-core/hooks/tests/test-gate254-precompact-digest.sh --must-fail-block >/dev/null 2>&1 || rc=$?
+gate "PreCompact digest hook fail-safe wrapping has teeth (mutant blocks)" must_pass "$rc"
+
+echo
+echo "── Gate 255: agent-routing-matrix.json schema + anti-duplication + totality ──"
+# The agent + model + effort-level routing matrix (plugins/ravenclaude-core/knowledge/
+# agent-routing-matrix.{json,schema.json,md}). 9 checks (A-I): hand-rolled schema
+# validation (A, meta-teeth mutates the SCHEMA itself); a vendor-fact ban-list DERIVED
+# at gate time from substrate-tier-map.json + model-catalog.json's own leaf values,
+# scanned against both the JSON and the whitespace/markdown-normalized .md (B) --
+# this build's own first draft tripped it for real, on a SKU embedded in a rationale
+# string and a display-name form left in the doc's own prose, before either was fixed;
+# no numeric confidence anywhere (C, split exact-on-JSON / shape-match-on-.md so the
+# doc's own explanatory paragraph doesn't trip it); agent_hosts + every model_ref
+# checked by STRICT KEY MEMBERSHIP on the parsed substrate map, deliberately never via
+# resolve_tier() (D1/D2 -- that resolver has silent unknown-host/unknown-tier
+# fallbacks, so a resolver-based check would pass an agent-id-typo'd into a host field
+# silently); every framework-rule quote verified to exist verbatim in its cited source
+# file (E, existence not relevance, stated honestly); ownership metadata carries real
+# values not just presence (F); route-task.py --self-test reports an N/N (never a
+# hardcoded 17) pass line (G, framed as new coverage -- that script was not previously
+# in this suite at all); and per-task_class totality bounded to the 4 grounded cells
+# (I -- inline/chat/agent+reversible/agent+irreversible; NOT the full 3x2 product,
+# because inline/chat x irreversible is not a combination the source decision trees
+# define, and requiring it would manufacture fabricated content the way an earlier
+# 6-cell design would have).
+rc=0
+python3 plugins/ravenclaude-core/scripts/check-agent-routing-matrix.py >/dev/null 2>&1 || rc=$?
+gate "agent-routing-matrix: all 9 checks pass against the shipped data" must_pass "$rc"
+
+rc=0
+rc_mustfail python3 plugins/ravenclaude-core/scripts/check-agent-routing-matrix.py >/dev/null 2>&1 || rc=$?
+gate "agent-routing-matrix: --must-fail teeth (13 mutants + 1 live G control)" must_pass "$rc"
+
+echo
+echo "── Gate 256: vscode-extension configurationDefaults — silent-no-op class ──"
+# The RT-3/RT-4 fix from the copilot-preemptive-compact FORGE run's red-team
+# (.ravenclaude/runs/forge/copilot-preemptive-compact/red-team.md). VS Code
+# silently drops a `contributes.configurationDefaults` override for a setting
+# owned by another extension on THREE distinct shapes (unregistered key,
+# disallowConfigurationDefault, disallowed scope) — no error, no CI-visible
+# warning, nothing. Before this gate, vscode-extension/package.json had ZERO
+# coverage anywhere in the repo.
+#
+# ⛔ --self-test and --must-fail are FULLY SYNTHETIC (build their own fixture
+# copilot-chat manifest) so they run everywhere, including CI, which will never
+# have a real VS Code install. The live check against the REAL installed
+# GitHub.copilot-chat is machine-local only and LOUD-SKIPS (exit 0) when VS
+# Code is absent, in every mode including --check — this is deliberately
+# unlike Gate 10's actionlint (a small pinned binary CI genuinely downloads);
+# a multi-GB desktop app is not something CI can or should provision.
+#
+# ⛔ Registered in dispatcher + main sequence + Supported:. Grep by literal name.
+rc=0
+python3 scripts/check-vscode-extension-config-defaults.py --self-test >/dev/null 2>&1 || rc=$?
+gate "vscode-extension config-defaults --self-test (6 fixtures, all synthetic)" must_pass "$rc"
+
+rc=0
+python3 scripts/check-vscode-extension-config-defaults.py --must-fail >/dev/null 2>&1 || rc=$?
+gate "vscode-extension config-defaults --must-fail: a typo'd key is rejected" must_pass "$rc"
+
+echo "── analog-closeness-scorecard (Q2 leftover, docs/follow-ups/2026-08-14-analog-repos-leftovers.md) ──"
+# Recomputes the 2026-08-14 analog survey's own M/H/G/O/E/I/T/V weighted-closeness
+# formula. --self-test pins two of the survey's own published rows (verbatim
+# arithmetic regression) plus a must-fail-shaped fixture: a row that scores high
+# on the weighted arithmetic alone but carries M=H=G=0 and every dim inferred
+# (not observed) — the quality bar must reject it, proving the bar is load-bearing
+# rather than a number nobody checks.
+rc=0
+python3 plugins/ravenclaude-core/skills/analog-closeness-scorecard/score_closeness.py --self-test >/dev/null 2>&1 || rc=$?
+gate "analog-closeness-scorecard --self-test (rows + buckets + quality-bar teeth)" must_pass "$rc"
 
 echo
 echo "═══════════════════════════════════════════════════════════════════════════"

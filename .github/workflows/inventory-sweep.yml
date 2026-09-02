@@ -92,13 +92,20 @@ jobs:
 
       # ── ⛔ RE-MEASURE THE RULESET CLAIM. This workflow being absent from
       #    the required checks is an ASSERTION, not an assumption.
+      # ⛔ NOT continue-on-error: a genuine match below must fail this job, or
+      # the one control that catches the regression this workflow exists to
+      # avoid can never be relied on to alert anyone. An API failure is its
+      # own case, handled below — it exits 0 (inconclusive is not a reason to
+      # fail the scheduled run) but never as a false "OK".
       - name: Assert this sweep is NOT a required status check
-        continue-on-error: true
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -uo pipefail
-          rules="$(gh api "repos/${GITHUB_REPOSITORY}/rulesets" 2>/dev/null || echo '[]')"
+          if ! rules="$(gh api "repos/${GITHUB_REPOSITORY}/rulesets" 2>&1)"; then
+            echo "::warning::could not read branch rulesets ($rules) — assertion inconclusive, not OK"
+            exit 0
+          fi
           if printf '%s' "$rules" | grep -q 'Inventory sweep'; then
             echo "::error::This sweep appears in a branch ruleset. A scheduled workflow"
             echo "::error::reports nothing on a PR, so a required check on it hangs the PR forever."

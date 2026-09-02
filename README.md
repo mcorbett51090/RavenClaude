@@ -22,7 +22,7 @@
 
 Today this marketplace ships **182 plugins**:
 
-- **[`ravenclaude-core`](plugins/ravenclaude-core/)** — domain-neutral Team Lead + 15 specialists (architect, coders, reviewers, designer, documentarian, deep-researcher, project-manager, partner-success-manager, prompt-engineer, data-engineer, etc.), plus dispatch playbooks (with a Cross-plugin dispatch section), gates, 55 skills, 39 hooks, templates, and the **cross-project contribution-staging loop**.
+- **[`ravenclaude-core`](plugins/ravenclaude-core/)** — domain-neutral Team Lead + 15 specialists (architect, coders, reviewers, designer, documentarian, deep-researcher, project-manager, partner-success-manager, prompt-engineer, data-engineer, etc.), plus dispatch playbooks (with a Cross-plugin dispatch section), gates, 56 skills, 49 hooks, templates, and the **cross-project contribution-staging loop**.
 - **[`power-platform`](plugins/power-platform/)** — 11 Microsoft Power Platform specialists (Power Fx, flows, Power BI, Dataverse, model-driven, PCF, Copilot Studio, Power Pages, admin, ALM, tester), 21 skills, an advisory house-opinions hook covering 8 checks, and the bundled `pbix-mcp` MCP server.
 - **[`finance`](plugins/finance/)** — 7 corporate-finance & FP&A specialists (FP&A analyst, financial modeler, controller, treasury, valuation, audit-prep, board-pack composer), 9 skills, templates, advisory anti-pattern hook.
 - **[`regulatory-compliance`](plugins/regulatory-compliance/)** — 12 financial-regulatory specialists (6 function: AML/KYC, regulatory reporting, risk-and-controls, policy & procedure writer, examination prep, Bermuda-insurance; plus 6 jurisdiction: BMA, CIMA Cayman, Bahamas, Channel Islands, UK PRA, US), 10 skills, templates, defensive PII-scrub hook.
@@ -210,10 +210,10 @@ The pin survives `/plugin marketplace update` — the pinned SHA is the catalog'
 | Component | Count | Where |
 |-----------|-------|-------|
 | Specialist agents | 15 | `plugins/ravenclaude-core/agents/` |
-| Skills | 52 | `plugins/ravenclaude-core/skills/` — see the plugin's own [README](plugins/ravenclaude-core/README.md) for the full, gate-checked list |
-| Hooks | 34 | `plugins/ravenclaude-core/hooks/` — see the plugin's own [README](plugins/ravenclaude-core/README.md) for the full, gate-checked list |
+| Skills | 56 | `plugins/ravenclaude-core/skills/` — see the plugin's own [README](plugins/ravenclaude-core/README.md) for the full, gate-checked list |
+| Hooks | 49 | `plugins/ravenclaude-core/hooks/` — see the plugin's own [README](plugins/ravenclaude-core/README.md) for the full, gate-checked list |
 | Rules | 5 (coding-standards, security, git-workflow, agent-collaboration, terminal-copy-to-tempfile) | `plugins/ravenclaude-core/rules/` |
-| Commands | 8 (`/init-agent-ready`, `/dashboard`, `/set-posture`, `/wrap`, `/forge`, `/stream`, `/reset-plugin-cache` (alias `/ragnarok`)) | `plugins/ravenclaude-core/commands/` |
+| Commands | 9 (`/init-agent-ready`, `/dashboard`, `/set-posture`, `/wrap`, `/forge`, `/stream`, `/handoff`, `/reset-plugin-cache` (alias `/ragnarok`)) | `plugins/ravenclaude-core/commands/` |
 | Templates | memos, runbooks, design specs, RAID logs, partner-success artifacts, agent-ready-repo scaffold | `plugins/ravenclaude-core/templates/` |
 
 The team rules ship inside the plugin as [`plugins/ravenclaude-core/CLAUDE.md`](plugins/ravenclaude-core/CLAUDE.md). Copy or adapt that into your consumer project's root `CLAUDE.md` and fill in your project's stack-specific gates (formatter, linter, type-checker, test runner).

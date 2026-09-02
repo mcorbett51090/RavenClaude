@@ -107,6 +107,12 @@ _SKIP = {
         "SubagentStart. Gemini exposes no verified subagent hook event; this hook is "
         "an audit-only shadow that never denies, so the cost is observability."
     ),
+    "precompact-digest.sh": (
+        "PreCompact. Gemini exposes no verified compaction-hook event on the pages "
+        "verified, so mapping it by name-similarity would assert coverage that may "
+        "not exist. Archival-only and never denies — the cost of the gap is one "
+        "un-archived digest, not lost enforcement."
+    ),
     # ⛔ R7 — THE THREE verify-before-assert CELLS SHIP **UNWIRED AND DECLARED**,
     # for the same reason as the Cursor lane: docs-verified only, never
     # round-tripped against the live product. A guardrail fully wired and

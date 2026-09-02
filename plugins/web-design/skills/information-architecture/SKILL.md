@@ -100,6 +100,8 @@ Navigation isn't just the top bar. It's **four** distinct surfaces, each with di
 
 **Anti-pattern:** more than 7 items in the primary nav. If you have 9, three of them aren't earning the slot — move them to the footer or consolidate.
 
+- **Mobile/app bottom-navigation item cap: ≤5.** Where the archetype's nav pattern is a bottom tab bar (a PWA, an app-shell IA) rather than a top nav, the same "earn your slot" discipline applies at a tighter number — a 6th item is either collapsed into a "More" tab or cut.
+
 ## 4. Card-sort methodology
 
 Card sorting de-biases IA from internal vocabulary. Two modes:

@@ -58,6 +58,7 @@ readable off the canonical command:
     SessionStart                                    =>  sessionstart
     Stop                                            =>  stop
     UserPromptSubmit                                =>  userpromptsubmit
+    PreCompact                                      =>  precompact
 
 A hand-listed mode map would be a second thing to drift; deriving it means adding
 a hook to the canonical manifest is the only edit needed.
@@ -83,6 +84,7 @@ _EVENT_MODE = {
     "PostToolUse": "posttool",
     "Stop": "stop",
     "UserPromptSubmit": "userpromptsubmit",
+    "PreCompact": "precompact",
     # PreToolUse resolves to bash-pretool / file-pretool per-hook (see above).
 }
 

@@ -340,7 +340,19 @@
             "type": "command",
             "command": "${CLAUDE_PROJECT_DIR}/plugins/ravenclaude-core/hooks/compact-anchor.sh",
             "timeout": 10,
-            "comment": "Marketplace-dev hook (dev-mirror of the plugin's hooks/hooks.json entry). Post-compaction addressability pointer, scoped `matcher: \"compact\"`. Injects the transcript path + boundary line + how to grep it, so the post-compaction agent knows its own pre-compaction record is still on disk. DERIVED VALUES ONLY — never transcript content (Gate 186). Fail-safe; always exits 0."
+            "comment": "Marketplace-dev hook (dev-mirror of the plugin's hooks/hooks.json entry). Post-compaction addressability pointer, scoped `matcher: \"compact\"`. Injects the transcript path + boundary line + how to grep it — plus the newest PreCompact digest file for this session's run-dir, if precompact-digest.sh wrote one — so the post-compaction agent knows its own pre-compaction record is still on disk. DERIVED VALUES ONLY — never transcript or digest content (Gate 186). Fail-safe; always exits 0."
+          }
+        ]
+      }
+    ],
+    "PreCompact": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PROJECT_DIR}/plugins/ravenclaude-core/hooks/precompact-digest.sh",
+            "timeout": 10,
+            "comment": "Marketplace-dev hook (dev-mirror of the plugin's hooks/hooks.json entry). Pre-compaction critical-info archive (P2, precompact-critical-context FORGE plan). Reads the PreCompact payload's optional `transcript_path` and, if present, calls scripts/precompact-digest.py to write a curated digest to .ravenclaude/runs/<session>/precompact-digest-<timestamp>.md BEFORE the transcript is summarized away. Fire-and-forget, archival only — never gating; deliberately never exits non-zero (PreCompact CAN block on Claude Code via exit 2, and this hook never does). Same script the plugin distributes to consumers via ${CLAUDE_PLUGIN_ROOT}."
           }
         ]
       }
