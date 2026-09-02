@@ -46,6 +46,17 @@ _REPO = Path(__file__).resolve().parent.parent
 _MANIFEST = _REPO.joinpath("plugins", "ravenclaude-core", "hooks", "hooks.json")
 _ARGV_TOKEN = '"$CLAUDE_TOOL_FILE_PATH"'
 
+# `SessionStart`'s matcher is never emitted for Cursor, and that is CORRECT, not a
+# gap: `[docs-verified 2026-09-02 — cursor.com/docs/agent/hooks]` Cursor's matcher
+# config section enumerates matcher support per event, and `sessionStart` is not
+# among them — its documented input payload (session_id, is_background_agent,
+# composer_mode + the common base fields) carries no `source`/`matcher`-able field
+# either. So there is no Claude-Code-style startup/resume/clear/compact/fork
+# discrimination to wire on this host; every SessionStart hook fires on every
+# Cursor session start unconditionally, by platform design. (The payload DOES
+# carry `transcript_path`, same field name as Claude Code's — see
+# knowledge/cursor-customization.md for why that matters for the lease-identity
+# work this comment sits next to in history.)
 _EVENT = {
     "SessionStart": ("sessionStart", "sessionstart"),
     "PostToolUse": ("afterFileEdit", "file-posttool"),
