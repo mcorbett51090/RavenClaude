@@ -2256,7 +2256,7 @@ Probe: `unprobed: the delivery fact is a host-platform property; it is modelled 
 
 **Sources:** [measured in the FORGE product-inventory run](https://github.com/mcorbett51090/RavenClaude/pull/997)
 
-_Last verified: 2026-08-25_
+_Last verified: 2026-09-01_
 
 
 ---
@@ -2730,6 +2730,207 @@ the thing being investigated.
 **Sources:** [measured in the FORGE stall-watchdog run](https://github.com/mcorbett51090/RavenClaude/tree/forge/stall-watchdog)
 
 _Last verified: 2026-08-25_
+
+
+---
+
+### A high closeness score can still fail the quality bar · _RavenClaude-built_
+
+> analog-closeness-scorecard's weighted score and its observed-vs-inferred quality bar are scored independently — a row can rank high on arithmetic and still be dropped.
+
+## What a reader would have assumed instead
+
+A single weighted-score threshold decides closeness — a row that scores high enough on the
+`3M+3H+3G+2O+2E+2I+2T+1V` arithmetic passes.
+
+## The discriminator
+
+control: `compute()` on `{M:0,H:0,G:0,O:2,E:2,I:2,T:2,V:2}` with every dimension `kind:"inf"`
+returns a weighted score >= 18 (well into the closeness-4 band) AND `quality_bar_pass: False`,
+with both failure reasons named (`none of M/H/G scored >= 1` and the observed-count shortfall).
+Measured 2026-08-30: the survey's own quality bar — at least one of M/H/G >= 1, and at least 3 of
+8 dimensions actually observed — is checked independently of the arithmetic total, exactly
+mirroring the 2026-08-14 survey's own `dropped.md` discipline.
+
+## Why it matters
+
+Falsifier: the same high-arithmetic, all-inferred row passing `quality_bar_pass`.
+
+Probe: `plugins/ravenclaude-core/skills/analog-closeness-scorecard/score_closeness.py`
+
+**Sources:** [Q2 of the analog-repos-gap-fill leftovers, unparked on owner request](https://github.com/mcorbett51090/RavenClaude/pull/1047)
+
+_Last verified: 2026-08-30_
+
+
+---
+
+### The MCP quarantine hook matches a prefix, not WebFetch's exact string · _RavenClaude-built_
+
+> sanitize-mcp-output.py extends F1's WebFetch quarantine to mcp__* tool results — but the tool-name match has to be a prefix check, and a substring match had to be deliberately excluded.
+
+## What a reader would have assumed instead
+
+Copy F1's WebFetch matcher verbatim (`tool_name == "WebFetch"`) and swap the string — an
+exact-match check would silently never fire, because MCP tool names are dynamic
+(`mcp__<server>__<verb>`), not a fixed string.
+
+## The discriminator
+
+control: `handle()` on a payload naming `not_mcp__lookalike` returns `None` (no-op) in the
+self-test — proving the prefix check correctly rejects a substring match, not just an
+exact-match miss.
+Measured 2026-08-30: the matcher is `tool_name.startswith("mcp__")`, a prefix check — and the
+self-test asserts both the negative direction (a real MCP name is quarantined) and the false-prefix
+direction (a name merely containing `mcp__` is not).
+
+## Why it matters
+
+Falsifier: the same fixture producing a sanitize envelope instead of `None`.
+
+Probe: `plugins/ravenclaude-core/hooks/sanitize-mcp-output.py` (`--self-test`)
+
+**Sources:** [Q1/L4 of the analog-repos-gap-fill leftovers, unparked on owner request](https://github.com/mcorbett51090/RavenClaude/pull/928)
+
+_Last verified: 2026-08-30_
+
+
+---
+
+### The PreCompact digest hook never waits on its own engine · _RavenClaude-built_
+
+> precompact-digest.sh detaches its engine call so the archival hook can never turn into a synchronous ceiling on a turn.
+
+## What a reader would have assumed instead
+
+That a `PreCompact` archival hook calling a Python digest engine would run synchronously — wait for
+the engine, then return — the same shape most hooks in this repo use for a short-lived call.
+
+## The discriminator
+
+control: driven against a deliberately 3s-slow stub delegate — the hook returned in under 2000ms while
+the digest file appeared only afterward, proving detachment structurally rather than assuming the real
+path happens to be fast.
+
+Measured 2026-09-01: `precompact-digest.sh` backgrounds its engine call (`( _pcd_worker & )` inside a
+subshell that itself exits immediately) rather than waiting on it. A prior synchronous design ran the
+engine under a 10s ceiling — far below the engine's own 60s/90s subprocess budgets — so on the real
+path no digest was ever produced, while any egress to an external processor had already happened
+before the reader was killed. The detached shape fixes both: this hook adds no ceiling of its own on
+top of the engine's own internal timeouts, and it never blocks a turn regardless of how long extraction
+takes.
+
+## Why it matters
+
+Falsifier: the hook blocking on the digest engine before returning.
+
+Probe: `plugins/ravenclaude-core/hooks/tests/test-gate254-precompact-digest.sh`
+
+`PreCompact` fires just before a session's context is summarized away — the same moment its own
+digest engine is racing to read the untouched transcript. A hook that can block on that engine, even
+briefly, risks becoming exactly the "data left, no benefit arrived" failure the P4 security review
+found in the prior design: egress happens, but the digest the hook was supposed to produce never does,
+because the reader was killed first. Detachment removes that race by construction rather than by
+tuning a timeout.
+
+**Sources:** [P2 of the precompact-critical-context FORGE plan, hardened per the P4 security review](../plugins/ravenclaude-core/hooks/precompact-digest.sh)
+
+_Last verified: 2026-09-01_
+
+
+---
+
+### An anti-duplication ban-list derived from 'every cited leaf string' bans the artifact's own citation discipline · _RavenClaude-built_
+
+> Gate 255's vendor-fact ban-list is a scoped projection, not every leaf string in the cited files -- the wider version bans ordinary words and the source's own retrieval date.
+
+## What a reader would have assumed instead
+
+That the safest anti-duplication design is the broadest one: walk every leaf string in the files
+the artifact cites (`substrate-tier-map.json`, `model-catalog.json`) and ban all of them from
+appearing in the routing matrix or its doc. More strings banned reads as more protection.
+
+## The discriminator
+
+control: the same derivation scoped to only substrate-tier-map.json's per-host-per-tier `model`
+leaves plus model-catalog.json's id lists produced a ban-list with zero English-word or date
+entries, while still catching the display-name SKU form (`Claude Opus 5`) a hand-written regex had
+missed
+
+Measured 2026-09-01: banning *every* leaf string in the cited files means banning
+`substrate-tier-map.json`'s own Grok-lane `effort`/`perspective` values (`high`, `low`,
+`architect`, `scanner`, `critic`) — ordinary English words a routing-matrix document cannot avoid —
+**and** that file's own `retrieved` date. The artifact's own staleness/citation discipline requires
+stamping a cited fact with its retrieval date, so the "ban everything" derivation would forbid the
+artifact from citing its own primary source's freshness. The shipped derivation is scoped to just
+the `model` field of each tier-map row plus the catalog's id lists — a narrower set that still
+contains the display-name form (`"Claude Opus 5"`) a naive regex-based ban-list missed in an earlier
+design, without banning the words and dates a real `.md` cannot avoid using.
+
+## Why it matters
+
+Gate 255 check B's own positive control (an empty or under-scoped derivation must not pass green)
+exists **because** this trap is easy to reintroduce: "derive from more of the cited file" reads as
+strictly safer right up until the derivation swallows the file's own metadata. A future edit that
+widens the derivation back toward "every leaf string" would silently make the check unpassable by
+any honestly-dated `.md` — the exact self-disabling-detector shape this repo has recorded before,
+just reached from the opposite direction (over-broad instead of under-broad).
+
+Falsifier: a future `substrate-tier-map.json` host whose tier row's `model` field itself contains a
+common English word or a bare date — which would re-admit a false positive under the scoped
+derivation too, and would need the derivation narrowed further (e.g. to a value shape check) rather
+than widened.
+
+**Sources:** [this build's own G4a critic (correlated-error pass) and G5 red-team, PR](https://github.com/mcorbett51090/RavenClaude/pull/1067)
+
+_Last verified: 2026-09-01_
+
+
+---
+
+### The peer session's SendMessage name is not derivable from its own session_id · _RavenClaude-built_
+
+> resolve-worktree-session.sh's two-hop worktree->pid->name join exists because the obvious one-hop guess -- deriving the ListAgents ref from session_id -- is false.
+
+## What a reader would have assumed instead
+
+That a session's `ListAgents`-displayed name/ref is some transform of its own `session_id` —
+a hex prefix, a hash, something derivable — so a script wanting to `SendMessage` a specific
+peer could compute the address from an id it already has (e.g. from a registry keyed by
+`session_id`, which is exactly what `worktree-guard.sh`'s own session files use).
+
+## The discriminator
+
+control: this authoring session's own `session_id` is `d20158bb-d28e-497d-9eb5-87fcaff2c96e`;
+`ListAgents`, in the same turn, displayed this session as `matthewcorbett-bc [2eb70b]` — no
+substring of the id appears in the ref, and the derivation hypothesis fails on direct
+inspection, not by absence of testing.
+
+What *does* match: `~/.claude/sessions/<pid>.json`'s own `name` field for that same pid read
+back `"matthewcorbett-bc"` — the exact string `ListAgents` shows, with no `[ref]` suffix
+needed (`SendMessage`'s own contract: a bare name matching exactly one live agent delivers).
+So `resolve-worktree-session.sh` performs two hops instead of one: worktree path →
+`sha256(realpath(toplevel))` → `worktree-guard.sh`'s registry → live `pid`/`branch` → that
+pid's `~/.claude/sessions/<pid>.json` → `name`. Verified end-to-end against this real checkout,
+not just the fixture self-test (8/8): a call from inside this worktree returned
+`peer_name: "matthewcorbett-bc"`, matching the live `ListAgents` row exactly.
+
+## Why it matters
+
+Falsifier: a live session whose registry `name` field disagreed with its own `ListAgents`
+display — none was found this session, but the entry stays falsifiable rather than assumed.
+
+Probe: `plugins/ravenclaude-core/scripts/resolve-worktree-session.sh --self-test` (8/8).
+
+A cross-session relay tool that guessed the peer's address from `session_id` (the field every
+other RavenClaude registry — `worktree-guard.sh`, the run-artifact substrate, the hook-event
+log — is keyed on) would silently address nobody: `SendMessage` would either error on an
+unmatched name or, worse, land on a coincidentally-similar unrelated session. The two-hop join
+is not an optimization over a simpler one-hop lookup; the one-hop lookup does not exist.
+
+**Sources:** [session-relay build, 2026-09-01 -- live ListAgents/session-registry comparison in this authoring session](../plugins/ravenclaude-core/knowledge/cross-session-messaging.md)
+
+_Last verified: 2026-09-01_
 
 
 ---

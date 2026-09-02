@@ -2,8 +2,8 @@
   "_readme": "Committed coverage baseline. published_entries and covered_artifacts may never decrease; the denominator comes from inventory-census.py (git ls-files), never from concepts.json.",
   "published_entries": 0,
   "covered_artifacts": 0,
-  "total_artifacts": 323,
+  "total_artifacts": 353,
   "tier_none": 0,
   "unprobed": 0,
-  "measured_against": "8086dd5aa4740d1be78c7ac542e1a519f2dd9a68"
+  "measured_against": "56fe8769ebd5907adb67f27afa78a77c2565519b"
 }

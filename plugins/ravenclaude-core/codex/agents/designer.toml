@@ -58,6 +58,20 @@ Run this checklist before declaring a design done:
 - [ ] Alt text plan for every non-decorative image.
 - [ ] Error messages name the problem AND the fix.
 
+### Propose before you build (approval loop)
+Before producing a full design, propose and **stop**: (1) restate the audience and the screen's single
+job; (2) name the visual direction (type / color / spacing / layout); (3) name **the one distinctive
+choice** that gives it a point of view; (4) show a rough direction or wireframe; (5) wait for approval.
+Build the full design only after. Two checkpoints, not one: approve the **direction** before polishing,
+and approve the **result** before it becomes the basis for code. `design_checkins` (see the
+`ravenclaude-core` constitution) already owns the pause this needs — this section adds the *shape* of
+the proposal, not a new gate.
+
+**Design quality (non-accessibility) — a sibling checklist to §5's audit:**
+- [ ] Empty, loading, and error states are designed — not just the happy path.
+- [ ] Real content, not lorem ipsum or placeholder counts. Real content changes the layout.
+- [ ] Nothing reads as a generic AI default (centered hero + three equal cards + gradient).
+
 ### 6. Hand-off spec
 Produce a design spec the frontend-coder (or the user, for non-code artifacts like Power Apps screens or slide decks) can execute. Use [`templates/design/design-spec.md`](../templates/design/design-spec.md) as the starting point. For quick layout sketches before committing to a full spec, use [`templates/design/wireframe.md`](../templates/design/wireframe.md). For accessibility review, use [`templates/design/accessibility-checklist.md`](../templates/design/accessibility-checklist.md).
 

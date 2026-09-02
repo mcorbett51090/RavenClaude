@@ -1111,6 +1111,7 @@ Any plugin template that renders an HTML `<head>` (e.g. `templates/repo-build-st
 - `commands/` — slash commands shipped to consumers: `/init-agent-ready`, `/wrap`, `/set-posture`, `/dashboard` (launches the bundled `serve-dashboards.py` so the consumer gets the fully-functioning comfort-posture dashboard with one-click Save & apply), `/stream` (inspect/override the active Agentic Work-Stream — list/set/new/show/status, over the `rc streams` CLI), and `/reset-plugin-cache` (alias `/ragnarok`) — the high-blast-radius plugin-cache disaster-recovery command (see the callout below)
 - `knowledge/` — reference material the Researcher cross-checks (incl. `concerns-catalog.md`, the tribunal constitution; `visual-feedback-loop.md` — the render→see→critique→iterate canon for visual-output agents; `thing-denial-kb.md` + `thing-denial-resolutions.json` — the Muninn denial-KB mechanism + its seed resolutions map)
 - `monitors/` — reactive run-state monitor (`monitors.json` + `watch-run-state.sh`); declared via `experimental.monitors` in `plugin.json`. The push complement to the read-only Heimdall/Víðarr tabs — see the milestone above and [`knowledge/run-state-monitor.md`](knowledge/run-state-monitor.md). Claude-Code-only; scoped `on-skill-invoke:spawn-team`.
+- `vscode-extension/` — `ravenclaude-precompact-guard`, a standalone VS Code extension (its own `package.json`/`tsconfig.json`/`esbuild.js`/`src/`, built + installed with the native `vsce`/`code --install-extension` tooling, not Claude Code's plugin loader). Registers a Language Model Tool + a manual command + a status-bar affordance that trigger Copilot Chat's `/compact <digest>` via the stable `workbench.action.chat.open` command. No `plugin.json` field declares it — unlike `monitors/`, it has no Claude-Code-recognized manifest surface to hook into; the directory is authorized only via a `.repo-layout.json` glob, same as `bin/`. See the precompact-critical-context milestone below.
 
 ### Command review (the Thing) — tribunal T5 (updated 2026-05-26, v0.28.0)
 
@@ -1376,6 +1377,14 @@ Closes the recurring failure where the agent **tells the user to check/do someth
 
 **"Claude Design"** = the user's **claude.ai/design** design-system projects (tokens / components / guidelines / UI kits), reached through the built-in **`DesignSync`** tool + the built-in **`/design-sync`** skill. **Access is an authorization on the claude.ai login, not a repo file** — the first `DesignSync` call auto-grants the `user:design:read`/`user:design:write` scopes (or `/design-login` once for a session with no claude.ai login). So a "this environment can't see design projects" message is the un-granted scope, **not** a missing skill file — adding repo files does not grant access (the Capability-Grounding "a missing-looking capability is one route" lesson). Canon: [`knowledge/design-project-binding.md`](knowledge/design-project-binding.md).
 
+> **Corrected 2026-09-01.** This milestone described the built-in `DesignSync`/`/design-sync` route as
+> if it were the only one. A **separate, additive MCP-server route** also reaches these projects
+> (`claude mcp add --scope user --transport http claude-design https://api.anthropic.com/v1/design/mcp`,
+> then `/design-login`) — `[docs-verified — Anthropic Help Center, 2026-09-01]`. Both are real; this
+> file's own stated refresh trigger ("the DesignSync tool surface or the `/design-login`/`/design-sync`
+> flow changes") had fired 69 days earlier, under the 90-day calendar-sweep flag that would have caught
+> it eventually. See the canon file's "Two connection routes" section for the current state.
+
 What a repo *can* add — so the agent auto-knows **which** of the user's projects is **this repo's** (instead of asking every session) — is a small **binding**, mirroring the `environment-context.md` pattern:
 
 - **[`templates/design-project.json`](templates/design-project.json)** — `{project_id, name, mirror_dir, notes}`. `project_id` is a **non-secret UUID** (safe to commit); the binding is a pointer, never a credential.
@@ -1418,7 +1427,7 @@ and one honest non-lever:
    cost-cutting pass doesn't reach for them.
 
 **Latent bug fixed in passing:** the regen list told agents to run `scripts/generate-repo-guide.py` —
-**deleted in v0.124.0** along with `repo-guide.html` (Gate 11 retired; see `scripts/audit-gates.sh:761`),
+**deleted in v0.124.0** along with `repo-guide.html` (Gate 11 retired; see `scripts/audit-gates.sh:1128`),
 so the instruction had been dead for months — and it omitted the live `generate-index-dashboard.py`
 freshness gate. Corrected against the actual harness, with a staleness note pointing at
 `audit-gates.sh` as the source of truth.
@@ -3442,4 +3451,321 @@ Deferred 14 synthesis-only findings remain in
 [`docs/research/2026-08-19-plugin-news-scan/`](../../docs/research/2026-08-19-plugin-news-scan/README.md).
 The Fabric Assistants-API P0 deadline (2026-08-26) has passed; re-verify before quoting.
 
+## Pre-compaction critical-info capture — Tier 1 hook + Tier 2 VS Code extension (added 2026-09-01, v0.309.0)
+
+Built via `/forge` (run in `.ravenclaude/runs/forge/precompact-critical-context/`) against the ask
+"warn me before an imminent compact, composed with the critical info to retain." Two independent
+research passes falsified the premise both draft panels shared — `PreCompact`'s `systemMessage`/
+`stopReason` are a verified no-op on VS Code Copilot Chat (`executePreCompactHook()` has no consumer
+for any of them, and `PreCompact` never fires there on a manual `/compact` at all) — and found the
+actual mechanism that satisfies the ask: a VS Code extension can programmatically trigger
+`/compact <text>` via the stable, public `workbench.action.chat.open` command, and that text lands
+verbatim in the summarization system prompt (the same call Microsoft's own Copilot extension uses for
+its "compact" button). The design ships in two tiers because they answer different halves of the ask.
+
+**Tier 1 — `hooks/precompact-digest.sh` + `scripts/precompact-digest.py` (host-agnostic, archival
+only).** A new `PreCompact` hook — first of its kind in this manifest's history — reads the
+`transcript_path` off the trusted `PreCompact` payload and launches the digest engine **detached**
+(fire-and-forget; see the `precompact-digest` inventory concept for the measured detachment proof),
+writing a curated critical-info digest to `.ravenclaude/runs/<session>/precompact-digest-<ts>.md`.
+Gated by the existing `cheap_lane.mode` knob (absent/off ⇒ fully inert — no new knob invented) plus a
+fail-closed egress floor (`orchestrator_repo_pii: false` OR `cheap_lane_zdr_confirmed: true`) enforced
+inside the engine, mirroring `claude-orchestrate.sh`'s own A-on-C floor. `compact-anchor.py` (Claude
+Code's existing post-compaction pointer) was extended to also surface the newest digest's path
+alongside its existing transcript pointer — derived-values-only, matching Gate 186's invariant. On
+VS Code this hook cannot warn or block (claim 20, above) — it is archival, matching its own upstream
+source comment; it ships regardless of the extension because Claude Code gets real value from it
+independent of VS Code. The three-projector contract was extended in the same commit:
+`generate-copilot-hooks.py` gained a `precompact` `_EVENT_MODE` entry +
+`copilot-hook-adapter.sh`'s matching case; `generate-cursor-hooks.py` / `generate-gemini-hooks.py`
+gained an explicit `_SKIP` with a stated reason (neither host has a verified compaction-hook event).
+
+**Tier 2 — `vscode-extension/` (`ravenclaude-precompact-guard`) — the actual differentiator.** A new
+component type, first of its kind in this repo (see the Layout entry above for why it carries no
+`plugin.json` field). Registers a Language Model Tool the Copilot agent can call autonomously from
+inside its own turn (it already has full conversation context there — no external heuristic needed),
+plus a manual command + status-bar item as a human-triggered backstop, because a non-participant
+extension cannot see live chat history and so has no reliable way to detect context pressure from
+outside the conversation. Both paths call the same mechanical trigger:
+`vscode.commands.executeCommand('workbench.action.chat.open', {query: '/compact ' + digest,
+preserveInput: true})`. Built with `esbuild` (bundled dev dependency only, matching this repo's
+no-consumer-facing-runtime-dependency bar). Ships `.vsix`-buildable + `code --install-extension`
+documented; **not** published to the VS Code Marketplace — that needs a publisher account/token this
+session did not hold, named explicitly rather than silently dropped.
+
+**Honest limit, stated plainly:** neither tier can influence *automatic* background compaction
+(`summarizationInstructions` has zero references in the auto-compact code path, positive-controlled).
+The design responds by triggering compaction proactively instead, which is what "before an imminent
+compact" already implied.
+
+**Security review (P4):** the egress path (cheap-lane call inside `precompact-digest.py`) was reviewed
+against the real implementation — scrub coverage against `_scrub.sh`'s pattern set, independent
+input-size bounding, and an explicit written disposition on the residual business-logic/PII exposure
+no regex scrub catches, matching this repo's own honest-limit framing for `orchestrator_scope: all`'s
+A-on-C floor.
+
+**Migration:** none — the hook is gated by the existing `cheap_lane` knob (absent/off ⇒ inert, no new
+knob), the extension is an opt-in separate install with its own tooling, and nothing in an installed
+plugin's default behavior changes on `/plugin marketplace update`.
+
 **Migration:** none — documentation + knowledge only.
+
+## DESIGN.md — a house default for ad-hoc HTML, cross-cutting across every plugin (added 2026-09-01, v0.310.0)
+
+A review of an article on emerging agent-facing markdown formats verified
+[`google-labs-code/design.md`](https://github.com/google-labs-code/design.md) (Google Labs, alpha) as a
+real spec for handing design tokens + visual-identity rationale to a coding agent in one file. The
+initial read placed it entirely in `web-design`/`brand-identity-studio` — a client's own brand is
+domain-specific, and that plugin already got a cross-linked knowledge note (PR #1063). **That
+placement was incomplete, not wrong**, once the owner named the actual gap: *"I'm always creating
+html files so that I can learn what's happening and we need a consistent format across all repos."*
+That is a **different** case from a client brand — an agent in *any* plugin occasionally generates
+an ad-hoc informational HTML artifact (a diagnostic report, an audit summary, a status dashboard, an
+`Artifact`-tool explainer page) with no client to brand, and it should look consistent by default
+without every session re-inventing a look.
+
+**Two ships, two placements, same underlying idea:**
+
+- [`templates/DESIGN.md`](templates/DESIGN.md) — the shipped **house default**, real tokens (not
+  placeholders): the same "cool near-black canvas + one green accent" look
+  [`dashboard-assets/shared-tokens.css`](dashboard-assets/shared-tokens.css) already uses for this
+  repo's own `index.html`/`dashboard.html`, expressed here in the real `google-labs-code/design.md`
+  YAML-frontmatter-plus-prose format (fetched and verified against its own `docs/spec.md` this
+  session, not guessed) so a project's override, if it adds one, is also readable by that project's
+  own `npx @google/design.md` CLI.
+- [`knowledge/design-md-resolution.md`](knowledge/design-md-resolution.md) — the **two-tier
+  resolution rule**: a project-root `DESIGN.md` in the current repo wins outright for that repo; its
+  absence falls through to the shipped template. Mirrors the existing
+  `.ravenclaude/comfort-posture.yaml` / `environment-context.md` shape (a shipped default,
+  overridable per-repo by dropping a file at the expected path) rather than inventing a new pattern.
+
+**Why core, and why this is genuinely different from `web-design`'s note, not a duplicate of it:**
+every plugin's agents occasionally produce a diagnostic/report artifact — a finance compliance
+check, a Power Platform solution audit, a PM status report rendered as HTML — not just `web-design`.
+That is the domain-neutral test this constitution's own house rule sets. A client's branded product
+is the opposite case: always project-specific, no house default, correctly staying in `web-design`.
+Conflating the two would be the actual defect — a client's marketing page must never silently inherit
+this repo's own house look, and an internal diagnostic report gains nothing from per-engagement brand
+work.
+
+**Deliberately NOT auto-scaffolded** into every consumer repo by `/init-agent-ready` — most consumer
+repos never generate ad-hoc HTML, and pre-seeding an unused `DESIGN.md` everywhere is exactly the
+kind of file bloat this repo's own layout discipline argues against elsewhere. Resolution falls
+through to the shipped template with zero per-repo setup; a repo opts into a different look only by
+choosing to add its own file.
+
+**Behavioral, not (yet) machine-enforced** — like `design_checkins`/`decision_review`, this is a
+convention an agent follows, not a hook-gated rule. No gate currently checks that a generated HTML
+artifact actually resolved and applied these tokens. If that becomes a recurring miss, a lint over
+generated `.html` (the same shape as `claim-grounding-lint.sh`) is the enforceable sliver, not yet
+built — named here rather than left unstated.
+
+**Migration:** none — a new template + knowledge file; nothing in an installed plugin's default
+behavior changes on `/plugin marketplace update`. A consumer sees the difference only when an agent
+generates an ad-hoc HTML artifact and resolves this file for its look.
+
+## Agent routing matrix — task shape → {agent, model, effort tier}, host-agnostic (added 2026-09-01, v0.311.0)
+
+Built via `/forge` `standard` (two divergent cross-model panels → a correlated-error critic → 11
+tiebreak rulings → an adversarial red-team pass → synthesis) in answer to: *"a matrix so that the
+harness or orchestrator, no matter which coding agent, knows which coding agents and models are
+available and which to call, to get the best outcome probabilistically."* Ships
+[`knowledge/agent-routing-matrix.json`](knowledge/agent-routing-matrix.json) (+ `.schema.json` + a
+companion `.md`) covering 5 agent surfaces (Claude Code, Codex CLI, Copilot CLI, Copilot Chat, Grok
+Build CLI) and 5 task classes (2 coding, 3 non-coding: research-deep, writing-documentation,
+data-analysis) — an **open, data-level registry**, not a schema enum, so a consumer adds a class
+without touching schema or gate code.
+
+**Deliberately heuristic, not empirical.** Every recommendation cites the existing dated knowledge
+files (`cross-tool-model-lineup-2026.md`, `model-selection-and-2026-capability-map.md`,
+`substrate-tier-map.json`) — this artifact owns the **routing logic**, never a duplicated vendor
+fact. Ranking is an ordinal `rank` + a `basis` provenance tag (`framework-rule` /
+`capability-fact` / `cost-heuristic` / `editorial-judgment`) — **no numeric confidence field
+anywhere**, a deliberate choice both design panels initially made and the critic/red-team pass
+overturned: a float invites arithmetic (averaging, thresholding) that an ungrounded heuristic cannot
+bear.
+
+**Two design corrections the pipeline's own adversarial gates caught before ship, worth recording
+because they generalize:**
+
+1. **The axis product is 4 grounded cells, not 6.** `interaction_mode` (3 values: `inline`/`chat`/
+   `agent`, verbatim from the mode-selection tree) × `blast_radius` (`reversible`/`irreversible`,
+   meaningful only inside `agent` mode — the source tree never asks the irreversibility question
+   for `inline`/`chat`, both of which are reversible by their own definition). Requiring
+   `inline × irreversible` or `chat × irreversible` cells would have manufactured exactly the
+   compelled-invention failure the critic flagged elsewhere (a coined `difficulty_tier` axis was
+   rejected for the same reason — `frontier` names a model **tier** in every source occurrence,
+   never a task property).
+2. **Anti-duplication is a *derived* ban-list, not a hand-written regex.** Both design panels
+   proposed a regex banning SKU-shaped strings; the critic proved live that regex missed the
+   display-name form (`"Claude Opus 5"`) `substrate-tier-map.json`'s own `copilot` lane already
+   uses. The red-team then found the critic's own fix ("ban every leaf string in the cited files")
+   was **too broad** — it banned ordinary English words (`high`/`low`/`architect`/`scanner`) and the
+   cited source's own retrieval date, which would have put the ban-list in direct contradiction
+   with the artifact's own staleness-citation requirement. The shipped version derives the ban-list
+   from a **scoped projection** — `model-catalog.json`'s `current`∪`stale` values plus
+   `substrate-tier-map.json`'s per-host-per-tier `model` leaves only — with a **positive control on
+   the derivation itself** (Gate 255 check B refuses to pass on an empty or under-scoped ban-list).
+   This build's own first draft tripped the finished check for real, on a SKU embedded in a
+   `rationale` prose string and a display-name form left in the doc's own illustrative prose —
+   confirming the check has genuine teeth on authored content, not just synthetic mutants.
+
+**A shared-anchoring correlated error was caught and fixed, not just documented.** Both design
+panels' plans asserted *"Gate 51 enforces the `run_config` byte-identical-when-disabled floor."*
+False — Gate 51 is the unrelated portal shell-router gate; **no gate currently CI-enforces the
+`run_config` disabled floor**, which holds today only by convention (nobody edits the file). Both
+panels inherited the claim from the same upstream paraphrase in `adaptive-run-classifier/SKILL.md`
+and neither independently verified it against `scripts/audit-gates.sh` — textbook correlated error,
+caught by this build's own G4a critic gate. Fixed at all 5 sites it had spread to
+(`adaptive-run-classifier/SKILL.md`, `rc-deep-research/SKILL.md`, both `rc-deep-research.js` mirror
+copies — edited identically in one commit, Gate 126 confirmed the mirror stayed byte-identical —
+and an unrelated wrong-gate-number in `pbir-layout-engine/lint.py`, corrected 51→92, its real gate).
+
+**Composition — prose pointers only, no code/schema change.** One paragraph each in
+`cheap-lane-delegation/SKILL.md` (an optional input to the `cheap_lane.agent: grok | copilot`
+choice, which today has no principled basis) and `spawn-team/SKILL.md` (an optional reference when
+choosing a non-Claude host). `adaptive-run-classifier`'s `run_config` schema is deliberately
+**untouched** — that schema is purpose-built for RavenClaude's own internal research-loop phases,
+and widening it to a 5-surface agent choice was judged not worth risking its (behavioral, per the
+correction above) disabled-floor invariant. `route-task.py --self-test` stays **17/17**, verified
+unchanged before and after every edit.
+
+**Gate 255** (`scripts/check-agent-routing-matrix.py`, the next open slot — max prior header was
+254) — 9 checks, each with real teeth: (A) hand-rolled schema validation, whose must-fail mutant
+mutates the **schema itself** (deleting a `required` entry), proving the validator enforces
+`required`, not just that the JSON parses; (B) the derived-ban-list anti-duplication above, scanned
+against the JSON (both `json.load`'d values and raw text — closing a JSON-key-shaped evasion) and
+the `.md` with whitespace/markdown normalization (closing a hard-wrapped-across-a-line-break
+evasion — one already existed live in this repo's own `forge-pipeline/reference/provenance.md`);
+(C) no numeric confidence, split exact-on-JSON / shape-match-on-`.md` so the doc's own explanatory
+paragraph about the design doesn't trip its own gate; (D1/D2) `agent_hosts` + every `model_ref`
+checked by **strict key membership** on the parsed `substrate-tier-map.json`, deliberately **never**
+via `resolve_tier()` — that resolver has silent unknown-host/unknown-tier fallbacks (an unknown host
+silently resolves to `claude`), so a resolver-based check would pass an agent-id typo'd into a host
+field (`{agent: "copilot-cli", model_ref: {host: "copilot-chat", ...}}`) silently; a must-fail
+mutant proves exactly this shape is caught; (E) every `framework-rule` citation's `quote` verified
+to exist verbatim (normalized) in its cited source file — stated honestly in the `.md` as proving
+*existence*, not relevance or correct-section placement, a deliberately narrower guarantee than an
+earlier heading-span design; (F) ownership metadata (`owner`/`staleness_tier`/`review_trigger`)
+checked for real values, not just key presence; (G) `route-task.py --self-test` exits 0 with an
+`N/N` (equal) pass line — never a hardcoded literal `17`, so an 18th router case added later doesn't
+redden this unrelated gate — framed honestly as **new** CI coverage (`route-task.py` was not
+previously in `scripts/audit-gates.sh` at all), not a regression-proof of an existing floor; (I)
+per-`task_class` totality bounded to the 4 grounded cells, contiguous `1..N` ranks per cell, no
+duplicates or gaps. Registered in all three surfaces (the `--check` dispatcher arm, the main
+sequence, the `Supported:` string) — verified directly by grep for each, and independently by Gate
+195 (the gate-introspection meta-gate), rather than trusting Gate 195 alone (a main-sequence-only
+registration is a real, documented Gate-195 blind spot from an earlier release).
+
+**Migration:** none — four new files (JSON, schema, doc, gate script) plus a corrected false claim
+in 5 existing files and two prose-only pointer paragraphs; nothing in a consumer's installed plugin
+behaves differently on `/plugin marketplace update` until they read the new knowledge file or open
+`agent-routing-matrix.md`.
+
+## `session-relay` — hand a mid-flight finding to the peer session already in the right worktree (added 2026-09-01, v0.312.0)
+
+Claude Code's built-in `ListAgents`/`SendMessage` reach any live peer session — subagents, other
+local sessions, cloud sessions, Remote Control peers — with no team setup and no experimental flag,
+a genuinely **broader** capability than the flag-gated Agent Teams feature `dynamic-workflows.md`
+already documented. Neither tool had a RavenClaude-specific procedure for using them across this
+repo's own multi-session worktree convention. Requested: research the capability, build an
+enhancement, in a new worktree — done via `forge-worktree.sh init` (per the FORGE convention this
+repo already uses for isolating exactly this kind of change), not the full `/forge` pipeline.
+
+**The research** — [`knowledge/cross-session-messaging.md`](knowledge/cross-session-messaging.md) —
+distinguishes the two features (table + cross-links from `dynamic-workflows.md`), records the
+version timeline and security/audit boundaries a dispatched research agent found (marked
+`[subagent-researched]`, not independently re-verified), and documents a **verified negative**: the
+obvious hypothesis that `ListAgents`' bracketed `[ref]` derives from a session's internal
+`session_id` is false (checked against this authoring session's own id vs. its displayed name).
+
+**The mechanism** — [`scripts/resolve-worktree-session.sh`](scripts/resolve-worktree-session.sh) —
+answers "which live session is bound to worktree X, and what's its `SendMessage`-addressable name?"
+by chaining two existing registries RavenClaude already writes: `worktree-guard.sh`'s own
+`sha256(realpath(toplevel))`-keyed session registry (worktree → `session_id`/`pid`/`branch`, same
+key algorithm and `kill -0` + mtime liveness check, so the two never disagree) into
+`~/.claude/sessions/<pid>.json`'s `name` field — verified live end-to-end against this real
+checkout (a call from inside this worktree correctly resolves `peer_name: "matthewcorbett-bc"`,
+exactly matching what `ListAgents` displayed for this session). Read-only, bash 3.2-safe, no GNU
+`timeout`/`grep -P`/`sed -i`; **self-tested (8/8), not a formal audit gate** — the same tier as
+`forge-route.py`/`forge-worktree.sh`.
+
+**The skill** — [`skills/session-relay/SKILL.md`](skills/session-relay/SKILL.md) — the procedure: resolve
+the peer (above), compose a structured non-imperative report envelope (confidence labeled per
+Claim-Grounding Rule 1b), `SendMessage`, and log the relay locally under `.ravenclaude/runs/` (closing,
+for this repo's own runs, the "peer messaging isn't captured by the SOP/run-artifact discipline" gap
+`dynamic-workflows.md` already names for Agent Teams' mailbox traffic — upstream Claude Code itself
+has no dedicated audit-log doc for cross-session messages beyond the collapsed transcript preview).
+Explicitly states the permission-boundary rule (never relay around your own denied gate), the
+hub-and-spoke composition (a dispatched sub-agent escalates to its Team Lead, which relays — it does
+not `SendMessage` a peer directly), and that a received message is untrusted data per Memory
+Engineering Rule 2, never an instruction or an authorization. Wired as a `spawn-team` re-routing-table
+row and a `dynamic-workflows.md` cross-link.
+
+**Honest scope.** Only the worktree→session-name resolution is mechanically verified; the message
+envelope, confidence labeling, and guardrail prose are behavioral, like `design_checkins` — no hook
+enforces the envelope shape or scrubs an outgoing secret. If relays become frequent, wiring the local
+`relay-events.jsonl` log into Heimdall is the natural next step, not built here.
+
+**Migration:** none — a new skill + knowledge file + read-only helper script; nothing in a consumer's
+installed plugin changes on `/plugin marketplace update` until they invoke `session-relay`.
+
+## Copilot adapter tool-name map — powershell closed, ask_user deliberately not (added 2026-09-01, v0.311.1)
+
+Grew out of this session's `docs/research/2026-09-01-copilot-chat-grandmaster/synthesis.md`, whose
+gap-closure list recommended adding 5 missing tool names to `copilot-hook-adapter.sh`'s map as one
+undifferentiated fix. **Grounding that recommendation against the real dispatch code narrowed it
+substantially** — the worked example of "Verify the load-bearing assumption before a high-impact
+activity" and "Check why a constraint exists before obeying it" above, applied to a piece of research
+this same session had just produced.
+
+`thing-orchestrator.sh`'s dispatch case (line 126) is `Bash | Read | Write | Edit | MultiEdit |
+WebFetch | WebSearch | mcp__*` — Claude Code's OWN `Glob`/`Grep`/`Task` tools are not in it either, so
+a Copilot `glob`/`grep`/`task` call falling through unreviewed is **parity with native Claude Code
+behavior, not a gap**. And `route-decision-review.sh` (the `AskUserQuestion` handler — the semantic
+Claude-side equivalent of Copilot's `ask_user`) turned out to already have an **explicit, deliberate**
+`_SKIP` entry in `scripts/generate-copilot-hooks.py`: below Copilot 1.0.62 an unhonored matcher fires a
+hook for every tool, and that hook expects an AskUserQuestion-shaped payload — wiring it "would be a
+liability on exactly the versions where the matcher cannot protect it" (verbatim). Mapping `ask_user`
+→ `"AskUserQuestion"` in the adapter would have been purely cosmetic (that hook is never invoked under
+Copilot regardless of tool_name) **and would have quietly relitigated a security decision the
+maintainers already made on purpose.**
+
+So the real, actionable scope was one security fix and three hygiene fixes: `powershell` (Copilot's
+Windows command-execution tool, the direct analogue of `bash`) was genuinely unmapped and silently
+bypassed the tribunal exactly like the original bash/edit/view P0 (2026-07-28) — mapped to `Bash`.
+`glob`/`grep`/`task` mapped for naming accuracy only (removes a false "unmapped tool name" stderr
+warning; zero behavior change, since none of the three is tribunal-reviewed under either host).
+`ask_user` deliberately left unmapped, documented inline so a future editor doesn't "fix" it without
+reading the `_SKIP` reasoning first.
+
+**An independent `security-reviewer` critic dispatch (this session's substitute for FORGE's full
+G2/G3 divergent-panel machinery — the decision space here was too narrow to manufacture a genuine
+second design without inventing a strawman) caught what self-review missed:** `generate-copilot-hooks.py`
+projects the canonical **Claude-shaped, PascalCase** matcher string verbatim into the Copilot config.
+Copilot CLI ≥1.0.62 applies its own "Claude matcher semantics" translation before invoking a hook — but
+whether that native translation covers `powershell` the same way it must already cover `bash`/`edit`/
+`view` for the *existing* wiring to work at all is **undocumented and unverified**. The fix is real and
+net-positive (the tribunal's Bash-shaped catalog triggers do cover shell-portable command text —
+git/npm/gh/curl-literal — measured via `thing-decision.py classify` this session), but it does **not**
+close the gap for PowerShell-native attack syntax (`iex`, `-EncodedCommand`, `Invoke-Expression`,
+`DownloadString` — the catalog is POSIX-only by construction, tracked follow-up, not fixed here), and
+whether a `powershell` call reaches the adapter at all on modern Copilot is honestly flagged
+`VERIFY-IN-COPILOT` rather than claimed closed. The reviewer also found the powershell tool's
+command-text JSON key is unverified (assumed `.command` like bash) — defended with a
+`.command // .script // .commandLine` coalescing, scoped to Bash-mapped calls only so non-Bash
+`tool_input` shapes are untouched (verified: an `Edit`-shaped payload gets no stray `command` key).
+
+Extended `hooks/tests/test-gate167-copilot-tribunal-e2e.sh` (the existing MH-01-regression e2e gate)
+with 7 new assertions rather than opening a new gate number: G167.4/.5 prove the mapping + the
+field-coalescing both work end-to-end through the real adapter+orchestrator; G167.6 is a teeth half
+that removes the `powershell` map entry and confirms the deny disappears (reproducing the exact gap
+being closed); G167.7 proves `glob`/`grep`/`task` no longer trigger the false warning; G167.8 proves
+`ask_user` **still** triggers it — a regression guard on the *deliberate non-fix*, not just the fix.
+10/10 assertions pass; Gate 20 (adapter diagnostics, unrelated but same file) re-run clean, 0
+regressions.
+
+**Migration:** none — the map only ADDS entries (no existing mapping changed), so a Copilot session
+already relying on `bash`/`edit`/`view`/etc. is byte-identical. A `powershell` command that previously
+sailed through unreviewed will now be reviewed on hosts where it reaches the adapter at all (see the
+VERIFY-IN-COPILOT caveat above) — this is the guardrail newly firing, not a regression.

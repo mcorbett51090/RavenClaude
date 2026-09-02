@@ -181,6 +181,7 @@ on anything you would not also hand write access via a worktree alone.
 | Is this ONE well-defined task cheap enough to route off Claude entirely? | **This skill** |
 | Must a **new session** on another host own the rest (quota, leftover list, plugin-cache reload)? | `session-handoff` — not this skill |
 | Should a sub-agent dispatch downgrade/upgrade tier? | `agent-dispatch-evaluator` (governs sub-agent calls only — see its own `dispatch-config.json`) |
+| Which agent — `grok` or `copilot` — is the better fit for THIS task shape? | Optional: [`../../knowledge/agent-routing-matrix.json`](../../knowledge/agent-routing-matrix.json) (prose pointer only — `cheap_lane.agent` today has no principled basis beyond the operator's own choice; the matrix's task-shape-aware recommendations are one input to that choice, not a required one) |
 
 This skill and `agent-dispatch-evaluator` are **not the same mechanism** and do not
 conflict: the evaluator tunes which *model tier* a Claude sub-agent dispatch uses;

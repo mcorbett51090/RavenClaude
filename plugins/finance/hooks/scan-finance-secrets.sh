@@ -100,6 +100,11 @@ RULE_NAMES=(
   "credit-card-pan"
   "iban"
 )
+# SSN/PAN/IBAN use "(^|[^X])...([^X]|$)" instead of \b for the boundary: \b is a
+# GNU grep extension, not POSIX ERE. Stock/BSD grep -E (macOS) does not define it,
+# so these three rules matched nothing there — a silent fail-open on exactly the
+# highest-sensitivity shapes this gate exists to catch (see _portable.sh's `door 3`
+# precedent for the same GNU-vs-BSD grep class, there for -P instead of \b).
 RULE_RES=(
   "(AKIA|ASIA)[0-9A-Z]{16}"
   "-----BEGIN [A-Z ]*PRIVATE KEY-----"
@@ -107,9 +112,9 @@ RULE_RES=(
   "[Bb]earer[[:space:]]+[A-Za-z0-9._~+/=-]{20,}"
   "client_secret[\"' ]*[:=][[:space:]]*[\"']?[A-Za-z0-9_.~+/=-]{8,}"
   "(api[_-]?key|apikey|api[_-]?secret|secret[_-]?key|access[_-]?token|auth[_-]?token|password|passwd|pwd)[\"' ]*[:=][[:space:]]*[\"']?[^\"'[:space:]]{6,}"
-  "\b[0-9]{3}-[0-9]{2}-[0-9]{4}\b"
-  "\b(4[0-9]{12}([0-9]{3})?|5[1-5][0-9]{14}|3[47][0-9]{13}|6(011|5[0-9]{2})[0-9]{12})\b"
-  "\b[A-Z]{2}[0-9]{2}[A-Z0-9]{11,30}\b"
+  "(^|[^0-9])[0-9]{3}-[0-9]{2}-[0-9]{4}([^0-9]|$)"
+  "(^|[^0-9])(4[0-9]{12}([0-9]{3})?|5[1-5][0-9]{14}|3[47][0-9]{13}|6(011|5[0-9]{2})[0-9]{12})([^0-9]|$)"
+  "(^|[^A-Za-z0-9])[A-Z]{2}[0-9]{2}[A-Z0-9]{11,30}([^A-Za-z0-9]|$)"
 )
 
 findings=""

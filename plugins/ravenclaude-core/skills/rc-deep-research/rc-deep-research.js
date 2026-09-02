@@ -11,7 +11,7 @@
 export const meta = {
   name: "rc-deep-research",
   description:
-    "Deep research harness — fan-out web searches, fetch sources, adversarially verify claims, synthesize a cited report. Includes an inline substrate adapter that reads .ravenclaude/run-config.json once at startup; when enabled:false (the default) all agent() calls are byte-identical to the pre-port baseline (Gate 51).",
+    "Deep research harness — fan-out web searches, fetch sources, adversarially verify claims, synthesize a cited report. Includes an inline substrate adapter that reads .ravenclaude/run-config.json once at startup; when enabled:false (the default) all agent() calls are byte-identical to the pre-port baseline (a behavioral invariant -- no gate currently enforces it).",
   whenToUse:
     "When the user wants a deep, multi-source, fact-checked research report on any topic. BEFORE invoking, check if the question is specific enough to research directly — if underspecified (e.g., 'what car to buy' without budget/use-case/region), ask 2-3 clarifying questions to narrow scope. Then pass the refined question as args, weaving the answers in.",
   phases: [
@@ -48,12 +48,12 @@ const _isoNow = () => "1970-01-01T00:00:00.000Z";
 
 // ─── Substrate adapter (Phase 2 of docs/plans/2026-06-03-adaptive-run-classifier/plan.md) ───
 //
-// INVARIANT (Gate 51): when runCfg.enabled === false, adapterOpts() returns {}
+// INVARIANT (behavioral, not CI-gated): when runCfg.enabled === false, adapterOpts() returns {}
 // (empty object) on every call, so every agent() invocation's effective behaviour
 // is identical to the pre-port runtime-generated baseline.
 //
 // Tier → model mapping (generated from substrate-tier-map.json — 2026-08-14).
-// Default host = claude so Gate 51 disabled path stays Claude-SKU identical.
+// Default host = claude so the disabled path stays Claude-SKU identical (behavioral invariant).
 //   fast     → claude-haiku-4-5-20251001   (no extended thinking — RM6)
 //   balanced → claude-sonnet-5
 //   top      → claude-opus-4-8
@@ -109,7 +109,7 @@ const THINKING_TIERS = new Set(["balanced", "top"]);
 const LONG_TTL_PHASES = new Set(["verify_default", "verify_judgment"]);
 
 function adapterOpts(phaseName, runCfg) {
-  // Gate 51 invariant: disabled → empty opts, byte-identical to baseline.
+  // Disabled-floor invariant (behavioral, not CI-gated): disabled → empty opts, byte-identical to baseline.
   if (!runCfg || !runCfg.enabled) return {};
 
   const tierLabel = (runCfg.tiers && runCfg.tiers[phaseName]) || "balanced";
@@ -440,7 +440,7 @@ const CLASSIFIER_SCHEMA = {
   },
 };
 
-// Baseline knobs matching the pre-port hardcoded constants (Gate 51 floor).
+// Baseline knobs matching the pre-port hardcoded constants (the disabled-floor invariant).
 const BASELINE_KNOBS = {
   votes_per_claim: 3,
   refutations_required: 2,
@@ -584,7 +584,7 @@ const rcRead = await agent(
 
 let runCfg;
 if (!rcRead || !rcRead.found || !rcRead.content || rcRead.content.enabled !== true) {
-  // Absent, unreadable, or explicitly disabled — Gate 51 baseline.
+  // Absent, unreadable, or explicitly disabled — the disabled-floor baseline.
   runCfg = {
     enabled: false,
     schema_version: "1",

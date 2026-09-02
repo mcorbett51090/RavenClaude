@@ -82,6 +82,12 @@ flowchart TD
 
 ## Agent teams & RavenClaude's hub-and-spoke constitution
 
+> **Don't conflate this with the broader, newer cross-session messaging layer.** `ListAgents` +
+> `SendMessage` reach *any* live Claude Code peer — subagents, other local sessions, cloud sessions,
+> Remote Control peers — with no team setup and no experimental flag, and are distinct from the
+> flag-gated feature this section documents. See [`cross-session-messaging.md`](cross-session-messaging.md)
+> for that layer and the [`session-relay`](../skills/session-relay/SKILL.md) skill built on it.
+
 > **Why this section exists.** Agent teams are the one orchestration shape that **partially conflicts** with RavenClaude's [core dispatch rule](../CLAUDE.md) — *"Sub-agents should not freely spawn or directly invoke other sub-agents. Only the Team Lead performs dispatching and orchestration."* The conflict is narrower than it looks, and getting the boundary exact matters before you enable the feature in a guardrailed repo. Facts below are _[verified — official docs ([code.claude.com/docs/en/agent-teams](https://code.claude.com/docs/en/agent-teams)), retrieved 2026-06-20; feature described as of Claude Code v2.1.178]_; it is **experimental and disabled by default**, so re-verify at use.
 
 **What the feature is.** Enabled by setting `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS` to `1` (in `settings.json` `env` or the shell). One session is the **lead**; it spawns **teammates** (each a full, independent Claude Code session with its own context window). The architecture has four parts — **team lead**, **teammates**, a **shared task list** (claim/complete, with file-locking and automatic dependency-unblock), and a **mailbox** (`SendMessage`, always available to a teammate even when its `tools` allowlist restricts everything else). The defining difference from [subagents](https://code.claude.com/docs/en/sub-agents): teammates **communicate directly with each other**, not only report back to the lead.

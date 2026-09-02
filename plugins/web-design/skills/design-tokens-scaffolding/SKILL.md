@@ -145,6 +145,13 @@ Pick W3C-aligned format for forward compatibility:
 
 The `$value`, `$type`, `$description` triple is the W3C convention. References use `{path.to.token}` syntax.
 
+**Optional cross-agent export.** If the tokens need to stay legible to a coding agent operating
+outside this repo's build tooling (a different session, a different host), an emerging
+alpha-stage format — `DESIGN.md` (Google Labs) — exports this same W3C DTCG token set to a single
+git-committed file alongside a Tailwind config. It is an optional additional artifact, not a
+replacement for the pipeline below — see
+[`../../knowledge/design-md-token-interop.md`](../../knowledge/design-md-token-interop.md).
+
 ## 6. Build pipeline
 
 The pipeline is the contract:
@@ -192,6 +199,12 @@ The team uses `bg-accent` not `bg-blue-500`. The Tailwind class set **becomes** 
 
 Shadcn ships with semantic CSS custom properties (`--background`, `--foreground`, `--primary`, etc.) that already match the discipline. The job is to re-point these to your generated tokens, not to invent a parallel system.
 
+**2026 primitive-layer note:** shadcn/ui now defaults new projects to **Base UI** (MUI's headless-primitive library, staffed by several ex-Radix engineers, hit stable v1.0 December 2025) rather than Radix, as Radix's release cadence slowed following its 2026 acquisition by WorkOS — most visible on complex components (Combobox/multi-select). Either primitive still fits this skill's semantic-token discipline unchanged; this only affects which headless-primitive package sits under the generated component layer. See [`../../knowledge/design-sources/additional-sources.md`](../../knowledge/design-sources/additional-sources.md).
+
+### Worked example — tokens as an independently versioned package
+
+**[Shopify Polaris tokens](https://github.com/Shopify/polaris-tokens)** (`@shopify/polaris-tokens`, docs at <https://polaris.shopify.com/>) is a real, currently-maintained case study of §6's discipline taken to its logical conclusion: tokens ship as their **own versioned package** (npm + a Ruby gem), consumed independently of the component library, in a documented monorepo split (`polaris-tokens` / `polaris-react` / docs site). Point to this when a team is deciding whether tokens deserve their own package boundary rather than living inside the component library's build — Polaris is the concrete "yes, and here's how" answer.
+
 ## 7. Audit for drift
 
 Once the system ships, drift is the failure mode:
@@ -236,5 +249,6 @@ Once the system ships, drift is the failure mode:
 - Skill: [`../accessibility-review/SKILL.md`](../accessibility-review/SKILL.md) — color contrast checks live here
 - Template: [`../../templates/design-system-spec.md`](../../templates/design-system-spec.md)
 - Knowledge: [`../../knowledge/design-references.md`](../../knowledge/design-references.md)
+- Knowledge: [`../../knowledge/design-md-token-interop.md`](../../knowledge/design-md-token-interop.md) — the optional `DESIGN.md` cross-agent export
 - Agent: [`../../agents/visual-designer.md`](../../agents/visual-designer.md)
 - Agent: [`../../agents/frontend-implementer.md`](../../agents/frontend-implementer.md)

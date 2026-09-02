@@ -270,7 +270,11 @@ cross_cutting:
         - '(npm|pnpm|yarn)\s+publish'
         - 'cargo\s+publish'
         - 'gh\s+pr\s+merge'
-        - 'curl\b.*(-X\s*DELETE|--request\s+DELETE)'
+        # Scoped ([^|&;\n]*), matching this same entry's push line above — a
+        # bare '.*' let it cross a chained separator (found by
+        # check-trigger-scoping-consistency.py, PR 6 / Phase 9 of the
+        # 2026-08-13 recurring-defect-hardening initiative).
+        - 'curl\b[^|&;\n]*(-X\s*DELETE|--request\s+DELETE)'
   - id: xc.scope-too-broad
     name: Command's blast radius exceeds the stated task
     severity: high
@@ -738,9 +742,13 @@ categories:
         current env DEV and branch protection is explicitly off.
       # Critical but conditionally-allowable (DEV + no protection) — NOT
       # pre_llm_deny. A trigger match routes to the panel, which decides.
+      # Scoped to the push segment ([^|&;\n]*), matching srm.force-push right
+      # below — a bare '.*' let this cross a chained separator into an
+      # unrelated later command (found by check-trigger-scoping-consistency.py,
+      # PR 6 / Phase 9 of the 2026-08-13 recurring-defect-hardening initiative).
       triggers:
         regex:
-          - 'git\s+push\b.*\b(origin\s+)?(main|master)(\s|$)'
+          - 'git\s+push\b[^|&;\n]*\b(origin\s+)?(main|master)(\s|$)'
     - id: srm.force-push
       name: git push --force / -f / +<refspec> (without --force-with-lease)
       severity: critical

@@ -2739,7 +2739,7 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-08-25",
+      "last_verified": "2026-09-01",
       "refresh_when": null,
       "sources": [
         {
@@ -2804,7 +2804,7 @@
         "plugins/ravenclaude-core/hooks/triage-outcome.sh",
         "plugins/ravenclaude-core/hooks/worktree-guard.sh"
       ],
-      "covers_digest": "sha256:caa608648036623271000d146bdec655768843ec0fb38ebe40cdcfedf5e5e80a",
+      "covers_digest": "sha256:f8c8003b5d65b93b2e3ee26c1b04bee74fb6ff6ef7688d278983fe9eafdbaea7",
       "nuance": "A hook writing to stderr at `exit 0` reaches the model on no event; only `hookSpecificOutput.additionalContext` and `updatedToolOutput` are delivered, so `_advise.sh` advised the terminal for its entire service life.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -2851,7 +2851,7 @@
       "covers": [
         "plugins/ravenclaude-core/hooks/hooks.json"
       ],
-      "covers_digest": "sha256:1666112d0fa4644677177074443743ce511f091ff1a4eaacd44e67dc9d3e2f61",
+      "covers_digest": "sha256:f05c0f96e57b5e27ef6273ec2c44d9632b2fb1d9a60488a1c3edaf20a35b402a",
       "nuance": "Two `additionalContext` emitters on one event concatenate rather than last-write-wins, but two `updatedToolOutput` emitters replace, so the second silently discards the first.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -2899,7 +2899,7 @@
         "plugins/ravenclaude-core/scripts/route-task.py",
         "plugins/ravenclaude-core/skills/cheap-lane-delegation/SKILL.md"
       ],
-      "covers_digest": "sha256:40a22d94b0a8080e593d8bdc4cbc84da9ccecd825113bf6a36519fca3ee0a2fb",
+      "covers_digest": "sha256:09226b7c267fd24f258bbb3775ea10ccec769005632b24d4d2db2961b0cdc7b5",
       "nuance": "Copilot CLI's `--model auto` rejects `--effort` outright at runtime — a real error, not a doc gap — so the Copilot lane differentiates by timeout budget only unless a caller pins an effort-capable model.",
       "nuance_evidence": {
         "measured": "2026-08-26",
@@ -2945,7 +2945,7 @@
         "scripts/sync-plugin-versions.py",
         "scripts/generate-copilot-plugin.py"
       ],
-      "covers_digest": "sha256:856d6142de137af7113b86d806e8915a68179a760ddcaa315f18bb1b653c98c1",
+      "covers_digest": "sha256:6d33ded51d4c565faccaf0015ca37e9db7d227d23714e6079b22985bd5e099a2",
       "nuance": "The cache key is the `version` string, never a content hash, so `sync-plugin-versions.py` can report clean while every installed session keeps running the old `hooks/` code.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -3006,7 +3006,7 @@
         "scripts/inventory-coverage.py",
         "scripts/inventory-nuance-judge.py"
       ],
-      "covers_digest": "sha256:096555e76186bc2afff0a7a9a267004525a8084d46d08f347ce33cde9a7a4ed1",
+      "covers_digest": "sha256:785a2548849b3afb733b7415ba6a8175ea90bf9381bba418d65098966a8c5295",
       "nuance": "The teeth bit is the exit a tool own CHECK returns on a planted defect, never the exit `--must-fail` itself returns: `premise-gate.py` denies at `exit 0` while `sync-plugin-versions.py` reddens at `exit 2`, so an auditor that hard-codes one number can never be right for both.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -3363,7 +3363,7 @@
         "scripts/inventory-sweep.py",
         "scripts/inventory-coverage.py"
       ],
-      "covers_digest": "sha256:2983a8b768b4ea2b038fa8cdfbd5478d983b380f00b5f5aba077d5ae2f40d28e",
+      "covers_digest": "sha256:2851b36fffbcd7dbfe35ed1ba03b96b39b2259a8db26dac3f1b08324864dcf46",
       "nuance": "`inventory-census.py` reads `git ls-files`, never a filesystem walk, so an untracked file cannot move the denominator; a `concepts.json`-derived count would shrink with the enumeration and stay green.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -3413,7 +3413,7 @@
         "scripts/generate-dashboards.py",
         "scripts/generate-index-dashboard.py"
       ],
-      "covers_digest": "sha256:5f7eae16a02a5fea66c7a845d3064296652405f79dd588669746d8d6c5a8d505",
+      "covers_digest": "sha256:15f3e392be2a9411ac61ffb08950bb1ef875b9feef331761c064087c85aa1eae",
       "nuance": "`ISLANDED_PANEL_COST` is a flat 2 because the parser reads the payload as CDATA, so `check-dom-budget.py` cannot fire on `learn-payload` no matter how far past 23,861 elements it grows.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -3461,7 +3461,7 @@
         "scripts/inventory-sweep.py",
         "scripts/audit-prose-rendering-path.py"
       ],
-      "covers_digest": "sha256:ce946fc704195d1519164d4d58837add70d2e069a42b5c43c4173f4c15131e0c",
+      "covers_digest": "sha256:d8140bb2f69eb22a1d2b0b39905dbfeef8a4f9e9b5d27d74b4c9588b5d2abf8e",
       "nuance": "A script that never calls `argparse` simply runs, so asking 183 of them for `--must-fail-convention` wrote `forge-route.py` to a stray file rather than answering.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -3578,6 +3578,249 @@
         "strength": "executed",
         "class": "script-selftest",
         "probe": "plugins/ravenclaude-core/hooks/tests/test-stall-watch.py",
+        "teeth_exit": 1
+      },
+      "strength_badge": "Probed"
+    },
+    {
+      "id": "analog-closeness-quality-bar-is-independent-of-score",
+      "title": "A high closeness score can still fail the quality bar",
+      "category": "Inventory — measured mechanisms",
+      "kind": "ravenclaude-built",
+      "order": 914,
+      "summary": "analog-closeness-scorecard's weighted score and its observed-vs-inferred quality bar are scored independently — a row can rank high on arithmetic and still be dropped.",
+      "see_also": [],
+      "widget": null,
+      "try_it": null,
+      "node_links": {},
+      "last_verified": "2026-08-30",
+      "refresh_when": null,
+      "sources": [
+        {
+          "label": "Q2 of the analog-repos-gap-fill leftovers, unparked on owner request",
+          "url": "https://github.com/mcorbett51090/RavenClaude/pull/1047"
+        }
+      ],
+      "body_md": "## What a reader would have assumed instead\n\nA single weighted-score threshold decides closeness — a row that scores high enough on the\n`3M+3H+3G+2O+2E+2I+2T+1V` arithmetic passes.\n\n## The discriminator\n\ncontrol: `compute()` on `{M:0,H:0,G:0,O:2,E:2,I:2,T:2,V:2}` with every dimension `kind:\"inf\"`\nreturns a weighted score >= 18 (well into the closeness-4 band) AND `quality_bar_pass: False`,\nwith both failure reasons named (`none of M/H/G scored >= 1` and the observed-count shortfall).\nMeasured 2026-08-30: the survey's own quality bar — at least one of M/H/G >= 1, and at least 3 of\n8 dimensions actually observed — is checked independently of the arithmetic total, exactly\nmirroring the 2026-08-14 survey's own `dropped.md` discipline.\n\n## Why it matters\n\nFalsifier: the same high-arithmetic, all-inferred row passing `quality_bar_pass`.\n\nProbe: `plugins/ravenclaude-core/skills/analog-closeness-scorecard/score_closeness.py`",
+      "diagram": null,
+      "diagram_mini": null,
+      "steps": [],
+      "svg": null,
+      "svg_mini": null,
+      "entry_class": "inventory",
+      "covers": [
+        "plugins/ravenclaude-core/skills/analog-closeness-scorecard/SKILL.md",
+        "plugins/ravenclaude-core/skills/analog-closeness-scorecard/score_closeness.py"
+      ],
+      "covers_digest": "sha256:ab0fb7dd893151b6c78de30fd20be77d1dcd09e9825eb01d9b6a7408992f2bf9",
+      "nuance": "A row scoring M=H=G=0 (arithmetic weighted >=18 via O/E/I/T/V alone) with every dimension inferred, not observed, still fails the quality bar — the two checks are independent, not one gate.",
+      "nuance_evidence": {
+        "measured": "2026-08-30",
+        "control": "compute({M:0,H:0,G:0,O:2,E:2,I:2,T:2,V:2}, all-inf) returns weighted>=18 AND quality_bar_pass=False with 2 named reasons in the self-test",
+        "falsifier": "the same high-arithmetic row passing quality_bar_pass",
+        "probe": "plugins/ravenclaude-core/skills/analog-closeness-scorecard/score_closeness.py"
+      },
+      "nuance_source": null,
+      "verify": {
+        "tier": "effect",
+        "strength": "executed",
+        "class": "script-selftest",
+        "probe": "plugins/ravenclaude-core/skills/analog-closeness-scorecard/score_closeness.py",
+        "teeth_exit": 1
+      },
+      "strength_badge": "Probed"
+    },
+    {
+      "id": "mcp-quarantine-matcher-is-a-prefix",
+      "title": "The MCP quarantine hook matches a prefix, not WebFetch's exact string",
+      "category": "Inventory — measured mechanisms",
+      "kind": "ravenclaude-built",
+      "order": 914,
+      "summary": "sanitize-mcp-output.py extends F1's WebFetch quarantine to mcp__* tool results — but the tool-name match has to be a prefix check, and a substring match had to be deliberately excluded.",
+      "see_also": [],
+      "widget": null,
+      "try_it": null,
+      "node_links": {},
+      "last_verified": "2026-08-30",
+      "refresh_when": null,
+      "sources": [
+        {
+          "label": "Q1/L4 of the analog-repos-gap-fill leftovers, unparked on owner request",
+          "url": "https://github.com/mcorbett51090/RavenClaude/pull/928"
+        }
+      ],
+      "body_md": "## What a reader would have assumed instead\n\nCopy F1's WebFetch matcher verbatim (`tool_name == \"WebFetch\"`) and swap the string — an\nexact-match check would silently never fire, because MCP tool names are dynamic\n(`mcp__<server>__<verb>`), not a fixed string.\n\n## The discriminator\n\ncontrol: `handle()` on a payload naming `not_mcp__lookalike` returns `None` (no-op) in the\nself-test — proving the prefix check correctly rejects a substring match, not just an\nexact-match miss.\nMeasured 2026-08-30: the matcher is `tool_name.startswith(\"mcp__\")`, a prefix check — and the\nself-test asserts both the negative direction (a real MCP name is quarantined) and the false-prefix\ndirection (a name merely containing `mcp__` is not).\n\n## Why it matters\n\nFalsifier: the same fixture producing a sanitize envelope instead of `None`.\n\nProbe: `plugins/ravenclaude-core/hooks/sanitize-mcp-output.py` (`--self-test`)",
+      "diagram": null,
+      "diagram_mini": null,
+      "steps": [],
+      "svg": null,
+      "svg_mini": null,
+      "entry_class": "inventory",
+      "covers": [
+        "plugins/ravenclaude-core/hooks/sanitize-mcp-output.sh",
+        "plugins/ravenclaude-core/hooks/sanitize-mcp-output.py"
+      ],
+      "covers_digest": "sha256:bb407a5232955ea122bc4bbef58c24e4f5c7bc8edc5f95e2ea6fac2752b6503d",
+      "nuance": "F1's WebFetch hook matches one exact tool name. This one must be a PREFIX check (mcp__ names are dynamic) — and a tool name merely CONTAINING 'mcp__' without starting with it must NOT match.",
+      "nuance_evidence": {
+        "measured": "2026-08-30",
+        "control": "handle() on {tool_name: 'not_mcp__lookalike', ...} returns None (no-op) in the self-test, proving the prefix check rejects a substring match",
+        "falsifier": "the same fixture producing a sanitize envelope instead of None",
+        "probe": "plugins/ravenclaude-core/hooks/sanitize-mcp-output.py"
+      },
+      "nuance_source": "plugins/ravenclaude-core/hooks/sanitize-mcp-output.py:1-140 (_is_mcp_tool + handle)",
+      "verify": {
+        "tier": "effect",
+        "strength": "executed",
+        "class": "script-selftest",
+        "probe": "plugins/ravenclaude-core/hooks/sanitize-mcp-output.py",
+        "teeth_exit": 1
+      },
+      "strength_badge": "Probed"
+    },
+    {
+      "id": "precompact-digest",
+      "title": "The PreCompact digest hook never waits on its own engine",
+      "category": "Inventory — measured mechanisms",
+      "kind": "ravenclaude-built",
+      "order": 915,
+      "summary": "precompact-digest.sh detaches its engine call so the archival hook can never turn into a synchronous ceiling on a turn.",
+      "see_also": [],
+      "widget": null,
+      "try_it": null,
+      "node_links": {},
+      "last_verified": "2026-09-01",
+      "refresh_when": null,
+      "sources": [
+        {
+          "label": "P2 of the precompact-critical-context FORGE plan, hardened per the P4 security review",
+          "url": "plugins/ravenclaude-core/hooks/precompact-digest.sh"
+        }
+      ],
+      "body_md": "## What a reader would have assumed instead\n\nThat a `PreCompact` archival hook calling a Python digest engine would run synchronously — wait for\nthe engine, then return — the same shape most hooks in this repo use for a short-lived call.\n\n## The discriminator\n\ncontrol: driven against a deliberately 3s-slow stub delegate — the hook returned in under 2000ms while\nthe digest file appeared only afterward, proving detachment structurally rather than assuming the real\npath happens to be fast.\n\nMeasured 2026-09-01: `precompact-digest.sh` backgrounds its engine call (`( _pcd_worker & )` inside a\nsubshell that itself exits immediately) rather than waiting on it. A prior synchronous design ran the\nengine under a 10s ceiling — far below the engine's own 60s/90s subprocess budgets — so on the real\npath no digest was ever produced, while any egress to an external processor had already happened\nbefore the reader was killed. The detached shape fixes both: this hook adds no ceiling of its own on\ntop of the engine's own internal timeouts, and it never blocks a turn regardless of how long extraction\ntakes.\n\n## Why it matters\n\nFalsifier: the hook blocking on the digest engine before returning.\n\nProbe: `plugins/ravenclaude-core/hooks/tests/test-gate254-precompact-digest.sh`\n\n`PreCompact` fires just before a session's context is summarized away — the same moment its own\ndigest engine is racing to read the untouched transcript. A hook that can block on that engine, even\nbriefly, risks becoming exactly the \"data left, no benefit arrived\" failure the P4 security review\nfound in the prior design: egress happens, but the digest the hook was supposed to produce never does,\nbecause the reader was killed first. Detachment removes that race by construction rather than by\ntuning a timeout.",
+      "diagram": null,
+      "diagram_mini": null,
+      "steps": [],
+      "svg": null,
+      "svg_mini": null,
+      "entry_class": "inventory",
+      "covers": [
+        "plugins/ravenclaude-core/hooks/precompact-digest.sh",
+        "plugins/ravenclaude-core/scripts/precompact-digest.py"
+      ],
+      "covers_digest": "sha256:aeac8a553d4278ae3b506bbb99d9bfbb80af9cb6b0472c867d88d29975cd3d31",
+      "nuance": "The hook returns near-instantly even when its digest engine takes seconds: extraction runs as a detached, disowned worker the hook never waits on, so a digest (when one appears at all) shows up seconds after the hook process has already exited.",
+      "nuance_evidence": {
+        "measured": "2026-09-01",
+        "control": "driven against a deliberately 3s-slow stub delegate: the hook returned in under 2000ms while the digest file appeared only afterward, proving detachment structurally rather than assuming the real path happens to be fast",
+        "falsifier": "the hook blocking on the digest engine before returning (LAST_MS exceeding the 2000ms bound in Gate 254's success case)",
+        "probe": "plugins/ravenclaude-core/hooks/tests/test-gate254-precompact-digest.sh"
+      },
+      "nuance_source": "plugins/ravenclaude-core/hooks/precompact-digest.sh:28-46",
+      "verify": {
+        "tier": "effect",
+        "strength": "executed",
+        "class": "hook-selftest",
+        "probe": "plugins/ravenclaude-core/hooks/tests/test-gate254-precompact-digest.sh",
+        "teeth_exit": 1
+      },
+      "strength_badge": "Probed"
+    },
+    {
+      "id": "agent-routing-matrix-ban-list-scope",
+      "title": "An anti-duplication ban-list derived from 'every cited leaf string' bans the artifact's own citation discipline",
+      "category": "Inventory — measured mechanisms",
+      "kind": "ravenclaude-built",
+      "order": 916,
+      "summary": "Gate 255's vendor-fact ban-list is a scoped projection, not every leaf string in the cited files -- the wider version bans ordinary words and the source's own retrieval date.",
+      "see_also": [],
+      "widget": null,
+      "try_it": null,
+      "node_links": {},
+      "last_verified": "2026-09-01",
+      "refresh_when": null,
+      "sources": [
+        {
+          "label": "this build's own G4a critic (correlated-error pass) and G5 red-team, PR",
+          "url": "https://github.com/mcorbett51090/RavenClaude/pull/1067"
+        }
+      ],
+      "body_md": "## What a reader would have assumed instead\n\nThat the safest anti-duplication design is the broadest one: walk every leaf string in the files\nthe artifact cites (`substrate-tier-map.json`, `model-catalog.json`) and ban all of them from\nappearing in the routing matrix or its doc. More strings banned reads as more protection.\n\n## The discriminator\n\ncontrol: the same derivation scoped to only substrate-tier-map.json's per-host-per-tier `model`\nleaves plus model-catalog.json's id lists produced a ban-list with zero English-word or date\nentries, while still catching the display-name SKU form (`Claude Opus 5`) a hand-written regex had\nmissed\n\nMeasured 2026-09-01: banning *every* leaf string in the cited files means banning\n`substrate-tier-map.json`'s own Grok-lane `effort`/`perspective` values (`high`, `low`,\n`architect`, `scanner`, `critic`) — ordinary English words a routing-matrix document cannot avoid —\n**and** that file's own `retrieved` date. The artifact's own staleness/citation discipline requires\nstamping a cited fact with its retrieval date, so the \"ban everything\" derivation would forbid the\nartifact from citing its own primary source's freshness. The shipped derivation is scoped to just\nthe `model` field of each tier-map row plus the catalog's id lists — a narrower set that still\ncontains the display-name form (`\"Claude Opus 5\"`) a naive regex-based ban-list missed in an earlier\ndesign, without banning the words and dates a real `.md` cannot avoid using.\n\n## Why it matters\n\nGate 255 check B's own positive control (an empty or under-scoped derivation must not pass green)\nexists **because** this trap is easy to reintroduce: \"derive from more of the cited file\" reads as\nstrictly safer right up until the derivation swallows the file's own metadata. A future edit that\nwidens the derivation back toward \"every leaf string\" would silently make the check unpassable by\nany honestly-dated `.md` — the exact self-disabling-detector shape this repo has recorded before,\njust reached from the opposite direction (over-broad instead of under-broad).\n\nFalsifier: a future `substrate-tier-map.json` host whose tier row's `model` field itself contains a\ncommon English word or a bare date — which would re-admit a false positive under the scoped\nderivation too, and would need the derivation narrowed further (e.g. to a value shape check) rather\nthan widened.",
+      "diagram": null,
+      "diagram_mini": null,
+      "steps": [],
+      "svg": null,
+      "svg_mini": null,
+      "entry_class": "inventory",
+      "covers": [
+        "plugins/ravenclaude-core/scripts/check-agent-routing-matrix.py",
+        "plugins/ravenclaude-core/knowledge/agent-routing-matrix.json",
+        "plugins/ravenclaude-core/knowledge/agent-routing-matrix.schema.json",
+        "plugins/ravenclaude-core/knowledge/agent-routing-matrix.md"
+      ],
+      "covers_digest": "sha256:7f2233627795be36ade413f660d231c26ca057b576b2fbb0f2516780985158ea",
+      "nuance": "Deriving the ban-list from every leaf string in the cited files bans ordinary English words (the grok lane's own 'high'/'low'/'architect'/'scanner') and the source's own retrieval date -- contradicting the artifact's own citation requirement.",
+      "nuance_evidence": {
+        "measured": "2026-09-01",
+        "control": "the same derivation scoped to only substrate-tier-map.json's per-host-per-tier `model` leaves plus model-catalog.json's id lists produced a ban-list with zero English-word or date entries, while still catching the display-name SKU form (`Claude Opus 5`) a hand-written regex had missed",
+        "falsifier": "a future substrate-tier-map.json host whose tier row's `model` field itself contains a common English word or a bare date, which would re-admit a false positive under the scoped derivation too",
+        "probe": "plugins/ravenclaude-core/scripts/check-agent-routing-matrix.py"
+      },
+      "nuance_source": "plugins/ravenclaude-core/scripts/check-agent-routing-matrix.py:219-229",
+      "verify": {
+        "tier": "effect",
+        "strength": "executed",
+        "class": "gate-self-test",
+        "probe": "plugins/ravenclaude-core/scripts/check-agent-routing-matrix.py --must-fail",
+        "teeth_exit": 3
+      },
+      "strength_badge": "Probed"
+    },
+    {
+      "id": "session-relay-two-hop-join",
+      "title": "The peer session's SendMessage name is not derivable from its own session_id",
+      "category": "Inventory — measured mechanisms",
+      "kind": "ravenclaude-built",
+      "order": 917,
+      "summary": "resolve-worktree-session.sh's two-hop worktree->pid->name join exists because the obvious one-hop guess -- deriving the ListAgents ref from session_id -- is false.",
+      "see_also": [],
+      "widget": null,
+      "try_it": null,
+      "node_links": {},
+      "last_verified": "2026-09-01",
+      "refresh_when": null,
+      "sources": [
+        {
+          "label": "session-relay build, 2026-09-01 -- live ListAgents/session-registry comparison in this authoring session",
+          "url": "plugins/ravenclaude-core/knowledge/cross-session-messaging.md"
+        }
+      ],
+      "body_md": "## What a reader would have assumed instead\n\nThat a session's `ListAgents`-displayed name/ref is some transform of its own `session_id` —\na hex prefix, a hash, something derivable — so a script wanting to `SendMessage` a specific\npeer could compute the address from an id it already has (e.g. from a registry keyed by\n`session_id`, which is exactly what `worktree-guard.sh`'s own session files use).\n\n## The discriminator\n\ncontrol: this authoring session's own `session_id` is `d20158bb-d28e-497d-9eb5-87fcaff2c96e`;\n`ListAgents`, in the same turn, displayed this session as `matthewcorbett-bc [2eb70b]` — no\nsubstring of the id appears in the ref, and the derivation hypothesis fails on direct\ninspection, not by absence of testing.\n\nWhat *does* match: `~/.claude/sessions/<pid>.json`'s own `name` field for that same pid read\nback `\"matthewcorbett-bc\"` — the exact string `ListAgents` shows, with no `[ref]` suffix\nneeded (`SendMessage`'s own contract: a bare name matching exactly one live agent delivers).\nSo `resolve-worktree-session.sh` performs two hops instead of one: worktree path →\n`sha256(realpath(toplevel))` → `worktree-guard.sh`'s registry → live `pid`/`branch` → that\npid's `~/.claude/sessions/<pid>.json` → `name`. Verified end-to-end against this real checkout,\nnot just the fixture self-test (8/8): a call from inside this worktree returned\n`peer_name: \"matthewcorbett-bc\"`, matching the live `ListAgents` row exactly.\n\n## Why it matters\n\nFalsifier: a live session whose registry `name` field disagreed with its own `ListAgents`\ndisplay — none was found this session, but the entry stays falsifiable rather than assumed.\n\nProbe: `plugins/ravenclaude-core/scripts/resolve-worktree-session.sh --self-test` (8/8).\n\nA cross-session relay tool that guessed the peer's address from `session_id` (the field every\nother RavenClaude registry — `worktree-guard.sh`, the run-artifact substrate, the hook-event\nlog — is keyed on) would silently address nobody: `SendMessage` would either error on an\nunmatched name or, worse, land on a coincidentally-similar unrelated session. The two-hop join\nis not an optimization over a simpler one-hop lookup; the one-hop lookup does not exist.",
+      "diagram": null,
+      "diagram_mini": null,
+      "steps": [],
+      "svg": null,
+      "svg_mini": null,
+      "entry_class": "inventory",
+      "covers": [
+        "plugins/ravenclaude-core/scripts/resolve-worktree-session.sh",
+        "plugins/ravenclaude-core/skills/session-relay/SKILL.md",
+        "plugins/ravenclaude-core/knowledge/cross-session-messaging.md"
+      ],
+      "covers_digest": "sha256:7015365f398eb00723c9f8c7d8355a9304eb5948c9929b9a06089e0d85fa5b42",
+      "nuance": "ListAgents' bracketed [ref] does not derive from a session's session_id: this authoring session's own id (d20158bb-...) shares no substring with its displayed [2eb70b]. The real join is worktree -> worktree-guard's pid -> that pid's ~/.claude/sessions/<pid>.json 'name' field, which DOES match the ListAgents display.",
+      "nuance_evidence": {
+        "measured": "2026-09-01",
+        "control": "resolve-worktree-session.sh run from inside this session's own worktree resolved session_id d20158bb-d28e-497d-9eb5-87fcaff2c96e and peer_name matthewcorbett-bc; ListAgents called in the same turn showed this session as matthewcorbett-bc [2eb70b] -- the name matched exactly, the bracketed ref shares no substring with the session_id.",
+        "falsifier": "a session whose ~/.claude/sessions/<pid>.json 'name' field disagreed with its own ListAgents-displayed name; none was found in the 13 peers enumerated this session",
+        "probe": "plugins/ravenclaude-core/scripts/resolve-worktree-session.sh"
+      },
+      "nuance_source": "plugins/ravenclaude-core/knowledge/cross-session-messaging.md \"The correlation problem\"",
+      "verify": {
+        "tier": "effect",
+        "strength": "executed",
+        "class": "script-selftest",
+        "probe": "plugins/ravenclaude-core/scripts/resolve-worktree-session.sh",
         "teeth_exit": 1
       },
       "strength_badge": "Probed"
