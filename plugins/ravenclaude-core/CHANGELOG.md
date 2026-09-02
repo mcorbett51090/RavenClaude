@@ -41,6 +41,29 @@ All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the 
   Fixed at all 5 sites in one commit; Gate 126 (the mirror byte-identity gate) confirmed the two
   `.js` copies stayed identical throughout.
 
+## 0.311.1 — 2026-09-01
+
+### Fixed
+
+- **`copilot-hook-adapter.sh`'s tool-name map was missing `powershell`, Copilot's Windows
+  command-execution tool** — the direct analogue of `bash`, and until now unmapped, so a `powershell`
+  command silently bypassed the command-review tribunal and `guard-web-access.sh` under Copilot exactly
+  like the original bash/edit/view P0 (2026-07-28). Mapped to `Bash`, with a defensive
+  `.command // .script // .commandLine` coalescing (the exact JSON key Copilot's `powershell` tool
+  uses for its command text is not docs-verified, so this doesn't assume `.command`). Security-reviewed
+  (verdict CLEAR-WITH-CHANGES, applied): the fix is real and net-positive for shell-portable command
+  text, but does NOT close the gap for PowerShell-native attack syntax (`iex`, `-EncodedCommand`, …) —
+  the tribunal's catalog triggers are POSIX-only by construction (tracked follow-up, not fixed here) —
+  and whether a `powershell` call even reaches the adapter on Copilot CLI ≥1.0.62 depends on
+  undocumented native matcher-translation behavior, honestly flagged VERIFY-IN-COPILOT rather than
+  claimed closed. `glob`/`grep`/`task` also mapped (naming-accuracy hygiene only — Claude Code's own
+  dispatch case doesn't tribunal-review those tool types either, so this only removes a false
+  "unmapped tool name" warning, no behavior change). `ask_user` deliberately left unmapped — mapping it
+  to `AskUserQuestion` would misrepresent `generate-copilot-hooks.py`'s own explicit decision to never
+  wire `route-decision-review.sh` for Copilot. Extended `test-gate167-copilot-tribunal-e2e.sh` with 7
+  new assertions (incl. a teeth half reproducing the closed gap) — 10/10 pass. Grounded in this
+  session's Copilot Chat/CLI research: `docs/research/2026-09-01-copilot-chat-grandmaster/synthesis.md`.
+
 ## 0.310.1 — 2026-09-01
 
 ### Fixed

@@ -3653,3 +3653,63 @@ registration is a real, documented Gate-195 blind spot from an earlier release).
 in 5 existing files and two prose-only pointer paragraphs; nothing in a consumer's installed plugin
 behaves differently on `/plugin marketplace update` until they read the new knowledge file or open
 `agent-routing-matrix.md`.
+
+## Copilot adapter tool-name map — powershell closed, ask_user deliberately not (added 2026-09-01, v0.311.1)
+
+Grew out of this session's `docs/research/2026-09-01-copilot-chat-grandmaster/synthesis.md`, whose
+gap-closure list recommended adding 5 missing tool names to `copilot-hook-adapter.sh`'s map as one
+undifferentiated fix. **Grounding that recommendation against the real dispatch code narrowed it
+substantially** — the worked example of "Verify the load-bearing assumption before a high-impact
+activity" and "Check why a constraint exists before obeying it" above, applied to a piece of research
+this same session had just produced.
+
+`thing-orchestrator.sh`'s dispatch case (line 126) is `Bash | Read | Write | Edit | MultiEdit |
+WebFetch | WebSearch | mcp__*` — Claude Code's OWN `Glob`/`Grep`/`Task` tools are not in it either, so
+a Copilot `glob`/`grep`/`task` call falling through unreviewed is **parity with native Claude Code
+behavior, not a gap**. And `route-decision-review.sh` (the `AskUserQuestion` handler — the semantic
+Claude-side equivalent of Copilot's `ask_user`) turned out to already have an **explicit, deliberate**
+`_SKIP` entry in `scripts/generate-copilot-hooks.py`: below Copilot 1.0.62 an unhonored matcher fires a
+hook for every tool, and that hook expects an AskUserQuestion-shaped payload — wiring it "would be a
+liability on exactly the versions where the matcher cannot protect it" (verbatim). Mapping `ask_user`
+→ `"AskUserQuestion"` in the adapter would have been purely cosmetic (that hook is never invoked under
+Copilot regardless of tool_name) **and would have quietly relitigated a security decision the
+maintainers already made on purpose.**
+
+So the real, actionable scope was one security fix and three hygiene fixes: `powershell` (Copilot's
+Windows command-execution tool, the direct analogue of `bash`) was genuinely unmapped and silently
+bypassed the tribunal exactly like the original bash/edit/view P0 (2026-07-28) — mapped to `Bash`.
+`glob`/`grep`/`task` mapped for naming accuracy only (removes a false "unmapped tool name" stderr
+warning; zero behavior change, since none of the three is tribunal-reviewed under either host).
+`ask_user` deliberately left unmapped, documented inline so a future editor doesn't "fix" it without
+reading the `_SKIP` reasoning first.
+
+**An independent `security-reviewer` critic dispatch (this session's substitute for FORGE's full
+G2/G3 divergent-panel machinery — the decision space here was too narrow to manufacture a genuine
+second design without inventing a strawman) caught what self-review missed:** `generate-copilot-hooks.py`
+projects the canonical **Claude-shaped, PascalCase** matcher string verbatim into the Copilot config.
+Copilot CLI ≥1.0.62 applies its own "Claude matcher semantics" translation before invoking a hook — but
+whether that native translation covers `powershell` the same way it must already cover `bash`/`edit`/
+`view` for the *existing* wiring to work at all is **undocumented and unverified**. The fix is real and
+net-positive (the tribunal's Bash-shaped catalog triggers do cover shell-portable command text —
+git/npm/gh/curl-literal — measured via `thing-decision.py classify` this session), but it does **not**
+close the gap for PowerShell-native attack syntax (`iex`, `-EncodedCommand`, `Invoke-Expression`,
+`DownloadString` — the catalog is POSIX-only by construction, tracked follow-up, not fixed here), and
+whether a `powershell` call reaches the adapter at all on modern Copilot is honestly flagged
+`VERIFY-IN-COPILOT` rather than claimed closed. The reviewer also found the powershell tool's
+command-text JSON key is unverified (assumed `.command` like bash) — defended with a
+`.command // .script // .commandLine` coalescing, scoped to Bash-mapped calls only so non-Bash
+`tool_input` shapes are untouched (verified: an `Edit`-shaped payload gets no stray `command` key).
+
+Extended `hooks/tests/test-gate167-copilot-tribunal-e2e.sh` (the existing MH-01-regression e2e gate)
+with 7 new assertions rather than opening a new gate number: G167.4/.5 prove the mapping + the
+field-coalescing both work end-to-end through the real adapter+orchestrator; G167.6 is a teeth half
+that removes the `powershell` map entry and confirms the deny disappears (reproducing the exact gap
+being closed); G167.7 proves `glob`/`grep`/`task` no longer trigger the false warning; G167.8 proves
+`ask_user` **still** triggers it — a regression guard on the *deliberate non-fix*, not just the fix.
+10/10 assertions pass; Gate 20 (adapter diagnostics, unrelated but same file) re-run clean, 0
+regressions.
+
+**Migration:** none — the map only ADDS entries (no existing mapping changed), so a Copilot session
+already relying on `bash`/`edit`/`view`/etc. is byte-identical. A `powershell` command that previously
+sailed through unreviewed will now be reviewed on hosts where it reaches the adapter at all (see the
+VERIFY-IN-COPILOT caveat above) — this is the guardrail newly firing, not a regression.

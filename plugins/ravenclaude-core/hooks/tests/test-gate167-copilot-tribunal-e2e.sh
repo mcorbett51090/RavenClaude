@@ -33,6 +33,23 @@
 # gate would catch its return. A gate for a silent failure is worthless unless it
 # has been watched failing.
 #
+# EXTENDED 2026-09-01 for the powershell/glob/grep/task/ask_user tool-name-map fix
+# (docs/research/2026-09-01-copilot-chat-grandmaster/synthesis.md gap-closure item #1,
+# refined against the real dispatch code in
+# .ravenclaude/runs/forge/copilot-adapter-tool-names/claims-table.md):
+#   G167.4  powershell (.command key) -> Bash -> tribunal -> deny
+#   G167.5  powershell (.script key) -> the .command//.script//.commandLine
+#           coalescing still resolves the command text -> deny
+#   G167.6  TEETH — without the powershell->Bash map entry, the deny disappears
+#           (reproduces the gap this fix closes)
+#   G167.7  glob/grep/task map cleanly (naming-accuracy hygiene fix — Claude's own
+#           dispatch case doesn't tribunal-review Glob/Grep/Task either, so this
+#           only removes a false "unmapped tool name" warning, no behavior change)
+#   G167.8  ask_user STILL triggers the "unmapped" warning — proves the DELIBERATE
+#           decision not to map it (route-decision-review.sh is explicitly never
+#           wired for Copilot, per generate-copilot-hooks.py's _SKIP entry) has not
+#           silently regressed into an accidental mapping
+#
 # NOTE ON LITERALS: the force-push string is assembled at runtime. Inline, the
 # category-independent hard-rule screen (§B.9.3) denies the Write that creates
 # this very file — the same trap Gate 162's header documents.
@@ -156,6 +173,102 @@ else
   else
     ok "teeth: normalisation defeated -> no deny ('${decision_c:-<none>}') — MH-01 reproduced, so this gate would catch its return"
   fi
+fi
+
+# ── G167.4 — powershell (`.command` key) through the adapter is denied ───────
+# (added 2026-09-01 — the powershell/glob/grep/task/ask_user tool-name-map fix;
+# see .ravenclaude/runs/forge/copilot-adapter-tool-names/ for the full FORGE run)
+echo "── G167.4: Copilot powershell (.command key) through the adapter is denied ──"
+powershell_payload_command_key() {
+  jq -cn --arg cwd "$PROJ" --arg cmd "$FORCED_PUSH" \
+    '{toolName:"powershell",toolArgs:({command:$cmd}|tostring),cwd:$cwd,sessionId:"g167d"}'
+}
+rc=0
+powershell_payload_command_key \
+  | CLAUDE_PROJECT_DIR="$PROJ" bash "$ADAPTER" bash-pretool "$ORCH" \
+      >"$TMP/out-d.json" 2>"$TMP/err-d.txt" || rc=$?
+decision_d="$(jq -r '.permissionDecision // empty' "$TMP/out-d.json" 2>/dev/null)"
+if [ "$decision_d" = "deny" ]; then
+  ok "powershell (.command key) -> Bash -> tribunal -> deny"
+else
+  bad "powershell (.command key) was NOT denied (permissionDecision='${decision_d:-<none>}')"
+  printf '     stdout: %s\n' "$(head -c 300 "$TMP/out-d.json" 2>/dev/null)"
+fi
+
+# ── G167.5 — powershell (`.script` key, an alternate plausible field name) ───
+echo "── G167.5: Copilot powershell (.script key) through the adapter is denied ───"
+powershell_payload_script_key() {
+  jq -cn --arg cwd "$PROJ" --arg cmd "$FORCED_PUSH" \
+    '{toolName:"powershell",toolArgs:({script:$cmd}|tostring),cwd:$cwd,sessionId:"g167e"}'
+}
+rc=0
+powershell_payload_script_key \
+  | CLAUDE_PROJECT_DIR="$PROJ" bash "$ADAPTER" bash-pretool "$ORCH" \
+      >"$TMP/out-e.json" 2>"$TMP/err-e.txt" || rc=$?
+decision_e="$(jq -r '.permissionDecision // empty' "$TMP/out-e.json" 2>/dev/null)"
+if [ "$decision_e" = "deny" ]; then
+  ok "powershell (.script key) -> command-field coalescing -> tribunal -> deny"
+else
+  bad "powershell (.script key) was NOT denied — the .command//.script//.commandLine coalescing broke (permissionDecision='${decision_e:-<none>}')"
+  printf '     stdout: %s\n' "$(head -c 300 "$TMP/out-e.json" 2>/dev/null)"
+fi
+
+# ── G167.6 — TEETH: without the powershell map entry, the deny disappears ────
+echo "── G167.6: teeth — without powershell->Bash mapping the deny disappears ─────"
+MUT2="$TMP/adapter-mutant-ps.sh"
+python3 - "$ADAPTER" "$MUT2" <<'PY'
+import pathlib
+import sys
+
+src = pathlib.Path(sys.argv[1]).read_text(encoding="utf-8")
+anchor = 'bash: "Bash", shell: "Bash", powershell: "Bash",'
+if anchor not in src:
+    sys.stderr.write(
+        "MUTATION ANCHOR NOT FOUND: expected %r in the adapter. Re-point the teeth half.\n" % anchor
+    )
+    raise SystemExit(3)
+pathlib.Path(sys.argv[2]).write_text(src.replace(anchor, 'bash: "Bash", shell: "Bash",'), encoding="utf-8")
+PY
+mut2_rc=$?
+if [ "$mut2_rc" -ne 0 ]; then
+  bad "teeth: could not build the powershell mutant (anchor missing) — re-point the mutation"
+else
+  rc=0
+  powershell_payload_command_key \
+    | CLAUDE_PROJECT_DIR="$PROJ" bash "$MUT2" bash-pretool "$ORCH" \
+        >"$TMP/out-f.json" 2>"$TMP/err-f.txt" || rc=$?
+  decision_f="$(jq -r '.permissionDecision // empty' "$TMP/out-f.json" 2>/dev/null)"
+  if [ "$decision_f" = "deny" ]; then
+    bad "teeth: the mutant STILL denied — this gate does not actually test the powershell mapping"
+  else
+    ok "teeth: powershell mapping defeated -> no deny ('${decision_f:-<none>}') — the gap this fix closes is reproduced"
+  fi
+fi
+
+# ── G167.7 — glob/grep/task no longer trigger the false 'unmapped' warning ───
+echo "── G167.7: glob/grep/task map cleanly (no 'unmapped tool name' warning) ─────"
+for _tn in glob grep task; do
+  jq -cn --arg cwd "$PROJ" --arg tn "$_tn" \
+    '{toolName:$tn,toolArgs:({path:"."}|tostring),cwd:$cwd,sessionId:"g167g"}' \
+    | CLAUDE_PROJECT_DIR="$PROJ" bash "$ADAPTER" bash-pretool "$ORCH" \
+        >"$TMP/out-g-$_tn.json" 2>"$TMP/err-g-$_tn.txt" || true
+  if grep -q "unmapped Copilot tool name" "$TMP/err-g-$_tn.txt" 2>/dev/null; then
+    bad "$_tn still triggers the 'unmapped tool name' warning — mapping regressed"
+  else
+    ok "$_tn maps cleanly, no false 'unmapped' warning"
+  fi
+done
+
+# ── G167.8 — ask_user STILL triggers the warning (deliberate, not a regression)
+echo "── G167.8: ask_user is DELIBERATELY unmapped — the warning must still fire ──"
+jq -cn --arg cwd "$PROJ" \
+  '{toolName:"ask_user",toolArgs:({question:"x"}|tostring),cwd:$cwd,sessionId:"g167h"}' \
+  | CLAUDE_PROJECT_DIR="$PROJ" bash "$ADAPTER" bash-pretool "$ORCH" \
+      >"$TMP/out-h.json" 2>"$TMP/err-h.txt" || true
+if grep -q "unmapped Copilot tool name ask_user" "$TMP/err-h.txt" 2>/dev/null; then
+  ok "ask_user still warns as unmapped — confirms the deliberate non-mapping (route-decision-review.sh is never wired for Copilot; see the adapter's own comment) has not silently regressed into a mapping"
+else
+  bad "ask_user no longer warns — someone mapped it. Read the adapter's ask_user comment and generate-copilot-hooks.py's route-decision-review.sh _SKIP entry before doing that; it was a deliberate decision, not an oversight."
 fi
 
 echo
