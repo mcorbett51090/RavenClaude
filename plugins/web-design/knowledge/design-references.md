@@ -117,11 +117,29 @@ technique**, not an overall direction.
 
 1. **Monochrome canvas with one accent color**, used sparingly on CTAs and category markers. Never two accents.
 2. **Typography-led hierarchy** — large headlines (48–96px), generous line-height, system stack or one well-licensed display font (Inter, Geist, IBM Plex). No more than two type sizes per section.
+
+### Live tension — Inter as a display face (unresolved)
+
+Item 2 above recommends Inter as one of three acceptable display faces for the general case this
+file catalogs. [`brand-guidance-authoring`](../skills/brand-guidance-authoring/reference/anti-pattern-catalogue.md)'s
+`AP-01` bans a generic-sans face — Inter included — as a project's brand-voice/display face by
+default, for a narrower reason: it is the fastest visual tell of an unstyled, agent-default build.
+Both are correct in their own scope. This file's recommendation above is **not rewritten** to match
+the catalogue's default — doing so would itself be a unilateral resolution, made in the file holding
+the opposing position. The genuinely contested case (a project whose brand voice *is* Inter) is
+exactly what `AP-01`'s `override` block, with a required one-line rationale, exists to resolve
+per-project — see the [`gold-standard-website-pipeline`](../skills/gold-standard-website-pipeline/SKILL.md)
+G3 criterion this catalogue is wired into. This tension is deliberately left unresolved here.
 3. **Real product UI as the hero**, not stock illustrations or 3D renders. Static screenshot beats animated render. If you must move, move once.
 4. **Sequential section rhythm** — every section is the same shape (~1 column on mobile, 2 columns desktop), generous vertical spacing (~96–160px between sections). Predictable cadence is calming.
 5. **One or two interactive beats** that earn their place: command palette, in-hero demo, hover-to-reveal cards. Everything else stays still.
 
 ## Avoid — 2024 tropes that already look dated
+
+Four of these are the prose form of catalogue rows `AP-07`–`AP-10` in
+[`brand-guidance-authoring`](../skills/brand-guidance-authoring/reference/anti-pattern-catalogue.md)'s
+anti-pattern catalogue; the catalogue is the canonical, per-project-overridable version — edit it
+there, not here.
 
 - **Bento grids on every section** ("Japanese lunch box" fatigue, per [studiomeyer 2026 reality check](https://studiomeyer.io/en/blog/webdesign-trends-2026-reality-check)).
 - **Glassmorphism beyond modals/nav** — accessibility regressions plus aesthetic cliché.

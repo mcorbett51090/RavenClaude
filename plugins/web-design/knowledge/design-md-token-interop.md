@@ -74,7 +74,7 @@ it competes with nothing on this page.
 |---|---|---|
 | Job | Token export (color/type/spacing values) | Generation-time brand-guidance (voice, layout rules, anti-patterns) |
 | Consumed when | Handoff artifact, read once per brand cycle | Loaded into context on every page-generation call |
-| Owning skill here | `design-tokens-scaffolding` (this page) | No single owner yet — see [`design-sources/vercel-design-md.md`](design-sources/vercel-design-md.md) |
+| Owning skill here | `design-tokens-scaffolding` (this page) | [`brand-guidance-authoring`](../skills/brand-guidance-authoring/SKILL.md) — see [`design-sources/vercel-design-md.md`](design-sources/vercel-design-md.md) |
 
 If a reader finds one and assumes it's the other, the mistake is the filename collision, not the
 content — link back to this table rather than merging the two notes. Full writeup, including where
