@@ -77,6 +77,6 @@ PWA 192/512, OG image 1200×630, Twitter/X card 1200×675. Generation of these r
 
 - Template: [`../../templates/brand-book-outline.md`](../../templates/brand-book-outline.md),
   [`../../templates/favicon-og-asset-manifest.md`](../../templates/favicon-og-asset-manifest.md)
-- Delegation: `web-design:design-tokens-scaffolding` (tokens), `web-design:visual-designer` (site application)
+- Delegation: `web-design:design-tokens-scaffolding` (tokens), `web-design:visual-designer` (site application), `web-design:brand-guidance-authoring` (the agent-facing generation-time brand-voice contract — a natural adjunct output at this same handoff point: this skill produces the human-readable brand book, `brand-guidance-authoring` produces the machine-checkable companion an agent loads before generating a page)
 - Skill: [`../brand-legal-and-licensing/SKILL.md`](../brand-legal-and-licensing/SKILL.md) (the legal-sign-off inputs)
 - Knowledge: [`../../knowledge/brand-identity-anatomy-2026.md`](../../knowledge/brand-identity-anatomy-2026.md)

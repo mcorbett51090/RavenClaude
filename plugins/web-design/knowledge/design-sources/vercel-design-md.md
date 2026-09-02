@@ -44,7 +44,10 @@ explicitly so agents can recognize and avoid them. Measured effect: pages genera
   machine-readable companion (observable rules + named anti-patterns, not just prose) is a
   natural adjunct output at the same handoff point where `design-md-token-interop.md`'s
   `DESIGN.md` token export already lives, so precedent for an agent-facing markdown artifact at
-  this seam already exists.
+  this seam already exists. **Closed:** `brand-book-assembly`'s own "See also" now names
+  [`brand-guidance-authoring`](../../skills/brand-guidance-authoring/SKILL.md) as
+  the machine-checkable companion produced at this handoff — the reciprocal side of the cross-link
+  below.
 - Recommend adding to: `plugins/web-design/knowledge/design-md-token-interop.md` — that file
   already documents an *unrelated* `DESIGN.md` convention (Google Labs' W3C-token export format).
   Cross-link rather than merge: the Google `DESIGN.md` is a **token-export** spec; the Vercel
