@@ -199,6 +199,12 @@ The team uses `bg-accent` not `bg-blue-500`. The Tailwind class set **becomes** 
 
 Shadcn ships with semantic CSS custom properties (`--background`, `--foreground`, `--primary`, etc.) that already match the discipline. The job is to re-point these to your generated tokens, not to invent a parallel system.
 
+**2026 primitive-layer note:** shadcn/ui now defaults new projects to **Base UI** (MUI's headless-primitive library, staffed by several ex-Radix engineers, hit stable v1.0 December 2025) rather than Radix, as Radix's release cadence slowed following its 2026 acquisition by WorkOS — most visible on complex components (Combobox/multi-select). Either primitive still fits this skill's semantic-token discipline unchanged; this only affects which headless-primitive package sits under the generated component layer. See [`../../knowledge/design-sources/additional-sources.md`](../../knowledge/design-sources/additional-sources.md).
+
+### Worked example — tokens as an independently versioned package
+
+**[Shopify Polaris tokens](https://github.com/Shopify/polaris-tokens)** (`@shopify/polaris-tokens`, docs at <https://polaris.shopify.com/>) is a real, currently-maintained case study of §6's discipline taken to its logical conclusion: tokens ship as their **own versioned package** (npm + a Ruby gem), consumed independently of the component library, in a documented monorepo split (`polaris-tokens` / `polaris-react` / docs site). Point to this when a team is deciding whether tokens deserve their own package boundary rather than living inside the component library's build — Polaris is the concrete "yes, and here's how" answer.
+
 ## 7. Audit for drift
 
 Once the system ships, drift is the failure mode:

@@ -87,6 +87,25 @@ borrow," never as "the site to copy."
 
 ---
 
+## A ninth category — component/motion donors (not whole-site)
+
+The eight donors above are whole-site aesthetic exemplars — canvas, hierarchy, section rhythm. A
+different, narrower kind of donor is worth naming separately: sites/libraries you raid for **one
+technique**, not an overall direction.
+
+- **ReactBits — <https://reactbits.dev>** (165+ animated React components, 46.6k★, MIT+Commons
+  Clause). Not a fit for "what should this site feel like overall" — it's a fit for "I need one
+  memorable motion moment" (animated text, ambient/WebGL backgrounds, scroll-triggered reveals). The
+  transferable lesson isn't the components themselves (they'll drift as the site updates) but the
+  **per-component dependency-minimalism**: pick the lightest animation engine per effect (CSS-only,
+  GSAP, OGL/three.js, Matter.js) rather than one house animation runtime for everything. Full note +
+  refresh guidance: [`design-sources/reactbits.md`](design-sources/reactbits.md).
+- **Astro official Showcase — <https://astro.build/showcase/>** — the reference for what Astro looks
+  like at *enterprise* production scale (The Guardian, Google Firebase, Trivago, Microsoft
+  properties), distinct from this file's marketing-site aesthetic donors. Use when the brief is
+  specifically an Astro build and needs a same-stack precedent, not just an aesthetic one. See
+  [`design-sources/additional-sources.md`](design-sources/additional-sources.md).
+
 ## Synthesis — what these sites have in common
 
 1. **Monochrome canvas with one accent color**, used sparingly on CTAs and category markers. Never two accents.
@@ -129,6 +148,14 @@ When reviewing an existing site against this reference:
 - **High confidence** on Linear, Vercel, Raycast as donors — these are repeatedly cited in 2024–2026 design discourse and have stable design teams behind them.
 - **Medium confidence** on Resend, Cursor, v0, Tldraw, Cal.com — strong recent reputation, less longitudinal evidence. Re-check at the next refresh.
 - **Open question** flagged by the original research: hero choice (input-driven vs. canvas-driven) depends on whether the site's primary job is *catalog browsing* or *walkthrough demonstration*. Decide upfront.
+
+## Related — the raw source layer
+
+[`design-sources/`](design-sources/) holds the broader, less-curated research this file and
+`gold-standard-website-references-2026.md` draw from — dated, sourced notes on specific external
+repos/sites (including CollectUI's pattern-category taxonomy and a 12-source broad sweep across
+Astro, component libraries, and accessibility pattern references). Check there before re-researching
+a source from scratch.
 
 ## Sources
 
