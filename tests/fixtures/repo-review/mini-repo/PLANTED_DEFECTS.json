@@ -1,0 +1,58 @@
+[
+  {
+    "file": "app/services/task_service.py",
+    "line_start": 34,
+    "line_end": 39,
+    "dimension": "correctness",
+    "description": "TaskService.get_page slices `self._tasks[start:end - 1]` instead of `self._tasks[start:end]`, an off-by-one that silently drops the last task on every page returned to callers.",
+    "evidence_hint": "end - 1"
+  },
+  {
+    "file": "app/services/db.py",
+    "line_start": 18,
+    "line_end": 21,
+    "dimension": "security",
+    "description": "TaskDB.find_by_owner builds a SQL query with `\"SELECT * FROM tasks WHERE owner = '%s'\" % owner`, directly interpolating unsanitized user-supplied `owner` input into the query string instead of using a parameterized query, which is a classic SQL injection vector.",
+    "evidence_hint": "% owner"
+  },
+  {
+    "file": "app/services/scheduler.py",
+    "line_start": 9,
+    "line_end": 27,
+    "dimension": "concurrency",
+    "description": "The module-level `_job_status` dict is read and read-modify-written by `start_job` and `finish_job`, both explicitly documented as called concurrently from multiple worker threads/tasks, with no lock guarding the shared dict, so concurrent updates for different jobs can interleave and corrupt job status.",
+    "evidence_hint": "_job_status[job_name] = status"
+  },
+  {
+    "file": "app/services/file_processor.py",
+    "line_start": 15,
+    "line_end": 22,
+    "dimension": "resource-leaks",
+    "description": "find_first_match opens `path` with `open(path, \"r\")` (no `with` block) and, when `keyword` matches, `return line.strip()` fires before the `f.close()` on the line after the loop, so the file handle leaks on the (common) early-return path.",
+    "evidence_hint": "return line.strip()"
+  },
+  {
+    "file": "app/services/notifier.py",
+    "line_start": 12,
+    "line_end": 13,
+    "dimension": "error-handling",
+    "description": "send_reminder uses a bare `except: pass` around the transport.send call, silently swallowing every possible error (network failure, bad address, misconfigured transport) with no logging, so failed reminders vanish without a trace.",
+    "evidence_hint": "except:"
+  },
+  {
+    "file": "app/services/report_generator.py",
+    "line_start": 16,
+    "line_end": 18,
+    "dimension": "performance",
+    "description": "build_vip_report does `if task.owner in vip_owners` inside a loop over `tasks`, where `vip_owners` is a plain list, giving O(len(tasks) * len(vip_owners)) time; converting vip_owners to a set once up front would make it O(len(tasks)).",
+    "evidence_hint": "in vip_owners"
+  },
+  {
+    "file": "app/utils/formatting.py",
+    "line_start": 10,
+    "line_end": 24,
+    "dimension": "dead-code-simplification",
+    "description": "make_filename_slug hand-rolls a character-by-character slugify loop that duplicates app.utils.text_utils.slugify (the canonical helper already in this repo) instead of calling it, letting the two implementations silently drift out of sync.",
+    "evidence_hint": "def make_filename_slug"
+  }
+]
