@@ -331,18 +331,34 @@ def _self_test():
 
     # PR #1070 regression: a pull_request run must never mistake the PR
     # author's own merge-from-base commit for the base tip.
+    #
+    # ⛔ BOTH GITHUB_EVENT_NAME AND GITHUB_BASE_REF are isolated here, not just
+    # the one this fix reads. Caught live in this session's own CI run: the
+    # fixture's scratch repo is `git init -b main` (its default branch is
+    # literally named "main"), so under a REAL CI job's ambient
+    # `GITHUB_BASE_REF=main`, rule 3 resolved the fixture's own local `main`
+    # branch and returned the CORRECT answer — which then failed the original
+    # `got is None` assertion, because that assertion implicitly assumed no
+    # other rule could resolve inside this fixture. A self-test whose pass/fail
+    # depends on what's ambiently set in the process running it is not a
+    # self-test; isolating every env var this module reads is what makes the
+    # fixture's outcome deterministic regardless of where `--self-test` runs.
     label = "PR merge-from-base HEAD on pull_request -> never HEAD^1 (rule 4 scoped off)"
     with tempfile.TemporaryDirectory() as td:
         root, wrong_answer = _fixture_pr_merge_commit(td)
-        _prior = os.environ.get("GITHUB_EVENT_NAME")
+        _prior_event = os.environ.get("GITHUB_EVENT_NAME")
+        _prior_base = os.environ.get("GITHUB_BASE_REF")
         os.environ["GITHUB_EVENT_NAME"] = "pull_request"
+        os.environ.pop("GITHUB_BASE_REF", None)
         try:
             got, how = merge_base(root)
         finally:
-            if _prior is None:
+            if _prior_event is None:
                 os.environ.pop("GITHUB_EVENT_NAME", None)
             else:
-                os.environ["GITHUB_EVENT_NAME"] = _prior
+                os.environ["GITHUB_EVENT_NAME"] = _prior_event
+            if _prior_base is not None:
+                os.environ["GITHUB_BASE_REF"] = _prior_base
         if got is None and got != wrong_answer:
             ok += 1
             print(f"  ok   {label}")
