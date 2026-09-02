@@ -1,9 +1,13 @@
 #!/usr/bin/env python3
 """handoff-successor-ack.py — SessionStart startup handshake.
 
-Reads .ravenclaude/handoff-pending.json (written by handoff-spawn.sh).
-If it is fresh and matches this cwd, writes
-.ravenclaude/runs/<task-id>/successor-ack.json and clears the pending file.
+Reads every .ravenclaude/handoff-pending*.json marker (written by
+handoff-spawn.sh). The glob matches both the legacy unscoped
+handoff-pending.json name and the task_id-scoped handoff-pending-<slug>.json
+form handoff-spawn.sh now writes (concurrent invocations for different tasks
+each get their own marker, so one never clobbers or deletes another's). For
+each marker that is fresh and well-formed, writes
+.ravenclaude/runs/<task-id>/successor-ack.json and clears that marker.
 
 Derived values only: task_id from pending, session_id from hook env/payload,
 ISO timestamp. Never echoes stdin transcript or lastAssistantMessage.
@@ -57,26 +61,28 @@ def _source(payload: dict) -> str:
     return src if isinstance(src, str) else ""
 
 
-def main() -> int:
-    payload = _payload()
-    # Compact / resume / fork are not a successor start.
-    src = _source(payload).lower()
-    if src in ("compact", "resume", "fork", "clear"):
-        return 0
+def _pending_candidates(root: Path) -> list[Path]:
+    # Matches both the legacy exact "handoff-pending.json" (zero-width glob
+    # match on the "*") and the task_id-scoped "handoff-pending-<slug>.json"
+    # form. Sorted for deterministic processing order across a run.
+    try:
+        return sorted((root / ".ravenclaude").glob("handoff-pending*.json"))
+    except OSError:
+        return []
 
-    root = _root(payload)
-    pending_path = root / ".ravenclaude" / "handoff-pending.json"
+
+def _process_one(pending_path: Path, root: Path, payload: dict) -> None:
     if not pending_path.is_file():
-        return 0
+        return
     try:
         pending = json.loads(pending_path.read_text(encoding="utf-8"))
     except (OSError, ValueError):
-        return 0
+        return
     if not isinstance(pending, dict):
-        return 0
+        return
     task = pending.get("task_id")
     if not isinstance(task, str) or "/" in task or task in (".", ".."):
-        return 0
+        return
     created = pending.get("created_at")
     if isinstance(created, str):
         try:
@@ -86,7 +92,7 @@ def main() -> int:
             age = (datetime.now(timezone.utc) - ts).total_seconds()
             if age > MAX_PENDING_AGE_SEC:
                 pending_path.unlink(missing_ok=True)
-                return 0
+                return
         except ValueError:
             pass
 
@@ -103,11 +109,23 @@ def main() -> int:
             json.dumps(ack, separators=(",", ":")) + "\n", encoding="utf-8"
         )
     except OSError:
-        return 0
+        return
     try:
         pending_path.unlink(missing_ok=True)
     except OSError:
         pass
+
+
+def main() -> int:
+    payload = _payload()
+    # Compact / resume / fork are not a successor start.
+    src = _source(payload).lower()
+    if src in ("compact", "resume", "fork", "clear"):
+        return 0
+
+    root = _root(payload)
+    for pending_path in _pending_candidates(root):
+        _process_one(pending_path, root, payload)
     return 0
 
 

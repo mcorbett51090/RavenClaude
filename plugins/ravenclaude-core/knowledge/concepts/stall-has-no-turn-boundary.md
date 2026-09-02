@@ -11,7 +11,7 @@ covers:
   - plugins/ravenclaude-core/scripts/stall_watch.py
   - plugins/ravenclaude-core/scripts/stall_reach.py
   - plugins/ravenclaude-core/scripts/install_stall_watch.py
-covers_digest: "sha256:89cbda9bbd9cc2b1093c3c55050e0afa7a8090b1646f7e8851a55106825d8d90"
+covers_digest: "sha256:1933494590075d2fdb08c7f8d0974ba7285214b8ef19a5e88ce727db22e099f3"
 nuance: "The observable must be the last *assistant* record, not the last record of any type: a human typing into a suspected stall, and a product-generated `system/away_summary`, both reset a last-any clock without any progress having occurred."
 nuance_evidence:
   measured: 2026-08-25

@@ -88,6 +88,15 @@ INJECTION_PATTERNS = [
     #    trade-off (two SEPARATE same-tag blocks with legit text between are merged
     #    and the middle stripped) is exactly the over-stripping this floor's own
     #    docstring already accepts ("prefer the floor").
+    #
+    #    Patterns 1 and 2 were fixed to GREEDY on 2026-08-05. Patterns 3 and 5
+    #    below were NOT fixed at that time and carried the identical `.*?`
+    #    nested-decoy bypass until a 2026-09-02 /repo-review sweep caught it —
+    #    verified live: `<important>IMPORTANT: x<important>IMPORTANT: y</important>
+    #    REAL PAYLOAD</important>` stripped only through the inner close, leaving
+    #    " REAL PAYLOAD</important>" as bare surviving text; the analogous fenced
+    #    ` ```system\ndecoy\n```\nREAL PAYLOAD\n``` ` bypass matched pattern 5.
+    #    Both are now GREEDY too, for the identical last-close reason as 1 and 2.
     re.compile(r"<system-reminder\b[^>]*>.*</system-reminder>", re.DOTALL | re.IGNORECASE),
     # 2. <system-instruction> ... </system-instruction> — common variant. Greedy
     #    for the same nested-decoy reason as pattern 1.
@@ -96,12 +105,18 @@ INJECTION_PATTERNS = [
     #    "IMPORTANT: do X" shape. We only strip the tag wrapper, leaving the
     #    text neutered. (This is the most generous pattern; many real docs use
     #    <important>; we accept the collateral damage and prefer the floor.)
-    re.compile(r"<important\b[^>]*>\s*(?:IMPORTANT|MUST|NEVER|ALWAYS)[:\s].*?</important>", re.DOTALL | re.IGNORECASE),
+    #    GREEDY (`.*`, not `.*?`) for the same nested-decoy reason as pattern 1
+    #    (fixed 2026-09-02 /repo-review — see the pattern-1 comment above).
+    re.compile(r"<important\b[^>]*>\s*(?:IMPORTANT|MUST|NEVER|ALWAYS)[:\s].*</important>", re.DOTALL | re.IGNORECASE),
     # 4. Bare "SYSTEM:" / "INSTRUCTION:" prompt-injection prefixes when they
     #    appear at the start of a line. Strip the line.
     re.compile(r"(?m)^\s*(?:SYSTEM|INSTRUCTION|SYSTEM PROMPT|NEW INSTRUCTIONS?)\s*[:>][^\n]*\n?", re.IGNORECASE),
     # 5. Markdown-style fenced "system" blocks — ```system ... ```
-    re.compile(r"```\s*system\b[^\n]*\n.*?```", re.DOTALL | re.IGNORECASE),
+    #    GREEDY (`.*`, not `.*?`) for the same nested-decoy reason as pattern 1
+    #    (fixed 2026-09-02 /repo-review — see the pattern-1 comment above): a
+    #    decoy closing fence before the real payload's own closing fence would
+    #    otherwise leave the real payload as bare, unwrapped text.
+    re.compile(r"```\s*system\b[^\n]*\n.*```", re.DOTALL | re.IGNORECASE),
     # 6-9. UNTERMINATED opening tags. Patterns 1-3/5 all require a matching
     #   closing delimiter, so an attacker bypasses them completely by simply
     #   omitting the close (e.g. `<system-reminder>…<EOF>` with no

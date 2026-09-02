@@ -149,14 +149,90 @@ if [ "${RC_MEMORY_COMPACTION_OK:-}" = "1" ]; then
   exit 0
 fi
 
+# --- MultiEdit helpers -------------------------------------------------------
+# MultiEdit's REAL tool_input shape is {file_path, edits: [{old_string,
+# new_string}, ...]} -- there is no top-level old_string/new_string (that's
+# Edit's shape). _field's dotted-path model can't express `edits[].new_string`
+# either (its python3 fallback only does a plain dict-walk), so MultiEdit gets
+# its own tiny jq-preferred/python3-fallback helpers, mirroring _field's own
+# two-tier pattern above. Precision here is codepoint-length, not byte-exact --
+# consistent with this whole Edit/MultiEdit branch's stated tolerance below
+# ("enough precision to catch a wholesale rewrite, not an exact byte count").
+_multiedit_new_strings() {
+  # One new_string per line, so the compaction-approved escape hatch can be
+  # checked across every edit in the call, not just a single new_string.
+  if command -v jq >/dev/null 2>&1; then
+    printf '%s' "$payload" | jq -r '.tool_input.edits[]? | (.new_string // "")' 2>/dev/null || true
+  elif command -v python3 >/dev/null 2>&1; then
+    python3 -c '
+import json,sys
+try:
+    d=json.load(sys.stdin)
+    edits=(d.get("tool_input") or {}).get("edits") or []
+    for e in edits:
+        if isinstance(e, dict):
+            sys.stdout.write(str(e.get("new_string") or "") + "\n")
+except Exception:
+    pass' <<RC_PAYLOAD_EOF 2>/dev/null || true
+$payload
+RC_PAYLOAD_EOF
+  fi
+}
+
+_multiedit_delta() {
+  # Sum of len(new_string) - len(old_string) across every edit.
+  if command -v jq >/dev/null 2>&1; then
+    printf '%s' "$payload" | jq -r \
+      '[.tool_input.edits[]? | ((.new_string // "") | length) - ((.old_string // "") | length)] | add // 0' \
+      2>/dev/null || true
+  elif command -v python3 >/dev/null 2>&1; then
+    python3 -c '
+import json,sys
+try:
+    d=json.load(sys.stdin)
+    edits=(d.get("tool_input") or {}).get("edits") or []
+    total=0
+    for e in edits:
+        if isinstance(e, dict):
+            total += len(e.get("new_string") or "") - len(e.get("old_string") or "")
+    sys.stdout.write(str(total))
+except Exception:
+    pass' <<RC_PAYLOAD_EOF 2>/dev/null || true
+$payload
+RC_PAYLOAD_EOF
+  fi
+}
+
 # --- 2. MEASURE the proposed size -------------------------------------------
 new_bytes=""
 if [ "$tool_name" = "Write" ]; then
   _content="$(_field '.tool_input.content')"
   case "$_content" in *compaction-approved*) exit 0 ;; esac
   new_bytes="$(printf '%s' "$_content" | wc -c | tr -d ' ')"
+elif [ "$tool_name" = "MultiEdit" ]; then
+  _all_new="$(_multiedit_new_strings)"
+  case "$_all_new" in *compaction-approved*) exit 0 ;; esac
+  _delta="$(_multiedit_delta)"
+  # Validate _delta is a clean (optionally negative) integer before using it
+  # in arithmetic -- an unvalidated non-numeric value here would trip a bash
+  # arithmetic error under `set -e`, which is NOT the same as this guard's
+  # deliberate exit 2 and must never masquerade as one.
+  _delta_valid=0
+  case "$_delta" in
+    '') _delta_valid=0 ;;
+    -*)
+      _dtail="${_delta#-}"
+      case "$_dtail" in '' | *[!0-9]*) _delta_valid=0 ;; *) _delta_valid=1 ;; esac
+      ;;
+    *)
+      case "$_delta" in *[!0-9]*) _delta_valid=0 ;; *) _delta_valid=1 ;; esac
+      ;;
+  esac
+  if [ "$_delta_valid" = "1" ]; then
+    new_bytes=$((old_bytes + _delta))
+  fi
 else
-  # Edit / MultiEdit: approximate the delta from the replaced spans. We only need
+  # Edit: approximate the delta from the replaced spans. We only need
   # enough precision to catch a wholesale rewrite, not an exact byte count.
   _old_s="$(_field '.tool_input.old_string')"
   _new_s="$(_field '.tool_input.new_string')"

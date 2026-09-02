@@ -5000,6 +5000,34 @@ gate "sanitize-webfetch-body (no injection markers survive in sanitized output)"
 rc=0; grep -q "IBCS SUCCESS rules" "$POISONED_OUT" || rc=$?
 gate "sanitize-webfetch-body (canonical content preserved across strips)" must_pass "$rc"
 
+# Nested-decoy regression, patterns 3 (<important>) and 5 (fenced ```system):
+# the 2026-08-05 repo-review fixed patterns 1/2's non-greedy `.*?` nested-decoy
+# bypass but left patterns 3 and 5 with the identical `.*?`, caught by a
+# 2026-09-02 /repo-review sweep. A nested decoy — e.g.
+# `<important>IMPORTANT: x<important>IMPORTANT: y</important> REAL PAYLOAD
+# </important>` — made a non-greedy match stop at the FIRST close, leaving the
+# real payload as bare, unwrapped, now-more-trustworthy-looking text; same
+# shape for a decoy closing ```` ``` ```` fence before the real one. Fixture
+# lives in its OWN file (not appended to poisoned-body.txt): poisoned-body.txt
+# already carries an independent ```system block (pattern 5's original test
+# case, lines 18-20), and pattern 5's own accepted greedy over-stripping
+# trade-off ("two separate same-tag blocks with legit text between are merged
+# and the middle stripped") would merge that pre-existing block with a second
+# one appended later in the same file, corrupting the isolation this
+# regression test needs.
+NESTED_DECOY_OUT="$TMP/sanitize-nested-decoy.txt"
+rc=0; python3 plugins/ravenclaude-core/scripts/sanitize-webfetch-body.py --quiet tests/fixtures/webfetch/nested-decoy-body.txt > "$NESTED_DECOY_OUT" 2>/dev/null || rc=$?
+gate "sanitize-webfetch-body (nested-decoy fixture exits 0)" must_pass "$rc"
+
+# must_fail: neither nested-decoy's REAL PAYLOAD marker may survive — grep
+# MUST fail to find either (grep exit 1 == not found == passes via must_fail).
+rc=0; grep -qE 'NESTED-DECOY-REAL-PAYLOAD-P3|NESTED-DECOY-REAL-PAYLOAD-P5' "$NESTED_DECOY_OUT" || rc=$?
+gate "sanitize-webfetch-body (nested-decoy: patterns 3+5 real payload does NOT survive)" must_fail "$rc"
+
+# must_pass: canonical content sandwiching both nested-decoy blocks survives.
+rc=0; grep -q "IBCS SUCCESS rules" "$NESTED_DECOY_OUT" || rc=$?
+gate "sanitize-webfetch-body (nested-decoy: canonical content preserved)" must_pass "$rc"
+
 # Q1 / L4 (analog-repos-gap-fill leftover, docs/follow-ups/2026-08-14-analog-repos-leftovers.md):
 # the same quarantine extended to mcp__* tool output. sanitize-mcp-output.py's
 # own --self-test exercises the full PostToolUse envelope (MCP content-array

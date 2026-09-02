@@ -291,8 +291,36 @@ def leading_segment(raw):
 
 
 def is_remediating(raw):
-    if _DISCRIMINATE.search(leading_segment(raw)):
-        return False
+    # ⛔ THE DISCRIMINATE-LEADING / REMEDIATE-TRAILING BYPASS. A leading-segment
+    # DISCRIMINATE match used to short-circuit to `return False` unconditionally,
+    # so a chained command whose FIRST segment merely LOOKS like a probe --
+    # `ls -la src/thing.ts && rm -rf src/thing.ts` -- never reached the
+    # `_REMEDIATE` check at all. The `ls` leading segment won, and the real,
+    # undiscriminated `rm -rf` on the open subject ran completely unreviewed.
+    # This is the mirror image of the suffix bypass fixed above: that fix
+    # narrowed `_DISCRIMINATE` to the leading segment so a TRAILING read-verb
+    # (or comment) could no longer disarm a genuine leading remediate command --
+    # but it never added the matching check that a genuine TRAILING remediate
+    # command must still gate even when the LEADING segment is discriminating.
+    #
+    # The exemption's original purpose (see the header above _DISCRIMINATE) is
+    # narrower than "the whole command is safe": it exists so a discriminating
+    # probe that incidentally also matches `_REMEDIATE` via an unanchored arm --
+    # e.g. `grep pattern src/thing.ts > out.txt`, whose trailing redirect
+    # matches `_REMEDIATE`'s `>\s*[^|&\s]` alternative -- is not treated as a
+    # remediation. That false positive can only occur WITHIN the leading
+    # segment itself (there is no separator to have chained a second command).
+    # So the exemption now applies ONLY to a `_REMEDIATE` match inside that same
+    # leading segment; anything at or after the next `;`/`&&`/`||`/`|`/`#` is a
+    # distinct, later command and is checked independently, regardless of what
+    # the leading segment looked like.
+    # control (posture `block`, one open row on fs:src/thing.ts), MEASURED:
+    #     ls -la src/thing.ts                          -> allow (still a clean probe)
+    #     grep -n thing src/thing.ts > /tmp/out.txt    -> allow (embedded redirect, no chain)
+    #     ls -la src/thing.ts && rm -rf src/thing.ts   -> DENY  (was SILENT-ALLOW pre-fix)
+    lead = leading_segment(raw)
+    if _DISCRIMINATE.search(lead):
+        return bool(_REMEDIATE.search(raw[len(lead):]))
     return bool(_REMEDIATE.search(raw))
 
 
@@ -810,6 +838,39 @@ _grc_self_test() {
       *) _fail "SUFFIX BYPASS: appending to a remediating command silenced the gate: $sfx" ;;
     esac
   done
+
+  # ⛔ 7d. THE MIRROR-IMAGE BYPASS: DISCRIMINATE-LEADING / REMEDIATE-TRAILING.
+  # 7c fixed the suffix disarming a genuine LEADING remediate command. It never
+  # covered the opposite chain shape: a command that OPENS with a discriminating
+  # probe and then, after a separator, performs a real remediation on the same
+  # open subject. `is_remediating` short-circuited to `return False` the instant
+  # `_DISCRIMINATE` matched the leading segment, without ever reaching
+  # `_REMEDIATE.search(raw)` for the rest of the command -- so the real,
+  # undiscriminated `rm -rf` ran completely unreviewed.
+  # control, MEASURED at `block` before this fix: `ls -la src/thing.ts` alone ->
+  # allow (correct — a clean probe); `ls -la src/thing.ts && rm -rf src/thing.ts`
+  # -> also allow, SILENTLY (should DENY — the trailing `rm -rf` is the real,
+  # undiscriminated remediation the gate exists to catch).
+  local dsfx
+  for dsfx in '"ls -la src/thing.ts && rm -rf src/thing.ts"' \
+              '"grep -n thing src/thing.ts ; rm -rf src/thing.ts"' \
+              '"cat src/thing.ts || rm -rf src/thing.ts"'; do
+    out="$(_run "$dsfx")"
+    case "$out" in
+      *"cause-gate"*) : ;;
+      *) _fail "DISCRIMINATE-LEADING BYPASS: a chained remediation after a leading probe silenced the gate: $dsfx" ;;
+    esac
+  done
+  # ...and the control: a leading probe with no chained remediation must still
+  # allow, or 7d would pass for the trivial reason that everything now fires.
+  out="$(_run '"ls -la src/thing.ts"')"
+  case "$out" in
+    *"cause-gate"*) _fail "7d control: a bare discriminating probe (no chain) now fires -- the exemption is gone, not fixed" ;;
+  esac
+  out="$(_run '"grep -n thing src/thing.ts > /tmp/grc-7d-out.txt"')"
+  case "$out" in
+    *"cause-gate"*) _fail "7d control: a discriminating probe with an embedded (unchained) redirect now fires" ;;
+  esac
 
   # 8. posture off silences; absent posture is a no-op; POSITIVE CONTROL after.
   printf 'schema_version: 5\ncause_remediation: off\n' \

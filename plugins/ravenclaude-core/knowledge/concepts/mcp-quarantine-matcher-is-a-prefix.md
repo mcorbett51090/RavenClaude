@@ -10,7 +10,7 @@ last_verified: 2026-08-30
 covers:
   - plugins/ravenclaude-core/hooks/sanitize-mcp-output.sh
   - plugins/ravenclaude-core/hooks/sanitize-mcp-output.py
-covers_digest: "sha256:bb407a5232955ea122bc4bbef58c24e4f5c7bc8edc5f95e2ea6fac2752b6503d"
+covers_digest: "sha256:3b6351ebcadda447559e44fb8339c4aaf39d8eb45c143a20414a4c329c9602e7"
 nuance: "F1's WebFetch hook matches one exact tool name. This one must be a PREFIX check (mcp__ names are dynamic) — and a tool name merely CONTAINING 'mcp__' without starting with it must NOT match."
 nuance_evidence:
   measured: 2026-08-30
