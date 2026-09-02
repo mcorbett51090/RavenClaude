@@ -10,7 +10,8 @@ last_verified: 2026-09-01
 covers:
   - plugins/ravenclaude-core/scripts/resolve-worktree-session.sh
   - plugins/ravenclaude-core/skills/session-relay/SKILL.md
-covers_digest: "sha256:39f34f5e5d4d93e8866bdc74304927b1c7c00d2eecf27ff193a06ec474afd9c7"
+  - plugins/ravenclaude-core/knowledge/cross-session-messaging.md
+covers_digest: "sha256:7015365f398eb00723c9f8c7d8355a9304eb5948c9929b9a06089e0d85fa5b42"
 nuance: "ListAgents' bracketed [ref] does not derive from a session's session_id: this
   authoring session's own id (d20158bb-...) shares no substring with its displayed
   [2eb70b]. The real join is worktree -> worktree-guard's pid -> that pid's

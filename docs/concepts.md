@@ -2887,3 +2887,50 @@ _Last verified: 2026-09-01_
 
 
 ---
+
+### The peer session's SendMessage name is not derivable from its own session_id · _RavenClaude-built_
+
+> resolve-worktree-session.sh's two-hop worktree->pid->name join exists because the obvious one-hop guess -- deriving the ListAgents ref from session_id -- is false.
+
+## What a reader would have assumed instead
+
+That a session's `ListAgents`-displayed name/ref is some transform of its own `session_id` —
+a hex prefix, a hash, something derivable — so a script wanting to `SendMessage` a specific
+peer could compute the address from an id it already has (e.g. from a registry keyed by
+`session_id`, which is exactly what `worktree-guard.sh`'s own session files use).
+
+## The discriminator
+
+control: this authoring session's own `session_id` is `d20158bb-d28e-497d-9eb5-87fcaff2c96e`;
+`ListAgents`, in the same turn, displayed this session as `matthewcorbett-bc [2eb70b]` — no
+substring of the id appears in the ref, and the derivation hypothesis fails on direct
+inspection, not by absence of testing.
+
+What *does* match: `~/.claude/sessions/<pid>.json`'s own `name` field for that same pid read
+back `"matthewcorbett-bc"` — the exact string `ListAgents` shows, with no `[ref]` suffix
+needed (`SendMessage`'s own contract: a bare name matching exactly one live agent delivers).
+So `resolve-worktree-session.sh` performs two hops instead of one: worktree path →
+`sha256(realpath(toplevel))` → `worktree-guard.sh`'s registry → live `pid`/`branch` → that
+pid's `~/.claude/sessions/<pid>.json` → `name`. Verified end-to-end against this real checkout,
+not just the fixture self-test (8/8): a call from inside this worktree returned
+`peer_name: "matthewcorbett-bc"`, matching the live `ListAgents` row exactly.
+
+## Why it matters
+
+Falsifier: a live session whose registry `name` field disagreed with its own `ListAgents`
+display — none was found this session, but the entry stays falsifiable rather than assumed.
+
+Probe: `plugins/ravenclaude-core/scripts/resolve-worktree-session.sh --self-test` (8/8).
+
+A cross-session relay tool that guessed the peer's address from `session_id` (the field every
+other RavenClaude registry — `worktree-guard.sh`, the run-artifact substrate, the hook-event
+log — is keyed on) would silently address nobody: `SendMessage` would either error on an
+unmatched name or, worse, land on a coincidentally-similar unrelated session. The two-hop join
+is not an optimization over a simpler one-hop lookup; the one-hop lookup does not exist.
+
+**Sources:** [session-relay build, 2026-09-01 -- live ListAgents/session-registry comparison in this authoring session](../plugins/ravenclaude-core/knowledge/cross-session-messaging.md)
+
+_Last verified: 2026-09-01_
+
+
+---
