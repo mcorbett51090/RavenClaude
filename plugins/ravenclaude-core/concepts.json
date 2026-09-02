@@ -2899,7 +2899,7 @@
         "plugins/ravenclaude-core/scripts/route-task.py",
         "plugins/ravenclaude-core/skills/cheap-lane-delegation/SKILL.md"
       ],
-      "covers_digest": "sha256:40a22d94b0a8080e593d8bdc4cbc84da9ccecd825113bf6a36519fca3ee0a2fb",
+      "covers_digest": "sha256:09226b7c267fd24f258bbb3775ea10ccec769005632b24d4d2db2961b0cdc7b5",
       "nuance": "Copilot CLI's `--model auto` rejects `--effort` outright at runtime — a real error, not a doc gap — so the Copilot lane differentiates by timeout budget only unless a caller pins an effort-capable model.",
       "nuance_evidence": {
         "measured": "2026-08-26",
@@ -3006,7 +3006,7 @@
         "scripts/inventory-coverage.py",
         "scripts/inventory-nuance-judge.py"
       ],
-      "covers_digest": "sha256:57be0c10123f658d03f9be86e776b22178e889be0acc3a474e2fd33e48a4b4a3",
+      "covers_digest": "sha256:8d55d62ba6a90831ce0d0200c8fa3bf29a554a2dc133462d7f896789bc02e742",
       "nuance": "The teeth bit is the exit a tool own CHECK returns on a planted defect, never the exit `--must-fail` itself returns: `premise-gate.py` denies at `exit 0` while `sync-plugin-versions.py` reddens at `exit 2`, so an auditor that hard-codes one number can never be right for both.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -3413,7 +3413,7 @@
         "scripts/generate-dashboards.py",
         "scripts/generate-index-dashboard.py"
       ],
-      "covers_digest": "sha256:35da4bc065282b1e51f6e2622ec36a5dcbb069dffa2b67ec1b7a19d802deb5df",
+      "covers_digest": "sha256:15f3e392be2a9411ac61ffb08950bb1ef875b9feef331761c064087c85aa1eae",
       "nuance": "`ISLANDED_PANEL_COST` is a flat 2 because the parser reads the payload as CDATA, so `check-dom-budget.py` cannot fire on `learn-payload` no matter how far past 23,861 elements it grows.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -3723,6 +3723,56 @@
         "class": "hook-selftest",
         "probe": "plugins/ravenclaude-core/hooks/tests/test-gate254-precompact-digest.sh",
         "teeth_exit": 1
+      },
+      "strength_badge": "Probed"
+    },
+    {
+      "id": "agent-routing-matrix-ban-list-scope",
+      "title": "An anti-duplication ban-list derived from 'every cited leaf string' bans the artifact's own citation discipline",
+      "category": "Inventory — measured mechanisms",
+      "kind": "ravenclaude-built",
+      "order": 916,
+      "summary": "Gate 255's vendor-fact ban-list is a scoped projection, not every leaf string in the cited files -- the wider version bans ordinary words and the source's own retrieval date.",
+      "see_also": [],
+      "widget": null,
+      "try_it": null,
+      "node_links": {},
+      "last_verified": "2026-09-01",
+      "refresh_when": null,
+      "sources": [
+        {
+          "label": "this build's own G4a critic (correlated-error pass) and G5 red-team, PR",
+          "url": "https://github.com/mcorbett51090/RavenClaude/pull/1067"
+        }
+      ],
+      "body_md": "## What a reader would have assumed instead\n\nThat the safest anti-duplication design is the broadest one: walk every leaf string in the files\nthe artifact cites (`substrate-tier-map.json`, `model-catalog.json`) and ban all of them from\nappearing in the routing matrix or its doc. More strings banned reads as more protection.\n\n## The discriminator\n\ncontrol: the same derivation scoped to only substrate-tier-map.json's per-host-per-tier `model`\nleaves plus model-catalog.json's id lists produced a ban-list with zero English-word or date\nentries, while still catching the display-name SKU form (`Claude Opus 5`) a hand-written regex had\nmissed\n\nMeasured 2026-09-01: banning *every* leaf string in the cited files means banning\n`substrate-tier-map.json`'s own Grok-lane `effort`/`perspective` values (`high`, `low`,\n`architect`, `scanner`, `critic`) — ordinary English words a routing-matrix document cannot avoid —\n**and** that file's own `retrieved` date. The artifact's own staleness/citation discipline requires\nstamping a cited fact with its retrieval date, so the \"ban everything\" derivation would forbid the\nartifact from citing its own primary source's freshness. The shipped derivation is scoped to just\nthe `model` field of each tier-map row plus the catalog's id lists — a narrower set that still\ncontains the display-name form (`\"Claude Opus 5\"`) a naive regex-based ban-list missed in an earlier\ndesign, without banning the words and dates a real `.md` cannot avoid using.\n\n## Why it matters\n\nGate 255 check B's own positive control (an empty or under-scoped derivation must not pass green)\nexists **because** this trap is easy to reintroduce: \"derive from more of the cited file\" reads as\nstrictly safer right up until the derivation swallows the file's own metadata. A future edit that\nwidens the derivation back toward \"every leaf string\" would silently make the check unpassable by\nany honestly-dated `.md` — the exact self-disabling-detector shape this repo has recorded before,\njust reached from the opposite direction (over-broad instead of under-broad).\n\nFalsifier: a future `substrate-tier-map.json` host whose tier row's `model` field itself contains a\ncommon English word or a bare date — which would re-admit a false positive under the scoped\nderivation too, and would need the derivation narrowed further (e.g. to a value shape check) rather\nthan widened.",
+      "diagram": null,
+      "diagram_mini": null,
+      "steps": [],
+      "svg": null,
+      "svg_mini": null,
+      "entry_class": "inventory",
+      "covers": [
+        "plugins/ravenclaude-core/scripts/check-agent-routing-matrix.py",
+        "plugins/ravenclaude-core/knowledge/agent-routing-matrix.json",
+        "plugins/ravenclaude-core/knowledge/agent-routing-matrix.schema.json",
+        "plugins/ravenclaude-core/knowledge/agent-routing-matrix.md"
+      ],
+      "covers_digest": "sha256:7f2233627795be36ade413f660d231c26ca057b576b2fbb0f2516780985158ea",
+      "nuance": "Deriving the ban-list from every leaf string in the cited files bans ordinary English words (the grok lane's own 'high'/'low'/'architect'/'scanner') and the source's own retrieval date -- contradicting the artifact's own citation requirement.",
+      "nuance_evidence": {
+        "measured": "2026-09-01",
+        "control": "the same derivation scoped to only substrate-tier-map.json's per-host-per-tier `model` leaves plus model-catalog.json's id lists produced a ban-list with zero English-word or date entries, while still catching the display-name SKU form (`Claude Opus 5`) a hand-written regex had missed",
+        "falsifier": "a future substrate-tier-map.json host whose tier row's `model` field itself contains a common English word or a bare date, which would re-admit a false positive under the scoped derivation too",
+        "probe": "plugins/ravenclaude-core/scripts/check-agent-routing-matrix.py"
+      },
+      "nuance_source": "plugins/ravenclaude-core/scripts/check-agent-routing-matrix.py:219-229",
+      "verify": {
+        "tier": "effect",
+        "strength": "executed",
+        "class": "gate-self-test",
+        "probe": "plugins/ravenclaude-core/scripts/check-agent-routing-matrix.py --must-fail",
+        "teeth_exit": 3
       },
       "strength_badge": "Probed"
     }
