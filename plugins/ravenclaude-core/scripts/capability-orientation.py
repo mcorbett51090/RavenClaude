@@ -828,8 +828,9 @@ def build_banner(root: Path) -> str:
             lines.append(
                 f'  This repo is bound to the claude.ai/design project "{nm}". You CAN read it '
                 "as context and edit it — use the DesignSync tool (list_files / get_file) or the "
-                "/design-sync skill. Read the file for the project_id"
-                + (f"; local mirror dir `{md}`." if md else ".")
+                "/design-sync skill (an MCP-registered `claude-design` server is a separate, "
+                "additive route to the same projects, not required here). Read the file for the "
+                "project_id" + (f"; local mirror dir `{md}`." if md else ".")
             )
         else:
             lines.append(
