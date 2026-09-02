@@ -59,6 +59,7 @@ For each dimension, score: ✅ consistent / ⚠️ partial / 🔴 inconsistent.
 
 - Timing functions: ease-out (entries) / ease-in (exits) / ease-in-out (through-states)
 - Duration scale (100 / 200 / 300 / 500ms)
+- **Tap-feedback latency: 80–150ms** for a tactile/visual response to a touch/click — distinct from the transition duration scale above; a control with no acknowledgment inside that window reads as unresponsive even if the eventual transition timing is correct.
 - `prefers-reduced-motion` fallbacks present
 
 ### 7. Iconography
@@ -66,6 +67,8 @@ For each dimension, score: ✅ consistent / ⚠️ partial / 🔴 inconsistent.
 - Icon set documented (single source, single visual style)
 - Sizing scale (16 / 20 / 24 / 32)
 - Color treatment consistent (currentColor preferred)
+- **Emoji used as a structural icon** (nav item, button, status indicator) is a named anti-pattern — flag it, don't wave it through as "quick and cheap." Reserve emoji for genuinely decorative/informal contexts, never a UI affordance.
+- **Meaningful (non-decorative) icons carry their own ≥3:1 contrast minimum** against their background — called out separately from body-text contrast (WCAG 1.4.11, non-text contrast), because an icon audit that only checks text contrast misses this.
 
 ### 8. Components
 

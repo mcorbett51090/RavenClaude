@@ -59,6 +59,29 @@ real, consistent with this repo's own opt-in-by-default posture for optional del
   Treat automatic pickup as **not proven** — the value today is "one file a human or agent can be
   pointed at," not "an agent will find this unprompted."
 
+## ⚠️ A different `design.md` exists — same filename, different job
+
+Vercel independently uses a file also named `design.md` for a **completely different purpose**:
+a **generation-time brand-guidance file** — voice, layout hierarchy, and named anti-patterns, written
+as observable/checkable statements — that their agents load into context *before* generating an
+on-brand marketing page, paired with a separate stylesheet and a post-generation validation pass
+(measured: 91→39 mechanical failures with the file present). That is **not** a token-export format —
+it competes with nothing on this page.
+
+**Disambiguate by job, not by filename:**
+
+| | This page's `DESIGN.md` (Google Labs) | Vercel's `design.md` |
+|---|---|---|
+| Job | Token export (color/type/spacing values) | Generation-time brand-guidance (voice, layout rules, anti-patterns) |
+| Consumed when | Handoff artifact, read once per brand cycle | Loaded into context on every page-generation call |
+| Owning skill here | `design-tokens-scaffolding` (this page) | No single owner yet — see [`design-sources/vercel-design-md.md`](design-sources/vercel-design-md.md) |
+
+If a reader finds one and assumes it's the other, the mistake is the filename collision, not the
+content — link back to this table rather than merging the two notes. Full writeup, including where
+the Vercel pattern should eventually land in this plugin (`gold-standard-website-pipeline` G3 is the
+leading candidate — no gate change made here, this is a knowledge note only):
+[`design-sources/vercel-design-md.md`](design-sources/vercel-design-md.md).
+
 ## Sources
 
 - [google-labs-code/design.md](https://github.com/google-labs-code/design.md) — spec, CLI, examples (retrieved 2026-09-01)
