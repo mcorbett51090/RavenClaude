@@ -154,7 +154,7 @@ trap 'exit 0' EXIT
 _rc_hd="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" 2>/dev/null && pwd || printf '.')"
 if [ -f "$_rc_hd/_advise.sh" ]; then
   . "$_rc_hd/_advise.sh"
-  rc_advise_init PostToolUse 0
+  rc_advise_init PostToolUse 0 silent
 fi
 
 # ── hook-event substrate (fail-safe: stub if absent) ────────────────────────

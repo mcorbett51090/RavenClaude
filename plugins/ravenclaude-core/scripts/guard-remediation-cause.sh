@@ -95,7 +95,7 @@ _grc_deliver() {
   # shellcheck source=/dev/null
   . "$_GRC_HOOKS/_advise.sh" || return 0
   command -v rc_advise_init >/dev/null 2>&1 || return 0
-  rc_advise_init PreToolUse || true
+  rc_advise_init PreToolUse "" silent || true
 }
 
 # A self-naming blindness report. Used for every path where this gate cannot see,

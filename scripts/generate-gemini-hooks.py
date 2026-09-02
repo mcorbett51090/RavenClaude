@@ -43,6 +43,16 @@ _EVENT = {
     "SessionStart": ("SessionStart", "sessionstart"),
 }
 
+# _gemini_matcher() translates a Claude TOOL-name matcher (Bash, Read, ...) into
+# Gemini's tool vocabulary — it was only ever designed for that. PreToolUse and
+# PostToolUse matchers are tool names, so they belong here. SessionStart's matcher
+# is a SOURCE name (startup/resume/clear/compact/fork) — a different vocabulary
+# entirely. Routing it through _gemini_matcher() finds no translation (these
+# strings aren't in _TOOL_TO_GEMINI) and, once a hook actually carries a
+# SessionStart matcher, silently drops the hook from Gemini instead of wiring it
+# unconditionally as it always used to when the matcher was absent.
+_TOOL_SHAPED_EVENTS = {"PreToolUse", "PostToolUse"}
+
 # Claude tool name -> Gemini tool name(s), for translating the MATCHER. The shim
 # translates the reverse direction at runtime; these two must stay consistent or a
 # hook is scoped to a tool that never fires.
@@ -197,17 +207,29 @@ def project(manifest: dict, adapter: str, hooks_dir: str) -> tuple:
                         "skip with a reason."
                     )
                 gem_event, mode = _EVENT[event]
-                gmatch = _gemini_matcher(matcher)
-                if matcher and not gmatch:
-                    skipped.append(
-                        (
-                            script,
-                            event,
-                            f"matcher {matcher!r} has no Gemini tool equivalent — wiring it "
-                            "would register a hook that can never fire.",
+                if event in _TOOL_SHAPED_EVENTS:
+                    gmatch = _gemini_matcher(matcher)
+                    if matcher and not gmatch:
+                        skipped.append(
+                            (
+                                script,
+                                event,
+                                f"matcher {matcher!r} has no Gemini tool equivalent — wiring "
+                                "it would register a hook that can never fire.",
+                            )
                         )
-                    )
-                    continue
+                        continue
+                else:
+                    # Non-tool-shaped event (SessionStart today). The manifest matcher
+                    # is a SOURCE name, not a Claude tool name — Gemini's SessionStart
+                    # source-filtering semantics are unverified (same unverified-schema
+                    # class as handoff-successor-ack.sh's skip above), so rather than
+                    # guess at a translation, wire unconditionally. This reproduces the
+                    # hook's own prior (matcher-less) behavior on Gemini specifically:
+                    # it may still re-fire on `compact` there until Gemini's SessionStart
+                    # payload is docs-verified, but it is never silently dropped, which
+                    # is the worse failure direction for a session-setup hook.
+                    gmatch = ""
                 args = _extra_args(command, script)
                 cmd = f'bash "{adapter}" {mode} "{hooks_dir}/{script}"'
                 if args:
