@@ -61,7 +61,7 @@ Not published to the VS Code Marketplace yet (that needs the repo owner's own pu
 account/token — see below). Until then, install the locally-built `.vsix`:
 
 ```shell
-code --install-extension ravenclaude-precompact-guard-0.1.0.vsix
+code --install-extension ravenclaude-precompact-guard-0.2.0.vsix
 ```
 
 ## Build it yourself

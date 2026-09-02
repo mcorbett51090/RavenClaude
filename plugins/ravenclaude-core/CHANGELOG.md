@@ -2,6 +2,37 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.312.0 — 2026-09-01
+
+### Fixed
+
+- **VS Code Copilot Chat context-overflow — proactive compaction, no custom trigger needed.** Built
+  via `/forge` (`.ravenclaude/runs/forge/copilot-preemptive-compact/`) against the ask "force
+  autocompaction before a prompt would overflow the context window, plus a fallback." Research
+  (verified against the shipping Copilot Chat bundle, not docs) found the literal "predict and block"
+  mechanism is not buildable — no VS Code API exposes a third-party extension the active session's
+  accumulated token usage — but Copilot Chat already has a native, mis-defaulted setting for exactly
+  this:  `github.copilot.chat.summarizeAgentConversationHistoryThreshold` defaults to `null` (only
+  compact at 100% full). `vscode-extension/` (`ravenclaude-precompact-guard`, bumped 0.1.0 → 0.2.0) now
+  contributes `0.8` as the default for that setting via `contributes.configurationDefaults` — a
+  ~3-line manifest addition, no custom file-writing, no cross-platform path resolution, no VS Code
+  Profiles risk. Direct code-trace confirmed this setting genuinely gates a background summarization
+  applied before the next request renders. Fallback (ask #2 in the original request) was already
+  satisfied natively: `github.copilot.chat.compact` (a real command) + Copilot's own context-window
+  usage indicator + the already-shipped `ravenclaude.forceCompactWithDigest` command.
+- **The extension was silently disabled in VS Code's Restricted Mode** (found by the FORGE run's own
+  red-team pass) — a default-path trigger on any unfamiliar/large repo, correlating with exactly the
+  sessions most likely to overflow. Fixed with `capabilities.untrustedWorkspaces: "limited"`.
+- **Gate 256** (`scripts/check-vscode-extension-config-defaults.py`) — the FORGE run's own red-team
+  found VS Code silently drops a `contributes.configurationDefaults` override on three distinct
+  shapes (unregistered key, `disallowConfigurationDefault`, disallowed scope) with no error surfaced
+  anywhere, and `vscode-extension/package.json` had zero gate coverage before this. `--self-test` and
+  `--must-fail` are fully synthetic (CI-safe, no real VS Code needed); `--check` runs against a real
+  installed Copilot Chat when one is present and exits 0 (loud-skip) rather than failing when VS Code
+  is absent `[verified this session: scripts/check-vscode-extension-config-defaults.py:54,388]`.
+  Landed as Gate 256, not 255 — 255 was independently claimed by the concurrent `agent-routing-matrix`
+  PR (#1067), which merged first.
+
 ## 0.311.0 — 2026-09-01
 
 ### Added
@@ -40,6 +71,29 @@ All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the 
   false claim from one upstream source and neither verified it against `scripts/audit-gates.sh`).
   Fixed at all 5 sites in one commit; Gate 126 (the mirror byte-identity gate) confirmed the two
   `.js` copies stayed identical throughout.
+
+## 0.311.1 — 2026-09-01
+
+### Fixed
+
+- **`copilot-hook-adapter.sh`'s tool-name map was missing `powershell`, Copilot's Windows
+  command-execution tool** — the direct analogue of `bash`, and until now unmapped, so a `powershell`
+  command silently bypassed the command-review tribunal and `guard-web-access.sh` under Copilot exactly
+  like the original bash/edit/view P0 (2026-07-28). Mapped to `Bash`, with a defensive
+  `.command // .script // .commandLine` coalescing (the exact JSON key Copilot's `powershell` tool
+  uses for its command text is not docs-verified, so this doesn't assume `.command`). Security-reviewed
+  (verdict CLEAR-WITH-CHANGES, applied): the fix is real and net-positive for shell-portable command
+  text, but does NOT close the gap for PowerShell-native attack syntax (`iex`, `-EncodedCommand`, …) —
+  the tribunal's catalog triggers are POSIX-only by construction (tracked follow-up, not fixed here) —
+  and whether a `powershell` call even reaches the adapter on Copilot CLI ≥1.0.62 depends on
+  undocumented native matcher-translation behavior, honestly flagged VERIFY-IN-COPILOT rather than
+  claimed closed. `glob`/`grep`/`task` also mapped (naming-accuracy hygiene only — Claude Code's own
+  dispatch case doesn't tribunal-review those tool types either, so this only removes a false
+  "unmapped tool name" warning, no behavior change). `ask_user` deliberately left unmapped — mapping it
+  to `AskUserQuestion` would misrepresent `generate-copilot-hooks.py`'s own explicit decision to never
+  wire `route-decision-review.sh` for Copilot. Extended `test-gate167-copilot-tribunal-e2e.sh` with 7
+  new assertions (incl. a teeth half reproducing the closed gap) — 10/10 pass. Grounded in this
+  session's Copilot Chat/CLI research: `docs/research/2026-09-01-copilot-chat-grandmaster/synthesis.md`.
 
 ## 0.310.1 — 2026-09-01
 
