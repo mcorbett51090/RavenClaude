@@ -4,6 +4,13 @@
 
 A curated, opinionated reference set for any web-design work that wants to feel **modern, restrained, and developer-credible** without chasing trends that age in six months. Use this as the visual + interaction north star for marketing sites, product pages, design-system rebuilds, and dashboards intended for technical buyers.
 
+**For a dashboard specifically** (as opposed to a marketing/product surface), the restraint principle
+below is generalized into dashboard-specific craft — information hierarchy, KPI/whitespace/color
+discipline, and chart-type selection — in `data-platform`'s
+[`knowledge/dashboard-visual-craft-2026.md`](../../data-platform/knowledge/dashboard-visual-craft-2026.md),
+cross-linked from that plugin's `dashboard-builder` agent. Same pattern as `design-clone`'s
+cross-link into this plugin: the craft canon lives with its primary consumer, referenced from here.
+
 The whole frame is **restraint plus one or two memorable interactive beats**. Most of the work is the restraint. The "wow" beats are surgical and earn their motion budget.
 
 ---

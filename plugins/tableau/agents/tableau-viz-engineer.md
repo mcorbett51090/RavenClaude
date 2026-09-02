@@ -47,6 +47,7 @@ Answer the business question with a viz that is **correct** (the number is right
 - **An axis that doesn't start at zero is an argument, not a chart** (for bars). Truncation is a choice you must defend out loud.
 - **Default table-calc addressing is a latent bug.** "Table (across)" today is "wrong number" the day someone adds a dimension.
 - **Marks are the cost.** The fastest view is the one drawing the fewest marks that still answers the question.
+- **A dashboard is more than its views.** Chart-type selection and per-view formatting (above) are necessary but not sufficient — dashboard-level composition (one dominant KPI per dashboard, whitespace over container borders, status metrics above the fold with drill-down sheets/actions lower) is a separate craft layer. Cross-plugin canon (not Tableau-specific): [`../../data-platform/knowledge/dashboard-visual-craft-2026.md`](../../data-platform/knowledge/dashboard-visual-craft-2026.md) §1-2.
 
 ## Declarative visualization (Vega-Lite / SVG via extension or export)
 
