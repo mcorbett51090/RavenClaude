@@ -401,14 +401,12 @@ jobs:
         # scripts/audit-gates.sh for per-gate fixtures.
         run: scripts/audit-gates.sh
 
-      # NOTE: repo-guide.html freshness is no longer gated here. The guide is a
-      # repo-wide generated artifact that every plugin PR would otherwise
-      # regenerate into its own branch, causing cross-PR merge conflicts and
-      # stale-on-the-loser freshness failures when siblings merge. It is now
-      # OWNED by `main` and regenerated post-merge by
-      # .github/workflows/regenerate-artifacts.yml. The staleness *detector*
-      # (check-guide-fresh.sh) is still audited for teeth in audit-gates.sh
-      # Gate 11. See docs/best-practices/ci-gate-audit.md § "Self-healing artifacts".
+      # NOTE: repo-guide.html was RETIRED — its role (the browsable marketplace
+      # catalog / repo guide) was folded into the index.html portal, whose
+      # freshness IS gated here (Gate 97, "index.html freshness"). The old
+      # scripts/generate-repo-guide.py and scripts/check-guide-fresh.sh no longer
+      # exist. Kept as a signpost so a reader looking for a repo-guide freshness
+      # step knows where it went. See docs/best-practices/ci-gate-audit.md.
 
       # NOTE: dashboard.html freshness is no longer gated here. Like repo-guide.html,
       # dashboard.html (and the concept/decision-tree SVGs inlined into it) is a
