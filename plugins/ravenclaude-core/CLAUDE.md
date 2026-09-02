@@ -3770,6 +3770,55 @@ already relying on `bash`/`edit`/`view`/etc. is byte-identical. A `powershell` c
 sailed through unreviewed will now be reviewed on hosts where it reaches the adapter at all (see the
 VERIFY-IN-COPILOT caveat above) — this is the guardrail newly firing, not a regression.
 
+## `ravenclaude repair` — an escape hatch for a Copilot session bricked by incompatible hooks (added 2026-09-02, v0.312.3)
+
+An incident report described GitHub Copilot CLI **1.0.3** — well below the 1.0.52 sub-agent-hooking
+floor `copilot_version_check()` (Gate 157) already warns about — producing malformed hook output that
+broke the Copilot hook adapter and blocked **every** tool call, not just sub-agent ones. **The exact
+mechanism is `[unverified — user-reported symptom]`**: no 1.0.3 binary was available this session to
+reproduce it against, so this ships as defense-in-depth robust to the mechanism being unknown, not a
+narrow fix for one confirmed root cause. Full record, including what *is* independently
+`[web-sourced]`-verified from the Copilot CLI changelog/docs (GA at 1.0.2, the 1.0.52/1.0.62 floors,
+and GitHub's own documented "a structural hooks-file error rejects the whole file" behavior):
+[`knowledge/copilot-cli-hook-incompatibility.md`](knowledge/copilot-cli-hook-incompatibility.md).
+
+**The gap this closes: nobody had anything to DO once stuck.** `copilot_version_check()` deliberately
+never aborts `install`/`status` (owner ruling 2026-08-13 — an earlier revision did, and that broke the
+installer, which is strictly worse than no check) and `generate-copilot-hooks.py`'s own design
+deliberately does **not** make hook *generation* conditional on the installer machine's Copilot
+version (matcher-degradation reasoning, unrelated risk category). Both are correct as designed; neither
+gives a bricked session a recovery step.
+
+**`ravenclaude repair --host copilot [--project DIR]`** (`scripts/ravenclaude`, `cmd_repair`) is that
+step: if `.github/hooks/ravenclaude.json` is absent, reports "nothing to repair" (exit 0); if present,
+**renames** it to `ravenclaude.json.disabled-<UTC-ts>` — never deletes, fully recoverable, and
+Copilot's repo-hook loader only reads files literally in `.github/hooks/`, so the rename is exactly
+what takes it out of view — then prints next steps (start a **new** Copilot session; a running one
+already loaded the broken config and won't notice a rename mid-session; check `copilot --version`;
+update; re-run `install`). `--host` other than `copilot` refuses (exit 2) — Codex's hook-trust story
+(MH-17) is a different mechanism (`/hooks` re-trust inside Codex), not a file to repair here.
+`copilot_version_check()`'s below-floor warning now also names the reported failure mode and points at
+`repair` — its own exit-code contract is **untouched**, still always `return 0`, so the 2026-08-13
+ruling is not reopened.
+
+Proven by **Gate 257** (`hooks/tests/test-gate257-copilot-repair.sh`, 7/7): nothing-to-repair exits 0;
+a present hooks file is renamed with content preserved byte-for-byte; `--host codex` refuses and
+leaves the file untouched; a must-fail teeth half (a mutant that always reports "nothing to repair")
+is caught by a real hooks file being left in place. Registered in the `--check` dispatcher, the main
+sequence, and the `Supported:` string — grepped for all three this session (the Gate 184 lesson: a
+gate placed in only one of the three ships unreachable).
+
+**Deliberately NOT done, and why:** no new, harder version floor that skips writing the hooks file for
+critically old versions was added. Pinning an exact "safe to load" cutoff below 1.0.52 would be
+guessing at a boundary this session had no way to verify (no 1.0.3 binary to test against) — a wrong
+guess could strand a working install (false positive) or ship the identical incident one version lower
+(false negative). The recovery escape hatch is robust to the exact boundary being unknown.
+
+**Migration:** none — a new subcommand + an extra warning line + a knowledge file. `copilot_version_check()`
+behavior (always warn, never abort) is byte-identical; `.github/hooks/ravenclaude.json` generation is
+unchanged. Nothing in a consumer's installed plugin changes on `/plugin marketplace update` until they
+run `ravenclaude repair`.
+
 ## `/repo-review` — whole-repo systematic bug sweep, Phase 1 shipped + proven end-to-end (added 2026-09-02, v0.313.0)
 
 Grew out of a `/forge` run (two divergent cross-model panels — Opus "architect", Sonnet "scanner" —
@@ -3803,7 +3852,7 @@ files requiring explicit `--yes` confirmation — mirroring `forge-pipeline`'s o
 of stopping to ask rather than silently degrading at scale).
 
 **Proven end-to-end, not just self-tested against synthetic fixtures.** Every script has its own
-`--self-test`, registered as **Gate 257** (dispatcher + main sequence + `Supported:`, verified by Gate
+`--self-test`, registered as **Gate 258** (dispatcher + main sequence + `Supported:`, verified by Gate
 195). Beyond that, the full Map→Review→Merge→Verify→Fix→Report shape was **actually executed** via
 direct `Agent`-tool dispatch (single-model, then cross-model, then verify, then fix — 30 real subagent
 calls total) against a synthetic fixture repo with one planted defect per (non-CI) dimension:
@@ -3824,7 +3873,7 @@ titles → different hash) nor a near-dup flag. `corroboration` silently read `n
 common real case a cross-model design exists to catch. This is precisely the class of defect a synthetic
 self-test, engineered with matching-title fixtures, cannot surface — it took a real cross-model dispatch
 against real code to expose it. Fixed to `> 1` (skip only when buckets differ by *more* than 1), with a
-permanent regression assertion (`test8`) added to the script's own `--self-test`, and Gate 257 carries a
+permanent regression assertion (`test8`) added to the script's own `--self-test`, and Gate 258 carries a
 must-fail teeth check that reverts the fix and confirms `test8` then fails. **Known, honest residual:**
 two real duplicate pairs in the same proof-run still evade even the widened check (their titles share
 only 2-3 tokens, under the 4-token near-dup threshold) — a limitation of a pure lexical heuristic,

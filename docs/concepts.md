@@ -2964,7 +2964,7 @@ Falsifier: a same-line cross-model pair that WAS flagged near_duplicate under th
 none was found across the 18-survivor proof-run; every same-line pair read
 `near_duplicate: false` before the fix.
 
-Probe: `findings_merge.py --self-test` (`test8`), and Gate 257's teeth check, which reverts the
+Probe: `findings_merge.py --self-test` (`test8`), and Gate 258's teeth check, which reverts the
 bound to `!= 1` and asserts the mutant's self-test then fails.
 
 `corroboration` is the field a `/repo-review` user reads to judge whether a finding is a single

@@ -17,7 +17,7 @@ covers:
   - plugins/ravenclaude-core/skills/repo-review/scripts/fix_summary.py
   - plugins/ravenclaude-core/skills/repo-review/scripts/estimate_cost.py
   - plugins/ravenclaude-core/skills/repo-review/workflows/repo-sweep.workflow.js
-covers_digest: "sha256:e0f914a4b593c788dcc5891b9a896f59ab1a24228b06064457a68c56629aa09b"
+covers_digest: "sha256:aad08a004ebd9f944135d6a675e878b355baa0357cc315d39cdc94c53ed95499"
 nuance: "A dedup key built from each finding's own title tokens misses two models describing
   one bug in different words at the same line -- keys differ, so exact-key merge misses it.
   The near-dup fallback's bucket-diff bound was `== 1` (adjacent only), excluding 0 (the
@@ -42,7 +42,7 @@ verify:
   tier: "effect"
   strength: "executed"
   class: "gate-self-test"
-  probe: "plugins/ravenclaude-core/scripts/audit-gates.sh --check 257"
+  probe: "plugins/ravenclaude-core/scripts/audit-gates.sh --check 258"
   teeth_exit: 1
 sources:
   - label: "repo-review build + live proof-run, 2026-09-02 -- cross-model dispatch against the fixture repo caught the defect in findings_merge.py itself"
@@ -74,7 +74,7 @@ Falsifier: a same-line cross-model pair that WAS flagged near_duplicate under th
 none was found across the 18-survivor proof-run; every same-line pair read
 `near_duplicate: false` before the fix.
 
-Probe: `findings_merge.py --self-test` (`test8`), and Gate 257's teeth check, which reverts the
+Probe: `findings_merge.py --self-test` (`test8`), and Gate 258's teeth check, which reverts the
 bound to `!= 1` and asserts the mutant's self-test then fails.
 
 `corroboration` is the field a `/repo-review` user reads to judge whether a finding is a single

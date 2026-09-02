@@ -122,7 +122,7 @@ Modeled on this repo's own precedent for stating gate scope honestly — see `/w
 GATE-SCOPE STATEMENT" in this repo's `CLAUDE.md`.
 
 **Mechanically self-tested, with real assertions (each via its own `--self-test` flag), and registered
-as [Gate 257](../../../../scripts/audit-gates.sh) in `audit-gates.sh` (dispatcher + main sequence +
+as [Gate 258](../../../../scripts/audit-gates.sh) in `audit-gates.sh` (dispatcher + main sequence +
 `Supported:` string — verified by Gate 195, the gate-introspection meta-gate):**
 
 | Component | What `--self-test` actually asserts |
@@ -153,7 +153,7 @@ rather than asserted:
   models finding the identical bug on the identical line with differently-worded titles got neither an
   exact-key match nor a near-dup flag, and `corroboration` silently read `null` for the single most
   common real case. Fixed to `> 1`; a permanent regression assertion (`test8`) was added to
-  `findings_merge.py`'s own `--self-test`, and Gate 257 carries a must-fail teeth check reverting the
+  `findings_merge.py`'s own `--self-test`, and Gate 258 carries a must-fail teeth check reverting the
   fix and confirming `test8` then fails.
 - **Verify: 17 CONFIRMED, 1 PLAUSIBLE, 0 REFUTED**, across all 18 survivors, third-model rule honored
   (haiku verified findings sourced from sonnet+opus).
@@ -189,7 +189,7 @@ reference shape... Claude adapts it to the task at hand."*
 
 - Plugin version bumped, `sync-plugin-versions.py` + `generate-copilot-plugin.py` + `generate-dashboards.py`
   + `generate-index-dashboard.py` all regenerated and verified fresh.
-- `audit-gates.sh` Gate 257 registered (dispatcher + main sequence + `Supported:`), with a must-fail
+- `audit-gates.sh` Gate 258 registered (dispatcher + main sequence + `Supported:`), with a must-fail
   teeth check, passing.
 - `.repo-layout.json` — no change needed (already covers every path this skill and its siblings touch).
 
