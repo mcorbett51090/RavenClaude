@@ -55,8 +55,9 @@ explicitly so agents can recognize and avoid them. Measured effect: pages genera
   of the *token* half (already true via the Google DESIGN.md cross-ref); the *voice/layout/
   anti-pattern* half is closer to `brand-identity-studio`'s `brand-voice-and-messaging` +
   `logo-and-visual-system-direction` skills, escalated to `web-design`'s `visual-designer` for
-  the code-facing observable-rule translation. No single existing skill owns "write the
-  agent-facing on-brand generation contract" today — that's the gap this source names.
+  the code-facing observable-rule translation. **Closed:** [`brand-guidance-authoring`](../../skills/brand-guidance-authoring/SKILL.md)
+  now owns "write the agent-facing on-brand generation contract," wired as a `gold-standard-website-pipeline`
+  G3 criterion — the gap this source named.
 
 ## Refresh recipe
 - Re-check: every ~6 months, or opportunistically when reworking `gold-standard-website-pipeline`
