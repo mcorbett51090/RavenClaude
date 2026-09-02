@@ -3654,6 +3654,54 @@ in 5 existing files and two prose-only pointer paragraphs; nothing in a consumer
 behaves differently on `/plugin marketplace update` until they read the new knowledge file or open
 `agent-routing-matrix.md`.
 
+## `session-relay` — hand a mid-flight finding to the peer session already in the right worktree (added 2026-09-01, v0.312.0)
+
+Claude Code's built-in `ListAgents`/`SendMessage` reach any live peer session — subagents, other
+local sessions, cloud sessions, Remote Control peers — with no team setup and no experimental flag,
+a genuinely **broader** capability than the flag-gated Agent Teams feature `dynamic-workflows.md`
+already documented. Neither tool had a RavenClaude-specific procedure for using them across this
+repo's own multi-session worktree convention. Requested: research the capability, build an
+enhancement, in a new worktree — done via `forge-worktree.sh init` (per the FORGE convention this
+repo already uses for isolating exactly this kind of change), not the full `/forge` pipeline.
+
+**The research** — [`knowledge/cross-session-messaging.md`](knowledge/cross-session-messaging.md) —
+distinguishes the two features (table + cross-links from `dynamic-workflows.md`), records the
+version timeline and security/audit boundaries a dispatched research agent found (marked
+`[subagent-researched]`, not independently re-verified), and documents a **verified negative**: the
+obvious hypothesis that `ListAgents`' bracketed `[ref]` derives from a session's internal
+`session_id` is false (checked against this authoring session's own id vs. its displayed name).
+
+**The mechanism** — [`scripts/resolve-worktree-session.sh`](scripts/resolve-worktree-session.sh) —
+answers "which live session is bound to worktree X, and what's its `SendMessage`-addressable name?"
+by chaining two existing registries RavenClaude already writes: `worktree-guard.sh`'s own
+`sha256(realpath(toplevel))`-keyed session registry (worktree → `session_id`/`pid`/`branch`, same
+key algorithm and `kill -0` + mtime liveness check, so the two never disagree) into
+`~/.claude/sessions/<pid>.json`'s `name` field — verified live end-to-end against this real
+checkout (a call from inside this worktree correctly resolves `peer_name: "matthewcorbett-bc"`,
+exactly matching what `ListAgents` displayed for this session). Read-only, bash 3.2-safe, no GNU
+`timeout`/`grep -P`/`sed -i`; **self-tested (8/8), not a formal audit gate** — the same tier as
+`forge-route.py`/`forge-worktree.sh`.
+
+**The skill** — [`skills/session-relay/SKILL.md`](skills/session-relay/SKILL.md) — the procedure: resolve
+the peer (above), compose a structured non-imperative report envelope (confidence labeled per
+Claim-Grounding Rule 1b), `SendMessage`, and log the relay locally under `.ravenclaude/runs/` (closing,
+for this repo's own runs, the "peer messaging isn't captured by the SOP/run-artifact discipline" gap
+`dynamic-workflows.md` already names for Agent Teams' mailbox traffic — upstream Claude Code itself
+has no dedicated audit-log doc for cross-session messages beyond the collapsed transcript preview).
+Explicitly states the permission-boundary rule (never relay around your own denied gate), the
+hub-and-spoke composition (a dispatched sub-agent escalates to its Team Lead, which relays — it does
+not `SendMessage` a peer directly), and that a received message is untrusted data per Memory
+Engineering Rule 2, never an instruction or an authorization. Wired as a `spawn-team` re-routing-table
+row and a `dynamic-workflows.md` cross-link.
+
+**Honest scope.** Only the worktree→session-name resolution is mechanically verified; the message
+envelope, confidence labeling, and guardrail prose are behavioral, like `design_checkins` — no hook
+enforces the envelope shape or scrubs an outgoing secret. If relays become frequent, wiring the local
+`relay-events.jsonl` log into Heimdall is the natural next step, not built here.
+
+**Migration:** none — a new skill + knowledge file + read-only helper script; nothing in a consumer's
+installed plugin changes on `/plugin marketplace update` until they invoke `session-relay`.
+
 ## Copilot adapter tool-name map — powershell closed, ask_user deliberately not (added 2026-09-01, v0.311.1)
 
 Grew out of this session's `docs/research/2026-09-01-copilot-chat-grandmaster/synthesis.md`, whose

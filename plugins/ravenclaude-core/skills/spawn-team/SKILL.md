@@ -330,6 +330,7 @@ When an agent surfaces a problem, route by the *type* of problem, not by which a
 | Documentarian surfaces a fact gap | Source insufficient | **deep-researcher** if external; ask the user if internal |
 | Agent A asserts another agent's prior artifact is wrong (confidence ≥ 0.7, correctness-critical domain) | Contested claim that one orchestrator test can't settle | **deep-researcher in citation-only mode** — apply [Cited-Adjudicator Escalation](../../rules/agent-collaboration.md#cited-adjudicator-escalation) |
 | Any agent goes silent for >5 minutes | Blocked or stuck | abort and re-dispatch with a tighter brief |
+| A finding is relevant to a **different worktree with its own live session** | Cross-session relevance | **[`session-relay`](../session-relay/SKILL.md)** — hand it to the peer session already working there via `ListAgents`/`SendMessage`, instead of paging the human or letting it go stale. See [`knowledge/cross-session-messaging.md`](../../knowledge/cross-session-messaging.md) for the underlying capability. |
 
 ---
 
