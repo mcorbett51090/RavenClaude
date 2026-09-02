@@ -3818,3 +3818,76 @@ guess could strand a working install (false positive) or ship the identical inci
 behavior (always warn, never abort) is byte-identical; `.github/hooks/ravenclaude.json` generation is
 unchanged. Nothing in a consumer's installed plugin changes on `/plugin marketplace update` until they
 run `ravenclaude repair`.
+
+## `/repo-review` — whole-repo systematic bug sweep, Phase 1 shipped + proven end-to-end (added 2026-09-02, v0.313.0)
+
+Grew out of a `/forge` run (two divergent cross-model panels — Opus "architect", Sonnet "scanner" —
+G1 fact-verification, a correlated-error critic, synthesis) against the ask: a `/forge`-style
+panel-judged pipeline that systematically sweeps a **whole repo** for bugs, the way `/forge` panel-judges
+a plan. The G1 gate caught a false premise both draft panels inherited: "extend the built-in
+`/code-review`" assumed an editable skill file that doesn't exist — `/code-review`'s rich behavior
+(effort ladder, `--fix`, `--comment`, `ultra`, `ReportFindings`) is a **built-in Claude Code feature**,
+the same way `simplify`/`run`/`workflow-authoring` are, with no marketplace source under
+`~/.claude/plugins/cache` to edit. Confirmed by direct inspection: the only on-disk `code-review` plugin
+(`claude-plugins-official`) is a stale, orphaned, byte-identical-across-9-versions PR-comment-only
+implementation, unrelated to the live built-in. Ships instead as a **new sibling skill** in
+`ravenclaude-core` — which also simplified the design both panels converged on, since there's no shared
+entry point with `/code-review` to disambiguate via a `--scope` flag.
+
+**Mechanism:** deterministic chunking (`scripts/repo_map.py` — directory-major, token-budget-packed
+batches ranked by churn/recency/size/path-sensitivity, honest coverage reporting) + a content-hash cache
+(`scripts/review_cache.py`, so a repeat sweep of an unchanged repo costs ~0 review-agent calls) + a
+`Workflow`-shaped fan-out across **8 dimensions** — the plan's original 7 (correctness, security,
+concurrency, resource-leaks, error-handling, performance, dead-code-simplification — the last pinned
+single-model even under cross-model, the cheapest cost lever) plus **`ci-cd-actions-security`**, added
+for GitHub Actions / CI-gate-specific defects (script injection via untrusted `github.event.*`,
+`pull_request_target` + PR-head-checkout combos, unpinned third-party Actions, over-broad
+`permissions:`, and a CI gate that silently never fires or asserts nothing — this repo's own `AGENTS.md`
+documents having been burned by the last one) — deterministic dedup (`scripts/findings_merge.py`,
+cross-model/cross-dimension merge + severity-max + near-dup flagging), a fix-summary emitter
+(`scripts/fix_summary.py`, hard row-count==applied-count invariant), and a pre-flight cost estimator
+(`scripts/estimate_cost.py`, refuses `low`/`medium` tiers, implements the cardinality formula
+`B = floor((A_max−V_max−K_max−O)/review_agents_per_batch)`, and a `--full` hard cap at >3000 reviewable
+files requiring explicit `--yes` confirmation — mirroring `forge-pipeline`'s own premise-gate philosophy
+of stopping to ask rather than silently degrading at scale).
+
+**Proven end-to-end, not just self-tested against synthetic fixtures.** Every script has its own
+`--self-test`, registered as **Gate 258** (dispatcher + main sequence + `Supported:`, verified by Gate
+195). Beyond that, the full Map→Review→Merge→Verify→Fix→Report shape was **actually executed** via
+direct `Agent`-tool dispatch (single-model, then cross-model, then verify, then fix — 30 real subagent
+calls total) against a synthetic fixture repo with one planted defect per (non-CI) dimension:
+
+- **100% recall** (7/7 planted defects, correct file/dimension/line), **0 false positives** on 4 clean
+  control files.
+- **A genuine organic bug found beyond the planted set** — the cross-model pass flagged a real bug in a
+  file the fixture manifest called clean; independently confirmed by Verify (traced code path) and
+  fixed. The fixture's ground truth was simply incomplete.
+- **17 CONFIRMED, 1 PLAUSIBLE, 0 REFUTED** across 18 survivors; 17/17 confirmed+fixable findings applied
+  across 8 files, `fix_summary.py`'s invariant held, nothing committed — verified after the fact with
+  `git status`, `py_compile`, and hand-written functional smoke tests (not just "it compiles").
+
+⛔ **The proof-run caught and fixed a real defect in `findings_merge.py` itself.** The near-duplicate
+detector required line-bucket difference `== 1`, which **excluded 0** — so two models finding the
+identical bug on the identical line, worded differently, got neither an exact-key match (different
+titles → different hash) nor a near-dup flag. `corroboration` silently read `null` for the single most
+common real case a cross-model design exists to catch. This is precisely the class of defect a synthetic
+self-test, engineered with matching-title fixtures, cannot surface — it took a real cross-model dispatch
+against real code to expose it. Fixed to `> 1` (skip only when buckets differ by *more* than 1), with a
+permanent regression assertion (`test8`) added to the script's own `--self-test`, and Gate 258 carries a
+must-fail teeth check that reverts the fix and confirms `test8` then fails. **Known, honest residual:**
+two real duplicate pairs in the same proof-run still evade even the widened check (their titles share
+only 2-3 tokens, under the 4-token near-dup threshold) — a limitation of a pure lexical heuristic,
+correctness-neutral (Verify re-confirms every survivor independently) but left unfixed rather than
+chased into overfitting two examples; the plan's own `judge` policy tier (a real model adjudicating
+marginal near-dup calls) is the principled fix, not yet built.
+
+**What this is not, stated as plainly as the SKILL.md §6 states it:** the authored `workflows/repo-sweep.workflow.js`
+has **not** itself been executed via the real `Workflow` tool — that requires an explicit user opt-in
+("use a workflow" / the `ultracode` keyword) this build session did not receive; the proof-run above used
+direct `Agent`-tool dispatch to exercise the identical orchestration shape, which is a faithful proof of
+the *pipeline* but not of that specific `.js` file under the `Workflow` tool. Also not done: a real run
+against this marketplace's own repo (or any repo at production scale) — the proof-run is against a
+14-file synthetic fixture, not production scale.
+
+**Migration:** none — a new skill; nothing in an installed plugin's behavior changes on
+`/plugin marketplace update` until a consumer invokes `/repo-review`.

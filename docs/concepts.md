@@ -2360,7 +2360,7 @@ Probe: `scripts/audit-gates.sh`
 
 **Sources:** [measured in the FORGE product-inventory run](https://github.com/mcorbett51090/RavenClaude/pull/997)
 
-_Last verified: 2026-08-25_
+_Last verified: 2026-09-02_
 
 
 ---
@@ -2931,6 +2931,52 @@ is not an optimization over a simpler one-hop lookup; the one-hop lookup does no
 **Sources:** [session-relay build, 2026-09-01 -- live ListAgents/session-registry comparison in this authoring session](../plugins/ravenclaude-core/knowledge/cross-session-messaging.md)
 
 _Last verified: 2026-09-01_
+
+
+---
+
+### Cross-model corroboration silently missed same-line duplicate findings · _RavenClaude-built_
+
+> findings_merge.py's near-dup detector required bucket-diff == 1, excluding 0 -- two models finding the same bug on the same line, worded differently, got no corroboration flag.
+
+## What a reader would have assumed instead
+
+That a near-duplicate check scoped to "adjacent line buckets" (`abs(a_bucket - b_bucket) == 1`)
+was deliberately narrow to avoid double-flagging the exact-key match case -- i.e. that
+bucket-difference 0 was excluded ON PURPOSE because same-key findings are already merged
+upstream. That assumption is false whenever two findings land in the same bucket but do NOT
+share an exact key, which happens constantly in practice: two models describing the same bug
+almost never choose the same six sorted title tokens.
+
+## The discriminator
+
+control: a live cross-model dispatch against the repo-review fixture repo. sonnet and opus both
+read `app/services/db.py` and both flagged line 21 as SQL injection -- genuine agreement on the
+same bug, same file, same exact line (bucket difference 0, not 1). Their titles differed enough
+that the exact-key hash (built from each finding's own top-6 sorted title tokens) never matched.
+The near-duplicate fallback's `!= 1` bound then also skipped them, because 0 != 1. Both signals
+that exist specifically to catch cross-model agreement missed the cleanest possible instance of
+it, in the same proof-run, six separate times.
+
+## Why it matters
+
+Falsifier: a same-line cross-model pair that WAS flagged near_duplicate under the old bound --
+none was found across the 18-survivor proof-run; every same-line pair read
+`near_duplicate: false` before the fix.
+
+Probe: `findings_merge.py --self-test` (`test8`), and Gate 258's teeth check, which reverts the
+bound to `!= 1` and asserts the mutant's self-test then fails.
+
+`corroboration` is the field a `/repo-review` user reads to judge whether a finding is a single
+model's guess or two models' independent agreement -- exactly the signal cross-model review is
+built to produce. A dedup design that silently drops that signal on the most common real shape
+doesn't fail loudly; it fails as a quieter, less-trustworthy report that looks identical to a
+working one. The bound is now `> 1` (skip only when buckets differ by MORE than 1), which covers
+both 0 and 1, with a permanent regression assertion so this cannot silently regress again.
+
+**Sources:** [repo-review build + live proof-run, 2026-09-02 -- cross-model dispatch against the fixture repo caught the defect in findings_merge.py itself](../plugins/ravenclaude-core/skills/repo-review/SKILL.md)
+
+_Last verified: 2026-09-02_
 
 
 ---

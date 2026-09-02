@@ -2945,7 +2945,7 @@
         "scripts/sync-plugin-versions.py",
         "scripts/generate-copilot-plugin.py"
       ],
-      "covers_digest": "sha256:23d243676fe19d8bf29597df45056269500318935a34673e8750d0f0a365b15b",
+      "covers_digest": "sha256:7fce12d9b0489d6ca452c5481958efd9bf2e26994d08035cc96d62fb61aed285",
       "nuance": "The cache key is the `version` string, never a content hash, so `sync-plugin-versions.py` can report clean while every installed session keeps running the old `hooks/` code.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -2974,7 +2974,7 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-08-25",
+      "last_verified": "2026-09-02",
       "refresh_when": null,
       "sources": [
         {
@@ -3006,7 +3006,7 @@
         "scripts/inventory-coverage.py",
         "scripts/inventory-nuance-judge.py"
       ],
-      "covers_digest": "sha256:7d231e5e173e64ca1b225ae9cd7d1435b21ec5b2279a8578400f9937474c2848",
+      "covers_digest": "sha256:35253648822bc00d2824821475d46e0db2077731ee228b5b05e1146308c1294b",
       "nuance": "The teeth bit is the exit a tool own CHECK returns on a planted defect, never the exit `--must-fail` itself returns: `premise-gate.py` denies at `exit 0` while `sync-plugin-versions.py` reddens at `exit 2`, so an auditor that hard-codes one number can never be right for both.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -3821,6 +3821,61 @@
         "strength": "executed",
         "class": "script-selftest",
         "probe": "plugins/ravenclaude-core/scripts/resolve-worktree-session.sh",
+        "teeth_exit": 1
+      },
+      "strength_badge": "Probed"
+    },
+    {
+      "id": "repo-review-corroboration-bucket-diff",
+      "title": "Cross-model corroboration silently missed same-line duplicate findings",
+      "category": "Inventory — measured mechanisms",
+      "kind": "ravenclaude-built",
+      "order": 918,
+      "summary": "findings_merge.py's near-dup detector required bucket-diff == 1, excluding 0 -- two models finding the same bug on the same line, worded differently, got no corroboration flag.",
+      "see_also": [],
+      "widget": null,
+      "try_it": null,
+      "node_links": {},
+      "last_verified": "2026-09-02",
+      "refresh_when": null,
+      "sources": [
+        {
+          "label": "repo-review build + live proof-run, 2026-09-02 -- cross-model dispatch against the fixture repo caught the defect in findings_merge.py itself",
+          "url": "plugins/ravenclaude-core/skills/repo-review/SKILL.md"
+        }
+      ],
+      "body_md": "## What a reader would have assumed instead\n\nThat a near-duplicate check scoped to \"adjacent line buckets\" (`abs(a_bucket - b_bucket) == 1`)\nwas deliberately narrow to avoid double-flagging the exact-key match case -- i.e. that\nbucket-difference 0 was excluded ON PURPOSE because same-key findings are already merged\nupstream. That assumption is false whenever two findings land in the same bucket but do NOT\nshare an exact key, which happens constantly in practice: two models describing the same bug\nalmost never choose the same six sorted title tokens.\n\n## The discriminator\n\ncontrol: a live cross-model dispatch against the repo-review fixture repo. sonnet and opus both\nread `app/services/db.py` and both flagged line 21 as SQL injection -- genuine agreement on the\nsame bug, same file, same exact line (bucket difference 0, not 1). Their titles differed enough\nthat the exact-key hash (built from each finding's own top-6 sorted title tokens) never matched.\nThe near-duplicate fallback's `!= 1` bound then also skipped them, because 0 != 1. Both signals\nthat exist specifically to catch cross-model agreement missed the cleanest possible instance of\nit, in the same proof-run, six separate times.\n\n## Why it matters\n\nFalsifier: a same-line cross-model pair that WAS flagged near_duplicate under the old bound --\nnone was found across the 18-survivor proof-run; every same-line pair read\n`near_duplicate: false` before the fix.\n\nProbe: `findings_merge.py --self-test` (`test8`), and Gate 258's teeth check, which reverts the\nbound to `!= 1` and asserts the mutant's self-test then fails.\n\n`corroboration` is the field a `/repo-review` user reads to judge whether a finding is a single\nmodel's guess or two models' independent agreement -- exactly the signal cross-model review is\nbuilt to produce. A dedup design that silently drops that signal on the most common real shape\ndoesn't fail loudly; it fails as a quieter, less-trustworthy report that looks identical to a\nworking one. The bound is now `> 1` (skip only when buckets differ by MORE than 1), which covers\nboth 0 and 1, with a permanent regression assertion so this cannot silently regress again.",
+      "diagram": null,
+      "diagram_mini": null,
+      "steps": [],
+      "svg": null,
+      "svg_mini": null,
+      "entry_class": "inventory",
+      "covers": [
+        "plugins/ravenclaude-core/skills/repo-review/SKILL.md",
+        "plugins/ravenclaude-core/commands/repo-review.md",
+        "plugins/ravenclaude-core/skills/repo-review/reference/dimensions.md",
+        "plugins/ravenclaude-core/skills/repo-review/scripts/repo_map.py",
+        "plugins/ravenclaude-core/skills/repo-review/scripts/review_cache.py",
+        "plugins/ravenclaude-core/skills/repo-review/scripts/findings_merge.py",
+        "plugins/ravenclaude-core/skills/repo-review/scripts/fix_summary.py",
+        "plugins/ravenclaude-core/skills/repo-review/scripts/estimate_cost.py",
+        "plugins/ravenclaude-core/skills/repo-review/workflows/repo-sweep.workflow.js"
+      ],
+      "covers_digest": "sha256:aad08a004ebd9f944135d6a675e878b355baa0357cc315d39cdc94c53ed95499",
+      "nuance": "A dedup key built from each finding's own title tokens misses two models describing one bug in different words at the same line -- keys differ, so exact-key merge misses it. The near-dup fallback's bucket-diff bound was `== 1` (adjacent only), excluding 0 (the identical line) -- the single most common real shape cross-model review exists to catch.",
+      "nuance_evidence": {
+        "measured": "2026-09-02",
+        "control": "A live cross-model dispatch (sonnet + opus) against the repo-review skill's own fixture repo: both models independently flagged app/services/db.py:21 as SQL injection, worded differently (\"SQL injection via %-formatted owner value...\" vs \"SQL injection: owner is string-formatted...\"). Before the fix, findings_merge.py's merged.json showed both as separate survivors with corroboration: null and near_duplicate: false -- the same bug, same line, cross-model agreement, and the pipeline's own corroboration signal never saw it. Six such pairs existed in that one proof-run (db.py, scheduler.py, task_service.py, plus three resource-leak pairs in file_processor.py).",
+        "falsifier": "a same-line cross-model pair that DID get flagged near_duplicate before the fix (would mean the bucket-diff==1 requirement was not actually excluding 0); none was found -- every same-line pair in the proof-run's 18 survivors read near_duplicate:false pre-fix and near_duplicate:true after changing the bound from `!= 1` to `> 1`.",
+        "probe": "plugins/ravenclaude-core/skills/repo-review/scripts/findings_merge.py"
+      },
+      "nuance_source": "plugins/ravenclaude-core/skills/repo-review/SKILL.md \"honest status\"",
+      "verify": {
+        "tier": "effect",
+        "strength": "executed",
+        "class": "gate-self-test",
+        "probe": "plugins/ravenclaude-core/scripts/audit-gates.sh --check 258",
         "teeth_exit": 1
       },
       "strength_badge": "Probed"

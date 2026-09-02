@@ -8,7 +8,14 @@
         "P9 wave 1: 12 mechanism inventory entries. Measured cost 34 payload elements per entry against the ~411/concept the Learn tab carries, because an inventory entry ships no mermaid block (the diagrams-opt-in decision, R2 corollary). Projection to a 162-entry corpus is ~5,500 elements, not the ~90,000 the plan feared. Headroom left for wave 2."
       ]
     ],
-    "index.html": [["seeded 2026-08-19", 6694, "measured before any inventory authoring"]]
+    "index.html": [
+      ["seeded 2026-08-19", 6694, "measured before any inventory authoring"],
+      [
+        "repo-review inventory entry (repo-review-corroboration-bucket-diff, /repo-review Phase 1 build, 2026-09-02)",
+        6720,
+        "The /repo-review build added one new inventory concept (repo-review-corroboration-bucket-diff -- the live cross-model proof that findings_merge.py's near-dup bucket-diff bound silently missed same-line duplicate findings) covering the skill's SKILL.md, command, dimensions reference, all five scripts, and the Workflow script -- nine paths in one mechanism entry. Measured at 10,486,820 bytes on dashboard.html (island payload 31,460 <= 31,500, unaffected -- same no-diagrams-for-inventory-entries shape as every prior wave) and 6,706 island payload elements on index.html (bytes 9,288,904 <= 9,300,000, unaffected). Re-measured on the merge base (origin/main @ 9ba8c08c58b6), not a stale ancestor; appended, never edited."
+      ]
+    ]
   },
   "bytes": {
     "plugins/ravenclaude-core/dashboard.html": [
@@ -26,7 +33,7 @@
       [
         "merge: forge/stall-watchdog into origin/main (2026-08-27)",
         10410000,
-        "MERGE-TIME RE-MEASURE. The stall-watchdog branch and origin/main's cheap-lane + inventory work were authored in parallel; dashboard.html fit the 10,400,000 ceiling on each side alone, but the union of both sides' Learn-tab concepts and inventory entries regenerates deterministically to 10,403,505 bytes (island payload unchanged at 31,143 <= 31,500, still within budget). Neither side's number was wrong in isolation \u2014 this is the same PR #991 shape the ratchet-freshness gate defends, applied to the byte ceiling: re-measured on the merge commit and APPENDED, never edited. Headroom to 10,410,000 (+0.06%)."
+        "MERGE-TIME RE-MEASURE. The stall-watchdog branch and origin/main's cheap-lane + inventory work were authored in parallel; dashboard.html fit the 10,400,000 ceiling on each side alone, but the union of both sides' Learn-tab concepts and inventory entries regenerates deterministically to 10,403,505 bytes (island payload unchanged at 31,143 <= 31,500, still within budget). Neither side's number was wrong in isolation — this is the same PR #991 shape the ratchet-freshness gate defends, applied to the byte ceiling: re-measured on the merge commit and APPENDED, never edited. Headroom to 10,410,000 (+0.06%)."
       ],
       [
         "merge: advisory_knobs + cheap_lane both land (forge/vba-impl <- origin/main)",
@@ -39,24 +46,29 @@
         "MERGE-TIME RE-MEASURE. After #1004 and #1023 landed, merging origin/main into forge/vba-impl regenerates dashboard.html to 10,417,453 bytes (island payload 31,181 <= 31,500). The prior 10,412,000 ceiling was measured before stall-watchdog inventory entries were on main; this is the same PR #991 shape applied to the byte ceiling. Appended, never edited. Headroom to 10,420,000 (+0.03%)."
       ],
       [
-        "MCP result quarantine + analog-closeness-scorecard \u2014 2 inventory entries (Q1+Q2, analog-repos-gap-fill leftovers, 2026-08-30/31)",
+        "MCP result quarantine + analog-closeness-scorecard — 2 inventory entries (Q1+Q2, analog-repos-gap-fill leftovers, 2026-08-30/31)",
         10436000,
         "Two independent PRs each added one inventory entry (mcp-quarantine-matcher-is-a-prefix and analog-closeness-quality-bar-is-independent-of-score) and each stayed under a 10,428,000 ceiling in isolation; merging them combines both entries' nuance+evidence blocks on the one dashboard.html surface, measured at 10,432,946 bytes. MCP quarantine's Pipeline-tab mention was folded into the existing sanitize-webfetch-output card (not a new card) to stay within the DOM-budget ratchet, so this is a pure JS-source/content bytes raise, no DOM growth beyond that. Re-measured on the merge; appended, never edited."
       ],
       [
         "precompact-digest inventory entry (precompact-critical-context FORGE plan, P6 regen-discipline, 2026-09-01)",
         10447000,
-        "The precompact-critical-context feature's P6 regen-discipline pass added one new inventory concept (precompact-digest \u2014 the detached-worker proof for hooks/precompact-digest.sh + scripts/precompact-digest.py) plus cosmetic covers_digest restamps on five pre-existing concepts whose covered artifacts (copilot-hook-adapter.sh, hooks.json, plugin.json, audit-gates.sh, generate-dashboards.py) legitimately changed content earlier in the same feature. Measured at 10,443,430 bytes (island payload 31,294 <= 31,500, unaffected \u2014 same no-diagrams-for-inventory-entries shape as every prior wave). Re-measured on the regenerated artifact; appended, never edited."
+        "The precompact-critical-context feature's P6 regen-discipline pass added one new inventory concept (precompact-digest — the detached-worker proof for hooks/precompact-digest.sh + scripts/precompact-digest.py) plus cosmetic covers_digest restamps on five pre-existing concepts whose covered artifacts (copilot-hook-adapter.sh, hooks.json, plugin.json, audit-gates.sh, generate-dashboards.py) legitimately changed content earlier in the same feature. Measured at 10,443,430 bytes (island payload 31,294 <= 31,500, unaffected — same no-diagrams-for-inventory-entries shape as every prior wave). Re-measured on the regenerated artifact; appended, never edited."
       ],
       [
         "agent-routing-matrix inventory entry (agent-routing-matrix FORGE plan, inception-coverage fix, 2026-09-01)",
         10460000,
-        "The agent-routing-matrix build's Gate-242 inception-coverage fix added one new inventory concept (agent-routing-matrix-ban-list-scope \u2014 the scoped-vs-every-leaf-string ban-list correction for check-agent-routing-matrix.py's Gate 255 check B) plus cosmetic covers_digest restamps on three pre-existing concepts (cheap-lane-agent-matrix, plugin-cache-is-version-keyed, must-fail-conventions-diverge) whose covered artifacts drifted from this PR's own plugin.json version bump plus the merged origin/main's own bump. Measured at 10,457,685 bytes (island payload 31,346 <= 31,500, unaffected \u2014 same no-diagrams-for-inventory-entries shape as every prior wave). Re-measured on the regenerated artifact; appended, never edited."
+        "The agent-routing-matrix build's Gate-242 inception-coverage fix added one new inventory concept (agent-routing-matrix-ban-list-scope — the scoped-vs-every-leaf-string ban-list correction for check-agent-routing-matrix.py's Gate 255 check B) plus cosmetic covers_digest restamps on three pre-existing concepts (cheap-lane-agent-matrix, plugin-cache-is-version-keyed, must-fail-conventions-diverge) whose covered artifacts drifted from this PR's own plugin.json version bump plus the merged origin/main's own bump. Measured at 10,457,685 bytes (island payload 31,346 <= 31,500, unaffected — same no-diagrams-for-inventory-entries shape as every prior wave). Re-measured on the regenerated artifact; appended, never edited."
       ],
       [
         "session-relay inventory entry (2026-09-02)",
         10472000,
         "session-relay inventory entry (session-relay-two-hop-join, cross-session-messaging research build, 2026-09-02). Adds one new inventory concept (the verified negative that ListAgents' bracketed [ref] does not derive from a session's session_id, plus the two-hop worktree->pid->name join resolve-worktree-session.sh performs instead) covering scripts/resolve-worktree-session.sh, skills/session-relay/SKILL.md, and knowledge/cross-session-messaging.md. Measured at 10,470,812 bytes (island payload 31,408 <= 31,500, unaffected -- same no-diagrams-for-inventory-entries shape as every prior wave). Re-measured on rebased HEAD after merging origin/main; appended, never edited."
+      ],
+      [
+        "repo-review inventory entry (repo-review-corroboration-bucket-diff, /repo-review Phase 1 build, 2026-09-02)",
+        10500000,
+        "The /repo-review build added one new inventory concept (repo-review-corroboration-bucket-diff -- the live cross-model proof that findings_merge.py's near-dup bucket-diff bound silently missed same-line duplicate findings) covering the skill's SKILL.md, command, dimensions reference, all five scripts, and the Workflow script -- nine paths in one mechanism entry. Measured at 10,486,820 bytes on dashboard.html (island payload 31,460 <= 31,500, unaffected -- same no-diagrams-for-inventory-entries shape as every prior wave) and 6,706 island payload elements on index.html (bytes 9,288,904 <= 9,300,000, unaffected). Re-measured on the merge base (origin/main @ 9ba8c08c58b6), not a stale ancestor; appended, never edited."
       ]
     ],
     "index.html": [
@@ -68,5 +80,5 @@
       ]
     ]
   },
-  "measured_against": "920840495d09c2e5dbb4487c50d4ddaae09a7c6a"
+  "measured_against": "4c0c1eaecc583acd9cdb072d7cd6073bac8668bb"
 }

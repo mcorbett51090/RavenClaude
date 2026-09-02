@@ -55,7 +55,10 @@ const ISLANDED_AGENT_KEYS = ["scenarios", "quickstart", "works_with"];
 const RC = "ravenclaude-core";
 const RC_BASELINE = {
   agents: 15,
-  skills: 58, // 57 -> 58: skills/session-relay (cross-session-messaging build, 2026-09-02)
+  skills: 59, // 58 -> 59: skills/repo-review (whole-repo systematic bug sweep, v0.313.0,
+  //   2026-09-02). COUNTED, not inferred: window.__RC_DATA__'s ravenclaude-core record on
+  //   this tree carries skills_index length 59 after `generate-index-dashboard.py` regen.
+  //        57 -> 58: skills/session-relay (cross-session-messaging build, 2026-09-02)
   //        55 -> 56: skills/cheap-lane-delegation (route everyday work to Grok)
   //        54 -> 55: skills/authoring-org-skills (org-skill studio, Phase 5)
   //        53 -> 54: skills/session-handoff (v0.266.0, context-quality reset)

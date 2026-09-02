@@ -740,6 +740,27 @@ PY
       bash plugins/ravenclaude-core/hooks/tests/test-gate257-copilot-repair.sh
       exit $?
       ;;
+    258)
+      echo "── Gate 258: repo-review skill scripts (repo_map / review_cache / findings_merge / fix_summary / estimate_cost) ──"
+      rc=0
+      RR_DIR="plugins/ravenclaude-core/skills/repo-review/scripts"
+      python3 "$RR_DIR/repo_map.py" --self-test || rc=$?
+      python3 "$RR_DIR/review_cache.py" self-test || rc=$?
+      python3 "$RR_DIR/findings_merge.py" --self-test || rc=$?
+      python3 "$RR_DIR/fix_summary.py" --self-test || rc=$?
+      python3 "$RR_DIR/estimate_cost.py" --self-test || rc=$?
+      RR_MUTANT=$(mktemp)
+      sed 's/if abs(a_bucket - b_bucket) > 1:/if abs(a_bucket - b_bucket) != 1:/' \
+        "$RR_DIR/findings_merge.py" > "$RR_MUTANT"
+      if python3 "$RR_MUTANT" --self-test >/dev/null 2>&1; then
+        echo "  ✗ teeth check FAILED: the bucket-diff-0 mutant should have failed --self-test but passed"
+        rc=1
+      else
+        echo "  ✓ teeth check: bucket-diff-0 mutant correctly fails --self-test (test8)"
+      fi
+      rm -f "$RR_MUTANT"
+      exit $rc
+      ;;
     243)
       echo "── Gate 243: scheduled sweep contract + operator health card ──"
       bash plugins/ravenclaude-core/hooks/tests/test-gate243-sweep-and-health-card.sh
@@ -1544,7 +1565,7 @@ PY
       ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254, 255, 256, 257. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254, 255, 256, 257, 258. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -9474,6 +9495,52 @@ echo "── Gate 257: Copilot hook-repair escape hatch — safe (rename, never 
 # that catches a mutant which never disables the file.
 rc=0; bash plugins/ravenclaude-core/hooks/tests/test-gate257-copilot-repair.sh >/dev/null 2>&1 || rc=$?
 gate "copilot repair: nothing-to-repair, disable+preserve content, host-guard, teeth" must_pass "$rc"
+
+echo
+echo "── Gate 258: repo-review skill scripts (repo_map / review_cache / findings_merge / fix_summary / estimate_cost) ──"
+# The five deterministic, zero-model-call scripts behind the /repo-review skill
+# (Phase 1 of the build; see plugins/ravenclaude-core/skills/repo-review/SKILL.md
+# §6 for what is and isn't proven end-to-end). Each already carries its own
+# --self-test with real assertions; this gate is the mechanical registration —
+# run every one, plus a must-fail teeth check on the one real bug this skill's
+# own proof-run against a live fixture repo caught: findings_merge.py's
+# near-duplicate detector originally required line-bucket difference == 1
+# (excluding 0, the SAME-line case), so two models finding the identical bug on
+# the identical line with differently-worded titles got neither an exact-key
+# match NOR a near-dup flag — corroboration silently read null for the most
+# common real case. Fixed to `> 1` (skip only when buckets differ by MORE than
+# 1), with a permanent regression assertion (test8) added to the script's own
+# --self-test. The teeth check here mutates a scratch COPY of the script back
+# to the old `!= 1` bound and confirms --self-test on the mutant fails (proving
+# test8 actually depends on the fix, not merely co-existing with it).
+#
+# ⛔ Registered in dispatcher + main sequence + Supported:. Grep by literal name.
+RR_DIR="plugins/ravenclaude-core/skills/repo-review/scripts"
+if command -v python3 >/dev/null 2>&1; then
+  rc=0; python3 "$RR_DIR/repo_map.py" --self-test >/dev/null 2>&1 || rc=$?
+  gate "repo_map.py --self-test (determinism/exclusions/coverage/--only)" must_pass "$rc"
+
+  rc=0; python3 "$RR_DIR/review_cache.py" self-test >/dev/null 2>&1 || rc=$?
+  gate "review_cache.py self-test (content-hash hit/miss/invalidation)" must_pass "$rc"
+
+  rc=0; python3 "$RR_DIR/findings_merge.py" --self-test >/dev/null 2>&1 || rc=$?
+  gate "findings_merge.py --self-test (dedup/corroboration/cap/near-dup/determinism)" must_pass "$rc"
+
+  rc=0; python3 "$RR_DIR/fix_summary.py" --self-test >/dev/null 2>&1 || rc=$?
+  gate "fix_summary.py --self-test (row-count==applied-count invariant)" must_pass "$rc"
+
+  rc=0; python3 "$RR_DIR/estimate_cost.py" --self-test >/dev/null 2>&1 || rc=$?
+  gate "estimate_cost.py --self-test (tier refusal + cardinality formula)" must_pass "$rc"
+
+  RR_MUTANT=$(mktemp)
+  sed 's/if abs(a_bucket - b_bucket) > 1:/if abs(a_bucket - b_bucket) != 1:/' \
+    "$RR_DIR/findings_merge.py" > "$RR_MUTANT"
+  rc=0; python3 "$RR_MUTANT" --self-test >/dev/null 2>&1 || rc=$?
+  gate "findings_merge.py teeth: reverting the bucket-diff-0 fix fails --self-test (test8)" must_fail "$rc"
+  rm -f "$RR_MUTANT"
+else
+  _skip_or_fail "Gate 258 (repo-review scripts)" python3
+fi
 
 echo "── analog-closeness-scorecard (Q2 leftover, docs/follow-ups/2026-08-14-analog-repos-leftovers.md) ──"
 # Recomputes the 2026-08-14 analog survey's own M/H/G/O/E/I/T/V weighted-closeness
