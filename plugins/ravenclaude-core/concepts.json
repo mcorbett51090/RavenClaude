@@ -2804,7 +2804,7 @@
         "plugins/ravenclaude-core/hooks/triage-outcome.sh",
         "plugins/ravenclaude-core/hooks/worktree-guard.sh"
       ],
-      "covers_digest": "sha256:f8c8003b5d65b93b2e3ee26c1b04bee74fb6ff6ef7688d278983fe9eafdbaea7",
+      "covers_digest": "sha256:cf95dfb5e86386618e7a0d32003d3b56f5d7427ff35e066eca4057b690746a5d",
       "nuance": "A hook writing to stderr at `exit 0` reaches the model on no event; only `hookSpecificOutput.additionalContext` and `updatedToolOutput` are delivered, so `_advise.sh` advised the terminal for its entire service life.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -2851,7 +2851,7 @@
       "covers": [
         "plugins/ravenclaude-core/hooks/hooks.json"
       ],
-      "covers_digest": "sha256:f05c0f96e57b5e27ef6273ec2c44d9632b2fb1d9a60488a1c3edaf20a35b402a",
+      "covers_digest": "sha256:443d439568503bf9c9383e4d5d5f5005e2ed30c0bfd9bd01bfdfe56aac71b8e4",
       "nuance": "Two `additionalContext` emitters on one event concatenate rather than last-write-wins, but two `updatedToolOutput` emitters replace, so the second silently discards the first.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -2945,7 +2945,7 @@
         "scripts/sync-plugin-versions.py",
         "scripts/generate-copilot-plugin.py"
       ],
-      "covers_digest": "sha256:7fce12d9b0489d6ca452c5481958efd9bf2e26994d08035cc96d62fb61aed285",
+      "covers_digest": "sha256:4f7a67d4a972ff47a3f3be49363e3b3aeb2a0986b3b5caa8784ab48b39f99121",
       "nuance": "The cache key is the `version` string, never a content hash, so `sync-plugin-versions.py` can report clean while every installed session keeps running the old `hooks/` code.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -3006,7 +3006,7 @@
         "scripts/inventory-coverage.py",
         "scripts/inventory-nuance-judge.py"
       ],
-      "covers_digest": "sha256:35253648822bc00d2824821475d46e0db2077731ee228b5b05e1146308c1294b",
+      "covers_digest": "sha256:78ae12ba3f94534274a14337c9b5b198f171917167aa5186517e40980b056871",
       "nuance": "The teeth bit is the exit a tool own CHECK returns on a planted defect, never the exit `--must-fail` itself returns: `premise-gate.py` denies at `exit 0` while `sync-plugin-versions.py` reddens at `exit 2`, so an auditor that hard-codes one number can never be right for both.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -3077,7 +3077,7 @@
         "plugins/ravenclaude-core/skills/authoring-org-skills/templates/examples/screening-vendor-invoices/SKILL.md",
         "plugins/ravenclaude-core/skills/authoring-org-skills/templates/examples/screening-vendor-invoices/reference/tolerances.md"
       ],
-      "covers_digest": "sha256:8139a1422d1d0ab1fbee7a0d713fa0e6e3d39dc50679b58fa0e02a28f2ca3d9a",
+      "covers_digest": "sha256:97edf90d26b4700772017c0a7f3cac124585bee7c9251ab70dff6dfc830a8a08",
       "nuance": "A rule's tier is READ from `reference/platform-constraints.md`, never hand-set, so a constraint the vendor contradicts itself on ships as WARN instead of a guess. Research moves the packer's default and never the tier: docs say what the platform emits, not what its unpacker accepts.",
       "nuance_evidence": {
         "measured": "2026-08-25",
@@ -3124,7 +3124,7 @@
       "covers": [
         "plugins/ravenclaude-core/hooks/triage-outcome.sh"
       ],
-      "covers_digest": "sha256:9a2df20ae75bb49090262342007b0a89fee94d0c4f62e7a9099fc5ce09dc9ed2",
+      "covers_digest": "sha256:e972561bd9d78e46d0899d4c7fad7b5ce6b86c64a13f4c7a37ca4d3de58e2eea",
       "nuance": "A failing Bash `tool_response` carries no exit-code field at all, so a hook that branches on `.tool_response.exit_code` never fires; `triage-outcome.sh` reads stream shape instead.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -3169,7 +3169,7 @@
         "plugins/ravenclaude-core/hooks/guard-premise.sh",
         "docs/best-practices/inventory-authoring.md"
       ],
-      "covers_digest": "sha256:04c18944b458abfb396661569ad8e493875afcbd8da9fc98cca896d689d8bd2f",
+      "covers_digest": "sha256:5505eb2d59a417b4b7ef3fdfa5aac2e321fd0e496aaba4d3360be27c776e059b",
       "nuance": "The `os.path.exists` early-exit gates T-SHAPE only, so `guard-premise.sh` screens an `Edit` too; a re-stamp escapes because `new_string` carries no defect predicate, not because edits are exempt.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -3217,7 +3217,7 @@
         "plugins/ravenclaude-core/hooks/guard-premise.sh",
         "scripts/spike-tprose-canary.sh"
       ],
-      "covers_digest": "sha256:93898f0b02b5309f27d3403a90e3dd565c66b60d4529c2340344420ad4f20e3d",
+      "covers_digest": "sha256:aab5c1c185347e87698163f4dbf693b9a632ca889a5a9b3c2187caca5b34dd6e",
       "nuance": "A `last_verified` date is itself a `_STAMP` match, so `guard-premise.sh` arms on metadata rather than on anything the author wrote; only a claim seven lines below the frontmatter escapes the window.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -3515,7 +3515,7 @@
         "plugins/ravenclaude-core/scripts/preflight-command-review.sh",
         "plugins/ravenclaude-core/scripts/replay-outcome-rules.py"
       ],
-      "covers_digest": "sha256:9faabb82ab464c2be44d9474a8e1d29e33d5be3a9dbd5fb2dece5b767f8ae386",
+      "covers_digest": "sha256:55b29fa3a6a8b5337a08526b0d51e4ac89939d5cafc8bbbd9b9a793d9429d98e",
       "nuance": "Two of five drafted pre-flight rules name a result that CAME BACK EMPTY — which a `PreToolUse` hook cannot know — so their offline fire rates scored a field absent at fire time; re-measured lexically, one went from 1.43% to 8.28%.",
       "nuance_evidence": {
         "measured": "2026-08-25",
@@ -3564,7 +3564,7 @@
         "plugins/ravenclaude-core/scripts/stall_reach.py",
         "plugins/ravenclaude-core/scripts/install_stall_watch.py"
       ],
-      "covers_digest": "sha256:89cbda9bbd9cc2b1093c3c55050e0afa7a8090b1646f7e8851a55106825d8d90",
+      "covers_digest": "sha256:1933494590075d2fdb08c7f8d0974ba7285214b8ef19a5e88ce727db22e099f3",
       "nuance": "The observable must be the last *assistant* record, not the last record of any type: a human typing into a suspected stall, and a product-generated `system/away_summary`, both reset a last-any clock without any progress having occurred.",
       "nuance_evidence": {
         "measured": "2026-08-25",
@@ -3660,7 +3660,7 @@
         "plugins/ravenclaude-core/hooks/sanitize-mcp-output.sh",
         "plugins/ravenclaude-core/hooks/sanitize-mcp-output.py"
       ],
-      "covers_digest": "sha256:bb407a5232955ea122bc4bbef58c24e4f5c7bc8edc5f95e2ea6fac2752b6503d",
+      "covers_digest": "sha256:3b6351ebcadda447559e44fb8339c4aaf39d8eb45c143a20414a4c329c9602e7",
       "nuance": "F1's WebFetch hook matches one exact tool name. This one must be a PREFIX check (mcp__ names are dynamic) — and a tool name merely CONTAINING 'mcp__' without starting with it must NOT match.",
       "nuance_evidence": {
         "measured": "2026-08-30",
@@ -3862,7 +3862,7 @@
         "plugins/ravenclaude-core/skills/repo-review/scripts/estimate_cost.py",
         "plugins/ravenclaude-core/skills/repo-review/workflows/repo-sweep.workflow.js"
       ],
-      "covers_digest": "sha256:aad08a004ebd9f944135d6a675e878b355baa0357cc315d39cdc94c53ed95499",
+      "covers_digest": "sha256:8eff579ae999fcfd350e38a983b438708b80cdc95f5ead0882d19cdcb087fedd",
       "nuance": "A dedup key built from each finding's own title tokens misses two models describing one bug in different words at the same line -- keys differ, so exact-key merge misses it. The near-dup fallback's bucket-diff bound was `== 1` (adjacent only), excluding 0 (the identical line) -- the single most common real shape cross-model review exists to catch.",
       "nuance_evidence": {
         "measured": "2026-09-02",
