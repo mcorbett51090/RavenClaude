@@ -1,8 +1,8 @@
 [
   {
     "file": "app/services/task_service.py",
-    "line_start": 34,
-    "line_end": 39,
+    "line_start": 31,
+    "line_end": 38,
     "dimension": "correctness",
     "description": "TaskService.get_page slices `self._tasks[start:end - 1]` instead of `self._tasks[start:end]`, an off-by-one that silently drops the last task on every page returned to callers.",
     "evidence_hint": "end - 1"

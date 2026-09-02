@@ -65,8 +65,17 @@ TIER_FIX_CAP_DEFAULT: dict[str, int] = {
 VALID_TIERS = ("low", "medium", "high", "xhigh", "max", "ultra")
 
 
+HARD_CAP_FILES_DEFAULT = 3000
+
+
 class TierError(Exception):
     """Raised when the effort tier is refused (low/medium)."""
+
+
+class HardCapConfirmationRequired(Exception):
+    """Raised when --full is requested on a repo over the hard file-count cap
+    without --yes. A blast-radius floor should stop and ask, not silently
+    degrade — mirrors forge-pipeline's own premise-gate philosophy."""
 
 
 def resolve_cross_model(tier: str, cross_model_flag: bool) -> bool:
@@ -122,6 +131,9 @@ def estimate(
     verify_cap: int | None,
     fix_cap: int | None,
     overhead: int,
+    full: bool = False,
+    hard_cap_files: int = HARD_CAP_FILES_DEFAULT,
+    confirmed: bool = False,
 ) -> dict[str, Any]:
     if tier in REFUSED_TIERS:
         raise TierError(
@@ -130,6 +142,20 @@ def estimate(
         )
     if tier not in TIER_DIMENSIONS:
         raise TierError(f"unknown effort tier: {tier!r} (expected one of {VALID_TIERS})")
+
+    # Hard file-count cap: a repo over hard_cap_files requires an explicit
+    # SECOND confirmation for --full, at ANY effort tier including ultra.
+    # --full bypasses risk-floor sampling; sampled (non-full) runs are exempt
+    # since sampling already bounds the cost regardless of repo size.
+    reviewable = int(plan.get("totals", {}).get("reviewable", 0))
+    requires_confirmation = full and reviewable > hard_cap_files
+    if requires_confirmation and not confirmed:
+        raise HardCapConfirmationRequired(
+            f"--full on a repo with {reviewable} reviewable files exceeds the "
+            f"hard cap ({hard_cap_files}) — pass --yes to confirm you want a "
+            f"full (unsampled) review at this scale, or drop --full to let "
+            f"risk-floor sampling bound the cost."
+        )
 
     dimensions = TIER_DIMENSIONS[tier]
     cross_model = resolve_cross_model(tier, cross_model_flag)
@@ -169,6 +195,10 @@ def estimate(
         "review_agents": review_agents,
         "total_agents": total_agents,
         "waves_at_16_concurrency": waves_at_16_concurrency,
+        "full": full,
+        "reviewable_files": reviewable,
+        "hard_cap_files": hard_cap_files,
+        "requires_confirmation": requires_confirmation,
     }
 
 
@@ -195,6 +225,18 @@ def build_arg_parser() -> argparse.ArgumentParser:
         "--fix-cap", type=int, default=None, help="K_max override (tier-specific default otherwise)"
     )
     parser.add_argument("--overhead", type=int, default=6, help="O, fixed overhead cost (default 6)")
+    parser.add_argument(
+        "--full", action="store_true", help="bypass risk-floor sampling (reviews every batch)"
+    )
+    parser.add_argument(
+        "--hard-cap-files",
+        type=int,
+        default=HARD_CAP_FILES_DEFAULT,
+        help=f"file-count cap above which --full needs --yes (default {HARD_CAP_FILES_DEFAULT})",
+    )
+    parser.add_argument(
+        "--yes", action="store_true", help="confirm a --full run above the hard file-count cap"
+    )
     parser.add_argument("--self-test", action="store_true", help="run the built-in self-test suite")
     return parser
 
@@ -224,10 +266,16 @@ def main(argv: list[str] | None = None) -> int:
             verify_cap=args.verify_cap,
             fix_cap=args.fix_cap,
             overhead=args.overhead,
+            full=args.full,
+            hard_cap_files=args.hard_cap_files,
+            confirmed=args.yes,
         )
     except TierError as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2
+    except HardCapConfirmationRequired as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 3
 
     print(json.dumps(result, indent=2))
     return 0
@@ -272,6 +320,10 @@ EXPECTED_OUTPUT_KEYS = {
     "review_agents",
     "total_agents",
     "waves_at_16_concurrency",
+    "full",
+    "reviewable_files",
+    "hard_cap_files",
+    "requires_confirmation",
 }
 
 
@@ -424,7 +476,121 @@ def run_self_test() -> int:
             str(result_33),
         )
 
-        # --- Assertion 7: output is valid JSON, round-trips, all keys present ---
+        # --- Assertion 7: the hard file-count cap (Phase 6) ---
+        big_plan = _make_plan(10)
+        big_plan["totals"]["reviewable"] = 5000  # over the 3000 default cap
+
+        # 7a: --full on an over-cap plan without confirmation -> raises.
+        raised = False
+        try:
+            estimate(
+                plan=big_plan,
+                tier="high",
+                cross_model_flag=False,
+                agent_budget=900,
+                verify_cap=None,
+                fix_cap=None,
+                overhead=6,
+                full=True,
+            )
+        except HardCapConfirmationRequired:
+            raised = True
+        check(
+            "hard cap: --full over the cap with no confirmation raises HardCapConfirmationRequired",
+            raised,
+        )
+
+        # 7b: same, but confirmed=True -> succeeds, requires_confirmation reported true.
+        result_confirmed = estimate(
+            plan=big_plan,
+            tier="high",
+            cross_model_flag=False,
+            agent_budget=900,
+            verify_cap=None,
+            fix_cap=None,
+            overhead=6,
+            full=True,
+            confirmed=True,
+        )
+        check(
+            "hard cap: --full + confirmed=True succeeds and reports requires_confirmation=True",
+            result_confirmed["requires_confirmation"] is True
+            and result_confirmed["reviewable_files"] == 5000,
+            str(result_confirmed),
+        )
+
+        # 7c: --full on a plan UNDER the cap -> no confirmation needed, no raise.
+        small_plan = _make_plan(10)
+        small_plan["totals"]["reviewable"] = 100
+        result_small_full = estimate(
+            plan=small_plan,
+            tier="high",
+            cross_model_flag=False,
+            agent_budget=900,
+            verify_cap=None,
+            fix_cap=None,
+            overhead=6,
+            full=True,
+        )
+        check(
+            "hard cap: --full UNDER the cap never requires confirmation",
+            result_small_full["requires_confirmation"] is False,
+            str(result_small_full),
+        )
+
+        # 7d: over-cap plan WITHOUT --full -> sampling exempts it, no raise.
+        result_sampled = estimate(
+            plan=big_plan,
+            tier="high",
+            cross_model_flag=False,
+            agent_budget=900,
+            verify_cap=None,
+            fix_cap=None,
+            overhead=6,
+            full=False,
+        )
+        check(
+            "hard cap: over-cap plan WITHOUT --full is exempt (sampling bounds cost)",
+            result_sampled["requires_confirmation"] is False,
+            str(result_sampled),
+        )
+
+        # 7e: CLI-level — --full over cap with no --yes exits 3, not 0/2.
+        big_plan_path = Path(tmpdir) / "plan_big.json"
+        big_plan_path.write_text(json.dumps(big_plan), encoding="utf-8")
+        proc_nocap = subprocess.run(
+            [sys.executable, this_file, "--plan", str(big_plan_path), "--effort-tier", "high", "--full"],
+            capture_output=True,
+            text=True,
+        )
+        check(
+            "hard cap: CLI --full over cap with no --yes exits 3",
+            proc_nocap.returncode == 3 and len(proc_nocap.stderr.strip()) > 0,
+            f"returncode={proc_nocap.returncode} stderr={proc_nocap.stderr!r}",
+        )
+
+        # 7f: CLI-level — --full --yes over cap exits 0.
+        proc_yes = subprocess.run(
+            [
+                sys.executable,
+                this_file,
+                "--plan",
+                str(big_plan_path),
+                "--effort-tier",
+                "high",
+                "--full",
+                "--yes",
+            ],
+            capture_output=True,
+            text=True,
+        )
+        check(
+            "hard cap: CLI --full --yes over cap exits 0",
+            proc_yes.returncode == 0,
+            f"returncode={proc_yes.returncode} stderr={proc_yes.stderr!r}",
+        )
+
+        # --- Assertion 8: output is valid JSON, round-trips, all keys present ---
         proc = subprocess.run(
             [
                 sys.executable,
@@ -459,7 +625,7 @@ def run_self_test() -> int:
     if failing:
         print(f"{len(failing)} FAILED: {len(failing)} failing")
         return 1
-    print(f"ALL PASS: 0 failing")
+    print("ALL PASS: 0 failing")
     return 0
 
 

@@ -86,7 +86,7 @@ def load_shards(in_dir: str) -> list[tuple[str, str, str, dict]]:
             continue
         dimension, model, batch_id = parsed
         path = os.path.join(in_dir, fname)
-        with open(path, "r", encoding="utf-8") as fh:
+        with open(path, encoding="utf-8") as fh:
             data = json.load(fh)
         if not isinstance(data, list):
             continue
@@ -188,7 +188,18 @@ def tag_near_duplicates(survivors: list[dict], policy: str) -> list[dict]:
             if a["file"] != b["file"]:
                 continue
             b_bucket = _line_bucket(b["line"])
-            if abs(a_bucket - b_bucket) != 1:
+            # <=1, not ==1: a same-bucket pair (including the identical line)
+            # with differently-worded titles is the MOST common real case —
+            # two models finding the same bug and describing it differently.
+            # An earlier version required exactly 1, which meant that case
+            # (bucket diff 0) fell through both the exact-key match (titles
+            # differ -> different hash) AND this near-dup check, so the two
+            # models' agreement on the same bug was silently invisible in
+            # `corroboration`. Caught by a real cross-model dispatch against
+            # the repo-review fixture repo, not a synthetic test — sonnet and
+            # opus both flagged db.py:21 with different titles and neither
+            # was ever tagged near_duplicate before this fix.
+            if abs(a_bucket - b_bucket) > 1:
                 continue
             b_tokens = set(title_tokens(b["title"]))
             if len(a_tokens & b_tokens) < 4:
@@ -562,6 +573,62 @@ def _self_test() -> int:
             "test7: no survivor flagged near_duplicate (different file / distant bucket)",
             not any(s["near_duplicate"] for s in survivors7),
             str(survivors7),
+        )
+
+        # --- Test 8: regression for the bucket-diff-0 near-dup bug --------------
+        # Real defect caught by a live cross-model dispatch (not synthetic): two
+        # models finding the SAME bug on the SAME line, worded differently, must
+        # still be tagged near_duplicate (and thus judge-flagged / mergeable) —
+        # an earlier version's `!= 1` bucket check silently missed this exact
+        # shape because bucket-diff 0 fell through both the exact-key match
+        # (different titles -> different hash) and the near-dup check.
+        t8 = os.path.join(tmp, "t8")
+        os.makedirs(t8, exist_ok=True)
+        _write_json(
+            t8,
+            "security.sonnet.b01.json",
+            [
+                {
+                    "id": "sql-inj-sonnet",
+                    "file": "app/services/db.py",
+                    "line": 21,
+                    "severity": "blocking",
+                    "title": "SQL injection via %-formatted owner value in find_by_owner",
+                    "failure_scenario": "An owner value containing a SQL metacharacter alters the query.",
+                    "evidence_quote": "query = \"SELECT * FROM tasks WHERE owner = '%s'\" % owner",
+                    "category": "security",
+                },
+            ],
+        )
+        _write_json(
+            t8,
+            "security.opus.b01.json",
+            [
+                {
+                    "id": "sql-inj-opus",
+                    "file": "app/services/db.py",
+                    "line": 21,
+                    "severity": "blocking",
+                    "title": "SQL injection: owner is string-formatted into the query instead of parameterized",
+                    "failure_scenario": "A crafted owner string breaks out of the query and runs arbitrary SQL.",
+                    "evidence_quote": "query = \"SELECT * FROM tasks WHERE owner = '%s'\" % owner",
+                    "category": "security",
+                },
+            ],
+        )
+        r8 = run_merge(t8, cap=0, near_dup_policy="judge")
+        survivors8 = r8["survivors"]
+        check(
+            "test8: same-line, differently-worded cross-model pair -> 2 survivors, both near_duplicate",
+            len(survivors8) == 2 and all(s["near_duplicate"] for s in survivors8),
+            str(survivors8),
+        )
+        check(
+            "test8: judge_candidates names both ids",
+            len(r8["judge_candidates"]) == 1
+            and {r8["judge_candidates"][0]["a"], r8["judge_candidates"][0]["b"]}
+            == {"sql-inj-sonnet", "sql-inj-opus"},
+            str(r8["judge_candidates"]),
         )
 
     print(f"\n{'ALL PASS' if not failures else f'{len(failures)} FAILED'}: {len(failures)} failing")

@@ -1,6 +1,5 @@
 """Data models for the TaskFlow task tracker."""
 from dataclasses import dataclass, field
-from typing import List
 
 
 @dataclass
@@ -12,7 +11,7 @@ class TaskRecord:
     owner: str
     priority: int = 3
     completed: bool = False
-    tags: List[str] = field(default_factory=list)
+    tags: list[str] = field(default_factory=list)
 
     def mark_complete(self) -> None:
         """Mark this task as done."""

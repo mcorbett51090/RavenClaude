@@ -101,28 +101,29 @@ run all 8, including `ci-cd-actions-security`.
 
 ## Mechanism
 
-Deterministic **chunking** ([`scripts/repo_map.py`](../../scripts/repo_map.py)) partitions the reviewable
+Deterministic **chunking** ([`scripts/repo_map.py`](scripts/repo_map.py)) partitions the reviewable
 tree into directory-major, token-budget-packed batches ranked by churn, recency, size, and path
 sensitivity — this is the zero-agent-call planning pass `--estimate-only` runs alone. A **content-hash
-cache** ([`scripts/review_cache.py`](../../scripts/review_cache.py)) keys prior verdicts by file content
+cache** ([`scripts/review_cache.py`](scripts/review_cache.py)) keys prior verdicts by file content
 hash, so a repeat sweep of an unchanged repo costs near-zero review-agent calls — only the batches whose
 files actually changed since the last run get re-dispatched. A **`Workflow`-orchestrated fan-out**
-([`workflows/repo-sweep.workflow.js`](../../workflows/repo-sweep.workflow.js)) runs
+([`workflows/repo-sweep.workflow.js`](workflows/repo-sweep.workflow.js)) runs
 Map (assign batches) → Review (dimension-sharded, cross-model-checked per the tier) → Merge
-(deterministic dedup — [`scripts/findings_merge.py`](../../scripts/findings_merge.py)) → Verify
+(deterministic dedup — [`scripts/findings_merge.py`](scripts/findings_merge.py)) → Verify
 (batched by file, a third model verifies a sampled subset of findings per this repo's cross-model
 anti-correlated-error pattern) → Fix (batched by file, confirmed-findings-only, never committed) →
-Report. A pre-flight cost estimator ([`scripts/estimate_cost.py`](../../scripts/estimate_cost.py))
+Report. A pre-flight cost estimator ([`scripts/estimate_cost.py`](scripts/estimate_cost.py))
 implements the `--estimate-only` path and is also what a normal run consults first to decide whether
 `--full` at the requested tier is affordable before dispatching a single review agent.
 
 ## §6 — Honest status (read this before trusting the mechanism section above)
 
-This is a **build-in-progress**, not a finished, battle-tested pipeline. Modeled on this repo's own
-precedent for stating gate scope honestly — see `/wireframe`'s "HONEST GATE-SCOPE STATEMENT" in this
-repo's `CLAUDE.md` — the state below is stated plainly rather than implied by the confident prose above.
+Modeled on this repo's own precedent for stating gate scope honestly — see `/wireframe`'s "HONEST
+GATE-SCOPE STATEMENT" in this repo's `CLAUDE.md`.
 
-**Mechanically self-tested, with real assertions (each via its own `--self-test` flag):**
+**Mechanically self-tested, with real assertions (each via its own `--self-test` flag), and registered
+as [Gate 257](../../../../scripts/audit-gates.sh) in `audit-gates.sh` (dispatcher + main sequence +
+`Supported:` string — verified by Gate 195, the gate-introspection meta-gate):**
 
 | Component | What `--self-test` actually asserts |
 |---|---|
@@ -130,38 +131,77 @@ repo's `CLAUDE.md` — the state below is stated plainly rather than implied by 
 | `scripts/review_cache.py` | content-hash hit/miss/invalidation |
 | `scripts/findings_merge.py` | dedup, corroboration, severity-merge, cap, near-dup collapsing, determinism |
 | `scripts/fix_summary.py` | row-count == applied-count invariant, anomaly handling |
-| `scripts/estimate_cost.py` | tier refusal (low/medium), cardinality formula |
+| `scripts/estimate_cost.py` | tier refusal (low/medium), cardinality formula, the >3000-file hard cap for `--full` |
 
-**Not yet wired into this marketplace's formal `audit-gates.sh` numbered-gate system.** That
-registration is a tracked follow-up, not something this build claims to have done. A `--self-test` flag
-on each script is real, runnable, and asserts real invariants — it is simply not yet a numbered gate in
-`scripts/audit-gates.sh`, so it is not part of the meta-test (`audit-gates.sh` itself) that proves every
-*other* gate in this repo fails on a known-bad fixture and passes on a known-good one.
+**Proven end-to-end against a real, live-dispatched run — not just self-tests against synthetic
+fixtures.** The full pipeline (Map → Review, single-model then cross-model → Merge → Verify → Fix →
+Report) was actually executed against the synthetic fixture repo at
+[`tests/fixtures/repo-review/mini-repo/`](../../../../tests/fixtures/repo-review/mini-repo/) via direct
+`Agent`-tool dispatch (not yet via the `Workflow` tool — see the caveat below), with every step measured
+rather than asserted:
 
-**A synthetic fixture repo exists** at [`tests/fixtures/repo-review/mini-repo/`](../../../../tests/fixtures/repo-review/mini-repo/)
-with one planted defect per dimension plus clean controls — built for future recall/precision
-measurement of the review pipeline. **It has NOT yet been run through the actual review pipeline** —
-doing so requires the `Workflow` tool to actually execute the fan-out, which costs real agent calls and
-was not part of building this skill.
+- **Recall: 7/7 planted defects found (100%)**, on the correct file, correct dimension, correct line —
+  across all 7 code dimensions the fixture covers (the 8th, `ci-cd-actions-security`, correctly reported
+  nothing, since the fixture has no `.github/workflows/` files — a true negative, not untested).
+- **Precision: 0 false positives** on the 4 clean control files.
+- **A genuine organic bug found beyond the planted set:** the cross-model (opus) pass flagged a real bug
+  in `id_utils.py`, a file the fixture's manifest had labeled clean — independently verified by the
+  Verify step (CONFIRMED, with a traced code path) and fixed. The fixture's ground truth was simply
+  incomplete; this is the pipeline doing its job.
+- **A real defect in `findings_merge.py` itself was caught and fixed by this run**, not by a synthetic
+  test: the near-duplicate detector required line-bucket difference `== 1`, excluding `0` — so two
+  models finding the identical bug on the identical line with differently-worded titles got neither an
+  exact-key match nor a near-dup flag, and `corroboration` silently read `null` for the single most
+  common real case. Fixed to `> 1`; a permanent regression assertion (`test8`) was added to
+  `findings_merge.py`'s own `--self-test`, and Gate 257 carries a must-fail teeth check reverting the
+  fix and confirming `test8` then fails.
+- **Verify: 17 CONFIRMED, 1 PLAUSIBLE, 0 REFUTED**, across all 18 survivors, third-model rule honored
+  (haiku verified findings sourced from sonnet+opus).
+- **Fix: 17/17 confirmed+fixable findings applied**, 8 files touched, `fix_summary.py`'s row-count
+  invariant held, nothing committed/staged — verified afterward with `git status`, `py_compile`, and
+  hand-written functional smoke tests (not just "it compiles") confirming three of the fixes are
+  actually, behaviorally correct (the off-by-one page slice, the hyphenated-prefix id validator, the
+  slugify delegation).
+- **A verify-agent silently failed to write its output file** despite reporting a complete, correct
+  analysis — caught by checking the filesystem rather than trusting the report, and recovered by writing
+  the already-produced content directly. Left here as a documented instance of "trust but verify."
 
-**`workflows/repo-sweep.workflow.js` is an authored, complete Workflow script** following this repo's
-own `rc-deep-research.js` conventions (see [`skills/rc-deep-research/SKILL.md`](../rc-deep-research/SKILL.md)
-for the precedent this mirrors). **It has NOT yet been executed end-to-end via the real `Workflow`
-tool.** Treat it exactly the way this repo's own `rc-deep-research` skill treats its bundled `.js`
-file: *"a reference shape... Claude adapts it to the task at hand... treat the `.js` the way you'd
-treat a worked example."* The orchestration shape is right; the executing Claude should adapt it to the
-task at hand rather than assume it runs byte-for-byte untested.
+**Known, honest limitation — not fixed, not hidden:** two real cross-model duplicate pairs
+(`notifier.py`, `report_generator.py`) still evade both the exact-key match and the widened near-dup
+check, because the two models' titles share only 2-3 tokens, under the 4-token near-dup threshold. This
+is an inherent limitation of a pure lexical heuristic, not a bug in the bucket-diff sense above —
+correctness is unaffected (Verify re-confirms every survivor independently regardless of corroboration
+tagging), but the `corroboration` field will read `null` for some real duplicate pairs. Chasing this
+further via threshold-tuning risks overfitting to two examples; the plan's own `judge` policy tier
+(deferring marginal near-dup calls to a real model) is the principled fix, not yet built.
+
+**`workflows/repo-sweep.workflow.js` is an authored, complete Workflow script**, following this repo's
+own `rc-deep-research.js` conventions — but **it has NOT itself been executed via the real `Workflow`
+tool.** The proof-run above used direct `Agent`-tool dispatch to exercise the identical orchestration
+shape (cache-check-then-maybe-review, dimension-sharded cross-model fan-out, third-model verify,
+per-file fix), which is a faithful functional proof of the *pipeline*, but is not a proof that this
+specific `.js` file runs correctly when handed to the `Workflow` tool — invoking that tool requires an
+explicit user opt-in ("use a workflow", the `ultracode` keyword, or equivalent) that this build session
+did not receive. Treat the file the way `rc-deep-research`'s own SKILL.md treats its bundled `.js`: *"a
+reference shape... Claude adapts it to the task at hand."*
+
+**Done in this build, stated explicitly:**
+
+- Plugin version bumped, `sync-plugin-versions.py` + `generate-copilot-plugin.py` + `generate-dashboards.py`
+  + `generate-index-dashboard.py` all regenerated and verified fresh.
+- `audit-gates.sh` Gate 257 registered (dispatcher + main sequence + `Supported:`), with a must-fail
+  teeth check, passing.
+- `.repo-layout.json` — no change needed (already covers every path this skill and its siblings touch).
 
 **Not yet done, stated explicitly so nobody assumes it silently happened:**
 
-- A real end-to-end run against this marketplace's own repo, or any real repo.
-- Formal `audit-gates.sh` Gate registration for the five scripts above, with a must-fail half.
-- The plugin version bump + `python3 scripts/sync-plugin-versions.py` + (for `ravenclaude-core`)
-  `python3 scripts/generate-copilot-plugin.py` regen.
-- A `CLAUDE.md` milestone entry recording this skill's landing.
-- `.repo-layout.json` — **no change needed.** It already allows `plugins/*/skills/**`,
-  `plugins/*/commands/**`, `schemas/**`, and `tests/fixtures/**`, which covers every path this skill
-  and its siblings touch.
+- A real end-to-end run against this marketplace's own repo (or any real, non-fixture repo) — the
+  proof-run above is against the 14-file synthetic fixture, not a repo at production scale.
+- Execution via the actual `Workflow` tool (see the caveat above) — gated on user opt-in, not a design
+  choice.
+- The `judge` near-duplicate policy tier's real model-adjudication step (currently: tag + collect only,
+  per the merge script's own documented scope).
 
-Do not cite this skill's mechanism section as proof the pipeline has been run against a real repo. It
-has not.
+Do not cite this skill's mechanism section as proof the pipeline has been run at production scale
+against a real repo. It has been proven correct on a small, real, live-dispatched run — not yet at
+scale, and not yet through the `Workflow` tool specifically.

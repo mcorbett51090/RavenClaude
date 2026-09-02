@@ -31,7 +31,7 @@ import tempfile
 
 def load_merged(path: str) -> dict[str, dict]:
     """Load merged.json (findings_merge.py output) and index survivors by id."""
-    with open(path, "r", encoding="utf-8") as f:
+    with open(path, encoding="utf-8") as f:
         data = json.load(f)
     index: dict[str, dict] = {}
     for s in data.get("survivors", []):
@@ -46,7 +46,7 @@ def load_receipts(receipts_dir: str) -> list[dict]:
     paths = sorted(glob.glob(os.path.join(receipts_dir, "*.json")))
     receipts: list[dict] = []
     for p in paths:
-        with open(p, "r", encoding="utf-8") as f:
+        with open(p, encoding="utf-8") as f:
             receipts.append(json.load(f))
     return receipts
 
@@ -172,9 +172,7 @@ def write_summary(
         )
     lines.append("")
     lines.append(
-        "Applied: {a} · Skipped: {s} · Files touched: {f}".format(
-            a=total_applied, s=total_skipped, f=len(files_touched)
-        )
+        f"Applied: {total_applied} · Skipped: {total_skipped} · Files touched: {len(files_touched)}"
     )
 
     if anomalies:
@@ -563,11 +561,10 @@ def run_self_test() -> int:
         check("test6: no crash", False, repr(e))
 
     failing = sum(1 for r in results if not r)
-    total = len(results)
     if failing:
         print(f"{failing} FAILED: {failing} failing")
         return 1
-    print(f"ALL PASS: 0 failing")
+    print("ALL PASS: 0 failing")
     return 0
 
 

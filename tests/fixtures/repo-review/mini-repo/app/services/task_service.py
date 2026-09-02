@@ -1,5 +1,4 @@
 """Task management business logic."""
-from typing import List
 
 from app.models import TaskRecord
 from app.utils.id_utils import generate_id
@@ -9,7 +8,7 @@ class TaskService:
     """In-memory task management used by the CLI and API layers."""
 
     def __init__(self):
-        self._tasks: List[TaskRecord] = []
+        self._tasks: list[TaskRecord] = []
 
     def add_task(self, title: str, owner: str, priority: int = 3) -> TaskRecord:
         """Create and store a new task."""
@@ -25,11 +24,11 @@ class TaskService:
                 return True
         return False
 
-    def all_tasks(self) -> List[TaskRecord]:
+    def all_tasks(self) -> list[TaskRecord]:
         """Return every tracked task."""
         return list(self._tasks)
 
-    def get_page(self, page: int, page_size: int) -> List[TaskRecord]:
+    def get_page(self, page: int, page_size: int) -> list[TaskRecord]:
         """Return one page of tasks, 1-indexed."""
         start = (page - 1) * page_size
         end = start + page_size

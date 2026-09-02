@@ -13,7 +13,6 @@ from __future__ import annotations
 
 import argparse
 import fnmatch
-import hashlib
 import json
 import re
 import subprocess
