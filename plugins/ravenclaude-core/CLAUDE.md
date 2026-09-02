@@ -3891,3 +3891,59 @@ against this marketplace's own repo (or any repo at production scale) — the pr
 
 **Migration:** none — a new skill; nothing in an installed plugin's behavior changes on
 `/plugin marketplace update` until a consumer invokes `/repo-review`.
+
+## `/repo-review` gains P0-P3 priority + an opt-in `--converge` loop (added 2026-09-02, v0.314.0)
+
+Two additions on top of the v0.313.0 skill, both user-requested: a formal severity→priority scheme, and
+a loop that re-sweeps until no P0-P3 findings remain. Found and fixed a real pre-existing bug along the
+way.
+
+**P0-P3 is a deterministic relabeling of the existing 4-tier `severity` scale, not a second judgment
+call.** `findings_merge.py` gained `priority_for()` (`blocking→P0`, `major→P1`, `minor→P2`, `nit→P3`)
+and a top-level `by_priority` count on the merged JSON — chosen over asking review agents to emit
+priority directly because each dimension already bounds its own severity ceiling
+(`reference/dimensions.md`: `performance` never emits `blocking`, `dead-code-simplification` always
+emits `nit`), so severity already carries the dimension-aware urgency signal; priority just names it. An
+unrecognized severity maps to `None`/`by_priority.unknown`, never silently guessed into a plausible tier.
+
+**`--converge [--max-iterations <n>]`** (default 5, hard-capped 20) loops `repo-sweep.workflow.js`'s
+Review→Merge→Verify→Fix span — not just the single pass `--fix` runs today — until one of three things
+happens, and states which one, honestly, every time (a **convergence-honesty contract** mirroring the
+skill's existing coverage-honesty contract): **converged** (0 open P0-P3 findings — REFUTED or
+successfully applied), **plateaued** (0 new fixes applied this pass — the remaining findings aren't
+fixable-in-place, were skipped over the fix cap, or are PLAUSIBLE/unverified rather than CONFIRMED; a
+convergence loop cannot force a fix a fix agent has already declined, and this is stated as by-design,
+not a bug), or **max-iterations hit**. `--converge` implies `--fix`. Cost stays bounded by the skill's
+existing content-hash cache (`review_cache.py`) — a Fix pass only ever touches the files it edited, so
+the next Review pass cache-hits everything else at near-zero cost; each iteration's artifacts land at
+suffixed paths (`findings-iter2/`, `merged-iter2.json`, …) so no iteration overwrites another's.
+
+⛔ **A real pre-existing bug was found and fixed while wiring this.** The workflow's own Verify-phase
+severity sort used `{critical:0, high:1, medium:2, low:3}` — a vocabulary that has **never** matched
+what dimension agents actually emit (`blocking|major|minor|nit`). Every real finding's severity fell
+through to the `?? 9` fallback, so the "severity-sorted verifyCap" was silently unsorted (a stable
+no-op) on every run this skill has ever made, from v0.313.0 on. Fixed by using the same map
+`findings_merge.py` already used — the fix is what makes the P0-P3 scale actually consistent across the
+whole pipeline, not a cosmetic rename.
+
+**Gate 260** (`scripts/check-repo-review-converge.mjs`, dispatcher + main sequence + `Supported:`) —
+`findings_merge.py`'s own `--self-test` (test9: priority derivation + `by_priority` counts, self-tested
+directly) plus a structural checker over the workflow source, the same tier as Gate 51's shell-router
+checker and Gate 144's prompt-builder XSS-floor checker (the workflow itself cannot be executed in CI —
+same honest limit as the rest of this skill, see SKILL.md §6): pure text-based assertions (no
+`eval`/`new Function`) proving `MAX_ITERATIONS` is clamped, the three loop exits and their honesty-line
+report text are present, `AUTOFIX` correctly implies `CONVERGE`, `openAfterCount` can't go negative, and
+the fixed `SEVERITY_RANK` can't silently regress — each with a must-fail teeth mutant (plateau-detection
+stripped; the old mismatched severity map restored).
+
+**Honest scope, stated as plainly as SKILL.md §6 states the rest:** `--converge`'s SAFETY invariants are
+gated structurally; its actual runtime **convergence** behavior on a real repo — does the finding count
+genuinely shrink pass over pass, does the cache keep re-review near-free on a live multi-iteration run —
+has **not** been observed. Do not cite this milestone as proof a real repo has been converged; it is
+reasoned-through and structurally gated, not yet measured end-to-end.
+
+**Migration:** none — `priority`/`by_priority` are additive fields on the existing merged-JSON shape,
+`--converge` is a new opt-in flag (single-pass `--fix` behavior is byte-identical when it's absent —
+Gate 260 pins the `if (!CONVERGE) break;` single-pass exit), and the severity-sort fix only makes the
+existing (silently-broken) verifyCap sort actually work — no consumer-visible regression, a latent bug
+closing.

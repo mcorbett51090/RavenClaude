@@ -1,7 +1,7 @@
 ---
-description: "Systematic whole-repo bug sweep across 8 dimensions (correctness, security, concurrency, resource-leaks, error-handling, performance, ci-cd-actions-security, dead-code-simplification), risk-sampled and effort-tiered, with optional cross-model verification and a confirmed-only auto-fix pass. Not a diff/PR reviewer — that's the built-in /code-review."
+description: "Systematic whole-repo bug sweep across 8 dimensions (correctness, security, concurrency, resource-leaks, error-handling, performance, ci-cd-actions-security, dead-code-simplification), risk-sampled and effort-tiered, findings categorized P0-P3, with optional cross-model verification, a confirmed-only auto-fix pass, and an opt-in --converge loop that re-sweeps until no P0-P3 findings remain (or no further auto-fixable progress is possible). Not a diff/PR reviewer — that's the built-in /code-review."
 allowed-tools: Bash, Read, Write, Edit, Task
-argument-hint: <effort:high|xhigh|max|ultra> [--only <pathspec>] [--since <ref>] [--fix] [--full] [--cross-model|--no-cross-model] [--risk-floor <n>] [--estimate-only]
+argument-hint: <effort:high|xhigh|max|ultra> [--only <pathspec>] [--since <ref>] [--fix] [--full] [--cross-model|--no-cross-model] [--risk-floor <n>] [--estimate-only] [--converge [--max-iterations <n>]]
 ---
 
 # /repo-review
@@ -21,10 +21,16 @@ point only.
 ```
 /repo-review <effort> [--only <pathspec>] [--since <ref>] [--fix] [--full]
              [--cross-model | --no-cross-model] [--risk-floor <n>] [--estimate-only]
+             [--converge [--max-iterations <n>]]
 ```
 
 `effort` ∈ `high | xhigh | max | ultra`. `low`/`medium` are refused. `--fix` applies confirmed findings
 as an uncommitted patch only. `--full` bypasses sampling + the file-count cap and needs confirmation.
+`--converge` loops Review→Merge→Verify→Fix until the repo has **0 open P0-P3 findings**, or until no
+further CONFIRMED+fixable finding can be auto-applied (a plateau — e.g. a finding that isn't
+fixable-in-place and needs a human decision), whichever comes first, capped at `--max-iterations`
+(default 5, hard-capped at 20). `--converge` **implies** `--fix` — passing `--fix` alongside it is
+redundant, not an error.
 
 ## Steps
 
@@ -37,13 +43,20 @@ as an uncommitted patch only. `--full` bypasses sampling + the file-count cap an
    `scripts/repo_map.py` to build the chunked, risk-ranked plan, then `scripts/estimate_cost.py`
    against that plan and the requested effort tier. Report the projected agent-call count and stop —
    do **not** dispatch any review agent, do **not** run the Workflow fan-out.
-3. **Otherwise, invoke the `repo-review` skill** and let it drive the full mechanism (chunk → cache →
-   Workflow fan-out → merge → verify → fix → report) per its own contract. This command does not
-   restate that logic — restating it here means paying for the pipeline's description twice on every
-   run, exactly the reason `commands/forge.md` stays a thin entry point over `skills/forge-pipeline/`.
-4. **Before reporting done, re-read the skill's honest-status section** and never claim (in this
+3. **If `--converge` is set, get an explicit one-line confirmation before running.** It applies fixes
+   automatically across potentially several iterations — higher blast radius than a single `--fix`
+   pass — so state the max-iterations cap and that each pass may edit files (never commits/stages/
+   pushes) before dispatching.
+4. **Otherwise, invoke the `repo-review` skill** and let it drive the full mechanism (chunk → cache →
+   Workflow fan-out → merge → verify → fix → report, looped when `--converge` is set) per its own
+   contract. This command does not restate that logic — restating it here means paying for the
+   pipeline's description twice on every run, exactly the reason `commands/forge.md` stays a thin
+   entry point over `skills/forge-pipeline/`.
+5. **Before reporting done, re-read the skill's honest-status section** and never claim (in this
    session's report) that the pipeline has been run end-to-end against a real repo unless it actually
-   was in *this* run — the skill is explicit that it has not been, as shipped.
+   was in *this* run — the skill is explicit that it has not been, as shipped. When `--converge` was
+   used, report the loop's own honesty contract verbatim (converged / plateaued / hit-max-iterations
+   and the open P0-P3 count) — never state or imply the repo is clean unless it converged to 0.
 
 ## Related artifacts
 

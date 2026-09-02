@@ -766,6 +766,13 @@ PY
       python3 scripts/check-sessionstart-matcher-regression.py --self-test
       exit $?
       ;;
+    260)
+      echo "── Gate 260: repo-review P0-P3 priority + converge-loop structural floor (per-gate run) ──"
+      rc=0
+      python3 plugins/ravenclaude-core/skills/repo-review/scripts/findings_merge.py --self-test || rc=$?
+      node scripts/check-repo-review-converge.mjs --self-test || rc=$?
+      exit $rc
+      ;;
     243)
       echo "── Gate 243: scheduled sweep contract + operator health card ──"
       bash plugins/ravenclaude-core/hooks/tests/test-gate243-sweep-and-health-card.sh
@@ -1570,7 +1577,7 @@ PY
       ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254, 255, 256, 257, 258, 259. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254, 255, 256, 257, 258, 259, 260. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -9594,6 +9601,34 @@ if command -v python3 >/dev/null 2>&1; then
   gate "SessionStart matcher regression floor: canonical matcher + parity + wired-set, all with must-fail teeth" must_pass "$rc"
 else
   _skip_or_fail "Gate 259 (SessionStart matcher regression floor)" python3
+fi
+
+echo
+echo "── Gate 260: repo-review P0-P3 priority + converge-loop structural floor ──"
+# /repo-review gained a deterministic P0-P3 priority relabeling of the
+# existing severity scale (findings_merge.py's `priority_for`, exercised by
+# its own --self-test test9) and an opt-in `args.converge` loop in
+# repo-sweep.workflow.js that re-sweeps Review->Merge->Verify->Fix until 0
+# open P0-P3 findings remain or no further auto-fixable progress is possible
+# (capped at args.convergeMaxIterations). The workflow script itself cannot
+# be executed in CI (same honest limit as the rest of this skill — see
+# SKILL.md §6), so its safety invariants (MAX_ITERATIONS clamped, the
+# plateau/max-iterations/converged exits, the convergence-honesty report
+# lines, AUTOFIX implying CONVERGE, and the fixed SEVERITY_RANK regression
+# guard) are gated STRUCTURALLY by check-repo-review-converge.mjs, mirroring
+# this repo's own precedent for gating an unexecutable workflow/dashboard
+# script (Gate 51's shell-router checker, Gate 144's prompt-builder XSS
+# floor) — pure text-based assertions, no eval/new Function.
+# ⛔ Registered in dispatcher + main sequence + Supported:. Grep by literal name.
+if command -v python3 >/dev/null 2>&1 && command -v node >/dev/null 2>&1; then
+  rc=0
+  python3 plugins/ravenclaude-core/skills/repo-review/scripts/findings_merge.py --self-test >/dev/null 2>&1 || rc=$?
+  gate "findings_merge.py priority derivation (test9: P0-P3 map + by_priority counts)" must_pass "$rc"
+
+  rc=0; node scripts/check-repo-review-converge.mjs --self-test >/dev/null 2>&1 || rc=$?
+  gate "repo-sweep.workflow.js converge-loop structural floor, with must-fail teeth on 2 mutants" must_pass "$rc"
+else
+  _skip_or_fail "Gate 260 (repo-review P0-P3 + converge structural floor)" "python3+node"
 fi
 
 echo "── analog-closeness-scorecard (Q2 leftover, docs/follow-ups/2026-08-14-analog-repos-leftovers.md) ──"
