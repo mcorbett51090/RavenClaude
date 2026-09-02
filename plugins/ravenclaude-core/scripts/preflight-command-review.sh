@@ -185,7 +185,7 @@ sys.stdout.write(ti.get("command") or "")' 2>/dev/null || true)"
       # nowhere while the hook still looked healthy.
       # control (A/B on this hook): as shipped -> 0 bytes and no additionalContext;
       # with the redirect removed -> 953 bytes carrying the advisory.
-      rc_advise_init PreToolUse || true
+      rc_advise_init PreToolUse "" silent || true
     fi
   fi
 
