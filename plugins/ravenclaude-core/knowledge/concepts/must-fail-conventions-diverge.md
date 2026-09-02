@@ -23,7 +23,7 @@ covers:
   - scripts/check-changed-concept-renders.py
   - scripts/inventory-coverage.py
   - scripts/inventory-nuance-judge.py
-covers_digest: "sha256:78ae12ba3f94534274a14337c9b5b198f171917167aa5186517e40980b056871"
+covers_digest: "sha256:fe48c17496a0ee5265f36d6595f13b0cbf3768f46e00ba7b7b4bd5b875fb1e6a"
 nuance: "The teeth bit is the exit a tool own CHECK returns on a planted defect, never the exit `--must-fail` itself returns: `premise-gate.py` denies at `exit 0` while `sync-plugin-versions.py` reddens at `exit 2`, so an auditor that hard-codes one number can never be right for both."
 nuance_evidence:
   measured: 2026-08-19
