@@ -103,7 +103,8 @@ def _safe_path(raw: str) -> str:
         sys.exit(2)
     repo = _repo_root()
     abs_path = os.path.realpath(os.path.join(os.getcwd(), raw))
-    if not abs_path.startswith(os.path.realpath(repo)):
+    real_repo = os.path.realpath(repo)
+    if not (abs_path == real_repo or abs_path.startswith(real_repo + os.sep)):
         print(f"[error] path escapes repo root: {abs_path!r}", file=sys.stderr)
         sys.exit(2)
     return abs_path

@@ -55,11 +55,18 @@ parser if not, since the YAML shape is tiny and constrained).
 from __future__ import annotations
 
 import argparse
+import contextlib
 import json
 import os
 import sys
+import uuid
 from datetime import datetime, timezone
 from pathlib import Path
+
+try:  # POSIX advisory file locking; absent on non-POSIX hosts.
+    import fcntl
+except ImportError:  # pragma: no cover - non-POSIX
+    fcntl = None  # type: ignore[assignment]
 
 REPO_ROOT_ENV = "CLAUDE_PROJECT_DIR"
 
@@ -363,6 +370,67 @@ def _load_settings_json(path: Path) -> dict:
             file=sys.stderr,
         )
         raise SystemExit(1)
+
+
+def _write_settings_json_atomic(path: Path, payload: str) -> None:
+    """Write settings.json via a private temp file + os.replace (atomic on POSIX).
+
+    A plain ``path.write_text(...)`` truncates the target in place, so a reader
+    (another apply, the dashboard's /__save, Claude Code itself re-reading
+    settings on session start) can observe a torn/partially-written file mid-write.
+    Writing to a pid+uuid-suffixed sibling temp file and then atomically renaming
+    it into place means any concurrent reader sees either the old complete file
+    or the new complete file, never a partial one — same pattern as
+    stream-ops.py's ``write_registry``.
+    """
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_name(f"{path.name}.{os.getpid()}.{uuid.uuid4().hex}.tmp")
+    try:
+        tmp.write_text(payload, encoding="utf-8")
+        os.replace(tmp, path)  # atomic on POSIX
+    finally:
+        # If os.replace failed, don't leave the private temp behind.
+        with contextlib.suppress(OSError):
+            if tmp.exists():
+                tmp.unlink()
+
+
+@contextlib.contextmanager
+def _settings_lock(settings_path: Path):
+    """Advisory exclusive lock serializing a settings.json read-modify-write cycle.
+
+    /set-posture can be invoked concurrently from more than one place this repo
+    documents: the dashboard's ThreadingHTTPServer /__save handler, the
+    SessionStart reapply-posture.sh hook (fires per session; multiple concurrent
+    sessions are supported), and manual /set-posture. Without serialization two
+    concurrent applies can each read the same settings.json, mutate their own
+    in-memory copy, and the second writer's write silently clobbers the first's
+    edit (a classic check-then-act race). This flocks a ``.settings.lock``
+    sibling file across the whole read+overwrite+write span.
+
+    FAIL-SAFE: if the lock file can't be opened, fcntl is unavailable
+    (non-POSIX), or the lock can't be taken, this proceeds WITHOUT the lock
+    rather than raising — a missed lock only reintroduces the pre-existing race,
+    it must never turn a permission-apply into a hard failure.
+    """
+    fh = None
+    try:
+        settings_path.parent.mkdir(parents=True, exist_ok=True)
+        fh = open(settings_path.with_name(f".{settings_path.name}.lock"), "w")
+        if fcntl is not None:
+            with contextlib.suppress(OSError):
+                fcntl.flock(fh.fileno(), fcntl.LOCK_EX)
+    except OSError:
+        fh = None
+    try:
+        yield
+    finally:
+        if fh is not None:
+            if fcntl is not None:
+                with contextlib.suppress(OSError):
+                    fcntl.flock(fh.fileno(), fcntl.LOCK_UN)
+            with contextlib.suppress(OSError):
+                fh.close()
 
 
 def _split_scalar_kv(content: str) -> tuple[str, str]:
@@ -1076,44 +1144,51 @@ def main() -> int:
     except ValueError as exc:
         return _posture_error(exc)
 
-    if settings_path.is_file():
-        settings = _load_settings_json(settings_path)
-    else:
-        settings = {"$schema": "https://json.schemastore.org/claude-code-settings.json"}
+    # The whole read -> mutate -> write span is a critical section: /set-posture
+    # can be invoked concurrently (the dashboard's /__save handler, the
+    # SessionStart reapply-posture.sh hook on every session, and manual
+    # /set-posture all target this same settings_path). _settings_lock serializes
+    # concurrent applies so a second writer's stale in-memory snapshot can't
+    # silently clobber the first's edit, and the write itself goes through a
+    # temp-file + os.replace so a concurrent reader never observes a torn file.
+    with _settings_lock(settings_path):
+        if settings_path.is_file():
+            settings = _load_settings_json(settings_path)
+        else:
+            settings = {"$schema": "https://json.schemastore.org/claude-code-settings.json"}
 
-    # Snapshot before overwrite — overwrite_permissions mutates in place.
-    _prev_live = settings.get("permissions", {})
-    prev_perms = {b: list(_prev_live.get(b, []) or []) for b in ("allow", "ask", "deny")}
-    prev_counts = {b: len(prev_perms[b]) for b in ("allow", "ask", "deny")}
+        # Snapshot before overwrite — overwrite_permissions mutates in place.
+        _prev_live = settings.get("permissions", {})
+        prev_perms = {b: list(_prev_live.get(b, []) or []) for b in ("allow", "ask", "deny")}
+        prev_counts = {b: len(prev_perms[b]) for b in ("allow", "ask", "deny")}
 
-    updated = overwrite_permissions(settings, new_emission)
-    ensure_default_mode(updated)
-    new_counts = {b: len(updated["permissions"][b]) for b in ("allow", "ask", "deny")}
+        updated = overwrite_permissions(settings, new_emission)
+        ensure_default_mode(updated)
+        new_counts = {b: len(updated["permissions"][b]) for b in ("allow", "ask", "deny")}
 
-    if args.dry_run:
-        print("DRY RUN — would overwrite permissions buckets:")
-        print(f"  {settings_path}:")
-        for bucket in ("allow", "ask", "deny"):
-            delta = new_counts[bucket] - prev_counts[bucket]
-            sign = "+" if delta > 0 else ""
-            print(f"    permissions.{bucket}: {prev_counts[bucket]} -> {new_counts[bucket]} ({sign}{delta})")
-        if stale_snapshot.is_file():
-            print(f"  Would delete stale snapshot: {stale_snapshot.relative_to(root)}")
-    else:
-        settings_path.parent.mkdir(parents=True, exist_ok=True)
-        settings_path.write_text(
-            json.dumps(updated, indent=2, ensure_ascii=False) + "\n",
-            encoding="utf-8",
-        )
-        if stale_snapshot.is_file():
-            stale_snapshot.unlink()
-            print(f"Deleted stale snapshot: {stale_snapshot.relative_to(root)}")
-        _emit_posture_event(root, "project", prev_perms, new_emission, _resolve_source(args))
-        print(f"Applied comfort posture to {settings_path.relative_to(root)}:")
-        for bucket in ("allow", "ask", "deny"):
-            delta = new_counts[bucket] - prev_counts[bucket]
-            sign = "+" if delta > 0 else ""
-            print(f"  permissions.{bucket}: {prev_counts[bucket]} -> {new_counts[bucket]} ({sign}{delta})")
+        if args.dry_run:
+            print("DRY RUN — would overwrite permissions buckets:")
+            print(f"  {settings_path}:")
+            for bucket in ("allow", "ask", "deny"):
+                delta = new_counts[bucket] - prev_counts[bucket]
+                sign = "+" if delta > 0 else ""
+                print(f"    permissions.{bucket}: {prev_counts[bucket]} -> {new_counts[bucket]} ({sign}{delta})")
+            if stale_snapshot.is_file():
+                print(f"  Would delete stale snapshot: {stale_snapshot.relative_to(root)}")
+        else:
+            _write_settings_json_atomic(
+                settings_path,
+                json.dumps(updated, indent=2, ensure_ascii=False) + "\n",
+            )
+            if stale_snapshot.is_file():
+                stale_snapshot.unlink()
+                print(f"Deleted stale snapshot: {stale_snapshot.relative_to(root)}")
+            _emit_posture_event(root, "project", prev_perms, new_emission, _resolve_source(args))
+            print(f"Applied comfort posture to {settings_path.relative_to(root)}:")
+            for bucket in ("allow", "ask", "deny"):
+                delta = new_counts[bucket] - prev_counts[bucket]
+                sign = "+" if delta > 0 else ""
+                print(f"  permissions.{bucket}: {prev_counts[bucket]} -> {new_counts[bucket]} ({sign}{delta})")
 
     print(
         "\nNote: comfort-posture works best with session mode at 'default'.\n"

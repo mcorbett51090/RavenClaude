@@ -43,6 +43,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import sys
 import tempfile
@@ -319,12 +320,38 @@ def _short(v: object, n: int = 80) -> str:
     return s if len(s) <= n else s[:n] + "…"
 
 
+def _atomic_write_text(path: Path, content: str, encoding: str = "utf-8") -> None:
+    """Write `content` to `path` ATOMICALLY: write to a PID-suffixed temp sibling first, then
+    `os.replace()` it onto `path`. This closes the torn-write half of the concurrency bug —
+    `Path.write_text()`'s underlying `open(..., 'w')` truncates on open and is not atomic, so a
+    second process's open() can truncate a first process's in-progress write. `os.replace()` is
+    atomic on POSIX and Windows, so a reader of `path` always sees either the old complete
+    content or the new complete content, never a partial write.
+
+    Concurrency note: this does NOT make it safe for two `apply()` invocations to share one
+    `out_dir` — see the `--out` help text below. It only guarantees each individual file is
+    never observed torn/corrupted, including when a single invocation crashes mid-write."""
+    tmp_path = path.with_name(f"{path.name}.{os.getpid()}.tmp")
+    try:
+        tmp_path.write_text(content, encoding=encoding)
+        os.replace(tmp_path, path)
+    except BaseException:
+        tmp_path.unlink(missing_ok=True)
+        raise
+
+
 # ── the apply engine ──────────────────────────────────────────────────────────
 def apply(design_schema: dict, target_brand_kit: dict, out_dir: str) -> dict:
     """Emit `design-schema.css` (sanitized structural tokens in the TARGET's brand) plus a
     fixed-structure HTML scaffold per recognized component, into `out_dir`. Returns a report
     dict. The hard no-read invariant holds: the reference's `logos[]`/`colors.palette` are
-    never read, and an identity color cannot ride in through a shadow/border."""
+    never read, and an identity color cannot ride in through a shadow/border.
+
+    Every write below is ATOMIC (temp-file + os.replace) via `_atomic_write_text` — see its
+    docstring. This does not make `out_dir` safe to SHARE across concurrent invocations; two
+    processes writing the same `out_dir` can still interleave at the file-granularity (one
+    process's atomic replace can overwrite another's), it just can no longer observe a torn
+    write within a single file. Concurrent invocations MUST pass distinct `--out` values."""
     out = Path(out_dir)
     out.mkdir(parents=True, exist_ok=True)
     ds = design_schema if isinstance(design_schema, dict) else {}
@@ -407,7 +434,7 @@ def apply(design_schema: dict, target_brand_kit: dict, out_dir: str) -> dict:
         emitted["shadow"] += 1
 
     lines.append("}")
-    (out / "design-schema.css").write_text("\n".join(lines) + "\n", encoding="utf-8")
+    _atomic_write_text(out / "design-schema.css", "\n".join(lines) + "\n")
 
     # component scaffolds — fixed structure, value-only
     components_written: list[str] = []
@@ -417,7 +444,7 @@ def apply(design_schema: dict, target_brand_kit: dict, out_dir: str) -> dict:
         if scaffold is None:
             continue
         fname = f"component-{scaffold['slug']}.html"
-        (out / fname).write_text(scaffold["html"], encoding="utf-8")
+        _atomic_write_text(out / fname, scaffold["html"])
         components_written.append(fname)
         emitted["component"] += 1
 
@@ -433,8 +460,8 @@ def apply(design_schema: dict, target_brand_kit: dict, out_dir: str) -> dict:
             "one pass is not convergence — patience across iterations is the agent's job.",
         ],
     }
-    (out / "apply-report.json").write_text(
-        json.dumps(report, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
+    _atomic_write_text(
+        out / "apply-report.json", json.dumps(report, indent=2, ensure_ascii=False) + "\n"
     )
     return report
 
@@ -724,7 +751,20 @@ def main(argv: list[str] | None = None) -> int:
     )
     ap.add_argument("reference", nargs="?", help="reference design-schema.json (the craft to clone)")
     ap.add_argument("--target-brand", help="target brand-kit.json (the identity to apply)")
-    ap.add_argument("--out", default="design-clone-out", help="output directory")
+    ap.add_argument(
+        "--out",
+        default="design-clone-out",
+        help=(
+            "output directory (default: %(default)s). Every file write in this path is "
+            "ATOMIC (temp-file + rename), so a single invocation can never leave a torn/"
+            "partial file. Concurrent invocations MUST pass distinct --out values — two "
+            "processes sharing one output directory can still interleave their outputs "
+            "(one process's atomic replace overwriting another's), even though neither can "
+            "corrupt an individual file. This matters when an orchestrator dispatches "
+            "design-clone runs in parallel (see this repo's comfort-posture parallelism "
+            "default) without an explicit --out per run."
+        ),
+    )
     ap.add_argument(
         "--self-test", action="store_true", help="run the embedded fixtures (drives Gate 194)"
     )
@@ -747,8 +787,8 @@ def main(argv: list[str] | None = None) -> int:
     # The reference bundle acts as its own brand-kit view for the advisory flag.
     flags = flag_identity_risks(design_schema, design_schema)
     report["identity_flags"] = flags
-    (Path(args.out) / "apply-report.json").write_text(
-        json.dumps(report, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
+    _atomic_write_text(
+        Path(args.out) / "apply-report.json", json.dumps(report, indent=2, ensure_ascii=False) + "\n"
     )
     print(f"✓ applied to {args.out}/ — css: {report['css']}, components: {report['components']}")
     print(f"  emitted: {report['emitted']}  dropped: {len(report['dropped'])}")

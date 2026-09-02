@@ -778,6 +778,24 @@ const RUN_ID =
   args && typeof args === "object" && typeof args.runId === "string" && args.runId.trim()
     ? args.runId.trim()
     : null;
+// Fail-closed path-traversal validation, applied ONCE here so every downstream
+// use of RUN_ID (both eval-persist Write-tool instructions below, and any
+// future RUN_ID-derived path) is automatically protected — do not re-validate
+// at each call site. RUN_ID is interpolated verbatim into a
+// `.ravenclaude/runs/<RUN_ID>/...` Write-tool path; an unvalidated value such
+// as "../../../../tmp/evil" or an absolute path would cause writes outside
+// .ravenclaude/runs/. Allow-list only (matches the observed run-id shape used
+// by the eval harness, e.g. "eval-<fixture>-<arm>", "syn-a" —
+// scripts/eval-adaptive-classifier.py). Reject rather than sanitize-and-continue:
+// a malformed runId is refused with an explicit error, never silently mangled.
+if (RUN_ID !== null && !/^[A-Za-z0-9_-]+$/.test(RUN_ID)) {
+  return {
+    error:
+      `Invalid runId "${RUN_ID}": must match [A-Za-z0-9_-]+ (letters, digits, underscore, ` +
+      `hyphen only — no "/", "..", or other path-traversal characters). Refusing to build a ` +
+      ".ravenclaude/runs/<runId>/ path from an unvalidated value.",
+  };
+}
 if (!QUESTION) {
   return {
     error:

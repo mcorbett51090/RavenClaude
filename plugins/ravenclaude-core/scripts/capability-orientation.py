@@ -746,6 +746,17 @@ def build_banner(root: Path) -> str:
     par = summarize_parallelism(root)
 
     # If we have nothing useful at all, emit nothing (don't inject an empty box).
+    #
+    # `par` (summarize_parallelism) is included here because it ALWAYS returns a
+    # populated dict (parallelism has a documented default — see its docstring),
+    # and the PARALLELISM / WHERE-WORK-FILES-GO / BEFORE-PICKING-A-METHOD sections
+    # below are unconditionally appended after this guard, regardless of the other
+    # fields. Without `or par`, a fresh/minimal repo where every other field is
+    # falsy would return "" here and never reach that always-on, standing-
+    # instruction content — even though it is documented as shown "on every
+    # session, on every host". Since `par` is never empty, this guard now only
+    # ever returns "" when `build_banner` itself failed to construct a dict (it
+    # can't), which is intentional: the always-on content should always render.
     if not (
         surface
         or env_auth
@@ -756,6 +767,7 @@ def build_banner(root: Path) -> str:
         or run_cfg
         or streams
         or design
+        or par
     ):
         return ""
 

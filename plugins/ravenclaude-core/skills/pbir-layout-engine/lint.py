@@ -230,6 +230,8 @@ def _pos(visual: dict) -> dict | None:
 
 
 def _ignored(visual: dict, check_id: str) -> bool:
+    if not isinstance(visual, dict):
+        return False
     ig = visual.get("_lintIgnore")
     return isinstance(ig, list) and check_id in ig
 
@@ -515,7 +517,7 @@ def _load_page(path: str) -> dict:
 def _detect_pbir(page: dict) -> bool:
     if "$schema" in page:
         return True
-    for v in page.get("visuals", []):
+    for v in (page.get("visuals") or []):
         if isinstance(v, dict) and "$schema" in v:
             return True
     return False
@@ -534,8 +536,21 @@ def lint_page(
     visuals = page.get("visuals", [])
     if not isinstance(visuals, list):
         raise InputError("'visuals' must be an array")
-    page_w = float(page.get("width", 1280))
-    page_h = float(page.get("height", 720))
+    # Central non-dict filter: a stray null/scalar entry in visuals[] (malformed
+    # input, e.g. {"visuals": [null, {...}]}) would otherwise crash every
+    # check_* function below the moment it calls _ignored(v, ...) or v.get(...).
+    # Filtering here means every downstream check_* function can safely assume
+    # each remaining visuals[] element is a dict; _ignored() also guards itself
+    # as defense-in-depth for any future direct caller.
+    visuals = [v for v in visuals if isinstance(v, dict)]
+    # width/height may be explicit JSON null (key present, value None) as well
+    # as simply absent — `.get(key, default)` only covers the absent case, so
+    # `or` is used to also catch the explicit-null case. 0 is not a legitimate
+    # canvas width/height in this domain (check_within_canvas treats page_w/
+    # page_h as the canvas bounds; a 0-sized canvas is nonsensical), so `or`
+    # falling back to the default on a 0 value is the correct behavior here.
+    page_w = float(page.get("width") or 1280)
+    page_h = float(page.get("height") or 720)
 
     cfg = page.get("_lintConfig", {})
     tol = cfg.get("tolerance", {}) if isinstance(cfg, dict) else {}

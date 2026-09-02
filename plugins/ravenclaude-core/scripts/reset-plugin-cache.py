@@ -41,12 +41,37 @@ import argparse
 import errno
 import json
 import os
+import re
 import shutil
 import sys
 import time
 from pathlib import Path
 
 _ERRORS_FILE = Path(__file__).resolve().parent / "_ragnarok-named-errors.json"
+
+# Plugin names on this marketplace are bare kebab-case identifiers (e.g.
+# "ravenclaude-core", "power-platform", "incident-response-dfir" — see
+# .claude-plugin/marketplace.json). A `plugin` value carrying "/", "\", or
+# ".." is never a legitimate name and is a path-traversal attempt when
+# joined into `marketplace / plugin` in resolve_plugin_version_dir(). This
+# regex is the sole source of truth for "is this a bare identifier" and is
+# checked as early as possible (argparse `type=`, main()'s first use of
+# args.plugin) so no downstream code path can reach a filesystem join with
+# an unvalidated value.
+_PLUGIN_NAME_RE = re.compile(r"^[A-Za-z0-9._-]+$")
+
+
+def _validate_plugin_name(name: str) -> str:
+    """Reject anything that isn't a bare kebab-case identifier. Fail closed:
+    empty, containing a path separator, containing "..", or any character
+    outside the allow-list is rejected outright — never sanitized/stripped.
+    """
+    if not name or ".." in name or "/" in name or "\\" in name or not _PLUGIN_NAME_RE.match(name):
+        raise argparse.ArgumentTypeError(
+            f"invalid plugin name {name!r} — must be a bare identifier matching "
+            f"{_PLUGIN_NAME_RE.pattern} (no path separators, no '..')"
+        )
+    return name
 
 
 def _load_errors() -> dict:
@@ -90,11 +115,33 @@ def resolve_plugin_version_dir(cache_root: Path, plugin: str) -> Path | None:
     We search any marketplace dir for a matching plugin and take its newest
     version dir by semver order (the dry-run prints exactly which).
     """
+    # Defense-in-depth (belt-and-suspenders with the argparse-level
+    # _validate_plugin_name() check in main(), which already rejects any
+    # `plugin` containing "/", "\", or ".." before this function is ever
+    # reached). A caller that invokes this function directly — bypassing
+    # argparse — must not be able to walk `pdir` outside `marketplace` via
+    # a traversal-shaped `plugin` value. Fail closed: any value that isn't
+    # a bare identifier is rejected here too, independent of main()'s gate.
+    if not _PLUGIN_NAME_RE.match(plugin):
+        return None
+
     if not cache_root.is_dir():
         return None
     candidates: list[Path] = []
     for marketplace in sorted(p for p in cache_root.iterdir() if p.is_dir()):
         pdir = marketplace / plugin
+        # Resolved-path containment check: pdir must resolve to an actual
+        # child of marketplace. is_relative_to() is Python 3.9+ (this repo's
+        # documented stock-macOS floor), so no os.path.commonpath fallback
+        # is needed. A pdir that resolves outside marketplace (e.g. via a
+        # symlink) is skipped rather than raising, so one poisoned
+        # marketplace dir can't abort the scan of the others.
+        try:
+            contained = pdir.resolve().is_relative_to(marketplace.resolve())
+        except (OSError, RuntimeError):
+            contained = False
+        if not contained:
+            continue
         if pdir.is_dir():
             # Exclude our own retained backup dirs (<version>-snapshot-<ts> /
             # <version>-pre-ragnarok-<ts>): they are siblings of the live version
@@ -256,7 +303,11 @@ def main() -> int:
     p = argparse.ArgumentParser(
         description="Ragnarök — disaster-recovery reset of a plugin cache (dry-run by default).",
     )
-    p.add_argument("plugin", help="plugin name to reset (e.g. ravenclaude-core)")
+    p.add_argument(
+        "plugin",
+        type=_validate_plugin_name,
+        help="plugin name to reset (e.g. ravenclaude-core)",
+    )
     p.add_argument("--execute", action="store_true", help="actually perform the reset (default: dry-run)")
     p.add_argument("--pin", help="required with --execute: the marketplace SHA to reinstall from")
     p.add_argument("--ttl-days", type=int, default=30, help="snapshot retention (default 30)")

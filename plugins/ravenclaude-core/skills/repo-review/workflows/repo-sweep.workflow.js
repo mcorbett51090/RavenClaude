@@ -334,6 +334,28 @@ function sanitizeForPath(p) {
     .slice(0, 180);
 }
 
+// ─── Caller-input validation (command-injection + path-traversal fixes) ──
+// Several args.* fields below are caller-controlled and later interpolated
+// verbatim into literal shell-command text that an agent() call instructs a
+// subagent to run via Bash ("Run this exact command..."). This workflow has
+// no fs/shell APIs and therefore no shell-quoting primitive available to
+// it, so the only defense is a strict allow-list regex per field, checked
+// ONCE at the point the value is first derived from `args` — every
+// downstream interpolation (Map/Merge/Fix phases) inherits the guarantee.
+// A value that fails validation causes an immediate, explicit refusal
+// (never silent stripping/sanitizing) via the same top-level
+// `return { error }` shape the effort-tier refusal below uses.
+const SAFE_PATH_RE = /^[A-Za-z0-9._\-/~]+$/;
+const SAFE_PATHSPEC_RE = /^[A-Za-z0-9._\-/~:@,*?[\]^]+$/;
+// A run id becomes a joinPath() SEGMENT under .ravenclaude/runs/<runId>/ —
+// joinPath() only strips leading/trailing slashes per segment, it never
+// rejects/strips ".." — so this charset additionally excludes "/" outright
+// (an id can never introduce a new path segment, traversal or otherwise).
+const SAFE_RUN_ID_RE = /^[A-Za-z0-9_-]+$/;
+function isSafeShellArg(value, pattern) {
+  return typeof value === "string" && pattern.test(value);
+}
+
 // Which of the run's configured models a given dimension actually uses.
 // dead-code-simplification is single-model even when cross-model is on.
 function resolveModelsForDimension(dim, models) {
@@ -419,11 +441,30 @@ const REPO_PATH =
   args && typeof args === "object" && typeof args.repoPath === "string" && args.repoPath.trim()
     ? args.repoPath.trim()
     : ".";
+if (!isSafeShellArg(REPO_PATH, SAFE_PATH_RE)) {
+  return {
+    error:
+      `repo-sweep refuses args.repoPath = ${JSON.stringify(args && args.repoPath)} — it contains ` +
+      `characters not allowed in a shell-interpolated path (must match ${SAFE_PATH_RE}). This guards ` +
+      `against command injection into the "Run this exact command" instructions this workflow issues ` +
+      `(--repo-root is interpolated verbatim into the Map/Fix-phase commands).`,
+  };
+}
 
 const RUN_ID =
   args && typeof args === "object" && typeof args.runId === "string" && args.runId.trim()
     ? args.runId.trim()
     : `repo-sweep-${_now()}`;
+if (!isSafeShellArg(RUN_ID, SAFE_RUN_ID_RE)) {
+  return {
+    error:
+      `repo-sweep refuses args.runId = ${JSON.stringify(args && args.runId)} — run ids must match ` +
+      `${SAFE_RUN_ID_RE} (letters, digits, "_", "-" only — no "/", no "..", no shell metacharacters). ` +
+      `joinPath() only strips leading/trailing slashes per segment and never rejects ".." — an ` +
+      `unvalidated runId could make RUN_DIR (and every path derived from it) escape the intended ` +
+      `.ravenclaude/runs/<runId>/ sandbox.`,
+  };
+}
 
 const RUN_DIR = joinPath(REPO_PATH, ".ravenclaude/runs", RUN_ID);
 const FINDINGS_DIR = joinPath(RUN_DIR, "findings");
@@ -456,6 +497,21 @@ const NEAR_DUP_POLICY =
   args && typeof args.nearDupPolicy === "string" && args.nearDupPolicy.trim()
     ? args.nearDupPolicy.trim()
     : tierCfg.nearDupPolicy;
+// Enum check, not a regex allow-list — this value flows verbatim into
+// findings_merge.py's --near-dup-policy flag, whose argparse `choices` is
+// exactly ["keep-separate", "judge"] (scripts/findings_merge.py). Anything
+// else is refused rather than passed through and left for argparse to
+// reject (which would still be a shell-injection risk before argparse ever
+// gets to see it).
+const ALLOWED_NEAR_DUP_POLICIES = ["keep-separate", "judge"];
+if (!ALLOWED_NEAR_DUP_POLICIES.includes(NEAR_DUP_POLICY)) {
+  return {
+    error:
+      `repo-sweep refuses args.nearDupPolicy = ${JSON.stringify(args && args.nearDupPolicy)} — must be ` +
+      `one of: ${ALLOWED_NEAR_DUP_POLICIES.join(", ")} (matches findings_merge.py's --near-dup-policy ` +
+      `choices).`,
+  };
+}
 const PER_AGENT_TOKENS =
   args && typeof args.perAgentTokens === "number" && args.perAgentTokens > 0
     ? args.perAgentTokens
@@ -472,12 +528,25 @@ log(
 
 // ─── Phase 1: Map ──────────────────────────────────────────────────────────
 phase("Map");
-const onlyFlag =
-  args && typeof args.only === "string" && args.only.trim() ? ` --only ${args.only.trim()}` : "";
-const sinceFlag =
-  args && typeof args.since === "string" && args.since.trim()
-    ? ` --since ${args.since.trim()}`
-    : "";
+const ONLY_VALUE = args && typeof args.only === "string" ? args.only.trim() : "";
+if (ONLY_VALUE && !isSafeShellArg(ONLY_VALUE, SAFE_PATHSPEC_RE)) {
+  return {
+    error:
+      `repo-sweep refuses args.only = ${JSON.stringify(args.only)} — it contains characters not ` +
+      `allowed in a shell-interpolated --only value (must match ${SAFE_PATHSPEC_RE}).`,
+  };
+}
+const onlyFlag = ONLY_VALUE ? ` --only ${ONLY_VALUE}` : "";
+
+const SINCE_VALUE = args && typeof args.since === "string" ? args.since.trim() : "";
+if (SINCE_VALUE && !isSafeShellArg(SINCE_VALUE, SAFE_PATHSPEC_RE)) {
+  return {
+    error:
+      `repo-sweep refuses args.since = ${JSON.stringify(args.since)} — it contains characters not ` +
+      `allowed in a shell-interpolated --since value (must match ${SAFE_PATHSPEC_RE}).`,
+  };
+}
+const sinceFlag = SINCE_VALUE ? ` --since ${SINCE_VALUE}` : "";
 
 const mapReceipt = await agent(
   [
@@ -617,11 +686,32 @@ const batchIds = mapReceipt.batch_ids;
 
 const reviewByDimension = await pipeline(activeDimensions, async (dim) => {
   const dimModels = resolveModelsForDimension(dim, models);
+  // Dedup at the dispatch site (not inside resolveModels()). resolveModels()
+  // pads a caller-supplied args.models list shorter than the tier's
+  // required model count by CYCLING through it, which can produce literal
+  // duplicate entries (e.g. args.models:['claude-sonnet-5'] at a 2-model
+  // tier yields ['claude-sonnet-5','claude-sonnet-5']). Without this dedup,
+  // a duplicated model string would fan out into two CONCURRENT thunks both
+  // calling reviewBatch(dim, model, batchId) for the same (dim, model,
+  // batchId) triple — both computing the identical shardPath and writing it
+  // with no coordination, so whichever write lands second silently
+  // overwrites the first with no error signal. Deduping here (rather than
+  // changing resolveModels' general "pad to N" contract) keeps that
+  // contract intact for any other caller while guaranteeing at most one
+  // thunk — and one write — per distinct model.
+  const uniqueDimModels = Array.from(new Set(dimModels));
+  if (uniqueDimModels.length < dimModels.length) {
+    log(
+      `Review: dimension "${dim}" — resolveModels() padded to ${dimModels.length} model slot(s) but ` +
+        `only ${uniqueDimModels.length} are distinct; deduping at dispatch to avoid a concurrent ` +
+        `duplicate-write race on the same shardPath.`,
+    );
+  }
   log(
-    `Review: dimension "${dim}" starting — ${dimModels.length} model(s) x ${batchIds.length} batch(es)`,
+    `Review: dimension "${dim}" starting — ${uniqueDimModels.length} model(s) x ${batchIds.length} batch(es)`,
   );
   const perModel = await parallel(
-    dimModels.map(
+    uniqueDimModels.map(
       (model) => () => parallel(batchIds.map((batchId) => () => reviewBatch(dim, model, batchId))),
     ),
   );

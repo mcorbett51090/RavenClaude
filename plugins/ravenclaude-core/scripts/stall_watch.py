@@ -32,6 +32,7 @@ from __future__ import annotations
 
 import calendar
 import errno
+import fcntl
 import hashlib
 import json
 import os
@@ -78,6 +79,22 @@ SESSIONS_DIR = os.path.join(HOME, ".claude", "sessions")
 PROJECTS_DIR = os.path.join(HOME, ".claude", "projects")
 STATE_DIR = os.path.join(HOME, ".claude", "stall-watch")
 STATE_PATH = os.path.join(STATE_DIR, "state.json")
+# Advisory cross-process lock guarding the whole load_state -> evaluate ->
+# save_state cycle in main(). The only guard against overlap used to be an
+# UNENFORCED assumption that launchd serializes ticks (see TICK_INTERVAL_SEC
+# below) — an assumption this script's own manual-invocation CLI flags
+# (--json / --no-send) directly contradict: a human running
+# `python3 stall_watch.py --json` by hand while a scheduled tick is also
+# mid-flight is plausible given the timeout budget sits close to the tick
+# interval. Without a lock, both processes read the same starting `episodes`
+# dict, independently compute ladder state, and race on the final
+# save_state() write — the process that renames last wins and silently
+# discards the other's ladder advancement (can cause a double-alert or
+# revive a closed episode). The lock is held across the soak/heartbeat
+# writes too, so _trim_soak()'s identical read-whole-file/rewrite/rename
+# cycle serializes against the same window instead of racing
+# append_soak() from a concurrent process.
+STATE_LOCK_PATH = STATE_PATH + ".lock"
 HEARTBEAT_PATH = os.path.join(STATE_DIR, "heartbeat.json")
 # ⛔ THE HEARTBEAT IS NOT A SOAK: it is overwritten every tick, so after days it
 # holds one snapshot. C17's open question is whether the detector GENERALIZES
@@ -189,6 +206,42 @@ def project_key(cwd: str) -> str:
 def _ensure_state_dir():
     if not os.path.isdir(STATE_DIR):
         os.makedirs(STATE_DIR, 0o700)
+
+
+def _acquire_state_lock():
+    """Blocking advisory flock on STATE_LOCK_PATH (see its comment above).
+
+    Blocking, not LOCK_NB: a losing process should wait its turn and run its
+    tick, not silently skip it. TICK_SELF_TIMEOUT_SEC's SIGALRM still bounds
+    the wait — PEP 475 means a signal handler that raises (as _alarm does)
+    propagates out of a blocked syscall instead of the syscall being
+    auto-retried, so a wedged lock holder still surfaces as TickTimeout
+    rather than hanging this process forever.
+
+    Returns an open file handle the caller must close() (which releases the
+    flock) once the guarded section is done. If flock() itself raises
+    (including via the SIGALRM interruption above), the handle is closed
+    before re-raising so no fd is leaked on the error path.
+    """
+    _ensure_state_dir()
+    fh = open(STATE_LOCK_PATH, "a+")
+    try:
+        fcntl.flock(fh.fileno(), fcntl.LOCK_EX)
+    except BaseException:
+        fh.close()
+        raise
+    return fh
+
+
+def _release_state_lock(fh):
+    if fh is None:
+        return
+    try:
+        fcntl.flock(fh.fileno(), fcntl.LOCK_UN)
+    except Exception:
+        pass
+    finally:
+        fh.close()
 
 
 def pid_alive(pid) -> bool:
@@ -525,7 +578,13 @@ def main(argv: list[str]) -> int:
     signal.alarm(TICK_SELF_TIMEOUT_SEC)
     now = time.time()
     result = {"ok": False, "ts": now}
+    lock_fh = None
     try:
+        # Serialize the whole tick — load, evaluate, save, and the soak/
+        # heartbeat writes — against any concurrent invocation (manual or
+        # launchd). See STATE_LOCK_PATH's comment for why this is
+        # load-bearing and not just belt-and-suspenders.
+        lock_fh = _acquire_state_lock()
         state = load_state()
         previous = state.get("last_run")
         slept = bool(previous) and (now - float(previous)) > SLEEP_GAP_MULTIPLE * TICK_INTERVAL_SEC
@@ -562,9 +621,13 @@ def main(argv: list[str]) -> int:
         signal.alarm(0)
         # Both run on success, no-op AND caught error alike. "Did it run" must
         # never depend on "did it alert", and the soak series must not have holes
-        # exactly where the interesting ticks are.
+        # exactly where the interesting ticks are. Still inside the lock's
+        # critical section (released last) so append_soak's _trim_soak
+        # read-rewrite-rename cycle stays serialized against a concurrent
+        # process too.
         write_heartbeat(result)
         append_soak(result)
+        _release_state_lock(lock_fh)
 
 
 if __name__ == "__main__":

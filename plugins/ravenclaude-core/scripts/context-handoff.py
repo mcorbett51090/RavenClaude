@@ -282,7 +282,20 @@ def cmd_write(
     threshold: str,
     named_host: bool = False,
 ) -> int:
-    if not task_id or "/" in task_id or task_id in (".", ".."):
+    # task_id is used as a directory-name component (_ensure_run_dir) AND is
+    # interpolated unescaped into a double-quoted shell command written to
+    # handoff-seed.txt (see seed_text()) — a file whose documented workflow is
+    # "copy-paste into a terminal". task_id is meant to be a simple identifier
+    # everywhere else in this file (never free text), so the fix is to reject
+    # shell metacharacters at the point task_id is accepted, closing the
+    # injection class at the source rather than trying to escape it correctly
+    # at every downstream call site.
+    if (
+        not task_id
+        or "/" in task_id
+        or task_id in (".", "..")
+        or re.search(r"[^A-Za-z0-9_.-]", task_id)
+    ):
         print("context-handoff: invalid task-id", file=sys.stderr)
         return 2
     root = find_project_root(project_root or Path.cwd())
