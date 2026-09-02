@@ -109,11 +109,30 @@ with a stated rationale is for — this skill surfaces the tension, it does not 
 - [ ] Zero adjectival rules anywhere in the file's own prose (§4's banned-word list).
 - [ ] Palette references DTCG semantic tokens, never raw hex.
 
+## 7. Verifying the structural bar mechanically (optional)
+
+G3's five structural facts (§6 above) are checkable by a stdlib script rather than only by an
+agent's own read: [`scripts/brand_guidance_lint.py`](scripts/brand_guidance_lint.py) checks a
+project's `brand-guidance.md` against exactly the same five facts — file exists and is non-empty,
+all 7 sections present in order, typeface count ≤ 2 (read from the `typeface_count:` marker), every
+catalogue row's `override` resolved with a rationale where relaxed, and zero adjectival rules in the
+project's own authored prose. It is a structural checker only — it says nothing about whether the
+result looks good; that judgment stays with [`brand-polish-checklist.md`](reference/brand-polish-checklist.md).
+
+```shell
+python3 scripts/brand_guidance_lint.py check <path-to-brand-guidance.md> \
+  --catalogue reference/anti-pattern-catalogue.md
+```
+
+A project may wire this into CI to make G3's structural bar mechanically enforced rather than
+agent-attested; the pipeline does not run it automatically today.
+
 ## See also
 
 - [`reference/anti-pattern-catalogue.md`](reference/anti-pattern-catalogue.md) — the 10 banned patterns, ID'd and overridable
 - [`reference/brand-polish-checklist.md`](reference/brand-polish-checklist.md) — the fresh-context self-check, advisory only
 - [`templates/brand-guidance.md`](templates/brand-guidance.md) — the emitted artifact's scaffold
+- [`scripts/brand_guidance_lint.py`](scripts/brand_guidance_lint.py) — the runnable structural checker for G3's 5 facts (`--self-test` proves each check independently)
 - [`../design-tokens-scaffolding/SKILL.md`](../design-tokens-scaffolding/SKILL.md) — the values half of this boundary
 - [`../design-system-audit/SKILL.md`](../design-system-audit/SKILL.md) — auditing the resulting system for consistency
 - [`../gold-standard-website-pipeline/SKILL.md`](../gold-standard-website-pipeline/SKILL.md) — G3, where this skill is dispatched
