@@ -176,6 +176,13 @@ copilot_version_check() {
   if [ "$ver" != "$COPILOT_FLOOR" ] && [ "$lowest" = "$ver" ]; then
     warn "Copilot CLI $ver is BELOW $COPILOT_FLOOR — sub-agent tool calls are NOT hooked."
     note "  A sub-agent can run Bash past every guardrail wired here, silently."
+    note "  On a MUCH older CLI (reported: 1.0.3) hook output can be malformed enough"
+    note "  to break the adapter and stall every tool call, not just sub-agent ones —"
+    note "  user-reported, not independently reproduced here. If Copilot stops"
+    note "  responding to tool calls after this, run:"
+    note "    ravenclaude repair --host copilot --project <this project>"
+    note "  to disable the generated hooks file (safe — renames, never deletes), then"
+    note "  update Copilot CLI and re-run 'ravenclaude install' once it is current."
     note "  Fix: update Copilot CLI. Source: github/copilot-cli changelog, 1.0.52."
     return 0
   fi
@@ -1626,6 +1633,72 @@ cmd_doctor() {
   return 1
 }
 
+# cmd_repair — the escape hatch for a Copilot session bricked by an incompatible
+# or malformed .github/hooks/ravenclaude.json.
+#
+# WHY THIS EXISTS: an incident report (2026-09) described GitHub Copilot CLI
+# 1.0.3 — well below the 1.0.52 sub-agent-hooking floor `copilot_version_check`
+# already warns about — producing malformed hook output that broke the Copilot
+# hook adapter and blocked EVERY tool call in the session, not just sub-agent
+# calls. The exact mechanism was NOT independently reproduced here (no 1.0.3
+# binary was available to test against) — see
+# knowledge/copilot-cli-hook-incompatibility.md for what is and is not verified.
+# What matters operationally: until this command existed, a user in that state
+# had no documented way to get an unblocked Copilot session short of manually
+# finding and deleting a file inside .github/hooks/ — and `copilot_version_check`
+# deliberately never aborts the installer (owner ruling 2026-08-13, see the
+# comment above COPILOT_FLOOR) so it could not have refused to write the file
+# either. This command is the missing "get me unstuck" step: SAFE (renames,
+# never deletes — fully recoverable), ADDITIVE (does not change what `install`
+# writes or when `copilot_version_check` warns), and on-demand (the user or a
+# future session invokes it only once trouble is actually observed, rather than
+# RavenClaude trying to predict, for every possible ancient Copilot build,
+# whether its hooks.json is safe to write in the first place).
+cmd_repair() {
+  local project="$PWD" host="copilot"
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --project) project="$2"; shift 2 ;;
+      --host) host="$2"; shift 2 ;;
+      *) project="$1"; shift ;;
+    esac
+  done
+  project="$(cd "$project" && pwd)"
+  if [ "$host" != "copilot" ]; then
+    warn "ravenclaude repair only supports --host copilot today"
+    note "  Codex's hook-trust story (MH-17) is a different mechanism — re-trust via"
+    note "  '/hooks' inside Codex, not a file to repair here."
+    return 2
+  fi
+  printf '== ravenclaude repair -> %s (host: copilot) ==\n' "$project"
+  local hooks_file="$project/.github/hooks/ravenclaude.json"
+  if [ ! -f "$hooks_file" ]; then
+    ok "no .github/hooks/ravenclaude.json present — nothing to repair"
+    note "If Copilot is still misbehaving, the cause is elsewhere; compare your"
+    note "Copilot CLI version against the floor with: ravenclaude status --project $project"
+    return 0
+  fi
+  local ts disabled
+  ts="$(date -u +%Y%m%dT%H%M%SZ 2>/dev/null || echo unknown)"
+  disabled="${hooks_file}.disabled-${ts}"
+  if mv "$hooks_file" "$disabled" 2>/dev/null; then
+    ok "disabled .github/hooks/ravenclaude.json -> $(basename "$disabled")"
+    note "Nothing was deleted — the file is renamed, not removed. Copilot's repo-hook"
+    note "loader only reads files literally in .github/hooks/, so the rename is what"
+    note "takes it out of view; a currently-RUNNING Copilot session already loaded"
+    note "the old config and will not notice until it restarts."
+    note "Next steps:"
+    note "  1. Start a NEW Copilot session in this project."
+    note "  2. Check your Copilot CLI version:  copilot --version"
+    note "  3. If it is below the safety floor, update Copilot CLI, then re-run:"
+    note "       ravenclaude install --project $project"
+    note "     to regenerate a clean .github/hooks/ravenclaude.json."
+  else
+    warn "could not rename $hooks_file — check permissions and retry"
+    return 1
+  fi
+}
+
 case "${1:-}" in
   setup)          shift; cmd_setup "$@" ;;
   install)        shift; cmd_install "$@" ;;
@@ -1633,7 +1706,8 @@ case "${1:-}" in
   status)         shift; cmd_status "$@" ;;
   dashboard)      shift; cmd_dashboard "$@" ;;
   doctor)         shift; cmd_doctor "$@" ;;
+  repair)         shift; cmd_repair "$@" ;;
   init-codespace) shift; cmd_init_codespace "$@" ;;
   init-agent-ci)  shift; cmd_init_agent_ci "$@" ;;
-  *) printf 'usage: ravenclaude {setup|install|update|status|dashboard|doctor|init-codespace|init-agent-ci} [--project DIR]\n'; exit 2 ;;
+  *) printf 'usage: ravenclaude {setup|install|update|status|dashboard|doctor|repair|init-codespace|init-agent-ci} [--project DIR]\n'; exit 2 ;;
 esac
