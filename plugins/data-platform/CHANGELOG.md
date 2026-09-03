@@ -2,6 +2,57 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.27.0] — 2026-09-03
+
+### Added
+
+- **P1-12** — knowledge-bank freshness mechanism. New
+  `scripts/check-data-platform-knowledge-freshness.py` sweeps `knowledge/*.md` for a
+  discoverable last-reviewed date (accepting either the YAML-frontmatter `last_reviewed:` field
+  or the majority prose `> **Last reviewed:**` blockquote — deliberately not forcing a single
+  format across ~37 files for no functional gain). A genuinely missing date is a hard FAIL
+  (`audit-gates.sh` **Gate 268**, must-pass/must-fail fixture pair); a date past the
+  self-declared 90-day trigger is a WARN, never a FAIL — this is a research substrate, not a
+  build input. Wired into a new, deliberately non-required
+  `.github/workflows/data-platform-knowledge-freshness.yml` (weekly `schedule` +
+  `workflow_dispatch`, **no** `pull_request` trigger — a file's staleness has nothing to do with
+  whether the PR that happens to touch it is safe to merge).
+  - Confirmed and fixed the plan's named 3-file "undated" cohort — but the investigation itself
+    had a false positive: 2 of the 3 (`charting-library-selection-2026.md`,
+    `dashboard-productization-multi-tenant-2026.md`) already carried a YAML-frontmatter date
+    the first grep-based probe simply didn't match. Only `data-platform-decision-trees.md`
+    genuinely lacked a file-level date (it had 14 separate per-tree "Last verified" dates but no
+    top-level marker) — fixed with a new blockquote using the OLDEST of its own per-tree dates,
+    not the newest, on the reasoning that a file-level freshness claim should be as stale as its
+    stalest section.
+  - Re-verified the ~12 highest-blast-radius client-facing pricing claims (Cube Cloud, Supabase,
+    Fivetran, Airbyte, Power BI Embedded F-SKU, Metabase Pro, Looker, Tableau Embedded, Sigma)
+    against current vendor pages this session. All confirmed unchanged and now carry
+    `[verified 2026-09-03]` markers, except Evidence.dev's Cloud pricing/deployment model —
+    already found and fixed earlier the same FORGE run (P1-11).
+  - Retrofitted `[verified 2026-09-03]` markers onto the rate-limit figures cited by
+    `agents/etl-pipeline-engineer.md` and the QuickBooks/HubSpot/Salesforce/Shopify knowledge
+    files. Two real, material findings from this pass: Shopify's GraphQL Admin API cost-points
+    model changed materially (Standard is now 100 pts/sec, not 50; Plus is 1,000 pts/sec, not
+    100/2,000-bucket; two new tiers — Advanced Shopify 200 pts/sec, Shopify-for-enterprise 2,000
+    pts/sec — didn't exist in this file before) — fixed with sources. Salesforce Bulk API 2.0's
+    records/24h ceiling turned up a **genuine, unresolved conflict** between two independent
+    secondary-source checks (150M vs 100M) that neither could settle, because both
+    `developer.salesforce.com` pages 403'd anonymous fetches this session — left explicitly
+    unresolved in `knowledge/salesforce-integration.md` rather than silently picking one, with a
+    do-not-quote-without-a-live-check warning.
+- **P1-13** — least-privilege tool-scoping audit on all four data-platform agents. Outcome: no
+  narrowing — each agent's `Bash`/`WebFetch`/`WebSearch` grant is load-bearing for a real, distinct,
+  documented use (schema/connector/framework smoke tests; live API/SDK doc lookups distinct from
+  the pure-pricing lookups already routed to `ravenclaude-core/deep-researcher`). Each agent now
+  carries an inline frontmatter comment recording the specific rationale, so a future audit
+  doesn't re-derive it from scratch. `database-setup-guide`'s web-tool grant was the closest to
+  removable (nearly all its own use is pricing-page verification) but was kept — a mid-conversation
+  dead end with no fallback query path was judged worse than the narrow duplication.
+
+**Migration:** none — both are additive (a new script + a new non-required scheduled workflow +
+inline documentation comments). No consumer-facing behavior changes.
+
 ## [0.26.0] — 2026-09-03
 
 ### Added

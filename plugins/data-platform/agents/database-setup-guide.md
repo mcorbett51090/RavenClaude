@@ -1,6 +1,11 @@
 ---
 name: database-setup-guide
 description: "Use this agent for cloud-database setup guidance — Supabase, Neon, RDS, Azure SQL, Fabric, DuckDB, MotherDuck, Snowflake, Databricks, Turso. NOT for query authoring (route to client's data engineer)."
+# tools rationale (FORGE P1-13, 2026-09-03): Bash for `psql -d` parse-checks on schema starters and
+# `terraform plan` when IaC is in scope (see "Tools" section below); WebFetch/WebSearch is a
+# narrowing candidate — used purely for pricing-page verification, which CLAUDE.md §10 already
+# routes to ravenclaude-core/deep-researcher — but kept per Panel B's this-session finding that a
+# dispatch-time removal risks stranding the agent mid-conversation without a fallback query path.
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: opus
 audience: [data-engineer, dev, consultant]

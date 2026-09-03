@@ -9905,6 +9905,26 @@ rc=0; grep -q "isZero" "$DP_AUDIT_BAD" 2>/dev/null || rc=1
 gate "dashboard-audit structural: missing empty-state branch caught" must_fail "$rc"
 
 echo
+echo "── Gate 268: data-platform knowledge-bank freshness (scheduled-routine lane, not a PR gate) ──"
+# FORGE P1-12 (2026-09-03). Staleness (past the self-declared 90-day trigger) is
+# a WARN, never a FAIL — this is a research substrate, not a build input, so
+# this gate only enforces the hard floor: every knowledge/*.md file must carry
+# a DISCOVERABLE last-reviewed date (YAML frontmatter or prose blockquote).
+# Deliberately data-platform-scoped, matching Gates 263/265's own scoping
+# rationale (every plugin's knowledge-bank shape differs).
+rc=0; python3 scripts/check-data-platform-knowledge-freshness.py --as-of 2026-09-03 >/dev/null 2>&1 || rc=$?
+gate "data-platform knowledge freshness: real tree, every file has a discoverable date" must_pass "$rc"
+DP_KF_TMP="$(mktemp -d)"
+DP_KF="$DP_KF_TMP/plugins/data-platform"
+mkdir -p "$DP_KF/knowledge"
+printf -- '---\nlast_reviewed: 2026-08-01\n---\n\nbody\n' > "$DP_KF/knowledge/fresh-frontmatter.md"
+printf -- '# Some file\n\n> **Last reviewed:** 2026-07-01.\n\nbody\n' > "$DP_KF/knowledge/fresh-prose.md"
+printf -- '# Undated file\n\nno date anywhere in this file.\n' > "$DP_KF/knowledge/undated.md"
+rc=0; python3 scripts/check-data-platform-knowledge-freshness.py --root "$DP_KF" --as-of 2026-09-03 >/dev/null 2>&1 || rc=$?
+gate "data-platform knowledge freshness: file with no discoverable date caught" must_fail "$rc"
+rm -rf "$DP_KF_TMP"
+
+echo
 echo "═══════════════════════════════════════════════════════════════════════════"
 printf '  %d pass, %d fail, %d skipped\n' "$PASS" "$FAIL" "$SKIP"
 if [[ "$FAIL" -gt 0 ]]; then

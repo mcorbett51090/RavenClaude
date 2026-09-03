@@ -99,8 +99,8 @@ For a 4-6 engagement/year solo consulting practice, the **minimum viable databas
 
 ### Supabase
 - **Free:** 2 projects, 500 MB DB, 50k MAU, projects pause after 7 days inactivity
-- **Pro:** **$25/mo + usage; 8 GB DB, 100k MAU, 100 GB file storage** — verified [supabase.com/pricing](https://supabase.com/pricing) 2026-05-21
-- **Team:** $599/mo with SOC 2
+- **Pro:** **$25/mo + usage; 8 GB DB, 100k MAU, 100 GB file storage** — verified [supabase.com/pricing](https://supabase.com/pricing) `[re-verified 2026-09-03 — unchanged]`
+- **Team:** $599/mo with SOC 2 `[verified 2026-09-03 — unchanged]`
 - **HIPAA:** requires Team plan + BAA + HIPAA add-on [per Supabase HIPAA Compliance docs](https://supabase.com/docs/guides/security/hipaa-compliance)
 - **Setup complexity:** lowest of all options — `supabase init`, get URL + anon key. Includes auth, storage, edge functions, realtime, REST + GraphQL auto-API.
 - **The default.** Especially for embedded-in-website use case.

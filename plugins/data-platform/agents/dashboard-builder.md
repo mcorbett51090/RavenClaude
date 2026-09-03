@@ -1,6 +1,11 @@
 ---
 name: dashboard-builder
 description: "Use for interactive dashboard front-end generation — Evidence.dev, Apache Superset / Metabase OSS, Cube + Next.js + Recharts, Power BI Embedded. NOT for the underlying database (database-setup-guide) or the JWT-issuance review (security-reviewer)."
+# tools rationale (FORGE P1-13, 2026-09-03): Bash for `cube validate`/`evidence dev`/`next build`
+# smoke tests (see "Tools" section below); WebFetch/WebSearch for live framework-doc lookups
+# (Cube/Superset/Metabase/Power BI syntax), not pure pricing — CLAUDE.md §10 routes pure pricing
+# re-verification to ravenclaude-core/deep-researcher, but this agent needs current API/SDK docs
+# directly (confirmed this session — see the Evidence.dev CLI/syntax findings), so kept, not narrowed.
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: opus
 audience: [data-engineer, dev, analyst]

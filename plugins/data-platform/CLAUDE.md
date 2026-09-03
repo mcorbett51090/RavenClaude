@@ -19,6 +19,18 @@
 
 **Sub-agents do not spawn other sub-agents** — only the Team Lead delegates. If work crosses specialist boundaries, each specialist returns their slice and the Team Lead re-dispatches.
 
+**Tool-scoping audit (FORGE dashboard-top1pct P1-13, 2026-09-03).** All four agents' `tools:`
+allowlists were re-examined against AGENTS.md's least-privilege rule (§ "Adding a new plugin",
+item 9). Outcome: no narrowing — each agent's `Bash`/`WebFetch`/`WebSearch` grant is load-bearing
+for a real, distinct use already documented on the agent (schema/connector/framework smoke tests
+via Bash; live API/SDK doc lookups via WebFetch/WebSearch, distinct from the pure-pricing lookups
+CLAUDE.md §10 already routes to `ravenclaude-core/deep-researcher`). Each agent now carries an
+inline frontmatter comment recording the specific rationale, so a future audit doesn't have to
+re-derive it from scratch. `database-setup-guide`'s `WebFetch`/`WebSearch` grant was the one
+closest to removable (its own use is nearly all pricing-page verification, which duplicates the
+`deep-researcher` route) but was kept — stranding the agent mid-conversation with no fallback
+query path was judged a worse failure mode than the narrow duplication.
+
 **Two skill-routed escalations to `ravenclaude-core` (per the marketplace house rule on domain-plugins-extend-core-via-skills):**
 
 - **Stack-selection questions** ("what stack should I use for this engagement?") → `ravenclaude-core/architect`, which reads this plugin's [`skills/stack-selection/SKILL.md`](skills/stack-selection/SKILL.md) via an inline prior on the core architect's file
@@ -175,6 +187,28 @@ Reference docs that capture the cloud-data/dashboard landscape distilled from pr
 - **v0.2.0 per-connector deep-dives** — Stripe, Salesforce, HubSpot, GA4, Shopify, HRIS — each carries entity catalog + rate limits + auth + dbt mart patterns + common gotchas
 
 Inline priors live on the affected agents; the files in `knowledge/` are the source of truth, re-read on demand.
+
+**Freshness (added FORGE dashboard-top1pct P1-12, 2026-09-03).** Every file below carries a
+discoverable last-reviewed date — either a YAML-frontmatter `last_reviewed:` field or a prose
+`> **Last reviewed:** YYYY-MM-DD` blockquote (both formats are legitimate; the checker accepts
+either rather than forcing a single house style across ~37 files for no functional gain).
+[`scripts/check-data-platform-knowledge-freshness.py`](../../scripts/check-data-platform-knowledge-freshness.py)
+sweeps this directory: a genuinely missing date is a hard FAIL (`audit-gates.sh` Gate 268); a
+date past the self-declared 90-day trigger is a WARN, never a FAIL — this is a research
+substrate consulted by agents, not a build input, so staleness is surfaced for a human to triage
+on a schedule, not a PR-blocking condition. Wired into
+[`.github/workflows/data-platform-knowledge-freshness.yml`](../../.github/workflows/data-platform-knowledge-freshness.yml)
+(weekly `schedule`, `workflow_dispatch`, deliberately **no** `pull_request` trigger — see the
+workflow's own header for why it must never become a required check). A same-session sweep of the
+~12 highest-blast-radius client-facing pricing claims (Cube, Supabase, Fivetran, Airbyte, Power BI
+Embedded, Metabase Pro, Looker, Tableau Embedded, Sigma) plus the rate-limit figures cited by
+`etl-pipeline-engineer.md` and its four connector knowledge files found most claims unchanged
+(now carrying `[verified 2026-09-03]`), one already-known-stale claim (Evidence.dev's pricing
+and deployment model — found and fixed earlier the same run, P1-11), and one genuinely
+**unresolved** conflict between two independent secondary-source checks on Salesforce Bulk API
+2.0's records/24h ceiling (150M vs 100M) — left honestly unresolved rather than picked, in
+[`knowledge/salesforce-integration.md`](knowledge/salesforce-integration.md), because both
+`developer.salesforce.com` pages 403'd anonymous fetches this session.
 
 | File | Read when |
 |---|---|
