@@ -652,6 +652,106 @@ def summarize_streams(root: Path) -> dict | None:
     }
 
 
+_DEPENDENCY_SWEEP_STALE_DAYS = 21
+_DEPENDENCY_SWEEP_SESSION_GLOB_CAP = 20
+
+
+def summarize_dependency_sweep(root: Path) -> dict | None:
+    """Derived nudge for the dependency-update-sweep skill — DERIVED VALUES ONLY
+    (Gate 19's invariant, extended not reinvented): every emitted token is a
+    fixed string, a validated ISO date, a host id already present in the
+    fingerprint file's own key set, or a boolean-derived phrase — never raw
+    file content. ZERO SUBPROCESSES, ever (T4's binding SessionStart
+    decision — see plan.md §1 T4): claude-code's version comes from a bounded
+    file-glob read of the local session registry, never a `claude --version`
+    call; every other host compares only against the stored fingerprint file,
+    never a live probe. Gated on the skill directory's own presence — never
+    nudges a consumer who hasn't adopted the skill. Returns None when the
+    skill isn't present, the nudge is killswitched, or the fingerprint file
+    is absent/unparseable.
+    """
+    plugin_root = _here_scripts().parent
+    if not (plugin_root / "skills" / "dependency-update-sweep").is_dir():
+        return None
+    posture_path = root / ".ravenclaude" / "comfort-posture.yaml"
+    if posture_path.is_file():
+        try:
+            for line in posture_path.read_text(encoding="utf-8").splitlines():
+                if re.match(r"^dependency_update_sweep\.nudge\s*:\s*off\s*$", line.strip()):
+                    return None
+        except OSError:
+            pass
+
+    fp_path = plugin_root / "knowledge" / "host-version-fingerprint.json"
+    try:
+        with fp_path.open("r", encoding="utf-8") as f:
+            fp = json.load(f)
+    except (OSError, json.JSONDecodeError, ValueError):
+        return None
+    hosts = fp.get("hosts")
+    if not isinstance(hosts, dict) or not hosts:
+        return None
+
+    import datetime as _dt
+
+    today = _dt.date.today()
+
+    def _days_since(iso_date: str | None) -> int | None:
+        if not isinstance(iso_date, str):
+            return None
+        try:
+            d = _dt.date.fromisoformat(iso_date[:10])
+        except ValueError:
+            return None
+        return (today - d).days
+
+    findings: list[dict] = []
+
+    # claude-code: a pure, bounded file read of the LOCAL session registry —
+    # zero subprocess, genuinely live version data (T4).
+    cc = hosts.get("claude-code")
+    if isinstance(cc, dict):
+        live_version = None
+        try:
+            sessions_dir = Path.home() / ".claude" / "sessions"
+            if sessions_dir.is_dir():
+                candidates = sorted(
+                    sessions_dir.glob("*.json"),
+                    key=lambda p: p.stat().st_mtime,
+                    reverse=True,
+                )[:_DEPENDENCY_SWEEP_SESSION_GLOB_CAP]
+                for cand in candidates:
+                    try:
+                        with cand.open("r", encoding="utf-8") as f:
+                            sess = json.load(f)
+                    except (OSError, json.JSONDecodeError, ValueError):
+                        continue
+                    v = sess.get("version")
+                    if isinstance(v, str) and re.match(r"^[0-9]+\.[0-9]+\.[0-9]+", v):
+                        live_version = v
+                        break
+        except OSError:
+            live_version = None
+        swept = cc.get("last_swept_version")
+        if live_version and isinstance(swept, str) and live_version != swept:
+            findings.append({"host": "claude-code", "old": swept, "new": live_version})
+
+    # every other tracked host: fingerprint-only, no live probe of any kind.
+    for host_id, cell in hosts.items():
+        if host_id == "claude-code" or not isinstance(cell, dict):
+            continue
+        checked_at = cell.get("last_checked_at")
+        days = _days_since(checked_at)
+        if checked_at is None:
+            findings.append({"host": host_id, "never_checked": True})
+        elif days is not None and days > _DEPENDENCY_SWEEP_STALE_DAYS:
+            findings.append({"host": host_id, "stale_days": days})
+
+    if not findings:
+        return None
+    return {"findings": findings}
+
+
 _PARALLELISM_LABELS = ("max", "sequential", "capped")
 
 
@@ -744,6 +844,7 @@ def build_banner(root: Path) -> str:
     streams = summarize_streams(root)
     design = summarize_design_project(root)
     par = summarize_parallelism(root)
+    depsweep = summarize_dependency_sweep(root)
 
     # If we have nothing useful at all, emit nothing (don't inject an empty box).
     #
@@ -768,6 +869,7 @@ def build_banner(root: Path) -> str:
         or streams
         or design
         or par
+        or depsweep
     ):
         return ""
 
@@ -925,6 +1027,26 @@ def build_banner(root: Path) -> str:
                 "`/stream set <id>` or `rc streams set-active <id>` so this session's work is "
                 "attributed + resumable."
             )
+
+    if depsweep:
+        lines.append("")
+        lines.append(
+            "DEPENDENCY SWEEP (a tracked host may have moved since the last check):"
+        )
+        for finding in depsweep["findings"][:3]:  # ≤3 lines — cap 21's own budget discipline
+            host = finding["host"]
+            if "old" in finding:
+                lines.append(
+                    f"  {host}: {finding['old']} -> {finding['new']} — run the "
+                    "dependency-update-sweep skill."
+                )
+            elif finding.get("never_checked"):
+                lines.append(f"  {host}: never checked — run the dependency-update-sweep skill.")
+            else:
+                lines.append(
+                    f"  {host}: checked {finding['stale_days']} days ago, might have moved — "
+                    "run the dependency-update-sweep skill."
+                )
 
     # PARALLELISM — a standing INSTRUCTION, always shown, deliberately short.
     #
