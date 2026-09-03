@@ -6,6 +6,11 @@
         "P9 wave 1 (12 entries)",
         31500,
         "P9 wave 1: 12 mechanism inventory entries. Measured cost 34 payload elements per entry against the ~411/concept the Learn tab carries, because an inventory entry ships no mermaid block (the diagrams-opt-in decision, R2 corollary). Projection to a 162-entry corpus is ~5,500 elements, not the ~90,000 the plan feared. Headroom left for wave 2."
+      ],
+      [
+        "dependency-update-sweep inventory entry (Gate 242 inception-coverage fix, 2026-09-03)",
+        31560,
+        "The dependency-update-sweep skill's Gate-242 inception-coverage fix added one new inventory concept (dependency-update-sweep -- the measured 175->85/27 finding-count fix for scan_markers' host-scoping bug) covering dependency-sweep.py, host-version-probe.py, the skill's SKILL.md, and four test fixtures -- seven paths in one mechanism entry. Measured at 31,536 island payload elements (over the prior 31,500 ceiling by 36 -- the wave-1 headroom was exhausted by the intervening waves already appended to the byte ceiling below). Same no-diagrams-for-inventory-entries shape as every prior wave; a pure content-size raise, not a DOM control. Re-measured on rebased HEAD after merging origin/main; appended, never edited."
       ]
     ],
     "index.html": [
@@ -85,5 +90,5 @@
       ]
     ]
   },
-  "measured_against": "05aa74c05b86522d8684dfb3b93ae74dda97bc0b"
+  "measured_against": "0d14fe99c9ff191f902269ef12cf15c1570f2882"
 }

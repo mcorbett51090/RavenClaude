@@ -832,6 +832,28 @@ PY
       bash plugins/ravenclaude-core/hooks/tests/test-caveman-write-contract-dev-only.sh
       exit $?
       ;;
+    266)
+      echo "── Gate 266: runtime self-test front door — Tier A only (per-gate run) ──"
+      echo "  ⛔ M10 HONEST LIMIT: Tier A only (adapter I/O + planted marker + context"
+      echo "     delivery + the completeness check). Tier D (a real host CLI spawn) is"
+      echo "     NEVER run in CI — see hooks/tests/test-tier-d-canary.sh and"
+      echo "     'rc hooks selftest --tier d', both owner-run on demand."
+      if [ -n "${SKIP_GATE_266:-}" ]; then
+        echo "  ‼ SKIPPED (SKIP_GATE_266=1) — THIS IS NOT A PASS"
+        if [ -n "${CI:-}" ]; then
+          echo "    CI mode: explicit human override — logged to the run artifact for audit."
+          mkdir -p .ravenclaude/runs/gate266-skip-log 2>/dev/null || true
+          printf '{"ts":"%s","gate":266,"skip":true,"mode":"CI","reason":"SKIP_GATE_266=1"}\n' \
+            "$(date -u +%Y-%m-%dT%H:%M:%SZ)" >>.ravenclaude/runs/gate266-skip-log/log.jsonl 2>/dev/null || true
+        fi
+        exit 0
+      fi
+      rc=0
+      python3 scripts/check-sessionstart-matcher-regression.py --self-test || rc=$?
+      bash plugins/ravenclaude-core/hooks/tests/test-tier-a-canary.sh --self-test || rc=$?
+      python3 scripts/check-hooks-selftest.py --self-test || rc=$?
+      exit $rc
+      ;;
     243)
       echo "── Gate 243: scheduled sweep contract + operator health card ──"
       bash plugins/ravenclaude-core/hooks/tests/test-gate243-sweep-and-health-card.sh
@@ -1636,7 +1658,7 @@ PY
       ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254, 255, 256, 257, 258, 259, 260, 261, 262, 263, 264, 265. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254, 255, 256, 257, 258, 259, 260, 261, 262, 263, 264, 265, 266. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -9855,6 +9877,77 @@ echo "── analog-closeness-scorecard (Q2 leftover, docs/follow-ups/2026-08-14
 rc=0
 python3 plugins/ravenclaude-core/skills/analog-closeness-scorecard/score_closeness.py --self-test >/dev/null 2>&1 || rc=$?
 gate "analog-closeness-scorecard --self-test (rows + buckets + quality-bar teeth)" must_pass "$rc"
+
+echo
+echo "── Gate 266: runtime self-test front door — Tier A only ────────────────────"
+# Phase 9 (sessionstart-safeguards-multihost). Registers the runtime self-
+# test's MECHANISM checks: Tier A invocation + delivery (Phase 6, via
+# hooks/tests/test-tier-a-canary.sh), the Phase 1-5 wired-set/matcher-
+# fidelity/completeness checks + the new drift_override suppression (Phase
+# 9 / G5 F5, closes A9.7 — via check-sessionstart-matcher-regression.py's
+# own --self-test, re-run here so a shared regression is caught from BOTH
+# this slot and Gate 259), and the on-demand front door itself (Phase 8,
+# `rc hooks selftest`, via scripts/check-hooks-selftest.py).
+#
+# ⛔ M10 HONEST LIMIT, in the same style as Gate 207: Tier D (a REAL host
+# CLI spawn — `claude -p` / `copilot -p`) is NEVER exercised here. CI has
+# no host binaries to spawn, and a gate that LOUD-skips on every runner
+# teaches people to ignore its output — so Gate 266 simply never attempts
+# it. Tier D is owner-run on demand: `rc hooks selftest --tier d`, or
+# hooks/tests/test-tier-d-canary.sh directly (whose own header states it
+# must never be wired into this file's CI-run surface).
+#
+# ⛔ SKIP_GATE_266=1 kill switch (G4b correction #2), matching this file's
+# own `_skip_or_fail` local/CI-mode distinction: local -> loud SKIP, not a
+# PASS; CI -> the skip still applies (an explicit human override, not a
+# tooling absence) but is logged to the run artifact for audit.
+#
+# ⛔ Registered in BOTH the --check dispatcher AND this main sequence AND
+# the Supported: string. After adding a gate, run the full suite and GREP
+# ITS OUTPUT FOR "Gate 266" — a passing suite is not evidence your gate is
+# in it (this repo's own recorded remedy for the Gate-184 unreachable-gate
+# defect). Renumbered from 264 -> 266 (merge with origin/main's own new
+# Gates 264/265, caveman auto-routing, which claimed 264/265 first).
+#
+# ⛔ PLACEMENT IS LOAD-BEARING (Gate 195 finding, fixed 2026-09-03): this
+# block must stay AFTER the analog-closeness-scorecard block above, not
+# before it. Gate 265's own block carries no gate() assertion of its own
+# (it is deliberately excluded from the main sequence, per its own header
+# comment) -- check-gate-registration.py's block splitter only opens a new
+# block at a NUMBERED "Gate N:" header, so an un-numbered section header
+# (like analog-closeness-scorecard's) does NOT start a new block; it is
+# absorbed into the PRECEDING numbered gate's block. Gate 265 is therefore
+# only "reachable" because analog-closeness-scorecard's real gate() call
+# falls inside Gate 265's block by adjacency. Inserting Gate 266's own
+# numbered header BETWEEN Gate 265 and analog-closeness-scorecard would
+# close Gate 265's block early (at Gate 266's header) and strand it with
+# zero assertions, reddening Gate 195 with an "unreachable Gate 265"
+# finding that does not exist on origin/main. Moving this block below
+# analog-closeness-scorecard instead keeps that adjacency intact.
+if [ -n "${SKIP_GATE_266:-}" ]; then
+  echo "  ‼ Gate 266 SKIPPED (SKIP_GATE_266=1) — THIS IS NOT A PASS"
+  SKIP=$((SKIP + 1))
+  SKIPPED_GATES+=("Gate 266 [SKIP_GATE_266=1]")
+  if [ -n "${CI:-}" ]; then
+    echo "    CI mode: explicit human override — logging to the run artifact for audit."
+    mkdir -p .ravenclaude/runs/gate266-skip-log 2>/dev/null || true
+    printf '{"ts":"%s","gate":266,"skip":true,"mode":"CI","reason":"SKIP_GATE_266=1"}\n' \
+      "$(date -u +%Y-%m-%dT%H:%M:%SZ)" >>.ravenclaude/runs/gate266-skip-log/log.jsonl 2>/dev/null || true
+  fi
+else
+  if command -v python3 >/dev/null 2>&1; then
+    rc=0; python3 scripts/check-sessionstart-matcher-regression.py --self-test >/dev/null 2>&1 || rc=$?
+    gate "Gate 266: Phase 1-5 wired-set/matcher-fidelity/completeness + A9.7 drift_override fixture (check-sessionstart-matcher-regression.py --self-test)" must_pass "$rc"
+
+    rc=0; bash plugins/ravenclaude-core/hooks/tests/test-tier-a-canary.sh --self-test >/dev/null 2>&1 || rc=$?
+    gate "Gate 266: Phase 6 Tier A canary — invocation + delivery (A6.1-A6.5), PreToolUse lane unchanged (A6.4)" must_pass "$rc"
+
+    rc=0; python3 scripts/check-hooks-selftest.py --self-test >/dev/null 2>&1 || rc=$?
+    gate "Gate 266: Phase 8 on-demand front door — rc hooks selftest (A8.1-A8.7)" must_pass "$rc"
+  else
+    _skip_or_fail "Gate 266 (runtime self-test front door)" python3
+  fi
+fi
 
 echo
 echo "═══════════════════════════════════════════════════════════════════════════"

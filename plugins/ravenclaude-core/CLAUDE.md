@@ -4321,3 +4321,239 @@ a real absence, not a fabrication). Rather than manufacture a comparison, the tw
 **Migration:** none — one new `sources[]` entry and one enriched `rationale` string; no schema change,
 no `rank` reordering, no new `basis` value. `scripts/generate-copilot-plugin.py` regenerated for the
 version bump (only `copilot/plugin.json`'s version line changed).
+
+## `dependency-update-sweep` — a skill for the day a host tool ships a new version (added 2026-09-03, v0.317.0)
+
+Built via `/forge` `standard` (two divergent cross-model panels — an architect lens on host-version-fingerprint
+design, a cost-skeptical scanner lens on discovery mechanism — a correlated-error critic, six binding
+tiebreaks, an adversarial red-team pass over the resolved design, synthesis) against the ask: when Claude
+Code / Copilot CLI / Codex CLI / Cursor / Gemini CLI / Aider / Windsurf ships a new version, scan the repo
+top to bottom for anything that needs updating or deprecating because of it, then do the update or
+deprecation. Ships a new skill,
+[`skills/dependency-update-sweep/SKILL.md`](skills/dependency-update-sweep/SKILL.md), plus
+`scripts/dependency-sweep.py` (`scan`/`classify`/`apply`/`queue`, stdlib-only, self-tested — the
+`forge-route.py`/`forge-worktree.sh` tier, no new formal `audit-gates.sh` gate per T2 below) and
+`scripts/host-version-probe.py` (the manual-invocation-only version probe).
+
+**T1 — the host roster is read live from `host-support.json`, never hardcoded.** A correlated error the
+critic caught: both design panels (and the original scope) guessed a 6-host list including "Grok Build
+CLI" and a distinct "VS Code / Copilot Chat" key. Neither is real — `host-support.json`'s actual
+top-level `hosts{}` keys are `claude-code`, `copilot`, `codex`, `cursor`, `gemini`, `aider`, `windsurf`
+(verified this session); Grok has no entry there at all (it's tracked only in `substrate-tier-map.json`
+for model-tier resolution, an unrelated system) and Copilot Chat is a caveat inside the `copilot`
+component cell, not a second host. The sweep now derives its roster from the live file, so a host added
+to `host-support.json` later is automatically in scope with zero code change.
+
+**T2 — discovery is a host-scoped `git grep` over the repo's existing citation-marker convention, not a
+general-purpose scan** (`[docs-verified]`/`[verified]`/`[web-sourced]`/`[unverified]`, plus a direct JSON
+walk of `host-support.json`/`model-catalog.json` and a structural match over `_SKIP` dict entries in the
+three `generate-*-hooks.py` generators). **A real, load-bearing bug was found and fixed while building
+this:** the marker-family regex's Python-dialect `[^\]]` (a backslash-escaped `]` inside a negated
+bracket expression) is not how POSIX ERE spells "not `]`" — passed straight to `git grep -E`, it silently
+undercounted real hits by **~63%** (229 vs the correct 618+, measured on this repo). Fixed with a
+separate, POSIX-ERE-safe pattern for the shell-side probe, kept distinct from the Python-dialect pattern
+used for the in-process line check. **No new formal gate is registered** (critic-brief (e).4) — the tool
+stays self-tested-only, sidestepping the whole gate-264-numbering-collision risk class a formal
+registration would have carried.
+
+**T3 — mechanical-vs-judgment is keyed on citation *kind*, never diff size or file path**, and **never
+blind-bumps a date** — a `[docs-verified]` stamp is mechanical only in the one case the sweep's own
+deterministic sub-check positively re-confirms the underlying claim (a version-floor comparison that
+still holds); every other dated citation is judgment, always, per `knowledge-file-staleness-sweep`'s own
+anti-pattern (*"fixing the date without re-verifying… silently launders untrustworthy content"*).
+`model-catalog.json` is explicitly carved **out** of this sweep's write path entirely (Gate 134 already
+owns model-ID drift).
+
+**T4 — the SessionStart nudge is zero-subprocess, full stop; the real per-host version probe lives only
+in the sweep's manual-invocation path.** `capability-orientation.py`'s `summarize_dependency_sweep()`
+reads Claude Code's live version from the local session registry (`~/.claude/sessions/*.json`, a bounded
+file glob, cap 20 — zero subprocess) and every other host from the stored fingerprint file's
+`last_checked_at`/`last_change_detected_at` fields only — never a live `<binary> --version` call at
+session start. `host-version-probe.py` (a direct generalization of `scripts/ravenclaude`'s
+`copilot_version_check()` — same `command -v` guard, same first-x.y.z-substring extraction, same
+fail-to-`None`-never-throw contract) is used **only** when a maintainer runs the sweep by hand. Gated on
+the skill directory's own presence (never nudges a consumer who hasn't adopted it) and the existing
+`dependency_update_sweep.nudge: off` posture knob; **derived values only** (Gate 19's invariant, verified
+this session against the real gate — all 8 of its capability-banner sub-checks still pass, plus 3 new
+direct checks: the section fires on a never-checked host, the killswitch suppresses it, and no raw
+fingerprint file content — not even its own `_note` field — ever reaches the banner).
+
+**T5 — apply is worktree-isolated AND dirty-tree-refusing AND per-write gate-reverified, layered, not
+chosen between.** `apply --yes` writes only `mechanical`-disposition rows; each write is immediately
+re-verified by a `covering_check()` (JSON validity for JSON surfaces, a floor-constant re-parse for
+`scripts/ravenclaude`-shaped rows) and **reverted + demoted to the judgment queue** on any regression —
+an unknown citation kind reaching the editor is refused outright, never silently written (verified: a
+forced-unknown-kind fixture is refused, not applied). The kill-switch
+(`.ravenclaude/comfort-posture.yaml` `dependency_update_sweep.apply: off`) forces a no-op dry-run; absent
+⇒ apply active by default (this repo's existing advisory-nudge opt-out convention).
+
+**T6 — the gate number was re-censused at land time, per the plan's own insurance discipline.** Design-time
+snapshot: 0.316.1 / max gate 263. Land-time census (this session, after fetching + fast-forwarding this
+worktree to the actual current `origin/main` twice as other PRs merged during the build): **0.316.2 → this
+release bumps to 0.317.0**, max gate 265 (next free 266) — **unused**, since T2 requires zero new gate
+numbers.
+
+**Mitigations from the red-team pass, each landed in a specific place, not left as prose:** (1) apply's
+per-write covering-gate re-run is required, not optional (Phase 4); (2) `queue` caps its output at 25
+rows, priority-ordered (P0/P1/P2, reusing `/repo-review`'s own P0-P3 scheme rather than inventing a
+second one), with overflow written to a named continuation file — **verified against the real repo**:
+a live scan+classify of `copilot` against a synthetic "1.0.62 → 1.0.70" bump produced **175 findings, 173
+judgment** (higher than the plan's own "dozens-to-~100" estimate, which is exactly why the cap matters);
+(3) `write_queue` lands both files atomically alongside the fingerprint update in the design (Phase 4
+step 5 — same commit as the content fixes it reports on, never a silent separate write); (4) the worktree
+slug for `apply` is fixed per host (`forge-dependency-sweep-<host>`), never a timestamp, so
+`worktree-guard`'s lease can actually protect two concurrent invocations targeting the same host.
+
+**Honest limitation, stated in the SKILL.md's own words, not glossed over:** this sweep discovers drift by
+finding citation **markers** — a version-sensitive fact with no marker of any kind is structurally
+invisible to it, permanently, by construction. The confirmed, fixed-forward example that motivated this:
+`docs/best-practices/2026-q1-q2-failure-modes.md`'s "Tool-version floors" table carried **zero** citation
+markers before this build, and once checked, turned out to carry **fabricated facts** — three Copilot
+floor claims (`≥1.0.59`, `≥1.0.56`, `≥1.0.48`) that don't exist in the real changelog or are simply wrong
+(the real config-leak fix is `1.0.57`), and an uncited Cursor `≥3.3` claim — already corrected once in
+`skills/external-agent-onboarding/SKILL.md`'s own rebuild but never back-ported to this table until now.
+Fixed forward here (the three wrong rows replaced with the same skill's real, cited floors; the uncited
+Cursor row deleted, matching that skill's own precedent) rather than merely marked. A second, structurally
+identical instance — `AGENTS.md`'s inline "Requires Copilot CLI ≥ 1.0.52" bolded-prose floor with no
+adjacent marker — is named but deliberately left unmarked (out of this build's file inventory), a stated
+follow-up, not a hidden gap.
+
+**Migration:** none — the skill is opt-in-by-invocation, the SessionStart nudge defaults on but is
+fail-safe/zero-subprocess/derived-values-only and gated on the skill's own presence, and nothing runs
+automatically until a consumer either invokes the skill or hits the nudge. `dependency_update_sweep.nudge`
+and `dependency_update_sweep.apply` are both new, both opt-out (default-on-nudge, default-active-apply),
+mirroring this plugin's existing advisory-nudge convention.
+
+⛔ **`/code-review` (this build's own DoD step, §6 above) found 5 real defects before this shipped, all
+fixed and re-verified with real regression tests — recorded because two of them directly contradicted
+claims this same milestone entry made in its first draft.** (1) `apply`'s promised fingerprint write
+(T5 above) had no code path that produced it — the reviewing subagent grepped for
+`last_swept_version`/`last_checked_at`/`written_by`/`fingerprint` across the file and reported zero
+hits outside a comment. Fixed by adding `update_fingerprint()` for real and wiring it into `_cmd_apply`;
+this session independently verified the fix end-to-end against an isolated scratch copy — before state
+`last_swept_version: null`, a real (non-dry-run) `apply --yes` call, after state `last_swept_version:
+"1.0.70"`, `last_checked_at` set, `written_by` set, a second host's entry left untouched. (2) The
+`applied`/`verified` distinction this milestone now states (T5 § the mitigations paragraph) was itself
+the FIX for a real bug — the pre-fix code reported a `version_floor_constant` row as `applied` even
+though zero bytes changed. Fixed by splitting `apply_mechanical`'s report into `applied` (real byte
+changes) vs `verified` (a re-confirmed no-op — the ONLY citation kind this tool ships an action for,
+today, always resolves here); a regression test forces both the dry-run AND real-run paths and asserts
+`applied == []`, verified directly against the same scratch-copy run above (`"applied": [], "verified":
+["scripts/ravenclaude"]`). (3) `scan_markers`'s host-scoping was **not scoped at all** —
+`host_re` was built from every tracked host's tokens combined (Gate 208's own general-purpose helper,
+reused for a narrower question than it answers), so a citation naming ANY tracked host matched
+regardless of which host was being scanned. **Measured on the real repo: a `copilot` scan dropped from
+175 findings to 85, and a `gemini` scan (previously flooded by copilot/codex/cursor citations) now
+returns 27** — both numbers are the fix working, not a regression. (4) `scan_ravenclaude_floors` had an
+accidental exemption — its filter was a complete no-op whenever `host_id == "copilot"`, which happened
+to look correct only because copilot was the sole host with an existing floor constant; a synthetic
+two-host fixture (`COPILOT_FLOOR`/`CODEX_FLOOR`) now regression-tests that scanning for `copilot`
+correctly excludes `CODEX_FLOOR`. (5) Every new self-test's printed pass count was a hand-typed literal
+that had drifted from the real assertion count (scan claimed 8, ran 7; apply claimed 10, ran 11; the
+probe claimed 7, ran 8) — this repo's own v0.243.0 CLAUDE.md incident ("the gate that never ran") names
+exactly this failure class: a printed count treated as evidence when it was simply wrong. Fixed by
+counting assertions dynamically (`len(ran)`) in all four self-test functions across both new scripts,
+rather than re-typing a corrected literal that would just drift again the next time a check is added.
+
+Self-test counts after the fix, all genuinely dynamic now: scan 12/12, classify 10/10, queue 5/5,
+apply 21/21, host-version-probe 8/8.
+
+## Multi-host SessionStart safeguards — Codex's own drift finally fixed, and a runtime tier ladder that says what it actually proved (added 2026-09-03, v0.317.0)
+
+A `/forge` run (`.ravenclaude/runs/forge/sessionstart-safeguards-multihost/`) closed the two open
+halves of PR #1084's own story: a static wired-set ledger (Gate 259) existed only for Gemini, and no
+mechanism anywhere fired a host's actual SessionStart path on demand and checked what came back.
+
+### ⛔ The consumer-visible headline: Codex was still carrying PR #1084's own defect
+
+Codex has no generator — its SessionStart wiring was a hand-maintained Python heredoc
+(`wire_codex_hooks()`) that wired **2 of the canonical 9** SessionStart hooks, with **no matcher on
+either**. Both hooks re-fired on every mid-conversation compaction on Codex — the exact bug PR #1084
+fixed everywhere else, silently surviving on the one host that never got a projector.
+`scripts/generate-codex-hooks.py` (new) is the fourth sibling of `generate-{copilot,cursor,gemini}
+-hooks.py`: SessionStart is now derived from `hooks.json` directly (9 hooks, matchers included);
+PreToolUse/PostToolUse/Stop are reproduced **byte-identically** to the prior heredoc (out of this
+run's scope; the byte-identity diff proof is on record in the run dir). Because **Codex tracks hook
+trust by hash (MH-17)**, this rewrite marks every hook for review on a consumer's machine — the
+installer's `_rc_rearm_notice` still prints the re-trust reminder, but this is now the release that
+makes it fire for real on a wiring rewrite this size. Kill switch shipped in the same commit:
+`RC_CODEX_SESSIONSTART_LEGACY=1`.
+
+### The ledger became a typed, per-host record — not a bare set
+
+`_WIRED_SET_LEDGER` now carries, per host: where its wiring truth comes from (generator vs.
+manifest), a `required` set derived by hand from `hooks.json` minus that host's own `_SKIP`
+exclusions (deliberately **not** re-derived live — a live re-derivation would make a silently-added
+bad `_SKIP` entry invisible again, one level up), a `matcher_fidelity` axis (`exact` /
+`none-by-platform` / `none-unverified`, asserted **bidirectionally** so a platform fact can't
+quietly flip into an unnoticed regression or vice versa), and a `runtime_tier`. Copilot's ledger key
+is `copilot-cli`, never bare `copilot`, everywhere — a prior critic/red-team finding (G4a/G5, both
+independently HIGH) showed a bare key lets a green check be misread as covering Copilot **Chat**,
+which none of this mechanism reaches; `rc hooks selftest`'s `copilot-cli` row force-prints a
+`chat: unverified (surfaces.chat.supported=false)` line on every invocation for exactly this reason.
+
+### ⛔ A runtime self-test existed already (Gate 207) — the red-team caught two ways the obvious extension would still lie
+
+`_host-canary.sh` + Gate 207 already drove a planted-marker canary across all five hosts, PreToolUse-
+only. This run extended it with a SessionStart lane rather than building a sibling harness — a prior
+session had already built a duplicate before discovering Gate 207 existed, the exact premise-trap
+this repo's own Fork D names. Two findings from this run's own red-team pass are why the result is
+trustworthy rather than merely plausible:
+
+- **A marker-only assertion would have missed a dark `capability-orientation.sh`.** A hook can fire
+  and still have its `additionalContext` swallowed. The SessionStart lane asserts **both**
+  invocation **and** delivery (a known sentinel reaching the adapter's stdout) as distinguishable
+  outcomes — a delivery failure is not the same finding as an invocation failure.
+- **A tiered ladder (D/A/S), never collapsed into one summary.** Claude Code reaches Tier D (a real
+  `claude -p` spawn against a scratch project, live-proven with a positive-and-negative control).
+  Copilot-CLI does **not** — measured twice, with a positive control on the spawn mechanism itself,
+  that SessionStart never fires under `copilot -p`, so its *settled* tier is A even though the
+  generic aspirational classification elsewhere still says "D-if-present." Codex and Cursor are
+  platform-blocked from Tier D for different reasons (hash-trust rejects a scratch config by
+  construction; Cursor fails **open** on a malformed response, so an inconclusive D result there
+  would be actively misleading). **The anti-degradation invariant:** a host declared tier D that
+  only achieves A is a FAIL, never a pass-with-note — `PASS (tier A)` and `PASS (tier D)` are
+  different claims and the tool never lets them collapse into one green line.
+
+### Grok, decided loudly, with a converse self-audit closing the gap a naive version left open
+
+Grok has no adapter, no generator, and no `host-support.json` row (re-confirmed against a positive
+control — 7 real host rows exist there). It's excluded from the ledger and named, with a reason and
+machine-checked `promotion_criteria`, in `_UNSUPPORTED_HOSTS`. The first-pass design (a completeness
+check that fires red if an unclassified host's adapter ever appears) is a placebo against the more
+likely failure once this ships: `_UNSUPPORTED_HOSTS["grok"]` becomes a permanent fixture that a
+*future real* Grok adapter would satisfy by lookup, never re-examined. The completeness check's
+converse pass closes that — it re-checks every exclusion's own promotion criteria against disk on
+every run, so a mis-classified-and-never-revisited host is caught, not just a never-classified one.
+
+### What shipped
+
+- **Gate 266** (`SKIP_GATE_266=1` kill switch) — registered in all three required surfaces (dispatcher
+  arm, main sequence, `Supported:` string), verified by grepping the suite output per this repo's own
+  Gate-184 remedy, not by reading the source. Tier D is never run in CI — a gate that host-binary-
+  spawns on every runner and fails loud on absence teaches people to ignore it; it's owner-run
+  on-demand instead. **Renumbered from 264 -> 266 at merge time** — `origin/main` independently
+  claimed Gates 264/265 for its own caveman-auto-routing work (landed in the same window, see the
+  `dependency-update-sweep` entry above, whose own land-time census already named 266 as the next
+  free slot for exactly this reason).
+- A per-host, dated **`drift_override`** field — narrower than `SKIP_GATE_266`: it suppresses only
+  one host's wired-set/matcher-fidelity assertions when that host's own third-party CLI legitimately
+  drifts (e.g. a Copilot CLI version bump changing its matcher emission), leaving every other host's
+  assertion live. An unreviewed override past its `expires_review` date is documentation debt, not a
+  code failure.
+- **`rc hooks selftest`** — the on-demand front door, `bin/rc`'s first `hooks` verb.
+- **`host-support.json` schema addition** — a `sessionstart_verification` sub-field
+  (`tier`/`basis`/`mechanism`/`note`) on every `components.hooks.<host>` row with a SessionStart
+  lane, stated as a schema change in the file's own `_schema_note_2026_09_03` field, not smuggled in
+  as a value edit.
+- **[`knowledge/sessionstart-hook-safeguards.md`](knowledge/sessionstart-hook-safeguards.md)** — the
+  durable reference: ledger shape, matcher-fidelity axis, the D/A/S tier ladder with per-host
+  reasoning, the Codex migration note, the Grok ruling, and 8 honest limits carried verbatim from the
+  plan — including that `compact-anchor.sh` on Cursor is **structurally**, not residually, unclosable
+  (Cursor's `sessionStart` payload carries no `source` field, so the hook's own `source != "compact"`
+  guard is permanently true there — no tier of either mechanism this run built can see inside a real
+  hook's own conditional).
+
+**Migration:** the Codex `/hooks` re-trust step above is the one action item. Everything else is
+additive — no existing gate's flags, exit codes, or assertion semantics changed; Gate 259's three
+pre-existing self-test mutants are unmodified.

@@ -55,7 +55,9 @@ const ISLANDED_AGENT_KEYS = ["scenarios", "quickstart", "works_with"];
 const RC = "ravenclaude-core";
 const RC_BASELINE = {
   agents: 15,
-  skills: 59, // 58 -> 59: skills/repo-review (whole-repo systematic bug sweep, v0.313.0,
+  skills: 60, // 59 -> 60: skills/dependency-update-sweep (v0.317.0, host-version drift sweep).
+  //   COUNTED, not inferred: `ls plugins/ravenclaude-core/skills | wc -l` -> 60 on this tree.
+  //        58 -> 59: skills/repo-review (whole-repo systematic bug sweep, v0.313.0,
   //   2026-09-02). COUNTED, not inferred: window.__RC_DATA__'s ravenclaude-core record on
   //   this tree carries skills_index length 59 after `generate-index-dashboard.py` regen.
   //        57 -> 58: skills/session-relay (cross-session-messaging build, 2026-09-02)
@@ -64,7 +66,11 @@ const RC_BASELINE = {
   //        53 -> 54: skills/session-handoff (v0.266.0, context-quality reset)
   //        52 -> 53: skills/design-clone (v0.253.0, design-schema capture+apply)
   //        51 -> 52: skills/github-gold-standard (v0.246.0, the gold-standard scorecard)
-  tools: 46, // 44 -> 46: scripts/caveman-route.py + scripts/caveman-route-engine.py (the
+  tools: 48, // 46 -> 48: scripts/dependency-sweep.py + scripts/host-version-probe.py
+  //   (v0.317.0, the dependency-update-sweep skill's tool + manual-probe module).
+  //   COUNTED, not inferred: `find plugins/ravenclaude-core/scripts -maxdepth 1 -name "*.py"
+  //   | wc -l` -> 48 on this tree.
+  //        44 -> 46: scripts/caveman-route.py + scripts/caveman-route-engine.py (the
   //   caveman auto-routing classifier + engine, merged in from origin/main's P1-P6 caveman
   //   routing plan). COUNTED, not inferred: `find plugins/ravenclaude-core/scripts -maxdepth 1
   //   -name "*.py" | wc -l` -> 46 on this tree. caveman-apply-mode.sh and caveman-route-hook.sh
