@@ -5,3 +5,26 @@
 body {
   @apply bg-tremor-background-muted text-tremor-content-strong antialiased;
 }
+
+/* Print/PDF mechanism (FORGE dashboard-top1pct P2-14, 2026-09-03) — mechanism 1 of
+   knowledge/dashboard-export-and-delivery-2026.md. Hides app chrome, including the
+   export bar itself, so window.print() / the browser's Save-as-PDF renders only the
+   widgets and their provenance footers. Zero new server surface, zero new
+   tenant-isolation hazard: the printed content is exactly what already rendered
+   on screen through the viewer's own tenant-scoped Cube token. */
+@media print {
+  [data-export-hide] {
+    display: none !important;
+  }
+
+  body {
+    background: white !important;
+  }
+
+  [data-provenance-footer] {
+    /* Provenance must survive to print — a citation surface that drops its own
+       source/date-range/as-of on the way to paper is worse than the on-screen
+       widget it came from. */
+    color: black !important;
+  }
+}

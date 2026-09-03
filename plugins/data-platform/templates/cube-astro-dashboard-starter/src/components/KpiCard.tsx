@@ -108,7 +108,7 @@ export function KpiCard({
       </div>
       {/* Provenance footer: source measure + the exact date ranges both numbers cover +
           the named comparison baseline — all three required by the absolute rule above. */}
-      <Text className="mt-2 text-xs text-tremor-content-subtle">
+      <Text data-provenance-footer className="mt-2 text-xs text-tremor-content-subtle">
         source: {measure} · {dateRange}
         {deltaPct !== undefined ? ` · ${comparisonLabel}` : ""}
       </Text>

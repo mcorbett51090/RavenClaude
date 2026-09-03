@@ -70,6 +70,48 @@ async function queryCube(token: string, filters: unknown[] = []) {
   return res.json() as Promise<{ data: Array<Record<string, string>> }>;
 }
 
+// Row-level dimensional query — the shape templates/cube-nextjs-dashboard-
+// starter's and templates/cube-astro-dashboard-starter's app/api/export
+// routes actually issue (P2-14), NOT the aggregate-measures shape the
+// dashboard's own queryCube() above uses. Returns the raw response so a
+// non-OK status can be inspected rather than always throwing — the
+// service-identity test below needs to distinguish "Cube rejected this
+// outright" from "Cube returned data," and both count as a pass.
+async function queryCubeDimensional(token: string) {
+  const query = {
+    dimensions: ["orders.id", "orders.order_date", "orders.tenant_id"],
+    measures: ["orders.total_revenue"],
+  };
+  const res = await fetch(
+    `${CUBE_API_URL}/load?query=${encodeURIComponent(JSON.stringify(query))}`,
+    { headers: { Authorization: `Bearer ${token}` } },
+  );
+  return res;
+}
+
+function mintServiceIdentityToken(): string {
+  // Mimics the exact failure mode named in best-practices/export-runs-under-
+  // the-viewer-scope-never-a-service-identity.md: a rushed export
+  // implementation that mints a token carrying NO tenant_id claim at all
+  // (e.g. reusing the app's own Cube API secret directly, or an admin/
+  // service-account-shaped token). This is what mutating the export route
+  // to use a service identity looks like at the token level — the teeth
+  // property the acceptance test in plan.md's P2-14 section calls for.
+  const now = Math.floor(Date.now() / 1000);
+  return jwt.sign(
+    {
+      sub: "export-service-account",
+      // tenant_id deliberately omitted
+      iat: now,
+      exp: now + 300,
+      iss: "denial-test-harness",
+      aud: "cube",
+    },
+    CUBE_API_SECRET,
+    { algorithm: "HS256" },
+  );
+}
+
 describe("cross-tenant denial (Cube access_policy layer)", () => {
   beforeAll(async () => {
     // Assert the resolved Cube server version, not just the compose file's
@@ -139,6 +181,50 @@ describe("cross-tenant denial (Cube access_policy layer)", () => {
         await client.query("ROLLBACK");
       } finally {
         await client.end();
+      }
+    });
+  });
+
+  // Export-path denial (FORGE dashboard-top1pct P2-14, 2026-09-03) — extends
+  // this harness per plan.md's P2-14 acceptance test: "tenant-A's export must
+  // not contain tenant-B rows" and the test must "fail when the export route
+  // is mutated to use a service identity." A dimensional, row-level query is
+  // a materially different shape than the dashboard's aggregate-measures
+  // query above (see best-practices/export-runs-under-the-viewer-scope-
+  // never-a-service-identity.md) — an access_policy correctly scoping one
+  // shape is not proof it scopes the other, so this needs its own coverage
+  // rather than inheriting the dashboard block's.
+  describe("export-path denial (row-level dimensional query)", () => {
+    it("positive control: tenant A's own dimensional export rows are non-empty and all tenant A", async () => {
+      const token = mintTenantToken(TENANT_A);
+      const res = await queryCubeDimensional(token);
+      expect(res.ok, "a correctly tenant-scoped dimensional query must succeed").toBe(true);
+      const body = (await res.json()) as { data: Array<Record<string, string>> };
+      expect(body.data.length).toBeGreaterThan(0);
+      for (const row of body.data) {
+        expect(row["orders.tenant_id"]).toBe(TENANT_A);
+      }
+    });
+
+    it("denies a service-identity token (no tenant_id claim) rather than returning unscoped rows", async () => {
+      const token = mintServiceIdentityToken();
+      const res = await queryCubeDimensional(token);
+      if (res.ok) {
+        // If Cube accepted the request at all, it must not have returned
+        // rows from more than one tenant — an unscoped service identity
+        // that happens to 200 with a genuinely empty/filtered result is
+        // still a pass; silently returning both tenants' rows is the
+        // failure this test exists to catch.
+        const body = (await res.json()) as { data: Array<Record<string, string>> };
+        const tenantsSeen = new Set(body.data.map((row) => row["orders.tenant_id"]));
+        expect(
+          tenantsSeen.size,
+          "a service-identity token must never see more than one tenant's rows",
+        ).toBeLessThanOrEqual(1);
+      } else {
+        // Cube rejecting the request outright (missing required
+        // securityContext.tenant_id) is the expected, stronger outcome.
+        expect(res.status).toBeGreaterThanOrEqual(400);
       }
     });
   });

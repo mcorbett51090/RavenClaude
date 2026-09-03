@@ -5,6 +5,7 @@ import { Grid, Col } from "./ui";
 import { getCubeClient } from "@/lib/cube-client";
 import { KpiCard } from "./KpiCard";
 import { RevenueChart } from "./RevenueChart";
+import { ExportBar } from "./ExportBar";
 
 /**
  * The mountable island — hydrated once on the page via `client:load` (or
@@ -31,6 +32,8 @@ export function DashboardIsland() {
   // would double the padding around this island's own content.
   return (
     <CubeProvider cubeApi={cubeApi}>
+      <ExportBar />
+
       <Grid numItemsMd={3} className="mt-6 gap-4">
         <Col numColSpanMd={1}>
           <KpiCard

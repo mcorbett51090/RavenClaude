@@ -145,6 +145,38 @@ errors) and by the production build (bundle size dropped, First Load JS for `/` 
     or rewrite the `Content-Security-Policy` response header, and that it forwards the real
     client-visible origin — this middleware sets the header per-request but has no visibility
     into what a fronting layer does to it afterward.
+- ✅ **P2-14 (2026-09-03, FORGE dashboard-top1pct): export/print added, then hardened by
+  mandatory security review the same session.** `components/ExportBar.tsx` offers "Print / Save
+  as PDF" (`window.print()`, no new server surface) and "Download CSV" (`app/api/export/route.ts`).
+  Token minting and rate limiting are now **factored into shared modules** —
+  `lib/mint-cube-token.ts` and `lib/rate-limiter.ts` — used by both `api/cube-token/route.ts` and
+  `api/export/route.ts`, after security review found the export route's first draft (hand-
+  duplicated from the token route, matching this scaffold's original convention) had *already*
+  drifted: it was missing the rate limiter its cheaper sibling carries. The export route now has
+  its own, tighter ceiling (5/min per user, vs. the token route's 30/min — an export runs a
+  5000-row warehouse query, not a ~1ms HMAC sign).
+  - **2 blockers found and fixed:** (1) CSV formula injection (CWE-1236) — `lib/csv.ts`'s
+    `toCsvRow()` now prefixes any cell whose leading character is `=+-@\t\r` with a literal-text
+    apostrophe; CSV quoting alone does **not** neutralize this, since Excel/Sheets/LibreOffice
+    decide a cell is a formula from the leading character *after* the CSV parser has already
+    stripped the quotes. (2) the missing rate limiter, above.
+  - **6 concerns fixed:** raw Cube/Postgres error text is no longer echoed to the client (logged
+    server-side with a correlation id instead); an explicit 401 branch for a null-ish session
+    (defensive — the current `lib/session.ts` placeholder always throws, but a real
+    `getServerSession()`-style wiring commonly returns `null`); `X-Content-Type-Options: nosniff`
+    on every response path, not just the 200; a structured `dashboard.export` audit-log line on
+    every successful export; the provenance block is now routed through `toCsvRow()` instead of
+    raw string interpolation; a `# truncated: true` line when the 5000-row cap is hit.
+  - Queries **row-level dimensional** data (`orders.id`/`order_date`/`customer_id`), a materially
+    different shape than the dashboard's aggregate widgets — see the corresponding denial-test
+    extension in `templates/cube-denial-test-harness/` (not yet run against live docker — same
+    open item as below).
+  - `npx tsc --noEmit` and `npm run build` both pass clean with the shared-lib refactor + all
+    fixes present (confirmed this session, after the fixes — `/api/export` compiles as a dynamic
+    route alongside `/api/cube-token`).
+  - See `knowledge/dashboard-export-and-delivery-2026.md` for why a headless-render/scheduled-
+    email mechanism is documented but not scaffolded (this sandbox cannot spawn headless
+    Chromium).
 - ⛔ **Not yet run against a live Cube instance.** No engagement has exercised this scaffold
   end-to-end yet — that's the "real-engagement validation" this plugin's promotion
   discipline names, and it's still open.

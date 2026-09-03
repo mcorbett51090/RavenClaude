@@ -9925,6 +9925,42 @@ gate "data-platform knowledge freshness: file with no discoverable date caught" 
 rm -rf "$DP_KF_TMP"
 
 echo
+echo "── Gate 269: data-platform export/print structural checks (no browser needed) ──"
+# FORGE P2-14 (2026-09-03): the parts of P2-14's acceptance test that don't
+# need a rendered page or a live Cube instance — an export route exists per
+# starter, the print/PDF affordance and its @media print rule exist, and
+# every provenance footer that must survive to print carries the
+# data-provenance-footer marker the print CSS targets. Lightweight
+# complement to the (opt-in, docker-gated) denial-harness Gate 266, which
+# proves the export route's tenant-isolation property; this gate proves the
+# structural pieces are present at all.
+for starter in cube-nextjs-dashboard-starter cube-astro-dashboard-starter; do
+  base="plugins/data-platform/templates/$starter"
+  export_route="$base/app/api/export/route.ts"
+  [[ -f "$export_route" ]] || export_route="$base/src/pages/api/export.ts"
+  rc=0; [[ -f "$export_route" ]] || rc=1
+  gate "export structural: export route exists ($starter)" must_pass "$rc"
+
+  rc=0; grep -q "session.tenantId" "$export_route" 2>/dev/null || rc=1
+  gate "export structural: export route derives tenant_id from session, not request input ($starter)" must_pass "$rc"
+
+  print_css="$base/app/globals.css"
+  [[ -f "$print_css" ]] || print_css="$base/src/styles/globals.css"
+  rc=0; grep -q "@media print" "$print_css" 2>/dev/null || rc=1
+  gate "export structural: print stylesheet present ($starter)" must_pass "$rc"
+
+  kpi="$base/components/KpiCard.tsx"
+  [[ -f "$kpi" ]] || kpi="$base/src/components/KpiCard.tsx"
+  rc=0; grep -q "data-provenance-footer" "$kpi" 2>/dev/null || rc=1
+  gate "export structural: provenance footer marked for print survival ($starter)" must_pass "$rc"
+done
+# Teeth: a fixture missing the session-derived tenant marker must be caught.
+DP_EXPORT_BAD="$TMP/dp-export-bad-route.ts"
+printf 'export async function GET(req) { const tenantId = req.query.tenantId; return Response.json({tenantId}); }\n' > "$DP_EXPORT_BAD"
+rc=0; grep -q "session.tenantId" "$DP_EXPORT_BAD" 2>/dev/null || rc=1
+gate "export structural: request-derived tenant scoping caught" must_fail "$rc"
+
+echo
 echo "═══════════════════════════════════════════════════════════════════════════"
 printf '  %d pass, %d fail, %d skipped\n' "$PASS" "$FAIL" "$SKIP"
 if [[ "$FAIL" -gt 0 ]]; then

@@ -28,7 +28,14 @@ seed/two-tenant-fixture.sql → tenant-A (2 orders, $425.50) + tenant-B (1 order
                               unambiguous, not a coincidental match
 tests/cross-tenant-denial.test.ts → vitest: positive control (tenant A sees its own revenue) +
                               denial (tenant A cannot see tenant B's, at both the Cube
-                              access_policy layer and the Postgres RLS layer)
+                              access_policy layer and the Postgres RLS layer) + (P2-14, added
+                              2026-09-03) an export-path denial block covering the ROW-LEVEL
+                              dimensional query shape the starters' /api/export routes issue —
+                              a materially different shape than the dashboard's aggregate-
+                              measures query above, including a service-identity-token test
+                              (no tenant_id claim) mirroring the exact failure mode named in
+                              best-practices/export-runs-under-the-viewer-scope-never-a-
+                              service-identity.md
 ```
 
 ## Running it
@@ -49,8 +56,26 @@ confirmed to exist via the Docker Hub registry API directly, not just a document
 the schema mount path matches Cube's own documented convention (verified via Context7 against
 Cube's official docs, not assumed); the test file typechecks clean and — run against no live
 server — correctly fails with `ECONNREFUSED` rather than a syntax or import error, proving its
-structure is sound. **Running this for real, once, with docker present, is the first thing to
-do before trusting it in CI.**
+structure is sound (6 tests collected — the original 4 plus the P2-14 export-path pair — 6
+skipped, 0 syntax/import failures). **Running this for real, once, with docker present, is the
+first thing to do before trusting it in CI.**
+
+⛔ **A specific, unresolved question this run would settle (flagged by security review, P2-14,
+2026-09-03):** `../cube-schema-starter.yml` gates every `access_policy` block on `role: viewer`
+(confirmed by inspection — lines 42, 134, 202), but **no token minted anywhere in this plugin
+carries a `role`/`roles` claim**, and no `contextToRoles` config is mounted into the Cube
+container (confirmed — `grep`'d both mint-token modules and this whole directory). Whether that
+means the policy silently never binds (in which case *something else* — likely the
+`securityContext.tenant_id` filter itself, independent of the role gate — is doing the real
+work) or whether Cube's own default-deny-on-unmatched-policy behavior makes this a moot point is
+genuinely **not known** — it's inference from Cube's current docs, not an observation from this
+harness. Direction of failure matters: Cube's docs currently say an unmatched policy group
+**denies**, not leaks, which is why this is flagged as an open question rather than a blocker —
+but the docs' current terminology (`group:`) doesn't match this schema's (`role:`), which may
+itself be a syntax rename relative to the pinned `v1.7.33`. This is exactly the kind of thing
+running the harness once, for real, converts from inference to observation — and P2-14's
+row-level export makes the answer matter more than it did when only aggregate queries were at
+stake.
 
 ## The superuser-bypasses-RLS trap this harness deliberately avoids
 

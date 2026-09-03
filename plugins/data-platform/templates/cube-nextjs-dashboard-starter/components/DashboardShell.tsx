@@ -5,6 +5,7 @@ import { Grid, Col, Title, Subtitle } from "./ui";
 import { getCubeClient } from "@/lib/cube-client";
 import { KpiCard } from "./KpiCard";
 import { RevenueChart } from "./RevenueChart";
+import { ExportBar } from "./ExportBar";
 
 export interface DashboardShellProps {
   tenantLabel: string;
@@ -25,6 +26,10 @@ export function DashboardShell({ tenantLabel }: DashboardShellProps) {
       <div className="p-6">
         <Title>Dashboard</Title>
         <Subtitle>{tenantLabel}</Subtitle>
+
+        <div className="mt-4">
+          <ExportBar />
+        </div>
 
         <Grid numItemsMd={3} className="mt-6 gap-4">
           <Col numColSpanMd={1}>

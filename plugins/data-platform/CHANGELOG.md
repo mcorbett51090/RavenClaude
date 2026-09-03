@@ -2,6 +2,67 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.28.0] — 2026-09-03
+
+### Added
+
+- **P2-14** — export, print, and the tenant-scope discipline export requires. Confirmed with a
+  positive control (`tenant_id` → 53 files proves the probe works) that this plugin had **zero**
+  files addressing dashboard PDF/print export or scheduled/emailed delivery before this phase —
+  the single most-requested feature of any client-facing dashboard, and one that carries a
+  tenant-isolation hazard the rest of the plugin would never tolerate (an export runs
+  server-side, often under whatever credential is easiest to reach for).
+  - New `best-practices/export-runs-under-the-viewer-scope-never-a-service-identity.md` — the
+    absolute rule, named failure mode included.
+  - New `knowledge/dashboard-export-and-delivery-2026.md` — three mechanisms (browser print CSS,
+    native/server-side CSV export, headless-browser server render) with tradeoffs, dated;
+    documents why the third is scaffolded nowhere in this plugin (this sandbox cannot spawn
+    headless Chromium — a named follow-up, not a silent gap).
+  - Both starters ship mechanisms 1 and 2: a print stylesheet + "Print / Save as PDF" affordance
+    (zero new server surface), and a tenant-scoped CSV export route deriving `tenant_id` from the
+    same server-verified session `/api/cube-token` uses.
+  - `templates/cube-denial-test-harness/` extended with an export-path denial block covering the
+    row-level dimensional query shape the export routes issue (materially different from the
+    dashboard's aggregate-measures shape) — including a service-identity-token denial test.
+  - **Hardened by a mandatory security review the same session** — 2 blockers, 6 concerns, all
+    fixed:
+    - **CSV formula injection (CWE-1236)**: the CSV serializer quoted delimiters but not a
+      leading formula-trigger character (`=+-@\t\r`) — CSV quoting alone does not neutralize
+      this, since spreadsheet apps decide a cell is a formula *after* the CSV parser has already
+      stripped the quotes. Fixed with a literal-text apostrophe prefix, factored into a shared
+      `lib/csv.ts` per starter.
+    - **Missing rate limit**: the export route's first draft (hand-duplicated from the token
+      route, matching the scaffold's prior convention) had already lost the rate limiter its
+      cheaper sibling carries — an uncapped 5000-row warehouse query is a metered-spend /
+      connection-pool-exhaustion vector. Fixed with its own, tighter ceiling (5/min vs. the token
+      route's 30/min), factored into a shared `lib/rate-limiter.ts` per starter.
+    - Token minting is now also factored into a shared `lib/mint-cube-token.ts` per starter,
+      closing the duplication-drift risk the two blockers above were both instances of.
+    - Raw Cube/Postgres error text is no longer echoed to the client (server-logged with a
+      correlation id); an explicit 401 branch for a null-ish session; `X-Content-Type-Options:
+      nosniff` on every response path; a structured `dashboard.export` audit-log line on every
+      successful export; the provenance block is escaped through the CSV serializer instead of
+      raw string interpolation; a `# truncated: true` marker when the 5000-row cap is hit.
+  - A real, code-level defect caught by `npm run build` actually failing (not assumed): the
+    Next.js export route needed `export const dynamic = "force-dynamic"`, identically to
+    `page.tsx`, since Next.js otherwise tries to statically prerender a session-gated GET route
+    at build time.
+  - `agents/dashboard-builder.md` References the new knowledge file; `best-practices/README.md`'s
+    index and derived count (35 rules) both updated; `CLAUDE.md`'s §9a coverage matrix and
+    templates/knowledge tables updated. New `audit-gates.sh` **Gate 269** (structural, no browser
+    needed): export route exists + derives tenant scope from session + print stylesheet present +
+    provenance footers marked for print survival, per starter, with a must-fail teeth fixture.
+  - Honest limit, unresolved rather than silently glossed: security review flagged that
+    `cube-schema-starter.yml`'s `access_policy` gates on `role: viewer`, but no token minted
+    anywhere in this plugin carries a `role`/`roles` claim — whether the policy binds at all is
+    genuinely unknown until `templates/cube-denial-test-harness/` runs once against live docker
+    (still not done — no docker runtime in any session that has touched this harness). Documented
+    in the harness's own README as a specific, named open question this run would settle.
+
+**Migration:** none — all additive (a new best-practice + knowledge file, new export routes +
+shared `lib/` helpers in both starters, a denial-test extension, a new structural CI gate). No
+consumer-facing behavior changes to existing surfaces.
+
 ## [0.27.0] — 2026-09-03
 
 ### Added

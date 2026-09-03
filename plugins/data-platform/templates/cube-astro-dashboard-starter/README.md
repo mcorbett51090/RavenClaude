@@ -145,6 +145,26 @@ build warning P0-4's probe recorded as an open, non-blocking finding.
   directives instead of one. If you deploy behind a reverse proxy/CDN, also verify the fronting
   layer doesn't strip or rewrite the `Content-Security-Policy` header — this middleware has no
   visibility into what happens to it downstream, per the CSP caveat above.
+- ✅ **P2-14 (2026-09-03, FORGE dashboard-top1pct): export/print added, then hardened by
+  mandatory security review the same session.** Identical mechanism and identical fix set to the
+  Next.js starter (`components/ExportBar.tsx`, rendered inside `DashboardIsland.tsx` since it's
+  genuinely interactive, unlike the static `Title`/`Subtitle` that stay outside the island):
+  `window.print()` for print/PDF, `src/pages/api/export.ts` for CSV. Token minting and rate
+  limiting are factored into `src/lib/mint-cube-token.ts` and `src/lib/rate-limiter.ts`, shared
+  with `api/cube-token.ts` — security review found the export route's first draft had already
+  lost the rate limiter its cheaper sibling carries; it now has its own, tighter 5/min ceiling.
+  `src/lib/csv.ts`'s `toCsvRow()` guards against CSV formula injection (CWE-1236, a blocker —
+  quoting alone does not neutralize a leading `=+-@\t\r`); errors are logged server-side with a
+  correlation id rather than echoed to the client; every response carries
+  `X-Content-Type-Options: nosniff`; a `dashboard.export` audit line is emitted on success; the
+  provenance block is escaped through `toCsvRow()`; a `# truncated: true` line appears at the
+  5000-row cap. `npx astro build` passes clean with the shared-lib refactor + all fixes present
+  (confirmed this session, after the fixes — `dist/server/pages/api/export.astro.mjs` exists in
+  the build output); a plain `tsc --noEmit` on these files reports no new errors beyond this
+  starter's pre-existing Astro-global false positives (see the CSP section above for that
+  caveat's full explanation). The corresponding denial-test extension is in
+  `templates/cube-denial-test-harness/` (not yet run against live docker — same open item as
+  below).
 - ⛔ Not yet run against a live Cube instance. Not yet used in a real engagement.
 - ⛔ **`npm audit` (run 2026-09-03, after the `@cubejs-client/*` 1.7.33 bump + `@astrojs/check`
   addition below) reports 6 findings (3 high, 3 moderate)** against the pinned `astro@4.15.x` /

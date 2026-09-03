@@ -1,3 +1,22 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Print/PDF mechanism (FORGE dashboard-top1pct P2-14, 2026-09-03) — mechanism 1 of
+   knowledge/dashboard-export-and-delivery-2026.md. Identical rule to the Next.js
+   starter's app/globals.css — hides app chrome (including the export bar itself)
+   so window.print() / the browser's Save-as-PDF renders only the widgets and
+   their provenance footers. */
+@media print {
+  [data-export-hide] {
+    display: none !important;
+  }
+
+  body {
+    background: white !important;
+  }
+
+  [data-provenance-footer] {
+    color: black !important;
+  }
+}

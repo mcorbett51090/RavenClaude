@@ -6,7 +6,7 @@ Named, citable rules for the `data-platform` plugin's four-layer dashboard engag
 
 ## Index
 
-_34 rules. Each file is one named, citable rule; read and apply it whole._
+_35 rules. Each file is one named, citable rule; read and apply it whole._
 
 | Doc | Status | Use when |
 |---|---|---|
@@ -24,6 +24,7 @@ _34 rules. Each file is one named, citable rule; read and apply it whole._
 | [`embed-lock-csp-frame-ancestors-and-sandbox.md`](./embed-lock-csp-frame-ancestors-and-sandbox.md) | Absolute rule — an embedded dashboard ships with an allow-listed CSP, a least-privilege iframe sandbox, and validated message origins. Security-sensitive: any embed/CSP change escalates to `ravenclaude-core/security-reviewer`. | A short-lived scoped token gets the right data *into* the embed; the CSP/iframe boundary controls who can put a frame *around* it and what that frame … |
 | [`embed-never-ship-the-service-key.md`](./embed-never-ship-the-service-key.md) | Absolute rule — the front-end requests and forwards a token; it never holds the secret that mints tokens. Security-sensitive: any embed-auth change escalates to `ravenclaude-core/security-reviewer`. | The companion to short-lived JWTs (`issue-short-lived-jwts-for-embeds.md`) is *where the secret lives*. |
 | [`enforce-tenant-isolation-closest-to-data.md`](./enforce-tenant-isolation-closest-to-data.md) | Absolute rule — the load-bearing tenant control is never at the rendering layer, and no stack merges without a cross-boundary denial test. | This is the foundational invariant of the entire plugin. |
+| [`export-runs-under-the-viewer-scope-never-a-service-identity.md`](./export-runs-under-the-viewer-scope-never-a-service-identity.md) | Absolute rule — an export/print/delivery route derives its tenant scope from the same server-verified session the interactive dashboard uses, and needs its own cross-boundary denial test for its (usually row-level, dimensional) query shape. | An export runs server-side, often under whatever credential is easiest to reach for — an unscoped service identity returns every tenant's data to one tenant's export button. |
 | [`etl-elt-load-then-transform-in-warehouse.md`](./etl-elt-load-then-transform-in-warehouse.md) | Pattern — strong default for every dashboard engagement; deviate only with a written reason (a hard pre-load redaction/compliance requirement). | The classic ETL shape — transform in a middle tier, then load only the shaped result — throws away the raw source and couples the pipeline to today's … |
 | [`etl-prefer-data-sharing-over-a-new-pipeline.md`](./etl-prefer-data-sharing-over-a-new-pipeline.md) | Pattern — strong default whenever both source and destination sit on the same (or share-compatible) lakehouse; deviate only when a real transform/landing requirement makes a share insufficient. | The most invisible win in a dashboard engagement is *not building the pipeline at all*. |
 | [`ingest-idempotent-and-replayable.md`](./ingest-idempotent-and-replayable.md) | Absolute rule — a pipeline you cannot safely re-run is a pipeline you cannot operate. Every load path is keyed and replay-safe. | Pipelines fail mid-run: a connector OOMs at row 4M of 10M, a rate limit trips, a network blip drops a checkpoint. |

@@ -120,7 +120,7 @@ export function RevenueChart({
           </>
         )}
       </div>
-      <Text className="mt-1 text-xs text-tremor-content-subtle">
+      <Text data-provenance-footer className="mt-1 text-xs text-tremor-content-subtle">
         source: {measure} · {dateRange}
       </Text>
     </Card>
