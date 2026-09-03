@@ -146,8 +146,15 @@ def _wired_set_check(mod: ModuleType, host: str) -> tuple[bool, list]:
     -- the same primitives `check_c_wired_set` iterates over -- scoped to ONE
     host instead of the whole ledger, so `--host <h>` never has to touch
     another host's extractor.
+
+    Phase 9 / G5 F5: a host carrying a currently-VALID `drift_override` is
+    suppressed here too -- `check_c_wired_set`'s own suppression (module-
+    level) and this scoped copy MUST agree, or `rc hooks selftest` could
+    report FAIL on a host Gate 264's CI run reports clean (or vice versa).
     """
     entry = mod._WIRED_SET_LEDGER[host]
+    if mod._valid_drift_override(entry) is not None:
+        return True, []
     required = entry["required"]
     extractor = mod._EXTRACTORS.get(host)
     if extractor is None:
@@ -246,7 +253,12 @@ def _evaluate_host(mod: ModuleType, host: str, tier_flag: str, project: str) -> 
     passed = wired_ok and not runtime_broken and degradation == "PASS"
 
     if passed:
-        if aspirational == "D" and declared_tier != "D":
+        drift_ov = mod._valid_drift_override(entry)
+        if drift_ov is not None:
+            # Phase 9 / G5 F5: the suppression must be VISIBLE here, not just
+            # in Gate 264's CI output -- never a silent plain PASS.
+            verdict = "PASS (drift-overridden -- see reason): %r" % drift_ov.get("reason")
+        elif aspirational == "D" and declared_tier != "D":
             verdict = (
                 f"PASS (tier {declared_tier} -- D unverified, see "
                 f"check-sessionstart-matcher-regression.py's {host} ledger entry)"

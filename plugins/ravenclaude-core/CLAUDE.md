@@ -4292,3 +4292,100 @@ missing; that is now wired, but has not yet been observed catching a real skippe
 additive, and the SKILL/command edits change the pipeline's *record-keeping order*, not any gate's
 semantics, flags, artifact paths, or counts. Nothing in a consumer's installed plugin behaves
 differently on `/plugin marketplace update` until they run `/forge`.
+
+## Multi-host SessionStart safeguards — Codex's own drift finally fixed, and a runtime tier ladder that says what it actually proved (added 2026-09-03, v0.317.0)
+
+A `/forge` run (`.ravenclaude/runs/forge/sessionstart-safeguards-multihost/`) closed the two open
+halves of PR #1084's own story: a static wired-set ledger (Gate 259) existed only for Gemini, and no
+mechanism anywhere fired a host's actual SessionStart path on demand and checked what came back.
+
+### ⛔ The consumer-visible headline: Codex was still carrying PR #1084's own defect
+
+Codex has no generator — its SessionStart wiring was a hand-maintained Python heredoc
+(`wire_codex_hooks()`) that wired **2 of the canonical 9** SessionStart hooks, with **no matcher on
+either**. Both hooks re-fired on every mid-conversation compaction on Codex — the exact bug PR #1084
+fixed everywhere else, silently surviving on the one host that never got a projector.
+`scripts/generate-codex-hooks.py` (new) is the fourth sibling of `generate-{copilot,cursor,gemini}
+-hooks.py`: SessionStart is now derived from `hooks.json` directly (9 hooks, matchers included);
+PreToolUse/PostToolUse/Stop are reproduced **byte-identically** to the prior heredoc (out of this
+run's scope; the byte-identity diff proof is on record in the run dir). Because **Codex tracks hook
+trust by hash (MH-17)**, this rewrite marks every hook for review on a consumer's machine — the
+installer's `_rc_rearm_notice` still prints the re-trust reminder, but this is now the release that
+makes it fire for real on a wiring rewrite this size. Kill switch shipped in the same commit:
+`RC_CODEX_SESSIONSTART_LEGACY=1`.
+
+### The ledger became a typed, per-host record — not a bare set
+
+`_WIRED_SET_LEDGER` now carries, per host: where its wiring truth comes from (generator vs.
+manifest), a `required` set derived by hand from `hooks.json` minus that host's own `_SKIP`
+exclusions (deliberately **not** re-derived live — a live re-derivation would make a silently-added
+bad `_SKIP` entry invisible again, one level up), a `matcher_fidelity` axis (`exact` /
+`none-by-platform` / `none-unverified`, asserted **bidirectionally** so a platform fact can't
+quietly flip into an unnoticed regression or vice versa), and a `runtime_tier`. Copilot's ledger key
+is `copilot-cli`, never bare `copilot`, everywhere — a prior critic/red-team finding (G4a/G5, both
+independently HIGH) showed a bare key lets a green check be misread as covering Copilot **Chat**,
+which none of this mechanism reaches; `rc hooks selftest`'s `copilot-cli` row force-prints a
+`chat: unverified (surfaces.chat.supported=false)` line on every invocation for exactly this reason.
+
+### ⛔ A runtime self-test existed already (Gate 207) — the red-team caught two ways the obvious extension would still lie
+
+`_host-canary.sh` + Gate 207 already drove a planted-marker canary across all five hosts, PreToolUse-
+only. This run extended it with a SessionStart lane rather than building a sibling harness — a prior
+session had already built a duplicate before discovering Gate 207 existed, the exact premise-trap
+this repo's own Fork D names. Two findings from this run's own red-team pass are why the result is
+trustworthy rather than merely plausible:
+
+- **A marker-only assertion would have missed a dark `capability-orientation.sh`.** A hook can fire
+  and still have its `additionalContext` swallowed. The SessionStart lane asserts **both**
+  invocation **and** delivery (a known sentinel reaching the adapter's stdout) as distinguishable
+  outcomes — a delivery failure is not the same finding as an invocation failure.
+- **A tiered ladder (D/A/S), never collapsed into one summary.** Claude Code reaches Tier D (a real
+  `claude -p` spawn against a scratch project, live-proven with a positive-and-negative control).
+  Copilot-CLI does **not** — measured twice, with a positive control on the spawn mechanism itself,
+  that SessionStart never fires under `copilot -p`, so its *settled* tier is A even though the
+  generic aspirational classification elsewhere still says "D-if-present." Codex and Cursor are
+  platform-blocked from Tier D for different reasons (hash-trust rejects a scratch config by
+  construction; Cursor fails **open** on a malformed response, so an inconclusive D result there
+  would be actively misleading). **The anti-degradation invariant:** a host declared tier D that
+  only achieves A is a FAIL, never a pass-with-note — `PASS (tier A)` and `PASS (tier D)` are
+  different claims and the tool never lets them collapse into one green line.
+
+### Grok, decided loudly, with a converse self-audit closing the gap a naive version left open
+
+Grok has no adapter, no generator, and no `host-support.json` row (re-confirmed against a positive
+control — 7 real host rows exist there). It's excluded from the ledger and named, with a reason and
+machine-checked `promotion_criteria`, in `_UNSUPPORTED_HOSTS`. The first-pass design (a completeness
+check that fires red if an unclassified host's adapter ever appears) is a placebo against the more
+likely failure once this ships: `_UNSUPPORTED_HOSTS["grok"]` becomes a permanent fixture that a
+*future real* Grok adapter would satisfy by lookup, never re-examined. The completeness check's
+converse pass closes that — it re-checks every exclusion's own promotion criteria against disk on
+every run, so a mis-classified-and-never-revisited host is caught, not just a never-classified one.
+
+### What shipped
+
+- **Gate 264** (`SKIP_GATE_264=1` kill switch) — registered in all three required surfaces (dispatcher
+  arm, main sequence, `Supported:` string), verified by grepping the suite output per this repo's own
+  Gate-184 remedy, not by reading the source. Tier D is never run in CI — a gate that host-binary-
+  spawns on every runner and fails loud on absence teaches people to ignore it; it's owner-run
+  on-demand instead.
+- A per-host, dated **`drift_override`** field — narrower than `SKIP_GATE_264`: it suppresses only
+  one host's wired-set/matcher-fidelity assertions when that host's own third-party CLI legitimately
+  drifts (e.g. a Copilot CLI version bump changing its matcher emission), leaving every other host's
+  assertion live. An unreviewed override past its `expires_review` date is documentation debt, not a
+  code failure.
+- **`rc hooks selftest`** — the on-demand front door, `bin/rc`'s first `hooks` verb.
+- **`host-support.json` schema addition** — a `sessionstart_verification` sub-field
+  (`tier`/`basis`/`mechanism`/`note`) on every `components.hooks.<host>` row with a SessionStart
+  lane, stated as a schema change in the file's own `_schema_note_2026_09_03` field, not smuggled in
+  as a value edit.
+- **[`knowledge/sessionstart-hook-safeguards.md`](knowledge/sessionstart-hook-safeguards.md)** — the
+  durable reference: ledger shape, matcher-fidelity axis, the D/A/S tier ladder with per-host
+  reasoning, the Codex migration note, the Grok ruling, and 8 honest limits carried verbatim from the
+  plan — including that `compact-anchor.sh` on Cursor is **structurally**, not residually, unclosable
+  (Cursor's `sessionStart` payload carries no `source` field, so the hook's own `source != "compact"`
+  guard is permanently true there — no tier of either mechanism this run built can see inside a real
+  hook's own conditional).
+
+**Migration:** the Codex `/hooks` re-trust step above is the one action item. Everything else is
+additive — no existing gate's flags, exit codes, or assertion semantics changed; Gate 259's three
+pre-existing self-test mutants are unmodified.

@@ -734,9 +734,84 @@ _EXTRACTORS = {
 }
 
 
+def _valid_drift_override(entry: dict) -> dict | None:
+    """Phase 9 (closes G5 Finding F5, MEDIUM) -- a `drift_override` field on
+    an individual _WIRED_SET_LEDGER row, mirroring _UNSUPPORTED_HOSTS's own
+    reason-string convention. Returns the override dict only when it is
+    STRUCTURALLY VALID (non-empty `reason` + `recorded`, `expires_review`
+    present as either a string or explicit null) -- an absent or malformed
+    override is never treated as active, so a typo'd override can silently
+    disable itself, but never silently disable a real assertion instead.
+    """
+    ov = entry.get("drift_override")
+    if not isinstance(ov, dict):
+        return None
+    if not (ov.get("reason") or "").strip():
+        return None
+    if not (ov.get("recorded") or "").strip():
+        return None
+    if "expires_review" not in ov:
+        return None
+    return ov
+
+
+def check_c_drift_override_shape(findings: list) -> None:
+    """A `drift_override` field that IS present but malformed (empty reason,
+    empty recorded date, or a missing expires_review key) is a finding in its
+    own right -- distinct from `_valid_drift_override` silently declining to
+    treat it as active. This is what stops a maintainer from writing
+    `drift_override: {}` and getting BOTH no suppression AND no warning that
+    the override they thought they set never took effect.
+    """
+    for host, entry in _WIRED_SET_LEDGER.items():
+        ov = entry.get("drift_override")
+        if ov is None:
+            continue
+        if not isinstance(ov, dict):
+            findings.append(
+                "C: %s's drift_override is present but not a dict (%r) -- "
+                "malformed, and therefore NOT suppressing anything" % (host, ov)
+            )
+            continue
+        missing = [
+            k
+            for k in ("reason", "recorded")
+            if not (ov.get(k) or "").strip()
+        ]
+        if "expires_review" not in ov:
+            missing.append("expires_review")
+        if missing:
+            findings.append(
+                "C: %s's drift_override is missing/empty field(s) %s -- "
+                "malformed, and therefore NOT suppressing this host's "
+                "wired-set/matcher-fidelity assertions" % (host, missing)
+            )
+
+
+def _drift_overridden_hosts() -> dict:
+    """Every ledgered host with a currently-VALID drift_override, keyed by
+    host, value the override dict -- the single source both `main()`'s
+    visibility line and `hooks-selftest.py`'s "drift-overridden" verdict
+    text read, so the two surfaces can never disagree about which hosts are
+    suppressed (plan.md Phase 9, "the suppression must be VISIBLE in both
+    the gate's CI output and `rc hooks selftest`'s row").
+    """
+    out: dict = {}
+    for host, entry in _WIRED_SET_LEDGER.items():
+        ov = _valid_drift_override(entry)
+        if ov is not None:
+            out[host] = ov
+    return out
+
+
 def check_c_wired_set(findings: list, repo: Path | None = None) -> None:
     r = repo or _REPO
     for host, entry in _WIRED_SET_LEDGER.items():
+        if _valid_drift_override(entry) is not None:
+            # Suppressed by a dated, reasoned drift_override (Phase 9 / G5
+            # F5) -- narrower than SKIP_GATE_264: only THIS host's wired-set
+            # assertion is silenced, every other host's stays live.
+            continue
         required = entry["required"]
         extractor = _EXTRACTORS.get(host)
         if extractor is None:
@@ -796,6 +871,11 @@ def check_c_matcher_fidelity(findings: list, repo: Path | None = None) -> None:
     """
     r = repo or _REPO
     for host, entry in _WIRED_SET_LEDGER.items():
+        if _valid_drift_override(entry) is not None:
+            # Same suppression as check_c_wired_set -- a drift_override
+            # covers BOTH wired-set and matcher-fidelity for that host (they
+            # are the two Tier-A assertions plan.md Phase 9 names).
+            continue
         declared = entry.get("matcher_fidelity")
         if declared not in _VALID_MATCHER_FIDELITIES:
             findings.append(
@@ -906,6 +986,7 @@ def run(repo: Path | None = None) -> tuple[int, list]:
         check_b_parity(findings)
         check_c_wired_set(findings, repo=repo)
         check_c_matcher_fidelity(findings, repo=repo)
+        check_c_drift_override_shape(findings)
         check_c_lane_partition(findings, repo=repo)
         check_d_ledger_completeness(findings, repo=repo)
         check_d_unsupported_entries_valid(findings)
@@ -1025,6 +1106,12 @@ def self_test(must_fail: bool = False) -> int:
                 "self-test MUST-FAIL: the original Gemini regression (CE-1) is caught by check C",
                 any("C:" in x for x in f4),
             )
+            # Phase 9 fix: this mutant was never reverted before this commit --
+            # gemini_gen stayed mutated in the scratch repo for the rest of
+            # self_test(), latent because nothing downstream re-checked
+            # gemini's wired set against this scratch copy until block 17
+            # (A9.7) added one. Restore so later blocks see the real file.
+            gemini_gen.write_text(src, encoding="utf-8")
 
         # 5. Mutant (A2.2, drop, copilot-cli): make generate-copilot-hooks.py
         #    _SKIP keep-awake.sh with a plausible-sounding reason -- the exact
@@ -1088,6 +1175,10 @@ def self_test(must_fail: bool = False) -> int:
                 "self-test MUST-FAIL (A2.3, matcher strip): check C reports MATCHER-FIDELITY for copilot-cli",
                 any("MATCHER-FIDELITY" in x and "copilot-cli" in x for x in f7),
             )
+            # Phase 9 fix: like the gemini mutant above, this one was never
+            # reverted before this commit -- copilot_gen stayed matcher-
+            # stripped in the scratch repo for the rest of self_test().
+            copilot_gen.write_text(src7, encoding="utf-8")
 
         # 8. Mutant (A2.4, the INVERSE direction, cursor): make the generator
         #    start emitting a matcher where none is declared. This is the
@@ -1110,6 +1201,10 @@ def self_test(must_fail: bool = False) -> int:
                 "self-test MUST-FAIL (A2.4, matcher add, INVERSE): check C reports MATCHER-FIDELITY for cursor",
                 any("MATCHER-FIDELITY" in x and "cursor" in x for x in f8),
             )
+            # Phase 9 fix: like the two mutants above, this one was never
+            # reverted before this commit -- cursor_gen stayed matcher-added
+            # in the scratch repo for the rest of self_test().
+            cursor_gen.write_text(src8, encoding="utf-8")
 
         # 9. Mutant (A3.2, claude-code): move dashboard-autostart.sh from the
         #    `startup|resume|clear|fork` group into the `compact` group in a
@@ -1415,6 +1510,93 @@ def self_test(must_fail: bool = False) -> int:
             not f16_clean,
         )
 
+        # 17. Phase 9 / G5 Finding F5 (closes A9.7) -- drift_override, applied
+        #     as a TEST FIXTURE against a scratch copy of the ledger, never
+        #     against the shipped module state (no host has this set for
+        #     real). Proves: (a) a valid override suppresses ONLY the target
+        #     host's wired-set/matcher-fidelity assertions, (b) every OTHER
+        #     host's assertions stay live (scoping, not a kill switch), and
+        #     (c) the suppression is visible via _drift_overridden_hosts()
+        #     -- the same function main()'s CI output and hooks-selftest.py's
+        #     "drift-overridden" verdict text both read, so the two surfaces
+        #     can never disagree.
+        saved_cursor_entry = dict(_WIRED_SET_LEDGER["cursor"])
+        try:
+            # 17a. Positive control: BEFORE any override, a planted
+            #      wired-set violation on cursor IS caught (proves the
+            #      fixture below is suppressing a REAL, live assertion, not
+            #      a vacuous one).
+            _WIRED_SET_LEDGER["cursor"]["required"] = frozenset(
+                saved_cursor_entry["required"] | {"a9-7-fixture-fake-hook.sh"}
+            )
+            f17a: list = []
+            check_c_wired_set(f17a, repo=repo)
+            check(
+                "self-test (A9.7 positive control): a planted cursor "
+                "wired-set violation IS caught before any drift_override "
+                "exists",
+                any("cursor" in x and "a9-7-fixture-fake-hook.sh" in x for x in f17a),
+            )
+
+            # 17b. Plant a VALID drift_override on cursor (fixture only --
+            #      the real _WIRED_SET_LEDGER["cursor"] on disk never sets
+            #      this). The SAME planted violation from 17a must now be
+            #      silent.
+            _WIRED_SET_LEDGER["cursor"]["drift_override"] = {
+                "reason": "A9.7 fixture -- simulated third-party CLI drift, discarded after this test",
+                "recorded": "2026-09-03",
+                "expires_review": None,
+            }
+            f17b: list = []
+            check_c_wired_set(f17b, repo=repo)
+            check(
+                "self-test (A9.7): a VALID drift_override suppresses the "
+                "SAME cursor violation that 17a proved was live",
+                not any("cursor" in x for x in f17b),
+            )
+
+            # 17c. Scoping: gemini gets the identical planted violation
+            #      shape, with NO override -- it must still fire. Proves the
+            #      cursor override does not silently widen into a kill
+            #      switch for every host.
+            saved_gemini_required = _WIRED_SET_LEDGER["gemini"]["required"]
+            _WIRED_SET_LEDGER["gemini"]["required"] = frozenset(
+                saved_gemini_required | {"a9-7-fixture-fake-hook.sh"}
+            )
+            f17c: list = []
+            check_c_wired_set(f17c, repo=repo)
+            check(
+                "self-test (A9.7 scoping): gemini's identical planted "
+                "violation STILL fires -- the cursor override did not "
+                "widen into a global suppression",
+                any("gemini" in x and "a9-7-fixture-fake-hook.sh" in x for x in f17c)
+                and not any("cursor" in x for x in f17c),
+            )
+            _WIRED_SET_LEDGER["gemini"]["required"] = saved_gemini_required
+
+            # 17d. Visibility: _drift_overridden_hosts() -- the function
+            #      both main()'s CI output and hooks-selftest.py's verdict
+            #      text call -- reports the fixture override, by reason.
+            active = _drift_overridden_hosts()
+            check(
+                "self-test (A9.7 visibility): _drift_overridden_hosts() "
+                "reports the fixture override on cursor with its reason",
+                "cursor" in active and "A9.7 fixture" in active["cursor"].get("reason", ""),
+            )
+        finally:
+            # Discard the fixture -- restore the real cursor row exactly,
+            # confirmed by the cleanup check below, not merely assumed.
+            _WIRED_SET_LEDGER["cursor"] = saved_cursor_entry
+        f17_clean: list = []
+        check_c_wired_set(f17_clean, repo=repo)
+        check_c_matcher_fidelity(f17_clean, repo=repo)
+        check(
+            "self-test (A9.7 cleanup verified): after discarding the "
+            "fixture, cursor's real ledger row is restored and reports "
+            "clean again -- no host has drift_override set for real",
+            not f17_clean and "cursor" not in _drift_overridden_hosts(),
+        )
+
     print(f"\ncheck-sessionstart-matcher-regression self-test: {passed} pass, {failed} fail")
     if must_fail:
         # --must-fail invocation: exit 0 only if every MUST-FAIL assertion
@@ -1445,6 +1627,17 @@ def main() -> int:
     # a clean run, since the scope limit it states is true regardless.
     if "copilot-cli" in _WIRED_SET_LEDGER:
         print(_copilot_cli_chat_annotation())
+    # Phase 9 / G5 F5: a drift_override's suppression must be VISIBLE in the
+    # gate's own CI output, never silent -- printed on EVERY invocation that
+    # has one active, independent of pass/fail, mirroring the copilot-cli
+    # chat annotation immediately above.
+    for host, ov in _drift_overridden_hosts().items():
+        print(
+            "PASS (drift-overridden -- see reason): %s's Tier-A wired-set/"
+            "matcher-fidelity assertions are suppressed. reason=%r "
+            "recorded=%r expires_review=%r"
+            % (host, ov.get("reason"), ov.get("recorded"), ov.get("expires_review"))
+        )
     return code
 
 
