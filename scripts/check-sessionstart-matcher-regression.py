@@ -126,6 +126,43 @@ _WIRED_SET_LEDGER = {
         "required": _ALL_SESSIONSTART_HOOKS,
         "matcher_fidelity": "none-by-platform",
     },
+    "claude-code": {
+        "source": "manifest",
+        # Claude Code has no generator and no _SKIP mechanism to exclude
+        # through -- its wiring IS hooks/hooks.json plus the dev-mirror
+        # .claude/settings.json, directly (checks A and B already assert
+        # both files). required is the full canonical set; nothing is
+        # legitimately excludable the way a generator's _SKIP can be.
+        "required": _ALL_SESSIONSTART_HOOKS,
+        "matcher_fidelity": "exact",
+        # Phase 3 only: claude-code's extractor (_extract_manifest) exposes
+        # the REAL per-hook matcher STRING (not just presence/absence, the
+        # way copilot-cli's fidelity check treats it) -- so its wiring can
+        # additionally be checked for LANE PARTITION (which basenames sit
+        # under which matcher group), via check_c_lane_partition below. Not
+        # set on the copilot-cli/cursor rows above -- out of Phase 3's
+        # scope; adding it there is a later phase's call, not this one's.
+        "lane_partitioned": True,
+    },
+}
+
+# Canonical lane -> expected-hook-set partition, read directly off the same
+# constants check A itself asserts against (_SOURCE_HOOKS/_COMPACT_HOOK via
+# _SOURCE_MATCHER/_COMPACT_MATCHER, plus the startup-only _HANDOFF_HOOK lane
+# that check A's own two assertions don't cover). Used only by
+# check_c_lane_partition -- check A still owns the direct hooks.json read;
+# this is the ledger/extractor-side view of the same partition, framed
+# per-hook rather than per-matcher-group so its findings read distinctly
+# from check A's.
+_LANE_GROUPS = {
+    _SOURCE_MATCHER: _SOURCE_HOOKS,
+    "startup": {_HANDOFF_HOOK},
+    _COMPACT_MATCHER: {_COMPACT_HOOK},
+}
+_LANE_LABELS = {
+    _SOURCE_MATCHER: "source (startup|resume|clear|fork)",
+    "startup": "startup-only",
+    _COMPACT_MATCHER: "compact",
 }
 
 _CURSOR_GEN = _REPO / "scripts" / "generate-cursor-hooks.py"
@@ -297,18 +334,40 @@ def _extract_cursor_flat(repo: Path) -> dict:
 
 def _extract_manifest(repo: Path) -> dict:
     """Claude Code has no generator -- its wiring IS `hooks/hooks.json` plus
-    the dev-mirror `.claude/settings.json`, read directly.
+    the dev-mirror `.claude/settings.json`, read directly (no subprocess, no
+    projector to run -- unlike every other extractor in this dispatch
+    table). Returns `{basename: matcher}`, exactly like every other
+    extractor, so check_c_wired_set/check_c_matcher_fidelity/
+    check_c_lane_partition can read it identically.
 
-    STUB for this phase: the signature/shape is defined now so every
-    extractor in `_EXTRACTORS` is callable identically, but the body is
-    Phase 3's job (the `claude-code` ledger row + the lane-partition
-    assertion that goes with it). Nothing in Phase 1 dispatches to this --
-    `claude-code` is not yet a key in `_WIRED_SET_LEDGER`.
+    Reads BOTH files (Phase 3's explicit ask): `hooks/hooks.json` is treated
+    as canonical (it is the plugin-shipped source of truth a consumer
+    actually installs), and `.claude/settings.json` is folded in as a
+    fallback ONLY for a basename hooks.json itself doesn't carry --
+    `setdefault`, never an override. In a healthy tree the two are already
+    byte-identical on this axis (check B enforces that), so the fallback
+    step is normally a no-op; it exists so a hook present ONLY in the
+    dev-mirror still surfaces to check C's ledger checks rather than this
+    extractor silently under-reporting relative to what Phase 3's own goal
+    calls "the wiring" (hooks.json *plus* the dev-mirror, not hooks.json
+    alone).
+
+    Deliberately does NOT re-assert hooks.json<->settings.json parity itself
+    -- that is check B's job (see module docstring); re-deriving it here
+    would be exactly the kind of duplication Phase 3's task scope forbids.
     """
-    raise NotImplementedError(
-        "_extract_manifest is a Phase-1 stub; its body ships with Phase 3's "
-        "claude-code ledger row"
-    )
+    hooks_json = repo / "plugins" / "ravenclaude-core" / "hooks" / "hooks.json"
+    settings_json = repo / ".claude" / "settings.json"
+    wired: dict = {}
+    if hooks_json.exists():
+        for matcher, names in _session_start_groups(hooks_json).items():
+            for name in names:
+                wired[name] = matcher
+    if settings_json.exists():
+        for matcher, names in _session_start_groups(settings_json).items():
+            for name in names:
+                wired.setdefault(name, matcher)
+    return wired
 
 
 # Dispatch table: ledger host key -> the extractor that knows how to read
@@ -421,6 +480,74 @@ def check_c_matcher_fidelity(findings: list, repo: Path | None = None) -> None:
             )
 
 
+def check_c_lane_partition(findings: list, repo: Path | None = None) -> None:
+    """Phase 3: asserts the LANE PARTITION -- which basenames sit under
+    which SessionStart matcher group (`startup|resume|clear|fork` vs
+    `startup` vs `compact`) -- for any ledgered host that opts in via
+    `lane_partitioned: True` (currently `claude-code` only; Phase 2's
+    copilot-cli/cursor rows do not set it and are unaffected by this
+    check).
+
+    This is a different axis from every other check in this module:
+
+      - check A reads hooks.json DIRECTLY and asserts its own literal
+        matcher STRING values, per matcher-group (module docstring, "A.").
+        This check goes through the host's EXTRACTOR instead -- the same
+        abstraction check_c_wired_set/check_c_matcher_fidelity use -- and
+        asserts, per REQUIRED HOOK, that its extracted matcher places it in
+        the lane hooks.json's own canonical partition says it belongs to.
+        Findings are phrased per-hook ("X is wired under lane Y, belongs in
+        lane Z"), never restating check A's per-matcher-group "hook set is
+        A, expected B" wording -- so the two remain distinguishable in
+        output even though both can (correctly) fire on the same mutant
+        (A3.2/A3.3: two independent checks catching one underlying problem
+        from different angles is fine; a check silently subsuming the
+        other's job is not).
+      - check_c_wired_set asserts MEMBERSHIP only (is the hook wired at
+        all) -- a hook moved to the wrong matcher group is still "wired",
+        so that check cannot see this regression class.
+      - check_c_matcher_fidelity asserts PRESENCE/ABSENCE of a matcher only
+        (declared "exact" vs emitted none) -- a hook with the wrong matcher
+        STILL has *a* matcher, so that check cannot see this class either.
+
+    A hook silently reassigned to a different SessionStart matcher group --
+    present, correctly matcher-having, just wired into the wrong lane -- is
+    invisible to both of the above and is exactly what this check exists to
+    catch.
+    """
+    r = repo or _REPO
+    for host, entry in _WIRED_SET_LEDGER.items():
+        if not entry.get("lane_partitioned"):
+            continue
+        extractor = _EXTRACTORS.get(host)
+        if extractor is None:
+            continue  # already reported by check_c_wired_set
+        try:
+            actual = extractor(r)
+        except NotImplementedError:
+            continue  # stub host; already reported by check_c_wired_set
+        if not actual:
+            continue  # EMPTY-EXTRACTION already reported by check_c_wired_set
+        for lane, expected_hooks in _LANE_GROUPS.items():
+            for hook in expected_hooks:
+                if hook not in actual:
+                    continue  # missing entirely -- already a wired-set finding
+                actual_matcher = actual[hook]
+                if actual_matcher != lane:
+                    findings.append(
+                        "C: LANE-PARTITION -- %s's %s is wired under the %s lane "
+                        "but belongs in the %s lane per hooks.json's own canonical "
+                        "partition -- a hook moved between SessionStart matcher "
+                        "groups, not a hook-count or matcher-presence problem"
+                        % (
+                            host,
+                            hook,
+                            _LANE_LABELS.get(actual_matcher, repr(actual_matcher)),
+                            _LANE_LABELS.get(lane, lane),
+                        )
+                    )
+
+
 def run(repo: Path | None = None) -> tuple[int, list]:
     findings: list = []
     try:
@@ -428,6 +555,7 @@ def run(repo: Path | None = None) -> tuple[int, list]:
         check_b_parity(findings)
         check_c_wired_set(findings, repo=repo)
         check_c_matcher_fidelity(findings, repo=repo)
+        check_c_lane_partition(findings, repo=repo)
     except (OSError, json.JSONDecodeError, subprocess.CalledProcessError) as exc:
         return 1, [f"could not run: {exc}"]
     if findings:
@@ -628,6 +756,78 @@ def self_test(must_fail: bool = False) -> int:
                 "self-test MUST-FAIL (A2.4, matcher add, INVERSE): check C reports MATCHER-FIDELITY for cursor",
                 any("MATCHER-FIDELITY" in x and "cursor" in x for x in f8),
             )
+
+        # 9. Mutant (A3.2, claude-code): move dashboard-autostart.sh from the
+        #    `startup|resume|clear|fork` group into the `compact` group in a
+        #    fixture manifest. Both check A (the existing, unchanged
+        #    matcher-value assertion) and the new check_c_lane_partition
+        #    must fire -- and A3.3 requires BOTH to fire together, with
+        #    check C's finding naming the LANE, not restating check A's own
+        #    "hook set is X, expected Y" wording.
+        data9 = json.loads(hooks_json.read_text(encoding="utf-8"))
+        source_entry9 = next(
+            e for e in data9["hooks"]["SessionStart"] if e.get("matcher") == _SOURCE_MATCHER
+        )
+        compact_entry9 = next(
+            e for e in data9["hooks"]["SessionStart"] if e.get("matcher") == _COMPACT_MATCHER
+        )
+        moved9 = None
+        kept9 = []
+        for h in source_entry9["hooks"]:
+            if "dashboard-autostart.sh" in h.get("command", ""):
+                moved9 = h
+            else:
+                kept9.append(h)
+        source_entry9["hooks"] = kept9
+        if moved9 is None:
+            check(
+                "self-test MUST-FAIL setup: A3.2 dashboard-autostart.sh found in the source group",
+                False,
+            )
+        else:
+            compact_entry9["hooks"].append(moved9)
+            hooks_json.write_text(json.dumps(data9), encoding="utf-8")
+
+            f9a: list = []
+            check_a_canonical_matcher(f9a, hooks_json_path=hooks_json)
+            f9c: list = []
+            check_c_lane_partition(f9c, repo=repo)
+
+            check(
+                "self-test MUST-FAIL (A3.2, claude-code lane move): check A fires on the moved hook",
+                any("A:" in x for x in f9a),
+            )
+            check(
+                "self-test MUST-FAIL (A3.2, claude-code lane move): check C fires a "
+                "LANE-PARTITION finding naming dashboard-autostart.sh and claude-code",
+                any(
+                    "LANE-PARTITION" in x and "dashboard-autostart.sh" in x and "claude-code" in x
+                    for x in f9c
+                ),
+            )
+            check(
+                "self-test A3.3 (no overlap-suppression): check A still fired "
+                "(not silently subsumed by check C firing)",
+                len(f9a) > 0,
+            )
+            check(
+                "self-test A3.3 (no overlap-suppression): check C still fired "
+                "(not silently subsumed by check A firing)",
+                len(f9c) > 0,
+            )
+            check(
+                "self-test (findings distinguishable): check A's finding text does "
+                "NOT contain check C's LANE-PARTITION marker",
+                not any("LANE-PARTITION" in x for x in f9a),
+            )
+            check(
+                "self-test (findings distinguishable): check C's finding text does "
+                "NOT restate check A's 'hook set is' wording",
+                not any("hook set is" in x for x in f9c),
+            )
+
+            # restore before the next block reads a clean hooks_json again
+            hooks_json.write_text(_HOOKS_JSON.read_text(encoding="utf-8"), encoding="utf-8")
 
     print(f"\ncheck-sessionstart-matcher-regression self-test: {passed} pass, {failed} fail")
     if must_fail:

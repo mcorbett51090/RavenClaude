@@ -350,3 +350,242 @@ _rc_host_sessionstart_canary() {
   warn "canary(sessionstart): $host INVOCATION failure — the planted marker did not fire."
   return 3
 }
+
+# ── TIER D LANE — a real short-lived host session (plan.md Phase 7, §1.3) ──
+#
+# Everything above this line (_rc_host_canary / _rc_host_sessionstart_canary) is
+# TIER A — it drives an ADAPTER SEAM with a synthetic payload. Tier A proves the
+# seam; it cannot prove the host's own BINARY honors a real on-disk hook config
+# (M10, stated at the top of this file). Tier D closes that gap the only way
+# that is actually possible: spawn a real, bounded, tool-less one-shot host
+# session against a SCRATCH project whose hook config wires ONLY the planted
+# probe, and check whether the marker fired for real.
+#
+# Reuses the mechanism Plan-B's Finding 3 already live-proved this session (see
+# plan.md §1.3 "Claude Code -> D"), rather than re-deriving it: a scratch
+# `.claude/settings.json` `SessionStart` hook wired to a probe, driven by
+# `claude -p "<no-op>"`, with `claude --help`'s `--bare` flag ("skip hooks, LSP,
+# plugin sync") as the corroborating negative control.
+#
+# ── FOUR NON-NEGOTIABLE PROPERTIES (plan.md Phase 7) — read before editing ──
+#  1. NEVER runs against the real project. The scratch dir (`mktemp -d`) is the
+#     ONLY `cwd` ever used for the spawn below — never the caller's $PWD, never
+#     $CLAUDE_PROJECT_DIR. Verified by A7.3 (git status --porcelain on the REAL
+#     project tree is empty after a run).
+#  2. POSITIVE CONTROL before any "did not fire" is trusted. The bidirectional
+#     evidence (A7.1 fires on a real probe path, A7.2 does NOT fire on a
+#     nonexistent one) lives in the acceptance-test script, not baked into every
+#     runtime call — same precedent as Tier A above, whose bidirectionality
+#     lives in Gate 207's fixtures, not inside `_rc_host_canary` itself.
+#  3. Absent CLI => explicit skip (never silent, never a downgrade with no
+#     note). Every skip path below calls `note`/`warn` before returning 1.
+#  4. Every scratch hook-config write is a SINGLE-SHOT `printf '%s' "$json" >
+#     "$file"` from a fully-constructed variable. NEVER a heredoc — this repo's
+#     own command-review tribunal denies a heredoc-shaped `cat` write to a
+#     scratch `.claude/settings.json` path while the identical content via a
+#     single printf succeeds immediately (verified live this session). A denied
+#     write here means the probe's marker is never planted and Tier D reports
+#     "did-not-fire" — indistinguishable from a genuine regression.
+#
+# ── HONEST LIMIT ──────────────────────────────────────────────────────────
+# A one-shot `-p` spawn exercises the `startup` source only — it does NOT
+# exercise `resume` / `clear` / `compact` (no CLI trigger fires those without an
+# existing session to act on). Tier D proves the host binary dispatches
+# SessionStart for real; it says nothing about the other three sources.
+#
+# ── PER-HOST SCOPE (plan.md §1.3) ───────────────────────────────────────────
+# Only claude-code and copilot have a verified one-shot, non-interactive,
+# scratch-scoped spawn mechanism (`claude -p` / `copilot -p`). codex (hook
+# trust-by-hash — a freshly-written scratch config is untrusted by
+# construction), cursor (no verified one-shot invocation; fails OPEN on a
+# malformed hook response, so an inconclusive D result there is actively
+# misleading), and gemini (CLI presence unestablished on the dev machine) are
+# all declared Tier A in §1.3 — Tier D for them is a documented non-goal here,
+# not a silent gap.
+
+# _rc_canary_tier_d_hosts — the only hosts with a built mechanism. Single
+# source of truth for both the availability check and the CLI-name lookup, so
+# they cannot silently disagree about which hosts are in scope.
+_rc_canary_tier_d_cli_for() {
+  case "$1" in
+    claude-code) printf '%s\n' "claude" ;;
+    copilot) printf '%s\n' "copilot" ;;
+    *) return 1 ;;
+  esac
+}
+
+# _rc_canary_tier_d_write_probe PROBE TOKEN MARKER — plant the marker-writer.
+# Values are baked in directly (not via env-var indirection) so the check does
+# not depend on an untested assumption that a host's real binary propagates
+# arbitrary parent-process env vars all the way down into its own internally
+# spawned hook subprocess — a chain Tier A never has to cross (its "spawn" is
+# our own direct invocation of the adapter script).
+_rc_canary_tier_d_write_probe() {
+  local probe="$1" token="$2" marker="$3"
+  printf '%s\n' '#!/usr/bin/env bash' >"$probe"
+  printf 'printf "%%s\\n" "%s" > "%s"\n' "$token" "$marker" >>"$probe"
+  printf '%s\n' 'exit 0' >>"$probe"
+  chmod +x "$probe" 2>/dev/null
+}
+
+# _rc_canary_tier_d_write_config HOST SCRATCH PROBE — wire ONLY the planted
+# probe on SessionStart into a scratch project's hook config. Property 4:
+# every write here is a single-shot `printf '%s' "$json" > "$file"` from a
+# fully-constructed variable — no heredoc anywhere in this function.
+_rc_canary_tier_d_write_config() {
+  local host="$1" scratch="$2" probe="$3" dir file json
+  case "$host" in
+    claude-code)
+      dir="$scratch/.claude"
+      mkdir -p "$dir" 2>/dev/null || return 1
+      file="$dir/settings.json"
+      json=$(printf '{"hooks":{"SessionStart":[{"hooks":[{"type":"command","command":"bash \\"%s\\""}]}]}}' "$probe")
+      printf '%s' "$json" >"$file"
+      ;;
+    copilot)
+      dir="$scratch/.github/hooks"
+      mkdir -p "$dir" 2>/dev/null || return 1
+      # `.github/hooks/NAME.json` is repository-scoped; git-init the scratch
+      # dir so Copilot resolves it as a repository rather than an ad-hoc path.
+      command -v git >/dev/null 2>&1 && git init -q "$scratch" >/dev/null 2>&1
+      file="$dir/tier-d-probe.json"
+      json=$(printf '{"version":1,"hooks":{"SessionStart":[{"type":"command","bash":"bash \\"%s\\"","timeoutSec":8}]}}' "$probe")
+      printf '%s' "$json" >"$file"
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+  [ -s "$file" ]
+}
+
+# _rc_canary_tier_d_spawn HOST SCRATCH — the bounded, tool-less one-shot spawn.
+# `cd` into the scratch dir in a SUBSHELL (never the caller's shell) so
+# property 1 holds even if a future edit forgets to pass an explicit cwd flag.
+_rc_canary_tier_d_spawn() {
+  local host="$1" scratch="$2"
+  case "$host" in
+    claude-code)
+      ( cd "$scratch" 2>/dev/null && _rc_timeout 25 claude -p "reply with just the word OK" --tools "" ) >/dev/null 2>&1
+      return $?
+      ;;
+    copilot)
+      ( cd "$scratch" 2>/dev/null && _rc_timeout 25 copilot -C "$scratch" -p "reply with just the word OK" --model auto --allow-all-tools --deny-tool write --deny-tool shell --silent --output-format text ) >/dev/null 2>&1
+      return $?
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
+# _rc_host_tier_d_canary HOST [PROJECT] — the Tier D entry point.
+#
+# Return codes (distinct from both _rc_host_canary's 0/1/2 and
+# _rc_host_sessionstart_canary's 0/1/2/3 — a caller must never have to guess
+# which lane produced a given code):
+#   0  the host's own binary dispatched SessionStart for real (marker fired)
+#   1  SKIP — tier D unavailable for this host, CLI absent, or kill-switched
+#      (RC_SELFTEST_TIER=a). Falls back to tier A. NEVER silent.
+#   2  the spawn ran (CLI present, scratch config wired) but the marker did
+#      NOT fire — a candidate regression on the host's real dispatch path
+#   3  HARNESS error (scratch provisioning / config write failed) — NOT a
+#      dispatch verdict; must not be conflated with 2 (property 2)
+_rc_host_tier_d_canary() {
+  local host="${1:-}" project="${2:-$PWD}"
+  local cli scratch outdir token marker probe rc marker_ok
+  [ -n "$host" ] || return 1
+
+  case "${RC_SELFTEST_TIER:-}" in
+    [Aa])
+      note "canary(tier-d): RC_SELFTEST_TIER=a — forced to tier A everywhere; skip (tier D unavailable) -> falls back to tier A"
+      return 1
+      ;;
+  esac
+
+  cli="$(_rc_canary_tier_d_cli_for "$host" 2>/dev/null)" || {
+    note "canary(tier-d): $host has no built Tier D mechanism (declared tier A in plan.md §1.3) — skip (tier D unavailable) -> falls back to tier A"
+    return 1
+  }
+  if ! command -v "$cli" >/dev/null 2>&1; then
+    note "canary(tier-d): $host CLI ('$cli') not found on PATH — skip (tier D unavailable) -> falls back to tier A"
+    return 1
+  fi
+
+  scratch="$(mktemp -d "${TMPDIR:-/tmp}/rc-canary-tier-d.XXXXXX" 2>/dev/null)" || {
+    warn "canary(tier-d): $host could not create a scratch project dir — HARNESS error, not a dispatch verdict"
+    return 3
+  }
+  outdir="$scratch/.rc-tier-d-out"
+  mkdir -p "$outdir" 2>/dev/null || {
+    warn "canary(tier-d): $host could not create the scratch output dir — HARNESS error, not a dispatch verdict"
+    rm -rf "$scratch" 2>/dev/null
+    return 3
+  }
+  token="rc-tier-d-$$-$RANDOM"
+  marker="$outdir/marker"
+  probe="$outdir/probe.sh"
+  _rc_canary_tier_d_write_probe "$probe" "$token" "$marker"
+
+  if ! _rc_canary_tier_d_write_config "$host" "$scratch" "$probe"; then
+    warn "canary(tier-d): $host could not wire the scratch hook config — HARNESS error, not a dispatch verdict"
+    rm -rf "$scratch" 2>/dev/null
+    return 3
+  fi
+
+  _rc_canary_ensure_timeout
+  # PROPERTY 1 — the scratch dir above is the ONLY cwd this spawn ever uses.
+  _rc_canary_tier_d_spawn "$host" "$scratch"
+  rc=$?
+
+  marker_ok=0
+  if [ -f "$marker" ] && [ "$(cat "$marker" 2>/dev/null)" = "$token" ]; then
+    marker_ok=1
+  fi
+  rm -rf "$scratch" 2>/dev/null
+
+  if [ "$marker_ok" -eq 1 ]; then
+    ok "canary(tier-d): $host real session dispatched SessionStart (planted marker fired for real)"
+    return 0
+  fi
+  warn "canary(tier-d): $host real session did NOT dispatch the planted SessionStart marker (spawn exit=$rc) — candidate regression on the host's own binary, not just the adapter seam."
+  return 2
+}
+
+# _rc_canary_declared_tier HOST — the plan.md §1.3 declared tier for HOST
+# (D | A | S). Single source of truth so a future caller (Phase 8's `rc hooks
+# selftest`) and this phase's own anti-degradation acceptance test (A7.6)
+# cannot silently disagree about what "declared D" means.
+#
+# copilot is declared D "if present, else A" (§1.3) — the "D" here is the
+# ASPIRATION the ledger is judged against; A7.5 is what actually MEASURES
+# whether a given run achieves it. That is the whole point of anti-degradation:
+# declaring D is not the same as achieving it, and this function must not
+# collapse that distinction by only ever returning what was last observed.
+_rc_canary_declared_tier() {
+  case "$1" in
+    claude-code) printf 'D\n' ;;
+    copilot) printf 'D\n' ;;
+    codex) printf 'A\n' ;;
+    cursor) printf 'A\n' ;;
+    gemini) printf 'A\n' ;;
+    grok) printf 'S\n' ;;
+    *) printf 'A\n' ;;
+  esac
+}
+
+# _rc_canary_anti_degradation DECLARED ACHIEVED — plan.md §1.3's invariant,
+# implemented as real code rather than left as prose: "A tier-A pass on a
+# host whose declared tier is D is a FAIL — this is the anti-silent-
+# degradation clause, and it is what stops the harness from failing toward
+# green." Prints PASS or FAIL to stdout (never silent) and returns 0/1 to
+# match, so a caller can branch on either.
+_rc_canary_anti_degradation() {
+  local declared="${1:-}" achieved="${2:-}"
+  if [ "$declared" = "D" ] && [ "$achieved" != "D" ]; then
+    printf 'FAIL\n'
+    return 1
+  fi
+  printf 'PASS\n'
+  return 0
+}
