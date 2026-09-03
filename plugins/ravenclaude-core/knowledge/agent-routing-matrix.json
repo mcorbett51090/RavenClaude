@@ -36,6 +36,10 @@
     {
       "id": "copilot-chat-c8",
       "note": "GitHub Copilot docs (docs.github.com/en/copilot/reference/ai-models/supported-models), retrieved 2026-09-01 this build -- no per-Chat model-availability table; Chat inherits its client's (VS Code's) row in the documented per-client table. Copilot CLI and Chat are NOT equivalent for model SELECTABILITY -- see agent-routing-matrix.md."
+    },
+    {
+      "id": "openrouter-pricing",
+      "note": "OpenRouter's public model-listing API (openrouter.ai/api/v1/models), retrieved 2026-09-03 this build -- unauthenticated, structured JSON, no summarization layer between the source and this file. Used only for per-token pricing (converted to $/M tokens) to ground cost-heuristic rationale below; OpenRouter is a resale/proxy marketplace, not the vendor -- treat prices as directionally correct, not the vendor's own billed rate. llm-stats.com (docs/research/2026-09-02-llm-stats-api-verification.md) was the original target for this citation but its API requires a paid-account signup this build could not complete; superseded here for the pricing use case only. SWE-Bench Verified / Coding Arena capability-fact citations remain unfilled -- swebench.com's public leaderboard (both the root page and verified.html, checked 2026-09-03) does not list these model tiers yet."
     }
   ],
   "agent_hosts": {
@@ -345,8 +349,8 @@
           "model_ref": { "host": "claude", "tier": "top" },
           "rank": 1,
           "basis": "cost-heuristic",
-          "rationale": "An unsupervised multi-step analysis that must reconcile genuinely conflicting sources or an ambiguous methodology before reporting a conclusion is the hard tail: the frontier tier's reconciliation strength justifies its premium here, same logic as research-deep's agent/reversible cell.",
-          "sources": ["cost-tree"]
+          "rationale": "An unsupervised multi-step analysis that must reconcile genuinely conflicting sources or an ambiguous methodology before reporting a conclusion is the hard tail: the frontier tier's reconciliation strength justifies its premium here, same logic as research-deep's agent/reversible cell. Per OpenRouter's public model-listing API (retrieved 2026-09-03), the claude top tier prices at $5.00/M input tokens ($25.00/M output) vs the claude balanced tier's $2.00/M input ($10.00/M output) -- a 2.5x premium on input, small relative to the cost of a wrong reconciliation on a report a human will act on.",
+          "sources": ["cost-tree", "openrouter-pricing"]
         },
         {
           "interaction_mode": "agent",

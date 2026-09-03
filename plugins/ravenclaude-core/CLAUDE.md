@@ -4292,3 +4292,32 @@ missing; that is now wired, but has not yet been observed catching a real skippe
 additive, and the SKILL/command edits change the pipeline's *record-keeping order*, not any gate's
 semantics, flags, artifact paths, or counts. Nothing in a consumer's installed plugin behaves
 differently on `/plugin marketplace update` until they run `/forge`.
+
+## Agent routing matrix gains its first external citation — and a live correction of the plan to get one (added 2026-09-03, v0.315.1)
+
+Follow-up to the v0.311.0 agent-routing-matrix build: the owner asked whether llm-stats.com's data
+could ground the matrix's heuristic recommendations. It could, narrowly — but the account created to
+pull it hit a **paid-signup wall mid-session** (`docs/research/2026-09-02-llm-stats-api-verification.md`
+already records that same site's API host/endpoint claims being fabricated by a WebFetch summarization
+pass earlier the same day; this is the second correction the same investigation needed).
+
+**Pivoted to OpenRouter's public model-listing API** (`openrouter.ai/api/v1/models`) instead of waiting
+on the paywall — unauthenticated, returns raw structured JSON (no summarization layer, no fabrication
+risk), and covers per-token pricing for every model tier this matrix names. Landed as a new `sources[]`
+entry (`openrouter-pricing`) and used to ground the `data-analysis` → `agent`/`reversible` cell's
+`cost-heuristic` rationale with real $/M-token figures instead of an asserted-on-faith premium claim —
+Gate 255 passes clean, including check B (the derived vendor-fact ban-list), because the rationale
+cites **tier language** ("the claude top tier"), never a raw SKU string.
+
+**SWE-Bench Verified / Coding Arena `capability-fact` citations were checked and deliberately NOT
+added.** swebench.com's public leaderboard (root page and `verified.html`, both checked 2026-09-03)
+does not list any of the model tiers this matrix names — plausibly because they're too new to have been
+submitted yet, not because the site is unreliable (unlike the llm-stats.com API-doc confusion, this is
+a real absence, not a fabrication). Rather than manufacture a comparison, the two candidate cells
+(`coding-implementation` → `agent`/`reversible`'s 3-way rank, `coding-debugging-design` →
+`agent`/`reversible`'s single-agent cell) stay as they were, with the remaining work spelled out in
+[`docs/plans/2026-09-02-llm-stats-agent-routing-citations/plan.md`](../../docs/plans/2026-09-02-llm-stats-agent-routing-citations/plan.md).
+
+**Migration:** none — one new `sources[]` entry and one enriched `rationale` string; no schema change,
+no `rank` reordering, no new `basis` value. `scripts/generate-copilot-plugin.py` regenerated for the
+version bump (only `copilot/plugin.json`'s version line changed).
