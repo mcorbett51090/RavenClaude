@@ -64,7 +64,12 @@ const RC_BASELINE = {
   //        53 -> 54: skills/session-handoff (v0.266.0, context-quality reset)
   //        52 -> 53: skills/design-clone (v0.253.0, design-schema capture+apply)
   //        51 -> 52: skills/github-gold-standard (v0.246.0, the gold-standard scorecard)
-  tools: 43, // 42 -> 43: scripts/check-agent-routing-matrix.py (Gate 255, the agent-routing-matrix
+  tools: 44, // 43 -> 44: scripts/forge-receipt.py (the FORGE Saga run-record recorder/verifier,
+  //   Phase 0 of the forge-pipeline-architect-review plan — Gate 263).
+  //   COUNTED, not inferred: `find plugins/ravenclaude-core/scripts -maxdepth 1 -name "*.py" | wc -l`
+  //   -> 44 on this tree. forge-publish-session-plan.sh is bash and gained only a --self-test,
+  //   so it does not also raise this count.
+  //        42 -> 43: scripts/check-agent-routing-matrix.py (Gate 255, the agent-routing-matrix
   //   FORGE plan — the routing table's own schema/anti-duplication/totality gate driver).
   //   COUNTED, not inferred: `find plugins/ravenclaude-core/scripts -maxdepth 1 -name "*.py" | wc -l`
   //   -> 43 on this tree.

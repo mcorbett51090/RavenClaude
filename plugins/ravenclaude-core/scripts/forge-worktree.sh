@@ -425,7 +425,18 @@ cmd_self_test() {
   # Build a real upstream + clone so origin/main can be made to LEAD local main.
   local up="${scratch}/upstream.git" dn="${scratch}/downstream"
   (
-    git init -q --bare "$up"
+    # ⛔ Pin the bare repo's HEAD symref explicitly (`-b main`) — do not rely
+    # on the ambient `init.defaultBranch`. This machine's macOS system
+    # gitconfig sets init.defaultbranch=main
+    # (/Library/Developer/CommandLineTools/usr/share/git-core/gitconfig);
+    # GitHub Actions' Ubuntu runner has no such override. Without `-b main`,
+    # $up's HEAD symref points at a "master" ref that `dn` never creates (it
+    # pushes "main"), so a later clone of $up can't resolve HEAD and the
+    # "pusher" fixture's own push then fails with "src refspec main does not
+    # match any". control: this session's real CI run (job 100613050124)
+    # reproduced exactly that error at that exact step; see
+    # .ravenclaude/runs/premise/.../control.md for the full trace.
+    git init -q --bare -b main "$up"
     git clone -q "$up" "$dn" 2>/dev/null
     cd "$dn"
     git config user.email st@example.com
