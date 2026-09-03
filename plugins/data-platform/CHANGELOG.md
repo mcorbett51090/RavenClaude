@@ -2,6 +2,41 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.23.0] — 2026-09-03
+
+### Fixed
+
+- **P1-8** — `best-practices/dashboard-provenance-on-every-widget.md` (an ABSOLUTE rule) requires
+  source query + date range + comparison baseline on every widget; `KpiCard.tsx`'s
+  `useCubeQuery({ measures })` carried no `timeDimensions` and no baseline label while its own
+  docblock claimed the rule satisfied. Separately, `agents/dashboard-builder.md` claimed WCAG
+  2.1 AA while `knowledge/dashboard-visual-craft-2026.md` declared a WCAG 2.2 floor -- two
+  different numbers for one plugin -- and `grep -rnE 'aria-[a-z]+|role=' templates/cube-*-
+  dashboard-starter` returned zero real matches in either starter (confirmed with a positive
+  control proving the probe could see the tree).
+  - Reconciled to **WCAG 2.2 AA** everywhere (a superset of 2.1) across `agents/dashboard-
+    builder.md`, `templates/dashboard-engagement-checklist.md`,
+    `knowledge/dashboard-visual-craft-2026.md`. `grep -rn "WCAG 2\.1" plugins/data-platform`
+    now returns 0.
+  - Rewrote `KpiCard.tsx`/`RevenueChart.tsx` in **both** starters separately (per the critic's
+    finding that the Astro copy is a separately-maintained duplicate, not byte-shared with the
+    Next.js version -- a union grep across both trees can pass with only one fixed): real
+    `timeDimensions` with a current-period + comparison-period Cube query pair, a visible
+    provenance footer naming the measure/date-range/baseline, `role="status"`/`aria-live` on
+    async-updating regions, `role="img"`/`aria-label` + a visually-hidden `<table>` fallback on
+    charts, `role="alert"` + icon-and-text (not color-alone) on error states.
+  - New `best-practices/dashboard-meet-the-accessibility-floor.md` codifying the reconciled
+    floor as a citable, absolute rule.
+  - Added an `axe-core` (`@axe-core/playwright`) assertion to the shared
+    `templates/ci-headless-smoke.js` -- zero serious/critical violations, asserted per starter
+    (two independent CI jobs, not a union).
+  - Both starters verified: `tsc --noEmit`/`astro check` clean, production build clean,
+    `aria-`/`role=` grep non-zero in both trees (confirmed separately, not via a union check).
+
+**Migration:** `KpiCard`'s prop signature changed -- `timeDimension` is now required (it was
+previously accepted only by `RevenueChart`). A consumer who forked either starter and calls
+`<KpiCard>` directly needs to add that prop.
+
 ## [0.22.0] — 2026-09-03
 
 ### Fixed

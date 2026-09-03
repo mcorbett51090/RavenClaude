@@ -28,13 +28,21 @@ export function DashboardShell({ tenantLabel }: DashboardShellProps) {
 
         <Grid numItemsMd={3} className="mt-6 gap-4">
           <Col numColSpanMd={1}>
-            <KpiCard title="Total revenue" measure="orders.total_revenue" />
+            <KpiCard
+              title="Total revenue"
+              measure="orders.total_revenue"
+              timeDimension="orders.order_date"
+            />
           </Col>
           <Col numColSpanMd={1}>
-            <KpiCard title="Orders" measure="orders.count" />
+            <KpiCard title="Orders" measure="orders.count" timeDimension="orders.order_date" />
           </Col>
           <Col numColSpanMd={1}>
-            <KpiCard title="Unique customers" measure="orders.unique_customers" />
+            <KpiCard
+              title="Unique customers"
+              measure="orders.unique_customers"
+              timeDimension="orders.order_date"
+            />
           </Col>
         </Grid>
 

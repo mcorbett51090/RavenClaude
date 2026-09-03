@@ -6,7 +6,7 @@ Named, citable rules for the `data-platform` plugin's four-layer dashboard engag
 
 ## Index
 
-_33 rules. Each file is one named, citable rule; read and apply it whole._
+_34 rules. Each file is one named, citable rule; read and apply it whole._
 
 | Doc | Status | Use when |
 |---|---|---|
@@ -37,6 +37,7 @@ _33 rules. Each file is one named, citable rule; read and apply it whole._
 | [`connector-qbo-oauth-100-day-refresh.md`](./connector-qbo-oauth-100-day-refresh.md) | Absolute rule | Pre-emptively refresh the QBO OAuth token at 85 days — never let it lapse to the 100-day hard expiry or the pipeline goes dark silently. |
 | [`single-tenant-document-the-assumption.md`](./single-tenant-document-the-assumption.md) | Absolute rule | Every single-tenant engagement records an explicit tenancy assumption + multi-tenant pivot checklist so a future pivot doesn't inherit a silently-missing control. |
 | [`dashboard-provenance-on-every-widget.md`](./dashboard-provenance-on-every-widget.md) | Absolute rule | Every dashboard widget that makes a comparison, trend, or KPI claim must expose source query, date range, and comparison baseline. |
+| [`dashboard-meet-the-accessibility-floor.md`](./dashboard-meet-the-accessibility-floor.md) | Absolute rule | WCAG 2.2 AA is the plugin's single reconciled floor — live regions on async-updating data, a text alternative for every chart, error/status signaling that never relies on color alone, visible focus indicators, 200%-zoom reflow. |
 | [`pricing-claims-carry-retrieval-dates.md`](./pricing-claims-carry-retrieval-dates.md) | Absolute rule | Every pricing figure in any deliverable or knowledge file carries an inline retrieval date and is re-verified before client presentation. |
 | [`engagement-pick-stack-before-dashboard.md`](./engagement-pick-stack-before-dashboard.md) | Absolute rule | Choose the database before the dashboard framework; the DB's tenant model and connection capabilities constrain the correct BI tool choice. |
 | [`dbt-build-role-separate-from-query-role.md`](./dbt-build-role-separate-from-query-role.md) | Absolute rule | The dbt build role (CREATE) and the dashboard query role (SELECT only) must be separate DB principals; never use a single user for both. |

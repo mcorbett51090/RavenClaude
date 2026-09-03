@@ -46,7 +46,7 @@
 - [ ] Auth integration tested
 - [ ] Visual design aligned with host site (route to `web-design/visual-designer` if installed)
 - [ ] Responsive layouts verified (desktop, tablet, mobile)
-- [ ] Accessibility audit (WCAG 2.1 AA basics — keyboard nav, contrast, alt text)
+- [ ] Accessibility audit (WCAG 2.2 AA basics — keyboard nav, contrast, alt text, reflow at 200% zoom)
 
 ### Embed + auth (Case B / C only)
 - [ ] JWT issuer scaffolded with `tenant_id` claim from session
