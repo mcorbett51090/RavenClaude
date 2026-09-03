@@ -27,9 +27,46 @@ const RATE_LIMIT_MAX_REQUESTS = 30;
 const RATE_LIMIT_WINDOW_MS = 60_000;
 const requestLog = new Map<string, number[]>();
 
+// Bounded eviction (FORGE dashboard-top1pct P0-5, 2026-09-03): requestLog grew
+// one entry per distinct session.userId, forever, with no eviction — a slow
+// memory leak in the file whose own header claims a considered security
+// posture. Every call opportunistically sweeps stale keys (an empty
+// timestamps array after the window filter below) at most once per
+// SWEEP_INTERVAL_MS, so the map's size tracks active users in the current
+// window, not total users ever seen.
+const SWEEP_INTERVAL_MS = 5 * 60_000; // 5 min
+let lastSweptAtMs = 0;
+
+function sweepStaleEntries(now: number): void {
+  if (now - lastSweptAtMs < SWEEP_INTERVAL_MS) return;
+  lastSweptAtMs = now;
+  for (const [key, timestamps] of requestLog) {
+    const fresh = timestamps.filter((t) => now - t < RATE_LIMIT_WINDOW_MS);
+    if (fresh.length === 0) {
+      requestLog.delete(key);
+    } else if (fresh.length !== timestamps.length) {
+      requestLog.set(key, fresh);
+    }
+  }
+}
+
 function isRateLimited(key: string): boolean {
   const now = Date.now();
+  sweepStaleEntries(now);
   const timestamps = (requestLog.get(key) ?? []).filter((t) => now - t < RATE_LIMIT_WINDOW_MS);
+  // Return BEFORE pushing once already over the limit (found in security
+  // review, 2026-09-03): the sweep bounds the number of KEYS, but a caller
+  // already past the ceiling kept appending to its OWN array for the rest of
+  // the window while receiving 429s — those entries are fresh, not stale, so
+  // the sweep can't reclaim them. An authenticated user flooding this route
+  // drove the per-request .filter() to O(current length) over a linearly
+  // growing array: O(n^2) CPU across the window. Returning early here caps
+  // each key's array at RATE_LIMIT_MAX_REQUESTS + 1 regardless of how many
+  // more requests arrive.
+  if (timestamps.length > RATE_LIMIT_MAX_REQUESTS) {
+    requestLog.set(key, timestamps);
+    return true;
+  }
   timestamps.push(now);
   requestLog.set(key, timestamps);
   return timestamps.length > RATE_LIMIT_MAX_REQUESTS;
@@ -43,7 +80,10 @@ export async function POST() {
   if (isRateLimited(session.userId)) {
     return NextResponse.json(
       { error: "cube-token: rate limit exceeded." },
-      { status: 429, headers: { "Cache-Control": "no-store" } },
+      {
+        status: 429,
+        headers: { "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff" },
+      },
     );
   }
 
@@ -54,7 +94,10 @@ export async function POST() {
       {
         error: `cube-token: env var JWT_SIGNING_KEY must be a string of >= ${MIN_SIGNING_KEY_BYTES} bytes.`,
       },
-      { status: 500, headers: { "Cache-Control": "no-store" } },
+      {
+        status: 500,
+        headers: { "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff" },
+      },
     );
   }
 
@@ -76,7 +119,7 @@ export async function POST() {
 
   return NextResponse.json(
     { token, expiresIn: DEFAULT_EXPIRES_IN_SECONDS },
-    { headers: { "Cache-Control": "no-store" } },
+    { headers: { "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff" } },
   );
 }
 

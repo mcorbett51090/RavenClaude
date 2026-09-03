@@ -2,6 +2,81 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.20.0] — 2026-09-03
+
+### Fixed
+
+- **P0-5** — the execution-blocking-severity defects P0-4's build gate surfaced. Confirmed
+  empirically (not by inference) via direct build-and-grep testing this session:
+  - Both starters read `JWT_SIGNING_KEY`/`JWT_ISSUER`/`JWT_KEY_VERSION` (Astro) via
+    `import.meta.env.X` with a `||` fallback. Vite's dead-code-elimination froze the
+    `JWT_ISSUER`/`JWT_KEY_VERSION` reads to their literal fallback at build time when those
+    vars were unset during `astro build` — a later deployment's runtime value was silently
+    ignored until a rebuild. **One prior FORGE-plan claim was directly disconfirmed and
+    corrected rather than silently accepted**: the plan asserted the JWT signing *secret*
+    itself gets inlined into the built bundle. A canary value set at build time does NOT
+    appear anywhere in `dist/` — Astro compiled that specific bare `import.meta.env` read to
+    a genuine runtime `process.env` read in this Vite version. The real, narrower, confirmed
+    defect was the `||`-fallback freeze on `JWT_ISSUER`/`JWT_KEY_VERSION`, and the identical
+    pattern in `middleware.ts`'s `CUBE_API_ORIGIN` read (this one matched the plan's claim
+    exactly). All four switched to bare `process.env.X` reads.
+  - The Next.js starter's CSP, set via `next.config.js`'s `headers()`, is baked into
+    `.next/routes-manifest.json` once at `next build` time — confirmed by building without
+    `CUBE_API_ORIGIN` set and finding the frozen `localhost:4000` value in the manifest.
+    Moved to a new `middleware.ts` (runs per-request); the differential test — one built
+    artifact, booted twice with two different `CUBE_API_ORIGIN` env values, produces two
+    different `connect-src` header values — was run live, not asserted from inference.
+  - Added a nonce-based `script-src`/`style-src` to the Next.js starter, following Next.js's
+    own documented CSP recipe (verified via Context7 docs 2026-09-03). Added
+    `style-src 'self' 'unsafe-inline'` to the Astro starter — a documented, scoped
+    relaxation (Astro 4.x, the pinned line, has no native CSP hash/nonce mechanism —
+    confirmed absent from the installed `astro@4.16.19`'s own config types — and Recharts
+    renders inline `style="..."` attributes on SVG chart elements at runtime, which a hash
+    couldn't cover regardless); `script-src 'self'` needed no relaxation since Astro islands
+    hydrate via external `<script type="module">` tags, not inline.
+  - Both starters' unbounded `requestLog` rate-limiter map now sweeps stale entries every 5
+    minutes — verified with a standalone simulated-time test (50k distinct users across 5
+    cycles never left the map holding more than the currently-active set; a real-time burst
+    test alone couldn't exercise the eviction path).
+  - Named, not fixed: Next.js 16 deprecates the `middleware` filename/export in favor of
+    `proxy` (not a blocker today — deferred with the rest of the Next.js major-version
+    CVEs — but documented in `next.config.js`'s comments so a future bump doesn't require a
+    second rewrite of this file).
+- **P0-5, security-review round.** A dispatched `ravenclaude-core/security-reviewer` pass on
+  the above diff (mandatory per house rule) returned **blocked** — 1 real blocker, 5 concerns.
+  All fixed in this same change, all re-verified live against a booted server:
+  - **Blocker:** a bare nonced `style-src` authorizes inline `<style>` *elements* only, not
+    `style=""` *attributes* — exactly what `RevenueChart.tsx` and Recharts emit at runtime.
+    Would have collapsed the chart to 0px height. Fixed with the correct CSP Level 3 split
+    (`style-src-attr 'unsafe-inline'` + a `style-src-elem 'self'` that's tighter than before,
+    prod-only).
+  - `CUBE_API_ORIGIN` was interpolated raw into the CSP header — a value containing `;` could
+    inject an early directive, since CSP honors only the first occurrence of each one. Fixed
+    with a `safeOrigin()` validator (`URL`-parsed, origin-only, safe fallback); verified live
+    that an injection payload correctly falls back rather than reaching the header.
+  - The Next middleware matcher was unanchored (`api` matched `/apidashboard`, not just
+    `/api/`) and dropped the *whole* CSP, not just the nonce, on excluded/prefetch paths.
+    Fixed: only truly static assets are excluded from running the middleware; `/api/*` and
+    prefetches now get a real, nonce-free baseline CSP instead.
+  - The rate-limiter sweep bounds the number of keys but not a single key's array under a
+    sustained flood (O(n²) CPU, unbounded per-key growth the sweep can't reclaim). Fixed:
+    `isRateLimited` returns before pushing once already over the ceiling, in both starters.
+  - Added `X-Content-Type-Options: nosniff` to all `/api/cube-token` response paths.
+  - `astro.config.mjs`'s "swap only the adapter line" portability claim went stale under the
+    `process.env` fix (Workers-class targets have no usable `process.env`) — comment updated,
+    not the code.
+  - Added `@types/node` as an explicit Astro-starter devDependency (was only transitive).
+  - Promoted the Astro starter's existing `npm audit`-recorded middleware-bypass advisory from
+    a passing mention to an explicit instruction, since this diff routes more security posture
+    through that same middleware channel.
+
+**Migration:** the CSP headers moved from `next.config.js` to `middleware.ts` in the Next.js
+starter — a consumer who already copied the old `next.config.js` headers() block should
+delete it and adopt `middleware.ts` instead, or they'll get duplicate/conflicting CSP
+headers. Both starters' env-var-reading code changed from `import.meta.env`/mixed patterns
+to consistent `process.env` reads — no consumer-facing API change, but re-verify env-var
+propagation if you've forked these files.
+
 ## [0.19.0] — 2026-09-03
 
 ### Fixed
