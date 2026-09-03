@@ -2883,7 +2883,7 @@ than widened.
 
 **Sources:** [this build's own G4a critic (correlated-error pass) and G5 red-team, PR](https://github.com/mcorbett51090/RavenClaude/pull/1067)
 
-_Last verified: 2026-09-01_
+_Last verified: 2026-09-03_
 
 
 ---
