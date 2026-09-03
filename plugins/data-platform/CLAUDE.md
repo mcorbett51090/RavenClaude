@@ -227,7 +227,7 @@ No server is invented; no `mcpServers` entry ships; no `NOTICE.md` (nothing thir
 
 ## 9. Templates in this plugin
 
-12 templates in v0.2.0, distributed by intended bar (3 runnable + 4 conceptual + 3 seam-marked stubs + 2 new v0.2.0 scaffolds).
+18 templates, distributed by intended bar (3 runnable + 4 conceptual + 3 seam-marked-stub-and-promoted pairs + 2 v0.2.0 modeling scaffolds + 1 v0.2.0 app scaffold).
 
 ### Runnable (security-critical — must compile / parse / pass denial test)
 
@@ -246,20 +246,28 @@ No server is invented; no `mcpServers` entry ships; no `NOTICE.md` (nothing thir
 | [`templates/evidence-portfolio-page.md`](templates/evidence-portfolio-page.md) | Evidence.dev `.md` page template — SQL fenced blocks + chart components + narrative prose |
 | [`templates/airbyte-source-config.yaml`](templates/airbyte-source-config.yaml) | Airbyte source connector config with slots for QBO, Stripe, Salesforce, HubSpot, GA4, Shopify with appropriate scope flags |
 
-### Seam-marked stubs (`.tsx.md` — document the seams; promoted to runnable when a real engagement validates)
+### Promoted embed components (v0.2.0) — the seam-marked `.tsx.md` stubs, now runnable
+
+Each pair: the `.tsx.md` file is kept as the seam rationale/history (now carrying a "✅ PROMOTED, then revised" banner), the sibling `.tsx`/`.ts` file(s) are the real, compiling code. **Honest status (read before quoting a client):** `ravenclaude-core/security-reviewer` reviewed the first promoted version of all three and returned a **blocked** verdict — a client-controlled tenant scope in the Superset and Power BI seams, and a secret/client-component colocation risk in the Metabase seam. All three were fixed in the same change; **the fixes have not yet been re-reviewed**, and live SDK-version confirmation against a real vendor instance + a real engagement using each seam are still open — this is "reviewed, findings fixed, fix not yet re-confirmed," not yet "field-proven."
+
+| Historical stub (rationale) | Runnable code | Use for |
+|---|---|---|
+| [`templates/superset-embed-iframe.tsx.md`](templates/superset-embed-iframe.tsx.md) | [`templates/superset-embed-iframe.tsx`](templates/superset-embed-iframe.tsx) + [`templates/superset-guest-token-endpoint.ts`](templates/superset-guest-token-endpoint.ts) | React component (no `tenantId` prop) + host-backend endpoint: Superset JWT-secured guest-token embed. Split into two files after review found the original single-component design let a caller pass `tenantId` client-side into the guest-token RLS clause — tenant resolution now lives only in the server-side endpoint, with the tenant-id shape validated before it reaches the clause. |
+| [`templates/metabase-interactive-embed.tsx.md`](templates/metabase-interactive-embed.tsx.md) | [`templates/metabase-interactive-embed.tsx`](templates/metabase-interactive-embed.tsx) (client) + [`templates/metabase-embed-url.server.ts`](templates/metabase-embed-url.server.ts) (server-only) | React component + URL builder: Metabase Interactive Embedding (Pro+) with locked `tenant_id`. Split into two files after review found the signing secret colocated with a client component in one module. |
+| [`templates/power-bi-embedded-react.tsx.md`](templates/power-bi-embedded-react.tsx.md) | [`templates/power-bi-embedded-react.tsx`](templates/power-bi-embedded-react.tsx) + [`templates/pbi-embed-token-endpoint.ts`](templates/pbi-embed-token-endpoint.ts) | React component (no `tenantId`/`daxRole` props) + host-backend endpoint: Power BI Embedded App-Owns-Data flow. Revised after review found the client composed the full DAX EffectiveIdentity (username + roles) unvalidated — the endpoint now resolves it server-side and refuses to issue a token for a roleless identity. |
+
+### v0.2.0 modeling-layer scaffolds
 
 | Template | Use for |
 |---|---|
-| [`templates/superset-embed-iframe.tsx.md`](templates/superset-embed-iframe.tsx.md) | React-component seam for Superset JWT-secured iframe embed with theme-override hooks |
-| [`templates/metabase-interactive-embed.tsx.md`](templates/metabase-interactive-embed.tsx.md) | React-component seam for Metabase Interactive Embedding (Pro+) with locked parameters |
-| [`templates/power-bi-embedded-react.tsx.md`](templates/power-bi-embedded-react.tsx.md) | React-component seam for Power BI Embedded App-Owns-Data flow |
+| [`templates/dbt-project-starter/`](templates/dbt-project-starter/) | 3-layer dbt project (staging / intermediate / marts) with `dbt_project.yml`, `profiles.yml.example`, source declarations + freshness tests, example `stg_quickbooks__customers.sql` + `dim_customer.sql` mart, and engagement-onboarding README |
+| [`templates/cube-schema-starter.yml`](templates/cube-schema-starter.yml) | Cube schema starter with `orders` + `customers` example cubes, mandatory `access_policy` with `securityContext`, tenant-aware pre-aggregations, view-level partner-facing query surface |
 
-### v0.2.0 additions (scaffolds for the modeling + semantic layers)
+### v0.2.0 app scaffold (new — Case C)
 
 | Template | Use for |
 |---|---|
-| **NEW** [`templates/dbt-project-starter/`](templates/dbt-project-starter/) | 3-layer dbt project (staging / intermediate / marts) with `dbt_project.yml`, `profiles.yml.example`, source declarations + freshness tests, example `stg_quickbooks__customers.sql` + `dim_customer.sql` mart, and engagement-onboarding README |
-| **NEW** [`templates/cube-schema-starter.yml`](templates/cube-schema-starter.yml) | Cube schema starter with `orders` + `customers` example cubes, mandatory `access_policy` with `securityContext`, tenant-aware pre-aggregations, view-level partner-facing query surface |
+| [`templates/cube-nextjs-dashboard-starter/`](templates/cube-nextjs-dashboard-starter/) | **NEW.** Real, runnable Next.js App Router + Tremor + Recharts starter wired to `cube-schema-starter.yml` + `jwt-issuer.ts`'s pattern — a walking-skeleton dashboard for `dashboard-builder`'s Case C engagements, so the app shell isn't hand-assembled from scratch each time. Two seams (auth lookup, live cross-boundary denial test) are documented but not implemented — see the scaffold's own README §"What's verified vs. what's still open." |
 
 ---
 
