@@ -3891,3 +3891,72 @@ against this marketplace's own repo (or any repo at production scale) — the pr
 
 **Migration:** none — a new skill; nothing in an installed plugin's behavior changes on
 `/plugin marketplace update` until a consumer invokes `/repo-review`.
+
+## The Stop-lane host table was wrong in the direction that hides a gap (added 2026-09-02, v0.314.0)
+
+`handoff-nudge.py` (P1, this run) is wired via a **`Stop`** hook — `hooks/hooks.json` registers it
+with no matcher, `hooks/handoff-nudge.sh` is the wrapper — so its per-host reach is exactly the
+per-host reach of `Stop` itself, not a special case. This corrects the record on where that lane
+actually fires, because the honest answer differs from what a reader would assume from the earlier
+framing (v0.303.0's milestone, corrected in the same commit that ships this one — see below).
+
+| Host | `Stop` reachable? | `handoff-nudge` fires? | Basis |
+|---|---|---|---|
+| **Claude Code** | native `Stop` event | **YES** | canonical `hooks.json` registration |
+| **Copilot CLI** | via the `stop)` adapter case | **YES** | `hooks/copilot-hook-adapter.sh`'s `stop)` case wraps `handoff-nudge.sh`; the P6c′ reshape above forwards `reason`/`stop_hook_active` through it |
+| **Copilot Chat (VS Code)** | `Stop`/`agentStop` per Copilot's own doc set | **YES, structurally-limited** | same CLI projection reaches Chat Preview (one generated `.github/hooks/ravenclaude.json` serves both surfaces); see the `nag`-is-dead gap below — the hook DOES fire, what it can DELIVER is capped |
+| **Codex CLI** | `Stop` is in Codex's documented hook event set | **YES, docs-verified, never live-verified** | `knowledge/codex-cli-customization.md:35` — *"`SubagentStop`, `Stop`"* named explicitly; Codex speaks the Claude Code hook contract natively (no adapter, `hooks/codex-hook-env.sh` is an env shim only) |
+| **Gemini CLI** | no verified compaction-**or-Stop**-adjacent event | **`_SKIP`, honest** | `scripts/generate-gemini-hooks.py:100` — *"Stop — same unverified lifecycle mapping as dod-gate.sh"* |
+| **Grok TUI** | no hook surface at all | **NO — structural, not a gap** | row 1f (claims-table): RavenClaude has zero hook wiring on Grok; no `grok-hook-adapter.sh` exists, so nothing here could fire regardless of what Grok itself supports |
+
+So the lane was **never inert on Claude Code or Copilot for lack of wiring** — P1's contribution (this
+run) was making the trigger and throttle actually fire correctly once invoked (F1a/F1b/F2), not
+reaching a host that was previously unreachable. The wiring itself predates this run.
+
+⛔ **The structural Copilot `nag` gap (F1c) — declared here, not fixable by any RavenClaude change.**
+`context_handoff.mode: nag` delivers **nothing** on Copilot (CLI or Chat). Copilot's `agentStop`/`Stop`
+output contract is exactly `{decision, reason}` (plus `modifiedResponse` on `subagentStop` only)
+`[docs-verified 2026-09-02, docs.github.com/en/copilot/reference/hooks-reference]` — there is no
+context-injection field for a hook to write into, the way Claude Code's `additionalContext` works.
+**`context_handoff.mode: block` is the only mode that delivers on Copilot.** P6c′'s adapter reshape
+(above) makes the hook **fire** correctly and **self-limit** correctly (`stop_hook_active`); it cannot
+manufacture an output field the host does not expose. This is a host contract, not an unwired lane —
+the same distinction R2 in the plan draws.
+
+⛔ **R12 — the abrupt-compaction gap remains open, declared not fixed.** A single turn can cross both
+the soft threshold and the host's own auto-compact with no intervening `Stop` (the context meter's
+reading lags by construction — it only measures at a `Stop` boundary). `handoff-nudge`'s Stop-lane
+mechanism, by definition, cannot see a compaction that happens without an intervening Stop. The
+`cheap_lane`-gated `precompact-digest.sh` fallback (v0.309.0) exists for exactly this shape but is off
+by default (C1), so on a default posture nothing runs for this case. Declared, not fixed — the
+`local`-tier alternative named in the plan's Fork B (plan-A's B1) is the right shape if this ever
+measures as material.
+
+⛔ **No `host-support.json` schema change.** Its `components` are keyed `hooks` / `skills` /
+`slash_commands` / `agents` / `monitors` / `instruction_files` — hook support is per-host, not
+per-event, so there is no existing capability cell for "PreCompact-equivalent" or "Stop-lane nag
+delivery" to update. Adding one would be a schema change, out of scope for this phase; the per-host
+Stop/PreCompact reality is recorded here in the milestone narrative instead, per the plan.
+
+⛔ **`components.hooks.copilot.surfaces.chat.supported` is UNCHANGED — still `false`.** It carries its
+own note (*"Do not flip supported to true without a Phase 0 payload dump"*) and this phase does not
+attempt that dump; the `nag`-is-dead finding above is a statement about `agentStop`'s output contract,
+independent of whether Chat's hook-firing itself is confirmed live on any given machine.
+
+**Correcting the earlier framing in the same commit, per this repo's supersession rule.** The
+v0.303.0 milestone above ("The context-usage meter had no Claude Code path") states its fix means *"a
+consumer running Claude Code with `context_handoff.mode: nag` or `block` set will, for the first time,
+actually see the nudge fire."* That claim conflated two independent gates the meter fix and this
+phase's own P1/P6 work now separate cleanly: the meter fix (v0.303.0) made `measure()` resolve
+`status: "ok"` under Claude Code instead of unconditionally `"unknown"` — real and necessary — but
+`handoff-nudge.py`'s *own* trigger gate, `_stop_reason(payload) == "end_turn"` reverted-form (the
+defect P1a fixes in this run), was **independently** never exercised against a Claude-shaped payload
+before this run, because Claude Code's real Stop payload carries no `reason` key at all (row 1a-class
+finding) — so the string comparison the pre-P1 code ran was always false-by-absence on Claude Code
+specifically, regardless of the meter's status. **The v0.303.0 claim was therefore not fully true when
+written**: the meter alone did not make the nudge fire on Claude Code; P1a's inverted-default trigger
+fix (this run) was the second, independent gate that had to close first. Both gates are closed as of
+this run.
+
+**Migration:** none — this entry corrects documentation and confirms P6c′'s adapter reshape; no schema,
+no host-support cell, and no Chat-support flag changed. `plugins/ravenclaude-core/scripts/generate-copilot-hooks.py`'s `PreCompact` entry gained a comment only (§D2, P6a) — its behavior is byte-identical.
