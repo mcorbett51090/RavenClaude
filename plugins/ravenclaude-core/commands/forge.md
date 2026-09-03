@@ -35,11 +35,22 @@ the gates, because restating them means paying for the pipeline's description tw
    says which). Loading a reference file the depth doesn't reach defeats the split.
 4. **Run the gates the depth includes**, honoring the skill's §0 artifact contract on every dispatch:
    subagents **write** their artifact to the run dir and return a **receipt**; downstream gates get a
-   **path** and read it themselves. Never relay artifact text through this session. **After each gate**,
-   checkpoint — `bash "$FORGE_PLUGIN_ROOT/scripts/forge-worktree.sh" checkpoint <slug> <gate>`
-   (no-op when there is nothing tracked to commit).
-5. **Write the Sága run record** — one entry per gate: pass/fail/waiver, who ran it, model, cost.
-   Then a final checkpoint (`forge-worktree.sh checkpoint <slug> exit`) before the single exit.
+   **path** and read it themselves. Never relay artifact text through this session. Pass every gate
+   subagent the **absolute primary-checkout run-dir path** (skill §0.5) — never a cwd-relative one.
+   **After each gate, in this order:**
+   1. **Append the Sága run record line** — `python3 "$FORGE_PLUGIN_ROOT/scripts/forge-receipt.py"
+      append <gate> --receipt <receipt.json> --run-dir <abs run dir>`. Do this the moment the receipt
+      comes back, **before** the advance decision — ⛔ **not batched at the end of the run.** It exits
+      **2** on a `pass` receipt whose artifact is missing or empty (fail-closed: fix the artifact,
+      then re-append), **1** if it could not run at all (never treat that as clean), 0 when appended.
+   2. **Checkpoint** — `bash "$FORGE_PLUGIN_ROOT/scripts/forge-worktree.sh" checkpoint <slug> <gate>`
+      (no-op when there is nothing tracked to commit).
+5. **The record already exists** — Step 4 built it line by line, so there is nothing to write here.
+   **Verify it** instead: `python3 "$FORGE_PLUGIN_ROOT/scripts/forge-receipt.py" verify --run-dir
+   <abs run dir> --depth <resolved depth>` (exit 2 names any required gate with no pass/waiver; a
+   legitimately short-circuited run — a G1 BLOCK or a G7 `reject` — passes, its later gates being
+   correctly absent). Do not report a clean exit while `verify` is non-zero. Then a final checkpoint
+   (`forge-worktree.sh checkpoint <slug> exit`) before the single exit.
    **Before `ExitPlanMode`:** `bash "$FORGE_PLUGIN_ROOT/scripts/forge-publish-session-plan.sh" --plan
    .ravenclaude/runs/forge/<slug>/plan.md`. Grok reads the *session* `plan.md`, not the run-dir
    file. Do not call `ExitPlanMode` if the source is empty or the publish step failed.

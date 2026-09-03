@@ -43,9 +43,29 @@ Every gate's payload lives **on disk**; only a **receipt** crosses back into thi
   Never paste `plan-A` / `plan-B` / `critic-brief` / `red-team` text into a brief.
 - **Fail-closed is preserved:** a gate advances on `status` + `blockers` + the artifact existing and
   being non-empty. The payload was never the pass signal — so routing on a receipt loses nothing.
-- **The Sága run record** (`commands/forge.md` Step 5) = each receipt appended verbatim (+ `model` /
-  `subagent_type`, `"generic"` today / `effort`) to `.ravenclaude/runs/forge/<slug>/run-log.jsonl`, one
-  line per gate. A pure append of data in hand.
+- **The Sága run record** = each receipt appended verbatim (+ `model` / `subagent_type`, `"generic"`
+  today / `effort`) to `.ravenclaude/runs/forge/<slug>/run-log.jsonl`, one line per gate. A pure
+  append of data in hand.
+
+  ⛔ **The append happens IMMEDIATELY AFTER EACH GATE, inside `commands/forge.md` Step 4's gate loop
+  — never batched at the end of the run.** Append the line the moment a gate's receipt comes back,
+  *before* deciding whether to advance. Do it with
+  `python3 "$FORGE_PLUGIN_ROOT/scripts/forge-receipt.py" append <gate> --receipt <receipt.json>
+  --run-dir <abs run dir>`, which refuses (exit 2) a `pass` receipt whose artifact is missing or
+  empty, recomputes `bytes` from disk, and stores the artifact path run-dir-relative.
+
+  **Why the timing is the whole mechanism (CE-1).** Step 5 used to be a single *terminal* write, after
+  every gate had already advanced. A validating recorder on that timing runs **after** every advance
+  decision it is meant to gate, which makes "fail-closed" a description of intent rather than of
+  behaviour — a gate whose artifact never existed still advanced, and the ledger recorded it as a
+  pass. Appending per gate is what turns the artifact contract's stated advance criterion into
+  something a gate can actually fail. Measured over 44 real run directories under the old timing: only
+  11 had a `run-log.jsonl` at all, 26 of 153 receipts named an artifact that does not exist on disk,
+  and 25 of 73 `bytes` fields disagreed with the real file size.
+
+  Step 5 therefore no longer *writes* the record — it **verifies** the one Step 4 already built, with
+  `forge-receipt.py verify --run-dir <abs run dir> --depth <depth>`, before the final checkpoint and
+  the single exit.
 
 **Why this is load-bearing.** A relayed artifact is paid for twice — once on return, then again in
 every later turn's resent context — and relaying pins two complete plans *plus* the critic *plus* the
@@ -103,6 +123,21 @@ happen on that branch, isolated from the primary checkout — which is exactly w
 posture nudges toward, and what keeps two concurrent `/forge` runs (or a forge run + the user's own
 edits on `main`) from stomping one shared tree. It prints a JSON receipt and, on success, a
 `FORGE_WORKTREE <abs-path>` line; hand that path to the implementation phase.
+
+⛔ **The run dir is the PRIMARY CHECKOUT's, always — and every dispatched gate is handed it as an
+absolute path.** Gate-artifact run-dir paths are always the absolute primary-checkout path
+(`<primary-checkout>/.ravenclaude/runs/forge/<slug>/`), passed explicitly in every dispatched gate
+subagent's brief, **regardless of which cwd that subagent itself runs in**. A dispatched gate subagent
+must **never** derive the run-dir path relative to its own cwd: a worktree-provisioned run has a
+different cwd than the primary checkout, so a cwd-relative derivation silently writes into a *second*
+run dir. That is CE-2, and it is not hypothetical — a landed run (`agent-routing-matrix`, shipped as
+v0.311.0) has its G2-G8 artifacts existing **only** inside a worktree, which is a real data-loss
+exposure the moment that worktree is pruned. The worktree is for the *branch* (the plan landing and
+the implementation commits); the run dir is for the *record*, and the record has exactly one home.
+`forge-receipt.py` storing artifact paths run-dir-relative hardens the ledger against a move or a
+prune, but it cannot help at all if two receipts were written into two different directories to begin
+with — this sentence fixes the split at the cause, that one fixes the ledger's durability, and both
+are needed.
 
 ⛔ **The base ref is `origin/main`, not local `main`** (precedence: an explicit `--base` > `origin/main` >
 `origin/master` > `main` > `HEAD`), preceded by a bounded, fail-safe `git fetch` of the remote-tracking

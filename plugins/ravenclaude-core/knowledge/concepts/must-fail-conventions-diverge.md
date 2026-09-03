@@ -23,7 +23,7 @@ covers:
   - scripts/check-changed-concept-renders.py
   - scripts/inventory-coverage.py
   - scripts/inventory-nuance-judge.py
-covers_digest: "sha256:81ce5757fa966e36f5d40c8d6c24756877e75f4d4b386a057bdcd83248fff196"
+  - plugins/ravenclaude-core/scripts/forge-receipt.py
 nuance: "The teeth bit is the exit a tool own CHECK returns on a planted defect, never the exit `--must-fail` itself returns: `premise-gate.py` denies at `exit 0` while `sync-plugin-versions.py` reddens at `exit 2`, so an auditor that hard-codes one number can never be right for both."
 nuance_evidence:
   measured: 2026-08-19
