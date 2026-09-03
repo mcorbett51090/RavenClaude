@@ -118,6 +118,14 @@ _WIRED_SET_LEDGER = {
         # accordingly, matching Phase 1's original hand-typed row exactly.
         "required": _SOURCE_HOOKS | {_COMPACT_HOOK},
         "matcher_fidelity": "none-unverified",
+        # Phase 8: declared, never measured. Gemini has no Tier D mechanism
+        # (plan.md Sec 1.3 -- "Gemini CLI presence on the host is not
+        # established") and no live Tier A probe was run against it either;
+        # this is `_rc_canary_declared_tier`'s own value for gemini, ported
+        # here so `rc hooks selftest` has ONE source of truth for the
+        # settled/reportable tier per host (see the copilot-cli entry below
+        # for the case where the two sources diverge and why).
+        "runtime_tier": "A",
     },
     "copilot-cli": {
         "source": "generator",
@@ -127,6 +135,24 @@ _WIRED_SET_LEDGER = {
         # AskUserQuestion) -- required is the full canonical set.
         "required": _ALL_SESSIONSTART_HOOKS,
         "matcher_fidelity": "exact",
+        # Phase 8 (sessionstart-safeguards-multihost) -- the settled, MEASURED
+        # value, deliberately NOT the same as `_rc_canary_declared_tier`'s
+        # generic aspirational classification in
+        # plugins/ravenclaude-core/hooks/_host-canary.sh, which still returns
+        # "D" for copilot ("D-if-present, else A", plan.md Sec 1.3). Phase 7
+        # measured it TWICE, independently, against a live `copilot -p` spawn
+        # with a positive control on the spawn mechanism itself
+        # (hooks/tests/test-tier-d-canary.sh A7.5): the spawn genuinely runs
+        # and returns real output, but SessionStart does NOT fire from
+        # `.github/hooks/*.json` under `copilot -p` -- so "if present" is
+        # false in practice, not merely unverified. Phase 5 explicitly
+        # deferred recording this here; `rc hooks selftest` (Phase 8) reads
+        # THIS field as the declared/reportable tier for its "tier" column
+        # and its anti-degradation check, and separately compares it against
+        # `_rc_canary_declared_tier`'s aspirational "D" to print the
+        # "D unverified" caveat on an otherwise-plain PASS -- so a reader
+        # never mistakes a settled A for "D was never even attempted."
+        "runtime_tier": "A",
     },
     "cursor": {
         "source": "generator",
@@ -134,6 +160,11 @@ _WIRED_SET_LEDGER = {
         # the 9 SessionStart-lane hooks -- required is the full set.
         "required": _ALL_SESSIONSTART_HOOKS,
         "matcher_fidelity": "none-by-platform",
+        # Phase 8: declared, never measured (plan.md Sec 1.3 -- no verified
+        # non-interactive one-shot invocation, and Cursor fails OPEN on a
+        # malformed hook response, so an inconclusive Tier D result there
+        # would be actively misleading). Matches `_rc_canary_declared_tier`.
+        "runtime_tier": "A",
     },
     "claude-code": {
         "source": "manifest",
@@ -152,6 +183,12 @@ _WIRED_SET_LEDGER = {
         # set on the copilot-cli/cursor rows above -- out of Phase 3's
         # scope; adding it there is a later phase's call, not this one's.
         "lane_partitioned": True,
+        # Phase 8: MEASURED, not merely declared. A7.1
+        # (hooks/tests/test-tier-d-canary.sh) drove a real `claude -p`
+        # against a scratch project's planted SessionStart hook and observed
+        # the marker fire -- the positive control this plan requires before
+        # trusting a "D" claim at all (plan.md Sec 1.3's own worked example).
+        "runtime_tier": "D",
     },
     "codex": {
         "source": "generator",
@@ -169,6 +206,12 @@ _WIRED_SET_LEDGER = {
         # until Phase 4 wired it, not a platform limitation the way cursor's
         # "none-by-platform" or gemini's "none-unverified" are.
         "matcher_fidelity": "exact",
+        # Phase 8: declared, never measured -- Tier D is blocked by a real
+        # platform gate (Codex tracks hook trust by hash and skips untrusted
+        # hooks, MH-17; a freshly-written scratch config is untrusted by
+        # construction, so a spawned Codex session would report "did not
+        # fire" for a CORRECT wiring). Matches `_rc_canary_declared_tier`.
+        "runtime_tier": "A",
     },
 }
 
