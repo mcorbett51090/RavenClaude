@@ -2,6 +2,48 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.32.0] — 2026-09-03
+
+### Added
+
+- **P2-18** — theming and dark mode. Confirmed absence with a positive control before starting:
+  `grep -ril "prefers-color-scheme|dark mode"` returned zero hits across the plugin; both starters
+  shipped a single, hard-coded light theme (16 literal hex values per `tailwind.config`, 2 more in
+  each `RevenueChart.tsx`), and `agents/dashboard-builder.md` had already named "Theme + branding"
+  as a surface area with no artifact behind it.
+  - Every `tremor.*` color now resolves through a CSS custom property (`app/globals.css` /
+    `src/styles/globals.css`), not a literal hex — `tailwind.config.ts`/`.mjs` reference
+    `var(--tremor-*)`. A `:root` (light) and `.dark` (dark) block define the two palettes; `.dark`
+    is toggled by a new `<ThemeToggle>` (`role="switch"` + `aria-checked`) and initialized before
+    first paint by a synchronous inline script (a `useEffect`-driven toggle alone would flash the
+    wrong theme for one frame) — system `prefers-color-scheme` is the default, an explicit
+    `localStorage`-persisted choice overrides it, per `web-design`'s `design-tokens-scaffolding`
+    skill's own "system preference + override" rule (cross-referenced, not reinvented).
+  - **A genuine pre-existing accessibility bug surfaced and fixed while re-deriving the palette**:
+    light-mode `content.subtle` (`#9ca3af` on white) measured 2.54:1 against the WCAG AA 4.5:1
+    floor for normal text — computed directly via the WCAG relative-luminance formula this
+    session, not assumed — and this token renders real provenance-footer and status text
+    (`FreshnessBadge`'s "Checking freshness…", every widget's source/date-range footer), not
+    decoration. Fixed to `#6f7684` (4.57:1, verified). The new dark-mode `content.subtle`
+    (`#7c8494`, 5.35:1 against the dark background) was chosen with the same verification, not a
+    guess. Contrast for every text pairing both starters actually render was computed this
+    session; full numbers are in `app/globals.css`'s own header comment.
+  - `RevenueChart.tsx`'s two hardcoded chart-line hex values now reference
+    `var(--tremor-brand-DEFAULT)` / `var(--tremor-brand-muted)` — confirmed Recharts' SVG
+    stroke/fill attributes accept a `var(...)` reference directly.
+  - New `best-practices/dashboard-inherit-the-hosts-color-scheme-when-embedded.md`: the "inherit
+    the host's tokens" seam this phase's own `Work` item called for — a same-DOM embed can
+    re-theme the dashboard by overriding `--tremor-*` in its own mounting scope; an iframe embed
+    needs the host to pass its theme across the frame boundary (named as a follow-up, not built —
+    out of this phase's `Files touched` scope).
+  - New `audit-gates.sh` Gate 273 (structural, no browser needed): no literal hex outside a token
+    file, a `.dark` block is defined, `ThemeToggle` is an accessible switch — per starter, with a
+    must-fail teeth fixture.
+  - Both starters' `tsc --noEmit --skipLibCheck` / `astro check`, `npm run build` / `astro build`
+    (confirmed `ThemeToggle` builds as its own separate ~1KB client chunk in the Astro build
+    output, not bundled into the static `Title`/`Subtitle` per P1-10's zero-JS-for-static-text
+    finding), and `vitest run` verified clean.
+
 ## [0.31.0] — 2026-09-03
 
 ### Added

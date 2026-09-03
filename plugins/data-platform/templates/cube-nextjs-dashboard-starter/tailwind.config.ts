@@ -10,28 +10,35 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
+        // Every value below is a CSS custom property, not a literal hex
+        // (FORGE dashboard-top1pct P2-18, 2026-09-03) — see app/globals.css
+        // for the :root (light) / .dark (dark) definitions and the
+        // contrast verification. This is what makes `.dark` (or a host
+        // overriding a --tremor-* var directly, per the embed-inheritance
+        // seam) re-theme every `bg-tremor-*`/`text-tremor-*`/`border-tremor-*`
+        // utility class with zero component changes.
         tremor: {
           brand: {
-            faint: "#eff6ff",
-            muted: "#bfdbfe",
-            subtle: "#60a5fa",
-            DEFAULT: "#3b82f6",
-            emphasis: "#1d4ed8",
-            inverted: "#ffffff",
+            faint: "var(--tremor-brand-faint)",
+            muted: "var(--tremor-brand-muted)",
+            subtle: "var(--tremor-brand-subtle)",
+            DEFAULT: "var(--tremor-brand-DEFAULT)",
+            emphasis: "var(--tremor-brand-emphasis)",
+            inverted: "var(--tremor-brand-inverted)",
           },
           background: {
-            muted: "#f9fafb",
-            subtle: "#f3f4f6",
-            DEFAULT: "#ffffff",
-            emphasis: "#374151",
+            muted: "var(--tremor-background-muted)",
+            subtle: "var(--tremor-background-subtle)",
+            DEFAULT: "var(--tremor-background-DEFAULT)",
+            emphasis: "var(--tremor-background-emphasis)",
           },
-          border: { DEFAULT: "#e5e7eb" },
+          border: { DEFAULT: "var(--tremor-border-DEFAULT)" },
           content: {
-            subtle: "#9ca3af",
-            DEFAULT: "#6b7280",
-            emphasis: "#374151",
-            strong: "#111827",
-            inverted: "#ffffff",
+            subtle: "var(--tremor-content-subtle)",
+            DEFAULT: "var(--tremor-content-DEFAULT)",
+            emphasis: "var(--tremor-content-emphasis)",
+            strong: "var(--tremor-content-strong)",
+            inverted: "var(--tremor-content-inverted)",
           },
         },
       },

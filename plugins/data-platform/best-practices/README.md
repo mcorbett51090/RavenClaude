@@ -6,7 +6,7 @@ Named, citable rules for the `data-platform` plugin's four-layer dashboard engag
 
 ## Index
 
-_37 rules. Each file is one named, citable rule; read and apply it whole._
+_38 rules. Each file is one named, citable rule; read and apply it whole._
 
 | Doc | Status | Use when |
 |---|---|---|
@@ -47,6 +47,7 @@ _37 rules. Each file is one named, citable rule; read and apply it whole._
 | [`semantic-layer-no-raw-sql-to-viewer.md`](./semantic-layer-no-raw-sql-to-viewer.md) | Absolute rule | No viewer-facing read path bypasses the semantic layer with raw SQL; all dashboard queries route through a named Cube cube or equivalent. |
 | [`escape-hatch-managed-handoff-plan.md`](./escape-hatch-managed-handoff-plan.md) | Pattern — strong default when client will operate the stack post-engagement; deviate only with client sign-off on the self-hosted ops burden. | Recommend a managed SaaS handoff path when the client lacks a data/DevOps engineer; self-hosted is cheapest only while the consultant operates it. |
 | [`dashboard-surface-usage-not-just-outcomes.md`](./dashboard-surface-usage-not-just-outcomes.md) | Pattern — strong default for a productized (Case C) engagement; optional for Case B where usage-based billing isn't in play. | A viewer inside a plan-tier limit should see their own usage against that limit — a `usage` cube joined against `plan_tier_limits`, never a hard-coded number. |
+| [`dashboard-inherit-the-hosts-color-scheme-when-embedded.md`](./dashboard-inherit-the-hosts-color-scheme-when-embedded.md) | Pattern — strong default for Case B/C (embedded); deviate only when the dashboard genuinely is the whole application. | Every color resolves through a CSS custom property, never a literal hex, so a host embedding the dashboard can re-theme it by overriding a variable in its own mounting scope. |
 
 ---
 

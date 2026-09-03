@@ -10064,6 +10064,44 @@ grep -qE 'getCubeClient\(\)' "$DP_TAG_BAD" 2>/dev/null && rc=1
 gate "query-tag structural: bare untagged getCubeClient() call caught" must_fail "$rc"
 
 echo
+echo "── Gate 273: data-platform theming structural checks (no browser needed) ──"
+# FORGE P2-18 (2026-09-03): every color must resolve through a CSS custom
+# property (never a literal hex) so a host can re-theme an embedded
+# dashboard by overriding a variable, per best-practices/dashboard-inherit-
+# the-hosts-color-scheme-when-embedded.md. Token FILES (tailwind.config,
+# globals.css) are exempt — they're where the var() DEFINITIONS live;
+# everything else must reference, not redefine.
+for starter in cube-nextjs-dashboard-starter cube-astro-dashboard-starter; do
+  base="plugins/data-platform/templates/$starter"
+  src="$base"
+  [[ -d "$base/src" ]] && src="$base/src"
+
+  rc=0
+  # shellcheck disable=SC2038
+  hex_hits="$(find "$src" -name "*.tsx" -o -name "*.astro" 2>/dev/null | xargs grep -lE '#[0-9a-fA-F]{6}' 2>/dev/null)"
+  [[ -z "$hex_hits" ]] || rc=1
+  gate "theming structural: no literal hex outside a token file ($starter)" must_pass "$rc"
+
+  darkfile="$base/app/globals.css"
+  [[ -f "$darkfile" ]] || darkfile="$base/src/styles/globals.css"
+  rc=0; grep -q "^\.dark {" "$darkfile" 2>/dev/null || rc=1
+  gate "theming structural: a .dark token block is defined ($starter)" must_pass "$rc"
+
+  togglefile="$base/components/ThemeToggle.tsx"
+  [[ -f "$togglefile" ]] || togglefile="$base/src/components/ThemeToggle.tsx"
+  rc=0
+  grep -q 'role="switch"' "$togglefile" 2>/dev/null || rc=1
+  grep -q "aria-checked" "$togglefile" 2>/dev/null || rc=1
+  gate "theming structural: ThemeToggle is an accessible switch ($starter)" must_pass "$rc"
+done
+# Teeth: a fixture with a literal hex must be caught.
+DP_THEME_BAD="$TMP/dp-theme-bad-widget.tsx"
+printf 'const style = { color: "#3b82f6" };\n' > "$DP_THEME_BAD"
+rc=0
+grep -qE '#[0-9a-fA-F]{6}' "$DP_THEME_BAD" 2>/dev/null && rc=1
+gate "theming structural: literal hex outside a token file caught" must_fail "$rc"
+
+echo
 echo "═══════════════════════════════════════════════════════════════════════════"
 printf '  %d pass, %d fail, %d skipped\n' "$PASS" "$FAIL" "$SKIP"
 if [[ "$FAIL" -gt 0 ]]; then

@@ -1,13 +1,14 @@
 "use client";
 
 import { CubeProvider } from "@cubejs-client/react";
-import { Grid, Col, Title, Subtitle } from "./ui";
+import { Grid, Col, Title, Subtitle, Flex } from "./ui";
 import { getCubeClient } from "@/lib/cube-client";
 import { KpiCard } from "./KpiCard";
 import { RevenueChart } from "./RevenueChart";
 import { ExportBar } from "./ExportBar";
 import { LocaleProvider } from "./LocaleProvider";
 import { FreshnessBadge } from "./FreshnessBadge";
+import { ThemeToggle } from "./ThemeToggle";
 
 // This starter's own declared SLA (best-practices/dashboard-set-data-freshness-slas.md:
 // "declare a freshness SLA per source/dashboard" — there is no universal default). Matches
@@ -37,8 +38,16 @@ export function DashboardShell({ tenantLabel, locale, timezone }: DashboardShell
     <LocaleProvider locale={locale} timezone={timezone}>
       <CubeProvider cubeApi={cubeApi}>
         <div className="p-6">
-          <Title>Dashboard</Title>
-          <Subtitle>{tenantLabel}</Subtitle>
+          <Flex justifyContent="between" alignItems="start">
+            <div>
+              <Title>Dashboard</Title>
+              <Subtitle>{tenantLabel}</Subtitle>
+            </div>
+            {/* Explicit light/dark override (FORGE dashboard-top1pct P2-18) —
+                system preference is the default, set before first paint by
+                the inline script in app/layout.tsx. */}
+            <ThemeToggle />
+          </Flex>
 
           <div className="mt-2">
             <FreshnessBadge

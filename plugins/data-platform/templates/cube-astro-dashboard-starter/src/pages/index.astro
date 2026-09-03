@@ -5,7 +5,8 @@
 // pattern. getSession() is a documented seam — see src/lib/session.ts.
 import DashboardLayout from "@/layouts/DashboardLayout.astro";
 import { DashboardIsland } from "@/components/DashboardIsland";
-import { Title, Subtitle } from "@/components/ui";
+import { ThemeToggle } from "@/components/ThemeToggle";
+import { Title, Subtitle, Flex } from "@/components/ui";
 import { getSession } from "@/lib/session";
 import { resolveLocaleContext } from "@/lib/locale";
 
@@ -28,8 +29,21 @@ const { locale, timezone } = resolveLocaleContext(session);
         argues Astro provides.
       */
     }
-    <Title>Dashboard</Title>
-    <Subtitle>{`Tenant: ${session.tenantId}`}</Subtitle>
+    <Flex justifyContent="between" alignItems="start">
+      <div>
+        <Title>Dashboard</Title>
+        <Subtitle>{`Tenant: ${session.tenantId}`}</Subtitle>
+      </div>
+      {
+        /* Its OWN small island, deliberately separate from DashboardIsland
+           (FORGE dashboard-top1pct P2-18, 2026-09-03) — Title/Subtitle stay
+           static per P1-10's own finding above; the toggle genuinely needs
+           client JS (reads/writes localStorage, toggles a DOM class), so it
+           gets its own minimal client bundle rather than pulling the static
+           text into a hydrated island to sit next to it. */
+      }
+      <ThemeToggle client:load />
+    </Flex>
     <DashboardIsland client:load locale={locale} timezone={timezone} />
   </div>
 </DashboardLayout>

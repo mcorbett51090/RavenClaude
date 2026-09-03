@@ -110,7 +110,17 @@ export function RevenueChart({
                 <XAxis dataKey="x" tick={{ fontSize: 11 }} tickFormatter={formatTick} />
                 <YAxis tick={{ fontSize: 11 }} />
                 <Tooltip />
-                <Area type="monotone" dataKey="value" stroke="#3b82f6" fill="#bfdbfe" />
+                {/* CSS custom properties, not literal hex (FORGE dashboard-top1pct
+                    P2-18) — Recharts' SVG stroke/fill attributes accept a
+                    var(...) reference directly in all evergreen browsers, so
+                    this chart line re-themes with the same .dark toggle /
+                    host-override seam as every Tailwind-class-driven element. */}
+                <Area
+                  type="monotone"
+                  dataKey="value"
+                  stroke="var(--tremor-brand-DEFAULT)"
+                  fill="var(--tremor-brand-muted)"
+                />
               </AreaChart>
             </ResponsiveContainer>
             {/* Screen-reader-only data table — the same rows Recharts renders visually,
