@@ -76,6 +76,14 @@ export function KpiCard({
       ? ((value - comparisonValue) / comparisonValue) * 100
       : undefined;
 
+  // Distinct zero-data state, separate from "still loading" (found in this
+  // plugin's own dashboard-architecture-audit dogfood pass, FORGE
+  // dashboard-top1pct P1-10, 2026-09-03): a tenant with genuinely zero
+  // orders previously saw the same "—" placeholder as a still-loading
+  // widget, with no way to tell the two apart — a broken-looking blank
+  // rather than an explained empty state.
+  const isZero = !isLoading && value !== undefined && value === 0;
+
   return (
     <Card>
       {/* aria-live announces the value once it resolves; role="status" makes the whole
@@ -92,6 +100,11 @@ export function KpiCard({
             </BadgeDelta>
           )}
         </Flex>
+        {isZero && (
+          <Text className="mt-1 text-xs text-tremor-content-subtle">
+            No data yet for this period — check back once activity starts, or widen the date range.
+          </Text>
+        )}
       </div>
       {/* Provenance footer: source measure + the exact date ranges both numbers cover +
           the named comparison baseline — all three required by the absolute rule above. */}

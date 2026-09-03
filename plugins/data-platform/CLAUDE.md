@@ -243,7 +243,7 @@ No server is invented; no `mcpServers` entry ships; no `NOTICE.md` (nothing thir
 
 ## 9. Templates in this plugin
 
-23 templates on disk, distributed by intended bar: 3 runnable + 4 conceptual + 3 seam-marked-stub-and-promoted pairs (9 files — each pair is 1 historical `.tsx.md` stub + 2 runnable siblings, e.g. a client component + a server-only endpoint) + 2 v0.2.0 modeling scaffolds + 2 app scaffolds + 1 audit report template + 1 CI-support script (`ci-headless-smoke.js`, shared by both app scaffolds' headless-smoke workflow step, added P0-4) + 1 executable test-harness scaffold (`cube-denial-test-harness/`, added P1-9) = 3+4+9+2+2+1+1+1.
+24 templates on disk, distributed by intended bar: 3 runnable + 4 conceptual + 3 seam-marked-stub-and-promoted pairs (9 files — each pair is 1 historical `.tsx.md` stub + 2 runnable siblings, e.g. a client component + a server-only endpoint) + 2 v0.2.0 modeling scaffolds + 2 app scaffolds + 1 audit report template + 1 CI-support script (`ci-headless-smoke.js`, shared by both app scaffolds' headless-smoke workflow step, added P0-4) + 1 executable test-harness scaffold (`cube-denial-test-harness/`, added P1-9) + 1 worked-examples directory (`examples/`, the two dashboard-audit-report worked examples, added P1-10) = 3+4+9+2+2+1+1+1+1.
 
 ### Runnable (security-critical — must compile / parse / pass denial test)
 
@@ -291,7 +291,8 @@ Each pair: the `.tsx.md` file is kept as the seam rationale/history (now carryin
 
 | Template | Use for |
 |---|---|
-| [`templates/dashboard-audit-report-template.md`](templates/dashboard-audit-report-template.md) | **NEW.** The output shape for `skills/dashboard-architecture-audit` — priority-tagged (P0-P3) per-page findings across structure/narrative/guidance, plus cross-page coherence, out-of-lane routing, and a Last-Mile "fixes applied this session" section. |
+| [`templates/dashboard-audit-report-template.md`](templates/dashboard-audit-report-template.md) | The output shape for `skills/dashboard-architecture-audit` — priority-tagged (P0-P3) per-page findings across structure/narrative/guidance, plus cross-page coherence, out-of-lane routing, and a Last-Mile "fixes applied this session" section. |
+| [`templates/examples/`](templates/examples/) | **NEW (P1-10).** The skill's first two real worked examples — dashboard-audit-report-cube-nextjs.md and -cube-astro.md, run against this plugin's own app starters. Both audits found real, genuine findings (fixed where automatable — see each report's own Last-Mile section) and both note the audit used the skill's own documented structural-read fallback, not a live screenshot (headless-browser spawn was blocked at the sandbox level in the session that ran them). |
 
 ---
 

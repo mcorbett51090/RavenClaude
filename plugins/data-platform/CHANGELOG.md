@@ -2,6 +2,46 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.25.0] — 2026-09-03
+
+### Added
+
+- **P1-10** — `dashboard-architecture-audit` was declared a mandatory build gate but had never
+  been run once. Ran it for real against both app starters (structural-read fallback, not a
+  live screenshot -- headless-browser spawn was blocked at the sandbox level in this session,
+  confirmed via a direct launch attempt, not just an inference from a slow download) and
+  committed the first two worked examples: `templates/examples/dashboard-audit-report-cube-
+  nextjs.md` and `-cube-astro.md`.
+  - Both audits found real findings. Two were genuinely automatable (no engagement-specific
+    decision needed) and were **fixed in this same pass**, per the skill's own Last-Mile
+    discipline of not just listing what's fixable: a distinct empty/zero-data state (both
+    starters' `KpiCard.tsx` previously showed the same `"—"` for "still loading" and
+    "genuinely zero data"), and an Astro-specific structural fix -- the static "Dashboard"
+    title/tenant-label previously shipped inside the same `client:load` island as the
+    data-fetching widgets, forfeiting Astro's own zero-JS-by-default value proposition;
+    verified in the compiled build output (`dist/server/pages/index.astro.mjs`) that `Title`/
+    `Subtitle` now render with no hydration metadata while only `DashboardIsland` carries
+    `client:load`.
+  - **Honest correction to the plan's own acceptance test:** the plan expected re-running the
+    audit after P1-8 would yield zero open P0/P1 for both starters. It didn't -- the audit's
+    structure/narrative/guidance rubric found a genuinely new P1 (no third depth-ladder tier
+    below the KPI/chart layer) that P1-8's provenance/accessibility work never touched, and
+    that finding is legitimately engagement-specific (a starter has no opinion on what a
+    tenant's drill-down view should contain) -- not something to force-fix or force-hide.
+    `architecture_audit_status` is honestly `partial` for both starters, not `pass`, matching
+    `dashboard-builder.md`'s own Output Contract rule that unresolved P0/P1 findings mean the
+    build isn't complete.
+  - Added a worked-example pointer + tenant-isolation-scope-boundary note to
+    `skills/dashboard-architecture-audit/SKILL.md`'s References.
+  - Added `scripts/audit-gates.sh` Gate 267: a lightweight, no-browser-needed structural check
+    (empty-state branch + comparison-baseline label both present in source) as a cheap
+    complement to the full audit, which does need a browser or a human to run for real.
+
+**Migration:** `DashboardIsland`'s props changed in the Astro starter -- it no longer accepts
+`tenantLabel` (moved to `index.astro`'s own markup). A consumer who forked that starter and
+calls `<DashboardIsland tenantLabel={...} />` directly needs to move that prop to a sibling
+`<Title>`/`<Subtitle>` in their own page.
+
 ## [0.24.0] — 2026-09-03
 
 ### Added

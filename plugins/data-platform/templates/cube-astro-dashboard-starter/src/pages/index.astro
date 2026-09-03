@@ -5,11 +5,29 @@
 // pattern. getSession() is a documented seam — see src/lib/session.ts.
 import DashboardLayout from "@/layouts/DashboardLayout.astro";
 import { DashboardIsland } from "@/components/DashboardIsland";
+import { Title, Subtitle } from "@/components/ui";
 import { getSession } from "@/lib/session";
 
 const session = await getSession();
 ---
 
 <DashboardLayout title="Dashboard">
-  <DashboardIsland client:load tenantLabel={`Tenant: ${session.tenantId}`} />
+  <div class="p-6">
+    {
+      /*
+        Title/Subtitle render here, with NO client:* directive — Astro
+        renders a framework component with no client directive to static
+        HTML at build/request time and ships zero JS for it. Moved out of
+        DashboardIsland (found in this plugin's own
+        dashboard-architecture-audit dogfood pass, FORGE dashboard-top1pct
+        P1-10, 2026-09-03): they're static text with no data dependency, so
+        hydrating them alongside the genuinely interactive KPI/chart widgets
+        forfeited the zero-JS-by-default value this starter's own README
+        argues Astro provides.
+      */
+    }
+    <Title>Dashboard</Title>
+    <Subtitle>{`Tenant: ${session.tenantId}`}</Subtitle>
+    <DashboardIsland client:load />
+  </div>
 </DashboardLayout>

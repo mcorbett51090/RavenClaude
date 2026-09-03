@@ -9872,6 +9872,28 @@ else
 fi
 
 echo
+echo "── Gate 267: data-platform dashboard-audit structural checks (no browser needed) ──"
+# FORGE P1-10 (2026-09-03): the parts of the dashboard-architecture-audit
+# rubric that don't need a rendered page — an empty/zero-data-state branch
+# and a comparison-baseline label both being PRESENT in source — as a
+# lightweight, static, always-runnable complement to the full audit (which
+# does need a browser or a human to run for real). This does not replace the
+# audit; it catches the two most mechanically-checkable regressions cheaply.
+for starter in cube-nextjs-dashboard-starter cube-astro-dashboard-starter; do
+  kpi="plugins/data-platform/templates/$starter/components/KpiCard.tsx"
+  [[ -f "$kpi" ]] || kpi="plugins/data-platform/templates/$starter/src/components/KpiCard.tsx"
+  rc=0; grep -q "isZero" "$kpi" 2>/dev/null || rc=1
+  gate "dashboard-audit structural: empty-state branch present ($starter)" must_pass "$rc"
+  rc=0; grep -q "comparisonLabel" "$kpi" 2>/dev/null || rc=1
+  gate "dashboard-audit structural: comparison-baseline label present ($starter)" must_pass "$rc"
+done
+# Teeth: a fixture missing both must be caught.
+DP_AUDIT_BAD="$TMP/dp-audit-bad-kpi.tsx"
+printf 'export function KpiCard() { return <div>{value}</div>; }\n' > "$DP_AUDIT_BAD"
+rc=0; grep -q "isZero" "$DP_AUDIT_BAD" 2>/dev/null || rc=1
+gate "dashboard-audit structural: missing empty-state branch caught" must_fail "$rc"
+
+echo
 echo "═══════════════════════════════════════════════════════════════════════════"
 printf '  %d pass, %d fail, %d skipped\n' "$PASS" "$FAIL" "$SKIP"
 if [[ "$FAIL" -gt 0 ]]; then
