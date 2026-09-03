@@ -9867,6 +9867,17 @@ echo "── Gate 265: caveman write-contract, dev-only — NOT in the required 
 # only via `--check 265`; LOUD-skips ("THIS IS NOT A PASS") when caveman is
 # absent, matching Gate 10's actionlint precedent. A skip is not a pass.
 
+echo "── analog-closeness-scorecard (Q2 leftover, docs/follow-ups/2026-08-14-analog-repos-leftovers.md) ──"
+# Recomputes the 2026-08-14 analog survey's own M/H/G/O/E/I/T/V weighted-closeness
+# formula. --self-test pins two of the survey's own published rows (verbatim
+# arithmetic regression) plus a must-fail-shaped fixture: a row that scores high
+# on the weighted arithmetic alone but carries M=H=G=0 and every dim inferred
+# (not observed) — the quality bar must reject it, proving the bar is load-bearing
+# rather than a number nobody checks.
+rc=0
+python3 plugins/ravenclaude-core/skills/analog-closeness-scorecard/score_closeness.py --self-test >/dev/null 2>&1 || rc=$?
+gate "analog-closeness-scorecard --self-test (rows + buckets + quality-bar teeth)" must_pass "$rc"
+
 echo
 echo "── Gate 266: runtime self-test front door — Tier A only ────────────────────"
 # Phase 9 (sessionstart-safeguards-multihost). Registers the runtime self-
@@ -9897,6 +9908,22 @@ echo "── Gate 266: runtime self-test front door — Tier A only ────
 # in it (this repo's own recorded remedy for the Gate-184 unreachable-gate
 # defect). Renumbered from 264 -> 266 (merge with origin/main's own new
 # Gates 264/265, caveman auto-routing, which claimed 264/265 first).
+#
+# ⛔ PLACEMENT IS LOAD-BEARING (Gate 195 finding, fixed 2026-09-03): this
+# block must stay AFTER the analog-closeness-scorecard block above, not
+# before it. Gate 265's own block carries no gate() assertion of its own
+# (it is deliberately excluded from the main sequence, per its own header
+# comment) -- check-gate-registration.py's block splitter only opens a new
+# block at a NUMBERED "Gate N:" header, so an un-numbered section header
+# (like analog-closeness-scorecard's) does NOT start a new block; it is
+# absorbed into the PRECEDING numbered gate's block. Gate 265 is therefore
+# only "reachable" because analog-closeness-scorecard's real gate() call
+# falls inside Gate 265's block by adjacency. Inserting Gate 266's own
+# numbered header BETWEEN Gate 265 and analog-closeness-scorecard would
+# close Gate 265's block early (at Gate 266's header) and strand it with
+# zero assertions, reddening Gate 195 with an "unreachable Gate 265"
+# finding that does not exist on origin/main. Moving this block below
+# analog-closeness-scorecard instead keeps that adjacency intact.
 if [ -n "${SKIP_GATE_266:-}" ]; then
   echo "  ‼ Gate 266 SKIPPED (SKIP_GATE_266=1) — THIS IS NOT A PASS"
   SKIP=$((SKIP + 1))
@@ -9921,17 +9948,6 @@ else
     _skip_or_fail "Gate 266 (runtime self-test front door)" python3
   fi
 fi
-
-echo "── analog-closeness-scorecard (Q2 leftover, docs/follow-ups/2026-08-14-analog-repos-leftovers.md) ──"
-# Recomputes the 2026-08-14 analog survey's own M/H/G/O/E/I/T/V weighted-closeness
-# formula. --self-test pins two of the survey's own published rows (verbatim
-# arithmetic regression) plus a must-fail-shaped fixture: a row that scores high
-# on the weighted arithmetic alone but carries M=H=G=0 and every dim inferred
-# (not observed) — the quality bar must reject it, proving the bar is load-bearing
-# rather than a number nobody checks.
-rc=0
-python3 plugins/ravenclaude-core/skills/analog-closeness-scorecard/score_closeness.py --self-test >/dev/null 2>&1 || rc=$?
-gate "analog-closeness-scorecard --self-test (rows + buckets + quality-bar teeth)" must_pass "$rc"
 
 echo
 echo "═══════════════════════════════════════════════════════════════════════════"
