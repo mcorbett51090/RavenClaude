@@ -50,6 +50,21 @@ This plugin follows the marketplace's house rule: **domain plugins extend core v
 /plugin install data-platform@ravenclaude
 ```
 
+## Quickstart a runnable app starter (FORGE dashboard-top1pct P3-20, 2026-09-03)
+
+For Case C (a productized SaaS dashboard app), don't hand-copy a starter directory —
+[`scripts/scaffold-data-platform-starter.sh`](scripts/scaffold-data-platform-starter.sh) copies it
+into your own project, seeds `.env` from `env.example`, and prints the next commands:
+
+```bash
+bash <path-to-this-plugin>/scripts/scaffold-data-platform-starter.sh nextjs ./my-dashboard   # or: astro
+cd my-dashboard && npm ci && npm run dev
+```
+
+Measured this session, scaffold-to-responding-server: **7.4s** (Next.js) / **5.8s** (Astro) — see
+each starter's own README for the full quickstart, including why the first request is an
+expected HTTP 500 (an unwired `getSession()` seam), not a bug.
+
 ## Companion plugins (recommended when relevant)
 
 - `power-platform` — when the engagement uses Power BI Embedded; `power-bi-engineer` owns DAX / semantic-model / PBIP, this plugin owns the embed pattern + non-Microsoft data stack

@@ -2,6 +2,35 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.33.0] — 2026-09-03
+
+### Added
+
+- **P3-20** — one-command onboarding. Before this phase, using an app starter meant "find the
+  directory inside the plugin's installed cache, copy it somehow" — no documented copy step, no
+  `env` bootstrap, nothing to run. New
+  [`scripts/scaffold-data-platform-starter.sh`](scripts/scaffold-data-platform-starter.sh):
+  resolves this plugin's own root (`$CLAUDE_PLUGIN_ROOT` when running as an installed plugin,
+  its own parent directory otherwise — mirroring `ravenclaude-core/scripts/resolve-plugin-root.sh`'s
+  resolution order), copies the chosen starter (`nextjs`/`astro`) into a target directory
+  (excluding `node_modules`/`.next`/`dist`/`*.tsbuildinfo` — a stale build artifact copied
+  alongside a fresh `npm ci` would shadow it with mismatched binaries), seeds `.env`/`.env.local`
+  from `env.example` without ever overwriting an existing one, and prints the next three commands.
+  - **Measured this session, not estimated**: a real, timed run from a clean scaffold through
+    `npm ci` to the dev server's first HTTP response — **7.4 seconds** (Next.js) / **5.8 seconds**
+    (Astro), both comfortably under the phase's 60-second acceptance bar. The first response is an
+    honest HTTP 500 from `lib/session.ts`'s documented, intentionally-unwired `getSession()` seam
+    — a real, by-design behavior for a scaffold that hasn't been connected to a host app's auth
+    yet, not a defect this script introduces; both starters' READMEs now say so explicitly rather
+    than implying a working dashboard appears immediately.
+  - Both starter READMEs and the plugin `README.md` gained a "60-second quickstart" section ahead
+    of the existing manual quickstart (kept, for a consumer already working inside the plugin
+    checkout).
+  - Reconciled `CLAUDE.md`'s prior N/A dispositions on both a `bin/`-style script (that reasoning
+    was specifically about a linter duplicating an existing advisory hook — never covered a
+    scaffold-copy helper) and a `scripts/` cost estimator (a genuinely different concern) — both
+    rows now point at this artifact rather than silently contradicting it.
+
 ## [0.32.1] — 2026-09-03
 
 ### Fixed

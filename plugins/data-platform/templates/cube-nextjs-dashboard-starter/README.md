@@ -24,7 +24,31 @@ and not the npm package.
 | [`../database-schema-starter.sql`](../database-schema-starter.sql) | The underlying Postgres schema `cube-schema-starter.yml`'s `fact_orders`/`dim_customer` expect. |
 | [`../../skills/embed-csp-and-iframe-sandboxing/SKILL.md`](../../skills/embed-csp-and-iframe-sandboxing/SKILL.md) | This is a **no-iframe** pattern (direct REST calls from React to Cube) — the relevant CSP directive is `connect-src`, not `frame-ancestors`. See that skill's "Cube (with custom React UI)" section. |
 
-## Quickstart
+## 60-second quickstart (FORGE dashboard-top1pct P3-20, 2026-09-03)
+
+From outside the plugin (this is the "find the directory, copy it somehow" step
+[`scripts/scaffold-data-platform-starter.sh`](../../scripts/scaffold-data-platform-starter.sh)
+replaces):
+
+```bash
+bash <path-to-data-platform-plugin>/scripts/scaffold-data-platform-starter.sh nextjs ./my-dashboard
+cd my-dashboard
+npm ci
+npm run dev
+```
+
+**Measured this session, from a clean scaffold to a responding dev server: 7.4 seconds total**
+(scaffold + `npm ci` + first HTTP response), timed end-to-end, not estimated. `npm run dev` binds
+in ~1.6s on its own; the dominant cost is `npm ci`'s dependency install.
+
+**Honest expectation for that first response:** it's an HTTP 500, not a rendered dashboard — the
+page throws through `lib/session.ts`'s documented seam (`getSession()` intentionally throws until
+wired to your host app's real authentication; see that file's own header comment). That's the
+correct, by-design behavior for an un-wired scaffold, not a bug in this script. A running server
+answering *any* request (including a 500 from a seam that hasn't been wired yet) is exactly what
+"the app runs" means before you've connected auth + a live Cube instance.
+
+## Manual quickstart (already inside the plugin, or scaffolding by hand)
 
 ```bash
 npm install

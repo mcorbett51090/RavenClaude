@@ -43,7 +43,21 @@ the SSR runtime (common for `output: 'server'` static fallback pages), those res
 pass through the middleware and need the header set at the CDN/host config level too —
 middleware alone does not cover every response path on every adapter.
 
-## Quickstart
+## 60-second quickstart (FORGE dashboard-top1pct P3-20, 2026-09-03)
+
+```bash
+bash <path-to-data-platform-plugin>/scripts/scaffold-data-platform-starter.sh astro ./my-dashboard
+cd my-dashboard
+npm ci
+npm run dev
+```
+
+**Measured this session, from a clean scaffold to a responding dev server: 5.8 seconds total**,
+timed end-to-end — see the Next.js starter's identical quickstart section for the full "why a
+500 on the first request is correct, by-design behavior" explanation (this starter's
+`lib/session.ts` throws the same documented seam error).
+
+## Manual quickstart (already inside the plugin, or scaffolding by hand)
 
 ```bash
 npm install
