@@ -2,6 +2,31 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.22.0] — 2026-09-03
+
+### Fixed
+
+- **P1-7** — removed `@tremor/react` from both app starters. Verified this session: its
+  registry line has had no stable release since 2025-01-13 (`npm view @tremor/react
+  time.modified`) — there are unreleased `4.0.0-beta-tremor-v4.*` versions on npm, so "no
+  successor at all" overstates it, but nothing stable has shipped in ~20 months, and the
+  vendor's own distribution model has moved to "Tremor Raw" (copy-paste components, no npm
+  package). Both starters actually only used 9 primitives (`Card`, `Metric`, `Text`, `Flex`,
+  `BadgeDelta`, `Title`, `Subtitle`, `Grid`, `Col`); authored small local Tremor-Raw-style
+  equivalents in `components/ui/` (Next.js) / `src/components/ui/` (Astro, ported unchanged)
+  using the same `tremor.*` Tailwind color tokens the starters already defined (those were
+  always plain Tailwind config, not a dependency on the npm package). Verified by direct
+  render (all 9 primitives render identical-shaped HTML, no errors) and by production build:
+  the Next.js starter's First Load JS for `/` dropped 145 kB → 130 kB; the Astro starter's
+  `DashboardIsland` client bundle dropped 916.85 kB → 483.17 kB, which also resolves the
+  "chunks larger than 500 kB" build warning P0-4's probe recorded as an open finding.
+  Regenerated both lockfiles.
+
+**Migration:** a consumer who forked either starter and imported from `@tremor/react`
+directly should switch to importing the same component names from `./ui`/`./components/ui`
+instead — the props surface is a deliberate subset matching what these starters actually
+used, not a full re-implementation of Tremor's API.
+
 ## [0.21.0] — 2026-09-03
 
 ### Fixed

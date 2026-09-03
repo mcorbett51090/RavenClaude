@@ -1,7 +1,7 @@
 "use client";
 
 import { CubeProvider } from "@cubejs-client/react";
-import { Grid, Col, Title, Subtitle } from "@tremor/react";
+import { Grid, Col, Title, Subtitle } from "./ui";
 import { getCubeClient } from "@/lib/cube-client";
 import { KpiCard } from "./KpiCard";
 import { RevenueChart } from "./RevenueChart";

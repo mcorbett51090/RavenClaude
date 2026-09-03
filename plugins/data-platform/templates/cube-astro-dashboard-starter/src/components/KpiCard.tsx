@@ -1,6 +1,6 @@
 "use client";
 
-import { Card, Metric, Text, Flex, BadgeDelta } from "@tremor/react";
+import { Card, Metric, Text, Flex, BadgeDelta } from "./ui";
 import { useCubeQuery } from "@cubejs-client/react";
 import { getCubeClient } from "@/lib/cube-client";
 

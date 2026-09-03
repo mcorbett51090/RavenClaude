@@ -1,12 +1,12 @@
 /** @type {import('tailwindcss').Config} */
-// Same Tremor color-scale extension as the Next.js starter's
-// tailwind.config.ts — see that file for the source (Tremor's own install
-// docs, "Getting started" -> framework-specific config).
+// The tremor.* color-scale extension below is kept even though @tremor/react
+// itself was removed (FORGE dashboard-top1pct P1-7, 2026-09-03) —
+// src/components/ui/ (the local Tremor Raw-style replacement) still uses
+// these tokens, and they were always plain Tailwind config, never a
+// dependency on the npm package. Same extension as the Next.js starter's
+// tailwind.config.ts.
 export default {
-  content: [
-    "./src/**/*.{astro,html,js,jsx,md,mdx,svelte,ts,tsx,vue}",
-    "./node_modules/@tremor/**/*.{js,ts,jsx,tsx}",
-  ],
+  content: ["./src/**/*.{astro,html,js,jsx,md,mdx,svelte,ts,tsx,vue}"],
   darkMode: "class",
   theme: {
     extend: {

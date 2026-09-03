@@ -1,6 +1,6 @@
 "use client";
 
-import { Card, Title, Text } from "@tremor/react";
+import { Card, Title, Text } from "./ui";
 import { useCubeQuery } from "@cubejs-client/react";
 import {
   AreaChart,

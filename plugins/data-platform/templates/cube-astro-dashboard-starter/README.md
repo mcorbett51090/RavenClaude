@@ -20,7 +20,8 @@ this starter for that shape; use the Next.js one.
 ## What's reused vs. new
 
 `KpiCard.tsx` and `RevenueChart.tsx` are copied from the Next.js starter **unchanged** — they're
-plain React using Tremor/Recharts/`useCubeQuery`, with no Next.js dependency. `lib/cube-client.ts`
+plain React using the local `components/ui/` primitives (see the `@tremor/react` removal note
+below), Recharts, and `useCubeQuery`, with no Next.js dependency. `lib/cube-client.ts`
 and `lib/session.ts` carry the same patterns (including the same security fixes: no client-side
 tenant resolution, token caching with real short-circuit refresh). What's new is Astro-specific:
 the page/layout shape, the API endpoint (`src/pages/api/cube-token.ts`, Astro's own request/
@@ -73,6 +74,18 @@ Identical discipline to the Next.js starter (data-platform CLAUDE.md §3 #3): th
 layer (`cube-schema-starter.yml`'s `access_policy`) is the load-bearing tenant control.
 `src/lib/session.ts` is the seam that must resolve a real, session-authenticated `tenant_id` —
 never trust anything client-supplied.
+
+## `@tremor/react` removed — local "Tremor Raw"-style components instead (P1-7, 2026-09-03)
+
+Same fix and same reasoning as the Next.js starter (see its README for the full detail):
+`@tremor/react`'s registry line has had no stable release since 2025-01-13, and the vendor's
+own distribution model has moved to copy-paste components. The same
+[`src/components/ui/`](src/components/ui/) primitives are ported here unchanged (plain React,
+no framework coupling — matches this starter's existing "copied unchanged" pattern for
+`KpiCard.tsx`/`RevenueChart.tsx`). Verified: production build succeeds, and the
+`DashboardIsland` client bundle dropped from 916.85 kB to 483.17 kB — `@tremor/react` was the
+majority of that chunk's weight, and removing it also resolves the "chunks larger than 500 kB"
+build warning P0-4's probe recorded as an open, non-blocking finding.
 
 ## What's verified vs. what's still open
 
@@ -143,8 +156,9 @@ never trust anything client-supplied.
   three majors); re-run `npm audit` before using this starter in a real engagement.
 - Pinned at authoring time (re-verify before use): Astro 4.x, `@astrojs/react` ^3, `@astrojs/node`
   ^8, `@astrojs/tailwind` ^5, `@cubejs-client/*` 1.7.33 (bumped from 0.35.x — see the Next.js
-  starter's README for why), same `@tremor/react`/`recharts` versions as the Next.js starter.
-  `package-lock.json` regenerated 2026-09-03 against these pins.
+  starter's README for why), same `recharts` version as the Next.js starter. `@tremor/react` is
+  no longer a dependency — see the section above. `package-lock.json` regenerated 2026-09-03
+  against these pins.
 
 ## Refresh triggers
 
@@ -153,3 +167,5 @@ never trust anything client-supplied.
   "independently reviewed"
 - Cube >=1.2.0 major version bump (matches `cube-schema-starter.yml`'s own trigger — this is the floor
   `access_policy` itself requires, not an arbitrary target)
+- `components/ui/`'s visual output should be re-diffed against Tremor's current look
+  periodically — it is a styling snapshot, not a live-tracked dependency

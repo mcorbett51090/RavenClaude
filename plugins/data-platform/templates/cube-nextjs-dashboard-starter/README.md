@@ -1,8 +1,10 @@
-# Cube + Next.js + Tremor dashboard starter (Case C)
+# Cube + Next.js + Tremor Raw dashboard starter (Case C)
 
 **New at v0.2.0.** A real, runnable starter for `dashboard-builder`'s Case C (productized
-SaaS) — Cube OSS semantic layer + Next.js App Router + Tremor + Recharts + shadcn/ui, wired
-to this plugin's existing multi-tenant templates instead of hand-derived per engagement.
+SaaS) — Cube OSS semantic layer + Next.js App Router + local Tremor-Raw-style components +
+Recharts + shadcn/ui, wired to this plugin's existing multi-tenant templates instead of
+hand-derived per engagement. See the `@tremor/react` removal note below for why "Tremor Raw"
+and not the npm package.
 
 ## What this is — and isn't
 
@@ -40,8 +42,10 @@ database matching `../database-schema-starter.sql`. This starter does not stand 
 app/page.tsx              → server component, resolves tenant, renders <DashboardShell>
 app/api/cube-token/route.ts → mints a short-lived Cube-audience JWT server-side
 components/DashboardShell.tsx → CubeProvider + layout
-components/KpiCard.tsx     → Tremor Card/Metric wired to a useCubeQuery measure
+components/KpiCard.tsx     → local ui/Card+Metric wired to a useCubeQuery measure
 components/RevenueChart.tsx → Recharts AreaChart wired to a useCubeQuery time series
+components/ui/             → local Tremor-Raw-style primitives (Card, Metric, Text, Flex,
+                              BadgeDelta, Title, Subtitle, Grid, Col) — see the removal note
 lib/cube-client.ts         → cubejs() client factory, reads the token from the API route
 lib/session.ts             → SEAM: resolve the authenticated tenant_id — host-app-specific,
                               documented but not implemented (this scaffold has no auth
@@ -54,6 +58,23 @@ Per data-platform CLAUDE.md §3 #3: for a semantic-layer-fronted stack, **the se
 owns the scope rule** (`cube-schema-starter.yml`'s `access_policy` + `securityContext`); the
 DB connection account should be tenant-blind. `lib/session.ts` is the seam that must resolve
 a real, session-authenticated `tenant_id` — **never** trust a client-supplied tenant id.
+
+## `@tremor/react` removed — local "Tremor Raw"-style components instead (P1-7, 2026-09-03)
+
+This starter no longer depends on the `@tremor/react` npm package. Verified this session:
+its registry line has had **no stable release since 2025-01-13** (`npm view @tremor/react
+time.modified`) — there are unreleased `4.0.0-beta-tremor-v4.*` versions on npm, so "no
+successor at all" would overstate it, but nothing stable has shipped in ~20 months, and the
+vendor's own distribution model has moved to "Tremor Raw" (copy-paste components, no npm
+package). Rather than keep tracking a frozen line, the ~5 primitives this starter actually
+used (`Card`, `Metric`, `Text`, `Flex`, `BadgeDelta`, `Title`, `Subtitle`, `Grid`, `Col`) are
+now small, local, MIT-equivalent components in [`components/ui/`](components/ui/) — matching
+this plugin's OSS-first house opinion and this repo's own "seam-marked / small local
+components over an unmaintained dependency" pattern. This is a dependency swap, not a
+redesign: verified by direct render (all 9 primitives render identically-shaped HTML with no
+errors) and by the production build (bundle size dropped, First Load JS for `/` went from
+145 kB to 130 kB). If you'd rather keep tracking the frozen npm line, re-adding
+`@tremor/react` and reverting the three `./ui` imports is a one-commit revert.
 
 ## What's verified vs. what's still open (read before treating this as field-proven)
 
@@ -142,8 +163,9 @@ a real, session-authenticated `tenant_id` — **never** trust a client-supplied 
 - Pinned versions (re-verify before a new engagement — dependency drift is real, per this
   plugin's quarterly-refresh discipline): Next.js 14.2.x, React 18.3.x, `@cubejs-client/*`
   1.7.33 (bumped from 0.35.x — Cube's `access_policy` requires Cube Core >=1.2.0, and
-  `@cubejs-client/react@1.7.33` hard-pins `@cubejs-client/core@1.7.33`), `@tremor/react` 3.14.x,
-  `recharts` 2.12.x. `package-lock.json` regenerated 2026-09-03 against these pins.
+  `@cubejs-client/react@1.7.33` hard-pins `@cubejs-client/core@1.7.33`), `recharts` 2.12.x.
+  `@tremor/react` is no longer a dependency — see the section above.
+  `package-lock.json` regenerated 2026-09-03 against these pins.
 
 ## Refresh triggers
 
@@ -152,4 +174,7 @@ a real, session-authenticated `tenant_id` — **never** trust a client-supplied 
 - `@cubejs-client/react` hook API changes
 - A real engagement promotes this from "code-reviewed" to "field-proven" — update this
   README's status section, don't just delete the caveat
-- Tremor / Next.js App Router breaking changes
+- `components/ui/`'s visual output should be re-diffed against Tremor's current look
+  periodically — it was a snapshot of Tremor's styling at authoring time (2026-09-03), not a
+  live-tracked dependency, so it will not automatically follow any future Tremor design changes
+- Next.js App Router breaking changes

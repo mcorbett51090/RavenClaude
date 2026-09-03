@@ -1,13 +1,11 @@
 import type { Config } from "tailwindcss";
 
-// Tremor requires its own content paths + a small color-scale extension —
-// see https://www.tremor.so/docs/getting-started/installation (Next.js App Router).
+// The tremor.* color-scale extension below is kept even though @tremor/react
+// itself was removed (FORGE dashboard-top1pct P1-7, 2026-09-03) — components/ui/
+// (the local Tremor Raw-style replacement) still uses these tokens, and they
+// were always plain Tailwind config, never a dependency on the npm package.
 const config: Config = {
-  content: [
-    "./app/**/*.{ts,tsx}",
-    "./components/**/*.{ts,tsx}",
-    "./node_modules/@tremor/**/*.{js,ts,jsx,tsx}",
-  ],
+  content: ["./app/**/*.{ts,tsx}", "./components/**/*.{ts,tsx}"],
   darkMode: "class",
   theme: {
     extend: {

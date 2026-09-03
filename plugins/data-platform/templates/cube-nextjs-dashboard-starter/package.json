@@ -2,7 +2,7 @@
   "name": "cube-nextjs-dashboard-starter",
   "private": true,
   "version": "0.1.0",
-  "description": "data-platform Case C starter: Cube OSS + Next.js + Tremor + Recharts",
+  "description": "data-platform Case C starter: Cube OSS + Next.js + Tremor Raw (local, not npm) + Recharts",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -16,7 +16,6 @@
   "dependencies": {
     "@cubejs-client/core": "^1.7.33",
     "@cubejs-client/react": "^1.7.33",
-    "@tremor/react": "^3.14.0",
     "clsx": "^2.1.0",
     "jsonwebtoken": "^9.0.2",
     "next": "^14.2.0",
