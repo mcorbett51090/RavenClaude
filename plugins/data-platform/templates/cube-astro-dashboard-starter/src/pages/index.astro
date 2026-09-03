@@ -1,0 +1,15 @@
+---
+// Server-rendered frontmatter: resolves the authenticated tenant BEFORE any
+// client JS ships, so an unauthenticated request never reaches the island
+// at all. Mirrors the Next.js starter's app/page.tsx server-component
+// pattern. getSession() is a documented seam — see src/lib/session.ts.
+import DashboardLayout from "@/layouts/DashboardLayout.astro";
+import { DashboardIsland } from "@/components/DashboardIsland";
+import { getSession } from "@/lib/session";
+
+const session = await getSession();
+---
+
+<DashboardLayout title="Dashboard">
+  <DashboardIsland client:load tenantLabel={`Tenant: ${session.tenantId}`} />
+</DashboardLayout>
