@@ -25,10 +25,13 @@
 #       of its own.
 #
 #   caveman-apply-mode.sh --restore <session_id>
-#       Write this session's snapshotted `user_mode_at_entry` back (mitigation
-#       3). Undoes a PAST write; does not touch the posture knob that gates
-#       FUTURE ones (that is `caveman_routing: off`, read by the not-yet-built
-#       hook body, not by this script).
+#       Write this session's snapshotted `user_mode_at_entry` back AND restore
+#       the legacy mirror `.caveman-active` to its captured pre-entry state
+#       (mitigation 3 -- see the header note below on HOW the mirror half is
+#       done, without ever writing to the mirror file directly). Undoes a PAST
+#       write; does not touch the posture knob that gates FUTURE ones (that is
+#       `caveman_routing: off`, read by the not-yet-built hook body, not by
+#       this script).
 #
 #   caveman-apply-mode.sh --self-test
 #       Runs the built-in fixture suite (isolated temp dirs only, never real
@@ -45,7 +48,14 @@
 #
 #   {"status":"<token>","candidates":"<N>","resolved_via":"<cache|standalone|none>",
 #    "applied_mode":"<mode|>","restored_mode":"<mode|>","readback_ok":"<true|false|>",
-#    "manual_override":"<true|false|>","error":"<token|>"}
+#    "manual_override":"<true|false|>","mirror_restore_ok":"<true|false|>","error":"<token|>"}
+#
+# `mirror_restore_ok` is present only on a --restore call (empty otherwise): it
+# reports whether the legacy mirror `.caveman-active` was successfully brought
+# back to its captured `legacy_mirror_at_entry` state, independently of
+# `readback_ok` (which reports only the per-session mode). `status` is
+# `restore-readback-mismatch` if EITHER check fails, so a mirror-only failure
+# still routes through the same warn-emission path as a session-mode mismatch.
 #
 # status is one of: applied | restored | held-manual-override |
 #   readback-mismatch | restore-readback-mismatch | noop-no-node |
@@ -91,21 +101,50 @@
 #   3. --restore. Reads the snapshot and writes `user_mode_at_entry` back via
 #      the same sanctioned writer (never a raw file write — that would be
 #      exactly the reimplementation-risk plan.md rejected plan-B's writer for).
-#      ⛔ HONEST LIMIT (R10 residual, stated rather than glossed over): when
-#      `user_mode_at_entry` is null (no prior per-session value), restoring
-#      writes the literal string "off" rather than deleting the session file
-#      to recreate true absence — caveman's own fail-safe property makes the
-#      two behaviorally equivalent for `resolveActiveMode` (both collapse to
-#      "no active mode"), but they differ for `readSessionModeRaw`. Recreating
-#      true absence would require re-deriving caveman's un-exported
-#      `sessionActivePath()` path-construction + `validateSessionId()`
-#      whitelist ourselves — exactly the "reimplement caveman's internals"
-#      risk the whole plan-A-over-plan-B verdict was decided to avoid. The
-#      mirror is restored only as a SIDE EFFECT of the writer's own mirror
-#      handling (never written directly by this script — see R10's mitigation
-#      (a) below) and may not recover if another session mutated the shared
-#      mirror in between, exactly as plan.md's R10 already documents as
-#      "bounded and mitigated — not eliminated."
+#      ⛔ HONEST LIMIT (R10 residual, session-file half, stated rather than
+#      glossed over): when `user_mode_at_entry` is null (no prior per-session
+#      value), restoring writes the literal string "off" rather than deleting
+#      the session file to recreate true absence — caveman's own fail-safe
+#      property makes the two behaviorally equivalent for `resolveActiveMode`
+#      (both collapse to "no active mode"), but they differ for
+#      `readSessionModeRaw`. Recreating true absence would require
+#      re-deriving caveman's un-exported `sessionActivePath()`
+#      path-construction + `validateSessionId()` whitelist ourselves —
+#      exactly the "reimplement caveman's internals" risk the whole
+#      plan-A-over-plan-B verdict was decided to avoid.
+#      ⛔ THE MIRROR HALF (fixed here -- previously a real gap, caught by Gate
+#      265's dev-only round trip; see the "restore" action below for the
+#      code). `writeSessionMode(claudeDir, sessionId, modeOrNull)` couples ONE
+#      argument to BOTH the session file AND the machine-wide mirror -- there
+#      is no way to ask it for "session -> X, mirror -> Y" in a single call
+#      when X and Y differ. The naive restore (call it once with
+#      `restoreMode`) therefore let the session-file write's OWN coupled
+#      mirror side-effect silently clobber the mirror to whatever
+#      `restoreMode` implies, regardless of what `legacy_mirror_at_entry`
+#      actually captured -- e.g. restoring a session with no prior value
+#      (`restoreMode = null` -> canonical `off`) always UNLINKS the mirror,
+#      even when the snapshot shows the mirror held `full` before this
+#      session's first write. Fixed by comparing the mirror's state
+#      immediately after the session-file restore against the captured
+#      `legacy_mirror_at_entry`, and — ONLY when they disagree — making a
+#      SECOND `writeSessionMode` call against a throwaway, freshly-generated
+#      scratch session id (never the real one, never a real prior session)
+#      whose sole purpose is to aim that same coupled mirror side-effect at
+#      the captured value without re-touching the just-restored session file
+#      (the mirror path is not session-scoped, so any valid session id reaches
+#      it). The scratch call's own harmless session-file byproduct is deleted
+#      immediately after (best-effort, direct unlink of a file this script
+#      itself just created via the scratch id — not a read/write of caveman's
+#      OWN data, and not a reimplementation of its writer). Still "the same
+#      sanctioned writer, never a raw file write" — plan.md's explicit
+#      instruction for --restore — just invoked twice with two different
+#      session identities instead of once. This is still bounded, not
+#      absolute: a CONCURRENT session that mutates the shared mirror in the
+#      narrow window between our restore and its own read can still see its
+#      write clobbered by ours (or vice versa) — the same last-write-wins
+#      exposure plan.md's R10 already documents as "bounded and mitigated —
+#      not eliminated," now applying to --restore's mirror write instead of
+#      only to a live apply's.
 #
 # ─────────────────────────────────────────────────────────────────────────────
 # Read-back verification (adopted from plan-B, plan.md)
@@ -416,6 +455,14 @@ if (action === 'restore') {
   }
 
   const restoreMode = (typeof priorState.user_mode_at_entry === 'undefined') ? null : priorState.user_mode_at_entry;
+  // Old-format defensive fallback only -- this script has ALWAYS captured
+  // legacy_mirror_at_entry unconditionally on every first apply call (see the
+  // "apply" branch above), so this branch is reachable only against a state
+  // file written by a version that predates that capture.
+  const mirrorSnapshotRaw = priorState.legacy_mirror_at_entry;
+  const mirrorSnapshot = (mirrorSnapshotRaw && typeof mirrorSnapshotRaw === 'object')
+    ? mirrorSnapshotRaw
+    : { exists: false, contents: null };
 
   try {
     // ⛔ HONEST LIMIT (see header): when restoreMode is null, this writes the
@@ -425,6 +472,52 @@ if (action === 'restore') {
   } catch (e) {
     out({ status: 'restore-write-failed', candidates: candidates, resolved_via: resolvedVia });
     process.exit(0);
+  }
+
+  // ---- restore the legacy mirror to its captured pre-entry state ---------
+  // See the header's "THE MIRROR HALF" note for the full reasoning. In short:
+  // writeSessionMode's mirror side-effect above is driven entirely by
+  // restoreMode, not by what the mirror held before this session's first
+  // write -- so it only happens to land on the captured value when the two
+  // coincide. Detect the (common) case where they already agree and do
+  // nothing further; otherwise make a second writeSessionMode call against a
+  // throwaway scratch session id whose only job is to aim that same coupled
+  // side-effect at the captured mirror value, without re-touching the
+  // session file we just correctly restored above.
+  const mirrorAfterSessionRestore = mirrorState();
+  const mirrorAlreadyMatches = mirrorSnapshot.exists
+    ? (mirrorAfterSessionRestore.exists && mirrorAfterSessionRestore.contents === mirrorSnapshot.contents)
+    : !mirrorAfterSessionRestore.exists;
+
+  if (!mirrorAlreadyMatches) {
+    const sessionsDirPath = path.join(claudeDir, '.caveman-sessions');
+    let scratchSid = null;
+    for (let attempt = 0; attempt < 5 && !scratchSid; attempt++) {
+      const candidate = 'rc-mirror-restore-' + process.pid + '-' + Date.now() + '-' +
+        Math.random().toString(36).slice(2);
+      // 128-char whitelist ceiling shared with caveman's own
+      // validateSessionId -- stay comfortably under it.
+      if (candidate.length > 100) continue;
+      if (!fs.existsSync(path.join(sessionsDirPath, candidate + '.mode'))) scratchSid = candidate;
+    }
+    if (scratchSid) {
+      try {
+        // mirrorSnapshot.exists -> land its captured contents through the
+        // SAME sanctioned writer (writeSessionMode itself refuses anything
+        // outside its own VALID_MODES, so a corrupt/foreign snapshot value
+        // silently no-ops here rather than writing garbage -- no VALID_MODES
+        // check needed on our side). !exists -> null triggers the unlink
+        // branch, restoring true absence.
+        cfg.writeSessionMode(claudeDir, scratchSid, mirrorSnapshot.exists ? mirrorSnapshot.contents : null);
+      } catch (e) { /* mirrorRestoredOk below reflects whatever actually happened */ }
+      // Best-effort cleanup of the scratch call's own harmless session-file
+      // byproduct -- a direct unlink of a file THIS SCRIPT just created via
+      // the scratch id, not a read/write of caveman's own pre-existing data
+      // and not a reimplementation of its writer.
+      try {
+        fs.unlinkSync(path.join(sessionsDirPath, scratchSid + '.mode'));
+      } catch (e) { /* best-effort */ }
+    }
   }
 
   let decodedActual;
@@ -437,12 +530,18 @@ if (action === 'restore') {
   const expectedDecoded = decodedOf(canonical);
   const readbackOk = (decodedActual === expectedDecoded);
 
+  const mirrorAfterFixup = mirrorState();
+  const mirrorRestoredOk = mirrorSnapshot.exists
+    ? (mirrorAfterFixup.exists && mirrorAfterFixup.contents === mirrorSnapshot.contents)
+    : !mirrorAfterFixup.exists;
+
   out({
-    status: readbackOk ? 'restored' : 'restore-readback-mismatch',
+    status: (readbackOk && mirrorRestoredOk) ? 'restored' : 'restore-readback-mismatch',
     candidates: candidates,
     resolved_via: resolvedVia,
     restored_mode: safeEnum(canonical),
-    readback_ok: readbackOk ? 'true' : 'false'
+    readback_ok: readbackOk ? 'true' : 'false',
+    mirror_restore_ok: mirrorRestoredOk ? 'true' : 'false'
   });
   process.exit(0);
 }
@@ -844,9 +943,51 @@ cmd_self_test() {
     _fail "manual-override latch: expected status=held-manual-override and mode file still 'full', got status=$status8 mode-after='$t8_mode_after' ($out8)"
   fi
 
+  # ---- Test 9 (bonus): --restore's mirror fixup. Constructs the exact
+  # divergent scenario the fix closes: the snapshot captured the legacy
+  # mirror holding 'full' (as if some OTHER session had it active at this
+  # session's first-apply moment), this session's own restoreMode is null
+  # (absent entry -> canonical 'off'), and the CURRENT on-disk mirror is
+  # already absent (as a live apply('off') would have left it -- see the
+  # header's "THE MIRROR HALF" note). Restoring the session mode ALONE would
+  # naturally leave the mirror absent too (canonical 'off' unlinks it) --
+  # which does NOT match the captured 'full'. Positive control built in:
+  # session9 and mirror9 are asserted independently, so a fixup that
+  # corrupted the just-restored session file to fix the mirror (the exact
+  # bug shape the header warns about -- reusing the real session id for the
+  # second call) would be caught by session9 != 'off', not just by mirror9. -
+  local t9_cfg t9_proj t9_hash_dir sid9 out9 status9 mirror9 session9 scratch_residue9
+  t9_cfg="$st_root/t9/claude-config"
+  t9_proj="$st_root/t9/project"
+  t9_hash_dir="$t9_cfg/plugins/cache/caveman/caveman/abc123def456/src/hooks"
+  mkdir -p "$t9_hash_dir" "$t9_proj/.ravenclaude/runs" "$t9_cfg/.caveman-sessions"
+  _st_good_fixture "$t9_hash_dir/caveman-config.js"
+  sid9="t9-session-$$"
+  mkdir -p "$t9_proj/.ravenclaude/runs/$sid9"
+  printf 'off' > "$t9_cfg/.caveman-sessions/$sid9.mode"
+  cat > "$t9_proj/.ravenclaude/runs/$sid9/caveman-route-state.json" <<EOF
+{
+  "user_mode_at_entry": null,
+  "legacy_mirror_at_entry": {"exists": true, "contents": "full"},
+  "manual_override": false,
+  "session_id": "$sid9",
+  "snapshotted_at": "2020-01-01T00:00:00.000Z"
+}
+EOF
+  out9="$(CLAUDE_CONFIG_DIR="$t9_cfg" CLAUDE_PROJECT_DIR="$t9_proj" bash "$script_self" --restore "$sid9" 2>/dev/null)"
+  status9="$(_json_field "$out9" status)"
+  mirror9="$(cat "$t9_cfg/.caveman-active" 2>/dev/null || echo '<absent>')"
+  session9="$(cat "$t9_cfg/.caveman-sessions/$sid9.mode" 2>/dev/null || echo '<absent>')"
+  scratch_residue9="$(find "$t9_cfg/.caveman-sessions" -maxdepth 1 -name '*.mode' ! -name "$sid9.mode" 2>/dev/null | wc -l | tr -d ' ')"
+  if [ "$status9" = "restored" ] && [ "$mirror9" = "full" ] && [ "$session9" = "off" ] && [ "$scratch_residue9" = "0" ]; then
+    _ok "restore mirror fixup: snapshot mirror ('full') diverged from what restoring the session ('off') alone implies -- mirror restored to 'full' via a scratch-id writeSessionMode call, the real session file stayed correctly 'off', zero scratch residue left behind ($out9)"
+  else
+    _fail "restore mirror fixup: expected status=restored mirror=full session=off scratch_residue=0, got status=$status9 mirror=$mirror9 session=$session9 scratch_residue=$scratch_residue9 ($out9)"
+  fi
+
   echo
   if [ "$_ST_FAIL" -eq 0 ]; then
-    echo "caveman-apply-mode.sh self-test: PASS (8/8)"
+    echo "caveman-apply-mode.sh self-test: PASS (9/9)"
   else
     echo "caveman-apply-mode.sh self-test: FAIL"
   fi

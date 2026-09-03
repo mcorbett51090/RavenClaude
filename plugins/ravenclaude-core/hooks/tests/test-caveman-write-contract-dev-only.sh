@@ -28,6 +28,18 @@
 # here are a real, bounded, cross-session side effect; this test measures
 # that the round trip restores it exactly, not that the flicker window is
 # zero).
+#
+# ⛔ HISTORY: the mirror-restoration assertion below was deliberately RED from
+# this gate's authoring until the P2 follow-up fix (2026-09-03) -- see the
+# "KNOWN GAP" comment inside the assertion's else-branch for the full original
+# writeup of the bug (caveman-apply-mode.sh's --restore action read back only
+# `user_mode_at_entry`, never `legacy_mirror_at_entry`, so a fresh-session
+# apply+restore round trip unconditionally unlinked the mirror). That gap is
+# now CLOSED in caveman-apply-mode.sh (see its header's "THE MIRROR HALF"
+# note) -- the else-branch below is retained verbatim as the historical record
+# of what this gate caught, per this repo's own convention of correcting
+# stale docs in the same change that closes the gap they describe, rather
+# than silently deleting the evidence of what was found.
 
 set -uo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
