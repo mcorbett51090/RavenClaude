@@ -26,6 +26,21 @@
 
 ---
 
+## 1a. Slash commands
+
+5 slash commands (`commands/`), previously shipped but enumerated in neither this file nor
+`README.md` — fixed as part of the FORGE self-description reconciliation pass:
+
+| Command | Agent discipline it follows | Cites these `best-practices/` rules |
+|---|---|---|
+| [`/build-embedded-dashboard`](commands/build-embedded-dashboard.md) | `dashboard-builder` | `model-semantic-layer-single-source-of-truth`, `enforce-tenant-isolation-closest-to-data`, `issue-short-lived-jwts-for-embeds`, `embed-lock-csp-frame-ancestors-and-sandbox`, `dashboard-set-data-freshness-slas` |
+| [`/build-incremental-connector`](commands/build-incremental-connector.md) | `connector-developer` (playbook: `skills/airbyte-cdk-authoring/SKILL.md`) | `connector-incremental-with-backfill`, `ingest-idempotent-and-replayable`, `etl-elt-load-then-transform-in-warehouse`, `connector-document-the-handoff-at-design-time` |
+| [`/design-warehouse-schema`](commands/design-warehouse-schema.md) | `database-setup-guide` + `etl-pipeline-engineer` | `warehouse-select-by-workload-not-brand`, `warehouse-partition-and-cluster-for-cost`, `dbt-stage-then-mart-never-skip-the-layer`, `enforce-tenant-isolation-closest-to-data`, `model-semantic-layer-single-source-of-truth` |
+| [`/scaffold-idempotent-elt-pipeline`](commands/scaffold-idempotent-elt-pipeline.md) | `etl-pipeline-engineer` | `etl-elt-load-then-transform-in-warehouse`, `ingest-idempotent-and-replayable`, `dbt-stage-then-mart-never-skip-the-layer`, `dbt-test-the-floor-unique-not-null-relationships`, `dashboard-set-data-freshness-slas` |
+| [`/stand-up-multi-tenant-database`](commands/stand-up-multi-tenant-database.md) | `database-setup-guide` | `warehouse-select-by-workload-not-brand`, `enforce-tenant-isolation-closest-to-data`, `rls-author-using-and-with-check-force-on` |
+
+---
+
 ## 2. Routing rules (Team Lead)
 
 - **"What stack should I use for this engagement?"** → `ravenclaude-core/architect` (reads `stack-selection` skill). The skill walks the Case A/B/C/D decision tree and returns a populated `stack-decision-record.md`.
@@ -85,7 +100,7 @@ These plugin-wide opinions are inherited by all **4** agents.
 
 This plugin inherits the Capability Grounding Protocol from `ravenclaude-core`. Before any data-platform agent says "I can't do X" or "this isn't possible", it must:
 
-1. **Check available skills first** — the 14 skills in this plugin (`stack-selection`, `cloud-database-comparison`, `connector-configuration`, `airbyte-cdk-authoring`, `jwt-embed-issuance`, `rls-policy-authoring`, `cube-schema-scaffolding`, `embed-csp-and-iframe-sandboxing`, `dbt-project-scaffolding`, `dashboard-performance-tuning`, `multi-tenant-migration`, `data-quality-tests`, `cross-system-identity-resolution`, `support-ticket-normalization`) plus the core skills (`structured-output`, `grounding-protocol`, etc.).
+1. **Check available skills first** — the 15 skills in this plugin (`stack-selection`, `cloud-database-comparison`, `connector-configuration`, `airbyte-cdk-authoring`, `jwt-embed-issuance`, `rls-policy-authoring`, `cube-schema-scaffolding`, `embed-csp-and-iframe-sandboxing`, `dbt-project-scaffolding`, `dashboard-performance-tuning`, `dashboard-architecture-audit`, `multi-tenant-migration`, `data-quality-tests`, `cross-system-identity-resolution`, `support-ticket-normalization`) plus the core skills (`structured-output`, `grounding-protocol`, etc.).
 2. **Check for partial capability** — can part of the task complete, or guidance be provided, even if full automation isn't possible?
 3. **Try alternative methods from easiest to most difficult before declaring blocked.** When a connector is missing, an embed pattern hits a CSP wall, or a database choice is constrained — enumerate at least 2-3 alternative approaches, rank them by cost (license fees, ops burden, lock-in), and try the next-easiest before reporting blocked. Common alternative dimensions to scan: connector strategy (Fivetran → Airbyte → custom Airbyte → REST script); database strategy (Supabase → Neon → managed Postgres → self-host); embed strategy (iframe → SDK → web-component → server-side render).
 4. **Consider team composition** — could `ravenclaude-core/architect`, `ravenclaude-core/security-reviewer`, or a companion plugin's agent (power-platform, edtech-partner-success, web-design) handle part of the work?
@@ -228,7 +243,7 @@ No server is invented; no `mcpServers` entry ships; no `NOTICE.md` (nothing thir
 
 ## 9. Templates in this plugin
 
-20 templates, distributed by intended bar (3 runnable + 4 conceptual + 3 seam-marked-stub-and-promoted pairs + 2 v0.2.0 modeling scaffolds + 2 app scaffolds + 1 audit report template).
+21 templates on disk, distributed by intended bar: 3 runnable + 4 conceptual + 3 seam-marked-stub-and-promoted pairs (9 files — each pair is 1 historical `.tsx.md` stub + 2 runnable siblings, e.g. a client component + a server-only endpoint) + 2 v0.2.0 modeling scaffolds + 2 app scaffolds + 1 audit report template = 3+4+9+2+2+1.
 
 ### Runnable (security-critical — must compile / parse / pass denial test)
 

@@ -140,6 +140,13 @@ jobs:
         # Claude Code's lenient loader tolerates it. Catch it here.
         run: python3 scripts/check-frontmatter.py
 
+      - name: Validate data-platform self-description (doc-drift tripwire)
+        # data-platform-scoped only (see the script's own docstring for why this
+        # isn't a marketplace-wide gate). Added after a FORGE gap-analysis pass
+        # found the plugin's own CLAUDE.md/README.md/CHANGELOG.md miscounting its
+        # own skills/templates/best-practices and misstating its own version.
+        run: python3 scripts/check-data-platform-self-description.py
+
       - name: Validate hook shell syntax
         run: |
           set -euo pipefail

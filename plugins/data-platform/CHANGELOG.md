@@ -2,6 +2,128 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.18.0] — 2026-09-03
+
+### Fixed
+
+- **P0-2 of the same FORGE gap-analysis pass** — self-description / doc-drift reconciliation.
+  The plugin's own constitution was miscounting its own inventory, the exact failure mode
+  CLAUDE.md §5's Capability Grounding Protocol exists to prevent in agent *output*, found in
+  the plugin's own *scaffolding*: `CLAUDE.md` said "14 skills" (15 exist, `dashboard-
+  architecture-audit` was the omission), `best-practices/README.md` said "31 rules" (33
+  exist — `connector-rate-limit-aware-retry.md` and `deny-test-every-stack.md` were both
+  written but never indexed), `CHANGELOG.md`'s top entry was two minor versions behind
+  `plugin.json`, `CLAUDE.md`'s templates count was stale, `README.md`'s Status section still
+  read "v0.1.0 — first ship", the 5 slash commands under `commands/` were enumerated in
+  neither `CLAUDE.md` nor `README.md`, and `etl-pipeline-engineer.md` had a "Fivatran" typo
+  inside a scenario `intent` field.
+- Fixed all eight drifted statements, backfilled the `[0.15.0]`/`[0.16.0]` CHANGELOG entries
+  this reconciliation surfaced were also missing, added a `## Commands` / `## 1a. Slash
+  commands` section to both `README.md` and `CLAUDE.md`, and corrected `dashboard-builder.md`'s
+  "Three cases... Case A/B/C/D... and Case E" internal contradiction to "Four cases... plus
+  Case E as a separate non-framework lane."
+- **New: `scripts/check-data-platform-self-description.py`** (data-platform-scoped, not
+  marketplace-wide — see the script's own docstring for why) — derives each count from the
+  filesystem and fails loud on drift: skills count, best-practices count, templates count,
+  CHANGELOG-vs-plugin.json version freshness, and (per this run's own red-team RT-8) that the
+  Cube-version-floor string P0-1 corrected stays byte-identical across all five files it
+  touched, so the next Cube version boundary doesn't silently repeat P0-1's defect on a slower
+  clock. Wired into `validate-marketplace.yml` and `audit-gates.sh` (Gate 263, with its own
+  must-pass/must-fail fixture pair).
+
+**Migration:** none — doc + script fixes only; no template, skill, or agent behavior changed.
+
+## [0.17.0] — 2026-09-03
+
+### Fixed
+
+- **P0-1 of a FORGE gap-analysis pass** (`/forge` run `dashboard-top1pct`, standard depth — G0 through
+  G8, red-team included). The critic gate (G4a) found a pre-existing, security-relevant defect:
+  `templates/cube-schema-starter.yml` claimed a "Cube 0.36+" floor while depending on `access_policy`
+  (Data Access Policies) unconditionally. WebSearch-verified: `access_policy` requires Cube Core
+  **>=1.2.0** — below that floor it is a no-op the server does not implement, and a schema that "has"
+  one is silently unenforced. Corrected the floor everywhere it was stated (`cube-schema-starter.yml`,
+  both app starters' READMEs, `skills/cube-schema-scaffolding/SKILL.md`, `dashboard-builder.md`'s
+  opinions list).
+- Bumped `@cubejs-client/core` + `@cubejs-client/react` together `0.35.0` → `1.7.33` in both app
+  starters (the two packages are hard-pinned to each other in the real npm registry; leaving the
+  client on `0.35.x` while stating the `>=1.2.0` server floor would have shipped a version-mismatched
+  starter). Added `engines.node >=18.17.0` to both `package.json`s and `@astrojs/check` to the Astro
+  starter's `devDependencies` (previously missing). Generated and committed `package-lock.json` for
+  both starters (previously absent).
+- Documented, not fixed: this pass's own `npm audit` on the regenerated lockfiles found the pinned
+  `next@14.2.x` and `astro@4.15.x` majors carry real high/moderate-severity CVEs not patched within
+  their own major line (fix requires `next@16.3.4` / `astro@7.3.0`, both breaking bumps) — recorded
+  honestly in both starters' READMEs rather than silently left or claimed fixed. **Migration:** the
+  `@cubejs-client/*` bump is additive (API-compatible within the 1.x line vs 0.35.x's usage here); no
+  action needed unless a consumer had vendored a copy of the 0.35.x client separately.
+
+## [0.16.0] — 2026-09-03
+
+### Added
+
+- **`templates/cube-astro-dashboard-starter/`** — Astro-islands port of the Case C Next.js starter,
+  for the more common shape at this shop: a mostly-static site with a Cube-backed widget or two,
+  which is architecturally closer to Case A/B than to a dedicated always-interactive SaaS app.
+  `KpiCard.tsx`/`RevenueChart.tsx` are reused **unchanged** from the Next.js starter (plain React, no
+  framework coupling); the Astro-specific plumbing (an `APIRoute` token endpoint, CSP via middleware
+  instead of `next.config.js` `headers()`) carries over the same reviewed security patterns but has
+  **not itself** been independently re-reviewed. `dashboard-builder.md` now asks the shape question
+  ("mostly-static-with-widgets vs. dedicated app") before defaulting to either starter.
+- **`skills/dashboard-architecture-audit/SKILL.md`** — a page-by-page rubric across three axes this
+  plugin had no coverage for: structure/information architecture, narrative/storytelling, and user
+  guidance toward action (distinct from `dashboard-visual-craft-2026.md`'s per-widget visual craft,
+  `dashboard-performance-tuning`'s latency budgets, `visual-feedback-loop`'s pixel-correctness, and
+  `security-reviewer`'s auth scope). Reuses `visual-feedback-loop`'s existing render-and-see mechanism
+  rather than building a second one. Wired into `dashboard-builder`'s Output Contract as a mandatory
+  gate — a build with open P0/P1 audit findings is `status: partial`, never `status: complete`, for
+  both new builds and standalone "harden this dashboard" requests.
+- **`templates/dashboard-audit-report-template.md`** — the priority-tagged (P0-P3) output shape for
+  the new audit skill.
+
+**Migration:** none — both additions are new surfaces; no existing template or skill was renamed or
+removed.
+
+## [0.15.0] — 2026-09-03
+
+### Added
+
+- **`templates/cube-nextjs-dashboard-starter/`** — a real, runnable Next.js App Router + Tremor +
+  Recharts Case C (productized SaaS) scaffold wired to the existing `cube-schema-starter.yml` and
+  `jwt-issuer.ts` templates, with a documented (not yet CI-executed) cross-tenant denial test
+  procedure.
+- Promoted the three seam-marked embed stubs to real, compiling code:
+  **`templates/superset-embed-iframe.tsx`**, **`templates/metabase-interactive-embed.tsx`**,
+  **`templates/power-bi-embedded-react.tsx`**. The original `.tsx.md` files are kept as seam
+  rationale/history, now carrying a promotion banner.
+
+### Fixed
+
+- `ravenclaude-core/security-reviewer`'s first pass on the promoted code returned a **blocked**
+  verdict: a client-controlled tenant scope in the Superset and Power BI embed seams (`tenantId` /
+  `EffectiveIdentity` composed client-side and passed unvalidated into the RLS clause / DAX identity),
+  and a secret/client-component colocation risk in the Metabase seam. All three fixed in this same
+  change:
+  - **`templates/superset-guest-token-endpoint.ts`** (new) — the only caller of Superset's guest-token
+    endpoint; resolves `tenantId` server-side and validates its shape before it reaches the RLS clause.
+    `superset-embed-iframe.tsx` no longer carries a `tenantId` prop.
+  - **`templates/pbi-embed-token-endpoint.ts`** — narrowed to `{workspaceId, reportId, datasetId}`;
+    `EffectiveIdentity` now resolved via a server-side session seam and refused when `roles` is empty
+    (a roleless identity previously fails open with no row filter). `power-bi-embedded-react.tsx` no
+    longer carries `tenantId`/`daxRole` props.
+  - **`templates/metabase-embed-url.server.ts`** (new, `import "server-only"` as its first line) —
+    split out of the client component so the signing secret can't ship to the browser.
+  - Plus the review's secondary findings on the new Cube starter: CSP `headers()`, `no-store` +
+    rate-limiting on `/api/cube-token`, and a real (not just claimed) token-refresh short-circuit in
+    `lib/cube-client.ts`.
+- ⛔ **The fixes have not themselves been re-reviewed** — the reviewer's recommended path was
+  "rewrite, then re-submit"; the rewrite happened, the re-review has not. Both starters' READMEs state
+  this explicitly rather than claiming a clean bill of security health.
+
+**Migration:** any prior consumer copy of the seam-marked `.tsx.md` stubs' original single-file shape
+(pre-split) should re-pull the promoted files — the props contract changed (`tenantId`/`daxRole` props
+removed from all three client components).
+
 ## [0.14.4] — 2026-09-01
 
 ### Added

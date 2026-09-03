@@ -799,6 +799,34 @@ PY
       echo "teeth ok (the mutant reddened, so the assertions measure the invariant)"
       exit 0
       ;;
+    263)
+      echo "── Gate 263: data-platform self-description tripwire (per-gate run) ──"
+      rc=0
+      python3 scripts/check-data-platform-self-description.py || rc=$?
+      if [[ "$rc" -ne 0 ]]; then
+        echo "the real tree should pass clean — check-data-platform-self-description.py failed" >&2
+        exit 1
+      fi
+      echo "── Gate 263 teeth: a drifted fixture MUST fail ──"
+      DP_TEETH_TMP="$(mktemp -d)"
+      DP_TEETH="$DP_TEETH_TMP/plugins/data-platform"
+      mkdir -p "$DP_TEETH/skills/a" "$DP_TEETH/skills/b" "$DP_TEETH/skills/c" "$DP_TEETH/best-practices" "$DP_TEETH/templates" "$DP_TEETH/.claude-plugin"
+      touch "$DP_TEETH/skills/a/SKILL.md" "$DP_TEETH/skills/b/SKILL.md" "$DP_TEETH/skills/c/SKILL.md"
+      touch "$DP_TEETH/best-practices/rule1.md" "$DP_TEETH/best-practices/README.md"
+      touch "$DP_TEETH/templates/t1.md"
+      printf 'the 2 skills in this plugin\n1 templates on disk\n' > "$DP_TEETH/CLAUDE.md"
+      printf '_1 rules. Each file is one named, citable rule._\n' > "$DP_TEETH/best-practices/README.md"
+      printf '{"version": "1.0.0"}' > "$DP_TEETH/.claude-plugin/plugin.json"
+      printf '## [1.0.0] — 2026-09-03\n' > "$DP_TEETH/CHANGELOG.md"
+      if python3 scripts/check-data-platform-self-description.py --root "$DP_TEETH"; then
+        echo "TEETH FAILED: the drifted fixture (3 skills on disk, CLAUDE.md says 2) did not fail" >&2
+        rm -rf "$DP_TEETH_TMP"
+        exit 1
+      fi
+      rm -rf "$DP_TEETH_TMP"
+      echo "teeth ok (the drifted fixture failed, so the assertions measure the invariant)"
+      exit 0
+      ;;
     243)
       echo "── Gate 243: scheduled sweep contract + operator health card ──"
       bash plugins/ravenclaude-core/hooks/tests/test-gate243-sweep-and-health-card.sh
@@ -1603,7 +1631,7 @@ PY
       ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254, 255, 256, 257, 258, 259, 260, 261, 262. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254, 255, 256, 257, 258, 259, 260, 261, 262, 263. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -9704,6 +9732,40 @@ echo "── analog-closeness-scorecard (Q2 leftover, docs/follow-ups/2026-08-14
 rc=0
 python3 plugins/ravenclaude-core/skills/analog-closeness-scorecard/score_closeness.py --self-test >/dev/null 2>&1 || rc=$?
 gate "analog-closeness-scorecard --self-test (rows + buckets + quality-bar teeth)" must_pass "$rc"
+
+echo
+echo "── Gate 263: data-platform self-description tripwire (skills/rules/templates/CHANGELOG/Cube-version) ──"
+# FORGE gap-analysis pass P0-2 (dashboard-top1pct run, 2026-09-03): the plugin's
+# own CLAUDE.md/README.md/best-practices/README.md/CHANGELOG.md had silently
+# drifted from the filesystem — the exact failure mode CLAUDE.md §5's Capability
+# Grounding Protocol exists to prevent in agent OUTPUT, found in the plugin's own
+# scaffolding instead. Deliberately data-platform-scoped only, not marketplace-
+# wide — see the script's own docstring for why.
+rc=0; python3 scripts/check-data-platform-self-description.py >/dev/null 2>&1 || rc=$?
+gate "data-platform self-description: real tree passes clean" must_pass "$rc"
+DP_BAD="$TMP/dp-selfdesc-bad/plugins/data-platform"
+mkdir -p "$DP_BAD/skills/a" "$DP_BAD/skills/b" "$DP_BAD/skills/c" "$DP_BAD/best-practices" "$DP_BAD/templates" "$DP_BAD/.claude-plugin"
+touch "$DP_BAD/skills/a/SKILL.md" "$DP_BAD/skills/b/SKILL.md" "$DP_BAD/skills/c/SKILL.md"
+touch "$DP_BAD/best-practices/rule1.md" "$DP_BAD/best-practices/README.md"
+touch "$DP_BAD/templates/t1.md"
+printf 'the 2 skills in this plugin\n1 templates on disk\n' > "$DP_BAD/CLAUDE.md"
+printf '_1 rules. Each file is one named, citable rule._\n' > "$DP_BAD/best-practices/README.md"
+printf '{"version": "1.0.0"}' > "$DP_BAD/.claude-plugin/plugin.json"
+printf '## [1.0.0] — 2026-09-03\n' > "$DP_BAD/CHANGELOG.md"
+rc=0; python3 scripts/check-data-platform-self-description.py --root "$TMP/dp-selfdesc-bad/plugins/data-platform" >/dev/null 2>&1 || rc=$?
+gate "data-platform self-description: skills-count drift (3 on disk, CLAUDE.md says 2) caught" must_fail "$rc"
+DP_CUBE="$TMP/dp-selfdesc-cube/plugins/data-platform"
+mkdir -p "$DP_CUBE/skills/cube-schema-scaffolding" "$DP_CUBE/templates/cube-nextjs-dashboard-starter" "$DP_CUBE/templates/cube-astro-dashboard-starter" "$DP_CUBE/agents" "$DP_CUBE/best-practices" "$DP_CUBE/.claude-plugin"
+touch "$DP_CUBE/best-practices/README.md"
+printf '{"version": "1.0.0"}' > "$DP_CUBE/.claude-plugin/plugin.json"
+printf '## [1.0.0] — 2026-09-03\n' > "$DP_CUBE/CHANGELOG.md"
+printf 'requires Cube >=1.2.0\n' > "$DP_CUBE/templates/cube-schema-starter.yml"
+printf 'requires Cube >=1.2.0\n' > "$DP_CUBE/templates/cube-nextjs-dashboard-starter/README.md"
+printf 'requires Cube >=1.2.0\n' > "$DP_CUBE/templates/cube-astro-dashboard-starter/README.md"
+printf 'requires Cube Core >=1.2.0\n' > "$DP_CUBE/skills/cube-schema-scaffolding/SKILL.md"
+printf 'requires Cube Core >=1.3.0\n' > "$DP_CUBE/agents/dashboard-builder.md"
+rc=0; python3 scripts/check-data-platform-self-description.py --root "$TMP/dp-selfdesc-cube/plugins/data-platform" >/dev/null 2>&1 || rc=$?
+gate "data-platform self-description: Cube-version-floor mismatch (1.2.0 vs 1.3.0, RT-8) caught" must_fail "$rc"
 
 echo
 echo "═══════════════════════════════════════════════════════════════════════════"

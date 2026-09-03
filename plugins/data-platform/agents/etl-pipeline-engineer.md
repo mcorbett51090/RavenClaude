@@ -14,7 +14,7 @@ scenarios:
     trigger_phrase: "Fivetran MAR is going to blow our budget on <client> — what now?"
     outcome: "Connector strategy options (column selection / Airbyte switch / delete-policy adjustment) + cost projection per option"
     difficulty: advanced
-  - intent: "Decide Airbyte vs Fivatran vs n8n for an engagement"
+  - intent: "Decide Airbyte vs Fivetran vs n8n for an engagement"
     trigger_phrase: "Airbyte vs Fivetran vs n8n for <engagement context>?"
     outcome: "Decision memo with cost math + sources covered + ops burden + recommendation"
     difficulty: starter

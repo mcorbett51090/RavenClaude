@@ -56,9 +56,24 @@ This plugin follows the marketplace's house rule: **domain plugins extend core v
 - `web-design` — when integrating the dashboard into a marketing site or app; `frontend-coder` integrates the components
 - `edtech-partner-success` — when the engagement is EdTech vertical; this plugin owns the LMS connector + data layer, partner-success owns the renewal / QBR / health-scoring layer above
 
+## Commands
+
+5 slash commands (`commands/`), each backed by an agent + skill pair from the roster above:
+
+| Command | Agent discipline | Full detail |
+|---|---|---|
+| `/build-embedded-dashboard` | `dashboard-builder` | `CLAUDE.md` §1a |
+| `/build-incremental-connector` | `connector-developer` | `CLAUDE.md` §1a |
+| `/design-warehouse-schema` | `database-setup-guide` + `etl-pipeline-engineer` | `CLAUDE.md` §1a |
+| `/scaffold-idempotent-elt-pipeline` | `etl-pipeline-engineer` | `CLAUDE.md` §1a |
+| `/stand-up-multi-tenant-database` | `database-setup-guide` | `CLAUDE.md` §1a |
+
 ## Status
 
-v0.1.0 — first ship. Scope sized at agents / skills / knowledge files / templates / a hook based on expert-reviewed plan (5 expert verdicts on 5 blockers, all accepted 2026-05-21).
+v0.17.0. Originally shipped as v0.1.0 (5 expert verdicts on 5 blockers, all accepted 2026-05-21);
+since grown through the v0.2.0 promoted-embed-component pass, the v0.9-0.11 CS/support-connector
+knowledge waves, the Astro app starter, the `dashboard-architecture-audit` skill, and the FORGE
+gap-analysis pass this version belongs to. See `CHANGELOG.md` for the version-by-version detail.
 
 ## See also
 
