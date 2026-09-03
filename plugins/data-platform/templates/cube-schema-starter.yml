@@ -76,6 +76,16 @@ cubes:
         sql: customer_id
         type: count_distinct
 
+      # Powers <FreshnessBadge> (FORGE dashboard-top1pct P2-16, 2026-09-03):
+      # the "as-of" timestamp commands/build-embedded-dashboard.md step 5
+      # mandates every dashboard show. database-schema-starter.sql's
+      # update_fact_orders_updated_at trigger keeps this column current on
+      # every write, so a max() over it is a real freshness signal, not a
+      # synthetic one.
+      - name: last_updated_at
+        sql: updated_at
+        type: max
+
     # ---------------------------------------------------------------------
     # Dimensions
     # ---------------------------------------------------------------------

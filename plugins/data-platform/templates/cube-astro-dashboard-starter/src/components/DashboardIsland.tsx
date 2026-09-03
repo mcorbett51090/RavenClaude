@@ -7,6 +7,12 @@ import { KpiCard } from "./KpiCard";
 import { RevenueChart } from "./RevenueChart";
 import { ExportBar } from "./ExportBar";
 import { LocaleProvider } from "./LocaleProvider";
+import { FreshnessBadge } from "./FreshnessBadge";
+
+// This starter's own declared SLA — see the Next.js starter's identical
+// constant for the full rationale (best-practices/dashboard-set-data-
+// freshness-slas.md: "declare a freshness SLA per source/dashboard").
+const DASHBOARD_FRESHNESS_SLA_MINUTES = 12 * 60;
 
 export interface DashboardIslandProps {
   /** Server-resolved in index.astro's frontmatter (lib/locale.ts) and passed
@@ -42,6 +48,12 @@ export function DashboardIsland({ locale, timezone }: DashboardIslandProps) {
   return (
     <LocaleProvider locale={locale} timezone={timezone}>
       <CubeProvider cubeApi={cubeApi}>
+        <div className="mb-2">
+          <FreshnessBadge
+            measure="orders.last_updated_at"
+            slaMinutes={DASHBOARD_FRESHNESS_SLA_MINUTES}
+          />
+        </div>
         <ExportBar />
 
         <Grid numItemsMd={3} className="mt-6 gap-4">

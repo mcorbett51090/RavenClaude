@@ -10006,6 +10006,35 @@ grep -q 'Intl\.NumberFormat("en-US"' "$DP_LOCALE_BAD" 2>/dev/null && rc=1
 gate "locale structural: hard-coded en-US formatting call caught" must_fail "$rc"
 
 echo
+echo "── Gate 271: data-platform freshness-badge structural checks (no browser needed) ──"
+# FORGE P2-16 (2026-09-03): commands/build-embedded-dashboard.md step 5 has
+# mandated a visible as-of timestamp since it was written; confirmed neither
+# starter rendered one before this phase. This gate asserts every starter
+# page actually MOUNTS <FreshnessBadge> — an artifact nobody's page imports
+# is not a closed gap, per the reachability discipline P0-2/P1-6 established.
+for starter in cube-nextjs-dashboard-starter cube-astro-dashboard-starter; do
+  base="plugins/data-platform/templates/$starter"
+  badge="$base/components/FreshnessBadge.tsx"
+  [[ -f "$badge" ]] || badge="$base/src/components/FreshnessBadge.tsx"
+  shell="$base/components/DashboardShell.tsx"
+  [[ -f "$shell" ]] || shell="$base/src/components/DashboardIsland.tsx"
+
+  rc=0; [[ -f "$badge" ]] || rc=1
+  gate "freshness structural: FreshnessBadge.tsx exists ($starter)" must_pass "$rc"
+
+  rc=0; grep -q "FreshnessBadge" "$shell" 2>/dev/null || rc=1
+  gate "freshness structural: FreshnessBadge mounted on the dashboard page ($starter)" must_pass "$rc"
+
+  rc=0; grep -q "slaMinutes" "$shell" 2>/dev/null || rc=1
+  gate "freshness structural: an SLA is declared at the mount site ($starter)" must_pass "$rc"
+done
+# Teeth: a shell fixture that never mounts the badge must be caught.
+DP_FRESH_BAD="$TMP/dp-fresh-bad-shell.tsx"
+printf 'export function DashboardShell() { return <div><KpiCard /></div>; }\n' > "$DP_FRESH_BAD"
+rc=0; grep -q "FreshnessBadge" "$DP_FRESH_BAD" 2>/dev/null || rc=1
+gate "freshness structural: missing FreshnessBadge mount caught" must_fail "$rc"
+
+echo
 echo "═══════════════════════════════════════════════════════════════════════════"
 printf '  %d pass, %d fail, %d skipped\n' "$PASS" "$FAIL" "$SKIP"
 if [[ "$FAIL" -gt 0 ]]; then

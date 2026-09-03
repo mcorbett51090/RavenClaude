@@ -2,6 +2,38 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.30.0] — 2026-09-03
+
+### Added
+
+- **P2-16** — the dashboard-side freshness/degradation contract. `commands/build-embedded-dashboard.md`
+  step 5 has mandated a visible as-of timestamp since it was written; confirmed neither starter
+  rendered one before this phase — the gap between a command's steps and the artifacts it points at
+  is exactly where an agent produces confidently wrong work, because nothing failed loudly enough to
+  notice.
+  - New `<FreshnessBadge>` component, identical contract in both starters
+    (`components/FreshnessBadge.tsx` / `src/components/FreshnessBadge.tsx`): queries a Cube `max()`
+    measure over the fact table's `updated_at` column (new `orders.last_updated_at` measure added to
+    `templates/cube-schema-starter.yml`), compares against a per-dashboard `slaMinutes` prop (no
+    universal default — the SLA is per-source/per-dashboard, per this plugin's own existing rule),
+    and renders one of two states: on-time (neutral, low-emphasis) or past-SLA (icon **and** text
+    change, never color alone — WCAG 2.2 AA Use-of-Color).
+  - Pure staleness logic split into `lib/freshness.ts`'s `computeFreshnessState()` so it's unit-testable
+    without a browser (this sandbox cannot spawn headless Chromium — a documented, session-wide
+    limitation). `test/freshness.test.ts` covers a positive control (well within SLA), a seeded-stale
+    fixture (past SLA), the exact boundary (`age === SLA` is not stale), and locale/timezone threading —
+    per starter, 4 tests each, all passing.
+  - New "dashboard-side degradation contract" section in
+    `best-practices/dashboard-set-data-freshness-slas.md`: a widget past its SLA must never silently
+    render a normal-looking number.
+  - `templates/dashboard-engagement-checklist.md`'s Content section now has an explicit as-of/SLA
+    acceptance line.
+  - New `audit-gates.sh` Gate 271 (structural, no browser needed): `FreshnessBadge.tsx` exists, is
+    mounted on the dashboard page, and an SLA is declared at the mount site — per starter, with a
+    must-fail teeth fixture.
+  - Both starters' `tsc --noEmit --skipLibCheck` / `astro check`, `npm run build` / `astro build`, and
+    `vitest run` verified clean this session.
+
 ## [0.29.0] — 2026-09-03
 
 ### Added

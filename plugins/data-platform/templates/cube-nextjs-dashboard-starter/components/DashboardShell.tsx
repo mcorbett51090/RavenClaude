@@ -7,6 +7,12 @@ import { KpiCard } from "./KpiCard";
 import { RevenueChart } from "./RevenueChart";
 import { ExportBar } from "./ExportBar";
 import { LocaleProvider } from "./LocaleProvider";
+import { FreshnessBadge } from "./FreshnessBadge";
+
+// This starter's own declared SLA (best-practices/dashboard-set-data-freshness-slas.md:
+// "declare a freshness SLA per source/dashboard" — there is no universal default). Matches
+// the 12h warn_after threshold that best-practice file's own dbt source-freshness example uses.
+const DASHBOARD_FRESHNESS_SLA_MINUTES = 12 * 60;
 
 export interface DashboardShellProps {
   tenantLabel: string;
@@ -33,6 +39,13 @@ export function DashboardShell({ tenantLabel, locale, timezone }: DashboardShell
         <div className="p-6">
           <Title>Dashboard</Title>
           <Subtitle>{tenantLabel}</Subtitle>
+
+          <div className="mt-2">
+            <FreshnessBadge
+              measure="orders.last_updated_at"
+              slaMinutes={DASHBOARD_FRESHNESS_SLA_MINUTES}
+            />
+          </div>
 
           <div className="mt-4">
             <ExportBar />
