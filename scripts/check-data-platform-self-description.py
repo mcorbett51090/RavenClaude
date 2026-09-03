@@ -31,6 +31,11 @@ Checks:
                            *next* Cube version boundary doesn't silently repeat P0-1's own
                            defect (a floor stated in one place and left stale everywhere
                            else) on a slower clock.
+  6. Stack-case coverage matrix (P1-11) — every data row of CLAUDE.md §9a's Case A/B/C/D/E
+                           table must have every cell non-empty (✅/⚠/N/A-with-reason all
+                           count; a bare empty cell does not). Catches the exact failure mode
+                           the matrix exists to prevent: an asymmetry going unnoticed because
+                           a cell was silently left blank rather than marked explicitly.
 
 Usage:
     check-data-platform-self-description.py [--root <path-to-data-platform-plugin-dir>]
@@ -170,6 +175,31 @@ def main() -> int:
         if len(distinct) > 1:
             detail = ", ".join(f"{rel}={v}" for rel, v in sorted(found_versions.items()))
             _fail(problems, f"Cube-version-floor drift: not all files agree ({detail})")
+
+    # 6. Stack-case coverage matrix (P1-11): every data-row cell must be non-empty.
+    if claude_md.exists():
+        section_match = re.search(
+            r"^## 9a\. Stack-case coverage matrix.*?(?=^## \d|\Z)", claude_text, re.DOTALL | re.MULTILINE
+        )
+        if section_match is None:
+            _fail(problems, "CLAUDE.md: '## 9a. Stack-case coverage matrix' section not found")
+        else:
+            section = section_match.group(0)
+            table_rows = [line for line in section.splitlines() if line.strip().startswith("|")]
+            # Skip the header row and the `|---|---|...` separator row.
+            data_rows = [
+                row for row in table_rows[2:] if row.strip() and not re.fullmatch(r"\|[\s:|-]+\|", row.strip())
+            ]
+            if not data_rows:
+                _fail(problems, "CLAUDE.md §9a: no data rows found in the coverage matrix table")
+            for row in data_rows:
+                cells = [c.strip() for c in row.strip().strip("|").split("|")]
+                for idx, cell in enumerate(cells):
+                    if not cell:
+                        _fail(
+                            problems,
+                            f"CLAUDE.md §9a: empty cell in column {idx + 1} of row: {row.strip()[:80]}",
+                        )
 
     if problems:
         print("check-data-platform-self-description: FAILED", file=sys.stderr)

@@ -9793,6 +9793,17 @@ printf 'requires Cube Core >=1.2.0\n' > "$DP_CUBE/skills/cube-schema-scaffolding
 printf 'requires Cube Core >=1.3.0\n' > "$DP_CUBE/agents/dashboard-builder.md"
 rc=0; python3 scripts/check-data-platform-self-description.py --root "$TMP/dp-selfdesc-cube/plugins/data-platform" >/dev/null 2>&1 || rc=$?
 gate "data-platform self-description: Cube-version-floor mismatch (1.2.0 vs 1.3.0, RT-8) caught" must_fail "$rc"
+# P1-11: the stack-case coverage matrix must have no empty cell anywhere.
+DP_MATRIX="$TMP/dp-selfdesc-matrix/plugins/data-platform"
+mkdir -p "$DP_MATRIX/skills/a" "$DP_MATRIX/best-practices" "$DP_MATRIX/templates" "$DP_MATRIX/.claude-plugin"
+touch "$DP_MATRIX/skills/a/SKILL.md" "$DP_MATRIX/best-practices/rule1.md"
+touch "$DP_MATRIX/templates/t1.md"
+printf '{"version": "1.0.0"}' > "$DP_MATRIX/.claude-plugin/plugin.json"
+printf '## [1.0.0] — 2026-09-03\n' > "$DP_MATRIX/CHANGELOG.md"
+printf '_1 rules. Each file is one named, citable rule._\n' > "$DP_MATRIX/best-practices/README.md"
+printf 'the 1 skills in this plugin\n1 templates on disk\n\n## 9a. Stack-case coverage matrix\n\n| Case | Agent guidance | Skill |\n|---|---|---|\n| **A** | OK | |\n\n## 10. Escalating\n' > "$DP_MATRIX/CLAUDE.md"
+rc=0; python3 scripts/check-data-platform-self-description.py --root "$TMP/dp-selfdesc-matrix/plugins/data-platform" >/dev/null 2>&1 || rc=$?
+gate "data-platform self-description: coverage-matrix empty cell (P1-11) caught" must_fail "$rc"
 
 echo
 echo "── Gate 264: data-platform app-starter package manifests (Tier 1 — static only) ──"

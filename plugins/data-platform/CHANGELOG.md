@@ -2,6 +2,47 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.26.0] — 2026-09-03
+
+### Added
+
+- **P1-11** — closed a self-acknowledged HIGH-priority gap that had survived several releases:
+  Case C had two full runnable app starters, Case A had a single markdown page template. New
+  `templates/evidence-portfolio-starter/`: a real, three-page Evidence.dev project against a
+  **committed, genuinely verified `.duckdb` fixture** (generated and read back successfully
+  with Python's `duckdb` package this session — not assumed).
+  - **A major, unexpected finding surfaced re-verifying Evidence.dev before building on it**
+    (this plugin's prior knowledge was dated 2026-05-21): pricing changed (the old
+    "$15/user/mo, $25/user/mo, Team/Pro" tiers are gone — current is Team $2,500/month flat
+    unlimited users, no Pro tier, Enterprise custom; MIT license confirmed still accurate),
+    the CLI changed (npm scripts are explicitly deprecated in Evidence's own current template
+    in favor of a standalone `evidence`/`evd` binary), the page syntax changed (Markdoc
+    `{% component %}` tags replaced the older Svelte-import style), and — the load-bearing
+    one — **the deployment model changed**: current Evidence has no build step and re-runs
+    SQL server-side on every page load (`evidence serve` is a long-running process, "similar
+    to evidence dev but hardened for production"), not the old build-once static-HTML-export
+    model this plugin's Case A framing assumed. Corrected `agents/dashboard-builder.md`'s
+    stale pricing claim and documented the full finding, with sources, in the scaffold's own
+    `pages/about.md` rather than silently building on the outdated assumption.
+  - Baked in the plugin's own invariants: provenance (the SQL block itself is the citable
+    source for every number), an explicit "as of" note, and an explicit single-tenant-by-
+    construction documentation per `best-practices/single-tenant-document-the-assumption.md`.
+  - Added a **stack-case coverage matrix** to `CLAUDE.md` §9a — Case A/B/C/D/E × (agent
+    guidance, skill, template, runnable scaffold, denial test, audit example), every cell
+    carrying an entry or an explicit dated "N/A because…". New check in
+    `scripts/check-data-platform-self-description.py` asserts no cell is silently empty,
+    proven with a must-pass/must-fail fixture before wiring into `audit-gates.sh` Gate 263.
+  - **Honest limits, stated plainly:** the current Evidence CLI installs via a shell-script
+    one-line installer that this session deliberately did not execute (running an arbitrary
+    downloaded installer wasn't something to do without more care than a template-authoring
+    pass warrants) — so this starter has **not** been run end-to-end against a live `evidence
+    dev`/`evidence build`, is **not** yet covered by `P0-4`'s CI build tier, and has **not**
+    been dogfooded by `P1-10`'s `dashboard-architecture-audit` pass. All three are named,
+    dated follow-ups in the scaffold's own README, not silently implied as done.
+
+**Migration:** none — new, additive template directory; the one existing-file change
+(`dashboard-builder.md`'s pricing correction) fixes a claim that was already wrong.
+
 ## [0.25.0] — 2026-09-03
 
 ### Added
