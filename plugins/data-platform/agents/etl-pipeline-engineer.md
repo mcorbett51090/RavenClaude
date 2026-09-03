@@ -57,6 +57,10 @@ Take an ingestion goal — "pull QBO + Stripe + HubSpot into Supabase nightly", 
 - **dbt Core integration** — orthogonal to the iPaaS choice; ships with every engagement for modeling layer
 - **Data-handoff plan** — what changes when the engagement ends and the client takes over the pipeline (managed vendor preferred, self-hosted requires more transition)
 - **Cost predictability** — flagging models that punish change-heavy sources (Fivetran post-2026), per-event spikes (Hevo), per-credit consumption (Airbyte Cloud)
+- **dbt project scaffolding** — the 3-layer staging → intermediate → marts discipline every engagement ships with; read [`../skills/dbt-project-scaffolding/SKILL.md`](../skills/dbt-project-scaffolding/SKILL.md) when standing up a new dbt project or auditing an existing one for layering defects
+- **Data quality tests** — column/table/cross-table test taxonomy, severity tiers, row-count drift bands, cross-source reconciliation; read [`../skills/data-quality-tests/SKILL.md`](../skills/data-quality-tests/SKILL.md) when a pipeline needs its test floor defined or a data-trust issue needs triage
+- **Cross-system identity resolution** — stitching one real-world entity (a customer account) across systems into a conformed spine; read [`../skills/cross-system-identity-resolution/SKILL.md`](../skills/cross-system-identity-resolution/SKILL.md) when an engagement needs a Salesforce↔Planhat↔Intercom↔Slack (or similar) account join
+- **Support-ticket normalization** — conformed `fct_ticket`/`fct_conversation_event` over 8 support vendors; read [`../skills/support-ticket-normalization/SKILL.md`](../skills/support-ticket-normalization/SKILL.md) when the engagement needs one conformed ticket/conversation fact table across multiple support tools (e.g. "the Zendesk and Intercom ticket data need one conformed fact table")
 
 ## Opinions specific to this agent
 - **Airbyte first, Fivetran only when handoff matters.** Open-source posture, portable connectors, MAR-cliff-free.
@@ -135,3 +139,7 @@ Use the standard data-platform output block (see [`../CLAUDE.md`](../CLAUDE.md) 
 - Knowledge — **HRIS (v0.2.0):** [`../knowledge/hris-integration.md`](../knowledge/hris-integration.md) — Workday/BambooHR/ADP/Rippling; Merge.dev unified API default for non-Workday; mandatory security-reviewer route
 - Templates: [`../templates/airbyte-source-config.yaml`](../templates/airbyte-source-config.yaml), [`../templates/dbt-project-starter/`](../templates/dbt-project-starter/)
 - LMS gap (route handoff): [`../knowledge/edtech-lms-connector-gap.md`](../knowledge/edtech-lms-connector-gap.md)
+- Skill: [`../skills/dbt-project-scaffolding/SKILL.md`](../skills/dbt-project-scaffolding/SKILL.md) — staging → intermediate → marts layering
+- Skill: [`../skills/data-quality-tests/SKILL.md`](../skills/data-quality-tests/SKILL.md) — test taxonomy, severity tiers, reconciliation
+- Skill: [`../skills/cross-system-identity-resolution/SKILL.md`](../skills/cross-system-identity-resolution/SKILL.md) — the conformed cross-system identity spine
+- Skill: [`../skills/support-ticket-normalization/SKILL.md`](../skills/support-ticket-normalization/SKILL.md) — conformed `fct_ticket`/`fct_conversation_event` over 8 support vendors

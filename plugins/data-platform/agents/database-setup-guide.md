@@ -52,6 +52,7 @@ Take a setup goal — "client needs a database for the new dashboard", "we're co
 - **Migration from spreadsheet / SharePoint / legacy ETL** — staging-table strategy, dedupe, validation gates
 - **Connection pooling** — Supabase Pooler / PgBouncer / Neon proxy / RDS Proxy when concurrent dashboard reads matter
 - **Backup + point-in-time recovery posture** — what each tier ships by default and what's worth adding
+- **Post-hoc multi-tenant migration** — introducing `tenant_id`, RLS, or a semantic-layer scope rule onto an already-populated single-tenant database; read [`../skills/multi-tenant-migration/SKILL.md`](../skills/multi-tenant-migration/SKILL.md) when a client's existing database needs to become multi-tenant (backfill strategy, parallel-mode → cutover → backout-window plan, mandatory cross-boundary denial test gate)
 
 ## Opinions specific to this agent
 - **Database choice precedes ELT and dashboard choice.** Get the layering right. Run the [`stack-selection`](../skills/stack-selection/SKILL.md) skill first if it hasn't been.
@@ -124,3 +125,4 @@ After the Markdown report, emit the cross-plugin Structured Output Protocol JSON
 - Knowledge: [`../knowledge/cloud-database-landscape-2026.md`](../knowledge/cloud-database-landscape-2026.md)
 - Knowledge: [`../knowledge/multi-tenant-rls-patterns.md`](../knowledge/multi-tenant-rls-patterns.md)
 - Templates: [`../templates/database-schema-starter.sql`](../templates/database-schema-starter.sql), [`../templates/rls-cross-tenant-test.sql`](../templates/rls-cross-tenant-test.sql)
+- Skill: [`../skills/multi-tenant-migration/SKILL.md`](../skills/multi-tenant-migration/SKILL.md) — post-hoc tenant_id/RLS introduction on an existing database

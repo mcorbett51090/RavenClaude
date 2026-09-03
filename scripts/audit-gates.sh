@@ -9823,6 +9823,26 @@ rc=0; python3 -m json.tool "$DP_PKG_BAD" >/dev/null 2>&1 || rc=$?
 gate "data-platform starter package.json parse check (malformed fixture caught)" must_fail "$rc"
 
 echo
+echo "── Gate 265: data-platform skill reachability (every skill wired to an agent) ──"
+# FORGE P1-6 (2026-09-03): a dispatched subagent loads its own agents/*.md, not
+# CLAUDE.md's skill table — a skill listed there but never mentioned by any
+# agents/*.md is shipped, indexed, and structurally invisible at runtime. Five of
+# fifteen data-platform skills had zero agents/*.md references this session;
+# wired in P1-6. This gate keeps that fixed. Deliberately data-platform-scoped —
+# see the script's own docstring for why (every plugin has a different topology).
+rc=0; python3 scripts/check-data-platform-skill-reachability.py >/dev/null 2>&1 || rc=$?
+gate "data-platform skill reachability: real tree, all 15 skills reachable" must_pass "$rc"
+DP_SKR_TMP="$(mktemp -d)"
+DP_SKR="$DP_SKR_TMP/plugins/data-platform"
+mkdir -p "$DP_SKR/skills/cube-schema-scaffolding" "$DP_SKR/skills/orphan-skill" "$DP_SKR/agents"
+printf -- '---\nname: x\n---\nbody\n' > "$DP_SKR/skills/cube-schema-scaffolding/SKILL.md"
+printf -- '---\nname: z\n---\nbody\n' > "$DP_SKR/skills/orphan-skill/SKILL.md"
+printf 'This agent reads cube-schema-scaffolding for its work.\n' > "$DP_SKR/agents/dashboard-builder.md"
+rc=0; python3 scripts/check-data-platform-skill-reachability.py --root "$DP_SKR" >/dev/null 2>&1 || rc=$?
+gate "data-platform skill reachability: orphaned skill (no agent ref, no invoked_by) caught" must_fail "$rc"
+rm -rf "$DP_SKR_TMP"
+
+echo
 echo "═══════════════════════════════════════════════════════════════════════════"
 printf '  %d pass, %d fail, %d skipped\n' "$PASS" "$FAIL" "$SKIP"
 if [[ "$FAIL" -gt 0 ]]; then

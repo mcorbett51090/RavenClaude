@@ -2,6 +2,32 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.21.0] — 2026-09-03
+
+### Fixed
+
+- **P1-6** — five of fifteen skills (`dbt-project-scaffolding`, `multi-tenant-migration`,
+  `data-quality-tests`, `cross-system-identity-resolution`, `support-ticket-normalization`)
+  had zero references in any `agents/*.md` — confirmed this session with a positive control
+  (`cube-schema-scaffolding` returns a hit in `dashboard-builder.md`, proving the probe
+  works) before trusting the negative result. A dispatched subagent loads its own
+  `agents/*.md`, not `CLAUDE.md`'s skill table, so these were shipped, indexed, and
+  structurally invisible at runtime — the highest ratio of already-paid-for value to effort
+  in the whole FORGE run. Wired all five into their owning agents (References + Surface-area
+  pointers): `etl-pipeline-engineer.md` gets four, `database-setup-guide.md` gets
+  `multi-tenant-migration`, `dashboard-builder.md` gets two secondary pointers.
+- New `scripts/check-data-platform-skill-reachability.py` (data-platform-scoped) — every
+  skill must be mentioned in an `agents/*.md` file or carry an `invoked_by:` frontmatter
+  field for the legitimate cross-plugin case. Added `invoked_by:` frontmatter to the four
+  skills genuinely primary-consumed by `ravenclaude-core` agents (`stack-selection`,
+  `jwt-embed-issuance`, `rls-policy-authoring`, `embed-csp-and-iframe-sandboxing`).
+  Deliberately reads `agents/*.md` and each skill's own frontmatter directly rather than
+  CLAUDE.md's prose table (P0-2 already found that class of table drifts from reality —
+  trusting it as this gate's source of truth would reintroduce the same defect shape).
+  Wired into `audit-gates.sh` as Gate 265, with a must-pass/must-fail fixture pair.
+
+**Migration:** none — doc + script fixes only; no skill or agent behavior changed.
+
 ## [0.20.0] — 2026-09-03
 
 ### Fixed
