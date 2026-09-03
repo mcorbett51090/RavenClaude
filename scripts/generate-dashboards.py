@@ -1090,6 +1090,22 @@ _PIPELINE_LANES = [
                     "set": "Becomes unnecessary once you set a done-check above.",
                 },
             },
+            {
+                "id": "context-handoff",
+                "title": "Pre-compaction handoff",
+                "badge": "dynamic",
+                "controls": "context_handoff",
+                "tip": "Proactively writes a full handoff brief before context gets tight, so a fresh session (or a teammate) can pick up without losing the thread.",
+                "detail": {
+                    "steps": [
+                        "Watches live context usage as the robot works.",
+                        "nag: at Stop, on Claude Code, gently suggests writing a handoff brief.",
+                        "block: on hosts a suggestion can't reach (like Copilot), requires the brief before the robot can stop.",
+                    ],
+                    "trip": "Off by default — nothing here runs until you pick nag or block.",
+                    "set": "Pick off / nag / block in the box below.",
+                },
+            },
         ],
     },
 ]
@@ -1125,6 +1141,7 @@ _PIPELINE_STAGE_HOOKS = {
     "storage-placement-nudge": "storage-placement-nudge.sh",
     "dod-gate": "dod-gate.sh",
     "remind-tests": "remind-tests.sh",
+    "context-handoff": "handoff-nudge.sh",
 }
 
 # Registered hooks that are DELIBERATELY not user-facing pipeline stages. Gate 133
@@ -1195,16 +1212,15 @@ _PIPELINE_EXCLUDED_HOOKS = {
     "handoff-successor-ack.sh": "SessionStart(startup) handshake writer for session-handoff. "
     "Writes successor-ack.json when a pending marker exists so the originating spawn "
     "knows the new session started. File write only; not a Pipeline stage card",
-    "handoff-nudge.sh": "Stop advisory context-hot quality-reset nudge (session-handoff). "
-    "Opt-in via `context_handoff.mode` (default off). Never writes the brief, never "
-    "blocks unless the owner set `mode: block`, and is not a safety-floor card — same "
-    "class as compact-anchor.sh (informational Stop/SessionStart context, not a drawn Pipeline stage)",
     "precompact-digest.sh": "PreCompact archival hook (P2, precompact-critical-context "
     "FORGE plan). Writes a curated pre-compaction digest to disk when it can; never "
     "denies, never warns, and its output is never injected anywhere (PreCompact's "
     "stdout is not read on Claude Code, and claim 20 proves it is a verified no-op on "
-    "VS Code). Same class as compact-anchor.sh and handoff-nudge.sh — informational, "
-    "not a safety-floor card, so deliberately NOT a Pipeline stage",
+    "VS Code). Same class as compact-anchor.sh — informational, not a safety-floor "
+    "card, so deliberately NOT a Pipeline stage. (handoff-nudge.sh, its Stop-side "
+    "sibling, DID get a stage card — see the 'context-handoff' row in "
+    "_PIPELINE_STAGE_HOOKS — once the owner asked for a real DOM control on "
+    "`context_handoff.mode`, so it is no longer in this excluded set.)",
 }
 
 _PIPELINE_CONTROLS = {
@@ -1330,6 +1346,19 @@ _PIPELINE_CONTROLS = {
         "security-sensitive always stays on Claude regardless of this setting — the routing "
         "asymmetry is deliberate. See "
         "<code>skills/cheap-lane-delegation/SKILL.md</code>.</p>"
+    ),
+    "context_handoff": (
+        '<label class="pipe-ctl">Mode '
+        '<select id="pipe-context-handoff-mode">'
+        '<option value="off">off — never writes a handoff brief (default)</option>'
+        '<option value="nag">nag — suggests a handoff brief to Claude Code at Stop</option>'
+        "<option value=\"block\">block — required on hosts a suggestion can't reach "
+        "(e.g. Copilot)</option>"
+        "</select></label>"
+        '<p class="pipe-hint">Proactively writes a full handoff brief before compaction, so a '
+        "fresh session or a teammate can pick up without losing the thread. off = never; "
+        "nag = suggest to Claude Code at Stop; block = required on hosts where nag can't "
+        "reach the agent (e.g. Copilot, whose Stop hook has no context-injection field).</p>"
     ),
     "files": (
         '<div class="pipe-file" data-file=".repo-layout.json">'
@@ -1623,7 +1652,7 @@ def _render_pipeline_tab() -> str:
             # surfaced Settings-only, so it carries the badge there, not here.)
             behavioral_html = (
                 _render_behavioral_flag_badge()
-                if controls in ("decision", "orchestrator", "cheap_lane")
+                if controls in ("decision", "orchestrator", "cheap_lane", "context_handoff")
                 else ""
             )
             detail = st.get("detail")
@@ -11289,6 +11318,15 @@ _JS = r"""
     if (dm) dm.value = state.definition_of_done.max_blocks;
     const dodOn = !!(state.definition_of_done.cmd && state.definition_of_done.cmd.trim());
     pipeBadge("dod-gate", dodOn ? "On" : "Off", dodOn ? "pipe-badge-on" : "pipe-badge-off");
+    const chm = document.getElementById("pipe-context-handoff-mode");
+    if (chm) chm.value = CONTEXT_HANDOFF_MODE_VALUES.includes(state.context_handoff.mode)
+      ? state.context_handoff.mode
+      : CONTEXT_HANDOFF_MODE_DEFAULT;
+    pipeBadge("context-handoff",
+              state.context_handoff.mode === "off" || !state.context_handoff.mode
+                ? "Off" : state.context_handoff.mode,
+              (state.context_handoff.mode && state.context_handoff.mode !== "off")
+                ? "pipe-badge-on" : "pipe-badge-off");
     pipeBadge("enforce-layout", pipelineServerAvailable ? "Editable" : "Read-only",
               pipelineServerAvailable ? "pipe-badge-on" : "pipe-badge-advisory");
   }
@@ -11369,6 +11407,7 @@ _JS = r"""
     onChange("pipe-orch-pseudo", el => { state.orchestrator_pseudonymize = el.checked; });
     onInput("pipe-dod-cmd", el => { state.definition_of_done.cmd = el.value; });
     onInput("pipe-dod-maxblocks", el => { const v = parseInt(el.value, 10); if (Number.isFinite(v) && v > 0) state.definition_of_done.max_blocks = v; });
+    onChange("pipe-context-handoff-mode", el => { if (CONTEXT_HANDOFF_MODE_VALUES.includes(el.value)) { state.context_handoff.mode = el.value; syncPipelineTab(); } });
 
     const saveBtn = document.getElementById("pipeline-save-btn");
     if (saveBtn) saveBtn.addEventListener("click", () => {

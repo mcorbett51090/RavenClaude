@@ -510,6 +510,54 @@ def extract_digest(
     }
 
 
+def _detect_host() -> str:
+    """Minimal host detection (positive signals only) -- mirrors rc-artifacts.py's
+    `detect_host()` byte-for-byte in logic. Duplicated rather than imported:
+    rc-artifacts.py lives at the marketplace root (`scripts/`), OUTSIDE what
+    ships inside this plugin, so a cross-directory import would break the
+    moment a consumer installs via `/plugin install` and this file runs from
+    the plugin cache alone. KEEP IN SYNC with rc-artifacts.py `detect_host()`
+    if either changes. Returns "unknown" rather than guessing -- an honest
+    unknown is still a truthy label (never "unstamped")."""
+    explicit = os.environ.get("THING_HOST") or os.environ.get("RC_HOST")
+    if explicit:
+        return explicit.strip().lower()
+    if os.environ.get("CLAUDECODE") or os.environ.get("CLAUDE_CODE_ENTRYPOINT"):
+        return "claude-code"
+    if os.environ.get("GROK_AGENT") or os.environ.get("GROK_HOOK_EVENT"):
+        return "grok"
+    if any(k.startswith("CODEX_") for k in os.environ):
+        return "codex"
+    if os.environ.get("COPILOT_HOME") or any(k.startswith("COPILOT_") for k in os.environ):
+        return "copilot"
+    if os.environ.get("CURSOR_TRACE_ID") or any(k.startswith("CURSOR_") for k in os.environ):
+        return "cursor"
+    if any(k.startswith("GEMINI_") for k in os.environ):
+        return "gemini"
+    return "unknown"
+
+
+def _write_digest_meta(run_dir: Path, ts: str) -> None:
+    """P5 retention stamp -- labels the run dir for `rc artifacts list` (which
+    reads `meta.json`'s `host` field to replace the "unstamped" label) AND for
+    `prune_digest_run_dirs()` below, whose predicate trusts `kind ==
+    "precompact-digest"` as the ONLY positive-identification signal. Fail-safe:
+    an OSError here never affects the digest write that already succeeded."""
+    host = _detect_host()
+    meta = {
+        "kind": "precompact-digest",
+        "created_at": ts,
+        "host": host,
+        "cli": host,
+    }
+    meta_path = run_dir / "meta.json"
+    try:
+        meta_path.write_text(json.dumps(meta) + "\n", encoding="utf-8")
+        meta_path.chmod(0o600)
+    except OSError:
+        pass
+
+
 def _write_digest(out_path: Path, digest: str, method: str) -> None:
     ts = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     header = (
@@ -525,6 +573,151 @@ def _write_digest(out_path: Path, digest: str, method: str) -> None:
         out_path.chmod(0o600)
     except OSError:
         pass
+    _write_digest_meta(out_path.parent, ts)
+
+
+# ----------------------------------------------------------------------------------
+# P5 -- retention on the real axis. The unbounded growth is one run DIRECTORY per
+# compacting session, forever (hooks/precompact-digest.sh:156 writes
+# `run_dir="$project_dir/.ravenclaude/runs/$sid"` -- one directory per session) --
+# NOT files within one directory (that shape, `prune_digests(run_dir, keep=10)`, was
+# struck as plan-A's wrong axis; do not reintroduce it).
+# ----------------------------------------------------------------------------------
+_DIGEST_MD_RE = re.compile(r"^precompact-digest-.+\.md$")
+_DIGEST_RECEIPT_RE = re.compile(r"^\.precompact-digest-.+\.receipt\.json$")
+
+
+def _is_runs_root(runs_root: Path) -> bool:
+    """Hard floor: `runs_root` must resolve to a path whose final two
+    components are literally `.ravenclaude/runs`. Anything else -> the caller
+    treats this as "refuse", never as "guess the project root"."""
+    try:
+        resolved = runs_root.resolve()
+    except OSError:
+        return False
+    parts = resolved.parts
+    return len(parts) >= 2 and parts[-2] == ".ravenclaude" and parts[-1] == "runs"
+
+
+def _is_eligible_digest_dir(d: Path) -> bool:
+    """Positive-identification predicate (F9 hardening 1 + 4).
+
+    A directory is eligible ONLY IF it carries a `meta.json` with
+    `kind == "precompact-digest"` (a MISSING meta.json is NEVER eligible --
+    pre-existing digests from before this change shipped age out only by
+    hand) AND every entry in it -- enumerated via `iterdir()`, never `glob()`
+    (a `.precompact-digest-*.receipt.json` dotfile is invisible to `glob("*")`,
+    which would silently no-op the prune on exactly the dirs it exists to
+    collect -- see hooks/precompact-digest.sh:158,196, the worker-killed-
+    before-`rm -f` case) -- is one of: `meta.json` itself, a
+    `precompact-digest-*.md` digest file, or a STALE
+    `.precompact-digest-*.receipt.json` (named as ALLOWED here -- its mere
+    presence does not disqualify the directory). A nested subdirectory, or any
+    other file (`summary.md`, `events.jsonl`, `handoff.md`, ...), disqualifies
+    the whole directory -- P1's `session-` prefix keeps those in a DIFFERENT
+    directory in practice, but this predicate independently refuses to touch a
+    digest-unrelated directory if one is ever found here."""
+    meta_path = d / "meta.json"
+    if not meta_path.is_file():
+        return False
+    try:
+        data = json.loads(meta_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError, ValueError):
+        return False
+    if not isinstance(data, dict) or data.get("kind") != "precompact-digest":
+        return False
+    try:
+        entries = list(d.iterdir())
+    except OSError:
+        return False
+    for entry in entries:
+        if entry.is_dir():
+            return False
+        name = entry.name
+        if name == "meta.json":
+            continue
+        if _DIGEST_MD_RE.match(name):
+            continue
+        if _DIGEST_RECEIPT_RE.match(name):
+            continue
+        return False
+    return True
+
+
+def _newest_contained_mtime(d: Path) -> float:
+    """Recency measure: the newest mtime of any FILE directly inside `d`
+    (never the directory's own mtime, which only changes on add/remove) --
+    mirrors rc-artifacts.py's `last_written()`."""
+    newest = 0.0
+    try:
+        for entry in d.iterdir():
+            if entry.is_file():
+                try:
+                    newest = max(newest, entry.stat().st_mtime)
+                except OSError:
+                    continue
+    except OSError:
+        pass
+    return newest
+
+
+def prune_digest_run_dirs(runs_root: Path, keep: int = 20) -> int:
+    """Prune digest run-directories past the `keep` most-recently-touched
+    eligible ones. Returns the count actually removed. Fail-safe throughout --
+    every OSError is swallowed; this must never affect the digest write that
+    already succeeded or the calling hook's exit code.
+
+    Two hard floors, checked before any removal:
+      - `keep < 1` -> return 0, remove nothing.
+      - `runs_root` must resolve under `<project>/.ravenclaude/runs` (checked
+        by `_is_runs_root`) AND each CANDIDATE's own resolved parent must
+        equal `runs_root` (a symlinked entry pointing elsewhere is excluded,
+        never followed) -> anything else -> that candidate is skipped, and an
+        invalid `runs_root` itself -> return 0, remove nothing.
+    """
+    if keep < 1:
+        return 0
+    runs_root = Path(runs_root)
+    if not _is_runs_root(runs_root):
+        return 0
+    try:
+        runs_root_resolved = runs_root.resolve()
+    except OSError:
+        return 0
+    try:
+        candidates = [p for p in runs_root.iterdir() if p.is_dir()]
+    except OSError:
+        return 0
+
+    eligible: list[Path] = []
+    for d in candidates:
+        try:
+            if d.resolve().parent != runs_root_resolved:
+                continue
+        except OSError:
+            continue
+        if _is_eligible_digest_dir(d):
+            eligible.append(d)
+
+    if len(eligible) <= keep:
+        return 0
+
+    # Newest-touched first; anything past `keep` is prunable.
+    eligible.sort(key=_newest_contained_mtime, reverse=True)
+    to_remove = eligible[keep:]
+
+    removed = 0
+    for d in to_remove:
+        # TOCTOU narrowing (not closing -- a detached worker cannot hold a
+        # lock): re-check the predicate immediately before removal.
+        if not _is_eligible_digest_dir(d):
+            continue
+        try:
+            shutil.rmtree(d)
+            removed += 1
+        except OSError:
+            continue
+    return removed
 
 
 def main() -> int:
@@ -572,7 +765,14 @@ def main() -> int:
         print(f"precompact-digest.py: {reason}", file=sys.stderr)
         return 3
 
-    _write_digest(Path(args.out), digest, method)
+    out_path = Path(args.out)
+    _write_digest(out_path, digest, method)
+    # P5 -- prune the directory axis once, after a successful write. Never
+    # allowed to affect the write that already happened or this exit code.
+    try:
+        prune_digest_run_dirs(out_path.resolve().parent.parent, keep=20)
+    except Exception:
+        pass
     print(f"precompact-digest.py: digest written -> {args.out} (method: {method})")
     return 0
 
@@ -973,6 +1173,234 @@ def _self_test() -> int:
         _write_digest(out_file, "- an item", "cheap-lane")
         mode = out_file.stat().st_mode & 0o777
         check("C6: digest file written 0600", mode == 0o600, f"got {oct(mode)}")
+
+        # =====================================================================
+        # P5 — meta.json stamp (via the real _write_digest path).
+        # =====================================================================
+        meta_out = tdp / "meta-check" / ".ravenclaude" / "runs" / "sess-x" / "precompact-digest-1.md"
+        _write_digest(meta_out, "- an item", "cheap-lane")
+        meta_written = meta_out.parent / "meta.json"
+        check("P5: meta.json written alongside the digest", meta_written.is_file())
+        meta_data = json.loads(meta_written.read_text()) if meta_written.is_file() else {}
+        check("P5: meta.json kind == precompact-digest", meta_data.get("kind") == "precompact-digest")
+        check(
+            "P5: meta.json host is a non-empty string (never blank/'unstamped')",
+            isinstance(meta_data.get("host"), str) and bool(meta_data.get("host")),
+        )
+        meta_mode = meta_written.stat().st_mode & 0o777 if meta_written.is_file() else -1
+        check(
+            "P5: meta.json written 0600",
+            meta_mode == 0o600,
+            f"got {oct(meta_mode) if meta_mode != -1 else meta_mode}",
+        )
+
+        # =====================================================================
+        # P5 — prune_digest_run_dirs() retention predicate.
+        # =====================================================================
+        def _mk_run_dir(runs_root: Path, name: str) -> Path:
+            d = runs_root / name
+            d.mkdir(parents=True, exist_ok=True)
+            return d
+
+        def _touch(p: Path, content: str, mtime: float) -> None:
+            p.write_text(content, encoding="utf-8")
+            os.utime(p, (mtime, mtime))
+
+        def _write_meta_fixture(d: Path, kind: str = "precompact-digest", mtime: float | None = None) -> None:
+            # NOTE: mtime MUST be pinned explicitly (matching the digest.md's
+            # own mtime in the same fixture dir) whenever the test relies on
+            # recency ordering. `_newest_contained_mtime` correctly takes the
+            # newest mtime of EVERY file in the dir (meta.json included, per
+            # rc-artifacts.py's `last_written()` precedent) -- an unpinned
+            # meta.json write time is "now" and silently dominates a
+            # deliberately-staggered-into-the-past digest.md mtime, inverting
+            # the intended ordering. Leaving `mtime=None` is fine when the
+            # test does not depend on ordering (e.g. the never-eligible
+            # disqualified-content fixtures below).
+            p = d / "meta.json"
+            p.write_text(json.dumps({"kind": kind}), encoding="utf-8")
+            if mtime is not None:
+                os.utime(p, (mtime, mtime))
+
+        now_t = datetime.now(timezone.utc).timestamp()
+
+        # --- 25 eligible dirs -> exactly 20 survive, the 5 removed are the 5
+        # OLDEST by newest-contained mtime.
+        bulk_root = tdp / "bulk-proj" / ".ravenclaude" / "runs"
+        bulk_root.mkdir(parents=True, exist_ok=True)
+        base_t = now_t - 100000
+        bulk_dirs = {}
+        for i in range(25):
+            d = _mk_run_dir(bulk_root, f"sess-{i:02d}")
+            _write_meta_fixture(d, mtime=base_t + i * 10)
+            _touch(d / f"precompact-digest-{i:03d}.md", f"content {i}", base_t + i * 10)
+            bulk_dirs[i] = d
+        removed_count = prune_digest_run_dirs(bulk_root, keep=20)
+        check("P5: 25 eligible dirs -> exactly 5 removed", removed_count == 5, f"removed {removed_count}")
+        survivors = {p.name for p in bulk_root.iterdir() if p.is_dir()}
+        check("P5: exactly 20 survive", len(survivors) == 20, f"{len(survivors)} survive")
+        expected_survive = {f"sess-{i:02d}" for i in range(5, 25)}
+        check(
+            "P5: the 5 removed are the 5 OLDEST by newest-contained mtime",
+            survivors == expected_survive,
+            f"survivors={sorted(survivors)}",
+        )
+
+        # --- the three real shapes (F9 hardening 4), asserted individually.
+        shapes_root = tdp / "shapes-proj" / ".ravenclaude" / "runs"
+        shapes_root.mkdir(parents=True, exist_ok=True)
+        t0 = now_t - 5000
+
+        clean_dir = _mk_run_dir(shapes_root, "shape-clean")
+        _write_meta_fixture(clean_dir, mtime=t0 + 500)
+        _touch(clean_dir / "precompact-digest-1.md", "clean", t0 + 500)  # newer
+
+        receipt_dir = _mk_run_dir(shapes_root, "shape-receipt")
+        _write_meta_fixture(receipt_dir, mtime=t0)
+        _touch(receipt_dir / "precompact-digest-1.md", "receipt-shape", t0)  # older
+        _touch(receipt_dir / ".precompact-digest-1.receipt.json", "{}", t0)
+
+        unmarked_dir = _mk_run_dir(shapes_root, "shape-unmarked")
+        _touch(unmarked_dir / "precompact-digest-1.md", "pre-existing, no meta.json", t0 - 500)
+
+        check(
+            "P5 shape: clean {digest.md, meta.json} is eligible",
+            _is_eligible_digest_dir(clean_dir),
+        )
+        check(
+            "P5 shape: {digest.md, meta.json, STALE .receipt.json} IS STILL eligible",
+            _is_eligible_digest_dir(receipt_dir),
+        )
+        check(
+            "P5 shape: {digest.md} with NO meta.json is NEVER eligible",
+            not _is_eligible_digest_dir(unmarked_dir),
+        )
+        # keep=1 with 2 eligible (clean=newer, receipt=older) -> the
+        # receipt-carrying dir is the one ACTUALLY REMOVED (not just
+        # counted-eligible) -- proving a stale receipt does not disqualify it
+        # from a REAL prune. The unmarked (no meta.json) dir must survive
+        # untouched throughout.
+        removed_shapes = prune_digest_run_dirs(shapes_root, keep=1)
+        check(
+            "P5 shapes: exactly 1 removed (the older, receipt-carrying dir)",
+            removed_shapes == 1,
+            f"removed {removed_shapes}",
+        )
+        check("P5 shapes: receipt-carrying dir WAS removed", not receipt_dir.exists())
+        check("P5 shapes: clean (newer) dir survives", clean_dir.exists())
+        check("P5 shapes: unmarked (no meta.json) dir NEVER removed", unmarked_dir.exists())
+
+        # --- never-remove content shapes, each individually, PLUS a positive
+        # control (an eligible dir in the SAME fixture run IS removed).
+        dq_root = tdp / "dq-proj" / ".ravenclaude" / "runs"
+        dq_root.mkdir(parents=True, exist_ok=True)
+        t1 = now_t - 8000
+
+        dir_summary = _mk_run_dir(dq_root, "dq-summary")
+        _write_meta_fixture(dir_summary)
+        _touch(dir_summary / "precompact-digest-1.md", "x", t1)
+        _touch(dir_summary / "summary.md", "P1 artifact", t1)
+
+        dir_events = _mk_run_dir(dq_root, "dq-events")
+        _write_meta_fixture(dir_events)
+        _touch(dir_events / "precompact-digest-1.md", "x", t1)
+        _touch(dir_events / "events.jsonl", "{}", t1)
+
+        dir_handoff = _mk_run_dir(dq_root, "dq-handoff")
+        _write_meta_fixture(dir_handoff)
+        _touch(dir_handoff / "precompact-digest-1.md", "x", t1)
+        _touch(dir_handoff / "handoff.md", "P1 artifact", t1)
+
+        dir_nested = _mk_run_dir(dq_root, "dq-nested")
+        _write_meta_fixture(dir_nested)
+        _touch(dir_nested / "precompact-digest-1.md", "x", t1)
+        (dir_nested / "sub").mkdir()
+
+        dir_wrong_kind = _mk_run_dir(dq_root, "dq-wrong-kind")
+        _write_meta_fixture(dir_wrong_kind, kind="something-else")
+        _touch(dir_wrong_kind / "precompact-digest-1.md", "x", t1)
+
+        # positive control: two GENUINELY eligible dirs, one older -> it is
+        # removed for real, proving this fixture can detect a real prune
+        # rather than asserting silence vacuously.
+        dir_eligible_old = _mk_run_dir(dq_root, "dq-eligible-old")
+        _write_meta_fixture(dir_eligible_old, mtime=t1 - 500)
+        _touch(dir_eligible_old / "precompact-digest-1.md", "x", t1 - 500)
+
+        dir_eligible_new = _mk_run_dir(dq_root, "dq-eligible-new")
+        _write_meta_fixture(dir_eligible_new, mtime=t1 + 500)
+        _touch(dir_eligible_new / "precompact-digest-1.md", "x", t1 + 500)
+
+        removed_dq = prune_digest_run_dirs(dq_root, keep=1)
+        check("P5 disqualify: exactly 1 removed (the positive control)", removed_dq == 1, f"removed {removed_dq}")
+        check("P5 disqualify positive control: eligible-OLD dir WAS removed", not dir_eligible_old.exists())
+        check("P5 disqualify: eligible-NEW dir survives", dir_eligible_new.exists())
+        check("P5 disqualify: dir with summary.md never removed", dir_summary.exists())
+        check("P5 disqualify: dir with events.jsonl never removed", dir_events.exists())
+        check("P5 disqualify: dir with handoff.md never removed", dir_handoff.exists())
+        check("P5 disqualify: dir with a nested subdirectory never removed", dir_nested.exists())
+        check(
+            "P5 disqualify: dir with meta.json kind != precompact-digest never removed",
+            dir_wrong_kind.exists(),
+        )
+
+        # --- hard floor 1: keep=0 removes NOTHING, with a positive control
+        # proving the same pair genuinely IS removable at keep=1.
+        keep0_root = tdp / "keep0-proj" / ".ravenclaude" / "runs"
+        keep0_root.mkdir(parents=True, exist_ok=True)
+        k0_a = _mk_run_dir(keep0_root, "k0-a")
+        _write_meta_fixture(k0_a)
+        _touch(k0_a / "precompact-digest-1.md", "x", t1)
+        k0_b = _mk_run_dir(keep0_root, "k0-b")
+        _write_meta_fixture(k0_b)
+        _touch(k0_b / "precompact-digest-1.md", "x", t1 + 10)
+
+        removed_k0 = prune_digest_run_dirs(keep0_root, keep=0)
+        check(
+            "P5 hard floor: keep=0 removes NOTHING",
+            removed_k0 == 0 and k0_a.exists() and k0_b.exists(),
+            f"removed {removed_k0}",
+        )
+        removed_k1 = prune_digest_run_dirs(keep0_root, keep=1)
+        check(
+            "P5 hard floor positive control: keep=1 on the same pair removes 1",
+            removed_k1 == 1,
+            f"removed {removed_k1}",
+        )
+
+        # --- hard floor 2: a runs_root OUTSIDE <project>/.ravenclaude/runs
+        # removes NOTHING, with a positive control proving the identical pair
+        # DOES prune once placed under a real .ravenclaude/runs path.
+        outside_root = tdp / "not-the-runs-dir"
+        outside_root.mkdir(parents=True, exist_ok=True)
+        o_a = _mk_run_dir(outside_root, "o-a")
+        _write_meta_fixture(o_a)
+        _touch(o_a / "precompact-digest-1.md", "x", t1)
+        o_b = _mk_run_dir(outside_root, "o-b")
+        _write_meta_fixture(o_b)
+        _touch(o_b / "precompact-digest-1.md", "x", t1 + 10)
+
+        removed_outside = prune_digest_run_dirs(outside_root, keep=1)
+        check(
+            "P5 hard floor: runs_root outside .ravenclaude/runs removes NOTHING",
+            removed_outside == 0 and o_a.exists() and o_b.exists(),
+            f"removed {removed_outside}",
+        )
+
+        real_root = tdp / "outside-proj" / ".ravenclaude" / "runs"
+        real_root.mkdir(parents=True, exist_ok=True)
+        r_a = _mk_run_dir(real_root, "r-a")
+        _write_meta_fixture(r_a)
+        _touch(r_a / "precompact-digest-1.md", "x", t1)
+        r_b = _mk_run_dir(real_root, "r-b")
+        _write_meta_fixture(r_b)
+        _touch(r_b / "precompact-digest-1.md", "x", t1 + 10)
+        removed_real = prune_digest_run_dirs(real_root, keep=1)
+        check(
+            "P5 hard floor positive control: the same pair under a real runs_root DOES prune",
+            removed_real == 1,
+            f"removed {removed_real}",
+        )
 
     if orig_cheap is None:
         os.environ.pop("RC_CHEAP_LANE_SCRIPT", None)

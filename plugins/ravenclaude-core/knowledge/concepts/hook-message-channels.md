@@ -56,7 +56,7 @@ covers:
   - plugins/ravenclaude-core/hooks/thing-orchestrator.sh
   - plugins/ravenclaude-core/hooks/triage-outcome.sh
   - plugins/ravenclaude-core/hooks/worktree-guard.sh
-covers_digest: "sha256:cf95dfb5e86386618e7a0d32003d3b56f5d7427ff35e066eca4057b690746a5d"
+covers_digest: "sha256:1b57780f3d1b2c15c933ae9a5940ecb3ecb9b2c78bf2bcd9103353816f3495ab"
 nuance: "A hook writing to stderr at `exit 0` reaches the model on no event; only `hookSpecificOutput.additionalContext` and `updatedToolOutput` are delivered, so `_advise.sh` advised the terminal for its entire service life."
 nuance_evidence:
   measured: 2026-08-19

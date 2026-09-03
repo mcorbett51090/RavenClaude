@@ -5,7 +5,7 @@
 # projecting the same PreCompact event) compacts the session. Reads the
 # PreCompact stdin payload, and if it carries a `transcript_path`, launches
 # P1's digest engine (../scripts/precompact-digest.py) DETACHED to extract a
-# curated critical-info digest BEFORE the transcript is summarized away,
+# curated critical-info digest before the compaction boundary,
 # writing it to .ravenclaude/runs/<session>/precompact-digest-<timestamp>.md.
 #
 # P2 of the precompact-critical-context FORGE plan
@@ -205,9 +205,16 @@ _pcd_worker() {
   case "$outcome" in
     blocked)
       _emit_hook_event "precompact-digest.sh" "deny" "PreCompact" "none" \
-        "precompact-egress-floor-blocked" 0 2>/dev/null || true
+        "precompact-egress-floor-blocked produced=none" 0 2>/dev/null || true
       ;;
     ok|refused|unavailable)
+      if [ "$outcome" = "refused" ]; then
+        # A secret was detected in transcript-derived content on its way to an
+        # external model, and egress was refused. That is a CONTROL FIRING, and a
+        # control firing is a deny. Additive: the receipt below is unchanged.
+        _emit_hook_event "precompact-digest.sh" "deny" "PreCompact" "none" \
+          "precompact-secret-refusal produced=none" 0 2>/dev/null || true
+      fi
       if [ "$attempted" = "true" ]; then
         _emit_hook_event "precompact-digest.sh" "allow" "PreCompact" "$destination" \
           "precompact-egress-attempt bytes=${bytes} outcome=${outcome}" 0 2>/dev/null || true

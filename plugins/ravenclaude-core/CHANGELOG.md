@@ -2,6 +2,29 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.314.0 — 2026-09-02
+
+### Added
+
+- **Pre-compaction handoff convergence.** `handoff-nudge.py` (the `Stop`-hook context-hot nudge) now
+  actually fires on Claude Code and Copilot — a real, previously-unknown bug (the trigger checked a
+  `reason` field neither host's real `Stop` payload carries) is fixed, along with a confirmed-outcome
+  throttle (retry after a failed attempt instead of permanent silence), per-session state scoping, and
+  a low-headroom degradation so the procedure itself cannot trip the compaction it precedes.
+  `context-handoff.py` gained `chmod(0o600)` on every file it writes and a new `finalize` subcommand
+  that scrubs the final judgment content and re-secures file modes. `/session-handoff`'s procedure now
+  calls `finalize` and gates its escalation-to-a-new-session step on a mandatory `git status --porcelain`
+  probe rather than spawning unconditionally. The pre-existing, opt-in `precompact-digest.sh` fallback
+  is untouched and stays gated behind `cheap_lane.mode` — nothing about this release un-gates it.
+  `context_handoff.mode` still defaults `off`; the mechanism ships working and opt-in, not default-on.
+  See the `CLAUDE.md` milestones ("Pre-compaction handoff convergence…" and "The Stop-lane host table
+  was wrong…") for the full arc, including the six security-review conditions (C1–C6) and the
+  structural, host-level Copilot `nag`-delivery gap (only `mode: block` reaches the agent there).
+- **A real dashboard control for `context_handoff.mode`** (Pipeline tab, Stop lane) — an off/nag/block
+  `<select>`, so the mechanism above is toggleable without hand-editing `comfort-posture.yaml`.
+- **Gates 260 and 261** — `handoff-nudge.py`/`context-handoff.py`/`precompact-digest.py` retention (5
+  must-fail halves) and a `session-handoff/SKILL.md` text-drift guard (1 must-fail half), respectively.
+
 ## 0.312.0 — 2026-09-01
 
 ### Fixed

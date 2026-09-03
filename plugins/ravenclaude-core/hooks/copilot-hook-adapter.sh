@@ -292,11 +292,31 @@ case "$mode" in
     exit 0
     ;;
   stop)
-    # Stop hooks (dod-gate, remind-tests). Re-shape Copilot's stop payload to the
-    # Claude stdin {cwd, session_id} and translate a Claude Stop block back.
+    # Stop hooks (dod-gate, remind-tests, handoff-nudge). Re-shape Copilot's stop
+    # payload to the Claude stdin {cwd, session_id, reason, stop_hook_active} and
+    # translate a Claude Stop block back.
+    #
+    # P6c' (§F1b): `reason` and `stop_hook_active` are forwarded so a wrapped hook
+    # never needs a Copilot-specific branch:
+    #   - reason: normalized from Copilot's stopReason/stop_reason into the same
+    #     `reason` key Claude/Grok already send. handoff-nudge.py's _stop_reason
+    #     union (scripts/handoff-nudge.py:59) reads reason/stopReason/stop_reason
+    #     itself, so this is belt-and-braces, not a single point of failure.
+    #   - stop_hook_active: THE SAFETY-CRITICAL HALF. Copilot documents an
+    #     8-consecutive-`block` runaway guard and instructs hooks to use this
+    #     field to self-limit. Dropping it means `mode: block` on Copilot (and
+    #     dod-gate.sh on the same lane) cannot self-limit. Both key spellings are
+    #     coalesced because the field is documented snake_case in both Copilot
+    #     config formats and this adapter should not depend on which one the host
+    #     version emits.
+    # Do NOT touch the dec=="block"/rc==2 emit below (Gate 20 covers it) and do
+    # NOT add an additionalContext forward — there is no such output field on
+    # Copilot's stop event [docs-verified 2026-09-02]; rev-1's P6c is struck.
     claude_stdin="$(printf '%s' "$payload" | jq -c \
       '{cwd: (.cwd // .workspaceRoot // "."),
-        session_id: (.sessionId // .session_id // "")}' 2>/dev/null)"
+        session_id: (.sessionId // .session_id // ""),
+        reason: (.stopReason // .stop_reason // ""),
+        stop_hook_active: (.stop_hook_active // .stopHookActive // false)}' 2>/dev/null)"
     out="$(printf '%s' "$claude_stdin" | CLAUDE_PROJECT_DIR="$cw" bash "$real" "$@" 2>/dev/null)"; rc=$?
     # A Claude Stop block is either {"decision":"block","reason":...} on stdout or exit 2.
     dec="$(printf '%s' "$out" | jq -r '.decision // empty' 2>/dev/null)"
