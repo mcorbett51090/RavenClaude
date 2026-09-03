@@ -2,6 +2,23 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.32.1] — 2026-09-03
+
+### Fixed
+
+- **P3-19** — consistency sweep (leftover doc/typo items not folded into `P0-2`). Ran `codespell`
+  across the whole plugin plus a targeted vendor-name-casing grep sweep (Fivetran, Airbyte,
+  QuickBooks, Supabase, Salesforce, HubSpot, Metabase, Superset, Evidence.dev, Snowflake,
+  Postgres, Databricks, Tremor, n8n, dbt, Zendesk, Freshdesk, Intercom, PlanHat, DuckDB,
+  MotherDuck, Astro, and every `trigger_phrase:` in every `agents/*.md`). One genuine typo found
+  and fixed: `knowledge/cloud-database-landscape-2026.md`'s "AWS Whats New Feb 2026" citation
+  missing an apostrophe. Every other `codespell` hit was a false positive on inspection (a SQL
+  table alias `fo` matched against the word "for"; a literal NCES URL path segment `aadd.asp`
+  matched against "add"; a truncated table-cell preview ending mid-word) — verified individually,
+  not filtered by pattern. No siblings of the historical "Fivatran" typo (`P0-2`) survived; every
+  `trigger_phrase:` in every agent is correctly spelled. Matches this phase's own expected
+  acceptance test result: nothing beyond what `P0-2` already fixed.
+
 ## [0.32.0] — 2026-09-03
 
 ### Added
