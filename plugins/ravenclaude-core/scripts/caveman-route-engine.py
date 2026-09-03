@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
-"""caveman-route-engine.py — P3 of the caveman auto-routing plan (SHADOW only).
+"""caveman-route-engine.py — P3+P4 of the caveman auto-routing plan (SHADOW only).
 
 Full design: `.ravenclaude/runs/forge/caveman-routing-decision-tree/plan.md`,
-section "P3 — Hook body, wired in SHADOW". This is the C2-(c) "bare .py engine
-invoked from inside an already-registered .sh wrapper" escape — the sanctioned
-counterpart of `compact-anchor.sh` -> `compact-anchor.py`. It is invoked ONLY by
+sections "P3 — Hook body, wired in SHADOW" and "P4 — SessionStart re-arm and
+the reset race". This is the C2-(c) "bare .py engine invoked from inside an
+already-registered .sh wrapper" escape — the sanctioned counterpart of
+`compact-anchor.sh` -> `compact-anchor.py`. It is invoked ONLY by
 `caveman-route-hook.sh`, never registered as a hook itself.
 
 WHAT THIS DOES (and does not do)
@@ -29,20 +30,49 @@ STATE FILE SHARING WITH THE APPLIER (P2)
 Per plan.md, both this engine's cursor/streak state AND `caveman-apply-mode.sh`'s
 own entry-snapshot (`user_mode_at_entry` / `legacy_mirror_at_entry` /
 `manual_override`) persist to the SAME path:
-`.ravenclaude/runs/<session_id>/caveman-route-state.json`. Since P2's applier
-(when eventually invoked) does a whole-object overwrite of that file with only
-its own five keys, this engine deliberately does a READ-MERGE-WRITE (never a
-blind overwrite) so an applier snapshot already on disk is never clobbered by a
-router write, and vice versa in the direction this engine controls.
+`<scope_dir>/.ravenclaude/runs/<session_id>/caveman-route-state.json` (see "STATE
+SCOPING" below for `<scope_dir>`). Since P2's applier (when eventually invoked)
+does a whole-object overwrite of that file with only its own five keys, this
+engine deliberately does a READ-MERGE-WRITE (never a blind overwrite) so an
+applier snapshot already on disk is never clobbered by a router write, and vice
+versa in the direction this engine controls.
+
+STATE SCOPING (P4) — cwd, not just session_id
+-----------------------------------------------
+`_resolve_scope_dir()` bases the run dir on the trusted payload's own `cwd`
+(falling back to `CLAUDE_PROJECT_DIR`, then the process cwd), mirroring
+`runaway-brake.sh`'s own `rc-state-key` convention. `CLAUDE_PROJECT_DIR` is
+resolved once at session start and does not vary across sibling worktrees
+sharing one `session_id` — so two agents in two worktrees under one session
+must not share this file, or one worktree's routing hysteresis leaks into the
+other's. A payload with no `cwd` (e.g. this engine's own P3 self-test
+fixtures) degrades byte-identically to the pre-P4 behavior.
+
+SESSIONSTART RE-ARM — reset vs preserve (P4)
+-----------------------------------------------
+Caveman itself (`caveman-activate.js`) re-derives `getDefaultMode()` only on
+`RESET_SOURCES = {startup, clear}`; `compact`/`resume`/`fork` read the stored
+mode. This engine mirrors that split for its OWN cursor/streak/verdict: on
+`startup`/`clear` (SessionStart only — `event == "session"`), whatever is on
+disk is discarded and `cursor_in`/`prior_verdict`/`streak_in` are forced to
+`None`, driving `classify()`'s own bootstrap path (verdict forced "off",
+regardless of window content — the safe direction). Every other source
+(`resume`/`fork`/`compact`/absent) — and every `UserPromptSubmit` call, which
+carries no `source` field at all — preserves whatever is stored, exactly as
+before. See `_RESET_SOURCES` below for the full rationale; the route-log
+entry records both the raw `source` and the derived `reset` boolean.
 
 DERIVED VALUES ONLY (C8)
 -------------------------
 The route-log entry below is built exclusively from `classify()`'s own output
 (already a fixed-enum/derived-integer contract per C8 — see
 `caveman-route.py`'s own docstring) plus a handful of values this engine itself
-computes (elapsed_ms, event, applied=False). No raw transcript/prompt/tool
-content is ever read by this file — the classifier owns the transcript read and
-already guarantees C8 by construction.
+computes (elapsed_ms, event, applied=False) or copies verbatim from the trusted
+hook payload's own bounded enum field (`source`, one of
+`startup|resume|clear|fork|compact|None` per Claude Code's own SessionStart
+contract) plus a boolean this engine derives from it (`reset`). No raw
+transcript/prompt/tool content is ever read by this file — the classifier owns
+the transcript read and already guarantees C8 by construction.
 
 FAIL-OPEN, UNCONDITIONALLY
 ----------------------------
@@ -72,6 +102,32 @@ _LOG_FILENAME = "caveman-route.jsonl"
 _ROUTER_STATE_KEYS = ("cursor_byte", "streak", "verdict", "event", "updated_at")
 
 _MAX_SESSION_LEN = 128
+
+# P4 (plan.md "SessionStart re-arm and the reset race") — mirrors caveman's
+# own `RESET_SOURCES = {startup, clear}` (caveman-activate.js). On these two
+# `SessionStart` sources caveman itself re-derives `getDefaultMode()` from
+# scratch, discarding whatever mode it had stored; the router's OWN
+# cursor/streak/verdict must be discarded in lockstep, or a stale hysteresis
+# value could recommend flipping caveman away from the user's just-reset
+# default on the very next classification — silently overriding a `/clear`.
+# `resume`/`fork`/`compact` (and any other or absent `source`, including a
+# fabricated one) all PRESERVE — caveman itself reads the stored mode on
+# those sources, so the router keeps its own state too, or the two go out of
+# sync and the router spends a full enable-streak re-earning a state caveman
+# already holds. This only applies to `event == "session"` (SessionStart);
+# `event == "prompt"` (UserPromptSubmit) carries no `source` field at all and
+# always preserves.
+_RESET_SOURCES = ("startup", "clear")
+
+# Every `source` value Claude Code's own SessionStart contract is documented to
+# send (the `startup|resume|clear|fork` matcher this hook is registered under,
+# plus `compact`, which this plugin registers no hook for but which the wider
+# codebase — compact-anchor.sh — already treats as real). A value outside
+# this set (a malformed/fabricated payload) is logged as `None`, matching the
+# fixed-enum discipline of every other DERIVED VALUES ONLY field in this file
+# (C8) — it never disables the reset/preserve decision, which is keyed off
+# `_RESET_SOURCES` membership regardless of what gets logged.
+_KNOWN_SOURCES = ("startup", "resume", "clear", "fork", "compact")
 
 
 def _load_classifier():
@@ -137,6 +193,31 @@ def _append_route_log(log_path: Path, entry: dict) -> None:
         pass
 
 
+def _resolve_scope_dir(payload: dict, project_dir: str) -> Path:
+    """Base directory for this call's state file + route log.
+
+    P4 (plan.md "State scoping"): matches `runaway-brake.sh`'s own
+    `rc-state-key` convention — `"${cwd}/.ravenclaude/runs/..." + session_id`
+    — because `CLAUDE_PROJECT_DIR` is resolved ONCE at session start and does
+    NOT vary across sibling worktrees sharing one `session_id`; the trusted
+    hook payload's own `cwd` field is the per-worktree component that makes
+    the scoping correct (confirmed present on SessionStart's own payload "on
+    every host observed" per `worktree-guard.sh`'s own comment, and on
+    UserPromptSubmit for the hosts observed to send it).
+
+    Falls back to `project_dir` (`CLAUDE_PROJECT_DIR` — the pre-P4 behavior,
+    preserved byte-for-byte for any payload with no `cwd`, e.g. this
+    engine's own P3 self-test fixtures) and finally to the process cwd,
+    mirroring `runaway-brake.sh`'s own `[ -z "$cwd" ] && cwd="$PWD"`.
+    """
+    cwd = payload.get("cwd")
+    if isinstance(cwd, str) and cwd:
+        return Path(cwd)
+    if project_dir:
+        return Path(project_dir)
+    return Path(os.getcwd())
+
+
 def _parse_event_arg(argv) -> str:
     event = "prompt"
     if "--event" in argv:
@@ -175,19 +256,47 @@ def main(argv=None) -> int:
     if not isinstance(transcript_path, str) or not transcript_path:
         return 0  # malformed payload -> no state corruption, exit 0 (acceptance test d)
 
-    project_root = Path(project_dir)
+    project_root = _resolve_scope_dir(payload, project_dir)
     run_dir = project_root / ".ravenclaude" / "runs" / session_id
     state_path = run_dir / _STATE_FILENAME
     log_path = run_dir / _LOG_FILENAME
 
     prior_state = _read_state(state_path)
-    cursor_in = prior_state.get("cursor_byte")
-    if not isinstance(cursor_in, int) or isinstance(cursor_in, bool):
+
+    # `source` is only ever meaningful on a SessionStart ("session") event —
+    # UserPromptSubmit ("prompt") carries no such field, and always preserves.
+    # Anything outside the known enum (a malformed/fabricated payload) is
+    # normalized to None rather than logged verbatim — C8 (derived values
+    # only). This never disables reset/preserve, which is keyed off
+    # `_RESET_SOURCES` membership on the RAW value, so a fabricated source
+    # this engine has never heard of still safely PRESERVES (the same
+    # outcome as `compact`/`resume`/`fork`) rather than accidentally
+    # resetting on an unrecognized string.
+    raw_source = payload.get("source") if event == "session" else None
+    is_reset = isinstance(raw_source, str) and raw_source in _RESET_SOURCES
+    source = raw_source if isinstance(raw_source, str) and raw_source in _KNOWN_SOURCES else None
+
+    if is_reset:
+        # ── RESET (startup|clear) — discard whatever is on disk and
+        # re-derive from scratch, exactly like a brand-new session's
+        # first-ever call: cursor_byte=None drives classify()'s own
+        # bootstrap path, which forces verdict "off" regardless of window
+        # content (the safe direction) — matching caveman's own
+        # getDefaultMode() re-derivation on these two sources.
         cursor_in = None
-    prior_verdict = prior_state.get("verdict")
-    streak_in = prior_state.get("streak")
-    if not isinstance(streak_in, int) or isinstance(streak_in, bool):
+        prior_verdict = None
         streak_in = None
+    else:
+        # ── PRESERVE (resume|fork|compact|any other/absent source, and
+        # every UserPromptSubmit call) — read whatever this session already
+        # has, exactly as P3 always did.
+        cursor_in = prior_state.get("cursor_byte")
+        if not isinstance(cursor_in, int) or isinstance(cursor_in, bool):
+            cursor_in = None
+        prior_verdict = prior_state.get("verdict")
+        streak_in = prior_state.get("streak")
+        if not isinstance(streak_in, int) or isinstance(streak_in, bool):
+            streak_in = None
 
     try:
         classifier = _load_classifier()
@@ -274,6 +383,8 @@ def main(argv=None) -> int:
     entry = {
         "ts": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
         "event": event,
+        "source": source,
+        "reset": is_reset,
         "mode": mode,
         "verdict": verdict,
         "why": why,

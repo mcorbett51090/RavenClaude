@@ -121,6 +121,36 @@ _st_write_malformed_transcript() {
   printf 'this is not json at all {{{\nneither is this\n' > "$1"
 }
 
+_st_write_clean_streak_transcript() {
+  # $1 = dest path. FIVE clean prose-only assistant responses (no tool_use,
+  # nonzero text) — one more than DEFAULT_ENABLE_STREAK (4), so a PRESERVED
+  # cursor (which reads the whole file) computes a real "on"/"on:clean-streak"
+  # verdict, while a RESET cursor (cursor_byte=None) forces "off:bootstrap"
+  # regardless of this same content — the P4 reset-vs-preserve fixtures'
+  # single distinguishing signal (see caveman-route.py's own
+  # classify_window()/bootstrap-force logic).
+  local i
+  : > "$1"
+  for i in 1 2 3 4 5; do
+    printf '{"type":"assistant","requestId":"creq_%d","message":{"id":"cmsg_%d","content":[{"type":"text","text":"a clean prose turn."}],"usage":{"output_tokens":10}}}\n' \
+      "$i" "$i" >> "$1"
+  done
+}
+
+_st_write_router_state() {
+  # $1 = dest project dir  $2 = session id  $3 = cursor_byte (int)
+  # Seeds the router's OWN state file directly — an explicit, non-null
+  # cursor_byte (0) so a PRESERVING call reads a real int (bootstrap=False)
+  # while a RESETTING call still forces cursor_byte=None regardless of what
+  # is written here. streak/verdict are deliberately implausible sentinels
+  # (99 / "on") so a bug that failed to override them on reset would be
+  # visible in the post-call state, not just inferred from the verdict.
+  local dir="$1/.ravenclaude/runs/$2"
+  mkdir -p "$dir"
+  printf '{"cursor_byte": %d, "streak": 99, "verdict": "on"}\n' "$3" \
+    > "$dir/caveman-route-state.json"
+}
+
 _st_good_caveman_fixture() {
   # $1 = destination .js path. Same faithful re-implementation
   # caveman-apply-mode.sh's own self-test uses (verbatim writeSessionMode
@@ -339,6 +369,146 @@ cmd_self_test() {
     _ok "malformed-transcript: exit 0, no state corruption (state file, if any, is valid JSON)"
   else
     _fail "malformed-transcript: expected exit 0 and valid/absent state, got rc=$rc5 state-valid=$state5_valid"
+  fi
+
+  # ===========================================================================
+  # P4 (plan.md "SessionStart re-arm and the reset race") — source-branching
+  # fixtures. Every case below seeds the SAME router state (an explicit,
+  # non-null cursor_byte=0, plus implausible sentinel streak/verdict values
+  # that would never occur naturally — see _st_write_router_state) against
+  # the SAME 5-clean-response transcript, then fires ONLY `source` differently
+  # and checks the resulting verdict/why: a RESET source must force
+  # "off"/"off:bootstrap" (caveman's own re-derived default is the safe
+  # direction); a PRESERVING source must show the real, continued
+  # "on"/"on:clean-streak" result. This is the single distinguishing signal
+  # (see caveman-route.py's own bootstrap-forces-off logic) — deliberately
+  # NOT a diff on cursor_byte, which coincides at 0 for both paths on a small
+  # transcript and would not discriminate.
+  # ===========================================================================
+
+  _st_source_case() {
+    # $1=source value  $2=expected verdict  $3=expected why  $4=expected
+    # reset ("true"|"false")  $5=fixture label
+    local src="$1" exp_verdict="$2" exp_why="$3" exp_reset="$4" label="$5"
+    local proj sid transcript rc state_path log_path result
+    proj="$st_root/src-${label}/project"
+    mkdir -p "$proj"
+    sid="src-${label}-session"
+    transcript="$proj/transcript.jsonl"
+    _st_write_clean_streak_transcript "$transcript"
+    _st_write_posture "$proj" "shadow"
+    _st_write_router_state "$proj" "$sid" 0
+    state_path="$proj/.ravenclaude/runs/$sid/caveman-route-state.json"
+    log_path="$proj/.ravenclaude/runs/$sid/caveman-route.jsonl"
+    rc=0
+    CLAUDE_PROJECT_DIR="$proj" bash "$script_self" --event session \
+      <<< "{\"session_id\":\"$sid\",\"transcript_path\":\"$transcript\",\"source\":\"$src\"}" \
+      >/dev/null 2>&1 || rc=$?
+    result="$(python3 -c "
+import json, sys
+state_p, log_p = sys.argv[1], sys.argv[2]
+try:
+    state = json.load(open(state_p))
+except Exception:
+    state = {}
+try:
+    lines = [l for l in open(log_p).read().splitlines() if l.strip()]
+    last = json.loads(lines[-1]) if lines else {}
+except Exception:
+    last = {}
+print(state.get('verdict'))
+print(last.get('why'))
+print('true' if last.get('reset') else 'false')
+print(last.get('source'))
+" "$state_path" "$log_path" 2>/dev/null)"
+    local got_verdict got_why got_reset got_source
+    got_verdict="$(printf '%s\n' "$result" | sed -n '1p')"
+    got_why="$(printf '%s\n' "$result" | sed -n '2p')"
+    got_reset="$(printf '%s\n' "$result" | sed -n '3p')"
+    got_source="$(printf '%s\n' "$result" | sed -n '4p')"
+    if [ "$rc" -eq 0 ] && [ "$got_verdict" = "$exp_verdict" ] && [ "$got_why" = "$exp_why" ] \
+       && [ "$got_reset" = "$exp_reset" ]; then
+      _ok "source=$src ($label): verdict=$got_verdict why=$got_why reset=$got_reset source-logged=$got_source"
+    else
+      _fail "source=$src ($label): expected verdict=$exp_verdict why=$exp_why reset=$exp_reset, got rc=$rc verdict=$got_verdict why=$got_why reset=$got_reset source-logged=$got_source"
+    fi
+  }
+
+  # ---- Test 6/7: startup|clear -> state RESET (verdict forced "off", the
+  # safe direction) regardless of the seeded prior state's sentinel values. -
+  _st_source_case "startup" "off" "off:bootstrap"   "true"  "startup"
+  _st_source_case "clear"   "off" "off:bootstrap"   "true"  "clear"
+
+  # ---- Test 8/9: resume|fork -> state PRESERVED (the real "on" verdict the
+  # window computes, using the seeded cursor rather than a forced bootstrap). -
+  _st_source_case "resume"  "on"  "on:clean-streak" "false" "resume"
+  _st_source_case "fork"    "on"  "on:clean-streak" "false" "fork"
+
+  # ---- Test 10: a FABRICATED source "compact" -> does NOT reset (this hook
+  # has no `compact` matcher registered at all -- see hooks.json's comment on
+  # this entry -- so this can only arrive as a fabricated/defense-in-depth
+  # payload; it must still PRESERVE, matching resume/fork, never accidentally
+  # reset on an unrecognized-but-real Claude Code source value). -------------
+  _st_source_case "compact" "on"  "on:clean-streak" "false" "compact-fabricated"
+
+  # ---- Test 11 (must-fail half): source-branching REMOVED -- a mutant that
+  # forces `is_reset = True` unconditionally (every SessionStart source,
+  # including resume/fork, treated as a RESET) must show resume LOSING its
+  # earned streak (verdict flips "on" -> "off"), proving the branching this
+  # phase added is load-bearing, not decorative. Control (11b): the REAL
+  # script, run against the IDENTICAL config/transcript with a fresh session
+  # id, still correctly preserves. ------------------------------------------
+  local t11_root t11_proj mutant11_dir mutant11_engine t11_transcript t11_sid \
+        t11_real_sid rc11a rc11b mutant11_verdict real11_verdict
+  t11_root="$st_root/t11"
+  t11_proj="$t11_root/project"
+  mutant11_dir="$t11_root/mutant-scripts"
+  mkdir -p "$t11_proj" "$mutant11_dir"
+  t11_transcript="$t11_proj/transcript.jsonl"
+  _st_write_clean_streak_transcript "$t11_transcript"
+  _st_write_posture "$t11_proj" "shadow"
+
+  # Build the mutant: strip the source-branching decision, forcing
+  # is_reset=True on every call regardless of `source`. sed -E is
+  # POSIX/BSD-portable (no -i, no -P), matching P3's own mutant technique.
+  mutant11_engine="$mutant11_dir/caveman-route-engine.py"
+  sed -E 's/^([[:space:]]*)is_reset = isinstance\(raw_source, str\) and raw_source in _RESET_SOURCES$/\1is_reset = True  # MUTANT: always reset, ignoring source/' \
+    "$plugin_root/scripts/caveman-route-engine.py" > "$mutant11_engine"
+  # The mutant also resolves caveman-route.py as its OWN sibling (by file
+  # path, from its own __file__), so the classifier must be copied alongside
+  # it too -- matching P3 test4's own established pattern.
+  cp "$plugin_root/scripts/caveman-route.py" "$mutant11_dir/caveman-route.py"
+
+  # 11a: mutant, source=resume (should PRESERVE, real script shows "on") ->
+  # with the branching stripped, it incorrectly RESETS -> "off".
+  t11_sid="t11-mutant-session"
+  _st_write_router_state "$t11_proj" "$t11_sid" 0
+  rc11a=0
+  CLAUDE_PROJECT_DIR="$t11_proj" python3 "$mutant11_engine" --event session \
+    <<< "{\"session_id\":\"$t11_sid\",\"transcript_path\":\"$t11_transcript\",\"source\":\"resume\"}" \
+    >/dev/null 2>&1 || rc11a=$?
+  mutant11_verdict="$(python3 -c "import json,sys; print(json.load(open(sys.argv[1])).get('verdict'))" \
+    "$t11_proj/.ravenclaude/runs/$t11_sid/caveman-route-state.json" 2>/dev/null)"
+  if [ "$mutant11_verdict" = "off" ]; then
+    _ok "must-fail-half (mutant): source-branching stripped -> resume incorrectly RESETS (verdict flips 'on' -> 'off'), losing its streak -- proves the branching is load-bearing"
+  else
+    _fail "must-fail-half (mutant): expected the stripped-branching mutant to lose resume's streak (verdict 'off'), got '$mutant11_verdict' (rc=$rc11a) -- the teeth test itself is broken"
+  fi
+
+  # 11b: the REAL script, identical config/transcript, a fresh session id ->
+  # resume still correctly PRESERVES (verdict stays "on").
+  t11_real_sid="t11-real-session"
+  _st_write_router_state "$t11_proj" "$t11_real_sid" 0
+  rc11b=0
+  CLAUDE_PROJECT_DIR="$t11_proj" bash "$script_self" --event session \
+    <<< "{\"session_id\":\"$t11_real_sid\",\"transcript_path\":\"$t11_transcript\",\"source\":\"resume\"}" \
+    >/dev/null 2>&1 || rc11b=$?
+  real11_verdict="$(python3 -c "import json,sys; print(json.load(open(sys.argv[1])).get('verdict'))" \
+    "$t11_proj/.ravenclaude/runs/$t11_real_sid/caveman-route-state.json" 2>/dev/null)"
+  if [ "$rc11b" -eq 0 ] && [ "$real11_verdict" = "on" ]; then
+    _ok "source-branching (real script): identical config/transcript, real script -> resume correctly PRESERVES (verdict stays 'on') (control: 11a proves the branching is what prevents the loss)"
+  else
+    _fail "source-branching (real script): expected resume to preserve (verdict 'on'), got '$real11_verdict' (rc=$rc11b)"
   fi
 
   echo
