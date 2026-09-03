@@ -10,7 +10,7 @@ last_verified: 2026-09-01
 covers:
   - plugins/ravenclaude-core/hooks/precompact-digest.sh
   - plugins/ravenclaude-core/scripts/precompact-digest.py
-covers_digest: "sha256:aeac8a553d4278ae3b506bbb99d9bfbb80af9cb6b0472c867d88d29975cd3d31"
+covers_digest: "sha256:e87cca2a2c09a8e4fec6639e68e8d81b7719c657d4ca4f42f184ead724c8cd53"
 nuance: "The hook returns near-instantly even when its digest engine takes seconds: extraction runs as a detached, disowned worker the hook never waits on, so a digest (when one appears at all) shows up seconds after the hook process has already exited."
 nuance_evidence:
   measured: 2026-09-01

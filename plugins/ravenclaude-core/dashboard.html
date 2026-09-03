@@ -9687,7 +9687,7 @@ footer.page-footer a:hover { text-decoration: underline; }
         "plugins/ravenclaude-core/hooks/triage-outcome.sh",
         "plugins/ravenclaude-core/hooks/worktree-guard.sh"
       ],
-      "covers_digest": "sha256:cf95dfb5e86386618e7a0d32003d3b56f5d7427ff35e066eca4057b690746a5d",
+      "covers_digest": "sha256:1b57780f3d1b2c15c933ae9a5940ecb3ecb9b2c78bf2bcd9103353816f3495ab",
       "nuance": "A hook writing to stderr at `exit 0` reaches the model on no event; only `hookSpecificOutput.additionalContext` and `updatedToolOutput` are delivered, so `_advise.sh` advised the terminal for its entire service life.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -9734,7 +9734,7 @@ footer.page-footer a:hover { text-decoration: underline; }
       "covers": [
         "plugins/ravenclaude-core/hooks/hooks.json"
       ],
-      "covers_digest": "sha256:443d439568503bf9c9383e4d5d5f5005e2ed30c0bfd9bd01bfdfe56aac71b8e4",
+      "covers_digest": "sha256:148ad20844e9a7e3bd17c7961b3191891ce64f2e84a0cd736c00266ab8cc63c1",
       "nuance": "Two `additionalContext` emitters on one event concatenate rather than last-write-wins, but two `updatedToolOutput` emitters replace, so the second silently discards the first.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -9828,7 +9828,7 @@ footer.page-footer a:hover { text-decoration: underline; }
         "scripts/sync-plugin-versions.py",
         "scripts/generate-copilot-plugin.py"
       ],
-      "covers_digest": "sha256:e964565841249e5dbef51b7755ea2f64e5f34d116a0f76da9fd27720f70b73a4",
+      "covers_digest": "sha256:edd2dfd0ff5dee038adc89b428af8f42676f8bfb2dcbf6501be0928a80c3b6c0",
       "nuance": "The cache key is the `version` string, never a content hash, so `sync-plugin-versions.py` can report clean while every installed session keeps running the old `hooks/` code.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -9889,7 +9889,7 @@ footer.page-footer a:hover { text-decoration: underline; }
         "scripts/inventory-coverage.py",
         "scripts/inventory-nuance-judge.py"
       ],
-      "covers_digest": "sha256:fe48c17496a0ee5265f36d6595f13b0cbf3768f46e00ba7b7b4bd5b875fb1e6a",
+      "covers_digest": "sha256:77384498aaf69a4e676c6b063aa71b6812bb715ee071dba9436c361f662e57aa",
       "nuance": "The teeth bit is the exit a tool own CHECK returns on a planted defect, never the exit `--must-fail` itself returns: `premise-gate.py` denies at `exit 0` while `sync-plugin-versions.py` reddens at `exit 2`, so an auditor that hard-codes one number can never be right for both.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -10296,7 +10296,7 @@ footer.page-footer a:hover { text-decoration: underline; }
         "scripts/generate-dashboards.py",
         "scripts/generate-index-dashboard.py"
       ],
-      "covers_digest": "sha256:15f3e392be2a9411ac61ffb08950bb1ef875b9feef331761c064087c85aa1eae",
+      "covers_digest": "sha256:47a239fc9a5869dc4cfb85114bdd79e525e96e31ecc6d2b5932c72bfe8e0ab6f",
       "nuance": "`ISLANDED_PANEL_COST` is a flat 2 because the parser reads the payload as CDATA, so `check-dom-budget.py` cannot fire on `learn-payload` no matter how far past 23,861 elements it grows.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -10591,7 +10591,7 @@ footer.page-footer a:hover { text-decoration: underline; }
         "plugins/ravenclaude-core/hooks/precompact-digest.sh",
         "plugins/ravenclaude-core/scripts/precompact-digest.py"
       ],
-      "covers_digest": "sha256:aeac8a553d4278ae3b506bbb99d9bfbb80af9cb6b0472c867d88d29975cd3d31",
+      "covers_digest": "sha256:e87cca2a2c09a8e4fec6639e68e8d81b7719c657d4ca4f42f184ead724c8cd53",
       "nuance": "The hook returns near-instantly even when its digest engine takes seconds: extraction runs as a detached, disowned worker the hook never waits on, so a digest (when one appears at all) shows up seconds after the hook process has already exited.",
       "nuance_evidence": {
         "measured": "2026-09-01",
