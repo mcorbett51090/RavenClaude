@@ -766,6 +766,32 @@ PY
       python3 scripts/check-sessionstart-matcher-regression.py --self-test
       exit $?
       ;;
+    260)
+      echo "── Gate 260: handoff-brief-nudge — P1a-f + P2 C3/C4/finalize + P5 retention (per-gate run) ──"
+      bash plugins/ravenclaude-core/hooks/tests/test-gate260-handoff-brief-nudge.sh || exit $?
+      teeth_fail=0
+      for half in a b c d e; do
+        echo "── Gate 260 teeth ($half): the mutant MUST redden ──"
+        if bash plugins/ravenclaude-core/hooks/tests/test-gate260-handoff-brief-nudge.sh "--must-fail-$half"; then
+          echo "TEETH FAILED ($half): the mutant did not redden — that half is toothless" >&2
+          teeth_fail=1
+        else
+          echo "teeth ok ($half)"
+        fi
+      done
+      exit $teeth_fail
+      ;;
+    261)
+      echo "── Gate 261: handoff-escalation — P3 SKILL.md text drift guard (per-gate run) ──"
+      bash plugins/ravenclaude-core/hooks/tests/test-gate261-handoff-escalation.sh || exit $?
+      echo "── Gate 261 teeth: the mutant MUST redden ──"
+      if bash plugins/ravenclaude-core/hooks/tests/test-gate261-handoff-escalation.sh --must-fail; then
+        echo "TEETH FAILED: the mutant did not redden — the drift-guard assertions are toothless" >&2
+        exit 1
+      fi
+      echo "teeth ok (the mutant reddened, so the assertions measure the invariant)"
+      exit 0
+      ;;
     243)
       echo "── Gate 243: scheduled sweep contract + operator health card ──"
       bash plugins/ravenclaude-core/hooks/tests/test-gate243-sweep-and-health-card.sh
@@ -1570,7 +1596,7 @@ PY
       ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254, 255, 256, 257, 258, 259. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254, 255, 256, 257, 258, 259, 260, 261. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -9567,6 +9593,37 @@ if command -v python3 >/dev/null 2>&1; then
 else
   _skip_or_fail "Gate 259 (SessionStart matcher regression floor)" python3
 fi
+
+echo
+echo "── Gate 260: handoff-brief-nudge — P1a-f + P2 C3/C4/finalize + P5 retention ─"
+# precompact-handoff-convergence P7. Five must-fail halves, each independently
+# observed to flip. ⛔ Registered in BOTH this main sequence AND the --check
+# dispatcher above + the Supported: string. After adding a gate, run the full
+# suite and GREP ITS OUTPUT FOR "Gate 260" — a main-sequence-only or
+# dispatcher-only registration ships unreachable (Gate 184's own recorded class).
+rc=0; bash plugins/ravenclaude-core/hooks/tests/test-gate260-handoff-brief-nudge.sh >/dev/null 2>&1 || rc=$?
+gate "handoff-brief-nudge: P1a-f trigger/throttle/task-id/headroom + P2 chmod/scrub + P5 retention" must_pass "$rc"
+rc=0; bash plugins/ravenclaude-core/hooks/tests/test-gate260-handoff-brief-nudge.sh --must-fail-a >/dev/null 2>&1 || rc=$?
+gate "handoff-brief-nudge teeth (a): reverting _stop_reason silences Claude+Copilot-shaped firing" must_fail "$rc"
+rc=0; bash plugins/ravenclaude-core/hooks/tests/test-gate260-handoff-brief-nudge.sh --must-fail-b >/dev/null 2>&1 || rc=$?
+gate "handoff-brief-nudge teeth (b): restoring the unconditional throttle silences the re-arm" must_fail "$rc"
+rc=0; bash plugins/ravenclaude-core/hooks/tests/test-gate260-handoff-brief-nudge.sh --must-fail-c >/dev/null 2>&1 || rc=$?
+gate "handoff-brief-nudge teeth (c): removing finalize's scrub leaks the planted secret" must_fail "$rc"
+rc=0; bash plugins/ravenclaude-core/hooks/tests/test-gate260-handoff-brief-nudge.sh --must-fail-d >/dev/null 2>&1 || rc=$?
+gate "handoff-brief-nudge teeth (d): removing the four chmod(0o600) calls breaks the file-mode assertions" must_fail "$rc"
+rc=0; bash plugins/ravenclaude-core/hooks/tests/test-gate260-handoff-brief-nudge.sh --must-fail-e >/dev/null 2>&1 || rc=$?
+gate "handoff-brief-nudge teeth (e): widening P5's predicate removes a handoff.md-carrying directory" must_fail "$rc"
+
+echo
+echo "── Gate 261: handoff-escalation — P3 SKILL.md text drift guard ──────────────"
+# precompact-handoff-convergence P7. ⛔ HONEST LIMIT (stated in the gate's own
+# header too): this pins TEXT, not behaviour — no hook sees whether the agent
+# actually stops or runs the probe. It is a drift guard. ⛔ Registered in BOTH
+# this main sequence AND the --check dispatcher above + the Supported: string.
+rc=0; bash plugins/ravenclaude-core/hooks/tests/test-gate261-handoff-escalation.sh >/dev/null 2>&1 || rc=$?
+gate "handoff-escalation: retracted strings absent + positive control + replacements + step 5.5 gate + probe" must_pass "$rc"
+rc=0; bash plugins/ravenclaude-core/hooks/tests/test-gate261-handoff-escalation.sh --must-fail >/dev/null 2>&1 || rc=$?
+gate "handoff-escalation teeth: reverting the SKILL.md fixes reddens the drift-guard assertions" must_fail "$rc"
 
 echo "── analog-closeness-scorecard (Q2 leftover, docs/follow-ups/2026-08-14-analog-repos-leftovers.md) ──"
 # Recomputes the 2026-08-14 analog survey's own M/H/G/O/E/I/T/V weighted-closeness
