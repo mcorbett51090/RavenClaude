@@ -2450,6 +2450,23 @@ d_oop_mut=$(thing_decision split-oop "$SHELL_TRUE")
 cp -p "$TMP/orch14-tiebreaker.bak" "$ORCH14"   # restore the real orchestrator immediately
 rc=0; { [[ "$d_oop_mut" != "deny" ]] && [[ "$d_oop_mut" != "none" ]]; } || rc=1
 gate "thing teeth: pre-fix else->allow does NOT fail closed (allow/ask, not deny)" must_pass "$rc"
+# ⛔ The restore above is unconditional bash with no verification — if that cp
+# ever silently fails, this gate's own assertion still reports PASS (it only
+# checks $d_oop_mut, captured BEFORE the restore), and the live orchestrator
+# is left mutated with no signal at the gate that caused it. Observed twice
+# this session (2026-09-03): a full audit-gates.sh run left thing-orchestrator.sh
+# containing the MUTANT text uncommitted, which surfaced hundreds of gates
+# later as an unrelated-looking real-corpus digest-drift failure in gates
+# 237/239 — the exact silent-green shape this suite exists to catch. Verify
+# the restore actually landed and hard-fail loudly, right here, if it did not.
+rc=0; cmp -s "$TMP/orch14-tiebreaker.bak" "$ORCH14" || rc=1
+if [ "$rc" != 0 ]; then
+  echo "  ⛔ RESTORE VERIFICATION FIRED: $ORCH14 didn't match its pre-mutation" >&2
+  echo "     backup right after the restore cp. Restoring it again now and" >&2
+  echo "     failing this gate loudly instead of letting it corrupt later gates." >&2
+  cp -p "$TMP/orch14-tiebreaker.bak" "$ORCH14"
+fi
+gate "thing teeth: mutated orchestrator was actually restored, not left corrupted" must_pass "$rc"
 # (d) high-stakes category timeout fails CLOSED (deny, not ask)
 d=$(thing_decision timeout "git push origin main")
 rc=0; [[ "$d" == "deny" ]] || rc=1
@@ -4493,8 +4510,16 @@ if command -v node >/dev/null 2>&1; then
   # must_fail: a drifted dashboard whose decision_review emission line is stripped
   # (simulating the pre-fix serializer that silently dropped the key). The test
   # must catch the now-missing key.
+  #
+  # ⛔ FOUND 2026-09-03 auditing this gate's own teeth: the unescaped `$` here
+  # matched ZERO lines under BSD/macOS grep's BRE (a `$` not at the pattern's
+  # end is not reliably literal there) — so `grep -v` removed nothing, the
+  # "drifted" file was byte-identical to the real one, and this must_fail
+  # trivially passed for the WRONG reason on every run since it was written.
+  # Escaping `$` -> `\$` (as the stream_classify mutant two blocks below
+  # already did correctly) makes the strip real.
   RT_BAD="$TMP/dashboard-drifted.html"
-  grep -v 'decision_review: ${state.decision_review}' index.html > "$RT_BAD"
+  grep -v 'decision_review: \${state.decision_review}' index.html > "$RT_BAD"
   rc=0; node "$RT" "$RT_BAD" >/dev/null 2>&1 || rc=$?
   gate "dashboard round-trip (drifted: decision_review emit stripped)" must_fail "$rc"
   # must_fail (F4): a drifted dashboard whose stream_classify emission is stripped —
@@ -4516,8 +4541,10 @@ if command -v node >/dev/null 2>&1; then
   # from `state`, so a key with no emit line is silently DELETED on the next
   # Save & apply — a user's conserve-tokens switch would vanish the first time
   # they changed anything else.
+  # ⛔ Same unescaped-`$` toothlessness found and fixed 2026-09-03 (see the
+  # decision_review mutant above for the full explanation).
   RT_BAD_CT="$TMP/dashboard-drifted-conserve.html"
-  grep -v 'conserve_tokens: ${state.conserve_tokens === true}' index.html > "$RT_BAD_CT"
+  grep -v 'conserve_tokens: \${state.conserve_tokens === true}' index.html > "$RT_BAD_CT"
   rc=0; node "$RT" "$RT_BAD_CT" >/dev/null 2>&1 || rc=$?
   gate "dashboard round-trip (drifted: conserve_tokens emit stripped)" must_fail "$rc"
   # must_fail (v0.273.0 B): the parallelism default reverted to the pre-flip
@@ -4549,6 +4576,19 @@ if command -v node >/dev/null 2>&1; then
   grep -v 'lines.push("cheap_lane:")' index.html > "$RT_BAD_CL"
   rc=0; node "$RT" "$RT_BAD_CL" >/dev/null 2>&1 || rc=$?
   gate "dashboard round-trip (drifted: cheap_lane emit stripped)" must_fail "$rc"
+  # must_fail (worktree_lease / keep_awake): both were ENTIRELY unmodelled — no
+  # state slot, no applyGuardrailConfig read, no emitYaml write — until this fix
+  # (found live 2026-09-03 auditing the v0.61.0 data-loss class after the
+  # context_handoff/cheap_lane fixes). Strip the worktree_lease emit line and
+  # confirm Test 1/Test 2 catch the regression.
+  RT_BAD_WL="$TMP/dashboard-drifted-worktree-lease.html"
+  grep -v 'lines.push(`worktree_lease: \${state.worktree_lease}`)' index.html > "$RT_BAD_WL"
+  rc=0; node "$RT" "$RT_BAD_WL" >/dev/null 2>&1 || rc=$?
+  gate "dashboard round-trip (drifted: worktree_lease emit stripped)" must_fail "$rc"
+  RT_BAD_KA="$TMP/dashboard-drifted-keep-awake.html"
+  grep -v 'lines.push(`keep_awake: \${state.keep_awake}`)' index.html > "$RT_BAD_KA"
+  rc=0; node "$RT" "$RT_BAD_KA" >/dev/null 2>&1 || rc=$?
+  gate "dashboard round-trip (drifted: keep_awake emit stripped)" must_fail "$rc"
 else
   _skip_or_fail "Gate 35 (dashboard round-trip)" node
 fi
