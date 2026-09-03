@@ -74,13 +74,25 @@ a real, session-authenticated `tenant_id` — **never** trust a client-supplied 
 - ⛔ **The cross-boundary denial test is documented, not executed.** See
   [`test/cross-tenant-denial.md`](test/cross-tenant-denial.md) for the procedure; running it
   requires a live Cube + Postgres pair, which this scaffold does not provision.
+- ⛔ **`npm audit` (run 2026-09-03, after the `@cubejs-client/*` 1.7.33 bump below) reports 2
+  high-severity findings in `next@14.2.35`** (the latest patch on the pinned `^14.2.0` line) —
+  DoS via Image Optimizer `remotePatterns`, HTTP request smuggling in rewrites, cache poisoning,
+  SSRF in Server Actions, and more (full list: `npm audit` in this directory). **None of these
+  are fixed within the 14.x line** — npm's own suggested fix is `next@16.3.4`, which it flags as
+  a breaking change. That migration (App Router / Server Component behavior changes across two
+  majors) has **not** been attempted in this pass; re-run `npm audit` before using this starter
+  in a real engagement and budget for the Next.js major-version migration if the findings still
+  apply.
 - Pinned versions (re-verify before a new engagement — dependency drift is real, per this
   plugin's quarterly-refresh discipline): Next.js 14.2.x, React 18.3.x, `@cubejs-client/*`
-  0.35.x, `@tremor/react` 3.14.x, `recharts` 2.12.x.
+  1.7.33 (bumped from 0.35.x — Cube's `access_policy` requires Cube Core >=1.2.0, and
+  `@cubejs-client/react@1.7.33` hard-pins `@cubejs-client/core@1.7.33`), `@tremor/react` 3.14.x,
+  `recharts` 2.12.x. `package-lock.json` regenerated 2026-09-03 against these pins.
 
 ## Refresh triggers
 
-- Cube 0.36+ major version bump (matches `cube-schema-starter.yml`'s own trigger)
+- Cube >=1.2.0 major version bump (matches `cube-schema-starter.yml`'s own trigger — this is the floor
+  `access_policy` itself requires, not an arbitrary target)
 - `@cubejs-client/react` hook API changes
 - A real engagement promotes this from "code-reviewed" to "field-proven" — update this
   README's status section, don't just delete the caveat

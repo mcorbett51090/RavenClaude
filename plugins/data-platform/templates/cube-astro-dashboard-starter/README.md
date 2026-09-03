@@ -85,13 +85,23 @@ never trust anything client-supplied.
   same as the Next.js starter's own "reviewed, not yet re-confirmed after fixes" status, one
   level further removed (this port happened after that review, not before it).
 - ⛔ Not yet run against a live Cube instance. Not yet used in a real engagement.
+- ⛔ **`npm audit` (run 2026-09-03, after the `@cubejs-client/*` 1.7.33 bump + `@astrojs/check`
+  addition below) reports 6 findings (3 high, 3 moderate)** against the pinned `astro@4.15.x` /
+  `@astrojs/node@8.3.x` line — reflected XSS via server islands, middleware auth bypass via URL
+  encoding, host-header SSRF, a `libvips`/`sharp` CVE chain, and more (full list: `npm audit` in
+  this directory). **None of these are fixed within the 4.x line** — npm's suggested fix is
+  `astro@7.3.0` / `@astrojs/node@11.1.5`, both flagged as breaking changes. That migration has
+  **not** been attempted in this pass (Astro's server-output/adapter contract has moved across
+  three majors); re-run `npm audit` before using this starter in a real engagement.
 - Pinned at authoring time (re-verify before use): Astro 4.x, `@astrojs/react` ^3, `@astrojs/node`
-  ^8, `@astrojs/tailwind` ^5, same `@cubejs-client/*`/`@tremor/react`/`recharts` versions as the
-  Next.js starter.
+  ^8, `@astrojs/tailwind` ^5, `@cubejs-client/*` 1.7.33 (bumped from 0.35.x — see the Next.js
+  starter's README for why), same `@tremor/react`/`recharts` versions as the Next.js starter.
+  `package-lock.json` regenerated 2026-09-03 against these pins.
 
 ## Refresh triggers
 
 - Astro major version bump (content collections / islands API changes)
 - A real engagement promotes the Astro-specific plumbing from "carried-over pattern" to
   "independently reviewed"
-- Cube 0.36+ major version bump (matches `cube-schema-starter.yml`'s own trigger)
+- Cube >=1.2.0 major version bump (matches `cube-schema-starter.yml`'s own trigger — this is the floor
+  `access_policy` itself requires, not an arbitrary target)

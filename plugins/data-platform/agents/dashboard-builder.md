@@ -80,6 +80,7 @@ Take a build goal — "ship a dashboard on ravenpower.net showing case-study out
 - **OSS-first.** Superset / Metabase OSS / Evidence OSS / Cube OSS / Tremor / Recharts / ECharts — all free, all production-ready in 2026.
 - **Seam-marked stubs over half-finished code.** `.tsx.md` reads as deliberate; commented `.tsx` reads as half-finished. Match the marketplace pattern.
 - **Cube schema with `securityContext` from day one.** Don't ship a Cube schema without the access-policy stub — even if tenant scope hasn't been decided yet, the placeholder is the seam.
+- **⛔ `access_policy` requires Cube Core >=1.2.0.** Verify the target Cube instance's version before scaffolding a schema that relies on it — below 1.2.0 the mechanism does not exist server-side and a schema that "has" an `access_policy` block is silently unenforced. This is not a hypothetical: it was a pre-existing gap in this plugin's own `cube-schema-starter.yml`, which stated a "Cube 0.36+" floor while depending on `access_policy` unconditionally.
 - **Pre-aggregate in the semantic layer.** Customer-facing endpoints should not ship raw SQL — Cube (or equivalent) owns the query plan, caching, access control.
 - **Don't fight the embed model.** iframe is fine for MVP; SDK-embed for production. Don't try to skip the iframe step on a tight engagement timeline.
 - **Power BI Embedded is correct for M365 clients.** Brand familiarity, Entra-ID-based RLS, F-SKU app-owns-data flow change the calculus. Don't fight it just to prove the OSS path works.
