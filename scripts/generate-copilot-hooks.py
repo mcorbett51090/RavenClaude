@@ -84,6 +84,24 @@ _EVENT_MODE = {
     "PostToolUse": "posttool",
     "Stop": "stop",
     "UserPromptSubmit": "userpromptsubmit",
+    # PreCompact — CHAT-PREVIEW-ONLY (§D2). The Copilot CLI's own documented hook
+    # event set has NO compaction-adjacent event at all [docs-verified 2026-09-02,
+    # re-confirmed this revision, corroborated by github/copilot-cli#1138 — an
+    # open, unclosed feature request for exactly this gap]. So on the CLI this
+    # entry is INERT: Copilot CLI writes a log line about an unrecognised hook
+    # entry on EVERY session that loads this file — a consumer may misread that
+    # noise as a broken install. It is retained anyway, solely because ONE
+    # generated .github/hooks/ravenclaude.json file serves BOTH the CLI and VS
+    # Code Copilot Chat Preview, and PreCompact genuinely exists on Chat, where it
+    # is Chat's only compaction archival path. Dropping this entry (the literal
+    # `_SKIP`) would silently remove that archival from Chat too, since `_SKIP` is
+    # keyed by script basename and strips the hook from the file entirely. The
+    # adapter's `precompact)` case is fail-safe regardless (discards the wrapped
+    # hook's stdout and exit code, always exits 0 — copilot-hook-adapter.sh:334+),
+    # so a never-fired CLI lane costs nothing beyond that log noise. If a future
+    # session finds the CLI actually REJECTS this entry (rather than just logging
+    # about it), switch this to the literal `_SKIP` with that finding as the
+    # reason, and file the resulting Chat-coverage loss as a follow-up.
     "PreCompact": "precompact",
     # PreToolUse resolves to bash-pretool / file-pretool per-hook (see above).
 }

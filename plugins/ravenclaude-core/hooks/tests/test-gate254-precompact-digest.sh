@@ -338,6 +338,19 @@ else
   fails=$((fails + 1))
 fi
 
+# ⛔ D1 (precompact-handoff-convergence, P7, verify-only per the plan) — this case's
+# three cases (1/2/3, this whole section) were VERIFIED, not rewritten, against P1-P6
+# of that later run: none of P1-P6 touches `hooks/precompact-digest.sh:151-154`
+# (the `cheap_lane_mode` posture gate), so cases 1/2/3 above and below stay true
+# exactly as authored. P4a-ii DID add a new `precompact-secret-refusal` deny event on
+# the `refused` outcome arm — that arm is never reached by this case (floor-blocked
+# short-circuits before egress is even attempted), so it cannot disturb these
+# assertions; re-verified in P7 by re-running this file unmodified, still green.
+# ⛔ GLOB-SCOPE CAVEAT (red-team's confirmation, carried over verbatim from the plan):
+# `_confirm_digest_absent_holds` (below, and at every call site in this file) globs
+# `precompact-digest-*.md` ONLY — it asserts on the digest FILENAME, not on the run
+# dir's emptiness. It would NOT detect a future artifact written under a different
+# name. Say so here so the next reader knows this assertion's exact reach.
 # 3. egress-floor-blocked: cheap_lane.mode ON but NEITHER
 #    orchestrator_repo_pii: false NOR cheap_lane_zdr_confirmed: true is set.
 #    Sentinel delegate scripts prove NO subprocess is ever invoked, and a

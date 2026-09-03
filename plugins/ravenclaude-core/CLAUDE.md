@@ -3291,6 +3291,17 @@ since v0.274.0, the `conserve_tokens_auto_pct` trigger — the two mechanisms me
 *before* it hits the real auto-compact cliff. Both were silently inert under Claude Code, every session,
 regardless of `context_handoff.mode`.
 
+> **Corrected 2026-09-02, v0.314.0.** This milestone's closing sentence claims a Claude Code consumer
+> with `context_handoff.mode` set *"will, for the first time, actually see the nudge fire."* That was
+> **not true when written**. This fix (the meter's `status: "unknown"` → `"ok"` resolution under Claude
+> Code) was real and necessary, but it was only one of two independent gates the nudge needed —
+> `handoff-nudge.py`'s own trigger, `_stop_reason(payload) == "end_turn"`, compared against a `reason`
+> key that **does not exist** in Claude Code's (or Copilot's) real `Stop` payload, so the comparison
+> was false-by-absence regardless of what the meter returned. That second gate was closed independently
+> by `precompact-handoff-convergence`'s P1a (this same release, v0.314.0) — see "Pre-compaction handoff
+> convergence" and "The Stop-lane host table was wrong in the direction that hides a gap" below. Both
+> gates are closed as of this release; neither alone would have been sufficient.
+
 ⛔ **Root cause: the meter was Grok-only from its first line, and nobody had a Claude Code path to fall
 back to.** `session_dir_from_env` / `last_total_tokens` read `GROK_SESSION_ID` and
 `~/.grok/sessions/<cwd>/<sid>/updates.jsonl` — a format that does not exist for a Claude Code session
@@ -3892,6 +3903,225 @@ against this marketplace's own repo (or any repo at production scale) — the pr
 **Migration:** none — a new skill; nothing in an installed plugin's behavior changes on
 `/plugin marketplace update` until a consumer invokes `/repo-review`.
 
+## The Stop-lane host table was wrong in the direction that hides a gap (added 2026-09-02, v0.314.0)
+
+`handoff-nudge.py` (P1, this run) is wired via a **`Stop`** hook — `hooks/hooks.json` registers it
+with no matcher, `hooks/handoff-nudge.sh` is the wrapper — so its per-host reach is exactly the
+per-host reach of `Stop` itself, not a special case. This corrects the record on where that lane
+actually fires, because the honest answer differs from what a reader would assume from the earlier
+framing (v0.303.0's milestone, corrected in the same commit that ships this one — see below).
+
+| Host | `Stop` reachable? | `handoff-nudge` fires? | Basis |
+|---|---|---|---|
+| **Claude Code** | native `Stop` event | **YES** | canonical `hooks.json` registration |
+| **Copilot CLI** | via the `stop)` adapter case | **YES** | `hooks/copilot-hook-adapter.sh`'s `stop)` case wraps `handoff-nudge.sh`; the P6c′ reshape above forwards `reason`/`stop_hook_active` through it |
+| **Copilot Chat (VS Code)** | `Stop`/`agentStop` per Copilot's own doc set | **YES, structurally-limited** | same CLI projection reaches Chat Preview (one generated `.github/hooks/ravenclaude.json` serves both surfaces); see the `nag`-is-dead gap below — the hook DOES fire, what it can DELIVER is capped |
+| **Codex CLI** | `Stop` is in Codex's documented hook event set | **YES, docs-verified, never live-verified** | `knowledge/codex-cli-customization.md:35` — *"`SubagentStop`, `Stop`"* named explicitly; Codex speaks the Claude Code hook contract natively (no adapter, `hooks/codex-hook-env.sh` is an env shim only) |
+| **Gemini CLI** | no verified compaction-**or-Stop**-adjacent event | **`_SKIP`, honest** | `scripts/generate-gemini-hooks.py:100` — *"Stop — same unverified lifecycle mapping as dod-gate.sh"* |
+| **Grok TUI** | no hook surface at all | **NO — structural, not a gap** | row 1f (claims-table): RavenClaude has zero hook wiring on Grok; no `grok-hook-adapter.sh` exists, so nothing here could fire regardless of what Grok itself supports |
+
+So the lane was **never inert on Claude Code or Copilot for lack of wiring** — P1's contribution (this
+run) was making the trigger and throttle actually fire correctly once invoked (F1a/F1b/F2), not
+reaching a host that was previously unreachable. The wiring itself predates this run.
+
+⛔ **The structural Copilot `nag` gap (F1c) — declared here, not fixable by any RavenClaude change.**
+`context_handoff.mode: nag` delivers **nothing** on Copilot (CLI or Chat). Copilot's `agentStop`/`Stop`
+output contract is exactly `{decision, reason}` (plus `modifiedResponse` on `subagentStop` only)
+`[docs-verified 2026-09-02, docs.github.com/en/copilot/reference/hooks-reference]` — there is no
+context-injection field for a hook to write into, the way Claude Code's `additionalContext` works.
+**`context_handoff.mode: block` is the only mode that delivers on Copilot.** P6c′'s adapter reshape
+(above) makes the hook **fire** correctly and **self-limit** correctly (`stop_hook_active`); it cannot
+manufacture an output field the host does not expose. This is a host contract, not an unwired lane —
+the same distinction R2 in the plan draws.
+
+⛔ **R12 — the abrupt-compaction gap remains open, declared not fixed.** A single turn can cross both
+the soft threshold and the host's own auto-compact with no intervening `Stop` (the context meter's
+reading lags by construction — it only measures at a `Stop` boundary). `handoff-nudge`'s Stop-lane
+mechanism, by definition, cannot see a compaction that happens without an intervening Stop. The
+`cheap_lane`-gated `precompact-digest.sh` fallback (v0.309.0) exists for exactly this shape but is off
+by default (C1), so on a default posture nothing runs for this case. Declared, not fixed — the
+`local`-tier alternative named in the plan's Fork B (plan-A's B1) is the right shape if this ever
+measures as material.
+
+⛔ **No `host-support.json` schema change.** Its `components` are keyed `hooks` / `skills` /
+`slash_commands` / `agents` / `monitors` / `instruction_files` — hook support is per-host, not
+per-event, so there is no existing capability cell for "PreCompact-equivalent" or "Stop-lane nag
+delivery" to update. Adding one would be a schema change, out of scope for this phase; the per-host
+Stop/PreCompact reality is recorded here in the milestone narrative instead, per the plan.
+
+⛔ **`components.hooks.copilot.surfaces.chat.supported` is UNCHANGED — still `false`.** It carries its
+own note (*"Do not flip supported to true without a Phase 0 payload dump"*) and this phase does not
+attempt that dump; the `nag`-is-dead finding above is a statement about `agentStop`'s output contract,
+independent of whether Chat's hook-firing itself is confirmed live on any given machine.
+
+**Correcting the earlier framing in the same commit, per this repo's supersession rule.** The
+v0.303.0 milestone above ("The context-usage meter had no Claude Code path") states its fix means *"a
+consumer running Claude Code with `context_handoff.mode: nag` or `block` set will, for the first time,
+actually see the nudge fire."* That claim conflated two independent gates the meter fix and this
+phase's own P1/P6 work now separate cleanly: the meter fix (v0.303.0) made `measure()` resolve
+`status: "ok"` under Claude Code instead of unconditionally `"unknown"` — real and necessary — but
+`handoff-nudge.py`'s *own* trigger gate, `_stop_reason(payload) == "end_turn"` reverted-form (the
+defect P1a fixes in this run), was **independently** never exercised against a Claude-shaped payload
+before this run, because Claude Code's real Stop payload carries no `reason` key at all (row 1a-class
+finding) — so the string comparison the pre-P1 code ran was always false-by-absence on Claude Code
+specifically, regardless of the meter's status. **The v0.303.0 claim was therefore not fully true when
+written**: the meter alone did not make the nudge fire on Claude Code; P1a's inverted-default trigger
+fix (this run) was the second, independent gate that had to close first. Both gates are closed as of
+this run.
+
+**Migration:** none — this entry corrects documentation and confirms P6c′'s adapter reshape; no schema,
+no host-support cell, and no Chat-support flag changed. `plugins/ravenclaude-core/scripts/generate-copilot-hooks.py`'s `PreCompact` entry gained a comment only (§D2, P6a) — its behavior is byte-identical.
+
+## Pre-compaction handoff convergence — a live-agent-authored brief is now the primary path, the detached digest stays exactly as it was, as a rare fallback (added 2026-09-02, v0.314.0)
+
+### The reframe, and why
+
+Two draft plans (`plan-A.md`, `plan-B.md`) both proposed un-gating `precompact-digest.sh` — flipping its
+`cheap_lane.mode` on-switch to default-on so it fires on every compaction — and expanding its captured
+content toward the full `handoff.md` shape. The security critic (`critic-brief.md` S1) named the fatal
+premise: `precompact-digest.py`'s extraction is a **detached, no-egress background process spawned from
+a hook** — it structurally cannot produce the eight `<!-- MODEL FILL -->` judgment sections
+(`## Paths` / `## Blockers` / `## Decisions + WHY` / …) that make a handoff brief actually useful,
+because it has no access to the live agent's own reasoning. Matt's answer to G4a's `AskUserQuestion`
+(`owner-decisions.md` Decision 1, verbatim: *"automatically create session handoff document and then
+hand it to the /compact"*) named an outcome neither draft's mechanism could produce.
+
+**The reframe uses a different, already-existing mechanism instead of un-gating the digest:**
+`context-handoff.py write` — already run by the **live agent**, in a normal turn, already producing the
+full `handoff.md` including real judgment content, with **no egress and no cheap-lane call of any
+kind**. P1 makes `handoff-nudge.py` (the `Stop`-hook nudge) actually trigger this reliably and retry
+sanely; P2 hardens what it writes; P3 makes `/session-handoff`'s own procedure obey the same contract.
+`precompact-digest.py`/`hooks/precompact-digest.sh` — the detached extractor — **stays exactly as it was
+before this run**: still gated on `cheap_lane.mode`, still off by default, still the safety net for the
+one case the primary structurally cannot cover (see R12 below), **never un-gated**. `security-brief.md`
+confirms this is not a compromise but a net security improvement over both drafts: the default
+consumer's transcript is never opened by any detached process (row 8's read guarantee is untouched,
+because the default path never reaches `precompact-digest.py` at all — `security-brief.md` §1), while
+the artifact produced is materially better than either draft's `local` tier.
+
+### The corrected Stop-vs-PreCompact host asymmetry — including a real, previously-unknown bug
+
+`handoff-nudge.py` is wired via `Stop`, not `PreCompact` — its per-host reach was always the reach of
+`Stop` itself. **The bug, found and fixed by this run, not merely documented:** on both Claude Code and
+Copilot (CLI and Chat), the nudge's trigger checked `payload.get("reason") == "end_turn"` — a field that
+**does not exist** in either host's real `Stop` payload (`[docs-verified 2026-09-02]`: Claude Code's
+`Stop` input carries `stop_hook_active` / `last_assistant_message` / `background_tasks` /
+`session_crons` and **no `reason` key at all**; Copilot's equivalent uses `stop_reason`/`stopReason`,
+never `reason`). So the string comparison was **false by absence, unconditionally, on every host that
+matters**, on every session, since the nudge existed — a lane that looked wired (present in `hooks.json`,
+present in the Copilot adapter's `stop)` case) but had **never actually fired** on either host. P1a fixes
+this with a host-vocabulary union (`reason` / `stopReason` / `stop_reason`) and an **inverted default** —
+an absent reason key is now read as the turn-end signal itself, rather than as "nothing to report." The
+full corrected per-host table, including the structural Copilot `nag`-delivery gap (F1c) and the R12
+abrupt-compaction gap, is recorded in the milestone directly above this one
+("The Stop-lane host table was wrong in the direction that hides a gap", v0.314.0) — not repeated here
+in full to avoid two copies drifting independently; the two most load-bearing lines are:
+
+- **F1c, structural, not fixable by any RavenClaude change:** Copilot's `agentStop`/`Stop` output
+  contract is exactly `{decision, reason}` — there is no context-injection field, so
+  `context_handoff.mode: nag` delivers **nothing** on Copilot (CLI or Chat). `mode: block` is the only
+  mode that reaches the agent there.
+- **R12, declared, not fixed:** a single turn can cross both the soft threshold and the host's own
+  auto-compact with no intervening `Stop`, and the Stop-lane mechanism by definition cannot see a
+  compaction it never got a turn boundary to observe. The fallback (`precompact-digest.sh`) exists for
+  exactly this shape but stays `cheap_lane`-gated (C1, below), so **on a default posture, nothing runs
+  in that gap today.**
+
+### C1–C6 — the security review's six conditions, and how each was met
+
+`security-brief.md` returned `CLEAR-WITH-CONDITIONS`, six conditions, all binding:
+
+- **C1 — if the fallback is ever un-gated, un-gating must change WHEN it fires, never WHAT it
+  produces; preferred: don't un-gate it at all.** **Met, by the strongest form:** `hooks/precompact-
+  digest.sh`'s `cheap_lane_mode` posture gate (`:151-154`) was not touched by any phase of this run.
+  P4/P5 (both of which *do* edit `precompact-digest.sh`/`.py`) confirmed this directly, and D1's
+  verify-only disposition on Gate 254 depends on it staying true.
+- **C2 — the floor-block `deny` is preserved, never replaced by an `allow`-shaped downgrade.** **Met:**
+  P4a-i's `blocked` arm is byte-identical to before; the rule-token prefix `precompact-egress-floor-
+  blocked` is unchanged; the design is additive throughout (see F5 below for the one new arm).
+- **C3 — `chmod(0o600)` on every file `cmd_write` writes.** **Met:** P2 added the chmod (wrapped
+  `try/except OSError: pass`, matching `precompact-digest.py`'s own idiom) to all four files —
+  `handoff.md`, `handoff-seed.txt`, `chat-resume.md`, and `meta.json` via `stamp_meta` — both at write
+  time and again at `finalize` time (the write-strategy-dependent window C3/F3 name explicitly).
+- **C4 — decide the `handoff.md` scrub question explicitly; silence is the one unacceptable outcome.**
+  **Met, decided as (a):** P2's new `finalize` subcommand runs the rendered body through
+  `_scrub_secrets` (ported from `precompact-digest.py:331`), preserving the scrub-before-bound ordering
+  discipline, before the file is ever left in its final state. The honest bound — a regex pattern set
+  catches secret *shapes*, never a client name or fact in free prose — is written into the code comment
+  beside the call, per the security brief's own framing.
+- **C5 — name the `/compact` steering-text variant in one sentence.** **Met:** P1f's emitted procedure
+  states explicitly that the agent composes the `/compact` steering text **in its own turn** and never
+  reads `handoff.md` back off disk and slices it — the acceptable, agent-authored-at-agent's-own-trust
+  variant the security brief names, not the rejected read-and-slice variant that would revive S7.
+- **C6 — any Gate 254 rewrite is authored per-assertion, with the delegate-sentinel pair untouched.**
+  **Met via D1** (immediately below): no rewrite was needed at all, so this condition is satisfied
+  trivially rather than through per-assertion authorship — P7 verified all three cases still hold and
+  added an explanatory comment; case 3's two sentinel assertions (`cheap-lane delegate NEVER invoked` /
+  `claude-fallback delegate NEVER invoked`) are byte-identical.
+
+### D1 and D2 — the two named decisions
+
+- **D1 — Gate 254 needs no rewrite.** The reframe's default path (`context-handoff.py`) never touches
+  `precompact-digest.sh` at all, so all three of Gate 254's cases (no posture file / `mode: off` /
+  floor-closed) remain exactly as true as they were before this run. P7 **verified**, did not rewrite,
+  and added a comment recording why, plus the pre-existing glob-scope caveat (`_confirm_digest_absent_
+  holds` globs `precompact-digest-*.md` only — it would not catch a future artifact under a different
+  name).
+- **D2 — Copilot CLI's `PreCompact` lane keeps its projection, with a mandatory comment, rather than
+  the literal `_SKIP`.** One generated `.github/hooks/ravenclaude.json` serves **both** Copilot CLI
+  (where `PreCompact` does not exist — the entry is inert, dropped-and-logged on every session that
+  loads the file, `[docs-verified 2026-09-02]` — see the milestone directly above) **and** Copilot Chat
+  Preview (where `PreCompact` is real and is Chat's *only* compaction archival path). The literal
+  `_SKIP` critic S8/Decision 3 asked for is keyed by script basename, so it would have removed the hook
+  from the file entirely — silently taking away Chat's only coverage to fix an accurate-but-incomplete
+  claim about the CLI. P6a kept the projection and added the mandatory comment stating the CLI has no
+  such event, that the entry is dropped-and-logged there (and that a consumer may misread that log
+  noise as a broken install), and that it is retained solely for Chat Preview.
+
+### The "nothing defaults on" statement (F4) — and the dashboard control Matt asked for
+
+`context_handoff.mode` still defaults `off`. This plan flips **no** default to on — explicitly, not by
+omission. The load-bearing reason: the primary lane had **never actually fired** on Claude Code or
+Copilot before this run (see above), so there is zero field evidence about false-positive rate, token
+cost, or completion rate to default anything against. `plan.md`'s F4 table weighs all three options
+(leave opt-in / default `nag` in the shipped template / default `block` in code) and the middle and
+last both cost more than they buy today — a template seed reaches only new repos, and a code default
+forces an unrequested extra turn on every consumer over threshold. **Ship it working and opt-in;
+measure; then revisit the default with data.**
+
+Because "opt-in" risked reading as "invisible," F4 named four mitigations, all delivered in this run:
+the Goal statement itself says it verbatim; Open Question #7 puts the tradeoff to the owner with the
+costs named; `scope.md` is amended in this same commit with a dated block recording the success signal
+is met in letter only (below); and the shipped posture template gains a **commented**
+`context_handoff:` block (below) so a reader who opens the file at least sees the on-switch named.
+
+**Beyond `plan.md`'s original scope, a fifth mitigation shipped in this same FORGE run:** Matt's own
+ruling on this point was *"Ship opt-in but make sure there is a way to update the mechanism in the
+dashboard"* — so `context_handoff.mode` now has a **real, clickable dashboard control** (Pipeline tab,
+Stop lane, a new `context-handoff` stage card alongside the existing `cheap_lane`/`orchestrator`
+real-control precedent, a three-option `<select>` for off/nag/block), not just a YAML key a consumer has
+to know exists and hand-edit. See `impl-dashboard-control.md` in this run's directory for the full
+build (Gate 132's DOM-budget ratchet raised by the measured +23 elements/surface, Gate 133 verified,
+the existing state/hydrate/emit round-trip left untouched). This directly answers the discoverability
+cost F4's own table named for option (a) — the mechanism is opt-in, but no longer YAML-only.
+
+### The deferred `attempted=false` audit-event follow-up (F5)
+
+C2's audit-event fix is closed for the `blocked` and `refused` arms (P4a-i, P4a-ii — the latter a new,
+additive `deny` for `outcome == "refused"`, fixing a real defect where a secret-detected refusal was
+previously emitted as `verdict: "allow"` and was therefore invisible on both `Heimdall` and `Víðarr`).
+**Two arms are explicitly waived, not silently skipped:** `outcome == "empty"` emits nothing by design
+(nothing was blocked and nothing was sent — there is no security-relevant fact to report). `refused`/
+`unavailable` with `attempted == false` also emits nothing today — **deferred, with a named residual**:
+the only reachable producer is a missing or unexecutable cheap-lane delegate (an install defect, not a
+security event), so a consumer whose delegate is broken currently sees no digest **and** no event — a
+broken install looks identical to a quiet one. The fix, when someone picks it up, is a single additive
+`allow / precompact-delegate-unavailable` receipt; it was deferred here because install health belongs
+with `ravenclaude status`'s own checks, not the security substrate. Filed here as the follow-up.
+
+**Migration:** none. `context_handoff.mode` still defaults `off`; `precompact-digest.sh`'s on-switch is
+unchanged; no schema changed. A consumer who does nothing sees no behavior change from this release.
+
 ## `/repo-review` gains P0-P3 priority + an opt-in `--converge` loop (added 2026-09-02, v0.314.0)
 
 Two additions on top of the v0.313.0 skill, both user-requested: a formal severity→priority scheme, and
@@ -3948,7 +4178,7 @@ Gate 260 pins the `if (!CONVERGE) break;` single-pass exit), and the severity-so
 existing (silently-broken) verifyCap sort actually work — no consumer-visible regression, a latent bug
 closing.
 
-## ⛔ FORGE's own telemetry was written after the decisions it was meant to gate (added 2026-09-03, v0.315.1)
+## ⛔ FORGE's own telemetry was written after the decisions it was meant to gate (added 2026-09-03, v0.316.1)
 
 A `/forge` `standard` run over the `forge-pipeline` skill itself — two divergent cross-model panels
 (an Opus architect lens that measured a real 44-run corpus, a Sonnet ops/cost lens), a
@@ -4020,12 +4250,22 @@ dir is for the record, and the record has exactly one home.**
   pre-`ExitPlanMode` publish with exit-2 semantics and had shipped with **no test at all** — an
   ungated gate. Its teeth were verified by an in-place A/B, not asserted: neutering the empty-source
   refusal makes fixture 2 fail, reverted after.
-- **Gate 261** runs all three self-tests plus `forge-receipt.py --must-fail`. ⛔ Registered in **all
+- **Gate 263** runs all three self-tests plus `forge-receipt.py --must-fail`. ⛔ Registered in **all
   three** required surfaces — the `--check` dispatcher, the main sequence, and the `Supported:`
   string — each **verified by grep after the edit**, per this repo's own Gate 184 incident (a gate
   added to only one of the three ran nowhere for a full release). A passing suite is not evidence a
-  gate is in it; the suite passes identically when the gate is absent. `261` was re-confirmed as the
-  next free slot by grepping the current max (260), not trusted from the plan.
+  gate is in it; the suite passes identically when the gate is absent.
+- ⛔ **It is 263 because the slot moved under us, and the first grep was against a stale tree.** The
+  branch was cut from an `origin/main` whose max gate was 260, so `261` looked free and the gate was
+  built, registered and green there. `origin/main` had meanwhile landed **261 and 262** (the
+  precompact-handoff-convergence pass), so the "next free slot" was already taken — the plan's
+  independently-censused 261 and this pass's own re-census both read the *same stale tree* and
+  therefore agreed with each other while both being wrong. **Two independent confirmations of a
+  number are worth nothing if both read the same stale base.** Caught only because a
+  `git diff origin/main..HEAD` showed the branch *deleting* `test-gate261-handoff-escalation.sh` —
+  a file it had never touched. Fixed by merging `origin/main` first and re-censusing the **merged**
+  tree; the version bump moved 0.315.1 → **0.316.1** for the same reason. Re-verified after the
+  merge: gates 261, 262 (origin/main's) and 263 (this pass's) each exit 0.
 
 ### ⛔ Deliberately NOT done this pass, recorded rather than silently dropped
 
@@ -4042,7 +4282,7 @@ as unbudgeted against every future FORGE run's marginal cost.
 retroactively reconcile runs that already split — `agent-routing-matrix`'s worktree-only artifacts
 are still exposed. That is the retention-policy follow-up above, and it is open.
 
-**Honest scope of the gate.** Gate 261 proves the three helpers' own contracts against fixtures. It
+**Honest scope of the gate.** Gate 263 proves the three helpers' own contracts against fixtures. It
 does **not** prove that a live `/forge` run actually calls `forge-receipt.py append` per gate — that
 is prose in `commands/forge.md` Step 4, behavioral like `design_checkins`, with no hook enforcing it.
 The mechanism that *would* close it is `verify` failing at Step 5 when a required gate's receipt is
