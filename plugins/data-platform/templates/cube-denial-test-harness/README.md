@@ -35,7 +35,13 @@ tests/cross-tenant-denial.test.ts → vitest: positive control (tenant A sees it
                               measures query above, including a service-identity-token test
                               (no tenant_id claim) mirroring the exact failure mode named in
                               best-practices/export-runs-under-the-viewer-scope-never-a-
-                              service-identity.md
+                              service-identity.md + (P2-17, added 2026-09-03) a request-tagging
+                              block asserting Cube's REST API accepts a client-set X-Request-Id
+                              header and the tagged query stays tenant-scoped — it does NOT
+                              assert the tag reaches Cube's Query History export, which needs
+                              Cube Cloud or a self-hosted monitoring integration this compose
+                              fixture doesn't stand up (named limit, not a silent skip; see
+                              knowledge/dashboard-query-cost-instrumentation.md)
 ```
 
 ## Running it

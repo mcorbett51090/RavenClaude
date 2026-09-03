@@ -22,11 +22,11 @@ export interface FreshnessBadgeProps {
  * contract" section).
  */
 export function FreshnessBadge({ measure, slaMinutes }: FreshnessBadgeProps) {
-  const cubeApi = getCubeClient();
   const { locale, timezone } = useLocale();
+  // Tagged (FORGE dashboard-top1pct P2-17) — see KpiCard.tsx's identical comment.
   const { resultSet, isLoading, error } = useCubeQuery(
     { measures: [measure], timezone },
-    { cubeApi },
+    { cubeApi: getCubeClient(`freshness-badge.${measure}`) },
   );
 
   if (error) {

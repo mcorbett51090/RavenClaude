@@ -10035,6 +10035,35 @@ rc=0; grep -q "FreshnessBadge" "$DP_FRESH_BAD" 2>/dev/null || rc=1
 gate "freshness structural: missing FreshnessBadge mount caught" must_fail "$rc"
 
 echo
+echo "── Gate 272: data-platform per-widget query-tagging structural checks (no browser needed) ──"
+# FORGE P2-17 (2026-09-03): every getCubeClient( call in a widget component
+# must carry a tag argument, not a bare getCubeClient() — an untagged widget
+# collapses into Cube's Query History as an unattributable line, defeating
+# the whole point of knowledge/dashboard-query-cost-instrumentation.md's
+# scheme. lib/cube-client.ts's own DashboardShell/DashboardIsland default
+# (a CubeProvider fallback, never used by a widget directly) is intentionally
+# untagged and NOT covered by this gate.
+for starter in cube-nextjs-dashboard-starter cube-astro-dashboard-starter; do
+  base="plugins/data-platform/templates/$starter"
+  for widget in KpiCard RevenueChart FreshnessBadge; do
+    f="$base/components/$widget.tsx"
+    [[ -f "$f" ]] || f="$base/src/components/$widget.tsx"
+    rc=0
+    # A bare `getCubeClient()` call (no argument) inside a widget is the
+    # regression this gate exists to catch; a tagged call is
+    # `getCubeClient(`<something>`)` — the backtick right after the paren.
+    grep -qE 'getCubeClient\(\)' "$f" 2>/dev/null && rc=1
+    gate "query-tag structural: $widget uses a tagged getCubeClient() call ($starter)" must_pass "$rc"
+  done
+done
+# Teeth: a widget fixture calling the bare, untagged form must be caught.
+DP_TAG_BAD="$TMP/dp-tag-bad-widget.tsx"
+printf 'const cubeApi = getCubeClient();\n' > "$DP_TAG_BAD"
+rc=0
+grep -qE 'getCubeClient\(\)' "$DP_TAG_BAD" 2>/dev/null && rc=1
+gate "query-tag structural: bare untagged getCubeClient() call caught" must_fail "$rc"
+
+echo
 echo "═══════════════════════════════════════════════════════════════════════════"
 printf '  %d pass, %d fail, %d skipped\n' "$PASS" "$FAIL" "$SKIP"
 if [[ "$FAIL" -gt 0 ]]; then

@@ -52,7 +52,6 @@ export function RevenueChart({
   granularity = "day",
   dateRange = "last 90 days",
 }: RevenueChartProps) {
-  const cubeApi = getCubeClient();
   const { locale, timezone } = useLocale();
   const { resultSet, isLoading, error } = useCubeQuery(
     {
@@ -61,7 +60,9 @@ export function RevenueChart({
       order: { [timeDimension]: "asc" },
       timezone,
     },
-    { cubeApi },
+    // Tagged per widget instance (FORGE dashboard-top1pct P2-17) — see
+    // KpiCard.tsx's identical comment for why this isn't a shared client.
+    { cubeApi: getCubeClient(`revenue-chart.${measure}`) },
   );
   // Locale-aware axis tick formatting (P2-15).
   const formatTick = (x: string) => {

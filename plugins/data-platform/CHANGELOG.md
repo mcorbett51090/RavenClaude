@@ -2,6 +2,37 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.31.0] — 2026-09-03
+
+### Added
+
+- **P2-17** — cost visibility for the dashboard layer, client-facing distinct from the plugin's
+  existing consultant-facing warehouse-cost knowledge (3 Snowflake files, a FinOps decision tree).
+  - New `knowledge/dashboard-query-cost-instrumentation.md`: a per-widget `X-Request-Id` tagging
+    scheme for attributing warehouse spend to a page and widget — verified this session against
+    Cube's own REST API docs (the `x-request-id` tracing header) and, critically, against
+    `@cubejs-client/core`'s own shipped TypeScript definitions read directly from the installed
+    package (`CubeApiOptions.headers` is construction-time-only; `useCubeQuery`'s options type is
+    narrower than `LoadMethodOptions` and doesn't expose `baseRequestId`), not assumed from
+    training-data recall of the library's surface.
+  - Both starters' `lib/cube-client.ts` refactored from a single cached client to one `CubeApi`
+    instance per distinct request tag, all sharing the same token-fetch closure (no extra
+    token-fetch traffic — just an extra near-free object per widget). `KpiCard.tsx`,
+    `RevenueChart.tsx`, and `FreshnessBadge.tsx` in both starters now pass a widget-specific tag
+    (e.g. `kpi-card.orders.total_revenue.current` vs. `…comparison` — deliberately two distinct
+    tags per KpiCard, since it costs two queries, not one).
+  - `templates/cube-denial-test-harness/` extended with a request-tagging test: asserts Cube's
+    REST API accepts a client-set `X-Request-Id` header and the tagged query stays tenant-scoped.
+    Honest limit, named not silently skipped: does not assert the tag reaches Cube's Query History
+    export, which needs Cube Cloud or a self-hosted monitoring integration this docker-compose
+    fixture doesn't stand up.
+  - New `best-practices/dashboard-surface-usage-not-just-outcomes.md` — the client-facing half:
+    a `usage` cube joined against `plan_tier_limits`, rendered as a progress-bar KPI, never a
+    hard-coded number. New `audit-gates.sh` Gate 272 (structural, no browser needed): every widget's
+    `getCubeClient()` call must carry a tag, per starter, with a must-fail teeth fixture.
+  - Both starters' `tsc --noEmit --skipLibCheck` / `astro check`, `npm run build` / `astro build`,
+    and `vitest run` re-verified clean after the client-wrapper refactor.
+
 ## [0.30.0] — 2026-09-03
 
 ### Added

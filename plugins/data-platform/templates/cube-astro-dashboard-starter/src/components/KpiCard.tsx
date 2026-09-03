@@ -46,7 +46,11 @@ export function KpiCard({
   comparisonLabel = "vs prior 30 days",
   formatValue,
 }: KpiCardProps) {
-  const cubeApi = getCubeClient();
+  // Tagged per query, not per component (FORGE dashboard-top1pct P2-17,
+  // 2026-09-03) — see knowledge/dashboard-query-cost-instrumentation.md.
+  // "current" and "comparison" are two DIFFERENT queries a viewer's session
+  // issues for the same KPI tile; a shared tag would collapse them into one
+  // line in Cube's Query History, hiding that a KpiCard costs two queries.
   const { locale, timezone } = useLocale();
   const format = formatValue ?? formatForLocale(locale);
   const current = useCubeQuery(
@@ -55,7 +59,7 @@ export function KpiCard({
       timeDimensions: [{ dimension: timeDimension, dateRange }],
       timezone,
     },
-    { cubeApi },
+    { cubeApi: getCubeClient(`kpi-card.${measure}.current`) },
   );
   const comparison = useCubeQuery(
     {
@@ -63,7 +67,7 @@ export function KpiCard({
       timeDimensions: [{ dimension: timeDimension, dateRange: comparisonDateRange }],
       timezone,
     },
-    { cubeApi },
+    { cubeApi: getCubeClient(`kpi-card.${measure}.comparison`) },
   );
 
   const isLoading = current.isLoading || comparison.isLoading;

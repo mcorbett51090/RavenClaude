@@ -228,4 +228,32 @@ describe("cross-tenant denial (Cube access_policy layer)", () => {
       }
     });
   });
+
+  // FORGE dashboard-top1pct P2-17 (2026-09-03) — knowledge/dashboard-query-
+  // cost-instrumentation.md's per-widget X-Request-Id tagging scheme. This
+  // asserts Cube's REST API ACCEPTS the header and the tagged query still
+  // returns correct, tenant-scoped data — it does NOT assert the tag
+  // actually lands in Cube's Query History export, which needs Cube Cloud
+  // or a self-hosted monitoring integration this docker-compose fixture
+  // doesn't stand up. That's a named, honest limit, not silently skipped.
+  describe("per-widget request tagging (P2-17)", () => {
+    it("a tagged query (X-Request-Id set) succeeds and stays tenant-scoped", async () => {
+      const token = mintTenantToken(TENANT_A);
+      const query = { measures: ["orders.total_revenue"] };
+      const res = await fetch(
+        `${CUBE_API_URL}/load?query=${encodeURIComponent(JSON.stringify(query))}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "X-Request-Id": "kpi-card.orders.total_revenue.current",
+          },
+        },
+      );
+      expect(res.ok, "Cube must not reject a request carrying a client-set X-Request-Id").toBe(
+        true,
+      );
+      const body = (await res.json()) as { data: Array<Record<string, string>> };
+      expect(body.data.length).toBeGreaterThan(0);
+    });
+  });
 });

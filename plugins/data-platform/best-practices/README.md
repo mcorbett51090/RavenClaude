@@ -6,7 +6,7 @@ Named, citable rules for the `data-platform` plugin's four-layer dashboard engag
 
 ## Index
 
-_36 rules. Each file is one named, citable rule; read and apply it whole._
+_37 rules. Each file is one named, citable rule; read and apply it whole._
 
 | Doc | Status | Use when |
 |---|---|---|
@@ -46,6 +46,7 @@ _36 rules. Each file is one named, citable rule; read and apply it whole._
 | [`edtech-lms-connector-gap-flag.md`](./edtech-lms-connector-gap-flag.md) | Pattern — strong default whenever EdTech LMS signals appear in scope; deviate only after verifying a managed connector now exists. | Raise the EdTech LMS connector-gap flag at engagement start when Canvas/Moodle/Schoology/D2L is a source; no first-class managed connector exists. |
 | [`semantic-layer-no-raw-sql-to-viewer.md`](./semantic-layer-no-raw-sql-to-viewer.md) | Absolute rule | No viewer-facing read path bypasses the semantic layer with raw SQL; all dashboard queries route through a named Cube cube or equivalent. |
 | [`escape-hatch-managed-handoff-plan.md`](./escape-hatch-managed-handoff-plan.md) | Pattern — strong default when client will operate the stack post-engagement; deviate only with client sign-off on the self-hosted ops burden. | Recommend a managed SaaS handoff path when the client lacks a data/DevOps engineer; self-hosted is cheapest only while the consultant operates it. |
+| [`dashboard-surface-usage-not-just-outcomes.md`](./dashboard-surface-usage-not-just-outcomes.md) | Pattern — strong default for a productized (Case C) engagement; optional for Case B where usage-based billing isn't in play. | A viewer inside a plan-tier limit should see their own usage against that limit — a `usage` cube joined against `plan_tier_limits`, never a hard-coded number. |
 
 ---
 
