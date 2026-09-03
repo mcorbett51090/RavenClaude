@@ -2426,6 +2426,23 @@ d_oop_mut=$(thing_decision split-oop "$SHELL_TRUE")
 cp -p "$TMP/orch14-tiebreaker.bak" "$ORCH14"   # restore the real orchestrator immediately
 rc=0; { [[ "$d_oop_mut" != "deny" ]] && [[ "$d_oop_mut" != "none" ]]; } || rc=1
 gate "thing teeth: pre-fix else->allow does NOT fail closed (allow/ask, not deny)" must_pass "$rc"
+# ⛔ The restore above is unconditional bash with no verification — if that cp
+# ever silently fails, this gate's own assertion still reports PASS (it only
+# checks $d_oop_mut, captured BEFORE the restore), and the live orchestrator
+# is left mutated with no signal at the gate that caused it. Observed twice
+# this session (2026-09-03): a full audit-gates.sh run left thing-orchestrator.sh
+# containing the MUTANT text uncommitted, which surfaced hundreds of gates
+# later as an unrelated-looking real-corpus digest-drift failure in gates
+# 237/239 — the exact silent-green shape this suite exists to catch. Verify
+# the restore actually landed and hard-fail loudly, right here, if it did not.
+rc=0; cmp -s "$TMP/orch14-tiebreaker.bak" "$ORCH14" || rc=1
+if [ "$rc" != 0 ]; then
+  echo "  ⛔ RESTORE VERIFICATION FIRED: $ORCH14 didn't match its pre-mutation" >&2
+  echo "     backup right after the restore cp. Restoring it again now and" >&2
+  echo "     failing this gate loudly instead of letting it corrupt later gates." >&2
+  cp -p "$TMP/orch14-tiebreaker.bak" "$ORCH14"
+fi
+gate "thing teeth: mutated orchestrator was actually restored, not left corrupted" must_pass "$rc"
 # (d) high-stakes category timeout fails CLOSED (deny, not ask)
 d=$(thing_decision timeout "git push origin main")
 rc=0; [[ "$d" == "deny" ]] || rc=1
