@@ -9088,7 +9088,7 @@ rc=0
 rc_mustfail python3 scripts/check-inception-coverage.py >/dev/null 2>&1 || rc=$?
 gate "inception gate bites on an uncovered artifact and on a planted paths: filter" must_pass "$rc"
 rc=0
-python3 scripts/check-ratchet-freshness.py --check || rc=$?
+python3 scripts/check-ratchet-freshness.py --check >/dev/null 2>&1 || rc=$?
 gate "every ratchet value is bound to this PR actual merge base" must_pass "$rc"
 rc=0
 rc_mustfail python3 scripts/check-ratchet-freshness.py >/dev/null 2>&1 || rc=$?
@@ -9738,7 +9738,7 @@ fi
 rc=0; bash plugins/ravenclaude-core/scripts/forge-publish-session-plan.sh --self-test >/dev/null 2>&1 || rc=$?
 gate "forge-publish-session-plan.sh --self-test (publish, exit-2 refusals, both honest skip paths)" must_pass "$rc"
 
-rc=0; bash plugins/ravenclaude-core/scripts/forge-worktree.sh --self-test || rc=$?
+rc=0; bash plugins/ravenclaude-core/scripts/forge-worktree.sh --self-test >/dev/null 2>&1 || rc=$?
 gate "forge-worktree.sh --self-test (11 fixtures: provision/reuse/nesting/opt-out/stale-base)" must_pass "$rc"
 
 echo "── analog-closeness-scorecard (Q2 leftover, docs/follow-ups/2026-08-14-analog-repos-leftovers.md) ──"
