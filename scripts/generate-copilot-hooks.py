@@ -124,6 +124,10 @@ _SKIP = {
         "an AskUserQuestion payload — wiring it would be a liability on exactly the "
         "versions where the matcher cannot protect it."
     ),
+    "caveman-route-hook.sh": (
+        "routes a Claude-Code-only third-party plugin; the target mode store does "
+        "not exist on this host."
+    ),
 }
 
 

@@ -145,6 +145,10 @@ _SKIP = {
         "carrying a file path is unverified here — the same gap that keeps "
         "enforce-layout.sh skipped above."
     ),
+    "caveman-route-hook.sh": (
+        "routes a Claude-Code-only third-party plugin; the target mode store does "
+        "not exist on this host."
+    ),
 }
 
 
