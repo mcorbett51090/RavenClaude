@@ -69,6 +69,11 @@
         "repo-review inventory entry (repo-review-corroboration-bucket-diff, /repo-review Phase 1 build, 2026-09-02)",
         10500000,
         "The /repo-review build added one new inventory concept (repo-review-corroboration-bucket-diff -- the live cross-model proof that findings_merge.py's near-dup bucket-diff bound silently missed same-line duplicate findings) covering the skill's SKILL.md, command, dimensions reference, all five scripts, and the Workflow script -- nine paths in one mechanism entry. Measured at 10,486,820 bytes on dashboard.html (island payload 31,460 <= 31,500, unaffected -- same no-diagrams-for-inventory-entries shape as every prior wave) and 6,706 island payload elements on index.html (bytes 9,288,904 <= 9,300,000, unaffected). Re-measured on the merge base (origin/main @ 9ba8c08c58b6), not a stale ancestor; appended, never edited."
+      ],
+      [
+        "caveman-auto-routing-packaging inventory entry (caveman-routing-decision-tree PR #1095 CI fix, 2026-09-03)",
+        10520000,
+        "PR #1095's CI-green pass added one new inventory concept (caveman-auto-routing-packaging -- the SHADOW-only enforcement plus the scripts/-not-hooks/ packaging exception for the four new caveman auto-routing artifacts) covering scripts/caveman-route.py, scripts/caveman-apply-mode.sh, scripts/caveman-route-hook.sh, and scripts/caveman-route-engine.py -- the artifacts check-inception-coverage.py flagged as uncovered. Also carries substantive restamps on two pre-existing entries (hook-emitter-collision, must-fail-conventions-diverge) whose covered artifacts (hooks.json, audit-gates.sh) genuinely changed after merging origin/main. Measured at 10,502,032 bytes on dashboard.html (island payload 31,493 <= 31,500, unaffected -- same no-diagrams-for-inventory-entries shape as every prior wave). Re-measured on rebased HEAD after merging origin/main; appended, never edited."
       ]
     ],
     "index.html": [
@@ -80,5 +85,5 @@
       ]
     ]
   },
-  "measured_against": "65c8827a8af0d5900305e9c715d5a0cee19d11e6"
+  "measured_against": "cd32ce34ba1e3fff4a514df538d83fb54b6b24fc"
 }

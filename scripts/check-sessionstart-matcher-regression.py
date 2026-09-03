@@ -58,9 +58,23 @@ _SOURCE_HOOKS = frozenset(
         "worktree-guard.sh",  # matched by basename; "register" arg stripped below
         "thing-denial-kb-recall.sh",
         "dashboard-autostart.sh",
+        "caveman-route-hook.sh",
     }
 )
 _COMPACT_HOOK = "compact-anchor.sh"
+
+# Hooks that are canonically part of the SessionStart source group (check A
+# asserts hooks.json's real set) but are deliberately, EXPLICITLY skipped by
+# generate-gemini-hooks.py's own `_SKIP` map -- a documented host-capability
+# gap (e.g. a Claude-Code-only mode store), not a silent drop. Check C's
+# ledger must not demand these be wired on that host, or a correct, declared
+# skip would look like the exact regression this gate exists to catch.
+_GEMINI_HOST_EXEMPT = frozenset(
+    {
+        "caveman-route-hook.sh",  # routes a Claude-Code-only plugin; see
+        # generate-gemini-hooks.py's _SKIP entry for the same hook.
+    }
+)
 
 # The declared per-host WIRED-SET ledger. `required` = must be wired
 # (regardless of matcher precision -- that's check A/generator-specific);
@@ -69,14 +83,19 @@ _COMPACT_HOOK = "compact-anchor.sh"
 # below since it doesn't need a live run to prove -- see check C's Copilot
 # branch).
 _WIRED_SET_LEDGER = {
-    "gemini": _SOURCE_HOOKS | {_COMPACT_HOOK},
+    "gemini": (_SOURCE_HOOKS - _GEMINI_HOST_EXEMPT) | {_COMPACT_HOOK},
 }
 
 
 def _basename(command: str) -> str:
     tail = command.rstrip().split()[-1] if command.strip() else command
     name = tail.rsplit("/", 1)[-1]
-    return name
+    # Strip surrounding quote characters: `cmd.split()` only splits on
+    # whitespace, not shell quoting, so a quoted path like
+    # `"${CLAUDE_PLUGIN_ROOT}/scripts/foo.sh"` still carries its literal `"`
+    # through the split and the rsplit above -- leaving a stray trailing
+    # quote on the extracted basename.
+    return name.strip("\"'")
 
 
 def _session_start_groups(hooks_json_path: Path) -> dict:

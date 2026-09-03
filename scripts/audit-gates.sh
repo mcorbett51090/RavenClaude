@@ -808,6 +808,30 @@ PY
       bash plugins/ravenclaude-core/scripts/forge-worktree.sh --self-test || rc=$?
       exit $rc
       ;;
+    264)
+      echo "── Gate 264: caveman auto-routing — P1-P5 self-tests + P6 CI registration (per-gate run) ──"
+      bash plugins/ravenclaude-core/hooks/tests/test-gate264-caveman-routing.sh || exit $?
+      teeth_fail=0
+      for half in a b; do
+        echo "── Gate 264 teeth ($half): the mutant MUST redden ──"
+        if bash plugins/ravenclaude-core/hooks/tests/test-gate264-caveman-routing.sh "--must-fail-$half"; then
+          echo "TEETH FAILED ($half): the mutant did not redden — that half is toothless" >&2
+          teeth_fail=1
+        else
+          echo "teeth ok ($half)"
+        fi
+      done
+      exit $teeth_fail
+      ;;
+    265)
+      echo "── Gate 265: caveman write-contract, dev-only (per-gate run) ──────────────"
+      echo "⛔ NOT a required/blocking gate — depends on a third-party plugin (caveman)"
+      echo "   being installed on THIS host, which CI cannot guarantee. LOUD-skips when"
+      echo "   absent (THIS IS NOT A PASS). See P6 of the caveman-routing-decision-tree"
+      echo "   plan for the full rationale. Not part of the main sequence or Supported:."
+      bash plugins/ravenclaude-core/hooks/tests/test-caveman-write-contract-dev-only.sh
+      exit $?
+      ;;
     243)
       echo "── Gate 243: scheduled sweep contract + operator health card ──"
       bash plugins/ravenclaude-core/hooks/tests/test-gate243-sweep-and-health-card.sh
@@ -1612,7 +1636,7 @@ PY
       ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254, 255, 256, 257, 258, 259, 260, 261, 262, 263. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254, 255, 256, 257, 258, 259, 260, 261, 262, 263, 264, 265. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -9780,6 +9804,46 @@ gate "forge-publish-session-plan.sh --self-test (publish, exit-2 refusals, both 
 
 rc=0; bash plugins/ravenclaude-core/scripts/forge-worktree.sh --self-test >/dev/null 2>&1 || rc=$?
 gate "forge-worktree.sh --self-test (11 fixtures: provision/reuse/nesting/opt-out/stale-base)" must_pass "$rc"
+
+echo
+echo "── Gate 264: caveman auto-routing — P1-P5 self-tests + P6 CI registration ─────"
+# caveman-routing-decision-tree P6. Wires the three components' own --self-test
+# invocations (P1 caveman-route.py 11/11, P2 caveman-apply-mode.sh 8/8, P3-P5
+# caveman-route-hook.sh 21/21 — the short-circuit floor, shadow invariant,
+# no-egress, source-branching and readback-mismatch must-fail halves ALL
+# already live inside those three self-tests; this gate does not re-derive
+# any of that fixture logic, only invokes it and asserts a computed N/N pass
+# line, never a hardcoded literal — the Gate 260 lesson) plus ONE genuinely
+# new check this gate adds: the caveman-route-hook.sh _SKIP registration is
+# still present in all three host projectors (copilot/cursor/gemini) and the
+# copilot generator's own stale-map check (`stale = set(_SKIP) - canonical`)
+# stays clean. Read-back verification (P2 item 7 of the plan) is exercised by
+# construction via the same caveman-apply-mode.sh --self-test invocation —
+# confirmed this build: its own output names the readback-mismatch fixture
+# explicitly, with a same-shaped control proving the emit is conditional.
+# ⛔ C1 CONFIRMED, not assumed: `plugins/*/hooks/*.sh` (the CI "Verify hooks
+# are executable" glob AND the local testing-instructions glob in AGENTS.md)
+# is non-recursive bash glob expansion — verified this build via a direct
+# `for hook in plugins/*/hooks/*.sh` expansion returning 0 matches under
+# `hooks/tests/`, against a corpus of 69 existing hooks/tests/*.sh files with
+# MIXED executable bits, all invoked via `bash <path>` (never `./<path>`) —
+# so the R9 chmod fallback (scripts/check-caveman-routing.sh) was NOT needed.
+# ⛔ Registered in dispatcher + main sequence + Supported:. Grep by literal name.
+rc=0; bash plugins/ravenclaude-core/hooks/tests/test-gate264-caveman-routing.sh >/dev/null 2>&1 || rc=$?
+gate "caveman auto-routing: route.py 11/11 + apply-mode.sh 8/8 + route-hook.sh 21/21 + projector _SKIP/stale-check" must_pass "$rc"
+rc=0; bash plugins/ravenclaude-core/hooks/tests/test-gate264-caveman-routing.sh --must-fail-a >/dev/null 2>&1 || rc=$?
+gate "caveman auto-routing teeth (a): a regressed component self-test reddens this gate's harness" must_fail "$rc"
+rc=0; bash plugins/ravenclaude-core/hooks/tests/test-gate264-caveman-routing.sh --must-fail-b >/dev/null 2>&1 || rc=$?
+gate "caveman auto-routing teeth (b): stripping a projector's _SKIP entry reddens check 4" must_fail "$rc"
+
+echo "── Gate 265: caveman write-contract, dev-only — NOT in the required set ──────"
+# ⛔ NOT invoked from the main sequence, deliberately. It depends on a
+# third-party plugin (caveman) being installed on THIS host, which CI cannot
+# guarantee, and it round-trips a REAL write against the real installed
+# caveman using a throwaway session id (never a real one) — the plan's own
+# P6 spec names it "excluded from the required/blocking CI set". Reachable
+# only via `--check 265`; LOUD-skips ("THIS IS NOT A PASS") when caveman is
+# absent, matching Gate 10's actionlint precedent. A skip is not a pass.
 
 echo "── analog-closeness-scorecard (Q2 leftover, docs/follow-ups/2026-08-14-analog-repos-leftovers.md) ──"
 # Recomputes the 2026-08-14 analog survey's own M/H/G/O/E/I/T/V weighted-closeness

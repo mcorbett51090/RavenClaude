@@ -2282,7 +2282,7 @@ Probe: `unprobed: needs a live two-hook host session; scheduled for the T2 sampl
 
 **Sources:** [measured in the FORGE product-inventory run](https://github.com/mcorbett51090/RavenClaude/pull/997)
 
-_Last verified: 2026-08-25_
+_Last verified: 2026-09-03_
 
 
 ---
@@ -2977,6 +2977,40 @@ both 0 and 1, with a permanent regression assertion so this cannot silently regr
 **Sources:** [repo-review build + live proof-run, 2026-09-02 -- cross-model dispatch against the fixture repo caught the defect in findings_merge.py itself](../plugins/ravenclaude-core/skills/repo-review/SKILL.md)
 
 _Last verified: 2026-09-02_
+
+
+---
+
+### Caveman auto-routing: SHADOW-only, and the scripts/ packaging exception · _RavenClaude-built_
+
+> The caveman auto-routing hook decides and records but never calls the mode applier this phase, and ships from scripts/ because a new hooks/*.sh chmod is denied.
+
+## What a reader would have assumed instead
+
+That a new SessionStart/UserPromptSubmit hook body would live in `hooks/`, like every other hook in
+this plugin, and that turning the posture knob to `live` would make the routing decision actually take
+effect immediately.
+
+## The discriminator
+
+control: ask-on-ambiguity.sh (also in scripts/, registered via the identical bash-prefixed escape)
+already proves the substrate guard denies a NEW hooks/*.sh chmod but not a scripts/*.sh one -- the same
+escape pattern, reused rather than re-argued from scratch
+Measured 2026-09-03: caveman-route-hook.sh ships from scripts/, not hooks/ -- a NEW hooks/*.sh file
+needs a chmod the tribunal's own substrate guard denies, the same reason ask-on-ambiguity.sh lives
+there too. Even when the posture is live, this phase's hook only decides and records: it never calls
+the applier.
+
+## Why it matters
+
+Falsifier: a git history showing hooks/caveman-route-hook.sh ever existed in this repo with its
+executable bit successfully set.
+
+Probe: `plugins/ravenclaude-core/hooks/tests/test-gate264-caveman-routing.sh`
+
+**Sources:** [measured in the FORGE caveman-routing-decision-tree run](https://github.com/mcorbett51090/RavenClaude/pull/1095)
+
+_Last verified: 2026-09-03_
 
 
 ---

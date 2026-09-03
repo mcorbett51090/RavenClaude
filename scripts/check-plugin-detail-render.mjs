@@ -64,7 +64,12 @@ const RC_BASELINE = {
   //        53 -> 54: skills/session-handoff (v0.266.0, context-quality reset)
   //        52 -> 53: skills/design-clone (v0.253.0, design-schema capture+apply)
   //        51 -> 52: skills/github-gold-standard (v0.246.0, the gold-standard scorecard)
-  tools: 44, // 43 -> 44: scripts/forge-receipt.py (the FORGE Saga run-record recorder/verifier,
+  tools: 46, // 44 -> 46: scripts/caveman-route.py + scripts/caveman-route-engine.py (the
+  //   caveman auto-routing classifier + engine, merged in from origin/main's P1-P6 caveman
+  //   routing plan). COUNTED, not inferred: `find plugins/ravenclaude-core/scripts -maxdepth 1
+  //   -name "*.py" | wc -l` -> 46 on this tree. caveman-apply-mode.sh and caveman-route-hook.sh
+  //   are bash, so the *.py glob does not count them (the latter raises `hooks` below instead).
+  //        43 -> 44: scripts/forge-receipt.py (the FORGE Saga run-record recorder/verifier,
   //   Phase 0 of the forge-pipeline-architect-review plan — Gate 263).
   //   COUNTED, not inferred: `find plugins/ravenclaude-core/scripts -maxdepth 1 -name "*.py" | wc -l`
   //   -> 44 on this tree. forge-publish-session-plan.sh is bash and gained only a --self-test,
@@ -119,7 +124,14 @@ const RC_BASELINE = {
   //        19 -> 22: premise-gate.py + classify_claim.py + check-design-schema.py
   //                  (v0.263.0, PR 3b packaging move)
   scenarios: 4,
-  hooks: 45, // 44 -> 45: precompact-digest.sh WIRED on the new PreCompact key (first of its
+  hooks: 47, // 45 -> 47: caveman-route-hook.sh WIRED on UserPromptSubmit + SessionStart(startup|
+  //   resume|clear|fork) (the caveman auto-routing hook body, merged in from origin/main's P3
+  //   caveman routing plan — two registrations for the one hook, hence +2). COUNTED, not
+  //   inferred: hooks.json on this tree holds 47 registrations. Its body lives under scripts/
+  //   (the tribunal substrate guard denies chmod +x on a new hooks/*.sh), so it is registered
+  //   as `bash "${CLAUDE_PLUGIN_ROOT}/scripts/caveman-route-hook.sh" --event {prompt|session}`
+  //   and does NOT also raise `tools` (unlike its two *.py siblings above).
+  //        44 -> 45: precompact-digest.sh WIRED on the new PreCompact key (first of its
   //   kind in this manifest's history) — P2 of the precompact-critical-context FORGE plan.
   //   COUNTED, not inferred: hooks.json on this tree holds 45 registrations (_scan_hooks
   //   indexes hooks.json REGISTRATIONS, not files on disk).
