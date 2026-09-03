@@ -163,6 +163,23 @@ decision-review hook). Produce a one-paragraph scoped intent, an explicit out-of
 owner, and a one-line success signal. **Fast triage:** if the idea is plainly large + cloud-suited +
 privacy-clean, offer to hand to Ultraplan *now* before spending tokens. → `scope.md`.
 
+**Risk-based depth floor (every depth, including micro — tiebreak F8).** Scan the scoped intent for a
+security / irreversibility / data-loss signal — auth, secrets, PII, RLS, untrusted input, a new
+external surface, a destructive or hard-to-reverse operation, a production/prod-adjacent action. If
+one is present, raise the *effective* minimum depth one rung (`micro`→`quick`, `quick`→`standard`)
+regardless of the requested `--depth`, and say so in `scope.md` (the tiebreak + the signal that fired).
+Mirrors the
+command-review tribunal's own base-tier + concern-bump pattern
+([`knowledge/concerns-catalog.md`](../../knowledge/concerns-catalog.md) `category_tier_map`) — a plan
+that touches what the tribunal would flag should not get a cheaper review than the tribunal gives the
+command that implements it. This never *lowers* a user-requested depth, only raises the floor.
+
+**Cost transparency before the expensive gates.** Once depth is resolved (requested or floor-raised),
+state the projected agent-call count from the §1 depth-ladder `~calls` column and the resolved `effort`
+tier for G2/G3, **before** dispatching them — one line, not a prompt to confirm. Mirrors `/repo-review`'s
+`--estimate-only` pattern (a pre-flight cost estimate before committing to a whole-repo sweep). This is
+a disclosure, not a new flag or a pause point.
+
 ### G1 — Research + Fact-Verification (TIERED — tiebreak F2)
 Build a claims table of every load-bearing fact the plan rests on. **Tiered enforcement:**
 - **BLOCK** (cannot advance): a claim about anything **outside the repo** — third-party API behavior,
@@ -185,6 +202,14 @@ to `inference`, never lower it) and settle any `inference` a build phase depends
 → `claims-table.md` (columns: claim · **kind** · tier · source/marker · settling-gate). This is the accuracy
 discipline from `docs/accuracy-near-guarantee-design.md` applied to planning: a plan must rest on
 **tested facts, not assumptions**.
+
+**Tool preference for a third-party library/SDK/API claim:** try the Context7 MCP tool
+(`resolve-library-id` → `query-docs`) first — its own server instructions say to prefer it over web
+search for library docs, and it returns version-pinned, authoritative doc excerpts rather than a page
+that may be stale or wrong for the pinned version. Fall back to `WebFetch`/`WebSearch` when Context7
+is unavailable or the claim isn't library-doc-shaped (pricing, a vendor's operational behavior, a
+non-library API). This is a tool-choice preference, not a new tier — the BLOCK/WARN split above is
+unchanged either way.
 
 ### G2 / G3 — Two divergent panels (different models, in parallel)
 `--models` aliases: `haiku`=`fast`, `sonnet`=`balanced`, `opus`=`top`; a raw SKU
@@ -210,9 +235,13 @@ over Ultraplan's same-model critic). Each panel **writes**
 a complete phased plan that must include: per-phase acceptance tests + pre-build gates, a
 **dependency DAG** (what blocks what; what parallelizes; the critical path), **≥2 alternative
 approaches** with one-line trade-offs (the Ultraplan deep-plan structural inheritance — a plan, not a
-task list), and — **required, this is load-bearing** — a `depends_on_claims: [<row ids>]` line on every
-phase, naming the `claims-table.md` rows that phase rests on. A phase resting on nothing says
-`depends_on_claims: []` explicitly; silence is not an answer.
+task list), a `depends_on_claims: [<row ids>]` line on every phase (**required, load-bearing** — see
+below; a phase resting on nothing says `depends_on_claims: []` explicitly, silence is not an answer),
+and a `reversibility: two-way-door | one-way-door` line on every phase (Amazon's Type-1/Type-2
+framing: reversible in a normal turnaround vs. hard/costly/impossible to undo). A `one-way-door` phase
+must also carry an explicit rollback or kill-switch step — if none exists, say so plainly rather than
+omit the field. **Honest scope:** this field is authored discipline only — `premise-gate.py` does not
+yet read or route on it; a future gate wiring it in is a named follow-up, not implied here.
 
 ⛔ **Do not treat this as bookkeeping.** G3b's trigger READS this field, so a plan that omits it makes
 the premise gate structurally unsatisfiable — the gate runs, finds no claim edges, and passes green
@@ -264,6 +293,16 @@ prettier/audit-gates per `AGENTS.md`). **If any phase adds or removes a skill, a
 artifact whose count is encoded in marketplace prose, load
 [`reference/regen-discipline.md`](reference/regen-discipline.md) now** and fold its criteria into that
 phase's DoD — skipping this is what caused the 2026-06-03 three-PR hotfix chain (PRs #244-#247).
+
+**Any phase that lands as a PR with real code changes names `/code-review` in its DoD** — this repo's
+built-in diff-level review tool is the standard pre-merge completion step, the same way audit-gates and
+prettier already are. This does not replace the tribunal or a human review; it is one more line in the
+DoD checklist, not a new gate.
+
+**If a landed plan's real-world outcome falsifies a tiebreak or assumption recorded in
+[`reference/provenance.md`](reference/provenance.md), correct that file in the same PR** — apply this
+repo's own supersession convention (dated correction, not a silent rewrite) reflexively to FORGE's own
+design ledger, the same way `CLAUDE.md`'s own milestones do for the rest of the marketplace.
 
 **Publish the host session plan before any exit.** Grok's `exit_plan_mode` reads
 `~/.grok/sessions/<encoded-cwd>/<session-id>/plan.md` (Grok user-guide *The Plan File*),
