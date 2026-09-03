@@ -1,0 +1,6 @@
+SYNTHETIC FIXTURE — simulates "Copilot CLI bumped 1.0.62 -> 1.0.70" for
+dependency-sweep.py's self-tests. Not a real changelog.
+
+1.0.70 (2026-08-15)
+- SubagentStart event now fires for Copilot CLI sub-agents, matching Claude Code's contract.
+- PostToolUse hook matchers continue to be honored (unchanged since 1.0.62).

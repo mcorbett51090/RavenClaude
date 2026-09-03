@@ -82,13 +82,28 @@ Items called out explicitly as **new** for 2026:
 
 ## Tool-version floors that prevent regression-class failures
 
-| Tool | Minimum version | Why |
-|---|---|---|
-| GitHub Copilot CLI | **≥ 1.0.59** | preToolUse silent-allow fixed |
-| GitHub Copilot CLI | **≥ 1.0.56** | Plugin auto-install global-config leak fixed |
-| GitHub Copilot CLI | **≥ 1.0.48** | Diff reported correctly to ACP clients |
-| Cursor | **≥ 3.3** | `/multitask` + Composer 2.5 file-tree refactor |
-| Claude Code | latest | Plugin marketplace + `reloadSkills` + expanded hook events |
+> **Corrected 2026-09-03 (`dependency-update-sweep` Phase 1 fix-forward).** The three original
+> Copilot rows and the Cursor row were unsourced and, on cross-check against this repo's own
+> already-completed re-derivation, **wrong or fabricated**:
+> [`plugins/ravenclaude-core/skills/external-agent-onboarding/SKILL.md`](../../plugins/ravenclaude-core/skills/external-agent-onboarding/SKILL.md)
+> re-derived the Copilot floor table verbatim from the
+> [copilot-cli changelog](https://github.com/github/copilot-cli/blob/main/changelog.md)
+> `[checked verbatim 2026-07-28]` and found *"preToolUse silent-allow regression fixed (1.0.59)"* and
+> *"diff-not-reported-to-ACP fixed (1.0.48)"* **appear nowhere in it**, the config-leak fix is
+> **1.0.57**, not 1.0.56 (1.0.56 is a different fix), and the Cursor **≥ 3.3** claim carried "no
+> citation of any kind." The rows below are the same source's real, cited floors — this row set is
+> now a mirror of that skill's table, not an independent claim; if they drift, fix both in one PR
+> (this repo's own dated-supersession convention).
+
+| Tool | Minimum version | Why | Source · retrieved |
+|---|---|---|---|
+| GitHub Copilot CLI | **≥ 1.0.52** (safety floor) | *"Hooks (preToolUse, postToolUse, subagentStart, subagentStop) now fire correctly for sub-agent tool…"* — below it a sub-agent's tool calls are not hooked at all | [changelog.md](https://github.com/github/copilot-cli/blob/main/changelog.md) `[docs-verified 2026-07-28, cross-checked 2026-09-03]` |
+| GitHub Copilot CLI | **≥ 1.0.57** (recommended) | *"Plugins auto-installed from repository settings no longer leak into user global config"* | [changelog.md](https://github.com/github/copilot-cli/blob/main/changelog.md) `[docs-verified 2026-07-28, cross-checked 2026-09-03]` |
+| GitHub Copilot CLI | **≥ 1.0.62** (recommended) | *"PostToolUse hook matchers (e.g. Edit-pipe-Write) are now honored instead of silently dropped"* | [changelog.md](https://github.com/github/copilot-cli/blob/main/changelog.md) `[docs-verified 2026-07-28, cross-checked 2026-09-03]` |
+| Claude Code | latest | Plugin marketplace + `reloadSkills` + expanded hook events | `[unverified — training knowledge, no specific version cited]` |
+
+**Deleted:** the original Cursor **≥ 3.3** row — unsourced, no citation of any kind, and already
+deleted from the sibling table above for the same reason. Do not restore it without a source.
 
 ---
 

@@ -809,18 +809,42 @@ PY
       exit $rc
       ;;
     264)
-      echo "── Gate 264: runtime self-test front door — Tier A only (per-gate run) ──"
+      echo "── Gate 264: caveman auto-routing — P1-P5 self-tests + P6 CI registration (per-gate run) ──"
+      bash plugins/ravenclaude-core/hooks/tests/test-gate264-caveman-routing.sh || exit $?
+      teeth_fail=0
+      for half in a b; do
+        echo "── Gate 264 teeth ($half): the mutant MUST redden ──"
+        if bash plugins/ravenclaude-core/hooks/tests/test-gate264-caveman-routing.sh "--must-fail-$half"; then
+          echo "TEETH FAILED ($half): the mutant did not redden — that half is toothless" >&2
+          teeth_fail=1
+        else
+          echo "teeth ok ($half)"
+        fi
+      done
+      exit $teeth_fail
+      ;;
+    265)
+      echo "── Gate 265: caveman write-contract, dev-only (per-gate run) ──────────────"
+      echo "⛔ NOT a required/blocking gate — depends on a third-party plugin (caveman)"
+      echo "   being installed on THIS host, which CI cannot guarantee. LOUD-skips when"
+      echo "   absent (THIS IS NOT A PASS). See P6 of the caveman-routing-decision-tree"
+      echo "   plan for the full rationale. Not part of the main sequence or Supported:."
+      bash plugins/ravenclaude-core/hooks/tests/test-caveman-write-contract-dev-only.sh
+      exit $?
+      ;;
+    266)
+      echo "── Gate 266: runtime self-test front door — Tier A only (per-gate run) ──"
       echo "  ⛔ M10 HONEST LIMIT: Tier A only (adapter I/O + planted marker + context"
       echo "     delivery + the completeness check). Tier D (a real host CLI spawn) is"
       echo "     NEVER run in CI — see hooks/tests/test-tier-d-canary.sh and"
       echo "     'rc hooks selftest --tier d', both owner-run on demand."
-      if [ -n "${SKIP_GATE_264:-}" ]; then
-        echo "  ‼ SKIPPED (SKIP_GATE_264=1) — THIS IS NOT A PASS"
+      if [ -n "${SKIP_GATE_266:-}" ]; then
+        echo "  ‼ SKIPPED (SKIP_GATE_266=1) — THIS IS NOT A PASS"
         if [ -n "${CI:-}" ]; then
           echo "    CI mode: explicit human override — logged to the run artifact for audit."
-          mkdir -p .ravenclaude/runs/gate264-skip-log 2>/dev/null || true
-          printf '{"ts":"%s","gate":264,"skip":true,"mode":"CI","reason":"SKIP_GATE_264=1"}\n' \
-            "$(date -u +%Y-%m-%dT%H:%M:%SZ)" >>.ravenclaude/runs/gate264-skip-log/log.jsonl 2>/dev/null || true
+          mkdir -p .ravenclaude/runs/gate266-skip-log 2>/dev/null || true
+          printf '{"ts":"%s","gate":266,"skip":true,"mode":"CI","reason":"SKIP_GATE_266=1"}\n' \
+            "$(date -u +%Y-%m-%dT%H:%M:%SZ)" >>.ravenclaude/runs/gate266-skip-log/log.jsonl 2>/dev/null || true
         fi
         exit 0
       fi
@@ -1634,7 +1658,7 @@ PY
       ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254, 255, 256, 257, 258, 259, 260, 261, 262, 263, 264. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254, 255, 256, 257, 258, 259, 260, 261, 262, 263, 264, 265, 266. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -2448,6 +2472,23 @@ d_oop_mut=$(thing_decision split-oop "$SHELL_TRUE")
 cp -p "$TMP/orch14-tiebreaker.bak" "$ORCH14"   # restore the real orchestrator immediately
 rc=0; { [[ "$d_oop_mut" != "deny" ]] && [[ "$d_oop_mut" != "none" ]]; } || rc=1
 gate "thing teeth: pre-fix else->allow does NOT fail closed (allow/ask, not deny)" must_pass "$rc"
+# ⛔ The restore above is unconditional bash with no verification — if that cp
+# ever silently fails, this gate's own assertion still reports PASS (it only
+# checks $d_oop_mut, captured BEFORE the restore), and the live orchestrator
+# is left mutated with no signal at the gate that caused it. Observed twice
+# this session (2026-09-03): a full audit-gates.sh run left thing-orchestrator.sh
+# containing the MUTANT text uncommitted, which surfaced hundreds of gates
+# later as an unrelated-looking real-corpus digest-drift failure in gates
+# 237/239 — the exact silent-green shape this suite exists to catch. Verify
+# the restore actually landed and hard-fail loudly, right here, if it did not.
+rc=0; cmp -s "$TMP/orch14-tiebreaker.bak" "$ORCH14" || rc=1
+if [ "$rc" != 0 ]; then
+  echo "  ⛔ RESTORE VERIFICATION FIRED: $ORCH14 didn't match its pre-mutation" >&2
+  echo "     backup right after the restore cp. Restoring it again now and" >&2
+  echo "     failing this gate loudly instead of letting it corrupt later gates." >&2
+  cp -p "$TMP/orch14-tiebreaker.bak" "$ORCH14"
+fi
+gate "thing teeth: mutated orchestrator was actually restored, not left corrupted" must_pass "$rc"
 # (d) high-stakes category timeout fails CLOSED (deny, not ask)
 d=$(thing_decision timeout "git push origin main")
 rc=0; [[ "$d" == "deny" ]] || rc=1
@@ -9787,7 +9828,47 @@ rc=0; bash plugins/ravenclaude-core/scripts/forge-worktree.sh --self-test >/dev/
 gate "forge-worktree.sh --self-test (11 fixtures: provision/reuse/nesting/opt-out/stale-base)" must_pass "$rc"
 
 echo
-echo "── Gate 264: runtime self-test front door — Tier A only ────────────────────"
+echo "── Gate 264: caveman auto-routing — P1-P5 self-tests + P6 CI registration ─────"
+# caveman-routing-decision-tree P6. Wires the three components' own --self-test
+# invocations (P1 caveman-route.py 11/11, P2 caveman-apply-mode.sh 8/8, P3-P5
+# caveman-route-hook.sh 21/21 — the short-circuit floor, shadow invariant,
+# no-egress, source-branching and readback-mismatch must-fail halves ALL
+# already live inside those three self-tests; this gate does not re-derive
+# any of that fixture logic, only invokes it and asserts a computed N/N pass
+# line, never a hardcoded literal — the Gate 260 lesson) plus ONE genuinely
+# new check this gate adds: the caveman-route-hook.sh _SKIP registration is
+# still present in all three host projectors (copilot/cursor/gemini) and the
+# copilot generator's own stale-map check (`stale = set(_SKIP) - canonical`)
+# stays clean. Read-back verification (P2 item 7 of the plan) is exercised by
+# construction via the same caveman-apply-mode.sh --self-test invocation —
+# confirmed this build: its own output names the readback-mismatch fixture
+# explicitly, with a same-shaped control proving the emit is conditional.
+# ⛔ C1 CONFIRMED, not assumed: `plugins/*/hooks/*.sh` (the CI "Verify hooks
+# are executable" glob AND the local testing-instructions glob in AGENTS.md)
+# is non-recursive bash glob expansion — verified this build via a direct
+# `for hook in plugins/*/hooks/*.sh` expansion returning 0 matches under
+# `hooks/tests/`, against a corpus of 69 existing hooks/tests/*.sh files with
+# MIXED executable bits, all invoked via `bash <path>` (never `./<path>`) —
+# so the R9 chmod fallback (scripts/check-caveman-routing.sh) was NOT needed.
+# ⛔ Registered in dispatcher + main sequence + Supported:. Grep by literal name.
+rc=0; bash plugins/ravenclaude-core/hooks/tests/test-gate264-caveman-routing.sh >/dev/null 2>&1 || rc=$?
+gate "caveman auto-routing: route.py 11/11 + apply-mode.sh 8/8 + route-hook.sh 21/21 + projector _SKIP/stale-check" must_pass "$rc"
+rc=0; bash plugins/ravenclaude-core/hooks/tests/test-gate264-caveman-routing.sh --must-fail-a >/dev/null 2>&1 || rc=$?
+gate "caveman auto-routing teeth (a): a regressed component self-test reddens this gate's harness" must_fail "$rc"
+rc=0; bash plugins/ravenclaude-core/hooks/tests/test-gate264-caveman-routing.sh --must-fail-b >/dev/null 2>&1 || rc=$?
+gate "caveman auto-routing teeth (b): stripping a projector's _SKIP entry reddens check 4" must_fail "$rc"
+
+echo "── Gate 265: caveman write-contract, dev-only — NOT in the required set ──────"
+# ⛔ NOT invoked from the main sequence, deliberately. It depends on a
+# third-party plugin (caveman) being installed on THIS host, which CI cannot
+# guarantee, and it round-trips a REAL write against the real installed
+# caveman using a throwaway session id (never a real one) — the plan's own
+# P6 spec names it "excluded from the required/blocking CI set". Reachable
+# only via `--check 265`; LOUD-skips ("THIS IS NOT A PASS") when caveman is
+# absent, matching Gate 10's actionlint precedent. A skip is not a pass.
+
+echo
+echo "── Gate 266: runtime self-test front door — Tier A only ────────────────────"
 # Phase 9 (sessionstart-safeguards-multihost). Registers the runtime self-
 # test's MECHANISM checks: Tier A invocation + delivery (Phase 6, via
 # hooks/tests/test-tier-a-canary.sh), the Phase 1-5 wired-set/matcher-
@@ -9800,43 +9881,44 @@ echo "── Gate 264: runtime self-test front door — Tier A only ────
 # ⛔ M10 HONEST LIMIT, in the same style as Gate 207: Tier D (a REAL host
 # CLI spawn — `claude -p` / `copilot -p`) is NEVER exercised here. CI has
 # no host binaries to spawn, and a gate that LOUD-skips on every runner
-# teaches people to ignore its output — so Gate 264 simply never attempts
+# teaches people to ignore its output — so Gate 266 simply never attempts
 # it. Tier D is owner-run on demand: `rc hooks selftest --tier d`, or
 # hooks/tests/test-tier-d-canary.sh directly (whose own header states it
 # must never be wired into this file's CI-run surface).
 #
-# ⛔ SKIP_GATE_264=1 kill switch (G4b correction #2), matching this file's
+# ⛔ SKIP_GATE_266=1 kill switch (G4b correction #2), matching this file's
 # own `_skip_or_fail` local/CI-mode distinction: local -> loud SKIP, not a
 # PASS; CI -> the skip still applies (an explicit human override, not a
 # tooling absence) but is logged to the run artifact for audit.
 #
 # ⛔ Registered in BOTH the --check dispatcher AND this main sequence AND
 # the Supported: string. After adding a gate, run the full suite and GREP
-# ITS OUTPUT FOR "Gate 264" — a passing suite is not evidence your gate is
+# ITS OUTPUT FOR "Gate 266" — a passing suite is not evidence your gate is
 # in it (this repo's own recorded remedy for the Gate-184 unreachable-gate
-# defect).
-if [ -n "${SKIP_GATE_264:-}" ]; then
-  echo "  ‼ Gate 264 SKIPPED (SKIP_GATE_264=1) — THIS IS NOT A PASS"
+# defect). Renumbered from 264 -> 266 (merge with origin/main's own new
+# Gates 264/265, caveman auto-routing, which claimed 264/265 first).
+if [ -n "${SKIP_GATE_266:-}" ]; then
+  echo "  ‼ Gate 266 SKIPPED (SKIP_GATE_266=1) — THIS IS NOT A PASS"
   SKIP=$((SKIP + 1))
-  SKIPPED_GATES+=("Gate 264 [SKIP_GATE_264=1]")
+  SKIPPED_GATES+=("Gate 266 [SKIP_GATE_266=1]")
   if [ -n "${CI:-}" ]; then
     echo "    CI mode: explicit human override — logging to the run artifact for audit."
-    mkdir -p .ravenclaude/runs/gate264-skip-log 2>/dev/null || true
-    printf '{"ts":"%s","gate":264,"skip":true,"mode":"CI","reason":"SKIP_GATE_264=1"}\n' \
-      "$(date -u +%Y-%m-%dT%H:%M:%SZ)" >>.ravenclaude/runs/gate264-skip-log/log.jsonl 2>/dev/null || true
+    mkdir -p .ravenclaude/runs/gate266-skip-log 2>/dev/null || true
+    printf '{"ts":"%s","gate":266,"skip":true,"mode":"CI","reason":"SKIP_GATE_266=1"}\n' \
+      "$(date -u +%Y-%m-%dT%H:%M:%SZ)" >>.ravenclaude/runs/gate266-skip-log/log.jsonl 2>/dev/null || true
   fi
 else
   if command -v python3 >/dev/null 2>&1; then
     rc=0; python3 scripts/check-sessionstart-matcher-regression.py --self-test >/dev/null 2>&1 || rc=$?
-    gate "Gate 264: Phase 1-5 wired-set/matcher-fidelity/completeness + A9.7 drift_override fixture (check-sessionstart-matcher-regression.py --self-test)" must_pass "$rc"
+    gate "Gate 266: Phase 1-5 wired-set/matcher-fidelity/completeness + A9.7 drift_override fixture (check-sessionstart-matcher-regression.py --self-test)" must_pass "$rc"
 
     rc=0; bash plugins/ravenclaude-core/hooks/tests/test-tier-a-canary.sh --self-test >/dev/null 2>&1 || rc=$?
-    gate "Gate 264: Phase 6 Tier A canary — invocation + delivery (A6.1-A6.5), PreToolUse lane unchanged (A6.4)" must_pass "$rc"
+    gate "Gate 266: Phase 6 Tier A canary — invocation + delivery (A6.1-A6.5), PreToolUse lane unchanged (A6.4)" must_pass "$rc"
 
     rc=0; python3 scripts/check-hooks-selftest.py --self-test >/dev/null 2>&1 || rc=$?
-    gate "Gate 264: Phase 8 on-demand front door — rc hooks selftest (A8.1-A8.7)" must_pass "$rc"
+    gate "Gate 266: Phase 8 on-demand front door — rc hooks selftest (A8.1-A8.7)" must_pass "$rc"
   else
-    _skip_or_fail "Gate 264 (runtime self-test front door)" python3
+    _skip_or_fail "Gate 266 (runtime self-test front door)" python3
   fi
 fi
 

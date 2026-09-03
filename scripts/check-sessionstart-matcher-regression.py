@@ -69,6 +69,7 @@ _SOURCE_HOOKS = frozenset(
         "worktree-guard.sh",  # matched by basename; "register" arg stripped below
         "thing-denial-kb-recall.sh",
         "dashboard-autostart.sh",
+        "caveman-route-hook.sh",
     }
 )
 _COMPACT_HOOK = "compact-anchor.sh"
@@ -80,6 +81,28 @@ _COMPACT_HOOK = "compact-anchor.sh"
 # _SOURCE_HOOKS/_COMPACT_HOOK, which only cover two of the three groups).
 _HANDOFF_HOOK = "handoff-successor-ack.sh"
 _ALL_SESSIONSTART_HOOKS = _SOURCE_HOOKS | {_COMPACT_HOOK, _HANDOFF_HOOK}
+
+# Hooks that are canonically part of the SessionStart source group (check A
+# asserts hooks.json's real set) but are deliberately, EXPLICITLY skipped by
+# generate-gemini-hooks.py's own `_SKIP` map -- a documented host-capability
+# gap (e.g. a Claude-Code-only mode store), not a silent drop. Check C's
+# ledger must not demand these be wired on that host, or a correct, declared
+# skip would look like the exact regression this gate exists to catch.
+_GEMINI_HOST_EXEMPT = frozenset(
+    {
+        "caveman-route-hook.sh",  # routes a Claude-Code-only plugin; see
+        # generate-gemini-hooks.py's _SKIP entry for the same hook.
+    }
+)
+
+# Same exemption, independently declared by generate-copilot-hooks.py's own
+# `_SKIP` map ("routes a Claude-Code-only third-party plugin; the target mode
+# store does not exist on this host" -- identical reasoning to Gemini's).
+_COPILOT_HOST_EXEMPT = frozenset({"caveman-route-hook.sh"})
+
+# Same exemption again, independently declared by generate-cursor-hooks.py's
+# own `_SKIP` map (identical reasoning).
+_CURSOR_HOST_EXEMPT = frozenset({"caveman-route-hook.sh"})
 
 # The declared per-host WIRED-SET ledger. Each entry:
 #   "required"          -- must be wired, regardless of matcher precision
@@ -116,7 +139,11 @@ _WIRED_SET_LEDGER = {
         # generate-gemini-hooks.py ("SessionStart startup handshake (file
         # write). Gemini SessionStart ...") -- excluded from `required`
         # accordingly, matching Phase 1's original hand-typed row exactly.
-        "required": _SOURCE_HOOKS | {_COMPACT_HOOK},
+        # caveman-route-hook.sh is likewise explicitly _SKIP'd by the same
+        # generator (it routes a Claude-Code-only plugin) -- excluded via
+        # _GEMINI_HOST_EXEMPT above, merged from origin/main's independent
+        # fix for the same generator addition.
+        "required": (_SOURCE_HOOKS - _GEMINI_HOST_EXEMPT) | {_COMPACT_HOOK},
         "matcher_fidelity": "none-unverified",
         # Phase 8: declared, never measured. Gemini has no Tier D mechanism
         # (plan.md Sec 1.3 -- "Gemini CLI presence on the host is not
@@ -129,11 +156,13 @@ _WIRED_SET_LEDGER = {
     },
     "copilot-cli": {
         "source": "generator",
-        # generate-copilot-hooks.py's _SKIP has no entry for any of the 9
-        # SessionStart-lane hooks (its two skips are agent-dispatch-
-        # evaluator.sh/SubagentStart and route-decision-review.sh/
-        # AskUserQuestion) -- required is the full canonical set.
-        "required": _ALL_SESSIONSTART_HOOKS,
+        # generate-copilot-hooks.py's _SKIP has two SessionStart-unrelated
+        # skips (agent-dispatch-evaluator.sh/SubagentStart and
+        # route-decision-review.sh/AskUserQuestion) plus caveman-route-hook.sh
+        # (added alongside origin/main's caveman-auto-routing work; same
+        # Claude-Code-only-plugin reasoning as Gemini's) -- excluded from
+        # `required` via _COPILOT_HOST_EXEMPT above.
+        "required": _ALL_SESSIONSTART_HOOKS - _COPILOT_HOST_EXEMPT,
         "matcher_fidelity": "exact",
         # Phase 8 (sessionstart-safeguards-multihost) -- the settled, MEASURED
         # value, deliberately NOT the same as `_rc_canary_declared_tier`'s
@@ -156,9 +185,12 @@ _WIRED_SET_LEDGER = {
     },
     "cursor": {
         "source": "generator",
-        # generate-cursor-hooks.py's _SKIP likewise has no entry for any of
-        # the 9 SessionStart-lane hooks -- required is the full set.
-        "required": _ALL_SESSIONSTART_HOOKS,
+        # generate-cursor-hooks.py's _SKIP likewise has no SessionStart-lane
+        # entry EXCEPT caveman-route-hook.sh (added alongside origin/main's
+        # caveman-auto-routing work; same Claude-Code-only-plugin reasoning
+        # as Gemini's) -- excluded from `required` via _CURSOR_HOST_EXEMPT
+        # above.
+        "required": _ALL_SESSIONSTART_HOOKS - _CURSOR_HOST_EXEMPT,
         "matcher_fidelity": "none-by-platform",
         # Phase 8: declared, never measured (plan.md Sec 1.3 -- no verified
         # non-interactive one-shot invocation, and Cursor fails OPEN on a
@@ -483,7 +515,12 @@ _CURSOR_GEN = _REPO / "scripts" / "generate-cursor-hooks.py"
 def _basename(command: str) -> str:
     tail = command.rstrip().split()[-1] if command.strip() else command
     name = tail.rsplit("/", 1)[-1]
-    return name
+    # Strip surrounding quote characters: `cmd.split()` only splits on
+    # whitespace, not shell quoting, so a quoted path like
+    # `"${CLAUDE_PLUGIN_ROOT}/scripts/foo.sh"` still carries its literal `"`
+    # through the split and the rsplit above -- leaving a stray trailing
+    # quote on the extracted basename.
+    return name.strip("\"'")
 
 
 def _sh_basename(text: str) -> str:
@@ -809,7 +846,7 @@ def check_c_wired_set(findings: list, repo: Path | None = None) -> None:
     for host, entry in _WIRED_SET_LEDGER.items():
         if _valid_drift_override(entry) is not None:
             # Suppressed by a dated, reasoned drift_override (Phase 9 / G5
-            # F5) -- narrower than SKIP_GATE_264: only THIS host's wired-set
+            # F5) -- narrower than SKIP_GATE_266: only THIS host's wired-set
             # assertion is silenced, every other host's stays live.
             continue
         required = entry["required"]

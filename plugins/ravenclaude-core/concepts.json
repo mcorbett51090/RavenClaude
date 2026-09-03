@@ -2833,7 +2833,7 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-08-25",
+      "last_verified": "2026-09-03",
       "refresh_when": null,
       "sources": [
         {
@@ -2851,7 +2851,7 @@
       "covers": [
         "plugins/ravenclaude-core/hooks/hooks.json"
       ],
-      "covers_digest": "sha256:148ad20844e9a7e3bd17c7961b3191891ce64f2e84a0cd736c00266ab8cc63c1",
+      "covers_digest": "sha256:e8d64c4040d6260dd92dd92ece5892be080742282a213438fdd7d68af4c92e72",
       "nuance": "Two `additionalContext` emitters on one event concatenate rather than last-write-wins, but two `updatedToolOutput` emitters replace, so the second silently discards the first.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -2925,7 +2925,7 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-09-02",
+      "last_verified": "2026-09-03",
       "refresh_when": null,
       "sources": [
         {
@@ -2945,7 +2945,7 @@
         "scripts/sync-plugin-versions.py",
         "scripts/generate-copilot-plugin.py"
       ],
-      "covers_digest": "sha256:ae0ae7758b6cf421e10688fbeb165ca3cad1f34f5410352e5255448c7699423c",
+      "covers_digest": "sha256:fb95167be5b6f454b1f67b88beba7369528d2ff41272b465ba519fba8add4b05",
       "nuance": "The cache key is the `version` string, never a content hash, so `sync-plugin-versions.py` can report clean while every installed session keeps running the old `hooks/` code.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -3007,7 +3007,7 @@
         "scripts/inventory-nuance-judge.py",
         "plugins/ravenclaude-core/scripts/forge-receipt.py"
       ],
-      "covers_digest": "sha256:156fe37dee2344bdd24ca4cc51588cd10c7a86d3b5f648c39b879c54cbd91195",
+      "covers_digest": "sha256:b31a5c92032a43e0c72957efa2055dce682149a816b427fcbdd31988e063dd74",
       "nuance": "The teeth bit is the exit a tool own CHECK returns on a planted defect, never the exit `--must-fail` itself returns: `premise-gate.py` denies at `exit 0` while `sync-plugin-versions.py` reddens at `exit 2`, so an auditor that hard-codes one number can never be right for both.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -3738,7 +3738,7 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-09-01",
+      "last_verified": "2026-09-03",
       "refresh_when": null,
       "sources": [
         {
@@ -3759,7 +3759,7 @@
         "plugins/ravenclaude-core/knowledge/agent-routing-matrix.schema.json",
         "plugins/ravenclaude-core/knowledge/agent-routing-matrix.md"
       ],
-      "covers_digest": "sha256:7f2233627795be36ade413f660d231c26ca057b576b2fbb0f2516780985158ea",
+      "covers_digest": "sha256:fad7ee4f8f9f21e697cccf1ab5722e73dc236c8beb5c5a6970383b69f306cc9b",
       "nuance": "Deriving the ban-list from every leaf string in the cited files bans ordinary English words (the grok lane's own 'high'/'low'/'architect'/'scanner') and the source's own retrieval date -- contradicting the artifact's own citation requirement.",
       "nuance_evidence": {
         "measured": "2026-09-01",
@@ -3880,6 +3880,106 @@
         "teeth_exit": 1
       },
       "strength_badge": "Probed"
+    },
+    {
+      "id": "caveman-auto-routing-packaging",
+      "title": "Caveman auto-routing: SHADOW-only, and the scripts/ packaging exception",
+      "category": "Inventory — measured mechanisms",
+      "kind": "ravenclaude-built",
+      "order": 919,
+      "summary": "The caveman auto-routing hook decides and records but never calls the mode applier this phase, and ships from scripts/ because a new hooks/*.sh chmod is denied.",
+      "see_also": [],
+      "widget": null,
+      "try_it": null,
+      "node_links": {},
+      "last_verified": "2026-09-03",
+      "refresh_when": null,
+      "sources": [
+        {
+          "label": "measured in the FORGE caveman-routing-decision-tree run",
+          "url": "https://github.com/mcorbett51090/RavenClaude/pull/1095"
+        }
+      ],
+      "body_md": "## What a reader would have assumed instead\n\nThat a new SessionStart/UserPromptSubmit hook body would live in `hooks/`, like every other hook in\nthis plugin, and that turning the posture knob to `live` would make the routing decision actually take\neffect immediately.\n\n## The discriminator\n\ncontrol: ask-on-ambiguity.sh (also in scripts/, registered via the identical bash-prefixed escape)\nalready proves the substrate guard denies a NEW hooks/*.sh chmod but not a scripts/*.sh one -- the same\nescape pattern, reused rather than re-argued from scratch\nMeasured 2026-09-03: caveman-route-hook.sh ships from scripts/, not hooks/ -- a NEW hooks/*.sh file\nneeds a chmod the tribunal's own substrate guard denies, the same reason ask-on-ambiguity.sh lives\nthere too. Even when the posture is live, this phase's hook only decides and records: it never calls\nthe applier.\n\n## Why it matters\n\nFalsifier: a git history showing hooks/caveman-route-hook.sh ever existed in this repo with its\nexecutable bit successfully set.\n\nProbe: `plugins/ravenclaude-core/hooks/tests/test-gate264-caveman-routing.sh`",
+      "diagram": null,
+      "diagram_mini": null,
+      "steps": [],
+      "svg": null,
+      "svg_mini": null,
+      "entry_class": "inventory",
+      "covers": [
+        "plugins/ravenclaude-core/scripts/caveman-route.py",
+        "plugins/ravenclaude-core/scripts/caveman-apply-mode.sh",
+        "plugins/ravenclaude-core/scripts/caveman-route-hook.sh",
+        "plugins/ravenclaude-core/scripts/caveman-route-engine.py"
+      ],
+      "covers_digest": "sha256:7d29faaf1d3ad717aa39ba0c59d6549977ec26ca3d4d31eafbe1aa467aa7db13",
+      "nuance": "caveman-route-hook.sh ships from scripts/, not hooks/ -- a NEW hooks/*.sh file needs a chmod\nthe tribunal's own substrate guard denies, the same reason ask-on-ambiguity.sh lives there too.\nEven when the posture is live, this phase's hook only decides and records: it never calls the\napplier.",
+      "nuance_evidence": {
+        "measured": "2026-09-03",
+        "control": "ask-on-ambiguity.sh (also in scripts/, registered via the identical bash-prefixed escape) already proves the substrate guard denies a NEW hooks/*.sh chmod but not a scripts/*.sh one -- the same escape pattern, reused rather than re-argued from scratch",
+        "falsifier": "a git history showing hooks/caveman-route-hook.sh ever existed in this repo with its executable bit successfully set",
+        "probe": "plugins/ravenclaude-core/hooks/tests/test-gate264-caveman-routing.sh"
+      },
+      "nuance_source": "plugins/ravenclaude-core/scripts/caveman-route-hook.sh:1-42",
+      "verify": {
+        "tier": "effect",
+        "strength": "executed",
+        "class": "hook-decision",
+        "probe": "plugins/ravenclaude-core/hooks/tests/test-gate264-caveman-routing.sh",
+        "teeth_exit": 1
+      },
+      "strength_badge": "Probed"
+    },
+    {
+      "id": "dependency-update-sweep",
+      "title": "The host roster is read live from host-support.json, never hardcoded",
+      "category": "Inventory — measured mechanisms",
+      "kind": "ravenclaude-built",
+      "order": 920,
+      "summary": "dependency-sweep.py discovers drift via the repo's existing citation-marker convention, host-scoped; the host roster itself is derived from host-support.json, not a guessed list.",
+      "see_also": [],
+      "widget": null,
+      "try_it": null,
+      "node_links": {},
+      "last_verified": "2026-09-03",
+      "refresh_when": null,
+      "sources": [
+        {
+          "label": "/code-review found the pre-fix undercount and this session verified the fix's measured effect",
+          "url": "https://github.com/mcorbett51090/RavenClaude/pull/1101"
+        }
+      ],
+      "body_md": "## What a reader would have assumed instead\n\nThat scanning \"for copilot\" and scanning \"for any host\" would return the same superset/subset relationship regardless of implementation — i.e. that a host-scoped scan is just a filtered view of the unscoped one, so the unscoped count would always be >= any single host's real count in a way proportional to the number of tracked hosts.\n\n## The discriminator\n\ncontrol: the same scan re-run with host_re built from a single-host-scoped `{\"hosts\": {host_id: host_cell}}` slice, compared against the unscoped full-hosts-dict build on the identical repo state\nMeasured 2026-09-03: `scan_markers`'s `host_re` was built from every tracked host's citation tokens combined, so a citation naming ANY tracked host matched regardless of which host was actually being scanned. A `copilot` scan returned 175 findings pre-fix; scoping the regex to only `copilot`'s tokens dropped it to 85 — more than half were false attributions to the wrong host. A `gemini` scan, previously flooded by copilot/codex/cursor citations that happened to share surrounding text, dropped to 27.\n\n## Why it matters\n\nThe sweep's queue output (`queue --host <id>`) is host-scoped by design — a maintainer sweeping `copilot` after a version bump should see only findings that actually concern copilot, not every host-version-sensitive citation in the repo. The unscoped bug would have made every host's queue nearly identical (dominated by cross-host noise) and buried the small number of findings that genuinely needed action behind ones that didn't. The fix reuses Gate 208's `host_tokens`/`host_regex` helpers but calls them with a single-host slice of `host-support.json`, never the full dict — the general-purpose helper answered a broader question than the per-host queue needed.\n\nFalsifier: a future `host-support.json` restructuring that removes the per-host `components.<type>.<host_id>` nesting this scoping depends on.",
+      "diagram": null,
+      "diagram_mini": null,
+      "steps": [],
+      "svg": null,
+      "svg_mini": null,
+      "entry_class": "inventory",
+      "covers": [
+        "plugins/ravenclaude-core/scripts/dependency-sweep.py",
+        "plugins/ravenclaude-core/scripts/host-version-probe.py",
+        "plugins/ravenclaude-core/skills/dependency-update-sweep/SKILL.md",
+        "plugins/ravenclaude-core/skills/dependency-update-sweep/tests/fixtures/changelog-delta.txt",
+        "plugins/ravenclaude-core/skills/dependency-update-sweep/tests/fixtures/fake-doc.md",
+        "plugins/ravenclaude-core/skills/dependency-update-sweep/tests/fixtures/generate-fake-hooks.py",
+        "plugins/ravenclaude-core/skills/dependency-update-sweep/tests/fixtures/host-support-slice.json"
+      ],
+      "covers_digest": "sha256:4794d588249bad9fc7c86ee7eef3bd4d922f0286ecd4b1ccdb3b0017e320b0ca",
+      "nuance": "The marker-scan's host-scoping bug undercounted findings by masking cross-host false positives: an unscoped scan of `copilot` returned 175 findings because it matched citations naming ANY tracked host, not just copilot; scoping `host_re` to a single host dropped that to 85 (and a `gemini` scan, previously flooded by copilot/codex/cursor citations, to 27).",
+      "nuance_evidence": {
+        "measured": "2026-09-03",
+        "control": "the same scan re-run with host_re built from a single-host-scoped {\"hosts\": {host_id: host_cell}} slice, compared against the unscoped full-hosts-dict build on the identical repo state",
+        "falsifier": "a future host-support.json restructuring that removes the per-host component-cell nesting this scoping depends on",
+        "probe": "plugins/ravenclaude-core/scripts/dependency-sweep.py"
+      },
+      "nuance_source": "plugins/ravenclaude-core/scripts/dependency-sweep.py",
+      "verify": {
+        "tier": "none",
+        "rationale": "The host-scoping fix is proven by the tool's own self-test suite (scan 12/12, classify 10/10, queue 5/5, apply 21/21), including a regression check for this exact bug; re-verifying the finding-count delta against the live repo means re-running the scan, not a separate staged check."
+      },
+      "strength_badge": "Unverified"
     }
   ]
 }

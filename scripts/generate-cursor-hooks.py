@@ -137,6 +137,10 @@ _SKIP = {
         "file-write events reachable here fire AFTER the edit. Same skip basis as "
         "enforce-layout.sh above, plus the R7 live-round-trip requirement."
     ),
+    "caveman-route-hook.sh": (
+        "routes a Claude-Code-only third-party plugin; the target mode store does "
+        "not exist on this host."
+    ),
 }
 
 

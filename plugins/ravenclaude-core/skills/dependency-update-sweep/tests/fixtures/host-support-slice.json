@@ -1,0 +1,25 @@
+{
+  "_note": "SYNTHETIC FIXTURE — a minimal host-support.json slice for dependency-sweep.py's self-tests. Mirrors the REAL schema (verified 2026-09-03): hosts{} is host-level metadata, components{} is keyed by component-type then host-id. Not the real file.",
+  "schema_version": 1,
+  "hosts": {
+    "copilot": {
+      "label": "GitHub Copilot CLI",
+      "native": false,
+      "activation_gate": "version_floor"
+    }
+  },
+  "components": {
+    "hooks": {
+      "copilot": {
+        "supported": true,
+        "how": "repo-level .github/hooks",
+        "caveat": "PostToolUse hook matchers honored from 1.0.62"
+      },
+      "gemini": {
+        "supported": true,
+        "how": "native .gemini/settings.json",
+        "caveat": "for the host-scoping teeth check only"
+      }
+    }
+  }
+}
