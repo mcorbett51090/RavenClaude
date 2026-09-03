@@ -144,6 +144,23 @@ _WIRED_SET_LEDGER = {
         # scope; adding it there is a later phase's call, not this one's.
         "lane_partitioned": True,
     },
+    "codex": {
+        "source": "generator",
+        # generate-codex-hooks.py's SessionStart lane is a full derivation off
+        # hooks.json's own SessionStart block (Phase 4, sessionstart-safeguards-
+        # multihost) -- unlike copilot-cli/cursor/gemini, it has NO _SKIP entry
+        # for any of the 9 SessionStart-lane hooks (its ~25 _SKIP entries are all
+        # PreToolUse/PostToolUse/Stop/other-event hooks, deliberately out of this
+        # generator's SessionStart-only scope) -- required is the full canonical
+        # set, same as claude-code/copilot-cli/cursor.
+        "required": _ALL_SESSIONSTART_HOOKS,
+        # Codex speaks the native Claude Code hook contract, so its generator can
+        # (and does) carry a per-entry matcher on every wired SessionStart hook,
+        # exactly like claude-code and copilot-cli -- "exact" was simply absent
+        # until Phase 4 wired it, not a platform limitation the way cursor's
+        # "none-by-platform" or gemini's "none-unverified" are.
+        "matcher_fidelity": "exact",
+    },
 }
 
 # Canonical lane -> expected-hook-set partition, read directly off the same
@@ -370,6 +387,44 @@ def _extract_manifest(repo: Path) -> dict:
     return wired
 
 
+def _codex_target_basename(command: str) -> str:
+    """Codex's SessionStart shape wraps every hook as `bash "<shim>"
+    "<hooks-dir>/<script>" [args]` -- TWO quoted `.sh`-ending paths per
+    command (the shim itself, then the real hook), unlike Copilot/Cursor's
+    single-path shape that `_sh_basename` was built for. Naively reusing
+    `_sh_basename` here would match the SHIM's own basename
+    (`codex-hook-env.sh`), not the target hook, because its regex finds the
+    FIRST `.sh` token and the shim path is always quoted first. This instead
+    collects every quoted `<...>/<name>.sh` path and takes the LAST one --
+    the shim is always first, the real hook (or a trailing bare-word arg
+    like `register`, which never ends in `.sh"`) is always last.
+    """
+    matches = re.findall(r'"[^"]*/([A-Za-z0-9_.-]+\.sh)"', command)
+    return matches[-1] if matches else ""
+
+
+def _extract_codex(repo: Path) -> dict:
+    """Codex's SessionStart shape: `hooks.SessionStart[] ->
+    {matcher?, hooks:[{type,command}]}` -- grouped by matcher like Gemini's,
+    but with NO `name` field at all (like Copilot-CLI/Cursor's flat shapes),
+    so the basename has to be read off the assembled `command` string via
+    `_codex_target_basename` above. Returns `{basename: matcher_or_None}`.
+    """
+    generator = repo / "scripts" / "generate-codex-hooks.py"
+    if not generator.exists():
+        return {}
+    cfg = _run_host_generator(generator, repo)
+    events = cfg.get("hooks", cfg)
+    wired: dict = {}
+    for block in events.get("SessionStart", []):
+        matcher = block.get("matcher")
+        for h in block.get("hooks", []):
+            name = _codex_target_basename(h.get("command", ""))
+            if name:
+                wired[name] = matcher
+    return wired
+
+
 # Dispatch table: ledger host key -> the extractor that knows how to read
 # THAT host's actual generator/manifest output. Every _WIRED_SET_LEDGER key
 # must have an entry here; check_c_wired_set() below fails closed (a
@@ -380,6 +435,7 @@ _EXTRACTORS = {
     "copilot-cli": _extract_copilot_cli_flat,
     "cursor": _extract_cursor_flat,
     "claude-code": _extract_manifest,
+    "codex": _extract_codex,
 }
 
 
@@ -828,6 +884,73 @@ def self_test(must_fail: bool = False) -> int:
 
             # restore before the next block reads a clean hooks_json again
             hooks_json.write_text(_HOOKS_JSON.read_text(encoding="utf-8"), encoding="utf-8")
+
+        # 10. Mutant (A4.4, codex): drop keep-awake.sh from the generator's
+        #     SessionStart derivation -- the CE-1 shape, on the newly-ledgered
+        #     codex host (Phase 4).
+        codex_gen = repo / "scripts" / "generate-codex-hooks.py"
+        src10 = codex_gen.read_text(encoding="utf-8")
+        mutant10 = src10.replace(
+            "            args = _extra_args(command, script)\n"
+            '            items.append(_cmd(shim, hooks_dir, script, args))\n'
+            "            wired.append(script)\n",
+            '            if script == "keep-awake.sh":\n'
+            "                continue\n"
+            "            args = _extra_args(command, script)\n"
+            '            items.append(_cmd(shim, hooks_dir, script, args))\n'
+            "            wired.append(script)\n",
+            1,
+        )
+        if mutant10 == src10:
+            check("self-test MUST-FAIL setup: A4.4 codex keep-awake.sh drop mutant string found", False)
+        else:
+            codex_gen.write_text(mutant10, encoding="utf-8")
+            f10: list = []
+            check_c_wired_set(f10, repo=repo)
+            check(
+                "self-test MUST-FAIL (A4.4, codex drop): check C names codex and keep-awake.sh",
+                any("codex" in x and "keep-awake.sh" in x for x in f10),
+            )
+            codex_gen.write_text(src10, encoding="utf-8")  # restore -- mutant 11 reuses this file
+
+        # 11. Mutant (A4.5, THE F-2 REGRESSION, codex -- the one this whole
+        #     phase exists for): revert generate-codex-hooks.py's SessionStart
+        #     lane back to the ORIGINAL pre-Phase-4 2-hook, matcher-less
+        #     hand-list -- a FIXTURE mutation of the generator itself (not the
+        #     supported/tested RC_CODEX_SESSIONSTART_LEGACY escape hatch),
+        #     simulating a reverted fix. Must fire BOTH a missing-hooks
+        #     (WIRED-SET) finding AND a MATCHER-FIDELITY finding -- proving the
+        #     gate would have caught the live defect that shipped for real
+        #     (Codex wired only 2 of 9 SessionStart hooks, no matcher, so
+        #     capability-orientation.sh and thing-denial-kb-recall.sh re-fired
+        #     on every mid-conversation compaction, the PR #1084 defect).
+        src11 = codex_gen.read_text(encoding="utf-8")
+        mutant11 = src11.replace(
+            '    for group in manifest.get("hooks", {}).get("SessionStart", []):\n'
+            '        matcher = group.get("matcher")\n',
+            "    return _legacy_sessionstart(shim, hooks_dir)  # A4.5 must-fail mutant\n"
+            '    for group in manifest.get("hooks", {}).get("SessionStart", []):\n'
+            '        matcher = group.get("matcher")\n',
+            1,
+        )
+        if mutant11 == src11:
+            check("self-test MUST-FAIL setup: A4.5 codex SessionStart-revert mutant string found", False)
+        else:
+            codex_gen.write_text(mutant11, encoding="utf-8")
+            f11: list = []
+            check_c_wired_set(f11, repo=repo)
+            check_c_matcher_fidelity(f11, repo=repo)
+            check(
+                "self-test MUST-FAIL (A4.5, THE F-2 REGRESSION, codex): check C fires a "
+                "WIRED-SET (missing-hooks) finding naming codex",
+                any("WIRED-SET" in x and "codex" in x for x in f11),
+            )
+            check(
+                "self-test MUST-FAIL (A4.5, THE F-2 REGRESSION, codex): check C ALSO fires a "
+                "MATCHER-FIDELITY finding naming codex -- both findings, not just one",
+                any("MATCHER-FIDELITY" in x and "codex" in x for x in f11),
+            )
+            codex_gen.write_text(src11, encoding="utf-8")  # restore
 
     print(f"\ncheck-sessionstart-matcher-regression self-test: {passed} pass, {failed} fail")
     if must_fail:
