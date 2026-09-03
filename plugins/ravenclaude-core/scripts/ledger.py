@@ -172,6 +172,37 @@ def resolve_config(repo_root: Path) -> dict[str, Any]:
     return config
 
 
+def _confined_path(repo_root: Path, relative: str, label: str) -> Path:
+    """Join `relative` onto `repo_root` and REFUSE if the result escapes it.
+
+    ⛔ `.ravenclaude/ledger-config.json` is untrusted config (loaded unvalidated
+    by `resolve_config()`, also overridable via `RC_LEDGER_DIR`/`RC_LEDGER_VIEW`).
+    `pathlib` treats an ABSOLUTE right-hand operand as REPLACING the whole path
+    (`Path('/repo') / '/etc/x' == Path('/etc/x')`), and a relative value with
+    `..` segments can walk out of `repo_root` just as easily. A hostile
+    `ledger_dir`/`view_path` (e.g. from a malicious PR or cloned repo) would
+    otherwise let any writing ledger command write attacker-chosen content to
+    an attacker-chosen path outside the repo. Every `repo_root / config[...]`
+    join in this file MUST go through this helper instead of the raw `/`
+    operator — fail closed, not silently sanitized.
+    """
+    if Path(relative).is_absolute():
+        raise LedgerError(
+            f"{label}_escapes_repo: {relative!r} is an absolute path. "
+            f"{label} must be a path relative to the repo root."
+        )
+    candidate = repo_root / relative
+    root_resolved = repo_root.resolve()
+    candidate_resolved = candidate.resolve()
+    if not candidate_resolved.is_relative_to(root_resolved):
+        raise LedgerError(
+            f"{label}_escapes_repo: {relative!r} resolves to {candidate_resolved}, "
+            f"which is outside the repo root {root_resolved}. Refusing to write "
+            "outside the repo."
+        )
+    return candidate
+
+
 def find_repo_root(start: Path | None = None) -> Path:
     here = (start or Path.cwd()).resolve()
     for candidate in [here] + list(here.parents):
@@ -1436,7 +1467,7 @@ def build_event(
 
 def cmd_init(repo_root: Path, args: argparse.Namespace) -> int:
     config = resolve_config(repo_root)
-    ledger_dir = repo_root / config["ledger_dir"]
+    ledger_dir = _confined_path(repo_root, config["ledger_dir"], "ledger_dir")
     ledger_rel = str(Path(config["ledger_dir"]) / "_probe.jsonl")
 
     code, report = check_committable(repo_root, ledger_rel)
@@ -1474,7 +1505,7 @@ def cmd_init(repo_root: Path, args: argparse.Namespace) -> int:
 
 def cmd_open(repo_root: Path, args: argparse.Namespace) -> int:
     config = resolve_config(repo_root)
-    ledger_dir = repo_root / config["ledger_dir"]
+    ledger_dir = _confined_path(repo_root, config["ledger_dir"], "ledger_dir")
     ts = args.ts or utcnow_iso()
     machine = machine_block(repo_root, args.actor, ts)
     item_id = mint_item_id(machine["source"], ts, args.subject, _existing_item_ids(ledger_dir))
@@ -1506,7 +1537,7 @@ def _asserted_from_kv(pairs: Sequence[str]) -> dict[str, Any]:
 
 def cmd_append(repo_root: Path, args: argparse.Namespace) -> int:
     config = resolve_config(repo_root)
-    ledger_dir = repo_root / config["ledger_dir"]
+    ledger_dir = _confined_path(repo_root, config["ledger_dir"], "ledger_dir")
     asserted = _asserted_from_kv(args.set)
     event = build_event(repo_root, args.type, args.item, asserted, args.actor, args.ts)
     path = append_record(ledger_dir, event, int(config["max_record_bytes"]))
@@ -1517,10 +1548,10 @@ def cmd_append(repo_root: Path, args: argparse.Namespace) -> int:
 def _emit(projection: Projection, config: dict[str, Any], repo_root: Path, write: bool) -> None:
     if not write:
         return
-    view = repo_root / config["view_path"]
+    view = _confined_path(repo_root, config["view_path"], "view_path")
     view.parent.mkdir(parents=True, exist_ok=True)
     view.write_text(projection.markdown, encoding="utf-8")
-    out = repo_root / config["ledger_dir"] / "open-set.json"
+    out = _confined_path(repo_root, config["ledger_dir"], "ledger_dir") / "open-set.json"
     out.write_text(json.dumps(projection.scp_block, indent=2, sort_keys=True) + "\n",
                    encoding="utf-8")
 
@@ -1539,7 +1570,7 @@ def repo_basis(repo_root: Path, config: dict[str, Any]) -> str:
 
 def cmd_project(repo_root: Path, args: argparse.Namespace) -> int:
     config = resolve_config(repo_root)
-    ledger_dir = repo_root / config["ledger_dir"]
+    ledger_dir = _confined_path(repo_root, config["ledger_dir"], "ledger_dir")
     validator = None if args.no_schema else load_validator()
     now = parse_ts(args.now) if args.now else None
     projection = project(ledger_dir, config, now=now, validator=validator,
@@ -1561,7 +1592,7 @@ def cmd_project(repo_root: Path, args: argparse.Namespace) -> int:
 
 def cmd_check_enumeration(repo_root: Path, args: argparse.Namespace) -> int:
     config = resolve_config(repo_root)
-    ledger_dir = repo_root / config["ledger_dir"]
+    ledger_dir = _confined_path(repo_root, config["ledger_dir"], "ledger_dir")
 
     # ⛔ THE INDEPENDENT LOWER BOUND. This is the ONLY path in the design that
     # fires when the ledger is EMPTY: a turn that produced action-shaped output

@@ -180,9 +180,16 @@ _run_monitor_loop() {
       # break out to re-resolve. We background the tail and poll alongside it so
       # a rotation is picked up without leaking the tail process.
       local tail_pid newer
-      tail -n0 -F "$log" 2>/dev/null | while IFS= read -r jsonl_line; do
-        emit_derived "$jsonl_line" || true
-      done &
+      # Wrap `tail -F | while read` in its OWN subshell group ( ... ) & so we
+      # have one PID that owns the whole pipeline's process group. Backgrounding
+      # the bare pipeline (no outer parens) makes $! the PID of the LAST command
+      # in the pipe — the `while read` subshell, NOT `tail` — so `kill "$tail_pid"`
+      # would only kill the reader loop and orphan the real `tail -F` process,
+      # which keeps following the now-superseded log file forever: one leaked
+      # `tail -F` per run-dir rotation for the life of the session.
+      ( tail -n0 -F "$log" 2>/dev/null | while IFS= read -r jsonl_line; do
+          emit_derived "$jsonl_line" || true
+        done ) &
       tail_pid=$!
 
       # Watch for supersession: a newer run dir's log, or this log disappearing.
@@ -191,6 +198,10 @@ _run_monitor_loop() {
         newer="$(newest_log || true)"
         if [ "$newer" != "$current" ] || [ ! -f "$current" ]; then
           # Stop following the stale file; the outer loop re-resolves.
+          # Kill the subshell's CHILDREN first (this is where the real `tail -F`
+          # process lives), then the subshell itself — otherwise `tail -F` is
+          # orphaned and never reaped (see the comment above the subshell wrap).
+          pkill -P "$tail_pid" 2>/dev/null || true
           kill "$tail_pid" 2>/dev/null || true
           wait "$tail_pid" 2>/dev/null || true
           break

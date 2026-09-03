@@ -17,9 +17,9 @@
 export const meta = {
   name: "repo-sweep",
   description:
-    "Whole-repo systematic bug sweep across 8 review dimensions (including ci-cd-actions-security for GitHub Actions/CI-gate defects) — maps the repo into risk-ranked batches, reviews each batch per dimension/model with a cache-hit skip, merges + dedupes findings, adversarially verifies every file's survivors, optionally auto-fixes CONFIRMED + fixable findings file-by-file, and reports coverage honestly.",
+    "Whole-repo systematic bug sweep across 8 review dimensions (including ci-cd-actions-security for GitHub Actions/CI-gate defects) — maps the repo into risk-ranked batches, reviews each batch per dimension/model with a cache-hit skip, merges + dedupes findings into a P0-P3 priority breakdown, adversarially verifies every file's survivors, optionally auto-fixes CONFIRMED + fixable findings file-by-file (once, or iteratively via args.converge until no P0-P3 findings remain or no further auto-fixable progress is possible), and reports coverage + convergence honestly.",
   whenToUse:
-    "When the user wants a comprehensive, multi-dimension bug sweep over an entire repository (or a --only/--since-narrowed slice of it), with adversarial verification gating any fix. Requires args.effort to be one of high, xhigh, max, or ultra — low and medium are refused outright, no phase runs for them.",
+    "When the user wants a comprehensive, multi-dimension bug sweep over an entire repository (or a --only/--since-narrowed slice of it), with adversarial verification gating any fix. Requires args.effort to be one of high, xhigh, max, or ultra — low and medium are refused outright, no phase runs for them. Set args.converge:true to loop Review->Merge->Verify->Fix until the repo has 0 open P0-P3 findings or no further auto-fixable progress can be made (capped at args.convergeMaxIterations, default 5).",
   phases: [
     {
       title: "Map",
@@ -29,12 +29,12 @@ export const meta = {
     {
       title: "Review",
       detail:
-        "Dimensions run SEQUENTIALLY (pipeline); within each dimension, models x batches run in PARALLEL. A cheap cache-check step precedes each real review agent and replays a full cache hit instead of re-reviewing.",
+        "Dimensions run SEQUENTIALLY (pipeline); within each dimension, models x batches run in PARALLEL. A cheap cache-check step precedes each real review agent and replays a full cache hit instead of re-reviewing. Repeats per convergence iteration when args.converge is set.",
     },
     {
       title: "Merge",
       detail:
-        "One agent runs findings_merge.py over the findings shards and returns {artifact, survivors_count, over_cap_count}.",
+        "One agent runs findings_merge.py over the findings shards and returns {artifact, survivors_count, over_cap_count, by_priority}.",
     },
     {
       title: "Verify",
@@ -44,12 +44,12 @@ export const meta = {
     {
       title: "Fix",
       detail:
-        "Gated behind args.autofix === true. Snapshots the tree first, then one fix agent per FILE applies only CONFIRMED + fixable_in_place findings, capped at args.fixCap; never commits, stages, or pushes.",
+        "Gated behind args.autofix === true (or args.converge === true, which implies autofix). Snapshots the tree first, then one fix agent per FILE applies only CONFIRMED + fixable_in_place findings, capped at args.fixCap; never commits, stages, or pushes.",
     },
     {
       title: "Report",
       detail:
-        "Assembles counts + a coverage-honesty report.md whose first line states the reviewed/deferred split whenever files were deferred at this budget.",
+        "Assembles counts + a coverage-honesty report.md whose first line states the reviewed/deferred split whenever files were deferred at this budget, plus a convergence-honesty section when args.converge was set.",
     },
   ],
 };
@@ -104,6 +104,23 @@ const DEFAULT_MODEL_POOL = ["claude-opus-4-8", "claude-sonnet-5", "claude-haiku-
 // The cheap, fast model used ONLY for the cache-lookup pre-check step (never
 // for an actual review/verify/fix pass).
 const CACHE_CHECK_MODEL = "claude-haiku-4-5-20251001";
+
+// ─── The one severity scale, used everywhere ───────────────────────────────
+// SEVERITY_RANK previously diverged between this file (which had its own
+// {critical,high,medium,low} map used only for the Verify-phase sort) and
+// dimensions.md / findings_merge.py's real vocabulary
+// ({blocking,major,minor,nit}). Because no real finding ever carried a
+// critical/high/medium/low severity, `SEVERITY_RANK[a.severity] ?? 9` always
+// fell to 9 for every real finding — the "severity-sorted verifyCap" was
+// silently unsorted (stable-sort no-op) on every run. Fixed by using the
+// SAME map findings_merge.py uses, so a change to one does not silently
+// desync from the other again.
+const SEVERITY_RANK = { blocking: 0, major: 1, minor: 2, nit: 3 };
+// P0-P3 is a direct relabeling of the same severity scale (mirrors
+// findings_merge.py's PRIORITY_MAP) — used only for report/log legibility;
+// the merge script is the actual source of truth for a survivor's priority
+// (findings_merge.py --self-test covers the mapping itself).
+const PRIORITY_MAP = { blocking: "P0", major: "P1", minor: "P2", nit: "P3" };
 
 // ─── Effort-tier ladder ─────────────────────────────────────────────────────
 // low/medium are REFUSED entirely — see the very first script step below.
@@ -199,6 +216,20 @@ const MERGE_RECEIPT_SCHEMA = {
     artifact: { type: "string" },
     survivors_count: { type: "integer" },
     over_cap_count: { type: "integer" },
+    // findings_merge.py's top-level "by_priority" object, verbatim — a
+    // P0..P3 (+ optional "unknown") count over this iteration's survivors.
+    // Optional in the schema (not `required`) so a pre-P0-P3 merged.json
+    // read by an old cached artifact doesn't fail validation.
+    by_priority: {
+      type: "object",
+      properties: {
+        P0: { type: "integer" },
+        P1: { type: "integer" },
+        P2: { type: "integer" },
+        P3: { type: "integer" },
+        unknown: { type: "integer" },
+      },
+    },
   },
 };
 
@@ -334,6 +365,28 @@ function sanitizeForPath(p) {
     .slice(0, 180);
 }
 
+// ─── Caller-input validation (command-injection + path-traversal fixes) ──
+// Several args.* fields below are caller-controlled and later interpolated
+// verbatim into literal shell-command text that an agent() call instructs a
+// subagent to run via Bash ("Run this exact command..."). This workflow has
+// no fs/shell APIs and therefore no shell-quoting primitive available to
+// it, so the only defense is a strict allow-list regex per field, checked
+// ONCE at the point the value is first derived from `args` — every
+// downstream interpolation (Map/Merge/Fix phases) inherits the guarantee.
+// A value that fails validation causes an immediate, explicit refusal
+// (never silent stripping/sanitizing) via the same top-level
+// `return { error }` shape the effort-tier refusal below uses.
+const SAFE_PATH_RE = /^[A-Za-z0-9._\-/~]+$/;
+const SAFE_PATHSPEC_RE = /^[A-Za-z0-9._\-/~:@,*?[\]^]+$/;
+// A run id becomes a joinPath() SEGMENT under .ravenclaude/runs/<runId>/ —
+// joinPath() only strips leading/trailing slashes per segment, it never
+// rejects/strips ".." — so this charset additionally excludes "/" outright
+// (an id can never introduce a new path segment, traversal or otherwise).
+const SAFE_RUN_ID_RE = /^[A-Za-z0-9_-]+$/;
+function isSafeShellArg(value, pattern) {
+  return typeof value === "string" && pattern.test(value);
+}
+
 // Which of the run's configured models a given dimension actually uses.
 // dead-code-simplification is single-model even when cross-model is on.
 function resolveModelsForDimension(dim, models) {
@@ -419,14 +472,32 @@ const REPO_PATH =
   args && typeof args === "object" && typeof args.repoPath === "string" && args.repoPath.trim()
     ? args.repoPath.trim()
     : ".";
+if (!isSafeShellArg(REPO_PATH, SAFE_PATH_RE)) {
+  return {
+    error:
+      `repo-sweep refuses args.repoPath = ${JSON.stringify(args && args.repoPath)} — it contains ` +
+      `characters not allowed in a shell-interpolated path (must match ${SAFE_PATH_RE}). This guards ` +
+      `against command injection into the "Run this exact command" instructions this workflow issues ` +
+      `(--repo-root is interpolated verbatim into the Map/Fix-phase commands).`,
+  };
+}
 
 const RUN_ID =
   args && typeof args === "object" && typeof args.runId === "string" && args.runId.trim()
     ? args.runId.trim()
     : `repo-sweep-${_now()}`;
+if (!isSafeShellArg(RUN_ID, SAFE_RUN_ID_RE)) {
+  return {
+    error:
+      `repo-sweep refuses args.runId = ${JSON.stringify(args && args.runId)} — run ids must match ` +
+      `${SAFE_RUN_ID_RE} (letters, digits, "_", "-" only — no "/", no "..", no shell metacharacters). ` +
+      `joinPath() only strips leading/trailing slashes per segment and never rejects ".." — an ` +
+      `unvalidated runId could make RUN_DIR (and every path derived from it) escape the intended ` +
+      `.ravenclaude/runs/<runId>/ sandbox.`,
+  };
+}
 
 const RUN_DIR = joinPath(REPO_PATH, ".ravenclaude/runs", RUN_ID);
-const FINDINGS_DIR = joinPath(RUN_DIR, "findings");
 const PLAN_PATH = joinPath(RUN_DIR, "review-plan.json");
 const CACHE_DIR = joinPath(REPO_PATH, ".ravenclaude/repo-review-cache");
 
@@ -456,6 +527,21 @@ const NEAR_DUP_POLICY =
   args && typeof args.nearDupPolicy === "string" && args.nearDupPolicy.trim()
     ? args.nearDupPolicy.trim()
     : tierCfg.nearDupPolicy;
+// Enum check, not a regex allow-list — this value flows verbatim into
+// findings_merge.py's --near-dup-policy flag, whose argparse `choices` is
+// exactly ["keep-separate", "judge"] (scripts/findings_merge.py). Anything
+// else is refused rather than passed through and left for argparse to
+// reject (which would still be a shell-injection risk before argparse ever
+// gets to see it).
+const ALLOWED_NEAR_DUP_POLICIES = ["keep-separate", "judge"];
+if (!ALLOWED_NEAR_DUP_POLICIES.includes(NEAR_DUP_POLICY)) {
+  return {
+    error:
+      `repo-sweep refuses args.nearDupPolicy = ${JSON.stringify(args && args.nearDupPolicy)} — must be ` +
+      `one of: ${ALLOWED_NEAR_DUP_POLICIES.join(", ")} (matches findings_merge.py's --near-dup-policy ` +
+      `choices).`,
+  };
+}
 const PER_AGENT_TOKENS =
   args && typeof args.perAgentTokens === "number" && args.perAgentTokens > 0
     ? args.perAgentTokens
@@ -465,19 +551,54 @@ const BUDGET_BATCHES =
     ? args.budgetBatches
     : tierCfg.budgetBatches;
 
+// ─── Convergence-loop args ─────────────────────────────────────────────────
+// Opt-in (default false — the single-pass behavior above is unchanged for
+// every existing caller). args.convergeMaxIterations is a plain JS number
+// consumed only by Math.min/Math.max below — it is NEVER interpolated into
+// shell-command text, so it needs no SAFE_*_RE validation (unlike repoPath/
+// runId/only/since above).
+const CONVERGE = !!(args && args.converge === true);
+const RAW_MAX_ITERATIONS =
+  args && typeof args.convergeMaxIterations === "number" ? args.convergeMaxIterations : 5;
+const MAX_ITERATIONS = Math.min(20, Math.max(1, Math.floor(RAW_MAX_ITERATIONS) || 5));
+// converge implies autofix — a convergence loop with nothing ever applied
+// can only ever run once and report "plateaued", so requiring the caller to
+// ALSO pass autofix:true would just be one more way to silently get a
+// single pass while believing convergence was requested.
+const AUTOFIX = !!(args && (args.autofix === true || CONVERGE));
+
 log(
   `repo-sweep: effort=${EFFORT} dims=${activeDimensions.length} models/dim(max)=${modelCount} ` +
-    `crossModel=${crossModelActive} sampling="${tierCfg.sampling}" runDir=${RUN_DIR}`,
+    `crossModel=${crossModelActive} sampling="${tierCfg.sampling}" runDir=${RUN_DIR}` +
+    (CONVERGE ? ` converge=true maxIterations=${MAX_ITERATIONS}` : ""),
 );
 
 // ─── Phase 1: Map ──────────────────────────────────────────────────────────
+// Run once — the batch PLAN (which files land in which batch) does not
+// change across convergence iterations; only which files actually get
+// re-reviewed changes, and that's handled by review_cache.py's content-hash
+// invalidation (a file a Fix pass edited misses cache on the next Review
+// pass; every untouched file is a near-zero-cost cache replay).
 phase("Map");
-const onlyFlag =
-  args && typeof args.only === "string" && args.only.trim() ? ` --only ${args.only.trim()}` : "";
-const sinceFlag =
-  args && typeof args.since === "string" && args.since.trim()
-    ? ` --since ${args.since.trim()}`
-    : "";
+const ONLY_VALUE = args && typeof args.only === "string" ? args.only.trim() : "";
+if (ONLY_VALUE && !isSafeShellArg(ONLY_VALUE, SAFE_PATHSPEC_RE)) {
+  return {
+    error:
+      `repo-sweep refuses args.only = ${JSON.stringify(args.only)} — it contains characters not ` +
+      `allowed in a shell-interpolated --only value (must match ${SAFE_PATHSPEC_RE}).`,
+  };
+}
+const onlyFlag = ONLY_VALUE ? ` --only ${ONLY_VALUE}` : "";
+
+const SINCE_VALUE = args && typeof args.since === "string" ? args.since.trim() : "";
+if (SINCE_VALUE && !isSafeShellArg(SINCE_VALUE, SAFE_PATHSPEC_RE)) {
+  return {
+    error:
+      `repo-sweep refuses args.since = ${JSON.stringify(args.since)} — it contains characters not ` +
+      `allowed in a shell-interpolated --since value (must match ${SAFE_PATHSPEC_RE}).`,
+  };
+}
+const sinceFlag = SINCE_VALUE ? ` --since ${SINCE_VALUE}` : "";
 
 const mapReceipt = await agent(
   [
@@ -514,21 +635,22 @@ const estimate = await agent(
 if (estimate && estimate.estimate_summary)
   log(`Cardinality estimate: ${estimate.estimate_summary}`);
 
-// ─── Phase 2: Review ────────────────────────────────────────────────────────
+const batchIds = mapReceipt.batch_ids;
+
+// ─── Phase 2: Review (per-iteration; findingsDir varies by iteration) ─────
 // Cardinality-bounding structure (deliberate, per the spec):
 //   pipeline(dimensions, d => parallel(models.map(m => () => parallel(batchIds.map(b => () => agent(...))))))
 // Dimensions run SEQUENTIALLY (pipeline, one dimension at a time); within a
 // dimension, models x batches run in PARALLEL. This caps the LIVE concurrent
 // agent count at models x batches, never dimensions x models x batches, and
 // means an interrupted run still yields whole COMPLETED dimensions.
-phase("Review");
-
+//
 // One (dimension, model, batch) triple's full pipeline: a cheap cache-check
 // step first (replays a full cache hit with ZERO real review agents), then —
 // only when the batch is not a full hit — the real review agent.
-async function reviewBatch(dim, model, batchId) {
+async function reviewBatch(dim, model, batchId, findingsDir) {
   const tag = modelTag(model);
-  const shardPath = joinPath(FINDINGS_DIR, `${dim}.${tag}.${batchId}.json`);
+  const shardPath = joinPath(findingsDir, `${dim}.${tag}.${batchId}.json`);
 
   const cacheResult = await agent(
     [
@@ -613,60 +735,88 @@ async function reviewBatch(dim, model, batchId) {
   };
 }
 
-const batchIds = mapReceipt.batch_ids;
-
-const reviewByDimension = await pipeline(activeDimensions, async (dim) => {
-  const dimModels = resolveModelsForDimension(dim, models);
-  log(
-    `Review: dimension "${dim}" starting — ${dimModels.length} model(s) x ${batchIds.length} batch(es)`,
-  );
-  const perModel = await parallel(
-    dimModels.map(
-      (model) => () => parallel(batchIds.map((batchId) => () => reviewBatch(dim, model, batchId))),
-    ),
-  );
-  const shards = perModel.flat().filter(Boolean);
-  const totalFindings = shards.reduce((sum, s) => sum + (s.count || 0), 0);
-  const cachedCount = shards.filter((s) => s.cached).length;
-  log(
-    `Review: dimension "${dim}" complete — ${shards.length} shard(s), ${totalFindings} finding(s), ` +
-      `${cachedCount} fully cache-replayed`,
-  );
-  return { dimension: dim, shards };
-});
-
-// ─── Phase 3: Merge ─────────────────────────────────────────────────────────
-phase("Merge");
-const MERGED_PATH = joinPath(RUN_DIR, "merged.json");
-
-const mergeReceipt = await agent(
-  [
-    `Run this exact command:`,
-    `python3 ${SCRIPTS_DIR}/findings_merge.py --in ${FINDINGS_DIR} --out ${MERGED_PATH} --cap ${MERGE_CAP} --near-dup-policy ${NEAR_DUP_POLICY}`,
-    `Then read ${MERGED_PATH} (JSON). Return ONLY structured output: {artifact: "${MERGED_PATH}", survivors_count: <survivors.length>, over_cap_count: <over_cap.length>}. Never include finding bodies.`,
-  ].join("\n"),
-  { label: "merge:findings-merge", phase: "Merge", schema: MERGE_RECEIPT_SCHEMA },
-);
-
-if (!mergeReceipt || !mergeReceipt.artifact) {
-  return { error: "Merge phase failed — findings_merge.py did not return a usable receipt." };
+async function runReviewPhase(findingsDir) {
+  phase("Review");
+  return pipeline(activeDimensions, async (dim) => {
+    const dimModels = resolveModelsForDimension(dim, models);
+    // Dedup at the dispatch site (not inside resolveModels()). resolveModels()
+    // pads a caller-supplied args.models list shorter than the tier's
+    // required model count by CYCLING through it, which can produce literal
+    // duplicate entries (e.g. args.models:['claude-sonnet-5'] at a 2-model
+    // tier yields ['claude-sonnet-5','claude-sonnet-5']). Without this dedup,
+    // a duplicated model string would fan out into two CONCURRENT thunks both
+    // calling reviewBatch(dim, model, batchId) for the same (dim, model,
+    // batchId) triple — both computing the identical shardPath and writing it
+    // with no coordination, so whichever write lands second silently
+    // overwrites the first with no error signal. Deduping here (rather than
+    // changing resolveModels' general "pad to N" contract) keeps that
+    // contract intact for any other caller while guaranteeing at most one
+    // thunk — and one write — per distinct model.
+    const uniqueDimModels = Array.from(new Set(dimModels));
+    if (uniqueDimModels.length < dimModels.length) {
+      log(
+        `Review: dimension "${dim}" — resolveModels() padded to ${dimModels.length} model slot(s) but ` +
+          `only ${uniqueDimModels.length} are distinct; deduping at dispatch to avoid a concurrent ` +
+          `duplicate-write race on the same shardPath.`,
+      );
+    }
+    log(
+      `Review: dimension "${dim}" starting — ${uniqueDimModels.length} model(s) x ${batchIds.length} batch(es)`,
+    );
+    const perModel = await parallel(
+      uniqueDimModels.map(
+        (model) => () =>
+          parallel(batchIds.map((batchId) => () => reviewBatch(dim, model, batchId, findingsDir))),
+      ),
+    );
+    const shards = perModel.flat().filter(Boolean);
+    const totalFindings = shards.reduce((sum, s) => sum + (s.count || 0), 0);
+    const cachedCount = shards.filter((s) => s.cached).length;
+    log(
+      `Review: dimension "${dim}" complete — ${shards.length} shard(s), ${totalFindings} finding(s), ` +
+        `${cachedCount} fully cache-replayed`,
+    );
+    return { dimension: dim, shards };
+  });
 }
-log(
-  `Merge: ${mergeReceipt.survivors_count} survivor(s), ${mergeReceipt.over_cap_count} over cap=${MERGE_CAP} ` +
-    `(near-dup policy: ${NEAR_DUP_POLICY})`,
-);
 
-// ─── Phase 4: Verify ────────────────────────────────────────────────────────
+// ─── Phase 3: Merge (per-iteration) ────────────────────────────────────────
+async function runMergePhase(findingsDir, mergedPath) {
+  phase("Merge");
+  const mergeReceipt = await agent(
+    [
+      `Run this exact command:`,
+      `python3 ${SCRIPTS_DIR}/findings_merge.py --in ${findingsDir} --out ${mergedPath} --cap ${MERGE_CAP} --near-dup-policy ${NEAR_DUP_POLICY}`,
+      `Then read ${mergedPath} (JSON). Return ONLY structured output: {artifact: "${mergedPath}", survivors_count: <survivors.length>, over_cap_count: <over_cap.length>, by_priority: <the top-level "by_priority" object from the merged JSON, verbatim>}. Never include finding bodies.`,
+    ].join("\n"),
+    { label: "merge:findings-merge", phase: "Merge", schema: MERGE_RECEIPT_SCHEMA },
+  );
+
+  if (mergeReceipt && mergeReceipt.artifact) {
+    const byPriorityStr = mergeReceipt.by_priority
+      ? JSON.stringify(mergeReceipt.by_priority)
+      : "{}";
+    log(
+      `Merge: ${mergeReceipt.survivors_count} survivor(s), ${mergeReceipt.over_cap_count} over cap=${MERGE_CAP} ` +
+        `(near-dup policy: ${NEAR_DUP_POLICY}) by_priority=${byPriorityStr}`,
+    );
+  }
+  return mergeReceipt;
+}
+
+// ─── Phase 4: Verify (per-iteration) ───────────────────────────────────────
 // One verify agent per FILE with surviving findings (never per finding),
 // batching that file's findings into one verify call.
-phase("Verify");
+async function runVerifyPhase(mergeReceipt) {
+  phase("Verify");
+  let verifyResults = [];
+  let unverifiedBeyondCap = [];
 
-const SEVERITY_RANK = { critical: 0, high: 1, medium: 2, low: 3 };
+  if (!mergeReceipt || !mergeReceipt.survivors_count) {
+    log("Verify: 0 survivors from Merge — nothing to verify.");
+    return { verifyResults, unverifiedBeyondCap };
+  }
 
-let verifyResults = [];
-let unverifiedBeyondCap = [];
-
-if (mergeReceipt.survivors_count > 0) {
   const enumResult = await agent(
     [
       `Read ${mergeReceipt.artifact} (the merged findings JSON — it has a "survivors" array).`,
@@ -737,20 +887,20 @@ if (mergeReceipt.survivors_count > 0) {
       });
     }),
   );
-} else {
-  log("Verify: 0 survivors from Merge — nothing to verify.");
+
+  return { verifyResults, unverifiedBeyondCap };
 }
 
-// ─── Phase 5: Fix ───────────────────────────────────────────────────────────
-// Gated behind args.autofix === true (default false — never fix without
-// opt-in). CONFIRMED && fixable_in_place findings only; toVerify's own cap
-// already excludes unverifiedBeyondCap items from ever reaching a verdict,
-// so they are structurally never eligible here — no extra guard needed.
-let fixSummaryPath = null;
-let fixPatchPath = null;
-let filesSkippedOverCap = [];
-
-if (args && args.autofix === true) {
+// ─── Phase 5: Fix (per-iteration) ──────────────────────────────────────────
+// Gated behind AUTOFIX (args.autofix === true, or args.converge === true).
+// CONFIRMED && fixable_in_place findings only; toVerify's own cap already
+// excludes unverifiedBeyondCap items from ever reaching a verdict, so they
+// are structurally never eligible here — no extra guard needed.
+async function runFixPhase(mergeReceipt, verifyResults, iterSuffix) {
+  if (!AUTOFIX) {
+    log("Fix: skipped — autofix not requested (args.autofix !== true and args.converge !== true).");
+    return null;
+  }
   phase("Fix");
 
   const confirmedFixable = [];
@@ -765,114 +915,220 @@ if (args && args.autofix === true) {
 
   if (confirmedFixable.length === 0) {
     log("Fix: no CONFIRMED + fixable_in_place findings — nothing to fix.");
-  } else {
-    // Pre-fix snapshot — never commits/stages/pushes anything.
-    await agent(
-      [
-        `Run these two commands inside the repo at ${REPO_PATH} (ignore a nonzero exit from the first — a clean tree may have nothing to stash):`,
-        `git stash create > ${joinPath(RUN_DIR, "pre-fix-stash.txt")}`,
-        `git diff HEAD > ${joinPath(RUN_DIR, "pre-fix.patch")}`,
-        `Report success/failure only. Do NOT commit, stage, or push anything.`,
-      ].join("\n"),
-      { label: "fix:snapshot", phase: "Fix" },
+    return { fixSummaryPath: null, fixPatchPath: null, filesSkippedOverCap: [], appliedTotal: 0 };
+  }
+
+  // Pre-fix snapshot — never commits/stages/pushes anything.
+  await agent(
+    [
+      `Run these two commands inside the repo at ${REPO_PATH} (ignore a nonzero exit from the first — a clean tree may have nothing to stash):`,
+      `git stash create > ${joinPath(RUN_DIR, `pre-fix-stash${iterSuffix}.txt`)}`,
+      `git diff HEAD > ${joinPath(RUN_DIR, `pre-fix${iterSuffix}.patch`)}`,
+      `Report success/failure only. Do NOT commit, stage, or push anything.`,
+    ].join("\n"),
+    { label: "fix:snapshot", phase: "Fix" },
+  );
+
+  const byFileFix = new Map();
+  for (const item of confirmedFixable) {
+    if (!byFileFix.has(item.file)) byFileFix.set(item.file, []);
+    byFileFix.get(item.file).push(item.id);
+  }
+  const allFixFiles = Array.from(byFileFix.entries());
+  const fixFilesInCap = allFixFiles.slice(0, FIX_CAP);
+  const fixFilesOverCap = allFixFiles.slice(FIX_CAP);
+  const filesSkippedOverCap = fixFilesOverCap.map(([file, ids]) => ({
+    file,
+    finding_ids: ids,
+    reason: `skipped_over_cap — args.fixCap=${FIX_CAP}`,
+  }));
+  if (filesSkippedOverCap.length) {
+    log(
+      `Fix: ${filesSkippedOverCap.length} file(s) beyond fixCap=${FIX_CAP} — reported as skipped_over_cap, never silently dropped.`,
     );
+  }
 
-    const byFileFix = new Map();
-    for (const item of confirmedFixable) {
-      if (!byFileFix.has(item.file)) byFileFix.set(item.file, []);
-      byFileFix.get(item.file).push(item.id);
-    }
-    const allFixFiles = Array.from(byFileFix.entries());
-    const fixFilesInCap = allFixFiles.slice(0, FIX_CAP);
-    const fixFilesOverCap = allFixFiles.slice(FIX_CAP);
-    filesSkippedOverCap = fixFilesOverCap.map(([file, ids]) => ({
-      file,
-      finding_ids: ids,
-      reason: `skipped_over_cap — args.fixCap=${FIX_CAP}`,
-    }));
-    if (filesSkippedOverCap.length) {
-      log(
-        `Fix: ${filesSkippedOverCap.length} file(s) beyond fixCap=${FIX_CAP} — reported as skipped_over_cap, never silently dropped.`,
-      );
-    }
+  const fixReceiptsDir = joinPath(RUN_DIR, `fix-receipts${iterSuffix}`);
 
-    const fixReceiptsDir = joinPath(RUN_DIR, "fix-receipts");
+  const fixAgentResults = await parallel(
+    fixFilesInCap.map(([file, ids]) => () => {
+      const receiptPath = joinPath(fixReceiptsDir, `${sanitizeForPath(file)}.json`);
+      return agent(
+        [
+          `You are a fix agent for exactly ONE file: "${file}". Never touch any other file.`,
+          `Apply ONLY the CONFIRMED findings with ids ${JSON.stringify(ids)} — read their full bodies from ${mergeReceipt.artifact}.`,
+          `Rules: minimal diff, do NOT reformat unrelated code, do NOT touch any other file, do NOT change public signatures.`,
+          `If a fix would require touching a second file, SKIP that finding instead — do not reach outside "${file}" — and record why in "skipped".`,
+          `Write a fix-receipt JSON to ${receiptPath} matching exactly: {file: "${file}", applied: [{id, summary}], skipped: [{id, reason}]}.`,
+          `Return ONLY structured output: {file: "${file}", applied_count: <n>, skipped_count: <n>}.`,
+        ].join("\n"),
+        { label: `fix:${file}`, phase: "Fix", schema: FIX_AGENT_RESULT_SCHEMA },
+      ).catch((e) => {
+        log(`fix:${file}: agent errored — ${e && e.message ? e.message : e}`);
+        return null;
+      });
+    }),
+  );
+  const appliedTotal = fixAgentResults
+    .filter(Boolean)
+    .reduce((s, r) => s + (r.applied_count || 0), 0);
+  log(`Fix: ${fixFilesInCap.length} file(s) fixed, ${appliedTotal} finding(s) applied.`);
 
-    const fixAgentResults = await parallel(
-      fixFilesInCap.map(([file, ids]) => () => {
-        const receiptPath = joinPath(fixReceiptsDir, `${sanitizeForPath(file)}.json`);
-        return agent(
-          [
-            `You are a fix agent for exactly ONE file: "${file}". Never touch any other file.`,
-            `Apply ONLY the CONFIRMED findings with ids ${JSON.stringify(ids)} — read their full bodies from ${mergeReceipt.artifact}.`,
-            `Rules: minimal diff, do NOT reformat unrelated code, do NOT touch any other file, do NOT change public signatures.`,
-            `If a fix would require touching a second file, SKIP that finding instead — do not reach outside "${file}" — and record why in "skipped".`,
-            `Write a fix-receipt JSON to ${receiptPath} matching exactly: {file: "${file}", applied: [{id, summary}], skipped: [{id, reason}]}.`,
-            `Return ONLY structured output: {file: "${file}", applied_count: <n>, skipped_count: <n>}.`,
-          ].join("\n"),
-          { label: `fix:${file}`, phase: "Fix", schema: FIX_AGENT_RESULT_SCHEMA },
-        ).catch((e) => {
-          log(`fix:${file}: agent errored — ${e && e.message ? e.message : e}`);
-          return null;
-        });
-      }),
+  const summaryMdPath = joinPath(RUN_DIR, `fix-summary${iterSuffix}.md`);
+  const patchPath = joinPath(RUN_DIR, `fix${iterSuffix}.patch`);
+  const statPath = joinPath(RUN_DIR, `fix-stat${iterSuffix}.json`);
+
+  const summaryReceipt = await agent(
+    [
+      `Run this exact command:`,
+      `python3 ${SCRIPTS_DIR}/fix_summary.py --merged ${mergeReceipt.artifact} --fix-receipts-dir ${fixReceiptsDir} --out-summary ${summaryMdPath} --out-patch ${patchPath} --out-stat ${statPath} --repo-root ${REPO_PATH}`,
+      `Return ONLY structured output: {summary_path: "${summaryMdPath}", patch_path: "${patchPath}", stat_path: "${statPath}"}.`,
+    ].join("\n"),
+    { label: "fix:summarize", phase: "Fix", schema: FIX_SUMMARY_SCHEMA },
+  ).catch(() => null);
+
+  const fixSummaryPath = summaryReceipt ? summaryReceipt.summary_path : summaryMdPath;
+  const fixPatchPath = summaryReceipt ? summaryReceipt.patch_path : patchPath;
+
+  // definition-of-done gate, IF the repo defines one — report only, NEVER
+  // auto-revert on failure (loud, not a silent revert; matches this repo's
+  // own documented dod-gate.sh posture). The tree is left dirty on purpose.
+  const dodReceipt = await agent(
+    [
+      `Check whether ${joinPath(REPO_PATH, ".ravenclaude/comfort-posture.yaml")} exists and defines a top-level "definition_of_done" block with a "cmd" field.`,
+      `If it does NOT: return {ran: false, passed: null, output_tail: ""}.`,
+      `If it DOES: run that exact command inside ${REPO_PATH}, capture its exit code and the last ~40 lines of combined output.`,
+      `Do NOT revert, stash, or discard the fix changes regardless of the result — report only. Do NOT commit, stage, or push.`,
+      `Return ONLY structured output: {ran: <bool>, passed: <bool|null>, output_tail: "<last lines, truncated>"}.`,
+    ].join("\n"),
+    { label: "fix:definition-of-done", phase: "Fix", schema: DOD_RESULT_SCHEMA },
+  ).catch(() => null);
+  if (dodReceipt && dodReceipt.ran) {
+    log(
+      `Fix: definition_of_done ${dodReceipt.passed ? "PASSED" : "FAILED"} — reported only, tree left dirty for human review.`,
     );
-    const appliedTotal = fixAgentResults
-      .filter(Boolean)
-      .reduce((s, r) => s + (r.applied_count || 0), 0);
-    log(`Fix: ${fixFilesInCap.length} file(s) fixed, ${appliedTotal} finding(s) applied.`);
+  }
 
-    const summaryMdPath = joinPath(RUN_DIR, "fix-summary.md");
-    const patchPath = joinPath(RUN_DIR, "fix.patch");
-    const statPath = joinPath(RUN_DIR, "fix-stat.json");
+  return { fixSummaryPath, fixPatchPath, filesSkippedOverCap, appliedTotal };
+}
 
-    const summaryReceipt = await agent(
-      [
-        `Run this exact command:`,
-        `python3 ${SCRIPTS_DIR}/fix_summary.py --merged ${mergeReceipt.artifact} --fix-receipts-dir ${fixReceiptsDir} --out-summary ${summaryMdPath} --out-patch ${patchPath} --out-stat ${statPath} --repo-root ${REPO_PATH}`,
-        `Return ONLY structured output: {summary_path: "${summaryMdPath}", patch_path: "${patchPath}", stat_path: "${statPath}"}.`,
-      ].join("\n"),
-      { label: "fix:summarize", phase: "Fix", schema: FIX_SUMMARY_SCHEMA },
-    ).catch(() => null);
+// ─── Iteration loop ─────────────────────────────────────────────────────────
+// CONVERGE=false runs this loop body EXACTLY ONCE (the `if (!CONVERGE) break`
+// at the bottom fires unconditionally on iteration 1) — byte-identical
+// behavior to the pre-convergence single-pass workflow, just restructured
+// into functions so the loop can call the same phases again.
+//
+// The convergence-honesty contract (mirrors this file's existing
+// coverage-honesty contract): the loop NEVER silently claims 0 open findings
+// unless openAfterCount really is 0. A plateau (no further auto-fixable
+// progress — a non-fixable-in-place finding, e.g. one needing a real
+// architecture decision, can make true convergence structurally
+// unreachable) or a hit MAX_ITERATIONS both stop the loop WITHOUT claiming
+// success — the Report phase states which happened and how many P0-P3
+// findings remain, never glossed.
+let iteration = 0;
+let converged = false;
+let plateaued = false;
+let lastResult = null;
+const iterationLog = [];
 
-    fixSummaryPath = summaryReceipt ? summaryReceipt.summary_path : summaryMdPath;
-    fixPatchPath = summaryReceipt ? summaryReceipt.patch_path : patchPath;
+while (iteration < MAX_ITERATIONS) {
+  iteration += 1;
+  const suffix = iteration > 1 ? `-iter${iteration}` : "";
+  const findingsDir = joinPath(RUN_DIR, `findings${suffix}`);
+  const mergedPath = joinPath(RUN_DIR, `merged${suffix}.json`);
 
-    // definition-of-done gate, IF the repo defines one — report only, NEVER
-    // auto-revert on failure (loud, not a silent revert; matches this repo's
-    // own documented dod-gate.sh posture). The tree is left dirty on purpose.
-    const dodReceipt = await agent(
-      [
-        `Check whether ${joinPath(REPO_PATH, ".ravenclaude/comfort-posture.yaml")} exists and defines a top-level "definition_of_done" block with a "cmd" field.`,
-        `If it does NOT: return {ran: false, passed: null, output_tail: ""}.`,
-        `If it DOES: run that exact command inside ${REPO_PATH}, capture its exit code and the last ~40 lines of combined output.`,
-        `Do NOT revert, stash, or discard the fix changes regardless of the result — report only. Do NOT commit, stage, or push.`,
-        `Return ONLY structured output: {ran: <bool>, passed: <bool|null>, output_tail: "<last lines, truncated>"}.`,
-      ].join("\n"),
-      { label: "fix:definition-of-done", phase: "Fix", schema: DOD_RESULT_SCHEMA },
-    ).catch(() => null);
-    if (dodReceipt && dodReceipt.ran) {
-      log(
-        `Fix: definition_of_done ${dodReceipt.passed ? "PASSED" : "FAILED"} — reported only, tree left dirty for human review.`,
-      );
+  if (CONVERGE) log(`Converge: iteration ${iteration}/${MAX_ITERATIONS} starting.`);
+
+  await runReviewPhase(findingsDir);
+  const mergeReceipt = await runMergePhase(findingsDir, mergedPath);
+
+  if (!mergeReceipt || !mergeReceipt.artifact) {
+    return {
+      error: `Merge phase failed at iteration ${iteration} — findings_merge.py did not return a usable receipt.`,
+    };
+  }
+
+  const { verifyResults, unverifiedBeyondCap } = await runVerifyPhase(mergeReceipt);
+
+  const counts = { confirmed: 0, plausible: 0, refuted: 0, unverified: unverifiedBeyondCap.length };
+  for (const vr of verifyResults) {
+    if (!vr) continue;
+    for (const v of vr.verdicts || []) {
+      if (v.verdict === "CONFIRMED") counts.confirmed += 1;
+      else if (v.verdict === "PLAUSIBLE") counts.plausible += 1;
+      else if (v.verdict === "REFUTED") counts.refuted += 1;
     }
   }
-} else {
-  log("Fix: skipped — args.autofix !== true (autofix defaults to false).");
+
+  const fixResult = await runFixPhase(mergeReceipt, verifyResults, suffix);
+  const appliedTotal = fixResult ? fixResult.appliedTotal : 0;
+
+  // "Open" P0-P3 findings after this pass: CONFIRMED findings that were NOT
+  // successfully applied (not fixable_in_place, skipped_over_cap, or a fix
+  // agent error) + PLAUSIBLE (a real risk that couldn't be fully confirmed)
+  // + unverified-beyond-verifyCap. REFUTED and successfully-applied CONFIRMED
+  // findings are resolved and do not count.
+  const openAfterCount =
+    Math.max(0, counts.confirmed - appliedTotal) + counts.plausible + counts.unverified;
+
+  lastResult = {
+    iteration,
+    findingsDir,
+    mergeReceipt,
+    verifyResults,
+    counts,
+    fixResult,
+    appliedTotal,
+    openAfterCount,
+    byPriority: mergeReceipt.by_priority || null,
+  };
+  iterationLog.push({
+    iteration,
+    survivors: mergeReceipt.survivors_count,
+    confirmed: counts.confirmed,
+    applied: appliedTotal,
+    openAfter: openAfterCount,
+  });
+  log(
+    `Converge: iteration ${iteration} — survivors=${mergeReceipt.survivors_count} confirmed=${counts.confirmed} ` +
+      `applied=${appliedTotal} open_after=${openAfterCount}`,
+  );
+
+  if (!CONVERGE) break;
+
+  if (openAfterCount === 0) {
+    converged = true;
+    log(`Converge: CONVERGED after ${iteration} iteration(s) — 0 open P0-P3 findings.`);
+    break;
+  }
+  if (iteration >= MAX_ITERATIONS) {
+    log(
+      `Converge: hit MAX_ITERATIONS=${MAX_ITERATIONS} with ${openAfterCount} finding(s) still open — stopping.`,
+    );
+    break;
+  }
+  if (appliedTotal === 0) {
+    plateaued = true;
+    log(
+      `Converge: plateaued after ${iteration} iteration(s) — no further CONFIRMED+fixable findings could ` +
+        `be applied; ${openAfterCount} finding(s) remain open and need human review.`,
+    );
+    break;
+  }
+  // else: real progress was made this pass (appliedTotal > 0) and findings
+  // remain open — loop again. review_cache.py's content-hash invalidation
+  // means only the files Fix just touched miss cache on the next Review
+  // pass; every untouched file replays from cache at near-zero cost.
 }
 
 // ─── Phase 6: Report ────────────────────────────────────────────────────────
 phase("Report");
 
-const counts = { confirmed: 0, plausible: 0, refuted: 0, unverified: unverifiedBeyondCap.length };
-for (const vr of verifyResults) {
-  if (!vr) continue;
-  for (const v of vr.verdicts || []) {
-    if (v.verdict === "CONFIRMED") counts.confirmed += 1;
-    else if (v.verdict === "PLAUSIBLE") counts.plausible += 1;
-    else if (v.verdict === "REFUTED") counts.refuted += 1;
-  }
-}
+const finalCounts = lastResult.counts;
+const finalMergeReceipt = lastResult.mergeReceipt;
+const finalFix = lastResult.fixResult;
+const finalByPriority = lastResult.byPriority;
 
 const coverage = mapReceipt.coverage || {};
 const filesDeferred = typeof coverage.files_deferred === "number" ? coverage.files_deferred : 0;
@@ -900,36 +1156,80 @@ if (filesDeferred > 0 && filesCovered != null) {
   coverageLine = "Every reviewable file at this budget was covered — no files were deferred.";
 }
 
+// ─── The convergence-honesty contract ──────────────────────────────────────
+// Mirrors the coverage-honesty contract above: NEVER silently claim the repo
+// is clean. Exactly one of the three lines below is chosen, and each states
+// the real openAfterCount rather than glossing it.
+let convergenceLine = null;
+if (CONVERGE) {
+  if (converged) {
+    convergenceLine = `CONVERGED — 0 open P0-P3 finding(s) remain after ${iteration} iteration(s).`;
+  } else if (plateaued) {
+    convergenceLine =
+      `NOT CONVERGED — plateaued after ${iteration} iteration(s): no further CONFIRMED+fixable findings ` +
+      `could be auto-applied. ${lastResult.openAfterCount} P0-P3 finding(s) remain open (not ` +
+      `fixable-in-place, over fixCap, or a fix agent could not apply them) and need human review.`;
+  } else {
+    convergenceLine =
+      `NOT CONVERGED — hit convergeMaxIterations=${MAX_ITERATIONS} with ${lastResult.openAfterCount} ` +
+      `P0-P3 finding(s) still open. Re-run with a higher convergeMaxIterations or resolve the ` +
+      `remainder manually.`;
+  }
+}
+
+const priorityLine = finalByPriority
+  ? `By priority — P0: ${finalByPriority.P0 || 0}  P1: ${finalByPriority.P1 || 0}  P2: ${finalByPriority.P2 || 0}  P3: ${finalByPriority.P3 || 0}` +
+    (finalByPriority.unknown ? `  unknown: ${finalByPriority.unknown}` : "")
+  : null;
+
 const reportMdPath = joinPath(RUN_DIR, "report.md");
 const reportBody = [
   coverageLine,
+  convergenceLine,
   "",
   `# repo-sweep report — ${RUN_ID}`,
   "",
   `Effort tier: ${EFFORT}${crossModelActive ? " (cross-model)" : ""} — sampling: ${tierCfg.sampling}`,
   `Dimensions reviewed: ${activeDimensions.join(", ")}`,
   `Batches: ${batchIds.length}`,
+  CONVERGE ? `Converge mode: ${iteration} iteration(s) run (max ${MAX_ITERATIONS})` : null,
   "",
-  "## Verify results",
-  `- CONFIRMED: ${counts.confirmed}`,
-  `- PLAUSIBLE: ${counts.plausible}`,
-  `- REFUTED: ${counts.refuted}`,
-  `- Unverified (beyond verifyCap=${VERIFY_CAP}): ${counts.unverified}`,
+  "## Verify results (final iteration)",
+  `- CONFIRMED: ${finalCounts.confirmed}`,
+  `- PLAUSIBLE: ${finalCounts.plausible}`,
+  `- REFUTED: ${finalCounts.refuted}`,
+  `- Unverified (beyond verifyCap=${VERIFY_CAP}): ${finalCounts.unverified}`,
+  priorityLine ? `- ${priorityLine}` : null,
   "",
-  args && args.autofix === true
+  AUTOFIX
     ? [
-        "## Fix",
-        `- Patch: ${fixPatchPath || "(none — nothing fixable)"}`,
-        `- Fix summary: ${fixSummaryPath || "(none)"}`,
-        `- Files skipped over fixCap=${FIX_CAP}: ${filesSkippedOverCap.length}`,
+        "## Fix (final iteration)",
+        `- Patch: ${finalFix && finalFix.fixPatchPath ? finalFix.fixPatchPath : "(none — nothing fixable)"}`,
+        `- Fix summary: ${finalFix && finalFix.fixSummaryPath ? finalFix.fixSummaryPath : "(none)"}`,
+        `- Files skipped over fixCap=${FIX_CAP}: ${finalFix ? finalFix.filesSkippedOverCap.length : 0}`,
       ].join("\n")
-    : "## Fix\n- autofix was not enabled for this run (args.autofix !== true).",
+    : "## Fix\n- autofix was not enabled for this run (args.autofix !== true and args.converge !== true).",
+  CONVERGE
+    ? [
+        "",
+        "## Convergence",
+        convergenceLine,
+        "",
+        "### Iteration history",
+        ...iterationLog.map(
+          (r) =>
+            `- iteration ${r.iteration}: survivors=${r.survivors} confirmed=${r.confirmed} applied=${r.applied} open_after=${r.openAfter}`,
+        ),
+      ].join("\n")
+    : null,
   "",
   "## Artifacts",
-  `- Findings shards: ${FINDINGS_DIR}/`,
-  `- Merged findings: ${mergeReceipt.artifact}`,
+  `- Findings shards (final iteration): ${lastResult.findingsDir}/`,
+  `- Merged findings (final iteration): ${finalMergeReceipt.artifact}`,
   `- Plan: ${PLAN_PATH}`,
-].join("\n");
+]
+  .filter((line) => line !== null && line !== undefined)
+  .join("\n");
 
 await agent(
   `Write the following Markdown VERBATIM to ${reportMdPath} (create parent directories as needed). Content follows between the markers exactly as given, without alteration:\n---BEGIN---\n${reportBody}\n---END---`,
@@ -940,9 +1240,19 @@ log(`Report written to ${reportMdPath}`);
 
 return {
   coverage,
-  counts,
-  findings_artifact: mergeReceipt.artifact,
-  patch: args && args.autofix === true && fixPatchPath ? fixPatchPath : null,
-  fix_summary: args && args.autofix === true && fixSummaryPath ? fixSummaryPath : null,
+  counts: finalCounts,
+  by_priority: finalByPriority,
+  findings_artifact: finalMergeReceipt.artifact,
+  patch: AUTOFIX && finalFix && finalFix.fixPatchPath ? finalFix.fixPatchPath : null,
+  fix_summary: AUTOFIX && finalFix && finalFix.fixSummaryPath ? finalFix.fixSummaryPath : null,
   report_md: reportMdPath,
+  converge: CONVERGE
+    ? {
+        iterations: iteration,
+        max_iterations: MAX_ITERATIONS,
+        converged,
+        plateaued,
+        open_after: lastResult.openAfterCount,
+      }
+    : undefined,
 };

@@ -230,25 +230,6 @@ def verify(archive_path: str, table: dict[str, Any],
             notes.append("extraction skipped: the archive carries unsafe member paths")
             return findings, notes
 
-        # ── ZP05: exactly one distinct top-level path component ──────────────
-        tops = sorted({n.replace("\\", "/").split("/", 1)[0] for n in names if n.strip()})
-        if len(tops) != 1:
-            findings.append(_zp(table, "ZP05", archive_path,
-                                "%d distinct top-level entries (%s); expected exactly one"
-                                % (len(tops), ", ".join(tops[:6]))))
-
-        # ── ZP07: Finder / VCS artifacts ─────────────────────────────────────
-        junk = sorted({n for n in names if _excluded(n, pats)})
-        for n in junk:
-            findings.append(_zp(table, "ZP07", n,
-                                "non-shippable entry in the archive: %s" % n))
-
-        # ── ZP04: the studio's own report must not travel ────────────────────
-        for n in names:
-            if os.path.basename(n) in REPORT_NAMES:
-                findings.append(_zp(table, "ZP04", n,
-                                    "the validation report is inside the archive: %s" % n))
-
         # ── locate SKILL.md ──────────────────────────────────────────────────
         # ⛔ CASE-INSENSITIVE MATCH, then WARN on non-canonical casing (ZP10).
         # Anthropic's own sources disagree: support article 12512198 writes lowercase
@@ -257,6 +238,13 @@ def verify(archive_path: str, table: dict[str, Any],
         # archive built by following Anthropic's own worked example — measured, it
         # reported "contains 0 SKILL.md entries" on a perfectly good bundle. Rejecting
         # on a point where the vendor contradicts itself is not ground truth.
+        #
+        # ⛔ THIS BLOCK RUNS BEFORE ZP05 ON PURPOSE. ZP05's Layout-A invariant ("exactly
+        # one top-level entry") only makes sense once we know whether the archive is
+        # DECLARING itself Layout A (SKILL.md nested one level under a folder) or Layout
+        # B (SKILL.md at the root, siblings at the root too — the shape `pack(...,
+        # layout="B")` itself produces). Checking ZP05 before this ran unconditionally
+        # against BOTH layouts and hard-failed every correctly-formed B archive.
         skill_entries = [n for n in names if os.path.basename(n).lower() == "skill.md"]
         for n in skill_entries:
             if os.path.basename(n) != "SKILL.md":
@@ -272,6 +260,37 @@ def verify(archive_path: str, table: dict[str, Any],
         skill_entry = skill_entries[0]
         depth = skill_entry.replace("\\", "/").count("/")
         observed = "B" if depth == 0 else "A"
+
+        # ── ZP05: exactly one distinct top-level path component — LAYOUT-A ONLY ──
+        # This is the Layout-A invariant (`my-skill/SKILL.md`, `my-skill/reference/…`
+        # all under one top-level folder name), not a universal one. Layout B is
+        # documented as "flat at root" (reference/platform-constraints.md's own
+        # `zip-root-settlement` table) — SKILL.md and its siblings ARE separate
+        # top-level entries there, by definition, and that is the shape `pack(...,
+        # layout="B")` produces. Gating on `observed` (derived above from SKILL.md's
+        # own depth) means this rule tracks whichever layout the archive actually is,
+        # the same signal ZP02 already uses for the same A-vs-B question — so a future
+        # settlement of platform-constraints.md doesn't need a second code change here.
+        if observed == "A":
+            tops = sorted({n.replace("\\", "/").split("/", 1)[0] for n in names if n.strip()})
+            if len(tops) != 1:
+                findings.append(_zp(table, "ZP05", archive_path,
+                                    "%d distinct top-level entries (%s); expected exactly "
+                                    "one for a layout-A archive (SKILL.md nested under a "
+                                    "single folder)"
+                                    % (len(tops), ", ".join(tops[:6]))))
+
+        # ── ZP07: Finder / VCS artifacts ─────────────────────────────────────
+        junk = sorted({n for n in names if _excluded(n, pats)})
+        for n in junk:
+            findings.append(_zp(table, "ZP07", n,
+                                "non-shippable entry in the archive: %s" % n))
+
+        # ── ZP04: the studio's own report must not travel ────────────────────
+        for n in names:
+            if os.path.basename(n) in REPORT_NAMES:
+                findings.append(_zp(table, "ZP04", n,
+                                    "the validation report is inside the archive: %s" % n))
 
         # ── ZP02: root shape, at the tier the EVIDENCE FILE derives ──────────
         tier, accepted = derive_zp02_tier(zp02_evidence or "")

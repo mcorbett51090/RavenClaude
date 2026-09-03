@@ -153,7 +153,8 @@ def _safe_path(raw: str) -> str:
         sys.exit(2)
     repo = _repo_root()
     abs_path = os.path.realpath(os.path.join(os.getcwd(), raw))
-    if not abs_path.startswith(os.path.realpath(repo)):
+    real_repo = os.path.realpath(repo)
+    if not (abs_path == real_repo or abs_path.startswith(real_repo + os.sep)):
         print(f"[error] path escapes repo root: {abs_path!r}", file=sys.stderr)
         sys.exit(2)
     return abs_path
@@ -185,7 +186,8 @@ def _walk(obj, violations: list, path: str = "$") -> None:
         if isinstance(transforms, list):
             for i, t in enumerate(transforms):
                 if isinstance(t, dict) and t.get("lookup") is not None:
-                    from_data = t.get("from", {}).get("data", {})
+                    from_val = t.get("from") or {}
+                    from_data = from_val.get("data", {}) if isinstance(from_val, dict) else {}
                     if isinstance(from_data, dict) and "url" in from_data:
                         violations.append(
                             ("transform-lookup", f"{path}.transform[{i}].from.data.url")
@@ -234,6 +236,7 @@ def _check_json_quality(obj: dict, violations: list, warnings: list) -> None:
         mark_type = mark["type"].lower()
 
     encoding = obj.get("encoding") or {}
+    encoding = encoding if isinstance(encoding, dict) else {}
 
     # (i) encoding-completeness
     if mark_type in _POSITION_REQUIRED_MARKS:

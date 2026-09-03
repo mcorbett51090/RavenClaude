@@ -46,6 +46,14 @@ backing it — false positives are costly (a confirmed finding gets auto-fixed l
 dimension, the required output is a written, empty JSON array — the file must still exist at
 `{output_path}`, since an absent file is indistinguishable from a crashed agent to the orchestrator.
 
+**A review agent never emits `priority` — do not add it to this schema.** `findings_merge.py`
+derives a P0-P3 priority downstream, deterministically, from `severity` alone (`blocking→P0`,
+`major→P1`, `minor→P2`, `nit→P3` — see `PRIORITY_MAP` in that script). Each dimension already
+bounds its own severity ceiling below (performance never emits `blocking`; dead-code-simplification
+always emits `nit`), so severity already carries the dimension-aware urgency signal; priority is
+purely a relabeling of it for reporting and for `/repo-review --converge`'s stop condition, not a
+second judgment call an agent needs to make.
+
 ---
 
 ## 1. correctness

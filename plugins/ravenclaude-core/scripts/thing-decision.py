@@ -1046,7 +1046,13 @@ def resolve_tier_config(root: Path, posture: dict | None) -> tuple[dict, str | N
                 if isinstance(entry.get("seats"), list):
                     tiers[t]["seats"] = [s for s in entry["seats"] if s in _SEATS]
                 if isinstance(entry.get("mandatory_seats"), list):
-                    tiers[t]["mandatory"] = [s for s in entry["mandatory_seats"] if s in _SEATS]
+                    # `mandatory` can't be REMOVED by a dashboard override — it is
+                    # re-unioned with the tier's built-in mandatory floor (see the
+                    # _DEFAULT_TIERS comment above). A config can only ADD mandatory
+                    # seats, never relax the floor by supplying a shorter/empty list.
+                    configured = {s for s in entry["mandatory_seats"] if s in _SEATS}
+                    floor = set(_DEFAULT_TIERS.get(t, {}).get("mandatory", []))
+                    tiers[t]["mandatory"] = [s for s in _SEATS if s in (floor | configured)]
                 if isinstance(entry.get("confidence_threshold"), (int, float)):
                     tiers[t]["confidence"] = float(entry["confidence_threshold"])
 
