@@ -4,10 +4,12 @@
 Reads a directory of `<dimension>.<model>.<batch_id>.json` finding-shard files
 (each a JSON array of finding objects emitted by a review-agent dispatch),
 deduplicates/merges near-identical findings by a stable hash key, tags near
-duplicates, applies an optional survivor cap, and writes one merged JSON
-report. Pure function of its input files -> byte-identical output on a
-re-run against the same commit (same input bytes, same flags). No model
-calls, no network.
+duplicates, applies an optional survivor cap, derives a P0-P3 `priority` per
+survivor (a deterministic relabeling of `severity` — see PRIORITY_MAP), and
+writes one merged JSON report carrying a top-level `by_priority` count.
+Pure function of its input files -> byte-identical output on a re-run
+against the same commit (same input bytes, same flags). No model calls, no
+network.
 """
 
 from __future__ import annotations
@@ -24,7 +26,27 @@ from pathlib import Path
 SEVERITY_RANK = {"blocking": 0, "major": 1, "minor": 2, "nit": 3}
 UNKNOWN_SEVERITY_RANK = len(SEVERITY_RANK)
 
+# P0-P3 is a direct, deterministic relabeling of the same 4-tier severity
+# scale — NOT a second, independently-judged axis. Each dimension already
+# bounds its own severity ceiling (dimensions.md: performance never emits
+# "blocking"; dead-code-simplification always emits "nit"), so severity
+# already carries the dimension-aware urgency signal; priority just gives
+# that signal a name a convergence loop (or a human) can key a stop
+# condition on. blocking=P0 (data corruption / crash / security-critical),
+# major=P1 (real bug, not yet catastrophic), minor=P2, nit=P3 (style /
+# simplification, never blocks anything).
+PRIORITY_MAP = {"blocking": "P0", "major": "P1", "minor": "P2", "nit": "P3"}
+PRIORITY_ORDER = ["P0", "P1", "P2", "P3"]
+
 TOKEN_RE = re.compile(r"[a-zA-Z_][a-zA-Z0-9_]{2,}")
+
+
+def priority_for(severity) -> str | None:
+    """Deterministic severity -> priority relabeling. None for an unrecognized
+    severity — never silently guessed to a tier (an unrecognized value should
+    be visible as "priority: null", not laundered into a plausible-looking
+    P2)."""
+    return PRIORITY_MAP.get(severity)
 
 # <dimension>.<model>.<batch_id>.json — batch_id may itself contain dots, so
 # dimension and model are the first two dot-separated segments and batch_id
@@ -155,6 +177,7 @@ def merge_findings(records: list[tuple[str, str, str, dict]]) -> list[dict]:
                 "file": g["file"],
                 "line": g["line"],
                 "severity": g["severity"],
+                "priority": priority_for(g["severity"]),
                 "title": g["title"],
                 "failure_scenario": g["failure_scenario"],
                 "evidence_quote": g["evidence_quote"],
@@ -234,6 +257,24 @@ def apply_cap(survivors: list[dict], cap: int) -> tuple[list[dict], list[dict]]:
 # --------------------------------------------------------------------------- #
 
 
+def priority_counts(survivors: list[dict]) -> dict:
+    """P0-P3 counts over a survivor list — fixed key order (PRIORITY_ORDER) so
+    the emitted JSON is deterministic; a survivor whose severity didn't map to
+    a known priority is counted separately rather than silently dropped or
+    guessed into a tier."""
+    counts = dict.fromkeys(PRIORITY_ORDER, 0)
+    unknown = 0
+    for s in survivors:
+        p = s.get("priority")
+        if p in counts:
+            counts[p] += 1
+        else:
+            unknown += 1
+    if unknown:
+        counts["unknown"] = unknown
+    return counts
+
+
 def run_merge(in_dir: str, cap: int, near_dup_policy: str) -> dict:
     records = load_shards(in_dir)
     raw_input_count = len(records)
@@ -249,6 +290,7 @@ def run_merge(in_dir: str, cap: int, near_dup_policy: str) -> dict:
         "survivors": capped_survivors,
         "over_cap": over_cap,
         "judge_candidates": judge_candidates,
+        "by_priority": priority_counts(capped_survivors),
         "stats": {
             "raw_input_count": raw_input_count,
             "after_dedup_count": after_dedup_count,
@@ -629,6 +671,38 @@ def _self_test() -> int:
             and {r8["judge_candidates"][0]["a"], r8["judge_candidates"][0]["b"]}
             == {"sql-inj-sonnet", "sql-inj-opus"},
             str(r8["judge_candidates"]),
+        )
+
+        # ------------------------------------------------------------- #
+        # Test 9 — priority derivation + by_priority counts
+        # ------------------------------------------------------------- #
+        check(
+            "test9: priority_for maps every real severity",
+            [priority_for(s) for s in ["blocking", "major", "minor", "nit"]]
+            == ["P0", "P1", "P2", "P3"],
+            str([priority_for(s) for s in ["blocking", "major", "minor", "nit"]]),
+        )
+        check(
+            "test9: priority_for(unknown) is None, never guessed",
+            priority_for("made-up-severity") is None,
+            str(priority_for("made-up-severity")),
+        )
+        check(
+            "test9: cap-fixture survivors carry the right priority",
+            {s["id"]: s["priority"] for s in r5["survivors"]}
+            == {"cap-1": "P0", "cap-2": "P1"},
+            str({s["id"]: s["priority"] for s in r5["survivors"]}),
+        )
+        r5_by_priority = run_merge(t5, cap=0, near_dup_policy="keep-separate")["by_priority"]
+        check(
+            "test9: by_priority counts the full 5-finding fixture correctly",
+            r5_by_priority == {"P0": 1, "P1": 2, "P2": 1, "P3": 1},
+            str(r5_by_priority),
+        )
+        check(
+            "test9: by_priority carries fixed key order P0..P3",
+            list(r5_by_priority.keys()) == PRIORITY_ORDER,
+            str(list(r5_by_priority.keys())),
         )
 
     print(f"\n{'ALL PASS' if not failures else f'{len(failures)} FAILED'}: {len(failures)} failing")

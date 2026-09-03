@@ -28,6 +28,7 @@ no single diff-scoped review ever saw. Reach for `/code-review` to review a chan
 ```
 /repo-review [effort] [--only <pathspec>] [--since <ref>] [--fix] [--full]
              [--cross-model | --no-cross-model] [--risk-floor <n>] [--estimate-only]
+             [--converge [--max-iterations <n>]]
 ```
 
 - **`effort`** — `high | xhigh | max | ultra`. See the ladder below. `low`/`medium` are **refused**,
@@ -47,6 +48,10 @@ no single diff-scoped review ever saw. Reach for `/code-review` to review a chan
   a given effort tier.
 - **`--estimate-only`** — run only the zero-agent-call chunk/score pass (`repo_map.py` +
   `estimate_cost.py`) and print the projected agent-call count. No review agent is dispatched.
+- **`--converge [--max-iterations <n>]`** — loop Review→Merge→Verify→Fix until the repo has **0 open
+  P0-P3 findings**, or until no further CONFIRMED+fixable finding can be auto-applied (a plateau),
+  capped at `<n>` iterations (default 5, hard-capped at 20). Implies `--fix`. See
+  [§ Convergence loop](#convergence-loop---converge) below.
 
 ## Why `low`/`medium` are refused, not degraded
 
@@ -99,6 +104,63 @@ them, so paying for the dimension text happens once, at the tier that actually n
 `high` runs the first 4 (correctness / security / concurrency / resource-leaks); `xhigh`/`max`/`ultra`
 run all 8, including `ci-cd-actions-security`.
 
+## P0-P3 priority
+
+Every survivor in the merged findings JSON carries a `priority` field, `P0` through `P3` — a
+**deterministic relabeling of `severity`** computed by `findings_merge.py`'s `priority_for()`, never a
+second, independently-judged tier a review agent has to decide:
+
+| severity   | priority | meaning |
+|---|---|---|
+| `blocking` | **P0**   | data corruption, crash, or security-critical on realistic input |
+| `major`    | **P1**   | a real bug, not yet catastrophic |
+| `minor`    | **P2**   | a real but low-impact issue |
+| `nit`      | **P3**   | style / simplification — never blocking, never fixable-in-place-required |
+
+This works because each dimension already **bounds its own severity ceiling** (`performance` never
+emits `blocking`; `dead-code-simplification` always emits `nit` — see the per-dimension prompts in
+`reference/dimensions.md`), so `severity` already carries the dimension-aware urgency signal — priority
+just gives it a name a human, a report, or `--converge`'s stop condition can key off. The merged JSON's
+top-level `by_priority` object (`{P0, P1, P2, P3}`, plus `unknown` for an unrecognized severity — never
+silently guessed into a tier) is the run's priority breakdown at a glance.
+
+## Convergence loop (`--converge`)
+
+By default `/repo-review --fix` runs the Review→Merge→Verify→Fix pipeline **once**: it applies every
+CONFIRMED + fixable-in-place finding it found in that single pass and stops, even if new (or previously
+non-fixable-in-place) findings remain. `--converge` instead **loops** the pipeline — Review→Merge→
+Verify→Fix, again, and again — until one of three things happens:
+
+1. **Converged** — the repo has **0 open P0-P3 findings** (every survivor was REFUTED or successfully
+   applied). The loop stops and the report says so.
+2. **Plateaued** — a pass applied **0** new fixes (every remaining CONFIRMED finding is not
+   fixable-in-place, was skipped over the fix cap, or a fix agent could not apply it; or every
+   remaining finding is PLAUSIBLE/unverified rather than CONFIRMED). Looping further would burn budget
+   with no possible progress, so the loop stops and reports the remaining open count as needing
+   **human review** — never silently claimed clean.
+3. **`--max-iterations` hit** (default 5, hard-capped at 20) — the loop stops and reports the open
+   count, same honesty rule.
+
+**Cost stays bounded because of the existing content-hash cache** (`review_cache.py`) — a Fix pass
+only ever touches the files it actually edited, so the *next* Review pass gets a cache hit (near-zero
+cost) on every file it didn't touch and only genuinely re-reviews what changed. Each iteration's
+findings/merged-JSON/fix-receipts land at suffixed paths (`findings-iter2/`, `merged-iter2.json`, …) so
+no iteration's artifacts overwrite another's — the final report always cites the last iteration's
+paths, and the full history (survivors/confirmed/applied/open-after per iteration) is in the report's
+"Convergence" section.
+
+**The convergence-honesty contract** (mirrors this skill's existing coverage-honesty contract): the
+report's convergence line is **never omitted** and **never claims 0 open findings unless it's true** —
+"CONVERGED — 0 open P0-P3 finding(s)" only when the loop actually reached 0; otherwise "NOT CONVERGED —
+plateaued…" or "NOT CONVERGED — hit convergeMaxIterations…", each stating the real remaining count.
+
+⛔ **A convergence loop cannot force a fix a fix agent has already declined.** A finding whose
+`fixable_in_place` is `false` (e.g. it needs an architectural decision, a signature change, or a
+cross-file coordination the fix agent is deliberately barred from making) will **plateau every run** —
+that is by design, not a bug: `--converge` is honest that it converges to "everything auto-fixable is
+fixed," not to "every finding is gone." The report's plateau line names this explicitly so a human
+knows what's left and why it's theirs.
+
 ## Mechanism
 
 Deterministic **chunking** ([`scripts/repo_map.py`](scripts/repo_map.py)) partitions the reviewable
@@ -112,9 +174,11 @@ Map (assign batches) → Review (dimension-sharded, cross-model-checked per the 
 (deterministic dedup — [`scripts/findings_merge.py`](scripts/findings_merge.py)) → Verify
 (batched by file, a third model verifies a sampled subset of findings per this repo's cross-model
 anti-correlated-error pattern) → Fix (batched by file, confirmed-findings-only, never committed) →
-Report. A pre-flight cost estimator ([`scripts/estimate_cost.py`](scripts/estimate_cost.py))
-implements the `--estimate-only` path and is also what a normal run consults first to decide whether
-`--full` at the requested tier is affordable before dispatching a single review agent.
+Report, with each survivor carrying a derived P0-P3 priority. A pre-flight cost estimator
+([`scripts/estimate_cost.py`](scripts/estimate_cost.py)) implements the `--estimate-only` path and is
+also what a normal run consults first to decide whether `--full` at the requested tier is affordable
+before dispatching a single review agent. When `--converge` is set, the Review→Merge→Verify→Fix span
+loops (see [§ Convergence loop](#convergence-loop---converge) above) instead of running once.
 
 ## §6 — Honest status (read this before trusting the mechanism section above)
 
@@ -132,6 +196,26 @@ as [Gate 258](../../../../scripts/audit-gates.sh) in `audit-gates.sh` (dispatche
 | `scripts/findings_merge.py` | dedup, corroboration, severity-merge, cap, near-dup collapsing, determinism |
 | `scripts/fix_summary.py` | row-count == applied-count invariant, anomaly handling |
 | `scripts/estimate_cost.py` | tier refusal (low/medium), cardinality formula, the >3000-file hard cap for `--full` |
+| `scripts/findings_merge.py` priority derivation | P0-P3 `priority_for()` map, `by_priority` counts, fixed key order (test9) |
+
+**The `--converge` loop's SAFETY invariants (never its runtime behavior) are gated structurally**, via
+[`scripts/check-repo-review-converge.mjs`](../../../../scripts/check-repo-review-converge.mjs) — also
+part of [Gate 260](../../../../scripts/audit-gates.sh), the same tier as Gate 51's shell-router checker
+and Gate 144's prompt-builder XSS-floor checker: pure text-based assertions over the workflow source
+(no `eval`/`new Function`), proving `MAX_ITERATIONS` is clamped to `[1, 20]`, the three loop exits
+(converged / plateau / max-iterations) and their honesty-contract report lines are present, `AUTOFIX`
+correctly implies `CONVERGE`, `openAfterCount` can never go negative, and the SEVERITY_RANK regression
+(below) can't silently reappear — each with a must-fail teeth mutant. **This does NOT prove the loop
+converges correctly at runtime** — that needs a real dispatched multi-iteration run, which this build
+did not do (see the `Workflow`-tool caveat below; the same honest limit applies).
+
+**A real pre-existing bug was found and fixed while building this:** the workflow's own Verify-phase
+severity sort used `{critical:0, high:1, medium:2, low:3}` — a vocabulary that has **never** matched
+what dimension agents actually emit (`blocking|major|minor|nit`, per `reference/dimensions.md` and
+`findings_merge.py`'s own `SEVERITY_RANK`). Every real finding's severity therefore fell through to the
+`?? 9` fallback, so the "severity-sorted verifyCap" was silently unsorted (a stable no-op) on every run
+this skill has ever made. Fixed by using the same map `findings_merge.py` already uses; Gate 260 pins
+the regression.
 
 **Proven end-to-end against a real, live-dispatched run — not just self-tests against synthetic
 fixtures.** The full pipeline (Map → Review, single-model then cross-model → Merge → Verify → Fix →
@@ -175,6 +259,13 @@ tagging), but the `corroboration` field will read `null` for some real duplicate
 further via threshold-tuning risks overfitting to two examples; the plan's own `judge` policy tier
 (deferring marginal near-dup calls to a real model) is the principled fix, not yet built.
 
+**`--converge` has NOT been proven end-to-end against a real multi-iteration dispatched run.** Its
+safety invariants are gated structurally (Gate 260, above); its actual convergence behavior — does a
+real repo's findings genuinely shrink pass over pass, does the content-hash cache actually keep the
+re-review cost near-zero on a live run, does a real plateau get correctly detected — has not been
+observed. Do not cite this skill's convergence-loop section as proof it has converged a real repo; it
+is reasoned-through and structurally gated, not yet measured.
+
 **`workflows/repo-sweep.workflow.js` is an authored, complete Workflow script**, following this repo's
 own `rc-deep-research.js` conventions — but **it has NOT itself been executed via the real `Workflow`
 tool.** The proof-run above used direct `Agent`-tool dispatch to exercise the identical orchestration
@@ -192,6 +283,11 @@ reference shape... Claude adapts it to the task at hand."*
 - `audit-gates.sh` Gate 258 registered (dispatcher + main sequence + `Supported:`), with a must-fail
   teeth check, passing.
 - `.repo-layout.json` — no change needed (already covers every path this skill and its siblings touch).
+- **P0-P3 priority + `--converge` loop (this build):** `findings_merge.py` gained `priority_for()` +
+  `by_priority`, exercised by its own `--self-test` (test9). The workflow's Verify-phase severity-sort
+  mismatch (found while wiring this) was fixed. `audit-gates.sh` Gate 260 registered (dispatcher + main
+  sequence + `Supported:`), with 2 must-fail teeth checks (plateau-detection stripped; the old
+  mismatched severity map restored), passing.
 
 **Not yet done, stated explicitly so nobody assumes it silently happened:**
 
@@ -201,6 +297,8 @@ reference shape... Claude adapts it to the task at hand."*
   choice.
 - The `judge` near-duplicate policy tier's real model-adjudication step (currently: tag + collect only,
   per the merge script's own documented scope).
+- **A real multi-iteration `--converge` run** — the loop's SAFETY invariants are gated structurally
+  (Gate 260); its actual runtime convergence behavior on a real repo has not been observed (see above).
 
 Do not cite this skill's mechanism section as proof the pipeline has been run at production scale
 against a real repo. It has been proven correct on a small, real, live-dispatched run — not yet at
