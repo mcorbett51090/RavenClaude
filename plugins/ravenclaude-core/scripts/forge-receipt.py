@@ -222,12 +222,29 @@ def append(gate, receipt_path, run_dir):
         if not artifact and not _NEUTER_ARTIFACT_CHECK:
             return 2, {"error": "refused: status=pass with no artifact named", "gate": gate}
         abs_path = _resolve_artifact(artifact, run_dir) if artifact else ""
-        try:
-            size = os.path.getsize(abs_path) if abs_path else 0
-        except OSError:
+        # ⛔ isfile() FIRST, and it is load-bearing — not defensive padding.
+        # os.path.getsize() on a DIRECTORY returns its inode size (384, 416, ...),
+        # which is > 0, so a size-only check ACCEPTS a directory as a valid
+        # artifact. Found by a live smoke test against a real FORGE run dir where
+        # a harness bug passed the run dir itself as the artifact: all 11 gates
+        # appended "clean" with bytes 384-416 and artifact ".". A recorder that
+        # accepts a directory as proof of a written artifact is the same
+        # green-while-checking-nothing defect this script exists to close.
+        why = ""
+        if not abs_path:
             size = -1
+        elif os.path.isdir(abs_path):
+            size, why = -1, "a directory, not a file"
+        elif not os.path.isfile(abs_path):
+            size, why = -1, "missing or not a regular file"
+        else:
+            try:
+                size = os.path.getsize(abs_path)
+            except OSError:
+                size = -1
         if size <= 0 and not _NEUTER_ARTIFACT_CHECK:
-            why = "missing" if size < 0 else "empty"
+            if not why:
+                why = "missing" if size < 0 else "empty"
             return 2, {"error": "refused: status=pass but artifact is %s: %s" % (why, artifact),
                        "gate": gate, "artifact": artifact}
         rec["bytes"] = max(size, 0)
@@ -440,6 +457,18 @@ def self_test(broken=False):
             _write(os.path.join(rd, "plan-A.md"), "")
             code, _ = append("G2", r, rd)
             chk("(a2) pass receipt naming an EMPTY artifact is refused (2)", code, 2)
+
+            # (a3) ⛔ REGRESSION GUARD — a DIRECTORY is not an artifact.
+            # os.path.getsize() on a directory returns 384/416/..., i.e. > 0, so a
+            # size-only check accepts it. Caught by a live smoke test against a real
+            # run dir; without this assertion the isfile() guard can be removed and
+            # every other fixture still passes.
+            r_dir = _receipt_file(tmp, "adir.json",
+                                  {"gate": "G2", "status": "pass", "artifact": rd})
+            code, res = append("G2", r_dir, rd)
+            chk("(a3) pass receipt naming a DIRECTORY is refused (2)", code, 2)
+            chk("(a3) and the refusal says WHY it is not an artifact",
+                "directory" in res.get("error", ""), True)
 
             # (b) append succeeds, recomputes bytes from disk, stores a relative path.
             rd_b = os.path.join(tmp, "b")

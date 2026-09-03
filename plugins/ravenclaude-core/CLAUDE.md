@@ -4002,6 +4002,14 @@ dir is for the record, and the record has exactly one home.**
   guard that is off protects nothing.** Gates *before* the short circuit are still required — the
   fixture asserts both directions, because scoping without that half is indistinguishable from
   switching the check off.
+- ⛔ **A live smoke test caught a defect in the new recorder itself, and it is the same class the
+  recorder exists to close.** `os.path.getsize()` on a **directory** returns its inode size
+  (384/416/…), which is `> 0` — so a size-only "artifact exists and is non-empty" check **accepts a
+  directory as a valid artifact**. A harness bug passed the run dir itself as the artifact and all 11
+  gates appended "clean" with `artifact: "."`. Fixed with an `isfile()` check ordered *before*
+  `getsize()`, and pinned by a permanent regression assertion — without it the guard can be deleted
+  and every other fixture still passes. The fixtures did not find this; running it against a real run
+  dir did.
 - **The 0/1/2 exit contract is `premise-gate.py`'s, reused rather than reinvented.** Exit **1** =
   COULD NOT RUN, never conflated with clean: "I looked and found nothing" and "I could not look" are
   indistinguishable afterward, which is exactly how a green gate ends up protecting nothing.
