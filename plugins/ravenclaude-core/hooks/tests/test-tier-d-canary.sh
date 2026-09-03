@@ -113,25 +113,46 @@ for h in claude-code copilot; do
 done
 
 # ── A7.3 — scratch containment: real project tree unmodified after a run ───
+# Checks TWO distinct trees, derived (never hardcoded) so this stays portable:
+#   1. $REPO_ROOT — the tree this agent is actually working in (may itself be
+#      a FORGE-provisioned linked worktree).
+#   2. the PRIMARY checkout — resolved via `git rev-parse --git-common-dir`'s
+#      parent, the standard git mechanism for finding a linked worktree's
+#      main checkout. When $REPO_ROOT already IS the primary checkout (no
+#      linked-worktree setup), the two paths are identical and this is a
+#      harmless no-op duplicate check, not a false claim of extra coverage.
 printf '\nA7.3 — scratch containment: git status --porcelain on the REAL project tree is unchanged\n'
-BEFORE_PRIMARY="$(git -C "$REPO_ROOT" status --porcelain 2>/dev/null)"
-BEFORE_HERE="$(git -C "$HERE" status --porcelain 2>/dev/null)"
+GIT_COMMON_DIR="$(git -C "$REPO_ROOT" rev-parse --git-common-dir 2>/dev/null)"
+PRIMARY_CHECKOUT=""
+if [ -n "$GIT_COMMON_DIR" ]; then
+  case "$GIT_COMMON_DIR" in
+    /*) PRIMARY_CHECKOUT="$(cd "$(dirname "$GIT_COMMON_DIR")" && pwd)" ;;
+    *)  PRIMARY_CHECKOUT="$(cd "$REPO_ROOT/$(dirname "$GIT_COMMON_DIR")" && pwd)" ;;
+  esac
+fi
+BEFORE_REPO="$(git -C "$REPO_ROOT" status --porcelain 2>/dev/null)"
+BEFORE_PRIMARY=""
+[ -n "$PRIMARY_CHECKOUT" ] && BEFORE_PRIMARY="$(git -C "$PRIMARY_CHECKOUT" status --porcelain 2>/dev/null)"
 if [ "$CLAUDE_PRESENT" -eq 1 ]; then
   _rc_host_tier_d_canary claude-code >/dev/null 2>&1
 fi
-AFTER_PRIMARY="$(git -C "$REPO_ROOT" status --porcelain 2>/dev/null)"
-AFTER_HERE="$(git -C "$HERE" status --porcelain 2>/dev/null)"
-if [ "$BEFORE_PRIMARY" = "$AFTER_PRIMARY" ]; then
-  ok "primary/worktree checkout ($REPO_ROOT) git status --porcelain unchanged after a Tier D run"
+AFTER_REPO="$(git -C "$REPO_ROOT" status --porcelain 2>/dev/null)"
+if [ "$BEFORE_REPO" = "$AFTER_REPO" ]; then
+  ok "working tree ($REPO_ROOT) git status --porcelain unchanged after a Tier D run"
 else
-  bad "primary checkout ($REPO_ROOT) git status --porcelain CHANGED after a Tier D run — containment violated"
-  diff <(printf '%s' "$BEFORE_PRIMARY") <(printf '%s' "$AFTER_PRIMARY")
+  bad "working tree ($REPO_ROOT) git status --porcelain CHANGED after a Tier D run — containment violated"
+  diff <(printf '%s' "$BEFORE_REPO") <(printf '%s' "$AFTER_REPO")
 fi
-if [ "$BEFORE_HERE" = "$AFTER_HERE" ]; then
-  ok "this checkout's own tree ($HERE/../../..) git status --porcelain unchanged after a Tier D run"
+if [ -n "$PRIMARY_CHECKOUT" ]; then
+  AFTER_PRIMARY="$(git -C "$PRIMARY_CHECKOUT" status --porcelain 2>/dev/null)"
+  if [ "$BEFORE_PRIMARY" = "$AFTER_PRIMARY" ]; then
+    ok "primary checkout ($PRIMARY_CHECKOUT) git status --porcelain unchanged after a Tier D run"
+  else
+    bad "primary checkout ($PRIMARY_CHECKOUT) git status --porcelain CHANGED after a Tier D run — containment violated"
+    diff <(printf '%s' "$BEFORE_PRIMARY") <(printf '%s' "$AFTER_PRIMARY")
+  fi
 else
-  bad "this checkout's tree CHANGED after a Tier D run — containment violated"
-  diff <(printf '%s' "$BEFORE_HERE") <(printf '%s' "$AFTER_HERE")
+  printf '    (could not resolve a primary checkout via git-common-dir; single-tree check above stands)\n'
 fi
 
 # ── A7.4 — claude absent -> explicit skip + tier-A-fallback, never silent ──
