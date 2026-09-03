@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
-"""caveman-route-engine.py — P3+P4 of the caveman auto-routing plan (SHADOW only).
+"""caveman-route-engine.py — P3+P4+P5 of the caveman auto-routing plan (SHADOW only).
 
 Full design: `.ravenclaude/runs/forge/caveman-routing-decision-tree/plan.md`,
-sections "P3 — Hook body, wired in SHADOW" and "P4 — SessionStart re-arm and
-the reset race". This is the C2-(c) "bare .py engine invoked from inside an
+sections "P3 — Hook body, wired in SHADOW", "P4 — SessionStart re-arm and
+the reset race", and "P5 — Observability + offline replay calibration". This
+is the C2-(c) "bare .py engine invoked from inside an
 already-registered .sh wrapper" escape — the sanctioned counterpart of
 `compact-anchor.sh` -> `compact-anchor.py`. It is invoked ONLY by
 `caveman-route-hook.sh`, never registered as a hook itself.
@@ -62,6 +63,23 @@ carries no `source` field at all — preserves whatever is stored, exactly as
 before. See `_RESET_SOURCES` below for the full rationale; the route-log
 entry records both the raw `source` and the derived `reset` boolean.
 
+P5 — OBSERVABILITY (transition-only emission + flap tracking)
+-----------------------------------------------------------------
+Every route-log entry now also carries `tool_uses_in_window` and
+`flap_count` (plan.md's P5 schema). `flap_count` is a CUMULATIVE,
+session-scoped counter of real on<->off flips (never counting a flip
+through "hold" as zero — see main()'s "P5 observability" block). On a real
+TRANSITION (verdict is "on"/"off" and differs from this session's own
+prior-call verdict — NEVER on "hold", per the v0.273.0 lesson that emitting
+the allow-path buries the denies) this engine prints exactly one
+`SIGNAL <verdict-token>` line to stdout; the BASH caller
+(`caveman-route-hook.sh`) is the sole writer into `hook-events.jsonl`,
+mirroring `parallelism-detector.py`'s own "print a signal, let the shell own
+the emit" convention. The token is drawn from the plan's fixed enum (C8) —
+see the block right before `return 0` in `main()` for the full mapping and
+which five of the seven tokens are reserved for P7 (unreachable here because
+the applier is never invoked in this phase).
+
 DERIVED VALUES ONLY (C8)
 -------------------------
 The route-log entry below is built exclusively from `classify()`'s own output
@@ -98,8 +116,17 @@ _LOG_FILENAME = "caveman-route.jsonl"
 
 # The keys this engine owns in the shared state file. Anything else already
 # present (the applier's own snapshot keys) is preserved verbatim on every
-# read-merge-write.
-_ROUTER_STATE_KEYS = ("cursor_byte", "streak", "verdict", "event", "updated_at")
+# read-merge-write. `flap_count`/`last_definite_verdict` are P5 additions —
+# see "P5 observability" in main() for what they track and why.
+_ROUTER_STATE_KEYS = (
+    "cursor_byte",
+    "streak",
+    "verdict",
+    "event",
+    "updated_at",
+    "flap_count",
+    "last_definite_verdict",
+)
 
 _MAX_SESSION_LEN = 128
 
@@ -334,6 +361,37 @@ def main(argv=None) -> int:
     if not isinstance(new_streak, int) or isinstance(new_streak, bool):
         new_streak = 0
 
+    # ── P5 observability: flap tracking + transition detection ─────────────
+    # `flap_count` (plan.md P5 schema, R7) is a CUMULATIVE, session-scoped
+    # counter of real on<->off flips, tracked against the last DEFINITE
+    # (non-"hold") verdict this session ever produced — never against the
+    # immediately-prior call's raw verdict, which may itself have been
+    # "hold" and would otherwise silently swallow a flip that happened
+    # "through" a hold in between (on -> hold -> off must still count as
+    # one flip, not zero). `prior_state.get("verdict")` (the raw value from
+    # the LAST call, hold included) is what decides EMIT-a-transition-event
+    # below — that is a different question ("did anything change since the
+    # last call") from flap counting ("has the routing decision itself
+    # oscillated").
+    prior_definite = prior_state.get("last_definite_verdict")
+    prior_definite = prior_definite if prior_definite in ("on", "off") else None
+    flap_count = prior_state.get("flap_count")
+    flap_count = flap_count if isinstance(flap_count, int) and not isinstance(flap_count, bool) else 0
+    last_definite_verdict = prior_definite
+    if verdict in ("on", "off"):
+        if prior_definite is not None and prior_definite != verdict:
+            flap_count += 1
+        last_definite_verdict = verdict
+
+    # A TRANSITION is a call whose verdict is a real routing decision ("on"
+    # or "off" — NEVER "hold", per plan.md P5: "never on hold — the plan
+    # cites a real past incident (v0.273.0) where emitting the allow-path
+    # buried the denies") AND differs from what THIS call's own prior state
+    # held (including a prior "hold" or no-prior-state-at-all — the
+    # session's first real decision is itself a transition worth recording).
+    prior_raw_verdict = prior_state.get("verdict")
+    is_transition = verdict in ("on", "off") and verdict != prior_raw_verdict
+
     # ── persist cursor/streak state (merge — never clobber the applier's own
     #    snapshot keys, since caveman-apply-mode.sh shares this file path) ──
     try:
@@ -345,6 +403,8 @@ def main(argv=None) -> int:
                 "verdict": verdict,
                 "event": event,
                 "updated_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+                "flap_count": flap_count,
+                "last_definite_verdict": last_definite_verdict,
             },
         )
     except Exception:
@@ -388,17 +448,51 @@ def main(argv=None) -> int:
         "mode": mode,
         "verdict": verdict,
         "why": why,
+        "tool_uses_in_window": metrics.get("tool_use_total"),
+        "responses_in_window": metrics.get("responses_in_window"),
         "streak": new_streak,
         "elapsed_ms": elapsed_ms,
+        "flap_count": flap_count,
         "applied": applied,
-        "responses_in_window": metrics.get("responses_in_window"),
-        "tool_use_total": metrics.get("tool_use_total"),
         "avg_tool_use_per_response": metrics.get("avg_tool_use_per_response"),
     }
     try:
         _append_route_log(log_path, entry)
     except Exception:
         pass  # log write failure -> silent, never a crash (fail-open)
+
+    # ── P5 observability: emit exactly ONE fixed-enum SIGNAL line on a real
+    # transition, never on "hold" (see is_transition above). The BASH caller
+    # (caveman-route-hook.sh) is the sole writer into hook-events.jsonl —
+    # mirroring parallelism-detector.py's own "this module only PRINTS a
+    # SIGNAL line; the bash hook owns the emit" convention, so the substrate
+    # keeps exactly one writer. C8: the token is a member of a FIXED enum,
+    # never free text — `_verdict_token()` returns None for any case this
+    # engine cannot itself produce, which is a deliberate fail-closed default
+    # (no token -> no SIGNAL line -> no event), not an omission.
+    #
+    # Reachable in THIS phase (P3/P5, shadow-only, applier never called):
+    #   caveman-route-shadow-on / caveman-route-shadow-off  (mode == "shadow")
+    #   caveman-route-on        / caveman-route-off          (mode == "live" —
+    #     the classifier's decision is real even though nothing applies it
+    #     yet; P7 wires the actual write, this token already exists so P7's
+    #     own event stream is not a new vocabulary)
+    # Reserved for P7 (the applier's own outcomes — not reachable here
+    # because the applier is never invoked in this phase):
+    #   caveman-route-noop-no-caveman   (applier: caveman not installed)
+    #   caveman-route-manual-override   (applier: manual-override latch)
+    #   caveman-route-readback-mismatch (applier: post-write readback failed)
+    if is_transition:
+        token = None
+        if mode == "shadow":
+            token = "caveman-route-shadow-on" if verdict == "on" else "caveman-route-shadow-off"
+        elif mode == "live":
+            token = "caveman-route-on" if verdict == "on" else "caveman-route-off"
+        if token:
+            try:
+                sys.stdout.write("SIGNAL %s\n" % token)
+            except Exception:
+                pass
 
     return 0
 

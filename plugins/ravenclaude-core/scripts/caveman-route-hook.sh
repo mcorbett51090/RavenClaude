@@ -42,7 +42,7 @@ trap 'exit 0' EXIT
 set -uo pipefail
 
 _run_hook() {
-  # $1 = event ("prompt" | "session"), stdin = the hook payload (inherited).
+  # $1 = event ("prompt" | "session"), stdin = the hook payload.
   local event="$1"
   local project_dir="${CLAUDE_PROJECT_DIR:-}"
   [ -n "$project_dir" ] || return 0
@@ -68,15 +68,48 @@ _run_hook() {
     . "$hooks_dir/_portable.sh" 2>/dev/null || true
   fi
 
+  # P5 observability: source the shared emit helper so a real transition can
+  # be recorded in hook-events.jsonl. Fail-safe stub mirrors
+  # agent-dispatch-evaluator.sh's own pattern exactly — an absent helper
+  # never blocks or alters anything, it just means no event gets written.
+  # shellcheck source=/dev/null
+  if [ -f "$hooks_dir/_emit-event.sh" ]; then
+    . "$hooks_dir/_emit-event.sh" 2>/dev/null || true
+  fi
+  command -v _emit_hook_event >/dev/null 2>&1 || _emit_hook_event() { :; }
+
   budget="${RC_CAVEMAN_ROUTE_BUDGET_S:-3}"
 
-  # stdin (the hook payload) is inherited by the engine — never consumed or
-  # re-serialized here, so nothing in this bash layer can mangle it.
+  # The hook payload is read ONCE into a local `payload` variable (the same
+  # variable name _emit_hook_event's sourced session-resolution helper
+  # expects to find in the caller's scope, per _emit-event.sh's own
+  # documented resolution order) and then fed to the engine verbatim over a
+  # pipe — never re-serialized or mutated, so nothing in this bash layer can
+  # mangle it. stdout is captured (was previously discarded) so a single
+  # `SIGNAL <token>` line — the engine's ONLY possible stdout output, see
+  # caveman-route-engine.py's own "P5 observability" section — can be turned
+  # into exactly one _emit_hook_event call.
+  local payload out
+  payload="$(cat 2>/dev/null || true)"
+
   if command -v _rc_timeout >/dev/null 2>&1; then
-    _rc_timeout "$budget" python3 "$engine" --event "$event" >/dev/null 2>&1 || true
+    out="$(printf '%s' "$payload" \
+      | _rc_timeout "$budget" python3 "$engine" --event "$event" 2>/dev/null)" || true
   else
-    python3 "$engine" --event "$event" >/dev/null 2>&1 || true
+    out="$(printf '%s' "$payload" | python3 "$engine" --event "$event" 2>/dev/null)" || true
   fi
+
+  # ---- P5 observability emit: EXACTLY the plan's literal call shape -------
+  # `_emit_hook_event "caveman-route-hook.sh" "warn" "" "" "<verdict-token>" 0`
+  # on a transition, never on hold. `path` is deliberately EMPTY (the
+  # substrate carries a derived enum token, never a prompt/command/path —
+  # C8), matching agent-dispatch-evaluator.sh's own serial-dispatch signal.
+  case "${out:-}" in
+    SIGNAL\ caveman-route-*)
+      _emit_hook_event "caveman-route-hook.sh" "warn" "" "" \
+        "${out#SIGNAL }" 0 2>/dev/null || true
+      ;;
+  esac
   return 0
 }
 
@@ -509,6 +542,269 @@ print(last.get('source'))
     _ok "source-branching (real script): identical config/transcript, real script -> resume correctly PRESERVES (verdict stays 'on') (control: 11a proves the branching is what prevents the loss)"
   else
     _fail "source-branching (real script): expected resume to preserve (verdict 'on'), got '$real11_verdict' (rc=$rc11b)"
+  fi
+
+  # ===========================================================================
+  # P5 (plan.md "Observability + offline replay calibration") — transition-
+  # only emission fixtures. Acceptance test (a) (>=1 JSONL line in shadow
+  # mode) is already re-confirmed by test 3 above; these cover the NEW P5
+  # invariants: emit on a real transition, NEVER on hold/a repeat, with a
+  # must-fail half proving the gate (not an artifact of the fixtures) is
+  # what limits emission count.
+  # ===========================================================================
+
+  _st_append_four_clean_responses() {
+    # $1 = existing transcript path, APPENDED to (simulates live transcript
+    # growth between calls — msg ids 4..7, distinct from the base fixture's
+    # 1..3, so C6 dedupe sees them as new responses, not re-reads).
+    local i
+    for i in 4 5 6 7; do
+      printf '{"type":"assistant","requestId":"areq_%d","message":{"id":"amsg_%d","content":[{"type":"text","text":"a clean prose turn appended."}],"usage":{"output_tokens":10}}}\n' \
+        "$i" "$i" >> "$1"
+    done
+  }
+
+  local t12_proj t12_sid t12_transcript t12_events rc12
+  t12_proj="$st_root/t12/project"
+  mkdir -p "$t12_proj"
+  t12_sid="t12-session"
+  t12_transcript="$t12_proj/transcript.jsonl"
+  _st_write_transcript "$t12_transcript"
+  _st_write_posture "$t12_proj" "shadow"
+  t12_events="$t12_proj/.ravenclaude/runs/$t12_sid/hook-events.jsonl"
+
+  # ---- Test 12: session's FIRST call (bootstrap forces "off") is a real
+  # transition (None -> "off") -> exactly one warn event, the plan's own
+  # literal call shape (tool="" path="" rule=<token>). --------------------
+  rc12=0
+  CLAUDE_PROJECT_DIR="$t12_proj" bash "$script_self" --event prompt \
+    <<< "{\"session_id\":\"$t12_sid\",\"transcript_path\":\"$t12_transcript\"}" \
+    >/dev/null 2>&1 || rc12=$?
+  if [ "$rc12" -eq 0 ] && [ -f "$t12_events" ] \
+     && [ "$(wc -l < "$t12_events" | tr -d '[:space:]')" -eq 1 ]; then
+    local ev12
+    ev12="$(python3 -c "
+import json
+e = json.loads(open('$t12_events').read().splitlines()[0])
+for k in ('hook', 'verdict', 'tool', 'path', 'rule', 'exit_code'):
+    print(repr(e.get(k)))
+" 2>/dev/null)"
+    local exp12
+    exp12="'caveman-route-hook.sh'
+'warn'
+''
+''
+'caveman-route-shadow-off'
+0"
+    if [ "$ev12" = "$exp12" ]; then
+      _ok "observability: session's first call (bootstrap) emits exactly 1 warn event, the plan's literal shape (hook=caveman-route-hook.sh verdict=warn tool='' path='' rule=caveman-route-shadow-off exit_code=0)"
+    else
+      _fail "observability: expected the plan's literal shape, got:
+$ev12"
+    fi
+  else
+    _fail "observability: expected exactly 1 hook-events.jsonl line after the first call, events-file=$([ -f "$t12_events" ] && wc -l < "$t12_events" || echo absent)"
+  fi
+
+  # ---- Test 13: SAME session, second call, transcript UNCHANGED -> the
+  # incremental cursor has already consumed it, so the window is empty and
+  # the verdict is "hold" -> NO new event (event count stays 1). -----------
+  local rc13
+  rc13=0
+  CLAUDE_PROJECT_DIR="$t12_proj" bash "$script_self" --event prompt \
+    <<< "{\"session_id\":\"$t12_sid\",\"transcript_path\":\"$t12_transcript\"}" \
+    >/dev/null 2>&1 || rc13=$?
+  if [ "$rc13" -eq 0 ] && [ "$(wc -l < "$t12_events" | tr -d '[:space:]')" -eq 1 ]; then
+    _ok "observability: repeat call with no verdict change (hold) -> NO new event (still 1 line, never on hold)"
+  else
+    _fail "observability: expected event count to stay at 1 on a hold/repeat call, got $(wc -l < "$t12_events" 2>/dev/null || echo absent)"
+  fi
+
+  # ---- Test 14: SAME session, transcript GROWS with 4 more clean prose
+  # responses (a real "off" -> "on" transition) -> exactly ONE more event
+  # (total 2), the second carrying caveman-route-shadow-on. -----------------
+  local rc14 t14_count last14_rule
+  _st_append_four_clean_responses "$t12_transcript"
+  rc14=0
+  CLAUDE_PROJECT_DIR="$t12_proj" bash "$script_self" --event prompt \
+    <<< "{\"session_id\":\"$t12_sid\",\"transcript_path\":\"$t12_transcript\"}" \
+    >/dev/null 2>&1 || rc14=$?
+  t14_count="$(wc -l < "$t12_events" 2>/dev/null | tr -d '[:space:]')"
+  last14_rule="$(python3 -c "
+import json
+lines = [l for l in open('$t12_events').read().splitlines() if l.strip()]
+print(json.loads(lines[-1]).get('rule') if lines else '')
+" 2>/dev/null)"
+  if [ "$rc14" -eq 0 ] && [ "$t14_count" = "2" ] && [ "$last14_rule" = "caveman-route-shadow-on" ]; then
+    _ok "observability: transcript grows into a real off->on transition -> exactly 1 new event (total 2), rule=caveman-route-shadow-on"
+  else
+    _fail "observability: expected 2 total events with the newest rule=caveman-route-shadow-on, got count=$t14_count last-rule=$last14_rule (rc=$rc14)"
+  fi
+
+  # ---- Test 15 (must-fail half): a mutant that emits on EVERY call
+  # (strips the `if is_transition:` gate) shows MORE events than the real
+  # script over the identical 2-call (transition, then hold) sequence --
+  # proving the gate is load-bearing, not decorative. Control: the REAL
+  # script, same config/transcript, fresh session id -> exactly 1 event. ---
+  local t15_root t15_proj mutant15_dir mutant15_engine t15_transcript t15_sid \
+        t15_real_sid rc15a rc15b mutant15_count real15_count
+  t15_root="$st_root/t15"
+  t15_proj="$t15_root/project"
+  mutant15_dir="$t15_root/mutant-scripts"
+  mkdir -p "$t15_proj" "$mutant15_dir"
+  t15_transcript="$t15_proj/transcript.jsonl"
+  _st_write_transcript "$t15_transcript"
+  _st_write_posture "$t15_proj" "shadow"
+
+  mutant15_engine="$mutant15_dir/caveman-route-engine.py"
+  sed -E 's/^([[:space:]]*)if is_transition:$/\1if True:  # MUTANT: always emit, ignoring is_transition/' \
+    "$plugin_root/scripts/caveman-route-engine.py" > "$mutant15_engine"
+  cp "$plugin_root/scripts/caveman-route.py" "$mutant15_dir/caveman-route.py"
+
+  t15_sid="t15-mutant-session"
+  # NOTE: this drives the mutant ENGINE directly (as the hook wrapper would
+  # invoke it), NOT through _emit_hook_event (the engine only prints SIGNAL
+  # lines; the shell owns the emit) -- so the observable teeth signal here
+  # is the mutant printing 2 SIGNAL lines total (one per call, the second
+  # of which is a HOLD under the real gate) instead of 1.
+  mutant15_count="$( { \
+    CLAUDE_PROJECT_DIR="$t15_proj" python3 "$mutant15_engine" --event prompt \
+      <<< "{\"session_id\":\"$t15_sid\",\"transcript_path\":\"$t15_transcript\"}"; \
+    CLAUDE_PROJECT_DIR="$t15_proj" python3 "$mutant15_engine" --event prompt \
+      <<< "{\"session_id\":\"$t15_sid\",\"transcript_path\":\"$t15_transcript\"}"; \
+  } 2>/dev/null | grep -c '^SIGNAL ' || true)"
+  rc15a=0
+  if [ "$mutant15_count" -ge 2 ]; then
+    _ok "must-fail-half (mutant): is_transition gate stripped -> emits on every call ($mutant15_count SIGNAL lines over 2 calls, one of which is a hold under the real gate) -- proves the gate is load-bearing"
+  else
+    _fail "must-fail-half (mutant): expected >=2 SIGNAL lines with the gate stripped, got $mutant15_count -- the teeth test itself is broken"
+  fi
+
+  t15_real_sid="t15-real-session"
+  rc15b=0
+  CLAUDE_PROJECT_DIR="$t15_proj" bash "$script_self" --event prompt \
+    <<< "{\"session_id\":\"$t15_real_sid\",\"transcript_path\":\"$t15_transcript\"}" \
+    >/dev/null 2>&1 || rc15b=$?
+  CLAUDE_PROJECT_DIR="$t15_proj" bash "$script_self" --event prompt \
+    <<< "{\"session_id\":\"$t15_real_sid\",\"transcript_path\":\"$t15_transcript\"}" \
+    >/dev/null 2>&1 || rc15b=$?
+  real15_count="$(wc -l < "$t15_proj/.ravenclaude/runs/$t15_real_sid/hook-events.jsonl" 2>/dev/null | tr -d '[:space:]')"
+  if [ "$rc15b" -eq 0 ] && [ "$real15_count" = "1" ]; then
+    _ok "observability gate (real script): identical config/transcript, 2 calls (transition then hold) -> exactly 1 event (control: 15's mutant proves the gate is what prevents the second)"
+  else
+    _fail "observability gate (real script): expected exactly 1 event over the 2-call sequence, got $real15_count (rc=$rc15b)"
+  fi
+
+  # ===========================================================================
+  # P5 acceptance test (b) — NO-EGRESS. A sentinel planted in a synthetic
+  # "prompt" (a user-type text block) AND a synthetic "tool result" (a
+  # user-type tool_result block) must NEVER appear anywhere this hook
+  # writes — the Gate 110/Gate 186 shape: a real assertion with a must-fail
+  # half that PROVES a leak would be caught, not just an absence nobody
+  # tested for.
+  # ===========================================================================
+
+  _st_write_sentinel_transcript() {
+    # $1 = dest path  $2 = prompt sentinel  $3 = tool-result sentinel
+    : > "$1"
+    printf '{"type":"user","message":{"content":[{"type":"text","text":"%s"}]}}\n' "$2" >> "$1"
+    printf '{"type":"user","message":{"content":[{"type":"tool_result","content":[{"type":"text","text":"%s"}]}]}}\n' "$3" >> "$1"
+    # A few real assistant responses so the classifier has something to
+    # decide over (type=="user" lines above are already excluded by
+    # construction -- classify() only reads type=="assistant" -- this is
+    # what the positive half of this test PROVES, end-to-end through this
+    # hook's own file outputs, not just the classifier's isolated fixture).
+    _st_write_transcript "$1.assistant_tmp"
+    cat "$1.assistant_tmp" >> "$1"
+    rm -f "$1.assistant_tmp"
+  }
+
+  local sentinel_prompt sentinel_toolresult t16_proj t16_sid t16_transcript rc16 \
+        t16_run_dir leak16
+  sentinel_prompt="SENTINEL-PROMPT-9f2a41-DO-NOT-EGRESS"
+  sentinel_toolresult="SENTINEL-TOOLRESULT-4c81be-DO-NOT-EGRESS"
+  t16_proj="$st_root/t16/project"
+  mkdir -p "$t16_proj"
+  t16_sid="t16-session"
+  t16_transcript="$t16_proj/transcript.jsonl"
+  _st_write_sentinel_transcript "$t16_transcript" "$sentinel_prompt" "$sentinel_toolresult"
+  _st_write_posture "$t16_proj" "shadow"
+  t16_run_dir="$t16_proj/.ravenclaude/runs/$t16_sid"
+
+  rc16=0
+  CLAUDE_PROJECT_DIR="$t16_proj" bash "$script_self" --event prompt \
+    <<< "{\"session_id\":\"$t16_sid\",\"transcript_path\":\"$t16_transcript\"}" \
+    >/dev/null 2>&1 || rc16=$?
+
+  leak16=""
+  if [ -d "$t16_run_dir" ]; then
+    leak16="$(grep -rl -e "$sentinel_prompt" -e "$sentinel_toolresult" "$t16_run_dir" 2>/dev/null || true)"
+  fi
+  if [ "$rc16" -eq 0 ] && [ -z "$leak16" ]; then
+    _ok "no-egress: neither the planted prompt sentinel nor the tool-result sentinel appear anywhere under the run dir (hook-events.jsonl, caveman-route.jsonl, or the state file)"
+  else
+    _fail "no-egress: expected NO sentinel leakage under $t16_run_dir, found: ${leak16:-<n/a, rc=$rc16>}"
+  fi
+
+  # ---- Test 17 (must-fail half): a mutant that echoes a raw transcript
+  # slice into the route-log entry (a hypothetical C8 regression) DOES leak
+  # a sentinel -- proving the grep above is capable of catching a real
+  # leak, not just passing on an untested absence. Control: the REAL
+  # script, identical fixture, fresh session id -> still no leak. ----------
+  local t17_root mutant17_dir mutant17_engine t17_sid t17_real_sid rc17a rc17b \
+        mutant17_run_dir real17_run_dir mutant17_leak real17_leak
+  t17_root="$st_root/t17"
+  mutant17_dir="$t17_root/mutant-scripts"
+  mkdir -p "$mutant17_dir"
+
+  mutant17_engine="$mutant17_dir/caveman-route-engine.py"
+  python3 - "$plugin_root/scripts/caveman-route-engine.py" "$mutant17_engine" <<'PYEOF'
+import sys
+src_path, dst_path = sys.argv[1], sys.argv[2]
+src = open(src_path, encoding="utf-8").read()
+anchor = "    try:\n        _append_route_log(log_path, entry)"
+if anchor not in src:
+    raise SystemExit("MUTANT-BUILD-FAILED: anchor line not found -- engine source drifted")
+leak_line = (
+    "    entry[\"_debug_raw_tail\"] = open(transcript_path, \"r\", "
+    "encoding=\"utf-8\", errors=\"replace\").read()[-4000:]  "
+    "# MUTANT: raw transcript egress (C8 regression)\n"
+)
+patched = src.replace(anchor, leak_line + anchor, 1)
+open(dst_path, "w", encoding="utf-8").write(patched)
+PYEOF
+  cp "$plugin_root/scripts/caveman-route.py" "$mutant17_dir/caveman-route.py"
+
+  t17_sid="t17-mutant-session"
+  mutant17_run_dir="$t16_proj/.ravenclaude/runs/$t17_sid"
+  rc17a=0
+  CLAUDE_PROJECT_DIR="$t16_proj" python3 "$mutant17_engine" --event prompt \
+    <<< "{\"session_id\":\"$t17_sid\",\"transcript_path\":\"$t16_transcript\"}" \
+    >/dev/null 2>&1 || rc17a=$?
+  mutant17_leak=""
+  if [ -d "$mutant17_run_dir" ]; then
+    mutant17_leak="$(grep -rl -e "$sentinel_prompt" -e "$sentinel_toolresult" "$mutant17_run_dir" 2>/dev/null || true)"
+  fi
+  if [ -n "$mutant17_leak" ]; then
+    _ok "must-fail-half (mutant): raw-transcript-echo mutant DOES leak a sentinel into $mutant17_leak -- proves the no-egress grep is capable of catching a real leak"
+  else
+    _fail "must-fail-half (mutant): expected the raw-echo mutant to leak a sentinel, found none -- the teeth test itself is broken (rc=$rc17a)"
+  fi
+
+  t17_real_sid="t17-real-session"
+  real17_run_dir="$t16_proj/.ravenclaude/runs/$t17_real_sid"
+  rc17b=0
+  CLAUDE_PROJECT_DIR="$t16_proj" bash "$script_self" --event prompt \
+    <<< "{\"session_id\":\"$t17_real_sid\",\"transcript_path\":\"$t16_transcript\"}" \
+    >/dev/null 2>&1 || rc17b=$?
+  real17_leak=""
+  if [ -d "$real17_run_dir" ]; then
+    real17_leak="$(grep -rl -e "$sentinel_prompt" -e "$sentinel_toolresult" "$real17_run_dir" 2>/dev/null || true)"
+  fi
+  if [ "$rc17b" -eq 0 ] && [ -z "$real17_leak" ]; then
+    _ok "no-egress gate (real script): identical fixture, fresh session -> still no sentinel leak (control: 17's mutant proves the gate is what prevents it)"
+  else
+    _fail "no-egress gate (real script): expected no leak, found: ${real17_leak:-<n/a, rc=$rc17b>}"
   fi
 
   echo
