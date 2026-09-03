@@ -64,6 +64,22 @@ mirror of the marketplace's `.claude/workflows/` copy, enforced by Gate 126).
 > sensibly, with no rubric. Zero observed failures across FORGE's run history. If you are about to port
 > P0/P1/P2 or the lenses here, first produce a FORGE run where their absence caused a wrong outcome.
 
+## Risk-based depth floor is not the tribunal's tier engine (tiebreak F8 — added 2026-09-02)
+
+G0's risk-based depth floor (`SKILL.md` §2 G0) mirrors the command-review tribunal's T5 base-tier +
+concern-bump pattern in spirit — a security/irreversibility/data-loss signal raises the floor — but it
+is a **much cruder instrument** and that gap is deliberate, not an oversight to close later. The
+tribunal's `category_tier_map` + `gate_floor` are driven by `knowledge/concerns-catalog.md`'s
+machine-readable `triggers` (regex-detectable concerns, `pre_llm_deny`/`always_screen` semantics,
+per-tier seat counts) — a system built for reviewing a **concrete command**. FORGE's G0 reviews a
+**scoped intent paragraph**, before any command exists to pattern-match against; there is nothing here
+for a `triggers` regex to run over. So the floor is deliberately **binary and coarse** (one rung, judged
+by the orchestrator reading the scope, not a regex) rather than porting the tribunal's tiered engine
+wholesale. Porting the full tier machinery here would be premature generalization against a corpus of
+one FORGE run — the same standard `F7` above already applies to "don't close this gap" without evidence
+a plain rung-raise underperforms. If a FORGE run's risk floor turns out to misfire (over- or
+under-escalates) often enough to be worth measuring, that is the trigger to revisit, not this note.
+
 ## Honest scope
 
 FORGE makes a plan **divergently reviewed, fact-grounded, critic-checked, and routed** — it raises the
