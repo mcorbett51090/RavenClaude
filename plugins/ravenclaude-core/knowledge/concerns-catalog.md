@@ -204,9 +204,21 @@ cross_cutting:
         - '(?s)\A(?=.{0,4000}comfort-posture\.yaml)(?=.{0,4000}thing:\s*(off|false|no)\b)'
         # (4) writing the T5 tier config (command_review: / gate_floor:) into
         #     comfort-posture.yaml — neutering the tiers / gate_floor is a
-        #     self-disable. Scoped to the `key:` write-shape so a plain READ of
-        #     the file (grep/cat) is not over-blocked.
-        - '(?s)\A(?=.{0,4000}comfort-posture\.yaml)(?=.{0,4000}(command_review|gate_floor)\s*:)'
+        #     self-disable. The comment above this trigger has always claimed
+        #     it is "scoped to the `key:` write-shape so a plain READ of the
+        #     file (grep/cat) is not over-blocked" — but the regex never
+        #     actually checked for a write shape, only co-occurrence of the two
+        #     substrings anywhere in the command. A read-only `grep -n
+        #     "command_review:" .../comfort-posture.yaml` (or `cat file | grep
+        #     command_review:`) matched and was pre-LLM denied — discovered
+        #     live 2026-09-03 diagnosing an unrelated dev-repo-exemption
+        #     question. The third lookahead below closes that: it requires an
+        #     actual write-shape signal (a redirect, `tee`, or an
+        #     in-place-flagged stream editor — the same discriminator triggers
+        #     (1)/(2b) in this same entry already use) to co-occur with the two
+        #     substrings, so a bare read no longer matches while every real
+        #     write still does.
+        - '(?s)\A(?=.{0,4000}comfort-posture\.yaml)(?=.{0,4000}(command_review|gate_floor)\s*:)(?=.{0,4000}(>>?|\btee\b|\b(?:sed|perl|awk)\b[^;|&\n]{0,120}?(?:--in-place|-[A-Za-z0-9.]*i[A-Za-z0-9.]*\b|\binplace\b)))'
   - id: xc.ragnarok-non-user-invocation
     name: Command would execute a plugin-cache reset (Ragnarök) by shelling its script
     severity: critical
