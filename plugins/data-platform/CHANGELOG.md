@@ -2,6 +2,42 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.24.0] — 2026-09-03
+
+### Added
+
+- **P1-9** — an executable cross-tenant denial test harness, `templates/cube-denial-test-
+  harness/`, replacing both starters' `test/cross-tenant-denial.md`'s honestly-disclosed
+  "procedure, not a passing CI check" status (that status was correct at the time -- "a script
+  that always passes because it never reaches a live Cube instance would be worse than no
+  test" -- the gap was always the missing environment, not the script). New docker-compose
+  fixture: Postgres 16 + Cube pinned to `v1.7.33` (verified against the Docker Hub registry
+  API directly, not just documentation -- and chosen specifically because it satisfies P0-1's
+  `access_policy` >=1.2.0 floor, the version-floor confusion this whole harness exists to stop
+  recurring). A `vitest` test asserts a positive control (tenant A's own revenue is non-zero --
+  without it, a broken pipeline and a working denial both look like "empty result") before
+  asserting the actual denial, at both the Cube `access_policy` layer and the Postgres RLS
+  layer. Caught and fixed a real bug in the harness's own design before shipping it: the
+  compose Postgres superuser always bypasses RLS regardless of policy, so the RLS-layer
+  assertion connects as `viewer_role` (granted LOGIN in the seed fixture specifically for
+  this), never the superuser -- an RLS test run as a superuser would have passed
+  unconditionally and proven nothing. Wired into `scripts/audit-gates.sh` as Gate 266, Tier 4,
+  opt-in behind `DP_INTEGRATION=1` (never in the default suite -- it needs docker); with
+  docker absent it loud-skips via the existing `_skip_or_fail` helper (hard failure in CI,
+  never a silent pass).
+  - **Honest limit:** this harness was authored and reasoned through carefully -- the
+    docker-compose YAML validated, the Cube image tag confirmed to exist via the registry API,
+    the schema-mount path verified against Cube's own documented convention (via Context7, not
+    assumed), the test file typechecks clean and correctly fails with `ECONNREFUSED` (not a
+    syntax/import error) when run with no live server -- but it has **not been executed
+    against a live Cube+Postgres pair**, since no docker runtime was available in the sandbox
+    that built it. The mutation tests plan.md's own acceptance criteria call for (delete
+    `access_policy` -> denial test must fail; drop `FORCE ROW LEVEL SECURITY` -> RLS test must
+    fail) are documented in the harness's README as not-yet-run, for the next session with
+    docker available to execute directly.
+
+**Migration:** none — new, additive template directory; no existing file's behavior changed.
+
 ## [0.23.0] — 2026-09-03
 
 ### Fixed

@@ -9843,6 +9843,35 @@ gate "data-platform skill reachability: orphaned skill (no agent ref, no invoked
 rm -rf "$DP_SKR_TMP"
 
 echo
+echo "── Gate 266: data-platform cross-tenant denial harness (Tier 4 — opt-in, needs docker) ──"
+# FORGE P1-9 (2026-09-03). Deliberately OPT-IN, never in the default run — it
+# needs a live docker-compose stack (Postgres + Cube v1.7.33). Required only on
+# a PR that touches a starter, a Cube schema, or an RLS template — wire that
+# path-based requirement at the CI-workflow level, not here (this script has no
+# notion of "which PR"). With DP_INTEGRATION unset, this section is a plain,
+# silent skip (that's the intended "not in the default run" contract, distinct
+# from the loud _skip_or_fail below, which fires only once the run IS opted in
+# but docker specifically is missing).
+if [[ "${DP_INTEGRATION:-0}" == "1" ]]; then
+  DP_HARNESS_DIR="plugins/data-platform/templates/cube-denial-test-harness"
+  if ! command -v docker >/dev/null 2>&1; then
+    _skip_or_fail "data-platform cross-tenant denial harness (DP_INTEGRATION=1, docker absent)" "docker"
+  else
+    rc=0
+    (
+      cd "$DP_HARNESS_DIR" &&
+        docker compose up -d --wait &&
+        npm install &&
+        npm test
+    ) || rc=$?
+    gate "data-platform cross-tenant denial harness (live Cube + Postgres RLS)" must_pass "$rc"
+    (cd "$DP_HARNESS_DIR" && docker compose down -v) >/dev/null 2>&1 || true
+  fi
+else
+  echo "  (skipped — set DP_INTEGRATION=1 to run; needs docker. Not part of the default suite.)"
+fi
+
+echo
 echo "═══════════════════════════════════════════════════════════════════════════"
 printf '  %d pass, %d fail, %d skipped\n' "$PASS" "$FAIL" "$SKIP"
 if [[ "$FAIL" -gt 0 ]]; then
