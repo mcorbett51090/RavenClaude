@@ -282,6 +282,23 @@ No server is invented; no `mcpServers` entry ships; no `NOTICE.md` (nothing thir
 
 25 templates on disk, distributed by intended bar: 3 runnable + 4 conceptual + 3 seam-marked-stub-and-promoted pairs (9 files — each pair is 1 historical `.tsx.md` stub + 2 runnable siblings, e.g. a client component + a server-only endpoint) + 2 v0.2.0 modeling scaffolds + 2 app scaffolds + 1 audit report template + 1 CI-support script (`ci-headless-smoke.js`, shared by both app scaffolds' headless-smoke workflow step, added P0-4) + 1 executable test-harness scaffold (`cube-denial-test-harness/`, added P1-9) + 1 worked-examples directory (`examples/`, the two dashboard-audit-report worked examples, added P1-10) + 1 Case A app scaffold (`evidence-portfolio-starter/`, added P1-11) = 3+4+9+2+2+1+1+1+1+1.
 
+**Not counted above, and deliberately not in `templates/` (FORGE dashboard-top1pct P3-21,
+2026-09-03): [`report.html`](report.html) + [`bi-report/data.json`](bi-report/data.json), the
+Case E static-HTML BI-report lane.** `agents/dashboard-builder.md`'s Case E bullet treats it as a
+first-class routing target, and §9a's coverage matrix below carries its full, per-column
+disposition — so this is a genuine, gated lane, not an undocumented afterthought or a portfolio
+artifact wrongly dressed up as a "case." It stays out of the table above because it is not a
+data-platform-specific template: it's a **cross-plugin pattern** (the shared engine lives in
+`edtech-partner-success/skills/health-report-dashboard/SKILL.md`, the regeneration script at the
+marketplace's own `scripts/generate-bi-report.py`), and this plugin's `report.html` is a
+self-referential dogfooding instance of that shared pattern, not a scaffold an engagement copies.
+Its fixture-drift gate already exists and already passes: `scripts/audit-gates.sh` Gate 46 checks
+`generate-bi-report.py --check` and proves, via a planted-staleness mutation test, that it
+actually catches a `report.html` that's drifted from its committed `data.json` — a pre-existing,
+marketplace-wide gate this plugin inherits rather than needing its own copy of. Rebuild it with
+`python3 scripts/generate-bi-report.py --plugin data-platform` after editing `bi-report/data.json`
+(see `README.md`'s own rebuild instructions for the full command and the published preview link).
+
 ### Runnable (security-critical — must compile / parse / pass denial test)
 
 | Template | Use for |

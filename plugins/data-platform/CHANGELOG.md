@@ -2,6 +2,23 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.33.1] — 2026-09-03
+
+### Fixed
+
+- **P3-21** — retire-or-promote the `bi-report/` + `report.html` Case E lane. Investigation found
+  most of this phase's own acceptance test already satisfied by earlier work, not newly built
+  here: `CLAUDE.md` §9a's coverage matrix already carried a definite, dated Case-E row (`P1-11`),
+  and `scripts/audit-gates.sh` Gate 46 (`generate-bi-report.py --check`, a marketplace-wide,
+  pre-existing gate) already fixture-drift-tests `report.html` against its committed `data.json`
+  — confirmed passing for `data-platform` this session, not assumed. The one real, remaining gap
+  named in `plan.md`'s own description — "documented only in `README.md`'s last section, absent
+  from `CLAUDE.md`'s templates section" — is now closed: §9 states explicitly that `report.html` /
+  `bi-report/` is a genuine, gated lane (not an undocumented afterthought, and not a portfolio
+  artifact mislabeled as a "case"), why it's deliberately excluded from the `templates/` table
+  (it's a cross-plugin pattern, not a data-platform-specific template), and points to the existing
+  drift gate and rebuild command. No content change to `report.html` itself — it was already fresh.
+
 ## [0.33.0] — 2026-09-03
 
 ### Added
