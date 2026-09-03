@@ -6,7 +6,7 @@ Named, citable rules for the `data-platform` plugin's four-layer dashboard engag
 
 ## Index
 
-_35 rules. Each file is one named, citable rule; read and apply it whole._
+_36 rules. Each file is one named, citable rule; read and apply it whole._
 
 | Doc | Status | Use when |
 |---|---|---|
@@ -16,6 +16,7 @@ _35 rules. Each file is one named, citable rule; read and apply it whole._
 | [`connector-incremental-with-backfill.md`](./connector-incremental-with-backfill.md) | Pattern — strong default for every custom or configured connector; deviate only for tables small enough that full-refresh is cheaper than the cursor bookkeeping. | A connector that re-pulls the full source on every run works on a 100-row dev account and falls over on a 10M-row production tenant — it blows the rat… |
 | [`connector-rate-limit-aware-retry.md`](./connector-rate-limit-aware-retry.md) | Absolute rule — every connector honors `Retry-After` and backs off on 429/503 from day one; a retry-storm on a high-volume source also inflates Fivetran-style MAR billing. | SaaS APIs enforce per-realm rate limits invisible in development (small accounts, low concurrency) but hit hard in production. |
 | [`connector-webhooks-for-events-batch-for-history.md`](./connector-webhooks-for-events-batch-for-history.md) | Pattern — strong default for event-shaped sources (Stripe, Shopify, webhook-capable SaaS); deviate only when the source has no webhook surface or real-time signals aren't part of the deliverable. | Event-shaped sources (Stripe charges/refunds, Shopify orders/inventory, anything with a webhook surface) have *two* faces, and forcing them into one p… |
+| [`dashboard-render-in-the-viewer-locale-and-tenant-timezone.md`](./dashboard-render-in-the-viewer-locale-and-tenant-timezone.md) | Absolute rule — number/date formatting reads locale from a shared context, never a hard-coded BCP-47 string; every timezone-sensitive Cube query sets an explicit `timezone`; the provenance footer names it. | A dashboard whose "today" is the server's today silently misreports every tenant outside that zone — a wrong date-range boundary that looks like a normal number. |
 | [`dashboard-set-data-freshness-slas.md`](./dashboard-set-data-freshness-slas.md) | Pattern — strong default for every engagement; deviate only when a documented real-time requirement justifies streaming. | "How fresh is this number?" is the question every dashboard implicitly answers and most never state. |
 | [`dbt-incremental-with-unique-key-for-large-facts.md`](./dbt-incremental-with-unique-key-for-large-facts.md) | Pattern — strong default once a fact table's full rebuild stops fitting the refresh window or the cost budget; deviate by staying `table`-materialized while the fact is small. | A `table`-materialized fact rebuilds from scratch on every `dbt build` — fine at a million rows, ruinous at a billion (full scan of upstream, full war… |
 | [`dbt-stage-then-mart-never-skip-the-layer.md`](./dbt-stage-then-mart-never-skip-the-layer.md) | Absolute rule — a mart that references `{{ source(...) }}` has bypassed the staging contract and is a layering defect, not a style choice. | A dbt project decays the moment its dependency graph stops being a clean staging → intermediate → marts cascade. |

@@ -165,6 +165,19 @@ build warning P0-4's probe recorded as an open, non-blocking finding.
   caveat's full explanation). The corresponding denial-test extension is in
   `templates/cube-denial-test-harness/` (not yet run against live docker — same open item as
   below).
+- ✅ **P2-15 (2026-09-03, FORGE dashboard-top1pct): locale + timezone threading added.** Identical
+  mechanism to the Next.js starter: `src/lib/locale.ts`'s `resolveLocaleContext(session)` resolves
+  `{locale, timezone}` from the session (tenant-configured fork — see
+  `knowledge/dashboard-timezone-decision-2026.md`), falling back to `en-US`/`UTC`.
+  `src/components/LocaleProvider.tsx` threads the pair to `KpiCard.tsx`/`RevenueChart.tsx` via
+  context (`DashboardIsland.tsx` wraps its content in `<LocaleProvider>`, since `locale`/`timezone`
+  reach it as `client:load` island props from `index.astro`'s server-resolved frontmatter — both
+  must stay plain, JSON-serializable strings for Astro's hydration to carry them across). Both
+  widgets pass an explicit `timezone` on their Cube query object and name it in the provenance
+  footer. Same honest correction as the Next.js starter's README: `plan.md`'s literal
+  `grep -rn '"en-US"'` still returns 1 hit here — `src/lib/locale.ts`'s named default fallback
+  constant, not a hard-coded formatting call; `audit-gates.sh` Gate 270 checks the substantive
+  requirement instead. `npx astro build` passes clean with the locale threading present.
 - ⛔ Not yet run against a live Cube instance. Not yet used in a real engagement.
 - ⛔ **`npm audit` (run 2026-09-03, after the `@cubejs-client/*` 1.7.33 bump + `@astrojs/check`
   addition below) reports 6 findings (3 high, 3 moderate)** against the pinned `astro@4.15.x` /

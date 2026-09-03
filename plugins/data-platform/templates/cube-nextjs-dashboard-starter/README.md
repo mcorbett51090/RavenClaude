@@ -177,6 +177,30 @@ errors) and by the production build (bundle size dropped, First Load JS for `/` 
   - See `knowledge/dashboard-export-and-delivery-2026.md` for why a headless-render/scheduled-
     email mechanism is documented but not scaffolded (this sandbox cannot spawn headless
     Chromium).
+- ✅ **P2-15 (2026-09-03, FORGE dashboard-top1pct): locale + timezone threading added.**
+  `lib/locale.ts`'s `resolveLocaleContext(session)` resolves `{locale, timezone}` from the
+  session's own optional `locale`/`timezone` fields (the tenant-configured fork — see
+  `knowledge/dashboard-timezone-decision-2026.md` for the other two forks and why this one is
+  this plugin's default), falling back to `en-US`/`UTC` when unset. `components/LocaleProvider.tsx`
+  threads the resolved pair to every widget via context; `KpiCard.tsx`/`RevenueChart.tsx` both
+  consume `useLocale()` instead of a hard-coded `Intl.NumberFormat("en-US", …)`, and both pass an
+  explicit `timezone` on their Cube query object (Cube's REST API takes `timezone` as a top-level
+  query field — verified via Context7 against `cube-js/cube`'s own docs, not assumed) so the
+  query's date-range boundaries, not just the display, respect the resolved timezone. The
+  provenance footer now names the timezone alongside the date range.
+  - **Honest correction of `plan.md`'s own acceptance-test wording:** the plan's acceptance test
+    reads `grep -rn '"en-US"' templates/cube-* → 0`. That literal grep still returns 2 hits after
+    this fix — `lib/locale.ts`'s own doc comment and its named `DEFAULT_LOCALE_CONTEXT` fallback
+    constant. Removing those would leave the app with no default locale at all, which is a worse
+    design, not a better one. The substantive requirement — no hard-coded locale inside a
+    formatting call site — is satisfied and checked by `audit-gates.sh` **Gate 270**, which greps
+    for the call-site pattern specifically rather than the plan's blunter literal string search.
+  - RTL is explicitly named as a distinct, narrower bar (see the best-practice file): a smoke
+    check was added to `templates/ci-headless-smoke.js` that toggles `dir="rtl"` and asserts no
+    NEW console error appears — this does not claim full RTL layout support, which neither
+    starter implements.
+  - `npx tsc --noEmit` and `npm run build` both pass clean with the locale threading present
+    (confirmed this session, after the change).
 - ⛔ **Not yet run against a live Cube instance.** No engagement has exercised this scaffold
   end-to-end yet — that's the "real-engagement validation" this plugin's promotion
   discipline names, and it's still open.

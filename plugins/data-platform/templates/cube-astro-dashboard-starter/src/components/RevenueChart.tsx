@@ -12,6 +12,7 @@ import {
   Area,
 } from "recharts";
 import { getCubeClient } from "@/lib/cube-client";
+import { useLocale } from "./LocaleProvider";
 
 export interface RevenueChartProps {
   title: string;
@@ -52,14 +53,27 @@ export function RevenueChart({
   dateRange = "last 90 days",
 }: RevenueChartProps) {
   const cubeApi = getCubeClient();
+  const { locale, timezone } = useLocale();
   const { resultSet, isLoading, error } = useCubeQuery(
     {
       measures: [measure],
       timeDimensions: [{ dimension: timeDimension, granularity, dateRange }],
       order: { [timeDimension]: "asc" },
+      timezone,
     },
     { cubeApi },
   );
+  // Locale-aware axis tick formatting (P2-15).
+  const formatTick = (x: string) => {
+    const d = new Date(x);
+    return Number.isNaN(d.getTime())
+      ? x
+      : new Intl.DateTimeFormat(locale, {
+          month: "short",
+          day: "numeric",
+          timeZone: timezone,
+        }).format(d);
+  };
 
   if (error) {
     return (
@@ -90,7 +104,7 @@ export function RevenueChart({
             <ResponsiveContainer>
               <AreaChart data={data}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                <XAxis dataKey="x" tick={{ fontSize: 11 }} />
+                <XAxis dataKey="x" tick={{ fontSize: 11 }} tickFormatter={formatTick} />
                 <YAxis tick={{ fontSize: 11 }} />
                 <Tooltip />
                 <Area type="monotone" dataKey="value" stroke="#3b82f6" fill="#bfdbfe" />
@@ -121,7 +135,7 @@ export function RevenueChart({
         )}
       </div>
       <Text data-provenance-footer className="mt-1 text-xs text-tremor-content-subtle">
-        source: {measure} · {dateRange}
+        source: {measure} · {dateRange} ({timezone})
       </Text>
     </Card>
   );

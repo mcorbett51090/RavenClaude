@@ -3,6 +3,7 @@
 import { Card, Metric, Text, Flex, BadgeDelta } from "./ui";
 import { useCubeQuery } from "@cubejs-client/react";
 import { getCubeClient } from "@/lib/cube-client";
+import { useLocale } from "./LocaleProvider";
 
 export interface KpiCardProps {
   title: string;
@@ -19,8 +20,14 @@ export interface KpiCardProps {
   formatValue?: (value: number) => string;
 }
 
-const defaultFormat = (value: number) =>
-  new Intl.NumberFormat("en-US", { notation: "compact", maximumFractionDigits: 1 }).format(value);
+// Locale is threaded via useLocale() (FORGE dashboard-top1pct P2-15) rather
+// than hard-coded — see best-practices/dashboard-render-in-the-viewer-
+// locale-and-tenant-timezone.md. formatValue is still overridable per-widget
+// when a caller needs a different format than the locale default.
+function formatForLocale(locale: string) {
+  return (value: number) =>
+    new Intl.NumberFormat(locale, { notation: "compact", maximumFractionDigits: 1 }).format(value);
+}
 
 /**
  * A single-metric KPI tile. Provenance (best-practices/dashboard-provenance-on-every-widget.md,
@@ -38,17 +45,24 @@ export function KpiCard({
   dateRange = "last 30 days",
   comparisonDateRange = "from 60 days ago to 31 days ago",
   comparisonLabel = "vs prior 30 days",
-  formatValue = defaultFormat,
+  formatValue,
 }: KpiCardProps) {
   const cubeApi = getCubeClient();
+  const { locale, timezone } = useLocale();
+  const format = formatValue ?? formatForLocale(locale);
   const current = useCubeQuery(
-    { measures: [measure], timeDimensions: [{ dimension: timeDimension, dateRange }] },
+    {
+      measures: [measure],
+      timeDimensions: [{ dimension: timeDimension, dateRange }],
+      timezone,
+    },
     { cubeApi },
   );
   const comparison = useCubeQuery(
     {
       measures: [measure],
       timeDimensions: [{ dimension: timeDimension, dateRange: comparisonDateRange }],
+      timezone,
     },
     { cubeApi },
   );
@@ -92,7 +106,7 @@ export function KpiCard({
         <Flex justifyContent="between" alignItems="start">
           <div>
             <Text>{title}</Text>
-            <Metric>{isLoading || value === undefined ? "—" : formatValue(value)}</Metric>
+            <Metric>{isLoading || value === undefined ? "—" : format(value)}</Metric>
           </div>
           {deltaPct !== undefined && (
             <BadgeDelta deltaType={deltaPct >= 0 ? "increase" : "decrease"}>
@@ -107,9 +121,12 @@ export function KpiCard({
         )}
       </div>
       {/* Provenance footer: source measure + the exact date ranges both numbers cover +
-          the named comparison baseline — all three required by the absolute rule above. */}
+          the named comparison baseline — all three required by the absolute rule above.
+          The timezone is named too (P2-15) — a bare date range is ambiguous once more
+          than one timezone is in play; see best-practices/dashboard-render-in-the-viewer-
+          locale-and-tenant-timezone.md. */}
       <Text data-provenance-footer className="mt-2 text-xs text-tremor-content-subtle">
-        source: {measure} · {dateRange}
+        source: {measure} · {dateRange} ({timezone})
         {deltaPct !== undefined ? ` · ${comparisonLabel}` : ""}
       </Text>
     </Card>

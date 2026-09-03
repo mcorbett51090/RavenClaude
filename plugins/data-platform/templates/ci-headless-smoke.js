@@ -64,10 +64,31 @@ async function main() {
     ),
   );
 
+  // RTL smoke (FORGE dashboard-top1pct P2-15, 2026-09-03) — a smoke check, NOT
+  // a layout certification. This does not claim the dashboard supports RTL
+  // visually (Tailwind logical-property/RTL utilities are not wired into
+  // either starter); it only asserts that setting dir="rtl" doesn't itself
+  // throw a NEW console error — catching the cheapest class of RTL-unaware
+  // bug (a script that assumes document.dir === "ltr") without overclaiming
+  // full RTL correctness. See best-practices/dashboard-render-in-the-viewer-
+  // locale-and-tenant-timezone.md's "RTL is a layout concern distinct from
+  // locale/timezone correctness" note for why this bar is deliberately
+  // narrow rather than a false "we support RTL" claim.
+  const errorsBeforeRtl = errors.length;
+  await page.evaluate(() => {
+    document.documentElement.setAttribute("dir", "rtl");
+  });
+  await page.waitForTimeout(200);
+  const newErrorsFromRtl = errors.slice(errorsBeforeRtl);
+  console.log(
+    "New console errors after dir=rtl toggle:",
+    JSON.stringify(newErrorsFromRtl, null, 2),
+  );
+
   await browser.close();
 
   let failed = false;
-  if (errors.length > 0) {
+  if (errorsBeforeRtl > 0) {
     console.error("Headless smoke FAILED: console errors present");
     failed = true;
   }
@@ -81,12 +102,16 @@ async function main() {
     );
     failed = true;
   }
+  if (newErrorsFromRtl.length > 0) {
+    console.error("Headless smoke FAILED: dir=rtl toggle introduced new console error(s)");
+    failed = true;
+  }
   if (failed) process.exit(1);
 
   console.log(
     "Headless smoke OK: zero console errors, status",
     status,
-    ", zero serious/critical axe-core violations",
+    ", zero serious/critical axe-core violations, dir=rtl toggle introduced no new errors",
   );
 }
 

@@ -9961,6 +9961,51 @@ rc=0; grep -q "session.tenantId" "$DP_EXPORT_BAD" 2>/dev/null || rc=1
 gate "export structural: request-derived tenant scoping caught" must_fail "$rc"
 
 echo
+echo "── Gate 270: data-platform locale/timezone structural checks (no browser needed) ──"
+# FORGE P2-15 (2026-09-03): no hard-coded "en-US" in either starter's widget
+# formatting call sites, an explicit `timezone` reaching each Cube query, and
+# the provenance footer naming the timezone alongside the date range. NOTE
+# (honest correction of plan.md's own acceptance-test wording): a literal
+# `grep -rn '"en-US"' templates/cube-*` still returns 2 hits post-fix —
+# lib/locale.ts's own doc comment and its named DEFAULT_LOCALE_CONTEXT
+# fallback constant, not a hard-coded formatting call. Removing those would
+# leave the app with no default locale at all, which is a worse design, not
+# a better one — so this gate checks the substantive requirement (no
+# hard-coded locale inside an Intl.NumberFormat/DateTimeFormat call site)
+# rather than the plan's blunter literal grep.
+for starter in cube-nextjs-dashboard-starter cube-astro-dashboard-starter; do
+  base="plugins/data-platform/templates/$starter"
+  kpi="$base/components/KpiCard.tsx"
+  [[ -f "$kpi" ]] || kpi="$base/src/components/KpiCard.tsx"
+  chart="$base/components/RevenueChart.tsx"
+  [[ -f "$chart" ]] || chart="$base/src/components/RevenueChart.tsx"
+
+  rc=0
+  grep -q 'Intl\.NumberFormat("en-US"' "$kpi" 2>/dev/null && rc=1
+  grep -q 'Intl\.DateTimeFormat("en-US"' "$chart" 2>/dev/null && rc=1
+  gate "locale structural: no hard-coded en-US in a formatting call ($starter)" must_pass "$rc"
+
+  rc=0; grep -q "useLocale()" "$kpi" 2>/dev/null || rc=1
+  gate "locale structural: KpiCard consumes useLocale() ($starter)" must_pass "$rc"
+
+  rc=0
+  grep -q "timezone" "$kpi" 2>/dev/null || rc=1
+  grep -q "timezone" "$chart" 2>/dev/null || rc=1
+  gate "locale structural: timezone reaches the Cube query ($starter)" must_pass "$rc"
+
+  rc=0
+  grep -q "dateRange} ({timezone})" "$kpi" 2>/dev/null || rc=1
+  grep -q "dateRange} ({timezone})" "$chart" 2>/dev/null || rc=1
+  gate "locale structural: provenance footer names the timezone ($starter)" must_pass "$rc"
+done
+# Teeth: a fixture with a hard-coded en-US formatting call must be caught.
+DP_LOCALE_BAD="$TMP/dp-locale-bad-kpi.tsx"
+printf 'const f = (v) => new Intl.NumberFormat("en-US", {}).format(v);\n' > "$DP_LOCALE_BAD"
+rc=0
+grep -q 'Intl\.NumberFormat("en-US"' "$DP_LOCALE_BAD" 2>/dev/null && rc=1
+gate "locale structural: hard-coded en-US formatting call caught" must_fail "$rc"
+
+echo
 echo "═══════════════════════════════════════════════════════════════════════════"
 printf '  %d pass, %d fail, %d skipped\n' "$PASS" "$FAIL" "$SKIP"
 if [[ "$FAIL" -gt 0 ]]; then

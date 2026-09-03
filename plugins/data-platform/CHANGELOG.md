@@ -2,6 +2,48 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.29.0] — 2026-09-03
+
+### Added
+
+- **P2-15** — i18n, timezone, and locale discipline. Confirmed both halves of the plan's stated
+  finding: zero files mentioned i18n/localization/RTL, and the concrete defect was already
+  shipped — `grep -rn '"en-US"' templates/cube-*` returned exactly 2 hits, one per starter's
+  `KpiCard.tsx`, hard-coding `Intl.NumberFormat("en-US", …)`.
+  - New `best-practices/dashboard-render-in-the-viewer-locale-and-tenant-timezone.md` — the
+    absolute rule: locale drives formatting, timezone drives what data a query actually returns
+    (these are different problems that happen to travel together — a UTC-computed date range
+    formatted into local time *after* the query ran using the wrong window doesn't fix anything).
+  - New `knowledge/dashboard-timezone-decision-2026.md` — the three real forks (tenant-configured,
+    viewer-browser, warehouse-UTC), with no universally right answer, and why this plugin's
+    starters implement tenant-configured as the default.
+  - Both starters: new `lib/locale.ts` (`resolveLocaleContext(session)`, tenant-configured fork)
+    and `components/LocaleProvider.tsx` (React Context) thread `{locale, timezone}` to every
+    widget. `KpiCard`/`RevenueChart` consume `useLocale()` instead of the hard-coded string, and
+    both pass an explicit `timezone` on their Cube query object (Cube's REST API takes `timezone`
+    as a top-level query field — verified via Context7 against `cube-js/cube`'s own docs before
+    implementing, not assumed) so the query's date-range boundaries respect it, not just the
+    display. The provenance footer now names the timezone alongside the date range.
+  - RTL smoke added to `templates/ci-headless-smoke.js`: toggles `dir="rtl"` and asserts no new
+    console error appears — explicitly scoped as a smoke check, not a layout certification;
+    neither starter implements full RTL support and this doesn't claim otherwise.
+  - New `audit-gates.sh` **Gate 270** (structural, no browser needed): no hard-coded `en-US` in a
+    formatting call site, `useLocale()` consumed, `timezone` reaches the Cube query, provenance
+    footer names it — per starter, with a must-fail teeth fixture.
+  - `agents/dashboard-builder.md` References the new knowledge file; `best-practices/README.md`'s
+    index and derived count (36 rules) updated; `CLAUDE.md`'s knowledge table updated.
+  - Both starters' `npx tsc --noEmit` and `npm run build` / `astro build` pass clean with the
+    threading present (confirmed this session, after the change).
+  - **Honest correction of `plan.md`'s own acceptance-test wording**, not silently forced to look
+    satisfied: the plan's literal `grep -rn '"en-US"' templates/cube-* → 0` still returns 2 hits
+    post-fix — `lib/locale.ts`'s own doc comment and its named `DEFAULT_LOCALE_CONTEXT` fallback
+    constant in each starter, not a hard-coded formatting call. Removing those would leave the
+    app with no default locale at all, which is a worse design, not a better one — Gate 270 checks
+    the substantive requirement (no hard-coded locale inside a formatting call site) instead of
+    the plan's blunter literal string search.
+
+**Migration:** none — all additive. No consumer-facing behavior changes to existing surfaces.
+
 ## [0.28.0] — 2026-09-03
 
 ### Added

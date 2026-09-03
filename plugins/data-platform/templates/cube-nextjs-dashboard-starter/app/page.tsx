@@ -1,5 +1,6 @@
 import { DashboardShell } from "@/components/DashboardShell";
 import { getSession } from "@/lib/session";
+import { resolveLocaleContext } from "@/lib/locale";
 
 // This page resolves the caller's authenticated session on every request —
 // it can never be statically prerendered (Next.js's default `output: export`-
@@ -18,6 +19,13 @@ export const dynamic = "force-dynamic";
  */
 export default async function DashboardPage() {
   const session = await getSession();
+  const { locale, timezone } = resolveLocaleContext(session);
 
-  return <DashboardShell tenantLabel={`Tenant: ${session.tenantId}`} />;
+  return (
+    <DashboardShell
+      tenantLabel={`Tenant: ${session.tenantId}`}
+      locale={locale}
+      timezone={timezone}
+    />
+  );
 }

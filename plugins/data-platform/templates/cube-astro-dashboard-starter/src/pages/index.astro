@@ -7,8 +7,10 @@ import DashboardLayout from "@/layouts/DashboardLayout.astro";
 import { DashboardIsland } from "@/components/DashboardIsland";
 import { Title, Subtitle } from "@/components/ui";
 import { getSession } from "@/lib/session";
+import { resolveLocaleContext } from "@/lib/locale";
 
 const session = await getSession();
+const { locale, timezone } = resolveLocaleContext(session);
 ---
 
 <DashboardLayout title="Dashboard">
@@ -28,6 +30,6 @@ const session = await getSession();
     }
     <Title>Dashboard</Title>
     <Subtitle>{`Tenant: ${session.tenantId}`}</Subtitle>
-    <DashboardIsland client:load />
+    <DashboardIsland client:load locale={locale} timezone={timezone} />
   </div>
 </DashboardLayout>
