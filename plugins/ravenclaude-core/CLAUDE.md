@@ -4177,3 +4177,118 @@ reasoned-through and structurally gated, not yet measured end-to-end.
 Gate 260 pins the `if (!CONVERGE) break;` single-pass exit), and the severity-sort fix only makes the
 existing (silently-broken) verifyCap sort actually work — no consumer-visible regression, a latent bug
 closing.
+
+## ⛔ FORGE's own telemetry was written after the decisions it was meant to gate (added 2026-09-03, v0.316.1)
+
+A `/forge` `standard` run over the `forge-pipeline` skill itself — two divergent cross-model panels
+(an Opus architect lens that measured a real 44-run corpus, a Sonnet ops/cost lens), a
+correlated-error critic, in-thread tiebreaks, an in-thread red-team — landed a six-item Phase 0. Both
+panels independently converged on the same #1 problem and **both proposed a fix built on a false
+premise**, which is the part worth recording: the critic is what caught it, not the panels.
+
+### ⛔ CE-1 — the recorder both panels designed would have run after every advance it gated
+
+Both panels assumed the Sága run record was appended incrementally, per gate. It was not.
+`commands/forge.md` Step 5 was a **single terminal write**, after every gate had already advanced in
+Step 4. A write-time validating recorder on that timing executes **after** every advance decision it
+exists to gate, so "fail-closed" described the author's intent rather than the system's behaviour — a
+gate whose artifact never existed still advanced, and the ledger then recorded it as a pass.
+
+The measured state under that timing, over 44 real run directories: only **11 had a `run-log.jsonl`
+at all**; **26 of 153** receipts named an artifact that does not exist on disk; **25 of 73** `bytes`
+fields disagreed with the real file size; **61.4%** of receipts carried the `blockers` field the
+advance criterion is supposed to read; and **zero** receipts anywhere carried a cost/token/duration
+field, despite §3 describing cost accounting as a design pillar.
+
+The fix is half prose and half code, and **neither half works alone**. SKILL.md §0 now states the
+append is immediate and per-gate; `commands/forge.md` Step 4 carries an explicit two-step post-gate
+order (append the receipt, *then* checkpoint) and Step 5 no longer writes anything — the record
+already exists, so Step 5 **verifies** it before the final checkpoint and the single exit.
+
+### ⛔ CE-2 — run artifacts split across two directories, and it is live in a landed run
+
+FORGE provisions a worktree at every depth (§0.5), and nothing said which checkout the run dir
+belongs to. A gate subagent that derives the run-dir path relative to its **own** cwd therefore opens
+a *second* run dir, silently. This is not hypothetical: the landed `agent-routing-matrix` run
+(shipped as **v0.311.0**) has its G2-G8 artifacts existing **only** inside a worktree — real
+data-loss exposure the moment that worktree is pruned. SKILL.md §0.5 now states the rule explicitly:
+gate-artifact run-dir paths are always the **absolute primary-checkout path**, passed in every
+dispatched gate's brief, regardless of that subagent's cwd. **The worktree is for the branch; the run
+dir is for the record, and the record has exactly one home.**
+
+### What shipped
+
+- **`scripts/forge-receipt.py`** (new, stdlib-only, `forge-route.py`/`premise-gate.py` house style).
+  `append` **refuses (exit 2)** a `pass` receipt whose artifact is missing or empty, recomputes
+  `bytes` from disk (⛔ a self-reported size is the claim under audit; it cannot also be the
+  evidence), and rewrites the artifact path **relative to `--run-dir`** so the ledger survives a
+  worktree prune or the run-dir being moved. `verify` asserts the resolved depth's required gate set
+  (SKILL.md §1) is accounted for. Warn-only was considered and rejected: it reproduces exactly the
+  61.4%/34% disagreement rates measured above, silently.
+- ⛔ **`verify` must not false-positive on a legitimate early exit** (red-team #2). A run that BLOCKs
+  at G1 or takes a G7 `reject` never reaches the later gates *by design*; a naive "every gate in the
+  ladder has a receipt" check hard-fails every such run. This repo has recorded the consequence twice
+  already (`srm.force-push`, `sce.curl-pipe-shell`): **an untunable guard gets turned off, and a
+  guard that is off protects nothing.** Gates *before* the short circuit are still required — the
+  fixture asserts both directions, because scoping without that half is indistinguishable from
+  switching the check off.
+- ⛔ **A live smoke test caught a defect in the new recorder itself, and it is the same class the
+  recorder exists to close.** `os.path.getsize()` on a **directory** returns its inode size
+  (384/416/…), which is `> 0` — so a size-only "artifact exists and is non-empty" check **accepts a
+  directory as a valid artifact**. A harness bug passed the run dir itself as the artifact and all 11
+  gates appended "clean" with `artifact: "."`. Fixed with an `isfile()` check ordered *before*
+  `getsize()`, and pinned by a permanent regression assertion — without it the guard can be deleted
+  and every other fixture still passes. The fixtures did not find this; running it against a real run
+  dir did.
+- **The 0/1/2 exit contract is `premise-gate.py`'s, reused rather than reinvented.** Exit **1** =
+  COULD NOT RUN, never conflated with clean: "I looked and found nothing" and "I could not look" are
+  indistinguishable afterward, which is exactly how a green gate ends up protecting nothing.
+- **Kill switch** `FORGE_RECEIPT=off` / `forge_receipt: off` in `.ravenclaude/comfort-posture.yaml`
+  (minimal scalar read, no PyYAML), mirroring `forge-worktree.sh`'s own opt-out shape — both
+  subcommands then exit 0 immediately and `append` writes nothing.
+- **`forge-publish-session-plan.sh --self-test`** (7 fixtures). It gates the mandatory
+  pre-`ExitPlanMode` publish with exit-2 semantics and had shipped with **no test at all** — an
+  ungated gate. Its teeth were verified by an in-place A/B, not asserted: neutering the empty-source
+  refusal makes fixture 2 fail, reverted after.
+- **Gate 263** runs all three self-tests plus `forge-receipt.py --must-fail`. ⛔ Registered in **all
+  three** required surfaces — the `--check` dispatcher, the main sequence, and the `Supported:`
+  string — each **verified by grep after the edit**, per this repo's own Gate 184 incident (a gate
+  added to only one of the three ran nowhere for a full release). A passing suite is not evidence a
+  gate is in it; the suite passes identically when the gate is absent.
+- ⛔ **It is 263 because the slot moved under us, and the first grep was against a stale tree.** The
+  branch was cut from an `origin/main` whose max gate was 260, so `261` looked free and the gate was
+  built, registered and green there. `origin/main` had meanwhile landed **261 and 262** (the
+  precompact-handoff-convergence pass), so the "next free slot" was already taken — the plan's
+  independently-censused 261 and this pass's own re-census both read the *same stale tree* and
+  therefore agreed with each other while both being wrong. **Two independent confirmations of a
+  number are worth nothing if both read the same stale base.** Caught only because a
+  `git diff origin/main..HEAD` showed the branch *deleting* `test-gate261-handoff-escalation.sh` —
+  a file it had never touched. Fixed by merging `origin/main` first and re-censusing the **merged**
+  tree; the version bump moved 0.315.1 → **0.316.1** for the same reason. Re-verified after the
+  merge: gates 261, 262 (origin/main's) and 263 (this pass's) each exit 0.
+
+### ⛔ Deliberately NOT done this pass, recorded rather than silently dropped
+
+A cross-run ledger reader / dashboard card (depends on this schema stabilizing first); a
+cost/token pre-flight estimator (blocked on the `~calls` bands never having been validated against
+real data — publishing a number derived from an unvalidated band manufactures false precision); a
+per-gate retry/timeout policy (introduces an unlabelled gate-semantics change and needs its own
+review); and a **worktree/branch retention policy** — newly identified by the critic as a *live
+data-loss risk*, not a low-priority cleanup, and therefore deserving a dedicated pass rather than
+being bundled here as an afterthought. The combined ten-mechanism set both panels wanted was priced
+as unbudgeted against every future FORGE run's marginal cost.
+
+⛔ **CE-2 is stopped for NEW runs only.** §0.5 fixes the split at the cause; it does **not**
+retroactively reconcile runs that already split — `agent-routing-matrix`'s worktree-only artifacts
+are still exposed. That is the retention-policy follow-up above, and it is open.
+
+**Honest scope of the gate.** Gate 263 proves the three helpers' own contracts against fixtures. It
+does **not** prove that a live `/forge` run actually calls `forge-receipt.py append` per gate — that
+is prose in `commands/forge.md` Step 4, behavioral like `design_checkins`, with no hook enforcing it.
+The mechanism that *would* close it is `verify` failing at Step 5 when a required gate's receipt is
+missing; that is now wired, but has not yet been observed catching a real skipped gate in the wild.
+
+**Migration:** none — `forge-receipt.py` is a new file behind a kill switch, the two self-tests are
+additive, and the SKILL/command edits change the pipeline's *record-keeping order*, not any gate's
+semantics, flags, artifact paths, or counts. Nothing in a consumer's installed plugin behaves
+differently on `/plugin marketplace update` until they run `/forge`.

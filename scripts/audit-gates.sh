@@ -799,6 +799,15 @@ PY
       echo "teeth ok (the mutant reddened, so the assertions measure the invariant)"
       exit 0
       ;;
+    263)
+      echo "── Gate 263: forge-pipeline receipt + publish + worktree self-tests (per-gate run) ──"
+      rc=0
+      python3 plugins/ravenclaude-core/scripts/forge-receipt.py --self-test || rc=$?
+      python3 plugins/ravenclaude-core/scripts/forge-receipt.py --must-fail || rc=$?
+      bash plugins/ravenclaude-core/scripts/forge-publish-session-plan.sh --self-test || rc=$?
+      bash plugins/ravenclaude-core/scripts/forge-worktree.sh --self-test || rc=$?
+      exit $rc
+      ;;
     243)
       echo "── Gate 243: scheduled sweep contract + operator health card ──"
       bash plugins/ravenclaude-core/hooks/tests/test-gate243-sweep-and-health-card.sh
@@ -1603,7 +1612,7 @@ PY
       ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254, 255, 256, 257, 258, 259, 260, 261, 262. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254, 255, 256, 257, 258, 259, 260, 261, 262, 263. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -4460,8 +4469,16 @@ if command -v node >/dev/null 2>&1; then
   # must_fail: a drifted dashboard whose decision_review emission line is stripped
   # (simulating the pre-fix serializer that silently dropped the key). The test
   # must catch the now-missing key.
+  #
+  # ⛔ FOUND 2026-09-03 auditing this gate's own teeth: the unescaped `$` here
+  # matched ZERO lines under BSD/macOS grep's BRE (a `$` not at the pattern's
+  # end is not reliably literal there) — so `grep -v` removed nothing, the
+  # "drifted" file was byte-identical to the real one, and this must_fail
+  # trivially passed for the WRONG reason on every run since it was written.
+  # Escaping `$` -> `\$` (as the stream_classify mutant two blocks below
+  # already did correctly) makes the strip real.
   RT_BAD="$TMP/dashboard-drifted.html"
-  grep -v 'decision_review: ${state.decision_review}' index.html > "$RT_BAD"
+  grep -v 'decision_review: \${state.decision_review}' index.html > "$RT_BAD"
   rc=0; node "$RT" "$RT_BAD" >/dev/null 2>&1 || rc=$?
   gate "dashboard round-trip (drifted: decision_review emit stripped)" must_fail "$rc"
   # must_fail (F4): a drifted dashboard whose stream_classify emission is stripped —
@@ -4483,8 +4500,10 @@ if command -v node >/dev/null 2>&1; then
   # from `state`, so a key with no emit line is silently DELETED on the next
   # Save & apply — a user's conserve-tokens switch would vanish the first time
   # they changed anything else.
+  # ⛔ Same unescaped-`$` toothlessness found and fixed 2026-09-03 (see the
+  # decision_review mutant above for the full explanation).
   RT_BAD_CT="$TMP/dashboard-drifted-conserve.html"
-  grep -v 'conserve_tokens: ${state.conserve_tokens === true}' index.html > "$RT_BAD_CT"
+  grep -v 'conserve_tokens: \${state.conserve_tokens === true}' index.html > "$RT_BAD_CT"
   rc=0; node "$RT" "$RT_BAD_CT" >/dev/null 2>&1 || rc=$?
   gate "dashboard round-trip (drifted: conserve_tokens emit stripped)" must_fail "$rc"
   # must_fail (v0.273.0 B): the parallelism default reverted to the pre-flip
@@ -4516,6 +4535,19 @@ if command -v node >/dev/null 2>&1; then
   grep -v 'lines.push("cheap_lane:")' index.html > "$RT_BAD_CL"
   rc=0; node "$RT" "$RT_BAD_CL" >/dev/null 2>&1 || rc=$?
   gate "dashboard round-trip (drifted: cheap_lane emit stripped)" must_fail "$rc"
+  # must_fail (worktree_lease / keep_awake): both were ENTIRELY unmodelled — no
+  # state slot, no applyGuardrailConfig read, no emitYaml write — until this fix
+  # (found live 2026-09-03 auditing the v0.61.0 data-loss class after the
+  # context_handoff/cheap_lane fixes). Strip the worktree_lease emit line and
+  # confirm Test 1/Test 2 catch the regression.
+  RT_BAD_WL="$TMP/dashboard-drifted-worktree-lease.html"
+  grep -v 'lines.push(`worktree_lease: \${state.worktree_lease}`)' index.html > "$RT_BAD_WL"
+  rc=0; node "$RT" "$RT_BAD_WL" >/dev/null 2>&1 || rc=$?
+  gate "dashboard round-trip (drifted: worktree_lease emit stripped)" must_fail "$rc"
+  RT_BAD_KA="$TMP/dashboard-drifted-keep-awake.html"
+  grep -v 'lines.push(`keep_awake: \${state.keep_awake}`)' index.html > "$RT_BAD_KA"
+  rc=0; node "$RT" "$RT_BAD_KA" >/dev/null 2>&1 || rc=$?
+  gate "dashboard round-trip (drifted: keep_awake emit stripped)" must_fail "$rc"
 else
   _skip_or_fail "Gate 35 (dashboard round-trip)" node
 fi
@@ -9693,6 +9725,44 @@ rc=0; bash plugins/ravenclaude-core/hooks/tests/test-gate261-handoff-escalation.
 gate "handoff-escalation: retracted strings absent + positive control + replacements + step 5.5 gate + probe" must_pass "$rc"
 rc=0; bash plugins/ravenclaude-core/hooks/tests/test-gate261-handoff-escalation.sh --must-fail >/dev/null 2>&1 || rc=$?
 gate "handoff-escalation teeth: reverting the SKILL.md fixes reddens the drift-guard assertions" must_fail "$rc"
+
+echo
+echo "── Gate 263: forge-pipeline receipt + publish + worktree self-tests ──"
+# The FORGE pipeline's three deterministic helpers, all self-tested, none of
+# which was registered in CI before this gate:
+#   * forge-receipt.py   — the Saga run-record recorder/verifier (NEW). Its
+#     append REFUSES (exit 2) a `pass` receipt whose artifact is missing/empty
+#     (or a DIRECTORY — getsize() on a dir returns >0, so isfile() runs first),
+#     recomputes `bytes` from disk, and stores artifact paths run-dir-relative;
+#     its verify asserts the resolved depth's required gate set is accounted for
+#     WITHOUT false-positiving on a legitimate G1-BLOCK / G7-reject short
+#     circuit. --must-fail neuters the fail-closed artifact check and asserts
+#     the self-test catches it (teeth, premise-gate.py's convention: the teeth
+#     check itself exits 0 when the planted defect IS caught).
+#   * forge-publish-session-plan.sh — gates the mandatory pre-ExitPlanMode
+#     publish with exit-2 semantics and had NO self-test at all until now.
+#   * forge-worktree.sh — 11 fixtures that already existed but were never run
+#     by CI, so a regression in the worktree provisioner was invisible here.
+# ⛔ 263, not 261: the branch was cut from an origin/main that topped out at 260,
+# and origin/main landed 261+262 meanwhile. The max-gate grep was re-run against
+# the MERGED tree, not trusted from the plan or from the pre-merge branch.
+# ⛔ Registered in dispatcher + main sequence + Supported:. Grep by literal name.
+if command -v python3 >/dev/null 2>&1; then
+  rc=0
+  python3 plugins/ravenclaude-core/scripts/forge-receipt.py --self-test >/dev/null 2>&1 || rc=$?
+  gate "forge-receipt.py --self-test (fail-closed append, relative artifact paths, depth verify, short-circuit, 0/1/2 contract, kill switch)" must_pass "$rc"
+
+  rc=0; python3 plugins/ravenclaude-core/scripts/forge-receipt.py --must-fail >/dev/null 2>&1 || rc=$?
+  gate "forge-receipt.py --must-fail (a neutered fail-closed artifact check IS caught)" must_pass "$rc"
+else
+  _skip_or_fail "Gate 263 (forge-receipt.py self-tests)" python3
+fi
+
+rc=0; bash plugins/ravenclaude-core/scripts/forge-publish-session-plan.sh --self-test >/dev/null 2>&1 || rc=$?
+gate "forge-publish-session-plan.sh --self-test (publish, exit-2 refusals, both honest skip paths)" must_pass "$rc"
+
+rc=0; bash plugins/ravenclaude-core/scripts/forge-worktree.sh --self-test >/dev/null 2>&1 || rc=$?
+gate "forge-worktree.sh --self-test (11 fixtures: provision/reuse/nesting/opt-out/stale-base)" must_pass "$rc"
 
 echo "── analog-closeness-scorecard (Q2 leftover, docs/follow-ups/2026-08-14-analog-repos-leftovers.md) ──"
 # Recomputes the 2026-08-14 analog survey's own M/H/G/O/E/I/T/V weighted-closeness
