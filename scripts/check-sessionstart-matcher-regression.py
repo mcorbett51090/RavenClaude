@@ -35,6 +35,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import shutil
 import subprocess
 import sys
@@ -68,15 +69,38 @@ _COMPACT_HOOK = "compact-anchor.sh"
 # no generator to run, Copilot's matcher pass-through is asserted separately
 # below since it doesn't need a live run to prove -- see check C's Copilot
 # branch).
+#
+# Phase 1 (F-1) note: this stays Gemini-only in this phase on purpose --
+# Copilot-CLI/Cursor/Claude-Code/Codex rows are Phases 2/3/4's job, running
+# in parallel once this extractor refactor lands. What Phase 1 fixes is that
+# check_c_wired_set() below no longer has ONE hardcoded reader that only
+# happens to understand Gemini's shape -- it dispatches per host through
+# _EXTRACTORS, so a future ledger row is a dict entry, not a rewrite.
 _WIRED_SET_LEDGER = {
     "gemini": _SOURCE_HOOKS | {_COMPACT_HOOK},
 }
+
+_CURSOR_GEN = _REPO / "scripts" / "generate-cursor-hooks.py"
 
 
 def _basename(command: str) -> str:
     tail = command.rstrip().split()[-1] if command.strip() else command
     name = tail.rsplit("/", 1)[-1]
     return name
+
+
+def _sh_basename(text: str) -> str:
+    """Pull a `<name>.sh` basename out of an arbitrary shell-command string.
+
+    The flat host shapes (Copilot-CLI, Cursor) carry no `name` field at all --
+    the only place a basename lives is inside the assembled `bash`/`command`
+    string (e.g. `bash "<adapter>" sessionstart "<hooks-dir>/keep-awake.sh"`,
+    sometimes with trailing args like `... /worktree-guard.sh" register`).
+    Stops at the first `/`-free, non-quote run ending in `.sh`, so a trailing
+    arg token never gets mistaken for the script name.
+    """
+    m = re.search(r"([A-Za-z0-9_.-]+\.sh)", text)
+    return m.group(1) if m else ""
 
 
 def _session_start_groups(hooks_json_path: Path) -> dict:
@@ -131,43 +155,161 @@ def check_b_parity(
         )
 
 
-def _run_generator_wired(generator: Path) -> set:
-    """Run a host generator's project() via its --out flag and return the set
-    of SessionStart-lane hook basenames it actually WIRED (not skipped)."""
+def _run_host_generator(generator: Path, repo: Path) -> dict:
+    """Run a host projector's `--out` flag and return its parsed JSON config.
+
+    Shared plumbing for every per-host extractor below -- F-1's actual fix is
+    what each extractor does with this config (each host emits a genuinely
+    different SessionStart shape), not how the config gets produced.
+    """
     with tempfile.TemporaryDirectory() as td:
         out = Path(td) / "out.json"
         subprocess.run(
             [sys.executable, str(generator), "--out", str(out)],
             check=True,
             capture_output=True,
-            cwd=str(_REPO),
+            cwd=str(repo),
         )
-        cfg = json.loads(out.read_text(encoding="utf-8"))
-    wired: set[str] = set()
+        return json.loads(out.read_text(encoding="utf-8"))
+
+
+def _extract_gemini(repo: Path) -> dict:
+    """Gemini's SessionStart shape: `hooks.SessionStart[] ->
+    {hooks:[{name,type,command,timeout}], matcher?}`, names prefixed
+    `ravenclaude-<stem>`.
+
+    This is F-1's regression-proof reader: it reproduces the pre-Phase-1
+    `_run_generator_wired()`'s exact Gemini-reading logic byte-for-byte
+    (same key-tolerance, same "hooks" nesting fallback, same
+    `ravenclaude-` prefix strip), generalized only in that it now returns
+    the matcher too instead of discarding it. Returns
+    `{basename: matcher_or_None}`.
+    """
+    generator = repo / "scripts" / "generate-gemini-hooks.py"
+    if not generator.exists():
+        return {}
+    cfg = _run_host_generator(generator, repo)
+    wired: dict = {}
     events = cfg.get("hooks", cfg)  # generators nest under "hooks"; tolerate a flat shape too
     for key in ("SessionStart", "sessionStart"):
         for block in events.get(key, []):
+            matcher = block.get("matcher")
             for h in block.get("hooks", []):
                 nm = h.get("name", "")
                 # generators emit "ravenclaude-<script-stem>"
                 if nm.startswith("ravenclaude-"):
-                    wired.add(nm[len("ravenclaude-") :] + ".sh")
+                    wired[nm[len("ravenclaude-") :] + ".sh"] = matcher
     return wired
+
+
+def _extract_copilot_cli_flat(repo: Path) -> dict:
+    """Copilot CLI's SessionStart shape: `hooks.SessionStart[]` FLAT (no
+    per-matcher grouping like Gemini's), each entry
+    `{type,bash,timeoutSec,matcher}` -- no `name` field at all, so the
+    basename has to be read off the `bash` command string instead. Returns
+    `{basename: matcher_or_None}`.
+    """
+    generator = repo / "scripts" / "generate-copilot-hooks.py"
+    if not generator.exists():
+        return {}
+    cfg = _run_host_generator(generator, repo)
+    events = cfg.get("hooks", cfg)
+    wired: dict = {}
+    for entry in events.get("SessionStart", []):
+        name = _sh_basename(entry.get("bash", ""))
+        if name:
+            wired[name] = entry.get("matcher")
+    return wired
+
+
+def _extract_cursor_flat(repo: Path) -> dict:
+    """Cursor's sessionStart shape: `hooks.sessionStart[]` FLAT, each entry
+    `{command,timeout}` -- no `name` field, and no `matcher` field EVER
+    (generate-cursor-hooks.py never emits one for this event: `sessionStart`
+    is not in Cursor's documented matcher-capable event list, a platform
+    fact, not a gap). Returns `{basename: None}` for every wired hook.
+    """
+    generator = repo / "scripts" / "generate-cursor-hooks.py"
+    if not generator.exists():
+        return {}
+    cfg = _run_host_generator(generator, repo)
+    events = cfg.get("hooks", cfg)
+    wired: dict = {}
+    for entry in events.get("sessionStart", []):
+        name = _sh_basename(entry.get("command", ""))
+        if name:
+            wired[name] = None
+    return wired
+
+
+def _extract_manifest(repo: Path) -> dict:
+    """Claude Code has no generator -- its wiring IS `hooks/hooks.json` plus
+    the dev-mirror `.claude/settings.json`, read directly.
+
+    STUB for this phase: the signature/shape is defined now so every
+    extractor in `_EXTRACTORS` is callable identically, but the body is
+    Phase 3's job (the `claude-code` ledger row + the lane-partition
+    assertion that goes with it). Nothing in Phase 1 dispatches to this --
+    `claude-code` is not yet a key in `_WIRED_SET_LEDGER`.
+    """
+    raise NotImplementedError(
+        "_extract_manifest is a Phase-1 stub; its body ships with Phase 3's "
+        "claude-code ledger row"
+    )
+
+
+# Dispatch table: ledger host key -> the extractor that knows how to read
+# THAT host's actual generator/manifest output. Every _WIRED_SET_LEDGER key
+# must have an entry here; check_c_wired_set() below fails closed (a
+# finding, not a silent skip) on a ledgered host with no registered
+# extractor.
+_EXTRACTORS = {
+    "gemini": _extract_gemini,
+    "copilot-cli": _extract_copilot_cli_flat,
+    "cursor": _extract_cursor_flat,
+    "claude-code": _extract_manifest,
+}
 
 
 def check_c_wired_set(findings: list, repo: Path | None = None) -> None:
     r = repo or _REPO
-    gemini_gen = r / "scripts" / "generate-gemini-hooks.py"
-    if gemini_gen.exists():
-        actual = _run_generator_wired(gemini_gen)
-        required = _WIRED_SET_LEDGER["gemini"]
-        missing = required - actual
+    for host, required in _WIRED_SET_LEDGER.items():
+        extractor = _EXTRACTORS.get(host)
+        if extractor is None:
+            findings.append(
+                "C: %s is in _WIRED_SET_LEDGER but has no entry in "
+                "_EXTRACTORS -- a ledgered host must be readable, not just "
+                "declared" % host
+            )
+            continue
+        try:
+            actual = extractor(r)
+        except NotImplementedError as exc:
+            findings.append(f"C: {host}'s extractor is not implemented yet: {exc}")
+            continue
+        wired_names = set(actual)
+        # Fail-closed guard (Phase 1, F-1): an extractor returning EMPTY for
+        # a host whose required set is non-empty is a finding, never a
+        # silent pass. Gemini's own row already demonstrates the positive
+        # case works (8 basenames, not empty) -- this guard is what stops a
+        # future Copilot-CLI/Cursor row's extractor from silently reporting
+        # "wired: {}" as if that were success.
+        if required and not wired_names:
+            findings.append(
+                "C: EMPTY-EXTRACTION -- %s's extractor returned ZERO wired "
+                "SessionStart hooks while %d are required; this is either a "
+                "broken extractor or a host that silently stopped wiring "
+                "SessionStart entirely, and neither may pass silently"
+                % (host, len(required))
+            )
+            continue
+        missing = required - wired_names
         if missing:
             findings.append(
-                "C: Gemini WIRED-SET regression -- %s required-wired but NOT "
-                "wired by generate-gemini-hooks.py's actual project() output "
-                "(this is the exact class CE-1 found: a hook silently dropped "
-                "while --check still passes)" % sorted(missing)
+                "C: %s WIRED-SET regression -- %s required-wired but NOT "
+                "wired by its generator's actual project() output (this is "
+                "the exact class CE-1 found: a hook silently dropped while "
+                "--check still passes)" % (host, sorted(missing))
             )
 
 
