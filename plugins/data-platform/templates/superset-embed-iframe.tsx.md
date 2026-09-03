@@ -1,7 +1,15 @@
-# Superset embed (React iframe component) — seam-marked stub
+# Superset embed (React iframe component) — seam-marked stub (historical)
 
-> **Status:** v0.1.0 conceptual stub. Documents the seams; not compiling code.
-> **Promoted to runnable `.tsx` in v0.2.0** after a real engagement validates the seams.
+> **✅ PROMOTED at v0.2.0, then revised.** The runnable code now lives at
+> [`superset-embed-iframe.tsx`](superset-embed-iframe.tsx) (client component) +
+> [`superset-guest-token-endpoint.ts`](superset-guest-token-endpoint.ts) (server-side guest-token
+> exchange, split out from the original single-file design). `ravenclaude-core/security-reviewer`
+> found the original version let a caller pass `tenantId` client-side into Superset's guest-token
+> RLS clause (authorization bypass + SQL-string-interpolation risk) — fixed by moving tenant
+> resolution entirely server-side and validating `tenantId`'s shape before it reaches the clause.
+> **The fix has NOT been re-reviewed.** **Open acceptance-criteria items:** live SDK-version
+> confirmation against a real Superset instance, a real engagement using this seam, and
+> documenting the required `GUEST_TOKEN_JWT_EXP_SECONDS` Superset-side setting.
 >
 > **Last reviewed:** 2026-05-21
 >

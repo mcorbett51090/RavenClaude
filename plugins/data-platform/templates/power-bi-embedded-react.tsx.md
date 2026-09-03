@@ -1,7 +1,16 @@
-# Power BI Embedded App-Owns-Data (React component) — seam-marked stub
+# Power BI Embedded App-Owns-Data (React component) — seam-marked stub (historical)
 
-> **Status:** v0.1.0 conceptual stub. Documents the seams; not compiling code.
-> **Promoted to runnable `.tsx` in v0.2.0** after a real Microsoft-stack engagement validates the seams.
+> **✅ PROMOTED at v0.2.0, then revised.** The runnable component now lives at
+> [`power-bi-embedded-react.tsx`](power-bi-embedded-react.tsx), with the backend token
+> endpoint at [`pbi-embed-token-endpoint.ts`](pbi-embed-token-endpoint.ts).
+> `ravenclaude-core/security-reviewer` found the original design let the client compose the
+> full DAX EffectiveIdentity (username **and** roles) and pass it through unvalidated — a
+> cross-tenant read via a spoofed username, or a roleless identity that fails open with no row
+> filter. Fixed: the component now sends only `{workspaceId, reportId, datasetId}`; the
+> endpoint resolves EffectiveIdentity from a server-side session seam
+> (`getEffectiveIdentityForSession`) and refuses to issue a token for an identity with zero
+> roles. **The fix has NOT been re-reviewed.** **Open acceptance-criteria items:** a real
+> M365-stack engagement, live service-principal wiring, and DAX-role-coverage CI testing.
 >
 > **Last reviewed:** 2026-05-21
 >
