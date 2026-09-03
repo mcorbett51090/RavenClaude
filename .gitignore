@@ -62,3 +62,4 @@ evals/__pycache__/
 # by the plugin's skills during a run; never source, never committed.
 tests/fixtures/report-regeneration/_out/
 .ravenclaude/handoff-nudge-state.json
+.ravenclaude/handoff-nudge-state/
