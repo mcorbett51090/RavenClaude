@@ -26,6 +26,15 @@ Three independent checks, because any one alone is insufficient:
      SessionStart hooks MUST be wired; fails closed on any host whose actual
      wiring disagrees, and fails closed on an unlisted hook rather than
      silently ignoring it.
+  D. Ledger COMPLETENESS (Phase 5, sessionstart-safeguards-multihost): makes
+     the ledger self-extending. Enumerates every host lane actually present
+     on the filesystem (an adapter, a generator, or a host-support.json row)
+     and asserts each is classified -- present in _WIRED_SET_LEDGER OR
+     _UNSUPPORTED_HOSTS -- with silence itself a finding. A converse pass
+     then re-checks every _UNSUPPORTED_HOSTS entry's OWN recorded promotion
+     criteria against disk, so a classified-but-now-stale exclusion (e.g.
+     grok gaining a real adapter after this phase ships) is caught on every
+     run rather than becoming a permanent, never-revisited fixture.
 
 Exit codes: 0 clean, 2 a check failed, 1 could not run (malformed input --
 never reported as clean, matching this repo's own premise-gate convention).
@@ -162,6 +171,249 @@ _WIRED_SET_LEDGER = {
         "matcher_fidelity": "exact",
     },
 }
+
+# Phase 5 (sessionstart-safeguards-multihost) -- the ledger completeness
+# scan's join point. This section makes the ledger self-extending: every
+# host lane actually wired on disk (an adapter, a generator, or a
+# host-support.json row) must appear in _WIRED_SET_LEDGER above OR here in
+# _UNSUPPORTED_HOSTS -- silence (present on disk, absent from both) is a
+# finding (check_d_ledger_completeness below), never a silent pass.
+#
+# A raw filesystem/host-support.json host token does not always match the
+# ledger's own key spelling (the ledger key is "copilot-cli"; the adapter is
+# "copilot-hook-adapter.sh", the generator is "generate-copilot-hooks.py",
+# and host-support.json's own row key is "copilot") -- _HOST_ALIASES is the
+# one place that reconciliation lives, so a raw "copilot" resolves to the
+# same identity the ledger and _UNSUPPORTED_HOSTS both use.
+_HOST_ALIASES = {
+    "copilot": "copilot-cli",
+}
+
+
+def _canonical_host(raw: str) -> str:
+    return _HOST_ALIASES.get(raw, raw)
+
+
+# Grok -- decided here, loudly (plan.md Sec 4, the "Grok -- the explicit
+# ruling" section, claims-table row 8). EXCLUDED from _WIRED_SET_LEDGER;
+# INCLUDED, by name and with a reason, here. Basis (re-confirmed live this
+# session against the ACTUAL 7-row host-support.json components.hooks dict --
+# claude-code, copilot, codex, cursor, gemini, aider, windsurf -- grok is
+# genuinely absent, not merely `supported: false`): no
+# grok-hook-adapter.sh, no generate-grok-hooks.py, no `grok` row in
+# host-support.json's components.hooks, and scripts/ravenclaude's --host arm
+# enumerates `copilot | codex | cursor | aider | gemini` and does not know
+# the word. Grok appears only as a MODEL-ROUTING key
+# (substrate-tier-map.json, agent-routing-matrix.json) -- a distinct concern
+# that must not be conflated (scope.md's own instruction, restated in
+# plan.md Sec 4).
+#
+# `promotion_criteria` is deliberately a list of exactly the four criteria
+# plan.md Sec 4 names, in that fixed order -- check_d_converse_promotion_
+# criteria below is positionally keyed to this order via
+# _promotion_criterion_met(index, ...), so reordering this list without
+# updating that function's four branches would silently mis-check a
+# criterion. When ANY of these four exist, the converse check below fires a
+# PROMOTION-CRITERIA-MET finding automatically -- nobody has to remember to
+# revisit this exclusion, and it cannot silently go stale once it ships.
+_UNSUPPORTED_HOSTS = {
+    "grok": {
+        "reason": (
+            "no grok-hook-adapter.sh, no generate-grok-hooks.py, and no "
+            "`grok` row in host-support.json's components.hooks (verified "
+            "this session against the live 7-row dict: claude-code, "
+            "copilot, codex, cursor, gemini, aider, windsurf -- grok is "
+            "absent, not merely supported:false). Grok appears only as a "
+            "model-routing key (substrate-tier-map.json, "
+            "agent-routing-matrix.json), a distinct concern that must not "
+            "be conflated with host support (plan.md Sec 4)."
+        ),
+        "promotion_criteria": [
+            "a grok row in host-support.json with supported: true and a dated basis",
+            "a grok-hook-adapter.sh with a sessionstart mode",
+            "a generate-grok-hooks.py sibling with the _SKIP/--check contract",
+            "an --host grok installer lane",
+        ],
+        "recorded": "2026-09-03",
+    },
+}
+
+
+def _discover_host_lanes(repo: Path) -> dict:
+    """Enumerate every host lane actually present on the filesystem, per
+    Phase 5's four discovery sources: `hooks/*-hook-adapter.sh`,
+    `hooks/codex-hook-env.sh` (codex's env-shim, NOT an envelope adapter --
+    see the CLAUDE.md milestone explaining why no codex-hook-adapter.sh
+    exists), `scripts/generate-*-hooks.py`, and host-support.json's
+    `components.hooks` rows with `supported: true`. Returns
+    {canonical_host: {evidence source labels}} -- the evidence set is for
+    finding-message diagnostics only; membership is what
+    check_d_ledger_completeness asserts on.
+    """
+    discovered: dict = {}
+
+    def _add(raw: str, source: str) -> None:
+        discovered.setdefault(_canonical_host(raw), set()).add(source)
+
+    hooks_dir = repo / "plugins" / "ravenclaude-core" / "hooks"
+    if hooks_dir.is_dir():
+        for f in sorted(hooks_dir.glob("*-hook-adapter.sh")):
+            _add(f.name[: -len("-hook-adapter.sh")], "hooks/%s" % f.name)
+        if (hooks_dir / "codex-hook-env.sh").exists():
+            _add("codex", "hooks/codex-hook-env.sh")
+
+    scripts_dir = repo / "scripts"
+    if scripts_dir.is_dir():
+        for f in sorted(scripts_dir.glob("generate-*-hooks.py")):
+            m = re.match(r"generate-(.+)-hooks\.py$", f.name)
+            if m:
+                _add(m.group(1), "scripts/%s" % f.name)
+
+    hs_path = repo / "plugins" / "ravenclaude-core" / "knowledge" / "host-support.json"
+    if hs_path.exists():
+        try:
+            data = json.loads(hs_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            data = {}
+        for host, row in data.get("components", {}).get("hooks", {}).items():
+            if isinstance(row, dict) and row.get("supported") is True:
+                _add(host, "host-support.json:components.hooks.%s" % host)
+
+    return discovered
+
+
+def check_d_ledger_completeness(findings: list, repo: Path | None = None) -> None:
+    """Phase 5's join point: every host lane discovered on disk must be
+    classified -- present in _WIRED_SET_LEDGER (required-and-wired) OR
+    _UNSUPPORTED_HOSTS (deliberately excluded, with a reason). A host on
+    disk that is in NEITHER is a finding -- silence is never a pass. This is
+    what makes the ledger self-extending: a future host lane (a new
+    *-hook-adapter.sh, a new generate-<host>-hooks.py, or a host-support.json
+    row flipping to supported:true) is caught the moment it lands, rather
+    than waiting for someone to remember to add a ledger row by hand.
+    """
+    r = repo or _REPO
+    for host, sources in sorted(_discover_host_lanes(r).items()):
+        if host in _WIRED_SET_LEDGER or host in _UNSUPPORTED_HOSTS:
+            continue
+        findings.append(
+            "D: COMPLETENESS -- %r is wired on disk (%s) but is in NEITHER "
+            "_WIRED_SET_LEDGER nor _UNSUPPORTED_HOSTS -- silence is a "
+            "finding (Phase 5): classify it as one or the other"
+            % (host, ", ".join(sorted(sources)))
+        )
+
+
+def check_d_unsupported_entries_valid(findings: list) -> None:
+    """A5.4: every _UNSUPPORTED_HOSTS entry must carry a non-empty `reason`
+    and a non-empty `promotion_criteria` list -- either being empty is a
+    finding (an exclusion with no stated reason, or no way to ever revisit
+    it, is exactly the silent-permanent-exclusion failure mode this whole
+    mechanism exists to prevent)."""
+    for host, entry in sorted(_UNSUPPORTED_HOSTS.items()):
+        reason = entry.get("reason")
+        if not isinstance(reason, str) or not reason.strip():
+            findings.append(
+                "D: %s's _UNSUPPORTED_HOSTS entry has an empty or missing "
+                "'reason'" % host
+            )
+        criteria = entry.get("promotion_criteria")
+        if (
+            not isinstance(criteria, list)
+            or not criteria
+            or not all(isinstance(c, str) and c.strip() for c in criteria)
+        ):
+            findings.append(
+                "D: %s's _UNSUPPORTED_HOSTS entry has an empty, missing, or "
+                "malformed 'promotion_criteria' list" % host
+            )
+
+
+def _promotion_criterion_met(index: int, host: str, repo: Path) -> tuple:
+    """Returns (met: bool, description: str) for one of the four canonical
+    promotion criteria (plan.md Sec 4), by FIXED positional index --
+    deliberately independent of the prose stored in an entry's own
+    `promotion_criteria[]` (that prose is for a human reader; this is the
+    machine-checkable primitive A5.5 asserts against disk for each of the
+    four standard criteria, in the order plan.md Sec 4 states them).
+    Raises ValueError on an index outside 0..3 (a host that ships MORE than
+    the four standard criteria has the extras skipped by the converse check,
+    not mis-evaluated against the wrong primitive).
+    """
+    if index == 0:
+        desc = (
+            "a %s row in host-support.json with supported:true and a dated "
+            "basis" % host
+        )
+        hs_path = repo / "plugins" / "ravenclaude-core" / "knowledge" / "host-support.json"
+        if not hs_path.exists():
+            return False, desc
+        try:
+            data = json.loads(hs_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            return False, desc
+        row = data.get("components", {}).get("hooks", {}).get(host)
+        if not isinstance(row, dict) or row.get("supported") is not True:
+            return False, desc
+        basis = row.get("basis", "")
+        met = bool(isinstance(basis, str) and re.search(r"\d{4}-\d{2}-\d{2}", basis))
+        return met, desc
+    if index == 1:
+        desc = "a %s-hook-adapter.sh with a sessionstart mode" % host
+        adapter = repo / "plugins" / "ravenclaude-core" / "hooks" / ("%s-hook-adapter.sh" % host)
+        if not adapter.exists():
+            return False, desc
+        text = adapter.read_text(encoding="utf-8", errors="ignore")
+        return bool(re.search(r"^\s*sessionstart\)", text, re.MULTILINE)), desc
+    if index == 2:
+        desc = "a generate-%s-hooks.py sibling with the _SKIP/--check contract" % host
+        gen = repo / "scripts" / ("generate-%s-hooks.py" % host)
+        if not gen.exists():
+            return False, desc
+        text = gen.read_text(encoding="utf-8", errors="ignore")
+        return ("_SKIP" in text and "--check" in text), desc
+    if index == 3:
+        desc = "an --host %s installer lane" % host
+        installer = repo / "scripts" / "ravenclaude"
+        if not installer.exists():
+            return False, desc
+        text = installer.read_text(encoding="utf-8", errors="ignore")
+        m = re.search(r'case\s+"\$host"\s+in\s*\n\s*([a-z0-9_|]+)\)', text)
+        return bool(m and host in m.group(1).split("|")), desc
+    raise ValueError("unknown promotion criterion index %d" % index)
+
+
+def check_d_converse_promotion_criteria(findings: list, repo: Path | None = None) -> None:
+    """A5.5, MANDATORY (closes G5 red-team Finding F1, HIGH) -- the converse
+    assertion. A naive membership-only completeness scan
+    (check_d_ledger_completeness above) is a placebo for the exact scenario
+    it is named after: once _UNSUPPORTED_HOSTS["grok"] ships as part of this
+    phase, it is a PERMANENT FIXTURE in the tree. A future
+    grok-hook-adapter.sh landing would be discovered by the completeness
+    scan, looked up, found ALREADY CLASSIFIED, and pass -- never
+    re-examining whether the classification's own justification still
+    holds. This is the second, converse pass: for every _UNSUPPORTED_HOSTS
+    entry, verify its OWN recorded promotion_criteria do NOT currently hold
+    on disk. If ANY criterion is met, that is itself a finding --
+    PROMOTION-CRITERIA-MET, naming the host and the specific criterion
+    satisfied -- never a silent pass.
+    """
+    r = repo or _REPO
+    for host, entry in sorted(_UNSUPPORTED_HOSTS.items()):
+        criteria = entry.get("promotion_criteria") or []
+        for idx, criterion_text in enumerate(criteria):
+            try:
+                met, desc = _promotion_criterion_met(idx, host, r)
+            except ValueError:
+                continue  # beyond the 4 standard criteria -- not machine-checked here
+            if met:
+                findings.append(
+                    "D: PROMOTION-CRITERIA-MET -- %s's exclusion from "
+                    "_WIRED_SET_LEDGER needs review -- criterion %d (%s) "
+                    "now holds on disk (stated as: %r)"
+                    % (host, idx + 1, desc, criterion_text)
+                )
+
 
 # Canonical lane -> expected-hook-set partition, read directly off the same
 # constants check A itself asserts against (_SOURCE_HOOKS/_COMPACT_HOOK via
@@ -612,6 +864,9 @@ def run(repo: Path | None = None) -> tuple[int, list]:
         check_c_wired_set(findings, repo=repo)
         check_c_matcher_fidelity(findings, repo=repo)
         check_c_lane_partition(findings, repo=repo)
+        check_d_ledger_completeness(findings, repo=repo)
+        check_d_unsupported_entries_valid(findings)
+        check_d_converse_promotion_criteria(findings, repo=repo)
     except (OSError, json.JSONDecodeError, subprocess.CalledProcessError) as exc:
         return 1, [f"could not run: {exc}"]
     if findings:
@@ -951,6 +1206,171 @@ def self_test(must_fail: bool = False) -> int:
                 any("MATCHER-FIDELITY" in x and "codex" in x for x in f11),
             )
             codex_gen.write_text(src11, encoding="utf-8")  # restore
+
+        # 12. Phase 5 / A5.1 (positive controls): the real, shipped state --
+        #     all 5 hosts wired-and-ledgered, grok excluded-and-classified,
+        #     both entry-validity and the converse pass clean.
+        check(
+            "self-test (A5.1): all 5 real hosts are in _WIRED_SET_LEDGER",
+            {"gemini", "copilot-cli", "cursor", "claude-code", "codex"} <= set(_WIRED_SET_LEDGER),
+        )
+        check(
+            "self-test (A5.1): grok is in _UNSUPPORTED_HOSTS, not _WIRED_SET_LEDGER",
+            "grok" in _UNSUPPORTED_HOSTS and "grok" not in _WIRED_SET_LEDGER,
+        )
+        f12clean: list = []
+        check_d_ledger_completeness(f12clean, repo=repo)
+        check(
+            "self-test (A5.1): completeness scan against the real fixture tree is clean",
+            not f12clean,
+        )
+
+        # 13. Mutant (A5.2, MUST-FAIL, no-entry case): plant a
+        #     grok-hook-adapter.sh stub in the fixture tree with NO ledger
+        #     entry ANYWHERE (temporarily pop _UNSUPPORTED_HOSTS's real grok
+        #     row, simulating a host that was never classified at all) ->
+        #     the completeness scan must name grok.
+        grok_adapter_a52 = repo / "plugins" / "ravenclaude-core" / "hooks" / "grok-hook-adapter.sh"
+        grok_adapter_a52.write_text(
+            "#!/usr/bin/env bash\nset -euo pipefail\ncase \"$1\" in\n  sessionstart) ;;\nesac\n",
+            encoding="utf-8",
+        )
+        saved_grok_entry_a52 = _UNSUPPORTED_HOSTS.pop("grok", None)
+        try:
+            f13: list = []
+            check_d_ledger_completeness(f13, repo=repo)
+            check(
+                "self-test MUST-FAIL (A5.2, no-entry case): completeness scan "
+                "names grok when it is in NEITHER _WIRED_SET_LEDGER nor "
+                "_UNSUPPORTED_HOSTS",
+                any("grok" in x and "COMPLETENESS" in x for x in f13),
+            )
+        finally:
+            if saved_grok_entry_a52 is not None:
+                _UNSUPPORTED_HOSTS["grok"] = saved_grok_entry_a52
+            grok_adapter_a52.unlink(missing_ok=True)  # revert -- confirm the fixture tree is clean
+        f13_clean: list = []
+        check_d_ledger_completeness(f13_clean, repo=repo)
+        check(
+            "self-test (A5.2 cleanup verified): after reverting the stub + "
+            "restoring the ledger entry, the completeness scan is clean again",
+            not f13_clean,
+        )
+
+        # 14. Mutant (A5.3, MUST-FAIL, inverse): delete the `cursor` ledger
+        #     row (in the FIXTURE ledger dict, not the real file on disk)
+        #     while cursor-hook-adapter.sh still exists on disk -> the
+        #     completeness scan must name cursor.
+        saved_cursor_entry_a53 = _WIRED_SET_LEDGER.pop("cursor", None)
+        try:
+            f14: list = []
+            check_d_ledger_completeness(f14, repo=repo)
+            check(
+                "self-test MUST-FAIL (A5.3, ledger-row-deleted inverse): "
+                "completeness scan names cursor when its row is removed from "
+                "_WIRED_SET_LEDGER while cursor-hook-adapter.sh still exists "
+                "on disk",
+                any("cursor" in x and "COMPLETENESS" in x for x in f14),
+            )
+        finally:
+            if saved_cursor_entry_a53 is not None:
+                _WIRED_SET_LEDGER["cursor"] = saved_cursor_entry_a53
+        f14_clean: list = []
+        check_d_ledger_completeness(f14_clean, repo=repo)
+        check(
+            "self-test (A5.3 cleanup verified): after restoring the cursor "
+            "ledger row, the completeness scan is clean again",
+            not f14_clean,
+        )
+
+        # 15. Mutant (A5.4): an _UNSUPPORTED_HOSTS entry with an empty
+        #     `reason` or empty `promotion_criteria` must be a finding;
+        #     the REAL grok entry (non-empty both) must NOT be.
+        saved_grok_entry_a54 = _UNSUPPORTED_HOSTS["grok"]
+        _UNSUPPORTED_HOSTS["grok"] = {**saved_grok_entry_a54, "reason": ""}
+        try:
+            f15a: list = []
+            check_d_unsupported_entries_valid(f15a)
+            check(
+                "self-test MUST-FAIL (A5.4, empty reason): flagged",
+                any("grok" in x and "reason" in x for x in f15a),
+            )
+        finally:
+            _UNSUPPORTED_HOSTS["grok"] = saved_grok_entry_a54
+        _UNSUPPORTED_HOSTS["grok"] = {**saved_grok_entry_a54, "promotion_criteria": []}
+        try:
+            f15b: list = []
+            check_d_unsupported_entries_valid(f15b)
+            check(
+                "self-test MUST-FAIL (A5.4, empty promotion_criteria): flagged",
+                any("grok" in x and "promotion_criteria" in x for x in f15b),
+            )
+        finally:
+            _UNSUPPORTED_HOSTS["grok"] = saved_grok_entry_a54
+        f15c: list = []
+        check_d_unsupported_entries_valid(f15c)
+        check(
+            "self-test (A5.4 positive control): the REAL grok entry has "
+            "non-empty reason + promotion_criteria and produces no finding",
+            not f15c,
+        )
+
+        # 16. Mutant (A5.5, THE CONVERSE MUTANT -- G5 red-team Finding F1,
+        #     HIGH -- do not approximate this): plant a grok-hook-adapter.sh
+        #     stub carrying a `sessionstart)` mode ALONGSIDE the existing,
+        #     REAL, shipped _UNSUPPORTED_HOSTS["grok"] entry (i.e. simulate
+        #     the actual future state this phase ships: the entry is present
+        #     and classified, exactly as shipped, AND a real adapter file now
+        #     ALSO exists) -> the converse check must STILL fire, with a
+        #     PROMOTION-CRITERIA-MET finding naming grok and criterion 2 (a
+        #     grok-hook-adapter.sh with a sessionstart mode) -- proving the
+        #     self-auditing property actually holds, not just is claimed.
+        grok_adapter_a55 = repo / "plugins" / "ravenclaude-core" / "hooks" / "grok-hook-adapter.sh"
+        grok_adapter_a55.write_text(
+            "#!/usr/bin/env bash\n"
+            "set -euo pipefail\n"
+            'mode="$1"\n'
+            'case "$mode" in\n'
+            "  sessionstart)\n"
+            "    echo '{}'\n"
+            "    ;;\n"
+            "esac\n",
+            encoding="utf-8",
+        )
+        try:
+            f16: list = []
+            check_d_converse_promotion_criteria(f16, repo=repo)
+            check(
+                "self-test MUST-FAIL (A5.5, THE CONVERSE MUTANT): converse "
+                "check fires PROMOTION-CRITERIA-MET naming grok + criterion 2 "
+                "when its own criterion 2 now holds on disk, even though the "
+                "entry is already present and classified",
+                any(
+                    "PROMOTION-CRITERIA-MET" in x
+                    and "grok" in x
+                    and "criterion 2" in x
+                    for x in f16
+                ),
+            )
+            check(
+                "self-test (A5.5): criteria 1/3/4 do NOT fire (only the "
+                "planted criterion 2 is actually met) -- the check "
+                "discriminates per-criterion, it does not blanket-flag the host",
+                not any(
+                    ("criterion 1" in x or "criterion 3" in x or "criterion 4" in x)
+                    for x in f16
+                ),
+            )
+        finally:
+            grok_adapter_a55.unlink(missing_ok=True)  # revert -- confirm the fixture tree is clean
+        f16_clean: list = []
+        check_d_converse_promotion_criteria(f16_clean, repo=repo)
+        check(
+            "self-test (A5.5 cleanup verified): after reverting the "
+            "grok-hook-adapter.sh stub, the converse check reports clean "
+            "again -- the real tree is clean",
+            not f16_clean,
+        )
 
     print(f"\ncheck-sessionstart-matcher-regression self-test: {passed} pass, {failed} fail")
     if must_fail:
