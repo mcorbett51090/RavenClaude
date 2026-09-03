@@ -9079,7 +9079,7 @@ rc=0
 rc_mustfail python3 scripts/check-inception-coverage.py >/dev/null 2>&1 || rc=$?
 gate "inception gate bites on an uncovered artifact and on a planted paths: filter" must_pass "$rc"
 rc=0
-python3 scripts/check-ratchet-freshness.py --check >/dev/null 2>&1 || rc=$?
+python3 scripts/check-ratchet-freshness.py --check 1>&2 || rc=$?
 gate "every ratchet value is bound to this PR actual merge base" must_pass "$rc"
 rc=0
 rc_mustfail python3 scripts/check-ratchet-freshness.py >/dev/null 2>&1 || rc=$?
