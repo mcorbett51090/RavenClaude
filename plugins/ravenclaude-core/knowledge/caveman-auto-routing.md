@@ -124,3 +124,206 @@ Anyone re-running this: `python3 plugins/ravenclaude-core/scripts/caveman-route.
 non-interactive), and a plain Pearson correlation over whatever pairs both instruments can produce
 (watch for the mode-attribution exclusion above — a `net` field absent from `caveman-stats.js`'s
 output means that transcript should be excluded, not treated as zero).
+
+---
+
+## 2026-09-03 — P5 offline replay, run to exhaustion: the corpus was searched fully, not sampled,
+## and the confound-controlled correlation is weaker and non-robust, not stronger
+
+**What this is and why it exists.** P7's own entry criterion frames P5's replay as a *disconfirming
+probe*, and its addendum above candidly labeled its own n=5 confound-controlled result "too small a
+sample to fit any threshold from." This addendum grows the sample the honest way: instead of drawing
+a second, larger *sample*, it runs `caveman-route.py --replay` and `caveman-stats.js --session-file`
+against **every single top-level transcript on this host** — 4,189 of the 4,189 top-level (non-
+subagent) `.jsonl` files under `~/.claude/projects/`, i.e. the full census P0.5 took (5,534 total,
+minus subagent transcripts, excluded by the same convention P5 already used: partial sub-dispatch
+transcripts are not full sessions). This is not a stratified sample that happened to be large — it is
+the entire available population, run exhaustively, so "was the sample representative?" is no longer a
+live question for this host at this moment. Runtime: ~110 seconds total (8-way parallel; each
+transcript costs two ~0.03s Python calls plus one ~0.03s Node call).
+
+**The finding that reframes everything below, found before any correlation was computed.** The
+instrument-mismatch exclusion P5 flagged as "a real, structural limit" turned out to be **far more
+severe at full-corpus scale than P5's small sample suggested, and the mechanism is now understood
+precisely.** `caveman-stats.js` attributes a session's whole net figure to the *current* value of a
+single, global, cross-session, cross-repo `.caveman-active` mode flag whenever no session-tagged
+transition-log row exists for that session — and it does that attribution by comparing the flag's
+**current mtime** (whatever it is *at query time*, not at any historical point) against the session's
+first timestamped message. On this host, `~/.claude/.caveman-mode-log.jsonl` shows **123 mode-flag
+toggles, all within a single ~4-hour window today (06:20–10:16)**, evidently from active development
+and testing of this very caveman-routing feature. Because the flag was touched this recently, **every
+transcript whose first message predates that window** — which is nearly all of them — fails
+`caveman-stats.js`'s uniform-mode check and gets `basis: "flag-mtime"`, excluding its whole-session
+net figure. Measured directly: **4,022 of 4,189 transcripts (96.0%)** were excluded this way, vs.
+P5's 5 of 12 (42%) on its small, same-day sample. This is not a new confound — it is the *same*
+instrument-mismatch P5 already named, now quantified at its true severity and shown to be **driven by
+a single global mutable flag's recency, not a fixed property of the corpus**. It will vary from
+session to session depending on how recently caveman mode was last toggled on this machine; a re-run
+on a "quiet" day (flag untouched for weeks) would very plausibly clear far more of yesterday's
+sessions while newly excluding almost nothing from that quiet stretch — and would just as plausibly
+newly exclude sessions from *today*, once today's flag-touch train recedes into the past. Sample size
+cannot fix this; only a quiet flag-history epoch containing the sessions you want to measure can.
+
+**Exclusion breakdown, full corpus (n=4,189):**
+
+| Category | Count | % of corpus |
+|---|---:|---:|
+| Empty / no conversation yet | 15 | 0.4% |
+| Mid-session mode change (`flag-mtime` basis — instrument mismatch) | 4,022 | 96.0% |
+| **Usable net figure** | **152** | **3.6%** |
+
+Of the 152 usable, applying **P5's own exact confound-exclusion criterion, unchanged and untuned**
+(`turns < 9` excluded — small-n sessions where fixed per-turn rule overhead dominates the arithmetic):
+
+| Turn-count bucket | Count |
+|---|---:|
+| 1–2 turns (trivial) | 139 |
+| 3–8 turns (near-trivial) | 6 |
+| **≥9 turns (substantive — the primary-analysis set)** | **7** |
+
+The gap between 8 and 20 turns has **zero** transcripts in it — there is no data point anywhere near
+the boundary, so `turns < 9` is not an arbitrary line on this dataset; it cuts cleanly.
+
+**A methodology bug found and fixed while computing "unwindowed, whole-transcript density."**
+`caveman-route.py --replay <path> --window 0` does **not** disable windowing — `main()`'s override
+logic is `args.window if args.window and args.window > 0 else knobs["window"]`, and in Python `0` is
+falsy, so `--window 0` silently falls through to the **default W=6** knob instead. This was caught
+by a direct discrepancy: a transcript whose density P5 originally recorded as 0.981 (53 turns,
+`318603d2…`) recomputed as 0.667 under the buggy `--window 0` call. `--window 999999` is the correct
+override (any window larger than the transcript's own response count degenerates to the classifier's
+cumulative-from-start aggregation, matching P5's stated definition exactly) — verified directly
+against the same transcript, which reproduced P5's 0.981 exactly. All density figures below use the
+`--window 999999` form. This is a pure analysis-script issue, not a change to `caveman-route.py`
+itself (no product code was touched, per this addendum's boundary).
+
+**The 7 substantive transcripts.** Five of the seven are the **same underlying sessions** P5's
+original n=5 measured (matched by session id) — they are long-running worktree sessions from this
+same feature's own development that were simply still open and had grown since P5 ran; two
+(`5e17c36d…`, `6dd38014…`) are genuinely new to this corpus. `density` = the classifier's own
+`avg_tool_use_per_response` over the whole transcript (unwindowed, per P5's definition);
+`pct_off`/`pct_on` = the default-window (W=6, production settings) `--replay` trace's fraction of
+`off`/`on` verdicts; `net`/`net per turn` = `caveman-stats.js`'s figure.
+
+| transcript | turns | density | pct_off | net | net/turn | out tok/turn |
+|---|---:|---:|---:|---:|---:|---:|
+| `5e17c36d…` | 68 | 0.7792 | 0.382 | +10,147 | 149.2 | 753.4 |
+| `40f3dcb2…` | 149 | 0.8412 | 0.510 | +79,238 | 531.8 | 959.4 |
+| `6dd38014…` | 56 | 0.8500 | 0.518 | +27,923 | 498.6 | 941.6 |
+| `5216c119…` | 138 | 0.9058 | 0.609 | +89,023 | 645.1 | 1020.4 |
+| `318603d2…` | 53 | 0.9811 | 0.641 | +60,938 | 1149.8 | 1292.2 |
+| `967c7c3b…` (this session) | 168 | 0.8412* | 0.387 | +100,329 | 597.2 | 994.6 |
+| `b4770ccf…` | 35 | 1.1143 | 1.000 | +662 | 18.9 | 683.3 |
+
+*`967c7c3b…`'s own density printed 0.8412 in this run's raw output alongside `40f3dcb2…`'s — both
+values verified independently from their own `--window 999999` traces; the coincidence is real, not
+a copy error.
+
+**Every one of the 7 substantive sessions is net-positive.** None crosses into negative territory —
+not even `b4770ccf…`, the most extreme (density 1.11, `pct_off=1.000` — every single trace turn
+classified tool-heavy). That matters for the task's requested binary-split analysis: **there is no
+net-negative example anywhere in the substantive population, so a clean net-positive/net-negative
+separation by density threshold cannot be constructed — there is nothing on the negative side to
+separate from.** Mechanically, `net/turn ≈ 1.857 × (output_tokens/turn) − 1250` (P5's own derived
+formula, confirmed again this run — see below), and every one of these 7 sessions' output-tokens-per-
+turn sits above the ≈673 tok/turn breakeven line, so none crosses zero. `b4770ccf…` sits closest
+(683.3 tok/turn, barely above breakeven) — notably, at P5's original measurement it was 9 turns and
+net **−505.1/turn** (P5's cleanest confirming data point); it has since grown to 35 turns and flipped
+to **+18.9/turn**. The single most extreme, most premise-confirming data point in P5's original
+sample turned out to be unstable under its own growth — a warning sign for everything downstream.
+
+### Layer 1 — the naive full-sample correlation reproduces P5's finding, more strongly, at 12× the raw n
+
+Across all 152 transcripts with a usable net figure (the naive, uncontrolled sample — no `turns<9`
+exclusion):
+
+- **r(density, net/turn) = +0.830**
+- **r(pct_off, net/turn) = +0.681**
+- **r(output_tokens/turn, net/turn) = 0.99999992** — the confound, essentially deterministic, exactly
+  as P5 found (0.99999999…) — `caveman-stats.js`'s net figure is, by construction of its own formula,
+  almost entirely a function of response verbosity per turn, not tool-call density.
+
+This is P5's Layer-1 finding, replicated cleanly at ~12.7× the original raw sample size (152 vs. 12),
+same sign, similar magnitude. The confound is not a small-sample artifact — it holds at scale.
+
+### Layer 2 — confound-controlled (turns ≥ 9, n=7): weaker than P5's n=5, and not robust
+
+- **r(density, net/turn) = −0.060** — essentially zero. Not the moderate −0.40 P5 reported.
+- **r(pct_off, net/turn) = −0.236** — weak, direction-consistent with the premise, but roughly a
+  third the magnitude of P5's −0.62.
+- **r(output_tokens/turn, net/turn) = 0.99999999937** — the confound holds identically at this
+  smaller n too.
+
+**Leave-one-out sensitivity — this is the decisive finding.** `b4770ccf…` (pct_off=1.000, the single
+all-tool-heavy extreme) is the only one of the 7 with a fundamentally different shape from the other
+six. Dropping it (n=6, the six "ordinary" substantive sessions):
+
+- **r(density, net/turn) = +0.966**
+- **r(pct_off, net/turn) = +0.765**
+
+Both **flip sign, strongly, to the wrong direction** for the premise. The entire weak negative
+correlation reported above is carried by exactly one data point. Remove it and the remaining six
+sessions show tool-density and net-per-turn moving strongly **together**, the opposite of row 3's
+prediction. At n=7 (or n=6), **the sign of the confound-controlled correlation is not a stable
+property of this dataset — it is a property of whichever single point happens to be included.**
+
+**A secondary, honest observation, not folded into the primary comparison per P5's own methodology:**
+the 6 near-trivial transcripts (turns 3–8, excluded by the `turns<9` criterion) are **uniformly
+net-negative** (net/turn ranging −782 to −994), consistent with P5's stated rationale for the
+exclusion — a session too short is dominated by fixed per-turn rule overhead regardless of its actual
+tool density, exactly the arithmetic artifact the criterion exists to strip out. This is supporting
+evidence the exclusion criterion is doing its job, not a data point that should be folded back into
+the correlation.
+
+### The honest verdict — searching further did not, and structurally cannot, strengthen this
+
+**This is not a sampling failure.** The full corpus was searched exhaustively — every top-level
+transcript on this host, at this moment, was included. There is no larger substantive (turns ≥ 9,
+uniform-mode) sample obtainable from this host via offline replay right now; the population is
+capped at exactly 7 by the two structural limits above (the instrument-mismatch exclusion rate and
+the corpus's own small population of long, real, non-degenerate sessions). Searching more transcripts
+tomorrow, next week, or against a different sampling strategy will not change this — 5 of the 7
+found are the *same underlying long-running sessions* P5 already measured, simply grown; the corpus's
+population of "real, substantive, currently-uniform-mode" sessions on this host is genuinely this
+small.
+
+**The correlation did not strengthen with more data — it got weaker, and it stopped being robust.**
+P5's original confound-controlled read (n=5, r=−0.40 / r=−0.62) is now, at the true achievable maximum
+sample (n=7), r=−0.06 / r=−0.24 — both weaker — **and the sign is not stable under leave-one-out**:
+remove the single most extreme point and both correlations flip to strongly positive. A correlation
+whose sign depends on the inclusion of one data point is not evidence of a real, reliable relationship
+in either direction; it is evidence the sample is too small to say anything reliable about the
+relationship's direction at all.
+
+**Specific thresholds are NOT set by this evidence, and none of the `[unverified]` markers in the
+plan's thresholds table (`W=6`, the off-trigger's `≥2`/`≥1.0`, the 4-response on-streak) are changed
+here.** n=7, with a sign-unstable confound-controlled correlation, is not merely "still small" —
+it is a demonstration that this specific offline-replay methodology, run to its full achievable
+extent on this host, cannot currently distinguish a real negative relationship from noise. Setting a
+numeric threshold from this data would manufacture false confidence that the evidence explicitly does
+not support.
+
+**The direct verdict on P7's stage-1 entry gate: NOT CLEARED — functionally a null result, not a
+confirmed correlation.** The plan's own gate language: *"If the shadow verdict does not correlate
+with the measured net token delta, the thresholds change before the flip — or the flip does not
+happen… A null result at stage 1 is a legitimate outcome that stops the plan; it does not license
+proceeding to stage 2 to 'see if it works live.'"* This addendum's confound-controlled result — a
+correlation whose sign reverses under leave-one-out at the maximum achievable sample size — is not a
+disconfirmed (reversed) correlation, but it is also not a demonstrated one. It is functionally
+indistinguishable from a null result: no reliable direction can be read from it. Per the plan's own
+explicit rule, that is a legitimate stopping outcome, and it does **not** license moving to P7 stage 2
+(the live shadow soak) on the strength of this stage alone. This is a *stronger*, more decisive
+finding than P5's own read of itself ("weak-to-moderate… on a sample too small to fit numbers from")
+precisely because the corpus is now known to be exhausted rather than merely under-sampled: this is
+not "gather more offline-replay data and try again" — on this host, right now, there is no more
+offline-replay data to gather. If the plan proceeds, the honest paths are (a) wait for this host's
+mode-flag history to settle into a longer quiet stretch and re-run against whatever real, substantive,
+non-degenerate sessions accumulate during it (not fixable today), (b) run the same methodology against
+a different host with a larger, more settled population of real usage, or (c) the plan's own owners
+revisit whether offline replay is a viable stage-1 mechanism at all on a host where the underlying
+instrument (`caveman-stats.js`) is this sensitive to a single global mutable flag's recent history.
+
+**Reproducing this addendum.** Same invocations as P5's original methodology, with two corrections:
+use `--window 999999` (never `--window 0`) to get the classifier's true unwindowed whole-transcript
+density, and run against the **full** top-level transcript census (`find ~/.claude/projects -name
+'*.jsonl' | grep -v /subagents/`), not a recency-biased slice — on this host that took under two
+minutes with 8-way parallelism, so there is no runtime reason to sample rather than run exhaustively.
