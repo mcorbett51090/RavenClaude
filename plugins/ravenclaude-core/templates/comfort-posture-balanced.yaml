@@ -146,9 +146,36 @@ model_fallback:
 # Session-context handoff (quality reset before auto-compact). Absent / off =
 # silent. Ship default off so a marketplace update does not nag. Threshold is a
 # compact-pressure percent, not a quality-rot lore number (do not use 40).
+#
+# When the handoff-nudge (Stop hook) fires, it has the live agent write a full
+# handoff.md via `context-handoff.py write` (real judgment content, no egress),
+# then surfaces a ready-to-run /compact steering line — this is the PRIMARY
+# mechanism (precompact-handoff-convergence, v0.314.0); the separate, opt-in
+# `cheap_lane`-gated precompact-digest.sh above is only the rare fallback for a
+# compaction with no intervening Stop (never un-gated by this).
+#
+# Per-host delivery — `mode` is NOT symmetric across hosts:
+#   Claude Code            — nag delivers (additionalContext at Stop); block also works.
+#   Copilot CLI / Chat     — nag delivers NOTHING (agentStop's output contract has no
+#                             context-injection field — a host limit, not a RavenClaude
+#                             gap). mode: block is the ONLY mode that reaches the agent
+#                             there.
+#   Codex CLI               — docs-verified Stop coverage, same as Claude Code; nag untested live.
+#   Grok TUI                — no hook surface at all; this knob is inert there regardless.
+# So `mode: block` is the recommended universal on-switch if you want delivery on
+# every host, at the cost of a forced extra turn on Copilot/Codex when it fires.
+#
 # context_handoff:
-#   mode: nag                    # off | nag | block. Absent / off = silent.
-#   threshold_percent: 70        # before auto-compact (~85). Not a quality-rot %.
+#   mode: block                  # off | nag | block. Absent / off = silent.
+#                                 # RECOMMENDED: block (delivers on every host; nag is
+#                                 # dead on Copilot — see the table above).
+#   threshold_percent: 70        # RECOMMENDED. Before auto-compact (~85 non-Claude,
+#                                 # ~80 Claude Code). Not a quality-rot %.
+#                                 # ⛔ Anything above 74 leaves too little headroom for
+#                                 # the write-and-fill procedure itself to complete
+#                                 # before auto-compact fires mid-write (Claude Code's
+#                                 # clamp ceiling of 79 is a LEGAL value that is a BAD
+#                                 # one) — stay at or below 74, 70 is the tested default.
 #   spawn: copy-paste-only       # copy-paste-only | same-host | os-terminal
 #                                  same-host is host-paired: Chat→new Chat,
 #                                  Grok→Grok TUI, Copilot CLI→CLI
