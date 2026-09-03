@@ -2833,7 +2833,7 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-08-25",
+      "last_verified": "2026-09-03",
       "refresh_when": null,
       "sources": [
         {
@@ -2851,7 +2851,7 @@
       "covers": [
         "plugins/ravenclaude-core/hooks/hooks.json"
       ],
-      "covers_digest": "sha256:148ad20844e9a7e3bd17c7961b3191891ce64f2e84a0cd736c00266ab8cc63c1",
+      "covers_digest": "sha256:e8d64c4040d6260dd92dd92ece5892be080742282a213438fdd7d68af4c92e72",
       "nuance": "Two `additionalContext` emitters on one event concatenate rather than last-write-wins, but two `updatedToolOutput` emitters replace, so the second silently discards the first.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -2945,7 +2945,7 @@
         "scripts/sync-plugin-versions.py",
         "scripts/generate-copilot-plugin.py"
       ],
-      "covers_digest": "sha256:ae0ae7758b6cf421e10688fbeb165ca3cad1f34f5410352e5255448c7699423c",
+      "covers_digest": "sha256:fcf873a0d232c9281014c86f502eced1b2fb28ebcbbc8df601f507802a3f8fc0",
       "nuance": "The cache key is the `version` string, never a content hash, so `sync-plugin-versions.py` can report clean while every installed session keeps running the old `hooks/` code.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -3007,7 +3007,7 @@
         "scripts/inventory-nuance-judge.py",
         "plugins/ravenclaude-core/scripts/forge-receipt.py"
       ],
-      "covers_digest": "sha256:ba9b22db00716f248939f7f83b6e4b8e48a8f386847acd6a700dcd0af2aa2227",
+      "covers_digest": "sha256:b31a5c92032a43e0c72957efa2055dce682149a816b427fcbdd31988e063dd74",
       "nuance": "The teeth bit is the exit a tool own CHECK returns on a planted defect, never the exit `--must-fail` itself returns: `premise-gate.py` denies at `exit 0` while `sync-plugin-versions.py` reddens at `exit 2`, so an auditor that hard-codes one number can never be right for both.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -3393,7 +3393,7 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-08-25",
+      "last_verified": "2026-09-03",
       "refresh_when": null,
       "sources": [
         {
@@ -3414,7 +3414,7 @@
         "scripts/generate-dashboards.py",
         "scripts/generate-index-dashboard.py"
       ],
-      "covers_digest": "sha256:47a239fc9a5869dc4cfb85114bdd79e525e96e31ecc6d2b5932c72bfe8e0ab6f",
+      "covers_digest": "sha256:efb14c99831553f6a05e5520a742631203cbaf1861c2676daf7a5eab99f1cb74",
       "nuance": "`ISLANDED_PANEL_COST` is a flat 2 because the parser reads the payload as CDATA, so `check-dom-budget.py` cannot fire on `learn-payload` no matter how far past 23,861 elements it grows.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -3738,7 +3738,7 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-09-01",
+      "last_verified": "2026-09-03",
       "refresh_when": null,
       "sources": [
         {
@@ -3759,7 +3759,7 @@
         "plugins/ravenclaude-core/knowledge/agent-routing-matrix.schema.json",
         "plugins/ravenclaude-core/knowledge/agent-routing-matrix.md"
       ],
-      "covers_digest": "sha256:7f2233627795be36ade413f660d231c26ca057b576b2fbb0f2516780985158ea",
+      "covers_digest": "sha256:fad7ee4f8f9f21e697cccf1ab5722e73dc236c8beb5c5a6970383b69f306cc9b",
       "nuance": "Deriving the ban-list from every leaf string in the cited files bans ordinary English words (the grok lane's own 'high'/'low'/'architect'/'scanner') and the source's own retrieval date -- contradicting the artifact's own citation requirement.",
       "nuance_evidence": {
         "measured": "2026-09-01",
@@ -3877,6 +3877,56 @@
         "strength": "executed",
         "class": "gate-self-test",
         "probe": "plugins/ravenclaude-core/scripts/audit-gates.sh --check 258",
+        "teeth_exit": 1
+      },
+      "strength_badge": "Probed"
+    },
+    {
+      "id": "caveman-auto-routing-packaging",
+      "title": "Caveman auto-routing: SHADOW-only, and the scripts/ packaging exception",
+      "category": "Inventory — measured mechanisms",
+      "kind": "ravenclaude-built",
+      "order": 919,
+      "summary": "The caveman auto-routing hook decides and records but never calls the mode applier this phase, and ships from scripts/ because a new hooks/*.sh chmod is denied.",
+      "see_also": [],
+      "widget": null,
+      "try_it": null,
+      "node_links": {},
+      "last_verified": "2026-09-03",
+      "refresh_when": null,
+      "sources": [
+        {
+          "label": "measured in the FORGE caveman-routing-decision-tree run",
+          "url": "https://github.com/mcorbett51090/RavenClaude/pull/1095"
+        }
+      ],
+      "body_md": "## What a reader would have assumed instead\n\nThat a new SessionStart/UserPromptSubmit hook body would live in `hooks/`, like every other hook in\nthis plugin, and that turning the posture knob to `live` would make the routing decision actually take\neffect immediately.\n\n## The discriminator\n\ncontrol: ask-on-ambiguity.sh (also in scripts/, registered via the identical bash-prefixed escape)\nalready proves the substrate guard denies a NEW hooks/*.sh chmod but not a scripts/*.sh one -- the same\nescape pattern, reused rather than re-argued from scratch\nMeasured 2026-09-03: caveman-route-hook.sh ships from scripts/, not hooks/ -- a NEW hooks/*.sh file\nneeds a chmod the tribunal's own substrate guard denies, the same reason ask-on-ambiguity.sh lives\nthere too. Even when the posture is live, this phase's hook only decides and records: it never calls\nthe applier.\n\n## Why it matters\n\nFalsifier: a git history showing hooks/caveman-route-hook.sh ever existed in this repo with its\nexecutable bit successfully set.\n\nProbe: `plugins/ravenclaude-core/hooks/tests/test-gate264-caveman-routing.sh`",
+      "diagram": null,
+      "diagram_mini": null,
+      "steps": [],
+      "svg": null,
+      "svg_mini": null,
+      "entry_class": "inventory",
+      "covers": [
+        "plugins/ravenclaude-core/scripts/caveman-route.py",
+        "plugins/ravenclaude-core/scripts/caveman-apply-mode.sh",
+        "plugins/ravenclaude-core/scripts/caveman-route-hook.sh",
+        "plugins/ravenclaude-core/scripts/caveman-route-engine.py"
+      ],
+      "covers_digest": "sha256:7d29faaf1d3ad717aa39ba0c59d6549977ec26ca3d4d31eafbe1aa467aa7db13",
+      "nuance": "caveman-route-hook.sh ships from scripts/, not hooks/ -- a NEW hooks/*.sh file needs a chmod\nthe tribunal's own substrate guard denies, the same reason ask-on-ambiguity.sh lives there too.\nEven when the posture is live, this phase's hook only decides and records: it never calls the\napplier.",
+      "nuance_evidence": {
+        "measured": "2026-09-03",
+        "control": "ask-on-ambiguity.sh (also in scripts/, registered via the identical bash-prefixed escape) already proves the substrate guard denies a NEW hooks/*.sh chmod but not a scripts/*.sh one -- the same escape pattern, reused rather than re-argued from scratch",
+        "falsifier": "a git history showing hooks/caveman-route-hook.sh ever existed in this repo with its executable bit successfully set",
+        "probe": "plugins/ravenclaude-core/hooks/tests/test-gate264-caveman-routing.sh"
+      },
+      "nuance_source": "plugins/ravenclaude-core/scripts/caveman-route-hook.sh:1-42",
+      "verify": {
+        "tier": "effect",
+        "strength": "executed",
+        "class": "hook-decision",
+        "probe": "plugins/ravenclaude-core/hooks/tests/test-gate264-caveman-routing.sh",
         "teeth_exit": 1
       },
       "strength_badge": "Probed"
