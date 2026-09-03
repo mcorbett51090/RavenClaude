@@ -4161,10 +4161,37 @@ assert_hook_fires  "edtech anti-patterns" plugins/edtech-partner-success/hooks/f
 assert_hook_silent "edtech anti-patterns" plugins/edtech-partner-success/hooks/flag-psm-anti-patterns.sh "$DH/qbr-good.md"
 
 # 6. data-platform — a hardcoded API secret (vs a trivially clean file).
+# This is the LEGACY arg-on-disk leg (_hook_run passes a file that already
+# exists — the manual-invocation fallback path, not the real Claude Code
+# PreToolUse dispatch shape).
 printf 'api_key = "abcdef1234567890abcd"\n' > "$DH/dp-bad.py"
 printf 'x = 1\n' > "$DH/dp-good.py"
 assert_hook_fires  "data-platform smells" plugins/data-platform/hooks/flag-data-platform-smells.sh "$DH/dp-bad.py"
 assert_hook_silent "data-platform smells" plugins/data-platform/hooks/flag-data-platform-smells.sh "$DH/dp-good.py"
+
+# 6b. data-platform — the REAL PreToolUse dispatch shape (FORGE P0-3, 2026-09-03):
+# a stdin JSON payload whose file does NOT exist on disk, with the proposed
+# body only in .tool_input.content. The pre-fix hook (arg-on-disk grep, exit-0
+# on a missing file) silently missed this — reproduced and confirmed this
+# session before the rewrite. `_hook_run`'s arg-on-disk shape above cannot
+# exercise this leg, so a dedicated stdin invocation is added here rather than
+# widening the shared helper (the same arg-on-disk blind spot likely affects
+# ~12+ other plugins' anti-pattern hooks — filed as a separate, out-of-scope
+# marketplace-wide follow-up, not this plugin's lane to fix).
+_dp_stdin_hook_run() { # $1=json-payload -> sets HOOK_OUT, HOOK_RC
+  HOOK_RC=0
+  printf '%s' "$1" | bash plugins/data-platform/hooks/flag-data-platform-smells.sh >"$TMP/dp-stdin-out" 2>&1 || HOOK_RC=$?
+  HOOK_OUT="$(cat "$TMP/dp-stdin-out")"
+}
+DP_STDIN_BAD="$DH/dp-stdin-not-on-disk-bad.py"
+DP_STDIN_GOOD="$DH/dp-stdin-not-on-disk-good.py"
+rm -f "$DP_STDIN_BAD" "$DP_STDIN_GOOD" # must NOT exist — proves the content-field read, not the disk fallback
+_dp_stdin_hook_run "$(python3 -c 'import json,sys; print(json.dumps({"tool_input":{"file_path": sys.argv[1], "content": "api_key = \"abcdef1234567890abcd\"\n"}}))' "$DP_STDIN_BAD")"
+rc=0; { [[ -n "$HOOK_OUT" ]] || [[ "$HOOK_RC" -ne 0 ]]; } || rc=1
+gate "data-platform smells (PreToolUse stdin, file not yet on disk, secret in .tool_input.content) fires" must_pass "$rc"
+_dp_stdin_hook_run "$(python3 -c 'import json,sys; print(json.dumps({"tool_input":{"file_path": sys.argv[1], "content": "x = 1\n"}}))' "$DP_STDIN_GOOD")"
+rc=0; { [[ -z "$HOOK_OUT" ]] && [[ "$HOOK_RC" -eq 0 ]]; } || rc=1
+gate "data-platform smells (PreToolUse stdin, file not yet on disk, clean content) silent" must_pass "$rc"
 
 # 7. applied-statistics — a p-value with no effect size / CI.
 printf 'p = 0.03\n' > "$DH/st-bad.py"
@@ -9766,6 +9793,34 @@ printf 'requires Cube Core >=1.2.0\n' > "$DP_CUBE/skills/cube-schema-scaffolding
 printf 'requires Cube Core >=1.3.0\n' > "$DP_CUBE/agents/dashboard-builder.md"
 rc=0; python3 scripts/check-data-platform-self-description.py --root "$TMP/dp-selfdesc-cube/plugins/data-platform" >/dev/null 2>&1 || rc=$?
 gate "data-platform self-description: Cube-version-floor mismatch (1.2.0 vs 1.3.0, RT-8) caught" must_fail "$rc"
+
+echo
+echo "── Gate 264: data-platform app-starter package manifests (Tier 1 — static only) ──"
+# FORGE P0-4 (2026-09-03): a Tier-1 STATIC check only — package.json parses, and the
+# package-lock.json P0-1 generated is present and non-empty. Deliberately NOT npm
+# ci/typecheck/build here: those tiers live in the separate, non-required
+# validate-data-platform-starters.yml workflow. Both critic and red-team flagged
+# that a network-calling or docker-requiring step inside audit-gates.sh — a
+# dependency of the REQUIRED validate-marketplace.yml check — makes every PR's
+# merge depend on npm-registry availability, and a registry failure that reads as
+# "nothing to install" is exactly the fail-toward-green shape this repo has been
+# bitten by before (see the file's own accumulated "silent green defects" lessons).
+for starter in cube-nextjs-dashboard-starter cube-astro-dashboard-starter; do
+  pkg="plugins/data-platform/templates/$starter/package.json"
+  lock="plugins/data-platform/templates/$starter/package-lock.json"
+  rc=0; python3 -m json.tool "$pkg" >/dev/null 2>&1 || rc=$?
+  gate "data-platform starter package.json parses ($starter)" must_pass "$rc"
+  rc=0; [[ -s "$lock" ]] || rc=1
+  gate "data-platform starter package-lock.json present + non-empty ($starter)" must_pass "$rc"
+  rc=0; python3 -m json.tool "$lock" >/dev/null 2>&1 || rc=$?
+  gate "data-platform starter package-lock.json parses ($starter)" must_pass "$rc"
+done
+# Teeth: a malformed package.json (the must-fail leg) must actually be caught.
+DP_PKG_BAD="$TMP/dp-pkg-bad/package.json"
+mkdir -p "$(dirname "$DP_PKG_BAD")"
+printf '{ "name": "bad", trailing-comma-and-no-quotes }' > "$DP_PKG_BAD"
+rc=0; python3 -m json.tool "$DP_PKG_BAD" >/dev/null 2>&1 || rc=$?
+gate "data-platform starter package.json parse check (malformed fixture caught)" must_fail "$rc"
 
 echo
 echo "═══════════════════════════════════════════════════════════════════════════"

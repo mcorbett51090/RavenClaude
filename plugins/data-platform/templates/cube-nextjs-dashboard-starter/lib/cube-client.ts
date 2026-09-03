@@ -1,6 +1,6 @@
 "use client";
 
-import cubejs, { CubeApi } from "@cubejs-client/core";
+import cubejs, { type CubeApi } from "@cubejs-client/core";
 
 let cachedClient: CubeApi | null = null;
 let cachedToken: string | null = null;

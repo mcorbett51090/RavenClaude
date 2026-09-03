@@ -2,6 +2,46 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.19.0] — 2026-09-03
+
+### Fixed
+
+- **P0-3** — `flag-data-platform-smells.sh` read only the ON-DISK file at PreToolUse, where
+  the write has not happened yet: a `Write` of a new file hit an early `exit 0` (file
+  doesn't exist yet), and an `Edit` introducing a violation grepped the pre-edit content.
+  Reproduced and confirmed this session before the fix (a secret in `.tool_input.content`
+  for a non-existent path passed silently). Rewritten to build its subject text from the
+  tool payload — `.tool_input.content` (Write), `.tool_input.new_string` (Edit), each
+  `.tool_input.edits[].new_string` (MultiEdit) — falling back to the on-disk file only for
+  a non-Claude-Code manual invocation. Stays on **PreToolUse** (not moved to PostToolUse —
+  that would have silently downgraded `DATA_PLATFORM_STRICT=1`'s exit-2 blocking control
+  into a detective-only report after the write already landed; a tiebreak ruling that
+  prescribed the PostToolUse move was corrected by this run's own red-team gate before
+  shipping). Added an inline `additionalContext` envelope so the advisory actually reaches
+  the model's context on the non-STRICT path, self-contained (no `_advise.sh` dependency —
+  measured this session: 0 of 118 non-core plugins reference it). `scripts/audit-gates.sh`
+  Gate 30 gained a dedicated stdin-payload fixture pair proving the fix (must-pass: fires
+  on a secret in `.tool_input.content` for a file not on disk; must-pass: silent on clean
+  content) — the pre-fix hook was directly confirmed to fail this exact leg.
+- **P0-4** — nothing anywhere executed either app starter before this. Ran `npm ci` +
+  typecheck + build by hand for both (recorded in
+  `.ravenclaude/runs/forge/dashboard-top1pct/p0-4-prebuild-probe.md`) and fixed two real
+  defects the probe surfaced: the Next.js starter's `/` route was missing `export const
+  dynamic = "force-dynamic"`, so the build's static-prerender pass called the
+  intentionally-throwing `getSession()` seam with no request in flight and failed; both
+  starters had a type-only `CubeApi` import (`import cubejs, { CubeApi } from ...`) that
+  should be `import cubejs, { type CubeApi } from ...` (Astro's build warned on the unused
+  JS import after type-erasure). Both starters now install/typecheck/build clean. Added
+  `.github/workflows/validate-data-platform-starters.yml` (non-required initially, per this
+  repo's own required-status-check discipline) covering npm ci → typecheck → build → a
+  headless Playwright smoke asserting zero console errors, plus `scripts/audit-gates.sh`
+  Gate 264 for the Tier-1-only static check (package.json/lockfile parse + presence —
+  deliberately not network-calling, since that gate is a dependency of the REQUIRED
+  validate-marketplace.yml check).
+
+**Migration:** none — the hook rewrite changes what it reads, not its advisory-by-default
+contract; the two starter fixes make previously-broken builds succeed, no API change.
+
 ## [0.18.0] — 2026-09-03
 
 ### Fixed

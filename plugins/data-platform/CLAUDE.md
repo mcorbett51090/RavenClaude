@@ -243,7 +243,7 @@ No server is invented; no `mcpServers` entry ships; no `NOTICE.md` (nothing thir
 
 ## 9. Templates in this plugin
 
-21 templates on disk, distributed by intended bar: 3 runnable + 4 conceptual + 3 seam-marked-stub-and-promoted pairs (9 files — each pair is 1 historical `.tsx.md` stub + 2 runnable siblings, e.g. a client component + a server-only endpoint) + 2 v0.2.0 modeling scaffolds + 2 app scaffolds + 1 audit report template = 3+4+9+2+2+1.
+22 templates on disk, distributed by intended bar: 3 runnable + 4 conceptual + 3 seam-marked-stub-and-promoted pairs (9 files — each pair is 1 historical `.tsx.md` stub + 2 runnable siblings, e.g. a client component + a server-only endpoint) + 2 v0.2.0 modeling scaffolds + 2 app scaffolds + 1 audit report template + 1 CI-support script (`ci-headless-smoke.js`, shared by both app scaffolds' headless-smoke workflow step, added P0-4) = 3+4+9+2+2+1+1.
 
 ### Runnable (security-critical — must compile / parse / pass denial test)
 
