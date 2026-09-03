@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Gate 264 -- runtime self-test front door (Phase 8, plan.md's
+"""Gate 266 -- runtime self-test front door (Phase 8, plan.md's
 sessionstart-safeguards-multihost run: "rc hooks selftest: the on-demand
 front door"). Drives plugins/ravenclaude-core/scripts/hooks-selftest.py
 (and, transitively, its Tier A canary calls into _host-canary.sh) as a
@@ -58,7 +58,7 @@ def self_test(must_fail: bool = False) -> int:
     # A8.1 -- clean tree -> exit 0, one row per ledgered host + one per
     # unsupported host.
     #
-    # HONEST SCOPING NOTE (this is the same CI boundary Gate 264 states
+    # HONEST SCOPING NOTE (this is the same CI boundary Gate 266 states
     # everywhere else): `--tier a` FORCES Tier A for every host, but the
     # anti-degradation check (Phase 7 A7.6, plan.md Sec 1.3's own
     # invariant) still compares the ACHIEVED tier against each host's
@@ -198,7 +198,7 @@ def self_test(must_fail: bool = False) -> int:
 
 def main() -> int:
     ap = argparse.ArgumentParser(
-        description="Gate 264: runtime self-test front door (Tier A only, plan.md Phase 8/9)"
+        description="Gate 266: runtime self-test front door (Tier A only, plan.md Phase 8/9)"
     )
     ap.add_argument("--self-test", action="store_true")
     ap.add_argument("--must-fail", action="store_true")

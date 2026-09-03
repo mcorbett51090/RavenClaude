@@ -3,10 +3,10 @@
 # lane added to _host-canary.sh (plan.md's sessionstart-safeguards-multihost
 # run, "Phase 7 — Runtime Tier D: a real short-lived host session").
 #
-# NOT yet a numbered audit-gate. Registering this as Gate 264 (dispatcher +
+# NOT yet a numbered audit-gate. Registering this as Gate 266 (dispatcher +
 # main sequence + Supported: string, with mutant teeth wired in) is Phase 9's
 # explicit job per plan.md ("Register the runtime self-test's mechanism
-# checks as Gate 264 ... Pre-build gate: Phases 1-8 green"). Running this
+# checks as Gate 266 ... Pre-build gate: Phases 1-8 green"). Running this
 # script directly is how Phase 7 proves its own acceptance tests pass without
 # pre-empting that later registration.
 #

@@ -27,7 +27,7 @@ Kill switch if you need to back out before re-trusting: `RC_CODEX_SESSIONSTART_L
 ### Added
 
 - **Multi-host SessionStart safeguards** (`sessionstart-safeguards-multihost` FORGE run) — a static
-  ledger (Gate 259, extended) and a runtime self-test (Gate 264, new) that between them assert every
+  ledger (Gate 259, extended) and a runtime self-test (Gate 266, new) that between them assert every
   supported host's SessionStart wiring matches the canonical manifest AND that the host's adapter
   seam actually dispatches + delivers context. Full reference:
   [`knowledge/sessionstart-hook-safeguards.md`](knowledge/sessionstart-hook-safeguards.md).
@@ -37,10 +37,12 @@ Kill switch if you need to back out before re-trusting: `RC_CODEX_SESSIONSTART_L
     declared tier D that only achieves A is a FAIL, never a silent downgrade). The `copilot-cli` row
     always force-prints a `chat: unverified (surfaces.chat.supported=false)` line — every mechanism
     in this release reaches Copilot **CLI** only, never Copilot **Chat**.
-  - **Gate 264** (`SKIP_GATE_264=1` kill switch) — Tier-A-only runtime proof (invocation + context
-    delivery + ledger completeness), registered in all three required surfaces. Tier D (a real host
-    binary spawn) is never run in CI; it's owner-run on demand via `rc hooks selftest --tier d`.
-  - A per-host, dated `drift_override` field on the ledger — a narrower escape than `SKIP_GATE_264`
+  - **Gate 266** (`SKIP_GATE_266=1` kill switch; renumbered from 264 at merge time — `origin/main`
+    independently claimed Gates 264/265 for its own caveman-auto-routing work) — Tier-A-only runtime
+    proof (invocation + context delivery + ledger completeness), registered in all three required
+    surfaces. Tier D (a real host binary spawn) is never run in CI; it's owner-run on demand via
+    `rc hooks selftest --tier d`.
+  - A per-host, dated `drift_override` field on the ledger — a narrower escape than `SKIP_GATE_266`
     for the case where one third-party host CLI's own hook-config shape legitimately drifts, without
     silencing every other host's assertion.
   - `_host-canary.sh` gained a SessionStart lane (Tier A) and a Tier D lane (real short-lived host

@@ -3,9 +3,9 @@
 Built by the `sessionstart-safeguards-multihost` FORGE run (plan: `.ravenclaude/runs/forge/sessionstart-safeguards-multihost/plan.md`). This is the durable reference for two mechanisms that ship together but answer different questions:
 
 1. **Gate 259** (`scripts/check-sessionstart-matcher-regression.py`) — *static* proof that each host's SessionStart wiring matches the canonical manifest (`hooks/hooks.json`): the right hooks, on the right matcher, per host.
-2. **Gate 264** (`_host-canary.sh`'s SessionStart lane + `rc hooks selftest`) — *runtime* proof that a host's own adapter (and, where reachable, its own binary) actually dispatches SessionStart and delivers `additionalContext`.
+2. **Gate 266** (`_host-canary.sh`'s SessionStart lane + `rc hooks selftest`) — *runtime* proof that a host's own adapter (and, where reachable, its own binary) actually dispatches SessionStart and delivers `additionalContext`.
 
-Neither proves the other's claim. A green Gate 259 says nothing about whether a host binary honors its config; a green Gate 264 (Tier A) says nothing about whether the config as written is correct in the abstract — that's what Gate 259 is for. Read §7 before trusting either in isolation.
+Neither proves the other's claim. A green Gate 259 says nothing about whether a host binary honors its config; a green Gate 266 (Tier A) says nothing about whether the config as written is correct in the abstract — that's what Gate 259 is for. Read §7 before trusting either in isolation.
 
 ## 1. The ledger shape (Gate 259)
 
@@ -93,7 +93,7 @@ This is not a new risk this run introduces — it's the same MH-17 hazard every 
 
 ## 6. `drift_override` — a per-host escape for legitimate third-party drift
 
-`SKIP_GATE_264=1` is a blunt, whole-gate kill switch: it stops Gate 264 from asserting anything, on every host, for every PR, until removed. That's the wrong granularity for the more common real failure mode: **a single third-party host CLI's hook-config shape legitimately changes** (e.g. a Copilot CLI version bump changing its matcher emission) — a class of dependency Gate 264 newly introduces that Gate 259's prior, all-repo-internal lineage never carried.
+`SKIP_GATE_266=1` is a blunt, whole-gate kill switch: it stops Gate 266 from asserting anything, on every host, for every PR, until removed. That's the wrong granularity for the more common real failure mode: **a single third-party host CLI's hook-config shape legitimately changes** (e.g. a Copilot CLI version bump changing its matcher emission) — a class of dependency Gate 266 newly introduces that Gate 259's prior, all-repo-internal lineage never carried.
 
 A `drift_override` entry on one host's ledger row —
 
@@ -123,9 +123,9 @@ _WIRED_SET_LEDGER["<host>"]["drift_override"] = {
 ## 8. Cross-references
 
 - Gate 259 engine: [`scripts/check-sessionstart-matcher-regression.py`](../../../scripts/check-sessionstart-matcher-regression.py)
-- Gate 264 runtime lane: [`hooks/_host-canary.sh`](../hooks/_host-canary.sh), driven via `rc hooks selftest` in [`bin/rc`](../bin/rc)
+- Gate 266 runtime lane: [`hooks/_host-canary.sh`](../hooks/_host-canary.sh), driven via `rc hooks selftest` in [`bin/rc`](../bin/rc)
 - Codex projector: [`scripts/generate-codex-hooks.py`](../../../scripts/generate-codex-hooks.py)
-- Registration + kill switch + `drift_override` teeth: [`scripts/audit-gates.sh`](../../../scripts/audit-gates.sh) (search `Gate 264`)
+- Registration + kill switch + `drift_override` teeth: [`scripts/audit-gates.sh`](../../../scripts/audit-gates.sh) (search `Gate 266`)
 - Per-component host-support source of truth: [`knowledge/host-support.json`](host-support.json)
 - Copilot CLI vs. Chat scoping: [`knowledge/copilot-chat-customization.md`](copilot-chat-customization.md)
 - Codex hook-trust hazard (MH-17) background: [`knowledge/codex-cli-customization.md`](codex-cli-customization.md)

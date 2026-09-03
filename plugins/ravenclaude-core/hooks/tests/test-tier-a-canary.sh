@@ -4,10 +4,10 @@
 # sessionstart-safeguards-multihost run, "Phase 6 — Runtime Tier A: a
 # `sessionstart` lane inside `_host-canary.sh`").
 #
-# Registered as part of Gate 264 (Phase 9) — dispatcher + main sequence +
+# Registered as part of Gate 266 (Phase 9) — dispatcher + main sequence +
 # Supported: string, per plan.md's Phase 9 goal ("register the runtime
 # self-test's mechanism checks — invocation + delivery + completeness scan
-# — as Gate 264"). Every function this script drives runs a bundled
+# — as Gate 266"). Every function this script drives runs a bundled
 # ADAPTER SHELL SCRIPT (or, for claude-code, the planted probe script
 # directly) — never a real host CLI binary — so this is CI-safe Tier A,
 # distinct from hooks/tests/test-tier-d-canary.sh (Tier D, real `claude -p`
