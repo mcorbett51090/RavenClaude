@@ -11,6 +11,11 @@
         "dependency-update-sweep inventory entry (Gate 242 inception-coverage fix, 2026-09-03)",
         31560,
         "The dependency-update-sweep skill's Gate-242 inception-coverage fix added one new inventory concept (dependency-update-sweep -- the measured 175->85/27 finding-count fix for scan_markers' host-scoping bug) covering dependency-sweep.py, host-version-probe.py, the skill's SKILL.md, and four test fixtures -- seven paths in one mechanism entry. Measured at 31,536 island payload elements (over the prior 31,500 ceiling by 36 -- the wave-1 headroom was exhausted by the intervening waves already appended to the byte ceiling below). Same no-diagrams-for-inventory-entries shape as every prior wave; a pure content-size raise, not a DOM control. Re-measured on rebased HEAD after merging origin/main; appended, never edited."
+      ],
+      [
+        "grok-bot-orchestration-skill-restates-core inventory entry (PR #1104 inception-coverage fix, 2026-09-04)",
+        31590,
+        "PR #1104's (grok-bot-creation + grok-bot-delegation plugins) Gate-242 inception-coverage fix added one new inventory concept (grok-bot-orchestration-skill-restates-core -- the cite-vs-restate divergence in skills/ravenclaude-core-orchestration/SKILL.md, forced by a Grok Bot's inability to resolve a cross-plugin markdown link) covering skills/game-theory-basics/SKILL.md, skills/quantitative-problem-solving/SKILL.md, and skills/ravenclaude-core-orchestration/SKILL.md -- three paths in one mechanism entry. Measured at 31,574 island payload elements (over the prior 31,560 ceiling by 14). Same no-diagrams-for-inventory-entries shape as every prior wave; a pure content-size raise, not a DOM control. Re-measured on rebased HEAD after merging origin/main; appended, never edited."
       ]
     ],
     "index.html": [
@@ -79,6 +84,11 @@
         "caveman-auto-routing-packaging inventory entry (caveman-routing-decision-tree PR #1095 CI fix, 2026-09-03)",
         10520000,
         "PR #1095's CI-green pass added one new inventory concept (caveman-auto-routing-packaging -- the SHADOW-only enforcement plus the scripts/-not-hooks/ packaging exception for the four new caveman auto-routing artifacts) covering scripts/caveman-route.py, scripts/caveman-apply-mode.sh, scripts/caveman-route-hook.sh, and scripts/caveman-route-engine.py -- the artifacts check-inception-coverage.py flagged as uncovered. Also carries substantive restamps on two pre-existing entries (hook-emitter-collision, must-fail-conventions-diverge) whose covered artifacts (hooks.json, audit-gates.sh) genuinely changed after merging origin/main. Measured at 10,502,032 bytes on dashboard.html (island payload 31,493 <= 31,500, unaffected -- same no-diagrams-for-inventory-entries shape as every prior wave). Re-measured on rebased HEAD after merging origin/main; appended, never edited."
+      ],
+      [
+        "grok-bot-orchestration-skill-restates-core inventory entry + 2 new plugins (PR #1104, 2026-09-04)",
+        10540000,
+        "PR #1104 (grok-bot-creation + grok-bot-delegation) adds the marketplace's 185th and 186th plugins plus one new inventory concept (grok-bot-orchestration-skill-restates-core -- see the payload table above for the covered paths). Measured at 10,529,761 bytes on dashboard.html (island payload 31,574 <= 31,590, see the raised payload ceiling above). Re-measured on rebased HEAD after merging origin/main; appended, never edited."
       ]
     ],
     "index.html": [
@@ -95,5 +105,5 @@
       ]
     ]
   },
-  "measured_against": "96ea5e058c70c5ae23ca4944840233017ff81772"
+  "measured_against": "1cb1f1eee08dedd405f25e2516392510c55cf395"
 }

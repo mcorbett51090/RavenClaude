@@ -3414,7 +3414,7 @@
         "scripts/generate-dashboards.py",
         "scripts/generate-index-dashboard.py"
       ],
-      "covers_digest": "sha256:efb14c99831553f6a05e5520a742631203cbaf1861c2676daf7a5eab99f1cb74",
+      "covers_digest": "sha256:74da144116fc058bee55cb2af3e3e9c57b80b0d5430f87f44827ba0c7ba05482",
       "nuance": "`ISLANDED_PANEL_COST` is a flat 2 because the parser reads the payload as CDATA, so `check-dom-budget.py` cannot fire on `learn-payload` no matter how far past 23,861 elements it grows.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -3978,6 +3978,52 @@
       "verify": {
         "tier": "none",
         "rationale": "The host-scoping fix is proven by the tool's own self-test suite (scan 12/12, classify 10/10, queue 5/5, apply 21/21), including a regression check for this exact bug; re-verifying the finding-count delta against the live repo means re-running the scan, not a separate staged check."
+      },
+      "strength_badge": "Unverified"
+    },
+    {
+      "id": "grok-bot-orchestration-skill-restates-core",
+      "title": "A Grok Bot skill restates core protocols instead of citing them, on purpose",
+      "category": "Inventory — measured mechanisms",
+      "kind": "ravenclaude-built",
+      "order": 921,
+      "summary": "The skill duplicates CGP/dispatch prose as freestanding text, against this repo's cite-not-restate convention, since a Grok Bot cannot resolve a cross-plugin markdown link.",
+      "see_also": [],
+      "widget": null,
+      "try_it": null,
+      "node_links": {},
+      "last_verified": "2026-09-04",
+      "refresh_when": null,
+      "sources": [
+        {
+          "label": "PR #1104 -- grok-bot-creation + grok-bot-delegation plugins",
+          "url": "https://github.com/mcorbett51090/RavenClaude/pull/1104"
+        }
+      ],
+      "body_md": "## What a reader would have assumed instead\n\nThat a new skill referencing \"RavenClaude Core Orchestration\" in its title would link into `ravenclaude-core/CLAUDE.md` the way every other cross-plugin reference in this marketplace does (e.g. `forms-engineering`'s inherited-rules table, which links rather than restates).\n\n## The discriminator\n\ncontrol: read `ravenclaude-core/CLAUDE.md`'s \"Multi-Agent Coordination & Dispatch Rules\" and \"Capability Grounding Protocol\" sections side by side with this skill's \"Non-negotiable house rules\" -- both restate the same invariants in freestanding prose, with no markdown link back to the source file.\n\n## Why it matters\n\nA Grok Bot is a separate, non-Claude-Code runtime -- it has no mechanism to `@`-import or traverse a relative markdown link into another plugin's `CLAUDE.md` the way a Claude Code sub-agent can. So `ravenclaude-core-orchestration/SKILL.md` deliberately copies the relevant protocols as a portable, self-contained recipe instead. This is a one-time, hand-adapted copy (its own \"Credit\" section says \"Adapted from RavenClaude plugin `ravenclaude-core`\"), not a live link -- so it will drift from `ravenclaude-core/CLAUDE.md` as that file's dispatch/CGP/SOP sections evolve, and nothing re-syncs it automatically.",
+      "diagram": null,
+      "diagram_mini": null,
+      "steps": [],
+      "svg": null,
+      "svg_mini": null,
+      "entry_class": "inventory",
+      "covers": [
+        "plugins/ravenclaude-core/skills/game-theory-basics/SKILL.md",
+        "plugins/ravenclaude-core/skills/quantitative-problem-solving/SKILL.md",
+        "plugins/ravenclaude-core/skills/ravenclaude-core-orchestration/SKILL.md"
+      ],
+      "covers_digest": "sha256:03238cda6ad23a7dcc14129d14959ffd868cc0197c3dc91326cb5de95f195261",
+      "nuance": "ravenclaude-core-orchestration/SKILL.md restates the single-orchestrator and Capability Grounding rules as freestanding prose instead of linking to ravenclaude-core/CLAUDE.md -- the opposite of this repo's own 'cite, not restate' convention -- because a Grok Bot cannot resolve a cross-plugin markdown link the way a Claude Code agent can.",
+      "nuance_evidence": {
+        "measured": "2026-09-04",
+        "control": "read ravenclaude-core/CLAUDE.md's 'Multi-Agent Coordination & Dispatch Rules' and 'Capability Grounding Protocol' sections side by side with this skill's 'Non-negotiable house rules' -- both restate the same orchestrator-worker and CGP invariants in the skill's own words rather than a markdown link, unlike every other cross-plugin reference in this repo (e.g. forms-engineering's inherited-rules table, which links)",
+        "falsifier": "a future Grok Bot runtime that can resolve a live cross-plugin markdown link, at which point this skill should be re-cut to cite ravenclaude-core/CLAUDE.md instead of restating it",
+        "probe": "plugins/ravenclaude-core/skills/ravenclaude-core-orchestration/SKILL.md"
+      },
+      "nuance_source": "plugins/ravenclaude-core/skills/ravenclaude-core-orchestration/SKILL.md",
+      "verify": {
+        "tier": "none",
+        "rationale": "This is a documentation-duplication fact, not offline-stageable in CI -- re-verifying it means re-reading this skill against ravenclaude-core/CLAUDE.md's current dispatch/CGP sections, not running a script."
       },
       "strength_badge": "Unverified"
     }

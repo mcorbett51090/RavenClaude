@@ -3040,3 +3040,26 @@ _Last verified: 2026-09-03_
 
 
 ---
+
+### A Grok Bot skill restates core protocols instead of citing them, on purpose · _RavenClaude-built_
+
+> The skill duplicates CGP/dispatch prose as freestanding text, against this repo's cite-not-restate convention, since a Grok Bot cannot resolve a cross-plugin markdown link.
+
+## What a reader would have assumed instead
+
+That a new skill referencing "RavenClaude Core Orchestration" in its title would link into `ravenclaude-core/CLAUDE.md` the way every other cross-plugin reference in this marketplace does (e.g. `forms-engineering`'s inherited-rules table, which links rather than restates).
+
+## The discriminator
+
+control: read `ravenclaude-core/CLAUDE.md`'s "Multi-Agent Coordination & Dispatch Rules" and "Capability Grounding Protocol" sections side by side with this skill's "Non-negotiable house rules" -- both restate the same invariants in freestanding prose, with no markdown link back to the source file.
+
+## Why it matters
+
+A Grok Bot is a separate, non-Claude-Code runtime -- it has no mechanism to `@`-import or traverse a relative markdown link into another plugin's `CLAUDE.md` the way a Claude Code sub-agent can. So `ravenclaude-core-orchestration/SKILL.md` deliberately copies the relevant protocols as a portable, self-contained recipe instead. This is a one-time, hand-adapted copy (its own "Credit" section says "Adapted from RavenClaude plugin `ravenclaude-core`"), not a live link -- so it will drift from `ravenclaude-core/CLAUDE.md` as that file's dispatch/CGP/SOP sections evolve, and nothing re-syncs it automatically.
+
+**Sources:** [PR #1104 -- grok-bot-creation + grok-bot-delegation plugins](https://github.com/mcorbett51090/RavenClaude/pull/1104)
+
+_Last verified: 2026-09-04_
+
+
+---
