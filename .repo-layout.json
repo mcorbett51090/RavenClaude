@@ -27,6 +27,7 @@
     "ruff.toml",
     ".prettierignore",
     ".repo-layout.json",
+    ".cursor/**",
     ".ravenclaude/comfort-posture.yaml",
     ".ravenclaude/design-project.json",
     ".ravenclaude/dispatch-config.json",
