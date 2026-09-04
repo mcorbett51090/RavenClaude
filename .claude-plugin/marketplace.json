@@ -441,8 +441,8 @@
     {
       "name": "data-platform",
       "source": "./plugins/data-platform",
-      "description": "Data-platform team — agents (database-setup-guide, etl-pipeline-engineer, dashboard-builder, connector-developer) for cloud DBs, ELT (Airbyte / Fivetran / n8n) with connectors for QuickBooks / Stripe / Salesforce / HubSpot / GA4 / Shopify / HRIS / Planhat / Intercom / Slack-as-source plus 8-vendor support-tool integration coverage (Zendesk, Freshdesk, Intercom Conv+Tkt, SFDC Service Cloud, JSM, HubSpot Service, Help Scout, Front + 2026 Fivetran connector-MAR build-vs-buy math), and embedded dashboards (Evidence.dev / Superset / Metabase / Cube + Tremor). skills (incl. support-ticket-normalization — conformed fct_ticket / fct_conversation_event over 8 vendors; cross-system-identity-resolution — the Salesforce↔Planhat↔Intercom↔Slack account spine), templates, a knowledge bank, best-practices. Opinionated against per-viewer-priced BI for greenfield SMB. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.14.4",
+      "description": "Data-platform team \u2014 agents (database-setup-guide, etl-pipeline-engineer, dashboard-builder, connector-developer) for cloud DBs, ELT (Airbyte / Fivetran / n8n) with connectors for QuickBooks / Stripe / Salesforce / HubSpot / GA4 / Shopify / HRIS / Planhat / Intercom / Slack-as-source plus 8-vendor support-tool integration coverage (Zendesk, Freshdesk, Intercom Conv+Tkt, SFDC Service Cloud, JSM, HubSpot Service, Help Scout, Front + 2026 Fivetran connector-MAR build-vs-buy math), and embedded dashboards (Evidence.dev / Superset / Metabase / Cube + Tremor). skills (incl. support-ticket-normalization \u2014 conformed fct_ticket / fct_conversation_event over 8 vendors; cross-system-identity-resolution \u2014 the Salesforce\u2194Planhat\u2194Intercom\u2194Slack account spine), templates, a knowledge bank, best-practices. Opinionated against per-viewer-priced BI for greenfield SMB. Requires ravenclaude-core@>=0.7.0.",
+      "version": "0.16.0",
       "author": {
         "name": "Matt Corbett"
       },

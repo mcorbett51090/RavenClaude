@@ -1,7 +1,14 @@
-# Metabase Interactive Embedding (React component) — seam-marked stub
+# Metabase Interactive Embedding (React component) — seam-marked stub (historical)
 
-> **Status:** v0.1.0 conceptual stub. Documents the seams; not compiling code.
-> **Promoted to runnable `.tsx` in v0.2.0** after a real engagement validates the seams.
+> **✅ PROMOTED at v0.2.0, then revised.** The runnable client component now lives at
+> [`metabase-interactive-embed.tsx`](metabase-interactive-embed.tsx); the JWT-signing +
+> URL-building logic was split into the server-only
+> [`metabase-embed-url.server.ts`](metabase-embed-url.server.ts) after
+> `ravenclaude-core/security-reviewer` found the original single-file design colocated a
+> server-only secret with a client component (a bundler that inlines `process.env` could ship
+> the Metabase signing secret to the browser). **The fix has NOT been re-reviewed.**
+> **Open acceptance-criteria items:** the pricing sign-off, live SDK-version confirmation, and
+> a real engagement using Metabase Pro Interactive Embedding.
 >
 > **Last reviewed:** 2026-05-21
 >
