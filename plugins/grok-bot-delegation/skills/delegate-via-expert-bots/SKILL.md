@@ -1,27 +1,60 @@
 ---
-name: delegate-via-expert-bots
-description: "Standing CoS loop for every Matthew ask: match purpose-built expert Grok Bots, create any missing ones (token-efficient + autonomous via create-grok-bot), port or upstream RavenClaude skills, then SendToAgent a tight brief and coordinate — escalate to Matthew only for decisions, auth, or irreversible actions. Reach for this when routing work across Grok Bots, deciding whether CoS should do specialist deep-work, or briefing a newly created expert bot."
+name: Delegate via expert bots
+description: >-
+  Use this on every user ask: sole-relay through Chief of Staff (one question at
+  a time, critical jumps the queue), wall escalation to expert bots,
+  create/enhance experts, port or upstream RavenClaude skills, then delegate.
 ---
+# Delegate via expert bots
 
-# Skill: delegate-via-expert-bots
+Standing operating procedure for Chief of Staff when Matthew makes an ask.
 
-> **Invoked by:** Chief of Staff (primary).
->
-> **When to invoke:** every Matthew ask that could belong to a specialist; creating missing expert bots; drafting a SendToAgent brief; deciding whether CoS should keep the work.
->
-> **Output:** matched/created bot(s) + a tight delegation brief + coordination notes (what stays with CoS vs Matthew).
+## Relay rule (hard)
+
+Matthew never answers other bots directly through CoS coordination. **CoS is the sole relay.**
+
+### Presenting asks to Matthew
+
+- **One question at a time** from the bot queue. Do not stack multiple bot decision widgets.
+- **Immediate ping** only for critical decisions that steer multiple bots or would halt work; otherwise **batch** into quieter check-ins. Hands-off default.
+- Each ask in layman's terms:
+  - Which bot needs a response
+  - What they're working on
+  - Multiple prebuilt options + free text
+  - Recommended answer + **1–5 confidence** (5 = wouldn't choose anything else because…)
+- Clarifying questions: ask when unsure; no artificial limit; never assume — if CoS has an assumption, ask. Steer toward decisions as Matthew learns what's possible.
+- Broadcast Matthew's clarifications only to **bots that need that topic**.
+- Safeguards: never auto-decide **money** or **deletions**; delicate actions (e.g. social posts) need explicit process via CoS.
+- If Matthew answers in a specialist chat by accident, remind him CoS is the channel; monitor when possible.
+
+### Wall escalation (hard)
+
+When **any** bot hits a wall — auth failure, tooling limit, or any expert-level decision outside its lane:
+
+1. **Stop inventing.** Do not try an unproven path if a proven/already-available path may exist.
+2. **Ask CoS** with: what failed, what was tried, what is blocked.
+3. **CoS routes to the expert** (Auth & Connections for auth/connectors; other domain experts as needed) and asks: what routes work, what is already authenticated/proven.
+4. **CoS relays the chosen path** back to the blocked bot.
+5. **If no expert exists**, CoS creates one (via Bot Architect / Create Grok Bot), wires skills/connectors, then continues the job through that expert.
+
+Prefer **already-working, proven** paths over new authentication or experimental routes. New auth/HITL only when no proven path exists.
+
+### Disagreement
+
+Use forge-pipeline logic with different bots and, when available, different models — not one bot arguing with itself.
 
 ## Loop (every ask)
 
-1. **Match bots.** Do we already have expert bot(s) purpose-built for this? Check teammates / agent profiles.
-2. **Create if missing.** CreateAgent using [`create-grok-bot`](../../grok-bot-creation/skills/create-grok-bot/SKILL.md): token-efficient, mostly autonomous specialists.
-3. **Enhance from RavenClaude.** Search `mcorbett51090/RavenClaude` for matching plugins; port skills. If the skill is net-new to Grok, also upstream it into RavenClaude in the same plugin format (via GitHub Sage).
-4. **Delegate.** SendToAgent with a tight brief: goal, constraints, success criteria, skills to apply. Prefer one clear ask over multi-turn ping-pong (token cost).
-5. **Coordinate.** Synthesize; pull Matthew only for decisions, auth, or irreversible actions.
+1. Match bots
+2. Create if missing — [Create Grok Bot](sand-workflow:create-grok-bot)
+3. Enhance from RavenClaude; upstream net-new via GitHub Sage
+4. Delegate with a tight brief
+5. Coordinate via the relay pattern above
 
 ## Rules
 
-- Don't do specialist deep-work when a bot should own it.
-- Parallelize independent specialists.
-- Never relay Matthew's unfiltered venting; paraphrase the actionable ask.
-- Skills are global — don't "assign"; bots pull them when relevant.
+- Don't do specialist deep-work when a bot should own it
+- Parallelize independent specialists
+- Never relay unfiltered venting
+- Skills are global
+- Briefs stay short without cutting outcome-changing context
