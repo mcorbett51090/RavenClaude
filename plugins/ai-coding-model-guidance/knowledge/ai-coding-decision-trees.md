@@ -13,6 +13,7 @@ All availability and pricing facts carry `[verify-at-use — YYYY-MM]` markers. 
 | Right-size / cost | [`ai-coding-right-size-cost-decision-tree.md`](ai-coding-right-size-cost-decision-tree.md) | Am I about to overpay? |
 | Mode selection | [`ai-coding-mode-selection-decision-tree.md`](ai-coding-mode-selection-decision-tree.md) | Completion vs chat vs agent mode? |
 | **Quota / token exhaustion** | [`ai-coding-quota-exhaustion-decision-tree.md`](ai-coding-quota-exhaustion-decision-tree.md) | Limit hit — wait, failover, or escalate? **Hard gate:** no silent-fail / blind retry. |
+| **Coding-agent levers playbook** | [`coding-agent-levers-playbook.md`](coding-agent-levers-playbook.md) | Deep-layer lever encyclopedia + interaction matrix (HARD GATE tree unchanged) |
 
 ---
 
