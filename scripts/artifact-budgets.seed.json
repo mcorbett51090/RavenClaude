@@ -87,6 +87,11 @@
         "P9 wave 1 (12 entries)",
         9300000,
         "The marketplace index embeds the same concept registry; 12 entries added 1,352 bytes."
+      ],
+      [
+        "merge-time re-measure: Gate 266 SessionStart safeguards land (96ea5e05)",
+        9310000,
+        "MERGE-TIME RE-MEASURE. Base commit 96ea5e05 (SessionStart safeguards + Gate 266 runtime self-test) added embedded content (a new hooks-selftest tool, host-support/knowledge updates, and two substantive concept restamps for hook-message-channels + must-fail-conventions-diverge). index.html regenerates deterministically to 9,300,513 bytes, over the prior 9,300,000 ceiling by 513. island payload unchanged at 6,707 <= 6,720 — a pure content-size raise, no DOM control. Re-measured on the merge base (96ea5e05); appended, never edited. Headroom to 9,310,000 (+0.10%)."
       ]
     ]
   },
