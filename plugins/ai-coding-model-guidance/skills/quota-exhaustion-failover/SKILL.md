@@ -1,6 +1,6 @@
 ---
 name: quota-exhaustion-failover
-description: "Hard gate when a coding agent/surface returns quota, rate-limit, weekly/monthly cap, spend-limit, or tokens-exhausted. Never silent-fail or blind-retry — try param/effort/scope levers before vendor failover, then traverse the vendor-neutral tier tree before naming a substitute SKU."
+description: "Hard gate when a coding agent/surface returns quota, rate-limit, weekly/monthly cap, spend-limit, or tokens-exhausted. Never silent-fail or blind-retry — try param/effort/scope levers before vendor failover, then traverse the vendor-neutral tier tree before naming a substitute SKU. Deep layer: coding-agent-levers-playbook."
 ---
 
 # Skill: Quota / token exhaustion failover (HARD GATE)
@@ -9,7 +9,8 @@ Use when any coding agent or surface returns a quota, rate-limit, weekly/monthly
 
 **Rule:** never silent-fail and never burn the same exhausted surface with blind retries. Try **param/effort/scope levers** before vendor failover. Then traverse the vendor-neutral tier tree + closed-world lineup before naming a substitute SKU.
 
-Full tree: [`../../knowledge/ai-coding-quota-exhaustion-decision-tree.md`](../../knowledge/ai-coding-quota-exhaustion-decision-tree.md).
+- **Hard gate tree:** [`../../knowledge/ai-coding-quota-exhaustion-decision-tree.md`](../../knowledge/ai-coding-quota-exhaustion-decision-tree.md)
+- **Deep layer (playbook):** [`../../knowledge/coding-agent-levers-playbook.md`](../../knowledge/coding-agent-levers-playbook.md) — lever encyclopedia, interaction matrix, missing-lever failover, worked examples. Tree remains the hard gate; do not duplicate the encyclopedia here.
 
 ## Ladder
 
@@ -53,4 +54,4 @@ Full tree: [`../../knowledge/ai-coding-quota-exhaustion-decision-tree.md`](../..
 
 ## Credit
 
-Companion to [`ai-coding-quota-exhaustion-decision-tree.md`](../../knowledge/ai-coding-quota-exhaustion-decision-tree.md); mirrors the Grok Bot hard-gate workflow (Matthew-approved effort levers, 2026-09).
+Companion to the quota-exhaustion decision tree + coding-agent-levers-playbook; mirrors Grok Bot HARD GATE (Matthew-approved effort levers, 2026-09).
