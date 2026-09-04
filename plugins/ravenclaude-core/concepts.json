@@ -2739,7 +2739,7 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-09-01",
+      "last_verified": "2026-09-04",
       "refresh_when": null,
       "sources": [
         {
@@ -2804,7 +2804,7 @@
         "plugins/ravenclaude-core/hooks/triage-outcome.sh",
         "plugins/ravenclaude-core/hooks/worktree-guard.sh"
       ],
-      "covers_digest": "sha256:1b57780f3d1b2c15c933ae9a5940ecb3ecb9b2c78bf2bcd9103353816f3495ab",
+      "covers_digest": "sha256:067d87cdff4615866bb7e7be7fbbb6108b09cdbfdfb8764f00ae891fbeb24eae",
       "nuance": "A hook writing to stderr at `exit 0` reaches the model on no event; only `hookSpecificOutput.additionalContext` and `updatedToolOutput` are delivered, so `_advise.sh` advised the terminal for its entire service life.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -2974,7 +2974,7 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-09-03",
+      "last_verified": "2026-09-04",
       "refresh_when": null,
       "sources": [
         {
@@ -3007,7 +3007,7 @@
         "scripts/inventory-nuance-judge.py",
         "plugins/ravenclaude-core/scripts/forge-receipt.py"
       ],
-      "covers_digest": "sha256:b31a5c92032a43e0c72957efa2055dce682149a816b427fcbdd31988e063dd74",
+      "covers_digest": "sha256:049fafc37441edc35545623715bdbcb3a46a19aad727d4d631cfebba52026ff6",
       "nuance": "The teeth bit is the exit a tool own CHECK returns on a planted defect, never the exit `--must-fail` itself returns: `premise-gate.py` denies at `exit 0` while `sync-plugin-versions.py` reddens at `exit 2`, so an auditor that hard-codes one number can never be right for both.",
       "nuance_evidence": {
         "measured": "2026-08-19",
