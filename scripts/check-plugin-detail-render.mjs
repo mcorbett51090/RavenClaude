@@ -66,7 +66,10 @@ const RC_BASELINE = {
   //        53 -> 54: skills/session-handoff (v0.266.0, context-quality reset)
   //        52 -> 53: skills/design-clone (v0.253.0, design-schema capture+apply)
   //        51 -> 52: skills/github-gold-standard (v0.246.0, the gold-standard scorecard)
-  tools: 48, // 46 -> 48: scripts/dependency-sweep.py + scripts/host-version-probe.py
+  tools: 49, // 48 -> 49: scripts/hooks-selftest.py (Gate 266 SessionStart runtime
+  //   self-test front door, 96ea5e05 — did not exist before). COUNTED, not inferred:
+  //   `find plugins/ravenclaude-core/scripts -maxdepth 1 -name "*.py" | wc -l` -> 49 on this tree.
+  //        46 -> 48: scripts/dependency-sweep.py + scripts/host-version-probe.py
   //   (v0.317.0, the dependency-update-sweep skill's tool + manual-probe module).
   //   COUNTED, not inferred: `find plugins/ravenclaude-core/scripts -maxdepth 1 -name "*.py"
   //   | wc -l` -> 48 on this tree.
