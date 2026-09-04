@@ -55,8 +55,11 @@ const ISLANDED_AGENT_KEYS = ["scenarios", "quickstart", "works_with"];
 const RC = "ravenclaude-core";
 const RC_BASELINE = {
   agents: 15,
-  skills: 60, // 59 -> 60: skills/dependency-update-sweep (v0.317.0, host-version drift sweep).
-  //   COUNTED, not inferred: `ls plugins/ravenclaude-core/skills | wc -l` -> 60 on this tree.
+  skills: 63, // 60 -> 63: skills/game-theory-basics, skills/quantitative-problem-solving,
+  //   skills/ravenclaude-core-orchestration (PR #1104, grok-bot-creation +
+  //   grok-bot-delegation plugins — companion problem-solving skills for Grok Bots).
+  //   COUNTED, not inferred: `ls plugins/ravenclaude-core/skills | wc -l` -> 63 on this tree.
+  //        59 -> 60: skills/dependency-update-sweep (v0.317.0, host-version drift sweep).
   //        58 -> 59: skills/repo-review (whole-repo systematic bug sweep, v0.313.0,
   //   2026-09-02). COUNTED, not inferred: window.__RC_DATA__'s ravenclaude-core record on
   //   this tree carries skills_index length 59 after `generate-index-dashboard.py` regen.

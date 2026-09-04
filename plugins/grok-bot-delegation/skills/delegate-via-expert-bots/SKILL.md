@@ -50,7 +50,7 @@ Use forge-pipeline logic with different bots and, when available, different mode
 ## Loop (every ask)
 
 1. Match bots
-2. Create if missing — [Create Grok Bot](sand-workflow:create-grok-bot)
+2. Create if missing — [Create Grok Bot](../../../grok-bot-creation/skills/create-grok-bot/SKILL.md)
 3. Enhance from RavenClaude; upstream net-new via GitHub Sage
 4. Delegate with a tight brief
 5. Coordinate via the relay pattern above
