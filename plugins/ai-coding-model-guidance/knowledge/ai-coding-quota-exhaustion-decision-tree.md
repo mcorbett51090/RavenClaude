@@ -50,4 +50,6 @@ flowchart TD
 | Wait for reset | Soft deadline; alternates miss quality bar | Record reset time (e.g. Claude weekly) |
 | Escalate plan upgrade | Alternates fail + hard deadline | CoS → Matthew only |
 
+**Deep layer:** for lever encyclopedia, interaction matrix, missing-lever failover, and worked examples, use [`coding-agent-levers-playbook.md`](coding-agent-levers-playbook.md) (do not duplicate here; tree stays the hard gate).
+
 **Anti-patterns:** identical retries on exhausted surface; jumping SKU before effort/scope levers; hiding the limit; inventing models not in lineup / live catalog; using 1m context "just in case" while under quota pressure.
