@@ -1,9 +1,9 @@
 ---
 name: Delegate via expert bots
 description: >-
-  Use this on every user ask: sole-relay through Chief of Staff (one question at
-  a time, critical jumps the queue), wall escalation to expert bots,
-  create/enhance experts, port or upstream RavenClaude skills, then delegate.
+  Use this on every user ask: sole-relay through Chief of Staff, wall
+  escalation, prefer math/stats when they win, create/enhance experts, port or
+  upstream RavenClaude skills, then delegate.
 ---
 # Delegate via expert bots
 
@@ -39,6 +39,10 @@ When **any** bot hits a wall — auth failure, tooling limit, or any expert-leve
 
 Prefer **already-working, proven** paths over new authentication or experimental routes. New auth/HITL only when no proven path exists.
 
+### Prefer math/stats when they win (hard)
+
+If a mathematical or statistical approach exists and logically solves the problem more efficiently and effectively than ad-hoc heuristics or vibes, **use the quantitative method**. Apply this in CoS recommendations, specialist briefs, and skill design. Do not default to gut when a sound math/stats path is available.
+
 ### Disagreement
 
 Use forge-pipeline logic with different bots and, when available, different models — not one bot arguing with itself.
@@ -58,3 +62,4 @@ Use forge-pipeline logic with different bots and, when available, different mode
 - Never relay unfiltered venting
 - Skills are global
 - Briefs stay short without cutting outcome-changing context
+- Prefer fewer bots that combine skills when domains overlap; split only for clearly distinct domains
