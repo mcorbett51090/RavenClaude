@@ -22,20 +22,23 @@ on:
   #    A path filter here does not merely cost coverage — it hangs the PR forever.
   #
   # Do NOT re-add `paths:` to this trigger. If PR minutes ever need trimming, gate
-  # individual STEPS with `if:` inside the job (a skipped job reports Success, a
-  # skipped workflow reports nothing) — that is GitHub's documented alternative.
+  # individual JOBS or STEPS with `if:` inside `jobs:` (a skipped job/step still
+  # reports a conclusion, a skipped WORKFLOW reports nothing) — that is GitHub's
+  # documented alternative.
   #
   # Gate 242 (scripts/check-inception-coverage.py, invoked from audit-gates.sh)
   # mechanically asserts this trigger — and the other two required workflows'
   # (validate-layout.yml, validate-schemas.yml) — never carries an
   # `on.pull_request.paths` / `paths-ignore` key. That is a DIFFERENT surface
-  # from the step-level `if:` conditions the `detect` job below feeds into:
-  # Gate 242 parses the YAML trigger, not job bodies, so a step-level skip is
-  # invisible to it and always will be — which is exactly why the step-level
-  # pattern below is the sanctioned way to trim minutes on a required workflow
-  # and a trigger-level `paths:` is not. Never move a path filter from a step
-  # `if:` onto this `on:` block "to simplify it" — that is exactly what Gate
-  # 242 exists to catch.
+  # from the JOB-LEVEL `if:` conditions the `detect` job below feeds into (PR-B:
+  # promoted from PR-A's/#1108's step-level `if:` to job-level, so each gated
+  # suite runs as its own parallel job instead of a sequential step inside one
+  # job): Gate 242 parses the YAML trigger, not job bodies, so a job-level (or
+  # step-level) skip is invisible to it and always will be — which is exactly
+  # why the job-level `if:` pattern below is the sanctioned way to trim minutes
+  # on a required workflow and a trigger-level `paths:` is not. Never move a
+  # path filter from a job/step `if:` onto this `on:` block "to simplify it" —
+  # that is exactly what Gate 242 exists to catch.
   pull_request:
   push:
     branches:
@@ -74,18 +77,28 @@ permissions:
   contents: read
 
 jobs:
-  # Always-on (for pull_request events) path-detection job — a STEP-LEVEL speed
+  # Always-on (for pull_request events) path-detection job — a JOB-LEVEL speed
   # optimization, never a workflow-trigger one. See the Gate 242 note above the
   # `on:` block: adding `paths:` to this workflow's trigger is still forbidden
-  # and always will be. This job only feeds `if:` conditions on individual
-  # STEPS inside `validate` below (a skipped step still reports a conclusion,
-  # so the required check "Validate manifests and hooks" always completes).
+  # and always will be. This job's `code` output feeds `if:` conditions on the
+  # four gated SUITE jobs below (lint_prettier / lint_actionlint / lint_ruff /
+  # lint_macos_portability) — PR-B split those out of the single `validate` job
+  # PR-A (#1108) gated at step level, so each suite now runs as its own
+  # parallel job (a skipped JOB still reports a conclusion, and the required
+  # aggregator "Validate manifests and hooks" below rolls those conclusions up,
+  # so the required check always completes).
   #
   # PR-only (`if: github.event_name == 'pull_request'`) — push-to-main and
-  # workflow_dispatch runs always execute every step in `validate` regardless
-  # of this job's output; see the `github.event_name != 'pull_request' ||`
-  # half of each skip condition below. This fast lane exists only to shorten
-  # PR CI turnaround, never to skip validation on a merge to main.
+  # workflow_dispatch runs always execute every gated suite job regardless of
+  # this job's output; see the `github.event_name != 'pull_request' ||` half
+  # of each suite job's `if:` condition below. This fast lane exists only to
+  # shorten PR CI turnaround, never to skip validation on a merge to main.
+  #
+  # `core` (the manifest/hook checks + the full scripts/audit-gates.sh suite)
+  # is NOT gated on this job's output — it carries no `needs: [detect]` and
+  # runs unconditionally, in parallel with `detect`. Until PR-C, audit-gates.sh's
+  # ~600 gates are the mechanism that keeps full coverage regardless of what the
+  # four lint suites skip on a docs-only PR.
   detect:
     name: Detect changed paths (docs-only fast lane)
     runs-on: ubuntu-latest
@@ -123,17 +136,21 @@ jobs:
               - 'scripts/**'
               - 'plugins/**'
 
-  validate:
-    name: Validate manifests and hooks
-    needs: [detect]
-    # ALWAYS runs regardless of `detect`'s outcome (success / failure / skip).
-    # This job carries the repo's required status check and must never be
-    # skipped or made to depend on another job's success. `detect` is
-    # best-effort: on failure, timeout, or skip (any non-pull_request event),
-    # every step-level `if:` below defaults to RUNNING the expensive step
-    # rather than skipping it — fail-safe toward "lint the whole tree", never
-    # toward "skip validation".
-    if: always()
+  # ────────────────────────────────────────────────────────────────────────────────
+  # `core` — the always/core suite. NEVER gated on `detect`'s output and
+  # carries no `needs:`, so it starts immediately, in parallel with `detect`.
+  # Holds every check that isn't one of the four expensive standalone lints
+  # PR-A originally step-gated (Prettier / Actionlint / Ruff / macOS-portability
+  # — now their own suite jobs below), PLUS the full scripts/audit-gates.sh
+  # meta-test (~600 gates). Until PR-C, audit-gates.sh is NOT itself split by
+  # path — it runs in full here on every trigger, which is what "retain full
+  # audit coverage via an always/core job" means: the suite split below trims
+  # the four standalone lints' own direct run on the real tree, but the
+  # meta-test proving every gate (including those same four) still has teeth
+  # is untouched and unconditional.
+  # ────────────────────────────────────────────────────────────────────────────────
+  core:
+    name: Core manifest/hook checks + full gate audit (always runs)
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -160,10 +177,13 @@ jobs:
           persist-credentials: false
 
       - name: Set up Node.js
-        # The render/round-trip *.mjs gates and the prettier check run under node/npx.
-        # audit-gates.sh now HARD-FAILS in CI when node/npx is absent (a skip is not
-        # a pass), so provision node explicitly rather than relying on the runner
-        # image happening to ship it.
+        # The render/round-trip *.mjs gates inside scripts/audit-gates.sh run
+        # under node/npx (the Prettier lint itself now lives in the standalone
+        # `lint_prettier` job below — this setup is for audit-gates.sh's own
+        # node-dependent gates, e.g. the Heimdall/Víðarr/Norns/... render tests
+        # and Gate 9's prettier fixture-pair). audit-gates.sh HARD-FAILS in CI
+        # when node/npx is absent (a skip is not a pass), so provision node
+        # explicitly rather than relying on the runner image happening to ship it.
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: "20"
@@ -402,82 +422,16 @@ jobs:
           fi
           exit $status
 
-      - name: Prettier check (formatting consistency)
-        # Skipped only when this run is a pull_request AND `detect` positively
-        # determined the diff touches no code/config/workflow path (docs-only).
-        # Push-to-main / workflow_dispatch / a failed-or-skipped `detect` all
-        # fall through to "run" — see the `detect` job's comment above.
-        if: github.event_name != 'pull_request' || needs.detect.outputs.code != 'false'
-        run: |
-          # Markdown is excluded via .prettierignore — the project's prose style
-          # is reviewed by humans per AGENTS.md, not by prettier. JSON, YAML,
-          # JS/TS, CSS in scope.
-          npx --yes prettier@3.9.4 --check . --log-level warn
-
-      - name: Actionlint (GitHub Actions semantic check)
-        # Pinned-binary actionlint (rhysd/actionlint v1.7.7) downloaded from the
-        # GitHub release and sha256-verified — NO Docker Hub dependency, so the
-        # gate is immune to anonymous image-pull rate-limits (the failure mode
-        # that broke this job on PR #93). The binary exits non-zero on findings
-        # (1) and on operational errors; 0 only when clean — so we gate on exit
-        # code, not on captured output. A pinned checksum also beats a mutable
-        # `:1.7.7` image tag for supply-chain integrity.
-        #
-        # Skip condition matches the other expensive standalone lints in this
-        # job — see the `detect` job's comment above.
-        if: github.event_name != 'pull_request' || needs.detect.outputs.code != 'false'
-        run: |
-          set -euo pipefail
-          ver=1.7.7
-          sha=023070a287cd8cccd71515fedc843f1985bf96c436b7effaecce67290e7e0757
-          tgz="$(mktemp)"
-          curl -fsSL "https://github.com/rhysd/actionlint/releases/download/v${ver}/actionlint_${ver}_linux_amd64.tar.gz" -o "$tgz"
-          printf '%s  %s\n' "$sha" "$tgz" | sha256sum -c -
-          dir="$(dirname "$tgz")"
-          tar -xzf "$tgz" -C "$dir" actionlint
-          if ! "$dir/actionlint" -color; then
-            echo "::error::actionlint reported findings"
-            exit 1
-          fi
-          echo "actionlint: clean"
-
       - name: Install ruff (needed for audit-gates Gate 9b fixtures)
-        # Installed UNCONDITIONALLY, even on a docs-only PR where the lint step
-        # below is skipped: "Audit every gate" further down always runs, and
-        # its Gate 9b behavioral fixture requires `ruff` on PATH regardless —
-        # skipping this install would turn a docs-only PR's always-on
-        # meta-test into an "UNRUNNABLE in CI" hard failure
-        # (scripts/audit-gates.sh's `_skip_or_fail`). Pinned for determinism.
+        # Installed UNCONDITIONALLY: this job is not gated on `detect`, and Gate
+        # 9b's behavioral fixture requires `ruff` on PATH regardless of whether
+        # the real full-tree lint (now the standalone `lint_ruff` job) runs at
+        # all — skipping this install would turn the always-on meta-test below
+        # into an "UNRUNNABLE in CI" hard failure (scripts/audit-gates.sh's
+        # `_skip_or_fail`). Pinned for determinism. Duplicated in `lint_ruff`'s
+        # own job because the two run on separate runners with no shared
+        # filesystem — that duplication is the cost of the parallelism.
         run: python3 -m pip install --quiet 'ruff==0.15.8'
-
-      - name: Ruff (Python lint)
-        # Lint the marketplace's ~20k LOC of Python against ruff.toml (correctness +
-        # efficiency families F/E9/B/C4/I/UP; SIM/B904/UP031 deferred — see ruff.toml).
-        #
-        # Skip condition matches the other expensive standalone lints in this
-        # job — see the `detect` job's comment above. `ruff` itself is always
-        # installed by the unconditional step above, independent of this skip.
-        if: github.event_name != 'pull_request' || needs.detect.outputs.code != 'false'
-        run: ruff check .
-
-      - name: macOS-portability lint (banned bash-4 / GNU-only tokens)
-        # The CI backstop for the in-loop enforce-portability hook. Both read the
-        # SAME token table (plugins/ravenclaude-core/knowledge/portability-tokens.json),
-        # so the two surfaces cannot drift — neither hard-codes a pattern.
-        #
-        # A STEP inside this required workflow, deliberately NOT a new workflow and
-        # NOT a paths: filter: a path filter on a required check leaves it Pending
-        # forever, and this reads a whole-tree glob set anyway, so no glob list could
-        # be correct. A skipped job reports Success; a skipped workflow reports nothing.
-        #
-        # Scope reaches past hooks/** on purpose — the two most recent real breaks
-        # were an extension-less installer and a monitors script.
-        #
-        # Skip condition matches the other expensive standalone lints in this
-        # job — see the `detect` job's comment above.
-        if: github.event_name != 'pull_request' || needs.detect.outputs.code != 'false'
-        run: |
-          python3 scripts/check-portability-lint.py
 
       - name: Install jsonschema (for audit-gates Gate 47 validate-schemas fixtures)
         # audit-gates Gate 47 shells out to `python3 -m jsonschema` against the
@@ -493,6 +447,26 @@ jobs:
         # it on the next PR, not in the next real incident. See
         # scripts/audit-gates.sh for per-gate fixtures.
         run: scripts/audit-gates.sh
+
+      # NOTE: repo-guide.html was RETIRED — its role (the browsable marketplace
+      # catalog / repo guide) was folded into the index.html portal, whose
+      # freshness IS gated here (Gate 97, "index.html freshness"). The old
+      # scripts/generate-repo-guide.py and scripts/check-guide-fresh.sh no longer
+      # exist. Kept as a signpost so a reader looking for a repo-guide freshness
+      # step knows where it went. See docs/best-practices/ci-gate-audit.md.
+
+      # NOTE: dashboard.html freshness is no longer gated here. Like repo-guide.html,
+      # dashboard.html (and the concept/decision-tree SVGs inlined into it) is a
+      # repo-wide generated artifact that every PR would otherwise regenerate into
+      # its branch — and rendering the SVGs needs mermaid-cli + Chromium, which most
+      # authors don't have locally. It is now OWNED by `main` and regenerated
+      # post-merge by .github/workflows/regenerate-artifacts.yml. The render-test
+      # gates that consume dashboard.html (Heimdall/Víðarr/Norns/etc.) are made
+      # honest a different way — audit-gates.sh regenerates dashboard.html in place
+      # before running them, so they always test the CURRENT generator's output
+      # (generate-then-test), not a possibly-stale committed file. The dashboard
+      # staleness *detector* is still audited for teeth in audit-gates.sh Gate 13.
+      # See docs/best-practices/ci-gate-audit.md § "Self-healing artifacts".
 
       # NOTE: repo-guide.html was RETIRED — its role (the browsable marketplace
       # catalog / repo guide) was folded into the index.html portal, whose
@@ -686,3 +660,171 @@ jobs:
             } >> "$GITHUB_STEP_SUMMARY"
           fi
           exit 0
+
+  # ─────────────────────────────────────────────────────────────────────────────────
+  # The four suite jobs below are PR-A's (#1108) step-level-gated standalone
+  # lints, promoted to their own parallel jobs. Each carries the SAME skip
+  # condition PR-A used at step level: skip ONLY when this run is a
+  # pull_request AND `detect` positively determined the diff is docs-only.
+  # `always()` in the `if:` keeps each job running even when `detect` failed,
+  # timed out, or was skipped (any non-pull_request event) — fail-safe toward
+  # "lint the whole tree", never toward "skip validation". See the `detect`
+  # job's comment above.
+  # ─────────────────────────────────────────────────────────────────────────────────
+
+  lint_prettier:
+    name: "Suite: Prettier format check"
+    needs: [detect]
+    if: always() && (github.event_name != 'pull_request' || needs.detect.outputs.code != 'false')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "20"
+
+      - name: Prettier check (formatting consistency)
+        run: |
+          # Markdown is excluded via .prettierignore — the project's prose style
+          # is reviewed by humans per AGENTS.md, not by prettier. JSON, YAML,
+          # JS/TS, CSS in scope.
+          npx --yes prettier@3.9.4 --check . --log-level warn
+
+  lint_actionlint:
+    name: "Suite: Actionlint"
+    needs: [detect]
+    if: always() && (github.event_name != 'pull_request' || needs.detect.outputs.code != 'false')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Actionlint (GitHub Actions semantic check)
+        # Pinned-binary actionlint (rhysd/actionlint v1.7.7) downloaded from the
+        # GitHub release and sha256-verified — NO Docker Hub dependency, so the
+        # gate is immune to anonymous image-pull rate-limits (the failure mode
+        # that broke this job on PR #93). The binary exits non-zero on findings
+        # (1) and on operational errors; 0 only when clean — so we gate on exit
+        # code, not on captured output. A pinned checksum also beats a mutable
+        # `:1.7.7` image tag for supply-chain integrity.
+        run: |
+          set -euo pipefail
+          ver=1.7.7
+          sha=023070a287cd8cccd71515fedc843f1985bf96c436b7effaecce67290e7e0757
+          tgz="$(mktemp)"
+          curl -fsSL "https://github.com/rhysd/actionlint/releases/download/v${ver}/actionlint_${ver}_linux_amd64.tar.gz" -o "$tgz"
+          printf '%s  %s\n' "$sha" "$tgz" | sha256sum -c -
+          dir="$(dirname "$tgz")"
+          tar -xzf "$tgz" -C "$dir" actionlint
+          if ! "$dir/actionlint" -color; then
+            echo "::error::actionlint reported findings"
+            exit 1
+          fi
+          echo "actionlint: clean"
+
+  lint_ruff:
+    name: "Suite: Ruff (Python lint)"
+    needs: [detect]
+    if: always() && (github.event_name != 'pull_request' || needs.detect.outputs.code != 'false')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install ruff
+        run: python3 -m pip install --quiet 'ruff==0.15.8'
+
+      - name: Ruff (Python lint)
+        # Lint the marketplace's ~20k LOC of Python against ruff.toml (correctness +
+        # efficiency families F/E9/B/C4/I/UP; SIM/B904/UP031 deferred — see ruff.toml).
+        run: ruff check .
+
+  lint_macos_portability:
+    name: "Suite: macOS-portability lint"
+    needs: [detect]
+    if: always() && (github.event_name != 'pull_request' || needs.detect.outputs.code != 'false')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: macOS-portability lint (banned bash-4 / GNU-only tokens)
+        # The CI backstop for the in-loop enforce-portability hook. Both read the
+        # SAME token table (plugins/ravenclaude-core/knowledge/portability-tokens.json),
+        # so the two surfaces cannot drift — neither hard-codes a pattern.
+        #
+        # Scope reaches past hooks/** on purpose — the two most recent real breaks
+        # were an extension-less installer and a monitors script.
+        run: |
+          python3 scripts/check-portability-lint.py
+
+  # ─────────────────────────────────────────────────────────────────────────────────
+  # Always-on aggregator. THIS job's `name:` is the repo's required status
+  # check ("Validate manifests and hooks" — byte-identical to the name PR-A's
+  # single `validate` job used to carry) and it must never be renamed, made
+  # conditional on another job's success, or skipped. `if: always()` means it
+  # runs regardless of any dependency's outcome; its own step then rolls up
+  # `core` and the four lint suites' results explicitly, requiring each to be
+  # `success` or `skipped` — never `failure`/`cancelled`. `detect` is listed in
+  # `needs:` (so this job waits for the whole graph to finish) but is
+  # deliberately EXCLUDED from that pass/fail check: `detect` is best-effort,
+  # and its own failure is already compensated for by the fail-safe `if:` on
+  # each suite job above (a failed/skipped `detect` makes every suite job RUN,
+  # never skip) — so gating on `detect`'s result too would penalize the
+  # workflow twice for one non-blocking hiccup.
+  # ─────────────────────────────────────────────────────────────────────────────────
+  validate:
+    name: Validate manifests and hooks
+    needs: [detect, core, lint_prettier, lint_actionlint, lint_ruff, lint_macos_portability]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Roll up suite results (success or skipped only)
+        env:
+          DETECT_RESULT: ${{ needs.detect.result }}
+          CORE_RESULT: ${{ needs.core.result }}
+          LINT_PRETTIER_RESULT: ${{ needs.lint_prettier.result }}
+          LINT_ACTIONLINT_RESULT: ${{ needs.lint_actionlint.result }}
+          LINT_RUFF_RESULT: ${{ needs.lint_ruff.result }}
+          LINT_MACOS_PORTABILITY_RESULT: ${{ needs.lint_macos_portability.result }}
+        run: |
+          set -euo pipefail
+          status=0
+
+          # `detect` is reported for visibility only — it never gates this
+          # rollup. See the job-level comment above for why.
+          echo "detect (best-effort, does not gate this rollup): ${DETECT_RESULT}"
+
+          check() { # $1=label $2=result
+            echo "$1: $2"
+            case "$2" in
+              success | skipped) ;;
+              *)
+                echo "::error::$1 reported '$2' (required: success or skipped)"
+                status=1
+                ;;
+            esac
+          }
+          check "core" "${CORE_RESULT}"
+          check "lint_prettier" "${LINT_PRETTIER_RESULT}"
+          check "lint_actionlint" "${LINT_ACTIONLINT_RESULT}"
+          check "lint_ruff" "${LINT_RUFF_RESULT}"
+          check "lint_macos_portability" "${LINT_MACOS_PORTABILITY_RESULT}"
+
+          if [[ "$status" -ne 0 ]]; then
+            echo "::error::one or more required suites did not report success or skipped — see above."
+          else
+            echo "All required suites reported success or skipped."
+          fi
+          exit $status
