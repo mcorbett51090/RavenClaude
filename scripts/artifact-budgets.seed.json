@@ -1,11 +1,7 @@
 {
   "payload": {
     "plugins/ravenclaude-core/dashboard.html": [
-      [
-        "seeded 2026-08-19",
-        30555,
-        "measured before any inventory authoring"
-      ],
+      ["seeded 2026-08-19", 30555, "measured before any inventory authoring"],
       [
         "P9 wave 1 (12 entries)",
         31500,
@@ -28,11 +24,7 @@
       ]
     ],
     "index.html": [
-      [
-        "seeded 2026-08-19",
-        6694,
-        "measured before any inventory authoring"
-      ],
+      ["seeded 2026-08-19", 6694, "measured before any inventory authoring"],
       [
         "repo-review inventory entry (repo-review-corroboration-bucket-diff, /repo-review Phase 1 build, 2026-09-02)",
         6720,
@@ -42,11 +34,7 @@
   },
   "bytes": {
     "plugins/ravenclaude-core/dashboard.html": [
-      [
-        "seeded 2026-08-19",
-        10273863,
-        "measured before any inventory authoring"
-      ],
+      ["seeded 2026-08-19", 10273863, "measured before any inventory authoring"],
       [
         "R12 strength badge CSS",
         10276000,
@@ -109,11 +97,7 @@
       ]
     ],
     "index.html": [
-      [
-        "seeded 2026-08-19",
-        9263430,
-        "measured before any inventory authoring"
-      ],
+      ["seeded 2026-08-19", 9263430, "measured before any inventory authoring"],
       [
         "P9 wave 1 (12 entries)",
         9300000,
