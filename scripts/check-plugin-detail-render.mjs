@@ -55,7 +55,10 @@ const ISLANDED_AGENT_KEYS = ["scenarios", "quickstart", "works_with"];
 const RC = "ravenclaude-core";
 const RC_BASELINE = {
   agents: 15,
-  skills: 63, // 60 -> 63: skills/game-theory-basics, skills/quantitative-problem-solving,
+  skills: 64, // 63 -> 64: skills/claude-code-parallel-and-modes (PR #1114,
+  //   Claude Code parallel agents + modes playbook in ravenclaude-core).
+  //   COUNTED, not inferred: `ls plugins/ravenclaude-core/skills | wc -l` -> 64 on this tree.
+  //        60 -> 63: skills/game-theory-basics, skills/quantitative-problem-solving,
   //   skills/ravenclaude-core-orchestration (PR #1104, grok-bot-creation +
   //   grok-bot-delegation plugins — companion problem-solving skills for Grok Bots).
   //   COUNTED, not inferred: `ls plugins/ravenclaude-core/skills | wc -l` -> 63 on this tree.
