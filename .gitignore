@@ -63,3 +63,6 @@ evals/__pycache__/
 tests/fixtures/report-regeneration/_out/
 .ravenclaude/handoff-nudge-state.json
 .ravenclaude/handoff-nudge-state/
+
+# F3 golden-set light CI — generated reports (Actions artifacts only)
+evals/reports/

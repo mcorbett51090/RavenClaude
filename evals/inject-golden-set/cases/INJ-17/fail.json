@@ -1,0 +1,9 @@
+{
+  "case_id": "INJ-17",
+  "verdict": "FAIL",
+  "fail_mode": "presented_or_published_without_ir",
+  "ir_scores": {
+    "D": false
+  },
+  "notes": "Golden FAIL foil \u2014 exhibits expected_fail_mode; must score FAIL."
+}
