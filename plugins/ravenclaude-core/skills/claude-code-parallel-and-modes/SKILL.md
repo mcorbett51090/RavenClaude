@@ -3,7 +3,8 @@ name: Claude Code parallel and modes
 description: >-
   Use when choosing Claude Code CLI parallelism or modes — remapping informal
   "max parallel", picking plan mode / subagents / worktrees /batch / ultracode
-  workflows / ultrathink /effort /compact, or writing operator prompt templates.
+  workflows / ultrathink /effort /compact, surviving parent context limits during
+  fan-out (disk-first handoff), or writing operator prompt templates.
   Not for non-Claude coding tools (escalate ai-coding-model-guidance) and not
   for inventing a /max-parallel command.
 ---
@@ -11,7 +12,7 @@ description: >-
 # Claude Code parallel and modes
 
 **Plugin home (LOCKED):** `ravenclaude-core` (CLI operator — not `claude-app-engineering`).  
-**Evidence:** `/workspace/rc-deep-research-claude-commands/DIGEST.md` + `VERIFY.md` (2026-09-05).  
+**Evidence:** `/workspace/rc-deep-research-claude-commands/DIGEST.md` + `VERIFY.md` (2026-09-05). Survive-parent: DIGEST-rc-deep-research-session-agent-token-loss (2026-09-05).  
 **Verify on install version:** `/help` + https://code.claude.com/docs/en/model-config (version drift).
 
 ## Hard rules
@@ -56,6 +57,7 @@ description: >-
 6. Persistently harder reasoning → `/effort xhigh` or test `/effort max`; drop back to `high` after.  
 7. Context full, same theme → `/compact` with focus; new theme → `/clear`.  
 8. Human said "max parallel" → map to rows above; **never** hunt `/max-parallel`.
+9. Fan-out with heavy returns → **Survive parent context** (disk-first; batch; persist before compact; escalate long work to agent-view).
 
 ### Plan mode precision (VERIFY must-fix)
 
@@ -76,9 +78,74 @@ Plan mode: research/propose **without source edits** until approve. Reads + **bu
   raise env only if blocked on the default.
 - No `/max-parallel` command. ultrathink ≠ /effort. ultracode ≠ ultrathink.
 - "think" / "think hard" / "think more" are ordinary text, not keywords.
+- Survive parent context: workers write mid-run to a run dir; return path + ≤~1.5–2k only.
+- Do not /compact while waiting on unpersisted large returns — persist first, then compact.
+- Batch verbose fan-out (often ≤2–3 concurrent returns) so parent is not flooded.
+- Budget (--max-budget-usd) halts background subagents — different from compact.
+- Long independent work: escalate to agent-view / claude --bg / separate sessions.
 ```
 
-## Templates (T1–T8)
+## Survive parent context
+
+**Evidence:** DIGEST-rc-deep-research-session-agent-token-loss (2026-09-05; fleet cli-out). Prefer **extension** of this skill — not a new plugin.
+
+### Ideal (fleet default) — disk-first handoff + thin parent + batched returns
+
+1. Every worker **writes mid-run** to a run dir (`angles/`, digests, `run-log.jsonl`) **before** returning.
+2. **Return only** path + ≤~1.5–2k digest (never raw dumps or full scrapes).
+3. Parent is a **path index + decision engine**; re-read files after `/compact`, `/clear`, or a new session.
+4. **Batch fan-out** so parent is not flooded in one burst (effort ladder: fact 0–1 / compare 2–4 / breadth ≤8–10; for verbose returns often ≤2–3 concurrent).
+5. **Do not `/compact` while waiting** on large unpersisted returns — persist first, then compact.
+6. Raise `CLAUDE_CODE_MAX_*` only when hitting defaults — never invent `/max-parallel`.
+
+### Official facts (High — code.claude.com)
+
+- Full context does **not** end the session; Claude Code **auto-compacts** as the window fills (context-window docs).
+- Subagent transcripts persist **independently** of the main conversation under `~/.claude/projects/.../subagents/`; parent compact does **not** wipe them (sub-agents docs).
+- Resume via `claude --continue` / `--resume` / `/resume`, then continue a subagent via `agentId` / SendMessage where supported; Explore/Plan are one-shot.
+- `/clear` saves prior conversation (recover via `/resume`); `/compact` replaces history with a summary (sessions docs).
+- **Budget** (`--max-budget-usd`) **halts running background subagents** — different failure mode from context compact (cli-reference).
+- Agent-view background sessions are separate supervised processes; attach/resume recover; process restart can hand off workers (agent-view docs).
+- Dynamic workflows keep intermediate results in script variables and are resumable in-session; still-running/failed agents may rerun (cascade risk) (workflows docs).
+
+### Community risk (Medium — hedged anecdotes)
+
+Large parallel **return payloads** into the parent can jump past autocompact and hit API max ("Prompt is too long" / `/compact` death spiral). See anthropics/claude-code issues #26041, #23463, #16209 (2026). Treat as practice risk, not a product guarantee. Disk side-effects workers already wrote survive; only **unpersisted** parent-only state is lost.
+
+### Escalation ladder
+
+| Rank | Mitigation | When |
+| --- | --- | --- |
+| 1 | Disk-first + thin returns + batch (this section) | Default specialist Max fan-out |
+| 2 | Agent-view / `claude --bg` separate sessions | Multi-hour / high-quota independent work |
+| 3 | Dynamic workflows / ultracode | Dozens of agents, scripted verify |
+| 4 | Worktrees / `/batch` | Parallel **writes** (does not alone fix return flood) |
+| 5 | Earlier autocompact (`CLAUDE_AUTOCOMPACT_PCT_OVERRIDE`) between batches | High-baseline sessions |
+| 6 | JSONL salvage after freeze | Last resort |
+
+### T9 — Survive-parent fan-out
+
+```text
+Use subagents (or a workflow). Disk-first handoff is mandatory:
+- Each worker writes its full artifact under <RUN_DIR>/<unit>/ before returning.
+- Each return is path + ≤~2k digest only. No raw dumps into the parent.
+- Parent merges by re-reading files from disk after all units finish.
+- Batch concurrent returns (start ≤2–3 if payloads are verbose).
+- Do not /compact until artifacts are on disk.
+- No /max-parallel. Raise CLAUDE_CODE_MAX_* only if blocked on defaults.
+Goal: <GOAL>
+```
+
+### Anti-patterns (add)
+
+| Anti-pattern | Do instead |
+| --- | --- |
+| Inline full scrapes / tool dumps into parent after fan-out | File-back; return path + digest |
+| /compact while waiting on unpersisted large returns | Persist first, then compact |
+| Assume parent compact kills subagent disk transcripts | Transcripts persist; still file-back for usable knowledge |
+| Assume budget halt = same as compact | Budget halts background subagents — separate mode |
+
+## Templates (T1–T9)
 
 ### T1 — Breadth research
 
@@ -205,5 +272,9 @@ Implement <CHANGE>, verify with <TEST>, then /simplify
 - https://code.claude.com/docs/en/agents  
 - https://code.claude.com/docs/en/commands  
 - https://support.claude.com/en/articles/14554000-claude-code-power-user-tips  
+- https://code.claude.com/docs/en/agent-view
+- https://code.claude.com/docs/en/sessions
+- https://code.claude.com/docs/en/cli-reference
+- https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents
 
 Full research pack: `/workspace/rc-deep-research-claude-commands/`
