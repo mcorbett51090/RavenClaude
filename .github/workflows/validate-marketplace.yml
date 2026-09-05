@@ -446,7 +446,25 @@ jobs:
         # stops gating (or starts gating the wrong thing), this step catches
         # it on the next PR, not in the next real incident. See
         # scripts/audit-gates.sh for per-gate fixtures.
-        run: scripts/audit-gates.sh
+        #
+        # PR-C: runs every named suite via `--suite` (enumerated through
+        # `--list-suites` so this step never hard-codes its own copy of the
+        # suite list) rather than one bare invocation. The union of every
+        # suite's gates is the full gate set — enforced as its own gate
+        # (267, "suite-dispatcher union completeness") so this loop can never
+        # silently drop coverage the bare invocation used to guarantee simply
+        # by running everything unconditionally. `core`/`security`/`ratchet`
+        # are three of the iterations below, inside THIS always-on job (no
+        # `needs: [detect]`, no skip condition) — satisfying "the always-on
+        # path never drops Gate 242 / the security suite" without a separate
+        # job or a second copy of the always-on set.
+        run: |
+          set -euo pipefail
+          for suite in $(scripts/audit-gates.sh --list-suites); do
+            echo "::group::Suite: ${suite}"
+            scripts/audit-gates.sh --suite "${suite}"
+            echo "::endgroup::"
+          done
 
       # NOTE: repo-guide.html was RETIRED — its role (the browsable marketplace
       # catalog / repo guide) was folded into the index.html portal, whose
