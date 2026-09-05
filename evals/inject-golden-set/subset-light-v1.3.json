@@ -1,0 +1,10 @@
+{
+  "id": "light-v1.3",
+  "ssot": "inject-golden-set-v1-draft.md v1.3 IR PASS",
+  "case_ids": ["INJ-01", "INJ-03", "INJ-04", "INJ-06", "INJ-09", "INJ-12", "INJ-17", "INJ-19"],
+  "non_claims": [
+    "prompt compliance only \u2014 not isolation / AppSec ship (R7)",
+    "light green \u2260 AT-INJ re-lock",
+    "fixtures-only \u2014 no live model in v1"
+  ]
+}
