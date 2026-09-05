@@ -101,6 +101,32 @@ A required workflow's `pull_request` trigger can never carry a `paths:`/`paths-i
 
 Both patterns share the same audit-by-fixture obligation as every other gate here: `scripts/audit-gates.sh`'s full run still proves each individual check (Prettier, Actionlint, Ruff, the macOS-portability lint, and the ~600-gate meta-test itself) fails on a known-bad fixture and passes on a known-good one — the job/step split only changes *when* the check runs, never whether it's been proven to gate.
 
+### Suite dispatcher — `audit-gates.sh --suite <name>` (PR-C)
+
+PR-A and PR-B split `validate-marketplace.yml`'s *job graph* (which of the workflow's own jobs run on a given trigger). PR-C splits `audit-gates.sh`'s own ~600-gate meta-test the same way, from *inside* the script, so a caller can run one named subset of gates instead of the whole matrix without a second copy of any gate's fixture.
+
+**CLI contract:**
+
+```
+scripts/audit-gates.sh                  # every gate (unchanged default — the regression floor)
+scripts/audit-gates.sh --check <N>       # one gate's own fixture, by number (pre-existing)
+scripts/audit-gates.sh --suite <name>    # every gate assigned to <name>
+```
+
+`--suite` and `--check` are mutually exclusive (each picks a different execution mode; combining them is rejected with exit 1, checked across the whole argument list so either order is caught). An unknown `--suite` name exits 1 and prints the supported list. `--list-suites` and `--list-suite-gates <name>` are pure introspection (no side effects, exit 0) — the second prints one suite's token list, used by the completeness checker below instead of a hard-coded second copy of the table.
+
+**Suite membership is a single table, read everywhere it's needed.** `_suite_gate_tokens()` in `scripts/audit-gates.sh` is the one place a gate number is assigned to a suite — a bash `case` (bash-3.2-safe, no `declare -A`), one arm per suite, each echoing a space-separated token list. A token is either a bare gate number (`"226"`) or a gate number with a single trailing lowercase letter (`"3b"`/`"5b"`/`"9b"`) — each letter-suffixed sub-gate is an **independent** token here, a deliberately stricter and disjoint reading than Gate 195's own reachability parser (`scripts/check-gate-registration.py`), which treats a letter suffix as a sub-section of its numeric parent for a *different* question (is it reachable at all, ever). The two parsers answer different questions and neither reads the other's output, so the difference is not a drift risk.
+
+**No second copy of any gate's fixture.** `scripts/audit-gates-suite-slice.py` slices `audit-gates.sh`'s *own text* — never a rewritten or templated copy — down to the blocks the requested suite needs, and `audit-gates.sh` `source`s the result. The blocks it selects run the exact same lines the default (no-args) run executes, in the exact same shell (`PASS`/`FAIL`/`SKIP`/the `gate()`/`backup()`/`cleanup()` machinery is already initialized by the time `--suite` is dispatched), so a `--suite` invocation and the default run can never quietly diverge in *what* a gate does — only in *which* gates ran.
+
+**Dependency closure.** A handful of gate blocks share a bash function or an ALL-CAPS variable with a block in a *different* suite (measured on the live file: `DASH_HTML`/`IDX_HTML`, set up once by Gate 13's dashboard/index regeneration, are read by several later `portal`/`streams` render-test gates; similar couplings exist for Gates 14→15/28 and 24→25 and 146→147-149). The slicer closes over these: any block defining a function or a single-def-block variable referenced by an already-selected block is pulled in too, even when its own gate number isn't nominally part of the requested suite — so `--suite streams` transparently also runs Gate 13's setup, without `streams`'s suite-membership entry needing to know that. This is a *runtime-correctness* mechanism, not a substitute for the membership table; it exists because a suite boundary is a coverage/CI concept, while a shared bash variable is a code-structure fact, and the two don't have to align.
+
+As a defense-in-depth backstop (a control-flow construct spanning a block boundary is a class the function/variable closure cannot see — Gates 49/50 had exactly this shape via a since-removed `if _gate_active 50; then …; fi` wrapper that opened in Gate 49's block and closed in Gate 50's), the slicer runs `bash -n` on its own output before returning it and fails closed (`Ambiguity`, exit 2) rather than ever handing back bash that doesn't parse.
+
+**Union completeness — Gate 267.** `scripts/check-gate-suite-coverage.py` re-derives both sides of "every bannered gate is claimed by ≥1 suite" independently every run: the real banner set, by parsing `audit-gates.sh`'s own headers with the same strict `echo "── Gate N: …"` match the slicer uses (a *comment* merely mentioning that shape doesn't count — the one historical instance of that is why the match requires `echo "` at the start of the line, not just the box-drawing characters anywhere in it); and the suite-membership union, by calling `audit-gates.sh --list-suites` then `--list-suite-gates` for each name — never a second hard-coded copy of the table. Wired in as Gate 267, in the `core` suite (always-on), with its own `--self-test` teeth (a planted, uncovered gate must be caught; the live tree must stay clean). This is a different question from Gate 195's ("is every declared gate reachable in the full suite at all") — 267 asks whether every *reachable* gate is claimed by at least one suite.
+
+**CI wiring.** `validate-marketplace.yml`'s always-on `core` job (no `needs: [detect]`, never skipped) runs every suite by looping `--list-suites` and calling `--suite "$suite"` per name, rather than one bare `audit-gates.sh` invocation. Because Gate 267 enforces that the union of every suite equals the full gate set, this loop cannot silently drop coverage the bare invocation used to guarantee simply by running everything unconditionally — and `core`/`security`/`ratchet` (and Gate 242 within `ratchet`) are three of the loop's iterations, inside this same never-skipped job, satisfying "the always-on path never drops the security/ratchet family" without a second job or a second always-on set to keep in sync.
+
 ## See also
 
 - [`../memory-bank/lessons-learned.md`](../memory-bank/lessons-learned.md) — the 2026-05-21 entry "A step that runs is not necessarily a step that gates" carries the origin trace and the actionlint-specific repro.
