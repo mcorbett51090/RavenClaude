@@ -2945,7 +2945,7 @@
         "scripts/sync-plugin-versions.py",
         "scripts/generate-copilot-plugin.py"
       ],
-      "covers_digest": "sha256:fb95167be5b6f454b1f67b88beba7369528d2ff41272b465ba519fba8add4b05",
+      "covers_digest": "sha256:34c54f0947f7675089f2dcbe668bc7974e6944fd46b43c2fb53e8ae1f133cbaa",
       "nuance": "The cache key is the `version` string, never a content hash, so `sync-plugin-versions.py` can report clean while every installed session keeps running the old `hooks/` code.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -4024,6 +4024,50 @@
       "verify": {
         "tier": "none",
         "rationale": "This is a documentation-duplication fact, not offline-stageable in CI -- re-verifying it means re-reading this skill against ravenclaude-core/CLAUDE.md's current dispatch/CGP sections, not running a script."
+      },
+      "strength_badge": "Unverified"
+    },
+    {
+      "id": "claude-code-parallel-and-modes",
+      "title": "There is no /max-parallel — remap to documented Claude Code knobs",
+      "category": "Inventory — measured mechanisms",
+      "kind": "ravenclaude-built",
+      "order": 930,
+      "summary": "Org slang \"max parallel\" is not a Claude Code command; the skill remaps it to plan mode, subagents, worktrees/batch, ultracode workflows, ultrathink, and /effort.",
+      "see_also": [],
+      "widget": null,
+      "try_it": null,
+      "node_links": {},
+      "last_verified": "2026-09-05",
+      "refresh_when": null,
+      "sources": [
+        {
+          "label": "rc-deep-research DIGEST + VERIFY (2026-09-05) + PLUGIN-DECISION lock to ravenclaude-core",
+          "url": "https://github.com/mcorbett51090/RavenClaude/pull/1114"
+        }
+      ],
+      "body_md": "## What a reader would have assumed instead\n\nThat \"max parallel\" names a first-class Claude Code mode or slash command, so operators should search for `/max-parallel` or raise session effort globally whenever they want fan-out.\n\n## The discriminator\n\ncontrol: model-config docs distinguish ultrathink from /effort; no /max-parallel appears in /help or documented slash commands\nMeasured 2026-09-05: the research DIGEST/VERIFY for this skill found no official `/max-parallel`. The correct remaps are plan mode, subagents, worktrees/`/batch`, ultracode/workflows, one-turn `ultrathink`, and `/effort` — and ultrathink must not be confused with ultracode or API effort.\n\n## Why it matters\n\nInventing `/max-parallel` wastes operator time and produces unsafe shared-checkout parallel writes. Putting the remap table in `ravenclaude-core` (CLI operator home) keeps it beside worktree/orchestrate/spawn-team skills rather than in app-build plugins.",
+      "diagram": null,
+      "diagram_mini": null,
+      "steps": [],
+      "svg": null,
+      "svg_mini": null,
+      "entry_class": "inventory",
+      "covers": [
+        "plugins/ravenclaude-core/skills/claude-code-parallel-and-modes/SKILL.md"
+      ],
+      "covers_digest": "sha256:bb4c3cd18fc262fb097c0816d87ee1b328a353e3ee3b50887fec61069420a73e",
+      "nuance": "Official Claude Code docs and /help list no /max-parallel mode; ultrathink is a one-turn in-context keyword and does not change API /effort, while ultracode is a separate setting that sends xhigh plus dynamic workflows.",
+      "nuance_evidence": {
+        "measured": "2026-09-05",
+        "control": "model-config docs distinguish ultrathink from /effort; no /max-parallel appears in /help or documented slash commands",
+        "falsifier": "an official Claude Code release shipping a /max-parallel command or equating ultrathink to API effort",
+        "probe": "plugins/ravenclaude-core/skills/claude-code-parallel-and-modes/SKILL.md"
+      },
+      "nuance_source": "plugins/ravenclaude-core/skills/claude-code-parallel-and-modes/SKILL.md",
+      "verify": {
+        "tier": "none",
+        "rationale": "The skill is a remap table over documented CLI knobs; re-verification is reading code.claude.com model-config + /help on the installed version, not a staged CI probe."
       },
       "strength_badge": "Unverified"
     }

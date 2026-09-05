@@ -3063,3 +3063,27 @@ _Last verified: 2026-09-04_
 
 
 ---
+
+### There is no /max-parallel — remap to documented Claude Code knobs · _RavenClaude-built_
+
+> Org slang "max parallel" is not a Claude Code command; the skill remaps it to plan mode, subagents, worktrees/batch, ultracode workflows, ultrathink, and /effort.
+
+## What a reader would have assumed instead
+
+That "max parallel" names a first-class Claude Code mode or slash command, so operators should search for `/max-parallel` or raise session effort globally whenever they want fan-out.
+
+## The discriminator
+
+control: model-config docs distinguish ultrathink from /effort; no /max-parallel appears in /help or documented slash commands
+Measured 2026-09-05: the research DIGEST/VERIFY for this skill found no official `/max-parallel`. The correct remaps are plan mode, subagents, worktrees/`/batch`, ultracode/workflows, one-turn `ultrathink`, and `/effort` — and ultrathink must not be confused with ultracode or API effort.
+
+## Why it matters
+
+Inventing `/max-parallel` wastes operator time and produces unsafe shared-checkout parallel writes. Putting the remap table in `ravenclaude-core` (CLI operator home) keeps it beside worktree/orchestrate/spawn-team skills rather than in app-build plugins.
+
+**Sources:** [rc-deep-research DIGEST + VERIFY (2026-09-05) + PLUGIN-DECISION lock to ravenclaude-core](https://github.com/mcorbett51090/RavenClaude/pull/1114)
+
+_Last verified: 2026-09-05_
+
+
+---
