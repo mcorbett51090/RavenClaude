@@ -24,6 +24,18 @@ on:
   # Do NOT re-add `paths:` to this trigger. If PR minutes ever need trimming, gate
   # individual STEPS with `if:` inside the job (a skipped job reports Success, a
   # skipped workflow reports nothing) — that is GitHub's documented alternative.
+  #
+  # Gate 242 (scripts/check-inception-coverage.py, invoked from audit-gates.sh)
+  # mechanically asserts this trigger — and the other two required workflows'
+  # (validate-layout.yml, validate-schemas.yml) — never carries an
+  # `on.pull_request.paths` / `paths-ignore` key. That is a DIFFERENT surface
+  # from the step-level `if:` conditions the `detect` job below feeds into:
+  # Gate 242 parses the YAML trigger, not job bodies, so a step-level skip is
+  # invisible to it and always will be — which is exactly why the step-level
+  # pattern below is the sanctioned way to trim minutes on a required workflow
+  # and a trigger-level `paths:` is not. Never move a path filter from a step
+  # `if:` onto this `on:` block "to simplify it" — that is exactly what Gate
+  # 242 exists to catch.
   pull_request:
   push:
     branches:
@@ -62,8 +74,66 @@ permissions:
   contents: read
 
 jobs:
+  # Always-on (for pull_request events) path-detection job — a STEP-LEVEL speed
+  # optimization, never a workflow-trigger one. See the Gate 242 note above the
+  # `on:` block: adding `paths:` to this workflow's trigger is still forbidden
+  # and always will be. This job only feeds `if:` conditions on individual
+  # STEPS inside `validate` below (a skipped step still reports a conclusion,
+  # so the required check "Validate manifests and hooks" always completes).
+  #
+  # PR-only (`if: github.event_name == 'pull_request'`) — push-to-main and
+  # workflow_dispatch runs always execute every step in `validate` regardless
+  # of this job's output; see the `github.event_name != 'pull_request' ||`
+  # half of each skip condition below. This fast lane exists only to shorten
+  # PR CI turnaround, never to skip validation on a merge to main.
+  detect:
+    name: Detect changed paths (docs-only fast lane)
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    # Only what dorny/paths-filter needs for a pull_request event (it fetches
+    # the changed-file list via the GitHub REST API — no checkout required).
+    permissions:
+      pull-requests: read
+    outputs:
+      code: ${{ steps.filter.outputs.code }}
+    steps:
+      - name: Paths filter
+        id: filter
+        uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
+        with:
+          # Run-on-any-of: touching any of these means "not docs-only". This is
+          # deliberately broad — `plugins/**` matches ANY file under a plugin
+          # (including its markdown), because most of this repo's real risk
+          # (hooks, scripts, skills) lives there, so only a genuinely docs-only
+          # PR (root docs/**, top-level README-style changes, etc.) skips the
+          # steps below.
+          filters: |
+            code:
+              - '**/*.py'
+              - '**/*.sh'
+              - '**/*.js'
+              - '**/*.mjs'
+              - '**/*.ts'
+              - '**/*.yml'
+              - '**/*.yaml'
+              - '**/*.json'
+              - '**/*.css'
+              - '**/*.html'
+              - '.github/**'
+              - 'scripts/**'
+              - 'plugins/**'
+
   validate:
     name: Validate manifests and hooks
+    needs: [detect]
+    # ALWAYS runs regardless of `detect`'s outcome (success / failure / skip).
+    # This job carries the repo's required status check and must never be
+    # skipped or made to depend on another job's success. `detect` is
+    # best-effort: on failure, timeout, or skip (any non-pull_request event),
+    # every step-level `if:` below defaults to RUNNING the expensive step
+    # rather than skipping it — fail-safe toward "lint the whole tree", never
+    # toward "skip validation".
+    if: always()
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -333,6 +403,11 @@ jobs:
           exit $status
 
       - name: Prettier check (formatting consistency)
+        # Skipped only when this run is a pull_request AND `detect` positively
+        # determined the diff touches no code/config/workflow path (docs-only).
+        # Push-to-main / workflow_dispatch / a failed-or-skipped `detect` all
+        # fall through to "run" — see the `detect` job's comment above.
+        if: github.event_name != 'pull_request' || needs.detect.outputs.code != 'false'
         run: |
           # Markdown is excluded via .prettierignore — the project's prose style
           # is reviewed by humans per AGENTS.md, not by prettier. JSON, YAML,
@@ -347,6 +422,10 @@ jobs:
         # (1) and on operational errors; 0 only when clean — so we gate on exit
         # code, not on captured output. A pinned checksum also beats a mutable
         # `:1.7.7` image tag for supply-chain integrity.
+        #
+        # Skip condition matches the other expensive standalone lints in this
+        # job — see the `detect` job's comment above.
+        if: github.event_name != 'pull_request' || needs.detect.outputs.code != 'false'
         run: |
           set -euo pipefail
           ver=1.7.7
@@ -362,14 +441,24 @@ jobs:
           fi
           echo "actionlint: clean"
 
+      - name: Install ruff (needed for audit-gates Gate 9b fixtures)
+        # Installed UNCONDITIONALLY, even on a docs-only PR where the lint step
+        # below is skipped: "Audit every gate" further down always runs, and
+        # its Gate 9b behavioral fixture requires `ruff` on PATH regardless —
+        # skipping this install would turn a docs-only PR's always-on
+        # meta-test into an "UNRUNNABLE in CI" hard failure
+        # (scripts/audit-gates.sh's `_skip_or_fail`). Pinned for determinism.
+        run: python3 -m pip install --quiet 'ruff==0.15.8'
+
       - name: Ruff (Python lint)
         # Lint the marketplace's ~20k LOC of Python against ruff.toml (correctness +
         # efficiency families F/E9/B/C4/I/UP; SIM/B904/UP031 deferred — see ruff.toml).
-        # Installed here so it's also on PATH for the audit-gates ruff fixture (Gate 9b),
-        # which runs in the next step. Pinned for determinism.
-        run: |
-          python3 -m pip install --quiet 'ruff==0.15.8'
-          ruff check .
+        #
+        # Skip condition matches the other expensive standalone lints in this
+        # job — see the `detect` job's comment above. `ruff` itself is always
+        # installed by the unconditional step above, independent of this skip.
+        if: github.event_name != 'pull_request' || needs.detect.outputs.code != 'false'
+        run: ruff check .
 
       - name: macOS-portability lint (banned bash-4 / GNU-only tokens)
         # The CI backstop for the in-loop enforce-portability hook. Both read the
@@ -383,6 +472,10 @@ jobs:
         #
         # Scope reaches past hooks/** on purpose — the two most recent real breaks
         # were an extension-less installer and a monitors script.
+        #
+        # Skip condition matches the other expensive standalone lints in this
+        # job — see the `detect` job's comment above.
+        if: github.event_name != 'pull_request' || needs.detect.outputs.code != 'false'
         run: |
           python3 scripts/check-portability-lint.py
 
