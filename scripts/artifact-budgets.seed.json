@@ -1,7 +1,11 @@
 {
   "payload": {
     "plugins/ravenclaude-core/dashboard.html": [
-      ["seeded 2026-08-19", 30555, "measured before any inventory authoring"],
+      [
+        "seeded 2026-08-19",
+        30555,
+        "measured before any inventory authoring"
+      ],
       [
         "P9 wave 1 (12 entries)",
         31500,
@@ -16,10 +20,19 @@
         "grok-bot-orchestration-skill-restates-core inventory entry (PR #1104 inception-coverage fix, 2026-09-04)",
         31590,
         "PR #1104's (grok-bot-creation + grok-bot-delegation plugins) Gate-242 inception-coverage fix added one new inventory concept (grok-bot-orchestration-skill-restates-core -- the cite-vs-restate divergence in skills/ravenclaude-core-orchestration/SKILL.md, forced by a Grok Bot's inability to resolve a cross-plugin markdown link) covering skills/game-theory-basics/SKILL.md, skills/quantitative-problem-solving/SKILL.md, and skills/ravenclaude-core-orchestration/SKILL.md -- three paths in one mechanism entry. Measured at 31,574 island payload elements (over the prior 31,560 ceiling by 14). Same no-diagrams-for-inventory-entries shape as every prior wave; a pure content-size raise, not a DOM control. Re-measured on rebased HEAD after merging origin/main; appended, never edited."
+      ],
+      [
+        "claude-code-parallel-and-modes inventory entry (PR #1114 Gate 240 fix, 2026-09-05)",
+        31640,
+        "PR #1114 adds one new inventory concept (claude-code-parallel-and-modes \u2014 the verified negative that there is no /max-parallel Claude Code command; remap to plan/subagents/worktrees/ultracode/ultrathink/effort) covering skills/claude-code-parallel-and-modes/SKILL.md. Regenerating dashboard.html for R12 badge parity measured island payload at 31,610 (over the prior 31,590 ceiling by 20). Same no-diagrams-for-inventory-entries shape as every prior wave; a pure content-size raise, not a DOM control. Re-measured on rebased HEAD after #1113; appended, never edited."
       ]
     ],
     "index.html": [
-      ["seeded 2026-08-19", 6694, "measured before any inventory authoring"],
+      [
+        "seeded 2026-08-19",
+        6694,
+        "measured before any inventory authoring"
+      ],
       [
         "repo-review inventory entry (repo-review-corroboration-bucket-diff, /repo-review Phase 1 build, 2026-09-02)",
         6720,
@@ -29,7 +42,11 @@
   },
   "bytes": {
     "plugins/ravenclaude-core/dashboard.html": [
-      ["seeded 2026-08-19", 10273863, "measured before any inventory authoring"],
+      [
+        "seeded 2026-08-19",
+        10273863,
+        "measured before any inventory authoring"
+      ],
       [
         "R12 strength badge CSS",
         10276000,
@@ -43,7 +60,7 @@
       [
         "merge: forge/stall-watchdog into origin/main (2026-08-27)",
         10410000,
-        "MERGE-TIME RE-MEASURE. The stall-watchdog branch and origin/main's cheap-lane + inventory work were authored in parallel; dashboard.html fit the 10,400,000 ceiling on each side alone, but the union of both sides' Learn-tab concepts and inventory entries regenerates deterministically to 10,403,505 bytes (island payload unchanged at 31,143 <= 31,500, still within budget). Neither side's number was wrong in isolation — this is the same PR #991 shape the ratchet-freshness gate defends, applied to the byte ceiling: re-measured on the merge commit and APPENDED, never edited. Headroom to 10,410,000 (+0.06%)."
+        "MERGE-TIME RE-MEASURE. The stall-watchdog branch and origin/main's cheap-lane + inventory work were authored in parallel; dashboard.html fit the 10,400,000 ceiling on each side alone, but the union of both sides' Learn-tab concepts and inventory entries regenerates deterministically to 10,403,505 bytes (island payload unchanged at 31,143 <= 31,500, still within budget). Neither side's number was wrong in isolation \u2014 this is the same PR #991 shape the ratchet-freshness gate defends, applied to the byte ceiling: re-measured on the merge commit and APPENDED, never edited. Headroom to 10,410,000 (+0.06%)."
       ],
       [
         "merge: advisory_knobs + cheap_lane both land (forge/vba-impl <- origin/main)",
@@ -56,19 +73,19 @@
         "MERGE-TIME RE-MEASURE. After #1004 and #1023 landed, merging origin/main into forge/vba-impl regenerates dashboard.html to 10,417,453 bytes (island payload 31,181 <= 31,500). The prior 10,412,000 ceiling was measured before stall-watchdog inventory entries were on main; this is the same PR #991 shape applied to the byte ceiling. Appended, never edited. Headroom to 10,420,000 (+0.03%)."
       ],
       [
-        "MCP result quarantine + analog-closeness-scorecard — 2 inventory entries (Q1+Q2, analog-repos-gap-fill leftovers, 2026-08-30/31)",
+        "MCP result quarantine + analog-closeness-scorecard \u2014 2 inventory entries (Q1+Q2, analog-repos-gap-fill leftovers, 2026-08-30/31)",
         10436000,
         "Two independent PRs each added one inventory entry (mcp-quarantine-matcher-is-a-prefix and analog-closeness-quality-bar-is-independent-of-score) and each stayed under a 10,428,000 ceiling in isolation; merging them combines both entries' nuance+evidence blocks on the one dashboard.html surface, measured at 10,432,946 bytes. MCP quarantine's Pipeline-tab mention was folded into the existing sanitize-webfetch-output card (not a new card) to stay within the DOM-budget ratchet, so this is a pure JS-source/content bytes raise, no DOM growth beyond that. Re-measured on the merge; appended, never edited."
       ],
       [
         "precompact-digest inventory entry (precompact-critical-context FORGE plan, P6 regen-discipline, 2026-09-01)",
         10447000,
-        "The precompact-critical-context feature's P6 regen-discipline pass added one new inventory concept (precompact-digest — the detached-worker proof for hooks/precompact-digest.sh + scripts/precompact-digest.py) plus cosmetic covers_digest restamps on five pre-existing concepts whose covered artifacts (copilot-hook-adapter.sh, hooks.json, plugin.json, audit-gates.sh, generate-dashboards.py) legitimately changed content earlier in the same feature. Measured at 10,443,430 bytes (island payload 31,294 <= 31,500, unaffected — same no-diagrams-for-inventory-entries shape as every prior wave). Re-measured on the regenerated artifact; appended, never edited."
+        "The precompact-critical-context feature's P6 regen-discipline pass added one new inventory concept (precompact-digest \u2014 the detached-worker proof for hooks/precompact-digest.sh + scripts/precompact-digest.py) plus cosmetic covers_digest restamps on five pre-existing concepts whose covered artifacts (copilot-hook-adapter.sh, hooks.json, plugin.json, audit-gates.sh, generate-dashboards.py) legitimately changed content earlier in the same feature. Measured at 10,443,430 bytes (island payload 31,294 <= 31,500, unaffected \u2014 same no-diagrams-for-inventory-entries shape as every prior wave). Re-measured on the regenerated artifact; appended, never edited."
       ],
       [
         "agent-routing-matrix inventory entry (agent-routing-matrix FORGE plan, inception-coverage fix, 2026-09-01)",
         10460000,
-        "The agent-routing-matrix build's Gate-242 inception-coverage fix added one new inventory concept (agent-routing-matrix-ban-list-scope — the scoped-vs-every-leaf-string ban-list correction for check-agent-routing-matrix.py's Gate 255 check B) plus cosmetic covers_digest restamps on three pre-existing concepts (cheap-lane-agent-matrix, plugin-cache-is-version-keyed, must-fail-conventions-diverge) whose covered artifacts drifted from this PR's own plugin.json version bump plus the merged origin/main's own bump. Measured at 10,457,685 bytes (island payload 31,346 <= 31,500, unaffected — same no-diagrams-for-inventory-entries shape as every prior wave). Re-measured on the regenerated artifact; appended, never edited."
+        "The agent-routing-matrix build's Gate-242 inception-coverage fix added one new inventory concept (agent-routing-matrix-ban-list-scope \u2014 the scoped-vs-every-leaf-string ban-list correction for check-agent-routing-matrix.py's Gate 255 check B) plus cosmetic covers_digest restamps on three pre-existing concepts (cheap-lane-agent-matrix, plugin-cache-is-version-keyed, must-fail-conventions-diverge) whose covered artifacts drifted from this PR's own plugin.json version bump plus the merged origin/main's own bump. Measured at 10,457,685 bytes (island payload 31,346 <= 31,500, unaffected \u2014 same no-diagrams-for-inventory-entries shape as every prior wave). Re-measured on the regenerated artifact; appended, never edited."
       ],
       [
         "session-relay inventory entry (2026-09-02)",
@@ -92,7 +109,11 @@
       ]
     ],
     "index.html": [
-      ["seeded 2026-08-19", 9263430, "measured before any inventory authoring"],
+      [
+        "seeded 2026-08-19",
+        9263430,
+        "measured before any inventory authoring"
+      ],
       [
         "P9 wave 1 (12 entries)",
         9300000,
@@ -101,7 +122,7 @@
       [
         "merge-time re-measure: Gate 266 SessionStart safeguards land (96ea5e05)",
         9310000,
-        "MERGE-TIME RE-MEASURE. Base commit 96ea5e05 (SessionStart safeguards + Gate 266 runtime self-test) added embedded content (a new hooks-selftest tool, host-support/knowledge updates, and two substantive concept restamps for hook-message-channels + must-fail-conventions-diverge). index.html regenerates deterministically to 9,300,513 bytes, over the prior 9,300,000 ceiling by 513. island payload unchanged at 6,707 <= 6,720 — a pure content-size raise, no DOM control. Re-measured on the merge base (96ea5e05); appended, never edited. Headroom to 9,310,000 (+0.10%)."
+        "MERGE-TIME RE-MEASURE. Base commit 96ea5e05 (SessionStart safeguards + Gate 266 runtime self-test) added embedded content (a new hooks-selftest tool, host-support/knowledge updates, and two substantive concept restamps for hook-message-channels + must-fail-conventions-diverge). index.html regenerates deterministically to 9,300,513 bytes, over the prior 9,300,000 ceiling by 513. island payload unchanged at 6,707 <= 6,720 \u2014 a pure content-size raise, no DOM control. Re-measured on the merge base (96ea5e05); appended, never edited. Headroom to 9,310,000 (+0.10%)."
       ]
     ]
   },
