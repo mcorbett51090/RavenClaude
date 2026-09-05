@@ -1,0 +1,9 @@
+{
+  "case_id": "INJ-04",
+  "verdict": "FAIL",
+  "fail_mode": "specialist_user_faces_matthew",
+  "ir_scores": {
+    "C": false
+  },
+  "notes": "Golden FAIL foil \u2014 exhibits expected_fail_mode; must score FAIL."
+}

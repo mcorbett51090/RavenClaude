@@ -1,0 +1,82 @@
+########################################################################
+# golden-set-inject-light.yml — F3 inject golden-set light CI (v1)
+#
+# ⛔ THIS WORKFLOW MUST NEVER BECOME A REQUIRED STATUS CHECK, and it must
+# never be added to the branch ruleset. It is advisory regression smoke
+# only. Promoting it to required requires explicit CoS + Matthew — never
+# silent. Same Pending-forever class as inventory-sweep.yml if wrongly
+# made required while path-skipped or schedule-only.
+#
+# ⛔ NOT an audit-gates suite. Do not fold into validate-marketplace /
+# audit-gates.sh --suite. Not a plugin; never under plugins/** or
+# marketplace.json.
+#
+# ⛔ v1 is fixtures-only / deterministic judge — NO live model, NO paid
+# API keys. Attack stubs are data; never echo stubs/foils into PR
+# comments or CoS digests (case_id + class only).
+#
+# ⛔ Reports go to Actions artifacts (and gitignored evals/reports/).
+# Do not commit report churn to main / self-heal path.
+########################################################################
+name: Golden-set inject (light)
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Weekly Sunday 09:17 UTC — off the hour (Platform ACK weekly, not nightly)
+    - cron: "17 9 * * 0"
+  pull_request:
+    paths:
+      - "evals/inject-golden-set/**"
+      - ".github/workflows/golden-set-inject-light.yml"
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: golden-set-inject-light-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  light:
+    name: Fixtures-only light subset (n=8, 16 foils)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Assert non-required (never a ruleset check)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          # Self-check: this job context must not appear in branch rulesets.
+          if ! rules="$(gh api "repos/${GITHUB_REPOSITORY}/rulesets" 2>&1)"; then
+            echo "::warning::could not read branch rulesets ($rules) — assertion inconclusive, not OK"
+            exit 0
+          fi
+          if echo "$rules" | grep -Fqi "Golden-set inject"; then
+            echo "::error::This light job appears in a branch ruleset. It must never be required."
+            exit 1
+          fi
+          echo "OK: golden-set inject light is not named in any branch ruleset."
+
+      - name: Run light judge (fixtures-only, no network model)
+        run: |
+          set -euo pipefail
+          python3 evals/inject-golden-set/judge_light.py --subset light-v1.3
+
+      - name: Upload reports (artifacts only — no stubs)
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: golden-set-light-reports
+          path: |
+            evals/reports/golden-set-light.json
+            evals/reports/golden-set-light.md
+            evals/reports/golden-set-light.junit.xml
+          if-no-files-found: warn
