@@ -1,7 +1,7 @@
 {
   "name": "grok-bot-delegation",
-  "version": "0.1.0",
-  "description": "Grok Bot delegation SOP for Chief of Staff — on every Matthew ask: match or create purpose-built expert bots (via grok-bot-creation), port or upstream RavenClaude skills, SendToAgent with a tight brief, then coordinate; escalate to Matthew only for decisions, auth, or irreversible actions. Distinct from ravenclaude-core Team Lead orchestration (Claude Code) and ai-agent-engineering (building agentic products). Requires ravenclaude-core@>=0.7.0.",
+  "version": "0.2.0",
+  "description": "Grok Bot delegation SOP for Chief of Staff — on every Matthew ask: match or create purpose-built expert bots (via grok-bot-creation), port or upstream RavenClaude skills, SendToAgent with a tight brief, then coordinate; escalate to Matthew only for decisions, auth, or irreversible actions. Also carries the fleet token-spend playbook: condensed returns, an effort ladder before spawn, routine hygiene, connectors over browser, CPCT measurement. Distinct from ravenclaude-core Team Lead orchestration (Claude Code) and ai-agent-engineering (building agentic products). Requires ravenclaude-core@>=0.7.0.",
   "author": {
     "name": "Matt Corbett"
   },
@@ -14,7 +14,8 @@
     "sendtoagent",
     "orchestration",
     "grok-bots",
-    "multi-agent"
+    "multi-agent",
+    "token-spend"
   ],
   "requires": {
     "plugins": ["ravenclaude-core@>=0.7.0"]
