@@ -4046,7 +4046,7 @@
           "url": "https://github.com/mcorbett51090/RavenClaude/pull/1114"
         }
       ],
-      "body_md": "## What a reader would have assumed instead\n\nThat \"max parallel\" names a first-class Claude Code mode or slash command, so operators should search for `/max-parallel` or raise session effort globally whenever they want fan-out.\n\n## The discriminator\n\ncontrol: model-config docs distinguish ultrathink from /effort; no /max-parallel appears in /help or documented slash commands\nMeasured 2026-09-05: the research DIGEST/VERIFY for this skill found no official `/max-parallel`. The correct remaps are plan mode, subagents, worktrees/`/batch`, ultracode/workflows, one-turn `ultrathink`, and `/effort` — and ultrathink must not be confused with ultracode or API effort.\n\n## Why it matters\n\nInventing `/max-parallel` wastes operator time and produces unsafe shared-checkout parallel writes. Putting the remap table in `ravenclaude-core` (CLI operator home) keeps it beside worktree/orchestrate/spawn-team skills rather than in app-build plugins.",
+      "body_md": "## What a reader would have assumed instead\n\nThat \"max parallel\" names a first-class Claude Code mode or slash command, so operators should search for `/max-parallel` or raise session effort globally whenever they want fan-out.\n\n## The discriminator\n\ncontrol: model-config docs distinguish ultrathink from /effort; no /max-parallel appears in /help or documented slash commands\nMeasured 2026-09-05: the research DIGEST/VERIFY for this skill found no official `/max-parallel`. The correct remaps are plan mode, subagents, worktrees/`/batch`, ultracode/workflows, one-turn `ultrathink`, and `/effort` — and ultrathink must not be confused with ultracode or API effort.\n\n## Why it matters\n\nInventing `/max-parallel` wastes operator time and produces unsafe shared-checkout parallel writes. Putting the remap table in `ravenclaude-core` (CLI operator home) keeps it beside worktree/orchestrate/spawn-team skills rather than in app-build plugins.\n\n## Survive parent context (pointer)\n\nSee skill `claude-code-parallel-and-modes` section **Survive parent context** (DIGEST-rc-deep-research-session-agent-token-loss, 2026-09-05). Disk-first handoff; condensed returns; persist-before-compact; escalate long work to agent-view.",
       "diagram": null,
       "diagram_mini": null,
       "steps": [],
@@ -4056,7 +4056,7 @@
       "covers": [
         "plugins/ravenclaude-core/skills/claude-code-parallel-and-modes/SKILL.md"
       ],
-      "covers_digest": "sha256:bb4c3cd18fc262fb097c0816d87ee1b328a353e3ee3b50887fec61069420a73e",
+      "covers_digest": "sha256:95cb60b135de383cbf39571aaa1a7421398aeb4035eda66f7336cc7c00a403bb",
       "nuance": "Official Claude Code docs and /help list no /max-parallel mode; ultrathink is a one-turn in-context keyword and does not change API /effort, while ultracode is a separate setting that sends xhigh plus dynamic workflows.",
       "nuance_evidence": {
         "measured": "2026-09-05",

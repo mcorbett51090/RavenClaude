@@ -3081,6 +3081,10 @@ Measured 2026-09-05: the research DIGEST/VERIFY for this skill found no official
 
 Inventing `/max-parallel` wastes operator time and produces unsafe shared-checkout parallel writes. Putting the remap table in `ravenclaude-core` (CLI operator home) keeps it beside worktree/orchestrate/spawn-team skills rather than in app-build plugins.
 
+## Survive parent context (pointer)
+
+See skill `claude-code-parallel-and-modes` section **Survive parent context** (DIGEST-rc-deep-research-session-agent-token-loss, 2026-09-05). Disk-first handoff; condensed returns; persist-before-compact; escalate long work to agent-view.
+
 **Sources:** [rc-deep-research DIGEST + VERIFY (2026-09-05) + PLUGIN-DECISION lock to ravenclaude-core](https://github.com/mcorbett51090/RavenClaude/pull/1114)
 
 _Last verified: 2026-09-05_
