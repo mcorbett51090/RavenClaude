@@ -11,10 +11,11 @@ Part of the [RavenClaude](../../README.md) marketplace. Extends `ravenclaude-cor
 | "Who should own this?" | Match existing expert bots or create missing ones |
 | "How do I hand this off?" | A SendToAgent brief: goal, constraints, success criteria, skills |
 | "Should CoS do the deep work?" | No — specialists own deep work; CoS coordinates |
+| "How do I cut fleet token spend?" | Condensed returns, effort ladder before spawn, routine hygiene, connectors over browser, CPCT measurement |
 
 ## What's inside
 
-- **skills** — `delegate-via-expert-bots`
+- **skills** — `delegate-via-expert-bots`, `grok-bot-token-spend`
 
 ## Install
 

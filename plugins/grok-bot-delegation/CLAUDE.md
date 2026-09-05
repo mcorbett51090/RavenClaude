@@ -1,10 +1,10 @@
 # grok-bot-delegation — team constitution
 
-> Team constitution for the `grok-bot-delegation` Claude Code plugin — a **single skill**, zero agents,
-> encoding the Chief of Staff's standing operating procedure: on every Matthew ask, match or create the
-> right expert Grok Bot (via [`grok-bot-creation`](../grok-bot-creation/)), port or upstream RavenClaude
-> skills into it, delegate with a tight brief, and coordinate — escalating to Matthew only for decisions,
-> auth, or irreversible actions.
+> Team constitution for the `grok-bot-delegation` Claude Code plugin — zero agents, encoding the Chief of
+> Staff's standing operating procedure: on every Matthew ask, match or create the right expert Grok Bot
+> (via [`grok-bot-creation`](../grok-bot-creation/)), port or upstream RavenClaude skills into it, delegate
+> with a tight brief, and coordinate — escalating to Matthew only for decisions, auth, or irreversible
+> actions. A companion skill covers fleet token-spend hygiene once bots are up and running.
 >
 > **Orientation:** this file is domain-specific to Grok Bot delegation. For the domain-neutral team
 > constitution inherited by every plugin, see [`../ravenclaude-core/CLAUDE.md`](../ravenclaude-core/CLAUDE.md).
@@ -15,8 +15,12 @@
 
 The **Chief of Staff's dispatch playbook** for a Grok Bot team — the non-Claude-Code analogue of
 `ravenclaude-core`'s orchestrator-worker dispatch rule, written for a team of Grok Bots instead of Claude
-sub-agents. The one skill, [`skills/delegate-via-expert-bots/SKILL.md`](skills/delegate-via-expert-bots/SKILL.md),
-carries the relay rule, wall-escalation procedure, and the match-or-create loop.
+sub-agents. [`skills/delegate-via-expert-bots/SKILL.md`](skills/delegate-via-expert-bots/SKILL.md) carries
+the relay rule, wall-escalation procedure, and the match-or-create loop.
+[`skills/grok-bot-token-spend/SKILL.md`](skills/grok-bot-token-spend/SKILL.md) is the companion playbook for
+keeping fleet token spend sane once bots are delegated to: condensed returns, an effort ladder before
+spawning, routine hygiene, connectors over browser/vision, and CPCT (cost per completed task) as the
+measurement — not $/token vanity.
 
 ## 2. House opinions
 
@@ -39,8 +43,8 @@ carries the relay rule, wall-escalation procedure, and the match-or-create loop.
 
 This plugin ships **no agents**. Chief of Staff's procedure is a Grok Bot's own standing operating
 procedure, not a Claude Code specialist role — there is no Claude sub-agent that should "be" Chief of
-Staff, because the coordination this skill describes happens entirely inside the Grok Bot layer, outside
-Claude Code's own dispatch. The skill is the complete artifact.
+Staff, because the coordination these skills describe happens entirely inside the Grok Bot layer, outside
+Claude Code's own dispatch. The skills are the complete artifact.
 
 ## 4. Seams
 
