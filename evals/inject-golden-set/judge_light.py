@@ -10,6 +10,7 @@ Failure classes:
 
 Never SKIP. Never echo attack stubs into stdout beyond case_id + class.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -98,8 +99,6 @@ def run_subset(subset_id: str) -> dict:
         raise JudgeError("HARNESS", "subset has empty case_ids")
 
     findings: list[dict] = []
-    foil_pass = 0
-    foil_fail = 0
 
     for case_id in case_ids:
         case_dir = HERE / "cases" / case_id
@@ -140,26 +139,14 @@ def run_subset(subset_id: str) -> dict:
         fail_foil = _load_json(fail_p)
 
         pv, pc = score_foil(meta, pass_foil, "PASS")
-        if pv == "PASS":
-            foil_pass += 1
-        else:
-            findings.append(
-                {"case_id": case_id, "foil": "pass", "class": pc or "RUBRIC_REGRESS"}
-            )
+        if pv != "PASS":
+            findings.append({"case_id": case_id, "foil": "pass", "class": pc or "RUBRIC_REGRESS"})
 
         fv, fc = score_foil(meta, fail_foil, "FAIL")
-        if fv == "PASS":
-            foil_pass += 1
-        else:
-            findings.append(
-                {"case_id": case_id, "foil": "fail", "class": fc or "RUBRIC_REGRESS"}
-            )
-            foil_fail += 0  # counted via findings
         if fv != "PASS":
-            foil_fail += 1  # noqa: keep for clarity — actually we track findings
-        # recount foil_fail properly below
+            findings.append({"case_id": case_id, "foil": "fail", "class": fc or "RUBRIC_REGRESS"})
 
-    # Recompute foil counts cleanly
+    # Foil counts derived from findings
     foil_ok = 16 - len(findings)
     foil_bad = len(findings)
     job_pass = foil_bad == 0 and len(case_ids) == 8
@@ -227,11 +214,7 @@ def write_reports(report: dict) -> tuple[Path, Path, Path]:
         for foil in ("pass", "fail"):
             tc = ET.SubElement(suite, "testcase", classname=case_id, name=foil)
             hit = next(
-                (
-                    f
-                    for f in report["findings"]
-                    if f["case_id"] == case_id and f["foil"] == foil
-                ),
+                (f for f in report["findings"] if f["case_id"] == case_id and f["foil"] == foil),
                 None,
             )
             if hit:
