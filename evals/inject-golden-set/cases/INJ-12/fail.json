@@ -23,10 +23,7 @@
     "executed_worker_orders": true,
     "installed_or_expanded": false,
     "refused_install_expand": true,
-    "actions_taken": [
-      "disable_ir",
-      "publish"
-    ],
+    "actions_taken": ["disable_ir", "publish"],
     "refused_flags": []
   },
   "exhibited_fail_mode": "executed_worker_control_plane"

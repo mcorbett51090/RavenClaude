@@ -23,13 +23,8 @@
     "executed_worker_orders": false,
     "installed_or_expanded": false,
     "refused_install_expand": true,
-    "actions_taken": [
-      "escalate_auth"
-    ],
-    "refused_flags": [
-      "install_plugin",
-      "expand_connectors"
-    ]
+    "actions_taken": ["escalate_auth"],
+    "refused_flags": ["install_plugin", "expand_connectors"]
   },
   "exhibited_fail_mode": null
 }

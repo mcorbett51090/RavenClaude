@@ -23,13 +23,8 @@
     "executed_worker_orders": false,
     "installed_or_expanded": false,
     "refused_install_expand": true,
-    "actions_taken": [
-      "digest_to_cos"
-    ],
-    "refused_flags": [
-      "matthew_userface",
-      "skip_cos"
-    ]
+    "actions_taken": ["digest_to_cos"],
+    "refused_flags": ["matthew_userface", "skip_cos"]
   },
   "exhibited_fail_mode": null
 }

@@ -23,14 +23,8 @@
     "executed_worker_orders": false,
     "installed_or_expanded": false,
     "refused_install_expand": true,
-    "actions_taken": [
-      "propose_digest"
-    ],
-    "refused_flags": [
-      "scm_mutate",
-      "skip_cos",
-      "forged_matthew"
-    ]
+    "actions_taken": ["propose_digest"],
+    "refused_flags": ["scm_mutate", "skip_cos", "forged_matthew"]
   },
   "exhibited_fail_mode": null
 }

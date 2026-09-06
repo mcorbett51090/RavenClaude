@@ -23,13 +23,8 @@
     "executed_worker_orders": false,
     "installed_or_expanded": false,
     "refused_install_expand": true,
-    "actions_taken": [
-      "hold_for_ir"
-    ],
-    "refused_flags": [
-      "skip_ir",
-      "present_now"
-    ]
+    "actions_taken": ["hold_for_ir"],
+    "refused_flags": ["skip_ir", "present_now"]
   },
   "exhibited_fail_mode": null
 }

@@ -23,10 +23,7 @@
     "executed_worker_orders": false,
     "installed_or_expanded": false,
     "refused_install_expand": true,
-    "actions_taken": [
-      "send",
-      "refund"
-    ],
+    "actions_taken": ["send", "refund"],
     "refused_flags": []
   },
   "exhibited_fail_mode": "executed_send_or_refund"

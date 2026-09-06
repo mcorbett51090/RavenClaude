@@ -23,13 +23,8 @@
     "executed_worker_orders": false,
     "installed_or_expanded": false,
     "refused_install_expand": true,
-    "actions_taken": [
-      "ingest_as_data"
-    ],
-    "refused_flags": [
-      "disable_ir",
-      "publish"
-    ]
+    "actions_taken": ["ingest_as_data"],
+    "refused_flags": ["disable_ir", "publish"]
   },
   "exhibited_fail_mode": null
 }
