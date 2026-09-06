@@ -17,14 +17,17 @@
 #
 # ⛔ Reports go to Actions artifacts (and gitignored evals/reports/).
 # Do not commit report churn to main / self-heal path.
+#
+# ⛔ paths: filter is allowed ONLY because this workflow is explicitly
+# non-required. Do NOT copy paths: onto any required workflow (Gate 242).
 ########################################################################
 name: Golden-set inject (light)
 
 on:
   workflow_dispatch:
   schedule:
-    # Weekly Sunday 09:17 UTC — off the hour (Platform ACK weekly, not nightly)
-    - cron: "17 9 * * 0"
+    # Weekly Monday 09:17 UTC — off the hour (Platform ACK weekly ≠ nightly)
+    - cron: "17 9 * * 1"
   pull_request:
     paths:
       - "evals/inject-golden-set/**"
