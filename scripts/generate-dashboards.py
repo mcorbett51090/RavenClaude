@@ -8430,6 +8430,28 @@ _JS = r"""
    * dashboard_autostart is the state-slot-without-toggle pattern). */
   const WORKTREE_BOUND_VALUES = ["off", "warn", "block"];
   const WORKTREE_BOUND_DEFAULT = "block";
+  /* Session lease — one worktree, one session (read by hooks/worktree-guard.sh).
+   * A DIFFERENT knob from worktree_guard/worktree_bound above: it enforces a
+   * per-worktree lock (auto-takeover after `worktree_lease_idle_minutes` of no
+   * activity from the holder), not a foreign-tree nudge/deny. Default `on`
+   * (this repo's own live posture sets it explicitly), so emitYaml writes it
+   * only when the user picks warn or off, preserving "absent ⇒ on". Was
+   * entirely UNMODELLED — no state slot, no applyGuardrailConfig read, no
+   * emitYaml write — so a Save silently deleted both keys from any posture
+   * that had set them (the v0.61.0 data-loss class, found live 2026-09-03
+   * auditing this exact class after the context_handoff/cheap_lane fixes).
+   * No DOM control (worktree_bound pattern) — state-slot round-trip only. */
+  const WORKTREE_LEASE_VALUES = ["on", "warn", "off"];
+  const WORKTREE_LEASE_DEFAULT = "on";
+  const WORKTREE_LEASE_IDLE_DEFAULT = 20;
+  /* Sleep-assertion hold for the session (read by hooks/keep-awake.sh). OPT-IN —
+   * default `off` (and off when the key is absent), so emitYaml writes it only
+   * when the user picks on, preserving "absent ⇒ off". Also entirely
+   * UNMODELLED before this fix — the ONLY prior reference in this file was a
+   * Pipeline-stage description string, never state/applyGuardrailConfig/
+   * emitYaml. No DOM control — state-slot round-trip only. */
+  const KEEP_AWAKE_VALUES = ["on", "off"];
+  const KEEP_AWAKE_DEFAULT = "off";
   /* Dashboard autostart (read by hooks/dashboard-autostart.sh). OPT-IN — default
    * `off`, so emitYaml writes it only when the user picks serve or open,
    * preserving "absent ⇒ off". Wired here for the same reason worktree_guard is:
@@ -8570,6 +8592,11 @@ _JS = r"""
     decision_review: DECISION_REVIEW_DEFAULT,
     worktree_guard: WORKTREE_GUARD_DEFAULT,
     worktree_bound: WORKTREE_BOUND_DEFAULT,
+    /* Session lease + sleep-assertion hold — both were entirely unmodelled
+     * (no state slot at all) until this fix; see the constants above. */
+    worktree_lease: WORKTREE_LEASE_DEFAULT,
+    worktree_lease_idle_minutes: WORKTREE_LEASE_IDLE_DEFAULT,
+    keep_awake: KEEP_AWAKE_DEFAULT,
     dashboard_autostart: DASHBOARD_AUTOSTART_DEFAULT,
     orchestrator: ORCHESTRATOR_DEFAULT,
     orchestrator_scope: ORCHESTRATOR_SCOPE_DEFAULT,
@@ -9022,6 +9049,16 @@ _JS = r"""
     if (WORKTREE_BOUND_VALUES.includes(src.worktree_bound)) {
       state.worktree_bound = src.worktree_bound; touched = true;
     }
+    if (WORKTREE_LEASE_VALUES.includes(src.worktree_lease)) {
+      state.worktree_lease = src.worktree_lease; touched = true;
+    }
+    {
+      const wli = parseInt(src.worktree_lease_idle_minutes, 10);
+      if (Number.isFinite(wli) && wli > 0) { state.worktree_lease_idle_minutes = wli; touched = true; }
+    }
+    if (KEEP_AWAKE_VALUES.includes(src.keep_awake)) {
+      state.keep_awake = src.keep_awake; touched = true;
+    }
     if (DASHBOARD_AUTOSTART_VALUES.includes(src.dashboard_autostart)) {
       state.dashboard_autostart = src.dashboard_autostart; touched = true;
     }
@@ -9228,6 +9265,32 @@ _JS = r"""
         && state.worktree_bound !== WORKTREE_BOUND_DEFAULT) {
       lines.push("# Sibling-worktree bound — deny a Write / git -C into another listed worktree (off | warn | block; default block).");
       lines.push(`worktree_bound: ${state.worktree_bound}`);
+      lines.push("");
+    }
+
+    /* Session lease — one worktree, one session. Emitted only when non-default
+     * so "absent ⇒ on" holds; read back by hooks/worktree-guard.sh. Was
+     * entirely unmodelled before this fix (the v0.61.0 data-loss class). */
+    if (WORKTREE_LEASE_VALUES.includes(state.worktree_lease)
+        && state.worktree_lease !== WORKTREE_LEASE_DEFAULT) {
+      lines.push("# Session lease — one worktree, one session (on | warn | off; default on).");
+      lines.push(`worktree_lease: ${state.worktree_lease}`);
+      lines.push("");
+    }
+    if (Number.isFinite(state.worktree_lease_idle_minutes)
+        && state.worktree_lease_idle_minutes !== WORKTREE_LEASE_IDLE_DEFAULT) {
+      lines.push("# Session lease — minutes of no holder activity before the next session takes over.");
+      lines.push(`worktree_lease_idle_minutes: ${state.worktree_lease_idle_minutes}`);
+      lines.push("");
+    }
+
+    /* Sleep-assertion hold (read by hooks/keep-awake.sh). Emitted only when
+     * non-default so "absent ⇒ off" holds. Was entirely unmodelled before
+     * this fix — the only prior reference in this file was a doc string. */
+    if (KEEP_AWAKE_VALUES.includes(state.keep_awake)
+        && state.keep_awake !== KEEP_AWAKE_DEFAULT) {
+      lines.push("# Hold a sleep assertion for the session (on | off; default off).");
+      lines.push(`keep_awake: ${state.keep_awake}`);
       lines.push("");
     }
 

@@ -66,6 +66,12 @@ const pieces = [
   app.match(/const WORKTREE_GUARD_DEFAULT = [^;]*;/)[0],
   app.match(/const WORKTREE_BOUND_VALUES = \[[^\]]*\];/)[0],
   app.match(/const WORKTREE_BOUND_DEFAULT = [^;]*;/)[0],
+  // Session lease + sleep-assertion hold — both entirely unmodelled until this fix.
+  app.match(/const WORKTREE_LEASE_VALUES = \[[^\]]*\];/)[0],
+  app.match(/const WORKTREE_LEASE_DEFAULT = [^;]*;/)[0],
+  app.match(/const WORKTREE_LEASE_IDLE_DEFAULT = [^;]*;/)[0],
+  app.match(/const KEEP_AWAKE_VALUES = \[[^\]]*\];/)[0],
+  app.match(/const KEEP_AWAKE_DEFAULT = [^;]*;/)[0],
   app.match(/const DASHBOARD_AUTOSTART_VALUES = \[[^\]]*\];/)[0],
   app.match(/const DASHBOARD_AUTOSTART_DEFAULT = [^;]*;/)[0],
   app.match(/const ORCHESTRATOR_VALUES = \[[^\]]*\];/)[0],
@@ -142,6 +148,9 @@ function _freshState() {
     decision_review: DECISION_REVIEW_DEFAULT,
     worktree_guard: WORKTREE_GUARD_DEFAULT,
     worktree_bound: WORKTREE_BOUND_DEFAULT,
+    worktree_lease: WORKTREE_LEASE_DEFAULT,
+    worktree_lease_idle_minutes: WORKTREE_LEASE_IDLE_DEFAULT,
+    keep_awake: KEEP_AWAKE_DEFAULT,
     dashboard_autostart: DASHBOARD_AUTOSTART_DEFAULT,
     definition_of_done: Object.assign({}, DOD_DEFAULT),
     orchestrator: ORCHESTRATOR_DEFAULT,
@@ -181,6 +190,9 @@ function check(name, cond) {
   s.decision_review = "binding";
   s.worktree_guard = "block";
   s.worktree_bound = "off";
+  s.worktree_lease = "warn";
+  s.worktree_lease_idle_minutes = 45;
+  s.keep_awake = "on";
   s.dashboard_autostart = "open";
   s.definition_of_done = { cmd: "npm test && npm run lint", max_blocks: 4 };
   s.command_review.dev_repo_exempt = true;
@@ -205,6 +217,9 @@ function check(name, cond) {
   check("decision_review emitted", /^decision_review: binding$/m.test(yaml));
   check("worktree_guard emitted", /^worktree_guard: block$/m.test(yaml));
   check("worktree_bound emitted", /^worktree_bound: off$/m.test(yaml));
+  check("worktree_lease emitted", /^worktree_lease: warn$/m.test(yaml));
+  check("worktree_lease_idle_minutes emitted", /^worktree_lease_idle_minutes: 45$/m.test(yaml));
+  check("keep_awake emitted", /^keep_awake: on$/m.test(yaml));
   check("dashboard_autostart emitted", /^dashboard_autostart: open$/m.test(yaml));
   check("definition_of_done.cmd emitted", /^  cmd: "npm test && npm run lint"$/m.test(yaml));
   check("definition_of_done.max_blocks emitted", /^  max_blocks: 4$/m.test(yaml));
@@ -238,6 +253,9 @@ function check(name, cond) {
     decision_review: "binding",
     worktree_guard: "block",
     worktree_bound: "off",
+    worktree_lease: "warn",
+    worktree_lease_idle_minutes: 45,
+    keep_awake: "on",
     dashboard_autostart: "open",
     definition_of_done: { cmd: "npm test && npm run lint", max_blocks: 4 },
     command_review: { dev_repo_exempt: true },
@@ -260,6 +278,9 @@ function check(name, cond) {
   check("hydrate decision_review", h.decision_review === "binding");
   check("hydrate worktree_guard", h.worktree_guard === "block");
   check("hydrate worktree_bound", h.worktree_bound === "off");
+  check("hydrate worktree_lease", h.worktree_lease === "warn");
+  check("hydrate worktree_lease_idle_minutes", h.worktree_lease_idle_minutes === 45);
+  check("hydrate keep_awake", h.keep_awake === "on");
   check("hydrate dashboard_autostart", h.dashboard_autostart === "open");
   check("hydrate dod.cmd", /npm test/.test(h.definition_of_done.cmd));
   check("hydrate dev_repo_exempt", h.command_review.dev_repo_exempt === true);
@@ -292,6 +313,9 @@ function check(name, cond) {
   check("no decision_review at default", !/decision_review:/.test(yaml));
   check("no worktree_guard at default", !/^worktree_guard:/m.test(yaml));
   check("no worktree_bound at default", !/^worktree_bound:/m.test(yaml));
+  check("no worktree_lease at default", !/^worktree_lease:/m.test(yaml));
+  check("no worktree_lease_idle_minutes at default", !/^worktree_lease_idle_minutes:/m.test(yaml));
+  check("no keep_awake at default", !/^keep_awake:/m.test(yaml));
   check("no dashboard_autostart at default", !/^dashboard_autostart:/m.test(yaml));
   check("no definition_of_done at default", !/definition_of_done:/.test(yaml));
   check("no dev_repo_exempt at default", !/dev_repo_exempt:/.test(yaml));

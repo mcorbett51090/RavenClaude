@@ -304,6 +304,220 @@ rc_mustfail() {
   return 0
 }
 
+# ── Suite dispatcher: --suite <name> (PR-C) ───────────────────────────────────────
+# Usage: bash scripts/audit-gates.sh --suite format
+# Runs only the gate blocks assigned to the named suite, via
+# scripts/audit-gates-suite-slice.py, which slices THIS file's own full-suite
+# region down to the requested blocks (plus any block a selected block
+# depends on for a shared bash function/variable) and prints the result for
+# `source`-ing. See that script's header for the full rationale (no second
+# copy of any gate's fixture, so --suite can never drift from the default
+# no-args run) and docs/best-practices/ci-gate-audit.md.
+#
+# SUPPORTED_SUITES and _suite_gate_tokens() below are the SINGLE SOURCE OF
+# TRUTH for suite membership, read by:
+#   (a) this file's own --suite / --list-suite-gates handling;
+#   (b) scripts/check-gate-suite-coverage.py (Gate 267's union-completeness
+#       meta-test), which calls `--list-suite-gates <name>` for every name in
+#       SUPPORTED_SUITES rather than hard-coding a second copy of the table.
+#
+# bash-3.2-safe by construction (no `declare -A`): one `case` arm per suite,
+# each echoing a space-separated token list. A token is either a bare gate
+# number ("226") or a gate number with a single trailing lowercase letter
+# ("3b"/"5b"/"9b") — each letter-suffixed banner is an INDEPENDENT token
+# here, never folded into its numeric parent (a deliberately stricter,
+# disjoint reading than Gate 195's own reachability parser).
+#
+# "core"/"security"/"ratchet" are marked (always) in the PR-C brief — that
+# is a CI-WIRING obligation (validate-marketplace.yml must run them
+# unconditionally, never behind the docs-only `detect` fast lane), not a
+# property this table encodes; the table only answers "which suite(s) is
+# gate N in".
+SUPPORTED_SUITES="core security ratchet format lint hooks portal claims tribunal hosts streams convergence wireframe handoff inventory forge forms macos"
+
+_suite_gate_tokens() { # $1=suite name -> echoes space-separated gate tokens; returns 1 if unknown
+  case "$1" in
+    core)
+      # Gaps assigned here per the PR-C brief ("assign gaps to nearest suite
+      # or core") are generic artifact-freshness / self-test / no-better-fit
+      # gates: 46 (BI report freshness), 92 (pbir-layout-engine linter), 129
+      # (eval-harness self-test), 173 (generated-file self-description), 175
+      # (memory-security-lane reachability), 193/194 (brand-extraction /
+      # design-clone skills), plus this suite dispatcher's own
+      # union-completeness meta-test (267). 268-278 (FORGE dashboard-top1pct,
+      # 2026-09-03-08): every data-platform-plugin self-check this repo's
+      # suite taxonomy has no plugin-specific suite for — same "no better
+      # fit than core" reasoning as 173/175/193/194 above, per the PR-C
+      # brief's own fallback rule. Renumbered from 263-273 at merge time
+      # (origin/main's own 263-267 landed first while this branch was
+      # unmerged — see each gate's own header comment).
+      echo "1 2 8 18 46 47 92 129 173 175 193 194 195 226 267 268 269 270 271 272 273 274 275 276 277 278"
+      ;;
+    security)
+      # Gaps: 24 (Track B Engine Foundation — defines DECP, consumed by
+      # Gate 25's block; co-located so the pair never splits across a suite
+      # boundary), 48 (WebFetch sanitizer), 50/54 (Phase-0 emit+scrub /
+      # R-PRIV never-capture — the run-context-capture pipeline's own
+      # secret-scrub floor).
+      echo "7 24 25 48 50 54 98 101 127 142 143 156 159 169 170 199 203 209"
+      ;;
+    ratchet)
+      echo "132 237 238 239 240 241 242 243"
+      ;;
+    format)
+      echo "9"
+      ;;
+    lint)
+      echo "9b 10 106 198"
+      ;;
+    hooks)
+      # Gaps: 102 moved to `tribunal` (see below — it is claude-orchestrate.sh,
+      # tribunal infra, not a generic hook), 122-126 (Power-Platform /
+      # ravenclaude-core hook-nudge tests — same plugins/*/hooks/tests/ home
+      # as every other number in this suite), 182/184/186 (diff-budget /
+      # memory-compaction / compact-anchor hook guards), 189 (git-protocol
+      # nudge), 216/228/229 (worktree/session/update hygiene cluster), 217
+      # (managed-solution-import — same plugins/power-platform/hooks/tests/
+      # home as 124/125).
+      echo "3 3b 4 5 5b 6 14 15 16 17 21 22 30 33 36 52 53 90 91 122 123 124 125 126 128 133 135 136 137 138 139 140 162 182 184 186 189 197 201 216 217 225 227 228 229 231 235 247 251 252 253 254 259"
+      ;;
+    portal)
+      # Gap: 27 (consumer-dashboard repo-scoped guard — serve-dashboards.py,
+      # same file family as 51/93/97/etc.). The range deliberately SKIPS 39
+      # — no such gate exists (the main sequence goes straight from "Gate
+      # 38" to "Gate 40"; inventing 39 would violate the PR-C brief's "do not
+      # invent gate numbers" constraint).
+      echo "13 23 27 32 35 37 38 40 41 42 43 44 49 51 93 97 99 100 104 105 113 141 144 151 168 174 200 205"
+      ;;
+    claims)
+      # Gaps: 19 (capability-orientation banner — same "claim a capability
+      # honestly" family as 12/29/34/45/70), 134 (model-catalog drift — a
+      # volatile third-party-fact claim, same family as the lineup-citation
+      # gates), 181/185 (probe-kit / probe-verdict-classes — "a negative
+      # result is not a diagnosis"), 232/233/244-246/248/249 (the
+      # cause-taxonomy/cause-triage cluster — the SSOT cause grammar and its
+      # enforcement gates, which implements the "Naming a cause" rule that is
+      # itself part of the Claim-Grounding & Source Honesty framework).
+      echo "12 19 29 34 45 70 134 176 177 178 179 181 185 187 202 204 206 210 224 232 233 244 245 246 248 249"
+      ;;
+    tribunal)
+      # Gaps: 28 (maintainer-substrate exemption — depends on ORCH14,
+      # defined in Gate 14's block, so it travels with the tribunal suite
+      # Gate 14 is already in), 102 (claude-orchestrate.sh — the script that
+      # spawns `claude -p` for panel seats; tribunal infrastructure, not a
+      # generic hook), 196 (every regex in the Thing's own concern/
+      # denial-resolution catalogs compiles).
+      echo "14 15 17 21 22 28 31 33 60 102 137 177 179 190 196 197"
+      ;;
+    hosts)
+      # Gaps: 26 (Codespace auto-setup — a host environment), 80 (the
+      # `ravenclaude` launcher's cross-host self-heal), 126 (workflow-mirror
+      # byte-identity — skills copy vs the Claude-Code-host
+      # .claude/workflows copy), 188/191/192 (the github-protocol scaffold
+      # templates a Copilot/Codex consumer's CI adopts — cross-host CI
+      # scaffolding), 255 (agent-routing-matrix — routes tasks across host
+      # CLIs/models), 256 (VSCode-extension configurationDefaults — VSCode
+      # is a host surface).
+      echo "20 26 80 126 154 155 156 157 158 159 160 161 162 163 164 165 166 167 168 169 170 171 172 188 191 192 207 208 211 255 256 257"
+      ;;
+    streams)
+      echo "110 111 112 113 114"
+      ;;
+    convergence)
+      # Gaps: 183 (review reopen-ledger — "why a review loop converges",
+      # the same convergence-loop theme as 115-121), 258/260 (repo-review
+      # skill scripts + its P0-P3/converge-loop structural floor — the
+      # repo-review skill's OWN convergence loop).
+      echo "115 116 117 118 119 120 121 183 258 260"
+      ;;
+    wireframe)
+      echo "103 145 146 147 148 149 150"
+      ;;
+    handoff)
+      echo "212 213 214 215 230 234 261 262"
+      ;;
+    inventory)
+      echo "236 237 238 239 240 241 250"
+      ;;
+    forge)
+      # Gap: 223 (parallelism posture — conserve-triggers/serial-detector
+      # for the same background-agent pipeline forge's other gates
+      # orchestrate).
+      echo "222 223 263 264 265 266"
+      ;;
+    forms)
+      echo "218 219 220 221"
+      ;;
+    macos)
+      echo "131 198"
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
+if [[ "${1:-}" == "--list-suites" ]]; then
+  # Pure introspection, no side effects -- lets scripts/check-gate-suite-
+  # coverage.py (Gate 267) enumerate every suite name without hard-coding a
+  # second copy of SUPPORTED_SUITES.
+  echo "${SUPPORTED_SUITES}"
+  exit 0
+fi
+
+if [[ "${1:-}" == "--list-suite-gates" && -n "${2:-}" ]]; then
+  # Pure introspection, no side effects — used by scripts/check-gate-suite-
+  # coverage.py (Gate 267) to read the SAME table --suite reads, so the
+  # union-completeness meta-test can never hard-code a second copy that
+  # silently drifts from what --suite actually runs.
+  if ! _suite_gate_tokens "${2}"; then
+    echo "audit-gates.sh --list-suite-gates: unknown suite '${2}'." >&2
+    echo "Supported: ${SUPPORTED_SUITES}" >&2
+    exit 1
+  fi
+  exit 0
+fi
+
+# --suite and --check are mutually exclusive (PR-C hard constraint): each
+# picks a DIFFERENT execution mode (a named subset of the full suite vs. one
+# specific gate's own fixture), and running both is ambiguous about which
+# mode wins. Scanned across the whole argv, not just $1/$2, so a --check
+# flag anywhere alongside a --suite flag anywhere is caught either order.
+_HAS_CHECK_FLAG=0
+_HAS_SUITE_FLAG=0
+for _audit_arg in "$@"; do
+  case "$_audit_arg" in
+    --check) _HAS_CHECK_FLAG=1 ;;
+    --suite) _HAS_SUITE_FLAG=1 ;;
+  esac
+done
+if [[ "$_HAS_CHECK_FLAG" -eq 1 && "$_HAS_SUITE_FLAG" -eq 1 ]]; then
+  echo "audit-gates.sh: --suite and --check are mutually exclusive — pick one." >&2
+  exit 1
+fi
+unset _HAS_CHECK_FLAG _HAS_SUITE_FLAG _audit_arg
+
+# SUITE_ARG is consumed once the bookkeeping section below (PASS/FAIL/SKIP/
+# TMP/trap/gate()/backup()/cleanup()/_skip_or_fail()) is in place, immediately
+# before the full-suite region would otherwise begin — see _run_suite below
+# and its invocation just above "── Gate 1:". Validating the name HERE (fail
+# fast, before any mktemp/trap setup) matches how --check's own dispatcher
+# validates via its `*)` arm before doing any work.
+SUITE_ARG=""
+if [[ "${1:-}" == "--suite" ]]; then
+  if [[ -z "${2:-}" ]]; then
+    echo "audit-gates.sh: --suite requires a suite name." >&2
+    echo "Supported: ${SUPPORTED_SUITES}" >&2
+    exit 1
+  fi
+  if ! _suite_gate_tokens "${2}" >/dev/null; then
+    echo "audit-gates.sh: unknown --suite '${2}'." >&2
+    echo "Supported: ${SUPPORTED_SUITES}" >&2
+    exit 1
+  fi
+  SUITE_ARG="${2}"
+fi
+
 if [[ "${1:-}" == "--check" && -n "${2:-}" ]]; then
   case "${2}" in
     20)
@@ -800,14 +1014,75 @@ PY
       exit 0
       ;;
     263)
-      echo "── Gate 263: data-platform self-description tripwire (per-gate run) ──"
+      echo "── Gate 263: forge-pipeline receipt + publish + worktree self-tests (per-gate run) ──"
+      rc=0
+      python3 plugins/ravenclaude-core/scripts/forge-receipt.py --self-test || rc=$?
+      python3 plugins/ravenclaude-core/scripts/forge-receipt.py --must-fail || rc=$?
+      bash plugins/ravenclaude-core/scripts/forge-publish-session-plan.sh --self-test || rc=$?
+      bash plugins/ravenclaude-core/scripts/forge-worktree.sh --self-test || rc=$?
+      exit $rc
+      ;;
+    264)
+      echo "── Gate 264: caveman auto-routing — P1-P5 self-tests + P6 CI registration (per-gate run) ──"
+      bash plugins/ravenclaude-core/hooks/tests/test-gate264-caveman-routing.sh || exit $?
+      teeth_fail=0
+      for half in a b; do
+        echo "── Gate 264 teeth ($half): the mutant MUST redden ──"
+        if bash plugins/ravenclaude-core/hooks/tests/test-gate264-caveman-routing.sh "--must-fail-$half"; then
+          echo "TEETH FAILED ($half): the mutant did not redden — that half is toothless" >&2
+          teeth_fail=1
+        else
+          echo "teeth ok ($half)"
+        fi
+      done
+      exit $teeth_fail
+      ;;
+    265)
+      echo "── Gate 265: caveman write-contract, dev-only (per-gate run) ──────────────"
+      echo "⛔ NOT a required/blocking gate — depends on a third-party plugin (caveman)"
+      echo "   being installed on THIS host, which CI cannot guarantee. LOUD-skips when"
+      echo "   absent (THIS IS NOT A PASS). See P6 of the caveman-routing-decision-tree"
+      echo "   plan for the full rationale. Not part of the main sequence or Supported:."
+      bash plugins/ravenclaude-core/hooks/tests/test-caveman-write-contract-dev-only.sh
+      exit $?
+      ;;
+    266)
+      echo "── Gate 266: runtime self-test front door — Tier A only (per-gate run) ──"
+      echo "  ⛔ M10 HONEST LIMIT: Tier A only (adapter I/O + planted marker + context"
+      echo "     delivery + the completeness check). Tier D (a real host CLI spawn) is"
+      echo "     NEVER run in CI — see hooks/tests/test-tier-d-canary.sh and"
+      echo "     'rc hooks selftest --tier d', both owner-run on demand."
+      if [ -n "${SKIP_GATE_266:-}" ]; then
+        echo "  ‼ SKIPPED (SKIP_GATE_266=1) — THIS IS NOT A PASS"
+        if [ -n "${CI:-}" ]; then
+          echo "    CI mode: explicit human override — logged to the run artifact for audit."
+          mkdir -p .ravenclaude/runs/gate266-skip-log 2>/dev/null || true
+          printf '{"ts":"%s","gate":266,"skip":true,"mode":"CI","reason":"SKIP_GATE_266=1"}\n' \
+            "$(date -u +%Y-%m-%dT%H:%M:%SZ)" >>.ravenclaude/runs/gate266-skip-log/log.jsonl 2>/dev/null || true
+        fi
+        exit 0
+      fi
+      rc=0
+      python3 scripts/check-sessionstart-matcher-regression.py --self-test || rc=$?
+      bash plugins/ravenclaude-core/hooks/tests/test-tier-a-canary.sh --self-test || rc=$?
+      python3 scripts/check-hooks-selftest.py --self-test || rc=$?
+      exit $rc
+      ;;
+    268)
+      # Renumbered from 263 -> 268 at merge time (2026-09-08): origin/main
+      # independently claimed 263-267 for forge-receipt/caveman-routing/
+      # runtime-selftest/suite-dispatcher-coverage work that landed while
+      # this branch was unmerged. See CLAUDE.md's own "gate slot moved
+      # under us" precedent for why a renumber, not a collision, is the
+      # correct fix.
+      echo "── Gate 268: data-platform self-description tripwire (per-gate run) ──"
       rc=0
       python3 scripts/check-data-platform-self-description.py || rc=$?
       if [[ "$rc" -ne 0 ]]; then
         echo "the real tree should pass clean — check-data-platform-self-description.py failed" >&2
         exit 1
       fi
-      echo "── Gate 263 teeth: a drifted fixture MUST fail ──"
+      echo "── Gate 268 teeth: a drifted fixture MUST fail ──"
       DP_TEETH_TMP="$(mktemp -d)"
       DP_TEETH="$DP_TEETH_TMP/plugins/data-platform"
       mkdir -p "$DP_TEETH/skills/a" "$DP_TEETH/skills/b" "$DP_TEETH/skills/c" "$DP_TEETH/best-practices" "$DP_TEETH/templates" "$DP_TEETH/.claude-plugin"
@@ -1629,15 +1904,20 @@ PY
       bash scripts/check-worktree-state.sh
       exit $?
       ;;
+    267)
+      echo "── Gate 267: suite-dispatcher union completeness (per-gate run) ──"
+      rc=0
+      python3 scripts/check-gate-suite-coverage.py || rc=$?
+      python3 scripts/check-gate-suite-coverage.py --self-test || rc=$?
+      exit $rc
+      ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254, 255, 256, 257, 258, 259, 260, 261, 262, 263. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254, 255, 256, 257, 258, 259, 260, 261, 262, 263, 264, 265, 266, 267, 268. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
 fi
-# _gate_active: no-op compatibility shim so Gate 50's if-block below still compiles.
-_gate_active() { return 0; }
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Bookkeeping
@@ -1712,6 +1992,50 @@ _skip_or_fail() {
     SKIPPED_GATES+=("$gate_name [no $interp]")
   fi
 }
+
+# ─────────────────────────────────────────────────────────────────────────────
+# _run_suite: --suite <name> execution path (PR-C). Called ONCE, right below,
+# only when SUITE_ARG is non-empty (set earlier by the --suite arg-parsing
+# block, well before this point). Never called for the default (no-args) run
+# — that path falls straight through to "Gate fixtures" below, UNCHANGED,
+# which is what makes "no-args ≡ today's full-suite behavior" a structural
+# guarantee rather than a maintained one.
+#
+# By this point PASS/FAIL/SKIP/TMP/BACKUPS/the EXIT trap, and gate()/backup()/
+# cleanup()/_skip_or_fail() are already initialized (the bookkeeping section
+# immediately above runs unconditionally, --suite or not) — so the sliced
+# blocks this function `source`s can call every one of them exactly as the
+# default run does. Delegates the actual line-range selection to
+# scripts/audit-gates-suite-slice.py (see that script's header for the full
+# slicing + dependency-closure rationale); this function's only job is to
+# invoke it, `source` the result, and print the same closing summary the
+# default run prints — not re-derive any of it.
+_run_suite() { # $1=suite name (already validated by the caller)
+  local suite="$1" tokens
+  tokens="$(_suite_gate_tokens "$suite")"
+  echo "── Suite: ${suite} ────────────────────────────────────────────────────"
+  echo "Gates in this suite (before dependency closure): ${tokens}"
+  echo
+
+  local sliced="$TMP/suite-${suite}.sh"
+  if ! python3 scripts/audit-gates-suite-slice.py scripts/audit-gates.sh ${tokens} > "$sliced" 2>"$TMP/suite-${suite}.err"; then
+    echo "::error::audit-gates.sh --suite ${suite}: internal slicer error — see below." >&2
+    cat "$TMP/suite-${suite}.err" >&2
+    exit 2
+  fi
+  # shellcheck disable=SC1090
+  source "$sliced"
+}
+
+if [[ -n "${SUITE_ARG}" ]]; then
+  _run_suite "${SUITE_ARG}"
+  # _run_suite sources the sliced blocks + the (also-sliced-in) closing
+  # summary block, which itself `exit`s with the same 0/1 contract the
+  # default run uses — so control never actually falls past this point when
+  # SUITE_ARG is set. The explicit exit below is a fail-safe only (e.g. if the
+  # summary block's own `exit` were ever refactored away).
+  exit $?
+fi
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Gate fixtures
@@ -2445,6 +2769,23 @@ d_oop_mut=$(thing_decision split-oop "$SHELL_TRUE")
 cp -p "$TMP/orch14-tiebreaker.bak" "$ORCH14"   # restore the real orchestrator immediately
 rc=0; { [[ "$d_oop_mut" != "deny" ]] && [[ "$d_oop_mut" != "none" ]]; } || rc=1
 gate "thing teeth: pre-fix else->allow does NOT fail closed (allow/ask, not deny)" must_pass "$rc"
+# ⛔ The restore above is unconditional bash with no verification — if that cp
+# ever silently fails, this gate's own assertion still reports PASS (it only
+# checks $d_oop_mut, captured BEFORE the restore), and the live orchestrator
+# is left mutated with no signal at the gate that caused it. Observed twice
+# this session (2026-09-03): a full audit-gates.sh run left thing-orchestrator.sh
+# containing the MUTANT text uncommitted, which surfaced hundreds of gates
+# later as an unrelated-looking real-corpus digest-drift failure in gates
+# 237/239 — the exact silent-green shape this suite exists to catch. Verify
+# the restore actually landed and hard-fail loudly, right here, if it did not.
+rc=0; cmp -s "$TMP/orch14-tiebreaker.bak" "$ORCH14" || rc=1
+if [ "$rc" != 0 ]; then
+  echo "  ⛔ RESTORE VERIFICATION FIRED: $ORCH14 didn't match its pre-mutation" >&2
+  echo "     backup right after the restore cp. Restoring it again now and" >&2
+  echo "     failing this gate loudly instead of letting it corrupt later gates." >&2
+  cp -p "$TMP/orch14-tiebreaker.bak" "$ORCH14"
+fi
+gate "thing teeth: mutated orchestrator was actually restored, not left corrupted" must_pass "$rc"
 # (d) high-stakes category timeout fails CLOSED (deny, not ask)
 d=$(thing_decision timeout "git push origin main")
 rc=0; [[ "$d" == "deny" ]] || rc=1
@@ -4515,8 +4856,16 @@ if command -v node >/dev/null 2>&1; then
   # must_fail: a drifted dashboard whose decision_review emission line is stripped
   # (simulating the pre-fix serializer that silently dropped the key). The test
   # must catch the now-missing key.
+  #
+  # ⛔ FOUND 2026-09-03 auditing this gate's own teeth: the unescaped `$` here
+  # matched ZERO lines under BSD/macOS grep's BRE (a `$` not at the pattern's
+  # end is not reliably literal there) — so `grep -v` removed nothing, the
+  # "drifted" file was byte-identical to the real one, and this must_fail
+  # trivially passed for the WRONG reason on every run since it was written.
+  # Escaping `$` -> `\$` (as the stream_classify mutant two blocks below
+  # already did correctly) makes the strip real.
   RT_BAD="$TMP/dashboard-drifted.html"
-  grep -v 'decision_review: ${state.decision_review}' index.html > "$RT_BAD"
+  grep -v 'decision_review: \${state.decision_review}' index.html > "$RT_BAD"
   rc=0; node "$RT" "$RT_BAD" >/dev/null 2>&1 || rc=$?
   gate "dashboard round-trip (drifted: decision_review emit stripped)" must_fail "$rc"
   # must_fail (F4): a drifted dashboard whose stream_classify emission is stripped —
@@ -4538,8 +4887,10 @@ if command -v node >/dev/null 2>&1; then
   # from `state`, so a key with no emit line is silently DELETED on the next
   # Save & apply — a user's conserve-tokens switch would vanish the first time
   # they changed anything else.
+  # ⛔ Same unescaped-`$` toothlessness found and fixed 2026-09-03 (see the
+  # decision_review mutant above for the full explanation).
   RT_BAD_CT="$TMP/dashboard-drifted-conserve.html"
-  grep -v 'conserve_tokens: ${state.conserve_tokens === true}' index.html > "$RT_BAD_CT"
+  grep -v 'conserve_tokens: \${state.conserve_tokens === true}' index.html > "$RT_BAD_CT"
   rc=0; node "$RT" "$RT_BAD_CT" >/dev/null 2>&1 || rc=$?
   gate "dashboard round-trip (drifted: conserve_tokens emit stripped)" must_fail "$rc"
   # must_fail (v0.273.0 B): the parallelism default reverted to the pre-flip
@@ -4571,6 +4922,19 @@ if command -v node >/dev/null 2>&1; then
   grep -v 'lines.push("cheap_lane:")' index.html > "$RT_BAD_CL"
   rc=0; node "$RT" "$RT_BAD_CL" >/dev/null 2>&1 || rc=$?
   gate "dashboard round-trip (drifted: cheap_lane emit stripped)" must_fail "$rc"
+  # must_fail (worktree_lease / keep_awake): both were ENTIRELY unmodelled — no
+  # state slot, no applyGuardrailConfig read, no emitYaml write — until this fix
+  # (found live 2026-09-03 auditing the v0.61.0 data-loss class after the
+  # context_handoff/cheap_lane fixes). Strip the worktree_lease emit line and
+  # confirm Test 1/Test 2 catch the regression.
+  RT_BAD_WL="$TMP/dashboard-drifted-worktree-lease.html"
+  grep -v 'lines.push(`worktree_lease: \${state.worktree_lease}`)' index.html > "$RT_BAD_WL"
+  rc=0; node "$RT" "$RT_BAD_WL" >/dev/null 2>&1 || rc=$?
+  gate "dashboard round-trip (drifted: worktree_lease emit stripped)" must_fail "$rc"
+  RT_BAD_KA="$TMP/dashboard-drifted-keep-awake.html"
+  grep -v 'lines.push(`keep_awake: \${state.keep_awake}`)' index.html > "$RT_BAD_KA"
+  rc=0; node "$RT" "$RT_BAD_KA" >/dev/null 2>&1 || rc=$?
+  gate "dashboard round-trip (drifted: keep_awake emit stripped)" must_fail "$rc"
 else
   _skip_or_fail "Gate 35 (dashboard round-trip)" node
 fi
@@ -5223,7 +5587,6 @@ else
   _skip_or_fail "Gate 49 (Mímir render)" node
 fi
 
-if _gate_active 50; then
 echo
 echo "── Gate 50: Phase 0 emit & scrub ─────────────────────────────────────────"
 # Proves the Phase 0 wiring: (A) thing-orchestrator.sh deny emits a JSONL line,
@@ -5242,7 +5605,6 @@ printf '%s\n' '{"schema_version":1,"ts":"2026-06-03T00:00:00Z","hook":"thing-orc
   > "$TMP/g50-secret-leak.jsonl"
 rc=0; grep -Fq "hunter2" "$TMP/g50-secret-leak.jsonl" || rc=1
 gate "phase0-emit-scrub: secret-containing JSONL is detectable (gate has teeth)" must_pass "$rc"
-fi
 
 # ─────────────────────────────────────────────────────────────────────────────
 echo "── Gate 51: Unified portal shell router + committed-route destinations ────"
@@ -9749,6 +10111,84 @@ gate "handoff-escalation: retracted strings absent + positive control + replacem
 rc=0; bash plugins/ravenclaude-core/hooks/tests/test-gate261-handoff-escalation.sh --must-fail >/dev/null 2>&1 || rc=$?
 gate "handoff-escalation teeth: reverting the SKILL.md fixes reddens the drift-guard assertions" must_fail "$rc"
 
+echo
+echo "── Gate 263: forge-pipeline receipt + publish + worktree self-tests ──"
+# The FORGE pipeline's three deterministic helpers, all self-tested, none of
+# which was registered in CI before this gate:
+#   * forge-receipt.py   — the Saga run-record recorder/verifier (NEW). Its
+#     append REFUSES (exit 2) a `pass` receipt whose artifact is missing/empty
+#     (or a DIRECTORY — getsize() on a dir returns >0, so isfile() runs first),
+#     recomputes `bytes` from disk, and stores artifact paths run-dir-relative;
+#     its verify asserts the resolved depth's required gate set is accounted for
+#     WITHOUT false-positiving on a legitimate G1-BLOCK / G7-reject short
+#     circuit. --must-fail neuters the fail-closed artifact check and asserts
+#     the self-test catches it (teeth, premise-gate.py's convention: the teeth
+#     check itself exits 0 when the planted defect IS caught).
+#   * forge-publish-session-plan.sh — gates the mandatory pre-ExitPlanMode
+#     publish with exit-2 semantics and had NO self-test at all until now.
+#   * forge-worktree.sh — 11 fixtures that already existed but were never run
+#     by CI, so a regression in the worktree provisioner was invisible here.
+# ⛔ 263, not 261: the branch was cut from an origin/main that topped out at 260,
+# and origin/main landed 261+262 meanwhile. The max-gate grep was re-run against
+# the MERGED tree, not trusted from the plan or from the pre-merge branch.
+# ⛔ Registered in dispatcher + main sequence + Supported:. Grep by literal name.
+if command -v python3 >/dev/null 2>&1; then
+  rc=0
+  python3 plugins/ravenclaude-core/scripts/forge-receipt.py --self-test >/dev/null 2>&1 || rc=$?
+  gate "forge-receipt.py --self-test (fail-closed append, relative artifact paths, depth verify, short-circuit, 0/1/2 contract, kill switch)" must_pass "$rc"
+
+  rc=0; python3 plugins/ravenclaude-core/scripts/forge-receipt.py --must-fail >/dev/null 2>&1 || rc=$?
+  gate "forge-receipt.py --must-fail (a neutered fail-closed artifact check IS caught)" must_pass "$rc"
+else
+  _skip_or_fail "Gate 263 (forge-receipt.py self-tests)" python3
+fi
+
+rc=0; bash plugins/ravenclaude-core/scripts/forge-publish-session-plan.sh --self-test >/dev/null 2>&1 || rc=$?
+gate "forge-publish-session-plan.sh --self-test (publish, exit-2 refusals, both honest skip paths)" must_pass "$rc"
+
+rc=0; bash plugins/ravenclaude-core/scripts/forge-worktree.sh --self-test >/dev/null 2>&1 || rc=$?
+gate "forge-worktree.sh --self-test (11 fixtures: provision/reuse/nesting/opt-out/stale-base)" must_pass "$rc"
+
+echo
+echo "── Gate 264: caveman auto-routing — P1-P5 self-tests + P6 CI registration ─────"
+# caveman-routing-decision-tree P6. Wires the three components' own --self-test
+# invocations (P1 caveman-route.py 11/11, P2 caveman-apply-mode.sh 8/8, P3-P5
+# caveman-route-hook.sh 21/21 — the short-circuit floor, shadow invariant,
+# no-egress, source-branching and readback-mismatch must-fail halves ALL
+# already live inside those three self-tests; this gate does not re-derive
+# any of that fixture logic, only invokes it and asserts a computed N/N pass
+# line, never a hardcoded literal — the Gate 260 lesson) plus ONE genuinely
+# new check this gate adds: the caveman-route-hook.sh _SKIP registration is
+# still present in all three host projectors (copilot/cursor/gemini) and the
+# copilot generator's own stale-map check (`stale = set(_SKIP) - canonical`)
+# stays clean. Read-back verification (P2 item 7 of the plan) is exercised by
+# construction via the same caveman-apply-mode.sh --self-test invocation —
+# confirmed this build: its own output names the readback-mismatch fixture
+# explicitly, with a same-shaped control proving the emit is conditional.
+# ⛔ C1 CONFIRMED, not assumed: `plugins/*/hooks/*.sh` (the CI "Verify hooks
+# are executable" glob AND the local testing-instructions glob in AGENTS.md)
+# is non-recursive bash glob expansion — verified this build via a direct
+# `for hook in plugins/*/hooks/*.sh` expansion returning 0 matches under
+# `hooks/tests/`, against a corpus of 69 existing hooks/tests/*.sh files with
+# MIXED executable bits, all invoked via `bash <path>` (never `./<path>`) —
+# so the R9 chmod fallback (scripts/check-caveman-routing.sh) was NOT needed.
+# ⛔ Registered in dispatcher + main sequence + Supported:. Grep by literal name.
+rc=0; bash plugins/ravenclaude-core/hooks/tests/test-gate264-caveman-routing.sh >/dev/null 2>&1 || rc=$?
+gate "caveman auto-routing: route.py 11/11 + apply-mode.sh 8/8 + route-hook.sh 21/21 + projector _SKIP/stale-check" must_pass "$rc"
+rc=0; bash plugins/ravenclaude-core/hooks/tests/test-gate264-caveman-routing.sh --must-fail-a >/dev/null 2>&1 || rc=$?
+gate "caveman auto-routing teeth (a): a regressed component self-test reddens this gate's harness" must_fail "$rc"
+rc=0; bash plugins/ravenclaude-core/hooks/tests/test-gate264-caveman-routing.sh --must-fail-b >/dev/null 2>&1 || rc=$?
+gate "caveman auto-routing teeth (b): stripping a projector's _SKIP entry reddens check 4" must_fail "$rc"
+
+echo "── Gate 265: caveman write-contract, dev-only — NOT in the required set ──────"
+# ⛔ NOT invoked from the main sequence, deliberately. It depends on a
+# third-party plugin (caveman) being installed on THIS host, which CI cannot
+# guarantee, and it round-trips a REAL write against the real installed
+# caveman using a throwaway session id (never a real one) — the plan's own
+# P6 spec names it "excluded from the required/blocking CI set". Reachable
+# only via `--check 265`; LOUD-skips ("THIS IS NOT A PASS") when caveman is
+# absent, matching Gate 10's actionlint precedent. A skip is not a pass.
+
 echo "── analog-closeness-scorecard (Q2 leftover, docs/follow-ups/2026-08-14-analog-repos-leftovers.md) ──"
 # Recomputes the 2026-08-14 analog survey's own M/H/G/O/E/I/T/V weighted-closeness
 # formula. --self-test pins two of the survey's own published rows (verbatim
@@ -9761,7 +10201,7 @@ python3 plugins/ravenclaude-core/skills/analog-closeness-scorecard/score_closene
 gate "analog-closeness-scorecard --self-test (rows + buckets + quality-bar teeth)" must_pass "$rc"
 
 echo
-echo "── Gate 263: data-platform self-description tripwire (skills/rules/templates/CHANGELOG/Cube-version) ──"
+echo "── Gate 268: data-platform self-description tripwire (skills/rules/templates/CHANGELOG/Cube-version) ──"
 # FORGE gap-analysis pass P0-2 (dashboard-top1pct run, 2026-09-03): the plugin's
 # own CLAUDE.md/README.md/best-practices/README.md/CHANGELOG.md had silently
 # drifted from the filesystem — the exact failure mode CLAUDE.md §5's Capability
@@ -9806,7 +10246,7 @@ rc=0; python3 scripts/check-data-platform-self-description.py --root "$TMP/dp-se
 gate "data-platform self-description: coverage-matrix empty cell (P1-11) caught" must_fail "$rc"
 
 echo
-echo "── Gate 264: data-platform app-starter package manifests (Tier 1 — static only) ──"
+echo "── Gate 269: data-platform app-starter package manifests (Tier 1 — static only) ──"
 # FORGE P0-4 (2026-09-03): a Tier-1 STATIC check only — package.json parses, and the
 # package-lock.json P0-1 generated is present and non-empty. Deliberately NOT npm
 # ci/typecheck/build here: those tiers live in the separate, non-required
@@ -9834,7 +10274,7 @@ rc=0; python3 -m json.tool "$DP_PKG_BAD" >/dev/null 2>&1 || rc=$?
 gate "data-platform starter package.json parse check (malformed fixture caught)" must_fail "$rc"
 
 echo
-echo "── Gate 265: data-platform skill reachability (every skill wired to an agent) ──"
+echo "── Gate 270: data-platform skill reachability (every skill wired to an agent) ──"
 # FORGE P1-6 (2026-09-03): a dispatched subagent loads its own agents/*.md, not
 # CLAUDE.md's skill table — a skill listed there but never mentioned by any
 # agents/*.md is shipped, indexed, and structurally invisible at runtime. Five of
@@ -9854,7 +10294,7 @@ gate "data-platform skill reachability: orphaned skill (no agent ref, no invoked
 rm -rf "$DP_SKR_TMP"
 
 echo
-echo "── Gate 266: data-platform cross-tenant denial harness (Tier 4 — opt-in, needs docker) ──"
+echo "── Gate 271: data-platform cross-tenant denial harness (Tier 4 — opt-in, needs docker) ──"
 # FORGE P1-9 (2026-09-03). Deliberately OPT-IN, never in the default run — it
 # needs a live docker-compose stack (Postgres + Cube v1.7.33). Required only on
 # a PR that touches a starter, a Cube schema, or an RLS template — wire that
@@ -9883,7 +10323,7 @@ else
 fi
 
 echo
-echo "── Gate 267: data-platform dashboard-audit structural checks (no browser needed) ──"
+echo "── Gate 272: data-platform dashboard-audit structural checks (no browser needed) ──"
 # FORGE P1-10 (2026-09-03): the parts of the dashboard-architecture-audit
 # rubric that don't need a rendered page — an empty/zero-data-state branch
 # and a comparison-baseline label both being PRESENT in source — as a
@@ -9905,12 +10345,12 @@ rc=0; grep -q "isZero" "$DP_AUDIT_BAD" 2>/dev/null || rc=1
 gate "dashboard-audit structural: missing empty-state branch caught" must_fail "$rc"
 
 echo
-echo "── Gate 268: data-platform knowledge-bank freshness (scheduled-routine lane, not a PR gate) ──"
+echo "── Gate 273: data-platform knowledge-bank freshness (scheduled-routine lane, not a PR gate) ──"
 # FORGE P1-12 (2026-09-03). Staleness (past the self-declared 90-day trigger) is
 # a WARN, never a FAIL — this is a research substrate, not a build input, so
 # this gate only enforces the hard floor: every knowledge/*.md file must carry
 # a DISCOVERABLE last-reviewed date (YAML frontmatter or prose blockquote).
-# Deliberately data-platform-scoped, matching Gates 263/265's own scoping
+# Deliberately data-platform-scoped, matching Gates 268/270's own scoping
 # rationale (every plugin's knowledge-bank shape differs).
 rc=0; python3 scripts/check-data-platform-knowledge-freshness.py --as-of 2026-09-03 >/dev/null 2>&1 || rc=$?
 gate "data-platform knowledge freshness: real tree, every file has a discoverable date" must_pass "$rc"
@@ -9925,13 +10365,13 @@ gate "data-platform knowledge freshness: file with no discoverable date caught" 
 rm -rf "$DP_KF_TMP"
 
 echo
-echo "── Gate 269: data-platform export/print structural checks (no browser needed) ──"
+echo "── Gate 274: data-platform export/print structural checks (no browser needed) ──"
 # FORGE P2-14 (2026-09-03): the parts of P2-14's acceptance test that don't
 # need a rendered page or a live Cube instance — an export route exists per
 # starter, the print/PDF affordance and its @media print rule exist, and
 # every provenance footer that must survive to print carries the
 # data-provenance-footer marker the print CSS targets. Lightweight
-# complement to the (opt-in, docker-gated) denial-harness Gate 266, which
+# complement to the (opt-in, docker-gated) denial-harness Gate 271, which
 # proves the export route's tenant-isolation property; this gate proves the
 # structural pieces are present at all.
 for starter in cube-nextjs-dashboard-starter cube-astro-dashboard-starter; do
@@ -9961,7 +10401,7 @@ rc=0; grep -q "session.tenantId" "$DP_EXPORT_BAD" 2>/dev/null || rc=1
 gate "export structural: request-derived tenant scoping caught" must_fail "$rc"
 
 echo
-echo "── Gate 270: data-platform locale/timezone structural checks (no browser needed) ──"
+echo "── Gate 275: data-platform locale/timezone structural checks (no browser needed) ──"
 # FORGE P2-15 (2026-09-03): no hard-coded "en-US" in either starter's widget
 # formatting call sites, an explicit `timezone` reaching each Cube query, and
 # the provenance footer naming the timezone alongside the date range. NOTE
@@ -10006,7 +10446,7 @@ grep -q 'Intl\.NumberFormat("en-US"' "$DP_LOCALE_BAD" 2>/dev/null && rc=1
 gate "locale structural: hard-coded en-US formatting call caught" must_fail "$rc"
 
 echo
-echo "── Gate 271: data-platform freshness-badge structural checks (no browser needed) ──"
+echo "── Gate 276: data-platform freshness-badge structural checks (no browser needed) ──"
 # FORGE P2-16 (2026-09-03): commands/build-embedded-dashboard.md step 5 has
 # mandated a visible as-of timestamp since it was written; confirmed neither
 # starter rendered one before this phase. This gate asserts every starter
@@ -10035,7 +10475,7 @@ rc=0; grep -q "FreshnessBadge" "$DP_FRESH_BAD" 2>/dev/null || rc=1
 gate "freshness structural: missing FreshnessBadge mount caught" must_fail "$rc"
 
 echo
-echo "── Gate 272: data-platform per-widget query-tagging structural checks (no browser needed) ──"
+echo "── Gate 277: data-platform per-widget query-tagging structural checks (no browser needed) ──"
 # FORGE P2-17 (2026-09-03): every getCubeClient( call in a widget component
 # must carry a tag argument, not a bare getCubeClient() — an untagged widget
 # collapses into Cube's Query History as an unattributable line, defeating
@@ -10064,7 +10504,7 @@ grep -qE 'getCubeClient\(\)' "$DP_TAG_BAD" 2>/dev/null && rc=1
 gate "query-tag structural: bare untagged getCubeClient() call caught" must_fail "$rc"
 
 echo
-echo "── Gate 273: data-platform theming structural checks (no browser needed) ──"
+echo "── Gate 278: data-platform theming structural checks (no browser needed) ──"
 # FORGE P2-18 (2026-09-03): every color must resolve through a CSS custom
 # property (never a literal hex) so a host can re-theme an embedded
 # dashboard by overriding a variable, per best-practices/dashboard-inherit-
@@ -10118,6 +10558,126 @@ printf 'const style = { color: "#3b82f6" };\n' > "$DP_THEME_BAD"
 rc=0
 grep -qE '#[0-9a-fA-F]{6}' "$DP_THEME_BAD" 2>/dev/null && rc=1
 gate "theming structural: literal hex outside a token file caught" must_fail "$rc"
+echo "── Gate 266: runtime self-test front door — Tier A only ────────────────────"
+# Phase 9 (sessionstart-safeguards-multihost). Registers the runtime self-
+# test's MECHANISM checks: Tier A invocation + delivery (Phase 6, via
+# hooks/tests/test-tier-a-canary.sh), the Phase 1-5 wired-set/matcher-
+# fidelity/completeness checks + the new drift_override suppression (Phase
+# 9 / G5 F5, closes A9.7 — via check-sessionstart-matcher-regression.py's
+# own --self-test, re-run here so a shared regression is caught from BOTH
+# this slot and Gate 259), and the on-demand front door itself (Phase 8,
+# `rc hooks selftest`, via scripts/check-hooks-selftest.py).
+#
+# ⛔ M10 HONEST LIMIT, in the same style as Gate 207: Tier D (a REAL host
+# CLI spawn — `claude -p` / `copilot -p`) is NEVER exercised here. CI has
+# no host binaries to spawn, and a gate that LOUD-skips on every runner
+# teaches people to ignore its output — so Gate 266 simply never attempts
+# it. Tier D is owner-run on demand: `rc hooks selftest --tier d`, or
+# hooks/tests/test-tier-d-canary.sh directly (whose own header states it
+# must never be wired into this file's CI-run surface).
+#
+# ⛔ SKIP_GATE_266=1 kill switch (G4b correction #2), matching this file's
+# own `_skip_or_fail` local/CI-mode distinction: local -> loud SKIP, not a
+# PASS; CI -> the skip still applies (an explicit human override, not a
+# tooling absence) but is logged to the run artifact for audit.
+#
+# ⛔ Registered in BOTH the --check dispatcher AND this main sequence AND
+# the Supported: string. After adding a gate, run the full suite and GREP
+# ITS OUTPUT FOR "Gate 266" — a passing suite is not evidence your gate is
+# in it (this repo's own recorded remedy for the Gate-184 unreachable-gate
+# defect). Renumbered from 264 -> 266 (merge with origin/main's own new
+# Gates 264/265, caveman auto-routing, which claimed 264/265 first).
+#
+# ⛔ PLACEMENT IS LOAD-BEARING (Gate 195 finding, fixed 2026-09-03): this
+# block must stay AFTER the analog-closeness-scorecard block above, not
+# before it. Gate 265's own block carries no gate() assertion of its own
+# (it is deliberately excluded from the main sequence, per its own header
+# comment) -- check-gate-registration.py's block splitter only opens a new
+# block at a NUMBERED "Gate N:" header, so an un-numbered section header
+# (like analog-closeness-scorecard's) does NOT start a new block; it is
+# absorbed into the PRECEDING numbered gate's block. Gate 265 is therefore
+# only "reachable" because analog-closeness-scorecard's real gate() call
+# falls inside Gate 265's block by adjacency. Inserting Gate 266's own
+# numbered header BETWEEN Gate 265 and analog-closeness-scorecard would
+# close Gate 265's block early (at Gate 266's header) and strand it with
+# zero assertions, reddening Gate 195 with an "unreachable Gate 265"
+# finding that does not exist on origin/main. Moving this block below
+# analog-closeness-scorecard instead keeps that adjacency intact.
+if [ -n "${SKIP_GATE_266:-}" ]; then
+  echo "  ‼ Gate 266 SKIPPED (SKIP_GATE_266=1) — THIS IS NOT A PASS"
+  SKIP=$((SKIP + 1))
+  SKIPPED_GATES+=("Gate 266 [SKIP_GATE_266=1]")
+  if [ -n "${CI:-}" ]; then
+    echo "    CI mode: explicit human override — logging to the run artifact for audit."
+    mkdir -p .ravenclaude/runs/gate266-skip-log 2>/dev/null || true
+    printf '{"ts":"%s","gate":266,"skip":true,"mode":"CI","reason":"SKIP_GATE_266=1"}\n' \
+      "$(date -u +%Y-%m-%dT%H:%M:%SZ)" >>.ravenclaude/runs/gate266-skip-log/log.jsonl 2>/dev/null || true
+  fi
+else
+  if command -v python3 >/dev/null 2>&1; then
+    rc=0; python3 scripts/check-sessionstart-matcher-regression.py --self-test >/dev/null 2>&1 || rc=$?
+    gate "Gate 266: Phase 1-5 wired-set/matcher-fidelity/completeness + A9.7 drift_override fixture (check-sessionstart-matcher-regression.py --self-test)" must_pass "$rc"
+
+    rc=0; bash plugins/ravenclaude-core/hooks/tests/test-tier-a-canary.sh --self-test >/dev/null 2>&1 || rc=$?
+    gate "Gate 266: Phase 6 Tier A canary — invocation + delivery (A6.1-A6.5), PreToolUse lane unchanged (A6.4)" must_pass "$rc"
+
+    rc=0; python3 scripts/check-hooks-selftest.py --self-test >/dev/null 2>&1 || rc=$?
+    gate "Gate 266: Phase 8 on-demand front door — rc hooks selftest (A8.1-A8.7)" must_pass "$rc"
+  else
+    _skip_or_fail "Gate 266 (runtime self-test front door)" python3
+  fi
+fi
+
+echo "── Gate 267: suite-dispatcher union completeness (every bannered gate ∈ ≥1 suite) ──"
+# PR-C. scripts/check-gate-suite-coverage.py independently re-derives BOTH sides
+# of the completeness claim every run — the real banner set (by parsing this
+# file's own headers) and the suite-membership union (by calling THIS file's
+# own --list-suites / --list-suite-gates, never a second hard-coded table) —
+# so a gate added to the main sequence without a suite assignment is caught
+# here, not discovered later as a --suite invocation that silently never runs
+# it. Complements Gate 195, which asks a DIFFERENT question (is every declared
+# gate reachable in the full suite at all); this one asks whether every
+# reachable gate is claimed by >=1 named suite.
+rc=0; python3 scripts/check-gate-suite-coverage.py >/dev/null 2>&1 || rc=$?
+gate "suite-coverage: every bannered gate (incl. letter-suffixed 3b/5b/9b) is in >=1 suite" must_pass "$rc"
+rc=0; python3 scripts/check-gate-suite-coverage.py --self-test >/dev/null 2>&1 || rc=$?
+gate "suite-coverage teeth: a planted uncovered gate is caught; the live tree stays clean" must_pass "$rc"
+
+# CLI-contract spot checks (PR-C hard constraints). Deliberately does NOT
+# recursively invoke the full default (no-args) suite here — that would
+# re-run this entire ~600-gate file from inside itself on every single
+# execution. "Default runs ALL gates" is a STRUCTURAL guarantee instead: the
+# --suite handling above only executes when SUITE_ARG is non-empty, so the
+# no-args path is byte-identical to the pre-PR-C file below this point —
+# verified once per change by actually running `bash scripts/audit-gates.sh`
+# with no arguments (see docs/best-practices/ci-gate-audit.md), not by a
+# per-run recursive re-assertion here.
+rc=0
+SLICE_OUT="$(python3 scripts/audit-gates-suite-slice.py scripts/audit-gates.sh 9 2>/dev/null)" || rc=$?
+if [[ "$rc" -eq 0 ]]; then
+  # ⛔ Deliberately grep for the bare "Gate 9:" text, WITHOUT the pair of
+  # box-drawing dashes a real header banner is wrapped in. Embedding that
+  # dashed shape as a literal string here previously registered as a phantom
+  # SECOND header for the same number to check-gate-registration.py's parser
+  # (its HEADER_RE matches that shape anywhere in the file, not only inside a
+  # real `echo "..."` statement) and reddened Gate 195 (number-collision) on
+  # this very line. The bare substring still uniquely identifies the header
+  # (a real header always contains it too) without tripping that parser.
+  if printf '%s' "$SLICE_OUT" | grep -q 'Gate 9:' && ! printf '%s' "$SLICE_OUT" | grep -q 'Gate 1:'; then
+    rc=0
+  else
+    rc=1
+  fi
+fi
+gate "--suite format: slices to Gate 9 only, a strict subset of the full matrix" must_pass "$rc"
+
+rc=0; bash scripts/audit-gates.sh --suite this-suite-does-not-exist >/dev/null 2>&1 || rc=$?
+gate "--suite <unknown>: exits 1 (not 0, not a crash)" must_fail "$rc"
+
+rc=0; bash scripts/audit-gates.sh --suite core --check 1 >/dev/null 2>&1 || rc=$?
+gate "--suite + --check together: mutually exclusive, exits 1" must_fail "$rc"
+rc=0; bash scripts/audit-gates.sh --check 1 --suite core >/dev/null 2>&1 || rc=$?
+gate "--check + --suite together (reversed order): still mutually exclusive, exits 1" must_fail "$rc"
 
 echo
 echo "═══════════════════════════════════════════════════════════════════════════"

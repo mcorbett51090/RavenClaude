@@ -2,6 +2,63 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.317.0 — 2026-09-03
+
+### ⛔ Migration — Codex gains 6 SessionStart hooks + matchers; run `/hooks` to re-trust
+
+**If you run `ravenclaude update` (or a fresh `--host codex` install) after this release, Codex's
+guardrails go silently OFF until you run `/hooks` inside Codex.** Codex tracks hook trust by hash
+(MH-17); rewriting `.codex/hooks.json` — which this release does — marks every hook for review and
+Codex skips them until re-trusted. The installer's `_rc_rearm_notice` prints this reminder on
+install/update with the before/after hook count; it is easy to miss if you don't read installer
+output.
+
+**What changed underneath:** Codex's SessionStart wiring was, until this release, a hand-maintained
+2-hook, matcher-less list (`capability-orientation.sh`, `thing-denial-kb-recall.sh`) — meaning both
+hooks **re-fired on every mid-conversation compaction** on Codex, the exact PR #1084 defect that
+every other host already had fixed. `scripts/generate-codex-hooks.py` (new) replaces the hand-list
+with a generator derived from `hooks.json`: **6 previously-absent SessionStart hooks now wire**
+(`reapply-posture.sh`, `ensure-default-mode.sh`, `keep-awake.sh`, `worktree-guard.sh` register,
+`dashboard-autostart.sh`, `handoff-successor-ack.sh`), and **all 9 hooks gain a `matcher`** — the
+two pre-existing hooks stop re-firing on compaction. PreToolUse/PostToolUse/Stop are reproduced
+byte-identically (out of scope this release; see the knowledge doc for the diff-proof pointer).
+Kill switch if you need to back out before re-trusting: `RC_CODEX_SESSIONSTART_LEGACY=1`.
+
+### Added
+
+- **Multi-host SessionStart safeguards** (`sessionstart-safeguards-multihost` FORGE run) — a static
+  ledger (Gate 259, extended) and a runtime self-test (Gate 266, new) that between them assert every
+  supported host's SessionStart wiring matches the canonical manifest AND that the host's adapter
+  seam actually dispatches + delivers context. Full reference:
+  [`knowledge/sessionstart-hook-safeguards.md`](knowledge/sessionstart-hook-safeguards.md).
+  - `scripts/generate-codex-hooks.py` (new) — see the migration note above.
+  - **`rc hooks selftest [--host <h>] [--tier a|d|auto] [--json]`** (new `bin/rc` verb) — the
+    on-demand front door: per-host pass/fail with the runtime tier printed on every row (a host
+    declared tier D that only achieves A is a FAIL, never a silent downgrade). The `copilot-cli` row
+    always force-prints a `chat: unverified (surfaces.chat.supported=false)` line — every mechanism
+    in this release reaches Copilot **CLI** only, never Copilot **Chat**.
+  - **Gate 266** (`SKIP_GATE_266=1` kill switch; renumbered from 264 at merge time — `origin/main`
+    independently claimed Gates 264/265 for its own caveman-auto-routing work) — Tier-A-only runtime
+    proof (invocation + context delivery + ledger completeness), registered in all three required
+    surfaces. Tier D (a real host binary spawn) is never run in CI; it's owner-run on demand via
+    `rc hooks selftest --tier d`.
+  - A per-host, dated `drift_override` field on the ledger — a narrower escape than `SKIP_GATE_266`
+    for the case where one third-party host CLI's own hook-config shape legitimately drifts, without
+    silencing every other host's assertion.
+  - `_host-canary.sh` gained a SessionStart lane (Tier A) and a Tier D lane (real short-lived host
+    session, Claude-Code-anchored, scratch-project-scoped, never the real project).
+- **`host-support.json` schema addition** — every `components.hooks.<host>` row that has a
+  SessionStart lane now carries a `sessionstart_verification` sub-object (`tier`, `basis`,
+  `mechanism`, `note`). This is a schema change other tooling reading that file should account for,
+  not a value-only edit — see the file's own `_schema_note_2026_09_03` field.
+
+### Fixed
+
+- Grok is now explicitly classified in the SessionStart ledger (`_UNSUPPORTED_HOSTS`, with a reason
+  and machine-checked promotion criteria) rather than silently absent — a converse self-audit
+  re-checks the exclusion's own promotion criteria against disk on every run, so a future real Grok
+  adapter can't satisfy the classification by lookup alone without the exclusion being re-examined.
+
 ## 0.314.0 — 2026-09-02
 
 ### Added

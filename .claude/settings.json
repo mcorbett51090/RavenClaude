@@ -262,6 +262,12 @@
           },
           {
             "type": "command",
+            "command": "bash \"${CLAUDE_PROJECT_DIR}/plugins/ravenclaude-core/scripts/caveman-route-hook.sh\" --event prompt",
+            "timeout": 10,
+            "comment": "Marketplace-dev hook (dev-mirror). Caveman auto-routing (FORGE P3 — SHADOW ONLY). No-ops (test -f + one anchored grep) unless .ravenclaude/comfort-posture.yaml sets `caveman_routing: shadow|live` (absent/off => zero file writes). SHADOW is what \"enabled\" means in this phase: decide + record, NEVER call caveman-apply-mode.sh. The plugin's hooks/hooks.json registers the same script for consumers via ${CLAUDE_PLUGIN_ROOT}."
+          },
+          {
+            "type": "command",
             "command": "${CLAUDE_PROJECT_DIR}/plugins/ravenclaude-core/hooks/stream-prompt-attribute.sh",
             "timeout": 10,
             "comment": "Marketplace-dev hook (dev-mirror). Agentic Work-Streams P4 (OPT-IN, FAIL-OPEN): no-ops unless .ravenclaude/comfort-posture.yaml sets stream_hook: per_prompt (this repo doesn't, so it no-ops). When opted in, attributes the prompt to the active stream as a derived event (sticky — no reclassify) or auto-sets on a confident match. NEVER blocks/alters the prompt; NO-EGRESS (only derived labels persist)."
@@ -326,6 +332,12 @@
             "command": "${CLAUDE_PROJECT_DIR}/plugins/ravenclaude-core/hooks/dashboard-autostart.sh",
             "timeout": 10,
             "comment": "Marketplace-dev hook (dev-mirror of the plugin's hooks/hooks.json entry). Dashboard autostart: reads `dashboard_autostart: off|serve|open` from .ravenclaude/comfort-posture.yaml and no-ops after one grep when unset (absent => OFF). Probes 127.0.0.1:<port>/__csrf and stands down if a dashboard is already live, so concurrent sessions never spawn a second server or a second tab. Fail-safe; always exits 0."
+          },
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PROJECT_DIR}/plugins/ravenclaude-core/scripts/caveman-route-hook.sh\" --event session",
+            "timeout": 10,
+            "comment": "Marketplace-dev hook (dev-mirror). Caveman auto-routing (FORGE P3 — SHADOW ONLY), SessionStart half of the same hook body registered under UserPromptSubmit above. Joins this EXISTING startup|resume|clear|fork matcher group deliberately — no `compact` entry, no new matcher block. The plugin's hooks/hooks.json registers the same script for consumers via ${CLAUDE_PLUGIN_ROOT}."
           }
         ]
       },

@@ -244,6 +244,12 @@
           },
           {
             "type": "command",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/caveman-route-hook.sh\" --event prompt",
+            "timeout": 10,
+            "comment": "Caveman auto-routing (FORGE P3 — SHADOW ONLY). No-ops (test -f + one anchored grep) unless .ravenclaude/comfort-posture.yaml sets `caveman_routing: shadow|live` (absent/off => zero file writes of any kind). When opted in, calls scripts/caveman-route-engine.py -> caveman-route.py's classifier over an incremental transcript-tail cursor and appends a decision line to .ravenclaude/runs/<session>/caveman-route.jsonl. SHADOW is what \"enabled\" means in this phase: decide + record, NEVER call caveman-apply-mode.sh — the applier exists (P2) but nothing calls it until a future phase (P7) opens that one-way door. Lives under scripts/ (C1/C2-b: chmod +x is denied on new hooks/*.sh here), invoked via `bash` matching ask-on-ambiguity.sh's own registration. Latency budget RC_CAVEMAN_ROUTE_BUDGET_S (default 3s, [unverified]) enforced via _rc_timeout (hooks/_portable.sh — stock macOS has no GNU timeout). Fail-open unconditionally: every path exits 0, never blocks or alters a prompt."
+          },
+          {
+            "type": "command",
             "command": "${CLAUDE_PLUGIN_ROOT}/hooks/stream-prompt-attribute.sh",
             "timeout": 10,
             "comment": "Agentic Work-Streams (P4 — OPT-IN, FAIL-OPEN). No-ops (a single grep, zero cost) unless .ravenclaude/comfort-posture.yaml sets `stream_hook: per_prompt` (default session_boundary). When opted in: if a work-stream is ACTIVE, attribute the prompt to it as ONE derived event (sticky — does NOT re-classify); if none is active AND stream_classify is `auto`, classify + set-active on a confident match. NEVER blocks/alters the prompt (always exit 0); a latency budget (RC_STREAM_HOOK_BUDGET_S, default 3s) caps the inner work. NO-EGRESS: only derived labels/terms/word-count are persisted (stream-ops refuses raw-content fields) — the prompt text never reaches disk."
@@ -308,6 +314,12 @@
             "command": "${CLAUDE_PLUGIN_ROOT}/hooks/dashboard-autostart.sh",
             "timeout": 10,
             "comment": "Optionally brings the comfort-posture dashboard up at session start. OPT-IN, absent => OFF: reads the `dashboard_autostart: off|serve|open` knob from .ravenclaude/comfort-posture.yaml and no-ops after a single grep for everyone who has not set it (`serve` starts the local server headless; `open` also opens a browser tab). Closes the gap where the ONLY auto-launch that existed was the Codespace devcontainer, so a local session never started it. Probes 127.0.0.1:<port>/__csrf first and stands down if a dashboard already answers there, so concurrent sessions never spawn a second server or steal focus with a second tab. Launches detached via bin/rc (no --project-root: cwd already resolves the repo, and --project-root is hard-guarded against the marketplace checkout). Fail-safe: EXIT trap armed first, always exits 0, never blocks; 10s timeout bounds the probe."
+          },
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/caveman-route-hook.sh\" --event session",
+            "timeout": 10,
+            "comment": "Caveman auto-routing (FORGE P3 — SHADOW ONLY), SessionStart half of the same hook body registered under UserPromptSubmit above — see that entry's comment for the full contract (short-circuit, SHADOW-never-applies, latency budget, fail-open). Joins this EXISTING startup|resume|clear|fork matcher group deliberately (no `compact` entry, no new matcher block) — a `compact` re-fire on this hook would be the v0.302.0-era 7-SessionStart-hooks incident in a new place, with nothing useful to do on that source."
           }
         ]
       },

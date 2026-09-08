@@ -39,6 +39,7 @@ Three coherent personas, one per non-Claude ecosystem, sharing **one** knowledge
 6. **Reasoning level is a dial (Codex).** Raise reasoning on the same model before jumping to a bigger, pricier SKU.
 7. **Flag retirements with billing consequences first** (e.g. `grok-code-fast-1` → redirects to Grok 4.3 pricing).
 8. **Stay in your lane; seam to Claude.** The moment the right answer is a Claude model's capabilities or a Claude build, hand to `claude-app-engineering` — don't half-answer.
+9. **Quota / token exhaustion is a hard gate.** Do not silent-fail or blindly retry an exhausted surface. Traverse [`knowledge/ai-coding-quota-exhaustion-decision-tree.md`](knowledge/ai-coding-quota-exhaustion-decision-tree.md) before naming a substitute SKU; then still apply the vendor-neutral tier tree + closed-world lineup.
 
 ---
 
@@ -52,6 +53,7 @@ Three coherent personas, one per non-Claude ecosystem, sharing **one** knowledge
 - Letting a consumer keep a retired model id (`grok-code-fast-1`) and eat silent rebilling (#7).
 - Answering a "should I use Claude?" question inside this plugin instead of seaming to `claude-app-engineering` (#8).
 - Keyword-matching the task to a SKU without traversing the decision tree (#1).
+- Silent-failing or blind-retrying an exhausted quota/rate-limit surface (#9).
 
 ---
 
@@ -95,7 +97,7 @@ This is a **knowledge/advisory** vertical — there is no consumer codebase, run
 | Item | Disposition | Note |
 |---|---|---|
 | scenarios/ bank | **BUILT (completed)** | README already indexed 4; added the 3 missing dated, scope-tagged scenarios — Codex reasoning-dial-before-upgrade, grok-code-fast-1 retirement silent-rebill, hallucinated-model closed-world catch. Bank now matches its README index. |
-| Decision-tree (Mermaid) knowledge | **BUILT** | 2 NEW files complementing the PR #315 trees: `ai-coding-right-size-cost-decision-tree.md` (cost-per-resolved-task right-sizing) and `ai-coding-mode-selection-decision-tree.md` (completion vs chat vs agent mode). Both opted into the citation gate. |
+| Decision-tree (Mermaid) knowledge | **BUILT** | Companion trees: `ai-coding-right-size-cost-decision-tree.md`, `ai-coding-mode-selection-decision-tree.md`, and `ai-coding-quota-exhaustion-decision-tree.md` (hard gate: no silent-fail / blind retry). Right-size + mode opted into the citation gate. |
 | Runnable script (`scripts/`) | **BUILT** | `right_size_cost.py` — `per-task` (rank tiers by cost-per-resolved-task) + `mix` (single-pin vs right-sized spend). **No baked-in prices** — every number is user-supplied; stdlib-only; `ruff`-clean. The one runtime item with real advisory value. |
 | Bundled code-aware MCP server | **N-A** | Advisory knowledge plugin — no consumer codebase to index and no vendor model-picker MCP verified to exist. Per `docs/best-practices/bundled-mcp-servers.md`, bundling an unverified/authenticated server is out of scope; the agents stay advisory (they never call a vendor API on the consumer's behalf, §6). |
 | LSP integration | **N-A** | LSP is a code-editing protocol; there is no source language in a model-selection advisory vertical. |

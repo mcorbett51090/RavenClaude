@@ -1,5 +1,10 @@
 # Changelog — ai-coding-model-guidance
 
+## Unreleased
+
+- Deep-layer **coding-agent levers playbook** + HARD GATE link from quota-exhaustion tree/skill; tree unchanged as gate.
+
+
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
 ## [0.3.18] — 2026-08-31

@@ -7,6 +7,7 @@
 #   rc dashboard [--port N] [--no-open]   Launch the comfort-posture dashboard.
 #   rc streams <subcommand>               Inspect / manage Agentic Work-Streams.
 #   rc converge <subcommand>              Convergence Engine (refine-to-rubric) helpers.
+#   rc hooks selftest [...]               Per-host SessionStart wiring + tier self-test.
 #
 # DESIGN — why this never `cd`s:
 #   serve-dashboards.py resolves the project root from `Path.cwd()`, so
@@ -64,6 +65,13 @@ Usage:
   rc streams create <name>              Create a named stream (slugified).
   rc streams set-active <id>            Point the active-stream pointer at <id>.
   rc streams get-active                 Print the active stream id (or "none").
+
+  rc hooks selftest [--host <h>] [--tier a|d|auto] [--json]
+                                        Per-host SessionStart wiring + runtime-tier
+                                        self-test (marketplace-dev tool -- audits THIS
+                                        repo's own hooks.json across the declared hosts).
+                                        Exit 0 all-pass, 2 any host failed its declared
+                                        tier, 1 could not run. Never exit 1 for a finding.
 
   rc converge report <scorecard.json>            Render the constrained convergence report
                                                  (verdict + keep-best + honest residual gaps).
@@ -197,6 +205,37 @@ PY
         ;;
     esac
     ;;
+  hooks)
+    shift
+    # `rc hooks` with no subcommand is a usage error (A8.6): print usage and
+    # exit 1, matching the "no verb" branch below rather than silently no-op.
+    sub="${1:-}"
+    case "$sub" in
+      selftest)
+        shift
+        st="$PLUGIN_ROOT/scripts/hooks-selftest.py"
+        if [ ! -f "$st" ]; then
+          echo "rc: cannot find hooks-selftest.py at $st" >&2
+          exit 1
+        fi
+        command -v python3 >/dev/null 2>&1 || {
+          echo "rc: python3 not found in PATH — 'rc hooks selftest' needs python3." >&2
+          exit 1
+        }
+        exec python3 "$st" "$@"
+        ;;
+      "")
+        echo "rc hooks: a subcommand is required (try: selftest)" >&2
+        _usage
+        exit 1
+        ;;
+      *)
+        echo "rc hooks: unknown subcommand '$sub' (try: selftest)" >&2
+        _usage
+        exit 1
+        ;;
+    esac
+    ;;
   converge)
     shift
     cdir="$PLUGIN_ROOT/skills/refine-to-rubric/scripts"
@@ -313,7 +352,7 @@ PY
     ;;
 
   *)
-    echo "rc: unknown command '$cmd' (try: rc dashboard | rc streams | rc converge | rc artifacts | rc handoff | rc forge-worktree | rc forge-route | rc premise-gate | rc classify-claim)" >&2
+    echo "rc: unknown command '$cmd' (try: rc dashboard | rc streams | rc hooks selftest | rc converge | rc artifacts | rc handoff | rc forge-worktree | rc forge-route | rc premise-gate | rc classify-claim)" >&2
     _usage
     exit 1
     ;;

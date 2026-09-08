@@ -62,3 +62,8 @@ evals/__pycache__/
 # by the plugin's skills during a run; never source, never committed.
 tests/fixtures/report-regeneration/_out/
 .ravenclaude/handoff-nudge-state.json
+.ravenclaude/handoff-nudge-state/
+
+# F3 golden-set light judge reports (artifact-only; never commit churn)
+evals/reports/
+evals/inject-golden-set/__pycache__/
