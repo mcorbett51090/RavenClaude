@@ -344,8 +344,10 @@ _suite_gate_tokens() { # $1=suite name -> echoes space-separated gate tokens; re
       # (eval-harness self-test), 173 (generated-file self-description), 175
       # (memory-security-lane reachability), 193/194 (brand-extraction /
       # design-clone skills), plus this suite dispatcher's own
-      # union-completeness meta-test (267).
-      echo "1 2 8 18 46 47 92 129 173 175 193 194 195 226 267"
+      # union-completeness meta-test (267). 268 (skill-description-baseline
+      # determinism + charset-round-trip self-test — a corpus-measurement
+      # instrument, same generic-self-test family as 129/173).
+      echo "1 2 8 18 46 47 92 129 173 175 193 194 195 226 267 268"
       ;;
     security)
       # Gaps: 24 (Track B Engine Foundation — defines DECP, consumed by
@@ -1871,9 +1873,16 @@ PY
       python3 scripts/check-gate-suite-coverage.py --self-test || rc=$?
       exit $rc
       ;;
+    268)
+      echo "── Gate 268: skill-description-baseline determinism + charset round-trip (per-gate run) ──"
+      rc=0
+      python3 scripts/skill-description-baseline.py --self-test || rc=$?
+      python3 scripts/skill-description-baseline.py --must-fail || rc=$?
+      exit $rc
+      ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254, 255, 256, 257, 258, 259, 260, 261, 262, 263, 264, 265, 266, 267. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254, 255, 256, 257, 258, 259, 260, 261, 262, 263, 264, 265, 266, 267, 268. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -10218,6 +10227,24 @@ rc=0; python3 scripts/check-gate-suite-coverage.py >/dev/null 2>&1 || rc=$?
 gate "suite-coverage: every bannered gate (incl. letter-suffixed 3b/5b/9b) is in >=1 suite" must_pass "$rc"
 rc=0; python3 scripts/check-gate-suite-coverage.py --self-test >/dev/null 2>&1 || rc=$?
 gate "suite-coverage teeth: a planted uncovered gate is caught; the live tree stays clean" must_pass "$rc"
+
+echo "── Gate 268: skill-description-baseline determinism + charset round-trip ──"
+# P0 (succinct-skill-descriptions plan, AT-P0.1/AT-P0.2/AT-P0.7) — registered NOW
+# per the plan's own DoD, not deferred to a later phase (the Gate-184 lesson: a
+# gate written but placed in only one of the three required surfaces ran
+# nowhere for a full release). --self-test covers AT-P0.1 (determinism) and
+# AT-P0.7 (YAML-special-char round-trip); --must-fail is the AT-P0.2 teeth
+# (mutating one real description by +50 chars must move exactly that entry
+# and the corpus total by exactly +50, proving the baseline is reading the
+# subject rather than a cached/stale figure).
+if command -v python3 >/dev/null 2>&1; then
+  rc=0; python3 scripts/skill-description-baseline.py --self-test >/dev/null 2>&1 || rc=$?
+  gate "skill-description-baseline: determinism (AT-P0.1) + charset round-trip (AT-P0.7)" must_pass "$rc"
+  rc=0; python3 scripts/skill-description-baseline.py --must-fail >/dev/null 2>&1 || rc=$?
+  gate "skill-description-baseline teeth: a +50-char mutation moves the entry AND corpus total by exactly 50 (AT-P0.2)" must_pass "$rc"
+else
+  _skip_or_fail "Gate 268 (skill-description-baseline)" python3
+fi
 
 # CLI-contract spot checks (PR-C hard constraints). Deliberately does NOT
 # recursively invoke the full default (no-args) suite here — that would

@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "status": "seeded — enforcement semantics not yet defined, see plan.md P3",
+  "note": "P0 initializes this file with the current corpus reference point only. Per-category budgets (leaf/disambiguating/router tiers, discussed in plan-A and gap-delta.md but not yet ratified by a tiebreak) are a P3 design decision — P0 deliberately does not presume them, since G-P0.1's rendering-model finding (only ~10-13% of descriptions render today, likely usage-gated) should inform which descriptions a budget actually needs to target first.",
+  "seeded_from": "description-baseline.json",
+  "corpus_reference_at_seed_time": {
+    "skill_count": 956,
+    "total_chars": 310284,
+    "total_tokens": 66511,
+    "token_method": "tiktoken cl100k_base [interpretation]"
+  },
+  "gate": "unarmed — P3 wires this file into a CI check; absent that wiring, this file is inert reference data only"
+}
