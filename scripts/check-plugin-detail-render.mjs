@@ -55,7 +55,11 @@ const ISLANDED_AGENT_KEYS = ["scenarios", "quickstart", "works_with"];
 const RC = "ravenclaude-core";
 const RC_BASELINE = {
   agents: 15,
-  skills: 64, // 63 -> 64: skills/claude-code-parallel-and-modes (PR #1114,
+  skills: 65, // 64 -> 65: skills/skill-index (FORGE plan dynamic-skill-context,
+  //   phase P0 — a generated always-on index of every marketplace skill, so a
+  //   disabled plugin's skills are still findable + re-enableable).
+  //   COUNTED, not inferred: `ls plugins/ravenclaude-core/skills | wc -l` -> 65 on this tree.
+  //        63 -> 64: skills/claude-code-parallel-and-modes (PR #1114,
   //   Claude Code parallel agents + modes playbook in ravenclaude-core).
   //   COUNTED, not inferred: `ls plugins/ravenclaude-core/skills | wc -l` -> 64 on this tree.
   //        60 -> 63: skills/game-theory-basics, skills/quantitative-problem-solving,

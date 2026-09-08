@@ -21,6 +21,11 @@
         "claude-code-parallel-and-modes inventory entry (PR #1114 Gate 240 fix, 2026-09-05)",
         31640,
         "PR #1114 adds one new inventory concept (claude-code-parallel-and-modes \u2014 the verified negative that there is no /max-parallel Claude Code command; remap to plan/subagents/worktrees/ultracode/ultrathink/effort) covering skills/claude-code-parallel-and-modes/SKILL.md. Regenerating dashboard.html for R12 badge parity measured island payload at 31,610 (over the prior 31,590 ceiling by 20). Same no-diagrams-for-inventory-entries shape as every prior wave; a pure content-size raise, not a DOM control. Re-measured on rebased HEAD after #1113; appended, never edited."
+      ],
+      [
+        "skill-index inventory entry (FORGE plan dynamic-skill-context, phase P0, 2026-09-08)",
+        31700,
+        "FORGE plan dynamic-skill-context's phase P0 adds one new inventory concept (skill-index-self-reference-convergence \u2014 the generator's own self-referential fixed-point bug: its first write always undercounts by one entry since it indexes its own not-yet-written output file) covering scripts/generate-skill-index.py and plugins/ravenclaude-core/skills/skill-index/SKILL.md. Measured at 31,663 island payload elements (over the prior 31,640 ceiling by 23; merging origin/main's own concurrent inventory growth through the context-usage-meter and dashboard-top1pct PRs also contributed since the ceiling was last set). Same no-diagrams-for-inventory-entries shape as every prior wave; a pure content-size raise, not a DOM control. Re-measured on rebased HEAD; appended, never edited. Headroom to 31,700 (+37)."
       ]
     ],
     "index.html": [
