@@ -407,8 +407,16 @@ cmd_self_test() {
     stripped="${stripped%:}"
     out="$(PATH="$stripped" HOME="$fake_home" bash "$script_abs" check -- 2>&1)"
     rc=$?
-    [ "$rc" -eq 0 ] || exit 61
-    printf '%s' "$out" | grep -q 'git not found' || exit 62
+    if [ "$rc" -ne 0 ]; then
+      echo "DEBUG fixture8: orig_PATH=$PATH" >&2
+      echo "DEBUG fixture8: stripped_PATH=$stripped" >&2
+      echo "DEBUG fixture8: rc=$rc out=$out" >&2
+      exit 61
+    fi
+    printf '%s' "$out" | grep -q 'git not found' || {
+      echo "DEBUG fixture8: rc=0 but out did not contain 'git not found': out=$out" >&2
+      exit 62
+    }
   ) || _st_fail "git-hidden-from-PATH did not fail open ($?)"
 
   # Fixture 9 (fail-open): a stubbed/fake `git` that sleeps past the timeout,
