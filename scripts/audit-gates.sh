@@ -10074,11 +10074,29 @@ echo "── Gate 273: data-platform theming structural checks (no browser neede
 for starter in cube-nextjs-dashboard-starter cube-astro-dashboard-starter; do
   base="plugins/data-platform/templates/$starter"
   src="$base"
-  [[ -d "$base/src" ]] && src="$base/src"
+  # ⛔ NOT `[[ -d "$base/src" ]] && src=...` — under this script's `set -e`,
+  # a bare `&&` chain returns the exit status of its right-hand side ONLY
+  # when the left side is true; when `[[ -d ]]` is false (cube-nextjs-
+  # dashboard-starter has no src/ — it's the FIRST starter in this loop),
+  # the whole compound statement returns 1 and set -e kills the entire
+  # script right here, silently, with no error printed. Found live: three
+  # consecutive full-suite runs died at exactly this point with no trace.
+  if [[ -d "$base/src" ]]; then src="$base/src"; fi
 
   rc=0
   # shellcheck disable=SC2038
-  hex_hits="$(find "$src" -name "*.tsx" -o -name "*.astro" 2>/dev/null | xargs grep -lE '#[0-9a-fA-F]{6}' 2>/dev/null)"
+  # ⛔ THE REAL BUG (found live, after the [[ -d ]] && fix above did NOT
+  # resolve it): `grep -l` exits 1 when NOTHING matches — which is the
+  # DESIRED, passing outcome here (no hex literals found). With
+  # `set -o pipefail` active, that 1 propagates through the pipe, and a
+  # bare `var="$(...)"` assignment (not `local`, no `|| true`) propagates
+  # a failing command substitution's exit status under `set -e` — killing
+  # the whole script silently, mid-gate, with no error printed. This is
+  # THE actual cause of three consecutive full-suite runs dying at this
+  # exact point with a clean git status and no trace. `|| true` neutralizes
+  # the expected-empty case without masking a genuine `find`/`grep` crash
+  # (2>/dev/null already swallows those; this only catches "no matches").
+  hex_hits="$(find "$src" -name "*.tsx" -o -name "*.astro" 2>/dev/null | xargs grep -lE '#[0-9a-fA-F]{6}' 2>/dev/null || true)"
   [[ -z "$hex_hits" ]] || rc=1
   gate "theming structural: no literal hex outside a token file ($starter)" must_pass "$rc"
 
