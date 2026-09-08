@@ -53,6 +53,29 @@
 # is used unconditionally (it disables ALL tools; the classifier only reasons and
 # returns JSON — same rationale as thing-seat.sh:334).
 #
+# ── SECOND DOCUMENTED DEVIATION: --tools="" (equals form), not --tools "" (space
+#    form) ─────────────────────────────────────────────────────────────────────
+# Both cited precedent files (thing-seat.sh:339,355 and agent-dispatch-evaluator.sh:185)
+# use the space form. This script uses the equals form instead, and the deviation is
+# load-bearing, not cosmetic — verified live this session against the real `claude` CLI:
+# `--tools <tools...>` is a VARIADIC option (same shape as `--add-dir <directories...>`),
+# so the space form `--tools "" "$prompt"` lets the CLI's arg parser swallow the
+# subsequent positional prompt argument INTO the --tools list, leaving no prompt at all —
+# reproduced directly: `claude -p --tools "" "say hi"` fails
+# "Error: Input must be provided either through stdin or as a prompt argument", while the
+# byte-identical call with `--tools=""` succeeds. This only manifests when a positional
+# prompt argument FOLLOWS --tools on the command line (as it does here); it would not
+# necessarily reproduce in a caller that puts --tools last or behind a `--` separator,
+# which is presumably why the two cited callers never hit it (thing-seat.sh's prompt
+# argument is genuinely last on that line; agent-dispatch-evaluator.sh's --tools "" is
+# embedded inside a SINGLE quoted string handed to a nested `claude -p` invocation, not
+# passed as bash's own separate argv entries, so bash's own variadic-swallowing never
+# applies there either). `--tools=""` is unambiguous under any argument ordering and
+# functionally identical (still disables ALL tools) — safer than relying on argument
+# order, so it is used even though it is not the literal cited form. This is item (b) of
+# the two remediation options for this deviation: keep as-is, explicitly documented, not
+# silently switched to the space form.
+#
 # ── NO-EGRESS INVARIANT (AT3) ──────────────────────────────────────────────────────
 # The classifier's raw subprocess stdout NEVER leaves this process except as
 # validated/typed derived fields. On a non-skip verdict this script prints ONLY:
