@@ -393,6 +393,18 @@ cmd_self_test() {
     # helper's fail-open behavior. Fixed by excluding every directory holding
     # a `git` binary, so the strip is robust regardless of how many places a
     # host happens to install it.
+    # ⛔ Resolve bash's OWN absolute path from the ORIGINAL (unstripped) PATH
+    # first. On a merged-usr layout (Ubuntu's default: /bin is a symlink to
+    # /usr/bin, and that is where both `git` AND `bash` live), stripping every
+    # PATH directory that contains a `git` executable also strips bash's own
+    # directory — and `PATH=<stripped> bash ...` resolves the COMMAND NAME
+    # itself against the newly-set PATH (POSIX command-search semantics), so
+    # bash becomes unfindable and the whole invocation fails with "bash:
+    # command not found" (rc=127) — a fixture-harness failure, not anything
+    # the helper under test did wrong. Invoking via bash's resolved absolute
+    # path sidesteps this regardless of which directories end up stripped.
+    local bash_abs
+    bash_abs="$(command -v bash)"
     local stripped=""
     local -a _kept=()
     local IFS=':'
@@ -405,7 +417,7 @@ cmd_self_test() {
     unset IFS
     stripped="$(printf '%s:' "${_kept[@]}")"
     stripped="${stripped%:}"
-    out="$(PATH="$stripped" HOME="$fake_home" bash "$script_abs" check -- 2>&1)"
+    out="$(PATH="$stripped" HOME="$fake_home" "$bash_abs" "$script_abs" check -- 2>&1)"
     rc=$?
     if [ "$rc" -ne 0 ]; then
       echo "DEBUG fixture8: orig_PATH=$PATH" >&2
