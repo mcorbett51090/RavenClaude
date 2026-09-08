@@ -344,14 +344,19 @@ _suite_gate_tokens() { # $1=suite name -> echoes space-separated gate tokens; re
       # (eval-harness self-test), 173 (generated-file self-description), 175
       # (memory-security-lane reachability), 193/194 (brand-extraction /
       # design-clone skills), plus this suite dispatcher's own
-      # union-completeness meta-test (267). 268-278 (FORGE dashboard-top1pct,
-      # 2026-09-03-08): every data-platform-plugin self-check this repo's
-      # suite taxonomy has no plugin-specific suite for — same "no better
-      # fit than core" reasoning as 173/175/193/194 above, per the PR-C
-      # brief's own fallback rule. Renumbered from 263-273 at merge time
-      # (origin/main's own 263-267 landed first while this branch was
-      # unmerged — see each gate's own header comment).
-      echo "1 2 8 18 46 47 92 129 173 175 193 194 195 226 267 268 269 270 271 272 273 274 275 276 277 278"
+      # union-completeness meta-test (267). 268 (skill-description-baseline
+      # determinism + charset-round-trip self-test — a corpus-measurement
+      # instrument, same generic-self-test family as 129/173). 269-279
+      # (FORGE dashboard-top1pct, 2026-09-03-08): every data-platform-plugin
+      # self-check this repo's suite taxonomy has no plugin-specific suite
+      # for — same "no better fit than core" reasoning as 173/175/193/194
+      # above, per the PR-C brief's own fallback rule. Renumbered from
+      # 263-273 at merge time (origin/main's own 263-267 landed first while
+      # this branch was unmerged), then renumbered AGAIN from 268-278 to
+      # 269-279 at a second merge later the same day (origin/main
+      # independently claimed 268 for skill-description-baseline.py while
+      # this branch was still unmerged) — see each gate's own header comment.
+      echo "1 2 8 18 46 47 92 129 173 175 193 194 195 226 267 268 269 270 271 272 273 274 275 276 277 278 279"
       ;;
     security)
       # Gaps: 24 (Track B Engine Foundation — defines DECP, consumed by
@@ -1068,21 +1073,23 @@ PY
       python3 scripts/check-hooks-selftest.py --self-test || rc=$?
       exit $rc
       ;;
-    268)
+    269)
       # Renumbered from 263 -> 268 at merge time (2026-09-08): origin/main
       # independently claimed 263-267 for forge-receipt/caveman-routing/
       # runtime-selftest/suite-dispatcher-coverage work that landed while
-      # this branch was unmerged. See CLAUDE.md's own "gate slot moved
-      # under us" precedent for why a renumber, not a collision, is the
-      # correct fix.
-      echo "── Gate 268: data-platform self-description tripwire (per-gate run) ──"
+      # this branch was unmerged. Renumbered AGAIN, 268 -> 269, at a second
+      # merge later the same day: origin/main independently claimed 268 for
+      # skill-description-baseline.py while this branch was still unmerged.
+      # See CLAUDE.md's own "gate slot moved under us" precedent for why a
+      # renumber, not a collision, is the correct fix both times.
+      echo "── Gate 269: data-platform self-description tripwire (per-gate run) ──"
       rc=0
       python3 scripts/check-data-platform-self-description.py || rc=$?
       if [[ "$rc" -ne 0 ]]; then
         echo "the real tree should pass clean — check-data-platform-self-description.py failed" >&2
         exit 1
       fi
-      echo "── Gate 268 teeth: a drifted fixture MUST fail ──"
+      echo "── Gate 269 teeth: a drifted fixture MUST fail ──"
       DP_TEETH_TMP="$(mktemp -d)"
       DP_TEETH="$DP_TEETH_TMP/plugins/data-platform"
       mkdir -p "$DP_TEETH/skills/a" "$DP_TEETH/skills/b" "$DP_TEETH/skills/c" "$DP_TEETH/best-practices" "$DP_TEETH/templates" "$DP_TEETH/.claude-plugin"
@@ -1911,9 +1918,16 @@ PY
       python3 scripts/check-gate-suite-coverage.py --self-test || rc=$?
       exit $rc
       ;;
+    268)
+      echo "── Gate 268: skill-description-baseline determinism + charset round-trip (per-gate run) ──"
+      rc=0
+      python3 scripts/skill-description-baseline.py --self-test || rc=$?
+      python3 scripts/skill-description-baseline.py --must-fail || rc=$?
+      exit $rc
+      ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254, 255, 256, 257, 258, 259, 260, 261, 262, 263, 264, 265, 266, 267, 268. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254, 255, 256, 257, 258, 259, 260, 261, 262, 263, 264, 265, 266, 267, 268, 269. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -10201,7 +10215,7 @@ python3 plugins/ravenclaude-core/skills/analog-closeness-scorecard/score_closene
 gate "analog-closeness-scorecard --self-test (rows + buckets + quality-bar teeth)" must_pass "$rc"
 
 echo
-echo "── Gate 268: data-platform self-description tripwire (skills/rules/templates/CHANGELOG/Cube-version) ──"
+echo "── Gate 269: data-platform self-description tripwire (skills/rules/templates/CHANGELOG/Cube-version) ──"
 # FORGE gap-analysis pass P0-2 (dashboard-top1pct run, 2026-09-03): the plugin's
 # own CLAUDE.md/README.md/best-practices/README.md/CHANGELOG.md had silently
 # drifted from the filesystem — the exact failure mode CLAUDE.md §5's Capability
@@ -10246,7 +10260,7 @@ rc=0; python3 scripts/check-data-platform-self-description.py --root "$TMP/dp-se
 gate "data-platform self-description: coverage-matrix empty cell (P1-11) caught" must_fail "$rc"
 
 echo
-echo "── Gate 269: data-platform app-starter package manifests (Tier 1 — static only) ──"
+echo "── Gate 270: data-platform app-starter package manifests (Tier 1 — static only) ──"
 # FORGE P0-4 (2026-09-03): a Tier-1 STATIC check only — package.json parses, and the
 # package-lock.json P0-1 generated is present and non-empty. Deliberately NOT npm
 # ci/typecheck/build here: those tiers live in the separate, non-required
@@ -10274,7 +10288,7 @@ rc=0; python3 -m json.tool "$DP_PKG_BAD" >/dev/null 2>&1 || rc=$?
 gate "data-platform starter package.json parse check (malformed fixture caught)" must_fail "$rc"
 
 echo
-echo "── Gate 270: data-platform skill reachability (every skill wired to an agent) ──"
+echo "── Gate 271: data-platform skill reachability (every skill wired to an agent) ──"
 # FORGE P1-6 (2026-09-03): a dispatched subagent loads its own agents/*.md, not
 # CLAUDE.md's skill table — a skill listed there but never mentioned by any
 # agents/*.md is shipped, indexed, and structurally invisible at runtime. Five of
@@ -10294,7 +10308,7 @@ gate "data-platform skill reachability: orphaned skill (no agent ref, no invoked
 rm -rf "$DP_SKR_TMP"
 
 echo
-echo "── Gate 271: data-platform cross-tenant denial harness (Tier 4 — opt-in, needs docker) ──"
+echo "── Gate 272: data-platform cross-tenant denial harness (Tier 4 — opt-in, needs docker) ──"
 # FORGE P1-9 (2026-09-03). Deliberately OPT-IN, never in the default run — it
 # needs a live docker-compose stack (Postgres + Cube v1.7.33). Required only on
 # a PR that touches a starter, a Cube schema, or an RLS template — wire that
@@ -10323,7 +10337,7 @@ else
 fi
 
 echo
-echo "── Gate 272: data-platform dashboard-audit structural checks (no browser needed) ──"
+echo "── Gate 273: data-platform dashboard-audit structural checks (no browser needed) ──"
 # FORGE P1-10 (2026-09-03): the parts of the dashboard-architecture-audit
 # rubric that don't need a rendered page — an empty/zero-data-state branch
 # and a comparison-baseline label both being PRESENT in source — as a
@@ -10345,12 +10359,12 @@ rc=0; grep -q "isZero" "$DP_AUDIT_BAD" 2>/dev/null || rc=1
 gate "dashboard-audit structural: missing empty-state branch caught" must_fail "$rc"
 
 echo
-echo "── Gate 273: data-platform knowledge-bank freshness (scheduled-routine lane, not a PR gate) ──"
+echo "── Gate 274: data-platform knowledge-bank freshness (scheduled-routine lane, not a PR gate) ──"
 # FORGE P1-12 (2026-09-03). Staleness (past the self-declared 90-day trigger) is
 # a WARN, never a FAIL — this is a research substrate, not a build input, so
 # this gate only enforces the hard floor: every knowledge/*.md file must carry
 # a DISCOVERABLE last-reviewed date (YAML frontmatter or prose blockquote).
-# Deliberately data-platform-scoped, matching Gates 268/270's own scoping
+# Deliberately data-platform-scoped, matching Gates 269/271's own scoping
 # rationale (every plugin's knowledge-bank shape differs).
 rc=0; python3 scripts/check-data-platform-knowledge-freshness.py --as-of 2026-09-03 >/dev/null 2>&1 || rc=$?
 gate "data-platform knowledge freshness: real tree, every file has a discoverable date" must_pass "$rc"
@@ -10365,13 +10379,13 @@ gate "data-platform knowledge freshness: file with no discoverable date caught" 
 rm -rf "$DP_KF_TMP"
 
 echo
-echo "── Gate 274: data-platform export/print structural checks (no browser needed) ──"
+echo "── Gate 275: data-platform export/print structural checks (no browser needed) ──"
 # FORGE P2-14 (2026-09-03): the parts of P2-14's acceptance test that don't
 # need a rendered page or a live Cube instance — an export route exists per
 # starter, the print/PDF affordance and its @media print rule exist, and
 # every provenance footer that must survive to print carries the
 # data-provenance-footer marker the print CSS targets. Lightweight
-# complement to the (opt-in, docker-gated) denial-harness Gate 271, which
+# complement to the (opt-in, docker-gated) denial-harness Gate 272, which
 # proves the export route's tenant-isolation property; this gate proves the
 # structural pieces are present at all.
 for starter in cube-nextjs-dashboard-starter cube-astro-dashboard-starter; do
@@ -10401,7 +10415,7 @@ rc=0; grep -q "session.tenantId" "$DP_EXPORT_BAD" 2>/dev/null || rc=1
 gate "export structural: request-derived tenant scoping caught" must_fail "$rc"
 
 echo
-echo "── Gate 275: data-platform locale/timezone structural checks (no browser needed) ──"
+echo "── Gate 276: data-platform locale/timezone structural checks (no browser needed) ──"
 # FORGE P2-15 (2026-09-03): no hard-coded "en-US" in either starter's widget
 # formatting call sites, an explicit `timezone` reaching each Cube query, and
 # the provenance footer naming the timezone alongside the date range. NOTE
@@ -10446,7 +10460,7 @@ grep -q 'Intl\.NumberFormat("en-US"' "$DP_LOCALE_BAD" 2>/dev/null && rc=1
 gate "locale structural: hard-coded en-US formatting call caught" must_fail "$rc"
 
 echo
-echo "── Gate 276: data-platform freshness-badge structural checks (no browser needed) ──"
+echo "── Gate 277: data-platform freshness-badge structural checks (no browser needed) ──"
 # FORGE P2-16 (2026-09-03): commands/build-embedded-dashboard.md step 5 has
 # mandated a visible as-of timestamp since it was written; confirmed neither
 # starter rendered one before this phase. This gate asserts every starter
@@ -10475,7 +10489,7 @@ rc=0; grep -q "FreshnessBadge" "$DP_FRESH_BAD" 2>/dev/null || rc=1
 gate "freshness structural: missing FreshnessBadge mount caught" must_fail "$rc"
 
 echo
-echo "── Gate 277: data-platform per-widget query-tagging structural checks (no browser needed) ──"
+echo "── Gate 278: data-platform per-widget query-tagging structural checks (no browser needed) ──"
 # FORGE P2-17 (2026-09-03): every getCubeClient( call in a widget component
 # must carry a tag argument, not a bare getCubeClient() — an untagged widget
 # collapses into Cube's Query History as an unattributable line, defeating
@@ -10504,7 +10518,7 @@ grep -qE 'getCubeClient\(\)' "$DP_TAG_BAD" 2>/dev/null && rc=1
 gate "query-tag structural: bare untagged getCubeClient() call caught" must_fail "$rc"
 
 echo
-echo "── Gate 278: data-platform theming structural checks (no browser needed) ──"
+echo "── Gate 279: data-platform theming structural checks (no browser needed) ──"
 # FORGE P2-18 (2026-09-03): every color must resolve through a CSS custom
 # property (never a literal hex) so a host can re-theme an embedded
 # dashboard by overriding a variable, per best-practices/dashboard-inherit-
@@ -10642,6 +10656,24 @@ rc=0; python3 scripts/check-gate-suite-coverage.py >/dev/null 2>&1 || rc=$?
 gate "suite-coverage: every bannered gate (incl. letter-suffixed 3b/5b/9b) is in >=1 suite" must_pass "$rc"
 rc=0; python3 scripts/check-gate-suite-coverage.py --self-test >/dev/null 2>&1 || rc=$?
 gate "suite-coverage teeth: a planted uncovered gate is caught; the live tree stays clean" must_pass "$rc"
+
+echo "── Gate 268: skill-description-baseline determinism + charset round-trip ──"
+# P0 (succinct-skill-descriptions plan, AT-P0.1/AT-P0.2/AT-P0.7) — registered NOW
+# per the plan's own DoD, not deferred to a later phase (the Gate-184 lesson: a
+# gate written but placed in only one of the three required surfaces ran
+# nowhere for a full release). --self-test covers AT-P0.1 (determinism) and
+# AT-P0.7 (YAML-special-char round-trip); --must-fail is the AT-P0.2 teeth
+# (mutating one real description by +50 chars must move exactly that entry
+# and the corpus total by exactly +50, proving the baseline is reading the
+# subject rather than a cached/stale figure).
+if command -v python3 >/dev/null 2>&1; then
+  rc=0; python3 scripts/skill-description-baseline.py --self-test >/dev/null 2>&1 || rc=$?
+  gate "skill-description-baseline: determinism (AT-P0.1) + charset round-trip (AT-P0.7)" must_pass "$rc"
+  rc=0; python3 scripts/skill-description-baseline.py --must-fail >/dev/null 2>&1 || rc=$?
+  gate "skill-description-baseline teeth: a +50-char mutation moves the entry AND corpus total by exactly 50 (AT-P0.2)" must_pass "$rc"
+else
+  _skip_or_fail "Gate 268 (skill-description-baseline)" python3
+fi
 
 # CLI-contract spot checks (PR-C hard constraints). Deliberately does NOT
 # recursively invoke the full default (no-args) suite here — that would
