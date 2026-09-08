@@ -10738,7 +10738,8 @@ echo "── Gate 281: claude-launch-safeguard (P1-P4) ────────�
 # negative control actually depends on that conjunct, not that the suite
 # happens to be green.
 if command -v python3 >/dev/null 2>&1; then
-  rc=0; python3 scripts/check-claude-launch-safeguard.py --self-test >/dev/null 2>&1 || rc=$?
+  rc=0; CLS_OUT="$(python3 scripts/check-claude-launch-safeguard.py --self-test 2>&1)" || rc=$?
+  if [[ "$rc" -ne 0 ]]; then echo "$CLS_OUT"; fi
   gate "claude-launch-safeguard: P1/P2 self-tests + P3 discriminator conjunct-3 mutant teeth" must_pass "$rc"
 else
   _skip_or_fail "Gate 281 (claude-launch-safeguard)" python3
