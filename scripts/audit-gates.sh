@@ -808,6 +808,11 @@ PY
       bash plugins/ravenclaude-core/scripts/forge-worktree.sh --self-test || rc=$?
       exit $rc
       ;;
+    264)
+      echo "── Gate 264: prompt-optimizer structural regression subset (per-gate run) ──"
+      bash plugins/ravenclaude-core/hooks/tests/test-gate264-prompt-optimizer-structural.sh
+      exit $?
+      ;;
     243)
       echo "── Gate 243: scheduled sweep contract + operator health card ──"
       bash plugins/ravenclaude-core/hooks/tests/test-gate243-sweep-and-health-card.sh
@@ -1612,7 +1617,7 @@ PY
       ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254, 255, 256, 257, 258, 259, 260, 261, 262, 263. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254, 255, 256, 257, 258, 259, 260, 261, 262, 263, 264. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -9774,6 +9779,37 @@ gate "forge-publish-session-plan.sh --self-test (publish, exit-2 refusals, both 
 
 rc=0; bash plugins/ravenclaude-core/scripts/forge-worktree.sh --self-test >/dev/null 2>&1 || rc=$?
 gate "forge-worktree.sh --self-test (11 fixtures: provision/reuse/nesting/opt-out/stale-base)" must_pass "$rc"
+
+echo
+echo "── Gate 264: prompt-optimizer structural regression subset (Phase 9) ────────"
+# Phase 9 — gate authoring, with judge scoping decided explicitly (red-team
+# Finding 2's resolution, the audit-gates 600s-ceiling trap). A capped
+# ≤5-fixture structural subset over prompt-optimizer's Phases 2-6 (all shipped
+# `prompt_optimizer.enabled: false` by default), ZERO live-judge-model calls —
+# every `claude` invocation inside the fixture script is a stub that `cat`s a
+# pre-built canned JSON file. Covers: (1) schema validity of all THREE frozen
+# JSON shapes (classifier / emit_optimized_prompt / emit_dispatch_plan) against
+# design-lock.md's §1/§2/§3, (2) the fail-open teeth (Phases 2/3/4's patterns)
+# with a must-fail-half mutant, (3) the no-egress check (Phase 2, §4) —
+# confidence=="low" forces action=="skip", which emits NOTHING, (4) the
+# semantic-screen teeth (Phase 5) — prompt-optimizer-format.py's OWN
+# --self-test, reused rather than reimplemented, and (5) the short-circuit
+# regression fixture (Phases 2/6) — an adjacent `dispatch_config` block never
+# leaks into `prompt_optimizer.enabled`'s YAML-block-scoped read, both
+# orderings. The full 42-entry golden-set LLM-judge quality pass (Phases 3/4's
+# `wild_assumption` over-flagging arbitration this gate deliberately does NOT
+# run) is a SEPARATE, non-required, standalone judge-soak tool living
+# elsewhere under this plugin's scripts/ directory — its filename is
+# deliberately NOT written here (see docs/plans/2026-09-03-prompt-optimizer/
+# for the name): a negative-space acceptance test greps this whole file for
+# that exact filename and requires ZERO matches, and this comment would
+# itself satisfy a naive grep if it spelled the name out — the same
+# source-scan-matches-prose trap this repo has hit before. It is never
+# invoked from this dispatcher or from this main sequence. ⛔ Gate 264 itself
+# IS registered in dispatcher + main sequence + Supported:. Grep by its own
+# literal name/number to confirm.
+rc=0; bash plugins/ravenclaude-core/hooks/tests/test-gate264-prompt-optimizer-structural.sh >/dev/null 2>&1 || rc=$?
+gate "prompt-optimizer structural subset: schema validity (x3) + fail-open teeth + no-egress + semantic-screen teeth + short-circuit regression" must_pass "$rc"
 
 echo "── analog-closeness-scorecard (Q2 leftover, docs/follow-ups/2026-08-14-analog-repos-leftovers.md) ──"
 # Recomputes the 2026-08-14 analog survey's own M/H/G/O/E/I/T/V weighted-closeness
