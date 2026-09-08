@@ -1,19 +1,23 @@
 ---
 name: prompt-optimizer
-description: "Rewrites an ambiguous-but-single-domain (domain_count<=1) user prompt via emit_optimized_prompt before the turn runs — surfacing constraints, missing context, and wild assumptions instead of silently guessing. Companion generator to prompt-optimizer-gate.sh's Tier-1 classifier."
+description: "Rewrites an ambiguous-but-single-domain (domain_count<=1) user prompt via emit_optimized_prompt, or drafts an advisory multi-domain dispatch plan via emit_dispatch_plan (domain_count>=2), before the turn runs — surfacing constraints, missing context, and wild assumptions instead of silently guessing or fragmenting. Companion generators to prompt-optimizer-gate.sh's Tier-1 classifier."
 allowed-tools: Bash, Read
 ---
 
-# Skill: prompt-optimizer (rewrite generator)
+# Skill: prompt-optimizer (rewrite + dispatch-plan generators)
 
-This file documents the **rewrite path** of the `prompt-optimizer` feature: the
-`emit_optimized_prompt` forced-tool schema and the generator that fills it. The
-classifier that decides whether the rewrite path fires at all is Phase 2's
-[`scripts/prompt-optimizer-gate.sh`](../../scripts/prompt-optimizer-gate.sh); the
-dispatch-plan path for `domain_count >= 2` is a separate generator (Phase 4, not
-covered here). Nothing in this file is wired into `hooks.json`/`settings.json` yet
-— that is Phase 6's job. `prompt_optimizer.enabled: false` is the shipped default;
-every mechanism this file describes is inert on a project that has not opted in.
+This file documents **both generator paths** of the `prompt-optimizer` feature:
+
+- The **rewrite path** (Phase 3) — the `emit_optimized_prompt` forced-tool schema
+  and its generator, for `domain_count <= 1`.
+- The **dispatch-plan path** (Phase 4) — the `emit_dispatch_plan` forced-tool
+  schema and its generator, for `domain_count >= 2`.
+
+The classifier that decides which path fires at all (or neither) is Phase 2's
+[`scripts/prompt-optimizer-gate.sh`](../../scripts/prompt-optimizer-gate.sh).
+Nothing in this file is wired into `hooks.json`/`settings.json` yet — that is
+Phase 6's job. `prompt_optimizer.enabled: false` is the shipped default; every
+mechanism this file describes is inert on a project that has not opted in.
 
 Source of truth for the schema below: `docs/plans/2026-09-03-prompt-optimizer/design-lock.md`
 §2. If this file and that one ever disagree, the design-lock file wins — it is the
@@ -219,22 +223,149 @@ stderr trace of which fail-open branch fired.
 
 ---
 
+## The `emit_dispatch_plan` schema (frozen, design-lock.md §3) — Phase 4
+
+Invoked when the classifier returns `action: "dispatch_plan"` (`domain_count >= 2`).
+Runs at the **BALANCED** tier (heavier judgment than the rewrite path — see
+"Tier resolution" below).
+
+```json
+{
+  "type": "object",
+  "required": ["domains", "per_domain", "wild_assumption"],
+  "properties": {
+    "domains": { "type": "array", "items": { "type": "string" } },
+    "per_domain": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["domain", "recommended_agents", "tailored_brief"],
+        "properties": {
+          "domain": { "type": "string" },
+          "recommended_agents": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["agent", "rationale", "matrix_basis"],
+              "properties": {
+                "agent": {
+                  "type": "string",
+                  "description": "MUST resolve to a real, currently-enabled agent name, validated against the live roster before injection (roster-hallucination guard). On failure the entry is dropped, never injected with a hallucinated name."
+                },
+                "rationale": { "type": "string", "description": "Requires Phase 5's semantic screen." },
+                "matrix_basis": { "type": "string", "description": "Cites the agent-routing-matrix.json task_class this recommendation is grounded in." }
+              }
+            }
+          },
+          "tailored_brief": { "type": "string", "description": "Requires Phase 5's semantic screen." }
+        }
+      }
+    },
+    "wild_assumption": {
+      "type": "object",
+      "required": ["present", "confidence"],
+      "properties": {
+        "present": { "type": "boolean" },
+        "description": { "type": "string", "description": "Requires Phase 5's semantic screen." },
+        "confidence": { "type": "string", "enum": ["low", "medium", "high"] }
+      }
+    }
+  }
+}
+```
+
+**Never-dispatches invariant (load-bearing, security-relevant).** This
+generator's tool definition grants no `Agent`/`Bash`/`Write`/`Edit` capability —
+it is pure JSON emission. The nested `claude -p` call the generator script makes
+uses `--tools=""`, the same mechanism Phase 2/3 already use to strip all tool
+access from that nested call; nothing in the script adds a tool grant back, and
+nothing in the script's own control flow reads its emitted JSON back and acts on
+it. See
+[`scripts/prompt-optimizer-dispatch.sh`](../../scripts/prompt-optimizer-dispatch.sh)'s
+own header for the full static-inspection argument.
+
+**The roster-hallucination guard (an ADDITION to the matrix-citation check, not
+a replacement — both run, independently, on every `recommended_agents[]`
+entry):**
+
+1. `agent` must resolve to a real, live agent name.
+2. `matrix_basis` must cite a real `agent-routing-matrix.json` `task_classes`
+   key, read directly from the real file at generation time.
+
+Either check failing drops that one entry (never the whole plan) and caps
+`wild_assumption.confidence` at `"low"` — see the script's own "ROSTER
+ENUMERATION — A JUDGMENT CALL" and "CONFIDENCE INTERPRETATION" header sections
+for the honest limits of what "live, currently-enabled" means here (there is no
+verified, portable, on-disk registry of enabled agents reachable from a
+standalone hook script; this generator scans this marketplace's own shipped
+`agents/*.md` frontmatter instead, degrading conservatively — narrower, never
+wider — when its directory-climbing guesses miss).
+
+> [MARKER, per task brief item 4 / design-lock.md §3 & §4a]: `rationale` (each
+> `recommended_agents[]` entry), `tailored_brief` (each `per_domain[]` entry),
+> and `wild_assumption.description` (when present) ALL REQUIRE PHASE 5'S
+> SEMANTIC SCREEN before any downstream injection into a model's live context.
+> This phase does not build that screen. `domain`, `agent`, and `matrix_basis`
+> are NOT on the screen list — `domain` is a short classifier-emitted label,
+> `agent`/`matrix_basis` are validated against real, on-disk rosters/registries
+> by the generator's own guards, not arbitrary model text.
+
+**Implementation split** — same boundary Phase 3 established: the schema + the
+"why" live here; the "how" (the subprocess call, robust JSON extraction, shape
+validation, and the roster/matrix guard application) lives in
+[`scripts/prompt-optimizer-dispatch.sh`](../../scripts/prompt-optimizer-dispatch.sh).
+The script accepts the same stdin contract (`.prompt`/`.promptText`) as the
+other two prompt-optimizer scripts.
+
+**Tier resolution — BALANCED**, via the same `resolve_tier()` mechanism Phase 3
+uses for FAST:
+
+```bash
+python3 plugins/ravenclaude-core/scripts/load-substrate-tier-map.py "" balanced
+```
+
+**Fail-open contract** — identical discipline to Phase 2/3: exit 0, nothing
+printed, no crash, on a missing `claude`/`jq`/`python3` binary, a subprocess
+timeout (`PROMPT_OPTIMIZER_DISPATCH_TIMEOUT_S`, default 40s), empty subprocess
+output, unparseable JSON, a structural schema miss, OR an empty roster scan
+(the guard has nothing real to validate against — fails open rather than ever
+validate against nothing or drop everything).
+
+### Testing this generator directly
+
+```bash
+mkdir -p /tmp/pd-test/.ravenclaude
+cat > /tmp/pd-test/.ravenclaude/comfort-posture.yaml <<'YAML'
+prompt_optimizer:
+  enabled: true
+  mode: shadow
+YAML
+
+printf '%s' '{"prompt":"Rebuild our checkout flow to support Apple Pay, make sure it'"'"'s PCI compliant, and load in under 200ms."}' | \
+  CLAUDE_PROJECT_DIR=/tmp/pd-test \
+  bash plugins/ravenclaude-core/scripts/prompt-optimizer-dispatch.sh
+```
+
+`PROMPT_OPTIMIZER_DEBUG=1` traces which branch fired (`ROSTER_SCAN`,
+`TIER_RESOLVE_FALLBACK`, `FAILOPEN reason=...`, or `GENERATED model=...`).
+
+---
+
 ## What this file/skill deliberately does NOT do
 
-- Does not build Phase 4's `emit_dispatch_plan` dispatch-plan generator (a
-  separate phase, dispatched independently — the two generators are
-  functionally independent per the task brief's Independence note).
 - Does not build Phase 5's semantic screen, `additionalContext` template
-  formatting, or delivery-shape logic (inline vs. file-pointer). The generator
-  prints raw, validated JSON to stdout only.
+  formatting, or delivery-shape logic (inline vs. file-pointer). Both
+  generators print raw, validated JSON to stdout only.
 - Does not build Phase 9's held-out LLM-judge quality-scoring pass — a
-  **separate, scheduled** gate using a model distinct from this generator,
+  **separate, scheduled** gate using a model distinct from either generator,
   scored against golden-set notes. Not a per-PR `audit-gates.sh` check this
   skill runs on itself.
 - Does not wire anything into `hooks.json`/`settings.json` (Phase 6).
 - Does not modify `agent-dispatch-evaluator.sh`, `dispatch-config.json`,
   `evaluate-dispatch.js`, `adaptive-run-classifier`'s files,
-  `agent-routing-matrix.json`/`.schema.json`, or `route-task.py`.
+  `agent-routing-matrix.json`/`.schema.json` (read-only, always), or
+  `route-task.py`.
 
-`depends_on_claims: [1]` (informational, references an upstream FORGE artifact).
+`depends_on_claims: [1, 3, 4, 6]` (informational, references upstream FORGE
+artifacts — Phase 4's set; Phase 3's own `[1]` is a subset).
 `reversibility: two-way-door`.
