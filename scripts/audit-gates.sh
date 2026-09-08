@@ -356,7 +356,16 @@ _suite_gate_tokens() { # $1=suite name -> echoes space-separated gate tokens; re
       # 269-279 at a second merge later the same day (origin/main
       # independently claimed 268 for skill-description-baseline.py while
       # this branch was still unmerged) — see each gate's own header comment.
-      echo "1 2 8 18 46 47 92 129 173 175 193 194 195 226 267 268 269 270 271 272 273 274 275 276 277 278 279 280"
+      # 280 (context-usage-meter model-aware-window self-test — same
+      # generic-self-test-with-mutant-teeth family, no better-fit suite;
+      # renumbered from 269 at merge time — origin/main independently
+      # claimed 269-279 for the data-platform batch above while this branch
+      # was unmerged, the same collision class as the 263-279 chain). 281
+      # (skill-description linter — cap/filler/name/charset + P3 ratchet,
+      # succinct-skill-descriptions P2/P3 — same generic-self-test family;
+      # renumbered from 280 in the SAME merge, since origin/main's context-
+      # usage-meter gate landed on 280 first).
+      echo "1 2 8 18 46 47 92 129 173 175 193 194 195 226 267 268 269 270 271 272 273 274 275 276 277 278 279 280 281"
       ;;
     security)
       # Gaps: 24 (Track B Engine Foundation — defines DECP, consumed by
@@ -1926,7 +1935,12 @@ PY
       exit $rc
       ;;
     280)
-      echo "── Gate 280: skill-description linter — cap/filler/name/charset + P3 ratchet (per-gate run) ──"
+      echo "── Gate 280: context-usage meter is model-aware (per-gate run) ──"
+      python3 scripts/check-context-budget-meter.py --self-test
+      exit $?
+      ;;
+    281)
+      echo "── Gate 281: skill-description linter — cap/filler/name/charset + P3 ratchet (per-gate run) ──"
       rc=0
       python3 scripts/check-skill-descriptions.py --self-test || rc=$?
       python3 scripts/check-skill-descriptions.py --must-fail || rc=$?
@@ -1934,7 +1948,7 @@ PY
       ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254, 255, 256, 257, 258, 259, 260, 261, 262, 263, 264, 265, 266, 267, 268, 269, 280. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254, 255, 256, 257, 258, 259, 260, 261, 262, 263, 264, 265, 266, 267, 268, 269, 280, 281. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -10580,7 +10594,7 @@ rc=0
 grep -qE '#[0-9a-fA-F]{6}' "$DP_THEME_BAD" 2>/dev/null && rc=1
 gate "theming structural: literal hex outside a token file caught" must_fail "$rc"
 
-echo "── Gate 280: skill-description linter — cap/filler/name/charset + P3 ratchet ──"
+echo "── Gate 281: skill-description linter — cap/filler/name/charset + P3 ratchet ──"
 # P2/P3 (succinct-skill-descriptions plan). check-skill-descriptions.py's own
 # --self-test covers: the deterministic category classifier (leaf/
 # disambiguating/router), the calibrated filler + name-restatement
@@ -10593,14 +10607,18 @@ echo "── Gate 280: skill-description linter — cap/filler/name/charset + P3
 # G-P2.3: P1's claim-6 study closed inconclusive-by-construction, never
 # earned (docs/plans/2026-09-03-succinct-skill-descriptions/p1-status.md).
 # --must-fail is the charset teeth: a real violation must be caught, a
-# clean description must not be.
+# clean description must not be. Renumbered from 280 at merge time --
+# origin/main independently claimed 280 for check-context-budget-meter.py
+# while this branch was unmerged (the same collision class this repo's own
+# CLAUDE.md already records for the Gate 261->263 forge-receipt renumbering
+# and the Gate 269->280 context-usage-meter renumbering).
 if command -v python3 >/dev/null 2>&1; then
   rc=0; python3 scripts/check-skill-descriptions.py --self-test >/dev/null 2>&1 || rc=$?
   gate "skill-description linter self-test (classifier/filler/name/charset/fix/ratchet/posture-drift)" must_pass "$rc"
   rc=0; python3 scripts/check-skill-descriptions.py --must-fail >/dev/null 2>&1 || rc=$?
   gate "skill-description linter teeth: a real charset violation is caught, a clean one is not" must_pass "$rc"
 else
-  _skip_or_fail "Gate 280 (skill-description linter)" python3
+  _skip_or_fail "Gate 281 (skill-description linter)" python3
 fi
 
 echo "── Gate 266: runtime self-test front door — Tier A only ────────────────────"
@@ -10704,6 +10722,29 @@ if command -v python3 >/dev/null 2>&1; then
   gate "skill-description-baseline teeth: a +50-char mutation moves the entry AND corpus total by exactly 50 (AT-P0.2)" must_pass "$rc"
 else
   _skip_or_fail "Gate 268 (skill-description-baseline)" python3
+fi
+
+echo
+echo "── Gate 280: context-usage meter is model-aware ────────────────────────────"
+# From the context-budget-aware-meter build. Before this, scripts/context-usage-
+# meter.py assumed every Claude Code session had a 200,000-token context window
+# regardless of which model was actually running — wrong by 5x for every current
+# model except the haiku tier (Sonnet 5 / Opus 5 / Fable 5 / Fable 5.1 are all
+# 1,000,000; only Haiku 4.5 is 200,000). check-context-budget-meter.py --self-test
+# proves (A) knowledge/model-catalog.json's new context_windows map covers every
+# governed alias with a positive int, and (B) the real test-context-usage-meter.py
+# suite passes AND fails against a MUTANT that reverts the model-aware resolution
+# to the old hardcoded-200000 behavior — the teeth half, so this gate is proven to
+# be measuring the fix rather than passing for an unrelated reason. ⛔ Renumbered
+# from 269 at merge time — origin/main independently claimed Gates 269-279 for
+# the data-platform batch while this branch was unmerged (the same collision
+# class this repo's own CLAUDE.md already records twice, e.g. the Gate 261->263
+# forge-receipt renumbering).
+if command -v python3 >/dev/null 2>&1; then
+  rc=0; python3 scripts/check-context-budget-meter.py --self-test >/dev/null 2>&1 || rc=$?
+  gate "context-usage meter: model-aware window resolution + hardcoded-window-mutant teeth" must_pass "$rc"
+else
+  _skip_or_fail "Gate 280 (context-usage meter model-aware)" python3
 fi
 
 # CLI-contract spot checks (PR-C hard constraints). Deliberately does NOT
