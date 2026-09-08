@@ -147,11 +147,27 @@ python3 plugins/ravenclaude-core/scripts/load-substrate-tier-map.py "" fast
 
 `host` is left blank because a standalone hook script has no host-detection
 signal available to it — `resolve_tier()`'s own documented behavior ("blank host
--> claude") is exactly the fallback wanted here, not a workaround around it. This
-mirrors how `claude-orchestrate.sh` and `cheap-lane-delegate.sh` invoke tier
-resolution: through the shared resolver, never a duplicated model-string literal.
-If the resolver script is ever unreadable, the generator falls back to the
-literal `claude-haiku-4-5-20251001` — `substrate-tier-map.json`'s own
+-> claude") is exactly the fallback wanted here, not a workaround around it.
+
+**Corrected precedent citation (task review, 2026-09-08).** This paragraph
+originally claimed the CLI-subprocess invocation form "mirrors how
+`claude-orchestrate.sh` and `cheap-lane-delegate.sh` invoke tier resolution."
+Checked directly against both files: neither references `substrate-tier-map.json`
+or `resolve_tier()` at all (`claude-orchestrate.sh` hardcodes its own model
+defaults with env-var overrides; `cheap-lane-delegate.sh` is a thin dispatcher
+that passes `--agent`/flags through to `grok-delegate.sh`/`copilot-delegate.sh`
+verbatim and does no tier resolution itself). The real precedent for reading
+`substrate-tier-map.json` via a subprocess/inline-read (rather than
+`thing-decide.py`'s `importlib`-based function call) is
+[`scripts/grok-delegate.sh`](../../scripts/grok-delegate.sh), which reads the
+same map file directly for its own tier/model/effort resolution. This script is
+the **first** caller to invoke `resolve_tier()` specifically via
+`load-substrate-tier-map.py`'s documented CLI form (`python3
+load-substrate-tier-map.py <host> <tier>`) — a real, working, and now-precedented
+pattern, but not one two other named scripts were already doing; the claim that
+a wider precedent existed for *this exact invocation shape* was inaccurate and is
+not repeated. If the resolver script is ever unreadable, the generator falls back
+to the literal `claude-haiku-4-5-20251001` — `substrate-tier-map.json`'s own
 `hosts.claude.fast` value, restated as a documented fallback of the resolved
 value rather than an independently invented one.
 
