@@ -52,9 +52,11 @@ jobs:
       run:
         working-directory: plugins/data-platform/templates/cube-nextjs-dashboard-starter
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
-      - uses: actions/setup-node@v5
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: "18.17.0" # matches this starter's package.json engines.node floor (P0-1)
           cache: npm
@@ -78,7 +80,14 @@ jobs:
           set -euo pipefail
           npx --yes next start -p 4173 &
           SERVER_PID=$!
-          npm install --no-save playwright@1.48.0 @axe-core/playwright@4.10.0
+          # ci-headless-smoke.js lives one directory UP (shared by both starters) and
+          # Node's require() resolves relative to the REQUIRING FILE's own directory,
+          # never the invoking cwd — so `npm install` here (cwd = this starter) would
+          # place playwright where the script can never find it. --prefix .. installs
+          # into templates/node_modules instead, where the shared script's require()
+          # actually walks. Verified empirically (a small real package install +
+          # require from the parent) before landing this fix.
+          npm install --no-save --prefix .. playwright@1.48.0 @axe-core/playwright@4.10.0
           npx --yes playwright@1.48.0 install --with-deps chromium
           SMOKE_URL="http://localhost:4173/" node ../ci-headless-smoke.js
           kill "$SERVER_PID" 2>/dev/null || true
@@ -89,9 +98,11 @@ jobs:
       run:
         working-directory: plugins/data-platform/templates/cube-astro-dashboard-starter
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
-      - uses: actions/setup-node@v5
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: "18.17.0" # matches this starter's package.json engines.node floor (P0-1)
           cache: npm
@@ -117,7 +128,10 @@ jobs:
           set -euo pipefail
           node ./dist/server/entry.mjs &
           SERVER_PID=$!
-          npm install --no-save playwright@1.48.0 @axe-core/playwright@4.10.0
+          # See the identical comment in the nextjs-starter job above — same fix,
+          # same reason: require() resolves from ci-headless-smoke.js's own
+          # directory (templates/), not from this starter's cwd.
+          npm install --no-save --prefix .. playwright@1.48.0 @axe-core/playwright@4.10.0
           npx --yes playwright@1.48.0 install --with-deps chromium
           SMOKE_URL="http://localhost:4321/" node ../ci-headless-smoke.js
           kill "$SERVER_PID" 2>/dev/null || true
