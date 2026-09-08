@@ -53,4 +53,4 @@ order by month
 see the case-studies page for the before/after comparison pattern this rule expects on a
 per-metric claim.*
 
-See [Case Studies](/case-studies) for the full before/after detail per project.
+See [Case Studies](./case-studies.md) for the full before/after detail per project.
