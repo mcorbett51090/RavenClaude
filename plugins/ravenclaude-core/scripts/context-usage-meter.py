@@ -28,8 +28,22 @@ Window size, ranked:
   1. same-session `signals.json.contextWindowTokens` if present (Grok only)
   2. owner knob (`--window` or posture `context_handoff.context_window_tokens`)
   3. Grok config `context_window = N` if found
-  4. Claude Code default (200000) — only when the reading came from the Claude
-     Code path and nothing above resolved a window
+  4. CORRECTED 2026-09-08 — model-aware resolution (Claude Code path only): the
+     session's actual running model id (read off the last assistant turn's
+     `message.model` field in the same transcript) is looked up in
+     `knowledge/model-catalog.json`'s `context_windows` map. Before this, EVERY
+     Claude Code session was assumed to have a 200000-token window regardless
+     of which model was running — wrong by 5x for every current model except
+     the haiku tier (Sonnet 5 / Opus 5 / Fable 5 / Fable 5.1 are all
+     1,000,000; only Haiku 4.5 is 200,000, per the claude-api skill's live
+     table). The direction was conservative (over-reports percent used,
+     triggers conserve/handoff EARLY) but the number was simply wrong — see
+     CLAUDE.md milestone "Context-usage meter becomes model-aware". An
+     unresolvable model id falls back to a haiku/generic heuristic
+     (`_HAIKU_FALLBACK_WINDOW`/`_GENERIC_FALLBACK_WINDOW`), never a guess.
+  5. Claude Code default (200000) — only when the reading came from the Claude
+     Code path AND the model id itself could not be resolved at all (rank 4
+     found nothing to look up).
 Never hardcode 500000.
 
 A hook process locates the Grok session via GROK_SESSION_ID (claim 28); the Claude
@@ -64,6 +78,28 @@ DEFAULT_AUTO_COMPACT_CLAUDE = 80
 MAX_CLAUDE_TRANSCRIPT_TAIL_BYTES = 4 * 1024 * 1024
 _MAX_PATH_LEN = 4096
 _CTRL = re.compile(r"[\x00-\x1f\x7f]")
+
+# Model-aware window resolution (added 2026-09-08 — see module docstring rank 4).
+# knowledge/model-catalog.json is the single source of truth for governed model
+# ids + their context windows (Gate 134's own file); resolved relative to this
+# script's own location so it works from any cwd, mirroring _model_catalog.py's
+# pattern.
+_MODEL_CATALOG_PATH = Path(__file__).resolve().parent.parent / "knowledge" / "model-catalog.json"
+_CATALOG_MAX_BYTES = 256 * 1024
+# Fallback heuristic ONLY when a model id is resolved but is not one of the
+# catalog's governed ids (e.g. a dated snapshot id, or a model shipped after
+# this catalog was last updated). Per the claude-api skill's live table every
+# current-generation Claude model is 1,000,000 tokens except the haiku tier
+# (200,000) — this is a heuristic fallback, never a substitute for the
+# catalog, which is checked first.
+_HAIKU_FALLBACK_WINDOW = 200000
+_GENERIC_FALLBACK_WINDOW = 1000000
+# Conservative, documented (not empirically measured) reservation subtracted
+# from the raw window to produce `effective_budget`: room for the model's own
+# output plus system-prompt/tool-schema overhead that isn't visible as "used"
+# in a single turn's own accounting. See `effective_budget()`.
+DEFAULT_RESERVED_OUTPUT_TOKENS = 16000
+DEFAULT_OVERHEAD_MARGIN_PCT = 5
 
 _WINDOW_RE = re.compile(
     r"(?m)^[ \t]*context_window[ \t]*=[ \t]*(\d+)\b"
@@ -227,6 +263,99 @@ def last_total_tokens_claude(path: Path) -> int | None:
     return None
 
 
+def last_assistant_model_claude(path: Path) -> str | None:
+    """The `model` id off the same last-assistant-turn record `last_total_tokens_claude`
+    reads usage from. A separate bounded tail read (not folded into that function) so
+    its existing, tested behavior stays byte-identical — this is purely additive."""
+    try:
+        if not path.is_file():
+            return None
+        size = path.stat().st_size
+    except OSError:
+        return None
+    try:
+        with path.open("rb") as handle:
+            if size > MAX_CLAUDE_TRANSCRIPT_TAIL_BYTES:
+                handle.seek(-MAX_CLAUDE_TRANSCRIPT_TAIL_BYTES, os.SEEK_END)
+            raw = handle.read()
+    except OSError:
+        return None
+    text = raw.decode("utf-8", errors="replace")
+    for line in reversed(text.splitlines()):
+        if '"model"' not in line or '"assistant"' not in line:
+            continue
+        try:
+            obj = json.loads(line)
+        except ValueError:
+            continue
+        if not isinstance(obj, dict) or obj.get("type") != "assistant":
+            continue
+        message = obj.get("message")
+        if not isinstance(message, dict):
+            continue
+        model = message.get("model")
+        if isinstance(model, str) and model.strip():
+            return model.strip()
+    return None
+
+
+def _load_model_catalog() -> dict | None:
+    try:
+        if not _MODEL_CATALOG_PATH.is_file():
+            return None
+        if _MODEL_CATALOG_PATH.stat().st_size > _CATALOG_MAX_BYTES:
+            return None
+        data = json.loads(_MODEL_CATALOG_PATH.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+    return data if isinstance(data, dict) else None
+
+
+def resolve_context_window_for_model(model_id: str | None) -> tuple[int | None, str]:
+    """(window, source) for a model id. source is one of:
+    "catalog" (an exact governed-id hit in model-catalog.json), "heuristic"
+    (a haiku/generic fallback for an unresolved id), or "none" (no model id
+    at all — the caller falls back to DEFAULT_CLAUDE_WINDOW)."""
+    if not isinstance(model_id, str) or not model_id.strip():
+        return None, "none"
+    model_id = model_id.strip()
+
+    catalog = _load_model_catalog()
+    if catalog is not None:
+        current = catalog.get("current")
+        windows = catalog.get("context_windows")
+        if isinstance(current, dict) and isinstance(windows, dict):
+            for alias, governed_id in current.items():
+                if governed_id == model_id:
+                    win = windows.get(alias)
+                    if isinstance(win, int) and not isinstance(win, bool) and win > 0:
+                        return win, "catalog"
+
+    # Unresolved against the catalog — a dated snapshot id, a model shipped
+    # after this catalog was last updated, etc. Fall back to a heuristic
+    # rather than DEFAULT_CLAUDE_WINDOW, since we DO have a real model id.
+    if "haiku" in model_id.lower():
+        return _HAIKU_FALLBACK_WINDOW, "heuristic"
+    return _GENERIC_FALLBACK_WINDOW, "heuristic"
+
+
+def effective_budget(
+    window: int,
+    reserved_output: int | None = None,
+    overhead_margin_pct: int | None = None,
+) -> int:
+    """Usable budget before the harness's own turn-output + system-prompt/tool-schema
+    overhead eat into it. A conservative, DOCUMENTED estimate, not a measured figure —
+    see DEFAULT_RESERVED_OUTPUT_TOKENS / DEFAULT_OVERHEAD_MARGIN_PCT. Floors at 0 so a
+    tiny/misconfigured window never reports a negative budget."""
+    reserved = reserved_output if reserved_output is not None else DEFAULT_RESERVED_OUTPUT_TOKENS
+    margin_pct = (
+        overhead_margin_pct if overhead_margin_pct is not None else DEFAULT_OVERHEAD_MARGIN_PCT
+    )
+    overhead = round(window * (margin_pct / 100.0))
+    return max(0, window - reserved - overhead)
+
+
 def last_total_tokens(updates_path: Path) -> int | None:
     """Last params._meta.totalTokens in updates.jsonl. Never signals.json used."""
     try:
@@ -357,6 +486,8 @@ def measure(
     owner_threshold: int | None,
     auto_compact: int | None,
     claude_payload: dict | None = None,
+    reserved_output: int | None = None,
+    overhead_margin_pct: int | None = None,
 ) -> dict:
     used = last_total_tokens(session / "updates.jsonl") if session is not None else None
     window = None
@@ -367,6 +498,7 @@ def measure(
     # never overrides a Grok reading. Existing callers (none pass
     # claude_payload) are byte-identical to before this addition.
     source = "grok"
+    model_id = None
     if used is None and claude_payload is not None:
         cpath = claude_transcript_path(claude_payload)
         if cpath is not None:
@@ -374,13 +506,20 @@ def measure(
             if cused is not None:
                 used = cused
                 source = "claude-code"
+                model_id = last_assistant_model_claude(cpath)
 
     if window is None:
         window = owner_window
     if window is None:
         window = window_from_grok_config()
+    window_source = "explicit" if window is not None else None
     if window is None and source == "claude-code":
-        window = DEFAULT_CLAUDE_WINDOW
+        # Rank 4 (model-aware) before rank 5 (hardcoded default) — see the
+        # module docstring's window-ranking table.
+        window, window_source = resolve_context_window_for_model(model_id)
+        if window is None:
+            window = DEFAULT_CLAUDE_WINDOW
+            window_source = "default"
 
     if auto_compact is not None:
         auto = auto_compact
@@ -399,6 +538,9 @@ def measure(
             "auto_compact": auto,
             "over": False,
             "source": source if used is not None else None,
+            "model_id": model_id,
+            "window_source": window_source,
+            "effective_budget": None,
         }
     percent = (used / window) * 100.0
     return {
@@ -410,6 +552,9 @@ def measure(
         "auto_compact": auto,
         "over": percent >= threshold,
         "source": source,
+        "model_id": model_id,
+        "window_source": window_source,
+        "effective_budget": effective_budget(window, reserved_output, overhead_margin_pct),
     }
 
 
@@ -431,6 +576,18 @@ def main(argv=None) -> int:
     ap.add_argument("--threshold", type=int, help="Soft threshold percent")
     ap.add_argument("--auto-compact", type=int, help="Auto-compact percent ceiling")
     ap.add_argument("--project-root", help="Project root for posture (tests)")
+    ap.add_argument(
+        "--reserved-output",
+        type=int,
+        help="Override the effective_budget output-token reservation (default %d)"
+        % DEFAULT_RESERVED_OUTPUT_TOKENS,
+    )
+    ap.add_argument(
+        "--overhead-pct",
+        type=int,
+        help="Override the effective_budget overhead-margin percent (default %d)"
+        % DEFAULT_OVERHEAD_MARGIN_PCT,
+    )
     args = ap.parse_args(argv)
 
     payload = _load_payload()
@@ -445,7 +602,15 @@ def main(argv=None) -> int:
     owner_thresh = (
         args.threshold if args.threshold is not None else posture.get("threshold")
     )
-    result = measure(session, owner_window, owner_thresh, args.auto_compact, claude_payload=payload)
+    result = measure(
+        session,
+        owner_window,
+        owner_thresh,
+        args.auto_compact,
+        claude_payload=payload,
+        reserved_output=args.reserved_output,
+        overhead_margin_pct=args.overhead_pct,
+    )
     result["mode"] = posture.get("mode") or "off"
     result["spawn"] = posture.get("spawn") or "copy-paste-only"
     json.dump(result, sys.stdout, separators=(",", ":"))
