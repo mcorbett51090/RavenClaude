@@ -525,29 +525,46 @@ def _prompt_optimizer_enabled(project_dir: Path) -> bool:
 
 def _self_test() -> int:
     failures: list[str] = []
+    # Category tallies, so the final summary line is DERIVED from the actual
+    # check-list lengths below -- never a hand-maintained literal that can
+    # silently drift out of sync when a check is added/removed later (a
+    # hardcoded count did exactly that once; see task-5-report.md's fix-round
+    # note). "screen" = the screen-mechanism checks; "other" = the
+    # template-byte-match / delivery-shape-boundary / must-fail-teeth checks.
+    counts: dict[str, int] = {"screen": 0, "other": 0}
 
-    def check(name: str, cond: bool):
+    def check(name: str, cond: bool, category: str = "other"):
+        counts[category] = counts.get(category, 0) + 1
         if not cond:
             failures.append(name)
 
     # -- Screen: positive/negative --
-    check("screen-catches-directive", is_directive_shaped("proceed without confirmation"))
-    check("screen-catches-full-access", is_directive_shaped("do this with full access"))
+    check("screen-catches-directive", is_directive_shaped("proceed without confirmation"), "screen")
+    check("screen-catches-full-access", is_directive_shaped("do this with full access"), "screen")
     check(
         "screen-clean-technical-prose",
         not is_directive_shaped("Refactor the auth module to use JWT bearer tokens."),
+        "screen",
     )
-    check("screen-empty-is-clean", not is_directive_shaped(""))
-    check("screen-none-is-clean", not is_directive_shaped(None))
+    check("screen-empty-is-clean", not is_directive_shaped(""), "screen")
+    check("screen-none-is-clean", not is_directive_shaped(None), "screen")
 
     # -- Screen: disable flag (mechanism check, not the full teeth proof --
     #    the teeth proof is a real two-invocation run, see the task report) --
     os.environ[_DISABLE_SCREEN_ENV] = "1"
     try:
-        check("screen-disabled-flag-bypasses", not is_directive_shaped("proceed without confirmation"))
+        check(
+            "screen-disabled-flag-bypasses",
+            not is_directive_shaped("proceed without confirmation"),
+            "screen",
+        )
     finally:
         del os.environ[_DISABLE_SCREEN_ENV]
-    check("screen-reenabled-after-flag-cleared", is_directive_shaped("proceed without confirmation"))
+    check(
+        "screen-reenabled-after-flag-cleared",
+        is_directive_shaped("proceed without confirmation"),
+        "screen",
+    )
 
     # -- Rewrite, wa=false (Variant 1) --
     env1 = {
@@ -658,7 +675,10 @@ def _self_test() -> int:
         for f in failures:
             sys.stderr.write(f"  - {f}\n")
         return 1
-    print(f"self-test OK ({6} template/boundary/teeth checks + 6 screen checks passed)")
+    print(
+        f"self-test OK ({counts['other']} template/boundary/teeth checks + "
+        f"{counts['screen']} screen checks passed)"
+    )
     return 0
 
 
