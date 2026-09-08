@@ -1,17 +1,22 @@
 ---
 name: prompt-optimizer
-description: "Rewrites an ambiguous-but-single-domain (domain_count<=1) user prompt via emit_optimized_prompt, or drafts an advisory multi-domain dispatch plan via emit_dispatch_plan (domain_count>=2), before the turn runs — surfacing constraints, missing context, and wild assumptions instead of silently guessing or fragmenting. Companion generators to prompt-optimizer-gate.sh's Tier-1 classifier."
+description: "Rewrites an ambiguous-but-single-domain (domain_count<=1) user prompt via emit_optimized_prompt, or drafts an advisory multi-domain dispatch plan via emit_dispatch_plan (domain_count>=2), before the turn runs — surfacing constraints, missing context, and wild assumptions instead of silently guessing or fragmenting. Phase 5 screens/formats either generator's output before injection. Companion generators to prompt-optimizer-gate.sh's Tier-1 classifier."
 allowed-tools: Bash, Read
 ---
 
-# Skill: prompt-optimizer (rewrite + dispatch-plan generators)
+# Skill: prompt-optimizer (rewrite + dispatch-plan generators + Phase 5 formatting)
 
-This file documents **both generator paths** of the `prompt-optimizer` feature:
+This file documents **both generator paths**, plus the Phase 5 formatter that
+sits downstream of them, in the `prompt-optimizer` feature:
 
 - The **rewrite path** (Phase 3) — the `emit_optimized_prompt` forced-tool schema
   and its generator, for `domain_count <= 1`.
 - The **dispatch-plan path** (Phase 4) — the `emit_dispatch_plan` forced-tool
   schema and its generator, for `domain_count >= 2`.
+- The **formatter** (Phase 5) — the semantic screen, delivery-shape branching,
+  approval-gate wording, and on-disk audit artifact that turn either
+  generator's raw JSON into the exact `additionalContext` text a live turn
+  would see. See "Phase 5 — formatting..." below.
 
 The classifier that decides which path fires at all (or neither) is Phase 2's
 [`scripts/prompt-optimizer-gate.sh`](../../scripts/prompt-optimizer-gate.sh).
@@ -351,11 +356,128 @@ printf '%s' '{"prompt":"Rebuild our checkout flow to support Apple Pay, make sur
 
 ---
 
+## Phase 5 — formatting, the semantic screen, delivery shape, the audit artifact
+
+[`scripts/prompt-optimizer-format.py`](../../scripts/prompt-optimizer-format.py)
+is the companion formatter: it takes the classifier's `action`/`confidence`/
+`ambiguity_reason` plus either generator's raw, schema-validated JSON and
+produces (a) the exact `additionalContext` text frozen in design-lock.md §4,
+(b) the dispatch-plan delivery-shape decision (§7's frozen `≤2 inline / >2
+file-pointer` threshold), and (c) the on-disk audit artifact (§5's frozen
+path). It is a pure, offline, no-network text transform — no `claude -p` call,
+no filesystem scan beyond writing its own artifact.
+
+**Input envelope** (stdin, one JSON object):
+
+```json
+{
+  "action": "rewrite" | "dispatch_plan",
+  "classifier": { "confidence": "low|medium|high", "ambiguity_reason": "<optional>" },
+  "generator": { "<the raw JSON printed by the rewrite or dispatch generator>" }
+}
+```
+
+`classifier.ambiguity_reason` is deliberately NOT read from
+`prompt-optimizer-gate.sh`'s stdout (Phase 2 omits it there by design, AT3) —
+a real Phase 6 wiring reads it from the on-disk audit artifact `gate.sh`
+already writes, and passes the extracted value into this envelope. This
+script has no filesystem-scanning logic of its own to locate that file.
+
+**The semantic screen (red-team Finding 3).** Before any of the four fields
+design-lock.md §4a names (`ambiguity_reason`, `wild_assumption.description`,
+per-recommendation `rationale`, per-domain `tailored_brief`) is rendered, a
+cheap, deterministic keyword/phrase regex screen
+(`is_directive_shaped()`) checks it for imperative/directive-shaped language
+("skip confirmation", "proceed without", "do not ask", "full access",
+"without waiting", "ignore the above", and related phrasings — mirroring
+[`hooks/_scrub.sh`](../../hooks/_scrub.sh)'s SHAPE, a pattern array + a scrub
+function, for a different concern). A flagged field is ALWAYS degraded to a
+FIXED fallback string — this implementation deliberately never attempts the
+"stripped/rewritten" disposition design-lock.md §4 also allows, because a
+strip transform is itself an attack surface; the fixed-fallback disposition
+admits a trivial safety proof (the rendered text is always one of two
+hardcoded constants when the screen fires, never a function of the flagged
+content):
+
+- `GENERIC_FALLBACK` (ambiguity_reason / rationale / tailored_brief):
+  `"content flagged for review — see the audit artifact"` (design-lock.md §4's
+  own frozen fallback text).
+- `WILD_ASSUMPTION_FALLBACK` (wild_assumption.description only):
+  `"A wild assumption was flagged — see the audit artifact for detail before
+  proceeding."` (design-lock.md §4 Variant 2's own frozen fallback text).
+
+The `AskUserQuestion`-as-first-tool-call instruction line (the approval-gate
+wording, tiebreak Conflict 2 → A) is a FIXED string emitted whenever
+`wild_assumption.present == true` — it is never itself screened and never
+degrades alongside the (possibly-fallback) description line, satisfying
+design-lock.md §4 Variant 2's "the approval pause must survive even a fully
+degraded description" invariant. **This is explicitly best-effort on the
+hook path** — a `UserPromptSubmit` hook can only inject advisory
+`additionalContext`, it cannot force the next turn's first tool call; nothing
+here or in a future Phase 6 wiring should overstate that it can.
+
+A test-only environment variable, `PROMPT_OPTIMIZER_FORMAT_DISABLE_SCREEN=1`,
+makes the screen report "not flagged" unconditionally — it exists solely so a
+caller can prove the screen is load-bearing (run an identical fixture twice:
+caught, then leaked) and is never referenced by any real wiring or posture
+key.
+
+**Delivery-shape branching (red-team Finding 5, design-lock.md §7).**
+`rewrite` is always inline. `dispatch_plan` is inline only when
+`sum(len(recommended_agents) for each per_domain entry) <= 2`; above that,
+file-pointer delivery is mandatory (a short pointer + truncated domains line,
+never the per-domain/per-agent detail — that only ever lives in the on-disk
+artifact).
+
+**The on-disk audit artifact (design-lock.md §5).** Frozen path:
+`.ravenclaude/runs/<session>/prompt-optimizer/<UTC-ts>.json`. It retains the
+RAW, unscreened classifier + generator content in full, plus a `screen`
+object recording each field's disposition (`absent`/`clean`/`flagged`) — this
+is design-lock's own stated architecture, not a leak: acceptance test 5's own
+framing is that the no-egress bar governs the `additionalContext` STDOUT
+surface, and the on-disk artifact is expected to be complete.
+
+**Composition with `decision-review` (design-lock/plan requirement).** A
+wild-assumption question is a genuine-preference call, and this repo's
+`decision-review` tribunal ([`scripts/thing-decide.py`](../../scripts/thing-decide.py)
+`decide` mode) defers such calls even under `decision_review: binding` — it
+never auto-resolves them to a `yes`/`no`. Live-verified this session (see
+`task-5-report.md` for the actual command + output): a wild-assumption-shaped
+question routed through `thing-decide.py decide` with `decision_review:
+binding` set came back `verdict: "defer"`, `binding: false`, with all three
+convened seats (Forseti/Mímir/Heimdall) independently voting `defer`.
+
+**Fail-open contract, same discipline as Phases 2-4.** Any error (unparseable
+stdin, an unsupported/missing `action`, a filesystem error writing the audit
+artifact) causes this script to exit 0 with no stdout — never a partial or
+malformed JSON object.
+
+### Testing this formatter directly
+
+```bash
+mkdir -p /tmp/pof-test/.ravenclaude
+cat > /tmp/pof-test/.ravenclaude/comfort-posture.yaml <<'YAML'
+prompt_optimizer:
+  enabled: true
+  mode: shadow
+YAML
+
+echo '{"action":"rewrite","classifier":{"confidence":"medium"},"generator":{"rewritten_prompt":"Fix the bug.","explicit_constraints":[],"surfaced_missing_context":[],"wild_assumption":{"present":false,"confidence":"high"}}}' | \
+  python3 plugins/ravenclaude-core/scripts/prompt-optimizer-format.py --project-dir /tmp/pof-test --session demo
+
+# Internal self-test (screen positives/negatives, all-6-template byte checks,
+# delivery-shape boundary cases, and the must-fail-teeth mechanism):
+python3 plugins/ravenclaude-core/scripts/prompt-optimizer-format.py --self-test
+```
+
+---
+
 ## What this file/skill deliberately does NOT do
 
-- Does not build Phase 5's semantic screen, `additionalContext` template
-  formatting, or delivery-shape logic (inline vs. file-pointer). Both
-  generators print raw, validated JSON to stdout only.
+- Does not wire the semantic screen, delivery-shape branching, or the audit
+  artifact into a live `UserPromptSubmit` hook — see the Phase 5 section
+  above for what exists (a standalone formatter script), and Phase 6 for the
+  wiring itself.
 - Does not build Phase 9's held-out LLM-judge quality-scoring pass — a
   **separate, scheduled** gate using a model distinct from either generator,
   scored against golden-set notes. Not a per-PR `audit-gates.sh` check this
