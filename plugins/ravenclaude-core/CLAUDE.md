@@ -4557,3 +4557,79 @@ every run, so a mis-classified-and-never-revisited host is caught, not just a ne
 **Migration:** the Codex `/hooks` re-trust step above is the one action item. Everything else is
 additive — no existing gate's flags, exit codes, or assertion semantics changed; Gate 259's three
 pre-existing self-test mutants are unmodified.
+
+## Context-usage meter becomes model-aware — the harness was assuming a 200K window for every model (added 2026-09-08, v0.319.0)
+
+Asked to analyze what puts pressure on the context window and build a mechanism to keep a session
+within the harness's and the running model's real budget. The analysis (SessionStart banner,
+`using-superpowers` skill body, `MEMORY.md`, the ~15K agent-description budget, per-tool-call hook
+`additionalContext`, resident skill bodies) confirmed nothing new needed building there — this repo
+already ships the mechanism (`scripts/context-usage-meter.py`, `scripts/conserve-tokens.py`,
+`hooks/handoff-nudge.sh`), and the v0.303.0/v0.314.0 milestones above already closed its two
+"never fires under Claude Code" bugs. What remained was a real, still-live third defect in the
+meter itself, in the one place that matters most: the **window** it measures against.
+
+⛔ **`DEFAULT_CLAUDE_WINDOW = 200000` was applied to every Claude Code session regardless of which
+model was actually running.** Per the `claude-api` skill's live model table (retrieved this
+session): Sonnet 5, Opus 5, Fable 5, and Fable 5.1 are all **1,000,000**-token windows; only the
+haiku tier is 200,000. So the one component built to answer "how full is my budget" was assuming a
+window **5x too small** for every model except haiku — the direction is conservative (over-reports
+percent used, triggers `conserve-tokens.py`'s 80% auto-trigger and `handoff-nudge`'s threshold
+EARLY, never late), but it was simply wrong data, silently, on the host most sessions run on,
+including this one.
+
+**The fix reuses the existing single-source-of-truth meter rather than adding a second one** — the
+same discipline `conserve-tokens.py`'s own header states about not re-deriving `context-usage-
+meter.py`'s reading. `knowledge/model-catalog.json` (Gate 134's own governed-model-id file) gains a
+`context_windows` map — one entry per `current` alias (`opus`/`sonnet`/`haiku`/`fable`), each a
+real context-window integer, additive and non-breaking (Gate 134's own `check-model-ids.py` only
+reads `current`/`stale`, verified unaffected). `context-usage-meter.py` gains:
+
+- `last_assistant_model_claude(path)` — reads the last assistant turn's `message.model` off the
+  same bounded tail-read shape `last_total_tokens_claude` already uses (a **separate** function,
+  not folded into the tested one, so that function's byte-identical behavior and the whole existing
+  16-case test suite are untouched).
+- `resolve_context_window_for_model(model_id)` — checks the catalog first; falls back to a
+  documented heuristic (`haiku` in the id → 200,000; otherwise → 1,000,000, matching every other
+  current-generation model) for a resolved-but-ungoverned id (a dated snapshot, or a model shipped
+  after the catalog was last updated) — never a guess when the id itself is `None`.
+- `effective_budget(window, reserved_output, overhead_margin_pct)` — window minus a documented
+  (not empirically measured) output-token reservation (16,000, per the claude-api skill's own
+  non-streaming `max_tokens` guidance) minus a percent overhead margin (5%, for system-prompt/tool-
+  schema cost that a single turn's own `usage` block doesn't itemize) — floored at 0.
+
+`measure()`'s window-resolution ranking is now, per the module's own updated docstring: signals.json
+→ owner knob → Grok config → **model-aware catalog/heuristic resolution (Claude Code only)** →
+the old hardcoded 200000 (only when the model id itself is unresolvable). `owner_window` (an
+explicit config override) still wins over model resolution, unchanged — the new rank is inserted
+*before* the hardcoded default, never before an owner's explicit setting. Three new fields ride
+along on the existing output dict, additive: `model_id`, `window_source`
+(`catalog`/`heuristic`/`default`/`explicit`/`None`), `effective_budget`. Every existing caller
+(`conserve-tokens.py`, `handoff-nudge.py`) reads `result.get("percent")` unchanged, so their
+accuracy improves automatically with zero edits to either file — exactly the reuse this repo's own
+`conserve-tokens.py` header argues for.
+
+⛔ **Deliberately NOT done in this pass, named rather than silently dropped:** no SessionStart
+banner line surfacing the resolved model/window/effective-budget (the underlying data is now
+correct; a banner line is a presentation-layer follow-up, not required for the fix itself), and no
+change to `conserve-tokens.py`'s `conserve_tokens_auto_pct` default (80%) — that threshold was
+tuned against the *old*, 5x-too-small window; whether it still makes sense against real
+1,000,000-token windows is a measurement question for a future pass, not assumed here.
+
+**Gate 269** (`scripts/check-context-budget-meter.py --self-test`) — two checks, both must-pass:
+(A) `model-catalog.json`'s `context_windows` map covers every `current` alias with a positive int;
+(B) the full `test-context-usage-meter.py` suite (16 pre-existing + 17 new cases, 33 total) passes
+against the real source **and** fails against a MUTANT that reverts `measure()`'s model-aware branch
+to the old unconditional `window = DEFAULT_CLAUDE_WINDOW` — the teeth half, so the gate is proven to
+be measuring the fix rather than passing for an unrelated reason. Registered in all three required
+surfaces (the `--check` dispatcher, the main sequence, the `Supported:` string) and added to the
+`core` suite (Gate 267's own suite-coverage check — the generic-self-test-with-mutant-teeth family,
+same as 129/173/268) — each verified directly this session (`--check 269`, `--check 195`, `--check
+267`, `--check 134` all exit 0), per this repo's own Gate 184/263 incidents: a gate registered in
+only one of the three required surfaces ran nowhere for a full release.
+
+**Migration:** none in the accuracy-improving direction — every existing test passes unchanged and
+every existing caller's behavior only becomes *more accurate* (a session on a 1M-token model now
+sees its real, lower percent-used and later conserve/handoff triggers, matching the model it is
+actually running on). Nothing in a consumer's installed plugin changes on `/plugin marketplace
+update` beyond that accuracy fix.
