@@ -4108,7 +4108,7 @@
         "plugins/ravenclaude-core/skills/prompt-optimizer/SKILL.md",
         "plugins/ravenclaude-core/skills/prompt-optimizer/eval/golden-set.jsonl"
       ],
-      "covers_digest": "sha256:241eaa0a1d4bc4cc1dfab6354f3bb847df348318dd1512b26ea9f29b01c991de",
+      "covers_digest": "sha256:a25d49b45fd4be8b2b7492f50df5da0891c969b1311d403e7bb68d8caa210a34",
       "nuance": "A whitelist-based zero-anchor skip rule can be adversarially rephrased indefinitely — closing every demonstrated instance never closes the underlying gap, because the gap is a property of matching sentence shape, not meaning.",
       "nuance_evidence": {
         "measured": "2026-09-03",
