@@ -10,7 +10,7 @@ last_verified: 2026-09-08
 covers:
   - scripts/generate-skill-index.py
   - plugins/ravenclaude-core/skills/skill-index/SKILL.md
-covers_digest: "sha256:b1471be6e21c4a6137e8a33e7c7a4f81f7ff016a8a68e1a5e4e18147f459b290"
+covers_digest: "sha256:25dd815fa3f77c1998287ea9fe91f7cc282bb98906d30323227f8491ab2bb2a9"
 nuance: "The generator discovers skills by globbing plugins/*/skills/*/SKILL.md, and its own output
   file matches that glob. On a fresh repo the first write cannot see itself (the file does not exist
   yet), so it writes N entries; running it again now finds N+1 (itself included) and writes THAT count

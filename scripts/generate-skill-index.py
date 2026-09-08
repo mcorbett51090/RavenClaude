@@ -28,7 +28,23 @@ Discovery is the canonical 5-segment shape `plugins/<plugin>/skills/<skill>/SKIL
 ONLY — deeper paths (e.g. a skill's own bundled template/example SKILL.md, such
 as `authoring-org-skills/templates/examples/.../SKILL.md`) are teaching
 material inside another skill's resource directory, not separately-invocable
-skills, and are deliberately excluded.
+skills, and are deliberately excluded. A FLAT-FILE skill (`plugins/<plugin>/
+skills/<skill>.md`, no directory) is ALSO deliberately excluded — none exists
+in this marketplace today (verified this session), but `scripts/
+skill-description-baseline.py::_find_skill_files()` globs that shape too, so a
+future flat-file skill would be invisible to THIS generator while visible to
+that one. Named here, not silently dropped; not fixed because it would be
+untested new code against a shape that has zero live instances to verify against.
+
+⛔ SELF-REFERENCE: this generator's own glob matches the file it is about to
+write. On a fresh repo the FIRST write cannot see itself (the file does not
+exist yet) and undercounts by exactly one entry, so it immediately fails its
+own `--check`. Run it TWICE (or once, then `--check`, then once more) before
+committing — this is a fixed-point convergence property, not a bug to "fix"
+into a single-pass write (doing so would mean `skill-index` never indexes
+itself, defeating "a disabled plugin's skills are still findable").
+
+Wired into CI as Gate 282 in `scripts/audit-gates.sh` (`--check 282`).
 """
 
 from __future__ import annotations
@@ -50,17 +66,35 @@ GENERATED_HEADER = (
     "     The --check freshness gate fails CI on drift. -->"
 )
 
-_FRONTMATTER_RE = re.compile(r"^---\s*\n(.*?)\n---\s*\n", re.S)
+# \r?\n tolerates a CRLF-saved file — check-frontmatter.py's own equivalent
+# regex already carries this exact tolerance (a past bug fix there); this
+# generator lacked it and would abort the ENTIRE 954-skill index over one
+# CRLF-saved file while check-frontmatter.py's CI gate passed it cleanly.
+_FRONTMATTER_RE = re.compile(r"^---\r?\n(.*?)\r?\n---\r?\n", re.S)
 _BLOCK_SCALARS = (">", "|", ">-", "|-", ">+", "|+")
+
+
+def _unescape_double_quoted(s: str) -> str:
+    """Undo YAML double-quoted-scalar escaping for the handful of sequences
+    this marketplace's frontmatter actually uses. Not a general YAML escape
+    decoder — just \\" and \\\\, the two that appear in real descriptions
+    (e.g. `alt=\\"\\"` in curation-and-accessibility-gate/SKILL.md), so a
+    literal backslash-quote does not ship into the rendered table verbatim.
+    """
+    return s.replace('\\"', '"').replace("\\\\", "\\")
 
 
 def _parse_description(text: str, relpath: str) -> str:
     """Pull `description:` out of a SKILL.md's YAML frontmatter.
 
-    Tolerant of a quoted scalar and of a `>`/`|` block scalar (both used in
-    this marketplace) — folds a block scalar's continuation lines into one
-    space-joined line. Not a strict YAML parser: this repo's frontmatter is
-    hand-authored, not attacker-controlled, and only `description:` is read.
+    Tolerant of a quoted scalar (including YAML's `\\"` escape inside a
+    double-quoted value) and of a `>`/`|` block scalar (both used in this
+    marketplace) — folds a block scalar's continuation lines into one
+    space-joined line (a blank line inside a block scalar is NOT treated as a
+    YAML paragraph break; unexercised today — no real description does this —
+    named rather than silently mishandled). Not a strict YAML parser: this
+    repo's frontmatter is hand-authored, not attacker-controlled, and only
+    `description:` is read.
     """
     m = _FRONTMATTER_RE.match(text)
     if not m:
@@ -84,7 +118,9 @@ def _parse_description(text: str, relpath: str) -> str:
             return " ".join(block).strip()
         if not rest:
             raise ValueError(f"{relpath}: empty description: field")
-        return rest.strip('"').strip("'").strip()
+        if rest.startswith('"') and rest.endswith('"') and len(rest) >= 2:
+            return _unescape_double_quoted(rest[1:-1]).strip()
+        return rest.strip("'").strip()
     raise ValueError(f"{relpath}: no `description:` field in frontmatter")
 
 
@@ -98,8 +134,15 @@ def discover_skills() -> list:
         if len(parts) != 5:
             continue
         plugin, skill = parts[1], parts[3]
-        with open(path, encoding="utf-8") as fh:
-            text = fh.read()
+        try:
+            with open(path, encoding="utf-8") as fh:
+                text = fh.read()
+        except (OSError, UnicodeDecodeError) as exc:
+            # Same fail-loud-with-filename contract as every other error
+            # here — main()'s existing `except ValueError` catches this too,
+            # so a broken symlink or a non-UTF-8 byte gets the documented
+            # clean stderr message instead of a raw traceback.
+            raise ValueError(f"{rel}: could not read ({type(exc).__name__}: {exc})") from exc
         description = _parse_description(text, rel)
         entries.append({"plugin": plugin, "skill": skill, "description": description})
     return entries
