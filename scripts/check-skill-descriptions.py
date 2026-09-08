@@ -17,9 +17,20 @@ detection, RT-8 charset validation, and the corpus-total ratchet check.
 AT-P2.2/AT-P2.3 (the preservation-half teeth tests) are SKIPPED, not failed —
 `--self-test` reports them as `skip`, named, never silently dropped.
 
+⛔ UPDATE (2026-09-08, post-P8-closure): category-cap enforcement is now REAL,
+not informational. `cap_gate_check()` blocks on a NEW cap violation or a
+WORSENED existing one, against a grandfather list
+(`description-cap-exemptions.json`, seeded from the 104 files already over
+cap when this enforcement was added). See that function's own docstring for
+why grandfathering -- not a corpus-wide rewrite, and not a blanket block --
+is the correct shape given P8's ruling that a semantic rewrite of the
+existing corpus was never earned (claim 6 closed inconclusive-by-
+construction; no eval apparatus exists to validate a rewrite is safe).
+
 Checks implemented:
   - category cap (chars AND tokens), category = leaf | disambiguating | router,
-    a deterministic classifier (see `classify_category`)
+    a deterministic classifier (see `classify_category`) -- ENFORCED, per
+    `cap_gate_check()`, above
   - filler-phrase detection, calibrated from the real corpus (measured this
     session: "this skill" appears 60/956 times; zero hits for several other
     guessed phrases from the style-contract draft — NOT flagged, since a
@@ -217,6 +228,88 @@ def lint(root: Path) -> tuple[list[dict], dict]:
     return findings, summary
 
 
+def cap_gate_check(root: Path, data: dict) -> list[str]:
+    """Per-file category-cap enforcement, GRANDFATHERED against
+    description-cap-exemptions.json (seeded 2026-09-08 from the 104 files
+    already over cap when this check was written -- see that file's own
+    `status`/`note` fields). Blocks on exactly two shapes, never a third:
+
+      (a) a cap-violating file NOT in the exemption list -- a brand-new
+          violation this gate did not inherit.
+      (b) a listed file whose CURRENT chars/tokens exceed the value
+          RECORDED in its exemption entry -- an already-non-compliant file
+          made WORSE.
+
+    A listed file that improves (even while still over cap), or a file
+    that clears its cap entirely, is never blocked -- this list is a floor
+    under existing debt, not a target to hit. It is deliberately NOT the
+    `check-frontmatter.py` agent-description gate's shape (hard cap, no
+    grandfather) because that gate has always applied to every agent file
+    uniformly; this one inherits 956 pre-existing skill descriptions this
+    linter did not author, and P8's own closure (docs/plans/2026-09-03-
+    succinct-skill-descriptions/p8-decision.md) ruled out a corpus-wide
+    semantic rewrite to bring them into compliance first -- so grandfathering
+    is not a compromise here, it is the only version of this gate that does
+    not immediately red 104 already-shipped files with no sanctioned fix.
+
+    An absent exemptions file is NOT "everything is exempt" -- it means the
+    exemption list has never been seeded, so EVERY current cap violation
+    reads as shape (a) and blocks. That is the correct fail-closed default
+    for a fresh corpus; this repo's own exemptions file is seeded, so this
+    path is exercised only by --self-test's scratch fixtures.
+    """
+    exemptions_path = (
+        root / "docs/plans/2026-09-03-succinct-skill-descriptions/description-cap-exemptions.json"
+    )
+    exemptions: dict = {}
+    if exemptions_path.exists():
+        try:
+            loaded = json.loads(exemptions_path.read_text(encoding="utf-8"))
+            exemptions = loaded.get("exemptions", {})
+            if not isinstance(exemptions, dict):
+                return ["description-cap-exemptions.json's 'exemptions' key is not an object"]
+        except Exception:
+            return ["description-cap-exemptions.json exists but is not valid JSON"]
+
+    all_names = {s["skill"] for s in data["skills"]}
+    out: list[str] = []
+    for s in data["skills"]:
+        desc = s["description"]
+        cat = classify_category(desc, s["skill"], all_names)
+        over_chars = s["chars"] > CAP_CHARS[cat]
+        over_tokens = s["tokens"] is not None and s["tokens"] > CAP_TOKENS[cat]
+        if not (over_chars or over_tokens):
+            continue  # compliant -- never blocked regardless of exemption status
+
+        entry = exemptions.get(s["path"])
+        if entry is None:
+            out.append(
+                f"{s['path']}: NEW cap violation ({s['chars']} chars / {s['tokens']} tokens vs "
+                f"{cat} cap {CAP_CHARS[cat]}/{CAP_TOKENS[cat]}) -- not in "
+                f"description-cap-exemptions.json. Either shorten the description under cap, or "
+                f"if this is a legitimate router/disambiguating case that cannot compress, add a "
+                f"reasoned entry to the exemptions file in the same PR."
+            )
+            continue
+
+        exempt_chars = entry.get("chars")
+        exempt_tokens = entry.get("tokens")
+        worsened_chars = isinstance(exempt_chars, int) and s["chars"] > exempt_chars
+        worsened_tokens = (
+            isinstance(exempt_tokens, int)
+            and s["tokens"] is not None
+            and s["tokens"] > exempt_tokens
+        )
+        if worsened_chars or worsened_tokens:
+            out.append(
+                f"{s['path']}: cap violation WORSENED ({s['chars']} chars / {s['tokens']} tokens, "
+                f"exempted at {exempt_chars} chars / {exempt_tokens} tokens) -- an edit made an "
+                f"already-over-cap description longer, not shorter. Revert the growth, or update "
+                f"the exemption entry in the same PR with a stated reason."
+            )
+    return out
+
+
 def ratchet_check(
     root: Path, corpus_total_chars: int, corpus_total_tokens: int | None, skill_count: int
 ) -> list[str]:
@@ -349,32 +442,39 @@ def main() -> int:
         data["corpus"]["total_tokens"],
         data["corpus"]["skill_count"],
     )
+    cap_findings = cap_gate_check(root, data)
 
     print(
         f"check-skill-descriptions: {summary['skill_count']} skills, "
         f"categories {summary['category_counts']}, {summary['finding_count']} finding(s) (informational)"
     )
     if args.check:
-        # ⛔ Per-file findings (cap/filler/name/charset) are INFORMATIONAL
-        # ONLY and never fail --check on the existing corpus. 591 findings
-        # exist today (measured 2026-09-08: 283 charset, 98 token-cap, 90
-        # char-cap, 60 filler, 60 name-restatement) across 956 pre-existing
-        # descriptions this gate did not author. Failing on them would red
-        # every future PR from day one regardless of what it touches -- this
-        # repo's own recorded failure mode ("a gate that fires on everything
-        # gets disabled, and a disabled gate protects nothing"). Diff-scoped
-        # per-file enforcement (only NEW/regressed findings block) is a wave-
-        # rollout follow-up, not built here. Only the P3 corpus-total ratchet
-        # -- which is seeded AT today's total, so it starts exactly at, not
-        # over, its ceiling -- can fail --check.
+        # ⛔ filler/name-restatement/charset findings stay INFORMATIONAL ONLY
+        # -- 406 of them exist today (measured 2026-09-08: 286 charset, 60
+        # filler, 60 name-restatement) across pre-existing
+        # descriptions this gate did not author, and this repo's own recorded
+        # failure mode is "a gate that fires on everything gets disabled."
+        # The category CAP findings are DIFFERENT: they are enforced below,
+        # via cap_gate_check()'s grandfather list -- see that function's own
+        # docstring for why a grandfather, not a blanket block, is correct
+        # here. The corpus-total ratchet (P3) is unchanged, seeded AT today's
+        # total.
         for f in findings[:30]:
             print(f"  · [{f['check']}] {f['skill']}: {f['detail']}")
         if len(findings) > 30:
             print(f"  ... and {len(findings) - 30} more (informational, not blocking)")
+        blocking = False
+        if cap_findings:
+            for c in cap_findings:
+                print(f"  ✗ [cap] {c}")
+            blocking = True
         if ratchet_findings:
             for r in ratchet_findings:
                 print(f"  ✗ [ratchet] {r}")
+            blocking = True
+        if blocking:
             return 1
+        print("  cap gate: clean (no new or worsened category-cap violations)")
         print("  ratchet: clean")
         return 0
 
@@ -533,6 +633,97 @@ def _self_test() -> int:
             root, data["corpus"]["total_chars"], data["corpus"]["total_tokens"], data["corpus"]["skill_count"] + 1
         )
         check("AT-P3.5: posture-drift check fires on skill_count mismatch", any("posture drift" in x for x in r3))
+
+    # Cap-gate teeth (2026-09-08 enforcement upgrade) — grandfather + block
+    # new/worsened, on a scratch tree so the real corpus's 104 exemptions
+    # never touch this test.
+    with tempfile.TemporaryDirectory() as td:
+        root = Path(td)
+        skills_dir = root / "plugins" / "demo" / "skills"
+        for name, desc in [
+            ("alpha", "Short and fine, well under any cap for a leaf skill."),
+            ("beta", "B " * 300),  # long leaf, deliberately over the leaf cap
+            ("gamma", "G " * 300),  # long leaf, will be "exempted" below
+        ]:
+            d = skills_dir / name
+            d.mkdir(parents=True)
+            (d / "SKILL.md").write_text(
+                f'---\nname: {name}\ndescription: "{desc.strip()}"\n---\nbody\n', encoding="utf-8"
+            )
+        (root / "plugins" / "demo" / ".claude-plugin").mkdir(parents=True)
+        (root / "plugins" / "demo" / ".claude-plugin" / "plugin.json").write_text(
+            json.dumps({"name": "demo", "version": "1.0.0"}), encoding="utf-8"
+        )
+        data = _sdb.build(root)
+        by_path = {s["path"]: s for s in data["skills"]}
+        gamma_path = next(p for p in by_path if p.endswith("gamma/SKILL.md"))
+        beta_path = next(p for p in by_path if p.endswith("beta/SKILL.md"))
+
+        budget_dir = root / "docs" / "plans" / "2026-09-03-succinct-skill-descriptions"
+        budget_dir.mkdir(parents=True)
+        exemptions_path = budget_dir / "description-cap-exemptions.json"
+
+        # Case 1: no exemptions file at all -> both over-cap skills block
+        # (fail-closed default for a never-seeded list).
+        cap1 = cap_gate_check(root, data)
+        check(
+            "cap-gate: absent exemptions file blocks EVERY current cap violation",
+            len(cap1) == 2 and any(beta_path in c for c in cap1) and any(gamma_path in c for c in cap1),
+        )
+
+        # Case 2: gamma is exempted at its CURRENT size, beta is not listed.
+        exemptions_path.write_text(
+            json.dumps(
+                {
+                    "exemptions": {
+                        gamma_path: {
+                            "category": "leaf",
+                            "chars": by_path[gamma_path]["chars"],
+                            "tokens": by_path[gamma_path]["tokens"],
+                        }
+                    }
+                }
+            ),
+            encoding="utf-8",
+        )
+        cap2 = cap_gate_check(root, data)
+        check(
+            "cap-gate: exempted-at-current-size violation does NOT block",
+            not any(gamma_path in c for c in cap2),
+        )
+        check(
+            "cap-gate: NOT-in-exemption-list violation (new) DOES block",
+            any(beta_path in c and "NEW cap violation" in c for c in cap2),
+        )
+
+        # Case 3: gamma's exemption entry is stale (a smaller recorded size)
+        # -- simulates an edit that WORSENED an already-over-cap file.
+        exemptions_path.write_text(
+            json.dumps(
+                {
+                    "exemptions": {
+                        gamma_path: {
+                            "category": "leaf",
+                            "chars": by_path[gamma_path]["chars"] - 50,
+                            "tokens": by_path[gamma_path]["tokens"],
+                        }
+                    }
+                }
+            ),
+            encoding="utf-8",
+        )
+        cap3 = cap_gate_check(root, data)
+        check(
+            "cap-gate: exempted-but-worsened violation DOES block",
+            any(gamma_path in c and "WORSENED" in c for c in cap3),
+        )
+
+        # Case 4: a clean, under-cap skill is never blocked regardless of
+        # exemption-file state.
+        check(
+            "cap-gate: an under-cap skill is never in the violation list",
+            not any(name in c for c in cap1 + cap2 + cap3 for name in ["alpha"]),
+        )
 
     # AT-P2.2 / AT-P2.3 — preservation-half teeth. NOT built (G-P2.3: P1
     # closed inconclusive-by-construction, never earned). Reported as an
