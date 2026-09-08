@@ -72,6 +72,7 @@ contains its own merge-from-base commit.
 from __future__ import annotations
 
 import os
+import re
 import subprocess
 from pathlib import Path
 
@@ -102,6 +103,66 @@ def _is_merge_commit(root: Path) -> bool:
     return rc == 0 and len(out.split()) >= 3
 
 
+_GITHUB_MERGE_REF_MSG_RE = re.compile(r"^Merge [0-9a-f]{40} into [0-9a-f]{40}\s*$")
+
+
+def _is_github_synthetic_merge_ref(root: Path) -> bool:
+    """True when HEAD is GitHub's own `refs/pull/N/merge` commit.
+
+    ⛔ THE BUG THIS DETECTS, FOUND LIVE (PR #1098, 2026-09-08): this module's
+    own docstring claims "on a pull_request event, `actions/checkout` here
+    checks out the PR's literal head SHA" — verified true on 2026-08-20, and
+    FALSE now. The real checkout log for `validate-marketplace.yml`'s
+    "Validate Marketplace" job on a `pull_request` trigger:
+
+        git fetch --no-tags --prune --no-recurse-submodules --depth=2 origin \
+          +<sha>:refs/remotes/pull/<n>/merge
+        git checkout --progress --force refs/remotes/pull/<n>/merge
+
+    HEAD is GitHub's OWN synthetic 2-parent merge commit (parent 1 = the
+    base branch tip AT THE MOMENT GITHUB LAST RECOMPUTED MERGEABILITY,
+    parent 2 = the PR's real branch tip). Because rule 4 below is correctly
+    scoped OFF for `pull_request` events (the 2026-09-02 correction, which
+    protects against a PR AUTHOR's own `git merge origin/main` — a
+    different 2-parent shape with the same parent count), every
+    `pull_request` run fell through to the network fallback (step 5),
+    which fetches CURRENT `origin/main` live and computes
+    `merge-base(HEAD, origin/main)`. Since HEAD's own parent 1 already IS
+    (approximately) current `origin/main`, that merge-base collapses to
+    parent 1 ITSELF — a value that moves forward every time `main` advances
+    and GitHub recomputes the ref, which is continuous on an active repo.
+    No value stamped ahead of time can ever match a permanently moving
+    target: this is the PR #991 / #1070 shape recurring under a THIRD guise.
+
+    control (this session, PR #1098): `git cat-file -p` on the fetched
+    `refs/pull/1098/merge` object showed exactly this — two parents
+    (`a7cb75da...` = main's tip, `41b4ec6c...` = the real PR tip) and the
+    commit message literally `"Merge 41b4ec6c... into a7cb75da..."`.
+
+    THE FIX. GitHub's synthetic ref has a distinctive, auto-generated commit
+    message (`"Merge <40-hex> into <40-hex>"`) that a human's own merge
+    commit does not produce (git's own default merge-commit message reads
+    `"Merge branch 'main'"` / `"Merge remote-tracking branch
+    'origin/main'"`, never two bare 40-hex SHAs). Matching on that message
+    — never on parent count alone, which is what caused the 2026-09-02
+    false positive this rule must not repeat — lets `merge_base()` compute
+    `merge-base(HEAD^1, HEAD^2)` DIRECTLY: the true, STABLE common ancestor
+    of "the base tip as of ref-computation time" and "the PR's real tip",
+    which does not move just because `main` advances further afterward.
+    Needs no network call at all (an improvement over the fallback it
+    replaces for this shape) and correctly generalizes to a PR author's own
+    manual merge too (there, HEAD^1/HEAD^2 are the pre-merge tip and the
+    merged-in main snapshot — the nested merge-base is still the right
+    answer), but this function's match is deliberately narrow to the
+    provably-GitHub-generated shape so it fires only where the fingerprint
+    is certain.
+    """
+    if not _is_merge_commit(root):
+        return False
+    rc, msg = _git(root, "log", "-1", "--format=%B", "HEAD")
+    return rc == 0 and bool(_GITHUB_MERGE_REF_MSG_RE.match(msg))
+
+
 def resolve_base(root: Path, requested: str = "origin/main") -> tuple[str | None, str]:
     """Return (base_commit_sha_or_ref, how) — `how` names which rule fired.
 
@@ -120,6 +181,15 @@ def resolve_base(root: Path, requested: str = "origin/main") -> tuple[str | None
         for ref in (f"origin/{ci_base}", ci_base):
             if _resolves(root, ref):
                 return ref, f"GITHUB_BASE_REF -> {ref}"
+
+    # ⛔ GitHub's OWN synthetic `refs/pull/N/merge` checkout (found live, PR
+    # #1098, 2026-09-08 — see `_is_github_synthetic_merge_ref`'s docstring for
+    # the full incident). Fires on BOTH event types (the fingerprint is the
+    # message, not the event name, and is safe either way), and deliberately
+    # BEFORE the push-only rule 4 below so a real GitHub merge ref is never
+    # misrouted into rule 4's plain-HEAD^1 shortcut. Needs no network call.
+    if _is_github_synthetic_merge_ref(root):
+        return "MERGE_REF_PARENTS", "GitHub synthetic merge ref — nested parent merge-base"
 
     # ⛔ PUSH EVENTS ONLY (see the 2026-09-02 correction in this module's
     # docstring) — on a pull_request run, `actions/checkout` here checks out
@@ -175,6 +245,29 @@ def merge_base(root: Path, requested: str = "origin/main") -> tuple[str | None, 
     if base == "HEAD^1":
         rc, sha = _git(root, "rev-parse", "HEAD^1")
         return (sha, how) if rc == 0 and sha else (None, "HEAD^1 did not resolve")
+    # GitHub's synthetic merge ref: neither parent alone is "the base" (parent 1
+    # is main's tip only as of ref-computation time, parent 2 is the PR's real
+    # content) — the STABLE answer is where those two histories actually
+    # diverge, which does not move just because `main` advances further later.
+    if base == "MERGE_REF_PARENTS":
+        rc1, p1 = _git(root, "rev-parse", "HEAD^1")
+        rc2, p2 = _git(root, "rev-parse", "HEAD^2")
+        if rc1 != 0 or not p1 or rc2 != 0 or not p2:
+            return None, "MERGE_REF_PARENTS: a parent did not resolve"
+        rc3, nested = _git(root, "merge-base", p1, p2)
+        if rc3 == 0 and nested:
+            return nested, how
+        # The real CI checkout is `--depth=2` — the merge commit's own generation
+        # plus its two direct parents, but NEITHER parent's own ancestry, so the
+        # two sides structurally cannot share a walkable path yet. One bounded
+        # `--unshallow` (same primitive the network fallback below already uses,
+        # same FETCH_TIMEOUT) deepens whatever is already present rather than
+        # fetching a second, redundant ref.
+        _git(root, "fetch", "--quiet", "--unshallow", "origin", timeout=FETCH_TIMEOUT)
+        rc4, nested2 = _git(root, "merge-base", p1, p2)
+        if rc4 == 0 and nested2:
+            return nested2, how + " (after --unshallow)"
+        return None, how + ", but the parents share no merge base even after --unshallow"
     rc, sha = _git(root, "merge-base", "HEAD", base)
     if rc == 0 and sha:
         # ⛔ ON THE BASE BRANCH ITSELF, merge-base(HEAD, origin/main) IS HEAD.
@@ -305,6 +398,43 @@ def _fixture_pr_merge_commit(td):
     return r, feat1
 
 
+def _fixture_github_merge_ref(td):
+    """GitHub's `refs/pull/N/merge` shape: a detached 2-parent commit whose
+    message is GitHub's own auto-generated `"Merge <sha> into <sha>"` format —
+    NOT a human's `git merge` default. See `_is_github_synthetic_merge_ref`'s
+    docstring for the live incident this reproduces.
+
+    Returns (root, base_tip_sha, pr_tip_sha, fork_point_sha) — fork_point is the
+    only correct answer; both tips are wrong ones a naive rule could return.
+    """
+    import subprocess as sp
+
+    r = Path(td)
+    q = {"cwd": str(r), "capture_output": True, "text": True, "timeout": 60}
+    sp.run(["git", "init", "-q", "-b", "main", str(r)], capture_output=True, timeout=60)
+    sp.run(["git", "config", "user.email", "t@t"], **q)
+    sp.run(["git", "config", "user.name", "t"], **q)
+
+    def commit(name):
+        (r / name).write_text(name, encoding="utf-8")
+        sp.run(["git", "add", "-A"], **q)
+        sp.run(["git", "commit", "-q", "-m", name], **q)
+        return sp.run(["git", "rev-parse", "HEAD"], **q).stdout.strip()
+
+    fork_point = commit("a.txt")
+    sp.run(["git", "checkout", "-q", "-b", "feat"], **q)
+    pr_tip = commit("feat1.txt")
+    sp.run(["git", "checkout", "-q", "main"], **q)
+    base_tip = commit("main2.txt")  # main advances past the fork point
+    # Build the merge commit exactly the way GitHub does: two parents, a
+    # message naming both SHAs literally, no working-tree conflict resolution
+    # needed since the two branches touch disjoint files.
+    sp.run(["git", "checkout", "-q", "-b", "synthetic-merge", "main"], **q)
+    msg = f"Merge {pr_tip} into {base_tip}"
+    sp.run(["git", "merge", "-q", "--no-ff", "-m", msg, "feat"], **q)
+    return r, base_tip, pr_tip, fork_point
+
+
 def _self_test():
     import tempfile
 
@@ -365,6 +495,47 @@ def _self_test():
         else:
             fail += 1
             print(f"  FAIL {label}: got {got} ({how}) — want None, never {wrong_answer}")
+
+    # GitHub's own `refs/pull/N/merge` shape (found live, PR #1098, 2026-09-08 —
+    # see `_is_github_synthetic_merge_ref`'s docstring). Builds the exact fixture:
+    # main advances past a feature branch's fork point, and a 2-parent commit
+    # combines them carrying GitHub's OWN auto-generated message format
+    # (`"Merge <40-hex> into <40-hex>"`) rather than a human's `git merge`
+    # default. The correct answer is the TRUE common ancestor (the fork
+    # point) — never either tip, and never None.
+    with tempfile.TemporaryDirectory() as td:
+        root, base_tip, pr_tip, fork_point = _fixture_github_merge_ref(td)
+        _prior_event = os.environ.get("GITHUB_EVENT_NAME")
+        os.environ["GITHUB_EVENT_NAME"] = "pull_request"
+        try:
+            got, how = merge_base(root)
+        finally:
+            if _prior_event is None:
+                os.environ.pop("GITHUB_EVENT_NAME", None)
+            else:
+                os.environ["GITHUB_EVENT_NAME"] = _prior_event
+        label = "GitHub synthetic merge ref -> the TRUE fork point, never either tip"
+        if got == fork_point:
+            ok += 1
+            print(f"  ok   {label}")
+        else:
+            fail += 1
+            print(f"  FAIL {label}: want {fork_point}, got {got} ({how})")
+
+    # Teeth: the SAME two-parent structure, but with a human-shaped message
+    # (`git merge`'s own default) instead of GitHub's auto-generated one. The
+    # detector must NOT fire here — proving the message match is load-bearing,
+    # not a rule that fires on any 2-parent commit regardless of provenance
+    # (which would silently readopt this fixture's own wrong-answer risk).
+    with tempfile.TemporaryDirectory() as td:
+        root, _wrong = _fixture_pr_merge_commit(td)
+        label = "message fingerprint teeth: a human's own merge message does NOT fire the rule"
+        if _is_github_synthetic_merge_ref(root):
+            fail += 1
+            print(f"  FAIL {label}: fired on a human-authored merge commit")
+        else:
+            ok += 1
+            print(f"  ok   {label}")
 
     print(f"  pass={ok} fail={fail}")
     return 0 if fail == 0 else 1
