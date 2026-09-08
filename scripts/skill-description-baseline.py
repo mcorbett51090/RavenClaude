@@ -268,7 +268,18 @@ def _self_test() -> int:
         for label, desc in specials.items():
             check(f"AT-P0.7 charset round-trip: {label}", by_skill.get(label) == desc)
 
-    check("token method: tiktoken available in this environment", _ENC is not None)
+    # ⛔ Deliberately NOT asserting tiktoken IS available — that is an
+    # environment fact, not a behavior of this script, and CI's runner does
+    # not have it pip-installed (only pyyaml is). Absence is a first-class,
+    # handled state (token fields become null, method says why); asserting
+    # its presence here would make this self-test environment-dependent,
+    # exactly the trap this comment exists to name. Instead assert the
+    # DEGRADATION is honest: when tiktoken IS present, tokens must be
+    # non-null; when absent, they must be null and the method must say so.
+    if _ENC is not None:
+        check("token method: when tiktoken is available, tokens are populated (non-null)", data["skills"][0]["tokens"] is not None)
+    else:
+        check("token method: when tiktoken is absent, tokens are null and method states why", "unavailable" in TOKEN_METHOD)
 
     print(f"skill-description-baseline.py self-test: {passed} pass, {len(failed)} fail")
     for f in failed:
