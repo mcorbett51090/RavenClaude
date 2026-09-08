@@ -384,15 +384,27 @@ cmd_self_test() {
   # fail-open this would otherwise (mis)resolve toward a deny.
   (
     cd "$nonrepo"
-    local git_path stripped
-    git_path="$(command -v git 2>/dev/null || echo '')"
-    if [ -n "$git_path" ]; then
-      local git_dir
-      git_dir="$(dirname "$git_path")"
-      stripped="$(printf '%s' "$PATH" | tr ':' '\n' | grep -Fxv "$git_dir" | tr '\n' ':')"
-    else
-      stripped="$PATH"
-    fi
+    # ⛔ Strip EVERY PATH directory that contains a `git` executable, not just
+    # the first one `command -v` resolves. A single-directory strip left git
+    # reachable on Ubuntu's default runner PATH (git present in more than one
+    # PATH directory there), so the helper correctly found git, correctly
+    # detected "not a work tree", and correctly returned exit 10 (unsafe) —
+    # this fixture's own assumption that git was hidden was false, not the
+    # helper's fail-open behavior. Fixed by excluding every directory holding
+    # a `git` binary, so the strip is robust regardless of how many places a
+    # host happens to install it.
+    local stripped=""
+    local -a _kept=()
+    local IFS=':'
+    for _dir in $PATH; do
+      if [ -x "${_dir}/git" ]; then
+        continue
+      fi
+      _kept+=("$_dir")
+    done
+    unset IFS
+    stripped="$(printf '%s:' "${_kept[@]}")"
+    stripped="${stripped%:}"
     out="$(PATH="$stripped" HOME="$fake_home" bash "$script_abs" check -- 2>&1)"
     rc=$?
     [ "$rc" -eq 0 ] || exit 61
