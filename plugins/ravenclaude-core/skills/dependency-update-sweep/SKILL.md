@@ -57,9 +57,11 @@ Honesty / known limits.
    floor comparison was re-confirmed, its own mechanical action). As of this writing the only shipped
    citation kind (`version_floor_constant`, §3 row 2) always resolves to `verified` — the floor constant
    itself is never edited by a version bump, only re-checked.
-4. **`queue --host <id>`** — writes `judgment` rows to a capped, priority-ordered PR-review queue
-   (top 25, P0 first, overflow to a continuation file) — reuses `/repo-review`'s P0-P3 shape rather
-   than inventing a second scheme.
+4. **The judgment queue** (written by `apply`, not a separate subcommand) — `apply` writes `judgment`
+   rows to a capped, priority-ordered PR-review queue (top 25, P0 first, overflow to a continuation
+   file) as part of its run — reuses `/repo-review`'s P0-P3 shape rather than inventing a second
+   scheme. (The CLI subcommands are `scan`, `classify`, `apply`, plus the `queue-self-test` /
+   `apply-self-test` harnesses; there is no standalone `queue` subcommand.)
 
 ## Merged classification rule table
 
