@@ -4535,6 +4535,17 @@ if command -v node >/dev/null 2>&1; then
   grep -v 'lines.push("cheap_lane:")' index.html > "$RT_BAD_CL"
   rc=0; node "$RT" "$RT_BAD_CL" >/dev/null 2>&1 || rc=$?
   gate "dashboard round-trip (drifted: cheap_lane emit stripped)" must_fail "$rc"
+  # must_fail (prompt_optimizer, task-6 dashboard wiring): the prompt_optimizer
+  # block header emit stripped — the v0.61.0 data-loss class this key closes.
+  # Before this fix, prompt_optimizer had a state slot + hydrate read but no
+  # emit line, so emitYaml rebuilt the whole posture from `state` and would
+  # have silently dropped `prompt_optimizer:` on every Save, deleting a
+  # consumer's opt-in `enabled`/`mode` the first time they changed anything
+  # else. Test 1 + Test 9 assert the block survives, so the strip must redden.
+  RT_BAD_PO="$TMP/dashboard-drifted-prompt-optimizer.html"
+  grep -v 'lines.push("prompt_optimizer:")' index.html > "$RT_BAD_PO"
+  rc=0; node "$RT" "$RT_BAD_PO" >/dev/null 2>&1 || rc=$?
+  gate "dashboard round-trip (drifted: prompt_optimizer emit stripped)" must_fail "$rc"
   # must_fail (worktree_lease / keep_awake): both were ENTIRELY unmodelled — no
   # state slot, no applyGuardrailConfig read, no emitYaml write — until this fix
   # (found live 2026-09-03 auditing the v0.61.0 data-loss class after the

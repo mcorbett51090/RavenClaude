@@ -8518,6 +8518,20 @@ _JS = r"""
   const CHEAP_LANE_AGENT_DEFAULT = "grok";
   const CHEAP_LANE_DEFAULT = Object.freeze({ mode: "off", tier: "fast", agent: "grok" });
 
+  /* Prompt optimizer (Phases 2-6) — round-tripped here so a Save no longer
+   * strips it (the v0.61.0 data-loss class, closed the same shape as
+   * context_handoff / cheap_lane above). `enabled` is the master switch
+   * prompt-optimizer-gate.sh's own config gate reads; `mode` is gated ONLY
+   * on the final additionalContext emission (shadow = log-only, never
+   * advisory/binding-context = emits the composed text) — see
+   * design-lock.md §6 and prompt-optimizer-gate.sh's own header. NO DOM
+   * control — state-slot round-trip only, same pattern as worktree_bound /
+   * context_handoff / cheap_lane (Gate 132's DOM budget is at zero slack;
+   * a rendered control is a follow-up, not this phase's job). */
+  const PROMPT_OPTIMIZER_MODE_VALUES = ["shadow", "advisory", "binding-context"];
+  const PROMPT_OPTIMIZER_MODE_DEFAULT = "shadow";
+  const PROMPT_OPTIMIZER_DEFAULT = Object.freeze({ enabled: false, mode: "shadow" });
+
   /* Per-tier panel defaults — mirror thing-decision.py's built-in tier table.
    * Seats are forseti | mimir | heimdall (thor is the tie-breaker, never a seat).
    * The `low` tier runs no panel and is never authored here. */
@@ -8628,6 +8642,10 @@ _JS = r"""
      * No DOM control (worktree_bound pattern) — cheap-lane-delegate.sh /
      * grok-delegate.sh / route-task.py own the semantics, we only preserve. */
     cheap_lane: Object.assign({}, CHEAP_LANE_DEFAULT),
+    /* Prompt optimizer (Phases 2-6). Held in state so a Save round-trips it
+     * instead of silently dropping it. No DOM control — see the constant's
+     * own comment above for why. */
+    prompt_optimizer: Object.assign({}, PROMPT_OPTIMIZER_DEFAULT),
     expanded: {},   /* category -> boolean */
   };
 
@@ -9121,6 +9139,13 @@ _JS = r"""
       if (CHEAP_LANE_TIER_VALUES.includes(cl.tier)) { state.cheap_lane.tier = cl.tier; touched = true; }
       if (CHEAP_LANE_AGENT_VALUES.includes(cl.agent)) { state.cheap_lane.agent = cl.agent; touched = true; }
     }
+    /* Prompt optimizer (Phases 2-6). Validate against prompt-optimizer-gate.sh's
+     * own accepted sets — an unrecognized value is dropped, never canonicalized. */
+    const po = src.prompt_optimizer;
+    if (po && typeof po === "object") {
+      if (typeof po.enabled === "boolean") { state.prompt_optimizer.enabled = po.enabled; touched = true; }
+      if (PROMPT_OPTIMIZER_MODE_VALUES.includes(po.mode)) { state.prompt_optimizer.mode = po.mode; touched = true; }
+    }
     const cr = src.command_review;
     if (cr && typeof cr === "object" && typeof cr.dev_repo_exempt === "boolean") {
       state.command_review.dev_repo_exempt = cr.dev_repo_exempt; touched = true;
@@ -9414,6 +9439,24 @@ _JS = r"""
       if (clnMode) lines.push(`  mode: ${cln.mode}`);
       if (clnTier) lines.push(`  tier: ${cln.tier}`);
       if (clnAgent) lines.push(`  agent: ${cln.agent}`);
+      lines.push("");
+    }
+
+    /* Prompt optimizer (Phases 2-6, v0.61.0 data-loss class). Emit the block
+     * when ANY sub-field is non-default, and emit only the set sub-fields —
+     * so a Save preserves whatever the owner set instead of silently
+     * dropping it ("absent ⇒ default" holds for an untouched dashboard).
+     * Read back by prompt-optimizer-gate.sh's own config gate. No editable
+     * control (worktree_bound / context_handoff / cheap_lane pattern). */
+    const po = state.prompt_optimizer;
+    const poEnabled = po.enabled === true;
+    const poMode = po.mode && po.mode !== PROMPT_OPTIMIZER_MODE_DEFAULT
+      && PROMPT_OPTIMIZER_MODE_VALUES.includes(po.mode);
+    if (poEnabled || poMode) {
+      lines.push("# Prompt optimizer — pre-turn classify/rewrite/dispatch-plan advisory (default OFF).");
+      lines.push("prompt_optimizer:");
+      if (poEnabled) lines.push(`  enabled: true`);
+      if (poMode) lines.push(`  mode: ${po.mode}`);
       lines.push("");
     }
 

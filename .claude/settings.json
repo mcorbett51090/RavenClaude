@@ -265,6 +265,12 @@
             "command": "${CLAUDE_PROJECT_DIR}/plugins/ravenclaude-core/hooks/stream-prompt-attribute.sh",
             "timeout": 10,
             "comment": "Marketplace-dev hook (dev-mirror). Agentic Work-Streams P4 (OPT-IN, FAIL-OPEN): no-ops unless .ravenclaude/comfort-posture.yaml sets stream_hook: per_prompt (this repo doesn't, so it no-ops). When opted in, attributes the prompt to the active stream as a derived event (sticky — no reclassify) or auto-sets on a confident match. NEVER blocks/alters the prompt; NO-EGRESS (only derived labels persist)."
+          },
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PROJECT_DIR}/plugins/ravenclaude-core/scripts/prompt-optimizer-gate.sh\"",
+            "timeout": 90,
+            "comment": "Marketplace-dev hook (dev-mirror). Prompt optimizer (Phases 2-6 — OPT-IN, FAIL-OPEN, ships default OFF). Config-gated by the YAML-block-scoped prompt_optimizer.enabled in .ravenclaude/comfort-posture.yaml (this repo doesn't set it, so it no-ops). When enabled: Tier-0 pre-filter + Tier-1 Haiku classifier decide skip/rewrite/dispatch_plan; a non-skip verdict dispatches to prompt-optimizer-rewrite.sh / prompt-optimizer-dispatch.sh, then prompt-optimizer-format.py (semantic screen + delivery shape + its own audit artifact). Final emission gated on prompt_optimizer.mode: shadow (default) writes the audit artifact but emits an EMPTY additionalContext; advisory/binding-context emit the composed text. Fails open at every stage; never blocks. The plugin's hooks/hooks.json registers the same script for consumers via ${CLAUDE_PLUGIN_ROOT}."
           }
         ]
       }

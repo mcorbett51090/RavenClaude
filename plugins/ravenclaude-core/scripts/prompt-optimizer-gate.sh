@@ -167,8 +167,48 @@ _pg_prompt_optimizer_enabled() {
   _pg_yaml_scoped_enabled "$_file" "prompt_optimizer"
 }
 
+# ── Phase 6: `prompt_optimizer.mode` -- shadow | advisory | binding-context.
+# Same YAML-block-scoped read pattern as `_pg_prompt_optimizer_enabled` above
+# (a sibling, not a rewrite of it -- the enabled short-circuit above is
+# untouched). Any absent/unrecognized value defaults to "shadow" -- the
+# frozen default in design-lock.md §6 and the safest fail-open reading
+# (log-only, nothing injected) when the knob is present but malformed.
+_pg_yaml_scoped_mode() {
+  local _file="$1"
+  [ -r "$_file" ] || { printf 'shadow\n'; return; }
+  awk -v key="^prompt_optimizer:[[:space:]]*\$" '
+    BEGIN { in_block = 0; val = "shadow" }
+    $0 ~ key { in_block = 1; next }
+    in_block && /^[^[:space:]]/ { in_block = 0 }
+    in_block {
+      line = $0
+      sub(/#.*/, "", line)
+      if (line ~ /^[[:space:]]+mode:[[:space:]]*shadow[[:space:]]*$/) val = "shadow"
+      else if (line ~ /^[[:space:]]+mode:[[:space:]]*advisory[[:space:]]*$/) val = "advisory"
+      else if (line ~ /^[[:space:]]+mode:[[:space:]]*binding-context[[:space:]]*$/) val = "binding-context"
+    }
+    END { print val }
+  ' "$_file" 2>/dev/null || printf 'shadow\n'
+}
+
+_pg_prompt_optimizer_mode() {
+  local _file="$1"
+  [ -f "$_file" ] || { printf 'shadow\n'; return; }
+  if command -v yq >/dev/null 2>&1; then
+    local _yq_out
+    _yq_out="$(yq '.prompt_optimizer.mode // "shadow"' "$_file" 2>/dev/null || true)"
+    case "$_yq_out" in
+      shadow | advisory | binding-context) printf '%s\n' "$_yq_out"; return ;;
+      *) : ;; # fall through to the scoped-awk fallback below
+    esac
+  fi
+  _pg_yaml_scoped_mode "$_file"
+}
+
 prompt_optimizer_enabled="$(_pg_prompt_optimizer_enabled "$posture")"
 [ "$prompt_optimizer_enabled" = "true" ] || exit 0
+
+prompt_optimizer_mode="$(_pg_prompt_optimizer_mode "$posture")"
 
 # ─────────────────────────────────────────────────────────────────────────────────
 # Enabled beyond this point. Read the payload; a missing jq / empty prompt is a
@@ -405,16 +445,99 @@ if mkdir -p "$pg_audit_dir" 2>/dev/null; then
     >"$pg_audit_dir/$pg_ts.json" 2>/dev/null || true
 fi
 
-# ── stdout: VALIDATED/TYPED DERIVED FIELDS ONLY (no-egress invariant, AT3). No
-#    ambiguity_reason, no rationale, no raw classifier text of any kind.
-jq -n \
+# ─────────────────────────────────────────────────────────────────────────────────
+# ── PHASE 6 WIRING -- generator -> formatter -> mode-gated hookSpecificOutput ─────
+# ─────────────────────────────────────────────────────────────────────────────────
+# Everything above this point is Phase 2's own already-shipped classifier plus
+# its own classifier-only audit write, UNCHANGED. From here down connects the
+# already-shipped Phase 3/4 generators and Phase 5 formatter -- it does not
+# re-derive domain_count, routing, screening, or delivery-shape logic; each of
+# those already lives in its own file and is invoked, not rewritten.
+#
+# design-lock.md §5's frozen audit path is a directory of TIMESTAMPED files, so
+# this classifier-only record (written above) and format.py's own fuller
+# classifier+generator+screen record (written below, once the pipeline reaches
+# it) coexist under the same session/prompt-optimizer/ directory without
+# contradiction -- both are real, both are useful, neither is a duplicate of
+# the other's content.
+#
+# `prompt_optimizer.mode` gates ONLY the final emission, never the compute:
+#   shadow            -- runs generator + formatter (so the artifact IS
+#                         written), then emits additionalContext EMPTY.
+#   advisory |
+#   binding-context    -- emits the formatter's composed additionalContext.
+# This phase does not behaviorally distinguish advisory from binding-context
+# (AT3 groups them identically); a future phase may split them further.
+pg_gen_script=""
+case "$pg_action" in
+  rewrite) pg_gen_script="prompt-optimizer-rewrite.sh" ;;
+  dispatch_plan) pg_gen_script="prompt-optimizer-dispatch.sh" ;;
+esac
+
+pg_generator_json=""
+if [ -n "$pg_gen_script" ]; then
+  pg_generator_json="$(printf '%s' "$payload" |
+    bash "$(dirname "${BASH_SOURCE[0]}")/$pg_gen_script" 2>/dev/null || true)"
+fi
+
+# Generator fail-open: nothing to format/emit; the classifier-level audit
+# above already stands as the record. Mirrors Tier-1's own fail-open shape.
+[ -n "$pg_generator_json" ] || {
+  [ -n "${PROMPT_OPTIMIZER_DEBUG:-}" ] &&
+    printf 'prompt-optimizer-gate: GENERATOR_FAILOPEN action=%s\n' "$pg_action" >&2
+  exit 0
+}
+
+if [ -n "$pg_ambiguity_reason" ]; then
+  pg_classifier_json="$(jq -n \
+    --arg confidence "$pg_confidence" \
+    --arg ambiguity_reason "$pg_ambiguity_reason" \
+    '{confidence: $confidence, ambiguity_reason: $ambiguity_reason}' 2>/dev/null || true)"
+else
+  pg_classifier_json="$(jq -n --arg confidence "$pg_confidence" \
+    '{confidence: $confidence}' 2>/dev/null || true)"
+fi
+[ -n "$pg_classifier_json" ] || exit 0
+
+pg_envelope="$(jq -n \
   --arg action "$pg_action" \
-  --arg confidence "$pg_confidence" \
-  --argjson domain_count "${pg_domain_count:-0}" \
-  --argjson anchor_count "${pg_llm_anchor_count:-0}" \
-  --argjson assumption_count "${pg_assumption_count:-0}" \
-  '{action: $action, confidence: $confidence, domain_count: $domain_count,
-    anchor_count: $anchor_count, assumption_count: $assumption_count}' \
+  --argjson classifier "$pg_classifier_json" \
+  --argjson generator "$pg_generator_json" \
+  '{action: $action, classifier: $classifier, generator: $generator}' 2>/dev/null || true)"
+[ -n "$pg_envelope" ] || exit 0
+
+command -v python3 >/dev/null 2>&1 || {
+  [ -n "${PROMPT_OPTIMIZER_DEBUG:-}" ] && printf 'prompt-optimizer-gate: TIER5_FAILOPEN reason=python3_missing\n' >&2
+  exit 0
+}
+
+# --skip-posture-check: this hook already confirmed enabled==true above; the
+# flag avoids a redundant re-read of the same file inside format.py.
+pg_format_out="$(printf '%s' "$pg_envelope" |
+  python3 "$(dirname "${BASH_SOURCE[0]}")/prompt-optimizer-format.py" \
+    --project-dir "$project_dir" --session "$pg_session" --skip-posture-check 2>/dev/null || true)"
+[ -n "$pg_format_out" ] || {
+  [ -n "${PROMPT_OPTIMIZER_DEBUG:-}" ] && printf 'prompt-optimizer-gate: FORMAT_FAILOPEN\n' >&2
+  exit 0
+}
+
+pg_additional_context="$(printf '%s' "$pg_format_out" | jq -r '.additional_context // empty' 2>/dev/null || true)"
+
+# ── Mode gate on the FINAL emission -- shadow is log-only/invisible (AT2);
+#    advisory/binding-context deliver the composed text (AT3).
+if [ "$prompt_optimizer_mode" = "shadow" ]; then
+  pg_emit_context=""
+else
+  pg_emit_context="$pg_additional_context"
+fi
+
+[ -n "${PROMPT_OPTIMIZER_DEBUG:-}" ] &&
+  printf 'prompt-optimizer-gate: EMIT mode=%s action=%s context_bytes=%s\n' \
+    "$prompt_optimizer_mode" "$pg_action" "${#pg_emit_context}" >&2
+
+# ── stdout: the real Claude Code UserPromptSubmit hook contract.
+jq -n --arg ctx "$pg_emit_context" \
+  '{hookSpecificOutput: {hookEventName: "UserPromptSubmit", additionalContext: $ctx}}' \
   2>/dev/null
 
 exit 0

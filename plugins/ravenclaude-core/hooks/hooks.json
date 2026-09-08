@@ -247,6 +247,12 @@
             "command": "${CLAUDE_PLUGIN_ROOT}/hooks/stream-prompt-attribute.sh",
             "timeout": 10,
             "comment": "Agentic Work-Streams (P4 — OPT-IN, FAIL-OPEN). No-ops (a single grep, zero cost) unless .ravenclaude/comfort-posture.yaml sets `stream_hook: per_prompt` (default session_boundary). When opted in: if a work-stream is ACTIVE, attribute the prompt to it as ONE derived event (sticky — does NOT re-classify); if none is active AND stream_classify is `auto`, classify + set-active on a confident match. NEVER blocks/alters the prompt (always exit 0); a latency budget (RC_STREAM_HOOK_BUDGET_S, default 3s) caps the inner work. NO-EGRESS: only derived labels/terms/word-count are persisted (stream-ops refuses raw-content fields) — the prompt text never reaches disk."
+          },
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/prompt-optimizer-gate.sh\"",
+            "timeout": 90,
+            "comment": "Prompt optimizer (Phases 2-6 — OPT-IN, FAIL-OPEN, ships default OFF). Config-gated by the YAML-block-scoped `prompt_optimizer.enabled` in .ravenclaude/comfort-posture.yaml — absent/false costs a single test -f + one awk pass and nothing else. When enabled, a free Tier-0 pre-filter + a paid Tier-1 Haiku classifier (claude -p --tools=\"\") decide skip/rewrite/dispatch_plan; on a non-skip verdict this hook dispatches to the matching Phase 3/4 generator (prompt-optimizer-rewrite.sh / prompt-optimizer-dispatch.sh), hands the result to Phase 5's formatter (prompt-optimizer-format.py — semantic screen + inline/file-pointer delivery shape + its own on-disk audit artifact under .ravenclaude/runs/<session>/prompt-optimizer/), then gates the FINAL emission on `prompt_optimizer.mode`: shadow (default) runs the whole pipeline and writes the audit artifact but emits an EMPTY additionalContext (log-only, invisible on the turn); advisory/binding-context emit the composed additionalContext. Fails open at every stage (missing claude/jq/python3, timeout, unparseable/invalid output) — never blocks, never crashes. Lives under scripts/ (not hooks/) for the same executable-bit/CI reason ask-on-ambiguity.sh does — hence the `bash` prefix. Never modifies agent-dispatch-evaluator.sh/dispatch-config.json/evaluate-dispatch.js/adaptive-run-classifier/agent-routing-matrix.json/route-task.py."
           }
         ]
       }
