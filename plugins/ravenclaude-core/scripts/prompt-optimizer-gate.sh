@@ -24,13 +24,34 @@
 # not as a direct executable path.
 #
 # ── TIER 0 — free, no network call ────────────────────────────────────────────────
-# Skip (exit 0, emit nothing) ONLY when anchor_count == 1 AND no multi-domain
-# keyword-cluster hit. This is a BOUNDED rule, not "presence of any anchor" — a
-# prompt with 2+ anchors, OR any keyword-cluster hit regardless of anchor count,
-# ALWAYS falls through to Tier 1. This fixes the false-negative red-team Finding 4
-# (the payment.py/auth.py/db.py case in golden-set.jsonl category (e)): a naive
-# "short + has an anchor -> skip" rule would zero-cost-skip a 3-file, 3-domain
-# remediation because it is short and "has an anchor" (it has three).
+# Skip (exit 0, emit nothing) ONLY when [anchor_count == 1, OR (anchor_count == 0
+# AND the prompt matches a narrow trivial-shape whitelist -- see PG_TRIVIAL_SHAPE_RE
+# below)] AND no multi-domain keyword-cluster hit. This is a BOUNDED rule, not
+# "presence of any anchor" — a prompt with 2+ anchors, OR any keyword-cluster hit
+# regardless of anchor count, ALWAYS falls through to Tier 1. This fixes the
+# false-negative red-team Finding 4 (the payment.py/auth.py/db.py case in
+# golden-set.jsonl category (e)): a naive "short + has an anchor -> skip" rule
+# would zero-cost-skip a 3-file, 3-domain remediation because it is short and
+# "has an anchor" (it has three).
+#
+# The zero-anchor branch (not present in the original design) is deliberate: a
+# ZERO-anchor trivial prompt ("What's the capital of France?", "Convert 100
+# Fahrenheit to Celsius.") is exactly the plan's own category (a) trivial-ask
+# case and must Tier-0-skip too. An exact `== 1` check left every zero-anchor
+# prompt falling through to a paid Haiku call, which measured as 0/42 Tier-0-skips
+# against the shipped golden-set corpus (final whole-branch review Finding 1) —
+# contradicting the SKILL doc's own claim that a trivial zero-anchor ask is "the
+# canonical Tier-0 zero-cost skip case".
+#
+# A BLANKET `anchor_count <= 1` widening (no whitelist) was tried first and
+# measured unsafe: it free-skips 24/42 golden-set entries, including all 9
+# category-(b) wild-assumption entries and a real 3-domain, 0-anchor entry
+# ("Migrate our monolith to microservices..." -- 1 cluster hit, still <2, still
+# silently skipped). The trivial-shape whitelist is the narrower gate that keeps
+# the zero-anchor branch from regressing the category (b)/(e) hard requirement:
+# re-verified clean against the golden-set corpus at 9/42 Tier-0-skip (exactly
+# category (a)) with zero false-skips among the other 33 entries. See
+# PG_TRIVIAL_SHAPE_RE's own comment below for the full rationale.
 #
 # ── TIER 1 — paid, one Haiku forced-tool-shaped call ──────────────────────────────
 # Mirrors plugins/ravenclaude-core/hooks/agent-dispatch-evaluator.sh's proven shape:
@@ -267,21 +288,62 @@ _pg_cluster_hit_count() {
   echo "$n"
 }
 
+# A ZERO-anchor prompt is only free-skip-eligible when it also matches a narrow
+# TRIVIAL-SHAPE whitelist -- either a factual interrogative ("What/How/Why/...
+# ... ?") or a small, fixed set of deterministic-transform / stock-creative-
+# writing openers (convert/format/summarize/translate/define/calculate/spell/
+# pronounce, "give me a synonym/...", "write a haiku/...").
+#
+# This whitelist exists because "anchor_count == 0" is NOT, by itself, evidence
+# of triviality -- measured directly against the shipped golden-set corpus, a
+# blanket `anchor_count <= 1` widening (the naive fix for Finding 1's 0/42
+# Tier-0-skip bug) free-skips 24 of the 42 entries, including all 9 category-(b)
+# wild-assumption entries ("Make the login faster.", "Improve our onboarding.",
+# ...) and a real 3-domain entry with no anchors at all ("Migrate our monolith
+# to microservices, keeping zero downtime and full audit logging for
+# compliance." -- 1 cluster hit, 0 anchors, silently free-skipped under the
+# naive rule despite spanning 3 domains). Those are exactly the category-(b)/(e)
+# false-skips this rule must never regress (Phase 2/3's already-verified hard
+# requirement, restated in Finding 1's own re-verify instructions).
+#
+# The whitelist-gated form re-verified clean against the full 42-entry corpus:
+# 9/42 Tier-0-skip (exactly the 9 category-(a) trivial entries), 0 false-skips
+# among the other 33 (category-(b), the complex-but-single-domain set, the
+# clean multi-domain set, and category-(e)). Bias is deliberate: a false
+# NEGATIVE here (a genuinely trivial prompt that doesn't match the whitelist)
+# just costs one paid Tier-1 call -- safe. A false POSITIVE (skipping a prompt
+# that needed a wild-assumption flag or a dispatch plan) silently under-serves
+# the user -- unsafe. The whitelist is deliberately narrow for that reason; it
+# is not meant to catch every trivial prompt a user might write, only to stop
+# manufacturing false negatives on the shipped golden-set's own category (a).
+PG_TRIVIAL_SHAPE_RE='^(what|why|when|where|who|which|how|is|are|does|do)\b.*\?[[:space:]]*$|^(convert|format|summarize|translate|define|calculate|spell|pronounce)\b|^give me an?[[:space:]]+(synonym|antonym|definition|example|translation)\b|^write an?[[:space:]]+(haiku|poem|story|limerick|joke|tweet|caption|sonnet|verse)\b'
+
+_pg_is_trivial_shape() {
+  printf '%s' "$1" | grep -Eiq "$PG_TRIVIAL_SHAPE_RE"
+}
+
 pg_anchor_count="$(_pg_anchor_count "$prompt")"
 case "$pg_anchor_count" in '' | *[!0-9]*) pg_anchor_count=0 ;; esac
 pg_cluster_hits="$(_pg_cluster_hit_count "$prompt")"
 
-if [ "$pg_anchor_count" -eq 1 ] && [ "$pg_cluster_hits" -lt 2 ]; then
-  # Tier-0 free skip: exactly one anchor, no multi-domain cluster hit.
+pg_trivial_shape=0
+if [ "$pg_anchor_count" -eq 0 ] && _pg_is_trivial_shape "$prompt"; then
+  pg_trivial_shape=1
+fi
+
+if { [ "$pg_anchor_count" -eq 1 ] || [ "$pg_trivial_shape" -eq 1 ]; } && [ "$pg_cluster_hits" -lt 2 ]; then
+  # Tier-0 free skip: exactly one anchor (unchanged original rule), OR zero
+  # anchors with a whitelisted trivial shape -- either way, no multi-domain
+  # cluster hit.
   [ -n "${PROMPT_OPTIMIZER_DEBUG:-}" ] &&
-    printf 'prompt-optimizer-gate: TIER0_SKIP anchor_count=%s cluster_hits=%s\n' \
-      "$pg_anchor_count" "$pg_cluster_hits" >&2
+    printf 'prompt-optimizer-gate: TIER0_SKIP anchor_count=%s cluster_hits=%s trivial_shape=%s\n' \
+      "$pg_anchor_count" "$pg_cluster_hits" "$pg_trivial_shape" >&2
   exit 0
 fi
 
 [ -n "${PROMPT_OPTIMIZER_DEBUG:-}" ] &&
-  printf 'prompt-optimizer-gate: TIER0_FALLTHROUGH anchor_count=%s cluster_hits=%s\n' \
-    "$pg_anchor_count" "$pg_cluster_hits" >&2
+  printf 'prompt-optimizer-gate: TIER0_FALLTHROUGH anchor_count=%s cluster_hits=%s trivial_shape=%s\n' \
+    "$pg_anchor_count" "$pg_cluster_hits" "$pg_trivial_shape" >&2
 
 # ─────────────────────────────────────────────────────────────────────────────────
 # ── TIER 1 — paid, one Haiku forced-tool-shaped call ──────────────────────────────

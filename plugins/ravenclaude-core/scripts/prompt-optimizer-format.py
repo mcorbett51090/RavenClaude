@@ -1,10 +1,13 @@
 #!/usr/bin/env python3
 """prompt-optimizer-format.py
 
-The `additionalContext` formatter — prompt-optimizer Phase 5. NOT YET WIRED into
-hooks.json / .claude/settings.json — that is Phase 6's job. Standalone and
-directly callable: feed it a combined JSON envelope on stdin (see "INPUT
-CONTRACT" below) and it renders the exact `additionalContext` text frozen in
+The `additionalContext` formatter — prompt-optimizer Phase 5. WIRED as of Phase 6 —
+invoked by prompt-optimizer-gate.sh (itself wired into both hooks/hooks.json
+(plugin-canonical) and .claude/settings.json (dev-mirror)) once a generator has
+produced output; see gate.sh's own "PHASE 6 WIRING" section for the dispatch +
+mode-gated emission. This script is also standalone and directly callable: feed
+it a combined JSON envelope on stdin (see "INPUT CONTRACT" below) and it renders
+the exact `additionalContext` text frozen in
 docs/plans/2026-09-03-prompt-optimizer/design-lock.md §4, applies Phase 5's
 semantic screen to the four flagged fields, decides the dispatch-plan delivery
 shape (inline vs file-pointer, §7's frozen ≤2/>2 threshold), and writes the
@@ -37,7 +40,9 @@ Phases 2-4's *hook bodies* into bash wrappers.
   prompt-optimizer-dispatch.sh, plus the classifier's own audit fields).
 - Does NOT decide domain_count, routing, or wild_assumption.present. It
   reads those from its input envelope; it does not re-derive them.
-- Does NOT wire anything into hooks.json/settings.json (Phase 6).
+- Does NOT itself edit hooks.json/settings.json — this script has no wiring code
+  of its own. The pipeline it belongs to IS wired, as of Phase 6: gate.sh (which
+  IS registered in both hooks.json and settings.json) invokes this file directly.
 - Does NOT modify agent-dispatch-evaluator.sh, dispatch-config.json,
   evaluate-dispatch.js, adaptive-run-classifier's files,
   agent-routing-matrix.json/.schema.json, or route-task.py.
@@ -275,13 +280,15 @@ def _compose_rewrite(
     lines: list[str] = []
     if present:
         lines += [
-            "[RavenClaude prompt-optimizer] Your prompt was rewritten before this turn ran, and a wild",
+            "[RavenClaude prompt-optimizer] A rewritten version of your prompt is offered below as",
+            "additional context for this turn (not substituted for what you typed), and a wild",
             "assumption was flagged. Call AskUserQuestion as your first tool call this turn, presenting",
             "the flagged assumption below, before proceeding.",
         ]
     else:
         lines += [
-            "[RavenClaude prompt-optimizer] Your prompt was rewritten before this turn ran.",
+            "[RavenClaude prompt-optimizer] A rewritten version of your prompt is offered below as",
+            "additional context for this turn (not substituted for what you typed).",
         ]
     lines.append("")
     lines.append(f"- Confidence: {confidence}")
@@ -301,7 +308,7 @@ def _compose_rewrite(
 
     lines += [
         "",
-        "Rewritten prompt used for this turn:",
+        "Rewritten prompt offered as additional context for this turn:",
         "<rewritten-prompt>",
         rewritten_prompt,
         "</rewritten-prompt>",
@@ -385,12 +392,23 @@ def _compose_dispatch(
             lines.append(flagged_line)
         lines.append("")
 
+        # Iterate DOMAINS outer, RECOMMENDATIONS inner. Domain/Brief are per-DOMAIN
+        # facts and must render exactly once per domain -- previously this loop was
+        # per-RECOMMENDATION, which (a) rendered Domain:/Brief: N times when a
+        # domain had N surviving agents (the "duplicated Domain/Brief lines" defect)
+        # and (b) silently dropped a domain's Brief entirely whenever its
+        # recommended_agents array was empty (a real, reachable path -- the roster-
+        # hallucination guard in prompt-optimizer-dispatch.sh can drop every
+        # recommendation for a domain, and that domain's tailored_brief is the most
+        # useful content in the announcement). An empty-agents domain still shows
+        # its Domain:/Brief: lines; it just has no Recommended:/Matrix basis: lines
+        # underneath.
         for d in rendered_per_domain:
+            lines.append(f"Domain: {d['domain']}")
+            lines.append(f"  Brief: {d['rendered_brief']}")
             for rec in d["recs"]:
-                lines.append(f"Domain: {d['domain']}")
                 lines.append(f"  Recommended: {rec['agent']} — {rec['rendered_rationale']}")
                 lines.append(f"  Matrix basis: {rec['matrix_basis']}")
-                lines.append(f"  Brief: {d['rendered_brief']}")
 
         lines.append("")
         lines.append("Full record: {AUDIT_PATH}")
@@ -579,14 +597,15 @@ def _self_test() -> int:
     }
     r1 = compose(json.loads(json.dumps(env1)), Path("/tmp/pof-selftest-1"), "st1")
     expect1 = (
-        "[RavenClaude prompt-optimizer] Your prompt was rewritten before this turn ran.\n"
+        "[RavenClaude prompt-optimizer] A rewritten version of your prompt is offered below as\n"
+        "additional context for this turn (not substituted for what you typed).\n"
         "\n"
         "- Confidence: medium\n"
         "- Constraints preserved: 1\n"
         "- Missing context surfaced: 0\n"
         "- Why: the prompt names no target file\n"
         "\n"
-        "Rewritten prompt used for this turn:\n"
+        "Rewritten prompt offered as additional context for this turn:\n"
         "<rewritten-prompt>\n"
         "Fix the login latency in auth/session.py.\n"
         "</rewritten-prompt>\n"
@@ -634,6 +653,44 @@ def _self_test() -> int:
 
     r_4agent = compose(_dispatch_env([2, 2]), Path("/tmp/pof-selftest-2"), "st2")
     check("boundary-4-agents-filepointer", r_4agent["output_shape"] == "file-pointer")
+
+    # -- Domain-outer/recommendation-inner render (final-review Finding 2) --
+    # One domain with ZERO surviving recommended_agents (a real, reachable path --
+    # the roster-hallucination guard in prompt-optimizer-dispatch.sh can drop every
+    # recommendation for a domain) and one domain with TWO. Proves: (a) the
+    # empty-agents domain's Brief still renders, (b) the 2-agent domain's
+    # Domain:/Brief: lines render EXACTLY ONCE (not once per agent), with its two
+    # agents' Recommended:/Matrix basis: lines listed underneath.
+    r_mixed = compose(_dispatch_env([0, 2]), Path("/tmp/pof-selftest-4"), "st4")
+    mixed_ctx = r_mixed["additional_context"]
+    check("mixed-output-shape-inline", r_mixed["output_shape"] == "inline")
+    expect_mixed = (
+        "[RavenClaude prompt-optimizer] This prompt spans 2 domains — a dispatch plan\n"
+        "was drafted (advisory only; nothing was dispatched).\n"
+        "\n"
+        "- Confidence: high\n"
+        "\n"
+        "Domain: domain0\n"
+        "  Brief: brief text\n"
+        "Domain: domain1\n"
+        "  Brief: brief text\n"
+        "  Recommended: agent1-0 — fits\n"
+        "  Matrix basis: tc1\n"
+        "  Recommended: agent1-1 — fits\n"
+        "  Matrix basis: tc1\n"
+        "\n"
+        f"Full record: {r_mixed['audit_path']}"
+    )
+    check("mixed-exact-match", mixed_ctx == expect_mixed)
+    check("mixed-empty-domain-brief-renders", "Domain: domain0\n  Brief: brief text" in mixed_ctx)
+    check(
+        "mixed-domain-brief-once-not-duplicated",
+        mixed_ctx.count("Domain: domain1") == 1 and mixed_ctx.count("  Brief: brief text") == 2,
+    )
+    check(
+        "mixed-two-agents-listed-underneath",
+        mixed_ctx.count("Recommended:") == 2 and mixed_ctx.count("Matrix basis:") == 2,
+    )
 
     # -- Must-fail-teeth mechanism (screen catches; disabled screen leaks) --
     env_leak = {

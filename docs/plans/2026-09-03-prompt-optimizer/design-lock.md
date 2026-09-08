@@ -127,12 +127,33 @@ Invoked when `domain_count <= 1` (Phase 3). Fast tier via `substrate-tier-map.js
 
 `rewritten_prompt` / `persona` / `explicit_constraints` / `surfaced_missing_context` are **not** on
 the brief's semantic-screen list (item 4 names exactly `rationale`, `ambiguity_reason`,
-`tailored_brief`, `wild_assumption.description`) — deliberately, and the reason is structural, not an
-oversight: on the rewrite path, `rewritten_prompt` is not injected as advisory narrative the assistant
-might read as an instruction alongside its own reasoning — it **becomes** the working prompt for the
-turn. `explicit_constraints` / `surfaced_missing_context` are short, schema-constrained list items
-generated under a forced tool call, not open narrative. `wild_assumption.description` is the one place
-genuinely open-ended, injection-shaped prose can arise on this path, and it is on the screen list.
+`tailored_brief`, `wild_assumption.description`) — deliberately. `explicit_constraints` /
+`surfaced_missing_context` are short, schema-constrained list items generated under a forced tool call,
+not open narrative. `wild_assumption.description` is the one place genuinely open-ended,
+injection-shaped prose can arise on this path, and it is on the screen list.
+
+**Why `rewritten_prompt` stays unscreened — corrected rationale (final whole-branch review Finding 3).**
+An earlier draft of this section justified the exclusion by claiming `rewritten_prompt` "is not injected
+as advisory narrative the assistant might read as an instruction alongside its own reasoning — it
+**becomes** the working prompt for the turn." That claim is **false against the shipped hook mechanism**:
+`prompt-optimizer-gate.sh` emits `hookSpecificOutput.additionalContext`, which Claude Code **appends** to
+context — it never replaces or substitutes the user's original prompt for the turn. So
+`rewritten_prompt` — the largest free-text field in the whole build — is in fact injected **unscreened,
+alongside** the original prompt, exactly like the four screened fields, under template wording that (in
+the earlier draft) overstated what actually happened.
+
+Given that corrected, weaker framing, the decision to leave it unscreened is still made deliberately, on
+these grounds instead: (1) it is Haiku output derived from the user's **own** prompt on the rewrite path
+(Phase 3/4's generator reasons over the user's text, not attacker-supplied content reaching the pipeline
+some other way), so the injection surface is bounded by what the user themselves already typed into the
+turn; (2) the feature is default-off (`prompt_optimizer.enabled: false` unless a consumer opts in) and,
+even when on, `advisory`/`binding-context` mode only ever *offers* content the assistant may or may not
+act on — nothing here is auto-executed; (3) the practical exposure was judged Important, not Critical,
+for exactly this reason — bounded, not eliminated. The template wording above (both variants) now says
+so honestly: the rewrite is *offered as additional context*, not substituted for the user's turn. This
+is a documentation-and-template fix only; `rewritten_prompt` is deliberately **not** run through the
+semantic screen (Option B, not Option A, of the two fixes the final-review finding offered) — this
+paragraph is that choice's explicit, honest record.
 
 ---
 
@@ -260,14 +281,15 @@ the actual screening logic ships in Phase 5.
 ### Variant 1 — `action: "rewrite"`, `wild_assumption.present: false`
 
 ```
-[RavenClaude prompt-optimizer] Your prompt was rewritten before this turn ran.
+[RavenClaude prompt-optimizer] A rewritten version of your prompt is offered below as
+additional context for this turn (not substituted for what you typed).
 
 - Confidence: {confidence}
 - Constraints preserved: {explicit_constraints_count}
 - Missing context surfaced: {surfaced_missing_context_count}
 - Why: {ambiguity_reason}                                            [SCREENED, optional]
 
-Rewritten prompt used for this turn:
+Rewritten prompt offered as additional context for this turn:
 <rewritten-prompt>
 {rewritten_prompt}
 </rewritten-prompt>
@@ -278,13 +300,17 @@ Full record: .ravenclaude/runs/<session>/prompt-optimizer/<UTC-ts>.json
 `{confidence}` — enum, safe verbatim. `{explicit_constraints_count}` / `{surfaced_missing_context_count}`
 — derived integers (counts, not the list contents), safe verbatim. `{ambiguity_reason}` — **[SCREENED]**,
 line omitted entirely when the classifier emitted none. `{rewritten_prompt}` — **not** screened (§2's
-rationale: it is the working prompt, not injected narrative) but IS the content the assistant will act
-on for the turn, delivered inline always (rewrite's output_shape is always inline, task brief item 7).
+rationale, corrected — see the "Why `rewritten_prompt` stays unscreened" note below §2's schema: the
+shipped `UserPromptSubmit` hook mechanism appends `additionalContext`, it does not substitute the
+user's prompt, so this field is injected unscreened free-text alongside the original prompt, not a
+narrower-risk substitution), delivered inline always (rewrite's output_shape is always inline, task
+brief item 7).
 
 ### Variant 2 — `action: "rewrite"`, `wild_assumption.present: true`
 
 ```
-[RavenClaude prompt-optimizer] Your prompt was rewritten before this turn ran, and a wild
+[RavenClaude prompt-optimizer] A rewritten version of your prompt is offered below as
+additional context for this turn (not substituted for what you typed), and a wild
 assumption was flagged. Call AskUserQuestion as your first tool call this turn, presenting
 the flagged assumption below, before proceeding.
 
@@ -294,7 +320,7 @@ the flagged assumption below, before proceeding.
 - Why: {ambiguity_reason}                                            [SCREENED, optional]
 - Flagged assumption (confidence: {wild_assumption.confidence}): {wild_assumption.description}   [SCREENED]
 
-Rewritten prompt used for this turn:
+Rewritten prompt offered as additional context for this turn:
 <rewritten-prompt>
 {rewritten_prompt}
 </rewritten-prompt>
@@ -322,10 +348,13 @@ was drafted (advisory only; nothing was dispatched).
 - Why: {ambiguity_reason}                                            [SCREENED, optional]
 
 Domain: {domain}
+  Brief: {tailored_brief}                                            [SCREENED]
   Recommended: {agent} — {rationale}                                 [SCREENED]
   Matrix basis: {matrix_basis}
-  Brief: {tailored_brief}                                            [SCREENED]
-  ... (repeated per domain/agent, ≤2 agents total)
+  ... (Domain:/Brief: once per domain; Recommended:/Matrix basis: once per
+  surviving agent in that domain, ≤2 agents total across the whole plan. A
+  domain with zero surviving agents still renders its Domain:/Brief: lines,
+  with no Recommended:/Matrix basis: lines under them.)
 
 Full record: .ravenclaude/runs/<session>/prompt-optimizer/<UTC-ts>.json
 ```
@@ -368,10 +397,13 @@ below, before acting on this plan.
 - Flagged assumption (confidence: {wild_assumption.confidence}): {wild_assumption.description}   [SCREENED]
 
 Domain: {domain}
+  Brief: {tailored_brief}                                            [SCREENED]
   Recommended: {agent} — {rationale}                                 [SCREENED]
   Matrix basis: {matrix_basis}
-  Brief: {tailored_brief}                                            [SCREENED]
-  ... (repeated per domain/agent, ≤2 agents total)
+  ... (Domain:/Brief: once per domain; Recommended:/Matrix basis: once per
+  surviving agent in that domain, ≤2 agents total across the whole plan. A
+  domain with zero surviving agents still renders its Domain:/Brief: lines,
+  with no Recommended:/Matrix basis: lines under them.)
 
 Full record: .ravenclaude/runs/<session>/prompt-optimizer/<UTC-ts>.json
 ```
@@ -400,7 +432,7 @@ Read that file before acting on this dispatch plan.
 | `wild_assumption.description` | Variants 2 and 4 (required when present) | **Yes** |
 | `rationale` (per recommended agent) | Variants 3 and 4 | **Yes** |
 | `tailored_brief` (per domain) | Variants 3 and 4 | **Yes** |
-| `rewritten_prompt` | Variants 1 and 2 | No — becomes the working prompt itself, not injected narrative (§2) |
+| `rewritten_prompt` | Variants 1 and 2 | No — deliberately unscreened; injected as additional context alongside (not substituted for) the user's prompt; see §2's "Why `rewritten_prompt` stays unscreened" note for the accepted, bounded exposure |
 | `persona` / `explicit_constraints` / `surfaced_missing_context` | Variants 1 and 2 (counts/labels only in the template; full content lives in the audit artifact) | No — short, schema-constrained values, not open narrative |
 | `domain` / `agent` / `matrix_basis` / counts / `confidence` enums | All variants | No — enum members, validated roster names, or derived integers |
 

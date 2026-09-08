@@ -95,11 +95,16 @@ field, using the wrong type, or omitting `description` while `present: true` is
 treated as unparseable and fails open (nothing printed), never partially printed.
 
 `rewritten_prompt` / `persona` / `explicit_constraints` / `surfaced_missing_context`
-are **not** on Phase 5's semantic-screen list — design-lock.md §2 explains why:
-`rewritten_prompt` **becomes** the working prompt for the turn rather than being
-injected as advisory narrative alongside it, and the other three are short,
-schema-constrained list items produced under a forced tool call, not open
-narrative.
+are **not** on Phase 5's semantic-screen list — design-lock.md §2 explains why, with
+a corrected rationale for `rewritten_prompt` (final whole-branch review Finding 3):
+the shipped hook mechanism emits `hookSpecificOutput.additionalContext`, which Claude
+Code **appends** to context — it never substitutes for the user's prompt — so
+`rewritten_prompt` is injected unscreened **alongside** the original prompt, not in
+its place. It stays unscreened anyway, on narrower, honestly-stated grounds (Haiku
+output derived from the user's own prompt, default-off, advisory-only) — see
+design-lock.md §2's own note for the full accept/reject record. `explicit_constraints`
+/ `surfaced_missing_context` are short, schema-constrained list items produced under
+a forced tool call, not open narrative.
 
 **`wild_assumption.description`, when present, is the one genuinely open-ended,
 injection-shaped prose field on this path.**
@@ -493,6 +498,17 @@ the prompt exactly as typed. This is the cheapest of the three paths and the one
 to claim applies to every "skip" outcome — see that section for the Tier-1-reaches-and-still-resolves-
 skip case, which pays a real (small) cost this Tier-0 case does not.
 
+**Measured, not asserted.** An earlier revision of `prompt-optimizer-gate.sh`'s Tier-0 rule required
+`anchor_count == 1` exactly — which meant this specific zero-anchor prompt, and every other zero-anchor
+trivial ask, always fell through to a paid Tier-1 call; run against the full 42-entry golden-set corpus
+that version Tier-0-skipped **0/42** entries, contradicting the "canonical Tier-0 zero-cost skip case"
+claim above. The rule now also skips a zero-anchor prompt when it matches a narrow trivial-shape
+whitelist (see the rule's own header comment for the full rationale and the false-skip trap a blanket
+`anchor_count <= 1` widening fell into). Re-run against the same corpus with a stub `claude` binary, the
+fix measures **9/42 Tier-0-skip** — exactly the 9 golden-set entries in this trivial-ask category,
+including this one — with zero false-skips among the other 33 (the wild-assumption, complex-single-
+domain, and multi-domain dispatch entries all still correctly reach Tier-1).
+
 ### Example 2 — `rewrite` (Tier-1, single-domain, wild assumption flagged)
 
 **Prompt:** `"Add caching to this."` (golden-set: *"'This' has no antecedent in the prompt and no layer
@@ -539,7 +555,8 @@ Phase 5's screen finds no directive-shaped language in `ambiguity_reason` or
 design-lock.md §4):
 
 ```
-[RavenClaude prompt-optimizer] Your prompt was rewritten before this turn ran, and a wild
+[RavenClaude prompt-optimizer] A rewritten version of your prompt is offered below as
+additional context for this turn (not substituted for what you typed), and a wild
 assumption was flagged. Call AskUserQuestion as your first tool call this turn, presenting
 the flagged assumption below, before proceeding.
 
@@ -549,7 +566,7 @@ the flagged assumption below, before proceeding.
 - Why: No named target for "this" and no cache layer specified — the prompt has zero anchors for what to cache.
 - Flagged assumption (confidence: low): Assumed the caching target is the application's primary HTTP read path, not the database layer or a background job — the prompt gave no antecedent for "this."
 
-Rewritten prompt used for this turn:
+Rewritten prompt offered as additional context for this turn:
 <rewritten-prompt>
 Add response caching to the [ASSUMED: the application's primary HTTP read path] to reduce repeated computation. Use an in-memory cache with a sensible TTL, and leave a comment noting the cached layer is a starting guess pending confirmation.
 </rewritten-prompt>
@@ -772,6 +789,16 @@ one Haiku call's real latency and real (small) cost for a turn that ultimately r
 reading this file as "trivial asks are free" should read that sentence as false for this bucket
 specifically — free only holds for the Tier-0-caught subset.
 
+**How big is the Tier-0-caught subset, measured, not assumed?** Against the shipped 42-entry golden-set
+corpus, Tier-0 free-skips exactly **9/42** entries — the trivial factual/creative/deterministic-transform
+category. The other **33/42** — every wild-assumption ask, every complex-but-single-domain ask, every
+multi-domain dispatch case — clear Tier-0 and pay at least one Tier-1 Haiku call, whether they ultimately
+resolve to `rewrite`, `dispatch_plan`, or a Tier-1-judged `skip`. Before this rule was corrected, the
+Tier-0-caught subset measured **0/42** — every prompt in this eval set, trivial or not, paid the Tier-1
+tax — meaning the "paid-then-skip bucket" this paragraph warns about was not a subset of the trivial-ask
+set at all; it *was* the trivial-ask set, in its entirety. That was the actual, measured state this
+paragraph's honesty was protecting against, whether or not the prose said so explicitly.
+
 ---
 
 ## Self-score against `agent-quality-rubric`
@@ -805,15 +832,21 @@ is a block: no dimension scored ≤2, and Mission clarity (the rubric's stated h
 
 ## What this file/skill deliberately does NOT do
 
-- Does not wire the semantic screen, delivery-shape branching, or the audit
-  artifact into a live `UserPromptSubmit` hook — see the Phase 5 section
-  above for what exists (a standalone formatter script), and Phase 6 for the
-  wiring itself.
+- Phase 5 itself did not wire the semantic screen, delivery-shape branching, or
+  the audit artifact into a live `UserPromptSubmit` hook — that was Phase 6's
+  job, and Phase 6 is now merged into this branch: `prompt-optimizer-gate.sh` is
+  WIRED into both `hooks/hooks.json` (plugin-canonical) and
+  `.claude/settings.json` (dev-mirror), and invokes this formatter + the two
+  generator scripts directly (see gate.sh's own "PHASE 6 WIRING" section). This
+  bullet records Phase 5's own scope boundary at the time it was written, not
+  the current state of the pipeline.
 - Does not build Phase 9's held-out LLM-judge quality-scoring pass — a
   **separate, scheduled** gate using a model distinct from either generator,
   scored against golden-set notes. Not a per-PR `audit-gates.sh` check this
   skill runs on itself.
-- Does not wire anything into `hooks.json`/`settings.json` (Phase 6).
+- This formatter script has no wiring code of its own — it is invoked by
+  gate.sh, which IS wired into `hooks.json`/`settings.json` as of Phase 6 (see
+  the bullet above; not an open task).
 - Does not modify `agent-dispatch-evaluator.sh`, `dispatch-config.json`,
   `evaluate-dispatch.js`, `adaptive-run-classifier`'s files,
   `agent-routing-matrix.json`/`.schema.json` (read-only, always), or

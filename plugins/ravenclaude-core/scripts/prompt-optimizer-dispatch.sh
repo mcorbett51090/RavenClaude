@@ -1,10 +1,13 @@
 #!/usr/bin/env bash
 # prompt-optimizer-dispatch.sh
 # The `emit_dispatch_plan` dispatch-plan generator — prompt-optimizer Phase 4.
-# NOT YET WIRED into hooks/hooks.json or .claude/settings.json — that is Phase 6's
-# job. Standalone and directly callable: feed it a Claude Code UserPromptSubmit-
-# shaped JSON payload on stdin (the SAME shape prompt-optimizer-gate.sh and
-# prompt-optimizer-rewrite.sh accept) and it can be run/tested directly.
+# WIRED as of Phase 6 — invoked by prompt-optimizer-gate.sh (itself wired into both
+# hooks/hooks.json (plugin-canonical) and .claude/settings.json (dev-mirror)) when
+# the Tier-1 classifier resolves `action: "dispatch_plan"`; see that file's own
+# "PHASE 6 WIRING" section for the dispatch + mode-gated emission. This script is
+# also standalone: feed it a Claude Code UserPromptSubmit-shaped JSON payload on
+# stdin (the SAME shape prompt-optimizer-gate.sh and prompt-optimizer-rewrite.sh
+# accept) and it can be run/tested directly.
 #
 # Source: docs/plans/2026-09-03-prompt-optimizer/plan.md Phase 4 +
 # docs/plans/2026-09-03-prompt-optimizer/design-lock.md §3 (the frozen
