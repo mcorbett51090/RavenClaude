@@ -82,13 +82,18 @@ jobs:
           SERVER_PID=$!
           # ci-headless-smoke.js lives one directory UP (shared by both starters) and
           # Node's require() resolves relative to the REQUIRING FILE's own directory,
-          # never the invoking cwd — so `npm install` here (cwd = this starter) would
+          # never the invoking cwd — so an install here (cwd = this starter) would
           # place playwright where the script can never find it. --prefix .. installs
           # into templates/node_modules instead, where the shared script's require()
           # actually walks. Verified empirically (a small real package install +
-          # require from the parent) before landing this fix.
-          npm install --no-save --prefix .. playwright@1.48.0 @axe-core/playwright@4.10.0
-          npx --yes playwright@1.48.0 install --with-deps chromium
+          # require from the parent) before landing this fix. `npm ci` (not
+          # `npm install <pkg>@version`) reads templates/package-lock.json — a
+          # committed, pinned transitive-dependency tree, not an ad-hoc install
+          # (zizmor's adhoc-packages audit). playwright is pinned >=1.55.1
+          # (currently 1.63.0) — 1.48.0 carried a real, applicable high-severity
+          # advisory (GHSA-7mvr-c777-76hp) in the exact browser-download step below.
+          npm ci --prefix ..
+          npx --yes playwright@1.63.0 install --with-deps chromium
           SMOKE_URL="http://localhost:4173/" node ../ci-headless-smoke.js
           kill "$SERVER_PID" 2>/dev/null || true
 
@@ -129,9 +134,10 @@ jobs:
           node ./dist/server/entry.mjs &
           SERVER_PID=$!
           # See the identical comment in the nextjs-starter job above — same fix,
-          # same reason: require() resolves from ci-headless-smoke.js's own
-          # directory (templates/), not from this starter's cwd.
-          npm install --no-save --prefix .. playwright@1.48.0 @axe-core/playwright@4.10.0
-          npx --yes playwright@1.48.0 install --with-deps chromium
+          # same reason (require() resolves from ci-headless-smoke.js's own
+          # directory, not this starter's cwd) and same npm ci / version-pin
+          # rationale (templates/package-lock.json; playwright >=1.55.1).
+          npm ci --prefix ..
+          npx --yes playwright@1.63.0 install --with-deps chromium
           SMOKE_URL="http://localhost:4321/" node ../ci-headless-smoke.js
           kill "$SERVER_PID" 2>/dev/null || true
