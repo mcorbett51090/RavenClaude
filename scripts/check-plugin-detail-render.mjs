@@ -72,7 +72,11 @@ const RC_BASELINE = {
   //        53 -> 54: skills/session-handoff (v0.266.0, context-quality reset)
   //        52 -> 53: skills/design-clone (v0.253.0, design-schema capture+apply)
   //        51 -> 52: skills/github-gold-standard (v0.246.0, the gold-standard scorecard)
-  tools: 49, // 48 -> 49: scripts/hooks-selftest.py (Gate 266 SessionStart runtime
+  tools: 50, // 49 -> 50: scripts/install_launch_guard.py (P2 of the claude-launch-safeguard
+  //   build, anthropics/claude-code#92932 — the rc-file installer for the launch-guard shell
+  //   function). COUNTED, not inferred: `find plugins/ravenclaude-core/scripts -maxdepth 1
+  //   -name "*.py" | wc -l` -> 50 on this tree.
+  //        48 -> 49: scripts/hooks-selftest.py (Gate 266 SessionStart runtime
   //   self-test front door, 96ea5e05 — did not exist before). COUNTED, not inferred:
   //   `find plugins/ravenclaude-core/scripts -maxdepth 1 -name "*.py" | wc -l` -> 49 on this tree.
   //        46 -> 48: scripts/dependency-sweep.py + scripts/host-version-probe.py
