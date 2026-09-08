@@ -89,11 +89,15 @@ jobs:
           # require from the parent) before landing this fix. `npm ci` (not
           # `npm install <pkg>@version`) reads templates/package-lock.json — a
           # committed, pinned transitive-dependency tree, not an ad-hoc install
-          # (zizmor's adhoc-packages audit). playwright is pinned >=1.55.1
-          # (currently 1.63.0) — 1.48.0 carried a real, applicable high-severity
-          # advisory (GHSA-7mvr-c777-76hp) in the exact browser-download step below.
+          # (zizmor's adhoc-packages audit). playwright is pinned to 1.61.0 (not
+          # this workflow's original 1.48.0, which carried a real, applicable
+          # high-severity advisory — GHSA-7mvr-c777-76hp — in the exact
+          # browser-download step below) and NOT the current latest (1.63.0),
+          # because playwright's engines.node floor bumped to >=20 at 1.62.0
+          # and this job's setup-node above is pinned to 18.17.0. 1.61.0 is the
+          # newest release clearing the advisory while still supporting Node 18.
           npm ci --prefix ..
-          npx --yes playwright@1.63.0 install --with-deps chromium
+          npx --yes playwright@1.61.0 install --with-deps chromium
           SMOKE_URL="http://localhost:4173/" node ../ci-headless-smoke.js
           kill "$SERVER_PID" 2>/dev/null || true
 
@@ -138,6 +142,6 @@ jobs:
           # directory, not this starter's cwd) and same npm ci / version-pin
           # rationale (templates/package-lock.json; playwright >=1.55.1).
           npm ci --prefix ..
-          npx --yes playwright@1.63.0 install --with-deps chromium
+          npx --yes playwright@1.61.0 install --with-deps chromium
           SMOKE_URL="http://localhost:4321/" node ../ci-headless-smoke.js
           kill "$SERVER_PID" 2>/dev/null || true
