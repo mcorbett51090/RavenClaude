@@ -21,6 +21,11 @@
         "claude-code-parallel-and-modes inventory entry (PR #1114 Gate 240 fix, 2026-09-05)",
         31640,
         "PR #1114 adds one new inventory concept (claude-code-parallel-and-modes \u2014 the verified negative that there is no /max-parallel Claude Code command; remap to plan/subagents/worktrees/ultracode/ultrathink/effort) covering skills/claude-code-parallel-and-modes/SKILL.md. Regenerating dashboard.html for R12 badge parity measured island payload at 31,610 (over the prior 31,590 ceiling by 20). Same no-diagrams-for-inventory-entries shape as every prior wave; a pure content-size raise, not a DOM control. Re-measured on rebased HEAD after #1113; appended, never edited."
+      ],
+      [
+        "prompt-optimizer + hooks-selftest inventory entries (forge/prompt-optimizer merge, 2026-09-08)",
+        31760,
+        "forge/prompt-optimizer merge into origin/main (2026-09-08): two new inventory concepts (prompt-optimizer-tier0-heuristic-limit -- the Tier-0 whitelist's documented adversarial-paraphrase residual, closed at round 2 of the SDD fix loop with a controller ruling -- covering the prompt-optimizer skill's 9 artifacts; hooks-selftest-crashes-on-a-per-host-generator-error -- the per-host exception-isolation gap this same merge's own gemini-hooks crash exposed live -- covering scripts/hooks-selftest.py) needed for Gate 242's inception-coverage fix. Measured at 31,714 island payload elements (over the prior 31,640 ceiling by 74) and 10,579,532 bytes (over the prior 10,560,000 ceiling by 19,532). Same no-diagrams-for-inventory-entries shape as every prior wave -- a pure content-size raise, no DOM control. Re-measured on the merge commit; appended, never edited."
       ]
     ],
     "index.html": [
@@ -99,6 +104,11 @@
         "merge: forge/dashboard-starter (dashboard-top1pct FORGE plan, 21 phases) into origin/main (2026-09-08)",
         10560000,
         "MERGE-TIME RE-MEASURE. forge/dashboard-starter's dashboard-top1pct build (P2-16..P3-21: freshness badges, per-widget query tagging, light/dark theming, the scaffold script, the bi-report Case-E disposition) landed 11 new Gates (268-278) and best-practice/knowledge entries, each fine in isolation against the pre-merge ceiling. Merging origin/main's own concurrent inventory growth (through PR #1104) onto this branch regenerates dashboard.html to 10,545,871 bytes, over the prior 10,540,000 ceiling by 5,871 (island payload unchanged at 31,614 <= 31,640, see the payload table above -- a pure content-size raise, no DOM control). Re-measured on the merge commit; appended, never edited."
+      ],
+      [
+        "prompt-optimizer + hooks-selftest inventory entries (forge/prompt-optimizer merge, 2026-09-08)",
+        10585000,
+        "forge/prompt-optimizer merge into origin/main (2026-09-08): two new inventory concepts (prompt-optimizer-tier0-heuristic-limit -- the Tier-0 whitelist's documented adversarial-paraphrase residual, closed at round 2 of the SDD fix loop with a controller ruling -- covering the prompt-optimizer skill's 9 artifacts; hooks-selftest-crashes-on-a-per-host-generator-error -- the per-host exception-isolation gap this same merge's own gemini-hooks crash exposed live -- covering scripts/hooks-selftest.py) needed for Gate 242's inception-coverage fix. Measured at 31,714 island payload elements (over the prior 31,640 ceiling by 74) and 10,579,532 bytes (over the prior 10,560,000 ceiling by 19,532). Same no-diagrams-for-inventory-entries shape as every prior wave -- a pure content-size raise, no DOM control. Re-measured on the merge commit; appended, never edited."
       ]
     ],
     "index.html": [

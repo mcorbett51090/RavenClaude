@@ -3091,3 +3091,57 @@ _Last verified: 2026-09-05_
 
 
 ---
+
+### The prompt-optimizer's free pre-filter can never fully close on non-anchored prompts · _RavenClaude-built_
+
+> Tier-0's zero-cost skip rule is a whitelist over sentence shape, not a semantic understanding of triviality — an adversarial reviewer can always construct one more evasive phrasing.
+
+## What a reader would have assumed instead
+
+That once the reviewer's 3 adversarial paraphrases ("How do we migrate our monolith to microservices with zero downtime and full audit logging for compliance?" and its siblings) were fixed and added as golden-set regression fixtures, the Tier-0 free pre-filter's false-skip problem was closed for good — the same way a fixed bug in ordinary code stays fixed.
+
+## The discriminator
+
+control: the same 3 adversarial strings correctly TIER0_FALLTHROUGH after the `cluster_hits==0` + possessive-pronoun tightening, proving the fix closed the demonstrated instances.
+
+Measured 2026-09-03 (round-2 re-review, agent a49c618f5d3d2c9c6): the reviewer's own three NEW adversarial variants — deliberately avoiding both signals the fix keys on (organizational-possessive pronouns and domain-keyword clusters) — still reproduce `TIER0_SKIP` on genuinely non-trivial prompts: *"Why is the checkout process so confusing?"*, a third-person migration question, and a tradeoffs-summary request. The fix is real (the originally-demonstrated shapes are closed and regression-gated in the 47-entry golden set), but the underlying gap — a zero-cost heuristic distinguishing "trivial" from "non-trivial" by sentence shape rather than meaning — is not closable by patching individual phrasings.
+
+## Why it matters
+
+`prompt-optimizer-gate.sh`'s Tier-0 pre-filter exists specifically so the paid Tier-1 Haiku classifier is never invoked on an obviously-trivial ask. Any whitelist-shaped rule for "obviously trivial" necessarily has an adversarial complement: a prompt built to avoid every signal the whitelist checks. The SDD fix loop closed this at round 2 (not round 3) via an explicit controller ruling rather than continuing to chase phrasings, because the feature ships `prompt_optimizer.enabled: false` by default, is advisory-only (`additionalContext`, never blocking), and the failure direction is a missed optimization (Tier-1 simply never fires on that turn) — identical to the feature's own off-by-default baseline for that narrow prompt shape, not a regression below it. The residual is disclosed in the script's own header comment (search for "HONEST LIMIT").
+
+Falsifier: a future Tier-0 rewrite that classifies by parsed intent rather than sentence-shape whitelist, which would not be defeated by a novel third-person or impersonal phrasing.
+
+**Sources:** [SDD fix-loop ledger — round-2 re-review adversarial variants + the controller's ruling to close the loop with a disclosed residual rather than a round-3 fix](https://github.com/mcorbett51090/RavenClaude/pull/1098)
+
+_Last verified: 2026-09-03_
+
+
+---
+
+### `rc hooks selftest` crashes the whole run on one host's generator error · _RavenClaude-built_
+
+> A single host projector (e.g. generate-gemini-hooks.py) raising a hard error takes down the entire multi-host selftest, not just that host's row.
+
+## What a reader would have assumed instead
+
+That `rc hooks selftest`'s per-host design (one row per host, each independently marked PASS/FAIL/TIER) means a single host's evaluation failing would show up as one red row while every other host's row still renders — the same isolation the tool's own `--json` schema (`{host, declared_tier, achieved_tier, wired_set, runtime, verdict}` per row) implies.
+
+## The discriminator
+
+control: with the underlying generator fixed (a missing skip-map entry added), the identical `rc hooks selftest --json` invocation completes cleanly with a full per-host row set and Gate 266's Phase 8 assertions (A8.1-A8.7) all pass.
+
+Measured 2026-09-08: merging `forge/prompt-optimizer`'s new `hooks.json` entry (a `UserPromptSubmit` registration with no corresponding Gemini skip-map or lane) into `origin/main` made `bash plugins/ravenclaude-core/bin/rc hooks selftest --json` crash outright with an uncaught `subprocess.CalledProcessError` from deep inside `_wired_set_check` -> `_extract_gemini` -> `_run_host_generator` -> `generate-gemini-hooks.py`. The traceback took down the WHOLE command, not just Gemini's row — `Gate 266: Phase 8 on-demand front door` failed all 8 of its A8.x assertions in the same run, because the tool never got far enough to emit its `--json` array at all.
+
+## Why it matters
+
+A cross-host self-test whose failure mode is "the entire tool crashes" rather than "one row reports FAIL" hides exactly the information an operator needs most: which host is broken and why. In this instance the underlying cause (a hook registered with no per-host skip-map entry) was itself a real, separate, already-documented failure mode in `generate-gemini-hooks.py` (see its own `_SKIP` dict and header comment) — but `hooks-selftest.py`'s lack of per-host exception isolation meant that one omission escalated from "Gemini's row would show a clear projector error" into "the whole selftest front door is down," which is a materially worse failure for anyone trying to diagnose it from the tool's own output alone.
+
+Falsifier: a future `hooks-selftest.py` revision that wraps each host's extractor call and reports a per-host FAIL row instead of raising.
+
+**Sources:** [reproduced live during the forge/prompt-optimizer merge into origin/main, this session — traceback ending in generate-gemini-hooks.py's CalledProcessError, root-caused to a missing skip-map entry, fixed there](https://github.com/mcorbett51090/RavenClaude/pull/1098)
+
+_Last verified: 2026-09-08_
+
+
+---
