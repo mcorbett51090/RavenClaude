@@ -1,0 +1,12 @@
+{
+  "name": "RavenClaude marketplace",
+  "install": "bash .cursor/install.sh",
+  "terminals": [
+    {
+      "name": "dashboard",
+      "command": "python3 scripts/serve-dashboards.py --port 8000 --bind 0.0.0.0 --no-open",
+      "description": "RavenClaude portal + comfort-posture dashboard (index.html) with the live /__save endpoint. Open the forwarded port 8000."
+    }
+  ],
+  "ports": [{ "name": "RavenClaude dashboard", "port": 8000 }]
+}

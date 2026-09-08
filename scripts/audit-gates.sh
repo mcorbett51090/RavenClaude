@@ -304,6 +304,214 @@ rc_mustfail() {
   return 0
 }
 
+# ── Suite dispatcher: --suite <name> (PR-C) ───────────────────────────────────────
+# Usage: bash scripts/audit-gates.sh --suite format
+# Runs only the gate blocks assigned to the named suite, via
+# scripts/audit-gates-suite-slice.py, which slices THIS file's own full-suite
+# region down to the requested blocks (plus any block a selected block
+# depends on for a shared bash function/variable) and prints the result for
+# `source`-ing. See that script's header for the full rationale (no second
+# copy of any gate's fixture, so --suite can never drift from the default
+# no-args run) and docs/best-practices/ci-gate-audit.md.
+#
+# SUPPORTED_SUITES and _suite_gate_tokens() below are the SINGLE SOURCE OF
+# TRUTH for suite membership, read by:
+#   (a) this file's own --suite / --list-suite-gates handling;
+#   (b) scripts/check-gate-suite-coverage.py (Gate 267's union-completeness
+#       meta-test), which calls `--list-suite-gates <name>` for every name in
+#       SUPPORTED_SUITES rather than hard-coding a second copy of the table.
+#
+# bash-3.2-safe by construction (no `declare -A`): one `case` arm per suite,
+# each echoing a space-separated token list. A token is either a bare gate
+# number ("226") or a gate number with a single trailing lowercase letter
+# ("3b"/"5b"/"9b") — each letter-suffixed banner is an INDEPENDENT token
+# here, never folded into its numeric parent (a deliberately stricter,
+# disjoint reading than Gate 195's own reachability parser).
+#
+# "core"/"security"/"ratchet" are marked (always) in the PR-C brief — that
+# is a CI-WIRING obligation (validate-marketplace.yml must run them
+# unconditionally, never behind the docs-only `detect` fast lane), not a
+# property this table encodes; the table only answers "which suite(s) is
+# gate N in".
+SUPPORTED_SUITES="core security ratchet format lint hooks portal claims tribunal hosts streams convergence wireframe handoff inventory forge forms macos"
+
+_suite_gate_tokens() { # $1=suite name -> echoes space-separated gate tokens; returns 1 if unknown
+  case "$1" in
+    core)
+      # Gaps assigned here per the PR-C brief ("assign gaps to nearest suite
+      # or core") are generic artifact-freshness / self-test / no-better-fit
+      # gates: 46 (BI report freshness), 92 (pbir-layout-engine linter), 129
+      # (eval-harness self-test), 173 (generated-file self-description), 175
+      # (memory-security-lane reachability), 193/194 (brand-extraction /
+      # design-clone skills), plus this suite dispatcher's own
+      # union-completeness meta-test (267).
+      echo "1 2 8 18 46 47 92 129 173 175 193 194 195 226 267"
+      ;;
+    security)
+      # Gaps: 24 (Track B Engine Foundation — defines DECP, consumed by
+      # Gate 25's block; co-located so the pair never splits across a suite
+      # boundary), 48 (WebFetch sanitizer), 50/54 (Phase-0 emit+scrub /
+      # R-PRIV never-capture — the run-context-capture pipeline's own
+      # secret-scrub floor).
+      echo "7 24 25 48 50 54 98 101 127 142 143 156 159 169 170 199 203 209"
+      ;;
+    ratchet)
+      echo "132 237 238 239 240 241 242 243"
+      ;;
+    format)
+      echo "9"
+      ;;
+    lint)
+      echo "9b 10 106 198"
+      ;;
+    hooks)
+      # Gaps: 102 moved to `tribunal` (see below — it is claude-orchestrate.sh,
+      # tribunal infra, not a generic hook), 122-126 (Power-Platform /
+      # ravenclaude-core hook-nudge tests — same plugins/*/hooks/tests/ home
+      # as every other number in this suite), 182/184/186 (diff-budget /
+      # memory-compaction / compact-anchor hook guards), 189 (git-protocol
+      # nudge), 216/228/229 (worktree/session/update hygiene cluster), 217
+      # (managed-solution-import — same plugins/power-platform/hooks/tests/
+      # home as 124/125).
+      echo "3 3b 4 5 5b 6 14 15 16 17 21 22 30 33 36 52 53 90 91 122 123 124 125 126 128 133 135 136 137 138 139 140 162 182 184 186 189 197 201 216 217 225 227 228 229 231 235 247 251 252 253 254 259"
+      ;;
+    portal)
+      # Gap: 27 (consumer-dashboard repo-scoped guard — serve-dashboards.py,
+      # same file family as 51/93/97/etc.). The range deliberately SKIPS 39
+      # — no such gate exists (the main sequence goes straight from "Gate
+      # 38" to "Gate 40"; inventing 39 would violate the PR-C brief's "do not
+      # invent gate numbers" constraint).
+      echo "13 23 27 32 35 37 38 40 41 42 43 44 49 51 93 97 99 100 104 105 113 141 144 151 168 174 200 205"
+      ;;
+    claims)
+      # Gaps: 19 (capability-orientation banner — same "claim a capability
+      # honestly" family as 12/29/34/45/70), 134 (model-catalog drift — a
+      # volatile third-party-fact claim, same family as the lineup-citation
+      # gates), 181/185 (probe-kit / probe-verdict-classes — "a negative
+      # result is not a diagnosis"), 232/233/244-246/248/249 (the
+      # cause-taxonomy/cause-triage cluster — the SSOT cause grammar and its
+      # enforcement gates, which implements the "Naming a cause" rule that is
+      # itself part of the Claim-Grounding & Source Honesty framework).
+      echo "12 19 29 34 45 70 134 176 177 178 179 181 185 187 202 204 206 210 224 232 233 244 245 246 248 249"
+      ;;
+    tribunal)
+      # Gaps: 28 (maintainer-substrate exemption — depends on ORCH14,
+      # defined in Gate 14's block, so it travels with the tribunal suite
+      # Gate 14 is already in), 102 (claude-orchestrate.sh — the script that
+      # spawns `claude -p` for panel seats; tribunal infrastructure, not a
+      # generic hook), 196 (every regex in the Thing's own concern/
+      # denial-resolution catalogs compiles).
+      echo "14 15 17 21 22 28 31 33 60 102 137 177 179 190 196 197"
+      ;;
+    hosts)
+      # Gaps: 26 (Codespace auto-setup — a host environment), 80 (the
+      # `ravenclaude` launcher's cross-host self-heal), 126 (workflow-mirror
+      # byte-identity — skills copy vs the Claude-Code-host
+      # .claude/workflows copy), 188/191/192 (the github-protocol scaffold
+      # templates a Copilot/Codex consumer's CI adopts — cross-host CI
+      # scaffolding), 255 (agent-routing-matrix — routes tasks across host
+      # CLIs/models), 256 (VSCode-extension configurationDefaults — VSCode
+      # is a host surface).
+      echo "20 26 80 126 154 155 156 157 158 159 160 161 162 163 164 165 166 167 168 169 170 171 172 188 191 192 207 208 211 255 256 257"
+      ;;
+    streams)
+      echo "110 111 112 113 114"
+      ;;
+    convergence)
+      # Gaps: 183 (review reopen-ledger — "why a review loop converges",
+      # the same convergence-loop theme as 115-121), 258/260 (repo-review
+      # skill scripts + its P0-P3/converge-loop structural floor — the
+      # repo-review skill's OWN convergence loop).
+      echo "115 116 117 118 119 120 121 183 258 260"
+      ;;
+    wireframe)
+      echo "103 145 146 147 148 149 150"
+      ;;
+    handoff)
+      echo "212 213 214 215 230 234 261 262"
+      ;;
+    inventory)
+      echo "236 237 238 239 240 241 250"
+      ;;
+    forge)
+      # Gap: 223 (parallelism posture — conserve-triggers/serial-detector
+      # for the same background-agent pipeline forge's other gates
+      # orchestrate).
+      echo "222 223 263 264 265 266"
+      ;;
+    forms)
+      echo "218 219 220 221"
+      ;;
+    macos)
+      echo "131 198"
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
+if [[ "${1:-}" == "--list-suites" ]]; then
+  # Pure introspection, no side effects -- lets scripts/check-gate-suite-
+  # coverage.py (Gate 267) enumerate every suite name without hard-coding a
+  # second copy of SUPPORTED_SUITES.
+  echo "${SUPPORTED_SUITES}"
+  exit 0
+fi
+
+if [[ "${1:-}" == "--list-suite-gates" && -n "${2:-}" ]]; then
+  # Pure introspection, no side effects — used by scripts/check-gate-suite-
+  # coverage.py (Gate 267) to read the SAME table --suite reads, so the
+  # union-completeness meta-test can never hard-code a second copy that
+  # silently drifts from what --suite actually runs.
+  if ! _suite_gate_tokens "${2}"; then
+    echo "audit-gates.sh --list-suite-gates: unknown suite '${2}'." >&2
+    echo "Supported: ${SUPPORTED_SUITES}" >&2
+    exit 1
+  fi
+  exit 0
+fi
+
+# --suite and --check are mutually exclusive (PR-C hard constraint): each
+# picks a DIFFERENT execution mode (a named subset of the full suite vs. one
+# specific gate's own fixture), and running both is ambiguous about which
+# mode wins. Scanned across the whole argv, not just $1/$2, so a --check
+# flag anywhere alongside a --suite flag anywhere is caught either order.
+_HAS_CHECK_FLAG=0
+_HAS_SUITE_FLAG=0
+for _audit_arg in "$@"; do
+  case "$_audit_arg" in
+    --check) _HAS_CHECK_FLAG=1 ;;
+    --suite) _HAS_SUITE_FLAG=1 ;;
+  esac
+done
+if [[ "$_HAS_CHECK_FLAG" -eq 1 && "$_HAS_SUITE_FLAG" -eq 1 ]]; then
+  echo "audit-gates.sh: --suite and --check are mutually exclusive — pick one." >&2
+  exit 1
+fi
+unset _HAS_CHECK_FLAG _HAS_SUITE_FLAG _audit_arg
+
+# SUITE_ARG is consumed once the bookkeeping section below (PASS/FAIL/SKIP/
+# TMP/trap/gate()/backup()/cleanup()/_skip_or_fail()) is in place, immediately
+# before the full-suite region would otherwise begin — see _run_suite below
+# and its invocation just above "── Gate 1:". Validating the name HERE (fail
+# fast, before any mktemp/trap setup) matches how --check's own dispatcher
+# validates via its `*)` arm before doing any work.
+SUITE_ARG=""
+if [[ "${1:-}" == "--suite" ]]; then
+  if [[ -z "${2:-}" ]]; then
+    echo "audit-gates.sh: --suite requires a suite name." >&2
+    echo "Supported: ${SUPPORTED_SUITES}" >&2
+    exit 1
+  fi
+  if ! _suite_gate_tokens "${2}" >/dev/null; then
+    echo "audit-gates.sh: unknown --suite '${2}'." >&2
+    echo "Supported: ${SUPPORTED_SUITES}" >&2
+    exit 1
+  fi
+  SUITE_ARG="${2}"
+fi
+
 if [[ "${1:-}" == "--check" && -n "${2:-}" ]]; then
   case "${2}" in
     20)
@@ -1656,15 +1864,20 @@ PY
       bash scripts/check-worktree-state.sh
       exit $?
       ;;
+    267)
+      echo "── Gate 267: suite-dispatcher union completeness (per-gate run) ──"
+      rc=0
+      python3 scripts/check-gate-suite-coverage.py || rc=$?
+      python3 scripts/check-gate-suite-coverage.py --self-test || rc=$?
+      exit $rc
+      ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254, 255, 256, 257, 258, 259, 260, 261, 262, 263, 264, 265, 266. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254, 255, 256, 257, 258, 259, 260, 261, 262, 263, 264, 265, 266, 267. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
 fi
-# _gate_active: no-op compatibility shim so Gate 50's if-block below still compiles.
-_gate_active() { return 0; }
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Bookkeeping
@@ -1739,6 +1952,50 @@ _skip_or_fail() {
     SKIPPED_GATES+=("$gate_name [no $interp]")
   fi
 }
+
+# ─────────────────────────────────────────────────────────────────────────────
+# _run_suite: --suite <name> execution path (PR-C). Called ONCE, right below,
+# only when SUITE_ARG is non-empty (set earlier by the --suite arg-parsing
+# block, well before this point). Never called for the default (no-args) run
+# — that path falls straight through to "Gate fixtures" below, UNCHANGED,
+# which is what makes "no-args ≡ today's full-suite behavior" a structural
+# guarantee rather than a maintained one.
+#
+# By this point PASS/FAIL/SKIP/TMP/BACKUPS/the EXIT trap, and gate()/backup()/
+# cleanup()/_skip_or_fail() are already initialized (the bookkeeping section
+# immediately above runs unconditionally, --suite or not) — so the sliced
+# blocks this function `source`s can call every one of them exactly as the
+# default run does. Delegates the actual line-range selection to
+# scripts/audit-gates-suite-slice.py (see that script's header for the full
+# slicing + dependency-closure rationale); this function's only job is to
+# invoke it, `source` the result, and print the same closing summary the
+# default run prints — not re-derive any of it.
+_run_suite() { # $1=suite name (already validated by the caller)
+  local suite="$1" tokens
+  tokens="$(_suite_gate_tokens "$suite")"
+  echo "── Suite: ${suite} ────────────────────────────────────────────────────"
+  echo "Gates in this suite (before dependency closure): ${tokens}"
+  echo
+
+  local sliced="$TMP/suite-${suite}.sh"
+  if ! python3 scripts/audit-gates-suite-slice.py scripts/audit-gates.sh ${tokens} > "$sliced" 2>"$TMP/suite-${suite}.err"; then
+    echo "::error::audit-gates.sh --suite ${suite}: internal slicer error — see below." >&2
+    cat "$TMP/suite-${suite}.err" >&2
+    exit 2
+  fi
+  # shellcheck disable=SC1090
+  source "$sliced"
+}
+
+if [[ -n "${SUITE_ARG}" ]]; then
+  _run_suite "${SUITE_ARG}"
+  # _run_suite sources the sliced blocks + the (also-sliced-in) closing
+  # summary block, which itself `exit`s with the same 0/1 contract the
+  # default run uses — so control never actually falls past this point when
+  # SUITE_ARG is set. The explicit exit below is a fail-safe only (e.g. if the
+  # summary block's own `exit` were ever refactored away).
+  exit $?
+fi
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Gate fixtures
@@ -5263,7 +5520,6 @@ else
   _skip_or_fail "Gate 49 (Mímir render)" node
 fi
 
-if _gate_active 50; then
 echo
 echo "── Gate 50: Phase 0 emit & scrub ─────────────────────────────────────────"
 # Proves the Phase 0 wiring: (A) thing-orchestrator.sh deny emits a JSONL line,
@@ -5282,7 +5538,6 @@ printf '%s\n' '{"schema_version":1,"ts":"2026-06-03T00:00:00Z","hook":"thing-orc
   > "$TMP/g50-secret-leak.jsonl"
 rc=0; grep -Fq "hunter2" "$TMP/g50-secret-leak.jsonl" || rc=1
 gate "phase0-emit-scrub: secret-containing JSONL is detectable (gate has teeth)" must_pass "$rc"
-fi
 
 # ─────────────────────────────────────────────────────────────────────────────
 echo "── Gate 51: Unified portal shell router + committed-route destinations ────"
@@ -9948,6 +10203,57 @@ else
     _skip_or_fail "Gate 266 (runtime self-test front door)" python3
   fi
 fi
+
+echo "── Gate 267: suite-dispatcher union completeness (every bannered gate ∈ ≥1 suite) ──"
+# PR-C. scripts/check-gate-suite-coverage.py independently re-derives BOTH sides
+# of the completeness claim every run — the real banner set (by parsing this
+# file's own headers) and the suite-membership union (by calling THIS file's
+# own --list-suites / --list-suite-gates, never a second hard-coded table) —
+# so a gate added to the main sequence without a suite assignment is caught
+# here, not discovered later as a --suite invocation that silently never runs
+# it. Complements Gate 195, which asks a DIFFERENT question (is every declared
+# gate reachable in the full suite at all); this one asks whether every
+# reachable gate is claimed by >=1 named suite.
+rc=0; python3 scripts/check-gate-suite-coverage.py >/dev/null 2>&1 || rc=$?
+gate "suite-coverage: every bannered gate (incl. letter-suffixed 3b/5b/9b) is in >=1 suite" must_pass "$rc"
+rc=0; python3 scripts/check-gate-suite-coverage.py --self-test >/dev/null 2>&1 || rc=$?
+gate "suite-coverage teeth: a planted uncovered gate is caught; the live tree stays clean" must_pass "$rc"
+
+# CLI-contract spot checks (PR-C hard constraints). Deliberately does NOT
+# recursively invoke the full default (no-args) suite here — that would
+# re-run this entire ~600-gate file from inside itself on every single
+# execution. "Default runs ALL gates" is a STRUCTURAL guarantee instead: the
+# --suite handling above only executes when SUITE_ARG is non-empty, so the
+# no-args path is byte-identical to the pre-PR-C file below this point —
+# verified once per change by actually running `bash scripts/audit-gates.sh`
+# with no arguments (see docs/best-practices/ci-gate-audit.md), not by a
+# per-run recursive re-assertion here.
+rc=0
+SLICE_OUT="$(python3 scripts/audit-gates-suite-slice.py scripts/audit-gates.sh 9 2>/dev/null)" || rc=$?
+if [[ "$rc" -eq 0 ]]; then
+  # ⛔ Deliberately grep for the bare "Gate 9:" text, WITHOUT the pair of
+  # box-drawing dashes a real header banner is wrapped in. Embedding that
+  # dashed shape as a literal string here previously registered as a phantom
+  # SECOND header for the same number to check-gate-registration.py's parser
+  # (its HEADER_RE matches that shape anywhere in the file, not only inside a
+  # real `echo "..."` statement) and reddened Gate 195 (number-collision) on
+  # this very line. The bare substring still uniquely identifies the header
+  # (a real header always contains it too) without tripping that parser.
+  if printf '%s' "$SLICE_OUT" | grep -q 'Gate 9:' && ! printf '%s' "$SLICE_OUT" | grep -q 'Gate 1:'; then
+    rc=0
+  else
+    rc=1
+  fi
+fi
+gate "--suite format: slices to Gate 9 only, a strict subset of the full matrix" must_pass "$rc"
+
+rc=0; bash scripts/audit-gates.sh --suite this-suite-does-not-exist >/dev/null 2>&1 || rc=$?
+gate "--suite <unknown>: exits 1 (not 0, not a crash)" must_fail "$rc"
+
+rc=0; bash scripts/audit-gates.sh --suite core --check 1 >/dev/null 2>&1 || rc=$?
+gate "--suite + --check together: mutually exclusive, exits 1" must_fail "$rc"
+rc=0; bash scripts/audit-gates.sh --check 1 --suite core >/dev/null 2>&1 || rc=$?
+gate "--check + --suite together (reversed order): still mutually exclusive, exits 1" must_fail "$rc"
 
 echo
 echo "═══════════════════════════════════════════════════════════════════════════"

@@ -1,0 +1,35 @@
+{
+  "name": "cube-nextjs-dashboard-starter",
+  "private": true,
+  "version": "0.1.0",
+  "description": "data-platform Case C starter: Cube OSS + Next.js + Tremor + Recharts",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "typecheck": "tsc --noEmit",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "@cubejs-client/core": "^0.35.0",
+    "@cubejs-client/react": "^0.35.0",
+    "@tremor/react": "^3.14.0",
+    "clsx": "^2.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "next": "^14.2.0",
+    "react": "^18.3.0",
+    "react-dom": "^18.3.0",
+    "recharts": "^2.12.0",
+    "tailwind-merge": "^2.3.0"
+  },
+  "devDependencies": {
+    "@types/jsonwebtoken": "^9.0.6",
+    "@types/node": "^20.14.0",
+    "@types/react": "^18.3.0",
+    "@types/react-dom": "^18.3.0",
+    "autoprefixer": "^10.4.19",
+    "postcss": "^8.4.38",
+    "tailwindcss": "^3.4.4",
+    "typescript": "^5.4.5"
+  }
+}

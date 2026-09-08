@@ -2256,7 +2256,7 @@ Probe: `unprobed: the delivery fact is a host-platform property; it is modelled 
 
 **Sources:** [measured in the FORGE product-inventory run](https://github.com/mcorbett51090/RavenClaude/pull/997)
 
-_Last verified: 2026-09-01_
+_Last verified: 2026-09-04_
 
 
 ---
@@ -2360,7 +2360,7 @@ Probe: `scripts/audit-gates.sh`
 
 **Sources:** [measured in the FORGE product-inventory run](https://github.com/mcorbett51090/RavenClaude/pull/997)
 
-_Last verified: 2026-09-03_
+_Last verified: 2026-09-05_
 
 
 ---
@@ -3037,6 +3037,57 @@ Falsifier: a future `host-support.json` restructuring that removes the per-host 
 **Sources:** [/code-review found the pre-fix undercount and this session verified the fix's measured effect](https://github.com/mcorbett51090/RavenClaude/pull/1101)
 
 _Last verified: 2026-09-03_
+
+
+---
+
+### A Grok Bot skill restates core protocols instead of citing them, on purpose · _RavenClaude-built_
+
+> The skill duplicates CGP/dispatch prose as freestanding text, against this repo's cite-not-restate convention, since a Grok Bot cannot resolve a cross-plugin markdown link.
+
+## What a reader would have assumed instead
+
+That a new skill referencing "RavenClaude Core Orchestration" in its title would link into `ravenclaude-core/CLAUDE.md` the way every other cross-plugin reference in this marketplace does (e.g. `forms-engineering`'s inherited-rules table, which links rather than restates).
+
+## The discriminator
+
+control: read `ravenclaude-core/CLAUDE.md`'s "Multi-Agent Coordination & Dispatch Rules" and "Capability Grounding Protocol" sections side by side with this skill's "Non-negotiable house rules" -- both restate the same invariants in freestanding prose, with no markdown link back to the source file.
+
+## Why it matters
+
+A Grok Bot is a separate, non-Claude-Code runtime -- it has no mechanism to `@`-import or traverse a relative markdown link into another plugin's `CLAUDE.md` the way a Claude Code sub-agent can. So `ravenclaude-core-orchestration/SKILL.md` deliberately copies the relevant protocols as a portable, self-contained recipe instead. This is a one-time, hand-adapted copy (its own "Credit" section says "Adapted from RavenClaude plugin `ravenclaude-core`"), not a live link -- so it will drift from `ravenclaude-core/CLAUDE.md` as that file's dispatch/CGP/SOP sections evolve, and nothing re-syncs it automatically.
+
+**Sources:** [PR #1104 -- grok-bot-creation + grok-bot-delegation plugins](https://github.com/mcorbett51090/RavenClaude/pull/1104)
+
+_Last verified: 2026-09-04_
+
+
+---
+
+### There is no /max-parallel — remap to documented Claude Code knobs · _RavenClaude-built_
+
+> Org slang "max parallel" is not a Claude Code command; the skill remaps it to plan mode, subagents, worktrees/batch, ultracode workflows, ultrathink, and /effort.
+
+## What a reader would have assumed instead
+
+That "max parallel" names a first-class Claude Code mode or slash command, so operators should search for `/max-parallel` or raise session effort globally whenever they want fan-out.
+
+## The discriminator
+
+control: model-config docs distinguish ultrathink from /effort; no /max-parallel appears in /help or documented slash commands
+Measured 2026-09-05: the research DIGEST/VERIFY for this skill found no official `/max-parallel`. The correct remaps are plan mode, subagents, worktrees/`/batch`, ultracode/workflows, one-turn `ultrathink`, and `/effort` — and ultrathink must not be confused with ultracode or API effort.
+
+## Why it matters
+
+Inventing `/max-parallel` wastes operator time and produces unsafe shared-checkout parallel writes. Putting the remap table in `ravenclaude-core` (CLI operator home) keeps it beside worktree/orchestrate/spawn-team skills rather than in app-build plugins.
+
+## Survive parent context (pointer)
+
+See skill `claude-code-parallel-and-modes` section **Survive parent context** (DIGEST-rc-deep-research-session-agent-token-loss, 2026-09-05). Disk-first handoff; condensed returns; persist-before-compact; escalate long work to agent-view.
+
+**Sources:** [rc-deep-research DIGEST + VERIFY (2026-09-05) + PLUGIN-DECISION lock to ravenclaude-core](https://github.com/mcorbett51090/RavenClaude/pull/1114)
+
+_Last verified: 2026-09-05_
 
 
 ---

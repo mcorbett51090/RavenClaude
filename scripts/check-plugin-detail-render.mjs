@@ -55,8 +55,14 @@ const ISLANDED_AGENT_KEYS = ["scenarios", "quickstart", "works_with"];
 const RC = "ravenclaude-core";
 const RC_BASELINE = {
   agents: 15,
-  skills: 60, // 59 -> 60: skills/dependency-update-sweep (v0.317.0, host-version drift sweep).
-  //   COUNTED, not inferred: `ls plugins/ravenclaude-core/skills | wc -l` -> 60 on this tree.
+  skills: 64, // 63 -> 64: skills/claude-code-parallel-and-modes (PR #1114,
+  //   Claude Code parallel agents + modes playbook in ravenclaude-core).
+  //   COUNTED, not inferred: `ls plugins/ravenclaude-core/skills | wc -l` -> 64 on this tree.
+  //        60 -> 63: skills/game-theory-basics, skills/quantitative-problem-solving,
+  //   skills/ravenclaude-core-orchestration (PR #1104, grok-bot-creation +
+  //   grok-bot-delegation plugins — companion problem-solving skills for Grok Bots).
+  //   COUNTED, not inferred: `ls plugins/ravenclaude-core/skills | wc -l` -> 63 on this tree.
+  //        59 -> 60: skills/dependency-update-sweep (v0.317.0, host-version drift sweep).
   //        58 -> 59: skills/repo-review (whole-repo systematic bug sweep, v0.313.0,
   //   2026-09-02). COUNTED, not inferred: window.__RC_DATA__'s ravenclaude-core record on
   //   this tree carries skills_index length 59 after `generate-index-dashboard.py` regen.
@@ -66,7 +72,10 @@ const RC_BASELINE = {
   //        53 -> 54: skills/session-handoff (v0.266.0, context-quality reset)
   //        52 -> 53: skills/design-clone (v0.253.0, design-schema capture+apply)
   //        51 -> 52: skills/github-gold-standard (v0.246.0, the gold-standard scorecard)
-  tools: 48, // 46 -> 48: scripts/dependency-sweep.py + scripts/host-version-probe.py
+  tools: 49, // 48 -> 49: scripts/hooks-selftest.py (Gate 266 SessionStart runtime
+  //   self-test front door, 96ea5e05 — did not exist before). COUNTED, not inferred:
+  //   `find plugins/ravenclaude-core/scripts -maxdepth 1 -name "*.py" | wc -l` -> 49 on this tree.
+  //        46 -> 48: scripts/dependency-sweep.py + scripts/host-version-probe.py
   //   (v0.317.0, the dependency-update-sweep skill's tool + manual-probe module).
   //   COUNTED, not inferred: `find plugins/ravenclaude-core/scripts -maxdepth 1 -name "*.py"
   //   | wc -l` -> 48 on this tree.

@@ -1,0 +1,33 @@
+{
+  "name": "cube-astro-dashboard-starter",
+  "private": true,
+  "version": "0.1.0",
+  "description": "data-platform starter: Astro islands + Cube OSS + Tremor + Recharts",
+  "type": "module",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "typecheck": "astro check"
+  },
+  "dependencies": {
+    "@astrojs/node": "^8.3.0",
+    "@astrojs/react": "^3.6.0",
+    "@astrojs/tailwind": "^5.1.0",
+    "@cubejs-client/core": "^0.35.0",
+    "@cubejs-client/react": "^0.35.0",
+    "@tremor/react": "^3.14.0",
+    "astro": "^4.15.0",
+    "jsonwebtoken": "^9.0.2",
+    "react": "^18.3.0",
+    "react-dom": "^18.3.0",
+    "recharts": "^2.12.0"
+  },
+  "devDependencies": {
+    "@types/jsonwebtoken": "^9.0.6",
+    "@types/react": "^18.3.0",
+    "@types/react-dom": "^18.3.0",
+    "tailwindcss": "^3.4.4",
+    "typescript": "^5.4.5"
+  }
+}

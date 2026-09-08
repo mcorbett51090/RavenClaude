@@ -144,6 +144,7 @@ Advisory by default (`exit 0` with stderr warnings). Flip the final `exit 0` to 
 | [`skills/embed-csp-and-iframe-sandboxing/SKILL.md`](skills/embed-csp-and-iframe-sandboxing/SKILL.md) | `ravenclaude-core/security-reviewer` (invoked) + `dashboard-builder` (generates) | CSP `frame-ancestors`; iframe `sandbox` attributes; postMessage origin checks; web-component shadow-DOM boundary |
 | [`skills/dbt-project-scaffolding/SKILL.md`](skills/dbt-project-scaffolding/SKILL.md) | `etl-pipeline-engineer` (primary) + `dashboard-builder` | Sources → staging → intermediate → marts → metrics layer discipline; generic + custom tests; doc-blocks for every model; exposures; RLS-safe `dbt_build_role` / `dbt_query_role` separation; `dbt build` CI shape; dev/prod env-promotion via per-schema target |
 | [`skills/dashboard-performance-tuning/SKILL.md`](skills/dashboard-performance-tuning/SKILL.md) | `dashboard-builder` | Per-widget-class budgets (KPI <200ms, chart <800ms, table <1.5s); Cube pre-aggregation tiers (rollup → originalSql → rollupJoin); Postgres/DuckDB materialized views; TanStack Query + Cube Redis + warehouse cache layers; the measure → identify slow stage → fix at lowest-cost layer profile loop |
+| **NEW** [`skills/dashboard-architecture-audit/SKILL.md`](skills/dashboard-architecture-audit/SKILL.md) | `dashboard-builder` (mandatory build gate) + standalone hardening requests | Page-by-page rubric across 3 previously-uncovered axes — structure/information architecture, narrative/storytelling, user guidance toward action — plus cross-page coherence. Reuses `visual-feedback-loop`'s render-and-see mechanism rather than building a second one; routes visual-craft/performance/security findings to their owning skill instead of re-scoring them. The mandatory final gate before any dashboard build (new or existing) is declared done. |
 | [`skills/multi-tenant-migration/SKILL.md`](skills/multi-tenant-migration/SKILL.md) | `database-setup-guide` (primary) + `dashboard-builder` | `tenant_id` column propagation (uuid, NOT NULL, indexed); backfill strategies (single-tenant + mid-migration disambiguation); post-hoc RLS / semantic-layer scope rule introduction; JWT-claim shape migration; parallel-mode → cutover → backout-window plan; mandatory cross-boundary denial test gate |
 | [`skills/data-quality-tests/SKILL.md`](skills/data-quality-tests/SKILL.md) | `etl-pipeline-engineer` (primary) | Test taxonomy (column / table / cross-table); dbt mechanics per category; severity tiers (`error` vs `warn`); row-count drift bands; cross-source reconciliation (Stripe ↔ QBO, etc.); runbook-entry-per-test discipline; escalation criteria to Great Expectations / Monte Carlo / Bigeye |
 | [`skills/cross-system-identity-resolution/SKILL.md`](skills/cross-system-identity-resolution/SKILL.md) | `etl-pipeline-engineer` (primary) + `customer-success-analytics/cs-analytics-architect` | Stitching one real-world entity (a customer account) across systems into a conformed spine: candidate-key inventory; the deterministic → domain → name precedence ladder; `bridge_account_xref` with `match_method` + `confidence`; quarantine + `resolution_audit`; stewardship review; the dbt tests that guard the join spine |
@@ -227,7 +228,7 @@ No server is invented; no `mcpServers` entry ships; no `NOTICE.md` (nothing thir
 
 ## 9. Templates in this plugin
 
-12 templates in v0.2.0, distributed by intended bar (3 runnable + 4 conceptual + 3 seam-marked stubs + 2 new v0.2.0 scaffolds).
+20 templates, distributed by intended bar (3 runnable + 4 conceptual + 3 seam-marked-stub-and-promoted pairs + 2 v0.2.0 modeling scaffolds + 2 app scaffolds + 1 audit report template).
 
 ### Runnable (security-critical — must compile / parse / pass denial test)
 
@@ -246,20 +247,35 @@ No server is invented; no `mcpServers` entry ships; no `NOTICE.md` (nothing thir
 | [`templates/evidence-portfolio-page.md`](templates/evidence-portfolio-page.md) | Evidence.dev `.md` page template — SQL fenced blocks + chart components + narrative prose |
 | [`templates/airbyte-source-config.yaml`](templates/airbyte-source-config.yaml) | Airbyte source connector config with slots for QBO, Stripe, Salesforce, HubSpot, GA4, Shopify with appropriate scope flags |
 
-### Seam-marked stubs (`.tsx.md` — document the seams; promoted to runnable when a real engagement validates)
+### Promoted embed components (v0.2.0) — the seam-marked `.tsx.md` stubs, now runnable
+
+Each pair: the `.tsx.md` file is kept as the seam rationale/history (now carrying a "✅ PROMOTED, then revised" banner), the sibling `.tsx`/`.ts` file(s) are the real, compiling code. **Honest status (read before quoting a client):** `ravenclaude-core/security-reviewer` reviewed the first promoted version of all three and returned a **blocked** verdict — a client-controlled tenant scope in the Superset and Power BI seams, and a secret/client-component colocation risk in the Metabase seam. All three were fixed in the same change; **the fixes have not yet been re-reviewed**, and live SDK-version confirmation against a real vendor instance + a real engagement using each seam are still open — this is "reviewed, findings fixed, fix not yet re-confirmed," not yet "field-proven."
+
+| Historical stub (rationale) | Runnable code | Use for |
+|---|---|---|
+| [`templates/superset-embed-iframe.tsx.md`](templates/superset-embed-iframe.tsx.md) | [`templates/superset-embed-iframe.tsx`](templates/superset-embed-iframe.tsx) + [`templates/superset-guest-token-endpoint.ts`](templates/superset-guest-token-endpoint.ts) | React component (no `tenantId` prop) + host-backend endpoint: Superset JWT-secured guest-token embed. Split into two files after review found the original single-component design let a caller pass `tenantId` client-side into the guest-token RLS clause — tenant resolution now lives only in the server-side endpoint, with the tenant-id shape validated before it reaches the clause. |
+| [`templates/metabase-interactive-embed.tsx.md`](templates/metabase-interactive-embed.tsx.md) | [`templates/metabase-interactive-embed.tsx`](templates/metabase-interactive-embed.tsx) (client) + [`templates/metabase-embed-url.server.ts`](templates/metabase-embed-url.server.ts) (server-only) | React component + URL builder: Metabase Interactive Embedding (Pro+) with locked `tenant_id`. Split into two files after review found the signing secret colocated with a client component in one module. |
+| [`templates/power-bi-embedded-react.tsx.md`](templates/power-bi-embedded-react.tsx.md) | [`templates/power-bi-embedded-react.tsx`](templates/power-bi-embedded-react.tsx) + [`templates/pbi-embed-token-endpoint.ts`](templates/pbi-embed-token-endpoint.ts) | React component (no `tenantId`/`daxRole` props) + host-backend endpoint: Power BI Embedded App-Owns-Data flow. Revised after review found the client composed the full DAX EffectiveIdentity (username + roles) unvalidated — the endpoint now resolves it server-side and refuses to issue a token for a roleless identity. |
+
+### v0.2.0 modeling-layer scaffolds
 
 | Template | Use for |
 |---|---|
-| [`templates/superset-embed-iframe.tsx.md`](templates/superset-embed-iframe.tsx.md) | React-component seam for Superset JWT-secured iframe embed with theme-override hooks |
-| [`templates/metabase-interactive-embed.tsx.md`](templates/metabase-interactive-embed.tsx.md) | React-component seam for Metabase Interactive Embedding (Pro+) with locked parameters |
-| [`templates/power-bi-embedded-react.tsx.md`](templates/power-bi-embedded-react.tsx.md) | React-component seam for Power BI Embedded App-Owns-Data flow |
+| [`templates/dbt-project-starter/`](templates/dbt-project-starter/) | 3-layer dbt project (staging / intermediate / marts) with `dbt_project.yml`, `profiles.yml.example`, source declarations + freshness tests, example `stg_quickbooks__customers.sql` + `dim_customer.sql` mart, and engagement-onboarding README |
+| [`templates/cube-schema-starter.yml`](templates/cube-schema-starter.yml) | Cube schema starter with `orders` + `customers` example cubes, mandatory `access_policy` with `securityContext`, tenant-aware pre-aggregations, view-level partner-facing query surface |
 
-### v0.2.0 additions (scaffolds for the modeling + semantic layers)
+### App scaffolds (Case C, and the Astro-islands alternative)
 
 | Template | Use for |
 |---|---|
-| **NEW** [`templates/dbt-project-starter/`](templates/dbt-project-starter/) | 3-layer dbt project (staging / intermediate / marts) with `dbt_project.yml`, `profiles.yml.example`, source declarations + freshness tests, example `stg_quickbooks__customers.sql` + `dim_customer.sql` mart, and engagement-onboarding README |
-| **NEW** [`templates/cube-schema-starter.yml`](templates/cube-schema-starter.yml) | Cube schema starter with `orders` + `customers` example cubes, mandatory `access_policy` with `securityContext`, tenant-aware pre-aggregations, view-level partner-facing query surface |
+| [`templates/cube-nextjs-dashboard-starter/`](templates/cube-nextjs-dashboard-starter/) | Real, runnable Next.js App Router + Tremor + Recharts starter wired to `cube-schema-starter.yml` + `jwt-issuer.ts`'s pattern, for the dedicated always-interactive multi-tenant SaaS shape (Case C). Two seams (auth lookup, live cross-boundary denial test) are documented but not implemented — see the scaffold's own README §"What's verified vs. what's still open." |
+| [`templates/cube-astro-dashboard-starter/`](templates/cube-astro-dashboard-starter/) | **NEW.** The same component + security patterns ported to Astro islands, for a mostly-static site with a dashboard widget or two — the more common shape given this shop's own Astro-based site-builds fleet. `KpiCard.tsx`/`RevenueChart.tsx` are copied unchanged from the Next.js starter (plain React, no framework coupling); the Astro-specific plumbing (the `APIRoute` token endpoint, CSP-via-middleware) carries over the same security patterns but has **not itself** been independently re-reviewed — see the scaffold's own README. |
+
+### Audit report template
+
+| Template | Use for |
+|---|---|
+| [`templates/dashboard-audit-report-template.md`](templates/dashboard-audit-report-template.md) | **NEW.** The output shape for `skills/dashboard-architecture-audit` — priority-tagged (P0-P3) per-page findings across structure/narrative/guidance, plus cross-page coherence, out-of-lane routing, and a Last-Mile "fixes applied this session" section. |
 
 ---
 
