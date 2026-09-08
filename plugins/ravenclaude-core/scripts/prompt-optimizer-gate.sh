@@ -1,9 +1,13 @@
 #!/usr/bin/env bash
 # prompt-optimizer-gate.sh
-# UserPromptSubmit hook body — prompt-optimizer Phase 2 (Tier-0 pre-filter + Tier-1
-# Haiku classifier). NOT YET WIRED into hooks/hooks.json or .claude/settings.json —
-# that is Phase 6's job. This script is standalone: feed it a Claude Code
-# UserPromptSubmit-shaped JSON payload on stdin and it can be run/tested directly.
+# UserPromptSubmit hook body — prompt-optimizer Phases 2-6 (Tier-0 pre-filter + Tier-1
+# Haiku classifier, wired in Phase 6 to the Phase 3/4 generators + the Phase 5
+# formatter, gated on `prompt_optimizer.mode`). WIRED as of Phase 6 into both
+# hooks/hooks.json (plugin-canonical) and .claude/settings.json (dev-mirror) — see
+# the "PHASE 6 WIRING" section near the end of this file for the generator/formatter
+# dispatch + mode-gated emission. This script is also standalone: feed it a Claude
+# Code UserPromptSubmit-shaped JSON payload on stdin and it can be run/tested
+# directly (e.g. `echo '{"prompt":"..."}' | bash prompt-optimizer-gate.sh`).
 #
 # Source: docs/plans/2026-09-03-prompt-optimizer/plan.md Phase 2 +
 # docs/plans/2026-09-03-prompt-optimizer/design-lock.md (Phase 0's frozen schemas).

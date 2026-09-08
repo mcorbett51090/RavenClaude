@@ -8527,7 +8527,19 @@ _JS = r"""
    * design-lock.md §6 and prompt-optimizer-gate.sh's own header. NO DOM
    * control — state-slot round-trip only, same pattern as worktree_bound /
    * context_handoff / cheap_lane (Gate 132's DOM budget is at zero slack;
-   * a rendered control is a follow-up, not this phase's job). */
+   * a rendered control is a follow-up, not this phase's job).
+   * TODO(dashboard-control, task-6 follow-up): the same reader table
+   * `context_handoff` used through v0.313.0 — no rendered control until an
+   * owner-approved Gate 132 ratchet raise, then a control shipped the same
+   * release (see the "Pre-compaction handoff convergence" v0.314.0 milestone
+   * above: dashboard.html/index.html each +23 elements, `PROMPT_OPTIMIZER_MODE_VALUES`
+   * driving a `<select>`). When `prompt_optimizer` earns the same treatment,
+   * copy that exact recipe: request/record the ratchet raise in Gate 132's
+   * RATCHET table, then add a `_PIPELINE_CONTROLS["prompt_optimizer"]` block
+   * (mirroring `_PIPELINE_CONTROLS["context_handoff"]`'s `<select id="pipe-...-mode">`
+   * shape) plus its `onChange` wiring near `pipe-context-handoff-mode`'s. This
+   * comment is the durable pointer; the state/emit/hydrate plumbing already
+   * done above needs no rework — only a DOM control gets added on top of it. */
   const PROMPT_OPTIMIZER_MODE_VALUES = ["shadow", "advisory", "binding-context"];
   const PROMPT_OPTIMIZER_MODE_DEFAULT = "shadow";
   const PROMPT_OPTIMIZER_DEFAULT = Object.freeze({ enabled: false, mode: "shadow" });
