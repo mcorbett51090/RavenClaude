@@ -1,13 +1,25 @@
 {
-  "schema_version": 1,
-  "status": "seeded — enforcement semantics not yet defined, see plan.md P3",
-  "note": "P0 initializes this file with the current corpus reference point only. Per-category budgets (leaf/disambiguating/router tiers, discussed in plan-A and gap-delta.md but not yet ratified by a tiebreak) are a P3 design decision — P0 deliberately does not presume them, since G-P0.1's rendering-model finding (only ~10-13% of descriptions render today, likely usage-gated) should inform which descriptions a budget actually needs to target first.",
-  "seeded_from": "description-baseline.json",
-  "corpus_reference_at_seed_time": {
-    "skill_count": 956,
-    "total_chars": 310284,
-    "total_tokens": 66511,
-    "token_method": "tiktoken cl100k_base [interpretation]"
+  "schema_version": 2,
+  "status": "P3 armed — ceiling seeded, gate condition is chars-OR-tokens per P2's check-skill-descriptions.py --check",
+  "gating_unit": "tokens (primary, per G-P0.3's context-window-occupancy decision — chars is recorded and checked but tokens is the metric this program optimises)",
+  "measurement_method": "scripts/skill-description-baseline.py (P0's instrument); token_method = tiktoken cl100k_base [interpretation]",
+  "pinned_posture": {
+    "note": "the installed-plugin-set population this ceiling was measured against; the drift check (AT-P3.5) fails when the CURRENT skill_count differs from this value, since a changed population makes a raw total-vs-ceiling comparison meaningless (comparing different corpora) -- narrower than full per-plugin version pinning (see description-budget-notes.md for why)",
+    "skill_count": 956
   },
-  "gate": "unarmed — P3 wires this file into a CI check; absent that wiring, this file is inert reference data only"
+  "ceiling": {
+    "seeded_2026-09-08": {
+      "chars": 310696,
+      "tokens": 66608
+    },
+    "committed": {
+      "chars": 310696,
+      "tokens": 66608
+    },
+    "note": "seeded AT today's measured total, per RT-2/RT-5 -- the corpus starts exactly AT its ceiling, not over. 310696/66608 is NOT the original P0 figure (310284/66511) -- it includes two real live YAML-truncation bugs found and fixed in the same PR that seeded this ceiling (choose-statistical-test, spec-reread-ritual -- see check-skill-descriptions.py's charset_violations docstring), which recovered ~412 chars/97 tokens of description text that Claude Code's own plugin loader had been silently dropping. The ceiling moves upward ONLY via a PR explicitly labelled a budget raise, with a written reason (AT-P3.4) -- see description-budget-raises.md in this directory, appended never edited, mirroring artifact-budgets.seed.json's own append-only convention elsewhere in this repo."
+  },
+  "gate_condition": "over-cap (per-file, informational only per P2's own scoping note) OR total-above-committed-ceiling (blocking) -- NOT the gameable over-cap-AND-total-rose shape RT-2 named as A's defect",
+  "single_pr_teeth": "AT-P3.2 -- registered now, Gate <N>, this PR",
+  "two_pr_teeth": "AT-P3.3 -- deferred to P11 per plan.md's own DoD note ('register it when P11 lands, not batched at the end')",
+  "budget_raise_log": "description-budget-raises.md (this directory) -- append-only, one line per raise, each with a PR reference and a written reason"
 }
