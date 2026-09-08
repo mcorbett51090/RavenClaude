@@ -393,6 +393,7 @@ This skill emits no runtime artifact of its own — it is a **contract**, consum
 - Agent-quality rubric (the bar this skill is scored against): [`plugins/ravenclaude-core/skills/agent-quality-rubric/SKILL.md`](../agent-quality-rubric/SKILL.md).
 - Companion skill format: [`plugins/ravenclaude-core/skills/adaptive-run-classifier/SKILL.md`](../adaptive-run-classifier/SKILL.md) (parallel shape: an auditable verdict via a cheap upstream call).
 - Structured Output Protocol: [`plugins/ravenclaude-core/skills/structured-output/SKILL.md`](../structured-output/SKILL.md).
+- **Upstream, non-overlapping mechanism:** [`plugins/ravenclaude-core/skills/prompt-optimizer/SKILL.md`](../prompt-optimizer/SKILL.md) classifies the raw user prompt *before* any dispatch decision exists and is architecturally incapable of dispatching anything itself (its Never-dispatches invariant); this evaluator right-sizes a dispatch only *after* the decision to dispatch has already been made. The two never overlap in scope — see prompt-optimizer's own "Composition" section for the full four-mechanism ordering.
 
 ---
 
