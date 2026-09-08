@@ -17,6 +17,8 @@ For an SMB consulting engagement where:
 
 Power BI Embedded is now sold via **Microsoft Fabric F-SKUs** (Microsoft retired P-SKU Premium to new customers in 2024).
 
+`[verified 2026-09-03 — unchanged, confirmed via secondary practitioner sources; Azure's own pricing page no longer lists F-SKU $ figures directly (shows "$-" placeholders and points at the pricing calculator/sales instead), so this table can't be re-read off Microsoft's page verbatim]`
+
 | SKU | PAYG monthly | Reserved (1-year) monthly |
 |---|---|---|
 | F2 | ~$262.80 | ~$156 (~41% savings) |

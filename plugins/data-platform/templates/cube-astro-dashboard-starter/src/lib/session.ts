@@ -12,6 +12,13 @@
 export interface Session {
   userId: string;
   tenantId: string;
+  /** BCP-47 locale, e.g. "de-DE". Optional — resolveLocaleContext() (lib/locale.ts)
+   *  falls back to a default when unset. Populate from tenant configuration in a
+   *  real engagement (FORGE dashboard-top1pct P2-15's tenant-configured fork —
+   *  see knowledge/dashboard-timezone-decision-2026.md). */
+  locale?: string;
+  /** IANA timezone, e.g. "America/New_York". Same fallback/fork note as `locale`. */
+  timezone?: string;
 }
 
 /**

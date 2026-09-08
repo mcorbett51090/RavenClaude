@@ -18,15 +18,15 @@ For a 4-6 engagement/year solo consulting practice:
 ## Managed ELT pricing
 
 ### Fivetran
-- **MAR tiers (2026):** $2.50/M rows (0-5M), $2.00/M (5-20M), $1.50/M (20-100M), $1.00/M (100M+) [per fivetran.com/docs/usage-based-pricing](https://fivetran.com/docs/usage-based-pricing)
-- **$5 base charge per connection between 1-1M MAR**
-- **As of Jan 1, 2026: inserts, updates AND deletes all count toward paid MAR** (previously deletes didn't). [Per fivetran.com/docs/usage-based-pricing/pricing-updates/2026-pricing-updates](https://fivetran.com/docs/usage-based-pricing/pricing-updates/2026-pricing-updates). **This is a material cost increase for change-heavy systems (Salesforce, HubSpot deal updates).**
+- **MAR tiers (2026):** $2.50/M rows (0-5M), $2.00/M (5-20M), $1.50/M (20-100M), $1.00/M (100M+) [per fivetran.com/docs/usage-based-pricing](https://fivetran.com/docs/usage-based-pricing) `[verified 2026-09-03 — unchanged, confirmed via multiple 2026 secondary pricing writeups converging on the same tier breakdown]`
+- **$5 base charge per connection between 1-1M MAR** `[re-verified 2026-09-03 against fivetran.com/pricing directly — unchanged]`
+- **As of Jan 1, 2026: inserts, updates AND deletes all count toward paid MAR** (previously deletes didn't). `[re-verified 2026-09-03 against fivetran.com/pricing directly — unchanged, still in effect]` [Per fivetran.com/docs/usage-based-pricing/pricing-updates/2026-pricing-updates](https://fivetran.com/docs/usage-based-pricing/pricing-updates/2026-pricing-updates). **This is a material cost increase for change-heavy systems (Salesforce, HubSpot deal updates).**
 - **500+ pre-built connectors** including Stripe, Salesforce, HubSpot, Shopify, QuickBooks, GA4, Workday HCM/Adaptive/Financial
 - **Free tier:** accounts under 500k MAR
 - **HVR acquisition:** $700M, completed shortly after Sept 2021 announcement [per Fivetran press release](https://www.fivetran.com/press/fivetran-completes-acquisition-of-hvr) — brought log-based CDC into the platform
 
 ### Airbyte
-- **Cloud Standard:** $10/mo with 4 credits included; additional credits $2.50 each. One credit ≈ 1/6M API rows OR 250 MB DB/files [per docs.airbyte.com](https://docs.airbyte.com/platform/cloud/managing-airbyte-cloud/manage-credits)
+- **Cloud Standard:** $10/mo with 4 credits included; additional credits $2.50 each. One credit ≈ 1/6M API rows OR 250 MB DB/files [per docs.airbyte.com](https://docs.airbyte.com/platform/cloud/managing-airbyte-cloud/manage-credits) `[re-verified 2026-09-03 — unchanged: $10/mo starting price and $2.50/credit both confirmed directly against airbyte.com/pricing and docs.airbyte.com]`
 - **Plus tier (reported):** $25k/year via sales — Plus is capacity-based with "Data Workers" (secondary source via Integrate.io; not on Airbyte's public site)
 - **600+ replication connectors + 50+ AI-workload "agent connectors"**
 - **OSS (Apache + Elastic License v2):** free for self-host

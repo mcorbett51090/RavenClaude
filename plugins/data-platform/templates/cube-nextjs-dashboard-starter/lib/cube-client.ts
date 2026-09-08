@@ -1,8 +1,17 @@
 "use client";
 
-import cubejs, { CubeApi } from "@cubejs-client/core";
+import cubejs, { type CubeApi } from "@cubejs-client/core";
 
-let cachedClient: CubeApi | null = null;
+// One client per distinct request tag (FORGE dashboard-top1pct P2-17,
+// 2026-09-03) — see knowledge/dashboard-query-cost-instrumentation.md.
+// `CubeApiOptions.headers` (verified against @cubejs-client/core's own
+// dist/src/index.d.ts this session — not assumed) is set at CONSTRUCTION
+// time, not per query, so a widget-tagged X-Request-Id needs its own client
+// instance per tag rather than a shared singleton. This is cheap: `cubejs()`
+// wraps a shared `fetchToken` closure, so every instance still shares the
+// SAME token cache below — no extra token-fetch traffic, just an extra
+// (near-free) object per distinct widget.
+const clientsByTag = new Map<string, CubeApi>();
 let cachedToken: string | null = null;
 let cachedTokenExpiryMs = 0;
 
@@ -28,15 +37,26 @@ async function fetchToken(): Promise<string> {
  * Returns a CubeApi client whose token is fetched from our own
  * /api/cube-token route (never minted client-side) and reused until it's
  * close to expiry.
+ *
+ * @param requestTag Page+widget identity (e.g. "dashboard.kpi-card.current"),
+ *   sent as the `X-Request-Id` header Cube's own docs document for
+ *   end-to-end request tracing (github.com/cube-js/cube docs,
+ *   apis-integrations/core-data-apis/rest-api/reference.mdx, verified this
+ *   session) — it's how a query in Cube's Query History / warehouse query
+ *   log is attributable back to the widget that issued it. Omit for an
+ *   untagged/ad-hoc query (falls back to the shared default client).
  */
-export function getCubeClient(): CubeApi {
-  if (cachedClient) return cachedClient;
+export function getCubeClient(requestTag?: string): CubeApi {
+  const key = requestTag ?? "__default__";
+  const cached = clientsByTag.get(key);
+  if (cached) return cached;
 
-  cachedClient = cubejs(fetchToken, {
+  const client = cubejs(fetchToken, {
     apiUrl: process.env.NEXT_PUBLIC_CUBE_API_URL || "http://localhost:4000/cubejs-api/v1",
+    ...(requestTag ? { headers: { "X-Request-Id": requestTag } } : {}),
   });
-
-  return cachedClient;
+  clientsByTag.set(key, client);
+  return client;
 }
 
 // Exposed for tests/debugging only — not used by the app itself.

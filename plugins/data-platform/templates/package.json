@@ -1,0 +1,9 @@
+{
+  "name": "data-platform-ci-headless-smoke-tooling",
+  "private": true,
+  "description": "Pinned devDependencies for ci-headless-smoke.js, shared by validate-data-platform-starters.yml's nextjs-starter and astro-starter jobs. A committed lockfile (npm ci) is required here rather than an ad-hoc `npm install <pkg>@version` in the workflow -- zizmor's adhoc-packages audit flags an inline install as unreviewable/unpinned transitive-dependency risk. playwright is pinned to 1.61.0, not this workflow's original 1.48.0 -- `npm audit` found playwright <1.55.1 carries a real, applicable high-severity advisory (GHSA-7mvr-c777-76hp: browser-download SSL-certificate verification bypass), and this workflow's own next step downloads a Chromium binary via that exact code path. 1.61.0, not the current latest (1.63.0), because playwright bumped its engines.node floor to >=20 at 1.62.0 -- this workflow's setup-node is pinned to 18.17.0 (matching the app starters' own engines.node floor, P0-1), and 1.61.0 is the newest release that clears the advisory (>=1.55.1) while still supporting Node 18. Verified directly: `npm view playwright@<version> engines` across 1.55.1..1.63.0.",
+  "devDependencies": {
+    "playwright": "1.61.0",
+    "@axe-core/playwright": "4.13.0"
+  }
+}
