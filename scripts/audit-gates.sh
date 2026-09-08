@@ -364,8 +364,10 @@ _suite_gate_tokens() { # $1=suite name -> echoes space-separated gate tokens; re
       # (skill-description linter — cap/filler/name/charset + P3 ratchet,
       # succinct-skill-descriptions P2/P3 — same generic-self-test family;
       # renumbered from 280 in the SAME merge, since origin/main's context-
-      # usage-meter gate landed on 280 first).
-      echo "1 2 8 18 46 47 92 129 173 175 193 194 195 226 267 268 269 270 271 272 273 274 275 276 277 278 279 280 281"
+      # usage-meter gate landed on 280 first). 282 (skill-index freshness,
+      # FORGE plan dynamic-skill-context P0 — a generated-file freshness
+      # gate, same family as 173/193/194, no better-fit suite).
+      echo "1 2 8 18 46 47 92 129 173 175 193 194 195 226 267 268 269 270 271 272 273 274 275 276 277 278 279 280 281 282"
       ;;
     security)
       # Gaps: 24 (Track B Engine Foundation — defines DECP, consumed by
