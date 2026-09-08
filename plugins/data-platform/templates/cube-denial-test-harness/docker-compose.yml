@@ -1,0 +1,64 @@
+---
+# Cross-tenant denial test harness (FORGE dashboard-top1pct P1-9, 2026-09-03).
+#
+# A CI-only, torn-down-after-the-job test fixture — NOT persistent infrastructure.
+# No ongoing cost, no persistent address, exists only for the duration of the job that
+# runs it. See templates/cube-denial-test-harness/README.md for the full reasoning on
+# why this reads as within scope.
+#
+# The Cube image is pinned to v1.7.33 explicitly (verified against the Docker Hub
+# registry API 2026-09-03: cubejs/cube:v1.7.33, digest e2dc402fdc4b..., active) — this
+# harness exists BECAUSE of a version-floor confusion (P0-1: Cube Core >=1.2.0 is required
+# for access_policy to work at all), so it must assert its own image version rather than
+# assume it. The test itself (tests/cross-tenant-denial.test.ts) re-asserts the resolved
+# server version at runtime — pinning the compose tag alone is not enough, since a stale
+# local image cache could silently serve an older version despite this file's tag.
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: cube_test
+      POSTGRES_PASSWORD: cube_test_password_not_for_prod
+      POSTGRES_DB: cube_denial_test
+    ports:
+      - "5433:5432" # non-default host port — avoid colliding with a local Postgres
+    volumes:
+      - ../database-schema-starter.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+      - ./seed/two-tenant-fixture.sql:/docker-entrypoint-initdb.d/02-seed.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cube_test -d cube_denial_test"]
+      interval: 2s
+      timeout: 5s
+      retries: 15
+
+  cube:
+    image: cubejs/cube:v1.7.33
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      CUBEJS_DB_TYPE: postgres
+      CUBEJS_DB_HOST: postgres
+      CUBEJS_DB_PORT: "5432"
+      CUBEJS_DB_NAME: cube_denial_test
+      CUBEJS_DB_USER: cube_test
+      CUBEJS_DB_PASS: cube_test_password_not_for_prod
+      # Test-only signing secret — never reuse outside this throwaway fixture.
+      CUBEJS_API_SECRET: cube-denial-test-harness-secret-not-for-prod-use-only
+      CUBEJS_DEV_MODE: "true"
+    ports:
+      - "4001:4000" # non-default host port — avoid colliding with a locally running Cube
+    # Mount pattern matches Cube's own documented convention (verified via Context7,
+    # 2026-09-03: docs-mintlify/cube-core/getting-started/create-a-project.mdx mounts the
+    # whole project dir to /cube/conf; Cube scans /cube/conf/schema/**/*.{yml,yaml,js} for
+    # cube/view definitions) — mounting cube-schema-starter.yml directly into the schema/
+    # directory, rather than nesting it under a misleadingly-named schema/cubes/orders.yml
+    # (that file actually defines both `orders` and `customers` cubes plus a view, not just
+    # one cube — an earlier draft of this compose file used that path and was corrected here).
+    volumes:
+      - ../cube-schema-starter.yml:/cube/conf/schema/cube-schema-starter.yml:ro
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:4000/readyz || exit 1"]
+      interval: 2s
+      timeout: 5s
+      retries: 20

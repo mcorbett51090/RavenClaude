@@ -1,0 +1,24 @@
+{
+  "name": "cube-denial-test-harness",
+  "private": true,
+  "version": "0.1.0",
+  "description": "data-platform executable cross-tenant denial harness — Cube >=1.2.0 + Postgres RLS, docker-compose test fixture, opt-in via DP_INTEGRATION=1",
+  "type": "module",
+  "scripts": {
+    "test": "vitest run"
+  },
+  "engines": {
+    "node": ">=18.17.0"
+  },
+  "dependencies": {
+    "jsonwebtoken": "^9.0.2",
+    "pg": "^8.13.1"
+  },
+  "devDependencies": {
+    "@types/jsonwebtoken": "^9.0.6",
+    "@types/node": "^20.14.0",
+    "@types/pg": "^8.11.10",
+    "typescript": "^5.4.5",
+    "vitest": "^2.1.4"
+  }
+}

@@ -193,6 +193,15 @@ Gate 195 alone (a main-sequence-only registration is invisible to Gate 195's own
   Prose only; `route-task.py` reads nothing from this file, so its 17/17 (now `N/N`) self-test is
   unaffected by construction.
 - **`spawn-team`** — a similar pointer for choosing a non-Claude host. Prose only.
+- **External benchmark/pricing data (v0.315.1)** — `sources[]`'s `openrouter-pricing` entry cites
+  OpenRouter's public, unauthenticated model-listing API for per-token pricing, used once so far to
+  ground the `data-analysis` → `agent`/`reversible` cell's `cost-heuristic` rationale with real $/M-token
+  numbers instead of asserted-on-faith premium reasoning. `llm-stats.com` was the original target
+  (`docs/research/2026-09-02-llm-stats-api-verification.md`) but its API requires a paid-account signup
+  this build could not complete; SWE-Bench Verified / Coding Arena `capability-fact` citations for the
+  newer model tiers remain unfilled — checked against swebench.com's public leaderboard 2026-09-03 and
+  the model tiers aren't listed there yet. See
+  `docs/plans/2026-09-02-llm-stats-agent-routing-citations/plan.md` for the remaining cells.
 - **`adaptive-run-classifier`** — deliberately **not** touched. That skill's `run_config` schema is
   purpose-built for RavenClaude's own internal multi-phase research-loop phases; folding a 5-surface
   agent choice into it would widen a schema whose disabled-floor invariant (documented, though not

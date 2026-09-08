@@ -2256,7 +2256,7 @@ Probe: `unprobed: the delivery fact is a host-platform property; it is modelled 
 
 **Sources:** [measured in the FORGE product-inventory run](https://github.com/mcorbett51090/RavenClaude/pull/997)
 
-_Last verified: 2026-09-01_
+_Last verified: 2026-09-04_
 
 
 ---
@@ -2282,7 +2282,7 @@ Probe: `unprobed: needs a live two-hook host session; scheduled for the T2 sampl
 
 **Sources:** [measured in the FORGE product-inventory run](https://github.com/mcorbett51090/RavenClaude/pull/997)
 
-_Last verified: 2026-08-25_
+_Last verified: 2026-09-03_
 
 
 ---
@@ -2334,7 +2334,7 @@ Probe: `unprobed: requires a real consumer install cycle, which no CI job perfor
 
 **Sources:** [measured in the FORGE product-inventory run](https://github.com/mcorbett51090/RavenClaude/pull/997)
 
-_Last verified: 2026-09-02_
+_Last verified: 2026-09-03_
 
 
 ---
@@ -2360,7 +2360,7 @@ Probe: `scripts/audit-gates.sh`
 
 **Sources:** [measured in the FORGE product-inventory run](https://github.com/mcorbett51090/RavenClaude/pull/997)
 
-_Last verified: 2026-09-03_
+_Last verified: 2026-09-05_
 
 
 ---
@@ -2883,7 +2883,7 @@ than widened.
 
 **Sources:** [this build's own G4a critic (correlated-error pass) and G5 red-team, PR](https://github.com/mcorbett51090/RavenClaude/pull/1067)
 
-_Last verified: 2026-09-01_
+_Last verified: 2026-09-03_
 
 
 ---
@@ -2977,6 +2977,117 @@ both 0 and 1, with a permanent regression assertion so this cannot silently regr
 **Sources:** [repo-review build + live proof-run, 2026-09-02 -- cross-model dispatch against the fixture repo caught the defect in findings_merge.py itself](../plugins/ravenclaude-core/skills/repo-review/SKILL.md)
 
 _Last verified: 2026-09-02_
+
+
+---
+
+### Caveman auto-routing: SHADOW-only, and the scripts/ packaging exception · _RavenClaude-built_
+
+> The caveman auto-routing hook decides and records but never calls the mode applier this phase, and ships from scripts/ because a new hooks/*.sh chmod is denied.
+
+## What a reader would have assumed instead
+
+That a new SessionStart/UserPromptSubmit hook body would live in `hooks/`, like every other hook in
+this plugin, and that turning the posture knob to `live` would make the routing decision actually take
+effect immediately.
+
+## The discriminator
+
+control: ask-on-ambiguity.sh (also in scripts/, registered via the identical bash-prefixed escape)
+already proves the substrate guard denies a NEW hooks/*.sh chmod but not a scripts/*.sh one -- the same
+escape pattern, reused rather than re-argued from scratch
+Measured 2026-09-03: caveman-route-hook.sh ships from scripts/, not hooks/ -- a NEW hooks/*.sh file
+needs a chmod the tribunal's own substrate guard denies, the same reason ask-on-ambiguity.sh lives
+there too. Even when the posture is live, this phase's hook only decides and records: it never calls
+the applier.
+
+## Why it matters
+
+Falsifier: a git history showing hooks/caveman-route-hook.sh ever existed in this repo with its
+executable bit successfully set.
+
+Probe: `plugins/ravenclaude-core/hooks/tests/test-gate264-caveman-routing.sh`
+
+**Sources:** [measured in the FORGE caveman-routing-decision-tree run](https://github.com/mcorbett51090/RavenClaude/pull/1095)
+
+_Last verified: 2026-09-03_
+
+
+---
+
+### The host roster is read live from host-support.json, never hardcoded · _RavenClaude-built_
+
+> dependency-sweep.py discovers drift via the repo's existing citation-marker convention, host-scoped; the host roster itself is derived from host-support.json, not a guessed list.
+
+## What a reader would have assumed instead
+
+That scanning "for copilot" and scanning "for any host" would return the same superset/subset relationship regardless of implementation — i.e. that a host-scoped scan is just a filtered view of the unscoped one, so the unscoped count would always be >= any single host's real count in a way proportional to the number of tracked hosts.
+
+## The discriminator
+
+control: the same scan re-run with host_re built from a single-host-scoped `{"hosts": {host_id: host_cell}}` slice, compared against the unscoped full-hosts-dict build on the identical repo state
+Measured 2026-09-03: `scan_markers`'s `host_re` was built from every tracked host's citation tokens combined, so a citation naming ANY tracked host matched regardless of which host was actually being scanned. A `copilot` scan returned 175 findings pre-fix; scoping the regex to only `copilot`'s tokens dropped it to 85 — more than half were false attributions to the wrong host. A `gemini` scan, previously flooded by copilot/codex/cursor citations that happened to share surrounding text, dropped to 27.
+
+## Why it matters
+
+The sweep's queue output (`queue --host <id>`) is host-scoped by design — a maintainer sweeping `copilot` after a version bump should see only findings that actually concern copilot, not every host-version-sensitive citation in the repo. The unscoped bug would have made every host's queue nearly identical (dominated by cross-host noise) and buried the small number of findings that genuinely needed action behind ones that didn't. The fix reuses Gate 208's `host_tokens`/`host_regex` helpers but calls them with a single-host slice of `host-support.json`, never the full dict — the general-purpose helper answered a broader question than the per-host queue needed.
+
+Falsifier: a future `host-support.json` restructuring that removes the per-host `components.<type>.<host_id>` nesting this scoping depends on.
+
+**Sources:** [/code-review found the pre-fix undercount and this session verified the fix's measured effect](https://github.com/mcorbett51090/RavenClaude/pull/1101)
+
+_Last verified: 2026-09-03_
+
+
+---
+
+### A Grok Bot skill restates core protocols instead of citing them, on purpose · _RavenClaude-built_
+
+> The skill duplicates CGP/dispatch prose as freestanding text, against this repo's cite-not-restate convention, since a Grok Bot cannot resolve a cross-plugin markdown link.
+
+## What a reader would have assumed instead
+
+That a new skill referencing "RavenClaude Core Orchestration" in its title would link into `ravenclaude-core/CLAUDE.md` the way every other cross-plugin reference in this marketplace does (e.g. `forms-engineering`'s inherited-rules table, which links rather than restates).
+
+## The discriminator
+
+control: read `ravenclaude-core/CLAUDE.md`'s "Multi-Agent Coordination & Dispatch Rules" and "Capability Grounding Protocol" sections side by side with this skill's "Non-negotiable house rules" -- both restate the same invariants in freestanding prose, with no markdown link back to the source file.
+
+## Why it matters
+
+A Grok Bot is a separate, non-Claude-Code runtime -- it has no mechanism to `@`-import or traverse a relative markdown link into another plugin's `CLAUDE.md` the way a Claude Code sub-agent can. So `ravenclaude-core-orchestration/SKILL.md` deliberately copies the relevant protocols as a portable, self-contained recipe instead. This is a one-time, hand-adapted copy (its own "Credit" section says "Adapted from RavenClaude plugin `ravenclaude-core`"), not a live link -- so it will drift from `ravenclaude-core/CLAUDE.md` as that file's dispatch/CGP/SOP sections evolve, and nothing re-syncs it automatically.
+
+**Sources:** [PR #1104 -- grok-bot-creation + grok-bot-delegation plugins](https://github.com/mcorbett51090/RavenClaude/pull/1104)
+
+_Last verified: 2026-09-04_
+
+
+---
+
+### There is no /max-parallel — remap to documented Claude Code knobs · _RavenClaude-built_
+
+> Org slang "max parallel" is not a Claude Code command; the skill remaps it to plan mode, subagents, worktrees/batch, ultracode workflows, ultrathink, and /effort.
+
+## What a reader would have assumed instead
+
+That "max parallel" names a first-class Claude Code mode or slash command, so operators should search for `/max-parallel` or raise session effort globally whenever they want fan-out.
+
+## The discriminator
+
+control: model-config docs distinguish ultrathink from /effort; no /max-parallel appears in /help or documented slash commands
+Measured 2026-09-05: the research DIGEST/VERIFY for this skill found no official `/max-parallel`. The correct remaps are plan mode, subagents, worktrees/`/batch`, ultracode/workflows, one-turn `ultrathink`, and `/effort` — and ultrathink must not be confused with ultracode or API effort.
+
+## Why it matters
+
+Inventing `/max-parallel` wastes operator time and produces unsafe shared-checkout parallel writes. Putting the remap table in `ravenclaude-core` (CLI operator home) keeps it beside worktree/orchestrate/spawn-team skills rather than in app-build plugins.
+
+## Survive parent context (pointer)
+
+See skill `claude-code-parallel-and-modes` section **Survive parent context** (DIGEST-rc-deep-research-session-agent-token-loss, 2026-09-05). Disk-first handoff; condensed returns; persist-before-compact; escalate long work to agent-view.
+
+**Sources:** [rc-deep-research DIGEST + VERIFY (2026-09-05) + PLUGIN-DECISION lock to ravenclaude-core](https://github.com/mcorbett51090/RavenClaude/pull/1114)
+
+_Last verified: 2026-09-05_
 
 
 ---

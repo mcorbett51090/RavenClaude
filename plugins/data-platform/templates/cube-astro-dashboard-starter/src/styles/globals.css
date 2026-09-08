@@ -1,0 +1,80 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ---------------------------------------------------------------------
+ * Theme tokens (FORGE dashboard-top1pct P2-18, 2026-09-03) — identical
+ * scheme to the Next.js starter's app/globals.css; see that file's header
+ * comment for the full contrast verification (this session, WCAG
+ * relative-luminance formula, not assumed) and the token semantics.
+ * ------------------------------------------------------------------- */
+:root {
+  color-scheme: light;
+
+  --tremor-brand-faint: #eff6ff;
+  --tremor-brand-muted: #bfdbfe;
+  --tremor-brand-subtle: #60a5fa;
+  --tremor-brand-DEFAULT: #3b82f6;
+  --tremor-brand-emphasis: #1d4ed8;
+  --tremor-brand-inverted: #ffffff;
+
+  --tremor-background-muted: #f9fafb;
+  --tremor-background-subtle: #f3f4f6;
+  --tremor-background-DEFAULT: #ffffff;
+  --tremor-background-emphasis: #374151;
+
+  --tremor-border-DEFAULT: #e5e7eb;
+
+  --tremor-content-subtle: #6f7684;
+  --tremor-content-DEFAULT: #6b7280;
+  --tremor-content-emphasis: #374151;
+  --tremor-content-strong: #111827;
+  --tremor-content-inverted: #ffffff;
+}
+
+.dark {
+  color-scheme: dark;
+
+  --tremor-brand-faint: #172554;
+  --tremor-brand-muted: #1e40af;
+  --tremor-brand-subtle: #3b82f6;
+  --tremor-brand-DEFAULT: #60a5fa;
+  --tremor-brand-emphasis: #93c5fd;
+  --tremor-brand-inverted: #111827;
+
+  --tremor-background-muted: #111827;
+  --tremor-background-subtle: #1f2937;
+  --tremor-background-DEFAULT: #030712;
+  --tremor-background-emphasis: #374151;
+
+  --tremor-border-DEFAULT: #374151;
+
+  --tremor-content-subtle: #7c8494;
+  --tremor-content-DEFAULT: #9ca3af;
+  --tremor-content-emphasis: #e5e7eb;
+  --tremor-content-strong: #f9fafb;
+  --tremor-content-inverted: #111827;
+}
+
+/* The embed-inheritance seam — see
+ * best-practices/dashboard-inherit-the-hosts-color-scheme-when-embedded.md
+ * and the Next.js starter's identical comment in app/globals.css. */
+
+/* Print/PDF mechanism (FORGE dashboard-top1pct P2-14, 2026-09-03) — mechanism 1 of
+   knowledge/dashboard-export-and-delivery-2026.md. Identical rule to the Next.js
+   starter's app/globals.css — hides app chrome (including the export bar itself)
+   so window.print() / the browser's Save-as-PDF renders only the widgets and
+   their provenance footers. */
+@media print {
+  [data-export-hide] {
+    display: none !important;
+  }
+
+  body {
+    background: white !important;
+  }
+
+  [data-provenance-footer] {
+    color: black !important;
+  }
+}

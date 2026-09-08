@@ -46,3 +46,13 @@ A consumer who never creates the file pays nothing and sees the plain harness.
 
 Authoritative guidance + the orchestration-shape decision aid:
 [`knowledge/dynamic-workflows.md`](../../knowledge/dynamic-workflows.md).
+
+## Parent-context survival (disk-first)
+
+When adapting this harness for a live research run:
+
+- Each Search / Fetch / Verify **angle agent MUST write** its angle file under the run dir **before** returning to the parent.
+- **Never** inline scrapes or full fetch bodies into the parent merge prompt.
+- The parent synthesizer **re-reads** angle files from disk (survives `/compact`, `/clear`, resume).
+- Adapt the `.js` shape; agents do the IO — enforce file-back in the adapted harness (do not byte-run blindly).
+- Evidence: DIGEST-rc-deep-research-session-agent-token-loss (2026-09-05; fleet cli-out).

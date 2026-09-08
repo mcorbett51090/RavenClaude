@@ -1,0 +1,48 @@
+{
+  "_note": "SSOT for 'what host version was this repo last checked against'. hosts{} key set is\nread live from host-support.json at sweep time, not hand-maintained here (T1) -- this\nfile's keys mirror that file's keys as of the last time this file was regenerated.\nWritten only by dependency-sweep.py's apply step, always in the same commit as the\ncontent fixes it reports on (mitigation 2, plan.md Phase 4 step 5). null is the honest\nstarting state for a never-swept host.",
+  "schema_version": 1,
+  "hosts": {
+    "claude-code": {
+      "last_swept_version": null,
+      "last_checked_at": null,
+      "last_change_detected_at": null,
+      "written_by": null
+    },
+    "copilot": {
+      "last_swept_version": null,
+      "last_checked_at": null,
+      "last_change_detected_at": null,
+      "written_by": null
+    },
+    "codex": {
+      "last_swept_version": null,
+      "last_checked_at": null,
+      "last_change_detected_at": null,
+      "written_by": null
+    },
+    "cursor": {
+      "last_swept_version": null,
+      "last_checked_at": null,
+      "last_change_detected_at": null,
+      "written_by": null
+    },
+    "gemini": {
+      "last_swept_version": null,
+      "last_checked_at": null,
+      "last_change_detected_at": null,
+      "written_by": null
+    },
+    "aider": {
+      "last_swept_version": null,
+      "last_checked_at": null,
+      "last_change_detected_at": null,
+      "written_by": null
+    },
+    "windsurf": {
+      "last_swept_version": null,
+      "last_checked_at": null,
+      "last_change_detected_at": null,
+      "written_by": null
+    }
+  }
+}

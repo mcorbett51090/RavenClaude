@@ -76,6 +76,16 @@ cubes:
         sql: customer_id
         type: count_distinct
 
+      # Powers <FreshnessBadge> (FORGE dashboard-top1pct P2-16, 2026-09-03):
+      # the "as-of" timestamp commands/build-embedded-dashboard.md step 5
+      # mandates every dashboard show. database-schema-starter.sql's
+      # update_fact_orders_updated_at trigger keeps this column current on
+      # every write, so a max() over it is a real freshness signal, not a
+      # synthetic one.
+      - name: last_updated_at
+        sql: updated_at
+        type: max
+
     # ---------------------------------------------------------------------
     # Dimensions
     # ---------------------------------------------------------------------
@@ -220,7 +230,10 @@ views:
 #      - Result must be empty (access_policy overrides explicit filter)
 #
 # Refresh triggers for this template:
-#   - Cube major version bump (currently targeting Cube 0.36+)
+#   - Cube major version bump (currently targeting Cube >=1.2.0 — this is the floor `access_policy`
+#     itself requires; Cube Core ships Data Access Policies starting at v1.2.0, per cube.dev's own
+#     "Data access policies" docs and the "Cube Core v1.2" blog post — WebSearch-verified 2026-09-03.
+#     Below 1.2.0 this file's access_policy blocks are a no-op the server does not implement.)
 #   - access_policy syntax change (Cube has evolved this — check current docs)
 #   - New cube added to the engagement (extend this pattern per cube)
 #   - Engagement-specific dimensional model emerges (joins, hierarchies, etc.)

@@ -108,9 +108,11 @@ add-on. The concrete bar, current against WCAG 2.2 (unchanged criteria as of thi
 - **Visible focus indicators** on every interactive element — a dashboard's custom-styled buttons/
   cards are a common place for a default focus ring to get silently stripped.
 
-This is additive to, not a replacement for, the WCAG 2.1 AA bar `dashboard-builder.md` already names
-for Recharts/Nivo/Power BI Embedded — read this section as the dashboard-specific *application* of
-that bar, not a separate requirement.
+This is additive to, not a replacement for, the WCAG 2.2 AA bar `dashboard-builder.md` names for
+Recharts/Nivo/Power BI Embedded — read this section as the dashboard-specific *application* of that
+bar, not a separate requirement. (Reconciled to 2.2 FORGE dashboard-top1pct P1-8, 2026-09-03 — this
+file already argued for 2.2 above and 2.2 is a superset of 2.1, so the plugin now names exactly one
+number everywhere.)
 
 ## 6. The actual differentiator (synthesis)
 

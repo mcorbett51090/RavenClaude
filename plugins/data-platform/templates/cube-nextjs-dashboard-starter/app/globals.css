@@ -1,0 +1,118 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ---------------------------------------------------------------------
+ * Theme tokens (FORGE dashboard-top1pct P2-18, 2026-09-03).
+ *
+ * Every `tremor.*` color in tailwind.config.ts resolves through one of
+ * these CSS custom properties rather than a literal hex value, so a
+ * single `.dark` class toggle (see components/ThemeToggle.tsx and the
+ * inline init script in app/layout.tsx) re-points every color in one
+ * place. Semantics swap between the two blocks below; there is
+ * deliberately no third "primitive" layer in this starter (see
+ * web-design's design-tokens-scaffolding skill for the fuller
+ * primitive/semantic split — this starter's scope doesn't warrant it).
+ *
+ * Contrast, VERIFIED this session (WCAG relative-luminance formula, not
+ * assumed) against the pairs this starter actually renders as text:
+ *   light content.strong  on light background.DEFAULT:  17.74:1
+ *   light content.DEFAULT on light background.DEFAULT:   4.83:1
+ *   light content.subtle  on light background.DEFAULT:   4.57:1  (fixed —
+ *     was #9ca3af at 2.54:1, a pre-existing failure surfaced while
+ *     reworking this file for dark mode; content.subtle renders real
+ *     provenance-footer and status text, not decoration, so this was a
+ *     genuine floor violation, not a hypothetical one)
+ *   dark  content.strong  on dark  background.DEFAULT:  19.27:1
+ *   dark  content.DEFAULT on dark  background.DEFAULT:   7.93:1
+ *   dark  content.subtle  on dark  background.DEFAULT:   5.35:1
+ *   dark  brand.DEFAULT   on dark  background.DEFAULT:   7.92:1
+ * brand.DEFAULT (3.68:1 in light mode) stays below the 4.5:1 text floor
+ * by design — it is used only for graphical elements (the chart line,
+ * borders), which WCAG 1.4.11 Non-text Contrast holds to 3:1, not 4.5:1.
+ * ------------------------------------------------------------------- */
+:root {
+  color-scheme: light;
+
+  --tremor-brand-faint: #eff6ff;
+  --tremor-brand-muted: #bfdbfe;
+  --tremor-brand-subtle: #60a5fa;
+  --tremor-brand-DEFAULT: #3b82f6;
+  --tremor-brand-emphasis: #1d4ed8;
+  --tremor-brand-inverted: #ffffff;
+
+  --tremor-background-muted: #f9fafb;
+  --tremor-background-subtle: #f3f4f6;
+  --tremor-background-DEFAULT: #ffffff;
+  --tremor-background-emphasis: #374151;
+
+  --tremor-border-DEFAULT: #e5e7eb;
+
+  --tremor-content-subtle: #6f7684;
+  --tremor-content-DEFAULT: #6b7280;
+  --tremor-content-emphasis: #374151;
+  --tremor-content-strong: #111827;
+  --tremor-content-inverted: #ffffff;
+}
+
+.dark {
+  color-scheme: dark;
+
+  --tremor-brand-faint: #172554;
+  --tremor-brand-muted: #1e40af;
+  --tremor-brand-subtle: #3b82f6;
+  --tremor-brand-DEFAULT: #60a5fa;
+  --tremor-brand-emphasis: #93c5fd;
+  --tremor-brand-inverted: #111827;
+
+  --tremor-background-muted: #111827;
+  --tremor-background-subtle: #1f2937;
+  --tremor-background-DEFAULT: #030712;
+  --tremor-background-emphasis: #374151;
+
+  --tremor-border-DEFAULT: #374151;
+
+  --tremor-content-subtle: #7c8494;
+  --tremor-content-DEFAULT: #9ca3af;
+  --tremor-content-emphasis: #e5e7eb;
+  --tremor-content-strong: #f9fafb;
+  --tremor-content-inverted: #111827;
+}
+
+/* The embed-inheritance seam (see
+ * best-practices/dashboard-inherit-the-hosts-color-scheme-when-embedded.md):
+ * a host page embedding this dashboard (iframe, web component, or a
+ * server-rendered fragment mounted directly into the host's DOM) can
+ * override any --tremor-* variable from OUTSIDE this file — no prop
+ * threading, no rebuild. The `.dark` class toggle above is this starter's
+ * OWN default theme mechanism for the standalone-app case; a host that
+ * already manages its own dark/light state should instead set these same
+ * variable names in the scope it mounts the dashboard into (or pass its
+ * own theme class down), not fight this starter's toggle. */
+
+body {
+  @apply bg-tremor-background-muted text-tremor-content-strong antialiased;
+}
+
+/* Print/PDF mechanism (FORGE dashboard-top1pct P2-14, 2026-09-03) — mechanism 1 of
+   knowledge/dashboard-export-and-delivery-2026.md. Hides app chrome, including the
+   export bar itself, so window.print() / the browser's Save-as-PDF renders only the
+   widgets and their provenance footers. Zero new server surface, zero new
+   tenant-isolation hazard: the printed content is exactly what already rendered
+   on screen through the viewer's own tenant-scoped Cube token. */
+@media print {
+  [data-export-hide] {
+    display: none !important;
+  }
+
+  body {
+    background: white !important;
+  }
+
+  [data-provenance-footer] {
+    /* Provenance must survive to print — a citation surface that drops its own
+       source/date-range/as-of on the way to paper is worse than the on-screen
+       widget it came from. */
+    color: black !important;
+  }
+}

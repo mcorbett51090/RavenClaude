@@ -89,6 +89,13 @@ _SKIP = {
         "blocks, so the cost of the gap is one un-nudged prompt, not lost "
         "enforcement."
     ),
+    "prompt-optimizer-gate.sh": (
+        "UserPromptSubmit — same unverified lifecycle mapping as "
+        "stream-prompt-attribute.sh above. Ships prompt_optimizer.enabled: false "
+        "by default, is fail-open on every error path, and only ever ADDS "
+        "advisory additionalContext — never blocks — so the cost of the gap is "
+        "one un-augmented prompt on Gemini, not lost enforcement."
+    ),
     "dod-gate.sh": (
         "Stop. Gemini's AfterAgent/SessionEnd are plausible counterparts but "
         "unverified; a definition-of-done gate that fires on the wrong lifecycle "
@@ -144,6 +151,10 @@ _SKIP = {
         "UNWIRED — declared (R7). Write-shaped, and the tool_input FIELD NAME "
         "carrying a file path is unverified here — the same gap that keeps "
         "enforce-layout.sh skipped above."
+    ),
+    "caveman-route-hook.sh": (
+        "routes a Claude-Code-only third-party plugin; the target mode store does "
+        "not exist on this host."
     ),
 }
 

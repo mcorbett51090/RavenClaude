@@ -1,8 +1,19 @@
 # AI Coding Model Guidance — Decision Trees
 
-Vendor-neutral model-selection decision trees for the `ai-coding-model-guidance` plugin. Traverse the relevant tree **top-to-bottom before naming a model SKU** — do not keyword-match the developer's task description. Last reviewed: 2026-06-05.
+Vendor-neutral model-selection decision trees for the `ai-coding-model-guidance` plugin. Traverse the relevant tree **top-to-bottom before naming a model SKU** — do not keyword-match the developer's task description. Last reviewed: 2026-09-04 (quota-exhaustion companion added).
 
 All availability and pricing facts carry `[verify-at-use — YYYY-MM]` markers. The specific model names in the leaves are mapped from the dated lineup in [`cross-tool-model-lineup-2026.md`](cross-tool-model-lineup-2026.md) — re-verify before quoting a client.
+
+---
+
+## Companion trees (separate files)
+
+| Tree | File | Question it answers |
+|---|---|---|
+| Right-size / cost | [`ai-coding-right-size-cost-decision-tree.md`](ai-coding-right-size-cost-decision-tree.md) | Am I about to overpay? |
+| Mode selection | [`ai-coding-mode-selection-decision-tree.md`](ai-coding-mode-selection-decision-tree.md) | Completion vs chat vs agent mode? |
+| **Quota / token exhaustion** | [`ai-coding-quota-exhaustion-decision-tree.md`](ai-coding-quota-exhaustion-decision-tree.md) | Limit hit — wait, failover, or escalate? **Hard gate:** no silent-fail / blind retry. |
+| **Coding-agent levers playbook** | [`coding-agent-levers-playbook.md`](coding-agent-levers-playbook.md) | Deep-layer lever encyclopedia + interaction matrix (HARD GATE tree unchanged) |
 
 ---
 
