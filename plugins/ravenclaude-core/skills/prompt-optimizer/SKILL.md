@@ -472,6 +472,337 @@ python3 plugins/ravenclaude-core/scripts/prompt-optimizer-format.py --self-test
 
 ---
 
+## Worked examples — one full walkthrough per outcome
+
+Three real prompts from the golden-set fixtures ([`eval/golden-set.jsonl`](eval/golden-set.jsonl)),
+each carried end to end through classifier verdict, generator output, and Phase 5's rendered
+`additionalContext`. **These are hand-constructed, schema-conformant walkthroughs, not a captured live
+transcript** — building all three from a real `claude -p` run was out of scope for a documentation
+pass and would report a specific run's variance as if it were the contract; the frozen schemas above are
+what's load-bearing, and every field below conforms to them exactly. Prompt-level details are quoted
+verbatim from the golden set's own `notes`.
+
+### Example 1 — `skip` (Tier-0, zero paid classification)
+
+**Prompt:** `"What's the capital of France?"` (golden-set: *"Pure factual recall with no code/system
+anchor and no ambiguity to resolve — the canonical Tier-0 zero-cost skip case."*)
+
+Phase 2's Tier-0 pre-filter — not this skill, which never runs — rejects this prompt on anchor count and
+domain-keyword-cluster signals alone, before any Haiku call. Nothing is injected; the turn proceeds with
+the prompt exactly as typed. This is the cheapest of the three paths and the one R5 below is careful not
+to claim applies to every "skip" outcome — see that section for the Tier-1-reaches-and-still-resolves-
+skip case, which pays a real (small) cost this Tier-0 case does not.
+
+### Example 2 — `rewrite` (Tier-1, single-domain, wild assumption flagged)
+
+**Prompt:** `"Add caching to this."` (golden-set: *"'This' has no antecedent in the prompt and no layer
+(HTTP/DB/application) is specified — any answer necessarily guesses a target, which must be surfaced as
+a wild assumption."*)
+
+Tier-0 does not catch this (it has a domain-relevant keyword — "caching" — dense enough relative to its
+length to clear the pre-filter), so it reaches the Tier-1 Haiku classifier:
+
+```json
+{
+  "action": "rewrite",
+  "confidence": "medium",
+  "domain_count": 1,
+  "anchor_count": 0,
+  "assumption_count": 1,
+  "ambiguity_reason": "No named target for \"this\" and no cache layer specified — the prompt has zero anchors for what to cache."
+}
+```
+
+`domain_count <= 1` routes to this skill's rewrite generator (`emit_optimized_prompt`):
+
+```json
+{
+  "rewritten_prompt": "Add response caching to the [ASSUMED: the application's primary HTTP read path] to reduce repeated computation. Use an in-memory cache with a sensible TTL, and leave a comment noting the cached layer is a starting guess pending confirmation.",
+  "explicit_constraints": [
+    "Preserve current response correctness",
+    "Keep the change small and reviewable"
+  ],
+  "surfaced_missing_context": [
+    "No target file, function, or layer (HTTP/DB/application) named in the original prompt",
+    "No cache invalidation strategy specified"
+  ],
+  "wild_assumption": {
+    "present": true,
+    "description": "Assumed the caching target is the application's primary HTTP read path, not the database layer or a background job — the prompt gave no antecedent for \"this.\"",
+    "confidence": "low"
+  }
+}
+```
+
+Phase 5's screen finds no directive-shaped language in `ambiguity_reason` or
+`wild_assumption.description`, so both render clean (Variant 2, `wild_assumption.present: true` —
+design-lock.md §4):
+
+```
+[RavenClaude prompt-optimizer] Your prompt was rewritten before this turn ran, and a wild
+assumption was flagged. Call AskUserQuestion as your first tool call this turn, presenting
+the flagged assumption below, before proceeding.
+
+- Confidence: medium
+- Constraints preserved: 2
+- Missing context surfaced: 2
+- Why: No named target for "this" and no cache layer specified — the prompt has zero anchors for what to cache.
+- Flagged assumption (confidence: low): Assumed the caching target is the application's primary HTTP read path, not the database layer or a background job — the prompt gave no antecedent for "this."
+
+Rewritten prompt used for this turn:
+<rewritten-prompt>
+Add response caching to the [ASSUMED: the application's primary HTTP read path] to reduce repeated computation. Use an in-memory cache with a sensible TTL, and leave a comment noting the cached layer is a starting guess pending confirmation.
+</rewritten-prompt>
+
+Full record: .ravenclaude/runs/<session>/prompt-optimizer/<UTC-ts>.json
+```
+
+### Example 3 — `dispatch_plan` (Tier-1, multi-domain, file-pointer delivery)
+
+**Prompt:** `"Rebuild our checkout flow to support Apple Pay, make sure it's PCI compliant, and load in
+under 200ms."` (the same prompt the dispatch generator's own "Testing this generator directly" section
+above uses — reused deliberately so the two sections corroborate each other end to end.)
+
+```json
+{
+  "action": "dispatch_plan",
+  "confidence": "high",
+  "domain_count": 3,
+  "anchor_count": 1,
+  "assumption_count": 1,
+  "ambiguity_reason": "Spans payments integration, PCI compliance, and load-time performance — three distinct remediation domains with different specialists and constraints."
+}
+```
+
+`domain_count >= 2` routes to `emit_dispatch_plan`. Every `recommended_agents[].agent` below is a real,
+currently-enabled agent name (verified against the live roster this session — `web-commerce:commerce-
+integration-engineer`, `web-commerce:commerce-webhook-security-reviewer`, and `web-design:performance-
+engineer` all resolve). Every `matrix_basis` cites one of [`agent-routing-matrix.json`](../../knowledge/agent-routing-matrix.json)'s
+five real `task_classes` keys (`coding-implementation`, `coding-debugging-design`, `research-deep`,
+`writing-documentation`, `data-analysis`) — not an invented one:
+
+```json
+{
+  "domains": ["payments", "security", "performance"],
+  "per_domain": [
+    {
+      "domain": "payments",
+      "recommended_agents": [
+        {
+          "agent": "web-commerce:commerce-integration-engineer",
+          "rationale": "Owns wiring a new checkout provider path, including a new payment method, into an existing site.",
+          "matrix_basis": "coding-implementation"
+        }
+      ],
+      "tailored_brief": "Wire Apple Pay into the existing checkout flow without touching PCI-scoped card storage."
+    },
+    {
+      "domain": "security",
+      "recommended_agents": [
+        {
+          "agent": "web-commerce:commerce-webhook-security-reviewer",
+          "rationale": "PCI card-isolation and webhook-verification audit is exactly this agent's scope.",
+          "matrix_basis": "coding-debugging-design"
+        }
+      ],
+      "tailored_brief": "Confirm the new Apple Pay path never routes raw card data through app-owned storage."
+    },
+    {
+      "domain": "performance",
+      "recommended_agents": [
+        {
+          "agent": "web-design:performance-engineer",
+          "rationale": "Owns Core Web Vitals and load-time budget work for checkout-critical pages.",
+          "matrix_basis": "coding-implementation"
+        }
+      ],
+      "tailored_brief": "Get the rebuilt checkout flow under a 200ms load budget without regressing the payment integration."
+    }
+  ],
+  "wild_assumption": { "present": false, "confidence": "high" }
+}
+```
+
+Three domains × one agent each = **3 total recommended agents**, which is `> 2` — design-lock.md §7's
+frozen threshold makes file-pointer delivery **mandatory**, regardless of how short any individual entry
+is. Phase 5 renders Variant 3's file-pointer sub-shape (`wild_assumption.present: false`):
+
+```
+[RavenClaude prompt-optimizer] This prompt spans 3 domains — a dispatch plan naming 3
+agents was drafted (advisory only; nothing was dispatched).
+
+- Confidence: high
+- Why: Spans payments integration, PCI compliance, and load-time performance — three distinct remediation domains with different specialists and constraints.
+- Domains: payments, security, performance (3 total)
+
+Full plan: .ravenclaude/runs/<session>/prompt-optimizer/<UTC-ts>.json
+Read that file before acting on this dispatch plan.
+```
+
+The full per-domain detail — the three `rationale` / `tailored_brief` lines above — never reaches
+`additionalContext` in this shape. It lives only in the on-disk audit artifact, exactly as design-lock.md
+§7 requires above the threshold.
+
+---
+
+## Composition — how this fits with the marketplace's other model/dispatch-tiering mechanisms
+
+`prompt-optimizer` is upstream of, and a genuinely different mechanism from, three other pieces of
+RavenClaude machinery that also reason about "which model or agent should do this." Conflating them is
+an easy mistake, so the distinction is stated explicitly here:
+
+- **`prompt-optimizer` (this skill) classifies the raw user prompt, before any dispatch decision exists.**
+  Its only three possible outcomes are: do nothing (`skip`), rewrite the prompt in place for this one turn
+  (`rewrite`), or draft an advisory dispatch plan naming specialists a human/assistant *might* want to
+  spawn (`dispatch_plan`). Per the Never-dispatches invariant above, it is architecturally incapable of
+  spawning anything itself — its generator call carries no `Agent`/`Bash`/`Write`/`Edit` tool grant.
+  **It is NOT a dispatch right-sizer** — it never tunes a model tier for an existing dispatch, because at
+  the point it runs, no dispatch has been decided on yet.
+
+- [`agent-dispatch-evaluator`](../agent-dispatch-evaluator/SKILL.md) right-sizes an individual dispatch
+  **after** the decision to dispatch has already been made — it evaluates `{subagent_type, description,
+  prompt_head}` at the moment of an actual Agent dispatch / Workflow `agent()` call / tribunal seat
+  dispatch, and binds the model tier for that one call.
+
+- [`adaptive-run-classifier`](../adaptive-run-classifier/SKILL.md) right-sizes an entire multi-phase
+  **workflow run** (e.g. the `rc-deep-research` loop) — it emits one `run_config` envelope covering
+  every phase's tier and cardinality knobs for the whole run, read once at workflow start.
+
+- [`agent-routing-matrix.json`](../../knowledge/agent-routing-matrix.json) is a data registry, not a
+  live mechanism: task shape → `{agent surface, model, effort tier}` across five coding-agent hosts
+  (Claude Code, Codex CLI, Copilot CLI, Copilot Chat, Grok Build CLI) — see its own five `task_classes`
+  keys used in Example 3 above. It is **not** a registry of which RavenClaude specialist handles a
+  domain; that is a separate roster (`agents/*.md` frontmatter) this skill's dispatch generator validates
+  `recommended_agents[].agent` against independently. Both
+  [`cheap-lane-delegation`](../cheap-lane-delegation/SKILL.md)'s agent choice and
+  [`spawn-team`](../spawn-team/SKILL.md)'s host choice may consult the routing matrix as an optional
+  reference; this skill's dispatch generator cites one of its `task_classes` keys via `matrix_basis`
+  purely as a grounding anchor for *what shape of work* a recommendation is — the recommendation itself
+  never comes from the matrix. Its `model_ref.tier` vocabulary (`fast`/`balanced`/`top`) is the same
+  vocabulary this skill's own generators resolve via
+  [`substrate-tier-map.json`](../../knowledge/substrate-tier-map.json)'s `resolve_tier()` (see "Tier
+  resolution" above) — one shared tier vocabulary, two independent consumers.
+
+- [`spawn-team`](../spawn-team/SKILL.md) is the Team Lead's actual dispatch playbook — the mechanism
+  that performs a real Agent dispatch. This skill's `dispatch_plan` output is advisory context the
+  assistant reads in a later turn; if the assistant decides to act on it, `spawn-team` (which may itself
+  consult `agent-routing-matrix.json` for a non-Claude host, and — per its own Step 4.5 — the
+  `orchestrator` knob that can route through
+  [`claude-orchestrate.sh`](../../scripts/claude-orchestrate.sh) under a non-Claude host) is what
+  actually invokes the recommended specialists.
+
+**The ordering, when every mechanism above is live on the same turn:** `prompt-optimizer` classifies the
+raw prompt → the human/assistant reads the advisory `dispatch_plan` and decides whether to act on it →
+`spawn-team` performs the actual dispatch (optionally via `claude-orchestrate.sh` for host routing) →
+`agent-dispatch-evaluator` right-sizes each individual resulting dispatch call and/or
+`adaptive-run-classifier` right-sizes a multi-phase workflow built from those dispatches. `prompt-
+optimizer` never calls, is called by, or shares a schema with any of the other three — "composes with"
+here means "sits upstream of, and hands off advisory context to."
+
+A wild-assumption question this skill flags does not resolve itself, either: if it were ever surfaced as
+an `AskUserQuestion` under this repo's binding decision-routing convention, the
+[`decision-review`](../decision-review/SKILL.md) tribunal defers a genuine-preference call like this one
+rather than auto-resolving it — see "Composition with `decision-review`" in the Phase 5 section above for
+the live-verified `thing-decide.py` result this claim rests on.
+
+---
+
+## Output Contract — Structured Output Protocol applicability
+
+This skill, like [`adaptive-run-classifier`](../adaptive-run-classifier/SKILL.md), emits no runtime
+artifact of its own in the agent-handoff sense the Structured Output Protocol governs (see
+[`plugins/ravenclaude-core/CLAUDE.md`](../../CLAUDE.md) §"Structured Output Protocol"). Its three
+generator scripts and the Phase 5 formatter are **not agents** — they are `claude -p` subprocess
+invocations and a pure text transform, invoked from a hook, never dispatched via the Agent tool and never
+reporting back to a Team Lead. The Protocol's `---RESULT_START---`/`---RESULT_END---` delimited-JSON
+convention is built for a sub-agent's report to the orchestrator; nothing in this pipeline is that shape,
+so applying the convention literally here (wrapping the generator's schema-validated JSON output in the
+Protocol's delimiters as if it were an agent handoff) would be decorative rather than load-bearing —
+matching [`structured-output/SKILL.md`](../structured-output/SKILL.md)'s own scope, which is "handoff-
+bearing reports," not every JSON-emitting script in the marketplace.
+
+Where the Protocol genuinely applies: when [`prompt-engineer`](../../agents/prompt-engineer.md) or
+[`architect`](../../agents/architect.md) **critiques an instance of this contract** — reviewing a
+generated `dispatch_plan` in a PR, or auditing whether a real `wild_assumption.description` survived
+Phase 5's screen correctly — that agent's own report to the Team Lead ends with the cross-plugin
+Structured Output JSON block per [`structured-output/SKILL.md`](../structured-output/SKILL.md), exactly
+as [`adaptive-run-classifier`](../adaptive-run-classifier/SKILL.md)'s Output Contract states for the
+identical situation. The contract is on the *reviewer's* handoff, never on this skill's own generator
+output.
+
+---
+
+## Honest ROI — what this build actually adds, stated without inflation
+
+Per plan.md §7 (the plan's own "Honest ROI note", R1/R5 in the risk matrix): **the real counterfactual
+this build competes against is not "the assistant blindly guesses."** It is a standing AGENTS.md
+instruction — *"ask ONE question on an under-specified request"* (Claim-Grounding Rule 1c, this repo's
+own constitution) — plus `ask-on-ambiguity.sh`'s existing advisory `UserPromptSubmit` sliver, plus
+[`spawn-team`](../spawn-team/SKILL.md)'s playbook already pointing at
+[`agent-routing-matrix.json`](../../knowledge/agent-routing-matrix.json) when a non-Claude host is in
+play. All three of those mechanisms predate this feature and are not replaced by it.
+
+**What genuinely survives as new value, stated as exactly two things:**
+
+1. **Coverage/consistency.** `ask-on-ambiguity.sh` matches a narrow input *shape* (short, no anchor, an
+   open-ended verb) and cannot see whether the assistant then actually asks — Rule 1c is itself
+   behavioral, dependent on the assistant's own attention that turn. This skill's classifier fires on
+   *every* turn a posture opts into, independent of whether the assistant would have noticed the
+   ambiguity on its own. That is a real difference in kind — a gate that fires by construction versus a
+   discipline the assistant might apply.
+2. **Triage.** The classifier is a cheap upstream judgment (`fast` tier — Haiku 4.5 per the "Tier
+   resolution" section above) that decides whether a prompt is worth the more expensive path (a rewrite,
+   or naming specialists) before any expensive model spends tokens reasoning about it. That "is this
+   worth stopping for" judgment, offloaded onto a cheap model before the main turn runs, is genuinely new.
+
+**Neither of those is "produces a routing decision that wouldn't otherwise exist."** A well-attended
+Claude Code session following its own AGENTS.md already asks the one clarifying question, and
+`spawn-team` already knows to consult the routing matrix on a genuinely multi-domain ask. This plan
+proceeds on that thinner, honestly-stated margin — not the stronger, implicit "nothing like this exists
+today" framing an earlier draft of this feature carried.
+
+**R5 — the non-zero tax, stated plainly.** scope.md's own framing implies "zero added latency/cost on
+trivial single-step asks." That is true only for the subset Tier-0's zero-cost pre-filter actually
+catches (Example 1 above). It is **not** true for every prompt that ends up resolving to `skip` — a
+prompt can clear Tier-0's anchor/keyword heuristics, reach the paid Tier-1 Haiku classifier, and still
+resolve to `skip` (either because the classifier itself judged `action: "skip"`, or because
+`prompt-optimizer-gate.sh`'s own low-confidence downgrade rule forces `action` to `skip` regardless of
+what the classifier returned — a real branch in the shipped script, not a hypothetical). That bucket pays
+one Haiku call's real latency and real (small) cost for a turn that ultimately runs unmodified. Anyone
+reading this file as "trivial asks are free" should read that sentence as false for this bucket
+specifically — free only holds for the Tier-0-caught subset.
+
+---
+
+## Self-score against `agent-quality-rubric`
+
+Applied per [`agent-quality-rubric/SKILL.md`](../agent-quality-rubric/SKILL.md)'s 6-dimension checklist,
+scored here in the file itself per this phase's own acceptance test. **One adaptation stated up front,
+honestly:** the rubric's own text says *"You are reviewing an agent file (typically
+`plugins/<plugin>/agents/<role>.md`)."* This is a skill file, not an agent file, and three of the six
+dimensions (3, 4, 6) have anchors written for an agent's own Output Contract / CGP-inheritance /
+scenario-authoring frontmatter — none of which a `SKILL.md` structurally carries (`check-frontmatter.py`
+only gates `agents/*.md`, per `AGENTS.md` house rule 7-9). Scoring those dimensions against their literal
+anchors would either force a false 1 (frontmatter this file type doesn't have) or require inventing a
+looser analogue. Both are named below rather than silently picked.
+
+| # | Dimension | Score | Reasoning |
+|---|---|---|---|
+| 1 | Mission clarity | **4** | The opening paragraph states it in one compound sentence — *"This file documents **both generator paths**, plus the Phase 5 formatter that sits downstream of them, in the `prompt-optimizer` feature"* — parseable in a single read, but needs the following bullet list to fully unpack the three sub-mechanisms, so it does not clear the bar for a bare one-sentence-no-hedge "5". |
+| 2 | Scope sharpness | **5** | An explicit "Not for X" list exists twice over: the "What this file/skill deliberately does NOT do" section below names concrete exclusions with pointers (Phase 6 hook wiring, Phase 9's judge, the untouched files), and the new Composition section above adds the agent-level test directly — *"**It is NOT a dispatch right-sizer**"* — with the two named alternatives (`agent-dispatch-evaluator`, `adaptive-run-classifier`) it defers to. |
+| 3 | Capability Grounding alignment | **3 (adapted)** | This file never states "inherits the Capability Grounding Protocol" — it can't meaningfully, since it documents scripts and a hook contract, not an agent turn. Its honest analogue is the **fail-open contract** each phase carries verbatim (e.g. *"exit 0, nothing printed... never as a signal to retry, block, or surface an error to the user"*) — the script-level equivalent of "don't falsely claim blocked" and "enumerate the failure mode explicitly" rather than silently degrading. That discipline is real and thorough, but it is not CGP by name, and dimension 3's literal anchors (an "inherits the Protocol" line, a "Grounding checks performed" output line) are genuinely absent. Scored down from 4/5 rather than credited for an analogue the rubric didn't ask for. |
+| 4 | Output-Contract completeness | **3 (adapted)** | The new "Output Contract" section above states explicitly which Structured-Output cases apply (a reviewing agent's own handoff) and which don't (this skill's own generator output) — closer to complete than absent. It does not carry the five-line agent-report shape (Status / files-changed / a mandatory plugin-specific line / the JSON block / a reporting cap) because this file is never itself the thing producing a turn-ending report; that shape belongs to the agent that reviews an instance of this contract, not to this file. |
+| 5 | Escalation paths | **4** | Named, not generic: a flagged `wild_assumption` escalates to an `AskUserQuestion` and, if routed through decision-routing, to the `decision-review` tribunal (which defers rather than auto-resolves — cited with a live-verified test result in the Phase 5 section and again in Composition above); a fail-open failure escalates to "treat identically to a skip verdict" (an explicit, named non-escalation); Phase boundaries are named for what's deferred (Phase 6, Phase 9). Held at 4 rather than 5 because these are prose call-outs scattered across sections, not one consolidated table the rubric's "5" anchor describes. |
+| 6 | Example scenarios | **4 (adapted)** | The rubric's literal test is the `agent-scenario-authoring` YAML frontmatter (`audience`/`works_with`/`scenarios`/`quickstart`) — a schema `SKILL.md` files do not carry at all (it is agent-only, per `AGENTS.md`'s own house rule); scoring this dimension against that literal anchor would read as a false "1" for a gap that isn't this file's to close. The skill-file analogue — worked, trigger-phrase-realistic examples covering every distinct outcome — is now present (the three examples above, one per `skip`/`rewrite`/`dispatch_plan`, each with a real golden-set prompt and its full pipeline trace). Held at 4 rather than 5 because three examples is the acceptance-test floor, not a generous margin above it, and none demonstrates the file-pointer *and* wild-assumption combination (Variant 4) together. |
+
+**Total: 24/30 (avg 4.0).** Per the rubric's own disposition table, this lands in **"22-26 (avg 3.7+) —
+Ship with minor edits — note the weakest dimensions in the PR description."** The two weakest are
+Dimensions 3 and 4 (both 3, both explicitly adapted rather than literally satisfied) — noted here rather
+than averaged away, per the rubric's own "Anti-patterns" warning against an average-only verdict. Neither
+is a block: no dimension scored ≤2, and Mission clarity (the rubric's stated hard-block trigger) scored 4.
+
+---
+
 ## What this file/skill deliberately does NOT do
 
 - Does not wire the semantic screen, delivery-shape branching, or the audit
