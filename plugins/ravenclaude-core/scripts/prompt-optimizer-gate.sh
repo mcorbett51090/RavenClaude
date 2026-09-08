@@ -55,7 +55,7 @@
 #
 # ── TIER 1 — paid, one Haiku forced-tool-shaped call ──────────────────────────────
 # Mirrors plugins/ravenclaude-core/hooks/agent-dispatch-evaluator.sh's proven shape:
-# a `claude -p --output-format json --model claude-haiku-4-5-<pinned-date> --tools ""`
+# a `claude -p --output-format json --model claude-haiku-4-5-20251001 --tools ""`
 # subprocess call, asked to emit ONLY a JSON object matching the classifier output
 # schema frozen in design-lock.md §1 (the "emit_prompt_classification" shape). Fails
 # open on ANY of: timeout, missing `claude` binary, missing `jq`, or unparseable
@@ -63,7 +63,7 @@
 #
 # ── DELIBERATE DEVIATION FROM THE LITERAL CITED COMMAND (documented, not silent) ──
 # design-lock.md quotes the pattern as `claude -p --bare --output-format json
-# --model claude-haiku-4-5-<pinned-date> --tools ""` (agent-dispatch-evaluator.sh's
+# --model claude-haiku-4-5-20251001 --tools ""` (agent-dispatch-evaluator.sh's
 # hook literally uses --bare unconditionally). This script instead conditions --bare
 # on ANTHROPIC_API_KEY / PROMPT_OPTIMIZER_BARE=1, mirroring thing-seat.sh's *later*
 # and more careful pattern (thing-seat.sh:305 "--bare is only viable with an API

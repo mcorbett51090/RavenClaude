@@ -244,7 +244,7 @@ if [ -z "$pd_model" ]; then
   # Fail-safe default if the tier-map script/file is unreadable for any reason --
   # matches substrate-tier-map.json's own claude.balanced entry verbatim, so this
   # is a documented fallback of the resolved value, not an invented one.
-  pd_model="claude-sonnet-4-6"
+  pd_model="claude-sonnet-5"
   [ -n "${PROMPT_OPTIMIZER_DEBUG:-}" ] && printf 'prompt-optimizer-dispatch: TIER_RESOLVE_FALLBACK model=%s\n' "$pd_model" >&2
 fi
 
