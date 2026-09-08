@@ -306,20 +306,75 @@ _pg_cluster_hit_count() {
 # false-skips this rule must never regress (Phase 2/3's already-verified hard
 # requirement, restated in Finding 1's own re-verify instructions).
 #
-# The whitelist-gated form re-verified clean against the full 42-entry corpus:
-# 9/42 Tier-0-skip (exactly the 9 category-(a) trivial entries), 0 false-skips
-# among the other 33 (category-(b), the complex-but-single-domain set, the
-# clean multi-domain set, and category-(e)). Bias is deliberate: a false
-# NEGATIVE here (a genuinely trivial prompt that doesn't match the whitelist)
-# just costs one paid Tier-1 call -- safe. A false POSITIVE (skipping a prompt
-# that needed a wild-assumption flag or a dispatch plan) silently under-serves
-# the user -- unsafe. The whitelist is deliberately narrow for that reason; it
-# is not meant to catch every trivial prompt a user might write, only to stop
-# manufacturing false negatives on the shipped golden-set's own category (a).
+# ── HARDENED after an adversarial re-review (final whole-branch review, round 2
+#    on Finding 1): the shape whitelist alone is UNSAFE at the cluster_hits<2
+#    threshold the anchor_count==1 branch uses. Sentence SHAPE (an interrogative
+#    opener, or a leading transform verb) says nothing about what the REST of
+#    the sentence names -- a reviewer took real golden-set category-(b)/(e) hard
+#    cases and merely rephrased them as questions or led them with a whitelisted
+#    verb ("How do we migrate our monolith to microservices with zero downtime
+#    and full audit logging for compliance?", "How do I make the login faster?",
+#    "Summarize the security implications of our authentication flow..."),
+#    verified against this actual script: all three TIER0_SKIP at cluster_hits=1
+#    (<2, so the original threshold let them straight through). This is exactly
+#    the false-POSITIVE, silent-under-service failure class this rule must never
+#    regress -- the golden-set corpus never happened to test an interrogative or
+#    verb-led phrasing of its own hard cases, so the original 0-false-skip
+#    measurement was real but did not generalize.
+#
+# The fix is NOT "shape bypasses the cluster check" (it never did -- the `&&`
+# was always there); it is that `< 2` is too loose a bar for a ZERO-anchor
+# prompt specifically. A single anchor already narrows scope to one concrete
+# file/function, so tolerating one incidental cluster hit alongside it is a
+# bounded combination (unchanged, Phase 2's own original invariant). A
+# zero-anchor prompt has NO scope-narrowing signal at all, so ANY cluster hit
+# there is real, uncontradicted domain content and must not be waved through.
+# The zero-anchor branch therefore requires cluster_hits == 0 (not < 2), AND
+# the prompt must carry no organizational-possessive pronoun ("our"/"my"/
+# "us"/"we") -- a further adversarial probe found a paraphrase that dodges the
+# 4-cluster keyword net entirely while still being organization-referencing
+# ("How do we migrate our monolith to microservices with zero downtime?" --
+# 0 cluster hits, would otherwise still incorrectly TIER0_SKIP). Verified this
+# session: with both tightenings, all 3 reviewer-provided adversarial strings
+# plus 4 additional self-authored paraphrases (see the golden-set entries this
+# fix adds) all correctly TIER0_FALLTHROUGH.
+#
+# HONEST LIMIT, stated rather than implied: this remains a BOUNDED, best-effort
+# heuristic, not a classifier. A sufficiently determined paraphrase that avoids
+# ALL of {an anchor, a cluster-keyword hit, an organizational pronoun} can still
+# evade it (e.g. "Why does onboarding take so long?" has 0 anchors, 0 cluster
+# hits, no our/my/us/we, and would still TIER0_SKIP a genuine ambiguity-laden
+# ask). Closing that class fully would require the same semantic judgment Tier-1
+# exists to provide -- out of scope for a free, no-network pre-filter. The
+# tightenings here close every concretely-demonstrated adversarial case found
+# this round; they do not claim to close the class.
+#
+# The whitelist-gated, now-hardened form re-verified clean against the full
+# 42-entry corpus at 8/42 Tier-0-skip (one entry, "Format this JSON for me:
+# {...}", moved from skip to fallthrough under the cluster_hits==0 tightening --
+# it incidentally matches the STYLE cluster via the word "format" itself; safe
+# direction, one extra paid Tier-1 call for a genuinely trivial ask), 0
+# false-skips among the other 34. Bias is deliberate: a false NEGATIVE here (a
+# genuinely trivial prompt that doesn't match the whitelist) just costs one
+# paid Tier-1 call -- safe. A false POSITIVE (skipping a prompt that needed a
+# wild-assumption flag or a dispatch plan) silently under-serves the user --
+# unsafe. The whitelist is deliberately narrow for that reason; it is not meant
+# to catch every trivial prompt a user might write, only to stop manufacturing
+# false negatives on the shipped golden-set's own category (a).
 PG_TRIVIAL_SHAPE_RE='^(what|why|when|where|who|which|how|is|are|does|do)\b.*\?[[:space:]]*$|^(convert|format|summarize|translate|define|calculate|spell|pronounce)\b|^give me an?[[:space:]]+(synonym|antonym|definition|example|translation)\b|^write an?[[:space:]]+(haiku|poem|story|limerick|joke|tweet|caption|sonnet|verse)\b'
 
 _pg_is_trivial_shape() {
   printf '%s' "$1" | grep -Eiq "$PG_TRIVIAL_SHAPE_RE"
+}
+
+# An organizational-possessive pronoun is a strong internal-system signal that
+# no cluster keyword covers -- "our monolith", "our onboarding", "make it work
+# for us" all name something belonging to the user's own organization/system,
+# regardless of whether any of the four domain clusters happen to fire.
+PG_INTERNAL_REFERENT_RE='\b(our|my|us|we)\b'
+
+_pg_has_internal_referent() {
+  printf '%s' "$1" | grep -Eiq "$PG_INTERNAL_REFERENT_RE"
 }
 
 pg_anchor_count="$(_pg_anchor_count "$prompt")"
@@ -327,7 +382,8 @@ case "$pg_anchor_count" in '' | *[!0-9]*) pg_anchor_count=0 ;; esac
 pg_cluster_hits="$(_pg_cluster_hit_count "$prompt")"
 
 pg_trivial_shape=0
-if [ "$pg_anchor_count" -eq 0 ] && _pg_is_trivial_shape "$prompt"; then
+if [ "$pg_anchor_count" -eq 0 ] && [ "$pg_cluster_hits" -eq 0 ] &&
+  _pg_is_trivial_shape "$prompt" && ! _pg_has_internal_referent "$prompt"; then
   pg_trivial_shape=1
 fi
 

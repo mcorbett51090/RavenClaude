@@ -500,14 +500,20 @@ skip case, which pays a real (small) cost this Tier-0 case does not.
 
 **Measured, not asserted.** An earlier revision of `prompt-optimizer-gate.sh`'s Tier-0 rule required
 `anchor_count == 1` exactly — which meant this specific zero-anchor prompt, and every other zero-anchor
-trivial ask, always fell through to a paid Tier-1 call; run against the full 42-entry golden-set corpus
-that version Tier-0-skipped **0/42** entries, contradicting the "canonical Tier-0 zero-cost skip case"
-claim above. The rule now also skips a zero-anchor prompt when it matches a narrow trivial-shape
-whitelist (see the rule's own header comment for the full rationale and the false-skip trap a blanket
-`anchor_count <= 1` widening fell into). Re-run against the same corpus with a stub `claude` binary, the
-fix measures **9/42 Tier-0-skip** — exactly the 9 golden-set entries in this trivial-ask category,
-including this one — with zero false-skips among the other 33 (the wild-assumption, complex-single-
-domain, and multi-domain dispatch entries all still correctly reach Tier-1).
+trivial ask, always fell through to a paid Tier-1 call; run against the golden-set corpus (42 entries at
+the time) that version Tier-0-skipped **0/42** entries, contradicting the "canonical Tier-0 zero-cost
+skip case" claim above. The rule now also skips a zero-anchor prompt when it matches a narrow
+trivial-shape whitelist AND has zero keyword-cluster hits AND carries no organizational-possessive
+pronoun (`our`/`my`/`us`/`we`) — see the rule's own header comment for the full rationale, the
+false-skip trap a blanket `anchor_count <= 1` widening fell into, and the adversarial-paraphrase gap a
+second review round found and closed in the interrogative-shape whitelist itself. Re-run against the
+now-47-entry corpus (5 adversarial interrogative/verb-led paraphrase entries were added to close that
+gap and prevent its regression) with a stub `claude` binary, the fix measures **8/47 Tier-0-skip** —
+exactly the 8 golden-set entries remaining in this trivial-ask category after the cluster-hits tightening
+moved one entry ("Format this JSON for me...") to the paid path (a safe, deliberate trade — see R5
+below) — with zero false-skips among the other 39 (the wild-assumption, complex-single-domain, clean
+multi-domain, category-(e), and the 5 new adversarial-paraphrase entries all still correctly reach
+Tier-1).
 
 ### Example 2 — `rewrite` (Tier-1, single-domain, wild assumption flagged)
 
@@ -789,14 +795,21 @@ one Haiku call's real latency and real (small) cost for a turn that ultimately r
 reading this file as "trivial asks are free" should read that sentence as false for this bucket
 specifically — free only holds for the Tier-0-caught subset.
 
-**How big is the Tier-0-caught subset, measured, not assumed?** Against the shipped 42-entry golden-set
-corpus, Tier-0 free-skips exactly **9/42** entries — the trivial factual/creative/deterministic-transform
-category. The other **33/42** — every wild-assumption ask, every complex-but-single-domain ask, every
-multi-domain dispatch case — clear Tier-0 and pay at least one Tier-1 Haiku call, whether they ultimately
-resolve to `rewrite`, `dispatch_plan`, or a Tier-1-judged `skip`. Before this rule was corrected, the
-Tier-0-caught subset measured **0/42** — every prompt in this eval set, trivial or not, paid the Tier-1
-tax — meaning the "paid-then-skip bucket" this paragraph warns about was not a subset of the trivial-ask
-set at all; it *was* the trivial-ask set, in its entirety. That was the actual, measured state this
+**How big is the Tier-0-caught subset, measured, not assumed?** Against the shipped 47-entry golden-set
+corpus (42 original entries + 5 adversarial interrogative/verb-led paraphrases added after a second
+review round found the first fix's whitelist too permissive — see the header comment on
+`PG_TRIVIAL_SHAPE_RE` in `prompt-optimizer-gate.sh`), Tier-0 free-skips exactly **8/47** entries — the
+trivial factual/creative/deterministic-transform category (one entry short of the category's full 9
+because the cluster-hits tightening that closed the whitelist gap also, safely, moved "Format this JSON
+for me..." onto the paid path — it incidentally matches the STYLE cluster via the word "format" itself).
+The other **39/47** — every wild-assumption ask, every complex-but-single-domain ask, every multi-domain
+dispatch case, and all 5 of the new adversarial paraphrases (each a rephrasing of an existing hard case as
+a question or a whitelisted-verb opener) — clear Tier-0 and pay at least one Tier-1 Haiku call, whether
+they ultimately resolve to `rewrite`, `dispatch_plan`, or a Tier-1-judged `skip`. Before this rule was
+corrected, the Tier-0-caught subset measured **0/42** — every prompt in this eval set, trivial or not,
+paid the Tier-1 tax — meaning the "paid-then-skip bucket" this paragraph warns about was not a subset of
+the trivial-ask set at all; it *was* the trivial-ask set, in its entirety. That was the actual, measured
+state this
 paragraph's honesty was protecting against, whether or not the prose said so explicitly.
 
 ---

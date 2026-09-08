@@ -1,7 +1,10 @@
 #!/usr/bin/env python3
 """prompt-optimizer-judge-soak.py
 
-The Phase 1 golden-set (42 entries) LLM-judge quality-scoring pass — prompt-
+The Phase 1 golden-set (47 entries -- 42 original + 5 adversarial
+interrogative/verb-led paraphrases added by the final whole-branch review's
+round 2, closing a Tier-0 trivial-shape whitelist gap) LLM-judge quality-scoring
+pass — prompt-
 optimizer Phase 9. Explicitly OUT of `scripts/audit-gates.sh`'s required
 whole-tree suite, and OUT of that suite's `--check N` per-gate dispatcher —
 this file is grepped by that suite's own must-fail-half teeth (Gate 264's
@@ -35,8 +38,9 @@ true on 4/9 category-(b) golden-set entries whose own `expected_wild_assumption`
 is `false` for all 9 — described there as "arbitrating whether 4/9 is correct
 judgment vs. residual over-flagging is exactly what Phase 9's held-out
 LLM-judge pass is scoped to do, not this phase" (task-3-report.md, Finding 1).
-This script is that arbitration, run for real against the whole 42-entry set
-(not just the 9-entry category-(b) subsample task-3-report.md measured), using
+This script is that arbitration, run for real against the whole golden-set corpus
+(47 entries as of the final whole-branch review's round 2 -- not just the 9-entry
+category-(b) subsample task-3-report.md measured), using
 a model DISTINCT from either generator tier (see "THE JUDGE MODEL" below) that
 never sees the generator's own reasoning trace — only the original prompt, the
 golden-set's own human-authored notes, and the generator's typed verdict.
@@ -448,7 +452,14 @@ def _self_test() -> int:
     check("golden-set-exists", GOLDEN_SET_DEFAULT.is_file())
     if GOLDEN_SET_DEFAULT.is_file():
         entries = load_golden_set(GOLDEN_SET_DEFAULT)
-        check("golden-set-42-entries", len(entries) == 42)
+        # 42 -> 47: final whole-branch review round 2 added 5 adversarial
+        # interrogative/verb-led paraphrase entries to close the Tier-0
+        # trivial-shape whitelist gap the review found (see golden-set.jsonl's
+        # own tail entries + prompt-optimizer-gate.sh's PG_TRIVIAL_SHAPE_RE
+        # comment for the full rationale). A future addition should bump this
+        # literal again, not silently drift it into a >= check -- an exact
+        # count is what catches an accidental duplicate/drop.
+        check("golden-set-47-entries", len(entries) == 47)
         check(
             "golden-set-required-keys",
             all(

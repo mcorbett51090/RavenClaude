@@ -4,8 +4,9 @@
 # red-team Finding 2's resolution — the audit-gates 600s-ceiling trap). ZERO live
 # judge-model calls anywhere in this file: every `claude` invocation is a stub
 # that `cat`s a pre-built canned JSON file selected via $STUB_CLAUDE_OUTPUT_FILE.
-# The full 42-entry golden-set LLM-judge quality pass (Phases 3/4's
-# `wild_assumption` over-flagging arbitration) is a SEPARATE, non-required,
+# The full 47-entry golden-set LLM-judge quality pass (42 original entries + 5
+# adversarial paraphrases from the final whole-branch review's round 2; Phases
+# 3/4's `wild_assumption` over-flagging arbitration) is a SEPARATE, non-required,
 # standalone script — scripts/prompt-optimizer-judge-soak.sh — never invoked from
 # here or from audit-gates.sh's own dispatcher. See that script's own header.
 #
