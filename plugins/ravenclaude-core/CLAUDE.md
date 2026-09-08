@@ -4697,7 +4697,7 @@ before `claude` is ever exec'd.**
   raw matched line or path (leak-control verified live against the real production function, not a
   synthetic copy).
 
-**Gate 281** (`scripts/check-claude-launch-safeguard.py --self-test`) — three checks: P1's own
+**Gate 282** (`scripts/check-claude-launch-safeguard.py --self-test`) — three checks: P1's own
 self-test, P2's own self-test, and the full `stall_watch.py` suite (43 assertions) passing against
 the real source **and** failing against a MUTANT that removes conjunct 3 (the `statusUpdatedAt`
 check) from `evaluate_launch_hangs()` — the teeth half, proving the healthy-idle negative control

@@ -50,7 +50,7 @@
       "cybersecurity-grc": "0.2.2",
       "data-governance-privacy": "0.3.5",
       "data-orchestration": "0.1.1",
-      "data-platform": "0.16.0",
+      "data-platform": "0.33.1",
       "data-quality-observability": "0.1.1",
       "data-science-research": "0.2.2",
       "data-streaming-engineering": "0.3.4",
@@ -195,10 +195,10 @@
   },
   "corpus": {
     "skill_count": 956,
-    "total_chars": 310284,
-    "total_tokens": 66511,
-    "mean_chars": 324.56,
-    "mean_tokens": 69.57
+    "total_chars": 310696,
+    "total_tokens": 66608,
+    "mean_chars": 325.0,
+    "mean_tokens": 69.67
   },
   "skills": [
     {
@@ -574,10 +574,10 @@
       "plugin": "applied-statistics",
       "skill": "choose-statistical-test",
       "path": "plugins/applied-statistics/skills/choose-statistical-test/SKILL.md",
-      "chars": 115,
-      "tokens": 21,
-      "sha256": "eeef012be45620b3f36db4b776f7b922e9f84019cb71f8a9820dfda210156b1d",
-      "description": "Pick the right hypothesis test for a described scenario by traversing the test-selection decision tree (data type →"
+      "chars": 432,
+      "tokens": 94,
+      "sha256": "9bdb153a27c02fdae05d4331e669a9c0807dce70e06d1bed8a41a9cf6fbd6d42",
+      "description": "Pick the right hypothesis test for a described scenario by traversing the test-selection decision tree (data type → #groups → paired? → assumption gate → test), then return the recommended test, its assumption checks, its nonparametric fallback, and a ≤10-line runnable snippet. Reach for this when the user asks \"which test do I use?\" or hands over two-or-more groups/variables to compare. Used by `applied-statistician` (primary)."
     },
     {
       "plugin": "applied-statistics",
@@ -6820,10 +6820,10 @@
       "plugin": "ravenclaude-core",
       "skill": "spec-reread-ritual",
       "path": "plugins/ravenclaude-core/skills/spec-reread-ritual/SKILL.md",
-      "chars": 268,
-      "tokens": 61,
-      "sha256": "f6ba455fd652b682bf748dafc55b200a1f68da6bdf8981d7f1e7182d54d84b1e",
-      "description": "Before writing any code for a task in a multi-task build, the agent MUST re-read the relevant spec section verbatim, paste it into the work log, and quote the prior. NO work from memory. Counters the \"100% spec drift\" failure mode from the Claude Code bug study (issue"
+      "chars": 363,
+      "tokens": 85,
+      "sha256": "ff79307bf306300c54a62d015283a6cf0cfe55ebaa92eeec6441e507355a0db6",
+      "description": "Before writing any code for a task in a multi-task build, the agent MUST re-read the relevant spec section verbatim, paste it into the work log, and quote the prior. NO work from memory. Counters the \"100% spec drift\" failure mode from the Claude Code bug study (issue #19739) — where 11/11 sessions drifted from the spec and exact-match format compliance was 0%."
     },
     {
       "plugin": "ravenclaude-core",

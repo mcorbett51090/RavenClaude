@@ -361,9 +361,14 @@ _suite_gate_tokens() { # $1=suite name -> echoes space-separated gate tokens; re
       # renumbered from 269 at merge time — origin/main independently
       # claimed 269-279 for the data-platform batch above while this branch
       # was unmerged, the same collision class as the 263-279 chain). 281
-      # (claude-launch-safeguard self-test — same generic-self-test-with-
-      # mutant-teeth family, no better-fit suite; this build's own gate).
-      echo "1 2 8 18 46 47 92 129 173 175 193 194 195 226 267 268 269 270 271 272 273 274 275 276 277 278 279 280 281"
+      # (skill-description linter — cap/filler/name/charset + P3 ratchet,
+      # succinct-skill-descriptions P2/P3 — same generic-self-test family;
+      # renumbered from 280 in the SAME merge, since origin/main's context-
+      # usage-meter gate landed on 280 first). 282 (claude-launch-safeguard
+      # self-test — same generic-self-test-with-mutant-teeth family, no
+      # better-fit suite; renumbered from 281 at THIS merge, since
+      # origin/main's skill-description-linter gate landed on 281 first).
+      echo "1 2 8 18 46 47 92 129 173 175 193 194 195 226 267 268 269 270 271 272 273 274 275 276 277 278 279 280 281 282"
       ;;
     security)
       # Gaps: 24 (Track B Engine Foundation — defines DECP, consumed by
@@ -1938,13 +1943,20 @@ PY
       exit $?
       ;;
     281)
-      echo "── Gate 281: claude-launch-safeguard (per-gate run) ──"
+      echo "── Gate 281: skill-description linter — cap/filler/name/charset + P3 ratchet (per-gate run) ──"
+      rc=0
+      python3 scripts/check-skill-descriptions.py --self-test || rc=$?
+      python3 scripts/check-skill-descriptions.py --must-fail || rc=$?
+      exit $rc
+      ;;
+    282)
+      echo "── Gate 282: claude-launch-safeguard (per-gate run) ──"
       python3 scripts/check-claude-launch-safeguard.py --self-test
       exit $?
       ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254, 255, 256, 257, 258, 259, 260, 261, 262, 263, 264, 265, 266, 267, 268, 269, 280, 281. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254, 255, 256, 257, 258, 259, 260, 261, 262, 263, 264, 265, 266, 267, 268, 269, 280, 281, 282. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -10589,6 +10601,34 @@ printf 'const style = { color: "#3b82f6" };\n' > "$DP_THEME_BAD"
 rc=0
 grep -qE '#[0-9a-fA-F]{6}' "$DP_THEME_BAD" 2>/dev/null && rc=1
 gate "theming structural: literal hex outside a token file caught" must_fail "$rc"
+
+echo "── Gate 281: skill-description linter — cap/filler/name/charset + P3 ratchet ──"
+# P2/P3 (succinct-skill-descriptions plan). check-skill-descriptions.py's own
+# --self-test covers: the deterministic category classifier (leaf/
+# disambiguating/router), the calibrated filler + name-restatement
+# detectors, RT-8 charset validation (7 character classes, including the
+# ' #' mid-string case that caught 2 REAL live silent-truncation bugs in
+# this corpus while this gate was being built -- see the script's own
+# charset_violations docstring), --fix idempotence (AT-P2.4), and P3's
+# ratchet + posture-drift checks (AT-P3.1/.2/.5) on a scratch tree. The
+# preservation-half teeth (AT-P2.2/.3) are explicitly SKIPPED, not failed --
+# G-P2.3: P1's claim-6 study closed inconclusive-by-construction, never
+# earned (docs/plans/2026-09-03-succinct-skill-descriptions/p1-status.md).
+# --must-fail is the charset teeth: a real violation must be caught, a
+# clean description must not be. Renumbered from 280 at merge time --
+# origin/main independently claimed 280 for check-context-budget-meter.py
+# while this branch was unmerged (the same collision class this repo's own
+# CLAUDE.md already records for the Gate 261->263 forge-receipt renumbering
+# and the Gate 269->280 context-usage-meter renumbering).
+if command -v python3 >/dev/null 2>&1; then
+  rc=0; python3 scripts/check-skill-descriptions.py --self-test >/dev/null 2>&1 || rc=$?
+  gate "skill-description linter self-test (classifier/filler/name/charset/fix/ratchet/posture-drift)" must_pass "$rc"
+  rc=0; python3 scripts/check-skill-descriptions.py --must-fail >/dev/null 2>&1 || rc=$?
+  gate "skill-description linter teeth: a real charset violation is caught, a clean one is not" must_pass "$rc"
+else
+  _skip_or_fail "Gate 281 (skill-description linter)" python3
+fi
+
 echo "── Gate 266: runtime self-test front door — Tier A only ────────────────────"
 # Phase 9 (sessionstart-safeguards-multihost). Registers the runtime self-
 # test's MECHANISM checks: Tier A invocation + delivery (Phase 6, via
@@ -10716,7 +10756,7 @@ else
 fi
 
 echo
-echo "── Gate 281: claude-launch-safeguard (P1-P4) ───────────────────────────────"
+echo "── Gate 282: claude-launch-safeguard (P1-P4) ───────────────────────────────"
 # From the claude-launch-safeguard build (anthropics/claude-code#92932 — an
 # unscoped rg scan hangs a Claude Code session launched with cwd outside any git
 # repo, e.g. bare $HOME, hitting macOS TCC-denied paths). Local safeguard: P1
@@ -10736,13 +10776,16 @@ echo "── Gate 281: claude-launch-safeguard (P1-P4) ────────�
 # conjunct 3 (statusUpdatedAt <= startedAt + epsilon) from
 # evaluate_launch_hangs() — the teeth half, proving gate_250c's healthy-idle
 # negative control actually depends on that conjunct, not that the suite
-# happens to be green.
+# happens to be green. ⛔ Renumbered from 281 at merge time — origin/main
+# independently claimed Gate 281 for the skill-description linter
+# (succinct-skill-descriptions P2/P3) while this branch was unmerged, the
+# same collision class this repo's CLAUDE.md already records repeatedly.
 if command -v python3 >/dev/null 2>&1; then
   rc=0; CLS_OUT="$(python3 scripts/check-claude-launch-safeguard.py --self-test 2>&1)" || rc=$?
   if [[ "$rc" -ne 0 ]]; then echo "$CLS_OUT"; fi
   gate "claude-launch-safeguard: P1/P2 self-tests + P3 discriminator conjunct-3 mutant teeth" must_pass "$rc"
 else
-  _skip_or_fail "Gate 281 (claude-launch-safeguard)" python3
+  _skip_or_fail "Gate 282 (claude-launch-safeguard)" python3
 fi
 
 # CLI-contract spot checks (PR-C hard constraints). Deliberately does NOT

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""check-claude-launch-safeguard.py -- Gate 281: the claude-launch-safeguard build
+"""check-claude-launch-safeguard.py -- Gate 282: the claude-launch-safeguard build
 (P1 helper, P2 installer, P3 detector, P4 enrichment) is self-consistent and the
 detector's discriminator has real teeth.
 
@@ -120,7 +120,7 @@ def self_test() -> int:
     ok, detail = check_teeth()
     results.append(gate("C) stall_watch.py suite passes + conjunct-3-removed mutant is caught", ok, detail))
     passed = all(results)
-    print("\nGate 281: %s" % ("PASS" if passed else "FAIL"))
+    print("\nGate 282: %s" % ("PASS" if passed else "FAIL"))
     return 0 if passed else 1
 
 
