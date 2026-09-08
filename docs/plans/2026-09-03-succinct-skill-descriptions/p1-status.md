@@ -25,3 +25,25 @@ ratchet + top-decile pass only, no preservation apparatus).
 the cheap confirmation probe (do not re-derive the whole gate design) — once it writes
 `prompt.md` + `graders/criteria.md` instead of printing the early-access notice, P1's
 build steps in `plan.md` are unblocked. No other repo-side gate is holding this up.
+
+---
+
+## Update 2026-09-08 — substitute-instrument pilot run, then CLOSED
+
+Built and ran a manual substitute (real `Agent`-tool dispatches, no
+`claude plugin eval` dependency) rather than waiting on early access. Full record:
+`.ravenclaude/runs/succinct-skill-descriptions-p1/pilot-summary.md` (local, gitignored
+— summary here for the committed record).
+
+**Result: closed as inconclusive-by-construction**, per `plan.md` AT-P1.1's own
+vocabulary — 30 dispatches / ~1.45M tokens / 5 independent trigger-construction
+methods never established genuine base-case ambiguity for any tested pair, so no arm
+comparison was ever scored. Claim 6 was **not** tested; this is not a null result.
+
+**Owner decision:** proceed to the **P8 fallback** — linter + ratchet + top-decile
+pass only, per `plan.md`'s own P2 conditionality rule (`G-P2.3`: the preservation
+apparatus is built only if P1 earned it; the linter half is built regardless). The
+preservation apparatus (category budgets, IDF guard, exemplar bank, 100%-human-review)
+is not built. Formal claim-6 testing stays available if/when native `plugin eval`
+access is confirmed — the pilot's pre-registrations and trigger examples are reusable
+inputs for that future attempt.
