@@ -58,13 +58,13 @@ The 2024 and 2025 Gartner Magic Quadrant for Customer Success Management Platfor
 ## Pure embedded-analytics specialists
 
 ### Sigma
-- **Median deployment $61,158/year ($17.5k-$131k range, Vendr 117 buyers).** Embedded add-on can 2-3× the base.
+- **Median deployment $61,158/year ($17.5k-$131k range, Vendr 117 buyers).** `[verified 2026-09-03 — unchanged; Vendr still reports this exact median]` Embedded add-on can 2-3× the base.
 - **Still private** May 2026 (no IPO). $80M raised May 18 2026 at $1.5B valuation.
 - **Out of scope** for SMB consulting.
 
 ### Cube (cube.dev)
 - **Cube Core is Apache 2.0, fully free, self-hostable.** Semantic layer + caching + API layer; not a chart library.
-- **Cube Cloud (verified 2026-05-21):** Free → **Starter $40/dev/mo** → **Premium $80/dev/mo** (Premium includes embedded dashboards) [per cube.dev/pricing](https://cube.dev/pricing)
+- **Cube Cloud:** Free → **Starter $40/dev/mo** → **Premium $80/dev/mo** (Premium includes embedded dashboards) [per cube.dev/pricing](https://cube.dev/pricing) `[verified 2026-09-03 — unchanged since 2026-05-21]`
 - **2026 positioning:** Cube Copilot, Tesseract modeling engine, Visual Modeler, Data Access Policies. Joined Open Semantic Interchange spec (Jan 2026).
 - **The strongest non-BI building block** for a consulting firm productizing a dashboard offering
 
@@ -88,24 +88,24 @@ The 2024 and 2025 Gartner Magic Quadrant for Customer Success Management Platfor
 ## BI tools with embed offerings (the per-viewer-pricing trap zone)
 
 ### Looker (Embedded)
-- **Base platform ~$60K/yr; viewers ~$400/yr each; developers ~$1,665/yr**
+- **Base platform ~$60K/yr; viewers ~$400/yr each; developers ~$1,665/yr** `[verified 2026-09-03 — unchanged; still sales-quoted/third-party-estimated, no published Looker price list]`
 - **Total typical analytics spend for real embedded deployment $200K-$300K+ annually**
 - **Out of scope** for 4-6 engagement consulting
 
 ### Power BI Embedded
-- **Now via Microsoft Fabric F-SKUs, starting F2 at $262/mo PAYG (~$156/mo reserved)** [per azure.microsoft.com/pricing](https://azure.microsoft.com/en-us/pricing/details/power-bi-embedded/) (verify before quoting)
+- **Now via Microsoft Fabric F-SKUs, starting F2 at $262/mo PAYG (~$156/mo reserved)** [per azure.microsoft.com/pricing](https://azure.microsoft.com/en-us/pricing/details/power-bi-embedded/) `[verified 2026-09-03 — unchanged; Azure's own pricing page no longer lists F-SKU $ figures directly (shows "$-" placeholders, redirects to calculator/sales), so this figure is confirmed via secondary practitioner sources rather than re-read off Microsoft's page directly]`
 - **App-Owns-Data:** end users do NOT need individual licenses — capacity covers them
 - **But report builders need Power BI Pro at $14/mo each** (raised from $10 in April 2025)
 - **Brand-familiarity win** for Microsoft-stack clients
 
 ### Tableau Embedded (Salesforce)
-- **Custom-quoted; reportedly $60K-$150K/yr year-1 floor**; per-viewer ~$420/yr
-- Now lives under "Tableau Next" Salesforce bundle (2026)
+- **Custom-quoted; reportedly $60K-$150K/yr year-1 floor**; per-viewer ~$420/yr `[verified 2026-09-03 — the OEM Embedded SKU itself is still custom-quoted, so the exact per-viewer figure isn't independently confirmable against a public price list; base Tableau Cloud Viewer is now $15/user/mo Standard / $35/user/mo Enterprise (unrelated to the Embedded OEM SKU) — [per digitalmass.com](https://digitalmass.com/how-we-think/hidden-costs-of-tableau-2026-pricing-tco-analysis)]`
+- Now lives under "Tableau Next" Salesforce bundle (2026) `[verified 2026-09-03 — Tableau Next confirmed live, now role-based per-user pricing starting $40/Creator/mo, not the old Flex-credit consumption model]`
 - **Out of scope** for SMB consulting
 
 ### Metabase
-- **OSS (AGPL v3) Static Embedding:** free with "Powered by Metabase" badge ✅ **Verified 2026-05-21.**
-- **Pro Interactive Embedding:** **$575/mo base + $12/user/month**; 10 users included ✅ **Verified 2026-05-21.**
+- **OSS (AGPL v3) Static Embedding:** free with "Powered by Metabase" badge ✅ **Verified 2026-05-21.** `[re-verified 2026-09-03 — unchanged]`
+- **Pro Interactive Embedding:** **$575/mo base + $12/user/month**; 10 users included ✅ **Verified 2026-05-21.** `[re-verified 2026-09-03 — unchanged]`
 - **AGPL implication:** modify and serve = must publish modifications. Most SaaS teams take commercial license.
 - **Math at 50 viewers across 6 clients:** ~$74k/yr. **Don't default for SMB consulting.**
 
@@ -128,8 +128,8 @@ The 2024 and 2025 Gartner Magic Quadrant for Customer Success Management Platfor
 ## Code-first / lightweight
 
 ### Evidence.dev
-- **OSS MIT-licensed**, fully free for self-host
-- **Cloud (verified 2026-05-21):** **NO free tier**; Team $15/user/mo, Pro $25/user/mo, **Embedded is Enterprise-tier only**
+- **OSS MIT-licensed**, fully free for self-host `[verified 2026-09-03 — unchanged]`
+- **Cloud:** `[verified 2026-09-03 — updated, was "NO free tier; Team $15/user/mo, Pro $25/user/mo, Embedded is Enterprise-tier only"]` The old per-user Team/Pro tiers are gone. Current: **Team $2,500/month flat, unlimited users**, no separate Pro tier; Enterprise custom-quoted. Also load-bearing: current Evidence has no build step (SQL re-runs server-side per page load), not the old static-export model this file's framing assumed. Full finding + sources: [`../templates/evidence-portfolio-starter/pages/about.md`](../templates/evidence-portfolio-starter/pages/about.md) (found and documented in this same FORGE run, P1-11).
 - **Build dashboards by writing Markdown with embedded SQL** — Git-versioned, static-deployable
 - **Strong candidate for Case A (ravenpower.net portfolio) on OSS, NOT the Cloud product**
 

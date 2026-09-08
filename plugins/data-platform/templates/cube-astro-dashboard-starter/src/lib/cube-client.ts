@@ -1,6 +1,13 @@
-import cubejs, { CubeApi } from "@cubejs-client/core";
+import cubejs, { type CubeApi } from "@cubejs-client/core";
 
-let cachedClient: CubeApi | null = null;
+// One client per distinct request tag (FORGE dashboard-top1pct P2-17,
+// 2026-09-03) — see knowledge/dashboard-query-cost-instrumentation.md.
+// `CubeApiOptions.headers` is set at CONSTRUCTION time, not per query, so a
+// widget-tagged X-Request-Id needs its own client instance per tag rather
+// than a shared singleton. Every instance still shares the SAME token cache
+// below (they all wrap the same `fetchToken` closure) — no extra token-fetch
+// traffic. Same pattern as the Next.js starter's lib/cube-client.ts.
+const clientsByTag = new Map<string, CubeApi>();
 let cachedToken: string | null = null;
 let cachedTokenExpiryMs = 0;
 
@@ -23,14 +30,24 @@ async function fetchToken(): Promise<string> {
 /**
  * Returns a CubeApi client whose token is fetched from our own
  * /api/cube-token route (never minted client-side) and reused until it's
- * close to expiry. Same pattern as the Next.js starter's lib/cube-client.ts.
+ * close to expiry.
+ *
+ * @param requestTag Page+widget identity (e.g. "dashboard.kpi-card.current"),
+ *   sent as the `X-Request-Id` header Cube's own docs document for
+ *   end-to-end request tracing — how a query in Cube's Query History /
+ *   warehouse query log is attributable back to the widget that issued it.
+ *   Omit for an untagged/ad-hoc query (falls back to the shared default
+ *   client).
  */
-export function getCubeClient(): CubeApi {
-  if (cachedClient) return cachedClient;
+export function getCubeClient(requestTag?: string): CubeApi {
+  const key = requestTag ?? "__default__";
+  const cached = clientsByTag.get(key);
+  if (cached) return cached;
 
-  cachedClient = cubejs(fetchToken, {
+  const client = cubejs(fetchToken, {
     apiUrl: import.meta.env.PUBLIC_CUBE_API_URL || "http://localhost:4000/cubejs-api/v1",
+    ...(requestTag ? { headers: { "X-Request-Id": requestTag } } : {}),
   });
-
-  return cachedClient;
+  clientsByTag.set(key, client);
+  return client;
 }

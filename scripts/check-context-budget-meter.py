@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""check-context-budget-meter.py — Gate 269: the context-usage meter is model-aware,
+"""check-context-budget-meter.py — Gate 280: the context-usage meter is model-aware,
 and a regression back to a hardcoded window is caught.
 
 Before 2026-09-08, scripts/context-usage-meter.py assumed every Claude Code session
@@ -154,7 +154,7 @@ def self_test() -> int:
     ok, detail = check_teeth()
     results.append(gate("B) real suite passes + hardcoded-window mutant is caught", ok, detail))
     passed = all(results)
-    print("\nGate 269: %s" % ("PASS" if passed else "FAIL"))
+    print("\nGate 280: %s" % ("PASS" if passed else "FAIL"))
     return 0 if passed else 1
 
 

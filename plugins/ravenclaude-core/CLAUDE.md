@@ -4616,7 +4616,7 @@ change to `conserve-tokens.py`'s `conserve_tokens_auto_pct` default (80%) — th
 tuned against the *old*, 5x-too-small window; whether it still makes sense against real
 1,000,000-token windows is a measurement question for a future pass, not assumed here.
 
-**Gate 269** (`scripts/check-context-budget-meter.py --self-test`) — two checks, both must-pass:
+**Gate 280** (`scripts/check-context-budget-meter.py --self-test`) — two checks, both must-pass:
 (A) `model-catalog.json`'s `context_windows` map covers every `current` alias with a positive int;
 (B) the full `test-context-usage-meter.py` suite (16 pre-existing + 17 new cases, 33 total) passes
 against the real source **and** fails against a MUTANT that reverts `measure()`'s model-aware branch
@@ -4624,9 +4624,24 @@ to the old unconditional `window = DEFAULT_CLAUDE_WINDOW` — the teeth half, so
 be measuring the fix rather than passing for an unrelated reason. Registered in all three required
 surfaces (the `--check` dispatcher, the main sequence, the `Supported:` string) and added to the
 `core` suite (Gate 267's own suite-coverage check — the generic-self-test-with-mutant-teeth family,
-same as 129/173/268) — each verified directly this session (`--check 269`, `--check 195`, `--check
+same as 129/173/268) — each verified directly this session (`--check 280`, `--check 195`, `--check
 267`, `--check 134` all exit 0), per this repo's own Gate 184/263 incidents: a gate registered in
 only one of the three required surfaces ran nowhere for a full release.
+
+⛔ **Renumbered from 269 → 280 at merge time.** The branch was cut from an `origin/main` whose max
+gate was 268, so 269 looked free and the gate was built, registered, and self-tested green there.
+`origin/main` had meanwhile landed **Gates 269-279** (the data-platform dashboard-top1pct batch) —
+the exact "next free slot moves under you" collision this repo's CLAUDE.md already records for the
+Gate 261→263 forge-receipt renumbering. Caught by a real merge conflict in `audit-gates.sh`'s
+`_suite_gate_tokens()` `core` case at merge time, not by re-reading the tree first — re-verified
+after resolving it (`--check 280`, `--check 195`, `--check 267` all exit 0 against the merged
+tree). First fix attempt was itself wrong and self-corrected before landing: 270-279 have
+main-sequence banners but no individual `--check` dispatcher arm on `origin/main` (per-gate `--check`
+registration is optional, not a per-banner requirement — `check-gate-registration.py` reports
+`origin/main`'s file clean as-is) — adding them to the `Supported:` list without dispatcher arms
+would have been a NEW `supported-parity` defect (caught by Gate 195 immediately on this branch, not
+shipped). `Supported:` therefore gains only `280`, unchanged otherwise from `origin/main`'s own
+269-terminated list.
 
 **Migration:** none in the accuracy-improving direction — every existing test passes unchanged and
 every existing caller's behavior only becomes *more accurate* (a session on a 1M-token model now

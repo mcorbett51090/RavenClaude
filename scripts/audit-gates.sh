@@ -346,10 +346,22 @@ _suite_gate_tokens() { # $1=suite name -> echoes space-separated gate tokens; re
       # design-clone skills), plus this suite dispatcher's own
       # union-completeness meta-test (267). 268 (skill-description-baseline
       # determinism + charset-round-trip self-test — a corpus-measurement
-      # instrument, same generic-self-test family as 129/173). 269
-      # (context-usage-meter model-aware-window self-test — same
-      # generic-self-test-with-mutant-teeth family, no better-fit suite).
-      echo "1 2 8 18 46 47 92 129 173 175 193 194 195 226 267 268 269"
+      # instrument, same generic-self-test family as 129/173). 269-279
+      # (FORGE dashboard-top1pct, 2026-09-03-08): every data-platform-plugin
+      # self-check this repo's suite taxonomy has no plugin-specific suite
+      # for — same "no better fit than core" reasoning as 173/175/193/194
+      # above, per the PR-C brief's own fallback rule. Renumbered from
+      # 263-273 at merge time (origin/main's own 263-267 landed first while
+      # this branch was unmerged), then renumbered AGAIN from 268-278 to
+      # 269-279 at a second merge later the same day (origin/main
+      # independently claimed 268 for skill-description-baseline.py while
+      # this branch was still unmerged) — see each gate's own header comment.
+      # 280 (context-usage-meter model-aware-window self-test — same
+      # generic-self-test-with-mutant-teeth family, no better-fit suite;
+      # renumbered from 269 at merge time — origin/main independently
+      # claimed 269-279 for the data-platform batch above while this branch
+      # was unmerged, the same collision class as the 263-279 chain).
+      echo "1 2 8 18 46 47 92 129 173 175 193 194 195 226 267 268 269 270 271 272 273 274 275 276 277 278 279 280"
       ;;
     security)
       # Gaps: 24 (Track B Engine Foundation — defines DECP, consumed by
@@ -1065,6 +1077,42 @@ PY
       bash plugins/ravenclaude-core/hooks/tests/test-tier-a-canary.sh --self-test || rc=$?
       python3 scripts/check-hooks-selftest.py --self-test || rc=$?
       exit $rc
+      ;;
+    269)
+      # Renumbered from 263 -> 268 at merge time (2026-09-08): origin/main
+      # independently claimed 263-267 for forge-receipt/caveman-routing/
+      # runtime-selftest/suite-dispatcher-coverage work that landed while
+      # this branch was unmerged. Renumbered AGAIN, 268 -> 269, at a second
+      # merge later the same day: origin/main independently claimed 268 for
+      # skill-description-baseline.py while this branch was still unmerged.
+      # See CLAUDE.md's own "gate slot moved under us" precedent for why a
+      # renumber, not a collision, is the correct fix both times.
+      echo "── Gate 269: data-platform self-description tripwire (per-gate run) ──"
+      rc=0
+      python3 scripts/check-data-platform-self-description.py || rc=$?
+      if [[ "$rc" -ne 0 ]]; then
+        echo "the real tree should pass clean — check-data-platform-self-description.py failed" >&2
+        exit 1
+      fi
+      echo "── Gate 269 teeth: a drifted fixture MUST fail ──"
+      DP_TEETH_TMP="$(mktemp -d)"
+      DP_TEETH="$DP_TEETH_TMP/plugins/data-platform"
+      mkdir -p "$DP_TEETH/skills/a" "$DP_TEETH/skills/b" "$DP_TEETH/skills/c" "$DP_TEETH/best-practices" "$DP_TEETH/templates" "$DP_TEETH/.claude-plugin"
+      touch "$DP_TEETH/skills/a/SKILL.md" "$DP_TEETH/skills/b/SKILL.md" "$DP_TEETH/skills/c/SKILL.md"
+      touch "$DP_TEETH/best-practices/rule1.md" "$DP_TEETH/best-practices/README.md"
+      touch "$DP_TEETH/templates/t1.md"
+      printf 'the 2 skills in this plugin\n1 templates on disk\n' > "$DP_TEETH/CLAUDE.md"
+      printf '_1 rules. Each file is one named, citable rule._\n' > "$DP_TEETH/best-practices/README.md"
+      printf '{"version": "1.0.0"}' > "$DP_TEETH/.claude-plugin/plugin.json"
+      printf '## [1.0.0] — 2026-09-03\n' > "$DP_TEETH/CHANGELOG.md"
+      if python3 scripts/check-data-platform-self-description.py --root "$DP_TEETH"; then
+        echo "TEETH FAILED: the drifted fixture (3 skills on disk, CLAUDE.md says 2) did not fail" >&2
+        rm -rf "$DP_TEETH_TMP"
+        exit 1
+      fi
+      rm -rf "$DP_TEETH_TMP"
+      echo "teeth ok (the drifted fixture failed, so the assertions measure the invariant)"
+      exit 0
       ;;
     243)
       echo "── Gate 243: scheduled sweep contract + operator health card ──"
@@ -1882,14 +1930,14 @@ PY
       python3 scripts/skill-description-baseline.py --must-fail || rc=$?
       exit $rc
       ;;
-    269)
-      echo "── Gate 269: context-usage meter is model-aware (per-gate run) ──"
+    280)
+      echo "── Gate 280: context-usage meter is model-aware (per-gate run) ──"
       python3 scripts/check-context-budget-meter.py --self-test
       exit $?
       ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254, 255, 256, 257, 258, 259, 260, 261, 262, 263, 264, 265, 266, 267, 268, 269. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254, 255, 256, 257, 258, 259, 260, 261, 262, 263, 264, 265, 266, 267, 268, 269, 280. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -4478,10 +4526,37 @@ assert_hook_fires  "edtech anti-patterns" plugins/edtech-partner-success/hooks/f
 assert_hook_silent "edtech anti-patterns" plugins/edtech-partner-success/hooks/flag-psm-anti-patterns.sh "$DH/qbr-good.md"
 
 # 6. data-platform — a hardcoded API secret (vs a trivially clean file).
+# This is the LEGACY arg-on-disk leg (_hook_run passes a file that already
+# exists — the manual-invocation fallback path, not the real Claude Code
+# PreToolUse dispatch shape).
 printf 'api_key = "abcdef1234567890abcd"\n' > "$DH/dp-bad.py"
 printf 'x = 1\n' > "$DH/dp-good.py"
 assert_hook_fires  "data-platform smells" plugins/data-platform/hooks/flag-data-platform-smells.sh "$DH/dp-bad.py"
 assert_hook_silent "data-platform smells" plugins/data-platform/hooks/flag-data-platform-smells.sh "$DH/dp-good.py"
+
+# 6b. data-platform — the REAL PreToolUse dispatch shape (FORGE P0-3, 2026-09-03):
+# a stdin JSON payload whose file does NOT exist on disk, with the proposed
+# body only in .tool_input.content. The pre-fix hook (arg-on-disk grep, exit-0
+# on a missing file) silently missed this — reproduced and confirmed this
+# session before the rewrite. `_hook_run`'s arg-on-disk shape above cannot
+# exercise this leg, so a dedicated stdin invocation is added here rather than
+# widening the shared helper (the same arg-on-disk blind spot likely affects
+# ~12+ other plugins' anti-pattern hooks — filed as a separate, out-of-scope
+# marketplace-wide follow-up, not this plugin's lane to fix).
+_dp_stdin_hook_run() { # $1=json-payload -> sets HOOK_OUT, HOOK_RC
+  HOOK_RC=0
+  printf '%s' "$1" | bash plugins/data-platform/hooks/flag-data-platform-smells.sh >"$TMP/dp-stdin-out" 2>&1 || HOOK_RC=$?
+  HOOK_OUT="$(cat "$TMP/dp-stdin-out")"
+}
+DP_STDIN_BAD="$DH/dp-stdin-not-on-disk-bad.py"
+DP_STDIN_GOOD="$DH/dp-stdin-not-on-disk-good.py"
+rm -f "$DP_STDIN_BAD" "$DP_STDIN_GOOD" # must NOT exist — proves the content-field read, not the disk fallback
+_dp_stdin_hook_run "$(python3 -c 'import json,sys; print(json.dumps({"tool_input":{"file_path": sys.argv[1], "content": "api_key = \"abcdef1234567890abcd\"\n"}}))' "$DP_STDIN_BAD")"
+rc=0; { [[ -n "$HOOK_OUT" ]] || [[ "$HOOK_RC" -ne 0 ]]; } || rc=1
+gate "data-platform smells (PreToolUse stdin, file not yet on disk, secret in .tool_input.content) fires" must_pass "$rc"
+_dp_stdin_hook_run "$(python3 -c 'import json,sys; print(json.dumps({"tool_input":{"file_path": sys.argv[1], "content": "x = 1\n"}}))' "$DP_STDIN_GOOD")"
+rc=0; { [[ -z "$HOOK_OUT" ]] && [[ "$HOOK_RC" -eq 0 ]]; } || rc=1
+gate "data-platform smells (PreToolUse stdin, file not yet on disk, clean content) silent" must_pass "$rc"
 
 # 7. applied-statistics — a p-value with no effect size / CI.
 printf 'p = 0.03\n' > "$DH/st-bad.py"
@@ -10150,6 +10225,363 @@ python3 plugins/ravenclaude-core/skills/analog-closeness-scorecard/score_closene
 gate "analog-closeness-scorecard --self-test (rows + buckets + quality-bar teeth)" must_pass "$rc"
 
 echo
+echo "── Gate 269: data-platform self-description tripwire (skills/rules/templates/CHANGELOG/Cube-version) ──"
+# FORGE gap-analysis pass P0-2 (dashboard-top1pct run, 2026-09-03): the plugin's
+# own CLAUDE.md/README.md/best-practices/README.md/CHANGELOG.md had silently
+# drifted from the filesystem — the exact failure mode CLAUDE.md §5's Capability
+# Grounding Protocol exists to prevent in agent OUTPUT, found in the plugin's own
+# scaffolding instead. Deliberately data-platform-scoped only, not marketplace-
+# wide — see the script's own docstring for why.
+rc=0; python3 scripts/check-data-platform-self-description.py >/dev/null 2>&1 || rc=$?
+gate "data-platform self-description: real tree passes clean" must_pass "$rc"
+DP_BAD="$TMP/dp-selfdesc-bad/plugins/data-platform"
+mkdir -p "$DP_BAD/skills/a" "$DP_BAD/skills/b" "$DP_BAD/skills/c" "$DP_BAD/best-practices" "$DP_BAD/templates" "$DP_BAD/.claude-plugin"
+touch "$DP_BAD/skills/a/SKILL.md" "$DP_BAD/skills/b/SKILL.md" "$DP_BAD/skills/c/SKILL.md"
+touch "$DP_BAD/best-practices/rule1.md" "$DP_BAD/best-practices/README.md"
+touch "$DP_BAD/templates/t1.md"
+printf 'the 2 skills in this plugin\n1 templates on disk\n' > "$DP_BAD/CLAUDE.md"
+printf '_1 rules. Each file is one named, citable rule._\n' > "$DP_BAD/best-practices/README.md"
+printf '{"version": "1.0.0"}' > "$DP_BAD/.claude-plugin/plugin.json"
+printf '## [1.0.0] — 2026-09-03\n' > "$DP_BAD/CHANGELOG.md"
+rc=0; python3 scripts/check-data-platform-self-description.py --root "$TMP/dp-selfdesc-bad/plugins/data-platform" >/dev/null 2>&1 || rc=$?
+gate "data-platform self-description: skills-count drift (3 on disk, CLAUDE.md says 2) caught" must_fail "$rc"
+DP_CUBE="$TMP/dp-selfdesc-cube/plugins/data-platform"
+mkdir -p "$DP_CUBE/skills/cube-schema-scaffolding" "$DP_CUBE/templates/cube-nextjs-dashboard-starter" "$DP_CUBE/templates/cube-astro-dashboard-starter" "$DP_CUBE/agents" "$DP_CUBE/best-practices" "$DP_CUBE/.claude-plugin"
+touch "$DP_CUBE/best-practices/README.md"
+printf '{"version": "1.0.0"}' > "$DP_CUBE/.claude-plugin/plugin.json"
+printf '## [1.0.0] — 2026-09-03\n' > "$DP_CUBE/CHANGELOG.md"
+printf 'requires Cube >=1.2.0\n' > "$DP_CUBE/templates/cube-schema-starter.yml"
+printf 'requires Cube >=1.2.0\n' > "$DP_CUBE/templates/cube-nextjs-dashboard-starter/README.md"
+printf 'requires Cube >=1.2.0\n' > "$DP_CUBE/templates/cube-astro-dashboard-starter/README.md"
+printf 'requires Cube Core >=1.2.0\n' > "$DP_CUBE/skills/cube-schema-scaffolding/SKILL.md"
+printf 'requires Cube Core >=1.3.0\n' > "$DP_CUBE/agents/dashboard-builder.md"
+rc=0; python3 scripts/check-data-platform-self-description.py --root "$TMP/dp-selfdesc-cube/plugins/data-platform" >/dev/null 2>&1 || rc=$?
+gate "data-platform self-description: Cube-version-floor mismatch (1.2.0 vs 1.3.0, RT-8) caught" must_fail "$rc"
+# P1-11: the stack-case coverage matrix must have no empty cell anywhere.
+DP_MATRIX="$TMP/dp-selfdesc-matrix/plugins/data-platform"
+mkdir -p "$DP_MATRIX/skills/a" "$DP_MATRIX/best-practices" "$DP_MATRIX/templates" "$DP_MATRIX/.claude-plugin"
+touch "$DP_MATRIX/skills/a/SKILL.md" "$DP_MATRIX/best-practices/rule1.md"
+touch "$DP_MATRIX/templates/t1.md"
+printf '{"version": "1.0.0"}' > "$DP_MATRIX/.claude-plugin/plugin.json"
+printf '## [1.0.0] — 2026-09-03\n' > "$DP_MATRIX/CHANGELOG.md"
+printf '_1 rules. Each file is one named, citable rule._\n' > "$DP_MATRIX/best-practices/README.md"
+printf 'the 1 skills in this plugin\n1 templates on disk\n\n## 9a. Stack-case coverage matrix\n\n| Case | Agent guidance | Skill |\n|---|---|---|\n| **A** | OK | |\n\n## 10. Escalating\n' > "$DP_MATRIX/CLAUDE.md"
+rc=0; python3 scripts/check-data-platform-self-description.py --root "$TMP/dp-selfdesc-matrix/plugins/data-platform" >/dev/null 2>&1 || rc=$?
+gate "data-platform self-description: coverage-matrix empty cell (P1-11) caught" must_fail "$rc"
+
+echo
+echo "── Gate 270: data-platform app-starter package manifests (Tier 1 — static only) ──"
+# FORGE P0-4 (2026-09-03): a Tier-1 STATIC check only — package.json parses, and the
+# package-lock.json P0-1 generated is present and non-empty. Deliberately NOT npm
+# ci/typecheck/build here: those tiers live in the separate, non-required
+# validate-data-platform-starters.yml workflow. Both critic and red-team flagged
+# that a network-calling or docker-requiring step inside audit-gates.sh — a
+# dependency of the REQUIRED validate-marketplace.yml check — makes every PR's
+# merge depend on npm-registry availability, and a registry failure that reads as
+# "nothing to install" is exactly the fail-toward-green shape this repo has been
+# bitten by before (see the file's own accumulated "silent green defects" lessons).
+for starter in cube-nextjs-dashboard-starter cube-astro-dashboard-starter; do
+  pkg="plugins/data-platform/templates/$starter/package.json"
+  lock="plugins/data-platform/templates/$starter/package-lock.json"
+  rc=0; python3 -m json.tool "$pkg" >/dev/null 2>&1 || rc=$?
+  gate "data-platform starter package.json parses ($starter)" must_pass "$rc"
+  rc=0; [[ -s "$lock" ]] || rc=1
+  gate "data-platform starter package-lock.json present + non-empty ($starter)" must_pass "$rc"
+  rc=0; python3 -m json.tool "$lock" >/dev/null 2>&1 || rc=$?
+  gate "data-platform starter package-lock.json parses ($starter)" must_pass "$rc"
+done
+# Teeth: a malformed package.json (the must-fail leg) must actually be caught.
+DP_PKG_BAD="$TMP/dp-pkg-bad/package.json"
+mkdir -p "$(dirname "$DP_PKG_BAD")"
+printf '{ "name": "bad", trailing-comma-and-no-quotes }' > "$DP_PKG_BAD"
+rc=0; python3 -m json.tool "$DP_PKG_BAD" >/dev/null 2>&1 || rc=$?
+gate "data-platform starter package.json parse check (malformed fixture caught)" must_fail "$rc"
+
+echo
+echo "── Gate 271: data-platform skill reachability (every skill wired to an agent) ──"
+# FORGE P1-6 (2026-09-03): a dispatched subagent loads its own agents/*.md, not
+# CLAUDE.md's skill table — a skill listed there but never mentioned by any
+# agents/*.md is shipped, indexed, and structurally invisible at runtime. Five of
+# fifteen data-platform skills had zero agents/*.md references this session;
+# wired in P1-6. This gate keeps that fixed. Deliberately data-platform-scoped —
+# see the script's own docstring for why (every plugin has a different topology).
+rc=0; python3 scripts/check-data-platform-skill-reachability.py >/dev/null 2>&1 || rc=$?
+gate "data-platform skill reachability: real tree, all 15 skills reachable" must_pass "$rc"
+DP_SKR_TMP="$(mktemp -d)"
+DP_SKR="$DP_SKR_TMP/plugins/data-platform"
+mkdir -p "$DP_SKR/skills/cube-schema-scaffolding" "$DP_SKR/skills/orphan-skill" "$DP_SKR/agents"
+printf -- '---\nname: x\n---\nbody\n' > "$DP_SKR/skills/cube-schema-scaffolding/SKILL.md"
+printf -- '---\nname: z\n---\nbody\n' > "$DP_SKR/skills/orphan-skill/SKILL.md"
+printf 'This agent reads cube-schema-scaffolding for its work.\n' > "$DP_SKR/agents/dashboard-builder.md"
+rc=0; python3 scripts/check-data-platform-skill-reachability.py --root "$DP_SKR" >/dev/null 2>&1 || rc=$?
+gate "data-platform skill reachability: orphaned skill (no agent ref, no invoked_by) caught" must_fail "$rc"
+rm -rf "$DP_SKR_TMP"
+
+echo
+echo "── Gate 272: data-platform cross-tenant denial harness (Tier 4 — opt-in, needs docker) ──"
+# FORGE P1-9 (2026-09-03). Deliberately OPT-IN, never in the default run — it
+# needs a live docker-compose stack (Postgres + Cube v1.7.33). Required only on
+# a PR that touches a starter, a Cube schema, or an RLS template — wire that
+# path-based requirement at the CI-workflow level, not here (this script has no
+# notion of "which PR"). With DP_INTEGRATION unset, this section is a plain,
+# silent skip (that's the intended "not in the default run" contract, distinct
+# from the loud _skip_or_fail below, which fires only once the run IS opted in
+# but docker specifically is missing).
+if [[ "${DP_INTEGRATION:-0}" == "1" ]]; then
+  DP_HARNESS_DIR="plugins/data-platform/templates/cube-denial-test-harness"
+  if ! command -v docker >/dev/null 2>&1; then
+    _skip_or_fail "data-platform cross-tenant denial harness (DP_INTEGRATION=1, docker absent)" "docker"
+  else
+    rc=0
+    (
+      cd "$DP_HARNESS_DIR" &&
+        docker compose up -d --wait &&
+        npm install &&
+        npm test
+    ) || rc=$?
+    gate "data-platform cross-tenant denial harness (live Cube + Postgres RLS)" must_pass "$rc"
+    (cd "$DP_HARNESS_DIR" && docker compose down -v) >/dev/null 2>&1 || true
+  fi
+else
+  echo "  (skipped — set DP_INTEGRATION=1 to run; needs docker. Not part of the default suite.)"
+fi
+
+echo
+echo "── Gate 273: data-platform dashboard-audit structural checks (no browser needed) ──"
+# FORGE P1-10 (2026-09-03): the parts of the dashboard-architecture-audit
+# rubric that don't need a rendered page — an empty/zero-data-state branch
+# and a comparison-baseline label both being PRESENT in source — as a
+# lightweight, static, always-runnable complement to the full audit (which
+# does need a browser or a human to run for real). This does not replace the
+# audit; it catches the two most mechanically-checkable regressions cheaply.
+for starter in cube-nextjs-dashboard-starter cube-astro-dashboard-starter; do
+  kpi="plugins/data-platform/templates/$starter/components/KpiCard.tsx"
+  [[ -f "$kpi" ]] || kpi="plugins/data-platform/templates/$starter/src/components/KpiCard.tsx"
+  rc=0; grep -q "isZero" "$kpi" 2>/dev/null || rc=1
+  gate "dashboard-audit structural: empty-state branch present ($starter)" must_pass "$rc"
+  rc=0; grep -q "comparisonLabel" "$kpi" 2>/dev/null || rc=1
+  gate "dashboard-audit structural: comparison-baseline label present ($starter)" must_pass "$rc"
+done
+# Teeth: a fixture missing both must be caught.
+DP_AUDIT_BAD="$TMP/dp-audit-bad-kpi.tsx"
+printf 'export function KpiCard() { return <div>{value}</div>; }\n' > "$DP_AUDIT_BAD"
+rc=0; grep -q "isZero" "$DP_AUDIT_BAD" 2>/dev/null || rc=1
+gate "dashboard-audit structural: missing empty-state branch caught" must_fail "$rc"
+
+echo
+echo "── Gate 274: data-platform knowledge-bank freshness (scheduled-routine lane, not a PR gate) ──"
+# FORGE P1-12 (2026-09-03). Staleness (past the self-declared 90-day trigger) is
+# a WARN, never a FAIL — this is a research substrate, not a build input, so
+# this gate only enforces the hard floor: every knowledge/*.md file must carry
+# a DISCOVERABLE last-reviewed date (YAML frontmatter or prose blockquote).
+# Deliberately data-platform-scoped, matching Gates 269/271's own scoping
+# rationale (every plugin's knowledge-bank shape differs).
+rc=0; python3 scripts/check-data-platform-knowledge-freshness.py --as-of 2026-09-03 >/dev/null 2>&1 || rc=$?
+gate "data-platform knowledge freshness: real tree, every file has a discoverable date" must_pass "$rc"
+DP_KF_TMP="$(mktemp -d)"
+DP_KF="$DP_KF_TMP/plugins/data-platform"
+mkdir -p "$DP_KF/knowledge"
+printf -- '---\nlast_reviewed: 2026-08-01\n---\n\nbody\n' > "$DP_KF/knowledge/fresh-frontmatter.md"
+printf -- '# Some file\n\n> **Last reviewed:** 2026-07-01.\n\nbody\n' > "$DP_KF/knowledge/fresh-prose.md"
+printf -- '# Undated file\n\nno date anywhere in this file.\n' > "$DP_KF/knowledge/undated.md"
+rc=0; python3 scripts/check-data-platform-knowledge-freshness.py --root "$DP_KF" --as-of 2026-09-03 >/dev/null 2>&1 || rc=$?
+gate "data-platform knowledge freshness: file with no discoverable date caught" must_fail "$rc"
+rm -rf "$DP_KF_TMP"
+
+echo
+echo "── Gate 275: data-platform export/print structural checks (no browser needed) ──"
+# FORGE P2-14 (2026-09-03): the parts of P2-14's acceptance test that don't
+# need a rendered page or a live Cube instance — an export route exists per
+# starter, the print/PDF affordance and its @media print rule exist, and
+# every provenance footer that must survive to print carries the
+# data-provenance-footer marker the print CSS targets. Lightweight
+# complement to the (opt-in, docker-gated) denial-harness Gate 272, which
+# proves the export route's tenant-isolation property; this gate proves the
+# structural pieces are present at all.
+for starter in cube-nextjs-dashboard-starter cube-astro-dashboard-starter; do
+  base="plugins/data-platform/templates/$starter"
+  export_route="$base/app/api/export/route.ts"
+  [[ -f "$export_route" ]] || export_route="$base/src/pages/api/export.ts"
+  rc=0; [[ -f "$export_route" ]] || rc=1
+  gate "export structural: export route exists ($starter)" must_pass "$rc"
+
+  rc=0; grep -q "session.tenantId" "$export_route" 2>/dev/null || rc=1
+  gate "export structural: export route derives tenant_id from session, not request input ($starter)" must_pass "$rc"
+
+  print_css="$base/app/globals.css"
+  [[ -f "$print_css" ]] || print_css="$base/src/styles/globals.css"
+  rc=0; grep -q "@media print" "$print_css" 2>/dev/null || rc=1
+  gate "export structural: print stylesheet present ($starter)" must_pass "$rc"
+
+  kpi="$base/components/KpiCard.tsx"
+  [[ -f "$kpi" ]] || kpi="$base/src/components/KpiCard.tsx"
+  rc=0; grep -q "data-provenance-footer" "$kpi" 2>/dev/null || rc=1
+  gate "export structural: provenance footer marked for print survival ($starter)" must_pass "$rc"
+done
+# Teeth: a fixture missing the session-derived tenant marker must be caught.
+DP_EXPORT_BAD="$TMP/dp-export-bad-route.ts"
+printf 'export async function GET(req) { const tenantId = req.query.tenantId; return Response.json({tenantId}); }\n' > "$DP_EXPORT_BAD"
+rc=0; grep -q "session.tenantId" "$DP_EXPORT_BAD" 2>/dev/null || rc=1
+gate "export structural: request-derived tenant scoping caught" must_fail "$rc"
+
+echo
+echo "── Gate 276: data-platform locale/timezone structural checks (no browser needed) ──"
+# FORGE P2-15 (2026-09-03): no hard-coded "en-US" in either starter's widget
+# formatting call sites, an explicit `timezone` reaching each Cube query, and
+# the provenance footer naming the timezone alongside the date range. NOTE
+# (honest correction of plan.md's own acceptance-test wording): a literal
+# `grep -rn '"en-US"' templates/cube-*` still returns 2 hits post-fix —
+# lib/locale.ts's own doc comment and its named DEFAULT_LOCALE_CONTEXT
+# fallback constant, not a hard-coded formatting call. Removing those would
+# leave the app with no default locale at all, which is a worse design, not
+# a better one — so this gate checks the substantive requirement (no
+# hard-coded locale inside an Intl.NumberFormat/DateTimeFormat call site)
+# rather than the plan's blunter literal grep.
+for starter in cube-nextjs-dashboard-starter cube-astro-dashboard-starter; do
+  base="plugins/data-platform/templates/$starter"
+  kpi="$base/components/KpiCard.tsx"
+  [[ -f "$kpi" ]] || kpi="$base/src/components/KpiCard.tsx"
+  chart="$base/components/RevenueChart.tsx"
+  [[ -f "$chart" ]] || chart="$base/src/components/RevenueChart.tsx"
+
+  rc=0
+  grep -q 'Intl\.NumberFormat("en-US"' "$kpi" 2>/dev/null && rc=1
+  grep -q 'Intl\.DateTimeFormat("en-US"' "$chart" 2>/dev/null && rc=1
+  gate "locale structural: no hard-coded en-US in a formatting call ($starter)" must_pass "$rc"
+
+  rc=0; grep -q "useLocale()" "$kpi" 2>/dev/null || rc=1
+  gate "locale structural: KpiCard consumes useLocale() ($starter)" must_pass "$rc"
+
+  rc=0
+  grep -q "timezone" "$kpi" 2>/dev/null || rc=1
+  grep -q "timezone" "$chart" 2>/dev/null || rc=1
+  gate "locale structural: timezone reaches the Cube query ($starter)" must_pass "$rc"
+
+  rc=0
+  grep -q "dateRange} ({timezone})" "$kpi" 2>/dev/null || rc=1
+  grep -q "dateRange} ({timezone})" "$chart" 2>/dev/null || rc=1
+  gate "locale structural: provenance footer names the timezone ($starter)" must_pass "$rc"
+done
+# Teeth: a fixture with a hard-coded en-US formatting call must be caught.
+DP_LOCALE_BAD="$TMP/dp-locale-bad-kpi.tsx"
+printf 'const f = (v) => new Intl.NumberFormat("en-US", {}).format(v);\n' > "$DP_LOCALE_BAD"
+rc=0
+grep -q 'Intl\.NumberFormat("en-US"' "$DP_LOCALE_BAD" 2>/dev/null && rc=1
+gate "locale structural: hard-coded en-US formatting call caught" must_fail "$rc"
+
+echo
+echo "── Gate 277: data-platform freshness-badge structural checks (no browser needed) ──"
+# FORGE P2-16 (2026-09-03): commands/build-embedded-dashboard.md step 5 has
+# mandated a visible as-of timestamp since it was written; confirmed neither
+# starter rendered one before this phase. This gate asserts every starter
+# page actually MOUNTS <FreshnessBadge> — an artifact nobody's page imports
+# is not a closed gap, per the reachability discipline P0-2/P1-6 established.
+for starter in cube-nextjs-dashboard-starter cube-astro-dashboard-starter; do
+  base="plugins/data-platform/templates/$starter"
+  badge="$base/components/FreshnessBadge.tsx"
+  [[ -f "$badge" ]] || badge="$base/src/components/FreshnessBadge.tsx"
+  shell="$base/components/DashboardShell.tsx"
+  [[ -f "$shell" ]] || shell="$base/src/components/DashboardIsland.tsx"
+
+  rc=0; [[ -f "$badge" ]] || rc=1
+  gate "freshness structural: FreshnessBadge.tsx exists ($starter)" must_pass "$rc"
+
+  rc=0; grep -q "FreshnessBadge" "$shell" 2>/dev/null || rc=1
+  gate "freshness structural: FreshnessBadge mounted on the dashboard page ($starter)" must_pass "$rc"
+
+  rc=0; grep -q "slaMinutes" "$shell" 2>/dev/null || rc=1
+  gate "freshness structural: an SLA is declared at the mount site ($starter)" must_pass "$rc"
+done
+# Teeth: a shell fixture that never mounts the badge must be caught.
+DP_FRESH_BAD="$TMP/dp-fresh-bad-shell.tsx"
+printf 'export function DashboardShell() { return <div><KpiCard /></div>; }\n' > "$DP_FRESH_BAD"
+rc=0; grep -q "FreshnessBadge" "$DP_FRESH_BAD" 2>/dev/null || rc=1
+gate "freshness structural: missing FreshnessBadge mount caught" must_fail "$rc"
+
+echo
+echo "── Gate 278: data-platform per-widget query-tagging structural checks (no browser needed) ──"
+# FORGE P2-17 (2026-09-03): every getCubeClient( call in a widget component
+# must carry a tag argument, not a bare getCubeClient() — an untagged widget
+# collapses into Cube's Query History as an unattributable line, defeating
+# the whole point of knowledge/dashboard-query-cost-instrumentation.md's
+# scheme. lib/cube-client.ts's own DashboardShell/DashboardIsland default
+# (a CubeProvider fallback, never used by a widget directly) is intentionally
+# untagged and NOT covered by this gate.
+for starter in cube-nextjs-dashboard-starter cube-astro-dashboard-starter; do
+  base="plugins/data-platform/templates/$starter"
+  for widget in KpiCard RevenueChart FreshnessBadge; do
+    f="$base/components/$widget.tsx"
+    [[ -f "$f" ]] || f="$base/src/components/$widget.tsx"
+    rc=0
+    # A bare `getCubeClient()` call (no argument) inside a widget is the
+    # regression this gate exists to catch; a tagged call is
+    # `getCubeClient(`<something>`)` — the backtick right after the paren.
+    grep -qE 'getCubeClient\(\)' "$f" 2>/dev/null && rc=1
+    gate "query-tag structural: $widget uses a tagged getCubeClient() call ($starter)" must_pass "$rc"
+  done
+done
+# Teeth: a widget fixture calling the bare, untagged form must be caught.
+DP_TAG_BAD="$TMP/dp-tag-bad-widget.tsx"
+printf 'const cubeApi = getCubeClient();\n' > "$DP_TAG_BAD"
+rc=0
+grep -qE 'getCubeClient\(\)' "$DP_TAG_BAD" 2>/dev/null && rc=1
+gate "query-tag structural: bare untagged getCubeClient() call caught" must_fail "$rc"
+
+echo
+echo "── Gate 279: data-platform theming structural checks (no browser needed) ──"
+# FORGE P2-18 (2026-09-03): every color must resolve through a CSS custom
+# property (never a literal hex) so a host can re-theme an embedded
+# dashboard by overriding a variable, per best-practices/dashboard-inherit-
+# the-hosts-color-scheme-when-embedded.md. Token FILES (tailwind.config,
+# globals.css) are exempt — they're where the var() DEFINITIONS live;
+# everything else must reference, not redefine.
+for starter in cube-nextjs-dashboard-starter cube-astro-dashboard-starter; do
+  base="plugins/data-platform/templates/$starter"
+  src="$base"
+  # ⛔ NOT `[[ -d "$base/src" ]] && src=...` — under this script's `set -e`,
+  # a bare `&&` chain returns the exit status of its right-hand side ONLY
+  # when the left side is true; when `[[ -d ]]` is false (cube-nextjs-
+  # dashboard-starter has no src/ — it's the FIRST starter in this loop),
+  # the whole compound statement returns 1 and set -e kills the entire
+  # script right here, silently, with no error printed. Found live: three
+  # consecutive full-suite runs died at exactly this point with no trace.
+  if [[ -d "$base/src" ]]; then src="$base/src"; fi
+
+  rc=0
+  # shellcheck disable=SC2038
+  # ⛔ THE REAL BUG (found live, after the [[ -d ]] && fix above did NOT
+  # resolve it): `grep -l` exits 1 when NOTHING matches — which is the
+  # DESIRED, passing outcome here (no hex literals found). With
+  # `set -o pipefail` active, that 1 propagates through the pipe, and a
+  # bare `var="$(...)"` assignment (not `local`, no `|| true`) propagates
+  # a failing command substitution's exit status under `set -e` — killing
+  # the whole script silently, mid-gate, with no error printed. This is
+  # THE actual cause of three consecutive full-suite runs dying at this
+  # exact point with a clean git status and no trace. `|| true` neutralizes
+  # the expected-empty case without masking a genuine `find`/`grep` crash
+  # (2>/dev/null already swallows those; this only catches "no matches").
+  hex_hits="$(find "$src" -name "*.tsx" -o -name "*.astro" 2>/dev/null | xargs grep -lE '#[0-9a-fA-F]{6}' 2>/dev/null || true)"
+  [[ -z "$hex_hits" ]] || rc=1
+  gate "theming structural: no literal hex outside a token file ($starter)" must_pass "$rc"
+
+  darkfile="$base/app/globals.css"
+  [[ -f "$darkfile" ]] || darkfile="$base/src/styles/globals.css"
+  rc=0; grep -q "^\.dark {" "$darkfile" 2>/dev/null || rc=1
+  gate "theming structural: a .dark token block is defined ($starter)" must_pass "$rc"
+
+  togglefile="$base/components/ThemeToggle.tsx"
+  [[ -f "$togglefile" ]] || togglefile="$base/src/components/ThemeToggle.tsx"
+  rc=0
+  grep -q 'role="switch"' "$togglefile" 2>/dev/null || rc=1
+  grep -q "aria-checked" "$togglefile" 2>/dev/null || rc=1
+  gate "theming structural: ThemeToggle is an accessible switch ($starter)" must_pass "$rc"
+done
+# Teeth: a fixture with a literal hex must be caught.
+DP_THEME_BAD="$TMP/dp-theme-bad-widget.tsx"
+printf 'const style = { color: "#3b82f6" };\n' > "$DP_THEME_BAD"
+rc=0
+grep -qE '#[0-9a-fA-F]{6}' "$DP_THEME_BAD" 2>/dev/null && rc=1
+gate "theming structural: literal hex outside a token file caught" must_fail "$rc"
 echo "── Gate 266: runtime self-test front door — Tier A only ────────────────────"
 # Phase 9 (sessionstart-safeguards-multihost). Registers the runtime self-
 # test's MECHANISM checks: Tier A invocation + delivery (Phase 6, via
@@ -10254,7 +10686,7 @@ else
 fi
 
 echo
-echo "── Gate 269: context-usage meter is model-aware ────────────────────────────"
+echo "── Gate 280: context-usage meter is model-aware ────────────────────────────"
 # From the context-budget-aware-meter build. Before this, scripts/context-usage-
 # meter.py assumed every Claude Code session had a 200,000-token context window
 # regardless of which model was actually running — wrong by 5x for every current
@@ -10264,12 +10696,16 @@ echo "── Gate 269: context-usage meter is model-aware ───────�
 # governed alias with a positive int, and (B) the real test-context-usage-meter.py
 # suite passes AND fails against a MUTANT that reverts the model-aware resolution
 # to the old hardcoded-200000 behavior — the teeth half, so this gate is proven to
-# be measuring the fix rather than passing for an unrelated reason.
+# be measuring the fix rather than passing for an unrelated reason. ⛔ Renumbered
+# from 269 at merge time — origin/main independently claimed Gates 269-279 for
+# the data-platform batch while this branch was unmerged (the same collision
+# class this repo's own CLAUDE.md already records twice, e.g. the Gate 261->263
+# forge-receipt renumbering).
 if command -v python3 >/dev/null 2>&1; then
   rc=0; python3 scripts/check-context-budget-meter.py --self-test >/dev/null 2>&1 || rc=$?
   gate "context-usage meter: model-aware window resolution + hardcoded-window-mutant teeth" must_pass "$rc"
 else
-  _skip_or_fail "Gate 269 (context-usage meter model-aware)" python3
+  _skip_or_fail "Gate 280 (context-usage meter model-aware)" python3
 fi
 
 # CLI-contract spot checks (PR-C hard constraints). Deliberately does NOT

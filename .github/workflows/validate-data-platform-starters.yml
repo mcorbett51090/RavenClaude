@@ -1,0 +1,147 @@
+name: Validate data-platform starters
+
+# WHY THIS WORKFLOW EXISTS
+# -----------------------
+# Confirmed 2026-09-03 (FORGE dashboard-top1pct run, P0-4): nothing anywhere executed
+# either data-platform app starter (cube-nextjs-dashboard-starter,
+# cube-astro-dashboard-starter). Both starters' READMEs are honest about "not yet run
+# against a live Cube instance" — but a typecheck and a build need no Cube instance at
+# all, and that cheapest-possible proof did not exist either. This workflow runs it.
+#
+# NOT marked required initially — per this repo's own required-status-check discipline
+# (AGENTS.md "Required status checks"), a new check earns required status after a full
+# release cycle green, not on day one. It carries a paths: filter, which is fine for a
+# NON-required check (the bar against paths: filters applies only to the three checks
+# the branch ruleset actually requires).
+#
+# Tier split (see plan.md P0-4): install/typecheck/build/headless-smoke live HERE, in a
+# non-required workflow — never inside audit-gates.sh, which is a dependency of the
+# REQUIRED validate-marketplace.yml check. A registry outage or a flaky npm install must
+# never be able to block every PR in the repo; audit-gates.sh only gets a Tier-1 STATIC
+# check (package.json parses, the lockfile from P0-1 exists and is non-empty).
+#
+# ⛔ HONEST LIMIT: this workflow has been authored and its steps hand-verified locally
+# (npm ci / typecheck / build all confirmed green this session — see
+# .ravenclaude/runs/forge/dashboard-top1pct/p0-4-prebuild-probe.md), but the GitHub
+# Actions execution itself has NOT been observed running in CI yet — that confirmation
+# happens on this change's own PR, not in this session. Treat "runs in CI" as pending,
+# not claimed.
+
+on:
+  pull_request:
+    paths:
+      - "plugins/data-platform/templates/cube-nextjs-dashboard-starter/**"
+      - "plugins/data-platform/templates/cube-astro-dashboard-starter/**"
+      - ".github/workflows/validate-data-platform-starters.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "plugins/data-platform/templates/cube-nextjs-dashboard-starter/**"
+      - "plugins/data-platform/templates/cube-astro-dashboard-starter/**"
+      - ".github/workflows/validate-data-platform-starters.yml"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  nextjs-starter:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: plugins/data-platform/templates/cube-nextjs-dashboard-starter
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "18.17.0" # matches this starter's package.json engines.node floor (P0-1)
+          cache: npm
+          cache-dependency-path: plugins/data-platform/templates/cube-nextjs-dashboard-starter/package-lock.json
+
+      - name: npm ci
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Build
+        run: npm run build
+
+      - name: Headless smoke (boot + load / + assert clean console, no live Cube needed)
+        env:
+          NEXT_PUBLIC_CUBE_API_URL: "http://localhost:4000/cubejs-api/v1"
+          CUBE_API_ORIGIN: "http://localhost:4000"
+          JWT_SIGNING_KEY: "smoke-test-only-key-not-a-real-secret-32-bytes-min"
+        run: |
+          set -euo pipefail
+          npx --yes next start -p 4173 &
+          SERVER_PID=$!
+          # ci-headless-smoke.js lives one directory UP (shared by both starters) and
+          # Node's require() resolves relative to the REQUIRING FILE's own directory,
+          # never the invoking cwd — so an install here (cwd = this starter) would
+          # place playwright where the script can never find it. --prefix .. installs
+          # into templates/node_modules instead, where the shared script's require()
+          # actually walks. Verified empirically (a small real package install +
+          # require from the parent) before landing this fix. `npm ci` (not
+          # `npm install <pkg>@version`) reads templates/package-lock.json — a
+          # committed, pinned transitive-dependency tree, not an ad-hoc install
+          # (zizmor's adhoc-packages audit). playwright is pinned to 1.61.0 (not
+          # this workflow's original 1.48.0, which carried a real, applicable
+          # high-severity advisory — GHSA-7mvr-c777-76hp — in the exact
+          # browser-download step below) and NOT the current latest (1.63.0),
+          # because playwright's engines.node floor bumped to >=20 at 1.62.0
+          # and this job's setup-node above is pinned to 18.17.0. 1.61.0 is the
+          # newest release clearing the advisory while still supporting Node 18.
+          npm ci --prefix ..
+          npx --yes playwright@1.61.0 install --with-deps chromium
+          SMOKE_URL="http://localhost:4173/" node ../ci-headless-smoke.js
+          kill "$SERVER_PID" 2>/dev/null || true
+
+  astro-starter:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: plugins/data-platform/templates/cube-astro-dashboard-starter
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "18.17.0" # matches this starter's package.json engines.node floor (P0-1)
+          cache: npm
+          cache-dependency-path: plugins/data-platform/templates/cube-astro-dashboard-starter/package-lock.json
+
+      - name: npm ci
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Build
+        run: npm run build
+
+      - name: Headless smoke (boot + load / + assert clean console, no live Cube needed)
+        env:
+          PUBLIC_CUBE_API_URL: "http://localhost:4000/cubejs-api/v1"
+          CUBE_API_ORIGIN: "http://localhost:4000"
+          JWT_SIGNING_KEY: "smoke-test-only-key-not-a-real-secret-32-bytes-min"
+          HOST: "0.0.0.0"
+          PORT: "4321"
+        run: |
+          set -euo pipefail
+          node ./dist/server/entry.mjs &
+          SERVER_PID=$!
+          # See the identical comment in the nextjs-starter job above — same fix,
+          # same reason (require() resolves from ci-headless-smoke.js's own
+          # directory, not this starter's cwd) and same npm ci / version-pin
+          # rationale (templates/package-lock.json; playwright >=1.55.1).
+          npm ci --prefix ..
+          npx --yes playwright@1.61.0 install --with-deps chromium
+          SMOKE_URL="http://localhost:4321/" node ../ci-headless-smoke.js
+          kill "$SERVER_PID" 2>/dev/null || true

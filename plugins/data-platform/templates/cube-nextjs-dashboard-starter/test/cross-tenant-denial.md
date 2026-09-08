@@ -38,9 +38,13 @@ scaffold provisions neither. Wire it into your engagement's CI once both exist.
 
 ## Automating this
 
-Once a real Cube instance is available in CI (or a docker-compose test harness), convert the
-steps above into an integration test (e.g. a `vitest` + `fetch` script) that asserts the
-response body's revenue value is `0`/empty. This file intentionally does not ship that script
-today — a script that always "passes" because it never actually reaches a live Cube instance
-would be worse than no test (a false-green CI check), which is exactly the failure mode this
-plugin's own conventions warn against.
+**Done (FORGE dashboard-top1pct P1-9, 2026-09-03):** `../../cube-denial-test-harness/` is the
+executable version of the steps above — a docker-compose-backed Cube (pinned `v1.7.33`) +
+Postgres fixture with a `vitest` test asserting the positive control (tenant A's own revenue
+is non-zero) and the denial (tenant A cannot see tenant B's revenue, at both the Cube
+`access_policy` layer and the Postgres RLS layer). It is opt-in (`DP_INTEGRATION=1`, needs
+docker — never in the default CI run) and its own README states honestly that it has not yet
+been executed against a live Cube+Postgres pair (no docker runtime was available in the
+session that built it) — the reasoning above about a false-green script still applies until
+that first real run happens. This procedure document stays as the authoritative manual
+fallback for anyone who can't or doesn't want to run the harness.

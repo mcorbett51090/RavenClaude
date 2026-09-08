@@ -137,6 +137,15 @@ region, a route) for every finding — a score with no evidence is not a finding
 
 ## References
 
+- **Worked examples (P1-9/P1-10, 2026-09-03):**
+  [`../../templates/examples/dashboard-audit-report-cube-nextjs.md`](../../templates/examples/dashboard-audit-report-cube-nextjs.md) and
+  [`../../templates/examples/dashboard-audit-report-cube-astro.md`](../../templates/examples/dashboard-audit-report-cube-astro.md) —
+  the first two real runs of this skill, against this plugin's own app starters. Read these
+  before writing a report from scratch: they show the evidence-citation style and the
+  Last-Mile discipline of actually fixing what's automatable rather than only listing it.
+  ⛔ **Neither report checks tenant isolation** — that is `cube-denial-test-harness`'s lane
+  (see `templates/cube-denial-test-harness/README.md`), not this skill's. A dashboard can
+  pass every finding in this rubric and still leak across tenants; run both.
 - Report template: [`../../templates/dashboard-audit-report-template.md`](../../templates/dashboard-audit-report-template.md)
 - Knowledge: [`../../knowledge/dashboard-visual-craft-2026.md`](../../knowledge/dashboard-visual-craft-2026.md)
 - Skill: [`dashboard-performance-tuning`](../dashboard-performance-tuning/SKILL.md)

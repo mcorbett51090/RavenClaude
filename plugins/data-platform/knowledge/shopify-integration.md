@@ -51,15 +51,18 @@ The Pub/Sub and EventBridge options reduce the operational burden of building a 
 ## Rate limits
 
 ### REST Admin API (legacy)
-- **40 req/sec bucket** (standard plan)
-- **80 req/sec bucket** (Shopify Plus)
+- **40 req/sec bucket** (standard plan) `[unverified — training knowledge, 2026-09-03; REST is legacy and shopify.dev's current usage-limits page no longer documents REST bucket sizes]`
+- **80 req/sec bucket** (Shopify Plus) `[unverified — training knowledge, 2026-09-03; same caveat]`
 
 ### GraphQL Admin API
 - **Cost-based throttling**, not request-count
 - Each query has a "cost" calculated from the fields requested
-- **Standard plan: 50 cost points/sec restore rate; 1,000 cost-point bucket**
-- **Shopify Plus: 100/sec restore; 2,000 bucket**
+- **Standard: 100 points/sec `[verified 2026-09-03 — updated, was "50 cost points/sec restore rate; 1,000 cost-point bucket"]`**
+- **Advanced Shopify: 200 points/sec `[verified 2026-09-03 — new tier not previously listed]`**
+- **Shopify Plus: 1,000 points/sec `[verified 2026-09-03 — updated, was "100/sec restore; 2,000 bucket"]`**
+- **Shopify for enterprise (Commerce Components): 2,000 points/sec `[verified 2026-09-03 — new tier not previously listed]`**
 - GraphQL is more flexible — request only the fields needed = lower cost per query
+- Source: [shopify.dev/docs/api/usage/limits](https://shopify.dev/docs/api/usage/limits), retrieved 2026-09-03. Shopify has moved from a fixed leaky-bucket description to a plan-tiered points/second model — the bucket-size framing above may itself be an approximation of the current mechanism; re-verify the exact bucket-vs-rate mechanics at next use rather than assuming this shape is stable.
 
 ## Connector availability
 

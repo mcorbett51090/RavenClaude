@@ -19,10 +19,37 @@
 
 **Sub-agents do not spawn other sub-agents** — only the Team Lead delegates. If work crosses specialist boundaries, each specialist returns their slice and the Team Lead re-dispatches.
 
+**Tool-scoping audit (FORGE dashboard-top1pct P1-13, 2026-09-03).** All four agents' `tools:`
+allowlists were re-examined against AGENTS.md's least-privilege rule (§ "Adding a new plugin",
+item 9). Outcome: no narrowing — each agent's `Bash`/`WebFetch`/`WebSearch` grant is load-bearing
+for a real, distinct use already documented on the agent (schema/connector/framework smoke tests
+via Bash; live API/SDK doc lookups via WebFetch/WebSearch, distinct from the pure-pricing lookups
+CLAUDE.md §10 already routes to `ravenclaude-core/deep-researcher`). Each agent now carries an
+inline frontmatter comment recording the specific rationale, so a future audit doesn't have to
+re-derive it from scratch. `database-setup-guide`'s `WebFetch`/`WebSearch` grant was the one
+closest to removable (its own use is nearly all pricing-page verification, which duplicates the
+`deep-researcher` route) but was kept — stranding the agent mid-conversation with no fallback
+query path was judged a worse failure mode than the narrow duplication.
+
 **Two skill-routed escalations to `ravenclaude-core` (per the marketplace house rule on domain-plugins-extend-core-via-skills):**
 
 - **Stack-selection questions** ("what stack should I use for this engagement?") → `ravenclaude-core/architect`, which reads this plugin's [`skills/stack-selection/SKILL.md`](skills/stack-selection/SKILL.md) via an inline prior on the core architect's file
 - **Any change touching auth, JWT issuance, RLS policies, embed CSP/iframe-sandboxing** → `ravenclaude-core/security-reviewer`, which reads this plugin's [`skills/jwt-embed-issuance/SKILL.md`](skills/jwt-embed-issuance/SKILL.md), [`skills/rls-policy-authoring/SKILL.md`](skills/rls-policy-authoring/SKILL.md), and [`skills/embed-csp-and-iframe-sandboxing/SKILL.md`](skills/embed-csp-and-iframe-sandboxing/SKILL.md) via an inline pointer on the core security-reviewer's file
+
+---
+
+## 1a. Slash commands
+
+5 slash commands (`commands/`), previously shipped but enumerated in neither this file nor
+`README.md` — fixed as part of the FORGE self-description reconciliation pass:
+
+| Command | Agent discipline it follows | Cites these `best-practices/` rules |
+|---|---|---|
+| [`/build-embedded-dashboard`](commands/build-embedded-dashboard.md) | `dashboard-builder` | `model-semantic-layer-single-source-of-truth`, `enforce-tenant-isolation-closest-to-data`, `issue-short-lived-jwts-for-embeds`, `embed-lock-csp-frame-ancestors-and-sandbox`, `dashboard-set-data-freshness-slas` |
+| [`/build-incremental-connector`](commands/build-incremental-connector.md) | `connector-developer` (playbook: `skills/airbyte-cdk-authoring/SKILL.md`) | `connector-incremental-with-backfill`, `ingest-idempotent-and-replayable`, `etl-elt-load-then-transform-in-warehouse`, `connector-document-the-handoff-at-design-time` |
+| [`/design-warehouse-schema`](commands/design-warehouse-schema.md) | `database-setup-guide` + `etl-pipeline-engineer` | `warehouse-select-by-workload-not-brand`, `warehouse-partition-and-cluster-for-cost`, `dbt-stage-then-mart-never-skip-the-layer`, `enforce-tenant-isolation-closest-to-data`, `model-semantic-layer-single-source-of-truth` |
+| [`/scaffold-idempotent-elt-pipeline`](commands/scaffold-idempotent-elt-pipeline.md) | `etl-pipeline-engineer` | `etl-elt-load-then-transform-in-warehouse`, `ingest-idempotent-and-replayable`, `dbt-stage-then-mart-never-skip-the-layer`, `dbt-test-the-floor-unique-not-null-relationships`, `dashboard-set-data-freshness-slas` |
+| [`/stand-up-multi-tenant-database`](commands/stand-up-multi-tenant-database.md) | `database-setup-guide` | `warehouse-select-by-workload-not-brand`, `enforce-tenant-isolation-closest-to-data`, `rls-author-using-and-with-check-force-on` |
 
 ---
 
@@ -85,7 +112,7 @@ These plugin-wide opinions are inherited by all **4** agents.
 
 This plugin inherits the Capability Grounding Protocol from `ravenclaude-core`. Before any data-platform agent says "I can't do X" or "this isn't possible", it must:
 
-1. **Check available skills first** — the 14 skills in this plugin (`stack-selection`, `cloud-database-comparison`, `connector-configuration`, `airbyte-cdk-authoring`, `jwt-embed-issuance`, `rls-policy-authoring`, `cube-schema-scaffolding`, `embed-csp-and-iframe-sandboxing`, `dbt-project-scaffolding`, `dashboard-performance-tuning`, `multi-tenant-migration`, `data-quality-tests`, `cross-system-identity-resolution`, `support-ticket-normalization`) plus the core skills (`structured-output`, `grounding-protocol`, etc.).
+1. **Check available skills first** — the 15 skills in this plugin (`stack-selection`, `cloud-database-comparison`, `connector-configuration`, `airbyte-cdk-authoring`, `jwt-embed-issuance`, `rls-policy-authoring`, `cube-schema-scaffolding`, `embed-csp-and-iframe-sandboxing`, `dbt-project-scaffolding`, `dashboard-performance-tuning`, `dashboard-architecture-audit`, `multi-tenant-migration`, `data-quality-tests`, `cross-system-identity-resolution`, `support-ticket-normalization`) plus the core skills (`structured-output`, `grounding-protocol`, etc.).
 2. **Check for partial capability** — can part of the task complete, or guidance be provided, even if full automation isn't possible?
 3. **Try alternative methods from easiest to most difficult before declaring blocked.** When a connector is missing, an embed pattern hits a CSP wall, or a database choice is constrained — enumerate at least 2-3 alternative approaches, rank them by cost (license fees, ops burden, lock-in), and try the next-easiest before reporting blocked. Common alternative dimensions to scan: connector strategy (Fivetran → Airbyte → custom Airbyte → REST script); database strategy (Supabase → Neon → managed Postgres → self-host); embed strategy (iframe → SDK → web-component → server-side render).
 4. **Consider team composition** — could `ravenclaude-core/architect`, `ravenclaude-core/security-reviewer`, or a companion plugin's agent (power-platform, edtech-partner-success, web-design) handle part of the work?
@@ -161,6 +188,28 @@ Reference docs that capture the cloud-data/dashboard landscape distilled from pr
 
 Inline priors live on the affected agents; the files in `knowledge/` are the source of truth, re-read on demand.
 
+**Freshness (added FORGE dashboard-top1pct P1-12, 2026-09-03).** Every file below carries a
+discoverable last-reviewed date — either a YAML-frontmatter `last_reviewed:` field or a prose
+`> **Last reviewed:** YYYY-MM-DD` blockquote (both formats are legitimate; the checker accepts
+either rather than forcing a single house style across ~37 files for no functional gain).
+[`scripts/check-data-platform-knowledge-freshness.py`](../../scripts/check-data-platform-knowledge-freshness.py)
+sweeps this directory: a genuinely missing date is a hard FAIL (`audit-gates.sh` Gate 268); a
+date past the self-declared 90-day trigger is a WARN, never a FAIL — this is a research
+substrate consulted by agents, not a build input, so staleness is surfaced for a human to triage
+on a schedule, not a PR-blocking condition. Wired into
+[`.github/workflows/data-platform-knowledge-freshness.yml`](../../.github/workflows/data-platform-knowledge-freshness.yml)
+(weekly `schedule`, `workflow_dispatch`, deliberately **no** `pull_request` trigger — see the
+workflow's own header for why it must never become a required check). A same-session sweep of the
+~12 highest-blast-radius client-facing pricing claims (Cube, Supabase, Fivetran, Airbyte, Power BI
+Embedded, Metabase Pro, Looker, Tableau Embedded, Sigma) plus the rate-limit figures cited by
+`etl-pipeline-engineer.md` and its four connector knowledge files found most claims unchanged
+(now carrying `[verified 2026-09-03]`), one already-known-stale claim (Evidence.dev's pricing
+and deployment model — found and fixed earlier the same run, P1-11), and one genuinely
+**unresolved** conflict between two independent secondary-source checks on Salesforce Bulk API
+2.0's records/24h ceiling (150M vs 100M) — left honestly unresolved rather than picked, in
+[`knowledge/salesforce-integration.md`](knowledge/salesforce-integration.md), because both
+`developer.salesforce.com` pages 403'd anonymous fetches this session.
+
 | File | Read when |
 |---|---|
 | [`knowledge/cloud-database-landscape-2026.md`](knowledge/cloud-database-landscape-2026.md) | Selecting a database for a new engagement; pricing-tier decisions; multi-cloud-vs-single-cloud trade-off. AWS / Azure / GCP / Supabase / Neon / Fabric / Snowflake / Databricks / MotherDuck / DuckDB / Turso with retrieval-dated pricing. |
@@ -170,6 +219,9 @@ Inline priors live on the affected agents; the files in `knowledge/` are the sou
 | [`knowledge/multi-tenant-rls-patterns.md`](knowledge/multi-tenant-rls-patterns.md) | Designing tenant isolation across stacks. Postgres RLS, Cube `securityContext`, Power BI DAX roles + DirectQuery + EffectiveIdentity narrow mode, Fabric OneLake, Snowflake row-access policies + dynamic data masking as the equivalent layer. Cross-boundary denial tests per stack. |
 | [`knowledge/quickbooks-online-integration.md`](knowledge/quickbooks-online-integration.md) | QBO data pipeline; OAuth + 100-day refresh discipline; 10 req/s rate limit. |
 | [`knowledge/power-bi-embedded-for-consultants.md`](knowledge/power-bi-embedded-for-consultants.md) | M365-stack engagement; F-SKU pricing; App-Owns-Data flow; coordination with `power-platform/power-bi-engineer`. |
+| **NEW P2-14** [`knowledge/dashboard-export-and-delivery-2026.md`](knowledge/dashboard-export-and-delivery-2026.md) | An engagement needs PDF/print export, a CSV download, or scheduled/emailed delivery. Three mechanisms (browser print CSS, native/server-side CSV export, headless-browser server render) with tradeoffs; the latter is documented but not scaffolded — this sandbox cannot spawn headless Chromium, so it's a named follow-up rather than an unverified security-sensitive surface. |
+| **NEW P2-15** [`knowledge/dashboard-timezone-decision-2026.md`](knowledge/dashboard-timezone-decision-2026.md) | A multi-tenant engagement needs a locale/timezone resolution strategy. Three real forks (tenant-configured, viewer-browser, warehouse-UTC) with no universally right answer; this plugin's starters implement tenant-configured as the default. |
+| **NEW P2-17** [`knowledge/dashboard-query-cost-instrumentation.md`](knowledge/dashboard-query-cost-instrumentation.md) | Attributing warehouse spend to a dashboard page and widget — a per-widget `X-Request-Id` tagging scheme (verified against Cube's own docs + the installed `@cubejs-client/core` types, not assumed), cache-hit-rate-before-cost triage, and a worked query-count-per-day figure that deliberately leaves the dollar conversion to the engagement's own rate card. |
 | [`knowledge/edtech-lms-connector-gap.md`](knowledge/edtech-lms-connector-gap.md) | EdTech engagement; Canvas / Moodle / Schoology / Blackboard / D2L; **the proprietary claim** — no first-class ELT connector for these. Handoff to `edtech-partner-success`. |
 | **v0.2.0** [`knowledge/stripe-integration.md`](knowledge/stripe-integration.md) | Stripe pipeline; batch ELT for history + webhooks for real-time hybrid; entity catalog; PCI-DSS considerations |
 | **v0.2.0** [`knowledge/salesforce-integration.md`](knowledge/salesforce-integration.md) | Salesforce pipeline; Bulk API 2.0 ceilings (150M records/day, 15k batches/24h, 10MB payload); explicit field enumeration; SOQL relationship-query nuances |
@@ -228,7 +280,24 @@ No server is invented; no `mcpServers` entry ships; no `NOTICE.md` (nothing thir
 
 ## 9. Templates in this plugin
 
-20 templates, distributed by intended bar (3 runnable + 4 conceptual + 3 seam-marked-stub-and-promoted pairs + 2 v0.2.0 modeling scaffolds + 2 app scaffolds + 1 audit report template).
+27 templates on disk, distributed by intended bar: 3 runnable + 4 conceptual + 3 seam-marked-stub-and-promoted pairs (9 files — each pair is 1 historical `.tsx.md` stub + 2 runnable siblings, e.g. a client component + a server-only endpoint) + 2 v0.2.0 modeling scaffolds + 2 app scaffolds + 1 audit report template + 1 CI-support script (`ci-headless-smoke.js`, shared by both app scaffolds' headless-smoke workflow step, added P0-4) + 1 executable test-harness scaffold (`cube-denial-test-harness/`, added P1-9) + 1 worked-examples directory (`examples/`, the two dashboard-audit-report worked examples, added P1-10) + 1 Case A app scaffold (`evidence-portfolio-starter/`, added P1-11) + 2 CI-tooling dependency pin files (`package.json` + `package-lock.json`, pinning `ci-headless-smoke.js`'s `playwright`/`@axe-core/playwright` versions — added when zizmor's `adhoc-packages` audit required a committed lockfile instead of the workflow's original inline `npm install <pkg>@version`, dashboard-top1pct PR CI-fix follow-up) = 3+4+9+2+2+1+1+1+1+1+2.
+
+**Not counted above, and deliberately not in `templates/` (FORGE dashboard-top1pct P3-21,
+2026-09-03): [`report.html`](report.html) + [`bi-report/data.json`](bi-report/data.json), the
+Case E static-HTML BI-report lane.** `agents/dashboard-builder.md`'s Case E bullet treats it as a
+first-class routing target, and §9a's coverage matrix below carries its full, per-column
+disposition — so this is a genuine, gated lane, not an undocumented afterthought or a portfolio
+artifact wrongly dressed up as a "case." It stays out of the table above because it is not a
+data-platform-specific template: it's a **cross-plugin pattern** (the shared engine lives in
+`edtech-partner-success/skills/health-report-dashboard/SKILL.md`, the regeneration script at the
+marketplace's own `scripts/generate-bi-report.py`), and this plugin's `report.html` is a
+self-referential dogfooding instance of that shared pattern, not a scaffold an engagement copies.
+Its fixture-drift gate already exists and already passes: `scripts/audit-gates.sh` Gate 46 checks
+`generate-bi-report.py --check` and proves, via a planted-staleness mutation test, that it
+actually catches a `report.html` that's drifted from its committed `data.json` — a pre-existing,
+marketplace-wide gate this plugin inherits rather than needing its own copy of. Rebuild it with
+`python3 scripts/generate-bi-report.py --plugin data-platform` after editing `bi-report/data.json`
+(see `README.md`'s own rebuild instructions for the full command and the published preview link).
 
 ### Runnable (security-critical — must compile / parse / pass denial test)
 
@@ -268,14 +337,35 @@ Each pair: the `.tsx.md` file is kept as the seam rationale/history (now carryin
 
 | Template | Use for |
 |---|---|
-| [`templates/cube-nextjs-dashboard-starter/`](templates/cube-nextjs-dashboard-starter/) | Real, runnable Next.js App Router + Tremor + Recharts starter wired to `cube-schema-starter.yml` + `jwt-issuer.ts`'s pattern, for the dedicated always-interactive multi-tenant SaaS shape (Case C). Two seams (auth lookup, live cross-boundary denial test) are documented but not implemented — see the scaffold's own README §"What's verified vs. what's still open." |
-| [`templates/cube-astro-dashboard-starter/`](templates/cube-astro-dashboard-starter/) | **NEW.** The same component + security patterns ported to Astro islands, for a mostly-static site with a dashboard widget or two — the more common shape given this shop's own Astro-based site-builds fleet. `KpiCard.tsx`/`RevenueChart.tsx` are copied unchanged from the Next.js starter (plain React, no framework coupling); the Astro-specific plumbing (the `APIRoute` token endpoint, CSP-via-middleware) carries over the same security patterns but has **not itself** been independently re-reviewed — see the scaffold's own README. |
+| [`templates/cube-nextjs-dashboard-starter/`](templates/cube-nextjs-dashboard-starter/) | Real, runnable Next.js App Router + local Tremor-Raw-style components (`@tremor/react` removed, P1-7) + Recharts starter wired to `cube-schema-starter.yml` + `jwt-issuer.ts`'s pattern, for the dedicated always-interactive multi-tenant SaaS shape (Case C). The auth-lookup seam is documented but not implemented (host-app-specific by design); the cross-boundary denial test now has an executable harness (`templates/cube-denial-test-harness/`, P1-9) though that harness itself has not yet been run against a live Cube instance — see the scaffold's own README §"What's verified vs. what's still open." |
+| [`templates/cube-astro-dashboard-starter/`](templates/cube-astro-dashboard-starter/) | The same component + security patterns ported to Astro islands, for a mostly-static site with a dashboard widget or two — the more common shape given this shop's own Astro-based site-builds fleet. `KpiCard.tsx`/`RevenueChart.tsx` are copied from the Next.js starter (plain React, no framework coupling); the Astro-specific plumbing (the `APIRoute` token endpoint, CSP-via-middleware) carries over the same security patterns but has **not itself** been independently re-reviewed — see the scaffold's own README. |
+| [`templates/cube-denial-test-harness/`](templates/cube-denial-test-harness/) | **NEW (P1-9), extended (P2-14).** Executable cross-tenant denial test — docker-compose Cube (pinned `v1.7.33`, satisfying P0-1's `>=1.2.0` `access_policy` floor) + Postgres, a `vitest` test asserting both the Cube `access_policy` layer and the Postgres RLS layer deny a cross-tenant read while a positive control proves the pipeline itself works, plus (P2-14) an export-path block covering the row-level dimensional query shape both starters' `/api/export` routes issue and a service-identity-token denial test. Opt-in (`DP_INTEGRATION=1`, `audit-gates.sh` Gate 266) — needs docker, never in the default CI run. Has **not** been executed against a live Cube+Postgres pair yet (no docker runtime in the session that built it) — see its own README. |
 
 ### Audit report template
 
 | Template | Use for |
 |---|---|
-| [`templates/dashboard-audit-report-template.md`](templates/dashboard-audit-report-template.md) | **NEW.** The output shape for `skills/dashboard-architecture-audit` — priority-tagged (P0-P3) per-page findings across structure/narrative/guidance, plus cross-page coherence, out-of-lane routing, and a Last-Mile "fixes applied this session" section. |
+| [`templates/dashboard-audit-report-template.md`](templates/dashboard-audit-report-template.md) | The output shape for `skills/dashboard-architecture-audit` — priority-tagged (P0-P3) per-page findings across structure/narrative/guidance, plus cross-page coherence, out-of-lane routing, and a Last-Mile "fixes applied this session" section. |
+| [`templates/examples/`](templates/examples/) | **NEW (P1-10).** The skill's first two real worked examples — dashboard-audit-report-cube-nextjs.md and -cube-astro.md, run against this plugin's own app starters. Both audits found real, genuine findings (fixed where automatable — see each report's own Last-Mile section) and both note the audit used the skill's own documented structural-read fallback, not a live screenshot (headless-browser spawn was blocked at the sandbox level in the session that ran them). |
+| [`templates/evidence-portfolio-starter/`](templates/evidence-portfolio-starter/) | **NEW (P1-11).** Closes the self-acknowledged Case A gap named in §8's build-out table item 7. A real, three-page Evidence.dev project (a committed, verified `.duckdb` fixture — not assumed) — see the scaffold's own README and `pages/about.md` for real, re-verified findings about how Evidence.dev's CLI, pricing, and deployment model have changed since this plugin's prior 2026-05-21 review. |
+
+---
+
+## 9a. Stack-case coverage matrix (FORGE dashboard-top1pct P1-11, 2026-09-03)
+
+Added after the Evidence.dev gap survived several releases as a self-acknowledged HIGH in §8's
+own table — this matrix exists so the *next* asymmetry is visible here, not discovered by a
+panel three releases later. Every cell carries an entry or an explicit, dated "N/A because…" —
+an empty cell is a defect, never a blank. Re-check this table whenever a case's surface area
+changes; a cell going stale silently is exactly the failure mode this table exists to prevent.
+
+| Case | Agent guidance | Skill | Template | Runnable scaffold | Denial test | Audit example |
+|---|---|---|---|---|---|---|
+| **A** (portfolio) | ✅ `dashboard-builder.md`'s Case A opinion + Surface area | N/A (2026-09-03) — Evidence page authoring is documented inline in `dashboard-builder.md`, not split into a separate skill file; revisit if the surface grows enough to warrant one | ✅ `templates/evidence-portfolio-starter/` | ✅ same directory — a real, fixture-verified Evidence project | N/A (2026-09-03) — single-tenant by construction, documented explicitly in the scaffold's own `pages/about.md`; no tenant boundary exists to test | N/A (2026-09-03) — `P1-10`'s dogfood pass covered Case C only; running `dashboard-architecture-audit` against this scaffold is a named follow-up, not done here |
+| **B** (client deliverable) | ✅ `dashboard-builder.md`'s Case B opinion + Surface area | ✅ `embed-csp-and-iframe-sandboxing`, `jwt-embed-issuance` (shared with Case C) | ✅ the three promoted embed component pairs (Superset/Metabase/Power BI) | N/A (2026-09-03) — Case B embeds into a client's *existing* app by design; a standalone runnable app scaffold doesn't match that shape the way Case A/C's do | ⚠ partial (2026-09-03) — `rls-cross-tenant-test.sql` is generic-Postgres, not Superset/Metabase/Power-BI-specific; no executable denial harness analogous to `P1-9`'s Cube one exists yet — a real, named gap | N/A (2026-09-03) — not yet dogfooded |
+| **C** (productized SaaS) | ✅ | ✅ `cube-schema-scaffolding` | ✅ both app starters | ✅ both, verified `npm ci`/typecheck/build clean | ✅ `templates/cube-denial-test-harness/` (`P1-9`, extended `P2-14` with an export-path block — built and reasoned through, not yet run against live docker; see its own README) | ✅ `templates/examples/` (`P1-10`, both starters) |
+| **D** (defer to client tooling) | ✅ `dashboard-builder.md`'s Case D line: "no dashboard work; defer" | N/A (by definition) — no data-platform work happens in this case, so nothing to scaffold | N/A (by definition) | N/A (by definition) | N/A (by definition) | N/A (by definition) |
+| **E** (bi-report static-HTML lane) | ✅ `dashboard-builder.md`'s Case E bullet | N/A (2026-09-03) — reuses `edtech-partner-success/skills/health-report-dashboard`, a cross-plugin pattern deliberately not duplicated here | N/A (2026-09-03) — the `bi-report/data.json` + `scripts/generate-bi-report.py` pattern lives at the marketplace-script level, not as a data-platform template | ✅ this plugin's own `report.html` (self-referential — data-platform dogfoods the pattern it routes engagements to) | N/A (2026-09-03) — a static, non-interactive report extension has no tenant-scoped query boundary to test | N/A (2026-09-03) — `dashboard-architecture-audit`'s rubric assumes an interactive dashboard; a static bi-report table extension doesn't fit that rubric's assumptions as written |
 
 ---
 
@@ -323,7 +413,7 @@ PR #315 already added the consolidated knowledge decision-trees + `best-practice
 | 2 | **Decision-tree knowledge** | **BUILT** — 2 NEW Mermaid trees appended to `knowledge/data-platform-decision-trees.md`: **dimension history (SCD Type-1/2/3)** and **warehouse cost control (FinOps)**. Chosen because the existing 10 trees cover DB/ELT/BI/RLS/embed-auth/identity/pipeline-failure/connector-gap/dbt-materialization/dashboard-*latency* — neither dimension-type nor warehouse *cost* (vs. latency) was covered. Each complements an existing tree (materialization tree → load cost; performance tree → latency) without duplicating it. Grounded + cited + dated; corroborated by two of the new scenarios. |
 | 3 | **Bundled MCP server** | **N-A (recommend-not-bundle)** — §8c. Every warehouse/DB MCP (Snowflake-Labs first-party, Postgres) is per-tenant + authenticated (a connection string = a secret) → fails the zero-config + read-only bar. Documented the recommended setup + `security-reviewer` gate; flagged the deprecated Anthropic postgres reference. No invented servers, no `mcpServers` entry. |
 | 4 | **LSP server** | **N-A (recommend-with-config)** — §8c. The only real SQL LSP (`sqls`, v0.2.45 `[verify-at-use]`) needs a **live credentialed DB connection** for its useful features and is **pre-1.0/no stable release** → fails the bundle bar (per-consumer secret + unstable). TS/Python/YAML servers are generic editor setup, not data-platform-specific. No `.lsp.json` shipped. Revisit if `sqls` ships a stable no-connection metadata mode. |
-| 5 | **Runnable script (`scripts/`)** | **N-A** — a warehouse-cost estimator would hard-code per-engine credit rates that are quarterly-volatile (the plugin's own §3 #9 discipline) and duplicate the dated `cloud-database-landscape-2026.md` + `snowflake-warehouse-sizing-recipes.md` + the new cost-control tree. Decision-support belongs in the dated knowledge bank, not a script that bakes in a stale rate. No real, durable value this round. |
-| 6 | **bin/ / monitors / output-styles / settings / themes** | **N-A** — no groundable, broadly-valuable instance. A `bin/` linter would duplicate the existing advisory hook (`flag-data-platform-smells.sh`); nothing to monitor (no long-running process); deliverables are governed by the §6 Output Contract, not an output-style; no plugin-specific tool-permission surface beyond `ravenclaude-core`. |
-| 7 | **skills/hooks/commands/templates** | **UPDATED 2026-08-28** — 14th skill `airbyte-cdk-authoring` shipped (monthly skill-gap audit #821) so spawned `connector-developer` loads the incremental-connector playbook. Evidence.dev scaffolding remains a named gap (HIGH, not this PR). |
+| 5 | **Runnable script (`scripts/`)** | **N-A for a cost estimator** — a warehouse-cost estimator would hard-code per-engine credit rates that are quarterly-volatile (the plugin's own §3 #9 discipline) and duplicate the dated `cloud-database-landscape-2026.md` + `snowflake-warehouse-sizing-recipes.md` + the new cost-control tree. Decision-support belongs in the dated knowledge bank, not a script that bakes in a stale rate. **BUILT for a different purpose 2026-09-03 (FORGE dashboard-top1pct P3-20):** [`scripts/scaffold-data-platform-starter.sh`](scripts/scaffold-data-platform-starter.sh) — a scaffold-copy helper, not a cost estimator; see item 6's reconciliation note for why the original N-A here doesn't cover it either. |
+| 6 | **bin/ / monitors / output-styles / settings / themes** | **N-A for a bin/ linter, monitors, output-styles, and settings** — no groundable, broadly-valuable instance. A `bin/` linter would duplicate the existing advisory hook (`flag-data-platform-smells.sh`); nothing to monitor (no long-running process); deliverables are governed by the §6 Output Contract, not an output-style; no plugin-specific tool-permission surface beyond `ravenclaude-core`. **Reconciled 2026-09-03 (FORGE dashboard-top1pct P3-20):** that reasoning was specifically about a linter duplicating an existing check — it never covered a *scaffold-copy* helper (a genuinely different job: copying a starter's files out of the plugin into a consumer's own project, seeding `.env`, printing next steps), and this row does not contradict `scripts/scaffold-data-platform-starter.sh` existing. Themes still N-A — no plugin-specific theming surface exists at the CLI-tooling layer this row is about (dashboard *dark mode* is a separate, already-built concern — see §8's build-out table and P2-18's CHANGELOG entry). |
+| 7 | **skills/hooks/commands/templates** | **UPDATED 2026-08-28** — 14th skill `airbyte-cdk-authoring` shipped (monthly skill-gap audit #821) so spawned `connector-developer` loads the incremental-connector playbook. **UPDATED 2026-09-03 (FORGE dashboard-top1pct P1-11):** the Evidence.dev scaffolding gap named HIGH above is now closed — see [`templates/evidence-portfolio-starter/`](templates/evidence-portfolio-starter/) and §9a's coverage matrix. |
 | 8 | **CHANGELOG.md** | **BUILT** — added with a top entry for this build-out. No `NOTICE.md` (nothing third-party is bundled). |

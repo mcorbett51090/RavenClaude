@@ -1,0 +1,16 @@
+# DuckDB direct connector — a local FILE, not a live remote warehouse
+# (verified against Evidence's own docs, 2026-09-03: `type: duckdb` +
+# `options.filename` pointing at a .duckdb file in this directory). This is
+# what keeps Case A genuinely cheap/self-hosted: no external database
+# dependency, no ongoing warehouse cost — just this committed file.
+#
+# ⛔ Read this starter's own README before assuming "static site" — current
+# Evidence (verified 2026-09-03, correcting this plugin's prior 2026-05-21
+# assumption) re-runs SQL server-side on every page load rather than
+# pre-building static HTML. `evidence serve` is a lightweight, always-running
+# Node process reading this local file — not literally zero-infrastructure,
+# though still far lighter than a warehouse connection.
+name: portfolio_demo
+type: duckdb
+options:
+  filename: portfolio_demo.duckdb

@@ -1,0 +1,47 @@
+########################################################################
+# data-platform-knowledge-freshness.yml — FORGE dashboard-top1pct P1-12.
+#
+# ⛔ THIS WORKFLOW MUST NEVER BECOME A REQUIRED STATUS CHECK, and it must
+# never be added to the branch ruleset. A scheduled workflow reports
+# NOTHING on a pull request, and a required check that reports nothing
+# leaves the PR Pending forever (same mechanism as inventory-sweep.yml
+# and the `paths:`-on-a-required-check trap documented in AGENTS.md).
+#
+# ⛔ IT CARRIES NO `pull_request` TRIGGER, deliberately. The knowledge
+# bank is a research substrate, not a build input — per plan.md's own
+# instruction, staleness belongs in a scheduled routine, not a PR gate.
+# A file's staleness has nothing to do with whether the PR that happens
+# to touch it is safe to merge.
+########################################################################
+name: Data-platform knowledge freshness (scheduled)
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Weekly, off the hour — same rationale as inventory-sweep.yml's :23.
+    - cron: "41 6 * * 1"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: data-platform-knowledge-freshness
+  cancel-in-progress: false
+
+jobs:
+  freshness:
+    name: Sweep plugins/data-platform/knowledge/*.md for staleness
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # ⛔ Only a genuinely MISSING date fails this job (script exit 1).
+      # A file past the 90-day trigger prints a WARN in the log and does
+      # NOT fail — staleness is surfaced for a human to triage on their
+      # own schedule, never a build-blocking condition.
+      - name: Knowledge-bank freshness sweep
+        run: python3 scripts/check-data-platform-knowledge-freshness.py

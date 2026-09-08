@@ -1,6 +1,7 @@
 ---
 name: jwt-embed-issuance
 description: Canonical 2026 JWT-embed flow for dashboard embedding — required claims (`sub`, `tenant_id`, `iat`, `exp`, `iss`, `aud`, `nonce`), tool-specific verification (Superset guest tokens, Metabase JWT URLs, Cube Authorization Bearer, Power BI MSAL-via-AAD), 5-15 min expiration policy, cross-boundary denial test contract. Invoked by `ravenclaude-core/security-reviewer` for any embed-auth review.
+invoked_by: ravenclaude-core/security-reviewer
 ---
 
 # Skill: jwt-embed-issuance
