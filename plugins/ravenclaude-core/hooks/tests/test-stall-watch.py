@@ -18,6 +18,20 @@ before — so an impotent mutant fails the script rather than passing it.
   248a-c  no committed .plist; payload safe <- C19 oscillation, CE-2 injection
   249a-e  resolution, ladder floor, sleep suppression <- red-team, never exercised
 
+P3 ADDITIVE — the launch-hang detector (`evaluate_launch_hangs()`,
+anthropics/claude-code#92932). These checks pin the additive-only contract:
+`evaluate()` and everything it touches are UNTOUCHED (250r is the mechanical
+proof — a byte-identical diff of evaluate()'s own output, before vs after
+this file's own commit), and the new detector is proven both positive AND
+per-conjunct-negative, never just on its one designed-for case.
+
+  250a    positive: every conjunct held -> exactly one launch-hang finding
+  250b-e  four negative controls, one conjunct flipped at a time
+  250r    regression floor: evaluate() output byte-identical pre/post P3
+  250f    episode resolution: pid disappears -> episode closes, stops alerting
+  250g    conjunct-5 probe failure (git absent) -> zero findings, no exception
+  250h    no registry dir / no projects dir at all -> exits cleanly, heartbeat written
+
 Run standalone:  python3 test-stall-watch.py
 Invoked by:      scripts/audit-gates.sh  ->  .github/workflows/validate-marketplace.yml
 """
@@ -29,7 +43,9 @@ import json
 import os
 import subprocess
 import sys
+import tempfile
 import time
+import types
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.abspath(os.path.join(HERE, "..", "..", "..", ".."))
@@ -360,10 +376,275 @@ def gate_249(sw):
          caught == ["leak"], "caught=%s" % caught)
 
 
+# ---------------------------------------------------------------------------
+# Gate 250 — P3, the additive launch-hang detector. Everything here targets
+# `evaluate_launch_hangs()` / `_outside_git_work_tree()` only; `evaluate()`
+# and its own gates (244-249) above are untouched and unexercised by any
+# function below except 250r, whose entire job is to prove `evaluate()`
+# itself did not change.
+# ---------------------------------------------------------------------------
+
+def _reg(pid, status, cwd, session_id=None, alive=True,
+         started_ms=None, status_updated_ms=None):
+    """One synthetic read_registry()-shaped record, matching the exact dict
+    shape stall_watch.read_registry() returns (including the P3 additive
+    started_at_ms / status_updated_at_ms keys)."""
+    return {
+        "pid": pid,
+        "session_id": session_id or ("s" * 32 + str(pid)),
+        "status": status,
+        "cwd": cwd,
+        "alive": alive,
+        "identity_ok": True,
+        "started_at_ms": started_ms,
+        "status_updated_at_ms": status_updated_ms,
+    }
+
+
+def _positive_fixture(sw, cwd):
+    """The real captured instance, reproduced: idle, cwd outside a repo,
+    statusUpdatedAt == startedAt, no transcript, elapsed > LAUNCH_HANG_MIN."""
+    now = 1_800_000_000.0
+    elapsed_min = sw.LAUNCH_HANG_MIN + 2.0
+    started_ms = (now - elapsed_min * 60.0) * 1000.0
+    status_updated_ms = started_ms  # never once updated
+    rec = _reg(pid=42424, status="idle", cwd=cwd,
+               started_ms=started_ms, status_updated_ms=status_updated_ms)
+    return now, rec
+
+
+def gate_250(sw):
+    tmp_outside = tempfile.mkdtemp(prefix="rc-launch-hang-outside-")
+    saved_reg, saved_find = sw.read_registry, sw.find_transcript
+    try:
+        # ------------------------------------------------------------- 250a
+        now, rec = _positive_fixture(sw, tmp_outside)
+        sw.read_registry = lambda: ([rec], [])
+        sw.find_transcript = lambda sid: None
+        result = sw.evaluate_launch_hangs(now, {})
+        findings = result["findings"]
+        gate("250a positive: every conjunct held -> exactly one finding",
+             len(findings) == 1, "findings=%d" % len(findings))
+        if findings:
+            gate("250a kind is 'launch-hang' + issue ref present",
+                 findings[0].get("kind") == "launch-hang"
+                 and bool(findings[0].get("issue")),
+                 "finding=%s" % findings[0])
+
+        # ------------------------------------------------------------- 250b
+        # conjunct 2 flipped alone: status busy instead of idle.
+        now, rec = _positive_fixture(sw, tmp_outside)
+        rec["status"] = "busy"
+        sw.read_registry = lambda: ([rec], [])
+        sw.find_transcript = lambda sid: None
+        result = sw.evaluate_launch_hangs(now, {})
+        gate("250b negative: busy (non-idle) session -> zero findings",
+             len(result["findings"]) == 0, "findings=%d" % len(result["findings"]))
+
+        # ------------------------------------------------------------- 250c
+        # conjunct 3 flipped alone: statusUpdatedAt has moved well past epsilon.
+        now, rec = _positive_fixture(sw, tmp_outside)
+        rec["status_updated_at_ms"] = (
+            rec["status_updated_at_ms"] + sw.LAUNCH_HANG_STATUS_EPSILON_MS * 100)
+        sw.read_registry = lambda: ([rec], [])
+        sw.find_transcript = lambda sid: None
+        result = sw.evaluate_launch_hangs(now, {})
+        gate("250c negative: statusUpdatedAt has moved -> zero findings",
+             len(result["findings"]) == 0, "findings=%d" % len(result["findings"]))
+
+        # ------------------------------------------------------------- 250d
+        # conjunct 4 flipped alone: a transcript DOES exist.
+        now, rec = _positive_fixture(sw, tmp_outside)
+        sw.read_registry = lambda: ([rec], [])
+        sw.find_transcript = lambda sid: "/dev/null"
+        result = sw.evaluate_launch_hangs(now, {})
+        gate("250d negative: session HAS a transcript -> zero findings",
+             len(result["findings"]) == 0, "findings=%d" % len(result["findings"]))
+
+        # ------------------------------------------------------------- 250e
+        # conjunct 6 (git probe, "5" in the design table) flipped alone: cwd
+        # IS inside a real git work tree (this checkout itself).
+        now, rec = _positive_fixture(sw, REPO)
+        sw.read_registry = lambda: ([rec], [])
+        sw.find_transcript = lambda sid: None
+        result = sw.evaluate_launch_hangs(now, {})
+        gate("250e negative: cwd IS a git work tree -> zero findings",
+             len(result["findings"]) == 0, "findings=%d" % len(result["findings"]))
+    finally:
+        sw.read_registry, sw.find_transcript = saved_reg, saved_find
+
+
+def _load_from_git_show(ref, relpath, modname):
+    """Execs a git-show'd version of a file into a fresh, isolated module
+    object — used ONLY to prove evaluate()'s output has not changed. Never
+    registered in sys.modules, so it cannot collide with the real module."""
+    proc = subprocess.run(["git", "show", "%s:%s" % (ref, relpath)], cwd=REPO,
+                          capture_output=True, text=True, timeout=20)
+    if proc.returncode != 0:
+        raise RuntimeError("git show %s:%s failed: %s" % (ref, relpath, proc.stderr))
+    mod = types.ModuleType(modname)
+    mod.__file__ = "<git %s:%s>" % (ref, relpath)
+    exec(compile(proc.stdout, mod.__file__, "exec"), mod.__dict__)
+    return mod
+
+
+def gate_250r(sw):  # noqa: ARG001 — unused; kept for a uniform dispatch signature
+    """The mechanical regression floor: evaluate()'s output, computed with a
+    fixed synthetic input, must be byte-identical whether it comes from the
+    HEAD-committed (pre-P3) stall_watch.py or the current working-tree
+    (post-P3) one. This is the proof that P3 is additive, not a rewrite —
+    the acceptance test the P3 spec itself names as mechanical, not a
+    read-the-diff-by-eye claim."""
+    relpath = "plugins/ravenclaude-core/scripts/stall_watch.py"
+    try:
+        pre = _load_from_git_show("HEAD", relpath, "stall_watch_pre_p3_regression_check")
+    except Exception as exc:
+        gate("250r regression floor: could not load HEAD's stall_watch.py", False, str(exc))
+        return
+    post = load("stall_watch")  # a fresh, independent load — no shared state with `sw`
+
+    now = 1_700_000_000.0
+    fake = [{"pid": 5150, "session_id": "r" * 36, "status": "busy",
+             "cwd": "/tmp", "alive": True, "identity_ok": True}]
+    for m in (pre, post):
+        m.read_registry = lambda: (fake, [])
+        m.find_transcript = lambda sid: "/dev/null"
+        m.last_progress_age_min = lambda p, n: (
+            999.0, {"scanned_bytes": 0, "last_any_age_min": 999.0})
+        m.count_compact_boundaries = lambda p: 0
+
+    pre_out = pre.evaluate(now, False, {})
+    post_out = post.evaluate(now, False, {})
+    pre_json = json.dumps(pre_out, indent=1, sort_keys=True)
+    post_json = json.dumps(post_out, indent=1, sort_keys=True)
+    identical = pre_json == post_json
+    gate("250r evaluate() output is byte-identical pre/post P3", identical,
+         "" if identical else "PRE:\n%s\nPOST:\n%s" % (pre_json, post_json))
+
+
+def gate_250f(sw):
+    """Episode resolution: a pid that later disappears (SIGKILL orphans the
+    registry file, per the module's own header — 'alive' goes False while the
+    record can still be present) must close the launch-hang episode and stop
+    alerting on the very next evaluation."""
+    tmp_outside = tempfile.mkdtemp(prefix="rc-launch-hang-resolve-")
+    saved_reg, saved_find = sw.read_registry, sw.find_transcript
+    try:
+        now, rec = _positive_fixture(sw, tmp_outside)
+        sw.read_registry = lambda: ([rec], [])
+        sw.find_transcript = lambda sid: None
+        state = {}
+        first = sw.evaluate_launch_hangs(now, state)
+        opened = len(first["findings"]) == 1 and str(rec["pid"]) in state.get("launch_episodes", {})
+        gate("250f episode opens on first tick", opened,
+             "findings=%d episodes=%s" % (len(first["findings"]), list(state.get("launch_episodes", {}))))
+
+        gone = dict(rec)
+        gone["alive"] = False
+        sw.read_registry = lambda: ([gone], [])
+        second = sw.evaluate_launch_hangs(now + 60.0, state)
+        closed = (str(rec["pid"]) not in state.get("launch_episodes", {})
+                  and len(second["findings"]) == 0)
+        gate("250f episode closes + stops alerting once the pid is gone", closed,
+             "episodes=%s findings=%d" % (list(state.get("launch_episodes", {})),
+                                          len(second["findings"])))
+    finally:
+        sw.read_registry, sw.find_transcript = saved_reg, saved_find
+
+
+def gate_250g(sw):
+    """Conjunct-6 (the git probe) probe failure — git absent / erroring / any
+    ambiguity — must fail toward NOT-hung: zero findings, no exception, and
+    the caller (main()'s own try/except around this call) never sees a
+    raised exception from this path."""
+    tmp_outside = tempfile.mkdtemp(prefix="rc-launch-hang-gitfail-")
+    saved_reg, saved_find, saved_run = sw.read_registry, sw.find_transcript, sw.subprocess.run
+    try:
+        now, rec = _positive_fixture(sw, tmp_outside)
+        sw.read_registry = lambda: ([rec], [])
+        sw.find_transcript = lambda sid: None
+
+        def _absent(*a, **k):
+            raise FileNotFoundError("git: command not found (simulated)")
+        sw.subprocess.run = _absent
+
+        raised = False
+        try:
+            result = sw.evaluate_launch_hangs(now, {})
+        except Exception:
+            raised = True
+            result = {"findings": ["EXCEPTION"]}
+        gate("250g git-absent: zero findings, no exception",
+             (not raised) and len(result["findings"]) == 0,
+             "raised=%s findings=%d" % (raised, len(result["findings"])))
+
+        def _weird_nonzero(*a, **k):
+            class _P:
+                returncode = 99
+                stdout = ""
+                stderr = "some unrelated internal git error"
+            return _P()
+        sw.subprocess.run = _weird_nonzero
+        result2 = sw.evaluate_launch_hangs(now, {})
+        gate("250g git weird-nonzero-exit -> zero findings (ambiguous, not hung)",
+             len(result2["findings"]) == 0, "findings=%d" % len(result2["findings"]))
+    finally:
+        sw.read_registry, sw.find_transcript, sw.subprocess.run = saved_reg, saved_find, saved_run
+
+
+def gate_250h(sw):
+    """No registry dir / no projects dir at all -> the function (and the
+    main() tick that calls it) must still exit cleanly and still write a
+    heartbeat, matching evaluate()'s own documented behavior in the same
+    no-data case (SESSIONS_DIR absent -> a loud note, an empty session list,
+    never an exception)."""
+    saved_sessions_dir = sw.SESSIONS_DIR
+    saved_projects_dir = sw.PROJECTS_DIR
+    try:
+        sw.SESSIONS_DIR = "/nonexistent-rc-launch-hang-sessions-dir"
+        sw.PROJECTS_DIR = "/nonexistent-rc-launch-hang-projects-dir"
+        raised = False
+        try:
+            result = sw.evaluate_launch_hangs(1_900_000_000.0, {})
+        except Exception:
+            raised = True
+            result = {"sessions": -1, "findings": ["EXCEPTION"], "notes": []}
+        gate("250h no registry/projects dir: exits cleanly, zero sessions/findings",
+             (not raised) and result["sessions"] == 0 and len(result["findings"]) == 0,
+             "raised=%s sessions=%s findings=%d notes=%s" %
+             (raised, result.get("sessions"), len(result["findings"]), result.get("notes")))
+
+        # main() itself: fully isolated state/heartbeat/soak paths so this
+        # never touches the real ~/.claude/stall-watch on the test machine.
+        scratch = tempfile.mkdtemp(prefix="rc-launch-hang-main-")
+        saved = {}
+        for attr in ("STATE_DIR", "STATE_PATH", "STATE_LOCK_PATH", "HEARTBEAT_PATH",
+                     "SOAK_PATH", "SALT_PATH"):
+            saved[attr] = getattr(sw, attr)
+        try:
+            sw.STATE_DIR = scratch
+            sw.STATE_PATH = os.path.join(scratch, "state.json")
+            sw.STATE_LOCK_PATH = sw.STATE_PATH + ".lock"
+            sw.HEARTBEAT_PATH = os.path.join(scratch, "heartbeat.json")
+            sw.SOAK_PATH = os.path.join(scratch, "soak.jsonl")
+            sw.SALT_PATH = os.path.join(scratch, "salt")
+            rc = _quiet(sw.main, ["--no-send"])
+            hb_written = os.path.isfile(sw.HEARTBEAT_PATH)
+            gate("250h main() exits 0 + heartbeat written with no registry/projects dir",
+                 rc == 0 and hb_written, "rc=%s heartbeat_exists=%s" % (rc, hb_written))
+        finally:
+            for attr, val in saved.items():
+                setattr(sw, attr, val)
+    finally:
+        sw.SESSIONS_DIR = saved_sessions_dir
+        sw.PROJECTS_DIR = saved_projects_dir
+
+
 def main():
     sys.stdout.write("Gate 244: stall watchdog\n")
     sw = load("stall_watch")
-    for fn in (gate_244, gate_245, gate_246, gate_247, gate_248, gate_249):
+    for fn in (gate_244, gate_245, gate_246, gate_247, gate_248, gate_249,
+               gate_250, gate_250r, gate_250f, gate_250g, gate_250h):
         try:
             fn(sw)
         except Exception as exc:

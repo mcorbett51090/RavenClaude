@@ -306,6 +306,13 @@ def read_registry() -> tuple[list[dict], list[str]]:
             "cwd": rec.get("cwd") or "",
             "alive": alive,
             "identity_ok": proc_identity_ok(pid, rec.get("procStart")) if alive else None,
+            # ADDITIVE (P3, launch-hang detector): raw epoch-millisecond fields
+            # the general evaluate() path never needed. Carried through here —
+            # rather than a second directory scan — so the launch-hang pass
+            # reuses this same read, exactly like every other consumer of
+            # read_registry(). Extra keys are inert to evaluate().
+            "started_at_ms": rec.get("startedAt"),
+            "status_updated_at_ms": rec.get("statusUpdatedAt"),
         })
     return out, notes
 
@@ -573,6 +580,175 @@ def advance_ladder(state: dict, alerts: list[dict], now: float):
         episode["rung"] = min(int(episode.get("rung", 0)) + 1, len(LADDER_MIN) - 1)
 
 
+# =============================================================================
+# ADDITIVE — P3: launch-hang detector (anthropics/claude-code#92932)
+#
+# `evaluate()` above, and everything it touches (`advance_ladder`,
+# `ladder_due`, `LADDER_MIN`, `STALL_THRESHOLD_MIN`), is UNCHANGED by this
+# section. A session launched with cwd outside any git work tree can hang
+# indefinitely before ever reaching a first turn — a confirmed upstream bug.
+# `evaluate()` structurally cannot see it: it skips `status == "idle"` before
+# it would ever check for a missing transcript, and its `live_now` resolution
+# set excludes idle sessions, so an episode that got through anyway would be
+# auto-resolved as "session-gone-or-idle" on the very next tick. This is
+# therefore a SEPARATE classification pass with its own episode namespace
+# (`state["launch_episodes"]`, disjoint from `state["episodes"]`) — reusing
+# `read_registry`, `find_transcript`, `project_key`, the state lock,
+# `write_heartbeat`, `append_soak`, and the escalation ladder (`LADDER_MIN`,
+# `ladder_due`, `advance_ladder`) via the plumbing below. Deleting this whole
+# block plus its one call site in `main()` restores exactly today's
+# behavior — that is the "additive, two-way-door" contract this section is
+# built to satisfy.
+# =============================================================================
+
+# Bounds a normal cold start. The real captured instance this detector was
+# built from was already 12+ minutes in when observed; 3.0 minutes gives wide
+# margin over ordinary launch latency while still catching the failure long
+# before a user would otherwise notice only by chance.
+LAUNCH_HANG_MIN = 3.0
+
+# The measured real instance showed `statusUpdatedAt == updatedAt ==
+# startedAt + 195ms` — a status write that happens once, at launch, and never
+# again. A healthy session bumps `statusUpdatedAt` on a ~17-minute cadence
+# (see STALL_THRESHOLD_MIN's header above), so any epsilon comfortably above
+# ordinary launch jitter and comfortably below that cadence discriminates
+# correctly; 2 full seconds leaves a wide margin on both sides.
+LAUNCH_HANG_STATUS_EPSILON_MS = 2000.0
+
+# Bounds the ONE conjunct in this detector that shells out. Checked LAST in
+# the loop below, after every cheaper conjunct already holds, so a session
+# that isn't otherwise a launch-hang candidate never pays the subprocess cost.
+GIT_PROBE_TIMEOUT_SEC = 3
+
+LAUNCH_HANG_ISSUE_REF = "anthropics/claude-code#92932"
+
+
+def _outside_git_work_tree(cwd) -> bool:
+    """True only when git POSITIVELY reports `cwd` is outside any work tree
+    (the actual #92932 precondition). Any ambiguity — git absent, a deleted
+    cwd, a timeout, an unexpected non-zero exit — returns False: FAIL TOWARD
+    NOT-HUNG, never toward a false alarm. A detector that fires on its own
+    broken probe is noise, and noise gets the detector disabled.
+
+    `git -C <cwd> rev-parse --is-inside-work-tree` prints "true"/exit 0
+    inside a work tree; outside any repo it exits non-zero with "fatal: not
+    a git repository" on stderr — that non-zero IS the expected, positive
+    signal this function exists to read, not a probe failure.
+
+    ⛔ `-C` is a top-level git option, not a `rev-parse` option — it MUST
+    precede the subcommand (`git -C <path> rev-parse ...`), never follow it
+    (`git rev-parse -C <path> ...` is a documented-looking but broken form:
+    verified live — it exits 128 with "option '--is-inside-work-tree' must
+    come before non-option arguments" instead of ever probing `cwd` at all).
+    """
+    if not cwd or not os.path.isdir(cwd):
+        return False
+    try:
+        proc = subprocess.run(
+            ["git", "-C", cwd, "rev-parse", "--is-inside-work-tree"],
+            capture_output=True, text=True, timeout=GIT_PROBE_TIMEOUT_SEC,
+        )
+    except Exception:
+        return False
+    if proc.returncode == 0:
+        return (proc.stdout or "").strip() != "true"
+    if "not a git repository" in (proc.stderr or ""):
+        return True
+    return False  # an unexpected non-zero — ambiguous, so NOT-hung
+
+
+def evaluate_launch_hangs(now: float, state: dict) -> dict:
+    """The additive launch-hang classification pass. See the module banner
+    above for why this cannot be folded into `evaluate()`.
+
+    All six conjuncts below must hold, cheapest first, the one subprocess
+    call last:
+      1. alive (pid check)
+      2. status == "idle"
+      3. statusUpdatedAt <= startedAt + epsilon (never once updated)
+      4. no transcript for the session's sessionId
+      5. now - startedAt > LAUNCH_HANG_MIN (bounds a normal cold start)
+      6. cwd is not a git work tree (the actual #92932 precondition; last,
+         since it is the only conjunct that shells out)
+    """
+    sessions, notes = read_registry()
+    episodes = state.setdefault("launch_episodes", {})
+    findings = []
+
+    # ⛔ RESOLUTION MUST BE OBSERVABLE, NEVER ASSERTED — same discipline as
+    # evaluate(), but NOT evaluate()'s own `live_now` set (that one excludes
+    # idle sessions and would erase every launch episode on the next tick).
+    # This detector's own resolution rule: the process is gone, OR a
+    # transcript now exists, OR statusUpdatedAt has moved past its initial
+    # value. All three are directly observable from read_registry() +
+    # find_transcript(), never inferred.
+    still_open = set()
+    for sess in sessions:
+        if not sess["alive"]:
+            continue
+        if find_transcript(sess["session_id"] or ""):
+            continue
+        started_ms = sess.get("started_at_ms")
+        status_updated_ms = sess.get("status_updated_at_ms")
+        if started_ms is None or status_updated_ms is None:
+            continue
+        try:
+            moved = abs(float(status_updated_ms) - float(started_ms)) > LAUNCH_HANG_STATUS_EPSILON_MS
+        except (TypeError, ValueError):
+            continue
+        if moved:
+            continue
+        still_open.add(str(sess["pid"]))
+    for gone in [k for k in list(episodes) if k not in still_open]:
+        episodes.pop(gone, None)
+        notes.append("launch_episode_resolved:%s" % gone)
+
+    for sess in sessions:
+        if not sess["alive"]:                                      # conjunct 1
+            continue
+        if sess["status"] != "idle":                                # conjunct 2
+            continue
+        started_ms = sess.get("started_at_ms")
+        status_updated_ms = sess.get("status_updated_at_ms")
+        if started_ms is None or status_updated_ms is None:
+            continue
+        try:
+            started_ms = float(started_ms)
+            status_updated_ms = float(status_updated_ms)
+        except (TypeError, ValueError):
+            continue
+        if abs(status_updated_ms - started_ms) > LAUNCH_HANG_STATUS_EPSILON_MS:  # conjunct 3
+            continue
+        path = find_transcript(sess["session_id"] or "")            # conjunct 4
+        if path:
+            continue
+        elapsed_min = (now - started_ms / 1000.0) / 60.0
+        if elapsed_min <= LAUNCH_HANG_MIN:                           # conjunct 5 (cheap)
+            continue
+        if not _outside_git_work_tree(sess["cwd"]):                  # conjunct 6 (shells out — LAST)
+            continue
+        findings.append({
+            "pid": sess["pid"],
+            "session": str(sess["session_id"])[:8],
+            "project": project_key(sess["cwd"]),
+            "status": sess["status"],
+            "silent_min": round(elapsed_min, 1),
+            "kind": "launch-hang",
+            "issue": LAUNCH_HANG_ISSUE_REF,
+        })
+
+    alerts = []
+    for finding in findings:
+        key = str(finding["pid"])
+        episodes.setdefault(key, {"rung": 0, "last_alert_at": 0.0, "opened_at": now})
+        if ladder_due(episodes[key], now):
+            alerts.append(finding)
+
+    state["launch_episodes"] = episodes
+    return {"sessions": len(sessions), "findings": findings,
+            "alerts": alerts, "notes": notes}
+
+
 def main(argv: list[str]) -> int:
     signal.signal(signal.SIGALRM, _alarm)
     signal.alarm(TICK_SELF_TIMEOUT_SEC)
@@ -606,6 +782,41 @@ def main(argv: list[str]) -> int:
                     advance_ladder(state, result["alerts"], now)
             except Exception as exc:
                 result["reach"] = {"error": "%s: %s" % (type(exc).__name__, exc)}
+
+        # =====================================================================
+        # ADDITIVE — P3 call site. One call, own try/except so a failure in the
+        # launch-hang pass can never cost the general stall path its heartbeat/
+        # soak write (FAIL-OPEN). See the module banner above `LAUNCH_HANG_MIN`
+        # for why this is a separate pass rather than a change to evaluate().
+        # =====================================================================
+        try:
+            launch_result = evaluate_launch_hangs(now, state)
+            result["launch_findings"] = launch_result["findings"]
+            result["launch_notes"] = launch_result.get("notes", [])
+            if launch_result["alerts"] and "--no-send" not in argv:
+                sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+                import stall_reach
+                launch_reach = stall_reach.dispatch(launch_result["alerts"])
+                result["launch_reach"] = launch_reach
+                # Reuses advance_ladder() itself (not a reimplementation) via a
+                # thin wrapper dict — advance_ladder() does
+                # `state.setdefault("episodes", {})`, and `launch_episodes` is
+                # the SAME dict object already stored at
+                # state["launch_episodes"], so mutating it through the wrapper
+                # mutates the real object in place. This keeps the launch-hang
+                # episode namespace disjoint from state["episodes"] without
+                # touching advance_ladder()'s own source.
+                launch_episodes = state.setdefault("launch_episodes", {})
+                wrapper = {"episodes": launch_episodes}
+                if launch_reach.get("any_accepted"):
+                    advance_ladder(wrapper, launch_result["alerts"], now)
+                elif launch_reach.get("configured_sinks", 0) == 0:
+                    result["launch_notes"].append("no_sink_configured")
+                    advance_ladder(wrapper, launch_result["alerts"], now)
+        except Exception as exc:
+            result.setdefault("launch_notes", []).append(
+                "launch_hang_pass_error:%s:%s" % (type(exc).__name__, exc))
+
         save_state(state)
         if "--json" in argv:
             json.dump(result, sys.stdout, indent=1, sort_keys=True)

@@ -1,0 +1,520 @@
+#!/usr/bin/env bash
+# claude-launch-guard — decision helper for the claude-launch-safeguard feature.
+#
+# Background: a `claude` session launched with cwd OUTSIDE any git work tree
+# (e.g. $HOME) can hang indefinitely — a confirmed, filed upstream bug
+# (anthropics/claude-code#92932): an unscoped `rg` scan hits macOS TCC-denied
+# paths. This helper does NOT fix that bug (it can't — it's upstream). It is a
+# small, fast, fail-open DECISION HELPER that a shell function (built
+# separately, in a later phase — this file does not touch any rc file) can
+# consult before launching `claude`, to warn/offer a choice instead of nothing.
+#
+# Contract:
+#   claude-launch-guard check -- "$@"
+#     exit 0  -> SAFE:   in a work tree, OR an exempt flag is present, OR the
+#                        guard is off, OR allowlisted, OR the check could not
+#                        be verified (git absent / timed out / any error) —
+#                        every unverifiable case FAILS OPEN.
+#     exit 10 -> UNSAFE: cwd is not a git work tree, no exempt flag, not
+#                        allowlisted. Reason + suggested action on stdout.
+#
+# FAIL-OPEN is the one load-bearing invariant: every error path (missing git,
+# unreadable config, unset HOME, a deleted cwd, a hung git) must end in exit 0.
+# A safeguard that can make `claude` unlaunchable is worse than the bug it
+# guards against (the hang has Ctrl-C; a broken guard blocking every launch
+# does not).
+#
+# Why this script does NOT use `set -e` (deliberate deviation from the repo's
+# usual hook style): a script whose whole point is "guarantee exit 0 on every
+# error path" cannot let a single failing command elsewhere in the script
+# short-circuit to an arbitrary non-zero exit code via `set -e`. Every
+# fallible operation here is wrapped in an explicit conditional or `|| true`,
+# and the exit code is chosen deliberately at the end of `cmd_check`, never
+# left to whatever the last command happened to return.
+#
+# Portability: bash-3.2-safe (macOS stock bash) — no `declare -A`, `mapfile`,
+# `${x^^}`, `shopt -s globstar`. No GNU-only `timeout` / `grep -P` / `sed -i`.
+# The timeout bound is a backgrounded git call + a background "watchdog"
+# subshell that SIGKILLs it after the deadline, with `wait` blocking on the
+# real PID (no busy-poll loop) — this keeps the common (already-in-a-repo)
+# path at native `git rev-parse` latency, not padded by polling-interval
+# overhead. See _run_git_check.
+#
+# Usage:
+#   claude-launch-guard check -- "$@"    the contract above
+#   claude-launch-guard --self-test      run built-in fixtures (nonzero on failure)
+#
+# Kill switch (checked FIRST, before anything else): RAVENCLAUDE_LAUNCH_GUARD=off
+#
+# Exempt flags (matched ANYWHERE in argv, not just $1): --safe-mode --bare
+# --help -h --version -v -p --print --resume -c --continue mcp plugin config
+# install doctor
+#
+# Allowlist: ~/.claude/launch-guard/allow — one path or `*` per line (absent
+# file = no entries, not an error). A match -> exit 0 silently.
+#
+# Knob (informational only — does NOT change the 0/10 contract; warn-vs-block
+# policy belongs to the CALLER, i.e. the shell function built in a later
+# phase): `launch_guard: off | warn | block` in
+# .ravenclaude/comfort-posture.yaml (absent file/key => warn).
+#
+# Debug-only knob (never a shipped/documented feature for consumers — used to
+# prove the timeout wrapper has real teeth; see --self-test and the P1 build
+# report): RC_LAUNCH_GUARD_DISABLE_TIMEOUT=1 runs the git check with NO bound
+# at all. Never set this in normal use.
+
+EXEMPT_FLAGS=(--safe-mode --bare --help -h --version -v -p --print --resume -c --continue mcp plugin config install doctor)
+
+LAUNCH_GUARD_TIMEOUT_SECS="${RC_LAUNCH_GUARD_TIMEOUT_SECS:-2}"
+
+# --- tiny helpers -----------------------------------------------------------
+
+# Read the (informational-only) posture knob. Never affects the 0/10 exit
+# contract. Fail-safe: absent file, unreadable file, or garbage content all
+# fall through to the documented default "warn".
+_read_knob() {
+  local posture line
+  posture="${PWD}/.ravenclaude/comfort-posture.yaml"
+  if [ -f "$posture" ]; then
+    line="$(grep -E '^[[:space:]]*launch_guard:[[:space:]]*(off|warn|block)([[:space:]]|#|$)' "$posture" 2>/dev/null | head -n1)"
+    if [ -n "$line" ]; then
+      printf '%s\n' "$line" \
+        | sed -E 's/^[[:space:]]*launch_guard:[[:space:]]*//' \
+        | awk '{print $1}' 2>/dev/null
+      return 0
+    fi
+  fi
+  printf 'warn\n'
+}
+
+# Does the allowlist contain an entry matching $1 (an absolute path), or `*`?
+# Fail-safe: unset HOME, missing file, or an unreadable file all mean "no
+# match" (return 1) rather than an error.
+_allowlisted() {
+  local cwd="$1" allow_file line
+  [ -n "${HOME:-}" ] || return 1
+  allow_file="${HOME}/.claude/launch-guard/allow"
+  [ -f "$allow_file" ] || return 1
+  while IFS= read -r line || [ -n "$line" ]; do
+    line="${line%%#*}"
+    line="$(printf '%s' "$line" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' 2>/dev/null)"
+    [ -n "$line" ] || continue
+    if [ "$line" = "*" ] || [ "$line" = "$cwd" ]; then
+      return 0
+    fi
+  done < "$allow_file" 2>/dev/null
+  return 1
+}
+
+# Bounded `git rev-parse --is-inside-work-tree`. Sets the global
+# _GIT_CHECK_RESULT to one of: safe | unsafe | no-git | timeout | unknown.
+#
+# Design (no GNU `timeout`, bash-3.2-safe, and tuned to stay near native git
+# latency on the common path): background git DIRECTLY (no wrapper subshell —
+# a single simple command needs no `( )`), start a background "watchdog"
+# subshell that sleeps for the timeout and then SIGKILLs git if it's still
+# running, then `wait` on git's own PID. `wait` blocks via the kernel with NO
+# polling overhead, so the fast/common case (already in a work tree) costs
+# essentially git's own latency plus two cheap forks — not a fixed
+# poll-interval tax. A watchdog-delivered SIGKILL surfaces as bash exit status
+# 137 (128+SIGKILL), which is how a genuine timeout is distinguished from any
+# other git failure without needing to inspect files for a race-prone signal.
+_run_git_check() {
+  local timeout_s="$1"
+
+  if [ "${RC_LAUNCH_GUARD_DISABLE_TIMEOUT:-}" = "1" ]; then
+    # Debug-only: no bound at all. Never used outside the must-fail-half proof.
+    if ! command -v git >/dev/null 2>&1; then
+      _GIT_CHECK_RESULT="no-git"; return 0
+    fi
+    if git rev-parse --is-inside-work-tree >/dev/null 2>/dev/null; then
+      _GIT_CHECK_RESULT="safe"
+    else
+      _GIT_CHECK_RESULT="unsafe"
+    fi
+    return 0
+  fi
+
+  if ! command -v git >/dev/null 2>&1; then
+    _GIT_CHECK_RESULT="no-git"
+    return 0
+  fi
+
+  local errfile
+  errfile="$(mktemp 2>/dev/null || echo '')"
+  if [ -z "$errfile" ]; then
+    _GIT_CHECK_RESULT="unknown"
+    return 0
+  fi
+
+  git rev-parse --is-inside-work-tree >/dev/null 2>"$errfile" &
+  local git_pid=$!
+
+  ( sleep "$timeout_s" 2>/dev/null; kill -9 "$git_pid" 2>/dev/null ) &
+  local watchdog_pid=$!
+
+  wait "$git_pid" 2>/dev/null
+  local git_rc=$?
+
+  # git finished (naturally or via the watchdog) — the watchdog is no longer
+  # needed. It may already have fired; killing/waiting on it either way is
+  # harmless and prevents a leftover background sleep / zombie.
+  kill "$watchdog_pid" 2>/dev/null || true
+  wait "$watchdog_pid" 2>/dev/null || true
+
+  if [ "$git_rc" -eq 0 ]; then
+    _GIT_CHECK_RESULT="safe"
+  elif [ "$git_rc" -eq 137 ]; then
+    _GIT_CHECK_RESULT="timeout"
+  else
+    local err_out
+    err_out="$(cat "$errfile" 2>/dev/null || echo '')"
+    case "$err_out" in
+      *"not a git repository"*)
+        _GIT_CHECK_RESULT="unsafe"
+        ;;
+      *)
+        # Any OTHER git failure (a deleted cwd, a permission error, a corrupt
+        # repo, an unexpected exit code) is NOT the same claim as "confirmed
+        # not a work tree" — fail open rather than guess.
+        _GIT_CHECK_RESULT="unknown"
+        ;;
+    esac
+  fi
+  rm -f "$errfile" 2>/dev/null || true
+}
+
+# --- check subcommand --------------------------------------------------------
+
+cmd_check() {
+  # Kill switch: the VERY FIRST statement, before anything else is evaluated.
+  if [ "${RAVENCLAUDE_LAUNCH_GUARD:-}" = "off" ]; then
+    printf 'claude-launch-guard: SAFE — RAVENCLAUDE_LAUNCH_GUARD=off (guard disabled)\n'
+    return 0
+  fi
+
+  # Parse argv: everything after a bare "--" is the real `claude` argv. If no
+  # "--" separator is present, treat every remaining arg as the real argv
+  # (tolerant of a caller that forgets the separator).
+  local real_args=() seen_dashdash=0 a
+  for a in "$@"; do
+    if [ "$seen_dashdash" -eq 0 ] && [ "$a" = "--" ]; then
+      seen_dashdash=1
+      continue
+    fi
+    real_args+=("$a")
+  done
+
+  # Exempt-flag check — matched ANYWHERE in argv, not just the first element.
+  for a in "${real_args[@]:-}"; do
+    [ -n "$a" ] || continue
+    local ex
+    for ex in "${EXEMPT_FLAGS[@]}"; do
+      if [ "$a" = "$ex" ]; then
+        printf "claude-launch-guard: SAFE — exempt flag '%s' present\n" "$a"
+        return 0
+      fi
+    done
+  done
+
+  # Allowlist check.
+  if _allowlisted "$PWD"; then
+    printf 'claude-launch-guard: SAFE — cwd is allowlisted (~/.claude/launch-guard/allow)\n'
+    return 0
+  fi
+
+  # Bounded git check — the load-bearing determination.
+  _GIT_CHECK_RESULT=""
+  _run_git_check "$LAUNCH_GUARD_TIMEOUT_SECS"
+
+  local knob
+  knob="$(_read_knob 2>/dev/null)"
+  [ -n "$knob" ] || knob="warn"
+
+  case "$_GIT_CHECK_RESULT" in
+    safe)
+      printf 'claude-launch-guard: SAFE — verified: cwd is inside a git work tree\n'
+      return 0
+      ;;
+    unsafe)
+      cat <<EOF
+claude-launch-guard: NOT SAFE (posture: ${knob})
+  cwd is not inside a git work tree: ${PWD}
+  A Claude Code session launched outside a git repo can hang indefinitely
+  (anthropics/claude-code#92932 — an unscoped 'rg' scan hits macOS TCC-denied
+  paths). This is a warning, not a hard block — the guard's own exit code is
+  the same whether your policy is warn or block; that choice belongs to the
+  shell function that calls this helper.
+  Suggested action:
+    - cd into a git repository before launching claude, OR
+    - pass an exempt flag/subcommand (--safe-mode, --bare, --help, --version,
+      -p/--print, --resume/-c/--continue, or: mcp, plugin, config, install,
+      doctor), OR
+    - add this path (or '*' to always allow) to
+      ~/.claude/launch-guard/allow, OR
+    - set RAVENCLAUDE_LAUNCH_GUARD=off to disable this check entirely.
+EOF
+      return 10
+      ;;
+    timeout)
+      printf 'claude-launch-guard: SAFE — could not verify (timed out after %ss) — failing open\n' "$LAUNCH_GUARD_TIMEOUT_SECS"
+      return 0
+      ;;
+    no-git)
+      printf 'claude-launch-guard: SAFE — could not verify (git not found on PATH) — failing open\n'
+      return 0
+      ;;
+    *)
+      printf 'claude-launch-guard: SAFE — could not verify (unexpected error) — failing open\n'
+      return 0
+      ;;
+  esac
+}
+
+# --- self-test ---------------------------------------------------------------
+
+_st_fail() { printf 'SELF-TEST FAIL: %s\n' "$1" >&2; ST_RC=1; }
+
+cmd_self_test() {
+  ST_RC=0
+  local scratch
+  scratch="$(mktemp -d 2>/dev/null || echo '')"
+  if [ -z "$scratch" ]; then
+    printf 'SELF-TEST FAIL: mktemp unavailable\n' >&2
+    return 1
+  fi
+  # shellcheck disable=SC2064
+  trap "rm -rf '$scratch'" EXIT
+
+  local script_abs
+  script_abs="$(cd "$(dirname "$0")" && pwd)/$(basename "$0")"
+
+  # A fake HOME for every fixture, so nothing ever reads/writes the real
+  # ~/.claude/launch-guard/allow on the machine running this test.
+  local fake_home="${scratch}/home"
+  mkdir -p "$fake_home"
+
+  # Build a real scratch repo (positive control).
+  local repo="${scratch}/repo"
+  mkdir -p "$repo"
+  (
+    cd "$repo"
+    git init -q .
+    git config user.email st@example.com
+    git config user.name selftest
+    git checkout -q -b main
+    echo seed > seed.txt
+    git add -A && git commit -qm seed
+  ) || { _st_fail "scratch repo setup"; return "$ST_RC"; }
+
+  local nonrepo="${scratch}/nonrepo"
+  mkdir -p "$nonrepo"
+
+  # Fixture 1: real git work tree -> exit 0.
+  (
+    cd "$repo"
+    HOME="$fake_home" bash "$script_abs" check -- >/dev/null 2>&1
+  )
+  [ "$?" -eq 0 ] || _st_fail "in-repo did not exit 0"
+
+  # Fixture 2: non-repo dir -> exit 10 (both directions — the positive control
+  # above and this negative control together prove the check discriminates).
+  (
+    cd "$nonrepo"
+    out="$(HOME="$fake_home" bash "$script_abs" check -- 2>&1)"
+    rc=$?
+    [ "$rc" -eq 10 ] || exit 51
+    printf '%s' "$out" | grep -q 'not inside a git work tree' || exit 52
+  ) || _st_fail "non-repo dir did not exit 10 ($?)"
+
+  # Fixture 3: literal /tmp is a non-repo dir too (as named in the spec).
+  if [ -d /tmp ]; then
+    (
+      cd /tmp
+      HOME="$fake_home" bash "$script_abs" check -- >/dev/null 2>&1
+    )
+    rc=$?
+    if [ "$rc" -eq 0 ]; then
+      : # /tmp happens to be (or be inside) a git work tree on this machine — skip.
+    else
+      [ "$rc" -eq 10 ] || _st_fail "/tmp gave unexpected exit code ($rc, expected 10 or 0-if-repo)"
+    fi
+  fi
+
+  # Fixture 4: every exempt flag, anywhere in argv (not just $1) -> exit 0,
+  # from a NON-repo dir (so without the exempt match it would deny).
+  for ex in "${EXEMPT_FLAGS[@]}"; do
+    (
+      cd "$nonrepo"
+      HOME="$fake_home" bash "$script_abs" check -- --unrelated-flag "$ex" >/dev/null 2>&1
+    )
+    [ "$?" -eq 0 ] || _st_fail "exempt flag '$ex' did not exit 0"
+  done
+
+  # Fixture 5: RAVENCLAUDE_LAUNCH_GUARD=off in a non-repo dir -> exit 0.
+  (
+    cd "$nonrepo"
+    RAVENCLAUDE_LAUNCH_GUARD=off HOME="$fake_home" bash "$script_abs" check -- >/dev/null 2>&1
+  )
+  [ "$?" -eq 0 ] || _st_fail "kill switch did not exit 0"
+
+  # Fixture 6: allowlisted via an exact path match -> exit 0.
+  (
+    cd "$nonrepo"
+    mkdir -p "${fake_home}/.claude/launch-guard"
+    printf '%s\n' "$nonrepo" > "${fake_home}/.claude/launch-guard/allow"
+    HOME="$fake_home" bash "$script_abs" check -- >/dev/null 2>&1
+  )
+  [ "$?" -eq 0 ] || _st_fail "exact-path allowlist did not exit 0"
+  rm -f "${fake_home}/.claude/launch-guard/allow"
+
+  # Fixture 7: allowlisted via '*' -> exit 0.
+  (
+    cd "$nonrepo"
+    mkdir -p "${fake_home}/.claude/launch-guard"
+    printf '*\n' > "${fake_home}/.claude/launch-guard/allow"
+    HOME="$fake_home" bash "$script_abs" check -- >/dev/null 2>&1
+  )
+  [ "$?" -eq 0 ] || _st_fail "'*' allowlist did not exit 0"
+  rm -f "${fake_home}/.claude/launch-guard/allow"
+
+  # --- fail-open matrix -----------------------------------------------------
+
+  # Fixture 8 (fail-open): git hidden from PATH, in a NON-repo dir — without
+  # fail-open this would otherwise (mis)resolve toward a deny.
+  (
+    cd "$nonrepo"
+    local git_path stripped
+    git_path="$(command -v git 2>/dev/null || echo '')"
+    if [ -n "$git_path" ]; then
+      local git_dir
+      git_dir="$(dirname "$git_path")"
+      stripped="$(printf '%s' "$PATH" | tr ':' '\n' | grep -Fxv "$git_dir" | tr '\n' ':')"
+    else
+      stripped="$PATH"
+    fi
+    out="$(PATH="$stripped" HOME="$fake_home" bash "$script_abs" check -- 2>&1)"
+    rc=$?
+    [ "$rc" -eq 0 ] || exit 61
+    printf '%s' "$out" | grep -q 'git not found' || exit 62
+  ) || _st_fail "git-hidden-from-PATH did not fail open ($?)"
+
+  # Fixture 9 (fail-open): a stubbed/fake `git` that sleeps past the timeout,
+  # in a NON-repo dir — without the timeout this would eventually deny.
+  # Uses a short timeout override so the fixture stays fast (proving the
+  # BOUND fires, not that a full 2s passed).
+  (
+    cd "$nonrepo"
+    mkdir -p "${scratch}/fakebin"
+    cat > "${scratch}/fakebin/git" <<'FAKEGIT'
+#!/bin/sh
+sleep 30
+FAKEGIT
+    chmod +x "${scratch}/fakebin/git"
+    start="$(date +%s)"
+    out="$(PATH="${scratch}/fakebin:$PATH" RC_LAUNCH_GUARD_TIMEOUT_SECS=1 HOME="$fake_home" bash "$script_abs" check -- 2>&1)"
+    rc=$?
+    end="$(date +%s)"
+    elapsed=$((end - start))
+    [ "$rc" -eq 0 ] || exit 71
+    printf '%s' "$out" | grep -q 'timed out' || exit 72
+    [ "$elapsed" -le 5 ] || exit 73
+  ) || _st_fail "sleeping-git timeout did not fail open ($?)"
+
+  # Fixture 10 (fail-open): comfort-posture file present but GARBAGE content
+  # — must not crash the (otherwise-safe, in-repo) check.
+  (
+    cd "$repo"
+    mkdir -p .ravenclaude
+    printf '\x00\x01garbage: [[[not: yaml\n' > .ravenclaude/comfort-posture.yaml
+    HOME="$fake_home" bash "$script_abs" check -- >/dev/null 2>&1
+    rc=$?
+    rm -f .ravenclaude/comfort-posture.yaml
+    rmdir .ravenclaude 2>/dev/null || true
+    [ "$rc" -eq 0 ] || exit 81
+  ) || _st_fail "garbage comfort-posture did not stay exit 0 ($?)"
+
+  # Fixture 10b (fail-open): comfort-posture file present but UNREADABLE
+  # (chmod 000) — skipped if running as root, since root bypasses file
+  # permission checks on most systems and the fixture would prove nothing.
+  if [ "$(id -u 2>/dev/null || echo 0)" != "0" ]; then
+    (
+      cd "$repo"
+      mkdir -p .ravenclaude
+      echo 'launch_guard: warn' > .ravenclaude/comfort-posture.yaml
+      chmod 000 .ravenclaude/comfort-posture.yaml
+      HOME="$fake_home" bash "$script_abs" check -- >/dev/null 2>&1
+      rc=$?
+      chmod 644 .ravenclaude/comfort-posture.yaml
+      rm -f .ravenclaude/comfort-posture.yaml
+      rmdir .ravenclaude 2>/dev/null || true
+      [ "$rc" -eq 0 ] || exit 82
+    ) || _st_fail "unreadable comfort-posture did not stay exit 0 ($?)"
+  fi
+
+  # Fixture 11 (fail-open): HOME unset — must not crash the (otherwise-safe,
+  # in-repo) check.
+  (
+    cd "$repo"
+    env -u HOME bash "$script_abs" check -- >/dev/null 2>&1
+    [ "$?" -eq 0 ] || exit 91
+  ) || _st_fail "unset HOME did not stay exit 0 ($?)"
+
+  # Fixture 12 (fail-open): cwd deleted out from under the process.
+  (
+    local gone="${scratch}/gone-$$"
+    mkdir -p "$gone"
+    cd "$gone"
+    rmdir "$gone" 2>/dev/null || rm -rf "$gone" 2>/dev/null || true
+    HOME="$fake_home" bash "$script_abs" check -- >/dev/null 2>&1
+    [ "$?" -eq 0 ] || exit 101
+  ) || _st_fail "deleted cwd did not stay exit 0 ($?)"
+
+  # Fixture 13: `bash -n` is clean, and a minimal PATH (no GNU tooling
+  # assumed, HOME cleared) still exits 0 on the exempt-flag fast path.
+  bash -n "$script_abs" || _st_fail "bash -n failed"
+  (
+    env -i PATH=/usr/bin:/bin bash "$script_abs" check -- --verbose --safe-mode >/dev/null 2>&1
+  )
+  [ "$?" -eq 0 ] || _st_fail "env -i PATH=/usr/bin:/bin exempt-flag path failed"
+
+  # Fixture 14: the same minimal PATH, exercising the FULL check (git call +
+  # timeout machinery), from inside the real repo — catches any accidental
+  # GNU-only usage in the timeout/git-check path, not just the fast path.
+  (
+    cd "$repo"
+    env -i PATH=/usr/bin:/bin HOME="$fake_home" bash "$script_abs" check -- >/dev/null 2>&1
+  )
+  [ "$?" -eq 0 ] || _st_fail "env -i PATH=/usr/bin:/bin full check path failed"
+
+  if [ "$ST_RC" -eq 0 ]; then
+    printf 'SELF-TEST PASS: claude-launch-guard (14 fixtures)\n'
+  fi
+  return "$ST_RC"
+}
+
+# --- dispatch ----------------------------------------------------------------
+
+main() {
+  local sub="${1:-}"
+  shift 2>/dev/null || true
+  case "$sub" in
+    check)
+      cmd_check "$@"
+      exit $?
+      ;;
+    --self-test|self-test)
+      cmd_self_test
+      exit $?
+      ;;
+    ""|-h|--help|help)
+      grep -E '^#( |$)' "$0" | sed -E 's/^# ?//'
+      ;;
+    *)
+      printf "claude-launch-guard: unknown subcommand '%s' (check|--self-test)\n" "$sub" >&2
+      exit 2
+      ;;
+  esac
+}
+
+main "$@"
