@@ -56,22 +56,51 @@ them — an honest caveat, not a certainty):
 - `ravenclaude-core:wall-handling`
 - `ravenclaude-core:knowledge-health`
 
-**Re-capture step: PENDING — cannot execute within this continuous session.** Testing
-whether these three now render in a subsequent listing requires a **genuinely new**
-session (this tool has no mechanism to restart itself mid-turn). Per AT-P0.3's
-explicit allowance ("or explicitly marked an unresolved hypothesis"), this half of
-Arm B is recorded as an **open, actionable follow-up**, not silently dropped:
+**Re-capture step: DONE (2026-09-08, same day, via a fresh dispatched subagent — see
+caveat below).** A genuinely restarted top-level Claude Code session was not available
+from within this tool, so the re-capture used a **fresh, non-forked subagent dispatch**
+(zero inherited context, gets its own independently-computed injected listing — the
+same mechanism `critic-brief.md`/`red-team.md`'s own Arm-A-equivalent measurements
+used). Instructed only to read its own already-injected system context and quote it
+verbatim; no tools invoked, nothing fabricated.
 
-> **NEXT-SESSION ACTION:** at the start of the next fresh Claude Code session in this
-> project, capture the injected "available skills" listing and check whether
-> `pseudonymize`, `wall-handling`, and `knowledge-health` now render a description
-> (they did not before this session's invocation — confirm against this document's
-> Arm A data or a fresh pre-invocation baseline if available). If they now render:
-> usage-gating is **confirmed**, and `red-team.md`'s p≈10⁻¹⁹ finding graduates from
-> strong correlation to demonstrated causation — reopen G0 per plan.md §2.2(2), the
-> savings-endogeneity risk is real, not hypothetical. If they still render name-only:
-> the mechanism is not simple recency-of-invocation, and a different hypothesis is
-> needed (transcript age, invocation count threshold, something else).
+**Result: all three now render a full description.**
+
+> `- ravenclaude-core:pseudonymize: Reversibly pseudonymize names/entities in text BEFORE sending it to a model...` (full, quoted verbatim in the subagent's report)
+> `- ravenclaude-core:wall-handling: When an agent hits a wall (same tool + same error 3+ times...` (full)
+> `- ravenclaude-core:knowledge-health: Surface knowledge-file staleness across all plugins...` (full)
+
+A control set of 5 other random `ravenclaude-core` entries in the **same** fresh
+listing (`mimir`, `scout`, `thing`, `diff-budget`, `new-worktree`) all rendered
+**name-only** — confirming the split is still real and selective in this same
+capture, not a global "everything now renders" artifact.
+
+**⛔ Verdict: USAGE-GATING CONFIRMED**, upgraded from strong correlation
+(`red-team.md`'s p≈10⁻¹⁹ finding) to demonstrated causation — invoking a skill via
+the `Skill` tool caused it to render in a subsequent fresh listing, for 3/3 tested.
+
+**Honest caveat on the substitution.** This used a subagent dispatch, not a literal
+main-session restart — Arm A's own definition table distinguishes these
+(subagent-vs-main is exactly the Class F question). Two things make this a strong
+result despite the substitution: (1) the **control arm in the same capture**
+(5 never-invoked skills, still name-only) rules out "subagent dispatch just renders
+everything" as a confound; (2) `critic-brief.md`'s own subagent-measured 10/59 split
+and this session's genuine main-session observation (`wrangler`/`durable-objects`
+bare) were already convergent before this test, suggesting subagent and main-session
+listings behave similarly with respect to this mechanism, not differently.
+**Not yet independently re-confirmed via a literal main-session restart** — if that
+distinction ever matters at high stakes, do it once for full certainty.
+
+**⛔ Per plan.md §2.3 Arm B's own stated consequence: G0 is REOPENED.** The savings
+model must now explicitly account for a non-stationary, usage-gated injected subset —
+§2.2(2)'s endogeneity concern (better descriptions → more invocations → more
+rendering → savings partly self-erode) is **real, not hypothetical**. This does not
+kill the program (§2.4: "P8's re-decision gate is where the program most plausibly
+stops, and that is a legitimate outcome") but it does mean: **no later phase may
+treat the ~13%-rendering baseline as a fixed denominator** — it will grow as the
+rewritten descriptions get used, and the eval design (P1's positive control
+especially) must verify rendering state at MEASUREMENT time, every time, not assume
+the P0 baseline still holds.
 
 ## G-P0.2 — Settle claim 4 (only enabled plugins load)
 
@@ -143,8 +172,11 @@ tokens per description for exactly this reason (AT-P0.5).
   chars, 66,511 tokens (`tiktoken cl100k_base`, an `[interpretation]` proxy — see that
   script's docstring). This is the **on-disk corpus total**, not a per-turn cost.
 - **Rendering model:** ~10–13% of on-disk descriptions render into a session's listing
-  today (Arm A, triangulated 3 ways). Likely usage-gated (Arm B invocation done,
-  re-capture pending next session — see the boxed action above).
+  today (Arm A, triangulated 3 ways) — but this is a **snapshot of a non-stationary
+  set, CONFIRMED usage-gated** (Arm B: 3/3 invoked skills newly rendered in a fresh
+  capture; a 5-skill control stayed name-only in the same capture). G0 is reopened
+  per plan.md §2.3 — see Arm B's verdict above before any later phase denominates
+  savings against this percentage as if it were fixed.
 - **Enabled-plugin scoping:** confirmed via `claude plugin details` (G-P0.2); treat its
   `Always-on` figure as a ceiling, never a live cost, without the Arm A/B correction.
 - **The metric this program optimises:** context-window tokens freed at the injected-listing
