@@ -32,6 +32,20 @@ per-conjunct-negative, never just on its one designed-for case.
   250g    conjunct-5 probe failure (git absent) -> zero findings, no exception
   250h    no registry dir / no projects dir at all -> exits cleanly, heartbeat written
 
+P4 ADDITIVE — debug-log confirmatory enrichment
+(`_enrich_launch_hang_with_debug_log()`). OPTIONAL and CONFIRMATORY ONLY —
+never a required trigger of a P3 finding; these checks pin exactly that:
+a finding fires (or doesn't) identically whether or not this pass ever
+touches it, and the pass itself can only ever ADD two derived-label keys,
+never leak raw debug-log content.
+
+  251a    debug log WITH the rg/TCC signature -> signature + match_count attached
+  251b    no debug file at all -> finding UNCHANGED, P3 verdict does not depend on this phase
+  251c    leak control (must-fail half): a planted sentinel never reaches the emitted finding,
+          proven non-vacuous by a deliberately leaky variant that DOES leak it
+  251d    a 100MB (sparse) debug log -> bounded read, tail-window signature still detected
+  251e    enrichment throws -> the overall launch-hang finding is STILL emitted, unenriched
+
 Run standalone:  python3 test-stall-watch.py
 Invoked by:      scripts/audit-gates.sh  ->  .github/workflows/validate-marketplace.yml
 """
@@ -640,11 +654,169 @@ def gate_250h(sw):
         sw.PROJECTS_DIR = saved_projects_dir
 
 
+# ---------------------------------------------------------------------------
+# Gate 251 — P4, the optional debug-log confirmatory enrichment. Everything
+# here targets `_enrich_launch_hang_with_debug_log()` only; P3's own gates
+# (250 series) above are untouched — 251e is the one check that also drives
+# `evaluate_launch_hangs()` itself, and only to prove P4's own failure mode
+# (an exception) can never cost P3's finding.
+# ---------------------------------------------------------------------------
+
+def _write_debug_log(dirpath, session_id, content):
+    path = os.path.join(dirpath, session_id + ".txt")
+    with open(path, "w") as fh:
+        fh.write(content)
+    return path
+
+
+def _rg_signature_text(n=3):
+    """The observed real-world shape (claims-table.md #2 in this feature's
+    own FORGE run dir): an rg invocation line, followed eventually by the
+    TCC 'Operation not permitted' error line, repeated n times."""
+    lines = []
+    for i in range(n):
+        lines.append("rg spawned to index files under $HOME (attempt %d)" % i)
+        lines.append(
+            "/Users/x/Library/Mail/some/path-%d: Operation not permitted (os error 1)" % i)
+    return "\n".join(lines) + "\n"
+
+
+def gate_251(sw):
+    scratch_debug = tempfile.mkdtemp(prefix="rc-launch-hang-debug-")
+    saved_dir = sw.DEBUG_LOG_DIR
+    sw.DEBUG_LOG_DIR = scratch_debug
+    try:
+        # ------------------------------------------------------------- 251a
+        finding = {"session_id": "sess-aaaa", "kind": "launch-hang"}
+        _write_debug_log(scratch_debug, "sess-aaaa", _rg_signature_text(3))
+        sw._enrich_launch_hang_with_debug_log(finding)
+        gate("251a debug log WITH the rg/TCC signature -> signature + match_count attached",
+             finding.get("signature") == "rg-tcc" and finding.get("match_count") == 3,
+             "finding=%s" % finding)
+
+        # ------------------------------------------------------------- 251b
+        # No debug file at all for this sessionId — the common case, since
+        # --debug is not on by default. The P3 verdict must not depend on
+        # this phase: the finding is left byte-identical.
+        finding2 = {"session_id": "sess-bbbb", "kind": "launch-hang",
+                    "pid": 1, "silent_min": 5.0}
+        before = dict(finding2)
+        sw._enrich_launch_hang_with_debug_log(finding2)
+        gate("251b no debug file -> finding UNCHANGED, signature key absent",
+             finding2 == before and "signature" not in finding2
+             and "match_count" not in finding2,
+             "finding=%s" % finding2)
+
+        # ------------------------------------------------------------- 251c
+        # Leak control — the most important check in this phase. A planted
+        # sentinel that would never legitimately appear must never reach the
+        # emitted finding, even though the debug log genuinely matches the
+        # signature.
+        sentinel = "/Users/totally-fake-user/DO-NOT-LEAK-9f8171/Library/Mail/x"
+        leaky_content = "rg spawned\n%s: Operation not permitted (os error 1)\n" % sentinel
+        _write_debug_log(scratch_debug, "sess-cccc", leaky_content)
+        finding3 = {"session_id": "sess-cccc", "kind": "launch-hang"}
+        sw._enrich_launch_hang_with_debug_log(finding3)
+        emitted = json.dumps(finding3)
+        gate("251c leak control: sentinel absent from the emitted finding "
+             "(signature/match_count only)",
+             sentinel not in emitted and finding3.get("signature") == "rg-tcc"
+             and isinstance(finding3.get("match_count"), int),
+             "emitted=%s" % emitted)
+
+        # 251c-teeth: prove 251c is a real probe, not a vacuous pass, by
+        # running a DELIBERATELY leaky variant against the SAME debug log
+        # and confirming the sentinel now DOES appear.
+        def _leaky_enrich(f):
+            sid = f.get("session_id")
+            p = os.path.join(sw.DEBUG_LOG_DIR, sid + ".txt")
+            with open(p, "rb") as fh:
+                chunk = fh.read().decode("utf-8", "ignore")
+            if sw._RG_TCC_ERROR_RE.search(chunk):
+                f["signature"] = "rg-tcc"
+                f["leaked_line"] = chunk  # the bug 251c exists to catch
+        finding4 = {"session_id": "sess-cccc", "kind": "launch-hang"}
+        _leaky_enrich(finding4)
+        emitted4 = json.dumps(finding4)
+        gate("251c-teeth: a deliberately leaky variant DOES leak the sentinel "
+             "(proves 251c has teeth, not a vacuous pass)",
+             sentinel in emitted4, "emitted=%s" % emitted4)
+
+        # ------------------------------------------------------------- 251d
+        # A large (sparse, ~100MB) debug log: the read must stay bounded —
+        # not scale with file size — while still detecting a signature that
+        # lives inside the last DEBUG_LOG_TAIL_BYTES of the file.
+        big_path = os.path.join(scratch_debug, "sess-dddd.txt")
+        with open(big_path, "wb") as fh:
+            fh.truncate(100 * 1024 * 1024)  # sparse: cheap, no real 100MB of IO
+        tail_text = _rg_signature_text(2).encode("utf-8")
+        with open(big_path, "r+b") as fh:
+            fh.seek(100 * 1024 * 1024 - len(tail_text))
+            fh.write(tail_text)
+
+        counted = {"bytes": 0}
+        real_open = open
+
+        def counting_open(path, mode="r", *a, **kw):
+            fh = real_open(path, mode, *a, **kw)
+            orig_read = fh.read
+
+            def read(*ra, **rk):
+                data = orig_read(*ra, **rk)
+                counted["bytes"] += len(data)
+                return data
+            fh.read = read
+            return fh
+
+        sw.open = counting_open
+        try:
+            finding5 = {"session_id": "sess-dddd", "kind": "launch-hang"}
+            t0 = time.time()
+            sw._enrich_launch_hang_with_debug_log(finding5)
+            elapsed = time.time() - t0
+        finally:
+            del sw.open
+        gate("251d 100MB debug log: read stays bounded (bytes_read <= DEBUG_LOG_TAIL_BYTES)",
+             0 < counted["bytes"] <= sw.DEBUG_LOG_TAIL_BYTES,
+             "bytes_read=%d bound=%d elapsed=%.3fs" %
+             (counted["bytes"], sw.DEBUG_LOG_TAIL_BYTES, elapsed))
+        gate("251d 100MB debug log: signature in the tail window is still detected",
+             finding5.get("signature") == "rg-tcc" and finding5.get("match_count") == 2,
+             "finding=%s" % finding5)
+
+        # ------------------------------------------------------------- 251e
+        # P4 throwing on a malformed/corrupt debug file must never suppress
+        # or crash the overall P3 finding — the call site in
+        # evaluate_launch_hangs() must catch it and emit unenriched.
+        saved_enrich = sw._enrich_launch_hang_with_debug_log
+
+        def _boom(f):
+            raise RuntimeError("simulated corrupt debug file")
+        sw._enrich_launch_hang_with_debug_log = _boom
+        saved_reg, saved_find = sw.read_registry, sw.find_transcript
+        tmp_outside = tempfile.mkdtemp(prefix="rc-launch-hang-p4-outside-")
+        try:
+            now, rec = _positive_fixture(sw, tmp_outside)
+            sw.read_registry = lambda: ([rec], [])
+            sw.find_transcript = lambda sid: None
+            result = sw.evaluate_launch_hangs(now, {})
+        finally:
+            sw._enrich_launch_hang_with_debug_log = saved_enrich
+            sw.read_registry, sw.find_transcript = saved_reg, saved_find
+        findings = result["findings"]
+        ok = (len(findings) == 1 and findings[0].get("kind") == "launch-hang"
+              and "signature" not in findings[0] and "match_count" not in findings[0])
+        gate("251e P4 exception in enrichment -> P3 finding STILL emitted, unenriched",
+             ok, "findings=%s" % findings)
+    finally:
+        sw.DEBUG_LOG_DIR = saved_dir
+
+
 def main():
     sys.stdout.write("Gate 244: stall watchdog\n")
     sw = load("stall_watch")
     for fn in (gate_244, gate_245, gate_246, gate_247, gate_248, gate_249,
-               gate_250, gate_250r, gate_250f, gate_250g, gate_250h):
+               gate_250, gate_250r, gate_250f, gate_250g, gate_250h, gate_251):
         try:
             fn(sw)
         except Exception as exc:

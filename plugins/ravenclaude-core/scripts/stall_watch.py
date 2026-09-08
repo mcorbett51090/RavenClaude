@@ -730,12 +730,36 @@ def evaluate_launch_hangs(now: float, state: dict) -> dict:
         findings.append({
             "pid": sess["pid"],
             "session": str(sess["session_id"])[:8],
+            # ADDITIVE (P4): the FULL sessionId, not just the 8-char display
+            # prefix above — needed to locate `~/.claude/debug/<sessionId>.txt`
+            # below. Not itself a leak: it is the same value already exposed
+            # (truncated) in "session", and it is registry-sourced, not
+            # debug-log content — the P4 leak invariant governs the LOG's
+            # content, not the session identifier P3 already carries.
+            "session_id": sess["session_id"],
             "project": project_key(sess["cwd"]),
             "status": sess["status"],
             "silent_min": round(elapsed_min, 1),
             "kind": "launch-hang",
             "issue": LAUNCH_HANG_ISSUE_REF,
         })
+
+    # =========================================================================
+    # ADDITIVE — P4: optional debug-log confirmatory enrichment (see the block
+    # below, right after this function). Runs strictly AFTER every finding
+    # above is already final — it can only ever ADD `signature`/`match_count`
+    # to a finding that already fired; it is never consulted by, and can never
+    # suppress, any of the six conjuncts above. Each finding gets its own
+    # try/except so a single corrupt/unreadable debug log can never cost the
+    # OTHER findings in this same tick, or the tick itself, their result —
+    # matching this module's own P3-around-general-path fail-open discipline
+    # in main() around this whole function's call site.
+    # =========================================================================
+    for finding in findings:
+        try:
+            _enrich_launch_hang_with_debug_log(finding)
+        except Exception:
+            pass  # unenriched is exactly what P3 alone would have produced
 
     alerts = []
     for finding in findings:
@@ -747,6 +771,108 @@ def evaluate_launch_hangs(now: float, state: dict) -> dict:
     state["launch_episodes"] = episodes
     return {"sessions": len(sessions), "findings": findings,
             "alerts": alerts, "notes": notes}
+
+
+# =============================================================================
+# ADDITIVE — P4: debug-log confirmatory enrichment (optional, narrow,
+# non-load-bearing). Read the module banner's "Where the panels agreed" #3
+# before touching anything here: the debug-log rg/TCC signature is
+# OPTIONAL/CONFIRMATORY ONLY, never a required trigger — this is a
+# load-bearing design constraint, not a suggestion. Everything below runs
+# strictly AFTER `evaluate_launch_hangs()` above has already decided a
+# session is a launch-hang; it can only ever ENRICH an already-fired finding,
+# never create one, never suppress one, and never change which sessions get
+# flagged. Deleting this whole block plus its one call site above restores
+# exactly P3's behavior — the same additive, two-way-door contract P3 itself
+# satisfies against `evaluate()`.
+# =============================================================================
+
+# `~/.claude/debug/<sessionId>.txt` is only ever populated when the user
+# happened to launch with `--debug` — NOT the default (§0 of the plan; both
+# FORGE panels independently measured that most live sessions have no debug
+# log at all). Its absence is therefore the common case, not an error path.
+DEBUG_LOG_DIR = os.path.join(HOME, ".claude", "debug")
+
+# Reuses the SAME bound as the transcript tail read above (TAIL_BYTES) rather
+# than inventing a second scale — a debug log is not expected to be
+# materially larger than a transcript, and this keeps the read genuinely
+# bounded (does not scale with file size) regardless of how large the file
+# on disk claims to be.
+DEBUG_LOG_TAIL_BYTES = TAIL_BYTES
+
+RG_TCC_SIGNATURE = "rg-tcc"
+
+# The observed real-world shape (this repo's own `--debug` capture that
+# produced the filed issue, anthropics/claude-code#92932 — see
+# claims-table.md #2 in this feature's own FORGE run dir): an unscoped `rg`
+# file-index scan hits a macOS TCC-protected path (`.Trash`, `Library/Mail`,
+# `Photos Library.photoslibrary`, `Library/Messages`, ...) and each hit ends
+# the same way — "Operation not permitted (os error 1)". Two independently
+# loose regexes rather than one line-shaped pattern: the exact interleaving
+# of the `rg` invocation and its error output was never captured verbatim in
+# this repo's own research trail, so requiring both substrings on the SAME
+# line would risk a false NEGATIVE against a log shape this detector has
+# never actually seen firsthand.
+_RG_INVOCATION_RE = re.compile(r"\brg\b|ripgrep", re.IGNORECASE)
+_RG_TCC_ERROR_RE = re.compile(r"Operation not permitted(?: \(os error 1\))?")
+
+# ⛔ observed against Claude Code 2.1.263, 2026-09-08 — re-verify the rg/TCC
+# log signature against a fresh --debug capture on any Claude Code version
+# bump; a format change here degrades ONLY this optional signal, never the
+# P3 base detection.
+def _enrich_launch_hang_with_debug_log(finding: dict) -> None:
+    """OPTIONAL, confirmatory-ONLY enrichment of an ALREADY-FIRED P3
+    'launch-hang' finding. Mutates `finding` in place; returns None always.
+
+    Only ever ADDS `signature`/`match_count` to a finding that already
+    exists — never a precondition of one firing, never able to remove or
+    alter anything P3 already decided.
+
+    No debug file for this session's sessionId -> does nothing, leaves
+    `finding` byte-identical to what P3 alone produced. This is the COMMON
+    case (`--debug` is not on by default), not an error path.
+
+    ⛔ DERIVED LABELS ONLY, hard leak-control invariant: on a match this
+    attaches the literal string "rg-tcc" plus an integer match count —
+    NEVER a matched line, a file path from the log, or any other raw
+    excerpt. Mirrors the same discipline `capability-orientation.sh` /
+    `watch-run-state.sh` hold for a payload that is understood to reach a
+    notification sink (and, in some paths, a model): a debug log carries
+    absolute paths and command output that must never leak through.
+
+    Bounded read: only the last DEBUG_LOG_TAIL_BYTES of the file are ever
+    read (via seek, not a full read), so the cost of this function does not
+    scale with how large the debug log is on disk.
+
+    Any exception raised here (unreadable file, permission error, malformed
+    content) is caught by the CALL SITE in `evaluate_launch_hangs()`, not
+    here — this function is deliberately left free to raise on an
+    unexpected OS error rather than swallowing it internally, so the one
+    fail-open boundary this module relies on stays in exactly one place
+    (matching this module's own `main()` discipline of one try/except per
+    additive pass, not one nested inside another).
+    """
+    session_id = finding.get("session_id")
+    if not session_id:
+        return
+    # os.path.basename: defense in depth against a sessionId that somehow
+    # carries a path separator. session_id is registry-sourced (trusted),
+    # but this detector's own contract is to fail toward doing nothing on
+    # any ambiguity, never toward trusting an unusual value.
+    path = os.path.join(DEBUG_LOG_DIR, os.path.basename(str(session_id)) + ".txt")
+    if not os.path.isfile(path):
+        return  # the common case
+    size = os.path.getsize(path)
+    with open(path, "rb") as fh:
+        fh.seek(max(0, size - DEBUG_LOG_TAIL_BYTES))
+        chunk = fh.read().decode("utf-8", "ignore")
+    if not _RG_INVOCATION_RE.search(chunk):
+        return
+    count = len(_RG_TCC_ERROR_RE.findall(chunk))
+    if count <= 0:
+        return
+    finding["signature"] = RG_TCC_SIGNATURE
+    finding["match_count"] = count
 
 
 def main(argv: list[str]) -> int:
