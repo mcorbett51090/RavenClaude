@@ -448,6 +448,52 @@ jobs:
         # mirroring validate-schemas.yml, which owns the real per-plugin run.
         run: python3 -m pip install --quiet jsonschema
 
+      - name: TEMP DIAGNOSTIC 2 — trace the synthetic-merge-ref resolution step by step (remove before merge)
+        run: |
+          set -x
+          echo "GITHUB_EVENT_NAME=$GITHUB_EVENT_NAME GITHUB_BASE_REF=$GITHUB_BASE_REF"
+          git rev-parse --verify --quiet origin/main || echo "origin/main does not resolve (expected in CI)"
+          git log --parents -1 HEAD
+          git log -1 --format=%B HEAD
+          git rev-parse --is-shallow-repository
+          python3 - <<'PYEOF'
+          import sys
+          sys.path.insert(0, "scripts")
+          from pathlib import Path
+          import _base_ref as br
+
+          root = Path(".").resolve()
+          print("=== resolve_base ===")
+          base, how = br.resolve_base(root, "origin/main")
+          print("base:", base, "how:", how)
+          if base == "MERGE_REF_PARENTS":
+              rc1, p1 = br._git(root, "rev-parse", "HEAD^1")
+              rc2, p2 = br._git(root, "rev-parse", "HEAD^2")
+              print("p1 (rc=%s):" % rc1, p1)
+              print("p2 (rc=%s):" % rc2, p2)
+              rc3, nested = br._git(root, "merge-base", p1, p2)
+              print("initial merge-base(p1,p2) rc=%s:" % rc3, nested)
+              if not (rc3 == 0 and nested):
+                  print("=== attempting --unshallow fetch ===")
+                  import subprocess
+                  fr = subprocess.run(["git", "-C", str(root), "fetch", "-v", "--unshallow", "origin"],
+                                       capture_output=True, text=True, timeout=br.FETCH_TIMEOUT)
+                  print("fetch rc:", fr.returncode)
+                  print("fetch stdout:", fr.stdout[:2000])
+                  print("fetch stderr:", fr.stderr[:2000])
+                  rc4, nested2 = br._git(root, "merge-base", p1, p2)
+                  print("post-fetch merge-base(p1,p2) rc=%s:" % rc4, nested2)
+          print("=== merge_base() (first call, simulating check-inception-coverage) ===")
+          sha1, how1 = br.merge_base(root, "origin/main")
+          print("sha1:", sha1, "how1:", how1)
+          print("=== merge_base() (second call, simulating check-ratchet-freshness) ===")
+          sha2, how2 = br.merge_base(root, "origin/main")
+          print("sha2:", sha2, "how2:", how2)
+          print("=== git shallow state after both calls ===")
+          PYEOF
+          git rev-parse --is-shallow-repository
+          set +x
+
       - name: Audit every gate (meta-test — prove each gate fails on bad input AND passes on good)
         # Codifies docs/best-practices/ci-gate-audit.md. If any CI gate
         # stops gating (or starts gating the wrong thing), this step catches
