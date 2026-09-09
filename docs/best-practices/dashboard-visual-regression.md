@@ -1,6 +1,6 @@
 # Dashboard visual regression — the shell comparison set
 
-**What this is:** the manual visual-regression check for the unified dashboard shell ([plan](../plans/2026-06-04-unified-dashboard-shell/plan.md) §Phase 3), run 2026-06-04 with headless Chrome. **Result: PASS** — Phase 3 closed; the shell consolidation (index.html + dashboard + repo-guide) is fully done.
+**What this is:** the manual visual-regression check for the unified dashboard shell ([plan](../plans/archive/2026-06-04-unified-dashboard-shell/plan.md) §Phase 3), run 2026-06-04 with headless Chrome. **Result: PASS** — Phase 3 closed; the shell consolidation (index.html + dashboard + repo-guide) is fully done.
 
 ## The comparison set (re-run this if the shell or a payload changes visually)
 

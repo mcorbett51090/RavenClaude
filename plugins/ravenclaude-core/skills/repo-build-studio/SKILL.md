@@ -65,7 +65,7 @@ Drop one into a repo, point Claude at it with the constraint above, and iterate.
   "looks like Claude Code" skin (Anthropic branding terms) — "Powered by Claude" only.
 
 ## Cross-references
-- FORGE plan + the premise analysis: [`../../../../docs/plans/2026-06-24-repo-build-studio/plan.md`](../../../../docs/plans/2026-06-24-repo-build-studio/plan.md).
+- FORGE plan + the premise analysis: [`../../../../docs/plans/archive/2026-06-24-repo-build-studio/plan.md`](../../../../docs/plans/archive/2026-06-24-repo-build-studio/plan.md).
 - Brand a generated page to a target site: the [`brand-extraction`](../brand-extraction/SKILL.md) skill.
 - Iterate a page toward pixel-perfect: the [`visual-feedback-loop`](../visual-feedback-loop/SKILL.md) skill.
 - Data-connected dashboards: the `data-platform` plugin (`dashboard-builder`, connectors).
