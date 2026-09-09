@@ -2,6 +2,16 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.320.1 — 2026-09-09
+
+### Fixed — broken relative links after the plan-archive move
+
+Repointed six skills' plan-reference links (`adaptive-run-classifier`, `agent-dispatch-evaluator`,
+`analog-closeness-scorecard`, `mimir`, `probe-kit`, `repo-build-studio`) to the new
+`docs/plans/archive/…` locations. The 2026-09-09 `docs: archive … plans` commit moved the plan
+directories without updating references, which turned the required `check-md-links.py` CI gate red
+for every PR. Link targets only — no behavioral change. **Migration:** none.
+
 ## 0.320.0 — 2026-09-08
 
 ### New skill — `skill-index` (FORGE plan `dynamic-skill-context`, phase P0)
