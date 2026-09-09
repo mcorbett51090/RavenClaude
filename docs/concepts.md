@@ -3036,7 +3036,7 @@ Falsifier: a future `host-support.json` restructuring that removes the per-host 
 
 **Sources:** [/code-review found the pre-fix undercount and this session verified the fix's measured effect](https://github.com/mcorbett51090/RavenClaude/pull/1101)
 
-_Last verified: 2026-09-03_
+_Last verified: 2026-09-09_
 
 
 ---
