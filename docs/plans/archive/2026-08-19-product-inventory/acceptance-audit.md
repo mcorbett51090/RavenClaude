@@ -19,7 +19,7 @@ must-fail half, all eight confirmed in the suite output **by literal name**.
 |---|---|---|
 | 1 | Four-row verdict table, command + literal output class each | ✅ [`p1-spike-verdicts.md`](p1-spike-verdicts.md) |
 | 2 | S1 includes a file that **should** deny and does | ✅ `S1-C0` = DENY, asserted first |
-| 3 | Line-offset rule + template recorded | ✅ [`inventory-authoring.md`](../../best-practices/inventory-authoring.md) |
+| 3 | Line-offset rule + template recorded | ✅ [`inventory-authoring.md`](../../../best-practices/inventory-authoring.md) |
 | 4 | Apostrophe rule enforced mechanically | ✅ `audit-prose-rendering-path.py`, 199 shell files |
 | 5 | **S2 dispatched in CI** | ⛔ **NOT MET — deliberately.** The workflow is authored and unrunnable-by-me: a dispatch is the owner's to trigger. Marked PENDING rather than inferred from a local `command -v claude`, which is evidence about this laptop. |
 
