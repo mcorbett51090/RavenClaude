@@ -67,9 +67,9 @@ the `deny_patterns=(` array:
 #       explicitly exempted: a pure fast-forward changes no history shape and
 #       is not the bypass this rule targets.
 #
-# ⛔ Four review findings folded in across two Bugbot passes (all real, none
-# hypothetical — the second pass reviewed the FIX from the first pass and
-# found genuine regressions in it):
+# ⛔ Six review findings folded in across three Bugbot passes (all real, none
+# hypothetical — each pass reviewed the PRIOR pass's fix and found genuine
+# regressions or gaps in it):
 #   - (round 1) The `--ff-only` exemption is checked ONLY within the `git
 #     merge` segment, mirroring how the `--admin` check above it is already
 #     scoped per segment — an unscoped check against the WHOLE command
@@ -80,56 +80,87 @@ the `deny_patterns=(` array:
 #     && git merge feature --no-ff` changes HEAD mid-command, so reading it
 #     once at hook-eval time sees the PRE-checkout branch and misses the
 #     bypass entirely.
-#   - (round 2) EVERY `git merge` segment is evaluated in order — the first
-#     draft of the round-1 fix found the FIRST segment matching the substring
-#     "git merge" and stopped there. That substring match also fires on
-#     `git merge-base` and `git mergetool` (neither actually merges), so a
-#     command opening with either of those before the real merge would have
-#     stopped the scan before ever reaching it. The merge check is now a
-#     proper word-boundary match (`git merge` followed by whitespace/EOL,
-#     never `-base`/`tool`) and the loop never breaks — it denies on the
-#     FIRST segment that is genuinely dangerous, wherever it falls.
-#   - (round 2) The checkout/switch parser tracks the branch through ANY
-#     flags, not just `-b`/`-B`/`-c` — the round-1 regex required one of
-#     those three immediately before the branch token, so `git checkout -q
-#     main` or `git checkout --force main` left the OLD branch tracked and
-#     missed the bypass. The parser now walks every word in the segment,
-#     skipping anything flag-shaped (`-*`) and the literal `git`/`checkout`/
-#     `switch` tokens, keeping the last remaining word as the target. It
-#     also refuses to update the tracked branch at all when a bare `--`
-#     token appears first (`git checkout -- <path>` / `git checkout <rev> --
-#     <path>` restore a file's contents and do NOT switch branches — without
-#     this guard the path argument would be mistaken for a branch, silently
-#     losing track of an ACTUAL prior checkout onto main/master).
+#   - (round 2) EVERY `git merge` segment is evaluated in order, never
+#     stopping at the first — the round-1 fix matched the substring "git
+#     merge" and broke on the first hit, which also fires on `git merge-base`
+#     and `git mergetool` (neither actually merges), so a command opening
+#     with either before the real merge would have stopped the scan too
+#     early. The merge check is now a proper word-boundary match ("git
+#     merge" followed by whitespace/EOL, never "-base"/"tool") and the loop
+#     never breaks — it denies on the FIRST segment that is genuinely
+#     dangerous, wherever it falls.
+#   - (round 3) The checkout/switch parser distinguishes the CREATED branch
+#     from a start-point operand — `git checkout -b newbranch main` (or
+#     `git switch -c feature main`) ends up ON `newbranch`/`feature`, NOT on
+#     `main`; a round-2 "last leftover word wins" heuristic would have
+#     tracked "main" instead, since it's the LAST word in the segment. The
+#     parser now special-cases `-b`/`-B`/`-c`/`--orphan`: the word
+#     IMMEDIATELY FOLLOWING one of those flags is the target, taking
+#     priority over any other operand in the segment. Absent one of those
+#     flags, the target is the FIRST non-flag word after `checkout`/`switch`
+#     (not the last) — which also closes a related round-2 gap: a trailing
+#     redirect or comment after the real branch name (`git checkout main
+#     2>/dev/null`) no longer overwrites a correctly-tracked branch, since
+#     only the FIRST positional word is taken, not whatever comes last.
+#   - (round 3) Every per-segment structural check (the merge/checkout-
+#     switch word-boundary tests) now reuses `${_CMD_BOUNDARY}` — the SAME
+#     boundary-character class the outer two gates and the `--admin` check
+#     already use — instead of a separately hardcoded `(^|[[:space:]])`.
+#     Whatever `_CMD_BOUNDARY` recognizes as a command-start boundary
+#     (parens, backticks, `;`/`&`/`|`, …) the per-segment checks now
+#     recognize too, so a path-qualified or command-substitution-embedded
+#     `git merge`/`checkout` that the outer gate can see is never silently
+#     invisible to the segment-level checks one level in.
+#
+# ⛔ Honest limit, found and NOT chased further: this is a word-split
+# heuristic over `;`/`&`/`|`-delimited segments, not a real shell parser. A
+# token that is itself compound with NO surrounding whitespace against a
+# boundary character it wasn't tested against (e.g. a function-call-shaped
+# oddity with no space before an opening paren) can still defeat the
+# keyword/flag matching in the checkout/switch word loop. This was observed
+# directly while building this fix and traced to an invalid, non-executable
+# shell construct (`word(cmd)` with no space is not valid bash outside a
+# function definition) — not a reachable bypass — so it is recorded here
+# rather than engineered around, per this repo's own "don't chase a
+# hypothetical past what's realistic" convention. If a REAL reachable
+# instance of this class is ever found, it needs its own review.
 _is_dangerous_merge() {
   local c="$1" seg found=1
   if [[ "$c" =~ ${_CMD_BOUNDARY}gh[[:space:]]+pr[[:space:]]+merge([[:space:]]|$) ]]; then
     while IFS= read -r seg; do
       case "$seg" in *"gh pr merge"*) ;; *) continue ;; esac
-      [[ "$seg" =~ (^|[[:space:]])--admin([[:space:]]|$) ]] && { found=0; break; }
+      [[ "$seg" =~ ${_CMD_BOUNDARY}--admin([[:space:]]|$) ]] && { found=0; break; }
     done <<EOF
 $(printf '%s' "$c" | tr ';&|' '\n\n\n')
 EOF
     [ "$found" -eq 0 ] && return 0
   fi
   if [[ "$c" =~ ${_CMD_BOUNDARY}git[[:space:]]+merge([[:space:]]|$) ]]; then
-    local branch word last is_path_form
+    local branch word seg_target pending double_dash first_pos
     branch="$(git rev-parse --abbrev-ref HEAD 2>/dev/null || true)"
     while IFS= read -r seg; do
-      if [[ "$seg" =~ (^|[[:space:]])git[[:space:]]+(checkout|switch)([[:space:]]|$) ]]; then
-        last="" is_path_form=""
+      if [[ "$seg" =~ ${_CMD_BOUNDARY}git[[:space:]]+(checkout|switch)([[:space:]]|$) ]]; then
+        seg_target="" pending="" double_dash="" first_pos=""
         for word in $seg; do
+          if [ -n "$pending" ]; then
+            seg_target="$word"; pending=""; continue
+          fi
           case "$word" in
-            --) is_path_form=1; break ;;
+            --) double_dash=1; break ;;
+            -b|-B|-c|--orphan) pending=1 ;;
             -*) ;;
             git|checkout|switch) ;;
-            *) last="$word" ;;
+            *) [ -z "$first_pos" ] && first_pos="$word" ;;
           esac
         done
-        [ -z "$is_path_form" ] && [ -n "$last" ] && branch="$last"
+        if [ -n "$seg_target" ]; then
+          branch="$seg_target"
+        elif [ -z "$double_dash" ] && [ -n "$first_pos" ]; then
+          branch="$first_pos"
+        fi
       fi
-      if [[ "$seg" =~ (^|[[:space:]])git[[:space:]]+merge([[:space:]]|$) ]]; then
-        if ! [[ "$seg" =~ (^|[[:space:]])--ff-only([[:space:]]|$) ]]; then
+      if [[ "$seg" =~ ${_CMD_BOUNDARY}git[[:space:]]+merge([[:space:]]|$) ]]; then
+        if ! [[ "$seg" =~ ${_CMD_BOUNDARY}--ff-only([[:space:]]|$) ]]; then
           case "$branch" in
             main|master) return 0 ;;
           esac
@@ -160,14 +191,15 @@ DELETE-verb API call, and the raw `git update-ref -d` primitive `archive-branch.
 
 ## The acceptance fixture (run this after applying, before trusting the patch)
 
-Per Task 3.3's own acceptance test plus four review findings folded into the function above across
-two Bugbot passes — see the comment block above `_is_dangerous_merge()` for what each closes. All of
+Per Task 3.3's own acceptance test plus six review findings folded into the function above across
+three Bugbot passes — see the comment block above `_is_dangerous_merge()` for what each closes. All of
 the following must hold. **This function was extracted and run standalone against a real scratch git
-repo twice (not just read for plausibility) — 9/9 after round 1, then 18/18 after round 2** (round 2
-re-ran every prior case plus the new ones, so nothing round 1 fixed regressed), including every
-review-finding case and negative controls proving the fix doesn't over-block a legitimate `--ff-only`
-merge, a merge made without ever checking out a protected branch, a genuinely new branch creation, or
-a `git checkout -- <path>` file restore:
+repo three times (not just read for plausibility) — 9/9 after round 1, 18/18 after round 2, then 24/24
+after round 3** (each round re-ran every prior case plus the new ones, so nothing an earlier round
+fixed regressed), including every review-finding case and negative controls proving the fix doesn't
+over-block a legitimate `--ff-only` merge, a merge made without ever checking out a protected branch, a
+genuinely new branch creation, a create-from-a-protected-start-point (`-b newbranch main`), or a
+`git checkout -- <path>` file restore:
 
 ```bash
 # Case 1: a known-bad admin-override merge, in EITHER flag order, is denied
@@ -210,6 +242,23 @@ echo 'git checkout --force main; git merge feature-branch' # expect BLOCKED
 # mistaken for a branch switch, which would corrupt tracking of a real prior checkout onto main)
 echo 'git checkout main; git checkout -- file.txt; git merge feature-branch' # expect BLOCKED (still tracked as main)
 echo 'git checkout -- file.txt; git merge some-other-branch'                  # expect NOT denied (never left the original branch)
+
+# Case 10 (round-3 review finding — create-from-a-protected-start-point must track the CREATED
+# branch, not the start-point operand): both end up NOT on main/master, so neither is denied
+echo 'git checkout -b newbranch main; git merge feature-branch' # expect NOT denied (ends up on newbranch)
+echo 'git switch -c feature main; git merge feature-branch'      # expect NOT denied (ends up on feature)
+# ...but force-resetting a branch actually NAMED main still lands ON main and must still be caught
+echo 'git checkout -B main; git merge feature-branch' # expect BLOCKED
+
+# Case 11 (round-3 review finding — a trailing redirect/operand after the real branch name must
+# not overwrite a correctly-tracked protected branch)
+echo 'git checkout main 2>/dev/null; git merge feature-branch' # expect BLOCKED
+
+# Case 12 (round-3 review finding — the per-segment checks must reuse ${_CMD_BOUNDARY}, not a
+# separately hardcoded, narrower boundary, so a command-substitution-embedded merge is not invisible
+# to the segment-level checks while still visible to the outer gate)
+echo 'git checkout main; echo $(git merge feature-branch)'          # expect BLOCKED
+echo 'git checkout main; echo $(git merge feature-branch --no-ff)'  # expect BLOCKED (still, even with a flag inside the substitution)
 ```
 
 (The exact invocation harness depends on how `guard-destructive.sh` is normally driven in this repo's
