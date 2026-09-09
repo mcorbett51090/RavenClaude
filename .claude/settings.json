@@ -349,6 +349,12 @@
             "command": "${CLAUDE_PROJECT_DIR}/plugins/ravenclaude-core/hooks/handoff-successor-ack.sh",
             "timeout": 5,
             "comment": "Marketplace-dev hook (dev-mirror). Handoff successor handshake: on startup, write successor-ack.json if a fresh pending marker exists. File write only."
+          },
+          {
+            "type": "command",
+            "command": "${CLAUDE_PROJECT_DIR}/scripts/ensure-plugin-installed.sh",
+            "timeout": 30,
+            "comment": "Marketplace-ONLY hook (deliberately NOT in any plugin hooks.json — same precedent as scripts/notify.sh — and deliberately in the `startup`-only lane, NOT the `startup|resume|clear|fork` source group Gate 259 (check_b_parity) exact-matches against hooks.json). This environment's container is ephemeral and re-cloned fresh on each new session, so `claude plugin install`'s user-scope state (~/.claude.json) does not survive. Re-wires the ravenclaude marketplace + ravenclaude-core/devops-cicd/api-engineering/team-portfolio plugins at every fresh container startup via a dynamically-resolved ${CLAUDE_PROJECT_DIR} path (never a committed absolute path). Fast-path exits immediately once already installed. Fail-safe: never blocks SessionStart, always exits 0."
           }
         ]
       },
