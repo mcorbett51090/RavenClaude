@@ -325,3 +325,14 @@ cause_triage: warn
 cause_preflight: warn
 cause_remediation: warn
 cause_closure: warn
+
+# ── source-control-coordinator (opt-in, default off) ────────────────────────
+# Owns merge/CI-triage/branch-hygiene handed off via the task ledger from other
+# sessions. off = no runtime behavior change (nothing auto-subscribes, auto-
+# merges, or auto-creates ledger items). advise = proposes/escalates, never
+# acts. active = also acts, subject to its own per-repo runaway/
+# definition_of_done precondition (self-downgrades to advise if unconfigured).
+# Any value that is not exactly `advise` or `active` — absent, empty,
+# mis-cased, or unrecognized — resolves to `off`.
+# source_control_coordinator: off | advise | active   # default: off
+# coordinator_escalation_hours: 24                     # default: 24; integer in [1, 168], else 24

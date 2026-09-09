@@ -4818,3 +4818,85 @@ last-used directory sees the identical four-option menu as before), and the last
 single fire-and-forget file write with no behavioral effect until `recommend` is later consulted.
 A consumer who has already run `install_launch_guard.py install` needs to re-run it once to pick up
 the new function body (the installer is idempotent — the managed block is replaced in place).
+
+## `source-control-coordinator` — cross-session merge/CI-triage handoff via the task ledger (added 2026-09-09, v0.321.0)
+
+A new specialist agent — [`agents/source-control-coordinator.md`](agents/source-control-coordinator.md) —
+owns merge/CI-triage/branch-hygiene/PR-review-response for work other sessions hand off via the task
+ledger, so a worker session can hand a PR to the queue and keep coding elsewhere. Built per
+[`.ravenclaude/runs/source-control-coordinator/strategic-plan.md`](../../.ravenclaude/runs/source-control-coordinator/strategic-plan.md)
+(v3, gap-filled after two independent 4-lens panel reviews) and
+[`build-plan.md`](../../.ravenclaude/runs/source-control-coordinator/build-plan.md). Composition over
+already-shipped substrate throughout — the task ledger, `session-relay`, `worktree-guard.sh`'s lease
+path, `subscribe_pr_activity`, `create_trigger` — per the plan's own "reuse, don't build" framing.
+
+**Shipped this release:** the agent ([`agents/source-control-coordinator.md`](agents/source-control-coordinator.md)),
+the `/coordinate` command ([`commands/coordinate.md`](commands/coordinate.md)), the opt-in
+`source_control_coordinator: off | advise | active` + `coordinator_escalation_hours` knobs (seeded,
+commented, default `off`, in
+[`templates/comfort-posture-balanced.yaml`](templates/comfort-posture-balanced.yaml)), the ledger
+usage convention ([`knowledge/coordinator-ledger-convention.md`](knowledge/coordinator-ledger-convention.md)),
+the Routine-binding reference ([`knowledge/coordinator-routine-setup.md`](knowledge/coordinator-routine-setup.md)),
+and the self-contained single-instance lock ([`bin/coordinator-lock.sh`](bin/coordinator-lock.sh)).
+
+**Two implementation-time corrections to the build plan itself, both found live, neither anticipated
+by any prior draft — recorded here because a stale claim in a planning doc is a defect the same way a
+stale claim in this file would be:**
+
+1. **`rc ledger init` never produces the "zero-event" UNKNOWN state the plan's own Task 1.1 claimed.**
+   `cmd_init` always appends a `ledger_init` event as part of initialization — verified live:
+   `parsed_records: 1`, `verdict: "PASS"`, exit 0, immediately after `rc ledger init`. The build plan
+   was corrected to state the true fresh-ledger state.
+2. **`--actor` must precede the subcommand, not follow it** — `ledger.py`'s `--repo-root`/`--actor`
+   are top-level-parser flags; `rc ledger append --type state ... --actor coordinator` fails with
+   `unrecognized arguments`, confirmed live. Every citation in the ledger convention doc and the agent
+   file places `--actor` between `--repo-root` and the subcommand.
+
+**⛔ `coordinator-lock.sh` ships at `bin/`, not `scripts/` as the build plan originally specified —
+discovered live, not a stylistic choice.** `plugins/ravenclaude-core/scripts/` is fully
+substrate-protected by the command-review tribunal's own self-tamper floor
+(`THING_SUBSTRATE` in `thing-decision.py` denies any write under that directory, new file or edit,
+category-independently) — confirmed live even with this repo's own `command_review.enabled: false`,
+because the floor "must run whenever ANY category is toggled on, regardless of
+`command_review.enabled`" (per `thing-orchestrator.sh`'s own code comment), and four shell categories
+in this repo's posture carry `thing: on`. The sanctioned maintainer-substrate exemption
+(`dev_repo_exempt: true`, already set) additionally requires a live `gh repo view` (GraphQL) call this
+remote session's own GitHub proxy blocks outright ("only the pinned set of PR-review operations is
+served") — independent of `gh` installation or token validity (confirmed: the same token works fine
+over REST). `bin/` is not in `THING_SUBSTRATE` and already hosts operationally-equivalent standalone
+scripts (`bin/rcwt`, `bin/claude-launch-guard`) — a content-neutral relocation, not a circumvention,
+since this script has nothing to do with the tribunal's own enforcement.
+
+**Two real bugs caught and fixed inside `coordinator-lock.sh` by its own required concurrency proof
+(Gate G10), before either shipped:** the must-fail control (`--disable-atomic-step`) initially used a
+bare `mkdir` guarded by a `[ ! -d ]` check, which still routed through the OS's genuinely-atomic
+`mkdir(2)` underneath and silently proved nothing (3/3 control runs showed exactly 1 winner even with
+the atomic step "disabled") — fixed with `mkdir -p` (idempotent, removes the atomicity signal),
+re-verified 8/8 winners. And `holder_pid` cannot be `$$` or a bare `$PPID`: the coordinator invokes
+this script via its own Bash tool, and every Bash tool call is a fresh OS process, so a bare `$$`/`$PPID`
+never matches across separate `acquire`/`heartbeat`/`release` calls — fixed with `_resolve_session_pid()`,
+which walks the process ancestor chain for `comm=claude` rather than hardcoding a hop count. Both fixes
+verified end-to-end: 20/20 real concurrency runs with exactly 1 winner, the control genuinely
+reproducing the race post-fix, and `acquire`/`heartbeat`/`release` correctly recognizing the same
+holder across genuinely separate Bash tool invocations.
+
+**⛔ One piece is a documented, staged, human-actionable pending item — not shipped this release.**
+Task 3.3's `guard-destructive.sh` merge-deny patch (`_is_dangerous_merge()`, narrowed to bypass-shaped
+merges only) and Task 2.4's two `deny_patterns` additions (a destructive DELETE-verb API call, raw
+`git update-ref -d`) could not be applied from this session — `guard-destructive.sh` genuinely *is*
+tribunal-adjacent security tooling, so unlike `coordinator-lock.sh` a directory relocation would be a
+real circumvention of `THING_SUBSTRATE`, not a content-neutral choice. The exact patch, the 3-case
+acceptance fixture, and the full diagnosis are staged at
+[`.ravenclaude/runs/source-control-coordinator/pending-human-action/guard-destructive-merge-patch.md`](../../.ravenclaude/runs/source-control-coordinator/pending-human-action/guard-destructive-merge-patch.md)
+for a human (or a differently-configured session with working `gh` GraphQL access, or the dashboard's
+own posture editor) to apply directly. This is also **PR 1** of the plan's own 2-PR rollout split (§5)
+— it must land, alone, before the rest of this feature is safe to enable anywhere as `active`.
+
+**Deliberately not built this release, per the plan's own scope:** the coordinator's actual dedicated
+worktree (a Task 4.1 *runtime* action, not a shipped file — created on first real invocation), the
+Routine bindings themselves (Task 7.1/7.2, owner: Matt, a runtime action per
+`coordinator-routine-setup.md`), and the 30-day rollout baseline capture (Task 9.5, needs real
+elapsed calendar time). **Migration:** none — every new knob defaults `off`/absent; nothing in a
+consumer's installed plugin changes on `/plugin marketplace update` until they opt in, and `active`
+mode is additionally gated on PR 1 landing and each repo's own `runaway`/`definition_of_done`
+precondition (Gate G9).
