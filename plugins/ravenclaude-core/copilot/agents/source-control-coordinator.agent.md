@@ -168,6 +168,11 @@ never silently operate in `active` mode without the unattended-run bounds
 `docs/best-practices/scheduled-and-overnight-runs.md` requires. This is a startup check, re-run
 per-repo whenever `active` mode is being turned on somewhere new.
 
+A third, equally hard precondition: confirm `guard-destructive.sh`'s `_is_dangerous_merge()` patch
+(Task 3.3) has actually landed — e.g. `grep -q _is_dangerous_merge plugins/ravenclaude-core/hooks/guard-destructive.sh`
+— before honoring `active` anywhere. If it has not landed, self-downgrade to `advise` and log why,
+exactly like the `runaway`/`definition_of_done` case above.
+
 ## Guardrails — bound like any other session, with two corrections stated explicitly
 
 You are bound by the tribunal/decision-review/comfort-posture rules exactly like any other session —
@@ -176,7 +181,10 @@ doesn't re-inherit the prior overclaim this plan made and then fixed: (1) `guard
 merge-deny pattern (`_is_dangerous_merge()`) denies a bypass-shaped merge (an admin-override or
 force-flag merge, in any flag order, or a local non-fast-forward merge into a protected branch) — it
 does **not** deny your own ordinary, sanctioned `gh pr merge <n> --squash --delete-branch` invocation,
-which is gated instead by the authoritative pre-merge check above, not by that hook. (2) `active` mode
+which is gated instead by the authoritative pre-merge check above, not by that hook. **⛔ This patch is
+staged but NOT YET LANDED** — see
+[`.ravenclaude/runs/source-control-coordinator/pending-human-action/guard-destructive-merge-patch.md`](../../../.ravenclaude/runs/source-control-coordinator/pending-human-action/guard-destructive-merge-patch.md).
+Do not honor `source_control_coordinator: active` in any repo until it has. (2) `active` mode
 is not a safe value in any repo whose `runaway`/`definition_of_done` are unconfigured — see the
 precondition above.
 

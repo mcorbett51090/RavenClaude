@@ -4260,6 +4260,56 @@
         "rationale": "The failure mode is a real, reproduced crash (a genuine forge/prompt-optimizer merge into origin/main triggered it live via a newly-added hooks.json entry with no Gemini skip-map coverage), but the fix that would close this nuance permanently — per-host exception isolation inside hooks-selftest.py itself — is a design change to a file this entry's author did not write and has not modified; staging a CI check for it here would assert a fix that was not made."
       },
       "strength_badge": "Unverified"
+    },
+    {
+      "id": "ledger-global-flags-precede-subcommand",
+      "title": "--actor and --repo-root go before the verb, not after",
+      "category": "Inventory — measured mechanisms",
+      "kind": "ravenclaude-built",
+      "order": 933,
+      "summary": "rc ledger's --repo-root/--actor are top-level argparse flags; placing them after the subcommand fails outright with 'unrecognized arguments' — verified live while building source-control-coordinator.",
+      "see_also": [],
+      "widget": null,
+      "try_it": null,
+      "node_links": {},
+      "last_verified": "2026-09-09",
+      "refresh_when": null,
+      "sources": [
+        {
+          "label": "source-control-coordinator build (PR #1146), live CLI verification against a scratch ledger, 2026-09-09",
+          "url": "https://github.com/mcorbett51090/RavenClaude/pull/1146"
+        }
+      ],
+      "body_md": "# --actor and --repo-root go before the verb, not after\n\n`rc ledger`'s exact CLI surface was documented and cited many times before this build (Citation #5 in\nthe build plan, this repo's own `agents/architect.md`-shaped precedent authoring), but no prior citation\nhad actually driven the CLI end-to-end with `--actor` present. The build plan's own §4.4 ledger usage\ntable — the exact invocations `source-control-coordinator.md` and `coordinate.md` both cite for claiming\nand releasing a handoff item — placed `--actor coordinator` *after* `append`, on every single row.\n\n## Why it silently looked right\n\n`--repo-root`/`--actor` are genuinely real, documented flags on `ledger.py`'s parser. Nothing about the\nflag names, their defaults, or their presence in `--help` output signals that position matters. The\nfailure only surfaces the moment the exact invocation is run:\n\n```\n$ rc ledger --repo-root <dir> append --type state --item <id> --set state=in_progress --actor coordinator\nledger.py: error: unrecognized arguments: --actor coordinator\n```\n\nargparse's subparser model treats each subcommand (`init`, `open`, `append`, `project`, ...) as its own\nindependent parser. A flag added to the *parent* parser before `add_subparsers()` is only visible\n*before* the subcommand token on the command line — a subparser has to explicitly re-declare a flag to\nalso accept it after its own name, and `append`'s subparser (`p_append`) never does.\n\n## The fix, and why it generalizes\n\nMove both global flags between `--repo-root` and the subcommand:\n\n```\nrc ledger --repo-root <primary> --actor coordinator append --type state --item <id> --set state=in_progress\n```\n\nVerified live: this form succeeds (exit 0), and `machine.actor` in the written JSONL event correctly\ncarries `\"coordinator\"`. Every citation in `coordinator-ledger-convention.md` and both new agent/command\nfiles now places `--actor` in this position — this concept exists so the *next* mechanism that shells\nout to `rc ledger` (or documents doing so) doesn't silently re-introduce the same defect, since nothing\nabout reading the flag's own `--help` text reveals the ordering constraint.\n\n## The companion exit-code correction\n\nThe same build plan claimed a freshly-initialized ledger returns exit 2 (UNKNOWN) \"by design.\" Verified\nlive: `rc ledger init` always appends a `ledger_init` event as part of initialization (`cmd_init`,\n`ledger.py`), so a fresh ledger has `parsed_records: 1`, not 0 — `cmd_project`'s exit-2 branch fires only\non `parsed_records == 0`, which `rc ledger init` never produces. The true fresh-ledger state is exit 0\n(PASS, 0 open items). A *literal* zero-event ledger (no init marker at all — e.g. a hand-created empty\n`.jsonl`) is the actual exit-2 case, and it is not a state `rc ledger init` ever leaves behind.",
+      "diagram": null,
+      "diagram_mini": null,
+      "steps": [],
+      "svg": null,
+      "svg_mini": null,
+      "entry_class": "inventory",
+      "covers": [
+        "plugins/ravenclaude-core/agents/source-control-coordinator.md",
+        "plugins/ravenclaude-core/commands/coordinate.md",
+        "plugins/ravenclaude-core/knowledge/coordinator-ledger-convention.md",
+        "plugins/ravenclaude-core/scripts/ledger.py"
+      ],
+      "covers_digest": "sha256:0a6e19de043ef99029a3eb3b7fe691f1e7fa90534005b370997bdf49f3aaf69f",
+      "nuance": "--repo-root/--actor are ledger.py's TOP-LEVEL parser flags, added before add_subparsers(); a build plan citing them AFTER `append` fails with 'unrecognized arguments', verified live. A companion claim (fresh ledger = exit 2/UNKNOWN) was also wrong: cmd_init always appends a ledger_init event, so the true fresh state is exit 0/PASS.",
+      "nuance_evidence": {
+        "measured": "2026-09-09",
+        "control": "rc ledger --repo-root <dir> append --type state --item <id> --set state=in_progress --actor coordinator -> 'ledger.py: error: unrecognized arguments: --actor coordinator'; the same call with --actor moved between --repo-root and append succeeds (exit 0, machine.actor lands correctly in the written event)",
+        "falsifier": "a ledger.py release that adds --actor to the append subparser directly, making both orders valid",
+        "probe": "plugins/ravenclaude-core/scripts/ledger.py"
+      },
+      "nuance_source": "plugins/ravenclaude-core/scripts/ledger.py:1896-1922 (parser.add_argument('--repo-root', ...) / parser.add_argument('--actor', ...) both precede sub = parser.add_subparsers(); p_append never re-adds --actor)",
+      "verify": {
+        "tier": "reachability",
+        "strength": "static",
+        "class": "static-resolution",
+        "probe": "plugins/ravenclaude-core/scripts/ledger.py",
+        "teeth_exit": 2
+      },
+      "strength_badge": "Findable"
     }
   ]
 }

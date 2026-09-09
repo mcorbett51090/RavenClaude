@@ -36,6 +36,16 @@
         "merge: forge/prompt-optimizer into origin/main (2026-09-09)",
         31800,
         "Merging forge/prompt-optimizer (two new inventory concepts: prompt-optimizer-tier0-heuristic-limit -- the Tier-0 whitelist's documented adversarial-paraphrase residual -- covering the prompt-optimizer skill's 9 artifacts; hooks-selftest-crashes-on-a-per-host-generator-error -- covering scripts/hooks-selftest.py) with origin/main's own concurrent skill-index + claude-launch-safeguard growth (each already reflected in the rows above) regenerates dashboard.html to 31,797 island payload elements (over the prior 31,720 ceiling by 77). Same no-diagrams-for-inventory-entries shape as every prior wave -- a pure content-size raise, no DOM control. Re-measured on the merge commit; appended, never edited."
+      ],
+      [
+        "source-control-coordinator agent + /coordinate command (PR #1146, 2026-09-09)",
+        31830,
+        "PR #1146 adds the source-control-coordinator agent and the /coordinate command (source-control-coordinator, its knowledge files, coordinator-lock.sh) to the Discover/Commands payloads. Measured island payload at 31,812 (over the prior 31,800 ceiling by 12; largest panel learn-payload at 25,081). Same no-diagrams-for-inventory-entries shape as every prior wave -- a pure content-size raise, no DOM control. Re-measured on this PR's own head (77f0dc4); appended, never edited."
+      ],
+      [
+        "ledger-global-flags-precede-subcommand inventory entry (PR #1146, closing check-inception-coverage, 2026-09-09)",
+        31900,
+        "The inception-coverage gate (check-inception-coverage.py) required source-control-coordinator.md and coordinate.md to be named in some inventory entry's covers[] before this PR could pass CI. Added one new concept (ledger-global-flags-precede-subcommand -- the argparse global-flag-ordering bug found live while building the coordinator) covering both files plus the ledger convention doc and ledger.py itself. Measured island payload at 31,888 (over the prior 31,830 ceiling by 58; largest panel learn-payload at 25,157). Same no-diagrams-for-inventory-entries shape as every prior wave -- a pure content-size raise, no DOM control. Re-measured on this PR's own head; appended, never edited."
       ]
     ],
     "index.html": [
@@ -44,6 +54,11 @@
         "repo-review inventory entry (repo-review-corroboration-bucket-diff, /repo-review Phase 1 build, 2026-09-02)",
         6720,
         "The /repo-review build added one new inventory concept (repo-review-corroboration-bucket-diff -- the live cross-model proof that findings_merge.py's near-dup bucket-diff bound silently missed same-line duplicate findings) covering the skill's SKILL.md, command, dimensions reference, all five scripts, and the Workflow script -- nine paths in one mechanism entry. Measured at 10,486,820 bytes on dashboard.html (island payload 31,460 <= 31,500, unaffected -- same no-diagrams-for-inventory-entries shape as every prior wave) and 6,706 island payload elements on index.html (bytes 9,288,904 <= 9,300,000, unaffected). Re-measured on the merge base (origin/main @ 9ba8c08c58b6), not a stale ancestor; appended, never edited."
+      ],
+      [
+        "source-control-coordinator agent + /coordinate command (PR #1146, 2026-09-09)",
+        6745,
+        "Same PR as the dashboard.html row above. index.html's Commands payload gains one new command (/coordinate). Measured island payload at 6,731 (over the prior 6,720 ceiling by 11; largest panel commands-payload at 6,590). A pure content-size raise, no DOM control. Re-measured on this PR's own head (77f0dc4); appended, never edited."
       ]
     ]
   },
@@ -124,6 +139,11 @@
         "merge: forge/prompt-optimizer into origin/main (2026-09-09)",
         10610000,
         "MERGE-TIME RE-MEASURE. Same merge as the payload row above. Merging forge/prompt-optimizer's two new inventory concepts (prompt-optimizer-tier0-heuristic-limit, hooks-selftest-crashes-on-a-per-host-generator-error) with origin/main's own concurrent skill-index + claude-launch-safeguard growth regenerates dashboard.html to 10,601,620 bytes (over the prior 10,570,000 ceiling by 31,620; island payload 31,797 <= 31,800, see the raised payload ceiling above -- a pure content-size raise, no DOM control). Re-measured on the merge commit; appended, never edited."
+      ],
+      [
+        "ledger-global-flags-precede-subcommand inventory entry (PR #1146, closing check-inception-coverage, 2026-09-09)",
+        10630000,
+        "Same PR/entry as the payload row above. Measured at 10,618,091 bytes (over the prior 10,610,000 ceiling by 8,091 = 0.08%; cumulative growth since seed remains a small single-digit percentage). Re-measured on this PR's own head; appended, never edited."
       ]
     ],
     "index.html": [
@@ -145,5 +165,5 @@
       ]
     ]
   },
-  "measured_against": "3e9cc12303ced2dc350c5be5be9a9a87781ac35f"
+  "measured_against": "44a1a22ed5858b694eb67c6662e7b4a7eec90c34"
 }
