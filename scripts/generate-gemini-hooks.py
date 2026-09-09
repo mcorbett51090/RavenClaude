@@ -89,6 +89,13 @@ _SKIP = {
         "blocks, so the cost of the gap is one un-nudged prompt, not lost "
         "enforcement."
     ),
+    "prompt-optimizer-gate.sh": (
+        "UserPromptSubmit — same unverified lifecycle mapping as "
+        "stream-prompt-attribute.sh above. Ships prompt_optimizer.enabled: false "
+        "by default, is fail-open on every error path, and only ever ADDS "
+        "advisory additionalContext — never blocks — so the cost of the gap is "
+        "one un-augmented prompt on Gemini, not lost enforcement."
+    ),
     "dod-gate.sh": (
         "Stop. Gemini's AfterAgent/SessionEnd are plausible counterparts but "
         "unverified; a definition-of-done gate that fires on the wrong lifecycle "

@@ -72,6 +72,8 @@ this step needs re-reading, not copying.
 
 **Choosing a non-Claude host for a piece of work** (distinct from the shape question above): [`../../knowledge/agent-routing-matrix.json`](../../knowledge/agent-routing-matrix.json) is an optional reference for which agent (Claude Code / Codex CLI / Copilot CLI / Copilot Chat / Grok Build CLI) a given task shape probably fits best — a prose pointer, not a required lookup; nothing here reads the file automatically.
 
+**If a [`prompt-optimizer`](../prompt-optimizer/SKILL.md) `dispatch_plan` preceded this turn** (distinct from both pointers above): its `recommended_agents[]` is advisory context only — prompt-optimizer is architecturally incapable of dispatching anything itself (its Never-dispatches invariant), so this playbook remains the mechanism that actually performs the dispatch. Weigh the plan's suggestions alongside Step 1's routing decision-tree; they are one more input, never a pre-made routing decision.
+
 These are the standard dispatch patterns. Pick the one that matches the request, adapt as needed, and *say which playbook you're running* in your final summary.
 
 ### Software change (feature, bugfix, refactor)

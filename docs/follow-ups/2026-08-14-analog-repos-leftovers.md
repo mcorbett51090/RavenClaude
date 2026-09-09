@@ -30,7 +30,7 @@ If that run dir is missing, **this file is the brief**. The increment run dir li
 
 | Item | Status | Cite |
 |---|---|---|
-| Survey N=13 (cap 30, shortfall 17) | **closed** — honest. Do not pad to 30. | [catalog](../plans/2026-08-14-analog-repos-gap-fill/catalog.md) |
+| Survey N=13 (cap 30, shortfall 17) | **closed** — honest. Do not pad to 30. | [catalog](../plans/archive/2026-08-14-analog-repos-gap-fill/catalog.md) |
 | F1 WebFetch sanitizer | **shipped** #928, `0.267.0`, hooks 34 | [decision](../decisions/2026-08-14-analog-repos-gap-fill.md) |
 | F2 injection + minting evals | **shipped** #929 | same |
 | F3 docs promote | **shipped** on `main` | same |
@@ -51,7 +51,7 @@ Next plugin-touching PR verifies HEAD and bumps to **0.270.0**. Do not reuse 0.2
 
 **Acceptance:** same fail-open fixtures on an MCP-shaped payload; House Rule 3 walkthrough; version **0.270.0+**.
 
-**Queue row:** [pr-queue.md](../plans/2026-08-14-analog-repos-gap-fill/pr-queue.md) Q1.
+**Queue row:** [pr-queue.md](../plans/archive/2026-08-14-analog-repos-gap-fill/pr-queue.md) Q1.
 
 ### 2. Q2 — analog closeness scorecard skill
 

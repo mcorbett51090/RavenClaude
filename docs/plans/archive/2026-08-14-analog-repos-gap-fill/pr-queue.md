@@ -24,7 +24,7 @@ DAG: F1 âˆ¥ F2; F3 docs-only; Q1 after F1; Q2 after F3. Acyclic. No slot owns â€
 
 ## Pickup later (do not treat as a fourth fill)
 
-Exact prompts + do-not-redo: [../follow-ups/2026-08-14-analog-repos-leftovers.md](../../follow-ups/2026-08-14-analog-repos-leftovers.md).
+Exact prompts + do-not-redo: [../follow-ups/2026-08-14-analog-repos-leftovers.md](../../../follow-ups/2026-08-14-analog-repos-leftovers.md).
 
 | id | Say this |
 |---|---|

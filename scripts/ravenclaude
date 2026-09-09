@@ -460,34 +460,116 @@ codex_retrust_notice() {
 #   `rc`            → update + launch Copilot live   (the one-word launcher)
 #   `rc <verb> …`   → the real bin/rc dispatcher     (dashboard / streams / …)
 # No rename, so nothing a user has already learned stops working.
-add_rc_alias() {
-  local bashrc="$HOME/.bashrc"
-  local marker='# RavenClaude — rc launcher (added by ravenclaude setup)'
-  if [ -f "$bashrc" ] && grep -qF 'RavenClaude — rc launcher' "$bashrc"; then
-    note "rc launcher already in ~/.bashrc"
-  else
-    if [ -f "$bashrc" ] && grep -qF 'scripts/ravenclaude update && copilot --plugin-dir' "$bashrc"; then
-      warn "an older 'alias rc=…' is present in ~/.bashrc — it SHADOWS 'rc dashboard'."
-      warn "Remove that line, then re-run; the function below supersedes it."
-    fi
-    {
-      printf '\n%s\n' "$marker"
-      printf 'rc() {\n'
-      printf '  if [ "$#" -gt 0 ]; then\n'
-      printf '    # any verb goes to the real front-door dispatcher (rc dashboard, rc streams…)\n'
-      printf '    command bash "%s/plugins/ravenclaude-core/bin/rc" "$@"\n' "$MARKET"
-      printf '  else\n'
-      printf '    # bare `rc` keeps the one-word "update and launch Copilot" behaviour.\n'
-      printf '    # `;` NOT `&&`: update now exits non-zero when the pull was attempted\n'
-      printf '    # and failed, and the commonest cause is a locally-tuned posture file.\n'
-      printf '    # Under `&&` that would stop launching Copilot for exactly the people\n'
-      printf '    # hitting it — a stale checkout is still a working checkout.\n'
-      printf '    "%s/scripts/ravenclaude" update ; copilot --plugin-dir "%s"\n' "$MARKET" "$COPILOT_PKG"
-      printf '  fi\n'
-      printf '}\n'
-    } >>"$bashrc"
-    ok "added 'rc' function to ~/.bashrc — bare 'rc' launches Copilot, 'rc dashboard' opens the dashboard"
+# --- shell detection for the rc alias installer -------------------------------
+# Mirrors plugins/ravenclaude-core/scripts/install_launch_guard.py's
+# detect_shell()/_install_targets()/_candidate_paths() pattern (built for the
+# claude-launch-safeguard feature, PR #1131) — ported here to fix issue #1135:
+# add_rc_alias() used to write ONLY to ~/.bashrc regardless of the user's
+# actual shell, so a zsh user (the default shell on macOS since Catalina, and
+# what $SHELL reports on most current developer machines) got a silently
+# unusable `rc` launcher — ~/.bashrc is never sourced by an interactive zsh
+# login shell.
+_rc_detect_shell() {
+  local base
+  base="$(basename "${SHELL:-}" 2>/dev/null || true)"
+  case "$base" in
+    zsh|bash|fish) printf '%s\n' "$base" ;;
+    *)             printf 'unknown\n' ;;
+  esac
+}
+
+_rc_zshrc_path()         { printf '%s/.zshrc\n' "${ZDOTDIR:-$HOME}"; }
+_rc_bashrc_path()        { printf '%s/.bashrc\n' "$HOME"; }
+_rc_bash_profile_path()  { printf '%s/.bash_profile\n' "$HOME"; }
+_rc_fish_function_path() { printf '%s/.config/fish/functions/rc.fish\n' "$HOME"; }
+
+# Write the POSIX `rc() { ... }` function (identical body works under bash
+# AND zsh) into $1, marker-delimited + idempotent, unless already present.
+_rc_write_posix_fn() {
+  local target="$1" label="$2"
+  if [ -f "$target" ] && grep -qF 'RavenClaude — rc launcher' "$target"; then
+    note "rc launcher already in $label"
+    return 0
   fi
+  if [ -f "$target" ] && grep -qF 'scripts/ravenclaude update && copilot --plugin-dir' "$target"; then
+    warn "an older 'alias rc=…' is present in $label — it SHADOWS 'rc dashboard'."
+    warn "Remove that line, then re-run; the function below supersedes it."
+  fi
+  {
+    printf '\n%s\n' '# RavenClaude — rc launcher (added by ravenclaude setup)'
+    printf 'rc() {\n'
+    printf '  if [ "$#" -gt 0 ]; then\n'
+    printf '    # any verb goes to the real front-door dispatcher (rc dashboard, rc streams…)\n'
+    printf '    command bash "%s/plugins/ravenclaude-core/bin/rc" "$@"\n' "$MARKET"
+    printf '  else\n'
+    printf '    # bare `rc` keeps the one-word "update and launch Copilot" behaviour.\n'
+    printf '    # `;` NOT `&&`: update now exits non-zero when the pull was attempted\n'
+    printf '    # and failed, and the commonest cause is a locally-tuned posture file.\n'
+    printf '    # Under `&&` that would stop launching Copilot for exactly the people\n'
+    printf '    # hitting it — a stale checkout is still a working checkout.\n'
+    printf '    "%s/scripts/ravenclaude" update ; copilot --plugin-dir "%s"\n' "$MARKET" "$COPILOT_PKG"
+    printf '  fi\n'
+    printf '}\n'
+  } >>"$target"
+  ok "added 'rc' function to $label — bare 'rc' launches Copilot, 'rc dashboard' opens the dashboard"
+}
+
+# Write a NATIVE fish function (fish's `function … end` syntax — the POSIX
+# `rc() { }` form is not fish-compatible) into fish's autoload dir. fish
+# auto-sources one function per file named <funcname>.fish, so no
+# ~/.config/fish/config.fish edit is needed.
+_rc_write_fish_fn() {
+  local target; target="$(_rc_fish_function_path)"
+  if [ -f "$target" ] && grep -qF 'RavenClaude — rc launcher' "$target"; then
+    note "rc launcher already in ~/.config/fish/functions/rc.fish"
+    return 0
+  fi
+  mkdir -p "$(dirname "$target")"
+  {
+    printf '%s\n' '# RavenClaude — rc launcher (added by ravenclaude setup)'
+    printf 'function rc\n'
+    printf '    if test (count $argv) -gt 0\n'
+    printf '        command bash "%s/plugins/ravenclaude-core/bin/rc" $argv\n' "$MARKET"
+    printf '    else\n'
+    printf '        "%s/scripts/ravenclaude" update\n' "$MARKET"
+    printf '        copilot --plugin-dir "%s"\n' "$COPILOT_PKG"
+    printf '    end\n'
+    printf 'end\n'
+  } >"$target"
+  ok "added 'rc' function to ~/.config/fish/functions/rc.fish — bare 'rc' launches Copilot, 'rc dashboard' opens the dashboard"
+}
+
+# Detect the user's actual shell ($SHELL — zsh/bash/fish) and write the `rc`
+# launcher to the file that shell genuinely sources. Fixes issue #1135: this
+# used to write unconditionally to ~/.bashrc, which a zsh interactive login
+# shell never reads — the launcher installed "successfully" and silently
+# never worked.
+add_rc_alias() {
+  local shell; shell="$(_rc_detect_shell)"
+  case "$shell" in
+    zsh)
+      _rc_write_posix_fn "$(_rc_zshrc_path)" "~/.zshrc"
+      ;;
+    fish)
+      _rc_write_fish_fn
+      ;;
+    bash|*)
+      # Unknown $SHELL (or bash itself) falls back to the pre-existing bash
+      # target — the safest default when detection can't confirm otherwise.
+      _rc_write_posix_fn "$(_rc_bashrc_path)" "~/.bashrc"
+      # macOS Terminal.app opens a LOGIN shell, which reads ~/.bash_profile
+      # instead of ~/.bashrc — source .bashrc from it if it doesn't already
+      # (mirrors install_launch_guard.py's bash target-set precedent).
+      local bp; bp="$(_rc_bash_profile_path)"
+      if [ -f "$bp" ] && ! grep -q '\.bashrc' "$bp"; then
+        {
+          printf '\n%s\n' '# RavenClaude — source ~/.bashrc for login shells'
+          printf '[ -f "%s" ] && . "%s"\n' "$(_rc_bashrc_path)" "$(_rc_bashrc_path)"
+        } >>"$bp"
+        ok "also wired ~/.bash_profile to source ~/.bashrc (macOS login-shell fix)"
+      fi
+      ;;
+  esac
 }
 
 # Drop the repo-local dashboard launch surfaces into a consumer project: a self-resolving
@@ -1260,7 +1342,13 @@ cmd_setup() {
 
   ok "setup complete."
   note ""
-  note "Launch Copilot (in a NEW terminal so ~/.bashrc is loaded):"
+  local rc_shell_label
+  case "$(_rc_detect_shell)" in
+    zsh)  rc_shell_label="~/.zshrc" ;;
+    fish) rc_shell_label="~/.config/fish/functions/rc.fish" ;;
+    *)    rc_shell_label="~/.bashrc" ;;
+  esac
+  note "Launch Copilot (in a NEW terminal so $rc_shell_label is loaded):"
   note "    rc"
   note "  From a non-interactive shell (e.g. inside a Copilot session itself):"
   note "    bash -i -c rc"
