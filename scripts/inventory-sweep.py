@@ -112,6 +112,7 @@ STANDALONE_SCRIPTS = {
     "content-scan.py": "ad hoc research tool mirroring reddit-scan.py; invoked manually per topic",
     "generate-document-map.py": "seeds a doc map once, then hand-curated; header says run once",
     "gh-health.py": "manual diagnostic ('is this GitHub's problem or mine?'), run when CI looks wrong",
+    "premerge-refresh.sh": "human-run pre-merge regen+restamp tool; header says run once a branch is caught up, never a pipeline step",
 }
 
 # Verdict vocabulary. ⛔ CLOSED SET. A record may never carry free text derived

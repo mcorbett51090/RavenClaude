@@ -76,6 +76,32 @@ Other than that: same branch naming (`fix/<plugin>-<slug>`, `feat/<plugin>-<slug
 
 ---
 
+## Keeping a branch caught up with `main`
+
+If your branch stays open for more than a day or two, `main` will move — and *how* you catch up matters, not just that you do.
+
+**Do this:**
+```bash
+git fetch origin
+git merge origin/main
+# resolve any conflicts, then:
+git commit
+bash scripts/premerge-refresh.sh   # regenerates derived files + re-stamps freshness against the real merge
+git push
+```
+
+**Never re-create your branch by cherry-picking your own commits onto a fresh `origin/main`:**
+```bash
+git checkout origin/main -b my-branch-v2
+git cherry-pick <sha1> <sha2> ...   # ⛔ don't do this to catch up
+```
+
+A real `git merge` makes `origin/main`'s current tip a direct ancestor of your branch, so any check that measures "how far behind is this branch" (`check-ratchet-freshness.py`, via `scripts/_base_ref.py`) moves forward with it. Cherry-picking onto a brand-new branch gives your commits a *different* ancestry whose fork point freezes at whatever `origin/main` was the moment you cut that new branch — permanently, no matter how many more times you re-fetch or re-stamp afterward. The resulting failure ("measured against the wrong SHA") reads like a forgotten `--stamp`, not like "this branch's ancestry can never reach main" — which is what makes it easy to lose real time re-running the wrong fix. Full mechanics + a real incident: the 2026-09-09 addendum in `scripts/_base_ref.py`.
+
+**`scripts/premerge-refresh.sh`** is the one command to run once your branch is genuinely caught up (a real merge committed, no conflicts left). It regenerates the artifacts a long-open branch tends to drift on — the concepts registry, dashboards, `docs/concepts.md`, the `copilot/` package — then re-stamps ratchet freshness, in that order, and refuses to run while a merge is still unresolved so it can't mis-time the stamp.
+
+---
+
 ## How approval works
 
 1. You open the PR. CI (if configured) runs format checks.
