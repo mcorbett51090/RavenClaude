@@ -4649,6 +4649,64 @@ sees its real, lower percent-used and later conserve/handoff triggers, matching 
 actually running on). Nothing in a consumer's installed plugin changes on `/plugin marketplace
 update` beyond that accuracy fix.
 
+## Skill-description category caps go from informational to enforced, grandfathered (added 2026-09-08, v0.320.0)
+
+The succinct-skill-descriptions program's P2/P3 build (`scripts/check-skill-descriptions.py`, Gate
+281 — renumbered from 280 at merge time, see the corresponding merge-conflict note in this repo's
+git history) shipped the category-cap linter with its findings deliberately **informational
+only**, to avoid reddening every future PR against ~591 pre-existing over-cap descriptions. That
+milestone's own CLAUDE.md entry never actually landed in this file — corrected here, briefly,
+alongside the enforcement upgrade that supersedes its informational-only design.
+
+**What changed.** Category-cap findings (chars AND tokens, per leaf/disambiguating/router) are now
+**enforced**, via `cap_gate_check()`, against a **grandfather list**
+(`docs/plans/2026-09-03-succinct-skill-descriptions/description-cap-exemptions.json`, seeded from
+the **104 files** already over cap when this shipped — measured 2026-09-08 against the live
+corpus). `--check` now blocks on exactly two shapes:
+
+1. **A NEW cap violation** — a file not in the exemption list that is over cap. Covers a brand-new
+   skill shipped over cap from day one, or an edit that pushes a previously-compliant description
+   newly over its cap.
+2. **A WORSENED existing violation** — a file in the exemption list whose *current* chars/tokens
+   exceed the value *recorded* in its exemption entry. Covers an edit that makes an
+   already-over-cap description even longer.
+
+A file that stays at or under its exempted size, or that comes back under cap entirely, is never
+blocked — the exemption list is a **floor under existing debt**, not a target. Filler-phrase,
+name-restatement, and charset findings (406 of the corpus's 594 total findings) **stay
+informational-only**, unchanged — only the category-cap checks gained real teeth.
+
+**Why grandfather instead of either extreme.** Blocking on all 104 pre-existing violations
+immediately would either force fixing them right now (a semantic rewrite — exactly what
+[`p8-decision.md`](../../docs/plans/2026-09-03-succinct-skill-descriptions/p8-decision.md) ruled
+out: claim 6 closed inconclusive-by-construction, so there is no eval apparatus to validate a
+rewrite doesn't delete a disambiguation boundary) or require exempting all 104 with no enforcement
+value at all. The grandfather list is the same shape the P3 corpus-total ratchet already uses
+(seed at the measured current state, block only growth) — applied per-file instead of
+corpus-wide, and it composes with the ratchet rather than replacing it: a PR can pass the
+per-file cap gate while still tripping the corpus-total ratchet, and vice versa.
+
+**A legitimately-long router/disambiguating description is not a bug.** Some categories'
+descriptions are long for a real reason — trigger tables, `NOT for X → Y` disambiguation clauses —
+and 104 files being over cap does not mean 104 files need shortening. Adding a new file over cap
+is not automatically wrong either; the fix in that case is a **reasoned exemption-list entry in
+the same PR**, not a forced rewrite. The gate's own failure message states this explicitly.
+
+**Self-test coverage** (`--self-test`, now 29/29 pass, up from 24): an absent exemptions file
+blocks every current violation (fail-closed default for a never-seeded list); an
+exempted-at-current-size violation does not block; a violation absent from the exemption list
+blocks as NEW; a violation present but recorded smaller than its current size blocks as WORSENED;
+a compliant file is never in the violation list regardless of exemption-file state. Verified
+against the **real corpus**, not just synthetic fixtures: a live probe simulating a 100-char/
+20-token regression on a real already-exempted file (`ai-agent-engineering/design-agent-tools-
+and-context`) correctly produces a WORSENED finding naming the exact before/after numbers.
+
+**Migration:** consumer-invisible — this is a repo-tooling gate (`scripts/check-skill-
+descriptions.py` lives at the marketplace root, not inside `plugins/ravenclaude-core/`, so nothing
+in an installed plugin changes on `/plugin marketplace update`). Within this repo, a PR that adds a
+new skill over its category cap, or edits an already-over-cap description to be longer, will now
+fail `audit-gates.sh` (Gate 281) where it previously only printed an informational line.
+
 ## `claude-launch-safeguard` — a local defense against anthropics/claude-code#92932 (added 2026-09-08, v0.320.0)
 
 Built via `/forge` `quick` (two divergent cross-model panels — Opus architect lens, Sonnet scanner
