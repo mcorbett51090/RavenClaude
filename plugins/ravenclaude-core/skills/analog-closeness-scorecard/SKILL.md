@@ -8,7 +8,7 @@ description: "Recompute the M/H/G/O/E/I/T/V weighted closeness score (and the ob
 Q2 of the `analog-repos-gap-fill` leftovers
 ([`docs/follow-ups/2026-08-14-analog-repos-leftovers.md`](../../../../docs/follow-ups/2026-08-14-analog-repos-leftovers.md)),
 unparked on owner request. Packages the closeness-scoring arithmetic from the
-[2026-08-14 analog survey](../../../../docs/plans/2026-08-14-analog-repos-gap-fill/catalog.md) as a
+[2026-08-14 analog survey](../../../../docs/plans/archive/2026-08-14-analog-repos-gap-fill/catalog.md) as a
 reusable, self-tested script instead of a one-off calculation redone by hand for the next survey.
 
 ## The rubric (unchanged from the survey)
