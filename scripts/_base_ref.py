@@ -503,10 +503,22 @@ def _self_test():
     # (`"Merge <40-hex> into <40-hex>"`) rather than a human's `git merge`
     # default. The correct answer is the TRUE common ancestor (the fork
     # point) — never either tip, and never None.
+    #
+    # ⛔ BOTH GITHUB_EVENT_NAME AND GITHUB_BASE_REF are isolated here, same
+    # trap as the PR-merge-commit fixture above and caught the same way, live
+    # in this session's own CI run: this fixture's scratch repo is ALSO
+    # `git init -b main`, so a real CI job's ambient `GITHUB_BASE_REF=main`
+    # made rule 3 resolve the fixture's own local `main` branch BEFORE this
+    # module's new rule was ever reached — a different (and here, WRONG for
+    # this fixture's intent) answer than the isolated-env test computed
+    # locally. Popping it is what makes the fixture exercise the rule this
+    # test exists to prove, regardless of where `--self-test` runs.
     with tempfile.TemporaryDirectory() as td:
         root, base_tip, pr_tip, fork_point = _fixture_github_merge_ref(td)
         _prior_event = os.environ.get("GITHUB_EVENT_NAME")
+        _prior_base = os.environ.get("GITHUB_BASE_REF")
         os.environ["GITHUB_EVENT_NAME"] = "pull_request"
+        os.environ.pop("GITHUB_BASE_REF", None)
         try:
             got, how = merge_base(root)
         finally:
@@ -514,6 +526,8 @@ def _self_test():
                 os.environ.pop("GITHUB_EVENT_NAME", None)
             else:
                 os.environ["GITHUB_EVENT_NAME"] = _prior_event
+            if _prior_base is not None:
+                os.environ["GITHUB_BASE_REF"] = _prior_base
         label = "GitHub synthetic merge ref -> the TRUE fork point, never either tip"
         if got == fork_point:
             ok += 1
