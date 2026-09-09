@@ -115,6 +115,12 @@ This repo's scheduled routines run unattended on Claude Code on the web, where t
 
 The curl is bounded (`--connect-timeout 5 -m 10`) so a slow/blocked sink can never stall a session, and a missing `curl`/`jq` or network failure is swallowed. **This is the stand-in for `PushNotification`; if a managed push tool is present in a given environment, prefer it and treat this as the durable fallback record.**
 
+### Plugin-durability bootstrap (marketplace-only) — added 2026-09-09
+
+Some remote/web sessions run in a container that is **ephemeral** — reclaimed after inactivity and re-cloned fresh next time — so `claude plugin install`'s user-scope state (`~/.claude.json`) does not survive across sessions in that environment. [`scripts/ensure-plugin-installed.sh`](scripts/ensure-plugin-installed.sh) closes that gap the same way `scripts/notify.sh` closes the push-notification gap: a **marketplace-only** hook (deliberately **not** in any plugin's `hooks.json`, so it never ships to consumers — installing "ravenclaude pointing at itself" only makes sense inside this marketplace's own dev/orchestration environment), registered as a `SessionStart` hook (`startup`-only lane) in `.claude/settings.json`.
+
+It idempotently re-wires the `ravenclaude` marketplace plus `ravenclaude-core`/`devops-cicd`/`api-engineering`/`team-portfolio` at every fresh container startup, resolving the checkout path dynamically via `$CLAUDE_PROJECT_DIR` (never a baked-in absolute path — a committed `--scope project` marketplace declaration was tried and rejected: it reformats the whole `.claude/settings.json` file, dropping every hook's `comment` field, and bakes in one container's absolute path). Fast-paths to a no-op once everything is already installed; fail-safe, never blocks `SessionStart`, always exits 0.
+
 ## Layout enforcement (Claude Code path)
 
 The plugin's `hooks/enforce-layout.sh` runs `PreToolUse` on `Write|Edit|MultiEdit`. It reads `.repo-layout.json` at the project root, matches the target path against `allowed_globs`, and denies off-pattern writes with a suggested correct location. The hook silently allows everything if `.repo-layout.json` is absent — so consumers who install the plugin without setting up a layout manifest are not surprised.
