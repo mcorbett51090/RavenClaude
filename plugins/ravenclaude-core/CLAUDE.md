@@ -4775,3 +4775,46 @@ standing failure than the coverage gap Layer 2 already compensates for.
 launch-guard install`; nothing is installed or touched by default. `stall_watch.py`'s detection
 layer is likewise inert unless `install_stall_watch.py` has been run (itself already opt-in). Both
 layers default to "present but not running."
+
+## `claude-launch-safeguard` recommends a directory + switches to it with one click (added 2026-09-09, v0.320.1)
+
+The v0.320.0 unsafe-launch menu had four fixed options (Just once / This session / Always allow /
+Deny) but none of them helped the user actually get *into* a safe directory — the point of the
+warning. Two additions close that, entirely inside the two files v0.320.0 already shipped:
+
+- **`claude-launch-guard preferred {list,add,remove} [path]`** — a new, small, user-managed list
+  at `~/.claude/launch-guard/preferred` (one absolute path per line; distinct from the allowlist,
+  which *suppresses* the warning — `preferred` is a set of *suggestions*, never consulted by
+  `check`). **`claude-launch-guard recommend`** merges it with the last-used directory (below),
+  deduped, capped at 5, fail-safe (prints nothing, exits 0 on any error — advisory output for a
+  menu, never load-bearing).
+- **Last-used directory, tracked automatically.** The installed shell function now writes `$PWD` to
+  `~/.claude/launch-guard/last-dir` on every **safe** launch — the only writer of that file;
+  `recommend` only reads it. No new flag, no opt-in: this is the "last used directory" half of the
+  request, and it needs no user action to start working.
+
+**The one-click switch is a `cd` inside the shell FUNCTION, not a subprocess call.** `install_launch_guard.py`'s emitted `claude()` function now appends `recommend`'s output as numbered menu
+choices (5, 6, …) after the fixed 1–4; choosing one runs `cd "$target"` **in the current shell**
+before launching — this is the only way a "run a command to switch directories" request can
+actually change the user's terminal, since a subprocess (the `claude-launch-guard` binary itself)
+cannot alter its parent shell's cwd. A `cd` failure (deleted dir, permissions) falls through to
+launching from the original unsafe cwd rather than doing nothing, matching P1's fail-open
+discipline. Implemented in both shell bodies (`POSIX_FUNCTION_BODY` for bash/zsh, `FISH_FUNCTION_BODY` natively for fish — fish has no `local`/`case`, so the loop-and-`math` idiom differs but the contract is identical).
+
+**Gate 282** picks this up automatically — it already runs both scripts' `--self-test`. Extended:
+`claude-launch-guard --self-test` gained 3 fixtures (17 total) covering `preferred` add/list/remove
+round-tripping (including a since-deleted preferred directory silently dropping out of `list`,
+since a stale entry is not a valid cd target) and `recommend`'s dedup/cap/last-dir-fallback logic,
+plus a HOME-unset fail-open check. `install_launch_guard.py --self-test` gained one fixture proving
+a real safe launch (through a live `zsh -i -c`, staged `claude` stub) writes `last-dir` with the
+correct path. The interactive switch-and-launch branch itself is exercised only by the existing
+`zsh -n`/`fish -n` syntax validation every fixture already runs through `_validate()` — this
+harness has no pty to drive a live interactive menu choice, the same limitation the original
+options 2–4 were already under.
+
+**Migration:** none — both new subcommands are additive, the shell-function change only appends
+extra menu options after the existing four (a user who never sets a preferred directory and has no
+last-used directory sees the identical four-option menu as before), and the last-dir write is a
+single fire-and-forget file write with no behavioral effect until `recommend` is later consulted.
+A consumer who has already run `install_launch_guard.py install` needs to re-run it once to pick up
+the new function body (the installer is idempotent — the managed block is replaced in place).
