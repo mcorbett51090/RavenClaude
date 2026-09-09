@@ -11,10 +11,10 @@ Inventory of every non-`main` remote head on `mcorbett51090/RavenClaude`, classi
 | Closed without merge | 1 | #1123 (Sep 7 findings folded into #1126) |
 | Dependabot remaining | 0 | **#1121** squash-merged (`95a6e95a`) |
 | Active conflicting feature work | 2 | **#1145**, **#1146** — keep; do not auto-close |
-| New dependency-sweep baseline | 1 | **#1147** draft — keep / merge separately (fingerprint only) |
+| New dependency-sweep baseline | 0 | **#1147** squash-merged (`fee4d753`) |
 | This analysis PR | 1 | **#1142** (docs-only) |
 
-Remote heads after cleanup (target): `main` + #1145 + #1146 + #1147 + this docs branch (until #1142 lands).
+Remote heads after cleanup (target): `main` + #1145 + #1146 + this docs branch (until #1142 lands).
 
 ## Summary (initial inventory)
 
@@ -65,7 +65,7 @@ Remote heads after cleanup (target): `main` + #1145 + #1146 + #1147 + this docs 
 |---|---|---|
 | `feat/skills-deny-plugins` | **#1145** CONFLICTING | Real feature (`skills.deny_plugins`). Keep — rebase/triage separately; not a cleanup leftover. |
 | `claude/source-control-github-merge-s0b4ve` | **#1146** draft, CONFLICTING | Source-control-coordinator agent (+1348). Keep — active opt-in work; not a cleanup leftover. |
-| `cursor/dependency-sweep-baseline-bef8` | **#1147** draft | Host-version fingerprint baseline from first dependency sweep. Keep / merge separately. |
+| `cursor/dependency-sweep-baseline-bef8` | **#1147** | Squash-merged → `fee4d753` (fingerprint-only). |
 | `cursor/branch-cleanup-analysis-d2f1` | **#1142** draft | This docs matrix — merge as docs-only once updated. |
 
 ### Also merged this pass (late)
@@ -73,6 +73,7 @@ Remote heads after cleanup (target): `main` + #1145 + #1146 + #1147 + this docs 
 | PR | Result |
 |---|---|
 | **#1121** | zizmor-action 0.6.2→0.6.3; squash → `95a6e95a` |
+| **#1147** | host-version fingerprint baseline; squash → `fee4d753` |
 
 
 ## What we did not do
