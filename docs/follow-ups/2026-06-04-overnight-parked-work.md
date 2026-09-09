@@ -29,7 +29,7 @@ forgotten task.** This file gives each one its trigger.
 
 ## 1. Adaptive-run-classifier Phase 6 — flag-flip + release
 
-**Plan:** [`docs/plans/2026-06-03-adaptive-run-classifier/plan.md`](../plans/2026-06-03-adaptive-run-classifier/plan.md) §Phase 6.
+**Plan:** [`docs/plans/2026-06-03-adaptive-run-classifier/plan.md`](../plans/archive/2026-06-03-adaptive-run-classifier/plan.md) §Phase 6.
 
 **What it does when shipped:** flips `templates/run-config.json` `enabled: true`, bumps `plugins/ravenclaude-core/.claude-plugin/plugin.json` + `marketplace.json` minor (lockstep), adds the CLAUDE.md milestone, writes the 5-line dashboard pointer card, regenerates artifacts. The classifier is currently fully built (Phases 1-5 merged across #244, #246-#247, #250-#251, #253) but ships **disabled by default** — so the workflow is byte-identical to the pre-port baseline (Gate 51 holds).
 
@@ -56,7 +56,7 @@ forgotten task.** This file gives each one its trigger.
 
 ## 2. Agent-dispatch-evaluator Phases 2-6 — workflow integration onward
 
-**Plan:** [`docs/plans/2026-06-03-agent-dispatch-evaluator/plan.md`](../plans/2026-06-03-agent-dispatch-evaluator/plan.md) §Phases 2-6.
+**Plan:** [`docs/plans/2026-06-03-agent-dispatch-evaluator/plan.md`](../plans/archive/2026-06-03-agent-dispatch-evaluator/plan.md) §Phases 2-6.
 
 **What's shipped already:** Phase 1 (SKILL.md + tier table — #249) and the Phase 2 wrapper *reference snippet* (`plugins/ravenclaude-core/skills/agent-dispatch-evaluator/reference/evaluate-dispatch.js` — #254). The reference is not yet integrated into `.claude/workflows/deep-research.js`.
 
@@ -80,7 +80,7 @@ forgotten task.** This file gives each one its trigger.
 
 ## 3. ~~Unified-dashboard-shell Phase 3 — visual-regression DoD~~ — DONE 2026-06-04
 
-**Plan:** [`docs/plans/2026-06-04-unified-dashboard-shell/plan.md`](../plans/2026-06-04-unified-dashboard-shell/plan.md) §Phase 3.
+**Plan:** [`docs/plans/2026-06-04-unified-dashboard-shell/plan.md`](../plans/archive/2026-06-04-unified-dashboard-shell/plan.md) §Phase 3.
 
 **What's shipped:** Phases 1 (router), 2 (smart-fallback + mode banner), 4 (Gate 51 — the structural router gate), 5 (version bump + invariant comments + milestone) — all landed in #259 as `v0.114.0`. The milestone explicitly notes Phase 3 is "manual verify — not gate-enforced at this depth."
 
@@ -98,7 +98,7 @@ forgotten task.** This file gives each one its trigger.
 
 ## 4. Mímir SKILL parked open question — `claude --status --json`
 
-**Plan:** [`docs/plans/2026-06-03-mimir-session-tab/plan.md`](../plans/2026-06-03-mimir-session-tab/plan.md) §"Open questions parked."
+**Plan:** [`docs/plans/2026-06-03-mimir-session-tab/plan.md`](../plans/archive/2026-06-03-mimir-session-tab/plan.md) §"Open questions parked."
 
 **What's parked:** the Mímir reader currently surfaces session state from on-disk JSONL + settings + stats-cache files. If Anthropic ships a `claude --status --json` (or equivalent machine-readable CLI subcommand), the reader should re-route to that as the **primary source** (the on-disk read becomes the fallback for the in-process-only fields).
 

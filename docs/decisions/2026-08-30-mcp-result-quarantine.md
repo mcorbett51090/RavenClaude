@@ -4,7 +4,7 @@
 pickup sheet — "owner asks for MCP quarantine" — Matt selected this leftover for the build queue)
 
 **Source:** [`docs/follow-ups/2026-08-14-analog-repos-leftovers.md`](../follow-ups/2026-08-14-analog-repos-leftovers.md)
-§1 (Q1 / L4), queue row [`pr-queue.md`](../plans/2026-08-14-analog-repos-gap-fill/pr-queue.md) Q1.
+§1 (Q1 / L4), queue row [`pr-queue.md`](../plans/archive/2026-08-14-analog-repos-gap-fill/pr-queue.md) Q1.
 **Depends on:** F1 (`sanitize-webfetch-output.sh`/`.py`, [#928](https://github.com/mcorbett51090/RavenClaude/pull/928), shipped `0.267.0`) — already merged.
 
 ## 0. What this closes

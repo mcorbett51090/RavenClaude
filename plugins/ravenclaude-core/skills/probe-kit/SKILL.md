@@ -150,5 +150,5 @@ skip is printed as `LOUD SKIP (NOT A PASS)`, never counted as a pass.
 - Engine: [`bin/probe-kit.sh`](../../bin/probe-kit.sh) (bash 3.2 / stock-macOS safe;
   no GNU `timeout`, `grep -P` or `sed -i`; every probe carries its own ceiling so nothing hangs)
 - The rule in context: [`knowledge/verification-discipline.md`](../../knowledge/verification-discipline.md) Rule 6
-- Evidence base: [`docs/plans/2026-08-08-premise-gate/incidents.md`](../../../../docs/plans/2026-08-08-premise-gate/incidents.md)
-- Where it sits in the plan: [`docs/plans/2026-08-08-premise-gate/plan.md`](../../../../docs/plans/2026-08-08-premise-gate/plan.md) §6
+- Evidence base: [`docs/plans/2026-08-08-premise-gate/incidents.md`](../../../../docs/plans/archive/2026-08-08-premise-gate/incidents.md)
+- Where it sits in the plan: [`docs/plans/2026-08-08-premise-gate/plan.md`](../../../../docs/plans/archive/2026-08-08-premise-gate/plan.md) §6

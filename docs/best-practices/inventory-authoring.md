@@ -5,8 +5,8 @@
 re-runs on demand. If you change the guard, re-run the spike — this document is
 downstream of it, never the other way round.
 
-Produced by **P1 / S1** of [`docs/plans/2026-08-19-product-inventory/plan.md`](../plans/2026-08-19-product-inventory/plan.md).
-Verdict table: [`p1-spike-verdicts.md`](../plans/2026-08-19-product-inventory/p1-spike-verdicts.md).
+Produced by **P1 / S1** of [`docs/plans/2026-08-19-product-inventory/plan.md`](../plans/archive/2026-08-19-product-inventory/plan.md).
+Verdict table: [`p1-spike-verdicts.md`](../plans/archive/2026-08-19-product-inventory/p1-spike-verdicts.md).
 
 ---
 

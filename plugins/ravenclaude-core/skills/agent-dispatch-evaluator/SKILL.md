@@ -11,7 +11,7 @@ confidence: high
 
 The **wire contract** between every agent dispatch surface and the cheap Haiku call that tells it which model tier to use. Where the [`adaptive-run-classifier`](../adaptive-run-classifier/SKILL.md) right-sizes **multi-phase workflow runs**, this skill right-sizes **individual dispatches** — Workflow `agent()` calls, top-level Agent tool dispatches from conversation, and tribunal seats in [`scripts/thing-decide.py`](../../scripts/thing-decide.py). One forced-tool Haiku call per dispatch. No agent loop. No retries to parse.
 
-Plan reference: [`docs/plans/2026-06-03-agent-dispatch-evaluator/plan.md`](../../../../docs/plans/2026-06-03-agent-dispatch-evaluator/plan.md). Phase 0 verification: `.ravenclaude/runs/forge/agent-dispatch-evaluator/phase-0-verification.md` (gitignored). Cross-panel resolutions: `.ravenclaude/runs/forge/agent-dispatch-evaluator/gap-delta.md` (gitignored).
+Plan reference: [`docs/plans/2026-06-03-agent-dispatch-evaluator/plan.md`](../../../../docs/plans/archive/2026-06-03-agent-dispatch-evaluator/plan.md). Phase 0 verification: `.ravenclaude/runs/forge/agent-dispatch-evaluator/phase-0-verification.md` (gitignored). Cross-panel resolutions: `.ravenclaude/runs/forge/agent-dispatch-evaluator/gap-delta.md` (gitignored).
 
 ## The `dispatch_config` JSON schema
 
@@ -381,7 +381,7 @@ This skill emits no runtime artifact of its own — it is a **contract**, consum
 
 ## References
 
-- Plan + risk matrix: [`docs/plans/2026-06-03-agent-dispatch-evaluator/plan.md`](../../../../docs/plans/2026-06-03-agent-dispatch-evaluator/plan.md) (Phase 1 work-list, RM1-RM8, intercept-shape contract).
+- Plan + risk matrix: [`docs/plans/2026-06-03-agent-dispatch-evaluator/plan.md`](../../../../docs/plans/archive/2026-06-03-agent-dispatch-evaluator/plan.md) (Phase 1 work-list, RM1-RM8, intercept-shape contract).
 - **Phase 3 hook (audit-only):** [`hooks/agent-dispatch-evaluator.sh`](../../hooks/agent-dispatch-evaluator.sh) + Gate 90 [`hooks/tests/test-gate90-dispatch-evaluator-audit-only.sh`](../../hooks/tests/test-gate90-dispatch-evaluator-audit-only.sh).
 - **Phase 4 tribunal-seat shadow:** [`scripts/thing-decide.py`](../../scripts/thing-decide.py) (`_load_dispatch_cfg` / `_evaluator_shadow`) + Gate 91 [`hooks/tests/test-gate91-tribunal-shadow.py`](../../hooks/tests/test-gate91-tribunal-shadow.py).
 - Phase 0 verification: `.ravenclaude/runs/forge/agent-dispatch-evaluator/phase-0-verification.md` (gitignored local run-dir artifact) (the three load-bearing flips: no-Agent-matcher, subprocess-exemption, no-cache).
