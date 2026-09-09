@@ -55,9 +55,12 @@ const ISLANDED_AGENT_KEYS = ["scenarios", "quickstart", "works_with"];
 const RC = "ravenclaude-core";
 const RC_BASELINE = {
   agents: 15,
-  skills: 65, // 64 -> 65: skills/prompt-optimizer (forge/prompt-optimizer merge — gated
-  //   prompt-to-routing pipeline, PR #1098). COUNTED, not inferred:
-  //   `ls plugins/ravenclaude-core/skills | wc -l` -> 65 on this tree.
+  skills: 66, // 64 -> 66: skills/prompt-optimizer (forge/prompt-optimizer merge — gated
+  //   prompt-to-routing pipeline, PR #1098) + skills/skill-index (FORGE plan
+  //   dynamic-skill-context, phase P0 — a generated always-on index of every
+  //   marketplace skill, so a disabled plugin's skills are still findable +
+  //   re-enableable) — both landed independently and merged together.
+  //   COUNTED, not inferred: `ls plugins/ravenclaude-core/skills | wc -l` -> 66 on this tree.
   //        63 -> 64: skills/claude-code-parallel-and-modes (PR #1114,
   //   Claude Code parallel agents + modes playbook in ravenclaude-core).
   //   COUNTED, not inferred: `ls plugins/ravenclaude-core/skills | wc -l` -> 64 on this tree.
@@ -75,11 +78,14 @@ const RC_BASELINE = {
   //        53 -> 54: skills/session-handoff (v0.266.0, context-quality reset)
   //        52 -> 53: skills/design-clone (v0.253.0, design-schema capture+apply)
   //        51 -> 52: skills/github-gold-standard (v0.246.0, the gold-standard scorecard)
-  tools: 51, // 49 -> 51: scripts/prompt-optimizer-format.py + scripts/prompt-optimizer-judge-soak.py
+  tools: 52, // 49 -> 52: scripts/prompt-optimizer-format.py + scripts/prompt-optimizer-judge-soak.py
   //   (forge/prompt-optimizer merge — the Phase 5 formatter + the standalone judge-soak tool;
   //   the sibling prompt-optimizer-gate.sh/-rewrite.sh/-dispatch.sh/-judge-soak.sh are bash, so
-  //   the *.py glob does not count them). COUNTED, not inferred:
-  //   `find plugins/ravenclaude-core/scripts -maxdepth 1 -name "*.py" | wc -l` -> 51 on this tree.
+  //   the *.py glob does not count them) + scripts/install_launch_guard.py (P2 of the
+  //   claude-launch-safeguard build, anthropics/claude-code#92932 — the rc-file installer for
+  //   the launch-guard shell function) — both landed independently and merged together.
+  //   COUNTED, not inferred:
+  //   `find plugins/ravenclaude-core/scripts -maxdepth 1 -name "*.py" | wc -l` -> 52 on this tree.
   //        48 -> 49: scripts/hooks-selftest.py (Gate 266 SessionStart runtime
   //   self-test front door, 96ea5e05 — did not exist before). COUNTED, not inferred:
   //   `find plugins/ravenclaude-core/scripts -maxdepth 1 -name "*.py" | wc -l` -> 49 on this tree.

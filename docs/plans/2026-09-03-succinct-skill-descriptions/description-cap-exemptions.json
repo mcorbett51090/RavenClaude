@@ -1,0 +1,528 @@
+{
+  "exemptions": {
+    "plugins/ai-agent-engineering/skills/design-agent-tools-and-context/SKILL.md": {
+      "category": "leaf",
+      "chars": 579,
+      "tokens": 119
+    },
+    "plugins/ai-red-teaming/skills/design-ai-redteam-plan/SKILL.md": {
+      "category": "leaf",
+      "chars": 558,
+      "tokens": 124
+    },
+    "plugins/ai-red-teaming/skills/harden-and-remediate-ai-system/SKILL.md": {
+      "category": "leaf",
+      "chars": 647,
+      "tokens": 145
+    },
+    "plugins/ai-red-teaming/skills/run-adversarial-attacks-and-jailbreaks/SKILL.md": {
+      "category": "leaf",
+      "chars": 705,
+      "tokens": 154
+    },
+    "plugins/audio-dsp-engineering/skills/choose-audio-dsp-architecture/SKILL.md": {
+      "category": "disambiguating",
+      "chars": 753,
+      "tokens": 176
+    },
+    "plugins/bioinformatics-engineering/skills/choose-bioinformatics-pipeline-and-stack/SKILL.md": {
+      "category": "disambiguating",
+      "chars": 877,
+      "tokens": 216
+    },
+    "plugins/bioinformatics-engineering/skills/design-genomics-analysis-workflow/SKILL.md": {
+      "category": "leaf",
+      "chars": 659,
+      "tokens": 145
+    },
+    "plugins/bioinformatics-engineering/skills/implement-and-scale-bioinformatics-pipeline/SKILL.md": {
+      "category": "leaf",
+      "chars": 576,
+      "tokens": 137
+    },
+    "plugins/chaos-engineering-resilience/skills/design-resilience-patterns/SKILL.md": {
+      "category": "leaf",
+      "chars": 567,
+      "tokens": 133
+    },
+    "plugins/chaos-engineering-resilience/skills/plan-game-day/SKILL.md": {
+      "category": "leaf",
+      "chars": 590,
+      "tokens": 143
+    },
+    "plugins/data-orchestration/skills/handle-backfills-and-retries/SKILL.md": {
+      "category": "leaf",
+      "chars": 495,
+      "tokens": 111
+    },
+    "plugins/data-platform/skills/data-quality-tests/SKILL.md": {
+      "category": "leaf",
+      "chars": 485,
+      "tokens": 103
+    },
+    "plugins/data-platform/skills/multi-tenant-migration/SKILL.md": {
+      "category": "leaf",
+      "chars": 482,
+      "tokens": 103
+    },
+    "plugins/data-quality-observability/skills/choose-data-quality-approach/SKILL.md": {
+      "category": "disambiguating",
+      "chars": 750,
+      "tokens": 169
+    },
+    "plugins/data-quality-observability/skills/design-data-contracts-and-tests/SKILL.md": {
+      "category": "leaf",
+      "chars": 537,
+      "tokens": 106
+    },
+    "plugins/data-quality-observability/skills/set-up-data-observability-monitors/SKILL.md": {
+      "category": "leaf",
+      "chars": 502,
+      "tokens": 106
+    },
+    "plugins/databricks-lakehouse-engineering/skills/design-medallion-lakehouse/SKILL.md": {
+      "category": "leaf",
+      "chars": 787,
+      "tokens": 185
+    },
+    "plugins/databricks-lakehouse-engineering/skills/tune-spark-and-costs/SKILL.md": {
+      "category": "leaf",
+      "chars": 724,
+      "tokens": 181
+    },
+    "plugins/design-systems-engineering/skills/component-api-and-library-build/SKILL.md": {
+      "category": "leaf",
+      "chars": 617,
+      "tokens": 128
+    },
+    "plugins/developer-tooling/skills/manage-dependencies/SKILL.md": {
+      "category": "leaf",
+      "chars": 455,
+      "tokens": 108
+    },
+    "plugins/digital-twin-engineering/skills/choose-digital-twin-architecture/SKILL.md": {
+      "category": "disambiguating",
+      "chars": 865,
+      "tokens": 193
+    },
+    "plugins/digital-twin-engineering/skills/design-twin-data-and-sync-model/SKILL.md": {
+      "category": "leaf",
+      "chars": 622,
+      "tokens": 141
+    },
+    "plugins/digital-twin-engineering/skills/implement-twin-integration-and-simulation/SKILL.md": {
+      "category": "leaf",
+      "chars": 680,
+      "tokens": 158
+    },
+    "plugins/edtech-partner-success/skills/cs-platform-integration/SKILL.md": {
+      "category": "leaf",
+      "chars": 759,
+      "tokens": 175
+    },
+    "plugins/edtech-partner-success/skills/executive-sponsor-mapping/SKILL.md": {
+      "category": "leaf",
+      "chars": 585,
+      "tokens": 125
+    },
+    "plugins/edtech-partner-success/skills/expansion-play-design/SKILL.md": {
+      "category": "leaf",
+      "chars": 586,
+      "tokens": 124
+    },
+    "plugins/edtech-partner-success/skills/health-report-dashboard/SKILL.md": {
+      "category": "disambiguating",
+      "chars": 700,
+      "tokens": 171
+    },
+    "plugins/edtech-partner-success/skills/renewal-play-design/SKILL.md": {
+      "category": "leaf",
+      "chars": 607,
+      "tokens": 142
+    },
+    "plugins/email-engineering/skills/deliverability-audit/SKILL.md": {
+      "category": "leaf",
+      "chars": 510,
+      "tokens": 119
+    },
+    "plugins/finance/skills/idp-segregation/SKILL.md": {
+      "category": "leaf",
+      "chars": 681,
+      "tokens": 159
+    },
+    "plugins/finance/skills/live-connectors/SKILL.md": {
+      "category": "leaf",
+      "chars": 542,
+      "tokens": 118
+    },
+    "plugins/finance/skills/multi-currency-translation/SKILL.md": {
+      "category": "leaf",
+      "chars": 754,
+      "tokens": 177
+    },
+    "plugins/finance/skills/warehouse-dashboard/SKILL.md": {
+      "category": "leaf",
+      "chars": 541,
+      "tokens": 119
+    },
+    "plugins/funeral-home-operations/skills/ensure-deathcare-compliance-and-pricing/SKILL.md": {
+      "category": "leaf",
+      "chars": 841,
+      "tokens": 172
+    },
+    "plugins/funeral-home-operations/skills/run-funeral-arrangement-and-intake/SKILL.md": {
+      "category": "leaf",
+      "chars": 786,
+      "tokens": 158
+    },
+    "plugins/generative-web-media/skills/web-optimization-pipeline/SKILL.md": {
+      "category": "leaf",
+      "chars": 425,
+      "tokens": 112
+    },
+    "plugins/grants-management/skills/manage-post-award-compliance-and-reporting/SKILL.md": {
+      "category": "leaf",
+      "chars": 786,
+      "tokens": 189
+    },
+    "plugins/hoa-community-association-management/skills/build-budget-and-reserve-plan/SKILL.md": {
+      "category": "disambiguating",
+      "chars": 828,
+      "tokens": 164
+    },
+    "plugins/hoa-community-association-management/skills/manage-board-and-vendor-operations/SKILL.md": {
+      "category": "disambiguating",
+      "chars": 853,
+      "tokens": 168
+    },
+    "plugins/hoa-community-association-management/skills/run-covenant-and-collections-workflow/SKILL.md": {
+      "category": "disambiguating",
+      "chars": 942,
+      "tokens": 187
+    },
+    "plugins/home-health-care-operations/skills/plan-intake-and-eligibility/SKILL.md": {
+      "category": "disambiguating",
+      "chars": 766,
+      "tokens": 160
+    },
+    "plugins/incident-response-dfir/skills/acquire-and-preserve-evidence/SKILL.md": {
+      "category": "leaf",
+      "chars": 472,
+      "tokens": 107
+    },
+    "plugins/incident-response-dfir/skills/run-the-incident-lifecycle/SKILL.md": {
+      "category": "leaf",
+      "chars": 506,
+      "tokens": 108
+    },
+    "plugins/internal-audit/skills/rate-and-report-audit-findings/SKILL.md": {
+      "category": "leaf",
+      "chars": 699,
+      "tokens": 154
+    },
+    "plugins/martech-event-instrumentation/skills/implement-event-instrumentation-and-consent/SKILL.md": {
+      "category": "leaf",
+      "chars": 479,
+      "tokens": 110
+    },
+    "plugins/museum-cultural-institution-operations/skills/grow-membership-and-visitor-revenue/SKILL.md": {
+      "category": "leaf",
+      "chars": 726,
+      "tokens": 163
+    },
+    "plugins/museum-cultural-institution-operations/skills/manage-collections-and-exhibitions/SKILL.md": {
+      "category": "disambiguating",
+      "chars": 788,
+      "tokens": 172
+    },
+    "plugins/museum-cultural-institution-operations/skills/publish-digital-collections-and-access/SKILL.md": {
+      "category": "leaf",
+      "chars": 673,
+      "tokens": 137
+    },
+    "plugins/power-platform/skills/dataverse-web-api/SKILL.md": {
+      "category": "router",
+      "chars": 853,
+      "tokens": 194
+    },
+    "plugins/power-platform/skills/dataverse-web-resources/SKILL.md": {
+      "category": "router",
+      "chars": 720,
+      "tokens": 170
+    },
+    "plugins/power-platform/skills/update-model-driven-app/SKILL.md": {
+      "category": "router",
+      "chars": 879,
+      "tokens": 193
+    },
+    "plugins/power-platform/skills/visual-qa/SKILL.md": {
+      "category": "router",
+      "chars": 625,
+      "tokens": 146
+    },
+    "plugins/quantum-computing-engineering/skills/design-and-transpile-quantum-circuit/SKILL.md": {
+      "category": "leaf",
+      "chars": 654,
+      "tokens": 151
+    },
+    "plugins/quantum-computing-engineering/skills/triage-quantum-use-case/SKILL.md": {
+      "category": "disambiguating",
+      "chars": 736,
+      "tokens": 184
+    },
+    "plugins/ravenclaude-core/skills/agent-quality-rubric/SKILL.md": {
+      "category": "leaf",
+      "chars": 503,
+      "tokens": 110
+    },
+    "plugins/ravenclaude-core/skills/contribute-finding/SKILL.md": {
+      "category": "leaf",
+      "chars": 524,
+      "tokens": 110
+    },
+    "plugins/ravenclaude-core/skills/cross-platform-determinism/SKILL.md": {
+      "category": "router",
+      "chars": 686,
+      "tokens": 136
+    },
+    "plugins/ravenclaude-core/skills/draft-agent-brief/SKILL.md": {
+      "category": "leaf",
+      "chars": 514,
+      "tokens": 106
+    },
+    "plugins/ravenclaude-core/skills/github-gold-standard/SKILL.md": {
+      "category": "leaf",
+      "chars": 725,
+      "tokens": 167
+    },
+    "plugins/ravenclaude-core/skills/mimir/SKILL.md": {
+      "category": "leaf",
+      "chars": 560,
+      "tokens": 137
+    },
+    "plugins/ravenclaude-core/skills/pbir-layout-engine/SKILL.md": {
+      "category": "leaf",
+      "chars": 511,
+      "tokens": 113
+    },
+    "plugins/ravenclaude-core/skills/plugin-release-checklist/SKILL.md": {
+      "category": "leaf",
+      "chars": 558,
+      "tokens": 111
+    },
+    "plugins/ravenclaude-core/skills/prompt-pattern-library/SKILL.md": {
+      "category": "disambiguating",
+      "chars": 778,
+      "tokens": 158
+    },
+    "plugins/ravenclaude-core/skills/scout/SKILL.md": {
+      "category": "router",
+      "chars": 600,
+      "tokens": 125
+    },
+    "plugins/ravenclaude-core/skills/spawn-team/SKILL.md": {
+      "category": "leaf",
+      "chars": 560,
+      "tokens": 114
+    },
+    "plugins/ravenclaude-core/skills/terminal-status-indicators/SKILL.md": {
+      "category": "leaf",
+      "chars": 531,
+      "tokens": 110
+    },
+    "plugins/ravenclaude-core/skills/thing/SKILL.md": {
+      "category": "disambiguating",
+      "chars": 997,
+      "tokens": 233
+    },
+    "plugins/report-regeneration/skills/powerbi-ingest/SKILL.md": {
+      "category": "disambiguating",
+      "chars": 1016,
+      "tokens": 204
+    },
+    "plugins/report-regeneration/skills/rebind-office/SKILL.md": {
+      "category": "disambiguating",
+      "chars": 778,
+      "tokens": 174
+    },
+    "plugins/report-regeneration/skills/report-a11y-gate/SKILL.md": {
+      "category": "disambiguating",
+      "chars": 757,
+      "tokens": 198
+    },
+    "plugins/report-regeneration/skills/report-fidelity-harness/SKILL.md": {
+      "category": "disambiguating",
+      "chars": 708,
+      "tokens": 169
+    },
+    "plugins/report-regeneration/skills/report-injection-guard/SKILL.md": {
+      "category": "disambiguating",
+      "chars": 852,
+      "tokens": 192
+    },
+    "plugins/report-regeneration/skills/report-qa-gate/SKILL.md": {
+      "category": "disambiguating",
+      "chars": 806,
+      "tokens": 196
+    },
+    "plugins/sales-engineering/skills/security-questionnaire-response/SKILL.md": {
+      "category": "leaf",
+      "chars": 485,
+      "tokens": 105
+    },
+    "plugins/self-storage-operations/skills/manage-facility-operations-and-security/SKILL.md": {
+      "category": "leaf",
+      "chars": 858,
+      "tokens": 193
+    },
+    "plugins/self-storage-operations/skills/optimize-occupancy-and-dynamic-pricing/SKILL.md": {
+      "category": "leaf",
+      "chars": 800,
+      "tokens": 168
+    },
+    "plugins/self-storage-operations/skills/run-delinquency-and-lien-process/SKILL.md": {
+      "category": "disambiguating",
+      "chars": 813,
+      "tokens": 177
+    },
+    "plugins/serverless-engineering/skills/design-event-driven-architecture/SKILL.md": {
+      "category": "leaf",
+      "chars": 808,
+      "tokens": 178
+    },
+    "plugins/serverless-engineering/skills/harden-serverless-runtime/SKILL.md": {
+      "category": "leaf",
+      "chars": 683,
+      "tokens": 160
+    },
+    "plugins/serverless-engineering/skills/model-serverless-cost-and-scale/SKILL.md": {
+      "category": "leaf",
+      "chars": 688,
+      "tokens": 149
+    },
+    "plugins/shopify-app-engineering/skills/design-shopify-build/SKILL.md": {
+      "category": "leaf",
+      "chars": 865,
+      "tokens": 193
+    },
+    "plugins/shopify-app-engineering/skills/ship-app-store-ready/SKILL.md": {
+      "category": "leaf",
+      "chars": 834,
+      "tokens": 182
+    },
+    "plugins/startup-fundraising/skills/build-investor-pipeline/SKILL.md": {
+      "category": "leaf",
+      "chars": 472,
+      "tokens": 109
+    },
+    "plugins/startup-fundraising/skills/model-cap-table-and-dilution/SKILL.md": {
+      "category": "leaf",
+      "chars": 478,
+      "tokens": 108
+    },
+    "plugins/startup-fundraising/skills/prepare-data-room/SKILL.md": {
+      "category": "leaf",
+      "chars": 510,
+      "tokens": 120
+    },
+    "plugins/streaming-media-engineering/skills/playback-qoe-and-delivery/SKILL.md": {
+      "category": "leaf",
+      "chars": 455,
+      "tokens": 111
+    },
+    "plugins/tax-preparation-practice/skills/handle-notices-and-planning/SKILL.md": {
+      "category": "disambiguating",
+      "chars": 797,
+      "tokens": 173
+    },
+    "plugins/technical-seo-engineering/skills/design-site-architecture-and-content-model/SKILL.md": {
+      "category": "leaf",
+      "chars": 563,
+      "tokens": 119
+    },
+    "plugins/treasury-management/skills/design-fx-and-interest-rate-hedge/SKILL.md": {
+      "category": "disambiguating",
+      "chars": 806,
+      "tokens": 179
+    },
+    "plugins/treasury-management/skills/optimize-working-capital-and-payments/SKILL.md": {
+      "category": "disambiguating",
+      "chars": 769,
+      "tokens": 168
+    },
+    "plugins/ux-research/skills/plan-the-research-study/SKILL.md": {
+      "category": "leaf",
+      "chars": 759,
+      "tokens": 178
+    },
+    "plugins/ux-research/skills/run-usability-and-interview-sessions/SKILL.md": {
+      "category": "leaf",
+      "chars": 668,
+      "tokens": 139
+    },
+    "plugins/ux-research/skills/synthesize-research-into-insight/SKILL.md": {
+      "category": "leaf",
+      "chars": 774,
+      "tokens": 158
+    },
+    "plugins/waste-recycling-operations/skills/improve-diversion-and-recycling-economics/SKILL.md": {
+      "category": "leaf",
+      "chars": 594,
+      "tokens": 136
+    },
+    "plugins/waste-recycling-operations/skills/manage-disposal-and-regulatory-compliance/SKILL.md": {
+      "category": "leaf",
+      "chars": 570,
+      "tokens": 131
+    },
+    "plugins/waste-recycling-operations/skills/optimize-collection-routes-and-fleet/SKILL.md": {
+      "category": "leaf",
+      "chars": 579,
+      "tokens": 136
+    },
+    "plugins/web-design/skills/brand-guidance-authoring/SKILL.md": {
+      "category": "leaf",
+      "chars": 799,
+      "tokens": 184
+    },
+    "plugins/web-design/skills/card-tile-ui/SKILL.md": {
+      "category": "router",
+      "chars": 557,
+      "tokens": 131
+    },
+    "plugins/web-design/skills/design-tokens-scaffolding/SKILL.md": {
+      "category": "leaf",
+      "chars": 502,
+      "tokens": 112
+    },
+    "plugins/web-design/skills/fluent-react-implementation/SKILL.md": {
+      "category": "leaf",
+      "chars": 671,
+      "tokens": 147
+    },
+    "plugins/web-design/skills/third-party-script-hygiene/SKILL.md": {
+      "category": "leaf",
+      "chars": 492,
+      "tokens": 116
+    },
+    "plugins/web-scraping-data-extraction/skills/crawl-scheduling-and-pipeline/SKILL.md": {
+      "category": "leaf",
+      "chars": 631,
+      "tokens": 142
+    },
+    "plugins/web-scraping-data-extraction/skills/legal-ethical-and-fetch-strategy/SKILL.md": {
+      "category": "leaf",
+      "chars": 591,
+      "tokens": 142
+    },
+    "plugins/web-scraping-data-extraction/skills/resilient-extraction-and-parsing/SKILL.md": {
+      "category": "leaf",
+      "chars": 572,
+      "tokens": 126
+    }
+  },
+  "note": "check-skill-descriptions.py --check BLOCKS on: (a) a cap-violating file NOT in this list (a brand-new violation), or (b) a listed file whose CURRENT chars/tokens exceed the value recorded here (worsened). A listed file that improves, or one newly added below cap, is fine either way -- this list is never required to shrink, only never to grow via a silent edit.",
+  "schema_version": 1,
+  "seeded_at": "2026-09-08",
+  "status": "grandfather list -- seeded 2026-09-08 from the pre-existing corpus. New entries are NEVER added by hand; a file drops off this list only by coming back under its category cap."
+}

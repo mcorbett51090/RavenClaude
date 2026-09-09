@@ -47,3 +47,11 @@ preservation apparatus (category budgets, IDF guard, exemplar bank, 100%-human-r
 is not built. Formal claim-6 testing stays available if/when native `plugin eval`
 access is confirmed — the pilot's pre-registrations and trigger examples are reusable
 inputs for that future attempt.
+
+---
+
+## Closed — see `p8-decision.md`
+
+**2026-09-08.** This closure was formalized as the plan's P8 RE-DECISION GATE, outcome
+(c): STOP. Full reasoning, what shipped, and what was deliberately not built:
+[`p8-decision.md`](p8-decision.md).
