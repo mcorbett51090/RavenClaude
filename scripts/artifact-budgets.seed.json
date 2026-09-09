@@ -31,6 +31,11 @@
         "skill-index inventory entry (FORGE plan dynamic-skill-context, phase P0, 2026-09-08)",
         31720,
         "FORGE plan dynamic-skill-context's phase P0 adds one new inventory concept (skill-index-self-reference-convergence — the generator's own self-referential fixed-point bug: its first write always undercounts by one entry since it indexes its own not-yet-written output file) covering scripts/generate-skill-index.py and plugins/ravenclaude-core/skills/skill-index/SKILL.md. Measured at 31,663 island payload elements when this row was first set against a 31,640 base; re-measured again at THIS merge, appended after origin/main's own launch-guard-installer-is-fail-open row (31,660) which landed first — appended, never edited, per this file's own convention."
+      ],
+      [
+        "merge: forge/prompt-optimizer into origin/main (2026-09-09)",
+        31800,
+        "Merging forge/prompt-optimizer (two new inventory concepts: prompt-optimizer-tier0-heuristic-limit -- the Tier-0 whitelist's documented adversarial-paraphrase residual -- covering the prompt-optimizer skill's 9 artifacts; hooks-selftest-crashes-on-a-per-host-generator-error -- covering scripts/hooks-selftest.py) with origin/main's own concurrent skill-index + claude-launch-safeguard growth (each already reflected in the rows above) regenerates dashboard.html to 31,797 island payload elements (over the prior 31,720 ceiling by 77). Same no-diagrams-for-inventory-entries shape as every prior wave -- a pure content-size raise, no DOM control. Re-measured on the merge commit; appended, never edited."
       ]
     ],
     "index.html": [
@@ -114,6 +119,11 @@
         "merge: forge/dynamic-skill-context (skill-index P0) with origin/main's claude-launch-safeguard (2026-09-08)",
         10570000,
         "MERGE-TIME RE-MEASURE at PR #1132's second merge into main. Combining this branch's skill-index inventory entry with origin/main's own concurrent launch-guard-installer-is-fail-open entry (each fine in isolation against the 10,560,000 ceiling) regenerates dashboard.html to 10,567,959 bytes (island payload 31,700 <= 31,720, see the raised payload ceiling above -- a pure content-size raise, no DOM control). Re-measured on the merge commit; appended, never edited."
+      ],
+      [
+        "merge: forge/prompt-optimizer into origin/main (2026-09-09)",
+        10610000,
+        "MERGE-TIME RE-MEASURE. Same merge as the payload row above. Merging forge/prompt-optimizer's two new inventory concepts (prompt-optimizer-tier0-heuristic-limit, hooks-selftest-crashes-on-a-per-host-generator-error) with origin/main's own concurrent skill-index + claude-launch-safeguard growth regenerates dashboard.html to 10,601,620 bytes (over the prior 10,570,000 ceiling by 31,620; island payload 31,797 <= 31,800, see the raised payload ceiling above -- a pure content-size raise, no DOM control). Re-measured on the merge commit; appended, never edited."
       ]
     ],
     "index.html": [
@@ -135,5 +145,5 @@
       ]
     ]
   },
-  "measured_against": "b81357ec2675e7b7a20b5cab237808b1e1237b38"
+  "measured_against": "84e2a2019fcb9911b4a2e66710008c1a7fd03798"
 }
