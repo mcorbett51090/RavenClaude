@@ -9581,7 +9581,17 @@ rc=0
 rc_mustfail python3 scripts/check-inception-coverage.py >/dev/null 2>&1 || rc=$?
 gate "inception gate bites on an uncovered artifact and on a planted paths: filter" must_pass "$rc"
 rc=0
-python3 scripts/check-ratchet-freshness.py --check >/dev/null 2>&1 || rc=$?
+# ⛔ Output is captured (not discarded) and printed ONLY on failure. This gate
+# has flaked intermittently in real CI in a way no local reproduction could
+# explain (PR #1146, 2026-09-09) — every prior diagnosis was blind because
+# evaluate()'s own printed lines (the resolved SHA, the `how` it got there, the
+# stamped-vs-actual mismatch) went straight to /dev/null. A future occurrence
+# should never need another throwaway diagnostic commit to see what actually
+# happened.
+_g242_out="$(python3 scripts/check-ratchet-freshness.py --check 2>&1)" || rc=$?
+if [[ "$rc" -ne 0 ]]; then
+  echo "$_g242_out"
+fi
 gate "every ratchet value is bound to this PR actual merge base" must_pass "$rc"
 rc=0
 rc_mustfail python3 scripts/check-ratchet-freshness.py >/dev/null 2>&1 || rc=$?
