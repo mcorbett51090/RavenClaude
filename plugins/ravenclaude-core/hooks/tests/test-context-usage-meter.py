@@ -208,5 +208,148 @@ class ClaudeCodePathTests(unittest.TestCase):
         self.assertIsNone(used)
 
 
+def _claude_transcript_with_model(tmp: Path, entries) -> Path:
+    """Like _claude_transcript but each entry is (usage_dict, model_id_or_None)."""
+    path = tmp / "transcript.jsonl"
+    lines = []
+    for usage, model in entries:
+        message = {"usage": usage}
+        if model is not None:
+            message["model"] = model
+        lines.append(json.dumps({"type": "assistant", "message": message}) + "\n")
+    path.write_text("".join(lines))
+    return path
+
+
+class ModelAwareWindowTests(unittest.TestCase):
+    """Added 2026-09-08 — the meter's window used to be hardcoded to 200000 for
+    every Claude Code session regardless of the actual running model, which is
+    wrong by 5x for every current model except haiku. See CLAUDE.md milestone
+    "Context-usage meter becomes model-aware"."""
+
+    def test_governed_sonnet_id_resolves_from_catalog(self):
+        r = meter.resolve_context_window_for_model("claude-sonnet-5")
+        self.assertEqual(r, (1000000, "catalog"))
+
+    def test_governed_haiku_id_resolves_from_catalog(self):
+        r = meter.resolve_context_window_for_model("claude-haiku-4-5-20251001")
+        self.assertEqual(r, (200000, "catalog"))
+
+    def test_unresolved_haiku_shaped_id_uses_heuristic(self):
+        r = meter.resolve_context_window_for_model("claude-haiku-9000-hypothetical")
+        self.assertEqual(r, (200000, "heuristic"))
+
+    def test_unresolved_non_haiku_id_uses_generic_heuristic(self):
+        r = meter.resolve_context_window_for_model("claude-opus-99-hypothetical")
+        self.assertEqual(r, (1000000, "heuristic"))
+
+    def test_none_model_id_resolves_to_none_none(self):
+        self.assertEqual(meter.resolve_context_window_for_model(None), (None, "none"))
+        self.assertEqual(meter.resolve_context_window_for_model(""), (None, "none"))
+
+    def test_measure_uses_catalog_window_for_sonnet_session(self):
+        with tempfile.TemporaryDirectory() as raw:
+            transcript = _claude_transcript_with_model(
+                Path(raw), [({"input_tokens": 100}, "claude-sonnet-5")]
+            )
+            payload = {"transcript_path": str(transcript)}
+            r = meter.measure(None, None, 70, None, claude_payload=payload)
+            self.assertEqual(r["status"], "ok")
+            self.assertEqual(r["window"], 1000000)
+            self.assertEqual(r["window_source"], "catalog")
+            self.assertEqual(r["model_id"], "claude-sonnet-5")
+            # this is the whole point: 100 used / 1,000,000 window is nowhere
+            # near the old (wrong) 200000-window percent of 0.05.
+            self.assertEqual(r["percent"], round(100 / 1000000 * 100, 1))
+
+    def test_measure_uses_heuristic_window_for_unresolved_haiku_shaped_id(self):
+        with tempfile.TemporaryDirectory() as raw:
+            transcript = _claude_transcript_with_model(
+                Path(raw), [({"input_tokens": 50}, "claude-haiku-9000-hypothetical")]
+            )
+            payload = {"transcript_path": str(transcript)}
+            r = meter.measure(None, None, 70, None, claude_payload=payload)
+            self.assertEqual(r["window"], 200000)
+            self.assertEqual(r["window_source"], "heuristic")
+
+    def test_owner_window_still_wins_over_model_resolution(self):
+        """Explicit owner_window (rank 2) must beat model-aware resolution (rank 4)."""
+        with tempfile.TemporaryDirectory() as raw:
+            transcript = _claude_transcript_with_model(
+                Path(raw), [({"input_tokens": 100}, "claude-sonnet-5")]
+            )
+            payload = {"transcript_path": str(transcript)}
+            r = meter.measure(None, 42, 70, None, claude_payload=payload)
+            self.assertEqual(r["window"], 42)
+
+    def test_no_model_in_transcript_still_falls_back_to_default(self):
+        """Byte-identical to the pre-existing test_claude_default_window_only_applies_to_claude_source
+        behavior — a transcript with no model field must still resolve DEFAULT_CLAUDE_WINDOW,
+        never crash, never silently pick a heuristic window."""
+        with tempfile.TemporaryDirectory() as raw:
+            transcript = _claude_transcript_with_model(Path(raw), [({"input_tokens": 100}, None)])
+            payload = {"transcript_path": str(transcript)}
+            r = meter.measure(None, None, 70, None, claude_payload=payload)
+            self.assertEqual(r["window"], meter.DEFAULT_CLAUDE_WINDOW)
+            self.assertEqual(r["window_source"], "default")
+            self.assertIsNone(r["model_id"])
+
+    def test_last_assistant_turn_model_wins(self):
+        with tempfile.TemporaryDirectory() as raw:
+            transcript = _claude_transcript_with_model(
+                Path(raw),
+                [
+                    ({"input_tokens": 10}, "claude-haiku-4-5-20251001"),
+                    ({"input_tokens": 20}, "claude-sonnet-5"),
+                ],
+            )
+            payload = {"transcript_path": str(transcript)}
+            r = meter.measure(None, None, 70, None, claude_payload=payload)
+            self.assertEqual(r["model_id"], "claude-sonnet-5")
+            self.assertEqual(r["window"], 1000000)
+
+    def test_grok_path_gets_no_model_id_or_effective_budget_regression(self):
+        """The Grok path must stay byte-identical — model_id is always None there,
+        and effective_budget is still computed from whatever window it resolved
+        (this field is new and additive on both paths, not Claude-Code-only)."""
+        with tempfile.TemporaryDirectory() as raw:
+            sess = _session(Path(raw), [100])
+            r = meter.measure(sess, 1000, 70, 85)
+            self.assertIsNone(r["model_id"])
+            self.assertEqual(r["effective_budget"], meter.effective_budget(1000))
+
+
+class EffectiveBudgetTests(unittest.TestCase):
+    def test_default_reservation_and_margin(self):
+        # 1,000,000 window: 16000 reserved + 5% (50000) overhead = 934000.
+        self.assertEqual(meter.effective_budget(1000000), 934000)
+
+    def test_haiku_window_default_reservation_and_margin(self):
+        # 200,000 window: 16000 reserved + 5% (10000) overhead = 174000.
+        self.assertEqual(meter.effective_budget(200000), 174000)
+
+    def test_overrides_are_honored(self):
+        self.assertEqual(
+            meter.effective_budget(1000000, reserved_output=0, overhead_margin_pct=0), 1000000
+        )
+
+    def test_never_goes_negative(self):
+        self.assertEqual(meter.effective_budget(100, reserved_output=1000), 0)
+
+    def test_measure_emits_effective_budget_on_ok(self):
+        with tempfile.TemporaryDirectory() as raw:
+            sess = _session(Path(raw), [100])
+            r = meter.measure(sess, 1000, 70, 85, reserved_output=0, overhead_margin_pct=0)
+            self.assertEqual(r["effective_budget"], 1000)
+
+    def test_measure_emits_none_effective_budget_on_unknown(self):
+        with tempfile.TemporaryDirectory() as raw:
+            sess = Path(raw) / "empty"
+            sess.mkdir()
+            r = meter.measure(sess, 1000, 70, 85)
+            self.assertEqual(r["status"], "unknown")
+            self.assertIsNone(r["effective_budget"])
+
+
 if __name__ == "__main__":
     unittest.main()

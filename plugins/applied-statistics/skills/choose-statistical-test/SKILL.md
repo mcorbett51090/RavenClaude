@@ -1,6 +1,6 @@
 ---
 name: choose-statistical-test
-description: Pick the right hypothesis test for a described scenario by traversing the test-selection decision tree (data type → #groups → paired? → assumption gate → test), then return the recommended test, its assumption checks, its nonparametric fallback, and a ≤10-line runnable snippet. Reach for this when the user asks "which test do I use?" or hands over two-or-more groups/variables to compare. Used by `applied-statistician` (primary).
+description: 'Pick the right hypothesis test for a described scenario by traversing the test-selection decision tree (data type → #groups → paired? → assumption gate → test), then return the recommended test, its assumption checks, its nonparametric fallback, and a ≤10-line runnable snippet. Reach for this when the user asks "which test do I use?" or hands over two-or-more groups/variables to compare. Used by `applied-statistician` (primary).'
 ---
 
 # Skill: choose-statistical-test

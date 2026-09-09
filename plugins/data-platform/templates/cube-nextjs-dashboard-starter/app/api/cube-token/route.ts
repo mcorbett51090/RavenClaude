@@ -1,82 +1,70 @@
 // ---------------------------------------------------------------------------
-// Server-side Cube-audience JWT mint. Follows the ../../jwt-issuer.ts pattern
-// (kept in this scaffold as an inline, minimal version so the starter has no
-// hard dependency on that file living at a fixed relative path — copy the
-// two in sync, or replace this with an import if you vendor jwt-issuer.ts
-// directly into your app).
+// Server-side Cube-audience JWT mint. Token minting + rate limiting are now
+// shared with app/api/export/route.ts via lib/mint-cube-token.ts and
+// lib/rate-limiter.ts (factored out FORGE dashboard-top1pct P2-14,
+// 2026-09-03, after security review found the two routes' hand-duplicated
+// copies had already drifted on the export route's first draft).
 //
 // SECURITY (revised after mandatory security review): responses carry
-// Cache-Control: no-store (a JWT is not cacheable content), and the route
-// applies a per-session rate limit — a per-process in-memory limiter, which
-// is fine for a single-instance dev/demo deployment and MUST be replaced
-// with a shared store (Redis, etc.) before running more than one instance,
-// since each instance would otherwise track its own independent counter.
+// Cache-Control: no-store (a JWT is not cacheable content) on every
+// response path, and the route applies a per-session rate limit.
 // ---------------------------------------------------------------------------
 
 import { NextResponse } from "next/server";
-import jwt from "jsonwebtoken";
-import crypto from "crypto";
 import { getSession } from "@/lib/session";
+import { mintCubeToken, SigningKeyUnusableError } from "@/lib/mint-cube-token";
+import { createRateLimiter } from "@/lib/rate-limiter";
 
-const DEFAULT_EXPIRES_IN_SECONDS = 900; // 15 min — see jwt-issuer.ts
+const DEFAULT_EXPIRES_IN_SECONDS = 900; // 15 min — see lib/mint-cube-token.ts
 const MAX_EXPIRES_IN_SECONDS = 1800; // 30 min hard ceiling
-const MIN_SIGNING_KEY_BYTES = 32; // HS256 minimum
-
-// Naive per-process rate limiter — see the file header caveat above.
 const RATE_LIMIT_MAX_REQUESTS = 30;
 const RATE_LIMIT_WINDOW_MS = 60_000;
-const requestLog = new Map<string, number[]>();
 
-function isRateLimited(key: string): boolean {
-  const now = Date.now();
-  const timestamps = (requestLog.get(key) ?? []).filter((t) => now - t < RATE_LIMIT_WINDOW_MS);
-  timestamps.push(now);
-  requestLog.set(key, timestamps);
-  return timestamps.length > RATE_LIMIT_MAX_REQUESTS;
-}
+const limiter = createRateLimiter(RATE_LIMIT_MAX_REQUESTS, RATE_LIMIT_WINDOW_MS);
+const NO_STORE_HEADERS = { "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff" };
 
 export async function POST() {
   // tenantId + userId come from the SERVER-VERIFIED session — never from
   // the request body. This route intentionally accepts no input.
   const session = await getSession();
 
-  if (isRateLimited(session.userId)) {
+  if (!session?.tenantId || !session?.userId) {
+    // Defensive branch (security review, P2-14): the current lib/session.ts
+    // placeholder always throws rather than returning a nullish session, so
+    // this is currently unreachable — but a real getSession() wiring (e.g.
+    // NextAuth's getServerSession()) commonly RETURNS null on no session
+    // rather than throwing, and the Session type here doesn't force a null
+    // check at the call site. Fail closed explicitly rather than letting an
+    // unscoped call reach the JWT mint.
+    return NextResponse.json(
+      { error: "cube-token: no authenticated session." },
+      { status: 401, headers: NO_STORE_HEADERS },
+    );
+  }
+
+  if (limiter.isLimited(session.userId)) {
     return NextResponse.json(
       { error: "cube-token: rate limit exceeded." },
-      { status: 429, headers: { "Cache-Control": "no-store" } },
+      { status: 429, headers: NO_STORE_HEADERS },
     );
   }
 
-  const signingKey = process.env.JWT_SIGNING_KEY;
-  const signingKeyUsable = Boolean(signingKey) && signingKey!.length >= MIN_SIGNING_KEY_BYTES;
-  if (!signingKeyUsable) {
-    return NextResponse.json(
-      {
-        error: `cube-token: env var JWT_SIGNING_KEY must be a string of >= ${MIN_SIGNING_KEY_BYTES} bytes.`,
-      },
-      { status: 500, headers: { "Cache-Control": "no-store" } },
-    );
+  let token: string;
+  try {
+    token = mintCubeToken(session.tenantId, session.userId, DEFAULT_EXPIRES_IN_SECONDS);
+  } catch (err) {
+    if (err instanceof SigningKeyUnusableError) {
+      return NextResponse.json(
+        { error: `cube-token: ${err.message}` },
+        { status: 500, headers: NO_STORE_HEADERS },
+      );
+    }
+    throw err;
   }
-
-  const now = Math.floor(Date.now() / 1000);
-  const payload = {
-    sub: session.userId,
-    tenant_id: session.tenantId,
-    iat: now,
-    exp: now + DEFAULT_EXPIRES_IN_SECONDS,
-    iss: process.env.JWT_ISSUER || "data-platform-host",
-    aud: "cube" as const,
-    nonce: crypto.randomUUID(),
-  };
-
-  const token = jwt.sign(payload, signingKey!, {
-    algorithm: "HS256",
-    header: { alg: "HS256", typ: "JWT", kid: process.env.JWT_KEY_VERSION || "1" },
-  });
 
   return NextResponse.json(
     { token, expiresIn: DEFAULT_EXPIRES_IN_SECONDS },
-    { headers: { "Cache-Control": "no-store" } },
+    { headers: NO_STORE_HEADERS },
   );
 }
 

@@ -46,7 +46,7 @@
 - [ ] Auth integration tested
 - [ ] Visual design aligned with host site (route to `web-design/visual-designer` if installed)
 - [ ] Responsive layouts verified (desktop, tablet, mobile)
-- [ ] Accessibility audit (WCAG 2.1 AA basics — keyboard nav, contrast, alt text)
+- [ ] Accessibility audit (WCAG 2.2 AA basics — keyboard nav, contrast, alt text, reflow at 200% zoom)
 
 ### Embed + auth (Case B / C only)
 - [ ] JWT issuer scaffolded with `tenant_id` claim from session
@@ -63,6 +63,9 @@
 - [ ] Every chart has source query + date range + comparison baseline accessible
 - [ ] No raw SQL endpoints customer-facing (pre-aggregate in semantic layer)
 - [ ] Provenance discipline: every metric carries its source
+- [ ] As-of timestamp + declared freshness SLA rendered per dashboard, with a visibly distinct
+      (icon + text, never color alone) stale state when past SLA — see
+      `best-practices/dashboard-set-data-freshness-slas.md`'s dashboard-side degradation contract
 
 ## Phase 4 — Validation + UAT (Week 6)
 

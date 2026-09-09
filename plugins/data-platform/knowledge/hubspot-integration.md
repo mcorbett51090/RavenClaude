@@ -27,23 +27,23 @@ Two registration paths depending on whether the integration is single-org or dis
 ## Rate limits (CRITICAL — easy to hit)
 
 ### OAuth marketplace apps
-- **110 req/10 sec** per installed account
+- **110 req/10 sec** per installed account `[verified 2026-09-03]`
 
 ### Private apps
 | Tier | Limit |
 |---|---|
-| Free / Starter | 100 req/10s |
-| Professional / Enterprise | 190 req/10s |
+| Free / Starter | 100 req/10s `[verified 2026-09-03]` |
+| Professional / Enterprise | 190 req/10s `[verified 2026-09-03]` |
 
 ### Search API (separate, lower)
-- **CRM Search API: 4 req/sec** — separate from other API limits
+- **CRM Search API: 4 req/sec** — separate from other API limits `[verified 2026-09-03 — confirmed against developers.hubspot.com/changelog/crm-search-api-rate-limit-increase]`
 - The Search API is what large filtered queries use; easy to throttle when paginating
 
 ### Daily limits
-- **Developer accounts via OAuth: up to 1,000,000 calls/day**
+- **Developer accounts via OAuth: up to 1,000,000 calls/day** `[verified 2026-09-03 — Enterprise-tier daily cap]`
 - Higher limits available through HubSpot Support for enterprise integrations
 
-> Source: [HubSpot Platform Usage Guidelines](https://developers.hubspot.com/docs/developer-tooling/platform/usage-guidelines) — verify before quoting in client engagements
+> Source: [HubSpot Platform Usage Guidelines](https://developers.hubspot.com/docs/developer-tooling/platform/usage-guidelines) — verify before quoting in client engagements. Re-fetched 2026-09-03: all figures above confirmed current. Note the table above collapses one further wrinkle in the live docs — Free/Starter caps at 250,000 req/day, Professional at 625,000, Enterprise at 1,000,000 — the daily-limit line above states only the Enterprise figure `[verified 2026-09-03]`.
 
 ## Connector availability
 

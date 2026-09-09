@@ -1,11 +1,18 @@
 {
   "_comment": "Single source of truth for the tribunal-seat / dashboard / template model IDs. The drift gate (scripts/check-model-ids.py, audit-gates Gate 134) fails the build if any governed file references a token in `stale` or any claude-* id not in `current`'s values. Update `current` here (and regenerate the dashboards + copilot package) when a model is superseded; move the retired id into `stale`. See CLAUDE.md milestone 'Canonical model catalog + drift gate'.",
+  "_context_windows_comment": "context_windows keys are the same aliases as `current` (opus/sonnet/haiku/fable), values are each model's real context-window ceiling in tokens, sourced from the claude-api skill's live model table (retrieved 2026-09-08): every current-generation Claude model is 1,000,000 except the haiku tier, which is 200,000. Consumed by scripts/context-usage-meter.py to resolve a session's real budget from its actual running model id instead of a hardcoded 200000 assumption -- see CLAUDE.md milestone 'Context-usage meter becomes model-aware'.",
   "schema_version": 1,
   "current": {
     "opus": "claude-opus-4-8",
     "sonnet": "claude-sonnet-5",
     "haiku": "claude-haiku-4-5-20251001",
     "fable": "claude-fable-5"
+  },
+  "context_windows": {
+    "opus": 1000000,
+    "sonnet": 1000000,
+    "haiku": 200000,
+    "fable": 1000000
   },
   "stale": ["claude-opus-4-7", "claude-sonnet-4-6", "claude-haiku-4-5"]
 }

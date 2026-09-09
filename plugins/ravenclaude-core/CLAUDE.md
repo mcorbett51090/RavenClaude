@@ -4557,3 +4557,221 @@ every run, so a mis-classified-and-never-revisited host is caught, not just a ne
 **Migration:** the Codex `/hooks` re-trust step above is the one action item. Everything else is
 additive — no existing gate's flags, exit codes, or assertion semantics changed; Gate 259's three
 pre-existing self-test mutants are unmodified.
+
+## Context-usage meter becomes model-aware — the harness was assuming a 200K window for every model (added 2026-09-08, v0.319.0)
+
+Asked to analyze what puts pressure on the context window and build a mechanism to keep a session
+within the harness's and the running model's real budget. The analysis (SessionStart banner,
+`using-superpowers` skill body, `MEMORY.md`, the ~15K agent-description budget, per-tool-call hook
+`additionalContext`, resident skill bodies) confirmed nothing new needed building there — this repo
+already ships the mechanism (`scripts/context-usage-meter.py`, `scripts/conserve-tokens.py`,
+`hooks/handoff-nudge.sh`), and the v0.303.0/v0.314.0 milestones above already closed its two
+"never fires under Claude Code" bugs. What remained was a real, still-live third defect in the
+meter itself, in the one place that matters most: the **window** it measures against.
+
+⛔ **`DEFAULT_CLAUDE_WINDOW = 200000` was applied to every Claude Code session regardless of which
+model was actually running.** Per the `claude-api` skill's live model table (retrieved this
+session): Sonnet 5, Opus 5, Fable 5, and Fable 5.1 are all **1,000,000**-token windows; only the
+haiku tier is 200,000. So the one component built to answer "how full is my budget" was assuming a
+window **5x too small** for every model except haiku — the direction is conservative (over-reports
+percent used, triggers `conserve-tokens.py`'s 80% auto-trigger and `handoff-nudge`'s threshold
+EARLY, never late), but it was simply wrong data, silently, on the host most sessions run on,
+including this one.
+
+**The fix reuses the existing single-source-of-truth meter rather than adding a second one** — the
+same discipline `conserve-tokens.py`'s own header states about not re-deriving `context-usage-
+meter.py`'s reading. `knowledge/model-catalog.json` (Gate 134's own governed-model-id file) gains a
+`context_windows` map — one entry per `current` alias (`opus`/`sonnet`/`haiku`/`fable`), each a
+real context-window integer, additive and non-breaking (Gate 134's own `check-model-ids.py` only
+reads `current`/`stale`, verified unaffected). `context-usage-meter.py` gains:
+
+- `last_assistant_model_claude(path)` — reads the last assistant turn's `message.model` off the
+  same bounded tail-read shape `last_total_tokens_claude` already uses (a **separate** function,
+  not folded into the tested one, so that function's byte-identical behavior and the whole existing
+  16-case test suite are untouched).
+- `resolve_context_window_for_model(model_id)` — checks the catalog first; falls back to a
+  documented heuristic (`haiku` in the id → 200,000; otherwise → 1,000,000, matching every other
+  current-generation model) for a resolved-but-ungoverned id (a dated snapshot, or a model shipped
+  after the catalog was last updated) — never a guess when the id itself is `None`.
+- `effective_budget(window, reserved_output, overhead_margin_pct)` — window minus a documented
+  (not empirically measured) output-token reservation (16,000, per the claude-api skill's own
+  non-streaming `max_tokens` guidance) minus a percent overhead margin (5%, for system-prompt/tool-
+  schema cost that a single turn's own `usage` block doesn't itemize) — floored at 0.
+
+`measure()`'s window-resolution ranking is now, per the module's own updated docstring: signals.json
+→ owner knob → Grok config → **model-aware catalog/heuristic resolution (Claude Code only)** →
+the old hardcoded 200000 (only when the model id itself is unresolvable). `owner_window` (an
+explicit config override) still wins over model resolution, unchanged — the new rank is inserted
+*before* the hardcoded default, never before an owner's explicit setting. Three new fields ride
+along on the existing output dict, additive: `model_id`, `window_source`
+(`catalog`/`heuristic`/`default`/`explicit`/`None`), `effective_budget`. Every existing caller
+(`conserve-tokens.py`, `handoff-nudge.py`) reads `result.get("percent")` unchanged, so their
+accuracy improves automatically with zero edits to either file — exactly the reuse this repo's own
+`conserve-tokens.py` header argues for.
+
+⛔ **Deliberately NOT done in this pass, named rather than silently dropped:** no SessionStart
+banner line surfacing the resolved model/window/effective-budget (the underlying data is now
+correct; a banner line is a presentation-layer follow-up, not required for the fix itself), and no
+change to `conserve-tokens.py`'s `conserve_tokens_auto_pct` default (80%) — that threshold was
+tuned against the *old*, 5x-too-small window; whether it still makes sense against real
+1,000,000-token windows is a measurement question for a future pass, not assumed here.
+
+**Gate 280** (`scripts/check-context-budget-meter.py --self-test`) — two checks, both must-pass:
+(A) `model-catalog.json`'s `context_windows` map covers every `current` alias with a positive int;
+(B) the full `test-context-usage-meter.py` suite (16 pre-existing + 17 new cases, 33 total) passes
+against the real source **and** fails against a MUTANT that reverts `measure()`'s model-aware branch
+to the old unconditional `window = DEFAULT_CLAUDE_WINDOW` — the teeth half, so the gate is proven to
+be measuring the fix rather than passing for an unrelated reason. Registered in all three required
+surfaces (the `--check` dispatcher, the main sequence, the `Supported:` string) and added to the
+`core` suite (Gate 267's own suite-coverage check — the generic-self-test-with-mutant-teeth family,
+same as 129/173/268) — each verified directly this session (`--check 280`, `--check 195`, `--check
+267`, `--check 134` all exit 0), per this repo's own Gate 184/263 incidents: a gate registered in
+only one of the three required surfaces ran nowhere for a full release.
+
+⛔ **Renumbered from 269 → 280 at merge time.** The branch was cut from an `origin/main` whose max
+gate was 268, so 269 looked free and the gate was built, registered, and self-tested green there.
+`origin/main` had meanwhile landed **Gates 269-279** (the data-platform dashboard-top1pct batch) —
+the exact "next free slot moves under you" collision this repo's CLAUDE.md already records for the
+Gate 261→263 forge-receipt renumbering. Caught by a real merge conflict in `audit-gates.sh`'s
+`_suite_gate_tokens()` `core` case at merge time, not by re-reading the tree first — re-verified
+after resolving it (`--check 280`, `--check 195`, `--check 267` all exit 0 against the merged
+tree). First fix attempt was itself wrong and self-corrected before landing: 270-279 have
+main-sequence banners but no individual `--check` dispatcher arm on `origin/main` (per-gate `--check`
+registration is optional, not a per-banner requirement — `check-gate-registration.py` reports
+`origin/main`'s file clean as-is) — adding them to the `Supported:` list without dispatcher arms
+would have been a NEW `supported-parity` defect (caught by Gate 195 immediately on this branch, not
+shipped). `Supported:` therefore gains only `280`, unchanged otherwise from `origin/main`'s own
+269-terminated list.
+
+**Migration:** none in the accuracy-improving direction — every existing test passes unchanged and
+every existing caller's behavior only becomes *more accurate* (a session on a 1M-token model now
+sees its real, lower percent-used and later conserve/handoff triggers, matching the model it is
+actually running on). Nothing in a consumer's installed plugin changes on `/plugin marketplace
+update` beyond that accuracy fix.
+
+## Skill-description category caps go from informational to enforced, grandfathered (added 2026-09-08, v0.320.0)
+
+The succinct-skill-descriptions program's P2/P3 build (`scripts/check-skill-descriptions.py`, Gate
+281 — renumbered from 280 at merge time, see the corresponding merge-conflict note in this repo's
+git history) shipped the category-cap linter with its findings deliberately **informational
+only**, to avoid reddening every future PR against ~591 pre-existing over-cap descriptions. That
+milestone's own CLAUDE.md entry never actually landed in this file — corrected here, briefly,
+alongside the enforcement upgrade that supersedes its informational-only design.
+
+**What changed.** Category-cap findings (chars AND tokens, per leaf/disambiguating/router) are now
+**enforced**, via `cap_gate_check()`, against a **grandfather list**
+(`docs/plans/2026-09-03-succinct-skill-descriptions/description-cap-exemptions.json`, seeded from
+the **104 files** already over cap when this shipped — measured 2026-09-08 against the live
+corpus). `--check` now blocks on exactly two shapes:
+
+1. **A NEW cap violation** — a file not in the exemption list that is over cap. Covers a brand-new
+   skill shipped over cap from day one, or an edit that pushes a previously-compliant description
+   newly over its cap.
+2. **A WORSENED existing violation** — a file in the exemption list whose *current* chars/tokens
+   exceed the value *recorded* in its exemption entry. Covers an edit that makes an
+   already-over-cap description even longer.
+
+A file that stays at or under its exempted size, or that comes back under cap entirely, is never
+blocked — the exemption list is a **floor under existing debt**, not a target. Filler-phrase,
+name-restatement, and charset findings (406 of the corpus's 594 total findings) **stay
+informational-only**, unchanged — only the category-cap checks gained real teeth.
+
+**Why grandfather instead of either extreme.** Blocking on all 104 pre-existing violations
+immediately would either force fixing them right now (a semantic rewrite — exactly what
+[`p8-decision.md`](../../docs/plans/2026-09-03-succinct-skill-descriptions/p8-decision.md) ruled
+out: claim 6 closed inconclusive-by-construction, so there is no eval apparatus to validate a
+rewrite doesn't delete a disambiguation boundary) or require exempting all 104 with no enforcement
+value at all. The grandfather list is the same shape the P3 corpus-total ratchet already uses
+(seed at the measured current state, block only growth) — applied per-file instead of
+corpus-wide, and it composes with the ratchet rather than replacing it: a PR can pass the
+per-file cap gate while still tripping the corpus-total ratchet, and vice versa.
+
+**A legitimately-long router/disambiguating description is not a bug.** Some categories'
+descriptions are long for a real reason — trigger tables, `NOT for X → Y` disambiguation clauses —
+and 104 files being over cap does not mean 104 files need shortening. Adding a new file over cap
+is not automatically wrong either; the fix in that case is a **reasoned exemption-list entry in
+the same PR**, not a forced rewrite. The gate's own failure message states this explicitly.
+
+**Self-test coverage** (`--self-test`, now 29/29 pass, up from 24): an absent exemptions file
+blocks every current violation (fail-closed default for a never-seeded list); an
+exempted-at-current-size violation does not block; a violation absent from the exemption list
+blocks as NEW; a violation present but recorded smaller than its current size blocks as WORSENED;
+a compliant file is never in the violation list regardless of exemption-file state. Verified
+against the **real corpus**, not just synthetic fixtures: a live probe simulating a 100-char/
+20-token regression on a real already-exempted file (`ai-agent-engineering/design-agent-tools-
+and-context`) correctly produces a WORSENED finding naming the exact before/after numbers.
+
+**Migration:** consumer-invisible — this is a repo-tooling gate (`scripts/check-skill-
+descriptions.py` lives at the marketplace root, not inside `plugins/ravenclaude-core/`, so nothing
+in an installed plugin changes on `/plugin marketplace update`). Within this repo, a PR that adds a
+new skill over its category cap, or edits an already-over-cap description to be longer, will now
+fail `audit-gates.sh` (Gate 281) where it previously only printed an informational line.
+
+## `claude-launch-safeguard` — a local defense against anthropics/claude-code#92932 (added 2026-09-08, v0.320.0)
+
+Built via `/forge` `quick` (two divergent cross-model panels — Opus architect lens, Sonnet scanner
+lens — G1-lite claims table, G3b settling, synthesis) against an in-session-diagnosed and filed
+upstream bug: a Claude Code session launched with `cwd` outside any git repo (e.g. bare `$HOME`)
+can hang indefinitely — an unscoped `rg` file-index scan hits macOS TCC-denied paths and the parent
+process hangs with no error surfaced. The root cause is in Claude Code's own closed-source binary
+and cannot be patched here; this is a local, defense-in-depth safeguard, filed upstream as
+[anthropics/claude-code#92932](https://github.com/anthropics/claude-code/issues/92932).
+
+⛔ **The pivotal G1-lite finding: this repo's own `SessionStart` hooks are documented in-repo as
+fail-silent and unable to block** (`capability-orientation.sh`'s own comment: *"Fail-silent; never
+blocks (SessionStart hooks cannot)"*). By the time any hook fires, Claude Code's own startup path —
+including the unscoped `rg` scan — may already be underway or ahead of it, and the observed hung
+instance never wrote a transcript, meaning it almost certainly never reached hook dispatch at all.
+**A hook-based safeguard is structurally insufficient; prevention has to happen at the shell level,
+before `claude` is ever exec'd.**
+
+**Two layers, four build phases:**
+
+- **P1 — `plugins/ravenclaude-core/bin/claude-launch-guard`.** A bash-3.2-safe, fail-open decision
+  helper (`check -- "$@"` → exit 0 safe / exit 10 unsafe), bounded `git rev-parse` check
+  (~2s timeout, treated identically to "git absent" on expiry), the exempt-flag list from claim #1
+  (`--safe-mode`/`--bare` are exonerated), a `RAVENCLAUDE_LAUNCH_GUARD=off` kill switch, an
+  allowlist file, and `--self-test` (14 fixtures, including a live-verified fail-open matrix: `git`
+  removed from PATH, an unreadable posture file, `HOME` unset, a deleted cwd, a stubbed sleeping
+  `git` — every one → exit 0, never 10).
+- **P2 — `plugins/ravenclaude-core/scripts/install_launch_guard.py`.** An idempotent,
+  marker-delimited shell-function installer (zsh/bash/fish — fixing rather than copying
+  `scripts/ravenclaude`'s own pre-existing bash-only `add_rc_alias()` defect), a timestamped backup
+  + syntax-validation before every rc-file write, and the four-option warn UX (Just once / This
+  session / Always allow / Deny) matching `guard-web-access.sh`'s existing pattern. Wired as
+  `scripts/ravenclaude launch-guard {install,uninstall,status}`. `command claude "$@"` on every
+  pass-through path, verified live through a real sourced shell (no infinite recursion).
+- **P3 — additive `evaluate_launch_hangs()` in `plugins/ravenclaude-core/scripts/stall_watch.py`.**
+  `evaluate()` itself is untouched (zero deletions in the diff) — it structurally cannot see this
+  failure (its `status == "idle"` skip fires before it would ever check for a missing transcript,
+  and its resolution set would auto-close any episode that got through). The new function uses a
+  separate `state["launch_episodes"]` namespace and a six-conjunct discriminator (alive, idle,
+  `statusUpdatedAt` never moved, no transcript, elapsed > 3 min, cwd not a work tree — the last one
+  cheapest-last since it's the only one that shells out). Confirmed live: a debug-log
+  `rg`/TCC-error pattern requires `--debug`, which is not the default, so it is demoted to optional
+  enrichment (P4), never a required conjunct.
+- **P4 — optional debug-log enrichment.** Gated strictly behind P3's verdict — attaches
+  `signature: "rg-tcc"` + a match count when a `--debug` log happens to exist and match, never a
+  raw matched line or path (leak-control verified live against the real production function, not a
+  synthetic copy).
+
+**Gate 282** (`scripts/check-claude-launch-safeguard.py --self-test`) — three checks: P1's own
+self-test, P2's own self-test, and the full `stall_watch.py` suite (43 assertions) passing against
+the real source **and** failing against a MUTANT that removes conjunct 3 (the `statusUpdatedAt`
+check) from `evaluate_launch_hangs()` — the teeth half, proving the healthy-idle negative control
+actually depends on that conjunct. Registered in all three required surfaces (the `--check`
+dispatcher, the main sequence, the `Supported:` string) and the `core` suite, each verified
+independently this session.
+
+Full mechanism, the empirical basis and its expiry condition, and the kill switches:
+[`knowledge/claude-launch-hang-safeguard.md`](knowledge/claude-launch-hang-safeguard.md).
+
+**Deliberately not shipped in v1:** a PATH-shim executable for non-interactive-shell coverage — this
+machine's own `PATH` had `~/.grok/bin` and two VS Code helper directories already ahead of
+`~/.local/bin`, and a stale shim surviving an uninstall would permanently hijack `claude`, a worse
+standing failure than the coverage gap Layer 2 already compensates for.
+
+**Migration:** none — opt-in via `install_launch_guard.py install` / `scripts/ravenclaude
+launch-guard install`; nothing is installed or touched by default. `stall_watch.py`'s detection
+layer is likewise inert unless `install_stall_watch.py` has been run (itself already opt-in). Both
+layers default to "present but not running."

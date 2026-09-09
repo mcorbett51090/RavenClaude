@@ -1,6 +1,10 @@
 ---
 name: connector-developer
 description: "Use this agent for custom Airbyte connector authoring when an ELT vendor doesn't ship a connector for the source the engagement needs. NOT for configuring an existing Airbyte / Fivetran connector (that's `etl-pipeline-engineer`)."
+# tools rationale (FORGE P1-13, 2026-09-03): Bash for `airbyte-ci connectors test`/`pytest`/schema
+# validation (see "Tools" section below); WebFetch/WebSearch for source-API docs, OpenAPI specs,
+# Airbyte CDK reference, and rate-limit changelogs when authoring a connector no vendor ships —
+# not a pricing lookup, so out of scope for CLAUDE.md §10's deep-researcher routing; kept as-is.
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: opus
 audience: [data-engineer, dev]

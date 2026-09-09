@@ -102,6 +102,10 @@ const pieces = [
   app.match(/const CHEAP_LANE_AGENT_VALUES = \[[^\]]*\];/)[0],
   app.match(/const CHEAP_LANE_AGENT_DEFAULT = [^;]*;/)[0],
   extract(app, "const CHEAP_LANE_DEFAULT ="),
+  // Prompt optimizer (Phases 2-6, task-6 dashboard wiring) — mode enum + freeze default.
+  app.match(/const PROMPT_OPTIMIZER_MODE_VALUES = \[[^\]]*\];/)[0],
+  app.match(/const PROMPT_OPTIMIZER_MODE_DEFAULT = [^;]*;/)[0],
+  extract(app, "const PROMPT_OPTIMIZER_DEFAULT ="),
   extract(app, "function freshTiers()"),
   extract(app, "function quoteYamlKey("),
   extract(app, "function applyGuardrailConfig("),
@@ -163,6 +167,7 @@ function _freshState() {
     context_handoff: Object.assign({}, CONTEXT_HANDOFF_DEFAULT),
     advisory_knobs: Object.assign({}, ADVISORY_KNOBS_DEFAULT),
     cheap_lane: Object.assign({}, CHEAP_LANE_DEFAULT),
+    prompt_optimizer: Object.assign({}, PROMPT_OPTIMIZER_DEFAULT),
     expanded: {},
   };
 }
@@ -207,6 +212,7 @@ function check(name, cond) {
   s.conserve_tokens_auto_pct = 65;
   s.context_handoff = { mode: "nag", spawn: "os-terminal", context_window_tokens: 150000 };
   s.cheap_lane = { mode: "agent", tier: "top", agent: "copilot" };
+  s.prompt_optimizer = { enabled: true, mode: "advisory" };
   api._set(s);
 
   const yaml = api.emitYaml();
@@ -244,6 +250,9 @@ function check(name, cond) {
   check("cheap_lane.mode emitted", /^  mode: agent$/m.test(yaml));
   check("cheap_lane.tier emitted", /^  tier: top$/m.test(yaml));
   check("cheap_lane.agent emitted", /^  agent: copilot$/m.test(yaml));
+  check("prompt_optimizer block emitted", /^prompt_optimizer:$/m.test(yaml));
+  check("prompt_optimizer.enabled emitted", /^  enabled: true$/m.test(yaml));
+  check("prompt_optimizer.mode emitted", /^  mode: advisory$/m.test(yaml));
 
   // And the hydrator reads them back into a fresh state.
   api._set(api._freshState());
@@ -270,6 +279,7 @@ function check(name, cond) {
     conserve_tokens_auto_pct: 65,
     context_handoff: { mode: "nag", spawn: "os-terminal", context_window_tokens: 150000 },
     cheap_lane: { mode: "agent", tier: "top", agent: "copilot" },
+    prompt_optimizer: { enabled: true, mode: "advisory" },
   });
   const h = api._get();
   check("hydrate runaway.max_total", h.runaway.max_total === 500);
@@ -302,6 +312,8 @@ function check(name, cond) {
   check("hydrate cheap_lane.mode", h.cheap_lane.mode === "agent");
   check("hydrate cheap_lane.tier", h.cheap_lane.tier === "top");
   check("hydrate cheap_lane.agent", h.cheap_lane.agent === "copilot");
+  check("hydrate prompt_optimizer.enabled", h.prompt_optimizer.enabled === true);
+  check("hydrate prompt_optimizer.mode", h.prompt_optimizer.mode === "advisory");
 }
 
 // ── Test 2: defaults are NOT emitted (absent ⇒ default; no posture bloat) ─────
@@ -330,6 +342,7 @@ function check(name, cond) {
   check("no conserve_tokens_auto_pct at default", !/^conserve_tokens_auto_pct:/m.test(yaml));
   check("no context_handoff block at default", !/^context_handoff:/m.test(yaml));
   check("no cheap_lane block at default", !/^cheap_lane:/m.test(yaml));
+  check("no prompt_optimizer block at default", !/^prompt_optimizer:/m.test(yaml));
 }
 
 // ── Test 3: runaway: off scalar form ─────────────────────────────────────────
@@ -567,6 +580,48 @@ function check(name, cond) {
     api._set(api._freshState());
     api.applyGuardrailConfig({ cheap_lane: { agent: v } });
     check(`agent enum accepts ${v}`, api._get().cheap_lane.agent === v);
+  }
+}
+
+// ── Test 9: prompt_optimizer (task-6 dashboard wiring) round-trips with ONLY
+//            `enabled` set — the live-posture shape a consumer opting in writes
+//            first (`prompt_optimizer: { enabled: true }`, mode still shadow,
+//            the frozen default). mode stays absent from the emitted block
+//            (it's still the default), but the block MUST still be written so
+//            `enabled: true` survives a Save — this is the exact key a Save
+//            would have silently dropped before this fix (verified absent
+//            from emitYaml() prior to it, per task-6-report.md). ──
+{
+  const s = api._freshState();
+  s.prompt_optimizer = { enabled: true, mode: "shadow" };
+  api._set(s);
+  const yaml = api.emitYaml();
+  check("prompt_optimizer block emitted for enabled-only", /^prompt_optimizer:$/m.test(yaml));
+  check("prompt_optimizer.enabled emitted (enabled-only)", /^  enabled: true$/m.test(yaml));
+  check("prompt_optimizer.mode NOT emitted when default shadow", !/^  mode:/m.test(yaml));
+
+  // An unknown mode value is rejected by the enum guard, so an otherwise-
+  // default block emits nothing (a Save neither invents nor corrupts a value).
+  api._set(api._freshState());
+  api.applyGuardrailConfig({ prompt_optimizer: { mode: "not-a-real-mode" } });
+  check("unknown mode ignored on hydrate", api._get().prompt_optimizer.mode === "shadow");
+  check("all-default prompt_optimizer emits no block", !/^prompt_optimizer:/m.test(api.emitYaml()));
+
+  // A non-boolean `enabled` is rejected, not coerced.
+  api._set(api._freshState());
+  api.applyGuardrailConfig({ prompt_optimizer: { enabled: "yes" } });
+  check("non-boolean enabled ignored on hydrate", api._get().prompt_optimizer.enabled === false);
+
+  // Every accepted mode value round-trips.
+  for (const v of ["shadow", "advisory", "binding-context"]) {
+    api._set(api._freshState());
+    api.applyGuardrailConfig({ prompt_optimizer: { mode: v } });
+    check(`mode enum accepts ${v}`, api._get().prompt_optimizer.mode === v);
+  }
+  for (const v of [true, false]) {
+    api._set(api._freshState());
+    api.applyGuardrailConfig({ prompt_optimizer: { enabled: v } });
+    check(`enabled accepts ${v}`, api._get().prompt_optimizer.enabled === v);
   }
 }
 

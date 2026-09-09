@@ -80,6 +80,7 @@ _MARKETPLACE_DEV_TOOLING = {
     "generate-dashboards.py",    # regenerates dashboard.html
     "generate-index-dashboard.py",  # regenerates the portal index.html
     "generate-copilot-plugin.py",   # regenerates the Copilot package
+    "generate-skill-index.py",   # regenerates plugins/ravenclaude-core/skills/skill-index/SKILL.md
     "review-ledger.py",          # the code-review reopen-ledger CLI
 }
 # GROUP 2 — packaging-move deferral. Emptied in v0.263.0 when premise-gate.py,
