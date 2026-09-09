@@ -1,8 +1,21 @@
 # RavenClaude remote-branch cleanup — 2026-09-09
 
-Inventory of every non-`main` remote head on `mcorbett51090/RavenClaude`, classified against `origin/main` (`44a1a22e`) and associated PRs. Executed under FORGE slug `branch-cleanup` (quick).
+Inventory of every non-`main` remote head on `mcorbett51090/RavenClaude`, classified against `origin/main` and associated PRs. Executed under FORGE slug `branch-cleanup` (quick). **Execution continued through the same day** — this doc is the live matrix (initial inventory + outcomes).
 
-## Summary
+## Final state (end of cleanup pass)
+
+| Bucket | Count | Outcome |
+|---|---|---|
+| Archive + delete remote | 14 | Done (13 from initial clear-cut inventory + `test/g0-control-scratch`) |
+| Squash-merged into `main` | 4 | #1138, #1120, #1122, #1126 |
+| Closed without merge | 1 | #1123 (Sep 7 findings folded into #1126) |
+| Dependabot remaining | 1 | **#1121** (zizmor 0.6.3) — rebased; merge when core gate green |
+| Active conflicting feature work | 2 | **#1145**, **#1146** — keep; do not auto-close |
+| This analysis PR | 1 | **#1142** (docs-only) |
+
+Remote heads after cleanup (target): `main` + #1121 head + #1145 + #1146 + this docs branch (until #1142 lands).
+
+## Summary (initial inventory)
 
 | Bucket | Count | Action taken / recommended |
 |---|---|---|
@@ -12,11 +25,11 @@ Inventory of every non-`main` remote head on `mcorbett51090/RavenClaude`, classi
 | Open Dependabot | 3 | Keep — blocked until `validate-marketplace` is green on main |
 | Analysis worktree | 1 local (`forge/branch-cleanup`) | Keep until this cleanup finishes |
 
-**Observation:** `validate-marketplace` is red on `main` (post plan-archive link/`prettierignore`/ratchet drift). Draft **#1138** is the fix-forward; it is `CONFLICTING` and needs rebase before merge. Dependabot PRs #1120–#1122 fail the same required check because of that shared failure, not because the bumps themselves are broken.
+**Observation (resolved):** `validate-marketplace` was red on `main` (post plan-archive link/`prettierignore`/ratchet drift). Draft **#1138** was the fix-forward; it was rebased and squash-merged (`d7f35eb5`), unblocking Dependabot.
 
 ## Detailed classification
 
-### Archive + delete remote (clear-cut)
+### Archive + delete remote (clear-cut) — DONE
 
 | Branch | Evidence | Notes |
 |---|---|---|
@@ -33,23 +46,32 @@ Inventory of every non-`main` remote head on `mcorbett51090/RavenClaude`, classi
 | `forge/ci-gate-health-spend` | PR **#965** closed — Gate 223 slot taken | Stale pre-commitment |
 | `forge/session-context-handoff` | PR **#927** closed — superseded | Implementation on another branch |
 | `forge/task-ledger` | PR **#988** closed — shipped #992/#993/#1001 | Plan-only draft |
+| `test/g0-control-scratch` | PR **#1143** closed without merge | Disposable G0-control positive-control scratch; archived `archive/test-g0-control-scratch-2026-09-09-152454` |
+| `claude/awesome-wright-lm1y5x` | PR **#1123** closed | Sep 7 findings folded into #1126; archived after close |
 
-### Keep (open work)
+### Merged this pass — DONE
+
+| PR | Branch | Result |
+|---|---|---|
+| **#1138** | `claude/awesome-wright-4jz4tu` | Rebased (kept main `index.html`; restamped Gate 242). Squash → `d7f35eb5`. Unblocked `validate-marketplace` on main. |
+| **#1120** | Dependabot actions pin set | Rebased + ratchet restamp; squash → `bf86e951` |
+| **#1122** | Dependabot trufflehog 3.97.4 | Rebased after #1120; squash → `ebea696f` |
+| **#1126** | `claude/awesome-wright-grq7l7` | Rebased; folded #1123 Sep 7 findings; core `0.320.1→0.320.2`; squash → `493d5b5a` |
+
+### Keep (remaining open work)
 
 | Branch | PR | Recommendation |
 |---|---|---|
-| `claude/awesome-wright-4jz4tu` | **#1138** draft, CONFLICTING, checks green on the tip | **Rebase onto main → mark ready → merge.** Highest priority — restores required check. |
-| `claude/awesome-wright-grq7l7` | **#1126** draft, CONFLICTING | Rebase or cherry-pick the review findings onto main (`docs/` may go straight to main). Do not close until findings are landed or rejected. |
-| `claude/awesome-wright-lm1y5x` | **#1123** draft, CONFLICTING | Same as #1126 — Sep 7 review write-up not yet on `docs/reviews/`. |
-| `dependabot/github_actions/actions-4684ddd577` | **#1120** | Merge after #1138 (or once main core suite is green). Bump itself is trivial. |
-| `dependabot/github_actions/trufflesecurity/trufflehog-3.97.4` | **#1122** | Same |
-| `dependabot/github_actions/zizmorcore/zizmor-action-0.6.3` | **#1121** | Same |
+| `dependabot/github_actions/zizmorcore/zizmor-action-0.6.3` | **#1121** | Rebased onto post-#1126 main; merge when required checks green. |
+| `feat/skills-deny-plugins` | **#1145** CONFLICTING | Real feature (`skills.deny_plugins`). Keep — rebase/triage separately; not a cleanup leftover. |
+| `claude/source-control-github-merge-s0b4ve` | **#1146** draft, CONFLICTING | Source-control-coordinator agent (+1348). Keep — active opt-in work; not a cleanup leftover. |
+| `cursor/branch-cleanup-analysis-d2f1` | **#1142** draft | This docs matrix — merge as docs-only once updated. |
 
 ## What we did not do
 
-- Did not merge or close any open PR (preference / CI-gated).
-- Did not force-push or `git branch -D` (guard + house rule 5).
-- Did not archive heads that still back an open PR.
+- Did not auto-close or archive **#1145** / **#1146** (live feature work with meaningful diffs).
+- Did not force-push or `git branch -D` outside sanctioned `scripts/archive-branch.sh` / authorized Dependabot rebases.
+- Did not re-enable repo auto-merge (deliberately off).
 
 ## Recovery
 
