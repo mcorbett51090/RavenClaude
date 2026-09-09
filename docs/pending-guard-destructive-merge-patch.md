@@ -65,10 +65,22 @@ the `deny_patterns=(` array:
 #       master) without `--ff-only` — capable of landing a real merge commit
 #       directly on that branch, bypassing PR review entirely. `--ff-only` is
 #       explicitly exempted: a pure fast-forward changes no history shape and
-#       is not the bypass this rule targets. The live branch check (rather
-#       than a command-string heuristic) is deliberate: `git merge <branch>`
-#       merges into whatever is currently checked out, which the command
-#       string alone cannot reveal.
+#       is not the bypass this rule targets.
+#
+# ⛔ Two review findings folded in (both real, neither hypothetical):
+#   - The `--ff-only` exemption is checked ONLY within the `git merge`
+#     segment, mirroring how the `--admin` check above it is already scoped
+#     per segment — an unscoped check against the WHOLE command string would
+#     let a `--ff-only` token anywhere else in a compound command (a later,
+#     unrelated segment) falsely exempt a real merge-commit-shaped bypass.
+#   - The effective branch is tracked ACROSS segments, not read once from
+#     current HEAD before the command runs. `git checkout main && git merge
+#     feature --no-ff` changes HEAD mid-command: reading HEAD once at hook-
+#     eval time (before either segment executes) would see the PRE-checkout
+#     branch and miss the bypass entirely. Segments are walked in order,
+#     tracking the last `checkout`/`switch` target seen, so the branch used
+#     at the `git merge` segment reflects what HEAD will actually be by the
+#     time that segment runs.
 _is_dangerous_merge() {
   local c="$1" seg found=1
   if [[ "$c" =~ ${_CMD_BOUNDARY}gh[[:space:]]+pr[[:space:]]+merge([[:space:]]|$) ]]; then
@@ -81,9 +93,18 @@ EOF
     [ "$found" -eq 0 ] && return 0
   fi
   if [[ "$c" =~ ${_CMD_BOUNDARY}git[[:space:]]+merge([[:space:]]|$) ]]; then
-    if ! [[ "$c" =~ (^|[[:space:]])--ff-only([[:space:]]|$) ]]; then
-      local branch
-      branch="$(git rev-parse --abbrev-ref HEAD 2>/dev/null || true)"
+    local branch merge_seg="" ffonly=1
+    branch="$(git rev-parse --abbrev-ref HEAD 2>/dev/null || true)"
+    while IFS= read -r seg; do
+      if [[ "$seg" =~ (^|[[:space:]])git[[:space:]]+(checkout|switch)[[:space:]]+(-[bB]|-c)?[[:space:]]*([A-Za-z0-9._/-]+) ]]; then
+        branch="${BASH_REMATCH[4]}"
+      fi
+      case "$seg" in *"git merge"*) merge_seg="$seg"; break ;; esac
+    done <<EOF
+$(printf '%s' "$c" | tr ';&|' '\n\n\n')
+EOF
+    [[ "$merge_seg" =~ (^|[[:space:]])--ff-only([[:space:]]|$) ]] && ffonly=0
+    if [ "$ffonly" -ne 0 ]; then
       case "$branch" in
         main|master) return 0 ;;
       esac
@@ -108,9 +129,14 @@ DELETE-verb API call, and the raw `git update-ref -d` primitive `archive-branch.
   'git[[:space:]]+update-ref[[:space:]]+(-[a-zA-Z]*d[a-zA-Z]*|--delete)([[:space:]]|$)'   # raw ref deletion (archive-branch.sh's own internal primitive; no other caller should touch it directly)
 ```
 
-## The 3-case acceptance fixture (run this after applying, before trusting the patch)
+## The acceptance fixture (run this after applying, before trusting the patch)
 
-Per Task 3.3's own acceptance test, all three must hold:
+Per Task 3.3's own acceptance test plus two review findings folded into the function above (a
+`--ff-only` scoping gap and a pre-execution branch-read gap — see the comment block above
+`_is_dangerous_merge()`), all of the following must hold. **This function was extracted and run
+standalone against a real scratch git repo (not just read for plausibility) — 9/9 pass**, including
+both review-finding cases and two negative controls proving the fix doesn't over-block legitimate
+`--ff-only` merges or merges made without ever checking out a protected branch:
 
 ```bash
 # Case 1: a known-bad admin-override merge, in EITHER flag order, is denied
@@ -123,6 +149,21 @@ echo 'gh pr merge 123 --squash --admin' | bash -c 'source plugins/ravenclaude-co
 # Case 3 — the one that would have caught the prior draft's defect: the coordinator's actual
 # sanctioned invocation is NOT denied
 echo 'gh pr merge 123 --squash --delete-branch' # expect NOT denied
+
+# Case 4 (review finding — segment scoping): a --ff-only token in an unrelated LATER segment of a
+# compound command must NOT exempt a real merge-commit-shaped bypass earlier in the same command
+echo 'git checkout main; git merge feature-branch --no-ff; echo --ff-only' # expect BLOCKED
+
+# Case 5 (review finding — pre-execution branch read): a compound checkout-then-merge, where HEAD
+# is NOT yet main/master when the hook evaluates the command but WILL be by the time the merge
+# segment runs, must still be caught
+echo 'git checkout main && git merge feature-branch' # expect BLOCKED
+echo 'git switch main; git merge feature-branch'     # expect BLOCKED
+
+# Case 6 (negative controls — the fix must not over-block): a legitimate fast-forward on main, and
+# a merge made without ever checking out a protected branch, are both NOT denied
+echo 'git checkout main; git merge feature-branch --ff-only' # expect NOT denied
+echo 'git merge some-other-branch'                            # expect NOT denied (current branch is not main/master)
 ```
 
 (The exact invocation harness depends on how `guard-destructive.sh` is normally driven in this repo's
