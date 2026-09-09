@@ -5,9 +5,5 @@
   "total_artifacts": 382,
   "tier_none": 6,
   "unprobed": 4,
-<<<<<<< HEAD
   "measured_against": "493d5b5a5874cb4f4d2faf14ef87fa3ff2e7cff2"
-=======
-  "measured_against": "fee4d753a4c2433d45f1087a8875dd7838ff2c53"
->>>>>>> origin/main
 }
