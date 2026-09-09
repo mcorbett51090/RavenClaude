@@ -6,10 +6,10 @@ kind: ravenclaude-built
 entry_class: inventory
 order: 931
 summary: "A rc-file installer for a safety mechanism must never itself be able to break the shell it protects — every write is backed up and syntax-validated before it commits."
-last_verified: 2026-09-08
+last_verified: 2026-09-09
 covers:
   - plugins/ravenclaude-core/scripts/install_launch_guard.py
-covers_digest: "sha256:05e1ab514c7920e0e4364eb022a720238ae9e864ee214ea0a4f3fa09ab71f7f0"
+covers_digest: "sha256:7583ee7a3bb89fc3696b8def7fb53f0b3d16d6c3540e0d64d7eb5ff9e32a8595"
 nuance: "The installer writes into a user's real rc file, so a bug there is the worst failure mode for a safety tool. Every write is backed up first and syntax-validated before it commits."
 nuance_evidence:
   measured: 2026-09-08

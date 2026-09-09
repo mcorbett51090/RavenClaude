@@ -3123,7 +3123,7 @@ Probe: `plugins/ravenclaude-core/scripts/install_launch_guard.py`
 
 **Sources:** [measured during the claude-launch-safeguard FORGE build (anthropics/claude-code#92932)](https://github.com/anthropics/claude-code/issues/92932)
 
-_Last verified: 2026-09-08_
+_Last verified: 2026-09-09_
 
 
 ---

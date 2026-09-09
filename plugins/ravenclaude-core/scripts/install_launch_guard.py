@@ -30,6 +30,20 @@ Allowlist file (P1's contract, confirmed from its source): a path or `*` per
 line, comments (`#`) and blank lines ignored, at ~/.claude/launch-guard/allow.
 The "Always allow" choice below appends to it in that exact shape.
 
+DIRECTORY RECOMMENDATION + ONE-CLICK SWITCH (the P1 `preferred`/`recommend`
+subcommands this installer's emitted function now calls). On every SAFE
+launch the function writes $PWD to ~/.claude/launch-guard/last-dir — this is
+the ONLY writer of that file; P1's `recommend` only reads it. On an UNSAFE
+launch, the function calls `claude-launch-guard recommend` and appends its
+output (up to 5 directories: preferred dirs first, then last-used, deduped)
+as extra numbered menu choices after the fixed 1-4. Choosing one `cd`s the
+CURRENT SHELL into that directory (this is a shell FUNCTION, not a
+subprocess, so the `cd` is real and persists after `claude` exits — that is
+the whole point: a subprocess cannot change its parent shell's cwd) and then
+launches from there. A `cd` failure (deleted dir, permissions) falls through
+to launching from the original unsafe cwd rather than silently doing
+nothing — the fail-open discipline P1 documents applies here too.
+
 Contract:
   install_launch_guard.py install [--shell zsh|bash|fish]
       Writes the managed block into the detected (or overridden) shell's rc
@@ -98,6 +112,8 @@ POSIX_FUNCTION_BODY = r'''claude() {
     return
   fi
   if "$_rc_g" check -- "$@"; then
+    mkdir -p "$HOME/.claude/launch-guard" 2>/dev/null
+    printf '%s\n' "$PWD" > "$HOME/.claude/launch-guard/last-dir" 2>/dev/null
     command claude "$@"
     return
   fi
@@ -106,7 +122,20 @@ POSIX_FUNCTION_BODY = r'''claude() {
     command claude "$@"
     return
   fi
-  printf '\nChoose:\n  1) Just once\n  2) This session (disable the guard for this shell)\n  3) Always allow (this path, or * for everywhere)\n  4) Deny — do not launch\nChoice [1]: ' >&2
+  local _rc_recs="" _rc_line="" _rc_i=0 _rc_oldifs=""
+  _rc_recs="$("$_rc_g" recommend 2>/dev/null)"
+  printf '\nChoose:\n  1) Just once\n  2) This session (disable the guard for this shell)\n  3) Always allow (this path, or * for everywhere)\n  4) Deny — do not launch\n' >&2
+  if [ -n "$_rc_recs" ]; then
+    _rc_oldifs="$IFS"
+    IFS='
+'
+    for _rc_line in $_rc_recs; do
+      _rc_i=$((_rc_i + 1))
+      printf '  %d) switch to %s and launch\n' "$((4 + _rc_i))" "$_rc_line" >&2
+    done
+    IFS="$_rc_oldifs"
+  fi
+  printf 'Choice [1]: ' >&2
   local _rc_choice=""
   read -r _rc_choice
   case "$_rc_choice" in
@@ -131,6 +160,29 @@ POSIX_FUNCTION_BODY = r'''claude() {
       return 1
       ;;
     *)
+      if [ -n "$_rc_recs" ] && [ -n "$_rc_choice" ]; then
+        local _rc_j=0 _rc_target=""
+        _rc_oldifs="$IFS"
+        IFS='
+'
+        for _rc_line in $_rc_recs; do
+          _rc_j=$((_rc_j + 1))
+          if [ "$_rc_choice" = "$((4 + _rc_j))" ]; then
+            _rc_target="$_rc_line"
+          fi
+        done
+        IFS="$_rc_oldifs"
+        if [ -n "$_rc_target" ] && [ -d "$_rc_target" ]; then
+          if cd "$_rc_target" 2>/dev/null; then
+            printf 'claude-launch-guard: switched to %s\n' "$_rc_target" >&2
+            mkdir -p "$HOME/.claude/launch-guard" 2>/dev/null
+            printf '%s\n' "$PWD" > "$HOME/.claude/launch-guard/last-dir" 2>/dev/null
+            command claude "$@"
+            return
+          fi
+          printf 'claude-launch-guard: could not switch to %s — launching anyway.\n' "$_rc_target" >&2
+        fi
+      fi
       command claude "$@"
       ;;
   esac
@@ -149,6 +201,8 @@ FISH_FUNCTION_BODY = r'''function claude
         return
     end
     if "$rc_g" check -- $argv
+        mkdir -p "$HOME/.claude/launch-guard" 2>/dev/null
+        echo "$PWD" > "$HOME/.claude/launch-guard/last-dir" 2>/dev/null
         command claude $argv
         return
     end
@@ -157,7 +211,15 @@ FISH_FUNCTION_BODY = r'''function claude
         command claude $argv
         return
     end
-    printf '\nChoose:\n  1) Just once\n  2) This session (disable the guard for this shell)\n  3) Always allow (this path, or * for everywhere)\n  4) Deny — do not launch\nChoice [1]: ' >&2
+    set -l rc_recs ("$rc_g" recommend 2>/dev/null)
+    printf '\nChoose:\n  1) Just once\n  2) This session (disable the guard for this shell)\n  3) Always allow (this path, or * for everywhere)\n  4) Deny — do not launch\n' >&2
+    set -l rc_i 0
+    for rc_line in $rc_recs
+        set rc_i (math $rc_i + 1)
+        set -l rc_opt (math 4 + $rc_i)
+        printf '  %d) switch to %s and launch\n' "$rc_opt" "$rc_line" >&2
+    end
+    printf 'Choice [1]: ' >&2
     read -l rc_choice
     switch "$rc_choice"
         case 2
@@ -177,6 +239,26 @@ FISH_FUNCTION_BODY = r'''function claude
             printf 'claude-launch-guard: launch cancelled.\n' >&2
             return 1
         case '*'
+            set -l rc_target ""
+            if test -n "$rc_recs"; and test -n "$rc_choice"
+                set -l rc_j 0
+                for rc_line in $rc_recs
+                    set rc_j (math $rc_j + 1)
+                    if test "$rc_choice" = (math 4 + $rc_j)
+                        set rc_target "$rc_line"
+                    end
+                end
+            end
+            if test -n "$rc_target"; and test -d "$rc_target"
+                if cd "$rc_target" 2>/dev/null
+                    printf 'claude-launch-guard: switched to %s\n' "$rc_target" >&2
+                    mkdir -p "$HOME/.claude/launch-guard" 2>/dev/null
+                    echo "$PWD" > "$HOME/.claude/launch-guard/last-dir" 2>/dev/null
+                    command claude $argv
+                    return
+                end
+                printf 'claude-launch-guard: could not switch to %s — launching anyway.\n' "$rc_target" >&2
+            end
             command claude $argv
     end
 end'''
@@ -757,6 +839,32 @@ def cmd_self_test():
                 _st_fail(failures, "non-interactive not-safe path printed no warning: %r" % proc.stderr)
             if elapsed >= 5:
                 _st_fail(failures, "non-interactive not-safe path took %.1fs (possible hang)" % elapsed)
+
+        # --- 11. Safe launch records last-dir (the directory-recommendation
+        #     feature's write side; the read side — `recommend`/`preferred` —
+        #     is unit-tested in claude-launch-guard's own --self-test, and the
+        #     interactive switch-and-launch branch is exercised only by shell
+        #     syntax validation below, since this harness has no pty to drive
+        #     a live interactive choice through). ---------------------------
+        if shutil.which("zsh") and shutil.which("git"):
+            git_fixture = os.path.join(scratch, "gitrepo")
+            os.makedirs(git_fixture, exist_ok=True)
+            subprocess.run(["git", "init", "-q", "."], cwd=git_fixture, check=False)
+            subprocess.run(["git", "-C", git_fixture, "config", "user.email", "st@example.com"], check=False)
+            subprocess.run(["git", "-C", git_fixture, "config", "user.name", "selftest"], check=False)
+            last_dir_file = os.path.join(scratch_home, ".claude", "launch-guard", "last-dir")
+            if os.path.isfile(last_dir_file):
+                os.remove(last_dir_file)
+            proc = _run_shell(["zsh", "-i", "-c", "claude --version"], env, git_fixture)
+            if "stub-claude 9.9.9" not in proc.stdout:
+                _st_fail(failures, "last-dir fixture: safe launch did not reach the stub: %r/%r" % (proc.stdout, proc.stderr))
+            if not os.path.isfile(last_dir_file):
+                _st_fail(failures, "safe launch did not write last-dir")
+            else:
+                with open(last_dir_file, encoding="utf-8") as fh:
+                    recorded = fh.read().strip()
+                if os.path.realpath(recorded) != os.path.realpath(git_fixture):
+                    _st_fail(failures, "last-dir recorded %r, expected %r" % (recorded, git_fixture))
 
         # --- 6. --uninstall -> byte-identical to pre-install state ---------
         proc = _run_self(["--uninstall", "--shell", "zsh"], env)
