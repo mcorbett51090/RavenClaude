@@ -38,8 +38,8 @@ dashboard-tier-0.5-reference/
 ## How a Codex session uses this
 
 1. Read [`tier-0.5-acceptance-tests.md`](./tier-0.5-acceptance-tests.md) **first** — that is the DoD. Everything else is in service of it.
-2. Read the Tier 0.5 build plan at [`docs/plans/2026-06-04-partner-success-command-center/build-plan-tier-0.5-real-connectors.md`](../../../../docs/plans/2026-06-04-partner-success-command-center/build-plan-tier-0.5-real-connectors.md) — that is the contract.
-3. Read the Tier 0 brief at [`docs/plans/2026-06-04-partner-success-command-center/build-plan-for-codex.md`](../../../../docs/plans/2026-06-04-partner-success-command-center/build-plan-for-codex.md) for the schema enumeration. **Tier 0 wins all schema disagreements.**
+2. Read the Tier 0.5 build plan at [`docs/plans/2026-06-04-partner-success-command-center/build-plan-tier-0.5-real-connectors.md`](../../../../docs/plans/archive/2026-06-04-partner-success-command-center/build-plan-tier-0.5-real-connectors.md) — that is the contract.
+3. Read the Tier 0 brief at [`docs/plans/2026-06-04-partner-success-command-center/build-plan-for-codex.md`](../../../../docs/plans/archive/2026-06-04-partner-success-command-center/build-plan-for-codex.md) for the schema enumeration. **Tier 0 wins all schema disagreements.**
 4. Copy each file in this directory to the real path the build plan §3 calls out. Replace the templated `{{org_uid}}`, the demo partner names, and the per-engagement config values.
 5. Run `dbt parse`, `dbt build`, then `export-psm-dashboard.py --validate`.
 6. Run the smoke test from `tier-0.5-acceptance-tests.md` end to end.
@@ -84,8 +84,8 @@ Refresh when any of the following changes:
 
 ## See also
 
-- Build plan: [`docs/plans/2026-06-04-partner-success-command-center/build-plan-tier-0.5-real-connectors.md`](../../../../docs/plans/2026-06-04-partner-success-command-center/build-plan-tier-0.5-real-connectors.md)
-- Tier 0 brief (schema source of truth): [`docs/plans/2026-06-04-partner-success-command-center/build-plan-for-codex.md`](../../../../docs/plans/2026-06-04-partner-success-command-center/build-plan-for-codex.md)
+- Build plan: [`docs/plans/2026-06-04-partner-success-command-center/build-plan-tier-0.5-real-connectors.md`](../../../../docs/plans/archive/2026-06-04-partner-success-command-center/build-plan-tier-0.5-real-connectors.md)
+- Tier 0 brief (schema source of truth): [`docs/plans/2026-06-04-partner-success-command-center/build-plan-for-codex.md`](../../../../docs/plans/archive/2026-06-04-partner-success-command-center/build-plan-for-codex.md)
 - Snowflake substrate: [`plugins/data-platform/knowledge/snowflake-operational-dashboard-patterns.md`](../../../data-platform/knowledge/snowflake-operational-dashboard-patterns.md)
 - Cost model: [`plugins/data-platform/knowledge/snowflake-psm-dashboard-cost-model.md`](../../../data-platform/knowledge/snowflake-psm-dashboard-cost-model.md)
 - Planhat integration: [`plugins/data-platform/knowledge/planhat-integration.md`](../../../data-platform/knowledge/planhat-integration.md)
