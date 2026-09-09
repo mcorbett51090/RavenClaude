@@ -67,7 +67,7 @@ the `deny_patterns=(` array:
 #       explicitly exempted: a pure fast-forward changes no history shape and
 #       is not the bypass this rule targets.
 #
-# ⛔ Seven review findings folded in across four Bugbot passes (all real,
+# ⛔ Eight review findings folded in across five Bugbot passes (all real,
 # none hypothetical — each pass reviewed the PRIOR pass's fix and found
 # genuine regressions or gaps in it):
 #   - (round 1) The `--ff-only` exemption is checked ONLY within the `git
@@ -111,19 +111,29 @@ the `deny_patterns=(` array:
 #     recognize too, so a path-qualified or command-substitution-embedded
 #     `git merge`/`checkout` that the outer gate can see is never silently
 #     invisible to the segment-level checks one level in.
-#   - (round 4) The checkout/switch word loop now scans ONLY the tail of the
-#     segment AFTER the matched `checkout`/`switch` keyword, never the whole
-#     segment. Scanning the whole segment meant any legitimate token BEFORE
-#     `git` itself — a leading redirect (`2>/dev/null git checkout main`), an
-#     inline env-var assignment (`FOO=bar git checkout main`), a command
-#     wrapper (`sudo git checkout main`) — was mistaken for the branch,
-#     since it was the FIRST non-flag word the round-3 loop ever saw. All of
-#     these are valid, realistic bash and all land BEFORE the keyword in the
-#     segment, so isolating the tail after the keyword closes the entire
-#     class at once rather than chasing prefixes one at a time. As a side
-#     effect this also resolves the round-3 "honest limit" example (a
-#     glued-parenthesis token immediately before `git`), which is no longer
-#     a special case — it is just one more prefix the tail-isolation drops.
+#   - (round 4) The checkout/switch word scan now IGNORES any token BEFORE
+#     the actual `git checkout`/`git switch` keyword pair, not just the
+#     whole segment naively. A leading redirect (`2>/dev/null git checkout
+#     main`), an inline env-var assignment (`FOO=bar git checkout main`), a
+#     command wrapper (`sudo git checkout main`) — all valid, realistic bash
+#     — were mistaken for the branch by a round-3 loop that took the FIRST
+#     non-flag word anywhere in the segment. Isolating everything after the
+#     keyword closes the whole class at once rather than chasing prefixes
+#     one at a time.
+#   - (round 5) The keyword itself is located by exact WORD equality across
+#     adjacent tokens (the previous word is literally "git" AND the current
+#     word is literally "checkout"/"switch"), not by a substring search. A
+#     round-4 draft used `${seg#*"$kw"}` — bash string-prefix removal on the
+#     literal text "checkout"/"switch" — which strips at the FIRST substring
+#     occurrence, coincidental or not. A prefix token whose own VALUE
+#     happens to contain that substring (`FOO=checkout git checkout main`)
+#     would have been stripped at the WRONG, earlier occurrence, leaving the
+#     real keyword and branch still inside the scanned "tail" — undoing the
+#     round-4 fix for that specific shape. Exact per-token equality across
+#     ADJACENT words (via ordinary word-splitting, which already respects
+#     token boundaries) cannot be fooled by a substring landing inside a
+#     single compound token, since `FOO=checkout` is one word, never equal
+#     to the bare word `checkout`.
 _is_dangerous_merge() {
   local c="$1" seg found=1
   if [[ "$c" =~ ${_CMD_BOUNDARY}gh[[:space:]]+pr[[:space:]]+merge([[:space:]]|$) ]]; then
@@ -136,14 +146,19 @@ EOF
     [ "$found" -eq 0 ] && return 0
   fi
   if [[ "$c" =~ ${_CMD_BOUNDARY}git[[:space:]]+merge([[:space:]]|$) ]]; then
-    local branch word seg_target pending double_dash first_pos kw tail
+    local branch word prev seen seg_target pending double_dash first_pos
     branch="$(git rev-parse --abbrev-ref HEAD 2>/dev/null || true)"
     while IFS= read -r seg; do
       if [[ "$seg" =~ ${_CMD_BOUNDARY}git[[:space:]]+(checkout|switch)([[:space:]]|$) ]]; then
-        kw="${BASH_REMATCH[2]}"
-        tail="${seg#*"$kw"}"
-        seg_target="" pending="" double_dash="" first_pos=""
-        for word in $tail; do
+        prev="" seen="" seg_target="" pending="" double_dash="" first_pos=""
+        for word in $seg; do
+          if [ -z "$seen" ]; then
+            if [ "$prev" = "git" ] && { [ "$word" = "checkout" ] || [ "$word" = "switch" ]; }; then
+              seen=1
+            fi
+            prev="$word"
+            continue
+          fi
           if [ -n "$pending" ]; then
             seg_target="$word"; pending=""; continue
           fi
@@ -192,16 +207,16 @@ DELETE-verb API call, and the raw `git update-ref -d` primitive `archive-branch.
 
 ## The acceptance fixture (run this after applying, before trusting the patch)
 
-Per Task 3.3's own acceptance test plus seven review findings folded into the function above across
-four Bugbot passes — see the comment block above `_is_dangerous_merge()` for what each closes. All of
+Per Task 3.3's own acceptance test plus eight review findings folded into the function above across
+five Bugbot passes — see the comment block above `_is_dangerous_merge()` for what each closes. All of
 the following must hold. **This function was extracted and run standalone against a real scratch git
-repo four times (not just read for plausibility) — 9/9 after round 1, 18/18 after round 2, 24/24 after
-round 3, then 28/28 after round 4** (each round re-ran every prior case plus the new ones, so nothing an
-earlier round fixed regressed), including every review-finding case and negative controls proving the
-fix doesn't over-block a legitimate `--ff-only` merge, a merge made without ever checking out a
-protected branch, a genuinely new branch creation, a create-from-a-protected-start-point (`-b newbranch
-main`), a `git checkout -- <path>` file restore, or a prefix token (`sudo`, an env-var assignment) before
-a checkout to a non-protected branch:
+repo five times (not just read for plausibility) — 9/9 after round 1, 18/18 after round 2, 24/24 after
+round 3, 28/28 after round 4, then 31/31 after round 5** (each round re-ran every prior case plus the new
+ones, so nothing an earlier round fixed regressed), including every review-finding case and negative
+controls proving the fix doesn't over-block a legitimate `--ff-only` merge, a merge made without ever
+checking out a protected branch, a genuinely new branch creation, a create-from-a-protected-start-point
+(`-b newbranch main`), a `git checkout -- <path>` file restore, a prefix token before a checkout to a
+non-protected branch, or a branch literally named `checkout`:
 
 ```bash
 # Case 1: a known-bad admin-override merge, in EITHER flag order, is denied
@@ -272,6 +287,15 @@ echo 'sudo git checkout main; git merge feature-branch'        # expect BLOCKED 
 echo 'sudo git checkout -b newbranch main; git merge feature-branch' # expect NOT denied (ends up on newbranch)
 # ...nor cause a false positive when the checkout target is not actually protected
 echo 'sudo git checkout newbranch; git merge feature-branch' # expect NOT denied
+
+# Case 14 (round-5 review finding — the keyword must be located by exact adjacent-word equality,
+# not a substring search, so a prefix token whose own VALUE contains "checkout"/"switch" can't
+# fool the scan into stripping at the wrong, earlier occurrence)
+echo 'FOO=checkout git checkout main; git merge feature-branch' # expect BLOCKED (real keyword is the SECOND "checkout")
+echo 'FOO=switch git switch main; git merge feature-branch'     # expect BLOCKED
+# ...and creating a branch literally NAMED "checkout" must still be tracked correctly (ends up on
+# "checkout", not "main" -- not denied)
+echo 'git checkout -b checkout main; git merge feature-branch' # expect NOT denied
 ```
 
 (The exact invocation harness depends on how `guard-destructive.sh` is normally driven in this repo's
