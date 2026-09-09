@@ -12,7 +12,7 @@ covers:
   - plugins/ravenclaude-core/commands/coordinate.md
   - plugins/ravenclaude-core/knowledge/coordinator-ledger-convention.md
   - plugins/ravenclaude-core/scripts/ledger.py
-covers_digest: "sha256:0a6e19de043ef99029a3eb3b7fe691f1e7fa90534005b370997bdf49f3aaf69f"
+covers_digest: "sha256:4d1b160d5263ed4c21cbb9d391bb057b00346554beebacbcdc2ea6ce9b12d472"
 nuance: "--repo-root/--actor are ledger.py's TOP-LEVEL parser flags, added before add_subparsers(); a build plan citing them AFTER `append` fails with 'unrecognized arguments', verified live. A companion claim (fresh ledger = exit 2/UNKNOWN) was also wrong: cmd_init always appends a ledger_init event, so the true fresh state is exit 0/PASS."
 nuance_evidence:
   measured: 2026-09-09
