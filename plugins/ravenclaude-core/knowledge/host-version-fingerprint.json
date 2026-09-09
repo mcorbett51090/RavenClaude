@@ -3,22 +3,22 @@
   "schema_version": 1,
   "hosts": {
     "claude-code": {
-      "last_swept_version": null,
-      "last_checked_at": null,
+      "last_swept_version": "2.1.266",
+      "last_checked_at": "2026-09-09",
       "last_change_detected_at": null,
-      "written_by": null
+      "written_by": "dependency-sweep.py v1"
     },
     "copilot": {
-      "last_swept_version": null,
-      "last_checked_at": null,
+      "last_swept_version": "1.0.83",
+      "last_checked_at": "2026-09-09",
       "last_change_detected_at": null,
-      "written_by": null
+      "written_by": "dependency-sweep.py v1"
     },
     "codex": {
-      "last_swept_version": null,
-      "last_checked_at": null,
+      "last_swept_version": "0.153.4",
+      "last_checked_at": "2026-09-09",
       "last_change_detected_at": null,
-      "written_by": null
+      "written_by": "dependency-sweep.py v1"
     },
     "cursor": {
       "last_swept_version": null,
@@ -27,16 +27,16 @@
       "written_by": null
     },
     "gemini": {
-      "last_swept_version": null,
-      "last_checked_at": null,
+      "last_swept_version": "0.59.0",
+      "last_checked_at": "2026-09-09",
       "last_change_detected_at": null,
-      "written_by": null
+      "written_by": "dependency-sweep.py v1"
     },
     "aider": {
-      "last_swept_version": null,
-      "last_checked_at": null,
+      "last_swept_version": "0.86.2",
+      "last_checked_at": "2026-09-09",
       "last_change_detected_at": null,
-      "written_by": null
+      "written_by": "dependency-sweep.py v1"
     },
     "windsurf": {
       "last_swept_version": null,
