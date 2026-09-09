@@ -448,6 +448,28 @@ jobs:
         # mirroring validate-schemas.yml, which owns the real per-plugin run.
         run: python3 -m pip install --quiet jsonschema
 
+      - name: TEMP DIAGNOSTIC — dump check-ratchet-freshness.py's own merge-base resolution (remove before merge)
+        # PR #1146: check-ratchet-freshness.py --check has failed twice in a
+        # row on this exact commit with "every ratchet value is bound to this
+        # PR actual merge base", while a local full clone consistently
+        # computes merge-base(HEAD, origin/main) == fee4d753a4c2. This step
+        # exists ONLY to see what the real CI checkout actually resolves,
+        # since the wrapping audit-gates.sh call redirects this script's own
+        # diagnostic printout (which names the exact SHA it resolved) to
+        # /dev/null. No logic here — pure read-only diagnostic. Delete this
+        # step once the cause is understood; it must not land in main.
+        run: |
+          set -x
+          git log --oneline -5
+          git log --parents -1 HEAD
+          git log -1 --format=%B HEAD
+          git rev-parse --verify --quiet origin/main || echo "origin/main does not resolve"
+          echo "GITHUB_EVENT_NAME=$GITHUB_EVENT_NAME"
+          echo "GITHUB_BASE_REF=$GITHUB_BASE_REF"
+          echo "GITHUB_HEAD_REF=$GITHUB_HEAD_REF"
+          python3 scripts/check-ratchet-freshness.py --check || true
+          set +x
+
       - name: Audit every gate (meta-test — prove each gate fails on bad input AND passes on good)
         # Codifies docs/best-practices/ci-gate-audit.md. If any CI gate
         # stops gating (or starts gating the wrong thing), this step catches
