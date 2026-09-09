@@ -3007,7 +3007,7 @@
         "scripts/inventory-nuance-judge.py",
         "plugins/ravenclaude-core/scripts/forge-receipt.py"
       ],
-      "covers_digest": "sha256:a5ab9a466ea84e284b64f357a37c4232f808fb01e53a3d7f8ad5104a94850234",
+      "covers_digest": "sha256:6d3d3a3ec3f7b663ac6c76cf6baa5863dc23822e8de596b28b471c0a325a8841",
       "nuance": "The teeth bit is the exit a tool own CHECK returns on a planted defect, never the exit `--must-fail` itself returns: `premise-gate.py` denies at `exit 0` while `sync-plugin-versions.py` reddens at `exit 2`, so an auditor that hard-codes one number can never be right for both.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -3565,7 +3565,7 @@
         "plugins/ravenclaude-core/scripts/stall_reach.py",
         "plugins/ravenclaude-core/scripts/install_stall_watch.py"
       ],
-      "covers_digest": "sha256:1933494590075d2fdb08c7f8d0974ba7285214b8ef19a5e88ce727db22e099f3",
+      "covers_digest": "sha256:27c8c843ca339164f5e5494c58d61a22db30023976de0671ab84c544f76e3bb0",
       "nuance": "The observable must be the last *assistant* record, not the last record of any type: a human typing into a suspected stall, and a product-generated `system/away_summary`, both reset a last-any clock without any progress having occurred.",
       "nuance_evidence": {
         "measured": "2026-08-25",
@@ -4070,6 +4070,53 @@
         "rationale": "The skill is a remap table over documented CLI knobs; re-verification is reading code.claude.com model-config + /help on the installed version, not a staged CI probe."
       },
       "strength_badge": "Unverified"
+    },
+    {
+      "id": "launch-guard-installer-is-fail-open",
+      "title": "The launch-guard installer is fail-open by construction",
+      "category": "Inventory — measured mechanisms",
+      "kind": "ravenclaude-built",
+      "order": 931,
+      "summary": "A rc-file installer for a safety mechanism must never itself be able to break the shell it protects — every write is backed up and syntax-validated before it commits.",
+      "see_also": [],
+      "widget": null,
+      "try_it": null,
+      "node_links": {},
+      "last_verified": "2026-09-08",
+      "refresh_when": null,
+      "sources": [
+        {
+          "label": "measured during the claude-launch-safeguard FORGE build (anthropics/claude-code#92932)",
+          "url": "https://github.com/anthropics/claude-code/issues/92932"
+        }
+      ],
+      "body_md": "## What a reader would have assumed instead\n\nThat an rc-file installer's own correctness is secondary to the safety mechanism it installs — that\na bug in the installer is a lesser concern than a bug in the guard itself.\n\n## The discriminator\n\ncontrol: install into a scratch zsh `$HOME` -> exactly one marker block, `bash -n`/`zsh -n` clean;\nre-run install -> block replaced in place (not duplicated), non-marker regions byte-identical;\n`--uninstall` -> rc file byte-identical to pre-install state; the guard helper deleted after install\n-> `claude --version` still works end-to-end through the real sourced shell.\n\nMeasured 2026-09-08: the installer is exactly as fail-open as the helper it installs. Every write is\npreceded by a timestamped backup and followed by a syntax validation of the resulting file before the\nedit is committed — a syntax failure restores the backup and the installer exits non-zero naming the\nfile and reason, rather than leaving a broken rc file behind.\n\n## Why it matters\n\nFalsifier: an install/re-install/uninstall cycle that leaves the rc file anything other than\nbyte-identical outside the marker span it manages, or a deleted helper breaking a real shell's\n`claude` invocation instead of falling through to the real binary.\n\nProbe: `plugins/ravenclaude-core/scripts/install_launch_guard.py`",
+      "diagram": null,
+      "diagram_mini": null,
+      "steps": [],
+      "svg": null,
+      "svg_mini": null,
+      "entry_class": "inventory",
+      "covers": [
+        "plugins/ravenclaude-core/scripts/install_launch_guard.py"
+      ],
+      "covers_digest": "sha256:05e1ab514c7920e0e4364eb022a720238ae9e864ee214ea0a4f3fa09ab71f7f0",
+      "nuance": "The installer writes into a user's real rc file, so a bug there is the worst failure mode for a safety tool. Every write is backed up first and syntax-validated before it commits.",
+      "nuance_evidence": {
+        "measured": "2026-09-08",
+        "control": "install into a scratch zsh $HOME -> exactly one marker block, bash -n/zsh -n clean; re-run install -> block replaced in place, non-marker regions byte-identical; --uninstall -> rc file byte-identical to pre-install; helper deleted after install -> claude --version still works end-to-end through the real sourced shell (fail-open, verified through the real integration point, not just the installer in isolation)",
+        "falsifier": "an install/re-install/uninstall cycle that leaves the rc file anything other than byte-identical outside the marker span, or a helper deletion that breaks a real shell's claude invocation",
+        "probe": "plugins/ravenclaude-core/scripts/install_launch_guard.py"
+      },
+      "nuance_source": "plugins/ravenclaude-core/scripts/install_launch_guard.py",
+      "verify": {
+        "tier": "effect",
+        "strength": "executed",
+        "class": "script-selftest",
+        "probe": "plugins/ravenclaude-core/scripts/install_launch_guard.py",
+        "teeth_exit": 1
+      },
+      "strength_badge": "Probed"
     }
   ]
 }

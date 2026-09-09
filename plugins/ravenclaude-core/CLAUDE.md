@@ -4706,3 +4706,72 @@ descriptions.py` lives at the marketplace root, not inside `plugins/ravenclaude-
 in an installed plugin changes on `/plugin marketplace update`). Within this repo, a PR that adds a
 new skill over its category cap, or edits an already-over-cap description to be longer, will now
 fail `audit-gates.sh` (Gate 281) where it previously only printed an informational line.
+
+## `claude-launch-safeguard` — a local defense against anthropics/claude-code#92932 (added 2026-09-08, v0.320.0)
+
+Built via `/forge` `quick` (two divergent cross-model panels — Opus architect lens, Sonnet scanner
+lens — G1-lite claims table, G3b settling, synthesis) against an in-session-diagnosed and filed
+upstream bug: a Claude Code session launched with `cwd` outside any git repo (e.g. bare `$HOME`)
+can hang indefinitely — an unscoped `rg` file-index scan hits macOS TCC-denied paths and the parent
+process hangs with no error surfaced. The root cause is in Claude Code's own closed-source binary
+and cannot be patched here; this is a local, defense-in-depth safeguard, filed upstream as
+[anthropics/claude-code#92932](https://github.com/anthropics/claude-code/issues/92932).
+
+⛔ **The pivotal G1-lite finding: this repo's own `SessionStart` hooks are documented in-repo as
+fail-silent and unable to block** (`capability-orientation.sh`'s own comment: *"Fail-silent; never
+blocks (SessionStart hooks cannot)"*). By the time any hook fires, Claude Code's own startup path —
+including the unscoped `rg` scan — may already be underway or ahead of it, and the observed hung
+instance never wrote a transcript, meaning it almost certainly never reached hook dispatch at all.
+**A hook-based safeguard is structurally insufficient; prevention has to happen at the shell level,
+before `claude` is ever exec'd.**
+
+**Two layers, four build phases:**
+
+- **P1 — `plugins/ravenclaude-core/bin/claude-launch-guard`.** A bash-3.2-safe, fail-open decision
+  helper (`check -- "$@"` → exit 0 safe / exit 10 unsafe), bounded `git rev-parse` check
+  (~2s timeout, treated identically to "git absent" on expiry), the exempt-flag list from claim #1
+  (`--safe-mode`/`--bare` are exonerated), a `RAVENCLAUDE_LAUNCH_GUARD=off` kill switch, an
+  allowlist file, and `--self-test` (14 fixtures, including a live-verified fail-open matrix: `git`
+  removed from PATH, an unreadable posture file, `HOME` unset, a deleted cwd, a stubbed sleeping
+  `git` — every one → exit 0, never 10).
+- **P2 — `plugins/ravenclaude-core/scripts/install_launch_guard.py`.** An idempotent,
+  marker-delimited shell-function installer (zsh/bash/fish — fixing rather than copying
+  `scripts/ravenclaude`'s own pre-existing bash-only `add_rc_alias()` defect), a timestamped backup
+  + syntax-validation before every rc-file write, and the four-option warn UX (Just once / This
+  session / Always allow / Deny) matching `guard-web-access.sh`'s existing pattern. Wired as
+  `scripts/ravenclaude launch-guard {install,uninstall,status}`. `command claude "$@"` on every
+  pass-through path, verified live through a real sourced shell (no infinite recursion).
+- **P3 — additive `evaluate_launch_hangs()` in `plugins/ravenclaude-core/scripts/stall_watch.py`.**
+  `evaluate()` itself is untouched (zero deletions in the diff) — it structurally cannot see this
+  failure (its `status == "idle"` skip fires before it would ever check for a missing transcript,
+  and its resolution set would auto-close any episode that got through). The new function uses a
+  separate `state["launch_episodes"]` namespace and a six-conjunct discriminator (alive, idle,
+  `statusUpdatedAt` never moved, no transcript, elapsed > 3 min, cwd not a work tree — the last one
+  cheapest-last since it's the only one that shells out). Confirmed live: a debug-log
+  `rg`/TCC-error pattern requires `--debug`, which is not the default, so it is demoted to optional
+  enrichment (P4), never a required conjunct.
+- **P4 — optional debug-log enrichment.** Gated strictly behind P3's verdict — attaches
+  `signature: "rg-tcc"` + a match count when a `--debug` log happens to exist and match, never a
+  raw matched line or path (leak-control verified live against the real production function, not a
+  synthetic copy).
+
+**Gate 282** (`scripts/check-claude-launch-safeguard.py --self-test`) — three checks: P1's own
+self-test, P2's own self-test, and the full `stall_watch.py` suite (43 assertions) passing against
+the real source **and** failing against a MUTANT that removes conjunct 3 (the `statusUpdatedAt`
+check) from `evaluate_launch_hangs()` — the teeth half, proving the healthy-idle negative control
+actually depends on that conjunct. Registered in all three required surfaces (the `--check`
+dispatcher, the main sequence, the `Supported:` string) and the `core` suite, each verified
+independently this session.
+
+Full mechanism, the empirical basis and its expiry condition, and the kill switches:
+[`knowledge/claude-launch-hang-safeguard.md`](knowledge/claude-launch-hang-safeguard.md).
+
+**Deliberately not shipped in v1:** a PATH-shim executable for non-interactive-shell coverage — this
+machine's own `PATH` had `~/.grok/bin` and two VS Code helper directories already ahead of
+`~/.local/bin`, and a stale shim surviving an uninstall would permanently hijack `claude`, a worse
+standing failure than the coverage gap Layer 2 already compensates for.
+
+**Migration:** none — opt-in via `install_launch_guard.py install` / `scripts/ravenclaude
+launch-guard install`; nothing is installed or touched by default. `stall_watch.py`'s detection
+layer is likewise inert unless `install_stall_watch.py` has been run (itself already opt-in). Both
+layers default to "present but not running."

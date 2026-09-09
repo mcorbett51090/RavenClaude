@@ -364,8 +364,11 @@ _suite_gate_tokens() { # $1=suite name -> echoes space-separated gate tokens; re
       # (skill-description linter — cap/filler/name/charset + P3 ratchet,
       # succinct-skill-descriptions P2/P3 — same generic-self-test family;
       # renumbered from 280 in the SAME merge, since origin/main's context-
-      # usage-meter gate landed on 280 first).
-      echo "1 2 8 18 46 47 92 129 173 175 193 194 195 226 267 268 269 270 271 272 273 274 275 276 277 278 279 280 281"
+      # usage-meter gate landed on 280 first). 282 (claude-launch-safeguard
+      # self-test — same generic-self-test-with-mutant-teeth family, no
+      # better-fit suite; renumbered from 281 at THIS merge, since
+      # origin/main's skill-description-linter gate landed on 281 first).
+      echo "1 2 8 18 46 47 92 129 173 175 193 194 195 226 267 268 269 270 271 272 273 274 275 276 277 278 279 280 281 282"
       ;;
     security)
       # Gaps: 24 (Track B Engine Foundation — defines DECP, consumed by
@@ -1946,9 +1949,14 @@ PY
       python3 scripts/check-skill-descriptions.py --must-fail || rc=$?
       exit $rc
       ;;
+    282)
+      echo "── Gate 282: claude-launch-safeguard (per-gate run) ──"
+      python3 scripts/check-claude-launch-safeguard.py --self-test
+      exit $?
+      ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254, 255, 256, 257, 258, 259, 260, 261, 262, 263, 264, 265, 266, 267, 268, 269, 280, 281. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254, 255, 256, 257, 258, 259, 260, 261, 262, 263, 264, 265, 266, 267, 268, 269, 280, 281, 282. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -10745,6 +10753,39 @@ if command -v python3 >/dev/null 2>&1; then
   gate "context-usage meter: model-aware window resolution + hardcoded-window-mutant teeth" must_pass "$rc"
 else
   _skip_or_fail "Gate 280 (context-usage meter model-aware)" python3
+fi
+
+echo
+echo "── Gate 282: claude-launch-safeguard (P1-P4) ───────────────────────────────"
+# From the claude-launch-safeguard build (anthropics/claude-code#92932 — an
+# unscoped rg scan hangs a Claude Code session launched with cwd outside any git
+# repo, e.g. bare $HOME, hitting macOS TCC-denied paths). Local safeguard: P1
+# plugins/ravenclaude-core/bin/claude-launch-guard (a bash-3.2-safe, fail-open
+# decision helper: exit 0 safe / exit 10 unsafe), P2
+# plugins/ravenclaude-core/scripts/install_launch_guard.py (idempotent,
+# marker-delimited shell-function installer, zsh/bash/fish), P3 an additive
+# evaluate_launch_hangs() in plugins/ravenclaude-core/scripts/stall_watch.py
+# (its own launch_episodes state namespace — evaluate() itself is untouched),
+# P4 an optional debug-log enrichment on top of P3's finding. Never fixes the
+# rg/TCC interaction itself — that is out of our hands (closed-source Claude
+# Code binary), tracked entirely by the filed upstream issue.
+# check-claude-launch-safeguard.py --self-test proves (A) P1's own --self-test
+# passes (14 fixtures incl. the fail-open matrix), (B) P2's own --self-test
+# passes (10 fixtures incl. real-shell-sourcing), and (C) the full
+# test-stall-watch.py suite passes AND fails against a MUTANT that removes
+# conjunct 3 (statusUpdatedAt <= startedAt + epsilon) from
+# evaluate_launch_hangs() — the teeth half, proving gate_250c's healthy-idle
+# negative control actually depends on that conjunct, not that the suite
+# happens to be green. ⛔ Renumbered from 281 at merge time — origin/main
+# independently claimed Gate 281 for the skill-description linter
+# (succinct-skill-descriptions P2/P3) while this branch was unmerged, the
+# same collision class this repo's CLAUDE.md already records repeatedly.
+if command -v python3 >/dev/null 2>&1; then
+  rc=0; CLS_OUT="$(python3 scripts/check-claude-launch-safeguard.py --self-test 2>&1)" || rc=$?
+  if [[ "$rc" -ne 0 ]]; then echo "$CLS_OUT"; fi
+  gate "claude-launch-safeguard: P1/P2 self-tests + P3 discriminator conjunct-3 mutant teeth" must_pass "$rc"
+else
+  _skip_or_fail "Gate 282 (claude-launch-safeguard)" python3
 fi
 
 # CLI-contract spot checks (PR-C hard constraints). Deliberately does NOT
