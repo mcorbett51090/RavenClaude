@@ -143,6 +143,19 @@ model_fallback:
 #   max_blocks: 8                     # consecutive Stop-blocks before force-allow
 #   trusted: false                    # default — first run requires `touch <path>` confirm
 
+# Skill-wiring exclusion (v0.319.0+). `ravenclaude setup --with-plugin <name>`
+# symlinks a plugin's WHOLE skills/ directory into .claude/skills/ — every
+# skill's name+description then gets injected into every Copilot Chat/CLI
+# turn (VS Code's native Agent Skills feature reads that directory live).
+# List plugins here whose skills your project doesn't need; wire_plugin_skills()
+# skips them on every setup/update — durably, unlike a one-off local prune
+# (which gets silently undone the next time you update). Plugin-level only,
+# purely additive: absent key = unchanged full-roster behavior.
+# skills:
+#   deny_plugins:
+#     - finance
+#     - web-design
+
 # Session-context handoff (quality reset before auto-compact). Absent / off =
 # silent. Ship default off so a marketplace update does not nag. Threshold is a
 # compact-pressure percent, not a quality-rot lore number (do not use 40).

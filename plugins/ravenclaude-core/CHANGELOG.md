@@ -2,6 +2,30 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.321.0 — 2026-09-09
+
+### Added
+
+- **`skills.deny_plugins` posture key — durable skill-wiring exclusion.** A consumer project can now
+  list plugin names in `.ravenclaude/comfort-posture.yaml` (`skills: { deny_plugins: [...] }`) to
+  exclude those plugins' skills from `.claude/skills/` symlinking. `wire_plugin_skills()` in
+  `scripts/ravenclaude` checks a new `is_skill_wiring_denied()` helper before wiring each plugin.
+
+  **Why this exists:** every symlinked skill under `.claude/skills/` gets its name+description
+  injected into every Copilot Chat/CLI turn (VS Code's native Agent Skills feature reads that
+  directory directly). A consumer whose project only needs 2-3 of the wired plugins had no way to
+  keep the rest out — and a local, after-the-fact pruning pass (moving symlinks aside by hand) was
+  silently undone on the very next `ravenclaude setup`/`update`, because `wire_plugin_skills()`
+  re-wires the full roster unconditionally, every time. This key makes the exclusion live *inside*
+  the wiring step itself, so it survives re-wires instead of needing to be manually re-applied.
+
+  **Purely additive:** no posture file, no `skills:` key, no `python3`, or a malformed YAML all
+  resolve to "not denied" — existing installs are unaffected unless they opt in. `ravenclaude-core`
+  itself is never deniable by this mechanism. Plugin-level granularity only (not per-skill) —
+  matches the smallest scope that solves the observed problem.
+
+  Full docs: `skills/set-posture/SKILL.md` § "Skill-wiring exclusions".
+
 ## 0.320.2 — 2026-09-09
 
 ### Fixed — doc-accuracy from 2026-09-08 repo review
