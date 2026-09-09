@@ -2,6 +2,12 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.12.8] — 2026-09-09
+
+### Fixed
+
+- Repointed broken plan-reference links in three `knowledge/` files and the `dashboard-tier-0.5-reference` template to the new `docs/plans/archive/2026-06-04-partner-success-command-center/…` locations. The 2026-09-09 plan-archive commit moved the directories without updating references, turning the required `check-md-links.py` CI gate red. Link targets only. **Migration:** none.
+
 ## [0.12.7] — 2026-08-28
 
 ### Added
