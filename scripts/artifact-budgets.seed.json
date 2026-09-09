@@ -26,6 +26,11 @@
         "launch-guard-installer-is-fail-open inventory entry (claude-launch-safeguard build, Gate 281, 2026-09-08)",
         31660,
         "The claude-launch-safeguard build (anthropics/claude-code#92932) added one new inventory concept (launch-guard-installer-is-fail-open -- covering plugins/ravenclaude-core/scripts/install_launch_guard.py, the Gate-242 inception-coverage fix for that new artifact). Measured island payload at 31,651 (over the prior 31,640 ceiling by 11). Same no-diagrams-for-inventory-entries shape as every prior wave; a pure content-size raise, not a DOM control. Re-measured on rebased HEAD (merge base a6050429c857); appended, never edited."
+      ],
+      [
+        "skill-index inventory entry (FORGE plan dynamic-skill-context, phase P0, 2026-09-08)",
+        31720,
+        "FORGE plan dynamic-skill-context's phase P0 adds one new inventory concept (skill-index-self-reference-convergence — the generator's own self-referential fixed-point bug: its first write always undercounts by one entry since it indexes its own not-yet-written output file) covering scripts/generate-skill-index.py and plugins/ravenclaude-core/skills/skill-index/SKILL.md. Measured at 31,663 island payload elements when this row was first set against a 31,640 base; re-measured again at THIS merge, appended after origin/main's own launch-guard-installer-is-fail-open row (31,660) which landed first — appended, never edited, per this file's own convention."
       ]
     ],
     "index.html": [
@@ -104,6 +109,11 @@
         "merge: forge/dashboard-starter (dashboard-top1pct FORGE plan, 21 phases) into origin/main (2026-09-08)",
         10560000,
         "MERGE-TIME RE-MEASURE. forge/dashboard-starter's dashboard-top1pct build (P2-16..P3-21: freshness badges, per-widget query tagging, light/dark theming, the scaffold script, the bi-report Case-E disposition) landed 11 new Gates (268-278) and best-practice/knowledge entries, each fine in isolation against the pre-merge ceiling. Merging origin/main's own concurrent inventory growth (through PR #1104) onto this branch regenerates dashboard.html to 10,545,871 bytes, over the prior 10,540,000 ceiling by 5,871 (island payload unchanged at 31,614 <= 31,640, see the payload table above -- a pure content-size raise, no DOM control). Re-measured on the merge commit; appended, never edited."
+      ],
+      [
+        "merge: forge/dynamic-skill-context (skill-index P0) with origin/main's claude-launch-safeguard (2026-09-08)",
+        10570000,
+        "MERGE-TIME RE-MEASURE at PR #1132's second merge into main. Combining this branch's skill-index inventory entry with origin/main's own concurrent launch-guard-installer-is-fail-open entry (each fine in isolation against the 10,560,000 ceiling) regenerates dashboard.html to 10,567,959 bytes (island payload 31,700 <= 31,720, see the raised payload ceiling above -- a pure content-size raise, no DOM control). Re-measured on the merge commit; appended, never edited."
       ]
     ],
     "index.html": [
@@ -125,5 +135,5 @@
       ]
     ]
   },
-  "measured_against": "9648490e3d076b5aa61ca2242a66cd2405f04f02"
+  "measured_against": "6a406416685336f5160f98cd0bbcbacb7f40b0eb"
 }
