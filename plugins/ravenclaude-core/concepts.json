@@ -2851,7 +2851,7 @@
       "covers": [
         "plugins/ravenclaude-core/hooks/hooks.json"
       ],
-      "covers_digest": "sha256:e8d64c4040d6260dd92dd92ece5892be080742282a213438fdd7d68af4c92e72",
+      "covers_digest": "sha256:610d06e6d3c2ba7716bb5220b49e0baa46dd4ba6639e2376124444655dc585ad",
       "nuance": "Two `additionalContext` emitters on one event concatenate rather than last-write-wins, but two `updatedToolOutput` emitters replace, so the second silently discards the first.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -3007,7 +3007,7 @@
         "scripts/inventory-nuance-judge.py",
         "plugins/ravenclaude-core/scripts/forge-receipt.py"
       ],
-      "covers_digest": "sha256:0e55aea8b1996b2a18e792ae9c9d36ea7d2cc66397d32ca8364c63f13cd93a48",
+      "covers_digest": "sha256:94a5cb723738c4dffe270ca9194a89461b52d466bb77a12b2b883d1893eda6b0",
       "nuance": "The teeth bit is the exit a tool own CHECK returns on a planted defect, never the exit `--must-fail` itself returns: `premise-gate.py` denies at `exit 0` while `sync-plugin-versions.py` reddens at `exit 2`, so an auditor that hard-codes one number can never be right for both.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -3414,7 +3414,7 @@
         "scripts/generate-dashboards.py",
         "scripts/generate-index-dashboard.py"
       ],
-      "covers_digest": "sha256:74da144116fc058bee55cb2af3e3e9c57b80b0d5430f87f44827ba0c7ba05482",
+      "covers_digest": "sha256:ef98055fb5b9fb341c31d4da2fa323083c7785bf817f463971398311f9cc514a",
       "nuance": "`ISLANDED_PANEL_COST` is a flat 2 because the parser reads the payload as CDATA, so `check-dom-budget.py` cannot fire on `learn-payload` no matter how far past 23,861 elements it grows.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -4119,6 +4119,58 @@
       "strength_badge": "Probed"
     },
     {
+      "id": "prompt-optimizer-tier0-heuristic-limit",
+      "title": "The prompt-optimizer's free pre-filter can never fully close on non-anchored prompts",
+      "category": "Inventory — measured mechanisms",
+      "kind": "ravenclaude-built",
+      "order": 931,
+      "summary": "Tier-0's zero-cost skip rule is a whitelist over sentence shape, not a semantic understanding of triviality — an adversarial reviewer can always construct one more evasive phrasing.",
+      "see_also": [],
+      "widget": null,
+      "try_it": null,
+      "node_links": {},
+      "last_verified": "2026-09-03",
+      "refresh_when": null,
+      "sources": [
+        {
+          "label": "SDD fix-loop ledger — round-2 re-review adversarial variants + the controller's ruling to close the loop with a disclosed residual rather than a round-3 fix",
+          "url": "https://github.com/mcorbett51090/RavenClaude/pull/1098"
+        }
+      ],
+      "body_md": "## What a reader would have assumed instead\n\nThat once the reviewer's 3 adversarial paraphrases (\"How do we migrate our monolith to microservices with zero downtime and full audit logging for compliance?\" and its siblings) were fixed and added as golden-set regression fixtures, the Tier-0 free pre-filter's false-skip problem was closed for good — the same way a fixed bug in ordinary code stays fixed.\n\n## The discriminator\n\ncontrol: the same 3 adversarial strings correctly TIER0_FALLTHROUGH after the `cluster_hits==0` + possessive-pronoun tightening, proving the fix closed the demonstrated instances.\n\nMeasured 2026-09-03 (round-2 re-review, agent a49c618f5d3d2c9c6): the reviewer's own three NEW adversarial variants — deliberately avoiding both signals the fix keys on (organizational-possessive pronouns and domain-keyword clusters) — still reproduce `TIER0_SKIP` on genuinely non-trivial prompts: *\"Why is the checkout process so confusing?\"*, a third-person migration question, and a tradeoffs-summary request. The fix is real (the originally-demonstrated shapes are closed and regression-gated in the 47-entry golden set), but the underlying gap — a zero-cost heuristic distinguishing \"trivial\" from \"non-trivial\" by sentence shape rather than meaning — is not closable by patching individual phrasings.\n\n## Why it matters\n\n`prompt-optimizer-gate.sh`'s Tier-0 pre-filter exists specifically so the paid Tier-1 Haiku classifier is never invoked on an obviously-trivial ask. Any whitelist-shaped rule for \"obviously trivial\" necessarily has an adversarial complement: a prompt built to avoid every signal the whitelist checks. The SDD fix loop closed this at round 2 (not round 3) via an explicit controller ruling rather than continuing to chase phrasings, because the feature ships `prompt_optimizer.enabled: false` by default, is advisory-only (`additionalContext`, never blocking), and the failure direction is a missed optimization (Tier-1 simply never fires on that turn) — identical to the feature's own off-by-default baseline for that narrow prompt shape, not a regression below it. The residual is disclosed in the script's own header comment (search for \"HONEST LIMIT\").\n\nFalsifier: a future Tier-0 rewrite that classifies by parsed intent rather than sentence-shape whitelist, which would not be defeated by a novel third-person or impersonal phrasing.",
+      "diagram": null,
+      "diagram_mini": null,
+      "steps": [],
+      "svg": null,
+      "svg_mini": null,
+      "entry_class": "inventory",
+      "covers": [
+        "plugins/ravenclaude-core/commands/optimize.md",
+        "plugins/ravenclaude-core/scripts/prompt-optimizer-dispatch.sh",
+        "plugins/ravenclaude-core/scripts/prompt-optimizer-format.py",
+        "plugins/ravenclaude-core/scripts/prompt-optimizer-gate.sh",
+        "plugins/ravenclaude-core/scripts/prompt-optimizer-judge-soak.py",
+        "plugins/ravenclaude-core/scripts/prompt-optimizer-judge-soak.sh",
+        "plugins/ravenclaude-core/scripts/prompt-optimizer-rewrite.sh",
+        "plugins/ravenclaude-core/skills/prompt-optimizer/SKILL.md",
+        "plugins/ravenclaude-core/skills/prompt-optimizer/eval/golden-set.jsonl"
+      ],
+      "covers_digest": "sha256:a25d49b45fd4be8b2b7492f50df5da0891c969b1311d403e7bb68d8caa210a34",
+      "nuance": "A whitelist-based zero-anchor skip rule can be adversarially rephrased indefinitely — closing every demonstrated instance never closes the underlying gap, because the gap is a property of matching sentence shape, not meaning.",
+      "nuance_evidence": {
+        "measured": "2026-09-03",
+        "control": "the same 3 adversarial strings correctly TIER0_FALLTHROUGH after the cluster_hits==0 + possessive-pronoun tightening, proving the fix closed the demonstrated instances",
+        "falsifier": "a future Tier-0 rewrite that classifies by parsed intent rather than sentence-shape whitelist, which would not be defeated by a novel third-person or impersonal phrasing",
+        "probe": "plugins/ravenclaude-core/scripts/prompt-optimizer-gate.sh"
+      },
+      "nuance_source": null,
+      "verify": {
+        "tier": "none",
+        "rationale": "The residual is a structural property of a zero-network-call, zero-cost heuristic (not a coding defect) — closing it fully requires either always paying for a Tier-1 call on every zero-anchor prompt (defeating the whole point of a free tier) or an open-ended keyword arms race. Re-verifying it means adversarially rephrasing a prompt, which is exactly the human judgment call already made and recorded in the SDD fix-loop ruling, not a stageable CI check."
+      },
+      "strength_badge": "Unverified"
+    },
+    {
       "id": "skill-index-self-reference-convergence",
       "title": "The skill-index generator indexes its own output, so the first write always undercounts by one",
       "category": "Inventory — measured mechanisms",
@@ -4148,7 +4200,7 @@
         "scripts/generate-skill-index.py",
         "plugins/ravenclaude-core/skills/skill-index/SKILL.md"
       ],
-      "covers_digest": "sha256:25dd815fa3f77c1998287ea9fe91f7cc282bb98906d30323227f8491ab2bb2a9",
+      "covers_digest": "sha256:19cec9c7dc5850d05580c0cec5175da60d293d0411ecca993b86bd7e62a9d68a",
       "nuance": "The generator discovers skills by globbing plugins/*/skills/*/SKILL.md, and its own output file matches that glob. On a fresh repo the first write cannot see itself (the file does not exist yet), so it writes N entries; running it again now finds N+1 (itself included) and writes THAT count -- a fixed point reached on the second pass, never the first.",
       "nuance_evidence": {
         "measured": "2026-09-08",
@@ -4164,6 +4216,50 @@
         "teeth_exit": 2
       },
       "strength_badge": "Observed"
+    },
+    {
+      "id": "hooks-selftest-crashes-on-a-per-host-generator-error",
+      "title": "`rc hooks selftest` crashes the whole run on one host's generator error",
+      "category": "Inventory — measured mechanisms",
+      "kind": "ravenclaude-built",
+      "order": 932,
+      "summary": "A single host projector (e.g. generate-gemini-hooks.py) raising a hard error takes down the entire multi-host selftest, not just that host's row.",
+      "see_also": [],
+      "widget": null,
+      "try_it": null,
+      "node_links": {},
+      "last_verified": "2026-09-08",
+      "refresh_when": null,
+      "sources": [
+        {
+          "label": "reproduced live during the forge/prompt-optimizer merge into origin/main, this session — traceback ending in generate-gemini-hooks.py's CalledProcessError, root-caused to a missing skip-map entry, fixed there",
+          "url": "https://github.com/mcorbett51090/RavenClaude/pull/1098"
+        }
+      ],
+      "body_md": "## What a reader would have assumed instead\n\nThat `rc hooks selftest`'s per-host design (one row per host, each independently marked PASS/FAIL/TIER) means a single host's evaluation failing would show up as one red row while every other host's row still renders — the same isolation the tool's own `--json` schema (`{host, declared_tier, achieved_tier, wired_set, runtime, verdict}` per row) implies.\n\n## The discriminator\n\ncontrol: with the underlying generator fixed (a missing skip-map entry added), the identical `rc hooks selftest --json` invocation completes cleanly with a full per-host row set and Gate 266's Phase 8 assertions (A8.1-A8.7) all pass.\n\nMeasured 2026-09-08: merging `forge/prompt-optimizer`'s new `hooks.json` entry (a `UserPromptSubmit` registration with no corresponding Gemini skip-map or lane) into `origin/main` made `bash plugins/ravenclaude-core/bin/rc hooks selftest --json` crash outright with an uncaught `subprocess.CalledProcessError` from deep inside `_wired_set_check` -> `_extract_gemini` -> `_run_host_generator` -> `generate-gemini-hooks.py`. The traceback took down the WHOLE command, not just Gemini's row — `Gate 266: Phase 8 on-demand front door` failed all 8 of its A8.x assertions in the same run, because the tool never got far enough to emit its `--json` array at all.\n\n## Why it matters\n\nA cross-host self-test whose failure mode is \"the entire tool crashes\" rather than \"one row reports FAIL\" hides exactly the information an operator needs most: which host is broken and why. In this instance the underlying cause (a hook registered with no per-host skip-map entry) was itself a real, separate, already-documented failure mode in `generate-gemini-hooks.py` (see its own `_SKIP` dict and header comment) — but `hooks-selftest.py`'s lack of per-host exception isolation meant that one omission escalated from \"Gemini's row would show a clear projector error\" into \"the whole selftest front door is down,\" which is a materially worse failure for anyone trying to diagnose it from the tool's own output alone.\n\nFalsifier: a future `hooks-selftest.py` revision that wraps each host's extractor call and reports a per-host FAIL row instead of raising.",
+      "diagram": null,
+      "diagram_mini": null,
+      "steps": [],
+      "svg": null,
+      "svg_mini": null,
+      "entry_class": "inventory",
+      "covers": [
+        "plugins/ravenclaude-core/scripts/hooks-selftest.py"
+      ],
+      "covers_digest": "sha256:8fb6a243abe0319347a963522d9373d9abe28b0506f3d90c0a45410aabdacd23",
+      "nuance": "hooks-selftest.py's per-host loop calls each host's `check-sessionstart-matcher-regression.py` extractor via a bare subprocess.run(..., check=True) with no try/except — one host's generator raising CalledProcessError propagates as an uncaught traceback that aborts every OTHER host's row too, not just the failing host's.",
+      "nuance_evidence": {
+        "measured": "2026-09-08",
+        "control": "with the underlying generator fixed (a missing skip-map entry added), the identical `rc hooks selftest --json` invocation completes cleanly with a full per-host row set and Gate 266's Phase 8 assertions (A8.1-A8.7) all pass",
+        "falsifier": "a future hooks-selftest.py revision that wraps each host's extractor call and reports a per-host FAIL row instead of raising",
+        "probe": "plugins/ravenclaude-core/scripts/hooks-selftest.py"
+      },
+      "nuance_source": null,
+      "verify": {
+        "tier": "none",
+        "rationale": "The failure mode is a real, reproduced crash (a genuine forge/prompt-optimizer merge into origin/main triggered it live via a newly-added hooks.json entry with no Gemini skip-map coverage), but the fix that would close this nuance permanently — per-host exception isolation inside hooks-selftest.py itself — is a design change to a file this entry's author did not write and has not modified; staging a CI check for it here would assert a fix that was not made."
+      },
+      "strength_badge": "Unverified"
     }
   ]
 }

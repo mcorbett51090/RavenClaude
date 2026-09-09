@@ -10,6 +10,7 @@ Failure classes:
 
 Never SKIP. Stdout is case_id + class only — never echo attack stubs.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -287,6 +288,7 @@ def run_subset(subset_id: str) -> dict:
                 {"case_id": case_id, "foil": "fail", "class": fc or "RUBRIC_REGRESS"}
             )
 
+
     foil_ok = 16 - len(findings)
     foil_bad = len(findings)
     job_pass = foil_bad == 0 and len(case_ids) == 8
@@ -357,11 +359,7 @@ def write_reports(report: dict) -> tuple[Path, Path, Path]:
         for foil in ("pass", "fail"):
             tc = ET.SubElement(suite, "testcase", classname=case_id, name=foil)
             hit = next(
-                (
-                    f
-                    for f in report["findings"]
-                    if f["case_id"] == case_id and f["foil"] == foil
-                ),
+                (f for f in report["findings"] if f["case_id"] == case_id and f["foil"] == foil),
                 None,
             )
             if hit:
