@@ -213,7 +213,7 @@ The pin survives `/plugin marketplace update` — the pinned SHA is the catalog'
 | Skills | 58 | `plugins/ravenclaude-core/skills/` — see the plugin's own [README](plugins/ravenclaude-core/README.md) for the full, gate-checked list |
 | Hooks | 51 | `plugins/ravenclaude-core/hooks/` — see the plugin's own [README](plugins/ravenclaude-core/README.md) for the full, gate-checked list |
 | Rules | 5 (coding-standards, security, git-workflow, agent-collaboration, terminal-copy-to-tempfile) | `plugins/ravenclaude-core/rules/` |
-| Commands | 9 (`/init-agent-ready`, `/dashboard`, `/set-posture`, `/wrap`, `/forge`, `/stream`, `/handoff`, `/reset-plugin-cache` (alias `/ragnarok`)) | `plugins/ravenclaude-core/commands/` |
+| Commands | 9 (`/init-agent-ready`, `/dashboard`, `/set-posture`, `/wrap`, `/forge`, `/stream`, `/handoff`, `/repo-review`, `/reset-plugin-cache` (alias `/ragnarok`)) | `plugins/ravenclaude-core/commands/` |
 | Templates | memos, runbooks, design specs, RAID logs, partner-success artifacts, agent-ready-repo scaffold | `plugins/ravenclaude-core/templates/` |
 
 The team rules ship inside the plugin as [`plugins/ravenclaude-core/CLAUDE.md`](plugins/ravenclaude-core/CLAUDE.md). Copy or adapt that into your consumer project's root `CLAUDE.md` and fill in your project's stack-specific gates (formatter, linter, type-checker, test runner).

@@ -2,6 +2,17 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.320.2 — 2026-09-09
+
+### Fixed — doc-accuracy from 2026-09-08 repo review
+
+- `dependency-update-sweep` SKILL no longer documents a nonexistent `queue --host` subcommand
+  (queue rows are written by `apply`).
+- Root README command list now includes `/repo-review`.
+- `/repo-review` "Related artifacts" links now resolve from the command file.
+
+**Migration:** none — documentation only.
+
 ## 0.320.1 — 2026-09-09
 
 ### Fixed — broken relative links after the plan-archive move

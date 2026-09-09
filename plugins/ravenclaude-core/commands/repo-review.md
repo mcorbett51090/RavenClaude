@@ -61,11 +61,11 @@ redundant, not an error.
 ## Related artifacts
 
 - Skill: [`skills/repo-review/SKILL.md`](../skills/repo-review/SKILL.md)
-- Dimension prompts: `skills/repo-review/reference/dimensions.md`
-- Chunker: `scripts/repo_map.py`
-- Cache: `scripts/review_cache.py`
-- Merge: `scripts/findings_merge.py`
-- Cost estimator: `scripts/estimate_cost.py`
-- Workflow: `workflows/repo-sweep.workflow.js`
-- Fixture repo: `tests/fixtures/repo-review/mini-repo/`
-- Plan schema: `schemas/repo-review-plan.schema.json`
+- Dimension prompts: [`skills/repo-review/reference/dimensions.md`](../skills/repo-review/reference/dimensions.md)
+- Chunker: [`skills/repo-review/scripts/repo_map.py`](../skills/repo-review/scripts/repo_map.py)
+- Cache: [`skills/repo-review/scripts/review_cache.py`](../skills/repo-review/scripts/review_cache.py)
+- Merge: [`skills/repo-review/scripts/findings_merge.py`](../skills/repo-review/scripts/findings_merge.py)
+- Cost estimator: [`skills/repo-review/scripts/estimate_cost.py`](../skills/repo-review/scripts/estimate_cost.py)
+- Workflow: [`skills/repo-review/workflows/repo-sweep.workflow.js`](../skills/repo-review/workflows/repo-sweep.workflow.js)
+- Fixture repo (at marketplace root): [`tests/fixtures/repo-review/mini-repo/`](../../../tests/fixtures/repo-review/mini-repo/)
+- Plan schema (at marketplace root): [`schemas/repo-review-plan.schema.json`](../../../schemas/repo-review-plan.schema.json)
