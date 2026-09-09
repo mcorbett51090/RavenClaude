@@ -4887,7 +4887,7 @@ merges only) and Task 2.4's two `deny_patterns` additions (a destructive DELETE-
 tribunal-adjacent security tooling, so unlike `coordinator-lock.sh` a directory relocation would be a
 real circumvention of `THING_SUBSTRATE`, not a content-neutral choice. The exact patch, the 3-case
 acceptance fixture, and the full diagnosis are staged at
-[`.ravenclaude/runs/source-control-coordinator/pending-human-action/guard-destructive-merge-patch.md`](../../.ravenclaude/runs/source-control-coordinator/pending-human-action/guard-destructive-merge-patch.md)
+[`docs/pending-guard-destructive-merge-patch.md`](../../docs/pending-guard-destructive-merge-patch.md)
 for a human (or a differently-configured session with working `gh` GraphQL access, or the dashboard's
 own posture editor) to apply directly. This is also **PR 1** of the plan's own 2-PR rollout split (§5)
 — it must land, alone, before the rest of this feature is safe to enable anywhere as `active`.

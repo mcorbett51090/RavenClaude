@@ -183,7 +183,7 @@ force-flag merge, in any flag order, or a local non-fast-forward merge into a pr
 does **not** deny your own ordinary, sanctioned `gh pr merge <n> --squash --delete-branch` invocation,
 which is gated instead by the authoritative pre-merge check above, not by that hook. **⛔ This patch is
 staged but NOT YET LANDED** — see
-[`.ravenclaude/runs/source-control-coordinator/pending-human-action/guard-destructive-merge-patch.md`](../../../.ravenclaude/runs/source-control-coordinator/pending-human-action/guard-destructive-merge-patch.md).
+[`docs/pending-guard-destructive-merge-patch.md`](../../../docs/pending-guard-destructive-merge-patch.md).
 Do not honor `source_control_coordinator: active` in any repo until it has. (2) `active` mode
 is not a safe value in any repo whose `runaway`/`definition_of_done` are unconfigured — see the
 precondition above.
