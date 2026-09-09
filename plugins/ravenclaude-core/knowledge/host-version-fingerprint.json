@@ -1,48 +1,80 @@
 {
-  "_note": "SSOT for 'what host version was this repo last checked against'. hosts{} key set is\nread live from host-support.json at sweep time, not hand-maintained here (T1) -- this\nfile's keys mirror that file's keys as of the last time this file was regenerated.\nWritten only by dependency-sweep.py's apply step, always in the same commit as the\ncontent fixes it reports on (mitigation 2, plan.md Phase 4 step 5). null is the honest\nstarting state for a never-swept host.",
+  "_note": "SSOT for 'what host version was this repo last checked against'. hosts{} key set is\nread live from host-support.json at sweep time, not hand-maintained here (T1) -- this\nfile's keys mirror that file's keys as of the last time this file was regenerated.\nWritten only by dependency-sweep.py's apply step, always in the same commit as the\ncontent fixes it reports on (mitigation 2, plan.md Phase 4 step 5). null is the honest\nstarting state for a never-swept host. version_history is an append-only log of the\nDISTINCT versions this host has been swept at (one row per real transition, never one\nper run -- a re-confirm with no change does not duplicate the last row), capped at\n_VERSION_HISTORY_CAP in dependency-sweep.py. apply's --old-version now defaults to this\nfile's own last_swept_version for the host when the caller omits the flag, instead of\nsilently treating an omission as 'no prior version' (mitigation A).",
   "schema_version": 1,
   "hosts": {
     "claude-code": {
       "last_swept_version": "2.1.266",
       "last_checked_at": "2026-09-09",
       "last_change_detected_at": null,
-      "written_by": "dependency-sweep.py v1"
+      "written_by": "dependency-sweep.py v1",
+      "version_history": [
+        {
+          "version": "2.1.266",
+          "recorded_at": "2026-09-09"
+        }
+      ]
     },
     "copilot": {
       "last_swept_version": "1.0.83",
       "last_checked_at": "2026-09-09",
       "last_change_detected_at": null,
-      "written_by": "dependency-sweep.py v1"
+      "written_by": "dependency-sweep.py v1",
+      "version_history": [
+        {
+          "version": "1.0.83",
+          "recorded_at": "2026-09-09"
+        }
+      ]
     },
     "codex": {
       "last_swept_version": "0.153.4",
       "last_checked_at": "2026-09-09",
       "last_change_detected_at": null,
-      "written_by": "dependency-sweep.py v1"
+      "written_by": "dependency-sweep.py v1",
+      "version_history": [
+        {
+          "version": "0.153.4",
+          "recorded_at": "2026-09-09"
+        }
+      ]
     },
     "cursor": {
       "last_swept_version": null,
       "last_checked_at": null,
       "last_change_detected_at": null,
-      "written_by": null
+      "written_by": null,
+      "version_history": []
     },
     "gemini": {
       "last_swept_version": "0.59.0",
       "last_checked_at": "2026-09-09",
       "last_change_detected_at": null,
-      "written_by": "dependency-sweep.py v1"
+      "written_by": "dependency-sweep.py v1",
+      "version_history": [
+        {
+          "version": "0.59.0",
+          "recorded_at": "2026-09-09"
+        }
+      ]
     },
     "aider": {
       "last_swept_version": "0.86.2",
       "last_checked_at": "2026-09-09",
       "last_change_detected_at": null,
-      "written_by": "dependency-sweep.py v1"
+      "written_by": "dependency-sweep.py v1",
+      "version_history": [
+        {
+          "version": "0.86.2",
+          "recorded_at": "2026-09-09"
+        }
+      ]
     },
     "windsurf": {
       "last_swept_version": null,
       "last_checked_at": null,
       "last_change_detected_at": null,
-      "written_by": null
+      "written_by": null,
+      "version_history": []
     }
   }
 }
