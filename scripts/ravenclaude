@@ -25,6 +25,10 @@
 #   ravenclaude init-agent-ci [--project DIR] [--only <list>] [--force]
 #                                         scaffold the agent-in-CI GitHub protocol templates into a repo
 #                                         (host-agnostic; --only cherry-picks; never overwrites without --force)
+#   ravenclaude launch-guard {install|uninstall|status} [--shell zsh|bash|fish]
+#                                         wire/remove the claude-launch-safeguard shell function
+#                                         (warns before a `claude` launch outside a git work tree —
+#                                         see plugins/ravenclaude-core/scripts/install_launch_guard.py)
 #
 # Re-running any subcommand is safe (idempotent). After `update`, run `/skills reload`
 # in your Copilot session (or relaunch) to pick up changes — no re-install ever.
@@ -1680,6 +1684,32 @@ cmd_repair() {
   fi
 }
 
+# cmd_launch_guard <install|uninstall|status> [--shell zsh|bash|fish]
+#
+# Thin dispatch to install_launch_guard.py (the claude-launch-safeguard P2
+# installer) — matches this file's existing shape (a thin CLI verb over a real
+# implementation script, e.g. `dashboard` -> serve-dashboards.py). No shell
+# detection, marker-splice, or backup logic is duplicated here; that all lives
+# in the installer, which also has its own --self-test.
+cmd_launch_guard() {
+  local sub="${1:-}"
+  shift 2>/dev/null || true
+  local script="$CORE/scripts/install_launch_guard.py"
+  if [ ! -f "$script" ]; then
+    warn "install_launch_guard.py missing — run 'ravenclaude update' first"
+    return 1
+  fi
+  case "$sub" in
+    install)   python3 "$script" install "$@" ;;
+    uninstall) python3 "$script" --uninstall "$@" ;;
+    status)    python3 "$script" status "$@" ;;
+    *)
+      printf 'usage: ravenclaude launch-guard {install|uninstall|status} [--shell zsh|bash|fish]\n'
+      return 2
+      ;;
+  esac
+}
+
 case "${1:-}" in
   setup)          shift; cmd_setup "$@" ;;
   install)        shift; cmd_install "$@" ;;
@@ -1688,7 +1718,8 @@ case "${1:-}" in
   dashboard)      shift; cmd_dashboard "$@" ;;
   doctor)         shift; cmd_doctor "$@" ;;
   repair)         shift; cmd_repair "$@" ;;
+  launch-guard)   shift; cmd_launch_guard "$@" ;;
   init-codespace) shift; cmd_init_codespace "$@" ;;
   init-agent-ci)  shift; cmd_init_agent_ci "$@" ;;
-  *) printf 'usage: ravenclaude {setup|install|update|status|dashboard|doctor|repair|init-codespace|init-agent-ci} [--project DIR]\n'; exit 2 ;;
+  *) printf 'usage: ravenclaude {setup|install|update|status|dashboard|doctor|repair|launch-guard|init-codespace|init-agent-ci} [--project DIR]\n'; exit 2 ;;
 esac

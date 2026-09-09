@@ -3092,6 +3092,42 @@ _Last verified: 2026-09-05_
 
 ---
 
+### The launch-guard installer is fail-open by construction · _RavenClaude-built_
+
+> A rc-file installer for a safety mechanism must never itself be able to break the shell it protects — every write is backed up and syntax-validated before it commits.
+
+## What a reader would have assumed instead
+
+That an rc-file installer's own correctness is secondary to the safety mechanism it installs — that
+a bug in the installer is a lesser concern than a bug in the guard itself.
+
+## The discriminator
+
+control: install into a scratch zsh `$HOME` -> exactly one marker block, `bash -n`/`zsh -n` clean;
+re-run install -> block replaced in place (not duplicated), non-marker regions byte-identical;
+`--uninstall` -> rc file byte-identical to pre-install state; the guard helper deleted after install
+-> `claude --version` still works end-to-end through the real sourced shell.
+
+Measured 2026-09-08: the installer is exactly as fail-open as the helper it installs. Every write is
+preceded by a timestamped backup and followed by a syntax validation of the resulting file before the
+edit is committed — a syntax failure restores the backup and the installer exits non-zero naming the
+file and reason, rather than leaving a broken rc file behind.
+
+## Why it matters
+
+Falsifier: an install/re-install/uninstall cycle that leaves the rc file anything other than
+byte-identical outside the marker span it manages, or a deleted helper breaking a real shell's
+`claude` invocation instead of falling through to the real binary.
+
+Probe: `plugins/ravenclaude-core/scripts/install_launch_guard.py`
+
+**Sources:** [measured during the claude-launch-safeguard FORGE build (anthropics/claude-code#92932)](https://github.com/anthropics/claude-code/issues/92932)
+
+_Last verified: 2026-09-08_
+
+
+---
+
 ### The skill-index generator indexes its own output, so the first write always undercounts by one · _RavenClaude-built_
 
 > generate-skill-index.py's first write omits its own not-yet-written output file from the count; a second run is required to converge on a stable total.
