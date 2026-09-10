@@ -7,6 +7,19 @@
 
 This is a **triage queue**, not a build plan. Each row is one close action. Do not re-scan the tree — act from this list, then mark the row done in a follow-up commit.
 
+## Done this session (2026-09-10, no owner decision needed)
+
+| Item | What happened |
+|---|---|
+| Cloud Agent environment | Install is healthy (`ruff 0.15.8`, `actionlint 1.7.7`, `jsonschema`). Dashboard was **not** listening on this warm-fork; started `scripts/serve-dashboards.py` on `:8000` (HTTP 302). Re-ran `.cursor/install.sh` — idempotent, exit 0. Linked env: [037289df-a87c-11f1-b532-320a589b8025](https://cursor.com/dashboard/cloud-agents/environments/e/037289df-a87c-11f1-b532-320a589b8025). Booted from build `bld-20260910-d1a9db3d-b70d-4f1c-b68f-587144bf7c72` (SUCCEEDED). **No environment.json change proposed** — config already matches the working install. |
+| `docs/norns-lineage-view-tee-up.md` | Stamped **SHIPPED**. |
+| `docs/vidarr-posture-log-tee-up.md` | Stamped **SHIPPED**. |
+| Analog leftovers Q2 | Marked **SHIPPED** — `analog-closeness-scorecard` skill is on disk. |
+| `docs/plugin-roadmap-2026-07.md` | Table now matches disk (P3/P4/P5/P7/P10 built; P6/P8/P9 still missing). |
+| PR #1152 CI re-trigger | `gh workflow run` → **HTTP 403** (`Resource not accessible by integration`). GitHub status page clean. Needs a token with `actions:write`, or a push from a surface that auto-fires `pull_request`. |
+
+**Not stamped:** `docs/ragnarok-reset-plugin-cache-tee-up.md` — command-review hard-denied the edit (`xc.ragnarok-non-user-invocation`). Feature is still shipped on disk; leave the tee-up file until a human edits it.
+
 ---
 
 ## How to use this
@@ -95,7 +108,7 @@ These four still say **TEE-UP (not started)** in the opening line. Knowledge fil
 |---|---|
 | `docs/vidarr-posture-log-tee-up.md` | Víðarr tab + reader shipped (core knowledge `concepts/vidarr.md`) |
 | `docs/norns-lineage-view-tee-up.md` | Norns tab + live endpoint shipped |
-| `docs/ragnarok-reset-plugin-cache-tee-up.md` | `/reset-plugin-cache` (`/ragnarok`) shipped |
+| `docs/ragnarok-reset-plugin-cache-tee-up.md` | Plugin-cache reset command shipped. **Tee-up file still says TEE-UP** — a 2026-09-10 stamp was denied by command-review (`xc.ragnarok-non-user-invocation`). Human edit only. |
 | `docs/route-permission-awareness-tee-up.md` | Still analysis-only — keep **or** fold into a host-support note |
 
 ### Design drafts with no ship commitment

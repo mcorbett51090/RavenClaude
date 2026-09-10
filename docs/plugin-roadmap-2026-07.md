@@ -30,14 +30,14 @@ Ranked on two axes:
 |---|---|---|---|---|---|
 | 1 | **med-spa-aesthetics** | SMB vertical-ops | High (fast-growing sector) | High (zero overlap, clean fit) | **P1 — built** |
 | 2 | **craft-beverage-operations** | SMB vertical-ops | High (large SMB category) | High (zero overlap) | **P2 — built** |
-| 3 | **self-storage-operations** | SMB vertical-ops | High (large asset class) | High (zero overlap) | P3 |
-| 4 | **community-association-management** | SMB vertical-ops | High (HOA/COA ubiquity) | Med (seam vs property-management) | P4 |
-| 5 | **media-streaming-engineering** | Engineering-team | Med-High | High (zero overlap) | P5 |
-| 6 | **urgent-care-operations** | SMB vertical-ops | Med-High | Med (seam vs medical-revenue-cycle) | P6 |
-| 7 | **chaos-resilience-engineering** | Engineering-team | Med | Med (seam vs observability-sre) | P7 |
-| 8 | **franchise-multi-unit-operations** | SMB vertical-ops | Med | Med (seam vs retail/restaurant) | P8 |
-| 9 | **moving-relocation-operations** | SMB vertical-ops | Med | High (zero overlap) | P9 |
-| 10 | **funeral-home-operations** | SMB vertical-ops | Med | High (zero overlap) | P10 |
+| 3 | **self-storage-operations** | SMB vertical-ops | High (large asset class) | High (zero overlap) | **P3 — built** (`plugins/self-storage-operations/`) |
+| 4 | **community-association-management** | SMB vertical-ops | High (HOA/COA ubiquity) | Med (seam vs property-management) | **P4 — built** as `hoa-community-association-management` |
+| 5 | **media-streaming-engineering** | Engineering-team | Med-High | High (zero overlap) | **P5 — built** as `streaming-media-engineering` (#551) |
+| 6 | **urgent-care-operations** | SMB vertical-ops | Med-High | Med (seam vs medical-revenue-cycle) | P6 — **still missing** |
+| 7 | **chaos-resilience-engineering** | Engineering-team | Med | Med (seam vs observability-sre) | **P7 — built** as `chaos-engineering-resilience` |
+| 8 | **franchise-multi-unit-operations** | SMB vertical-ops | Med | Med (seam vs retail/restaurant) | P8 — **still missing** |
+| 9 | **moving-relocation-operations** | SMB vertical-ops | Med | High (zero overlap) | P9 — **still missing** |
+| 10 | **funeral-home-operations** | SMB vertical-ops | Med | High (zero overlap) | **P10 — built** (`plugins/funeral-home-operations/`) |
 
 The two built first (P1/P2) are the highest-demand candidates that **also** have zero overlap and the cleanest template fit — the combination that maximizes value-per-authoring-risk in an unattended build.
 
@@ -121,4 +121,4 @@ The two built first (P1/P2) are the highest-demand candidates that **also** have
 - **Scope honesty:** all ten to full quality in one unattended run would dilute the repo's citation/cross-reference bar, so P1/P2 are built completely (gate-passing) and P3–P10 are scoped here as the backlog. Each backlog item is a known-good template instantiation — the authoring risk is low, the work is volume.
 - Every built/planned plugin is **operations or engineering decision-support**, stores **no PII**, and **flags** (never decides) legal/tax/clinical/regulatory questions — consistent with the marketplace's standing scope discipline.
 
-_Last reviewed: 2026-07-04 by `claude` (scheduled routine)._
+_Last reviewed: 2026-07-04 by `claude` (scheduled routine). Disk check 2026-09-10: P3/P4/P5/P7/P10 have shipped under the names in the table; P6/P8/P9 are the remaining backlog._

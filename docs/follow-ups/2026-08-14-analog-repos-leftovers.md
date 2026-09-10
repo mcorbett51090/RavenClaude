@@ -53,13 +53,11 @@ Next plugin-touching PR verifies HEAD and bumps to **0.270.0**. Do not reuse 0.2
 
 **Queue row:** [pr-queue.md](../plans/archive/2026-08-14-analog-repos-gap-fill/pr-queue.md) Q1.
 
-### 2. Q2 — analog closeness scorecard skill
+### 2. Q2 — analog closeness scorecard skill — SHIPPED
 
-**Trigger to unpark:** owner asks for the scorecard. Surface budget for the analog increment already spent the one counted class (the WebFetch hook).
+**Closed 2026-09-10.** Skill exists at `plugins/ravenclaude-core/skills/analog-closeness-scorecard/` (`SKILL.md` + `score_closeness.py`). Do not re-build. The leftover trigger below is historical.
 
-**What it is:** a skill that recomputes M/H/G/O/E/I/T/V + closeness from analog evidence. Must-fail fixture required.
-
-**What it is not:** a fourth analog fill. Not a reason to add a hook.
+**Was:** owner asks for the scorecard. Surface budget for the analog increment already spent the one counted class (the WebFetch hook).
 
 **Queue row:** pr-queue.md Q2.
 
