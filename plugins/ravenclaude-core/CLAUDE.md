@@ -4949,3 +4949,31 @@ the old numbers would have undercounted its true cost by up to 2x on a cold cach
 (`--cache-hit-rate 0.0`) is the conservative, correct-for-a-first-run assumption. No flag, gate, or
 artifact path changed; a caller who knows their cache is warm can pass `--cache-hit-rate 1.0` to
 recover the old (narrower) estimate.
+
+## `/repo-review` gains a documented recovery procedure for a mid-run dispatch failure (added 2026-09-10, v0.321.2)
+
+The same `high`-tier run that motivated the `estimate_cost.py` fix above hit a **second** failure
+after being resized correctly: it survived the Workflow tool's hard call cap, but a real Claude
+**session usage limit** (a subscription-tier ceiling, distinct from the tool's own cap) tripped
+mid-Review, and the workflow's own Merge agent then also failed on the same limit — so the run
+reported total failure (`{"error": "Merge phase failed... findings_merge.py did not return a
+usable receipt."}`) with no hint that anything had actually been produced.
+
+It had: every completed review agent writes its findings shard to disk **before** returning its
+receipt, so the failure at Merge did not erase the ~499 agents' worth of work that preceded it.
+Confirmed by hand: `python3 scripts/findings_merge.py --in <findingsDir> --out <path> --cap 0
+--near-dup-policy keep-separate` — no agent dispatch, just the same deterministic command the
+failed Merge agent would have run — recovered **258 real, deduped survivors from 201 shard files**
+(42 of them P1, against real marketplace code, not the skill's own test fixtures).
+
+**Codified into `SKILL.md`** as a new "Recovering from a mid-run dispatch failure" section (between
+Mechanism and §6 Honest status) — the four-step procedure (find the `findings/` dir → run
+`findings_merge.py` by hand, uncapped → report it as **unverified** — no Verify pass ran on a
+hand-recovered merge — → distinguish "the tool's hard cap tripped, shrink the run" from "an
+external session-usage wall tripped, the scope was probably fine, just recover and maybe resume
+later"). `repo-sweep.workflow.js`'s own Merge-failure error string now names the findings dir and
+points at this section directly, so a session that hits this failure reads the recovery path in the
+error message itself rather than needing to already know it exists.
+
+**Migration:** none — additive documentation + a longer (still single-line) error message on one
+already-failing path; no gate, schema, flag, or artifact path changed.

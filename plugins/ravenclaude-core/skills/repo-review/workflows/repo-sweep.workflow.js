@@ -1045,7 +1045,13 @@ while (iteration < MAX_ITERATIONS) {
 
   if (!mergeReceipt || !mergeReceipt.artifact) {
     return {
-      error: `Merge phase failed at iteration ${iteration} — findings_merge.py did not return a usable receipt.`,
+      error:
+        `Merge phase failed at iteration ${iteration} — findings_merge.py did not return a usable receipt. ` +
+        `This does NOT mean the review work was lost — every completed review agent already wrote its ` +
+        `shard to ${findingsDir}/ before this failure. Before re-dispatching, check that directory and, ` +
+        `if it has shards, run findings_merge.py over it BY HAND to recover them (uncapped, mark the ` +
+        `result unverified — no Verify pass ran on a hand-recovered merge). See SKILL.md § "Recovering ` +
+        `from a mid-run dispatch failure".`,
     };
   }
 

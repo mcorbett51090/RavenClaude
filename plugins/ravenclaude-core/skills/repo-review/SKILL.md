@@ -180,6 +180,53 @@ also what a normal run consults first to decide whether `--full` at the requeste
 before dispatching a single review agent. When `--converge` is set, the Review→Merge→Verify→Fix span
 loops (see [§ Convergence loop](#convergence-loop---converge) above) instead of running once.
 
+## Recovering from a mid-run dispatch failure
+
+**A failed Workflow run is not necessarily a lost run.** Every review agent writes its findings
+shard to disk (`<findingsDir>/<dimension>.<model>.<batchId>.json`) **before** it returns its
+receipt — that write happens whether or not the *next* step in the pipeline (another review batch,
+the Merge dispatch, anything downstream) ever succeeds. So when a run fails partway — a Claude
+**session usage limit** (`"You've hit your session limit · resets <time>"`, distinct from the
+Workflow tool's own 1000-`agent()`-call hard cap), a transient dispatch error, or any other
+mid-Review/mid-Merge failure — **check for recoverable shards before treating the run as a total
+loss and re-dispatching from scratch.**
+
+The recovery procedure, in order:
+
+1. **Find the run dir's `findings/` directory** — `.ravenclaude/runs/<runId>/findings/` (or
+   `findings-iter<N>/` for a `--converge` run past iteration 1). Count what's there:
+   `find <findingsDir> -type f | wc -l`. A non-trivial count means real review work survived the
+   failure, even if the workflow's own top-level result was `{"error": "..."}`.
+2. **Run `findings_merge.py` directly, by hand** — the same command the failed Merge agent would
+   have run, no agent dispatch required:
+   ```
+   python3 scripts/findings_merge.py --in <findingsDir> --out <recoveredPath> \
+     --cap 0 --near-dup-policy keep-separate
+   ```
+   `--cap 0` (uncapped) is deliberate for a recovery pass — see everything that survived dedup, not
+   just what a tier's default cap would have kept.
+3. **State the recovery honestly in whatever you report.** Recovered findings have **not** been
+   through the pipeline's adversarial Verify step (no second model re-read anything), so they are
+   **raw Review + deterministic-Merge output only** — real dedup, real near-dup flagging, but
+   **unverified**. Say so explicitly; never present a hand-recovered merge as if it had the same
+   confidence as a completed run's Verify-gated survivors.
+4. **Distinguish the two failure classes when deciding whether to re-dispatch anything.** A
+   `WorkflowAgentCapError` (the tool's hard 1000-call ceiling) means the *scope* was too large for
+   the args given — reduce `budgetBatches` before trying again (see the estimate_cost.py
+   `WORKFLOW_AGENT_CALL_HARD_CAP` clamp, which now refuses to recommend a config that would trip
+   this). A session-usage-limit failure means the *scope was probably fine* and the wall was
+   external (a subscription-tier limit with its own reset time) — recovering the completed shards
+   and either stopping there or resuming later (once the limit resets) is usually the right move,
+   not re-sizing the run down.
+
+This is not a new pipeline phase and needs no new flag — it is a manual fallback for the one shape
+of failure the Workflow tool's own error surface doesn't help with (a top-level `{"error": ...}`
+result says nothing about what already landed on disk). A real incident that motivated writing this
+down: a `high`-tier, 100-batch run hit a session usage limit mid-Review; its own Merge agent then
+also failed on the same limit, so the workflow reported total failure — but 201 of the run's review
+shards had already been written, and a hand-run `findings_merge.py` over them recovered 258 real,
+deduped survivors (42 of them P1) with zero additional agent dispatch.
+
 ## §6 — Honest status (read this before trusting the mechanism section above)
 
 Modeled on this repo's own precedent for stating gate scope honestly — see `/wireframe`'s "HONEST
