@@ -57,6 +57,13 @@ Honesty / known limits.
    floor comparison was re-confirmed, its own mechanical action). As of this writing the only shipped
    citation kind (`version_floor_constant`, §3 row 2) always resolves to `verified` — the floor constant
    itself is never edited by a version bump, only re-checked.
+
+   `--old-version` is **optional**. When omitted, `apply` reads the fingerprint's own current
+   `last_swept_version` for `--host` and uses that as the prior version for its `changed` comparison —
+   it never silently treats an omitted flag as "no prior version," which used to make `changed` come
+   out `False` even when a real prior version was sitting in the state file this same run was about to
+   overwrite. The report's `old_version_source` field (`cli` / `fingerprint` / `none`) says which path
+   supplied the value, so a report never implies a comparison it didn't actually make.
 4. **The judgment queue** (written by `apply`, not a separate subcommand) — `apply` writes `judgment`
    rows to a capped, priority-ordered PR-review queue (top 25, P0 first, overflow to a continuation
    file) as part of its run — reuses `/repo-review`'s P0-P3 shape rather than inventing a second
@@ -90,8 +97,20 @@ re-verifying is worse than letting it go stale — it silently launders untrustw
 `plugins/ravenclaude-core/knowledge/host-version-fingerprint.json` — `schema_version: 1`, one entry per
 `host-support.json` key, each carrying `last_swept_version` / `last_checked_at` (updated on every
 sweep run, mechanical fixes or not) / `last_change_detected_at` (updated only on a real delta) /
-`written_by` (provenance, `dependency-sweep.py vN`). Written only by `apply`'s step 5, always in the
-same commit as the content fixes it reports on — never a silent, separate, local-only write.
+`written_by` (provenance, `dependency-sweep.py vN`) / `version_history`. Written only by `apply`'s
+step 5, always in the same commit as the content fixes it reports on — never a silent, separate,
+local-only write.
+
+`version_history` is an **append-only log of the distinct versions** this host has been swept at, each
+entry `{"version": ..., "recorded_at": ...}`. It records real transitions, not every run: a
+re-confirmation (`changed=False` because the version didn't move) never duplicates the most recent
+entry — `last_checked_at` already carries "I looked, nothing moved." An entry lands only when the host
+has no history yet (first-ever sweep) or the new version differs from the last recorded one. Capped at
+`_VERSION_HISTORY_CAP` (200) entries in `dependency-sweep.py`, oldest dropped first — a defensive bound
+against unbounded growth, not expected to bind given real hosts bump on the order of monthly. This is
+what makes `last_swept_version`'s single flat value auditable over time instead of a value that
+silently overwrites its own past — the gap flagged when the sweep first ran against five never-swept
+hosts and had no way to say what any of them had been *before*.
 
 ## Routing table (judgment rows)
 

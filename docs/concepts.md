@@ -2334,7 +2334,7 @@ Probe: `unprobed: requires a real consumer install cycle, which no CI job perfor
 
 **Sources:** [measured in the FORGE product-inventory run](https://github.com/mcorbett51090/RavenClaude/pull/997)
 
-_Last verified: 2026-09-03_
+_Last verified: 2026-09-10_
 
 
 ---
@@ -2976,7 +2976,7 @@ both 0 and 1, with a permanent regression assertion so this cannot silently regr
 
 **Sources:** [repo-review build + live proof-run, 2026-09-02 -- cross-model dispatch against the fixture repo caught the defect in findings_merge.py itself](../plugins/ravenclaude-core/skills/repo-review/SKILL.md)
 
-_Last verified: 2026-09-02_
+_Last verified: 2026-09-10_
 
 
 ---
@@ -3036,7 +3036,7 @@ Falsifier: a future `host-support.json` restructuring that removes the per-host 
 
 **Sources:** [/code-review found the pre-fix undercount and this session verified the fix's measured effect](https://github.com/mcorbett51090/RavenClaude/pull/1101)
 
-_Last verified: 2026-09-03_
+_Last verified: 2026-09-09_
 
 
 ---
@@ -3220,6 +3220,64 @@ Falsifier: a future `hooks-selftest.py` revision that wraps each host's extracto
 **Sources:** [reproduced live during the forge/prompt-optimizer merge into origin/main, this session — traceback ending in generate-gemini-hooks.py's CalledProcessError, root-caused to a missing skip-map entry, fixed there](https://github.com/mcorbett51090/RavenClaude/pull/1098)
 
 _Last verified: 2026-09-08_
+
+
+---
+
+### --actor and --repo-root go before the verb, not after · _RavenClaude-built_
+
+> rc ledger's --repo-root/--actor are top-level argparse flags; placing them after the subcommand fails outright with 'unrecognized arguments' — verified live while building source-control-coordinator.
+
+# --actor and --repo-root go before the verb, not after
+
+`rc ledger`'s exact CLI surface was documented and cited many times before this build (Citation #5 in
+the build plan, this repo's own `agents/architect.md`-shaped precedent authoring), but no prior citation
+had actually driven the CLI end-to-end with `--actor` present. The build plan's own §4.4 ledger usage
+table — the exact invocations `source-control-coordinator.md` and `coordinate.md` both cite for claiming
+and releasing a handoff item — placed `--actor coordinator` *after* `append`, on every single row.
+
+## Why it silently looked right
+
+`--repo-root`/`--actor` are genuinely real, documented flags on `ledger.py`'s parser. Nothing about the
+flag names, their defaults, or their presence in `--help` output signals that position matters. The
+failure only surfaces the moment the exact invocation is run:
+
+```
+$ rc ledger --repo-root <dir> append --type state --item <id> --set state=in_progress --actor coordinator
+ledger.py: error: unrecognized arguments: --actor coordinator
+```
+
+argparse's subparser model treats each subcommand (`init`, `open`, `append`, `project`, ...) as its own
+independent parser. A flag added to the *parent* parser before `add_subparsers()` is only visible
+*before* the subcommand token on the command line — a subparser has to explicitly re-declare a flag to
+also accept it after its own name, and `append`'s subparser (`p_append`) never does.
+
+## The fix, and why it generalizes
+
+Move both global flags between `--repo-root` and the subcommand:
+
+```
+rc ledger --repo-root <primary> --actor coordinator append --type state --item <id> --set state=in_progress
+```
+
+Verified live: this form succeeds (exit 0), and `machine.actor` in the written JSONL event correctly
+carries `"coordinator"`. Every citation in `coordinator-ledger-convention.md` and both new agent/command
+files now places `--actor` in this position — this concept exists so the *next* mechanism that shells
+out to `rc ledger` (or documents doing so) doesn't silently re-introduce the same defect, since nothing
+about reading the flag's own `--help` text reveals the ordering constraint.
+
+## The companion exit-code correction
+
+The same build plan claimed a freshly-initialized ledger returns exit 2 (UNKNOWN) "by design." Verified
+live: `rc ledger init` always appends a `ledger_init` event as part of initialization (`cmd_init`,
+`ledger.py`), so a fresh ledger has `parsed_records: 1`, not 0 — `cmd_project`'s exit-2 branch fires only
+on `parsed_records == 0`, which `rc ledger init` never produces. The true fresh-ledger state is exit 0
+(PASS, 0 open items). A *literal* zero-event ledger (no init marker at all — e.g. a hand-created empty
+`.jsonl`) is the actual exit-2 case, and it is not a state `rc ledger init` ever leaves behind.
+
+**Sources:** [source-control-coordinator build (PR #1146), live CLI verification against a scratch ledger, 2026-09-09](https://github.com/mcorbett51090/RavenClaude/pull/1146)
+
+_Last verified: 2026-09-09_
 
 
 ---

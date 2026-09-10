@@ -134,6 +134,38 @@ These flags address Codex desktop trust review Findings 1 + 5 (an untrusted YAML
 
 **Authoring:** in the dashboard, both flags will surface as a single "Trust this repo's YAML for…" toggle per trust surface (UI TBD). For now, hand-edit `comfort-posture.yaml` or copy the documented examples from `templates/comfort-posture-balanced.yaml`.
 
+## Skill-wiring exclusions (v0.319.0+)
+
+`ravenclaude setup --with-plugin <name>` symlinks a plugin's *entire* `skills/` directory into
+`.claude/skills/` (`wire_plugin_skills()` in `scripts/ravenclaude`) — every skill's name+description
+then gets read by VS Code's native Agent Skills feature and injected into every Copilot Chat/CLI
+turn. For a project that only uses part of a wired plugin's skill set, that's fixed overhead with no
+opt-out — and it re-materializes on every `setup`/`update`, so a one-off local pruning pass (moving
+symlinks out of `.claude/skills/` by hand) is silently undone the next time you update.
+
+`skills.deny_plugins` makes an exclusion **durable across re-wires**, because the wiring step itself
+checks it before symlinking a plugin, instead of a separate pass fixing it up afterward:
+
+```yaml
+skills:
+  deny_plugins:
+    - finance
+    - web-design
+    - frontend-engineering
+```
+
+- **Plugin-level only** (not per-skill) — deliberately the smallest scope that solves the observed
+  problem; a plugin whose skills are only partially wanted is a case for a narrower `--with-plugin`
+  install, not this key.
+- **Purely additive.** No `skills:` key, no posture file at all, no `python3`, or a malformed YAML —
+  every one of those resolves to "not denied," i.e. today's unchanged full-roster behavior. This can
+  only ever narrow what gets wired; it cannot break an install that predates it.
+- `ravenclaude-core` itself is never denied by this mechanism regardless of what's listed — it's
+  always wired first, unconditionally, before any `--with-plugin` entry is processed.
+- To see what a plugin's skills actually cost before deciding to deny it, count/measure
+  `.claude/skills/*/SKILL.md` for that plugin's symlinks directly — there's no built-in reporting
+  command for this yet (a natural follow-up: a `ravenclaude skills-report` or similar).
+
 ## Per-pattern overrides (v0.17.0+)
 
 Each `categories.<name>` value can be either a plain string (level applied to every pattern in the category) or an object with per-pattern overrides:

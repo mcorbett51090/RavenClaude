@@ -67,6 +67,39 @@ falls through to the live-fetch fallback (step 5), which computes a real
 merge-base against CURRENT origin/main regardless of what shape HEAD's own
 history takes — the correct behavior for both a linear PR and one that
 contains its own merge-from-base commit.
+
+⛔ ADDENDUM, 2026-09-09 — CHERRY-PICKING YOUR OWN COMMITS ONTO A FRESH BRANCH
+PERMANENTLY PINS THIS FUNCTION'S ANSWER, EVEN AFTER `--stamp` RE-RUNS.
+
+This is a different failure from the two corrections above (both about what
+CI's checkout looks like); this one is about how a CONTRIBUTOR updates a
+branch. `git merge-base(HEAD, origin/main)` is a pure function of commit
+ANCESTRY, not of when a file was last written or which SHA a caller intended.
+Re-creating a branch by cherry-picking your own commits onto a fresh
+`origin/main` (`git checkout origin/main -b feature-v2 && git cherry-pick
+<shas>`) gives HEAD a NEW ancestry whose merge-base with `origin/main` is
+whatever `origin/main` pointed to at that moment — permanently, regardless of
+how many times `origin/main` advances afterward or how many times you re-fetch.
+Every subsequent `check-ratchet-freshness.py --stamp` recomputes the SAME
+stale answer, because the ancestry it is measuring never changed; only a real
+`git merge origin/main` (or a rebase) on the EXISTING branch makes `origin/main`
+a direct ancestor, which is what lets this function's answer move forward.
+
+control (PR #1145, this repo, 2026-09-09): a branch was re-cut by cherry-pick
+three times as `origin/main` advanced (`...v2`, `...v3` naming); each time,
+`check-ratchet-freshness.py --check` failed against the FIRST fork point,
+and `--stamp` "fixed" it only for that one fork point, not for main's actual
+current tip. The failure stopped only once the branch was updated via a real
+`git merge origin/main` instead of another cherry-pick-onto-fresh-branch cycle
+— this repo's own established convention for catching up a stale branch (see
+`scripts/artifact-budgets.seed.json`'s own append-log, which already uses the
+phrase "Re-measured on rebased HEAD after merging origin/main" for exactly
+this reason). Never obvious from the error message alone: `check-ratchet-
+freshness.py` reports "measured against the wrong SHA," which reads like a
+forgotten `--stamp`, not like "your branch's git ancestry cannot reach the
+current base no matter what you stamp." If `--stamp` keeps producing an
+answer that keeps failing `--check` immediately afterward, suspect this before
+suspecting the stamp step itself.
 """
 
 from __future__ import annotations

@@ -143,6 +143,19 @@ model_fallback:
 #   max_blocks: 8                     # consecutive Stop-blocks before force-allow
 #   trusted: false                    # default — first run requires `touch <path>` confirm
 
+# Skill-wiring exclusion (v0.319.0+). `ravenclaude setup --with-plugin <name>`
+# symlinks a plugin's WHOLE skills/ directory into .claude/skills/ — every
+# skill's name+description then gets injected into every Copilot Chat/CLI
+# turn (VS Code's native Agent Skills feature reads that directory live).
+# List plugins here whose skills your project doesn't need; wire_plugin_skills()
+# skips them on every setup/update — durably, unlike a one-off local prune
+# (which gets silently undone the next time you update). Plugin-level only,
+# purely additive: absent key = unchanged full-roster behavior.
+# skills:
+#   deny_plugins:
+#     - finance
+#     - web-design
+
 # Session-context handoff (quality reset before auto-compact). Absent / off =
 # silent. Ship default off so a marketplace update does not nag. Threshold is a
 # compact-pressure percent, not a quality-rot lore number (do not use 40).
@@ -325,3 +338,14 @@ cause_triage: warn
 cause_preflight: warn
 cause_remediation: warn
 cause_closure: warn
+
+# ── source-control-coordinator (opt-in, default off) ────────────────────────
+# Owns merge/CI-triage/branch-hygiene handed off via the task ledger from other
+# sessions. off = no runtime behavior change (nothing auto-subscribes, auto-
+# merges, or auto-creates ledger items). advise = proposes/escalates, never
+# acts. active = also acts, subject to its own per-repo runaway/
+# definition_of_done precondition (self-downgrades to advise if unconfigured).
+# Any value that is not exactly `advise` or `active` — absent, empty,
+# mis-cased, or unrecognized — resolves to `off`.
+# source_control_coordinator: off | advise | active   # default: off
+# coordinator_escalation_hours: 24                     # default: 24; integer in [1, 168], else 24

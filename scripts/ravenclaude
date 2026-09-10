@@ -720,18 +720,60 @@ cmd_update() {
   return 0
 }
 
+# Is <plugin_name> excluded from skill wiring by the project's own
+# .ravenclaude/comfort-posture.yaml (skills.deny_plugins: [...])?
+#
+# Purely additive: no posture file, no `skills:` key, no python3, or a
+# malformed YAML all resolve to "not denied" — this can only ever narrow
+# what wire_plugin_skills() does, never break an install that predates it.
+# A consumer's local prune tooling can (and did, before this existed) move
+# already-wired symlinks out of .claude/skills/ after the fact, but that
+# exclusion doesn't survive the next `ravenclaude setup`/update, which
+# re-wires the full plugin roster unconditionally. This check is what makes
+# an exclusion durable across re-wires instead of a one-time, silently
+# reverted pruning pass.
+is_skill_wiring_denied() {
+  local project="$1" plugin_name="$2"
+  local posture="$project/.ravenclaude/comfort-posture.yaml"
+  [ -f "$posture" ] || return 1
+  command -v python3 >/dev/null 2>&1 || return 1
+  python3 - "$posture" "$plugin_name" <<'PY' 2>/dev/null
+import sys
+try:
+    import yaml
+except ImportError:
+    sys.exit(1)
+try:
+    with open(sys.argv[1]) as f:
+        posture = yaml.safe_load(f) or {}
+    deny = ((posture.get("skills") or {}).get("deny_plugins") or [])
+    sys.exit(0 if sys.argv[2] in deny else 1)
+except Exception:
+    sys.exit(1)
+PY
+}
+
 # Symlink one plugin's skills into <project>/.claude/skills. Used by cmd_install
 # for ravenclaude-core (always) and each --with-plugin entry. Live symlinks so a
 # `git pull` of the marketplace updates skills with zero re-copy; falls back to a
 # cp -r where symlinks aren't supported (e.g. Windows without dev mode).
 #
-# Echoes the count of skills wired. A missing plugin name (no skills dir) prints
-# a warning and echoes 0 — never fails the install.
+# Echoes the count of skills wired. A missing plugin name (no skills dir), or a
+# plugin denied via skills.deny_plugins in comfort-posture.yaml, prints a note
+# and echoes 0 — never fails the install either way.
 wire_plugin_skills() {
   local project="$1" plugin_name="$2"
   local skills_src="$MARKET/plugins/$plugin_name/skills"
   if [ ! -d "$skills_src" ]; then
     warn "plugin '$plugin_name' has no skills/ directory (looked at $skills_src) — skipped"
+    echo 0; return 0
+  fi
+  if is_skill_wiring_denied "$project" "$plugin_name"; then
+    # warn (stderr), not note (stdout) — both call sites capture this
+    # function's output via `n=$(wire_plugin_skills ...)`; stdout noise here
+    # would corrupt the returned count, exactly why the pre-existing
+    # "no skills dir" branch above already uses warn for the same reason.
+    warn "plugin '$plugin_name' skills denied by .ravenclaude/comfort-posture.yaml (skills.deny_plugins) — skipped"
     echo 0; return 0
   fi
   mkdir -p "$project/.claude/skills"

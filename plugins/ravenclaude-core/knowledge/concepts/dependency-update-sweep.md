@@ -6,7 +6,7 @@ kind: ravenclaude-built
 entry_class: inventory
 order: 920
 summary: "dependency-sweep.py discovers drift via the repo's existing citation-marker convention, host-scoped; the host roster itself is derived from host-support.json, not a guessed list."
-last_verified: 2026-09-03
+last_verified: 2026-09-09
 covers:
   - plugins/ravenclaude-core/scripts/dependency-sweep.py
   - plugins/ravenclaude-core/scripts/host-version-probe.py
@@ -15,7 +15,7 @@ covers:
   - plugins/ravenclaude-core/skills/dependency-update-sweep/tests/fixtures/fake-doc.md
   - plugins/ravenclaude-core/skills/dependency-update-sweep/tests/fixtures/generate-fake-hooks.py
   - plugins/ravenclaude-core/skills/dependency-update-sweep/tests/fixtures/host-support-slice.json
-covers_digest: "sha256:9277e9be2f164abaa02446334bf87ad74b5abcfe446f0194728ea6b7976d0c6d"
+covers_digest: "sha256:6103de507ce282a99e0f2fcd3e3321b6d87df7e20fa5c2546117d1d0a50ee6ee"
 nuance: "The marker-scan's host-scoping bug undercounted findings by masking cross-host false positives: an unscoped scan of `copilot` returned 175 findings because it matched citations naming ANY tracked host, not just copilot; scoping `host_re` to a single host dropped that to 85 (and a `gemini` scan, previously flooded by copilot/codex/cursor citations, to 27)."
 nuance_evidence:
   measured: 2026-09-03

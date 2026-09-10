@@ -54,7 +54,10 @@ const ISLANDED_AGENT_KEYS = ["scenarios", "quickstart", "works_with"];
  * de-hardcode it from scan_repo — that is the forbidden tautology. ────────── */
 const RC = "ravenclaude-core";
 const RC_BASELINE = {
-  agents: 15,
+  // 15 -> 16: agents/source-control-coordinator.md (PR #1146 — cross-session
+  //   merge/CI-triage handoff via the task ledger). COUNTED, not inferred:
+  //   `ls plugins/ravenclaude-core/agents | wc -l` -> 16 on this tree.
+  agents: 16,
   skills: 66, // 64 -> 66: skills/prompt-optimizer (forge/prompt-optimizer merge — gated
   //   prompt-to-routing pipeline, PR #1098) + skills/skill-index (FORGE plan
   //   dynamic-skill-context, phase P0 — a generated always-on index of every

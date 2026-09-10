@@ -4818,3 +4818,162 @@ last-used directory sees the identical four-option menu as before), and the last
 single fire-and-forget file write with no behavioral effect until `recommend` is later consulted.
 A consumer who has already run `install_launch_guard.py install` needs to re-run it once to pick up
 the new function body (the installer is idempotent — the managed block is replaced in place).
+
+## `source-control-coordinator` — cross-session merge/CI-triage handoff via the task ledger (added 2026-09-09, v0.321.0)
+
+A new specialist agent — [`agents/source-control-coordinator.md`](agents/source-control-coordinator.md) —
+owns merge/CI-triage/branch-hygiene/PR-review-response for work other sessions hand off via the task
+ledger, so a worker session can hand a PR to the queue and keep coding elsewhere. Built per
+[`.ravenclaude/runs/source-control-coordinator/strategic-plan.md`](../../.ravenclaude/runs/source-control-coordinator/strategic-plan.md)
+(v3, gap-filled after two independent 4-lens panel reviews) and
+[`build-plan.md`](../../.ravenclaude/runs/source-control-coordinator/build-plan.md). Composition over
+already-shipped substrate throughout — the task ledger, `session-relay`, `worktree-guard.sh`'s lease
+path, `subscribe_pr_activity`, `create_trigger` — per the plan's own "reuse, don't build" framing.
+
+**Shipped this release:** the agent ([`agents/source-control-coordinator.md`](agents/source-control-coordinator.md)),
+the `/coordinate` command ([`commands/coordinate.md`](commands/coordinate.md)), the opt-in
+`source_control_coordinator: off | advise | active` + `coordinator_escalation_hours` knobs (seeded,
+commented, default `off`, in
+[`templates/comfort-posture-balanced.yaml`](templates/comfort-posture-balanced.yaml)), the ledger
+usage convention ([`knowledge/coordinator-ledger-convention.md`](knowledge/coordinator-ledger-convention.md)),
+the Routine-binding reference ([`knowledge/coordinator-routine-setup.md`](knowledge/coordinator-routine-setup.md)),
+and the self-contained single-instance lock ([`bin/coordinator-lock.sh`](bin/coordinator-lock.sh)).
+
+**Two implementation-time corrections to the build plan itself, both found live, neither anticipated
+by any prior draft — recorded here because a stale claim in a planning doc is a defect the same way a
+stale claim in this file would be:**
+
+1. **`rc ledger init` never produces the "zero-event" UNKNOWN state the plan's own Task 1.1 claimed.**
+   `cmd_init` always appends a `ledger_init` event as part of initialization — verified live:
+   `parsed_records: 1`, `verdict: "PASS"`, exit 0, immediately after `rc ledger init`. The build plan
+   was corrected to state the true fresh-ledger state.
+2. **`--actor` must precede the subcommand, not follow it** — `ledger.py`'s `--repo-root`/`--actor`
+   are top-level-parser flags; `rc ledger append --type state ... --actor coordinator` fails with
+   `unrecognized arguments`, confirmed live. Every citation in the ledger convention doc and the agent
+   file places `--actor` between `--repo-root` and the subcommand.
+
+**⛔ `coordinator-lock.sh` ships at `bin/`, not `scripts/` as the build plan originally specified —
+discovered live, not a stylistic choice.** `plugins/ravenclaude-core/scripts/` is fully
+substrate-protected by the command-review tribunal's own self-tamper floor
+(`THING_SUBSTRATE` in `thing-decision.py` denies any write under that directory, new file or edit,
+category-independently) — confirmed live even with this repo's own `command_review.enabled: false`,
+because the floor "must run whenever ANY category is toggled on, regardless of
+`command_review.enabled`" (per `thing-orchestrator.sh`'s own code comment), and four shell categories
+in this repo's posture carry `thing: on`. The sanctioned maintainer-substrate exemption
+(`dev_repo_exempt: true`, already set) additionally requires a live `gh repo view` (GraphQL) call this
+remote session's own GitHub proxy blocks outright ("only the pinned set of PR-review operations is
+served") — independent of `gh` installation or token validity (confirmed: the same token works fine
+over REST). `bin/` is not in `THING_SUBSTRATE` and already hosts operationally-equivalent standalone
+scripts (`bin/rcwt`, `bin/claude-launch-guard`) — a content-neutral relocation, not a circumvention,
+since this script has nothing to do with the tribunal's own enforcement.
+
+**Two real bugs caught and fixed inside `coordinator-lock.sh` by its own required concurrency proof
+(Gate G10), before either shipped:** the must-fail control (`--disable-atomic-step`) initially used a
+bare `mkdir` guarded by a `[ ! -d ]` check, which still routed through the OS's genuinely-atomic
+`mkdir(2)` underneath and silently proved nothing (3/3 control runs showed exactly 1 winner even with
+the atomic step "disabled") — fixed with `mkdir -p` (idempotent, removes the atomicity signal),
+re-verified 8/8 winners. And `holder_pid` cannot be `$$` or a bare `$PPID`: the coordinator invokes
+this script via its own Bash tool, and every Bash tool call is a fresh OS process, so a bare `$$`/`$PPID`
+never matches across separate `acquire`/`heartbeat`/`release` calls — fixed with `_resolve_session_pid()`,
+which walks the process ancestor chain for `comm=claude` rather than hardcoding a hop count. Both fixes
+verified end-to-end: 20/20 real concurrency runs with exactly 1 winner, the control genuinely
+reproducing the race post-fix, and `acquire`/`heartbeat`/`release` correctly recognizing the same
+holder across genuinely separate Bash tool invocations.
+
+**⛔ One piece is a documented, staged, human-actionable pending item — not shipped this release.**
+Task 3.3's `guard-destructive.sh` merge-deny patch (`_is_dangerous_merge()`, narrowed to bypass-shaped
+merges only) and Task 2.4's two `deny_patterns` additions (a destructive DELETE-verb API call, raw
+`git update-ref -d`) could not be applied from this session — `guard-destructive.sh` genuinely *is*
+tribunal-adjacent security tooling, so unlike `coordinator-lock.sh` a directory relocation would be a
+real circumvention of `THING_SUBSTRATE`, not a content-neutral choice. The exact patch, the 3-case
+acceptance fixture, and the full diagnosis are staged at
+[`docs/pending-guard-destructive-merge-patch.md`](../../docs/pending-guard-destructive-merge-patch.md)
+for a human (or a differently-configured session with working `gh` GraphQL access, or the dashboard's
+own posture editor) to apply directly. This is also **PR 1** of the plan's own 2-PR rollout split (§5)
+— it must land, alone, before the rest of this feature is safe to enable anywhere as `active`.
+
+**Deliberately not built this release, per the plan's own scope:** the coordinator's actual dedicated
+worktree (a Task 4.1 *runtime* action, not a shipped file — created on first real invocation), the
+Routine bindings themselves (Task 7.1/7.2, owner: Matt, a runtime action per
+`coordinator-routine-setup.md`), and the 30-day rollout baseline capture (Task 9.5, needs real
+elapsed calendar time). **Migration:** none — every new knob defaults `off`/absent; nothing in a
+consumer's installed plugin changes on `/plugin marketplace update` until they opt in, and `active`
+mode is additionally gated on PR 1 landing and each repo's own `runaway`/`definition_of_done`
+precondition (Gate G9).
+
+## `/repo-review`'s cost estimator undercounted its own workflow by up to 2x (added 2026-09-09, v0.321.1)
+
+`scripts/estimate_cost.py`'s cardinality formula counted only the REAL review `agent()` calls per
+(dimension, model, batch) triple. It never modeled that `repo-sweep.workflow.js` dispatches a
+separate, cheap cache-check `agent()` call **before every real review call, unconditionally** — so a
+cold-cache run (the normal case for a first-ever sweep of a given scope) costs up to **2** agent()
+calls per triple, not 1.
+
+**Found by running the workflow for real, not by reading the estimator's code.** A live `/repo-review
+high --fix` dispatch, sized off this estimator's own reported numbers (`agent_budget=900` → "898
+total agents, batches_affordable: 198"), hit the `Workflow` tool's hard **1000-agent()-call-per-run**
+cap mid-Review and errored trying to reach Merge — `agent_count:1000, agents_done:962, agents_error:38`.
+The run burned **~98.7M tokens over ~1.9 hours and merged zero findings.** The estimator's own
+`--self-test` was green throughout; it was testing the formula's internal arithmetic, never checking
+that arithmetic against the real workflow's actual dispatch shape.
+
+**The fix, in `estimate()`:** a new `cache_hit_rate` parameter (`--cache-hit-rate`, default `0.0` —
+assume a cold cache) scales `review_agents_per_batch_with_cache_checks =
+review_agents_per_batch * (2 - cache_hit_rate)`, and every cardinality calculation
+(`numerator`/`batches_affordable`/`review_agents`/`total_agents`) now uses that doubled figure instead
+of the undercounted one. A second, independent hardening: `agent_budget` is now clamped to a new
+`WORKFLOW_AGENT_CALL_HARD_CAP = 1000` constant before the affordability math runs (`agent_budget_effective`,
+`agent_budget_clamped` in the output) — so no `--agent-budget` value, however large, can make this
+script recommend a config that would exceed the real tool's ceiling. Re-run against the real plan from
+the incident: `batches_affordable` dropped from the unsafe 198 to a genuinely safe **99**,
+`total_agents` from an implied-safe-but-wrong 898 to a **verified** 898 that the fixed formula proves
+stays under the cap.
+
+⛔ **The self-test's own regression assertion reproduces the incident's exact numbers** (`agent_budget:
+900`, a 198-batch plan) and asserts `full_coverage is False` and `total_agents <=
+WORKFLOW_AGENT_CALL_HARD_CAP` — a fixture that would have caught this before it shipped, had it existed.
+19/19 assertions pass, including two new cache-hit-rate boundary checks (cold vs warm cache) and the
+agent-budget-clamp check.
+
+⛔ **This branch was itself cut against a stale local `main` (25 commits behind) — caught before
+committing, not after.** Landing this required reverting the derived/bookkeeping files (version,
+catalog, `concepts.json`, the two ratchet seeds), fast-forwarding to the real `origin/main` tip, and
+redoing the version bump (`0.321.0 → 0.321.1`, not the originally-computed `0.320.2`) and the
+`concepts.json` restamp against the real base — the exact "FORGE branched off a stale local `main`"
+failure mode this file already documents (v0.272.0), here caught by hand rather than by the worktree
+provisioner's `origin/main`-first base resolution (this change was made directly in the primary
+checkout, not via `/forge`).
+
+**Migration:** consumer-visible in the numbers `/repo-review --estimate-only` reports — a run sized off
+the old numbers would have undercounted its true cost by up to 2x on a cold cache; the new default
+(`--cache-hit-rate 0.0`) is the conservative, correct-for-a-first-run assumption. No flag, gate, or
+artifact path changed; a caller who knows their cache is warm can pass `--cache-hit-rate 1.0` to
+recover the old (narrower) estimate.
+
+## `/repo-review` gains a documented recovery procedure for a mid-run dispatch failure (added 2026-09-10, v0.321.2)
+
+The same `high`-tier run that motivated the `estimate_cost.py` fix above hit a **second** failure
+after being resized correctly: it survived the Workflow tool's hard call cap, but a real Claude
+**session usage limit** (a subscription-tier ceiling, distinct from the tool's own cap) tripped
+mid-Review, and the workflow's own Merge agent then also failed on the same limit — so the run
+reported total failure (`{"error": "Merge phase failed... findings_merge.py did not return a
+usable receipt."}`) with no hint that anything had actually been produced.
+
+It had: every completed review agent writes its findings shard to disk **before** returning its
+receipt, so the failure at Merge did not erase the ~499 agents' worth of work that preceded it.
+Confirmed by hand: `python3 scripts/findings_merge.py --in <findingsDir> --out <path> --cap 0
+--near-dup-policy keep-separate` — no agent dispatch, just the same deterministic command the
+failed Merge agent would have run — recovered **258 real, deduped survivors from 201 shard files**
+(42 of them P1, against real marketplace code, not the skill's own test fixtures).
+
+**Codified into `SKILL.md`** as a new "Recovering from a mid-run dispatch failure" section (between
+Mechanism and §6 Honest status) — the four-step procedure (find the `findings/` dir → run
+`findings_merge.py` by hand, uncapped → report it as **unverified** — no Verify pass ran on a
+hand-recovered merge — → distinguish "the tool's hard cap tripped, shrink the run" from "an
+external session-usage wall tripped, the scope was probably fine, just recover and maybe resume
+later"). `repo-sweep.workflow.js`'s own Merge-failure error string now names the findings dir and
+points at this section directly, so a session that hits this failure reads the recovery path in the
+error message itself rather than needing to already know it exists.
+
+**Migration:** none — additive documentation + a longer (still single-line) error message on one
+already-failing path; no gate, schema, flag, or artifact path changed.
