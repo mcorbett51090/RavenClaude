@@ -442,7 +442,19 @@ def check_class1_ratchet(root: Path, base: str, timeout: int = T_HOTSPOT) -> Che
     resolution then finds the just-refreshed ref directly. `None` -> report
     UNAVAILABLE without even invoking the subprocess (an unforced subprocess
     call would only produce an ambiguous generic exit 1 here, indistinguishable
-    from a real content mismatch)."""
+    from a real content mismatch).
+
+    ⛔ Known gap, not closed here (code-review, 2026-09-10): the pre-warm call
+    above reaches `_base_ref.py`'s own `_git()` helper, which is a plain
+    `subprocess.run(cmd, timeout=...)` with no `start_new_session=True` — the
+    one code path in this file that is NOT wrapped by `run_bounded()`'s
+    process-group-kill primitive the rest of the module is built around. Each
+    internal `_git()` call is individually bounded (so it cannot hang forever)
+    and a `git fetch` rarely spawns a surviving grandchild, so the real-world
+    risk is judged low; flagged here rather than fixed because closing it
+    would mean threading `run_bounded()` through `_base_ref.py` itself, a
+    larger change than this DoD's scope. The `timeout` parameter below also
+    only bounds the subsequent checker-script run, not this pre-warm phase."""
     start = time.monotonic()
     sha, how = _resolve_merge_base(root, base, force_fetch=True)
     if sha is None:
@@ -455,19 +467,16 @@ def check_class1_ratchet(root: Path, base: str, timeout: int = T_HOTSPOT) -> Che
             elapsed,
         )
     argv = ["python3", "scripts/check-ratchet-freshness.py", "--check", "--base", base]
-    if not _script_exists(root, argv):
-        elapsed = time.monotonic() - start
-        return CheckResult(
-            "hotspot:1-ratchet-merge-base",
-            UNAVAILABLE,
-            f"checker script missing on disk: {argv[1]}",
-            "restore scripts/check-ratchet-freshness.py",
-            elapsed,
-        )
-    run = run_bounded(argv, root, timeout)
-    result = _as_check_result(
+    # Delegate the "checker missing on disk -> UNAVAILABLE, else run + classify"
+    # tail to _run_one_hotspot rather than re-implementing it — this is the
+    # SAME generic tail all 12 registry-driven hotspots already share, and
+    # duplicating it here was a real gap (code-review, 2026-09-10): this
+    # function is the one hotspot NOT covered by _run_one_hotspot's own
+    # missing-checker self-test, since it isn't reached through the registry.
+    result = _run_one_hotspot(
+        root,
         "hotspot:1-ratchet-merge-base",
-        run,
+        argv,
         "python3 scripts/check-ratchet-freshness.py --stamp",
         timeout,
     )
@@ -477,6 +486,13 @@ def check_class1_ratchet(root: Path, base: str, timeout: int = T_HOTSPOT) -> Che
 
 # name, argv, remediation, timeout — §3.1's table, classes 2-6 (12 commands;
 # class 1 above is the 13th and is handled specially, not via this registry).
+# hotspot:6b deliberately shells only `--check` for its class, not
+# `--capping-table` — `audit-gates.sh`'s own sweep gate runs both, but
+# `--capping-table` is a claim-14 per-class control-coverage report, not a
+# freshness/ratchet diagnostic in `scope.md`'s six named classes, so it is
+# out of this v1's scope on purpose (Constraint 2's "same commands" claim is
+# scoped to the six named classes, not to every command `audit-gates.sh`
+# happens to run for the scripts those classes touch).
 HOTSPOTS: list[tuple[str, list[str], str, int]] = [
     (
         "hotspot:2a-gate237-inventory-staleness",
@@ -989,6 +1005,80 @@ def _self_test() -> int:
         )
         label = "missing-checker guard: a checker script that exists still runs and PASSes"
         if r.verdict == PASS:
+            ok += 1
+            print(f"  ok   {label}")
+        else:
+            fail += 1
+            print(f"  FAIL {label}: got {r.verdict} ({r.detail})")
+
+    # check_class1_ratchet coverage (code-review, 2026-09-10): every OTHER
+    # hotspot's missing-checker branch is exercised generically above via
+    # _run_one_hotspot, but class1 is not reached through that registry, so
+    # its own two branches — sha is None, and the delegated missing-checker
+    # tail — had no direct case. Both fixtures below are hermetic (a scratch
+    # git repo faking `refs/remotes/origin/main` via `update-ref`; no real
+    # "origin" remote, no network) and mirror _base_ref.py's own R1
+    # negative-control fixture rather than importing its private helper —
+    # this file's fixtures stay self-contained, same as P3's above.
+    def _git_q(root: Path) -> dict:
+        return {"cwd": str(root), "capture_output": True, "text": True, "timeout": 10}
+
+    def _class1_commit(root: Path, name: str) -> str:
+        (root / name).write_text(name, encoding="utf-8")
+        subprocess.run(["git", "add", "-A"], **_git_q(root))
+        subprocess.run(["git", "commit", "-q", "-m", name], **_git_q(root))
+        return subprocess.run(["git", "rev-parse", "HEAD"], **_git_q(root)).stdout.strip()
+
+    # bad: two orphan branches sharing no common ancestor even after the
+    # force-fetch pre-warm's --unshallow retry -> merge_base() must return
+    # None (never a fabricated base), and check_class1_ratchet must surface
+    # that as UNAVAILABLE without ever invoking the checker subprocess.
+    with tempfile.TemporaryDirectory() as td:
+        root = Path(td)
+        subprocess.run(["git", "init", "-q", "-b", "main"], **_git_q(root))
+        subprocess.run(["git", "config", "user.email", "t@t"], **_git_q(root))
+        subprocess.run(["git", "config", "user.name", "t"], **_git_q(root))
+        _class1_commit(root, "main.txt")
+        main_sha = subprocess.run(["git", "rev-parse", "main"], **_git_q(root)).stdout.strip()
+        subprocess.run(["git", "checkout", "-q", "--orphan", "feature"], **_git_q(root))
+        subprocess.run(["git", "rm", "-rq", "--cached", "."], **_git_q(root))
+        _class1_commit(root, "feature.txt")
+        subprocess.run(["git", "update-ref", "refs/remotes/origin/main", main_sha], **_git_q(root))
+        r = check_class1_ratchet(root, "origin/main", timeout=10)
+        label = (
+            "check_class1_ratchet: disjoint histories -> UNAVAILABLE, "
+            "never a fabricated ratchet verdict"
+        )
+        if r.verdict == UNAVAILABLE and "force-fetch pre-warm" in r.detail:
+            ok += 1
+            print(f"  ok   {label}")
+        else:
+            fail += 1
+            print(f"  FAIL {label}: got {r.verdict} ({r.detail})")
+
+    # good: merge-base resolves cleanly (origin/main == HEAD, no divergence,
+    # HEAD has a parent so the push-to-main "first parent is the base" branch
+    # returns a real sha rather than the root-commit "no parent — UNKNOWN"
+    # case) but the scratch root has no scripts/ dir at all -> the delegated
+    # _run_one_hotspot tail must report UNAVAILABLE for the missing checker,
+    # proving the P3->P2 refactor above still wires the guard through. (A
+    # single-commit version of this fixture hit exactly the root-commit
+    # UNKNOWN case above instead of what this fixture means to test — caught
+    # by this file's own bidirectional discipline, not assumed correct.)
+    with tempfile.TemporaryDirectory() as td:
+        root = Path(td)
+        subprocess.run(["git", "init", "-q", "-b", "main"], **_git_q(root))
+        subprocess.run(["git", "config", "user.email", "t@t"], **_git_q(root))
+        subprocess.run(["git", "config", "user.name", "t"], **_git_q(root))
+        _class1_commit(root, "f1.txt")
+        head_sha = _class1_commit(root, "f2.txt")
+        subprocess.run(["git", "update-ref", "refs/remotes/origin/main", head_sha], **_git_q(root))
+        r = check_class1_ratchet(root, "origin/main", timeout=10)
+        label = (
+            "check_class1_ratchet: merge-base resolves, checker script absent -> "
+            "UNAVAILABLE via the shared _run_one_hotspot tail"
+        )
+        if r.verdict == UNAVAILABLE and "checker script missing on disk" in r.detail:
             ok += 1
             print(f"  ok   {label}")
         else:
