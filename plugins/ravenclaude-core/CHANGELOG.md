@@ -12,6 +12,8 @@ All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the 
 - Caveman auto-routing P7 live-apply: when `caveman_routing: live`, classifier
   `on`→`lite` and `off`→`off`. Shadow still never applies. Default remains
   off. Owner overrode the uncleared P5 soak gates.
+- The new Settings-tab category card is +82 live DOM elements on both
+  dashboard surfaces (Gate 132 ratchet raised to match).
 
 ## 0.321.3 — 2026-09-10
 
