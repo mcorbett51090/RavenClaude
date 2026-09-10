@@ -2360,7 +2360,7 @@ Probe: `scripts/audit-gates.sh`
 
 **Sources:** [measured in the FORGE product-inventory run](https://github.com/mcorbett51090/RavenClaude/pull/997)
 
-_Last verified: 2026-09-05_
+_Last verified: 2026-09-10_
 
 
 ---
@@ -2584,7 +2584,7 @@ Probe: `scripts/inventory-census.py`
 
 **Sources:** [measured in the FORGE product-inventory run](https://github.com/mcorbett51090/RavenClaude/pull/997)
 
-_Last verified: 2026-08-20_
+_Last verified: 2026-09-10_
 
 
 ---
@@ -2636,7 +2636,7 @@ Probe: `scripts/inventory-sweep.py`
 
 **Sources:** [measured in the FORGE product-inventory run](https://github.com/mcorbett51090/RavenClaude/pull/997)
 
-_Last verified: 2026-08-20_
+_Last verified: 2026-09-10_
 
 
 ---
