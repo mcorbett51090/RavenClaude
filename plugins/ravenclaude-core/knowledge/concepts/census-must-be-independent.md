@@ -6,12 +6,12 @@ kind: ravenclaude-built
 entry_class: inventory
 order: 910
 summary: "Why the coverage denominator is read from git rather than from the registry it measures."
-last_verified: 2026-08-20
+last_verified: 2026-09-10
 covers:
   - scripts/inventory-census.py
   - scripts/inventory-sweep.py
   - scripts/inventory-coverage.py
-covers_digest: "sha256:2851b36fffbcd7dbfe35ed1ba03b96b39b2259a8db26dac3f1b08324864dcf46"
+covers_digest: "sha256:86b0b9ea149e9a8ea3dd64e389b24f374fe3bdf7cff0c8e238adddd75ee2054e"
 nuance: "`inventory-census.py` reads `git ls-files`, never a filesystem walk, so an untracked file cannot move the denominator; a `concepts.json`-derived count would shrink with the enumeration and stay green."
 nuance_evidence:
   measured: 2026-08-19
