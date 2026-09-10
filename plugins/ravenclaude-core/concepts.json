@@ -2925,7 +2925,7 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-09-09",
+      "last_verified": "2026-09-10",
       "refresh_when": null,
       "sources": [
         {
@@ -2945,7 +2945,7 @@
         "scripts/sync-plugin-versions.py",
         "scripts/generate-copilot-plugin.py"
       ],
-      "covers_digest": "sha256:e7a12aa60908cc6d6ae0acf5c30f4bf80aead1a8deaedd20e200276d35568663",
+      "covers_digest": "sha256:b6a341a622a8ad8d53242cf9be64606eeef02b55874b786339627269b7e32b19",
       "nuance": "The cache key is the `version` string, never a content hash, so `sync-plugin-versions.py` can report clean while every installed session keeps running the old `hooks/` code.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -3837,7 +3837,7 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-09-02",
+      "last_verified": "2026-09-10",
       "refresh_when": null,
       "sources": [
         {
@@ -3863,7 +3863,7 @@
         "plugins/ravenclaude-core/skills/repo-review/scripts/estimate_cost.py",
         "plugins/ravenclaude-core/skills/repo-review/workflows/repo-sweep.workflow.js"
       ],
-      "covers_digest": "sha256:e4df5aecfc4e3631010b920b1814ed468e336b737694b5227474d1729bf2c97a",
+      "covers_digest": "sha256:51c20246ec35eed02d447cad4068bcebfc940bbdee096a22d43edc9a34ef1d9f",
       "nuance": "A dedup key built from each finding's own title tokens misses two models describing one bug in different words at the same line -- keys differ, so exact-key merge misses it. The near-dup fallback's bucket-diff bound was `== 1` (adjacent only), excluding 0 (the identical line) -- the single most common real shape cross-model review exists to catch.",
       "nuance_evidence": {
         "measured": "2026-09-02",

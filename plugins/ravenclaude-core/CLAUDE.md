@@ -4900,3 +4900,80 @@ elapsed calendar time). **Migration:** none — every new knob defaults `off`/ab
 consumer's installed plugin changes on `/plugin marketplace update` until they opt in, and `active`
 mode is additionally gated on PR 1 landing and each repo's own `runaway`/`definition_of_done`
 precondition (Gate G9).
+
+## `/repo-review`'s cost estimator undercounted its own workflow by up to 2x (added 2026-09-09, v0.321.1)
+
+`scripts/estimate_cost.py`'s cardinality formula counted only the REAL review `agent()` calls per
+(dimension, model, batch) triple. It never modeled that `repo-sweep.workflow.js` dispatches a
+separate, cheap cache-check `agent()` call **before every real review call, unconditionally** — so a
+cold-cache run (the normal case for a first-ever sweep of a given scope) costs up to **2** agent()
+calls per triple, not 1.
+
+**Found by running the workflow for real, not by reading the estimator's code.** A live `/repo-review
+high --fix` dispatch, sized off this estimator's own reported numbers (`agent_budget=900` → "898
+total agents, batches_affordable: 198"), hit the `Workflow` tool's hard **1000-agent()-call-per-run**
+cap mid-Review and errored trying to reach Merge — `agent_count:1000, agents_done:962, agents_error:38`.
+The run burned **~98.7M tokens over ~1.9 hours and merged zero findings.** The estimator's own
+`--self-test` was green throughout; it was testing the formula's internal arithmetic, never checking
+that arithmetic against the real workflow's actual dispatch shape.
+
+**The fix, in `estimate()`:** a new `cache_hit_rate` parameter (`--cache-hit-rate`, default `0.0` —
+assume a cold cache) scales `review_agents_per_batch_with_cache_checks =
+review_agents_per_batch * (2 - cache_hit_rate)`, and every cardinality calculation
+(`numerator`/`batches_affordable`/`review_agents`/`total_agents`) now uses that doubled figure instead
+of the undercounted one. A second, independent hardening: `agent_budget` is now clamped to a new
+`WORKFLOW_AGENT_CALL_HARD_CAP = 1000` constant before the affordability math runs (`agent_budget_effective`,
+`agent_budget_clamped` in the output) — so no `--agent-budget` value, however large, can make this
+script recommend a config that would exceed the real tool's ceiling. Re-run against the real plan from
+the incident: `batches_affordable` dropped from the unsafe 198 to a genuinely safe **99**,
+`total_agents` from an implied-safe-but-wrong 898 to a **verified** 898 that the fixed formula proves
+stays under the cap.
+
+⛔ **The self-test's own regression assertion reproduces the incident's exact numbers** (`agent_budget:
+900`, a 198-batch plan) and asserts `full_coverage is False` and `total_agents <=
+WORKFLOW_AGENT_CALL_HARD_CAP` — a fixture that would have caught this before it shipped, had it existed.
+19/19 assertions pass, including two new cache-hit-rate boundary checks (cold vs warm cache) and the
+agent-budget-clamp check.
+
+⛔ **This branch was itself cut against a stale local `main` (25 commits behind) — caught before
+committing, not after.** Landing this required reverting the derived/bookkeeping files (version,
+catalog, `concepts.json`, the two ratchet seeds), fast-forwarding to the real `origin/main` tip, and
+redoing the version bump (`0.321.0 → 0.321.1`, not the originally-computed `0.320.2`) and the
+`concepts.json` restamp against the real base — the exact "FORGE branched off a stale local `main`"
+failure mode this file already documents (v0.272.0), here caught by hand rather than by the worktree
+provisioner's `origin/main`-first base resolution (this change was made directly in the primary
+checkout, not via `/forge`).
+
+**Migration:** consumer-visible in the numbers `/repo-review --estimate-only` reports — a run sized off
+the old numbers would have undercounted its true cost by up to 2x on a cold cache; the new default
+(`--cache-hit-rate 0.0`) is the conservative, correct-for-a-first-run assumption. No flag, gate, or
+artifact path changed; a caller who knows their cache is warm can pass `--cache-hit-rate 1.0` to
+recover the old (narrower) estimate.
+
+## `/repo-review` gains a documented recovery procedure for a mid-run dispatch failure (added 2026-09-10, v0.321.2)
+
+The same `high`-tier run that motivated the `estimate_cost.py` fix above hit a **second** failure
+after being resized correctly: it survived the Workflow tool's hard call cap, but a real Claude
+**session usage limit** (a subscription-tier ceiling, distinct from the tool's own cap) tripped
+mid-Review, and the workflow's own Merge agent then also failed on the same limit — so the run
+reported total failure (`{"error": "Merge phase failed... findings_merge.py did not return a
+usable receipt."}`) with no hint that anything had actually been produced.
+
+It had: every completed review agent writes its findings shard to disk **before** returning its
+receipt, so the failure at Merge did not erase the ~499 agents' worth of work that preceded it.
+Confirmed by hand: `python3 scripts/findings_merge.py --in <findingsDir> --out <path> --cap 0
+--near-dup-policy keep-separate` — no agent dispatch, just the same deterministic command the
+failed Merge agent would have run — recovered **258 real, deduped survivors from 201 shard files**
+(42 of them P1, against real marketplace code, not the skill's own test fixtures).
+
+**Codified into `SKILL.md`** as a new "Recovering from a mid-run dispatch failure" section (between
+Mechanism and §6 Honest status) — the four-step procedure (find the `findings/` dir → run
+`findings_merge.py` by hand, uncapped → report it as **unverified** — no Verify pass ran on a
+hand-recovered merge — → distinguish "the tool's hard cap tripped, shrink the run" from "an
+external session-usage wall tripped, the scope was probably fine, just recover and maybe resume
+later"). `repo-sweep.workflow.js`'s own Merge-failure error string now names the findings dir and
+points at this section directly, so a session that hits this failure reads the recovery path in the
+error message itself rather than needing to already know it exists.
+
+**Migration:** none — additive documentation + a longer (still single-line) error message on one
+already-failing path; no gate, schema, flag, or artifact path changed.

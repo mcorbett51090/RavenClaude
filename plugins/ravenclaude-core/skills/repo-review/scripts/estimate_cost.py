@@ -7,6 +7,19 @@ launching anything, so a user (or the Workflow script) can decide whether to
 proceed, narrow scope, or pick a cheaper tier.
 
 Stdlib-only. No model calls.
+
+Fixed 2026-09-09: the cardinality formula previously counted only the REAL
+review agent() calls per (dimension, model, batch) triple. The actual
+repo-sweep.workflow.js dispatches a separate, cheap cache-check agent() call
+BEFORE every real review call, unconditionally — so a cold-cache run (the
+normal case for a first-ever sweep of a given scope) costs up to 2 agent()
+calls per triple, not 1. That undercount, combined with the Workflow tool's
+own hard cap of 1000 agent() calls per run, let this script report a
+budgetBatches value ("898 agents, batches_affordable: 198" at the default
+--agent-budget 900) that the real workflow could never complete — it hit the
+hard cap mid-Review and errored out of Merge, burning ~98.7M tokens on a
+run that never merged a single finding. See --cache-hit-rate below and the
+WORKFLOW_AGENT_CALL_HARD_CAP clamp.
 """
 
 from __future__ import annotations
@@ -38,6 +51,11 @@ from typing import Any
 # ---------------------------------------------------------------------------
 
 REFUSED_TIERS = ("low", "medium")
+
+# The Workflow tool's own hard per-run cap on agent() calls (empirically confirmed
+# 2026-09-09 via a real WorkflowAgentCapError). The estimator must never recommend
+# a config whose worst-case total exceeds this, regardless of --agent-budget.
+WORKFLOW_AGENT_CALL_HARD_CAP = 1000
 
 # dimensions per tier
 TIER_DIMENSIONS: dict[str, int] = {
@@ -131,6 +149,7 @@ def estimate(
     verify_cap: int | None,
     fix_cap: int | None,
     overhead: int,
+    cache_hit_rate: float = 0.0,
     full: bool = False,
     hard_cap_files: int = HARD_CAP_FILES_DEFAULT,
     confirmed: bool = False,
@@ -161,21 +180,40 @@ def estimate(
     cross_model = resolve_cross_model(tier, cross_model_flag)
     label, review_agents_per_batch = compute_models_per_dimension_label(tier, cross_model, dimensions)
 
+    # Every (dimension, model, batch) triple the real repo-sweep.workflow.js
+    # dispatches costs a cheap cache-check agent() call UNCONDITIONALLY, plus the
+    # real review agent() call only on a cache MISS. cache_hit_rate models the
+    # assumed fraction of triples that hit review_cache.py's on-disk cache; the
+    # default (0.0) assumes a cold cache — correct for a first-ever sweep of a
+    # given scope, and the exact case that undercounted true cost by up to 2x
+    # before this fix (see the module docstring).
+    cache_hit_rate = max(0.0, min(1.0, cache_hit_rate))
+    review_agents_per_batch_with_cache_checks = review_agents_per_batch * (2 - cache_hit_rate)
+
     v_max = TIER_VERIFY_CAP_DEFAULT[tier] if verify_cap is None else verify_cap
     k_max = TIER_FIX_CAP_DEFAULT[tier] if fix_cap is None else fix_cap
     o = overhead
 
     batches_planned = int(plan["coverage"]["batches_planned"])
 
-    numerator = agent_budget - v_max - k_max - o
-    b = math.floor(numerator / review_agents_per_batch) if review_agents_per_batch > 0 else 0
+    # Never recommend a config whose worst-case total exceeds the Workflow
+    # tool's own hard cap, regardless of what --agent-budget asked for.
+    agent_budget_clamped = agent_budget > WORKFLOW_AGENT_CALL_HARD_CAP
+    agent_budget_effective = min(agent_budget, WORKFLOW_AGENT_CALL_HARD_CAP)
+
+    numerator = agent_budget_effective - v_max - k_max - o
+    b = (
+        math.floor(numerator / review_agents_per_batch_with_cache_checks)
+        if review_agents_per_batch_with_cache_checks > 0
+        else 0
+    )
     b = max(b, 0)
 
     full_coverage = b >= batches_planned
     batches_affordable = batches_planned if full_coverage else min(b, batches_planned)
     batches_affordable = max(batches_affordable, 0)
 
-    review_agents = batches_affordable * review_agents_per_batch
+    review_agents = batches_affordable * review_agents_per_batch_with_cache_checks
     total_agents = review_agents + v_max + k_max + o
     waves_at_16_concurrency = math.ceil(total_agents / 16) if total_agents > 0 else 0
 
@@ -185,7 +223,12 @@ def estimate(
         "dimensions": dimensions,
         "models_per_dimension_effective": label,
         "review_agents_per_batch": review_agents_per_batch,
+        "review_agents_per_batch_with_cache_checks": review_agents_per_batch_with_cache_checks,
+        "cache_hit_rate_assumed": cache_hit_rate,
         "agent_budget": agent_budget,
+        "agent_budget_effective": agent_budget_effective,
+        "agent_budget_clamped": agent_budget_clamped,
+        "workflow_hard_cap": WORKFLOW_AGENT_CALL_HARD_CAP,
         "verify_cap": v_max,
         "fix_cap": k_max,
         "overhead": o,
@@ -218,6 +261,16 @@ def build_arg_parser() -> argparse.ArgumentParser:
         help="opt in to cross-model (M=2) for xhigh; ignored/always-on for max/ultra",
     )
     parser.add_argument("--agent-budget", type=int, default=900, help="A_max (default 900)")
+    parser.add_argument(
+        "--cache-hit-rate",
+        type=float,
+        default=0.0,
+        help=(
+            "assumed fraction (0.0-1.0) of (dimension,batch,model) triples that hit "
+            "review_cache.py's on-disk cache; default 0.0 assumes a cold cache, the "
+            "correct assumption for a first-ever sweep of a given scope"
+        ),
+    )
     parser.add_argument(
         "--verify-cap", type=int, default=None, help="V_max override (tier-specific default otherwise)"
     )
@@ -266,6 +319,7 @@ def main(argv: list[str] | None = None) -> int:
             verify_cap=args.verify_cap,
             fix_cap=args.fix_cap,
             overhead=args.overhead,
+            cache_hit_rate=args.cache_hit_rate,
             full=args.full,
             hard_cap_files=args.hard_cap_files,
             confirmed=args.yes,
@@ -310,7 +364,12 @@ EXPECTED_OUTPUT_KEYS = {
     "dimensions",
     "models_per_dimension_effective",
     "review_agents_per_batch",
+    "review_agents_per_batch_with_cache_checks",
+    "cache_hit_rate_assumed",
     "agent_budget",
+    "agent_budget_effective",
+    "agent_budget_clamped",
+    "workflow_hard_cap",
     "verify_cap",
     "fix_cap",
     "overhead",
@@ -445,6 +504,10 @@ def run_self_test() -> int:
         # total_agents = review_agents + verify_cap + fix_cap + overhead
         # Pick verify_cap=0, fix_cap=0, overhead=0, review_agents_per_batch=4 (high tier)
         # batches_affordable * 4 = 32 -> batches_affordable = 8 -> batches_planned=8, budget large enough
+        # cache_hit_rate=1.0 pins review_agents_per_batch_with_cache_checks ==
+        # review_agents_per_batch (no cache-check doubling), preserving this
+        # assertion's pre-fix arithmetic — it's testing waves_at_16 rounding,
+        # not the cache-check feature (that gets its own assertions below).
         result_32 = estimate(
             plan=_make_plan(8),
             tier="high",
@@ -453,6 +516,7 @@ def run_self_test() -> int:
             verify_cap=0,
             fix_cap=0,
             overhead=0,
+            cache_hit_rate=1.0,
         )
         check(
             "waves_at_16_concurrency: total_agents=32 -> waves=2",
@@ -469,11 +533,89 @@ def run_self_test() -> int:
             verify_cap=0,
             fix_cap=0,
             overhead=1,
+            cache_hit_rate=1.0,
         )
         check(
             "waves_at_16_concurrency: total_agents=33 -> waves=3",
             result_33["total_agents"] == 33 and result_33["waves_at_16_concurrency"] == 3,
             str(result_33),
+        )
+
+        # --- Assertion 9: cold-cache default doubles the with-cache-checks count ---
+        result_cold = estimate(
+            plan=_make_plan(8),
+            tier="high",
+            cross_model_flag=False,
+            agent_budget=900,
+            verify_cap=0,
+            fix_cap=0,
+            overhead=0,
+        )
+        check(
+            "cold-cache default (cache_hit_rate=0.0): with-cache-checks == 2x the real-review count",
+            result_cold["review_agents_per_batch_with_cache_checks"]
+            == result_cold["review_agents_per_batch"] * 2,
+            str(result_cold),
+        )
+
+        # --- Assertion 10: warm cache matches the real-review count exactly ---
+        result_warm = estimate(
+            plan=_make_plan(8),
+            tier="high",
+            cross_model_flag=False,
+            agent_budget=900,
+            verify_cap=0,
+            fix_cap=0,
+            overhead=0,
+            cache_hit_rate=1.0,
+        )
+        check(
+            "warm cache (cache_hit_rate=1.0): with-cache-checks == the real-review count (no doubling)",
+            result_warm["review_agents_per_batch_with_cache_checks"] == result_warm["review_agents_per_batch"],
+            str(result_warm),
+        )
+
+        # --- Assertion 11: reproduces the real 2026-09-09 incident numbers ---
+        # A 198-batch high-tier plan at the old default --agent-budget 900 used to
+        # report batches_affordable=198 (full_coverage=True) -- the exact
+        # unsafe recommendation that blew through the Workflow tool's hard
+        # 1000-call cap mid-Review. The fixed formula must now report a
+        # SMALLER, genuinely safe batch count.
+        result_incident = estimate(
+            plan=_make_plan(198),
+            tier="high",
+            cross_model_flag=False,
+            agent_budget=900,
+            verify_cap=None,
+            fix_cap=None,
+            overhead=6,
+        )
+        check(
+            "incident regression: a 198-batch high-tier plan at agent-budget=900 no longer "
+            "claims full coverage, and its total never exceeds the Workflow tool's hard cap",
+            result_incident["full_coverage"] is False
+            and result_incident["batches_affordable"] < 198
+            and result_incident["total_agents"] <= WORKFLOW_AGENT_CALL_HARD_CAP,
+            str(result_incident),
+        )
+
+        # --- Assertion 12: agent-budget above the hard cap is clamped, not honored ---
+        result_overbudget = estimate(
+            plan=_make_plan(500),
+            tier="high",
+            cross_model_flag=False,
+            agent_budget=5000,
+            verify_cap=None,
+            fix_cap=None,
+            overhead=6,
+        )
+        check(
+            "agent-budget above the Workflow hard cap is clamped: agent_budget_effective==1000, "
+            "agent_budget_clamped==True, total_agents never exceeds the cap",
+            result_overbudget["agent_budget_effective"] == WORKFLOW_AGENT_CALL_HARD_CAP
+            and result_overbudget["agent_budget_clamped"] is True
+            and result_overbudget["total_agents"] <= WORKFLOW_AGENT_CALL_HARD_CAP,
+            str(result_overbudget),
         )
 
         # --- Assertion 7: the hard file-count cap (Phase 6) ---
