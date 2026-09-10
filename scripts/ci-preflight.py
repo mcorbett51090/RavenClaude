@@ -745,6 +745,60 @@ def print_verdict(results: list[CheckResult], rc: int) -> None:
 # ── self-test (§3.9, §5 P4 — grows across phases; floor-only for now) ──────
 
 
+def _default_agents_md_path() -> Path:
+    return Path(__file__).resolve().parent.parent / "AGENTS.md"
+
+
+def _strip_comment_markers(text: str) -> str:
+    """AGENTS.md wraps the narrowed-claim sentence across several `#   `
+    shell-comment continuation lines inside its fenced 'Before opening a
+    PR' code block. Strip a leading run of `#` (and the whitespace right
+    after it) from every line, then collapse ALL whitespace (including the
+    newlines between what were separate comment lines) to single spaces —
+    so a sentence that reads as one continuous phrase to a human reader
+    also reads as one continuous, `in`-testable substring here."""
+    out_lines = []
+    for ln in text.splitlines():
+        s = ln.strip()
+        while s.startswith("#"):
+            s = s[1:].lstrip()
+        out_lines.append(s)
+    return " ".join(" ".join(out_lines).split())
+
+
+def check_agents_md_doc_contract(path: Path | None = None) -> CheckResult:
+    """P4/P5 DoD (§5 P5's bad row, 'folded into P4's --self-test'): AGENTS.md
+    must contain both the exact invocation `python3 scripts/ci-preflight.py`
+    and R8's narrowed-claim sentence, verbatim. This is deliberately NOT part
+    of the unconditional floor/hotspot set `main()` runs (P3 already froze
+    that check-execution/exit-code contract) — it is a self-test-only
+    assertion against the actual shipped docs, exercised bidirectionally
+    below via the `path=` test seam."""
+    p = path if path is not None else _default_agents_md_path()
+    try:
+        text = p.read_text(encoding="utf-8")
+    except OSError as e:
+        return CheckResult(
+            "doc-contract:agents-md", UNAVAILABLE, f"could not read {p}: {e}", "", 0.0
+        )
+    normalized = _strip_comment_markers(text)
+    missing = []
+    if "python3 scripts/ci-preflight.py" not in text:
+        missing.append("the exact invocation `python3 scripts/ci-preflight.py`")
+    if NARROWED_CLAIM not in normalized:
+        missing.append("the narrowed-claim sentence (verbatim)")
+    if missing:
+        return CheckResult(
+            "doc-contract:agents-md",
+            FAIL,
+            f"{p} is missing " + " and ".join(missing),
+            "restore the exact invocation and the narrowed-claim sentence in AGENTS.md's "
+            "'Before opening a PR' checklist",
+            0.0,
+        )
+    return CheckResult("doc-contract:agents-md", PASS, "", "", 0.0)
+
+
 def _self_test() -> int:
     import tempfile
 
@@ -1031,6 +1085,63 @@ def _self_test() -> int:
                 f"status_before={status_before} status_after={status_after} "
                 f"verdict={r.verdict} detail={r.detail!r}"
             )
+
+    # P5 good: the ACTUAL shipped AGENTS.md (not a fixture — this is the one
+    # self-test case that deliberately reads the real repo) must currently
+    # contain both the exact invocation and the narrowed-claim sentence.
+    r = check_agents_md_doc_contract()
+    label = "doc-contract: AGENTS.md contains the exact invocation and the narrowed-claim sentence"
+    if r.verdict == PASS:
+        ok += 1
+        print(f"  ok   {label}")
+    else:
+        fail += 1
+        print(f"  FAIL {label}: got {r.verdict} ({r.detail})")
+
+    # P5 bad: a scratch copy with the narrowed-claim sentence reworded away
+    # must FAIL and name exactly what's missing — proving this is a real
+    # substring assertion, not a rubber stamp.
+    with tempfile.TemporaryDirectory() as td:
+        reworded = Path(td) / "AGENTS-reworded.md"
+        reworded.write_text(
+            "# 0b. CI preflight coordinator\n"
+            "#     Run python3 scripts/ci-preflight.py before every PR.\n"
+            "#     This tool checks some CI things but your mileage may vary.\n",
+            encoding="utf-8",
+        )
+        r = check_agents_md_doc_contract(path=reworded)
+        label = (
+            "doc-contract: a scratch AGENTS.md with the narrowed-claim sentence reworded "
+            "away FAILs and names it as missing"
+        )
+        if r.verdict == FAIL and "narrowed-claim sentence" in r.detail:
+            ok += 1
+            print(f"  ok   {label}")
+        else:
+            fail += 1
+            print(f"  FAIL {label}: got {r.verdict} ({r.detail})")
+
+    # P5 bad: a scratch copy missing the exact invocation string entirely
+    # (even though it has the narrowed-claim sentence) must ALSO FAIL and
+    # name that specific gap — proving both halves of the doc contract are
+    # independently checked, not an either/or.
+    with tempfile.TemporaryDirectory() as td:
+        no_invocation = Path(td) / "AGENTS-no-invocation.md"
+        no_invocation.write_text(
+            f"# Run the preflight tool.\n# {NARROWED_CLAIM}\n",
+            encoding="utf-8",
+        )
+        r = check_agents_md_doc_contract(path=no_invocation)
+        label = (
+            "doc-contract: a scratch AGENTS.md missing the exact invocation FAILs and "
+            "names it as missing"
+        )
+        if r.verdict == FAIL and "exact invocation" in r.detail:
+            ok += 1
+            print(f"  ok   {label}")
+        else:
+            fail += 1
+            print(f"  FAIL {label}: got {r.verdict} ({r.detail})")
 
     # Exit-aggregation contract: every tier combination, both strict settings.
     _p = CheckResult("p", PASS)
