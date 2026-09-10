@@ -320,6 +320,14 @@ if [ "$mode" = "--must-fail-throttle" ]; then
   # proving the "second Stop emits again after cooldown" assertion below
   # actually measures the confirmed-outcome predicate.
   mutant="$T/handoff-nudge-throttle.py"
+  # Seed a sibling context-usage-meter.py next to the mutant. handoff-nudge.py's
+  # _load_meter() resolves HERE=Path(__file__).resolve().parent and unconditionally
+  # exec_module()s HERE/"context-usage-meter.py" — without this copy, running the
+  # mutant from $T raises FileNotFoundError inside main() BEFORE the mutated
+  # _throttled() predicate (below) is ever reached, so the empty-stdout assertion
+  # this block makes would pass regardless of whether the throttle mutation was
+  # exercised (finding b29-gate212-throttle-mutant-vacuous).
+  cp "$HERE/../scripts/context-usage-meter.py" "$T/context-usage-meter.py"
   python3 - "$ENGINE" "$mutant" <<'PY'
 from pathlib import Path
 import sys

@@ -194,13 +194,22 @@ _REMOTE_RE = re.compile(r"^(?:https?://|//|javascript:)", re.IGNORECASE)
 
 
 def _norm_scheme(v: str) -> str:
-    """Strip ASCII tab/CR/LF from a resolved href before scheme-matching.
+    """Strip WHATWG-URL-parser-equivalent leading/trailing junk + internal tab/CR/LF
+    from a resolved href before scheme-matching.
 
-    A WHATWG URL parser strips tab/CR/LF while parsing the scheme, so
-    ``jav&#9;ascript:alert(1)`` (ElementTree decodes ``&#9;`` to a tab) executes
-    as ``javascript:`` in a browser even though the raw value fails ``^javascript:``.
-    Removing those control chars first closes that bypass (2026-08 review)."""
-    return re.sub(r"[\t\r\n]", "", v or "")
+    A WHATWG URL parser (a) strips any leading/trailing C0 control character or space
+    before parsing, then (b) removes all ASCII tab/CR/LF from the remaining string.
+    ``jav&#9;ascript:alert(1)`` (ElementTree decodes ``&#9;`` to a tab) executes as
+    ``javascript:`` in a browser even though the raw value fails ``^javascript:`` —
+    the original fix for that (2026-08 review) is step (b) below. A leading numeric
+    entity like ``&#32;javascript:alert(1)`` (a literal leading space) or a leading C0
+    control likewise gets stripped by browsers before the scheme is parsed, so step
+    (a) closes that bypass too (2026-09 review): without it, the ``^``-anchored
+    ``_REMOTE_RE.match`` never reaches the ``javascript:`` scheme."""
+    v = v or ""
+    v = re.sub(r"^[\x00-\x1f\x20]+", "", v)
+    v = re.sub(r"[\x00-\x1f\x20]+$", "", v)
+    return re.sub(r"[\t\r\n]", "", v)
 
 
 def _check_tree(root: ET.Element, violations: list, min_fontsize: float) -> None:
@@ -309,7 +318,7 @@ def main() -> int:
 
     try:
         content = open(abs_path, encoding="utf-8").read()
-    except OSError as exc:
+    except (OSError, UnicodeDecodeError) as exc:
         print(f"[error] cannot read file: {exc}", file=sys.stderr)
         return 2
 

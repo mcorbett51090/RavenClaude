@@ -113,7 +113,7 @@ _scan="${cmd} ${THING_PEER_VERDICTS:-}"
 for _p in "${_secret_patterns[@]}"; do
   # `-e` so a pattern that begins with `-` (e.g. --password, -----BEGIN…) is
   # treated as a pattern, not a grep option.
-  if printf '%s' "$_scan" | grep -Eiq -e "$_p"; then
+  if grep -Eiq -e "$_p" <<<"$_scan"; then
     echo '{"verdict":"deny","edited_command":null,"concerns_cited":["xc.secret-in-command"],"reasoning":"refused to transmit: secret-shaped material in command; not sent to the model API","confidence":1.0,"injection_detected":false}'
     exit 0
   fi

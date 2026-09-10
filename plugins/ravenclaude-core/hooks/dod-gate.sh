@@ -118,6 +118,32 @@ print("true" if (isinstance(dod, dict) and dod.get("trusted") is True) else "fal
 PY
 dod_trusted="$(python3 -c "$__DOD_TRUSTED_PY" "$posture" 2>/dev/null || echo "false")"
 
+# ── Sever the trust self-attestation (b26-dodgate-cmd-exec-trusted-bypass) ──
+# `trusted: true` and `cmd` both live in the SAME attacker-writable YAML file, so a
+# single malicious PR/commit can set both at once — the YAML declaring its own cmd
+# "reviewed" with nothing to distinguish that from an untrusted first-run. Honor
+# `trusted: true` only when git shows the `trusted:` line was last touched in a
+# DIFFERENT commit than the `cmd:` line — i.e. trust was granted as a genuinely
+# separate act, not alongside the payload it is trusting. Any ambiguity (no git,
+# untracked/dirty file with both lines uncommitted, unresolvable blame) fails SAFE:
+# `dod_trusted` is forced back to "false" and the confirm-file challenge below still
+# runs. This directly defeats the finding's stated trigger (one commit setting both
+# fields) without touching the confirm-file mechanism itself.
+if [ "$dod_trusted" = "true" ] && command -v git >/dev/null 2>&1 \
+  && git -C "$cwd" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+  dod_trust_sep=""
+  trusted_line="$(grep -n -m1 -E '^[[:space:]]*trusted:[[:space:]]*true[[:space:]]*$' "$posture" 2>/dev/null | cut -d: -f1)"
+  cmd_line="$(grep -n -m1 -E '^[[:space:]]*cmd:' "$posture" 2>/dev/null | cut -d: -f1)"
+  if [ -n "$trusted_line" ] && [ -n "$cmd_line" ]; then
+    trusted_commit="$(git -C "$cwd" blame -L "${trusted_line},${trusted_line}" --porcelain -- "$posture" 2>/dev/null | head -1 | awk '{print $1}')"
+    cmd_commit="$(git -C "$cwd" blame -L "${cmd_line},${cmd_line}" --porcelain -- "$posture" 2>/dev/null | head -1 | awk '{print $1}')"
+    if [ -n "$trusted_commit" ] && [ -n "$cmd_commit" ] && [ "$trusted_commit" != "$cmd_commit" ]; then
+      dod_trust_sep="true"
+    fi
+  fi
+  [ "$dod_trust_sep" = "true" ] || dod_trusted="false"
+fi
+
 if [ "$dod_trusted" != "true" ]; then
   # Hash the cmd so the confirm token is per-cmd-value (a swapped cmd re-prompts).
   # `sha256sum` is GNU-only and ABSENT on stock macOS — falling straight to the

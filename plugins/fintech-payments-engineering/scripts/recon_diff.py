@@ -159,7 +159,17 @@ def reconcile(
                 {"reference": ref, "ledger_currency": sorted(lcur), "psp_currency": sorted(pcur)}
             )
 
+    # References already resolved by the currency_mismatch pass above must not
+    # also be counted as ledger_only/psp_only below — the match loops key on
+    # (reference, currency), so a cross-currency shared reference otherwise
+    # looks like a missing counterpart on *both* sides and gets two
+    # contradictory, factually wrong remediation labels on top of its correct
+    # currency_mismatch one.
+    mismatched_refs = {r["reference"] for r in currency_mismatch}
+
     for key, l_row in ledger.items():
+        if key[0] in mismatched_refs:
+            continue
         p_row = psp.get(key)
         if p_row is None:
             ledger_only.append(l_row)
@@ -181,6 +191,8 @@ def reconcile(
             )
 
     for key, p_row in psp.items():
+        if key[0] in mismatched_refs:
+            continue
         if key not in ledger:
             psp_only.append(p_row)
 

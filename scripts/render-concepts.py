@@ -395,6 +395,13 @@ def main() -> int:
         staged.mkdir()
         for c in concepts:
             cid = c["id"]
+            # Diagrams are opt-in for inventory entries (see concepts.py's R2
+            # corollary) — c["diagram"] may be None. _check() already skips these
+            # (see its `if not c.get("diagram")` guard); mirror that here so a
+            # diagram-less concept doesn't crash _render_one() with a None source.
+            if not c.get("diagram"):
+                print(f"  skipped {cid}  (no diagram — opt-in)")
+                continue
             (staged / f"{cid}.svg").write_text(_render_one(c["diagram"], f"c-{cid}", tmp), encoding="utf-8")
             if c["diagram_mini"]:
                 (staged / f"{cid}.mini.svg").write_text(

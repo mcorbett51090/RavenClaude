@@ -361,7 +361,7 @@
       "name": "finance",
       "source": "./plugins/finance",
       "description": "Corporate finance & FP&A specialist team — FP&A analyst (budgets, forecasts, variance commentary), financial modeler (3-statement, DCF, scenarios), controller (close, JEs, reconciliations), treasury analyst (cash, covenants, FX), valuation analyst (DCF + comps + precedent), audit-prep specialist (PBC, walkthroughs, SOC1/2 narratives), and board-pack composer. skills incl. a gold-standard NetSuite close (OAuth2 M2M + SuiteQL BS/IS trial balance, layperson runbook), templates, a knowledge bank (ASC 805 / 718 / 740, accrual-cutoff, WACC, cost accounting, FP&A operating model + decision support, NetSuite integration landscape), advisory hooks (hardcoded rates / plaintext PII / missing Sources / Assumptions; secrets-PII scan). Inherits ravenclaude-core protocols.",
-      "version": "0.18.5",
+      "version": "0.18.6",
       "author": {
         "name": "Matt Corbett"
       },
@@ -443,7 +443,7 @@
       "name": "data-platform",
       "source": "./plugins/data-platform",
       "description": "Data-platform team \u2014 agents (database-setup-guide, etl-pipeline-engineer, dashboard-builder, connector-developer) for cloud DBs, ELT (Airbyte / Fivetran / n8n) with connectors for QuickBooks / Stripe / Salesforce / HubSpot / GA4 / Shopify / HRIS / Planhat / Intercom / Slack-as-source plus 8-vendor support-tool integration coverage (Zendesk, Freshdesk, Intercom Conv+Tkt, SFDC Service Cloud, JSM, HubSpot Service, Help Scout, Front + 2026 Fivetran connector-MAR build-vs-buy math), and embedded dashboards (Evidence.dev / Superset / Metabase / Cube + Tremor). skills (incl. support-ticket-normalization \u2014 conformed fct_ticket / fct_conversation_event over 8 vendors; cross-system-identity-resolution \u2014 the Salesforce\u2194Planhat\u2194Intercom\u2194Slack account spine), templates, a knowledge bank, best-practices. Opinionated against per-viewer-priced BI for greenfield SMB. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.33.1",
+      "version": "0.33.2",
       "author": {
         "name": "Matt Corbett"
       },
@@ -792,7 +792,7 @@
       "name": "team-portfolio",
       "source": "./plugins/team-portfolio",
       "description": "Centralized multi-repo, multi-person activity & project tracking. Aggregates commits, pull requests, and issues across many GitHub repositories from the GitHub API and rolls them up by person, by repo, and by cross-repo project — so a team working in sibling repos has one place to see who did what, and a supervisor gets a manage-the-team view no single-repo activity log can provide. Ships a stdlib-only collector (GitHub REST API → normalized activity JSON), a markdown report generator (weekly tracker + rolling activity roll-up + per-project status), a self-contained HTML dashboard generator, a copy-in GitHub Action template for scheduled refresh, an on-demand /portfolio-refresh command, an optional hand-maintained narrative layer, and skills (portfolio-setup, cross-repo-project-tracking). Secrets stay in env/secrets, never in config. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.2.2",
+      "version": "0.2.3",
       "author": {
         "name": "Matt Corbett"
       },
@@ -1103,7 +1103,7 @@
       "name": "fintech-payments-engineering",
       "source": "./plugins/fintech-payments-engineering",
       "description": "Fintech & payments-engineering team — agents (payments-architect, payments-integration-engineer, billing-subscriptions-engineer, payments-pci-compliance-advisor) for building payment + billing systems that don't lose or duplicate money: payment-flow architecture (PSP choice, money-as-integer, the double-entry ledger, reconciliation), payment integration (Stripe-style intents, idempotency keys, webhook verification + idempotent handling, 3DS/SCA, retries/dunning), subscription & usage billing (plans, proration, metering, invoicing, revenue events), and PCI-DSS scope minimization (tokenization, never touch raw PAN, SAQ-A posture). The ENGINEERING — accounting/GL routes to finance, financial regulation to regulatory-compliance, security verdicts to ravenclaude-core. skills, a decision-tree knowledge bank (charge-flow + PCI-scope trees + a dated 2026 map), best-practices, templates, commands, an advisory hook. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.3.3",
+      "version": "0.3.4",
       "author": {
         "name": "Matt Corbett"
       },
@@ -1126,7 +1126,7 @@
       "name": "analytics-engineering",
       "source": "./plugins/analytics-engineering",
       "description": "Analytics-engineering team — agents (analytics-engineer, semantic-layer-engineer, data-quality-testing-engineer) for the TRANSFORMATION layer in the modern data stack: dbt modeling (staging -> intermediate -> marts, the medallion/Kimball split, incremental models, materializations), a governed semantic/metrics layer (one definition of revenue/active-user, metrics-as-code) so every tool agrees, and data quality (dbt tests, freshness, model contracts, anomaly checks) that gates the warehouse. Warehouse-neutral (Snowflake/BigQuery/Redshift/Databricks). skills, a decision-tree knowledge bank (materialization + model-layer trees + a dated 2026 map), best-practices, templates, commands, an advisory hook. Distinct from data-platform (ingestion/warehouse/BI) and database-engineering (OLTP). Seams: ELT/warehouse provisioning -> data-platform, OLTP -> database-engineering, BI -> tableau/data-platform, enterprise lakehouse -> microsoft-fabric. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.3.7",
+      "version": "0.3.8",
       "author": {
         "name": "Matt Corbett"
       },
@@ -1310,7 +1310,7 @@
       "name": "cloud-native-kubernetes",
       "source": "./plugins/cloud-native-kubernetes",
       "description": "Cloud-native & Kubernetes team — agents (kubernetes-architect, container-build-engineer, k8s-platform-operator, service-mesh-networking-engineer) for running workloads on Kubernetes well: workload design (Deployment/StatefulSet/Job, probes, requests/limits, PDBs, HPA/VPA), container build hygiene (minimal non-root images, distroless, multi-stage), platform ops (namespaces, RBAC, network policies, resource quotas, admission control, upgrades), and service-mesh networking (ingress/gateway, mTLS, traffic-splitting, observability). Cloud-agnostic. skills, a decision-tree knowledge bank (workload-type + ingress trees + a dated 2026 ecosystem map), best-practices, templates, commands, an advisory hook. Seams: managed control plane (AKS/EKS/GKE) -> azure/aws/gcp-cloud, GitOps reconcile -> devops-cicd, telemetry/SLOs -> observability-sre. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.3.10",
+      "version": "0.3.11",
       "author": {
         "name": "Matt Corbett"
       },
@@ -3654,7 +3654,7 @@
       "name": "generative-web-media",
       "source": "./plugins/generative-web-media",
       "description": "Generative web media team — agents (generation-strategist, web-asset-pipeline-engineer, asset-provenance-guardian, brand-and-accessibility-reviewer) that take a creative brief and return on-brand, web-optimized, license-clean images/video/3D/audio behind a mandatory human curation gate. Provider-neutral, Grok-lean for images where competitive; images v1-deep (photoreal/vector/text-in-image + inpaint/outpaint/bg-removal/upscale round-trips), video/3D/audio routed. AVIF/WebP responsive <picture> + CWV-safe embeds; license pinning (the FLUX-dev non-commercial trap), C2PA + a provenance ledger, EU AI Act Art.50; brand-hex/style conformance + WCAG alt text. skills, knowledge docs (Mermaid decision trees; all prices [unverified]), best-practices, commands, templates, scripts. The shared foundation the brand-identity-studio plugin consumes; the DTCG token producer is web-design. Declarative fal MCP binding (set FAL_KEY). Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.1.3",
+      "version": "0.1.4",
       "author": {
         "name": "Matt Corbett"
       },
@@ -3681,7 +3681,7 @@
       "name": "web-commerce",
       "source": "./plugins/web-commerce",
       "description": "Web commerce integration specialist — scaffolds a production-ready payment/commerce backend (Stripe, Square, or Shopify; one provider per site) into static or JS-framework sites at full depth: catalog, cart, hosted or embedded checkout, signature-verified webhooks, idempotency, Square POS/inventory reconciliation, and order handling. Three first-class provider tracks behind a thin shared payment-lifecycle contract, not a leaky unified adapter; generates first-party code with PCI card-isolation, webhook verification, idempotency, and env-only secrets as generated-code invariants. The backend-integration lane that plugs into web-design's build pipeline; every payment/PII security verdict routes to ravenclaude-core/security-reviewer. Inherits ravenclaude-core protocols.",
-      "version": "0.1.1",
+      "version": "0.1.2",
       "author": {
         "name": "Matt Corbett"
       },
