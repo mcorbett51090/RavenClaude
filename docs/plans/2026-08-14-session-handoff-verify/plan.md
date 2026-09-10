@@ -1,5 +1,11 @@
 # Plan — session-handoff-verify (same-host close)
 
+**Status: SHIPPED 0.271.0** — host-paired recipes are on disk (`handoff-spawn.sh`
+`--host grok|cli|chat|claude-code`, Gate 215, `chat-resume.md`, Copilot CLI
+`exec copilot`). Default `context_handoff.mode` stays off. Remaining owner
+probes (C17/C18 Chat live boxes) are optional and blocked on the Chat ceiling
+tables, not unfinished recipe work. Do not rebuild.
+
 **Owner:** ravenclaude-core · **Run:** `session-handoff-verify` · **G6 synthesize**
 **Origin lock (audit):** `9c7f0744478d2a033d349cbf6a6a48a695ae4d76` / plugin **0.269.0**.
 **Implement-time correction (G8, 2026-08-14):** origin/main moved to `50acc826` during this run. `#937` shipped ravenclaude-core **0.270.0** (host-keyed substrate tier map — does not touch handoff files). Next free bump for *this* plan is **0.271.0**. Gate **215** is still free. Re-read tip + versions again at implement.

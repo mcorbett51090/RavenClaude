@@ -2,6 +2,19 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.321.4 — 2026-09-10
+
+### Added
+
+- Comfort-posture 13th category `subagent_dispatch` emits bare `"Agent"`
+  (recommended preset `allow`). Absent key still falls back to
+  `global_default`.
+- Caveman auto-routing P7 live-apply: when `caveman_routing: live`, classifier
+  `on`→`lite` and `off`→`off`. Shadow still never applies. Default remains
+  off. Owner overrode the uncleared P5 soak gates.
+- The new Settings-tab category card is +82 live DOM elements on both
+  dashboard surfaces (Gate 132 ratchet raised to match).
+
 ## 0.321.3 — 2026-09-10
 
 ### Fixed

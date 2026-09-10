@@ -2282,7 +2282,7 @@ Probe: `unprobed: needs a live two-hook host session; scheduled for the T2 sampl
 
 **Sources:** [measured in the FORGE product-inventory run](https://github.com/mcorbett51090/RavenClaude/pull/997)
 
-_Last verified: 2026-09-03_
+_Last verified: 2026-09-10_
 
 
 ---
@@ -2610,7 +2610,7 @@ Probe: `scripts/check-artifact-budgets.py`
 
 **Sources:** [measured in the FORGE product-inventory run](https://github.com/mcorbett51090/RavenClaude/pull/997)
 
-_Last verified: 2026-09-03_
+_Last verified: 2026-09-10_
 
 
 ---
@@ -2981,25 +2981,25 @@ _Last verified: 2026-09-10_
 
 ---
 
-### Caveman auto-routing: SHADOW-only, and the scripts/ packaging exception · _RavenClaude-built_
+### Caveman auto-routing: scripts/ packaging exception, live-apply since P7 · _RavenClaude-built_
 
-> The caveman auto-routing hook decides and records but never calls the mode applier this phase, and ships from scripts/ because a new hooks/*.sh chmod is denied.
+> The caveman auto-routing hook ships from scripts/ because a new hooks/*.sh chmod is denied. Since P7, live posture calls the mode applier (on→lite, off→off); shadow still never applies.
 
 ## What a reader would have assumed instead
 
 That a new SessionStart/UserPromptSubmit hook body would live in `hooks/`, like every other hook in
-this plugin, and that turning the posture knob to `live` would make the routing decision actually take
-effect immediately.
+this plugin, and (before P7) that turning the posture knob to `live` would still only decide and
+record.
 
 ## The discriminator
 
 control: ask-on-ambiguity.sh (also in scripts/, registered via the identical bash-prefixed escape)
 already proves the substrate guard denies a NEW hooks/*.sh chmod but not a scripts/*.sh one -- the same
 escape pattern, reused rather than re-argued from scratch
-Measured 2026-09-03: caveman-route-hook.sh ships from scripts/, not hooks/ -- a NEW hooks/*.sh file
-needs a chmod the tribunal's own substrate guard denies, the same reason ask-on-ambiguity.sh lives
-there too. Even when the posture is live, this phase's hook only decides and records: it never calls
-the applier.
+Measured 2026-09-10: caveman-route-hook.sh still ships from scripts/, not hooks/. P7 wires
+live-apply in caveman-route-engine.py: classifier on→lite, off→off, hold never applies,
+shadow never calls the applier. Default remains absent/off. Owner overrode the uncleared
+P5 soak gates; this is not a claim that soak passed.
 
 ## Why it matters
 

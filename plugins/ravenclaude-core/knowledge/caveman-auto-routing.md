@@ -1,12 +1,35 @@
 # caveman-auto-routing.md — caveman auto-routing knowledge file
 
 This file is named as a deliverable in both P5 and P7 of
-`.ravenclaude/runs/forge/caveman-routing-decision-tree/plan.md`. P5's own acceptance test (c)
-requires *"a dated addendum… committed now"* — that addendum is the section below. P7 will later
-add the full contract (Q1–Q4 decisions with runners-up, the runtime version-drift resolution
-order, the kill-switch procedure, and the honest limits carried verbatim from the plan) once the
-live-shadow soak closes P7's own two-stage entry gate. Nothing in this file is a claim that P7 has
-run.
+`.ravenclaude/runs/forge/caveman-routing-decision-tree/plan.md`. P5's dated addendum is the
+section below. P7 live-apply shipped 2026-09-10 (owner override of the uncleared soak
+gates) — see the P7 contract section at the top of the dated notes.
+---
+
+## 2026-09-10 — P7 live-apply (owner override of soak gates)
+
+P5 stage-1 replay was **NOT CLEARED** (null result, see the 2026-09-03 addendum).
+P7 stage-2 live-shadow soak was never run. The owner overrode both entry gates
+on 2026-09-10 and asked to finish the feature. This is an explicit override,
+not a claim that soak passed.
+
+**Contract**
+
+| Classifier verdict | caveman `VALID_MODES` write | When |
+|---|---|---|
+| `on` | `lite` | `caveman_routing: live` AND verdict ≠ `prior_verdict` |
+| `off` | `off` | same |
+| `hold` | (none) | never applies |
+
+- **shadow** still decides + records and never calls `caveman-apply-mode.sh`.
+- **absent / `off`** — hook short-circuits; zero file writes. Do **not** seed
+  `caveman_routing: live` in templates. Default stays off.
+- Bootstrap first call has verdict `off` and `prior_verdict` None, so live
+  creates the session mode file as `off`.
+- Kill switch remains the posture key: set `caveman_routing: off` (or delete
+  it). That restores the O(1) no-op floor. `--restore <session_id>` on the
+  applier undoes a past write.
+
 
 ---
 
