@@ -120,7 +120,9 @@ def _git(root: Path, *args: str, timeout: int = 60) -> tuple[int, str]:
     try:
         r = subprocess.run(
             ["git", "-C", str(root), *args],
-            capture_output=True, text=True, timeout=timeout,
+            capture_output=True,
+            text=True,
+            timeout=timeout,
         )
     except (OSError, subprocess.SubprocessError):
         return 127, ""
@@ -196,12 +198,52 @@ def _is_github_synthetic_merge_ref(root: Path) -> bool:
     return rc == 0 and bool(_GITHUB_MERGE_REF_MSG_RE.match(msg))
 
 
-def resolve_base(root: Path, requested: str = "origin/main") -> tuple[str | None, str]:
+def resolve_base(
+    root: Path, requested: str = "origin/main", force_fetch: bool = False
+) -> tuple[str | None, str]:
     """Return (base_commit_sha_or_ref, how) — `how` names which rule fired.
 
     The caller feeds the returned value to `git merge-base HEAD <base>`; on a
     merge-commit checkout the first parent IS the base, so it is returned directly.
+
+    `force_fetch` (default False, a two-way door — every existing caller is
+    unaffected) closes CE-1 (critic-brief.md): on a contributor's laptop, step 1
+    below almost always resolves `origin/main` immediately because it is
+    RESOLVABLE-BUT-STALE, which is the exact false-green this parameter exists to
+    close (`check-ratchet-freshness.py --check`, run standalone with no fetch, is a
+    vacuous control on such a clone — it always "passes" against a base that is no
+    longer the real merge base). When True, this refreshes the candidate branch
+    with a plain (non-`--unshallow`) fetch BEFORE any resolution rule below runs.
+
+    ⛔ ORDERING (R1 amendment, red-team.md R2): the synthetic-merge-ref check is
+    network-free and MUST run before this function's own fetch — a force-fetch
+    that ran first could make `origin/main` newly resolve inside a
+    `refs/pull/N/merge` checkout where it previously didn't (see
+    `_is_github_synthetic_merge_ref`'s docstring), short-circuiting resolution at
+    the now-fresh `origin/main` step and skipping the synthetic-ref branch
+    entirely — returning the wrong, moving-target answer that branch exists to
+    avoid. So: check synthetic-ref FIRST, and only fetch if it did not fire.
+
+    ⛔ PLAIN FETCH, NOT `--unshallow`, here (premise-control this session — see
+    `.ravenclaude/runs/premise/` — `git fetch --unshallow origin <branch>` on an
+    ALREADY-FULL repo fails outright, `fatal: --unshallow on a complete repository
+    does not make sense`, exit 128, and updates nothing; using it here would
+    silently skip the refresh on every normal, non-shallow contributor clone,
+    which is the majority case this parameter exists to fix). A plain `git fetch
+    origin <branch>` updates the ref on both a full clone and a shallow one; a
+    shallow clone's separate graph-walk gap (the R1 shape) is `merge_base`'s
+    problem to fix via its own bounded `--unshallow` retry below, not this
+    fetch's.
     """
+    if force_fetch:
+        if _is_github_synthetic_merge_ref(root):
+            return "MERGE_REF_PARENTS", "GitHub synthetic merge ref — nested parent merge-base"
+        ci_base = os.environ.get("GITHUB_BASE_REF", "").strip()
+        branch = ci_base or ("main" if requested.endswith("main") else "master")
+        _git(root, "fetch", "--quiet", "origin", branch, timeout=FETCH_TIMEOUT)
+        # Fall through to the resolution order below, unchanged — it now sees
+        # whatever the fetch above just refreshed.
+
     if _resolves(root, requested):
         return requested, f"explicit base {requested}"
 
@@ -268,9 +310,20 @@ def resolve_base(root: Path, requested: str = "origin/main") -> tuple[str | None
     return None, "no base ref resolves — UNKNOWN, never up-to-date"
 
 
-def merge_base(root: Path, requested: str = "origin/main") -> tuple[str | None, str]:
-    """The commit to diff against, or (None, why)."""
-    base, how = resolve_base(root, requested)
+def merge_base(
+    root: Path, requested: str = "origin/main", force_fetch: bool = False
+) -> tuple[str | None, str]:
+    """The commit to diff against, or (None, why).
+
+    `force_fetch` (default False, a two-way door) is passed through to
+    `resolve_base` AND additionally gates the R1 fix below: a force-fetch on
+    `resolve_base` alone only refreshes WHICH commit a base ref points at — it
+    does nothing about a graph-walk failure on a shallow/no-shared-history
+    clone, so the "no shared history — using the base tip" branch further down
+    would otherwise still hand back a fabricated base even though `force_fetch`
+    promised a real one (red-team.md R1).
+    """
+    base, how = resolve_base(root, requested, force_fetch=force_fetch)
     if base is None:
         return None, how
     # A merge-commit first parent IS the base; asking merge-base for it is both
@@ -338,7 +391,13 @@ def merge_base(root: Path, requested: str = "origin/main") -> tuple[str | None, 
         # literal HEAD request.
         rc_head, head = _git(root, "rev-parse", "HEAD")
         _explicit_head = base in ("HEAD", "HEAD^1")
-        if (not _NEUTER_BASE_TIP) and (not _explicit_head) and rc_head == 0 and head and sha == head:
+        if (
+            (not _NEUTER_BASE_TIP)
+            and (not _explicit_head)
+            and rc_head == 0
+            and head
+            and sha == head
+        ):
             rc_parent, parent = _git(root, "rev-parse", "HEAD^1")
             if rc_parent == 0 and parent:
                 return parent, how + " (HEAD is the base tip — first parent is the base)"
@@ -346,6 +405,24 @@ def merge_base(root: Path, requested: str = "origin/main") -> tuple[str | None, 
             # never "up to date" — do not hand back HEAD to buy a green.
             return None, how + ", but HEAD is the base tip with no parent — UNKNOWN"
         return sha, how
+    # ⛔ R1 (red-team.md): before falling back to the base-tip fabrication below,
+    # force_fetch gets ONE real shot at a true merge base. Same bounded
+    # `--unshallow` + retry already used for MERGE_REF_PARENTS above — premise-
+    # controlled this session (`.ravenclaude/runs/premise/`) that a bare
+    # `--unshallow` deepens the repo's WHOLE shallow boundary (shallow-ness is a
+    # repo-wide `.git/shallow` record, not scoped to whichever named branch
+    # originally triggered it), so it also recovers a separately shallow-fetched
+    # base ref like `origin/main` without needing branch-specific logic here.
+    if force_fetch:
+        _git(root, "fetch", "--quiet", "--unshallow", "origin", timeout=FETCH_TIMEOUT)
+        rc3, sha3 = _git(root, "merge-base", "HEAD", base)
+        if rc3 == 0 and sha3:
+            return sha3, how + " (after --unshallow retry)"
+        return (
+            None,
+            how + ", but no merge base could be computed even after --unshallow"
+            " — UNKNOWN, never the base tip",
+        )
     # Shallow clones can share no history with the base tip. The base ref itself is
     # still the correct comparison point — say so rather than reporting UNKNOWN.
     rc2, sha2 = _git(root, "rev-parse", f"{base}^{{commit}}")
@@ -468,6 +545,107 @@ def _fixture_github_merge_ref(td):
     return r, base_tip, pr_tip, fork_point
 
 
+def _fixture_shallow_no_shared_history(td):
+    """R1 regression (red-team.md): a depth-one clone of a feature branch, plus
+    a SEPARATE depth-one fetch of `main`, cannot walk to a shared ancestor — raw
+    `git merge-base` fails outright, and the unforced `merge_base()` falls
+    through to the existing "no shared history — using the base tip" branch
+    (this is documented BACKWARD-COMPATIBLE legacy behaviour, not a defect to
+    fix). `force_fetch=True` must instead recover the TRUE merge base via the
+    bounded `--unshallow` retry, never the fabricated tip.
+
+    Remote history: `a` (fork point) -> `b` -> `c` on `main`; branch `feature`
+    from `a` with commit `f`. `work` is a `--depth 1 --single-branch feature`
+    clone, with `main` separately shallow-fetched at depth 1 into
+    `refs/remotes/origin/main` (pointing at `c`).
+
+    Returns (work_root, base_tip_sha_c, fork_point_sha_a).
+    """
+    import subprocess as sp
+
+    remote = Path(td) / "remote"
+    work = Path(td) / "work"
+    remote.mkdir()
+    q = {"cwd": str(remote), "capture_output": True, "text": True, "timeout": 60}
+    sp.run(["git", "init", "-q", "-b", "main", str(remote)], capture_output=True, timeout=60)
+    sp.run(["git", "config", "user.email", "t@t"], **q)
+    sp.run(["git", "config", "user.name", "t"], **q)
+
+    def commit(name):
+        (remote / name).write_text(name, encoding="utf-8")
+        sp.run(["git", "add", "-A"], **q)
+        sp.run(["git", "commit", "-q", "-m", name], **q)
+        return sp.run(["git", "rev-parse", "HEAD"], **q).stdout.strip()
+
+    a = commit("a.txt")
+    sp.run(["git", "checkout", "-q", "-b", "feature"], **q)
+    commit("f.txt")
+    sp.run(["git", "checkout", "-q", "main"], **q)
+    commit("b.txt")
+    c = commit("c.txt")
+
+    sp.run(
+        [
+            "git",
+            "clone",
+            "-q",
+            "--branch",
+            "feature",
+            "--depth",
+            "1",
+            "--single-branch",
+            f"file://{remote}",
+            str(work),
+        ],
+        capture_output=True,
+        text=True,
+        timeout=60,
+    )
+    qw = {"cwd": str(work), "capture_output": True, "text": True, "timeout": 60}
+    sp.run(["git", "config", "user.email", "t@t"], **qw)
+    sp.run(["git", "config", "user.name", "t"], **qw)
+    # The separate, manual depth-1 fetch of `main` — reproduces the CE-1/R1
+    # shape where a base ref resolves but shares no walkable history with HEAD.
+    sp.run(
+        ["git", "fetch", "-q", "--depth", "1", "origin", "main:refs/remotes/origin/main"],
+        **qw,
+    )
+    return work, c, a
+
+
+def _fixture_disjoint_histories(td):
+    """R1 negative control (red-team.md item 6): two genuinely orphan
+    histories that share no common ancestor even after `--unshallow`.
+    `merge_base(force_fetch=True)` must return `(None, ...)`, never a
+    fabricated answer — this is what proves the force-fetch retry does not
+    just always "succeed" by returning whatever it can reach.
+
+    Returns root — HEAD is on the orphan `feature` branch; `origin/main` is
+    pointed at `main`'s tip, a commit with no shared ancestor.
+    """
+    import subprocess as sp
+
+    root = Path(td)
+    q = {"cwd": str(root), "capture_output": True, "text": True, "timeout": 60}
+    sp.run(["git", "init", "-q", "-b", "main", str(root)], capture_output=True, timeout=60)
+    sp.run(["git", "config", "user.email", "t@t"], **q)
+    sp.run(["git", "config", "user.name", "t"], **q)
+
+    def commit(name):
+        (root / name).write_text(name, encoding="utf-8")
+        sp.run(["git", "add", "-A"], **q)
+        sp.run(["git", "commit", "-q", "-m", name], **q)
+        return sp.run(["git", "rev-parse", "HEAD"], **q).stdout.strip()
+
+    commit("main.txt")
+    main_sha = sp.run(["git", "rev-parse", "main"], **q).stdout.strip()
+    sp.run(["git", "checkout", "-q", "--orphan", "feature"], **q)
+    sp.run(["git", "rm", "-rq", "--cached", "."], **q)
+    commit("feature.txt")
+    sp.run(["git", "update-ref", "refs/remotes/origin/main", main_sha], **q)
+    return root
+
+
 def _self_test():
     import tempfile
 
@@ -568,6 +746,86 @@ def _self_test():
         else:
             fail += 1
             print(f"  FAIL {label}: want {fork_point}, got {got} ({how})")
+
+        # R2 regression pin: the SAME fixture, but with force_fetch=True. The
+        # ordering fix (synthetic-ref check before any fetch, in resolve_base)
+        # must not have reopened the bug it was already carrying a fix for —
+        # this must STILL return the fork point, not a tip a premature fetch
+        # could have exposed.
+        _prior_event = os.environ.get("GITHUB_EVENT_NAME")
+        _prior_base = os.environ.get("GITHUB_BASE_REF")
+        os.environ["GITHUB_EVENT_NAME"] = "pull_request"
+        os.environ.pop("GITHUB_BASE_REF", None)
+        try:
+            got_ff, how_ff = merge_base(root, force_fetch=True)
+        finally:
+            if _prior_event is None:
+                os.environ.pop("GITHUB_EVENT_NAME", None)
+            else:
+                os.environ["GITHUB_EVENT_NAME"] = _prior_event
+            if _prior_base is not None:
+                os.environ["GITHUB_BASE_REF"] = _prior_base
+        label_ff = (
+            "R2 regression: force_fetch=True on the synthetic merge ref -> still the fork point"
+        )
+        if got_ff == fork_point:
+            ok += 1
+            print(f"  ok   {label_ff}")
+        else:
+            fail += 1
+            print(f"  FAIL {label_ff}: want {fork_point}, got {got_ff} ({how_ff})")
+
+    # R1 (red-team.md): the depth-one shallow/no-shared-history regression.
+    # Both directions matter equally here — the unforced call must keep
+    # returning the LEGACY answer (proving no accidental behavior change for
+    # every existing caller that never opts in), and the forced call must
+    # return the TRUE merge base (the actual fix).
+    with tempfile.TemporaryDirectory() as td:
+        root, base_tip_c, fork_point_a = _fixture_shallow_no_shared_history(td)
+
+        rc_raw, _ = _git(root, "merge-base", "HEAD", "origin/main")
+        label = "R1 fixture control: raw `git merge-base HEAD origin/main` has no shared history"
+        if rc_raw != 0:
+            ok += 1
+            print(f"  ok   {label}")
+        else:
+            fail += 1
+            print(
+                f"  FAIL {label}: raw merge-base unexpectedly succeeded — fixture is not testing what it claims"
+            )
+
+        got_unforced, how_unforced = merge_base(root)
+        label = (
+            "R1 backward-compat: force_fetch=False (default) still returns the base tip, unchanged"
+        )
+        if got_unforced == base_tip_c:
+            ok += 1
+            print(f"  ok   {label}")
+        else:
+            fail += 1
+            print(f"  FAIL {label}: want {base_tip_c}, got {got_unforced} ({how_unforced})")
+
+        got_forced, how_forced = merge_base(root, force_fetch=True)
+        label = "R1 fix: force_fetch=True recovers the TRUE merge base, not the fabricated tip"
+        if got_forced == fork_point_a:
+            ok += 1
+            print(f"  ok   {label}")
+        else:
+            fail += 1
+            print(f"  FAIL {label}: want {fork_point_a}, got {got_forced} ({how_forced})")
+
+    # R1 negative control: even force_fetch=True must never fabricate a base
+    # when the histories are genuinely disjoint.
+    with tempfile.TemporaryDirectory() as td:
+        root = _fixture_disjoint_histories(td)
+        got, how = merge_base(root, force_fetch=True)
+        label = "R1 negative control: disjoint histories -> force_fetch=True still returns None, never a fabrication"
+        if got is None:
+            ok += 1
+            print(f"  ok   {label}")
+        else:
+            fail += 1
+            print(f"  FAIL {label}: want None, got {got} ({how})")
 
     # Teeth: the SAME two-parent structure, but with a human-shaped message
     # (`git merge`'s own default) instead of GitHub's auto-generated one. The
