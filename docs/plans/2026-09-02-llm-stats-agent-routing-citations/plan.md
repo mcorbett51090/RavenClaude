@@ -1,8 +1,13 @@
 # Fill-in-the-numbers plan: cite llm-stats.com in `agent-routing-matrix.json`
 
-**Status:** ready to execute once a free API key exists (see `docs/research/2026-09-02-llm-stats-api-verification.md`
+**Status: ARCHIVED 2026-09-10 — won't-subscribe (account on hold).**
+Matthew signed up at `https://llm-stats.com/developer`; the account was put on
+hold immediately. Do not land placeholder numbers (Gate 255). Reopen only if a
+working bearer token exists. The matrix stays on framework-rule citations.
+
+**Was:** ready to execute once a free API key exists (see `docs/research/2026-09-02-llm-stats-api-verification.md`
 for the verified endpoint facts + the WebFetch-fabrication correction this plan is built on top of).
-**Blocked on:** a human signing up at `https://llm-stats.com/developer` for a bearer token — not done here.
+**Was blocked on:** a human signing up at `https://llm-stats.com/developer` for a bearer token.
 **Why this is a plan doc and not a half-edited JSON file:** `agent-routing-matrix.json` is gated by
 Gate 255, which validates every citation is real (check E verifies a `framework-rule` quote exists
 verbatim in its source; check B bans unlisted vendor-fact literals). Landing placeholder numbers into
