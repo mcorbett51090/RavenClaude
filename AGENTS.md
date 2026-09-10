@@ -221,6 +221,33 @@ Before opening a PR:
 #    upstream can otherwise look "not done" locally). Auto-skips in CI; offline-safe.
 scripts/check-checkout-fresh.sh
 
+# 0b. CI preflight coordinator — one fast command reproducing the recurring
+#     CI-failure classes this repo has hit most often (ratchet/merge-base
+#     binding, inventory staleness/schema, dashboard/index/concepts-doc
+#     freshness, Copilot package freshness, Codex-agents projection,
+#     inventory census/sweep/inception) — the same standalone `--check`
+#     commands `scripts/audit-gates.sh` itself runs for these classes, run
+#     unconditionally every invocation (no glob-based selection). Strictly
+#     read-only; never runs `--fix`/`--stamp`/a generator's write mode —
+#     every failing row names the exact remediation command to run instead.
+#
+#     Exit codes (three-tier, not binary):
+#       0 = every check ran and passed.
+#       1 = at least one class is UNAVAILABLE (soft-skip — missing tool,
+#           network-blocked, or an unresolvable base) but nothing that
+#           actually ran reported a failure. A soft-skip is NOT a pass —
+#           read the UNAVAILABLE rows before trusting exit 0 would have
+#           followed.
+#       2 = at least one class that ran reported a real failure; or the
+#           worktree changed mid-run (content-fingerprint mismatch —
+#           rerun); or --strict escalated a soft-skip; or --base was not a
+#           syntactically valid ref.
+#
+#     This reproduces production freshness/lint/ratchet diagnostics only —
+#     not audit-harness or must-fail-fixture integrity. `scripts/audit-gates.sh`
+#     remains the required pre-PR check. (See step 5 below.)
+python3 scripts/ci-preflight.py
+
 # 1. JSON validity
 python3 -m json.tool .claude-plugin/marketplace.json > /dev/null
 for m in plugins/*/.claude-plugin/plugin.json; do python3 -m json.tool "$m" > /dev/null; done

@@ -734,6 +734,11 @@ def main() -> int:
     ap.add_argument("--json", action="store_true")
     ap.add_argument("--capping-table", action="store_true")
     ap.add_argument("--stamp", default="latest", help="record filename stem (no clock in-process)")
+    ap.add_argument(
+        "--no-record",
+        action="store_true",
+        help="skip write_records() — for a read-only --check invocation (e.g. ci-preflight.py)",
+    )
     ap.add_argument("--must-fail", action="store_true")
     ap.add_argument("--must-fail-convention", action="store_true")
     args = ap.parse_args()
@@ -751,7 +756,7 @@ def main() -> int:
         return _capping_table(root)
 
     result = sweep(root, tier=args.tier)
-    rec_path = write_records(root, result, args.stamp)
+    rec_path = None if args.no_record else write_records(root, result, args.stamp)
 
     if args.json:
         print(
@@ -769,7 +774,10 @@ def main() -> int:
         by_class[rec["class"]][rec["verdict"]] += 1
 
     print("── inventory sweep (path-keyed; ZERO inventory entries required) ──")
-    print(f"  records : {rec_path.relative_to(root)}  (gitignored, derived labels only)")
+    if rec_path is None:
+        print("  records : --no-record — nothing written")
+    else:
+        print(f"  records : {rec_path.relative_to(root)}  (gitignored, derived labels only)")
     print()
     print(f"  {'CLASS':<26} {'TIER':<13} {'STRENGTH':<13} VERDICTS")
     for name, spec in CLASSES.items():
