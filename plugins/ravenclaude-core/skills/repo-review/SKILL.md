@@ -200,8 +200,8 @@ The recovery procedure, in order:
 2. **Run `findings_merge.py` directly, by hand** — the same command the failed Merge agent would
    have run, no agent dispatch required:
    ```
-   python3 scripts/findings_merge.py --in <findingsDir> --out <recoveredPath> \
-     --cap 0 --near-dup-policy keep-separate
+   python3 ${CLAUDE_PLUGIN_ROOT:-plugins/ravenclaude-core}/skills/repo-review/scripts/findings_merge.py \
+     --in <findingsDir> --out <recoveredPath> --cap 0 --near-dup-policy keep-separate
    ```
    `--cap 0` (uncapped) is deliberate for a recovery pass — see everything that survived dedup, not
    just what a tier's default cap would have kept.
