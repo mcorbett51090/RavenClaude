@@ -20,8 +20,12 @@ derived-from-header fraction. Any multi-batch rollout reproduces it per batch.
 
 Enforced here: each ratchet state file records the `measured_against` SHA it was
 computed against, and this check fails when that SHA is not the PR actual merge
-base. Without the SHA binding the rule is a sentence in a document, and this repo
-record is that sentences decay.
+base *and the ratchet claim (every key except the SHA) differs from the copy at
+the merge base*. A SHA-only mismatch after an unrelated squash onto main is
+issue #1075, not PR #991 — the numbers did not change. Without the SHA binding
+the rule is a sentence in a document, and this repo record is that sentences
+decay. Without the claim comparison, every subsequent PR fails the required
+check and trains admin-bypass (happened on #1071).
 
 ⛔ AN ABSENT SHA IS **UNKNOWN**, NEVER UP-TO-DATE. That asymmetry is the whole
 point: the failure mode being defended against is a stale value that looks fine.
@@ -74,6 +78,29 @@ def merge_base(root: Path, base: str) -> str | None:
     return sha
 
 
+def _claim(data: object) -> object:
+    """The ratchet CLAIM is everything except the SHA binding.
+
+    Two files that differ only in `measured_against` make the same numerical
+    claim. Issue #1075 is exactly that: a squash onto main moves the merge-base
+    SHA while the inherited numbers stay put. That is not PR #991 (two branches
+    each raising the shared baseline). Comparing the claim, not the SHA, is what
+    keeps #991 red without failing every subsequent docs-only PR."""
+    if not isinstance(data, dict):
+        return data
+    return {k: v for k, v in data.items() if k != "measured_against"}
+
+
+def _file_at(root: Path, rev: str, rel: str) -> object | None:
+    rc, out = _git(root, "show", f"{rev}:{rel}")
+    if rc != 0:
+        return None
+    try:
+        return json.loads(out)
+    except json.JSONDecodeError:
+        return None
+
+
 def evaluate(root: Path, base: str) -> tuple[int, list[str]]:
     mb = merge_base(root, base)
     lines: list[str] = []
@@ -106,15 +133,28 @@ def evaluate(root: Path, base: str) -> tuple[int, list[str]]:
                 " up-to-date — re-measure on rebased HEAD and run --stamp."
             )
             rc = 1
-        elif stamped != mb:
-            lines.append(
-                f"  ✗ {rel}: measured against {stamped[:12]}, but this PR merge base is"
-                f" {mb[:12]}. This is the PR #991 shape: correct in isolation, wrong"
-                " after the other branch merged. Re-measure on rebased HEAD."
-            )
-            rc = 1
-        else:
+        elif stamped == mb:
             lines.append(f"  ✓ {rel}: bound to the current merge base")
+        else:
+            # ⛔ SHA mismatch is #991 ONLY when the claim also diverged from the
+            # merge-base copy. A SHA-only mismatch (this PR inherited main's
+            # numbers; main's tip moved by an unrelated squash) is issue #1075 —
+            # the required-check flake that trained admin-bypass on #1071.
+            at_base = _file_at(root, mb, rel)
+            if at_base is not None and _claim(data) == _claim(at_base):
+                lines.append(
+                    f"  · {rel}: inherited stamp {stamped[:12]} (merge base is"
+                    f" {mb[:12]}); ratchet claim matches {base} — not the #991"
+                    " shape (#1075 SHA-only mismatch after an unrelated squash)."
+                )
+            else:
+                lines.append(
+                    f"  ✗ {rel}: measured against {stamped[:12]}, but this PR merge"
+                    f" base is {mb[:12]} AND the ratchet claim differs from {base}."
+                    " This is the PR #991 shape: correct in isolation, wrong after"
+                    " the other branch merged. Re-measure on rebased HEAD."
+                )
+                rc = 1
     if seen == 0:
         lines.append("  ⚠ no ratchet state files exist — nothing was checked, which is")
         lines.append("     an EMPTY result, not a clean one.")
@@ -201,7 +241,9 @@ def main() -> int:
             (fake / "tests" / "fixtures").mkdir(parents=True, exist_ok=True)
             (fake / "seed.txt").write_text("x\n", encoding="utf-8")
             subprocess.run(["git", "-C", str(fake), "add", "-A"], check=False, timeout=60)
-            subprocess.run(["git", "-C", str(fake), "commit", "-qm", "base"], check=False, timeout=60)
+            subprocess.run(
+                ["git", "-C", str(fake), "commit", "-qm", "base"], check=False, timeout=60
+            )
 
             wrong = "0" * 40
             (fake / RATCHET_FILES[0]).write_text(
@@ -235,8 +277,35 @@ def main() -> int:
                 print("✗ must-fail: an ABSENT measured_against was treated as up-to-date.")
                 return 0
 
-        print("✓ must-fail: a foreign SHA fails, an absent SHA fails as UNKNOWN, and a")
-        print("  correctly-stamped ratchet passes. Exiting 3, the DECLARED teeth code.")
+            # ⛔ #1075 CONTROL: a COMMITTED file whose SHA is stale but whose
+            # CLAIM matches the merge-base copy must PASS. That is a squash
+            # moving main's tip, not two branches raising the same baseline.
+            inherited = {"payload": {"n": 1}, "bytes": {}, "measured_against": wrong}
+            (fake / RATCHET_FILES[0]).write_text(json.dumps(inherited), encoding="utf-8")
+            subprocess.run(["git", "-C", str(fake), "add", "-A"], check=False, timeout=60)
+            subprocess.run(
+                ["git", "-C", str(fake), "commit", "-qm", "inherited-stamp"],
+                check=False,
+                timeout=60,
+            )
+            rc_inherited, why_inh = evaluate(fake, "HEAD")
+            if rc_inherited != 0:
+                print(f"✗ must-fail: #1075 inherited SHA-only mismatch was rejected — {why_inh}")
+                return 0
+
+            # Same committed ancestry, RAISED claim, stale SHA: still #991, fail.
+            raised = {"payload": {"n": 2}, "bytes": {}, "measured_against": wrong}
+            (fake / RATCHET_FILES[0]).write_text(json.dumps(raised), encoding="utf-8")
+            rc_raised, _ = evaluate(fake, "HEAD")
+            if rc_raised == 0:
+                print("✗ must-fail: a raised claim with a foreign SHA was accepted.")
+                print("  That would disable the PR #991 defence.")
+                return 0
+
+        print("✓ must-fail: a foreign SHA on an uncommitted/new file fails, an absent")
+        print("  SHA fails as UNKNOWN, a correctly-stamped ratchet passes, a #1075")
+        print("  inherited SHA-only mismatch passes, and a raised claim with a")
+        print("  foreign SHA still fails. Exiting 3, the DECLARED teeth code.")
         return 3
 
     rc, lines = evaluate(root, args.base)

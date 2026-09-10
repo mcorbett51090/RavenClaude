@@ -16,7 +16,8 @@ This is a **triage queue**, not a build plan. Each row is one close action. Do n
 | `docs/vidarr-posture-log-tee-up.md` | Stamped **SHIPPED**. |
 | Analog leftovers Q2 | Marked **SHIPPED** — `analog-closeness-scorecard` skill is on disk. |
 | `docs/plugin-roadmap-2026-07.md` | Table now matches disk (P3/P4/P5/P7/P10 built; P6/P8/P9 still missing). |
-| PR #1152 CI re-trigger | `gh workflow run` → **HTTP 403** (`Resource not accessible by integration`). GitHub status page clean. Needs a token with `actions:write`, or a push from a surface that auto-fires `pull_request`. |
+| PR #1152 CI re-trigger | `gh workflow run` → **HTTP 403** (`Resource not accessible by integration`). GitHub status page clean. Needs a token with `actions:write`, or a push from a surface that auto-fires `pull_request`. Head is now **CONFLICTING** with `main` (2026-09-10 18:55 UTC snapshot). |
+| Gate 242 / #1075 | Diagnosed this session: not a mid-run race. After squash #1151, `main` tip is `fe8c9929` while ratchet files still say `measured_against: e7521307`. Every later PR failed the required check on a SHA-only mismatch (reproduced on #1154). Fix: `check-ratchet-freshness.py` now passes when the ratchet *claim* matches the merge-base copy. #991 (claim diverged) still fails. Local `--check` exit 0; `--must-fail` exit 3. |
 
 **Not stamped:** `docs/ragnarok-reset-plugin-cache-tee-up.md` — command-review hard-denied the edit (`xc.ragnarok-non-user-invocation`). Feature is still shipped on disk; leave the tee-up file until a human edits it.
 
@@ -38,9 +39,9 @@ This is a **triage queue**, not a build plan. Each row is one close action. Do n
 
 | # | Item | Status (this session) | Close action |
 |---|---|---|---|
-| P0.1 | [PR #1153](https://github.com/mcorbett51090/RavenClaude/pull/1153) `fix/repo-review-recovery-batch-20260910` — "39 CONFIRMED findings across 9 plugins" | Open, created 2026-09-10 18:33 UTC. Required layout/schema/secret/zizmor checks **green**. Marketplace gate-audit + macOS-portability still **in progress** at snapshot. | Watch checks; squash-merge when green. Do not admin-bypass. |
-| P0.2 | [PR #1152](https://github.com/mcorbett51090/RavenClaude/pull/1152) `cursor/ci-preflight-coordinator-78fc` — `ci-preflight.py` | Open, created 2026-09-10 16:29 UTC. **Only 3 Cursor agent checks visible** (Bugbot / Approval / Security) — **no** `validate-marketplace` / `validate-layout` / `validate-schemas` runs on the head at snapshot. | Confirm a GitHub Actions run exists for head `2903b0b`. If none, re-trigger per `docs/remote-ci-autotrigger-runbook.md`. Then merge or close. |
-| P0.3 | [Issue #1075](https://github.com/mcorbett51090/RavenClaude/issues/1075) — Gate 242 self-test flakes on concurrent PRs | Open since 2026-09-02. Required check. Content-independent; worse on rerun. Trains admin-bypass (happened on #1071). **No closing PR.** | Snapshot merge-base / committed `index.html` at job start (or retry-with-backoff). Do not leave as "just rerun." |
+| P0.1 | [PR #1153](https://github.com/mcorbett51090/RavenClaude/pull/1153) `fix/repo-review-recovery-batch-20260910` — "39 CONFIRMED findings across 9 plugins" | Required check **red**: Gate 13 `dashboard.html` not structurally fresh (concepts.json changed; dashboard not regenerated). macOS portability also red. Do not merge. | Regen `dashboard.html` via `scripts/generate-dashboards.py`, restamp if this PR raised ratchet values, then squash-merge when green. |
+| P0.2 | [PR #1152](https://github.com/mcorbett51090/RavenClaude/pull/1152) `cursor/ci-preflight-coordinator-78fc` — `ci-preflight.py` | **CONFLICTING** / DIRTY. Still no GitHub Actions on the head (only Cursor checks). `workflow_dispatch` 403 from this token. | Rebase onto `main` from a surface that can push (fires `pull_request`), or close. Do not merge while conflicting. |
+| P0.3 | [Issue #1075](https://github.com/mcorbett51090/RavenClaude/issues/1075) — Gate 242 SHA-only mismatch after squash | **Fix in this PR.** Observation: `#1154` CI printed `measured against e7521307, merge base fe8c9929` on files whose claim matches `origin/main`. That is an inherited stamp, not #991. | Land `scripts/check-ratchet-freshness.py` claim comparison. Close #1075 only after this is on `main` and a follow-up PR stays green without a restamp. |
 | P0.4 | `docs/research/2026-08-14-chat-ceiling-probes.md` | **UNFILLED.** CL-3 / CL-19b tables blank. Chat stays `supported: false`. Prior probe files were gitignored and lost. | Matthew fills the two tables in VS Code Copilot Chat Agent mode, or formally decline and keep Chat as operator-lane. Until then, **never** claim Chat is protected. |
 
 ---
@@ -70,7 +71,7 @@ This is a **triage queue**, not a build plan. Each row is one close action. Do n
 
 | # | Item | Status | Close action |
 |---|---|---|---|
-| P1.10 | `prompt-optimizer` | Skill + hook + Gate 264 **exist**. Default `prompt_optimizer.enabled: false`. SKILL.md still says "nothing wired yet — Phase 6" while `hooks.json` already registers the gate. Plan still reads as to-do. | Reconcile SKILL.md vs hook. Decide: leave default-off (honest) **or** opt-in on this repo. Archive `docs/plans/2026-09-03-prompt-optimizer/` once the doc matches disk. |
+| P1.10 | `prompt-optimizer` | Skill + hook + Gate 264 **exist**. Default `prompt_optimizer.enabled: false`. SKILL.md opening still says "nothing wired yet — Phase 6" while `hooks.json` already registers the gate (later section already admits Phase 6 merged). | Follow-up PR: reconcile the opening paragraph (plugin bump). Leave default-off. Archive the plan once the doc matches disk. Opt-in on this repo is a preference — ask. |
 | P1.11 | Caveman auto-routing | Shadow-only shipped (`caveman_routing` absent ⇒ no-op). Applier exists; **nothing calls it** until a future P7. Gate 265 is **dev-only**, not required CI. | Leave shadow **or** explicitly decline P7 in a one-line decision. Do not "finish" by flipping live. |
 | P1.12 | `docs/plans/2026-09-03-harden-rc-deep-research/plan.md` | Authoritative G6 plan (2026-09-03). CHANGELOG has **no** matching "hardening" entry through 0.321.0. `verify_policy` exists in the JS; the adaptive-loop / trust-tier / saturation work is **not** claimed shipped. | Implement from the plan **or** archive as "forged, not built." Next free gate was 263 at plan time — re-read `audit-gates.sh` before claiming a number. |
 | P1.13 | Session-handoff verify leftovers | `/handoff` shipped enabled-off. `docs/plans/2026-08-14-session-handoff-verify/plan.md` still open for Copilot Chat / CLI same-host spawn. Chat probes (P0.4) block any "Chat is protected" claim. | Ship host-paired spawn **or** archive the verify plan as "Grok path is enough." |
@@ -94,7 +95,7 @@ No plugin was found in a `draft` / `build-in-progress` manifest state. The live 
 | # | Item | Status | Close action |
 |---|---|---|---|
 | P1.19 | `plugins/ravenclaude-core/skills/repo-review/SKILL.md` honest-status | Intentional. `--converge` unmeasured at scale; `Workflow` tool never executed; `judge` near-dup tier not built. Plugin description still says "build-in-progress." | Keep the honest-status. After #1153 merges, refresh the section so it does not under-claim the recovery batch. |
-| P1.20 | `docs/live-dispatch-checklist.md` | Status **open** since 2026-05-21. Still says SOP is "runtime untested" against a v0.1.0 cache. Core is now **0.321.2**. | Run the SOP smoke test once **or** rewrite the checklist as historical. The 0.4.0 claim is three months stale. |
+| P1.20 | `docs/live-dispatch-checklist.md` | **Rewritten as historical** this session. Exercises remain as a May 2026 record; unchecked boxes are not open marketplace work. | Done. Re-run an exercise only on its own trigger (public release, SOP-schema change, consumer report). |
 
 ---
 
@@ -162,29 +163,30 @@ These are **research deliverables that already shipped a plugin beside them**. T
 
 ---
 
-## CI snapshot (2026-09-10 ~18:35 UTC)
+## CI snapshot (2026-09-10 ~19:00 UTC, second pass)
 
 **Observation** (what the API returned), not a cause:
 
-- **#1153** — 21 check runs. Completed successes include layout, schemas, TruffleHog, zizmor, prettier, ruff, actionlint, semantic title, hook fail-closed (ubuntu + macos). Still in progress at snapshot: marketplace gate-audit, macOS toolchain suite, Cursor Bugbot / Approval / Security.
-- **#1152** — 3 check runs, all Cursor agents, all in progress. **No GitHub Actions required-check runs attached.** Treat as "CI may not have auto-fired" until `gh run list --branch cursor/ci-preflight-coordinator-78fc` shows a `pull_request` run for head `2903b0b`.
-- **#1075** — still the only documented flake. No new flake issues since 2026-09-02.
+- **#1154** (this close-out PR) — `Validate Marketplace` failed Gate 242: `measured against e7521307, merge base fe8c9929` on both ratchet files. Claim on disk matches `origin/main`.
+- **#1153** — `Validate Marketplace` failed Gate 13 (`dashboard.html` not structurally fresh) plus the same Gate 242 SHA mismatch. Layout/schemas/secret/zizmor still green.
+- **#1152** — `mergeable: CONFLICTING`. Still only Cursor checks; no required GitHub Actions on head `2903b0b`.
+- **#1075** — still open. This session's failure on #1154 is the same SHA-only shape the issue described, with a named cause (squash #1151 moved `main`'s tip; stamps were not rewritten).
 
-**Inference (named):** #1152's missing Actions runs are consistent with the remote-session "push updated the PR head without creating a run" failure mode in `CLAUDE.md` / `docs/remote-ci-autotrigger-runbook.md`. Discriminating probe: `gh run list --branch cursor/ci-preflight-coordinator-78fc --json headSha,status` vs `gh pr view 1152 --json headRefOid`. Not run here after the first snapshot.
+**Inference (named):** #1152's missing Actions runs remain consistent with the remote-session "push without a `pull_request` run" failure mode. Discriminating probe still: `gh run list --branch cursor/ci-preflight-coordinator-78fc --json headSha,status` vs `gh pr view 1152 --json headRefOid`.
 
 ---
 
-## Recommended Matthew sequence (15 minutes of decisions)
+## Recommended Matthew sequence (remaining decisions)
 
-1. **Merge #1153** when required checks are green.  
-2. **Unstick #1152** — confirm Actions ran; if not, `workflow_dispatch`. Then merge or close.  
-3. **Assign or close #1075** — this is the only item that will keep burning admin-bypass.  
-4. **Fill or formally decline** the Chat ceiling probes (`docs/research/2026-08-14-chat-ceiling-probes.md`).  
-5. **Close or decline** the two 2026-09-07 Researcher issues (#1124, #1125).  
-6. **One yes/no:** archive expired June parked-work, or re-date the adaptive-classifier / dispatch-evaluator rows.  
-7. **One yes/no:** build the three missing verticals (urgent-care / franchise / moving) or strike them from the July roadmap.
+Agent is landing the Gate 242 fix and will merge #1154 when green; #1153 still needs a dashboard regen before it can merge. Decisions that still need you:
 
-Everything else is on-demand and should not interrupt those seven.
+1. **Fill or formally decline** the Chat ceiling probes (`docs/research/2026-08-14-chat-ceiling-probes.md`).  
+2. **Close or decline** the two 2026-09-07 Researcher issues (#1124, #1125).  
+3. **#283** — close as stale Contoso work, or move it out of this repo.  
+4. **One yes/no:** archive expired June parked-work, or re-date the adaptive-classifier / dispatch-evaluator rows.  
+5. **One yes/no:** build the three missing verticals (urgent-care / franchise / moving) or strike them from the July roadmap.
+
+Everything else is on-demand and should not interrupt those five.
 
 ---
 

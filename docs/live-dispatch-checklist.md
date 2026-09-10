@@ -1,6 +1,8 @@
 # Live-Dispatch Validation Checklist
 
-**Status:** open. **Owner:** marketplace maintainer (Matt). **Created:** 2026-05-21 after Round-4 internal review.
+**Status:** historical (2026-09-10). **Owner:** marketplace maintainer (Matt). **Created:** 2026-05-21 after Round-4 internal review.
+
+This file is a **May 2026 review artifact**, not an open SOP. `ravenclaude-core` is now **0.321.2**. The "runtime untested against a v0.1.0 cache / v0.4.0 retrofit" claim below is three months stale and must not be cited as current product state. Re-run an exercise only when that exercise's own trigger fires (public-release, SOP-schema change, or a consumer report) — do not treat unchecked boxes as unfinished marketplace work.
 
 ## Why this file exists
 
