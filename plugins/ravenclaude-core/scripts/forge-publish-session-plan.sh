@@ -27,9 +27,32 @@ cwd=""
 
 while [ $# -gt 0 ]; do
   case "$1" in
-    --plan) plan="${2:-}"; shift 2 ;;
-    --session-dir) session_dir="${2:-}"; shift 2 ;;
-    --cwd) cwd="${2:-}"; shift 2 ;;
+    --plan)
+      # Guard against `shift 2` being a silent no-op when this flag is the
+      # last argument with no value: under `set -uo pipefail` (no -e) a
+      # `shift` count exceeding $# returns nonzero but leaves $# unchanged,
+      # so the case arm re-matches forever instead of falling through to the
+      # unknown-arg exit-2 path. See finding forge-publish-shift2-infinite-loop.
+      if [ $# -lt 2 ]; then
+        echo "forge-publish-session-plan: --plan requires a value" >&2
+        usage
+        exit 2
+      fi
+      plan="$2"; shift 2 ;;
+    --session-dir)
+      if [ $# -lt 2 ]; then
+        echo "forge-publish-session-plan: --session-dir requires a value" >&2
+        usage
+        exit 2
+      fi
+      session_dir="$2"; shift 2 ;;
+    --cwd)
+      if [ $# -lt 2 ]; then
+        echo "forge-publish-session-plan: --cwd requires a value" >&2
+        usage
+        exit 2
+      fi
+      cwd="$2"; shift 2 ;;
     --self-test|self-test) SELF_TEST=1; shift ;;
     -h|--help) usage; exit 0 ;;
     *) echo "forge-publish-session-plan: unknown arg: $1" >&2; usage; exit 2 ;;

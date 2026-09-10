@@ -2,6 +2,16 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.3.8] — 2026-09-10
+
+### Fixed
+
+- **`ae-antipat-l35-backtick-cmdsub`** — `hooks/check-analytics-engineering-anti-patterns.sh` had two
+  unescaped backticks inside a double-quoted grep pattern, which bash treated as command substitution
+  (a stray `command not found`) instead of literal backtick characters in the regex. Escaped both.
+  Found + verified CONFIRMED via a hand-recovered `/repo-review` pass; fixed and left uncommitted
+  until this release.
+
 ## [0.3.7] — 2026-08-14
 
 ### Changed

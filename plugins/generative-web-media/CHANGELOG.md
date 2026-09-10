@@ -2,6 +2,16 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.1.4] — 2026-09-10
+
+### Fixed
+
+- **`prov-noncommercial-markers-slashform-b65`** — `scripts/provenance.py`'s `NON_COMMERCIAL_MARKERS`
+  list was missing the slash-separated `flux/dev` form fal.ai actually uses for its canonical
+  FLUX-dev model id (e.g. `fal-ai/flux/dev`), so `_audit_entries` missed the real-world non-commercial
+  marker while catching only contrived hyphenated forms. Added the confirmed-missing form. Found +
+  verified CONFIRMED via a hand-recovered `/repo-review` pass.
+
 ## [0.1.3] — 2026-08-14
 
 ### Changed

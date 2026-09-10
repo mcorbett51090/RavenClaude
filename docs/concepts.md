@@ -2256,7 +2256,7 @@ Probe: `unprobed: the delivery fact is a host-platform property; it is modelled 
 
 **Sources:** [measured in the FORGE product-inventory run](https://github.com/mcorbett51090/RavenClaude/pull/997)
 
-_Last verified: 2026-09-04_
+_Last verified: 2026-09-10_
 
 
 ---
@@ -2308,7 +2308,7 @@ Falsifier: a future Copilot CLI release accepting `--effort` together with `--mo
 
 **Sources:** [verified live against the installed grok and copilot CLIs, this session](https://github.com/mcorbett51090/RavenClaude/pull/1030)
 
-_Last verified: 2026-08-26_
+_Last verified: 2026-09-10_
 
 
 ---
@@ -2360,7 +2360,7 @@ Probe: `scripts/audit-gates.sh`
 
 **Sources:** [measured in the FORGE product-inventory run](https://github.com/mcorbett51090/RavenClaude/pull/997)
 
-_Last verified: 2026-09-09_
+_Last verified: 2026-09-10_
 
 
 ---
@@ -2584,7 +2584,7 @@ Probe: `scripts/inventory-census.py`
 
 **Sources:** [measured in the FORGE product-inventory run](https://github.com/mcorbett51090/RavenClaude/pull/997)
 
-_Last verified: 2026-09-09_
+_Last verified: 2026-09-10_
 
 
 ---
@@ -2636,7 +2636,7 @@ Probe: `scripts/inventory-sweep.py`
 
 **Sources:** [measured in the FORGE product-inventory run](https://github.com/mcorbett51090/RavenClaude/pull/997)
 
-_Last verified: 2026-09-09_
+_Last verified: 2026-09-10_
 
 
 ---
@@ -2729,7 +2729,7 @@ the thing being investigated.
 
 **Sources:** [measured in the FORGE stall-watchdog run](https://github.com/mcorbett51090/RavenClaude/tree/forge/stall-watchdog)
 
-_Last verified: 2026-08-25_
+_Last verified: 2026-09-10_
 
 
 ---
@@ -3010,7 +3010,7 @@ Probe: `plugins/ravenclaude-core/hooks/tests/test-gate264-caveman-routing.sh`
 
 **Sources:** [measured in the FORGE caveman-routing-decision-tree run](https://github.com/mcorbett51090/RavenClaude/pull/1095)
 
-_Last verified: 2026-09-03_
+_Last verified: 2026-09-10_
 
 
 ---

@@ -37,7 +37,16 @@ REQUIRED_FIELDS = ("asset", "prompt", "model", "provider", "license", "indemnity
 
 # Substrings (case-insensitive) that mark a model/license as non-commercial — the
 # FLUX-dev open-weights trap and its relatives. Matched against model + license.
-NON_COMMERCIAL_MARKERS = ("flux-dev", "flux.1-dev", "flux.2-dev", "non-commercial", "noncommercial")
+# Includes the slash-form path convention fal.ai uses for its canonical model ids
+# (e.g. "fal-ai/flux/dev"), not just the hyphen/dot spellings.
+NON_COMMERCIAL_MARKERS = (
+    "flux-dev",
+    "flux/dev",
+    "flux.1-dev",
+    "flux.2-dev",
+    "non-commercial",
+    "noncommercial",
+)
 
 
 def _now_iso() -> str:
