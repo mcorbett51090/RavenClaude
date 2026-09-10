@@ -50,9 +50,13 @@ import json
 import os
 import signal
 import subprocess
+import sys
 import time
 from dataclasses import dataclass
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from _base_ref import merge_base as _resolve_merge_base  # noqa: E402
 
 PASS = "PASS"
 FAIL = "FAIL"
@@ -283,6 +287,284 @@ def run_floor(root: Path) -> list[CheckResult]:
     ]
 
 
+# ── the narrowed diff/rename/untracked resolution (§3.1 constraint 5) ──────
+#
+# Retained for exactly two purposes, per Ruling 1's consequence text — NEVER to
+# decide which hotspot class runs (that set is unconditional, §3.1):
+#   (a) an informational "what changed" report/context section;
+#   (b) a fail-closed UNSTAGED-SENSITIVE-PATH check: an untracked or renamed
+#       path under one of these roots would be invisible to a `git ls-files`-
+#       based hotspot check (census, some inventory checks) unless it is
+#       staged first.
+SENSITIVE_ROOTS = ("scripts/", "plugins/", ".claude-plugin/", "tests/fixtures/")
+SENSITIVE_FILES = (
+    ".github/workflows/validate-marketplace.yml",
+    ".github/workflows/validate-layout.yml",
+    ".github/workflows/validate-schemas.yml",
+)
+
+
+def _is_sensitive(relpath: str) -> bool:
+    if relpath in SENSITIVE_FILES:
+        return True
+    return any(relpath.startswith(root) for root in SENSITIVE_ROOTS)
+
+
+def _split_nul(text: str) -> list[str]:
+    """Split NUL-delimited git output (`-z`) into tokens, dropping the trailing
+    empty token every NUL-terminated stream leaves behind.
+
+    Empirically verified this session (scratch `mktemp -d` repos, since a
+    positive control matters more here than trusting the git docs alone):
+    `git status --porcelain=v1 -z --untracked-files=all --no-renames` emits
+    each entry as ONE NUL-terminated `"XY path"` token — no `old\\0new\\0`
+    pairing, even for a staged rename (`A  new` + `D  old`, two ordinary
+    tokens). `run_bounded`'s `BoundedRun` already decodes subprocess bytes via
+    `utf-8/replace`; NUL (0x00) round-trips through UTF-8 as a single valid
+    codepoint, so splitting the already-decoded str on "\\x00" here is exact
+    for every path this repo's sensitive roots actually contain (plain ASCII
+    filenames) — it is not exact for arbitrary non-UTF-8 bytes, which
+    `run_bounded`'s "replace" policy already lossily maps to U+FFFD upstream
+    of this function.
+    """
+    parts = text.split("\x00")
+    if parts and parts[-1] == "":
+        parts = parts[:-1]
+    return parts
+
+
+def _git_status_entries(root: Path, timeout: int = T_FLOOR) -> list[tuple[str, str]]:
+    """[(XY, path), ...] via `git status --porcelain=v1 -z --untracked-files=all
+    --no-renames`. `--no-renames` is deliberate: verified this session that an
+    UNSTAGED rename's new path then shows as an ordinary `??` token (old path
+    shows ` D`) — identical in kind to any brand-new untracked file. That is
+    what lets the untracked-under-a-sensitive-root check below reduce to a
+    single `??` scan with no separate rename-pairing logic.
+    """
+    run = run_bounded(
+        ["git", "status", "--porcelain=v1", "-z", "--untracked-files=all", "--no-renames"],
+        root,
+        timeout,
+    )
+    if run.returncode != 0:
+        return []
+    out = []
+    for tok in _split_nul(run.stdout):
+        if len(tok) < 4:
+            continue
+        out.append((tok[:2], tok[3:]))
+    return out
+
+
+def _git_diff_entries(root: Path, timeout: int = T_FLOOR) -> list[tuple[str, str]]:
+    """[(status_letter, path), ...] via `git diff --no-renames -z --name-status
+    HEAD`. Verified this session: unlike `git status -z`, this emits status and
+    path as two SEPARATE NUL-terminated tokens per entry (alternating), not one
+    combined token — hence the `zip(evens, odds)` pairing rather than a fixed
+    slice offset.
+    """
+    run = run_bounded(["git", "diff", "--no-renames", "-z", "--name-status", "HEAD"], root, timeout)
+    if run.returncode != 0:
+        return []
+    toks = _split_nul(run.stdout)
+    return list(zip(toks[0::2], toks[1::2]))
+
+
+def build_report(root: Path, timeout: int = T_FLOOR) -> dict:
+    """The informational 'what changed' report/context section (§3.1 constraint
+    5a) — never consulted to decide which hotspot class runs."""
+    return {
+        "status": _git_status_entries(root, timeout),
+        "diff_vs_head": _git_diff_entries(root, timeout),
+    }
+
+
+def check_unstaged_sensitive_paths(root: Path, timeout: int = T_FLOOR) -> CheckResult:
+    start = time.monotonic()
+    entries = _git_status_entries(root, timeout)
+    bad = sorted(path for xy, path in entries if xy == "??" and _is_sensitive(path))
+    elapsed = time.monotonic() - start
+    if bad:
+        return CheckResult(
+            "context:unstaged-sensitive-path",
+            FAIL,
+            "; ".join(bad),
+            "stage or commit the listed path(s), then rerun",
+            elapsed,
+        )
+    return CheckResult("context:unstaged-sensitive-path", PASS, "", "", elapsed)
+
+
+# ── the unconditional hotspot check set (§3.1) — 6 classes, 13 commands,  ──
+# ── every one run every invocation, no glob-based selection (Ruling 1)     ──
+
+
+def _script_exists(root: Path, argv: list[str]) -> bool:
+    """Every HOTSPOTS entry and `check_class1_ratchet`'s own subprocess call
+    share one convention: argv[0] is the interpreter (`python3` or `bash`),
+    argv[1] is the checker script's repo-relative path. Without this guard, a
+    missing/renamed checker still lets the INTERPRETER start successfully and
+    exit nonzero on its own ("can't open file ...") — `_as_check_result` would
+    then misclassify that as a real FAIL, not the UNAVAILABLE that a checker
+    genuinely absent from disk must report (P2's explicit DoD: never silently
+    PASS, never a crash, and never mistaken for a real failure either)."""
+    if len(argv) < 2:
+        return True  # nothing to check; let it run and surface whatever happens
+    return (root / argv[1]).is_file()
+
+
+def check_class1_ratchet(root: Path, base: str, timeout: int = T_HOTSPOT) -> CheckResult:
+    """Class 1 — the #1 recurring failure. Pre-warms via P1's
+    `merge_base(force_fetch=True)` for its fetch/unshallow SIDE EFFECT on the
+    on-disk git state (§3.2 "how the coordinator uses this") before shelling
+    the standalone `--check` command; the subprocess's own unforced internal
+    resolution then finds the just-refreshed ref directly. `None` -> report
+    UNAVAILABLE without even invoking the subprocess (an unforced subprocess
+    call would only produce an ambiguous generic exit 1 here, indistinguishable
+    from a real content mismatch)."""
+    start = time.monotonic()
+    sha, how = _resolve_merge_base(root, base, force_fetch=True)
+    if sha is None:
+        elapsed = time.monotonic() - start
+        return CheckResult(
+            "hotspot:1-ratchet-merge-base",
+            UNAVAILABLE,
+            f"no base ref resolves even after force-fetch pre-warm ({how})",
+            "resolve network access to origin, or pass --base explicitly",
+            elapsed,
+        )
+    argv = ["python3", "scripts/check-ratchet-freshness.py", "--check", "--base", base]
+    if not _script_exists(root, argv):
+        elapsed = time.monotonic() - start
+        return CheckResult(
+            "hotspot:1-ratchet-merge-base",
+            UNAVAILABLE,
+            f"checker script missing on disk: {argv[1]}",
+            "restore scripts/check-ratchet-freshness.py",
+            elapsed,
+        )
+    run = run_bounded(argv, root, timeout)
+    result = _as_check_result(
+        "hotspot:1-ratchet-merge-base",
+        run,
+        "python3 scripts/check-ratchet-freshness.py --stamp",
+        timeout,
+    )
+    result.elapsed_s = time.monotonic() - start
+    return result
+
+
+# name, argv, remediation, timeout — §3.1's table, classes 2-6 (12 commands;
+# class 1 above is the 13th and is handled specially, not via this registry).
+HOTSPOTS: list[tuple[str, list[str], str, int]] = [
+    (
+        "hotspot:2a-gate237-inventory-staleness",
+        ["bash", "plugins/ravenclaude-core/hooks/tests/test-gate237-inventory-staleness.sh"],
+        "investigate: bash plugins/ravenclaude-core/hooks/tests/"
+        "test-gate237-inventory-staleness.sh",
+        T_HOTSPOT,
+    ),
+    (
+        "hotspot:2b-covers-completeness",
+        ["python3", "scripts/check-covers-completeness.py", "--check"],
+        "add the missing path to the entry's covers[], or record why it is "
+        "exempt in covers_exempt[]",
+        T_HOTSPOT,
+    ),
+    (
+        "hotspot:2c-gate239-inventory-schema",
+        ["bash", "plugins/ravenclaude-core/hooks/tests/test-gate239-inventory-schema.sh"],
+        "investigate: bash plugins/ravenclaude-core/hooks/tests/test-gate239-inventory-schema.sh",
+        T_HOTSPOT,
+    ),
+    (
+        "hotspot:2d-inventory-evidence",
+        ["python3", "scripts/check-inventory-evidence.py", "--check"],
+        "investigate: python3 scripts/check-inventory-evidence.py --check",
+        T_HOTSPOT,
+    ),
+    (
+        "hotspot:3a-dashboard-freshness",
+        [
+            "python3",
+            "scripts/check-artifact-freshness.py",
+            "--check",
+            "--surface",
+            "plugins/ravenclaude-core/dashboard.html",
+        ],
+        "python3 scripts/generate-dashboards.py",
+        T_HOTSPOT,
+    ),
+    (
+        "hotspot:3b-index-freshness",
+        ["python3", "scripts/check-artifact-freshness.py", "--check", "--surface", "index.html"],
+        "python3 scripts/generate-index-dashboard.py",
+        T_HOTSPOT,
+    ),
+    (
+        "hotspot:3c-concepts-doc-freshness",
+        ["python3", "scripts/generate-concepts-doc.py", "--check"],
+        "python3 scripts/generate-concepts-doc.py",
+        T_HOTSPOT,
+    ),
+    (
+        "hotspot:4-copilot-package-freshness",
+        ["python3", "scripts/generate-copilot-plugin.py", "--check"],
+        "python3 scripts/generate-copilot-plugin.py",
+        T_HOTSPOT,
+    ),
+    (
+        "hotspot:5-codex-agents-projection",
+        ["python3", "scripts/generate-codex-agents.py", "--check"],
+        "python3 scripts/generate-codex-agents.py",
+        T_HOTSPOT,
+    ),
+    (
+        "hotspot:6a-inventory-census",
+        ["python3", "scripts/inventory-census.py", "--check"],
+        "investigate: python3 scripts/inventory-census.py --explain",
+        T_HOTSPOT,
+    ),
+    (
+        "hotspot:6b-inventory-sweep",
+        ["python3", "scripts/inventory-sweep.py", "--check", "--no-record"],
+        "investigate: python3 scripts/inventory-sweep.py --check",
+        T_SWEEP,
+    ),
+    (
+        "hotspot:6c-inception-coverage",
+        ["python3", "scripts/check-inception-coverage.py", "--check"],
+        "add the newly-added artifact to an inventory entry's covers[]",
+        T_HOTSPOT,
+    ),
+]
+
+
+def _run_one_hotspot(
+    root: Path, name: str, argv: list[str], remediation: str, timeout: int
+) -> CheckResult:
+    """The per-entry body of the `HOTSPOTS` loop, factored out so the
+    missing-checker guard can be exercised hermetically (no network, no real
+    repo) in `_self_test()` — see the "missing checker" self-test cases."""
+    if not _script_exists(root, argv):
+        return CheckResult(
+            name,
+            UNAVAILABLE,
+            f"checker script missing on disk: {argv[1]}",
+            remediation,
+            0.0,
+        )
+    run = run_bounded(argv, root, timeout)
+    return _as_check_result(name, run, remediation, timeout)
+
+
+def run_hotspots(root: Path, base: str) -> list[CheckResult]:
+    results = [check_class1_ratchet(root, base)]
+    for name, argv, remediation, timeout in HOTSPOTS:
+        results.append(_run_one_hotspot(root, name, argv, remediation, timeout))
+    return results
+
+
 # ── the three-tier exit contract (§3.7) ─────────────────────────────────────
 
 
@@ -319,6 +601,23 @@ def print_results(title: str, results: list[CheckResult]) -> None:
                 print(f"      {line}")
         if r.verdict != PASS and r.remediation:
             print(f"      remediation: {r.remediation}")
+    print()
+
+
+def print_report(report: dict) -> None:
+    status = report["status"]
+    diff = report["diff_vs_head"]
+    print("── report/context (informational — never gates a decision) ──")
+    print(f"  git status entries : {len(status)}")
+    for xy, path in status[:20]:
+        print(f"    {xy}  {path}")
+    if len(status) > 20:
+        print(f"    … {len(status) - 20} more")
+    print(f"  diff vs HEAD       : {len(diff)} path(s)")
+    for st, path in diff[:20]:
+        print(f"    {st}  {path}")
+    if len(diff) > 20:
+        print(f"    … {len(diff) - 20} more")
     print()
 
 
@@ -486,6 +785,51 @@ def _self_test() -> int:
             fail += 1
             print(f"  FAIL {label}: a sleep/marker process is still visible in `ps`")
 
+    # P2 bad: a checker script missing on disk must report UNAVAILABLE — never
+    # a silent PASS, never a crash, and never mistaken for a real FAIL (the
+    # interpreter itself would otherwise start fine and exit nonzero on its
+    # own "can't open file" error, which _as_check_result would misclassify).
+    # Hermetic: a scratch root with no `scripts/` dir at all, so this can never
+    # hit the network or the real repo.
+    with tempfile.TemporaryDirectory() as td:
+        root = Path(td)
+        r = _run_one_hotspot(
+            root,
+            "hotspot:test-missing-checker",
+            ["python3", "scripts/does-not-exist-checker.py", "--check"],
+            "investigate: python3 scripts/does-not-exist-checker.py --check",
+            10,
+        )
+        label = "missing-checker guard: an absent checker script reports UNAVAILABLE, not FAIL"
+        if r.verdict == UNAVAILABLE and "missing on disk" in r.detail:
+            ok += 1
+            print(f"  ok   {label}")
+        else:
+            fail += 1
+            print(f"  FAIL {label}: got {r.verdict} ({r.detail})")
+
+    # P2 good: the same guard must NOT block a checker that genuinely exists —
+    # proving this is a presence check, not an accidental blanket skip.
+    with tempfile.TemporaryDirectory() as td:
+        root = Path(td)
+        (root / "scripts").mkdir()
+        present = root / "scripts" / "present-checker.py"
+        present.write_text("import sys\nsys.exit(0)\n", encoding="utf-8")
+        r = _run_one_hotspot(
+            root,
+            "hotspot:test-present-checker",
+            ["python3", "scripts/present-checker.py", "--check"],
+            "n/a",
+            10,
+        )
+        label = "missing-checker guard: a checker script that exists still runs and PASSes"
+        if r.verdict == PASS:
+            ok += 1
+            print(f"  ok   {label}")
+        else:
+            fail += 1
+            print(f"  FAIL {label}: got {r.verdict} ({r.detail})")
+
     # Exit-aggregation contract: every tier combination, both strict settings.
     _p = CheckResult("p", PASS)
     _f = CheckResult("f", FAIL)
@@ -541,9 +885,17 @@ def main(argv: list[str] | None = None) -> int:
     root = _repo_root()
     print_banner()
 
-    results: list[CheckResult] = run_floor(root)
-    print_results("floor", results)
+    floor_results = run_floor(root)
+    print_results("floor", floor_results)
 
+    print_report(build_report(root))
+    context_results = [check_unstaged_sensitive_paths(root)]
+    print_results("context", context_results)
+
+    hotspot_results = run_hotspots(root, args.base)
+    print_results("hotspot (6 classes / 13 commands, unconditional)", hotspot_results)
+
+    results: list[CheckResult] = floor_results + context_results + hotspot_results
     rc = aggregate(results, args.strict)
     print_verdict(results, rc)
     return rc
