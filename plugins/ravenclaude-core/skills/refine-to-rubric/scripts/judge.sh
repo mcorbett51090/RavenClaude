@@ -238,7 +238,9 @@ _mf_helper="$(dirname "$0")/../../../hooks/_model-fallback.sh"
 [ -f "$_mf_helper" ] && . "$_mf_helper" 2>/dev/null || true
 
 _judge_run() {
-  cd "$scratch" && claude -p "${bare_args[@]}" \
+  # bash-3.2-safe empty-array expansion under `set -u` (macOS ships bash 3.2,
+  # where "${arr[@]}" on an EMPTY array is an unbound-variable error).
+  cd "$scratch" && claude -p "${bare_args[@]+"${bare_args[@]}"}" \
     --model "$1" \
     --output-format json \
     --tools "" \
@@ -265,7 +267,7 @@ if declare -F _model_call_with_fallback >/dev/null 2>&1; then
     exit 5
   fi
 else
-  raw="$(cd "$scratch" && claude -p "${bare_args[@]}" \
+  raw="$(cd "$scratch" && claude -p "${bare_args[@]+"${bare_args[@]}"}" \
     --model "$judge_model" \
     --output-format json \
     --tools "" \

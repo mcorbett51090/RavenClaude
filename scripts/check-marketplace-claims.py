@@ -502,6 +502,24 @@ def fix_counts() -> list[str]:
             README.write_text(raw[: rm.start(1)] + str(actual_req) + raw[rm.end(1) :])
             changes.append(f"README.md '<M> of the N plugins' -> {actual_req}")
 
+    # AGENTS.md carries the same hand-maintained "~N plugins" total (see the
+    # AGENTS_MD comment above) — check_count_drift_family() checks it, so --fix
+    # must also rewrite it, or a drifted AGENTS.md fails identically forever
+    # (mpclaims-agentsmd-checked-not-fixed).
+    if AGENTS_MD.is_file():
+        raw = AGENTS_MD.read_text()
+        new_raw, n = README_PLUGINS_RE.subn(
+            lambda mm: (
+                mm.group(0)[: mm.start(1) - mm.start(0)]
+                + str(actual_plugins)
+                + mm.group(0)[mm.end(1) - mm.start(0) :]
+            ),
+            raw,
+        )
+        if new_raw != raw:
+            AGENTS_MD.write_text(new_raw)
+            changes.append(f"AGENTS.md '<N> plugins' claims -> {actual_plugins}")
+
     if CORE_README.is_file():
         core = CORE_README.read_text()
         for label, regex, actual in (

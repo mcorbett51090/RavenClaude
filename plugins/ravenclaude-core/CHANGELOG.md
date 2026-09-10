@@ -2,6 +2,28 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.321.3 — 2026-09-10
+
+### Fixed
+
+`/repo-review` recovery batch — 18 CONFIRMED findings fixed across `ravenclaude-core`, recovered
+from a hand-run `findings_merge.py` pass after two automated `/repo-review` dispatches failed (see
+`skills/repo-review/SKILL.md`'s "Recovering from a mid-run dispatch failure" section). Each finding
+was independently verified CONFIRMED before being fixed; none was committed until this batch. Notable
+fixes: a git-blame-verified trust check closing `dod-gate.sh`'s self-attestation bypass
+(`b26-dodgate-cmd-exec-trusted-bypass`); a SIGPIPE-prone `printf | grep` swapped for a here-string in
+`thing-seat.sh`'s egress secret backstop (`thingseat-grepq-pipefail-egress`); a shell-injection close
+plus a dead third-model verifier fix in `repo-sweep.workflow.js`
+(`sec-repo-sweep-models-shell-injection`, `repo-sweep-third-model-verifier-dead`); a
+`shift`-beyond-`$#` infinite-loop fix applied across three delegate scripts
+(`cheaplane-agent-shift2-hang`, `copilot-delegate-shift2-hang`, `forge-publish-shift2-infinite-loop`);
+an `html.unescape()` fix closing a named-entity XSS bypass + a crash in `declarative-visualization`'s
+lint.py (`b100-lint-named-entity-href-bypass`, `dvlint-entity-chr-crash`); and a
+`latency_ms`→`latency_ordinal` field-name fix that was permanently disabling
+`agent-dispatch-evaluator`'s latency circuit breaker (`eval-dispatch-latency-ordinal-not-ms`),
+re-synced into both `rc-deep-research.js` byte-identical mirror copies. Full list in the recovery
+report at `.ravenclaude/runs/repo-review-full-20260910/report.md` (gitignored, local to the run).
+
 ## 0.321.0 — 2026-09-09
 
 ### Added

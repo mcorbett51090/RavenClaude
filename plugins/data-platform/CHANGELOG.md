@@ -2,6 +2,23 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.33.2] — 2026-09-10
+
+### Fixed
+
+- **`pbi-embed-idor-resource-entitlement`** — `templates/pbi-embed-token-endpoint.ts`'s Power BI
+  Embedded App-Owns-Data token endpoint minted a token for any `workspaceId`/`reportId` an
+  authenticated caller supplied, with no check that the resolved session's identity was actually
+  entitled to that workspace/report (an IDOR). `getEffectiveIdentityForSession`'s return type now
+  carries `entitledWorkspaceIds`/`entitledReportIds`, and `generateEmbedToken` refuses (fail-closed)
+  unless the requested `workspaceId`/`reportId` are in the resolved identity's entitlement lists.
+- **`pbi-embedurl-undefined-133`** — the endpoint destructured `embedUrl` off the `GenerateToken`
+  response, which never carries it (only `{token, tokenId, expiration}`) — `embedUrl` was always
+  `undefined`. Now issues a second `GET .../reports/{reportId}` (GetReportInGroup) call to fetch the
+  real `embedUrl`. Recovered via a hand-recovered `/repo-review` pass (see
+  `plugins/ravenclaude-core/skills/repo-review/SKILL.md`'s "Recovering from a mid-run dispatch
+  failure" section) — both findings independently CONFIRMED by a verify agent before being fixed.
+
 ## [0.33.1] — 2026-09-03
 
 ### Fixed

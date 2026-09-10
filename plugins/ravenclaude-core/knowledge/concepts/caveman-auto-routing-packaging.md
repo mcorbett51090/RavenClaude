@@ -6,13 +6,13 @@ kind: ravenclaude-built
 entry_class: inventory
 order: 919
 summary: "The caveman auto-routing hook decides and records but never calls the mode applier this phase, and ships from scripts/ because a new hooks/*.sh chmod is denied."
-last_verified: 2026-09-03
+last_verified: 2026-09-10
 covers:
   - plugins/ravenclaude-core/scripts/caveman-route.py
   - plugins/ravenclaude-core/scripts/caveman-apply-mode.sh
   - plugins/ravenclaude-core/scripts/caveman-route-hook.sh
   - plugins/ravenclaude-core/scripts/caveman-route-engine.py
-covers_digest: "sha256:7d29faaf1d3ad717aa39ba0c59d6549977ec26ca3d4d31eafbe1aa467aa7db13"
+covers_digest: "sha256:4186d94d18b7eb53bc7b98194e14a92277648a1f781937e10e25a544ff43f5cb"
 nuance: "caveman-route-hook.sh ships from scripts/, not hooks/ -- a NEW hooks/*.sh file needs a chmod\nthe tribunal's own substrate guard denies, the same reason ask-on-ambiguity.sh lives there too.\nEven when the posture is live, this phase's hook only decides and records: it never calls the\napplier."
 nuance_evidence:
   measured: 2026-09-03

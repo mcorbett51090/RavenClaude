@@ -2,6 +2,16 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.3.11] — 2026-09-10
+
+### Fixed
+
+- **`crb-line-oriented-grep-never-fires`** — `hooks/check-cloud-native-kubernetes-anti-patterns.sh`'s
+  ClusterRoleBinding/`cluster-admin` check used a line-oriented `grep -nEi` with `[\s\S]`, which never
+  spans newlines on BSD/macOS grep and treats `[\s\S]` as a literal 3-character bracket class on any
+  grep. Replaced with the same `_rc_pcre_match` cross-line helper the sibling Deployment/StatefulSet
+  checks already use. Found + verified CONFIRMED via a hand-recovered `/repo-review` pass.
+
 ## [0.3.10] — 2026-08-31
 
 Research-sweep **correction** — the Kubernetes-core capability-map row (`knowledge/cloud-native-kubernetes-decision-trees.md:100`) still said "current GA 1.36" (\"Haru\", 2026-04-22). **Kubernetes v1.37 (\"Garhwal\") reached GA on 2026-08-26** (67 enhancements, 16 Stable, Pod Certificates + Cluster Trust Bundles GA) — the prior sweep's own forward-looking "1.37 scheduled 2026-08-26" note has now resolved. Updated the row to 1.37 current / 1.36+1.35 in support, re-verified 2026-08-31 (WebSearch cross-referenced against kubernetes.io — direct WebFetch to kubernetes.io was egress-blocked this session; corroborated via multiple independent secondary sources). No other file in this plugin or a sibling plugin references the stale "1.36 current" claim (blast-radius checked).

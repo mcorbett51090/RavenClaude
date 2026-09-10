@@ -376,7 +376,17 @@ if (action === 'apply') {
     process.exit(0);
   }
 
-  if (!stateExists) {
+  // The shared state file can already exist purely because the router
+  // (caveman-route-engine.py's _write_state_merged) wrote its own
+  // cursor_byte/streak/verdict/... keys first, in this same session, before
+  // the applier ever ran. "the file exists" is therefore NOT proof "the
+  // applier already snapshotted this session" — check for the applier's own
+  // snapshot key instead (always written, even when null, by mitigation 1
+  // below), so a router-only file still gets a real entry snapshot + latch.
+  const hasApplierSnapshot = stateExists && priorState &&
+    Object.prototype.hasOwnProperty.call(priorState, 'user_mode_at_entry');
+
+  if (!hasApplierSnapshot) {
     // ---- mitigation 1: pre-write snapshot, BEFORE any write --------------
     let rawEntry;
     try {
