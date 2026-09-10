@@ -199,6 +199,10 @@ categories:
     user: allow
     local: allow
     project: inherit
+  subagent_dispatch:
+    user: allow
+    local: allow
+    project: inherit
   network_read:
     user: allow
     local: allow

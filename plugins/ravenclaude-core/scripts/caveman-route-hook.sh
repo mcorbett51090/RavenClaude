@@ -9,13 +9,11 @@
 # — matching `ask-on-ambiguity.sh`'s own registration exactly. NOT in `hooks/`
 # (C1: a new `hooks/*.sh` needs a chmod this substrate denies).
 #
-# ── SHADOW ONLY, this phase ─────────────────────────────────────────────────
-# `shadow` is what "enabled" means for P3: decide, record, NEVER call the
-# applier (`caveman-apply-mode.sh`). `live` mode's actual apply-call wiring is
-# NOT built until a later phase (P7) — see the commented-out placeholder in
-# `caveman-route-engine.py`. This script never invokes the applier, directly
-# or indirectly, in this phase, regardless of which of shadow/live the posture
-# names (both pass the short-circuit below and both decide+record only).
+# ── P7 live-apply ───────────────────────────────────────────────────────────
+# `shadow` still means decide + record, NEVER call the applier. `live` now
+# does: the engine calls `caveman-apply-mode.sh` (on→lite, off→off). This
+# wrapper still never invokes the applier itself — the engine is the only
+# caller. Absent / `off` still exit 0 with zero file writes.
 #
 # ── The O(1) floor for non-adopters (first two lines of real logic) ────────
 # `[ -f "$posture" ] || exit 0`, then ONE anchored grep for
@@ -312,63 +310,44 @@ cmd_self_test() {
     _fail "shadow: expected route-log line + byte-identical mode file, got rc=$rc3 before='$before3' after='$after3' log-exists=$([ -f "$t3_proj/.ravenclaude/runs/$t3_sid/caveman-route.jsonl" ] && echo yes || echo no)"
   fi
 
-  # ---- Test 4 (must-fail half): with the shadow gate REMOVED (a scratch
-  # mutant that uncomments the P7 placeholder in caveman-route-engine.py),
-  # the SAME request against the SAME caveman fixture DOES change the mode
-  # file. Then confirm the REAL script, run again with a fresh session id
-  # against the identical config, does NOT. --------------------------------
-  local t4_root t4_proj t4_cfg t4_sid mutant_dir mutant_engine mutant_apply \
-        t4_transcript t4_mode_file mid4 final4 rc4a rc4b
+  # ---- Test 4 (P7): live writes the mode file; shadow never does.
+  # Bootstrap first call has verdict `off` and creates the mode file on live
+  # (mapped to caveman VALID_MODE `off`). The mutant/# CAVEMAN_P7: strip is
+  # retired — the applier is now the real path, not a commented placeholder.
+  local t4_root t4_proj t4_cfg t4_sid t4_transcript t4_mode_file mid4 rc4a
   t4_root="$st_root/t4"
   t4_proj="$t4_root/project"
   t4_cfg="$t4_root/claude-config"
-  mutant_dir="$t4_root/mutant-scripts"
-  mkdir -p "$t4_proj" "$t4_cfg/.caveman-sessions" "$mutant_dir"
+  mkdir -p "$t4_proj" "$t4_cfg/.caveman-sessions"
   t4_sid="t4-session"
   t4_transcript="$t4_proj/transcript.jsonl"
   _st_write_transcript "$t4_transcript"
   _st_write_posture "$t4_proj" "live"
 
-  # Build the mutant: strip the "# CAVEMAN_P7:" prefix, uncommenting the
-  # placeholder's applier call. sed -E is POSIX/BSD-portable (no -i, no -P).
-  mutant_engine="$mutant_dir/caveman-route-engine.py"
-  sed -E 's/^([[:space:]]*)# CAVEMAN_P7:(.*)$/\1\2/' \
-    "$plugin_root/scripts/caveman-route-engine.py" > "$mutant_engine"
-  mutant_apply="$mutant_dir/caveman-apply-mode.sh"
-  cp "$plugin_root/scripts/caveman-apply-mode.sh" "$mutant_apply"
-  # The mutant engine also resolves caveman-route.py as its OWN sibling (by
-  # file path, from its own __file__), so the classifier must be copied
-  # alongside it too, or _load_classifier() throws and the mutant fails open
-  # for an unrelated reason (a missing file, not the gate under test).
-  cp "$plugin_root/scripts/caveman-route.py" "$mutant_dir/caveman-route.py"
-
-  t4_mode_file="$t4_cfg/.caveman-sessions/$t4_sid.mode"
-
-  # 4a: real caveman fixture present -> the MUTANT engine, invoked directly
-  # (same env a hook call would use), should change the mode file.
   local t4_cache_hash_dir
   t4_cache_hash_dir="$t4_cfg/plugins/cache/caveman/caveman/abc123def456/src/hooks"
   mkdir -p "$t4_cache_hash_dir"
   _st_good_caveman_fixture "$t4_cache_hash_dir/caveman-config.js"
 
+  t4_mode_file="$t4_cfg/.caveman-sessions/$t4_sid.mode"
   rc4a=0
   CLAUDE_PROJECT_DIR="$t4_proj" CLAUDE_CONFIG_DIR="$t4_cfg" \
-    python3 "$mutant_engine" --event prompt \
+    bash "$script_self" --event prompt \
     <<< "{\"session_id\":\"$t4_sid\",\"transcript_path\":\"$t4_transcript\"}" \
     >/dev/null 2>&1 || rc4a=$?
   mid4="$(cat "$t4_mode_file" 2>/dev/null || echo '<absent>')"
-
-  if [ "$mid4" != "<absent>" ]; then
-    _ok "must-fail-half (mutant): shadow gate removed -> mode file WAS created/changed (now '$mid4') — proves the gate is load-bearing"
+  if [ "$rc4a" -eq 0 ] && [ "$mid4" = "off" ]; then
+    _ok "P7 live: real hook + live posture -> mode file written ('$mid4')"
   else
-    _fail "must-fail-half (mutant): expected the mode file to change with the gate removed, but it stayed absent (rc=$rc4a) — the teeth test itself is broken"
+    _fail "P7 live: expected mode file 'off', got '$mid4' (rc=$rc4a)"
   fi
 
-  # 4b: the REAL script, same config/fixture, a fresh session id -> mode
-  # file for THIS session must never be created at all.
-  local t4b_sid t4b_mode_file rc4b_local
+  # 4b: shadow + real hook, fresh session id, same fixture -> mode file
+  # for THIS session must never be created (shadow never calls the applier).
+  local t4b_sid t4b_mode_file rc4b_local final4
   t4b_sid="t4b-session"
   t4b_mode_file="$t4_cfg/.caveman-sessions/$t4b_sid.mode"
+  _st_write_posture "$t4_proj" "shadow"
   rc4b_local=0
   CLAUDE_PROJECT_DIR="$t4_proj" CLAUDE_CONFIG_DIR="$t4_cfg" \
     bash "$script_self" --event prompt \
@@ -376,9 +355,9 @@ cmd_self_test() {
     >/dev/null 2>&1 || rc4b_local=$?
   final4="$(cat "$t4b_mode_file" 2>/dev/null || echo '<absent>')"
   if [ "$rc4b_local" -eq 0 ] && [ "$final4" = "<absent>" ]; then
-    _ok "shadow gate (real script): identical config/fixture, real script -> mode file stays absent (control: 4a proves the gate is what prevents this)"
+    _ok "P7 shadow: identical fixture, shadow posture -> mode file stays absent (control: 4a proves live is what writes)"
   else
-    _fail "shadow gate (real script): expected mode file to stay absent, got '$final4' (rc=$rc4b_local)"
+    _fail "P7 shadow: expected mode file to stay absent, got '$final4' (rc=$rc4b_local)"
   fi
 
   # ---- Test 5: malformed transcript -> exit 0, no state corruption. -------
