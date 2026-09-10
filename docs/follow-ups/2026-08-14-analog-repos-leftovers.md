@@ -12,7 +12,7 @@ Copy one line into a fresh window. Do not `/fork`. Do not `/compact`.
 
 | Pick | Exact prompt |
 |---|---|
-| **Q1 / L4** MCP quarantine | `Forge leftover Q1 — MCP result quarantine as its own plan. Read docs/follow-ups/2026-08-14-analog-repos-leftovers.md first. Do not extend the WebFetch sanitizer matcher with mcp__.` |
+| **Q1 / L4** MCP quarantine | **SHIPPED 0.308.0** — do not re-forge. Residual host-projection (Codex/Cursor) is a separate ask. |
 | **Q2** closeness scorecard | `Forge leftover Q2 — analog closeness scorecard skill as its own plan. Read docs/follow-ups/2026-08-14-analog-repos-leftovers.md first.` |
 | **Hygiene** stale analog worktrees | `Clean the analog-repos stale worktrees listed in docs/follow-ups/2026-08-14-analog-repos-leftovers.md. Use the cleanup-worktrees skill. Do not force-delete.` |
 | **This checkout is stale** | `Work from a tree that has origin/main. Do not edit plugins on a behind-main checkout.` |
@@ -41,15 +41,11 @@ Next plugin-touching PR verifies HEAD and bumps to **0.270.0**. Do not reuse 0.2
 
 ## Parked items
 
-### 1. Q1 / L4 — MCP result quarantine
+### 1. Q1 / L4 — MCP result quarantine — SHIPPED
 
-**Trigger to unpark:** owner asks for MCP quarantine, or a judged hole shows unsanitized `mcp__.*` tool output reaching the model.
+**Closed 2026-09-10.** This leftover row was stale. `sanitize-mcp-output.sh` / `.py` shipped in ravenclaude-core **0.308.0** (`docs/decisions/2026-08-30-mcp-result-quarantine.md`). Matcher is `tool_name.startswith("mcp__")`. Do **not** extend `sanitize-webfetch-output` with `mcp__`.
 
-**What it is:** PostToolUse `updatedToolOutput` matcher for `mcp__.*`, same fail-open contract as F1. **Product-shaped default change** — needs its own `/forge` and a House Rule 3 walkthrough. Depends on F1 already shipped.
-
-**What it is not:** adding `mcp__.*` to `sanitize-webfetch-output`’s existing matcher. That is explicitly banned until this forge lands.
-
-**Acceptance:** same fail-open fixtures on an MCP-shaped payload; House Rule 3 walkthrough; version **0.270.0+**.
+Residual (not this leftover): Codex projection still skips both sanitizers; Cursor/Gemini are unwired. That is a host-projection follow-up, not a re-forge of Q1.
 
 **Queue row:** [pr-queue.md](../plans/archive/2026-08-14-analog-repos-gap-fill/pr-queue.md) Q1.
 
