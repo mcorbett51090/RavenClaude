@@ -2480,7 +2480,12 @@ if command -v npx >/dev/null 2>&1; then
   rc=0; npx --yes prettier@3.9.4 --check .claude-plugin/marketplace.json --log-level error >/dev/null 2>&1 || rc=$?
   gate "prettier-check (intentional bad format)" must_fail "$rc"
   cp -p "$TMP/.claude-plugin_marketplace.json.bak" .claude-plugin/marketplace.json
-  rc=0; npx --yes prettier@3.9.4 --check . --log-level error >/dev/null 2>&1 || rc=$?
+  rc=0
+  _g9_out="$(npx --yes prettier@3.9.4 --check . --log-level warn 2>&1)" || rc=$?
+  if [[ "$rc" -ne 0 ]]; then
+    printf '%s\n' "$_g9_out"
+    git status --porcelain | head -50 || true
+  fi
   gate "prettier-check (tree clean)" must_pass "$rc"
 else
   _skip_or_fail "Gate 9 (prettier)" npx
