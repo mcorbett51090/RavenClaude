@@ -46,6 +46,7 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import signal
@@ -93,6 +94,16 @@ class BoundedRun:
     start_error: str = ""
 
 
+@dataclass
+class _RawBoundedRun:
+    returncode: int | None
+    stdout: bytes
+    stderr: bytes
+    elapsed_s: float
+    timed_out: bool
+    start_error: str = ""
+
+
 # ── the bounded-subprocess + process-group-kill primitive (§3.8) ───────────
 #
 # Every child is started in its OWN process group (`start_new_session=True`).
@@ -102,7 +113,17 @@ class BoundedRun:
 # hotspot check is built on; nothing here calls `subprocess.run(..., timeout=
 # ...)` directly, because that primitive lets an orphaned grandchild keep
 # running after the timeout fires.
-def run_bounded(cmd: list[str], cwd: Path, timeout: int, env: dict | None = None) -> BoundedRun:
+#
+# `_run_bounded_raw` is the actual primitive (raw bytes, no decoding) — the
+# content-fingerprint TOCTOU check (§3.5, P3) needs the exact bytes of
+# `git diff --binary` for an accurate hash; decoding through "utf-8/replace"
+# first would lossily normalize binary diff content, defeating the point of
+# a BYTE-accurate fingerprint. `run_bounded` (below) is every other caller's
+# entry point and is unchanged in behavior — it just decodes the same raw
+# result.
+def _run_bounded_raw(
+    cmd: list[str], cwd: Path, timeout: int, env: dict | None = None
+) -> _RawBoundedRun:
     start = time.monotonic()
     try:
         proc = subprocess.Popen(
@@ -114,17 +135,11 @@ def run_bounded(cmd: list[str], cwd: Path, timeout: int, env: dict | None = None
             env=env,
         )
     except OSError as e:
-        return BoundedRun(None, "", "", time.monotonic() - start, False, start_error=str(e))
+        return _RawBoundedRun(None, b"", b"", time.monotonic() - start, False, start_error=str(e))
 
     try:
         out, err = proc.communicate(timeout=timeout)
-        return BoundedRun(
-            proc.returncode,
-            out.decode("utf-8", "replace"),
-            err.decode("utf-8", "replace"),
-            time.monotonic() - start,
-            False,
-        )
+        return _RawBoundedRun(proc.returncode, out, err, time.monotonic() - start, False)
     except subprocess.TimeoutExpired:
         try:
             os.killpg(os.getpgid(proc.pid), signal.SIGKILL)
@@ -134,13 +149,19 @@ def run_bounded(cmd: list[str], cwd: Path, timeout: int, env: dict | None = None
             out, err = proc.communicate(timeout=5)
         except Exception:
             out, err = b"", b""
-        return BoundedRun(
-            None,
-            out.decode("utf-8", "replace") if out else "",
-            err.decode("utf-8", "replace") if err else "",
-            time.monotonic() - start,
-            True,
-        )
+        return _RawBoundedRun(None, out or b"", err or b"", time.monotonic() - start, True)
+
+
+def run_bounded(cmd: list[str], cwd: Path, timeout: int, env: dict | None = None) -> BoundedRun:
+    raw = _run_bounded_raw(cmd, cwd, timeout, env)
+    return BoundedRun(
+        raw.returncode,
+        raw.stdout.decode("utf-8", "replace"),
+        raw.stderr.decode("utf-8", "replace"),
+        raw.elapsed_s,
+        raw.timed_out,
+        raw.start_error,
+    )
 
 
 def _as_check_result(name: str, run: BoundedRun, remediation: str, timeout: int) -> CheckResult:
@@ -565,6 +586,96 @@ def run_hotspots(root: Path, base: str) -> list[CheckResult]:
     return results
 
 
+# ── the content-fingerprint TOCTOU check (§3.5) ─────────────────────────────
+#
+# R4: a plain before/after `git status --porcelain` comparison is
+# insufficient — two identical porcelain snapshots can wrap different file
+# bytes (a tracked file already dirty at the start, mutated further with the
+# SAME porcelain letter, mid-run). The fingerprint below is a triple:
+#   1. HEAD_SHA           — `git rev-parse HEAD`.
+#   2. DIFF_HASH          — sha256 of `git diff --no-ext-diff --binary HEAD`'s
+#                            raw stdout BYTES (captures staged + dirty tracked
+#                            content, not just the porcelain letter; `--binary`
+#                            + no decoding is what keeps this byte-accurate).
+#   3. UNTRACKED_MANIFEST  — a sorted [(path, sha256(content)), ...] for every
+#                            path `git ls-files --others --exclude-standard -z`
+#                            returns, tupled so it is directly `==`-comparable.
+# Captured once before the check-execution loop and once after; any
+# component differing means the tree was mutated mid-run and every result
+# just computed may be stale — reported as its own FAIL row (§3.7's second
+# exit-2 condition), never silently folded into the checks that already ran.
+
+
+def _sha256_bytes(data: bytes) -> str:
+    return hashlib.sha256(data).hexdigest()
+
+
+def _untracked_digest_manifest(
+    root: Path, timeout: int = T_FLOOR
+) -> tuple[tuple[str, str], ...] | None:
+    run = _run_bounded_raw(
+        ["git", "ls-files", "--others", "--exclude-standard", "-z"], root, timeout
+    )
+    if run.returncode != 0:
+        return None
+    paths = _split_nul(run.stdout.decode("utf-8", "replace"))
+    manifest = []
+    for p in sorted(paths):
+        try:
+            data = (root / p).read_bytes()
+        except OSError:
+            # Vanished between listing and reading — that is itself a
+            # mid-run mutation; a sentinel digest ensures it still shows up
+            # as a fingerprint difference rather than being silently skipped.
+            data = b"<unreadable-during-fingerprint-capture>"
+        manifest.append((p, _sha256_bytes(data)))
+    return tuple(manifest)
+
+
+ContentFingerprint = tuple[str, str, tuple[tuple[str, str], ...]]
+
+
+def content_fingerprint(root: Path, timeout: int = T_FLOOR) -> ContentFingerprint | None:
+    head_run = _run_bounded_raw(["git", "rev-parse", "HEAD"], root, timeout)
+    if head_run.returncode != 0:
+        return None
+    head_sha = head_run.stdout.decode("utf-8", "replace").strip()
+
+    diff_run = _run_bounded_raw(["git", "diff", "--no-ext-diff", "--binary", "HEAD"], root, timeout)
+    if diff_run.returncode != 0:
+        return None
+    diff_hash = _sha256_bytes(diff_run.stdout)
+
+    manifest = _untracked_digest_manifest(root, timeout)
+    if manifest is None:
+        return None
+
+    return (head_sha, diff_hash, manifest)
+
+
+def check_toctou(
+    before: ContentFingerprint | None, after: ContentFingerprint | None
+) -> CheckResult:
+    if before is None or after is None:
+        return CheckResult(
+            "toctou:content-fingerprint",
+            UNAVAILABLE,
+            "could not capture a content fingerprint (a git command failed) — "
+            "worktree stability during this run is unverified",
+            "investigate the git error(s) above, then rerun",
+            0.0,
+        )
+    if before != after:
+        return CheckResult(
+            "toctou:content-fingerprint",
+            FAIL,
+            "worktree changed during preflight; rerun.",
+            "rerun ci-preflight.py once the tree is stable",
+            0.0,
+        )
+    return CheckResult("toctou:content-fingerprint", PASS, "", "", 0.0)
+
+
 # ── the three-tier exit contract (§3.7) ─────────────────────────────────────
 
 
@@ -830,6 +941,97 @@ def _self_test() -> int:
             fail += 1
             print(f"  FAIL {label}: got {r.verdict} ({r.detail})")
 
+    # P3 fixtures share one scratch-git-repo builder — explicit `-c user.*`
+    # flags so the fixture never depends on ambient git config being present
+    # (this repo's own convention: a hermetic self-test must not assume
+    # anything about the host beyond `git`/`python3`/`bash` existing).
+    def _init_scratch_git_repo(root: Path) -> None:
+        for cmd in (
+            ["git", "init", "--quiet"],
+            [
+                "git",
+                "-c",
+                "user.name=t",
+                "-c",
+                "user.email=t@t",
+                "commit",
+                "--allow-empty",
+                "--quiet",
+                "-m",
+                "root",
+            ],
+        ):
+            subprocess.run(cmd, cwd=str(root), capture_output=True, timeout=10)
+
+    def _commit_scratch_file(root: Path, name: str, content: str) -> None:
+        (root / name).write_text(content, encoding="utf-8")
+        subprocess.run(["git", "add", name], cwd=str(root), capture_output=True, timeout=10)
+        subprocess.run(
+            ["git", "-c", "user.name=t", "-c", "user.email=t@t", "commit", "--quiet", "-m", name],
+            cwd=str(root),
+            capture_output=True,
+            timeout=10,
+        )
+
+    # P3 good: a clean scratch repo, nothing touches the tree between the two
+    # captures — the fingerprints must match and `check_toctou` must PASS.
+    with tempfile.TemporaryDirectory() as td:
+        root = Path(td)
+        _init_scratch_git_repo(root)
+        _commit_scratch_file(root, "tracked.txt", "line1\n")
+        fp1 = content_fingerprint(root)
+        fp2 = content_fingerprint(root)
+        r = check_toctou(fp1, fp2)
+        label = "toctou: two captures with no mutation between them match and PASS"
+        if fp1 is not None and fp1 == fp2 and r.verdict == PASS:
+            ok += 1
+            print(f"  ok   {label}")
+        else:
+            fail += 1
+            print(f"  FAIL {label}: fp1={fp1!r} fp2={fp2!r} verdict={r.verdict}")
+
+    # P3 bad — the R4 reproduction exactly: a tracked file already dirty at
+    # the START (before the first capture), mutated FURTHER with the SAME
+    # porcelain status letter between the two captures. A plain before/after
+    # `git status --porcelain` comparison would see " M tracked.txt" both
+    # times and miss this; the content-fingerprint's diff-hash component must
+    # not.
+    with tempfile.TemporaryDirectory() as td:
+        root = Path(td)
+        _init_scratch_git_repo(root)
+        _commit_scratch_file(root, "tracked.txt", "line1\n")
+        (root / "tracked.txt").write_text("line1\nline2\n", encoding="utf-8")  # dirty at start
+        status_before = dict(_git_status_entries(root))
+        fp_before = content_fingerprint(root)
+
+        (root / "tracked.txt").write_text("line1\nline2\nline3\n", encoding="utf-8")  # further
+        status_after = dict(_git_status_entries(root))
+        fp_after = content_fingerprint(root)
+
+        same_porcelain_letter = status_before.get("tracked.txt") == status_after.get("tracked.txt")
+        r = check_toctou(fp_before, fp_after)
+        label = (
+            "toctou (R4): same porcelain letter, different bytes mid-run -> "
+            "fingerprint mismatch FAILs even though porcelain-only would have missed it"
+        )
+        if (
+            same_porcelain_letter
+            and fp_before is not None
+            and fp_after is not None
+            and fp_before != fp_after
+            and r.verdict == FAIL
+            and "worktree changed during preflight; rerun." in r.detail
+        ):
+            ok += 1
+            print(f"  ok   {label}")
+        else:
+            fail += 1
+            print(
+                f"  FAIL {label}: same_letter={same_porcelain_letter} "
+                f"status_before={status_before} status_after={status_after} "
+                f"verdict={r.verdict} detail={r.detail!r}"
+            )
+
     # Exit-aggregation contract: every tier combination, both strict settings.
     _p = CheckResult("p", PASS)
     _f = CheckResult("f", FAIL)
@@ -885,6 +1087,10 @@ def main(argv: list[str] | None = None) -> int:
     root = _repo_root()
     print_banner()
 
+    # §3.5 — captured before ANY floor/hotspot check runs, so the fingerprint
+    # brackets the entire check-execution loop, not just the hotspot half.
+    fp_before = content_fingerprint(root)
+
     floor_results = run_floor(root)
     print_results("floor", floor_results)
 
@@ -895,7 +1101,11 @@ def main(argv: list[str] | None = None) -> int:
     hotspot_results = run_hotspots(root, args.base)
     print_results("hotspot (6 classes / 13 commands, unconditional)", hotspot_results)
 
-    results: list[CheckResult] = floor_results + context_results + hotspot_results
+    fp_after = content_fingerprint(root)
+    toctou_result = check_toctou(fp_before, fp_after)
+    print_results("toctou", [toctou_result])
+
+    results: list[CheckResult] = floor_results + context_results + hotspot_results + [toctou_result]
     rc = aggregate(results, args.strict)
     print_verdict(results, rc)
     return rc
