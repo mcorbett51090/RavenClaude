@@ -4198,6 +4198,9 @@ gate "autosetup: balanced seed emits allow rules" must_pass "$rc"
 # ...and carries the security floor into deny.
 rc=0; jq -e '.permissions.deny | index("Bash(rm -rf:*)")' "$G26/.claude/settings.json" >/dev/null 2>&1 || rc=1
 gate "autosetup: balanced seed carries security floor" must_pass "$rc"
+# 13th category: balanced seed must emit bare Agent (subagent_dispatch: allow).
+rc=0; jq -e '.permissions.allow | index("Agent")' "$G26/.claude/settings.json" >/dev/null 2>&1 || rc=1
+gate "autosetup: balanced seed emits Agent for subagent_dispatch" must_pass "$rc"
 # fail-on-bad: a corrupted seed (invalid level) must be REJECTED, not silently applied.
 G26B="$TMP/g26bad"; mkdir -p "$G26B/.ravenclaude"
 sed 's/project: allow/project: boguslevel/' "$G26SEED" > "$G26B/.ravenclaude/comfort-posture.yaml"

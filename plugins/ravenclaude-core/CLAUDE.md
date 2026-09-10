@@ -4950,7 +4950,28 @@ the old numbers would have undercounted its true cost by up to 2x on a cold cach
 artifact path changed; a caller who knows their cache is warm can pass `--cache-hit-rate 1.0` to
 recover the old (narrower) estimate.
 
+## Comfort-posture `subagent_dispatch` + caveman P7 live-apply (added 2026-09-10, v0.321.4)
+
+Thirteenth posture category `subagent_dispatch` emits bare `"Agent"` so
+`/code-review` and other multi-agent skills stop prompting on every spawn.
+Recommended preset is `allow`; deny/ask/allow presets match; an absent key
+still falls back to `global_default` (a pre-0.321.4 YAML keeps translating).
+Not a tribunal live category — no `subagent_dispatch` concerns were added.
+
+Caveman auto-routing P7 wires the applier when `caveman_routing: live`:
+classifier `on` maps to caveman `lite`, `off` maps to `off`, `hold` does not
+apply, and shadow still never writes a mode file. Default remains absent ⇒
+off; templates are not seeded with `live`. The owner overrode the uncleared
+P5 replay/soak gates — this is not a claim that soak passed.
+
+**Migration:** none required. To opt into live caveman routing, set
+`caveman_routing: live` in `.ravenclaude/comfort-posture.yaml` after
+`/plugin marketplace update ravenclaude`. To emit `"Agent"` from an existing
+YAML, add `subagent_dispatch` or rely on `global_default` if that is already
+`allow`.
+
 ## `/repo-review` gains a documented recovery procedure for a mid-run dispatch failure (added 2026-09-10, v0.321.2)
+
 
 The same `high`-tier run that motivated the `estimate_cost.py` fix above hit a **second** failure
 after being resized correctly: it survived the Workflow tool's hard call cap, but a real Claude

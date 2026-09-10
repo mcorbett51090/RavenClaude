@@ -318,7 +318,7 @@ CATEGORIES: list[dict] = [
 ]
 
 # Comfort-posture preset profiles surfaced in the Configuration section. Each
-# maps the 12 v5 categories to a deny/ask/allow level. Faithful to the v5 model
+# maps the 13 v5 categories to a deny/ask/allow level. Faithful to the v5 model
 # read from dashboard-schema.json; the four named profiles requested by the
 # product brief.
 POSTURE_PRESETS: list[dict] = [
@@ -342,6 +342,7 @@ POSTURE_PRESETS: list[dict] = [
             "network_read": "allow",
             "network_write": "deny",
             "mcp_tools": "ask",
+            "subagent_dispatch": "ask",
         },
     },
     {
@@ -364,6 +365,7 @@ POSTURE_PRESETS: list[dict] = [
             "network_read": "allow",
             "network_write": "ask",
             "mcp_tools": "ask",
+            "subagent_dispatch": "allow",
         },
     },
     {
@@ -386,6 +388,7 @@ POSTURE_PRESETS: list[dict] = [
             "network_read": "allow",
             "network_write": "ask",
             "mcp_tools": "allow",
+            "subagent_dispatch": "allow",
         },
     },
     {
@@ -400,6 +403,7 @@ POSTURE_PRESETS: list[dict] = [
             "file_edit_global", "shell_readonly", "shell_local_mutate",
             "shell_remote_mutate", "shell_code_exec", "shell_package_install",
             "network_read", "network_write", "mcp_tools",
+            "subagent_dispatch",
         ], "allow"),
     },
 ]

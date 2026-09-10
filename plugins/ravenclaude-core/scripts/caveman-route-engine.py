@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""caveman-route-engine.py — P3+P4+P5 of the caveman auto-routing plan (SHADOW only).
+"""caveman-route-engine.py — P3+P4+P5+P7 of the caveman auto-routing plan.
 
 Full design: `.ravenclaude/runs/forge/caveman-routing-decision-tree/plan.md`,
 sections "P3 — Hook body, wired in SHADOW", "P4 — SessionStart re-arm and
@@ -17,14 +17,14 @@ pure `classify()` function directly (imported by file path — no subprocess),
 persists the returned cursor/streak, and appends ONE decision line to the
 per-session route log.
 
-**SHADOW is what "enabled" means in this phase.** The bash wrapper already
-gated on `caveman_routing: shadow|live` before this engine ever runs (the O(1)
-short-circuit), so by the time this file executes, the posture is confirmed to
-be `shadow` or `live`. Both are treated IDENTICALLY here: decide + record,
-**never call the applier**. `live` mode's actual "call caveman-apply-mode.sh"
-behavior is NOT wired until a later phase (P7) — see the commented-out
-placeholder block near the bottom of `main()`. Nothing above that comment
-executes an applier call, in either mode, in this phase.
+The bash wrapper already gated on `caveman_routing: shadow|live` before this
+engine ever runs (the O(1) short-circuit), so by the time this file executes,
+the posture is confirmed to be `shadow` or `live`. **shadow** still means
+decide + record, never apply. **live** (P7) calls `caveman-apply-mode.sh`
+when the classifier verdict is `on`/`off` and differs from `prior_verdict`.
+Classifier `on` maps to caveman VALID_MODE `lite`; `off` maps to `off`.
+`hold` never applies. Owner overrode the uncleared P5 replay/soak gates
+(2026-09-10); default posture remains absent ⇒ off. Do not seed `live`.
 
 STATE FILE SHARING WITH THE APPLIER (P2)
 -----------------------------------------
@@ -85,7 +85,7 @@ DERIVED VALUES ONLY (C8)
 The route-log entry below is built exclusively from `classify()`'s own output
 (already a fixed-enum/derived-integer contract per C8 — see
 `caveman-route.py`'s own docstring) plus a handful of values this engine itself
-computes (elapsed_ms, event, applied=False) or copies verbatim from the trusted
+computes (elapsed_ms, event, applied) or copies verbatim from the trusted
 hook payload's own bounded enum field (`source`, one of
 `startup|resume|clear|fork|compact|None` per Claude Code's own SessionStart
 contract) plus a boolean this engine derives from it (`reset`). No raw
@@ -107,6 +107,7 @@ from __future__ import annotations  # stock macOS ships Python 3.9
 import importlib.util
 import json
 import os
+import subprocess
 import sys
 import time
 from pathlib import Path
@@ -411,34 +412,29 @@ def main(argv=None) -> int:
         pass  # persistence failure -> still log the decision below; next call
         # simply re-bootstraps rather than incrementally advancing
 
-    applied = False  # ⛔ P3 SHADOW FLOOR — always False in this phase, in
-    # either "shadow" or "live" mode. This assignment is deliberately OUTSIDE
-    # and AHEAD of the placeholder block below, so even a careless partial
-    # edit of that block cannot make `applied` start anything but False.
-
-    # =========================================================================
-    # ⛔ P7 PLACEHOLDER — DO NOT UNCOMMENT IN THIS PHASE (P3 is SHADOW ONLY) ⛔
-    # =========================================================================
-    # This is the ONLY place a future phase (P7) will ever call the applier.
-    # In P3, mode "shadow" AND mode "live" both stop here — decide + record,
-    # NEVER apply. Uncommenting this block (Gate: P3's self-test proves this
-    # exact mutation — strip the "# CAVEMAN_P7:" prefix below — changes the
-    # caveman session mode file) without ALSO completing P7's own entry-gate
-    # (offline replay correlation + >=10 live shadow sessions, per plan.md)
-    # would open the one-way door before it is meant to open.
-    #
-    # CAVEMAN_P7:if mode == "live" and verdict != prior_verdict:
-    # CAVEMAN_P7:    import subprocess
-    # CAVEMAN_P7:    apply_script = Path(__file__).resolve().parent / "caveman-apply-mode.sh"
-    # CAVEMAN_P7:    subprocess.run(
-    # CAVEMAN_P7:        ["bash", str(apply_script), session_id, verdict],
-    # CAVEMAN_P7:        env=os.environ,
-    # CAVEMAN_P7:        stdout=subprocess.DEVNULL,
-    # CAVEMAN_P7:        stderr=subprocess.DEVNULL,
-    # CAVEMAN_P7:        timeout=10,
-    # CAVEMAN_P7:    )
-    # CAVEMAN_P7:    applied = True
-    # =========================================================================
+    applied = False
+    # P7 live-apply. shadow never enters this block. hold never applies.
+    # Classifier on/off are NOT caveman VALID_MODES — map on→lite, off→off.
+    # Owner overrode the uncleared P5 soak gates (2026-09-10). First-call
+    # bootstrap has verdict off and prior_verdict None, so live writes "off".
+    apply_mode = None
+    if verdict == "on":
+        apply_mode = "lite"
+    elif verdict == "off":
+        apply_mode = "off"
+    if mode == "live" and apply_mode is not None and verdict != prior_verdict:
+        try:
+            apply_script = Path(__file__).resolve().parent / "caveman-apply-mode.sh"
+            subprocess.run(
+                ["bash", str(apply_script), session_id, apply_mode],
+                env=os.environ,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                timeout=10,
+            )
+            applied = True
+        except Exception:
+            applied = False
 
     entry = {
         "ts": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),

@@ -295,6 +295,12 @@ categories:
     user: inherit
     local: inherit
     project: allow
+  # Bare Agent — without this, every /code-review fan-out prompts.
+  # Absent key still falls back to global_default (backward compatible).
+  subagent_dispatch:
+    user: inherit
+    local: inherit
+    project: allow
   # ── Reaches outside the repo — prompt first ─────────────────────
   file_edit_global:
     user: inherit

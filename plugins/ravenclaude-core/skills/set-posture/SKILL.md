@@ -71,6 +71,14 @@ Highlights:
 
 `mcp_tools` is intentionally empty in v0.1.0's `EMISSIONS`. Per-MCP-server trust is configured in Claude Code's user settings (`~/.claude/settings.json`); comfort-posture's `mcp_tools` is a global default that doesn't have a direct one-to-one rule mapping. v0.2.0 should map this to per-server rules once the marketplace has a stable list of MCP servers consumers connect.
 
+### Subagent dispatch (v0.321.4)
+
+| Category | Patterns |
+|---|---|
+| `subagent_dispatch` | `Agent` (bare — matches every subagent/Task dispatch) |
+
+`allow` emits `"Agent"` into the allow array; `deny` emits `"Agent"` into deny (that disables ALL subagents); `ask` emits `"Agent"` into ask (same prompt Claude Code already uses for an unmatched Agent). A missing key is backward compatible: v3/v4 falls back to `global_default`; v5 treats it as inherit and emits nothing (same as every other category). Per-subagent overrides use `Agent(SubagentName)` via the existing `overrides:` map. Recommended preset is `allow`.
+
 ## Overwrite semantics (v0.17.0+)
 
 The script **overwrites** `permissions.allow`, `permissions.ask`, and `permissions.deny` in `.claude/settings.json` with the resolved emission. Non-posture fields (`$schema`, `model`, `env`, `hooks`, `permissions.additionalDirectories`) are untouched.
