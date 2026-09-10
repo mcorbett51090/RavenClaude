@@ -2334,7 +2334,7 @@ Probe: `unprobed: requires a real consumer install cycle, which no CI job perfor
 
 **Sources:** [measured in the FORGE product-inventory run](https://github.com/mcorbett51090/RavenClaude/pull/997)
 
-_Last verified: 2026-09-09_
+_Last verified: 2026-09-10_
 
 
 ---
@@ -2976,7 +2976,7 @@ both 0 and 1, with a permanent regression assertion so this cannot silently regr
 
 **Sources:** [repo-review build + live proof-run, 2026-09-02 -- cross-model dispatch against the fixture repo caught the defect in findings_merge.py itself](../plugins/ravenclaude-core/skills/repo-review/SKILL.md)
 
-_Last verified: 2026-09-02_
+_Last verified: 2026-09-10_
 
 
 ---
