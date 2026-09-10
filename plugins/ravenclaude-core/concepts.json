@@ -2945,7 +2945,7 @@
         "scripts/sync-plugin-versions.py",
         "scripts/generate-copilot-plugin.py"
       ],
-      "covers_digest": "sha256:030df4cac5b48075ba5d6bc55da501c90d9f4c4ca18fa5f369cfbc2646bdf20f",
+      "covers_digest": "sha256:ef6fa25769d3b0150451dcff806ec65be00d289d66696d3245b5dfa2a49d42fe",
       "nuance": "The cache key is the `version` string, never a content hash, so `sync-plugin-versions.py` can report clean while every installed session keeps running the old `hooks/` code.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -3007,7 +3007,7 @@
         "scripts/inventory-nuance-judge.py",
         "plugins/ravenclaude-core/scripts/forge-receipt.py"
       ],
-      "covers_digest": "sha256:5b6dd8fb810f485018267d141a1cb56c3e3ca4a30d4f65344528d47b9e4bc9d0",
+      "covers_digest": "sha256:a8b08d40399302e21e1a4478dee5ecb53f910a23cda347a20d769728039be381",
       "nuance": "The teeth bit is the exit a tool own CHECK returns on a planted defect, never the exit `--must-fail` itself returns: `premise-gate.py` denies at `exit 0` while `sync-plugin-versions.py` reddens at `exit 2`, so an auditor that hard-codes one number can never be right for both.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -4129,7 +4129,7 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-09-03",
+      "last_verified": "2026-09-10",
       "refresh_when": null,
       "sources": [
         {
@@ -4155,7 +4155,7 @@
         "plugins/ravenclaude-core/skills/prompt-optimizer/SKILL.md",
         "plugins/ravenclaude-core/skills/prompt-optimizer/eval/golden-set.jsonl"
       ],
-      "covers_digest": "sha256:a25d49b45fd4be8b2b7492f50df5da0891c969b1311d403e7bb68d8caa210a34",
+      "covers_digest": "sha256:0cd423848dc86d2a1f3e83a031c27d8d7190a7922b4f3ca69842481db2ba9a66",
       "nuance": "A whitelist-based zero-anchor skip rule can be adversarially rephrased indefinitely — closing every demonstrated instance never closes the underlying gap, because the gap is a property of matching sentence shape, not meaning.",
       "nuance_evidence": {
         "measured": "2026-09-03",

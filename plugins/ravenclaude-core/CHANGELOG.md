@@ -2,6 +2,13 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.321.5 — 2026-09-10
+
+### Fixed
+
+- `prompt-optimizer` SKILL.md now matches the Phase-6 hook wiring: the
+  classifier is a live `UserPromptSubmit` hook, not an unwired sibling.
+
 ## 0.321.4 — 2026-09-10
 
 ### Added

@@ -630,7 +630,11 @@ jobs:
           all_names="$(jq -r '.name' plugins/*/.claude-plugin/plugin.json)"
           while IFS= read -r name; do
             [ -n "$name" ] || continue
-            if ! printf '%s\n' "$all_names" | grep -qxF "$name"; then
+            # Here-string, not `printf | grep -q`. This step is `set -o pipefail`;
+            # grep -q closes the pipe on the first match and printf then gets
+            # SIGPIPE, which pipefail reports as failure — a present name looks
+            # orphaned (seen on PR #1155 for cli-tooling-engineering).
+            if ! grep -qxF -- "$name" <<<"$all_names"; then
               echo "::error file=.claude-plugin/marketplace.json::orphaned catalog entry '$name' — no plugins/*/plugin.json declares this name"
               status=1
             fi
