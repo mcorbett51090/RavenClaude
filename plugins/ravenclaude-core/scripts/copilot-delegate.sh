@@ -112,14 +112,20 @@ _tier_timeout_s() {
 task=""; task_file=""; tier="balanced"; mode="advise"; repo=""; timeout_s=""; effort_override=""; model="auto"
 while [ $# -gt 0 ]; do
   case "$1" in
-    --task)       task="${2:-}"; shift 2 ;;
-    --task-file)  task_file="${2:-}"; shift 2 ;;
-    --tier)       tier="${2:-}"; shift 2 ;;
-    --mode)       mode="${2:-}"; shift 2 ;;
-    --repo)       repo="${2:-}"; shift 2 ;;
-    --timeout)    timeout_s="${2:-}"; shift 2 ;;
-    --effort)     effort_override="${2:-}"; shift 2 ;;
-    --model)      model="${2:-}"; shift 2 ;;
+    # Each of these flags takes a value, so `shift 2` needs $#>=2. Under
+    # `set -uo pipefail` (no -e), a `shift 2` that exceeds $# is NOT fatal —
+    # it silently no-ops and returns exit 1, leaving $1 unchanged and spinning
+    # this `while [ $# -gt 0 ]` loop forever on a trailing flag with no value
+    # (e.g. `copilot-delegate.sh --task-file` as the last argument). Guard
+    # each one explicitly so a missing value is a clean exit 2, not a hang.
+    --task)       [ $# -ge 2 ] || { echo "$_self: --task requires a value" >&2; exit 2; }; task="${2:-}"; shift 2 ;;
+    --task-file)  [ $# -ge 2 ] || { echo "$_self: --task-file requires a value" >&2; exit 2; }; task_file="${2:-}"; shift 2 ;;
+    --tier)       [ $# -ge 2 ] || { echo "$_self: --tier requires a value" >&2; exit 2; }; tier="${2:-}"; shift 2 ;;
+    --mode)       [ $# -ge 2 ] || { echo "$_self: --mode requires a value" >&2; exit 2; }; mode="${2:-}"; shift 2 ;;
+    --repo)       [ $# -ge 2 ] || { echo "$_self: --repo requires a value" >&2; exit 2; }; repo="${2:-}"; shift 2 ;;
+    --timeout)    [ $# -ge 2 ] || { echo "$_self: --timeout requires a value" >&2; exit 2; }; timeout_s="${2:-}"; shift 2 ;;
+    --effort)     [ $# -ge 2 ] || { echo "$_self: --effort requires a value" >&2; exit 2; }; effort_override="${2:-}"; shift 2 ;;
+    --model)      [ $# -ge 2 ] || { echo "$_self: --model requires a value" >&2; exit 2; }; model="${2:-}"; shift 2 ;;
     -h|--help)    sed -n '2,60p' "$0"; exit 0 ;;
     *) echo "$_self: unknown arg '$1'" >&2; exit 2 ;;
   esac

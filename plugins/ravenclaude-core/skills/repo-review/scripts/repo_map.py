@@ -77,9 +77,17 @@ class GitError(RuntimeError):
 
 
 def run_git(args: list[str], cwd: str) -> bytes:
-    result = subprocess.run(
-        ["git", *args], cwd=cwd, capture_output=True, timeout=30
-    )
+    try:
+        result = subprocess.run(
+            ["git", *args], cwd=cwd, capture_output=True, timeout=30
+        )
+    except subprocess.TimeoutExpired as exc:
+        # A slow/hung git process must degrade the same way a failing git
+        # process does (GitError), not crash the whole plan build. Every
+        # caller already has `except GitError:` fallback logic (churn_rank
+        # -> 0, the since-diff block -> unfiltered) -- TimeoutExpired was
+        # bypassing all of it.
+        raise GitError(f"git {' '.join(args)} timed out after {exc.timeout}s") from exc
     if result.returncode != 0:
         raise GitError(f"git {' '.join(args)} failed: {result.stderr.decode('utf-8', 'replace')}")
     return result.stdout

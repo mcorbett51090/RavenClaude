@@ -2819,7 +2819,7 @@ def main() -> int:
     )
     args = p.parse_args()
 
-    global PROJECT_ROOT
+    global PROJECT_ROOT, PROJECT_TARGET
     if args.project_root is not None:
         root = Path(args.project_root).resolve()
         # Hard guard: a CONSUMER launcher (which always passes --project-root) must never
@@ -2837,6 +2837,12 @@ def main() -> int:
             sys.stderr.write(f"ERROR: --project-root {root} is not a directory.\n")
             return 2
         PROJECT_ROOT = root
+        # PROJECT_TARGET must track PROJECT_ROOT: _apply_codex_posture() (unlike
+        # _apply_posture(), which reads PROJECT_ROOT directly) reads PROJECT_TARGET,
+        # which is otherwise a stale copy of the launch-cwd default from module
+        # import time (see its definition above) — leaving it unset here means a
+        # --project-root override never reaches the Codex posture projection.
+        PROJECT_TARGET = root
 
     if args.validate:
         print(f"project root OK: {PROJECT_ROOT}")
