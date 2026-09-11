@@ -3863,7 +3863,7 @@
         "plugins/ravenclaude-core/skills/repo-review/scripts/estimate_cost.py",
         "plugins/ravenclaude-core/skills/repo-review/workflows/repo-sweep.workflow.js"
       ],
-      "covers_digest": "sha256:4e64ad76c467da5124d0ec54861bd61c0aeabbb155617d2e0b92b764a9223ddc",
+      "covers_digest": "sha256:a444dc81a214a9d8e2b46c7b5a279ca7153f1bb28a43782ed9f57f9f0d1926ba",
       "nuance": "A dedup key built from each finding's own title tokens misses two models describing one bug in different words at the same line -- keys differ, so exact-key merge misses it. The near-dup fallback's bucket-diff bound was `== 1` (adjacent only), excluding 0 (the identical line) -- the single most common real shape cross-model review exists to catch.",
       "nuance_evidence": {
         "measured": "2026-09-02",
