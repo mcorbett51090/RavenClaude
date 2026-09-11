@@ -53,6 +53,26 @@ JSON verdicts):
   - `needs_revision` at the round ceiling  -> escalate (never loops forever, never
                                                silently lands unresolved)
 
+MERGE AUTHORITY (added 2026-09-11, per Matt's explicit directive — see
+_DESIGN_DECISION_INSTRUCTION below). An `approved` verdict alone does NOT mean the
+caller should merge. Every seat that voted also votes a second, independent axis —
+`design_decision: true|false` — and `approved` carries a `merge_authority` field:
+  - EITHER seat (or Thor, if consulted) flags `design_decision: true`
+                                            -> merge_authority: "human" (open/ready +
+                                               notify; a person merges — today's
+                                               behavior, unchanged)
+  - every seat that voted says `design_decision: false`
+                                            -> merge_authority: "auto" (the caller
+                                               merges directly — see SKILL.md's
+                                               "Branch on outcome" for the exact
+                                               mark-ready -> wait-for-required-checks
+                                               -> squash-merge procedure)
+This is the SAME any-seat-raises-it-wins shape already used for injection_detected —
+one axis judges the diff's QUALITY (approve/request_changes), a second, orthogonal
+axis judges DECISION AUTHORITY (does shipping this require Matt's judgment, not just
+correctness). A design-decision diff can still be `approved` — it is fine work — it
+just doesn't get to merge itself.
+
 Exit codes: the `panels` and `tally` subcommands ALWAYS exit 0 — the caller reads the
 verdict from the JSON, exactly like thing-decide.py, so a shell caller can `jq` the
 result without branching on exit status. `--self-test` is the one exception: it is a
@@ -83,25 +103,35 @@ _THING_DECISION = _HERE / "thing-decision.py"
 _VOTING_SEATS = ("mimir", "forseti")
 _TIEBREAK_SEAT = "thor"
 
+_DESIGN_DECISION_INSTRUCTION = (
+    "Separately from your verdict, also vote design_decision: true|false — does this diff "
+    "embody a DESIGN OR ARCHITECTURE DECISION (multiple reasonable options existed and taste, "
+    "direction, or judgment determined which one shipped), as opposed to a mechanical, "
+    "correctness, or build-to-spec change with no real alternative? Per Matt's explicit "
+    "directive (2026-09-11): design_decision=true is the ONLY thing that should stop an "
+    "otherwise-approved diff from auto-merging — so vote true whenever a reasonable person "
+    "could have shipped something meaningfully different here, even if what shipped is correct."
+)
+
 _SEAT_BRIEFS = {
     "mimir": (
         'You are "Mímir", the Correctness Watch (a code-reviewer-shaped seat). Review the '
         "diff produced by an unattended routine for correctness, convention compliance, "
         "and whether it satisfies the routine's own written policy/DoD. Cite concrete file:line "
-        "findings in required_edits when voting request_changes."
+        "findings in required_edits when voting request_changes. " + _DESIGN_DECISION_INSTRUCTION
     ),
     "forseti": (
         'You are "Forseti", the Risk Watch (a security-reviewer-shaped seat). Review the same '
         "diff for safety, blast radius, and irreversibility — does an unattended routine's "
         "change do anything destructive-by-default, leak a secret, or exceed what the routine's "
         "policy authorized it to do unattended? Cite concrete file:line findings in "
-        "required_edits when voting request_changes."
+        "required_edits when voting request_changes. " + _DESIGN_DECISION_INSTRUCTION
     ),
     "thor": (
         'You are "Thor", the tie-breaker (an architect-shaped seat), convened because the two '
         "panels disagreed, one abstained, or a unanimous vote was low-confidence. Review the "
         "diff AND the peer verdicts, then cast the binding verdict. Prefer request_changes with "
-        "concrete required_edits over a low-confidence approve."
+        "concrete required_edits over a low-confidence approve. " + _DESIGN_DECISION_INSTRUCTION
     ),
 }
 
@@ -157,9 +187,19 @@ def _seat_record(name: str, verdict: dict) -> dict:
         "confidence": verdict.get("confidence", 0.0),
         "required_edits": verdict.get("required_edits", []) or [],
         "injection_detected": bool(verdict.get("injection_detected", False)),
+        "design_decision": bool(verdict.get("design_decision", False)),
         "reasoning": str(verdict.get("reasoning", ""))[:256],
         "status": verdict.get("status", "voted"),
     }
+
+
+def _merge_authority(*seat_records) -> str:
+    """Fail-safe toward human review: ANY participating seat (mimir/forseti/thor-if-
+    consulted) flagging design_decision=True means a human merges, no exceptions —
+    the same any-seat-raises-it-wins shape tally() already uses for injection_detected.
+    Only unanimous design_decision=False across every seat that actually voted on this
+    round earns "auto"."""
+    return "human" if any(sr.get("design_decision") for sr in seat_records if sr) else "auto"
 
 
 def _dedup_edits(*edit_lists) -> list:
@@ -190,8 +230,14 @@ def tally(
     voted = [s for s in _VOTING_SEATS if seats[s]["status"] == "voted"]
     abstained = [s for s in _VOTING_SEATS if seats[s]["status"] != "voted"]
 
-    def _resolved(verdict: str, reasoning: str, required_edits=None, seat_records=None) -> dict:
-        return {
+    def _resolved(
+        verdict: str,
+        reasoning: str,
+        required_edits=None,
+        seat_records=None,
+        merge_authority=None,
+    ) -> dict:
+        payload = {
             "outcome": "resolved",
             "verdict": verdict,
             "reasoning": reasoning,
@@ -199,6 +245,12 @@ def tally(
             "seats": seat_records if seat_records is not None else list(seats.values()),
             "round": round_no,
         }
+        # merge_authority is only meaningful on an actual approval — a diff that was
+        # sent back or escalated was never going to be merged regardless, so the field
+        # is omitted there rather than printed as a misleading "human"/"auto" no-op.
+        if verdict == "approved":
+            payload["merge_authority"] = merge_authority or "human"  # fail-safe default
+        return payload
 
     # 1. Both seats abstained — nothing to adjudicate.
     if len(abstained) == len(_VOTING_SEATS):
@@ -257,7 +309,10 @@ def tally(
             )
         if thor["verdict"] == "approve":
             return _resolved(
-                "approved", f"tiebreak (Thor): {thor['reasoning']}", seat_records=all_seats
+                "approved",
+                f"tiebreak (Thor): {thor['reasoning']}",
+                seat_records=all_seats,
+                merge_authority=_merge_authority(seats["mimir"], seats["forseti"], thor),
             )
         edits = _dedup_edits(
             thor["required_edits"],
@@ -271,7 +326,11 @@ def tally(
     # 3. Unanimous, confident, no tiebreak needed.
     only = seats[voted[0]]["verdict"]
     if only == "approve":
-        return _resolved("approved", "both panels approved.")
+        return _resolved(
+            "approved",
+            "both panels approved.",
+            merge_authority=_merge_authority(seats["mimir"], seats["forseti"]),
+        )
     edits = _dedup_edits(seats["mimir"]["required_edits"], seats["forseti"]["required_edits"])
     return _revision_or_escalate(round_no, max_rounds, "both panels requested changes.", edits)
 
@@ -326,13 +385,14 @@ def _default_run_dir(root: Path, routine: str) -> Path:
 
 
 # ── Self-test fixtures (no model calls — pure tally() unit checks) ────────────
-def _fx_approve(conf=0.9):
+def _fx_approve(conf=0.9, design_decision=False):
     return {
         "verdict": "approve",
         "confidence": conf,
         "required_edits": [],
         "reasoning": "looks fine",
         "status": "voted",
+        "design_decision": design_decision,
     }
 
 
@@ -422,12 +482,47 @@ def self_test() -> int:
     r = tally(_fx_changes(["x"]), _fx_changes(["x"]), None, 0.5, round_no=1, max_rounds=2)
     check("below-ceiling.verdict", r["verdict"], "needs_revision")
 
+    # 8. merge_authority: unanimous approve, NEITHER seat flags design_decision ->
+    #    "auto" (this is the case that should actually merge unattended).
+    r = tally(_fx_approve(), _fx_approve(), None, 0.5, 1, 2)
+    check("merge-auth-auto.merge_authority", r["merge_authority"], "auto")
+
+    # 9. merge_authority: unanimous approve, ONE seat flags design_decision -> "human",
+    #    even though both approved the diff's quality — a design call still stops it.
+    r = tally(_fx_approve(design_decision=True), _fx_approve(), None, 0.5, 1, 2)
+    check("merge-auth-one-flag.verdict", r["verdict"], "approved")
+    check("merge-auth-one-flag.merge_authority", r["merge_authority"], "human")
+
+    # 10. merge_authority via a Thor tiebreak approve: Thor itself flags
+    #     design_decision -> "human", even though the two peers never disagreed on it.
+    r = tally(
+        _fx_approve(),
+        _fx_changes(["x"]),
+        _fx_approve(design_decision=True),
+        0.5,
+        1,
+        2,
+    )
+    check("merge-auth-thor-flag.verdict", r["verdict"], "approved")
+    check("merge-auth-thor-flag.merge_authority", r["merge_authority"], "human")
+
+    # 11. merge_authority via a Thor tiebreak approve where NOBODY flags
+    #     design_decision -> "auto" — the tiebreak path earns auto-merge too, not just
+    #     the unanimous-on-round-1 path.
+    r = tally(_fx_approve(), _fx_changes(["x"]), _fx_approve(), 0.5, 1, 2)
+    check("merge-auth-thor-noflag.merge_authority", r["merge_authority"], "auto")
+
+    # 12. merge_authority must be absent (never a stray "human"/"auto" string) on a
+    #     non-approved verdict — the field only means something on an actual approval.
+    r = tally(_fx_changes(["x"]), _fx_changes(["x"]), None, 0.5, 1, 2)
+    check("merge-auth-absent-on-revision", "merge_authority" in r, False)
+
     if fails:
         for f in fails:
             print(f"FAIL: {f}", file=sys.stderr)
         print(f"routine-review-tribunal self-test: {len(fails)} FAILED", file=sys.stderr)
         return 1
-    print("routine-review-tribunal self-test: 9 checks OK")
+    print("routine-review-tribunal self-test: 12 checks OK")
     return 0
 
 
