@@ -24,6 +24,24 @@ Each entry is a dated section. Reverse-chronological order (newest first).
 
 ---
 
+## 2026-09-10 — A merged permission-rule cleanup reappeared after a reapply: check whether the file is generated before suspecting a race
+
+**Context:** A consumer project removed four permission rules from `.claude/settings.json` that Claude's settings validator flags as inert (`Write`/`MultiEdit`/`NotebookEdit` path-shaped rules are matched as `Edit`, and `Glob` as `Read`, per the SDK's own validator), confirmed the warnings cleared, and merged the change.
+
+**What we tried first:** When the rules reappeared hours later with no error and no visible actor, the natural read was a concurrent session clobbering the edit — so the investigation started chasing a race condition.
+
+**Why it failed:** `.claude/settings.json`'s allow-list in a RavenClaude-managed project is *generated output* from `apply-comfort-posture.py`'s `EMISSIONS` table, which is idempotent-by-reapply. A later reapply regenerated the same four inert rules the fix had removed. `.ravenclaude/posture-events.jsonl` recorded the exact diff (`added: ["MultiEdit(**)", "Write(**)", "Write(//**)", "Write(~/**)"]`) at the reapply timestamp — a deterministic regenerator, not a race, and the tool's own event log said so before any process-timing analysis was needed.
+
+**What works:** Before suspecting a concurrent-write race on any file that reappeared unchanged after a clean merge, check whether the file is a generated artifact and read its own event/audit log first. A regenerator and a race present identically in `git status`, but a regenerator usually leaves an audit trail.
+
+**How to apply:**
+- Treat `.claude/settings.json`'s allow/ask/deny lists as build output when RavenClaude's comfort posture is active — hand edits to path-shaped rules for `Write`/`MultiEdit`/`NotebookEdit`/`Glob` don't survive a reapply and won't raise an error when reverted.
+- When a merged fix reappears, check the tool's own event log (here, `posture-events.jsonl`) before reasoning about process timing — it is cheaper and conclusive.
+
+**Trace:** Consumer project (BTCSI), 2026-09-10. The underlying defect (four inert `Write`/`MultiEdit` path-shaped entries in the `EMISSIONS` table's `file_edit_project`/`file_edit_global` categories) was fixed directly in `apply-comfort-posture.py` the same day.
+
+---
+
 ## 2026-07-29 — A newly-written audit harness produced 3,337 findings, ~99% false. Verify the instrument before you fix the subject.
 
 **Context:** Looping a UI/UX audit over both dashboard surfaces (portal + the shipped standalone) until two consecutive passes came back clean. The harness drove headless Chrome and measured real computed layout — contrast ratios, pointer-target geometry, resolved tokens — across 21 routes x 4 viewports x 2 themes.
