@@ -23,7 +23,7 @@ verify:
   rationale: "The reuse is a 5-line source fact (one module importing another's function) already read in the panels subcommand's own output; the --self-test suite covers the deterministic tally() logic downstream of resolution, not this import fact, and a dedicated static-AST check would be redundant with reading resolve_panels() directly."
 sources:
   - label: written + verified this session, alongside the routine-review-tribunal build
-    url: https://github.com/mcorbett51090/RavenClaude/pull/1200
+    url: https://github.com/mcorbett51090/RavenClaude/pull/1161
 ---
 
 ## What a reader would have assumed instead

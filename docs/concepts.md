@@ -3302,7 +3302,7 @@ If `.ravenclaude/comfort-posture.yaml` or `.ravenclaude/thing.yaml` ever repoint
 
 Falsifier: a future edit to `routine-review-tribunal.py` that hardcodes a seat's model/agent instead of calling `resolve_panel_config`.
 
-**Sources:** [written + verified this session, alongside the routine-review-tribunal build](https://github.com/mcorbett51090/RavenClaude/pull/1200)
+**Sources:** [written + verified this session, alongside the routine-review-tribunal build](https://github.com/mcorbett51090/RavenClaude/pull/1161)
 
 _Last verified: 2026-09-11_
 
