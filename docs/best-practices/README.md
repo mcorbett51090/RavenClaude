@@ -26,6 +26,7 @@ For the companion log of dated, story-shaped findings (incidents we tried-failed
 | [`lessons-vs-best-practices.md`](./lessons-vs-best-practices.md) | Pattern | Capturing a finding — deciding whether it's a lesson (story), a best-practice (rule), or both |
 | [`plugin-versioning.md`](./plugin-versioning.md) | Absolute rule | Touching any shipped plugin content — bumps the three version mirrors (plugin.json + marketplace.json + architecture.md) |
 | [`pr-vs-direct-push.md`](./pr-vs-direct-push.md) | Pattern | Deciding whether a change opens a PR or commits direct to main |
+| [`surface-credential-location-in-environment-context.md`](./surface-credential-location-in-environment-context.md) | Pattern | An agent must deploy or call an authenticated API — record credential-var names and the correct deploy route in `environment-context.md` up front, gated by a repo-visibility check, instead of letting the agent guess and burn a failed 401 |
 | [`updating-ravenclaude-in-a-consumer-repo.md`](./updating-ravenclaude-in-a-consumer-repo.md) | Pattern | Updating `ravenclaude-core` in a Copilot-CLI consumer repo — `git pull` + re-materialize the `.claude/skills` symlinks, never a reinstall; the three recurring Codespace setup failure modes |
 
 ---
