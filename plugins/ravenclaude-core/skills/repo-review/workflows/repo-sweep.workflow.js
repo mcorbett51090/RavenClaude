@@ -671,8 +671,14 @@ log(
 const estimate = await agent(
   [
     `Run this exact command and capture its stdout JSON:`,
+    // NOTE: do NOT pass --agent-budget ${BUDGET_BATCHES} here. BUDGET_BATCHES is a
+    // batch count (repo_map.py --budget-batches, line 653); estimate_cost.py's
+    // --agent-budget is a *total agent-call* ceiling (defaults to 900). Passing the
+    // batch count made the best-effort cardinality log nonsensically pessimistic on
+    // every run (batches_affordable ~0). Omitting it lets the estimator use its own
+    // correct default ceiling.
     `python3 ${SCRIPTS_DIR}/estimate_cost.py --plan ${PLAN_PATH} --effort-tier ${EFFORT}` +
-      `${crossModelActive ? " --cross-model" : ""} --agent-budget ${BUDGET_BATCHES} ` +
+      `${crossModelActive ? " --cross-model" : ""} ` +
       `--verify-cap ${VERIFY_CAP} --fix-cap ${FIX_CAP}`,
     `Return ONLY structured output: {estimate_summary: "<one short line summarizing the cardinality estimate the tool reported>"}.`,
   ].join("\n"),
