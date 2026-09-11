@@ -58,7 +58,12 @@ const RC_BASELINE = {
   //   merge/CI-triage handoff via the task ledger). COUNTED, not inferred:
   //   `ls plugins/ravenclaude-core/agents | wc -l` -> 16 on this tree.
   agents: 16,
-  skills: 66, // 64 -> 66: skills/prompt-optimizer (forge/prompt-optimizer merge — gated
+  skills: 67, // 66 -> 67: skills/routine-review-tribunal (the routine-review-tribunal
+  //   build — gates an unattended scheduled routine's produced diff through a
+  //   two-panel, cross-model tribunal before it is finalized, mirroring
+  //   /forge-pipeline's divergent-panel shape applied post-hoc to a diff).
+  //   COUNTED, not inferred: `ls plugins/ravenclaude-core/skills | wc -l` -> 67 on this tree.
+  //        64 -> 66: skills/prompt-optimizer (forge/prompt-optimizer merge — gated
   //   prompt-to-routing pipeline, PR #1098) + skills/skill-index (FORGE plan
   //   dynamic-skill-context, phase P0 — a generated always-on index of every
   //   marketplace skill, so a disabled plugin's skills are still findable +
@@ -81,7 +86,11 @@ const RC_BASELINE = {
   //        53 -> 54: skills/session-handoff (v0.266.0, context-quality reset)
   //        52 -> 53: skills/design-clone (v0.253.0, design-schema capture+apply)
   //        51 -> 52: skills/github-gold-standard (v0.246.0, the gold-standard scorecard)
-  tools: 52, // 49 -> 52: scripts/prompt-optimizer-format.py + scripts/prompt-optimizer-judge-soak.py
+  tools: 53, // 52 -> 53: scripts/routine-review-tribunal.py (the routine-review-tribunal
+  //   build's deterministic tally engine — reuses thing-decision.resolve_panel_config,
+  //   no new agents). COUNTED, not inferred:
+  //   `find plugins/ravenclaude-core/scripts -maxdepth 1 -name "*.py" | wc -l` -> 53 on this tree.
+  //        49 -> 52: scripts/prompt-optimizer-format.py + scripts/prompt-optimizer-judge-soak.py
   //   (forge/prompt-optimizer merge — the Phase 5 formatter + the standalone judge-soak tool;
   //   the sibling prompt-optimizer-gate.sh/-rewrite.sh/-dispatch.sh/-judge-soak.sh are bash, so
   //   the *.py glob does not count them) + scripts/install_launch_guard.py (P2 of the

@@ -2,6 +2,33 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.321.6 — 2026-09-11
+
+### Added
+
+- New `routine-review-tribunal` skill + `scripts/routine-review-tribunal.py`: gates an
+  unattended scheduled routine's produced diff/PR (plugin-discovery, research-cadence)
+  through a two-panel, cross-model tribunal before it is finalized — mirrors
+  `/forge-pipeline`'s divergent-panel + tiebreak shape, applied after the fact to a
+  completed diff instead of before code exists. Reuses the existing Mímir/Forseti/Thor
+  seat personas and `thing-decision.resolve_panel_config` model resolution (no new
+  agents); deterministic `tally()` core with 9 self-test fixtures
+  (`--self-test`, matching `forge-route.py`'s convention); a bounded revision loop
+  (default 2 rounds) that always resolves to `escalate` rather than looping forever or
+  landing unreviewed; per-round receipts under
+  `.ravenclaude/runs/routine-review/<slug>/<timestamp>/`.
+- Wires the new gate into both PR-producing scheduled routines' run contracts:
+  `docs/plugin-discovery-routine-policy.md` (§ "Tribunal gate," + the drop-in
+  schedule-prompt replacement) and `docs/research-routine-two-cadence.md`
+  (§ "How a weekly news-sweep run should behave," step 6).
+
+### Notes
+
+Migration: none. Purely additive — a new skill + script + a required step in two
+routines' own run contracts (not a hook, not a required CI check); no existing
+agent, skill, or manifest entry changes shape. A consumer who never runs those two
+specific scheduled routines sees no behavior change at all.
+
 ## 0.321.5 — 2026-09-10
 
 ### Fixed

@@ -29,6 +29,7 @@ The membership manifest is [`.ravenclaude/plugins/sweep-tiers.yaml`](../.ravencl
 3. **Triage, don't dump.** Classify each finding as a **correction** (the repo currently states something now-false — highest priority, actively misleads) or an **addition** (a new capability not yet documented). Ship corrections first; queue additions.
 4. **Verify before writing.** Anything written into a claim-grounded knowledge file must be re-verified by the editor against a primary source, carry an ISO date + citation + `[verify-at-use]` marker, and pass the relevant gate (`check-lineup-citations.py`, etc.).
 5. **Honest null is a result.** "0 net-new for plugin X this week" is logged, not padded.
+6. **Tribunal gate before the PR is final** (added 2026-09-11). Once the gate suite is green, run the diff through the [`routine-review-tribunal`](../plugins/ravenclaude-core/skills/routine-review-tribunal/SKILL.md) skill — the same two-panel, cross-model review `/forge-pipeline` gives a plan before code exists, applied here to the knowledge-file diff this routine just produced. `approved` → open the PR; `needs_revision` → apply the tribunal's required edits and resubmit (bounded to 2 rounds); `escalate` → open a flagged draft PR and notify rather than merging unreviewed corrections into a claim-grounded knowledge file. This is the routine's second opinion in place of the human reviewer it doesn't have, running unattended.
 
 ## The feedback loop (keeps the tiering honest)
 
@@ -44,6 +45,7 @@ This is why the tiering is a manifest, not hard-coded: it is meant to drift with
 - [`.github/workflows/researcher-reminder.yml`](../.github/workflows/researcher-reminder.yml) — the weekly-deep issue now scopes itself to Tier A via the manifest, and the monthly skill-gap audit remains the structural-gap pass.
 - [`knowledge-file-staleness-sweep`](../plugins/ravenclaude-core/skills/knowledge-file-staleness-sweep/SKILL.md) — the staleness-tier concept (Tier-4 fast-churn) is the per-file complement to this per-plugin cadence; the two agree (a Tier-4 file lives in a Tier-A plugin).
 - The PR/no-PR boundary is unchanged (AGENTS.md): knowledge-file edits ship via PR + version bump; this spec doc is docs-only.
+- [`routine-review-tribunal`](../plugins/ravenclaude-core/skills/routine-review-tribunal/SKILL.md) — the tribunal gate this routine now runs before a correction/addition PR is opened (§ "How a weekly news-sweep run should behave," step 6). Shared with the plugin-discovery routine's own gate ([`docs/plugin-discovery-routine-policy.md`](plugin-discovery-routine-policy.md) § "Tribunal gate") so both PR-producing scheduled routines use the same reviewed-and-approved (or revised-and-reapproved) mechanism.
 
 ## Learn-tab improvement output (added 2026-06-12)
 
