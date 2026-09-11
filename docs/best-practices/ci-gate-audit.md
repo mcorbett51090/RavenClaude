@@ -133,6 +133,7 @@ As a defense-in-depth backstop (a control-flow construct spanning a block bounda
 - [`./hook-authoring.md`](./hook-authoring.md) — hooks are gates too; the same audit-by-fixture exercise applies to PreToolUse / PostToolUse hooks (a hook that fires but doesn't deny is the moral equivalent of a CI step that runs but exits 0).
 - [`../live-dispatch-checklist.md`](../live-dispatch-checklist.md) — Exercise 0 (CI gate audit) — the live-dispatch equivalent of this rule, run on any change to the workflow's gate set.
 - [`../../scripts/audit-gates.sh`](../../scripts/audit-gates.sh) — the executable form of this rule. Read it before adding a new gate.
+- [`ci-preflight-vs-premerge-refresh.md`](./ci-preflight-vs-premerge-refresh.md) — `ci-preflight.py` previews production freshness/lint/ratchet only; it does **not** replace this audit. `premerge-refresh.sh` is the write-path counterpart after a real merge commit.
 
 ## Provenance
 
