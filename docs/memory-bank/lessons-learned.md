@@ -42,6 +42,372 @@ Each entry is a dated section. Reverse-chronological order (newest first).
 
 ---
 
+## 2026-09-10 — An Agent Host session can be bound but unusable when a provisional URI is subscribed before materialization
+
+**Context:** A newly opened Claude session in VS Code accepted a first prompt but then stopped
+indefinitely. The visible symptom resembled an MCP startup hang, yet the SDK backend and MCP child
+were both alive and idle-healthy.
+
+**What we tried first:** We initially treated repeated stalls as launcher or resource-exhaustion
+problems. Those are common and can produce the same frozen UI, but process-state inspection showed
+no blocked launcher, no overloaded host, and no orphan accumulation in the decisive reproduction.
+
+**Why it failed:** The workbench briefly addressed the new session as
+`<provider>:/untitled-<A>`. A UI observer opened a state subscription for that provisional URI.
+Two milliseconds later, first-send materialization bound a different real URI,
+`<provider>:/<B>`. The provisional subscription failed with `AHP_SESSION_NOT_FOUND`; retrying it
+could never succeed because the identity had changed. The real scope recorded a bind but never
+registered an active client, leaving the turn pending forever. An earlier create-before-subscribe
+fix covered stable identities but not this provisional-to-real remapping path.
+
+**What works:** Treat an untitled session resource as a workbench placeholder, never as a stable
+wire identity. Components that observe session state must defer subscription while the resource is
+`untitled-*`, then re-evaluate when the view model publishes the materialized real resource. A
+generic retry at the protocol layer is insufficient because it lacks the mapping and would retry
+the obsolete URI. Recovery for an already half-bound tab is to abandon the tab, or run
+"Developer: Reload Window" if several tabs are affected at once; **never `pkill`/`killall` any
+process to try to recover it** — terminate only a confirmed-dead SDK backend by PID, and only
+after confirming via process state that it has no live client, since killing a live backend can
+take other, healthy sessions down with it. Cleanup cannot make the stale subscription valid.
+
+**How to apply:**
+- Diagnose this class when logs show `Bound chat` for a real scope but no corresponding
+  `active client`, especially when an immediately preceding subscribe targeted `untitled-*`.
+- Before blaming MCP, distinguish idle-healthy processes (`ep_poll`, `do_wait`,
+  `futex_wait_queue`) from blocked launchers (`pipe_read`, `tty_read`, or process state `D`).
+- Watch for this most often right after opening several new tabs in quick succession — each
+  new-tab materialization is a fresh race window. Waiting for a tab to show as ready before
+  opening the next is a cheap, free preventive habit, not a fix.
+- Session logs can carry either a `[Claude` or `[Copilot` prefix for the same underlying Agent
+  Host mechanism depending on which chat participant is active — don't assume the prefix tells
+  you which host component is involved.
+- In client code, guard every session-state observer that can see provisional resources. Subscribe
+  only after materialization supplies the real backend URI.
+- Test the lifecycle, not only ordering: assert that an untitled resource opens no wire
+  subscription and that changing to the real resource opens exactly the expected subscription.
+- Do not patch an installed minified client bundle or add blind retries for the provisional URI.
+- **Scope:** this is a VS Code Agent Host (Copilot Chat / Claude session-target) defect. The
+  Claude Code CLI, which has no untitled-URI concept, is unaffected.
+
+**Trace:** Generalized from a consumer-project diagnosis, 2026-09-10. Upstream tracking, state as
+of 2026-09-10: [`microsoft/vscode#335473`](https://github.com/microsoft/vscode/issues/335473)
+(open). Proposed fix and cross-browser regression test:
+[`microsoft/vscode#335472`](https://github.com/microsoft/vscode/pull/335472) (open, unmerged as of
+2026-09-10). Related original bug and first fix:
+[`microsoft/vscode#330531`](https://github.com/microsoft/vscode/issues/330531) and
+[`microsoft/vscode#330761`](https://github.com/microsoft/vscode/pull/330761).
+
+---
+
+## 2026-09-10 — MCP cost is **per live session**, not per machine, and dead sessions leave orphaned servers behind: the box starves and the symptom looks like a hang
+
+**Context:** In a consumer project, a Claude session bound normally, started its MCP servers in
+about a second, emitted two tool calls — and then stopped. Process alive, no error, turn never
+completed. The user's read was "it's stuck starting MCP servers," which is exactly what it looks
+like.
+
+**What we tried first:** Reached for the known MCP failure mode — a launcher blocking during the
+startup handshake (the sibling lesson below, "An MCP launcher that blocks at session start or
+plugin reload hangs the host UI"). That hypothesis was wrong, and the check that killed it took
+one command: two tool calls had already been emitted successfully, which rules out a
+startup-handshake block — a launcher stuck in the handshake never gets that far.
+
+**Why it failed:** `wchan` said every MCP process was idle-healthy — `ep_poll`, `do_wait`,
+`futex_wait_queue`. A genuinely blocked launcher sits in `pipe_read`/`tty_read` or process state
+`D`. Nothing was blocked. There were simply far too many of them. The box was carrying 51 MCP
+processes / 2.7 GB resident / load average 16.4 on 8 cores, with 309 MB free. The stall
+co-occurred with a starved machine; the two are linked by resource contention, not by the session
+itself being wedged.
+
+**The mechanism (the part worth keeping).** Two independent things accumulate, and they have
+different fixes, so conflating them wastes the diagnosis:
+
+1. **Per-session multiplication is architectural for stdio-transport servers, not a bug.** MCP's
+   stdio transport wires each server's stdin/stdout to *its client* as the protocol channel, so a
+   stdio server **cannot** be shared between sessions — it is a child process of one client by
+   construction. (A server exposed over HTTP/SSE instead of stdio does not have this constraint
+   and can be shared; this lesson is about the stdio case, which is the common one for
+   locally-launched plugin servers.) Every concurrent stdio-based session owns a complete,
+   unshared MCP set. Measured here: ~313 MB per session, so four open chats is four copies of
+   everything. No amount of tooling reclaims this; only closing sessions does.
+2. **Orphans make it ratchet.** When a session ends, its MCP children are not reliably torn down.
+   They get reparented (to the agent host, or to init) and keep their memory indefinitely.
+   Nothing reaps them. 22 of those 51 processes belonged to sessions that had already ended. This
+   is why the problem survives restarts and why closing a chat does not necessarily give the
+   memory back.
+
+**The cost is wildly unevenly distributed, and the expensive plugin is not the obvious one.** Two
+plugins accounted for 100% of the memory. One of them — a Power Platform editor plugin whose
+purpose has nothing to do with browsers — bundles Playwright with a Chromium browser and cost 733
+MB, 78% of the total, because it is spawned once per session. Nobody would guess that from the
+plugin's name or description. Its `npx`-based launch also leaves a three-process chain resident
+(`sh -c npx …` → `npm exec` → the actual `node` server); the two wrappers held ~94 MB doing
+nothing but babysitting the child in this measurement — a property of the `npx` wrapper chain,
+not a universal per-server cost, and it disappears with a direct, pinned launcher invocation. Note
+the corollary: swapping that plugin for a lighter equivalent still leaves an unpinned/non-`-y`
+launcher able to re-arm the sibling lesson's startup-hang risk — reducing memory cost and reducing
+hang risk are two separate fixes, not one.
+
+**What works:** Measure at runtime, not just in config. Static launcher audits (the sibling
+lesson's contribution) predict which servers *could* block; they say nothing about how many are
+*actually running* or who owns them. The portable detection rule for an orphan is: an MCP process
+whose parent is neither a live agent-session process nor another MCP process — its owner is gone
+and it has been reparented. In a container, reparenting can land orphans on PID 1 rather than a
+recognizable agent-host process, so the check needs a positive liveness test (confirm the claimed
+owner process actually exists and is a live session) rather than only a negative absence check.
+Reaping orphans is safe and is the single biggest win because it costs no open work, but reaping
+must be opt-in, read-only by default, run as a dry-run first, and must refuse to signal anything
+that resolves to a live session's child — never a name-based kill (`pkill`/`killall`), which
+cannot make that distinction. Cleanup here took 51→30 processes, 2.7 GB→1.5 GB, load 8.2→4.0.
+
+**How to apply:**
+- When a session stalls, check `wchan` first: `ep_poll`/`do_wait`/`futex_wait_queue` =
+  idle-healthy, so suspect exhaustion, not a hang. `pipe_read`/`tty_read`/`D` = genuinely blocked,
+  so suspect the launcher.
+- Treat open agent sessions as resource reservations sized by measurement, not a fixed per-core
+  rule: divide available RAM by the measured per-session RSS (~313 MB here) to size how many
+  concurrent sessions are comfortable on a given machine, rather than assuming a fixed count like
+  "2-3 sessions" generalizes to other hardware or other plugin sets.
+- Audit what your plugins actually spawn, not what they claim to do — a plugin can quietly bundle
+  a browser.
+- Expect zombies (state `Z`, 0 RSS) after reaping. They hold no memory and only the parent can
+  clear them; don't chase them.
+- A session already wedged mid-turn will not recover. Cleanup lets new work run; it cannot unstick
+  that tab. Close it.
+- For the reusable orphan-reaping procedure itself (opt-in, dry-run, liveness-checked, never
+  name-based), see
+  [`docs/best-practices/audit-mcp-runtime-cost-not-just-launcher-config.md`](../best-practices/audit-mcp-runtime-cost-not-just-launcher-config.md)
+  — this entry keeps the story and the measurements, that doc owns the rule.
+
+**Trace:** Consumer project, generalized, 2026-09-10. Diagnosed by process-state inspection
+(`ps -eo pid,ppid,stat,wchan,rss,args`) plus session transcripts; conclusions are measurements, not
+estimates. Adjacent to but distinct from "An MCP launcher that blocks at session start or plugin
+reload hangs the host UI" (below in this file, dated 2026-09-09) — that lesson is one server
+blocking, this one is too many healthy servers. Same subsystem, opposite failure; recommend
+reviewing the two together. Notably, the Playwright launcher exonerated in that lesson (it passes
+`-y`, so it never hangs) is the dominant memory cost here — a launcher can be blameless on startup
+and still be the main problem.
+
+---
+
+## 2026-09-10 — `guard-destructive.sh`'s `tool_name`-blind matcher fires on native VS Code tools that were never shell commands, and the fix is deferred
+
+**Context:** A Claude session running as VS Code Copilot Chat's "Claude" session target called
+two native, read-only VS Code tools bridged in as MCP (`mcp__client__problems`,
+`mcp__client__testFailure`). Neither takes a `command` argument and neither can be destructive.
+
+**What we tried first:** Read the resulting
+`[guard-destructive] WARNING: could not parse the command (jq and python3 both unavailable); the
+destructive-command guard is DEGRADED for this call.` message as a real environment problem —
+missing `jq`/`python3` — worth fixing in the consumer project's devcontainer.
+
+**Why it failed:** The warning is a symptom of a narrower bug: `hooks.json`'s `PreToolUse` matcher
+(`Bash|Read|Write|Edit|MultiEdit|WebFetch|WebSearch|mcp__.*`) runs `guard-destructive.sh` against
+every `mcp__*` call, but the hook reads only `tool_input.command` — it never checks `tool_name`
+first. For a tool call like `mcp__client__problems` that legitimately has no `command` field, the
+hook can't tell "there was never a command to find" from "I couldn't parse one." In this
+environment, the VS Code-spawned SDK subprocess backing the session target had a `PATH` that
+didn't carry `jq`/`python3` (both present and reachable in a normal terminal-launched session), so
+command extraction failed and the DEGRADED warning fired — on a tool call that was never
+shell-shaped and never needed either binary.
+
+**Why it costs more than it looks:** The warning itself is cosmetic, but every `mcp__*` call —
+including calls that structurally cannot be a destructive Bash command — pays a `PreToolUse`
+round-trip through `guard-destructive.sh`, `thing-orchestrator.sh`, and `runaway-brake.sh` before
+any permission prompt is shown. In the session that surfaced this, the first such call never got a
+permission answer at all (`AbortError: Tool permission stream closed before response received`,
+~2m17s), and the second, already-queued call auto-cancelled. Whether the extra `PreToolUse` hop
+contributed to that timeout is `[unverified]` — the hooks themselves ran in ~24ms each — but a
+hook scoped to "shell commands" running on tool calls it was never meant to guard is the finding
+regardless of that timeout's cause.
+
+**Proposed fix (found, NOT applied — deferred):** Give `guard-destructive.sh` an early, silent
+no-op for any tool call that isn't shell-shaped, using the `tool_name` field the hook payload
+already carries:
+
+```bash
+tool_name="$(printf '%s' "$payload" | jq -r '.tool_name // empty' 2>/dev/null || true)"
+[ -n "$tool_name" ] && [ "$tool_name" != "Bash" ] && exit 0
+```
+
+placed before the jq/python3 command-extraction attempt, with the same jq/python3 fallback (or a
+plain string-match fallback) the rest of the hook already uses, so it degrades no worse than today
+when both parsers are absent. This does not touch `hooks.json`'s matcher — `thing-orchestrator.sh`
+and `runaway-brake.sh` share that matcher and may have their own reasons to see every `mcp__*`
+call; only `guard-destructive.sh`'s command-string logic is provably Bash-only. **This diff has
+deliberately not been applied.** It is recorded here as a found-and-reasoned fix for a maintainer
+to evaluate and land on its own terms, not as a patch pushed through review substitution.
+
+**What works (for now):** Nothing has been changed. This entry exists so the finding and the
+reasoned fix are not lost, while the actual edit to `guard-destructive.sh` waits on a maintainer
+who can weigh it against `thing-orchestrator.sh` and `runaway-brake.sh`'s use of the same matcher.
+
+**How to apply:**
+- If you hit the DEGRADED warning on an `mcp__*` call with no `command` field, this is why — it is
+  not a real missing-binary problem for that call.
+- Do not apply the diff above without maintainer review; it is deferred, not vetted, and is
+  recorded here specifically so the finding isn't lost rather than as a ready patch.
+- Separate, upstream-shaped issue (not a RavenClaude fix): the
+  `AbortError: Tool permission stream closed before response received` / auto-cancel pattern looks
+  like a VS Code Copilot Chat ↔ Claude Code SDK permission-prompt bridge issue specific to the
+  `sdk-ts` / session-target entrypoint family — the same family as the untitled-session-URI entry
+  above. RavenClaude cannot make a VS Code permission dialog render; cross-link rather than
+  attempting a fix from this side.
+
+**Trace:** Found in a consumer project (BTCSI) VS Code Copilot Chat "Claude" session-target
+session with no project directory (`cwd` was `~/.copilot/chats/<uuid>`), 2026-09-10, while
+investigating a stalled tool-permission prompt. Both of the session's own tool calls demonstrated
+the defect directly.
+
+---
+
+## 2026-09-09 — An MCP launcher that blocks at session start or plugin reload hangs the host UI: `npx` without `-y` prompts on stdin, which is the MCP transport, so nobody can ever answer
+
+**Context:** In a consumer project (BTCSI), starting a new VS Code Copilot Chat session with
+Session Target "Claude" was very slow to become usable, and sometimes stuck entirely — text
+enterable, Send never enabled, eventually erroring. It looked at first like a RavenClaude problem,
+since RavenClaude is the largest, most visible tooling wired into that project.
+
+**What we tried first:** Investigated RavenClaude's skill-catalogue size, `.claude/settings.json`
+hook wiring, and a project-local `SessionStart` hook that hard-blocked with `exit 2`. That hook was
+a genuine bug (fixed separately as that project's own FM-017) but it was locally authored, not
+RavenClaude-templated, and the symptom persisted after fixing it. The first pass then inspected one
+suspected plugin (a Playwright launcher) in isolation and concluded it was the cause — a mistake
+corrected below.
+
+**Why it failed:** The remaining cause was an editor agent plugin installed per-editor-profile
+under `~/.vscode-remote/data/agentPlugins/`, not per-repo — invisible to `git status`, referenced
+by no file in the project, updating out-of-band with no local commit. An MCP server declared by a
+plugin is spawned during a new session's startup handshake, with its stdin/stdout wired to the
+host as the protocol transport; the composer's Send button stays disabled until that handshake
+settles. So anything that makes the launcher block, blocks the UI, and the responsible subprocess
+is invisible from the editor, which surfaces only "Send doesn't work." Session start is not the
+only trigger — any plugin-system reload re-spawns the whole MCP set with the same handshake cost
+mid-session, so the symptom can appear on the second prompt of a session that opened fine. The
+tell is that the agent-host process is newer than the session it belongs to (observed: session
+created 00:13:47, host started 00:15:49, MCP spawn completing 00:16:07 — ~18s of dead composer on
+an already-warm cache). Three blocking behaviours, descending severity: (1) `npx` without
+`-y`/`--yes` asks `Ok to proceed? (y)` on stdin on a cold cache — but stdin belongs to the MCP
+protocol, so no human and no client will ever answer it, making this an unbounded, completely
+silent hang, and the sharpest finding here; (2) floating version specs (`@latest`, `:latest`,
+`--prerelease`) force a registry round-trip on every cold start, bounded by network speed but paid
+every session; (3) container starts (`docker run ...:latest`) need a reachable daemon plus a
+possible image pull. Critically, as audited 2026-09-09 across every installed plugin (not just the
+suspect), the originally-suspected Playwright launcher does pass `-y` and only ever stalls on
+network, never hangs — the real unbounded-hang candidate was a different, unrelated plugin running
+`npx <pkg>@latest` with no `-y` at all. Inspecting only the suspect had confirmed a plausible story
+instead of testing it; the full inventory is what produced the right answer.
+
+**What works:** Warm the package/image caches so the launcher resolves locally rather than over
+the network (converts the prompt-hang into a non-event), and remove plugins you don't use — every
+installed plugin declaring a server adds startup cost to every session whether or not you ever
+call its tools. Deliberately not recommended: hand-editing `.mcp.json` inside an installed plugin
+directory to add `-y` or pin a version — it works until the next plugin update overwrites it, and
+produces a machine whose behaviour can't be reproduced from any repo state. Separate a stall from a
+hang before reaching for a fix — they have different causes and remedies, and static config
+analysis can't tell you which one you're in; live process state can. Launchers parked in normal
+idle sleep (`ep_poll`, `do_wait`, `futex_wait_queue`, Linux/procfs `wchan` states) are waiting out a
+spawn and will recover — warming a cache is the fix. A launcher blocked reading stdin never
+recovers, because stdin is the transport — only pinning or removing it helps. Cost is per agent
+host, not per machine: each host spawns its own complete MCP set, so two concurrent hosts (e.g.
+Claude and Copilot side by side) pay both the spawn wait and the memory twice (~1.2 GB resident in
+the observed case) — the concrete argument for keeping bundled servers few and lazy. This confirms
+and sharpens RavenClaude's own existing rule at
+[`docs/best-practices/bundled-mcp-servers.md`](../best-practices/bundled-mcp-servers.md) (pin the
+version, recommend-don't-bundle) and the classification already in
+[`plugins/qa-test-automation/CLAUDE.md`](../../plugins/qa-test-automation/CLAUDE.md) /
+[`plugins/frontend-engineering/CLAUDE.md`](../../plugins/frontend-engineering/CLAUDE.md) /
+[`plugins/web-design/CLAUDE.md`](../../plugins/web-design/CLAUDE.md) (Playwright MCP: recommend,
+don't bundle, never a bundled auto-start) — those were justified as a supply-chain/trust concern;
+the gap this incident fills is that an unpinned or non-`-y` launcher is *also* a
+startup-availability concern that can hang the host UI unboundedly, and the `-y`-prompts-on-stdin
+mechanism wasn't previously stated anywhere.
+
+**How to apply:**
+- If you bundle or auto-launch an MCP server: pass `-y`, pin an exact version, and — if you
+  control the server's own implementation — have it defer expensive initialization (browser
+  launch, model load, network warmup) until its first real tool call rather than doing it in the
+  process's startup path. This is a property of the server binary itself, not something a plugin
+  author can configure via `plugin.json`'s `mcpServers` block: RavenClaude currently spawns every
+  declared server eagerly at session start regardless of `defaultEnabled`, and
+  `bundled-mcp-servers.md` Step 3 is explicit that a bundled server cannot be made dormant that
+  way. An eager, unpinned, non-consenting launch is a session-availability risk, not only a
+  supply-chain risk.
+- When diagnosing "the agent tooling is slow or hung," don't assume RavenClaude just because it's
+  the biggest thing wired in. Check for other agent plugins installed into the same editor
+  profile — grep the suspect config/command against the RavenClaude checkout; no hit means a
+  different plugin ecosystem. Watch for marketplace name collisions when triaging (e.g.
+  RavenClaude's own `power-platform` plugin vs. the unrelated `microsoft/power-platform-skills`
+  marketplace) — that similarity misdirected the first pass here.
+- When a plausible culprit is identified, still enumerate the whole population before concluding —
+  inspecting only the suspect confirms a story, inventorying everything tests it.
+- Maintainer suggestion, not yet implemented: `scripts/check-mcp-attribution.py` already parses
+  every `mcpServers` block in `plugins/*/plugin.json` at PR time — flagging a missing `-y` or a
+  floating tag on RavenClaude's own bundled servers there would turn this rule from advisory into
+  enforceable for RavenClaude's own plugins. That is distinct from the consumer project's runtime
+  audit tool, which scans a live machine's editor-profile directory and checks cache state — a
+  different tree and lifecycle from a PR-time gate over this repo's own plugins.
+
+**Trace:** Originated in a consumer project (BTCSI) session diagnosing a stuck Send button under
+VS Code Session Target "Claude"; documented there as FM-018 alongside a static audit of installed
+agent-plugin MCP launchers (8 local MCP servers across ~20 installed plugins). Revised 2026-09-10
+after the full inventory corrected the original single-plugin misattribution; plugin names are
+omitted above because they are machine-specific and volatile — the transferable content is the
+mechanism and the inventory-before-concluding method. Extended the same day after the symptom
+recurred mid-session on a plugin reload rather than at session start. Companion best-practice
+covering the runtime/orphan-accounting side of MCP cost:
+[`docs/best-practices/audit-mcp-runtime-cost-not-just-launcher-config.md`](../best-practices/audit-mcp-runtime-cost-not-just-launcher-config.md).
+
+---
+
+## 2026-09-09 — A skill-catalogue prune script that skips symlinks doesn't shrink anything `ravenclaude setup` wired
+
+**Context:** A consumer project hit "prompt token count exceeds the limit" in GitHub Copilot
+Chat/CLI. Both surfaces read `.claude/skills/*/SKILL.md` and inject name+description every turn —
+attributed to VS Code's native "Agent Skills" feature; confirmed for Copilot Chat, `[unverified]`
+for the Copilot CLI half and for the "every turn" frequency, which the diagnosis assumed by
+analogy rather than checking independently. The project had a local prune script, ran it the day
+before — the error recurred anyway.
+
+**What we tried first:** Trusted the prune script's own report ("0 entries to cut") as proof the
+catalogue was already minimal, and looked elsewhere for the regression (session history growth,
+instruction-file bloat, MCP overhead).
+
+**Why it failed:** The prune script explicitly skipped every symlink (`[ -L "$d" ] && continue`,
+comment: "leave the marketplace wiring alone"). It could only ever shrink in-repo copies of
+marketplace bundles. Symlinks made up 208 of 231 entries (~90% at the time of this incident) —
+everything `ravenclaude setup --with-plugin <name>` wires in bulk via `wire_plugin_skills()`. The
+"0 to cut" report was true and completely misleading: the overwhelming majority of injected cost
+sat in a category the tool structurally couldn't see. Local pruning of symlinked content is undone
+on the next `ravenclaude setup`/update since `wire_plugin_skills()` re-wires the full roster
+unconditionally, with (at the time) no concept of persisted exclusion.
+
+**What works:** Treat wholesale-wired content as first-class in any local curation tool, not
+exempted. A curation tool that only touches what it directly owns while silently reporting "0 to
+fix" on the majority of actual cost is worse than no tool — it should report what category of
+content it structurally cannot see, not stay silent about its own scope. The durable fix is making
+the wiring step itself consult a persisted policy, not a better prune script. Both halves have
+since landed: the consumer project's prune script now reports both categories (in-repo and
+symlinked) instead of skipping the latter, and `ravenclaude-core` 0.321.0 added
+`is_skill_wiring_denied()` / a `skills.deny_plugins` posture key so `wire_plugin_skills()` itself
+can honor a persisted exclusion — see
+[`docs/best-practices/bulk-wiring-needs-persistent-exclusion-policy.md`](../best-practices/bulk-wiring-needs-persistent-exclusion-policy.md)
+for the general rule this landed fix follows.
+
+**How to apply:**
+- When a repeatable install/setup/generate step writes into a directory a human or downstream tool
+  also curates, check whether it's idempotent-and-full-overwrite or additive-only before
+  designing an exclusion pass.
+- Before trusting a "nothing to do" report, verify the tool's own scope — what category of content
+  can it structurally not see. Measure the actual byte/token cost before and after any prune,
+  rather than trusting an entry count alone as a proxy for prompt cost.
+
+**Trace:** Originated diagnosing a Copilot Chat/CLI "prompt too long" recurrence one day after an
+apparent fix; generalized from the specific fix to the underlying pattern. Rule form:
+[`docs/best-practices/bulk-wiring-needs-persistent-exclusion-policy.md`](../best-practices/bulk-wiring-needs-persistent-exclusion-policy.md).
+
+---
+
 ## 2026-07-29 — A newly-written audit harness produced 3,337 findings, ~99% false. Verify the instrument before you fix the subject.
 
 **Context:** Looping a UI/UX audit over both dashboard surfaces (portal + the shipped standalone) until two consecutive passes came back clean. The harness drove headless Chrome and measured real computed layout — contrast ratios, pointer-target geometry, resolved tokens — across 21 routes x 4 viewports x 2 themes.
