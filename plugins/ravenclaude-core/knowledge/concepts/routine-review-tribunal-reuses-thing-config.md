@@ -10,7 +10,7 @@ last_verified: 2026-09-11
 covers:
   - plugins/ravenclaude-core/scripts/routine-review-tribunal.py
   - plugins/ravenclaude-core/skills/routine-review-tribunal/SKILL.md
-covers_digest: "sha256:2a6e5eaa8d006dcfc6addce838c694516ee23dfca2a8e02be1924ca72b38afb6"
+covers_digest: "sha256:7174ddecf3992c016f267169ec6104dc664e994b48d36f39eeeceb97f12484c5"
 nuance: "resolve_panels() does an importlib load of thing-decision.py and calls its resolve_panel_config — it is not a hand-copied seat/model table, so the Thing's >=2-distinct-model diversity rule applies here for free and cannot silently drift from it."
 nuance_evidence:
   measured: 2026-09-11

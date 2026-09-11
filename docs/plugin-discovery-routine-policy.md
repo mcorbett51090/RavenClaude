@@ -96,9 +96,12 @@ A candidate is **critical** (clears regardless of the breadth concern, even if a
 Run this **after** the gold-standard gate suite is green and **before** the PR is opened (first run) or marked ready (a resumed run):
 
 1. Dispatch the two voting seats (Mímir, Forseti) against the accumulated diff + this policy's gold-standard bar as the DoD.
-2. **`approved`** → open/ready the PR as usual. Notify per the discipline above.
-3. **`needs_revision`** → apply the tribunal's `required_edits`, re-run the gate suite, and re-submit for review (bounded to 2 rounds total).
-4. **`escalate`** (round ceiling exhausted, injection flagged, or both seats abstained) → open the PR as a **flagged draft** — title-prefix `[needs human review]`, the tribunal's reasoning + required_edits in the PR body — and **notify** even though nothing "shipped," because an escalation is exactly the kind of finding the notification discipline already carves out an exception for. Do not merge, and do not start a third revision round.
+2. **`approved`, `merge_authority: "auto"`** (added 2026-09-11) → **merge the PR directly** per the [`routine-review-tribunal`](../plugins/ravenclaude-core/skills/routine-review-tribunal/SKILL.md) skill's "Auto-merge procedure": mark ready if draft, wait for `main`'s required checks (not the non-required Cursor-bot ones), then squash-merge via the GitHub MCP `merge_pull_request` tool. Notify per the discipline above with what shipped, already merged.
+3. **`approved`, `merge_authority: "human"`** → open/ready the PR as usual, note which seat flagged `design_decision` and why, and notify — but **do not merge it yourself.** A person merges.
+4. **`needs_revision`** → apply the tribunal's `required_edits`, re-run the gate suite, and re-submit for review (bounded to 2 rounds total).
+5. **`escalate`** (round ceiling exhausted, injection flagged, or both seats abstained) → open the PR as a **flagged draft** — title-prefix `[needs human review]`, the tribunal's reasoning + required_edits in the PR body — and **notify** even though nothing "shipped," because an escalation is exactly the kind of finding the notification discipline already carves out an exception for. Do not merge, and do not start a third revision round.
+
+**Why a routine is allowed to merge its own PR at all** (the `"auto"` branch above): this repo's platform-level standing instruction is "don't merge without explicit user instruction," and repo-level GitHub auto-merge is deliberately OFF (`CLAUDE.md` § "Admin bypass is deliberate"). This section — written, dated, and directly sourced from Matt's 2026-09-11 directive ("I want as much auto-merged as possible; the only thing I should review is a design or architecture decision") — is intended to *be* that explicit instruction for this routine's own `merge_authority: "auto"` PRs specifically, so a future unattended run does not need a live chat message to act on it. This has not yet been exercised by an actual unattended run end-to-end; treat the first few auto-merges under this policy as worth a spot-check, not as proof the mechanism works unattended.
 
 ---
 
@@ -106,7 +109,8 @@ Run this **after** the gold-standard gate suite is green and **before** the PR i
 
 This routine runs unattended; its egress is the notification channel. Apply the standing rule:
 
-- **Built something** (a candidate cleared the bar) → notify with the PR + what shipped.
+- **Built something, `merge_authority: "auto"`** → notify with the PR + what shipped — already merged, nothing pending.
+- **Built something, `merge_authority: "human"`** → notify with the PR + which seat flagged `design_decision` and why — waiting on a merge.
 - **Found a real problem** (e.g. a main-breaking CI issue, like the two fixed in #502) → notify.
 - **Nothing cleared the bar / steady-state no-op** → **stay silent.** "I ran and nothing warranted a new plugin" is not worth an interruption unless Matt asked for a heartbeat.
 
@@ -118,7 +122,7 @@ The recurring schedule still fires with a fixed task prompt (its text lives in t
 
 **Drop-in replacement for the literal schedule prompt** (paste into the Claude Code web schedule config to make the prompt match this policy):
 
-> Read `docs/plugin-discovery-routine-policy.md` first. Select the single highest-priority unbuilt plugin candidate that clears the Value/Criticality bar (or resume the one a prior run left unfinished). Build exactly that ONE plugin, and loop — build → run all gates → self-review against the gold-standard bar → fix the top gap — until it is fully built out to gold standard and all gates are green. Then run it through the `routine-review-tribunal` skill: on `approved`, commit and open the PR; on `needs_revision`, apply the required edits and resubmit (bounded to 2 rounds); on `escalate`, open a flagged draft PR and notify instead of merging. If no candidate clears the bar and none is in progress, build nothing (record the no-op in the roadmap) and stay silent. Never start a second plugin until the current one is gold-standard-complete and merged.
+> Read `docs/plugin-discovery-routine-policy.md` first. Select the single highest-priority unbuilt plugin candidate that clears the Value/Criticality bar (or resume the one a prior run left unfinished). Build exactly that ONE plugin, and loop — build → run all gates → self-review against the gold-standard bar → fix the top gap — until it is fully built out to gold standard and all gates are green. Then run it through the `routine-review-tribunal` skill: on `approved` with `merge_authority: "auto"`, commit, open the PR, and merge it once required checks pass; on `approved` with `merge_authority: "human"`, open/ready the PR and stop there for a person to merge; on `needs_revision`, apply the required edits and resubmit (bounded to 2 rounds); on `escalate`, open a flagged draft PR and notify instead of merging. If no candidate clears the bar and none is in progress, build nothing (record the no-op in the roadmap) and stay silent. Never start a second plugin until the current one is gold-standard-complete and merged.
 
 ---
 
