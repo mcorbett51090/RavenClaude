@@ -100,6 +100,8 @@ A real `git merge` makes `origin/main`'s current tip a direct ancestor of your b
 
 **`scripts/premerge-refresh.sh`** is the one command to run once your branch is genuinely caught up (a real merge committed, no conflicts left). It regenerates the artifacts a long-open branch tends to drift on — the concepts registry, dashboards, `docs/concepts.md`, the `copilot/` package — then re-stamps ratchet freshness, in that order, and refuses to run while a merge is still unresolved so it can't mis-time the stamp.
 
+**After that refresh (or on any ordinary push), do not guess at CI from `git status`.** `python3 scripts/ci-preflight.py` is the read-only preview of the recurring freshness / lint / ratchet classes CI will compute. It never writes the tree; a failing row names the remediation instead. Exit **1** means something was `UNAVAILABLE` (missing tool, blocked network, unresolvable base) — that is **not** a pass. `scripts/audit-gates.sh` remains the required pre-PR check (must-fail fixture teeth). Which command to reach for, the three-tier exit contract, and the #1145 stamp-during-merge pitfall: [`docs/best-practices/ci-preflight-vs-premerge-refresh.md`](docs/best-practices/ci-preflight-vs-premerge-refresh.md).
+
 ---
 
 ## How approval works
