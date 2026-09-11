@@ -334,6 +334,23 @@ def _script_callgraph(root: Path, paths: list[str], ctx: dict) -> dict:
 def _script_selftest(root: Path, paths: list[str], ctx: dict) -> dict:
     out = {}
     _self = Path(__file__).name
+    # ⛔ SCRUBBED ENV, NEVER THE FULL INHERITED ONE. These two calls execute
+    # arbitrary repo-tracked script code (--must-fail-convention / --must-fail
+    # are attacker-reachable via any PR touching scripts/*, plugins/*/scripts/*,
+    # plugins/*/bin/*), and this probe runs at the default T0 tier on every
+    # audit-gates.sh / CI invocation. Neither call previously passed env=, so
+    # subprocess.run inherited the FULL parent environment — CI secrets
+    # included (e.g. GITHUB_TOKEN). A full env/cwd sandbox (matching
+    # _hook_benign below) was tried first and REJECTED: several declared
+    # --must-fail conventions (e.g. check-artifact-budgets.py) measure real
+    # repo-tree state via `Path(".").resolve()`, and redirecting HOME broke
+    # Python's user-site-packages resolution (pyyaml import failures) — both
+    # produced false convention-mismatch FAILs on real scripts. So cwd and HOME
+    # stay untouched; only env VARS whose NAME looks secret-shaped are dropped
+    # before exec, closing the concrete leak (CI tokens/keys reaching an
+    # attacker-authored script) without perturbing scripts' own behavior.
+    _secret_name = re.compile(r"TOKEN|SECRET|_KEY$|API_KEY|PASSWORD|PASSWD|CREDENTIAL", re.IGNORECASE)
+    _scrubbed_env = {k: v for k, v in os.environ.items() if not _secret_name.search(k)}
     for p in paths:
         # ⛔ THE SWEEP DOES NOT PROBE ITSELF. Measured: script-selftest ran
         # `inventory-sweep.py --must-fail`, whose teeth run performs a full sweep,
@@ -362,7 +379,7 @@ def _script_selftest(root: Path, paths: list[str], ctx: dict) -> dict:
             out[p] = (SKIP, "no-selftest-declared")
             continue
         runner = "python3" if p.endswith(".py") else "bash"
-        decl = _run(root, [runner, p, "--must-fail-convention"], timeout=30)
+        decl = _run(root, [runner, p, "--must-fail-convention"], timeout=30, env=_scrubbed_env)
         if decl.returncode != 0 or "must-fail-teeth-exit:" not in decl.stdout:
             out[p] = (SKIP, "no-selftest-declared")
             continue
@@ -372,7 +389,7 @@ def _script_selftest(root: Path, paths: list[str], ctx: dict) -> dict:
         # a 120s budget and returned 124, which the comparison then read as
         # "declared 1, observed 124 — convention-mismatch". Two false findings from
         # a clock, not from a contract. A timeout is reported as UNKNOWN.
-        _r = _run(root, [runner, p, "--must-fail"], timeout=420)
+        _r = _run(root, [runner, p, "--must-fail"], timeout=420, env=_scrubbed_env)
         if _r.returncode == 124:
             out[p] = (UNKNOWN, "probe-timeout")
             continue
@@ -734,6 +751,11 @@ def main() -> int:
     ap.add_argument("--json", action="store_true")
     ap.add_argument("--capping-table", action="store_true")
     ap.add_argument("--stamp", default="latest", help="record filename stem (no clock in-process)")
+    ap.add_argument(
+        "--no-record",
+        action="store_true",
+        help="skip write_records() — for a read-only --check invocation (e.g. ci-preflight.py)",
+    )
     ap.add_argument("--must-fail", action="store_true")
     ap.add_argument("--must-fail-convention", action="store_true")
     args = ap.parse_args()
@@ -751,7 +773,7 @@ def main() -> int:
         return _capping_table(root)
 
     result = sweep(root, tier=args.tier)
-    rec_path = write_records(root, result, args.stamp)
+    rec_path = None if args.no_record else write_records(root, result, args.stamp)
 
     if args.json:
         print(
@@ -769,7 +791,10 @@ def main() -> int:
         by_class[rec["class"]][rec["verdict"]] += 1
 
     print("── inventory sweep (path-keyed; ZERO inventory entries required) ──")
-    print(f"  records : {rec_path.relative_to(root)}  (gitignored, derived labels only)")
+    if rec_path is None:
+        print("  records : --no-record — nothing written")
+    else:
+        print(f"  records : {rec_path.relative_to(root)}  (gitignored, derived labels only)")
     print()
     print(f"  {'CLASS':<26} {'TIER':<13} {'STRENGTH':<13} VERDICTS")
     for name, spec in CLASSES.items():

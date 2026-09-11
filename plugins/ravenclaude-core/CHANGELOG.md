@@ -2,6 +2,75 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.321.6 — 2026-09-11
+
+### Added
+
+- New `routine-review-tribunal` skill + `scripts/routine-review-tribunal.py`: gates an
+  unattended scheduled routine's produced diff/PR (plugin-discovery, research-cadence)
+  through a two-panel, cross-model tribunal before it is finalized — mirrors
+  `/forge-pipeline`'s divergent-panel + tiebreak shape, applied after the fact to a
+  completed diff instead of before code exists. Reuses the existing Mímir/Forseti/Thor
+  seat personas and `thing-decision.resolve_panel_config` model resolution (no new
+  agents); deterministic `tally()` core with 9 self-test fixtures
+  (`--self-test`, matching `forge-route.py`'s convention); a bounded revision loop
+  (default 2 rounds) that always resolves to `escalate` rather than looping forever or
+  landing unreviewed; per-round receipts under
+  `.ravenclaude/runs/routine-review/<slug>/<timestamp>/`.
+- Wires the new gate into both PR-producing scheduled routines' run contracts:
+  `docs/plugin-discovery-routine-policy.md` (§ "Tribunal gate," + the drop-in
+  schedule-prompt replacement) and `docs/research-routine-two-cadence.md`
+  (§ "How a weekly news-sweep run should behave," step 6).
+
+### Notes
+
+Migration: none. Purely additive — a new skill + script + a required step in two
+routines' own run contracts (not a hook, not a required CI check); no existing
+agent, skill, or manifest entry changes shape. A consumer who never runs those two
+specific scheduled routines sees no behavior change at all.
+
+## 0.321.5 — 2026-09-10
+
+### Fixed
+
+- `prompt-optimizer` SKILL.md now matches the Phase-6 hook wiring: the
+  classifier is a live `UserPromptSubmit` hook, not an unwired sibling.
+
+## 0.321.4 — 2026-09-10
+
+### Added
+
+- Comfort-posture 13th category `subagent_dispatch` emits bare `"Agent"`
+  (recommended preset `allow`). Absent key still falls back to
+  `global_default`.
+- Caveman auto-routing P7 live-apply: when `caveman_routing: live`, classifier
+  `on`→`lite` and `off`→`off`. Shadow still never applies. Default remains
+  off. Owner overrode the uncleared P5 soak gates.
+- The new Settings-tab category card is +82 live DOM elements on both
+  dashboard surfaces (Gate 132 ratchet raised to match).
+
+## 0.321.3 — 2026-09-10
+
+### Fixed
+
+`/repo-review` recovery batch — 18 CONFIRMED findings fixed across `ravenclaude-core`, recovered
+from a hand-run `findings_merge.py` pass after two automated `/repo-review` dispatches failed (see
+`skills/repo-review/SKILL.md`'s "Recovering from a mid-run dispatch failure" section). Each finding
+was independently verified CONFIRMED before being fixed; none was committed until this batch. Notable
+fixes: a git-blame-verified trust check closing `dod-gate.sh`'s self-attestation bypass
+(`b26-dodgate-cmd-exec-trusted-bypass`); a SIGPIPE-prone `printf | grep` swapped for a here-string in
+`thing-seat.sh`'s egress secret backstop (`thingseat-grepq-pipefail-egress`); a shell-injection close
+plus a dead third-model verifier fix in `repo-sweep.workflow.js`
+(`sec-repo-sweep-models-shell-injection`, `repo-sweep-third-model-verifier-dead`); a
+`shift`-beyond-`$#` infinite-loop fix applied across three delegate scripts
+(`cheaplane-agent-shift2-hang`, `copilot-delegate-shift2-hang`, `forge-publish-shift2-infinite-loop`);
+an `html.unescape()` fix closing a named-entity XSS bypass + a crash in `declarative-visualization`'s
+lint.py (`b100-lint-named-entity-href-bypass`, `dvlint-entity-chr-crash`); and a
+`latency_ms`→`latency_ordinal` field-name fix that was permanently disabling
+`agent-dispatch-evaluator`'s latency circuit breaker (`eval-dispatch-latency-ordinal-not-ms`),
+re-synced into both `rc-deep-research.js` byte-identical mirror copies. Full list in the recovery
+report at `.ravenclaude/runs/repo-review-full-20260910/report.md` (gitignored, local to the run).
+
 ## 0.321.0 — 2026-09-09
 
 ### Added

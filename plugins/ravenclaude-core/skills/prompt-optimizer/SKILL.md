@@ -20,9 +20,9 @@ sits downstream of them, in the `prompt-optimizer` feature:
 
 The classifier that decides which path fires at all (or neither) is Phase 2's
 [`scripts/prompt-optimizer-gate.sh`](../../scripts/prompt-optimizer-gate.sh).
-Nothing in this file is wired into `hooks.json`/`settings.json` yet — that is
-Phase 6's job. `prompt_optimizer.enabled: false` is the shipped default; every
-mechanism this file describes is inert on a project that has not opted in.
+That gate **is wired** as a `UserPromptSubmit` hook in `hooks.json` (plugin-canonical)
+and `.claude/settings.json` (dev-mirror). `prompt_optimizer.enabled: false` is
+the shipped default, so the hook is a no-op until a project opts in.
 
 Source of truth for the schema below: `docs/plans/2026-09-03-prompt-optimizer/design-lock.md`
 §2. If this file and that one ever disagree, the design-lock file wins — it is the

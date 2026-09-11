@@ -232,6 +232,10 @@ EMISSIONS: dict[str, list[str]] = {
     # category serves as the GLOBAL default; per-server overrides win.
     # Emit no rules for v0.1.0; document the gap in the skill.
     "mcp_tools": [],
+    # Bare "Agent" matches every subagent/Task dispatch (Claude Code
+    # permissions docs). No path glob — the tool is not path-scoped.
+    # Absent YAML key still falls back to global_default.
+    "subagent_dispatch": ["Agent"],
 }
 
 

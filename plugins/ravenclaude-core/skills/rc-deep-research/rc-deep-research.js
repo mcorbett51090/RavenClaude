@@ -177,7 +177,7 @@ async function loadDispatchConfig() {
     mode: "shadow",
     subagent_type_allowlist: ["Explore", "statusline-setup", "claude"],
     downgrade_blocked_types: [],
-    latency_circuit_breaker: { median_ms_threshold: 1500, window_size: 20 },
+    latency_circuit_breaker: { median_ms_threshold: 8, window_size: 20 }, // ordinal-scale, not ms (rescaled with the reference file's fix)
     tribunal_seat_mode: "shadow",
     async_mode: false,
   };
@@ -272,7 +272,7 @@ async function evaluateDispatch(
     const verdict = JSON.parse(raw.trim());
     // Validate minimum shape
     if (!verdict.verdict || !verdict.suggested_tier || !verdict.confidence) return null;
-    return { ...verdict, latency_ms: latency };
+    return { ...verdict, latency_ordinal: latency };
   } catch (e) {
     return null; // fail-open
   }
@@ -371,7 +371,7 @@ async function evaluatedAgent(prompt, opts = {}, dispatchCfg) {
 // ─── Internal helpers ─────────────────────────────────────────────────────────
 
 function _trackLatency(latencyMs, dispatchCfg) {
-  const threshold = dispatchCfg?.latency_circuit_breaker?.median_ms_threshold ?? 1500;
+  const threshold = dispatchCfg?.latency_circuit_breaker?.median_ms_threshold ?? 8;
   const windowSize = dispatchCfg?.latency_circuit_breaker?.window_size ?? 20;
   _latency.window.push(latencyMs);
   if (_latency.window.length > windowSize) _latency.window.shift();
@@ -422,7 +422,7 @@ async function _appendAuditLog(envelope, verdict, applied, dispatchCfg) {
     confidence: verdict?.confidence ?? null,
     rationale_first120: (verdict?.rationale ?? "").slice(0, 120),
     applied,
-    latency_ms: verdict?.latency_ms ?? null,
+    latency_ordinal: verdict?.latency_ordinal ?? null,
   });
 
   // Append via a pass-through agent() call (skip marker prevents re-evaluation).
@@ -1161,7 +1161,14 @@ const voted = (
         const valid = verdicts.filter(Boolean);
         const refutedCount = valid.filter((v) => v.refuted).length;
         const abstained = voteCount - valid.length;
-        let survives = valid.length >= REFUTATIONS_REQUIRED && refutedCount < REFUTATIONS_REQUIRED;
+        // Quorum floor is capped at the actual per-claim vote fan-out (voteCount) so a
+        // source-quality tier configured with fewer votes than REFUTATIONS_REQUIRED
+        // (verify_policy is operator/classifier-set independently of knobs.refutations_required,
+        // with no cross-field validation) doesn't have every claim unconditionally killed —
+        // rcdr-verify-quorum-kills-low-vote-tier.
+        let survives =
+          valid.length >= Math.min(voteCount, REFUTATIONS_REQUIRED) &&
+          refutedCount < REFUTATIONS_REQUIRED;
 
         // Optional escalation: if any voter returned confidence:low, fire one
         // additional vote at verify_judgment tier (gap-delta C4 / A4).

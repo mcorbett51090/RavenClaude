@@ -1,6 +1,6 @@
 # Norns — Urðr / Verðandi / Skuld lineage view: tee-up
 
-> **Status:** TEE-UP (design, not started). Drafted 2026-05-30 after Heimdall (#142, v0.67.0) and Víðarr (#143, v0.68.0) established the substrate-reader pattern. The **third and last** of the event-substrate readers — it reads the scenario `events.jsonl` (P0.6) the way Heimdall read hook-events and Víðarr read posture-events. Reconciles build-plan §3.5 against current reality. Docs-only → commits to `main`, no PR.
+> **Status:** SHIPPED. Norns is a live dashboard tab + served endpoint (`plugins/ravenclaude-core/knowledge/concepts/norns.md`). This file is the 2026-05-30 tee-up that preceded the build — keep for provenance, do not re-implement. Stamped 2026-09-10.
 >
 > **Build only after #143 (Víðarr) merges** — Norns touches the same files (`generate-dashboards.py`, both `serve-dashboards.py`, `audit-gates.sh`, version), so building it before #143 lands would couple them or create conflicts.
 

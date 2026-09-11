@@ -133,13 +133,20 @@ for i in "${!RULE_NAMES[@]}"; do
           --exclude-dir=".git" \
           -e "$re" -- "${PATHS[@]}" 2>/dev/null || true)"
   [ -z "$raw" ] && continue
-  filtered="$(printf '%s\n' "$raw" | grep -Ev "$PLACEHOLDER_RE" || true)"
-  [ -z "$filtered" ] && continue
   while IFS= read -r line; do
     [ -z "$line" ] && continue
+    # Test PLACEHOLDER_RE against only the matched secret span, not the whole
+    # line. Filtering the whole line let a real secret pass undetected merely
+    # for sharing a line with an unrelated benign token (os.environ, an
+    # example.com URL, any $VAR reference) elsewhere on that line.
+    content="${line#*:*:}"
+    span="$(printf '%s\n' "$content" | grep -oE "$re" | head -n1)"
+    if [ -n "$span" ] && printf '%s\n' "$span" | grep -Eq "$PLACEHOLDER_RE"; then
+      continue
+    fi
     findings+="  [$name] ${line:0:200}"$'\n'
     count=$((count + 1))
-  done <<< "$filtered"
+  done <<< "$raw"
 done
 
 if [ "$count" -gt 0 ]; then

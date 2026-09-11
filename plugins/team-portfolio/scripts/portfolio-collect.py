@@ -188,7 +188,7 @@ def collect_repo(
                     "type": "commit",
                     "repo": repo,
                     "actor": actor,
-                    "title": (commit_info.get("message") or "").splitlines()[0][:140],
+                    "title": ((commit_info.get("message") or "").splitlines() or [""])[0][:140],
                     "url": c.get("html_url"),
                     "state": "committed",
                     "created_at": (commit_info.get("author") or {}).get("date"),

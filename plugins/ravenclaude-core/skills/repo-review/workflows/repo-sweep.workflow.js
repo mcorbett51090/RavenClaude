@@ -427,8 +427,13 @@ function resolveModels(count, argsModels) {
 // source_models, the verify agent's model should be a THIRD model tag
 // distinct from both, IF the caller's configured model list has 3+ entries;
 // otherwise use whichever configured model is NOT source_models[0].
-// `models` here is the run's EFFECTIVE configured model list (args.models
-// when the caller supplied one, else this workflow's own default pool) — a
+// Callers MUST pass `verifierPool` (the FULL effective configured model
+// list — args.models when the caller supplied one, else this workflow's own
+// 3-entry default pool), never the per-batch-dispatch-capped `models`
+// variable: `models` is deliberately sliced down to modelCount (<=2) for
+// per-batch dispatch cost control, so passing it here makes the
+// `pool.length >= 3` branch below structurally unreachable on every
+// unqualified run — see verifierPool's own definition comment. A
 // caller-supplied list under 3 entries correctly falls through to the
 // "not source_models[0]" branch below, exactly as the caller intended.
 function pickVerifier(models, sourceModels) {
@@ -513,7 +518,48 @@ if (EFFORT === "high") {
 }
 
 const modelCount = resolveModelCount(EFFORT, crossModelActive);
+
+// ─── args.models validation (shell-injection guard) ───────────────────────
+// Every accepted model entry ends up interpolated VERBATIM into
+// review_cache.py's --model flag inside reviewBatch()'s shell-command
+// instruction text (both the cache lookup at "review_cache.py lookup" and
+// the store step at "review_cache.py store") — the same
+// shell-interpolation boundary REPO_PATH/RUN_ID/ONLY_VALUE/SINCE_VALUE/
+// NEAR_DUP_POLICY are already guarded at above. DEFAULT_MODEL_POOL is a
+// hardcoded literal and needs no check; only a caller-supplied args.models
+// can carry an unsafe value. Real model identifiers are always alphanumeric
+// with "." "_" "-" (e.g. "claude-opus-4-8", "claude-haiku-4-5-20251001"), so
+// a tight allow-list refuses cleanly rather than silently stripping — same
+// discipline as SAFE_PATH_RE/SAFE_RUN_ID_RE/SAFE_PATHSPEC_RE.
+const SAFE_MODEL_RE = /^[A-Za-z0-9._-]+$/;
+if (args && Array.isArray(args.models)) {
+  for (const m of args.models) {
+    if (!isSafeShellArg(m, SAFE_MODEL_RE)) {
+      return {
+        error:
+          `repo-sweep refuses a model in args.models = ${JSON.stringify(args.models)} — ${JSON.stringify(m)} ` +
+          `contains characters not allowed in a shell-interpolated --model value (must match ${SAFE_MODEL_RE}). ` +
+          `This guards against command injection into the review_cache.py lookup/store instructions this ` +
+          `workflow issues (--model is interpolated verbatim into the dispatched Bash subagent's ` +
+          `instructions).`,
+      };
+    }
+  }
+}
+
 const models = resolveModels(modelCount, args && args.models);
+// The FULL effective model pool, uncapped by modelCount — used ONLY by
+// pickVerifier's third-model selection (see pickVerifier's own comment).
+// `models` above is deliberately capped to modelCount for per-batch
+// dispatch cost control; passing that capped array to pickVerifier instead
+// of this one made its third-model branch structurally unreachable on every
+// unqualified run (repo-sweep-third-model-verifier-dead). Already validated
+// above (same args.models source as `models`); DEFAULT_MODEL_POOL is a
+// hardcoded-safe literal.
+const verifierPool =
+  args && Array.isArray(args.models) && args.models.length
+    ? args.models.slice()
+    : DEFAULT_MODEL_POOL.slice();
 const activeDimensions = tierCfg.dims;
 
 const VERIFY_CAP =
@@ -625,8 +671,14 @@ log(
 const estimate = await agent(
   [
     `Run this exact command and capture its stdout JSON:`,
+    // NOTE: do NOT pass --agent-budget ${BUDGET_BATCHES} here. BUDGET_BATCHES is a
+    // batch count (repo_map.py --budget-batches, line 653); estimate_cost.py's
+    // --agent-budget is a *total agent-call* ceiling (defaults to 900). Passing the
+    // batch count made the best-effort cardinality log nonsensically pessimistic on
+    // every run (batches_affordable ~0). Omitting it lets the estimator use its own
+    // correct default ceiling.
     `python3 ${SCRIPTS_DIR}/estimate_cost.py --plan ${PLAN_PATH} --effort-tier ${EFFORT}` +
-      `${crossModelActive ? " --cross-model" : ""} --agent-budget ${BUDGET_BATCHES} ` +
+      `${crossModelActive ? " --cross-model" : ""} ` +
       `--verify-cap ${VERIFY_CAP} --fix-cap ${FIX_CAP}`,
     `Return ONLY structured output: {estimate_summary: "<one short line summarizing the cardinality estimate the tool reported>"}.`,
   ].join("\n"),
@@ -861,7 +913,7 @@ async function runVerifyPhase(mergeReceipt) {
       const sourceModels = Array.from(
         new Set(findings.flatMap((f) => (Array.isArray(f.source_models) ? f.source_models : []))),
       );
-      const verifierModel = pickVerifier(models, sourceModels);
+      const verifierModel = pickVerifier(verifierPool, sourceModels);
       const ids = findings.map((f) => f.id);
       return agent(
         [
@@ -1045,7 +1097,13 @@ while (iteration < MAX_ITERATIONS) {
 
   if (!mergeReceipt || !mergeReceipt.artifact) {
     return {
-      error: `Merge phase failed at iteration ${iteration} — findings_merge.py did not return a usable receipt.`,
+      error:
+        `Merge phase failed at iteration ${iteration} — findings_merge.py did not return a usable receipt. ` +
+        `This does NOT mean the review work was lost — every completed review agent already wrote its ` +
+        `shard to ${findingsDir}/ before this failure. Before re-dispatching, check that directory and, ` +
+        `if it has shards, run findings_merge.py over it BY HAND to recover them (uncapped, mark the ` +
+        `result unverified — no Verify pass ran on a hand-recovered merge). See SKILL.md § "Recovering ` +
+        `from a mid-run dispatch failure".`,
     };
   }
 

@@ -155,7 +155,11 @@ def build_income_statement(tb: list[dict], mapping: dict):
     trail = []
     ni_check = 0.0
     for r in tb:
-        mp = mapping[r["account"]]
+        mp = mapping.get(r["account"])
+        if mp is None:
+            # Unmapped account: lint_mapping already recorded this in errs (surfaced
+            # in a non-strict run's "warnings"); skip it here rather than KeyError.
+            continue
         if mp["statement"] != "IS":
             continue
         amt = _present(r, mp["section"])
@@ -212,7 +216,11 @@ def build_balance_sheet(tb: list[dict], mapping: dict, net_income: float):
     section_totals = dict.fromkeys(BS_SECTIONS, 0.0)
     trail = []
     for r in tb:
-        mp = mapping[r["account"]]
+        mp = mapping.get(r["account"])
+        if mp is None:
+            # Unmapped account: lint_mapping already recorded this in errs (surfaced
+            # in a non-strict run's "warnings"); skip it here rather than KeyError.
+            continue
         if mp["statement"] != "BS":
             continue
         amt = _present(r, mp["section"])

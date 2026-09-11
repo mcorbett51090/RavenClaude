@@ -49,7 +49,13 @@ function mapEventType(squareType: string, paymentStatus?: string): CommerceEvent
       return "unknown";
     case "refund.created":
     case "refund.updated":
-      return "payment.refunded";
+      // Square refund status lifecycle is PENDING -> COMPLETED|REJECTED|FAILED
+      // (developer.squareup.com/docs/refunds-api/overview). Only a COMPLETED
+      // refund is actually "payment.refunded" -- a pending/rejected/failed
+      // refund must not be reported as complete to callers keying side
+      // effects off event.type.
+      if (paymentStatus === "COMPLETED") return "payment.refunded";
+      return "unknown";
     case "order.created":
     case "order.updated":
       return "checkout.completed";
@@ -71,6 +77,7 @@ interface SquarePaymentObject {
 
 interface SquareRefundObject {
   payment_id?: string;
+  status?: string;
   amount_money?: { amount: number; currency: string };
 }
 
@@ -115,7 +122,7 @@ export async function verifyAndParseSquareWebhook(
 
   return {
     id: envelope.event_id,
-    type: mapEventType(envelope.type, payment?.status),
+    type: mapEventType(envelope.type, payment?.status ?? refund?.status),
     provider: "square",
     amount: payment?.amount_money ?? refund?.amount_money,
     reference: payment?.id ?? refund?.payment_id,

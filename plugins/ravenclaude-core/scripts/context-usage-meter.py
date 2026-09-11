@@ -457,11 +457,11 @@ def read_posture(root: Path) -> dict:
         rest = text[start.end() :]
         nxt = re.search(r"(?m)^[A-Za-z_]", rest)
         block = text[start.start() : start.end() + (nxt.start() if nxt else len(rest))]
-    mode_m = re.search(r"(?m)^[ \t]*#?[ \t]*mode[ \t]*:[ \t]*(off|nag|block)\b", block)
+    mode_m = re.search(r"(?m)^[ \t]*mode[ \t]*:[ \t]*(off|nag|block)\b", block)
     if mode_m:
         out["mode"] = mode_m.group(1)
     spawn_m = re.search(
-        r"(?m)^[ \t]*#?[ \t]*spawn[ \t]*:[ \t]*(copy-paste-only|os-terminal)\b", block
+        r"(?m)^[ \t]*spawn[ \t]*:[ \t]*(copy-paste-only|os-terminal)\b", block
     )
     if spawn_m:
         out["spawn"] = spawn_m.group(1)

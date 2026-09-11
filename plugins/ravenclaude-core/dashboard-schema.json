@@ -95,7 +95,8 @@
         "shell_package_install": "ask",
         "network_read": "allow",
         "network_write": "ask",
-        "mcp_tools": "ask"
+        "mcp_tools": "ask",
+        "subagent_dispatch": "allow"
       }
     },
     "deny": {
@@ -113,7 +114,8 @@
         "shell_package_install": "deny",
         "network_read": "deny",
         "network_write": "deny",
-        "mcp_tools": "deny"
+        "mcp_tools": "deny",
+        "subagent_dispatch": "deny"
       }
     },
     "ask": {
@@ -131,7 +133,8 @@
         "shell_package_install": "ask",
         "network_read": "ask",
         "network_write": "ask",
-        "mcp_tools": "ask"
+        "mcp_tools": "ask",
+        "subagent_dispatch": "ask"
       }
     },
     "allow": {
@@ -149,7 +152,8 @@
         "shell_package_install": "allow",
         "network_read": "allow",
         "network_write": "allow",
-        "mcp_tools": "allow"
+        "mcp_tools": "allow",
+        "subagent_dispatch": "allow"
       }
     }
   },
@@ -712,6 +716,35 @@
             "filesystem_mcp.read_file(...) — depends on what path it can see"
           ],
           "x-guidance": "MCP trust is best done server-by-server, not globally. Keep this on 'Ask' as a safety net and configure trusted servers individually in your Claude Code config. A blanket 'Allow' here means any MCP server you add automatically gets full autonomy — usually not what you want."
+        },
+        "subagent_dispatch": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/level"
+            },
+            {
+              "$ref": "#/$defs/category_overrides_object"
+            },
+            {
+              "$ref": "#/$defs/category_layer_object"
+            }
+          ],
+          "default": "allow",
+          "title": "Subagent dispatch",
+          "description": "Spawning a subagent or Task (the Agent tool). Bare Agent matches every dispatch.",
+          "x-widget": "segmented",
+          "x-group": "Other",
+          "x-recommended": "allow",
+          "x-rec-individual": "Allow — /code-review and multi-agent skills fan out 5–15 subagents; prompting on each one is wall-clock pain, not a security win.",
+          "x-rec-team": "Allow — same as solo; the security_deny floor still blocks the worst Bash patterns inside a subagent.",
+          "x-controls": "Whether Claude can spawn a subagent (Agent / Task) without asking. deny disables ALL subagents. Per-agent overrides use Agent(SubagentName).",
+          "x-examples": [
+            "Agent (any specialist)",
+            "Agent(code-reviewer)",
+            "A /code-review xhigh fan-out of 9 finders",
+            "Task tool dispatch from the orchestrator"
+          ],
+          "x-guidance": "'Allow' is the recommended starting point — without it, every subagent prompts even when every other category is already allow. Tighten to 'Ask' only if you want to approve each spawn; 'Deny' turns off subagents entirely."
         }
       },
       "additionalProperties": false

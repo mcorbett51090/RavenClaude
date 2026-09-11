@@ -2480,7 +2480,12 @@ if command -v npx >/dev/null 2>&1; then
   rc=0; npx --yes prettier@3.9.4 --check .claude-plugin/marketplace.json --log-level error >/dev/null 2>&1 || rc=$?
   gate "prettier-check (intentional bad format)" must_fail "$rc"
   cp -p "$TMP/.claude-plugin_marketplace.json.bak" .claude-plugin/marketplace.json
-  rc=0; npx --yes prettier@3.9.4 --check . --log-level error >/dev/null 2>&1 || rc=$?
+  rc=0
+  _g9_out="$(npx --yes prettier@3.9.4 --check . --log-level warn 2>&1)" || rc=$?
+  if [[ "$rc" -ne 0 ]]; then
+    printf '%s\n' "$_g9_out"
+    git status --porcelain | head -50 || true
+  fi
   gate "prettier-check (tree clean)" must_pass "$rc"
 else
   _skip_or_fail "Gate 9 (prettier)" npx
@@ -4198,6 +4203,9 @@ gate "autosetup: balanced seed emits allow rules" must_pass "$rc"
 # ...and carries the security floor into deny.
 rc=0; jq -e '.permissions.deny | index("Bash(rm -rf:*)")' "$G26/.claude/settings.json" >/dev/null 2>&1 || rc=1
 gate "autosetup: balanced seed carries security floor" must_pass "$rc"
+# 13th category: balanced seed must emit bare Agent (subagent_dispatch: allow).
+rc=0; jq -e '.permissions.allow | index("Agent")' "$G26/.claude/settings.json" >/dev/null 2>&1 || rc=1
+gate "autosetup: balanced seed emits Agent for subagent_dispatch" must_pass "$rc"
 # fail-on-bad: a corrupted seed (invalid level) must be REJECTED, not silently applied.
 G26B="$TMP/g26bad"; mkdir -p "$G26B/.ravenclaude"
 sed 's/project: allow/project: boguslevel/' "$G26SEED" > "$G26B/.ravenclaude/comfort-posture.yaml"
@@ -9581,7 +9589,17 @@ rc=0
 rc_mustfail python3 scripts/check-inception-coverage.py >/dev/null 2>&1 || rc=$?
 gate "inception gate bites on an uncovered artifact and on a planted paths: filter" must_pass "$rc"
 rc=0
-python3 scripts/check-ratchet-freshness.py --check >/dev/null 2>&1 || rc=$?
+# ⛔ Output is captured (not discarded) and printed ONLY on failure. This gate
+# has flaked intermittently in real CI in a way no local reproduction could
+# explain (PR #1146, 2026-09-09) — every prior diagnosis was blind because
+# evaluate()'s own printed lines (the resolved SHA, the `how` it got there, the
+# stamped-vs-actual mismatch) went straight to /dev/null. A future occurrence
+# should never need another throwaway diagnostic commit to see what actually
+# happened.
+_g242_out="$(python3 scripts/check-ratchet-freshness.py --check 2>&1)" || rc=$?
+if [[ "$rc" -ne 0 ]]; then
+  echo "$_g242_out"
+fi
 gate "every ratchet value is bound to this PR actual merge base" must_pass "$rc"
 rc=0
 rc_mustfail python3 scripts/check-ratchet-freshness.py >/dev/null 2>&1 || rc=$?

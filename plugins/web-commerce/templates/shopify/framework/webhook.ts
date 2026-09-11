@@ -62,6 +62,46 @@ interface ShopifyWebhookPayload {
 }
 
 /**
+ * ISO-4217 minor-unit exponent exceptions. Most currencies use 2 decimal
+ * places (the implicit default below), but a `total_price` string's decimal
+ * placement is currency-defined, not universal — 0-decimal currencies (e.g.
+ * JPY: "1000" = 1000 yen, not 10 yen) and 3-decimal currencies (e.g. KWD:
+ * "1.500" = 1.5 dinar) would otherwise be off by 100x/10x when normalized to
+ * minor units. List per ISO 4217 / Shopify's supported currencies.
+ */
+const CURRENCY_MINOR_UNIT_EXPONENT: Record<string, number> = {
+  BIF: 0,
+  CLP: 0,
+  DJF: 0,
+  GNF: 0,
+  ISK: 0,
+  JPY: 0,
+  KMF: 0,
+  KRW: 0,
+  MGA: 0,
+  PYG: 0,
+  RWF: 0,
+  UGX: 0,
+  VND: 0,
+  VUV: 0,
+  XAF: 0,
+  XOF: 0,
+  XPF: 0,
+  BHD: 3,
+  IQD: 3,
+  JOD: 3,
+  KWD: 3,
+  LYD: 3,
+  OMR: 3,
+  TND: 3,
+};
+
+function toMinorUnits(majorUnitsStr: string, currency: string): number {
+  const exponent = CURRENCY_MINOR_UNIT_EXPONENT[currency.toUpperCase()] ?? 2;
+  return Math.round(Number(majorUnitsStr) * 10 ** exponent);
+}
+
+/**
  * Normalize an ALREADY-VERIFIED Shopify webhook body into the shared
  * CommerceEvent shape. The dedup key is the `X-Shopify-Webhook-Id` header —
  * a unique id per delivery attempt sent on every Shopify webhook (confirmed
@@ -88,7 +128,7 @@ export function normalizeShopifyEvent(
     amount:
       payload.total_price && payload.currency
         ? {
-            amount: Math.round(Number(payload.total_price) * 100),
+            amount: toMinorUnits(payload.total_price, payload.currency),
             currency: payload.currency.toUpperCase(),
           }
         : undefined,

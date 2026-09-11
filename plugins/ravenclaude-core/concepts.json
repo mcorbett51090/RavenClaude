@@ -2739,7 +2739,7 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-09-04",
+      "last_verified": "2026-09-10",
       "refresh_when": null,
       "sources": [
         {
@@ -2804,7 +2804,7 @@
         "plugins/ravenclaude-core/hooks/triage-outcome.sh",
         "plugins/ravenclaude-core/hooks/worktree-guard.sh"
       ],
-      "covers_digest": "sha256:067d87cdff4615866bb7e7be7fbbb6108b09cdbfdfb8764f00ae891fbeb24eae",
+      "covers_digest": "sha256:37d9bbdea33461c97e2205e05f6cddcae85875f8ca3346cf2931200fff81bc17",
       "nuance": "A hook writing to stderr at `exit 0` reaches the model on no event; only `hookSpecificOutput.additionalContext` and `updatedToolOutput` are delivered, so `_advise.sh` advised the terminal for its entire service life.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -2833,7 +2833,7 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-09-03",
+      "last_verified": "2026-09-10",
       "refresh_when": null,
       "sources": [
         {
@@ -2851,7 +2851,7 @@
       "covers": [
         "plugins/ravenclaude-core/hooks/hooks.json"
       ],
-      "covers_digest": "sha256:610d06e6d3c2ba7716bb5220b49e0baa46dd4ba6639e2376124444655dc585ad",
+      "covers_digest": "sha256:35be3db33a841a3b1bdeff9a40913309d4c7b3339ff629c44de863ed5a9b137a",
       "nuance": "Two `additionalContext` emitters on one event concatenate rather than last-write-wins, but two `updatedToolOutput` emitters replace, so the second silently discards the first.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -2877,7 +2877,7 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-08-26",
+      "last_verified": "2026-09-10",
       "refresh_when": null,
       "sources": [
         {
@@ -2899,7 +2899,7 @@
         "plugins/ravenclaude-core/scripts/route-task.py",
         "plugins/ravenclaude-core/skills/cheap-lane-delegation/SKILL.md"
       ],
-      "covers_digest": "sha256:09226b7c267fd24f258bbb3775ea10ccec769005632b24d4d2db2961b0cdc7b5",
+      "covers_digest": "sha256:65094d9a712d8b36dfd48a4839fbf513473e58fe2aa85b136f9f97364296e5f5",
       "nuance": "Copilot CLI's `--model auto` rejects `--effort` outright at runtime — a real error, not a doc gap — so the Copilot lane differentiates by timeout budget only unless a caller pins an effort-capable model.",
       "nuance_evidence": {
         "measured": "2026-08-26",
@@ -2925,7 +2925,7 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-09-09",
+      "last_verified": "2026-09-10",
       "refresh_when": null,
       "sources": [
         {
@@ -2945,7 +2945,7 @@
         "scripts/sync-plugin-versions.py",
         "scripts/generate-copilot-plugin.py"
       ],
-      "covers_digest": "sha256:2b63f634c0c92da8bff931328ed8c332c56af4c67bbbd38137c47527ca23a5ee",
+      "covers_digest": "sha256:a3754e293eb66c2d543eefa986168af70f52c81e58b9e8c3fd0f011c66d7a134",
       "nuance": "The cache key is the `version` string, never a content hash, so `sync-plugin-versions.py` can report clean while every installed session keeps running the old `hooks/` code.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -2974,7 +2974,7 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-09-09",
+      "last_verified": "2026-09-10",
       "refresh_when": null,
       "sources": [
         {
@@ -3007,7 +3007,7 @@
         "scripts/inventory-nuance-judge.py",
         "plugins/ravenclaude-core/scripts/forge-receipt.py"
       ],
-      "covers_digest": "sha256:ec8839f0caff180f3c5af996ebab005cb1f5cc2f900de9342d2e0f3df1d02b6a",
+      "covers_digest": "sha256:a8b08d40399302e21e1a4478dee5ecb53f910a23cda347a20d769728039be381",
       "nuance": "The teeth bit is the exit a tool own CHECK returns on a planted defect, never the exit `--must-fail` itself returns: `premise-gate.py` denies at `exit 0` while `sync-plugin-versions.py` reddens at `exit 2`, so an auditor that hard-codes one number can never be right for both.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -3344,7 +3344,7 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-09-09",
+      "last_verified": "2026-09-10",
       "refresh_when": null,
       "sources": [
         {
@@ -3364,7 +3364,7 @@
         "scripts/inventory-sweep.py",
         "scripts/inventory-coverage.py"
       ],
-      "covers_digest": "sha256:0472a22d220420105f53ef45fc2c9bed3be11425290408a2d12ea83e2cf0a938",
+      "covers_digest": "sha256:14795d9b8973f986d1d810394054b53ebbf5a268272ef961e60bab4b0bac1796",
       "nuance": "`inventory-census.py` reads `git ls-files`, never a filesystem walk, so an untracked file cannot move the denominator; a `concepts.json`-derived count would shrink with the enumeration and stay green.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -3393,7 +3393,7 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-09-03",
+      "last_verified": "2026-09-10",
       "refresh_when": null,
       "sources": [
         {
@@ -3414,7 +3414,7 @@
         "scripts/generate-dashboards.py",
         "scripts/generate-index-dashboard.py"
       ],
-      "covers_digest": "sha256:ef98055fb5b9fb341c31d4da2fa323083c7785bf817f463971398311f9cc514a",
+      "covers_digest": "sha256:d3094e382b060b63ab90f2e3dc6e013fc0e91ca833d875f0481d577ef3ac4011",
       "nuance": "`ISLANDED_PANEL_COST` is a flat 2 because the parser reads the payload as CDATA, so `check-dom-budget.py` cannot fire on `learn-payload` no matter how far past 23,861 elements it grows.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -3443,7 +3443,7 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-09-09",
+      "last_verified": "2026-09-10",
       "refresh_when": null,
       "sources": [
         {
@@ -3462,7 +3462,7 @@
         "scripts/inventory-sweep.py",
         "scripts/audit-prose-rendering-path.py"
       ],
-      "covers_digest": "sha256:bcedc980cc62658c397da6c8d95dc34b0fed863d32d9d0f17e7968205ae285c4",
+      "covers_digest": "sha256:ba11a161a628ac56edf2a52b9a6dc6a451df7b279b91be0a32c4de43d9687b07",
       "nuance": "A script that never calls `argparse` simply runs, so asking 183 of them for `--must-fail-convention` wrote `forge-route.py` to a stray file rather than answering.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -3545,7 +3545,7 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-08-25",
+      "last_verified": "2026-09-10",
       "refresh_when": null,
       "sources": [
         {
@@ -3565,7 +3565,7 @@
         "plugins/ravenclaude-core/scripts/stall_reach.py",
         "plugins/ravenclaude-core/scripts/install_stall_watch.py"
       ],
-      "covers_digest": "sha256:27c8c843ca339164f5e5494c58d61a22db30023976de0671ab84c544f76e3bb0",
+      "covers_digest": "sha256:2ee1f44b111b6d2cd45518a64a291fdfa346ad88c8bd4fb9143153bd28233a12",
       "nuance": "The observable must be the last *assistant* record, not the last record of any type: a human typing into a suspected stall, and a product-generated `system/away_summary`, both reset a last-any clock without any progress having occurred.",
       "nuance_evidence": {
         "measured": "2026-08-25",
@@ -3837,7 +3837,7 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-09-02",
+      "last_verified": "2026-09-10",
       "refresh_when": null,
       "sources": [
         {
@@ -3863,7 +3863,7 @@
         "plugins/ravenclaude-core/skills/repo-review/scripts/estimate_cost.py",
         "plugins/ravenclaude-core/skills/repo-review/workflows/repo-sweep.workflow.js"
       ],
-      "covers_digest": "sha256:e4df5aecfc4e3631010b920b1814ed468e336b737694b5227474d1729bf2c97a",
+      "covers_digest": "sha256:a444dc81a214a9d8e2b46c7b5a279ca7153f1bb28a43782ed9f57f9f0d1926ba",
       "nuance": "A dedup key built from each finding's own title tokens misses two models describing one bug in different words at the same line -- keys differ, so exact-key merge misses it. The near-dup fallback's bucket-diff bound was `== 1` (adjacent only), excluding 0 (the identical line) -- the single most common real shape cross-model review exists to catch.",
       "nuance_evidence": {
         "measured": "2026-09-02",
@@ -3883,16 +3883,16 @@
     },
     {
       "id": "caveman-auto-routing-packaging",
-      "title": "Caveman auto-routing: SHADOW-only, and the scripts/ packaging exception",
+      "title": "Caveman auto-routing: scripts/ packaging exception, live-apply since P7",
       "category": "Inventory — measured mechanisms",
       "kind": "ravenclaude-built",
       "order": 919,
-      "summary": "The caveman auto-routing hook decides and records but never calls the mode applier this phase, and ships from scripts/ because a new hooks/*.sh chmod is denied.",
+      "summary": "The caveman auto-routing hook ships from scripts/ because a new hooks/*.sh chmod is denied. Since P7, live posture calls the mode applier (on→lite, off→off); shadow still never applies.",
       "see_also": [],
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-09-03",
+      "last_verified": "2026-09-10",
       "refresh_when": null,
       "sources": [
         {
@@ -3900,7 +3900,7 @@
           "url": "https://github.com/mcorbett51090/RavenClaude/pull/1095"
         }
       ],
-      "body_md": "## What a reader would have assumed instead\n\nThat a new SessionStart/UserPromptSubmit hook body would live in `hooks/`, like every other hook in\nthis plugin, and that turning the posture knob to `live` would make the routing decision actually take\neffect immediately.\n\n## The discriminator\n\ncontrol: ask-on-ambiguity.sh (also in scripts/, registered via the identical bash-prefixed escape)\nalready proves the substrate guard denies a NEW hooks/*.sh chmod but not a scripts/*.sh one -- the same\nescape pattern, reused rather than re-argued from scratch\nMeasured 2026-09-03: caveman-route-hook.sh ships from scripts/, not hooks/ -- a NEW hooks/*.sh file\nneeds a chmod the tribunal's own substrate guard denies, the same reason ask-on-ambiguity.sh lives\nthere too. Even when the posture is live, this phase's hook only decides and records: it never calls\nthe applier.\n\n## Why it matters\n\nFalsifier: a git history showing hooks/caveman-route-hook.sh ever existed in this repo with its\nexecutable bit successfully set.\n\nProbe: `plugins/ravenclaude-core/hooks/tests/test-gate264-caveman-routing.sh`",
+      "body_md": "## What a reader would have assumed instead\n\nThat a new SessionStart/UserPromptSubmit hook body would live in `hooks/`, like every other hook in\nthis plugin, and (before P7) that turning the posture knob to `live` would still only decide and\nrecord.\n\n## The discriminator\n\ncontrol: ask-on-ambiguity.sh (also in scripts/, registered via the identical bash-prefixed escape)\nalready proves the substrate guard denies a NEW hooks/*.sh chmod but not a scripts/*.sh one -- the same\nescape pattern, reused rather than re-argued from scratch\nMeasured 2026-09-10: caveman-route-hook.sh still ships from scripts/, not hooks/. P7 wires\nlive-apply in caveman-route-engine.py: classifier on→lite, off→off, hold never applies,\nshadow never calls the applier. Default remains absent/off. Owner overrode the uncleared\nP5 soak gates; this is not a claim that soak passed.\n\n## Why it matters\n\nFalsifier: a git history showing hooks/caveman-route-hook.sh ever existed in this repo with its\nexecutable bit successfully set.\n\nProbe: `plugins/ravenclaude-core/hooks/tests/test-gate264-caveman-routing.sh`",
       "diagram": null,
       "diagram_mini": null,
       "steps": [],
@@ -3913,10 +3913,10 @@
         "plugins/ravenclaude-core/scripts/caveman-route-hook.sh",
         "plugins/ravenclaude-core/scripts/caveman-route-engine.py"
       ],
-      "covers_digest": "sha256:7d29faaf1d3ad717aa39ba0c59d6549977ec26ca3d4d31eafbe1aa467aa7db13",
-      "nuance": "caveman-route-hook.sh ships from scripts/, not hooks/ -- a NEW hooks/*.sh file needs a chmod\nthe tribunal's own substrate guard denies, the same reason ask-on-ambiguity.sh lives there too.\nEven when the posture is live, this phase's hook only decides and records: it never calls the\napplier.",
+      "covers_digest": "sha256:e747cee327d3497794420abc9c1ce997eefd78df5ab43f66f216840bf368eb98",
+      "nuance": "caveman-route-hook.sh ships from scripts/, not hooks/ -- a NEW hooks/*.sh chmod is denied,\nsame reason ask-on-ambiguity.sh lives there. P7 live calls the applier (on→lite, off→off);\nshadow still records only. Absent/off is the default and writes nothing.",
       "nuance_evidence": {
-        "measured": "2026-09-03",
+        "measured": "2026-09-10",
         "control": "ask-on-ambiguity.sh (also in scripts/, registered via the identical bash-prefixed escape) already proves the substrate guard denies a NEW hooks/*.sh chmod but not a scripts/*.sh one -- the same escape pattern, reused rather than re-argued from scratch",
         "falsifier": "a git history showing hooks/caveman-route-hook.sh ever existed in this repo with its executable bit successfully set",
         "probe": "plugins/ravenclaude-core/hooks/tests/test-gate264-caveman-routing.sh"
@@ -4129,7 +4129,7 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-09-03",
+      "last_verified": "2026-09-10",
       "refresh_when": null,
       "sources": [
         {
@@ -4155,7 +4155,7 @@
         "plugins/ravenclaude-core/skills/prompt-optimizer/SKILL.md",
         "plugins/ravenclaude-core/skills/prompt-optimizer/eval/golden-set.jsonl"
       ],
-      "covers_digest": "sha256:a25d49b45fd4be8b2b7492f50df5da0891c969b1311d403e7bb68d8caa210a34",
+      "covers_digest": "sha256:0cd423848dc86d2a1f3e83a031c27d8d7190a7922b4f3ca69842481db2ba9a66",
       "nuance": "A whitelist-based zero-anchor skip rule can be adversarially rephrased indefinitely — closing every demonstrated instance never closes the underlying gap, because the gap is a property of matching sentence shape, not meaning.",
       "nuance_evidence": {
         "measured": "2026-09-03",
@@ -4200,7 +4200,7 @@
         "scripts/generate-skill-index.py",
         "plugins/ravenclaude-core/skills/skill-index/SKILL.md"
       ],
-      "covers_digest": "sha256:19cec9c7dc5850d05580c0cec5175da60d293d0411ecca993b86bd7e62a9d68a",
+      "covers_digest": "sha256:b51db94a7f4caf59e998461d888f35f5664ec538c7a535ea3f6ba94a3ae0aaf6",
       "nuance": "The generator discovers skills by globbing plugins/*/skills/*/SKILL.md, and its own output file matches that glob. On a fresh repo the first write cannot see itself (the file does not exist yet), so it writes N entries; running it again now finds N+1 (itself included) and writes THAT count -- a fixed point reached on the second pass, never the first.",
       "nuance_evidence": {
         "measured": "2026-09-08",
@@ -4258,6 +4258,101 @@
       "verify": {
         "tier": "none",
         "rationale": "The failure mode is a real, reproduced crash (a genuine forge/prompt-optimizer merge into origin/main triggered it live via a newly-added hooks.json entry with no Gemini skip-map coverage), but the fix that would close this nuance permanently — per-host exception isolation inside hooks-selftest.py itself — is a design change to a file this entry's author did not write and has not modified; staging a CI check for it here would assert a fix that was not made."
+      },
+      "strength_badge": "Unverified"
+    },
+    {
+      "id": "ledger-global-flags-precede-subcommand",
+      "title": "--actor and --repo-root go before the verb, not after",
+      "category": "Inventory — measured mechanisms",
+      "kind": "ravenclaude-built",
+      "order": 933,
+      "summary": "rc ledger's --repo-root/--actor are top-level argparse flags; placing them after the subcommand fails outright with 'unrecognized arguments' — verified live while building source-control-coordinator.",
+      "see_also": [],
+      "widget": null,
+      "try_it": null,
+      "node_links": {},
+      "last_verified": "2026-09-09",
+      "refresh_when": null,
+      "sources": [
+        {
+          "label": "source-control-coordinator build (PR #1146), live CLI verification against a scratch ledger, 2026-09-09",
+          "url": "https://github.com/mcorbett51090/RavenClaude/pull/1146"
+        }
+      ],
+      "body_md": "# --actor and --repo-root go before the verb, not after\n\n`rc ledger`'s exact CLI surface was documented and cited many times before this build (Citation #5 in\nthe build plan, this repo's own `agents/architect.md`-shaped precedent authoring), but no prior citation\nhad actually driven the CLI end-to-end with `--actor` present. The build plan's own §4.4 ledger usage\ntable — the exact invocations `source-control-coordinator.md` and `coordinate.md` both cite for claiming\nand releasing a handoff item — placed `--actor coordinator` *after* `append`, on every single row.\n\n## Why it silently looked right\n\n`--repo-root`/`--actor` are genuinely real, documented flags on `ledger.py`'s parser. Nothing about the\nflag names, their defaults, or their presence in `--help` output signals that position matters. The\nfailure only surfaces the moment the exact invocation is run:\n\n```\n$ rc ledger --repo-root <dir> append --type state --item <id> --set state=in_progress --actor coordinator\nledger.py: error: unrecognized arguments: --actor coordinator\n```\n\nargparse's subparser model treats each subcommand (`init`, `open`, `append`, `project`, ...) as its own\nindependent parser. A flag added to the *parent* parser before `add_subparsers()` is only visible\n*before* the subcommand token on the command line — a subparser has to explicitly re-declare a flag to\nalso accept it after its own name, and `append`'s subparser (`p_append`) never does.\n\n## The fix, and why it generalizes\n\nMove both global flags between `--repo-root` and the subcommand:\n\n```\nrc ledger --repo-root <primary> --actor coordinator append --type state --item <id> --set state=in_progress\n```\n\nVerified live: this form succeeds (exit 0), and `machine.actor` in the written JSONL event correctly\ncarries `\"coordinator\"`. Every citation in `coordinator-ledger-convention.md` and both new agent/command\nfiles now places `--actor` in this position — this concept exists so the *next* mechanism that shells\nout to `rc ledger` (or documents doing so) doesn't silently re-introduce the same defect, since nothing\nabout reading the flag's own `--help` text reveals the ordering constraint.\n\n## The companion exit-code correction\n\nThe same build plan claimed a freshly-initialized ledger returns exit 2 (UNKNOWN) \"by design.\" Verified\nlive: `rc ledger init` always appends a `ledger_init` event as part of initialization (`cmd_init`,\n`ledger.py`), so a fresh ledger has `parsed_records: 1`, not 0 — `cmd_project`'s exit-2 branch fires only\non `parsed_records == 0`, which `rc ledger init` never produces. The true fresh-ledger state is exit 0\n(PASS, 0 open items). A *literal* zero-event ledger (no init marker at all — e.g. a hand-created empty\n`.jsonl`) is the actual exit-2 case, and it is not a state `rc ledger init` ever leaves behind.",
+      "diagram": null,
+      "diagram_mini": null,
+      "steps": [],
+      "svg": null,
+      "svg_mini": null,
+      "entry_class": "inventory",
+      "covers": [
+        "plugins/ravenclaude-core/agents/source-control-coordinator.md",
+        "plugins/ravenclaude-core/commands/coordinate.md",
+        "plugins/ravenclaude-core/knowledge/coordinator-ledger-convention.md",
+        "plugins/ravenclaude-core/scripts/ledger.py"
+      ],
+      "covers_digest": "sha256:4d1b160d5263ed4c21cbb9d391bb057b00346554beebacbcdc2ea6ce9b12d472",
+      "nuance": "--repo-root/--actor are ledger.py's TOP-LEVEL parser flags, added before add_subparsers(); a build plan citing them AFTER `append` fails with 'unrecognized arguments', verified live. A companion claim (fresh ledger = exit 2/UNKNOWN) was also wrong: cmd_init always appends a ledger_init event, so the true fresh state is exit 0/PASS.",
+      "nuance_evidence": {
+        "measured": "2026-09-09",
+        "control": "rc ledger --repo-root <dir> append --type state --item <id> --set state=in_progress --actor coordinator -> 'ledger.py: error: unrecognized arguments: --actor coordinator'; the same call with --actor moved between --repo-root and append succeeds (exit 0, machine.actor lands correctly in the written event)",
+        "falsifier": "a ledger.py release that adds --actor to the append subparser directly, making both orders valid",
+        "probe": "plugins/ravenclaude-core/scripts/ledger.py"
+      },
+      "nuance_source": "plugins/ravenclaude-core/scripts/ledger.py:1896-1922 (parser.add_argument('--repo-root', ...) / parser.add_argument('--actor', ...) both precede sub = parser.add_subparsers(); p_append never re-adds --actor)",
+      "verify": {
+        "tier": "reachability",
+        "strength": "static",
+        "class": "static-resolution",
+        "probe": "plugins/ravenclaude-core/scripts/ledger.py",
+        "teeth_exit": 2
+      },
+      "strength_badge": "Findable"
+    },
+    {
+      "id": "routine-review-tribunal-reuses-thing-config",
+      "title": "The routine-review tribunal borrows its panel, not just its shape",
+      "category": "Inventory — measured mechanisms",
+      "kind": "ravenclaude-built",
+      "order": 934,
+      "summary": "routine-review-tribunal.py imports thing-decision.py and calls its resolve_panel_config directly, so the model-diversity guarantee is inherited, not re-implemented.",
+      "see_also": [],
+      "widget": null,
+      "try_it": null,
+      "node_links": {},
+      "last_verified": "2026-09-11",
+      "refresh_when": null,
+      "sources": [
+        {
+          "label": "written + verified this session, alongside the routine-review-tribunal build",
+          "url": "https://github.com/mcorbett51090/RavenClaude/pull/1161"
+        }
+      ],
+      "body_md": "## What a reader would have assumed instead\n\nThat a new tribunal-shaped script would need its own model/agent config — either a duplicated seat table or a fresh entry in `.ravenclaude/thing.yaml` — since it reviews a different payload (a diff, not a command or a question) from the Thing or decision-review.\n\n## The discriminator\n\ncontrol: ran `routine-review-tribunal.py --root . panels`; the returned seat->model mapping matched thing-decision's own built-in defaults for the same seat names, not a separately hardcoded pair.\n\nMeasured 2026-09-11: `resolve_panels()` loads `thing-decision.py` via `importlib.util.spec_from_file_location` and calls `resolve_panel_config(root, posture)` on it directly — the exact function the live command-review tribunal and decision-review already use. There is no second, parallel model table to keep in sync.\n\n## Why it matters\n\nIf `.ravenclaude/comfort-posture.yaml` or `.ravenclaude/thing.yaml` ever repoints a seat to a different model (e.g. to raise Forseti's reasoning effort), the routine-review tribunal picks that up automatically on its next `panels` call — the same way the Thing and decision-review would. A script that had instead hardcoded `\"agent\": \"security-reviewer\", \"model\": \"claude-opus-4-8\"` would silently keep reviewing routine diffs with a stale seat long after the rest of the marketplace moved on.\n\nFalsifier: a future edit to `routine-review-tribunal.py` that hardcodes a seat's model/agent instead of calling `resolve_panel_config`.",
+      "diagram": null,
+      "diagram_mini": null,
+      "steps": [],
+      "svg": null,
+      "svg_mini": null,
+      "entry_class": "inventory",
+      "covers": [
+        "plugins/ravenclaude-core/scripts/routine-review-tribunal.py",
+        "plugins/ravenclaude-core/skills/routine-review-tribunal/SKILL.md"
+      ],
+      "covers_digest": "sha256:2a6e5eaa8d006dcfc6addce838c694516ee23dfca2a8e02be1924ca72b38afb6",
+      "nuance": "resolve_panels() does an importlib load of thing-decision.py and calls its resolve_panel_config — it is not a hand-copied seat/model table, so the Thing's >=2-distinct-model diversity rule applies here for free and cannot silently drift from it.",
+      "nuance_evidence": {
+        "measured": "2026-09-11",
+        "control": "ran `routine-review-tribunal.py --root . panels`; the returned seat->model mapping (Mimir: a code-reviewer-shaped seat, Forseti/Thor: security-reviewer/architect-shaped) matched the built-in defaults thing-decision.resolve_panel_config resolves for those same seat names, not a separately hardcoded pair",
+        "falsifier": "a future edit that hardcodes a model/agent string in routine-review-tribunal.py instead of calling resolve_panel_config would let the two panels drift apart with no test catching it",
+        "probe": "plugins/ravenclaude-core/scripts/routine-review-tribunal.py"
+      },
+      "nuance_source": "plugins/ravenclaude-core/scripts/routine-review-tribunal.py:106-150",
+      "verify": {
+        "tier": "none",
+        "rationale": "The reuse is a 5-line source fact (one module importing another's function) already read in the panels subcommand's own output; the --self-test suite covers the deterministic tally() logic downstream of resolution, not this import fact, and a dedicated static-AST check would be redundant with reading resolve_panels() directly."
       },
       "strength_badge": "Unverified"
     }
