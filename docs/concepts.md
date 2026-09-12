@@ -2680,7 +2680,7 @@ event where its predicate exists, not to widen it until the lexical form passed.
 Probe: `replay-outcome-rules.py --rule R-1 --sample 40`, then read whether the
 predicate names anything the command has not done yet.
 
-**Sources:** [measured in the verify-before-assert Phase 1 corpus run](https://github.com/mcorbett51090/RavenClaude/blob/main/docs/plans/2026-08-19-verify-before-assert/plan.md)
+**Sources:** [measured in the verify-before-assert Phase 1 corpus run](https://github.com/mcorbett51090/RavenClaude/blob/main/docs/plans/archive/2026-08-19-verify-before-assert/plan.md)
 
 _Last verified: 2026-08-25_
 

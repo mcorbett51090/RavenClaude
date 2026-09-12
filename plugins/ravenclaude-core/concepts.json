@@ -2945,7 +2945,7 @@
         "scripts/sync-plugin-versions.py",
         "scripts/generate-copilot-plugin.py"
       ],
-      "covers_digest": "sha256:a3754e293eb66c2d543eefa986168af70f52c81e58b9e8c3fd0f011c66d7a134",
+      "covers_digest": "sha256:d194bcb6b88eefa838ad1b0551a267d994569b2585b606feeb190dc83b3fc134",
       "nuance": "The cache key is the `version` string, never a content hash, so `sync-plugin-versions.py` can report clean while every installed session keeps running the old `hooks/` code.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -3170,7 +3170,7 @@
         "plugins/ravenclaude-core/hooks/guard-premise.sh",
         "docs/best-practices/inventory-authoring.md"
       ],
-      "covers_digest": "sha256:6b01896d5c0b15f882f84c043ac2cab782d3d5869812c39f699817e902ce94f8",
+      "covers_digest": "sha256:19787a292e13abf9e6a530e59c65fabb19480d9eeb34ed5790eb0ec690c3012f",
       "nuance": "The `os.path.exists` early-exit gates T-SHAPE only, so `guard-premise.sh` screens an `Edit` too; a re-stamp escapes because `new_string` carries no defect predicate, not because edits are exempt.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -3496,7 +3496,7 @@
       "sources": [
         {
           "label": "measured in the verify-before-assert Phase 1 corpus run",
-          "url": "https://github.com/mcorbett51090/RavenClaude/blob/main/docs/plans/2026-08-19-verify-before-assert/plan.md"
+          "url": "https://github.com/mcorbett51090/RavenClaude/blob/main/docs/plans/archive/2026-08-19-verify-before-assert/plan.md"
         }
       ],
       "body_md": "## What a reader would have assumed instead\n\nThat a pre-flight rule and a post-failure rule are the same rule pointed at a\ndifferent moment, so a candidate measured on recorded outcomes can simply be\nmoved to `PreToolUse` once it clears its ceiling.\n\n## The discriminator\n\ncontrol: the same candidate measured two ways over one 34,014-command corpus —\nwith `stdout_empty` in the predicate it fires 487 times (1.43%), and with that\nfield removed it fires 2,816 times (8.28%). One corpus, one rule, two numbers:\nthe difference is the field, not the sample.\n\nA `PreToolUse` hook runs **before** the command. Any predicate naming the result\n— empty stdout, a non-zero exit, a truncated count — is unevaluable there. A\nrule written that way does not become noisy at pre-flight; it becomes a\n*different rule*, and the offline number that justified it was never a\nmeasurement of the thing that would ship.\n\n## Why it matters\n\nThe offline harness will happily report a passing fire rate for a rule that\ncannot exist. Both candidates cleared their ceilings on paper. Shipping either\nwould have put a rule into the pre-flight path whose measured justification\nbelonged to a predicate the hook could never evaluate — a green number attached\nto the wrong mechanism.\n\nThe hazard itself was real in both cases and is not lost: it is delivered\npost-hoc by `triage-outcome.sh`, which ranks the matching taxonomy members first\nat the moment the result IS known. The correction was to move the rule to the\nevent where its predicate exists, not to widen it until the lexical form passed.\n\nProbe: `replay-outcome-rules.py --rule R-1 --sample 40`, then read whether the\npredicate names anything the command has not done yet.",

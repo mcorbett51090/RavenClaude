@@ -5,7 +5,7 @@
 
 ## 0. Status (authoritative)
 
-- **Survey completed.** Verified set **N=13** (cap 30; shortfall 17). Dated catalog + C01–C15 matrix published under `docs/plans/2026-08-14-analog-repos-gap-fill/`.
+- **Survey completed.** Verified set **N=13** (cap 30; shortfall 17). Dated catalog + C01–C15 matrix published under `docs/plans/archive/2026-08-14-analog-repos-gap-fill/`.
 - **Fill slots:** F1 **CLOSED** [#928](https://github.com/mcorbett51090/RavenClaude/pull/928) (`0.267.0`, hooks 34). F2 **CLOSED** [#929](https://github.com/mcorbett51090/RavenClaude/pull/929). F3 = docs promote (no hook/skill/agent).
 - **No silent drops** vs P2 row ids L1–L5. Residuals tagged.
 - **No weekly 5/30 refresh** of analog READMEs (FM-10). Re-rank only if Claude Code’s plugin-marketplace format changes, or on owner request.

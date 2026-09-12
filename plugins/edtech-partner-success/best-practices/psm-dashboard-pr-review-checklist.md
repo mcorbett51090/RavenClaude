@@ -25,7 +25,7 @@ audience: [code-reviewer, security-reviewer, project-manager]
 A Tier 1 review fails differently than a Tier 0 review.
 
 - [ ] **0.1** PR title and body name a single tier (`Tier 0`, `Tier 0.5`, or `Tier 1+`). No "and a bit of Tier N+1." Counters spec creep `[CFM §1.4 T-1]`.
-- [ ] **0.2** PR body cites the exact build-plan path + commit SHA (e.g., `docs/plans/2026-06-04-partner-success-command-center/build-plan-for-codex.md` rev SHA). Counter: spec drift `[CFM §2.1]`.
+- [ ] **0.2** PR body cites the exact build-plan path + commit SHA (e.g., `docs/plans/archive/2026-06-04-partner-success-command-center/build-plan-for-codex.md` rev SHA). Counter: spec drift `[CFM §2.1]`.
 - [ ] **0.3** PR body pastes the Q1-Q6 settling-step answers verbatim from the strategic plan. If unanswered, Codex defaulted — flag for tribunal.
 
 ## 1. Scope check — strictly Tier N work, no Tier N+1 sneaking in
@@ -164,6 +164,6 @@ Any residue invented = 🟡 hoist-to-KB before merge. Two+ invented = 🔴 tribu
 ## References
 
 - The 13 deep-research reports under `docs/research/2026-06-04-psm-dashboard-research/` — especially `codex-failure-modes.md`, `ferpa-decision-tree.md`
-- The build plan: `docs/plans/2026-06-04-partner-success-command-center/build-plan-for-codex.md`
+- The build plan: `docs/plans/archive/2026-06-04-partner-success-command-center/build-plan-for-codex.md`
 - The PR template: `.github/PULL_REQUEST_TEMPLATE/psm-dashboard.md`
 - Codex onboarding SKILL: `plugins/edtech-partner-success/skills/psm-dashboard-build/SKILL.md`

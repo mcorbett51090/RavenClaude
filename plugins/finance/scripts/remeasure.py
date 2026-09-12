@@ -383,7 +383,7 @@ def run(entity_path: str, coa_path: str, tb_path: str, rates_path=None, presenta
             "BLOCKED: --rates is required when functional currency "
             f"({functional}) != presentation currency ({presentation})."
         )
-    with open(rates_path) as fh:
+    with open(rates_path, encoding="utf-8") as fh:
         rates = json.load(fh)
 
     method = rates.get("method")
@@ -430,7 +430,7 @@ def run(entity_path: str, coa_path: str, tb_path: str, rates_path=None, presenta
 
 
 def _write_tb_csv(path: str, entity: dict, rows: list, presentation: str) -> None:
-    with open(path, "w", newline="") as fh:
+    with open(path, "w", newline="", encoding="utf-8") as fh:
         w = csv.writer(fh)
         w.writerow(["account", "description", "debit", "credit", "entity", "period", "currency"])
         for r in rows:
@@ -472,7 +472,7 @@ def main(argv=None) -> int:
                 dst.write(src.read())
         text = json.dumps(out, indent=2)
         if a.out:
-            with open(a.out, "w") as fh:
+            with open(a.out, "w", encoding="utf-8") as fh:
                 fh.write(text + "\n")
             print(
                 f"no-op (functional == {a.presentation_currency}); presentation TB is "
@@ -488,7 +488,7 @@ def main(argv=None) -> int:
 
     text = json.dumps(out, indent=2)
     if a.out:
-        with open(a.out, "w") as fh:
+        with open(a.out, "w", encoding="utf-8") as fh:
             fh.write(text + "\n")
         plug = out["plug"]
         ni = out["translated_balance_sheet"]["current_period_net_income"]
