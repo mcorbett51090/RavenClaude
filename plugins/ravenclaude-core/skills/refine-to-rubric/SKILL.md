@@ -10,7 +10,7 @@ loop. It is the **inner** mid-task loop; `dod-gate.sh` is the **outer** loop (a
 Stop-floor) — they compose, they do not duplicate.
 
 The whole design exists to dodge the documented failure modes of self-improvement
-loops (the grounded findings in `docs/plans/2026-06-23-convergence-engine/plan.md`):
+loops (the grounded findings in `docs/plans/archive/2026-06-23-convergence-engine/plan.md`):
 pure self-critique without an external signal does not reliably improve and often
 degrades (Huang et al. 2310.01798); self-preference + sycophancy are real
 (2410.21819); any fixed proxy invites Goodhart/reward-hacking (Gao et al.

@@ -30,4 +30,4 @@ Date: 2026-06-04 · Researcher: deep-researcher (15 tool calls) · Decision: ACC
 Matt chose ACCEPT-AND-MONITOR (2026-06-04): no credential change. Rationale: gated PRs hard-block
 stale artifacts (self-heal = no-op on that path); failures are loud (Actions tab + Heimdall).
 Re-open trigger: second self-heal push failure → deploy-key route + paths-ignore recursion guard.
-Recorded in: docs/plans/2026-06-04-pipeline-settings-merge-gate.md §Decisions #1 (PR #294).
+Recorded in: docs/plans/archive/2026-06-04-pipeline-settings-merge-gate.md §Decisions #1 (PR #294).

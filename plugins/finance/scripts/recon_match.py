@@ -62,7 +62,7 @@ DEFAULT_TOLERANCE = 1.00  # bank rounding / FX pennies band for a tolerance matc
 
 
 def _read_csv(path: str) -> list[dict]:
-    with open(path, newline="") as fh:
+    with open(path, newline="", encoding="utf-8") as fh:
         return list(csv.DictReader(fh))
 
 
@@ -301,12 +301,12 @@ def main(argv=None) -> int:
     p.add_argument("--out", help="write result JSON here (else stdout)")
     a = p.parse_args(argv)
 
-    with open(a.entity) as fh:
+    with open(a.entity, encoding="utf-8") as fh:
         entity = json.load(fh)
     result = run(entity, a.gl, a.subledger, a.tolerance, a.materiality)
     text = json.dumps(result, indent=2)
     if a.out:
-        with open(a.out, "w") as fh:
+        with open(a.out, "w", encoding="utf-8") as fh:
             fh.write(text + "\n")
         s = result["summary"]
         print(

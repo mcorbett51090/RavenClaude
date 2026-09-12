@@ -39,7 +39,7 @@ test -d plugins/edtech-partner-success/bi-report/lenses/motion && echo "T4 ✓" 
 
 | Tier | Brief | Owns |
 |---|---|---|
-| **T0** | `docs/plans/2026-06-04-partner-success-command-center/build-plan-tier-0-foundation.md` | The canonical `data.schema.json`, the fixture contract test, the empty-state component, the design tokens. **No charts yet.** |
+| **T0** | `docs/plans/archive/2026-06-04-partner-success-command-center/build-plan-tier-0-foundation.md` | The canonical `data.schema.json`, the fixture contract test, the empty-state component, the design tokens. **No charts yet.** |
 | **T0.5** | `build-plan-tier-0.5-connectors.md` | The first real source connectors (Salesforce, Planhat, support, rostering) writing into `data.json`. **No new UI.** |
 | **T1** | `build-plan-tier-1-daily.md` | Portfolio Summary + Daily Action Center + Health Distribution — the operational home page. |
 | **T2** | `build-plan-tier-2-account-360.md` | Account drill-down, timeline, per-component evidence. |
@@ -55,7 +55,7 @@ test -d plugins/edtech-partner-success/bi-report/lenses/motion && echo "T4 ✓" 
 
 Read these in order. Quote, do not paraphrase. The "Quote, don't summarize" rule is the ``/tmp/research-codex-failure-modes.md`` (deferred) §8 #5 mitigation against T-3 / T-7 / T-12.
 
-1. **Strategic plan** — `docs/plans/2026-06-04-partner-success-command-center/plan.md` — the "why" and the success criteria. Quote §"Acceptance criteria" into your work log verbatim before writing a line of code.
+1. **Strategic plan** — `docs/plans/archive/2026-06-04-partner-success-command-center/plan.md` — the "why" and the success criteria. Quote §"Acceptance criteria" into your work log verbatim before writing a line of code.
 2. **Current tier's build plan** — the file named in Gate 1's table. Quote the §"Deliverables" list and the §"MUST-NOT" list verbatim.
 3. **PSM dashboard canon (the spec)** — `plugins/edtech-partner-success/knowledge/psm-dashboard-canon-2026.md` (or the consolidated canon doc the plan references). This is the single source of truth for the convergent home-base pattern, the 5-section flow, the KPI top strip, the 5-second-rule layout test, and the K-12 overlay.
 4. **The plugin's CLAUDE.md** — `plugins/edtech-partner-success/CLAUDE.md`. Reading §3 (house opinions) and §4 (anti-patterns) is non-negotiable; both are graded in the PR review.
@@ -204,7 +204,7 @@ Every PR opened against this build uses this exact shape. Reviewers grade agains
 ```markdown
 ## Tier <N> — <one-line summary>
 
-**Brief:** `docs/plans/2026-06-04-partner-success-command-center/build-plan-tier-<N>-<slug>.md`
+**Brief:** `docs/plans/archive/2026-06-04-partner-success-command-center/build-plan-tier-<N>-<slug>.md`
 **Prior PRs in this build:** #<n>, #<n>, #<n>
 **Tier-boundary check:** confirms this PR does NOT touch Tier <N+1> deliverables.
 

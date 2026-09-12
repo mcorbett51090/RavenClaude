@@ -10,8 +10,8 @@ counters_failure_modes:
     silent fail-open (a check that reports clean because it could not see),
   ]
 sources:
-  - docs/plans/2026-08-08-premise-gate/incidents.md §Incident 1 (the measured cost asymmetry)
-  - docs/plans/2026-08-08-premise-gate/plan.md §2.4 (control != kill_shot), §6 Alternative 1
+  - docs/plans/archive/2026-08-08-premise-gate/incidents.md §Incident 1 (the measured cost asymmetry)
+  - docs/plans/archive/2026-08-08-premise-gate/plan.md §2.4 (control != kill_shot), §6 Alternative 1
   - plugins/ravenclaude-core/knowledge/verification-discipline.md Rule 6
 ---
 
@@ -150,5 +150,5 @@ skip is printed as `LOUD SKIP (NOT A PASS)`, never counted as a pass.
 - Engine: [`bin/probe-kit.sh`](../../bin/probe-kit.sh) (bash 3.2 / stock-macOS safe;
   no GNU `timeout`, `grep -P` or `sed -i`; every probe carries its own ceiling so nothing hangs)
 - The rule in context: [`knowledge/verification-discipline.md`](../../knowledge/verification-discipline.md) Rule 6
-- Evidence base: [`docs/plans/2026-08-08-premise-gate/incidents.md`](../../../../docs/plans/archive/2026-08-08-premise-gate/incidents.md)
-- Where it sits in the plan: [`docs/plans/2026-08-08-premise-gate/plan.md`](../../../../docs/plans/archive/2026-08-08-premise-gate/plan.md) §6
+- Evidence base: [`docs/plans/archive/2026-08-08-premise-gate/incidents.md`](../../../../docs/plans/archive/2026-08-08-premise-gate/incidents.md)
+- Where it sits in the plan: [`docs/plans/archive/2026-08-08-premise-gate/plan.md`](../../../../docs/plans/archive/2026-08-08-premise-gate/plan.md) §6
