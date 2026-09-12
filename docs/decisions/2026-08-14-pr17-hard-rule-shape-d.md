@@ -5,7 +5,7 @@
 
 ## What D2 already settled (2026-08-13)
 
-`docs/plans/2026-08-13-recurring-defect-hardening/decisions.md` D2 funded a `security-reviewer` pass and a build. Shape among (a) path prefix, (b) in-file sentinel, (c) diff-scoped exemption, (d) keep the workaround was **the red-team's call**.
+`docs/plans/archive/2026-08-13-recurring-defect-hardening/decisions.md` D2 funded a `security-reviewer` pass and a build. Shape among (a) path prefix, (b) in-file sentinel, (c) diff-scoped exemption, (d) keep the workaround was **the red-team's call**.
 
 ## What this review settled
 

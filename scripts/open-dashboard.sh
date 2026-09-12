@@ -187,7 +187,12 @@ fi
 # ── Spawn the ROOT server, fully detached so it outlives this script ─────────────
 # Create the log via mktemp (O_EXCL, unpredictable suffix) rather than a fixed,
 # world-predictable /tmp path opened with ">" — a plain redirect follows a symlink.
-LOG="$(mktemp "/tmp/rc-dashboard-${PORT}-XXXXXX.log" 2>/dev/null)" || LOG="/tmp/rc-dashboard-${PORT}.$$.log"
+# On mktemp failure, fall back to /dev/null — NOT a fixed, world-predictable
+# /tmp/...$$ path: that is a symlink-attack target on a shared host, and the
+# `>"$LOG"` redirect below would follow the symlink (the exact anti-pattern this
+# block's comment warns against). Losing the log is the safe trade. Mirrors
+# plugins/ravenclaude-core/hooks/copilot-hook-adapter.sh's established pattern.
+LOG="$(mktemp "/tmp/rc-dashboard-${PORT}-XXXXXX.log" 2>/dev/null)" || LOG=/dev/null
 bind_args=()
 if [ -z "${CODESPACE_NAME:-}" ]; then
   # Explicit loopback bind off-Codespace (C2 — stronger than relying on the default).

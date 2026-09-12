@@ -751,7 +751,7 @@ behaves differently on `/plugin marketplace update`.
   against how agentic AI works today; several were empirically re-confirmed this session (the agent loop,
   tool-gating, compaction, the Explore subagent dispatch, MCP servers connecting).
 
-  This **honors the concept-inventory design** (`docs/plans/2026-08-19-product-inventory/plan.md` §5.3):
+  This **honors the concept-inventory design** (`docs/plans/archive/2026-08-19-product-inventory/plan.md` §5.3):
   `platform-fact` entries carry a **90-day BLOCKING** calendar gate on PRs — deliberately stricter than
   the 180-day warn-on-PR inventory corpus — because the ~17-entry population is small enough to service by
   re-verification rather than by relaxing the gate. The seven were ~80 days old and would have crossed 90

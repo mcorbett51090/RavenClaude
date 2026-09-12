@@ -47,6 +47,7 @@ accounting/audit/tax opinion (../CLAUDE.md sec.3).
 
 Stdlib only (csv/json/argparse/os/sys). Python 3.8+.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -100,15 +101,19 @@ def load_column_map(path: str) -> dict:
       close_period   the watermark value written into every row's `period` column
     """
     try:
-        with open(path) as fh:
+        with open(path, encoding="utf-8") as fh:
             cm = json.load(fh)
     except (OSError, json.JSONDecodeError) as e:
         raise SystemExit(f"cannot read column-map {path}: {e}")
     if not isinstance(cm.get("map"), dict):
-        raise SystemExit(f"{path}: column-map must contain an object 'map' (canonical -> source column)")
+        raise SystemExit(
+            f"{path}: column-map must contain an object 'map' (canonical -> source column)"
+        )
     sign = cm.get("amount_sign", "debit_positive")
     if sign not in ("debit_positive", "credit_positive"):
-        raise SystemExit(f"{path}: amount_sign must be 'debit_positive' or 'credit_positive', got {sign!r}")
+        raise SystemExit(
+            f"{path}: amount_sign must be 'debit_positive' or 'credit_positive', got {sign!r}"
+        )
     return cm
 
 
@@ -166,7 +171,7 @@ def stage_rows(raw_path: str, cm: dict, statics: dict) -> list:
     """Read the raw export and emit canonical rows (list-of-lists in CANONICAL order)."""
     plan = _plan(cm, statics)
     out_rows = []
-    with open(raw_path, newline="") as fh:
+    with open(raw_path, newline="", encoding="utf-8") as fh:
         reader = csv.DictReader(fh)
         src_cols = set(reader.fieldnames or [])
         # Fail early if the map points at a source column the export doesn't have.
@@ -188,7 +193,9 @@ def stage_rows(raw_path: str, cm: dict, statics: dict) -> list:
                     try:
                         amt = _num(row.get(ref))
                     except ValueError:
-                        raise SystemExit(f"{raw_path}:{i} non-numeric amount {row.get(ref)!r} in {ref!r}")
+                        raise SystemExit(
+                            f"{raw_path}:{i} non-numeric amount {row.get(ref)!r} in {ref!r}"
+                        )
                     debit, credit = _split_amount(amt, sign)
                     cells.append(_fmt(debit if col == "debit" else credit))
                 else:  # column
@@ -268,7 +275,7 @@ def _atomic_write(path: str, rows: list) -> None:
     parent = os.path.dirname(os.path.abspath(path))
     os.makedirs(parent, exist_ok=True)
     tmp = path + ".tmp"
-    with open(tmp, "w", newline="") as fh:
+    with open(tmp, "w", newline="", encoding="utf-8") as fh:
         w = csv.writer(fh)
         w.writerow(CANONICAL)
         w.writerows(rows)
@@ -282,7 +289,7 @@ def cmd_stage(a) -> int:
     # Validate BEFORE publishing: write to a scratch temp, validate it, and only then
     # promote. This is the block-on-bad-export discipline + the atomic write together.
     scratch = a.out + ".staging-tmp"
-    with open(scratch, "w", newline="") as fh:
+    with open(scratch, "w", newline="", encoding="utf-8") as fh:
         w = csv.writer(fh)
         w.writerow(CANONICAL)
         w.writerows(rows)
@@ -293,10 +300,12 @@ def cmd_stage(a) -> int:
         for e in errs:
             sys.stderr.write(f"  - {e}\n")
         return 4
-    os.replace(scratch, a.out)   # atomic promote
+    os.replace(scratch, a.out)  # atomic promote
     tot_d = sum(_num(r[2]) for r in rows)
-    print(f"wrote {a.out}  [{len(rows)} accounts, balanced at {tot_d:,.2f} "
-          f"{statics.get('currency', '?')}, period {statics.get('period', '?')}]")
+    print(
+        f"wrote {a.out}  [{len(rows)} accounts, balanced at {tot_d:,.2f} "
+        f"{statics.get('currency', '?')}, period {statics.get('period', '?')}]"
+    )
     return 0
 
 
@@ -317,7 +326,9 @@ def main(argv=None) -> int:
     )
     sub = p.add_subparsers(dest="cmd", required=True)
 
-    s = sub.add_parser("stage", help="normalize a raw export -> canonical staging CSV (blocks on a bad export)")
+    s = sub.add_parser(
+        "stage", help="normalize a raw export -> canonical staging CSV (blocks on a bad export)"
+    )
     s.add_argument("--raw", required=True, help="raw vendor TB export CSV")
     s.add_argument("--column-map", required=True, help="per-source column-map JSON")
     s.add_argument("--out", required=True, help="canonical staging CSV to write (atomically)")
@@ -325,7 +336,9 @@ def main(argv=None) -> int:
     s.add_argument("--currency", help="override/supply the currency dimension")
     s.add_argument("--period", help="override/supply the close-period watermark")
 
-    v = sub.add_parser("validate", help="validate a canonical staging CSV (columns/types + debits==credits)")
+    v = sub.add_parser(
+        "validate", help="validate a canonical staging CSV (columns/types + debits==credits)"
+    )
     v.add_argument("--staging", required=True, help="canonical staging CSV to check")
 
     a = p.parse_args(argv)

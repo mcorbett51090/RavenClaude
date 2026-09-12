@@ -14,9 +14,9 @@ Source citations: [BP]=build plan; [CFM]=docs/research/.../codex-failure-modes.m
 
 **Tier:** <!-- Pick ONE: Tier 0 / Tier 0.5 / Tier 1 / Tier 2 / Tier 3 / Tier 4. No "and." --> \_\_\_
 
-**Build plan rev:** `docs/plans/2026-06-04-partner-success-command-center/build-plan-for-codex.md` @ <commit SHA>
+**Build plan rev:** `docs/plans/archive/2026-06-04-partner-success-command-center/build-plan-for-codex.md` @ <commit SHA>
 
-**Strategic plan rev:** `docs/plans/2026-06-04-partner-success-command-center/plan.md` @ <commit SHA>
+**Strategic plan rev:** `docs/plans/archive/2026-06-04-partner-success-command-center/plan.md` @ <commit SHA>
 
 **Tier scope statement (verbatim from build plan §0):**
 

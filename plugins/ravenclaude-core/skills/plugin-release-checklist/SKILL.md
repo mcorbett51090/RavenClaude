@@ -56,14 +56,9 @@ jq -r '.plugins[] | select(.name=="<plugin>") | .version' .claude-plugin/marketp
 
 ---
 
-### 3. SAME version mirrored in `docs/architecture.md` Status table (if present)
+### 3. Architecture doc no longer mirrors per-plugin versions
 
-The architecture doc has a per-plugin status row that lists the current version. Update it in the same commit as the plugin.json bump.
-
-```bash
-# bash
-grep -A2 '<plugin>' docs/architecture.md | grep -i version
-```
+`docs/architecture.md` **deliberately does not duplicate per-plugin versions** — they live only in `.claude-plugin/marketplace.json` (derived from each `plugin.json` by `scripts/sync-plugin-versions.py`) plus the generated portal, to avoid the two-hand-edited-copies drift that this whole pipeline exists to kill. So there is **nothing to mirror here** — do not add a version to the architecture doc. (Historically this step asked you to update an architecture Status table's version column; that column was removed.)
 
 ```powershell
 # PowerShell

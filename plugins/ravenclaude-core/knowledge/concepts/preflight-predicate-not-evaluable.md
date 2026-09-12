@@ -33,7 +33,7 @@ verify:
 strength_badge: Probed
 sources:
   - label: "measured in the verify-before-assert Phase 1 corpus run"
-    url: "https://github.com/mcorbett51090/RavenClaude/blob/main/docs/plans/2026-08-19-verify-before-assert/plan.md"
+    url: "https://github.com/mcorbett51090/RavenClaude/blob/main/docs/plans/archive/2026-08-19-verify-before-assert/plan.md"
 ---
 
 ## What a reader would have assumed instead

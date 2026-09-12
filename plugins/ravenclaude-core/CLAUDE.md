@@ -760,7 +760,7 @@ The intermediate redirect-stub for `repo-guide.html` is gone; **`generate-repo-g
 
 ### Portal IA → 5 task sections (Slice A, added 2026-06-05)
 
-Two independent review panels (`two-panel-plan-review`) stress-tested a reorg of the portal's navigation; full record in `docs/plans/2026-06-05-portal-5-section-ia/` (PR #311). **Slice A** (shell-only, reversible) replaces the prior 6 nav items + the nested "Dashboard" app feel with **five task sections — Home · Discover · Configure · Observe · Learn** (each owning one job). The router gained `SECTION_ALIAS` (every legacy top-level route — `marketplace→discover`, `team→discover`, `configuration→configure`, `resources→learn`, `dashboard→observe` — plus the retired `repo-guide`) and `DASH_OWNER` (every dashboard tab route → its owning section, incl. the phantom routes `nidhoggr`/`sleipnir`→`observe`), so **every committed `#/…` bookmark + ⌘K quick-action + internal link still resolves**. `plugin-*` renders the rich reference via `__openPlugin`; the Team roster stays reachable at `#/team` under the Discover highlight (`LEGACY_VIEW`) pending the Slice-B merge. **Gate 51** ([`scripts/check-shell-router.mjs`](../../scripts/check-shell-router.mjs)) was rewritten to assert the 5-section contract **by destination** (alias/owner values must be real NAV ids), with two must-fail halves (a renamed NAV id, an emptied `SECTION_ALIAS`). Slice A deliberately kept the dashboard's own cat-bar/tab-bar visible. **Migration:** none — pure relabel + alias layer.
+Two independent review panels (`two-panel-plan-review`) stress-tested a reorg of the portal's navigation; full record in `docs/plans/archive/2026-06-05-portal-5-section-ia/` (PR #311). **Slice A** (shell-only, reversible) replaces the prior 6 nav items + the nested "Dashboard" app feel with **five task sections — Home · Discover · Configure · Observe · Learn** (each owning one job). The router gained `SECTION_ALIAS` (every legacy top-level route — `marketplace→discover`, `team→discover`, `configuration→configure`, `resources→learn`, `dashboard→observe` — plus the retired `repo-guide`) and `DASH_OWNER` (every dashboard tab route → its owning section, incl. the phantom routes `nidhoggr`/`sleipnir`→`observe`), so **every committed `#/…` bookmark + ⌘K quick-action + internal link still resolves**. `plugin-*` renders the rich reference via `__openPlugin`; the Team roster stays reachable at `#/team` under the Discover highlight (`LEGACY_VIEW`) pending the Slice-B merge. **Gate 51** ([`scripts/check-shell-router.mjs`](../../scripts/check-shell-router.mjs)) was rewritten to assert the 5-section contract **by destination** (alias/owner values must be real NAV ids), with two must-fail halves (a renamed NAV id, an emptied `SECTION_ALIAS`). Slice A deliberately kept the dashboard's own cat-bar/tab-bar visible. **Migration:** none — pure relabel + alias layer.
 
 **Slice B — single chrome + section sub-nav (added 2026-06-05).** The folded dashboard's own category/tab bars are now hidden by one shell-side CSS rule scoped to `#dash-root` (`#dash-root .cat-bar, #dash-root .tab-bar { display:none }`) — the **shipped standalone `dashboard.html` keeps its nav** because its CSS is not `#dash-root`-scoped (the architect's load-bearing finding: no `generate-dashboards.py` edit). The shell sidebar drives the tabs instead, via `SECTION_TABS` — a per-section sub-nav with **plain labels** (Observe → Run feed / Perimeter alerts / Security log / Plugin lineage / Session state / Review log; Configure → Quick setup / Posture / Web access / Review simulator; Learn → Overview / Concepts / Commands / Best practices / Pipeline / Install / About) rendered by `navChildren()` (keyboard-navigable `<a>` links). Discover's sub-nav gains a **Specialists** item (the roster, `#/team`). A served-mode banner ("run `rc dashboard`") shows above the live sections (Observe + live Configure) on a static host, gated by a single cached `HEAD /__csrf` probe — the **same same-origin signal** the dashboard's CSRF bootstrap uses; the cross-origin/404 reject IS the static signal, **no `Access-Control-Allow-Origin`** (DNS-rebinding defense preserved). Gate 51 was extended to assert the chrome-hide rule + the `SECTION_TABS` sub-nav + the `/__csrf` probe, with a third must-fail half (a dropped chrome-hide rule). **Migration:** none. Deferred (not blocking): WAI-ARIA `role=tablist` + arrow-roving on the sub-nav (the `<a>` links are already Tab-navigable), and a fuller Discover content-merge of the roster.
 
@@ -962,7 +962,7 @@ Proven by **Gates 20 + 50 + 60** (no fixtures dropped — Gate 50.3 fixture upda
 
 > **Superseded (historical record).** The iframe-payload mechanism below was replaced by the **native fold** (v0.123.0) and `repo-guide.html` + the standalone root `dashboard.html` were **removed** (v0.124.0) — see those milestones below. The present-tense claims in this entry ("remain on disk", "still work") describe the v0.114.0 state, **not** today's: only `plugins/ravenclaude-core/dashboard.html` remains on disk; root `dashboard.html` / `repo-guide.html` are gone.
 
-`index.html` is now the single entry point for everything the marketplace surfaces: the polished landing UI, the deep comfort-posture + Norse tabs (Heimdall / Víðarr / Norns / Níðhöggr / Bifröst / Mímir / Sleipnir), and the per-plugin "I want to…" repo guide all live behind one URL. **`dashboard.html` and `repo-guide.html` remain on disk as the per-section content payloads** (no generator changes; Gates 11 + 13 untouched); the shell lazy-loads them into memoized `<iframe src>` slots on first navigation. Built per [`docs/plans/2026-06-04-unified-dashboard-shell/plan.md`](../../docs/plans/2026-06-04-unified-dashboard-shell/plan.md) — FORGE-synthesized from a cross-model two-panel review (Opus architect lens + Sonnet frontend-coder lens, strong empirical convergence on iframe-src lazy-load + hand-maintained shell + above-iframe mode banner).
+`index.html` is now the single entry point for everything the marketplace surfaces: the polished landing UI, the deep comfort-posture + Norse tabs (Heimdall / Víðarr / Norns / Níðhöggr / Bifröst / Mímir / Sleipnir), and the per-plugin "I want to…" repo guide all live behind one URL. **`dashboard.html` and `repo-guide.html` remain on disk as the per-section content payloads** (no generator changes; Gates 11 + 13 untouched); the shell lazy-loads them into memoized `<iframe src>` slots on first navigation. Built per [`docs/plans/archive/2026-06-04-unified-dashboard-shell/plan.md`](../../docs/plans/archive/2026-06-04-unified-dashboard-shell/plan.md) — FORGE-synthesized from a cross-model two-panel review (Opus architect lens + Sonnet frontend-coder lens, strong empirical convergence on iframe-src lazy-load + hand-maintained shell + above-iframe mode banner).
 
 **Five phases, four shipped together (Phase 3 visual regression is the manual verify):**
 
@@ -976,7 +976,7 @@ Proven by **Gates 20 + 50 + 60** (no fixtures dropped — Gate 50.3 fixture upda
 
 ## Mímir — Session-state dashboard tab (added 2026-06-04, v0.115.0)
 
-A new generated dashboard tab — **"Session"** (Norse alias **"Mímir's well"**, `#/mimir`, under the Look-back category alongside Heimdall / Víðarr / Norns / Níðhöggr) — that answers "what does Claude Code know about *this* session?" by surfacing what's reachable from on-disk session state under `~/.claude/` + `<project>/.claude/`. Built per [`docs/plans/2026-06-03-mimir-session-tab/plan.md`](../../docs/plans/2026-06-03-mimir-session-tab/plan.md). Closes the `feedback_dashboards_over_slash_commands` ask ("every tool, setting, AND activity metric visible in a dashboard; no memorized commands") for the session-knob surface that previously required `/status` / `/usage` / `/theme` from memory.
+A new generated dashboard tab — **"Session"** (Norse alias **"Mímir's well"**, `#/mimir`, under the Look-back category alongside Heimdall / Víðarr / Norns / Níðhöggr) — that answers "what does Claude Code know about *this* session?" by surfacing what's reachable from on-disk session state under `~/.claude/` + `<project>/.claude/`. Built per [`docs/plans/archive/2026-06-03-mimir-session-tab/plan.md`](../../docs/plans/archive/2026-06-03-mimir-session-tab/plan.md). Closes the `feedback_dashboards_over_slash_commands` ask ("every tool, setting, AND activity metric visible in a dashboard; no memorized commands") for the session-knob surface that previously required `/status` / `/usage` / `/theme` from memory.
 
 **Five card hosts, hydrated by JS from `/__mimir` on open:**
 
@@ -1037,7 +1037,7 @@ Claude Code shipped **dynamic workflows** (research preview) — Claude writes a
 
 ## Agent-dispatch-evaluator Phase 2 — workflow-wrapper integration (added 2026-06-04, v0.121.0)
 
-**Phase 2 of [`docs/plans/2026-06-03-agent-dispatch-evaluator/plan.md`](../../docs/plans/2026-06-03-agent-dispatch-evaluator/plan.md).** Phase 1 shipped the SKILL contract + tier table (#249); Phase 3 (SubagentStart audit-only hook) + Phase 4 (tribunal-seat shadow) shipped in #271. This phase wires the **workflow-wrapper binding path** — the plan's PRIMARY surface — into the `rc-deep-research` dynamic workflow.
+**Phase 2 of [`docs/plans/archive/2026-06-03-agent-dispatch-evaluator/plan.md`](../../docs/plans/archive/2026-06-03-agent-dispatch-evaluator/plan.md).** Phase 1 shipped the SKILL contract + tier table (#249); Phase 3 (SubagentStart audit-only hook) + Phase 4 (tribunal-seat shadow) shipped in #271. This phase wires the **workflow-wrapper binding path** — the plan's PRIMARY surface — into the `rc-deep-research` dynamic workflow.
 
 The copied wrapper body from [`skills/agent-dispatch-evaluator/reference/evaluate-dispatch.js`](skills/agent-dispatch-evaluator/reference/evaluate-dispatch.js) is **copy-pasted** (workflow scripts have no module resolution) into [`.claude/workflows/rc-deep-research.js`](../../.claude/workflows/rc-deep-research.js) behind a `BEGIN/END copied block` provenance fence (the reference file stays the single source of truth; re-copy on change). `loadDispatchConfig()` reads `.ravenclaude/dispatch-config.json` once at startup and defaults to `{enabled:false}` when absent. The **6 phase dispatch sites** (scope / search / fetch / verify_default / verify_judgment / synthesize) call `evaluatedAgent(prompt, opts, dispatchCfg)` threading a `_run_config_phase` marker so the evaluator applies the run_config precedence rule (downgrade binding; upgrade advisory). The **4 infrastructure calls** (rc-read, run-classifier, rc-audit-emit, claim-audit-emit) stay plain `agent()` — they are NOT evaluated (the SKILL's carve-out contract). The reference is renamed `TIER_MODEL → DISPATCH_TIER_MODEL` inside the copied block to avoid a redeclaration clash with the workflow's own `TIER_MODEL`.
 
@@ -1337,7 +1337,7 @@ The flow (all three pieces live at the **repo root**, NOT inside the plugin — 
 
 ## Agentic Work-Streams — P0 store + classifier (added 2026-06-23, v0.162.0) + P1 CLI/banner/session-close (v0.163.0)
 
-A portable way to organize streams of agentic AI work so prompts target the right logical workstream and each stream's work is trackable + crash-resumable. Built per [`docs/plans/2026-06-23-agentic-work-streams/plan.md`](../../docs/plans/2026-06-23-agentic-work-streams/plan.md). A stream is a **named logical workstream** under the consumer's `.ravenclaude/streams/` (portable, spans branches/sessions). Stream names are **example data only** — core stays domain-neutral.
+A portable way to organize streams of agentic AI work so prompts target the right logical workstream and each stream's work is trackable + crash-resumable. Built per [`docs/plans/archive/2026-06-23-agentic-work-streams/plan.md`](../../docs/plans/archive/2026-06-23-agentic-work-streams/plan.md). A stream is a **named logical workstream** under the consumer's `.ravenclaude/streams/` (portable, spans branches/sessions). Stream names are **example data only** — core stays domain-neutral.
 
 **The store (P0).** [`scripts/stream-ops.py`](scripts/stream-ops.py) owns `.ravenclaude/streams/`: `registry.json` (small/hot — the index + per-stream EMA centroid), per-stream `history.jsonl` (append-only/cold), `state.md` (resume snapshot), and an `active-stream` pointer. It does **not** duplicate the `runs/` substrate — each history event carries a `session_id` **FK** back to `runs/<id>/`.
 
@@ -3177,7 +3177,7 @@ is byte-identical on `/plugin marketplace update`. The only change is that a das
 
 ## The seven Foundations platform-facts, re-verified on schedule (added 2026-08-24, v0.298.0)
 
-The concept inventory splits its freshness duty on two axes (`docs/plans/2026-08-19-product-inventory/plan.md`
+The concept inventory splits its freshness duty on two axes (`docs/plans/archive/2026-08-19-product-inventory/plan.md`
 §5.3, and the axis table atop [`scripts/concepts.py`](../../scripts/concepts.py)): **content drift carries
 the blocking duty** across the corpus (a covered artifact changing is when a fact can actually have gone
 false), while **calendar age is deliberately warn-on-PR / block-on-sweep for the ~180-day inventory
@@ -3970,7 +3970,7 @@ fix (this run) was the second, independent gate that had to close first. Both ga
 this run.
 
 **Migration:** none — this entry corrects documentation and confirms P6c′'s adapter reshape; no schema,
-no host-support cell, and no Chat-support flag changed. `plugins/ravenclaude-core/scripts/generate-copilot-hooks.py`'s `PreCompact` entry gained a comment only (§D2, P6a) — its behavior is byte-identical.
+no host-support cell, and no Chat-support flag changed. `scripts/generate-copilot-hooks.py`'s `PreCompact` entry gained a comment only (§D2, P6a) — its behavior is byte-identical.
 
 ## Pre-compaction handoff convergence — a live-agent-authored brief is now the primary path, the detached digest stays exactly as it was, as a rare fallback (added 2026-09-02, v0.314.0)
 
@@ -4824,9 +4824,10 @@ the new function body (the installer is idempotent — the managed block is repl
 A new specialist agent — [`agents/source-control-coordinator.md`](agents/source-control-coordinator.md) —
 owns merge/CI-triage/branch-hygiene/PR-review-response for work other sessions hand off via the task
 ledger, so a worker session can hand a PR to the queue and keep coding elsewhere. Built per
-[`.ravenclaude/runs/source-control-coordinator/strategic-plan.md`](../../.ravenclaude/runs/source-control-coordinator/strategic-plan.md)
-(v3, gap-filled after two independent 4-lens panel reviews) and
-[`build-plan.md`](../../.ravenclaude/runs/source-control-coordinator/build-plan.md). Composition over
+`.ravenclaude/runs/source-control-coordinator/strategic-plan.md`
+(v3, gap-filled after two independent 4-lens panel reviews) and `build-plan.md` — both are
+gitignored local run artifacts (the storage-contract local tier), not committed to the repo,
+so they are named here but not linked. Composition over
 already-shipped substrate throughout — the task ledger, `session-relay`, `worktree-guard.sh`'s lease
 path, `subscribe_pr_activity`, `create_trigger` — per the plan's own "reuse, don't build" framing.
 
