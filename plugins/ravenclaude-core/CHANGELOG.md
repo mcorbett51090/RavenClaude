@@ -2,6 +2,27 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.321.7 — 2026-09-13
+
+### Added
+
+- **Runtime surface-selection router** for the Team Lead: `spawn-team` **Step 1.25**
+  (slash command vs skill vs specialist agent vs orchestration shape) before the
+  whether-to-delegate fork and agent-routing tree. Platform fuzzy-match on
+  `description` remains a weak signal; this step is the stronger behavioral one.
+- Companion diagram + tradeoffs pointer in
+  [`knowledge/orchestration-decision-trees.md`](knowledge/orchestration-decision-trees.md)
+  (deliberately **not** a canonical `## Decision Tree:` header — avoids the
+  `render-trees.py` SVG gate). Cross-refs in `agent-routing.md`,
+  `dynamic-workflows.md`, `cheap-lane-delegation`, and the Team Lead prior in
+  `CLAUDE.md`.
+
+### Notes
+
+Migration: none. Additive playbook guidance. Does **not** reopen the closed
+succinct-skill-descriptions program (P8 STOP) — this strengthens runtime
+dispatch discipline, not mass description rewriting.
+
 ## 0.321.6 — 2026-09-11
 
 ### Added

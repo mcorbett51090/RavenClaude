@@ -1,6 +1,37 @@
 # Orchestration decision trees
 
-Agent routing, delegation, and error-handling decisions — traverse top-to-bottom before picking a method. Last reviewed: 2026-06-05.
+Agent routing, delegation, and error-handling decisions — traverse top-to-bottom before picking a method. Last reviewed: 2026-09-13.
+
+> **Runtime vs authoring.** The trees below cover *authoring* (skill vs new agent vs core agent) and *post-hoc status reporting*. The **runtime** question — "should this turn use a slash command, a skill, a specialist agent, or an orchestration shape?" — lives in [`../skills/spawn-team/SKILL.md`](../skills/spawn-team/SKILL.md) **Step 1.25** (authoritative table + traversal). The companion section immediately below is a visual aid only; do not invent a parallel router.
+
+## Runtime surface selection (companion — Step 1.25 is authoritative)
+
+**When this applies:** a user request has arrived and the Team Lead has not yet decided *what kind of surface* should run. Platform fuzzy-match on skill/agent `description` is **not** a reliable router; RavenClaude's behavioral playbook is.
+
+**Last verified:** 2026-09-13 against `spawn-team` Step 1.25, [`dynamic-workflows.md`](dynamic-workflows.md) shape table, and the `designer` ↔ `/wireframe` reciprocal delimitation.
+
+```mermaid
+flowchart TD
+    START[User request at Team Lead] --> Q1{User named a slash command?}
+    Q1 -->|yes| SLASH[Invoke that command / its skill]
+    Q1 -->|no| Q2{A shipped skill already encodes this exact procedure?}
+    Q2 -->|yes - playbook fit, no specialist judgment/gate| SKILL[Load skill in main session]
+    Q2 -->|no| Q3{Need specialist judgment, a gate, or a distinct deliverable format?}
+    Q3 -->|yes| AGENT[Agent path - Step 1.5 then agent-routing.md]
+    Q3 -->|no| Q4{Orchestration shape exceeds turn-by-turn dispatch?}
+    Q4 -->|yes - parallel / adversarial / plan-from-idea / peer team| SHAPE[dynamic-workflows.md or /forge]
+    Q4 -->|no - trivial or already in context| DIRECT[Team Lead handles directly]
+```
+
+**Tradeoffs (authoritative copy lives in spawn-team Step 1.25):**
+
+| Surface | Use when | Anti-pattern |
+|---|---|---|
+| Slash command | User named it, or it is the documented entry (`/forge`, `/wireframe`, …) | Ignoring the named command and hand-rolling |
+| Skill (main session) | Repeatable multi-step procedure already authored | Spawning an agent to reinvent the skill |
+| Specialist agent | Judgment, gate, or distinct deliverable format | Spawning for a procedure a skill already owns |
+| Team Lead direct | Trivial / already in context | Spawning for a ≤10-line single-file tweak |
+| Dynamic workflow / FORGE / agent team | Shape table in `dynamic-workflows.md` | Hand-orchestrating dozens of agents turn by turn |
 
 ## Decision Tree: Agent Output — Which Status to Report
 
@@ -35,7 +66,7 @@ flowchart TD
 
 ## Decision Tree: Plugin Capability Gap — Skill vs New Agent vs Core Agent
 
-**When this applies:** A domain plugin team has identified a new capability need. The question is whether to add a skill file, add a domain-specific agent, or point at an existing core agent. Getting this wrong creates dispatch ambiguity or unused agents.
+**When this applies:** A domain plugin team has identified a new capability need **at authoring time**. The question is whether to *ship* a skill file, a domain-specific agent, or point at an existing core agent. Getting this wrong creates dispatch ambiguity or unused agents. This is **not** the runtime router — for "use skill vs spawn agent *right now*", see Step 1.25 / the companion section above.
 
 **Last verified:** 2026-06-05 against the "domain plugins extend core via skills and knowledge" house rule and the project-management carve-out precedent.
 
