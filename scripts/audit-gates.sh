@@ -4211,6 +4211,11 @@ G26B="$TMP/g26bad"; mkdir -p "$G26B/.ravenclaude"
 sed 's/project: allow/project: boguslevel/' "$G26SEED" > "$G26B/.ravenclaude/comfort-posture.yaml"
 rc=0; python3 "$G26APPLY" --project-root "$G26B" >/dev/null 2>&1 || rc=$?
 gate "autosetup: corrupted seed (bad level) rejected" must_fail "$rc"
+# v5 live path must use the same lock + atomic replace as v3/v4 (PR #1086
+# missed run_v5). A Path.write_text truncate-in-place races SessionStart
+# reapply against dashboard /__save and can tear settings.json.
+rc=0; python3 tests/fixtures/test_v5_settings_atomic_write.py >/dev/null 2>&1 || rc=$?
+gate "autosetup: v5 apply writes settings.json atomically" must_pass "$rc"
 
 echo
 echo "── Gate 27: consumer dashboard is repo-scoped (marketplace-write guard) ───"

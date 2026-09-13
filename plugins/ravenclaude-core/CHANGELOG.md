@@ -2,6 +2,22 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.321.7 — 2026-09-13
+
+### Fixed
+
+- `apply-comfort-posture.py` `run_v5()` now uses the same `_settings_lock` +
+  `_write_settings_json_atomic` pair as the v3/v4 path. Schema v5 is the live
+  posture format (this marketplace and the balanced seed). Observation: the
+  v5 writer still called `Path.write_text` (two sites in `run_v5`) after PR
+  #1086 added the atomic helper only on the v3/v4 path. Probe: the new
+  `tests/fixtures/test_v5_settings_atomic_write.py` spies those two helpers on
+  a v5 `--scope project` apply and requires `settings.json` to parse as JSON.
+
+### Notes
+
+Migration: none. Same emitted rules; only the write protocol changes.
+
 ## 0.321.6 — 2026-09-11
 
 ### Added
