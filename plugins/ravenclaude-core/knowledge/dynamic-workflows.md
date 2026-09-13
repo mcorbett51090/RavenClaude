@@ -50,6 +50,8 @@ RavenClaude's [`two-panel-plan-review`](../../../.claude/workflows/two-panel-pla
 
 ## Choosing an orchestration shape
 
+> **Prerequisite.** [`spawn-team`](../skills/spawn-team/SKILL.md) **Step 1.25** already decided whether this turn is a slash command, a main-session skill, a specialist agent, or an orchestration-scale shape. Use **this** section only when Step 1.25 (or an equivalent read) said the work needs an orchestration *shape* — not to re-litigate "skill vs `designer`" for a single mockup.
+
 > **Format note:** this is a "when to use X vs Y" routing aid with shallow branching, so per [`docs/best-practices/decision-trees-in-knowledge-files.md`](../../../docs/best-practices/decision-trees-in-knowledge-files.md) the **tradeoffs table below is authoritative**. The flowchart is a visual companion (GitHub renders it natively); it is deliberately **not** a canonical `## Decision Tree:` section — that prefix triggers the `render-trees.py` SVG gate (needs the `mmdc`/Chromium toolchain). Promote it to a canonical tree + pre-rendered SVG later if it earns a Guidance-tab card.
 
 ```mermaid

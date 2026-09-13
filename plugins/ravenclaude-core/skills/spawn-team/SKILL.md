@@ -1,6 +1,6 @@
 ---
 name: spawn-team
-description: Team Lead dispatch playbook. Given a feature or task, decide which specialized agents to dispatch, prepare their briefs, allocate worktrees, run them in the right order, and re-route on blockers. Load this skill whenever you (the Team Lead) are about to dispatch more than one agent on a request — and also when you are weighing whether a request warrants delegation at all, since Step 1.5 argues that fork in both directions and the current model under-spawns by default. Keeps routing consistent across sessions and avoids re-deriving the workflow each time.
+description: Team Lead dispatch playbook. Pick the surface first (slash command vs skill vs specialist agent vs orchestration shape — Step 1.25), then whether to delegate (Step 1.5), then which agents and order. Load whenever choosing skill vs agent vs slash, weighing delegation, or about to dispatch more than one agent. Keeps routing consistent; platform description-match alone is not the router.
 ---
 
 # Skill: spawn-team
@@ -20,6 +20,31 @@ Write down, in your own words:
 - What's *out* of scope (explicit, to prevent drift).
 
 If you can't write these in three minutes, the request is unclear — ask the user before spawning anyone.
+
+---
+
+## Step 1.25 — Pick the *surface* first (slash / skill / agent / shape)
+
+**Platform auto-select is not the router.** Claude Code (and other hosts) fuzzy-match skill and agent `name` + `description`; that is a weak signal. RavenClaude's stronger signal is this step — traverse it **before** Step 1.5 (whether to spawn) and Step 2 (which playbook / orchestration shape). Companion diagram: [`../../knowledge/orchestration-decision-trees.md`](../../knowledge/orchestration-decision-trees.md) § "Runtime surface selection". Say which surface you chose in your summary.
+
+Traverse top-to-bottom against **observable** signals — do NOT keyword-match the request to a skill or agent name.
+
+1. **User named a slash command** (`/forge`, `/wireframe`, `/dashboard`, `/set-posture`, …) → invoke that command (its skill). Stop here.
+2. **A shipped skill already encodes this exact multi-step procedure** — the skill's description matches, the body is a playbook the **main session** can follow, and the ask does **not** need a separate specialist judgment role, merge gate, or distinct deliverable format → load that skill in the main session. Do **not** spawn a specialist to re-derive the procedure. Reciprocal precedent: `/wireframe` (fast mockup Artifact) vs `designer` (full design spec + a11y + handoff).
+3. **Need a specialist's judgment, a gate, or a distinct deliverable format** (architect plan, security verdict, design spec + a11y handoff, code review, RAID hygiene, …) → **agent path** → continue to Step 1.5, then [`agent-routing.md`](../../knowledge/agent-routing.md).
+4. **Orchestration shape exceeds turn-by-turn specialist dispatch** (massively parallel, adversarial, reviewed plan from a raw idea, long-running peer team) → pick the shape from [`dynamic-workflows.md`](../../knowledge/dynamic-workflows.md) / `/forge` per Step 2 — not a single specialist playbook alone.
+
+**Tradeoffs (authoritative):**
+
+| Surface | Who holds the procedure | Cost | Use when | Anti-pattern |
+|---|---|---|---|---|
+| Slash command | Command → skill body | Low | User named it, or it is the documented entry | Ignoring `/forge` (etc.) and hand-rolling |
+| Skill (main session) | Skill body | Low | Repeatable procedure already authored | Spawning an agent to reinvent the skill |
+| Specialist agent | Brief + agent tools | Medium | Judgment, gate, or distinct deliverable format | Spawning for a procedure a skill already owns |
+| Team Lead direct | This session | 0 | Trivial / already in context (Step 1.5) | Spawning for a ≤10-line single-file tweak |
+| Dynamic workflow / FORGE / agent team | Script or harness | High | Shape table in `dynamic-workflows.md` | Hand-orchestrating dozens of agents turn by turn |
+
+**What this does NOT replace.** Step 1.5 still decides *whether* to spawn once the surface is "agent(s)". [`agent-routing.md`](../../knowledge/agent-routing.md) still decides *which* specialist. Step 2 still picks the multi-agent *playbook* and orchestration *shape*. This step only answers **what kind of surface** should run.
 
 ---
 
@@ -56,8 +81,9 @@ costs more than doing the work. (This is the `(none — Team Lead direct)` row o
 
 **What this does NOT relax.** The `parallelism` cap still binds (Step 5) — honor the configured breadth.
 Sub-agents still never spawn peers (single-orchestrator, [`agent-collaboration.md`](../../rules/agent-collaboration.md)).
-The routing tree still decides **which** specialist. This step decides only **whether**, and "spawn more"
-is never a licence to skip the cap, the tree, or the shape choice in Step 2.
+The routing tree still decides **which** specialist. This step decides only **whether** (and only after
+Step 1.25 chose the **agent** surface). "Spawn more" is never a licence to skip the cap, the surface
+choice, the tree, or the shape choice in Step 2.
 
 **Re-check the direction on a model swap.** This counterweight is calibrated to Opus 4.8's under-spawn
 default. **Fable 5 inverts it** — it *"dispatches parallel subagents more readily than prior models"*
@@ -68,7 +94,9 @@ this step needs re-reading, not copying.
 
 ## Step 2 — Pick the playbook
 
-**Before you fan out, pick the orchestration *shape*.** A multi-agent request is not automatically a turn-by-turn subagent dispatch. Traverse the table in [`../../knowledge/dynamic-workflows.md`](../../knowledge/dynamic-workflows.md) `## Choosing an orchestration shape` first: if the work is massively-parallel or adversarial, you'll rerun it, or you're coordinating more agents than this conversation can track, it's a **dynamic workflow** (`ultracode`) — not a hand-orchestrated dispatch. If the deliverable is a reviewed *plan* from a raw idea, it's `/forge`. Otherwise the playbooks below (you, the Team Lead, dispatching specialists turn by turn) are the right shape. Say which shape you chose in your summary.
+**Only after Step 1.25 chose an agent / multi-agent surface.** If Step 1.25 landed on a slash command or a main-session skill, you should already have stopped — do not continue into these playbooks to "also" spawn someone.
+
+**Before you fan out, pick the orchestration *shape*.** A multi-agent request is not automatically a turn-by-turn subagent dispatch. Traverse the table in [`../../knowledge/dynamic-workflows.md`](../../knowledge/dynamic-workflows.md) `## Choosing an orchestration shape` first: if the work is massively-parallel or adversarial, you'll rerun it, or you're coordinating more agents than this conversation can track, it's a **dynamic workflow** (`ultracode`) — not a hand-orchestrated dispatch. If the deliverable is a reviewed *plan* from a raw idea, it's `/forge`. Otherwise the playbooks below (you, the Team Lead, dispatching specialists turn by turn) are the right shape. Say which shape you chose in your summary. That table answers *subagent vs skill vs team vs workflow vs FORGE at orchestration scale*; Step 1.25 already answered the finer *slash vs skill vs specialist* question for a single turn.
 
 **Choosing a non-Claude host for a piece of work** (distinct from the shape question above): [`../../knowledge/agent-routing-matrix.json`](../../knowledge/agent-routing-matrix.json) is an optional reference for which agent (Claude Code / Codex CLI / Copilot CLI / Copilot Chat / Grok Build CLI) a given task shape probably fits best — a prose pointer, not a required lookup; nothing here reads the file automatically.
 

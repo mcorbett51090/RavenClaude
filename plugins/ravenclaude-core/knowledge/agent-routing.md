@@ -1,8 +1,10 @@
 # Agent routing — which specialist the Team Lead spawns for a given request
 
-> **Last reviewed:** 2026-05-22. **Refresh trigger:** when (a) a new specialist is added to or removed from `plugins/ravenclaude-core/agents/`, (b) a domain plugin starts overlapping a core agent's territory (the `prompt-engineer` adjudicates), or (c) a pattern of wrong-first-pick spawns is flagged during retrospective.
+> **Last reviewed:** 2026-09-13. **Refresh trigger:** when (a) a new specialist is added to or removed from `plugins/ravenclaude-core/agents/`, (b) a domain plugin starts overlapping a core agent's territory (the `prompt-engineer` adjudicates), or (c) a pattern of wrong-first-pick spawns is flagged during retrospective.
 
 This file is written for **the Team Lead** — the top-level Claude Code session that orchestrates specialists. It is **not** for the specialists themselves (they receive a focused task from the Team Lead and do not re-route work). The decision tree below is the proactive companion to the Capability Grounding Protocol's reactive alternate-methods rule: the tree prevents picking the wrong specialist on first try; CGP catches what the tree missed.
+
+> **Prerequisite — surface first.** This tree answers *which specialist* **after** [`spawn-team`](../skills/spawn-team/SKILL.md) **Step 1.25** has already chosen the **agent** surface (not a slash command, not a main-session skill alone). Spawning `designer` when `/wireframe` would do is a Step 1.25 miss, not an agent-routing miss.
 
 The roster the tree branches across is the 14 agents under `plugins/ravenclaude-core/agents/`. Domain plugins (e.g. `power-platform`, `data-platform`) layer specialists on top — when a domain plugin is installed and its CLAUDE.md routing table matches the request more specifically than this tree, **the domain routing wins**. Use this tree when the request is domain-neutral or the active domain plugin defers.
 
@@ -99,6 +101,7 @@ If the request matches multiple branches, the **earliest-blocking gate wins**: a
 5. **Spawning `documentarian` for a RAID-log update.** Documentarian is for _stakeholder_ prose. Internal PM hygiene (RAID, status, tasks) goes to `project-manager`. The two are not interchangeable.
 6. **Spawning `frontend-coder` before `designer`.** New UI surfaces start with a wireframe + a11y spec; frontend-coder executes the spec. Skipping designer produces UIs that get re-done.
 7. **Forgetting `security-reviewer` on auth-adjacent work.** Q2 in the tree is a hard gate precisely because "this PR happens to touch auth" is the most-skipped routing decision in practice — security-reviewer is mandatory whenever auth, secrets, PII, RLS/FLS, or a new external surface is in scope, regardless of how small the change looks.
+8. **Spawning a specialist when a skill or slash command already owns the procedure.** That is a [`spawn-team`](../skills/spawn-team/SKILL.md) Step 1.25 miss (e.g. spawning `designer` for a quick `/wireframe` mockup). This tree never gets a chance to be right if the surface was wrong.
 
 ---
 

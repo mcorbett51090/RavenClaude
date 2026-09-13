@@ -2899,7 +2899,7 @@
         "plugins/ravenclaude-core/scripts/route-task.py",
         "plugins/ravenclaude-core/skills/cheap-lane-delegation/SKILL.md"
       ],
-      "covers_digest": "sha256:65094d9a712d8b36dfd48a4839fbf513473e58fe2aa85b136f9f97364296e5f5",
+      "covers_digest": "sha256:1a2a9537db69a4cb1e7d6c80845cc159f75c00e67ca3d31fc7157eb525fdc677",
       "nuance": "Copilot CLI's `--model auto` rejects `--effort` outright at runtime — a real error, not a doc gap — so the Copilot lane differentiates by timeout budget only unless a caller pins an effort-capable model.",
       "nuance_evidence": {
         "measured": "2026-08-26",
@@ -2945,7 +2945,7 @@
         "scripts/sync-plugin-versions.py",
         "scripts/generate-copilot-plugin.py"
       ],
-      "covers_digest": "sha256:a3754e293eb66c2d543eefa986168af70f52c81e58b9e8c3fd0f011c66d7a134",
+      "covers_digest": "sha256:d194bcb6b88eefa838ad1b0551a267d994569b2585b606feeb190dc83b3fc134",
       "nuance": "The cache key is the `version` string, never a content hash, so `sync-plugin-versions.py` can report clean while every installed session keeps running the old `hooks/` code.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -4200,7 +4200,7 @@
         "scripts/generate-skill-index.py",
         "plugins/ravenclaude-core/skills/skill-index/SKILL.md"
       ],
-      "covers_digest": "sha256:b51db94a7f4caf59e998461d888f35f5664ec538c7a535ea3f6ba94a3ae0aaf6",
+      "covers_digest": "sha256:ba1dc4f71bf6820678511c69408451b3420ddd8b5385d03934bd759a800131f9",
       "nuance": "The generator discovers skills by globbing plugins/*/skills/*/SKILL.md, and its own output file matches that glob. On a fresh repo the first write cannot see itself (the file does not exist yet), so it writes N entries; running it again now finds N+1 (itself included) and writes THAT count -- a fixed point reached on the second pass, never the first.",
       "nuance_evidence": {
         "measured": "2026-09-08",
