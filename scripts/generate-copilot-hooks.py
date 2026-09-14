@@ -128,6 +128,15 @@ _SKIP = {
         "routes a Claude-Code-only third-party plugin; the target mode store does "
         "not exist on this host."
     ),
+    "explore-tier-pin.sh": (
+        "PreToolUse on Agent|Task that REWRITES the tool input via Claude Code's "
+        "hookSpecificOutput.updatedInput [docs-verified 2026-09-14, Claude Code hooks "
+        "reference]. Copilot's hook output contract has no verified input-rewrite "
+        "field, and the adapter does not translate one — wiring it would ship a "
+        "rewrite that is silently ignored while the generated config says the pin "
+        "is in force. Copilot custom agents DO carry a `model` frontmatter field, so "
+        "on this host the tier travels with the agent file, not the dispatch call."
+    ),
 }
 
 

@@ -942,6 +942,21 @@ _PIPELINE_LANES = [
                     "set": "Pick off / advise / agent, the tier, and the coding agent below.",
                 },
             },
+            {
+                "id": "explore-tier-pin",
+                "title": "Explore tier pin",
+                "badge": "advisory",
+                "tip": "When the robot sends its built-in file-searcher out without naming a model, pins it to the cheap tier before it runs — so searching never bills at the flagship rate.",
+                "detail": {
+                    "steps": [
+                        "Watches every sub-agent dispatch for the built-in `Explore` with no `model` named.",
+                        "Rewrites the call to add `model: haiku` (or the tier you pick) before the sub-agent starts.",
+                        "Leaves alone anything that names a model, any other agent type, and any project already routing sub-agents by environment variable.",
+                    ],
+                    "trip": "Rewrites input only — never allows, asks, or blocks; your dispatch permission stays exactly as set.",
+                    "set": "`handoff_tax: { pin_explore: haiku | sonnet | off }` in .ravenclaude/comfort-posture.yaml (default haiku; `handoff_tax: off` also disables).",
+                },
+            },
         ],
     },
     {
@@ -1132,6 +1147,7 @@ _PIPELINE_STAGE_HOOKS = {
     "guard-web-access": "guard-web-access.sh",
     "claude-orchestrator": None,  # behavioral: spawn-team reads `orchestrator:` — no hook
     "cheap-lane-delegation": None,  # behavioral: cheap-lane-delegation skill reads `cheap_lane:` — no hook
+    "explore-tier-pin": "explore-tier-pin.sh",
     "sanitize-webfetch-output": "sanitize-webfetch-output.sh",
     "format-on-write": "format-on-write.sh",
     "guard-recursive-spawn": "guard-recursive-spawn.sh",

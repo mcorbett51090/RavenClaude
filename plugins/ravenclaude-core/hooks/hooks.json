@@ -95,6 +95,17 @@
     ],
     "PreToolUse": [
       {
+        "matcher": "Agent|Task",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/explore-tier-pin.sh",
+            "timeout": 10,
+            "comment": "Explore tier pin (model-tier delegation, prevention leg). REWRITES INPUT, never gates: when the built-in `Explore` is dispatched without `model`, returns hookSpecificOutput.updatedInput with `model: haiku` (posture `handoff_tax: { pin_explore: haiku | sonnet | off }`; `handoff_tax: off` also disables) plus an additionalContext explaining the pin. Emits NO permissionDecision, so the posture's `subagent_dispatch` category still gates the call unchanged. Why: since v2.1.198 an un-pinned Explore inherits the main model, so on an Opus session every 'go find X' is an Opus dispatch whose whole job is reading; handoff-tax-meter.sh names that `frontier_readonly` only AFTER the tokens are spent. Stands down on: any explicit `model` (including `inherit`), any type but Explore (scout pins haiku in frontmatter; general-purpose/Plan do real work), CLAUDE_CODE_SUBAGENT_MODEL set (the fleet-wide route would be overridden), no comfort-posture (opt-in), or any error (exit 0, no stdout -> Claude's input runs unchanged). Reference: knowledge/model-tier-delegation.md."
+          }
+        ]
+      },
+      {
         "matcher": "Bash|Read|Write|Edit|MultiEdit|WebFetch|WebSearch|mcp__.*",
         "hooks": [
           {

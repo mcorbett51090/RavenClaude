@@ -407,7 +407,7 @@ _suite_gate_tokens() { # $1=suite name -> echoes space-separated gate tokens; re
       # nudge), 216/228/229 (worktree/session/update hygiene cluster), 217
       # (managed-solution-import — same plugins/power-platform/hooks/tests/
       # home as 124/125).
-      echo "3 3b 4 5 5b 6 14 15 16 17 21 22 30 33 36 52 53 90 91 122 123 124 125 126 128 133 135 136 137 138 139 140 162 182 184 186 189 197 201 216 217 225 227 228 229 231 235 247 251 252 253 254 259 285"
+      echo "3 3b 4 5 5b 6 14 15 16 17 21 22 30 33 36 52 53 90 91 122 123 124 125 126 128 133 135 136 137 138 139 140 162 182 184 186 189 197 201 216 217 225 227 228 229 231 235 247 251 252 253 254 259 285 286"
       ;;
     portal)
       # Gap: 27 (consumer-dashboard repo-scoped guard — serve-dashboards.py,
@@ -1990,9 +1990,14 @@ PY
       bash plugins/ravenclaude-core/hooks/tests/test-gate285-handoff-tax-meter.sh
       exit $?
       ;;
+    286)
+      echo "── Gate 286: explore-tier-pin.sh (model-tier delegation prevention leg) (per-gate run) ──"
+      bash plugins/ravenclaude-core/hooks/tests/test-gate286-explore-tier-pin.sh
+      exit $?
+      ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254, 255, 256, 257, 258, 259, 260, 261, 262, 263, 264, 265, 266, 267, 268, 269, 280, 281, 282, 283, 284, 285. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254, 255, 256, 257, 258, 259, 260, 261, 262, 263, 264, 265, 266, 267, 268, 269, 280, 281, 282, 283, 284, 285, 286. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -6669,6 +6674,23 @@ echo "── Gate 285: handoff-tax-meter.sh (model-tier delegation — the measu
 # NOT flag — proving A depends on the cap).
 rc=0; bash plugins/ravenclaude-core/hooks/tests/test-gate285-handoff-tax-meter.sh >/dev/null 2>&1 || rc=$?
 gate "handoff-tax-meter: advisory + ledger on over-cap/frontier-readonly dispatch, silent-but-ledgered on good, opt-in, knob, privacy, teeth" must_pass "$rc"
+echo "── Gate 286: explore-tier-pin.sh (model-tier delegation — the prevention leg) ──"
+# Gate 285 measures the frontier_readonly sink AFTER the tokens are spent. This
+# hook closes it BEFORE: PreToolUse on Agent, and when the built-in Explore is
+# dispatched without `model` it returns hookSpecificOutput.updatedInput with
+# `model: haiku` (posture-tunable) — the one PreToolUse field that binds on the
+# dispatch call [docs-verified 2026-09-14]. It emits NO permissionDecision, so
+# the posture's subagent_dispatch gate is untouched, and it stands down on any
+# explicit model, any non-Explore type, CLAUDE_CODE_SUBAGENT_MODEL, or no
+# posture. The test drives the REAL hook with real PreToolUse(Agent) payloads:
+# rewrites-on-bad (A1-A9: one envelope, model=haiku, every original field kept,
+# no permissionDecision, additionalContext, hook-event, scoped name),
+# silent-on-good (B: explicit model / inherit / scout / general-purpose),
+# opt-in (C), non-dispatch (D), knobs (E: sonnet / pin off / handoff_tax off),
+# env route (F), and teeth (G: module canary + a type-match mutant that must
+# NOT rewrite).
+rc=0; bash plugins/ravenclaude-core/hooks/tests/test-gate286-explore-tier-pin.sh >/dev/null 2>&1 || rc=$?
+gate "explore-tier-pin: rewrites un-pinned Explore to haiku via updatedInput (no permissionDecision), silent on explicit/other/opt-out/env, knobs, teeth" must_pass "$rc"
 echo "── Gate 123: design-project binding surfacing (bound / half-set / absent / leak-safe) ──"
 rc=0; bash plugins/ravenclaude-core/hooks/tests/test-gate123-design-project-binding.sh >/dev/null 2>&1 || rc=$?
 gate "design-project binding: surfaces when bound + guides when half-set + silent when absent + leak-safe + teeth" must_pass "$rc"
