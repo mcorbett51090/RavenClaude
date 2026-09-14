@@ -2,7 +2,7 @@
 name: cli-implementation-engineer
 description: "Use for CLI implementation: wiring the idiomatic arg parser (Cobra / clap / argparse / Click / oclif / yargs), subcommands, config precedence, --json + exit-code mapping, data->stdout/diagnostics->stderr, stdin, NO_COLOR/TTY-gated color, signals, and shell completions."
 tools: Read, Grep, Glob, Bash, Edit, Write, WebFetch, WebSearch
-model: opus
+model: sonnet
 audience: [dev]
 works_with: [cli-architect, tui-engineer, cli-distribution-engineer]
 scenarios:

@@ -942,6 +942,21 @@ _PIPELINE_LANES = [
                     "set": "Pick off / advise / agent, the tier, and the coding agent below.",
                 },
             },
+            {
+                "id": "explore-tier-pin",
+                "title": "Explore tier pin",
+                "badge": "advisory",
+                "tip": "When the robot sends its built-in file-searcher out without naming a model, pins it to the cheap tier before it runs — so searching never bills at the flagship rate.",
+                "detail": {
+                    "steps": [
+                        "Watches every sub-agent dispatch for the built-in `Explore` with no `model` named.",
+                        "Rewrites the call to add `model: haiku` (or the tier you pick) before the sub-agent starts.",
+                        "Leaves alone anything that names a model, any other agent type, and any project already routing sub-agents by environment variable.",
+                    ],
+                    "trip": "Rewrites input only — never allows, asks, or blocks; your dispatch permission stays exactly as set.",
+                    "set": "`handoff_tax: { pin_explore: haiku | sonnet | off }` in .ravenclaude/comfort-posture.yaml (default haiku; `handoff_tax: off` also disables).",
+                },
+            },
         ],
     },
     {
@@ -1132,6 +1147,7 @@ _PIPELINE_STAGE_HOOKS = {
     "guard-web-access": "guard-web-access.sh",
     "claude-orchestrator": None,  # behavioral: spawn-team reads `orchestrator:` — no hook
     "cheap-lane-delegation": None,  # behavioral: cheap-lane-delegation skill reads `cheap_lane:` — no hook
+    "explore-tier-pin": "explore-tier-pin.sh",
     "sanitize-webfetch-output": "sanitize-webfetch-output.sh",
     "format-on-write": "format-on-write.sh",
     "guard-recursive-spawn": "guard-recursive-spawn.sh",
@@ -1158,6 +1174,11 @@ _PIPELINE_EXCLUDED_HOOKS = {
     "stream-session-close.sh": "work-stream tracking (Stop); observability, not a guardrail",
     "stream-prompt-attribute.sh": "work-stream tracking (UserPromptSubmit); observability, not a guardrail",
     "agent-dispatch-evaluator.sh": "audit-only shadow (SubagentStart), opt-in; never denies",
+    "handoff-tax-meter.sh": "handoff-tax meter (PostToolUse Agent) — per-dispatch ledger of brief/report "
+    "size + model tier under .ravenclaude/runs/<session>/dispatch-ledger.jsonl and an ADVISORY when a "
+    "report/brief exceeds its cap or a read-only worker ran on a frontier model; opt-in, never denies. "
+    "Observability for knowledge/model-tier-delegation.md, not a guardrail — same class as "
+    "agent-dispatch-evaluator.sh and the stream-* trackers",
     "worktree-guard.sh": "worktree_guard + worktree_bound knobs are surfaced Settings-only "
     "(DOM-budget-exempt panel) + live status as the Activity-tab Sleipnir badges; "
     "FOREIGN-TREE is the third clause (sibling Write / git -C); deliberately NOT a Pipeline stage card",
@@ -8517,6 +8538,21 @@ _JS = r"""
   const CHEAP_LANE_AGENT_VALUES = ["grok", "copilot"];
   const CHEAP_LANE_AGENT_DEFAULT = "grok";
   const CHEAP_LANE_DEFAULT = Object.freeze({ mode: "off", tier: "fast", agent: "grok" });
+  /* Handoff tax (model-tier delegation, v0.322.0) — the ON-Claude sibling of
+   * cheap_lane. Read by hooks/handoff-tax-meter.sh (report/brief caps + the
+   * scalar `off`) and hooks/explore-tier-pin.sh (`pin_explore` + the same
+   * `off`). Round-tripped here so a Save no longer strips it (the v0.61.0
+   * data-loss class, closed the same shape as cheap_lane). Two SHAPES survive:
+   * the scalar `handoff_tax: off` (modelled as the `off` flag) and the block
+   * (caps + pin). Values mirror handoff-tax-meter.py / explore-tier-pin.py's
+   * own accepted sets exactly; an unrecognised value is dropped, never
+   * canonicalized. NO DOM control — state-slot round-trip only. */
+  const HANDOFF_TAX_PIN_VALUES = ["haiku", "sonnet", "off"];
+  const HANDOFF_TAX_PIN_DEFAULT = "haiku";
+  const HANDOFF_TAX_REPORT_CAP_DEFAULT = 400;
+  const HANDOFF_TAX_BRIEF_CAP_DEFAULT = 600;
+  const HANDOFF_TAX_CAP_MAX = 999999;
+  const HANDOFF_TAX_DEFAULT = Object.freeze({ off: false, report_cap_words: null, brief_cap_words: null, pin_explore: "" });
 
   /* Prompt optimizer (Phases 2-6) — round-tripped here so a Save no longer
    * strips it (the v0.61.0 data-loss class, closed the same shape as
@@ -8654,6 +8690,10 @@ _JS = r"""
      * No DOM control (worktree_bound pattern) — cheap-lane-delegate.sh /
      * grok-delegate.sh / route-task.py own the semantics, we only preserve. */
     cheap_lane: Object.assign({}, CHEAP_LANE_DEFAULT),
+    /* Handoff tax (model-tier delegation). Held in state so a Save round-trips
+     * it instead of silently dropping it. No DOM control — handoff-tax-meter.sh
+     * / explore-tier-pin.sh own the semantics, we only preserve. */
+    handoff_tax: Object.assign({}, HANDOFF_TAX_DEFAULT),
     /* Prompt optimizer (Phases 2-6). Held in state so a Save round-trips it
      * instead of silently dropping it. No DOM control — see the constant's
      * own comment above for why. */
@@ -9151,6 +9191,20 @@ _JS = r"""
       if (CHEAP_LANE_TIER_VALUES.includes(cl.tier)) { state.cheap_lane.tier = cl.tier; touched = true; }
       if (CHEAP_LANE_AGENT_VALUES.includes(cl.agent)) { state.cheap_lane.agent = cl.agent; touched = true; }
     }
+    /* Handoff tax (model-tier delegation). Scalar `off` (YAML `off` parses to
+     * boolean false) OR a block; validate against handoff-tax-meter.py /
+     * explore-tier-pin.py's own accepted sets. */
+    const ht = src.handoff_tax;
+    if (ht === false || ht === "off") {
+      state.handoff_tax.off = true; touched = true;
+    } else if (ht && typeof ht === "object") {
+      const rc = parseInt(ht.report_cap_words, 10);
+      if (Number.isFinite(rc) && rc > 0 && rc <= HANDOFF_TAX_CAP_MAX) { state.handoff_tax.report_cap_words = rc; touched = true; }
+      const bc = parseInt(ht.brief_cap_words, 10);
+      if (Number.isFinite(bc) && bc > 0 && bc <= HANDOFF_TAX_CAP_MAX) { state.handoff_tax.brief_cap_words = bc; touched = true; }
+      const pe = ht.pin_explore === false ? "off" : ht.pin_explore;
+      if (HANDOFF_TAX_PIN_VALUES.includes(pe)) { state.handoff_tax.pin_explore = pe; touched = true; }
+    }
     /* Prompt optimizer (Phases 2-6). Validate against prompt-optimizer-gate.sh's
      * own accepted sets — an unrecognized value is dropped, never canonicalized. */
     const po = src.prompt_optimizer;
@@ -9451,6 +9505,31 @@ _JS = r"""
       if (clnMode) lines.push(`  mode: ${cln.mode}`);
       if (clnTier) lines.push(`  tier: ${cln.tier}`);
       if (clnAgent) lines.push(`  agent: ${cln.agent}`);
+      lines.push("");
+    }
+
+    /* Handoff tax (model-tier delegation, v0.61.0 data-loss class). The scalar
+     * `off` form wins when set; otherwise emit the block when ANY sub-field is
+     * non-default, and only the set sub-fields ("absent ⇒ default" holds for an
+     * untouched dashboard). Read back by handoff-tax-meter.sh (caps, off) and
+     * explore-tier-pin.sh (pin_explore, off). No editable control. */
+    const htx = state.handoff_tax;
+    const htxRc = Number.isFinite(htx.report_cap_words) && htx.report_cap_words > 0
+      && htx.report_cap_words !== HANDOFF_TAX_REPORT_CAP_DEFAULT;
+    const htxBc = Number.isFinite(htx.brief_cap_words) && htx.brief_cap_words > 0
+      && htx.brief_cap_words !== HANDOFF_TAX_BRIEF_CAP_DEFAULT;
+    const htxPin = htx.pin_explore && htx.pin_explore !== HANDOFF_TAX_PIN_DEFAULT
+      && HANDOFF_TAX_PIN_VALUES.includes(htx.pin_explore);
+    if (htx.off === true) {
+      lines.push("# Handoff tax — sub-agent dispatch advisory + Explore tier pin, silenced (ledger still written).");
+      lines.push("handoff_tax: off");
+      lines.push("");
+    } else if (htxRc || htxBc || htxPin) {
+      lines.push("# Handoff tax — sub-agent brief/report caps + the tier an un-pinned Explore is pinned to.");
+      lines.push("handoff_tax:");
+      if (htxRc) lines.push(`  report_cap_words: ${htx.report_cap_words}`);
+      if (htxBc) lines.push(`  brief_cap_words: ${htx.brief_cap_words}`);
+      if (htxPin) lines.push(`  pin_explore: ${htx.pin_explore}`);
       lines.push("");
     }
 

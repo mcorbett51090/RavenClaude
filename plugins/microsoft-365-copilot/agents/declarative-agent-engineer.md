@@ -2,7 +2,7 @@
 name: declarative-agent-engineer
 description: "Use this agent to author or review a Microsoft 365 Copilot DECLARATIVE AGENT — the pinned-schema manifest (currently v1.8), ~8,000-char instructions, capabilities, conversation starters, and API actions, plus manifest + Responsible-AI validation and the Agent Builder vs Agents Toolkit choice."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
-model: opus
+model: sonnet
 audience: [dev]
 works_with: [copilot-extensibility-architect, graph-connector-engineer, api-plugin-engineer, copilot-admin-governance]
 scenarios:

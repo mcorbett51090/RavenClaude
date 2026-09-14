@@ -51,6 +51,8 @@ Usage:
   rc artifacts list|new <id>   where work files go, across CLIs
   rc handoff --task-id <id> [--dry-run] [--host claude-code|grok|cli|chat|other]
                                         [--recipe copy-paste|same-host|os-terminal]
+  rc dispatch-summary [--session ID] [--json]   Per-session handoff-tax rollup: tier mix, brief/report
+                                        sizes, flags — the "cost per completed task" shape.
                                         Print (and optionally spawn) a same-host
                                         successor from a run-dir handoff.md.
   rc forge-worktree init|checkpoint|path|--self-test
@@ -329,6 +331,14 @@ PY
   handoff)
     shift
     exec bash "$PLUGIN_ROOT/scripts/handoff-spawn.sh" "$@"
+    ;;
+  dispatch-summary)
+    shift
+    command -v python3 >/dev/null 2>&1 || {
+      echo "rc: python3 not found in PATH — 'rc dispatch-summary' needs python3." >&2
+      exit 1
+    }
+    exec python3 "$PLUGIN_ROOT/scripts/handoff-tax-meter.py" --summary "$@"
     ;;
   artifacts)
     shift

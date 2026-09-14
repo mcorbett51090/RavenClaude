@@ -96,6 +96,28 @@ cheap_lane:
   mode: off
   tier: fast # fast (default) | balanced — the Grok tier for delegated work
 
+# Handoff tax — the ON-Claude sibling of cheap_lane (model-tier delegation,
+# knowledge/model-tier-delegation.md). Two hooks read this block; both are
+# opt-in by the PRESENCE of this file, so a repo without a posture gets neither.
+#   handoff-tax-meter.sh  (PostToolUse Agent) — measures every sub-agent
+#       dispatch: brief words, report words, resolved tier; writes one line to
+#       .ravenclaude/runs/<session>/dispatch-ledger.jsonl (gitignored) and
+#       ADVISES (never blocks) when a report/brief is over cap or a read-only
+#       worker ran on the frontier tier. `rc dispatch-summary` rolls the ledger
+#       up per session — the "cost per completed task" view.
+#   explore-tier-pin.sh   (PreToolUse Agent) — REWRITES an un-pinned built-in
+#       `Explore` dispatch to `model: <pin_explore>` before it runs (an
+#       un-pinned Explore inherits the main model since Claude Code v2.1.198,
+#       so on an Opus session every "go find X" bills at Opus). Never touches
+#       a dispatch that names a model (including `inherit`), never emits a
+#       permissionDecision — `subagent_dispatch` below still gates the call.
+# Absent block = defaults below. `handoff_tax: off` silences the advisory AND
+# disables the pin (the ledger line is still written, so the summary stays honest).
+handoff_tax:
+  report_cap_words: 400 # a worker report longer than this is a failed handoff
+  brief_cap_words: 600 # a brief longer than this is re-feeding the transcript
+  pin_explore: haiku # haiku (default) | sonnet | off — the tier an un-pinned Explore gets
+
 # Model-fallback ladder (added 2026-06-24). When a model a RavenClaude process
 # invokes (a tribunal seat, the convergence judge, the orchestrator) ERRORS or is
 # OVERLOADED/unavailable, retry the same call on the next model in the ladder

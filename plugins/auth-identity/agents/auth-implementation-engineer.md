@@ -2,7 +2,7 @@
 name: auth-implementation-engineer
 description: "Use to IMPLEMENT the authentication design auth-architect chose — Supabase Auth + provider wiring, OAuth callback route, protected SPA routes, API token-verification middleware, secure cookie/session handling, token refresh/rotation, CSRF defense. NOT for choosing the provider/flow (the architect)."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
-model: opus
+model: sonnet
 audience: [dev, data-engineer]
 works_with: [auth-architect, frontend-implementer, database-setup-guide, entra-identity-engineer]
 scenarios:

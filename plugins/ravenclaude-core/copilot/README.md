@@ -70,6 +70,27 @@ single source of truth; this package is regenerated from it.
 > them, the probe named `git` and `curl` — neither exists as a tool; the
 > follow-up leak attempt failed with "Skill 'curl' not found". Test the
 > BEHAVIOUR (can it write?), never the description.
+>
+> ### Model tier is STATED, not projected (2026-09-14)
+>
+> Every canonical agent pins a `model:` tier alias (`haiku` for `scout`,
+> `sonnet` for the coders, `opus` for the gates). Copilot custom agents DO
+> honour a `model` property — "Model to use when this custom agent
+> executes. If unset, inherits the default model" [docs-verified
+> 2026-09-14, same reference page] — but its value is a **model-picker id**,
+> which is plan- and org-specific and churns monthly, not a tier alias.
+> Emitting `model: haiku` would ship a value Copilot cannot resolve;
+> inventing an alias→id map would hard-code one tenant's picker into every
+> consumer. So each generated `.agent.md` states its canonical tier in the
+> header comment and emits NO `model:` line.
+>
+> **Consequence, said plainly:** on this host every projected agent —
+> `scout` included — runs on the session's default model until you pin
+> one. The haiku saving described in
+> `knowledge/model-tier-delegation.md` does not arrive here by itself.
+> To get it, add `model: <your lineup's Haiku-class picker id>` to the
+> agents whose header says `Canonical model tier: haiku` — in a copy you
+> own, since regeneration overwrites this directory.
 - `AGENTS.md` — the cross-tool claim-grounding discipline, projected
   verbatim from RavenClaude's root `AGENTS.md`. Copilot reads `AGENTS.md`
   natively `[docs-verified 2026-05-31]`, but only from *your* repo — so

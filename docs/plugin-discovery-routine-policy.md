@@ -91,7 +91,7 @@ A candidate is **critical** (clears regardless of the breadth concern, even if a
 
 ## Tribunal gate — reviewed-and-approved, or revised-and-reapproved, before the PR is final
 
-**Added 2026-09-11**, per Matt's directive to gate this routine's output the same way `/forge-pipeline` gates a plan — a two-panel, cross-model review, applied to the diff this routine just produced, instead of to an idea before code exists. Full mechanics: [`routine-review-tribunal/SKILL.md`](../plugins/ravenclaude-core/skills/routine-review-tribunal/SKILL.md).
+**Added 2026-09-11**, per Matt's directive to gate this routine's output the same way `/forge-pipeline` gates a plan — a two-panel, cross-model review, applied to the diff this routine just produced, instead of to an idea before code exists. Full mechanics: [`routine-review-tribunal/SKILL.md`](../plugins/ravenclaude-core/skills/routine-review-tribunal/SKILL.md). Which engine to reach for (and which ones are not substitutes): [`docs/best-practices/routine-review-vs-other-tribunals.md`](best-practices/routine-review-vs-other-tribunals.md).
 
 Run this **after** the gold-standard gate suite is green and **before** the PR is opened (first run) or marked ready (a resumed run):
 

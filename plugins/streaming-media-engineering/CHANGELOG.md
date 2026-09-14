@@ -2,6 +2,12 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.1.2] — 2026-09-14
+
+### Changed
+
+- `transcoding-pipeline-engineer`, `playback-and-delivery-engineer`: `model: opus` → `model: sonnet`. Second model-tier pass — FFmpeg/packaging pipelines and player integration against the protocol/CDN/DRM architecture `media-streaming-architect` owns, which stays on `opus`. This is the `sonnet` row of the marketplace's tier table (`ravenclaude-core/knowledge/model-tier-delegation.md`: bounded, well-specified work against a design made upstream), and the sibling-plugin parity rule the doctrine now states: the same role shape gets the same tier across plugins. Listed by the model-tier-fit gate's `--report` pair-review queue (`check-model-tier-fit.py`, Gate 288). No behaviour change beyond the model the agents run on — they move tier, not role.
+
 ## [0.1.1] — 2026-08-14
 
 ### Changed

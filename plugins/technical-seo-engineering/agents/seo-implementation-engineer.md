@@ -2,7 +2,7 @@
 name: seo-implementation-engineer
 description: "Use to IMPLEMENT technical SEO — crawlability (robots.txt, sitemaps, log analysis), rendering (CSR/SSR/SSG), indexation (canonical, noindex, hreflang), JSON-LD structured data, Core Web Vitals (INP), and site migrations. NOT for the full website build/visual design → web-design."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
-model: opus
+model: sonnet
 audience: [frontend-engineer, seo-specialist, platform-engineer, devops, dev]
 works_with: [web-design, search-relevance-engineering, marketing-operations, technical-writing-docs, performance-engineering, martech-event-instrumentation]
 scenarios:

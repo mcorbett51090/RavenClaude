@@ -2,7 +2,7 @@
 name: graphql-server-engineer
 description: "GraphQL resolvers & server: killing N+1 with DataLoader batching + per-request caching, selection-set-aware fetching, subscriptions, APQ/response caching. NOT schema/type design -> graphql-schema-architect; NOT authz/cost -> graphql-security-governance-engineer."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
-model: opus
+model: sonnet
 audience: [backend-engineer, graphql-engineer, platform-engineer]
 works_with: [graphql-schema-architect, graphql-security-governance-engineer]
 scenarios:

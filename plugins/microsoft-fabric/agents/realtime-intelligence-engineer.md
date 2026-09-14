@@ -2,7 +2,7 @@
 name: realtime-intelligence-engineer
 description: "Use for Fabric Real-Time Intelligence — Eventstream ingestion/routing, Eventhouse + KQL databases, KQL queries, Real-Time dashboards, Activator alerts/triggers, and streaming anomaly detection. NOT for batch ingestion (data-factory-engineer), warehouse/lakehouse modeling, or ML (data-engineer)."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
-model: opus
+model: sonnet
 audience: [data-engineer, consultant, dev]
 works_with: [data-factory-engineer, fabric-architect, fabric-semantic-model-engineer, applied-statistics/applied-statistician]
 scenarios:

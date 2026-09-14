@@ -2,7 +2,7 @@
 name: twin-integration-engineer
 description: "Use to BUILD & VALIDATE a digital twin — telemetry ingestion (MQTT/OPC-UA/Kafka, edge vs cloud), model wiring (DTDL/AAS), simulation & what-if, drift/reconciliation, and fidelity validation (error bounds vs the real asset). NOT for robot control/autonomy → robotics-autonomous-systems-engineering."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
-model: opus
+model: sonnet
 audience: [simulation-engineer, iot-architect, manufacturing-engineer, platform-engineer, dev]
 works_with: [embedded-iot-engineering, robotics-autonomous-systems-engineering, manufacturing-operations, data-platform, computer-vision-engineering, azure-cloud]
 scenarios:
