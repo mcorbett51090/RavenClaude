@@ -65,14 +65,3 @@ dispatch on an opus id staying silent.
 Probe: `plugins/ravenclaude-core/scripts/handoff-tax-meter.py --self-test` (exit 1 on any failed
 check; the three role-crossed payloads are named `Explore on opus`, `plugin-scoped scout on opus`,
 `architect on opus`).
-
-```mermaid
-graph TD
-  A["PostToolUse(Agent) payload"] --> B["tool_response.resolvedModel -> tier"]
-  A --> C["basename(tool_input.subagent_type)"]
-  B --> D{"tier == frontier AND role in {explore, scout}?"}
-  C --> D
-  D -->|yes| E["flag frontier_readonly -> advisory + ledger"]
-  D -->|no| F["ledger line only"]
-  G["agents/scout.md model: haiku"] -. never read by the meter .-> D
-```

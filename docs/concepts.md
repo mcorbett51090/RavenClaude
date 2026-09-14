@@ -3346,17 +3346,6 @@ Probe: `plugins/ravenclaude-core/scripts/handoff-tax-meter.py --self-test` (exit
 check; the three role-crossed payloads are named `Explore on opus`, `plugin-scoped scout on opus`,
 `architect on opus`).
 
-```mermaid
-graph TD
-  A["PostToolUse(Agent) payload"] --> B["tool_response.resolvedModel -> tier"]
-  A --> C["basename(tool_input.subagent_type)"]
-  B --> D{"tier == frontier AND role in {explore, scout}?"}
-  C --> D
-  D -->|yes| E["flag frontier_readonly -> advisory + ledger"]
-  D -->|no| F["ledger line only"]
-  G["agents/scout.md model: haiku"] -. never read by the meter .-> D
-```
-
 **Sources:** [knowledge/model-tier-delegation.md — the doctrine this meter measures](https://github.com/mcorbett51090/RavenClaude/blob/main/plugins/ravenclaude-core/knowledge/model-tier-delegation.md) · [Claude Code sub-agents — "Choose a model" (Explore inherits the main model since v2.1.198)](https://code.claude.com/docs/en/sub-agents)
 
 _Last verified: 2026-09-14_
