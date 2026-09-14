@@ -177,10 +177,30 @@ expensive model. **Measured, never blocked:** the
 appends one counts-only line per dispatch to `.ravenclaude/runs/<session>/dispatch-ledger.jsonl`
 (tier, brief words, report words, final-request tokens, flags) and advises the Team
 Lead on `report_over_cap` / `brief_over_cap` / `frontier_readonly`. Opt-in by posture
-like every other advisory hook; `handoff_tax: { report_cap_words, brief_cap_words }`
-or `handoff_tax: off`. Its honest limit: the payload's `totalTokens` covers the
-sub-agent's **final** request only, so the ledger's token column is a lower bound and
-its word counts are the exact figures.
+like every other advisory hook; `handoff_tax: { report_cap_words, brief_cap_words,
+pin_explore }` or `handoff_tax: off`. Its honest limit: the payload's `totalTokens`
+covers the sub-agent's **final** request only, so the ledger's token column is a lower
+bound and its word counts are the exact figures. Roll the ledger up with
+`bash plugins/ravenclaude-core/bin/rc dispatch-summary` — that is where the "cost per
+completed task" line in `/wrap` and the retrospective comes from.
+
+**The one binding piece: [`hooks/explore-tier-pin.sh`](hooks/explore-tier-pin.sh)**
+(`PreToolUse` on `Agent|Task`). The meter flags `frontier_readonly` after the bill is
+paid; the pin acts before it. An un-pinned `Explore` dispatch (basename `explore`, no
+`model` in the call) is rewritten via `hookSpecificOutput.updatedInput` to add
+`model: haiku` (`handoff_tax.pin_explore: haiku | sonnet | off`; default `haiku`). It
+never overrides an explicit `model`, stands down when `CLAUDE_CODE_SUBAGENT_MODEL` is
+set, and touches no other `subagent_type` — every roster agent already carries its
+tier in frontmatter. **Roster-level, the frontier share is ratcheted:**
+`scripts/check-model-tier-ratchet.py` (Gate 287) fails a PR that raises the
+`opus`/`fable`/`inherit` share of `agents/*.md` across all plugins or lowers the
+`haiku` count against `tests/fixtures/model-tier-ratchet.json`; loosening is
+`--stamp --allow-loosen`, said out loud in the PR, never silent. **Cross-host:** the
+pin and the meter are Claude Code hooks; on Copilot and Codex the projected agent
+carries its canonical tier as a header comment for the consumer to pin (those hosts
+take a picker/model id, not a tier alias) — see
+[`knowledge/model-tier-delegation.md`](knowledge/model-tier-delegation.md) § "Cross-host
+honesty" before claiming the pin is in force anywhere but Claude Code.
 
 **Composition with the cheap lane (unchanged).** The cheap lane asks *"does this task
 need to be on Claude at all?"* and is a router on the raw task — deliberately off by

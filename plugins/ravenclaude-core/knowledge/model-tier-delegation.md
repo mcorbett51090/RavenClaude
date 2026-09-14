@@ -105,15 +105,38 @@ The hierarchy earns its overhead when the work is **long, parallelisable, and fu
 
 ## Measuring it — cost per completed task, not tokens per call
 
-Tokens-per-call is the wrong denominator; it rewards a quiet agent that did nothing. The unit is **cost per completed task**, and the marketplace gives the Team Lead three instruments for it:
+Tokens-per-call is the wrong denominator; it rewards a quiet agent that did nothing. The unit is **cost per completed task**, and the marketplace gives the Team Lead four instruments for it — three that observe, one that binds:
 
 | Instrument | What it records | Where |
 |---|---|---|
 | [`handoff-tax-meter.sh`](../hooks/handoff-tax-meter.sh) (`PostToolUse` on `Agent`) | per dispatch: `subagent_type`, requested vs `resolvedModel`, tier, brief words, report words, `totalTokens`, `totalToolUseCount`, duration, over-cap flags | `.ravenclaude/runs/<session>/dispatch-ledger.jsonl` (+ an advisory to the Team Lead on an over-cap report or brief, or an un-pinned frontier dispatch of a read-only type) |
+| `bash plugins/ravenclaude-core/bin/rc dispatch-summary` (= `handoff-tax-meter.py --summary`) | the ledger rolled up: dispatches by tier, frontier share, `frontier_readonly` count, over-cap briefs/reports, median brief/report words, the token lower bound | stdout, for `/wrap` and the retrospective — the "cost per completed task" line comes from here, not from a feeling |
 | [`parallelism-detector.py`](../scripts/parallelism-detector.py) (`SubagentStart`) | whether independent work ran one-at-a-time | `.ravenclaude/runs/<session>/parallelism-observations.json` |
 | [`context-usage-meter.py`](../scripts/context-usage-meter.py) | how full the orchestrator's own window is — the "context pressure" trigger of the conserve-tokens exception | read by the SessionStart banner and `conserve-tokens.py` |
 
 Honest limits, stated so the numbers are not over-trusted: `totalTokens` / `usage` on the Agent `tool_response` cover the subagent's **final** API request only, not the whole run `[docs-verified 2026-09-14]`; the ledger's word counts are exact, its token figures are a lower bound. A background (`async_launched`) dispatch carries no usage fields at all, so the ledger records the brief side and marks the report side unknown. The meter is **observation, never a gate** — the same "a hook cannot compel a shorter report" limit that governs the parallelism detector.
+
+### The one place a hook does bind: `explore-tier-pin`
+
+The meter flags `frontier_readonly` **after** the Explore has already run on Opus — an advisory on a bill already paid. [`explore-tier-pin.sh`](../hooks/explore-tier-pin.sh) (`PreToolUse` on `Agent|Task`) closes that gap on the one dispatch shape where a hook *can* act: when the `subagent_type` basename is `explore` and the call carries no `model`, it returns a `hookSpecificOutput.updatedInput` envelope that adds `model: haiku` (or the `pin_explore` knob's value) `[docs-verified 2026-09-14 — updatedInput is the one PreToolUse field that rewrites the Agent call]`. It never overrides an explicit `model`, stands down when `CLAUDE_CODE_SUBAGENT_MODEL` already sets a fleet default, and does nothing for any other `subagent_type` — `scout` and every roster agent already carry their tier in frontmatter. Self-test: `python3 plugins/ravenclaude-core/scripts/explore-tier-pin.py --self-test`.
+
+### The roster-level ratchet — the frontier share may not creep
+
+Per-dispatch pins are worthless if the roster quietly re-pins its agents to `opus` one PR at a time. [`scripts/check-model-tier-ratchet.py`](../../../scripts/check-model-tier-ratchet.py) (Gate 287 in `scripts/audit-gates.sh`) counts every `agents/*.md` across every plugin by tier and binds two invariants to [`tests/fixtures/model-tier-ratchet.json`](../../../tests/fixtures/model-tier-ratchet.json): the **frontier share** (`opus` / `fable` / `inherit` over total) may not rise, and the **haiku count** may not fall. A PR that adds an opus agent must add enough non-frontier agents to hold the share, or re-stamp the baseline with `--stamp --allow-loosen` and say why in the PR — the loosening is allowed, the *silent* loosening is not. The fixture is bound to the merge base by `check-ratchet-freshness.py`, the same way the other ratchets are.
+
+## Cross-host honesty — where the tier travels
+
+The pin and the meter are Claude Code hooks; the *discipline* is not. Per host (`[docs-verified 2026-09-14]`, projected by the `generate-*-hooks.py` generators, each of which prints its skip reasons):
+
+| Host | `model:` on the agent file | `explore-tier-pin` | `handoff-tax-meter` | So the tier lives in… |
+|---|---|---|---|---|
+| **Claude Code** | yes (`model:` frontmatter, gated) | wired (`PreToolUse` `Agent\|Task`) | wired (`PostToolUse` `Agent\|Task`) | the agent file, the dispatch call, and the pin as backstop |
+| **Copilot CLI** | the host honours a `model:` property, but it takes a **plan-specific picker id**, so the projector states the canonical tier in the generated header and does **not** emit the field — the agent inherits the session default until you pin it | **skipped** — Copilot's hook output has no verified input-rewrite field, so a rewrite would be silently ignored | wired — Copilot ≥ 1.0.62 honours Claude matcher semantics | your pin, in the projected `.agent.md`, on your lineup's Haiku-class id |
+| **Codex CLI** | the `.codex/agents/*.toml` contract has a `model` key, but it takes a **Codex model id**; same treatment — tier stated as a TOML comment, field not emitted | skipped (lane-scope: the Codex hook lanes are SessionStart-only today) | skipped (same) | your pin, in the projected TOML, or the session's `/model` |
+| **Cursor** | not projected | skipped — Cursor's pre-tool lane carries a shell command, not a dispatch | skipped — no verified after-subagent event | the dispatch call (`model` on the Task call) |
+| **Gemini CLI** | not projected | skipped — `Agent\|Task` has no Gemini tool equivalent in the verified vocabulary | skipped (same) | the session's model |
+
+Read the row for your host before quoting a "we pin Explore" claim in a PR description — on four of the five it is a claim about Claude Code, not about you. The two projections that *could* carry a model (Copilot, Codex) deliberately do not invent an alias→id map: one tenant's picker lineup hard-coded into every consumer is a worse default than an honest "inherits until pinned" comment they can act on.
 
 ## Knobs
 

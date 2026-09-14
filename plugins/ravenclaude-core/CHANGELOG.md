@@ -2,6 +2,67 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.322.0 — 2026-09-14
+
+### Added
+
+- **Model-tier delegation** — the price-mix half of orchestration: push the
+  *expensive tokens* down, not just the tasks. Doctrine in
+  [`knowledge/model-tier-delegation.md`](knowledge/model-tier-delegation.md); the
+  Team Lead prior in `CLAUDE.md` § "Model-tier delegation"; `spawn-team`
+  **Step 4.25** (pick the tier) and a Step 8 cost line sourced from the ledger.
+- **`scout`** — the shipped `haiku` worker for read-a-lot/return-a-little work
+  (search, grep, classify, extract, inventory, cross-reference). Returns the
+  exact shape the brief asked for, capped by the brief — an artifact path when
+  the material exceeds the cap — never a transcript.
+- **`model:` frontmatter is now required on every agent** (`haiku` / `sonnet` /
+  `opus` / `fable` / `inherit`; full model ids rejected) — gated by
+  `scripts/check-frontmatter.py`. An omitted `model:` silently inherited the
+  main conversation's (frontier) model for every worker.
+- **`hooks/handoff-tax-meter.sh`** (`PostToolUse` on `Agent|Task`) — one
+  counts-only ledger line per dispatch (tier, brief/report words, final-request
+  tokens, flags) to `.ravenclaude/runs/<session>/dispatch-ledger.jsonl`; advises
+  on `report_over_cap` / `brief_over_cap` / `frontier_readonly`. Observation, not
+  a gate. `handoff-tax-meter.py --summary` and **`rc dispatch-summary`** roll it up
+  into a cost-per-completed-task view.
+- **`hooks/explore-tier-pin.sh`** (`PreToolUse` on `Agent|Task`) — the one binding
+  piece: rewrites an un-pinned built-in `Explore` dispatch to `model: haiku` via
+  `hookSpecificOutput.updatedInput` (since Claude Code v2.1.198 `Explore`
+  inherits the session model, so on Opus an un-pinned Explore is an Opus grep).
+  Never overrides an explicit `model`; stands down under
+  `CLAUDE_CODE_SUBAGENT_MODEL`; knob `handoff_tax.pin_explore: haiku | sonnet | off`.
+- **Posture template** seeds a `handoff_tax` block (`report_cap_words: 400`,
+  `brief_cap_words: 600`, `pin_explore: haiku`); the dashboard's Save now
+  round-trips it instead of silently dropping the block.
+- **Worker contract** in the brief template (inputs / tools / success check /
+  max output) and its report-side mirror in `rules/agent-collaboration.md`; a
+  Tier column + `scout` leaf in `knowledge/agent-routing.md`; the escalation
+  ladder (haiku → sonnet → opus, recovery goes up, never sideways) in the doctrine.
+- **Cross-host honesty:** the Copilot `.agent.md` and Codex `.toml` projections
+  now state each agent's canonical tier in the generated header. Neither host
+  takes a tier alias (Copilot wants a plan-specific picker id, Codex a model id),
+  so the field is deliberately not emitted and the agent inherits the session
+  default until the consumer pins it — said in the file, not discovered on the
+  bill. Per-host truth: `host-support.json` `components.agents.<host>.model_tier`.
+
+### Marketplace gates (repo-side, shipped alongside)
+
+- **Gate 286** — `explore-tier-pin` self-test + must-fail canary.
+- **Gate 287** — `scripts/check-model-tier-ratchet.py`: the roster-wide
+  `opus`/`fable`/`inherit` share may not rise and the `haiku` count may not fall
+  against `tests/fixtures/model-tier-ratchet.json` (bound to the merge base by
+  `check-ratchet-freshness.py`). Loosen with `--stamp --allow-loosen`, out loud.
+
+### Notes
+
+Migration: none for a consumer's project files. On `/plugin marketplace update`
+the two new hooks register via `hooks.json` and are **opt-in by posture** like
+every other advisory hook — no `.ravenclaude/comfort-posture.yaml`, no ledger, no
+pin. A consumer who *does* have a posture file gets the pin at its default
+(`haiku`) immediately; pass `model` explicitly or set `pin_explore: off` to opt
+out. Honest limit: the ledger's token column covers the sub-agent's **final**
+request only (a lower bound); its word counts are exact.
+
 ## 0.321.7 — 2026-09-13
 
 ### Added
