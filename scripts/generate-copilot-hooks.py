@@ -134,8 +134,11 @@ _SKIP = {
         "reference]. Copilot's hook output contract has no verified input-rewrite "
         "field, and the adapter does not translate one — wiring it would ship a "
         "rewrite that is silently ignored while the generated config says the pin "
-        "is in force. Copilot custom agents DO carry a `model` frontmatter field, so "
-        "on this host the tier travels with the agent file, not the dispatch call."
+        "is in force. Copilot custom agents DO honour a `model` frontmatter field, "
+        "but it takes a plan-specific picker id, so generate-copilot-plugin.py states "
+        "the canonical tier in each projected agent's header for the consumer to pin "
+        "rather than inventing an alias→id map; until pinned, the agent inherits the "
+        "session default."
     ),
 }
 

@@ -6,6 +6,10 @@
 # review-only agent whatever the main session has — the same silent
 # privilege grant that MH-10 fixed on Copilot.
 # Derived from the canonical tools: Read, Grep, Glob, Write
+#
+# Canonical model tier: haiku. `model` is NOT emitted — it takes a Codex
+# model id, and the canonical value is a Claude tier alias. Until you pin
+# one, this agent runs on the session's model.
 name = "scout"
 description = "Haiku-tier worker for high-volume, low-judgment work — search, grep, classify, extract fields, inventory, cross-reference. Reads a lot, returns a short structured artifact. NOT for design, code changes, or verdicts → architect / coders / reviewers."
 sandbox_mode = "workspace-write"

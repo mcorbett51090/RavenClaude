@@ -30,8 +30,12 @@ https://learn.chatgpt.com/docs/agent-configuration/subagents]`:
 
 This projection deliberately emits only `name`, `description`, `sandbox_mode` and
 `developer_instructions`:
-  * `model` / `model_reasoning_effort` — the canonical agents pin no Codex model,
-    and inventing one would silently override the consumer's own default.
+  * `model` / `model_reasoning_effort` — the canonical agents pin a Claude TIER
+    alias (`haiku` / `sonnet` / `opus`), not a Codex model id, and inventing an
+    alias→id map would silently override the consumer's own default with one
+    tenant's lineup. The tier is carried into the TOML header as a comment so
+    the consumer can pin the matching rung themselves (model-tier-delegation.md
+    § "Cross-host honesty").
   * `mcp_servers` — MCP on Codex is a separate, deliberately-deferred piece (the
     TOML merge risk); wiring it here would smuggle it in.
 
@@ -93,7 +97,7 @@ def scalar(raw: str) -> str:
 
 def parse_agent(path: Path) -> dict:
     fm, body = split_frontmatter(path.read_text(encoding="utf-8"))
-    name = description = ""
+    name = description = model = ""
     tools: list[str] = []
     for line in fm.splitlines():
         kv = _KV_RE.match(line)
@@ -104,12 +108,15 @@ def parse_agent(path: Path) -> dict:
             name = scalar(raw)
         elif key == "description" and not description:
             description = scalar(raw)
+        elif key == "model" and not model:
+            model = scalar(raw).strip().lower()
         elif key == "tools" and not tools:
             tools = [t.strip() for t in scalar(raw).split(",") if t.strip()]
     return {
         "name": name or path.stem,
         "description": description,
         "tools": tools,
+        "model": model,
         "body": body.strip(),
     }
 
@@ -126,11 +133,7 @@ def sandbox_for(tools: list[str]) -> str:
     """
     if not tools or "*" in tools:
         return SANDBOX_WORKSPACE_WRITE
-    return (
-        SANDBOX_WORKSPACE_WRITE
-        if any(t in _WRITE_TOOLS for t in tools)
-        else SANDBOX_READ_ONLY
-    )
+    return SANDBOX_WORKSPACE_WRITE if any(t in _WRITE_TOOLS for t in tools) else SANDBOX_READ_ONLY
 
 
 def toml_basic(value: str) -> str:
@@ -171,6 +174,18 @@ def build_agent_toml(agent: dict) -> str:
         "# privilege grant that MH-10 fixed on Copilot.\n"
         f"# Derived from the canonical tools: {', '.join(agent['tools']) or '(none)'}\n"
     )
+    tier = agent.get("model") or ""
+    if tier and tier != "inherit":
+        # Codex's `model` key is real (see the module docstring) but takes a
+        # Codex model id, not a Claude tier alias; the alias is stated so the
+        # consumer can pin the equivalent rung on their own lineup, and so an
+        # un-pinned haiku-class worker running on the session default is a
+        # visible fact in the file rather than a surprise on the bill.
+        header += (
+            f"#\n# Canonical model tier: {tier}. `model` is NOT emitted — it takes a Codex\n"
+            "# model id, and the canonical value is a Claude tier alias. Until you pin\n"
+            "# one, this agent runs on the session's model.\n"
+        )
     return (
         header
         + f"name = {toml_basic(agent['name'])}\n"

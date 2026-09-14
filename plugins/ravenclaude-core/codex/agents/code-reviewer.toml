@@ -6,6 +6,10 @@
 # review-only agent whatever the main session has — the same silent
 # privilege grant that MH-10 fixed on Copilot.
 # Derived from the canonical tools: Read, Grep, Glob, Bash
+#
+# Canonical model tier: opus. `model` is NOT emitted — it takes a Codex
+# model id, and the canonical value is a Claude tier alias. Until you pin
+# one, this agent runs on the session's model.
 name = "code-reviewer"
 description = "Use this agent for pre-merge review of any non-trivial diff. Spawn it AFTER coder + tester agents are done but BEFORE the Team Lead opens a PR or merges. Returns a structured review with blockers, suggestions, and praise."
 sandbox_mode = "read-only"

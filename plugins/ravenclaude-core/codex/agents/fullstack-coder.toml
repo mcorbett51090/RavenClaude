@@ -6,6 +6,10 @@
 # review-only agent whatever the main session has — the same silent
 # privilege grant that MH-10 fixed on Copilot.
 # Derived from the canonical tools: Read, Edit, Write, Grep, Glob, Bash
+#
+# Canonical model tier: sonnet. `model` is NOT emitted — it takes a Codex
+# model id, and the canonical value is a Claude tier alias. Until you pin
+# one, this agent runs on the session's model.
 name = "fullstack-coder"
 description = "Use this agent only for changes that genuinely cross the client/server boundary in one cohesive unit (e.g., a new endpoint plus the UI that calls it). Prefer separate backend-coder + frontend-coder agents when the work can be split cleanly."
 sandbox_mode = "workspace-write"
