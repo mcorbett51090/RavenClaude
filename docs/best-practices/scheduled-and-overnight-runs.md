@@ -25,8 +25,9 @@ The article that prompted the [2026-06-04 features gap analysis](../research/202
 | `Monitor` (background) | Stream events from a long-running poll/tail; one notification per event until a terminal state. | Harness tool |
 | `runaway-brake.sh` + `dod-gate.sh` | Depth + correctness guards — trip on thrash / block "looks done" until the DoD command passes. | `ravenclaude-core` hooks (opt-in via `comfort-posture.yaml`) |
 | `guard-destructive.sh` + `security_deny` floor | The irreversible-action floor that holds **regardless** of autonomy. | `ravenclaude-core` hook + posture |
+| `routine-review-tribunal` | Two-panel + tiebreak review of a **diff an unattended routine just produced**, before the PR is final. | `ravenclaude-core` skill + `scripts/routine-review-tribunal.py` (PR #1161) |
 
-> **Honest scope note.** `loop`, `send_later`, `subscribe_pr_activity`, and `Monitor` are **harness features**, not things this repo ships — so this doc is a *composition pattern*, not new machinery. There is intentionally no `loop` skill in `plugins/`. What the repo *does* own is the guard half (`runaway-brake.sh`, `dod-gate.sh`, the `security_deny` floor), which is what makes unattended use of the harness primitives safe.
+> **Honest scope note.** `loop`, `send_later`, `subscribe_pr_activity`, and `Monitor` are **harness features**, not things this repo ships — so this doc is a *composition pattern*, not new machinery. There is intentionally no `loop` skill in `plugins/`. What the repo *does* own is the guard half (`runaway-brake.sh`, `dod-gate.sh`, the `security_deny` floor) **and**, since 2026-09-11, the post-hoc review half (`routine-review-tribunal`) for routines whose contract ends in a PR. The first makes unattended use of the harness primitives safe; the second makes an unattended PR's review as cross-checked as `/forge` is for a plan.
 
 ## How to apply
 
@@ -70,16 +71,33 @@ security_deny:
 - Don't `sleep` in the foreground to wait for an external event — schedule a re-check (`send_later`) or stream it (`Monitor`).
 - Don't relax the `security_deny` floor to "move faster overnight." Unattended is precisely when the floor matters most.
 - Don't let a `loop` interval be shorter than the task runtime (runs stack and thrash the runaway brake).
+- Don't finalize a scheduled routine's PR on CI + the authoring agent's self-review alone. That is the gap the tribunal exists to close.
+
+### 4. PR-producing scheduled routines (required tribunal)
+
+If the unattended work **opens or updates a PR**, the guardrails above are not enough. CI plus whichever agent ran the routine is a single reviewer. Before that PR is opened (first run) or marked ready (a revision), run the [`routine-review-tribunal`](../../plugins/ravenclaude-core/skills/routine-review-tribunal/SKILL.md) skill.
+
+Which engine, flags, exits, and "do not substitute `code-reviewer` / the Thing / decision-review / `/forge`" table: [`routine-review-vs-other-tribunals.md`](./routine-review-vs-other-tribunals.md).
+
+Currently required by run contract:
+
+- [`docs/plugin-discovery-routine-policy.md`](../plugin-discovery-routine-policy.md)
+- [`docs/research-routine-two-cadence.md`](../research-routine-two-cadence.md)
+
+`approved` → open/ready the PR. `needs_revision` → apply `required_edits` and resubmit (bounded to 2 rounds). `escalate` → flagged draft + notify; do not merge and do not start a third automated round.
 
 ## Edge cases / when the rule does NOT apply
 
 - **A single, short, attended task** needs none of this — just run it.
 - **High-blast or irreversible work** (force-push, prod deploys, deletes, publishes) should **not** be left to an unattended loop at all — these always `defer` to the human regardless of posture, so an overnight loop will (correctly) stall on them rather than complete them.
 - **`send_later` unavailable** in the current session → fall back to a `Monitor` poll that exits on terminal state, or accept that only webhook-delivered events will wake you (and say so).
+- **A scheduled run that writes no PR** (plugin-discovery's saturated-catalog no-op; a research sweep with 0 net-new) has no tribunal step — stay silent per that routine's notification discipline.
+- **`source-control-coordinator` in `active` mode** still needs the `runaway` / `definition_of_done` bounds this doc requires. That agent babysits already-open PRs; it does not replace the routine-review tribunal on a routine that *authored* the diff.
 
 ## See also
 
 - [Features gap analysis (2026-06-04)](../research/2026-06-04-claude-features-gap-analysis/gap-analysis.md) — gap **B2**, which this doc closes.
+- [`routine-review-vs-other-tribunals.md`](./routine-review-vs-other-tribunals.md) — which review engine to reach for when the unattended work produces a PR (added 2026-09-13; closes the post-#1161 gap this composition pattern did not name)
 - [`plugins/ravenclaude-core/CLAUDE.md`](../../plugins/ravenclaude-core/CLAUDE.md) → "Auto-mode guardrails — runaway brake + definition-of-done gate" — the guard half.
 - [GitHub API + rate limits](./github-api-and-rate-limits.md) — relevant when a `Monitor` poll hits the Actions API.
 
@@ -87,6 +105,8 @@ security_deny:
 
 Authored 2026-06-04 closing gap **B2** from the features gap analysis (itself prompted by an `@AnatoliKopadze` X post on Claude features). The guard primitives it composes — `runaway-brake.sh`, `dod-gate.sh`, the `security_deny` floor — are the ones already documented in `ravenclaude-core/CLAUDE.md`; this doc adds the missing "how to combine them for unattended runs" layer.
 
+**2026-09-13 addendum.** PR #1161 shipped `routine-review-tribunal` and wired it into the two PR-producing scheduled-routine policies. This composition pattern still described only the 2026-06-04 guard half, so a session that started here would open an unattended PR without the new gate. The primitive row, section 4, and the pointer to [`routine-review-vs-other-tribunals.md`](./routine-review-vs-other-tribunals.md) close that.
+
 ---
 
-_Last reviewed: 2026-06-04 by `mcorbett51090`_
+_Last reviewed: 2026-09-13 by `docs-automation`_
