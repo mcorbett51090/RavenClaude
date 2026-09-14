@@ -2833,7 +2833,7 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-09-10",
+      "last_verified": "2026-09-14",
       "refresh_when": null,
       "sources": [
         {
@@ -2851,7 +2851,7 @@
       "covers": [
         "plugins/ravenclaude-core/hooks/hooks.json"
       ],
-      "covers_digest": "sha256:35be3db33a841a3b1bdeff9a40913309d4c7b3339ff629c44de863ed5a9b137a",
+      "covers_digest": "sha256:c8e09186b313dfba620952ca27fa7dc64aff3167c4f85fcf0f83f5ca46176d02",
       "nuance": "Two `additionalContext` emitters on one event concatenate rather than last-write-wins, but two `updatedToolOutput` emitters replace, so the second silently discards the first.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -2925,7 +2925,7 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-09-10",
+      "last_verified": "2026-09-14",
       "refresh_when": null,
       "sources": [
         {
@@ -2945,7 +2945,7 @@
         "scripts/sync-plugin-versions.py",
         "scripts/generate-copilot-plugin.py"
       ],
-      "covers_digest": "sha256:d194bcb6b88eefa838ad1b0551a267d994569b2585b606feeb190dc83b3fc134",
+      "covers_digest": "sha256:ccdb61373f86e12899ee555cfb3e6a10d2219ba72fb8ba316463e46e975e7a9f",
       "nuance": "The cache key is the `version` string, never a content hash, so `sync-plugin-versions.py` can report clean while every installed session keeps running the old `hooks/` code.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -2974,7 +2974,7 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-09-10",
+      "last_verified": "2026-09-14",
       "refresh_when": null,
       "sources": [
         {
@@ -3007,7 +3007,7 @@
         "scripts/inventory-nuance-judge.py",
         "plugins/ravenclaude-core/scripts/forge-receipt.py"
       ],
-      "covers_digest": "sha256:a8b08d40399302e21e1a4478dee5ecb53f910a23cda347a20d769728039be381",
+      "covers_digest": "sha256:6a209113f56a9eb3c98420a5e96b2f8208733f11be7dab7923804af7dea23dee",
       "nuance": "The teeth bit is the exit a tool own CHECK returns on a planted defect, never the exit `--must-fail` itself returns: `premise-gate.py` denies at `exit 0` while `sync-plugin-versions.py` reddens at `exit 2`, so an auditor that hard-codes one number can never be right for both.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -3393,7 +3393,7 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-09-10",
+      "last_verified": "2026-09-14",
       "refresh_when": null,
       "sources": [
         {
@@ -3414,7 +3414,7 @@
         "scripts/generate-dashboards.py",
         "scripts/generate-index-dashboard.py"
       ],
-      "covers_digest": "sha256:d3094e382b060b63ab90f2e3dc6e013fc0e91ca833d875f0481d577ef3ac4011",
+      "covers_digest": "sha256:041f90990e0da20b623ed417c13a0ed441426d5ae75605d971b7486679cd8086",
       "nuance": "`ISLANDED_PANEL_COST` is a flat 2 because the parser reads the payload as CDATA, so `check-dom-budget.py` cannot fire on `learn-payload` no matter how far past 23,861 elements it grows.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -4355,6 +4355,60 @@
         "rationale": "The reuse is a 5-line source fact (one module importing another's function) already read in the panels subcommand's own output; the --self-test suite covers the deterministic tally() logic downstream of resolution, not this import fact, and a dedicated static-AST check would be redundant with reading resolve_panels() directly."
       },
       "strength_badge": "Unverified"
+    },
+    {
+      "id": "handoff-tax-flags-on-role-not-frontmatter",
+      "title": "The handoff-tax meter keys frontier_readonly on worker role × resolved model, not on the agent's model: line",
+      "category": "Inventory — measured mechanisms",
+      "kind": "ravenclaude-built",
+      "order": 935,
+      "summary": "frontier_readonly is computed from the payload's resolvedModel × subagent_type, never the agent's model: line — a scout overridden to opus is caught; an architect on opus is not.",
+      "see_also": [],
+      "widget": null,
+      "try_it": null,
+      "node_links": {},
+      "last_verified": "2026-09-14",
+      "refresh_when": null,
+      "sources": [
+        {
+          "label": "knowledge/model-tier-delegation.md — the doctrine this meter measures",
+          "url": "https://github.com/mcorbett51090/RavenClaude/blob/main/plugins/ravenclaude-core/knowledge/model-tier-delegation.md"
+        },
+        {
+          "label": "Claude Code sub-agents — \"Choose a model\" (Explore inherits the main model since v2.1.198)",
+          "url": "https://code.claude.com/docs/en/sub-agents"
+        }
+      ],
+      "body_md": "## What a reader would have assumed instead\n\nThe meter reads the dispatched agent's `model:` frontmatter, so a `scout` (pinned `haiku`) can\nnever trip `frontier_readonly` — the frontmatter is the tier, and the gate on `model:` in\n`check-frontmatter.py` is what makes the flag unnecessary for shipped agents.\n\n## The discriminator\n\ncontrol: with `resolvedModel` held at `claude-opus-4-8` across three self-test payloads, `Explore`\nand `ravenclaude-core:scout` both returned `SIGNAL frontier_readonly` while `architect` returned\n`OK` — the role was the only input that changed between the flagged and the unflagged runs.\nMeasured 2026-09-14: the flag is computed from the `PostToolUse(Agent)` payload alone —\n`tool_response.resolvedModel` classified to a tier, crossed with the basename of\n`tool_input.subagent_type` against `READ_ONLY_TYPES = {explore, scout}` — and the agent file is\nnever opened, so a per-invocation `model` override that puts a scout on opus is caught while a\njudgment role on opus is deliberately not.\n\n## Why it matters\n\nThe `model:` frontmatter gate closes one door (a shipped agent cannot silently inherit the\nsession's model), but Claude Code resolves the model **per invocation first** — the Team Lead's\n`model` parameter, then the frontmatter, then `CLAUDE_CODE_SUBAGENT_MODEL`. A meter that trusted\nthe frontmatter would report every scout as haiku forever. Reading `resolvedModel` is what lets\nthe ledger's `tier` column be the tier the worker actually billed at, and what lets the built-in\n`Explore` (which has no frontmatter and since v2.1.198 inherits the main model) be flagged at all.\n\nFalsifier: an `architect` dispatch on an opus id emitting `frontier_readonly`, or a `scout`\ndispatch on an opus id staying silent.\n\nProbe: `plugins/ravenclaude-core/scripts/handoff-tax-meter.py --self-test` (exit 1 on any failed\ncheck; the three role-crossed payloads are named `Explore on opus`, `plugin-scoped scout on opus`,\n`architect on opus`).",
+      "diagram": null,
+      "diagram_mini": null,
+      "steps": [],
+      "svg": null,
+      "svg_mini": null,
+      "entry_class": "inventory",
+      "covers": [
+        "plugins/ravenclaude-core/agents/scout.md",
+        "plugins/ravenclaude-core/hooks/handoff-tax-meter.sh",
+        "plugins/ravenclaude-core/scripts/handoff-tax-meter.py",
+        "plugins/ravenclaude-core/hooks/tests/test-gate285-handoff-tax-meter.sh"
+      ],
+      "covers_digest": "sha256:dddd6d630b5af212c800a4ee739cc899fd2fb89d12f14f9f69acd11a456d283e",
+      "nuance": "`frontier_readonly` fires on `tool_response.resolvedModel` × the basename of `tool_input.subagent_type` (`explore` / `scout`), never on the agent file's `model:` — so `scout` dispatched with a per-call `model: opus` override is flagged while `scout.md` still reads `haiku`, and `architect` on opus is not.",
+      "nuance_evidence": {
+        "measured": "2026-09-14",
+        "control": "same resolvedModel (claude-opus-4-8), three subagent_types: `Explore` -> SIGNAL frontier_readonly, `ravenclaude-core:scout` -> SIGNAL frontier_readonly, `architect` -> OK; the only input that changed between the flagged and unflagged runs was the role",
+        "falsifier": "an `architect` dispatch on an opus id emitting frontier_readonly, or a `scout` dispatch on an opus id staying silent",
+        "probe": "plugins/ravenclaude-core/scripts/handoff-tax-meter.py"
+      },
+      "nuance_source": "plugins/ravenclaude-core/scripts/handoff-tax-meter.py:196-223",
+      "verify": {
+        "tier": "effect",
+        "strength": "executed",
+        "class": "script-selftest",
+        "probe": "plugins/ravenclaude-core/scripts/handoff-tax-meter.py",
+        "teeth_exit": 1
+      },
+      "strength_badge": "Probed"
     }
   ]
 }

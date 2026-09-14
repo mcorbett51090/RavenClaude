@@ -1,0 +1,127 @@
+# Model-tier delegation — push the expensive tokens down, not just the tasks
+
+> **Last reviewed:** 2026-09-14 against [sub-agents](https://code.claude.com/docs/en/sub-agents) and [hooks](https://code.claude.com/docs/en/hooks) (retrieved 2026-09-14). **Refresh when:** Anthropic changes the subagent `model` resolution order, the `Explore` model cap, the Agent tool's per-invocation `model` parameter, or the `PostToolUse(Agent)` `tool_response` telemetry fields. Companion to [`agent-routing.md`](agent-routing.md) (which specialist), [`subagent-isolation-and-tooling.md`](subagent-isolation-and-tooling.md) (what a subagent can do), and the [`spawn-team`](../skills/spawn-team/SKILL.md) playbook (how to brief).
+
+This file is written for **the Team Lead** — the top-level session, which in this marketplace normally runs on the strongest model available. It answers one question the rest of the dispatch discipline had left implicit: **which model tier does each dispatched worker run on, and why does that decide whether delegation saves money or costs it.**
+
+## The claim, stated precisely
+
+Delegation saves **money** when the volume of tokens moves to a cheaper price tier. It does **not** save **tokens** — it usually spends more, because every handoff is overhead:
+
+1. the orchestrator writes a brief (premium output tokens),
+2. the worker loads its own system prompt and context (a fresh cache — nothing from the parent's prompt cache carries over),
+3. the worker returns a report (worker output tokens),
+4. the orchestrator reads that report (premium input tokens).
+
+If the brief and the report are long, the round trip is paid before any useful work happens. Isolated subagents and agent teams have been measured at several multiples of a single continuous session's token count. **More models ≠ fewer tokens. More models = cheaper tokens, only if the workers do the volume and send back short artifacts.**
+
+So the discipline has two halves, and the marketplace ships both:
+
+| Half | What it controls | Where it lives |
+|---|---|---|
+| **Price mix** — which tier does the volume | `model:` frontmatter on every agent (gated), the [`scout`](../agents/scout.md) haiku-tier worker, the per-invocation `model` parameter | this file § "What runs on which tier" |
+| **Handoff tax** — how many tokens cross the boundary each way | the worker contract in every brief (inputs / tools / success check / max output), artifact-pointer returns, the [`handoff-tax-meter`](../hooks/handoff-tax-meter.sh) hook | this file § "The worker contract", § "Hidden token sinks" |
+
+## What runs on which tier
+
+| Role in the run | Tier | `model:` alias | Why |
+|---|---|---|---|
+| Decompose the goal, choose the strategy, judge results, adjudicate disagreements | **frontier** | `opus` (or the session's model — the Team Lead itself) | Planning quality is the floor of the whole system. A cheap plan makes every downstream worker's output cheap in the bad sense. |
+| Search, grep, classify, extract fields, format, lint, inventory, "find every X" | **fast** | `haiku` | High volume, low judgment. The worker reads a lot and returns a little. This is where the savings live. |
+| Bounded code edits against a plan, known API calls, tests for a stated contract, first-draft prose from supplied inputs | **mid** | `sonnet` | Needs competence, not invention. The design decision has already been made upstream. |
+| Gates that hold merge (security verdict, final code review), cited adjudication, research whose conclusion the run depends on | **frontier** | `opus` | The cost of a wrong verdict is the whole run, not the dispatch. |
+| **Recovery when a worker botches it** | **escalate up one tier** | — | Do not let the cheap model "figure it out" on a second attempt with a longer brief. See § "The escalation ladder". |
+
+The roster encodes this: every `agents/*.md` in every plugin declares a `model:` line (gated by `scripts/check-frontmatter.py`), the review gates and the architect pin `opus`, the coders / tester / documentarian / project-manager pin `sonnet`, and `scout` is the shipped **haiku** worker for the read-heavy, judgment-light row.
+
+### The three ways a dispatch picks its model (verified 2026-09-14)
+
+Claude Code resolves a subagent's model in this order — `[docs-verified 2026-09-14, sub-agents § "Choose a model"]`:
+
+1. **The per-invocation `model` parameter on the Agent tool call** (`model: "haiku"`, `"sonnet"`, `"opus"`, or a full model id). The Team Lead can set this on any dispatch, including the built-in `Explore` / `general-purpose` types.
+2. **The subagent definition's `model:` frontmatter** (`inherit` selects the main conversation's model).
+3. **`CLAUDE_CODE_SUBAGENT_MODEL`** (env var), when nothing above set one. With `CLAUDE_CODE_SUBAGENT_MODEL_FORCE=1` (v2.1.257+) the env var overrides everything, including plugin frontmatter — a fleet-wide "every worker on haiku" switch, at the cost of also flattening the opus gates. Do not set FORCE in a project that runs the review gates through subagents.
+
+Before v2.1.251 the env var came **first**; that order is stale.
+
+⛔ **`Explore` is no longer free.** Since v2.1.198 the built-in `Explore` subagent **inherits the main conversation's model** (capped at Opus on the Claude API) instead of always running on Haiku `[docs-verified 2026-09-14]`. On an Opus session, an un-pinned `Explore` dispatch is an Opus dispatch. Either pass `model: "haiku"` per invocation, dispatch [`scout`](../agents/scout.md) instead (it pins `haiku` and also receives the project's `CLAUDE.md`, which `Explore` deliberately skips), or define a project-level agent named `Explore` with `model: haiku` to override the built-in.
+
+## The four preconditions — push work down only when all hold
+
+1. **The subtask is well-specified after the strong model has already done the thinking.** The brief names the files, the criteria, and the shape of the answer. A cheap model given an open question does not save money; it produces a confident wrong answer that the orchestrator then pays to unwind.
+2. **The worker does not need the conversation history** — just the brief plus the files it must touch. If you find yourself pasting the transcript, the task was not decomposed; it was forwarded.
+3. **The worker returns a small artifact** — paths, a diff manifest, extracted fields, pass/fail plus the Structured Output Protocol block — not a narrative. Anything long goes to `.ravenclaude/runs/<run-id>/` and comes back as a pointer.
+4. **Failures are cheap to retry on the cheap model** and rare enough that the orchestrator is not re-planning every time. If the same brief has bounced twice, the problem is the tier or the brief, not the worker's effort.
+
+**The one-line test:** *if the worker's output is longer than what you would have pasted into the main model yourself, the handoff failed.*
+
+## The worker contract (what every brief carries)
+
+The [`spawn-team`](../skills/spawn-team/SKILL.md) Step 4 template already carries goal / context / success criteria / boundaries / reporting cap. The tier discipline adds four lines, and they are the ones that decide the cost:
+
+```
+## Worker contract
+- Model tier: <haiku | sonnet | opus> — <one clause why this tier>
+- Inputs: <exact paths / excerpts; NOT the conversation>
+- Tools you need: <subset — read-only for scouts>
+- Success check: <the deterministic thing the Team Lead will run to verify>
+- Max output: <N words> + the Structured Output Protocol JSON. Long material -> write to <path>, return the path.
+```
+
+`Max output` is not a courtesy. The orchestrator re-reads every worker report at premium input rates; a 2,000-word report from a haiku scout costs more to *read* than the scout cost to *run*.
+
+## Hidden token sinks (named so they can be checked)
+
+| Sink | What it looks like | The fix |
+|---|---|---|
+| **Re-feeding the parent transcript** | A brief that opens with "here is what we discussed…" and runs to hundreds of lines | Decompose, then brief. Context is file paths and excerpts, never the conversation. The `handoff-tax-meter` flags a brief over its cap. |
+| **Parallel scouts all loading the same corpus** | N `Explore`/`scout` dispatches that each `grep -r` the same tree | One scout builds the index artifact first (`.ravenclaude/runs/<run-id>/00-index.json`); the fan-out reads the index, not the repo. Fan out on *disjoint* slices. |
+| **Verbose worker reports** | A "summary" that restates the brief, narrates every step, then gives the answer | Cap it in the contract; require artifact-pointer returns; the meter flags reports over the cap so the pattern is visible, not felt. |
+| **Retries after a cheap model misunderstood an underspecified brief** | Same task dispatched twice to the same tier with a longer prompt | Escalate the tier once (§ below). Two haiku attempts plus the re-plan cost more than one sonnet pass would have. |
+| **Un-pinned `Explore` on an Opus session** | A read-only search running on the most expensive model | `model: "haiku"` per invocation, or `scout`. |
+| **Gates on the cheap tier** | A `security-reviewer` or `code-reviewer` dispatched with a per-invocation `model: "haiku"` "to save money" | Never. Gates hold merge; a missed finding costs the run. The savings live in the volume work, not the verdicts. |
+
+## The escalation ladder (recovery goes UP, never sideways)
+
+When a worker returns `status: blocked` / `partial`, a `confidence` below 0.5, or output the Team Lead's success check falsifies:
+
+1. **Check the brief first.** If the brief was ambiguous, fix the brief — but re-dispatch **one tier up**, not the same tier with more words. (Re-dispatching a haiku worker with a longer brief is the classic case where "saving tokens" costs more than one strong pass.)
+2. **haiku → sonnet → opus.** One rung per failure. Say the rung in the summary.
+3. **After a failure at `opus`, the task is not a dispatch problem.** Route by problem type per spawn-team Step 6 (architect re-plan, ask the user, cited adjudication) — do not spawn a fourth attempt.
+4. **Never de-escalate a gate.** A blocked `security-reviewer` is a finding, not a cost to route around.
+
+## Orchestrator → workers vs. a router on the raw prompt
+
+These look alike and behave differently:
+
+- **Orchestrator → workers** (this marketplace's pattern): one strong brain decomposes; workers read a lot and return little. Saves money reliably when the preconditions above hold. This is [`spawn-team`](../skills/spawn-team/SKILL.md).
+- **Router on the raw user prompt**: send "easy" prompts to a cheap model, "hard" ones to the frontier. Mixed evidence. A bad router sends everything to the expensive model *after* a failed cheap attempt, so it pays twice. RavenClaude's [`cheap-lane-delegation`](../skills/cheap-lane-delegation/SKILL.md) is a router of this second kind — deliberately **off by default**, deterministic (no model call to decide), and with **escalation dominating** every ambiguous match precisely because of the pay-twice failure. Do not "balance" that asymmetry.
+
+## When NOT to build the hierarchy
+
+A short, sequential task — one file, one function, one question — is cheaper on one mid/strong model with a tight context than on any orchestrator-plus-workers shape. The handoff tax has no volume to amortise against. [`spawn-team`](../skills/spawn-team/SKILL.md) Step 1.5's "do it yourself" row is the tier discipline's floor, not an exception to it.
+
+The hierarchy earns its overhead when the work is **long, parallelisable, and full of mechanical reading** — the shape where a fast-tier worker can read ten files and return ten lines.
+
+## Measuring it — cost per completed task, not tokens per call
+
+Tokens-per-call is the wrong denominator; it rewards a quiet agent that did nothing. The unit is **cost per completed task**, and the marketplace gives the Team Lead three instruments for it:
+
+| Instrument | What it records | Where |
+|---|---|---|
+| [`handoff-tax-meter.sh`](../hooks/handoff-tax-meter.sh) (`PostToolUse` on `Agent`) | per dispatch: `subagent_type`, requested vs `resolvedModel`, tier, brief words, report words, `totalTokens`, `totalToolUseCount`, duration, over-cap flags | `.ravenclaude/runs/<session>/dispatch-ledger.jsonl` (+ an advisory to the Team Lead on an over-cap report or brief, or an un-pinned frontier dispatch of a read-only type) |
+| [`parallelism-detector.py`](../scripts/parallelism-detector.py) (`SubagentStart`) | whether independent work ran one-at-a-time | `.ravenclaude/runs/<session>/parallelism-observations.json` |
+| [`context-usage-meter.py`](../scripts/context-usage-meter.py) | how full the orchestrator's own window is — the "context pressure" trigger of the conserve-tokens exception | read by the SessionStart banner and `conserve-tokens.py` |
+
+Honest limits, stated so the numbers are not over-trusted: `totalTokens` / `usage` on the Agent `tool_response` cover the subagent's **final** API request only, not the whole run `[docs-verified 2026-09-14]`; the ledger's word counts are exact, its token figures are a lower bound. A background (`async_launched`) dispatch carries no usage fields at all, so the ledger records the brief side and marks the report side unknown. The meter is **observation, never a gate** — the same "a hook cannot compel a shorter report" limit that governs the parallelism detector.
+
+## Knobs
+
+| Knob | Where | Default | Effect |
+|---|---|---|---|
+| `handoff_tax.report_cap_words` | `.ravenclaude/comfort-posture.yaml` | `400` | Report length above which the meter advises the Team Lead. |
+| `handoff_tax.brief_cap_words` | same | `600` | Brief length above which the meter advises (the transcript-forwarding tell). |
+| `handoff_tax: off` | same | (absent = on when a posture file exists) | Disables the advisory; the ledger line is still written. |
+| `CLAUDE_CODE_SUBAGENT_MODEL` (+ `_FORCE`) | settings `env` | unset | Fleet-wide default (or forced) worker model — see § "The three ways". |
+
+The meter is **opt-in by posture**, exactly like every other advisory hook in this plugin: no `.ravenclaude/comfort-posture.yaml`, no advisory, no ledger.

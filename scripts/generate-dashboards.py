@@ -1158,6 +1158,11 @@ _PIPELINE_EXCLUDED_HOOKS = {
     "stream-session-close.sh": "work-stream tracking (Stop); observability, not a guardrail",
     "stream-prompt-attribute.sh": "work-stream tracking (UserPromptSubmit); observability, not a guardrail",
     "agent-dispatch-evaluator.sh": "audit-only shadow (SubagentStart), opt-in; never denies",
+    "handoff-tax-meter.sh": "handoff-tax meter (PostToolUse Agent) — per-dispatch ledger of brief/report "
+    "size + model tier under .ravenclaude/runs/<session>/dispatch-ledger.jsonl and an ADVISORY when a "
+    "report/brief exceeds its cap or a read-only worker ran on a frontier model; opt-in, never denies. "
+    "Observability for knowledge/model-tier-delegation.md, not a guardrail — same class as "
+    "agent-dispatch-evaluator.sh and the stream-* trackers",
     "worktree-guard.sh": "worktree_guard + worktree_bound knobs are surfaced Settings-only "
     "(DOM-budget-exempt panel) + live status as the Activity-tab Sleipnir badges; "
     "FOREIGN-TREE is the third clause (sibling Write / git -C); deliberately NOT a Pipeline stage card",
