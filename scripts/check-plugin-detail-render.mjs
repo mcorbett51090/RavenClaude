@@ -54,10 +54,13 @@ const ISLANDED_AGENT_KEYS = ["scenarios", "quickstart", "works_with"];
  * de-hardcode it from scan_repo — that is the forbidden tautology. ────────── */
 const RC = "ravenclaude-core";
 const RC_BASELINE = {
-  // 15 -> 16: agents/source-control-coordinator.md (PR #1146 — cross-session
+  // 16 -> 17: agents/scout.md (model-tier delegation build, v0.322.0 — the first
+  //   haiku-tier worker: search/grep/classify/extract, returns a small artifact).
+  //   COUNTED, not inferred: `ls plugins/ravenclaude-core/agents | wc -l` -> 17 on this tree.
+  //        15 -> 16: agents/source-control-coordinator.md (PR #1146 — cross-session
   //   merge/CI-triage handoff via the task ledger). COUNTED, not inferred:
   //   `ls plugins/ravenclaude-core/agents | wc -l` -> 16 on this tree.
-  agents: 16,
+  agents: 17,
   skills: 67, // 66 -> 67: skills/routine-review-tribunal (the routine-review-tribunal
   //   build — gates an unattended scheduled routine's produced diff through a
   //   two-panel, cross-model tribunal before it is finalized, mirroring
@@ -86,7 +89,10 @@ const RC_BASELINE = {
   //        53 -> 54: skills/session-handoff (v0.266.0, context-quality reset)
   //        52 -> 53: skills/design-clone (v0.253.0, design-schema capture+apply)
   //        51 -> 52: skills/github-gold-standard (v0.246.0, the gold-standard scorecard)
-  tools: 53, // 52 -> 53: scripts/routine-review-tribunal.py (the routine-review-tribunal
+  tools: 54, // 53 -> 54: scripts/handoff-tax-meter.py (model-tier delegation build,
+  //   v0.322.0 — the PostToolUse(Agent) brief/report/tier meter behind
+  //   hooks/handoff-tax-meter.sh; self-tested, Gate 285).
+  //        52 -> 53: scripts/routine-review-tribunal.py (the routine-review-tribunal
   //   build's deterministic tally engine — reuses thing-decision.resolve_panel_config,
   //   no new agents). COUNTED, not inferred:
   //   `find plugins/ravenclaude-core/scripts -maxdepth 1 -name "*.py" | wc -l` -> 53 on this tree.
@@ -165,7 +171,10 @@ const RC_BASELINE = {
   //        19 -> 22: premise-gate.py + classify_claim.py + check-design-schema.py
   //                  (v0.263.0, PR 3b packaging move)
   scenarios: 4,
-  hooks: 48, // 47 -> 48: prompt-optimizer-gate.sh WIRED on UserPromptSubmit (forge/prompt-optimizer
+  hooks: 49, // 48 -> 49: handoff-tax-meter.sh WIRED on PostToolUse(Agent|Task) (model-tier
+  //   delegation build, v0.322.0 — advisory dispatch ledger + report_over_cap /
+  //   brief_over_cap / frontier_readonly nudges; opt-in, never blocks).
+  //        47 -> 48: prompt-optimizer-gate.sh WIRED on UserPromptSubmit (forge/prompt-optimizer
   //   merge — Phase 6, one registration). COUNTED, not inferred: hooks.json on this tree holds
   //   48 registrations.
   //        45 -> 47: caveman-route-hook.sh WIRED on UserPromptSubmit + SessionStart(startup|
