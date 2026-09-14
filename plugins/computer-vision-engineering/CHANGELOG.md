@@ -2,6 +2,12 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.1.2] — 2026-09-14
+
+### Changed
+
+- `vision-deployment-engineer`: `model: opus` → `model: sonnet`. Second model-tier pass — export/runtime/quantization work downstream of `cv-systems-architect` (task framing) and `cv-model-engineer` (model selection), both of which stay on `opus`. This is the `sonnet` row of the marketplace's tier table (`ravenclaude-core/knowledge/model-tier-delegation.md`: bounded, well-specified work against a design made upstream), and the sibling-plugin parity rule the doctrine now states: the same role shape gets the same tier across plugins. Listed by the model-tier-fit gate's `--report` pair-review queue (`check-model-tier-fit.py`, Gate 288). No behaviour change beyond the model the agent runs on — it moves tier, not role.
+
 ## [0.1.1] — 2026-08-14
 
 ### Changed

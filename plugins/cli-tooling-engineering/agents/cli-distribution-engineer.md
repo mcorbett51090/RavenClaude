@@ -2,7 +2,7 @@
 name: cli-distribution-engineer
 description: "Use for CLI distribution + packaging: single-binary-vs-runtime-package, cross-compilation for OS/arch matrices, install channels (Homebrew/Scoop/winget/npm/pipx), a build-stamped --version, completions, an update path, and safe install scripts — routing CI release + signing to devops-cicd."
 tools: Read, Grep, Glob, Bash, Edit, Write, WebFetch, WebSearch
-model: opus
+model: sonnet
 audience: [dev]
 works_with: [cli-architect, cli-implementation-engineer, devops-cicd/release-engineer]
 scenarios:

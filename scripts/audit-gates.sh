@@ -379,7 +379,7 @@ _suite_gate_tokens() { # $1=suite name -> echoes space-separated gate tokens; re
       # independently claimed 282 for claude-launch-safeguard while this
       # branch was unmerged, same "no better-fit suite" reasoning as
       # 173/175/193/194/267-281 above).
-      echo "1 2 8 18 46 47 92 129 173 175 193 194 195 226 267 268 269 270 271 272 273 274 275 276 277 278 279 280 281 282 283 284"
+      echo "1 2 8 18 46 47 92 129 173 175 193 194 195 226 267 268 269 270 271 272 273 274 275 276 277 278 279 280 281 282 283 284 287 288"
       ;;
     security)
       # Gaps: 24 (Track B Engine Foundation — defines DECP, consumed by
@@ -407,7 +407,7 @@ _suite_gate_tokens() { # $1=suite name -> echoes space-separated gate tokens; re
       # nudge), 216/228/229 (worktree/session/update hygiene cluster), 217
       # (managed-solution-import — same plugins/power-platform/hooks/tests/
       # home as 124/125).
-      echo "3 3b 4 5 5b 6 14 15 16 17 21 22 30 33 36 52 53 90 91 122 123 124 125 126 128 133 135 136 137 138 139 140 162 182 184 186 189 197 201 216 217 225 227 228 229 231 235 247 251 252 253 254 259 285"
+      echo "3 3b 4 5 5b 6 14 15 16 17 21 22 30 33 36 52 53 90 91 122 123 124 125 126 128 133 135 136 137 138 139 140 162 182 184 186 189 197 201 216 217 225 227 228 229 231 235 247 251 252 253 254 259 285 286"
       ;;
     portal)
       # Gap: 27 (consumer-dashboard repo-scoped guard — serve-dashboards.py,
@@ -1990,9 +1990,28 @@ PY
       bash plugins/ravenclaude-core/hooks/tests/test-gate285-handoff-tax-meter.sh
       exit $?
       ;;
+    286)
+      echo "── Gate 286: explore-tier-pin.sh (model-tier delegation prevention leg) (per-gate run) ──"
+      bash plugins/ravenclaude-core/hooks/tests/test-gate286-explore-tier-pin.sh
+      exit $?
+      ;;
+    287)
+      echo "── Gate 287: model-tier frontier-share ratchet (per-gate run) ──"
+      rc=0
+      python3 scripts/check-model-tier-ratchet.py --check || rc=$?
+      rc_mustfail python3 scripts/check-model-tier-ratchet.py || rc=$?
+      exit $rc
+      ;;
+    288)
+      echo "── Gate 288: model-tier fit — role shape vs pinned tier (per-gate run) ──"
+      rc=0
+      python3 scripts/check-model-tier-fit.py --check || rc=$?
+      rc_mustfail python3 scripts/check-model-tier-fit.py || rc=$?
+      exit $rc
+      ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254, 255, 256, 257, 258, 259, 260, 261, 262, 263, 264, 265, 266, 267, 268, 269, 280, 281, 282, 283, 284, 285. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254, 255, 256, 257, 258, 259, 260, 261, 262, 263, 264, 265, 266, 267, 268, 269, 280, 281, 282, 283, 284, 285, 286, 287, 288. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -6669,6 +6688,75 @@ echo "── Gate 285: handoff-tax-meter.sh (model-tier delegation — the measu
 # NOT flag — proving A depends on the cap).
 rc=0; bash plugins/ravenclaude-core/hooks/tests/test-gate285-handoff-tax-meter.sh >/dev/null 2>&1 || rc=$?
 gate "handoff-tax-meter: advisory + ledger on over-cap/frontier-readonly dispatch, silent-but-ledgered on good, opt-in, knob, privacy, teeth" must_pass "$rc"
+echo "── Gate 286: explore-tier-pin.sh (model-tier delegation — the prevention leg) ──"
+# Gate 285 measures the frontier_readonly sink AFTER the tokens are spent. This
+# hook closes it BEFORE: PreToolUse on Agent, and when the built-in Explore is
+# dispatched without `model` it returns hookSpecificOutput.updatedInput with
+# `model: haiku` (posture-tunable) — the one PreToolUse field that binds on the
+# dispatch call [docs-verified 2026-09-14]. It emits NO permissionDecision, so
+# the posture's subagent_dispatch gate is untouched, and it stands down on any
+# explicit model, any non-Explore type, CLAUDE_CODE_SUBAGENT_MODEL, or no
+# posture. The test drives the REAL hook with real PreToolUse(Agent) payloads:
+# rewrites-on-bad (A1-A9: one envelope, model=haiku, every original field kept,
+# no permissionDecision, additionalContext, hook-event, scoped name),
+# silent-on-good (B: explicit model / inherit / scout / general-purpose),
+# opt-in (C), non-dispatch (D), knobs (E: sonnet / pin off / handoff_tax off),
+# env route (F), and teeth (G: module canary + a type-match mutant that must
+# NOT rewrite).
+rc=0; bash plugins/ravenclaude-core/hooks/tests/test-gate286-explore-tier-pin.sh >/dev/null 2>&1 || rc=$?
+gate "explore-tier-pin: rewrites un-pinned Explore to haiku via updatedInput (no permissionDecision), silent on explicit/other/opt-out/env, knobs, teeth" must_pass "$rc"
+echo "── Gate 287: model-tier frontier-share ratchet (the roster may not drift back to all-opus) ──"
+# check-frontmatter.py requires every agent to PIN a `model:` — that closes the
+# silent default but says nothing about the DISTRIBUTION. An author who writes
+# `model: opus` on every new agent passes the per-file gate and moves the whole
+# roster toward all-frontier, which is the opposite of the doctrine's price-mix
+# saving (knowledge/model-tier-delegation.md). The roster measured 484/623 on
+# opus the day the `model:` gate shipped. This ratchet binds two invariants to a
+# committed baseline (tests/fixtures/model-tier-ratchet.json, SHA-bound by
+# Gate 242's ratchet-freshness check): the frontier share (opus|fable|inherit)
+# may not RISE, and the haiku count may not FALL. One all-opus agent added to
+# 623 tips the share and fails; an opus lead + a sonnet engineer passes. --stamp
+# refuses to loosen without --allow-loosen "<reason>", so a deliberate widening
+# is in the diff, never silent. Teeth: rising share (opus AND inherit) fails,
+# haiku deletion fails, mixed addition + unchanged roster pass, absent baseline
+# is UNKNOWN, unreasoned loosening stamp is refused.
+rc=0; python3 scripts/check-model-tier-ratchet.py --check >/dev/null 2>&1 || rc=$?
+gate "model-tier ratchet: frontier share has not risen and the haiku floor holds vs the committed baseline" must_pass "$rc"
+rc=0; rc_mustfail python3 scripts/check-model-tier-ratchet.py >/dev/null 2>&1 || rc=$?
+gate "model-tier ratchet teeth: rising share / haiku deletion / unreasoned loosening all bite; controls pass" must_pass "$rc"
+echo "── Gate 288: model-tier fit (an agent's pinned tier must fit the role its own description declares) ──"
+# Gate 287 bounds the AGGREGATE; it cannot tell whether the roster it froze was
+# right. On 2026-09-14 the early app-craft plugins (backend / frontend / api /
+# database / kubernetes) tiered implementers `sonnet` and architects `opus`, per
+# the doctrine's tier table, while the later batches pinned every agent `opus` —
+# 24 agents named `*-implementation-engineer` / described "Use to BUILD ..." were
+# paying frontier rates for bounded work, and both existing gates passed. This
+# check READS THE ROLE: a name suffix (-implementation-engineer / -implementer /
+# -coder / -developer) or a description that OPENS with the build verb makes an
+# implementer, which may not sit on a frontier alias (opus|fable|inherit); the
+# three core merge gates (security-reviewer / code-reviewer / architect) may not
+# sit below it. Deliberately narrow (anchored at the description start, so
+# "NOT for building it" is not the build verb); mis-reads are exempted BY NAME
+# with a reason in tests/fixtures/model-tier-fit-exemptions.json, and a stale
+# exemption fails. The core `scout` — the doctrine's NAMED fast-tier worker,
+# the agent every "dispatch scout" line resolves to — has a haiku FLOOR
+# (symmetric to the merge-gate floor); any OTHER scout-shaped agent (name
+# `scout`/`-scout`, or a "Haiku-tier"/"Read-only" opener) above haiku only
+# ADVISES. Teeth: implementer-on-frontier by name AND by verb fails, a core
+# gate on sonnet fails, the core scout on sonnet fails, a stale / reasonless
+# exemption fails; a sonnet implementer, a domain `architect`, a domain
+# `scout`, and the anchored negative pass; the "Haiku-tier" opener and a
+# `-scout` name classify (the real roster's one haiku agent is a positive
+# control, not a vacuous class); the gerund ("Use for BUILDING ...") is the
+# build verb; an empty roster is not a pass. What the classifier will NOT rule
+# on it LISTS: `--report` prints the pair-review queue (frontier `*-engineer`s
+# beside their plugin's architect/lead that do not open by deciding) for a
+# human to tier with the sibling-plugin analog as tie-breaker — report-only,
+# `--check` never reads it, and the teeth prove it never moves the verdict.
+rc=0; python3 scripts/check-model-tier-fit.py --check >/dev/null 2>&1 || rc=$?
+gate "model-tier fit: every core merge gate on the frontier tier, no implementer on a frontier alias, core scout on haiku, no stale exemption" must_pass "$rc"
+rc=0; rc_mustfail python3 scripts/check-model-tier-fit.py >/dev/null 2>&1 || rc=$?
+gate "model-tier fit teeth: implementer-on-frontier (name + verb) / gate-below-frontier / core-scout-above-haiku / stale exemption bite; controls pass" must_pass "$rc"
 echo "── Gate 123: design-project binding surfacing (bound / half-set / absent / leak-safe) ──"
 rc=0; bash plugins/ravenclaude-core/hooks/tests/test-gate123-design-project-binding.sh >/dev/null 2>&1 || rc=$?
 gate "design-project binding: surfaces when bound + guides when half-set + silent when absent + leak-safe + teeth" must_pass "$rc"

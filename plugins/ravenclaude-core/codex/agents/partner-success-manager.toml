@@ -6,6 +6,10 @@
 # review-only agent whatever the main session has — the same silent
 # privilege grant that MH-10 fixed on Copilot.
 # Derived from the canonical tools: Read, Edit, Write, Grep, Glob, Bash
+#
+# Canonical model tier: sonnet. `model` is NOT emitted — it takes a Codex
+# model id, and the canonical value is a Claude tier alias. Until you pin
+# one, this agent runs on the session's model.
 name = "partner-success-manager"
 description = "Use this agent for any Partner Success Manager work — maintaining partner profiles, success plans, QBRs, health scores, onboarding checklists, touchpoint logs, and the team's growing AI workflow library. Domain-neutral; PSM patterns apply across SaaS / EdTech / fintech / GovTech."
 sandbox_mode = "workspace-write"

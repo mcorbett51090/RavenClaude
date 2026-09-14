@@ -256,25 +256,112 @@ def _append_ledger(path: Path, rec: dict, session: str) -> None:
 
 
 def _tally(path: Path) -> dict:
-    """Session tier mix so far — the 'measure cost per completed task' denominator."""
+    """Session tier mix so far — the 'measure cost per completed task' denominator.
+
+    Also the substrate of `--summary`: per-flag counts, per-worker-type counts,
+    brief/report word totals, and the FINAL-request token sum (a lower bound,
+    named as such — totalTokens covers each subagent's last request only).
+    """
     counts = {"frontier": 0, "mid": 0, "fast": 0, "inherit": 0, "unknown": 0}
+    flags = {"report_over_cap": 0, "brief_over_cap": 0, "frontier_readonly": 0}
+    types: dict[str, int] = {}
     over = 0
     n = 0
+    brief_words = 0
+    report_words = 0
+    final_tokens = 0
+    no_report = 0
     try:
         if not path.is_file() or path.stat().st_size > _MAX_LEDGER_SCAN_BYTES:
-            return {"n": n, "counts": counts, "over_cap": over}
+            return {
+                "n": n,
+                "counts": counts,
+                "over_cap": over,
+                "flags": flags,
+                "types": types,
+                "brief_words": brief_words,
+                "report_words": report_words,
+                "final_request_tokens_lower_bound": final_tokens,
+                "no_report": no_report,
+            }
         for line in path.read_text(encoding="utf-8", errors="replace").splitlines():
             try:
                 rec = json.loads(line)
             except ValueError:
                 continue
+            if not isinstance(rec, dict):
+                continue
             n += 1
             counts[rec.get("tier") if rec.get("tier") in counts else "unknown"] += 1
+            for f in rec.get("flags") or []:
+                if f in flags:
+                    flags[f] += 1
             if "report_over_cap" in (rec.get("flags") or []):
                 over += 1
+            st = str(rec.get("subagent_type") or "general-purpose")
+            types[st] = types.get(st, 0) + 1
+            bw = rec.get("brief_words")
+            rw = rec.get("report_words")
+            ft = rec.get("final_request_total_tokens")
+            if isinstance(bw, int):
+                brief_words += bw
+            if isinstance(rw, int):
+                report_words += rw
+            else:
+                no_report += 1
+            if isinstance(ft, int):
+                final_tokens += ft
     except OSError:
         pass
-    return {"n": n, "counts": counts, "over_cap": over}
+    return {
+        "n": n,
+        "counts": counts,
+        "over_cap": over,
+        "flags": flags,
+        "types": types,
+        "brief_words": brief_words,
+        "report_words": report_words,
+        "final_request_tokens_lower_bound": final_tokens,
+        "no_report": no_report,
+    }
+
+
+def render_summary(tally: dict, session: str, path: Path) -> str:
+    """Human rollup for `--summary` — spawn-team Step 8 / `/wrap` read this.
+
+    Cost per COMPLETED TASK is the metric the doctrine asks for; the ledger can
+    give the shape of the spend (tier mix, handoff sizes, flags), not dollars —
+    prices are not in the payload and would go stale here. So this prints the
+    mix and names what it cannot say.
+    """
+    c = tally["counts"]
+    f = tally["flags"]
+    if tally["n"] == 0:
+        return (
+            f"handoff-tax summary — session `{session}`: no dispatches recorded "
+            f"({path}). Either nothing was delegated, or the project has no "
+            f".ravenclaude/comfort-posture.yaml (the meter is opt-in by posture presence)."
+        )
+    types = ", ".join(f"{k} ×{v}" for k, v in sorted(tally["types"].items(), key=lambda kv: -kv[1]))
+    frontier_share = round(100 * c["frontier"] / tally["n"])
+    lines = [
+        f"handoff-tax summary — session `{session}` ({tally['n']} dispatch(es))",
+        f"  tier mix   : frontier {c['frontier']} / mid {c['mid']} / fast {c['fast']}"
+        + (f" / inherit {c['inherit']}" if c["inherit"] else "")
+        + (f" / unknown {c['unknown']}" if c["unknown"] else "")
+        + f"  → {frontier_share}% of dispatches ran on a frontier tier",
+        f"  workers    : {types}",
+        f"  handoff    : briefs {tally['brief_words']} words total, reports {tally['report_words']} words total"
+        + (f" ({tally['no_report']} background/no-report)" if tally["no_report"] else ""),
+        f"  flags      : report_over_cap {f['report_over_cap']} · brief_over_cap {f['brief_over_cap']}"
+        f" · frontier_readonly {f['frontier_readonly']}",
+        f"  tokens     : ≥ {tally['final_request_tokens_lower_bound']} (sum of each worker's FINAL request only — a lower bound, not the run total)",
+        "  reading it : savings come from the price mix — the fast+mid share should carry the volume;",
+        "               frontier_readonly > 0 means a search ran at flagship rates (explore-tier-pin closes that);",
+        "               report_over_cap > 0 means you re-read narrative at premium input rates — ask for artifact pointers.",
+        f"  ledger     : {path}",
+    ]
+    return "\n".join(lines)
 
 
 _FLAG_TEXT = {
@@ -294,7 +381,9 @@ _FLAG_TEXT = {
         "frontier_readonly — `{subagent_type}` (a read-only / search-shaped worker) ran "
         "on `{model}`. Since v2.1.198 the built-in Explore inherits the main model, so on "
         'an Opus session an un-pinned Explore is an Opus dispatch. Pass `model: "haiku"` '
-        "per invocation, or dispatch `scout` (pins haiku)."
+        "per invocation, or dispatch `scout` (pins haiku). If this fired on an un-pinned "
+        "Explore, explore-tier-pin.sh did not rewrite it — check `handoff_tax.pin_explore` "
+        "and that CLAUDE_CODE_SUBAGENT_MODEL is unset."
     ),
 }
 
@@ -339,7 +428,10 @@ def render_advisory(rec: dict, tally: dict) -> str:
 
 def observe(payload: dict, root: Path) -> tuple[str, str]:
     """Returns (signal_line, advisory_text)."""
-    if payload.get("tool_name") not in (None, "Agent", "Task"):
+    # Only the dispatch tool. A payload WITHOUT tool_name is not one we can
+    # attribute either — a host lane that hands this module a file-edit or
+    # shell envelope must not become a phantom ledger line.
+    if payload.get("tool_name") not in ("Agent", "Task"):
         return "OK", ""
     posture = read_posture(root)
     rec = analyse(payload, posture)
@@ -542,8 +634,67 @@ def self_test() -> int:
         sig, adv = observe({"tool_name": "Agent", "tool_input": "nope", "tool_response": 42}, root)
         check("malformed payload -> OK", sig == "OK" and adv == "")
 
+        # a payload with NO tool_name (a foreign host lane handing us a file-edit
+        # envelope) must not become a phantom ledger line.
+        before = lp.read_text().count("\n")
+        sig, adv = observe({"tool_input": {"prompt": "x", "subagent_type": "Explore"}}, root)
+        check(
+            "no tool_name -> OK, no ledger line",
+            sig == "OK" and lp.read_text().count("\n") == before,
+        )
+
+        # --summary rollup reads the same ledger: tier mix, flags, worker types,
+        # and the tokens LOWER BOUND named as such.
+        t = _tally(lp)
+        check("summary: tally counts every ledger line", t["n"] == lp.read_text().count("\n"))
+        check("summary: frontier_readonly flag counted", t["flags"]["frontier_readonly"] >= 1)
+        check("summary: worker types tallied", sum(t["types"].values()) == t["n"])
+        txt = render_summary(t, "selftest", lp)
+        check("summary: names the tokens figure as a lower bound", "lower bound" in txt)
+        check(
+            "summary: reports the frontier share", "% of dispatches ran on a frontier tier" in txt
+        )
+        empty = render_summary(_tally(root / "nope.jsonl"), "s0", root / "nope.jsonl")
+        check(
+            "summary: empty ledger says so (does not print zeros as a result)",
+            "no dispatches recorded" in empty,
+        )
+
     print("\nhandoff-tax-meter self-test:", "PASS" if fails == 0 else f"FAIL ({fails})")
     return 0 if fails == 0 else 1
+
+
+def _newest_ledger(root: Path) -> Path | None:
+    runs = root / ".ravenclaude" / "runs"
+    try:
+        cands = [p for p in runs.glob("*/dispatch-ledger.jsonl") if p.is_file()]
+    except OSError:
+        return None
+    if not cands:
+        return None
+    return max(cands, key=lambda p: p.stat().st_mtime)
+
+
+def summary_cli(args) -> int:
+    root = find_project_root(
+        Path(args.project_root or os.environ.get("CLAUDE_PROJECT_DIR") or os.getcwd())
+    )
+    session = args.session or os.environ.get("CLAUDE_SESSION_ID") or ""
+    session = re.sub(r"[^A-Za-z0-9._-]", "", session)[:128]
+    if session:
+        path = ledger_path(root, session)
+    else:
+        newest = _newest_ledger(root)
+        path = newest if newest else ledger_path(root, "unknown")
+        session = path.parent.name
+    tally = _tally(path)
+    if args.json:
+        sys.stdout.write(
+            json.dumps({"session_id": session, "ledger": str(path), **tally}, indent=2) + "\n"
+        )
+    else:
+        sys.stdout.write(render_summary(tally, session, path) + "\n")
+    return 0
 
 
 def main() -> int:
@@ -552,9 +703,22 @@ def main() -> int:
     )
     ap.add_argument("--project-root", default=None)
     ap.add_argument("--self-test", action="store_true")
+    ap.add_argument(
+        "--summary",
+        action="store_true",
+        help="print the per-session rollup (tier mix, handoff sizes, flags) instead of reading a payload",
+    )
+    ap.add_argument(
+        "--session",
+        default=None,
+        help="session id for --summary (default: $CLAUDE_SESSION_ID, else the newest ledger)",
+    )
+    ap.add_argument("--json", action="store_true", help="with --summary: emit the tally as JSON")
     args = ap.parse_args()
     if args.self_test:
         return self_test()
+    if args.summary:
+        return summary_cli(args)
     try:
         raw = sys.stdin.read()
         payload = json.loads(raw) if raw.strip() else {}

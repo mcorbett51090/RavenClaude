@@ -262,8 +262,11 @@ Three things the tier table cannot tell you, so they are stated here:
 
 - **The built-in `Explore` is not a free scout.** Since Claude Code v2.1.198 it inherits the main
   conversation's model `[docs-verified 2026-09-14]`; on an Opus session an un-pinned `Explore` is an
-  Opus dispatch. Pin `model: "haiku"` per invocation or use `scout`. The meter flags the miss
-  (`frontier_readonly`).
+  Opus dispatch. Pin `model: "haiku"` per invocation or use `scout`. On Claude Code with a posture
+  file present, [`explore-tier-pin`](../../hooks/explore-tier-pin.sh) rewrites an un-pinned `Explore`
+  to `haiku` for you (`handoff_tax.pin_explore`, default `haiku`) — it never overrides a `model` you
+  passed, so the discipline is still yours; the pin is the backstop. Elsewhere (Copilot / Codex /
+  Cursor / Gemini) no hook binds and the meter's `frontier_readonly` flag is the only tell.
 - **Resolution order:** per-invocation `model` → the agent's `model:` frontmatter →
   `CLAUDE_CODE_SUBAGENT_MODEL`. Every agent in this marketplace declares `model:` (gated), so the
   frontmatter is always there to fall back on; you only need the per-invocation parameter to
@@ -450,6 +453,13 @@ When an agent surfaces a problem, route by the *type* of problem, not by which a
 - Run [`cleanup-worktrees`](../cleanup-worktrees/SKILL.md) to remove finished worktrees.
 - If shipping, hand to [`create-pr`](../create-pr/SKILL.md).
 - Summarize for the user: which playbook ran, what shipped, what didn't, what's open.
+- **One cost line, from the ledger, not from memory.** Run
+  `bash plugins/ravenclaude-core/bin/rc dispatch-summary` and put its rollup in the summary:
+  dispatches by tier, frontier share, any `frontier_readonly` / over-cap counts. If the ledger is
+  empty (no posture file, or a non-Claude-Code host), say so in one clause rather than estimating —
+  an absent number is honest; a guessed one is the metric this whole step exists to replace. A run
+  whose frontier share is above what the Step 4.25 table would predict is the retrospective's first
+  question, not a footnote.
 
 ---
 

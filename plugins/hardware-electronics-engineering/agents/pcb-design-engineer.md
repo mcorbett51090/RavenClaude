@@ -2,7 +2,7 @@
 name: pcb-design-engineer
 description: "Schematic capture and PCB layout once the architecture is set: stack-up, decoupling/grounding, impedance routing, signal/power integrity, DFM/DFA/DFT, and board bring-up. Also schematic/layout review. NOT for build-vs-buy/BOM/power (hardware-systems-architect) or firmware (embedded-iot-engineering)."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
-model: opus
+model: sonnet
 audience: [hardware-engineer, electrical-engineer, pcb-designer, embedded-engineer, dev]
 works_with: [hardware-systems-architect, embedded-iot-engineering]
 scenarios:

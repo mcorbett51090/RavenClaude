@@ -90,6 +90,21 @@ _SKIP = {
     "mark-web-domain-seen.sh": (
         "PostToolUse on WebFetch; pairs with guard-web-access.sh, which is skipped."
     ),
+    "handoff-tax-meter.sh": (
+        "PostToolUse on Agent|Task (a subagent-dispatch RESULT). Cursor's only "
+        "PostToolUse lane here is afterFileEdit, which carries a file edit, not a "
+        "dispatch — wiring it there would register a meter that can only ever "
+        "no-op on its tool_name guard, and the generated config would claim "
+        "coverage the host does not give. Cursor has no verified after-subagent "
+        "event with the dispatch payload; the dispatch ledger is Claude-Code-only "
+        "on this host."
+    ),
+    "explore-tier-pin.sh": (
+        "PreToolUse on Agent|Task that REWRITES the tool input via Claude Code's "
+        "hookSpecificOutput.updatedInput. Cursor's verified pre-tool lane carries a "
+        "shell command and has no input-rewrite field, so the pin cannot bind here. "
+        "On Cursor, pick the model tier in the dispatch call itself."
+    ),
     "precompact-digest.sh": (
         "PreCompact. Cursor has no verified compaction-hook event (nothing analogous "
         "to Claude Code's PreCompact is published on the pages verified), so wiring "

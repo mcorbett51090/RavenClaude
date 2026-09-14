@@ -56,6 +56,11 @@
         "handoff-tax-flags-on-role-not-frontmatter inventory entry (model-tier delegation build, v0.322.0, 2026-09-14)",
         32050,
         "The model-tier delegation build (knowledge/model-tier-delegation.md doctrine, the haiku-tier scout agent, the model: frontmatter gate in check-frontmatter.py, and the handoff-tax-meter PostToolUse(Agent) hook + Gate 285) added one new inventory concept covering scout.md, handoff-tax-meter.sh, handoff-tax-meter.py and the Gate 285 test. Measured at 31,994 island payload elements -- over the prior 31,950 ceiling by exactly 44, the per-entry cost the budget report itself quotes (33 entries / +1,439 elements). Same content-size shape as every prior inventory row; not a DOM control change. Appended, never edited."
+      ],
+      [
+        "explore-tier-pin-stands-down-under-fleet-env inventory entry (model-tier delegation build pass 2, v0.322.0, 2026-09-14)",
+        32100,
+        "Pass 2 of the model-tier delegation build added the explore-tier-pin PreToolUse(Agent|Task) rewrite hook (+ Gate 286), the handoff-tax-meter --summary / rc dispatch-summary rollup, the Gate 287 frontier-share ratchet, and the handoff_tax block in the posture template + dashboard round-trip. check-inception-coverage required the two new pin artifacts to be named in an inventory entry, so one new concept (explore-tier-pin-stands-down-under-fleet-env -- the measured stand-down when CLAUDE_CODE_SUBAGENT_MODEL is set, because a per-invocation pin would OVERRIDE the fleet-wide env choice) covers explore-tier-pin.sh, explore-tier-pin.py and the Gate 286 test. Measured at 32,058 island payload elements -- over the prior 32,050 ceiling by 8 (largest panel learn-payload at 25,327). Same no-diagrams-for-inventory-entries shape as every prior row; a pure content-size raise, not a DOM control. Re-measured on this branch's own head; appended, never edited."
       ]
     ],
     "index.html": [
@@ -159,6 +164,11 @@
         "routine-review-tribunal inventory entry (2026-09-11)",
         10645000,
         "Same build/entry as the payload row above. Measured at 10,637,815 bytes (over the prior 10,630,000 ceiling by 7,815 = 0.07%; cumulative growth since seed remains a small single-digit percentage). Re-measured on this branch's own head; appended, never edited."
+      ],
+      [
+        "model-tier delegation build, both passes (handoff-tax + explore-tier-pin inventory entries, handoff_tax posture round-trip, v0.322.0, 2026-09-14)",
+        10680000,
+        "Same build as the two payload rows above. Two new inventory concepts (handoff-tax-flags-on-role-not-frontmatter, explore-tier-pin-stands-down-under-fleet-env) plus the handoff_tax block (report_cap_words / brief_cap_words / pin_explore) added to emitYaml()/applyGuardrailConfig() so the dashboard's Save round-trips the new knobs -- the same state-slot JS-source shape as the advisory_knobs + cheap_lane row. Measured at 10,664,077 bytes (over the prior 10,645,000 ceiling by 19,077 = 0.18%; cumulative growth since seed remains a small single-digit percentage). Re-measured on this branch's own head after regenerating; appended, never edited."
       ]
     ],
     "index.html": [
@@ -185,5 +195,5 @@
       ]
     ]
   },
-  "measured_against": "d595193e6b1cf7b23907b9eab110289014ebce8b"
+  "measured_against": "187538a3f57a34c8e0b31d4eed0be8864ab9a80f"
 }

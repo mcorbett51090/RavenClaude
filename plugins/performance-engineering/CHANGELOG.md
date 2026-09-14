@@ -3,6 +3,12 @@
 All notable changes to this plugin are documented here. Versioning is semver; the version in
 `.claude-plugin/plugin.json` and the marketplace catalog entry are kept in lockstep (CI fails on drift).
 
+## 0.2.3 — 2026-09-14
+
+### Changed
+
+- `load-testing-engineer`: `model: opus` → `model: sonnet`. Second model-tier pass — its own description scopes it to building and running the test *once the workload is modeled* by `performance-architect`; the architect and `profiling-and-capacity-engineer` (diagnosis) stay on `opus`. This is the `sonnet` row of the marketplace's tier table (`ravenclaude-core/knowledge/model-tier-delegation.md`: bounded, well-specified work against a design made upstream), and the sibling-plugin parity rule the doctrine now states: the same role shape gets the same tier across plugins. Listed by the model-tier-fit gate's `--report` pair-review queue (`check-model-tier-fit.py`, Gate 288). No behaviour change beyond the model the agent runs on — it moves tier, not role.
+
 ## 0.2.0 — 2026-06-08
 
 Depth pass — no behavioral change to the agents, skills, commands, or hook; this release deepens the

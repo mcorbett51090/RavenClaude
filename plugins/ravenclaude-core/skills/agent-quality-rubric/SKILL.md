@@ -16,6 +16,35 @@ The rubric exists because agent quality is the single largest predictor of marke
 - Periodic agent-bank audit (e.g. quarterly): score every agent in `plugins/*/agents/` and queue any dimension ≤2 for remediation.
 - The Researcher's Weekly Deep Research can run this against agents in its sweep.
 
+## Gate 0 — the mechanical prerequisites (not scored; a fail here blocks before Dimension 1)
+
+Check the frontmatter before scoring anything. Inside the RavenClaude marketplace this is CI's
+frontmatter gate (marketplace-dev tooling, not shipped in the plugin); in a consumer repo apply the
+same four rules by hand. The gate fails on a missing/empty `tools:` allowlist, a `description` over
+300 chars, a missing scenario schema, and a **missing `model:` or a `model:` that is not a tier
+alias** (`haiku` / `sonnet` / `opus` / `fable` / `inherit` — a full model id is rejected because it
+goes stale when the SKU rotates). No rubric score compensates for a red gate.
+
+**Then apply the one judgment call the gate cannot make — does the tier fit the role?** Read the
+agent's mission (Dimension 1) against the tier table in
+[`knowledge/model-tier-delegation.md`](../../knowledge/model-tier-delegation.md): read-a-lot-return-a-little
+work (search / grep / classify / extract / inventory) belongs on `haiku`; bounded, well-specified
+edits and drafts on `sonnet`; only design, adjudication, and the gates that hold merge
+(`security-reviewer`, `code-reviewer`, `architect`) on `opus`. Two mismatches are worth a
+review comment: an `opus` agent whose scenarios are all grep-shaped (paying frontier rates for
+volume work — in the marketplace the roster-wide frontier share is ratcheted by CI's `check-model-tier-ratchet.py`,
+Gate 287, so this also fails the PR if it raises the share), and a `haiku` agent asked to gate a
+merge or make a design call (the tier cannot carry the judgment). The marketplace's
+`check-model-tier-fit.py` (Gate 288) catches the *mechanical* slice of both — an agent named
+`*-implementation-engineer` / `*-developer` or whose description opens with "Use to BUILD" /
+"Use for BUILDING" may not be pinned `opus`, and the core merge gates may not be pinned below it — so
+the reviewer's judgment is reserved for the roles the name and the opening verb do not settle. Those
+are exactly what `check-model-tier-fit.py --report` lists as the **pair-review queue** (a frontier
+`*-engineer` beside its plugin's architect/lead, not opening by deciding); tier them by
+**sibling-plugin parity** — find the same role shape in the nearest sibling plugin and match its
+tier, or write the role-level reason for differing. `inherit` is a deliberate
+choice, not a default — it must say in one clause why the worker should run at the session's tier.
+
 ## The 6 dimensions
 
 ### Dimension 1 — Mission clarity

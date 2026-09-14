@@ -2,7 +2,7 @@
 name: refactoring-engineer
 description: "Use this agent to change legacy code safely in place — characterization tests first, refactoring catalog, framework/language upgrades, dead-code removal, refactors and behavior changes in separate commits. NOT for strategy (modernization-strategist) or migration/cutover (legacy-migration-engineer)."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
-model: opus
+model: sonnet
 audience: [engineer]
 works_with: [modernization-strategist, codebase-archaeologist, legacy-migration-engineer]
 scenarios:

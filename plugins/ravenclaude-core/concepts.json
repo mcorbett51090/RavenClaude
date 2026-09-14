@@ -2851,7 +2851,7 @@
       "covers": [
         "plugins/ravenclaude-core/hooks/hooks.json"
       ],
-      "covers_digest": "sha256:c8e09186b313dfba620952ca27fa7dc64aff3167c4f85fcf0f83f5ca46176d02",
+      "covers_digest": "sha256:a767b2721b51296be60e5acff66f6734ba90a84d1f40dd78f52259b2e9af255b",
       "nuance": "Two `additionalContext` emitters on one event concatenate rather than last-write-wins, but two `updatedToolOutput` emitters replace, so the second silently discards the first.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -2945,7 +2945,7 @@
         "scripts/sync-plugin-versions.py",
         "scripts/generate-copilot-plugin.py"
       ],
-      "covers_digest": "sha256:ccdb61373f86e12899ee555cfb3e6a10d2219ba72fb8ba316463e46e975e7a9f",
+      "covers_digest": "sha256:1be6aa826046dd999685597fc20fa4940553d0c8af27a1f02327d6c7e2dc33f4",
       "nuance": "The cache key is the `version` string, never a content hash, so `sync-plugin-versions.py` can report clean while every installed session keeps running the old `hooks/` code.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -3007,7 +3007,7 @@
         "scripts/inventory-nuance-judge.py",
         "plugins/ravenclaude-core/scripts/forge-receipt.py"
       ],
-      "covers_digest": "sha256:6a209113f56a9eb3c98420a5e96b2f8208733f11be7dab7923804af7dea23dee",
+      "covers_digest": "sha256:cd69f431f082b5096b9f84dd8b69d02b1c2fbc40e94fec87ee42bd83bb86559e",
       "nuance": "The teeth bit is the exit a tool own CHECK returns on a planted defect, never the exit `--must-fail` itself returns: `premise-gate.py` denies at `exit 0` while `sync-plugin-versions.py` reddens at `exit 2`, so an auditor that hard-codes one number can never be right for both.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -3414,7 +3414,7 @@
         "scripts/generate-dashboards.py",
         "scripts/generate-index-dashboard.py"
       ],
-      "covers_digest": "sha256:041f90990e0da20b623ed417c13a0ed441426d5ae75605d971b7486679cd8086",
+      "covers_digest": "sha256:cc3a18e3b3e10337f048b271b9b88ab170fe35bb173700b72dacbadb034e21e9",
       "nuance": "`ISLANDED_PANEL_COST` is a flat 2 because the parser reads the payload as CDATA, so `check-dom-budget.py` cannot fire on `learn-payload` no matter how far past 23,861 elements it grows.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -3992,7 +3992,7 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-09-04",
+      "last_verified": "2026-09-14",
       "refresh_when": null,
       "sources": [
         {
@@ -4012,7 +4012,7 @@
         "plugins/ravenclaude-core/skills/quantitative-problem-solving/SKILL.md",
         "plugins/ravenclaude-core/skills/ravenclaude-core-orchestration/SKILL.md"
       ],
-      "covers_digest": "sha256:03238cda6ad23a7dcc14129d14959ffd868cc0197c3dc91326cb5de95f195261",
+      "covers_digest": "sha256:382529d20b103b87a3801dd832e1b4f4cf09fe685be56d4878a3dd7319502d39",
       "nuance": "ravenclaude-core-orchestration/SKILL.md restates the single-orchestrator and Capability Grounding rules as freestanding prose instead of linking to ravenclaude-core/CLAUDE.md -- the opposite of this repo's own 'cite, not restate' convention -- because a Grok Bot cannot resolve a cross-plugin markdown link the way a Claude Code agent can.",
       "nuance_evidence": {
         "measured": "2026-09-04",
@@ -4038,7 +4038,7 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-09-05",
+      "last_verified": "2026-09-14",
       "refresh_when": null,
       "sources": [
         {
@@ -4056,7 +4056,7 @@
       "covers": [
         "plugins/ravenclaude-core/skills/claude-code-parallel-and-modes/SKILL.md"
       ],
-      "covers_digest": "sha256:95cb60b135de383cbf39571aaa1a7421398aeb4035eda66f7336cc7c00a403bb",
+      "covers_digest": "sha256:0435b71b0ab57bddf24d8c92d137beca94035c20d5d5e4352fb914ae34a23e11",
       "nuance": "Official Claude Code docs and /help list no /max-parallel mode; ultrathink is a one-turn in-context keyword and does not change API /effort, while ultracode is a separate setting that sends xhigh plus dynamic workflows.",
       "nuance_evidence": {
         "measured": "2026-09-05",
@@ -4392,7 +4392,7 @@
         "plugins/ravenclaude-core/scripts/handoff-tax-meter.py",
         "plugins/ravenclaude-core/hooks/tests/test-gate285-handoff-tax-meter.sh"
       ],
-      "covers_digest": "sha256:dddd6d630b5af212c800a4ee739cc899fd2fb89d12f14f9f69acd11a456d283e",
+      "covers_digest": "sha256:b5cfa7e1a473c3e2fbcc594df5b5acbfd88bea1087e57004091d684916936166",
       "nuance": "`frontier_readonly` fires on `tool_response.resolvedModel` × the basename of `tool_input.subagent_type` (`explore` / `scout`), never on the agent file's `model:` — so `scout` dispatched with a per-call `model: opus` override is flagged while `scout.md` still reads `haiku`, and `architect` on opus is not.",
       "nuance_evidence": {
         "measured": "2026-09-14",
@@ -4406,6 +4406,63 @@
         "strength": "executed",
         "class": "script-selftest",
         "probe": "plugins/ravenclaude-core/scripts/handoff-tax-meter.py",
+        "teeth_exit": 1
+      },
+      "strength_badge": "Probed"
+    },
+    {
+      "id": "explore-tier-pin-stands-down-under-fleet-env",
+      "title": "explore-tier-pin rewrites an un-pinned Explore to haiku — but stands down entirely when CLAUDE_CODE_SUBAGENT_MODEL is set",
+      "category": "Inventory — measured mechanisms",
+      "kind": "ravenclaude-built",
+      "order": 936,
+      "summary": "The pin fires only on an un-pinned `explore`; a set CLAUDE_CODE_SUBAGENT_MODEL makes it stand down even then — a per-invocation pin would OVERRIDE the fleet-wide env choice, not add to it.",
+      "see_also": [],
+      "widget": null,
+      "try_it": null,
+      "node_links": {},
+      "last_verified": "2026-09-14",
+      "refresh_when": null,
+      "sources": [
+        {
+          "label": "knowledge/model-tier-delegation.md — \"The one place a hook does bind\"",
+          "url": "https://github.com/mcorbett51090/RavenClaude/blob/main/plugins/ravenclaude-core/knowledge/model-tier-delegation.md"
+        },
+        {
+          "label": "Claude Code sub-agents — model resolution order (per-call `model` > frontmatter > CLAUDE_CODE_SUBAGENT_MODEL)",
+          "url": "https://code.claude.com/docs/en/sub-agents"
+        },
+        {
+          "label": "Claude Code hooks — PreToolUse `updatedInput` (rewrite without a permissionDecision)",
+          "url": "https://code.claude.com/docs/en/hooks"
+        }
+      ],
+      "body_md": "## What a reader would have assumed instead\n\nThe pin is a cost guardrail, so it always applies: any `Explore` dispatched without a `model`\ngets `haiku`, full stop — and a consumer who has already set `CLAUDE_CODE_SUBAGENT_MODEL` to route\nevery sub-agent gets the pin *on top of* that, belt and braces.\n\n## The discriminator\n\ncontrol: `decide(_payload(), \"haiku\", {})` returned an envelope whose `updatedInput.model` was\n`haiku`, whose original `subagent_type` / `prompt` fields were preserved, and which carried **no**\n`permissionDecision`; `decide(_payload(), \"haiku\", {\"CLAUDE_CODE_SUBAGENT_MODEL\": \"haiku\"})`\nreturned `None`. Same payload, same knob — the environment variable was the only input that\nchanged. Measured 2026-09-14 via the script's `--self-test` (the checks are named\n`envelope: updatedInput.model == haiku`, `envelope: NO permissionDecision (gate untouched)` and\n`stand down: CLAUDE_CODE_SUBAGENT_MODEL set`).\n\n## Why it matters\n\nClaude Code resolves a sub-agent's model **per invocation first**: the Team Lead's `model`\nparameter beats the agent's frontmatter, which beats `CLAUDE_CODE_SUBAGENT_MODEL`. A hook that\ninjects `model: haiku` into `tool_input` is therefore writing at the *highest*-precedence slot —\nso on a host where the consumer already routes the whole fleet by env var (say, to `sonnet` for a\ncompliance reason), an always-on pin would not be belt-and-braces; it would silently **override**\nthe consumer's decision with this plugin's. Standing down is what keeps the pin a default rather\nthan a policy. The same logic is why an explicit `model` — including an explicit `inherit` — is\nhonoured untouched, and why the envelope never carries a `permissionDecision`: this hook changes\nthe model of a dispatch that was already allowed; it never becomes a gate.\n\nFalsifier: an envelope emitted while `CLAUDE_CODE_SUBAGENT_MODEL` is set, or a\n`permissionDecision` key appearing in any emitted envelope.\n\nProbe: `plugins/ravenclaude-core/scripts/explore-tier-pin.py --self-test` (exit 1 on any failed\ncheck; 25 checks covering the envelope shape, the eight stand-down conditions and the knob parse).",
+      "diagram": null,
+      "diagram_mini": null,
+      "steps": [],
+      "svg": null,
+      "svg_mini": null,
+      "entry_class": "inventory",
+      "covers": [
+        "plugins/ravenclaude-core/hooks/explore-tier-pin.sh",
+        "plugins/ravenclaude-core/scripts/explore-tier-pin.py",
+        "plugins/ravenclaude-core/hooks/tests/test-gate286-explore-tier-pin.sh"
+      ],
+      "covers_digest": "sha256:7d4c2afd7f1498bba77879a0eb25341871b789d9a2477f29cc1999e2a4da0c36",
+      "nuance": "Same un-pinned `Explore` payload, same `haiku` knob: env `{}` yields an `updatedInput.model: haiku` envelope; env `{CLAUDE_CODE_SUBAGENT_MODEL: haiku}` yields `None`. Per-invocation `model` outranks the env var in Claude Code's resolution order, so a pin would have silently replaced the consumer's fleet-wide routing — the hook yields instead.",
+      "nuance_evidence": {
+        "measured": "2026-09-14",
+        "control": "same payload (`Explore`, no `model`), same knob (`haiku`): env `{}` -> envelope with `updatedInput.model == haiku` and NO `permissionDecision`; env `{CLAUDE_CODE_SUBAGENT_MODEL: haiku}` -> `None`. The env var was the only input that changed between the rewrite and the stand-down.",
+        "falsifier": "an envelope emitted while CLAUDE_CODE_SUBAGENT_MODEL is set, or a `permissionDecision` key appearing in any envelope (the hook would then be gating, not rewriting)",
+        "probe": "plugins/ravenclaude-core/scripts/explore-tier-pin.py"
+      },
+      "nuance_source": "plugins/ravenclaude-core/scripts/explore-tier-pin.py:113-130",
+      "verify": {
+        "tier": "effect",
+        "strength": "executed",
+        "class": "script-selftest",
+        "probe": "plugins/ravenclaude-core/scripts/explore-tier-pin.py",
         "teeth_exit": 1
       },
       "strength_badge": "Probed"

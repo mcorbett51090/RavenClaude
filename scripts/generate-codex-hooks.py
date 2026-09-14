@@ -128,6 +128,7 @@ _SKIP = {
     "log-probe.sh": _LANE_SCOPE_REASON,
     "triage-outcome.sh": _LANE_SCOPE_REASON,
     "handoff-tax-meter.sh": _LANE_SCOPE_REASON,
+    "explore-tier-pin.sh": _LANE_SCOPE_REASON,
     # Stop -- out of this generator's fixed subset.
     "thing-denial-kb-sync.sh": _LANE_SCOPE_REASON,
     "handoff-nudge.sh": _LANE_SCOPE_REASON,

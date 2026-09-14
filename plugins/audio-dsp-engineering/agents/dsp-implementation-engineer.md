@@ -2,7 +2,7 @@
 name: dsp-implementation-engineer
 description: "Use to BUILD & OPTIMIZE real-time audio — real-time-safe DSP in the callback (no locks/alloc/syscalls), biquads/FIR/FFT, denormals/flush-to-zero, SIMD (SSE/NEON), lock-free params, measurement (null/THD+N/impulse response). NOT for conversational voice AI → conversational-ai-voice-engineering."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
-model: opus
+model: sonnet
 audience: [audio-developer, dsp-engineer, plugin-developer, game-audio-programmer, embedded-audio-engineer, dev]
 works_with: [streaming-media-engineering, conversational-ai-voice-engineering, embedded-iot-engineering, game-development, performance-engineering]
 scenarios:

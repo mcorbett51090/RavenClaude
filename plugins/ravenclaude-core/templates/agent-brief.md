@@ -7,7 +7,7 @@ You have two ways to use this template:
 1. **Fill it in yourself** as much as you can, then paste it back to Claude.
 2. **Skip the template entirely** — just describe your goal in plain words and ask Claude to *"draft a strong agent brief for me."* Claude will produce a filled-in version of this template for you to review.
 
-Either path works. The template just keeps you from forgetting one of the seven things that matter.
+Either path works. The template just keeps you from forgetting one of the eight things that matter.
 
 ---
 
@@ -63,6 +63,23 @@ Either path works. The template just keeps you from forgetting one of the seven 
 
 ## 7. Personality / style
 *Terse vs. chatty? Conservative vs. bold? Should it ask clarifying questions or make best-guess decisions? Default to* **"asks when ambiguous, terse otherwise"** *if you're not sure.*
+
+**YOUR ANSWER:**
+
+---
+
+## 8. How much judgment does the work need? (this picks the model tier — and the bill)
+*Every agent must declare a `model:` tier. Answer in plain words and Claude maps it:*
+
+| If most of the agent's work is… | Tier | Why |
+|---|---|---|
+| Reading a lot and returning a little — search, grep, classify, extract, inventory | `haiku` | high volume, low judgment; the cheapest tier does this as well as the most expensive one |
+| Bounded, well-specified edits or drafts from inputs you supply — known API calls, tests for a stated contract, first-draft prose | `sonnet` | mid-tier is the default for "do exactly this" |
+| Deciding, designing, adjudicating, or gating a merge (a reviewer whose "no" must stick) | `opus` | judgment work; gates are never de-escalated to save money |
+
+> **Example:** *"It mostly reads Salesforce docs and my org's metadata and tells me what's there — so `haiku`, escalating to `sonnet` when it has to draft a change."*
+
+*If you're not sure, say so and describe the output: a short structured artifact (paths, a table, pass/fail) points down the table; a design or a verdict points up. Default to the cheaper tier and let a failure escalate one tier — that is the rule in* [`knowledge/model-tier-delegation.md`](../knowledge/model-tier-delegation.md).
 
 **YOUR ANSWER:**
 

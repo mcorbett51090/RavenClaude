@@ -2,7 +2,7 @@
 name: mcp-and-server-tools-engineer
 description: "Use to connect Claude to external systems — authoring MCP servers (tools/resources/prompts/sampling over stdio / SSE / Streamable HTTP, with auth) and using Anthropic-hosted server tools (computer use, code execution, web search/fetch, Files API, memory). NOT for in-app tool design or the SDK loop."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
-model: opus
+model: sonnet
 audience: [dev]
 works_with: [prompt-and-context-engineer, agent-sdk-engineer, claude-solution-architect, ravenclaude-core/security-reviewer]
 scenarios:

@@ -2,7 +2,7 @@
 name: genomics-pipeline-engineer
 description: "Use to BUILD, optimize & validate the genomics pipeline — QC/align/dedup/variant-call/RNA-seq steps, containerize (Docker/Apptainer), scale on HPC Slurm or cloud Batch/spot, benchmark vs GIAB/hap.py truth sets. Nextflow/Snakemake/WDL-fluent. NOT for clinical-trial ops/regulatory → clinical-trials."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
-model: opus
+model: sonnet
 audience: [bioinformatician, computational-biologist, genomics-data-engineer, research-software-engineer, dev]
 works_with: [ml-engineering, clinical-trials, data-platform, data-orchestration, cloud-native-kubernetes, aws-cloud]
 scenarios:

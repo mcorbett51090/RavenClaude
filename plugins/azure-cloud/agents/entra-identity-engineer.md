@@ -2,7 +2,7 @@
 name: entra-identity-engineer
 description: "Use for Microsoft Entra identity & access — managed identity vs app registration vs workload identity federation (passwordless), RBAC least-privilege, PIM just-in-time, Entra External ID (CIAM), Conditional Access, Entra Agent ID. All identity/security DESIGN is reviewed by core/security-reviewer."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
-model: opus
+model: sonnet
 audience: [dev]
 works_with: [bicep-iac-engineer, azure-architect, network-engineer, ravenclaude-core/security-reviewer]
 scenarios:

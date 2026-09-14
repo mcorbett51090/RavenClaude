@@ -2,7 +2,7 @@
 name: data-quality-engineer
 description: "Use to BUILD & RUN data quality — author contracts/tests/monitors, wire into CI + orchestration + alerting, and run data-incident response (triage, root-cause to the change, quarantine/circuit-breaker, backfill). dbt-tests/GE/Soda/Elementary-fluent. NOT for tool selection (data-quality-architect)."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
-model: opus
+model: sonnet
 audience: [data-engineer, analytics-engineer, platform-engineer, dev]
 works_with: [data-platform, analytics-engineering, data-orchestration, data-governance-privacy]
 scenarios:

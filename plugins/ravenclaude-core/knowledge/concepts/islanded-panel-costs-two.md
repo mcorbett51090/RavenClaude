@@ -12,7 +12,7 @@ covers:
   - scripts/check-artifact-budgets.py
   - scripts/generate-dashboards.py
   - scripts/generate-index-dashboard.py
-covers_digest: "sha256:041f90990e0da20b623ed417c13a0ed441426d5ae75605d971b7486679cd8086"
+covers_digest: "sha256:cc3a18e3b3e10337f048b271b9b88ab170fe35bb173700b72dacbadb034e21e9"
 nuance: "`ISLANDED_PANEL_COST` is a flat 2 because the parser reads the payload as CDATA, so `check-dom-budget.py` cannot fire on `learn-payload` no matter how far past 23,861 elements it grows."
 nuance_evidence:
   measured: 2026-08-19

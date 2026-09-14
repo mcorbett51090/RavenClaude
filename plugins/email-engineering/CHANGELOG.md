@@ -2,6 +2,12 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.3.5] — 2026-09-14
+
+### Changed
+
+- `email-sending-engineer`: `model: opus` → `model: sonnet`. Second model-tier pass — ESP integration, idempotent sends/webhooks and templates; `email-deliverability-architect` (DNS auth, reputation, rollout judgment) stays on `opus`. This is the `sonnet` row of the marketplace's tier table (`ravenclaude-core/knowledge/model-tier-delegation.md`: bounded, well-specified work against a design made upstream), and the sibling-plugin parity rule the doctrine now states: the same role shape gets the same tier across plugins. Listed by the model-tier-fit gate's `--report` pair-review queue (`check-model-tier-fit.py`, Gate 288). No behaviour change beyond the model the agent runs on — it moves tier, not role.
+
 ## [0.3.4] — 2026-08-14
 
 ### Changed
