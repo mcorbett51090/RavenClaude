@@ -2,7 +2,7 @@
 name: databricks-platform-engineer
 description: "BUILD & OPERATE on Databricks — PySpark/Spark SQL, Delta MERGE/CDC, DLT, Auto Loader/Structured Streaming, Jobs/Workflows, and diagnosing skew/spill/small-file/OOM failures from the Spark UI. Implements what lakehouse-architect designed. NOT the layering/governance design → lakehouse-architect."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
-model: opus
+model: sonnet
 audience: [data-engineer, spark-developer, analytics-engineer, ml-engineer, platform-engineer, dev]
 works_with:
   [

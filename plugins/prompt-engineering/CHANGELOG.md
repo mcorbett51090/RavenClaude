@@ -3,6 +3,12 @@
 All notable changes to this plugin are documented here. Versioning is semver, bumped
 on every user-visible change and mirrored in `.claude-plugin/marketplace.json`.
 
+## 0.1.2 — 2026-09-14
+
+### Changed
+
+- `prompt-implementation-engineer`: `model: opus` → `model: sonnet`. The role is the implementation half of an architect/engineer pair — bounded, well-specified work against a design made upstream — which is the `sonnet` row of the marketplace's tier table (`ravenclaude-core/knowledge/model-tier-delegation.md`), and the tier the earlier app-craft plugins (backend / frontend / api / database) already give their implementers. Enforced going forward by the marketplace's model-tier-fit CI gate (`check-model-tier-fit.py`, Gate 288). No behaviour change beyond the model the agent runs on; the architect sibling stays on `opus`.
+
 ## 0.1.0 — 2026-07-15
 
 Initial release. The prompt & context engineering team — owns *the prompt and
