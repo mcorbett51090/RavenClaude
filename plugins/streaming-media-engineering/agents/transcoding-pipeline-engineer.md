@@ -2,7 +2,7 @@
 name: transcoding-pipeline-engineer
 description: "Use for streaming encoding/transcoding: codec choice (H.264/HEVC/AV1/VP9), FFmpeg pipelines, per-title & ABR-ladder encoding, GPU vs CPU, CMAF/fMP4 packaging, captions, audio/loudness. NOT protocol/CDN/DRM architecture -> media-streaming-architect; NOT player/QoE -> playback-and-delivery-engineer."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
-model: opus
+model: sonnet
 audience: [media-engineer, video-encoding-engineer, pipeline-engineer]
 works_with: [media-streaming-architect, playback-and-delivery-engineer]
 scenarios:

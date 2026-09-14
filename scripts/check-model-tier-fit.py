@@ -35,6 +35,16 @@ NARROW so a false positive is rare and its fix is one line):
                     analysts, specialists. Their tier is a judgment this file
                     does NOT make; Gate 287 bounds the aggregate.
 
+WHAT --report ALSO LISTS (and --check never reads): the PAIR-REVIEW QUEUE —
+every frontier-tier `*-engineer` that is unshaped, sits in a plugin that also
+ships an `*-architect` / `*-lead` / `*-strategist`, and whose description does
+not open by deciding. The 2026-09-14 second pass found 26 of these written in
+lower-case prose no anchored verb can catch without false positives ("build a
+GHG inventory" is an analyst): every azure-cloud engineer on `opus` while the
+same-shaped aws-cloud / gcp-cloud engineers sat on `sonnet`. Tiering them is a
+per-agent human judgment with the sibling-plugin analog as tie-breaker, so the
+gate LISTS the candidates and does not rule on them.
+
 WHAT --check FAILS ON (the three mismatches the doctrine states as rules):
 
     1. a `gate` below the frontier tier            (a cheap verdict on a merge)
@@ -115,11 +125,32 @@ _IMPL_NAME = re.compile(r"-(implementation-engineer|implementer|coder|developer)
 # "designs X; NOT for building it" must not match on the word "building".
 _IMPL_DESC = re.compile(
     r"^(?:Use (?:this agent )?(?:to|for) )?"
-    r"(?:BUILD|IMPLEMENT|Build|Implement|hands-on|the hands-on)\b"
+    r"(?:BUILD(?:ING)?|IMPLEMENT(?:ING)?|Build(?:ing)?|Implement(?:ing)?|hands-on|the hands-on)\b"
     r"|^Use for [\w./+-]+ implementation\b"
 )
 _SCOUT_NAME = re.compile(r"(?:^|-)scout$")
 _SCOUT_DESC = re.compile(r"^(?:Read-only|READ-ONLY|Haiku-tier)\b")
+
+# ── the pair-review queue (REPORT ONLY — never a verdict) ───────────────────
+# The 2026-09-14 second pass found the shape the classifier cannot read: an
+# `*-engineer` sitting beside its plugin's `*-architect` / `*-lead`, pinned
+# `opus`, described in lower-case prose ("Use this agent to build the Fabric
+# Lakehouse …", "GraphQL resolvers & server: …") that no anchored verb catches
+# without also catching "build a defensible GHG inventory" (an analyst). The
+# aws-cloud / gcp-cloud engineers sat on `sonnet` while every azure-cloud
+# engineer of the same shape sat on `opus` — same role, three prices. That is
+# a judgment a human makes per agent, so this leg lists the candidates under
+# `--report` and says nothing under `--check`: a queue, not a gate.
+_UPSTREAM_NAME = re.compile(r"(?:^|-)(architect|lead|strategist)$")
+_ENGINEER_NAME = re.compile(r"-engineer$")
+# An engineer whose description OPENS by deciding is the design half, whatever
+# its suffix says ("Use to design or repair continuous integration").
+_DECIDES_DESC = re.compile(
+    r"^(?:Use (?:this agent )?(?:to|for) )?"
+    r"(?:decide|choose|design|architect|shape|scope|frame|select|set the|"
+    r"DECIDE|CHOOSE|DESIGN|ARCHITECT|SHAPE|SCOPE|FRAME|SELECT)\b",
+    re.I,
+)
 
 
 def _strip_quotes(s: str) -> str:
@@ -183,6 +214,7 @@ def measure(root: Path) -> list[dict]:
                 "alias": alias,
                 "tier": tier_of(alias),
                 "shape": classify(plugin, name, desc),
+                "description": desc,
             }
         )
     return rows
@@ -293,6 +325,32 @@ def evaluate(rows: list[dict], exemptions: dict[str, str]) -> tuple[int, list[st
     return rc, lines, counts
 
 
+def pair_review(rows: list[dict]) -> list[dict]:
+    """Pure: the REPORT-ONLY queue — frontier `*-engineer`s beside an upstream role.
+
+    An agent is queued when ALL hold: name ends `-engineer`; it is on the frontier
+    tier; the classifier left it unshaped (a shaped agent is already a verdict);
+    its plugin also ships an `*-architect` / `*-lead` / `*-strategist`; and its
+    description does not OPEN by deciding. Nothing here fails a build — the
+    queue is the list a human tiers by hand, with the sibling-plugin analog as
+    the tie-breaker (see doctrine § "The role-fit gate", parity paragraph).
+    """
+    upstream: set[str] = set()
+    for r in rows:
+        if _UPSTREAM_NAME.search(r["name"]):
+            upstream.add(r["plugin"])
+    out: list[dict] = []
+    for r in rows:
+        if r["shape"] or r["tier"] != "frontier":
+            continue
+        if not _ENGINEER_NAME.search(r["name"]) or r["plugin"] not in upstream:
+            continue
+        if _DECIDES_DESC.match(r.get("description", "")):
+            continue
+        out.append(r)
+    return out
+
+
 def report(rows: list[dict], counts: dict, exemptions: dict[str, str]) -> None:
     print("── model-tier fit (role shape vs pinned tier) ──")
     print(f"  agents with model:            : {counts['agents']}")
@@ -359,6 +417,17 @@ def must_fail() -> int:
         rc, _, _ = evaluate(measure(fake), no_ex)
         if rc == 0:
             print("✗ must-fail: a `Use to BUILD` description on `inherit` was accepted.")
+            return 0
+        # 1c. the gerund form ("Use for BUILDING the eval machinery") is the build verb too;
+        #     the first cut matched only BUILD\b and let it through on opus
+        _fake_roster(
+            fake,
+            "p",
+            [("harness-engineer", "opus", "Use for BUILDING the eval machinery — golden sets.")],
+        )
+        rc, _, _ = evaluate(measure(fake), no_ex)
+        if rc == 0:
+            print("✗ must-fail: a `Use for BUILDING` description on opus was accepted.")
             return 0
         # 2. a core merge gate on sonnet -> MUST FAIL
         _fake_roster(
@@ -506,6 +575,39 @@ def must_fail() -> int:
             print("✗ must-fail control: ravenclaude-core/scout on haiku did not pass clean.")
             return 0
         _fake_roster(fake, "ravenclaude-core", [])
+        # 7. the pair-review queue: lists the frontier engineer beside an architect whose
+        #    description does not open by deciding; skips the one that does; skips the
+        #    sonnet sibling; and NEVER changes rc (a queue, not a gate)
+        _fake_roster(
+            fake,
+            "p",
+            [
+                ("fabric-architect", "opus", "Use to choose the Fabric topology."),
+                ("lakehouse-engineer", "opus", "Use this agent to build the Lakehouse layer."),
+                ("pipeline-engineer", "opus", "Use to design or repair continuous integration."),
+                ("warehouse-engineer", "sonnet", "Use to build and optimize the warehouse."),
+            ],
+        )
+        rows = measure(fake)
+        rc, lines, _ = evaluate(rows, no_ex)
+        queued = {r["name"] for r in pair_review(rows)}
+        if queued != {"lakehouse-engineer"}:
+            print(
+                f"✗ must-fail control: pair-review queue was {sorted(queued)}, expected lakehouse-engineer only."
+            )
+            return 0
+        if rc != 0:
+            print(
+                "✗ must-fail control: the pair-review queue changed the verdict (it must be report-only)."
+            )
+            return 0
+        # 7b. CONTROL — no upstream role in the plugin -> nothing is queued (a lone engineer is
+        #     not "the build half of a pair")
+        _fake_roster(fake, "p", [("lone-engineer", "opus", "Use this agent to build the thing.")])
+        rows = measure(fake)
+        if pair_review(rows):
+            print("✗ must-fail control: an engineer with no architect/lead sibling was queued.")
+            return 0
         # 6. empty roster -> rc 1, never a pass
         _fake_roster(fake, "p", [])
         rc, _, _ = evaluate(measure(fake), no_ex)
@@ -516,7 +618,9 @@ def must_fail() -> int:
     print("  gate below frontier fails, the core `scout` above haiku fails, a stale or reasonless")
     print("  exemption fails; sonnet implementers, a domain `architect`, a domain `scout`, and")
     print("  'NOT for building it' pass; other scouts above haiku only advise; 'Haiku-tier' and")
-    print("  `-scout` classify; an empty roster is not a pass. Exiting 3, the DECLARED teeth code.")
+    print("  `-scout` classify; 'BUILDING' is the build verb; the pair-review queue lists the")
+    print("  right engineer and never moves the verdict; an empty roster is not a pass.")
+    print("  Exiting 3, the DECLARED teeth code.")
     return 3
 
 
@@ -542,6 +646,15 @@ def main() -> int:
     exemptions, problems = _load_exemptions(root)
     rc, lines, counts = evaluate(rows, exemptions)
     report(rows, counts, exemptions)
+    if args.report and not args.check:
+        queue = pair_review(rows)
+        print(
+            f"── pair-review queue ({len(queue)}) — REPORT ONLY: frontier `-engineer`s beside an"
+            " architect/lead, not opening with a decision verb; tier by hand, sibling analog decides ──"
+        )
+        for r in queue:
+            print(f"    {r['plugin'] + '/' + r['name']:72} model: {r['alias']}")
+        print()
     for pr in problems:
         print(f"  ✗ {pr}")
         rc = 1

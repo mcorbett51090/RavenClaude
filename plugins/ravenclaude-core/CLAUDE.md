@@ -198,10 +198,15 @@ tier in frontmatter. **Roster-level, the frontier share is ratcheted:**
 `--stamp --allow-loosen`, said out loud in the PR, never silent. **And the tier must
 fit the role:** `scripts/check-model-tier-fit.py` (Gate 288) reads each agent's name and
 the opening of its description — an implementer (`*-implementation-engineer`,
-`*-developer`, "Use to BUILD …") may not sit on a frontier alias, the three core
+`*-developer`, "Use to BUILD …", "Use for BUILDING …") may not sit on a frontier alias, the three core
 merge gates may not sit below one, and `scout` — the agent every "dispatch `scout`"
 line here resolves to — may not sit above `haiku`; mis-reads are exempted by name with a reason in
-`tests/fixtures/model-tier-fit-exemptions.json`. **Cross-host:** the
+`tests/fixtures/model-tier-fit-exemptions.json`. What the gate cannot read it lists:
+`--report` prints the pair-review queue (frontier `*-engineer`s beside their plugin's
+architect/lead that do not open by deciding) for a human to tier, with the
+**sibling-plugin parity rule** as tie-breaker — the same role shape gets the same tier
+in every plugin, and a difference needs a reason that names the role, not the batch.
+**Cross-host:** the
 pin and the meter are Claude Code hooks; on Copilot and Codex the projected agent
 carries its canonical tier as a header comment for the consumer to pin (those hosts
 take a picker/model id, not a tier alias) — see

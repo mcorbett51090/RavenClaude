@@ -223,7 +223,7 @@
       "name": "legacy-modernization",
       "source": "./plugins/legacy-modernization",
       "description": "Legacy modernization team — agents (modernization-strategist, codebase-archaeologist, refactoring-engineer, migration-engineer) for safely changing a working-but-aging system: assess the estate and choose among the 6 R's (retain/rehost/replatform/refactor/rearchitect/replace), understand undocumented code and find its seams, characterize behavior before touching it, strangle the monolith incrementally behind an anti-corruption layer, migrate data with dual-write/parallel-run, and cut over with a tested rollback. skills, a knowledge bank with Mermaid decision trees + a dated 2026 capability map, best-practices, templates, commands, an advisory hook. Seams: backend redesign -> backend-engineering, schema migration mechanics -> database-engineering, deploy/cutover automation -> devops-cicd, test-suite buildout -> qa-test-automation. Inherits ravenclaude-core protocols.",
-      "version": "0.1.3",
+      "version": "0.1.4",
       "author": {
         "name": "Matt Corbett"
       },
@@ -244,7 +244,7 @@
       "name": "email-engineering",
       "source": "./plugins/email-engineering",
       "description": "Email-engineering team — agents (email-deliverability-architect, email-sending-engineer) for getting legitimate mail to the inbox: domain authentication (SPF, DKIM, DMARC alignment + a staged p=none -> quarantine -> reject rollout, BIMI), transport security (MTA-STS RFC 8461 + TLS-RPT RFC 8460), deliverability (subdomain stream separation, domain/IP warm-up, reputation, Gmail/Yahoo bulk-sender rules), inbox categorization (Gmail tabs, Outlook Focused Inbox, Apple Mail), ESP integration (SES/SendGrid/Postmark/Resend) with idempotent sends + verified webhook handling, MJML templates, and the feedback loop (bounce/complaint classification, ARF, suppression lists, one-click unsubscribe per RFC 8058). skills, a knowledge bank, best-practices, templates, commands, a scenarios bank, a stdlib auth-record linter, and an advisory hook. Seams: strategy -> marketing-operations, infra -> backend-engineering, DNS -> cloud plugins, security -> security-engineering. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.3.4",
+      "version": "0.3.5",
       "author": {
         "name": "Matt Corbett"
       },
@@ -568,7 +568,7 @@
       "name": "microsoft-fabric",
       "source": "./plugins/microsoft-fabric",
       "description": "Microsoft Fabric specialist team — agents (fabric-architect, lakehouse-engineer, warehouse-engineer, data-factory-engineer, realtime-intelligence-engineer, fabric-semantic-model-engineer, fabric-admin) covering OneLake, Lakehouse (Spark/Delta/medallion/materialized lake views), Warehouse (T-SQL/ACID), Data Factory (mirroring/copy-job/dataflow-gen2/pipelines), Real-Time Intelligence (Eventstream/Eventhouse/KQL/Activator), Direct Lake semantic models, and platform admin (capacity FinOps, OneLake security, domains, Purview, ALM). citation-grounded knowledge bank (two Mermaid decision trees + a dated 2026 capability map), templates, an advisory hook (house opinions). Seams: enterprise Microsoft/Fabric here vs non-Microsoft/SMB embedded to data-platform; Fabric storage + Direct Lake here vs standalone Power BI/.pbix to power-platform/power-bi-engineer. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.8.10",
+      "version": "0.8.11",
       "author": {
         "name": "Matt Corbett"
       },
@@ -592,7 +592,7 @@
       "name": "claude-app-engineering",
       "source": "./plugins/claude-app-engineering",
       "description": "Claude app-engineering specialist team — agents (claude-solution-architect, prompt-and-context-engineer, mcp-and-server-tools-engineer, agent-sdk-engineer, eval-engineer, claude-app-ops-engineer) for building production applications on the Claude API, the Claude Agent SDK, and MCP. Covers the build-surface decision (Messages API / Agent SDK / Managed Agents), model right-sizing (Opus 4.8 / Sonnet 4.6 / Haiku 4.5, 1M context), prompt caching, tool use + structured output, MCP server authoring + Anthropic-hosted server tools (computer use, code execution, Files API, memory, advisor tool), evals (golden sets, LLM-as-judge), and FinOps + reliability (batch, model routing, backoff, observability). dated-and-cited knowledge bank, templates, an advisory hook (house opinions). Seams: prompt-as-artifact, security, and cross-domain architecture escalate to ravenclaude-core. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.9.19",
+      "version": "0.9.20",
       "author": {
         "name": "Matt Corbett"
       },
@@ -614,7 +614,7 @@
       "name": "azure-cloud",
       "source": "./plugins/azure-cloud",
       "description": "Azure cloud infrastructure & platform specialist team — agents (azure-architect, bicep-iac-engineer, entra-identity-engineer, network-engineer, app-platform-engineer, integration-engineer, azure-ops-engineer) for the Azure layer under the Microsoft stack: landing zones / CAF, IaC (Bicep + Terraform + Azure Verified Modules + Deployment Stacks), Entra identity (managed identity, workload identity federation, RBAC, PIM, External ID), networking (Private Endpoints, hub-spoke, Front Door, WAF), compute selection (App Service / Container Apps / Functions / AKS), integration (Logic Apps, Service Bus, Event Grid, APIM), and observability + FinOps + governance. dated knowledge bank (two Mermaid decision trees + a 2026 capability map), templates, an advisory hook (house opinions). Seams: Logic Apps here vs Power Automate to power-platform; Fabric data to microsoft-fabric; Azure host here vs Claude app to claude-app-engineering. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.5.6",
+      "version": "0.5.7",
       "author": {
         "name": "Matt Corbett"
       },
@@ -663,7 +663,7 @@
       "name": "microsoft-365-copilot",
       "source": "./plugins/microsoft-365-copilot",
       "description": "Microsoft 365 Copilot extensibility & administration team — agents (copilot-extensibility-architect, declarative-agent-engineer, graph-connector-engineer, api-plugin-engineer, agents-sdk-engineer, copilot-admin-governance) covering declarative agents (pinned manifest schema + the 50/25/4096/45s hard-limit wall), custom-engine agents on the M365 Agents SDK/Toolkit, Copilot (Graph) connectors (synced vs federated/MCP, semantic labels, ACL trimming), API plugins (OpenAPI + Entra/OAuth2), the app-package publish lifecycle, and M365 Agent Registry + Purview DLP-for-Copilot governance. citation-grounded knowledge bank (two Mermaid decision trees), skills, templates, an advisory hook (house opinions). Disjoint from power-platform's Copilot Studio low-code coverage (cross-linked). Seams: Copilot Studio → power-platform; CEA engine → claude-app-engineering; Entra/hosting → azure-cloud; security → ravenclaude-core. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.5.7",
+      "version": "0.5.8",
       "author": {
         "name": "Matt Corbett"
       },
@@ -2363,7 +2363,7 @@
       "name": "performance-engineering",
       "source": "./plugins/performance-engineering",
       "description": "Performance- and capacity-engineering team — agents (performance-architect, load-testing-engineer, profiling-and-capacity-engineer) for system performance and scalability: performance strategy and budgets, workload modeling, and SLO-linked NFR targets (performance-architect); load/stress/soak/spike testing with k6/Gatling/Locust/JMeter, open- vs closed-model workloads, ramping, think time, and test data (load-testing-engineer); profiling, flame graphs, USE/RED bottleneck triage, capacity and headroom via Little's law, and regression detection (profiling-and-capacity-engineer). Knowledge bank with decision trees, a Little's-law/percentiles capacity calculator, best-practices, skills, commands, templates, an advisory hook, scenarios. Distinct from frontend Core Web Vitals and observability-sre SLOs. Seams: web vitals -> frontend-engineering; SLO -> observability-sre; query tuning -> database-engineering; resilience -> backend-engineering. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.2.2",
+      "version": "0.2.3",
       "author": {
         "name": "Matt Corbett"
       },
@@ -2480,7 +2480,7 @@
       "name": "desktop-app-engineering",
       "source": "./plugins/desktop-app-engineering",
       "description": "Desktop-app-engineering team — agents (desktop-architect, electron-engineer, tauri-engineer, desktop-platform-engineer) for cross-platform desktop apps: the Electron-vs-Tauri-vs-native-vs-PWA decision, a hardened process/security model (Electron contextIsolation + IPC allow-lists; Tauri capabilities/permissions + Rust commands), reproducible packaging, code-signing + notarization on Windows and macOS, safe auto-update, and native OS integration (tray, menus, notifications, file associations, deep links, secure on-device storage). skills, a decision-tree knowledge bank (framework-choice + IPC-security trees + a dated 2026 capability map), best-practices, templates, commands, an advisory hook. Seams: renderer UI -> frontend-engineering, the backend/API -> api-engineering/backend-engineering, tokens/OAuth -> auth-identity, signing/notarization in CI -> devops-cicd, the mobile sibling -> mobile-engineering. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.1.3",
+      "version": "0.1.4",
       "author": {
         "name": "Matt Corbett"
       },
@@ -2705,7 +2705,7 @@
       "name": "cli-tooling-engineering",
       "source": "./plugins/cli-tooling-engineering",
       "description": "CLI-tooling-engineering team — agents (cli-architect, cli-implementation-engineer, tui-engineer, cli-distribution-engineer) for command-line tools and TUIs that feel native to the shell: the command/subcommand + flag/positional surface, config precedence (flags > env > file > default), the output contract (human by default, --json on demand, exit codes as an API, data->stdout/diagnostics->stderr, NO_COLOR/TTY detection), stdin, signal handling, TUIs (Ink / Bubble Tea / Textual / ratatui) with a non-TTY fallback, shell completions, and distribution (single static binary, Homebrew / Scoop / winget / npm / pipx, --version + update path). skills, a knowledge bank (command-surface + output/exit-code + framework + distribution decision trees + a dated 2026 map), best-practices, templates, commands, an advisory hook. Seams: service logic -> backend-engineering, release/signing -> devops-cicd, GUI sibling -> desktop-app-engineering, docs -> technical-writing-docs. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.1.3",
+      "version": "0.1.4",
       "author": {
         "name": "Matt Corbett"
       },
@@ -3008,7 +3008,7 @@
       "name": "computer-vision-engineering",
       "source": "./plugins/computer-vision-engineering",
       "description": "Computer-vision engineering team — agents for a production vision build: cv-systems-architect (task framing across classification / detection / segmentation / OCR / tracking / VLM, data & annotation strategy, build-vs-API and deployment-target choice, eval-metric design — mAP / IoU / precision-recall), cv-model-engineer (dataset curation, augmentation, transfer learning, model selection across YOLO / DETR / SAM / CLIP / ViT, active learning, the eval harness, drift), and vision-deployment-engineer (quantization / distillation, ONNX / TensorRT / CoreML / TFLite export, edge/embedded targets, streaming-video pipelines, latency). Vision-specific vs the MLOps-broad ml-engineering. Ships skills, a knowledge bank (Mermaid decision trees + a dated 2026 reference), best-practices, templates, commands. Engineering judgment, not a benchmark verdict; model/hardware/runtime specifics carry a retrieval date + [verify-at-use]; no PII, no image data stored. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.1.1",
+      "version": "0.1.2",
       "author": {
         "name": "Matt Corbett"
       },
@@ -3060,7 +3060,7 @@
       "name": "streaming-media-engineering",
       "source": "./plugins/streaming-media-engineering",
       "description": "Streaming-media (video/audio) engineering team — agents for a streaming build: media-streaming-architect (VOD vs live, protocol choice across HLS / MPEG-DASH / CMAF / WebRTC / LL-HLS, packaging + origin/edge, single vs multi-CDN, DRM across Widevine / FairPlay / PlayReady, ABR-ladder philosophy, cost), transcoding-pipeline-engineer (codec choice across H.264 / HEVC / AV1 / VP9, FFmpeg pipelines, per-title & ABR-ladder encoding, GPU vs CPU, CMAF packaging, captions, audio & loudness), and playback-and-delivery-engineer (player integration across hls.js / dash.js / Shaka / ExoPlayer / AVPlayer, ABR tuning, QoE metrics, low-latency live, client DRM, CDN cache tuning). Ships skills, a knowledge bank (Mermaid decision trees + a dated 2026 reference), best-practices, templates, commands. Engineering judgment, not legal/DRM-licensing advice; codec/protocol/CDN/DRM/player specifics carry a retrieval date + [verify-at-use]; no PII. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.1.1",
+      "version": "0.1.2",
       "author": {
         "name": "Matt Corbett"
       },
@@ -3136,7 +3136,7 @@
       "name": "graphql-engineering",
       "source": "./plugins/graphql-engineering",
       "description": "GraphQL-engineering team — agents (graphql-schema-architect, graphql-server-engineer, graphql-security-governance-engineer) for the three engines of a GraphQL surface: schema design & evolution (client-driven type modeling, nullability, Relay pagination, mutation/error shape, schema-first vs code-first, federation vs stitching, non-breaking evolution), server & resolvers (N+1/DataLoader batching + per-request caching, selection-set-aware fetching, subscriptions, APQ/response caching), and security & governance (query cost/depth budgets, field-level authz, persisted operations, introspection hardening, rate/batch limits, error hygiene). Ships skills, a decision-tree knowledge bank (Mermaid trees + a dated 2026 reference), best-practices, templates, commands. Engineering judgment, not a security certification; library/federation/spec-feature specifics are volatile — every version carries a retrieval date + [verify-at-use]; no PII. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.1.1",
+      "version": "0.1.2",
       "author": {
         "name": "Matt Corbett"
       },
@@ -3188,7 +3188,7 @@
       "name": "hardware-electronics-engineering",
       "source": "./plugins/hardware-electronics-engineering",
       "description": "Hardware / electronics engineering team — agents (hardware-systems-architect, pcb-design-engineer) for the BOARD embedded firmware runs on: architecture & build-vs-buy (module vs custom PCB), MCU/component selection + supply-aware BOM, power architecture (LDO-vs-switcher, budgets), schematic capture, PCB layout (stack-up, impedance, decoupling, grounding), signal & power integrity, DFM/DFA/DFT, and bring-up. skills (scope-a-hardware-design, select-components-and-bom, review-schematic-and-layout), a knowledge bank (a Mermaid module-vs-custom-PCB tree + a dated 2026 EDA/fab/compliance reference), best-practices. ENGINEERING decision-support, not a certification/safety-sign-off authority; component specs, fab/DFM rules, and regulatory thresholds are volatile + vendor/jurisdiction-specific, retrieval-dated + verify-at-use; datasheets read at the operating point. Distinct from embedded-iot-engineering (firmware) and robotics-autonomous-systems-engineering. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.1.1",
+      "version": "0.1.2",
       "author": {
         "name": "Matt Corbett"
       },
@@ -3215,7 +3215,7 @@
       "name": "llm-evaluation-engineering",
       "source": "./plugins/llm-evaluation-engineering",
       "description": "LLM-evaluation engineering team — agents (eval-strategy-lead, eval-harness-engineer) for the question every team shipping an AI feature must answer: is it getting better or worse? Eval design (task-grounded metrics not leaderboard scores, offline-vs-online split, sample size, a ship-gate decided as a number before the run) and the harness that proves it (frozen golden sets with provenance, LLM-as-judge rubrics with a bias audit + human calibration, CI regression gates, guardrail/red-team suites). skills, a decision-tree knowledge bank (an eval-method Mermaid tree + a dated 2026 tooling/method map), best-practices. Engineering decision-support, not a safety certification; model/judge/tooling specifics are volatile, retrieval-dated + verify-at-use; no eval-data PII. Seams: ai-rag-engineering (retrieval quality), ai-coding-model-guidance (model pick), ml-engineering (classical training), experimentation-growth-engineering (product A/B). Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.1.1",
+      "version": "0.1.2",
       "author": {
         "name": "Matt Corbett"
       },

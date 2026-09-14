@@ -2,6 +2,12 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## 0.9.20 — 2026-09-14
+
+### Changed
+
+- `agent-sdk-engineer`, `mcp-and-server-tools-engineer`: `model: opus` → `model: sonnet`. Second model-tier pass — SDK wiring and MCP-server authoring against the build surface `claude-solution-architect` picked; the architect, `eval-engineer`, `prompt-and-context-engineer` and `claude-app-ops-engineer` (judgment roles) stay on `opus`. This is the `sonnet` row of the marketplace's tier table (`ravenclaude-core/knowledge/model-tier-delegation.md`: bounded, well-specified work against a design made upstream), and the sibling-plugin parity rule the doctrine now states: the same role shape gets the same tier across plugins. Listed by the model-tier-fit gate's `--report` pair-review queue (`check-model-tier-fit.py`, Gate 288). No behaviour change beyond the model the agents run on — they move tier, not role.
+
 ## 0.9.19 — 2026-08-31
 
 ### Added

@@ -91,7 +91,19 @@ All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the 
   fails. **Roster re-tier shipped alongside (marketplace-wide, not this
   plugin):** the 24 implementers moved `opus` → `sonnet` across 23 domain
   plugins (each patch-bumped), frontier share 484/623 (77.7%) → 460/623
-  (73.8%), and the Gate 287 baseline was re-stamped as a tightening.
+  (73.8%), and the Gate 287 baseline was re-stamped as a tightening. **Second
+  pass, same day:** the gate reads the gerund (`Use for BUILDING …`) as the
+  build verb, and `--report` now prints a **pair-review queue** — every
+  frontier `*-engineer` that is unshaped, sits beside its plugin's
+  `*-architect` / `*-lead` / `*-strategist`, and does not open by deciding.
+  Report-only, never a verdict: a lower-case `build` also opens "build a GHG
+  inventory" (an analyst), so this shape is tiered by hand with the
+  sibling-plugin analog as tie-breaker. The doctrine states that as the
+  **sibling-plugin parity rule** (every `aws-cloud` / `gcp-cloud` engineer sat
+  on `sonnet` while every same-shaped `azure-cloud` engineer sat on `opus`).
+  26 more build-half agents moved `opus` → `sonnet` across 14 plugins (each
+  patch-bumped, reason in each CHANGELOG), 460/623 (73.8%) → 434/623 (69.7%),
+  baseline re-stamped as a tightening again.
 
 ### Notes
 

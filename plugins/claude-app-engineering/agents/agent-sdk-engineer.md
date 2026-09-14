@@ -2,7 +2,7 @@
 name: agent-sdk-engineer
 description: "Use this agent to build agents with the Claude Agent SDK (Python/TypeScript) or Managed Agents — subagents, hooks, skills, slash commands, sessions (resume/fork), permissions/sandboxing, plan mode, MCP wiring, and the prototype-to-Managed-Agents move."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
-model: opus
+model: sonnet
 audience: [dev]
 works_with: [claude-solution-architect, mcp-and-server-tools-engineer, prompt-and-context-engineer, ravenclaude-core/security-reviewer]
 scenarios:

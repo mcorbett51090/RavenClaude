@@ -6747,7 +6747,12 @@ echo "── Gate 288: model-tier fit (an agent's pinned tier must fit the role 
 # exemption fails; a sonnet implementer, a domain `architect`, a domain
 # `scout`, and the anchored negative pass; the "Haiku-tier" opener and a
 # `-scout` name classify (the real roster's one haiku agent is a positive
-# control, not a vacuous class); an empty roster is not a pass.
+# control, not a vacuous class); the gerund ("Use for BUILDING ...") is the
+# build verb; an empty roster is not a pass. What the classifier will NOT rule
+# on it LISTS: `--report` prints the pair-review queue (frontier `*-engineer`s
+# beside their plugin's architect/lead that do not open by deciding) for a
+# human to tier with the sibling-plugin analog as tie-breaker — report-only,
+# `--check` never reads it, and the teeth prove it never moves the verdict.
 rc=0; python3 scripts/check-model-tier-fit.py --check >/dev/null 2>&1 || rc=$?
 gate "model-tier fit: every core merge gate on the frontier tier, no implementer on a frontier alias, core scout on haiku, no stale exemption" must_pass "$rc"
 rc=0; rc_mustfail python3 scripts/check-model-tier-fit.py >/dev/null 2>&1 || rc=$?

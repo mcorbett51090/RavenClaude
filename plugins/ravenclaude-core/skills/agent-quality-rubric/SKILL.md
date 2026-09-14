@@ -36,9 +36,13 @@ volume work — in the marketplace the roster-wide frontier share is ratcheted b
 Gate 287, so this also fails the PR if it raises the share), and a `haiku` agent asked to gate a
 merge or make a design call (the tier cannot carry the judgment). The marketplace's
 `check-model-tier-fit.py` (Gate 288) catches the *mechanical* slice of both — an agent named
-`*-implementation-engineer` / `*-developer` or whose description opens with "Use to BUILD" may not
-be pinned `opus`, and the core merge gates may not be pinned below it — so the reviewer's
-judgment is reserved for the roles the name and the opening verb do not settle. `inherit` is a deliberate
+`*-implementation-engineer` / `*-developer` or whose description opens with "Use to BUILD" /
+"Use for BUILDING" may not be pinned `opus`, and the core merge gates may not be pinned below it — so
+the reviewer's judgment is reserved for the roles the name and the opening verb do not settle. Those
+are exactly what `check-model-tier-fit.py --report` lists as the **pair-review queue** (a frontier
+`*-engineer` beside its plugin's architect/lead, not opening by deciding); tier them by
+**sibling-plugin parity** — find the same role shape in the nearest sibling plugin and match its
+tier, or write the role-level reason for differing. `inherit` is a deliberate
 choice, not a default — it must say in one clause why the worker should run at the session's tier.
 
 ## The 6 dimensions

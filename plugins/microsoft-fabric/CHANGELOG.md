@@ -2,6 +2,12 @@
 
 All notable changes to this plugin are documented here. Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.8.11] — 2026-09-14
+
+### Changed
+
+- `lakehouse-engineer`, `warehouse-engineer`, `realtime-intelligence-engineer`: `model: opus` → `model: sonnet`. Second model-tier pass — the build half of the roster — Lakehouse/Spark, T-SQL ELT, Eventstream/KQL against the topology `fabric-architect` chose; `fabric-architect`, `fabric-admin`, `data-factory-engineer` (decision-tree role) and `fabric-semantic-model-engineer` (storage-mode judgment) stay on `opus`. This is the `sonnet` row of the marketplace's tier table (`ravenclaude-core/knowledge/model-tier-delegation.md`: bounded, well-specified work against a design made upstream), and the sibling-plugin parity rule the doctrine now states: the same role shape gets the same tier across plugins. Listed by the model-tier-fit gate's `--report` pair-review queue (`check-model-tier-fit.py`, Gate 288). No behaviour change beyond the model the agents run on — they move tier, not role.
+
 ## [0.8.9] — 2026-08-14
 
 ### Changed
