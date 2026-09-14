@@ -54,6 +54,17 @@
         ]
       },
       {
+        "matcher": "Agent|Task",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/handoff-tax-meter.sh",
+            "timeout": 10,
+            "comment": "Handoff-tax meter (model-tier delegation, measurement leg). ADVISORY, never blocks. On every subagent dispatch it reads the PostToolUse payload (brief = tool_input.prompt, report = tool_response.content, tier from resolvedModel) and appends one counts-only line to .ravenclaude/runs/<session>/dispatch-ledger.jsonl — never the prompt or report text. Speaks (additionalContext) only when a threshold trips: report_over_cap (worker returned more than the Team Lead would have pasted itself; default 400 words), brief_over_cap (transcript-forwarding shape; default 600), or frontier_readonly (Explore/scout ran on an opus-class model — since v2.1.198 an un-pinned Explore inherits the main model). Opt-in (no-op without .ravenclaude/comfort-posture.yaml); `handoff_tax: off` silences the advisory but keeps the ledger; caps under `handoff_tax: { report_cap_words, brief_cap_words }`. Fail-safe: no python3/jq, malformed payload, background (async_launched) dispatch -> exit 0. HONEST LIMIT: totalTokens covers the subagent's FINAL request only (lower bound); word counts are exact. Reference: knowledge/model-tier-delegation.md."
+          }
+        ]
+      },
+      {
         "matcher": "mcp__.*",
         "hooks": [
           {
