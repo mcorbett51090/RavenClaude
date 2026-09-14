@@ -110,7 +110,9 @@ def resolve_cross_model(tier: str, cross_model_flag: bool) -> bool:
     raise TierError(f"unknown tier: {tier}")
 
 
-def compute_models_per_dimension_label(tier: str, cross_model: bool, dimensions: int) -> tuple[str, int]:
+def compute_models_per_dimension_label(
+    tier: str, cross_model: bool, dimensions: int
+) -> tuple[str, int]:
     """Return (human label, review_agents_per_batch) per the dead-code-simplification nuance.
 
     dead-code-simplification always effectively runs at models-per-dimension=1
@@ -178,7 +180,9 @@ def estimate(
 
     dimensions = TIER_DIMENSIONS[tier]
     cross_model = resolve_cross_model(tier, cross_model_flag)
-    label, review_agents_per_batch = compute_models_per_dimension_label(tier, cross_model, dimensions)
+    label, review_agents_per_batch = compute_models_per_dimension_label(
+        tier, cross_model, dimensions
+    )
 
     # Every (dimension, model, batch) triple the real repo-sweep.workflow.js
     # dispatches costs a cheap cache-check agent() call UNCONDITIONALLY, plus the
@@ -194,7 +198,11 @@ def estimate(
     k_max = TIER_FIX_CAP_DEFAULT[tier] if fix_cap is None else fix_cap
     o = overhead
 
-    batches_planned = int(plan["coverage"]["batches_planned"])
+    # Defensive read (mirrors plan.get("totals", {}).get("reviewable", 0) above):
+    # a structurally-incomplete plan JSON (e.g. {}) previously raised an uncaught
+    # KeyError that main()'s except clause does not catch, producing a raw
+    # traceback instead of the tool's `error: ...` + defined-exit-code contract.
+    batches_planned = int(plan.get("coverage", {}).get("batches_planned", 0) or 0)
 
     # Never recommend a config whose worst-case total exceeds the Workflow
     # tool's own hard cap, regardless of what --agent-budget asked for.
@@ -272,12 +280,17 @@ def build_arg_parser() -> argparse.ArgumentParser:
         ),
     )
     parser.add_argument(
-        "--verify-cap", type=int, default=None, help="V_max override (tier-specific default otherwise)"
+        "--verify-cap",
+        type=int,
+        default=None,
+        help="V_max override (tier-specific default otherwise)",
     )
     parser.add_argument(
         "--fix-cap", type=int, default=None, help="K_max override (tier-specific default otherwise)"
     )
-    parser.add_argument("--overhead", type=int, default=6, help="O, fixed overhead cost (default 6)")
+    parser.add_argument(
+        "--overhead", type=int, default=6, help="O, fixed overhead cost (default 6)"
+    )
     parser.add_argument(
         "--full", action="store_true", help="bypass risk-floor sampling (reviews every batch)"
     )
@@ -458,7 +471,8 @@ def run_self_test() -> int:
         )
         check(
             "xhigh + cross-model: review_agents_per_batch == 15 and full_coverage true",
-            result_xhigh_cm["review_agents_per_batch"] == 15 and result_xhigh_cm["full_coverage"] is True,
+            result_xhigh_cm["review_agents_per_batch"] == 15
+            and result_xhigh_cm["full_coverage"] is True,
             str(result_xhigh_cm),
         )
 
@@ -571,7 +585,8 @@ def run_self_test() -> int:
         )
         check(
             "warm cache (cache_hit_rate=1.0): with-cache-checks == the real-review count (no doubling)",
-            result_warm["review_agents_per_batch_with_cache_checks"] == result_warm["review_agents_per_batch"],
+            result_warm["review_agents_per_batch_with_cache_checks"]
+            == result_warm["review_agents_per_batch"],
             str(result_warm),
         )
 
@@ -701,7 +716,15 @@ def run_self_test() -> int:
         big_plan_path = Path(tmpdir) / "plan_big.json"
         big_plan_path.write_text(json.dumps(big_plan), encoding="utf-8")
         proc_nocap = subprocess.run(
-            [sys.executable, this_file, "--plan", str(big_plan_path), "--effort-tier", "high", "--full"],
+            [
+                sys.executable,
+                this_file,
+                "--plan",
+                str(big_plan_path),
+                "--effort-tier",
+                "high",
+                "--full",
+            ],
             capture_output=True,
             text=True,
         )

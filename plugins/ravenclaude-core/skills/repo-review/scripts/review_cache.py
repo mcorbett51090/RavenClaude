@@ -164,7 +164,9 @@ def _cache_lock(cache_path: Path):
                 fh.close()
 
 
-def lookup(cache_dir: str, repo_root: str, rel_path: str, dimension: str, model: str) -> dict | None:
+def lookup(
+    cache_dir: str, repo_root: str, rel_path: str, dimension: str, model: str
+) -> dict | None:
     _validate_rel_path(rel_path)
     abspath = _require_contained(Path(repo_root) / rel_path, Path(repo_root), "file path")
     if not abspath.exists():
@@ -191,6 +193,13 @@ def store(
 ) -> None:
     _validate_rel_path(rel_path)
     abspath = _require_contained(Path(repo_root) / rel_path, Path(repo_root), "file path")
+    # Guard existence before hashing (mirrors lookup()'s abspath.exists() check):
+    # a file deleted between review dispatch and cache-store previously made
+    # file_hash()'s open() raise an uncaught FileNotFoundError, crashing the store
+    # with a raw traceback. Raise ValueError instead — the CLI store handler
+    # already catches it and emits the module's clean error contract.
+    if not abspath.exists():
+        raise ValueError(f"cannot store findings for nonexistent file: {rel_path}")
     h = file_hash(abspath)
     p = _cache_path(cache_dir, rel_path)
     p.parent.mkdir(parents=True, exist_ok=True)
@@ -211,7 +220,9 @@ def store(
         _write_atomic(p, json.dumps(entries, indent=2, sort_keys=True))
 
 
-def batch_status(cache_dir: str, repo_root: str, files: list[str], dimensions: list[str], models: list[str]) -> dict:
+def batch_status(
+    cache_dir: str, repo_root: str, files: list[str], dimensions: list[str], models: list[str]
+) -> dict:
     """For a batch (list of relpaths) and a set of (dimension, model) pairs,
     report which pairs are fully cache-hit (every file unchanged and present)
     vs. which need a real review dispatch."""
@@ -269,7 +280,9 @@ def main(argv: list[str]) -> int:
 
     if args.cmd == "lookup":
         try:
-            result = lookup(args.cache_dir, args.repo_root, args.rel_path, args.dimension, args.model)
+            result = lookup(
+                args.cache_dir, args.repo_root, args.rel_path, args.dimension, args.model
+            )
         except ValueError as e:
             print(f"error: {e}", file=sys.stderr)
             return 2
@@ -317,9 +330,20 @@ def _self_test() -> int:
         target.parent.mkdir(parents=True)
         target.write_text("def f():\n    return 1\n", encoding="utf-8")
 
-        check("miss before any store", lookup(cache_dir, repo_root, "src/a.py", "correctness", "sonnet") is None)
+        check(
+            "miss before any store",
+            lookup(cache_dir, repo_root, "src/a.py", "correctness", "sonnet") is None,
+        )
 
-        store(cache_dir, repo_root, "src/a.py", "correctness", "sonnet", [{"id": "f1"}], timestamp=1000)
+        store(
+            cache_dir,
+            repo_root,
+            "src/a.py",
+            "correctness",
+            "sonnet",
+            [{"id": "f1"}],
+            timestamp=1000,
+        )
         hit = lookup(cache_dir, repo_root, "src/a.py", "correctness", "sonnet")
         check("hit after store", hit is not None and hit["findings"] == [{"id": "f1"}])
 
@@ -347,10 +371,23 @@ def _self_test() -> int:
         )
 
         # Re-store overwrites the entry for the same (dimension, model), not append-duplicates.
-        store(cache_dir, repo_root, "src/a.py", "correctness", "sonnet", [{"id": "f2"}], timestamp=2000)
+        store(
+            cache_dir,
+            repo_root,
+            "src/a.py",
+            "correctness",
+            "sonnet",
+            [{"id": "f2"}],
+            timestamp=2000,
+        )
         entries = _load_entries(cache_dir, "src/a.py")
-        matching = [e for e in entries if e["dimension"] == "correctness" and e["model"] == "sonnet"]
-        check("re-store overwrites, not duplicates", len(matching) == 1 and matching[0]["findings"] == [{"id": "f2"}])
+        matching = [
+            e for e in entries if e["dimension"] == "correctness" and e["model"] == "sonnet"
+        ]
+        check(
+            "re-store overwrites, not duplicates",
+            len(matching) == 1 and matching[0]["findings"] == [{"id": "f2"}],
+        )
 
         # batch_status: two files, one dimension/model pair fully cached, another not.
         target2 = Path(repo_root) / "src" / "b.py"
