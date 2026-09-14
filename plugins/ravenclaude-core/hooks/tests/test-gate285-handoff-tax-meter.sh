@@ -128,6 +128,54 @@ else
   fail "F: ledger leaked prompt/report text"
 fi
 
+# ── H: nested dispatch — the hook fired INSIDE a subagent ────────────────────
+# Hooks run inside subagents and the input then carries the caller's agent_id /
+# agent_type as top-level fields (hooks doc § common input fields, 2026-09-14).
+# First the main thread spawns gp1; then gp1's own dispatch of a haiku scout
+# arrives with agent_id=gp1. The child is within every cap and on the cheap
+# tier, so the ONLY thing that can fire is the nesting itself.
+run_hook "$(payload sH general-purpose claude-sonnet-5 "$SHORT" | jq -c '.tool_response.agentId="gp1"')" "$PROJ" >/dev/null
+nested="$(payload sH scout claude-haiku-4-5-20251001 "$SHORT" \
+  | jq -c '.tool_response.agentId="sc2" | .agent_id="gp1" | .agent_type="general-purpose"')"
+out="$(run_hook "$nested" "$PROJ")"
+LH="$PROJ/.ravenclaude/runs/sH/dispatch-ledger.jsonl"
+if printf '%s' "$out" | jq -e '.hookSpecificOutput.additionalContext' >/dev/null 2>&1; then
+  ctx="$(printf '%s' "$out" | jq -r '.hookSpecificOutput.additionalContext')"
+  printf '%s' "$ctx" | grep -q "nested_dispatch" && printf '%s' "$ctx" | grep -q 'BY `general-purpose`' \
+    && pass "H1: a called agent calling an agent -> additionalContext carries nested_dispatch and names the caller" \
+    || fail "H1: nested advisory missing or does not name the caller"
+  printf '%s' "$ctx" | grep -q "CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH=1" \
+    && pass "H2: advisory names the off-switch" || fail "H2: off-switch not named"
+else
+  fail "H1-H2: nested dispatch produced no additionalContext (got: $(printf '%s' "$out" | head -c 200))"
+fi
+if [[ -f "$LH" ]] && [[ "$(wc -l <"$LH" | tr -d ' ')" == "2" ]]; then
+  first_depth="$(sed -n 1p "$LH" | jq -r '.depth')"; first_nested="$(sed -n 1p "$LH" | jq -r '.nested')"
+  last="$(sed -n 2p "$LH")"
+  [[ "$first_depth" == "1" && "$first_nested" == "false" ]] \
+    && pass "H3: the main-thread spawn is depth 1, nested=false" \
+    || fail "H3: main-thread line wrong (depth=$first_depth nested=$first_nested)"
+  if [[ "$(printf '%s' "$last" | jq -r '.nested')" == "true" \
+     && "$(printf '%s' "$last" | jq -r '.caller_agent_id')" == "gp1" \
+     && "$(printf '%s' "$last" | jq -r '.caller_agent_type')" == "general-purpose" \
+     && "$(printf '%s' "$last" | jq -r '.depth')" == "2" \
+     && "$(printf '%s' "$last" | jq -r '.depth_is_lower_bound')" == "false" ]]; then
+    pass "H4: the nested line records caller id/type and reconstructs depth 2 (exact, from gp1's own line)"
+  else
+    fail "H4: nested ledger line wrong: $(printf '%s' "$last" | head -c 240)"
+  fi
+  [[ "$(printf '%s' "$last" | jq -r '.schema_version')" == "2" ]] \
+    && pass "H5: ledger line is schema_version 2 (the nesting keys are versioned in)" \
+    || fail "H5: schema_version not 2"
+else
+  fail "H3-H5: expected exactly 2 ledger lines for sH (got $([[ -f "$LH" ]] && wc -l <"$LH" || echo none))"
+fi
+# H6 (control): the same child dispatched from the MAIN thread is silent — the
+# flag keys on agent_id, so B's silence and H1's advisory differ by that field alone.
+out="$(run_hook "$(payload sH2 scout claude-haiku-4-5-20251001 "$SHORT")" "$PROJ")"
+[[ -z "$out" ]] && pass "H6 (control): identical dispatch WITHOUT agent_id -> silent (the flag is load-bearing on agent_id)" \
+  || fail "H6: main-thread dispatch produced output: $(printf '%s' "$out" | head -c 120)"
+
 # ── G: teeth ─────────────────────────────────────────────────────────────────
 if python3 "$METER" --self-test >/dev/null 2>&1; then
   pass "G1: handoff-tax-meter.py --self-test passes (contains its own must-fail canary)"

@@ -22,6 +22,13 @@
 #                      transcript-forwarding tell
 #   frontier_readonly  a read-only/search worker (Explore, scout) ran on a
 #                      frontier model — the un-pinned-Explore sink
+#   nested_dispatch    the hook fired INSIDE a subagent (the input carries the
+#                      caller's agent_id/agent_type) — a called agent called an
+#                      agent. Gate 289 keeps shipped agents' tools: free of
+#                      Agent, but the built-in general-purpose/claude types, a
+#                      fork, or a project-local agent can still nest, and this
+#                      is the only place that becomes visible. The ledger
+#                      records the caller and a reconstructed depth.
 #
 # HONEST SCOPE: a hook cannot make a worker write less or make the Team Lead
 # pin a cheaper model. It can only make the cost VISIBLE on the turn it was
