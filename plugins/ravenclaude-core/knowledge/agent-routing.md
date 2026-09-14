@@ -14,13 +14,16 @@ The roster the tree branches across is the 14 agents under `plugins/ravenclaude-
 
 **When this applies:** a user request has just arrived at the Team Lead session, and the Team Lead is choosing whether to handle it directly or delegate to one specialist (or a sequence). **Traverse top-to-bottom before spawning — do NOT keyword-match the request to an agent name.**
 
-**Last verified:** 2026-05-22 against the 14-agent roster shipped in `ravenclaude-core` v0.13.0.
+**Last verified:** 2026-09-14 against the 17-agent roster shipped in `ravenclaude-core` v0.322.0 (`scout` added).
 
 ```mermaid
 flowchart TD
     START[User request arrives at Team Lead] --> Q1{"Trivial Q&A, single-file ≤10-line tweak,<br/>or pure orchestration question?"}
     Q1 -->|YES| DIRECT["Team Lead handles directly<br/>NO spawn"]
-    Q1 -->|NO| Q2{"Touches auth, secrets, PII/PCI/PHI,<br/>RLS/FLS, or a new external surface?"}
+    Q1 -->|NO| Q1b{"High-volume reading with no judgment —<br/>search, grep, classify, extract, inventory?"}
+    Q1b -->|YES| SCOUT["Spawn scout (haiku)<br/>returns paths / fields / counts"]
+    Q1b -->|NO| Q2{"Touches auth, secrets, PII/PCI/PHI,<br/>RLS/FLS, or a new external surface?"}
+    SCOUT -->|"result feeds a design or build"| Q2
     Q2 -->|YES| SEC["Spawn security-reviewer<br/>(may run in parallel with builder)"]
     Q2 -->|NO| Q3{"Multi-file design choice not yet made,<br/>OR cross-cutting interface change?"}
     Q3 -->|YES| ARCH["Spawn architect FIRST<br/>plan then dispatch builders"]
@@ -47,6 +50,7 @@ flowchart TD
 **Rationale per leaf:**
 
 - _DIRECT (no spawn)_ — spawning a specialist costs tokens, latency, and a context-handoff. A trivial Q&A or a 5-line one-file edit is cheaper for the Team Lead to handle in-session.
+- _scout_ — the one leaf that is cheaper **in dollars** than doing it yourself: reading ten files in-session spends frontier input tokens on grunt work; a `scout` spends haiku tokens and returns ten lines. Route here when the subtask is *well-specified after you did the thinking* and the answer is a small artifact (paths, fields, counts) — never for a verdict or a design. It usually precedes another leaf: its path list is what makes the architect / coder brief name exact files instead of a tree. See [`model-tier-delegation.md`](model-tier-delegation.md).
 - _security-reviewer_ — security gates everything else; if the request touches an auth/secret/PII surface, security review runs in parallel with (or before) the build, never after merge.
 - _architect_ — when the design isn't settled, a builder spawning without a plan produces rework. Architect costs one extra hop but saves N coder iterations.
 - _documentarian_ — stakeholder-facing prose. Polish, structure, no jargon. NOT for code comments.
@@ -70,23 +74,26 @@ flowchart TD
 > both directions; then use this table to pick the specialist. Skipping a gate row (security-reviewer,
 > tester-qa, code-reviewer) is never a saving: it removes the gate.
 
-| Agent                     | Spawn cost (tokens / latency) | When to spawn                                                       | Blocks merge?                            |
-| ------------------------- | ----------------------------- | ------------------------------------------------------------------- | ---------------------------------------- |
-| (none — Team Lead direct) | 0                             | Trivial Q&A or ≤10-line single-file tweak                           | No                                       |
-| security-reviewer         | Medium                        | Auth / secrets / PII / RLS / new external surface                   | YES — must clear before merge            |
-| architect                 | Medium                        | Multi-file design not yet settled; cross-cutting interface change   | No (advisory) but unblocks builders      |
-| documentarian             | Low-Medium                    | Stakeholder prose, memos, runbooks, READMEs                         | No                                       |
-| project-manager           | Low                           | RAID / status / task hygiene; weekly cadence; risk emerges          | No                                       |
-| partner-success-manager   | Low-Medium                    | Partner profile / QBR prep / health-score dip / 30-day silence      | No                                       |
-| designer                  | Medium                        | Wireframe / UX flow / a11y audit before any UI build                | No (gates frontend-coder start)          |
-| prompt-engineer           | Medium                        | Authoring or revising an agent / skill / routing rule               | No                                       |
-| deep-researcher           | High (browsing + verification)| External fact-finding the Team Lead can't confidently answer        | No (advisory)                            |
-| frontend-coder            | Medium                        | UI / client-only changes                                            | No                                       |
-| backend-coder             | Medium                        | API / DB / server-only changes                                      | No                                       |
-| fullstack-coder           | Medium-High                   | One feature slice spans both ends, doesn't parallelize cleanly      | No                                       |
-| data-engineer             | Medium                        | Pipelines / warehouse / ELT / dbt / query perf / lineage            | No                                       |
-| tester-qa                 | Medium                        | Code change exists, suite needs writing or running                  | YES — must clear before code-reviewer    |
-| code-reviewer             | Medium                        | Tests are green, diff is ready for human-quality review             | YES — final pre-merge gate               |
+| Agent                     | Tier (`model:`)               | Spawn cost (tokens / latency)  | When to spawn                                                                     | Blocks merge?                         |
+| ------------------------- | ----------------------------- | ------------------------------ | --------------------------------------------------------------------------------- | ------------------------------------- |
+| (none — Team Lead direct) | frontier (the session itself) | 0                              | Trivial Q&A or ≤10-line single-file tweak                                         | No                                    |
+| scout                     | **fast** (`haiku`)            | Low (haiku tokens)             | High-volume read with no judgment: search / grep / classify / extract / inventory | No — feeds the next brief             |
+| security-reviewer         | frontier (`opus`) — gate      | Medium                         | Auth / secrets / PII / RLS / new external surface                                 | YES — must clear before merge         |
+| architect                 | frontier (`opus`)             | Medium                         | Multi-file design not yet settled; cross-cutting interface change                 | No (advisory) but unblocks builders   |
+| documentarian             | mid (`sonnet`)                | Low-Medium                     | Stakeholder prose, memos, runbooks, READMEs                                       | No                                    |
+| project-manager           | mid (`sonnet`)                | Low                            | RAID / status / task hygiene; weekly cadence; risk emerges                        | No                                    |
+| partner-success-manager   | mid (`sonnet`)                | Low-Medium                     | Partner profile / QBR prep / health-score dip / 30-day silence                    | No                                    |
+| designer                  | mid (`sonnet`)                | Medium                         | Wireframe / UX flow / a11y audit before any UI build                              | No (gates frontend-coder start)       |
+| prompt-engineer           | frontier (`opus`)             | Medium                         | Authoring or revising an agent / skill / routing rule                             | No                                    |
+| deep-researcher           | frontier (`opus`)             | High (browsing + verification) | External fact-finding the Team Lead can't confidently answer                      | No (advisory)                         |
+| frontend-coder            | mid (`sonnet`)                | Medium                         | UI / client-only changes                                                          | No                                    |
+| backend-coder             | mid (`sonnet`)                | Medium                         | API / DB / server-only changes                                                    | No                                    |
+| fullstack-coder           | mid (`sonnet`)                | Medium-High                    | One feature slice spans both ends, doesn't parallelize cleanly                    | No                                    |
+| data-engineer             | mid (`sonnet`)                | Medium                         | Pipelines / warehouse / ELT / dbt / query perf / lineage                          | No                                    |
+| tester-qa                 | mid (`sonnet`)                | Medium                         | Code change exists, suite needs writing or running                                | YES — must clear before code-reviewer |
+| code-reviewer             | frontier (`opus`) — gate      | Medium                         | Tests are green, diff is ready for human-quality review                           | YES — final pre-merge gate            |
+
+> **The Tier column is who pays.** Every agent file pins its `model:` (gated by `check-frontmatter.py`), so the tier is not a per-dispatch guess: the gates and the architect are frontier because a de-escalated gate is a removed gate; the coders are mid because a bounded edit against a plan needs competence, not invention; the scout is fast because reading a lot and returning a little is the one job where the cheap tier is strictly better. Override downward only for a worker, never for a gate — [`spawn-team`](../skills/spawn-team/SKILL.md) Step 4.25.
 
 If the request matches multiple branches, the **earliest-blocking gate wins**: a UI feature that also touches auth spawns `security-reviewer` first (Q2 catches it before Q5), even though Q5 would otherwise route to `frontend-coder`.
 
@@ -102,6 +109,7 @@ If the request matches multiple branches, the **earliest-blocking gate wins**: a
 6. **Spawning `frontend-coder` before `designer`.** New UI surfaces start with a wireframe + a11y spec; frontend-coder executes the spec. Skipping designer produces UIs that get re-done.
 7. **Forgetting `security-reviewer` on auth-adjacent work.** Q2 in the tree is a hard gate precisely because "this PR happens to touch auth" is the most-skipped routing decision in practice — security-reviewer is mandatory whenever auth, secrets, PII, RLS/FLS, or a new external surface is in scope, regardless of how small the change looks.
 8. **Spawning a specialist when a skill or slash command already owns the procedure.** That is a [`spawn-team`](../skills/spawn-team/SKILL.md) Step 1.25 miss (e.g. spawning `designer` for a quick `/wireframe` mockup). This tree never gets a chance to be right if the surface was wrong.
+9. **Doing the grunt read on the frontier model.** Grepping twelve files in-session, or dispatching the built-in `Explore` without pinning `model: "haiku"` (since Claude Code v2.1.198 it inherits the session's model, so on Opus it *is* an Opus dispatch), spends premium tokens on work that has no judgment in it. Q1b exists so that read lands on `scout`. The [`handoff-tax-meter`](../hooks/handoff-tax-meter.sh) flags the miss as `frontier_readonly`. The mirror error is worse: **never** route a gate (`security-reviewer`, `code-reviewer`) or the `architect` to a cheaper tier to save money — that is not a saving, it is a removed gate.
 
 ---
 

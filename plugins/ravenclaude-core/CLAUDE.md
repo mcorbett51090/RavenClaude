@@ -194,7 +194,7 @@ the orchestrator → workers pattern. They compose: the Team Lead decides the su
 **Migration:** every agent file now requires `model:`; every shipped agent already
 declares one, so `/plugin marketplace update` changes nothing for a consumer. A
 consumer's *own* project-level `agents/*.md` are not gated by this repo's CI. Agent
-count 14 → 15 (`scout`). New advisory hook is inert without a comfort-posture file.
+count 16 → 17 (`scout`). New advisory hook is inert without a comfort-posture file.
 
 ### Agent-routing decision tree (priors — for the Team Lead)
 
