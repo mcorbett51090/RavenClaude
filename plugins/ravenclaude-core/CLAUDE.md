@@ -198,8 +198,9 @@ tier in frontmatter. **Roster-level, the frontier share is ratcheted:**
 `--stamp --allow-loosen`, said out loud in the PR, never silent. **And the tier must
 fit the role:** `scripts/check-model-tier-fit.py` (Gate 288) reads each agent's name and
 the opening of its description — an implementer (`*-implementation-engineer`,
-`*-developer`, "Use to BUILD …") may not sit on a frontier alias, and the three core
-merge gates may not sit below one; mis-reads are exempted by name with a reason in
+`*-developer`, "Use to BUILD …") may not sit on a frontier alias, the three core
+merge gates may not sit below one, and `scout` — the agent every "dispatch `scout`"
+line here resolves to — may not sit above `haiku`; mis-reads are exempted by name with a reason in
 `tests/fixtures/model-tier-fit-exemptions.json`. **Cross-host:** the
 pin and the meter are Claude Code hooks; on Copilot and Codex the projected agent
 carries its canonical tier as a header comment for the consumer to pin (those hosts

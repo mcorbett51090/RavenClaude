@@ -28,19 +28,29 @@ NARROW so a false positive is rare and its fix is one line):
                     decision was made upstream by a sibling architect; the
                     doctrine's mid-tier row is "bounded code edits against a
                     plan, known API calls".              expected: sonnet|haiku
-    scout        — description opens "Read-only" / "READ-ONLY" (the
+    scout        — name is `scout` / ends `-scout`, OR the description opens
+                    "Haiku-tier" / "Read-only" / "READ-ONLY" (the
                     read-a-lot-return-a-little row).       expected: haiku
     (unclassified) — everything else: leads, architects, strategists,
                     analysts, specialists. Their tier is a judgment this file
                     does NOT make; Gate 287 bounds the aggregate.
 
-WHAT --check FAILS ON (the two mismatches the doctrine states as rules):
+WHAT --check FAILS ON (the three mismatches the doctrine states as rules):
 
     1. a `gate` below the frontier tier            (a cheap verdict on a merge)
     2. an `implementer` ON the frontier tier        (frontier rates for volume)
+    3. the doctrine's NAMED fast-tier worker (`ravenclaude-core/scout`) above
+       haiku — it is the agent every "dispatch scout" line in the skills and
+       the constitution resolves to, so re-tiering it up silently re-prices
+       every one of those dispatches            (the fast row loses its member)
 
-`scout`-shaped agents above haiku are REPORTED, never failed — "read-only" is
-an adjective many judgment roles also use, so that leg stays advisory.
+OTHER `scout`-shaped agents above haiku are REPORTED, never failed — "read-only"
+is an adjective many judgment roles also use, so that leg stays advisory. The
+2026-09-14 first cut matched only "Read-only" openers and classified ZERO
+agents on the real roster — the one `haiku` agent opens "Haiku-tier worker" —
+so the advisory leg had synthetic teeth and no positive control. The `scout`
+name + "Haiku-tier" opener close that; a class that no roster member can hit
+is a claim, not a measurement.
 
 EXEMPTIONS live in tests/fixtures/model-tier-fit-exemptions.json as
 {"<agent-name>": "<reason>"} — a name the classifier mis-reads (e.g. a
@@ -88,6 +98,12 @@ MERGE_GATES = frozenset(
     }
 )
 
+# The doctrine's named fast-tier worker. Every "dispatch scout" line in
+# spawn-team / the constitution / the orchestration skills resolves to this one
+# agent, so its tier is a floor, not a judgment: above haiku, every one of those
+# dispatches is silently re-priced. Symmetric to MERGE_GATES, keyed the same way.
+HAIKU_FLOOR = frozenset({("ravenclaude-core", "scout")})
+
 _FM = re.compile(r"^---\r?\n(.*?)\r?\n---", re.DOTALL)
 _MODEL = re.compile(r"^model:[ \t]*[\"']?([A-Za-z][\w-]*)", re.M)
 _NAME = re.compile(r"^name:[ \t]*[\"']?([A-Za-z0-9][\w-]*)", re.M)
@@ -102,7 +118,8 @@ _IMPL_DESC = re.compile(
     r"(?:BUILD|IMPLEMENT|Build|Implement|hands-on|the hands-on)\b"
     r"|^Use for [\w./+-]+ implementation\b"
 )
-_SCOUT_DESC = re.compile(r"^(?:Read-only|READ-ONLY)\b")
+_SCOUT_NAME = re.compile(r"(?:^|-)scout$")
+_SCOUT_DESC = re.compile(r"^(?:Read-only|READ-ONLY|Haiku-tier)\b")
 
 
 def _strip_quotes(s: str) -> str:
@@ -118,7 +135,7 @@ def classify(plugin: str, name: str, description: str) -> str:
         return "gate"
     if _IMPL_NAME.search(name) or _IMPL_DESC.match(description):
         return "implementer"
-    if _SCOUT_DESC.match(description):
+    if (plugin, name) in HAIKU_FLOOR or _SCOUT_NAME.search(name) or _SCOUT_DESC.match(description):
         return "scout"
     return ""
 
@@ -208,6 +225,7 @@ def evaluate(rows: list[dict], exemptions: dict[str, str]) -> tuple[int, list[st
         "implementer_on_frontier": 0,
         "implementer_exempt": 0,
         "scout_above_haiku": 0,
+        "floor_above_haiku": 0,
         "stale_exemptions": 0,
     }
     if not rows:
@@ -257,6 +275,16 @@ def evaluate(rows: list[dict], exemptions: dict[str, str]) -> tuple[int, list[st
             )
             rc = 1
         elif shape == "scout" and r["tier"] != "cheap":
+            if (r["plugin"], r["name"]) in HAIKU_FLOOR:
+                counts["floor_above_haiku"] += 1
+                lines.append(
+                    f"  ✗ {r['path']}: `{r['name']}` is the doctrine's NAMED fast-tier worker but is"
+                    f" pinned `model: {r['alias']}` — every 'dispatch scout' line in spawn-team, the"
+                    " constitution and the orchestration skills resolves to this agent, so this"
+                    " re-prices all of them. The floor is `model: haiku` (doctrine § tier table)."
+                )
+                rc = 1
+                continue
             counts["scout_above_haiku"] += 1
             lines.append(
                 f"  ⚠ {r['path']}: `{r['name']}` describes itself read-only but is pinned"
@@ -422,6 +450,62 @@ def must_fail() -> int:
                 "✗ must-fail: the scout leg either failed the build or stayed silent — it must ADVISE."
             )
             return 0
+        # 5b. the "Haiku-tier" opener and a `-scout` name BOTH classify as scout (the real
+        #     roster's one haiku agent opens "Haiku-tier worker"; a class no member can hit
+        #     is a claim, not a measurement)
+        _fake_roster(
+            fake,
+            "p",
+            [
+                ("worker", "haiku", "Haiku-tier worker for grep-shaped volume."),
+                ("repo-scout", "haiku", "Finds call sites fast."),
+            ],
+        )
+        _, _, counts = evaluate(measure(fake), no_ex)
+        if counts["scout"] != 2 or counts["scout_above_haiku"] != 0:
+            print(
+                "✗ must-fail control: 'Haiku-tier' opener / `-scout` name did not classify as scout"
+                f" (scout={counts['scout']})."
+            )
+            return 0
+        # 5c. the doctrine's NAMED fast-tier worker above haiku -> MUST FAIL (a floor, not advice)
+        _fake_roster(fake, "p", [])
+        _fake_roster(
+            fake,
+            "ravenclaude-core",
+            [("scout", "sonnet", "Haiku-tier worker for high-volume, low-judgment work.")],
+        )
+        rc, lines, counts = evaluate(measure(fake), no_ex)
+        if (
+            rc == 0
+            or counts["floor_above_haiku"] != 1
+            or not any("NAMED fast-tier" in ln for ln in lines)
+        ):
+            print(
+                "✗ must-fail: ravenclaude-core/scout on sonnet was accepted (the haiku floor is not enforced)."
+            )
+            return 0
+        # 5d. CONTROL — a DOMAIN plugin's own `scout` above haiku only ADVISES (the floor is core-keyed)
+        _fake_roster(fake, "ravenclaude-core", [])
+        _fake_roster(fake, "p", [("scout", "sonnet", "Haiku-tier worker for this domain.")])
+        rc, _, counts = evaluate(measure(fake), no_ex)
+        if rc != 0 or counts["floor_above_haiku"] != 0 or counts["scout_above_haiku"] != 1:
+            print(
+                "✗ must-fail control: a domain plugin's `scout` was bound by the core haiku floor."
+            )
+            return 0
+        # 5e. CONTROL — the named worker ON haiku passes clean
+        _fake_roster(fake, "p", [])
+        _fake_roster(
+            fake,
+            "ravenclaude-core",
+            [("scout", "haiku", "Haiku-tier worker for high-volume, low-judgment work.")],
+        )
+        rc, lines, _ = evaluate(measure(fake), no_ex)
+        if rc != 0 or any("⚠" in ln for ln in lines):
+            print("✗ must-fail control: ravenclaude-core/scout on haiku did not pass clean.")
+            return 0
+        _fake_roster(fake, "ravenclaude-core", [])
         # 6. empty roster -> rc 1, never a pass
         _fake_roster(fake, "p", [])
         rc, _, _ = evaluate(measure(fake), no_ex)
@@ -429,11 +513,10 @@ def must_fail() -> int:
             print("✗ must-fail: an empty roster was reported as fit.")
             return 0
     print("✓ must-fail: implementer-on-frontier fails (by name and by opening verb), a core merge")
-    print(
-        "  gate below frontier fails, a stale or reasonless exemption fails; sonnet implementers,"
-    )
-    print("  a domain `architect`, and 'NOT for building it' pass; scout-above-haiku only advises;")
-    print("  an empty roster is not a pass. Exiting 3, the DECLARED teeth code.")
+    print("  gate below frontier fails, the core `scout` above haiku fails, a stale or reasonless")
+    print("  exemption fails; sonnet implementers, a domain `architect`, a domain `scout`, and")
+    print("  'NOT for building it' pass; other scouts above haiku only advise; 'Haiku-tier' and")
+    print("  `-scout` classify; an empty roster is not a pass. Exiting 3, the DECLARED teeth code.")
     return 3
 
 
@@ -466,7 +549,8 @@ def main() -> int:
         print(ln)
     if rc == 0 and not any(ln.startswith("  ⚠") for ln in lines):
         print(
-            "  ✓ every merge gate is on the frontier tier; no implementer is paying frontier rates"
+            "  ✓ every merge gate is on the frontier tier; no implementer is paying frontier rates;"
+            " the named fast-tier worker is on haiku"
         )
     elif rc == 0:
         print("  ✓ no failing mismatch (advisories above)")

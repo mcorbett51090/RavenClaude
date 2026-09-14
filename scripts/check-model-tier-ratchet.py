@@ -31,9 +31,10 @@ INVARIANTS (against tests/fixtures/model-tier-ratchet.json):
        (compared by cross-multiplication — integer, exact, no float epsilon)
     2. cheap (haiku) count may NOT FALL:  cheap_now >= cheap_base
 
-Consequence at the margin (623 agents, 484 frontier): ONE new all-opus agent
-tips 484/623 -> 485/624 and FAILS; a new plugin shipping one `opus` lead plus
-one `sonnet` engineer (485/625) passes. That is the intended pressure — a new
+Consequence at the margin (623 agents, 460 frontier after the 2026-09-14
+implementer re-tier — 484 before it): ONE new all-opus agent tips
+460/623 -> 461/624 and FAILS; a new plugin shipping one `opus` lead plus one
+`sonnet` engineer (461/625) passes. That is the intended pressure — a new
 plugin cannot ship all-frontier without either re-stamping with a reason or
 moving something else down. Deleting a haiku agent fails outright.
 

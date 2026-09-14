@@ -78,8 +78,15 @@ All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the 
   the early app-craft plugins (backend / frontend / api / database) tiered the
   same role `sonnet`, and both gates passed. Gate 288 reads `name:` + the
   *opening* of `description:`: an implementer may not sit on a frontier alias,
-  the three core merge gates may not sit below one, a "Read-only" agent above
-  `haiku` is advised (never failed). Mis-reads are exempted **by name with a
+  the three core merge gates may not sit below one, the core `scout` — the
+  doctrine's named fast-tier worker, the agent every "dispatch `scout`" line
+  resolves to — may not sit above `haiku` (a floor symmetric to the merge
+  gates), and any *other* scout-shaped agent (`scout` / `-scout` name, or a
+  "Haiku-tier" / "Read-only" opener) above `haiku` is advised, never failed.
+  The first cut's scout leg matched only "Read-only" openers and classified
+  zero roster agents — the shipped `scout` opens "Haiku-tier worker" — so it
+  had synthetic teeth and no positive control; the `scout` name and the
+  "Haiku-tier" opener close that. Mis-reads are exempted **by name with a
   reason** in `tests/fixtures/model-tier-fit-exemptions.json`; a stale exemption
   fails. **Roster re-tier shipped alongside (marketplace-wide, not this
   plugin):** the 24 implementers moved `opus` → `sonnet` across 23 domain

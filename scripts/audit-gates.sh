@@ -6738,15 +6738,20 @@ echo "── Gate 288: model-tier fit (an agent's pinned tier must fit the role 
 # sit below it. Deliberately narrow (anchored at the description start, so
 # "NOT for building it" is not the build verb); mis-reads are exempted BY NAME
 # with a reason in tests/fixtures/model-tier-fit-exemptions.json, and a stale
-# exemption fails. "Read-only" agents above haiku only ADVISE. Teeth:
-# implementer-on-frontier by name AND by verb fails, a core gate on sonnet
-# fails, a stale / reasonless exemption fails; a sonnet implementer, a domain
-# `architect`, and the anchored negative pass; the scout leg advises; an empty
-# roster is not a pass.
+# exemption fails. The core `scout` — the doctrine's NAMED fast-tier worker,
+# the agent every "dispatch scout" line resolves to — has a haiku FLOOR
+# (symmetric to the merge-gate floor); any OTHER scout-shaped agent (name
+# `scout`/`-scout`, or a "Haiku-tier"/"Read-only" opener) above haiku only
+# ADVISES. Teeth: implementer-on-frontier by name AND by verb fails, a core
+# gate on sonnet fails, the core scout on sonnet fails, a stale / reasonless
+# exemption fails; a sonnet implementer, a domain `architect`, a domain
+# `scout`, and the anchored negative pass; the "Haiku-tier" opener and a
+# `-scout` name classify (the real roster's one haiku agent is a positive
+# control, not a vacuous class); an empty roster is not a pass.
 rc=0; python3 scripts/check-model-tier-fit.py --check >/dev/null 2>&1 || rc=$?
-gate "model-tier fit: every core merge gate on the frontier tier, no implementer on a frontier alias, no stale exemption" must_pass "$rc"
+gate "model-tier fit: every core merge gate on the frontier tier, no implementer on a frontier alias, core scout on haiku, no stale exemption" must_pass "$rc"
 rc=0; rc_mustfail python3 scripts/check-model-tier-fit.py >/dev/null 2>&1 || rc=$?
-gate "model-tier fit teeth: implementer-on-frontier (name + verb) / gate-below-frontier / stale exemption bite; controls pass" must_pass "$rc"
+gate "model-tier fit teeth: implementer-on-frontier (name + verb) / gate-below-frontier / core-scout-above-haiku / stale exemption bite; controls pass" must_pass "$rc"
 echo "── Gate 123: design-project binding surfacing (bound / half-set / absent / leak-safe) ──"
 rc=0; bash plugins/ravenclaude-core/hooks/tests/test-gate123-design-project-binding.sh >/dev/null 2>&1 || rc=$?
 gate "design-project binding: surfaces when bound + guides when half-set + silent when absent + leak-safe + teeth" must_pass "$rc"
