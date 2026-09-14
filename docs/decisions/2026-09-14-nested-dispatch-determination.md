@@ -82,7 +82,7 @@ No exemption is on file today. The first one to be added must pass the shape tes
 | **Gate 289** — the declaration | [`scripts/check-nested-dispatch.py`](../../scripts/check-nested-dispatch.py) in `scripts/audit-gates.sh`: fails any `agents/*.md` whose `tools:` grants `Agent` / `Agent(...)` / `Task` / `"*"` without a reasoned exemption; fails a stale or reasonless exemption; an empty roster is not a pass; `--must-fail` proves all six grant forms fail and a clean list (incl. `Bash(a, b)`, `TaskOutput`, `disallowedTools: Agent`) passes | **yes** — CI |
 | **Meter** — the observation | [`handoff-tax-meter.py`](../../plugins/ravenclaude-core/scripts/handoff-tax-meter.py) schema v2: records `caller_agent_id`, `caller_agent_type`, `nested`, `depth` (reconstructed from the caller's own ledger line; a stated lower bound when the caller was never seen spawned), the `nested_dispatch` flag + advisory naming the caller, layer, off-switch and this document; `dispatch-summary` gains a `nesting` row. Gate 285's hook test drives the nested path through the real bash contract (legs H1–H6) | no — advisory, by design |
 | **Prose** | `subagent-isolation-and-tooling.md` (the stale "cannot spawn"), `rules/agent-collaboration.md` (hard layer = `tools:`, gated), `model-tier-delegation.md` § "Multi-hop delegation", `AGENTS.md` rule 11, the agent template, the `agent-quality-rubric` skill | no |
-| **Not written** | `plugins/ravenclaude-core/CLAUDE.md` core-rule paragraph and `CHANGELOG.md` 0.323.0 entry — blocked, see § 6 | — |
+| **Prose, written under maintainer override** | `plugins/ravenclaude-core/CLAUDE.md` core-rule paragraph and `CHANGELOG.md` 0.323.0 entry — the tribunal's whole-file screen blocked every tool-mediated attempt (§ 6); applied 2026-09-14 from the shell after the maintainer overrode the rule for this task | no |
 
 The existing `guard-recursive-spawn.sh` stays as the prose-level nudge it always was; it is no longer the only thing standing between the rule and a one-line edit.
 
@@ -103,9 +103,9 @@ Every attempt to write `plugins/ravenclaude-core/CLAUDE.md` and `plugins/ravencl
 1. **Screen the delta, not the document, for file shapes.** For `Write`, diff the payload against the on-disk file and run the §B.9.3 regexes over *added* lines only. Unchanged bytes were not introduced by this write, so this removes no coverage of anything the write *does* — a script that newly contains a force-push is still caught — while ending the freeze. `Edit`/`MultiEdit` already screen only the strings, so this makes `Write` consistent with them.
 2. **Rephrase the two documented examples** in `CHANGELOG.md` and `CLAUDE.md` so the normalised text no longer matches (the way this document and the 0.323.0 release note below describe the triggers in prose). Cheaper, but it re-freezes the moment anyone documents a hard-rule command verbatim again, and it edits history to satisfy a screen.
 
-Option 1 is the durable one. Until one lands, the 0.323.0 changelog entry lives here and needs a maintainer paste.
+Option 1 is the durable one and stays open as the design check-in (ledger `rc-6c598f5546e8`). **For this task the maintainer overrode the rule** (2026-09-14, 23:10 UTC): both edits were applied from the shell by a patch that read the on-disk files and inserted the new text, so the documented hard-rule examples never passed through an agent tool payload and the hard rules themselves were not touched. The release note below is retained as the record of what was applied.
 
-### 0.323.0 release note (pending paste into `plugins/ravenclaude-core/CHANGELOG.md`)
+### 0.323.0 release note (applied to `plugins/ravenclaude-core/CHANGELOG.md` under maintainer override, 2026-09-14)
 
 **Added**
 
@@ -121,4 +121,16 @@ Option 1 is the durable one. Until one lands, the 0.323.0 changelog entry lives 
 
 **Known**
 
-- The constitution's core-rule paragraph still reads "enforced soft by `guard-recursive-spawn.sh`" and this entry is not yet in `CHANGELOG.md` — § 6 above.
+- The host-contract finding in § 6 (whole-file `Write` screening freezes any file that documents a hard-rule command) is open as a design check-in; the two blocked edits were applied under a per-task maintainer override, not by loosening the rule.
+
+## 7. What "tested" means here — the exact boundary of the evidence
+
+The maintainer asked whether nesting was tested and worked. The honest answer has two halves, and the boundary between them matters:
+
+| Claim | Status | Evidence |
+| --- | --- | --- |
+| The **platform** lets a subagent spawn a subagent, three layers deep by default | `[docs-verified]`, **not executed here** | Claude Code changelog v2.1.217 / v2.1.219 and the sub-agents reference (§ 1). This host has no Claude Code runtime (`command -v claude` → not on PATH, no API key), so no live agent-calls-agent session was run. A live confirmation needs a Claude Code session with a project-local agent that lists `Agent` in `tools:` — the ledger then shows a `nested: true` line with the real `agent_id` of the caller. |
+| The **meter** correctly observes and reports a nested dispatch when the hook input carries the caller's `agent_id` / `agent_type` (the contract the hooks reference documents for hooks that fire inside subagents) | **executed, passed** | `hooks/tests/test-gate285-handoff-tax-meter.sh` legs H1–H6 drive the real bash hook with a chained pair of `PostToolUse(Agent)` payloads (gp1 spawned from the main thread, then sc2 spawned with `agent_id=gp1`): the nested line records `caller_agent_id=gp1`, `caller_agent_type=general-purpose`, `nested=true`, `depth=2`, schema v2; the advisory names the caller and the off-switch; the control leg (same payload, no `agent_id`) is silent. A three-layer chain (`main → general-purpose → Explore → Explore`) reproduces `depth` 1 / 2 / 3 and a `nesting` summary row reading "2 nested dispatch(es) … deepest layer 3". |
+| **Gate 289** fails a `tools:` grant of `Agent` / `Task` / `"*"` and passes the current roster | **executed, passed** | `scripts/check-nested-dispatch.py --check` → 623 agents, 0 grants; `--must-fail` → all six grant forms fail, the clean forms pass; wired into `scripts/audit-gates.sh` (full suite 1081 pass / 0 fail on the PR head). |
+
+So: the *observability* and the *enforcement* were tested end to end against the documented hook contract. The *platform behaviour itself* is a sourced claim, not an in-session observation — if it is wrong, the meter's nested path would simply never fire in production, and Gate 289 would still hold, because it binds on the declaration and not on runtime behaviour.
