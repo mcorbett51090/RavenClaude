@@ -2,7 +2,7 @@
 
 > **Purpose**: This is the required template for all agents in ravenclaude-core and domain plugins. It ensures consistency, clear dispatch conditions, integration with the Capability Grounding Protocol, and structured tiered knowledge.
 
-## Frontmatter (gated — `scripts/check-frontmatter.py` fails the build on any missing field)
+## Frontmatter (gated — the marketplace's `check-frontmatter.py` CI gate fails the build on any missing field)
 
 ```yaml
 ---
@@ -32,7 +32,7 @@ prose from supplied inputs; `opus` only for judgment — decomposition, adjudica
 the gates that hold merge (`security-reviewer`, `code-reviewer`, `architect`), which are
 never de-escalated to save money. An omitted `model:` silently inherits the main
 session's model (an Opus worker for grep-shaped work); a full model id goes stale when
-the SKU rotates. The roster-wide frontier share is ratcheted (`scripts/check-model-tier-ratchet.py`,
+the SKU rotates. In the marketplace the roster-wide frontier share is ratcheted (CI's `check-model-tier-ratchet.py`,
 Gate 287): a new `opus` agent that raises the share fails the PR unless the loosening is
 stamped and said out loud.
 

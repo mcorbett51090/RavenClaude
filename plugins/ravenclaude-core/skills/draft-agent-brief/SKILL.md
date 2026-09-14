@@ -33,7 +33,7 @@ A repeatable workflow for **producing a strong agent brief when the user knows w
 
 5. **Iterate.** Expect one or two rounds of *"yes, but change X."* Don't push back on changes that move toward the user's actual intent.
 
-6. **Once approved, build (or dispatch) the agent.** The brief becomes the system prompt or the agent definition, depending on whether this is a one-shot dispatch or a permanent role. Field 8 becomes the `model:` line — a permanent agent **must** carry it (a tier alias, never a full model id; `scripts/check-frontmatter.py` fails the build without it), and a one-shot dispatch passes it as the `model` parameter so the worker does not silently inherit the session's frontier model.
+6. **Once approved, build (or dispatch) the agent.** The brief becomes the system prompt or the agent definition, depending on whether this is a one-shot dispatch or a permanent role. Field 8 becomes the `model:` line — a permanent agent **must** carry it (a tier alias, never a full model id; the marketplace's `check-frontmatter.py` CI gate fails the build without it), and a one-shot dispatch passes it as the `model` parameter so the worker does not silently inherit the session's frontier model.
 
 ## The principle
 

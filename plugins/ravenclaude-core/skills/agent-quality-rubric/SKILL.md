@@ -18,11 +18,12 @@ The rubric exists because agent quality is the single largest predictor of marke
 
 ## Gate 0 — the mechanical prerequisites (not scored; a fail here blocks before Dimension 1)
 
-Run `python3 scripts/check-frontmatter.py` (or read its rules) before scoring anything. It fails
-the build on a missing/empty `tools:` allowlist, a `description` over 300 chars, a missing
-scenario schema, and a **missing `model:` or a `model:` that is not a tier alias**
-(`haiku` / `sonnet` / `opus` / `fable` / `inherit` — a full model id is rejected because it goes
-stale when the SKU rotates). No rubric score compensates for a red gate.
+Check the frontmatter before scoring anything. Inside the RavenClaude marketplace this is CI's
+frontmatter gate (marketplace-dev tooling, not shipped in the plugin); in a consumer repo apply the
+same four rules by hand. The gate fails on a missing/empty `tools:` allowlist, a `description` over
+300 chars, a missing scenario schema, and a **missing `model:` or a `model:` that is not a tier
+alias** (`haiku` / `sonnet` / `opus` / `fable` / `inherit` — a full model id is rejected because it
+goes stale when the SKU rotates). No rubric score compensates for a red gate.
 
 **Then apply the one judgment call the gate cannot make — does the tier fit the role?** Read the
 agent's mission (Dimension 1) against the tier table in
@@ -31,7 +32,7 @@ work (search / grep / classify / extract / inventory) belongs on `haiku`; bounde
 edits and drafts on `sonnet`; only design, adjudication, and the gates that hold merge
 (`security-reviewer`, `code-reviewer`, `architect`) on `opus`. Two mismatches are worth a
 review comment: an `opus` agent whose scenarios are all grep-shaped (paying frontier rates for
-volume work — the roster-wide frontier share is ratcheted by `scripts/check-model-tier-ratchet.py`,
+volume work — in the marketplace the roster-wide frontier share is ratcheted by CI's `check-model-tier-ratchet.py`,
 Gate 287, so this also fails the PR if it raises the share), and a `haiku` agent asked to gate a
 merge or make a design call (the tier cannot carry the judgment). `inherit` is a deliberate
 choice, not a default — it must say in one clause why the worker should run at the session's tier.
