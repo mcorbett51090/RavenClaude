@@ -44,6 +44,13 @@ are exactly what `check-model-tier-fit.py --report` lists as the **pair-review q
 **sibling-plugin parity** — find the same role shape in the nearest sibling plugin and match its
 tier, or write the role-level reason for differing. `inherit` is a deliberate
 choice, not a default — it must say in one clause why the worker should run at the session's tier.
+One more `tools:` check, mechanical and gated (`check-nested-dispatch.py`, Gate 289): the allow-list
+may not grant dispatch — no `Agent`, `Agent(...)`, `Task`, or `"*"` — because a sub-agent that can
+call agents pays the handoff tax at its own tier out of the Team Lead's sight, and in a sub-agent
+definition the `Agent(type)` list is ignored (unscoped). If a definition genuinely needs it, the
+review question is whether it is the one sanctioned shape — a frontier parent fanning out to
+fast-tier read-only leaves — and the answer goes by name into
+`tests/fixtures/nested-dispatch-exemptions.json`, not into a looser gate.
 
 ## The 6 dimensions
 

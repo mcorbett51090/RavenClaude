@@ -2945,7 +2945,7 @@
         "scripts/sync-plugin-versions.py",
         "scripts/generate-copilot-plugin.py"
       ],
-      "covers_digest": "sha256:1be6aa826046dd999685597fc20fa4940553d0c8af27a1f02327d6c7e2dc33f4",
+      "covers_digest": "sha256:342ecb4d23022b5ecd481a08cdc99c7e6a1cefa25323457cf809fe7740a4f145",
       "nuance": "The cache key is the `version` string, never a content hash, so `sync-plugin-versions.py` can report clean while every installed session keeps running the old `hooks/` code.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -3007,7 +3007,7 @@
         "scripts/inventory-nuance-judge.py",
         "plugins/ravenclaude-core/scripts/forge-receipt.py"
       ],
-      "covers_digest": "sha256:cd69f431f082b5096b9f84dd8b69d02b1c2fbc40e94fec87ee42bd83bb86559e",
+      "covers_digest": "sha256:4602192abbc2e85b5292132978292f1c5f3baa0e32c64a074da4b4b571f0bb53",
       "nuance": "The teeth bit is the exit a tool own CHECK returns on a planted defect, never the exit `--must-fail` itself returns: `premise-gate.py` denies at `exit 0` while `sync-plugin-versions.py` reddens at `exit 2`, so an auditor that hard-codes one number can never be right for both.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -4392,7 +4392,7 @@
         "plugins/ravenclaude-core/scripts/handoff-tax-meter.py",
         "plugins/ravenclaude-core/hooks/tests/test-gate285-handoff-tax-meter.sh"
       ],
-      "covers_digest": "sha256:b5cfa7e1a473c3e2fbcc594df5b5acbfd88bea1087e57004091d684916936166",
+      "covers_digest": "sha256:510c008fd6cf325caa2ee1b9cd8cc752342e353335dbe8ab0f52957c61dae7c8",
       "nuance": "`frontier_readonly` fires on `tool_response.resolvedModel` × the basename of `tool_input.subagent_type` (`explore` / `scout`), never on the agent file's `model:` — so `scout` dispatched with a per-call `model: opus` override is flagged while `scout.md` still reads `haiku`, and `architect` on opus is not.",
       "nuance_evidence": {
         "measured": "2026-09-14",

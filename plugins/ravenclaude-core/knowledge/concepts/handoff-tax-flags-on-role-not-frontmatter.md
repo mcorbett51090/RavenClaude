@@ -12,7 +12,7 @@ covers:
   - plugins/ravenclaude-core/hooks/handoff-tax-meter.sh
   - plugins/ravenclaude-core/scripts/handoff-tax-meter.py
   - plugins/ravenclaude-core/hooks/tests/test-gate285-handoff-tax-meter.sh
-covers_digest: "sha256:b5cfa7e1a473c3e2fbcc594df5b5acbfd88bea1087e57004091d684916936166"
+covers_digest: "sha256:510c008fd6cf325caa2ee1b9cd8cc752342e353335dbe8ab0f52957c61dae7c8"
 nuance: "`frontier_readonly` fires on `tool_response.resolvedModel` × the basename of `tool_input.subagent_type` (`explore` / `scout`), never on the agent file's `model:` — so `scout` dispatched with a per-call `model: opus` override is flagged while `scout.md` still reads `haiku`, and `architect` on opus is not."
 nuance_evidence:
   measured: 2026-09-14

@@ -8,7 +8,7 @@
 ---
 name: <kebab-case, matches the filename>
 description: "<≤ 300 chars: what it is for + its keywords + the ONE most important 'NOT for X → other-agent' boundary>"
-tools: <explicit least-privilege allowlist, e.g. Read, Grep, Glob, Write — or "*" only when every tool is genuinely intended>
+tools: <explicit least-privilege allowlist, e.g. Read, Grep, Glob, Write — NEVER Agent / Task, and "*" only with a by-name exemption (see below)>
 model: <haiku | sonnet | opus — a TIER ALIAS, never a full model id>
 audience: [dev, consultant]
 works_with: [<agent>, <agent>]
@@ -38,6 +38,15 @@ stamped and said out loud — and the tier must fit the role (CI's `check-model-
 if the `name` ends `-implementation-engineer` / `-implementer` / `-coder` / `-developer`, or the
 `description` *opens* with `Use to BUILD` / `IMPLEMENT` / `Use for X implementation`, `model: opus`
 fails the PR. Name the role honestly and the tier follows.
+
+**`tools:` may not grant dispatch** — no `Agent`, no `Agent(...)`, no `Task`, and `"*"` inherits
+`Agent` (CI's `check-nested-dispatch.py`, Gate 289). A sub-agent that can call agents pays the
+handoff tax at its own tier where the Team Lead cannot see it, and in a sub-agent definition the
+`Agent(type)` list is *ignored*, so `Agent(scout)` means "anything, at any tier". The one shape that
+may be exempted — by name, with a reason, in `tests/fixtures/nested-dispatch-exemptions.json` — is a
+frontier-tier parent fanning out to fast-tier read-only leaves; see
+[`docs/decisions/2026-09-14-nested-dispatch-determination.md`](../../../docs/decisions/2026-09-14-nested-dispatch-determination.md).
+Everything else surfaces its needs to the Team Lead.
 
 ## Role
 [Short, precise description of what this agent is and what it owns.]
