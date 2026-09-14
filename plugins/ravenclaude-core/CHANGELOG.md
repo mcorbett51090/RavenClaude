@@ -2,6 +2,11 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.322.2
+
+### Added
+- Routine-review tribunal `design_decision` axis + `merge_authority: auto|human` so approved routine PRs can auto-merge when no seat flags a design/architecture decision.
+
 ## 0.322.1
 
 ### Fixed

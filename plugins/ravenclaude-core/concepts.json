@@ -2945,7 +2945,7 @@
         "scripts/sync-plugin-versions.py",
         "scripts/generate-copilot-plugin.py"
       ],
-      "covers_digest": "sha256:e7b904d763683cc86dcad819ed731e0bfd10d1a0ddf8a15fe91695ff6cf4e17f",
+      "covers_digest": "sha256:47345a17bc1b1d54be023f6c488881b3f61ac2640e1cd062327ca3b8fdcb9dae",
       "nuance": "The cache key is the `version` string, never a content hash, so `sync-plugin-versions.py` can report clean while every installed session keeps running the old `hooks/` code.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -4341,7 +4341,7 @@
         "plugins/ravenclaude-core/scripts/routine-review-tribunal.py",
         "plugins/ravenclaude-core/skills/routine-review-tribunal/SKILL.md"
       ],
-      "covers_digest": "sha256:2a6e5eaa8d006dcfc6addce838c694516ee23dfca2a8e02be1924ca72b38afb6",
+      "covers_digest": "sha256:7174ddecf3992c016f267169ec6104dc664e994b48d36f39eeeceb97f12484c5",
       "nuance": "resolve_panels() does an importlib load of thing-decision.py and calls its resolve_panel_config — it is not a hand-copied seat/model table, so the Thing's >=2-distinct-model diversity rule applies here for free and cannot silently drift from it.",
       "nuance_evidence": {
         "measured": "2026-09-11",
