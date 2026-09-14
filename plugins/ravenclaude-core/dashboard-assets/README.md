@@ -1,12 +1,13 @@
 # Design system — RavenClaude shared dashboard assets
 
-This directory holds the single source of truth for the visual design of the three web surfaces RavenClaude ships:
+This directory holds the single source of truth for the visual design of the two web surfaces RavenClaude ships:
 
 | Surface | Generator | Accent |
 |---|---|---|
 | `index.html` (landing) | `scripts/generate-index-dashboard.py` + `scripts/_index_dashboard_template.py` | teal |
-| `repo-guide.html` (catalog) | `scripts/generate-repo-guide.py` | teal |
 | `plugins/ravenclaude-core/dashboard.html` (posture editor + Norse panels) | `scripts/generate-dashboards.py` | green |
+
+> The catalog surface `repo-guide.html` (and its `scripts/generate-repo-guide.py` generator) was folded into `index.html` and **removed in v0.124.0** — it is no longer a shipped surface.
 
 Each generator reads [`shared-tokens.css`](shared-tokens.css) at generate-time and inlines the tokens into the surface's `<style>` block. **There is no runtime load** — every HTML artifact stays self-contained, consistent with the existing static-page discipline.
 
@@ -48,7 +49,7 @@ If you add a new token: verify it against `--rc-bg` and `--rc-surface-2` (the tw
 
 ## Class-naming discipline — the `.rc-*` prefix
 
-Every shared component class is prefixed `.rc-*` (e.g. `.rc-card`, `.rc-pill`, `.rc-badge`, `.rc-tab`). **Per-surface classes keep their existing unprefixed names** — `repo-guide.html` `.tab-btn` (sticky header) and `dashboard.html` `.tab-btn` (Norse panel strip) currently define the same class name with different geometry; prefixing the SHARED classes prevents collision with either.
+Every shared component class is prefixed `.rc-*` (e.g. `.rc-card`, `.rc-pill`, `.rc-badge`, `.rc-tab`). **Per-surface classes keep their existing unprefixed names** — `dashboard.html` `.tab-btn` (Norse panel strip) keeps its unprefixed name; the former `repo-guide.html` `.tab-btn` (sticky header) defined the same class name with different geometry before that surface was removed in v0.124.0 — prefixing the SHARED classes prevents collision.
 
 Do:
 - Use `.rc-card`, `.rc-pill`, etc. for any pattern that should look identical across surfaces.

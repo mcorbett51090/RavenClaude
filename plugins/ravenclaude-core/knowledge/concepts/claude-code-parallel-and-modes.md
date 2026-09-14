@@ -6,10 +6,10 @@ kind: ravenclaude-built
 entry_class: inventory
 order: 930
 summary: "Org slang \"max parallel\" is not a Claude Code command; the skill remaps it to plan mode, subagents, worktrees/batch, ultracode workflows, ultrathink, and /effort."
-last_verified: 2026-09-05
+last_verified: 2026-09-14
 covers:
   - plugins/ravenclaude-core/skills/claude-code-parallel-and-modes/SKILL.md
-covers_digest: "sha256:95cb60b135de383cbf39571aaa1a7421398aeb4035eda66f7336cc7c00a403bb"
+covers_digest: "sha256:0435b71b0ab57bddf24d8c92d137beca94035c20d5d5e4352fb914ae34a23e11"
 nuance: "Official Claude Code docs and /help list no /max-parallel mode; ultrathink is a one-turn in-context keyword and does not change API /effort, while ultracode is a separate setting that sends xhigh plus dynamic workflows."
 nuance_evidence:
   measured: 2026-09-05

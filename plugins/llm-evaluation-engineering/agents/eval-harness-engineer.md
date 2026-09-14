@@ -2,7 +2,7 @@
 name: eval-harness-engineer
 description: "Use for BUILDING the eval machinery — frozen golden sets with provenance, LLM-as-judge rubric design + human calibration + bias audit (position/verbosity/self-preference), CI regression gates, guardrail/red-team suites. NOT what-to-measure/metric strategy -> eval-strategy-lead."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
-model: opus
+model: sonnet
 audience: [ml-eng, ai-eng, platform-eng, qa-eng]
 works_with: [eval-strategy-lead, qa-test-automation/test-automation-engineer, ai-rag-engineering/rag-evaluation-engineer, devops-cicd/ci-cd-engineer]
 scenarios:

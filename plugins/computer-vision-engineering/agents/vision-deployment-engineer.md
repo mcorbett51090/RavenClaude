@@ -2,7 +2,7 @@
 name: vision-deployment-engineer
 description: "CV inference optimization & deployment: quantization/pruning/distillation, export/runtime (ONNX/TensorRT/CoreML/TFLite/OpenVINO), edge/embedded (Jetson/NPU/Coral), batching, streaming-video pipelines, latency budgets. NOT model training -> cv-model-engineer; NOT task framing -> cv-systems-architect."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
-model: opus
+model: sonnet
 audience: [ml-engineer, edge-engineer, mlops-engineer]
 works_with: [cv-systems-architect, cv-model-engineer]
 scenarios:

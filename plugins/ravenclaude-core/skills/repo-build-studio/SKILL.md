@@ -9,7 +9,7 @@ allowed-tools: Read, Write, Edit, Bash, WebFetch
 > **What this is.** The cheap, secure way to get the Claude-Design-style experience (prompt Claude,
 > watch a website/dashboard render before your eyes, commit it to a real repo) **without building a
 > custom studio backend.** It composes surfaces that already exist. FORGE verdict (2026-06-24,
-> `docs/plans/2026-06-24-repo-build-studio/`): the from-scratch studio's signature feature is a
+> `docs/plans/archive/2026-06-24-repo-build-studio/`): the from-scratch studio's signature feature is a
 > self-canceling design and a supply-chain trap; this loop delivers the same outcome at ~0 build cost.
 
 ## The loop (the Willison pattern)

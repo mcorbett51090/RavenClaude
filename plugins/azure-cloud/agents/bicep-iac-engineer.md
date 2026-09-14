@@ -2,7 +2,7 @@
 name: bicep-iac-engineer
 description: "Use this agent to author Azure Infrastructure-as-Code — Bicep (and Terraform azurerm), Azure Verified Modules, Deployment Stacks, what-if/plan previews, preflight policy, remote state, and the CI/CD pipeline that deploys it (GitHub Actions / Azure DevOps with workload identity federation)."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
-model: opus
+model: sonnet
 audience: [dev]
 works_with: [azure-architect, network-engineer, entra-identity-engineer, app-platform-engineer]
 scenarios:

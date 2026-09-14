@@ -61,6 +61,7 @@ from _base_ref import merge_base as _resolve_merge_base  # noqa: E402
 RATCHET_FILES = (
     "scripts/artifact-budgets.seed.json",
     "tests/fixtures/inventory-coverage-ratchet.json",
+    "tests/fixtures/model-tier-ratchet.json",
 )
 
 

@@ -36,7 +36,7 @@ A sweep flagged 172 relative markdown links that don't resolve on disk. Every on
 - Templates with `<placeholder>` / `{param}` targets, dashboard route paths (`/action-center`), and markdown-parse artifacts (`[**args](…)`, `[…](...)`) — not real links.
 - `docs/team-portfolio-hub-bootstrap/_README.md` — its **first line** states it is the README for a *different, new hub repo*; its links resolve there, not here. Intentional.
 - `CHANGELOG.md → ../repo-guide.html` — historical entries recording a file later retired (repo-guide → folded into `index.html`). A changelog is an append-only record; rewriting old entries would falsify history.
-- `docs/plans/2026-08-17-forms-engineering-plugin/plan.md` — two links with the wrong relative depth (`../../` vs `../../../`) to files that **do** exist. A dated, historical planning doc; cosmetic, docs-only, not worth rewriting.
+- `docs/plans/archive/2026-08-17-forms-engineering-plugin/plan.md` — two links with the wrong relative depth (`../../` vs `../../../`) to files that **do** exist. A dated, historical planning doc; cosmetic, docs-only, not worth rewriting.
 
 ## Findings by priority
 

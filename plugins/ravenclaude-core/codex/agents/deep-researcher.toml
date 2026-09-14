@@ -6,6 +6,10 @@
 # review-only agent whatever the main session has — the same silent
 # privilege grant that MH-10 fixed on Copilot.
 # Derived from the canonical tools: Read, Grep, Glob, WebFetch, WebSearch, Bash
+#
+# Canonical model tier: opus. `model` is NOT emitted — it takes a Codex
+# model id, and the canonical value is a Claude tier alias. Until you pin
+# one, this agent runs on the session's model.
 name = "deep-researcher"
 description = "Use this agent for rigorous, multi-source research — troubleshooting unfamiliar errors, comparing tools/libraries, verifying claims, or going deeper than a single web search."
 sandbox_mode = "read-only"

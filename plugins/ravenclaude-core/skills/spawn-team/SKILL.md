@@ -77,7 +77,21 @@ costs more than doing the work. (This is the `(none — Team Lead direct)` row o
 - **Fresh context beats yours.** For verifying work *you* just did, a subagent that never saw you do it
   is the point — self-critique inherits your premises. FORGE's G4a critic exists for exactly this.
 - **Context you shouldn't hold.** Bulk reading that would crowd your window is the cheapest thing to
-  delegate; the subagent returns the conclusion, not the transcript.
+  delegate; the subagent returns the conclusion, not the transcript. **And it is the cheapest in
+  dollars, not just in your context** — a read-heavy, judgment-light subtask is the one that belongs on
+  the fast tier ([`scout`](../../agents/scout.md), `model: haiku`). Reading ten files yourself spends
+  frontier input tokens on grunt work; a scout spends haiku tokens and returns ten lines.
+
+**The test that decides whether the hierarchy pays for itself** — from
+[`knowledge/model-tier-delegation.md`](../../knowledge/model-tier-delegation.md): delegation saves
+*money* when the volume of tokens moves to a cheaper tier; it never saves *tokens*, because every
+handoff is a brief written at premium rates plus a report re-read at premium rates. So a short,
+sequential task (one file, one function, one question) is cheaper done here on the strong model — the
+"do it yourself" row above — and a long, parallelisable, mechanical-reading task is cheaper pushed
+down. **Push down only when all four hold:** the subtask is well-specified after *you* did the
+thinking; the worker needs the brief + files, not the conversation; it returns a small artifact
+(paths / diff manifest / extracted fields / pass-fail); a failure is cheap to retry. If you would
+have to paste the transcript to brief it, it was not decomposed — it was forwarded.
 
 **What this does NOT relax.** The `parallelism` cap still binds (Step 5) — honor the configured breadth.
 Sub-agents still never spawn peers (single-orchestrator, [`agent-collaboration.md`](../../rules/agent-collaboration.md)).
@@ -191,6 +205,9 @@ A bad brief is the most common cause of bad agent output. Every brief includes:
 5. **Boundaries** — what's out of scope.
 6. **Reporting cap** — word / line limit ("under 300 words").
 7. **Playbook context** — which playbook step this is, what the previous step produced, what the next step expects.
+8. **Worker contract** — the model tier and why, the exact inputs, the tools, the deterministic success
+   check, and a hard `Max output`. This is the block that decides whether the dispatch saves money or
+   costs it (Step 4.25).
 
 Template:
 ```
@@ -212,9 +229,53 @@ Template:
 ## Playbook context
 Step <N> of <playbook name>. Previous step produced <X>. Next step expects <Y>.
 
+## Worker contract
+- Model tier: <haiku | sonnet | opus> — <one clause why this tier fits this subtask>
+- Inputs: <exact paths / excerpts — never the conversation>
+- Tools you need: <subset; read-only for scouts>
+- Success check: <the deterministic thing the Team Lead will run to verify>
+- Max output: <N> words + the Structured Output Protocol JSON. Longer material -> write it to
+  .ravenclaude/runs/<run-id>/<phase>.{md,json} and return the path.
+
 ## Reporting
 Return your standard structured report. Cap your response at <N> words.
 ```
+
+**Never paste the conversation into `Context`.** The worker has no prior memory *by design* — that is
+what makes its context cheap. Give it paths and excerpts. A brief that opens with "here is what we
+discussed…" and runs long is the transcript-forwarding tell; the
+[`handoff-tax-meter`](../../hooks/handoff-tax-meter.sh) flags it (`brief_over_cap`, default 600 words).
+
+## Step 4.25 — Pick the model tier (the price mix is the saving)
+
+The brief names *what*; this step names *who pays for it*. Full reference and rationale:
+[`knowledge/model-tier-delegation.md`](../../knowledge/model-tier-delegation.md).
+
+| The subtask is… | Tier | How to select it |
+|---|---|---|
+| search / grep / classify / extract fields / inventory / cross-reference — reads a lot, returns a little | **fast** (`haiku`) | dispatch [`scout`](../../agents/scout.md) (pins `haiku`), or pass `model: "haiku"` on the Agent call |
+| a bounded edit against a plan, a known API call, tests for a stated contract, first-draft prose from supplied inputs | **mid** (`sonnet`) | the coders / `tester-qa` / `documentarian` / `project-manager` already pin `sonnet` |
+| design, adjudication, a gate that holds merge, cited research the run depends on | **frontier** (`opus`) | `architect` / `code-reviewer` / `security-reviewer` / `deep-researcher` pin `opus` — **never** pass a cheaper `model:` to a gate |
+| recovery after a worker returned `blocked` / `partial` / a falsified result | **one tier up** | haiku → sonnet → opus. Fix the brief if it was ambiguous, but do not re-run the same tier with more words |
+
+Three things the tier table cannot tell you, so they are stated here:
+
+- **The built-in `Explore` is not a free scout.** Since Claude Code v2.1.198 it inherits the main
+  conversation's model `[docs-verified 2026-09-14]`; on an Opus session an un-pinned `Explore` is an
+  Opus dispatch. Pin `model: "haiku"` per invocation or use `scout`. On Claude Code with a posture
+  file present, [`explore-tier-pin`](../../hooks/explore-tier-pin.sh) rewrites an un-pinned `Explore`
+  to `haiku` for you (`handoff_tax.pin_explore`, default `haiku`) — it never overrides a `model` you
+  passed, so the discipline is still yours; the pin is the backstop. Elsewhere (Copilot / Codex /
+  Cursor / Gemini) no hook binds and the meter's `frontier_readonly` flag is the only tell.
+- **Resolution order:** per-invocation `model` → the agent's `model:` frontmatter →
+  `CLAUDE_CODE_SUBAGENT_MODEL`. Every agent in this marketplace declares `model:` (gated), so the
+  frontmatter is always there to fall back on; you only need the per-invocation parameter to
+  *override* it — and overriding a gate downward is the one override you never make.
+- **Parallel scouts must read disjoint slices.** N scouts that each `grep -r` the same tree pay N
+  times for one read. When the fan-out shares a corpus, dispatch one scout to build an index artifact
+  first (`.ravenclaude/runs/<run-id>/00-index.json`), then fan the others out over the index.
+
+State the tier in your summary's Sequence table (Step 8) so cost-per-completed-task is auditable.
 
 ---
 
@@ -392,6 +453,13 @@ When an agent surfaces a problem, route by the *type* of problem, not by which a
 - Run [`cleanup-worktrees`](../cleanup-worktrees/SKILL.md) to remove finished worktrees.
 - If shipping, hand to [`create-pr`](../create-pr/SKILL.md).
 - Summarize for the user: which playbook ran, what shipped, what didn't, what's open.
+- **One cost line, from the ledger, not from memory.** Run
+  `bash plugins/ravenclaude-core/bin/rc dispatch-summary` and put its rollup in the summary:
+  dispatches by tier, frontier share, any `frontier_readonly` / over-cap counts. If the ledger is
+  empty (no posture file, or a non-Claude-Code host), say so in one clause rather than estimating —
+  an absent number is honest; a guessed one is the metric this whole step exists to replace. A run
+  whose frontier share is above what the Step 4.25 table would predict is the retrospective's first
+  question, not a footnote.
 
 ---
 

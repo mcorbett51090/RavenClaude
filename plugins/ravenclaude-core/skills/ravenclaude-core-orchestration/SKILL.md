@@ -45,7 +45,7 @@ Companion skills (load when stuck or choosing among costly tries):
 1. Restate goal, deliverable, constraints, and out-of-scope in one short block. If unclear in ~3 minutes, ask before spawning.
 2. **Do it yourself** when: trivial Q&A, ≤10-line single-file tweak, work already fully in context, or briefing costs more than doing.
 3. **Spawn (often several in one turn)** when: independent fan-out across files/branches; a named gate owns it; fresh context beats self-critique; bulk reading would crowd the lead window.
-4. Prefer the **smallest spawn cost** that still meets the need; escalate only if the first specialist returns insufficient.
+4. Prefer the **smallest spawn cost** that still meets the need; escalate only if the first specialist returns insufficient. Spawn cost has two axes — the handoff (brief + report words) and the **tier**: bulk reading goes to `scout` / `model: haiku`, bounded implementation to a `sonnet` implementer, and only design, adjudication, and the merge gates run on the frontier. An un-pinned `Explore` inherits the lead's model, so "go find X" on an Opus session is an Opus dispatch unless you pin it (the `explore-tier-pin` hook does so when the posture is on). Recovery goes **up one tier**, never a longer brief on the same one — [`knowledge/model-tier-delegation.md`](../../knowledge/model-tier-delegation.md).
 
 ## Recipe B — Software-change playbook (default sequence)
 
@@ -117,6 +117,7 @@ Every specialist brief should include:
 - [ ] In-scope files / systems
 - [ ] Out of scope
 - [ ] Tools allowed / forbidden
+- [ ] Model tier (`haiku` read/classify/extract · `sonnet` bounded build · `opus` design/verdict) — pinned in the agent's `model:` or on the dispatch call; never left to inherit by accident
 - [ ] Output contract (Markdown + structured result)
 - [ ] Stop / escalate conditions
 - [ ] On failure: retry with updated hypothesis (first principles / Occam / quantitative skill) before escalating
@@ -128,6 +129,7 @@ Every specialist brief should include:
 - Relaying entire gate artifacts through context (cost + drift); use paths.
 - Advancing a gate whose artifact is missing/empty.
 - Under-delegating bulk independent reads into the lead window.
+- Paying frontier rates for reading: an un-pinned `Explore`, or an `opus` worker whose whole job is grep-shaped.
 - Over-delegating one-line fixes that cost more to brief than to do.
 - Treating a demo or happy-path glance as verification.
 - Giving up after one failure; identical blind retries; vibes over a scored hypothesis table when history exists.
