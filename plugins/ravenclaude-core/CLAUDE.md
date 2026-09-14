@@ -124,6 +124,78 @@ shipped template's default for every consumer.
 **Migration:** none — `cheap_lane` defaults to `off`; the skill, the router, and
 the transport ship inert until a consumer sets the knob. Skill count 55 → 56.
 
+### Model-tier delegation — push the expensive tokens down, not just the tasks (added 2026-09-14, v0.322.0)
+
+**The claim, stated precisely.** Dispatching to sub-agents saves **money** when the
+volume of tokens moves to a cheaper price tier. It does **not** save **tokens** — it
+usually spends more, because every handoff is overhead (the Team Lead writes a brief
+at premium output rates; the worker loads a fresh context that shares none of the
+parent's prompt cache; the worker writes a report; the Team Lead re-reads it at premium
+input rates). Isolated sub-agents have been measured at several multiples of a single
+session's token count. **More models ≠ fewer tokens. More models = cheaper tokens,
+only if the workers do the volume and send back short artifacts.** Full reference:
+[`knowledge/model-tier-delegation.md`](knowledge/model-tier-delegation.md).
+
+**What runs where — the Team Lead applies this on every dispatch:**
+
+| Role in the run | Tier | `model:` alias |
+|---|---|---|
+| Decompose the goal, choose the strategy, judge results, adjudicate | frontier | the Team Lead itself / `opus` |
+| Search, grep, classify, extract fields, format, inventory — read a lot, return a little | fast | `haiku` — the shipped worker is [`agents/scout.md`](agents/scout.md) |
+| Bounded edits against a plan, known API calls, tests for a stated contract, first-draft prose from supplied inputs | mid | `sonnet` |
+| Gates that hold merge (`security-reviewer`, `code-reviewer`), the `architect`, cited adjudication | frontier | `opus` — **never** de-escalate a gate to save money |
+| Recovery when a worker botches it | **one tier up** | haiku → sonnet → opus; after a failure at opus the problem is not a dispatch problem |
+
+**The four preconditions — push work down only when all hold:** (1) the subtask is
+well-specified *after* the strong model has done the thinking; (2) the worker needs the
+brief plus the files it touches, **not** the conversation; (3) the worker returns a
+small artifact — paths, a diff manifest, extracted fields, pass/fail plus the
+Structured Output Protocol block — and writes anything long to
+`.ravenclaude/runs/<run-id>/` and returns the path; (4) failures are cheap to retry
+and rare. **The one-line test: if the worker's output is longer than what you would
+have pasted into your own context, the handoff failed.**
+
+**Every brief carries a worker contract** — tier + one clause why, inputs (exact
+paths/excerpts), tools, the deterministic success check, and **`Max output: <N>
+words`**. The template is in [`skills/spawn-team/SKILL.md`](skills/spawn-team/SKILL.md)
+Step 4; the report-side mirror is in [`rules/agent-collaboration.md`](rules/agent-collaboration.md).
+
+⛔ **`Explore` is no longer free.** Since Claude Code v2.1.198 the built-in `Explore`
+sub-agent **inherits the main conversation's model** `[docs-verified 2026-09-14,
+sub-agents § "Choose a model"]`. On an Opus session an un-pinned `Explore` dispatch is
+an Opus dispatch. Pass `model: "haiku"` per invocation, or dispatch `scout`. The model
+resolution order is: per-invocation `model` parameter → the agent's `model:`
+frontmatter → `CLAUDE_CODE_SUBAGENT_MODEL` (env var; `_FORCE=1` inverts the order and
+flattens the opus gates too — do not set FORCE where review gates run as sub-agents).
+
+**Enforced, not just behavioral.** Every `agents/*.md` in every plugin **must** declare
+`model:` with a tier alias (`opus` / `sonnet` / `haiku` / `fable` / `inherit`; full
+model ids are rejected so the roster cannot go stale) — gated by
+`scripts/check-frontmatter.py`, so a new agent cannot silently inherit the most
+expensive model. **Measured, never blocked:** the
+[`hooks/handoff-tax-meter.sh`](hooks/handoff-tax-meter.sh) `PostToolUse(Agent)` hook
+appends one counts-only line per dispatch to `.ravenclaude/runs/<session>/dispatch-ledger.jsonl`
+(tier, brief words, report words, final-request tokens, flags) and advises the Team
+Lead on `report_over_cap` / `brief_over_cap` / `frontier_readonly`. Opt-in by posture
+like every other advisory hook; `handoff_tax: { report_cap_words, brief_cap_words }`
+or `handoff_tax: off`. Its honest limit: the payload's `totalTokens` covers the
+sub-agent's **final** request only, so the ledger's token column is a lower bound and
+its word counts are the exact figures.
+
+**Composition with the cheap lane (unchanged).** The cheap lane asks *"does this task
+need to be on Claude at all?"* and is a router on the raw task — deliberately off by
+default with escalation dominating, because a bad router pays twice. Model-tier
+delegation asks *"which Claude tier does this **dispatched** worker run on?"* and is
+the orchestrator → workers pattern. They compose: the Team Lead decides the surface
+(spawn-team Step 1.25), then whether to delegate (Step 1.5), then the specialist
+(`agent-routing.md`), then the tier (Step 4.25). Neither flips
+`agent-dispatch-evaluator`'s shipped default.
+
+**Migration:** every agent file now requires `model:`; every shipped agent already
+declares one, so `/plugin marketplace update` changes nothing for a consumer. A
+consumer's *own* project-level `agents/*.md` are not gated by this repo's CI. Agent
+count 14 → 15 (`scout`). New advisory hook is inert without a comfort-posture file.
+
 ### Agent-routing decision tree (priors — for the Team Lead)
 
 **Surface first, then specialist.** Before any spawn, traverse [`skills/spawn-team/SKILL.md`](skills/spawn-team/SKILL.md) **Step 1.25** (slash command vs skill vs specialist agent vs orchestration shape). Platform fuzzy-match on descriptions is not the router. Only when Step 1.25 selects the **agent** surface: traverse the Mermaid graph in [`knowledge/agent-routing.md`](knowledge/agent-routing.md) `## Decision Tree` top-to-bottom against the user's observable request signals — do NOT keyword-match the request to an agent name. The earliest-blocking gate wins (e.g., a UI change that touches auth spawns `security-reviewer` before `frontend-coder`); when multiple branches could apply, default to the leaf with the smaller spawn cost and escalate only if it returns insufficient. Domain plugins (e.g. `power-platform`) with a more-specific routing rule for the request override this tree.
