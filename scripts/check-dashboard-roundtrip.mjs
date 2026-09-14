@@ -220,7 +220,12 @@ function check(name, cond) {
   s.conserve_tokens_auto_pct = 65;
   s.context_handoff = { mode: "nag", spawn: "os-terminal", context_window_tokens: 150000 };
   s.cheap_lane = { mode: "agent", tier: "top", agent: "copilot" };
-  s.handoff_tax = { off: false, report_cap_words: 250, brief_cap_words: 900, pin_explore: "sonnet" };
+  s.handoff_tax = {
+    off: false,
+    report_cap_words: 250,
+    brief_cap_words: 900,
+    pin_explore: "sonnet",
+  };
   s.prompt_optimizer = { enabled: true, mode: "advisory" };
   api._set(s);
 
@@ -658,15 +663,29 @@ function check(name, cond) {
   for (const v of [false, "off"]) {
     api._set(api._freshState());
     api.applyGuardrailConfig({ handoff_tax: v });
-    check(`handoff_tax scalar off hydrates from ${JSON.stringify(v)}`, api._get().handoff_tax.off === true);
+    check(
+      `handoff_tax scalar off hydrates from ${JSON.stringify(v)}`,
+      api._get().handoff_tax.off === true,
+    );
     const yaml = api.emitYaml();
-    check(`handoff_tax: off emitted as the scalar (from ${JSON.stringify(v)})`, /^handoff_tax: off$/m.test(yaml));
-    check("scalar off emits no block fields", !/^  pin_explore:/m.test(yaml) && !/^  report_cap_words:/m.test(yaml));
+    check(
+      `handoff_tax: off emitted as the scalar (from ${JSON.stringify(v)})`,
+      /^handoff_tax: off$/m.test(yaml),
+    );
+    check(
+      "scalar off emits no block fields",
+      !/^  pin_explore:/m.test(yaml) && !/^  report_cap_words:/m.test(yaml),
+    );
   }
 
   // pin-only block (caps default) — block MUST still be written for the pin.
   const s = api._freshState();
-  s.handoff_tax = { off: false, report_cap_words: 400, brief_cap_words: 600, pin_explore: "sonnet" };
+  s.handoff_tax = {
+    off: false,
+    report_cap_words: 400,
+    brief_cap_words: 600,
+    pin_explore: "sonnet",
+  };
   api._set(s);
   const yaml = api.emitYaml();
   check("handoff_tax block emitted for pin-only", /^handoff_tax:$/m.test(yaml));
@@ -676,14 +695,24 @@ function check(name, cond) {
 
   // all-default block emits nothing; unknown / out-of-range values are dropped.
   api._set(api._freshState());
-  api.applyGuardrailConfig({ handoff_tax: { pin_explore: "opus", report_cap_words: -5, brief_cap_words: "lots" } });
+  api.applyGuardrailConfig({
+    handoff_tax: { pin_explore: "opus", report_cap_words: -5, brief_cap_words: "lots" },
+  });
   check("unknown pin_explore ignored on hydrate", api._get().handoff_tax.pin_explore === "");
   check("negative report cap ignored on hydrate", api._get().handoff_tax.report_cap_words === null);
-  check("non-numeric brief cap ignored on hydrate", api._get().handoff_tax.brief_cap_words === null);
+  check(
+    "non-numeric brief cap ignored on hydrate",
+    api._get().handoff_tax.brief_cap_words === null,
+  );
   check("all-default handoff_tax emits no block", !/^handoff_tax/m.test(api.emitYaml()));
 
   // Every accepted pin value round-trips (YAML `off` under the block parses to false).
-  for (const [v, want] of [["haiku", "haiku"], ["sonnet", "sonnet"], ["off", "off"], [false, "off"]]) {
+  for (const [v, want] of [
+    ["haiku", "haiku"],
+    ["sonnet", "sonnet"],
+    ["off", "off"],
+    [false, "off"],
+  ]) {
     api._set(api._freshState());
     api.applyGuardrailConfig({ handoff_tax: { pin_explore: v } });
     check(`pin_explore accepts ${JSON.stringify(v)}`, api._get().handoff_tax.pin_explore === want);

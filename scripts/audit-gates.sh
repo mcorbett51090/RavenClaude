@@ -379,7 +379,7 @@ _suite_gate_tokens() { # $1=suite name -> echoes space-separated gate tokens; re
       # independently claimed 282 for claude-launch-safeguard while this
       # branch was unmerged, same "no better-fit suite" reasoning as
       # 173/175/193/194/267-281 above).
-      echo "1 2 8 18 46 47 92 129 173 175 193 194 195 226 267 268 269 270 271 272 273 274 275 276 277 278 279 280 281 282 283 284"
+      echo "1 2 8 18 46 47 92 129 173 175 193 194 195 226 267 268 269 270 271 272 273 274 275 276 277 278 279 280 281 282 283 284 287"
       ;;
     security)
       # Gaps: 24 (Track B Engine Foundation — defines DECP, consumed by
@@ -1995,9 +1995,16 @@ PY
       bash plugins/ravenclaude-core/hooks/tests/test-gate286-explore-tier-pin.sh
       exit $?
       ;;
+    287)
+      echo "── Gate 287: model-tier frontier-share ratchet (per-gate run) ──"
+      rc=0
+      python3 scripts/check-model-tier-ratchet.py --check || rc=$?
+      rc_mustfail python3 scripts/check-model-tier-ratchet.py || rc=$?
+      exit $rc
+      ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254, 255, 256, 257, 258, 259, 260, 261, 262, 263, 264, 265, 266, 267, 268, 269, 280, 281, 282, 283, 284, 285, 286. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254, 255, 256, 257, 258, 259, 260, 261, 262, 263, 264, 265, 266, 267, 268, 269, 280, 281, 282, 283, 284, 285, 286, 287. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -6691,6 +6698,25 @@ echo "── Gate 286: explore-tier-pin.sh (model-tier delegation — the preven
 # NOT rewrite).
 rc=0; bash plugins/ravenclaude-core/hooks/tests/test-gate286-explore-tier-pin.sh >/dev/null 2>&1 || rc=$?
 gate "explore-tier-pin: rewrites un-pinned Explore to haiku via updatedInput (no permissionDecision), silent on explicit/other/opt-out/env, knobs, teeth" must_pass "$rc"
+echo "── Gate 287: model-tier frontier-share ratchet (the roster may not drift back to all-opus) ──"
+# check-frontmatter.py requires every agent to PIN a `model:` — that closes the
+# silent default but says nothing about the DISTRIBUTION. An author who writes
+# `model: opus` on every new agent passes the per-file gate and moves the whole
+# roster toward all-frontier, which is the opposite of the doctrine's price-mix
+# saving (knowledge/model-tier-delegation.md). The roster measured 484/623 on
+# opus the day the `model:` gate shipped. This ratchet binds two invariants to a
+# committed baseline (tests/fixtures/model-tier-ratchet.json, SHA-bound by
+# Gate 242's ratchet-freshness check): the frontier share (opus|fable|inherit)
+# may not RISE, and the haiku count may not FALL. One all-opus agent added to
+# 623 tips the share and fails; an opus lead + a sonnet engineer passes. --stamp
+# refuses to loosen without --allow-loosen "<reason>", so a deliberate widening
+# is in the diff, never silent. Teeth: rising share (opus AND inherit) fails,
+# haiku deletion fails, mixed addition + unchanged roster pass, absent baseline
+# is UNKNOWN, unreasoned loosening stamp is refused.
+rc=0; python3 scripts/check-model-tier-ratchet.py --check >/dev/null 2>&1 || rc=$?
+gate "model-tier ratchet: frontier share has not risen and the haiku floor holds vs the committed baseline" must_pass "$rc"
+rc=0; rc_mustfail python3 scripts/check-model-tier-ratchet.py >/dev/null 2>&1 || rc=$?
+gate "model-tier ratchet teeth: rising share / haiku deletion / unreasoned loosening all bite; controls pass" must_pass "$rc"
 echo "── Gate 123: design-project binding surfacing (bound / half-set / absent / leak-safe) ──"
 rc=0; bash plugins/ravenclaude-core/hooks/tests/test-gate123-design-project-binding.sh >/dev/null 2>&1 || rc=$?
 gate "design-project binding: surfaces when bound + guides when half-set + silent when absent + leak-safe + teeth" must_pass "$rc"
