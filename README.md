@@ -209,7 +209,7 @@ The pin survives `/plugin marketplace update` — the pinned SHA is the catalog'
 
 | Component | Count | Where |
 |-----------|-------|-------|
-| Specialist agents | 17 — every one pins a `model:` tier: 6 `opus` (the review gates, architect, deep-researcher, prompt-engineer), 10 `sonnet` (coders, tester, documentarian, PM, …), 1 `haiku` (`scout`, the read-a-lot/return-a-little worker). Roster-wide frontier share is ratcheted (Gate 287); see [`model-tier-delegation.md`](plugins/ravenclaude-core/knowledge/model-tier-delegation.md) | `plugins/ravenclaude-core/agents/` |
+| Specialist agents | 17 — every one pins a `model:` tier: 6 `opus` (the review gates, architect, deep-researcher, prompt-engineer), 10 `sonnet` (coders, tester, documentarian, PM, …), 1 `haiku` (`scout`, the read-a-lot/return-a-little worker). Roster-wide frontier share is ratcheted (Gate 287) and each agent's tier must fit its declared role (Gate 288 — implementers never on `opus`, core merge gates never below it); see [`model-tier-delegation.md`](plugins/ravenclaude-core/knowledge/model-tier-delegation.md) | `plugins/ravenclaude-core/agents/` |
 | Skills | 58 | `plugins/ravenclaude-core/skills/` — see the plugin's own [README](plugins/ravenclaude-core/README.md) for the full, gate-checked list |
 | Hooks | 53 | `plugins/ravenclaude-core/hooks/` — see the plugin's own [README](plugins/ravenclaude-core/README.md) for the full, gate-checked list |
 | Rules | 5 (coding-standards, security, git-workflow, agent-collaboration, terminal-copy-to-tempfile) | `plugins/ravenclaude-core/rules/` |

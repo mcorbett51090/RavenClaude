@@ -62,6 +62,20 @@ All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the 
   `opus`/`fable`/`inherit` share may not rise and the `haiku` count may not fall
   against `tests/fixtures/model-tier-ratchet.json` (bound to the merge base by
   `check-ratchet-freshness.py`). Loosen with `--stamp --allow-loosen`, out loud.
+- **Gate 288** — `scripts/check-model-tier-fit.py`: the tier must fit the role the
+  agent itself declares. A ratchet freezes a roster; it cannot tell whether the
+  roster it froze was right — the day Gate 287 shipped, 24 agents named
+  `*-implementation-engineer` / described "Use to BUILD …" sat on `opus` while
+  the early app-craft plugins (backend / frontend / api / database) tiered the
+  same role `sonnet`, and both gates passed. Gate 288 reads `name:` + the
+  *opening* of `description:`: an implementer may not sit on a frontier alias,
+  the three core merge gates may not sit below one, a "Read-only" agent above
+  `haiku` is advised (never failed). Mis-reads are exempted **by name with a
+  reason** in `tests/fixtures/model-tier-fit-exemptions.json`; a stale exemption
+  fails. **Roster re-tier shipped alongside (marketplace-wide, not this
+  plugin):** the 24 implementers moved `opus` → `sonnet` across 23 domain
+  plugins (each patch-bumped), frontier share 484/623 (77.7%) → 460/623
+  (73.8%), and the Gate 287 baseline was re-stamped as a tightening.
 
 ### Notes
 

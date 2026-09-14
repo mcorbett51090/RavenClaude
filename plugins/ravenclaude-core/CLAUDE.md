@@ -195,7 +195,12 @@ tier in frontmatter. **Roster-level, the frontier share is ratcheted:**
 `scripts/check-model-tier-ratchet.py` (Gate 287) fails a PR that raises the
 `opus`/`fable`/`inherit` share of `agents/*.md` across all plugins or lowers the
 `haiku` count against `tests/fixtures/model-tier-ratchet.json`; loosening is
-`--stamp --allow-loosen`, said out loud in the PR, never silent. **Cross-host:** the
+`--stamp --allow-loosen`, said out loud in the PR, never silent. **And the tier must
+fit the role:** `scripts/check-model-tier-fit.py` (Gate 288) reads each agent's name and
+the opening of its description — an implementer (`*-implementation-engineer`,
+`*-developer`, "Use to BUILD …") may not sit on a frontier alias, and the three core
+merge gates may not sit below one; mis-reads are exempted by name with a reason in
+`tests/fixtures/model-tier-fit-exemptions.json`. **Cross-host:** the
 pin and the meter are Claude Code hooks; on Copilot and Codex the projected agent
 carries its canonical tier as a header comment for the consumer to pin (those hosts
 take a picker/model id, not a tier alias) — see

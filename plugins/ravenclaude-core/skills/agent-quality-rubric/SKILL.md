@@ -34,7 +34,11 @@ edits and drafts on `sonnet`; only design, adjudication, and the gates that hold
 review comment: an `opus` agent whose scenarios are all grep-shaped (paying frontier rates for
 volume work — in the marketplace the roster-wide frontier share is ratcheted by CI's `check-model-tier-ratchet.py`,
 Gate 287, so this also fails the PR if it raises the share), and a `haiku` agent asked to gate a
-merge or make a design call (the tier cannot carry the judgment). `inherit` is a deliberate
+merge or make a design call (the tier cannot carry the judgment). The marketplace's
+`check-model-tier-fit.py` (Gate 288) catches the *mechanical* slice of both — an agent named
+`*-implementation-engineer` / `*-developer` or whose description opens with "Use to BUILD" may not
+be pinned `opus`, and the core merge gates may not be pinned below it — so the reviewer's
+judgment is reserved for the roles the name and the opening verb do not settle. `inherit` is a deliberate
 choice, not a default — it must say in one clause why the worker should run at the session's tier.
 
 ## The 6 dimensions

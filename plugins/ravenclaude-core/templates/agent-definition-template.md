@@ -34,7 +34,10 @@ never de-escalated to save money. An omitted `model:` silently inherits the main
 session's model (an Opus worker for grep-shaped work); a full model id goes stale when
 the SKU rotates. In the marketplace the roster-wide frontier share is ratcheted (CI's `check-model-tier-ratchet.py`,
 Gate 287): a new `opus` agent that raises the share fails the PR unless the loosening is
-stamped and said out loud.
+stamped and said out loud — and the tier must fit the role (CI's `check-model-tier-fit.py`, Gate 288):
+if the `name` ends `-implementation-engineer` / `-implementer` / `-coder` / `-developer`, or the
+`description` *opens* with `Use to BUILD` / `IMPLEMENT` / `Use for X implementation`, `model: opus`
+fails the PR. Name the role honestly and the tier follows.
 
 ## Role
 [Short, precise description of what this agent is and what it owns.]

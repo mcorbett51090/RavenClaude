@@ -32,7 +32,7 @@ So the discipline has two halves, and the marketplace ships both:
 | Gates that hold merge (security verdict, final code review), cited adjudication, research whose conclusion the run depends on | **frontier** | `opus` | The cost of a wrong verdict is the whole run, not the dispatch. |
 | **Recovery when a worker botches it** | **escalate up one tier** | — | Do not let the cheap model "figure it out" on a second attempt with a longer brief. See § "The escalation ladder". |
 
-The roster encodes this: every `agents/*.md` in every plugin declares a `model:` line (gated by `scripts/check-frontmatter.py`), the review gates and the architect pin `opus`, the coders / tester / documentarian / project-manager pin `sonnet`, and `scout` is the shipped **haiku** worker for the read-heavy, judgment-light row.
+The roster encodes this: every `agents/*.md` in every plugin declares a `model:` line (gated by `scripts/check-frontmatter.py`), the review gates and the architect pin `opus`, the coders / tester / documentarian / project-manager pin `sonnet`, and `scout` is the shipped **haiku** worker for the read-heavy, judgment-light row. Across the domain plugins the same split holds by **role shape**: the architect / lead / strategist half of a pair pins `opus`, the `*-implementation-engineer` / `*-developer` half that builds what the architect chose pins `sonnet`. That was true of the early app-craft plugins (backend / frontend / api / database / kubernetes) from the start and was made true of the later batches on 2026-09-14, when 24 implementers that had been pinned `opus` were moved to `sonnet` (frontier share 77.7% → 73.8%) — see § "The role-fit gate".
 
 ### The three ways a dispatch picks its model (verified 2026-09-14)
 
@@ -124,6 +124,18 @@ The meter flags `frontier_readonly` **after** the Explore has already run on Opu
 
 Per-dispatch pins are worthless if the roster quietly re-pins its agents to `opus` one PR at a time. [`scripts/check-model-tier-ratchet.py`](../../../scripts/check-model-tier-ratchet.py) (Gate 287 in `scripts/audit-gates.sh`) counts every `agents/*.md` across every plugin by tier and binds two invariants to [`tests/fixtures/model-tier-ratchet.json`](../../../tests/fixtures/model-tier-ratchet.json): the **frontier share** (`opus` / `fable` / `inherit` over total) may not rise, and the **haiku count** may not fall. A PR that adds an opus agent must add enough non-frontier agents to hold the share, or re-stamp the baseline with `--stamp --allow-loosen` and say why in the PR — the loosening is allowed, the *silent* loosening is not. The fixture is bound to the merge base by `check-ratchet-freshness.py`, the same way the other ratchets are.
 
+### The role-fit gate — the tier must fit the role the agent declares
+
+A ratchet freezes a roster; it cannot tell whether the roster it froze was right. The day the ratchet shipped, 24 agents named `*-implementation-engineer` or described "Use to BUILD …" sat on `opus` and both existing gates passed — the per-file gate saw a valid alias, the ratchet saw an unchanged share. [`scripts/check-model-tier-fit.py`](../../../scripts/check-model-tier-fit.py) (Gate 288) **reads the role**, deliberately narrowly, from `name:` + the *opening* of `description:`:
+
+| Shape | How it is recognised | Tier it must have | Why |
+|---|---|---|---|
+| **merge gate** | the three the doctrine names: core `security-reviewer`, `code-reviewer`, `architect` | frontier (`opus`) | the verdict is the whole run; never de-escalated to save money |
+| **implementer** | name ends `-implementation-engineer` / `-implementer` / `-coder` / `-developer`, **or** the description opens with the build verb (`Use to BUILD …`, `IMPLEMENT …`, `Build an …`, `Use for X implementation`, `hands-on`) | `sonnet` (or `haiku`) — **not** `opus` / `fable` / `inherit` | the design was made upstream by the sibling architect; this is the "bounded edits against a plan" row |
+| **scout** | description opens `Read-only` | `haiku` — **advisory only** | "read-only" is an adjective many judgment roles also use, so this leg reports and never fails |
+
+Everything else — leads, architects, strategists, analysts, specialists — is a judgment the gate does not make; Gate 287 bounds the aggregate. The verb match is anchored at the start of the description on purpose: "designs X; NOT for building it" is not the build verb. A genuine mis-read (a renewable-energy "project developer" is not a code implementer) is exempted **by name, with the reason in the diff**, in [`tests/fixtures/model-tier-fit-exemptions.json`](../../../tests/fixtures/model-tier-fit-exemptions.json) — and an exemption naming an agent that no longer exists fails the gate, because stale rows are how allow-lists rot. Report without failing: `python3 scripts/check-model-tier-fit.py --report`.
+
 ## Cross-host honesty — where the tier travels
 
 The pin and the meter are Claude Code hooks; the *discipline* is not. Per host (`[docs-verified 2026-09-14]`, projected by the `generate-*-hooks.py` generators, each of which prints its skip reasons):
@@ -144,7 +156,8 @@ Read the row for your host before quoting a "we pin Explore" claim in a PR descr
 |---|---|---|---|
 | `handoff_tax.report_cap_words` | `.ravenclaude/comfort-posture.yaml` | `400` | Report length above which the meter advises the Team Lead. |
 | `handoff_tax.brief_cap_words` | same | `600` | Brief length above which the meter advises (the transcript-forwarding tell). |
-| `handoff_tax: off` | same | (absent = on when a posture file exists) | Disables the advisory; the ledger line is still written. |
+| `handoff_tax.pin_explore` | same | `haiku` | The tier [`explore-tier-pin.sh`](../hooks/explore-tier-pin.sh) writes onto an un-pinned `Explore` dispatch (`haiku` \| `sonnet` \| `off`). `off` keeps the meter and disables only the pin. |
+| `handoff_tax: off` | same | (absent = on when a posture file exists) | Disables the advisory **and** the pin; the ledger line is still written. |
 | `CLAUDE_CODE_SUBAGENT_MODEL` (+ `_FORCE`) | settings `env` | unset | Fleet-wide default (or forced) worker model — see § "The three ways". |
 
 The meter is **opt-in by posture**, exactly like every other advisory hook in this plugin: no `.ravenclaude/comfort-posture.yaml`, no advisory, no ledger.
