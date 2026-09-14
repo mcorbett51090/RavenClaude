@@ -3992,7 +3992,7 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-09-04",
+      "last_verified": "2026-09-14",
       "refresh_when": null,
       "sources": [
         {
@@ -4012,7 +4012,7 @@
         "plugins/ravenclaude-core/skills/quantitative-problem-solving/SKILL.md",
         "plugins/ravenclaude-core/skills/ravenclaude-core-orchestration/SKILL.md"
       ],
-      "covers_digest": "sha256:03238cda6ad23a7dcc14129d14959ffd868cc0197c3dc91326cb5de95f195261",
+      "covers_digest": "sha256:382529d20b103b87a3801dd832e1b4f4cf09fe685be56d4878a3dd7319502d39",
       "nuance": "ravenclaude-core-orchestration/SKILL.md restates the single-orchestrator and Capability Grounding rules as freestanding prose instead of linking to ravenclaude-core/CLAUDE.md -- the opposite of this repo's own 'cite, not restate' convention -- because a Grok Bot cannot resolve a cross-plugin markdown link the way a Claude Code agent can.",
       "nuance_evidence": {
         "measured": "2026-09-04",
@@ -4038,7 +4038,7 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-09-05",
+      "last_verified": "2026-09-14",
       "refresh_when": null,
       "sources": [
         {
@@ -4056,7 +4056,7 @@
       "covers": [
         "plugins/ravenclaude-core/skills/claude-code-parallel-and-modes/SKILL.md"
       ],
-      "covers_digest": "sha256:95cb60b135de383cbf39571aaa1a7421398aeb4035eda66f7336cc7c00a403bb",
+      "covers_digest": "sha256:0435b71b0ab57bddf24d8c92d137beca94035c20d5d5e4352fb914ae34a23e11",
       "nuance": "Official Claude Code docs and /help list no /max-parallel mode; ultrathink is a one-turn in-context keyword and does not change API /effort, while ultracode is a separate setting that sends xhigh plus dynamic workflows.",
       "nuance_evidence": {
         "measured": "2026-09-05",

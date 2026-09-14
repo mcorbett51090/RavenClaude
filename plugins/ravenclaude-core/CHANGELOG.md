@@ -54,6 +54,15 @@ All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the 
   prerequisites plus the one judgment the gate cannot make, *does the tier fit
   the role?* (an `opus` agent with grep-shaped scenarios, or a `haiku` agent
   asked to gate a merge, is a review comment).
+- **Orchestration skills say the tier at dispatch time:**
+  `claude-code-parallel-and-modes` gains hard rule 8 (*read-only fan-out is not
+  free* — an un-pinned `Explore` inherits the main model), a remap-table row for
+  cheap read-only fan-out (`scout` / `model: haiku`), a tiered decision-tree
+  step, and T7's three explorers now dispatch on `haiku` with a capped return;
+  `ravenclaude-core-orchestration` Recipe A names the tier as the second axis of
+  spawn cost, the focused-task brief checklist gains a *Model tier* box, and
+  the anti-patterns gain *paying frontier rates for reading*. These are the two
+  skills a Team Lead reads while dispatching; neither mentioned a tier before.
 
 ### Marketplace gates (repo-side, shipped alongside)
 

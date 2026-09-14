@@ -3059,7 +3059,7 @@ A Grok Bot is a separate, non-Claude-Code runtime -- it has no mechanism to `@`-
 
 **Sources:** [PR #1104 -- grok-bot-creation + grok-bot-delegation plugins](https://github.com/mcorbett51090/RavenClaude/pull/1104)
 
-_Last verified: 2026-09-04_
+_Last verified: 2026-09-14_
 
 
 ---
@@ -3087,7 +3087,7 @@ See skill `claude-code-parallel-and-modes` section **Survive parent context** (D
 
 **Sources:** [rc-deep-research DIGEST + VERIFY (2026-09-05) + PLUGIN-DECISION lock to ravenclaude-core](https://github.com/mcorbett51090/RavenClaude/pull/1114)
 
-_Last verified: 2026-09-05_
+_Last verified: 2026-09-14_
 
 
 ---
