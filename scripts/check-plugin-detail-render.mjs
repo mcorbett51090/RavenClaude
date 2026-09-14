@@ -89,7 +89,12 @@ const RC_BASELINE = {
   //        53 -> 54: skills/session-handoff (v0.266.0, context-quality reset)
   //        52 -> 53: skills/design-clone (v0.253.0, design-schema capture+apply)
   //        51 -> 52: skills/github-gold-standard (v0.246.0, the gold-standard scorecard)
-  tools: 54, // 53 -> 54: scripts/handoff-tax-meter.py (model-tier delegation build,
+  tools: 55, // 54 -> 55: scripts/explore-tier-pin.py (model-tier delegation build pass 2,
+  //   v0.322.0 — the PreToolUse(Agent|Task) decide() engine behind
+  //   hooks/explore-tier-pin.sh: pins an un-pinned Explore to the posture's
+  //   pin_explore tier via updatedInput; self-tested, Gate 286). COUNTED, not
+  //   inferred: the plugin-detail island's scripts_index for ravenclaude-core -> 55.
+  //        53 -> 54: scripts/handoff-tax-meter.py (model-tier delegation build,
   //   v0.322.0 — the PostToolUse(Agent) brief/report/tier meter behind
   //   hooks/handoff-tax-meter.sh; self-tested, Gate 285).
   //        52 -> 53: scripts/routine-review-tribunal.py (the routine-review-tribunal
@@ -171,7 +176,11 @@ const RC_BASELINE = {
   //        19 -> 22: premise-gate.py + classify_claim.py + check-design-schema.py
   //                  (v0.263.0, PR 3b packaging move)
   scenarios: 4,
-  hooks: 49, // 48 -> 49: handoff-tax-meter.sh WIRED on PostToolUse(Agent|Task) (model-tier
+  hooks: 50, // 49 -> 50: explore-tier-pin.sh WIRED on PreToolUse(Agent|Task) (model-tier
+  //   delegation build pass 2, v0.322.0 — rewrites an un-pinned Explore dispatch's
+  //   model via updatedInput; never emits a permissionDecision). COUNTED, not
+  //   inferred: hooks.json on this tree holds 50 registrations.
+  //        48 -> 49: handoff-tax-meter.sh WIRED on PostToolUse(Agent|Task) (model-tier
   //   delegation build, v0.322.0 — advisory dispatch ledger + report_over_cap /
   //   brief_over_cap / frontier_readonly nudges; opt-in, never blocks).
   //        47 -> 48: prompt-optimizer-gate.sh WIRED on UserPromptSubmit (forge/prompt-optimizer

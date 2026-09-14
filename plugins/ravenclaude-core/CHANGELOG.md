@@ -44,6 +44,16 @@ All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the 
   so the field is deliberately not emitted and the agent inherits the session
   default until the consumer pins it — said in the file, not discovered on the
   bill. Per-host truth: `host-support.json` `components.agents.<host>.model_tier`.
+- **Authoring surfaces carry the tier:** `templates/agent-definition-template.md`
+  now opens with the gated frontmatter block (`name` / `description` / `tools` /
+  `model` / scenarios) and the role → tier rule, so a new agent is not copied
+  from a template that omits the one line the gate requires;
+  `templates/agent-brief.md` gains field 8 (*how much judgment does the work
+  need?* → tier) and `draft-agent-brief` maps it to `model:`;
+  `agent-quality-rubric` gains **Gate 0** — the mechanical frontmatter
+  prerequisites plus the one judgment the gate cannot make, *does the tier fit
+  the role?* (an `opus` agent with grep-shaped scenarios, or a `haiku` agent
+  asked to gate a merge, is a review comment).
 
 ### Marketplace gates (repo-side, shipped alongside)
 

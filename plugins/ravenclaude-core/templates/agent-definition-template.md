@@ -2,6 +2,40 @@
 
 > **Purpose**: This is the required template for all agents in ravenclaude-core and domain plugins. It ensures consistency, clear dispatch conditions, integration with the Capability Grounding Protocol, and structured tiered knowledge.
 
+## Frontmatter (gated — `scripts/check-frontmatter.py` fails the build on any missing field)
+
+```yaml
+---
+name: <kebab-case, matches the filename>
+description: "<≤ 300 chars: what it is for + its keywords + the ONE most important 'NOT for X → other-agent' boundary>"
+tools: <explicit least-privilege allowlist, e.g. Read, Grep, Glob, Write — or "*" only when every tool is genuinely intended>
+model: <haiku | sonnet | opus — a TIER ALIAS, never a full model id>
+audience: [dev, consultant]
+works_with: [<agent>, <agent>]
+scenarios:
+  - intent: "<what the user is trying to do>"
+    trigger_phrase: "<the sentence that should route here>"
+    outcome: "<what comes back>"
+    difficulty: starter | intermediate | advanced | troubleshooting
+quickstart:
+  - "Trigger phrase: '…'"
+  - "Expected output: …"
+  - "Common follow-up: …"
+---
+```
+
+**Pick `model:` from the role, not from habit** — the tier table in
+[`knowledge/model-tier-delegation.md`](../knowledge/model-tier-delegation.md) is the rule:
+`haiku` for read-a-lot-return-a-little work (search, grep, classify, extract, inventory);
+`sonnet` for bounded edits, known API calls, tests for a stated contract, first-draft
+prose from supplied inputs; `opus` only for judgment — decomposition, adjudication, and
+the gates that hold merge (`security-reviewer`, `code-reviewer`, `architect`), which are
+never de-escalated to save money. An omitted `model:` silently inherits the main
+session's model (an Opus worker for grep-shaped work); a full model id goes stale when
+the SKU rotates. The roster-wide frontier share is ratcheted (`scripts/check-model-tier-ratchet.py`,
+Gate 287): a new `opus` agent that raises the share fails the PR unless the loosening is
+stamped and said out loud.
+
 ## Role
 [Short, precise description of what this agent is and what it owns.]
 
