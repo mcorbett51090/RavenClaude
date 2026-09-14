@@ -93,7 +93,7 @@ That tree is the shared anchor and is often many commits behind. The analog incr
 | Tier | Path | Who sees it |
 |---|---|---|
 | **Committed (this file)** | `docs/follow-ups/2026-08-14-analog-repos-leftovers.md` | every clone after pull |
-| Catalog / matrix / queue | `docs/plans/2026-08-14-analog-repos-gap-fill/` | every clone |
+| Catalog / matrix / queue | `docs/plans/archive/2026-08-14-analog-repos-gap-fill/` | every clone |
 | Close-out decision | `docs/decisions/2026-08-14-analog-repos-gap-fill.md` | every clone |
 | Local leftover run | `.ravenclaude/runs/analog-repos-leftovers/` | this machine |
 | Closed increment run | `.ravenclaude/runs/analog-repos-gap-fill/` | machine that wrote the handoff (update worktree) |

@@ -27,7 +27,7 @@ import json
 
 
 def _read_csv(path):
-    with open(path, newline="") as fh:
+    with open(path, newline="", encoding="utf-8") as fh:
         return list(csv.DictReader(fh))
 
 
@@ -92,7 +92,7 @@ def main(argv=None):
     p.add_argument("--subledger")
     p.add_argument("--out")
     a = p.parse_args(argv)
-    with open(a.entity) as fh:
+    with open(a.entity, encoding="utf-8") as fh:
         entity = json.load(fh)
     mat = float(entity.get("materiality_threshold", 0))
     result = {"entity": entity["entity_name"], "period": entity["fiscal_period"],
@@ -101,7 +101,7 @@ def main(argv=None):
         result["flux"] = flux(a.tb, a.prior_tb, mat)
     text = json.dumps(result, indent=2)
     if a.out:
-        with open(a.out, "w") as fh:
+        with open(a.out, "w", encoding="utf-8") as fh:
             fh.write(text + "\n")
         fc = result["reconciliation"]["flagged_count"]
         print(f"wrote {a.out}  reconciliation flags: {fc}"

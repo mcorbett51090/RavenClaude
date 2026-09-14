@@ -1,6 +1,6 @@
 # D4 — Host behavioral canary is advisory first
 
-**Date:** 2026-08-14 · **Branch:** `harden/pr10-canary` · **Owner:** Matt · **Source:** seed #5 / D4 in `docs/plans/2026-08-13-recurring-defect-hardening/decisions.md`
+**Date:** 2026-08-14 · **Branch:** `harden/pr10-canary` · **Owner:** Matt · **Source:** seed #5 / D4 in `docs/plans/archive/2026-08-13-recurring-defect-hardening/decisions.md`
 
 ## Ruling
 
