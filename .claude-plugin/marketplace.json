@@ -133,7 +133,7 @@
       "name": "developer-tooling",
       "source": "./plugins/developer-tooling",
       "description": "Developer-tooling team — the BUILD-TOOLING layer for monorepo & build-systems engineering. agents (build-systems-architect, monorepo-engineer) covering monorepo tooling (Nx, Turborepo, Bazel/Buck2, Moon, pnpm/yarn/npm workspaces, Lerna), build performance & remote/content-addressable caching, task graphs and affected/since-only builds, dependency & package management (version policy, lockfile hygiene, renovate/dependabot, supply-chain hygiene: SBOM/provenance/pinning), and code-generation/scaffolding. skills (choose-monorepo-tooling, optimize-build-and-cache, manage-dependencies), Mermaid-backed knowledge docs, and runbook templates. Seams: CI/CD pipelines → devops-cicd; service code → backend/frontend-engineering; containers/IaC → the cloud plugins. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.1.1",
+      "version": "0.1.2",
       "author": {
         "name": "Matt Corbett"
       },
@@ -156,7 +156,7 @@
       "name": "data-orchestration",
       "source": "./plugins/data-orchestration",
       "description": "Data-orchestration team — agents (orchestration-architect, pipeline-orchestration-engineer) for the layer that RUNS and SCHEDULES data pipelines: orchestrator selection (Airflow, Dagster, Prefect, Mage, Temporal-for-data; cloud-native MWAA/Step Functions, Azure Data Factory, Cloud Composer/Workflows), DAG and software-defined-asset design, scheduling/triggers (cron, sensor, data-aware), backfills and catchup, idempotency and retries with exponential backoff, partitioning, freshness SLAs and alerting, and lineage. skills (choose-orchestrator, design-dag-and-dependencies, handle-backfills-and-retries), a knowledge bank (a Mermaid selection tree + a 2026 patterns reference), and templates. Distinct from data-platform (ELT/warehouse/BI), analytics-engineering (dbt), and data-streaming-engineering (real-time) — this is the scheduling/run layer they plug into. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.1.1",
+      "version": "0.1.2",
       "author": {
         "name": "Matt Corbett"
       },
@@ -270,7 +270,7 @@
       "name": "browser-extension-engineering",
       "source": "./plugins/browser-extension-engineering",
       "description": "Browser-extension-engineering team — agents (extension-architect, extension-implementation-engineer) for building, shipping, and maintaining cross-browser extensions on Manifest V3: the service-worker background model (and the MV2->MV3 lifecycle trap), content-script isolation + message passing, the permissions / host-permissions model and least-privilege posture, storage, the Chrome Web Store / Edge Add-ons / Firefox AMO review pipelines, and the WebExtensions cross-browser delta (Chrome callback vs Firefox browser.* promises). The extension runtime + manifest + store surface — distinct from frontend-engineering (app-grade React UI) and desktop-app-engineering (Electron/Tauri). skills (manifest-permissions-audit, store-submission-readiness), a knowledge bank (MV3 architecture + a permissions-minimization decision tree + a dated cross-browser capability note), best-practices. Security verdicts escalate to security-engineering. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.2.1",
+      "version": "0.2.2",
       "author": {
         "name": "Matt Corbett"
       },
@@ -491,7 +491,7 @@
       "name": "auth-identity",
       "source": "./plugins/auth-identity",
       "description": "End-user authentication & identity team — agents (auth-architect, auth-implementation-engineer) for adding login to a web app (React/Next), an API, and an analytics dashboard. A variety of methods: Google, Apple, Microsoft, GitHub social SSO plus magic link, passkeys/WebAuthn, and email+password — via managed auth (leaning Supabase Auth, so adding a provider is config not architecture). skills, templates, best-practices, and a web-verified knowledge bank with Mermaid decision trees (build-vs-buy, which-providers, OAuth-flow, token-storage, gate-the-dashboard). House rules: Authorization Code + PKCE never Implicit; never store tokens in localStorage; validate ID tokens server-side. The boundary: this plugin AUTHENTICATES the person; data-platform AUTHORIZES the data (RLS / embed-JWT); Microsoft/enterprise Entra seams to azure-cloud, concrete auth code to security-reviewer. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.3.3",
+      "version": "0.3.4",
       "author": {
         "name": "Matt Corbett"
       },
@@ -2480,7 +2480,7 @@
       "name": "desktop-app-engineering",
       "source": "./plugins/desktop-app-engineering",
       "description": "Desktop-app-engineering team — agents (desktop-architect, electron-engineer, tauri-engineer, desktop-platform-engineer) for cross-platform desktop apps: the Electron-vs-Tauri-vs-native-vs-PWA decision, a hardened process/security model (Electron contextIsolation + IPC allow-lists; Tauri capabilities/permissions + Rust commands), reproducible packaging, code-signing + notarization on Windows and macOS, safe auto-update, and native OS integration (tray, menus, notifications, file associations, deep links, secure on-device storage). skills, a decision-tree knowledge bank (framework-choice + IPC-security trees + a dated 2026 capability map), best-practices, templates, commands, an advisory hook. Seams: renderer UI -> frontend-engineering, the backend/API -> api-engineering/backend-engineering, tokens/OAuth -> auth-identity, signing/notarization in CI -> devops-cicd, the mobile sibling -> mobile-engineering. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.1.2",
+      "version": "0.1.3",
       "author": {
         "name": "Matt Corbett"
       },
@@ -2599,7 +2599,7 @@
       "name": "wordpress-cms-engineering",
       "source": "./plugins/wordpress-cms-engineering",
       "description": "WordPress / CMS engineering team — agents (wordpress-architect, wordpress-developer, wordpress-ops-engineer) for building, extending, and operating WordPress done right: the build-approach decision (classic vs block/FSE theme, plugin vs theme vs must-use, headless/decoupled vs traditional, single vs multisite), secure block & theme & plugin development (block.json, hooks/filters, WP_Query, the REST API, sanitize-in/escape-out, $wpdb->prepare, nonce + capability checks), and operations (page + object cache/Redis, security hardening, safe updates with staging & backups, migrations). skills, a decision-tree knowledge bank (Mermaid trees + a dated 2026 stack map), best-practices, templates, commands, an advisory hook. Seams: decoupled front-end -> frontend-engineering, non-WP backend/APIs -> backend-engineering, infra perf budget -> performance-engineering, formal security verdict -> security-engineering. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.1.2",
+      "version": "0.1.3",
       "author": {
         "name": "Matt Corbett"
       },
@@ -2705,7 +2705,7 @@
       "name": "cli-tooling-engineering",
       "source": "./plugins/cli-tooling-engineering",
       "description": "CLI-tooling-engineering team — agents (cli-architect, cli-implementation-engineer, tui-engineer, cli-distribution-engineer) for command-line tools and TUIs that feel native to the shell: the command/subcommand + flag/positional surface, config precedence (flags > env > file > default), the output contract (human by default, --json on demand, exit codes as an API, data->stdout/diagnostics->stderr, NO_COLOR/TTY detection), stdin, signal handling, TUIs (Ink / Bubble Tea / Textual / ratatui) with a non-TTY fallback, shell completions, and distribution (single static binary, Homebrew / Scoop / winget / npm / pipx, --version + update path). skills, a knowledge bank (command-surface + output/exit-code + framework + distribution decision trees + a dated 2026 map), best-practices, templates, commands, an advisory hook. Seams: service logic -> backend-engineering, release/signing -> devops-cicd, GUI sibling -> desktop-app-engineering, docs -> technical-writing-docs. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.1.2",
+      "version": "0.1.3",
       "author": {
         "name": "Matt Corbett"
       },
@@ -3286,7 +3286,7 @@
       "name": "data-quality-observability",
       "source": "./plugins/data-quality-observability",
       "description": "Data-quality & observability team — agents (data-quality-architect, data-quality-engineer) for the layer answering 'is this data CORRECT, FRESH, COMPLETE, and can we TRUST it?': producer-boundary contracts, validation tests (not-null/unique/accepted-values/referential/distribution), freshness/volume/schema-drift/distribution monitors, threshold vs statistical anomaly detection, data-quality SLAs/SLIs, and data-incident response (triage, quarantine/circuit-breaker, root-cause, backfill). Fluent in dbt tests + dbt-expectations, Great Expectations, Soda, Elementary, managed observability (Monte Carlo, Bigeye, Metaplane), and warehouse-native checks. skills, a knowledge bank (tooling decision tree + 2026 patterns reference), and templates. Distinct from data-platform (ELT/warehouse/BI), analytics-engineering (dbt transforms), data-orchestration (schedules the runs), and data-governance-privacy (policy/PII/lineage) — this is the trust/quality layer over all of them. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.1.1",
+      "version": "0.1.2",
       "author": {
         "name": "Matt Corbett"
       },
@@ -3309,7 +3309,7 @@
       "name": "martech-event-instrumentation",
       "source": "./plugins/martech-event-instrumentation",
       "description": "Martech / event-instrumentation & CDP team — agents (event-taxonomy-architect, instrumentation-engineer) for the ENGINEERING of event collection: the tracking plan / event taxonomy (object-action naming), the identity model (anonymous → known, stitching), CDP & collection-architecture selection (Segment, RudderStack, Snowplow, mParticle; client vs server vs hybrid; warehouse-first / reverse-ETL via Hightouch / Census), and consent & privacy-by-design (Consent Mode, IAB TCF, GPC) plus destination wiring. skills (design-a-tracking-plan, choose-cdp-and-collection-architecture, implement-event-instrumentation-and-consent), a knowledge bank + templates. Distinct from marketing-operations (campaign strategy), analytics-engineering (dbt models events downstream), experimentation-growth-engineering (runs tests on them), data-governance-privacy (org policy/DSAR), and data-platform (warehouse) — the event-collection layer they sit on. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.1.1",
+      "version": "0.1.2",
       "author": {
         "name": "Matt Corbett"
       },
@@ -3354,7 +3354,7 @@
       "name": "technical-seo-engineering",
       "source": "./plugins/technical-seo-engineering",
       "description": "Technical-SEO & search-engineering team — agents (seo-strategy-architect, seo-implementation-engineer) for the layer answering 'can search engines CRAWL, RENDER, INDEX, and UNDERSTAND this site, and will it RANK?': crawl-budget & log analysis, indexation control (robots.txt, meta robots, canonicalization, noindex), JS rendering (CSR/SSR/SSG, dynamic-rendering deprecation), structured data / schema.org (JSON-LD, rich-result eligibility), site architecture & internal linking, E-E-A-T, Core Web Vitals as a ranking factor (INP replaced FID in 2024), international SEO (hreflang), site migrations (redirect mapping, staging noindex), and topical authority. skills, a knowledge bank (strategy decision tree + 2026 patterns), and templates. Distinct from search-relevance-engineering (internal site-search relevance), web-design (the full website build & visual design), and marketing-operations (paid ads / campaign strategy) — this is the organic-search-engineering layer. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.1.1",
+      "version": "0.1.2",
       "author": {
         "name": "Matt Corbett"
       },
@@ -3445,7 +3445,7 @@
       "name": "bioinformatics-engineering",
       "source": "./plugins/bioinformatics-engineering",
       "description": "Bioinformatics & genomics-pipeline team — agents (bioinformatics-workflow-architect, genomics-pipeline-engineer) for the layer answering 'which workflow engine, reference, and compute strategy, and how do we build a reproducible, validated genomics pipeline?': engine choice (Nextflow/nf-core, Snakemake, WDL+Cromwell/miniwdl, CWL), reference build (GRCh38 vs T2T-CHM13) + core steps (QC, trimming, alignment BWA-MEM2/minimap2/STAR/Salmon, dedup, variant calling GATK/DeepVariant, joint genotyping), RNA-seq (DESeq2/edgeR) and single-cell (Scanpy/Seurat), reproducibility (Docker/Apptainer, Conda/Bioconda, pinned versions, FAIR, provenance), HPC-vs-cloud scaling and cost, and validation vs GIAB/hap.py truth sets. skills, a knowledge bank (pipeline decision tree + 2026 workflow-patterns reference), and templates. Distinct from ml-engineering (generic MLOps/model training), clinical-trials (trial operations/regulatory), and data-platform (warehouse/BI). Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.1.1",
+      "version": "0.1.2",
       "author": {
         "name": "Matt Corbett"
       },
@@ -3491,7 +3491,7 @@
       "name": "audio-dsp-engineering",
       "source": "./plugins/audio-dsp-engineering",
       "description": "Audio DSP engineering team — agents (audio-dsp-architect, dsp-implementation-engineer) for the layer answering 'what processing architecture, at what latency, on what platform — and how do we make the audio callback real-time-safe and fast?': processing model (block vs sample-by-sample), latency & buffer budget, fixed vs float + denormals, algorithm approach (IIR biquads / FIR, FFT/STFT overlap-add, oversampling/anti-aliasing), plugin formats & frameworks (JUCE, VST3, AU/AUv3, AAX, CLAP, LV2), audio I/O (CoreAudio, ASIO, WASAPI, ALSA/JACK, Web Audio), lock-free parameter passing, spatial/binaural (HRTF), embedded DSP (CMSIS-DSP), SIMD, and measurement (null tests, THD+N, frequency response). skills, a knowledge bank (decision tree + 2026 patterns), and templates. Distinct from streaming-media-engineering (codecs/delivery), conversational-ai-voice-engineering (voice AI agents), and embedded-iot-engineering (general firmware) — this is the real-time signal-processing layer. Needs ravenclaude-core.",
-      "version": "0.1.1",
+      "version": "0.1.2",
       "author": {
         "name": "Matt Corbett"
       },
@@ -3514,7 +3514,7 @@
       "name": "digital-twin-engineering",
       "source": "./plugins/digital-twin-engineering",
       "description": "Digital-twin engineering team — agents (digital-twin-architect, twin-integration-engineer) for the layer answering 'what should this twin MODEL, at what FIDELITY, and does it MATCH the real asset?': twin taxonomy (asset vs process vs system-of-systems; descriptive/predictive/prescriptive; digital-shadow vs true bidirectional), only-as-much-fidelity-as-the-decision-needs, modeling approach (physics vs data-driven/surrogate/reduced-order vs hybrid), telemetry ingestion (MQTT/OPC-UA/Kafka, edge vs cloud), state sync/drift/calibration, simulation & what-if, and fidelity validation. Fluent in DTDL + Azure Digital Twins, ISO 23247, AAS, Eclipse Ditto, NVIDIA Omniverse, Unity/Unreal, Bentley/Siemens. skills, a knowledge bank (decision tree + 2026 patterns), and templates. Distinct from embedded-iot-engineering (device firmware), robotics-autonomous-systems-engineering (robot control/autonomy), and data-platform (BI/warehouse). Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.1.1",
+      "version": "0.1.2",
       "author": {
         "name": "Matt Corbett"
       },
@@ -3748,7 +3748,7 @@
       "name": "quantum-computing-engineering",
       "source": "./plugins/quantum-computing-engineering",
       "description": "Quantum computing engineering team — agents (quantum-solutions-architect, quantum-algorithm-engineer) answering 'is this even a quantum problem, and if so — which paradigm, modality, and algorithm, and can we trust the result?': hard TRIAGE (most problems win classically today), gate-model vs annealing, qubit modalities (superconducting/trapped-ion/neutral-atom/photonic), NISQ vs fault-tolerant (logical vs physical qubits, surface code), transpilation, VQE/QAOA, error MITIGATION (ZNE/PEC) vs CORRECTION, hybrid loops, and QPU access via SDKs (Qiskit/Cirq/PennyLane/Braket). skills, a knowledge bank, and templates. Engineering judgment, not a benchmark; the device/SDK/qubit-count landscape is volatile — every version carries a retrieval date + [verify-at-use]. Distinct from ml-engineering (classical MLOps), hardware-electronics-engineering (control board/cryo), security-engineering/cybersecurity-grc (post-quantum crypto defense), and performance-engineering (HPC). Needs ravenclaude-core.",
-      "version": "0.1.1",
+      "version": "0.1.2",
       "author": {
         "name": "Matt Corbett"
       },
@@ -3797,7 +3797,7 @@
       "name": "prompt-engineering",
       "source": "./plugins/prompt-engineering",
       "description": "Prompt & context engineering team — agents (prompt-architect, prompt-implementation-engineer, prompt-reliability-engineer) that own the layer between the model and the app: prompt & context strategy (task decomposition, pattern selection across few-shot / CoT / decomposition / role, system-vs-user structure), the output-format contract (JSON mode, tool/function-calling schemas, few-shot curation, token budgeting), and prompt reliability (eval sets & regression, prompt versioning/CI, prompt-injection & jailbreak defense at the prompt layer). Provider-neutral. skills, a knowledge bank with Mermaid decision trees + a dated 2026 reference, best-practices, templates. Seams: which model → ai-coding-model-guidance / claude-api; retrieval → ai-rag-engineering; eval at scale → llm-evaluation-engineering; adversarial testing → ai-red-teaming; the app → claude-app-engineering / backend-engineering. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.1.1",
+      "version": "0.1.2",
       "author": {
         "name": "Matt Corbett"
       },
@@ -3879,7 +3879,7 @@
       "name": "ai-agent-engineering",
       "source": "./plugins/ai-agent-engineering",
       "description": "AI agent-engineering team — agents (agentic-systems-architect, agent-implementation-engineer) for BUILDING production agentic systems: hard TRIAGE (most tasks win as a fixed workflow or a single LLM call, not an agent), single-vs-multi-agent topology, framework selection (LangGraph / OpenAI Agents SDK / CrewAI / AutoGen / Claude Agent SDK), tool & function design, context/memory/state management, planning & reflection loops, human-in-the-loop, guardrails, cost/latency budgets, tracing/observability, and agent EVALS (trajectory, tool-use, task-completion). skills, a knowledge bank, and templates. Engineering judgment, not a demo; the framework/model/API landscape is volatile — every version carries a retrieval date + [verify-at-use]. Distinct from ai-rag-engineering (retrieval), prompt-engineering (single-call prompt craft), llm-evaluation-engineering (general eval harnesses), and claude-app-engineering (Claude product apps). Needs ravenclaude-core.",
-      "version": "0.1.1",
+      "version": "0.1.2",
       "author": {
         "name": "Matt Corbett"
       },
@@ -4017,7 +4017,7 @@
       "name": "databricks-lakehouse-engineering",
       "source": "./plugins/databricks-lakehouse-engineering",
       "description": "Databricks lakehouse engineering team — agents (lakehouse-architect, databricks-platform-engineer) answering 'how do we build this on Databricks correctly and affordably?': medallion (bronze/silver/gold) architecture, Delta Lake table design (partitioning, liquid clustering, OPTIMIZE/Z-ORDER, VACUUM), Unity Catalog governance (catalogs/schemas/grants, lineage), Spark & PySpark job design and the shuffle/skew/spill failure modes, Structured Streaming & Auto Loader, DLT pipelines, Photon, Jobs/Workflows orchestration, and cluster/SQL-warehouse sizing & cost control (DBUs, autoscaling, spot, serverless). Engineering judgment, not a benchmark; DBR/runtime/pricing specifics are volatile — every version carries a retrieval date + [verify-at-use]. Distinct from microsoft-fabric (Fabric/OneLake), data-platform (generic ETL), data-orchestration (Airflow/Dagster), analytics-engineering (dbt/semantic layer), and ml-engineering (classical MLOps). Needs ravenclaude-core.",
-      "version": "0.1.2",
+      "version": "0.1.3",
       "author": {
         "name": "Matt Corbett"
       },
@@ -4040,7 +4040,7 @@
       "name": "shopify-app-engineering",
       "source": "./plugins/shopify-app-engineering",
       "description": "Shopify app & theme engineering team — agents (shopify-app-architect, shopify-app-engineer) answering 'how do we build this on Shopify correctly, within the platform's rules, and so it survives review and scale?': public vs custom app choice, the Admin GraphQL API + webhooks + App Bridge/Polaris embedded model, OAuth & session tokens, Shopify Functions (discounts/checkout) replacing script tags, checkout extensibility & extensions, theme/Online Store 2.0 (Liquid, sections, metafields) vs Hydrogen/Storefront API headless, billing API, rate limits (GraphQL cost-based throttling), and webhook/data-protection + App Store review requirements. Engineering judgment, not a benchmark; Shopify's APIs/versions/review rules are volatile — every version carries a retrieval date + [verify-at-use]. Distinct from ecommerce-dtc (merchandising/retention ops), web-commerce (generic payment scaffold), frontend-engineering (generic React), and web-design (visual/IA). Needs ravenclaude-core.",
-      "version": "0.1.1",
+      "version": "0.1.2",
       "author": {
         "name": "Matt Corbett"
       },
@@ -4063,7 +4063,7 @@
       "name": "recommendation-systems-engineering",
       "source": "./plugins/recommendation-systems-engineering",
       "description": "Recommendation-systems-engineering team — the RECSYS layer that turns interaction data into ranked recommendations. agents (recsys-architect, recsys-implementation-engineer) covering approach selection (popularity baseline, collaborative filtering, content-based, hybrid, two-tower/embedding retrieval, sequential), the candidate-generation → ranking → re-ranking pipeline, cold-start (new user/new item), offline evaluation (recall@k, nDCG, MAP, coverage/diversity) AND online A/B, feature stores with train/serve parity, low-latency serving, and feedback-loop/position bias. skills, Mermaid-backed knowledge docs, templates. Seams: training infra → ml-engineering; keyword/semantic search → search-relevance-engineering; A/B + stats → experimentation-growth-engineering + applied-statistics. House line: baseline before a neural net; offline wins must survive an online A/B. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.1.1",
+      "version": "0.1.2",
       "author": {
         "name": "Matt Corbett"
       },
@@ -4089,7 +4089,7 @@
       "name": "subscription-billing-engineering",
       "source": "./plugins/subscription-billing-engineering",
       "description": "Subscription-billing-engineering team — the RECURRING-BILLING SYSTEM layer for SaaS. agents (billing-systems-architect, billing-implementation-engineer) covering plan/price/entitlement modeling (flat, tiered, per-seat, usage/metered, hybrid), proration, trials & coupons, usage metering & rating, dunning & involuntary-churn recovery, idempotent webhook reconciliation, and the correctness seams to revenue recognition (ASC 606) + sales-tax/VAT. Stripe-Billing-leaning, portable to Chargebee/Recurly/Paddle. skills, Mermaid-backed knowledge docs, runbook templates. Seams: payment rails → fintech-payments-engineering; pricing strategy → pricing-monetization; revrec → finance; tax → regulatory-compliance. House line: model before you integrate; idempotency before features. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.1.1",
+      "version": "0.1.2",
       "author": {
         "name": "Matt Corbett"
       },
@@ -4115,7 +4115,7 @@
       "name": "design-systems-engineering",
       "source": "./plugins/design-systems-engineering",
       "description": "Design-systems engineering team — agents (design-systems-architect, design-tokens-and-component-engineer) answering 'what is the shared system every product surface builds from, and how is it versioned and adopted?': design-token architecture (primitive → semantic → component tiers, theming/dark-mode/multi-brand), component-library API design (composition vs configuration, controlled/uncontrolled, a11y baked in), Storybook/docs, Figma→code token pipeline (Style Dictionary), and versioning/adoption (semver, changesets, codemod-backed breaking changes, deprecation, governance, adoption metrics). skills, a knowledge bank (a Mermaid decision tree + a dated 2026 tooling reference). Distinct from frontend-engineering (builds apps that CONSUME the system), accessibility-engineering (WCAG compliance), and web-design (site visual design) — this team owns the SYSTEM those build from. Tooling specifics volatile: retrieval-dated + verify-at-use. Needs ravenclaude-core.",
-      "version": "0.1.1",
+      "version": "0.1.2",
       "author": {
         "name": "Matt Corbett"
       },
@@ -4136,7 +4136,7 @@
       "name": "web-scraping-data-extraction",
       "source": "./plugins/web-scraping-data-extraction",
       "description": "Web-scraping & data-extraction engineering team — agents (extraction-architect, scraper-implementation-engineer) answering 'how do we acquire this web data legally, robustly, and at the right cost?': API-vs-scrape source choice, a legal/ethical gate (robots.txt, ToS, public-vs-authenticated, rate, PII/copyright) BEFORE any code, fetch strategy (HTTP vs headless, JSON-endpoint-first), resilient parsing (structured data over brittle selectors, validate-to-schema), change-detection & re-crawl scheduling, and the extract→validate→dedup→store pipeline with provenance. skills, a knowledge bank (a Mermaid decision tree + a dated 2026 tooling/legal reference). Distinct from data-orchestration/data-streaming (move data that ALREADY exists) and backend-engineering — this team owns ACQUIRING web data. Legality-first: anti-bot is a stop-signal, never evasion for abuse; ToS/robots specifics volatile + jurisdictional, retrieval-dated + verify-at-use. Needs ravenclaude-core.",
-      "version": "0.1.1",
+      "version": "0.1.2",
       "author": {
         "name": "Matt Corbett"
       },
