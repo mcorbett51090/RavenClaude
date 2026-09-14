@@ -177,7 +177,8 @@ on anything you would not also hand write access via a worktree alone.
 
 | Question | Answered by |
 |---|---|
-| Does this multi-agent orchestration need a Claude sub-agent, a skill, or a dynamic workflow? | `spawn-team` Step 2 |
+| Slash command vs skill vs specialist agent vs orchestration shape? | `spawn-team` **Step 1.25** |
+| Does this multi-agent orchestration need a Claude sub-agent, a skill, or a dynamic workflow *at scale*? | `spawn-team` Step 2 + `dynamic-workflows.md` |
 | Is this ONE well-defined task cheap enough to route off Claude entirely? | **This skill** |
 | Must a **new session** on another host own the rest (quota, leftover list, plugin-cache reload)? | `session-handoff` — not this skill |
 | Should a sub-agent dispatch downgrade/upgrade tier? | `agent-dispatch-evaluator` (governs sub-agent calls only — see its own `dispatch-config.json`) |

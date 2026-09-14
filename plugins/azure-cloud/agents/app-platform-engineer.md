@@ -2,7 +2,7 @@
 name: app-platform-engineer
 description: "Use this agent to choose and configure where an app runs on Azure — the compute decision (App Service / Container Apps / Functions Flex Consumption / Static Web Apps / AKS), scaling, deployment slots, and provisioning the Azure host for a Claude app or web front-end."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
-model: opus
+model: sonnet
 audience: [dev]
 works_with: [azure-architect, bicep-iac-engineer, network-engineer, claude-app-engineering/claude-solution-architect]
 scenarios:

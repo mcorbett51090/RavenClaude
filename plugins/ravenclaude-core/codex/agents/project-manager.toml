@@ -6,6 +6,10 @@
 # review-only agent whatever the main session has — the same silent
 # privilege grant that MH-10 fixed on Copilot.
 # Derived from the canonical tools: Read, Edit, Write, Grep, Glob, Bash
+#
+# Canonical model tier: sonnet. `model` is NOT emitted — it takes a Codex
+# model id, and the canonical value is a Claude tier alias. Until you pin
+# one, this agent runs on the session's model.
 name = "project-manager"
 description = "Use this agent for any project hygiene work — maintaining the RAID log, task list, weekly status report, activity log, or stakeholder register. PMP / PMBOK 7-aligned. Spawn proactively when a week passes without a status update, or immediately when a critical risk, issue, or decision emerges."
 sandbox_mode = "workspace-write"

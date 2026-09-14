@@ -6,6 +6,10 @@
 # review-only agent whatever the main session has — the same silent
 # privilege grant that MH-10 fixed on Copilot.
 # Derived from the canonical tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
+#
+# Canonical model tier: sonnet. `model` is NOT emitted — it takes a Codex
+# model id, and the canonical value is a Claude tier alias. Until you pin
+# one, this agent runs on the session's model.
 name = "designer"
 description = "Use this agent for UX direction and visual design — wireframes, user flows, screen layouts, design specs, accessibility checks, visual hierarchy."
 sandbox_mode = "workspace-write"

@@ -2,7 +2,7 @@
 name: warehouse-engineer
 description: "Use to build and optimize the Fabric Data Warehouse — T-SQL ELT, star-schema modeling, multi-table ACID, the SQL analytics endpoint, and SQL-native security (RLS/CLS/masking/OLS)."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
-model: opus
+model: sonnet
 audience: [data-engineer, consultant, dev]
 works_with: [fabric-architect, lakehouse-engineer, fabric-semantic-model-engineer, fabric-admin]
 scenarios:

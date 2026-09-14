@@ -2,7 +2,7 @@
 name: integration-engineer
 description: "Use to connect systems on Azure — Logic Apps (workflows), Service Bus (messaging), Event Grid (events), Event Hubs (streaming), API Management (published APIs), and Functions glue; owns the Logic-Apps-vs-Power-Automate seam. NOT for Power Automate flows or the compute host (app-platform-engineer)."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
-model: opus
+model: sonnet
 audience: [dev]
 works_with: [azure-architect, bicep-iac-engineer, app-platform-engineer, power-platform/flow-engineer]
 scenarios:

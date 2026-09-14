@@ -2,7 +2,7 @@
 name: tauri-engineer
 description: "Use for Tauri implementation: the Rust core + system-webview model, #[tauri::command] handlers with validated input, the capabilities/permissions allow-list (v2) scoping what the frontend can call, state management, sidecars, and the small-bundle/secure-by-default posture Tauri rewards."
 tools: Read, Grep, Glob, Bash, Edit, Write, WebFetch, WebSearch
-model: opus
+model: sonnet
 audience: [dev]
 works_with:
   [desktop-architect, desktop-platform-engineer, frontend-engineering/react-implementation-engineer]

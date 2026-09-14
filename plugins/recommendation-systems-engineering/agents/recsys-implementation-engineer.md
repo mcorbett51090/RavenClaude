@@ -2,7 +2,7 @@
 name: recsys-implementation-engineer
 description: "Use to BUILD recommenders — implement candidate generation (ANN/embedding retrieval), ranking models, re-ranking, feature pipelines, offline eval harness, and low-latency serving. Python-first. NOT the approach/eval strategy → recsys-architect; NOT training platform → ml-engineering."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
-model: opus
+model: sonnet
 audience: [ml-engineer, data-scientist, backend-engineer]
 works_with: [recsys-architect, ml-engineering, database-engineering, backend-engineering]
 scenarios:

@@ -2,7 +2,7 @@
 name: azure-ops-engineer
 description: "Use this agent for Azure operations — observability (Azure Monitor / Log Analytics / workspace-based Application Insights / OpenTelemetry), FinOps (budgets, cost alerts, Log Analytics cost control via sampling / Basic Logs / commitment tiers / daily caps, reservations, cost reviews)."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
-model: opus
+model: sonnet
 audience: [consultant, dev]
 works_with: [azure-architect, bicep-iac-engineer, ravenclaude-core/documentarian, ravenclaude-core/security-reviewer]
 scenarios:

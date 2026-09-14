@@ -24,6 +24,7 @@ description: >-
 5. **Do not invent token deltas, Max quotas, or Grok Bot weekly numbers.**
 6. Parallel **writes** need isolation (worktrees / `/batch` / `isolation: worktree`). Never parallel-edit one dirty shared checkout.
 7. Raise `CLAUDE_CODE_MAX_*` **only when hitting defaults**, not "for fun."
+8. **Read-only fan-out is not free.** Since v2.1.198 an un-pinned `Explore` inherits the main model, so on an Opus session every explorer in T7 is an Opus dispatch whose job is reading. Pin the tier — `model: haiku` on the call, or dispatch `scout` (pins `haiku` in frontmatter) — and keep `opus` for the synthesis turn and the gates. The posture's `explore-tier-pin` hook backstops the un-pinned case; it does not excuse the brief. See [`knowledge/model-tier-delegation.md`](../../knowledge/model-tier-delegation.md).
 
 ## Documented knobs (remap table)
 
@@ -31,6 +32,7 @@ description: >-
 | --- | --- |
 | Review before edits | **Plan mode** — `Shift+Tab`, `/plan`, `--permission-mode plan` |
 | Side research / noisy context | **Subagents** ("use subagents"); short summaries back |
+| Cheap read-only fan-out (find / grep / classify / inventory) | **`scout`** or `Explore` with **`model: haiku`** on the call; the lead merges on its own tier |
 | Parallel **writes** | **Worktrees** `claude --worktree …`, `/batch`, frontmatter `isolation: worktree` |
 | Large multi-phase fan-out | **Dynamic workflows** / keyword `ultracode` / `/effort ultracode` / `/deep-research` |
 | One hard reasoning turn | Keyword **`ultrathink`** in that prompt |
@@ -50,7 +52,7 @@ description: >-
 ## Decision tree
 
 1. Non-trivial / high-blast / unfamiliar → **plan mode** first.  
-2. Independent research lanes / noisy logs → **subagents** (or `/deep-research` for breadth web).  
+2. Independent research lanes / noisy logs → **subagents** (or `/deep-research` for breadth web) — read-only lanes on **`haiku`** (`scout` / `model: haiku`), never the lead's tier.  
 3. Parallel **file writes** → **worktrees / `/batch`**; partition paths; shared contracts sequential.  
 4. Huge multi-phase orchestration + verify → **workflow / ultracode** (not for tiny edits).  
 5. One hard design/debug turn → **`ultrathink`** (do not raise session effort for everything).  
@@ -218,13 +220,17 @@ Use the operator block in **Operator block** above.
 ### T7 — Independent research lanes
 
 ```text
-Use subagents. Spawn three parallel read-only explorers:
+Use subagents. Spawn three parallel read-only explorers on model: haiku
+(or dispatch `scout` for each lane — it pins haiku and reads CLAUDE.md):
 1) auth / session — paths under <A>
 2) data layer — paths under <B>
 3) API surface — paths under <C>
-Each returns a short summary (findings, key files, risks). Main agent merges
-and proposes a single plan. No file edits from explorers.
+Each returns a short summary (findings, key files, risks; ≤ 300 words, paths
+not pasted contents). Main agent merges and proposes a single plan on its own
+tier. No file edits from explorers.
 ```
+
+The tier line is the difference between three Haiku reads and three Opus reads of the same files; the cap on the return is the other half of the handoff tax (`handoff-tax-meter.sh` flags both `frontier_readonly` and `report_over_cap`).
 
 ### T8 — Post-change parallel cleanup
 
