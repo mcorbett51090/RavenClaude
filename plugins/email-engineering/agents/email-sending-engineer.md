@@ -2,7 +2,7 @@
 name: email-sending-engineer
 description: "Use for the email sending path — ESP integration (SES/SendGrid/Postmark), idempotent sends + verified idempotent webhooks, retries, suppression-list enforcement, and responsive templates (MJML, client quirks, dark mode). NOT DNS auth/reputation (email-deliverability-architect)."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
-model: opus
+model: sonnet
 audience: [dev, backend-engineer, fullstack, consultant]
 works_with:
   [

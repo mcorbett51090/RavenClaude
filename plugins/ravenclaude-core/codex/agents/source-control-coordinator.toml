@@ -6,6 +6,10 @@
 # review-only agent whatever the main session has — the same silent
 # privilege grant that MH-10 fixed on Copilot.
 # Derived from the canonical tools: Read, Grep, Glob, Bash, Write
+#
+# Canonical model tier: sonnet. `model` is NOT emitted — it takes a Codex
+# model id, and the canonical value is a Claude tier alias. Until you pin
+# one, this agent runs on the session's model.
 name = "source-control-coordinator"
 description = "Owns merge/CI-triage/branch-hygiene handed off via the task ledger from other sessions. Subscribes per-PR, drives to green from its own worktree, escalates high-blast actions. Advise-only on non-interactive wakes. NOT for solo PR work — use the existing drive-to-green playbook."
 sandbox_mode = "workspace-write"

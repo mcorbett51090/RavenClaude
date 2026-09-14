@@ -6,6 +6,10 @@
 # review-only agent whatever the main session has — the same silent
 # privilege grant that MH-10 fixed on Copilot.
 # Derived from the canonical tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
+#
+# Canonical model tier: sonnet. `model` is NOT emitted — it takes a Codex
+# model id, and the canonical value is a Claude tier alias. Until you pin
+# one, this agent runs on the session's model.
 name = "data-engineer"
 description = "Use for domain-neutral data work — pipeline design, data modeling, ETL/ELT, warehouse and lake schemas, query performance, data quality, lineage, ingestion connectors, and dbt-flavored transformations ('design this pipeline', 'this query is slow', 'make this dataset trustworthy')."
 sandbox_mode = "workspace-write"

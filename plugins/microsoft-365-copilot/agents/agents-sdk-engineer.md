@@ -2,7 +2,7 @@
 name: agents-sdk-engineer
 description: "Use this agent to build a Microsoft 365 CUSTOM-ENGINE AGENT on the M365 Agents SDK (the Bot Framework SDK successor) and the Agents Toolkit (`atk`, the Teams Toolkit successor, with the Playground) — channel/turn/state management, streaming + citations, proactive/autonomous behavior."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
-model: opus
+model: sonnet
 audience: [dev]
 works_with: [copilot-extensibility-architect, declarative-agent-engineer, copilot-admin-governance, claude-app-engineering/claude-solution-architect, azure-cloud/app-platform-engineer]
 scenarios:

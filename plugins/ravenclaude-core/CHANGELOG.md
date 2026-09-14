@@ -2,21 +2,144 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
-## 0.321.7 — 2026-09-13
+## 0.322.1
 
 ### Fixed
+- Schema-v5 comfort-posture applies now use flock + atomic `os.replace` writes for `settings.json` (same path as v3/v4), closing a tear/clobber race.
 
-- `apply-comfort-posture.py` `run_v5()` now uses the same `_settings_lock` +
-  `_write_settings_json_atomic` pair as the v3/v4 path. Schema v5 is the live
-  posture format (this marketplace and the balanced seed). Observation: the
-  v5 writer still called `Path.write_text` (two sites in `run_v5`) after PR
-  #1086 added the atomic helper only on the v3/v4 path. Probe: the new
-  `tests/fixtures/test_v5_settings_atomic_write.py` spies those two helpers on
-  a v5 `--scope project` apply and requires `settings.json` to parse as JSON.
+## 0.322.0 — 2026-09-14
+
+### Added
+
+- **Model-tier delegation** — the price-mix half of orchestration: push the
+  *expensive tokens* down, not just the tasks. Doctrine in
+  [`knowledge/model-tier-delegation.md`](knowledge/model-tier-delegation.md); the
+  Team Lead prior in `CLAUDE.md` § "Model-tier delegation"; `spawn-team`
+  **Step 4.25** (pick the tier) and a Step 8 cost line sourced from the ledger.
+- **`scout`** — the shipped `haiku` worker for read-a-lot/return-a-little work
+  (search, grep, classify, extract, inventory, cross-reference). Returns the
+  exact shape the brief asked for, capped by the brief — an artifact path when
+  the material exceeds the cap — never a transcript.
+- **`model:` frontmatter is now required on every agent** (`haiku` / `sonnet` /
+  `opus` / `fable` / `inherit`; full model ids rejected) — gated by
+  `scripts/check-frontmatter.py`. An omitted `model:` silently inherited the
+  main conversation's (frontier) model for every worker.
+- **`hooks/handoff-tax-meter.sh`** (`PostToolUse` on `Agent|Task`) — one
+  counts-only ledger line per dispatch (tier, brief/report words, final-request
+  tokens, flags) to `.ravenclaude/runs/<session>/dispatch-ledger.jsonl`; advises
+  on `report_over_cap` / `brief_over_cap` / `frontier_readonly`. Observation, not
+  a gate. `handoff-tax-meter.py --summary` and **`rc dispatch-summary`** roll it up
+  into a cost-per-completed-task view.
+- **`hooks/explore-tier-pin.sh`** (`PreToolUse` on `Agent|Task`) — the one binding
+  piece: rewrites an un-pinned built-in `Explore` dispatch to `model: haiku` via
+  `hookSpecificOutput.updatedInput` (since Claude Code v2.1.198 `Explore`
+  inherits the session model, so on Opus an un-pinned Explore is an Opus grep).
+  Never overrides an explicit `model`; stands down under
+  `CLAUDE_CODE_SUBAGENT_MODEL`; knob `handoff_tax.pin_explore: haiku | sonnet | off`.
+- **Posture template** seeds a `handoff_tax` block (`report_cap_words: 400`,
+  `brief_cap_words: 600`, `pin_explore: haiku`); the dashboard's Save now
+  round-trips it instead of silently dropping the block.
+- **Worker contract** in the brief template (inputs / tools / success check /
+  max output) and its report-side mirror in `rules/agent-collaboration.md`; a
+  Tier column + `scout` leaf in `knowledge/agent-routing.md`; the escalation
+  ladder (haiku → sonnet → opus, recovery goes up, never sideways) in the doctrine.
+- **Cross-host honesty:** the Copilot `.agent.md` and Codex `.toml` projections
+  now state each agent's canonical tier in the generated header. Neither host
+  takes a tier alias (Copilot wants a plan-specific picker id, Codex a model id),
+  so the field is deliberately not emitted and the agent inherits the session
+  default until the consumer pins it — said in the file, not discovered on the
+  bill. Per-host truth: `host-support.json` `components.agents.<host>.model_tier`.
+- **Authoring surfaces carry the tier:** `templates/agent-definition-template.md`
+  now opens with the gated frontmatter block (`name` / `description` / `tools` /
+  `model` / scenarios) and the role → tier rule, so a new agent is not copied
+  from a template that omits the one line the gate requires;
+  `templates/agent-brief.md` gains field 8 (*how much judgment does the work
+  need?* → tier) and `draft-agent-brief` maps it to `model:`;
+  `agent-quality-rubric` gains **Gate 0** — the mechanical frontmatter
+  prerequisites plus the one judgment the gate cannot make, *does the tier fit
+  the role?* (an `opus` agent with grep-shaped scenarios, or a `haiku` agent
+  asked to gate a merge, is a review comment).
+- **Orchestration skills say the tier at dispatch time:**
+  `claude-code-parallel-and-modes` gains hard rule 8 (*read-only fan-out is not
+  free* — an un-pinned `Explore` inherits the main model), a remap-table row for
+  cheap read-only fan-out (`scout` / `model: haiku`), a tiered decision-tree
+  step, and T7's three explorers now dispatch on `haiku` with a capped return;
+  `ravenclaude-core-orchestration` Recipe A names the tier as the second axis of
+  spawn cost, the focused-task brief checklist gains a *Model tier* box, and
+  the anti-patterns gain *paying frontier rates for reading*. These are the two
+  skills a Team Lead reads while dispatching; neither mentioned a tier before.
+
+### Marketplace gates (repo-side, shipped alongside)
+
+- **Gate 286** — `explore-tier-pin` self-test + must-fail canary.
+- **Gate 287** — `scripts/check-model-tier-ratchet.py`: the roster-wide
+  `opus`/`fable`/`inherit` share may not rise and the `haiku` count may not fall
+  against `tests/fixtures/model-tier-ratchet.json` (bound to the merge base by
+  `check-ratchet-freshness.py`). Loosen with `--stamp --allow-loosen`, out loud.
+- **Gate 288** — `scripts/check-model-tier-fit.py`: the tier must fit the role the
+  agent itself declares. A ratchet freezes a roster; it cannot tell whether the
+  roster it froze was right — the day Gate 287 shipped, 24 agents named
+  `*-implementation-engineer` / described "Use to BUILD …" sat on `opus` while
+  the early app-craft plugins (backend / frontend / api / database) tiered the
+  same role `sonnet`, and both gates passed. Gate 288 reads `name:` + the
+  *opening* of `description:`: an implementer may not sit on a frontier alias,
+  the three core merge gates may not sit below one, the core `scout` — the
+  doctrine's named fast-tier worker, the agent every "dispatch `scout`" line
+  resolves to — may not sit above `haiku` (a floor symmetric to the merge
+  gates), and any *other* scout-shaped agent (`scout` / `-scout` name, or a
+  "Haiku-tier" / "Read-only" opener) above `haiku` is advised, never failed.
+  The first cut's scout leg matched only "Read-only" openers and classified
+  zero roster agents — the shipped `scout` opens "Haiku-tier worker" — so it
+  had synthetic teeth and no positive control; the `scout` name and the
+  "Haiku-tier" opener close that. Mis-reads are exempted **by name with a
+  reason** in `tests/fixtures/model-tier-fit-exemptions.json`; a stale exemption
+  fails. **Roster re-tier shipped alongside (marketplace-wide, not this
+  plugin):** the 24 implementers moved `opus` → `sonnet` across 23 domain
+  plugins (each patch-bumped), frontier share 484/623 (77.7%) → 460/623
+  (73.8%), and the Gate 287 baseline was re-stamped as a tightening. **Second
+  pass, same day:** the gate reads the gerund (`Use for BUILDING …`) as the
+  build verb, and `--report` now prints a **pair-review queue** — every
+  frontier `*-engineer` that is unshaped, sits beside its plugin's
+  `*-architect` / `*-lead` / `*-strategist`, and does not open by deciding.
+  Report-only, never a verdict: a lower-case `build` also opens "build a GHG
+  inventory" (an analyst), so this shape is tiered by hand with the
+  sibling-plugin analog as tie-breaker. The doctrine states that as the
+  **sibling-plugin parity rule** (every `aws-cloud` / `gcp-cloud` engineer sat
+  on `sonnet` while every same-shaped `azure-cloud` engineer sat on `opus`).
+  26 more build-half agents moved `opus` → `sonnet` across 14 plugins (each
+  patch-bumped, reason in each CHANGELOG), 460/623 (73.8%) → 434/623 (69.7%),
+  baseline re-stamped as a tightening again.
 
 ### Notes
 
-Migration: none. Same emitted rules; only the write protocol changes.
+Migration: none for a consumer's project files. On `/plugin marketplace update`
+the two new hooks register via `hooks.json` and are **opt-in by posture** like
+every other advisory hook — no `.ravenclaude/comfort-posture.yaml`, no ledger, no
+pin. A consumer who *does* have a posture file gets the pin at its default
+(`haiku`) immediately; pass `model` explicitly or set `pin_explore: off` to opt
+out. Honest limit: the ledger's token column covers the sub-agent's **final**
+request only (a lower bound); its word counts are exact.
+
+## 0.321.7 — 2026-09-13
+
+### Added
+
+- **Runtime surface-selection router** for the Team Lead: `spawn-team` **Step 1.25**
+  (slash command vs skill vs specialist agent vs orchestration shape) before the
+  whether-to-delegate fork and agent-routing tree. Platform fuzzy-match on
+  `description` remains a weak signal; this step is the stronger behavioral one.
+- Companion diagram + tradeoffs pointer in
+  [`knowledge/orchestration-decision-trees.md`](knowledge/orchestration-decision-trees.md)
+  (deliberately **not** a canonical `## Decision Tree:` header — avoids the
+  `render-trees.py` SVG gate). Cross-refs in `agent-routing.md`,
+  `dynamic-workflows.md`, `cheap-lane-delegation`, and the Team Lead prior in
+  `CLAUDE.md`.
+
+### Notes
+
+Migration: none. Additive playbook guidance. Does **not** reopen the closed
+succinct-skill-descriptions program (P8 STOP) — this strengthens runtime
+dispatch discipline, not mass description rewriting.
 
 ## 0.321.6 — 2026-09-11
 

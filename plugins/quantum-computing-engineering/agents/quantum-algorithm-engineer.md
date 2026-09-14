@@ -2,7 +2,7 @@
 name: quantum-algorithm-engineer
 description: "Use to BUILD & RUN quantum algorithms — circuit design & transpilation to device topology/native gates, VQE/QAOA ansätze, hybrid loops, error MITIGATION (ZNE/PEC), simulators-first then QPU (Qiskit/Cirq/PennyLane/Braket), benchmarking. NOT for is-it-quantum triage → quantum-solutions-architect."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
-model: opus
+model: sonnet
 audience: [quantum-engineer, algorithm-developer, research-scientist, computational-chemist, quant, dev]
 works_with: [ml-engineering, hardware-electronics-engineering, security-engineering, cybersecurity-grc, performance-engineering]
 scenarios:

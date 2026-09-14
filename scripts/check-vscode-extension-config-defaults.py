@@ -111,7 +111,9 @@ def _find_copilot_chat_manifest(vscode_app: str | None) -> Path | None:
     # Fallback: a Linux/user-install layout under ~/.vscode/extensions.
     for pattern in (
         str(Path.home() / ".vscode" / "extensions" / "github.copilot-chat-*" / "package.json"),
-        str(Path.home() / ".vscode-server" / "extensions" / "github.copilot-chat-*" / "package.json"),
+        str(
+            Path.home() / ".vscode-server" / "extensions" / "github.copilot-chat-*" / "package.json"
+        ),
     ):
         hits = sorted(glob.glob(pattern))
         if hits:
@@ -160,6 +162,12 @@ def check(our_manifest_path: Path, vscode_app: str | None) -> tuple[bool, list[s
 
     ok = True
     for key, value in our_defaults.items():
+        # Per-key verdict. `ok` is the aggregate (any failing key -> overall
+        # fail); it must NOT gate the per-key "OK:" success line, or a valid key
+        # evaluated AFTER an earlier failing one gets no line at all and the
+        # report reads as if that key were never checked. Track the current key's
+        # result in a local flag and fold it into `ok` at the end of the loop.
+        key_ok = True
         prop = copilot_props.get(key)
         if prop is None:
             ok = False
@@ -171,7 +179,7 @@ def check(our_manifest_path: Path, vscode_app: str | None) -> tuple[bool, list[s
             continue
 
         if prop.get("disallowConfigurationDefault") is True:
-            ok = False
+            key_ok = False
             messages.append(
                 f"REJECTED: '{key}' declares disallowConfigurationDefault: true — VS Code will "
                 f"silently drop this override, logging only to the extension problem collector "
@@ -180,23 +188,27 @@ def check(our_manifest_path: Path, vscode_app: str | None) -> tuple[bool, list[s
 
         scope = prop.get("scope")
         if scope is not None and scope not in _ALLOWED_SCOPES:
-            ok = False
+            key_ok = False
             messages.append(
                 f"REJECTED: '{key}' has scope '{scope}', outside the overridable set "
                 f"{sorted(_ALLOWED_SCOPES)} — VS Code will silently drop this override (RT-4)."
             )
 
         if not isinstance(value, (int, float)) or isinstance(value, bool):
-            ok = False
+            key_ok = False
             messages.append(f"REJECTED: '{key}' value {value!r} is not a number.")
         elif not (0 < float(value) <= 1):
-            ok = False
+            key_ok = False
             messages.append(
                 f"REJECTED: '{key}' value {value!r} is outside the documented (0, 1] ratio range."
             )
 
-        if ok:
-            messages.append(f"OK: '{key}' -> {value} is registered, no disallow flag, scope permitted.")
+        if key_ok:
+            messages.append(
+                f"OK: '{key}' -> {value} is registered, no disallow flag, scope permitted."
+            )
+        else:
+            ok = False
 
     return ok, messages
 
@@ -249,7 +261,13 @@ def _self_test() -> int:
         # synthetic "app" tree that mirrors the real macOS layout exactly.
         fake_app_good = tmp / "good" / "FakeApp.app"
         fake_manifest_good = (
-            fake_app_good / "Contents" / "Resources" / "app" / "extensions" / "copilot" / "package.json"
+            fake_app_good
+            / "Contents"
+            / "Resources"
+            / "app"
+            / "extensions"
+            / "copilot"
+            / "package.json"
         )
         fake_manifest_good.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy(copilot_good, fake_manifest_good)
@@ -276,7 +294,11 @@ def _self_test() -> int:
         fake_app_bad = tmp / "good" / "FakeApp.app"  # reuse the good copilot manifest
         ok2, msgs2 = check(ours_bad, str(fake_app_bad))
         if ok2 is not False:
-            print("SELF-TEST FAIL (TEETH): a typo'd/unregistered key must be REJECTED, got:", ok2, msgs2)
+            print(
+                "SELF-TEST FAIL (TEETH): a typo'd/unregistered key must be REJECTED, got:",
+                ok2,
+                msgs2,
+            )
             fails += 1
         else:
             print("  ok    TEETH: unregistered key is rejected, not silently accepted")
@@ -312,7 +334,11 @@ def _self_test() -> int:
         shutil.copy(copilot_disallow, fake_manifest_disallow)
         ok3, msgs3 = check(ours_good, str(fake_app_disallow))
         if ok3 is not False:
-            print("SELF-TEST FAIL (TEETH): disallowConfigurationDefault must be REJECTED, got:", ok3, msgs3)
+            print(
+                "SELF-TEST FAIL (TEETH): disallowConfigurationDefault must be REJECTED, got:",
+                ok3,
+                msgs3,
+            )
             fails += 1
         else:
             print("  ok    TEETH: disallowConfigurationDefault is rejected")
@@ -336,7 +362,13 @@ def _self_test() -> int:
         )
         fake_app_scope = tmp / "scope" / "FakeApp.app"
         fake_manifest_scope = (
-            fake_app_scope / "Contents" / "Resources" / "app" / "extensions" / "copilot" / "package.json"
+            fake_app_scope
+            / "Contents"
+            / "Resources"
+            / "app"
+            / "extensions"
+            / "copilot"
+            / "package.json"
         )
         fake_manifest_scope.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy(copilot_scope, fake_manifest_scope)
@@ -361,7 +393,11 @@ def _self_test() -> int:
         )
         ok5, msgs5 = check(ours_range, str(fake_app_good))
         if ok5 is not False:
-            print("SELF-TEST FAIL (TEETH): value 1.5 (outside (0,1]) must be REJECTED, got:", ok5, msgs5)
+            print(
+                "SELF-TEST FAIL (TEETH): value 1.5 (outside (0,1]) must be REJECTED, got:",
+                ok5,
+                msgs5,
+            )
             fails += 1
         else:
             print("  ok    TEETH: out-of-range value 1.5 is rejected")
@@ -384,9 +420,19 @@ def _self_test() -> int:
 
 def main() -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--vscode-app", default=None, help="path to Visual Studio Code.app (or equivalent)")
-    ap.add_argument("--check", action="store_true", help="CI-facing mode; absent VS Code still loud-skips (exit 0) — see module docstring")
-    ap.add_argument("--must-fail", action="store_true", help="plant a typo'd key and assert this script catches it")
+    ap.add_argument(
+        "--vscode-app", default=None, help="path to Visual Studio Code.app (or equivalent)"
+    )
+    ap.add_argument(
+        "--check",
+        action="store_true",
+        help="CI-facing mode; absent VS Code still loud-skips (exit 0) — see module docstring",
+    )
+    ap.add_argument(
+        "--must-fail",
+        action="store_true",
+        help="plant a typo'd key and assert this script catches it",
+    )
     ap.add_argument("--self-test", action="store_true", help="run the bundled fixture self-test")
     args = ap.parse_args()
 
@@ -413,7 +459,13 @@ def main() -> int:
             # existence rather than trusting whatever is in our own manifest.
             fake_app = tmp / "FakeApp.app"
             fake_manifest = (
-                fake_app / "Contents" / "Resources" / "app" / "extensions" / "copilot" / "package.json"
+                fake_app
+                / "Contents"
+                / "Resources"
+                / "app"
+                / "extensions"
+                / "copilot"
+                / "package.json"
             )
             fake_manifest.parent.mkdir(parents=True, exist_ok=True)
             fake_manifest.write_text(
@@ -422,7 +474,9 @@ def main() -> int:
                         "contributes": {
                             "configuration": {
                                 "properties": {
-                                    k.replace("-TYPO-DOES-NOT-EXIST", ""): {"type": ["number", "null"]}
+                                    k.replace("-TYPO-DOES-NOT-EXIST", ""): {
+                                        "type": ["number", "null"]
+                                    }
                                     for k in mutated
                                 }
                             }
@@ -435,7 +489,9 @@ def main() -> int:
             ok, messages = check(bad, str(fake_app))
             if ok is None:
                 print("\n".join(messages))
-                print("MUST-FAIL VIOLATION: the synthetic fixture should never SKIP — checker logic is broken.")
+                print(
+                    "MUST-FAIL VIOLATION: the synthetic fixture should never SKIP — checker logic is broken."
+                )
                 return 1
             if ok:
                 print("MUST-FAIL VIOLATION: a typo'd key was accepted — the gate has no teeth.")

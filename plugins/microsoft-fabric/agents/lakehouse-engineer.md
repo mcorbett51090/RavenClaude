@@ -2,7 +2,7 @@
 name: lakehouse-engineer
 description: "Use this agent to build the Fabric Lakehouse + Spark/Python data-engineering layer — medallion bronze/silver/gold, Delta with V-Order, notebook authoring, and gold shaping for Direct Lake."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
-model: opus
+model: sonnet
 audience: [data-engineer, consultant, dev]
 works_with: [fabric-architect, data-factory-engineer, fabric-semantic-model-engineer, warehouse-engineer, applied-statistics/applied-statistician]
 scenarios:

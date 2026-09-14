@@ -6,7 +6,7 @@ description: "Use this agent for custom Airbyte connector authoring when an ELT 
 # Airbyte CDK reference, and rate-limit changelogs when authoring a connector no vendor ships —
 # not a pricing lookup, so out of scope for CLAUDE.md §10's deep-researcher routing; kept as-is.
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
-model: opus
+model: sonnet
 audience: [data-engineer, dev]
 works_with: [etl-pipeline-engineer, database-setup-guide]
 scenarios:

@@ -2,7 +2,7 @@
 name: agent-implementation-engineer
 description: "Use to BUILD & HARDEN an agent — the loop, tool/function schemas, context & memory, retries/timeouts, human-in-the-loop, tracing, and agent EVALS (trajectory, tool-use, task-completion). Offline evals first, then live. NOT the should-we-build-an-agent decision → agentic-systems-architect."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
-model: opus
+model: sonnet
 audience: [ai-engineer, ml-engineer, backend-engineer, full-stack-engineer, product-engineer]
 works_with: [ai-rag-engineering, prompt-engineering, llm-evaluation-engineering, observability-sre, backend-engineering]
 scenarios:

@@ -2,7 +2,7 @@
 name: wordpress-developer
 description: "Use for WordPress development: custom blocks (block.json), themes, plugins, hooks/filters, WP_Query, the REST API, and secure data handling (sanitize/escape, $wpdb->prepare, nonces, capabilities). NOT for build-approach -> wordpress-architect; NOT for caching/security ops -> wordpress-ops-engineer."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
-model: opus
+model: sonnet
 audience: [dev]
 works_with:
   [

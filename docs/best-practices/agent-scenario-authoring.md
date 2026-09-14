@@ -12,8 +12,8 @@ This rule was extracted from Matt's earlier ask + deep-researcher 2026-05-21 bri
 ---
 name: <existing>
 description: <existing>
-tools: <existing>
-model: <existing>
+tools: <existing — explicit least-privilege allowlist; gated>
+model: <REQUIRED since 2026-09-14 — a TIER ALIAS: haiku | sonnet | opus (fable | inherit accepted); full model ids rejected; gated by check-frontmatter.py, roster share ratcheted by Gate 287, role-fit checked by Gate 288 (an implementer-shaped name/description may not pin opus). Pick from the role → tier table in plugins/ravenclaude-core/knowledge/model-tier-delegation.md>
 
 # NEW fields (all optional but strongly recommended for shipped agents):
 audience: [consultant, dev, ...]   # 1-3 values from the 7-value taxonomy below

@@ -210,22 +210,25 @@
       }
     },
     "agents": {
-      "what": "The 15 specialist subagents.",
+      "what": "The 17 specialist subagents (16 + the haiku-tier `scout` worker added 2026-09-14). Every canonical agent declares a `model:` TIER alias (opus/sonnet/haiku/fable/inherit — gated by scripts/check-frontmatter.py); whether that tier TRAVELS to a host is a per-host fact recorded in `model_tier` below.",
       "claude-code": {
         "supported": true,
-        "basis": "verified"
+        "basis": "verified",
+        "model_tier": "carried — the `model:` frontmatter is honoured natively (resolution: per-call `model` → agent `model:` → CLAUDE_CODE_SUBAGENT_MODEL). Backstopped by hooks/explore-tier-pin.sh for the one built-in (`Explore`) that has no frontmatter."
       },
       "copilot": {
         "supported": true,
         "how": "generated projection at plugins/ravenclaude-core/copilot/agents/*.agent.md",
-        "caveat": "SECURITY GAP — the least-privilege `tools:` allowlist is DROPPED in projection, and a Copilot agent has ALL tools by default (a `tools` spec only restricts). security-reviewer, canonically Read/Grep/Glob/Bash/WebFetch with Write/Edit withheld, can write. Not fixed because Copilot's complete tool vocabulary is unpublished; see the KNOWN GAP block in copilot/README.md.",
+        "caveat": "The least-privilege `tools:` allowlist IS projected since MH-10 (2026-07-29) — see the block of that name in copilot/README.md for the vocabulary mapping and the running-session probe that verified it. Remaining honest gap is the model tier (next field).",
+        "model_tier": "NOT projected as a field, STATED in each generated header. Copilot custom agents honour a `model` property (\"If unset, inherits the default model\" — docs.github.com/en/copilot/reference/custom-agents-configuration, docs-verified 2026-09-14) but its value is a plan/org-specific picker id, not a tier alias; inventing an alias→id map would hard-code one tenant's lineup into every consumer. So every projected agent inherits the session default until the consumer pins it — scout included, which means the haiku saving does NOT arrive on this host by itself.",
         "basis": "verified"
       },
       "codex": {
         "supported": true,
         "basis": "docs-verified",
         "how": "projected to .codex/agents/*.toml by scripts/generate-codex-agents.py and copied in by `ravenclaude install --host codex`. Each carries an explicit sandbox_mode — read-only for the 5 review-only agents — because Codex INHERITS the parent turn's permissions when it is omitted, so leaving it out would silently grant write. Gate 170 holds that.",
-        "caveat": "The .toml contract is docs-verified but has NOT been watched being enforced by a running Codex session (no Codex CLI on the authoring machine); see also openai/codex#26868."
+        "caveat": "The .toml contract is docs-verified but has NOT been watched being enforced by a running Codex session (no Codex CLI on the authoring machine); see also openai/codex#26868.",
+        "model_tier": "NOT emitted as the TOML `model` key, STATED as a header comment. The contract has `model` / `model_reasoning_effort` (docs-verified 2026-07-29) but they take a Codex model id; same alias→id reasoning as Copilot. Every projected agent runs on the session's `/model` until the consumer pins one."
       },
       "cursor": {
         "supported": false,

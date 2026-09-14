@@ -2,6 +2,18 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.1.4] — 2026-09-14
+
+### Changed
+
+- `desktop-platform-engineer`: `model: opus` → `model: sonnet`. Second model-tier pass — signing/notarization, auto-update and OS-integration wiring — the same shape as `electron-engineer` / `tauri-engineer`, which already pin `sonnet`; `desktop-architect` stays on `opus`. This is the `sonnet` row of the marketplace's tier table (`ravenclaude-core/knowledge/model-tier-delegation.md`: bounded, well-specified work against a design made upstream), and the sibling-plugin parity rule the doctrine now states: the same role shape gets the same tier across plugins. Listed by the model-tier-fit gate's `--report` pair-review queue (`check-model-tier-fit.py`, Gate 288). No behaviour change beyond the model the agent runs on — it moves tier, not role.
+
+## [0.1.3] — 2026-09-14
+
+### Changed
+
+- `electron-engineer` and `tauri-engineer`: `model: opus` → `model: sonnet`. The role is the implementation half of an architect/engineer pair — bounded, well-specified work against a design made upstream — which is the `sonnet` row of the marketplace's tier table (`ravenclaude-core/knowledge/model-tier-delegation.md`), and the tier the earlier app-craft plugins (backend / frontend / api / database) already give their implementers. Enforced going forward by the marketplace's model-tier-fit CI gate (`check-model-tier-fit.py`, Gate 288). No behaviour change beyond the model the agent runs on; the architect sibling stays on `opus`.
+
 ## [0.1.2] — 2026-08-14
 
 ### Changed

@@ -2,7 +2,7 @@
 name: load-testing-engineer
 description: "Use to build and run the performance test once the workload is modeled: load, stress, soak, and spike scenarios in k6 / Gatling / Locust / JMeter. NOT for setting the workload model (performance-architect) or profiling the bottleneck (profiling-and-capacity-engineer)."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
-model: opus
+model: sonnet
 audience: [dev, consultant, data-engineer]
 works_with: [performance-architect, profiling-and-capacity-engineer, sre-reliability-engineer, qa-automation-engineer]
 scenarios:
