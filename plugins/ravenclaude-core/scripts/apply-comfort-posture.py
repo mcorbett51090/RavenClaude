@@ -900,46 +900,65 @@ def run_v5(posture: dict, root: Path, args) -> int:
             # Nothing authored here now. If a side-car says we wrote it before, clear our buckets.
             if side_car and side_car.is_file():
                 if not args.dry_run and target.is_file():
-                    settings = _load_settings_json(target)
-                    overwrite_permissions(settings, {"allow": [], "ask": [], "deny": []})
-                    target.write_text(
-                        json.dumps(settings, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
-                    )
-                    side_car.unlink(missing_ok=True)
+                    # Same lock + atomic-write pair as the v3/v4 path: a
+                    # concurrent SessionStart reapply + dashboard /__save must
+                    # never observe a truncated settings.json mid-write.
+                    with _settings_lock(target):
+                        settings = _load_settings_json(target)
+                        overwrite_permissions(settings, {"allow": [], "ask": [], "deny": []})
+                        _write_settings_json_atomic(
+                            target,
+                            json.dumps(settings, indent=2, ensure_ascii=False) + "\n",
+                        )
+                        side_car.unlink(missing_ok=True)
                 print(
                     f"{'(dry-run) ' if args.dry_run else ''}cleared posture rules from {scope} layer"
                 )
             continue
 
         em = emission[scope]
-        if target.is_file():
-            settings = _load_settings_json(target)
-        else:
-            settings = {"$schema": "https://json.schemastore.org/claude-code-settings.json"}
-        # Snapshot the prior buckets BEFORE overwrite — overwrite_permissions
-        # mutates settings["permissions"] in place, so a live reference would
-        # already reflect the new state by the time we diff for the audit event.
-        _prev_live = settings.get("permissions", {})
-        prev = {b: list(_prev_live.get(b, []) or []) for b in ("allow", "ask", "deny")}
-        prev_counts = {b: len(prev[b]) for b in ("allow", "ask", "deny")}
-        overwrite_permissions(settings, em)
-        if scope == "project":
-            ensure_default_mode(settings)
-        new_counts = {b: len(em[b]) for b in ("allow", "ask", "deny")}
+        # Bind `target` as a default arg so the loader does not close over the
+        # for-loop variable (ruff B023).
+        def _load_or_blank(path: Path = target) -> dict:
+            if path.is_file():
+                return _load_settings_json(path)
+            return {"$schema": "https://json.schemastore.org/claude-code-settings.json"}
 
         rel = target if scope == "user" else target.relative_to(root)
         if args.dry_run:
+            settings = _load_or_blank()
+            _prev_live = settings.get("permissions", {})
+            prev = {b: list(_prev_live.get(b, []) or []) for b in ("allow", "ask", "deny")}
+            prev_counts = {b: len(prev[b]) for b in ("allow", "ask", "deny")}
+            overwrite_permissions(settings, em)
+            if scope == "project":
+                ensure_default_mode(settings)
+            new_counts = {b: len(em[b]) for b in ("allow", "ask", "deny")}
             print(f"(dry-run) {scope} layer → {rel}")
         else:
-            target.parent.mkdir(parents=True, exist_ok=True)
-            target.write_text(
-                json.dumps(settings, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
-            )
-            if side_car:
-                write_side_car(side_car, scope)
-            if scope == "local":
-                append_local_to_gitignore(root)
-            _emit_posture_event(root, scope, prev, em, _resolve_source(args))
+            # Critical section matches v3/v4: flock the sibling lock across
+            # the whole read-modify-write, then replace via a temp file so a
+            # concurrent reader (another apply, Claude Code re-reading
+            # settings on session start) never sees a torn permissions file.
+            # run_v5 originally used Path.write_text, which truncates in place.
+            with _settings_lock(target):
+                settings = _load_or_blank()
+                _prev_live = settings.get("permissions", {})
+                prev = {b: list(_prev_live.get(b, []) or []) for b in ("allow", "ask", "deny")}
+                prev_counts = {b: len(prev[b]) for b in ("allow", "ask", "deny")}
+                overwrite_permissions(settings, em)
+                if scope == "project":
+                    ensure_default_mode(settings)
+                new_counts = {b: len(em[b]) for b in ("allow", "ask", "deny")}
+                _write_settings_json_atomic(
+                    target,
+                    json.dumps(settings, indent=2, ensure_ascii=False) + "\n",
+                )
+                if side_car:
+                    write_side_car(side_car, scope)
+                if scope == "local":
+                    append_local_to_gitignore(root)
+                _emit_posture_event(root, scope, prev, em, _resolve_source(args))
             print(f"Applied {scope} layer → {rel}")
         for b in ("allow", "ask", "deny"):
             d = new_counts[b] - prev_counts[b]

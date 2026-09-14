@@ -2,6 +2,11 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.322.1
+
+### Fixed
+- Schema-v5 comfort-posture applies now use flock + atomic `os.replace` writes for `settings.json` (same path as v3/v4), closing a tear/clobber race.
+
 ## 0.322.0 — 2026-09-14
 
 ### Added
