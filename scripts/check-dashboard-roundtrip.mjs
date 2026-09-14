@@ -102,6 +102,13 @@ const pieces = [
   app.match(/const CHEAP_LANE_AGENT_VALUES = \[[^\]]*\];/)[0],
   app.match(/const CHEAP_LANE_AGENT_DEFAULT = [^;]*;/)[0],
   extract(app, "const CHEAP_LANE_DEFAULT ="),
+  // Handoff tax (model-tier delegation, v0.61.0 data-loss class) — pin enum + cap defaults + freeze default.
+  app.match(/const HANDOFF_TAX_PIN_VALUES = \[[^\]]*\];/)[0],
+  app.match(/const HANDOFF_TAX_PIN_DEFAULT = [^;]*;/)[0],
+  app.match(/const HANDOFF_TAX_REPORT_CAP_DEFAULT = [^;]*;/)[0],
+  app.match(/const HANDOFF_TAX_BRIEF_CAP_DEFAULT = [^;]*;/)[0],
+  app.match(/const HANDOFF_TAX_CAP_MAX = [^;]*;/)[0],
+  extract(app, "const HANDOFF_TAX_DEFAULT ="),
   // Prompt optimizer (Phases 2-6, task-6 dashboard wiring) — mode enum + freeze default.
   app.match(/const PROMPT_OPTIMIZER_MODE_VALUES = \[[^\]]*\];/)[0],
   app.match(/const PROMPT_OPTIMIZER_MODE_DEFAULT = [^;]*;/)[0],
@@ -167,6 +174,7 @@ function _freshState() {
     context_handoff: Object.assign({}, CONTEXT_HANDOFF_DEFAULT),
     advisory_knobs: Object.assign({}, ADVISORY_KNOBS_DEFAULT),
     cheap_lane: Object.assign({}, CHEAP_LANE_DEFAULT),
+    handoff_tax: Object.assign({}, HANDOFF_TAX_DEFAULT),
     prompt_optimizer: Object.assign({}, PROMPT_OPTIMIZER_DEFAULT),
     expanded: {},
   };
@@ -212,6 +220,7 @@ function check(name, cond) {
   s.conserve_tokens_auto_pct = 65;
   s.context_handoff = { mode: "nag", spawn: "os-terminal", context_window_tokens: 150000 };
   s.cheap_lane = { mode: "agent", tier: "top", agent: "copilot" };
+  s.handoff_tax = { off: false, report_cap_words: 250, brief_cap_words: 900, pin_explore: "sonnet" };
   s.prompt_optimizer = { enabled: true, mode: "advisory" };
   api._set(s);
 
@@ -250,6 +259,10 @@ function check(name, cond) {
   check("cheap_lane.mode emitted", /^  mode: agent$/m.test(yaml));
   check("cheap_lane.tier emitted", /^  tier: top$/m.test(yaml));
   check("cheap_lane.agent emitted", /^  agent: copilot$/m.test(yaml));
+  check("handoff_tax block emitted", /^handoff_tax:$/m.test(yaml));
+  check("handoff_tax.report_cap_words emitted", /^  report_cap_words: 250$/m.test(yaml));
+  check("handoff_tax.brief_cap_words emitted", /^  brief_cap_words: 900$/m.test(yaml));
+  check("handoff_tax.pin_explore emitted", /^  pin_explore: sonnet$/m.test(yaml));
   check("prompt_optimizer block emitted", /^prompt_optimizer:$/m.test(yaml));
   check("prompt_optimizer.enabled emitted", /^  enabled: true$/m.test(yaml));
   check("prompt_optimizer.mode emitted", /^  mode: advisory$/m.test(yaml));
@@ -279,6 +292,7 @@ function check(name, cond) {
     conserve_tokens_auto_pct: 65,
     context_handoff: { mode: "nag", spawn: "os-terminal", context_window_tokens: 150000 },
     cheap_lane: { mode: "agent", tier: "top", agent: "copilot" },
+    handoff_tax: { report_cap_words: 250, brief_cap_words: 900, pin_explore: "sonnet" },
     prompt_optimizer: { enabled: true, mode: "advisory" },
   });
   const h = api._get();
@@ -312,6 +326,10 @@ function check(name, cond) {
   check("hydrate cheap_lane.mode", h.cheap_lane.mode === "agent");
   check("hydrate cheap_lane.tier", h.cheap_lane.tier === "top");
   check("hydrate cheap_lane.agent", h.cheap_lane.agent === "copilot");
+  check("hydrate handoff_tax.report_cap_words", h.handoff_tax.report_cap_words === 250);
+  check("hydrate handoff_tax.brief_cap_words", h.handoff_tax.brief_cap_words === 900);
+  check("hydrate handoff_tax.pin_explore", h.handoff_tax.pin_explore === "sonnet");
+  check("hydrate handoff_tax.off stays false for a block", h.handoff_tax.off === false);
   check("hydrate prompt_optimizer.enabled", h.prompt_optimizer.enabled === true);
   check("hydrate prompt_optimizer.mode", h.prompt_optimizer.mode === "advisory");
 }
@@ -342,6 +360,7 @@ function check(name, cond) {
   check("no conserve_tokens_auto_pct at default", !/^conserve_tokens_auto_pct:/m.test(yaml));
   check("no context_handoff block at default", !/^context_handoff:/m.test(yaml));
   check("no cheap_lane block at default", !/^cheap_lane:/m.test(yaml));
+  check("no handoff_tax at default", !/^handoff_tax:/m.test(yaml));
   check("no prompt_optimizer block at default", !/^prompt_optimizer:/m.test(yaml));
 }
 
@@ -623,6 +642,55 @@ function check(name, cond) {
     api.applyGuardrailConfig({ prompt_optimizer: { enabled: v } });
     check(`enabled accepts ${v}`, api._get().prompt_optimizer.enabled === v);
   }
+}
+
+// ── Test 10: handoff_tax (model-tier delegation) — BOTH shapes survive a Save.
+//            The scalar `handoff_tax: off` (what a consumer writes to silence the
+//            meter + disable the Explore pin; YAML `off` parses to boolean false)
+//            and the block with ONLY pin_explore set (the live shape after
+//            `pin_explore: sonnet`, caps still default). Caps/pin at their
+//            defaults are never emitted ("absent ⇒ default"); an unknown pin
+//            or a non-positive cap is rejected, never canonicalized. This is the
+//            exact key a real dashboard Save would have silently dropped before
+//            this fix (verified absent from emitYaml() prior to it). ──
+{
+  // scalar off — both the boolean (parsed YAML) and string forms hydrate.
+  for (const v of [false, "off"]) {
+    api._set(api._freshState());
+    api.applyGuardrailConfig({ handoff_tax: v });
+    check(`handoff_tax scalar off hydrates from ${JSON.stringify(v)}`, api._get().handoff_tax.off === true);
+    const yaml = api.emitYaml();
+    check(`handoff_tax: off emitted as the scalar (from ${JSON.stringify(v)})`, /^handoff_tax: off$/m.test(yaml));
+    check("scalar off emits no block fields", !/^  pin_explore:/m.test(yaml) && !/^  report_cap_words:/m.test(yaml));
+  }
+
+  // pin-only block (caps default) — block MUST still be written for the pin.
+  const s = api._freshState();
+  s.handoff_tax = { off: false, report_cap_words: 400, brief_cap_words: 600, pin_explore: "sonnet" };
+  api._set(s);
+  const yaml = api.emitYaml();
+  check("handoff_tax block emitted for pin-only", /^handoff_tax:$/m.test(yaml));
+  check("handoff_tax.pin_explore emitted (pin-only)", /^  pin_explore: sonnet$/m.test(yaml));
+  check("report_cap_words NOT emitted when default 400", !/^  report_cap_words:/m.test(yaml));
+  check("brief_cap_words NOT emitted when default 600", !/^  brief_cap_words:/m.test(yaml));
+
+  // all-default block emits nothing; unknown / out-of-range values are dropped.
+  api._set(api._freshState());
+  api.applyGuardrailConfig({ handoff_tax: { pin_explore: "opus", report_cap_words: -5, brief_cap_words: "lots" } });
+  check("unknown pin_explore ignored on hydrate", api._get().handoff_tax.pin_explore === "");
+  check("negative report cap ignored on hydrate", api._get().handoff_tax.report_cap_words === null);
+  check("non-numeric brief cap ignored on hydrate", api._get().handoff_tax.brief_cap_words === null);
+  check("all-default handoff_tax emits no block", !/^handoff_tax/m.test(api.emitYaml()));
+
+  // Every accepted pin value round-trips (YAML `off` under the block parses to false).
+  for (const [v, want] of [["haiku", "haiku"], ["sonnet", "sonnet"], ["off", "off"], [false, "off"]]) {
+    api._set(api._freshState());
+    api.applyGuardrailConfig({ handoff_tax: { pin_explore: v } });
+    check(`pin_explore accepts ${JSON.stringify(v)}`, api._get().handoff_tax.pin_explore === want);
+  }
+  api._set(api._freshState());
+  api.applyGuardrailConfig({ handoff_tax: { pin_explore: "off" } });
+  check("pin_explore: off emitted inside the block", /^  pin_explore: off$/m.test(api.emitYaml()));
 }
 
 if (failures) {
