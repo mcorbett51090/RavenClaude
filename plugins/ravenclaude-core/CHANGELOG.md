@@ -2,6 +2,17 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.323.7 — 2026-09-15
+
+### Added
+- **Plugin lifecycle Option A (P1→P2→P3 ask)** — per-project `.ravenclaude/plugin-lifecycle.json` last-used ledger (gitignored); comfort-posture `plugin_lifecycle:` block (`tracking` ON after P1, `unused_days` 90, `auto_uninstall`/`auto_install` default OFF; `auto` coerced off). Telemetry bumps on skill/agent/slash only — **not** SessionStart presence or dashboard open. SessionStart sweep notices deprecated plugins; uninstall plan is fail-closed and **never executed** from the hook body (OPEN: no non-interactive uninstall API). Hard pin: `ravenclaude-core@ravenclaude` never auto-removed. Ask-first install allowlist: ravenclaude marketplace only (+ cache path check). Settings ⚙ + Pipeline + Bifröst adjacency list. Thing concerns `xc.plugin-install` / `xc.plugin-uninstall`.
+
+### Locks
+- Matthew M1–M7 locked. AppSec SHIP-WITH-CONDITIONS. P3 `auto` NO-SHIP v1. Sage sole SCM. No BMA. No ragnarok from sweep.
+
+### Tests
+- `hooks/tests/test-plugin-lifecycle.sh` — TRACK/NOSS/M2/M3/PIN/MID/ASK/ALLOW/NORG/JAIL + MF teeth.
+
 ## 0.323.6 — 2026-09-15
 
 ### Fixed

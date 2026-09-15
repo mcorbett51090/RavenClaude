@@ -71,13 +71,14 @@ _SOURCE_HOOKS = frozenset(
         "dashboard-autostart.sh",
         "caveman-route-hook.sh",
         "oath-hook.sh",
+        "plugin-lifecycle-sweep.sh",
     }
 )
 _COMPACT_HOOK = "compact-anchor.sh"
 
 # The full canonical SessionStart hook set, across ALL matcher lanes (the
 # `startup|resume|clear|fork` group, the `startup`-only group, and the
-# `compact` group) -- 10 hooks as of this writing, read directly off
+# `compact` group) -- 11 hooks as of this writing, read directly off
 # hooks.json's own SessionStart block (see check_a_canonical_matcher's
 # _SOURCE_HOOKS/_COMPACT_HOOK, which only cover two of the three groups).
 _HANDOFF_HOOK = "handoff-successor-ack.sh"

@@ -89,7 +89,11 @@ const RC_BASELINE = {
   //        53 -> 54: skills/session-handoff (v0.266.0, context-quality reset)
   //        52 -> 53: skills/design-clone (v0.253.0, design-schema capture+apply)
   //        51 -> 52: skills/github-gold-standard (v0.246.0, the gold-standard scorecard)
-  tools: 58, // 57 -> 58: scripts/thing-harden.py (Thing hardening EDIT registry,
+  tools: 59, // 58 -> 59: scripts/plugin-lifecycle.py (plugin lifecycle Option A ledger engine,
+  //   core 0.323.7 — P1 ledger / P2 plan-only sweep / P3 ask-install; .sh wrappers are bash
+  //   so the scripts_index *.py glob does not count them). COUNTED, not inferred: the
+  //   plugin-detail island's scripts_index for ravenclaude-core -> 59.
+  //        57 -> 58: scripts/thing-harden.py (Thing hardening EDIT registry,
   //   core 0.323.5 — signed transform apply + harden_ok verify behind hardening_edit
   //   default OFF). COUNTED, not inferred: the plugin-detail island's scripts_index
   //   for ravenclaude-core -> 58.
@@ -184,7 +188,11 @@ const RC_BASELINE = {
   //        19 -> 22: premise-gate.py + classify_claim.py + check-design-schema.py
   //                  (v0.263.0, PR 3b packaging move)
   scenarios: 4,
-  hooks: 51, // 50 -> 51: oath-hook.sh WIRED on SessionStart(startup|resume|clear|fork)
+  hooks: 55, // 51 -> 55: plugin-lifecycle-telemetry.sh x3 (PostToolUse Agent|Task + Skill +
+  //   UserPromptSubmit) + plugin-lifecycle-sweep.sh on SessionStart(startup|resume|clear|fork)
+  //   (plugin lifecycle Option A, core 0.323.7 — plan-only sweep; auto_* defaults OFF).
+  //   COUNTED, not inferred: hooks.json on this tree holds 55 registrations.
+  //        50 -> 51: oath-hook.sh WIRED on SessionStart(startup|resume|clear|fork)
   //   (Runes ready-queue / Oath-hook / Longship, core 0.323.1 — GUPP surfaces hanging
   //   Runes; fail-silent). COUNTED, not inferred: hooks.json on this tree holds 51
   //   registrations.

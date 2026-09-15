@@ -61,6 +61,23 @@
             "command": "${CLAUDE_PLUGIN_ROOT}/hooks/handoff-tax-meter.sh",
             "timeout": 10,
             "comment": "Handoff-tax meter (model-tier delegation, measurement leg). ADVISORY, never blocks. On every subagent dispatch it reads the PostToolUse payload (brief = tool_input.prompt, report = tool_response.content, tier from resolvedModel) and appends one counts-only line to .ravenclaude/runs/<session>/dispatch-ledger.jsonl — never the prompt or report text. Speaks (additionalContext) only when a threshold trips: report_over_cap (worker returned more than the Team Lead would have pasted itself; default 400 words), brief_over_cap (transcript-forwarding shape; default 600), or frontier_readonly (Explore/scout ran on an opus-class model — since v2.1.198 an un-pinned Explore inherits the main model). Opt-in (no-op without .ravenclaude/comfort-posture.yaml); `handoff_tax: off` silences the advisory but keeps the ledger; caps under `handoff_tax: { report_cap_words, brief_cap_words }`. Fail-safe: no python3/jq, malformed payload, background (async_launched) dispatch -> exit 0. HONEST LIMIT: totalTokens covers the subagent's FINAL request only (lower bound); word counts are exact. Reference: knowledge/model-tier-delegation.md."
+          },
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/plugin-lifecycle-telemetry.sh\"",
+            "timeout": 5,
+            "comment": "Plugin-lifecycle telemetry (P1). Bumps last_used_at when a plugin-namespaced Agent/Task subagent is spawned (subagent_type prefix before ':'). Built-ins without a namespace are a no-op. Does NOT count SessionStart presence. Fail-open; always exits 0."
+          }
+        ]
+      },
+      {
+        "matcher": "Skill",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/plugin-lifecycle-telemetry.sh\"",
+            "timeout": 5,
+            "comment": "Plugin-lifecycle telemetry (P1). Bumps last_used_at when a plugin-namespaced Skill is invoked (prefix before ':'). Does NOT count SessionStart presence or dashboard open. Fail-open; always exits 0. Lives under scripts/ (executable-bit constraint on new hooks/*.sh)."
           }
         ]
       },
@@ -278,6 +295,12 @@
           },
           {
             "type": "command",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/plugin-lifecycle-telemetry.sh\"",
+            "timeout": 5,
+            "comment": "Plugin-lifecycle telemetry (P1, slash). On UserPromptSubmit, if the prompt starts with a plugin-namespaced slash (`/ns:cmd`), bump last_used_at for that plugin. Bare built-in slashes (`/clear`) are a no-op. Does NOT count SessionStart or dashboard open. Fail-open; always exits 0."
+          },
+          {
+            "type": "command",
             "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/prompt-optimizer-gate.sh\"",
             "timeout": 90,
             "comment": "Prompt optimizer (Phases 2-6 — OPT-IN, FAIL-OPEN, ships default OFF). Config-gated by the YAML-block-scoped `prompt_optimizer.enabled` in .ravenclaude/comfort-posture.yaml — absent/false costs a single test -f + one awk pass and nothing else. When enabled, a free Tier-0 pre-filter + a paid Tier-1 Haiku classifier (claude -p --tools=\"\") decide skip/rewrite/dispatch_plan; on a non-skip verdict this hook dispatches to the matching Phase 3/4 generator (prompt-optimizer-rewrite.sh / prompt-optimizer-dispatch.sh), hands the result to Phase 5's formatter (prompt-optimizer-format.py — semantic screen + inline/file-pointer delivery shape + its own on-disk audit artifact under .ravenclaude/runs/<session>/prompt-optimizer/), then gates the FINAL emission on `prompt_optimizer.mode`: shadow (default) runs the whole pipeline and writes the audit artifact but emits an EMPTY additionalContext (log-only, invisible on the turn); advisory/binding-context emit the composed additionalContext. Fails open at every stage (missing claude/jq/python3, timeout, unparseable/invalid output) — never blocks, never crashes. Lives under scripts/ (not hooks/) for the same executable-bit/CI reason ask-on-ambiguity.sh does — hence the `bash` prefix. Never modifies agent-dispatch-evaluator.sh/dispatch-config.json/evaluate-dispatch.js/adaptive-run-classifier/agent-routing-matrix.json/route-task.py."
@@ -354,6 +377,12 @@
             "command": "${CLAUDE_PLUGIN_ROOT}/hooks/oath-hook.sh",
             "timeout": 10,
             "comment": "Oath-hook (GUPP). OPT-IN via comfort-posture `runes: off|on` (absent => off). When On: hanging MUST-RUN + ready summary + auto-claim next ungated ready Rune (human_gate matthew|appsec|cos|sage|money refuse; never auto Longship merge). When Off: quiet; CLI still works. Kill switch = Off + Save. Fail-silent; SessionStart cannot block. Names LOCKED: Rune · Oath-hook · Longship. Flat Runes + strands; kind tag only. MH-18 host-scoped. Cosmology: docs/norse-mythology-feature-map.md."
+          },
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/plugin-lifecycle-sweep.sh\"",
+            "timeout": 10,
+            "comment": "Plugin-lifecycle sweep (P2). When tracking is on, marks unused plugins deprecated and surfaces a notice. Uninstall is planned only if auto_uninstall: on (default OFF, M2) and is NEVER executed from this body (OPEN: no non-interactive uninstall API; fail-closed). ravenclaude-core is never auto-removed (M3). Never shells the cache-reset disaster-recovery command. Does NOT bump last_used_at (SessionStart presence is not a use). Fail-silent; SessionStart cannot block. Joins this existing startup|resume|clear|fork matcher group (no compact re-fire)."
           }
         ]
       },

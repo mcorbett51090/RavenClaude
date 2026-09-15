@@ -219,6 +219,40 @@ cross_cutting:
         #     substrings, so a bare read no longer matches while every real
         #     write still does.
         - '(?s)\A(?=.{0,4000}comfort-posture\.yaml)(?=.{0,4000}(command_review|gate_floor)\s*:)(?=.{0,4000}(>>?|\btee\b|\b(?:sed|perl|awk)\b[^;|&\n]{0,120}?(?:--in-place|-[A-Za-z0-9.]*i[A-Za-z0-9.]*\b|\binplace\b)))'
+  - id: xc.plugin-install
+    name: Agent-driven marketplace plugin install
+    severity: high
+    description: >-
+      The command installs a Claude Code marketplace plugin (`/plugin install`
+      or an equivalent shell that mutates the plugin cache). After reload, the
+      installed plugin's hooks and skills become code execution surface. Empty-cited
+      agent installs are forbidden; v1 allowlist is the `ravenclaude` marketplace
+      only, and `auto_install: auto` is NO-SHIP. Prefer ask-first confirm or the
+      Bifröst copy-paste wizard (which never executes). Do not bypass
+      guard-destructive patterns or launder the install via an EDIT past gate_floor.
+    resolution: >-
+      Require an explicit user confirm (ask mode) or route the human through
+      Bifröst. Reject non-ravenclaude marketplaces and installPaths outside the
+      ravenclaude plugin cache. After install, require `/reload-plugins` before
+      claiming the capability usable. Never claim Bifröst executed the install.
+    judgment_only: true
+  - id: xc.plugin-uninstall
+    name: Agent-driven marketplace plugin uninstall
+    severity: high
+    description: >-
+      The command uninstalls a marketplace plugin. Silent uninstall causes
+      capability loss; uninstalling `ravenclaude-core` disables the guardrails that
+      police further installs. Auto-uninstall defaults OFF; ravenclaude-core is a
+      hard pin and must never be auto-removed. Mid-flight uninstall (plugin in
+      active session use) must fail closed / skip. Must not shell the cache-reset
+      disaster-recovery command as a cleanup path.
+    resolution: >-
+      Skip uninstall when auto_uninstall is off, when the plugin is pinned or is
+      ravenclaude-core, when requires/transitive deps are unknown, or when the
+      plugin was used this session. Prefer deprecate notice over uninstall.
+      Remind `/reload-plugins` after any user-approved uninstall. Never invoke
+      ragnarok / reset-plugin-cache --execute from a sweep.
+    judgment_only: true
   - id: xc.ragnarok-non-user-invocation
     name: Command would execute a plugin-cache reset (Ragnarök) by shelling its script
     severity: critical

@@ -71,6 +71,11 @@
         "Thing hardening EDIT inventory entry (0.323.5, PR #1185)",
         32710,
         "Thing hardening EDIT inventory entry (thing-hardening-edit-registry, core 0.323.5, PR #1185). check-inception-coverage required newly added scripts/thing-harden.py to be named in covers[]; one new inventory concept covers that script. Cosmetic covers_digest restamps on hook-message-channels (thing-orchestrator.sh) and plugin-cache-is-version-keyed (plugin.json 0.323.5). Measured island payload 32,702 > prior 32,700 by 2 (largest panel learn-payload at 25,410); dashboard.html 10,781,292 bytes > prior 10,780,000 by 1,292. Same no-diagrams-for-inventory-entries shape as every prior wave \u2014 pure content-size raise, not a DOM control. Re-measured on this branch head; appended, never edited."
+      ],
+      [
+        "plugin-lifecycle inventory entry (PR #1187 Gate 240/242, 2026-09-15)",
+        32800,
+        "PR #1187 plugin lifecycle Option A (core 0.323.7) converts plugin-lifecycle to entry_class:inventory covering plugin-lifecycle.py + sweep/telemetry shells (Gate 242 inception). Measured island payload 32,747 (over prior 32,710 by 37; learn-payload 25,454). Same inventory shape; mermaid retained on this entry. Re-measured on this branch head; appended, never edited."
       ]
     ],
     "index.html": [
@@ -199,6 +204,11 @@
         "Prompt Builder gap close wave 1 (0.323.6, PR #1186)",
         10792000,
         "Same PR #1186 Prompt Builder gap close wave 1 (core 0.323.6). dashboard.html 10,791,584 bytes > prior 10,782,000 by 9,584 (0.01 MB). Cosmetic covers_digest restamps (plugin-cache-is-version-keyed, must-fail-conventions-diverge, islanded-panel-costs-two) after generate-dashboards.py / audit-gates.sh / plugin.json churn. Island payload unchanged under prior ceiling. Re-measured on this branch head; appended, never edited."
+      ],
+      [
+        "plugin-lifecycle inventory entry (PR #1187, 0.323.7, 2026-09-15)",
+        10810000,
+        "Same PR #1187 plugin lifecycle Option A P1\u2192P2\u2192P3 ask (core 0.323.7). dashboard.html 10,801,134 bytes > prior 10,792,000 by 9,134 (0.01 MB). Inventory fields + R12 badge + covers. Re-measured on this branch head; appended, never edited."
       ]
     ],
     "index.html": [
@@ -232,8 +242,13 @@
         "Prompt Builder gap close wave 1 (0.323.6, PR #1186)",
         9496000,
         "Same PR #1186 Prompt Builder gap close wave 1 (core 0.323.6). index.html 9,495,814 bytes > prior 9,490,000 by 5,814 (0.01 MB). Re-measured on this branch head; appended, never edited."
+      ],
+      [
+        "plugin-lifecycle inventory entry (PR #1187, 0.323.7, 2026-09-15)",
+        9500000,
+        "Same PR #1187 plugin lifecycle (core 0.323.7). index.html 9,496,737 bytes > prior 9,496,000 by 737. Re-measured on this branch head; appended, never edited."
       ]
     ]
   },
-  "measured_against": "29887c77cdc5beae8394b076a7febd2dcbc4f962"
+  "measured_against": "4423016e5192f9110911de96dfbb0b70046c1084"
 }

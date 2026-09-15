@@ -3,7 +3,7 @@
   "_contract": "`supported` is a claim about whether the component RUNS on that host today, in this repo, as wired by `scripts/ravenclaude`. It is NOT a claim about whether the host is capable in principle — a host can speak a contract perfectly and still be unsupported here because nothing wires it, in which case `supported` is false and `blocked_by` says exactly that. Codex WAS this file's worked example of that distinction until 2026-07-28, when `--host codex` shipped and flipped its hooks + skills cells to true; Cursor is the current example. When a host gains an install path, update this file; do not add a second list somewhere else. `activation_gate` is the per-host silent-disarm class (`hash_trust` | `version_floor` | `none`), consumed by the shared `_rc_rearm_notice` helper at install/update/status (PR 10 / Gate 207). Codex is hash_trust (MH-17); Copilot is version_floor (MH-23). A host whose canary cannot be confirmed to fire ships as unsupported, not silently assumed working.",
   "_provenance": "verified = confirmed in-repo this session by a visible tool call. docs-verified = read from the host's own documentation this session, url given. inferred = neither; MUST be verified before anything is built on it.",
   "schema_version": 1,
-  "updated": "2026-09-03",
+  "updated": "2026-09-15",
   "_schema_note_2026_09_03": "sessionstart-safeguards-multihost (FORGE run) added a `sessionstart_verification` sub-field to every components.hooks.<host> row that has a SessionStart lane at all — {tier: D|A|S|not-applicable, basis: measured|declared|not-applicable, mechanism, note}. This is a genuine schema addition, not a value edit: other tooling that reads components.hooks rows (rc hooks selftest, Gate 259/264, the dashboard) should treat an absent sessionstart_verification key on a NEW future host row as unclassified, not as tier S by default. See plugins/ravenclaude-core/knowledge/sessionstart-hook-safeguards.md for the full ladder + per-host reasoning.",
   "hosts": {
     "claude-code": {
@@ -44,7 +44,7 @@
   },
   "components": {
     "hooks": {
-      "what": "PreToolUse / SessionStart / Stop guardrails — the tribunal, guard-destructive, runaway brake, layout gate, dod gate.",
+      "what": "PreToolUse / SessionStart / Stop guardrails — the tribunal, guard-destructive, runaway brake, layout gate, dod gate. Includes plugin-lifecycle SessionStart sweep (Claude Code full; Copilot -p SessionStart does not fire — Tier A measured; Cursor fail-open caveat).",
       "claude-code": {
         "supported": true,
         "how": "reads plugins/*/hooks/hooks.json natively",
@@ -176,7 +176,8 @@
       "what": "/forge, /dashboard, /wrap, /set-posture, /wireframe, /stream, /reset-plugin-cache.",
       "claude-code": {
         "supported": true,
-        "basis": "verified"
+        "basis": "verified",
+        "note": "Plugin lifecycle P3 ask-install uses Claude Code `/plugin install` + `/reload-plugins` only; Copilot/Cursor have no slash-install parity — use rc/setup or Bifröst CTA."
       },
       "copilot": {
         "supported": false,
