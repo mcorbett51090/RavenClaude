@@ -58,7 +58,7 @@ Full list (plus anti-patterns) in [`CLAUDE.md`](CLAUDE.md) §3 / §4.
 
 ## Hooks
 
-[`hooks/check-web-anti-patterns.sh`](hooks/check-web-anti-patterns.sh) is a PostToolUse hook. Advisory by default — flags oversized raster images, `<img>` missing `alt`, hardcoded hex colors outside `tokens.*` files, HTML pages missing `<title>` / `<meta description>`, and accidental `noindex` in production pages. Flip to blocking by changing `exit 0` to `exit 1`.
+[`hooks/check-web-anti-patterns.sh`](hooks/check-web-anti-patterns.sh) is a PostToolUse hook. Advisory by default — flags oversized raster images, `<img>` missing `alt`, hardcoded hex colors outside `tokens.*` files, HTML pages missing `<title>` / `<meta description>`, and accidental `noindex` in production pages. Make it blocking by setting `WEB_DESIGN_STRICT=1` (the hook then exits 2 — the code Claude Code treats as blocking; exit 1 is silently non-blocking).
 
 ## License
 

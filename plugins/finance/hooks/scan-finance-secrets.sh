@@ -140,9 +140,23 @@ for i in "${!RULE_NAMES[@]}"; do
     # for sharing a line with an unrelated benign token (os.environ, an
     # example.com URL, any $VAR reference) elsewhere on that line.
     content="${line#*:*:}"
-    span="$(printf '%s\n' "$content" | grep -oE "$re" | head -n1)"
-    if [ -n "$span" ] && printf '%s\n' "$span" | grep -Eq "$PLACEHOLDER_RE"; then
-      continue
+    # Test PLACEHOLDER_RE against EVERY matched span on the line, not just the
+    # first. Checking only the first match let a real secret pass undetected
+    # whenever a documented placeholder for the same rule appeared earlier on
+    # the line (common in CSV/JSON records with several field values per line).
+    # Suppress the line only when every span is placeholder-shaped; report it if
+    # any span is a genuine secret shape.
+    spans="$(printf '%s\n' "$content" | grep -oE "$re" || true)"
+    if [ -n "$spans" ]; then
+      all_placeholder=1
+      while IFS= read -r span; do
+        [ -z "$span" ] && continue
+        if ! printf '%s\n' "$span" | grep -Eq "$PLACEHOLDER_RE"; then
+          all_placeholder=0
+          break
+        fi
+      done <<< "$spans"
+      [ "$all_placeholder" -eq 1 ] && continue
     fi
     findings+="  [$name] ${line:0:200}"$'\n'
     count=$((count + 1))
