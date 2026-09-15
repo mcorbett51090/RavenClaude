@@ -37,3 +37,33 @@ Do **not** reuse Thing / Huginn–Muninn / Thor–Forseti / Hliðskjálf / Norns
 - Oath-hook: `hooks/oath-hook.sh` + `scripts/oath_hook.py` on SessionStart.
 
 Was briefly named Hird for delivery; Matthew amend → **Longship** everywhere (`longship_id`, `rc longship*`).
+
+## Dashboard opt-in → automatic (Matthew LOCK 2026-09-15)
+
+| State | Behavior |
+|-------|----------|
+| **Off (default)** | Absent `runes:` key or `runes: off`. No automatic SessionStart orientation. **CLI still works.** |
+| **On** | Every SessionStart: Oath-hook surfaces **hanging MUST-RUN** + **ready summary**, and may **auto-claim** the next **ungated** ready Rune. |
+
+- **Posture key SSOT:** `runes: off \| on` in `.ravenclaude/comfort-posture.yaml` (absent ⇒ off). emitYaml writes only when `on`.
+- **Surfaces:** Settings (**⚙ Runes at session start**) **and** Pipeline → SessionStart card share **one** state; **Save & apply** round-trips either.
+- **Kill switch:** set **Off** + Save.
+- **Auto-claim refuse:** `human_gate` in {matthew, appsec, cos, sage, money} (or any gated). **Never** auto Longship merge / Sage land.
+- **Host caveat (MH-18):** fires only on SessionStart-hook hosts — see `plugins/ravenclaude-core/knowledge/host-support.json`. Do not claim Copilot/Cursor/etc. without that map.
+
+## Auto-create-from-ask + flat taxonomy (Matthew LOCK)
+
+When CoS/agent **accepts** a Matthew request as work → open a Rune:
+
+```bash
+rc runes open "<title>" [--gate matthew|appsec|cos|sage|money] [--kind fix|feature|chore]
+```
+
+- **Shape:** **flat Runes + strands only**. Kind is an optional **tag**, not a hierarchy level.
+- **No** epic → feature → fix tree. Do not invent epic boards.
+- Create on **accept**, not before. Dashboard On does not invent asks — it orients/claims.
+
+## Factory surface
+
+All Runes behavior ships in **ravenclaude-core** (CLI + hooks + skill) for **any harness** — not CoS-only.
+

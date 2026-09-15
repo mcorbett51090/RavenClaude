@@ -9,6 +9,9 @@ Product one-liner (CoS/Matthew SSOT 2026-09-15, Longship amend):
 Names LOCKED — do NOT reuse Thing / Huginn-Muninn / Thor-Forseti / Hliðskjálf /
 Norns panel as the queue. Verðandi/Skuld are facet labels only.
 No Gas Town / Beads UX names. No BMA. Sage sole SCM.
+Dashboard opt-in: comfort-posture `runes: off|on` (absent⇒off). On = SessionStart
+hanging+ready+auto-claim next ungated; never auto Longship merge.
+Flat Runes + strands only; kind is an optional tag (fix|feature|chore), not hierarchy.
 
 Cosmology: docs/norse-mythology-feature-map.md
 Design SSOT: DIGEST-norse-ready-queue-design-2026-09-15.md
@@ -32,7 +35,9 @@ if str(_SCRIPTS) not in sys.path:
 
 import ledger as L  # noqa: E402
 
-HUMAN_GATES = ("none", "cos", "matthew", "appsec", "sage")
+HUMAN_GATES = ("none", "cos", "matthew", "appsec", "sage", "money")
+# Optional kind TAG only — not a hierarchy level. Flat Runes + strands; no epics.
+KIND_TAGS = ("fix", "feature", "chore")
 SLUG_RE = re.compile(r"^[a-z0-9][a-z0-9_-]{0,63}$")
 LONGSHIP_DIR = ".ravenclaude/longships"
 
@@ -112,6 +117,66 @@ def _hanging_on_hook(items: dict[str, dict[str, Any]], owner: str) -> list[dict[
             out.append(item)
     out.sort(key=lambda i: (i.get("last_event_ts") or "", i["item_id"]))
     return out
+
+
+def read_runes_posture(repo_root: Path) -> str:
+    """Comfort-posture SSOT key `runes:` → off|on. Absent ⇒ off.
+
+    Also accepts legacy alias `oath_hook:` on READ only (emitYaml writes `runes:`).
+    Same opt-in absent semantics as dashboard_autostart / keep_awake.
+    """
+    cfg = repo_root / ".ravenclaude" / "comfort-posture.yaml"
+    if not cfg.is_file():
+        return "off"
+    try:
+        lines = cfg.read_text(encoding="utf-8").splitlines()
+    except OSError:
+        return "off"
+    found: str | None = None
+    for raw in lines:
+        s = raw.strip()
+        if not s or s.startswith("#"):
+            continue
+        for key in ("runes:", "oath_hook:"):
+            if s.startswith(key):
+                rest = s[len(key) :].strip().split("#", 1)[0].strip().strip("'\"")
+                val = (rest.split() or [""])[0].lower()
+                if key == "runes:":
+                    return "on" if val == "on" else "off"
+                if found is None:
+                    found = "on" if val == "on" else "off"
+                break
+    return found or "off"
+
+
+def runes_posture_on(repo_root: Path) -> bool:
+    return read_runes_posture(repo_root) == "on"
+
+
+def auto_claim_next_ungated(repo_root: Path, actor: str) -> dict[str, Any] | None:
+    """Claim the next Verðandi (ungated/unblocked/unclaimed) ready Rune for actor.
+
+    REFUSES gated human_gate (matthew|appsec|cos|sage|money|any != none) by
+    never selecting them (_ready_items already filters). Never touches Longship.
+    Returns claimed item dict or None if queue empty / claim failed.
+    """
+    try:
+        items, _errors, _cfg = _project_items(repo_root)
+    except Exception:
+        return None
+    ready = _ready_items(items)
+    if not ready:
+        return None
+    nxt = ready[0]
+    gate = nxt.get("human_gate") or "none"
+    if gate != "none":
+        return None
+    ns = argparse.Namespace(rune_id=nxt["item_id"], actor=actor, force=False)
+    code = _claim(repo_root, ns, op_label="auto-claimed")
+    if code != 0:
+        return None
+    items2, _, _ = _project_items(repo_root)
+    return items2.get(nxt["item_id"])
 
 
 def _ensure_ledger(repo_root: Path, actor: str) -> None:
@@ -228,6 +293,12 @@ def cmd_open(repo_root: Path, args: argparse.Namespace) -> int:
         asserted["mist"] = True
     if args.priority:
         asserted["priority"] = args.priority
+    kind = getattr(args, "kind", None)
+    if kind:
+        if kind not in KIND_TAGS:
+            print(f"REFUSED: bad --kind {kind!r} (fix|feature|chore tag only)", file=sys.stderr)
+            return 1
+        asserted["kind"] = kind  # tag only — not a hierarchy / epic level
     event = L.build_event(repo_root, "open", item_id, asserted, actor, ts)
     L.append_record(ledger_dir, event, int(config["max_record_bytes"]))
 
@@ -626,6 +697,7 @@ def _self_test() -> int:
                 longship_id=None,
                 formula_ref=None,
                 mist=False,
+                kind=None,
                 priority=2,
                 actor=actor,
             ),
@@ -642,6 +714,7 @@ def _self_test() -> int:
                 longship_id=None,
                 formula_ref=None,
                 mist=False,
+                kind=None,
                 priority=1,
                 actor=actor,
             ),
@@ -659,6 +732,7 @@ def _self_test() -> int:
                 longship_id=None,
                 formula_ref=None,
                 mist=False,
+                kind=None,
                 priority=3,
                 actor=actor,
             ),
@@ -707,6 +781,7 @@ def _self_test() -> int:
                 longship_id=None,
                 formula_ref=None,
                 mist=False,
+                kind=None,
                 priority=3,
                 actor=actor,
             ),
@@ -775,6 +850,64 @@ def _self_test() -> int:
         payload = json.loads(out)
         check(payload.get("count", 0) >= 2, "strand minted children")
 
+        # --- dashboard opt-in posture + auto-claim B (2026-09-15) ---
+        posture_dir = tmp / ".ravenclaude"
+        posture_dir.mkdir(parents=True, exist_ok=True)
+        check(read_runes_posture(tmp) == "off", "absent posture => off")
+        check(not runes_posture_on(tmp), "absent not on")
+        (posture_dir / "comfort-posture.yaml").write_text(
+            "schema_version: 5\nrunes: off\n", encoding="utf-8"
+        )
+        check(read_runes_posture(tmp) == "off", "explicit off")
+        (posture_dir / "comfort-posture.yaml").write_text(
+            "schema_version: 5\nrunes: on\n", encoding="utf-8"
+        )
+        check(runes_posture_on(tmp), "explicit on")
+
+        code, rid_money = capture(
+            cmd_open,
+            argparse.Namespace(
+                title="Spend money wall",
+                gate="money",
+                dep=[],
+                strand_id=None,
+                longship_id=None,
+                formula_ref=None,
+                mist=False,
+                kind="chore",
+                priority=1,
+                actor=actor,
+            ),
+        )
+        check(code == 0 and rid_money.startswith("rc-"), "open money-gated")
+        code, _out = capture(
+            cmd_claim,
+            argparse.Namespace(rune_id=rid_money, actor=actor, force=False),
+        )
+        check(code == 1, "money gate must refuse claim")
+        auto_claim_next_ungated(tmp, actor)
+        items, _, _ = _project_items(tmp)
+        check(not items[rid_money].get("hook_owner"), "money never auto-claimed")
+
+        code, rid_auto = capture(
+            cmd_open,
+            argparse.Namespace(
+                title="Auto claim candidate",
+                gate="none",
+                dep=[],
+                strand_id=None,
+                longship_id=None,
+                formula_ref=None,
+                mist=False,
+                kind="fix",
+                priority=2,
+                actor=actor,
+            ),
+        )
+        check(code == 0, "open auto candidate")
+        claimed = auto_claim_next_ungated(tmp, actor)
+        check(claimed is not None and claimed.get("hook_owner") == actor, "auto-claim ungated")
+
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
 
@@ -783,7 +916,7 @@ def _self_test() -> int:
         for f in failures:
             print(f"  - {f}")
         return 1
-    print("SELF-TEST PASS: ready, claim/sling, oath-hook, human_gate, longship, strand")
+    print("SELF-TEST PASS: ready, claim/sling, oath-hook, human_gate, longship, strand, runes-posture, auto-claim-B")
     return 0
 
 
@@ -848,6 +981,12 @@ def main(argv: list[str] | None = None) -> int:
     p_open.add_argument("--formula-ref", dest="formula_ref")
     p_open.add_argument("--mist", action="store_true")
     p_open.add_argument("--priority", type=int, choices=[1, 2, 3, 4])
+    p_open.add_argument(
+        "--kind",
+        choices=list(KIND_TAGS),
+        default=None,
+        help="optional kind TAG (fix|feature|chore) — not a hierarchy; flat Runes + strands only",
+    )
     p_open.set_defaults(func=cmd_open)
 
     p_claim = sub.add_parser("claim", help="claim Rune onto Oath-hook")

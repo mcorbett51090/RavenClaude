@@ -51,6 +51,10 @@ worktree_bound: block
 # server or a second tab. Until you set this, `rc dashboard` stays the launch verb.
 # dashboard_autostart: open
 
+# Runes at session start (off | on; default off / absent).
+# On = Oath-hook hanging MUST-RUN + ready + auto-claim ungated; never auto Longship merge.
+# runes: on
+
 # Claude orchestrator for non-Claude CLIs (off | decide | full).
 # No-op under Claude Code (host already IS Claude). Default: full (owner choice — route to Claude; costs more tokens).
 #   off    — host CLI orchestrates as today (zero extra cost).

@@ -3059,7 +3059,7 @@ A Grok Bot is a separate, non-Claude-Code runtime -- it has no mechanism to `@`-
 
 **Sources:** [PR #1104 -- grok-bot-creation + grok-bot-delegation plugins](https://github.com/mcorbett51090/RavenClaude/pull/1104)
 
-_Last verified: 2026-09-14_
+_Last verified: 2026-09-15_
 
 
 ---
@@ -3400,7 +3400,7 @@ _Last verified: 2026-09-14_
 
 ### Runes ready-queue, Oath-hook, and Longship land-request never merge · _RavenClaude-built_
 
-> rc runes ready|claim|hanging plus SessionStart Oath-hook surface hanging work; Longship land-request records Sage intent only and never merges.
+> Opt-in runes: off|on (absent⇒off). On = SessionStart hanging MUST-RUN + ready + auto-claim ungated; gates refuse; Longship land-request never merges. Flat Runes + strands; kind tag only.
 
 ## What a reader would have assumed instead
 

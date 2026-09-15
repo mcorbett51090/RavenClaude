@@ -2851,7 +2851,7 @@
       "covers": [
         "plugins/ravenclaude-core/hooks/hooks.json"
       ],
-      "covers_digest": "sha256:d6bd28391700e54ea17a3c732e4ac69c3e8fc595af24a3400d90afa229306f13",
+      "covers_digest": "sha256:f64c2ef2e82695a36b97aca6a0e2d0187ea962185220e72f9264b095a33b200d",
       "nuance": "Two `additionalContext` emitters on one event concatenate rather than last-write-wins, but two `updatedToolOutput` emitters replace, so the second silently discards the first.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -2945,7 +2945,7 @@
         "scripts/sync-plugin-versions.py",
         "scripts/generate-copilot-plugin.py"
       ],
-      "covers_digest": "sha256:2f524e04fef0295e0527d14aa080ac09f0e295a09ff50f60d54b2dd98c631789",
+      "covers_digest": "sha256:9aabafc511a3b2f50992ff697533d0c65abc3695ea30809e77f147f608dd4a67",
       "nuance": "The cache key is the `version` string, never a content hash, so `sync-plugin-versions.py` can report clean while every installed session keeps running the old `hooks/` code.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -3414,7 +3414,7 @@
         "scripts/generate-dashboards.py",
         "scripts/generate-index-dashboard.py"
       ],
-      "covers_digest": "sha256:9269f2ba812a42ce8f0e54cb8f220a41288a60dc9a0dee6968cd1bdba779d8ee",
+      "covers_digest": "sha256:371442c4e72185baef01a6995009263dc4bf8a187ae81ade888958d69ce1cdf7",
       "nuance": "`ISLANDED_PANEL_COST` is a flat 2 because the parser reads the payload as CDATA, so `check-dom-budget.py` cannot fire on `learn-payload` no matter how far past 23,861 elements it grows.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -3992,7 +3992,7 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-09-14",
+      "last_verified": "2026-09-15",
       "refresh_when": null,
       "sources": [
         {
@@ -4012,7 +4012,7 @@
         "plugins/ravenclaude-core/skills/quantitative-problem-solving/SKILL.md",
         "plugins/ravenclaude-core/skills/ravenclaude-core-orchestration/SKILL.md"
       ],
-      "covers_digest": "sha256:382529d20b103b87a3801dd832e1b4f4cf09fe685be56d4878a3dd7319502d39",
+      "covers_digest": "sha256:ae2b2dfd6933c081dab30478bf99b03749d4c0194eab3e927af4b2c662b22986",
       "nuance": "ravenclaude-core-orchestration/SKILL.md restates the single-orchestrator and Capability Grounding rules as freestanding prose instead of linking to ravenclaude-core/CLAUDE.md -- the opposite of this repo's own 'cite, not restate' convention -- because a Grok Bot cannot resolve a cross-plugin markdown link the way a Claude Code agent can.",
       "nuance_evidence": {
         "measured": "2026-09-04",
@@ -4473,7 +4473,7 @@
       "category": "Inventory — measured mechanisms",
       "kind": "ravenclaude-built",
       "order": 937,
-      "summary": "rc runes ready|claim|hanging plus SessionStart Oath-hook surface hanging work; Longship land-request records Sage intent only and never merges.",
+      "summary": "Opt-in runes: off|on (absent⇒off). On = SessionStart hanging MUST-RUN + ready + auto-claim ungated; gates refuse; Longship land-request never merges. Flat Runes + strands; kind tag only.",
       "see_also": [],
       "widget": null,
       "try_it": null,
@@ -4502,8 +4502,8 @@
         "plugins/ravenclaude-core/scripts/oath_hook.py",
         "plugins/ravenclaude-core/scripts/runes.py"
       ],
-      "covers_digest": "sha256:f5239745556340975cd8e33ac86c57c5b4e98d759103eadeb5aca72b305edbbe",
-      "nuance": "Longship `land-request` writes intent with auto_merge=false and never calls gh/git merge; Oath-hook SessionStart surfaces hanging Runes for the current hook_owner; human_gate=matthew|appsec|sage|cos refuses claim.",
+      "covers_digest": "sha256:aaae4a323356d5cc39677cb8b944a9a1b37c244a164c8867f5c48949f80c44d3",
+      "nuance": "Posture runes: off|on gates SessionStart auto-orient (default off). On may auto-claim next ungated ready Rune; human_gate=matthew|appsec|sage|cos|money refuses. Longship land-request auto_merge=false never merges. Flat taxonomy — no epic tree.",
       "nuance_evidence": {
         "measured": "2026-09-15",
         "control": "runes.py --self-test: longship land-request returns land_requested true and auto_merge false; human_gate=matthew claim prints REFUSED and does not set hook_owner; oath_hook hanging payload must_run true when a claimed rune is open",

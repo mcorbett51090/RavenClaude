@@ -762,6 +762,24 @@ _PIPELINE_LANES = [
                     "set": "Built in.",
                 },
             },
+            {
+                "id": "runes-oath-hook",
+                "title": "Runes ready-queue (Oath-hook)",
+                "badge": "dynamic",
+                "badge_default": "Off",
+                "controls": "runes",
+                "tip": "When On: hanging MUST-RUN + ready summary each SessionStart; agents may auto-claim the next ungated ready Rune (gates block; no Longship merge). Off (default): use the CLI. Same setting as Settings → Runes at session start.",
+                "detail": {
+                    "steps": [
+                        "Reads runes: off|on from .ravenclaude/comfort-posture.yaml (absent means off).",
+                        "When On, surfaces hanging MUST-RUN work and a ready-queue summary.",
+                        "May auto-claim the next ungated ready Rune; matthew/appsec/cos/sage/money walls refuse.",
+                        "Never auto-merges a Longship — Sage sole land.",
+                    ],
+                    "trip": "Informational only — SessionStart cannot block. Kill switch = Off + Save.",
+                    "set": "Off / On below, or Settings → ⚙ Runes at session start. Shared one posture key.",
+                },
+            },
         ],
     },
     {
@@ -1143,6 +1161,7 @@ _PIPELINE_STAGE_HOOKS = {
     "reapply-posture": "reapply-posture.sh",
     "ensure-default-mode": "ensure-default-mode.sh",
     "capability-orientation": "capability-orientation.sh",
+    "runes-oath-hook": "oath-hook.sh",
     "guard-destructive": "guard-destructive.sh",
     "thing": "thing-orchestrator.sh",
     "runaway-brake": "runaway-brake.sh",
@@ -1191,7 +1210,6 @@ _PIPELINE_EXCLUDED_HOOKS = {
     "FOREIGN-TREE is the third clause (sibling Write / git -C); deliberately NOT a Pipeline stage card",
     "thing-denial-kb-sync.sh": "Muninn denial-KB materialiser (Stop); learns from tribunal denials, not itself a guardrail",
     "thing-denial-kb-recall.sh": "Muninn denial-KB recall (SessionStart); surfaces known denials + fixes, not a guardrail",
-    "oath-hook.sh": "Oath-hook / GUPP (SessionStart). Surfaces hanging Runes on this actor's hook via additionalContext so the session cannot silently idle with claimed work; fail-silent, never denies, never inspects a tool call. Same class as thing-denial-kb-recall.sh — informational context for the ready-queue, not a safety-floor Pipeline stage card",
     "sanitize-mcp-output.sh": "same PostToolUse quarantine as sanitize-webfetch-output.sh, extended "
     "from WebFetch to mcp__* tool results (Q1/L4, analog-repos-gap-fill leftovers). One stage card "
     "covers both — the 'Fetched-page / MCP-result cleaner' stage, mapped to sanitize-webfetch-output.sh "
@@ -1286,6 +1304,15 @@ _PIPELINE_CONTROLS = {
         "“Conserve tokens” is the standing exception — it makes the robot work one step at a "
         "time until you turn it back off. It also switches on by itself when a prompt says "
         "“conserve tokens” or the session runs low on room.</p>"
+    ),
+    "runes": (
+        '<label class="pipe-ctl">Mode '
+        '<select id="pipe-runes-mode" '
+        'title="Behavioral flag — Off by default. On = Oath-hook hanging + ready + auto-claim ungated; gates block; no Longship merge. Kill switch = Off + Save. SessionStart-hook hosts only (MH-18)." '
+        'aria-label="Opt in to automatic Runes at session start">'
+        "<option value=\"off\">Off — I'll use the CLI</option>"
+        '<option value="on">On — ready + auto-claim ungated</option>'
+        "</select></label>"
     ),
     "decision": (
         '<label class="pipe-ctl">Mode '
@@ -1686,7 +1713,7 @@ def _render_pipeline_tab() -> str:
             # surfaced Settings-only, so it carries the badge there, not here.)
             behavioral_html = (
                 _render_behavioral_flag_badge()
-                if controls in ("decision", "orchestrator", "cheap_lane", "context_handoff")
+                if controls in ("decision", "orchestrator", "cheap_lane", "context_handoff", "runes")
                 else ""
             )
             detail = st.get("detail")
@@ -2826,7 +2853,7 @@ def _render_settings_tab(properties: dict, presets: dict) -> str:
 
     design_checkins_html = _render_design_checkins(
         properties.get("design_checkins", {})
-    ) + _render_dashboard_autostart()
+    ) + _render_dashboard_autostart() + _render_runes_session_start()
 
     category_intro_html = (
         '<div class="category-intro"><p>'
@@ -3381,6 +3408,35 @@ def _render_dashboard_autostart() -> str:
         "<option value=\"off\">Off — I'll launch it myself</option>"
         '<option value="serve">Serve — start it quietly, no tab</option>'
         '<option value="open">Open — start it and open a tab</option>'
+        "</select>"
+        "</div>"
+    )
+
+
+
+
+def _render_runes_session_start() -> str:
+    """Render the `runes:` opt-in control (behavioral flag, NOT a permission).
+
+    Mirrors `_render_dashboard_autostart`: lean .design-checkins-bar + h3 + select.
+    Default OFF (absent ⇒ off). On = SessionStart Oath-hook hanging MUST-RUN +
+    ready summary + auto-claim next ungated ready Rune; gates refuse; never auto
+    Longship merge. Kill switch = Off + Save. EXACTLY 5 static elements
+    (wrapper, h3, select, 2 options) — Gate 132 measured after regen.
+    """
+    tip = (
+        "Behavioral flag — not a tool permission. Off by default (opt-in per repo). "
+        "On = Oath-hook + ready every SessionStart, and auto-claim next ungated ready "
+        "Rune (gates still block). No auto Longship merge. Kill switch = Off + Save. "
+        "SessionStart-hook hosts only (MH-18). Never Gas Town / Beads."
+    )
+    return (
+        '<div class="design-checkins-bar" id="runes-session-bar">'
+        "<h3>⚙ Runes at session start</h3>"
+        f'<select id="runes-session-mode" title="{html.escape(tip)}" '
+        'aria-label="Opt in to automatic Runes at session start">'
+        "<option value=\"off\">Off — I'll use the CLI</option>"
+        '<option value="on">On — ready + auto-claim ungated</option>'
         "</select>"
         "</div>"
     )
@@ -8507,6 +8563,14 @@ _JS = r"""
    * class). Settings renders the control via `_render_dashboard_autostart()`. */
   const DASHBOARD_AUTOSTART_VALUES = ["off", "serve", "open"];
   const DASHBOARD_AUTOSTART_DEFAULT = "off";
+  /* Runes at session start (read by hooks/oath-hook.sh + scripts/oath_hook.py).
+   * OPT-IN — default `off` (and off when the key is absent), so emitYaml writes
+   * it only when the user picks on, preserving "absent ⇒ off". SSOT key `runes:`
+   * (not dual-written as oath_hook:). Settings + Pipeline SessionStart share
+   * one state slot. On = hanging MUST-RUN + ready + auto-claim ungated; never
+   * auto Longship merge. Kill switch = Off + Save. */
+  const RUNES_VALUES = ["off", "on"];
+  const RUNES_DEFAULT = "off";
   const ORCHESTRATOR_VALUES = ["off", "decide", "full"];
   const ORCHESTRATOR_DEFAULT = "full";
   const ORCHESTRATOR_SCOPE_VALUES = ["team", "all"];
@@ -8686,6 +8750,7 @@ _JS = r"""
     worktree_lease_idle_minutes: WORKTREE_LEASE_IDLE_DEFAULT,
     keep_awake: KEEP_AWAKE_DEFAULT,
     dashboard_autostart: DASHBOARD_AUTOSTART_DEFAULT,
+    runes: RUNES_DEFAULT,
     orchestrator: ORCHESTRATOR_DEFAULT,
     orchestrator_scope: ORCHESTRATOR_SCOPE_DEFAULT,
     orchestrator_zdr_confirmed: false,
@@ -8859,6 +8924,15 @@ _JS = r"""
       : DASHBOARD_AUTOSTART_DEFAULT;
   }
 
+  /* Runes at session start — Settings + Pipeline share one state.runes key. */
+  function syncRunesSessionStart() {
+    const val = RUNES_VALUES.includes(state.runes) ? state.runes : RUNES_DEFAULT;
+    const sel = document.getElementById("runes-session-mode");
+    if (sel) sel.value = val;
+    const pipe = document.getElementById("pipe-runes-mode");
+    if (pipe) pipe.value = val;
+  }
+
   /* Command-review master enable (AND-gate, not bulk-setter).
    * Syncs the checkbox + the status label beneath the master row.
    * Does NOT touch per-category `thing` values. */
@@ -8967,6 +9041,7 @@ _JS = r"""
     });
     syncDesignCheckins();
     syncDashAutostart();
+    syncRunesSessionStart();
     syncMasterEnable();
   }
   syncDomToState();
@@ -9157,6 +9232,9 @@ _JS = r"""
     }
     if (DASHBOARD_AUTOSTART_VALUES.includes(src.dashboard_autostart)) {
       state.dashboard_autostart = src.dashboard_autostart; touched = true;
+    }
+    if (RUNES_VALUES.includes(src.runes)) {
+      state.runes = src.runes; touched = true;
     }
     if (ORCHESTRATOR_VALUES.includes(src.orchestrator)) {
       state.orchestrator = src.orchestrator; touched = true;
@@ -9419,6 +9497,15 @@ _JS = r"""
       lines.push("");
     }
 
+    /* Runes at session start (read by hooks/oath-hook.sh). Emitted only when
+     * non-default so "absent ⇒ off" holds. Settings + Pipeline share this key. */
+    if (RUNES_VALUES.includes(state.runes)
+        && state.runes !== RUNES_DEFAULT) {
+      lines.push("# Runes at session start (off | on; default off). On = Oath-hook hanging MUST-RUN + ready + auto-claim ungated; never auto Longship merge.");
+      lines.push(`runes: ${state.runes}`);
+      lines.push("");
+    }
+
     if (ORCHESTRATOR_VALUES.includes(state.orchestrator)
         && state.orchestrator !== ORCHESTRATOR_DEFAULT) {
       lines.push("# Claude orchestrator for non-Claude CLIs (off | decide | full). No-op under Claude Code.");
@@ -9633,6 +9720,7 @@ _JS = r"""
         worktree_guard: state.worktree_guard,
         worktree_bound: state.worktree_bound,
         dashboard_autostart: state.dashboard_autostart,
+        runes: state.runes,
         orchestrator: state.orchestrator,
         orchestrator_scope: state.orchestrator_scope,
         orchestrator_zdr_confirmed: state.orchestrator_zdr_confirmed,
@@ -9745,6 +9833,21 @@ _JS = r"""
         if (!DASHBOARD_AUTOSTART_VALUES.includes(asSel.value)) return;
         state.dashboard_autostart = asSel.value;
         syncDashAutostart();
+        flagUnsaved();
+        render();
+      });
+    }
+  }
+
+  /* Runes at session start — Settings surface (same state.runes as Pipeline). */
+  {
+    const rSel = document.getElementById("runes-session-mode");
+    if (rSel) {
+      rSel.addEventListener("change", () => {
+        if (!RUNES_VALUES.includes(rSel.value)) return;
+        state.runes = rSel.value;
+        syncRunesSessionStart();
+        if (typeof syncPipelineTab === "function") syncPipelineTab();
         flagUnsaved();
         render();
       });
@@ -11560,6 +11663,10 @@ function wireHostScopeFilter(root) {
                   ? (state.parallelism.unlimited ? "On · unlimited" : ("On · " + state.parallelism.max_workers + " workers"))
                   : "Off",
               (state.conserve_tokens !== true && state.parallelism.enabled) ? "pipe-badge-on" : "pipe-badge-off");
+    const rmode = document.getElementById("pipe-runes-mode");
+    if (rmode) rmode.value = RUNES_VALUES.includes(state.runes) ? state.runes : RUNES_DEFAULT;
+    pipeBadge("runes-oath-hook", state.runes === "on" ? "On" : "Off",
+              state.runes === "on" ? "pipe-badge-on" : "pipe-badge-off");
     const dr = document.getElementById("pipe-decision-review");
     if (dr) dr.value = state.decision_review;
     pipeBadge("route-decision-review", state.decision_review,
@@ -11672,6 +11779,11 @@ function wireHostScopeFilter(root) {
     onChange("pipe-parallelism-unlimited", el => { state.parallelism.unlimited = el.checked; });
     onInput("pipe-parallelism-workers", el => { const v = parseInt(el.value, 10); if (Number.isFinite(v) && v > 0) state.parallelism.max_workers = v; });
     onChange("pipe-conserve-tokens", el => { state.conserve_tokens = el.checked; });
+    onChange("pipe-runes-mode", el => {
+      if (!RUNES_VALUES.includes(el.value)) return;
+      state.runes = el.value;
+      syncRunesSessionStart();
+    });
     onChange("pipe-decision-review", el => { if (DECISION_REVIEW_VALUES.includes(el.value)) state.decision_review = el.value; });
     onChange("pipe-orchestrator", el => { if (ORCHESTRATOR_VALUES.includes(el.value)) { state.orchestrator = el.value; syncPipelineTab(); } });
     onChange("pipe-orchestrator-scope", el => { if (ORCHESTRATOR_SCOPE_VALUES.includes(el.value)) { state.orchestrator_scope = el.value; syncPipelineTab(); } });
