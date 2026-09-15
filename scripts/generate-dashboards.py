@@ -40,8 +40,15 @@ import json
 import sys
 from pathlib import Path
 
-# Sibling helper (scripts/ is on sys.path whether run directly or imported by
-# generate-index-dashboard.py). Provides the CSS scoper used by render_fragment.
+from _host_scope import (
+    render_filter_strip as _render_host_scope_filter,
+)
+from _host_scope import (
+    render_scope_badge as _render_host_scope_badge,
+)
+from _host_scope import (
+    scope_tokens as _host_scope_tokens,
+)
 from _html_merge import iife_wrap, scope_css
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -1437,15 +1444,20 @@ _PIPELINE_CSS = """<style>
   background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--rc-radius-pill);
   padding: .15rem .6rem; white-space: nowrap; }
 .pipe-flow-step.pipe-flow-loop { border-color: var(--accent); }
+.pipe-flow-step[data-event]::after { content: " · " attr(data-event);
+  font-family: ui-monospace, monospace; font-weight: 500; font-size: .72rem;
+  color: var(--muted); }
 .pipe-flow-arr { color: var(--accent); font-weight: 700; }
 .pipe-readme { font-size: .84rem; }
 .pipe-lane { border: 1px solid var(--border); border-radius: var(--rc-radius-lg);
   padding: .4rem .6rem; margin: 0; background: var(--surface); box-shadow: var(--rc-shadow-sm); }
-.pipe-lane-head { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; }
-.pipe-lane-when { font-weight: 600; color: var(--text, #eee); }
-.pipe-lane-event { font-family: ui-monospace, monospace; font-size: .76rem;
-  color: var(--muted, #999); background: var(--bg, #111); padding: .1rem .4rem;
-  border-radius: 4px; }
+.pipe-lane-head { display: flex; flex-direction: column; align-items: flex-start;
+  gap: .15rem; padding-bottom: .35rem; margin-bottom: .2rem;
+  border-bottom: 1px solid var(--border); }
+/* Category = hook event (primary); plain-English when = subtitle. Gate 132: same 2 spans. */
+.pipe-lane-event { font-family: ui-monospace, monospace; font-size: 1.1rem; font-weight: 600;
+  color: var(--text, #eee); letter-spacing: -0.01em; line-height: 1.25; }
+.pipe-lane-when { font-size: .85rem; font-weight: 500; color: var(--muted, #999); }
 .pipe-lane-tip { margin: .15rem 0 .35rem; color: var(--muted, #aaa); font-size: .83rem; line-height: 1.32; }
 .pipe-row { display: flex; flex-wrap: wrap; gap: .35rem; }
 .pipe-stage { flex: 1 1 230px; min-width: 200px; border: 1px solid var(--border);
@@ -1703,8 +1715,8 @@ def _render_pipeline_tab() -> str:
         lanes_html.append(
             '<section class="pipe-lane">'
             '<div class="pipe-lane-head">'
-            f'<span class="pipe-lane-when">{html.escape(lane["when"])}</span>'
-            f'<span class="pipe-lane-event">{html.escape(lane["event"])}</span></div>'
+            f'<span class="pipe-lane-event">{html.escape(lane["event"])}</span>'
+            f'<span class="pipe-lane-when">{html.escape(lane["when"])}</span></div>'
             f'<p class="pipe-lane-tip">{html.escape(lane["tip"])}</p>'
             f'<div class="pipe-row">{"".join(cards)}</div>'
             "</section>"
@@ -1715,17 +1727,17 @@ def _render_pipeline_tab() -> str:
   <h2>Guardrail pipeline</h2>
   <p class="page-desc">Everything an AI agent passes through, top to bottom. Each box shows whether it's on right now, what it does (in plain words), the step-by-step of how it works, and the knobs you can turn. Changes save to your <code>.ravenclaude/comfort-posture.yaml</code>.
   IMPORTANT — these guardrails fire under {_hook_hosts_text}, and nowhere else yet. &ldquo;Always on&rdquo; below means &ldquo;not a knob you can switch off&rdquo;; it does NOT mean every host runs it. Under {_no_hook_hosts_text} nothing here wires itself, so none of it fires — the stages are shown for reference, not as protection you currently have.</p>
-  <div class="pipe-flow" role="img" aria-label="Flow: session starts, then before-each-step and after-each-step checkpoints loop for every command, then a final check when it tries to stop.">
-    <span class="pipe-flow-step">Session starts</span>
+  <div class="pipe-flow" role="img" aria-label="Flow: SessionStart (session starts), then PreToolUse (before each step) and PostToolUse (after each step) checkpoints loop for every command, then Stop (when it tries to stop).">
+    <span class="pipe-flow-step" data-event="SessionStart">Session starts</span>
     <span class="pipe-flow-arr">→</span>
-    <span class="pipe-flow-step pipe-flow-loop">Before each step</span>
+    <span class="pipe-flow-step pipe-flow-loop" data-event="PreToolUse">Before each step</span>
     <span class="pipe-flow-arr">→</span>
     <span class="pipe-flow-step">the tool runs</span>
     <span class="pipe-flow-arr">→</span>
-    <span class="pipe-flow-step pipe-flow-loop">After each step</span>
+    <span class="pipe-flow-step pipe-flow-loop" data-event="PostToolUse">After each step</span>
     <span class="pipe-flow-arr" title="repeats for every command or edit">↺</span>
     <span class="pipe-flow-arr">→</span>
-    <span class="pipe-flow-step">When it tries to stop</span>
+    <span class="pipe-flow-step" data-event="Stop">When it tries to stop</span>
   </div>
   <p class="page-desc pipe-readme">The two middle checkpoints repeat for <em>every</em> command and file edit — that's the ↺ loop. Open <strong>“How it works, step by step”</strong> on any box to see exactly what it checks and what happens if it trips. Badges: <span class="pipe-badge pipe-badge-on">Always on</span> can't be turned off · <span class="pipe-badge pipe-badge-advisory">Advisory</span> only nudges, never blocks · <span class="pipe-badge pipe-badge-dynamic">On / Off</span> depends on your settings (filled in live below).</p>
   <div id="pipeline-server-note" class="pipe-note" hidden>This page has no server behind it, so the live state and editors are read-only. Launch the dashboard with <code>ravenclaude dashboard --project &lt;repo&gt;</code> to edit and apply.</div>
@@ -2378,13 +2390,19 @@ def _render_command_card(cmd: dict) -> str:
         )
         pill = '<span class="cmd-pill" title="A web page can&#39;t run this for you. Copy it and paste it into Claude Code, where it runs the whole job.">Copy &rarr; paste into Claude</span>'
 
+    # Host-scope chip: slash commands are Claude Code. Verified _HOST_EQUIVALENTS
+    # stay Claude Code + "any host: rc …" prose (UX DIGEST) — never fake All agents.
+    scope_dep = "claude-code"
+    scope_attr = " ".join(_host_scope_tokens(scope_dep))
+    scope_badge = _render_host_scope_badge(scope_dep)
     return (
-        '<article class="cmd-card">'
+        f'<article class="cmd-card" data-host-scope="{html.escape(scope_attr)}">'
         '<header class="cmd-card-head">'
         f'<h3 class="cmd-card-title">{html.escape(slash)}</h3>'
         f'<span class="cmd-card-badge" '
         f'title="Shipped by the {html.escape(cmd["owner"])} plugin">'
         f"{html.escape(cmd['owner'])}</span>"
+        f"{scope_badge}"
         f"{pill}"
         "</header>"
         f'<p class="cmd-card-desc">{html.escape(desc)}</p>'
@@ -2433,7 +2451,14 @@ def _render_commands_tab() -> str:
         f"<p>{len(cmds)} command{plural} shipped by the marketplace plugins.{run_note}{host_note}</p>"
         "</div>"
     )
-    return intro + f'<div class="cmd-grid">{cards}</div>'
+    filt = _render_host_scope_filter(strip_id="commands-host-filter")
+    return (
+        '<div class="cmd-host-scope-root" id="commands-host-scope-root">'
+        + intro
+        + filt
+        + f'<div class="cmd-grid">{cards}</div>'
+        + "</div>"
+    )
 
 
 # ── Guidance tab (marketplace-wide decision trees + best practices) ──────────
@@ -10581,6 +10606,58 @@ _JS = r"""
     });
   })();
 
+function wireHostScopeFilter(root) {
+  if (!root) return;
+  const strip = root.querySelector(".rc-host-filter");
+  if (!strip || strip.dataset.wired === "1") return;
+  strip.dataset.wired = "1";
+  const empty = root.querySelector("[data-host-filter-empty]");
+  const clearBtn = strip.querySelector("[data-host-filter-clear]");
+  const cards = () => Array.from(root.querySelectorAll("[data-host-scope]"));
+  function selected() {
+    return Array.from(strip.querySelectorAll(".rc-host-filter__btn[aria-pressed='true']"))
+      .map((b) => b.getAttribute("data-host-filter"));
+  }
+  function apply() {
+    const sel = selected();
+    if (clearBtn) clearBtn.hidden = sel.length === 0;
+    let visible = 0;
+    cards().forEach((card) => {
+      const scopes = (card.getAttribute("data-host-scope") || "").split(/\s+/).filter(Boolean);
+      let show;
+      if (!sel.length) {
+        show = true;
+      } else if (sel.includes("all-agents") && sel.length === 1) {
+        show = scopes.includes("all-agents");
+      } else {
+        // Host chips: match that host token only (universal NOT auto-included).
+        const hosts = sel.filter((s) => s !== "all-agents");
+        show = hosts.some((h) => scopes.includes(h));
+        if (sel.includes("all-agents")) {
+          show = show || scopes.includes("all-agents");
+        }
+      }
+      card.hidden = !show;
+      if (show) visible += 1;
+    });
+    if (empty) empty.hidden = visible !== 0 || !sel.length;
+  }
+  strip.addEventListener("click", (e) => {
+    const clear = e.target.closest("[data-host-filter-clear]");
+    if (clear) {
+      strip.querySelectorAll(".rc-host-filter__btn").forEach((b) => b.setAttribute("aria-pressed", "false"));
+      apply();
+      return;
+    }
+    const btn = e.target.closest(".rc-host-filter__btn");
+    if (!btn || !strip.contains(btn)) return;
+    const on = btn.getAttribute("aria-pressed") === "true";
+    btn.setAttribute("aria-pressed", on ? "false" : "true");
+    apply();
+  });
+  apply();
+}
+
   /* ── Commands panel (DOM-islanded) — bind on activate ─────────────────
    * panel-commands ships its card grid in a <script type="application/json">
    * payload injected on the first activate("commands"). Its interactive buttons —
@@ -10614,6 +10691,7 @@ _JS = r"""
         });
       });
     }
+    wireHostScopeFilter(mount.querySelector("#commands-host-scope-root") || mount);
   }
 
   /* ── Guidance — best-practice preview-on-click ────────────────────────
@@ -14550,6 +14628,15 @@ _JS = r"""
     root.appendChild(hcEl("p", "hc-src",
       "Source: knowledge/host-support.json (updated " + (data.updated || "?") +
       "). Hover any cell to see why. Each answer also records how we know it \u2014 checked in this repo, read in the vendor\u2019s own docs, or inferred \u2014 so you can tell a tested fact from an educated guess."));
+
+    /* Scope-chip legend — matches Commands / plugin-detail host-scope badges.
+       Capability SSOT remains host-support.json; inventory tags are catalog-only.
+       Grok appears as reserved in filters, not as a supported host here. */
+    const legend = hcEl("p", "hc-legend");
+    legend.appendChild(document.createTextNode(
+      "Scope chips elsewhere in the dashboard: All agents (host-agnostic) \u00b7 Claude Code \u00b7 Cursor \u00b7 Codex \u00b7 Copilot \u00b7 Gemini \u00b7 Multi. Grok is reserved (inventory filter only \u2014 not listed as supported above). Capability SSOT: host-support.json; catalog tags: inventory platform_dependency."
+    ));
+    root.appendChild(legend);
 
     /* 3 — Where work files go. The cross-CLI storage contract had NO user-facing
        surface at all: it lived in AGENTS.md and the session-start banner, both of

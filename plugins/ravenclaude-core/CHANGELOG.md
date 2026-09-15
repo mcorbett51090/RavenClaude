@@ -2,6 +2,16 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.323.3 — 2026-09-15
+
+### Changed
+- **Dashboard Pipeline hook categories** — Guardrail Pipeline lane heads promote SessionStart / PreToolUse / PostToolUse / Stop as category titles (stacked event→when, hairline); flow strip shows canonical names via `data-event` + CSS `::after`. Gate 132 element delta **0**. Folded with host-scope tip.
+
+## 0.323.2 — 2026-09-15
+
+### Added
+- **Dashboard host-scope badges** — Commands cards (Help→Commands) and index portal Agents/Skills show `.rc-badge--host-*` scope chips (All agents / Claude Code / Cursor / Codex / Copilot / Grok reserved / Gemini / Multi) with a filter strip + empty state. Inventory `platform_dependency` snapshot in `dashboard-assets/host-scope-map.json`. Extends MH-18; does not invent `_HOST_EQUIVALENTS`.
+
 ## 0.323.1 — 2026-09-15
 
 ### Added

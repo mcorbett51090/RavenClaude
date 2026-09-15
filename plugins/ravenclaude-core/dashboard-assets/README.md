@@ -60,6 +60,8 @@ Don't:
 - Add unprefixed shared classes — they will collide.
 - Inline hex colors in generators — use `var(--rc-*)` tokens. The verification suite enforces this (`grep -E '#[0-9a-fA-F]{6}'` on generator scripts).
 
+**Host-scope chips:** Cards for skills / agents / commands carry an `.rc-badge--host-*` scope chip (All agents vs Claude Code / Cursor / Codex / Copilot / Grok reserved / Gemini / Multi) with a filter strip; see `host-scope-map.json` (inventory `platform_dependency` snapshot) and MH-18 in `scripts/generate-dashboards.py`.
+
 ## Generator integration pattern
 
 All three generators converge on the same pattern:

@@ -36,6 +36,8 @@ import re
 import sys
 from pathlib import Path
 
+from _host_scope import resolve_platform_dependency
+
 # Sibling module holding the self-contained HTML/CSS/JS shell. Importable because
 # Python puts this script's directory (scripts/) on sys.path[0] at launch.
 from _index_dashboard_template import TEMPLATE as _TEMPLATE
@@ -549,6 +551,11 @@ def _scan_agents(plugin_dir: Path) -> list[dict]:
                     })
         quickstart_raw = fm.get("quickstart") or []
         quickstart = [q for q in quickstart_raw if isinstance(q, str)] if isinstance(quickstart_raw, list) else []
+        plugin = plugin_dir.name
+        ep = f"plugins/{plugin}/agents/{md.name}"
+        host_scope = resolve_platform_dependency(
+            kind="agent", plugin=plugin, name=name, evidence_path=ep
+        )
         agents.append({
             "name": name,
             "label": _humanize(name),
@@ -559,6 +566,7 @@ def _scan_agents(plugin_dir: Path) -> list[dict]:
             "triggers": triggers[:3],
             "scenarios": scenarios,
             "quickstart": quickstart,
+            "host_scope": host_scope,
         })
     return agents
 
@@ -685,10 +693,21 @@ def _scan_skills(plugin_dir: Path) -> list[dict]:
         block = _split_frontmatter(skill_md.read_text(encoding="utf-8", errors="replace"))
         fm = _parse_frontmatter(block) if block else {}
         name = fm.get("name") or sdir.name
+        plugin = plugin_dir.name
+        ep = f"plugins/{plugin}/skills/{sdir.name}/SKILL.md"
+        host_scope = resolve_platform_dependency(
+            kind="skill", plugin=plugin, name=name, evidence_path=ep
+        )
+        # also try folder name if frontmatter name differs
+        if host_scope == "claude-code":
+            host_scope = resolve_platform_dependency(
+                kind="skill", plugin=plugin, name=sdir.name, evidence_path=ep
+            )
         out.append({
             "name": name,
             "label": _humanize(name),
             "description": _first_sentence(fm.get("description", ""), 200),
+            "host_scope": host_scope,
         })
     return out
 
