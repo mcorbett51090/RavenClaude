@@ -11,7 +11,7 @@ covers:
   - plugins/ravenclaude-core/hooks/oath-hook.sh
   - plugins/ravenclaude-core/scripts/oath_hook.py
   - plugins/ravenclaude-core/scripts/runes.py
-covers_digest: "sha256:f5239745556340975cd8e33ac86c57c5b4e98d759103eadeb5aca72b305edbbe"
+covers_digest: "sha256:aaae4a323356d5cc39677cb8b944a9a1b37c244a164c8867f5c48949f80c44d3"
 nuance: "Posture runes: off|on gates SessionStart auto-orient (default off). On may auto-claim next ungated ready Rune; human_gate=matthew|appsec|sage|cos|money refuses. Longship land-request auto_merge=false never merges. Flat taxonomy — no epic tree."
 nuance_evidence:
   measured: 2026-09-15
