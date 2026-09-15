@@ -3348,7 +3348,7 @@ check; the three role-crossed payloads are named `Explore on opus`, `plugin-scop
 
 **Sources:** [knowledge/model-tier-delegation.md — the doctrine this meter measures](https://github.com/mcorbett51090/RavenClaude/blob/main/plugins/ravenclaude-core/knowledge/model-tier-delegation.md) · [Claude Code sub-agents — "Choose a model" (Explore inherits the main model since v2.1.198)](https://code.claude.com/docs/en/sub-agents)
 
-_Last verified: 2026-09-14_
+_Last verified: 2026-09-15_
 
 
 ---

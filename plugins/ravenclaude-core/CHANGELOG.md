@@ -31,7 +31,32 @@ All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the 
   `nesting` row. This is how the three vectors Gate 289 cannot reach — the built-in
   `general-purpose` / `claude` types, a fork, a consumer's project-local agent — become
   visible. Gate 285's hook test drives the nested path through the real bash contract
-  (legs H1–H6).
+  (legs H1–H7).
+- **Live verification on Claude Code 2.1.271** (five runs, maintainer's account): two- and
+  three-layer chains nest; a fourth layer finds `Agent` silently absent from the 3rd-layer
+  subagent's toolset (the ceiling is a tool removal, not an error); `sonnet` → `claude-sonnet-5`,
+  `haiku` → `claude-haiku-4-5-20251001`. The harness is committed as
+  `hooks/tests/live-nested-dispatch.sh` — opt-in (`RC_LIVE=1` + a signed-in `claude`), never in
+  CI, prints *SKIP — a skip is NOT a pass* otherwise. Decision doc § 7 has the ledgers.
+
+### Fixed
+
+- **`handoff-tax-meter` depth was a floor in every live run.** Hooks fire child-first (the
+  child's `PostToolUse` runs inside the caller, before the caller's own dispatch completes),
+  so at write time the caller's line never exists and every nested line recorded `2, lower
+  bound` — a layer-3 leaf included. `--summary` now re-resolves each depth by walking the
+  `caller_agent_id` chain over the complete ledger (`_resolve_depths`, cycle-safe); the line
+  keeps its honest floor. The synthetic tests had written lines parent-first and could not
+  see this; new legs write them live-order (self-test *live order*, Gate 285 H7a/H7b).
+- **The `nested_dispatch` advisory reached the wrong reader and derailed it.** A
+  `PostToolUse` hook's `additionalContext` returns to whoever made the call — inside a
+  subagent, that subagent, never the Team Lead. Text written to the orchestrator ("a called
+  agent called an agent, not you") read as injected content to the calling worker; live, the
+  coordinator's whole report became an explanation that it was "not acting on" the notice
+  and the leaf's answer was never relayed. The flag is now recorded on the ledger and surfaced
+  by `--summary` only; per-dispatch flags the caller does pay for are still spoken to it,
+  addressed as a subagent, with a do-not-relay footer. Post-fix live run: the report was the
+  answer and nothing else.
 
 ### Changed
 
