@@ -2,6 +2,99 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.323.0 — 2026-09-14
+
+### Added
+
+- **Determination: may a called agent call agents?** Possible — yes, the platform nests
+  three layers deep by default (`CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH`). Enabled in this
+  roster — no, and now by declaration: all 623 agents omit `Agent` from `tools:`, which is
+  the layer that actually binds (`Agent(type)` scoping is ignored in a subagent definition,
+  so `Agent` in any form is an unscoped grant). Desirable — not as a default; the one
+  sanctionable shape is a frontier-tier parent fanning out to fast-tier read-only leaves,
+  exempted per agent by name with a reason. Full record:
+  `docs/decisions/2026-09-14-nested-dispatch-determination.md`; operating summary in
+  `knowledge/model-tier-delegation.md` § "Multi-hop delegation".
+- **Gate 289 — `scripts/check-nested-dispatch.py`** (marketplace CI): fails any
+  `agents/*.md` whose `tools:` grants `Agent` / `Agent(...)` / `Task` / `"*"` without a
+  reasoned entry in `tests/fixtures/nested-dispatch-exemptions.json`; a stale or reasonless
+  exemption fails; an empty roster is not a pass. `--must-fail` proves all six grant forms
+  fail and that `Bash(git a, b)`, `TaskOutput` / `TaskStop` and a `disallowedTools: Agent`
+  pass clean. Until now the only guard was `guard-recursive-spawn.sh`, a grep over prose
+  that warns and cannot block.
+- **`handoff-tax-meter` sees nesting** (ledger schema v2). Hooks fire inside subagents and
+  the input then carries the caller's `agent_id` / `agent_type`, so each ledger line records
+  `caller_agent_id`, `caller_agent_type`, `nested`, and a reconstructed `depth` (1 = main
+  thread; the caller's own depth + 1 when the caller was spawned in this session's ledger;
+  else `2` marked `depth_is_lower_bound`). New advisory flag **`nested_dispatch`** names the
+  caller, the layer, the off-switch and the decision; `rc dispatch-summary` gains a
+  `nesting` row. This is how the three vectors Gate 289 cannot reach — the built-in
+  `general-purpose` / `claude` types, a fork, a consumer's project-local agent — become
+  visible. Gate 285's hook test drives the nested path through the real bash contract
+  (legs H1–H7).
+- **Live verification on Claude Code 2.1.271** (five runs, maintainer's account): two- and
+  three-layer chains nest; a fourth layer finds `Agent` silently absent from the 3rd-layer
+  subagent's toolset (the ceiling is a tool removal, not an error); `sonnet` → `claude-sonnet-5`,
+  `haiku` → `claude-haiku-4-5-20251001`. The harness is committed as
+  `hooks/tests/live-nested-dispatch.sh` — opt-in (`RC_LIVE=1` + a signed-in `claude`), never in
+  CI, prints *SKIP — a skip is NOT a pass* otherwise. Decision doc § 7 has the ledgers.
+
+### Fixed
+
+- **`handoff-tax-meter` depth was a floor in every live run.** Hooks fire child-first (the
+  child's `PostToolUse` runs inside the caller, before the caller's own dispatch completes),
+  so at write time the caller's line never exists and every nested line recorded `2, lower
+  bound` — a layer-3 leaf included. `--summary` now re-resolves each depth by walking the
+  `caller_agent_id` chain over the complete ledger (`_resolve_depths`, cycle-safe); the line
+  keeps its honest floor. The synthetic tests had written lines parent-first and could not
+  see this; new legs write them live-order (self-test *live order*, Gate 285 H7a/H7b).
+- **The `nested_dispatch` advisory reached the wrong reader and derailed it.** A
+  `PostToolUse` hook's `additionalContext` returns to whoever made the call — inside a
+  subagent, that subagent, never the Team Lead. Text written to the orchestrator ("a called
+  agent called an agent, not you") read as injected content to the calling worker; live, the
+  coordinator's whole report became an explanation that it was "not acting on" the notice
+  and the leaf's answer was never relayed. The flag is now recorded on the ledger and surfaced
+  by `--summary` only; per-dispatch flags the caller does pay for are still spoken to it,
+  addressed as a subagent, with a do-not-relay footer. Post-fix live run: the report was the
+  answer and nothing else.
+- **`scripts/inventory-sweep.py` no longer executes the audit harness.** Its script-selftest
+  probe greps each script for the literal `--must-fail-convention` and then runs it with that
+  flag under a 30 s kill; `audit-gates.sh` contains the string because it is the thing that asks
+  other scripts for it, does not parse the flag, and so the ENTIRE suite ran and was killed
+  mid-run — three times this session leaving Gate 14's in-place mutant
+  (`verdict="allow"; reason="MUTANT pre-fix…"`, a fail-OPEN tie-breaker) in
+  `hooks/thing-orchestrator.sh`, surfacing only as covers-digest drift in Gates 237/239. The
+  window is wide now that a signed-in `claude -p` makes the tribunal seats real rather than
+  instant abstentions. The harness is now `SKIP harness-would-run-full-suite`, beside the
+  existing self-probe exclusion; the sweep drops from a 180 s preflight timeout to ~35 s.
+
+### Changed
+
+- **`knowledge/subagent-isolation-and-tooling.md`** — (1) "subagents cannot spawn
+  subagents" was a platform claim and was false; it now states the house rule, the `tools:`
+  layer that enforces it, and Gate 289. (2) The `CLAUDE_CODE_SUBAGENT_MODEL` section had
+  the env var as step 1 of the resolution order; stale since v2.1.251 (it is step 3, a
+  fleet default that per-invocation and frontmatter override); v2.1.257's
+  `CLAUDE_CODE_SUBAGENT_MODEL_FORCE` is the only thing that flattens a roster pin.
+  Consequence stated: a consumer's plain env var no longer overrides the `opus` pin on the
+  three merge gates.
+- **`rules/agent-collaboration.md`** — the single-orchestrator sentence names the layer
+  that binds (`tools:`, gated) and the sanctioned exemption shape.
+- **`CLAUDE.md`** core-rule paragraph — "enforced soft by `guard-recursive-spawn.sh`" now
+  names the `tools:` layer, Gate 289 and the meter.
+- `AGENTS.md` step 11, the agent-definition template and the `agent-quality-rubric` skill
+  state the `tools:` dispatch rule and Gate 289.
+
+### Known
+
+- **Host-contract finding.** On a host whose edit tool reaches the hook as a whole-file
+  `Write` (Cursor), the §B.9.3 hard rules screen the entire payload, so any file that
+  *documents* a hard-rule command — this file and `CLAUDE.md` — is un-editable by an agent
+  regardless of what the edit adds. This entry and the constitution paragraph were applied
+  under an explicit per-task maintainer override; the durable fix (screen added lines only
+  for `Write`) is a design check-in tracked in the ledger (`rc-6c598f5546e8`) and written up
+  in the decision document § 6.
+
 ## 0.322.2
 
 ### Added

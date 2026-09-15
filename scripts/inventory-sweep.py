@@ -349,7 +349,9 @@ def _script_selftest(root: Path, paths: list[str], ctx: dict) -> dict:
     # stay untouched; only env VARS whose NAME looks secret-shaped are dropped
     # before exec, closing the concrete leak (CI tokens/keys reaching an
     # attacker-authored script) without perturbing scripts' own behavior.
-    _secret_name = re.compile(r"TOKEN|SECRET|_KEY$|API_KEY|PASSWORD|PASSWD|CREDENTIAL", re.IGNORECASE)
+    _secret_name = re.compile(
+        r"TOKEN|SECRET|_KEY$|API_KEY|PASSWORD|PASSWD|CREDENTIAL", re.IGNORECASE
+    )
     _scrubbed_env = {k: v for k, v in os.environ.items() if not _secret_name.search(k)}
     for p in paths:
         # ⛔ THE SWEEP DOES NOT PROBE ITSELF. Measured: script-selftest ran
@@ -361,6 +363,22 @@ def _script_selftest(root: Path, paths: list[str], ctx: dict) -> dict:
         # anyway. Reported as a SKIP with a reason, never silently dropped.
         if Path(p).name == _self:
             out[p] = (SKIP, "self-probe-would-recurse")
+            continue
+        # ⛔ NOR DOES IT PROBE THE HARNESS. audit-gates.sh contains the literal
+        # "--must-fail-convention" because it is the thing that asks OTHER scripts
+        # for it (rc_mustfail) — it does not parse the flag itself, so the grep
+        # below matches and the execute step launches the ENTIRE audit suite under
+        # a 30s timeout. Killed mid-run, any gate that mutates a live file in place
+        # and restores it afterwards (Gate 14 mutates thing-orchestrator.sh to prove
+        # the fail-closed tie-breaker has teeth) is left mutated, with no signal
+        # here. Observed 2026-09-14/15: three times in one session the working tree
+        # held `verdict="allow"; reason="MUTANT pre-fix…"` in the tribunal — a
+        # fail-OPEN change — surfacing only as covers-digest drift in Gates 237/239
+        # hundreds of gates later. subprocess.run's timeout kills the bash, not its
+        # children, so the restore `cp` never runs. The harness's own teeth are
+        # exercised by CI running it whole; probing it here can only corrupt.
+        if Path(p).name == "audit-gates.sh":
+            out[p] = (SKIP, "harness-would-run-full-suite")
             continue
         # ⛔ READ BEFORE YOU EXECUTE. The first version invoked all 183 scripts with
         # --must-fail-convention to find out whether they implemented it. Two

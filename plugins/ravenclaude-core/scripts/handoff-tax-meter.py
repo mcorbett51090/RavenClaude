@@ -29,6 +29,38 @@ THE SIGNAL, and its honest limits.
                        not a decomposed task
     frontier_readonly  a read-only / search-shaped worker (Explore, scout) ran
                        on a frontier model — the un-pinned-Explore sink
+    nested_dispatch    the CALLER was itself a subagent — a called agent called
+                       an agent. Hooks fire inside subagents and the input then
+                       carries `agent_id` / `agent_type` for the caller
+                       (hooks doc § common input fields, 2026-09-14); the main
+                       thread carries neither. Gate 289 keeps every SHIPPED
+                       agent's `tools:` free of `Agent`, but the built-in
+                       `general-purpose` / `claude` types hold every subagent
+                       tool, `Agent` included, and a project-local agent or a
+                       fork can too — so nesting stays possible on any host
+                       with the default depth (3), and this is the only place
+                       it becomes visible. The ledger records the caller and a
+                       DEPTH: 1 for a main-thread dispatch; for a nested one,
+                       the caller's own recorded depth + 1 when the caller's
+                       line has already landed, else 2 marked as a lower bound
+                       (`depth_is_lower_bound`) — the payload has no depth
+                       field, so the chain is reconstructed, never assumed.
+                       LIVE, the write-time value is almost always that floor:
+                       the child's PostToolUse fires INSIDE the caller, before
+                       the caller's own dispatch completes, so lines land
+                       child-first (observed 2026-09-14, 2.1.271: on a real
+                       main -> coord1 -> coord2 -> leaf run the ledger order was
+                       leaf, coord2, coord1). `--summary` therefore re-resolves
+                       every depth over the complete ledger by walking the
+                       caller chain; read the exact figure there, not from the
+                       line. Live facts from the same runs: 3 subagent layers
+                       nest under the default; at the 3rd layer the `Agent`
+                       tool is silently ABSENT from the subagent's toolset even
+                       when its definition lists it (the ceiling is a tool
+                       removal, not an error on the call); and one dispatch
+                       from inside a subagent came back `async_launched` with
+                       `run_in_background` unset — its report never reaches
+                       PostToolUse, so that hop's tax is unmeasurable here.
 
   What this CANNOT know, stated because a metric whose limits are unstated
   gets over-trusted:
@@ -75,7 +107,10 @@ import tempfile
 import time
 from pathlib import Path
 
-SCHEMA_VERSION = 1
+# 2 (2026-09-14): + caller_agent_id, caller_agent_type, nested, depth,
+# depth_is_lower_bound, and the nested_dispatch flag. Readers of v1 lines see
+# those keys absent, not false — a v1 line says nothing about nesting.
+SCHEMA_VERSION = 2
 
 # Default caps. The report cap is the "would I have pasted this much myself"
 # floor from the model-tier-delegation doc; the brief cap is the
@@ -197,11 +232,46 @@ def _basename_type(subagent_type: str) -> str:
     return (subagent_type or "").rsplit(":", 1)[-1].strip().lower()
 
 
-def analyse(payload: dict, posture: dict) -> dict:
-    """Pure function: payload + posture -> ledger record (with flags). No I/O."""
+def _caller_of(payload: dict) -> tuple[str | None, str | None]:
+    """The subagent this hook fired INSIDE, if any — (agent_id, agent_type).
+
+    Both are top-level common input fields, present only when the hook runs in
+    a subagent (hooks doc, 2026-09-14). A main-thread dispatch has neither.
+    `agent_type` alone is NOT nesting evidence: a session started with
+    `claude --agent <name>` carries agent_type on main-thread hooks too, so the
+    nested verdict keys on agent_id.
+    """
+    aid = payload.get("agent_id")
+    atype = payload.get("agent_type")
+    aid_s = aid.strip() if isinstance(aid, str) and aid.strip() else None
+    atype_s = atype.strip() if isinstance(atype, str) and atype.strip() else None
+    return aid_s, atype_s
+
+
+def analyse(payload: dict, posture: dict, depth_index: dict[str, int] | None = None) -> dict:
+    """Pure function: payload + posture -> ledger record (with flags). No I/O.
+
+    `depth_index` maps a spawned agent_id -> the depth it was recorded at in
+    this session's ledger (built by `_depth_index`); it is how a nested
+    dispatch learns how deep its CALLER already sits.
+    """
     tool_input = payload.get("tool_input") if isinstance(payload.get("tool_input"), dict) else {}
     resp = payload.get("tool_response")
     resp_obj = resp if isinstance(resp, dict) else {}
+
+    caller_id, caller_type = _caller_of(payload)
+    nested = caller_id is not None
+    depth_lower_bound = False
+    if not nested:
+        depth = 1
+    elif depth_index and caller_id in depth_index:
+        depth = depth_index[caller_id] + 1
+    else:
+        # The caller is a subagent we never saw spawned (ledger rotated, or it
+        # was spawned before the posture opted in). It sits at >= 1, so the
+        # child sits at >= 2. Recorded as a floor, never as the truth.
+        depth = 2
+        depth_lower_bound = True
 
     subagent_type = str(tool_input.get("subagent_type") or "general-purpose")
     requested_model = tool_input.get("model")
@@ -221,6 +291,8 @@ def analyse(payload: dict, posture: dict) -> dict:
         flags.append("brief_over_cap")
     if tier == "frontier" and _basename_type(subagent_type) in READ_ONLY_TYPES:
         flags.append("frontier_readonly")
+    if nested:
+        flags.append("nested_dispatch")
 
     usage = resp_obj.get("usage") if isinstance(resp_obj.get("usage"), dict) else {}
     desc = str(tool_input.get("description") or "")
@@ -228,6 +300,11 @@ def analyse(payload: dict, posture: dict) -> dict:
         "schema_version": SCHEMA_VERSION,
         "ts": int(time.time()),
         "agent_id": resp_obj.get("agentId"),
+        "caller_agent_id": caller_id,
+        "caller_agent_type": caller_type,
+        "nested": nested,
+        "depth": depth,
+        "depth_is_lower_bound": depth_lower_bound,
         "subagent_type": subagent_type,
         "description": desc[:160],
         "status": status,
@@ -263,56 +340,56 @@ def _tally(path: Path) -> dict:
     named as such — totalTokens covers each subagent's last request only).
     """
     counts = {"frontier": 0, "mid": 0, "fast": 0, "inherit": 0, "unknown": 0}
-    flags = {"report_over_cap": 0, "brief_over_cap": 0, "frontier_readonly": 0}
+    flags = {
+        "report_over_cap": 0,
+        "brief_over_cap": 0,
+        "frontier_readonly": 0,
+        "nested_dispatch": 0,
+    }
     types: dict[str, int] = {}
+    nested_callers: dict[str, int] = {}
     over = 0
     n = 0
     brief_words = 0
     report_words = 0
     final_tokens = 0
     no_report = 0
-    try:
-        if not path.is_file() or path.stat().st_size > _MAX_LEDGER_SCAN_BYTES:
-            return {
-                "n": n,
-                "counts": counts,
-                "over_cap": over,
-                "flags": flags,
-                "types": types,
-                "brief_words": brief_words,
-                "report_words": report_words,
-                "final_request_tokens_lower_bound": final_tokens,
-                "no_report": no_report,
-            }
-        for line in path.read_text(encoding="utf-8", errors="replace").splitlines():
-            try:
-                rec = json.loads(line)
-            except ValueError:
-                continue
-            if not isinstance(rec, dict):
-                continue
-            n += 1
-            counts[rec.get("tier") if rec.get("tier") in counts else "unknown"] += 1
-            for f in rec.get("flags") or []:
-                if f in flags:
-                    flags[f] += 1
-            if "report_over_cap" in (rec.get("flags") or []):
-                over += 1
-            st = str(rec.get("subagent_type") or "general-purpose")
-            types[st] = types.get(st, 0) + 1
-            bw = rec.get("brief_words")
-            rw = rec.get("report_words")
-            ft = rec.get("final_request_total_tokens")
-            if isinstance(bw, int):
-                brief_words += bw
-            if isinstance(rw, int):
-                report_words += rw
-            else:
-                no_report += 1
-            if isinstance(ft, int):
-                final_tokens += ft
-    except OSError:
-        pass
+    max_depth = 0
+    depth_floor_only = False
+    for rec in _ledger_records(path):
+        n += 1
+        counts[rec.get("tier") if rec.get("tier") in counts else "unknown"] += 1
+        for f in rec.get("flags") or []:
+            if f in flags:
+                flags[f] += 1
+        if "report_over_cap" in (rec.get("flags") or []):
+            over += 1
+        st = str(rec.get("subagent_type") or "general-purpose")
+        types[st] = types.get(st, 0) + 1
+        bw = rec.get("brief_words")
+        rw = rec.get("report_words")
+        ft = rec.get("final_request_total_tokens")
+        if isinstance(bw, int):
+            brief_words += bw
+        if isinstance(rw, int):
+            report_words += rw
+        else:
+            no_report += 1
+        if isinstance(ft, int):
+            final_tokens += ft
+        if rec.get("nested"):
+            ct = str(rec.get("caller_agent_type") or "?")
+            nested_callers[ct] = nested_callers.get(ct, 0) + 1
+    # Depth is resolved over the COMPLETE ledger, not read from the lines: live,
+    # PostToolUse fires for the child before the caller's own dispatch completes,
+    # so at write time the caller's line does not exist yet and every nested line
+    # is recorded as the floor "2, lower bound" (observed 2026-09-14 on a real
+    # main -> coord1 -> coord2 -> leaf run: leaf's line landed first, then
+    # coord2's, then coord1's). By summary time the chain is all there.
+    for d, floor in _resolve_depths(_ledger_records(path)).values():
+        if d > max_depth or (d == max_depth and depth_floor_only and not floor):
+            max_depth = d
+            depth_floor_only = floor
     return {
         "n": n,
         "counts": counts,
@@ -323,7 +400,83 @@ def _tally(path: Path) -> dict:
         "report_words": report_words,
         "final_request_tokens_lower_bound": final_tokens,
         "no_report": no_report,
+        "nested": flags["nested_dispatch"],
+        "nested_callers": nested_callers,
+        "max_depth": max_depth,
+        "max_depth_is_lower_bound": depth_floor_only,
     }
+
+
+def _ledger_records(path: Path):
+    """Yield the parsed dict lines of a ledger; silent on a missing/oversized/unreadable file."""
+    try:
+        if not path.is_file() or path.stat().st_size > _MAX_LEDGER_SCAN_BYTES:
+            return
+        text = path.read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        return
+    for line in text.splitlines():
+        try:
+            rec = json.loads(line)
+        except ValueError:
+            continue
+        if isinstance(rec, dict):
+            yield rec
+
+
+def _resolve_depths(records) -> dict[str, tuple[int, bool]]:
+    """agent_id -> (depth, is_lower_bound), resolved over a COMPLETE ledger.
+
+    Walks each line's `caller_agent_id` chain: a line with no caller is depth 1;
+    a caller that has its own line is that line's depth + 1; a caller the ledger
+    never saw spawned stops the walk at a floor of 2 (marked). This is the
+    post-hoc counterpart of the write-time `depth` field — the write-time value
+    is a floor whenever the caller's line had not landed yet, which live is
+    always the case for a nested child (its PostToolUse fires inside the caller,
+    before the caller's own dispatch completes). Cycle-safe: a malformed ledger
+    whose ids loop resolves to a floor rather than recursing forever.
+    """
+    parent: dict[str, str | None] = {}
+    for rec in records:
+        aid = rec.get("agent_id")
+        if isinstance(aid, str) and aid:
+            cid = rec.get("caller_agent_id")
+            parent[aid] = cid if isinstance(cid, str) and cid else None
+    out: dict[str, tuple[int, bool]] = {}
+    for aid in parent:
+        depth, floor, seen, cur = 1, False, {aid}, parent[aid]
+        while cur is not None:
+            if cur not in parent or cur in seen:
+                # unknown caller (never seen spawned) or a loop: the child sits
+                # at >= 2 above where the walk stopped, and that is all we know.
+                depth, floor = depth + 1, True
+                break
+            seen.add(cur)
+            depth += 1
+            cur = parent[cur]
+        out[aid] = (depth, floor)
+    return out
+
+
+def _depth_index(path: Path) -> dict[str, int]:
+    """spawned agent_id -> the depth that dispatch was recorded at.
+
+    This is how a nested dispatch reconstructs its chain AT WRITE TIME: the hook
+    input names the CALLER's agent_id; if that id was itself spawned in this
+    session and its line has already landed, the ledger knows how deep it sits.
+    Live, the caller's line usually has NOT landed yet (child-first hook order),
+    so the write-time value is a floor and `_tally` re-resolves the chain over
+    the complete ledger with `_resolve_depths`. Built from the same bounded scan
+    as `_tally`, so a rotated or oversized ledger yields an empty index and the
+    record falls back to the stated lower bound.
+    """
+    idx: dict[str, int] = {}
+    for rec in _ledger_records(path):
+        aid = rec.get("agent_id")
+        d = rec.get("depth")
+        if isinstance(aid, str) and aid and isinstance(d, int):
+            idx[aid] = d
+    return idx
 
 
 def render_summary(tally: dict, session: str, path: Path) -> str:
@@ -354,14 +507,41 @@ def render_summary(tally: dict, session: str, path: Path) -> str:
         f"  handoff    : briefs {tally['brief_words']} words total, reports {tally['report_words']} words total"
         + (f" ({tally['no_report']} background/no-report)" if tally["no_report"] else ""),
         f"  flags      : report_over_cap {f['report_over_cap']} · brief_over_cap {f['brief_over_cap']}"
-        f" · frontier_readonly {f['frontier_readonly']}",
+        f" · frontier_readonly {f['frontier_readonly']} · nested_dispatch {f['nested_dispatch']}",
+        _render_nesting_row(tally),
         f"  tokens     : ≥ {tally['final_request_tokens_lower_bound']} (sum of each worker's FINAL request only — a lower bound, not the run total)",
         "  reading it : savings come from the price mix — the fast+mid share should carry the volume;",
         "               frontier_readonly > 0 means a search ran at flagship rates (explore-tier-pin closes that);",
-        "               report_over_cap > 0 means you re-read narrative at premium input rates — ask for artifact pointers.",
+        "               report_over_cap > 0 means you re-read narrative at premium input rates — ask for artifact pointers;",
+        "               nested_dispatch > 0 means a called agent called an agent — that hop's report was re-read at the",
+        "               CALLER's tier and never reached you, the subtree ran at whatever tier the caller chose, and a",
+        "               background (async_launched) child may have finished AFTER its caller returned. The house rule",
+        "               is single-orchestrator (Gate 289); it happened anyway because the caller is a built-in",
+        "               (general-purpose / claude hold every subagent tool), a fork, or a project-local agent listing",
+        "               `Agent`. Stop it: CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH=1 in settings.json env. Keep it: only",
+        "               frontier-parent -> fast read-only leaf is sanctioned (docs/decisions/2026-09-14-nested-dispatch-determination.md).",
         f"  ledger     : {path}",
     ]
     return "\n".join(lines)
+
+
+def _render_nesting_row(tally: dict) -> str:
+    n_nested = tally.get("nested", 0)
+    if not n_nested:
+        return "  nesting    : none — every dispatch came from the main thread (single-orchestrator held)"
+    callers = ", ".join(
+        f"{k} ×{v}" for k, v in sorted(tally["nested_callers"].items(), key=lambda kv: -kv[1])
+    )
+    depth = tally.get("max_depth", 0)
+    floor = (
+        " (a lower bound — the caller's own spawn was not in this ledger)"
+        if tally.get("max_depth_is_lower_bound")
+        else ""
+    )
+    return (
+        f"  nesting    : {n_nested} nested dispatch(es) by {callers}; deepest layer {depth}{floor}"
+        " — set CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH=1 to turn nesting off"
+    )
 
 
 _FLAG_TEXT = {
@@ -385,19 +565,49 @@ _FLAG_TEXT = {
         "Explore, explore-tier-pin.sh did not rewrite it — check `handoff_tax.pin_explore` "
         "and that CLAUDE_CODE_SUBAGENT_MODEL is unset."
     ),
+    # `nested_dispatch` has no spoken text on purpose: the flag only ever fires
+    # when the hook ran INSIDE a subagent, and additionalContext from there is read
+    # by that subagent, never by the Team Lead. Its guidance lives in the
+    # `--summary` nesting row and the "reading it" lines, which the Team Lead does
+    # read (see render_advisory).
 }
 
 
+def _depth_phrase(rec: dict) -> str:
+    d = rec.get("depth")
+    if not isinstance(d, int):
+        return "an unknown number of layers"
+    layers = f"{d} layer{'s' if d != 1 else ''}"
+    return f"at least {layers}" if rec.get("depth_is_lower_bound") else layers
+
+
 def render_advisory(rec: dict, tally: dict) -> str:
-    if not rec["flags"]:
+    """The additionalContext text — or "" when there is nothing the READER can act on.
+
+    Who reads it depends on where the hook fired. A PostToolUse hook's
+    additionalContext goes back to whoever made the tool call: on the main
+    thread that is the Team Lead; inside a subagent it is THAT SUBAGENT, and the
+    Team Lead never sees it. So for a nested dispatch the `nested_dispatch` flag
+    itself is not spoken here — its text is addressed to the orchestrator
+    ("a called agent called an agent, not you") and, read by the calling worker,
+    it is noise at best and a derail at worst (observed live 2026-09-14: the
+    coordinator spent its report explaining the notice as "injected content"
+    instead of relaying its child's answer). The flag is still recorded on the
+    ledger line and surfaced by `--summary`, which the Team Lead does read. The
+    per-dispatch flags (report / brief caps, frontier read-only) ARE spoken to a
+    nested caller — it is the one paying that tax — with a footer that tells it
+    not to carry the notice into its report.
+    """
+    spoken = [f for f in rec["flags"] if not (rec.get("nested") and f == "nested_dispatch")]
+    if not spoken:
         return ""
     lines = [
         "",
         "────────────────────────────────────────────────────────────────────",
         f"  ⚖  Handoff-tax meter — dispatch of `{rec['subagent_type']}` "
-        f"(tier: {rec['tier']}) tripped {len(rec['flags'])} flag(s):",
+        f"(tier: {rec['tier']}) tripped {len(spoken)} flag(s):",
     ]
-    for f in rec["flags"]:
+    for f in spoken:
         txt = _FLAG_TEXT[f].format(
             report_words=rec["report_words"],
             report_cap=rec["caps"]["report"],
@@ -405,16 +615,34 @@ def render_advisory(rec: dict, tally: dict) -> str:
             brief_cap=rec["caps"]["brief"],
             subagent_type=rec["subagent_type"],
             model=rec["resolved_model"] or rec["requested_model"] or "?",
+            caller_agent_type=rec.get("caller_agent_type") or "?",
+            caller_agent_id=rec.get("caller_agent_id") or "?",
+            depth_phrase=_depth_phrase(rec),
         )
         lines.append(f"    • {txt}")
+    if rec.get("nested"):
+        # The reader is the calling SUBAGENT. Keep it to what it can act on and
+        # tell it to leave the notice out of its report.
+        lines += [
+            "",
+            "  You are a subagent and this notice is about the dispatch you just made. It is",
+            "  ADVISORY — nothing was blocked. Act on it in your next brief if you dispatch again;",
+            "  do not mention it in your report — the orchestrator reads the ledger, not this.",
+            "────────────────────────────────────────────────────────────────────",
+            "",
+        ]
+        return "\n".join(lines)
     c = tally["counts"]
     other = c["inherit"] + c["unknown"]
+    nested = tally.get("nested", 0)
     lines += [
         "",
         f"  Session so far: {tally['n']} dispatch(es) — frontier {c['frontier']} / "
         f"mid {c['mid']} / fast {c['fast']}"
         + (f" / other {other}" if other else "")
-        + f"; {tally['over_cap']} over the report cap.",
+        + f"; {tally['over_cap']} over the report cap"
+        + (f"; {nested} nested" if nested else "")
+        + ".",
         "  Savings come from the price mix, not from a quieter agent: the volume belongs on",
         "  haiku/sonnet, the judgment stays here. Reference:",
         "  plugins/ravenclaude-core/knowledge/model-tier-delegation.md",
@@ -434,9 +662,12 @@ def observe(payload: dict, root: Path) -> tuple[str, str]:
     if payload.get("tool_name") not in ("Agent", "Task"):
         return "OK", ""
     posture = read_posture(root)
-    rec = analyse(payload, posture)
     session = _session_id(payload)
     lp = ledger_path(root, session)
+    # The depth index is only needed when the hook fired inside a subagent;
+    # skip the ledger scan on the common main-thread path.
+    idx = _depth_index(lp) if _caller_of(payload)[0] is not None else None
+    rec = analyse(payload, posture, idx)
     _append_ledger(lp, rec, session)
     if not rec["flags"]:
         return "OK", ""
@@ -457,11 +688,14 @@ def _payload(
     resolved: str | None = None,
     subagent_type: str = "scout",
     status: str = "completed",
+    agent_id: str = "a1",
+    caller: tuple[str, str] | None = None,
 ) -> dict:
+    """`caller=(agent_id, agent_type)` makes the payload look like a hook that fired INSIDE that subagent."""
     ti = {"prompt": prompt, "description": "t", "subagent_type": subagent_type}
     if model:
         ti["model"] = model
-    resp: dict = {"status": status, "agentId": "a1"}
+    resp: dict = {"status": status, "agentId": agent_id}
     if resolved:
         resp["resolvedModel"] = resolved
     if report is not None and status == "completed":
@@ -470,7 +704,10 @@ def _payload(
         resp["totalToolUseCount"] = 3
         resp["totalDurationMs"] = 999
         resp["usage"] = {"output_tokens": 77}
-    return {"session_id": "selftest", "tool_name": "Agent", "tool_input": ti, "tool_response": resp}
+    out = {"session_id": "selftest", "tool_name": "Agent", "tool_input": ti, "tool_response": resp}
+    if caller:
+        out["agent_id"], out["agent_type"] = caller
+    return out
 
 
 def self_test() -> int:
@@ -641,6 +878,207 @@ def self_test() -> int:
         check(
             "no tool_name -> OK, no ledger line",
             sig == "OK" and lp.read_text().count("\n") == before,
+        )
+
+        # ── nested dispatch: a called agent called an agent ──────────────────
+        # Before any nested line exists, the summary must say nesting held.
+        (root / ".ravenclaude" / "comfort-posture.yaml").write_text("schema_version: 5\n")
+        t0 = _tally(lp)
+        check(
+            "nesting: no nested lines yet -> tally 0 and summary says single-orchestrator held",
+            t0["nested"] == 0 and "single-orchestrator held" in render_summary(t0, "s", lp),
+        )
+        last = json.loads(lp.read_text().splitlines()[-1])
+        check(
+            "nesting: a main-thread dispatch records nested=false, depth 1, no caller",
+            last["nested"] is False
+            and last["depth"] == 1
+            and last["caller_agent_id"] is None
+            and last["depth_is_lower_bound"] is False,
+        )
+        # Main thread spawns `gp1` (a general-purpose worker, depth 1) ...
+        observe(
+            _payload(
+                prompt=short,
+                report=short,
+                subagent_type="general-purpose",
+                resolved="claude-sonnet-5",
+                agent_id="gp1",
+            ),
+            root,
+        )
+        # ... and the hook then fires INSIDE gp1 as it dispatches a scout of its own.
+        sig, adv = observe(
+            _payload(
+                prompt=short,
+                report=short,
+                subagent_type="scout",
+                resolved="claude-haiku-4-5-20251001",
+                agent_id="sc2",
+                caller=("gp1", "general-purpose"),
+            ),
+            root,
+        )
+        last = json.loads(lp.read_text().splitlines()[-1])
+        check(
+            "nesting: caller agent_id present -> SIGNAL nested_dispatch",
+            sig == "SIGNAL nested_dispatch",
+        )
+        check(
+            "nesting: ledger records the caller id + type",
+            last["nested"] is True
+            and last["caller_agent_id"] == "gp1"
+            and last["caller_agent_type"] == "general-purpose",
+        )
+        check(
+            "nesting: depth reconstructed from the caller's own ledger line (1 + 1 = 2, exact)",
+            last["depth"] == 2 and last["depth_is_lower_bound"] is False,
+        )
+        # The reader of this hook's additionalContext is gp1 — the calling
+        # subagent — not the Team Lead, so the nested-only flag is recorded but
+        # NOT spoken (observed live 2026-09-14: the spoken version derailed the
+        # caller's report). The ledger + --summary carry it to the orchestrator.
+        check(
+            "nesting: nested_dispatch alone -> ledger flag set, NO advisory text (reader would be the caller subagent)",
+            "nested_dispatch" in last["flags"] and adv == "",
+        )
+        # A per-dispatch flag the CALLER pays for IS spoken to it, addressed as a
+        # subagent, without the nested_dispatch paragraph, with the do-not-relay footer.
+        _, adv_over = observe(
+            _payload(
+                prompt=short,
+                report=long_report,
+                subagent_type="scout",
+                resolved="claude-haiku-4-5-20251001",
+                agent_id="sc2b",
+                caller=("gp1", "general-purpose"),
+            ),
+            root,
+        )
+        check(
+            "nesting: over-cap report inside a subagent -> advisory spoken to the caller, worker-addressed footer, no nested paragraph",
+            "report_over_cap" in adv_over
+            and "tripped 1 flag(s)" in adv_over
+            and "You are a subagent" in adv_over
+            and "do not mention it in your report" in adv_over
+            and "a called agent called an agent" not in adv_over
+            and "Session so far" not in adv_over,
+        )
+        # Third layer: sc2 (depth 2) dispatches again -> depth 3.
+        observe(
+            _payload(
+                prompt=short,
+                report=short,
+                subagent_type="Explore",
+                resolved="claude-haiku-4-5-20251001",
+                agent_id="ex3",
+                caller=("sc2", "scout"),
+            ),
+            root,
+        )
+        last = json.loads(lp.read_text().splitlines()[-1])
+        check("nesting: a third layer chains to depth 3", last["depth"] == 3)
+        # A caller the ledger never saw spawned -> depth is a FLOOR, said so.
+        sig, adv = observe(
+            _payload(
+                prompt=short,
+                report=short,
+                subagent_type="scout",
+                resolved="claude-haiku-4-5-20251001",
+                agent_id="sc9",
+                caller=("ghost", "claude"),
+            ),
+            root,
+        )
+        last = json.loads(lp.read_text().splitlines()[-1])
+        check(
+            "nesting: unknown caller -> depth 2 marked as a lower bound on the ledger line",
+            last["depth"] == 2 and last["depth_is_lower_bound"] is True and adv == "",
+        )
+        # agent_type WITHOUT agent_id is a `claude --agent` session, not nesting.
+        p = _payload(prompt=short, report=short, resolved="claude-haiku-4-5-20251001")
+        p["agent_type"] = "team-lead"
+        sig, _ = observe(p, root)
+        last = json.loads(lp.read_text().splitlines()[-1])
+        check(
+            "nesting: agent_type alone (a --agent session) is NOT nesting",
+            sig == "OK" and last["nested"] is False and last["depth"] == 1,
+        )
+        # a blank agent_id is not an id
+        p = _payload(prompt=short, report=short, resolved="claude-haiku-4-5-20251001")
+        p["agent_id"] = "   "
+        check("nesting: blank agent_id is not a caller", observe(p, root)[0] == "OK")
+        # ledger v2 lines carry the nesting keys; the flag is tallied.
+        t = _tally(lp)
+        check(
+            "nesting: tally counts nested lines, callers and the deepest layer",
+            t["nested"] == 4
+            and t["nested_callers"] == {"general-purpose": 2, "scout": 1, "claude": 1}
+            and t["max_depth"] == 3
+            and t["max_depth_is_lower_bound"] is False,
+        )
+        txt = render_summary(t, "selftest", lp)
+        check(
+            "nesting: summary row names the count, callers, depth and the off-switch",
+            "4 nested dispatch(es)" in txt
+            and "deepest layer 3" in txt
+            and "CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH=1" in txt
+            and "nested_dispatch 4" in txt,
+        )
+        # LIVE ORDER: hooks fire child-first (observed 2026-09-14 on a real
+        # main -> coord1 -> coord2 -> leaf run), so the leaf's line lands before
+        # its caller's. The write-time depth is then an honest floor, and the
+        # summary must still resolve the true chain from the complete ledger.
+        live = []
+        for aid, st, caller in (
+            ("leaf", "leaf", ("coord2", "coord2")),
+            ("coord2", "coord2", ("coord1", "coord1")),
+            ("coord1", "coord1", None),
+        ):
+            p = _payload(
+                prompt=short,
+                report=short,
+                subagent_type=st,
+                agent_id=aid,
+                caller=caller,
+                resolved="claude-haiku-4-5-20251001" if aid == "leaf" else "claude-sonnet-5",
+            )
+            p["session_id"] = "liveorder"
+            observe(p, root)
+            live.append(json.loads(ledger_path(root, "liveorder").read_text().splitlines()[-1]))
+        check(
+            "live order: leaf written first -> write-time depth is the floor 2, marked as such",
+            live[0]["depth"] == 2 and live[0]["depth_is_lower_bound"] is True,
+        )
+        tl = _tally(ledger_path(root, "liveorder"))
+        check(
+            "live order: tally re-resolves the chain -> deepest layer 3, exact (not a floor)",
+            tl["max_depth"] == 3 and tl["max_depth_is_lower_bound"] is False,
+        )
+        txt = render_summary(tl, "liveorder", ledger_path(root, "liveorder"))
+        check(
+            "live order: summary says 'deepest layer 3' with no lower-bound caveat",
+            "deepest layer 3" in txt and "lower bound —" not in txt,
+        )
+        rd = _resolve_depths(
+            [
+                {"agent_id": "x", "caller_agent_id": "y"},
+                {"agent_id": "y", "caller_agent_id": "x"},
+                {"agent_id": "z", "caller_agent_id": "nobody"},
+            ]
+        )
+        check(
+            "resolve: a looped chain and an unknown caller both stop at a marked floor, never recurse",
+            rd["x"][1] is True and rd["y"][1] is True and rd["z"] == (2, True),
+        )
+        # must-fail canary for the leg: strip agent_id and the flag MUST vanish.
+        clean = analyse(
+            _payload(prompt=short, report=short, resolved="claude-haiku-4-5-20251001"),
+            read_posture(root),
+        )
+        check(
+            "nesting canary: no caller -> no nested_dispatch flag",
+            "nested_dispatch" not in clean["flags"],
         )
 
         # --summary rollup reads the same ledger: tier mix, flags, worker types,

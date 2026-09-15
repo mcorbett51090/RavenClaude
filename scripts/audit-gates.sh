@@ -379,7 +379,7 @@ _suite_gate_tokens() { # $1=suite name -> echoes space-separated gate tokens; re
       # independently claimed 282 for claude-launch-safeguard while this
       # branch was unmerged, same "no better-fit suite" reasoning as
       # 173/175/193/194/267-281 above).
-      echo "1 2 8 18 46 47 92 129 173 175 193 194 195 226 267 268 269 270 271 272 273 274 275 276 277 278 279 280 281 282 283 284 287 288"
+      echo "1 2 8 18 46 47 92 129 173 175 193 194 195 226 267 268 269 270 271 272 273 274 275 276 277 278 279 280 281 282 283 284 287 288 289"
       ;;
     security)
       # Gaps: 24 (Track B Engine Foundation — defines DECP, consumed by
@@ -2009,9 +2009,16 @@ PY
       rc_mustfail python3 scripts/check-model-tier-fit.py || rc=$?
       exit $rc
       ;;
+    289)
+      echo "── Gate 289: nested dispatch — no agent tools: grants Agent/Task/* without a reasoned exemption (per-gate run) ──"
+      rc=0
+      python3 scripts/check-nested-dispatch.py --check || rc=$?
+      rc_mustfail python3 scripts/check-nested-dispatch.py || rc=$?
+      exit $rc
+      ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254, 255, 256, 257, 258, 259, 260, 261, 262, 263, 264, 265, 266, 267, 268, 269, 280, 281, 282, 283, 284, 285, 286, 287, 288. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254, 255, 256, 257, 258, 259, 260, 261, 262, 263, 264, 265, 266, 267, 268, 269, 280, 281, 282, 283, 284, 285, 286, 287, 288, 289. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -6762,6 +6769,29 @@ rc=0; python3 scripts/check-model-tier-fit.py --check >/dev/null 2>&1 || rc=$?
 gate "model-tier fit: every core merge gate on the frontier tier, no implementer on a frontier alias, core scout on haiku, no stale exemption" must_pass "$rc"
 rc=0; rc_mustfail python3 scripts/check-model-tier-fit.py >/dev/null 2>&1 || rc=$?
 gate "model-tier fit teeth: implementer-on-frontier (name + verb) / gate-below-frontier / core-scout-above-haiku / stale exemption bite; controls pass" must_pass "$rc"
+echo "── Gate 289: nested dispatch (no shipped agent may be able to call agents unless it says so, by name, with a reason) ──"
+# "Sub-agents do not spawn other sub-agents" is a house rule, not a platform
+# limit: Claude Code nests three deep by default (v2.1.219). What actually
+# keeps a roster agent from nesting is its `tools:` allow-list — the platform
+# doc's own instruction is "omit `Agent` from its `tools` list" [docs-verified
+# 2026-09-14]. On 2026-09-14 all 623 agents omitted it, by authoring habit; the
+# only guard was guard-recursive-spawn.sh, a PostToolUse grep over PROSE that
+# warns after the write and cannot block. This gate reads the DECLARATION: a
+# `tools:` that carries `Agent`, `Agent(...)`, the alias `Task`, or the
+# wildcard `*` fails unless the agent is exempted BY NAME with a reason in
+# tests/fixtures/nested-dispatch-exemptions.json; a stale or reasonless
+# exemption fails. `Agent(scout)` is NOT a scoped grant — in a subagent
+# definition the type list is ignored by the platform, so it fails with that
+# reason. Teeth: inline / block / flow-sequence `Agent`, `Task`, `"*"` and
+# `Agent(scout)` all fail; stale + reasonless exemptions fail; a reasoned
+# exemption passes with an advisory; `Bash(git a, b)` (comma inside parens),
+# TaskOutput / TaskStop / AgentMap and `disallowedTools: Agent` pass clean;
+# an empty roster is not a pass. The determination this enforces:
+# docs/decisions/2026-09-14-nested-dispatch-determination.md.
+rc=0; python3 scripts/check-nested-dispatch.py --check >/dev/null 2>&1 || rc=$?
+gate "nested dispatch: no agent tools: allow-list grants Agent / Task / * without a reasoned, non-stale exemption" must_pass "$rc"
+rc=0; rc_mustfail python3 scripts/check-nested-dispatch.py >/dev/null 2>&1 || rc=$?
+gate "nested dispatch teeth: Agent / Task / * / Agent(scout) / block + flow forms / stale + reasonless exemption bite; clean allow-lists and look-alikes pass" must_pass "$rc"
 echo "── Gate 123: design-project binding surfacing (bound / half-set / absent / leak-safe) ──"
 rc=0; bash plugins/ravenclaude-core/hooks/tests/test-gate123-design-project-binding.sh >/dev/null 2>&1 || rc=$?
 gate "design-project binding: surfaces when bound + guides when half-set + silent when absent + leak-safe + teeth" must_pass "$rc"

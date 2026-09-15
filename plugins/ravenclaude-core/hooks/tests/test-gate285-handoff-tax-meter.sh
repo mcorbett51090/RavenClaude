@@ -128,6 +128,89 @@ else
   fail "F: ledger leaked prompt/report text"
 fi
 
+# ── H: nested dispatch — the hook fired INSIDE a subagent ────────────────────
+# Hooks run inside subagents and the input then carries the caller's agent_id /
+# agent_type as top-level fields (hooks doc § common input fields, 2026-09-14).
+# First the main thread spawns gp1; then gp1's own dispatch of a haiku scout
+# arrives with agent_id=gp1. The child is within every cap and on the cheap
+# tier, so the ONLY thing that can fire is the nesting itself — and that flag is
+# recorded, NOT spoken: additionalContext from a hook that fired inside gp1 is
+# read by gp1, never by the Team Lead (observed live 2026-09-14 — the spoken
+# version derailed the caller's report). The ledger + --summary carry it up.
+run_hook "$(payload sH general-purpose claude-sonnet-5 "$SHORT" | jq -c '.tool_response.agentId="gp1"')" "$PROJ" >/dev/null
+nested="$(payload sH scout claude-haiku-4-5-20251001 "$SHORT" \
+  | jq -c '.tool_response.agentId="sc2" | .agent_id="gp1" | .agent_type="general-purpose"')"
+out="$(run_hook "$nested" "$PROJ")"
+LH="$PROJ/.ravenclaude/runs/sH/dispatch-ledger.jsonl"
+[[ -z "$out" ]] \
+  && pass "H1: nested_dispatch alone -> SILENT on stdout (the reader would be the caller subagent, not the Team Lead)" \
+  || fail "H1: nested-only dispatch spoke to the caller subagent: $(printf '%s' "$out" | head -c 160)"
+# H2: a flag the CALLER pays for (over-cap report) IS spoken to it, addressed as
+# a subagent, without the nested paragraph, with the do-not-relay footer.
+over="$(payload sH scout claude-haiku-4-5-20251001 "$LONG" \
+  | jq -c '.tool_response.agentId="sc2b" | .agent_id="gp1" | .agent_type="general-purpose"')"
+out2="$(run_hook "$over" "$PROJ")"
+if printf '%s' "$out2" | jq -e '.hookSpecificOutput.additionalContext' >/dev/null 2>&1; then
+  ctx="$(printf '%s' "$out2" | jq -r '.hookSpecificOutput.additionalContext')"
+  if printf '%s' "$ctx" | grep -q "report_over_cap" && printf '%s' "$ctx" | grep -q "You are a subagent" \
+     && printf '%s' "$ctx" | grep -q "do not mention it in your report" \
+     && ! printf '%s' "$ctx" | grep -q "a called agent called an agent" \
+     && ! printf '%s' "$ctx" | grep -q "Session so far"; then
+    pass "H2: over-cap report inside a subagent -> advisory spoken to the caller, worker-addressed, no nested paragraph"
+  else
+    fail "H2: nested advisory has the wrong shape: $(printf '%s' "$ctx" | tr '\n' ' ' | head -c 240)"
+  fi
+else
+  fail "H2: over-cap report inside a subagent produced no additionalContext"
+fi
+if [[ -f "$LH" ]] && [[ "$(wc -l <"$LH" | tr -d ' ')" == "3" ]]; then
+  first_depth="$(sed -n 1p "$LH" | jq -r '.depth')"; first_nested="$(sed -n 1p "$LH" | jq -r '.nested')"
+  last="$(sed -n 2p "$LH")"
+  [[ "$first_depth" == "1" && "$first_nested" == "false" ]] \
+    && pass "H3: the main-thread spawn is depth 1, nested=false" \
+    || fail "H3: main-thread line wrong (depth=$first_depth nested=$first_nested)"
+  if [[ "$(printf '%s' "$last" | jq -r '.nested')" == "true" \
+     && "$(printf '%s' "$last" | jq -r '.caller_agent_id')" == "gp1" \
+     && "$(printf '%s' "$last" | jq -r '.caller_agent_type')" == "general-purpose" \
+     && "$(printf '%s' "$last" | jq -r '.depth')" == "2" \
+     && "$(printf '%s' "$last" | jq -r '.depth_is_lower_bound')" == "false" ]]; then
+    pass "H4: the nested line records caller id/type and reconstructs depth 2 (exact, from gp1's own line)"
+  else
+    fail "H4: nested ledger line wrong: $(printf '%s' "$last" | head -c 240)"
+  fi
+  [[ "$(printf '%s' "$last" | jq -r '.schema_version')" == "2" ]] \
+    && pass "H5: ledger line is schema_version 2 (the nesting keys are versioned in)" \
+    || fail "H5: schema_version not 2"
+else
+  fail "H3-H5: expected exactly 3 ledger lines for sH (got $([[ -f "$LH" ]] && wc -l <"$LH" || echo none))"
+fi
+# H6 (control): the same child dispatched from the MAIN thread is silent — the
+# flag keys on agent_id, so B's silence and H1's advisory differ by that field alone.
+out="$(run_hook "$(payload sH2 scout claude-haiku-4-5-20251001 "$SHORT")" "$PROJ")"
+[[ -z "$out" ]] && pass "H6 (control): identical dispatch WITHOUT agent_id -> silent (the flag is load-bearing on agent_id)" \
+  || fail "H6: main-thread dispatch produced output: $(printf '%s' "$out" | head -c 120)"
+# H7 (live order): in a real run the child's PostToolUse fires INSIDE the caller,
+# so lines land child-first (observed 2026-09-14 on Claude Code 2.1.271:
+# main -> coord1 -> coord2 -> leaf wrote leaf, coord2, coord1). The write-time
+# depth is then an honest floor and --summary must resolve the true chain.
+run_hook "$(payload sH3 leaf claude-haiku-4-5-20251001 "$SHORT" \
+  | jq -c '.tool_response.agentId="leaf" | .agent_id="coord2" | .agent_type="coord2"')" "$PROJ" >/dev/null
+run_hook "$(payload sH3 coord2 claude-sonnet-5 "$SHORT" \
+  | jq -c '.tool_response.agentId="coord2" | .agent_id="coord1" | .agent_type="coord1"')" "$PROJ" >/dev/null
+run_hook "$(payload sH3 coord1 claude-sonnet-5 "$SHORT" \
+  | jq -c '.tool_response.agentId="coord1"')" "$PROJ" >/dev/null
+LH3="$PROJ/.ravenclaude/runs/sH3/dispatch-ledger.jsonl"
+first="$(head -n1 "$LH3" 2>/dev/null)"
+[[ "$(printf '%s' "$first" | jq -r '.depth')" == "2" && "$(printf '%s' "$first" | jq -r '.depth_is_lower_bound')" == "true" ]] \
+  && pass "H7a (live order): leaf written first -> its line carries the floor (depth 2, lower bound) honestly" \
+  || fail "H7a: leaf line not recorded as a floor: $(printf '%s' "$first" | head -c 200)"
+sum="$(CLAUDE_PROJECT_DIR="$PROJ" python3 "$METER" --summary --session sH3 2>/dev/null)"
+if printf '%s' "$sum" | grep -q "deepest layer 3" && ! printf '%s' "$sum" | grep -q "lower bound —"; then
+  pass "H7b (live order): --summary re-resolves the caller chain -> deepest layer 3, exact"
+else
+  fail "H7b: summary did not resolve the chain: $(printf '%s' "$sum" | grep nesting | head -c 200)"
+fi
+
 # ── G: teeth ─────────────────────────────────────────────────────────────────
 if python3 "$METER" --self-test >/dev/null 2>&1; then
   pass "G1: handoff-tax-meter.py --self-test passes (contains its own must-fail canary)"
