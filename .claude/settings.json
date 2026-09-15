@@ -344,6 +344,12 @@
             "command": "bash \"${CLAUDE_PROJECT_DIR}/plugins/ravenclaude-core/scripts/caveman-route-hook.sh\" --event session",
             "timeout": 10,
             "comment": "Marketplace-dev hook (dev-mirror). Caveman auto-routing (FORGE P3 — SHADOW ONLY), SessionStart half of the same hook body registered under UserPromptSubmit above. Joins this EXISTING startup|resume|clear|fork matcher group deliberately — no `compact` entry, no new matcher block. The plugin's hooks/hooks.json registers the same script for consumers via ${CLAUDE_PLUGIN_ROOT}."
+          },
+          {
+            "type": "command",
+            "command": "${CLAUDE_PROJECT_DIR}/plugins/ravenclaude-core/hooks/oath-hook.sh",
+            "timeout": 10,
+            "comment": "Marketplace-dev hook (dev-mirror of the plugin's hooks/hooks.json entry). Oath-hook (GUPP): if ledger-backed Runes hang on this actor's hook, inject MUST-RUN additionalContext. Fail-silent; SessionStart cannot block. Longship land-request never merges — Sage sole SCM."
           }
         ]
       },

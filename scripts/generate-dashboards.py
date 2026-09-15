@@ -1184,6 +1184,7 @@ _PIPELINE_EXCLUDED_HOOKS = {
     "FOREIGN-TREE is the third clause (sibling Write / git -C); deliberately NOT a Pipeline stage card",
     "thing-denial-kb-sync.sh": "Muninn denial-KB materialiser (Stop); learns from tribunal denials, not itself a guardrail",
     "thing-denial-kb-recall.sh": "Muninn denial-KB recall (SessionStart); surfaces known denials + fixes, not a guardrail",
+    "oath-hook.sh": "Oath-hook / GUPP (SessionStart). Surfaces hanging Runes on this actor's hook via additionalContext so the session cannot silently idle with claimed work; fail-silent, never denies, never inspects a tool call. Same class as thing-denial-kb-recall.sh — informational context for the ready-queue, not a safety-floor Pipeline stage card",
     "sanitize-mcp-output.sh": "same PostToolUse quarantine as sanitize-webfetch-output.sh, extended "
     "from WebFetch to mcp__* tool results (Q1/L4, analog-repos-gap-fill leftovers). One stage card "
     "covers both — the 'Fetched-page / MCP-result cleaner' stage, mapped to sanitize-webfetch-output.sh "
