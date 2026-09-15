@@ -2053,7 +2053,7 @@ fail-safe; inert until the Thing denies.
 
 ## Prompt Builder — a premium, deterministic, client-side prompt tab (added 2026-07-26, v0.211.0)
 
-A new dashboard tab (`#/prompt-builder`, under the **Learn & Help** destination) that assembles a
+A new dashboard tab (`#/prompt-builder`, under the **Control** destination) that assembles a
 best-practice **Claude** prompt from form inputs — **Task** / **System** / **Few-shot** modes — with a
 live preview, a **cited anti-folklore quality linter** (the hero), a structure-completeness score, a
 rough token-size estimate, starter presets + a one-click pattern library, and copy/export. 100%
@@ -2089,7 +2089,7 @@ with a monotonic ratchet, seating the tab required an **owner-approved +6 raise*
 monotonic — documented as a new ratchet row.
 
 **Migration:** none — a new tab that changes nothing in an installed plugin until a consumer opens it.
-Placed under Learn & Help (the builder teaches best practices by construction and configures nothing).
+Placed under **Control** (moved from Learn & Help in v0.214+; IA SSOT is `DASH_OWNER["prompt-builder"]="control"` / Gate 144 `HOME_DESTINATION`). The builder teaches best practices by construction and configures nothing. **MH-40:** the Learn & Help placement claim above is superseded — do not re-open it.
 
 ## `/wireframe` — describe anything → validated model + high-fi Artifact + Mermaid (added 2026-07-27, v0.212.0)
 

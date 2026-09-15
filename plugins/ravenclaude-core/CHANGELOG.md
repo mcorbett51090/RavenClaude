@@ -2,6 +2,14 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.323.6 — 2026-09-15
+
+### Fixed
+- **Prompt Builder gap close (Pass 1)** — Gate 144 mount + estimate-label honesty; instructions-only linter; catalog-driven `PB_MODELS`; blank/mode entry restored; Task/Few-shot canned seeds; template-id deep link `#/prompt-builder/<tpl>`; Host Context XSS split to own sentinel/gate; a11y (meter, live debounce, severity text, nested tabpanel); save debounce; export fence; copy fallback; template apply clear+arm.
+
+### Notes
+- Matthew product rulings locked for model SSOT / canned / blank modes / lint object / URL share / Claude-only / HC ownership. No BMA. Gate 132 unchanged (JS-rendered).
+
 ## 0.323.5 — 2026-09-15
 
 ### Added
