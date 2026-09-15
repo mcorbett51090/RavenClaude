@@ -146,9 +146,16 @@ gate_floor: high
 # cache_ttl_seconds: 0
 #
 # fatigue_threshold — after the tribunal surfaces this many `ask`s in one session,
-#   append an advisory nudge (raise gate_floor / add a bypass). ADVISORY ONLY — it
-#   never auto-allows or relaxes the gate. 0 = off (default).
+#   append an advisory nudge to file a harden-registry transform (never raise
+#   gate_floor / add a bypass). ADVISORY ONLY — it never auto-allows or relaxes
+#   the gate. 0 = off (default).
 # fatigue_threshold: 0
+#
+# hardening_edit — when true, seats may propose an empty-cited safer Bash EDIT
+#   when a confident ALLOW would otherwise be surfaced as ask; a signed transform
+#   registry verifies. Fail → ask (never silent ALLOW past gate_floor). DEFAULT
+#   OFF until AppSec countersign + fixtures green.
+hardening_edit: false
 
 # ── Model diversity (automatic — no setting) ──────────────────────────────────
 # When 2+ seats convene, the engine guarantees at least TWO distinct model
