@@ -75,6 +75,14 @@ Usage:
                                         Exit 0 all-pass, 2 any host failed its declared
                                         tier, 1 could not run. Never exit 1 for a finding.
 
+  rc runes ready|claim|sling|show|open|release|hanging
+                                        Runes ready-queue over the task ledger.
+  rc ready                              Alias for 'rc runes ready'.
+  rc strand apply <formula/pack>        Expand a PE pack (formula) into child Runes.
+  rc longship open|add|land-request|show
+                                        Longship delivery batch for Sage land —
+                                        NEVER auto-merges.
+
   rc converge report <scorecard.json>            Render the constrained convergence report
                                                  (verdict + keep-best + honest residual gaps).
                                                  NEVER prints "perfect".
@@ -361,8 +369,41 @@ PY
     exec python3 "$art" "$@"
     ;;
 
+  runes)
+    shift
+    command -v python3 >/dev/null 2>&1 || {
+      echo "rc: python3 not found in PATH — 'rc runes' needs python3." >&2
+      exit 1
+    }
+    exec python3 "$PLUGIN_ROOT/scripts/runes.py" "$@"
+    ;;
+  ready)
+    # Alias: rc ready → rc runes ready
+    shift
+    command -v python3 >/dev/null 2>&1 || {
+      echo "rc: python3 not found in PATH — 'rc ready' needs python3." >&2
+      exit 1
+    }
+    exec python3 "$PLUGIN_ROOT/scripts/runes.py" ready "$@"
+    ;;
+  strand)
+    shift
+    command -v python3 >/dev/null 2>&1 || {
+      echo "rc: python3 not found in PATH — 'rc strand' needs python3." >&2
+      exit 1
+    }
+    exec python3 "$PLUGIN_ROOT/scripts/runes.py" strand "$@"
+    ;;
+  longship)
+    shift
+    command -v python3 >/dev/null 2>&1 || {
+      echo "rc: python3 not found in PATH — 'rc longship' needs python3." >&2
+      exit 1
+    }
+    exec python3 "$PLUGIN_ROOT/scripts/runes.py" longship "$@"
+    ;;
   *)
-    echo "rc: unknown command '$cmd' (try: rc dashboard | rc streams | rc hooks selftest | rc converge | rc artifacts | rc handoff | rc forge-worktree | rc forge-route | rc premise-gate | rc classify-claim)" >&2
+    echo "rc: unknown command '$cmd' (try: rc dashboard | rc streams | rc runes | rc ready | rc longship | rc strand | rc hooks selftest | rc converge | rc artifacts | rc handoff | rc forge-worktree | rc forge-route | rc premise-gate | rc classify-claim)" >&2
     _usage
     exit 1
     ;;

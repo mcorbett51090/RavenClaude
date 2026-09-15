@@ -2851,7 +2851,7 @@
       "covers": [
         "plugins/ravenclaude-core/hooks/hooks.json"
       ],
-      "covers_digest": "sha256:a767b2721b51296be60e5acff66f6734ba90a84d1f40dd78f52259b2e9af255b",
+      "covers_digest": "sha256:d6bd28391700e54ea17a3c732e4ac69c3e8fc595af24a3400d90afa229306f13",
       "nuance": "Two `additionalContext` emitters on one event concatenate rather than last-write-wins, but two `updatedToolOutput` emitters replace, so the second silently discards the first.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -2945,7 +2945,7 @@
         "scripts/sync-plugin-versions.py",
         "scripts/generate-copilot-plugin.py"
       ],
-      "covers_digest": "sha256:342ecb4d23022b5ecd481a08cdc99c7e6a1cefa25323457cf809fe7740a4f145",
+      "covers_digest": "sha256:289d4d312d67575c086f2dde99bf219b980c045c7cfb6ea847d0fb6d80cbce59",
       "nuance": "The cache key is the `version` string, never a content hash, so `sync-plugin-versions.py` can report clean while every installed session keeps running the old `hooks/` code.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -3414,7 +3414,7 @@
         "scripts/generate-dashboards.py",
         "scripts/generate-index-dashboard.py"
       ],
-      "covers_digest": "sha256:cc3a18e3b3e10337f048b271b9b88ab170fe35bb173700b72dacbadb034e21e9",
+      "covers_digest": "sha256:bcaf5f2701e0c056606260695aa0f0b70871dafedd40c0d3a75db0709880b2b7",
       "nuance": "`ISLANDED_PANEL_COST` is a flat 2 because the parser reads the payload as CDATA, so `check-dom-budget.py` cannot fire on `learn-payload` no matter how far past 23,861 elements it grows.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -4293,7 +4293,7 @@
         "plugins/ravenclaude-core/knowledge/coordinator-ledger-convention.md",
         "plugins/ravenclaude-core/scripts/ledger.py"
       ],
-      "covers_digest": "sha256:4d1b160d5263ed4c21cbb9d391bb057b00346554beebacbcdc2ea6ce9b12d472",
+      "covers_digest": "sha256:acdfac546c770aaaa9c304e2e8e4226628922106fd53f4a2b8ddcf83bcdca8a0",
       "nuance": "--repo-root/--actor are ledger.py's TOP-LEVEL parser flags, added before add_subparsers(); a build plan citing them AFTER `append` fails with 'unrecognized arguments', verified live. A companion claim (fresh ledger = exit 2/UNKNOWN) was also wrong: cmd_init always appends a ledger_init event, so the true fresh state is exit 0/PASS.",
       "nuance_evidence": {
         "measured": "2026-09-09",
@@ -4463,6 +4463,59 @@
         "strength": "executed",
         "class": "script-selftest",
         "probe": "plugins/ravenclaude-core/scripts/explore-tier-pin.py",
+        "teeth_exit": 1
+      },
+      "strength_badge": "Probed"
+    },
+    {
+      "id": "runes-ready-queue-oath-hook-longship",
+      "title": "Runes ready-queue, Oath-hook, and Longship land-request never merge",
+      "category": "Inventory — measured mechanisms",
+      "kind": "ravenclaude-built",
+      "order": 937,
+      "summary": "rc runes ready|claim|hanging plus SessionStart Oath-hook surface hanging work; Longship land-request records Sage intent only and never merges.",
+      "see_also": [],
+      "widget": null,
+      "try_it": null,
+      "node_links": {},
+      "last_verified": "2026-09-15",
+      "refresh_when": null,
+      "sources": [
+        {
+          "label": "PE DIGEST ship Norse Runes ready-queue (Longship amend), 2026-09-15",
+          "url": "https://github.com/mcorbett51090/RavenClaude/blob/feat/runes-ready-queue/docs/runes-ready-queue.md"
+        },
+        {
+          "label": "docs/runes-ready-queue.md",
+          "url": "https://github.com/mcorbett51090/RavenClaude/blob/feat/runes-ready-queue/docs/runes-ready-queue.md"
+        }
+      ],
+      "body_md": "## What a reader would have assumed instead\n\nA delivery-batch CLI that can open a PR and merge it, or a SessionStart hook that is\nadvisory only — hanging claimed work stays invisible until someone remembers to ask.\n\n## The discriminator\n\ncontrol: `python3 plugins/ravenclaude-core/scripts/runes.py --self-test` exercises\nready/claim/sling, Oath-hook hanging assembly, the human_gate refuse path, strand apply,\nand Longship open/add/land-request. Measured 2026-09-15: `land-request` returns\n`auto_merge: false` with a Sage-facing message and performs no merge; a Rune with\n`human_gate=matthew` prints REFUSED and never sets `hook_owner`.\n\n## Why it matters\n\nReady-queue UX without an Oath-hook leaves claimed work optional. A Longship that could\nmerge would bypass Sage sole-SCM. The three surfaces share one ledger projection and keep\nproduct names free of Hird/Beads/Gas Town.\n\nFalsifier: `land-request` invoking `gh pr merge`, a matthew-gated claim succeeding, or\nOath-hook silent while hanging Runes exist for the owner.\n\nProbe: `plugins/ravenclaude-core/scripts/runes.py --self-test` (and\n`hooks/tests/test-runes-ready-queue.sh`).",
+      "diagram": null,
+      "diagram_mini": null,
+      "steps": [],
+      "svg": null,
+      "svg_mini": null,
+      "entry_class": "inventory",
+      "covers": [
+        "plugins/ravenclaude-core/hooks/oath-hook.sh",
+        "plugins/ravenclaude-core/scripts/oath_hook.py",
+        "plugins/ravenclaude-core/scripts/runes.py"
+      ],
+      "covers_digest": "sha256:f5239745556340975cd8e33ac86c57c5b4e98d759103eadeb5aca72b305edbbe",
+      "nuance": "Longship `land-request` writes intent with auto_merge=false and never calls gh/git merge; Oath-hook SessionStart surfaces hanging Runes for the current hook_owner; human_gate=matthew|appsec|sage|cos refuses claim.",
+      "nuance_evidence": {
+        "measured": "2026-09-15",
+        "control": "runes.py --self-test: longship land-request returns land_requested true and auto_merge false; human_gate=matthew claim prints REFUSED and does not set hook_owner; oath_hook hanging payload must_run true when a claimed rune is open",
+        "falsifier": "land-request invoking gh pr merge, or a matthew-gated rune accepting claim, or Oath-hook staying silent while hanging Runes exist for the owner",
+        "probe": "plugins/ravenclaude-core/scripts/runes.py"
+      },
+      "nuance_source": "plugins/ravenclaude-core/scripts/runes.py (cmd_longship_land_request / claim human_gate wall); plugins/ravenclaude-core/scripts/oath_hook.py",
+      "verify": {
+        "tier": "effect",
+        "strength": "executed",
+        "class": "script-selftest",
+        "probe": "plugins/ravenclaude-core/scripts/runes.py",
         "teeth_exit": 1
       },
       "strength_badge": "Probed"

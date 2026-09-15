@@ -2,6 +2,18 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.323.1 — 2026-09-15
+
+### Added
+- **Runes ready-queue** — ledger projection + `rc runes ready|claim|sling|show|open|release|hanging` (alias `rc ready`). Deps + `hook_owner` + `human_gate`; Verðandi/Skuld facet labels only (do not overload Norns panel).
+- **Oath-hook (GUPP)** — SessionStart `hooks/oath-hook.sh`: hanging Runes on your hook ⇒ MUST surface/run.
+- **strand apply** — `rc strand apply <PE pack>` expands formulas into child Runes.
+- **Longship** — `rc longship open|add|land-request|show` Sage-facing delivery batch; **never auto-merge**. (Delivery was briefly Hird; Matthew/CoS amend → Longship.)
+- Docs: `docs/runes-ready-queue.md` citing `docs/norse-mythology-feature-map.md`.
+
+### Notes
+- Extends `ledger.py` with `hook` + `meta` event types and Runes fields (`longship_id`, `strand_id`, `human_gate`, …). No new plugin. No Beads/Gas Town UX names. No BMA. Sage sole SCM.
+
 ## 0.323.0 — 2026-09-14
 
 ### Added

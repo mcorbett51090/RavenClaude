@@ -106,7 +106,7 @@ DEFAULT_CONFIG: dict[str, Any] = {
 }
 
 STATE_ORDINAL = {"in_progress": 0, "ready": 1, "proposed": 2, "done": 3}
-ITEM_BEARING = ("open", "state", "verify", "link", "redact", "provenance")
+ITEM_BEARING = ("open", "state", "verify", "link", "redact", "provenance", "hook", "meta")
 CROCKFORD = "0123456789ABCDEFGHJKMNPQRSTVWXYZ"
 
 # Fields that are DERIVED and must never appear as stored asserted keys (G-LED-07).
@@ -678,6 +678,13 @@ def fold(
                 "last_event_ts": ts,
                 "worktree": machine.get("worktree"),
                 "state_events": 0,
+                # Runes ready-queue projection fields (Norse Beads semantics).
+                "hook_owner": None,
+                "human_gate": asserted.get("human_gate") or "none",
+                "formula_ref": asserted.get("formula_ref"),
+                "strand_id": asserted.get("strand_id"),
+                "longship_id": asserted.get("longship_id"),
+                "mist": bool(asserted.get("mist") or False),
             }
             continue
 
@@ -757,6 +764,30 @@ def fold(
                 {"pr": machine.get("pr"), "merge_commit": machine.get("merge_commit"),
                  "merged_at": machine.get("merged_at")}
             )
+
+        elif etype == "hook":
+            op = asserted.get("op")
+            if op == "claim":
+                owner = asserted.get("hook_owner")
+                if not owner:
+                    unrecognized.append(
+                        {"reason": "hook claim missing hook_owner", "value": op,
+                         "event_id": event_id, "item_id": item_id, "ts": ts}
+                    )
+                    continue
+                item["hook_owner"] = owner
+            elif op == "release":
+                item["hook_owner"] = None
+            else:
+                unrecognized.append(
+                    {"reason": "unrecognized hook op", "value": op, "event_id": event_id,
+                     "item_id": item_id, "ts": ts}
+                )
+
+        elif etype == "meta":
+            for key in ("human_gate", "formula_ref", "strand_id", "longship_id", "mist"):
+                if key in asserted:
+                    item[key] = asserted[key]
 
         elif etype == "redact":
             pass  # already applied above; the event itself carries no item state
@@ -1516,6 +1547,16 @@ def cmd_open(repo_root: Path, args: argparse.Namespace) -> int:
         asserted["priority"] = args.priority
     if args.tag:
         asserted["tags"] = list(args.tag)
+    if getattr(args, "human_gate", None):
+        asserted["human_gate"] = args.human_gate
+    if getattr(args, "formula_ref", None):
+        asserted["formula_ref"] = args.formula_ref
+    if getattr(args, "strand_id", None):
+        asserted["strand_id"] = args.strand_id
+    if getattr(args, "longship_id", None):
+        asserted["longship_id"] = args.longship_id
+    if getattr(args, "mist", False):
+        asserted["mist"] = True
     event = build_event(repo_root, "open", item_id, asserted, args.actor, ts)
     append_record(ledger_dir, event, int(config["max_record_bytes"]))
     print(item_id)
@@ -1909,13 +1950,19 @@ def main(argv: list[str] | None = None) -> int:
     p_open.add_argument("--owner")
     p_open.add_argument("--priority", type=int, choices=[1, 2, 3, 4])
     p_open.add_argument("--tag", action="append")
+    p_open.add_argument("--human-gate", dest="human_gate",
+                        choices=["none", "cos", "matthew", "appsec", "sage"])
+    p_open.add_argument("--formula-ref", dest="formula_ref")
+    p_open.add_argument("--strand-id", dest="strand_id")
+    p_open.add_argument("--longship-id", dest="longship_id")
+    p_open.add_argument("--mist", action="store_true")
     p_open.add_argument("--ts")
     p_open.set_defaults(func=cmd_open)
 
     p_append = sub.add_parser("append", help="append any typed event")
     p_append.add_argument("--type", required=True,
                           choices=["state", "verify", "link", "redact", "provenance",
-                                   "bridge_health"])
+                                   "bridge_health", "hook", "meta"])
     p_append.add_argument("--item")
     p_append.add_argument("--set", action="append", default=[], metavar="KEY=JSON")
     p_append.add_argument("--ts")
