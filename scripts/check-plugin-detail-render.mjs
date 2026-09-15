@@ -89,7 +89,11 @@ const RC_BASELINE = {
   //        53 -> 54: skills/session-handoff (v0.266.0, context-quality reset)
   //        52 -> 53: skills/design-clone (v0.253.0, design-schema capture+apply)
   //        51 -> 52: skills/github-gold-standard (v0.246.0, the gold-standard scorecard)
-  tools: 57, // 55 -> 57: scripts/runes.py + scripts/oath_hook.py (Runes ready-queue /
+  tools: 58, // 57 -> 58: scripts/thing-harden.py (Thing hardening EDIT registry,
+  //   core 0.323.5 — signed transform apply + harden_ok verify behind hardening_edit
+  //   default OFF). COUNTED, not inferred: the plugin-detail island's scripts_index
+  //   for ravenclaude-core -> 58.
+  //        55 -> 57: scripts/runes.py + scripts/oath_hook.py (Runes ready-queue /
   //   Oath-hook / Longship delivery, core 0.323.1 — ledger projection CLI + SessionStart
   //   GUPP assembler; Longship land-request never merges). COUNTED, not inferred:
   //   the plugin-detail island's scripts_index for ravenclaude-core -> 57.
