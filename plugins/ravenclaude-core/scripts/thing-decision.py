@@ -1008,15 +1008,20 @@ def resolve_tier_config(root: Path, posture: dict | None) -> tuple[dict, str | N
     bypass: list[str] = []
     cache_ttl = 0
     fatigue = 0
+    # Hardening EDIT (Thing A+C/H3): seat may propose empty-cited safer rewrite;
+    # registry verifies. DEFAULT OFF — AppSec lock until fixtures green.
+    hardening_edit = False
     # §MCP identity — the deterministic server allowlist. thing.yaml carries it at
     # top level (`mcp.allowed_servers:`); comfort-posture carries it under
     # `command_review.mcp.allowed_servers`. Last-present-wins (posture > thing.yaml).
     mcp_allowed: list[str] = []
 
     def _apply(block) -> None:
-        nonlocal gate_floor, bypass, cache_ttl, fatigue, mcp_allowed
+        nonlocal gate_floor, bypass, cache_ttl, fatigue, mcp_allowed, hardening_edit
         if not isinstance(block, dict):
             return
+        if "hardening_edit" in block:
+            hardening_edit = bool(block.get("hardening_edit"))
         mcp_block = block.get("mcp")
         if isinstance(mcp_block, dict) and isinstance(mcp_block.get("allowed_servers"), list):
             mcp_allowed = [s for s in mcp_block["allowed_servers"] if isinstance(s, str)]
@@ -1075,6 +1080,7 @@ def resolve_tier_config(root: Path, posture: dict | None) -> tuple[dict, str | N
     cfg["bypass"] = bypass
     cfg["cache_ttl_seconds"] = cache_ttl
     cfg["fatigue_threshold"] = fatigue
+    cfg["hardening_edit"] = bool(hardening_edit)
     cfg["mcp_allowed_servers"] = mcp_allowed
     return cfg, error
 
@@ -1181,15 +1187,32 @@ def _decision_detail(root: Path, posture: dict, command: str, category: str | No
     d["bypass_match"] = bool(bypass_match) and route.get("max_severity") != "critical"
     d["cache_ttl_seconds"] = int(cfg.get("cache_ttl_seconds") or 0)
     d["fatigue_threshold"] = int(cfg.get("fatigue_threshold") or 0)
+    d["hardening_edit"] = bool(cfg.get("hardening_edit"))
     # config_hash invalidates the verdict cache when the rules (tiers/panel/
-    # gate_floor/category map) OR the concern catalog change — so a cached
-    # permissive verdict is never reused after the policy that produced it moves.
+    # gate_floor/category map) OR the concern catalog OR the harden registry
+    # change — so a cached permissive/harden verdict is never reused after the
+    # policy that produced it moves.
+    harden_reg_version = "0"
+    harden_reg_text = ""
+    try:
+        _hr = _HERE.parent / "knowledge" / "thing-harden-transforms.yaml"
+        harden_reg_text = _hr.read_text(encoding="utf-8")
+        # Prefer the YAML registry_version field when present.
+        for _line in harden_reg_text.splitlines():
+            if _line.strip().startswith("registry_version:"):
+                harden_reg_version = _line.split(":", 1)[1].strip().strip('"').strip("'")
+                break
+    except OSError:
+        harden_reg_text = ""
+    d["harden_registry_version"] = harden_reg_version
     cfg_blob = json.dumps(
         {
             "tiers": cfg["tiers"],
             "panel": cfg["panel"],
             "gate_floor": cfg["gate_floor"],
             "category_tier_map": cfg["category_tier_map"],
+            "hardening_edit": bool(cfg.get("hardening_edit")),
+            "harden_registry_version": harden_reg_version,
             # Track B §Serialization: fold the substrate set + classifier version so a
             # cached verdict is invalidated when either changes (the VALUEs, not file
             # mtimes — deterministic across checkouts).
@@ -1205,7 +1228,9 @@ def _decision_detail(root: Path, posture: dict, command: str, category: str | No
         cat_text = (_HERE.parent / "knowledge" / "concerns-catalog.md").read_text(encoding="utf-8")
     except OSError:
         cat_text = ""
-    d["config_hash"] = hashlib.sha256((cfg_blob + cat_text).encode("utf-8")).hexdigest()[:16]
+    d["config_hash"] = hashlib.sha256(
+        (cfg_blob + cat_text + harden_reg_text).encode("utf-8")
+    ).hexdigest()[:16]
 
     # Human-readable predicted outcome for the simulator.
     if d.get("pre_llm_deny"):

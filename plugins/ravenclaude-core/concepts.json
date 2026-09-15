@@ -1195,7 +1195,7 @@
           "url": "docs/tribunal-review-feature-design.md"
         }
       ],
-      "body_md": "**Command review** — codename *the Thing* — is an opt-in panel of reviewer agents that adjudicates shell commands instead of stopping to ask you. It sits **on top of** comfort-posture: posture sets the policy (allow/ask/deny per category); the tribunal is the adjudicator you switch on for a category so a verdict lands in seconds.\n\nRouting is **tiered**. Every command resolves to `low → medium → high → extreme` (its category base tier, bumped by a deterministic high/critical concern). A clean `low` read runs **no panel at all** (zero cost); seat count and the confidence bar escalate with the tier. Up to three seats run in parallel — **Forseti** (security), **Mímir** (code), **Heimdall** (injection) — with **Thor** (architect) convened only on a split.\n\nThe **`gate_floor`** knob (default `high`) is the lowest tier whose *confident ALLOW* is surfaced to you as an `ask`. DENY still blocks and EDIT still rewrites autonomously, so the tribunal pre-filters the dangerous and the fixable before either reaches you. Two hard overrides ignore the knob: **reads are never surfaced**, and **irreversible high-blast allows always are**. An abstaining panel always fails **closed**. It can never relax the `security_deny` floor.",
+      "body_md": "**Command review** — codename *the Thing* — is an opt-in panel of reviewer agents that adjudicates shell commands instead of stopping to ask you. It sits **on top of** comfort-posture: posture sets the policy (allow/ask/deny per category); the tribunal is the adjudicator you switch on for a category so a verdict lands in seconds.\n\nRouting is **tiered**. Every command resolves to `low → medium → high → extreme` (its category base tier, bumped by a deterministic high/critical concern). A clean `low` read runs **no panel at all** (zero cost); seat count and the confidence bar escalate with the tier. Up to three seats run in parallel — **Forseti** (security), **Mímir** (code), **Heimdall** (injection) — with **Thor** (architect) convened only on a split.\n\nThe **`gate_floor`** knob (default `high`) is the lowest tier whose *confident ALLOW* is surfaced to you as an `ask`. DENY still blocks and EDIT still rewrites autonomously, so the tribunal pre-filters the dangerous and the fixable before either reaches you. Two hard overrides ignore the knob: **reads are never surfaced**, and **irreversible high-blast allows always are**. An abstaining panel always fails **closed**. It can never relax the `security_deny` floor.\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n## Hardening EDIT (opt-in)\n\nFeature flag `command_review.hardening_edit` (default **false**). Design **A+C/H3**: seat proposes a safer Bash equivalent; the signed transform registry verifies. Harden fail → ask. Empty-cited EDIT outside the orchestrator discriminator → DENY. High-blast v1 → still ask + show hardened form. No bypass list; no raising `gate_floor`. See `skills/thing/SKILL.md` and `knowledge/thing-harden-transforms.yaml`.",
       "diagram": "flowchart TD\n  A[Bash PreToolUse] --> B{category toggled on?}\n  B -- no --> Z[normal flow]\n  B -- yes --> C[classify: category · tier · routing]\n  C -- unarguable critical --> DENY[DENY · no LLM]\n  C -- clean low read --> ALLOW[allow · no panel]\n  C -- tier ≥ medium --> E[convene seats in parallel]\n  E -- split / low confidence --> T[convene Thor]\n  T --> AGG[aggregate]\n  E --> AGG\n  AGG -- deny / critical --> DENY\n  AGG -- edit safe --> EDIT[allow + rewrite]\n  AGG -- allow --> GATE{tier ≥ gate_floor<br/>or high-blast?}\n  GATE -- yes --> ASK[ask · you confirm]\n  GATE -- no --> ALLOW\n  DENY & ALLOW & EDIT & ASK --> L[(Sága log)]\n  class DENY,ALLOW,EDIT,ASK,E,T built\n  class GATE fact",
       "diagram_mini": "flowchart LR\n  C[Command] --> P[Panel<br/>1–3 seats]\n  P --> V{Verdict}\n  V --> A[allow / edit / deny / ask]\n  class P,A built",
       "steps": [
@@ -2804,7 +2804,7 @@
         "plugins/ravenclaude-core/hooks/triage-outcome.sh",
         "plugins/ravenclaude-core/hooks/worktree-guard.sh"
       ],
-      "covers_digest": "sha256:37d9bbdea33461c97e2205e05f6cddcae85875f8ca3346cf2931200fff81bc17",
+      "covers_digest": "sha256:e220db7f191a30a6cab22b76a65263611f9d6042ad0fc1a6d73ad30db5c64774",
       "nuance": "A hook writing to stderr at `exit 0` reaches the model on no event; only `hookSpecificOutput.additionalContext` and `updatedToolOutput` are delivered, so `_advise.sh` advised the terminal for its entire service life.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -2945,7 +2945,7 @@
         "scripts/sync-plugin-versions.py",
         "scripts/generate-copilot-plugin.py"
       ],
-      "covers_digest": "sha256:9aabafc511a3b2f50992ff697533d0c65abc3695ea30809e77f147f608dd4a67",
+      "covers_digest": "sha256:cebf378b3fa0f2a9c57cc4a7c37b4b87bd2c1d57c25dede48fb68130971111a3",
       "nuance": "The cache key is the `version` string, never a content hash, so `sync-plugin-versions.py` can report clean while every installed session keeps running the old `hooks/` code.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -4516,6 +4516,58 @@
         "strength": "executed",
         "class": "script-selftest",
         "probe": "plugins/ravenclaude-core/scripts/runes.py",
+        "teeth_exit": 1
+      },
+      "strength_badge": "Probed"
+    },
+    {
+      "id": "thing-hardening-edit-registry",
+      "title": "Thing hardening EDIT registry stays OFF until enable GO",
+      "category": "Inventory — measured mechanisms",
+      "kind": "ravenclaude-built",
+      "order": 938,
+      "summary": "A signed transform registry can rewrite Bash via empty-cited EDIT, gated by hardening_edit.",
+      "see_also": [],
+      "widget": null,
+      "try_it": null,
+      "node_links": {},
+      "last_verified": "2026-09-15",
+      "refresh_when": null,
+      "sources": [
+        {
+          "label": "PE DIGEST ship Thing hardening EDIT (0.323.5), 2026-09-15",
+          "url": "https://github.com/mcorbett51090/RavenClaude/blob/feat/thing-hardening-edit/plugins/ravenclaude-core/knowledge/thing-harden-transforms.yaml"
+        },
+        {
+          "label": "knowledge/thing-harden-transforms.yaml",
+          "url": "https://github.com/mcorbett51090/RavenClaude/blob/feat/thing-hardening-edit/plugins/ravenclaude-core/knowledge/thing-harden-transforms.yaml"
+        }
+      ],
+      "body_md": "## What a reader would have assumed instead\n\nThat turning the feature flag off would make every EDIT path behave the same — either all\nask, or all no-op — and that an empty-cited safer rewrite would be treated like any other\nseat EDIT while the registry sits dark.\n\n## The discriminator\n\ncontrol: `bash plugins/ravenclaude-core/hooks/tests/test-thing-hardening-edit.sh` with the\nflag unset/false: empty-cited EDIT → DENY; cited EDIT → allow+updated; registered harden\nnever fires. Measured 2026-09-15: OFF is shape-sensitive, not a blanket mute.\n\n## Why it matters\n\nAppSec land countersign keeps `hardening_edit: false` until Gate 14/21/22 green + enable\nGO. Operators who assume \"flag off = no tribunal EDIT policy\" would miss the hard DENY on\nempty-cited rewrites outside the discriminator — a silent allow would be the dangerous\nopposite failure.\n\nFalsifier: flag OFF collapsing empty-cited EDIT to ask, or applying a registry transform\nwhile `hardening_edit` is false.\n\nProbe: `plugins/ravenclaude-core/hooks/tests/test-thing-hardening-edit.sh`.",
+      "diagram": null,
+      "diagram_mini": null,
+      "steps": [],
+      "svg": null,
+      "svg_mini": null,
+      "entry_class": "inventory",
+      "covers": [
+        "plugins/ravenclaude-core/scripts/thing-harden.py",
+        "plugins/ravenclaude-core/hooks/thing-orchestrator.sh"
+      ],
+      "covers_digest": "sha256:c24a6a9ac790d369ce189db51e5d69389a70445302533677bc569e38a74c07ba",
+      "nuance": "With hardening_edit default false, empty-cited EDIT outside the orchestrator discriminator is DENY rather than ask, while a cited EDIT still allows byte-identical; OFF is not a uniform no-op across EDIT shapes.",
+      "nuance_evidence": {
+        "measured": "2026-09-15",
+        "control": "test-thing-hardening-edit.sh flag-off: empty-cited EDIT → DENY; cited EDIT → allow+updated; registered harden never fires while flag unset",
+        "falsifier": "flag OFF collapsing empty-cited EDIT to ask, or applying a registry transform while hardening_edit is false",
+        "probe": "plugins/ravenclaude-core/hooks/tests/test-thing-hardening-edit.sh"
+      },
+      "nuance_source": "plugins/ravenclaude-core/scripts/thing-harden.py; plugins/ravenclaude-core/hooks/thing-orchestrator.sh",
+      "verify": {
+        "tier": "effect",
+        "strength": "executed",
+        "class": "hook-selftest",
+        "probe": "plugins/ravenclaude-core/hooks/tests/test-thing-hardening-edit.sh",
         "teeth_exit": 1
       },
       "strength_badge": "Probed"

@@ -66,6 +66,11 @@
         "host-scope chips + Pipeline hook categories (0.323.3, PR #1182)",
         32700,
         "dashboard host-scope chips + Pipeline hook-event category headers (0.323.3, PR #1182). Host-scope badges + filter strip on every Commands card and index Agents/Skills detail; Pipeline lane heads promote canonical hook events (attrs/::after only for Gate 132 \u03940). Island payload 32,659 > prior 32,100 by 559 (largest panel learn-payload). Re-measured on this branch head; appended, never edited."
+      ],
+      [
+        "Thing hardening EDIT inventory entry (0.323.5, PR #1185)",
+        32710,
+        "Thing hardening EDIT inventory entry (thing-hardening-edit-registry, core 0.323.5, PR #1185). check-inception-coverage required newly added scripts/thing-harden.py to be named in covers[]; one new inventory concept covers that script. Cosmetic covers_digest restamps on hook-message-channels (thing-orchestrator.sh) and plugin-cache-is-version-keyed (plugin.json 0.323.5). Measured island payload 32,702 > prior 32,700 by 2 (largest panel learn-payload at 25,410); dashboard.html 10,781,292 bytes > prior 10,780,000 by 1,292. Same no-diagrams-for-inventory-entries shape as every prior wave \u2014 pure content-size raise, not a DOM control. Re-measured on this branch head; appended, never edited."
       ]
     ],
     "index.html": [
@@ -184,6 +189,11 @@
         "host-scope chips + Pipeline hook categories (0.323.3, PR #1182)",
         10780000,
         "Same PR #1182 host-scope + Pipeline categories (core 0.323.3). dashboard.html 10,766,083 bytes > prior 10,680,000 by 86,083 (0.08 MB). Island payload raise is the sibling row. Re-measured on this branch head; appended, never edited."
+      ],
+      [
+        "Thing hardening EDIT inventory entry (0.323.5, PR #1185)",
+        10782000,
+        "Same PR #1185 Thing hardening EDIT inventory entry (core 0.323.5). dashboard.html 10,781,292 bytes > prior 10,780,000 by 1,292 (0.00 MB). Island payload raise is the sibling row. Re-measured on this branch head; appended, never edited."
       ]
     ],
     "index.html": [
@@ -215,5 +225,5 @@
       ]
     ]
   },
-  "measured_against": "028aa772964458b4f91fc5d11d259c9c1b2e523c"
+  "measured_against": "50f3d8ba4f17bdb5bcdc5181da638c62bd0f44fd"
 }

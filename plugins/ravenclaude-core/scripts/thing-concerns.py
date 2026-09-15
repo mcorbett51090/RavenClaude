@@ -524,7 +524,31 @@ def main() -> int:
     sa = sub.add_parser("screen-always", help="category-independent self-disable screen (§B.9.5)")
     sa.add_argument("command")
 
+    hd = sub.add_parser(
+        "harden",
+        help="check harden_ok (registry-verified safer rewrite; separate from revalidate)",
+    )
+    hd.add_argument("--original", required=True)
+    hd.add_argument("--revised", required=True)
+    hd.add_argument("--category", default=None)
+    hd.add_argument("--gate-floor", default="high")
+
     args = ap.parse_args()
+
+    if args.cmd == "harden":
+        # Lazy-import the registry verifier — keeps revalidate path byte-stable.
+        import importlib.util as _ilu
+        _hp = Path(__file__).resolve().parent / "thing-harden.py"
+        _spec = _ilu.spec_from_file_location("thing_harden_mod", _hp)
+        _mod = _ilu.module_from_spec(_spec)
+        assert _spec.loader is not None
+        _spec.loader.exec_module(_mod)
+        result = _mod.harden_ok(
+            args.original, args.revised, args.category, args.gate_floor
+        )
+        json.dump(result, sys.stdout)
+        sys.stdout.write("\n")
+        return 0
 
     try:
         catalog = _load_catalog()

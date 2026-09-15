@@ -2,6 +2,14 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.323.5 — 2026-09-15
+
+### Added
+- **Thing hardening EDIT** (feature flag `command_review.hardening_edit`, **default OFF**) — when a confident panel-ALLOW would ask via `gate_floor`, seats may propose an empty-cited safer Bash EDIT; `knowledge/thing-harden-transforms.yaml` (registry v1, AppSec-signed transforms) verifies via `thing-concerns.py harden` / `thing-harden.py`. Fail → **ask** (never silent ALLOW past floor). Empty-cited outside discriminator → **DENY**. v1 high-blast still-ask + show hardened form. Heimdall no EDIT. Fatigue nudge retargets to filing a transform (never raise `gate_floor` / add bypass). Registry version folded into `config_hash`.
+
+### Locks
+- No bypass list. No raise `gate_floor`. Sage sole SCM. AppSec SHIP-WITH-CONDITIONS; flag OFF until countersign on land.
+
 ## 0.323.4 — 2026-09-15
 
 ### Added

@@ -99,3 +99,8 @@ flowchart LR
   V --> A[allow / edit / deny / ask]
   class P,A built
 ```
+
+## Hardening EDIT (opt-in)
+
+Feature flag `command_review.hardening_edit` (default **false**). Design **A+C/H3**: seat proposes a safer Bash equivalent; the signed transform registry verifies. Harden fail → ask. Empty-cited EDIT outside the orchestrator discriminator → DENY. High-blast v1 → still ask + show hardened form. No bypass list; no raising `gate_floor`. See `skills/thing/SKILL.md` and `knowledge/thing-harden-transforms.yaml`.
+

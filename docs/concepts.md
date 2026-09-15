@@ -1042,6 +1042,30 @@ Routing is **tiered**. Every command resolves to `low → medium → high → ex
 
 The **`gate_floor`** knob (default `high`) is the lowest tier whose *confident ALLOW* is surfaced to you as an `ask`. DENY still blocks and EDIT still rewrites autonomously, so the tribunal pre-filters the dangerous and the fixable before either reaches you. Two hard overrides ignore the knob: **reads are never surfaced**, and **irreversible high-blast allows always are**. An abstaining panel always fails **closed**. It can never relax the `security_deny` floor.
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+## Hardening EDIT (opt-in)
+
+Feature flag `command_review.hardening_edit` (default **false**). Design **A+C/H3**: seat proposes a safer Bash equivalent; the signed transform registry verifies. Harden fail → ask. Empty-cited EDIT outside the orchestrator discriminator → DENY. High-blast v1 → still ask + show hardened form. No bypass list; no raising `gate_floor`. See `skills/thing/SKILL.md` and `knowledge/thing-harden-transforms.yaml`.
+
 ```mermaid
 flowchart TD
   A[Bash PreToolUse] --> B{category toggled on?}
@@ -3428,6 +3452,41 @@ Probe: `plugins/ravenclaude-core/scripts/runes.py --self-test` (and
 `hooks/tests/test-runes-ready-queue.sh`).
 
 **Sources:** [PE DIGEST ship Norse Runes ready-queue (Longship amend), 2026-09-15](https://github.com/mcorbett51090/RavenClaude/blob/feat/runes-ready-queue/docs/runes-ready-queue.md) · [docs/runes-ready-queue.md](https://github.com/mcorbett51090/RavenClaude/blob/feat/runes-ready-queue/docs/runes-ready-queue.md)
+
+_Last verified: 2026-09-15_
+
+
+---
+
+### Thing hardening EDIT registry stays OFF until enable GO · _RavenClaude-built_
+
+> A signed transform registry can rewrite Bash via empty-cited EDIT, gated by hardening_edit.
+
+## What a reader would have assumed instead
+
+That turning the feature flag off would make every EDIT path behave the same — either all
+ask, or all no-op — and that an empty-cited safer rewrite would be treated like any other
+seat EDIT while the registry sits dark.
+
+## The discriminator
+
+control: `bash plugins/ravenclaude-core/hooks/tests/test-thing-hardening-edit.sh` with the
+flag unset/false: empty-cited EDIT → DENY; cited EDIT → allow+updated; registered harden
+never fires. Measured 2026-09-15: OFF is shape-sensitive, not a blanket mute.
+
+## Why it matters
+
+AppSec land countersign keeps `hardening_edit: false` until Gate 14/21/22 green + enable
+GO. Operators who assume "flag off = no tribunal EDIT policy" would miss the hard DENY on
+empty-cited rewrites outside the discriminator — a silent allow would be the dangerous
+opposite failure.
+
+Falsifier: flag OFF collapsing empty-cited EDIT to ask, or applying a registry transform
+while `hardening_edit` is false.
+
+Probe: `plugins/ravenclaude-core/hooks/tests/test-thing-hardening-edit.sh`.
+
+**Sources:** [PE DIGEST ship Thing hardening EDIT (0.323.5), 2026-09-15](https://github.com/mcorbett51090/RavenClaude/blob/feat/thing-hardening-edit/plugins/ravenclaude-core/knowledge/thing-harden-transforms.yaml) · [knowledge/thing-harden-transforms.yaml](https://github.com/mcorbett51090/RavenClaude/blob/feat/thing-hardening-edit/plugins/ravenclaude-core/knowledge/thing-harden-transforms.yaml)
 
 _Last verified: 2026-09-15_
 
