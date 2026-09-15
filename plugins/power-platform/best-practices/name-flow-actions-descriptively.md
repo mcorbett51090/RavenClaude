@@ -89,7 +89,7 @@ The `validate-flow-action-names.sh` hook fires on `PostToolUse` `Edit` / `Write`
 
 It is a **structural file check** — it does not evaluate whether a descriptive name is actually meaningful, nor does it detect connector-generated verbose defaults (e.g. `Send_an_email_(V2)_3`). Those still require human or agent review. The hook catches the most common mechanical pattern — the auto-incremented suffix — and surfaces it immediately rather than at CI time or in a post-deploy code review.
 
-The hook is **advisory by default** (prints to stderr, does not block). To make it blocking in a session where flow quality is a hard gate, flip the final `exit 0` to `exit 1` in `hooks/validate-flow-action-names.sh`. See `hooks/README.md` for wiring.
+The hook is **advisory by default** (prints to stderr, does not block). To make it blocking in a session where flow quality is a hard gate, set `POWER_PLATFORM_STRICT=1` in the env (the hook then exits 2 — the code Claude Code treats as blocking; exit 1 is silently non-blocking). See `hooks/README.md` for wiring.
 
 ---
 

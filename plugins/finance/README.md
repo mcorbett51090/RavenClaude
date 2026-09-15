@@ -58,7 +58,7 @@ The full list (plus the anti-patterns every agent flags) is in [`CLAUDE.md`](CLA
 
 ## Hooks
 
-- [`hooks/flag-finance-anti-patterns.sh`](hooks/flag-finance-anti-patterns.sh) — PostToolUse Edit/Write/MultiEdit hook. Advisory: flags hardcoded rate-like numbers in model files, plaintext PII patterns (SSN, IBAN, credit card), variance commentary without `Sources:`, forecasts/budgets without `Assumptions:`. Doesn't block edits unless you flip `exit 0` to `exit 1` for a sensitive engagement.
+- [`hooks/flag-finance-anti-patterns.sh`](hooks/flag-finance-anti-patterns.sh) — PostToolUse Edit/Write/MultiEdit hook. Advisory: flags hardcoded rate-like numbers in model files, plaintext PII patterns (SSN, IBAN, credit card), variance commentary without `Sources:`, forecasts/budgets without `Assumptions:`. Doesn't block edits unless you set `FINANCE_STRICT=1` for a sensitive engagement (the hook then exits 2 — the code Claude Code treats as blocking; exit 1 is silently non-blocking).
 
 The hook is wired in via [`hooks/hooks.json`](hooks/hooks.json) — when the plugin is installed, Claude Code merges this with the consumer's session hooks automatically.
 

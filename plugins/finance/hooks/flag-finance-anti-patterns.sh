@@ -18,8 +18,9 @@
 #
 # Advisory by default: prints warnings to stderr so Claude and the user
 # both see them, but exits 0 so the edit is not blocked. To make this hook
-# BLOCK on violation (e.g. for a sensitive client engagement), change the
-# final `exit 0` to `exit 1`.
+# BLOCK on violation (e.g. for a sensitive client engagement), set
+# FINANCE_STRICT=1 in the env (exit 2 = block in Claude Code; exit 1 is a
+# non-blocking error Claude Code silently swallows, so it would NOT block).
 
 set -euo pipefail
 
@@ -125,12 +126,13 @@ EOF
 
   See plugins/finance/CLAUDE.md §3 (house opinions) and §4
   (anti-patterns) for the full rules. This hook is advisory — the
-  edit was not blocked. To enforce on a sensitive engagement, change
-  `exit 0` to `exit 1` at the bottom of
-  plugins/finance/hooks/flag-finance-anti-patterns.sh.
+  edit was not blocked. To enforce on a sensitive engagement, set
+  FINANCE_STRICT=1 in your env (exit 2 = BLOCK; exit 1 is
+  non-blocking and would silently allow the edit).
 ────────────────────────────────────────────────────────────────────
 
 EOF
+  if [[ "${FINANCE_STRICT:-0}" == "1" ]]; then exit 2; fi
 fi
 
 exit 0

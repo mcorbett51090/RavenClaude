@@ -158,7 +158,7 @@ The `hooks/` directory ships [`check-web-anti-patterns.sh`](hooks/check-web-anti
 | HTML page missing `<title>` or `<meta name="description">` | `*.html` (excluding fragment / partial files) | §4 — marketing-site page with no title / description |
 | `<meta name="robots" content="noindex">` in shipped page | `*.html` | §4 — noindex accidentally in production |
 
-The hook is **advisory by default** (prints to stderr, doesn't block). To enforce in CI, flip the final `exit 0` to `exit 1`. The plugin's [`hooks/hooks.json`](hooks/hooks.json) wires it into PostToolUse.
+The hook is **advisory by default** (prints to stderr, doesn't block). To enforce, set `WEB_DESIGN_STRICT=1` in the env — the hook then exits **2** (the only code Claude Code's PreToolUse contract treats as blocking; `exit 1` is a non-blocking error it silently swallows). The plugin's [`hooks/hooks.json`](hooks/hooks.json) wires it into PostToolUse.
 
 The hook is conservative — it only fires on conventional web file extensions / locations, so unrelated edits aren't flagged.
 

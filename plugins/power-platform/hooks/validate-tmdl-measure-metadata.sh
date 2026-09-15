@@ -10,8 +10,10 @@
 #
 # DETERMINISTIC + ADVISORY: fires on a structural pattern (a `measure` block missing
 # one of the three), not by LLM judgment. Prints warnings to stderr so Claude and the
-# user both see them, but exits 0 — it never blocks the edit (to enforce, flip the final
-# `exit 0` to `exit 1`). FAIL-SAFE: any error exits 0. Discovery-credit: the Power BI
+# user both see them, but exits 0 — it never blocks the edit (to enforce, set
+# POWER_PLATFORM_STRICT=1 in the env: exit 2 = block in Claude Code; exit 1 is a
+# non-blocking error Claude Code silently swallows, so it would NOT block).
+# FAIL-SAFE: any error exits 0. Discovery-credit: the Power BI
 # agentic-development hook pattern this mirrors is Data Goblins' work
 # (https://github.com/data-goblin/power-bi-agentic-development) — re-implemented here in
 # our own words against the underlying TOM/TMDL facts.
@@ -111,7 +113,9 @@ if [[ -n "$warnings" ]]; then
     echo "$warnings"
     echo "  → every measure should have a /// description, a formatString, and a displayFolder."
     echo "    See plugins/power-platform/best-practices/enforce-measure-metadata.md."
+    echo "    (advisory; set POWER_PLATFORM_STRICT=1 to BLOCK — exit 2, not exit 1.)"
   } >&2
+  if [[ "${POWER_PLATFORM_STRICT:-0}" == "1" ]]; then exit 2; fi
 fi
 
 exit 0
