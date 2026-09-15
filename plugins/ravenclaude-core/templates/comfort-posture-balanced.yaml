@@ -68,7 +68,6 @@ worktree_bound: block
 #   auto_install: off
 #   pins: []
 
-
 # Claude orchestrator for non-Claude CLIs (off | decide | full).
 # No-op under Claude Code (host already IS Claude). Default: full (owner choice — route to Claude; costs more tokens).
 #   off    — host CLI orchestrates as today (zero extra cost).

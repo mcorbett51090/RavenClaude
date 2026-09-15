@@ -51,7 +51,7 @@
     },
     {
       "name": "Inventory — measured mechanisms",
-      "order": 901
+      "order": 66
     }
   ],
   "concepts": [
@@ -2464,8 +2464,7 @@
       "summary": "A 4-step copy-paste wizard for installing a marketplace plugin into a Claude Code project — it never executes a command; you paste each command's output back and it parses that to light the next step.",
       "see_also": [
         "getting-started",
-        "copilot-bridge",
-        "plugin-lifecycle"
+        "copilot-bridge"
       ],
       "widget": null,
       "try_it": null,
@@ -2730,6 +2729,59 @@
       "svg_mini": "knowledge/concepts/visuals/external-contribution-intake.mini.svg"
     },
     {
+      "id": "plugin-lifecycle",
+      "title": "Plugin lifecycle (last-used ledger)",
+      "category": "Inventory — measured mechanisms",
+      "kind": "ravenclaude-built",
+      "order": 66,
+      "summary": "Per-project last-used tracking for installed marketplace plugins, with opt-in deprecate/uninstall and ask-first ravenclaude-only install — ravenclaude-core is never auto-removed.",
+      "see_also": [
+        "bifrost",
+        "comfort-posture",
+        "command-review-tribunal"
+      ],
+      "widget": null,
+      "try_it": null,
+      "node_links": {},
+      "last_verified": "2026-09-15",
+      "refresh_when": "Telemetry signals, unused_days default, auto_uninstall/auto_install defaults, or the core hard-pin change.",
+      "sources": [
+        {
+          "label": "scripts/plugin-lifecycle.py",
+          "url": "plugins/ravenclaude-core/scripts/plugin-lifecycle.py"
+        }
+      ],
+      "body_md": "## What a reader would have assumed instead\n\nA SessionStart sweep that uninstalls unused plugins by default, or an auto-install\npath that quietly pulls marketplace packages without ask — and that presence in the\ninstalled list counts as \"used.\"\n\n## The discriminator\n\ncontrol: `bash plugins/ravenclaude-core/hooks/tests/test-plugin-lifecycle.sh` (28 pass).\nMeasured 2026-09-15: with `auto_uninstall` OFF the sweep records a plan with\n`executed: false` and zero uninstalls; `auto_install: auto` is coerced OFF; core is\nhard-pinned (MF teeth: neutering `is_core_key` is what makes core uninstallable).\n\n## Why it matters\n\nDefaults OFF + plan-only uninstall keep the surface opt-in. Ask-first ravenclaude-only\ninstall and `/reload-plugins` before usable close the empty-cited and cache-path\nAppSec locks. Copilot `-p` and Cursor SessionStart caveats stay honest — no slash\nparity claim.\n\nFalsifier: sweep shells uninstall or cache-reset DR, `auto` installs without ask, or\ncore lands in `would_uninstall`.\n\nProbe: `plugins/ravenclaude-core/hooks/tests/test-plugin-lifecycle.sh`.",
+      "diagram": "flowchart TD\n  USE[Skill / agent / slash] --> LEDGER[.ravenclaude/plugin-lifecycle.json]\n  SS[SessionStart sweep] --> NOTICE[Deprecate notice]\n  SS -.->|auto_uninstall off| NONE[Zero uninstalls]\n  ASK[auto_install ask + cited need] --> CONFIRM[User confirm]\n  CONFIRM --> INST[/plugin install name@ravenclaude/]\n  INST --> RELOAD[/reload-plugins/]\n  class USE,LEDGER,NOTICE,CONFIRM,INST,RELOAD built",
+      "diagram_mini": null,
+      "steps": [],
+      "svg": "knowledge/concepts/visuals/plugin-lifecycle.svg",
+      "svg_mini": null,
+      "entry_class": "inventory",
+      "covers": [
+        "plugins/ravenclaude-core/scripts/plugin-lifecycle.py",
+        "plugins/ravenclaude-core/scripts/plugin-lifecycle-sweep.sh",
+        "plugins/ravenclaude-core/scripts/plugin-lifecycle-telemetry.sh"
+      ],
+      "covers_digest": "sha256:83c081f8414363ddd644f27771294370fab40f81b39728eae61c5a18e53613fb",
+      "nuance": "auto_uninstall OFF still records would_uninstall with executed:false; SessionStart never shells uninstall. auto_install auto is coerced OFF (NO-SHIP). ravenclaude-core@ravenclaude is a hard pin even if pins:[] is empty.",
+      "nuance_evidence": {
+        "measured": "2026-09-15",
+        "control": "bash plugins/ravenclaude-core/hooks/tests/test-plugin-lifecycle.sh — M2 zero would_uninstall when OFF; ASK auto coerced off; M3/MF teeth core never uninstallable; plan executed:false",
+        "falsifier": "sweep invoking uninstall or cache-reset DR, auto mode performing install without ask, or core appearing in would_uninstall",
+        "probe": "plugins/ravenclaude-core/hooks/tests/test-plugin-lifecycle.sh"
+      },
+      "nuance_source": "plugins/ravenclaude-core/scripts/plugin-lifecycle.py; AppSec land DIGEST SHIP-WITH-CONDITIONS 2026-09-15",
+      "verify": {
+        "tier": "effect",
+        "strength": "executed",
+        "class": "hook-selftest",
+        "probe": "plugins/ravenclaude-core/hooks/tests/test-plugin-lifecycle.sh",
+        "teeth_exit": 1
+      },
+      "strength_badge": "Probed"
+    },
+    {
       "id": "hook-message-channels",
       "title": "Hook message channels",
       "category": "Inventory — measured mechanisms",
@@ -2852,7 +2904,7 @@
       "covers": [
         "plugins/ravenclaude-core/hooks/hooks.json"
       ],
-      "covers_digest": "sha256:f64c2ef2e82695a36b97aca6a0e2d0187ea962185220e72f9264b095a33b200d",
+      "covers_digest": "sha256:8b6b074f91c2f9a51896af07a0ad88b748f8d7db9ac8fa5111c59a95936a019a",
       "nuance": "Two `additionalContext` emitters on one event concatenate rather than last-write-wins, but two `updatedToolOutput` emitters replace, so the second silently discards the first.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -2946,7 +2998,7 @@
         "scripts/sync-plugin-versions.py",
         "scripts/generate-copilot-plugin.py"
       ],
-      "covers_digest": "sha256:a6a730a44f1d2bd637da7cd01622cb206aa713539a0d962f5b4d7d1d36ee39f1",
+      "covers_digest": "sha256:90fb0238253d81fc1fcecd938a7dd7c9cde3bb0f0fd247ae8178672e3e4c0d54",
       "nuance": "The cache key is the `version` string, never a content hash, so `sync-plugin-versions.py` can report clean while every installed session keeps running the old `hooks/` code.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -4572,32 +4624,6 @@
         "teeth_exit": 1
       },
       "strength_badge": "Probed"
-    },
-    {
-      "id": "plugin-lifecycle",
-      "title": "Plugin lifecycle (last-used ledger)",
-      "category": "Marketplace engineering",
-      "kind": "ravenclaude-built",
-      "order": 66,
-      "summary": "Per-project last-used tracking for installed marketplace plugins, with opt-in deprecate/uninstall and ask-first ravenclaude-only install — ravenclaude-core is never auto-removed.",
-      "see_also": [
-        "bifrost",
-        "comfort-posture",
-        "command-review-tribunal"
-      ],
-      "widget": null,
-      "try_it": null,
-      "node_links": {},
-      "last_verified": "2026-09-15",
-      "refresh_when": "Telemetry signals, unused_days default, auto_uninstall/auto_install defaults, or the core hard-pin change.",
-      "sources": [
-        {
-          "label": "scripts/plugin-lifecycle.py",
-          "url": "plugins/ravenclaude-core/scripts/plugin-lifecycle.py"
-        }
-      ],
-      "body_md": "**Plugin lifecycle** is RavenClaude's per-project answer to \"which installed plugins are actually used here?\" It writes a local ledger at `.ravenclaude/plugin-lifecycle.json` (gitignored) and bumps `last_used_at` only when a **skill**, **agent**, or **slash** from that plugin is invoked. Mere SessionStart presence and opening the dashboard do **not** count as use — otherwise unused_days would never trip.\n\nDefaults follow the Runes/Thing class: after P1, tracking is **ON** once a comfort-posture file exists; `auto_uninstall` and `auto_install` stay **OFF** unless the user opts in. Auto-install v1 is **ask-first** and **ravenclaude marketplace only** (`auto` mode is NO-SHIP). `ravenclaude-core@ravenclaude` is a hard pin and is never auto-removed under any posture.\n\nThe SessionStart sweep surfaces deprecate notices when tracking is on. It never shells the cache-reset disaster-recovery command, and it does not claim a freshly installed plugin usable until `/reload-plugins`. Host caveats: Copilot CLI under `-p` does not fire SessionStart; Cursor SessionStart is fail-open on malformed hook responses — do not claim slash-install parity there.\n\n```mermaid\nflowchart TD\n  USE[Skill / agent / slash] --> LEDGER[.ravenclaude/plugin-lifecycle.json]\n  SS[SessionStart sweep] --> NOTICE[Deprecate notice]\n  SS -.->|auto_uninstall off| NONE[Zero uninstalls]\n  ASK[auto_install ask + cited need] --> CONFIRM[User confirm]\n  CONFIRM --> INST[/plugin install name@ravenclaude/]\n  INST --> RELOAD[/reload-plugins/]\n  class USE,LEDGER,NOTICE,CONFIRM,INST,RELOAD built\n```",
-      "diagram": "flowchart TD\n  USE[Skill / agent / slash] --> LEDGER[.ravenclaude/plugin-lifecycle.json]\n  SS[SessionStart sweep] --> NOTICE[Deprecate notice]\n  SS -.->|auto_uninstall off| NONE[Zero uninstalls]\n  ASK[auto_install ask + cited need] --> CONFIRM[User confirm]\n  CONFIRM --> INST[/plugin install name@ravenclaude/]\n  INST --> RELOAD[/reload-plugins/]\n  class USE,LEDGER,NOTICE,CONFIRM,INST,RELOAD built"
     }
   ]
 }

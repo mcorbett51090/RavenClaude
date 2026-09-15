@@ -1,23 +1,61 @@
 ---
 id: plugin-lifecycle
 title: "Plugin lifecycle (last-used ledger)"
-category: "Marketplace engineering"
+category: "Inventory — measured mechanisms"
 kind: ravenclaude-built
+entry_class: inventory
 order: 66
 summary: "Per-project last-used tracking for installed marketplace plugins, with opt-in deprecate/uninstall and ask-first ravenclaude-only install — ravenclaude-core is never auto-removed."
 see_also: [bifrost, comfort-posture, command-review-tribunal]
 last_verified: 2026-09-15
 refresh_when: "Telemetry signals, unused_days default, auto_uninstall/auto_install defaults, or the core hard-pin change."
+covers:
+  - plugins/ravenclaude-core/scripts/plugin-lifecycle.py
+  - plugins/ravenclaude-core/scripts/plugin-lifecycle-sweep.sh
+  - plugins/ravenclaude-core/scripts/plugin-lifecycle-telemetry.sh
+covers_digest: "sha256:83c081f8414363ddd644f27771294370fab40f81b39728eae61c5a18e53613fb"
+nuance: "auto_uninstall OFF still records would_uninstall with executed:false; SessionStart never shells uninstall. auto_install auto is coerced OFF (NO-SHIP). ravenclaude-core@ravenclaude is a hard pin even if pins:[] is empty."
+nuance_evidence:
+  measured: 2026-09-15
+  control: "bash plugins/ravenclaude-core/hooks/tests/test-plugin-lifecycle.sh — M2 zero would_uninstall when OFF; ASK auto coerced off; M3/MF teeth core never uninstallable; plan executed:false"
+  falsifier: "sweep invoking uninstall or cache-reset DR, auto mode performing install without ask, or core appearing in would_uninstall"
+  probe: "plugins/ravenclaude-core/hooks/tests/test-plugin-lifecycle.sh"
+nuance_source: "plugins/ravenclaude-core/scripts/plugin-lifecycle.py; AppSec land DIGEST SHIP-WITH-CONDITIONS 2026-09-15"
+verify:
+  tier: "effect"
+  strength: "executed"
+  class: "hook-selftest"
+  probe: "plugins/ravenclaude-core/hooks/tests/test-plugin-lifecycle.sh"
+  teeth_exit: 1
 sources:
   - label: "scripts/plugin-lifecycle.py"
     url: "plugins/ravenclaude-core/scripts/plugin-lifecycle.py"
 ---
 
-**Plugin lifecycle** is RavenClaude's per-project answer to "which installed plugins are actually used here?" It writes a local ledger at `.ravenclaude/plugin-lifecycle.json` (gitignored) and bumps `last_used_at` only when a **skill**, **agent**, or **slash** from that plugin is invoked. Mere SessionStart presence and opening the dashboard do **not** count as use — otherwise unused_days would never trip.
+## What a reader would have assumed instead
 
-Defaults follow the Runes/Thing class: after P1, tracking is **ON** once a comfort-posture file exists; `auto_uninstall` and `auto_install` stay **OFF** unless the user opts in. Auto-install v1 is **ask-first** and **ravenclaude marketplace only** (`auto` mode is NO-SHIP). `ravenclaude-core@ravenclaude` is a hard pin and is never auto-removed under any posture.
+A SessionStart sweep that uninstalls unused plugins by default, or an auto-install
+path that quietly pulls marketplace packages without ask — and that presence in the
+installed list counts as "used."
 
-The SessionStart sweep surfaces deprecate notices when tracking is on. It never shells the cache-reset disaster-recovery command, and it does not claim a freshly installed plugin usable until `/reload-plugins`. Host caveats: Copilot CLI under `-p` does not fire SessionStart; Cursor SessionStart is fail-open on malformed hook responses — do not claim slash-install parity there.
+## The discriminator
+
+control: `bash plugins/ravenclaude-core/hooks/tests/test-plugin-lifecycle.sh` (28 pass).
+Measured 2026-09-15: with `auto_uninstall` OFF the sweep records a plan with
+`executed: false` and zero uninstalls; `auto_install: auto` is coerced OFF; core is
+hard-pinned (MF teeth: neutering `is_core_key` is what makes core uninstallable).
+
+## Why it matters
+
+Defaults OFF + plan-only uninstall keep the surface opt-in. Ask-first ravenclaude-only
+install and `/reload-plugins` before usable close the empty-cited and cache-path
+AppSec locks. Copilot `-p` and Cursor SessionStart caveats stay honest — no slash
+parity claim.
+
+Falsifier: sweep shells uninstall or cache-reset DR, `auto` installs without ask, or
+core lands in `would_uninstall`.
+
+Probe: `plugins/ravenclaude-core/hooks/tests/test-plugin-lifecycle.sh`.
 
 ```mermaid
 flowchart TD
