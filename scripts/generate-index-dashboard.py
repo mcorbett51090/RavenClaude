@@ -36,10 +36,11 @@ import re
 import sys
 from pathlib import Path
 
+from _host_scope import resolve_platform_dependency
+
 # Sibling module holding the self-contained HTML/CSS/JS shell. Importable because
 # Python puts this script's directory (scripts/) on sys.path[0] at launch.
 from _index_dashboard_template import TEMPLATE as _TEMPLATE
-from _host_scope import resolve_platform_dependency
 
 _SCRIPTS_DIR = Path(__file__).resolve().parent
 

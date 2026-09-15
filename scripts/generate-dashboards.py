@@ -40,14 +40,16 @@ import json
 import sys
 from pathlib import Path
 
-# Sibling helper (scripts/ is on sys.path whether run directly or imported by
-# generate-index-dashboard.py). Provides the CSS scoper used by render_fragment.
-from _html_merge import iife_wrap, scope_css
 from _host_scope import (
     render_filter_strip as _render_host_scope_filter,
+)
+from _host_scope import (
     render_scope_badge as _render_host_scope_badge,
+)
+from _host_scope import (
     scope_tokens as _host_scope_tokens,
 )
+from _html_merge import iife_wrap, scope_css
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 PLUGINS_DIR = REPO_ROOT / "plugins"
