@@ -3397,3 +3397,39 @@ _Last verified: 2026-09-14_
 
 
 ---
+
+### Runes ready-queue, Oath-hook, and Longship land-request never merge · _RavenClaude-built_
+
+> rc runes ready|claim|hanging plus SessionStart Oath-hook surface hanging work; Longship land-request records Sage intent only and never merges.
+
+## What a reader would have assumed instead
+
+A delivery-batch CLI that can open a PR and merge it, or a SessionStart hook that is
+advisory only — hanging claimed work stays invisible until someone remembers to ask.
+
+## The discriminator
+
+control: `python3 plugins/ravenclaude-core/scripts/runes.py --self-test` exercises
+ready/claim/sling, Oath-hook hanging assembly, the human_gate refuse path, strand apply,
+and Longship open/add/land-request. Measured 2026-09-15: `land-request` returns
+`auto_merge: false` with a Sage-facing message and performs no merge; a Rune with
+`human_gate=matthew` prints REFUSED and never sets `hook_owner`.
+
+## Why it matters
+
+Ready-queue UX without an Oath-hook leaves claimed work optional. A Longship that could
+merge would bypass Sage sole-SCM. The three surfaces share one ledger projection and keep
+product names free of Hird/Beads/Gas Town.
+
+Falsifier: `land-request` invoking `gh pr merge`, a matthew-gated claim succeeding, or
+Oath-hook silent while hanging Runes exist for the owner.
+
+Probe: `plugins/ravenclaude-core/scripts/runes.py --self-test` (and
+`hooks/tests/test-runes-ready-queue.sh`).
+
+**Sources:** [PE DIGEST ship Norse Runes ready-queue (Longship amend), 2026-09-15](https://github.com/mcorbett51090/RavenClaude/blob/feat/runes-ready-queue/docs/runes-ready-queue.md) · [docs/runes-ready-queue.md](https://github.com/mcorbett51090/RavenClaude/blob/feat/runes-ready-queue/docs/runes-ready-queue.md)
+
+_Last verified: 2026-09-15_
+
+
+---

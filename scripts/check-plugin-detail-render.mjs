@@ -89,7 +89,11 @@ const RC_BASELINE = {
   //        53 -> 54: skills/session-handoff (v0.266.0, context-quality reset)
   //        52 -> 53: skills/design-clone (v0.253.0, design-schema capture+apply)
   //        51 -> 52: skills/github-gold-standard (v0.246.0, the gold-standard scorecard)
-  tools: 55, // 54 -> 55: scripts/explore-tier-pin.py (model-tier delegation build pass 2,
+  tools: 57, // 55 -> 57: scripts/runes.py + scripts/oath_hook.py (Runes ready-queue /
+  //   Oath-hook / Longship delivery, core 0.323.1 — ledger projection CLI + SessionStart
+  //   GUPP assembler; Longship land-request never merges). COUNTED, not inferred:
+  //   the plugin-detail island's scripts_index for ravenclaude-core -> 57.
+  //        54 -> 55: scripts/explore-tier-pin.py (model-tier delegation build pass 2,
   //   v0.322.0 — the PreToolUse(Agent|Task) decide() engine behind
   //   hooks/explore-tier-pin.sh: pins an un-pinned Explore to the posture's
   //   pin_explore tier via updatedInput; self-tested, Gate 286). COUNTED, not
@@ -176,7 +180,11 @@ const RC_BASELINE = {
   //        19 -> 22: premise-gate.py + classify_claim.py + check-design-schema.py
   //                  (v0.263.0, PR 3b packaging move)
   scenarios: 4,
-  hooks: 50, // 49 -> 50: explore-tier-pin.sh WIRED on PreToolUse(Agent|Task) (model-tier
+  hooks: 51, // 50 -> 51: oath-hook.sh WIRED on SessionStart(startup|resume|clear|fork)
+  //   (Runes ready-queue / Oath-hook / Longship, core 0.323.1 — GUPP surfaces hanging
+  //   Runes; fail-silent). COUNTED, not inferred: hooks.json on this tree holds 51
+  //   registrations.
+  //        49 -> 50: explore-tier-pin.sh WIRED on PreToolUse(Agent|Task) (model-tier
   //   delegation build pass 2, v0.322.0 — rewrites an un-pinned Explore dispatch's
   //   model via updatedInput; never emits a permissionDecision). COUNTED, not
   //   inferred: hooks.json on this tree holds 50 registrations.
