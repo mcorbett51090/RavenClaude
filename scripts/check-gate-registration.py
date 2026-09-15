@@ -106,10 +106,10 @@ def _strip_to_command(segment: str) -> str:
         m = ENV_ASSIGN_RE.match(s)
         if not m:
             break
-        s = s[m.end():]
+        s = s[m.end() :]
     m = INTERPRETER_RE.match(s)
     if m:
-        s = s[m.end():]
+        s = s[m.end() :]
     return s.lstrip("\"'")
 
 
@@ -271,6 +271,7 @@ def parse(path: Path) -> Suite:
 def _full_suite_blocks(suite: Suite) -> list[tuple[str, list[int], int, int]]:
     """Every header block after the dispatcher: (label, covered numbers, start, end)."""
     starts: list[tuple[int, str, list[int]]] = []
+    ambiguous: list[tuple[int, int | None]] = []
     for i in range(suite.close + 1, len(suite.lines)):
         line = suite.lines[i]
         grouped = GROUP_HEADER_RE.search(line)
@@ -283,12 +284,28 @@ def _full_suite_blocks(suite: Suite) -> list[tuple[str, list[int], int, int]]:
         if single:
             starts.append((i, single.group(1), [int(single.group(1))]))
             continue
-        # A header-shaped line we could not classify is an ambiguity, not a skip.
+        # A header-shaped line we could not classify is an ambiguity, not a
+        # skip. Two forms are legitimately tolerated and MUST NOT open a block:
+        #   * a letter-suffixed sub-gate ("── Gate 3b:"), excluded here, and
+        #   * an annotation ("── Gate 20 Phase-A extension:") whose number
+        #     already carries a plain header elsewhere in the region.
+        # The second can only be judged once every plain header is known, so we
+        # defer it: collect the number now and adjudicate against `covered`
+        # after the pass. A header-shaped line whose number has NO plain header
+        # anywhere is genuinely malformed and fails closed (never silently
+        # skipped - that is the defect this branch is here to prevent).
         if ANY_HEADER_RE.search(line) and not re.search(r"Gate\s+\d+[a-z]", line):
-            if not HEADER_RE.search(line) and not GROUP_HEADER_RE.search(line):
-                # Tolerated annotated forms ("── Gate 190 teeth:") always carry a
-                # plain header elsewhere; they open no new block.
-                continue
+            num = re.search(r"Gates?\s+(\d+)", line)
+            ambiguous.append((i, int(num.group(1)) if num else None))
+
+    covered = {n for _, _, nums in starts for n in nums}
+    for i, num in ambiguous:
+        if num is None or num not in covered:
+            raise Ambiguity(
+                f"line {i + 1}: header-shaped line does not match the `Gate N:` "
+                "or `Gates N-M:` form and no plain header for that number exists "
+                "elsewhere in the full-suite region - cannot classify"
+            )
 
     blocks = []
     for idx, (start, label, nums) in enumerate(starts):
@@ -415,7 +432,7 @@ def audit(path: Path) -> list[Finding]:
                         "exit-2-unasserted",
                         label,
                         j + 1,
-                        f"drives a PreToolUse hook and asserts `must_fail \"${var}\"` (any "
+                        f'drives a PreToolUse hook and asserts `must_fail "${var}"` (any '
                         "nonzero) without asserting the deny is exit 2 - a hook that exits 1 "
                         "is non-blocking and would pass this gate",
                     )
@@ -444,11 +461,7 @@ def _hoist_gate30_helpers(lines: list[str]) -> list[str]:
     s2, e2 = funcs["assert_hook_silent"]
     lo, hi = (s1, e2) if s1 < s2 else (s2, e1)
     header_i = next(
-        (
-            i
-            for i, ln in enumerate(lines)
-            if (m := HEADER_RE.search(ln)) and m.group(1) == "30"
-        ),
+        (i for i, ln in enumerate(lines) if (m := HEADER_RE.search(ln)) and m.group(1) == "30"),
         None,
     )
     if header_i is None:
@@ -481,13 +494,17 @@ def _mutants(src: Path, work: Path) -> list[tuple[str, Path, str]]:
     star = next(i for i in range(esac, 0, -1) if lines[i].strip() == "*)")
 
     # M1 - a gate pasted INSIDE the dispatcher only (the Gate 184 shape).
-    m1 = lines[:star] + [
-        "    901)",
-        '      echo "── Gate 901: pasted inside the dispatcher ──"',
-        '      gate "orphan" must_pass "0"',
-        "      exit $?",
-        "      ;;",
-    ] + lines[star:]
+    m1 = (
+        lines[:star]
+        + [
+            "    901)",
+            '      echo "── Gate 901: pasted inside the dispatcher ──"',
+            '      gate "orphan" must_pass "0"',
+            "      exit $?",
+            "      ;;",
+        ]
+        + lines[star:]
+    )
     m1 = _extend_supported(m1, "901")
     p1 = work / "m1-unreachable.sh"
     p1.write_text("\n".join(m1) + "\n", encoding="utf-8")
@@ -502,10 +519,14 @@ def _mutants(src: Path, work: Path) -> list[tuple[str, Path, str]]:
             break
     assert dup_target is not None
     di, dnum = dup_target
-    m2 = lines[:di] + [
-        f'echo "── Gate {dnum}: a colliding second registration ──"',
-        'gate "collides" must_pass "0"',
-    ] + lines[di:]
+    m2 = (
+        lines[:di]
+        + [
+            f'echo "── Gate {dnum}: a colliding second registration ──"',
+            'gate "collides" must_pass "0"',
+        ]
+        + lines[di:]
+    )
     p2 = work / "m2-collision.sh"
     p2.write_text("\n".join(m2) + "\n", encoding="utf-8")
     out.append(("two full-suite headers on one number", p2, "number-collision"))
@@ -638,6 +659,26 @@ def self_test(src: Path) -> int:
             print("  ✗ MISSED: an unparseable suite was accepted instead of failing closed")
         except Ambiguity:
             print("  ✓ caught: an unparseable suite fails closed")
+
+        # A header-shaped full-suite line for a number that carries NO plain
+        # `Gate N:` header anywhere is malformed, not a tolerated annotation; it
+        # must fail CLOSED rather than be silently skipped (the B1 defect: the
+        # old code's `continue` meant such a gate escaped every check).
+        malformed = work / "malformed-header.sh"
+        malformed.write_text(
+            src.read_text(encoding="utf-8")
+            + '\necho "── Gate 909 malformed header missing its colon ──"\n'
+            + 'gate "orphan under a malformed header" must_pass "0"\n',
+            encoding="utf-8",
+        )
+        try:
+            audit(malformed)
+            ok = False
+            print(
+                "  ✗ MISSED: a malformed full-suite header was tolerated instead of failing closed"
+            )
+        except Ambiguity:
+            print("  ✓ caught: a malformed full-suite header fails closed")
 
     print("\nteeth verified" if ok else "\nTEETH BROKEN")
     return 0 if ok else 2

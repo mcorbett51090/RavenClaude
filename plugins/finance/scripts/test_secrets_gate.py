@@ -15,6 +15,7 @@ All fixtures are written to a throwaway temp dir OUTSIDE the repo and are OBVIOU
 synthetic (AKIAEXAMPLE..., a well-known test SSN, a test-card PAN). No real
 credential or PII is ever created. Env-var NAMES only — never a value.
 """
+
 from __future__ import annotations
 
 import os
@@ -26,11 +27,11 @@ HOOK = os.path.join(HERE, "..", "hooks", "scan-finance-secrets.sh")
 
 # Obviously-fake secret/PII shapes — synthetic, never real.
 DIRTY = (
-    "aws_key = AKIAEXAMPLE1234567890\n"       # AWS access-key shape
-    "ssn: 452-11-7834\n"                        # US SSN shape (synthetic; NOT a known-dummy the scanner allowlists)
+    "aws_key = AKIAEXAMPLE1234567890\n"  # AWS access-key shape
+    "ssn: 452-11-7834\n"  # US SSN shape (synthetic; NOT a known-dummy the scanner allowlists)
     "client_secret = s3cr3tExampleValue987\n"  # OAuth client secret with a value
-    "api_key = abcdef123456\n"                  # generic api_key assignment
-    "card 4111111111111111\n"                   # Visa test PAN
+    "api_key = abcdef123456\n"  # generic api_key assignment
+    "card 4111111111111111\n"  # Visa test PAN
 )
 
 # Clean file: no secrets, plus the SANCTIONED patterns that must NOT trip.
@@ -54,8 +55,7 @@ def run(*args):
 
 
 def main():
-    check("hook script exists + is executable",
-          os.path.isfile(HOOK) and os.access(HOOK, os.X_OK))
+    check("hook script exists + is executable", os.path.isfile(HOOK) and os.access(HOOK, os.X_OK))
 
     with tempfile.TemporaryDirectory() as d:
         dirty = os.path.join(d, "dirty.txt")
@@ -67,16 +67,14 @@ def main():
 
         print("secrets-gate — --ci gates a merge on a fake secret/PII shape")
         r = run("--ci", dirty)
-        check("--ci exits NON-ZERO on the dirty fixture (blocks merge)",
-              r.returncode != 0)
+        check("--ci exits NON-ZERO on the dirty fixture (blocks merge)", r.returncode != 0)
         check("--ci reports the AWS key shape", "aws-access-key" in r.stderr)
         check("--ci reports the SSN shape", "us-ssn" in r.stderr)
         check("--ci reports the credit-card PAN shape", "credit-card-pan" in r.stderr)
 
         print("secrets-gate — --ci stays green on a clean file")
         r = run("--ci", clean)
-        check("--ci exits 0 on the clean fixture (no false gate failure)",
-              r.returncode == 0)
+        check("--ci exits 0 on the clean fixture (no false gate failure)", r.returncode == 0)
         check("clean file produces no findings block", "match(es)" not in r.stderr)
 
         print("secrets-gate — sanctioned env-var-NAME references never trip")
@@ -85,15 +83,34 @@ def main():
             f = os.path.join(d, f"line{i}.txt")
             with open(f, "w") as fh:
                 fh.write(ln + "\n")
-            check(f"sanctioned line does not trip --ci: {ln[:48]!r}",
-                  run("--ci", f).returncode == 0)
+            check(
+                f"sanctioned line does not trip --ci: {ln[:48]!r}", run("--ci", f).returncode == 0
+            )
+
+        print("secrets-gate — a placeholder does not mask a real secret on its line")
+        # Regression: the per-line filter must inspect EVERY matched span, not
+        # just the first. A documented placeholder SSN (123-45-6789) sharing a
+        # line with a genuine synthetic SSN (452-11-7834) must still be flagged;
+        # a placeholder-only line must stay clean.
+        mixed = os.path.join(d, "mixed.txt")
+        with open(mixed, "w") as fh:
+            fh.write('a = "123-45-6789"; b = "452-11-7834"\n')
+        check(
+            "--ci flags a real SSN even when a placeholder shares its line",
+            run("--ci", mixed).returncode != 0,
+        )
+        placeholder_only = os.path.join(d, "placeholder_only.txt")
+        with open(placeholder_only, "w") as fh:
+            fh.write('a = "123-45-6789"\n')
+        check(
+            "--ci stays clean on a placeholder-only line",
+            run("--ci", placeholder_only).returncode == 0,
+        )
 
         print("secrets-gate — ADVISORY (default) mode never blocks")
         r = run(dirty)  # no --ci
-        check("advisory mode exits 0 EVEN WITH findings (non-blocking hook)",
-              r.returncode == 0)
-        check("advisory mode still prints the findings to stderr",
-              "aws-access-key" in r.stderr)
+        check("advisory mode exits 0 EVEN WITH findings (non-blocking hook)", r.returncode == 0)
+        check("advisory mode still prints the findings to stderr", "aws-access-key" in r.stderr)
 
     n_pass = sum(1 for _, ok in results if ok)
     print(f"\n{n_pass}/{len(results)} acceptance tests passed.")
