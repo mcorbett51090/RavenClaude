@@ -7076,6 +7076,10 @@ if command -v node >/dev/null 2>&1; then
   gate "prompt-builder render (dashboard.html: static sink grep + assembler/linter/token)" must_pass "$rc"
   rc=0; node scripts/check-prompt-builder-render.mjs "$IDX_HTML" >/dev/null 2>&1 || rc=$?
   gate "prompt-builder render (index.html portal: same region shipped)" must_pass "$rc"
+  rc=0; node scripts/check-host-context-render.mjs "$DASH_HTML" >/dev/null 2>&1 || rc=$?
+  gate "host-context render (dashboard.html)" must_pass "$rc"
+  rc=0; node scripts/check-host-context-render.mjs "$IDX_HTML" >/dev/null 2>&1 || rc=$?
+  gate "host-context render (index.html portal)" must_pass "$rc"
   # must_fail: a reintroduced HTML-string sink in the pb region MUST be caught by the grep.
   PB_BAD="$TMP/dashboard-pb-innerhtml.html"
   python3 -c "p='$DASH_HTML'; o='$PB_BAD'; s=open(p,encoding='utf-8').read(); s=s.replace('/* PROMPT-BUILDER:END */','function pbEvilSink(el, t) { el.innerHTML = t; }\n/* PROMPT-BUILDER:END */',1); open(o,'w',encoding='utf-8').write(s)"

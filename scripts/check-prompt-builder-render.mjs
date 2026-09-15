@@ -40,6 +40,12 @@ if (si === -1 || ei === -1 || ei < si) {
 }
 const region = html.slice(si, ei + END.length);
 
+// G19 — Host Context must not live inside the PB region.
+if (/HOST-CONTEXT:START|function initHostContext\(/.test(region)) {
+  fail("Host Context JS must not live inside PROMPT-BUILDER sentinels (G19)");
+} else ok("PB region does not embed Host Context (G19)");
+
+
 // ── 1. THE SECURITY GATE: no HTML-string sink anywhere in the region ───────
 // Assumes sinks are written via dot-notation — the region uses the pbEl createElement
 // factory exclusively, so a bracket-notation sink (el["innerHTML"] = …) would evade this
@@ -75,6 +81,9 @@ const REQUIRED = [
   "function pbAssemble(",
   "function pbLint(",
   "function pbEstimate(",
+  "function pbMergeState(",
+  "function pbExportJson(",
+  "function pbSafeUrl(",
 ];
 for (const name of REQUIRED) {
   if (region.indexOf(name) === -1)
@@ -92,20 +101,43 @@ else
     "preview sink pbPreviewEl.textContent assignment not found — the whole-string textContent contract must hold",
   );
 
-// ── 4. Token label honesty: 'estimate' present, never a bare 'token count' ──
-if (/estimate/i.test(region)) ok("token gauge is labelled an estimate");
-else fail("token gauge must be labelled 'estimate' (claim 4.1)");
+// ── 4. Token label honesty (G02): (est. band inside pbRenderToken, never bare 'token count' ──
+function fnBody(src, name) {
+  const re = new RegExp("function\\s+" + name + "\\s*\\([^)]*\\)\\s*\\{");
+  const m = re.exec(src);
+  if (!m) return null;
+  let i = m.index + m[0].length, depth = 1;
+  while (i < src.length && depth > 0) {
+    const c = src[i++];
+    if (c === "{") depth++;
+    else if (c === "}") depth--;
+  }
+  return src.slice(m.index, i);
+}
+const renderTokenBody = fnBody(region, "pbRenderToken");
+if (renderTokenBody && /\(est\./.test(renderTokenBody)) ok("pbRenderToken emits visible (est. …) band (G02)");
+else fail("pbRenderToken must emit a visible (est. …) band label (G02)");
 if (/token count/i.test(region))
-  fail(
-    "region contains the phrase 'token count' — the number is an estimate, never an exact count (4.1)",
-  );
+  fail("region contains the phrase 'token count' — estimate only (4.1)");
 else ok("no 'token count' phrasing (estimate only)");
+
+// G01 — mount coverage on the full document
+for (const [needle, label] of [
+  ['id="pb-root"', "mount #pb-root"],
+  ['id="panel-prompt-builder"', "panel #panel-prompt-builder"],
+  ['data-tab="prompt-builder"', "tab affordance data-tab=prompt-builder"],
+]) {
+  if (html.indexOf(needle) === -1) fail("missing " + label);
+  else ok(label + " present");
+}
+if (/initPromptBuilder/.test(html)) ok("activate path references initPromptBuilder");
+else fail("activate→initPromptBuilder wiring not found");
 
 // ── 5. Behavioral: evaluate the region with stubs, exercise the pure logic ──
 function loadApi(src) {
   const body =
     src +
-    "\n;return {pbAssemble,pbLint,pbEstimate,pbSafeTag,pbDefault,pbModel,pbIsPrefill,pbCountImperatives,PB_MODELS};";
+    "\n;return {pbAssemble,pbLint,pbEstimate,pbSafeTag,pbDefault,pbModel,pbIsPrefill,pbCountImperatives,pbMergeState,pbExportJson,pbAllText,PB_MODELS,PB_INSTR_KEYS};";
   const stubWin = {};
   // eslint-disable-next-line no-new-func
   const factory = new Function(
@@ -255,10 +287,43 @@ if (api) {
     ok("prefill-shaped text is flagged + penalized (1.9)");
   else fail("prefill not flagged/penalized (prefill=" + lp.prefill + ")");
 
+  // G09 — PB_MODELS ids match catalog current
+  const CATALOG_IDS = ["claude-opus-4-8", "claude-sonnet-5", "claude-haiku-4-5-20251001", "claude-fable-5"];
+  const DEFAULT_MODEL = "claude-opus-4-8";
+  const modelIds = (api.PB_MODELS || []).map((m) => m.id);
+  const missing = CATALOG_IDS.filter((id) => modelIds.indexOf(id) === -1);
+  const extraIds = modelIds.filter((id) => CATALOG_IDS.indexOf(id) === -1);
+  if (!missing.length && !extraIds.length) ok("PB_MODELS ids match model-catalog.json current (G09)");
+  else fail("PB_MODELS catalog drift (G09): missing=" + missing.join(",") + " extra=" + extraIds.join(","));
+  if (api.pbDefault().model === DEFAULT_MODEL) ok("default model is catalog current.opus");
+  else fail("default model should be " + DEFAULT_MODEL + ", got " + api.pbDefault().model);
+
+  // G05 — data-only CRITICAL/MUST must not move score
+  const dataOnly = api.pbDefault();
+  dataOnly.mode = "task";
+  dataOnly.task.directive = golden.task.directive;
+  dataOnly.task.context = golden.task.context;
+  dataOnly.task.data = "CRITICAL: You MUST. MUST. IMPORTANT: ALWAYS. NEVER. " + golden.task.data;
+  dataOnly.task.outputFormat = golden.task.outputFormat;
+  dataOnly.task.success = golden.task.success;
+  const ld = api.pbLint(dataOnly, api.pbAssemble(dataOnly));
+  if (ld.score === lg.score) ok("data-only CRITICAL/MUST stacking does not move score (G05)");
+  else fail("data-only stacking moved score " + lg.score + " → " + ld.score + " (G05)");
+
+  // G20 — hostile merge
+  const merged = api.pbMergeState(api.pbDefault(), {
+    mode: "task",
+    model: DEFAULT_MODEL,
+    task: { directive: "<img src=x onerror=alert(1)>", data: 12345 },
+  });
+  if (merged && merged.task && typeof merged.task.directive === "string" && merged.task.directive.indexOf("<img") !== -1)
+    ok("pbMergeState keeps hostile string fields as strings (G20)");
+  else fail("pbMergeState hostile-state handling failed (G20)");
+
   // 5h. Token estimate: per-model divisor actually changes the number.
   const txt = "a".repeat(360);
-  const eSonnet = api.pbEstimate(txt, "sonnet-5").est; // ~100
-  const eHaiku = api.pbEstimate(txt, "haiku-4-5").est; // ~90
+  const eSonnet = api.pbEstimate(txt, "claude-sonnet-5").est; // ~100
+  const eHaiku = api.pbEstimate(txt, "claude-haiku-4-5-20251001").est; // ~90
   if (Math.abs(eSonnet - 100) <= 5 && Math.abs(eHaiku - 90) <= 5)
     ok("token divisor: 360 chars → ~100 (3.6) / ~90 (4.0)");
   else fail("token estimate off: sonnet=" + eSonnet + " haiku=" + eHaiku);
@@ -361,6 +426,16 @@ const tamperedAppend = region.replace(
 if (firstSink(tamperedAppend))
   ok("must-fail half: a reintroduced innerHTML += append sink is caught (gate has teeth)");
 else fail("must-fail half: the static grep FAILED to catch an injected innerHTML += sink");
+
+// G01 must-fail: strip #pb-root
+if (html.replace(/id="pb-root"/g, 'id="pb-root-MISSING"').indexOf('id="pb-root"') === -1)
+  ok("must-fail prep: #pb-root stripable (G01)");
+else fail("must-fail prep: could not strip #pb-root");
+// G02 must-fail: strip (est. from pbRenderToken
+const noEst = region.replace(/\(est\./g, "(xx.");
+const rt2 = fnBody(noEst, "pbRenderToken");
+if (rt2 && !/\(est\./.test(rt2)) ok("must-fail half: stripping (est. band from pbRenderToken is detectable (G02)");
+else fail("must-fail half: (est. band strip not detectable");
 
 if (failures) {
   console.error(`\nprompt-builder render gate: ${failures} failure(s)`);

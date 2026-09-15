@@ -7334,7 +7334,6 @@ footer.page-footer a:hover { text-decoration: underline; }
 .pb-token { display: inline-flex; align-items: baseline; gap: 5px; padding: 5px 10px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 999px; font-size: 12px; color: var(--muted); white-space: nowrap; }
 .pb-token strong { color: var(--text); font-variant-numeric: tabular-nums; }
 .pb-token .pb-token-band { font-size: 11px; opacity: .8; }
-.pb-info { display: inline-flex; align-items: center; justify-content: center; width: 15px; height: 15px; border-radius: 50%; border: 1px solid var(--border); color: var(--muted); font-size: 10px; font-weight: 700; cursor: help; }
 
 .pb-btn { appearance: none; font: inherit; font-size: 12.5px; font-weight: 600; padding: 6px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--surface-2); color: var(--text); cursor: pointer; transition: background .15s, border-color .15s; }
 .pb-btn:hover { border-color: var(--accent); }
@@ -7419,6 +7418,25 @@ footer.page-footer a:hover { text-decoration: underline; }
 .pb-toast.pb-show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
 @media (max-width: 960px) { .pb-grid { grid-template-columns: 1fr; } .pb-preview { max-height: 320px; } }
+
+.pb-modes { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; flex: 1 1 100%; }
+.pb-mode { appearance: none; border: 1px solid var(--border); background: var(--surface-2); color: var(--muted); font: inherit; font-size: 12.5px; font-weight: 600; padding: 6px 12px; border-radius: 999px; cursor: pointer; }
+.pb-mode[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--bg); }
+.pb-token-honesty { flex: 1 1 100%; margin: 0; font-size: 11px; color: var(--muted); line-height: 1.4; }
+.pb-sev-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; margin-right: 6px; color: var(--muted); }
+.pb-issue.pb-sev-bad .pb-sev-label { color: var(--danger); }
+.pb-issue.pb-sev-warn .pb-sev-label { color: var(--warn); }
+.pb-issue.pb-sev-tip .pb-sev-label { color: var(--accent); }
+.pb-sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+.pb-preview-empty { margin: 0 0 6px; font-size: 12.5px; color: var(--muted); }
+.pb-preview-empty[hidden] { display: none !important; }
+.pb-gauge-wrap { display: inline-flex; }
+@media (forced-colors: active) {
+  .pb-issue.pb-sev-bad { border-left: 4px solid CanvasText; outline: 1px solid CanvasText; }
+  .pb-issue.pb-sev-warn { border-left: 4px dashed CanvasText; }
+  .pb-issue.pb-sev-tip { border-left: 4px dotted CanvasText; }
+  .pb-count.pb-ok, .pb-count.pb-warn { forced-color-adjust: none; }
+}
 @media (prefers-reduced-motion: reduce) { .pb-gauge circle.pb-gauge-fill { transition: none; } .pb-toast { transition: none; } }
 """.strip()
 
@@ -11174,18 +11192,25 @@ function wireHostScopeFilter(root) {
     if (tab === "plugin-vars") activatePluginVars(sub);
     if (tab === "web-access") hydrateWebAccess();
     if (tab === "prompt-builder" && !pbLoaded) {
-      pbLoaded = true;
-      // Deferred, not called inline: PB_MODELS/PB_PRESETS (var, not hoisted-with-value)
-      // are declared LATER in this same script than the initial applyHash() call
-      // below, so a cold #/prompt-builder deep-link/reload calling initPromptBuilder()
-      // synchronously here would read them as undefined mid-script (TypeError on
-      // .forEach). setTimeout defers to after the whole script finishes executing,
-      // by which point every var in this file is assigned -- the same ordering bug
-      // class as the pipelineServerAvailable TDZ fix below, fixed at the call site
-      // instead of by relocating PB_MODELS/PB_PRESETS (real data, not a stub-able flag).
-      setTimeout(initPromptBuilder, 0);
+      // Deferred: PB_MODELS/PB_PRESETS declared later than initial applyHash().
+      // G30: latch pbLoaded only after successful init; reset on throw.
+      // G28: optional sub is template id only (#/prompt-builder/<template>).
+      var pbDeepTpl = sub || null;
+      setTimeout(function () {
+        try {
+          if (initPromptBuilder(pbDeepTpl)) pbLoaded = true;
+        } catch (e) {
+          pbLoaded = false;
+          var root = document.getElementById("pb-root");
+          if (root) root.removeAttribute("data-pb-ready");
+          console.error("Prompt Builder init failed", e);
+        }
+      }, 0);
     }
-    if (tab === "host-context" && !hcLoaded) { hcLoaded = true; initHostContext(); }
+    if (tab === "host-context" && !hcLoaded) {
+      try { initHostContext(); hcLoaded = true; }
+      catch (e) { hcLoaded = false; console.error("Host Context init failed", e); }
+    }
   }
   // Navigate: activate immediately, then reflect the page in the URL hash for
   // deep-linking + browser back/forward. (The hashchange listener re-applies on
@@ -14081,11 +14106,10 @@ function wireHostScopeFilter(root) {
   // Claude 4.7+/5-family tokenize ~30% heavier (4.2), hence the split. Verify with the
   // count_tokens API for billing-critical use; the number never gates any action.
   var PB_MODELS = [
-    { id: "opus-5",    label: "Opus 5",    divisor: 3.6, hint: "Opus 5 is literal and can over-trigger on \"CRITICAL/MUST\" language — dial it back. It runs verbose by default (prompt for concision) and self-verifies (drop carried-over \"double-check your answer\" lines)." },
-    { id: "sonnet-5",  label: "Sonnet 5",  divisor: 3.6, hint: "Current tokenizer. Newer models follow the system prompt closely — be explicit about the output you want, not emphatic about it." },
-    { id: "opus-4-8",  label: "Opus 4.8",  divisor: 3.6, hint: "Current tokenizer generation. Prefer general instructions (\"think thoroughly\") over a prescriptive step list (1.6)." },
-    { id: "haiku-4-5", label: "Haiku 4.5", divisor: 4.0, hint: "Older tokenizer (pre-4.7). A smaller model can benefit from more explicit, decomposed instructions — heuristic, not Anthropic-stated (5.3)." },
-    { id: "fable-5",   label: "Fable 5",   divisor: 3.6, hint: "Current tokenizer; thinking is always on — reasoning depth is the effort parameter, not a prompt phrase (5.4)." }
+    { id: "claude-opus-4-8", label: "Opus (opus 4 8)", divisor: 3.6, hint: "Current catalog Opus. Prefer explicit output shape over stacked CRITICAL/MUST (5.2)." },
+    { id: "claude-sonnet-5", label: "Sonnet (sonnet 5)", divisor: 3.6, hint: "Current catalog Sonnet. Be explicit about the output you want, not emphatic about it." },
+    { id: "claude-haiku-4-5-20251001", label: "Haiku (haiku 4 5 20251001)", divisor: 4.0, hint: "Older tokenizer generation (pre-4.7 family). Smaller models can benefit from more explicit, decomposed instructions — heuristic (5.3)." },
+    { id: "claude-fable-5", label: "Fable (fable 5)", divisor: 3.6, hint: "Current catalog Fable; thinking depth is the effort parameter, not a prompt phrase (5.4)." },
   ];
   var PB_BAND = 0.20; // +/-20% band (claim 4.5); widened on code/CJK content
 
@@ -14094,7 +14118,7 @@ function wireHostScopeFilter(root) {
   function pbEx() { return { input: "", output: "", reasoning: "" }; }
   function pbDefault() {
     return {
-      mode: "task", model: "opus-5", reasoning: false, template: null,
+      mode: "task", model: "claude-opus-4-8", reasoning: false, template: null,
       task:    { directive: "", context: "", dataTag: "input", data: "", constraints: "", outputFormat: "", success: "" },
       system:  { role: "", rules: [""], tone: "", boundaries: "", outputPolicy: "" },
       fewshot: { directive: "", outputFormat: "", examples: [pbEx(), pbEx(), pbEx()] }
@@ -14189,18 +14213,60 @@ function wireHostScopeFilter(root) {
         { label: "Markdown headings", text: "Organize longer answers under short markdown headings." },
         { label: "Structured handoff", text: "End with a machine-readable block:\n---RESULT_START---\n{\"status\": \"complete|partial|blocked\", \"summary\": \"one sentence\"}\n---RESULT_END---" }
       ]
+    },
+    task: {
+      directive: [
+        { label: "Summarize key points", text: "Summarize the text in the data tag into the key points." },
+        { label: "Extract fields as JSON", text: "Extract the requested fields from the text in the data tag." },
+        { label: "Classify into one label", text: "Classify the text in the data tag into exactly one category from the allowed set." },
+        { label: "Rewrite in plain language", text: "Rewrite the text in the data tag in warmer, plain-language tone for a general audience." }
+      ],
+      context: [
+        { label: "Executives want decisions", text: "These go to executives who want decisions, not discussion." },
+        { label: "Audience is developers", text: "The audience is working software engineers who know the codebase." }
+      ],
+      constraints: [
+        { label: "One sentence each", text: "Keep each item to one sentence." },
+        { label: "Stay inside source", text: "Use only information present in the source text." }
+      ],
+      outputFormat: [
+        { label: "Numbered list only", text: "A numbered list. Output only the list." },
+        { label: "JSON only", text: "Return a JSON object. Output only valid JSON, no prose." },
+        { label: "One label only", text: "Respond with exactly one label. Output only the label." }
+      ],
+      success: [
+        { label: "Owner on every item", text: "Every action item names an owner." },
+        { label: "No invented facts", text: "Nothing is asserted that is not supported by the source." }
+      ]
+    },
+    fewshot: {
+      directive: [
+        { label: "Sentiment classify", text: "Classify the sentiment of each review as positive, negative, or neutral." },
+        { label: "Intent classify", text: "Classify each message into exactly one intent label from the allowed set." }
+      ],
+      outputFormat: [
+        { label: "One word sentiment", text: "One word: positive, negative, or neutral." },
+        { label: "One intent label", text: "Output only the intent label." }
+      ]
     }
   };
 
   var PB_PATTERNS = [
-    { id: "cot", label: "+ Chain-of-thought", tip: "Ask Claude to reason before answering (1.6). On current models the primary lever is the effort parameter, not a phrase.", apply: function (s) { s.reasoning = true; } },
+    { id: "cot", label: "+ Chain-of-thought", tip: "Ask Claude to reason before answering (1.6). On current models the primary lever is the effort parameter, not a phrase.", modes: { task: 1, fewshot: 1 }, apply: function (s) { s.reasoning = true; } },
     { id: "xml", label: "+ XML data tag", tip: "Wrap variable input in its own XML tag so Claude can't confuse instructions with data (1.4).", modes: { task: 1 }, apply: function (s) { if (!pbSafeTag(s.task.dataTag)) s.task.dataTag = "input"; } },
     { id: "example", label: "+ Example", tip: "Add an example (2.2).", modes: { fewshot: 1 }, apply: function (s) { if (s.fewshot.examples.length < 8) s.fewshot.examples.push(pbEx()); } },
-    { id: "structured", label: "+ Structured-output block", tip: "Insert RavenClaude's house ---RESULT_START--- handoff block (R.1). A house convention for agent hand-offs, not a universal Claude rule.", apply: function (s) { var add = "\n\nEnd your response with a machine-readable block:\n---RESULT_START---\n{\"status\": \"complete|partial|blocked\", \"summary\": \"one sentence\"}\n---RESULT_END---"; var mk = s.mode === "system" ? "outputPolicy" : "outputFormat"; s[s.mode][mk] = (s[s.mode][mk] || "").replace(/\s+$/, "") + add; } },
+    { id: "structured", label: "+ Structured-output block", tip: "Insert RavenClaude's house ---RESULT_START--- handoff block (R.1). A house convention for agent hand-offs, not a universal Claude rule.", apply: function (s) { var mk = s.mode === "system" ? "outputPolicy" : "outputFormat"; var cur = s[s.mode][mk] || ""; if (cur.indexOf("---RESULT_START---") !== -1) return; var add = "\n\nEnd your response with a machine-readable block:\n---RESULT_START---\n{\"status\": \"complete|partial|blocked\", \"summary\": \"one sentence\"}\n---RESULT_END---"; s[s.mode][mk] = cur.replace(/\s+$/, "") + add; } },
     { id: "prefill", label: "Response prefill", deprecated: true, tip: "Deprecated — prefilled assistant turns return a 400 error on Claude 4.6+ (1.9). Use the Structured-output block instead.", apply: function () { /* no-op: prefill is never emitted (1.9) */ } }
   ];
 
   // ── pbEl: the ONLY DOM factory. createElement + textContent + setAttribute; never a markup sink. ──
+  function pbSafeUrl(v) {
+    var s = String(v == null ? "" : v);
+    if (!s) return "";
+    if (s.charAt(0) === "#") return s;
+    if (/^(?:https?:|blob:)/i.test(s)) return s;
+    return "";
+  }
   function pbEl(tag, props, kids) {
     var el = document.createElement(tag);
     if (props) {
@@ -14213,6 +14279,11 @@ function wireHostScopeFilter(root) {
         else if (k === "for") el.htmlFor = v;
         else if (k.charAt(0) === "o" && k.charAt(1) === "n" && typeof v === "function") el.addEventListener(k.slice(2), v);
         else if (k.charAt(0) === "o" && k.charAt(1) === "n") continue; // never let an on* key become an inline-handler attribute (defense-in-depth)
+        else if (k === "href" || k === "src") {
+          var safe = pbSafeUrl(v);
+          if (safe) el.setAttribute(k, safe);
+          continue;
+        }
         else if (v === true) el.setAttribute(k, "");
         else el.setAttribute(k, v);
       }
@@ -14289,13 +14360,19 @@ function wireHostScopeFilter(root) {
   }
 
   // ── Linter: per-mode weighted 0-100 minus anti-folklore penalties. Structure, NOT semantics. ──
+  var PB_INSTR_KEYS = {
+    task: { directive: 1, context: 1, constraints: 1, outputFormat: 1, success: 1 },
+    system: { role: 1, rules: 1, tone: 1, boundaries: 1, outputPolicy: 1 },
+    fewshot: { directive: 1, outputFormat: 1 }
+  };
   function pbAllText(s) {
-    var o = s[s.mode], parts = [];
+    var mode = s.mode, o = s[mode], allow = PB_INSTR_KEYS[mode] || {}, parts = [];
     for (var k in o) {
       if (!Object.prototype.hasOwnProperty.call(o, k)) continue;
+      if (!allow[k]) continue;
       var v = o[k];
       if (typeof v === "string") parts.push(v);
-      else if (Array.isArray(v)) v.forEach(function (it) { if (typeof it === "string") parts.push(it); else if (it) { for (var kk in it) { if (typeof it[kk] === "string") parts.push(it[kk]); } } });
+      else if (Array.isArray(v)) v.forEach(function (it) { if (typeof it === "string") parts.push(it); });
     }
     return parts.join("\n").slice(0, PB_SCAN_CAP);
   }
@@ -14320,9 +14397,10 @@ function wireHostScopeFilter(root) {
       dims.push({ w: 25, f: pbSubstantive(t.directive) ? 1 : (t.directive.trim() ? 0.4 : 0), label: "Task is specific", why: "Vague tasks get vague answers — be explicit (1.2).", key: "directive" });
       dims.push({ w: 15, f: t.context.trim() ? 1 : 0, label: "Context / motivation", why: "Explaining the “why” helps Claude generalize correctly (1.3).", key: "context" });
       dims.push({ w: 15, f: t.data.trim() ? 1 : 0.6, label: "Input delimited", why: "Variable data belongs in its own XML tag (1.4).", key: "data", optional: true });
-      dims.push({ w: 20, f: t.outputFormat.trim() ? 1 : 0, label: "Output format explicit", why: "State exactly how the answer should be shaped (6.4).", key: "outputFormat" });
-      dims.push({ w: 15, f: pbFramingFrac(t.constraints + " " + t.directive), label: "Positive framing", why: "Tell Claude what TO do, not what not to do (1.5).", key: "constraints" });
-      dims.push({ w: 10, f: t.success.trim() ? 1 : 0, label: "Success criteria", why: "Define what a good answer satisfies (6.8).", key: "success", optional: true });
+      dims.push({ w: 18, f: t.outputFormat.trim() ? 1 : 0, label: "Output format explicit", why: "State exactly how the answer should be shaped (6.4).", key: "outputFormat" });
+      dims.push({ w: 12, f: pbFramingFrac((t.constraints || "").trim() ? t.constraints : t.directive), label: "Positive framing", why: "Tell Claude what TO do, not what not to do (1.5).", key: "directive" });
+      dims.push({ w: 8, f: t.constraints.trim() ? 1 : 0, label: "Constraints present", why: "Positive constraints help Claude stay on rails (1.5).", key: "constraints", optional: true });
+      dims.push({ w: 7, f: t.success.trim() ? 1 : 0, label: "Success criteria", why: "Define what a good answer satisfies (6.8).", key: "success", optional: true });
     } else if (mode === "system") {
       var y = s.system;
       dims.push({ w: 35, f: pbSubstantive(y.role, 15) ? 1 : (y.role.trim() ? 0.4 : 0), label: "Role defined", why: "A clear persona focuses tone + behavior (3.1).", key: "role" });
@@ -14351,7 +14429,7 @@ function wireHostScopeFilter(root) {
     (function () { var o = s[mode]; for (var k in o) { if (typeof o[k] === "string" && pbIsPrefill(o[k])) prefill = true; } })();
     if (prefill) { penalty += 20; issues.unshift({ sev: "bad", label: "Looks like response prefilling", why: "Prefilled assistant turns return a 400 error on Claude 4.6+ — use a Structured-output block instead (1.9).", key: null, claim: "1.9" }); }
     for (var i = 0; i < PB_FOLKLORE.length; i++) { if (PB_FOLKLORE[i].test(all)) { issues.push({ sev: "tip", label: "“Magic phrase” detected", why: "Folklore like “you are an expert” / “I'll tip $200” doesn't survive an A/B test on current models — it earns no credit (R.2).", key: null }); break; } }
-    if (mode === "task" && s.model === "opus-5" && s.task.success.trim()) issues.push({ sev: "tip", label: "Self-check may be redundant on Opus 5", why: "Opus 5 self-verifies — an explicit success-check can over-trigger (5.2).", key: "success" });
+    if (mode === "task" && s.model === "claude-opus-4-8" && s.task.success.trim()) issues.push({ sev: "tip", label: "Self-check may be redundant on Opus 5", why: "Opus 5 self-verifies — an explicit success-check can over-trigger (5.2).", key: "success" });
     if (assembled.length / (pbModel(s.model).divisor) > 20000) issues.push({ sev: "tip", label: "Long prompt — consider data-first order", why: "Above ~20k tokens, putting long data at the top and the query at the end can improve quality up to ~30% (1.7).", key: null });
 
     score = Math.max(0, Math.min(100, Math.round(score - penalty)));
@@ -14360,7 +14438,7 @@ function wireHostScopeFilter(root) {
   function pbFramingFrac(text) { if (!(text || "").trim()) return 0; var n = pbNegations(text); return n === 0 ? 1 : n <= 2 ? 0.6 : 0.2; }
 
   // ── Rendering (all via pbEl) ──────────────────────────────────────────────
-  var pbRoot, pbPreviewEl, pbTokenEl, pbFieldsEl, pbIssuesEl, pbGaugeFill, pbGaugeText, pbGaugeSub, pbNoteEl, pbDegradedEl, pbModelHintEl, pbTplRow, pbRaf = 0, pbToastEl = null, pbToastTimer = 0;
+  var pbRoot, pbPreviewEl, pbPreviewEmptyEl, pbTokenEl, pbTokenCapEl, pbFieldsEl, pbIssuesEl, pbIssuesLiveEl, pbGaugeEl, pbGaugeFill, pbGaugeText, pbGaugeSub, pbNoteEl, pbDegradedEl, pbModelHintEl, pbTplRow, pbModeRow, pbRaf = 0, pbToastEl = null, pbToastTimer = 0, pbSaveTimer = 0, pbLiveTimer = 0, pbPendingTpl = null;
   var PB_GAUGE_C = 2 * Math.PI * 32;
 
   // ── Per-field canned-value picker: a compact <select> that fills/appends a vetted
@@ -14379,16 +14457,23 @@ function wireHostScopeFilter(root) {
   }
   function pbInsertCanned(f, text) {
     var slot = pbState[pbState.mode];
+    var focusIdx = null;
     if (f.type === "list") {
       var arr = slot[f.key];
-      if (arr.length === 1 && !String(arr[0]).trim()) arr[0] = text; else arr.push(text);
+      var blank = -1;
+      for (var i = 0; i < arr.length; i++) { if (!String(arr[i]).trim()) { blank = i; break; } }
+      if (blank >= 0) { arr[blank] = text; focusIdx = blank; }
+      else { arr.push(text); focusIdx = arr.length - 1; }
     } else {
       var cur = slot[f.key] || "";
       slot[f.key] = cur.trim() ? cur.replace(/\s+$/, "") + (f.type === "text" ? ", " : "\n") + text : text;
     }
     pbRebuildFields();
     pbUpdate();
-    pbFocusField(f.key);
+    if (focusIdx != null) {
+      var el = pbFieldsEl.querySelector('[data-pb-list="' + f.key + '"][data-pb-idx="' + focusIdx + '"]');
+      if (el && el.focus) { el.focus(); if (el.scrollIntoView) el.scrollIntoView({ block: "center" }); }
+    } else pbFocusField(f.key);
   }
 
   function pbField(f) {
@@ -14427,7 +14512,7 @@ function wireHostScopeFilter(root) {
     var wrap = pbEl("div", { class: "pb-field" });
     var exs = pbState.fewshot.examples, n = exs.length;
     var cls = n >= 3 && n <= 5 ? "pb-count pb-ok" : "pb-count pb-warn";
-    wrap.appendChild(pbEl("label", {}, [f.label, pbEl("span", { class: cls, text: " (" + n + ")" }), pbEl("span", { class: "pb-hint", text: "— " + f.hint })]));
+    wrap.appendChild(pbEl("label", {}, [f.label, pbEl("span", { class: cls, text: " (" + n + " example" + (n === 1 ? "" : "s") + ")" }), pbEl("span", { class: "pb-hint", text: "— " + f.hint })]));
     var list = pbEl("div", { class: "pb-repeat" });
     exs.forEach(function (e, i) {
       var head = pbEl("div", { class: "pb-repeat-head" }, [
@@ -14456,7 +14541,7 @@ function wireHostScopeFilter(root) {
     var chips = pbEl("div", { class: "pb-chips" });
     PB_PATTERNS.forEach(function (p) {
       if (p.modes && !p.modes[pbState.mode]) return;
-      if (p.deprecated) { chips.appendChild(pbEl("button", { type: "button", class: "pb-chip pb-deprecated", title: p.tip, "aria-disabled": "true", disabled: true, text: p.label })); return; }
+      if (p.deprecated) { chips.appendChild(pbEl("button", { type: "button", class: "pb-chip pb-deprecated", title: p.tip, "aria-disabled": "true", "aria-label": p.label + " (deprecated): " + p.tip, text: p.label, onclick: function (e) { e.preventDefault(); pbToast("Prefill is deprecated on Claude 4.6+"); } })); return; }
       chips.appendChild(pbEl("button", { type: "button", class: "pb-chip", title: p.tip, text: p.label, onclick: function () { p.apply(pbState); pbRebuildFields(); pbSyncControls(); pbUpdate(); } }));
     });
     rail.appendChild(chips);
@@ -14484,23 +14569,57 @@ function wireHostScopeFilter(root) {
     else if (t.dataset.pbList === "examples") pbState.fewshot.examples[parseInt(t.dataset.pbIdx, 10)][t.dataset.pbSub] = val;
     else if (key === "reasoning") pbState.reasoning = val;
     else pbState[pbState.mode][key] = val;
+    if (pbState.template) { pbState.template = null; pbSyncTemplateRow(); }
     pbScheduleUpdate();
   }
   function pbScheduleUpdate() { if (pbRaf) return; pbRaf = (window.requestAnimationFrame || function (cb) { return setTimeout(cb, 16); })(function () { pbRaf = 0; pbUpdate(); }); }
 
+  function pbFlushSave() {
+    if (pbSaveTimer) { clearTimeout(pbSaveTimer); pbSaveTimer = 0; }
+    pbSave();
+  }
+  function pbScheduleSave() {
+    if (pbSaveTimer) clearTimeout(pbSaveTimer);
+    pbSaveTimer = setTimeout(function () { pbSaveTimer = 0; pbSave(); }, 400);
+  }
+  function pbAnnounceIssues(r) {
+    if (!pbIssuesLiveEl) return;
+    if (!r.issues.length) { pbIssuesLiveEl.textContent = "All best-practice structure present. Score " + r.score + " of 100."; return; }
+    pbIssuesLiveEl.textContent = r.issues.length + " quality issue" + (r.issues.length === 1 ? "" : "s") + ". Score " + r.score + " of 100.";
+  }
+  function pbScheduleAnnounce(r) {
+    if (pbLiveTimer) clearTimeout(pbLiveTimer);
+    pbLiveTimer = setTimeout(function () { pbLiveTimer = 0; pbAnnounceIssues(r); }, 500);
+  }
   function pbUpdate() {
     var assembled = pbAssemble(pbState);
+    if (pbPreviewEmptyEl) pbPreviewEmptyEl.hidden = !!assembled;
     pbPreviewEl.textContent = assembled; // THE single whole-string sink (structurally XSS-safe)
     pbRenderToken(assembled);
     pbRenderQuality(assembled);
-    pbSave();
+    pbScheduleSave();
   }
   function pbRenderToken(assembled) {
     var e = pbEstimate(assembled, pbState.model);
     pbClear(pbTokenEl);
+    pbTokenEl.setAttribute("aria-label", "Rough size estimate about " + e.est + " tokens, band " + e.low + " to " + e.high);
     pbTokenEl.appendChild(pbEl("strong", { text: "~" + e.est.toLocaleString() }));
     pbTokenEl.appendChild(pbEl("span", { text: " tokens" }));
-    pbTokenEl.appendChild(pbEl("span", { class: "pb-token-band", text: "(est. " + e.low.toLocaleString() + "–" + e.high.toLocaleString() + ")" }));
+    pbTokenEl.appendChild(pbEl("span", { class: "pb-token-band", text: "(est. " + e.low.toLocaleString() + "\u2013" + e.high.toLocaleString() + ")" }));
+    if (pbTokenCapEl) {
+      if (assembled.length > PB_SCAN_CAP) {
+        pbTokenCapEl.hidden = false;
+        pbTokenCapEl.textContent = "Band uses the first " + PB_SCAN_CAP.toLocaleString() + " characters of a longer prompt \u2014 estimate still uses full length.";
+      } else {
+        pbTokenCapEl.hidden = true;
+        pbTokenCapEl.textContent = "";
+      }
+    }
+  }
+  function pbSevPrefix(sev) {
+    if (sev === "bad") return "Error";
+    if (sev === "warn") return "Warning";
+    return "Tip";
   }
   function pbRenderQuality(assembled) {
     var r = pbLint(pbState, assembled);
@@ -14509,16 +14628,26 @@ function wireHostScopeFilter(root) {
     pbGaugeFill.setAttribute("stroke-dasharray", PB_GAUGE_C.toFixed(1));
     pbGaugeFill.setAttribute("stroke-dashoffset", (PB_GAUGE_C * (1 - r.score / 100)).toFixed(1));
     pbGaugeText.textContent = String(r.score);
+    if (pbGaugeEl) {
+      pbGaugeEl.setAttribute("aria-valuenow", String(r.score));
+      pbGaugeEl.setAttribute("aria-label", "Structure completeness " + r.score + " of 100");
+    }
     pbClear(pbIssuesEl);
-    if (!r.issues.length) { pbIssuesEl.appendChild(pbEl("li", { class: "pb-clean", text: "✓ All best-practice structure present." })); return; }
+    if (!r.issues.length) { pbIssuesEl.appendChild(pbEl("li", { class: "pb-clean", text: "\u2713 All best-practice structure present." })); pbScheduleAnnounce(r); return; }
     r.issues.forEach(function (is) {
       pbIssuesEl.appendChild(pbEl("li", { class: "pb-issue pb-sev-" + is.sev }, [
-        pbEl("div", { class: "pb-issue-title" }, [pbEl("span", { text: is.label }), is.claim ? pbEl("span", { class: "pb-issue-claim", text: is.claim }) : null]),
+        pbEl("div", { class: "pb-issue-title" }, [
+          pbEl("span", { class: "pb-sev-label", text: pbSevPrefix(is.sev) }),
+          pbEl("span", { text: is.label }),
+          is.claim ? pbEl("span", { class: "pb-issue-claim", text: is.claim }) : null
+        ]),
         pbEl("p", { class: "pb-issue-why", text: is.why }),
-        is.key ? pbEl("button", { type: "button", class: "pb-issue-fix", text: "Jump to field →", onclick: function () { pbFocusField(is.key); } }) : null
+        is.key ? pbEl("button", { type: "button", class: "pb-issue-jump", text: "Jump to field \u2192", onclick: function () { pbFocusField(is.key); } }) : null
       ]));
     });
+    pbScheduleAnnounce(r);
   }
+
   function pbFocusField(key) {
     var el = document.getElementById("pb-f-" + key) || pbFieldsEl.querySelector('[data-pb-key="' + key + '"]');
     if (el && el.focus) { el.focus(); if (el.scrollIntoView) el.scrollIntoView({ block: "center" }); }
@@ -14543,33 +14672,87 @@ function wireHostScopeFilter(root) {
     });
     if (!def.system.rules.length) def.system.rules = [""];
     if (!def.fewshot.examples.length) def.fewshot.examples = [pbEx(), pbEx(), pbEx()];
-    if (pbModel(def.model).id !== def.model) def.model = "opus-5";
+    if (pbModel(def.model).id !== def.model) def.model = "claude-opus-4-8";
     return def;
   }
 
-  function pbSetMode(mode) {
-    pbState.mode = mode;
-    pbRebuildFields();
+  function pbModeIsDirty(mode) {
+    var def = pbDefault()[mode], cur = pbState[mode];
+    return JSON.stringify(def) !== JSON.stringify(cur);
   }
-  // Load a template: set its mode, fill the starting fields, mark it active. This is
-  // the one "pick a starting point" action (the toggle row calls it) — mode is now
-  // implicit in the chosen template, so there is no separate mode control.
-  function pbApplyTemplate(p) {
+  function pbAnyDirty() {
+    return pbModeIsDirty("task") || pbModeIsDirty("system") || pbModeIsDirty("fewshot") || !!pbState.template || pbState.reasoning;
+  }
+  function pbClearModeSlot(mode) {
+    var fresh = pbDefault();
+    pbState[mode] = fresh[mode];
+  }
+  function pbSetMode(mode, blank) {
+    pbState.mode = mode;
+    if (blank) { pbClearModeSlot(mode); pbState.template = null; pbState.reasoning = false; }
+    pbRebuildFields();
+    pbSyncControls();
+    pbUpdate();
+  }
+  function pbBlankCurrent() {
+    pbClearModeSlot(pbState.mode);
+    pbState.template = null;
+    pbState.reasoning = false;
+    pbRebuildFields();
+    pbSyncControls();
+    pbUpdate();
+    pbReflectHash();
+  }
+  function pbApplyTemplate(p, force) {
     if (!p) return;
+    if (!force && pbAnyDirty() && pbPendingTpl !== p.id) {
+      pbPendingTpl = p.id;
+      pbToast("Click again to apply template (replaces current " + p.mode + " fields)");
+      pbSyncTemplateRow();
+      return;
+    }
+    pbPendingTpl = null;
+    pbClearModeSlot(p.mode);
     pbState.template = p.id;
     pbState.mode = p.mode;
     p.apply(pbState);
     pbRebuildFields();
     pbSyncControls();
     pbUpdate();
+    pbReflectHash();
   }
-  function pbApplyTemplateById(id) { for (var i = 0; i < PB_PRESETS.length; i++) { if (PB_PRESETS[i].id === id) { pbApplyTemplate(PB_PRESETS[i]); return; } } }
-  function pbSyncTemplateRow() { if (!pbTplRow) return; var btns = pbTplRow.querySelectorAll(".pb-tpl"); for (var i = 0; i < btns.length; i++) { btns[i].setAttribute("aria-pressed", btns[i].getAttribute("data-tpl") === pbState.template ? "true" : "false"); } }
+  function pbApplyTemplateById(id, force) { for (var i = 0; i < PB_PRESETS.length; i++) { if (PB_PRESETS[i].id === id) { pbApplyTemplate(PB_PRESETS[i], force); return; } } }
+  function pbSyncTemplateRow() {
+    if (!pbTplRow) return;
+    var btns = pbTplRow.querySelectorAll(".pb-tpl");
+    for (var i = 0; i < btns.length; i++) {
+      var id = btns[i].getAttribute("data-tpl");
+      var pressed = id === pbState.template || id === pbPendingTpl;
+      btns[i].setAttribute("aria-pressed", pressed ? "true" : "false");
+      if (id === pbPendingTpl && id !== pbState.template) btns[i].textContent = "Really apply?";
+      else {
+        for (var j = 0; j < PB_PRESETS.length; j++) if (PB_PRESETS[j].id === id) { btns[i].textContent = PB_PRESETS[j].label; break; }
+      }
+    }
+  }
+  function pbSyncModeRow() {
+    if (!pbModeRow) return;
+    var btns = pbModeRow.querySelectorAll("[data-pb-mode]");
+    for (var i = 0; i < btns.length; i++) btns[i].setAttribute("aria-pressed", btns[i].getAttribute("data-pb-mode") === pbState.mode ? "true" : "false");
+  }
   function pbSyncControls() {
     pbSyncTemplateRow();
-    var ms = pbRoot.querySelector("#pb-model");
+    pbSyncModeRow();
+    var ms = pbRoot && pbRoot.querySelector("#pb-model");
     if (ms) ms.value = pbState.model;
     pbRenderModelHint();
+  }
+  function pbReflectHash() {
+    try {
+      var base = "#/prompt-builder";
+      var want = pbState.template ? base + "/" + encodeURIComponent(pbState.template) : base;
+      if (location.hash !== want) location.hash = want.slice(1);
+    } catch (e) { /* ignore */ }
   }
   function pbRenderModelHint() { if (pbModelHintEl) pbModelHintEl.textContent = pbModel(pbState.model).hint; }
 
@@ -14585,26 +14768,44 @@ function wireHostScopeFilter(root) {
     else pbFallbackCopy(text);
   }
   function pbFallbackCopy(text) {
-    try { var ta = pbEl("textarea", { readonly: true, style: "position:fixed;top:-1000px;opacity:0" }); ta.value = text; document.body.appendChild(ta); ta.select(); document.execCommand("copy"); document.body.removeChild(ta); pbToast("Copied"); }
-    catch (e) { pbToast("Copy failed — select the text manually"); }
+    try {
+      var ta = pbEl("textarea", { readonly: true, style: "position:fixed;top:-1000px;opacity:0" });
+      ta.value = text; document.body.appendChild(ta); ta.select();
+      var ok = document.execCommand("copy");
+      document.body.removeChild(ta);
+      if (ok) pbToast("Copied"); else pbToast("Copy failed — select the text manually");
+    } catch (e) { pbToast("Copy failed — select the text manually"); }
   }
   function pbDownload(name, mime, content) {
     try { var url = URL.createObjectURL(new Blob([content], { type: mime })); var a = pbEl("a", { href: url, download: name }); document.body.appendChild(a); a.click(); document.body.removeChild(a); setTimeout(function () { URL.revokeObjectURL(url); }, 0); pbToast("Exported"); }
     catch (e) { pbToast("Export failed"); }
   }
-  function pbExportMd() { pbDownload("claude-prompt-" + pbState.mode + ".md", "text/markdown", "# Claude prompt (" + pbState.mode + " mode — " + pbModel(pbState.model).label + ")\n\n```\n" + pbAssemble(pbState) + "\n```\n"); }
+  function pbMdFence(content) {
+    var max = 2, m, re = /`+/g;
+    while ((m = re.exec(content))) { if (m[0].length > max) max = m[0].length; }
+    return new Array(max + 2).join("`");
+  }
+  function pbExportMd() {
+    var body = pbAssemble(pbState), fence = pbMdFence(body);
+    pbDownload("claude-prompt-" + pbState.mode + ".md", "text/markdown", "# Claude prompt (" + pbState.mode + " mode — " + pbModel(pbState.model).label + ")\n\n" + fence + "\n" + body + "\n" + fence + "\n");
+  }
   function pbExportJson() {
     var assembled = pbAssemble(pbState), lint = pbLint(pbState, assembled), est = pbEstimate(assembled, pbState.model);
     pbDownload("claude-prompt-" + pbState.mode + ".json", "application/json", JSON.stringify({ schemaVersion: 1, mode: pbState.mode, model: pbState.model, fields: pbState[pbState.mode], reasoning: pbState.reasoning, assembled: assembled, score: lint.score, tokenEstimate: { estimate: est.est, low: est.low, high: est.high, band: est.band } }, null, 2));
   }
   function pbResetBtn(btn) {
-    if (btn.dataset.armed === "1") { pbState = pbDefault(); try { localStorage.removeItem(PB_STORAGE_KEY); } catch (e) { } pbSetMode(pbState.mode); pbSyncControls(); pbUpdate(); btn.dataset.armed = ""; btn.textContent = "Reset"; }
+    if (btn.dataset.armed === "1") { pbState = pbDefault(); try { localStorage.removeItem(PB_STORAGE_KEY); } catch (e) { } pbSetMode(pbState.mode, false); pbSyncControls(); pbUpdate(); pbReflectHash(); btn.dataset.armed = ""; btn.textContent = "Reset"; }
     else { btn.dataset.armed = "1"; btn.textContent = "Really reset?"; setTimeout(function () { if (btn.dataset.armed === "1") { btn.dataset.armed = ""; btn.textContent = "Reset"; } }, 3000); }
   }
 
   function pbBuildControls() {
-    // One template toggle row (replaces the old Task/System/Few-shot segmented
-    // control + the separate "Preset…" dropdown). Each button loads a template.
+    pbModeRow = pbEl("div", { class: "pb-modes", role: "group", "aria-label": "Prompt mode" });
+    pbModeRow.appendChild(pbEl("span", { class: "pb-tpl-label", text: "Mode" }));
+    ["task", "system", "fewshot"].forEach(function (m) {
+      var label = m === "fewshot" ? "Few-shot" : m.charAt(0).toUpperCase() + m.slice(1);
+      pbModeRow.appendChild(pbEl("button", { type: "button", class: "pb-mode", "data-pb-mode": m, "aria-pressed": m === pbState.mode ? "true" : "false", text: label, onclick: function () { pbSetMode(m, false); pbReflectHash(); } }));
+    });
+    pbModeRow.appendChild(pbEl("button", { type: "button", class: "pb-btn pb-ghost", text: "Start blank", title: "Clear the current mode fields", onclick: function () { pbBlankCurrent(); } }));
     pbTplRow = pbEl("div", { class: "pb-templates", role: "group", "aria-label": "Start from a template" });
     pbTplRow.appendChild(pbEl("span", { class: "pb-tpl-label", text: "Template" }));
     PB_PRESETS.forEach(function (p) {
@@ -14612,46 +14813,87 @@ function wireHostScopeFilter(root) {
     });
     var modelSel = pbEl("select", { class: "pb-select", id: "pb-model", "aria-label": "Target model", onchange: function (e) { pbState.model = e.target.value; pbRenderModelHint(); pbUpdate(); } });
     PB_MODELS.forEach(function (m) { var o = pbEl("option", { value: m.id, text: m.label }); if (m.id === pbState.model) o.selected = true; modelSel.appendChild(o); });
-    pbTokenEl = pbEl("span", { class: "pb-token", title: "Rough size estimate — Anthropic publishes no official ratio (4.1); newer models tokenize ~30% heavier (4.2). Verify with count_tokens for billing." });
+    pbTokenEl = pbEl("span", { class: "pb-token", role: "status", "aria-label": "Rough size estimate", title: "Rough size estimate — Anthropic publishes no official ratio (4.1); newer models tokenize ~30% heavier (4.2). Verify with count_tokens for billing." });
     pbTokenEl.appendChild(pbEl("strong", { text: "~0" }));
     pbTokenEl.appendChild(pbEl("span", { text: " tokens" }));
+    pbTokenCapEl = pbEl("p", { class: "pb-token-honesty", hidden: true, text: "" });
+    var honesty = pbEl("p", { class: "pb-token-honesty", text: "Estimate only — Anthropic publishes no official chars-per-token ratio. Verify with count_tokens for billing." });
     return pbEl("div", { class: "pb-controls" }, [
+      pbModeRow,
       pbTplRow,
       pbEl("span", { class: "pb-ctl" }, [pbEl("label", { for: "pb-model", text: "Model" }), modelSel]),
       pbEl("span", { class: "pb-spacer" }),
       pbTokenEl,
-      pbEl("button", { type: "button", class: "pb-btn pb-ghost pb-danger", onclick: function (e) { pbResetBtn(e.currentTarget); }, text: "Reset" })
+      pbEl("button", { type: "button", class: "pb-btn pb-ghost pb-danger", onclick: function (e) { pbResetBtn(e.currentTarget); }, text: "Reset" }),
+      honesty,
+      pbTokenCapEl
     ]);
   }
   function pbBuildInputPane() {
-    pbFieldsEl = pbEl("div", { class: "pb-fields", id: "pb-fields", role: "tabpanel", "aria-label": "Prompt inputs" });
+    pbFieldsEl = pbEl("div", { class: "pb-fields", id: "pb-fields", role: "group", "aria-label": "Prompt inputs" });
     pbModelHintEl = pbEl("p", { class: "pb-note pb-note-info", text: pbModel(pbState.model).hint });
     pbDegradedEl = pbEl("p", { class: "pb-degraded", hidden: true, text: "Autosave unavailable in this browser mode — your work won't persist across reloads." });
     return pbEl("section", { class: "pb-pane" }, [pbEl("h3", { text: "Inputs" }), pbDegradedEl, pbFieldsEl, pbModelHintEl]);
   }
   function pbBuildPreviewPane() {
-    pbPreviewEl = pbEl("pre", { class: "pb-preview", id: "pb-preview", "data-empty": "Your assembled prompt appears here as you type…", tabindex: "0", "aria-label": "Assembled prompt preview" });
+    pbPreviewEmptyEl = pbEl("p", { class: "pb-preview-empty", id: "pb-preview-empty", text: "Your assembled prompt appears here as you type…" });
+    pbPreviewEl = pbEl("pre", { class: "pb-preview", id: "pb-preview", tabindex: "0", "aria-label": "Assembled prompt preview", "aria-describedby": "pb-preview-empty" });
     var actions = pbEl("div", { class: "pb-preview-actions" }, [
       pbEl("button", { type: "button", class: "pb-btn pb-primary", onclick: pbCopy, text: "Copy" }),
       pbEl("button", { type: "button", class: "pb-btn", onclick: pbExportMd, text: "Export .md" }),
       pbEl("button", { type: "button", class: "pb-btn", onclick: pbExportJson, text: "Export .json" }),
       pbEl("span", { class: "pb-hint", text: "Ctrl/⌘+Enter copies" })
     ]);
-    return pbEl("section", { class: "pb-pane" }, [pbEl("h3", { text: "Live preview" }), pbEl("div", { class: "pb-preview-wrap" }, [actions, pbPreviewEl])]);
+    return pbEl("section", { class: "pb-pane" }, [pbEl("h3", { text: "Live preview" }), pbEl("div", { class: "pb-preview-wrap" }, [actions, pbPreviewEmptyEl, pbPreviewEl])]);
   }
   function pbSvg(tag, attrs) { var el = document.createElementNS("http://www.w3.org/2000/svg", tag); for (var k in attrs) { if (Object.prototype.hasOwnProperty.call(attrs, k)) el.setAttribute(k, attrs[k]); } return el; }
   function pbBuildQualityPane() {
-    var svg = pbSvg("svg", { class: "pb-gauge", viewBox: "0 0 76 76", role: "img", "aria-label": "Structure completeness score" });
+    pbGaugeEl = pbEl("div", { class: "pb-gauge-wrap", role: "meter", "aria-valuemin": "0", "aria-valuemax": "100", "aria-valuenow": "0", "aria-label": "Structure completeness 0 of 100" });
+    var svg = pbSvg("svg", { class: "pb-gauge", viewBox: "0 0 76 76", "aria-hidden": "true" });
     svg.appendChild(pbSvg("circle", { class: "pb-gauge-track", cx: "38", cy: "38", r: "32", fill: "none", "stroke-width": "7" }));
     pbGaugeFill = pbSvg("circle", { class: "pb-gauge-fill pb-band-bad", cx: "38", cy: "38", r: "32", fill: "none", "stroke-width": "7", "stroke-dasharray": PB_GAUGE_C.toFixed(1), "stroke-dashoffset": PB_GAUGE_C.toFixed(1) });
     svg.appendChild(pbGaugeFill);
     pbGaugeText = pbSvg("text", { x: "38", y: "45", "text-anchor": "middle" }); pbGaugeText.textContent = "0"; svg.appendChild(pbGaugeText);
+    pbGaugeEl.appendChild(svg);
     var meta = pbEl("div", { class: "pb-gauge-meta" }, [pbEl("div", { class: "pb-gauge-label", text: "Structure completeness" }), pbEl("div", { class: "pb-gauge-sub", text: "how many best-practice elements are present" })]);
-    pbIssuesEl = pbEl("ul", { class: "pb-issues", "aria-live": "polite", "aria-label": "Prompt quality issues" });
-    var honesty = pbEl("p", { class: "pb-honesty", text: "Heuristic structural score — it checks whether best-practice elements are present + flags anti-patterns, not the semantic quality of your writing. A 100 is not a guarantee of a good prompt; test it against the real model." });
-    return pbEl("section", { class: "pb-pane" }, [pbEl("h3", { text: "Quality" }), pbEl("div", { class: "pb-gauge-row" }, [svg, meta]), pbIssuesEl, honesty]);
+    pbIssuesEl = pbEl("ul", { class: "pb-issues", "aria-label": "Prompt quality issues" });
+    pbIssuesLiveEl = pbEl("div", { class: "pb-sr-only", role: "status", "aria-live": "polite", "aria-atomic": "true" });
+    var honesty = pbEl("p", { class: "pb-honesty", text: "Heuristic structural score — it checks whether best-practice elements are present + flags anti-patterns, not the semantic quality of your writing. A 100 is not a guarantee of a good prompt; test it against the real model. Claude-tuned: deprecation and imperative penalties are Claude-specific." });
+    return pbEl("section", { class: "pb-pane" }, [pbEl("h3", { text: "Quality" }), pbEl("div", { class: "pb-gauge-row" }, [pbGaugeEl, meta]), pbIssuesEl, pbIssuesLiveEl, honesty]);
   }
 
+  function initPromptBuilder(deepTpl) {
+    pbRoot = document.getElementById("pb-root");
+    if (!pbRoot || pbRoot.getAttribute("data-pb-ready") === "1") return true;
+    pbRoot.setAttribute("data-pb-ready", "1");
+    var pbHadSaved = pbLoad();
+    pbClear(pbRoot);
+    pbRoot.appendChild(pbEl("div", { class: "pb-intro" }, [
+      pbEl("h2", { text: "Prompt Builder" }),
+      pbEl("p", { class: "pb-lead", text: "Fill in the inputs and watch a best-practice Claude prompt assemble live — with a quality score and a rough size estimate. Everything runs in your browser; nothing is sent anywhere. Targets Claude models: the structure carries over to other models, but the deprecation and tuning rules are Claude-specific and may not." })
+    ]));
+    pbRoot.appendChild(pbBuildControls());
+    pbRoot.appendChild(pbEl("div", { class: "pb-grid" }, [pbBuildInputPane(), pbBuildPreviewPane(), pbBuildQualityPane()]));
+    pbRoot.addEventListener("keydown", function (e) { if ((e.ctrlKey || e.metaKey) && (e.key === "Enter" || e.keyCode === 13)) { e.preventDefault(); pbCopy(); } });
+    function pbFlushOnHide() { pbFlushSave(); }
+    document.addEventListener("visibilitychange", function () { if (document.visibilityState === "hidden") pbFlushOnHide(); });
+    window.addEventListener("pagehide", pbFlushOnHide);
+    window.addEventListener("beforeunload", pbFlushOnHide);
+    var tpl = deepTpl || null;
+    if (tpl) {
+      pbApplyTemplateById(tpl, true);
+    } else if (!pbHadSaved && !pbState.template) {
+      pbApplyTemplateById("agent-system", true);
+    } else {
+      pbSetMode(pbState.mode, false);
+    }
+    pbSyncControls();
+    pbUpdate();
+    return true;
+  }
+  /* PROMPT-BUILDER:END */
+
+  /* HOST-CONTEXT:START — Host & context (#/host-context). Own XSS floor; not Gate 144 PB. */
   /* ── Host & context (#/host-context) — MH-14 part 2 ─────────────────────────
      Built with createElement/textContent only. The matrix is UNTRUSTED-INPUT-FREE
      (it is our own committed JSON) but the same no-HTML-string-sink discipline as
@@ -14849,34 +15091,8 @@ function wireHostScopeFilter(root) {
     root.querySelectorAll("tbody th").forEach((th) => th.setAttribute("scope", "row"));
   }
 
-  function initPromptBuilder() {
-    pbRoot = document.getElementById("pb-root");
-    if (!pbRoot || pbRoot.getAttribute("data-pb-ready") === "1") return;
-    pbRoot.setAttribute("data-pb-ready", "1");
-    var pbHadSaved = pbLoad();
-    pbClear(pbRoot);
-    pbRoot.appendChild(pbEl("div", { class: "pb-intro" }, [
-      pbEl("h2", { text: "Prompt Builder" }),
-      // MH-39 — say WHICH models this targets. The linter's rules are
-      // Claude-version-specific (prefill is a 400 on Claude 4.6+, and the
-      // imperative-stacking penalty is tuned to current Claude behaviour). A
-      // Copilot operator routing GPT or Grok was being handed those as universal
-      // prompt hygiene. Most of it transfers; the deprecation and model-tuning
-      // rules do not necessarily, and the tool never said so.
-      pbEl("p", { class: "pb-lead", text: "Fill in the inputs and watch a best-practice Claude prompt assemble live — with a quality score and a rough size estimate. Everything runs in your browser; nothing is sent anywhere. Targets Claude models: the structure carries over to other models, but the deprecation and tuning rules are Claude-specific and may not." })
-    ]));
-    pbRoot.appendChild(pbBuildControls());
-    pbRoot.appendChild(pbEl("div", { class: "pb-grid" }, [pbBuildInputPane(), pbBuildPreviewPane(), pbBuildQualityPane()]));
-    pbRoot.addEventListener("keydown", function (e) { if ((e.ctrlKey || e.metaKey) && (e.key === "Enter" || e.keyCode === 13)) { e.preventDefault(); pbCopy(); } });
-    if (!pbHadSaved && !pbState.template) {
-      pbApplyTemplateById("agent-system"); // fresh visit → open on the most-used template
-    } else {
-      pbSetMode(pbState.mode);
-    }
-    pbSyncControls();
-    pbUpdate();
-  }
-  /* PROMPT-BUILDER:END */
+  /* HOST-CONTEXT:END */
+
 
 })();
 """.strip()
