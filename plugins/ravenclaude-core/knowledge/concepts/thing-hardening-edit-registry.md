@@ -9,7 +9,8 @@ summary: "A signed transform registry can rewrite Bash via empty-cited EDIT, gat
 last_verified: 2026-09-15
 covers:
   - plugins/ravenclaude-core/scripts/thing-harden.py
-covers_digest: "sha256:a35153595c745e14b42722774948818a7942e74eb15af723e77452a83784b544"
+  - plugins/ravenclaude-core/hooks/thing-orchestrator.sh
+covers_digest: "sha256:c24a6a9ac790d369ce189db51e5d69389a70445302533677bc569e38a74c07ba"
 nuance: "With hardening_edit default false, empty-cited EDIT outside the orchestrator discriminator is DENY rather than ask, while a cited EDIT still allows byte-identical; OFF is not a uniform no-op across EDIT shapes."
 nuance_evidence:
   measured: 2026-09-15
