@@ -96,6 +96,12 @@ _SKIP = {
         "advisory additionalContext — never blocks — so the cost of the gap is "
         "one un-augmented prompt on Gemini, not lost enforcement."
     ),
+    "plugin-lifecycle-telemetry.sh": (
+        "UserPromptSubmit (slash bumps) has no Gemini lane; PostToolUse matchers "
+        "Skill and Agent|Task have no Gemini tool equivalents in _TOOL_TO_GEMINI — "
+        "Claude Code telemetry only. SessionStart sweep remains wired via "
+        "plugin-lifecycle-sweep.sh."
+    ),
     "dod-gate.sh": (
         "Stop. Gemini's AfterAgent/SessionEnd are plausible counterparts but "
         "unverified; a definition-of-done gate that fires on the wrong lifecycle "
