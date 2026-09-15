@@ -237,7 +237,6 @@ def _chmod_path_ok(path: str) -> bool:
             return False
     abs_like = path.startswith("/") or path.startswith("~")
     if abs_like:
-        expanded = path
         if path.startswith("~"):
             # treat as HOME-relative — allow
             return not any(
