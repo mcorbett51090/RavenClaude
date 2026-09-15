@@ -2752,10 +2752,10 @@
         }
       ],
       "body_md": "## What a reader would have assumed instead\n\nA SessionStart sweep that uninstalls unused plugins by default, or an auto-install\npath that quietly pulls marketplace packages without ask — and that presence in the\ninstalled list counts as \"used.\"\n\n## The discriminator\n\ncontrol: `bash plugins/ravenclaude-core/hooks/tests/test-plugin-lifecycle.sh` (28 pass).\nMeasured 2026-09-15: with `auto_uninstall` OFF the sweep records a plan with\n`executed: false` and zero uninstalls; `auto_install: auto` is coerced OFF; core is\nhard-pinned (MF teeth: neutering `is_core_key` is what makes core uninstallable).\n\n## Why it matters\n\nDefaults OFF + plan-only uninstall keep the surface opt-in. Ask-first ravenclaude-only\ninstall and `/reload-plugins` before usable close the empty-cited and cache-path\nAppSec locks. Copilot `-p` and Cursor SessionStart caveats stay honest — no slash\nparity claim.\n\nFalsifier: sweep shells uninstall or cache-reset DR, `auto` installs without ask, or\ncore lands in `would_uninstall`.\n\nProbe: `plugins/ravenclaude-core/hooks/tests/test-plugin-lifecycle.sh`.",
-      "diagram": "flowchart TD\n  USE[Skill / agent / slash] --> LEDGER[.ravenclaude/plugin-lifecycle.json]\n  SS[SessionStart sweep] --> NOTICE[Deprecate notice]\n  SS -.->|auto_uninstall off| NONE[Zero uninstalls]\n  ASK[auto_install ask + cited need] --> CONFIRM[User confirm]\n  CONFIRM --> INST[/plugin install name@ravenclaude/]\n  INST --> RELOAD[/reload-plugins/]\n  class USE,LEDGER,NOTICE,CONFIRM,INST,RELOAD built",
+      "diagram": null,
       "diagram_mini": null,
       "steps": [],
-      "svg": "knowledge/concepts/visuals/plugin-lifecycle.svg",
+      "svg": null,
       "svg_mini": null,
       "entry_class": "inventory",
       "covers": [

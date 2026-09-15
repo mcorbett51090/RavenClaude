@@ -57,13 +57,3 @@ core lands in `would_uninstall`.
 
 Probe: `plugins/ravenclaude-core/hooks/tests/test-plugin-lifecycle.sh`.
 
-```mermaid
-flowchart TD
-  USE[Skill / agent / slash] --> LEDGER[.ravenclaude/plugin-lifecycle.json]
-  SS[SessionStart sweep] --> NOTICE[Deprecate notice]
-  SS -.->|auto_uninstall off| NONE[Zero uninstalls]
-  ASK[auto_install ask + cited need] --> CONFIRM[User confirm]
-  CONFIRM --> INST[/plugin install name@ravenclaude/]
-  INST --> RELOAD[/reload-plugins/]
-  class USE,LEDGER,NOTICE,CONFIRM,INST,RELOAD built
-```
