@@ -5,14 +5,14 @@ category: "Inventory — measured mechanisms"
 kind: ravenclaude-built
 entry_class: inventory
 order: 937
-summary: "rc runes ready|claim|hanging plus SessionStart Oath-hook surface hanging work; Longship land-request records Sage intent only and never merges."
+summary: "Opt-in runes: off|on (absent⇒off). On = SessionStart hanging MUST-RUN + ready + auto-claim ungated; gates refuse; Longship land-request never merges. Flat Runes + strands; kind tag only."
 last_verified: 2026-09-15
 covers:
   - plugins/ravenclaude-core/hooks/oath-hook.sh
   - plugins/ravenclaude-core/scripts/oath_hook.py
   - plugins/ravenclaude-core/scripts/runes.py
 covers_digest: "sha256:f5239745556340975cd8e33ac86c57c5b4e98d759103eadeb5aca72b305edbbe"
-nuance: "Longship `land-request` writes intent with auto_merge=false and never calls gh/git merge; Oath-hook SessionStart surfaces hanging Runes for the current hook_owner; human_gate=matthew|appsec|sage|cos refuses claim."
+nuance: "Posture runes: off|on gates SessionStart auto-orient (default off). On may auto-claim next ungated ready Rune; human_gate=matthew|appsec|sage|cos|money refuses. Longship land-request auto_merge=false never merges. Flat taxonomy — no epic tree."
 nuance_evidence:
   measured: 2026-09-15
   control: "runes.py --self-test: longship land-request returns land_requested true and auto_merge false; human_gate=matthew claim prints REFUSED and does not set hook_owner; oath_hook hanging payload must_run true when a claimed rune is open"

@@ -137,3 +137,10 @@ Every specialist brief should include:
 ## Credit
 
 Adapted from RavenClaude plugin `ravenclaude-core` (orchestrator-worker dispatch, Capability Grounding, Structured Output, forge-pipeline, spawn-team, session-handoff, wall-handling, set-posture), extended with problem-solving stance + quantitative/game-theory companions.
+
+## Runes ready-queue (factory)
+
+- Comfort-posture `runes: off|on` (absent ⇒ off). On → SessionStart hanging + ready + auto-claim ungated; Off → CLI only.
+- On accept of a Matthew ask: `rc runes open "<title>" [--gate …] [--kind fix|feature|chore]`.
+- Flat Runes + strands only; kind is a tag, not an epic hierarchy. Never auto Longship merge.
+

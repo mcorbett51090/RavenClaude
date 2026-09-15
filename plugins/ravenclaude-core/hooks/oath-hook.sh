@@ -1,7 +1,10 @@
 #!/usr/bin/env bash
 # oath-hook.sh — Oath-hook (GUPP) SessionStart surface.
 #
-# If ledger-backed Runes hang on this actor's hook, inject MUST-RUN context.
+# Gated by comfort-posture `runes: off|on` (absent ⇒ off). When On: hanging
+# MUST-RUN + ready summary + auto-claim next ungated ready Rune. When Off:
+# quiet (CLI still works). Kill switch = Off + Save. Never auto Longship merge.
+#
 # SessionStart cannot block; always exit 0. Fail-silent.
 #
 # Cosmology: docs/norse-mythology-feature-map.md (do not overload Norns panel).

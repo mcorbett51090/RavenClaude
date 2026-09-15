@@ -74,6 +74,8 @@ const pieces = [
   app.match(/const KEEP_AWAKE_DEFAULT = [^;]*;/)[0],
   app.match(/const DASHBOARD_AUTOSTART_VALUES = \[[^\]]*\];/)[0],
   app.match(/const DASHBOARD_AUTOSTART_DEFAULT = [^;]*;/)[0],
+  app.match(/const RUNES_VALUES = \[[^\]]*\];/)[0],
+  app.match(/const RUNES_DEFAULT = [^;]*;/)[0],
   app.match(/const ORCHESTRATOR_VALUES = \[[^\]]*\];/)[0],
   app.match(/const ORCHESTRATOR_DEFAULT = [^;]*;/)[0],
   app.match(/const ORCHESTRATOR_SCOPE_VALUES = \[[^\]]*\];/)[0],
@@ -163,6 +165,7 @@ function _freshState() {
     worktree_lease_idle_minutes: WORKTREE_LEASE_IDLE_DEFAULT,
     keep_awake: KEEP_AWAKE_DEFAULT,
     dashboard_autostart: DASHBOARD_AUTOSTART_DEFAULT,
+    runes: RUNES_DEFAULT,
     definition_of_done: Object.assign({}, DOD_DEFAULT),
     orchestrator: ORCHESTRATOR_DEFAULT,
     orchestrator_scope: ORCHESTRATOR_SCOPE_DEFAULT,
@@ -207,6 +210,7 @@ function check(name, cond) {
   s.worktree_lease_idle_minutes = 45;
   s.keep_awake = "on";
   s.dashboard_autostart = "open";
+  s.runes = "on";
   s.definition_of_done = { cmd: "npm test && npm run lint", max_blocks: 4 };
   s.command_review.dev_repo_exempt = true;
   s.orchestrator = "decide";
@@ -241,6 +245,7 @@ function check(name, cond) {
   check("worktree_lease_idle_minutes emitted", /^worktree_lease_idle_minutes: 45$/m.test(yaml));
   check("keep_awake emitted", /^keep_awake: on$/m.test(yaml));
   check("dashboard_autostart emitted", /^dashboard_autostart: open$/m.test(yaml));
+  check("runes emitted", /^runes: on$/m.test(yaml));
   check("definition_of_done.cmd emitted", /^  cmd: "npm test && npm run lint"$/m.test(yaml));
   check("definition_of_done.max_blocks emitted", /^  max_blocks: 4$/m.test(yaml));
   check("command_review.dev_repo_exempt emitted", /^  dev_repo_exempt: true$/m.test(yaml));
@@ -284,6 +289,7 @@ function check(name, cond) {
     worktree_lease_idle_minutes: 45,
     keep_awake: "on",
     dashboard_autostart: "open",
+    runes: "on",
     definition_of_done: { cmd: "npm test && npm run lint", max_blocks: 4 },
     command_review: { dev_repo_exempt: true },
     orchestrator: "decide",
@@ -311,6 +317,7 @@ function check(name, cond) {
   check("hydrate worktree_lease_idle_minutes", h.worktree_lease_idle_minutes === 45);
   check("hydrate keep_awake", h.keep_awake === "on");
   check("hydrate dashboard_autostart", h.dashboard_autostart === "open");
+  check("hydrate runes", h.runes === "on");
   check("hydrate dod.cmd", /npm test/.test(h.definition_of_done.cmd));
   check("hydrate dev_repo_exempt", h.command_review.dev_repo_exempt === true);
   check("hydrate orchestrator", h.orchestrator === "decide");
@@ -352,6 +359,7 @@ function check(name, cond) {
   check("no worktree_lease_idle_minutes at default", !/^worktree_lease_idle_minutes:/m.test(yaml));
   check("no keep_awake at default", !/^keep_awake:/m.test(yaml));
   check("no dashboard_autostart at default", !/^dashboard_autostart:/m.test(yaml));
+  check("no runes at default", !/^runes:/m.test(yaml));
   check("no definition_of_done at default", !/definition_of_done:/.test(yaml));
   check("no dev_repo_exempt at default", !/dev_repo_exempt:/.test(yaml));
   check("no orchestrator at default", !/^orchestrator:/m.test(yaml));

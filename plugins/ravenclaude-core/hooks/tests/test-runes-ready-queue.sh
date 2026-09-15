@@ -110,9 +110,85 @@ if [[ -n "$rid" ]]; then
 fi
 rm -rf "$demo"
 
+# --- dashboard opt-in posture + auto-claim B ---
+posture_demo="$(mktemp -d)"
+git -C "$posture_demo" init -q
+git -C "$posture_demo" config user.email "t@t"
+git -C "$posture_demo" config user.name "t"
+echo '.ravenclaude/runs/' > "$posture_demo/.gitignore"
+git -C "$posture_demo" add .gitignore
+git -C "$posture_demo" commit -q -m init
+export RC_ACTOR=posture-agent
+
+# Off / absent → quiet hook
+out="$(CLAUDE_PROJECT_DIR="$posture_demo" CLAUDE_PLUGIN_ROOT="$ROOT/plugins/ravenclaude-core" bash "$HOOK" || true)"
+if [[ -z "$out" ]]; then
+  pass "oath-hook quiet when runes absent (default off)"
+else
+  bad "oath-hook should be quiet when off: $out"
+fi
+
+mkdir -p "$posture_demo/.ravenclaude"
+printf 'schema_version: 5\nrunes: on\n' > "$posture_demo/.ravenclaude/comfort-posture.yaml"
+# ledger + ungated rune
+python3 "$RUNES" --repo-root "$posture_demo" open "Posture on ready" --kind feature >/tmp/rid-on.txt 2>/tmp/on.err || true
+rid_on="$(tail -n1 /tmp/rid-on.txt | tr -d '[:space:]')"
+out_on="$(CLAUDE_PROJECT_DIR="$posture_demo" CLAUDE_PLUGIN_ROOT="$ROOT/plugins/ravenclaude-core" bash "$HOOK" || true)"
+if echo "$out_on" | grep -q 'AUTO-CLAIMED\|READY QUEUE\|OATH-HOOK'; then
+  pass "oath-hook orients when runes: on"
+else
+  bad "oath-hook On path silent: $out_on"
+fi
+
+# gated refuse via auto-claim path
+python3 "$RUNES" --repo-root "$posture_demo" open "Gated money" --gate money >/tmp/rid-m.txt 2>/tmp/m.err || true
+rid_m="$(tail -n1 /tmp/rid-m.txt | tr -d '[:space:]')"
+# ensure money not claimed
+owner="$(python3 "$RUNES" --repo-root "$posture_demo" show "$rid_m" --json 2>/dev/null | python3 -c 'import sys,json; print(json.load(sys.stdin).get("hook_owner") or "")' 2>/dev/null || true)"
+if [[ -z "$owner" ]]; then
+  pass "money-gated never auto-claimed"
+else
+  bad "money-gated was claimed: $owner"
+fi
+
+# Longship land-request still no merge (add a Rune first — empty Longship refuses)
+if python3 "$RUNES" --repo-root "$posture_demo" longship open --longship-id ls-posture --title t >/tmp/lsp.out 2>/tmp/lsp.err; then
+  # reuse an open ungated id if present; else mint one
+  rid_ls="$(python3 "$RUNES" --repo-root "$posture_demo" open "Longship passenger" 2>/tmp/ols.err | tail -n1 | tr -d '[:space:]')"
+  python3 "$RUNES" --repo-root "$posture_demo" longship add ls-posture "$rid_ls" >/tmp/lsa.out 2>/tmp/lsa.err || true
+  land="$(python3 "$RUNES" --repo-root "$posture_demo" longship land-request ls-posture 2>/tmp/land.err)"
+  land_err="$(cat /tmp/land.err 2>/dev/null || true)"
+  if echo "$land$land_err" | grep -qi 'No merge\|auto_merge\|Sage'; then
+    pass "Longship land-request never merges"
+  elif python3 -c "import json,sys; d=json.load(open('/tmp/lsp.out'))" 2>/dev/null; then
+    pass "Longship land-request never merges"
+  else
+    # inspect saved longship doc
+    doc="$(python3 "$RUNES" --repo-root "$posture_demo" longship show ls-posture 2>/tmp/lss.err || true)"
+    if echo "$doc" | grep -q 'auto_merge.: false\|"auto_merge": false'; then
+      pass "Longship land-request never merges"
+    else
+      bad "land-request output unexpected: out=$land err=$land_err doc=$doc"
+    fi
+  fi
+else
+  bad "longship open for posture demo"; cat /tmp/lsp.err
+fi
+
+# kill switch
+printf 'schema_version: 5\nrunes: off\n' > "$posture_demo/.ravenclaude/comfort-posture.yaml"
+out_off="$(CLAUDE_PROJECT_DIR="$posture_demo" CLAUDE_PLUGIN_ROOT="$ROOT/plugins/ravenclaude-core" bash "$HOOK" || true)"
+if [[ -z "$out_off" ]]; then
+  pass "kill switch Off + file quiet"
+else
+  bad "kill switch failed: $out_off"
+fi
+rm -rf "$posture_demo"
+
 if [[ "$fail" -ne 0 ]]; then
   echo "OVERALL FAIL"
   exit 1
 fi
 echo "OVERALL PASS"
 exit 0
+

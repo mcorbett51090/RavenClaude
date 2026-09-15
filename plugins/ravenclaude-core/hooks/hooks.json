@@ -353,7 +353,7 @@
             "type": "command",
             "command": "${CLAUDE_PLUGIN_ROOT}/hooks/oath-hook.sh",
             "timeout": 10,
-            "comment": "Oath-hook (GUPP). If ledger-backed Runes hang on this actor's hook (hook_owner == self, state ready|in_progress|proposed), inject MUST-RUN additionalContext so the agent cannot silently idle with hanging work. Projection over ravenclaude-core ledger — no second DB. Fail-silent; SessionStart cannot block. Names LOCKED: Rune · Oath-hook · Longship (Sage sole land; never auto-merge). Verðandi/Skuld are facet labels only — do not overload the Norns panel. Cosmology: docs/norse-mythology-feature-map.md."
+            "comment": "Oath-hook (GUPP). OPT-IN via comfort-posture `runes: off|on` (absent => off). When On: hanging MUST-RUN + ready summary + auto-claim next ungated ready Rune (human_gate matthew|appsec|cos|sage|money refuse; never auto Longship merge). When Off: quiet; CLI still works. Kill switch = Off + Save. Fail-silent; SessionStart cannot block. Names LOCKED: Rune · Oath-hook · Longship. Flat Runes + strands; kind tag only. MH-18 host-scoped. Cosmology: docs/norse-mythology-feature-map.md."
           }
         ]
       },

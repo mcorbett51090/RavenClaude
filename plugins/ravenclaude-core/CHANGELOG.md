@@ -2,6 +2,21 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.323.4 — 2026-09-15
+
+### Added
+- **Runes dashboard opt-in → automatic** — comfort-posture `runes: off|on` (absent ⇒ off). Settings **⚙ Runes at session start** and Pipeline SessionStart **Runes ready-queue (Oath-hook)** share one state; Save & apply round-trips either surface.
+- **Auto-depth B:** when On, SessionStart Oath-hook surfaces hanging MUST-RUN + ready summary and may **auto-claim** the next **ungated** ready Rune. Gates (`matthew`/`appsec`/`cos`/`sage`/`money`) refuse; **never** auto Longship merge.
+- **`rc runes open --kind fix|feature|chore`** — optional kind **tag** only (flat Runes + strands; no epic hierarchy). Auto-create-from-ask contract documented.
+- **`human_gate: money`** added to the claim wall set.
+
+### Changed
+- Oath-hook quiet when `runes` absent/off (kill switch = Off + Save). CLI always works.
+- Factory surface remains **ravenclaude-core** (CLI + hooks + skill) for any harness — not CoS-only.
+
+### Notes
+- Gate 132: measured under existing budget (no ratchet). MH-18 host caveat on tooltips. No Gas Town/Beads/Hird/BMA.
+
 ## 0.323.3 — 2026-09-15
 
 ### Changed
