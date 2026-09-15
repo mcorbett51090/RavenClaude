@@ -565,8 +565,8 @@ def cmd_longship_show(repo_root: Path, args: argparse.Namespace) -> int:
 
 
 def _self_test() -> int:
-    import tempfile
     import shutil
+    import tempfile
 
     failures: list[str] = []
 
