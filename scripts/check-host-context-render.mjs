@@ -6,8 +6,13 @@ import { readFileSync } from "node:fs";
 
 const htmlPath = process.argv[2] || "plugins/ravenclaude-core/dashboard.html";
 let failures = 0;
-function ok(msg) { console.log("  ✓ " + msg); }
-function fail(msg) { console.error("  ✗ " + msg); failures++; }
+function ok(msg) {
+  console.log("  ✓ " + msg);
+}
+function fail(msg) {
+  console.error("  ✗ " + msg);
+  failures++;
+}
 
 const html = readFileSync(htmlPath, "utf8");
 const START = "/* HOST-CONTEXT:START";
@@ -29,7 +34,8 @@ function firstSink(src) {
 if (firstSink(region)) fail("HTML-string sink in HOST-CONTEXT region");
 else ok("no HTML-string sink in HOST-CONTEXT region");
 
-if (region.indexOf("function initHostContext(") === -1) fail("initHostContext missing from HC region");
+if (region.indexOf("function initHostContext(") === -1)
+  fail("initHostContext missing from HC region");
 else ok("initHostContext present in HC region");
 
 if (html.indexOf('id="hc-root"') === -1) fail("missing #hc-root mount");

@@ -45,7 +45,6 @@ if (/HOST-CONTEXT:START|function initHostContext\(/.test(region)) {
   fail("Host Context JS must not live inside PROMPT-BUILDER sentinels (G19)");
 } else ok("PB region does not embed Host Context (G19)");
 
-
 // ── 1. THE SECURITY GATE: no HTML-string sink anywhere in the region ───────
 // Assumes sinks are written via dot-notation — the region uses the pbEl createElement
 // factory exclusively, so a bracket-notation sink (el["innerHTML"] = …) would evade this
@@ -106,7 +105,8 @@ function fnBody(src, name) {
   const re = new RegExp("function\\s+" + name + "\\s*\\([^)]*\\)\\s*\\{");
   const m = re.exec(src);
   if (!m) return null;
-  let i = m.index + m[0].length, depth = 1;
+  let i = m.index + m[0].length,
+    depth = 1;
   while (i < src.length && depth > 0) {
     const c = src[i++];
     if (c === "{") depth++;
@@ -115,7 +115,8 @@ function fnBody(src, name) {
   return src.slice(m.index, i);
 }
 const renderTokenBody = fnBody(region, "pbRenderToken");
-if (renderTokenBody && /\(est\./.test(renderTokenBody)) ok("pbRenderToken emits visible (est. …) band (G02)");
+if (renderTokenBody && /\(est\./.test(renderTokenBody))
+  ok("pbRenderToken emits visible (est. …) band (G02)");
 else fail("pbRenderToken must emit a visible (est. …) band label (G02)");
 if (/token count/i.test(region))
   fail("region contains the phrase 'token count' — estimate only (4.1)");
@@ -288,13 +289,25 @@ if (api) {
   else fail("prefill not flagged/penalized (prefill=" + lp.prefill + ")");
 
   // G09 — PB_MODELS ids match catalog current
-  const CATALOG_IDS = ["claude-opus-4-8", "claude-sonnet-5", "claude-haiku-4-5-20251001", "claude-fable-5"];
+  const CATALOG_IDS = [
+    "claude-opus-4-8",
+    "claude-sonnet-5",
+    "claude-haiku-4-5-20251001",
+    "claude-fable-5",
+  ];
   const DEFAULT_MODEL = "claude-opus-4-8";
   const modelIds = (api.PB_MODELS || []).map((m) => m.id);
   const missing = CATALOG_IDS.filter((id) => modelIds.indexOf(id) === -1);
   const extraIds = modelIds.filter((id) => CATALOG_IDS.indexOf(id) === -1);
-  if (!missing.length && !extraIds.length) ok("PB_MODELS ids match model-catalog.json current (G09)");
-  else fail("PB_MODELS catalog drift (G09): missing=" + missing.join(",") + " extra=" + extraIds.join(","));
+  if (!missing.length && !extraIds.length)
+    ok("PB_MODELS ids match model-catalog.json current (G09)");
+  else
+    fail(
+      "PB_MODELS catalog drift (G09): missing=" +
+        missing.join(",") +
+        " extra=" +
+        extraIds.join(","),
+    );
   if (api.pbDefault().model === DEFAULT_MODEL) ok("default model is catalog current.opus");
   else fail("default model should be " + DEFAULT_MODEL + ", got " + api.pbDefault().model);
 
@@ -316,7 +329,12 @@ if (api) {
     model: DEFAULT_MODEL,
     task: { directive: "<img src=x onerror=alert(1)>", data: 12345 },
   });
-  if (merged && merged.task && typeof merged.task.directive === "string" && merged.task.directive.indexOf("<img") !== -1)
+  if (
+    merged &&
+    merged.task &&
+    typeof merged.task.directive === "string" &&
+    merged.task.directive.indexOf("<img") !== -1
+  )
     ok("pbMergeState keeps hostile string fields as strings (G20)");
   else fail("pbMergeState hostile-state handling failed (G20)");
 
@@ -434,7 +452,8 @@ else fail("must-fail prep: could not strip #pb-root");
 // G02 must-fail: strip (est. from pbRenderToken
 const noEst = region.replace(/\(est\./g, "(xx.");
 const rt2 = fnBody(noEst, "pbRenderToken");
-if (rt2 && !/\(est\./.test(rt2)) ok("must-fail half: stripping (est. band from pbRenderToken is detectable (G02)");
+if (rt2 && !/\(est\./.test(rt2))
+  ok("must-fail half: stripping (est. band from pbRenderToken is detectable (G02)");
 else fail("must-fail half: (est. band strip not detectable");
 
 if (failures) {

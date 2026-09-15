@@ -194,6 +194,11 @@
         "Thing hardening EDIT inventory entry (0.323.5, PR #1185)",
         10782000,
         "Same PR #1185 Thing hardening EDIT inventory entry (core 0.323.5). dashboard.html 10,781,292 bytes > prior 10,780,000 by 1,292 (0.00 MB). Island payload raise is the sibling row. Re-measured on this branch head; appended, never edited."
+      ],
+      [
+        "Prompt Builder gap close wave 1 (0.323.6, PR #1186)",
+        10792000,
+        "Same PR #1186 Prompt Builder gap close wave 1 (core 0.323.6). dashboard.html 10,791,584 bytes > prior 10,782,000 by 9,584 (0.01 MB). Cosmetic covers_digest restamps (plugin-cache-is-version-keyed, must-fail-conventions-diverge, islanded-panel-costs-two) after generate-dashboards.py / audit-gates.sh / plugin.json churn. Island payload unchanged under prior ceiling. Re-measured on this branch head; appended, never edited."
       ]
     ],
     "index.html": [
@@ -222,8 +227,13 @@
         "host-scope chips on index portal (0.323.3, PR #1182)",
         9490000,
         "Same PR #1182 host-scope chips on index portal. index.html 9,480,230 bytes > prior 9,340,000 by 140,230 (0.13 MB). Re-measured on this branch head; appended, never edited."
+      ],
+      [
+        "Prompt Builder gap close wave 1 (0.323.6, PR #1186)",
+        9496000,
+        "Same PR #1186 Prompt Builder gap close wave 1 (core 0.323.6). index.html 9,495,814 bytes > prior 9,490,000 by 5,814 (0.01 MB). Re-measured on this branch head; appended, never edited."
       ]
     ]
   },
-  "measured_against": "50f3d8ba4f17bdb5bcdc5181da638c62bd0f44fd"
+  "measured_against": "29887c77cdc5beae8394b076a7febd2dcbc4f962"
 }
