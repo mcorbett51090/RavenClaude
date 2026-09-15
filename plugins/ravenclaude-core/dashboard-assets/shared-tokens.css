@@ -384,6 +384,88 @@
   color: var(--rc-neutral-fg);
 }
 
+/* Host-scope chips (dashboard-host-scope-badges) — extend .rc-badge only.
+   Status-on-surface pairs; accent as 1px leading edge, never fill meaning.
+   Grok is reserved (inventory filter / tooltip) — not host-support supported. */
+.rc-badge--host-agnostic {
+  background: var(--rc-ok-bg);
+  color: var(--rc-ok-fg);
+  box-shadow: inset 2px 0 0 0 var(--rc-accent);
+}
+.rc-badge--host-claude,
+.rc-badge--host-cursor,
+.rc-badge--host-codex,
+.rc-badge--host-copilot,
+.rc-badge--host-gemini,
+.rc-badge--host-aider,
+.rc-badge--host-windsurf,
+.rc-badge--host-multi {
+  background: var(--rc-neutral-bg);
+  color: var(--rc-neutral-fg);
+  box-shadow: inset 2px 0 0 0 var(--rc-accent);
+}
+.rc-badge--host-grok {
+  background: var(--rc-warn-bg);
+  color: var(--rc-warn-fg);
+  box-shadow: inset 2px 0 0 0 var(--rc-accent);
+}
+
+/* Host-scope filter strip (Commands + plugin-detail Agents/Skills) */
+.rc-host-filter {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--rc-space-2);
+  margin: 0 0 var(--rc-space-4);
+}
+.rc-host-filter__btn {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: var(--rc-radius-pill);
+  border: 1px solid var(--rc-border);
+  background: var(--rc-surface);
+  color: var(--rc-muted);
+  font-family: var(--rc-font-sans);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  letter-spacing: var(--rc-tracking-snug);
+  cursor: pointer;
+}
+.rc-host-filter__btn:hover {
+  border-color: var(--rc-border-strong);
+  color: var(--rc-text);
+}
+.rc-host-filter__btn:focus-visible {
+  outline: none;
+  box-shadow: var(--rc-focus-ring);
+}
+.rc-host-filter__btn[aria-pressed="true"] {
+  border-color: var(--rc-accent);
+  color: var(--rc-accent);
+  background: var(--rc-accent-soft);
+}
+.rc-host-filter__clear {
+  margin-left: var(--rc-space-2);
+  padding: 4px 10px;
+  border: 1px solid var(--rc-border);
+  border-radius: var(--rc-radius-pill);
+  background: transparent;
+  color: var(--rc-muted);
+  font-family: var(--rc-font-sans);
+  font-size: 0.8125rem;
+  cursor: pointer;
+}
+.rc-host-filter__clear:focus-visible {
+  outline: none;
+  box-shadow: var(--rc-focus-ring);
+}
+.rc-host-filter__empty {
+  margin: 0 0 var(--rc-space-4);
+  color: var(--rc-muted);
+  max-width: 64ch;
+}
+
 .rc-tab {
   background: transparent;
   color: var(--rc-muted);

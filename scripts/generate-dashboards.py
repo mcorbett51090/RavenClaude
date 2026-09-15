@@ -43,6 +43,11 @@ from pathlib import Path
 # Sibling helper (scripts/ is on sys.path whether run directly or imported by
 # generate-index-dashboard.py). Provides the CSS scoper used by render_fragment.
 from _html_merge import iife_wrap, scope_css
+from _host_scope import (
+    render_filter_strip as _render_host_scope_filter,
+    render_scope_badge as _render_host_scope_badge,
+    scope_tokens as _host_scope_tokens,
+)
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 PLUGINS_DIR = REPO_ROOT / "plugins"
@@ -2378,13 +2383,19 @@ def _render_command_card(cmd: dict) -> str:
         )
         pill = '<span class="cmd-pill" title="A web page can&#39;t run this for you. Copy it and paste it into Claude Code, where it runs the whole job.">Copy &rarr; paste into Claude</span>'
 
+    # Host-scope chip: slash commands are Claude Code. Verified _HOST_EQUIVALENTS
+    # stay Claude Code + "any host: rc …" prose (UX DIGEST) — never fake All agents.
+    scope_dep = "claude-code"
+    scope_attr = " ".join(_host_scope_tokens(scope_dep))
+    scope_badge = _render_host_scope_badge(scope_dep)
     return (
-        '<article class="cmd-card">'
+        f'<article class="cmd-card" data-host-scope="{html.escape(scope_attr)}">'
         '<header class="cmd-card-head">'
         f'<h3 class="cmd-card-title">{html.escape(slash)}</h3>'
         f'<span class="cmd-card-badge" '
         f'title="Shipped by the {html.escape(cmd["owner"])} plugin">'
         f"{html.escape(cmd['owner'])}</span>"
+        f"{scope_badge}"
         f"{pill}"
         "</header>"
         f'<p class="cmd-card-desc">{html.escape(desc)}</p>'
@@ -2433,7 +2444,14 @@ def _render_commands_tab() -> str:
         f"<p>{len(cmds)} command{plural} shipped by the marketplace plugins.{run_note}{host_note}</p>"
         "</div>"
     )
-    return intro + f'<div class="cmd-grid">{cards}</div>'
+    filt = _render_host_scope_filter(strip_id="commands-host-filter")
+    return (
+        '<div class="cmd-host-scope-root" id="commands-host-scope-root">'
+        + intro
+        + filt
+        + f'<div class="cmd-grid">{cards}</div>'
+        + "</div>"
+    )
 
 
 # ── Guidance tab (marketplace-wide decision trees + best practices) ──────────
@@ -10581,6 +10599,58 @@ _JS = r"""
     });
   })();
 
+function wireHostScopeFilter(root) {
+  if (!root) return;
+  const strip = root.querySelector(".rc-host-filter");
+  if (!strip || strip.dataset.wired === "1") return;
+  strip.dataset.wired = "1";
+  const empty = root.querySelector("[data-host-filter-empty]");
+  const clearBtn = strip.querySelector("[data-host-filter-clear]");
+  const cards = () => Array.from(root.querySelectorAll("[data-host-scope]"));
+  function selected() {
+    return Array.from(strip.querySelectorAll(".rc-host-filter__btn[aria-pressed='true']"))
+      .map((b) => b.getAttribute("data-host-filter"));
+  }
+  function apply() {
+    const sel = selected();
+    if (clearBtn) clearBtn.hidden = sel.length === 0;
+    let visible = 0;
+    cards().forEach((card) => {
+      const scopes = (card.getAttribute("data-host-scope") || "").split(/\s+/).filter(Boolean);
+      let show;
+      if (!sel.length) {
+        show = true;
+      } else if (sel.includes("all-agents") && sel.length === 1) {
+        show = scopes.includes("all-agents");
+      } else {
+        // Host chips: match that host token only (universal NOT auto-included).
+        const hosts = sel.filter((s) => s !== "all-agents");
+        show = hosts.some((h) => scopes.includes(h));
+        if (sel.includes("all-agents")) {
+          show = show || scopes.includes("all-agents");
+        }
+      }
+      card.hidden = !show;
+      if (show) visible += 1;
+    });
+    if (empty) empty.hidden = visible !== 0 || !sel.length;
+  }
+  strip.addEventListener("click", (e) => {
+    const clear = e.target.closest("[data-host-filter-clear]");
+    if (clear) {
+      strip.querySelectorAll(".rc-host-filter__btn").forEach((b) => b.setAttribute("aria-pressed", "false"));
+      apply();
+      return;
+    }
+    const btn = e.target.closest(".rc-host-filter__btn");
+    if (!btn || !strip.contains(btn)) return;
+    const on = btn.getAttribute("aria-pressed") === "true";
+    btn.setAttribute("aria-pressed", on ? "false" : "true");
+    apply();
+  });
+  apply();
+}
+
   /* ── Commands panel (DOM-islanded) — bind on activate ─────────────────
    * panel-commands ships its card grid in a <script type="application/json">
    * payload injected on the first activate("commands"). Its interactive buttons —
@@ -10614,6 +10684,7 @@ _JS = r"""
         });
       });
     }
+    wireHostScopeFilter(mount.querySelector("#commands-host-scope-root") || mount);
   }
 
   /* ── Guidance — best-practice preview-on-click ────────────────────────
@@ -14550,6 +14621,15 @@ _JS = r"""
     root.appendChild(hcEl("p", "hc-src",
       "Source: knowledge/host-support.json (updated " + (data.updated || "?") +
       "). Hover any cell to see why. Each answer also records how we know it \u2014 checked in this repo, read in the vendor\u2019s own docs, or inferred \u2014 so you can tell a tested fact from an educated guess."));
+
+    /* Scope-chip legend — matches Commands / plugin-detail host-scope badges.
+       Capability SSOT remains host-support.json; inventory tags are catalog-only.
+       Grok appears as reserved in filters, not as a supported host here. */
+    const legend = hcEl("p", "hc-legend");
+    legend.appendChild(document.createTextNode(
+      "Scope chips elsewhere in the dashboard: All agents (host-agnostic) \u00b7 Claude Code \u00b7 Cursor \u00b7 Codex \u00b7 Copilot \u00b7 Gemini \u00b7 Multi. Grok is reserved (inventory filter only \u2014 not listed as supported above). Capability SSOT: host-support.json; catalog tags: inventory platform_dependency."
+    ));
+    root.appendChild(legend);
 
     /* 3 — Where work files go. The cross-CLI storage contract had NO user-facing
        surface at all: it lived in AGENTS.md and the session-start banner, both of
