@@ -57,6 +57,16 @@ All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the 
   by `--summary` only; per-dispatch flags the caller does pay for are still spoken to it,
   addressed as a subagent, with a do-not-relay footer. Post-fix live run: the report was the
   answer and nothing else.
+- **`scripts/inventory-sweep.py` no longer executes the audit harness.** Its script-selftest
+  probe greps each script for the literal `--must-fail-convention` and then runs it with that
+  flag under a 30 s kill; `audit-gates.sh` contains the string because it is the thing that asks
+  other scripts for it, does not parse the flag, and so the ENTIRE suite ran and was killed
+  mid-run — three times this session leaving Gate 14's in-place mutant
+  (`verdict="allow"; reason="MUTANT pre-fix…"`, a fail-OPEN tie-breaker) in
+  `hooks/thing-orchestrator.sh`, surfacing only as covers-digest drift in Gates 237/239. The
+  window is wide now that a signed-in `claude -p` makes the tribunal seats real rather than
+  instant abstentions. The harness is now `SKIP harness-would-run-full-suite`, beside the
+  existing self-probe exclusion; the sweep drops from a 180 s preflight timeout to ~35 s.
 
 ### Changed
 
