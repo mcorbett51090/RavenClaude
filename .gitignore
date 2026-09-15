@@ -73,3 +73,6 @@ tests/fixtures/report-regeneration/_out/
 # F3 golden-set light judge reports (artifact-only; never commit churn)
 evals/reports/
 evals/inject-golden-set/__pycache__/
+
+# Plugin-lifecycle last-used ledger (per-project, local-only — M6)
+.ravenclaude/plugin-lifecycle.json

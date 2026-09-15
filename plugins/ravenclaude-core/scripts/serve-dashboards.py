@@ -79,6 +79,7 @@ ALLOWED_READ = {
     ".ravenclaude/comfort-posture.yaml",
     ".ravenclaude/environment-context.md",
     WEB_ACCESS_TARGET,
+    ".ravenclaude/plugin-lifecycle.json",  # P1 ledger, read-only (not in ALLOWED_TARGETS)
 } | JSON_EDIT_TARGETS
 
 # Per-plugin variable files written by the dashboard's Plugins tab. The plugin
