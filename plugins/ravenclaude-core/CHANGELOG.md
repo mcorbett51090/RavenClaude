@@ -2,6 +2,11 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.323.3 — 2026-09-15
+
+### Changed
+- **Dashboard Pipeline hook categories** — Guardrail Pipeline lane heads promote SessionStart / PreToolUse / PostToolUse / Stop as category titles (stacked event→when, hairline); flow strip shows canonical names via `data-event` + CSS `::after`. Gate 132 element delta **0**. Folded with host-scope tip.
+
 ## 0.323.2 — 2026-09-15
 
 ### Added

@@ -1442,15 +1442,20 @@ _PIPELINE_CSS = """<style>
   background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--rc-radius-pill);
   padding: .15rem .6rem; white-space: nowrap; }
 .pipe-flow-step.pipe-flow-loop { border-color: var(--accent); }
+.pipe-flow-step[data-event]::after { content: " · " attr(data-event);
+  font-family: ui-monospace, monospace; font-weight: 500; font-size: .72rem;
+  color: var(--muted); }
 .pipe-flow-arr { color: var(--accent); font-weight: 700; }
 .pipe-readme { font-size: .84rem; }
 .pipe-lane { border: 1px solid var(--border); border-radius: var(--rc-radius-lg);
   padding: .4rem .6rem; margin: 0; background: var(--surface); box-shadow: var(--rc-shadow-sm); }
-.pipe-lane-head { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; }
-.pipe-lane-when { font-weight: 600; color: var(--text, #eee); }
-.pipe-lane-event { font-family: ui-monospace, monospace; font-size: .76rem;
-  color: var(--muted, #999); background: var(--bg, #111); padding: .1rem .4rem;
-  border-radius: 4px; }
+.pipe-lane-head { display: flex; flex-direction: column; align-items: flex-start;
+  gap: .15rem; padding-bottom: .35rem; margin-bottom: .2rem;
+  border-bottom: 1px solid var(--border); }
+/* Category = hook event (primary); plain-English when = subtitle. Gate 132: same 2 spans. */
+.pipe-lane-event { font-family: ui-monospace, monospace; font-size: 1.1rem; font-weight: 600;
+  color: var(--text, #eee); letter-spacing: -0.01em; line-height: 1.25; }
+.pipe-lane-when { font-size: .85rem; font-weight: 500; color: var(--muted, #999); }
 .pipe-lane-tip { margin: .15rem 0 .35rem; color: var(--muted, #aaa); font-size: .83rem; line-height: 1.32; }
 .pipe-row { display: flex; flex-wrap: wrap; gap: .35rem; }
 .pipe-stage { flex: 1 1 230px; min-width: 200px; border: 1px solid var(--border);
@@ -1708,8 +1713,8 @@ def _render_pipeline_tab() -> str:
         lanes_html.append(
             '<section class="pipe-lane">'
             '<div class="pipe-lane-head">'
-            f'<span class="pipe-lane-when">{html.escape(lane["when"])}</span>'
-            f'<span class="pipe-lane-event">{html.escape(lane["event"])}</span></div>'
+            f'<span class="pipe-lane-event">{html.escape(lane["event"])}</span>'
+            f'<span class="pipe-lane-when">{html.escape(lane["when"])}</span></div>'
             f'<p class="pipe-lane-tip">{html.escape(lane["tip"])}</p>'
             f'<div class="pipe-row">{"".join(cards)}</div>'
             "</section>"
@@ -1720,17 +1725,17 @@ def _render_pipeline_tab() -> str:
   <h2>Guardrail pipeline</h2>
   <p class="page-desc">Everything an AI agent passes through, top to bottom. Each box shows whether it's on right now, what it does (in plain words), the step-by-step of how it works, and the knobs you can turn. Changes save to your <code>.ravenclaude/comfort-posture.yaml</code>.
   IMPORTANT — these guardrails fire under {_hook_hosts_text}, and nowhere else yet. &ldquo;Always on&rdquo; below means &ldquo;not a knob you can switch off&rdquo;; it does NOT mean every host runs it. Under {_no_hook_hosts_text} nothing here wires itself, so none of it fires — the stages are shown for reference, not as protection you currently have.</p>
-  <div class="pipe-flow" role="img" aria-label="Flow: session starts, then before-each-step and after-each-step checkpoints loop for every command, then a final check when it tries to stop.">
-    <span class="pipe-flow-step">Session starts</span>
+  <div class="pipe-flow" role="img" aria-label="Flow: SessionStart (session starts), then PreToolUse (before each step) and PostToolUse (after each step) checkpoints loop for every command, then Stop (when it tries to stop).">
+    <span class="pipe-flow-step" data-event="SessionStart">Session starts</span>
     <span class="pipe-flow-arr">→</span>
-    <span class="pipe-flow-step pipe-flow-loop">Before each step</span>
+    <span class="pipe-flow-step pipe-flow-loop" data-event="PreToolUse">Before each step</span>
     <span class="pipe-flow-arr">→</span>
     <span class="pipe-flow-step">the tool runs</span>
     <span class="pipe-flow-arr">→</span>
-    <span class="pipe-flow-step pipe-flow-loop">After each step</span>
+    <span class="pipe-flow-step pipe-flow-loop" data-event="PostToolUse">After each step</span>
     <span class="pipe-flow-arr" title="repeats for every command or edit">↺</span>
     <span class="pipe-flow-arr">→</span>
-    <span class="pipe-flow-step">When it tries to stop</span>
+    <span class="pipe-flow-step" data-event="Stop">When it tries to stop</span>
   </div>
   <p class="page-desc pipe-readme">The two middle checkpoints repeat for <em>every</em> command and file edit — that's the ↺ loop. Open <strong>“How it works, step by step”</strong> on any box to see exactly what it checks and what happens if it trips. Badges: <span class="pipe-badge pipe-badge-on">Always on</span> can't be turned off · <span class="pipe-badge pipe-badge-advisory">Advisory</span> only nudges, never blocks · <span class="pipe-badge pipe-badge-dynamic">On / Off</span> depends on your settings (filled in live below).</p>
   <div id="pipeline-server-note" class="pipe-note" hidden>This page has no server behind it, so the live state and editors are read-only. Launch the dashboard with <code>ravenclaude dashboard --project &lt;repo&gt;</code> to edit and apply.</div>
