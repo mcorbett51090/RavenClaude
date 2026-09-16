@@ -98,6 +98,36 @@ const CHECKS = [
     name: "openAfterCount is never allowed to go negative (Math.max(0, ...))",
     test: (src) => /Math\.max\(0,\s*counts\.confirmed\s*-\s*appliedTotal\)/.test(src),
   },
+  {
+    name: "block mode: batch ids are validated against a safe charset before use",
+    test: (src) => /SAFE_BATCH_ID_RE\s*=\s*\/\^\[A-Za-z0-9_\.\-\]\+\$\//.test(src),
+  },
+  {
+    name: "block mode: BLOCK_MODE is derived from args.batchIds, absent by default",
+    test: (src) => /BLOCK_MODE\s*=\s*BATCH_IDS_ARG\s*!==\s*null/.test(src),
+  },
+  {
+    name: "block mode: FINALIZE_BLOCK requires BOTH block mode AND args.finalizeBlock === true",
+    test: (src) =>
+      /FINALIZE_BLOCK\s*=\s*BLOCK_MODE\s*&&\s*!!\(args\s*&&\s*args\.finalizeBlock\s*===\s*true\)/.test(
+        src,
+      ),
+  },
+  {
+    name: "block mode: the findings dir is a single shared path, never suffixed per iteration or per block",
+    test: (src) =>
+      /FINDINGS_DIR\s*=\s*joinPath\(RUN_DIR,\s*"findings"\)/.test(src) &&
+      !/findings-iter/.test(src) &&
+      !/merged-iter/.test(src),
+  },
+  {
+    name: "converge targeted re-review: resolveBatchesForFiles() exists to scope iteration>=2 re-review",
+    test: (src) => /async function resolveBatchesForFiles\(files\)/.test(src),
+  },
+  {
+    name: "converge targeted re-review: the fix phase reports which files it actually changed",
+    test: (src) => /filesActuallyFixed/.test(src),
+  },
 ];
 
 function runChecks(src) {
@@ -178,6 +208,27 @@ function main() {
       check(
         "mutant 2 (old mismatched severity vocabulary restored) is CAUGHT — checks must fail on it",
         !mutant2Ok,
+      );
+    }
+
+    // Mutant 3: let FINALIZE_BLOCK trigger on args.finalizeBlock alone,
+    // dropping the BLOCK_MODE requirement — the shape a careless refactor
+    // could produce, which would run the full Merge/Verify/Fix pipeline over
+    // an incomplete findings dir any time a caller passed finalizeBlock:true
+    // without also passing batchIds.
+    const mutant3Path = join(tmp, "mutant3.workflow.js");
+    const mutated3 = realSrc.replace(
+      "const FINALIZE_BLOCK = BLOCK_MODE && !!(args && args.finalizeBlock === true);",
+      "const FINALIZE_BLOCK = !!(args && args.finalizeBlock === true);",
+    );
+    if (mutated3 === realSrc) {
+      check("mutant 3 actually changed the source (string replace matched)", false);
+    } else {
+      writeFileSync(mutant3Path, mutated3, "utf8");
+      const { ok: mutant3Ok } = runChecks(mutated3);
+      check(
+        "mutant 3 (FINALIZE_BLOCK no longer requires BLOCK_MODE) is CAUGHT — checks must fail on it",
+        !mutant3Ok,
       );
     }
   } finally {

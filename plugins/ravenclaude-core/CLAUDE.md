@@ -5102,3 +5102,98 @@ error message itself rather than needing to already know it exists.
 
 **Migration:** none — additive documentation + a longer (still single-line) error message on one
 already-failing path; no gate, schema, flag, or artifact path changed.
+
+## `/repo-review` closes its converge-loop cache gap and gains "block mode" for plans too large for one Workflow invocation (added 2026-09-16, v0.323.8)
+
+The live `/repo-review` dispatch that motivated the two v0.321.1/v0.321.2 entries above was itself a
+demonstration of the exact problem this milestone closes: the user's first requested scope
+(`plugins/ravenclaude-core/` as a whole) sat near the `Workflow` tool's 1,000-`agent()`-call hard cap
+even at a correctly-estimated tier — the same class of near-miss the estimator fix already documents,
+just caught at the confirmation step this time (via `--estimate-only`) instead of mid-run. That
+prompted the user's explicit ask: *"fix any gaps in /repo-review and set it up to take a large task
+and break it down into blocks of tasks, so it's manageable."* This ships two fixes, in the same
+change because the second's correctness depends on the first's architecture.
+
+**Gap 1 — the converge loop re-paid the FULL plan's cache-check cost on every iteration, regardless of
+what a Fix pass actually touched.** Before this build, iteration ≥2 of a `--converge` run re-ran
+`runReviewPhase` over `batchIds` — the entire plan's batch list — every single time, so the per-batch
+cache-check `agent()` calls (real, unconditional, per `estimate_cost.py`'s own cardinality formula)
+were paid again for every batch regardless of whether that batch's files changed in the prior Fix
+pass. A plan that fit comfortably on iteration 1 could still blow the 1,000-call cap on iteration 2+ of
+a multi-pass converge run purely from this re-check overhead. Fixed with a new
+`resolveBatchesForFiles(files)` helper (a cheap `CACHE_CHECK_MODEL` agent call reading the plan JSON)
+that resolves, from the *prior* iteration's `filesActuallyFixed` (a new field `runFixPhase` now
+returns), exactly which batches contain a changed file — only those batches get re-reviewed on
+iteration ≥2. This required a supporting architectural change: the findings dir moved from
+per-iteration-suffixed (`findings-iter2/`, …) to a **single shared, unsuffixed** `FINDINGS_DIR`, so a
+targeted re-review's shard writes land in the same place an untouched batch's still-valid shard from
+iteration 1 already lives — a per-iteration-suffixed dir would have silently dropped every batch not
+re-reviewed that pass. `merged-JSON`/fix-receipt paths stay per-iteration-suffixed (only the findings
+dir became shared); `SKILL.md`'s Convergence-loop and Recovery sections, which described the old
+suffixed-findings-dir behavior, are corrected.
+
+**Gap 2 (the user's explicit ask) — block mode.** The shared-findings-dir architecture above is also
+the correctness prerequisite for splitting a single plan across **multiple** `Workflow` invocations
+that add up to complete, non-overlapping coverage — which is what a plan too large for the 1,000-call
+cap actually needs, rather than the estimator's existing (necessary but insufficient) options of
+narrowing scope or lowering the tier. Two pieces:
+
+- **[`scripts/block_planner.py`](skills/repo-review/scripts/block_planner.py)** (new) — a deterministic,
+  stdlib-only partitioner reusing `estimate_cost.py`'s own cardinality resolvers (never re-deriving
+  them). It reserves a smaller trailing slice of the plan's own risk-ranked batch list for the sole
+  **finalize** block (sized to leave room for `verify_cap + fix_cap + overhead`, plus a documented
+  `CONVERGE_RESERVE` heuristic buffer when the caller will also `--converge`), and splits everything
+  before that into larger **review-only** blocks — so the highest-risk batches land in block-1,
+  reviewed first. Self-tested only (`--self-test`, 15 assertions), the same tier as
+  `forge-route.py`/`forge-worktree.sh` — deliberately not a numbered `audit-gates.sh` gate of its own,
+  to avoid this repo's own repeatedly-documented gate-number-collision failure mode; its self-test is
+  instead folded into the existing Gate 258 bundle (below).
+- **`repo-sweep.workflow.js`** gains `args.batchIds` (this invocation's slice, validated against a
+  strict `SAFE_BATCH_ID_RE` charset and against the plan's own real batch ids before use — never
+  trusted raw) and `args.finalizeBlock`. Absent `args.batchIds` ⇒ `BLOCK_MODE` is `false` and every
+  downstream branch is byte-identical to the prior single-shot behavior — the backward-compatibility
+  invariant. A non-finalize block reviews only its slice into the shared findings dir and returns
+  immediately (skipping Merge/Verify/Fix/Report and the converge loop entirely); the **one** finalize
+  block reviews its own (smaller) slice and then runs the full pipeline — and further `--converge`
+  iterations, if requested — over the complete shared findings dir, which by construction requires
+  every review-only block to have already completed under the same `run_id`.
+
+⛔ **A real bug in `block_planner.py` itself was caught by its own self-test, not by review — and
+fixing it revealed the self-test's own guard had never actually been exercised.** The finalize-capacity
+guard (`if finalize_capacity < 1: raise BlockPlanError(...)`) could never fire, because `_capacity()`
+unconditionally floors its result at `max(1, ...)` — so an impossibly small `--safe-ceiling` (the exact
+case the self-test's own fixture #6 exists to prove raises cleanly) silently produced a 1-batch
+finalize block instead of ever reaching the check. Fixed by computing the raw `finalize_available`
+budget and comparing it against the real per-batch cost **before** calling `_capacity()`'s clamp,
+rather than checking the already-clamped result. This is the same shape as the `guard-premise.sh`
+bare-`mkdir` incident this repo has already recorded once: a guard that clamps its own failure signal
+before checking it is a guard that can never fail. 15/15 self-test assertions pass with the fix; the
+regression is the fixture itself (no new fixture was needed — the existing one simply started passing
+for the right reason).
+
+**Gates extended, not created, per the collision-avoidance discipline above.** [Gate
+258](../../../scripts/audit-gates.sh) gained one line (`block_planner.py --self-test`) in both the
+`--check` dispatcher and the main sequence. [Gate 260](../../../scripts/audit-gates.sh)'s
+`check-repo-review-converge.mjs` gained 6 new structural checks (batch-id charset validation,
+`BLOCK_MODE`'s derivation, `FINALIZE_BLOCK` requiring `BLOCK_MODE` — never triggering on
+`args.finalizeBlock` alone, the shared non-suffixed findings dir, `resolveBatchesForFiles()`'s
+existence, and `filesActuallyFixed`) plus a third must-fail mutant (stripping `FINALIZE_BLOCK`'s
+`BLOCK_MODE` requirement — the shape a careless refactor could produce, which would run the full
+downstream pipeline over an incomplete findings dir). All 20 checks and all 3 mutants verified passing
+and failing correctly, respectively, before landing.
+
+**`SKILL.md` gained a new "Block mode" section** (the operational procedure: run
+`--estimate-only` first, run `block_planner.py` against the same plan when the projected cost is at or
+near the cap, `TaskCreate` one task per block, dispatch review-only blocks in order, dispatch the
+finalize block last and only after every review-only block has completed) and §6's honest-status table
+now lists `block_planner.py`'s own self-test coverage and states plainly, alongside the pre-existing
+`--converge` caveat, that **a real multi-invocation block sequence has not been observed** — this is
+reasoned-through and structurally gated, the same honest limit as the rest of this skill's unexecuted
+`Workflow`-tool paths, not a claim that a real large repo has been swept this way.
+
+**Migration:** none — `block_planner.py` is a new, separately-invoked file; `args.batchIds`/
+`args.finalizeBlock` are additive and opt-in (their absence reproduces the exact prior single-shot
+behavior, proven by Gate 260's checks); the findings-dir architecture change is internal to the
+workflow script's own iteration bookkeeping and does not change any external artifact path a caller
+depends on. Nothing in a consumer's installed plugin behaves differently on `/plugin marketplace
+update` until they invoke block mode.
