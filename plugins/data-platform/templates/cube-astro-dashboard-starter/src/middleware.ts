@@ -29,15 +29,13 @@ import { defineMiddleware } from "astro:middleware";
 // contain `;` or whitespace, so parsing + re-serializing through it closes
 // the class rather than blacklisting a character.
 //
-// script-src has NO nonce: Astro's native CSP support (security.csp config,
-// hash-based) does not exist in the 4.x line this starter is pinned to —
-// confirmed by inspecting the installed astro@4.16.19's own config types,
-// which carry no `csp` field at all (it is an Astro 5.9+ feature). Astro
-// islands hydrate via an EXTERNAL <script type="module" src="...">, not an
-// inline script, so 'self' alone (no nonce, no 'unsafe-inline') covers them
-// under this framework's own architecture — re-verify if this starter's
-// Astro pin is ever bumped past 5.9, where switching to the native
-// security.csp hash-based mechanism becomes the better fix.
+// script-src uses a per-request nonce (2026-09-16 starter-smoke follow-up):
+// Astro 4.x has no native security.csp hash support (5.9+), and the layout's
+// theme-init <script is:inline> plus Astro/React island bootstrap inlines are
+// blocked by bare `script-src 'self'`. We (1) stash the nonce on Astro.locals
+// for scripts we author, and (2) rewrite HTML responses to stamp the same
+// nonce onto any <script> Astro injects without one. External module scripts
+// stay covered by `'self'`. Do NOT add `'unsafe-inline'`.
 //
 // style-src-attr, NOT a bare style-src 'unsafe-inline' (tightened per
 // security review, 2026-09-03): a plain `style-src 'self' 'unsafe-inline'`
@@ -60,23 +58,48 @@ function safeOrigin(raw: string | undefined, fallback: string): string {
   }
 }
 
-export const onRequest = defineMiddleware(async (_context, next) => {
+function buildCsp(cubeApiOrigin: string, nonce: string): string {
+  return [
+    "default-src 'self'",
+    `script-src 'self' 'nonce-${nonce}'`,
+    "style-src 'self' 'unsafe-inline'",
+    "style-src-attr 'unsafe-inline'",
+    `connect-src 'self' ${cubeApiOrigin}`,
+    "frame-ancestors 'self'",
+    "img-src 'self' data:",
+    "object-src 'none'",
+    "base-uri 'self'",
+  ].join("; ");
+}
+
+/** Stamp nonce onto <script> tags that lack one (Astro-injected inlines). */
+function applyScriptNonces(html: string, nonce: string): string {
+  return html.replace(/<script(?![^>]*\bnonce=)(\s|>)/gi, `<script nonce="${nonce}"$1`);
+}
+
+export const onRequest = defineMiddleware(async (context, next) => {
+  const nonce = Buffer.from(crypto.randomUUID()).toString("base64");
+  context.locals.cspNonce = nonce;
+
   const cubeApiOrigin = safeOrigin(process.env.CUBE_API_ORIGIN, "http://localhost:4000");
+  const csp = buildCsp(cubeApiOrigin, nonce);
   const response = await next();
-  response.headers.set(
-    "Content-Security-Policy",
-    [
-      "default-src 'self'",
-      "script-src 'self'",
-      "style-src 'self' 'unsafe-inline'",
-      "style-src-attr 'unsafe-inline'",
-      `connect-src 'self' ${cubeApiOrigin}`,
-      "frame-ancestors 'self'",
-      "img-src 'self' data:",
-      "object-src 'none'",
-      "base-uri 'self'",
-    ].join("; "),
-  );
+
+  const contentType = response.headers.get("content-type") ?? "";
+  if (contentType.includes("text/html")) {
+    const html = await response.text();
+    const rewritten = applyScriptNonces(html, nonce);
+    const headers = new Headers(response.headers);
+    headers.set("Content-Security-Policy", csp);
+    headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
+    return new Response(rewritten, {
+      status: response.status,
+      statusText: response.statusText,
+      headers,
+    });
+  }
+
+  response.headers.set("Content-Security-Policy", csp);
   response.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
   return response;
 });
