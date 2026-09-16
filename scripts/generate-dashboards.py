@@ -1269,6 +1269,11 @@ _PIPELINE_EXCLUDED_HOOKS = {
     "sibling, DID get a stage card — see the 'context-handoff' row in "
     "_PIPELINE_STAGE_HOOKS — once the owner asked for a real DOM control on "
     "`context_handoff.mode`, so it is no longer in this excluded set.)",
+    "alias-deprecation-advisory.sh": "SessionStart alias-soak advisory (Phase D). Emits "
+    "additionalContext when deprecated posture keys are sole source or diverge; quiet "
+    "when seed leftovers match. Never writes posture, never denies, never inspects a "
+    "tool call — same class as thing-denial-kb-recall.sh, so deliberately NOT a "
+    "Pipeline stage card",
 }
 
 

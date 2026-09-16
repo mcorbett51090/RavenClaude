@@ -356,6 +356,12 @@
             "command": "bash \"${CLAUDE_PROJECT_DIR}/plugins/ravenclaude-core/scripts/plugin-lifecycle-sweep.sh\"",
             "timeout": 15,
             "comment": "Marketplace-dev hook (dev-mirror of the plugin's hooks/hooks.json entry). Plugin lifecycle sweep (plan-only): when tracking is on, surface deprecate notices; auto_uninstall stays OFF so uninstall is never executed from SessionStart. Fail-silent; SessionStart cannot block."
+          },
+          {
+            "type": "command",
+            "command": "${CLAUDE_PROJECT_DIR}/plugins/ravenclaude-core/hooks/alias-deprecation-advisory.sh",
+            "timeout": 10,
+            "comment": "Marketplace-dev hook (dev-mirror of the plugin's hooks/hooks.json entry). Phase D alias soak: SessionStart additionalContext advisory when deprecated posture keys are sole source or diverge; quiet when seed leftovers match. Never writes posture. Fail-silent; SessionStart cannot block."
           }
         ]
       },
