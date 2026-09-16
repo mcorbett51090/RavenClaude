@@ -224,6 +224,11 @@
         "Pipeline Pre\u2192Post decision-tree island (0.323.13, PR #1195)",
         10850000,
         "Same PR #1195 Pipeline decision-tree island (core 0.323.13). dashboard.html 10,842,220 bytes > prior 10,820,000 by 22,220 (0.02 MB). Gate 132 island +2 static (mount+JSON); JS seats SVG/chrome on activate. Re-measured on this branch head; appended, never edited."
+      ],
+      [
+        "Dashboard UX vision Wave-1 (0.323.15)",
+        10860000,
+        "Wave-1 Pipeline label/aria text swaps plus the JS-seated Learn to Prompt Builder teaching bridge (core 0.323.15). dashboard.html 10,853,674 bytes > prior 10,850,000 by 3,674 (0.00 MB). Three Task/System/Few-shot cards are createElement-only after Learn hydration; static Gate 132 delta is zero and the island payload remains under its existing ceiling. Re-measured on this branch head; appended, never edited."
       ]
     ],
     "index.html": [
@@ -272,6 +277,11 @@
         "Phase D posture alias soak (0.323.14, PR #1196)",
         9531000,
         "Same PR #1196 Phase D alias soak (core 0.323.14). index.html 9,530,630 bytes > prior 9,530,000 by 630 (0.00 MB). Inventory restamp (hook-emitter-collision covers + islanded-panel-costs-two / plugin-cache-is-version-keyed). Re-measured on this branch head; appended, never edited."
+      ],
+      [
+        "Dashboard UX vision Wave-1 (0.323.15)",
+        9540000,
+        "Same Wave-1 dashboard UX vision build (core 0.323.15). index.html 9,535,673 bytes > prior 9,531,000 by 4,673 (0.00 MB). Portal fold embeds the same CSS/JS bridge; static Gate 132 delta is zero and the island payload remains under its existing ceiling. Re-measured on this branch head; appended, never edited."
       ]
     ]
   },
