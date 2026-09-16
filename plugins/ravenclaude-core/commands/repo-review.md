@@ -42,7 +42,11 @@ redundant, not an error.
 2. **If `--estimate-only` is set,** run only the zero-agent-call planning pass:
    `scripts/repo_map.py` to build the chunked, risk-ranked plan, then `scripts/estimate_cost.py`
    against that plan and the requested effort tier. Report the projected agent-call count and stop —
-   do **not** dispatch any review agent, do **not** run the Workflow fan-out.
+   do **not** dispatch any review agent, do **not** run the Workflow fan-out. **If that projected count
+   is at or near the `Workflow` tool's 1,000-`agent()`-call hard cap** (or scope can't be narrowed
+   further and the plan still doesn't fit), do not dispatch a single-shot run anyway — see the skill's
+   own "Block mode" section and run `scripts/block_planner.py` against the same plan to split the sweep
+   across multiple `Workflow` invocations instead.
 3. **If `--converge` is set, get an explicit one-line confirmation before running.** It applies fixes
    automatically across potentially several iterations — higher blast radius than a single `--fix`
    pass — so state the max-iterations cap and that each pass may edit files (never commits/stages/
@@ -66,6 +70,7 @@ redundant, not an error.
 - Cache: [`skills/repo-review/scripts/review_cache.py`](../skills/repo-review/scripts/review_cache.py)
 - Merge: [`skills/repo-review/scripts/findings_merge.py`](../skills/repo-review/scripts/findings_merge.py)
 - Cost estimator: [`skills/repo-review/scripts/estimate_cost.py`](../skills/repo-review/scripts/estimate_cost.py)
+- Block planner (splits a too-large plan across multiple `Workflow` invocations): [`skills/repo-review/scripts/block_planner.py`](../skills/repo-review/scripts/block_planner.py)
 - Workflow: [`skills/repo-review/workflows/repo-sweep.workflow.js`](../skills/repo-review/workflows/repo-sweep.workflow.js)
 - Fixture repo (at marketplace root): [`tests/fixtures/repo-review/mini-repo/`](../../../tests/fixtures/repo-review/mini-repo/)
 - Plan schema (at marketplace root): [`schemas/repo-review-plan.schema.json`](../../../schemas/repo-review-plan.schema.json)

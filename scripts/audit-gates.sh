@@ -991,6 +991,7 @@ PY
       python3 "$RR_DIR/findings_merge.py" --self-test || rc=$?
       python3 "$RR_DIR/fix_summary.py" --self-test || rc=$?
       python3 "$RR_DIR/estimate_cost.py" --self-test || rc=$?
+      python3 "$RR_DIR/block_planner.py" --self-test || rc=$?
       RR_MUTANT=$(mktemp)
       sed 's/if abs(a_bucket - b_bucket) > 1:/if abs(a_bucket - b_bucket) != 1:/' \
         "$RR_DIR/findings_merge.py" > "$RR_MUTANT"
@@ -10279,10 +10280,13 @@ rc=0; bash plugins/ravenclaude-core/hooks/tests/test-gate257-copilot-repair.sh >
 gate "copilot repair: nothing-to-repair, disable+preserve content, host-guard, teeth" must_pass "$rc"
 
 echo
-echo "── Gate 258: repo-review skill scripts (repo_map / review_cache / findings_merge / fix_summary / estimate_cost) ──"
-# The five deterministic, zero-model-call scripts behind the /repo-review skill
+echo "── Gate 258: repo-review skill scripts (repo_map / review_cache / findings_merge / fix_summary / estimate_cost / block_planner) ──"
+# The deterministic, zero-model-call scripts behind the /repo-review skill
 # (Phase 1 of the build; see plugins/ravenclaude-core/skills/repo-review/SKILL.md
-# §6 for what is and isn't proven end-to-end). Each already carries its own
+# §6 for what is and isn't proven end-to-end) plus block_planner.py (the
+# partitioner that splits a too-large plan across multiple Workflow-tool
+# invocations, each bounded by the same WORKFLOW_AGENT_CALL_HARD_CAP
+# estimate_cost.py enforces). Each already carries its own
 # --self-test with real assertions; this gate is the mechanical registration —
 # run every one, plus a must-fail teeth check on the one real bug this skill's
 # own proof-run against a live fixture repo caught: findings_merge.py's
@@ -10313,6 +10317,9 @@ if command -v python3 >/dev/null 2>&1; then
 
   rc=0; python3 "$RR_DIR/estimate_cost.py" --self-test >/dev/null 2>&1 || rc=$?
   gate "estimate_cost.py --self-test (tier refusal + cardinality formula)" must_pass "$rc"
+
+  rc=0; python3 "$RR_DIR/block_planner.py" --self-test >/dev/null 2>&1 || rc=$?
+  gate "block_planner.py --self-test (partition coverage/determinism/finalize-capacity-floor)" must_pass "$rc"
 
   RR_MUTANT=$(mktemp)
   sed 's/if abs(a_bucket - b_bucket) > 1:/if abs(a_bucket - b_bucket) != 1:/' \
@@ -10346,18 +10353,23 @@ else
 fi
 
 echo
-echo "── Gate 260: repo-review P0-P3 priority + converge-loop structural floor ──"
+echo "── Gate 260: repo-review P0-P3 priority + converge-loop + block-mode structural floor ──"
 # /repo-review gained a deterministic P0-P3 priority relabeling of the
 # existing severity scale (findings_merge.py's `priority_for`, exercised by
-# its own --self-test test9) and an opt-in `args.converge` loop in
+# its own --self-test test9), an opt-in `args.converge` loop in
 # repo-sweep.workflow.js that re-sweeps Review->Merge->Verify->Fix until 0
 # open P0-P3 findings remain or no further auto-fixable progress is possible
-# (capped at args.convergeMaxIterations). The workflow script itself cannot
+# (capped at args.convergeMaxIterations), and an `args.batchIds` /
+# args.finalizeBlock "block mode" (paired with block_planner.py, Gate 258)
+# that lets a plan too large for one Workflow invocation be swept across
+# several, sharing one findings dir. The workflow script itself cannot
 # be executed in CI (same honest limit as the rest of this skill — see
 # SKILL.md §6), so its safety invariants (MAX_ITERATIONS clamped, the
 # plateau/max-iterations/converged exits, the convergence-honesty report
-# lines, AUTOFIX implying CONVERGE, and the fixed SEVERITY_RANK regression
-# guard) are gated STRUCTURALLY by check-repo-review-converge.mjs, mirroring
+# lines, AUTOFIX implying CONVERGE, the fixed SEVERITY_RANK regression
+# guard, batch-id charset validation, FINALIZE_BLOCK requiring BLOCK_MODE,
+# the shared non-suffixed findings dir, and the targeted re-review helper)
+# are gated STRUCTURALLY by check-repo-review-converge.mjs, mirroring
 # this repo's own precedent for gating an unexecutable workflow/dashboard
 # script (Gate 51's shell-router checker, Gate 144's prompt-builder XSS
 # floor) — pure text-based assertions, no eval/new Function.

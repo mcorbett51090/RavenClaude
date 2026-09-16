@@ -76,6 +76,11 @@
         "plugin-lifecycle inventory entry (PR #1187 Gate 240/242, 2026-09-15)",
         32800,
         "PR #1187 plugin lifecycle Option A (core 0.323.7) converts plugin-lifecycle to entry_class:inventory covering plugin-lifecycle.py + sweep/telemetry shells (Gate 242 inception). Measured island payload 32,747 (over prior 32,710 by 37; learn-payload 25,454). Same inventory shape; mermaid retained on this entry. Re-measured on this branch head; appended, never edited."
+      ],
+      [
+        "repo-review-block-planner-capacity-floor inventory entry (block_planner.py Gate 258/260 inception-coverage fix, /repo-review block-mode build, 2026-09-16)",
+        32850,
+        "The /repo-review block-mode build added a new inventory concept (repo-review-block-planner-capacity-floor -- block_planner.py's _capacity() clamp masking its own impossibly-small-safe-ceiling guard) covering block_planner.py, repo-sweep.workflow.js, and SKILL.md, to satisfy check-inception-coverage for the new block_planner.py script. Measured island payload 32,802 (over prior 32,800 by 2; largest panel learn-payload at 25,509). Same no-diagrams-for-inventory-entries shape as every prior wave. Re-measured on this branch head; appended, never edited."
       ]
     ],
     "index.html": [
@@ -209,6 +214,11 @@
         "plugin-lifecycle inventory entry (PR #1187, 0.323.7, 2026-09-15)",
         10810000,
         "Same PR #1187 plugin lifecycle Option A P1\u2192P2\u2192P3 ask (core 0.323.7). dashboard.html 10,801,134 bytes > prior 10,792,000 by 9,134 (0.01 MB). Inventory fields + R12 badge + covers. Re-measured on this branch head; appended, never edited."
+      ],
+      [
+        "repo-review-block-planner-capacity-floor inventory entry (block_planner.py Gate 258/260 inception-coverage fix, /repo-review block-mode build, 2026-09-16)",
+        10820000,
+        "Same /repo-review block-mode build as the payload entry above. dashboard.html 10,813,894 bytes > prior 10,810,000 by 3,894 (0.00 MB). Re-measured on this branch head; appended, never edited."
       ]
     ],
     "index.html": [
@@ -250,5 +260,5 @@
       ]
     ]
   },
-  "measured_against": "4423016e5192f9110911de96dfbb0b70046c1084"
+  "measured_against": "84367b2ce68741b113e742f5d8a9cb92334569fd"
 }

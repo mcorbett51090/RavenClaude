@@ -2,6 +2,24 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.323.8 — 2026-09-16
+
+### Fixed
+- **`/repo-review` converge-loop cache gap** — iteration ≥2 of `--converge` re-paid the full plan's
+  cache-check cost regardless of what a Fix pass actually touched; a `resolveBatchesForFiles()` helper
+  now scopes re-review to only the batches containing files the prior iteration actually changed.
+  Findings dir moved to a single shared (non-suffixed) path across the whole run to support this.
+- **`block_planner.py`'s finalize-capacity guard** — `_capacity()`'s unconditional `max(1, ...)` floor
+  masked the "impossibly small `--safe-ceiling`" error condition; fixed by checking the raw available
+  budget before clamping.
+
+### Added
+- **`/repo-review` block mode** — `scripts/block_planner.py` (new, self-tested) partitions a plan too
+  large for the `Workflow` tool's 1,000-`agent()`-call cap across multiple invocations sharing one
+  `run_id`; `repo-sweep.workflow.js` gained `args.batchIds`/`args.finalizeBlock` (additive, opt-in,
+  byte-identical single-shot behavior when absent). Gate 258 gained `block_planner.py --self-test`;
+  Gate 260 gained 6 new structural checks + a 3rd must-fail mutant.
+
 ## 0.323.7 — 2026-09-15
 
 ### Added
