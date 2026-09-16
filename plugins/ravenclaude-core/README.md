@@ -24,7 +24,7 @@ This is the prerequisite plugin — domain plugins (`power-platform`, `finance`,
 |-----------|-------|-------|
 | Specialist agents | 17 | [`agents/`](agents/) |
 | Skills | 67 | [`skills/`](skills/) |
-| Hooks | 54 | [`hooks/`](hooks/) |
+| Hooks | 55 | [`hooks/`](hooks/) |
 | Rule-sets | 5 | [`rules/`](rules/) |
 | Slash commands | `/init-agent-ready`, `/wrap`, `/set-posture`, `/dashboard`, `/forge`, `/stream`, `/handoff`, `/reset-plugin-cache` (alias `/ragnarok`) | [`commands/`](commands/) |
 | Knowledge files | see [`knowledge/`](knowledge/) | [`knowledge/`](knowledge/) |
