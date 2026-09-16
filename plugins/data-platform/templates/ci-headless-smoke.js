@@ -8,9 +8,11 @@
 //   1. zero JS console errors and no 5xx response
 //   2. zero serious/critical axe-core violations (WCAG 2.2 AA floor — see
 //      best-practices/dashboard-meet-the-accessibility-floor.md)
-// Requires no live Cube instance — synthetic env vars are enough for the page to
-// render (the seams throw only when actually queried, not on page load, per both
-// starters' documented "not yet run against a live Cube instance" scope).
+// Requires no live Cube instance — synthetic Cube/JWT env vars plus
+// DATA_PLATFORM_STARTER_CI_SESSION=1 (CI smoke only) so getSession() returns a
+// clearly fake stub. Without that env, both starters' getSession() seams throw
+// on every `/` load by design (prod throw-loud). Do not claim "seams don't throw
+// on page load" — they do unless the CI stub is set.
 //
 // ⛔ Honest limit: Chromium surfaces a blocked-by-CSP resource as a console "error"
 // entry, so check (1) DOES catch a CSP violation in practice — but that has not
@@ -30,7 +32,10 @@ async function main() {
 
   const errors = [];
   const browser = await chromium.launch();
-  const page = await browser.newPage();
+  // axe-core/playwright requires a BrowserContext (not a bare Page from
+  // browser.newPage()). Create an explicit context first.
+  const context = await browser.newContext();
+  const page = await context.newPage();
   page.on("console", (msg) => {
     if (msg.type() === "error") errors.push(msg.text());
   });
