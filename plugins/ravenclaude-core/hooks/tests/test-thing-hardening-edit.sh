@@ -197,14 +197,14 @@ h1="$(python3 "$DEC" --root "$G" preview 'npm install left-pad' | jq -r .harden_
 he="$(python3 "$DEC" --root "$G" preview 'npm install left-pad' | jq -r .hardening_edit)"
 [ "$he" = "true" ] && pass "hardening_edit true when posture set" || bad "hardening_edit=$he"
 
-# Default OFF when no posture key
+# Default ON when no posture/thing hardening_edit key (AppSec enable GO)
 G2="$TMP/proj2"; mkdir -p "$G2/.ravenclaude"
 cat > "$G2/.ravenclaude/comfort-posture.yaml" <<'EOF'
 categories:
   shell_package_install: { thing: on }
 EOF
 he="$(python3 "$DEC" --root "$G2" preview 'npm install -g x@1' | jq -r .hardening_edit)"
-[ "$he" = "false" ] && pass "hardening_edit default false" || bad "default hardening_edit=$he"
+[ "$he" = "true" ] && pass "hardening_edit default true" || bad "default hardening_edit=$he"
 
 if [ "$fail" -eq 0 ]; then
   echo "thing-hardening-edit: ALL PASS"

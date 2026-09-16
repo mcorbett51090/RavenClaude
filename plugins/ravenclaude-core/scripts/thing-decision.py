@@ -1009,8 +1009,9 @@ def resolve_tier_config(root: Path, posture: dict | None) -> tuple[dict, str | N
     cache_ttl = 0
     fatigue = 0
     # Hardening EDIT (Thing A+C/H3): seat may propose empty-cited safer rewrite;
-    # registry verifies. DEFAULT OFF — AppSec lock until fixtures green.
-    hardening_edit = False
+    # registry verifies. DEFAULT ON after AppSec enable GO (2026-09-16);
+    # explicit false in posture/thing.yaml still wins (House Rule 3).
+    hardening_edit = True
     # §MCP identity — the deterministic server allowlist. thing.yaml carries it at
     # top level (`mcp.allowed_servers:`); comfort-posture carries it under
     # `command_review.mcp.allowed_servers`. Last-present-wins (posture > thing.yaml).

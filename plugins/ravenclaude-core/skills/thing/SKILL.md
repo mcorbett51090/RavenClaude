@@ -111,7 +111,7 @@ Every verdict writes one JSON entry to `.ravenclaude/runs/thing/<id>.json` (the 
 - **Deterministic routing is regex-based.** `triggers` are added for the cross-cutting concerns plus the live categories' deterministic concerns; concerns without `triggers` (the `judgment_only` ones and the not-yet-live categories) rely on the seats' own judgment, not the pre-LLM screen. For the file shape, triggers run against the reviewed text `"<file_path>\n<content>"`, so a path-anchored regex screens the path and a content regex screens the body.
 
 
-## Hardening EDIT (feature-flagged, default OFF)
+## Hardening EDIT (feature-flagged, default ON)
 
 When `command_review.hardening_edit: true`, and the orchestrator would otherwise surface a confident panel-ALLOW as `ask` (`gate_floor` / high-blast), seats may propose an **empty-cited** safer Bash `EDIT`. A deterministic **transform registry** (`knowledge/thing-harden-transforms.yaml`) verifies:
 
@@ -122,7 +122,7 @@ When `command_review.hardening_edit: true`, and the orchestrator would otherwise
 - Empty-cited EDIT **outside** the orchestrator discriminator remains **DENY** (malformed seat).
 - Cited EDIT path (`revalidate`) is unchanged and byte-identical with the flag off.
 - Heimdall never EDITs. Fatigue nudge points at filing a transform — never at raising `gate_floor` or adding a bypass.
-- Adding a transform is AppSec-reviewed (same bar as a catalog concern). Flag defaults **OFF**.
+- Adding a transform is AppSec-reviewed (same bar as a catalog concern). Flag defaults **ON** after AppSec enable GO (2026-09-16); set `hardening_edit: false` to opt out (House Rule 3).
 
 - **EDIT only when deterministically verifiable.** An EDIT is accepted only if the cited concern has `triggers` (so the invariant can confirm removal); otherwise it fails closed to DENY. **File edits are ALLOW/DENY-only** regardless — a seat EDIT verdict on a `file_edit_project` call is coerced to DENY (there is no machine-checkable `concerns(revised) ⊆ concerns(original)` invariant for free-form file content).
 - **Every category is live and the engine is feature-complete (v0.41.0).** All 12 comfort-posture categories are reviewed when toggled on. A `..`/`~`/outside-project path resolves to the stricter `file_edit_global` / `file_read_global` (never silently to the project category).

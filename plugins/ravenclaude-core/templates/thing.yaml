@@ -154,8 +154,8 @@ gate_floor: high
 # hardening_edit — when true, seats may propose an empty-cited safer Bash EDIT
 #   when a confident ALLOW would otherwise be surfaced as ask; a signed transform
 #   registry verifies. Fail → ask (never silent ALLOW past gate_floor). DEFAULT
-#   OFF until AppSec countersign + fixtures green.
-hardening_edit: false
+#   ON after AppSec enable GO (2026-09-16); set false to opt out (House Rule 3).
+hardening_edit: true
 
 # ── Model diversity (automatic — no setting) ──────────────────────────────────
 # When 2+ seats convene, the engine guarantees at least TWO distinct model

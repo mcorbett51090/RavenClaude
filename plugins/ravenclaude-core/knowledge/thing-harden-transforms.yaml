@@ -2,7 +2,7 @@
 # Seat proposes; this registry verifies. Adding a transform requires AppSec review.
 schema_version: 1
 registry_version: "1"
-# Feature flag default OFF — see command_review.hardening_edit / templates/thing.yaml.
+# Feature flag default ON after AppSec enable GO (2026-09-16); set false to opt out — see command_review.hardening_edit / templates/thing.yaml.
 transforms:
   - id: git-force-with-lease
     name: git push --force → --force-with-lease
