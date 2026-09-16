@@ -2,6 +2,20 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.323.17 — 2026-09-16
+
+### Added
+- **Plugin lifecycle Option A follow-on** — SessionStart sweep **executes** fail-closed uninstalls when `auto_uninstall: on` via `claude plugin uninstall <name@marketplace> -y` (CLI inject `PLUGIN_LIFECYCLE_CLAUDE` for tests). Records `executed` + reason per action; reload reminder after success.
+- **P3 `auto_install: auto`** — posture enum is now `off | ask | auto` (absent/unknown ⇒ off). Explicit `auto` + cited need → mode `auto`; optional `--execute` runs `claude plugin install … -y`. Uncited auto stays Bifröst CTA (AppSec #6).
+
+### Changed
+- Sweep body / hooks.json comments: plan-only OPEN closed for the opt-in ON path; still never shells ragnarok / reset-plugin-cache.
+- Concerns `xc.plugin-install` / `xc.plugin-uninstall` + concept `plugin-lifecycle.md` refreshed for execute + auto opt-in.
+- Tests: AUTO + EXEC suites (38 pass).
+
+### Locks / honesty
+- Defaults remain **OFF**. Uninstall execute only when `auto_uninstall` explicitly ON. P3 auto only when `auto_install: auto` explicitly set. Core hard-pin unchanged. No Thing / `gate_floor` / guard-destructive weaken. No BMA / no push from PE.
+
 ## 0.323.16 — 2026-09-16
 
 ### Changed

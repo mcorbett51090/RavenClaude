@@ -382,7 +382,7 @@
             "type": "command",
             "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/plugin-lifecycle-sweep.sh\"",
             "timeout": 10,
-            "comment": "Plugin-lifecycle sweep (P2). When tracking is on, marks unused plugins deprecated and surfaces a notice. Uninstall is planned only if auto_uninstall: on (default OFF, M2) and is NEVER executed from this body (OPEN: no non-interactive uninstall API; fail-closed). ravenclaude-core is never auto-removed (M3). Never shells the cache-reset disaster-recovery command. Does NOT bump last_used_at (SessionStart presence is not a use). Fail-silent; SessionStart cannot block. Joins this existing startup|resume|clear|fork matcher group (no compact re-fire)."
+            "comment": "Plugin-lifecycle sweep (P2). When tracking is on, marks unused plugins deprecated and surfaces a notice. Uninstall executes only if auto_uninstall: on (default OFF, M2) via claude plugin uninstall -y (fail-closed; plan-only when OFF). ravenclaude-core is never auto-removed (M3). Never shells the cache-reset disaster-recovery command. Does NOT bump last_used_at (SessionStart presence is not a use). Fail-silent; SessionStart cannot block. Joins this existing startup|resume|clear|fork matcher group (no compact re-fire)."
           },
           {
             "type": "command",
