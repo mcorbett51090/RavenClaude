@@ -1620,6 +1620,31 @@ def _render_pipe_dtree_island(plugin_dir: Path, version: str) -> str:
 
 
 
+def _pipe_hint_more(summary: str, body_html: str) -> str:
+    """Fold tertiary `.pipe-hint` prose behind native <details> (Gate 132 +2).
+
+    Summary text must be SR-honest (not bare "More…"). Body may be an existing
+    `<p class="pipe-hint">…</p>` reparented unchanged.
+    """
+    return (
+        f'<details class="pipe-hint-more">'
+        f"<summary>{html.escape(summary)}</summary>"
+        f"{body_html}"
+        f"</details>"
+    )
+
+
+def _pipe_adv_fold(summary: str, body_html: str) -> str:
+    """Collapse rarely-touched control clusters (Gate 132 +2; no wrapper div)."""
+    return (
+        f'<details class="pipe-adv-fold">'
+        f"<summary>{html.escape(summary)}</summary>"
+        f"{body_html}"
+        f"</details>"
+    )
+
+
+
 _PIPELINE_CONTROLS = {
     "thing": (
         '<label class="pipe-ctl"><input type="checkbox" id="pipe-thing-enabled"> '
@@ -1629,31 +1654,43 @@ _PIPELINE_CONTROLS = {
         '<label class="pipe-ctl">Ask me when risk is at or above '
         '<select id="pipe-gate-floor"><option value="medium">medium</option>'
         '<option value="high">high</option><option value="extreme">extreme</option></select></label>'
-        '<p class="pipe-hint">Turn individual command types on/off, and tune the reviewer panel, in the '
-        '<a href="#/settings">Settings</a> tab.</p>'
+        + _pipe_hint_more(
+            "More about command review Settings",
+            '<p class="pipe-hint">Turn individual command types on/off, and tune the reviewer panel, in the '
+            '<a href="#/settings">Settings</a> tab.</p>',
+        )
     ),
-    "runaway": (
-        '<label class="pipe-ctl"><input type="checkbox" id="pipe-runaway-off"> Turn the brake off</label>'
-        '<label class="pipe-ctl">Most steps in one session '
-        '<input type="number" id="pipe-runaway-total" min="1" step="1"></label>'
-        '<label class="pipe-ctl">Most identical tries in a row '
-        '<input type="number" id="pipe-runaway-consec" min="1" step="1"></label>'
+    "runaway": _pipe_adv_fold(
+        "Advanced tool limits",
+        (
+            '<label class="pipe-ctl"><input type="checkbox" id="pipe-runaway-off"> Turn the brake off</label>'
+            '<label class="pipe-ctl">Most steps in one session '
+            '<input type="number" id="pipe-runaway-total" min="1" step="1"></label>'
+            '<label class="pipe-ctl">Most identical tries in a row '
+            '<input type="number" id="pipe-runaway-consec" min="1" step="1"></label>'
+        ),
     ),
-    "parallelism": (
-        '<label class="pipe-ctl"><input type="checkbox" id="pipe-parallelism-enabled"> '
-        "Allow parallel workers</label>"
-        '<label class="pipe-ctl"><input type="checkbox" id="pipe-parallelism-unlimited"> '
-        "No limit (unlimited workers)</label>"
-        '<label class="pipe-ctl">Most workers at once '
-        '<input type="number" id="pipe-parallelism-workers" min="1" step="1"></label>'
-        '<label class="pipe-ctl"><input type="checkbox" id="pipe-conserve-tokens"> '
-        "Conserve tokens (work one step at a time)</label>"
-        '<p class="pipe-hint">The default is MAXIMUM: fan-out work '
-        "(subagents / worktrees) runs in parallel with no limit. Untick “No limit” and set a "
-        "cap to batch it, or untick “Allow parallel workers” to keep the work sequential. "
-        "“Conserve tokens” is the standing exception — it makes the robot work one step at a "
-        "time until you turn it back off. It also switches on by itself when a prompt says "
-        "“conserve tokens” or the session runs low on room.</p>"
+    "parallelism": _pipe_adv_fold(
+        "Advanced tool limits",
+        (
+            '<label class="pipe-ctl"><input type="checkbox" id="pipe-parallelism-enabled"> '
+            "Allow parallel workers</label>"
+            '<label class="pipe-ctl"><input type="checkbox" id="pipe-parallelism-unlimited"> '
+            "No limit (unlimited workers)</label>"
+            '<label class="pipe-ctl">Most workers at once '
+            '<input type="number" id="pipe-parallelism-workers" min="1" step="1"></label>'
+            '<label class="pipe-ctl"><input type="checkbox" id="pipe-conserve-tokens"> '
+            "Conserve tokens (work one step at a time)</label>"
+            + _pipe_hint_more(
+                "More about parallel workers defaults",
+                '<p class="pipe-hint">The default is MAXIMUM: fan-out work '
+                "(subagents / worktrees) runs in parallel with no limit. Untick “No limit” and set a "
+                "cap to batch it, or untick “Allow parallel workers” to keep the work sequential. "
+                "“Conserve tokens” is the standing exception — it makes the robot work one step at a "
+                "time until you turn it back off. It also switches on by itself when a prompt says "
+                "“conserve tokens” or the session runs low on room.</p>",
+            )
+        ),
     ),
     "runes": (
         '<label class="pipe-ctl">Runes '
@@ -1677,7 +1714,10 @@ _PIPELINE_CONTROLS = {
         '<input type="text" id="pipe-dod-cmd" placeholder="npm test &amp;&amp; npm run lint"></label>'
         '<label class="pipe-ctl">Times it may re-try before giving up '
         '<input type="number" id="pipe-dod-maxblocks" min="1" step="1"></label>'
-        '<p class="pipe-hint">Leave the command empty to turn the done-check off.</p>'
+        + _pipe_hint_more(
+            "More about the done-check",
+            '<p class="pipe-hint">Leave the command empty to turn the done-check off.</p>',
+        )
     ),
     "orchestrator": (
         '<label class="pipe-ctl">Orchestrator '
@@ -1688,14 +1728,18 @@ _PIPELINE_CONTROLS = {
         '<option value="full">full — Claude reasons through the task, host writes files '
         "(+most tokens; bounded cost; locked intent)</option>"
         "</select></label>"
-        '<p class="pipe-hint"><strong>[host-only — inert under Claude Code]</strong> '
-        "Active only when your CLI is <em>not</em> Claude Code (e.g. GitHub Copilot routing GPT/Grok). "
-        "Under Claude Code the host already is Claude — this knob is a no-op. "
-        "<strong>off</strong> — zero cost, host orchestrates as always. "
-        "<strong>decide</strong> — Claude returns a JSON dispatch plan; host runs the agents "
-        "(brain / hands split; lower cost). "
-        "<strong>full</strong> — one Claude call reasons through the task and returns artifact "
-        "content; host writes the files (guaranteed intent; highest cost, bounded).</p>"
+        + _pipe_hint_more(
+            "More about Orchestrator modes",
+            '<p class="pipe-hint"><strong>[host-only — inert under Claude Code]</strong> '
+            "Active only when your CLI is <em>not</em> Claude Code (e.g. GitHub Copilot routing GPT/Grok). "
+            "Under Claude Code the host already is Claude — this knob is a no-op. "
+            "<strong>off</strong> — zero cost, host orchestrates as always. "
+            "<strong>decide</strong> — Claude returns a JSON dispatch plan; host runs the agents "
+            "(brain / hands split; lower cost). "
+            "<strong>full</strong> — one Claude call reasons through the task and returns artifact "
+            "content; host writes the files (guaranteed intent; highest cost, bounded).</p>",
+        )
+        + (
         '<label class="pipe-ctl">Scope — <em>when</em> the orchestrator fires '
         '<select id="pipe-orchestrator-scope">'
         '<option value="team">team — only on a team-of-agents dispatch (default; lowest egress)</option>'
@@ -1703,11 +1747,16 @@ _PIPELINE_CONTROLS = {
         "</select></label>"
         '<div id="pipe-orch-relay-opts" style="display:none;border-left:3px solid #c47f17;'
         'padding:.4rem .7rem;margin:.5rem 0">'
-        '<p class="pipe-hint"><strong>⚠ Relay-all sends a second copy of every prompt — plus the '
-        "files it references — to your Claude account (a <em>different</em> processor than GitHub "
-        "Copilot) on every turn.</strong> It is guarded by the egress floor below and "
-        "<strong>fails closed</strong> (answers host-side, nothing egresses) unless one condition holds. "
-        "Bedrock/Vertex deployments are auto-detected and always pass.</p>"
+        )
+        + _pipe_hint_more(
+            "More about relay-all egress",
+            '<p class="pipe-hint"><strong>⚠ Relay-all sends a second copy of every prompt — plus the '
+            "files it references — to your Claude account (a <em>different</em> processor than GitHub "
+            "Copilot) on every turn.</strong> It is guarded by the egress floor below and "
+            "<strong>fails closed</strong> (answers host-side, nothing egresses) unless one condition holds. "
+            "Bedrock/Vertex deployments are auto-detected and always pass.</p>",
+        )
+        + (
         '<label class="pipe-ctl"><input type="checkbox" id="pipe-orch-zdr"> '
         "Zero-data-retention is ON for my Anthropic org "
         '<span class="pipe-hint">(it is OFF by default, per-org — confirm before checking)</span></label>'
@@ -1715,10 +1764,15 @@ _PIPELINE_CONTROLS = {
         "This repo contains NO client PII</label>"
         '<label class="pipe-ctl"><input type="checkbox" id="pipe-orch-pseudo"> '
         "<strong>Pseudonymize structured PII before egress (optional layer A)</strong></label>"
-        '<p class="pipe-hint">Layer A masks emails / SSNs / card &amp; phone shapes to random tokens, '
-        "restored locally on return. Defense-in-depth on <em>top</em> of the floor — <strong>not</strong> a "
-        "guarantee: pattern detection does not catch free-text names or addresses, which is exactly why "
-        "the floor above is the real protection.</p></div>"
+        )
+        + _pipe_hint_more(
+            "More about Layer A pseudonymization",
+            '<p class="pipe-hint">Layer A masks emails / SSNs / card &amp; phone shapes to random tokens, '
+            "restored locally on return. Defense-in-depth on <em>top</em> of the floor — <strong>not</strong> a "
+            "guarantee: pattern detection does not catch free-text names or addresses, which is exactly why "
+            "the floor above is the real protection.</p>",
+        )
+        + "</div>"
     ),
     "cheap_lane": (
         '<label class="pipe-ctl">Cheap lane '
@@ -1743,15 +1797,18 @@ _PIPELINE_CONTROLS = {
         '<option value="copilot">Copilot — CLI-documented path restriction, not a kernel '
         "sandbox</option>"
         "</select></label>"
-        '<p class="pipe-hint">Off by default — nothing here executes until mode is set to '
-        "<em>advise</em> or <em>agent</em>. <strong>advise</strong> — the delegated agent runs in "
-        "an isolated scratch dir with no repo access; its output is a suggestion for you to apply, "
-        "never applied automatically. <strong>agent</strong> — the delegated agent runs in a "
-        "disposable git worktree with write access; <strong>you review the diff before it "
-        "merges.</strong> A task the router judges ambiguous, escalation-shaped, or "
-        "security-sensitive always stays on Claude regardless of this setting — the routing "
-        "asymmetry is deliberate. See "
-        "<code>skills/cheap-lane-delegation/SKILL.md</code>.</p>"
+        + _pipe_hint_more(
+            "More about Cheap lane",
+            '<p class="pipe-hint">Off by default — nothing here executes until mode is set to '
+            "<em>advise</em> or <em>agent</em>. <strong>advise</strong> — the delegated agent runs in "
+            "an isolated scratch dir with no repo access; its output is a suggestion for you to apply, "
+            "never applied automatically. <strong>agent</strong> — the delegated agent runs in a "
+            "disposable git worktree with write access; <strong>you review the diff before it "
+            "merges.</strong> A task the router judges ambiguous, escalation-shaped, or "
+            "security-sensitive always stays on Claude regardless of this setting — the routing "
+            "asymmetry is deliberate. See "
+            "<code>skills/cheap-lane-delegation/SKILL.md</code>.</p>",
+        )
     ),
     "context_handoff": (
         '<label class="pipe-ctl">Context handoff '
@@ -1761,29 +1818,35 @@ _PIPELINE_CONTROLS = {
         "<option value=\"block\">block — required on hosts a suggestion can't reach "
         "(e.g. Copilot)</option>"
         "</select></label>"
-        '<p class="pipe-hint">Proactively writes a full handoff brief before compaction, so a '
-        "fresh session or a teammate can pick up without losing the thread. off = never; "
-        "nag = suggest to Claude Code at Stop; block = required on hosts where nag can't "
-        "reach the agent (e.g. Copilot, whose Stop hook has no context-injection field).</p>"
+        + _pipe_hint_more(
+            "More about Context handoff",
+            '<p class="pipe-hint">Proactively writes a full handoff brief before compaction, so a '
+            "fresh session or a teammate can pick up without losing the thread. off = never; "
+            "nag = suggest to Claude Code at Stop; block = required on hosts where nag can't "
+            "reach the agent (e.g. Copilot, whose Stop hook has no context-injection field).</p>",
+        )
     ),
-    "files": (
-        '<div class="pipe-file" data-file=".repo-layout.json">'
-        '<div class="pipe-file-head"><strong>Allowed folders</strong> '
-        "<code>.repo-layout.json</code>"
-        '<button type="button" class="pipe-file-load" data-target=".repo-layout.json">Load</button>'
-        '<button type="button" class="pipe-file-save" data-target=".repo-layout.json">Save</button></div>'
-        '<textarea class="pipe-file-text" data-target=".repo-layout.json" spellcheck="false" '
-        'aria-label="repo-layout.json contents"></textarea>'
-        '<span class="pipe-file-status" data-target=".repo-layout.json"></span></div>'
-        '<div class="pipe-file" data-file=".ravenclaude/task-scope.json">'
-        '<div class="pipe-file-head"><strong>This task’s files</strong> '
-        "<code>.ravenclaude/task-scope.json</code>"
-        '<button type="button" class="pipe-file-load" data-target=".ravenclaude/task-scope.json">Load</button>'
-        '<button type="button" class="pipe-file-save" data-target=".ravenclaude/task-scope.json">Save</button></div>'
-        '<textarea class="pipe-file-text" data-target=".ravenclaude/task-scope.json" spellcheck="false" '
-        'aria-label="task-scope.json contents" '
-        'placeholder=\'{ "in_scope": ["src/**"], "spec": "SPEC.md" }\'></textarea>'
-        '<span class="pipe-file-status" data-target=".ravenclaude/task-scope.json"></span></div>'
+    "files": _pipe_adv_fold(
+        "File path rules",
+        (
+            '<div class="pipe-file" data-file=".repo-layout.json">'
+            '<div class="pipe-file-head"><strong>Allowed folders</strong> '
+            "<code>.repo-layout.json</code>"
+            '<button type="button" class="pipe-file-load" data-target=".repo-layout.json">Load</button>'
+            '<button type="button" class="pipe-file-save" data-target=".repo-layout.json">Save</button></div>'
+            '<textarea class="pipe-file-text" data-target=".repo-layout.json" spellcheck="false" '
+            'aria-label="repo-layout.json contents"></textarea>'
+            '<span class="pipe-file-status" data-target=".repo-layout.json"></span></div>'
+            '<div class="pipe-file" data-file=".ravenclaude/task-scope.json">'
+            '<div class="pipe-file-head"><strong>This task’s files</strong> '
+            "<code>.ravenclaude/task-scope.json</code>"
+            '<button type="button" class="pipe-file-load" data-target=".ravenclaude/task-scope.json">Load</button>'
+            '<button type="button" class="pipe-file-save" data-target=".ravenclaude/task-scope.json">Save</button></div>'
+            '<textarea class="pipe-file-text" data-target=".ravenclaude/task-scope.json" spellcheck="false" '
+            'aria-label="task-scope.json contents" '
+            'placeholder=\'{ "in_scope": ["src/**"], "spec": "SPEC.md" }\'></textarea>'
+            '<span class="pipe-file-status" data-target=".ravenclaude/task-scope.json"></span></div>'
+        ),
     ),
     # guard-web-access's knob lives in .ravenclaude/web-access.yaml, which is
     # OPTIONAL and absent by default (guard-web-access.sh fail-safes to "ask as
@@ -1796,14 +1859,16 @@ _PIPELINE_CONTROLS = {
         '<p class="pipe-web-state" id="pipe-web-state">Not configured yet — every website falls '
         "through to the normal ask prompt (allow once / this session / permanently / deny). The guard "
         "never blocks web access until you set up lists, so this is a safe default.</p>"
-        '<p class="pipe-hint">Set up allow / deny lists on the <a href="#/web-access">Web access</a> '
-        "page — saved to <code>.ravenclaude/web-access.yaml</code>, enforced by "
-        "<code>guard-web-access.sh</code>. Nothing to configure here; this is a shortcut to that "
-        "editor.</p>"
-        "</div>"
+        + _pipe_hint_more(
+            "More about Web access setup",
+            '<p class="pipe-hint">Set up allow / deny lists on the <a href="#/web-access">Web access</a> '
+            "page — saved to <code>.ravenclaude/web-access.yaml</code>, enforced by "
+            "<code>guard-web-access.sh</code>. Nothing to configure here; this is a shortcut to that "
+            "editor.</p>",
+        )
+        + "</div>"
     ),
 }
-
 
 _PIPELINE_CSS = """<style>
 .pipeline-tab { max-width: 1120px; }
@@ -1868,6 +1933,21 @@ _PIPELINE_CSS = """<style>
    value truncates in place instead of running off the right edge. */
 .pipe-ctl select { flex: 1 1 16rem; max-width: 100%; min-width: 0; }
 .pipe-hint { margin: .08rem 0 0; font-size: .76rem; color: var(--muted, #888); }
+/* Wave-2 progressive disclosure — kinship with .pipe-more / .pipe-dtree-details */
+.pipe-hint-more, .pipe-adv-fold { margin: .2rem 0 0; border: 1px solid var(--border);
+  border-radius: var(--rc-radius-sm); background: var(--surface-2); padding: .15rem .45rem .25rem; }
+.pipe-hint-more > summary, .pipe-adv-fold > summary {
+  cursor: pointer; font-size: .78rem; font-weight: 600; color: var(--muted);
+  list-style: none; display: inline-flex; align-items: center; gap: .3rem;
+  user-select: none; padding: .1rem 0; }
+.pipe-hint-more > summary::-webkit-details-marker,
+.pipe-adv-fold > summary::-webkit-details-marker { display: none; }
+.pipe-hint-more > summary::before, .pipe-adv-fold > summary::before {
+  content: "▸"; font-size: .7rem; color: var(--accent); transition: transform .15s ease; }
+.pipe-hint-more[open] > summary::before, .pipe-adv-fold[open] > summary::before { transform: rotate(90deg); }
+.pipe-hint-more[open], .pipe-adv-fold[open] { border-color: var(--border-strong, var(--border)); }
+.pipe-adv-fold[open] > summary { color: var(--text); margin-bottom: .15rem; }
+.pipe-hint-more .pipe-hint { margin: .15rem 0 .1rem; }
 .pipe-web-state { margin: .08rem 0 .15rem; font-size: .82rem; color: var(--text, #eee); }
 /* Expandable "How it works" subprocess detail (native <details>, accessible). */
 .pipe-more { margin: .3rem 0 0; }
@@ -2112,6 +2192,8 @@ _PIPELINE_CSS = """<style>
 @media (prefers-reduced-motion: reduce) {
   .pdt-group { transition: none; }
   .pdt-summary::before { transition: none; }
+  .pipe-hint-more > summary::before,
+  .pipe-adv-fold > summary::before { transition: none; }
 }
 </style>"""
 
@@ -6882,7 +6964,7 @@ footer.page-footer a:hover { text-decoration: underline; }
   background: var(--accent);
   clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
 }
-/* Wave-1 PE bridge is JS-seated after the Learn island hydrates. None of this
+/* Wave-1/2 PE academy is JS-seated after the Learn island hydrates. None of this
    card chrome adds to the static Gate 132 surface. */
 .learn-pe-bridge {
   margin: 0 0 20px; padding: 18px; border: 1px solid var(--border);
@@ -6890,25 +6972,49 @@ footer.page-footer a:hover { text-decoration: underline; }
 }
 .learn-pe-title { margin: 0; font-size: 17px; color: var(--text); }
 .learn-pe-intro { margin: 5px 0 14px; color: var(--muted); font-size: 13px; line-height: 1.5; }
+.learn-pe-path {
+  list-style: none; margin: 0; padding: 0;
+  display: flex; flex-direction: column; gap: 10px;
+  counter-reset: pe-step;
+}
+.learn-pe-step {
+  counter-increment: pe-step;
+  display: flex; flex-direction: column; align-items: flex-start; gap: 7px;
+  min-width: 0; padding: 14px; border: 1px solid var(--border);
+  border-radius: var(--radius); background: var(--surface); box-shadow: var(--rc-shadow-sm);
+}
+.learn-pe-step-meta {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+}
+.learn-pe-step-num {
+  color: var(--accent); font: 700 10.5px/1.2 var(--font-mono);
+  letter-spacing: .06em; text-transform: uppercase;
+}
+.learn-pe-step-num::before { content: "Step " counter(pe-step) " · "; }
+.learn-pe-kicker {
+  color: var(--muted); font: 700 10.5px/1.2 var(--font-mono);
+  letter-spacing: .06em; text-transform: uppercase;
+}
+.learn-pe-step h3 { margin: 0; font-size: 15px; color: var(--text); }
+.learn-pe-step p { margin: 0; color: var(--muted); font-size: 12.5px; line-height: 1.5; }
+.learn-pe-cta {
+  margin-top: 2px; padding: 6px 10px; border: 1px solid var(--accent);
+  border-radius: var(--radius); color: var(--accent); font-size: 12.5px; font-weight: 700;
+  text-decoration: none;
+}
+.learn-pe-cta:hover { background: var(--accent-soft); text-decoration: none; }
+.learn-pe-cta:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.learn-pe-concepts { margin: 0; padding-left: 1.1rem; color: var(--muted); font-size: 12.5px; line-height: 1.45; }
+.learn-pe-concepts li { margin: .15rem 0; }
+.learn-pe-concepts a { color: var(--accent); }
 .learn-pe-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
 .learn-pe-card {
   display: flex; flex-direction: column; align-items: flex-start; gap: 7px;
   min-width: 0; padding: 14px; border: 1px solid var(--border);
   border-radius: var(--radius); background: var(--surface); box-shadow: var(--rc-shadow-sm);
 }
-.learn-pe-kicker {
-  color: var(--accent); font: 700 10.5px/1.2 var(--font-mono);
-  letter-spacing: .06em; text-transform: uppercase;
-}
 .learn-pe-card h3 { margin: 0; font-size: 15px; color: var(--text); }
 .learn-pe-card p { margin: 0; color: var(--muted); font-size: 12.5px; line-height: 1.5; }
-.learn-pe-cta {
-  margin-top: auto; padding: 6px 10px; border: 1px solid var(--accent);
-  border-radius: var(--radius); color: var(--accent); font-size: 12.5px; font-weight: 700;
-  text-decoration: none;
-}
-.learn-pe-cta:hover { background: var(--accent-soft); text-decoration: none; }
-.learn-pe-cta:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .learn-pe-host { margin: 12px 0 0; color: var(--muted); font-size: 12px; }
 .learn-pe-host a { color: var(--accent); }
 @media (max-width: 760px) { .learn-pe-grid { grid-template-columns: 1fr; } }
@@ -14632,21 +14738,75 @@ function wireHostScopeFilter(root) {
     const tab = panel && panel.querySelector(".learn-tab");
     if (!tab || tab.querySelector("#learn-prompt-bridge")) return;
 
-    const lessons = [
+    /* Wave-2 ordered PE academy (≤8 steps). Island/JS only — 0 static Gate 132.
+       Extends Wave-1 Task/System/Few-shot CTAs with Host Context, Pipeline, and
+       decision-tree deep-link. Concept buffer filters existing catalog ids. */
+    const steps = [
       {
+        kind: "intro",
+        kicker: "Academy",
+        title: "How to use this path",
+        copy: "Work the steps in order. Learn the idea here, practice it in Prompt Builder, then see where it runs (Host Context) and what guards it (Pipeline). Open a step’s link when you are ready — you can return anytime."
+      },
+      {
+        kind: "pb",
+        kicker: "Prompt pattern",
         title: "Task prompts",
         copy: "Ask for the work needed this turn. Put the request, useful context, constraints, and expected output in the user message.",
-        href: "#/prompt-builder/summarize"
+        href: "#/prompt-builder/summarize",
+        cta: "Open Task prompt in Prompt Builder"
       },
       {
+        kind: "pb",
+        kicker: "Prompt pattern",
         title: "System prompts",
         copy: "Set standing instructions: the model's role, durable rules, boundaries, tone, and output policy. Keep the turn's actual task separate.",
-        href: "#/prompt-builder/agent-system"
+        href: "#/prompt-builder/agent-system",
+        cta: "Open System prompt in Prompt Builder"
       },
       {
+        kind: "pb",
+        kicker: "Prompt pattern",
         title: "Few-shot teaching",
         copy: "Teach a repeatable pattern with concrete input/output examples. Examples demonstrate the task; they are not folklore or hidden rules.",
-        href: "#/prompt-builder/fewshot-classifier"
+        href: "#/prompt-builder/fewshot-classifier",
+        cta: "Open Few-shot prompt in Prompt Builder"
+      },
+      {
+        kind: "nav",
+        kicker: "Where it runs",
+        title: "Host Context",
+        copy: "See which coding agents honor hooks, skills, and settings — so a prompt practice matches the host you actually use.",
+        href: "#/host-context",
+        cta: "Open Host & context"
+      },
+      {
+        kind: "nav",
+        kicker: "What guards this",
+        title: "Pipeline guards",
+        copy: "Open the Guardrail Pipeline to see SessionStart → PreToolUse → PostToolUse → Stop stages and the knobs that shape behavior.",
+        href: "#/pipeline",
+        cta: "Open Guardrail Pipeline"
+      },
+      {
+        kind: "nav",
+        kicker: "Matcher honesty",
+        title: "Decision tree",
+        copy: "Expand the Pre→Post decision tree to see matcher order and outcomes (allow / ask / deny / EDIT) before inventing folklore about what fires.",
+        href: "#/pipeline/decision-tree",
+        cta: "Open Pipeline decision tree"
+      },
+      {
+        kind: "buffer",
+        kicker: "Concept pointers",
+        title: "Related PE concepts",
+        copy: "Dive deeper in the concept catalog below — these ids are PE-relevant starting points, not a second encyclopedia.",
+        concepts: [
+          { id: "agent-harness-loop", label: "The agent loop: one turn" },
+          { id: "claim-grounding", label: "Claim grounding" },
+          { id: "capability-grounding-protocol", label: "Capability Grounding Protocol" },
+          { id: "prompt-optimizer-tier0-heuristic-limit", label: "Prompt optimizer tier-0 limit" }
+        ]
       }
     ];
 
@@ -14660,35 +14820,56 @@ function wireHostScopeFilter(root) {
     const bridge = peEl("section", "learn-pe-bridge");
     bridge.id = "learn-prompt-bridge";
     bridge.setAttribute("aria-labelledby", "learn-pe-title");
-    const title = peEl("h2", "learn-pe-title", "Practice prompt engineering");
+    const title = peEl("h2", "learn-pe-title", "PE academy path");
     title.id = "learn-pe-title";
     bridge.appendChild(title);
     bridge.appendChild(peEl(
       "p",
       "learn-pe-intro",
-      "Learn the difference, then practice it in Prompt Builder. Task asks for this turn; System sets standing instructions; Few-shot teaches by example."
+      "An ordered path from prompt patterns to host honesty and pipeline guards. Practice in Prompt Builder; then see where it runs and what guards it."
     ));
 
-    const grid = peEl("div", "learn-pe-grid");
-    lessons.forEach(lesson => {
-      const card = peEl("article", "learn-pe-card");
-      card.appendChild(peEl("span", "learn-pe-kicker", "Prompt pattern"));
-      card.appendChild(peEl("h3", null, lesson.title));
-      card.appendChild(peEl("p", null, lesson.copy));
-      const cta = peEl("a", "learn-pe-cta", "Open in Prompt Builder");
-      cta.href = lesson.href;
-      cta.setAttribute("aria-label", "Open " + lesson.title + " in Prompt Builder");
-      card.appendChild(cta);
-      grid.appendChild(card);
+    const list = peEl("ol", "learn-pe-path");
+    list.setAttribute("aria-label", "Ordered prompt-engineering academy path");
+    steps.forEach((step, idx) => {
+      const li = peEl("li", "learn-pe-step");
+      li.setAttribute("aria-posinset", String(idx + 1));
+      li.setAttribute("aria-setsize", String(steps.length));
+      const meta = peEl("div", "learn-pe-step-meta");
+      meta.appendChild(peEl("span", "learn-pe-step-num", ""));
+      meta.appendChild(peEl("span", "learn-pe-kicker", step.kicker));
+      li.appendChild(meta);
+      li.appendChild(peEl("h3", null, step.title));
+      li.appendChild(peEl("p", null, step.copy));
+      if (step.href && step.cta) {
+        const cta = peEl("a", "learn-pe-cta", step.cta);
+        cta.href = step.href;
+        cta.setAttribute("aria-label", step.cta);
+        li.appendChild(cta);
+      }
+      if (step.kind === "buffer" && step.concepts && step.concepts.length) {
+        const ul = peEl("ul", "learn-pe-concepts");
+        step.concepts.forEach(c => {
+          const item = peEl("li", null, null);
+          const a = peEl("a", null, c.label);
+          a.href = "#/learn";
+          a.dataset.conceptId = c.id;
+          a.setAttribute("aria-label", "Find concept: " + c.label);
+          a.addEventListener("click", (ev) => {
+            const search = tab.querySelector("#learn-search");
+            if (search) {
+              search.value = c.id.replace(/-/g, " ");
+              search.dispatchEvent(new Event("input", { bubbles: true }));
+            }
+          });
+          item.appendChild(a);
+          ul.appendChild(item);
+        });
+        li.appendChild(ul);
+      }
+      list.appendChild(li);
     });
-    bridge.appendChild(grid);
-
-    const host = peEl("p", "learn-pe-host", "See ");
-    const hostLink = peEl("a", null, "Host & context");
-    hostLink.href = "#/host-context";
-    host.appendChild(hostLink);
-    host.appendChild(document.createTextNode(" for which coding agents honor this."));
-    bridge.appendChild(host);
+    bridge.appendChild(list);
 
     const legend = tab.querySelector(".learn-legend");
     if (legend) legend.insertAdjacentElement("afterend", bridge);

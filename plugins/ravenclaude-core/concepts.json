@@ -3000,7 +3000,7 @@
         "scripts/sync-plugin-versions.py",
         "scripts/generate-copilot-plugin.py"
       ],
-      "covers_digest": "sha256:2e83e71c5519282c1744618c2956eacd8ec332b3ae81a735775dd34a95781eca",
+      "covers_digest": "sha256:f750f58144de4b73e706a81be8e69b7333712ccc0d899fcc6849291f573f61cf",
       "nuance": "The cache key is the `version` string, never a content hash, so `sync-plugin-versions.py` can report clean while every installed session keeps running the old `hooks/` code.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -3469,7 +3469,7 @@
         "scripts/generate-dashboards.py",
         "scripts/generate-index-dashboard.py"
       ],
-      "covers_digest": "sha256:65780b68f8f4a54afd391fd069e0d87cba09e4671d31805edf12b5bc2f776062",
+      "covers_digest": "sha256:5838e0d8e5d61691c465c1b0bb6da0a15ce3fd8ece263427ef2a62ad1c9819fc",
       "nuance": "`ISLANDED_PANEL_COST` is a flat 2 because the parser reads the payload as CDATA, so `check-dom-budget.py` cannot fire on `learn-payload` no matter how far past 23,861 elements it grows.",
       "nuance_evidence": {
         "measured": "2026-08-19",
