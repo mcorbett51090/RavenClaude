@@ -37,6 +37,7 @@ import argparse
 import html
 import importlib.util
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -289,7 +290,7 @@ def _page_kwargs(plugin_dir: Path, schema: dict, include_trees: bool = True) -> 
         "streams_html": _render_streams_tab(),
         "bifrost_html": _render_bifrost_tab(),
         "about_html": _render_about_tab(description, plugin_name),
-        "pipeline_html": _render_pipeline_tab(),
+        "pipeline_html": _render_pipeline_tab(plugin_dir),
         # Each *_json below is spliced verbatim into an inline <script> block, so
         # a literal `</script` substring in any value would end the script element
         # early (HTML raw-text rule) and turn the rest into parsed markup. Escape
@@ -1270,6 +1271,350 @@ _PIPELINE_EXCLUDED_HOOKS = {
     "`context_handoff.mode`, so it is no longer in this excluded set.)",
 }
 
+
+# Pipeline PreToolUse → PostToolUse decision-tree island (Gate 132: mount + JSON only).
+# Outcomes / strengths cited from stage tips + excluded-hook reasons + hook headers —
+# never invented. Matthew GO 2026-09-16: default disclosure closed; excluded collapsed;
+# deep-link #/pipeline/decision-tree force-expands; keep EDIT; Learn glue v1 skip.
+
+_PIPE_DTREE_HOOK_META = {
+    "claim-grounding-lint.sh": {
+        "title": "Claim grounding lint",
+        "outcomes": ["ask"],
+        "strength": "advisory",
+        "note": "ADVISORY nudge — never blocks (hook header).",
+    },
+    "delegation-nudge.sh": {
+        "title": "Delegation nudge",
+        "outcomes": ["ask"],
+        "strength": "advisory",
+        "note": "ADVISORY nudge — never blocks (hook header).",
+    },
+    "enforce-git-protocol.sh": {
+        "title": "Git protocol (excluded card)",
+        "outcomes": ["ask", "deny"],
+        "strength": "advisory",
+        "note": "Default WARN; denies only at git_protocol: block. Style, not safety floor.",
+    },
+    "enforce-layout.sh": {
+        "title": "Folder & task limits",
+        "outcomes": ["deny"],
+        "strength": "dynamic",
+        "note": "Blocks write outside allowed folders / task scope.",
+    },
+    "enforce-portability.sh": {
+        "title": "Portability lint (excluded card)",
+        "outcomes": ["ask", "deny"],
+        "strength": "advisory",
+        "note": "Default WARN; denies at block posture. Convention, not safety floor card.",
+    },
+    "explore-tier-pin.sh": {
+        "title": "Explore tier pin",
+        "outcomes": ["EDIT"],
+        "strength": "advisory",
+        "note": "Rewrites input only — never allows, asks, or blocks (stage tip).",
+    },
+    "format-on-write.sh": {
+        "title": "Auto-tidy",
+        "outcomes": ["EDIT"],
+        "strength": "always",
+        "note": "Formats after save — never blocks.",
+    },
+    "guard-cause-closure.sh": {
+        "title": "Cause closure guard",
+        "outcomes": ["ask"],
+        "strength": "advisory",
+        "note": "Cause-closure check — no hard-block claim without stage tip.",
+    },
+    "guard-destructive.sh": {
+        "title": "Danger guard",
+        "outcomes": ["deny"],
+        "strength": "hard-block",
+        "note": "Always-on safety floor — blocks never-allowed patterns.",
+    },
+    "guard-foreground-suite.sh": {
+        "title": "Foreground suite guard (excluded card)",
+        "outcomes": ["deny"],
+        "strength": "hard-block",
+        "note": "DENIES long foreground suites (exit 2). Operator-time guard, not Pipeline card.",
+    },
+    "guard-memory-compaction.sh": {
+        "title": "Memory safety net",
+        "outcomes": ["deny", "ask"],
+        "strength": "dynamic",
+        "note": "Stops large one-shot memory shrink; asks for diff.",
+    },
+    "guard-premise.sh": {
+        "title": "Premise check",
+        "outcomes": ["deny"],
+        "strength": "hard-block",
+        "note": "Blocks NEW source create on unresolved failed probe; fail-closed if recorder missing.",
+    },
+    "guard-probe-validity.sh": {
+        "title": "Probe validity (excluded card)",
+        "outcomes": ["ask"],
+        "strength": "advisory",
+        "note": "Advisory nudge — Settings posture; not a Pipeline stage card.",
+    },
+    "guard-recursive-spawn.sh": {
+        "title": "Recursive spawn guard",
+        "outcomes": ["ask"],
+        "strength": "advisory",
+        "note": "Watches agent-definition edits — see stage tip.",
+    },
+    "guard-remediation-cause.sh": {
+        "title": "Remediation cause guard",
+        "outcomes": ["ask"],
+        "strength": "advisory",
+        "note": "Cause-tracking guard — not invented as hard-block without stage tip.",
+    },
+    "guard-web-access.sh": {
+        "title": "Website guard",
+        "outcomes": ["allow", "ask", "deny"],
+        "strength": "dynamic",
+        "note": "Allow/deny lists; unset → normal ask prompt.",
+    },
+    "handoff-tax-meter.sh": {
+        "title": "Handoff tax meter (excluded card)",
+        "outcomes": ["ask"],
+        "strength": "advisory",
+        "note": "ADVISORY meter — never denies. Observability, not guardrail card.",
+    },
+    "log-probe.sh": {
+        "title": "Probe recorder (excluded card)",
+        "outcomes": [],
+        "strength": "internal",
+        "note": "Recorder half of premise gate — never denies; missing → premise fail-closed.",
+    },
+    "mark-web-domain-seen.sh": {
+        "title": "Mark web domain seen (excluded card)",
+        "outcomes": [],
+        "strength": "internal",
+        "note": "Consent-ordering bookkeeping for guard-web-access.",
+    },
+    "plugin-lifecycle-telemetry.sh": {
+        "title": "Plugin lifecycle telemetry",
+        "outcomes": [],
+        "strength": "internal",
+        "note": "Telemetry — no allow/ask/deny claim.",
+    },
+    "preflight-command-review.sh": {
+        "title": "Preflight command review",
+        "outcomes": ["ask"],
+        "strength": "advisory",
+        "note": "Preflight surface — label from registration order; see hook for posture.",
+    },
+    "regen-on-manifest-change.sh": {
+        "title": "Manifest regen (excluded card)",
+        "outcomes": [],
+        "strength": "internal",
+        "note": "Marketplace-internal artifact regen — not an agent guardrail.",
+    },
+    "route-decision-review.sh": {
+        "title": "Decision routing",
+        "outcomes": ["allow", "ask"],
+        "strength": "dynamic",
+        "note": "Behavioral flag — off / advisory / binding. Not a tool permission.",
+    },
+    "runaway-brake.sh": {
+        "title": "Runaway brake",
+        "outcomes": ["deny"],
+        "strength": "dynamic",
+        "note": "Pauses when step/loop limits trip (posture-tunable).",
+    },
+    "sanitize-mcp-output.sh": {
+        "title": "MCP-result cleaner",
+        "outcomes": ["EDIT"],
+        "strength": "always",
+        "note": "Same quarantine as webfetch cleaner for mcp__* (one Pipeline card covers both).",
+    },
+    "sanitize-webfetch-output.sh": {
+        "title": "Fetched-page cleaner",
+        "outcomes": ["EDIT"],
+        "strength": "always",
+        "note": "Strips instruction-shaped junk — never blocks (fail-open).",
+    },
+    "storage-placement-nudge.sh": {
+        "title": "Storage placement nudge",
+        "outcomes": ["ask"],
+        "strength": "advisory",
+        "note": "ADVISORY — never blocks, always exits 0.",
+    },
+    "thing-orchestrator.sh": {
+        "title": "Command review (the Thing)",
+        "outcomes": ["allow", "ask", "deny", "EDIT"],
+        "strength": "dynamic",
+        "note": "Panel votes allow / fix (EDIT) / block; risk floor + fatigue can ask.",
+    },
+    "triage-outcome.sh": {
+        "title": "Post-failure triage",
+        "outcomes": ["ask"],
+        "strength": "advisory",
+        "note": "Advisory only (hook header).",
+    },
+    "worktree-guard.sh": {
+        "title": "Worktree guard (Settings-only)",
+        "outcomes": ["deny", "ask"],
+        "strength": "dynamic",
+        "note": "Behavioral/Settings-surfaced — deliberately NOT a Pipeline stage card.",
+    },
+}
+
+
+_PIPE_DTREE_TOOL_CLASSES = [
+    "Bash",
+    "Write|Edit|MultiEdit",
+    "Agent|Task",
+    "WebFetch",
+    "Read",
+    "WebSearch",
+    "mcp",
+    "AskUserQuestion",
+    "Skill",
+]
+
+_PIPE_DTREE_LEGEND = [
+    {"id": "allow", "label": "allow", "kind": "ok", "tip": "Proceed without stopping you"},
+    {"id": "ask", "label": "ask", "kind": "warn", "tip": "Prompt / advisory nudge / fatigue ask"},
+    {"id": "deny", "label": "deny", "kind": "danger", "tip": "Hard stop or pause (exit 2 / block)"},
+    {"id": "EDIT", "label": "EDIT", "kind": "ok", "tip": "Rewrite input or output (Thing fix / sanitize / format)"},
+    {"id": "advisory", "label": "advisory", "kind": "neutral", "tip": "Nudge only — never a hard permission floor"},
+    {"id": "hard-block", "label": "hard-block", "kind": "danger", "tip": "Always-on or exit-2 safety floor"},
+]
+
+_PIPE_DTREE_EVENT_WHEN = {
+    "PreToolUse": "Before each tool",
+    "PostToolUse": "After each tool",
+}
+
+_PIPE_DTREE_HOOK_BASENAME_RE = re.compile(
+    r"(?:hooks|scripts)/([A-Za-z0-9_.-]+\.(?:sh|py))"
+)
+
+
+def _pipe_dtree_tools_for_matcher(matcher: str) -> list[str]:
+    """Map a hooks.json matcher string onto the filter chip ids used by the island."""
+    if not matcher:
+        return []
+    known = {
+        "Agent|Task": ["Agent|Task"],
+        "Bash": ["Bash"],
+        "Write|Edit|MultiEdit": ["Write|Edit|MultiEdit"],
+        "Edit|Write|MultiEdit": ["Write|Edit|MultiEdit"],
+        "Bash|Write|Edit|MultiEdit": ["Bash", "Write|Edit|MultiEdit"],
+        "WebFetch": ["WebFetch"],
+        "AskUserQuestion": ["AskUserQuestion"],
+        "Skill": ["Skill"],
+        "mcp__.*": ["mcp"],
+        "Bash|WebFetch": ["Bash", "WebFetch"],
+        "Bash|Read|Write|Edit|MultiEdit|WebFetch|WebSearch|mcp__.*": [
+            "Bash",
+            "Write|Edit|MultiEdit",
+            "WebFetch",
+            "Read",
+            "WebSearch",
+            "mcp",
+        ],
+    }
+    if matcher in known:
+        return list(known[matcher])
+    tools: list[str] = []
+    for p in matcher.split("|"):
+        p = p.strip()
+        if p in ("Write", "Edit", "MultiEdit"):
+            if "Write|Edit|MultiEdit" not in tools:
+                tools.append("Write|Edit|MultiEdit")
+        elif p in ("Agent", "Task"):
+            if "Agent|Task" not in tools:
+                tools.append("Agent|Task")
+        elif p.startswith("mcp"):
+            if "mcp" not in tools:
+                tools.append("mcp")
+        elif p in _PIPE_DTREE_TOOL_CLASSES and p not in tools:
+            tools.append(p)
+    return tools
+
+
+def _pipe_dtree_script_basename(command: str) -> str | None:
+    m = _PIPE_DTREE_HOOK_BASENAME_RE.search(command or "")
+    return m.group(1) if m else None
+
+
+def _build_pipe_dtree_payload(plugin_dir: Path, version: str) -> dict:
+    """Build JSON payload from hooks.json matcher order + cited hook meta."""
+    hooks_path = plugin_dir / "hooks" / "hooks.json"
+    raw = json.loads(hooks_path.read_text(encoding="utf-8"))
+    events_out = []
+    for event in ("PreToolUse", "PostToolUse"):
+        groups_out = []
+        for i, group in enumerate(raw.get("hooks", {}).get(event, [])):
+            matcher = group.get("matcher") or ""
+            hooks_out = []
+            for h in group.get("hooks", []):
+                script = _pipe_dtree_script_basename(h.get("command", ""))
+                if not script:
+                    continue
+                meta = _PIPE_DTREE_HOOK_META.get(script)
+                if meta is None:
+                    entry = {
+                        "script": script,
+                        "title": script,
+                        "outcomes": [],
+                        "strength": "unknown",
+                        "note": "Registered in hooks.json — no stage-tip/header outcome cited yet.",
+                        "excluded": script in _PIPELINE_EXCLUDED_HOOKS,
+                    }
+                else:
+                    entry = {
+                        "script": script,
+                        "title": meta["title"],
+                        "outcomes": list(meta["outcomes"]),
+                        "strength": meta["strength"],
+                        "note": meta["note"],
+                        "excluded": script in _PIPELINE_EXCLUDED_HOOKS,
+                    }
+                hooks_out.append(entry)
+            groups_out.append(
+                {
+                    "i": i,
+                    "matcher": matcher,
+                    "tools": _pipe_dtree_tools_for_matcher(matcher),
+                    "hooks": hooks_out,
+                }
+            )
+        events_out.append(
+            {
+                "event": event,
+                "when": _PIPE_DTREE_EVENT_WHEN[event],
+                "groups": groups_out,
+            }
+        )
+    return {
+        "version": version,
+        "source": "plugins/ravenclaude-core/hooks/hooks.json",
+        "toolClasses": list(_PIPE_DTREE_TOOL_CLASSES),
+        "legend": list(_PIPE_DTREE_LEGEND),
+        "events": events_out,
+        "honesty": (
+            "Outcomes labeled from Pipeline stage tips + excluded-hook reasons + hook headers. "
+            "Strength advisory vs hard-block is explicit. Unknowns stay unlabeled rather than invented."
+        ),
+    }
+
+
+def _render_pipe_dtree_island(plugin_dir: Path, version: str) -> str:
+    """Empty mount + JSON payload only (+2 static elements for Gate 132)."""
+    payload = _build_pipe_dtree_payload(plugin_dir, version)
+    payload_json = json.dumps(payload, ensure_ascii=False, separators=(",", ":"))
+    payload_json = payload_json.replace("</", "<" + "\\/")
+    return (
+        '<div id="pipe-dtree-mount" class="pipe-dtree-mount" aria-live="polite" '
+        'data-pdt-ready="0"></div>\n'
+        f'<script type="application/json" id="pipe-dtree-payload">{payload_json}</script>\n'
+    )
+
+
+
 _PIPELINE_CONTROLS = {
     "thing": (
         '<label class="pipe-ctl"><input type="checkbox" id="pipe-thing-enabled"> '
@@ -1663,10 +2008,110 @@ _PIPELINE_CSS = """<style>
 .concern-stats-table tr.concern-row-hot td { color: var(--warn, #fbbf24); }
 .concern-stats-table tr.concern-row-cold td { color: var(--text, #ddd); }
 .concern-stats-table code { font-family: ui-monospace, monospace; font-size: 12px; }
+
+/* ── Pipeline decision-tree island (JS-seated; --rc-* tokens only) ──────── */
+.pipe-dtree-mount { margin: .55rem 0 .7rem; }
+.pipe-dtree-details { margin: 0; }
+.pipe-dtree-details > summary.pdt-summary,
+.pdt-summary { cursor: pointer; font-size: .9rem; font-weight: 650; color: var(--text);
+  list-style: none; display: inline-flex; align-items: center; gap: .35rem;
+  padding: .15rem 0 .35rem; user-select: none; }
+.pdt-summary::-webkit-details-marker { display: none; }
+.pdt-summary::before { content: "▸"; font-size: .75rem; color: var(--accent);
+  transition: transform .15s ease; }
+.pipe-dtree-details[open] > .pdt-summary::before { transform: rotate(90deg); }
+.pdt-shell { border: 1px solid var(--border); border-radius: var(--rc-radius-lg);
+  background: var(--surface); box-shadow: var(--rc-shadow-sm); padding: .55rem .7rem .7rem;
+  display: flex; flex-direction: column; gap: .55rem; }
+.pdt-chrome { display: flex; flex-direction: column; gap: .4rem; }
+.pdt-head { display: flex; flex-direction: column; gap: .12rem;
+  padding-bottom: .35rem; border-bottom: 1px solid var(--border); }
+.pdt-title { margin: 0; font-size: .95rem; font-weight: 650; color: var(--text); }
+.pdt-sub { margin: 0; font-size: .76rem; color: var(--muted); line-height: 1.35; }
+.pdt-filters { display: flex; flex-wrap: wrap; gap: .28rem; }
+.pdt-chip { font-size: .72rem; font-weight: 600; padding: .18rem .5rem;
+  border-radius: var(--rc-radius-pill); border: 1px solid var(--border);
+  background: var(--surface-2); color: var(--muted); cursor: pointer; font-family: inherit; }
+.pdt-chip:focus-visible { outline: 2px solid var(--rc-focus-ring, var(--accent));
+  outline-offset: 2px; }
+.pdt-chip.is-active { background: var(--rc-accent-soft, var(--surface-2));
+  border-color: var(--accent); color: var(--text); }
+.pdt-legend { display: flex; flex-wrap: wrap; gap: .35rem .7rem; align-items: center; }
+.pdt-legend-item { display: inline-flex; align-items: center; gap: .28rem;
+  font-size: .72rem; color: var(--muted); max-width: 100%; }
+.pdt-legend-tip { overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  max-width: 14rem; }
+.pdt-honesty { margin: 0; font-size: .72rem; color: var(--muted); line-height: 1.35; }
+.pdt-pill { display: inline-flex; align-items: center; font-size: .66rem; font-weight: 700;
+  padding: .08rem .4rem; border-radius: var(--rc-radius-pill); letter-spacing: .01em;
+  border: 1px solid transparent; white-space: nowrap; }
+.pdt-pill--ok { background: var(--rc-ok-bg); color: var(--rc-ok-fg); }
+.pdt-pill--warn { background: var(--rc-warn-bg); color: var(--rc-warn-fg); }
+.pdt-pill--danger { background: var(--rc-danger-bg); color: var(--rc-danger-fg); }
+.pdt-pill--neutral { background: var(--rc-neutral-bg); color: var(--rc-neutral-fg);
+  border-color: var(--border); }
+.pdt-spine-wrap { overflow-x: auto; border: 1px solid var(--border);
+  border-radius: var(--rc-radius); background: var(--surface-2); padding: .2rem .3rem; }
+.pdt-spine-svg { width: 100%; max-width: 720px; height: auto; display: block; margin: 0 auto; }
+.pdt-spine-line { stroke: var(--border-strong, var(--border)); stroke-width: 2; }
+.pdt-spine-branch { stroke: var(--accent); stroke-width: 1.5; opacity: .75; }
+.pdt-spine-node { fill: var(--surface); stroke: var(--accent); stroke-width: 2; }
+.pdt-spine-pre, .pdt-spine-post { fill: var(--rc-accent-soft, var(--surface-2)); }
+.pdt-spine-mid { stroke: var(--muted); }
+.pdt-spine-tick { fill: var(--accent); stroke: none; }
+.pdt-spine-label { fill: var(--text); font-size: 11px; font-weight: 650;
+  text-anchor: middle; font-family: ui-monospace, monospace; }
+.pdt-spine-label--muted { fill: var(--muted); font-weight: 500; font-family: inherit; }
+.pdt-spine-meta { fill: var(--muted); font-size: 9px; text-anchor: middle; }
+.pdt-cols { display: grid; grid-template-columns: 1fr 1fr; gap: .55rem; }
+@media (max-width: 820px) { .pdt-cols { grid-template-columns: 1fr; } }
+.pdt-col { border: 1px solid var(--border); border-radius: var(--rc-radius);
+  background: var(--surface-2); padding: .4rem .45rem .5rem; min-width: 0; }
+.pdt-col-head { display: flex; flex-direction: column; gap: .1rem;
+  padding-bottom: .3rem; margin-bottom: .3rem; border-bottom: 1px solid var(--border); }
+.pdt-col-event { font-family: ui-monospace, monospace; font-size: .95rem; font-weight: 650;
+  color: var(--text); }
+.pdt-col-when { font-size: .76rem; color: var(--muted); }
+.pdt-groups { display: flex; flex-direction: column; gap: .3rem; }
+.pdt-group { border: 1px solid var(--border); border-radius: var(--rc-radius-sm);
+  background: var(--surface); overflow: hidden; transition: opacity .15s ease; }
+.pdt-group.is-muted { opacity: .38; }
+.pdt-group.is-open { border-color: var(--border-strong, var(--accent)); }
+.pdt-group-sum { width: 100%; display: flex; flex-wrap: wrap; align-items: center; gap: .35rem;
+  padding: .32rem .45rem; border: 0; background: transparent; color: var(--text);
+  cursor: pointer; text-align: left; font-family: inherit; font-size: .78rem; }
+.pdt-group-sum:focus-visible { outline: 2px solid var(--rc-focus-ring, var(--accent));
+  outline-offset: -2px; }
+.pdt-group-idx { font-family: ui-monospace, monospace; font-size: .7rem; color: var(--muted);
+  font-weight: 600; }
+.pdt-matcher { font-size: .72rem; color: var(--accent); background: var(--rc-accent-soft, transparent);
+  padding: .05rem .3rem; border-radius: 4px; max-width: 100%; overflow-wrap: anywhere; }
+.pdt-group-count { margin-left: auto; font-size: .7rem; color: var(--muted); }
+.pdt-group-body { padding: .15rem .45rem .4rem; display: flex; flex-direction: column; gap: .35rem;
+  border-top: 1px solid var(--border); }
+.pdt-hook { padding: .25rem 0; border-bottom: 1px dashed var(--border); }
+.pdt-hook:last-child { border-bottom: 0; }
+.pdt-hook-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: .35rem; }
+.pdt-hook-title { font-weight: 600; font-size: .8rem; color: var(--text); }
+.pdt-hook-script { font-size: .68rem; color: var(--muted); }
+.pdt-outcomes { display: flex; flex-wrap: wrap; gap: .22rem; margin: .2rem 0; }
+.pdt-hook-note { margin: .1rem 0 0; font-size: .72rem; color: var(--muted); line-height: 1.35; }
+.pdt-excluded { margin-top: .2rem; border: 1px dashed var(--border); border-radius: var(--rc-radius-sm);
+  padding: .15rem .35rem .25rem; background: transparent; }
+.pdt-excluded > summary { cursor: pointer; font-size: .72rem; font-weight: 600; color: var(--muted);
+  list-style: none; padding: .15rem 0; }
+.pdt-excluded > summary::-webkit-details-marker { display: none; }
+.pdt-excluded > summary::before { content: "▸ "; color: var(--accent); }
+.pdt-excluded[open] > summary::before { content: "▾ "; }
+.pdt-excluded-body { display: flex; flex-direction: column; gap: .3rem; padding-top: .15rem; }
+@media (prefers-reduced-motion: reduce) {
+  .pdt-group { transition: none; }
+  .pdt-summary::before { transition: none; }
+}
 </style>"""
 
 
-def _render_pipeline_tab() -> str:
+def _render_pipeline_tab(plugin_dir: Path) -> str:
     """Render the Pipeline tab — the all-events guardrail flow with live state,
     5th-grade tooltips, and inline editors. JS (in _JS) hydrates it on open."""
     # Rendered from the single _HOOK_CAPABLE_HOSTS list so the host scope stated
@@ -1685,6 +2130,10 @@ def _render_pipeline_tab() -> str:
         if _HOST_SUPPORT["components"]["hooks"][h]["supported"] is not True
     ]
     _no_hook_hosts_text = html.escape(_oxford(_no_hook_hosts))
+    # Decision-tree island (Gate 132 +2). Placed under flow strip / before lanes.
+    _pj = json.loads((plugin_dir / ".claude-plugin" / "plugin.json").read_text(encoding="utf-8"))
+    _dtree_ver = str(_pj.get("version", ""))
+    dtree_island = _render_pipe_dtree_island(plugin_dir, _dtree_ver)
     lanes_html = []
     for lane in _PIPELINE_LANES:
         cards = []
@@ -1766,7 +2215,7 @@ def _render_pipeline_tab() -> str:
     <span class="pipe-flow-arr">→</span>
     <span class="pipe-flow-step" data-event="Stop">When it tries to stop</span>
   </div>
-  <p class="page-desc pipe-readme">The two middle checkpoints repeat for <em>every</em> command and file edit — that's the ↺ loop. Open <strong>“How it works, step by step”</strong> on any box to see exactly what it checks and what happens if it trips. Badges: <span class="pipe-badge pipe-badge-on">Always on</span> can't be turned off · <span class="pipe-badge pipe-badge-advisory">Advisory</span> only nudges, never blocks · <span class="pipe-badge pipe-badge-dynamic">On / Off</span> depends on your settings (filled in live below).</p>
+  {dtree_island}  <p class="page-desc pipe-readme">The two middle checkpoints repeat for <em>every</em> command and file edit — that's the ↺ loop. Open <strong>“How it works, step by step”</strong> on any box to see exactly what it checks and what happens if it trips. Badges: <span class="pipe-badge pipe-badge-on">Always on</span> can't be turned off · <span class="pipe-badge pipe-badge-advisory">Advisory</span> only nudges, never blocks · <span class="pipe-badge pipe-badge-dynamic">On / Off</span> depends on your settings (filled in live below).</p>
   <div id="pipeline-server-note" class="pipe-note" hidden>This page has no server behind it, so the live state and editors are read-only. Launch the dashboard with <code>ravenclaude dashboard --project &lt;repo&gt;</code> to edit and apply.</div>
   {body}
   <div class="pipe-savebar">
@@ -11188,7 +11637,11 @@ function wireHostScopeFilter(root) {
     if (tab === "heimdall" && !heimdallLoaded) loadHeimdall();
     if (tab === "vidarr" && !vidarrLoaded) loadVidarr();
     if (tab === "nidhoggr" && !nidhoggrLoaded) loadNidhoggr();
-    if (tab === "pipeline") syncPipelineTab();
+    if (tab === "pipeline") {
+      syncPipelineTab();
+      // Matthew GO: #/pipeline/decision-tree force-expands the Pre→Post tree.
+      ensurePipeDtree(sub === "decision-tree");
+    }
     if (tab === "plugin-vars") activatePluginVars(sub);
     if (tab === "web-access") hydrateWebAccess();
     if (tab === "prompt-builder" && !pbLoaded) {
@@ -11652,6 +12105,276 @@ function wireHostScopeFilter(root) {
         + "Unlisted sites still fall through to the normal ask prompt.";
     } catch (e) { /* keep the not-configured default */ }
   }
+
+
+  /* ── Pipeline decision-tree island (Gate 132 JS seat; zero Mermaid) ─────────
+   * Matthew GO locks: default disclosure CLOSED; excluded hooks collapsed/
+   * expandable; #/pipeline/decision-tree force-expands; keep EDIT label;
+   * Learn deep-link glue v1 skip.
+   */
+  var _pdtState = null;
+  var _pdtData = null;
+  var _pdtMount = null;
+
+  function _pdtEl(tag, attrs, kids) {
+    var n = document.createElement(tag);
+    if (attrs) {
+      Object.keys(attrs).forEach(function (k) {
+        if (k === "className") n.className = attrs[k];
+        else if (k === "text") n.textContent = attrs[k];
+        else if (k.slice(0, 2) === "on" && typeof attrs[k] === "function") n.addEventListener(k.slice(2).toLowerCase(), attrs[k]);
+        else if (attrs[k] === false || attrs[k] == null) return;
+        else n.setAttribute(k, attrs[k]);
+      });
+    }
+    (kids || []).forEach(function (c) {
+      if (c == null) return;
+      n.appendChild(typeof c === "string" ? document.createTextNode(c) : c);
+    });
+    return n;
+  }
+
+  function _pdtLegendKind(id, legend) {
+    for (var i = 0; i < legend.length; i++) if (legend[i].id === id) return legend[i].kind || "neutral";
+    return "neutral";
+  }
+
+  function _pdtPill(label, kind, tip) {
+    var KIND = { ok: "pdt-pill--ok", warn: "pdt-pill--warn", danger: "pdt-pill--danger", neutral: "pdt-pill--neutral" };
+    return _pdtEl("span", {
+      className: "pdt-pill " + (KIND[kind] || KIND.neutral),
+      title: tip || label,
+      text: label
+    });
+  }
+
+  function _pdtMatchesFilter(group, filter) {
+    if (!filter || filter === "all") return true;
+    return (group.tools || []).indexOf(filter) !== -1;
+  }
+
+  function _pdtBuildChrome(data, state) {
+    var filters = _pdtEl("div", { className: "pdt-filters", role: "toolbar", "aria-label": "Filter by tool class" });
+    function addChip(id, label) {
+      var active = state.filter === id;
+      filters.appendChild(_pdtEl("button", {
+        type: "button",
+        className: "pdt-chip" + (active ? " is-active" : ""),
+        "aria-pressed": active ? "true" : "false",
+        text: label,
+        onClick: function () { state.filter = id; _pdtPaint(); }
+      }));
+    }
+    addChip("all", "All tools");
+    (data.toolClasses || []).forEach(function (tc) {
+      addChip(tc, tc === "Write|Edit|MultiEdit" ? "Write/Edit" : tc === "Agent|Task" ? "Agent/Task" : tc);
+    });
+    var legend = _pdtEl("div", { className: "pdt-legend", role: "list", "aria-label": "Outcome legend" });
+    (data.legend || []).forEach(function (L) {
+      legend.appendChild(_pdtEl("span", { className: "pdt-legend-item", role: "listitem" }, [
+        _pdtPill(L.label, L.kind, L.tip),
+        _pdtEl("span", { className: "pdt-legend-tip", text: L.tip || "" })
+      ]));
+    });
+    return _pdtEl("div", { className: "pdt-chrome" }, [
+      _pdtEl("div", { className: "pdt-head" }, [
+        _pdtEl("h3", { className: "pdt-title", id: "pdt-title", text: "Decision tree" }),
+        _pdtEl("p", {
+          className: "pdt-sub",
+          text: "PreToolUse → tool runs → PostToolUse · matcher order from hooks.json · core " + (data.version || "")
+        })
+      ]),
+      filters,
+      legend,
+      _pdtEl("p", { className: "pdt-honesty", text: data.honesty || "" })
+    ]);
+  }
+
+  function _pdtBuildSpine(data, state) {
+    var W = 720, H = 88;
+    var ns = "http://www.w3.org/2000/svg";
+    var svg = document.createElementNS(ns, "svg");
+    svg.setAttribute("viewBox", "0 0 " + W + " " + H);
+    svg.setAttribute("class", "pdt-spine-svg");
+    svg.setAttribute("role", "img");
+    svg.setAttribute("aria-labelledby", "pdt-svg-title pdt-svg-desc");
+    var title = document.createElementNS(ns, "title");
+    title.setAttribute("id", "pdt-svg-title");
+    title.textContent = "PreToolUse to PostToolUse decision spine";
+    svg.appendChild(title);
+    var desc = document.createElementNS(ns, "desc");
+    desc.setAttribute("id", "pdt-svg-desc");
+    desc.textContent = "Horizontal spine from PreToolUse matcher groups through the tool run to PostToolUse matcher groups. Filter by tool class to highlight matching branches.";
+    svg.appendChild(desc);
+    function line(x1, y1, x2, y2, cls) {
+      var L = document.createElementNS(ns, "line");
+      L.setAttribute("x1", x1); L.setAttribute("y1", y1);
+      L.setAttribute("x2", x2); L.setAttribute("y2", y2);
+      L.setAttribute("class", cls || "pdt-spine-line");
+      svg.appendChild(L);
+    }
+    function circ(cx, cy, r, cls) {
+      var c = document.createElementNS(ns, "circle");
+      c.setAttribute("cx", cx); c.setAttribute("cy", cy); c.setAttribute("r", r);
+      c.setAttribute("class", cls || "pdt-spine-node");
+      svg.appendChild(c);
+    }
+    function text(x, y, s, cls) {
+      var te = document.createElementNS(ns, "text");
+      te.setAttribute("x", x); te.setAttribute("y", y);
+      te.setAttribute("class", cls || "pdt-spine-label");
+      te.textContent = s;
+      svg.appendChild(te);
+    }
+    var y = 44;
+    line(40, y, 680, y, "pdt-spine-line");
+    circ(80, y, 8, "pdt-spine-node pdt-spine-pre");
+    circ(360, y, 7, "pdt-spine-node pdt-spine-mid");
+    circ(640, y, 8, "pdt-spine-node pdt-spine-post");
+    text(80, 22, "PreToolUse", "pdt-spine-label");
+    text(360, 22, "tool runs", "pdt-spine-label pdt-spine-label--muted");
+    text(640, 22, "PostToolUse", "pdt-spine-label");
+    function ticks(eventObj, x0, x1, side) {
+      var groups = (eventObj && eventObj.groups) || [];
+      var vis = groups.filter(function (g) { return _pdtMatchesFilter(g, state.filter); });
+      var n = Math.max(vis.length, 1);
+      vis.forEach(function (g, i) {
+        var x = x0 + ((x1 - x0) * (i + 1)) / (n + 1);
+        var y2 = side < 0 ? y - 18 : y + 18;
+        line(x, y, x, y2, "pdt-spine-branch");
+        circ(x, y2, 3, "pdt-spine-tick");
+      });
+      text((x0 + x1) / 2, 78, vis.length + " matcher groups", "pdt-spine-meta");
+    }
+    var pre = (data.events || []).find(function (e) { return e.event === "PreToolUse"; });
+    var post = (data.events || []).find(function (e) { return e.event === "PostToolUse"; });
+    ticks(pre, 100, 300, -1);
+    ticks(post, 400, 620, 1);
+    return svg;
+  }
+
+  function _pdtHookCard(h, data) {
+    var outcomes = _pdtEl("div", { className: "pdt-outcomes" });
+    (h.outcomes || []).forEach(function (o) {
+      outcomes.appendChild(_pdtPill(o, _pdtLegendKind(o, data.legend || []), o));
+    });
+    if (h.strength) {
+      var sk = h.strength === "hard-block" ? "danger"
+        : h.strength === "always" ? "ok"
+        : (h.strength === "advisory" || h.strength === "internal" || h.strength === "unknown") ? "neutral"
+        : "warn";
+      outcomes.appendChild(_pdtPill(h.strength, sk, h.note || h.strength));
+    }
+    return _pdtEl("div", { className: "pdt-hook" }, [
+      _pdtEl("div", { className: "pdt-hook-head" }, [
+        _pdtEl("span", { className: "pdt-hook-title", text: h.title || h.script }),
+        _pdtEl("code", { className: "pdt-hook-script", text: h.script })
+      ]),
+      outcomes,
+      _pdtEl("p", { className: "pdt-hook-note", text: h.note || "" })
+    ]);
+  }
+
+  function _pdtPaint() {
+    if (!_pdtMount || !_pdtData || !_pdtState) return;
+    var mount = _pdtMount, data = _pdtData, state = _pdtState;
+    mount.textContent = "";
+    // Matthew lock: default disclosure CLOSED (open only when force-expanded / user opened).
+    var details = _pdtEl("details", { className: "pipe-dtree-details" });
+    if (state.expanded) details.setAttribute("open", "");
+    var sum = _pdtEl("summary", { className: "pdt-summary", text: "Decision tree — PreToolUse → PostToolUse" });
+    details.appendChild(sum);
+    details.addEventListener("toggle", function () { state.expanded = details.open; });
+    var shell = _pdtEl("div", { className: "pdt-shell", role: "region", "aria-labelledby": "pdt-title" });
+    shell.appendChild(_pdtBuildChrome(data, state));
+    shell.appendChild(_pdtEl("div", { className: "pdt-spine-wrap" }, [_pdtBuildSpine(data, state)]));
+    var cols = _pdtEl("div", { className: "pdt-cols" });
+    (data.events || []).forEach(function (ev) {
+      var col = _pdtEl("section", { className: "pdt-col", "aria-label": ev.event });
+      col.appendChild(_pdtEl("header", { className: "pdt-col-head" }, [
+        _pdtEl("span", { className: "pdt-col-event", text: ev.event }),
+        _pdtEl("span", { className: "pdt-col-when", text: ev.when || "" })
+      ]));
+      var list = _pdtEl("div", { className: "pdt-groups" });
+      (ev.groups || []).forEach(function (g) {
+        var open = !!state.open[ev.event + ":" + g.i];
+        var muted = !_pdtMatchesFilter(g, state.filter);
+        var gsum = _pdtEl("button", {
+          type: "button",
+          className: "pdt-group-sum",
+          "aria-expanded": open ? "true" : "false"
+        }, [
+          _pdtEl("span", { className: "pdt-group-idx", text: "#" + g.i }),
+          _pdtEl("code", { className: "pdt-matcher", text: g.matcher || "(none)" }),
+          _pdtEl("span", { className: "pdt-group-count", text: (g.hooks || []).length + " hooks" })
+        ]);
+        gsum.addEventListener("click", function () {
+          var key = ev.event + ":" + g.i;
+          state.open[key] = !state.open[key];
+          _pdtPaint();
+        });
+        var body = _pdtEl("div", { className: "pdt-group-body" });
+        if (!open) body.hidden = true;
+        var primary = [];
+        var excluded = [];
+        (g.hooks || []).forEach(function (h) {
+          if (h.excluded) excluded.push(h);
+          else primary.push(h);
+        });
+        primary.forEach(function (h) { body.appendChild(_pdtHookCard(h, data)); });
+        // Matthew lock: excluded hooks collapsed / expandable (not always-visible).
+        if (excluded.length) {
+          var ex = _pdtEl("details", { className: "pdt-excluded" });
+          ex.appendChild(_pdtEl("summary", {
+            text: "Excluded from stage cards (" + excluded.length + ") — expandable"
+          }));
+          var exBody = _pdtEl("div", { className: "pdt-excluded-body" });
+          excluded.forEach(function (h) { exBody.appendChild(_pdtHookCard(h, data)); });
+          ex.appendChild(exBody);
+          body.appendChild(ex);
+        }
+        list.appendChild(_pdtEl("div", {
+          className: "pdt-group" + (muted ? " is-muted" : "") + (open ? " is-open" : ""),
+          "data-tools": (g.tools || []).join(" ")
+        }, [gsum, body]));
+      });
+      col.appendChild(list);
+      cols.appendChild(col);
+    });
+    shell.appendChild(cols);
+    details.appendChild(shell);
+    mount.appendChild(details);
+  }
+
+  function loadPipeDtree(forceExpand) {
+    var mount = document.getElementById("pipe-dtree-mount");
+    var payload = document.getElementById("pipe-dtree-payload");
+    if (!mount || !payload) return false;
+    try {
+      if (mount.getAttribute("data-pdt-ready") !== "1") {
+        var data = JSON.parse(payload.textContent);
+        var state = { filter: "all", open: {}, expanded: false }; // Matthew: default CLOSED
+        (data.events || []).forEach(function (ev) {
+          if (ev.groups && ev.groups.length) state.open[ev.event + ":0"] = true;
+        });
+        _pdtMount = mount; _pdtData = data; _pdtState = state;
+        mount.setAttribute("data-pdt-ready", "1");
+      }
+      if (forceExpand && _pdtState) _pdtState.expanded = true;
+      _pdtPaint();
+      mount.removeAttribute("hidden");
+      return true;
+    } catch (e) {
+      console.error("pipe-dtree seat failed", e);
+      return false;
+    }
+  }
+
+  function ensurePipeDtree(forceExpand) {
+    return loadPipeDtree(!!forceExpand);
+  }
+  window.loadPipeDtree = loadPipeDtree;
+  window.ensurePipeDtree = ensurePipeDtree;
 
   function syncPipelineTab() {
     const cr = state.command_review;
