@@ -63,7 +63,7 @@ export function ExportBar() {
         {downloading ? "Preparing…" : "Download CSV"}
       </button>
       {error && (
-        <span role="alert" className="text-xs text-rose-600">
+        <span role="alert" className="text-xs text-rose-700">
           {error}
         </span>
       )}

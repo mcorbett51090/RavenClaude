@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { headers } from "next/headers";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -17,6 +18,9 @@ export const metadata: Metadata = {
 // A static, non-interpolated string constant — no request/user data ever
 // reaches this template, so dangerouslySetInnerHTML here carries none of
 // the injection risk it would with any dynamic content.
+// nonce from middleware's x-nonce (2026-09-16): script-src uses
+// 'nonce-…' + 'strict-dynamic'; without the attribute Chromium blocks this
+// inline and the smoke console check fails.
 const THEME_INIT_SCRIPT = `
 (function () {
   try {
@@ -28,11 +32,12 @@ const THEME_INIT_SCRIPT = `
 `;
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
+  const nonce = headers().get("x-nonce") ?? undefined;
   return (
     <html lang="en">
       <head>
         {/* eslint-disable-next-line react/no-danger -- see THEME_INIT_SCRIPT's own comment for why this must be inline, not a module import */}
-        <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
+        <script nonce={nonce} dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
       </head>
       <body>{children}</body>
     </html>
