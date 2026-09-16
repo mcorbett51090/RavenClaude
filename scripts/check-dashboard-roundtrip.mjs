@@ -356,7 +356,10 @@ function check(name, cond) {
   check("hydrate cheap_lane.agent", h.cheap_lane.agent === "copilot");
   check("hydrate handoff_tax.report_cap_words", h.handoff_tax.report_cap_words === 250);
   check("hydrate handoff_tax.brief_cap_words", h.handoff_tax.brief_cap_words === 900);
-  check("hydrate model_matrix.surfaces.explore_pin", h.model_matrix.surfaces.explore_pin === "sonnet");
+  check(
+    "hydrate model_matrix.surfaces.explore_pin",
+    h.model_matrix.surfaces.explore_pin === "sonnet",
+  );
   check("hydrate handoff_tax.off stays false for a block", h.handoff_tax.off === false);
   check("hydrate prompt_optimizer.enabled", h.prompt_optimizer.enabled === true);
   check("hydrate prompt_optimizer.mode", h.prompt_optimizer.mode === "advisory");
@@ -725,7 +728,10 @@ function check(name, cond) {
     model_matrix: { surfaces: { explore_pin: "haiku" } },
     handoff_tax: { pin_explore: "sonnet" },
   });
-  check("new explore_pin wins over alias", api._get().model_matrix.surfaces.explore_pin === "haiku");
+  check(
+    "new explore_pin wins over alias",
+    api._get().model_matrix.surfaces.explore_pin === "haiku",
+  );
   check("diverge flag when alias differs", api._get().alias_deprecation.diverge === true);
 
   // model_tier_surfaces alias → surfaces
@@ -740,7 +746,10 @@ function check(name, cond) {
   check("mts flag set", api._get().alias_deprecation.model_tier_surfaces === true);
   // haiku is default → not emitted; sonnet is
   const yMts = api.emitYaml();
-  check("mts Save emits precompact under surfaces", /^    precompact_fallback: sonnet$/m.test(yMts));
+  check(
+    "mts Save emits precompact under surfaces",
+    /^    precompact_fallback: sonnet$/m.test(yMts),
+  );
   check("mts Save does NOT emit model_tier_surfaces", !/^model_tier_surfaces:/m.test(yMts));
 
   // all-default / unknown dropped
@@ -748,13 +757,19 @@ function check(name, cond) {
   api.applyGuardrailConfig({
     handoff_tax: { pin_explore: "opus", report_cap_words: -5, brief_cap_words: "lots" },
   });
-  check("unknown pin_explore ignored on hydrate", api._get().model_matrix.surfaces.explore_pin === "");
+  check(
+    "unknown pin_explore ignored on hydrate",
+    api._get().model_matrix.surfaces.explore_pin === "",
+  );
   check("negative report cap ignored on hydrate", api._get().handoff_tax.report_cap_words === null);
   check(
     "non-numeric brief cap ignored on hydrate",
     api._get().handoff_tax.brief_cap_words === null,
   );
-  check("all-default emits no handoff_tax / model_matrix", !/^handoff_tax/m.test(api.emitYaml()) && !/^model_matrix:/m.test(api.emitYaml()));
+  check(
+    "all-default emits no handoff_tax / model_matrix",
+    !/^handoff_tax/m.test(api.emitYaml()) && !/^model_matrix:/m.test(api.emitYaml()),
+  );
 
   // Accepted pin values via alias hydrate
   for (const [v, want] of [
@@ -765,11 +780,17 @@ function check(name, cond) {
   ]) {
     api._set(api._freshState());
     api.applyGuardrailConfig({ handoff_tax: { pin_explore: v } });
-    check(`alias pin_explore accepts ${JSON.stringify(v)}`, api._get().model_matrix.surfaces.explore_pin === want);
+    check(
+      `alias pin_explore accepts ${JSON.stringify(v)}`,
+      api._get().model_matrix.surfaces.explore_pin === want,
+    );
   }
   api._set(api._freshState());
   api.applyGuardrailConfig({ handoff_tax: { pin_explore: "off" } });
-  check("pin_explore: off Save emits surfaces.explore_pin", /^    explore_pin: off$/m.test(api.emitYaml()));
+  check(
+    "pin_explore: off Save emits surfaces.explore_pin",
+    /^    explore_pin: off$/m.test(api.emitYaml()),
+  );
   check("pin_explore: off Save never writes old key", !/^  pin_explore:/m.test(api.emitYaml()));
 }
 

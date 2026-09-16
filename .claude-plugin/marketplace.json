@@ -3872,9 +3872,7 @@
         "local-first"
       ],
       "requires": {
-        "plugins": [
-          "ravenclaude-core@>=0.204.0"
-        ]
+        "plugins": ["ravenclaude-core@>=0.204.0"]
       }
     },
     {

@@ -267,8 +267,13 @@
         "Pipeline Pre\u2192Post decision-tree island (0.323.13, PR #1195)",
         9530000,
         "Same PR #1195 Pipeline decision-tree island (core 0.323.13). index.html 9,524,104 bytes > prior 9,500,000 by 24,104 (0.02 MB). Portal fold embeds same island. Re-measured on this branch head; appended, never edited."
+      ],
+      [
+        "Phase D posture alias soak (0.323.14, PR #1196)",
+        9531000,
+        "Same PR #1196 Phase D alias soak (core 0.323.14). index.html 9,530,630 bytes > prior 9,530,000 by 630 (0.00 MB). Inventory restamp (hook-emitter-collision covers + islanded-panel-costs-two / plugin-cache-is-version-keyed). Re-measured on this branch head; appended, never edited."
       ]
     ]
   },
-  "measured_against": "ce529060ea2926842af4a6c6e5bfa1d111dd118f"
+  "measured_against": "0cf847fba00dad271c1a90ddcd72f4211479fe11"
 }
