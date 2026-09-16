@@ -48,6 +48,9 @@ permissions:
 jobs:
   nextjs-starter:
     runs-on: ubuntu-latest
+    # Bound the runner: this job runs npm ci/build on PR-supplied code; without an
+    # explicit cap it defaults to GitHub's 6-hour ceiling on a hang.
+    timeout-minutes: 20
     defaults:
       run:
         working-directory: plugins/data-platform/templates/cube-nextjs-dashboard-starter
@@ -105,6 +108,9 @@ jobs:
 
   astro-starter:
     runs-on: ubuntu-latest
+    # Bound the runner: this job runs npm ci/build on PR-supplied code; without an
+    # explicit cap it defaults to GitHub's 6-hour ceiling on a hang.
+    timeout-minutes: 20
     defaults:
       run:
         working-directory: plugins/data-platform/templates/cube-astro-dashboard-starter

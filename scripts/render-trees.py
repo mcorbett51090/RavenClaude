@@ -107,7 +107,7 @@ def _normalize(svg: str, svg_id: str) -> str:
         attrs = attrs.replace('class="', 'class="rc-tree-diagram ', 1)
     else:
         attrs = ' class="rc-tree-diagram"' + attrs
-    return f"<svg{attrs}>" + _theme_style(svg_id) + svg[m.end():]
+    return f"<svg{attrs}>" + _theme_style(svg_id) + svg[m.end() :]
 
 
 def _source_hash(tree: dict) -> str:
@@ -153,9 +153,17 @@ def _render_all(trees: list[dict], tmp: Path) -> dict[str, str]:
         blocks.append(f"```mermaid\n{t['mermaid']}\n```")
     md_path.write_text("\n\n---\n\n".join(blocks) + "\n", encoding="utf-8")
     cmd = [
-        "npx", "--yes", f"@mermaid-js/mermaid-cli@{MMDC_VERSION}",
-        "-i", str(md_path), "-o", str(out_path),
-        "-p", str(cfg_path), "-b", "transparent",
+        "npx",
+        "--yes",
+        f"@mermaid-js/mermaid-cli@{MMDC_VERSION}",
+        "-i",
+        str(md_path),
+        "-o",
+        str(out_path),
+        "-p",
+        str(cfg_path),
+        "-b",
+        "transparent",
     ]
     proc = subprocess.run(cmd, capture_output=True, text=True, timeout=900)
     if proc.returncode != 0:
@@ -176,7 +184,9 @@ def _check(root: Path, trees: list[dict]) -> int:
     vis = root / VISUALS_DIR
     manifest_path = vis / MANIFEST_NAME
     if not manifest_path.exists():
-        print(f"tree render manifest missing ({VISUALS_DIR}/{MANIFEST_NAME}) — run: scripts/render-trees.py")
+        print(
+            f"tree render manifest missing ({VISUALS_DIR}/{MANIFEST_NAME}) — run: scripts/render-trees.py"
+        )
         return 1
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     recorded = manifest.get("trees", {})
@@ -185,13 +195,17 @@ def _check(root: Path, trees: list[dict]) -> int:
         tid = t["id"]
         want = _source_hash(t)
         if recorded.get(tid) != want:
-            problems.append(f"  ✗ {tid}: tree diagram changed since last render — re-run scripts/render-trees.py")
+            problems.append(
+                f"  ✗ {tid}: tree diagram changed since last render — re-run scripts/render-trees.py"
+            )
             continue
         if not (vis / f"{tid}.svg").exists():
             problems.append(f"  ✗ {tid}: {tid}.svg missing")
     stale = set(recorded) - {t["id"] for t in trees}
     for tid in sorted(stale):
-        problems.append(f"  ✗ {tid}: orphaned in manifest (tree removed) — re-run scripts/render-trees.py")
+        problems.append(
+            f"  ✗ {tid}: orphaned in manifest (tree removed) — re-run scripts/render-trees.py"
+        )
     if problems:
         print("Decision-tree SVG freshness gate FAILED:")
         print("\n".join(problems))
@@ -201,9 +215,13 @@ def _check(root: Path, trees: list[dict]) -> int:
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
     ap.add_argument("--root", default=".", help="repo root")
-    ap.add_argument("--check", action="store_true", help="verify committed SVGs match source (no render)")
+    ap.add_argument(
+        "--check", action="store_true", help="verify committed SVGs match source (no render)"
+    )
     args = ap.parse_args()
     root = Path(args.root).resolve()
 
@@ -214,12 +232,19 @@ def main() -> int:
 
     vis = root / VISUALS_DIR
     vis.mkdir(parents=True, exist_ok=True)
-    # Clear stale SVGs so a removed tree doesn't leave an orphan file behind.
-    for old in vis.glob("*.svg"):
-        old.unlink()
     manifest = {"mmdc_version": MMDC_VERSION, "normalizer_version": NORMALIZER_VERSION, "trees": {}}
+    # ── Render to a STAGING dir FIRST, then clear + write. Never delete before you
+    # can replace. ── This used to unlink every *.svg in visuals/ and only THEN call
+    # _render_all, so any render failure (missing Chrome, a timeout, a literal ``` in
+    # a tree's Mermaid source) left the committed knowledge-base SVGs deleted with no
+    # replacement — observed for real on 2026-08-08 (800+ tree SVGs wiped). Sibling
+    # render-concepts.py fixed the identical bug with this stage-then-swap; ported here.
     with tempfile.TemporaryDirectory() as td:
         rendered = _render_all(trees, Path(td))
+    # Every render succeeded — NOW it is safe to clear the old set (so a removed tree
+    # doesn't leave an orphan) and write the new one in.
+    for old in vis.glob("*.svg"):
+        old.unlink()
     for t in trees:
         tid = t["id"]
         (vis / f"{tid}.svg").write_text(rendered[tid], encoding="utf-8")

@@ -43,12 +43,12 @@ try:
     TOKEN_METHOD = "tiktoken cl100k_base [interpretation — OpenAI BPE proxy, NOT Claude's real tokenizer; unavailable locally, see file docstring]"
 except Exception:  # pragma: no cover - environment-dependent
     _ENC = None
-    TOKEN_METHOD = "unavailable — tiktoken not importable in this environment; token fields are null"
+    TOKEN_METHOD = (
+        "unavailable — tiktoken not importable in this environment; token fields are null"
+    )
 
 _FM = re.compile(r"^---\s*\n(.*?\n)---\s*\n", re.S)
-_DESC_LINE = re.compile(
-    r"^description:\s*(.*)$", re.M
-)
+_DESC_LINE = re.compile(r"^description:\s*(.*)$", re.M)
 
 
 def _count_tokens(text: str) -> int | None:
@@ -168,7 +168,9 @@ def build(root: Path) -> dict:
             "total_chars": total_chars,
             "total_tokens": total_tokens if tokens_known else None,
             "mean_chars": round(total_chars / len(entries), 2) if entries else 0,
-            "mean_tokens": round(total_tokens / len(entries), 2) if entries and tokens_known else None,
+            "mean_tokens": round(total_tokens / len(entries), 2)
+            if entries and tokens_known
+            else None,
         },
         "skills": entries,
     }
@@ -182,9 +184,15 @@ def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--root", default=".")
     ap.add_argument("--out", default="description-baseline.json")
-    ap.add_argument("--check", action="store_true", help="verify --out matches a fresh build; exit 1 on drift")
+    ap.add_argument(
+        "--check", action="store_true", help="verify --out matches a fresh build; exit 1 on drift"
+    )
     ap.add_argument("--self-test", action="store_true")
-    ap.add_argument("--must-fail", action="store_true", help="AT-P0.2 teeth: mutate one description, assert the delta")
+    ap.add_argument(
+        "--must-fail",
+        action="store_true",
+        help="AT-P0.2 teeth: mutate one description, assert the delta",
+    )
     args = ap.parse_args()
 
     root = Path(args.root).resolve()
@@ -199,22 +207,28 @@ def main() -> int:
 
     if args.check:
         if not out_path.exists():
-            print(f"MISSING: {out_path} does not exist — run without --check first", file=sys.stderr)
+            print(
+                f"MISSING: {out_path} does not exist — run without --check first", file=sys.stderr
+            )
             return 1
         current = out_path.read_text(encoding="utf-8")
         fresh = _dump(data)
         if current != fresh:
             print("DRIFT: description-baseline.json does not match a fresh build", file=sys.stderr)
             return 1
-        print(f"description-baseline.json OK — {data['corpus']['skill_count']} skills, "
-              f"{data['corpus']['total_chars']} chars, "
-              f"{data['corpus']['total_tokens']} tokens ({TOKEN_METHOD.split(' [')[0]})")
+        print(
+            f"description-baseline.json OK — {data['corpus']['skill_count']} skills, "
+            f"{data['corpus']['total_chars']} chars, "
+            f"{data['corpus']['total_tokens']} tokens ({TOKEN_METHOD.split(' [')[0]})"
+        )
         return 0
 
     out_path.write_text(_dump(data), encoding="utf-8")
-    print(f"wrote {out_path} — {data['corpus']['skill_count']} skills, "
-          f"{data['corpus']['total_chars']} chars, "
-          f"{data['corpus']['total_tokens']} tokens ({TOKEN_METHOD.split(' [')[0]})")
+    print(
+        f"wrote {out_path} — {data['corpus']['skill_count']} skills, "
+        f"{data['corpus']['total_chars']} chars, "
+        f"{data['corpus']['total_tokens']} tokens ({TOKEN_METHOD.split(' [')[0]})"
+    )
     return 0
 
 
@@ -277,9 +291,15 @@ def _self_test() -> int:
     # DEGRADATION is honest: when tiktoken IS present, tokens must be
     # non-null; when absent, they must be null and the method must say so.
     if _ENC is not None:
-        check("token method: when tiktoken is available, tokens are populated (non-null)", data["skills"][0]["tokens"] is not None)
+        check(
+            "token method: when tiktoken is available, tokens are populated (non-null)",
+            data["skills"][0]["tokens"] is not None,
+        )
     else:
-        check("token method: when tiktoken is absent, tokens are null and method states why", "unavailable" in TOKEN_METHOD)
+        check(
+            "token method: when tiktoken is absent, tokens are null and method states why",
+            "unavailable" in TOKEN_METHOD,
+        )
 
     print(f"skill-description-baseline.py self-test: {passed} pass, {len(failed)} fail")
     for f in failed:
@@ -303,7 +323,24 @@ def _must_fail_teeth(root: Path) -> int:
     if not real["skills"]:
         print("must-fail: no real skills found to mutate against", file=sys.stderr)
         return 1
-    target = real["skills"][0]
+    # The mutation below does a raw-text .replace() of the PARSED description, which
+    # only bites when the parsed value appears verbatim in source — true for a plain
+    # scalar, but a YAML block scalar (`>`/`|`) folds line breaks, so its parsed value
+    # is NOT a raw substring and .replace() silently no-ops, falsely reporting "teeth
+    # do not bite". Pick a target whose parsed description IS a raw substring of its
+    # own source so the mutation is guaranteed to bite regardless of scalar style.
+    target = None
+    for cand in real["skills"]:
+        desc = cand.get("description") or ""
+        if desc and desc in (root / cand["path"]).read_text(encoding="utf-8"):
+            target = cand
+            break
+    if target is None:
+        print(
+            "must-fail: no skill with a raw-substring (plain-scalar) description found to mutate",
+            file=sys.stderr,
+        )
+        return 1
 
     with tempfile.TemporaryDirectory() as td:
         tmp_root = Path(td)

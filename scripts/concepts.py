@@ -81,7 +81,7 @@ _DIGEST_RE = re.compile(r"^sha256:[0-9a-f]{64}$")
 # line must sit INSIDE T-PROSE +/-6-line window from the claim. S1 measured that
 # window directly (docs/best-practices/inventory-authoring.md). The cap is a
 # LAYOUT constraint because the gate it protects against is a layout gate.
-NUANCE_WRAP = 100          # the prose width this repo wraps at
+NUANCE_WRAP = 100  # the prose width this repo wraps at
 NUANCE_MAX_LINES = 4
 UNPROBED_PREFIX = "unprobed: "
 UNPROBED_REASON_MIN = 30
@@ -188,7 +188,9 @@ def _parse_one(path: Path, root: Path) -> dict:
     try:
         fm = yaml.safe_load(m.group(1))
     except Exception as exc:  # strict-YAML parse error
-        raise ConceptError(f"{rel}: frontmatter does not parse — {type(exc).__name__}: {str(exc).splitlines()[0]}")
+        raise ConceptError(
+            f"{rel}: frontmatter does not parse — {type(exc).__name__}: {str(exc).splitlines()[0]}"
+        )
     if not isinstance(fm, dict):
         raise ConceptError(f"{rel}: frontmatter is not a mapping")
 
@@ -196,8 +198,16 @@ def _parse_one(path: Path, root: Path) -> dict:
         if key not in fm:
             raise ConceptError(f"{rel}: missing required field '{key}'")
         val = fm[key]
+        # ⛔ `bool` is a subclass of `int`, so `isinstance(True, int)` is True — a YAML
+        # boolean (`order: yes/no/true/false/on/off`, all parsed as bool by the YAML 1.1
+        # resolver) would silently pass `req("order", int)`, sort as 0/1, and serialize
+        # as a JSON boolean into concepts.json. Reject a bool where a real int is required.
+        if typ is int and isinstance(val, bool):
+            raise ConceptError(f"{rel}: field '{key}' must be an int, not a boolean")
         if not isinstance(val, typ) or (isinstance(val, str) and not val.strip()):
-            raise ConceptError(f"{rel}: field '{key}' must be a non-empty {getattr(typ, '__name__', typ)}")
+            raise ConceptError(
+                f"{rel}: field '{key}' must be a non-empty {getattr(typ, '__name__', typ)}"
+            )
         return val
 
     cid = req("id", str)
@@ -220,7 +230,11 @@ def _parse_one(path: Path, root: Path) -> dict:
         raise ConceptError(f"{rel}: 'sources' must be a non-empty list of {{label, url}}")
     norm_sources = []
     for i, s in enumerate(sources):
-        if not isinstance(s, dict) or not isinstance(s.get("label"), str) or not isinstance(s.get("url"), str):
+        if (
+            not isinstance(s, dict)
+            or not isinstance(s.get("label"), str)
+            or not isinstance(s.get("url"), str)
+        ):
             raise ConceptError(f"{rel}: sources[{i}] must have string 'label' and 'url'")
         norm_sources.append({"label": s["label"], "url": s["url"]})
 
@@ -230,14 +244,18 @@ def _parse_one(path: Path, root: Path) -> dict:
 
     widget = fm.get("widget")
     if widget is not None and (not isinstance(widget, str) or not widget.strip()):
-        raise ConceptError(f"{rel}: 'widget' must be a non-empty string (an interactive widget name)")
+        raise ConceptError(
+            f"{rel}: 'widget' must be a non-empty string (an interactive widget name)"
+        )
 
     node_links = fm.get("node_links")
     if node_links is not None:
         if not isinstance(node_links, dict) or not all(
             isinstance(k, str) and isinstance(v, str) for k, v in node_links.items()
         ):
-            raise ConceptError(f"{rel}: 'node_links' must be a mapping of Mermaid node id -> concept id")
+            raise ConceptError(
+                f"{rel}: 'node_links' must be a mapping of Mermaid node id -> concept id"
+            )
         node_links = {str(k): v for k, v in node_links.items()}
     else:
         node_links = {}
@@ -265,7 +283,9 @@ def _parse_one(path: Path, root: Path) -> dict:
         else:
             raise ConceptError(f"{rel}: last_verified must be a YYYY-MM-DD string")
     if kind == "platform-fact" and not last_verified:
-        raise ConceptError(f"{rel}: platform-fact concepts require 'last_verified' (staleness gate)")
+        raise ConceptError(
+            f"{rel}: platform-fact concepts require 'last_verified' (staleness gate)"
+        )
 
     # refresh_when is the field the schema already reserved for a machine-actionable
     # refresh trigger. Rather than ship two new fields beside a decorative third,
@@ -275,7 +295,9 @@ def _parse_one(path: Path, root: Path) -> dict:
     if refresh_when is not None:
         if isinstance(refresh_when, list):
             if not all(isinstance(x, str) and x.strip() for x in refresh_when):
-                raise ConceptError(f"{rel}: 'refresh_when' list entries must be non-empty path globs")
+                raise ConceptError(
+                    f"{rel}: 'refresh_when' list entries must be non-empty path globs"
+                )
         elif not isinstance(refresh_when, str):
             raise ConceptError(f"{rel}: 'refresh_when' must be a string or a list of path globs")
 
@@ -284,17 +306,23 @@ def _parse_one(path: Path, root: Path) -> dict:
     # concepts carry none, and concepts.json is asserted byte-identical to HEAD.
     entry_class = fm.get("entry_class")
     if entry_class is not None and entry_class not in VALID_ENTRY_CLASSES:
-        raise ConceptError(f"{rel}: entry_class '{entry_class}' must be one of {VALID_ENTRY_CLASSES}")
+        raise ConceptError(
+            f"{rel}: entry_class '{entry_class}' must be one of {VALID_ENTRY_CLASSES}"
+        )
 
     covers = fm.get("covers")
     if covers is not None:
-        if not isinstance(covers, list) or not covers or not all(
-            isinstance(x, str) and x.strip() for x in covers
+        if (
+            not isinstance(covers, list)
+            or not covers
+            or not all(isinstance(x, str) and x.strip() for x in covers)
         ):
             raise ConceptError(f"{rel}: 'covers' must be a non-empty list of repo-relative paths")
         for cp in covers:
             if cp.startswith("/") or ".." in Path(cp).parts:
-                raise ConceptError(f"{rel}: covers entry '{cp}' must be repo-relative with no parent segments")
+                raise ConceptError(
+                    f"{rel}: covers entry '{cp}' must be repo-relative with no parent segments"
+                )
             if not (root / cp).exists():
                 raise ConceptError(f"{rel}: covers entry '{cp}' does not exist")
     elif entry_class == ENTRY_CLASS_INVENTORY:
@@ -323,7 +351,9 @@ def _parse_one(path: Path, root: Path) -> dict:
             )
 
         if not isinstance(nuance_evidence, dict):
-            raise ConceptError(f"{rel}: entry_class: inventory requires a 'nuance_evidence' mapping")
+            raise ConceptError(
+                f"{rel}: entry_class: inventory requires a 'nuance_evidence' mapping"
+            )
         for key in ("measured", "control", "falsifier", "probe"):
             if not str(nuance_evidence.get(key, "")).strip():
                 raise ConceptError(f"{rel}: nuance_evidence.{key} is required and non-empty")
@@ -374,7 +404,9 @@ def _parse_one(path: Path, root: Path) -> dict:
     covers_digest = fm.get("covers_digest")
     if covers_digest is not None:
         if not isinstance(covers_digest, str) or not _DIGEST_RE.match(covers_digest):
-            raise ConceptError(f"{rel}: 'covers_digest' must look like sha256 followed by 64 hex chars")
+            raise ConceptError(
+                f"{rel}: 'covers_digest' must look like sha256 followed by 64 hex chars"
+            )
     elif covers is not None:
         raise ConceptError(
             f"{rel}: 'covers' is declared with no 'covers_digest' — the tripwire would "
@@ -473,7 +505,8 @@ def _parse_one(path: Path, root: Path) -> dict:
         # ⛔ R12: the badge is DERIVED here, in the registry, so no renderer can
         # quietly choose a friendlier word. tier: none renders "Unverified".
         out["strength_badge"] = (
-            "Unverified" if (verify or {}).get("tier") == "none"
+            "Unverified"
+            if (verify or {}).get("tier") == "none"
             else STRENGTH_BADGE.get((verify or {}).get("strength"), "Unverified")
         )
     return out
@@ -495,7 +528,9 @@ def load_concepts(root: Path) -> list[dict]:
                 raise ConceptError(f"{c['id']}: see_also references unknown concept '{ref}'")
         for node, ref in c["node_links"].items():
             if ref not in ids:
-                raise ConceptError(f"{c['id']}: node_links['{node}'] references unknown concept '{ref}'")
+                raise ConceptError(
+                    f"{c['id']}: node_links['{node}'] references unknown concept '{ref}'"
+                )
 
     cat_min = {}
     for c in concepts:
@@ -741,7 +776,11 @@ def _do_restamp(root: Path, registry: dict, args) -> int:
         with log.open("a", encoding="utf-8") as fh:
             fh.write(json.dumps(entry, ensure_ascii=False, sort_keys=True) + "\n")
 
-    kind = "cosmetic (last_verified NOT moved)" if cosmetic else f"substantive (last_verified -> {today})"
+    kind = (
+        "cosmetic (last_verified NOT moved)"
+        if cosmetic
+        else f"substantive (last_verified -> {today})"
+    )
     print(f"restamped {cid}: {kind}")
     if before == after:
         print("  note: the digest did not change — nothing the entry covers had drifted.")
@@ -750,7 +789,9 @@ def _do_restamp(root: Path, registry: dict, args) -> int:
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
     ap.add_argument("--root", default=".", help="repo root")
     ap.add_argument("--check", action="store_true", help="gate mode: validate + diff, never write")
     ap.add_argument(
@@ -758,13 +799,17 @@ def main() -> int:
         action="store_true",
         help="scheduled-sweep mode: promote calendar-age WARNINGS to blocking failures",
     )
-    ap.add_argument("--restamp", metavar="ID", help="re-stamp an entry after RE-READING it (needs --reason)")
+    ap.add_argument(
+        "--restamp", metavar="ID", help="re-stamp an entry after RE-READING it (needs --reason)"
+    )
     ap.add_argument(
         "--restamp-cosmetic",
         metavar="ID",
         help="re-stamp covers_digest ONLY, leaving last_verified where it is (cosmetic edits)",
     )
-    ap.add_argument("--reason", help=f"why the entry was re-verified (>= {RESTAMP_REASON_MIN} chars)")
+    ap.add_argument(
+        "--reason", help=f"why the entry was re-verified (>= {RESTAMP_REASON_MIN} chars)"
+    )
     args = ap.parse_args()
     root = Path(args.root).resolve()
     out_path = root / REGISTRY_PATH
@@ -789,7 +834,9 @@ def main() -> int:
         generator: list[str] = []
 
         if not out_path.exists():
-            generator.append(f"  ✗ concepts.json missing at {REGISTRY_PATH} — run: scripts/concepts.py")
+            generator.append(
+                f"  ✗ concepts.json missing at {REGISTRY_PATH} — run: scripts/concepts.py"
+            )
         elif out_path.read_text(encoding="utf-8") != serialized:
             generator.append("  ✗ concepts.json is STALE — regenerate with: scripts/concepts.py")
 
@@ -804,7 +851,9 @@ def main() -> int:
         return rc
 
     out_path.write_text(serialized, encoding="utf-8")
-    print(f"Wrote {REGISTRY_PATH} — {len(registry['concepts'])} concept(s) in {len(registry['categories'])} categor(ies).")
+    print(
+        f"Wrote {REGISTRY_PATH} — {len(registry['concepts'])} concept(s) in {len(registry['categories'])} categor(ies)."
+    )
     return 0
 
 
