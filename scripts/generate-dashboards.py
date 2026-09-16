@@ -1656,17 +1656,17 @@ _PIPELINE_CONTROLS = {
         "“conserve tokens” or the session runs low on room.</p>"
     ),
     "runes": (
-        '<label class="pipe-ctl">Mode '
+        '<label class="pipe-ctl">Runes '
         '<select id="pipe-runes-mode" '
         'title="Behavioral flag — Off by default. On = Oath-hook hanging + ready + auto-claim ungated; gates block; no Longship merge. Kill switch = Off + Save. SessionStart-hook hosts only (MH-18)." '
-        'aria-label="Opt in to automatic Runes at session start">'
+        'aria-label="Runes at session start">'
         "<option value=\"off\">Off — I'll use the CLI</option>"
         '<option value="on">On — ready + auto-claim ungated</option>'
         "</select></label>"
     ),
     "decision": (
-        '<label class="pipe-ctl">Mode '
-        '<select id="pipe-decision-review">'
+        '<label class="pipe-ctl">Decision mode '
+        '<select id="pipe-decision-review" aria-label="Decision review mode">'
         '<option value="off">off — you answer every yes/no</option>'
         '<option value="advisory">advisory — panel suggests, you still answer</option>'
         '<option value="binding">binding — panel answers the easy ones</option>'
@@ -1680,8 +1680,8 @@ _PIPELINE_CONTROLS = {
         '<p class="pipe-hint">Leave the command empty to turn the done-check off.</p>'
     ),
     "orchestrator": (
-        '<label class="pipe-ctl">Mode '
-        '<select id="pipe-orchestrator">'
+        '<label class="pipe-ctl">Orchestrator '
+        '<select id="pipe-orchestrator" aria-label="Orchestrator mode">'
         '<option value="off">off — host CLI orchestrates (default, zero extra cost)</option>'
         '<option value="decide">decide — Claude plans, host runs agents '
         "(+tokens for planning; lower cost)</option>"
@@ -1721,8 +1721,8 @@ _PIPELINE_CONTROLS = {
         "the floor above is the real protection.</p></div>"
     ),
     "cheap_lane": (
-        '<label class="pipe-ctl">Mode '
-        '<select id="pipe-cheap-lane-mode">'
+        '<label class="pipe-ctl">Cheap lane '
+        '<select id="pipe-cheap-lane-mode" aria-label="Cheap lane mode">'
         '<option value="off">off — every task stays with Claude (default, zero extra cost)</option>'
         "<option value=\"advise\">advise — the delegated agent's output comes back as a "
         "suggestion only</option>"
@@ -1754,8 +1754,8 @@ _PIPELINE_CONTROLS = {
         "<code>skills/cheap-lane-delegation/SKILL.md</code>.</p>"
     ),
     "context_handoff": (
-        '<label class="pipe-ctl">Mode '
-        '<select id="pipe-context-handoff-mode">'
+        '<label class="pipe-ctl">Context handoff '
+        '<select id="pipe-context-handoff-mode" aria-label="Context handoff mode">'
         '<option value="off">off — never writes a handoff brief (default)</option>'
         '<option value="nag">nag — suggests a handoff brief to Claude Code at Stop</option>'
         "<option value=\"block\">block — required on hosts a suggestion can't reach "
@@ -6882,6 +6882,36 @@ footer.page-footer a:hover { text-decoration: underline; }
   background: var(--accent);
   clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
 }
+/* Wave-1 PE bridge is JS-seated after the Learn island hydrates. None of this
+   card chrome adds to the static Gate 132 surface. */
+.learn-pe-bridge {
+  margin: 0 0 20px; padding: 18px; border: 1px solid var(--border);
+  border-radius: var(--rc-radius-lg); background: var(--surface-2);
+}
+.learn-pe-title { margin: 0; font-size: 17px; color: var(--text); }
+.learn-pe-intro { margin: 5px 0 14px; color: var(--muted); font-size: 13px; line-height: 1.5; }
+.learn-pe-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.learn-pe-card {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 7px;
+  min-width: 0; padding: 14px; border: 1px solid var(--border);
+  border-radius: var(--radius); background: var(--surface); box-shadow: var(--rc-shadow-sm);
+}
+.learn-pe-kicker {
+  color: var(--accent); font: 700 10.5px/1.2 var(--font-mono);
+  letter-spacing: .06em; text-transform: uppercase;
+}
+.learn-pe-card h3 { margin: 0; font-size: 15px; color: var(--text); }
+.learn-pe-card p { margin: 0; color: var(--muted); font-size: 12.5px; line-height: 1.5; }
+.learn-pe-cta {
+  margin-top: auto; padding: 6px 10px; border: 1px solid var(--accent);
+  border-radius: var(--radius); color: var(--accent); font-size: 12.5px; font-weight: 700;
+  text-decoration: none;
+}
+.learn-pe-cta:hover { background: var(--accent-soft); text-decoration: none; }
+.learn-pe-cta:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.learn-pe-host { margin: 12px 0 0; color: var(--muted); font-size: 12px; }
+.learn-pe-host a { color: var(--accent); }
+@media (max-width: 760px) { .learn-pe-grid { grid-template-columns: 1fr; } }
 
 .learn-tier { margin: 8px 0 26px; }
 .learn-tier[hidden] { display: none; }
@@ -11690,6 +11720,7 @@ function wireHostScopeFilter(root) {
     try {
       mount.innerHTML = JSON.parse(payload.textContent);
       learnLoaded = true;
+      initLearnPromptBridge();
       initLearn();
       initConceptWidgets();
       initConceptSteppers();
@@ -14590,6 +14621,79 @@ function wireHostScopeFilter(root) {
   probeReadEndpoint().then(served => {
     if (served) hydrateFromRepo();
   });
+
+  /* ── Learn → Prompt Builder PE bridge (Wave-1) ───────────────────────
+     JS-seated only after the existing Learn island hydrates: three teaching
+     cards, zero static Gate 132 elements. PB deep links reuse shipped template
+     ids, so each CTA opens the matching Task / System / Few-shot mode without
+     inventing a new route or builder behavior. */
+  function initLearnPromptBridge() {
+    const panel = document.querySelector('.tab-panel[data-tab="learn"]');
+    const tab = panel && panel.querySelector(".learn-tab");
+    if (!tab || tab.querySelector("#learn-prompt-bridge")) return;
+
+    const lessons = [
+      {
+        title: "Task prompts",
+        copy: "Ask for the work needed this turn. Put the request, useful context, constraints, and expected output in the user message.",
+        href: "#/prompt-builder/summarize"
+      },
+      {
+        title: "System prompts",
+        copy: "Set standing instructions: the model's role, durable rules, boundaries, tone, and output policy. Keep the turn's actual task separate.",
+        href: "#/prompt-builder/agent-system"
+      },
+      {
+        title: "Few-shot teaching",
+        copy: "Teach a repeatable pattern with concrete input/output examples. Examples demonstrate the task; they are not folklore or hidden rules.",
+        href: "#/prompt-builder/fewshot-classifier"
+      }
+    ];
+
+    function peEl(tag, cls, text) {
+      const el = document.createElement(tag);
+      if (cls) el.className = cls;
+      if (text != null) el.textContent = text;
+      return el;
+    }
+
+    const bridge = peEl("section", "learn-pe-bridge");
+    bridge.id = "learn-prompt-bridge";
+    bridge.setAttribute("aria-labelledby", "learn-pe-title");
+    const title = peEl("h2", "learn-pe-title", "Practice prompt engineering");
+    title.id = "learn-pe-title";
+    bridge.appendChild(title);
+    bridge.appendChild(peEl(
+      "p",
+      "learn-pe-intro",
+      "Learn the difference, then practice it in Prompt Builder. Task asks for this turn; System sets standing instructions; Few-shot teaches by example."
+    ));
+
+    const grid = peEl("div", "learn-pe-grid");
+    lessons.forEach(lesson => {
+      const card = peEl("article", "learn-pe-card");
+      card.appendChild(peEl("span", "learn-pe-kicker", "Prompt pattern"));
+      card.appendChild(peEl("h3", null, lesson.title));
+      card.appendChild(peEl("p", null, lesson.copy));
+      const cta = peEl("a", "learn-pe-cta", "Open in Prompt Builder");
+      cta.href = lesson.href;
+      cta.setAttribute("aria-label", "Open " + lesson.title + " in Prompt Builder");
+      card.appendChild(cta);
+      grid.appendChild(card);
+    });
+    bridge.appendChild(grid);
+
+    const host = peEl("p", "learn-pe-host", "See ");
+    const hostLink = peEl("a", null, "Host & context");
+    hostLink.href = "#/host-context";
+    host.appendChild(hostLink);
+    host.appendChild(document.createTextNode(" for which coding agents honor this."));
+    bridge.appendChild(host);
+
+    const legend = tab.querySelector(".learn-legend");
+    if (legend) legend.insertAdjacentElement("afterend", bridge);
+    else tab.prepend(bridge);
+  }
 
   /* ── Learn tab: search · expand/collapse · no-results ──────────────── */
   function initLearn() {

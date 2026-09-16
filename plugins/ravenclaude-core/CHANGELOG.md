@@ -2,6 +2,15 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.323.15 — 2026-09-16
+
+### Changed
+- **Pipeline control clarity** — the five overloaded “Mode” labels now read **Runes**, **Decision mode**, **Orchestrator**, **Cheap lane**, and **Context handoff**, with unique accessible names. Enums, defaults, and behavior are unchanged.
+- **Learn → Prompt Builder bridge** — three JS-seated teaching cards distinguish Task, System, and Few-shot prompts and open shipped Prompt Builder templates for hands-on practice. The bridge adds no static Gate 132 elements and uses no CDN.
+
+### Locks / honesty
+- No Settings changes. No Thing / `gate_floor` / destructive-guard weaken. No `cheap_lane` default change. No Pipeline behavior or prompt-mode invention.
+
 ## 0.323.14 — 2026-09-16
 
 ### Added
