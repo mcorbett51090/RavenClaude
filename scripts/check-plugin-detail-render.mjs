@@ -89,7 +89,10 @@ const RC_BASELINE = {
   //        53 -> 54: skills/session-handoff (v0.266.0, context-quality reset)
   //        52 -> 53: skills/design-clone (v0.253.0, design-schema capture+apply)
   //        51 -> 52: skills/github-gold-standard (v0.246.0, the gold-standard scorecard)
-  tools: 59, // 58 -> 59: scripts/plugin-lifecycle.py (plugin lifecycle Option A ledger engine,
+  tools: 60, // 59 -> 60: scripts/alias-deprecation-advisory.py (Phase D alias soak, core 0.323.14 —
+  //   SessionStart advisory when deprecated posture keys are sole source or diverge). COUNTED,
+  //   not inferred: the plugin-detail island's scripts_index for ravenclaude-core -> 60.
+  //        58 -> 59: scripts/plugin-lifecycle.py (plugin lifecycle Option A ledger engine,
   //   core 0.323.7 — P1 ledger / P2 plan-only sweep / P3 ask-install; .sh wrappers are bash
   //   so the scripts_index *.py glob does not count them). COUNTED, not inferred: the
   //   plugin-detail island's scripts_index for ravenclaude-core -> 59.
@@ -188,7 +191,10 @@ const RC_BASELINE = {
   //        19 -> 22: premise-gate.py + classify_claim.py + check-design-schema.py
   //                  (v0.263.0, PR 3b packaging move)
   scenarios: 4,
-  hooks: 55, // 51 -> 55: plugin-lifecycle-telemetry.sh x3 (PostToolUse Agent|Task + Skill +
+  hooks: 56, // 55 -> 56: alias-deprecation-advisory.sh WIRED on SessionStart(startup|resume|clear|fork)
+  //   (Phase D alias soak, core 0.323.14 — additionalContext advisory; never writes posture).
+  //   COUNTED, not inferred: hooks.json on this tree holds 56 registrations.
+  //        51 -> 55: plugin-lifecycle-telemetry.sh x3 (PostToolUse Agent|Task + Skill +
   //   UserPromptSubmit) + plugin-lifecycle-sweep.sh on SessionStart(startup|resume|clear|fork)
   //   (plugin lifecycle Option A, core 0.323.7 — plan-only sweep; auto_* defaults OFF).
   //   COUNTED, not inferred: hooks.json on this tree holds 55 registrations.
