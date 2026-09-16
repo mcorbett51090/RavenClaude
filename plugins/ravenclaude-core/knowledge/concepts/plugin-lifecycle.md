@@ -7,13 +7,13 @@ entry_class: inventory
 order: 66
 summary: "Per-project last-used tracking for installed marketplace plugins, with opt-in deprecate/uninstall and ask-first ravenclaude-only install — ravenclaude-core is never auto-removed."
 see_also: [bifrost, comfort-posture, command-review-tribunal]
-last_verified: 2026-09-15
+last_verified: 2026-09-16
 refresh_when: "Telemetry signals, unused_days default, auto_uninstall/auto_install defaults, or the core hard-pin change."
 covers:
   - plugins/ravenclaude-core/scripts/plugin-lifecycle.py
   - plugins/ravenclaude-core/scripts/plugin-lifecycle-sweep.sh
   - plugins/ravenclaude-core/scripts/plugin-lifecycle-telemetry.sh
-covers_digest: "sha256:83c081f8414363ddd644f27771294370fab40f81b39728eae61c5a18e53613fb"
+covers_digest: "sha256:6bbb35ebcb31a44c392757c6ed379f9c5ec72bfd72ba415bd404e4169eea1561"
 nuance: "auto_uninstall OFF => zero uninstall CLI calls. auto_uninstall ON => may shell `claude plugin uninstall … -y` for fail-closed-eligible plugins only. auto_install accepts off|ask|auto (absent/unknown => off); auto still needs a cited need. ravenclaude-core@ravenclaude is a hard pin even if pins:[] is empty. Never ragnarok."
 nuance_evidence:
   measured: 2026-09-15
