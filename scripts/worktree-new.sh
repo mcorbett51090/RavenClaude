@@ -21,14 +21,24 @@ if [ -z "$SLUG" ]; then
   exit 2
 fi
 
-# Enforce slug shape so a malicious slug can't traverse out of .claude/worktrees/
-if ! printf '%s' "$SLUG" | grep -qE '^[A-Za-z0-9._-]+$'; then
-  printf 'error: slug must match [A-Za-z0-9._-]+\n' >&2
-  exit 2
-fi
-# The charset above permits '.' — explicitly reject the traversal slugs it would otherwise allow.
+# Enforce slug shape so a malicious slug can't traverse out of .claude/worktrees/.
+# ⛔ A bash `case` pattern, NOT `printf … | grep -qE '^…$'`. grep anchors PER LINE
+# and -q succeeds if ANY line matches, so a multi-line slug (e.g. $'ok\n../../x')
+# passed the grep check whose error message promises a strict charset — the leaked
+# line then lands verbatim in $WT_DIR and traverses out of .claude/worktrees/. The
+# case pattern has no line semantics and no subprocess. Sibling worktree-clean.sh's
+# remove_one() documents and fixed this exact bug class; this is the ported fix.
+case "$SLUG" in
+  ''|*[!A-Za-z0-9._-]*)
+    printf 'error: slug must match [A-Za-z0-9._-]+\n' >&2
+    exit 2
+    ;;
+esac
+# The charset above permits '.' and '-' — reject the traversal slugs and the
+# option-shaped ones it would otherwise allow (a leading '-' reads as a flag).
 case "$SLUG" in
   .|..) printf 'error: slug may not be . or ..\n' >&2; exit 2 ;;
+  -*)   printf 'error: slug may not begin with "-"\n' >&2; exit 2 ;;
 esac
 
 REPO_ROOT="$(git rev-parse --show-toplevel)"
