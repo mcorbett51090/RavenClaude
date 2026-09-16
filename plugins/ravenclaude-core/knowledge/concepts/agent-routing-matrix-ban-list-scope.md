@@ -12,7 +12,7 @@ covers:
   - plugins/ravenclaude-core/knowledge/agent-routing-matrix.json
   - plugins/ravenclaude-core/knowledge/agent-routing-matrix.schema.json
   - plugins/ravenclaude-core/knowledge/agent-routing-matrix.md
-covers_digest: "sha256:fad7ee4f8f9f21e697cccf1ab5722e73dc236c8beb5c5a6970383b69f306cc9b"
+covers_digest: "sha256:a6a9f2e1384fbc6dccf7d04da94f73685da15b2b9a898fda091e0db8d145023c"
 nuance: "Deriving the ban-list from every leaf string in the cited files bans ordinary English words (the grok lane's own 'high'/'low'/'architect'/'scanner') and the source's own retrieval date -- contradicting the artifact's own citation requirement."
 nuance_evidence:
   measured: 2026-09-01

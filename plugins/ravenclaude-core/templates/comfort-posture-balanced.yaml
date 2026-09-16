@@ -141,18 +141,26 @@ model_matrix:
 #       permissionDecision — `subagent_dispatch` below still gates the call.
 # Absent block = defaults below. `handoff_tax: off` silences the advisory AND
 # disables the pin (the ledger line is still written, so the summary stays honest).
+#
+# SOAK PLAN (0.323.12 Phase C — docs only; aliases KEEP until Phase D):
+#   1) Operators prefer model_matrix.surfaces.* (SSOT dial).
+#   2) Old keys still resolve (new wins if both set); seed still ships aliases.
+#   3) After Matthew soak window: Phase D may drop aliases from SEED only
+#      (House Rule 3 — never clobber consumer custom old keys).
+#   Comment marker: "alias deprecated after soak" — NOT removed this release.
 handoff_tax:
   report_cap_words: 400 # a worker report longer than this is a failed handoff
   brief_cap_words: 600 # a brief longer than this is re-feeding the transcript
-  pin_explore: haiku # ALIAS → model_matrix.surfaces.explore_pin (one release)
+  pin_explore: haiku # ALIAS deprecated after soak → model_matrix.surfaces.explore_pin
 
-# ONE-RELEASE ALIASES for model_matrix.surfaces (0.323.10 names).
+# ALIASES for model_matrix.surfaces (0.323.10 names) — deprecated after soak.
 # New surfaces.* keys win when both set; absent new ⇒ these ⇒ haiku default.
 # House Rule 3: seed-only — existing consumer custom model_tier_surfaces is never
 # clobbered by marketplace update; absent ⇒ old defaults (haiku).
+# Phase D (later): remove from seed only; do NOT hard-delete consumer keys.
 model_tier_surfaces:
-  precompact_fallback_model: haiku # ALIAS → model_matrix.surfaces.precompact_fallback
-  handoff_fill_model: haiku # ALIAS → model_matrix.surfaces.handoff_fill
+  precompact_fallback_model: haiku # ALIAS deprecated after soak → surfaces.precompact_fallback
+  handoff_fill_model: haiku # ALIAS deprecated after soak → surfaces.handoff_fill
 
 # Model-fallback ladder (added 2026-06-24). When a model a RavenClaude process
 # invokes (a tribunal seat, the convergence judge, the orchestrator) ERRORS or is

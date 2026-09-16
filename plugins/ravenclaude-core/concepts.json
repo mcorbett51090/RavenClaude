@@ -2576,7 +2576,7 @@
       "category": "Planning & contribution",
       "kind": "ravenclaude-built",
       "order": 60,
-      "summary": "The /forge pipeline turns a raw idea into a fact-grounded, two-panel-reviewed, critic-checked, tiebroken, red-teamed, routed plan — with depth-scaled gates so cheap ideas stay cheap.",
+      "summary": "Dashboard card for /forge: depth-scaled, fail-closed planning gates. Gate depth lives in the forge-pipeline skill — this card is one screen + cite.",
       "see_also": [
         "command-review-tribunal",
         "wrap-and-scenarios"
@@ -2584,19 +2584,19 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-06-08",
+      "last_verified": "2026-09-16",
       "refresh_when": "The FORGE gate set, the depth ladder, or the routing/exit logic changes.",
       "sources": [
         {
-          "label": "forge-pipeline skill",
+          "label": "forge-pipeline skill (gate SSOT)",
           "url": "plugins/ravenclaude-core/skills/forge-pipeline/SKILL.md"
         },
         {
-          "label": "/forge command",
+          "label": "/forge command (thin entry)",
           "url": "plugins/ravenclaude-core/commands/forge.md"
         }
       ],
-      "body_md": "**FORGE** is RavenClaude's gated planning pipeline — what `/forge` runs. It formalizes the pattern the maintainer runs by hand: *clarify → research + verify → two divergent panels on different models → critic → gap-analysis → per-conflict expert tiebreak → red-team → synthesize → route → exit.* Each gate is **fail-closed** (no advance without an explicit pass or a recorded waiver) and emits a typed artifact into the run directory, so the whole plan-building process is auditable after the fact.\n\nThe pipeline scales with **depth** rather than running a fixed set of gates: `micro` runs only scope + synthesize + route, `quick` (the default) adds research and the two panels, `standard` adds the critic, tiebreak, and red-team, and `deep` removes the conflict cap and adds checkpoint/resume. Two ideas make FORGE more than a copy of Claude Code's dynamic-workflows deep-plan loop: it runs the two review panels on **different models** (cross-model divergence catches blind spots a same-model critic shares), and it adds a **fact-verification gate** that blocks on any load-bearing claim about anything outside the repo unless it carries a this-session source or an explicit `[unverified]` marker. A correlated-error **critic** then hunts for places the two panels *agree on something wrong* — the failure a disagreement-keyed gap-analysis structurally can't see.\n\nThe final gate routes the plan **deterministically** (no model judgment): a script decides whether to execute locally or hand off to Ultraplan in the cloud, and whether the plan lands on `main` or via a draft PR. FORGE raises the floor on plan quality and shifts the odds against a confidently-wrong plan — it does **not** guarantee correctness; the critic, red-team, and tiebreak reduce, not eliminate, the residual risk.",
+      "body_md": "**FORGE** is RavenClaude's gated planning pipeline — what `/forge` runs. Raw idea → clarify → research/verify → divergent panels → critic/tiebreak/red-team (depth-scaled) → synthesize → deterministic route/exit. Gates are **fail-closed**; artifacts land in the run dir.\n\n**Depth ladder (summary):** `micro` → scope + synthesize + route · `quick` (default) + research + panels · `standard` + critic/tiebreak/red-team · `deep` uncapped conflict + checkpoint/resume.\n\n**Two differentiators:** cross-model panels (catches same-model blind spots) and a fact-verification gate (load-bearing outside-repo claims need a this-session source or `[unverified]`).\n\n⛔ **This card is thin on purpose (0.323.12).** Gate scripts, waivers, receipt shape, and worktree rules live exclusively in [`skills/forge-pipeline/SKILL.md`](../../skills/forge-pipeline/SKILL.md). `/forge` stays a thin command entry. FORGE raises plan-quality odds — it does **not** guarantee correctness.",
       "diagram": "flowchart TD\n  I[Raw idea] --> G0[Scope / clarify]\n  G0 --> G1[Research + verify facts]\n  G1 --> P[Two panels<br/>different models]\n  P --> C[Critic + tiebreak + red-team]\n  C --> S[Synthesize plan]\n  S --> R{Route}\n  R -- local --> EX[ExitPlanMode]\n  R -- cloud --> UP[Ultraplan handoff]\n  class G0,G1,P,C,S,R,EX,UP built",
       "diagram_mini": "flowchart LR\n  I[Idea] --> G[Gated review] --> R[Routed plan]\n  class G,R built",
       "steps": [],
@@ -2938,7 +2938,7 @@
           "url": "https://github.com/mcorbett51090/RavenClaude/pull/1030"
         }
       ],
-      "body_md": "## What a reader would have assumed instead\n\nThat `--effort` is a Copilot CLI flag like any other, so passing it alongside the default `--model auto` would just apply the effort level to whatever model `auto` resolves to.\n\n## The discriminator\n\ncontrol: a call with --model auto and NO --effort flag completed normally, isolating the rejection to the flag pairing rather than to the CLI itself\nMeasured 2026-08-26: Copilot CLI's `--model auto` rejects `--effort` outright at runtime — `\"Model \\\"auto\\\" does not support reasoning effort configuration\"` — a real error hit on the first live end-to-end test through the dispatcher, not a hypothetical read from documentation. `copilot-delegate.sh` therefore emits `--effort` only when `[ \"$model\" != \"auto\" ]`.\n\n## Why it matters\n\n`route-task.py`'s `lane` field now reads `\"cheap\"`, not `\"grok\"` — the router decides whether work leaves Claude at all, never which CLI it lands on. `cheap-lane-delegate.sh --agent grok|copilot` is the layer that actually picks the coding agent, and the two agents' tier tables cannot share one row: Grok's model/effort/perspective come from the shared `substrate-tier-map.json`; Copilot's does not, because none of six guessed pinned model slugs validated as a real `--model` value against the installed CLI, and the only value confirmed to work (`auto`) is exactly the one that forbids `--effort`.\n\nFalsifier: a future Copilot CLI release accepting `--effort` together with `--model auto`.",
+      "body_md": "## What a reader would have assumed instead\n\nThat `--effort` is a Copilot CLI flag like any other, so passing it alongside the default `--model auto` would just apply the effort level to whatever model `auto` resolves to.\n\n## The discriminator\n\ncontrol: a call with --model auto and NO --effort flag completed normally, isolating the rejection to the flag pairing rather than to the CLI itself\nMeasured 2026-08-26: Copilot CLI's `--model auto` rejects `--effort` outright at runtime — `\"Model \\\"auto\\\" does not support reasoning effort configuration\"` — a real error hit on the first live end-to-end test through the dispatcher, not a hypothetical read from documentation. `copilot-delegate.sh` therefore emits `--effort` only when `[ \"$model\" != \"auto\" ]`.\n\n## Why it matters\n\n`route-task.py`'s `lane` field now reads `\"cheap\"`, not `\"grok\"` — the router decides whether work leaves Claude at all, never which CLI it lands on. `cheap-lane-delegate.sh --agent grok|copilot` is the layer that actually picks the coding agent, and the two agents' tier tables cannot share one row: Grok's model/effort/perspective come from the shared `substrate-tier-map.json`; Copilot's does not, because none of six guessed pinned model slugs validated as a real `--model` value against the installed CLI, and the only value confirmed to work (`auto`) is exactly the one that forbids `--effort`.\n\nFalsifier: a future Copilot CLI release accepting `--effort` together with `--model auto`.\n\n## UMM absorption (0.323.11)\n\nThe agent × model × effort × budget matrix is now also the **Unified Model Matrix**\nSSOT at [`../unified-model-matrix.json`](../unified-model-matrix.json). This concept\nentry keeps the Copilot `--effort` honesty discriminator; tier cell values live in\nthe UMM JSON. `cheap_lane.mode: off` still means inactive routing — Grok rows remain\nvisible in the matrix.",
       "diagram": null,
       "diagram_mini": null,
       "steps": [],
@@ -2952,7 +2952,7 @@
         "plugins/ravenclaude-core/scripts/route-task.py",
         "plugins/ravenclaude-core/skills/cheap-lane-delegation/SKILL.md"
       ],
-      "covers_digest": "sha256:1a2a9537db69a4cb1e7d6c80845cc159f75c00e67ca3d31fc7157eb525fdc677",
+      "covers_digest": "sha256:6c37b64584b9569fedf9c7c1f981d4a8d20d07a3897fea861e05e50405fba9bc",
       "nuance": "Copilot CLI's `--model auto` rejects `--effort` outright at runtime — a real error, not a doc gap — so the Copilot lane differentiates by timeout budget only unless a caller pins an effort-capable model.",
       "nuance_evidence": {
         "measured": "2026-08-26",
@@ -2998,7 +2998,7 @@
         "scripts/sync-plugin-versions.py",
         "scripts/generate-copilot-plugin.py"
       ],
-      "covers_digest": "sha256:e8485281fbd046e44662844d66b79a89c74340d9f82681a4de76201637f5d4b9",
+      "covers_digest": "sha256:ff7061e8997edf6f9e3bec9fe052eb90de6bc545d407b2586c6cc1b9f6b0dc12",
       "nuance": "The cache key is the `version` string, never a content hash, so `sync-plugin-versions.py` can report clean while every installed session keeps running the old `hooks/` code.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -3751,7 +3751,7 @@
           "url": "plugins/ravenclaude-core/hooks/precompact-digest.sh"
         }
       ],
-      "body_md": "## What a reader would have assumed instead\n\nThat a `PreCompact` archival hook calling a Python digest engine would run synchronously — wait for\nthe engine, then return — the same shape most hooks in this repo use for a short-lived call.\n\n## The discriminator\n\ncontrol: driven against a deliberately 3s-slow stub delegate — the hook returned in under 2000ms while\nthe digest file appeared only afterward, proving detachment structurally rather than assuming the real\npath happens to be fast.\n\nMeasured 2026-09-01: `precompact-digest.sh` backgrounds its engine call (`( _pcd_worker & )` inside a\nsubshell that itself exits immediately) rather than waiting on it. A prior synchronous design ran the\nengine under a 10s ceiling — far below the engine's own 60s/90s subprocess budgets — so on the real\npath no digest was ever produced, while any egress to an external processor had already happened\nbefore the reader was killed. The detached shape fixes both: this hook adds no ceiling of its own on\ntop of the engine's own internal timeouts, and it never blocks a turn regardless of how long extraction\ntakes.\n\n## Why it matters\n\nFalsifier: the hook blocking on the digest engine before returning.\n\nProbe: `plugins/ravenclaude-core/hooks/tests/test-gate254-precompact-digest.sh`\n\n`PreCompact` fires just before a session's context is summarized away — the same moment its own\ndigest engine is racing to read the untouched transcript. A hook that can block on that engine, even\nbriefly, risks becoming exactly the \"data left, no benefit arrived\" failure the P4 security review\nfound in the prior design: egress happens, but the digest the hook was supposed to produce never does,\nbecause the reader was killed first. Detachment removes that race by construction rather than by\ntuning a timeout.\n\n## Model-tier pin (0.323.10) + honesty bound\n\nWhen cheap-lane is unavailable, the Claude-orchestrate fallback pins `THING_MODEL` to\n**haiku** (or `model_tier_surfaces.precompact_fallback_model`, default haiku; comfort\noverride may raise to sonnet). It never inherits the live session model and never leaves\n`full` → orchestrate's sonnet default unset.\n\n**Honesty:** this fixes RavenClaude's **archival** PreCompact digest extraction only.\nClaude Code's **native auto-compact summarizer** still uses the **session model** until\nAnthropic ships an equivalent of `compactModel`. Do not claim that native path is fixed.",
+      "body_md": "## What a reader would have assumed instead\n\nThat a `PreCompact` archival hook calling a Python digest engine would run synchronously — wait for\nthe engine, then return — the same shape most hooks in this repo use for a short-lived call.\n\n## The discriminator\n\ncontrol: driven against a deliberately 3s-slow stub delegate — the hook returned in under 2000ms while\nthe digest file appeared only afterward, proving detachment structurally rather than assuming the real\npath happens to be fast.\n\nMeasured 2026-09-01: `precompact-digest.sh` backgrounds its engine call (`( _pcd_worker & )` inside a\nsubshell that itself exits immediately) rather than waiting on it. A prior synchronous design ran the\nengine under a 10s ceiling — far below the engine's own 60s/90s subprocess budgets — so on the real\npath no digest was ever produced, while any egress to an external processor had already happened\nbefore the reader was killed. The detached shape fixes both: this hook adds no ceiling of its own on\ntop of the engine's own internal timeouts, and it never blocks a turn regardless of how long extraction\ntakes.\n\n## Why it matters\n\nFalsifier: the hook blocking on the digest engine before returning.\n\nProbe: `plugins/ravenclaude-core/hooks/tests/test-gate254-precompact-digest.sh`\n\n`PreCompact` fires just before a session's context is summarized away — the same moment its own\ndigest engine is racing to read the untouched transcript. A hook that can block on that engine, even\nbriefly, risks becoming exactly the \"data left, no benefit arrived\" failure the P4 security review\nfound in the prior design: egress happens, but the digest the hook was supposed to produce never does,\nbecause the reader was killed first. Detachment removes that race by construction rather than by\ntuning a timeout.\n\n## Model-tier pin (0.323.10) + honesty bound\n\nWhen cheap-lane is unavailable, the Claude-orchestrate fallback pins `THING_MODEL` to\n**haiku** (or `model_matrix.surfaces.precompact_fallback (alias: model_tier_surfaces.precompact_fallback_model)`, default haiku; comfort\noverride may raise to sonnet). It never inherits the live session model and never leaves\n`full` → orchestrate's sonnet default unset.\n\n**Honesty:** this fixes RavenClaude's **archival** PreCompact digest extraction only.\nClaude Code's **native auto-compact summarizer** still uses the **session model** until\nAnthropic ships an equivalent of `compactModel`. Do not claim that native path is fixed.",
       "diagram": null,
       "diagram_mini": null,
       "steps": [],
@@ -3762,7 +3762,7 @@
         "plugins/ravenclaude-core/hooks/precompact-digest.sh",
         "plugins/ravenclaude-core/scripts/precompact-digest.py"
       ],
-      "covers_digest": "sha256:7f456e6cc41964dbc1ce0ca6db0fe27a1d2c00df43b1b9a3d340b016f3b1cc09",
+      "covers_digest": "sha256:f669b62a1bd05598ee27971e35c968d07dccab689570a7250fc170b199c9b866",
       "nuance": "The hook returns near-instantly even when its digest engine takes seconds: extraction runs as a detached, disowned worker the hook never waits on, so a digest (when one appears at all) shows up seconds after the hook process has already exited.",
       "nuance_evidence": {
         "measured": "2026-09-01",
@@ -3812,7 +3812,7 @@
         "plugins/ravenclaude-core/knowledge/agent-routing-matrix.schema.json",
         "plugins/ravenclaude-core/knowledge/agent-routing-matrix.md"
       ],
-      "covers_digest": "sha256:fad7ee4f8f9f21e697cccf1ab5722e73dc236c8beb5c5a6970383b69f306cc9b",
+      "covers_digest": "sha256:a6a9f2e1384fbc6dccf7d04da94f73685da15b2b9a898fda091e0db8d145023c",
       "nuance": "Deriving the ban-list from every leaf string in the cited files bans ordinary English words (the grok lane's own 'high'/'low'/'architect'/'scanner') and the source's own retrieval date -- contradicting the artifact's own citation requirement.",
       "nuance_evidence": {
         "measured": "2026-09-01",
@@ -4502,7 +4502,7 @@
         "plugins/ravenclaude-core/scripts/explore-tier-pin.py",
         "plugins/ravenclaude-core/hooks/tests/test-gate286-explore-tier-pin.sh"
       ],
-      "covers_digest": "sha256:7d4c2afd7f1498bba77879a0eb25341871b789d9a2477f29cc1999e2a4da0c36",
+      "covers_digest": "sha256:522a05cec00c8233175ed6079a42bba7b48d2e55f4aad7ca63e1e5d2fb4dec94",
       "nuance": "Same un-pinned `Explore` payload, same `haiku` knob: env `{}` yields an `updatedInput.model: haiku` envelope; env `{CLAUDE_CODE_SUBAGENT_MODEL: haiku}` yields `None`. Per-invocation `model` outranks the env var in Claude Code's resolution order, so a pin would have silently replaced the consumer's fleet-wide routing — the hook yields instead.",
       "nuance_evidence": {
         "measured": "2026-09-14",

@@ -5,6 +5,8 @@ Machine form: [`unified-model-matrix.json`](unified-model-matrix.json) (+ [`unif
 
 **Last reviewed:** 2026-09-16 · **Owner:** ravenclaude-core (domain-neutral).
 
+> **NOT `agent-routing-matrix`.** UMM answers *which tier × surface cell* (fast/balanced/top + archival pins + cheap-lane cells). Host/task-shape recommendations live in [`agent-routing-matrix.md`](agent-routing-matrix.md). Nav: [`routing-map.md`](routing-map.md).
+
 ## Claim
 
 There is **one** matrix. Today's cheap-lane **agent × model × effort × budget** cells are the canonical tier×agent table; on-Claude role→tier mapping and archival surface pins (PreCompact / handoff fill / Explore) are **rows on that matrix**, not parallel doctrines.
@@ -98,6 +100,8 @@ model_tier_surfaces:        # ALIAS one release → surfaces.*
 
 ## Related
 
+- [`routing-map.md`](routing-map.md) — four-row nav (spawn-team / agent-routing / agent-routing-matrix / UMM)  
+- [`agent-routing-matrix.md`](agent-routing-matrix.md) — host×task-shape matrix (**different Q**)  
 - [`substrate-tier-map.json`](substrate-tier-map.json) — Grok (+ FORGE) host rows  
 - [`model-tier-delegation.md`](model-tier-delegation.md) — stub pointer  
 - [`concepts/cheap-lane-agent-matrix.md`](concepts/cheap-lane-agent-matrix.md) — Copilot effort honesty  

@@ -2,6 +2,22 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.323.12 — 2026-09-16
+
+### Added
+- **Routing map** — `knowledge/routing-map.md` four-row nav: spawn-team → agent-routing → agent-routing-matrix → UMM. Brief pointer from `CLAUDE.md`.
+- **Handoff taxonomy glossary** — `knowledge/handoff-taxonomy.md` (mechanisms KEEP; `/compact` default vs `/handoff` earn-it).
+- **Guard stack diagram** — `knowledge/guard-stack.md` (Guardrails stack; floors KEEP; docs-only).
+
+### Changed
+- **R1 soak plan (aliases KEEP)** — comfort-posture template comments mark `model_tier_surfaces.*` + `handoff_tax.pin_explore` as **alias deprecated after soak**; Phase D seed drop later. New `model_matrix.surfaces.*` remains SSOT.
+- **Cheap-lane skill matrix** → UMM pointer; live-verified Copilot/Grok nuance retained (concept card KEEP).
+- **`concepts/forge.md`** thinned to one-screen dashboard card; gate depth cites `forge-pipeline` skill. `last_verified` → 2026-09-16.
+- **Boundary banners** — symmetric NOT-UMM / NOT-agent-routing-matrix on both matrix docs + routing-map Related.
+
+### Locks / honesty
+- Docs/templates only. **No** alias hard-delete. **No** Thing / `gate_floor` / `guard-destructive` weaken. **No** `cheap_lane` default on. **No** Chat∪CLI merge. **No** handoff mechanism collapse. No push/PR/BMA from PE.
+
 ## 0.323.11 — 2026-09-16
 
 ### Added
