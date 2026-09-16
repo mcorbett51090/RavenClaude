@@ -2,6 +2,16 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.18.3] — 2026-09-15
+
+### Fixed
+
+- **`web-anti-patterns-exit-code-guidance`** — `hooks/check-web-anti-patterns.sh`'s comment and runtime
+  banner told a maintainer to change `exit 0` to `exit 1` to BLOCK on a violation, but Claude Code's
+  PreToolUse contract only blocks on `exit 2` (`exit 1` is a non-blocking error it silently swallows),
+  so following it gave false enforcement. Now documents and implements the sibling convention: set
+  `WEB_DESIGN_STRICT=1` to block via `exit 2`.
+
 ## [0.16.3] — 2026-09-01
 
 ### Added

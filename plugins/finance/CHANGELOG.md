@@ -2,6 +2,23 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.18.8] — 2026-09-15
+
+### Fixed
+
+- **`scan-placeholder-first-match-only`** — completes the `b61` fix below. `hooks/scan-finance-secrets.sh`
+  scoped the placeholder check to the matched span, but inspected only the FIRST match on a line
+  (`grep -oE … | head -n1`), so a documented placeholder value sharing a line with a genuine secret for
+  the same rule still masked it (a realistic false-negative in CSV/JSON records with several values per
+  line, including the `--ci` merge gate). Now every matched span on the line is checked; the line is
+  suppressed only when ALL spans are placeholder-shaped. Added two regression tests to
+  `scripts/test_secrets_gate.py` (now 15/15).
+- **`flag-finance-exit-code-guidance`** — `hooks/flag-finance-anti-patterns.sh`'s comment and runtime
+  banner told a maintainer to change `exit 0` to `exit 1` to BLOCK on a sensitive engagement, but
+  Claude Code's PreToolUse contract only blocks on `exit 2` (`exit 1` is a non-blocking error it
+  silently swallows) — following it gave false enforcement. Now documents and implements the sibling
+  convention: set `FINANCE_STRICT=1` to block via `exit 2`.
+
 ## [0.18.6] — 2026-09-10
 
 ### Fixed
