@@ -1906,7 +1906,7 @@ PY
       exit $?
       ;;
     211)
-      echo "── Gate 211: resolve-plugin-root three-file conjunct (per-gate run) ──"
+      echo "── Gate 211: resolve-plugin-root five-file conjunct (per-gate run) ──"
       bash plugins/ravenclaude-core/scripts/resolve-plugin-root.sh --self-test && \
         env -u CLAUDE_PLUGIN_ROOT -u PLUGIN_ROOT \
           bash plugins/ravenclaude-core/scripts/resolve-plugin-root.sh >/dev/null
@@ -8686,19 +8686,19 @@ gate "generated-gate-state teeth: a planted stale phrase IS caught" must_fail "$
 rc_is_2=0; [ "$rc" -eq 2 ] || rc_is_2=1
 gate "generated-gate-state teeth: planted phrase exits 2 (not 1)" must_pass "$rc_is_2"
 
-echo "── Gate 211: resolve-plugin-root three-file conjunct ──"
-# FORGE helpers (forge-route / forge-worktree / premise-gate) resolve without
-# CLAUDE_PLUGIN_ROOT. A partial set is exit 2 — never a 1-of-3 "routing exists"
+echo "── Gate 211: resolve-plugin-root five-file conjunct ──"
+# FORGE helpers (route / worktree / premise / receipt / publish) resolve without
+# CLAUDE_PLUGIN_ROOT. A partial set is exit 2 — never a 1-of-N "routing exists"
 # split. ⛔ Registered in BOTH this main sequence AND the --check dispatcher
 # above + the Supported: string. After adding a gate, run the full suite and
 # GREP ITS OUTPUT FOR "211".
 rc=0; bash plugins/ravenclaude-core/scripts/resolve-plugin-root.sh --self-test >/dev/null 2>&1 || rc=$?
-gate "resolve-plugin-root: --self-test (6 fixtures)" must_pass "$rc"
+gate "resolve-plugin-root: --self-test (8 fixtures)" must_pass "$rc"
 rc=0; env -u CLAUDE_PLUGIN_ROOT -u PLUGIN_ROOT \
   bash plugins/ravenclaude-core/scripts/resolve-plugin-root.sh >/dev/null 2>&1 || rc=$?
 gate "resolve-plugin-root: this checkout with CLAUDE_PLUGIN_ROOT unset" must_pass "$rc"
 
-# Teeth: delete the three-file conjunct; --self-test must then fail (the
+# Teeth: delete the five-file conjunct; --self-test must then fail (the
 # missing-one and cp -r fixtures go green without it).
 _g211_tmp="$(mktemp -d)"
 cp plugins/ravenclaude-core/scripts/resolve-plugin-root.sh "$_g211_tmp/resolve-plugin-root.sh"
@@ -8710,11 +8710,14 @@ import sys
 p = Path(sys.argv[1])
 t = p.read_text()
 old = """_has_three() {
+  # Name kept for call-site stability; checks FIVE helpers (AppEng P1).
   local root="${1:-}"
   [ -n "$root" ] || return 1
   [ -f "$root/scripts/forge-route.py" ] || return 1
   [ -f "$root/scripts/forge-worktree.sh" ] || return 1
   [ -f "$root/scripts/premise-gate.py" ] || return 1
+  [ -f "$root/scripts/forge-receipt.py" ] || return 1
+  [ -f "$root/scripts/forge-publish-session-plan.sh" ] || return 1
   return 0
 }"""
 new = """_has_three() {
@@ -8725,7 +8728,7 @@ if old not in t:
 p.write_text(t.replace(old, new, 1))
 PY
 rc=0; bash "$_g211_tmp/resolve-plugin-root.sh" --self-test >/dev/null 2>&1 || rc=$?
-gate "resolve-plugin-root teeth: deleting the three-file conjunct fails --self-test" must_fail "$rc"
+gate "resolve-plugin-root teeth: deleting the five-file conjunct fails --self-test" must_fail "$rc"
 rm -rf "$_g211_tmp"
 
 echo "── Gate 212: handoff-nudge — Stop detector, derived values only ─"

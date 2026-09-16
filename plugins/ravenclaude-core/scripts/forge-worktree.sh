@@ -19,7 +19,7 @@
 # ravenclaude-core CLAUDE.md "macOS door" milestones.
 #
 # Usage:
-#   forge-worktree.sh init  <slug> [--base <ref>] [--no-fetch]
+#   forge-worktree.sh init  <slug> [--base <ref>] [--no-fetch] [--required]
 #                                                   provision (or reuse) the worktree
 #   forge-worktree.sh checkpoint <slug> <label>     commit tracked work as a checkpoint
 #   forge-worktree.sh path  <slug>                  print the worktree path (or nothing)
@@ -41,14 +41,57 @@ WT_FETCH="on"
 
 # --- tiny helpers -----------------------------------------------------------
 
-# Emit a one-line JSON receipt on stdout. All values are pre-sanitized/simple.
+# Emit a one-line JSON receipt on stdout via json.dumps (AppSec F4).
 _receipt() {
   # $1=status $2=path $3=branch $4=slug $5=reason(optional)
   # $6=base(optional)  $7=behind(optional — commits the base is behind origin/main)
-  # Fields 6-7 are ADDITIVE: every pre-existing call site passes 4-5 args and gets
-  # empty strings, so the receipt shape stays backward-compatible.
-  printf '{"status":"%s","path":"%s","branch":"%s","slug":"%s","reason":"%s","base":"%s","behind":"%s"}\n' \
-    "${1:-}" "${2:-}" "${3:-}" "${4:-}" "${5:-}" "${6:-}" "${7:-}"
+  python3 -c '
+import json, sys
+keys = ("status", "path", "branch", "slug", "reason", "base", "behind")
+vals = list(sys.argv[1:8])
+while len(vals) < 7:
+    vals.append("")
+print(json.dumps(dict(zip(keys, vals)), separators=(",", ":")))
+' "${1:-}" "${2:-}" "${3:-}" "${4:-}" "${5:-}" "${6:-}" "${7:-}"
+}
+
+# Sanitize checkpoint label to [A-Za-z0-9 _.-] (AppSec F4).
+_sanitize_label() {
+  python3 -c '
+import re, sys
+s = sys.argv[1] if len(sys.argv) > 1 else ""
+s = re.sub(r"[^A-Za-z0-9 _.-]", "", s)
+s = re.sub(r"[ \t]+", " ", s).strip()
+print(s[:120] if s else "checkpoint")
+' "${1:-checkpoint}"
+}
+
+# Allowlisted base refs unless FORGE_WORKTREE_BASE_ANY=1 (AppSec F5).
+_BASE_ALLOWLIST='^(origin/main|origin/master|main|master|HEAD)$'
+_base_allowed() {
+  local req="$1"
+  if [ -z "$req" ]; then
+    return 0
+  fi
+  # Absolute / parent / backslash / colon refs are never allowed (even with opt-in).
+  case "$req" in
+    /*|*..*|*\*|*:*) return 1 ;;
+  esac
+  case "$req" in
+    .|/*|*/./*|*/../*) return 1 ;;
+  esac
+  # Allowlist wins for origin/main etc. (contains `/` by design).
+  if printf '%s' "$req" | grep -Eq "$_BASE_ALLOWLIST"; then
+    return 0
+  fi
+  if [ "${FORGE_WORKTREE_BASE_ANY:-}" = "1" ]; then
+    # Still reject path-like oddities under opt-in.
+    if printf '%s' "$req" | grep -Eq '(^\.|/\.\.|\)'; then
+      return 1
+    fi
+    return 0
+  fi
+  return 1
 }
 
 _is_git_repo() {
@@ -143,8 +186,15 @@ _maybe_fetch() {
 _resolve_base() {
   # $1 = requested base (may be empty)
   local req="$1"
-  if [ -n "$req" ] && git rev-parse --verify --quiet "$req" >/dev/null 2>&1; then
-    echo "$req"; return 0
+  if [ -n "$req" ]; then
+    if ! _base_allowed "$req"; then
+      echo ""  # signal reject to caller
+      return 1
+    fi
+    if git rev-parse --verify --quiet "$req" >/dev/null 2>&1; then
+      echo "$req"; return 0
+    fi
+    echo ""; return 1
   fi
   _maybe_fetch
   if git rev-parse --verify --quiet "refs/remotes/origin/main" >/dev/null 2>&1; then
@@ -175,22 +225,43 @@ _behind_origin_main() {
 cmd_init() {
   local slug="${1:-}"; shift || true
   local base=""
+  local required=0
+  if [ "${FORGE_WORKTREE:-}" = "required" ]; then
+    required=1
+  fi
   while [ "$#" -gt 0 ]; do
     case "$1" in
-      --base) base="${2:-}"; shift 2 || shift ;;
+      --base)
+        if [ "$#" -lt 2 ]; then
+          echo "forge-worktree.sh: --base requires a value" >&2
+          return 2
+        fi
+        base="$2"; shift 2 ;;
       --base=*) base="${1#--base=}"; shift ;;
       --no-fetch) WT_FETCH="off"; shift ;;
-      *) shift ;;
+      --required) required=1; shift ;;
+      *)
+        echo "forge-worktree.sh: unknown flag: $1" >&2
+        return 2 ;;
     esac
   done
 
   if ! printf '%s' "$slug" | grep -Eq "$SLUG_RE"; then
     _receipt "skipped" "" "" "$slug" "invalid-slug"
+    if [ "$required" -eq 1 ]; then
+      echo "forge-worktree.sh: REQUIRED but invalid-slug" >&2
+      return 2
+    fi
     return 0
   fi
 
-  # Guard 1: opt-out.
+  # Guard 1: opt-out (FORGE_WORKTREE=off). required mode cannot be off.
   if [ "$(_worktree_mode)" = "off" ]; then
+    if [ "$required" -eq 1 ]; then
+      _receipt "skipped" "" "" "$slug" "required-but-disabled"
+      echo "forge-worktree.sh: FORGE_WORKTREE=required but kill-switch is off" >&2
+      return 2
+    fi
     _receipt "disabled" "" "" "$slug" "opted-out"
     return 0
   fi
@@ -198,12 +269,20 @@ cmd_init() {
   # Guard 2: not a git repo — nothing to isolate. Proceed in place.
   if ! _is_git_repo; then
     _receipt "skipped" "" "" "$slug" "not-a-git-repo"
+    if [ "$required" -eq 1 ]; then
+      echo "forge-worktree.sh: REQUIRED provision failed (not-a-git-repo)" >&2
+      return 2
+    fi
     return 0
   fi
 
   # Guard 3: already inside a linked worktree — do NOT nest.
   if _in_linked_worktree; then
     _receipt "skipped" "" "" "$slug" "already-in-worktree"
+    if [ "$required" -eq 1 ]; then
+      echo "forge-worktree.sh: REQUIRED provision failed (already-in-worktree)" >&2
+      return 2
+    fi
     return 0
   fi
 
@@ -211,6 +290,10 @@ cmd_init() {
   top="$(_repo_toplevel)"
   if [ -z "$top" ]; then
     _receipt "skipped" "" "" "$slug" "no-toplevel"
+    if [ "$required" -eq 1 ]; then
+      echo "forge-worktree.sh: REQUIRED provision failed (no-toplevel)" >&2
+      return 2
+    fi
     return 0
   fi
   wt_abs="${top}/${WT_ROOT_REL}/forge-${slug}"
@@ -240,7 +323,15 @@ cmd_init() {
   fi
 
   local resolved_base
-  resolved_base="$(_resolve_base "$base")"
+  if [ -n "$base" ]; then
+    if ! resolved_base="$(_resolve_base "$base")"; then
+      _receipt "skipped" "" "" "$slug" "base-ref-rejected"
+      echo "forge-worktree.sh: --base not allowlisted (origin/main|origin/master|main|master|HEAD) or invalid; set FORGE_WORKTREE_BASE_ANY=1 to opt in: $base" >&2
+      return 2
+    fi
+  else
+    resolved_base="$(_resolve_base "")"
+  fi
 
   # Create the worktree. Reuse the branch if it already exists (checkout it),
   # else create it off the resolved base. Any failure is fail-safe (skip).
@@ -257,6 +348,10 @@ cmd_init() {
   fi
 
   _receipt "skipped" "" "$branch" "$slug" "git-worktree-add-failed"
+  if [ "$required" -eq 1 ]; then
+    echo "forge-worktree.sh: REQUIRED but git-worktree-add-failed" >&2
+    return 2
+  fi
   return 0
 }
 
@@ -299,16 +394,33 @@ cmd_checkpoint() {
     return 0
   fi
 
-  # Stage everything in the worktree. Nothing tracked-and-changed ⇒ no-op.
-  git -C "$wt_abs" add -A >/dev/null 2>&1 || true
+  # AppSec F7: refuse unbounded `git add -A` when secret-shaped paths are present.
+  # Dry-run secret globs; stage with pathspecs excluding common secret names.
+  local secret_hit
+  secret_hit="$(git -C "$wt_abs" ls-files -co --exclude-standard 2>/dev/null | grep -E '(^|/)(\.env|\.env\..*|.*\.pem|.*\.key|id_rsa|id_ed25519|credentials\.json|secrets?\.ya?ml)(/|$)' || true)"
+  if [ -n "$secret_hit" ]; then
+    _receipt "skipped" "$wt_abs" "$branch" "$slug" "secret-glob-blocked"
+    echo "forge-worktree.sh: checkpoint refused — secret-shaped paths present:" >&2
+    printf '%s\n' "$secret_hit" >&2
+    return 2
+  fi
+  # After secret-glob dry-run refuse, stage with add -A plus exclude pathspecs
+  # (F7: never unbounded add -A *without* secret dry-run / pathspecs).
+  git -C "$wt_abs" add -A -- . \
+    ':(exclude).env' ':(exclude).env.*' ':(exclude)*/.env' ':(exclude)*/.env.*' \
+    ':(exclude)*.pem' ':(exclude)*.key' \
+    ':(exclude)id_rsa' ':(exclude)id_ed25519' \
+    ':(exclude)credentials.json' \
+    ':(exclude)secrets.yml' ':(exclude)secrets.yaml' \
+    ':(exclude)*/secrets.yml' ':(exclude)*/secrets.yaml' \
+    >/dev/null 2>&1 || true
   if git -C "$wt_abs" diff --cached --quiet 2>/dev/null; then
     _receipt "noop" "$wt_abs" "$branch" "$slug" "nothing-to-commit"
     return 0
   fi
 
-  # Newline-strip the label so the commit subject is always one line.
   local safe_label
-  safe_label="$(printf '%s' "$label" | tr '\n\r' '  ')"
+  safe_label="$(_sanitize_label "$label")"
   if git -C "$wt_abs" commit -m "forge(${slug}): checkpoint — ${safe_label}" >/dev/null 2>&1; then
     _receipt "committed" "$wt_abs" "$branch" "$slug" "$safe_label"
     return 0
@@ -487,8 +599,46 @@ cmd_self_test() {
     [ "$wsha" = "$lsha" ] || exit 42
   ) || _st_fail "explicit --base did not win / behind-count wrong ($?)"
 
+  # Fixture 12 (F4): JSON metacharacters in label do not break receipt.
+  (
+    cd "$repo"
+    echo "more" >> ".claude/worktrees/forge-alpha/plan.md"
+    out="$(bash "$script_abs" checkpoint alpha 'lab"el\broken' 2>/dev/null)"
+    printf '%s' "$out" | python3 -c 'import sys,json; json.loads(sys.stdin.readline())' || exit 50
+    printf '%s' "$out" | grep -q '"status":' || exit 51
+  ) || _st_fail "JSON metachar label broke receipt ($?)"
+
+  # Fixture 13 (F5): --base path-like / odd ref rejected without opt-in.
+  (
+    cd "$repo"
+    bash "$script_abs" init evilbase --base '../evil' >/dev/null 2>&1
+    rc=$?
+    [ "$rc" -eq 2 ] || exit 52
+    bash "$script_abs" init evilbase2 --base 'refs/remotes/origin/main' >/dev/null 2>&1
+    rc=$?
+    [ "$rc" -eq 2 ] || exit 53
+  ) || _st_fail "--base allowlist did not reject ($?)"
+
+  # Fixture 14: unknown flag → exit 2.
+  (
+    cd "$repo"
+    bash "$script_abs" init zzz --bogus >/dev/null 2>&1
+    rc=$?
+    [ "$rc" -eq 2 ] || exit 54
+  ) || _st_fail "unknown flag was not exit 2 ($?)"
+
+  # Fixture 15 (F7): secret-glob blocks checkpoint (no unbounded add -A).
+  (
+    cd "$repo"
+    printf 'SECRET=1\n' > ".claude/worktrees/forge-alpha/.env"
+    bash "$script_abs" checkpoint alpha 'with-secret' >/dev/null 2>&1
+    rc=$?
+    [ "$rc" -eq 2 ] || exit 55
+    rm -f ".claude/worktrees/forge-alpha/.env"
+  ) || _st_fail "secret-glob checkpoint block failed ($?)"
+
   if [ "$ST_RC" -eq 0 ]; then
-    echo "SELF-TEST PASS: forge-worktree.sh (11 fixtures)"
+    echo "SELF-TEST PASS: forge-worktree.sh (15 fixtures)"
   fi
   return "$ST_RC"
 }

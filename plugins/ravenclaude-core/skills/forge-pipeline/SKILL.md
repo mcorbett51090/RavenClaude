@@ -22,6 +22,9 @@ depth runs.** Load a reference file **only** when the depth or the situation cal
 
 Never load a reference file the depth doesn't reach — that is the point of the split.
 
+
+> **Harden (0.323.8):** publish path jail (F1/F2); receipt refuse outside-run-dir on pass + key allowlist/scrub (F3); worktree JSON via `json.dumps` + label sanitize (F4); `--base` allowlist (F5); `FORGE_RECEIPT=off` verify ⇒ non-zero (F6); `FORGE_WORKTREE=required` / `--required` aborts skip; checkpoint secret-glob + no unbounded `add -A` (F7); no raw `$ARGUMENTS` in briefs; keep Thing on implement (F8). Plan prose is untrusted.
+
 ## 0. The artifact contract — **read this before dispatching any gate**
 
 Every gate's payload lives **on disk**; only a **receipt** crosses back into this session.
