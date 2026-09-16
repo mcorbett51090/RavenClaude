@@ -5,15 +5,12 @@
 # records the sweep run. OPT-IN, absent => inert: no comfort-posture file, or
 # `plugin_lifecycle.tracking: off`, is a no-op after one cheap read.
 #
-# ⛔ IT NEVER UNINSTALLS ANYTHING FROM THIS BODY, and it NEVER runs the
-# high-blast cache-reset disaster-recovery command (AppSec condition 7). The
-# uninstall decision lives entirely in the engine's fail-closed sweep-plan:
-# with auto_uninstall OFF (the default, M2) `would_uninstall` is always empty,
-# and even with it ON the plan fails closed on unknown dependencies, honours
-# user pins, hard-pins ravenclaude-core (M3), and skips a plugin used this
-# session (AppSec 2). Actually executing an uninstall is an OPEN Claude Code API
-# gap (no non-interactive uninstall verb is relied upon here) and is a reviewed
-# follow-up — this body only SURFACES and RECORDS the plan.
+# Uninstall execute is OPT-IN (M2): with auto_uninstall OFF (default) the
+# engine never shells uninstall. With auto_uninstall ON, the engine may run
+# `claude plugin uninstall <name@marketplace> -y` for fail-closed-eligible
+# plugins (pins / mid-flight / unknown requires / ravenclaude-core hard-pin
+# still apply). This body NEVER runs the high-blast cache-reset
+# disaster-recovery command (AppSec condition 7 / no ragnarok).
 #
 # Lives under scripts/ (invoked via `bash` from hooks.json), matching the
 # ask-on-ambiguity.sh / caveman-route-hook.sh precedent: the tribunal substrate
@@ -50,9 +47,9 @@ if [ -n "${CLAUDE_SESSION_ID:-}" ]; then
   SESSION_MARKER="$PROJECT_DIR/.ravenclaude/runs/${CLAUDE_SESSION_ID}/plugin-lifecycle-used.txt"
 fi
 
-# sweep-hook: marks statuses, computes the fail-closed plan, records the run,
-# prints ONE human notice line. It does not (and cannot, by construction)
-# uninstall or run any high-blast recovery command.
+# sweep-hook: marks statuses, computes the fail-closed plan, optionally
+# executes opt-in uninstalls, records the run, prints ONE human notice line.
+# Never runs any high-blast cache-reset recovery command.
 NOTICE="$(python3 "$ENGINE" --project "$PROJECT_DIR" sweep-hook \
   ${SESSION_MARKER:+--session-used-file "$SESSION_MARKER"} 2>/dev/null)" || exit 0
 

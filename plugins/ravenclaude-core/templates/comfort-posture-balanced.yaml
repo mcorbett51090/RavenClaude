@@ -58,7 +58,7 @@ worktree_bound: block
 # Plugin lifecycle (per-project last-used ledger). After P1, tracking defaults
 # ON whenever this posture file exists (M7). Dangerous verbs stay OFF:
 #   auto_uninstall: off   (absent ⇒ off; M2)
-#   auto_install: off     (off | ask only; `auto` is NO-SHIP v1 / coerced off; M5)
+#   auto_install: off     (off | ask | auto; absent/unknown => off; auto only when explicit; M5 follow-on)
 # unused_days: 90 (M1). ravenclaude-core is never auto-removed (M3).
 # Ledger: .ravenclaude/plugin-lifecycle.json (gitignored, M6).
 # plugin_lifecycle:

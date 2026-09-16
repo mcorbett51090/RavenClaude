@@ -14,6 +14,8 @@
 #   MID    a plugin used THIS session (mid-flight) is skipped (AppSec #2)
 #   ASK    ask-install: off => CTA; ask + cited need => confirm; ask, no
 #          citation => CTA (AppSec #6, no empty-cited install)
+#   AUTO   auto_install: auto honored when explicit; uncited => CTA; garbage => off
+#   EXEC   auto_uninstall ON + mock CLI => uninstall -y invoked; OFF => never
 #   ALLOW  allowlist rejects a non-ravenclaude marketplace / bad install path (M4)
 #   NORG   the sweep hook body NEVER references the cache-reset DR command (#7)
 #   JAIL   a symlinked .ravenclaude / ledger is refused (path jail, no escape)
@@ -193,13 +195,99 @@ PY --project "$p" allowlist-check --plugin finance --marketplace ravenclaude --i
 rc=$?
 [ "$rc" -eq 3 ] && pass "ALLOW ravenclaude + non-cache path rejected (AppSec #4)" || fail "ALLOW bad install path not rejected (rc=$rc)"
 
-# ── NORG: the sweep hook body never references the cache-reset DR command (#7)─
+# ── AUTO: auto_install: auto honored when explicit (M5 follow-on) ─────────────
+p="$(mk_project autoexplicit on off auto '[]')"
+mode="$(PY --project "$p" posture-get | json_get "['auto_install']")"
+[ "$mode" = "auto" ] && pass "AUTO posture honors explicit auto_install: auto" || fail "AUTO posture got '$mode' (expected auto)"
+
+out="$(PY --project "$p" ask-install --plugin finance --need "user asked for finance memo" --json)"
+mode="$(printf '%s' "$out" | json_get "['mode']")"
+conf="$(printf '%s' "$out" | json_get "['confirm_required']")"
+[ "$mode" = "auto" ] && [ "$conf" = "False" ] && pass "AUTO cited need => mode auto (no confirm)" || fail "AUTO cited got mode=$mode conf=$conf"
+
+mode="$(PY --project "$p" ask-install --plugin finance --json | json_get "['mode']")"
+[ "$mode" = "cta" ] && pass "AUTO uncited need => CTA (AppSec #6)" || fail "AUTO uncited got mode '$mode'"
+
+# garbage value still coerced off
+p="$(mk_project autogarbage on off weird '[]')"
+mode="$(PY --project "$p" posture-get | json_get "['auto_install']")"
+[ "$mode" = "off" ] && pass "AUTO unknown posture value => off" || fail "AUTO garbage got '$mode'"
+
+# ── EXEC: uninstall execute only when auto_uninstall ON (mock CLI) ───────────
+MOCK_U="$TMP/mock-claude-uninstall.sh"
+cat >"$MOCK_U" <<'MOCKEOF'
+#!/usr/bin/env bash
+printf '%s\n' "$*" >>"${PLUGIN_LIFECYCLE_MOCK_LOG}"
+exit 0
+MOCKEOF
+chmod +x "$MOCK_U"
+
+p="$(mk_project execoff on off off '[]')"
+PY --project "$p" seed --plugins finance --installed-at "$OLD_TS" >/dev/null
+LOG="$TMP/exec-off.log"
+: >"$LOG"
+env PLUGIN_LIFECYCLE_CLAUDE="$MOCK_U" PLUGIN_LIFECYCLE_MOCK_LOG="$LOG" \
+  python3 "$ENGINE" --project "$p" sweep-hook --now "$NOW_TS" --assume-no-deps >/dev/null
+if [ ! -s "$LOG" ]; then
+  pass "EXEC-OFF auto_uninstall OFF => mock CLI never invoked"
+else
+  fail "EXEC-OFF mock CLI was invoked: $(cat "$LOG")"
+fi
+
+p="$(mk_project exeon on on off '[]')"
+PY --project "$p" seed --plugins finance --installed-at "$OLD_TS" >/dev/null
+LOG="$TMP/exec-on.log"
+: >"$LOG"
+env PLUGIN_LIFECYCLE_CLAUDE="$MOCK_U" PLUGIN_LIFECYCLE_MOCK_LOG="$LOG" \
+  python3 "$ENGINE" --project "$p" sweep-hook --now "$NOW_TS" --assume-no-deps >/dev/null
+if grep -q 'plugin uninstall finance@ravenclaude -y' "$LOG" 2>/dev/null; then
+  pass "EXEC-ON auto_uninstall ON => mock CLI got plugin uninstall … -y"
+else
+  fail "EXEC-ON missing uninstall argv (log=$(cat "$LOG" 2>/dev/null))"
+fi
+executed="$(PY --project "$p" list --json | python3 -c "import json,sys;d=json.load(sys.stdin);a=d.get('sweep',{}).get('last_actions',[]);print(any(x.get('executed') for x in a))")"
+[ "$executed" = "True" ] && pass "EXEC-ON ledger records executed:true" || fail "EXEC-ON ledger executed=$executed"
+
+# plan-only flag suppresses execute even when ON
+p="$(mk_project execplan on on off '[]')"
+PY --project "$p" seed --plugins finance --installed-at "$OLD_TS" >/dev/null
+LOG="$TMP/exec-plan.log"
+: >"$LOG"
+env PLUGIN_LIFECYCLE_CLAUDE="$MOCK_U" PLUGIN_LIFECYCLE_MOCK_LOG="$LOG" \
+  python3 "$ENGINE" --project "$p" sweep-hook --now "$NOW_TS" --assume-no-deps --plan-only >/dev/null
+if [ ! -s "$LOG" ]; then
+  pass "EXEC plan-only flag => no CLI invoke even when auto_uninstall ON"
+else
+  fail "EXEC plan-only still invoked CLI: $(cat "$LOG")"
+fi
+
+# AUTO execute with mock
+p="$(mk_project autoexecon on off auto '[]')"
+LOG="$TMP/auto-exec.log"
+: >"$LOG"
+out="$(env PLUGIN_LIFECYCLE_CLAUDE="$MOCK_U" PLUGIN_LIFECYCLE_MOCK_LOG="$LOG" \
+  python3 "$ENGINE" --project "$p" ask-install --plugin finance --need "cited" --execute --json)"
+mode="$(printf '%s' "$out" | json_get "['mode']")"
+ex="$(printf '%s' "$out" | python3 -c "import json,sys;d=json.load(sys.stdin);print(d.get('execution',{}).get('executed'))")"
+if [ "$mode" = "auto" ] && [ "$ex" = "True" ] && grep -q 'plugin install finance@ravenclaude -y' "$LOG"; then
+  pass "AUTO --execute => mock CLI plugin install … -y"
+else
+  fail "AUTO --execute failed (mode=$mode ex=$ex log=$(cat "$LOG" 2>/dev/null))"
+fi
+
+# ── NORG: sweep must never INVOKE cache-reset DR / ragnarok (#7) ──────────────
 if [ -f "$SWEEP" ]; then
-  # needle deliberately carries no '--execute' token (would trip the DR concern)
-  if grep -Eiq 'ragnarok|reset-plugin-cache' "$SWEEP"; then
-    fail "NORG sweep body references the cache-reset DR command (AppSec #7 violated)"
+  live="$(grep -Ev '^[[:space:]]*#' "$SWEEP" | grep -Ei 'ragnarok|reset-plugin-cache' || true)"
+  if [ -n "$live" ]; then
+    fail "NORG sweep body invokes cache-reset DR / ragnarok (AppSec #7): $live"
   else
-    pass "NORG sweep body has zero cache-reset DR references (AppSec #7)"
+    pass "NORG sweep has no live cache-reset/ragnarok invocation (AppSec #7)"
+  fi
+  # Engine may mention refuse tokens in helpers; must not build DR argv for exec.
+  if grep -E 'argv.*=.*\[.*reset-plugin-cache|plugin", "uninstall".*ragnarok|reset-plugin-cache.py' "$ENGINE" >/dev/null; then
+    fail "NORG engine builds cache-reset/ragnarok argv"
+  else
+    pass "NORG engine does not build cache-reset/ragnarok argv"
   fi
 else
   fail "NORG sweep hook body missing at $SWEEP"

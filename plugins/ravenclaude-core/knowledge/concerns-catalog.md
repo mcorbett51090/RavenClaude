@@ -227,7 +227,8 @@ cross_cutting:
       or an equivalent shell that mutates the plugin cache). After reload, the
       installed plugin's hooks and skills become code execution surface. Empty-cited
       agent installs are forbidden; v1 allowlist is the `ravenclaude` marketplace
-      only, and `auto_install: auto` is NO-SHIP. Prefer ask-first confirm or the
+      only. `auto_install: auto` is opt-in (explicit posture only; absent => off)
+      and still requires a cited need. Prefer ask-first confirm or the
       Bifröst copy-paste wizard (which never executes). Do not bypass
       guard-destructive patterns or launder the install via an EDIT past gate_floor.
     resolution: >-
@@ -249,9 +250,10 @@ cross_cutting:
     resolution: >-
       Skip uninstall when auto_uninstall is off, when the plugin is pinned or is
       ravenclaude-core, when requires/transitive deps are unknown, or when the
-      plugin was used this session. Prefer deprecate notice over uninstall.
-      Remind `/reload-plugins` after any user-approved uninstall. Never invoke
-      ragnarok / reset-plugin-cache --execute from a sweep.
+      plugin was used this session. When auto_uninstall is explicitly ON, the
+      sweep may run `claude plugin uninstall <name@marketplace> -y` (fail-soft).
+      Prefer deprecate notice when OFF. Remind `/reload-plugins` after uninstall.
+      Never invoke ragnarok / reset-plugin-cache --execute from a sweep.
     judgment_only: true
   - id: xc.ragnarok-non-user-invocation
     name: Command would execute a plugin-cache reset (Ragnarök) by shelling its script

@@ -2743,7 +2743,7 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-09-15",
+      "last_verified": "2026-09-16",
       "refresh_when": "Telemetry signals, unused_days default, auto_uninstall/auto_install defaults, or the core hard-pin change.",
       "sources": [
         {
@@ -2751,7 +2751,7 @@
           "url": "plugins/ravenclaude-core/scripts/plugin-lifecycle.py"
         }
       ],
-      "body_md": "## What a reader would have assumed instead\n\nA SessionStart sweep that uninstalls unused plugins by default, or an auto-install\npath that quietly pulls marketplace packages without ask — and that presence in the\ninstalled list counts as \"used.\"\n\n## The discriminator\n\ncontrol: `bash plugins/ravenclaude-core/hooks/tests/test-plugin-lifecycle.sh` (28 pass).\nMeasured 2026-09-15: with `auto_uninstall` OFF the sweep records a plan with\n`executed: false` and zero uninstalls; `auto_install: auto` is coerced OFF; core is\nhard-pinned (MF teeth: neutering `is_core_key` is what makes core uninstallable).\n\n## Why it matters\n\nDefaults OFF + plan-only uninstall keep the surface opt-in. Ask-first ravenclaude-only\ninstall and `/reload-plugins` before usable close the empty-cited and cache-path\nAppSec locks. Copilot `-p` and Cursor SessionStart caveats stay honest — no slash\nparity claim.\n\nFalsifier: sweep shells uninstall or cache-reset DR, `auto` installs without ask, or\ncore lands in `would_uninstall`.\n\nProbe: `plugins/ravenclaude-core/hooks/tests/test-plugin-lifecycle.sh`.",
+      "body_md": "## What a reader would have assumed instead\n\nA SessionStart sweep that uninstalls unused plugins when defaults stay OFF-violating, or an auto-install\npath that quietly pulls marketplace packages without ask — and that presence in the\ninstalled list counts as \"used.\"\n\n## The discriminator\n\ncontrol: `bash plugins/ravenclaude-core/hooks/tests/test-plugin-lifecycle.sh` (28 pass).\nMeasured 2026-09-16: with `auto_uninstall` OFF the sweep makes zero uninstall CLI\ncalls; with ON + mock CLI it records executed uninstalls via `claude plugin\nuninstall -y`. `auto_install: auto` is honored only when explicit (absent => off);\nuncited auto stays CTA. Core is hard-pinned (MF teeth).\n\n## Why it matters\n\nDefaults OFF + opt-in execute/auto keep the surface careful. Ask-first ravenclaude-only\ninstall and `/reload-plugins` before usable close the empty-cited and cache-path\nAppSec locks. Copilot `-p` and Cursor SessionStart caveats stay honest — no slash\nparity claim.\n\nFalsifier: sweep shells uninstall when OFF, cache-reset DR, `auto` installs without\ncited need, or core lands in `would_uninstall`.\n\nProbe: `plugins/ravenclaude-core/hooks/tests/test-plugin-lifecycle.sh`.",
       "diagram": null,
       "diagram_mini": null,
       "steps": [],
@@ -2763,12 +2763,12 @@
         "plugins/ravenclaude-core/scripts/plugin-lifecycle-sweep.sh",
         "plugins/ravenclaude-core/scripts/plugin-lifecycle-telemetry.sh"
       ],
-      "covers_digest": "sha256:83c081f8414363ddd644f27771294370fab40f81b39728eae61c5a18e53613fb",
-      "nuance": "auto_uninstall OFF still records would_uninstall with executed:false; SessionStart never shells uninstall. auto_install auto is coerced OFF (NO-SHIP). ravenclaude-core@ravenclaude is a hard pin even if pins:[] is empty.",
+      "covers_digest": "sha256:6bbb35ebcb31a44c392757c6ed379f9c5ec72bfd72ba415bd404e4169eea1561",
+      "nuance": "auto_uninstall OFF => zero uninstall CLI calls. auto_uninstall ON => may shell `claude plugin uninstall … -y` for fail-closed-eligible plugins only. auto_install accepts off|ask|auto (absent/unknown => off); auto still needs a cited need. ravenclaude-core@ravenclaude is a hard pin even if pins:[] is empty. Never ragnarok.",
       "nuance_evidence": {
         "measured": "2026-09-15",
-        "control": "bash plugins/ravenclaude-core/hooks/tests/test-plugin-lifecycle.sh — M2 zero would_uninstall when OFF; ASK auto coerced off; M3/MF teeth core never uninstallable; plan executed:false",
-        "falsifier": "sweep invoking uninstall or cache-reset DR, auto mode performing install without ask, or core appearing in would_uninstall",
+        "control": "bash plugins/ravenclaude-core/hooks/tests/test-plugin-lifecycle.sh — M2 zero uninstalls when OFF; EXEC mock CLI when ON; AUTO mode opt-in; M3/MF teeth core never uninstallable; NORG",
+        "falsifier": "sweep uninstalling when auto_uninstall OFF, shelling cache-reset DR, auto install without cited need, or core appearing in would_uninstall",
         "probe": "plugins/ravenclaude-core/hooks/tests/test-plugin-lifecycle.sh"
       },
       "nuance_source": "plugins/ravenclaude-core/scripts/plugin-lifecycle.py; AppSec land DIGEST SHIP-WITH-CONDITIONS 2026-09-15",
@@ -2906,7 +2906,7 @@
         "plugins/ravenclaude-core/hooks/alias-deprecation-advisory.sh",
         "plugins/ravenclaude-core/scripts/alias-deprecation-advisory.py"
       ],
-      "covers_digest": "sha256:14d30b29b43e608e87a62ebc9142419e69eaa7e420c0ab9258e69e48efef982a",
+      "covers_digest": "sha256:0e257c138cb8978c03e1d3c26425e2d7351e47360845102e2293db7d89e09daf",
       "nuance": "Two `additionalContext` emitters on one event concatenate rather than last-write-wins, but two `updatedToolOutput` emitters replace, so the second silently discards the first.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -3000,7 +3000,7 @@
         "scripts/sync-plugin-versions.py",
         "scripts/generate-copilot-plugin.py"
       ],
-      "covers_digest": "sha256:f750f58144de4b73e706a81be8e69b7333712ccc0d899fcc6849291f573f61cf",
+      "covers_digest": "sha256:bc65dd376a28703dc92ee53906aeea6670dd45b5e34f2e83994c012a024dab35",
       "nuance": "The cache key is the `version` string, never a content hash, so `sync-plugin-versions.py` can report clean while every installed session keeps running the old `hooks/` code.",
       "nuance_evidence": {
         "measured": "2026-08-19",

@@ -29,8 +29,9 @@ Schema (schema_version 1):
   M3  ravenclaude-core is NEVER auto-removed — not even with auto_uninstall on
       AND empty pins. This is a code constant, not a posture value.
   M4  auto-install allowlist is the `ravenclaude` marketplace ONLY.
-  M5  ask-first — auto_install is `off | ask` ONLY; there is NO `auto` mode
-      (a posture value of `auto` is coerced to `off`, never honored).
+  M5  ask-first default — auto_install is `off | ask | auto`; absent/unknown => off.
+      `auto` is honored ONLY when explicitly set (Option A follow-on 0.323.17);
+      empty-cited auto install remains forbidden (AppSec #6).
   M6  the ledger is gitignored / local-only.
   M7  tracking defaults ON once a comfort-posture file is present.
 
@@ -40,9 +41,13 @@ Schema (schema_version 1):
      (fail-closed).
   4  the install allowlist is the marketplace name PLUS, when available, an
      installPath under the ravenclaude plugin cache.
-  6  no empty-cited install — ask/confirm or Bifröst CTA only.
+  6  no empty-cited install — ask/confirm, explicit auto+cited need, or Bifröst CTA.
   7  the sweep NEVER runs the cache-reset disaster-recovery command in its
      destructive mode (this file contains no such call, by construction).
+  8  uninstall execute (opt-in): when auto_uninstall ON, sweep-hook may shell
+     `claude plugin uninstall <name@marketplace> -y` (CLI inject via
+     PLUGIN_LIFECYCLE_CLAUDE). Fail-soft on missing CLI / non-zero exit.
+     Never ragnarok.
 
 Stdlib only. Fail-safe: a corrupt/absent ledger reads as the default; a path
 outside the project's ``.ravenclaude/`` is refused (path jail, no symlink
@@ -54,6 +59,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import subprocess
 import sys
 import tempfile
 from datetime import datetime, timedelta, timezone
@@ -213,7 +219,7 @@ def read_posture_lifecycle(project_dir: str) -> dict:
         tracking      bool  (M7: default True when a posture file is present)
         unused_days   int   (M1: default 90)
         auto_uninstall bool (M2: default False)
-        auto_install  str   (M5: "off"|"ask" only; "auto"/unknown -> "off")
+        auto_install  str   (M5: "off"|"ask"|"auto"; unknown/absent -> "off")
         pins          list[str]
 
     No posture file -> tracking False (opt-in by presence, like every other knob).
@@ -279,8 +285,8 @@ def read_posture_lifecycle(project_dir: str) -> dict:
             result["auto_uninstall"] = _coerce_bool(val, False)
         elif key == "auto_install":
             v = val.strip().strip('"').strip("'").lower()
-            # M5: off|ask only. `auto` and anything unrecognized -> off (never auto).
-            result["auto_install"] = v if v in ("off", "ask") else "off"
+            # M5 follow-on: off|ask|auto. Unknown -> off (never invent auto).
+            result["auto_install"] = v if v in ("off", "ask", "auto") else "off"
         elif key == "pins":
             if val.startswith("[") and val.endswith("]"):
                 inner = val[1:-1]
@@ -628,13 +634,105 @@ def cmd_record_sweep(args) -> int:
     return 0
 
 
-def cmd_sweep_hook(args) -> int:
-    """Convenience orchestration for the SessionStart sweep hook body.
+def _claude_bin() -> str:
+    """Host CLI for plugin install/uninstall. Tests inject via PLUGIN_LIFECYCLE_CLAUDE."""
+    return os.environ.get("PLUGIN_LIFECYCLE_CLAUDE", "claude").strip() or "claude"
 
-    Marks statuses, computes the plan, records the sweep run, and prints ONE
-    human notice line. NEVER uninstalls here and NEVER runs the cache-reset
-    disaster-recovery command (AppSec #7) — actual uninstall is an OPEN API gap
-    left to a reviewed follow-up; this surfaces the plan and records it.
+
+def _run_plugin_cli(argv: list, timeout: float = 120.0) -> dict:
+    """Run ``claude plugin …`` (or injected mock). Never shells ragnarok/cache-reset.
+
+    Returns {ok, exit_code, reason, argv, stdout, stderr}.
+    """
+    result = {
+        "ok": False,
+        "exit_code": None,
+        "reason": "",
+        "argv": list(argv),
+        "stdout": "",
+        "stderr": "",
+    }
+    # Hard refuse: never allow DR cache-reset tokens through this helper.
+    joined = " ".join(argv).lower()
+    if "ragnarok" in joined or "reset-plugin-cache" in joined:
+        result["reason"] = "refused_ragnarok_or_cache_reset"
+        return result
+    try:
+        proc = subprocess.run(
+            argv,
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+            check=False,
+        )
+    except FileNotFoundError:
+        result["reason"] = "cli_missing"
+        return result
+    except subprocess.TimeoutExpired:
+        result["reason"] = "timeout"
+        return result
+    except OSError as exc:
+        result["reason"] = f"os_error:{exc}"
+        return result
+    result["exit_code"] = proc.returncode
+    result["stdout"] = (proc.stdout or "")[-2000:]
+    result["stderr"] = (proc.stderr or "")[-2000:]
+    if proc.returncode == 0:
+        result["ok"] = True
+        result["reason"] = "ok"
+    else:
+        result["reason"] = f"exit_{proc.returncode}"
+    return result
+
+
+def execute_uninstall(key: str) -> dict:
+    """Opt-in uninstall via ``claude plugin uninstall <key> -y`` (non-interactive)."""
+    if is_core_key(key):
+        return {
+            "key": key,
+            "action": "uninstall",
+            "executed": False,
+            "reason": "core_hard_pin",
+            "argv": [],
+        }
+    bin_ = _claude_bin()
+    argv = [bin_, "plugin", "uninstall", key, "-y"]
+    ran = _run_plugin_cli(argv)
+    return {
+        "key": key,
+        "action": "uninstall",
+        "executed": bool(ran["ok"]),
+        "exit_code": ran["exit_code"],
+        "reason": ran["reason"],
+        "argv": ran["argv"],
+    }
+
+
+def execute_install(key: str) -> dict:
+    """Opt-in install via ``claude plugin install <key> -y`` (ravenclaude allowlist upstream)."""
+    bin_ = _claude_bin()
+    argv = [bin_, "plugin", "install", key, "-y"]
+    ran = _run_plugin_cli(argv)
+    return {
+        "key": key,
+        "action": "install",
+        "executed": bool(ran["ok"]),
+        "exit_code": ran["exit_code"],
+        "reason": ran["reason"],
+        "argv": ran["argv"],
+    }
+
+
+def cmd_sweep_hook(args) -> int:
+    """SessionStart sweep: mark deprecated, plan, and (opt-in) execute uninstalls.
+
+    When ``auto_uninstall`` is OFF (default), records an empty execute list /
+    plan-only notice and never shells uninstall (M2).
+
+    When ON, executes fail-closed ``would_uninstall`` via
+    ``claude plugin uninstall <name@marketplace> -y`` (PLUGIN_LIFECYCLE_CLAUDE
+    inject for tests). NEVER runs cache-reset DR / ragnarok (AppSec #7).
+    ``--plan-only`` forces the pre-0.323.17 record-only path (tests / dry).
     """
     posture = read_posture_lifecycle(args.project)
     if not posture["tracking"]:
@@ -652,17 +750,49 @@ def cmd_sweep_hook(args) -> int:
         row["status"] = "deprecated" if key in dep_set else "active"
 
     plan = build_sweep_plan(args, data, posture, now, session_used)
-    # Record the run + the (fail-closed) planned actions; no uninstall executed.
+    plan_only = bool(getattr(args, "plan_only", False))
+    actions = []
+    executed_any = False
+
+    if plan["auto_uninstall"] and plan["would_uninstall"] and not plan_only:
+        for k in plan["would_uninstall"]:
+            actions.append(execute_uninstall(k))
+            if actions[-1].get("executed"):
+                executed_any = True
+    else:
+        # Plan-only rows (OFF path, --plan-only, or empty eligible set).
+        for k in plan["would_uninstall"]:
+            actions.append(
+                {
+                    "key": k,
+                    "action": "would_uninstall",
+                    "executed": False,
+                    "reason": (
+                        "plan_only_flag"
+                        if plan_only
+                        else ("auto_uninstall_off" if not plan["auto_uninstall"] else "no_execute")
+                    ),
+                }
+            )
+
     data["sweep"]["last_run_at"] = now_iso()
-    data["sweep"]["last_actions"] = [
-        {"key": k, "action": "would_uninstall", "executed": False} for k in plan["would_uninstall"]
-    ]
+    data["sweep"]["last_actions"] = actions
     save_ledger(path, data)
 
+    plan_out = dict(plan)
+    plan_out["actions"] = actions
+    plan_out["executed_any"] = executed_any
+
     if args.json:
-        print(json.dumps(plan))
+        print(json.dumps(plan_out))
     else:
         _print_plan_human(plan)
+        if executed_any:
+            print("  executed uninstall(s); run /reload-plugins before relying on plugin set.")
+        elif plan["auto_uninstall"] and plan["would_uninstall"] and not plan_only:
+            # ON but every attempt failed soft
+            reasons = sorted({a.get("reason", "?") for a in actions})
+            print("  auto_uninstall on but 0 executed (" + ", ".join(reasons) + ").")
     return 0
 
 
@@ -701,9 +831,15 @@ def cmd_allowlist_check(args) -> int:
 
 
 def cmd_ask_install(args) -> int:
-    """P3: plan an install of a needed ravenclaude plugin. NEVER auto-installs
-    (M5). Emits either a Bifröst CTA (auto_install: off) or a confirm plan
-    (auto_install: ask). Rejects a non-ravenclaude plugin outright (M4).
+    """P3: plan (and optionally execute) an install of a needed ravenclaude plugin.
+
+    Modes (M5 follow-on):
+      off  -> Bifröst CTA only (default / absent)
+      ask  -> confirm plan when cited need present; else CTA (AppSec #6)
+      auto -> when explicitly set + cited need: mode auto; optional --execute
+             runs ``claude plugin install <key> -y``. Uncited auto -> CTA.
+
+    Rejects a non-ravenclaude plugin outright (M4). Never claims Bifröst executed.
     """
     posture = read_posture_lifecycle(args.project)
     marketplace = (args.marketplace or "").strip() or ALLOWED_MARKETPLACE
@@ -738,9 +874,10 @@ def cmd_ask_install(args) -> int:
     key = make_key(args.plugin, marketplace)
     install_cmd = f"/plugin install {key}"
     reload_cmd = "/reload-plugins"
+    mode = posture["auto_install"]
+    do_execute = bool(getattr(args, "execute", False))
 
-    # M5: off | ask only. `auto` was already coerced to `off` by the posture reader.
-    if posture["auto_install"] == "ask":
+    if mode == "ask":
         if not args.need:
             # AppSec #6: no empty-cited install — downgrade to CTA when uncited.
             print(
@@ -773,6 +910,50 @@ def cmd_ask_install(args) -> int:
                 }
             )
         )
+        return 0
+
+    if mode == "auto":
+        if not args.need:
+            print(
+                json.dumps(
+                    {
+                        "mode": "cta",
+                        "allowed": True,
+                        "plugin": args.plugin,
+                        "marketplace": marketplace,
+                        "confirm_required": False,
+                        "install_cmd": install_cmd,
+                        "reload_cmd": reload_cmd,
+                        "note": "auto_install auto but no cited need -> Bifröst CTA only (AppSec #6).",
+                    }
+                )
+            )
+            return 0
+        payload = {
+            "mode": "auto",
+            "allowed": True,
+            "plugin": args.plugin,
+            "marketplace": marketplace,
+            "cited_need": args.need,
+            "confirm_required": False,
+            "install_cmd": install_cmd,
+            "cli_install_argv": [_claude_bin(), "plugin", "install", key, "-y"],
+            "reload_cmd": reload_cmd,
+            "note": "auto_install auto + cited need: may execute claude plugin install -y; reload BEFORE use.",
+        }
+        if do_execute:
+            ran = execute_install(key)
+            payload["execution"] = ran
+            if ran.get("executed"):
+                payload["note"] = (
+                    "auto install executed; run /reload-plugins before claiming usable."
+                )
+            else:
+                payload["note"] = (
+                    f"auto install not executed ({ran.get('reason')}); "
+                    "fall back to ask/Bifröst. Never ragnarok."
+                )
+        print(json.dumps(payload))
         return 0
 
     # auto_install off (default) -> Bifröst CTA only.
@@ -878,6 +1059,12 @@ def build_parser() -> argparse.ArgumentParser:
     sp.add_argument("--session-used-file", dest="session_used_file", default=None)
     sp.add_argument("--assume-no-deps", dest="assume_no_deps", action="store_true")
     sp.add_argument("--requires-map", dest="requires_map", default=None)
+    sp.add_argument(
+        "--plan-only",
+        dest="plan_only",
+        action="store_true",
+        help="record plan only; never shell claude plugin uninstall (tests / dry)",
+    )
     sp.set_defaults(func=cmd_sweep_hook)
 
     sp = sub.add_parser("record-sweep")
@@ -897,6 +1084,11 @@ def build_parser() -> argparse.ArgumentParser:
     sp.add_argument("--plugin", required=True)
     sp.add_argument("--install-path", dest="install_path", default=None)
     sp.add_argument("--need", default=None, help="cited need (AppSec #6: no empty-cited install)")
+    sp.add_argument(
+        "--execute",
+        action="store_true",
+        help="when auto_install: auto + cited need, run claude plugin install -y",
+    )
     sp.set_defaults(func=cmd_ask_install)
 
     sp = sub.add_parser("list")
