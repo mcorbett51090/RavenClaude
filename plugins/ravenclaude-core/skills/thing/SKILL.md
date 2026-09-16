@@ -118,6 +118,7 @@ When `command_review.hardening_edit: true`, and the orchestrator would otherwise
 `harden_ok` = registry_match ∧ classify equal ∧ ¬screen_always(rev) ∧ concerns(rev)⊆concerns(orig) ∧ tier(rev)<gate_floor ∧ rev≠orig.
 
 - **Success** → `allow` + `updatedInput.command` (auto-run), except **v1 high-blast still asks** and shows the hardened form.
+- **Hard-rule / pre_llm floor** (e.g. force-push) stays **DENY** under the flag ON — signed transforms do not clear that floor to ASK (deny text may mention `--force-with-lease` as a safer form).
 - **Failure** → **ask** (never silent ALLOW past `gate_floor`; never DENY solely because harden failed).
 - Empty-cited EDIT **outside** the orchestrator discriminator remains **DENY** (malformed seat).
 - Cited EDIT path (`revalidate`) is unchanged and byte-identical with the flag off.

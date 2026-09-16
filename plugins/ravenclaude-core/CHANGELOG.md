@@ -7,8 +7,11 @@ All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the 
 ### Changed
 - **Thing `hardening_edit` default/seed ON** — `templates/thing.yaml` + `thing-decision.py` code default flip to **true** after AppSec enable SHIP (Gate 14/21/22 green via tribunal suite). Docs/SKILL/concepts/README mirror default ON. Explicit `hardening_edit: false` in posture/`thing.yaml` still keeps OFF (House Rule 3).
 
+### Fixed
+- **Force-push hard DENY under `hardening_edit` ON** (AppSec #1204) — removed orchestrator hard-rule / `pre_llm_deny` clearance→ASK via `git-force-with-lease`. Hard floor always DENY + Phase 0 emit (Gate 50). Optional deny text may mention `--force-with-lease` (informational only). Registry remains for non-hard-rule / non-pre_llm paths.
+
 ### Locks / honesty
-- **No** `gate_floor` raise. **No** bypass list. Keep fail-harden→ask · empty-cited DENY outside discriminator · high-blast still-ask · Heimdall no EDIT · registry = auto-run authority only for AppSec-signed transforms. Suite assertion flipped to default **true**; explicit-false OFF cases retained.
+- **No** `gate_floor` raise. **No** bypass list. Keep fail-harden→ask · empty-cited DENY outside discriminator · high-blast still-ask · Heimdall no EDIT · registry = auto-run authority only for AppSec-signed transforms. Suite assertion flipped to default **true**; explicit-false OFF cases retained. **Hard-rule force-push stays DENY** with enable ON (not ASK).
 - Serial after plugin-lifecycle **0.323.17** on main; this bump is **0.323.18**. No BMA.
 
 ## 0.323.17 — 2026-09-16

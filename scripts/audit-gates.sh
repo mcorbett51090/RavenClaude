@@ -2924,10 +2924,6 @@ mkdir -p "$G15/.ravenclaude"
 # mv = shell_local_mutate, OFF) prove the guard is category-independent.
 cat > "$G15/.ravenclaude/comfort-posture.yaml" <<EOF
 schema_version: 5
-# Hard-deny / always_screen contracts (§B.9.3). Default hardening_edit ON can
-# clear force-push via signed transform → ask; keep OFF here to assert DENY.
-command_review:
-  hardening_edit: false
 categories:
   shell_readonly:
     user: allow
@@ -3915,7 +3911,6 @@ G22="$TMP/thing15-proj"; SAGA22="$G22/.ravenclaude/runs/thing"
 mkdir -p "$G22/.ravenclaude"
 cat > "$G22/.ravenclaude/comfort-posture.yaml" <<'EOF'
 command_review:
-  hardening_edit: false
   gate_floor: high
   cache_ttl_seconds: 900
   fatigue_threshold: 2

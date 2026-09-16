@@ -1195,7 +1195,7 @@
           "url": "docs/tribunal-review-feature-design.md"
         }
       ],
-      "body_md": "**Command review** — codename *the Thing* — is an opt-in panel of reviewer agents that adjudicates shell commands instead of stopping to ask you. It sits **on top of** comfort-posture: posture sets the policy (allow/ask/deny per category); the tribunal is the adjudicator you switch on for a category so a verdict lands in seconds.\n\nRouting is **tiered**. Every command resolves to `low → medium → high → extreme` (its category base tier, bumped by a deterministic high/critical concern). A clean `low` read runs **no panel at all** (zero cost); seat count and the confidence bar escalate with the tier. Up to three seats run in parallel — **Forseti** (security), **Mímir** (code), **Heimdall** (injection) — with **Thor** (architect) convened only on a split.\n\nThe **`gate_floor`** knob (default `high`) is the lowest tier whose *confident ALLOW* is surfaced to you as an `ask`. DENY still blocks and EDIT still rewrites autonomously, so the tribunal pre-filters the dangerous and the fixable before either reaches you. Two hard overrides ignore the knob: **reads are never surfaced**, and **irreversible high-blast allows always are**. An abstaining panel always fails **closed**. It can never relax the `security_deny` floor.\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n## Hardening EDIT (default ON)\n\nFeature flag `command_review.hardening_edit` (default **true** after AppSec enable GO 2026-09-16; set false to opt out). Design **A+C/H3**: seat proposes a safer Bash equivalent; the signed transform registry verifies. Harden fail → ask. Empty-cited EDIT outside the orchestrator discriminator → DENY. High-blast v1 → still ask + show hardened form. No bypass list; no raising `gate_floor`. See `skills/thing/SKILL.md` and `knowledge/thing-harden-transforms.yaml`.",
+      "body_md": "**Command review** — codename *the Thing* — is an opt-in panel of reviewer agents that adjudicates shell commands instead of stopping to ask you. It sits **on top of** comfort-posture: posture sets the policy (allow/ask/deny per category); the tribunal is the adjudicator you switch on for a category so a verdict lands in seconds.\n\nRouting is **tiered**. Every command resolves to `low → medium → high → extreme` (its category base tier, bumped by a deterministic high/critical concern). A clean `low` read runs **no panel at all** (zero cost); seat count and the confidence bar escalate with the tier. Up to three seats run in parallel — **Forseti** (security), **Mímir** (code), **Heimdall** (injection) — with **Thor** (architect) convened only on a split.\n\nThe **`gate_floor`** knob (default `high`) is the lowest tier whose *confident ALLOW* is surfaced to you as an `ask`. DENY still blocks and EDIT still rewrites autonomously, so the tribunal pre-filters the dangerous and the fixable before either reaches you. Two hard overrides ignore the knob: **reads are never surfaced**, and **irreversible high-blast allows always are**. An abstaining panel always fails **closed**. It can never relax the `security_deny` floor.\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n## Hardening EDIT (default ON)\n\nFeature flag `command_review.hardening_edit` (default **true** after AppSec enable GO 2026-09-16; set false to opt out). Design **A+C/H3**: seat proposes a safer Bash equivalent; the signed transform registry verifies. Harden fail → ask. Empty-cited EDIT outside the orchestrator discriminator → DENY. High-blast v1 → still ask + show hardened form. **Hard-rule / pre_llm (e.g. force-push) stays DENY** under the flag ON — transforms do not clear that floor to ASK. No bypass list; no raising `gate_floor`. See `skills/thing/SKILL.md` and `knowledge/thing-harden-transforms.yaml`.",
       "diagram": "flowchart TD\n  A[Bash PreToolUse] --> B{category toggled on?}\n  B -- no --> Z[normal flow]\n  B -- yes --> C[classify: category · tier · routing]\n  C -- unarguable critical --> DENY[DENY · no LLM]\n  C -- clean low read --> ALLOW[allow · no panel]\n  C -- tier ≥ medium --> E[convene seats in parallel]\n  E -- split / low confidence --> T[convene Thor]\n  T --> AGG[aggregate]\n  E --> AGG\n  AGG -- deny / critical --> DENY\n  AGG -- edit safe --> EDIT[allow + rewrite]\n  AGG -- allow --> GATE{tier ≥ gate_floor<br/>or high-blast?}\n  GATE -- yes --> ASK[ask · you confirm]\n  GATE -- no --> ALLOW\n  DENY & ALLOW & EDIT & ASK --> L[(Sága log)]\n  class DENY,ALLOW,EDIT,ASK,E,T built\n  class GATE fact",
       "diagram_mini": "flowchart LR\n  C[Command] --> P[Panel<br/>1–3 seats]\n  P --> V{Verdict}\n  V --> A[allow / edit / deny / ask]\n  class P,A built",
       "steps": [
@@ -2792,7 +2792,7 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-09-10",
+      "last_verified": "2026-09-16",
       "refresh_when": null,
       "sources": [
         {
@@ -2857,7 +2857,7 @@
         "plugins/ravenclaude-core/hooks/triage-outcome.sh",
         "plugins/ravenclaude-core/hooks/worktree-guard.sh"
       ],
-      "covers_digest": "sha256:e220db7f191a30a6cab22b76a65263611f9d6042ad0fc1a6d73ad30db5c64774",
+      "covers_digest": "sha256:52756312b9005aaab1eedc675aa695a04a75cf56ebf23ba38f7931dceb8a70e9",
       "nuance": "A hook writing to stderr at `exit 0` reaches the model on no event; only `hookSpecificOutput.additionalContext` and `updatedToolOutput` are delivered, so `_advise.sh` advised the terminal for its entire service life.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -3062,7 +3062,7 @@
         "scripts/inventory-nuance-judge.py",
         "plugins/ravenclaude-core/scripts/forge-receipt.py"
       ],
-      "covers_digest": "sha256:91c306870b71b7a95439680047c69277718fbeab6dc95ff966b8f4a362396bc1",
+      "covers_digest": "sha256:f1fe1b45acdf5e3d1fdf551df21dcb32143aa47d0f3ff170f5661455db4d4c3a",
       "nuance": "The teeth bit is the exit a tool own CHECK returns on a planted defect, never the exit `--must-fail` itself returns: `premise-gate.py` denies at `exit 0` while `sync-plugin-versions.py` reddens at `exit 2`, so an auditor that hard-codes one number can never be right for both.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -4609,7 +4609,7 @@
         "plugins/ravenclaude-core/scripts/thing-harden.py",
         "plugins/ravenclaude-core/hooks/thing-orchestrator.sh"
       ],
-      "covers_digest": "sha256:c24a6a9ac790d369ce189db51e5d69389a70445302533677bc569e38a74c07ba",
+      "covers_digest": "sha256:7afbeecb8d218730da3664582065c4e4f0ee5aeff92de64c1dcaf5d1145d9027",
       "nuance": "AppSec enable GO flipped seed/default hardening_edit ON (2026-09-16); with explicit false, empty-cited EDIT outside the orchestrator discriminator is DENY rather than ask, while a cited EDIT still allows byte-identical — OFF remains shape-sensitive, not a uniform no-op.",
       "nuance_evidence": {
         "measured": "2026-09-16",

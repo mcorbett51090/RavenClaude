@@ -1064,7 +1064,7 @@ The **`gate_floor`** knob (default `high`) is the lowest tier whose *confident A
 
 ## Hardening EDIT (default ON)
 
-Feature flag `command_review.hardening_edit` (default **true** after AppSec enable GO 2026-09-16; set false to opt out). Design **A+C/H3**: seat proposes a safer Bash equivalent; the signed transform registry verifies. Harden fail → ask. Empty-cited EDIT outside the orchestrator discriminator → DENY. High-blast v1 → still ask + show hardened form. No bypass list; no raising `gate_floor`. See `skills/thing/SKILL.md` and `knowledge/thing-harden-transforms.yaml`.
+Feature flag `command_review.hardening_edit` (default **true** after AppSec enable GO 2026-09-16; set false to opt out). Design **A+C/H3**: seat proposes a safer Bash equivalent; the signed transform registry verifies. Harden fail → ask. Empty-cited EDIT outside the orchestrator discriminator → DENY. High-blast v1 → still ask + show hardened form. **Hard-rule / pre_llm (e.g. force-push) stays DENY** under the flag ON — transforms do not clear that floor to ASK. No bypass list; no raising `gate_floor`. See `skills/thing/SKILL.md` and `knowledge/thing-harden-transforms.yaml`.
 
 ```mermaid
 flowchart TD
@@ -2321,7 +2321,7 @@ Probe: `unprobed: the delivery fact is a host-platform property; it is modelled 
 
 **Sources:** [measured in the FORGE product-inventory run](https://github.com/mcorbett51090/RavenClaude/pull/997)
 
-_Last verified: 2026-09-10_
+_Last verified: 2026-09-16_
 
 
 ---

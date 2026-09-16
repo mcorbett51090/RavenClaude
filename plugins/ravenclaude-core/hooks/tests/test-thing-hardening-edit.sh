@@ -149,18 +149,10 @@ d="$(thing_dec allow 'npm install -g left-pad@1.3.0')"
 d="$(thing_dec allow 'rm -rf build')"
 [ "$d" = "ask" ] && pass "flag-on: high-blast no rewrite → ask" || bad "flag-on high-blast got $d"
 
-# Critical / pre_llm without clearable transform → deny (row 11/12)
-d="$(thing_dec allow 'git push --force origin main')"
-# with flag on, force→lease may ASK with hardened form (pre_llm harden path)
-r="$(thing_reason allow 'git push --force origin feat/safe')"
+# Critical / hard-rule / pre_llm: force-push stays DENY under hardening_edit ON
+# (AppSec #1204 — registry must not clear hard-rule → ASK)
 d="$(thing_dec allow 'git push --force origin feat/safe')"
-if [ "$d" = "ask" ] && printf '%s' "$r" | grep -q 'force-with-lease'; then
-  pass "flag-on: force→lease pre_llm → ask+hardened form"
-elif [ "$d" = "deny" ]; then
-  pass "flag-on: force-push deny (transform did not clear)"
-else
-  bad "flag-on force-push unexpected d=$d r=$r"
-fi
+[ "$d" = "deny" ] && pass "flag-on: force-push hard-rule → DENY" || bad "flag-on force got $d (want deny)"
 
 # Flag off: force still deny
 write_posture false

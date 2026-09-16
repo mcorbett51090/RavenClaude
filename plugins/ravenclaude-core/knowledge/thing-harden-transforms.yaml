@@ -8,7 +8,8 @@ transforms:
     name: git push --force → --force-with-lease
     rationale: >
       Force-with-lease refuses to clobber unseen remote work; clears srm.force-push
-      / xc.no-undo triggers while preserving push intent.
+      / xc.no-undo triggers while preserving push intent. Hard-rule / pre_llm floor
+      still DENYs force-push (transform does not clear §B.9.3 to ASK).
     appsec: SIGNED
     fixtures:
       - original: "git push --force origin feat/x"
