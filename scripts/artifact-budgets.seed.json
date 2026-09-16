@@ -229,6 +229,11 @@
         "Dashboard UX vision Wave-1 (0.323.15)",
         10860000,
         "Wave-1 Pipeline label/aria text swaps plus the JS-seated Learn to Prompt Builder teaching bridge (core 0.323.15). dashboard.html 10,853,674 bytes > prior 10,850,000 by 3,674 (0.00 MB). Three Task/System/Few-shot cards are createElement-only after Learn hydration; static Gate 132 delta is zero and the island payload remains under its existing ceiling. Re-measured on this branch head; appended, never edited."
+      ],
+      [
+        "Dashboard UX vision Wave-2 (0.323.16)",
+        10870000,
+        "Wave-2 Pipeline progressive disclosure (<details> folds for pipe-hint / Advanced tool limits / File path rules) plus Learn PE academy JS path (core 0.323.16). dashboard.html 10,860,407 bytes > prior 10,860,000 by 407 (0.00 MB). Static Gate 132 +26 (details/summary pairs); island payload remains under its existing ceiling. Re-measured on this branch head; appended, never edited."
       ]
     ],
     "index.html": [
@@ -282,8 +287,13 @@
         "Dashboard UX vision Wave-1 (0.323.15)",
         9540000,
         "Same Wave-1 dashboard UX vision build (core 0.323.15). index.html 9,535,673 bytes > prior 9,531,000 by 4,673 (0.00 MB). Portal fold embeds the same CSS/JS bridge; static Gate 132 delta is zero and the island payload remains under its existing ceiling. Re-measured on this branch head; appended, never edited."
+      ],
+      [
+        "Dashboard UX vision Wave-2 (0.323.16)",
+        9550000,
+        "Same Wave-2 dashboard UX vision build (core 0.323.16). index.html 9,542,513 bytes > prior 9,540,000 by 2,513 (0.00 MB). Portal fold embeds the same disclosure CSS/JS academy; static Gate 132 +26 and the island payload remains under its existing ceiling. Re-measured on this branch head; appended, never edited."
       ]
     ]
   },
-  "measured_against": "cd5cb0ae958e73ff651908d1c2e1e8dee0bc6003"
+  "measured_against": "92e393334c72a045b8a32786c3e30a48bc9a07ae"
 }

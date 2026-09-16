@@ -2,6 +2,15 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.323.16 — 2026-09-16
+
+### Changed
+- **Pipeline progressive disclosure (Wave-2)** — long `.pipe-hint` prose folds behind honest `<details class="pipe-hint-more">` summaries; rarely-touched PreToolUse clusters (`runaway` / `parallelism`) collapse under **Advanced tool limits**; file-path textareas under **File path rules**. Spine stages (Thing · Decision · Web · Orchestrator · Cheap lane) stay immediately scannable. Decision-tree island remains rung 0 (closed default, `#/pipeline/decision-tree`).
+- **Learn PE academy path** — Wave-1 Task / System / Few-shot bridge becomes an ordered ≤8-step curriculum (intro → PB practice → Host Context → Pipeline → decision-tree → concept buffer). JS-seated only; no static Gate 132 growth; no Mermaid CDN.
+
+### Locks / honesty
+- No Thing / `gate_floor` / destructive-guard / `cheap_lane` default weaken. No Mode label redo. No Settings islanding. No Gas Town / Beads / BMA.
+
 ## 0.323.15 — 2026-09-16
 
 ### Changed
