@@ -350,7 +350,7 @@ def _emit_nudge(
         #     pre-boundary turns and thinking blocks are retained; compact-anchor.sh
         #     restores ADDRESSABILITY, not data).
         # The nudge states the cost honestly, names /compact as the default, and
-        # walks a four-step procedure (write -> fill -> finalize -> compose) so the
+        # walks a four-step procedure (write -> detached fill -> finalize -> compose) so the
         # brief is a real artifact rather than advice nobody acted on.
         ctx = (
             f"Context is hot (~{pct}% used; soft threshold {threshold}%, "
@@ -362,9 +362,9 @@ def _emit_nudge(
             f"--task-id {task_id} --host <this-host-pair>` to produce handoff.md + "
             f"handoff-seed.txt — no egress, no cheap-lane call, no "
             f"precompact-digest.py involvement of any kind. "
-            f"(2) Fill the eight MODEL FILL sections of handoff.md from your own "
-            f"in-turn understanding — this is what makes the brief better than any "
-            f"auto-derived draft. "
+            f"(2) `python3 plugins/ravenclaude-core/scripts/context-handoff.py fill "
+            f"--task-id {task_id}` — detached fit-tier fill (default haiku) of the eight "
+            f"MODEL FILL sections; do NOT burn the session model on extract/format. "
             f"(3) `python3 plugins/ravenclaude-core/scripts/context-handoff.py "
             f"finalize --task-id {task_id}` to re-scrub and re-chmod the file now "
             f"that the sensitive content actually exists. "

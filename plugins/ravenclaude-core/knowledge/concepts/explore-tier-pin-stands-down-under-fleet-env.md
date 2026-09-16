@@ -6,12 +6,12 @@ kind: ravenclaude-built
 entry_class: inventory
 order: 936
 summary: "The pin fires only on an un-pinned `explore`; a set CLAUDE_CODE_SUBAGENT_MODEL makes it stand down even then — a per-invocation pin would OVERRIDE the fleet-wide env choice, not add to it."
-last_verified: 2026-09-14
+last_verified: 2026-09-16
 covers:
   - plugins/ravenclaude-core/hooks/explore-tier-pin.sh
   - plugins/ravenclaude-core/scripts/explore-tier-pin.py
   - plugins/ravenclaude-core/hooks/tests/test-gate286-explore-tier-pin.sh
-covers_digest: "sha256:7d4c2afd7f1498bba77879a0eb25341871b789d9a2477f29cc1999e2a4da0c36"
+covers_digest: "sha256:522a05cec00c8233175ed6079a42bba7b48d2e55f4aad7ca63e1e5d2fb4dec94"
 nuance: "Same un-pinned `Explore` payload, same `haiku` knob: env `{}` yields an `updatedInput.model: haiku` envelope; env `{CLAUDE_CODE_SUBAGENT_MODEL: haiku}` yields `None`. Per-invocation `model` outranks the env var in Claude Code's resolution order, so a pin would have silently replaced the consumer's fleet-wide routing — the hook yields instead."
 nuance_evidence:
   measured: 2026-09-14

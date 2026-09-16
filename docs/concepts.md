@@ -2101,13 +2101,15 @@ _Last verified: 2026-06-08_
 
 ### FORGE — the gated planning pipeline · _RavenClaude-built_
 
-> The /forge pipeline turns a raw idea into a fact-grounded, two-panel-reviewed, critic-checked, tiebroken, red-teamed, routed plan — with depth-scaled gates so cheap ideas stay cheap.
+> Dashboard card for /forge: depth-scaled, fail-closed planning gates. Gate depth lives in the forge-pipeline skill — this card is one screen + cite.
 
-**FORGE** is RavenClaude's gated planning pipeline — what `/forge` runs. It formalizes the pattern the maintainer runs by hand: *clarify → research + verify → two divergent panels on different models → critic → gap-analysis → per-conflict expert tiebreak → red-team → synthesize → route → exit.* Each gate is **fail-closed** (no advance without an explicit pass or a recorded waiver) and emits a typed artifact into the run directory, so the whole plan-building process is auditable after the fact.
+**FORGE** is RavenClaude's gated planning pipeline — what `/forge` runs. Raw idea → clarify → research/verify → divergent panels → critic/tiebreak/red-team (depth-scaled) → synthesize → deterministic route/exit. Gates are **fail-closed**; artifacts land in the run dir.
 
-The pipeline scales with **depth** rather than running a fixed set of gates: `micro` runs only scope + synthesize + route, `quick` (the default) adds research and the two panels, `standard` adds the critic, tiebreak, and red-team, and `deep` removes the conflict cap and adds checkpoint/resume. Two ideas make FORGE more than a copy of Claude Code's dynamic-workflows deep-plan loop: it runs the two review panels on **different models** (cross-model divergence catches blind spots a same-model critic shares), and it adds a **fact-verification gate** that blocks on any load-bearing claim about anything outside the repo unless it carries a this-session source or an explicit `[unverified]` marker. A correlated-error **critic** then hunts for places the two panels *agree on something wrong* — the failure a disagreement-keyed gap-analysis structurally can't see.
+**Depth ladder (summary):** `micro` → scope + synthesize + route · `quick` (default) + research + panels · `standard` + critic/tiebreak/red-team · `deep` uncapped conflict + checkpoint/resume.
 
-The final gate routes the plan **deterministically** (no model judgment): a script decides whether to execute locally or hand off to Ultraplan in the cloud, and whether the plan lands on `main` or via a draft PR. FORGE raises the floor on plan quality and shifts the odds against a confidently-wrong plan — it does **not** guarantee correctness; the critic, red-team, and tiebreak reduce, not eliminate, the residual risk.
+**Two differentiators:** cross-model panels (catches same-model blind spots) and a fact-verification gate (load-bearing outside-repo claims need a this-session source or `[unverified]`).
+
+⛔ **This card is thin on purpose (0.323.12).** Gate scripts, waivers, receipt shape, and worktree rules live exclusively in [`skills/forge-pipeline/SKILL.md`](../plugins/ravenclaude-core/skills/forge-pipeline/SKILL.md). `/forge` stays a thin command entry. FORGE raises plan-quality odds — it does **not** guarantee correctness.
 
 ```mermaid
 flowchart TD
@@ -2124,9 +2126,9 @@ flowchart TD
 
 **See also:** Command-review tribunal (the Thing) · /wrap and the scenarios bank
 
-**Sources:** [forge-pipeline skill](../plugins/ravenclaude-core/skills/forge-pipeline/SKILL.md) · [/forge command](../plugins/ravenclaude-core/commands/forge.md)
+**Sources:** [forge-pipeline skill (gate SSOT)](../plugins/ravenclaude-core/skills/forge-pipeline/SKILL.md) · [/forge command (thin entry)](../plugins/ravenclaude-core/commands/forge.md)
 
-_Last verified: 2026-06-08_
+_Last verified: 2026-09-16_
 
 
 ---
@@ -2368,9 +2370,17 @@ Measured 2026-08-26: Copilot CLI's `--model auto` rejects `--effort` outright at
 
 Falsifier: a future Copilot CLI release accepting `--effort` together with `--model auto`.
 
+## UMM absorption (0.323.11)
+
+The agent × model × effort × budget matrix is now also the **Unified Model Matrix**
+SSOT at [`../unified-model-matrix.json`](../plugins/ravenclaude-core/knowledge/unified-model-matrix.json). This concept
+entry keeps the Copilot `--effort` honesty discriminator; tier cell values live in
+the UMM JSON. `cheap_lane.mode: off` still means inactive routing — Grok rows remain
+visible in the matrix.
+
 **Sources:** [verified live against the installed grok and copilot CLIs, this session](https://github.com/mcorbett51090/RavenClaude/pull/1030)
 
-_Last verified: 2026-09-10_
+_Last verified: 2026-09-16_
 
 
 ---
@@ -2895,9 +2905,20 @@ found in the prior design: egress happens, but the digest the hook was supposed 
 because the reader was killed first. Detachment removes that race by construction rather than by
 tuning a timeout.
 
+## Model-tier pin (0.323.10) + honesty bound
+
+When cheap-lane is unavailable, the Claude-orchestrate fallback pins `THING_MODEL` to
+**haiku** (or `model_matrix.surfaces.precompact_fallback (alias: model_tier_surfaces.precompact_fallback_model)`, default haiku; comfort
+override may raise to sonnet). It never inherits the live session model and never leaves
+`full` → orchestrate's sonnet default unset.
+
+**Honesty:** this fixes RavenClaude's **archival** PreCompact digest extraction only.
+Claude Code's **native auto-compact summarizer** still uses the **session model** until
+Anthropic ships an equivalent of `compactModel`. Do not claim that native path is fixed.
+
 **Sources:** [P2 of the precompact-critical-context FORGE plan, hardened per the P4 security review](../plugins/ravenclaude-core/hooks/precompact-digest.sh)
 
-_Last verified: 2026-09-01_
+_Last verified: 2026-09-16_
 
 
 ---
@@ -3455,7 +3476,7 @@ check; 25 checks covering the envelope shape, the eight stand-down conditions an
 
 **Sources:** [knowledge/model-tier-delegation.md — "The one place a hook does bind"](https://github.com/mcorbett51090/RavenClaude/blob/main/plugins/ravenclaude-core/knowledge/model-tier-delegation.md) · [Claude Code sub-agents — model resolution order (per-call `model` > frontmatter > CLAUDE_CODE_SUBAGENT_MODEL)](https://code.claude.com/docs/en/sub-agents) · [Claude Code hooks — PreToolUse `updatedInput` (rewrite without a permissionDecision)](https://code.claude.com/docs/en/hooks)
 
-_Last verified: 2026-09-14_
+_Last verified: 2026-09-16_
 
 
 ---

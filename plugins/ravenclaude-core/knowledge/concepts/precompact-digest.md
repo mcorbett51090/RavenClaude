@@ -6,11 +6,11 @@ kind: ravenclaude-built
 entry_class: inventory
 order: 915
 summary: "precompact-digest.sh detaches its engine call so the archival hook can never turn into a synchronous ceiling on a turn."
-last_verified: 2026-09-01
+last_verified: 2026-09-16
 covers:
   - plugins/ravenclaude-core/hooks/precompact-digest.sh
   - plugins/ravenclaude-core/scripts/precompact-digest.py
-covers_digest: "sha256:e87cca2a2c09a8e4fec6639e68e8d81b7719c657d4ca4f42f184ead724c8cd53"
+covers_digest: "sha256:f669b62a1bd05598ee27971e35c968d07dccab689570a7250fc170b199c9b866"
 nuance: "The hook returns near-instantly even when its digest engine takes seconds: extraction runs as a detached, disowned worker the hook never waits on, so a digest (when one appears at all) shows up seconds after the hook process has already exited."
 nuance_evidence:
   measured: 2026-09-01
@@ -60,3 +60,15 @@ briefly, risks becoming exactly the "data left, no benefit arrived" failure the 
 found in the prior design: egress happens, but the digest the hook was supposed to produce never does,
 because the reader was killed first. Detachment removes that race by construction rather than by
 tuning a timeout.
+
+## Model-tier pin (0.323.10) + honesty bound
+
+When cheap-lane is unavailable, the Claude-orchestrate fallback pins `THING_MODEL` to
+**haiku** (or `model_matrix.surfaces.precompact_fallback (alias: model_tier_surfaces.precompact_fallback_model)`, default haiku; comfort
+override may raise to sonnet). It never inherits the live session model and never leaves
+`full` → orchestrate's sonnet default unset.
+
+**Honesty:** this fixes RavenClaude's **archival** PreCompact digest extraction only.
+Claude Code's **native auto-compact summarizer** still uses the **session model** until
+Anthropic ships an equivalent of `compactModel`. Do not claim that native path is fixed.
+

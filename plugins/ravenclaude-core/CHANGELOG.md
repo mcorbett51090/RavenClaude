@@ -2,6 +2,56 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.323.12 — 2026-09-16
+
+### Added
+- **Routing map** — `knowledge/routing-map.md` four-row nav: spawn-team → agent-routing → agent-routing-matrix → UMM. Brief pointer from `CLAUDE.md`.
+- **Handoff taxonomy glossary** — `knowledge/handoff-taxonomy.md` (mechanisms KEEP; `/compact` default vs `/handoff` earn-it).
+- **Guard stack diagram** — `knowledge/guard-stack.md` (Guardrails stack; floors KEEP; docs-only).
+
+### Changed
+- **R1 soak plan (aliases KEEP)** — comfort-posture template comments mark `model_tier_surfaces.*` + `handoff_tax.pin_explore` as **alias deprecated after soak**; Phase D seed drop later. New `model_matrix.surfaces.*` remains SSOT.
+- **Cheap-lane skill matrix** → UMM pointer; live-verified Copilot/Grok nuance retained (concept card KEEP).
+- **`concepts/forge.md`** thinned to one-screen dashboard card; gate depth cites `forge-pipeline` skill. `last_verified` → 2026-09-16.
+- **Boundary banners** — symmetric NOT-UMM / NOT-agent-routing-matrix on both matrix docs + routing-map Related.
+
+### Locks / honesty
+- Docs/templates only. **No** alias hard-delete. **No** Thing / `gate_floor` / `guard-destructive` weaken. **No** `cheap_lane` default on. **No** Chat∪CLI merge. **No** handoff mechanism collapse. No push/PR/BMA from PE.
+
+## 0.323.11 — 2026-09-16
+
+### Added
+- **Unified Model Matrix (UMM)** — `knowledge/unified-model-matrix.md` + `.json` (+ schema). Cheap-lane agent×model×effort×budget cells are SSOT; Claude role→tier and archival surface pins are rows on one matrix.
+- **`model_matrix.surfaces` posture knobs** — `explore_pin` / `precompact_fallback` / `handoff_fill` / `never_inherit_session`. One-release aliases keep `model_tier_surfaces.*` and `handoff_tax.pin_explore` working; **new keys win** when both set. Absent ⇒ haiku defaults (House Rule 3 seed-only).
+
+### Changed
+- PreCompact / handoff fill / Explore pin readers resolve via UMM surfaces with old-key fallback; cheapest fit haiku/`fast`; never inherit session for archival surfaces.
+- `knowledge/model-tier-delegation.md` → stub pointer to UMM (short role table retained).
+- Cheap-lane skill + `concepts/cheap-lane-agent-matrix.md` point matrix SSOT at UMM JSON (live-verified nuance kept).
+
+### Locks / honesty
+- `cheap_lane` default stays **off**. Tribunal seats **cited-only** (no auto demotion). Grok rows **visible** when mode:off. Did **not** fix native CC auto-compact summarizer (still session model). No Thing / gate_floor weaken. Folds open PR #1192 PreCompact tip content into this tip.
+
+### Tests
+- Self-tests: UMM vs alias precedence + haiku defaults in `precompact-digest.py`, `context-handoff.py`, `explore-tier-pin.py`.
+
+## 0.323.10 — 2026-09-16
+
+### Fixed
+- **PreCompact Claude fallback model-tier** — `_try_claude_fallback` pins `THING_MODEL=haiku` (cheapest fit; LOCK ADDENDUM). Never inherits the session model; never leaves `full` → orchestrate sonnet default. Cheap-lane stays first when on. Self-test asserts the pin (fails on sonnet/opus/fable/empty without explicit posture override).
+
+### Added
+- **Detached handoff MODEL FILL** — `context-handoff.py fill` fills the eight `<!-- MODEL FILL -->` sections via fit-tier (default haiku; cheap-lane first when on). Session role: skeleton `write` + `/compact` steering only. Low-headroom `/compact-only` unchanged.
+- **`model_tier_surfaces` comfort knobs** — `precompact_fallback_model` / `handoff_fill_model` (default haiku; sonnet = comfort override; never session/opus/fable).
+
+### Honesty
+- Did **not** fix Claude Code native auto-compact summarizer model (still session model).
+- Did **not** enable `cheap_lane` by default.
+- Did **not** change Thing / `gate_floor`.
+
+### Docs
+- `knowledge/concepts/precompact-digest.md`, `knowledge/model-tier-delegation.md`, `skills/session-handoff/SKILL.md`, `commands/handoff.md`, handoff-nudge wording, comfort-posture-balanced template.
+
 ## 0.323.9 — 2026-09-16
 
 ### Security

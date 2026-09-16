@@ -154,6 +154,58 @@ _ZDR_RE = re.compile(
     r"^[ \t]*cheap_lane_zdr_confirmed[ \t]*:[ \t]*(true|false|on|off|yes|no)\b",
     re.IGNORECASE | re.MULTILINE,
 )
+# Unified Model Matrix surfaces + one-release aliases (0.323.11).
+# New keys (model_matrix.surfaces.*) win; old model_tier_surfaces.* still work.
+# Absent = haiku. Comfort override may raise to sonnet only — never opus/fable/session/inherit.
+_MODEL_MATRIX_BLOCK_RE = re.compile(r"^[ \t]*model_matrix[ \t]*:[ \t]*$", re.MULTILINE)
+_MM_SURFACES_BLOCK_RE = re.compile(r"^[ \t]+surfaces[ \t]*:[ \t]*$", re.MULTILINE)
+_MM_PRECOMPACT_RE = re.compile(
+    r"^[ \t]+precompact_fallback[ \t]*:[ \t]*([A-Za-z0-9_./-]{1,64})[ \t]*(?:#.*)?$",
+    re.MULTILINE,
+)
+_MM_HANDOFF_RE = re.compile(
+    r"^[ \t]+handoff_fill[ \t]*:[ \t]*([A-Za-z0-9_./-]{1,64})[ \t]*(?:#.*)?$",
+    re.MULTILINE,
+)
+_MODEL_TIER_BLOCK_RE = re.compile(r"^[ \t]*model_tier_surfaces[ \t]*:[ \t]*$", re.MULTILINE)
+_MTS_PRECOMPACT_RE = re.compile(
+    r"^[ \t]+precompact_fallback_model[ \t]*:[ \t]*([A-Za-z0-9_./-]{1,64})[ \t]*(?:#.*)?$",
+    re.MULTILINE,
+)
+_MTS_HANDOFF_RE = re.compile(
+    r"^[ \t]+handoff_fill_model[ \t]*:[ \t]*([A-Za-z0-9_./-]{1,64})[ \t]*(?:#.*)?$",
+    re.MULTILINE,
+)
+
+_DEFAULT_FIT_TIER = "haiku"
+_LATE_TIER_TOKENS = ("opus", "fable", "inherit", "session")
+
+
+def resolve_fit_tier(raw: str | None, *, allow_sonnet: bool = True) -> str:
+    """Cheapest fit tier for summarize/extract/handoff-fill surfaces.
+
+    Absent/empty → haiku. UMM tier alias `fast` → haiku. Explicit `sonnet` /
+    `balanced` (or claude-sonnet*) is a comfort override when allow_sonnet.
+    Opus/fable/session/inherit/top (and unknown) → haiku.
+    Never inherits the live session model.
+    """
+    v = (raw or "").strip().lower()
+    if not v:
+        return _DEFAULT_FIT_TIER
+    if v in ("haiku", "fast"):
+        return "haiku"
+    if "haiku" in v:
+        return v
+    if allow_sonnet and v in ("sonnet", "balanced"):
+        return "sonnet"
+    if allow_sonnet and v.startswith("claude-sonnet"):
+        return v
+    if any(tok in v for tok in _LATE_TIER_TOKENS) or v in ("top", "opus"):
+        return _DEFAULT_FIT_TIER
+    if v == "sonnet" or v.startswith("claude-sonnet") or v == "balanced":
+        # allow_sonnet False path still refuses late escalation
+        return _DEFAULT_FIT_TIER
+    return _DEFAULT_FIT_TIER
 
 
 def _truthy(word: str) -> bool:
@@ -187,6 +239,8 @@ def read_posture(project_dir: str | None = None) -> dict:
         "cheap_lane_agent": "grok",
         "pii_clean": False,
         "zdr_confirmed": False,
+        "precompact_fallback_model": _DEFAULT_FIT_TIER,
+        "handoff_fill_model": _DEFAULT_FIT_TIER,
     }
     text = _read_posture_text(project_dir)
     if not text:
@@ -206,6 +260,33 @@ def read_posture(project_dir: str | None = None) -> dict:
     m = _ZDR_RE.search(text)
     if m:
         out["zdr_confirmed"] = _truthy(m.group(1))
+    # UMM surfaces first (new keys win); then one-release model_tier_surfaces aliases.
+    mm = _MODEL_MATRIX_BLOCK_RE.search(text)
+    umm_pre = umm_hand = False
+    if mm:
+        mm_tail = text[mm.end() : mm.end() + 8192]
+        surf = _MM_SURFACES_BLOCK_RE.search(mm_tail)
+        if surf:
+            stail = mm_tail[surf.end() : surf.end() + 4096]
+            m = _MM_PRECOMPACT_RE.search(stail)
+            if m:
+                out["precompact_fallback_model"] = resolve_fit_tier(m.group(1))
+                umm_pre = True
+            m = _MM_HANDOFF_RE.search(stail)
+            if m:
+                out["handoff_fill_model"] = resolve_fit_tier(m.group(1))
+                umm_hand = True
+    mt = _MODEL_TIER_BLOCK_RE.search(text)
+    if mt:
+        tail = text[mt.end() : mt.end() + 4096]
+        if not umm_pre:
+            m = _MTS_PRECOMPACT_RE.search(tail)
+            if m:
+                out["precompact_fallback_model"] = resolve_fit_tier(m.group(1))
+        if not umm_hand:
+            m = _MTS_HANDOFF_RE.search(tail)
+            if m:
+                out["handoff_fill_model"] = resolve_fit_tier(m.group(1))
     return out
 
 
@@ -407,12 +488,27 @@ def _try_cheap_lane(prompt: str, agent: str = "grok", timeout_s: int = 60) -> tu
     return (out or None), rc
 
 
-def _try_claude_fallback(prompt: str, timeout_s: int = 90) -> str | None:
+def _try_claude_fallback(
+    prompt: str,
+    timeout_s: int = 90,
+    *,
+    model: str | None = None,
+) -> str | None:
+    """Claude-orchestrate fallback for digest extraction.
+
+    HARD (LOCK ADDENDUM 2026-09-16): always pin THING_MODEL to the cheapest fit
+    tier (default haiku). Never leave `full` → orchestrate's sonnet default.
+    Never inherit the live session model. Cheap-lane stays first when on
+    (caller order); this path only runs after cheap-lane unavailable.
+    """
     script = _claude_orchestrate_script()
     if not Path(script).is_file():
         return None
+    pinned = resolve_fit_tier(model)
     env = dict(os.environ)
     env["RAVENCLAUDE_ORCH_BRIEF"] = prompt
+    # Pin BEFORE spawning — claude-orchestrate.sh:260 defaults full→sonnet when unset.
+    env["THING_MODEL"] = pinned
     try:
         result = subprocess.run(
             ["bash", script, "full"],
@@ -493,7 +589,10 @@ def extract_digest(
             "outcome": "refused",
         }
 
-    digest = _try_claude_fallback(prompt)
+    digest = _try_claude_fallback(
+        prompt,
+        model=posture.get("precompact_fallback_model", _DEFAULT_FIT_TIER),
+    )
     if digest:
         return digest, "claude-fallback", {
             "attempted": True,
@@ -883,10 +982,32 @@ def _self_test() -> int:
         claude_ok = tdp / "claude-ok.sh"
         claude_ok.write_text(
             "#!/usr/bin/env bash\n"
-            'echo "$RAVENCLAUDE_ORCH_BRIEF" > "$0.received"\n'
+            'printf "argv0=%s\\nTHING_MODEL=%s\\n" "$1" "${THING_MODEL:-}" > "$0.received"\n'
+            'echo "$RAVENCLAUDE_ORCH_BRIEF" >> "$0.received"\n'
             'echo "- fallback digest item"\n'
         )
         claude_ok.chmod(0o755)
+
+        # Pin-strict stub: exits non-zero unless THING_MODEL is a haiku-class pin.
+        # Used to prove the fallback NEVER reaches orchestrate with sonnet/opus/fable/empty.
+        claude_pin = tdp / "claude-pin.sh"
+        claude_pin.write_text(
+            "#!/usr/bin/env bash\n"
+            'm="${THING_MODEL:-}"\n'
+            'printf "THING_MODEL=%s\\n" "$m" > "$0.received"\n'
+            'case "$m" in\n'
+            '  ""|*sonnet*|*opus*|*fable*|*inherit*|*session*)\n'
+            '    echo "REJECTED_LATE_OR_EMPTY_MODEL:$m" >&2; exit 99\n'
+            '    ;;\n'
+            '  *haiku*)\n'
+            '    echo "- fallback digest item"; exit 0\n'
+            '    ;;\n'
+            '  *)\n'
+            '    echo "REJECTED_UNKNOWN_MODEL:$m" >&2; exit 98\n'
+            '    ;;\n'
+            'esac\n'
+        )
+        claude_pin.chmod(0o755)
 
         default_proj = _mk_posture(tdp, pii_clean=True)  # floor OPEN by default below
 
@@ -951,7 +1072,130 @@ def _self_test() -> int:
         check("exit-4 (genuine unavailability) falls back to claude-fallback", method == "claude-fallback", f"got {method}")
         check("fallback digest content used", digest is not None and "fallback digest item" in (digest or ""))
         check("fallback receipt outcome=ok", receipt["outcome"] == "ok")
+        # LOCK ADDENDUM — fallback must pin haiku (never full→sonnet default / session).
+        pin_dump = (tdp / "claude-ok.sh.received").read_text() if (tdp / "claude-ok.sh.received").exists() else ""
+        model_lines = [ln for ln in pin_dump.splitlines() if ln.startswith("THING_MODEL=")]
+        model_val = model_lines[0].split("=", 1)[1] if model_lines else ""
+        check(
+            "fallback pins THING_MODEL with haiku",
+            "haiku" in model_val.lower() and model_val != "",
+            f"got {model_val!r} dump={pin_dump!r}",
+        )
+        check(
+            "fallback model value is not a late tier",
+            not any(tok in model_val.lower() for tok in ("sonnet", "opus", "fable", "inherit", "session")),
+            f"got {model_val!r}",
+        )
         (tdp / "claude-ok.sh.received").unlink(missing_ok=True)
+
+        # Strict pin stub: cheap-lane unavailable → fallback must succeed ONLY with haiku pin.
+        os.environ["RC_CHEAP_LANE_SCRIPT"] = str(cheap_fail)
+        os.environ["RC_CLAUDE_ORCHESTRATE_SCRIPT"] = str(claude_pin)
+        digest, method, receipt = extract_digest(str(transcript_a), project_dir=str(default_proj))
+        check("pin-strict stub: fallback succeeds with haiku", method == "claude-fallback", f"got {method}")
+        pin_strict = (tdp / "claude-pin.sh.received").read_text() if (tdp / "claude-pin.sh.received").exists() else ""
+        check("pin-strict stub saw THING_MODEL=haiku", "THING_MODEL=haiku" in pin_strict, f"got {pin_strict!r}")
+        (tdp / "claude-pin.sh.received").unlink(missing_ok=True)
+
+        # TEETH: unpinned THING_MODEL is rejected by pin-strict stub.
+        import sys as _sys
+        _mod = _sys.modules[__name__]
+        real_fb = _mod._try_claude_fallback
+
+        def _unpinned(prompt, timeout_s=90, *, model=None):
+            script = _claude_orchestrate_script()
+            env = dict(os.environ)
+            env["RAVENCLAUDE_ORCH_BRIEF"] = prompt
+            env.pop("THING_MODEL", None)
+            try:
+                result = subprocess.run(
+                    ["bash", script, "full"],
+                    capture_output=True, text=True, timeout=timeout_s, env=env,
+                )
+            except Exception:
+                return None
+            if result.returncode != 0:
+                return None
+            return (result.stdout or "").strip() or None
+
+        _mod._try_claude_fallback = _unpinned
+        try:
+            digest_bad, method_bad, _rcpt = extract_digest(str(transcript_a), project_dir=str(default_proj))
+            check(
+                "TEETH: unpinned fallback rejected (not claude-fallback ok)",
+                method_bad != "claude-fallback",
+                f"got method={method_bad}",
+            )
+        finally:
+            _mod._try_claude_fallback = real_fb
+        os.environ["RC_CLAUDE_ORCHESTRATE_SCRIPT"] = str(claude_ok)
+
+        # resolve_fit_tier unit checks (cheapest-fit + refuse late)
+        check("resolve_fit_tier empty → haiku", resolve_fit_tier("") == "haiku")
+        check("resolve_fit_tier None → haiku", resolve_fit_tier(None) == "haiku")
+        check("resolve_fit_tier opus → haiku", resolve_fit_tier("opus") == "haiku")
+        check("resolve_fit_tier fable → haiku", resolve_fit_tier("fable") == "haiku")
+        check("resolve_fit_tier inherit → haiku", resolve_fit_tier("inherit") == "haiku")
+        check("resolve_fit_tier session → haiku", resolve_fit_tier("session") == "haiku")
+        check("resolve_fit_tier sonnet comfort override", resolve_fit_tier("sonnet") == "sonnet")
+        check("resolve_fit_tier haiku stays haiku", resolve_fit_tier("haiku") == "haiku")
+        check("resolve_fit_tier fast → haiku", resolve_fit_tier("fast") == "haiku")
+        check("resolve_fit_tier balanced → sonnet", resolve_fit_tier("balanced") == "sonnet")
+
+        # UMM surfaces precedence vs one-release aliases
+        umm_proj = tdp / "umm-posture"
+        (umm_proj / ".ravenclaude").mkdir(parents=True)
+        (umm_proj / ".ravenclaude" / "comfort-posture.yaml").write_text(
+            "schema_version: 5\n"
+            "model_matrix:\n"
+            "  surfaces:\n"
+            "    precompact_fallback: sonnet\n"
+            "    handoff_fill: haiku\n"
+            "model_tier_surfaces:\n"
+            "  precompact_fallback_model: haiku\n"
+            "  handoff_fill_model: sonnet\n",
+            encoding="utf-8",
+        )
+        umm_p = read_posture(str(umm_proj))
+        check(
+            "UMM surfaces win over model_tier_surfaces alias",
+            umm_p["precompact_fallback_model"] == "sonnet",
+            f"got {umm_p['precompact_fallback_model']!r}",
+        )
+        check(
+            "UMM handoff_fill wins over alias",
+            umm_p["handoff_fill_model"] == "haiku",
+            f"got {umm_p['handoff_fill_model']!r}",
+        )
+        alias_proj = tdp / "alias-only-posture"
+        (alias_proj / ".ravenclaude").mkdir(parents=True)
+        (alias_proj / ".ravenclaude" / "comfort-posture.yaml").write_text(
+            "schema_version: 5\n"
+            "model_tier_surfaces:\n"
+            "  precompact_fallback_model: sonnet\n"
+            "  handoff_fill_model: sonnet\n",
+            encoding="utf-8",
+        )
+        alias_p = read_posture(str(alias_proj))
+        check(
+            "absent UMM surfaces ⇒ old model_tier_surfaces alias",
+            alias_p["precompact_fallback_model"] == "sonnet"
+            and alias_p["handoff_fill_model"] == "sonnet",
+            f"got {alias_p!r}",
+        )
+        absent_proj = tdp / "absent-surfaces"
+        (absent_proj / ".ravenclaude").mkdir(parents=True)
+        (absent_proj / ".ravenclaude" / "comfort-posture.yaml").write_text(
+            "schema_version: 5\ncheap_lane:\n  mode: off\n",
+            encoding="utf-8",
+        )
+        absent_p = read_posture(str(absent_proj))
+        check(
+            "absent surfaces ⇒ haiku defaults (House Rule 3)",
+            absent_p["precompact_fallback_model"] == "haiku"
+            and absent_p["handoff_fill_model"] == "haiku",
+            f"got {absent_p!r}",
+        )
 
         # cheap lane tried first, claude fallback NOT invoked on success (legacy assertion, preserved)
         os.environ["RC_CHEAP_LANE_SCRIPT"] = str(cheap_ok)

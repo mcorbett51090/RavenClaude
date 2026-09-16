@@ -32,14 +32,14 @@ So the burden is on `/handoff` to earn the reset. It earns it here:
 
 ⛔ **The two halves of this skill are INDEPENDENT — do not conflate them.** *Writing the brief*
 is durable and always worth it; *opening the window* is the expensive half. You may run steps
-1–5 (write `handoff.md` + `summary.md` + `decisions.md`), then **`/compact` and keep going**. The
+1–5 (write skeleton → detached `fill` → `finalize`; optional `summary.md` / `decisions.md`), then **`/compact` and keep going**. The
 run dir banks the expensive knowledge either way, and it survives compaction, a crash, and the
 session ending. **Skipping step 6 is a supported outcome, not an abandoned handoff.**
 
 ## Gotchas (read these; they are the load-bearing rules)
 
 - **Same `task-id`.** Continue in `.ravenclaude/runs/<task-id>/`. Never invent a parallel id for the same work.
-- **The hook cannot write the narrative.** `handoff-nudge` only nags. You fill `<!-- MODEL FILL -->` sections.
+- **The hook cannot write the narrative.** `handoff-nudge` only nags. **Detached fit-tier fill** (`context-handoff.py fill`, default **haiku**) fills `<!-- MODEL FILL -->` sections — the live session model does **not** burn frontier tokens on extract/format. Comfort override: `model_tier_surfaces.handoff_fill_model: sonnet` (never session/opus/fable).
 - **Seed is host-paired.** Grok: positional `grok "…"`. Chat: `chat-resume.md` + Cmd+N / New Chat + paste. CLI: interactive `copilot` (never a one-shot flag). **A Chat or CLI successor must not launch grok.**
 - **Never `grok -p`**, never `--single`, never `--prompt-file`, never `--prompt-json`.
 - **Cheap-lane is a different product.** One well-defined job with `cheap_lane: advise|agent` is `cheap-lane-delegation` (bounded, returns) — **do not spawn**. Quota escape, leftover multi-item work, plugin-cache reload, or "the next reader is not this session" is this skill. When `cheap_lane` is on and you still hand off, state in one clause why.
@@ -52,8 +52,8 @@ session ending. **Skipping step 6 is a supported outcome, not an abandoned hando
   boundary and makes **no** claim that anything survives compaction. Its own first line says so
   (`# precompact-digest.sh — PreCompact hook (archival only).`). It is also **opt-in**, gated on
   `cheap_lane.mode`, and it is **not** the mechanism this skill relies on: the durable brief is
-  written by the *live agent* via `context-handoff.py write`, in a turn, with real judgment content —
-  which is precisely what an archival extractor cannot produce.
+  written via `context-handoff.py write` + detached `fill` (haiku) + `finalize` — judgment-shaped
+  sections without burning the session frontier model on extract/format.
 - **Never encode 40% / 30% / 300K as a trigger.** The compact threshold is ~85%. Soft threshold default 70, always below auto-compact.
 - **Do not read `GROK_SESSION_ID` from the agent env.** It is unset here. Detection is hook-only.
 - **Never infer Chat from `TERM_PROGRAM=vscode` alone.** That is also Grok-in-VS-Code. Pass `--host` from what you actually are: `claude-code` | `grok` | `cli` | `chat` each have their own recipe; `codex` | `cursor` | `gemini` | `aider` | `windsurf` | `other` get a host-neutral block. ⛔ **Never substitute a host you are not.** An agent that read an older, shorter list here passed `--host chat` from a Claude Code session and produced a Copilot-Chat seed for a Claude Code successor (2026-08-18).
@@ -65,7 +65,7 @@ session ending. **Skipping step 6 is a supported outcome, not an abandoned hando
 2. Resolve **origin host** (you are Claude Code / Grok TUI / Copilot CLI / Copilot Chat — do not guess from `TERM_PROGRAM=vscode` alone) → `claude-code` | `grok` | `cli` | `chat`. On any other host, pass its `host-support.json` name (`codex` | `cursor` | `gemini` | `aider` | `windsurf`) or `other`; you will get a host-neutral block, which is correct.
 3. `bash plugins/ravenclaude-core/bin/rc artifacts new <task-id>` (continue-in-place).
 4. `python3 plugins/ravenclaude-core/scripts/context-handoff.py write --task-id <id> --host <pair>` to refresh the derive-fill skeleton.
-5. **Fill** every `<!-- MODEL FILL -->` section in `.ravenclaude/runs/<id>/handoff.md`. Update `summary.md` / `decisions.md` only when there is real content — never stamp empty files. Then run `python3 plugins/ravenclaude-core/scripts/context-handoff.py finalize --task-id <id>` — this re-scrubs and re-`chmod`s the file now that the sensitive judgment content actually exists (§F3 of the run's `plan.md`), so `/session-handoff`'s own fill and the proactive nudge produce identically-protected artifacts.
+5. **Detached fill** (do **not** fill the eight sections yourself on the session model): `python3 plugins/ravenclaude-core/scripts/context-handoff.py fill --task-id <id>` — fit-tier default **haiku** (cheap-lane first when on; else `claude-orchestrate` with `THING_MODEL=haiku`). Update `summary.md` / `decisions.md` only when there is real content — never stamp empty files. Then run `python3 plugins/ravenclaude-core/scripts/context-handoff.py finalize --task-id <id>` — this re-scrubs and re-`chmod`s the file now that the filled content actually exists (§F3 of the run's `plan.md`). Session role after this change: skeleton `write` + `/compact` steering only (when headroom allows). Low-headroom `/compact-only` path unchanged.
 
 5.5 **Evaluate the three escalation conditions (`SKILL.md:29-31`).**
 

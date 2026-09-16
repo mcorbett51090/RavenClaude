@@ -229,6 +229,8 @@ count 16 → 17 (`scout`). New advisory hook is inert without a comfort-posture 
 
 ### Agent-routing decision tree (priors — for the Team Lead)
 
+**Four-row nav (0.323.12):** [`knowledge/routing-map.md`](knowledge/routing-map.md) — spawn-team (surface) → `agent-routing.md` (specialist) → `agent-routing-matrix` (host×task) → UMM (tier×surface). Do not collapse trees. Handoff names: [`knowledge/handoff-taxonomy.md`](knowledge/handoff-taxonomy.md).
+
 **Surface first, then specialist.** Before any spawn, traverse [`skills/spawn-team/SKILL.md`](skills/spawn-team/SKILL.md) **Step 1.25** (slash command vs skill vs specialist agent vs orchestration shape). Platform fuzzy-match on descriptions is not the router. Only when Step 1.25 selects the **agent** surface: traverse the Mermaid graph in [`knowledge/agent-routing.md`](knowledge/agent-routing.md) `## Decision Tree` top-to-bottom against the user's observable request signals — do NOT keyword-match the request to an agent name. The earliest-blocking gate wins (e.g., a UI change that touches auth spawns `security-reviewer` before `frontend-coder`); when multiple branches could apply, default to the leaf with the smaller spawn cost and escalate only if it returns insufficient. Domain plugins (e.g. `power-platform`) with a more-specific routing rule for the request override this tree.
 
 ## Structured Output Protocol (Active — required for handoffs)
@@ -1217,6 +1219,9 @@ Any plugin template that renders an HTML `<head>` (e.g. `templates/repo-build-st
 - `vscode-extension/` — `ravenclaude-precompact-guard`, a standalone VS Code extension (its own `package.json`/`tsconfig.json`/`esbuild.js`/`src/`, built + installed with the native `vsce`/`code --install-extension` tooling, not Claude Code's plugin loader). Registers a Language Model Tool + a manual command + a status-bar affordance that trigger Copilot Chat's `/compact <digest>` via the stable `workbench.action.chat.open` command. No `plugin.json` field declares it — unlike `monitors/`, it has no Claude-Code-recognized manifest surface to hook into; the directory is authorized only via a `.repo-layout.json` glob, same as `bin/`. See the precompact-critical-context milestone below.
 
 ### Command review (the Thing) — tribunal T5 (updated 2026-05-26, v0.28.0)
+
+**Guard stack (0.323.12):** [`knowledge/guard-stack.md`](knowledge/guard-stack.md) — `guard-destructive` → Thing/`gate_floor` → cause preflight → OS containment. Floors KEEP; diagram is docs-only.
+
 
 > **When command review is for you (scope + when it's optional).** The Thing exists to put _portable, model-agnostic_ guardrails on **agentic AI that routes across multiple model vendors** (e.g. GitHub Copilot CLI using Claude + ChatGPT + Grok), where Claude Code's native **`auto` permission mode is unavailable** (Anthropic-API/Claude-only). There it is the only layer delivering a deterministic catastrophe floor, a self-tamper guard, secret-egress prevention, cross-vendor anti-correlated review, and low-touch ALLOW/EDIT/DENY disposition. **If you run _only_ Claude Code, native `auto` mode may be sufficient** — prefer `auto` for containment and treat the Thing as an _optional_ add-on for its domain concerns, audit trail, and yes/no decision-routing. The tribunal earns its cost most clearly where `auto` cannot run. (RavenClaude also ships the portable `runaway-brake.sh` + `dod-gate.sh` hooks as the cross-host equivalent of `auto`'s runaway brake and a definition-of-done gate.)
 

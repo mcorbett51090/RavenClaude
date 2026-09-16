@@ -1,5 +1,7 @@
 <!-- lineup-citations: not enforced here — this file cites source files by id, not by inline price/date-carrying prose rows; the vendor facts themselves live in the files listed in agent-routing-matrix.json's `sources[]`, never here. -->
 
+> **NOT the Unified Model Matrix (UMM).** This file answers *which coding host / agent surface fits a task shape* (heuristic). Tier×surface cells, archival pins, and cheap-lane SSOT live in [`unified-model-matrix.md`](unified-model-matrix.md). See also [`routing-map.md`](routing-map.md) row 3 vs row 4.
+
 # Agent routing matrix — task shape → {agent, model, effort tier}
 
 **Last reviewed:** 2026-09-01 · **Owner:** ravenclaude-core (domain-neutral — see `AGENTS.md` house rule 1; no per-agent owner). **Staleness tier:** Tier-4 (fast-churn), matching its own cited sources.
