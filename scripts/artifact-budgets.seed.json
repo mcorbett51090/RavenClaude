@@ -219,6 +219,11 @@
         "repo-review-block-planner-capacity-floor inventory entry (block_planner.py Gate 258/260 inception-coverage fix, /repo-review block-mode build, 2026-09-16)",
         10820000,
         "Same /repo-review block-mode build as the payload entry above. dashboard.html 10,813,894 bytes > prior 10,810,000 by 3,894 (0.00 MB). Re-measured on this branch head; appended, never edited."
+      ],
+      [
+        "Pipeline Pre\u2192Post decision-tree island (0.323.13, PR #1195)",
+        10850000,
+        "Same PR #1195 Pipeline decision-tree island (core 0.323.13). dashboard.html 10,842,220 bytes > prior 10,820,000 by 22,220 (0.02 MB). Gate 132 island +2 static (mount+JSON); JS seats SVG/chrome on activate. Re-measured on this branch head; appended, never edited."
       ]
     ],
     "index.html": [
@@ -257,8 +262,13 @@
         "plugin-lifecycle inventory entry (PR #1187, 0.323.7, 2026-09-15)",
         9500000,
         "Same PR #1187 plugin lifecycle (core 0.323.7). index.html 9,496,737 bytes > prior 9,496,000 by 737. Re-measured on this branch head; appended, never edited."
+      ],
+      [
+        "Pipeline Pre\u2192Post decision-tree island (0.323.13, PR #1195)",
+        9530000,
+        "Same PR #1195 Pipeline decision-tree island (core 0.323.13). index.html 9,524,104 bytes > prior 9,500,000 by 24,104 (0.02 MB). Portal fold embeds same island. Re-measured on this branch head; appended, never edited."
       ]
     ]
   },
-  "measured_against": "7fb625b9cc8aa795e021fadb5acbf262cf074757"
+  "measured_against": "ce529060ea2926842af4a6c6e5bfa1d111dd118f"
 }
