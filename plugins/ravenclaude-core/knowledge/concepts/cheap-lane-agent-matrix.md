@@ -6,14 +6,14 @@ kind: ravenclaude-built
 entry_class: inventory
 order: 903
 summary: "route-task.py picks a lane, not a vendor; cheap-lane-delegate.sh picks the agent — and the two CLIs' real capability shapes genuinely diverge."
-last_verified: 2026-09-10
+last_verified: 2026-09-16
 covers:
   - plugins/ravenclaude-core/scripts/cheap-lane-delegate.sh
   - plugins/ravenclaude-core/scripts/copilot-delegate.sh
   - plugins/ravenclaude-core/scripts/grok-delegate.sh
   - plugins/ravenclaude-core/scripts/route-task.py
   - plugins/ravenclaude-core/skills/cheap-lane-delegation/SKILL.md
-covers_digest: "sha256:1a2a9537db69a4cb1e7d6c80845cc159f75c00e67ca3d31fc7157eb525fdc677"
+covers_digest: "sha256:b397a9fb70bf4d844b600bca9bb0cbf84a5ce243f43d59df039215083655f953"
 nuance: "Copilot CLI's `--model auto` rejects `--effort` outright at runtime — a real error, not a doc gap — so the Copilot lane differentiates by timeout budget only unless a caller pins an effort-capable model."
 nuance_evidence:
   measured: 2026-08-26
