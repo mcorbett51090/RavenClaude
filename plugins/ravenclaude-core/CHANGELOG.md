@@ -2,6 +2,18 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.323.14 — 2026-09-16
+
+### Added
+- **Phase D alias soak (R1)** — SessionStart `alias-deprecation-advisory` emits a one-line additionalContext notice when `handoff_tax.pin_explore` / `model_tier_surfaces.*` are the effective source or diverge from `model_matrix.surfaces.*` (quiet when seed leftovers match). Once-per-session marker; not a Stop/per-turn nag. Dashboard Settings banner on alias hydrate.
+
+### Changed
+- **Dashboard YAML writer** — explore / precompact / handoff pins Save as `model_matrix.surfaces.*` only (never `pin_explore` / `model_tier_surfaces.*`). Hydrate still: new wins, old alias fallback. Meter caps stay under `handoff_tax`.
+- Comfort seed soak comments updated for Phase D; **aliases KEEP in seed** (House Rule 3 — no consumer clobber; seed drop later).
+
+### Locks / honesty
+- **No** alias hard-delete from seed. **No** Thing / `gate_floor` / `guard-destructive` weaken. **No** `cheap_lane` default on. Readers unchanged (haiku default). No push/PR/BMA from PE.
+
 ## 0.323.13 — 2026-09-16
 
 ### Added

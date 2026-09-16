@@ -980,7 +980,7 @@ _PIPELINE_LANES = [
                         "Leaves alone anything that names a model, any other agent type, and any project already routing sub-agents by environment variable.",
                     ],
                     "trip": "Rewrites input only — never allows, asks, or blocks; your dispatch permission stays exactly as set.",
-                    "set": "`handoff_tax: { pin_explore: haiku | sonnet | off }` in .ravenclaude/comfort-posture.yaml (default haiku; `handoff_tax: off` also disables).",
+                    "set": "`model_matrix.surfaces.explore_pin: haiku | sonnet | off` in .ravenclaude/comfort-posture.yaml (default haiku; alias `handoff_tax.pin_explore` still reads; `handoff_tax: off` also disables).",
                 },
             },
         ],
@@ -9095,21 +9095,35 @@ _JS = r"""
   const CHEAP_LANE_AGENT_VALUES = ["grok", "copilot"];
   const CHEAP_LANE_AGENT_DEFAULT = "grok";
   const CHEAP_LANE_DEFAULT = Object.freeze({ mode: "off", tier: "fast", agent: "grok" });
-  /* Handoff tax (model-tier delegation, v0.322.0) — the ON-Claude sibling of
-   * cheap_lane. Read by hooks/handoff-tax-meter.sh (report/brief caps + the
-   * scalar `off`) and hooks/explore-tier-pin.sh (`pin_explore` + the same
-   * `off`). Round-tripped here so a Save no longer strips it (the v0.61.0
-   * data-loss class, closed the same shape as cheap_lane). Two SHAPES survive:
-   * the scalar `handoff_tax: off` (modelled as the `off` flag) and the block
-   * (caps + pin). Values mirror handoff-tax-meter.py / explore-tier-pin.py's
-   * own accepted sets exactly; an unrecognised value is dropped, never
-   * canonicalized. NO DOM control — state-slot round-trip only. */
+  /* Handoff tax (model-tier delegation) — meter caps + scalar `off` only.
+   * Phase D (0.323.14): Explore pin WRITE path moved to model_matrix.surfaces.
+   * explore_pin; handoff_tax.pin_explore is still READ as a one-release alias
+   * (hydrate only). Caps/off stay here. Round-tripped so a Save no longer
+   * strips caps (v0.61.0 data-loss class). NO DOM control. */
   const HANDOFF_TAX_PIN_VALUES = ["haiku", "sonnet", "off"];
   const HANDOFF_TAX_PIN_DEFAULT = "haiku";
   const HANDOFF_TAX_REPORT_CAP_DEFAULT = 400;
   const HANDOFF_TAX_BRIEF_CAP_DEFAULT = 600;
   const HANDOFF_TAX_CAP_MAX = 999999;
-  const HANDOFF_TAX_DEFAULT = Object.freeze({ off: false, report_cap_words: null, brief_cap_words: null, pin_explore: "" });
+  const HANDOFF_TAX_DEFAULT = Object.freeze({ off: false, report_cap_words: null, brief_cap_words: null });
+  /* Unified Model Matrix surfaces (0.323.11+; Phase D write SSOT).
+   * Dashboard Save writes ONLY these keys for explore/precompact/handoff pins.
+   * Hydrate: new wins; old handoff_tax.pin_explore / model_tier_surfaces.* fall
+   * back. Absent ⇒ haiku defaults at the reader (emit omits defaults).
+   * alias_deprecation tracks whether hydrate saw old keys (Settings banner). */
+  const MODEL_MATRIX_SURFACE_VALUES = ["haiku", "sonnet", "off", "fast", "balanced"];
+  const MODEL_MATRIX_PIN_DEFAULT = "haiku";
+  const MODEL_MATRIX_SURFACES_DEFAULT = Object.freeze({
+    explore_pin: "",
+    precompact_fallback: "",
+    handoff_fill: "",
+    never_inherit_session: null,
+  });
+  const ALIAS_DEPRECATION_DEFAULT = Object.freeze({
+    pin_explore: false,
+    model_tier_surfaces: false,
+    diverge: false,
+  });
 
   /* Prompt optimizer (Phases 2-6) — round-tripped here so a Save no longer
    * strips it (the v0.61.0 data-loss class, closed the same shape as
@@ -9248,10 +9262,12 @@ _JS = r"""
      * No DOM control (worktree_bound pattern) — cheap-lane-delegate.sh /
      * grok-delegate.sh / route-task.py own the semantics, we only preserve. */
     cheap_lane: Object.assign({}, CHEAP_LANE_DEFAULT),
-    /* Handoff tax (model-tier delegation). Held in state so a Save round-trips
-     * it instead of silently dropping it. No DOM control — handoff-tax-meter.sh
-     * / explore-tier-pin.sh own the semantics, we only preserve. */
+    /* Handoff tax (caps + off). Pin write path is model_matrix.surfaces. */
     handoff_tax: Object.assign({}, HANDOFF_TAX_DEFAULT),
+    /* UMM surfaces — Phase D dashboard write SSOT for explore/precompact/handoff. */
+    model_matrix: { surfaces: Object.assign({}, MODEL_MATRIX_SURFACES_DEFAULT) },
+    /* Hydrate-only flags for Settings alias-deprecation banner (no YAML emit). */
+    alias_deprecation: Object.assign({}, ALIAS_DEPRECATION_DEFAULT),
     /* Prompt optimizer (Phases 2-6). Held in state so a Save round-trips it
      * instead of silently dropping it. No DOM control — see the constant's
      * own comment above for why. */
@@ -9325,6 +9341,7 @@ _JS = r"""
       /* Pipeline-stage guardrails (runaway / decision_review / definition_of_done
        * / dev_repo_exempt) — restored via the shared validator. */
       applyGuardrailConfig(parsed);
+      try { refreshAliasDeprecationBanner(); } catch (e) {}
       /* command-review panel: keep only known seats/models + a valid threshold */
       if (parsed.command_review && typeof parsed.command_review === "object") {
         const pcr = parsed.command_review;
@@ -9636,6 +9653,15 @@ _JS = r"""
    * Returns true if anything was applied. */
   function applyGuardrailConfig(src) {
     if (!src || typeof src !== "object") return false;
+    /* Phase D slots — older localStorage payloads may lack them. */
+    if (!state.model_matrix || typeof state.model_matrix !== "object") {
+      state.model_matrix = { surfaces: Object.assign({}, MODEL_MATRIX_SURFACES_DEFAULT) };
+    } else if (!state.model_matrix.surfaces || typeof state.model_matrix.surfaces !== "object") {
+      state.model_matrix.surfaces = Object.assign({}, MODEL_MATRIX_SURFACES_DEFAULT);
+    }
+    if (!state.alias_deprecation || typeof state.alias_deprecation !== "object") {
+      state.alias_deprecation = Object.assign({}, ALIAS_DEPRECATION_DEFAULT);
+    }
     let touched = false;
     const rw = src.runaway;
     if (rw && typeof rw === "object") {
@@ -9762,9 +9788,28 @@ _JS = r"""
       if (CHEAP_LANE_TIER_VALUES.includes(cl.tier)) { state.cheap_lane.tier = cl.tier; touched = true; }
       if (CHEAP_LANE_AGENT_VALUES.includes(cl.agent)) { state.cheap_lane.agent = cl.agent; touched = true; }
     }
-    /* Handoff tax (model-tier delegation). Scalar `off` (YAML `off` parses to
-     * boolean false) OR a block; validate against handoff-tax-meter.py /
-     * explore-tier-pin.py's own accepted sets. */
+    /* model_matrix.surfaces (UMM / Phase D write SSOT). New keys win. */
+    const mm = src.model_matrix;
+    if (mm && typeof mm === "object" && mm.surfaces && typeof mm.surfaces === "object") {
+      const srf = mm.surfaces;
+      const ep = srf.explore_pin === false ? "off" : srf.explore_pin;
+      if (typeof ep === "string" && MODEL_MATRIX_SURFACE_VALUES.includes(ep)) {
+        state.model_matrix.surfaces.explore_pin = ep; touched = true;
+      }
+      if (typeof srf.precompact_fallback === "string"
+          && MODEL_MATRIX_SURFACE_VALUES.includes(srf.precompact_fallback)) {
+        state.model_matrix.surfaces.precompact_fallback = srf.precompact_fallback; touched = true;
+      }
+      if (typeof srf.handoff_fill === "string"
+          && MODEL_MATRIX_SURFACE_VALUES.includes(srf.handoff_fill)) {
+        state.model_matrix.surfaces.handoff_fill = srf.handoff_fill; touched = true;
+      }
+      if (Array.isArray(srf.never_inherit_session)) {
+        state.model_matrix.surfaces.never_inherit_session = srf.never_inherit_session.slice();
+        touched = true;
+      }
+    }
+    /* Handoff tax — caps + off. pin_explore is ALIAS hydrate only (Phase D). */
     const ht = src.handoff_tax;
     if (ht === false || ht === "off") {
       state.handoff_tax.off = true; touched = true;
@@ -9774,7 +9819,38 @@ _JS = r"""
       const bc = parseInt(ht.brief_cap_words, 10);
       if (Number.isFinite(bc) && bc > 0 && bc <= HANDOFF_TAX_CAP_MAX) { state.handoff_tax.brief_cap_words = bc; touched = true; }
       const pe = ht.pin_explore === false ? "off" : ht.pin_explore;
-      if (HANDOFF_TAX_PIN_VALUES.includes(pe)) { state.handoff_tax.pin_explore = pe; touched = true; }
+      if (typeof pe === "string" && HANDOFF_TAX_PIN_VALUES.includes(pe)) {
+        state.alias_deprecation.pin_explore = true; touched = true;
+        if (!state.model_matrix.surfaces.explore_pin) {
+          state.model_matrix.surfaces.explore_pin = pe;
+        } else if (state.model_matrix.surfaces.explore_pin !== pe) {
+          state.alias_deprecation.diverge = true;
+        }
+      }
+    }
+    /* model_tier_surfaces — ALIAS hydrate for precompact/handoff fill. */
+    const mts = src.model_tier_surfaces;
+    if (mts && typeof mts === "object") {
+      let saw = false;
+      if (typeof mts.precompact_fallback_model === "string"
+          && MODEL_MATRIX_SURFACE_VALUES.includes(mts.precompact_fallback_model)) {
+        saw = true;
+        if (!state.model_matrix.surfaces.precompact_fallback) {
+          state.model_matrix.surfaces.precompact_fallback = mts.precompact_fallback_model;
+        } else if (state.model_matrix.surfaces.precompact_fallback !== mts.precompact_fallback_model) {
+          state.alias_deprecation.diverge = true;
+        }
+      }
+      if (typeof mts.handoff_fill_model === "string"
+          && MODEL_MATRIX_SURFACE_VALUES.includes(mts.handoff_fill_model)) {
+        saw = true;
+        if (!state.model_matrix.surfaces.handoff_fill) {
+          state.model_matrix.surfaces.handoff_fill = mts.handoff_fill_model;
+        } else if (state.model_matrix.surfaces.handoff_fill !== mts.handoff_fill_model) {
+          state.alias_deprecation.diverge = true;
+        }
+      }
+      if (saw) { state.alias_deprecation.model_tier_surfaces = true; touched = true; }
     }
     /* Prompt optimizer (Phases 2-6). Validate against prompt-optimizer-gate.sh's
      * own accepted sets — an unrecognized value is dropped, never canonicalized. */
@@ -9790,7 +9866,41 @@ _JS = r"""
     return touched;
   }
 
+
+  /* Phase D — Settings banner when hydrate saw deprecated alias keys. */
+  function refreshAliasDeprecationBanner() {
+    const ad = state.alias_deprecation || {};
+    const show = !!(ad.pin_explore || ad.model_tier_surfaces);
+    let el = document.getElementById("alias-deprecation-banner");
+    if (!show) {
+      if (el) el.hidden = true;
+      return;
+    }
+    if (!el) {
+      const form = document.querySelector(".settings-form");
+      if (!form) return;
+      el = document.createElement("div");
+      el.id = "alias-deprecation-banner";
+      el.className = "cat-project-warn";
+      el.setAttribute("role", "status");
+      form.insertBefore(el, form.firstChild);
+    }
+    el.hidden = false;
+    const bits = [];
+    if (ad.pin_explore) bits.push("handoff_tax.pin_explore");
+    if (ad.model_tier_surfaces) bits.push("model_tier_surfaces.*");
+    const diverge = ad.diverge ? " (diverges from model_matrix.surfaces — new keys win)" : "";
+    el.innerHTML = '<span class="warn-icon" aria-hidden="true">&#9888;</span> '
+      + "Alias deprecated: " + bits.join(" + ") + diverge
+      + ". Prefer <code>model_matrix.surfaces.{explore_pin,precompact_fallback,handoff_fill}</code>. "
+      + "Save writes new keys only; old keys still resolve until seed drop after soak.";
+  }
+
   function emitYaml() {
+    if (!state.model_matrix || !state.model_matrix.surfaces) {
+      state.model_matrix = { surfaces: Object.assign({}, MODEL_MATRIX_SURFACES_DEFAULT) };
+    }
+    if (!state.handoff_tax) state.handoff_tax = Object.assign({}, HANDOFF_TAX_DEFAULT);
     const lines = [
       "# Comfort-posture for Claude Code agents (v5 — per-layer).",
       "# Save to .ravenclaude/comfort-posture.yaml in your project root.",
@@ -10088,28 +10198,45 @@ _JS = r"""
       lines.push("");
     }
 
-    /* Handoff tax (model-tier delegation, v0.61.0 data-loss class). The scalar
-     * `off` form wins when set; otherwise emit the block when ANY sub-field is
-     * non-default, and only the set sub-fields ("absent ⇒ default" holds for an
-     * untouched dashboard). Read back by handoff-tax-meter.sh (caps, off) and
-     * explore-tier-pin.sh (pin_explore, off). No editable control. */
+    /* model_matrix.surfaces — Phase D write SSOT. NEVER emit pin_explore under
+     * handoff_tax or model_tier_surfaces.* (aliases are hydrate/read only). */
+    const mms = state.model_matrix.surfaces;
+    const mmEp = mms.explore_pin && mms.explore_pin !== MODEL_MATRIX_PIN_DEFAULT
+      && MODEL_MATRIX_SURFACE_VALUES.includes(mms.explore_pin);
+    const mmPc = mms.precompact_fallback && mms.precompact_fallback !== MODEL_MATRIX_PIN_DEFAULT
+      && MODEL_MATRIX_SURFACE_VALUES.includes(mms.precompact_fallback);
+    const mmHf = mms.handoff_fill && mms.handoff_fill !== MODEL_MATRIX_PIN_DEFAULT
+      && MODEL_MATRIX_SURFACE_VALUES.includes(mms.handoff_fill);
+    const mmNi = Array.isArray(mms.never_inherit_session) && mms.never_inherit_session.length > 0;
+    if (mmEp || mmPc || mmHf || mmNi) {
+      lines.push("# Unified Model Matrix surfaces — explore/precompact/handoff pins (SSOT).");
+      lines.push("model_matrix:");
+      lines.push("  surfaces:");
+      if (mmEp) lines.push(`    explore_pin: ${mms.explore_pin}`);
+      if (mmPc) lines.push(`    precompact_fallback: ${mms.precompact_fallback}`);
+      if (mmHf) lines.push(`    handoff_fill: ${mms.handoff_fill}`);
+      if (mmNi) {
+        const ni = mms.never_inherit_session.map(x => String(x)).join(", ");
+        lines.push(`    never_inherit_session: [${ni}]`);
+      }
+      lines.push("");
+    }
+
+    /* Handoff tax — caps + scalar off ONLY (Phase D: no pin_explore write). */
     const htx = state.handoff_tax;
     const htxRc = Number.isFinite(htx.report_cap_words) && htx.report_cap_words > 0
       && htx.report_cap_words !== HANDOFF_TAX_REPORT_CAP_DEFAULT;
     const htxBc = Number.isFinite(htx.brief_cap_words) && htx.brief_cap_words > 0
       && htx.brief_cap_words !== HANDOFF_TAX_BRIEF_CAP_DEFAULT;
-    const htxPin = htx.pin_explore && htx.pin_explore !== HANDOFF_TAX_PIN_DEFAULT
-      && HANDOFF_TAX_PIN_VALUES.includes(htx.pin_explore);
     if (htx.off === true) {
       lines.push("# Handoff tax — sub-agent dispatch advisory + Explore tier pin, silenced (ledger still written).");
       lines.push("handoff_tax: off");
       lines.push("");
-    } else if (htxRc || htxBc || htxPin) {
-      lines.push("# Handoff tax — sub-agent brief/report caps + the tier an un-pinned Explore is pinned to.");
+    } else if (htxRc || htxBc) {
+      lines.push("# Handoff tax — sub-agent brief/report caps (Explore pin → model_matrix.surfaces.explore_pin).");
       lines.push("handoff_tax:");
       if (htxRc) lines.push(`  report_cap_words: ${htx.report_cap_words}`);
       if (htxBc) lines.push(`  brief_cap_words: ${htx.brief_cap_words}`);
-      if (htxPin) lines.push(`  pin_explore: ${htx.pin_explore}`);
       lines.push("");
     }
 
@@ -14334,6 +14461,7 @@ function wireHostScopeFilter(root) {
      * / command_review.dev_repo_exempt, via the shared validator (same shape as
      * the localStorage path). */
     if (applyGuardrailConfig(parsed)) touched = true;
+      try { refreshAliasDeprecationBanner(); } catch (e) {}
     /* ── Per-category permission posture ─────────────────────────────── */
     /* The committed file expresses the SAME shape the dashboard authors, so we
      * map it back field-for-field, guarding every access (a key the file omits

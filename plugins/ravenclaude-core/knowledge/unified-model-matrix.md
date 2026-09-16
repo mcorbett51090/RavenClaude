@@ -71,6 +71,8 @@ model_tier_surfaces:        # ALIAS one release → surfaces.*
 
 **Precedence:** `model_matrix.surfaces.*` wins when both new and old keys are set; absent new ⇒ old alias ⇒ haiku default. Seed-only for consumers (House Rule 3): existing custom posture is never clobbered by marketplace update; absent ⇒ old defaults.
 
+**Phase D (0.323.14) soak:** SessionStart advisory when old keys are sole source or diverge; dashboard Save writes **only** `model_matrix.surfaces.*` for these pins (aliases still hydrate/read). Aliases remain in seed until a later soak-window drop.
+
 ## Locked levers
 
 1. **surface** — session \| subagent \| cheap-lane \| tribunal \| precompact \| handoff \| explore  
