@@ -5,7 +5,7 @@ import { cn } from "./cn";
 // comment for why (FORGE dashboard-top1pct P1-7, 2026-09-03).
 
 const TEXT_COLOR_CLASS: Record<string, string> = {
-  rose: "text-rose-600",
+  rose: "text-rose-700",
   default: "text-tremor-content",
 };
 
