@@ -698,7 +698,7 @@ def self_test(broken=False):
             rd_j = os.path.join(tmp, "j")
             os.makedirs(rd_j)
             body_j = "first\n"
-            art_j = _write(os.path.join(rd_j, "a.md"), body_j)
+            _write(os.path.join(rd_j, "a.md"), body_j)
             r_j1 = _receipt_file(tmp, "j1.json",
                                  {"gate": "G0", "status": "pass", "artifact": "a.md"})
             code, _ = append("G0", r_j1, rd_j)
