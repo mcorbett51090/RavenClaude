@@ -109,16 +109,43 @@ are in code those gates don't cover.
   so they cannot drift. Decide the `cwd`-absent fallback once, in that helper, verified
   against a real Copilot/Cursor PreToolUse payload.
 
----
+## D5 — `concepts.py`: `isinstance(val, int)` accepts `bool` for the `order` field (P2, deferred)
 
-## Note: pre-existing, not from this sweep
+- **Where:** [`scripts/concepts.py`](../../scripts/concepts.py) `req()` (~line 199).
+- **Observation:** `req("order", int)` validates via `isinstance(val, int)`, and `bool`
+  subclasses `int`, so a YAML `order: yes` (or `no`/`true`/`false`/`on`/`off`, all
+  parsed as bool by the YAML 1.1 resolver) passes validation, sorts as 0/1, and
+  serializes as a JSON boolean into `concepts.json`. Verified: `isinstance(True, int)`
+  is `True`.
+- **Consequence (inference):** a boolean-typo `order` silently corrupts the concept
+  ordering and the emitted registry. Latent today — no concept currently uses a bool
+  `order`.
+- **The fix is trivial** (reject a bool where a real int is required: `if typ is int and
+  isinstance(val, bool): raise ...`). It was **built, verified, then reverted from the
+  code PR** because of a cascade, not because it's wrong:
+  - `scripts/concepts.py` is a **covered artifact** of two knowledge concepts —
+    `staleness-double-exemption` and `selfheal-greps-a-sentence` (both `covers:` it).
+    control: with pristine `concepts.py`, `concepts.py --check` exits 0; with the edit
+    it exits 1 with `covers_digest drift` on both. So editing `concepts.py` **fails the
+    inventory-staleness gate (audit-gates 237) and, downstream, the schema gate (239)**.
+  - Landing it cleanly therefore needs: (1) `python3 scripts/concepts.py
+    --restamp-cosmetic staleness-double-exemption` and the same for
+    `selfheal-greps-a-sentence` (cosmetic — my edit doesn't change either concept's
+    documented claim, so `last_verified` must **not** move); then (2) `python3
+    scripts/concepts.py` to regenerate `concepts.json`; then (3) regenerate the
+    dashboards/`index.html` that embed it (`scripts/generate-index-dashboard.py` /
+    `generate-dashboards.py`) so the `index.html` freshness gate (97) stays green.
+- **Why deferred, not landed:** that restamp + regen cascade (touching `concepts.json`
+  + a ~9.5 MB `index.html`) is disproportionate to a **latent P2**, and bundling
+  generated-artifact churn into a targeted bug-fix PR muddies review. **Recommendation:**
+  land it as its own small PR that does the fix + both restamps + the regen in one
+  commit, so the covers-digest move and the regenerated artifacts are reviewed together.
 
-`python3 scripts/concepts.py --check` currently **exits 1** on `main`.
-control: the same command run against `origin/main`'s own `scripts/concepts.py`
-(`git show origin/main:scripts/concepts.py`) against the current tree also exits 1 —
-so the failure predates this work and is not introduced by the code-fix PR. It is a
-content-staleness gate on the `staleness-double-exemption` concept ("a covered
-artifact changed after the entry was stamped") — a **knowledge-freshness restamp**,
-not a code defect. The repo's own rules (CLAUDE.md § "don't blind-bump a date") forbid
-restamping without re-verifying the covered artifact, so it is flagged here for a
-maintainer rather than touched by the code-fix PR.
+## Correction to an earlier claim in this session
+
+An earlier draft of this doc (and the code-fix PR body) stated the `concepts.py --check`
+staleness was **pre-existing on `main`**. That was wrong — a flawed control (origin/main's
+`concepts.py` logic was run against the *modified* tree, so it saw the drift the edit
+itself introduced). The proper control (pristine `concepts.py` → `--check` exit 0) proves
+the drift was **caused by the edit**, now reverted. Recorded here per the repo's
+observation-vs-inference discipline: the failure was mine, not the base branch's.
