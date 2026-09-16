@@ -2368,9 +2368,17 @@ Measured 2026-08-26: Copilot CLI's `--model auto` rejects `--effort` outright at
 
 Falsifier: a future Copilot CLI release accepting `--effort` together with `--model auto`.
 
+## UMM absorption (0.323.11)
+
+The agent × model × effort × budget matrix is now also the **Unified Model Matrix**
+SSOT at [`../unified-model-matrix.json`](../plugins/ravenclaude-core/knowledge/unified-model-matrix.json). This concept
+entry keeps the Copilot `--effort` honesty discriminator; tier cell values live in
+the UMM JSON. `cheap_lane.mode: off` still means inactive routing — Grok rows remain
+visible in the matrix.
+
 **Sources:** [verified live against the installed grok and copilot CLIs, this session](https://github.com/mcorbett51090/RavenClaude/pull/1030)
 
-_Last verified: 2026-09-10_
+_Last verified: 2026-09-16_
 
 
 ---
@@ -2898,7 +2906,7 @@ tuning a timeout.
 ## Model-tier pin (0.323.10) + honesty bound
 
 When cheap-lane is unavailable, the Claude-orchestrate fallback pins `THING_MODEL` to
-**haiku** (or `model_tier_surfaces.precompact_fallback_model`, default haiku; comfort
+**haiku** (or `model_matrix.surfaces.precompact_fallback (alias: model_tier_surfaces.precompact_fallback_model)`, default haiku; comfort
 override may raise to sonnet). It never inherits the live session model and never leaves
 `full` → orchestrate's sonnet default unset.
 
@@ -3466,7 +3474,7 @@ check; 25 checks covering the envelope shape, the eight stand-down conditions an
 
 **Sources:** [knowledge/model-tier-delegation.md — "The one place a hook does bind"](https://github.com/mcorbett51090/RavenClaude/blob/main/plugins/ravenclaude-core/knowledge/model-tier-delegation.md) · [Claude Code sub-agents — model resolution order (per-call `model` > frontmatter > CLAUDE_CODE_SUBAGENT_MODEL)](https://code.claude.com/docs/en/sub-agents) · [Claude Code hooks — PreToolUse `updatedInput` (rewrite without a permissionDecision)](https://code.claude.com/docs/en/hooks)
 
-_Last verified: 2026-09-14_
+_Last verified: 2026-09-16_
 
 
 ---

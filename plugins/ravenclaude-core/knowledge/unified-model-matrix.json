@@ -13,15 +13,7 @@
   },
   "tiers": ["fast", "balanced", "top"],
   "agents": ["claude", "grok", "copilot"],
-  "surfaces": [
-    "session",
-    "subagent",
-    "cheap-lane",
-    "tribunal",
-    "precompact",
-    "handoff",
-    "explore"
-  ],
+  "surfaces": ["session", "subagent", "cheap-lane", "tribunal", "precompact", "handoff", "explore"],
   "levers": [
     "surface",
     "mode",

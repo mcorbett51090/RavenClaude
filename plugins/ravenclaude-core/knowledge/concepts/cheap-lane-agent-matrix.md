@@ -6,7 +6,7 @@ kind: ravenclaude-built
 entry_class: inventory
 order: 903
 summary: "route-task.py picks a lane, not a vendor; cheap-lane-delegate.sh picks the agent — and the two CLIs' real capability shapes genuinely diverge."
-last_verified: 2026-09-10
+last_verified: 2026-09-16
 covers:
   - plugins/ravenclaude-core/scripts/cheap-lane-delegate.sh
   - plugins/ravenclaude-core/scripts/copilot-delegate.sh

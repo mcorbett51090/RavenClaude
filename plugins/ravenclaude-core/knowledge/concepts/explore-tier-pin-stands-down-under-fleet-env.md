@@ -6,7 +6,7 @@ kind: ravenclaude-built
 entry_class: inventory
 order: 936
 summary: "The pin fires only on an un-pinned `explore`; a set CLAUDE_CODE_SUBAGENT_MODEL makes it stand down even then — a per-invocation pin would OVERRIDE the fleet-wide env choice, not add to it."
-last_verified: 2026-09-14
+last_verified: 2026-09-16
 covers:
   - plugins/ravenclaude-core/hooks/explore-tier-pin.sh
   - plugins/ravenclaude-core/scripts/explore-tier-pin.py

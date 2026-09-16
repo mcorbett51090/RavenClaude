@@ -88,12 +88,7 @@
     "surface_defaults": { "type": "object", "minProperties": 1 },
     "posture_surfaces": {
       "type": "object",
-      "required": [
-        "explore_pin",
-        "precompact_fallback",
-        "handoff_fill",
-        "never_inherit_session"
-      ],
+      "required": ["explore_pin", "precompact_fallback", "handoff_fill", "never_inherit_session"],
       "properties": {
         "explore_pin": { "type": "string" },
         "precompact_fallback": { "type": "string" },
