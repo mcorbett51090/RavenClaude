@@ -140,8 +140,8 @@ handoff_tax:
 # Absent = haiku. Raising to sonnet is a comfort override, NOT "use session model".
 # Never set opus/fable/session/inherit here — those resolve back to haiku.
 model_tier_surfaces:
-  precompact_fallback_model: haiku  # haiku (default) | sonnet — PreCompact archival digest fallback
-  handoff_fill_model: haiku         # haiku (default) | sonnet — detached handoff MODEL FILL
+  precompact_fallback_model: haiku # haiku (default) | sonnet — PreCompact archival digest fallback
+  handoff_fill_model: haiku # haiku (default) | sonnet — detached handoff MODEL FILL
 
 # Model-fallback ladder (added 2026-06-24). When a model a RavenClaude process
 # invokes (a tribunal seat, the convergence judge, the orchestrator) ERRORS or is

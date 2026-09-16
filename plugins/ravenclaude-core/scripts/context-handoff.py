@@ -666,7 +666,7 @@ def _fill_prompt(handoff_body: str, context: str) -> str:
 
 def _parse_fill_sections(raw: str) -> dict[str, str]:
     """Parse <<<SECTION:Heading>>>…<<<END>>> blocks. Missing → empty string."""
-    out: dict[str, str] = {h: "" for h in _FILL_SECTION_HEADINGS}
+    out: dict[str, str] = dict.fromkeys(_FILL_SECTION_HEADINGS, "")
     if not raw:
         return out
     for heading in _FILL_SECTION_HEADINGS:
