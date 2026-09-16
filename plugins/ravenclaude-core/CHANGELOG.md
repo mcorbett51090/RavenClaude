@@ -2,6 +2,18 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.323.9 — 2026-09-16
+
+### Security
+- **Forge harden (AppSec F1–F8 + AppEng P1/P2)** — publish path/symlink jail; `--plan` under `.ravenclaude/runs/forge/<slug>/`; session-dir under `$GROK_HOME/sessions/`; receipt refuse outside-run-dir on pass + key allowlist/scrub; worktree receipts via `json.dumps` + label sanitize; `--base` allowlist; `FORGE_RECEIPT=off` verify ⇒ non-zero; `FORGE_WORKTREE=required` / secret-glob checkpoint (no unbounded `add -A`); five-file `resolve-plugin-root` conjunct; publish TOCTOU / `GROK_SESSION_ID`; append last-wins; verify `--strict`; route missing-plan honest exit; unknown worktree flags exit 2.
+
+### Locks
+- No raise `gate_floor`. No Thing / `guard-destructive` bypass. AppSec SHIP-WITH-CONDITIONS (F9 P3 OPEN non-blocking). Sage sole SCM. No BMA.
+- Version **0.323.9** (not 0.323.8): `#1190` repo-review converge-loop already stamped core 0.323.8 on main.
+
+### Tests
+- Extended forge publish / worktree / receipt / resolve-plugin-root self-tests + hook teeth for F1–F5 jails.
+
 ## 0.323.8 — 2026-09-16
 
 ### Fixed
