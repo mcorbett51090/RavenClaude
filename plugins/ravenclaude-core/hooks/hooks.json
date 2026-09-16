@@ -383,6 +383,12 @@
             "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/plugin-lifecycle-sweep.sh\"",
             "timeout": 10,
             "comment": "Plugin-lifecycle sweep (P2). When tracking is on, marks unused plugins deprecated and surfaces a notice. Uninstall is planned only if auto_uninstall: on (default OFF, M2) and is NEVER executed from this body (OPEN: no non-interactive uninstall API; fail-closed). ravenclaude-core is never auto-removed (M3). Never shells the cache-reset disaster-recovery command. Does NOT bump last_used_at (SessionStart presence is not a use). Fail-silent; SessionStart cannot block. Joins this existing startup|resume|clear|fork matcher group (no compact re-fire)."
+          },
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/alias-deprecation-advisory.sh",
+            "timeout": 10,
+            "comment": "Phase D alias soak (R1). When comfort-posture still relies on deprecated keys (handoff_tax.pin_explore / model_tier_surfaces.*) as the effective source — or they diverge from model_matrix.surfaces.* — emits a one-line SessionStart additionalContext advisory. Quiet when seed leftovers match the new keys. Once-per-session marker under .ravenclaude/runs/<session_id>/. Never writes posture (House Rule 3). Not a Stop/per-turn nag. Fail-silent; SessionStart cannot block."
           }
         ]
       },

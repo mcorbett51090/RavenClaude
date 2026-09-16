@@ -72,6 +72,7 @@ _SOURCE_HOOKS = frozenset(
         "caveman-route-hook.sh",
         "oath-hook.sh",
         "plugin-lifecycle-sweep.sh",
+        "alias-deprecation-advisory.sh",
     }
 )
 _COMPACT_HOOK = "compact-anchor.sh"

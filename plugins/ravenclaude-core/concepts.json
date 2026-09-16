@@ -2886,7 +2886,7 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-09-14",
+      "last_verified": "2026-09-16",
       "refresh_when": null,
       "sources": [
         {
@@ -2902,9 +2902,11 @@
       "svg_mini": null,
       "entry_class": "inventory",
       "covers": [
-        "plugins/ravenclaude-core/hooks/hooks.json"
+        "plugins/ravenclaude-core/hooks/hooks.json",
+        "plugins/ravenclaude-core/hooks/alias-deprecation-advisory.sh",
+        "plugins/ravenclaude-core/scripts/alias-deprecation-advisory.py"
       ],
-      "covers_digest": "sha256:8b6b074f91c2f9a51896af07a0ad88b748f8d7db9ac8fa5111c59a95936a019a",
+      "covers_digest": "sha256:14d30b29b43e608e87a62ebc9142419e69eaa7e420c0ab9258e69e48efef982a",
       "nuance": "Two `additionalContext` emitters on one event concatenate rather than last-write-wins, but two `updatedToolOutput` emitters replace, so the second silently discards the first.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -2998,7 +3000,7 @@
         "scripts/sync-plugin-versions.py",
         "scripts/generate-copilot-plugin.py"
       ],
-      "covers_digest": "sha256:f6101dc0a3c6d77f168fb2feb179d732da02914df0c6e9409d1f7a952e307433",
+      "covers_digest": "sha256:b5b6b3ea86bc4c3761f8e019b4655a0d9e02c3f17f8c6b40333bc011626cbf60",
       "nuance": "The cache key is the `version` string, never a content hash, so `sync-plugin-versions.py` can report clean while every installed session keeps running the old `hooks/` code.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -3467,7 +3469,7 @@
         "scripts/generate-dashboards.py",
         "scripts/generate-index-dashboard.py"
       ],
-      "covers_digest": "sha256:4f90ff6d6752c50395363221c15ace2c77d92b63e6a40a7f37dfd522da23ebca",
+      "covers_digest": "sha256:a99f815df86d996e1529327a6d5aa1772e36bebf9d1cf122d37fade24fe03221",
       "nuance": "`ISLANDED_PANEL_COST` is a flat 2 because the parser reads the payload as CDATA, so `check-dom-budget.py` cannot fire on `learn-payload` no matter how far past 23,861 elements it grows.",
       "nuance_evidence": {
         "measured": "2026-08-19",
