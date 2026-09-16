@@ -88,6 +88,15 @@ in_frontmatter=0
 lineno=0
 first_nonblank_seen=0
 
+# Per-line matching below uses bash's own `[[ =~ ]]`/`==` instead of piping each
+# line through `echo | grep` (each such pipeline forks a subshell + a grep
+# process, so a naive per-line implementation is O(N) subprocess creation over
+# the file). `nocasematch` makes those bash-native comparisons case-insensitive
+# to match the prior `grep -qi…` behavior; it is turned OFF around the `route`
+# check, which was intentionally case-SENSITIVE (`grep -qE`, no `-i`) — mixed
+# case matters there ("Web API", "GET ", vs. lowercase "pac "/"az "/"gh ").
+shopt -s nocasematch
+
 while IFS= read -r line || [[ -n "$line" ]]; do
   lineno=$((lineno + 1))
 
@@ -108,16 +117,23 @@ while IFS= read -r line || [[ -n "$line" ]]; do
   [[ "$line" =~ ^[[:space:]]*\> ]] && continue
   [[ "$line" =~ ^[[:space:]]*#{1,6}[[:space:]] ]] && continue
 
-  echo "$line" | grep -qiF 'delegation-nudge-ok' && continue
+  [[ "$line" == *"delegation-nudge-ok"* ]] && continue
 
-  if echo "$line" | grep -qiE "$phrase"; then
+  if [[ "$line" =~ $phrase ]]; then
     # Suppress: a genuine hand-back reason, or a line that cites a held route.
-    echo "$line" | grep -qiE "$reason" && continue
-    echo "$line" | grep -qE "$route" && continue
-    trimmed="$(echo "$line" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
+    [[ "$line" =~ $reason ]] && continue
+    shopt -u nocasematch
+    route_hit=0
+    [[ "$line" =~ $route ]] && route_hit=1
+    shopt -s nocasematch
+    [[ "$route_hit" -eq 1 ]] && continue
+    trimmed="${line#"${line%%[![:space:]]*}"}"
+    trimmed="${trimmed%"${trimmed##*[![:space:]]}"}"
     violations+=("  $file:$lineno: $trimmed")
   fi
 done < "$file"
+
+shopt -u nocasematch
 
 if [[ ${#violations[@]} -gt 0 ]]; then
   cat >&2 <<EOF

@@ -182,7 +182,17 @@ envelope="$(jq -nc \
 [ -n "$envelope" ] || emit_allow
 
 classifier_instr='You are a dispatch evaluator. Given this dispatch envelope, return ONLY a JSON object with fields: verdict ("keep"|"upgrade"|"downgrade"), suggested_tier ("fast"|"balanced"|"top"), confidence ("low"|"medium"|"high"), rationale (one sentence). Envelope: '
-raw="$(_rc_timeout 3 claude -p --bare --output-format json --model claude-haiku-4-5-20251001 \
+# --tools="" (equals form, NOT the space form "--tools """): isolates this
+# classifier from all tools -- it only reasons over prompt_head/description and
+# returns JSON, same rationale as thing-seat.sh/claude-orchestrate.sh's use of
+# --tools "". The equals form is load-bearing, not cosmetic: `--tools` is a
+# variadic option (like --add-dir), so the space form would let the CLI's arg
+# parser swallow the very next positional argument -- the prompt itself --
+# leaving no prompt at all (verified: `claude -p --tools "" "say hi"` fails
+# "Input must be provided either through stdin or as a prompt argument", while
+# `--tools=""` succeeds). See scripts/prompt-optimizer-gate.sh's own documented
+# deviation for the full repro.
+raw="$(_rc_timeout 3 claude -p --bare --output-format json --model claude-haiku-4-5-20251001 --tools="" \
   "${classifier_instr}${envelope}" 2>/dev/null || echo '')"
 [ -n "$raw" ] || emit_allow
 
