@@ -64,7 +64,7 @@ tuning a timeout.
 ## Model-tier pin (0.323.10) + honesty bound
 
 When cheap-lane is unavailable, the Claude-orchestrate fallback pins `THING_MODEL` to
-**haiku** (or `model_tier_surfaces.precompact_fallback_model`, default haiku; comfort
+**haiku** (or `model_matrix.surfaces.precompact_fallback (alias: model_tier_surfaces.precompact_fallback_model)`, default haiku; comfort
 override may raise to sonnet). It never inherits the live session model and never leaves
 `full` → orchestrate's sonnet default unset.
 

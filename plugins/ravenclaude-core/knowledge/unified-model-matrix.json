@@ -1,0 +1,221 @@
+{
+  "schema_version": "1",
+  "name": "unified-model-matrix",
+  "owner": "ravenclaude-core (domain-neutral, per AGENTS.md house rule 1 -- no per-agent owner)",
+  "staleness_tier": "Tier-4",
+  "last_reviewed": "2026-09-16",
+  "review_trigger": "any change to cheap-lane matrix cells, substrate-tier-map.json host rows, model_tier_surfaces / model_matrix.surfaces posture knobs, or Explore/PreCompact/handoff pin readers",
+  "claim": "One matrix governs all model/agent/effort routing. Cheap-lane agent×model×effort×budget cells are SSOT; model-tier-delegation role→tier and archival surface pins are rows on this matrix, not parallel doctrines.",
+  "claude_alias": {
+    "fast": "haiku",
+    "balanced": "sonnet",
+    "top": "opus"
+  },
+  "tiers": ["fast", "balanced", "top"],
+  "agents": ["claude", "grok", "copilot"],
+  "surfaces": [
+    "session",
+    "subagent",
+    "cheap-lane",
+    "tribunal",
+    "precompact",
+    "handoff",
+    "explore"
+  ],
+  "levers": [
+    "surface",
+    "mode",
+    "agent",
+    "model_effort_budget",
+    "fit_override",
+    "never_inherit_session"
+  ],
+  "mode": {
+    "values": ["off", "advise", "agent"],
+    "note": "Containment for cheap-lane routing. Orthogonal to whether a surface may leave the session. mode:off = do not route work off-session; Grok/Copilot rows remain visible and documented."
+  },
+  "tier_cells": {
+    "claude": {
+      "fast": {
+        "model_alias": "haiku",
+        "model_id_hint": "claude-haiku-4-5-20251001",
+        "notes": "Volume / summarize / extract / inventory"
+      },
+      "balanced": {
+        "model_alias": "sonnet",
+        "model_id_hint": "claude-sonnet-5",
+        "notes": "Bounded code edits against a plan"
+      },
+      "top": {
+        "model_alias": "opus",
+        "model_id_hint": "claude-opus-4-8",
+        "notes": "Gates, adjudication, Team Lead judgment"
+      }
+    },
+    "grok": {
+      "fast": {
+        "model": "grok-4.5",
+        "effort": "low",
+        "perspective": "scanner",
+        "budget": { "max_turns": 15, "timeout_s": 300 },
+        "source": "substrate-tier-map.json hosts.grok.fast + cheap-lane live-verified 2026-08-26"
+      },
+      "balanced": {
+        "model": "grok-4.5",
+        "effort": "high",
+        "perspective": "architect",
+        "budget": { "max_turns": 30, "timeout_s": 600 },
+        "source": "substrate-tier-map.json hosts.grok.balanced + cheap-lane live-verified 2026-08-26"
+      },
+      "top": {
+        "model": "grok-4.6",
+        "effort": "high",
+        "perspective": "critic",
+        "budget": { "max_turns": 60, "timeout_s": 1200 },
+        "source": "substrate-tier-map.json hosts.grok.top + cheap-lane live-verified 2026-08-26",
+        "notes": "Never auto-assigned by router; human explicit only"
+      }
+    },
+    "copilot": {
+      "fast": {
+        "model": "auto",
+        "effort": null,
+        "effort_honesty": "Copilot --model auto rejects --effort at runtime; tier differentiates by timeout budget only unless caller pins an effort-capable model",
+        "budget": { "timeout_s": 300 },
+        "source": "cheap-lane live-verified 2026-08-26 (copilot-delegate.sh)"
+      },
+      "balanced": {
+        "model": "auto",
+        "effort": null,
+        "effort_honesty": "Same auto/--effort limit; medium is what --effort WOULD carry with a pinned model",
+        "budget": { "timeout_s": 600 },
+        "source": "cheap-lane live-verified 2026-08-26"
+      },
+      "top": {
+        "model": "auto",
+        "effort": null,
+        "effort_honesty": "Same auto/--effort limit; high is what --effort WOULD carry with a pinned model",
+        "budget": { "timeout_s": 1200 },
+        "source": "cheap-lane live-verified 2026-08-26"
+      }
+    }
+  },
+  "surface_defaults": {
+    "session": {
+      "agent": "claude",
+      "tier": "top",
+      "mode_gate": null,
+      "never_inherit_session": false,
+      "fit_override": null,
+      "notes": "Team Lead frontier judgment"
+    },
+    "subagent_scout_volume": {
+      "agent": "claude",
+      "tier": "fast",
+      "mode_gate": null,
+      "never_inherit_session": true,
+      "fit_override": "volume → fast",
+      "notes": "Unpinned Explore → pin to fast/haiku"
+    },
+    "subagent_coder": {
+      "agent": "claude",
+      "tier": "balanced",
+      "mode_gate": null,
+      "never_inherit_session": false,
+      "fit_override": null
+    },
+    "subagent_gate_review": {
+      "agent": "claude",
+      "tier": "top",
+      "mode_gate": null,
+      "never_inherit_session": false,
+      "fit_override": "never demote gates"
+    },
+    "cheap-lane": {
+      "agent": "grok",
+      "agent_alt": ["copilot"],
+      "tier": "fast",
+      "mode_gate": "cheap_lane.mode",
+      "never_inherit_session": null,
+      "fit_override": "router asymmetric → claude on ambiguity",
+      "notes": "Default agent grok when mode advise|agent. mode:off = inactive routing; cells still listed."
+    },
+    "tribunal": {
+      "agent": "claude",
+      "tier": "per_seat",
+      "mode_gate": "Thing stakes",
+      "never_inherit_session": null,
+      "fit_override": null,
+      "cited_only": true,
+      "notes": "Seat models live under thing.yaml panel.*.model. UMM cites only — no automatic fit-override / seat demotion (M6)."
+    },
+    "precompact": {
+      "agent": "claude",
+      "tier": "fast",
+      "claude_alias": "haiku",
+      "mode_gate": "cheap_lane for cheap path",
+      "never_inherit_session": true,
+      "fit_override": "summarize/extract → fast",
+      "posture_key": "model_matrix.surfaces.precompact_fallback",
+      "alias_key": "model_tier_surfaces.precompact_fallback_model"
+    },
+    "handoff": {
+      "agent": "claude",
+      "tier": "fast",
+      "claude_alias": "haiku",
+      "mode_gate": null,
+      "never_inherit_session": true,
+      "fit_override": "extract → fast",
+      "posture_key": "model_matrix.surfaces.handoff_fill",
+      "alias_key": "model_tier_surfaces.handoff_fill_model"
+    },
+    "explore": {
+      "agent": "claude",
+      "tier": "fast",
+      "claude_alias": "haiku",
+      "mode_gate": "handoff_tax",
+      "never_inherit_session": true,
+      "fit_override": null,
+      "posture_key": "model_matrix.surfaces.explore_pin",
+      "alias_key": "handoff_tax.pin_explore"
+    }
+  },
+  "posture_surfaces": {
+    "explore_pin": "haiku",
+    "precompact_fallback": "haiku",
+    "handoff_fill": "haiku",
+    "never_inherit_session": ["precompact", "handoff", "explore"]
+  },
+  "compat_aliases": {
+    "one_release": true,
+    "model_tier_surfaces.precompact_fallback_model": "model_matrix.surfaces.precompact_fallback",
+    "model_tier_surfaces.handoff_fill_model": "model_matrix.surfaces.handoff_fill",
+    "handoff_tax.pin_explore": "model_matrix.surfaces.explore_pin",
+    "precedence": "new model_matrix.surfaces keys win when both set; absent new key ⇒ old alias ⇒ haiku default"
+  },
+  "non_goals": [
+    "Does not enable cheap_lane by default (stays off)",
+    "Does not fix native Claude Code auto-compact summarizer (still session model)",
+    "Does not auto-rewrite Thing panel seat models",
+    "Does not introduce new egress of task text beyond today's cheap_lane gate"
+  ],
+  "sources": [
+    {
+      "id": "cheap-lane",
+      "path": "plugins/ravenclaude-core/skills/cheap-lane-delegation/SKILL.md"
+    },
+    {
+      "id": "substrate",
+      "path": "plugins/ravenclaude-core/knowledge/substrate-tier-map.json"
+    },
+    {
+      "id": "model-tier-delegation",
+      "path": "plugins/ravenclaude-core/knowledge/model-tier-delegation.md",
+      "note": "Stub pointer as of 0.323.11 — role table folded into UMM"
+    },
+    {
+      "id": "design-digest",
+      "path": "/workspace/cli-out/DIGEST-unified-model-matrix-design-2026-09-16.md"
+    }
+  ]
+}

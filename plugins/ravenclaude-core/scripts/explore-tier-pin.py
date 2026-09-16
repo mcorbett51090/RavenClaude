@@ -32,12 +32,16 @@ WHAT IT PINS — deliberately narrow:
     choice (per-invocation wins in the resolution order), so the hook stands
     down.
 
-KNOB (in .ravenclaude/comfort-posture.yaml):
+KNOB (in .ravenclaude/comfort-posture.yaml) — UMM SSOT + one-release aliases:
+    model_matrix:
+      surfaces:
+        explore_pin: haiku    # SSOT (new keys win)
     handoff_tax:
-      pin_explore: haiku      # default when the key is absent; sonnet | off
+      pin_explore: haiku      # ONE-RELEASE ALIAS → surfaces.explore_pin
     handoff_tax: off          # disables the meter's advisory AND this pin
 Absent posture file -> the calling hook has already no-op'd (opt-in by posture
 presence, the same rule as every other advisory/rewrite hook in this plugin).
+Precedence: surfaces.explore_pin wins if both set; absent new ⇒ pin_explore ⇒ haiku.
 
 FAIL-SAFE: every error path prints nothing and exits 0 — the dispatch proceeds
 with the input Claude sent. A rewrite that cannot be computed is not applied.
@@ -65,8 +69,11 @@ _MAX_POSTURE_BYTES = 256 * 1024
 _POSTURE_OFF = re.compile(r"^[ \t]*handoff_tax[ \t]*:[ \t]*(off|false|no)\b", re.M)
 _POSTURE_BLOCK = re.compile(r"^[ \t]*handoff_tax[ \t]*:[ \t]*$", re.M)
 _POSTURE_PIN = re.compile(r"^[ \t]+pin_explore[ \t]*:[ \t]*([A-Za-z_-]+)\b", re.M)
+_MODEL_MATRIX_BLOCK = re.compile(r"^[ \t]*model_matrix[ \t]*:[ \t]*$", re.M)
+_MM_SURFACES_BLOCK = re.compile(r"^[ \t]+surfaces[ \t]*:[ \t]*$", re.M)
+_MM_EXPLORE_PIN = re.compile(r"^[ \t]+explore_pin[ \t]*:[ \t]*([A-Za-z_-]+)\b", re.M)
 
-DOCTRINE = "plugins/ravenclaude-core/knowledge/model-tier-delegation.md"
+DOCTRINE = "plugins/ravenclaude-core/knowledge/unified-model-matrix.md"
 
 
 def find_project_root(start: Path) -> Path:
@@ -80,12 +87,26 @@ def find_project_root(start: Path) -> Path:
     return cur
 
 
+def _parse_pin_value(val: str) -> str | None:
+    v = val.strip().lower()
+    if v in ALLOWED_PINS:
+        return v
+    if v == "fast":
+        return "haiku"
+    if v == "balanced":
+        return "sonnet"
+    return None  # off / unrecognised → stand down
+
+
 def read_pin(root: Path) -> str | None:
     """Return the tier to pin, or None when the knob turns the pin off.
 
-    Regex, not YAML: no pyyaml dependency; the knob is one scalar in one block.
-    Absent file / absent key -> DEFAULT_PIN. An unrecognised value -> None
-    (off): a knob we cannot read must not become a rewrite we did not intend.
+    Regex, not YAML: no pyyaml dependency.
+    Precedence (0.323.11 UMM): model_matrix.surfaces.explore_pin wins;
+    else handoff_tax.pin_explore alias; absent → DEFAULT_PIN.
+    handoff_tax: off still disables the pin entirely.
+    Unrecognised value → None (off): a knob we cannot read must not become a
+    rewrite we did not intend.
     """
     p = root / ".ravenclaude" / "comfort-posture.yaml"
     try:
@@ -96,13 +117,21 @@ def read_pin(root: Path) -> str | None:
         return DEFAULT_PIN
     if _POSTURE_OFF.search(raw):
         return None
+    # New UMM key first
+    mm = _MODEL_MATRIX_BLOCK.search(raw)
+    if mm:
+        mm_tail = raw[mm.end() : mm.end() + 8192]
+        surf = _MM_SURFACES_BLOCK.search(mm_tail)
+        if surf:
+            stail = mm_tail[surf.end() : surf.end() + 4096]
+            m = _MM_EXPLORE_PIN.search(stail)
+            if m:
+                return _parse_pin_value(m.group(1))
+    # One-release alias
     if _POSTURE_BLOCK.search(raw):
         m = _POSTURE_PIN.search(raw)
         if m:
-            val = m.group(1).strip().lower()
-            if val in ALLOWED_PINS:
-                return val
-            return None  # off, false, no, or anything we do not recognise
+            return _parse_pin_value(m.group(1))
     return DEFAULT_PIN
 
 
@@ -255,6 +284,34 @@ def self_test() -> int:
             "schema_version: 5\nhandoff_tax:\n  report_cap_words: 300\n", encoding="utf-8"
         )
         check("knob: block without pin_explore -> default haiku", read_pin(root) == "haiku")
+        pf.write_text(
+            "schema_version: 5\n"
+            "model_matrix:\n"
+            "  surfaces:\n"
+            "    explore_pin: sonnet\n"
+            "handoff_tax:\n"
+            "  pin_explore: haiku\n",
+            encoding="utf-8",
+        )
+        check("UMM explore_pin wins over pin_explore alias", read_pin(root) == "sonnet")
+        pf.write_text(
+            "schema_version: 5\n"
+            "model_matrix:\n"
+            "  surfaces:\n"
+            "    explore_pin: off\n"
+            "handoff_tax:\n"
+            "  pin_explore: haiku\n",
+            encoding="utf-8",
+        )
+        check("UMM explore_pin off wins (stands down)", read_pin(root) is None)
+        pf.write_text(
+            "schema_version: 5\n"
+            "model_matrix:\n"
+            "  surfaces:\n"
+            "    explore_pin: fast\n",
+            encoding="utf-8",
+        )
+        check("UMM explore_pin fast → haiku", read_pin(root) == "haiku")
 
     print(f"explore-tier-pin self-test: {'PASS' if fails == 0 else 'FAIL'} ({fails} failure(s))")
     return 0 if fails == 0 else 1

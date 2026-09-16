@@ -8,7 +8,7 @@ fill --task-id <id>  detached fit-tier fill (default haiku, low effort) of the
 eight `<!-- MODEL FILL -->` sections from run-dir artifacts. Does NOT use the
 live session model. Cheap-lane first when on; else claude-orchestrate with
 THING_MODEL pinned to haiku (LOCK ADDENDUM 2026-09-16). Comfort override may
-raise to sonnet via model_tier_surfaces.handoff_fill_model — never session/opus/fable.
+raise to sonnet via model_matrix.surfaces.handoff_fill (alias: model_tier_surfaces.handoff_fill_model) — never session/opus/fable.
 
 finalize --task-id <id> [--verdict nothing-to-do]  re-reads the CURRENT,
 (filled) handoff.md, scrubs the whole body for secret-shaped text, rewrites
@@ -551,6 +551,12 @@ _FILL_SECTION_HEADINGS = (
 )
 _DEFAULT_FIT_TIER = "haiku"
 _LATE_TIER_TOKENS = ("opus", "fable", "inherit", "session")
+_MODEL_MATRIX_BLOCK_RE = re.compile(r"^[ \t]*model_matrix[ \t]*:[ \t]*$", re.MULTILINE)
+_MM_SURFACES_BLOCK_RE = re.compile(r"^[ \t]+surfaces[ \t]*:[ \t]*$", re.MULTILINE)
+_MM_HANDOFF_RE = re.compile(
+    r"^[ \t]+handoff_fill[ \t]*:[ \t]*([A-Za-z0-9_./-]{1,64})[ \t]*(?:#.*)?$",
+    re.MULTILINE,
+)
 _MODEL_TIER_BLOCK_RE = re.compile(r"^[ \t]*model_tier_surfaces[ \t]*:[ \t]*$", re.MULTILINE)
 _MTS_HANDOFF_RE = re.compile(
     r"^[ \t]+handoff_fill_model[ \t]*:[ \t]*([A-Za-z0-9_./-]{1,64})[ \t]*(?:#.*)?$",
@@ -567,16 +573,20 @@ _POSTURE_MAX_BYTES = 256 * 1024
 
 
 def resolve_fit_tier(raw: str | None) -> str:
-    """Cheapest fit tier for handoff fill. Absent → haiku. Sonnet = comfort
-    override only. Opus/fable/session/inherit/unknown → haiku."""
+    """Cheapest fit tier for handoff fill. Absent → haiku. UMM `fast` → haiku.
+    Sonnet/`balanced` = comfort override only. Opus/fable/session/inherit/unknown → haiku."""
     v = (raw or "").strip().lower()
     if not v:
         return _DEFAULT_FIT_TIER
+    if v in ("haiku", "fast"):
+        return "haiku"
     if "haiku" in v:
-        return "haiku" if v in ("haiku", "fast") else v
-    if v == "sonnet" or v.startswith("claude-sonnet"):
-        return "sonnet" if v == "sonnet" else v
-    if any(tok in v for tok in _LATE_TIER_TOKENS):
+        return v
+    if v in ("sonnet", "balanced"):
+        return "sonnet"
+    if v.startswith("claude-sonnet"):
+        return v
+    if any(tok in v for tok in _LATE_TIER_TOKENS) or v in ("top", "opus"):
         return _DEFAULT_FIT_TIER
     return _DEFAULT_FIT_TIER
 
@@ -594,8 +604,20 @@ def _read_posture_for_fill(root: Path) -> dict:
         text = path.read_text(encoding="utf-8", errors="replace")
     except OSError:
         return out
+    # UMM surfaces first; one-release model_tier_surfaces.handoff_fill_model alias.
+    umm_hand = False
+    mm = _MODEL_MATRIX_BLOCK_RE.search(text)
+    if mm:
+        mm_tail = text[mm.end() : mm.end() + 8192]
+        surf = _MM_SURFACES_BLOCK_RE.search(mm_tail)
+        if surf:
+            stail = mm_tail[surf.end() : surf.end() + 4096]
+            m = _MM_HANDOFF_RE.search(stail)
+            if m:
+                out["handoff_fill_model"] = resolve_fit_tier(m.group(1))
+                umm_hand = True
     mt = _MODEL_TIER_BLOCK_RE.search(text)
-    if mt:
+    if mt and not umm_hand:
         tail = text[mt.end() : mt.end() + 4096]
         m = _MTS_HANDOFF_RE.search(tail)
         if m:
@@ -1250,6 +1272,45 @@ def _self_test() -> int:
         check("resolve_fit_tier fable → haiku", resolve_fit_tier("fable") == "haiku")
         check("resolve_fit_tier empty → haiku", resolve_fit_tier("") == "haiku")
         check("resolve_fit_tier sonnet comfort", resolve_fit_tier("sonnet") == "sonnet")
+        check("resolve_fit_tier fast → haiku", resolve_fit_tier("fast") == "haiku")
+
+        # UMM surfaces win over alias; absent ⇒ old alias ⇒ haiku
+        umm_root = Path(tmp) / "umm-fill"
+        (umm_root / ".ravenclaude").mkdir(parents=True)
+        (umm_root / ".ravenclaude" / "comfort-posture.yaml").write_text(
+            "schema_version: 5\n"
+            "model_matrix:\n"
+            "  surfaces:\n"
+            "    handoff_fill: sonnet\n"
+            "model_tier_surfaces:\n"
+            "  handoff_fill_model: haiku\n",
+            encoding="utf-8",
+        )
+        check(
+            "UMM handoff_fill wins over alias",
+            _read_posture_for_fill(umm_root)["handoff_fill_model"] == "sonnet",
+        )
+        alias_root = Path(tmp) / "alias-fill"
+        (alias_root / ".ravenclaude").mkdir(parents=True)
+        (alias_root / ".ravenclaude" / "comfort-posture.yaml").write_text(
+            "schema_version: 5\n"
+            "model_tier_surfaces:\n"
+            "  handoff_fill_model: sonnet\n",
+            encoding="utf-8",
+        )
+        check(
+            "absent UMM ⇒ handoff_fill_model alias",
+            _read_posture_for_fill(alias_root)["handoff_fill_model"] == "sonnet",
+        )
+        bare_root = Path(tmp) / "bare-fill"
+        (bare_root / ".ravenclaude").mkdir(parents=True)
+        (bare_root / ".ravenclaude" / "comfort-posture.yaml").write_text(
+            "schema_version: 5\n", encoding="utf-8"
+        )
+        check(
+            "absent surfaces ⇒ haiku default",
+            _read_posture_for_fill(bare_root)["handoff_fill_model"] == "haiku",
+        )
 
         # TEETH: unpinned fill is rejected by pin-strict stub
         bad_stub = root / "claude-fill-bad.sh"

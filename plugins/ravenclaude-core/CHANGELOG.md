@@ -2,6 +2,23 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.323.11 — 2026-09-16
+
+### Added
+- **Unified Model Matrix (UMM)** — `knowledge/unified-model-matrix.md` + `.json` (+ schema). Cheap-lane agent×model×effort×budget cells are SSOT; Claude role→tier and archival surface pins are rows on one matrix.
+- **`model_matrix.surfaces` posture knobs** — `explore_pin` / `precompact_fallback` / `handoff_fill` / `never_inherit_session`. One-release aliases keep `model_tier_surfaces.*` and `handoff_tax.pin_explore` working; **new keys win** when both set. Absent ⇒ haiku defaults (House Rule 3 seed-only).
+
+### Changed
+- PreCompact / handoff fill / Explore pin readers resolve via UMM surfaces with old-key fallback; cheapest fit haiku/`fast`; never inherit session for archival surfaces.
+- `knowledge/model-tier-delegation.md` → stub pointer to UMM (short role table retained).
+- Cheap-lane skill + `concepts/cheap-lane-agent-matrix.md` point matrix SSOT at UMM JSON (live-verified nuance kept).
+
+### Locks / honesty
+- `cheap_lane` default stays **off**. Tribunal seats **cited-only** (no auto demotion). Grok rows **visible** when mode:off. Did **not** fix native CC auto-compact summarizer (still session model). No Thing / gate_floor weaken. Folds open PR #1192 PreCompact tip content into this tip.
+
+### Tests
+- Self-tests: UMM vs alias precedence + haiku defaults in `precompact-digest.py`, `context-handoff.py`, `explore-tier-pin.py`.
+
 ## 0.323.10 — 2026-09-16
 
 ### Fixed

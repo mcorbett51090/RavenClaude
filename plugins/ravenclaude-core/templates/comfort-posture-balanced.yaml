@@ -113,9 +113,20 @@ cheap_lane:
   mode: off
   tier: fast # fast (default) | balanced — the Grok tier for delegated work
 
-# Handoff tax — the ON-Claude sibling of cheap_lane (model-tier delegation,
-# knowledge/model-tier-delegation.md). Two hooks read this block; both are
-# opt-in by the PRESENCE of this file, so a repo without a posture gets neither.
+# Unified Model Matrix surfaces (0.323.11) — SSOT:
+#   knowledge/unified-model-matrix.md + .json
+# Posture only overrides pins; tier×agent cells live in the JSON.
+# cheap_lane block above stays as today (default mode: off).
+# Grok rows remain visible in the matrix when mode:off (inactive routing ≠ unsupported).
+model_matrix:
+  surfaces:
+    explore_pin: haiku # haiku (default) | sonnet | off — un-pinned Explore PreToolUse rewrite
+    precompact_fallback: haiku # haiku (default) | sonnet — PreCompact archival digest fallback
+    handoff_fill: haiku # haiku (default) | sonnet — detached handoff MODEL FILL
+    never_inherit_session: [precompact, handoff, explore]
+
+# Handoff tax — meter caps stay here. pin_explore is a ONE-RELEASE ALIAS for
+# model_matrix.surfaces.explore_pin (new key wins if both set).
 #   handoff-tax-meter.sh  (PostToolUse Agent) — measures every sub-agent
 #       dispatch: brief words, report words, resolved tier; writes one line to
 #       .ravenclaude/runs/<session>/dispatch-ledger.jsonl (gitignored) and
@@ -123,7 +134,7 @@ cheap_lane:
 #       worker ran on the frontier tier. `rc dispatch-summary` rolls the ledger
 #       up per session — the "cost per completed task" view.
 #   explore-tier-pin.sh   (PreToolUse Agent) — REWRITES an un-pinned built-in
-#       `Explore` dispatch to `model: <pin_explore>` before it runs (an
+#       `Explore` dispatch to `model: <explore_pin>` before it runs (an
 #       un-pinned Explore inherits the main model since Claude Code v2.1.198,
 #       so on an Opus session every "go find X" bills at Opus). Never touches
 #       a dispatch that names a model (including `inherit`), never emits a
@@ -133,15 +144,15 @@ cheap_lane:
 handoff_tax:
   report_cap_words: 400 # a worker report longer than this is a failed handoff
   brief_cap_words: 600 # a brief longer than this is re-feeding the transcript
-  pin_explore: haiku # haiku (default) | sonnet | off — the tier an un-pinned Explore gets
+  pin_explore: haiku # ALIAS → model_matrix.surfaces.explore_pin (one release)
 
-# Model-tier surfaces that must NOT inherit the live session model
-# (LOCK ADDENDUM 2026-09-16 — cheapest fit tier for summarize/extract/format).
-# Absent = haiku. Raising to sonnet is a comfort override, NOT "use session model".
-# Never set opus/fable/session/inherit here — those resolve back to haiku.
+# ONE-RELEASE ALIASES for model_matrix.surfaces (0.323.10 names).
+# New surfaces.* keys win when both set; absent new ⇒ these ⇒ haiku default.
+# House Rule 3: seed-only — existing consumer custom model_tier_surfaces is never
+# clobbered by marketplace update; absent ⇒ old defaults (haiku).
 model_tier_surfaces:
-  precompact_fallback_model: haiku # haiku (default) | sonnet — PreCompact archival digest fallback
-  handoff_fill_model: haiku # haiku (default) | sonnet — detached handoff MODEL FILL
+  precompact_fallback_model: haiku # ALIAS → model_matrix.surfaces.precompact_fallback
+  handoff_fill_model: haiku # ALIAS → model_matrix.surfaces.handoff_fill
 
 # Model-fallback ladder (added 2026-06-24). When a model a RavenClaude process
 # invokes (a tribunal seat, the convergence judge, the orchestrator) ERRORS or is

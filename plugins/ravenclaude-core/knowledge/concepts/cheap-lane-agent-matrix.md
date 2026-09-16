@@ -43,3 +43,11 @@ Measured 2026-08-26: Copilot CLI's `--model auto` rejects `--effort` outright at
 `route-task.py`'s `lane` field now reads `"cheap"`, not `"grok"` — the router decides whether work leaves Claude at all, never which CLI it lands on. `cheap-lane-delegate.sh --agent grok|copilot` is the layer that actually picks the coding agent, and the two agents' tier tables cannot share one row: Grok's model/effort/perspective come from the shared `substrate-tier-map.json`; Copilot's does not, because none of six guessed pinned model slugs validated as a real `--model` value against the installed CLI, and the only value confirmed to work (`auto`) is exactly the one that forbids `--effort`.
 
 Falsifier: a future Copilot CLI release accepting `--effort` together with `--model auto`.
+
+## UMM absorption (0.323.11)
+
+The agent × model × effort × budget matrix is now also the **Unified Model Matrix**
+SSOT at [`../unified-model-matrix.json`](../unified-model-matrix.json). This concept
+entry keeps the Copilot `--effort` honesty discriminator; tier cell values live in
+the UMM JSON. `cheap_lane.mode: off` still means inactive routing — Grok rows remain
+visible in the matrix.

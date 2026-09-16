@@ -91,6 +91,14 @@ mandatory indirection layer.
 
 ### The matrix — coding agent x model x effort x turn/timeout budget
 
+> **SSOT (0.323.11+):** the agent × tier cells below are folded into
+> [`knowledge/unified-model-matrix.json`](../../knowledge/unified-model-matrix.json)
+> (+ [`unified-model-matrix.md`](../../knowledge/unified-model-matrix.md)).
+> Keep this section for **live-verified nuance** (Copilot `--effort` honesty,
+> containment differences). When cells disagree, UMM JSON wins; update both.
+> **`cheap_lane.mode: off` does not hide Grok** — off = inactive routing; matrix
+> rows stay documented.
+
 This is **not a single-vendor tool.** `--tier` resolves the same three-row shape
 -- `fast` / `balanced` / `top` -- differently per agent, because each CLI's real,
 **live-verified** (2026-08-26) capability shape differs:

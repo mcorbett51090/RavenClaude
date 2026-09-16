@@ -154,9 +154,19 @@ _ZDR_RE = re.compile(
     r"^[ \t]*cheap_lane_zdr_confirmed[ \t]*:[ \t]*(true|false|on|off|yes|no)\b",
     re.IGNORECASE | re.MULTILINE,
 )
-# model_tier_surfaces — cheapest-fit pins for surfaces that must NOT inherit the
-# session model (LOCK ADDENDUM 2026-09-16). Absent = haiku. Comfort override may
-# raise to sonnet only — never opus/fable/session/inherit.
+# Unified Model Matrix surfaces + one-release aliases (0.323.11).
+# New keys (model_matrix.surfaces.*) win; old model_tier_surfaces.* still work.
+# Absent = haiku. Comfort override may raise to sonnet only — never opus/fable/session/inherit.
+_MODEL_MATRIX_BLOCK_RE = re.compile(r"^[ \t]*model_matrix[ \t]*:[ \t]*$", re.MULTILINE)
+_MM_SURFACES_BLOCK_RE = re.compile(r"^[ \t]+surfaces[ \t]*:[ \t]*$", re.MULTILINE)
+_MM_PRECOMPACT_RE = re.compile(
+    r"^[ \t]+precompact_fallback[ \t]*:[ \t]*([A-Za-z0-9_./-]{1,64})[ \t]*(?:#.*)?$",
+    re.MULTILINE,
+)
+_MM_HANDOFF_RE = re.compile(
+    r"^[ \t]+handoff_fill[ \t]*:[ \t]*([A-Za-z0-9_./-]{1,64})[ \t]*(?:#.*)?$",
+    re.MULTILINE,
+)
 _MODEL_TIER_BLOCK_RE = re.compile(r"^[ \t]*model_tier_surfaces[ \t]*:[ \t]*$", re.MULTILINE)
 _MTS_PRECOMPACT_RE = re.compile(
     r"^[ \t]+precompact_fallback_model[ \t]*:[ \t]*([A-Za-z0-9_./-]{1,64})[ \t]*(?:#.*)?$",
@@ -174,20 +184,25 @@ _LATE_TIER_TOKENS = ("opus", "fable", "inherit", "session")
 def resolve_fit_tier(raw: str | None, *, allow_sonnet: bool = True) -> str:
     """Cheapest fit tier for summarize/extract/handoff-fill surfaces.
 
-    Absent/empty → haiku. Explicit `sonnet` (or claude-sonnet*) is a comfort
-    override when allow_sonnet. Opus/fable/session/inherit (and unknown) → haiku.
+    Absent/empty → haiku. UMM tier alias `fast` → haiku. Explicit `sonnet` /
+    `balanced` (or claude-sonnet*) is a comfort override when allow_sonnet.
+    Opus/fable/session/inherit/top (and unknown) → haiku.
     Never inherits the live session model.
     """
     v = (raw or "").strip().lower()
     if not v:
         return _DEFAULT_FIT_TIER
+    if v in ("haiku", "fast"):
+        return "haiku"
     if "haiku" in v:
-        return "haiku" if v in ("haiku", "fast") else v
-    if allow_sonnet and (v == "sonnet" or v.startswith("claude-sonnet")):
-        return "sonnet" if v == "sonnet" else v
-    if any(tok in v for tok in _LATE_TIER_TOKENS):
+        return v
+    if allow_sonnet and v in ("sonnet", "balanced"):
+        return "sonnet"
+    if allow_sonnet and v.startswith("claude-sonnet"):
+        return v
+    if any(tok in v for tok in _LATE_TIER_TOKENS) or v in ("top", "opus"):
         return _DEFAULT_FIT_TIER
-    if v == "sonnet" or v.startswith("claude-sonnet"):
+    if v == "sonnet" or v.startswith("claude-sonnet") or v == "balanced":
         # allow_sonnet False path still refuses late escalation
         return _DEFAULT_FIT_TIER
     return _DEFAULT_FIT_TIER
@@ -245,15 +260,33 @@ def read_posture(project_dir: str | None = None) -> dict:
     m = _ZDR_RE.search(text)
     if m:
         out["zdr_confirmed"] = _truthy(m.group(1))
+    # UMM surfaces first (new keys win); then one-release model_tier_surfaces aliases.
+    mm = _MODEL_MATRIX_BLOCK_RE.search(text)
+    umm_pre = umm_hand = False
+    if mm:
+        mm_tail = text[mm.end() : mm.end() + 8192]
+        surf = _MM_SURFACES_BLOCK_RE.search(mm_tail)
+        if surf:
+            stail = mm_tail[surf.end() : surf.end() + 4096]
+            m = _MM_PRECOMPACT_RE.search(stail)
+            if m:
+                out["precompact_fallback_model"] = resolve_fit_tier(m.group(1))
+                umm_pre = True
+            m = _MM_HANDOFF_RE.search(stail)
+            if m:
+                out["handoff_fill_model"] = resolve_fit_tier(m.group(1))
+                umm_hand = True
     mt = _MODEL_TIER_BLOCK_RE.search(text)
     if mt:
         tail = text[mt.end() : mt.end() + 4096]
-        m = _MTS_PRECOMPACT_RE.search(tail)
-        if m:
-            out["precompact_fallback_model"] = resolve_fit_tier(m.group(1))
-        m = _MTS_HANDOFF_RE.search(tail)
-        if m:
-            out["handoff_fill_model"] = resolve_fit_tier(m.group(1))
+        if not umm_pre:
+            m = _MTS_PRECOMPACT_RE.search(tail)
+            if m:
+                out["precompact_fallback_model"] = resolve_fit_tier(m.group(1))
+        if not umm_hand:
+            m = _MTS_HANDOFF_RE.search(tail)
+            if m:
+                out["handoff_fill_model"] = resolve_fit_tier(m.group(1))
     return out
 
 
@@ -1106,6 +1139,63 @@ def _self_test() -> int:
         check("resolve_fit_tier session → haiku", resolve_fit_tier("session") == "haiku")
         check("resolve_fit_tier sonnet comfort override", resolve_fit_tier("sonnet") == "sonnet")
         check("resolve_fit_tier haiku stays haiku", resolve_fit_tier("haiku") == "haiku")
+        check("resolve_fit_tier fast → haiku", resolve_fit_tier("fast") == "haiku")
+        check("resolve_fit_tier balanced → sonnet", resolve_fit_tier("balanced") == "sonnet")
+
+        # UMM surfaces precedence vs one-release aliases
+        umm_proj = tdp / "umm-posture"
+        (umm_proj / ".ravenclaude").mkdir(parents=True)
+        (umm_proj / ".ravenclaude" / "comfort-posture.yaml").write_text(
+            "schema_version: 5\n"
+            "model_matrix:\n"
+            "  surfaces:\n"
+            "    precompact_fallback: sonnet\n"
+            "    handoff_fill: haiku\n"
+            "model_tier_surfaces:\n"
+            "  precompact_fallback_model: haiku\n"
+            "  handoff_fill_model: sonnet\n",
+            encoding="utf-8",
+        )
+        umm_p = read_posture(str(umm_proj))
+        check(
+            "UMM surfaces win over model_tier_surfaces alias",
+            umm_p["precompact_fallback_model"] == "sonnet",
+            f"got {umm_p['precompact_fallback_model']!r}",
+        )
+        check(
+            "UMM handoff_fill wins over alias",
+            umm_p["handoff_fill_model"] == "haiku",
+            f"got {umm_p['handoff_fill_model']!r}",
+        )
+        alias_proj = tdp / "alias-only-posture"
+        (alias_proj / ".ravenclaude").mkdir(parents=True)
+        (alias_proj / ".ravenclaude" / "comfort-posture.yaml").write_text(
+            "schema_version: 5\n"
+            "model_tier_surfaces:\n"
+            "  precompact_fallback_model: sonnet\n"
+            "  handoff_fill_model: sonnet\n",
+            encoding="utf-8",
+        )
+        alias_p = read_posture(str(alias_proj))
+        check(
+            "absent UMM surfaces ⇒ old model_tier_surfaces alias",
+            alias_p["precompact_fallback_model"] == "sonnet"
+            and alias_p["handoff_fill_model"] == "sonnet",
+            f"got {alias_p!r}",
+        )
+        absent_proj = tdp / "absent-surfaces"
+        (absent_proj / ".ravenclaude").mkdir(parents=True)
+        (absent_proj / ".ravenclaude" / "comfort-posture.yaml").write_text(
+            "schema_version: 5\ncheap_lane:\n  mode: off\n",
+            encoding="utf-8",
+        )
+        absent_p = read_posture(str(absent_proj))
+        check(
+            "absent surfaces ⇒ haiku defaults (House Rule 3)",
+            absent_p["precompact_fallback_model"] == "haiku"
+            and absent_p["handoff_fill_model"] == "haiku",
+            f"got {absent_p!r}",
+        )
 
         # cheap lane tried first, claude fallback NOT invoked on success (legacy assertion, preserved)
         os.environ["RC_CHEAP_LANE_SCRIPT"] = str(cheap_ok)
