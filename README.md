@@ -18,7 +18,7 @@ Today this marketplace ships **184 plugins** (live inventory: **[portal Marketpl
 
 ### What's new in core (through **0.323.7**)
 
-- **Thing tribunal** — opt-in command-review for risky tools; **hardening EDIT** available behind `command_review.hardening_edit` (**default OFF**).
+- **Thing tribunal** — opt-in command-review for risky tools; **hardening EDIT** behind `command_review.hardening_edit` (**default ON**; set false to opt out).
 - **Runes ready-queue** — Oath-hook + `rc runes`; dashboard **Runes at session start** opt-in (`runes:` absent ⇒ off); may auto-claim ungated ready work when On; never auto Longship merge.
 - **Prompt Builder** — `#/prompt-builder` with Gate 144 / Host Context floors; catalog model SSOT; blank modes + canned Task/Few-shot.
 - **Plugin lifecycle** — per-project last-used ledger; opt-in deprecate/uninstall sweep (**auto_uninstall default OFF**; uninstall plan-only until a reviewed API); ask-first install from the **ravenclaude** marketplace only.

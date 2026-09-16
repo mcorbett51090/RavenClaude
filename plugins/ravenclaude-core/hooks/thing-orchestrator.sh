@@ -253,58 +253,30 @@ fi
 #    hard DENY. Pre-LLM, unilateral; no seat convened. ──────────────────────────
 hard_rule="$(printf '%s' "$decision" | jq -r '.hard_rule_deny // false')"
 if [ "$hard_rule" = "true" ]; then
+  # Hard floor (§B.9.3 / AppSec #1204): always DENY + emit — hardening_edit must
+  # NEVER clear hard-rule → ASK (force-push stays hard DENY under enable ON).
+  # Optional informational hint only: lease is safer; verdict remains deny.
   hr_concern="$(printf '%s' "$decision" | jq -r '.hard_rule_concern // "hard rule"')"
-  # hardening_edit ON: signed transform that clears the hard-rule → ASK with
-  # hardened form (v1 never auto-allows past this floor). Read flag from decision
-  # here — the later config parse has not run yet.
-  _hr_harden="$(printf '%s' "$decision" | jq -r 'if .hardening_edit == true then "true" else "false" end')"
-  _hr_cleared="false"
-  if [ "$_hr_harden" = "true" ] && [ "${payload_shape:-command}" = "command" ] \
-     && [ -n "${cmd:-}" ] && [ -f "$HARDEN" ]; then
-    _hr_gf="$(printf '%s' "$decision" | jq -r '.gate_floor // "high"')"
-    _appl="$(THING_SEAT_ACTIVE= python3 "$HARDEN" apply "$cmd" 2>/dev/null || true)"
-    _rev="$(printf '%s' "$_appl" | jq -r '.matches[0].revised // empty' 2>/dev/null || true)"
-    _tid="$(printf '%s' "$_appl" | jq -r '.matches[0].id // empty' 2>/dev/null || true)"
-    if [ -n "$_rev" ] && [ "$_rev" != "$cmd" ]; then
-      _hval="$(THING_SEAT_ACTIVE= python3 "$CONCERNS" harden --category "$category" \
-                --gate-floor "$_hr_gf" --original "$cmd" --revised "$_rev" 2>/dev/null || true)"
-      _rmatch="$(printf '%s' "$_hval" | jq -r '.registry_match // false' 2>/dev/null || echo false)"
-      _sclear="$(printf '%s' "$_hval" | jq -r '.screen_always_clear // false' 2>/dev/null || echo false)"
-      if [ "$_rmatch" = "true" ] && [ "$_sclear" = "true" ]; then
-        _hr_cleared="true"
-        hr_run_id="thing-$(date -u +%Y-%m-%dT%H-%M-%SZ)-$$"
-        hr_audit="${cwd}/.ravenclaude/runs/thing"
-        if mkdir -p "$hr_audit" 2>/dev/null; then
-          jq -cn --arg id "$hr_run_id" --arg sid "$session_id" \
-            --arg ts "$(date -u +%Y-%m-%dT%H:%M:%SZ)" --argjson ti "$saga_ti" --arg tn "$tool_name" \
-            --arg cat "$category" --arg concern "$hr_concern" --arg rev "$_rev" --arg tid "$_tid" \
-            '{id:$id,session_id:$sid,timestamp:$ts,tool_name:$tn,
-              tool_input:$ti,category:$cat,phase:"T5-harden-hard-rule",
-              seats:[],concerns_cited:[$concern],final_verdict:"ask",
-              harden_transform_ids:(if $tid=="" then null else [$tid] end),
-              updated_input:{command:$rev},duration_ms:0}' \
-            > "${hr_audit}/${hr_run_id}.json" 2>/dev/null || true
-        fi
-        emit ask "Command review: hard-rule ${hr_concern} cleared by signed harden transform [${_tid}] — proposed: ${_rev}. Confirm to run the hardened command (v1 still asks). Sága log: .ravenclaude/runs/thing/${hr_run_id}.json"
-      fi
-    fi
+  hr_run_id="thing-$(date -u +%Y-%m-%dT%H-%M-%SZ)-$$"
+  hr_audit="${cwd}/.ravenclaude/runs/thing"
+  if mkdir -p "$hr_audit" 2>/dev/null; then
+    jq -cn --arg id "$hr_run_id" --arg sid "$session_id" \
+      --arg ts "$(date -u +%Y-%m-%dT%H:%M:%SZ)" --argjson ti "$saga_ti" --arg tn "$tool_name" \
+      --arg cat "$category" --arg concern "$hr_concern" \
+      '{id:$id,session_id:$sid,timestamp:$ts,tool_name:$tn,
+        tool_input:$ti,category:$cat,phase:"hard-rule-deny",
+        seats:[],concerns_cited:[$concern],final_verdict:"deny",
+        updated_input:null,duration_ms:0}' \
+      > "${hr_audit}/${hr_run_id}.json" 2>/dev/null || true
   fi
-  if [ "$_hr_cleared" != "true" ]; then
-    hr_run_id="thing-$(date -u +%Y-%m-%dT%H-%M-%SZ)-$$"
-    hr_audit="${cwd}/.ravenclaude/runs/thing"
-    if mkdir -p "$hr_audit" 2>/dev/null; then
-      jq -cn --arg id "$hr_run_id" --arg sid "$session_id" \
-        --arg ts "$(date -u +%Y-%m-%dT%H:%M:%SZ)" --argjson ti "$saga_ti" --arg tn "$tool_name" \
-        --arg cat "$category" --arg concern "$hr_concern" \
-        '{id:$id,session_id:$sid,timestamp:$ts,tool_name:$tn,
-          tool_input:$ti,category:$cat,phase:"hard-rule-deny",
-          seats:[],concerns_cited:[$concern],final_verdict:"deny",
-          updated_input:null,duration_ms:0}' \
-        > "${hr_audit}/${hr_run_id}.json" 2>/dev/null || true
-    fi
-    _emit_hook_event "thing-orchestrator.sh" "deny" "$tool_name" "$cmd" "hard-rule-deny" 2
-    emit deny "Command review (the Thing): DENIED — this command matches an unarguable hard rule (${hr_concern}) and is refused pre-LLM, regardless of which category routed it (§B.9.3). Sága log: .ravenclaude/runs/thing/${hr_run_id}.json"
-  fi
+  _emit_hook_event "thing-orchestrator.sh" "deny" "$tool_name" "$cmd" "hard-rule-deny" 2
+  _hr_hint=""
+  case " ${hr_concern} ${cmd:-} " in
+    *"force-push"*|*"--force"*|*" -f "*)
+      _hr_hint=" Tip: --force-with-lease is the safer form, but force-push remains refused here."
+      ;;
+  esac
+  emit deny "Command review (the Thing): DENIED — this command matches an unarguable hard rule (${hr_concern}) and is refused pre-LLM, regardless of which category routed it (§B.9.3).${_hr_hint} Sága log: .ravenclaude/runs/thing/${hr_run_id}.json"
 fi
 
 [ "$enabled" != "true" ] && exit 0   # category not toggled on -> normal flow
@@ -561,34 +533,11 @@ fi
 
 if [ "$pre_llm_deny" = "true" ]; then
   # ── Deterministic hard-rule denial — no seat convened (design §B.9.3). ──────
-  # hardening_edit ON: signed transform that clears the hard-rule → ASK with
-  # hardened form (v1 never auto-allows past floor / pre_llm).
-  _pre_llm_hardened="false"
-  if [ "$hardening_edit" = "true" ] && [ "$payload_shape" = "command" ] \
-     && [ -n "$cmd" ] && [ -f "$HARDEN" ]; then
-    _appl="$(THING_SEAT_ACTIVE= python3 "$HARDEN" apply "$cmd" 2>/dev/null || true)"
-    _rev="$(printf '%s' "$_appl" | jq -r '.matches[0].revised // empty' 2>/dev/null || true)"
-    _tid="$(printf '%s' "$_appl" | jq -r '.matches[0].id // empty' 2>/dev/null || true)"
-    if [ -n "$_rev" ] && [ "$_rev" != "$cmd" ]; then
-      _hval="$(THING_SEAT_ACTIVE= python3 "$CONCERNS" harden --category "$category" \
-                --gate-floor "$gate_floor" --original "$cmd" --revised "$_rev" 2>/dev/null || true)"
-      _rmatch="$(printf '%s' "$_hval" | jq -r '.registry_match // false' 2>/dev/null || echo false)"
-      _sclear="$(printf '%s' "$_hval" | jq -r '.screen_always_clear // false' 2>/dev/null || echo false)"
-      if [ "$_rmatch" = "true" ] && [ "$_sclear" = "true" ]; then
-        _pre_llm_hardened="true"
-        harden_transform_ids="$_tid"
-        revised="$_rev"
-        verdict="ask"
-        reason="Command review: hard-rule ${deny_concern} cleared by signed harden transform [${_tid}] — proposed: ${revised}. Confirm to run the hardened command (v1 still asks)."
-        phase="T5-harden-pre-llm"
-      fi
-    fi
-  fi
-  if [ "$_pre_llm_hardened" != "true" ]; then
-    verdict="deny"
-    reason="Command review (the Thing): DENIED before review — matched unarguable critical concern ${deny_concern}."
-    phase="T3-pre-screen"
-  fi
+  # AppSec #1204: hardening_edit must NOT clear pre_llm_deny → ASK. Always DENY.
+  # (Registry transforms may still apply on non-pre_llm / non-hard-rule paths.)
+  verdict="deny"
+  reason="Command review (the Thing): DENIED before review — matched unarguable critical concern ${deny_concern}."
+  phase="T3-pre-screen"
 elif [ "$panel_required" != "true" ]; then
   # ── Clean low-risk read (T5 tier model): the zero-cost deterministic screen
   #    found nothing, so no LLM panel is convened. Reads are never surfaced to

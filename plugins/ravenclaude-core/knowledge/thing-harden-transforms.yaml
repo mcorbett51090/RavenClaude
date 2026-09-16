@@ -2,13 +2,14 @@
 # Seat proposes; this registry verifies. Adding a transform requires AppSec review.
 schema_version: 1
 registry_version: "1"
-# Feature flag default OFF — see command_review.hardening_edit / templates/thing.yaml.
+# Feature flag default ON after AppSec enable GO (2026-09-16); set false to opt out — see command_review.hardening_edit / templates/thing.yaml.
 transforms:
   - id: git-force-with-lease
     name: git push --force → --force-with-lease
     rationale: >
       Force-with-lease refuses to clobber unseen remote work; clears srm.force-push
-      / xc.no-undo triggers while preserving push intent.
+      / xc.no-undo triggers while preserving push intent. Hard-rule / pre_llm floor
+      still DENYs force-push (transform does not clear §B.9.3 to ASK).
     appsec: SIGNED
     fixtures:
       - original: "git push --force origin feat/x"

@@ -45,6 +45,8 @@ T1="$(mktemp -d)"
 mkdir -p "$T1/.ravenclaude"
 cat > "$T1/.ravenclaude/comfort-posture.yaml" <<'YAML'
 schema_version: 5
+# Gate 50 asserts Phase 0 emit on hard-rule DENY under default hardening_edit ON
+# (AppSec #1204: force-push hard floor — no fixture opt-out).
 categories:
   shell_remote_mutate:
     user: ask

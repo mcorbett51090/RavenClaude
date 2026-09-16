@@ -1062,9 +1062,9 @@ The **`gate_floor`** knob (default `high`) is the lowest tier whose *confident A
 
 
 
-## Hardening EDIT (opt-in)
+## Hardening EDIT (default ON)
 
-Feature flag `command_review.hardening_edit` (default **false**). Design **A+C/H3**: seat proposes a safer Bash equivalent; the signed transform registry verifies. Harden fail → ask. Empty-cited EDIT outside the orchestrator discriminator → DENY. High-blast v1 → still ask + show hardened form. No bypass list; no raising `gate_floor`. See `skills/thing/SKILL.md` and `knowledge/thing-harden-transforms.yaml`.
+Feature flag `command_review.hardening_edit` (default **true** after AppSec enable GO 2026-09-16; set false to opt out). Design **A+C/H3**: seat proposes a safer Bash equivalent; the signed transform registry verifies. Harden fail → ask. Empty-cited EDIT outside the orchestrator discriminator → DENY. High-blast v1 → still ask + show hardened form. **Hard-rule / pre_llm (e.g. force-push) stays DENY** under the flag ON — transforms do not clear that floor to ASK. No bypass list; no raising `gate_floor`. See `skills/thing/SKILL.md` and `knowledge/thing-harden-transforms.yaml`.
 
 ```mermaid
 flowchart TD
@@ -2321,7 +2321,7 @@ Probe: `unprobed: the delivery fact is a host-platform property; it is modelled 
 
 **Sources:** [measured in the FORGE product-inventory run](https://github.com/mcorbett51090/RavenClaude/pull/997)
 
-_Last verified: 2026-09-10_
+_Last verified: 2026-09-16_
 
 
 ---
@@ -2407,7 +2407,7 @@ Probe: `unprobed: requires a real consumer install cycle, which no CI job perfor
 
 **Sources:** [measured in the FORGE product-inventory run](https://github.com/mcorbett51090/RavenClaude/pull/997)
 
-_Last verified: 2026-09-14_
+_Last verified: 2026-09-16_
 
 
 ---
@@ -3518,7 +3518,7 @@ _Last verified: 2026-09-15_
 
 ---
 
-### Thing hardening EDIT registry stays OFF until enable GO · _RavenClaude-built_
+### Thing hardening EDIT default ON; OFF remains shape-sensitive · _RavenClaude-built_
 
 > A signed transform registry can rewrite Bash via empty-cited EDIT, gated by hardening_edit.
 
@@ -3536,10 +3536,11 @@ never fires. Measured 2026-09-15: OFF is shape-sensitive, not a blanket mute.
 
 ## Why it matters
 
-AppSec land countersign keeps `hardening_edit: false` until Gate 14/21/22 green + enable
-GO. Operators who assume "flag off = no tribunal EDIT policy" would miss the hard DENY on
-empty-cited rewrites outside the discriminator — a silent allow would be the dangerous
-opposite failure.
+AppSec enable GO flipped seed/default `hardening_edit` **ON** (2026-09-16; Gate 14/21/22
+green + AppSec SHIP). Explicit `hardening_edit: false` keeps OFF (House Rule 3). Operators
+who assume "flag off = no tribunal EDIT policy" would miss the hard DENY on empty-cited
+rewrites outside the discriminator — a silent allow would be the dangerous opposite
+failure. OFF remains shape-sensitive.
 
 Falsifier: flag OFF collapsing empty-cited EDIT to ask, or applying a registry transform
 while `hardening_edit` is false.
@@ -3548,7 +3549,7 @@ Probe: `plugins/ravenclaude-core/hooks/tests/test-thing-hardening-edit.sh`.
 
 **Sources:** [PE DIGEST ship Thing hardening EDIT (0.323.5), 2026-09-15](https://github.com/mcorbett51090/RavenClaude/blob/feat/thing-hardening-edit/plugins/ravenclaude-core/knowledge/thing-harden-transforms.yaml) · [knowledge/thing-harden-transforms.yaml](https://github.com/mcorbett51090/RavenClaude/blob/feat/thing-hardening-edit/plugins/ravenclaude-core/knowledge/thing-harden-transforms.yaml)
 
-_Last verified: 2026-09-15_
+_Last verified: 2026-09-16_
 
 
 ---
