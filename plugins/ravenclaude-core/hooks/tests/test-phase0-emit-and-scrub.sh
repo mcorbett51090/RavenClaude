@@ -45,6 +45,10 @@ T1="$(mktemp -d)"
 mkdir -p "$T1/.ravenclaude"
 cat > "$T1/.ravenclaude/comfort-posture.yaml" <<'YAML'
 schema_version: 5
+# Gate 50 asserts Phase 0 emit on hard-rule DENY. With hardening_edit default
+# ON, srm.force-push hardens to force-with-lease ASK — so opt out here only.
+command_review:
+  hardening_edit: false
 categories:
   shell_remote_mutate:
     user: ask
