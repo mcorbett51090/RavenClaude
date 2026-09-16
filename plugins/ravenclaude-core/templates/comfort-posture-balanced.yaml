@@ -135,6 +135,14 @@ handoff_tax:
   brief_cap_words: 600 # a brief longer than this is re-feeding the transcript
   pin_explore: haiku # haiku (default) | sonnet | off — the tier an un-pinned Explore gets
 
+# Model-tier surfaces that must NOT inherit the live session model
+# (LOCK ADDENDUM 2026-09-16 — cheapest fit tier for summarize/extract/format).
+# Absent = haiku. Raising to sonnet is a comfort override, NOT "use session model".
+# Never set opus/fable/session/inherit here — those resolve back to haiku.
+model_tier_surfaces:
+  precompact_fallback_model: haiku  # haiku (default) | sonnet — PreCompact archival digest fallback
+  handoff_fill_model: haiku         # haiku (default) | sonnet — detached handoff MODEL FILL
+
 # Model-fallback ladder (added 2026-06-24). When a model a RavenClaude process
 # invokes (a tribunal seat, the convergence judge, the orchestrator) ERRORS or is
 # OVERLOADED/unavailable, retry the same call on the next model in the ladder

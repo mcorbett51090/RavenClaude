@@ -60,3 +60,15 @@ briefly, risks becoming exactly the "data left, no benefit arrived" failure the 
 found in the prior design: egress happens, but the digest the hook was supposed to produce never does,
 because the reader was killed first. Detachment removes that race by construction rather than by
 tuning a timeout.
+
+## Model-tier pin (0.323.10) + honesty bound
+
+When cheap-lane is unavailable, the Claude-orchestrate fallback pins `THING_MODEL` to
+**haiku** (or `model_tier_surfaces.precompact_fallback_model`, default haiku; comfort
+override may raise to sonnet). It never inherits the live session model and never leaves
+`full` → orchestrate's sonnet default unset.
+
+**Honesty:** this fixes RavenClaude's **archival** PreCompact digest extraction only.
+Claude Code's **native auto-compact summarizer** still uses the **session model** until
+Anthropic ships an equivalent of `compactModel`. Do not claim that native path is fixed.
+

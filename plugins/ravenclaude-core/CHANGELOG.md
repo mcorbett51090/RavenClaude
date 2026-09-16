@@ -2,6 +2,23 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.323.10 — 2026-09-16
+
+### Fixed
+- **PreCompact Claude fallback model-tier** — `_try_claude_fallback` pins `THING_MODEL=haiku` (cheapest fit; LOCK ADDENDUM). Never inherits the session model; never leaves `full` → orchestrate sonnet default. Cheap-lane stays first when on. Self-test asserts the pin (fails on sonnet/opus/fable/empty without explicit posture override).
+
+### Added
+- **Detached handoff MODEL FILL** — `context-handoff.py fill` fills the eight `<!-- MODEL FILL -->` sections via fit-tier (default haiku; cheap-lane first when on). Session role: skeleton `write` + `/compact` steering only. Low-headroom `/compact-only` unchanged.
+- **`model_tier_surfaces` comfort knobs** — `precompact_fallback_model` / `handoff_fill_model` (default haiku; sonnet = comfort override; never session/opus/fable).
+
+### Honesty
+- Did **not** fix Claude Code native auto-compact summarizer model (still session model).
+- Did **not** enable `cheap_lane` by default.
+- Did **not** change Thing / `gate_floor`.
+
+### Docs
+- `knowledge/concepts/precompact-digest.md`, `knowledge/model-tier-delegation.md`, `skills/session-handoff/SKILL.md`, `commands/handoff.md`, handoff-nudge wording, comfort-posture-balanced template.
+
 ## 0.323.9 — 2026-09-16
 
 ### Security

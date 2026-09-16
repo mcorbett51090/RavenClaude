@@ -32,6 +32,15 @@ So the discipline has two halves, and the marketplace ships both:
 | Gates that hold merge (security verdict, final code review), cited adjudication, research whose conclusion the run depends on | **frontier** | `opus` | The cost of a wrong verdict is the whole run, not the dispatch. |
 | **Recovery when a worker botches it** | **escalate up one tier** | — | Do not let the cheap model "figure it out" on a second attempt with a longer brief. See § "The escalation ladder". |
 
+### Surfaces that must not inherit the session model
+
+| Surface | Default tier | Knob | Why |
+|---|---|---|---|
+| **PreCompact archival digest** (`precompact-digest.py` Claude fallback) | **haiku** | `model_tier_surfaces.precompact_fallback_model` | Summarize/extract — cheapest fit. Never session Fable/Opus; never `full`→sonnet default. Cheap-lane stays first when on. |
+| **Handoff MODEL FILL** (`context-handoff.py fill`) | **haiku** | `model_tier_surfaces.handoff_fill_model` | Detached extract/format of eight sections. Session does skeleton `write` + `/compact` steering only. |
+
+Absent knob = haiku. Raising to sonnet is a comfort override, not "use the session model". Opus/fable/session/inherit resolve back to haiku. **Honesty:** Claude Code's native auto-compact summarizer still uses the session model — this table does not claim that path is fixed.
+
 The roster encodes this: every `agents/*.md` in every plugin declares a `model:` line (gated by `scripts/check-frontmatter.py`), the review gates and the architect pin `opus`, the coders / tester / documentarian / project-manager pin `sonnet`, and `scout` is the shipped **haiku** worker for the read-heavy, judgment-light row. Across the domain plugins the same split holds by **role shape**: the architect / lead / strategist half of a pair pins `opus`, the `*-implementation-engineer` / `*-developer` half that builds what the architect chose pins `sonnet`. That was true of the early app-craft plugins (backend / frontend / api / database / kubernetes) from the start and was made true of the later batches on 2026-09-14 in two passes: 24 implementers named or described as such (frontier share 77.7% → 73.8%), then 26 more that the name did not give away — the build half of an architect/engineer pair written in lower-case prose (73.8% → 69.7%) — see § "The role-fit gate".
 
 **Sibling-plugin parity.** The same role shape gets the same tier wherever it appears. The second pass was found by that rule, not by a regex: every `aws-cloud` and `gcp-cloud` engineer (compute, IAM, network, ops) sat on `sonnet` beside its `opus` architect, while every `azure-cloud` engineer of the identical shape sat on `opus` — one role, three prices, decided by which month the plugin was written in. When you tier an agent, the tie-breaker is its analog in the nearest sibling plugin, and a difference between them needs a reason that names the *role*, not the batch.

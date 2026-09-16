@@ -154,6 +154,43 @@ _ZDR_RE = re.compile(
     r"^[ \t]*cheap_lane_zdr_confirmed[ \t]*:[ \t]*(true|false|on|off|yes|no)\b",
     re.IGNORECASE | re.MULTILINE,
 )
+# model_tier_surfaces — cheapest-fit pins for surfaces that must NOT inherit the
+# session model (LOCK ADDENDUM 2026-09-16). Absent = haiku. Comfort override may
+# raise to sonnet only — never opus/fable/session/inherit.
+_MODEL_TIER_BLOCK_RE = re.compile(r"^[ \t]*model_tier_surfaces[ \t]*:[ \t]*$", re.MULTILINE)
+_MTS_PRECOMPACT_RE = re.compile(
+    r"^[ \t]+precompact_fallback_model[ \t]*:[ \t]*([A-Za-z0-9_./-]{1,64})[ \t]*(?:#.*)?$",
+    re.MULTILINE,
+)
+_MTS_HANDOFF_RE = re.compile(
+    r"^[ \t]+handoff_fill_model[ \t]*:[ \t]*([A-Za-z0-9_./-]{1,64})[ \t]*(?:#.*)?$",
+    re.MULTILINE,
+)
+
+_DEFAULT_FIT_TIER = "haiku"
+_LATE_TIER_TOKENS = ("opus", "fable", "inherit", "session")
+
+
+def resolve_fit_tier(raw: str | None, *, allow_sonnet: bool = True) -> str:
+    """Cheapest fit tier for summarize/extract/handoff-fill surfaces.
+
+    Absent/empty → haiku. Explicit `sonnet` (or claude-sonnet*) is a comfort
+    override when allow_sonnet. Opus/fable/session/inherit (and unknown) → haiku.
+    Never inherits the live session model.
+    """
+    v = (raw or "").strip().lower()
+    if not v:
+        return _DEFAULT_FIT_TIER
+    if "haiku" in v:
+        return "haiku" if v in ("haiku", "fast") else v
+    if allow_sonnet and (v == "sonnet" or v.startswith("claude-sonnet")):
+        return "sonnet" if v == "sonnet" else v
+    if any(tok in v for tok in _LATE_TIER_TOKENS):
+        return _DEFAULT_FIT_TIER
+    if v == "sonnet" or v.startswith("claude-sonnet"):
+        # allow_sonnet False path still refuses late escalation
+        return _DEFAULT_FIT_TIER
+    return _DEFAULT_FIT_TIER
 
 
 def _truthy(word: str) -> bool:
@@ -187,6 +224,8 @@ def read_posture(project_dir: str | None = None) -> dict:
         "cheap_lane_agent": "grok",
         "pii_clean": False,
         "zdr_confirmed": False,
+        "precompact_fallback_model": _DEFAULT_FIT_TIER,
+        "handoff_fill_model": _DEFAULT_FIT_TIER,
     }
     text = _read_posture_text(project_dir)
     if not text:
@@ -206,6 +245,15 @@ def read_posture(project_dir: str | None = None) -> dict:
     m = _ZDR_RE.search(text)
     if m:
         out["zdr_confirmed"] = _truthy(m.group(1))
+    mt = _MODEL_TIER_BLOCK_RE.search(text)
+    if mt:
+        tail = text[mt.end() : mt.end() + 4096]
+        m = _MTS_PRECOMPACT_RE.search(tail)
+        if m:
+            out["precompact_fallback_model"] = resolve_fit_tier(m.group(1))
+        m = _MTS_HANDOFF_RE.search(tail)
+        if m:
+            out["handoff_fill_model"] = resolve_fit_tier(m.group(1))
     return out
 
 
@@ -407,12 +455,27 @@ def _try_cheap_lane(prompt: str, agent: str = "grok", timeout_s: int = 60) -> tu
     return (out or None), rc
 
 
-def _try_claude_fallback(prompt: str, timeout_s: int = 90) -> str | None:
+def _try_claude_fallback(
+    prompt: str,
+    timeout_s: int = 90,
+    *,
+    model: str | None = None,
+) -> str | None:
+    """Claude-orchestrate fallback for digest extraction.
+
+    HARD (LOCK ADDENDUM 2026-09-16): always pin THING_MODEL to the cheapest fit
+    tier (default haiku). Never leave `full` → orchestrate's sonnet default.
+    Never inherit the live session model. Cheap-lane stays first when on
+    (caller order); this path only runs after cheap-lane unavailable.
+    """
     script = _claude_orchestrate_script()
     if not Path(script).is_file():
         return None
+    pinned = resolve_fit_tier(model)
     env = dict(os.environ)
     env["RAVENCLAUDE_ORCH_BRIEF"] = prompt
+    # Pin BEFORE spawning — claude-orchestrate.sh:260 defaults full→sonnet when unset.
+    env["THING_MODEL"] = pinned
     try:
         result = subprocess.run(
             ["bash", script, "full"],
@@ -493,7 +556,10 @@ def extract_digest(
             "outcome": "refused",
         }
 
-    digest = _try_claude_fallback(prompt)
+    digest = _try_claude_fallback(
+        prompt,
+        model=posture.get("precompact_fallback_model", _DEFAULT_FIT_TIER),
+    )
     if digest:
         return digest, "claude-fallback", {
             "attempted": True,
@@ -883,10 +949,32 @@ def _self_test() -> int:
         claude_ok = tdp / "claude-ok.sh"
         claude_ok.write_text(
             "#!/usr/bin/env bash\n"
-            'echo "$RAVENCLAUDE_ORCH_BRIEF" > "$0.received"\n'
+            'printf "argv0=%s\\nTHING_MODEL=%s\\n" "$1" "${THING_MODEL:-}" > "$0.received"\n'
+            'echo "$RAVENCLAUDE_ORCH_BRIEF" >> "$0.received"\n'
             'echo "- fallback digest item"\n'
         )
         claude_ok.chmod(0o755)
+
+        # Pin-strict stub: exits non-zero unless THING_MODEL is a haiku-class pin.
+        # Used to prove the fallback NEVER reaches orchestrate with sonnet/opus/fable/empty.
+        claude_pin = tdp / "claude-pin.sh"
+        claude_pin.write_text(
+            "#!/usr/bin/env bash\n"
+            'm="${THING_MODEL:-}"\n'
+            'printf "THING_MODEL=%s\\n" "$m" > "$0.received"\n'
+            'case "$m" in\n'
+            '  ""|*sonnet*|*opus*|*fable*|*inherit*|*session*)\n'
+            '    echo "REJECTED_LATE_OR_EMPTY_MODEL:$m" >&2; exit 99\n'
+            '    ;;\n'
+            '  *haiku*)\n'
+            '    echo "- fallback digest item"; exit 0\n'
+            '    ;;\n'
+            '  *)\n'
+            '    echo "REJECTED_UNKNOWN_MODEL:$m" >&2; exit 98\n'
+            '    ;;\n'
+            'esac\n'
+        )
+        claude_pin.chmod(0o755)
 
         default_proj = _mk_posture(tdp, pii_clean=True)  # floor OPEN by default below
 
@@ -951,7 +1039,73 @@ def _self_test() -> int:
         check("exit-4 (genuine unavailability) falls back to claude-fallback", method == "claude-fallback", f"got {method}")
         check("fallback digest content used", digest is not None and "fallback digest item" in (digest or ""))
         check("fallback receipt outcome=ok", receipt["outcome"] == "ok")
+        # LOCK ADDENDUM — fallback must pin haiku (never full→sonnet default / session).
+        pin_dump = (tdp / "claude-ok.sh.received").read_text() if (tdp / "claude-ok.sh.received").exists() else ""
+        model_lines = [ln for ln in pin_dump.splitlines() if ln.startswith("THING_MODEL=")]
+        model_val = model_lines[0].split("=", 1)[1] if model_lines else ""
+        check(
+            "fallback pins THING_MODEL with haiku",
+            "haiku" in model_val.lower() and model_val != "",
+            f"got {model_val!r} dump={pin_dump!r}",
+        )
+        check(
+            "fallback model value is not a late tier",
+            not any(tok in model_val.lower() for tok in ("sonnet", "opus", "fable", "inherit", "session")),
+            f"got {model_val!r}",
+        )
         (tdp / "claude-ok.sh.received").unlink(missing_ok=True)
+
+        # Strict pin stub: cheap-lane unavailable → fallback must succeed ONLY with haiku pin.
+        os.environ["RC_CHEAP_LANE_SCRIPT"] = str(cheap_fail)
+        os.environ["RC_CLAUDE_ORCHESTRATE_SCRIPT"] = str(claude_pin)
+        digest, method, receipt = extract_digest(str(transcript_a), project_dir=str(default_proj))
+        check("pin-strict stub: fallback succeeds with haiku", method == "claude-fallback", f"got {method}")
+        pin_strict = (tdp / "claude-pin.sh.received").read_text() if (tdp / "claude-pin.sh.received").exists() else ""
+        check("pin-strict stub saw THING_MODEL=haiku", "THING_MODEL=haiku" in pin_strict, f"got {pin_strict!r}")
+        (tdp / "claude-pin.sh.received").unlink(missing_ok=True)
+
+        # TEETH: unpinned THING_MODEL is rejected by pin-strict stub.
+        import sys as _sys
+        _mod = _sys.modules[__name__]
+        real_fb = _mod._try_claude_fallback
+
+        def _unpinned(prompt, timeout_s=90, *, model=None):
+            script = _claude_orchestrate_script()
+            env = dict(os.environ)
+            env["RAVENCLAUDE_ORCH_BRIEF"] = prompt
+            env.pop("THING_MODEL", None)
+            try:
+                result = subprocess.run(
+                    ["bash", script, "full"],
+                    capture_output=True, text=True, timeout=timeout_s, env=env,
+                )
+            except Exception:
+                return None
+            if result.returncode != 0:
+                return None
+            return (result.stdout or "").strip() or None
+
+        _mod._try_claude_fallback = _unpinned
+        try:
+            digest_bad, method_bad, _rcpt = extract_digest(str(transcript_a), project_dir=str(default_proj))
+            check(
+                "TEETH: unpinned fallback rejected (not claude-fallback ok)",
+                method_bad != "claude-fallback",
+                f"got method={method_bad}",
+            )
+        finally:
+            _mod._try_claude_fallback = real_fb
+        os.environ["RC_CLAUDE_ORCHESTRATE_SCRIPT"] = str(claude_ok)
+
+        # resolve_fit_tier unit checks (cheapest-fit + refuse late)
+        check("resolve_fit_tier empty → haiku", resolve_fit_tier("") == "haiku")
+        check("resolve_fit_tier None → haiku", resolve_fit_tier(None) == "haiku")
+        check("resolve_fit_tier opus → haiku", resolve_fit_tier("opus") == "haiku")
+        check("resolve_fit_tier fable → haiku", resolve_fit_tier("fable") == "haiku")
+        check("resolve_fit_tier inherit → haiku", resolve_fit_tier("inherit") == "haiku")
+        check("resolve_fit_tier session → haiku", resolve_fit_tier("session") == "haiku")
+        check("resolve_fit_tier sonnet comfort override", resolve_fit_tier("sonnet") == "sonnet")
+        check("resolve_fit_tier haiku stays haiku", resolve_fit_tier("haiku") == "haiku")
 
         # cheap lane tried first, claude fallback NOT invoked on success (legacy assertion, preserved)
         os.environ["RC_CHEAP_LANE_SCRIPT"] = str(cheap_ok)
