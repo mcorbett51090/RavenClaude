@@ -2,6 +2,14 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.323.13 — 2026-09-16
+
+### Added
+- **Pipeline decision-tree island** — interactive PreToolUse → PostToolUse matcher-order viz under the Pipeline flow strip (`#/pipeline`, deep-link `#/pipeline/decision-tree`). Gate 132 island: empty `#pipe-dtree-mount` + JSON payload only (+2 static). Outcomes from stage tips / excluded-hook reasons / hook headers — no invented behavior; no Mermaid CDN.
+
+### Locks (Matthew GO)
+- Default disclosure **closed**; excluded hooks **collapsed/expandable**; Learn deep-link glue **v1 skip**; keep **EDIT** outcome label; `#/pipeline/decision-tree` force-expands.
+
 ## 0.323.12 — 2026-09-16
 
 ### Added
@@ -17,6 +25,7 @@ All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the 
 
 ### Locks / honesty
 - Docs/templates only. **No** alias hard-delete. **No** Thing / `gate_floor` / `guard-destructive` weaken. **No** `cheap_lane` default on. **No** Chat∪CLI merge. **No** handoff mechanism collapse. No push/PR/BMA from PE.
+
 
 ## 0.323.11 — 2026-09-16
 
