@@ -29,7 +29,7 @@ Grok cells come from [`substrate-tier-map.json`](substrate-tier-map.json) (same 
 
 ### Grok visibility when `cheap_lane.mode: off` (HARD · M4)
 
-**`mode: off` means inactive routing, not “Grok unsupported.”** The matrix always lists Grok (and Copilot) rows. Dashboards and docs must keep those columns visible; operators turn routing on with `advise` \| `agent`.
+**`mode: off` means inactive routing, not “Grok unsupported.”** The matrix always lists Grok (and Copilot) rows `[docs-verified 2026-09-16 — unified-model-matrix.json agent rows + comfort-posture-balanced.yaml cheap_lane.mode: off]`. Dashboards and docs must keep those columns visible; operators turn routing on with `advise` \| `agent`.
 
 ## Surfaces (default rows)
 
