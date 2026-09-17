@@ -11,7 +11,7 @@ covers:
   - plugins/ravenclaude-core/hooks/workaround-exhaustion.sh
   - plugins/ravenclaude-core/hooks/tests/test-gate290-workaround-exhaustion.sh
   - plugins/ravenclaude-core/knowledge/workaround-routes.md
-covers_digest: "sha256:251eb64b339d7b92fb43ee8266b625cf385531cde2eb4e9dc02763e2c7868b79"
+covers_digest: "sha256:325e73970b3406c9ac8dfdfc6ba66738593824933ea36ada6607a19c66707fbf"
 nuance: "_last_deny reads hook-events.jsonl and returns the newest verdict: deny line whose
   hook is NOT workaround-exhaustion.sh. The gate emits its own deny to the same file in
   block mode, so without that name filter each block would become the newest deny, the
