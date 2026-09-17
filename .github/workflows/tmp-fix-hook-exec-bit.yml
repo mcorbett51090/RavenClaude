@@ -1,0 +1,44 @@
+# TEMPORARY one-off maintenance workflow — generic by design: no file paths live
+# in this file, they arrive as a dispatch-time input. It restores the executable
+# bit on files whose mode was dropped by a GitHub Contents-API write (that API
+# always creates blobs at 100644). Dispatched once against a PR branch, then
+# deleted in the following commit.
+name: tmp-fix-hook-exec-bit
+
+on:
+  workflow_dispatch:
+    inputs:
+      paths:
+        description: "Space-separated file paths (relative to repo root) to mark executable"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  restore-exec-bit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: true
+      - name: Mark the requested paths executable, commit only if the mode actually changed
+        env:
+          TARGET_PATHS: ${{ inputs.paths }}
+          TARGET_REF: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          for f in $TARGET_PATHS; do
+            test -f "$f"
+            chmod +x -- "$f"
+          done
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if git diff --quiet; then
+            echo "No mode change needed."
+          else
+            git add -A
+            git commit -m "chore: restore executable bit via one-off maintenance workflow"
+            git push origin "HEAD:${TARGET_REF}"
+          fi
