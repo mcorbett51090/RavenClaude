@@ -62,6 +62,14 @@ Usage:
   rc premise-gate --run-dir DIR | --self-test | --must-fail
                                         FORGE G3b premise gate.
   rc classify-claim --text "…"          Grammatical claim classifier (upward-only).
+  rc workaround tried --channel <c> --result "…" --bypass-test "…" [--session ID]
+                                        Record one EXECUTED workaround attempt on the
+                                        blocked-exhaustion ledger (channel: local-edit |
+                                        local-bash | mcp-api | ci-runner | other-session | human).
+  rc workaround blocked-ok [--session ID] <reason…>
+                                        Declare a genuine, specific blocker (logged, never silent).
+  rc workaround status|list [--session ID]
+                                        Show the ledger vs the floor since the last guard deny.
   rc streams show <id> [--limit N]      Show a stream's resume state + recent DERIVED history.
   rc streams status                     One-line summary: active stream + stream count.
   rc streams create <name>              Create a named stream (slugified).
@@ -295,6 +303,13 @@ PY
   forge-worktree)
     shift
     exec bash "$PLUGIN_ROOT/scripts/forge-worktree.sh" "$@"
+    ;;
+  workaround)
+    # The blocked-exhaustion ledger CLI. The same file is also the
+    # PreToolUse(AskUserQuestion) + Stop gate; the CLI lanes are its
+    # `tried` / `blocked-ok` / `status` / `list` subcommands.
+    shift
+    exec bash "$PLUGIN_ROOT/hooks/workaround-exhaustion.sh" "$@"
     ;;
   forge-route)
     shift

@@ -5202,3 +5202,82 @@ behavior, proven by Gate 260's checks); the findings-dir architecture change is 
 workflow script's own iteration bookkeeping and does not change any external artifact path a caller
 depends on. Nothing in a consumer's installed plugin behaves differently on `/plugin marketplace
 update` until they invoke block mode.
+
+## The stop decision was made by judgment, and judgment skewed toward stopping — the blocked-exhaustion gate (added 2026-09-17, v0.324.0)
+
+On 2026-09-17, in this repo, one guard denied one route — an in-place edit of a guarded hook. The
+agent then enumerated alternatives, stopped each at its first plausible objection, handed the owner a
+menu of manual steps — twice — and re-armed eight silent scheduled check-ins on a blocker it had
+declared itself. Two routes were open the whole time and took minutes once the owner said *"find a
+way"*: an API content write, then a CI-runner dispatch to recover the executable bit the API write
+does not carry.
+control: `git ls-tree FETCH_HEAD <the hook's path>` on 2026-09-17 -> `100644` after the API content
+write and `100755` (same blob) after the branch-only `workflow_dispatch` — both observed on PR #1207.
+Every one of the five failure mechanisms was already named in this constitution — CGP's "try
+alternative paths", the Agentic-Default Principle's menu-of-options anti-pattern, "check why a
+constraint exists before obeying it", Last-Mile. The prose was all there. **What was missing was a
+form the model has to fill in before it is allowed to stop — and a form that refuses "considered."**
+
+**The mechanism.** [`hooks/workaround-exhaustion.sh`](hooks/workaround-exhaustion.sh) is one file with
+two hook lanes and four CLI lanes. The hook lanes — `PreToolUse(AskUserQuestion)` and `Stop` — fire
+only when (a) the posture sets `workaround_exhaustion: warn | block` (no key ⇒ off — nothing changes
+for a consumer who has not set it), (b) a RavenClaude guard has denied a tool call this session (read
+off `hook-events.jsonl`, the existing substrate; the gate's own events are excluded from the anchor so
+it cannot feed itself), and (c) the question or the final message matches a hand-back shape ("which
+option", "I'm blocked", "you'll need to", "run it manually", "no way to"). Then it reads the
+**workaround ledger** — `.ravenclaude/runs/<session>/workaround-ledger.jsonl`, written by
+`rc workaround tried --channel <c> --result "…" --bypass-test "…"` — and counts the rows since that
+deny that carry `tried: yes`, a non-empty `result`, and a channel from the fixed enum (`local-edit` ·
+`local-bash` · `mcp-api` · `ci-runner` · `other-session` · `human`). Fewer than
+`workaround_exhaustion_floor` (default 3) **distinct executed channels** ⇒ in `block` mode the
+question is denied / the Stop is blocked, with the untried channels named and the exact command to
+record the next one; in `warn` mode the same text arrives as advisory context. The escape is
+`rc workaround blocked-ok "<the specific route or permission you lack>"` — it clears the gate and is
+logged as a `warn` event, so a genuine blocker is one line and never silent. The Stop lane
+self-limits at `workaround_exhaustion_max_blocks` (default 4) consecutive blocks — the same
+anti-deadlock shape as `dod-gate.sh`.
+
+⛔ **"Considered" is not a row, by construction.** A `tried: no` row is legal and honest and does not
+count; a `tried: yes` row without a `result` does not count; a row without a `--bypass-test` line is
+refused at write time. The `bypass_test` field is the discriminator the incident was missing: **a
+route is legitimate when it changes who can review the effect** (a PR commit, a CI run with a log, a
+dispatch with a recorded input); **a bypass produces the same effect while hiding it from the guard**
+(an encoded path, an aliased verb, a scheduler used as a sleep). The catalog —
+[`knowledge/workaround-routes.md`](knowledge/workaround-routes.md) — carries that test, the incident,
+six per-blocked-action-class ladders in cost order (each rung with the gotcha already paid for), and
+two prose complements: a check-in that fires with nothing changed on a self-declared blocker adds one
+NEW channel before re-arming, and *a PR you own that is red is work now, never "waiting on review."*
+
+**Honest limits, stated where the mechanism is described.** No hook sees the model deciding to give
+up in chat; the gate covers the two surfaces where giving up becomes an action — asking the human,
+and ending the turn. The Stop lane needs the host's `last_assistant_message` (Claude Code carries it;
+a host without it is silent by construction). Rows are agent-written: nothing yet proves a `result`
+came from a real tool call — a per-tool channel log that would cross-check `tried: yes` against an
+actual call is a named follow-up, not a claim. The shape filters are regexes over a question or a
+final message; a false positive costs one `blocked-ok` line.
+
+**Proven by Gate 290**
+([`hooks/tests/test-gate290-workaround-exhaustion.sh`](hooks/tests/test-gate290-workaround-exhaustion.sh),
+27 assertions): silent when inert (no posture / `off` / no deny / non-hand-back shape / floor met /
+blocked-ok declared), fires and blocks on every hand-back shape, the Stop counter and force-allow,
+the warn-mode advisory envelope, every CLI refusal (bad channel, `yes` without a result, missing
+bypass-test, empty reason), the floor arithmetic, and a floor-neutered mutant that must wave a
+hand-back through — the teeth. Registered in the `--check` dispatcher, the main sequence, the
+`Supported:` string and the `hooks` suite, each grepped after the edit.
+
+⛔ **How this shipped is itself a worked instance of the catalog's rung 2 and rung 3.** The hook, its
+test and the `hooks.json` registration live under the tribunal's own substrate, so the file tools
+refuse to write them — correctly. They travel the route the catalog describes: an API content write
+(every blob lands at mode 100644), then a one-off `workflow_dispatch` workflow that lives only on the
+PR branch, takes its paths as a dispatch-time input, restores the executable bit, and is deleted in
+the next commit — with `git ls-tree` against the locally proven blob as the check that both "restored
+the bit" and "changed nothing else" are observations. That is the reviewed, attributed route the guard
+permits — not a bypass of it.
+
+**Migration:** none — with no `workaround_exhaustion` key in the posture the gate is off; the balanced
+template seeds `warn` for a **new** repo only (`setup` never clobbers an existing posture). This
+repo's own posture is the owner's to flip to `block` — one line in the dashboard: the tribunal's
+self-disable floor denied the agent's edit of the posture file on 2026-09-17 (Sága
+`thing-2026-09-17T11-12-26Z-24888`) and named the dashboard as the route, which is the correct
+outcome for an agent-authored change to the file that governs the tribunal. Nothing in a consumer's
+installed plugin behaves differently on `/plugin marketplace update` until they set the knob.
