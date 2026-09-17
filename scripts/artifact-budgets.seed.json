@@ -81,6 +81,11 @@
         "repo-review-block-planner-capacity-floor inventory entry (block_planner.py Gate 258/260 inception-coverage fix, /repo-review block-mode build, 2026-09-16)",
         32850,
         "The /repo-review block-mode build added a new inventory concept (repo-review-block-planner-capacity-floor -- block_planner.py's _capacity() clamp masking its own impossibly-small-safe-ceiling guard) covering block_planner.py, repo-sweep.workflow.js, and SKILL.md, to satisfy check-inception-coverage for the new block_planner.py script. Measured island payload 32,802 (over prior 32,800 by 2; largest panel learn-payload at 25,509). Same no-diagrams-for-inventory-entries shape as every prior wave. Re-measured on this branch head; appended, never edited."
+      ],
+      [
+        "workaround-exhaustion-own-deny-never-anchors inventory entry (blocked-exhaustion gate, core 0.324.0, Gate 290 inception, 2026-09-17)",
+        32900,
+        "The blocked-exhaustion gate build (core 0.324.0) added a new inventory concept (workaround-exhaustion-own-deny-never-anchors -- the gate must exclude its own block-mode deny from the anchor it measures the ledger from) covering workaround-exhaustion.sh, its Gate 290 test, and knowledge/workaround-routes.md, to satisfy check-inception-coverage for the new hook. Measured island payload 32,866 (over prior 32,850 by 16; largest panel learn-payload at 25,573). Same no-diagrams-for-inventory-entries shape as every prior wave; the Pipeline tab is unchanged because the hook is listed in _PIPELINE_EXCLUDED_HOOKS with a reason. Re-measured on this branch head; appended, never edited."
       ]
     ],
     "index.html": [
@@ -234,6 +239,11 @@
         "Dashboard UX vision Wave-2 (0.323.16)",
         10870000,
         "Wave-2 Pipeline progressive disclosure (<details> folds for pipe-hint / Advanced tool limits / File path rules) plus Learn PE academy JS path (core 0.323.16). dashboard.html 10,860,407 bytes > prior 10,860,000 by 407 (0.00 MB). Static Gate 132 +26 (details/summary pairs); island payload remains under its existing ceiling. Re-measured on this branch head; appended, never edited."
+      ],
+      [
+        "workaround-exhaustion-own-deny-never-anchors inventory entry (blocked-exhaustion gate, core 0.324.0, 2026-09-17)",
+        10880000,
+        "Same blocked-exhaustion gate build as the payload entry above (core 0.324.0). dashboard.html 10,873,943 bytes > prior 10,870,000 by 3,943 (0.00 MB) -- the new inventory concept card plus the _PIPELINE_EXCLUDED_HOOKS reason text for workaround-exhaustion.sh. Static Gate 132 delta is zero (no DOM control; the hook is deliberately not a Pipeline stage card). Re-measured on this branch head; appended, never edited."
       ]
     ],
     "index.html": [
