@@ -66,6 +66,10 @@
 #   workaround-exhaustion.sh list   [--session S]
 
 set -uo pipefail
+# Armed FIRST (Gate 199's static half): the hook lanes (ask|stop) are fail-safe —
+# any abort exits 0 so a broken gate can never block a session — while the CLI
+# lanes keep their loud exit code, so a refused row still refuses.
+trap '_rc=$?; case "${sub:-}" in ask|stop) exit 0 ;; *) exit "$_rc" ;; esac' EXIT
 
 here="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" 2>/dev/null && pwd)" || here="."
 sub="${1:-}"
@@ -212,8 +216,7 @@ ASK_SHAPE='(blocked|can.?.?.?t([^[:alnum:]]|$)|unable to|not possible|no way (to
 STOP_SHAPE='(i.?.?.?m blocked|i am blocked|blocked on|can.?.?.?t (do|proceed|apply|push|complete|make|get|run|fix)|cannot (do|proceed|apply|push|complete|make|get|run|fix)|no way (to|around)|not possible (from|in|within) this session|you.?.?.?ll need to|you (will )?need to|you (would |will )?have to|(run|apply|check|paste|merge|set|push) (it|this|that|them)? ?manually|manually (run|apply|check|paste|merge|set|push)|by hand|hand(ing)? (this |it )?back|remaining option|please (run|apply|paste|do|merge)|don.?.?.?t have (a way|access|the means|the ability)|genuine (tool|access) gap|out of (options|routes))'
 
 # ── Hook lanes ───────────────────────────────────────────────────────────────
-_gate() { # $1=ask|stop
-  trap 'exit 0' EXIT                       # hook lanes are fail-safe: allow on any error
+_gate() { # $1=ask|stop — fail-safe: the top-level EXIT trap exits 0 for these lanes
   payload="$(cat 2>/dev/null || true)"
   command -v jq >/dev/null 2>&1 || exit 0
   root="$(_root)"
