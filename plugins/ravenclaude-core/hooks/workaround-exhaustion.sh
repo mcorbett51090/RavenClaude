@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 # workaround-exhaustion.sh — the blocked-exhaustion gate.
+# rc-state-key: "${CLAUDE_PROJECT_DIR}/.ravenclaude/runs/<session_id>/" + workaround-ledger.jsonl | workaround-exhaustion.blocks — keyed on session_id (CLAUDE_SESSION_ID, else the payload's session_id)
+# rc-state-scope: session
+# rc-state-rationale: the question is "what has THIS session executed since THIS session's last guard deny" — the deny anchor (hook-events.jsonl), the ledger and the Stop-block counter all live under the session's own run dir; a worktree key would split one session's attempts across trees, and a global key would let another session's rows satisfy this one's floor.
+# rc-state-escape: comfort-posture — 'workaround_exhaustion: off' (absent ⇒ off) silences both lanes; and the ledger CLI 'rc workaround blocked-ok "<reason>"' releases the gate for the current deny from any lane (no env var), logged as a warn event.
 #
 # WHY (2026-09-17 incident, this repo). After one guard denied one route, the
 # agent CONSIDERED the alternatives, called each blocked at its first plausible
