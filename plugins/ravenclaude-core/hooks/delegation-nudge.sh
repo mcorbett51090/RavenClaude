@@ -74,11 +74,21 @@ done
 # Specific delegation phrasings (NOT a generic "check"). Three shapes:
 #  (a) sending the user to a portal/UI; (b) "you/the user should manually check/verify…";
 #  (c) "check the run history" / "go check…".
-phrase='((open|go to|navigate to|log ?in to|sign ?in to)[^.]{0,40}(portal|admin center|maker portal|power automate|azure portal|the ui)|(you|the user|please)[[:space:]]+([a-z]+[[:space:]]+){0,3}(manually[[:space:]]+)?(check|verify|look at|review|inspect)\b|(check|view|inspect|review)[[:space:]]+the[[:space:]]+run[[:space:]]+history|\bgo[[:space:]]+(check|look|verify)\b)'
+#
+# Word boundaries are spelled as POSIX-portable `(^|[^[:alnum:]_])` /
+# `([^[:alnum:]_]|$)`, deliberately NOT `\b`. These patterns are matched by
+# bash's own `[[ =~ ]]` — i.e. the system regcomp(3) in plain REG_EXTENDED
+# mode — and `\b` is not POSIX ERE: it is a GNU-libc extension, and macOS's
+# libc is not expected to honour it there [unverified — training knowledge;
+# the portable spelling sidesteps the question on every host either way]. No
+# other hook in this plugin puts `\b` inside `[[ =~ ]]`; every other `\b` in the
+# tree lives in embedded Python `re` or a `grep -E` call, which is a different
+# engine (macOS door, once more).
+phrase='((open|go to|navigate to|log ?in to|sign ?in to)[^.]{0,40}(portal|admin center|maker portal|power automate|azure portal|the ui)|(you|the user|please)[[:space:]]+([a-z]+[[:space:]]+){0,3}(manually[[:space:]]+)?(check|verify|look at|review|inspect)([^[:alnum:]_]|$)|(check|view|inspect|review)[[:space:]]+the[[:space:]]+run[[:space:]]+history|(^|[^[:alnum:]_])go[[:space:]]+(check|look|verify)([^[:alnum:]_]|$))'
 # A genuine hand-back reason on the line legitimizes the delegation (CGP Rule 4).
 # Must be the ACCESS-LACKING shape — a bare "if/when" would over-suppress (e.g.
 # "to see if it failed, open the portal" is NOT a hand-back reason).
-reason='(unless you|if you (lack|don'\''?t|do not|can'\''?t|cannot)|because you (lack|don'\''?t|do not|can'\''?t|cannot)|\bcannot\b|\bcan'\''?t\b|do(n'\''?t| not) hold|no (access|route|permission|spn|token)|not authoriz)'
+reason='(unless you|if you (lack|don'\''?t|do not|can'\''?t|cannot)|because you (lack|don'\''?t|do not|can'\''?t|cannot)|(^|[^[:alnum:]_])cannot([^[:alnum:]_]|$)|(^|[^[:alnum:]_])can'\''?t([^[:alnum:]_]|$)|do(n'\''?t| not) hold|no (access|route|permission|spn|token)|not authoriz)'
 # A line that already cites a held route is documenting the self-serve path, not delegating.
 route='(Web API|GET |POST |PATCH |DELETE |pac |az |gh |/api/data/|curl )'
 
@@ -95,6 +105,9 @@ first_nonblank_seen=0
 # to match the prior `grep -qi…` behavior; it is turned OFF around the `route`
 # check, which was intentionally case-SENSITIVE (`grep -qE`, no `-i`) — mixed
 # case matters there ("Web API", "GET ", vs. lowercase "pac "/"az "/"gh ").
+# Gate 122's teeth half (hooks/tests/test-gate122-delegation-nudge.sh, case C)
+# neuters the two `&& continue` suppressions below by exact text — keep their
+# spelling in sync with that fixture if you touch them.
 shopt -s nocasematch
 
 while IFS= read -r line || [[ -n "$line" ]]; do
