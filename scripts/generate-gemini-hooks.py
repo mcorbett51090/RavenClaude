@@ -111,6 +111,14 @@ _SKIP = {
     "stream-session-close.sh": ("Stop — same unverified lifecycle mapping."),
     "thing-denial-kb-sync.sh": ("Stop — same unverified lifecycle mapping."),
     "handoff-nudge.sh": ("Stop — same unverified lifecycle mapping as dod-gate.sh."),
+    "workaround-exhaustion.sh": (
+        "Two lanes, neither reachable here: the PreToolUse lane matches "
+        "AskUserQuestion, a Claude Code tool with no Gemini equivalent (same as "
+        "route-decision-review.sh); the Stop lane is the same unverified lifecycle "
+        "mapping as dod-gate.sh AND reads last_assistant_message off Claude Code's "
+        "Stop payload, without which it is silent by construction. Projecting it "
+        "would register a no-op that reads as coverage."
+    ),
     "handoff-successor-ack.sh": (
         "SessionStart startup handshake (file write). Gemini SessionStart "
         "payload/matcher names are unverified; a wrong-event ack would lie."

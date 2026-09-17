@@ -41,6 +41,30 @@ worktree_guard: warn
 # Not a Chat-is-protected claim — Chat Preview hook fire is unverified.
 worktree_bound: block
 
+# Blocked-exhaustion gate (workaround_exhaustion: off | warn | block). After a
+# RavenClaude guard denies a tool call, a hand-back to you — an AskUserQuestion
+# shaped like "which option / I'm blocked / do this manually", or a final message
+# that ends the turn with the same shape — must be backed by a workaround ledger
+# (`rc workaround tried --channel <c> --result "…" --bypass-test "…"`) showing at
+# least `workaround_exhaustion_floor` EXECUTED, distinct-channel attempts since
+# that deny. "Considered" is not a row. The escape is
+# `rc workaround blocked-ok "<the specific route or permission you lack>"` —
+# logged as a warn event, never silent. Routes: knowledge/workaround-routes.md.
+#   off   — (absent ⇒ off) the gate is inert.
+#   warn  — (default here) an advisory notice on the hand-back; never blocks.
+#   block — DENIES the question / blocks the Stop until the floor is met or
+#           blocked-ok is declared; the Stop lane force-allows after
+#           `workaround_exhaustion_max_blocks` consecutive blocks (anti-deadlock).
+# A PR you own that is red is work now, not a wait — see the routes file.
+workaround_exhaustion: warn
+# workaround_exhaustion_floor: 3
+# workaround_exhaustion_max_blocks: 4
+# Known gap (2026-09-17): these three keys are hand-set YAML. The dashboard's
+# Save & apply rebuilds this file from its own state and does not yet carry
+# them (they are not in the advisory-knob table in scripts/generate-dashboards.py,
+# a tribunal-substrate file — that two-line addition is a maintainer follow-up),
+# so a dashboard Save drops them; re-add them by hand after a Save.
+
 # Bring the comfort-posture dashboard up at session start (dashboard_autostart:
 # off | serve | open). Read by hooks/dashboard-autostart.sh. LEFT UNSET ON PURPOSE —
 # absent ⇒ off, because auto-launching a local server (and stealing focus with a

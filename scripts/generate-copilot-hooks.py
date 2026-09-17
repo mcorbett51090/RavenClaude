@@ -124,6 +124,15 @@ _SKIP = {
         "an AskUserQuestion payload — wiring it would be a liability on exactly the "
         "versions where the matcher cannot protect it."
     ),
+    "workaround-exhaustion.sh": (
+        "Two lanes, neither reachable here. The PreToolUse lane matches "
+        "AskUserQuestion — the same no-Copilot-equivalent + pre-1.0.62 "
+        "unhonored-matcher liability as route-decision-review.sh above. The Stop "
+        "lane reads last_assistant_message off the Stop payload; the adapter's stop "
+        "mode forwards no such field (copilot-hook-adapter.sh names it nowhere, "
+        "checked 2026-09-17), so the hook is silent by construction there. "
+        "Projecting either lane would ship a no-op that reads as coverage."
+    ),
     "caveman-route-hook.sh": (
         "routes a Claude-Code-only third-party plugin; the target mode store does "
         "not exist on this host."
