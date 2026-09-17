@@ -6689,7 +6689,8 @@ echo "── Gate 122: delegation-nudge.sh (consult-your-access-inventory writte
 rc=0; bash plugins/ravenclaude-core/hooks/tests/test-gate122-delegation-nudge.sh >/dev/null 2>&1 || rc=$?
 gate "delegation-nudge: fires on delegation prose + silent on reason/route/escape/scope/opt-out + teeth" must_pass "$rc"
 
-# ── Gate 290: the blocked-exhaustion gate ───────────────────────────────────
+# The blocked-exhaustion gate (its header is the echo below — a second
+# `── Gate N:` shape here would read as a number collision to Gate 195).
 # The 2026-09-17 incident: after ONE guard deny, a session enumerated routes,
 # stopped each at its first objection, handed the human a menu of manual steps
 # twice, and re-armed eight silent check-ins on a blocker it had declared

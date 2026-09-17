@@ -82,6 +82,13 @@ _SKIP = {
     "route-decision-review.sh": (
         "matches AskUserQuestion, a Claude Code tool with no Cursor equivalent."
     ),
+    "workaround-exhaustion.sh": (
+        "Two lanes, neither reachable here: the PreToolUse lane matches "
+        "AskUserQuestion (no Cursor equivalent, as route-decision-review.sh above); "
+        "the Stop lane reads last_assistant_message off Claude Code's Stop payload, "
+        "and no verified Cursor event carries that field — without it the hook is "
+        "silent by construction, so a projection would read as coverage it cannot give."
+    ),
     "agent-dispatch-evaluator.sh": (
         "SubagentStart. Cursor does expose subagentStart, but its payload schema is "
         "not published on the page verified, and this hook is an audit-only shadow "
@@ -266,9 +273,7 @@ def main(argv: list) -> int:
         accounted = {s for s, *_ in wired} | {s for s, *_ in skipped}
         missing = canonical - accounted
         if missing:
-            print(
-                f"cursor-hooks: NOT accounted for: {sorted(missing)}", file=sys.stderr
-            )
+            print(f"cursor-hooks: NOT accounted for: {sorted(missing)}", file=sys.stderr)
             return 1
         if not any(ev == "beforeShellExecution" for _, _, ev, _ in wired):
             print(

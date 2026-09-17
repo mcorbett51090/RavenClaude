@@ -2347,7 +2347,7 @@ Probe: `unprobed: needs a live two-hook host session; scheduled for the T2 sampl
 
 **Sources:** [measured in the FORGE product-inventory run](https://github.com/mcorbett51090/RavenClaude/pull/997)
 
-_Last verified: 2026-09-16_
+_Last verified: 2026-09-17_
 
 
 ---
@@ -2407,7 +2407,7 @@ Probe: `unprobed: requires a real consumer install cycle, which no CI job perfor
 
 **Sources:** [measured in the FORGE product-inventory run](https://github.com/mcorbett51090/RavenClaude/pull/997)
 
-_Last verified: 2026-09-16_
+_Last verified: 2026-09-17_
 
 
 ---
@@ -2433,7 +2433,7 @@ Probe: `scripts/audit-gates.sh`
 
 **Sources:** [measured in the FORGE product-inventory run](https://github.com/mcorbett51090/RavenClaude/pull/997)
 
-_Last verified: 2026-09-16_
+_Last verified: 2026-09-17_
 
 
 ---
@@ -3597,6 +3597,44 @@ in a later release.
 **Sources:** [repo-review block-mode build, 2026-09-16 -- block_planner.py's own --self-test caught the defect on first run](../plugins/ravenclaude-core/skills/repo-review/SKILL.md)
 
 _Last verified: 2026-09-16_
+
+
+---
+
+### The blocked-exhaustion gate must not anchor on its own deny · _RavenClaude-built_
+
+> The gate measures the ledger from the most recent guard deny; if its own block-mode deny counted as that anchor, every block would reset the window to 0 of 3 and it could never be satisfied.
+
+## What a reader would have assumed instead
+
+That "the most recent guard deny this session" is simply the last `verdict: deny` line in
+`hook-events.jsonl`. It is the obvious query, and it is wrong for this one hook, because this
+hook is itself a guard that writes deny lines to that file. A gate that anchors on the newest
+deny and also emits denies measures its own output.
+
+## The discriminator
+
+control: Gate 290 B4 drives a block-mode hand-back question against a session with one guard
+deny on record and zero ledger rows -> `permissionDecision: deny`; B5 finds that deny in the
+session's `hook-events.jsonl` with `hook: workaround-exhaustion.sh`; B6 then records one
+`mcp-api` row and re-runs the question -> the nudge reads `1 of 3`. If the gate's own deny were
+the anchor, that row (written after the original deny but before the gate's) would fall behind
+the window and the count would read `0 of 3`. The `jq` select in `_last_deny` is
+`select(.verdict=="deny" and (.hook // "") != "workaround-exhaustion.sh")`; the name test is the
+whole mechanism.
+
+## Why it matters
+
+Falsifier: a `hook-events.jsonl` line from this gate that `_last_deny` returns. None can, by the
+select above. Without the filter the failure is not loud -- the gate keeps firing, every
+re-record looks ignored, and the only exit is `blocked-ok`, which is exactly the escape the
+gate exists to make rare. That shape (a guard whose own output feeds its trigger) is the same
+class as a runaway brake that counts its own denials as tool calls; the fix is one predicate,
+and the test that pins it is the one that records a row *between* the two denies.
+
+**Sources:** [ravenclaude-core 0.324.0 -- the blocked-exhaustion gate (CHANGELOG + constitution milestone), 2026-09-17](../plugins/ravenclaude-core/CHANGELOG.md) · [the route catalog the gate points at](../plugins/ravenclaude-core/knowledge/workaround-routes.md)
+
+_Last verified: 2026-09-17_
 
 
 ---
