@@ -1,0 +1,44 @@
+name: TEMP - Restore executable bit on specified paths (one-off, self-deleting)
+
+# Generic, one-off maintenance workflow -- no target paths are hardcoded here.
+# Dispatch manually with a space-separated `paths` input (relative to repo
+# root); each listed file is marked executable and, if its mode actually
+# changed, committed and pushed back to the dispatched ref. Not part of any
+# PR-gating surface. Delete this file once it has served its purpose.
+
+on:
+  workflow_dispatch:
+    inputs:
+      paths:
+        description: "Space-separated file paths (relative to repo root) to mark executable"
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  restore-exec-bit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: true
+
+      - name: Mark the requested paths executable, commit only if the mode actually changed
+        env:
+          TARGET_PATHS: ${{ inputs.paths }}
+        run: |
+          set -euo pipefail
+          for f in $TARGET_PATHS; do
+            test -f "$f"
+            chmod +x -- "$f"
+          done
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if git diff --quiet; then
+            echo "No mode change needed."
+          else
+            git add -A
+            git commit -m "chore: restore executable bit via one-off maintenance workflow"
+            git push origin "HEAD:${{ github.ref_name }}"
+          fi
