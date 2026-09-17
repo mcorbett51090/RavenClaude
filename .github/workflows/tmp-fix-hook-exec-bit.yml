@@ -1,44 +1,106 @@
-# TEMPORARY one-off maintenance workflow — generic by design: no file paths live
-# in this file, they arrive as a dispatch-time input. It restores the executable
-# bit on files whose mode was dropped by a GitHub Contents-API write (that API
-# always creates blobs at 100644). Dispatched once against a PR branch, then
-# deleted in the following commit.
+# TEMPORARY one-off maintenance workflow — generic by design: no file paths or
+# hook names live in this file, they arrive as dispatch-time inputs. Two optional
+# jobs-in-one, each skipped when its input is empty:
+#   1. restore the executable bit on files whose mode was dropped by a GitHub
+#      Contents-API write (that API always creates blobs at 100644);
+#   2. list one registered hook in the dashboard generator's
+#      _PIPELINE_EXCLUDED_HOOKS map with a reason (the Gate 133 contract: every
+#      registered hook is either a Pipeline stage or excluded WITH a reason),
+#      verified on the runner with that gate's own checker. Idempotent: an
+#      already-listed hook is a no-op.
+# Dispatched against a PR branch, then deleted in the following commit. This file
+# keeps its original path because GitHub registers a workflow only once it has
+# existed on the default branch; a new file pushed to a feature branch alone is
+# not dispatchable (404), while a registered path runs the branch's copy.
 name: tmp-fix-hook-exec-bit
 
 on:
   workflow_dispatch:
     inputs:
       paths:
-        description: "Space-separated file paths (relative to repo root) to mark executable"
-        required: true
+        description: "Space-separated file paths (relative to repo root) to mark executable; empty = skip"
+        required: false
+        default: ""
+        type: string
+      exclude_hook:
+        description: "Hook basename to list in _PIPELINE_EXCLUDED_HOOKS (e.g. some-hook.sh); empty = skip"
+        required: false
+        default: ""
+        type: string
+      exclude_reason:
+        description: "One-line reason that hook is deliberately not a Pipeline stage card"
+        required: false
+        default: ""
         type: string
 
 permissions:
   contents: write
 
 jobs:
-  restore-exec-bit:
+  maintain:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: true
-      - name: Mark the requested paths executable, commit only if the mode actually changed
+      - name: Mark the requested paths executable (skipped when the input is empty)
         env:
           TARGET_PATHS: ${{ inputs.paths }}
-          TARGET_REF: ${{ github.ref_name }}
         run: |
           set -euo pipefail
           for f in $TARGET_PATHS; do
             test -f "$f"
             chmod +x -- "$f"
           done
+      - name: List the hook in _PIPELINE_EXCLUDED_HOOKS and verify with the gate's checker (skipped when empty)
+        env:
+          HOOK_NAME: ${{ inputs.exclude_hook }}
+          HOOK_REASON: ${{ inputs.exclude_reason }}
+        run: |
+          set -euo pipefail
+          [ -n "$HOOK_NAME" ] || { echo "no exclusion requested"; exit 0; }
+          python3 - <<'PY'
+          import json, os, pathlib, re, textwrap
+          p = pathlib.Path("scripts/generate-dashboards.py")
+          src = p.read_text(encoding="utf-8")
+          name = os.environ["HOOK_NAME"].strip()
+          reason = " ".join(os.environ["HOOK_REASON"].split())
+          if not re.fullmatch(r"[A-Za-z0-9._-]+\.sh", name):
+              raise SystemExit(f"refusing: hook name {name!r} is not a plain basename")
+          if not reason:
+              raise SystemExit("refusing: an exclusion needs a reason")
+          if f'"{name}":' in src:
+              print(f"already present: {name}")
+              raise SystemExit(0)
+          anchor = "_PIPELINE_EXCLUDED_HOOKS = {\n"
+          i = src.index(anchor) + len(anchor)
+          # Same implicit-concatenation shape as the existing entries, wrapped so
+          # the file stays within the repo's ruff line length.
+          pieces = textwrap.wrap(reason, width=84, break_long_words=False, break_on_hyphens=False)
+          lines = [f'    {json.dumps(name)}: {json.dumps(pieces[0] + (" " if len(pieces) > 1 else ""))}']
+          for piece in pieces[1:-1]:
+              lines.append(f'    {json.dumps(piece + " ")}')
+          if len(pieces) > 1:
+              lines.append(f'    {json.dumps(pieces[-1])}')
+          lines[-1] += ","
+          entry = "\n".join(lines) + "\n"
+          p.write_text(src[:i] + entry + src[i:], encoding="utf-8")
+          print("inserted:\n" + entry)
+          PY
+          python3 -m py_compile scripts/generate-dashboards.py
+          python3 scripts/check-pipeline-lanes.py
+      - name: Commit only if something actually changed
+        env:
+          TARGET_REF: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           if git diff --quiet; then
-            echo "No mode change needed."
+            echo "No change needed."
           else
+            git diff --stat
             git add -A
-            git commit -m "chore: restore executable bit via one-off maintenance workflow"
+            git commit -m "chore: one-off maintenance — restore executable bit and/or list a hook in _PIPELINE_EXCLUDED_HOOKS"
             git push origin "HEAD:${TARGET_REF}"
           fi
