@@ -1192,6 +1192,13 @@ _PIPELINE_STAGE_HOOKS = {
 # reason) — so a newly-registered hook lands in NEITHER list and fails the build,
 # which is exactly what would have caught the missing `delegation-nudge`.
 _PIPELINE_EXCLUDED_HOOKS = {
+    "workaround-exhaustion.sh": "blocked-exhaustion gate (PreToolUse AskUserQuestion + Stop) governed by the "
+    "`workaround_exhaustion:` comfort-posture knob -- absent => off, `warn` advisory, "
+    "`block` denies a hand-back QUESTION or blocks a hand-back TURN END until the "
+    "workaround ledger under .ravenclaude/runs/<session>/ meets the floor. It gates the "
+    "agent's decision to give up, not a tool's blast radius, and its knob is a posture "
+    "scalar surfaced with the other posture settings -- same class as "
+    "enforce-git-protocol.sh, so it is deliberately NOT a Pipeline stage card",
     "log-probe.sh": "the RECORDER half of the premise gate (PostToolUse); it only writes a "
     "derived negative-result ledger and never denies. Its own card would be noise — but it is "
     "NOT optional: if it is missing, `guard-premise.sh` FAILS CLOSED rather than reporting "

@@ -191,7 +191,10 @@ const RC_BASELINE = {
   //        19 -> 22: premise-gate.py + classify_claim.py + check-design-schema.py
   //                  (v0.263.0, PR 3b packaging move)
   scenarios: 4,
-  hooks: 56, // 55 -> 56: alias-deprecation-advisory.sh WIRED on SessionStart(startup|resume|clear|fork)
+  hooks: 58, // 56 -> 58: workaround-exhaustion.sh WIRED twice — PreToolUse(AskUserQuestion) `ask`
+  //   lane + Stop `stop` lane (the blocked-exhaustion gate, core 0.324.0; absent posture key => off).
+  //   COUNTED, not inferred: hooks.json on this tree holds 58 registrations.
+  //        55 -> 56: alias-deprecation-advisory.sh WIRED on SessionStart(startup|resume|clear|fork)
   //   (Phase D alias soak, core 0.323.14 — additionalContext advisory; never writes posture).
   //   COUNTED, not inferred: hooks.json on this tree holds 56 registrations.
   //        51 -> 55: plugin-lifecycle-telemetry.sh x3 (PostToolUse Agent|Task + Skill +

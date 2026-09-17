@@ -2,6 +2,18 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.324.0 — 2026-09-17
+
+### Added
+- **Blocked-exhaustion gate** — `hooks/workaround-exhaustion.sh`, a `PreToolUse(AskUserQuestion)` + `Stop` gate. After a RavenClaude guard denies a tool call, a hand-back to the human (a "which option / I'm blocked / do this manually" question, or a final message of that shape) is refused until the workaround ledger (`.ravenclaude/runs/<session>/workaround-ledger.jsonl`) shows `workaround_exhaustion_floor` (default 3) EXECUTED, distinct-channel attempts since that deny. Knob `workaround_exhaustion: off | warn | block` (no key ⇒ off; the balanced template seeds `warn`; flipping this repo's own posture to `block` is a one-line owner action in the dashboard — the tribunal's self-disable floor denied the agent's edit of the posture file on 2026-09-17 and named the dashboard as the route). Escape `rc workaround blocked-ok "<reason>"` is logged as a warn event, never silent. The Stop lane self-limits at `workaround_exhaustion_max_blocks` (default 4). The gate's own deny events never anchor it.
+- **`rc workaround tried|blocked-ok|status|list`** — the ledger CLI (the same file's non-hook lanes). A row counts only with `tried: yes`, a non-empty `result`, and a channel from the fixed enum (`local-edit` · `local-bash` · `mcp-api` · `ci-runner` · `other-session` · `human`); `--bypass-test` is required, so every counted route names the reviewable artifact it produced.
+- **`knowledge/workaround-routes.md`** — the route catalog behind the gate: the 2026-09-17 incident, the ledger schema, the route-vs-bypass discriminator, six per-blocked-action-class ladders (including the API-write + CI-runner executable-bit recovery route verified that day), two prose complements, and the honest limits.
+- **Gate 290** — `hooks/tests/test-gate290-workaround-exhaustion.sh` (27 assertions: silent-when-inert, fires/blocks on hand-back shapes, Stop counter + force-allow, warn-mode advisory shape, CLI refusals + floor arithmetic + blocked-ok, and a floor-neutered mutant that must be waved through). Registered in the `--check` dispatcher, the main sequence, the `Supported:` string, and the `hooks` suite.
+
+### Locks / honesty
+- No hook sees the model deciding to give up in chat; the gate covers the two surfaces where giving up becomes an action. Rows are agent-written — nothing yet cross-checks `tried: yes` against a real tool call (named follow-up, not a claim). The Stop lane needs the host's `last_assistant_message`; a host without it is silent by construction. No Thing / `gate_floor` / destructive-guard change; no default flipped on for a consumer who has not set the knob.
+- The three knobs are hand-set YAML: the dashboard's Save & apply rebuilds the posture from its own state and does not yet carry `workaround_exhaustion` (the advisory-knob table lives in `scripts/generate-dashboards.py`, a tribunal-substrate file, so that two-line addition is a maintainer follow-up — named in the template beside the keys). This PR does not flip this repo's own posture to `block`: the tribunal's self-disable floor denied the agent's edit of the posture file (Sága `thing-2026-09-17T11-12-26Z-24888`; the floor reconstructs the resulting document and denies on its existing `command_review:` block) and named the dashboard as the route — one line for the owner.
+
 ## 0.323.18 — 2026-09-16
 
 ### Changed

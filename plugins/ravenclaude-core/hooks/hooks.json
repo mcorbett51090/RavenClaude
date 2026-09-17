@@ -191,7 +191,7 @@
           {
             "type": "command",
             "command": "${CLAUDE_PLUGIN_ROOT}/hooks/worktree-guard.sh check",
-            "comment": "Worktree-hygiene guard (check). Two independent knobs in .ravenclaude/comfort-posture.yaml: `worktree_guard: off|warn|block` (default warn) for CONTENTION/ANCHOR, and `worktree_bound: off|warn|block` (default block) for FOREIGN-TREE \u2014 a Write/Edit/MultiEdit or mutating git -C / GIT_WORK_TREE whose target is a sibling worktree. FOREIGN-TREE is evaluated first and does not depend on worktree_guard. On worktree_guard=block DENIES (exit 2) a MUTATING op only on contention or anchor-work; never a read / git status / rcwt / sibling Read. Escape hatches: RC_WORKTREE_GUARD_ACK=1 (contention/anchor ONLY), RC_WORKTREE_BOUND_ACK=1 (FOREIGN-TREE). ⛔ NEITHER ACK releases the third knob, the SESSION LEASE (`worktree_lease`, default on): the lease clause is evaluated BEFORE contention, so where a lease is held its denial is what you get, and GUARD_ACK does not touch it. That is deliberate — the lease is a mutual-exclusion control and an env var must not defeat it. Its own escapes: open your own worktree, wait for the lease to go stale (the next session then takes over and auto-commits the holder's work), or set `worktree_lease: off`. Both-off short-circuits before any git shell-out. Fail-open on missing git/jq; emits a hook-event audit line on a verdict."
+            "comment": "Worktree-hygiene guard (check). Two independent knobs in .ravenclaude/comfort-posture.yaml: `worktree_guard: off|warn|block` (default warn) for CONTENTION/ANCHOR, and `worktree_bound: off|warn|block` (default block) for FOREIGN-TREE — a Write/Edit/MultiEdit or mutating git -C / GIT_WORK_TREE whose target is a sibling worktree. FOREIGN-TREE is evaluated first and does not depend on worktree_guard. On worktree_guard=block DENIES (exit 2) a MUTATING op only on contention or anchor-work; never a read / git status / rcwt / sibling Read. Escape hatches: RC_WORKTREE_GUARD_ACK=1 (contention/anchor ONLY), RC_WORKTREE_BOUND_ACK=1 (FOREIGN-TREE). ⛔ NEITHER ACK releases the third knob, the SESSION LEASE (`worktree_lease`, default on): the lease clause is evaluated BEFORE contention, so where a lease is held its denial is what you get, and GUARD_ACK does not touch it. That is deliberate — the lease is a mutual-exclusion control and an env var must not defeat it. Its own escapes: open your own worktree, wait for the lease to go stale (the next session then takes over and auto-commits the holder's work), or set `worktree_lease: off`. Both-off short-circuits before any git shell-out. Fail-open on missing git/jq; emits a hook-event audit line on a verdict."
           }
         ]
       },
@@ -213,6 +213,12 @@
             "command": "${CLAUDE_PLUGIN_ROOT}/hooks/route-decision-review.sh",
             "timeout": 90,
             "comment": "Decision-review enforcement (the Thing, decision mode). No-ops (fast grep) unless `decision_review: advisory|binding` is set in .ravenclaude/comfort-posture.yaml (default off). When opted in AND the AskUserQuestion is a single, binary, non-multiselect yes/no-shaped question, routes it through thing-decide.py; on a BINDING yes/no verdict it DENIES the prompt with the verdict + reasoning so the agent proceeds without interrupting the user. Defer / advisory / high-blast / low-confidence / any error -> allow (the human answers). Every routed decision is Saga-logged under .ravenclaude/runs/thing/decisions/."
+          },
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/workaround-exhaustion.sh ask",
+            "timeout": 10,
+            "comment": "Blocked-exhaustion gate, ask lane. No-op unless `workaround_exhaustion: warn|block` is set in .ravenclaude/comfort-posture.yaml (absent -> off). After a RavenClaude guard denied a tool call this session (read off hook-events.jsonl; the gate's own events never anchor it), an AskUserQuestion shaped like a hand-back (which option / I'm blocked / do it manually) is DENIED (block) or annotated (warn) until the workaround ledger under .ravenclaude/runs/<session>/workaround-ledger.jsonl shows `workaround_exhaustion_floor` (default 3) EXECUTED, distinct-channel attempts since that deny, or `rc workaround blocked-ok <reason>` has been declared (logged as a warn event, never silent). Routes: knowledge/workaround-routes.md. Derived values only; fail-open; exit 0 on every error path."
           }
         ]
       },
@@ -261,13 +267,19 @@
           {
             "type": "command",
             "command": "${CLAUDE_PLUGIN_ROOT}/hooks/thing-denial-kb-sync.sh",
-            "comment": "Thing-denial knowledge base (Muninn). On session end, materialise any NEW command/decision-tribunal denials/defers into the per-repo denial KB (thing-denial-kb.py sync). Hot-path-safe: reads ONLY the S\u00e1ga audit records the Thing already wrote under .ravenclaude/runs/thing/ (decisions/*.json + command-review *.json) \u2014 never touches the tribunal's live PreToolUse emit path. Enriches each distinct denial SHAPE with a known resolution from knowledge/thing-denial-resolutions.json. No-op unless .ravenclaude/comfort-posture.yaml exists; never writes stdout; always exits 0."
+            "comment": "Thing-denial knowledge base (Muninn). On session end, materialise any NEW command/decision-tribunal denials/defers into the per-repo denial KB (thing-denial-kb.py sync). Hot-path-safe: reads ONLY the Sága audit records the Thing already wrote under .ravenclaude/runs/thing/ (decisions/*.json + command-review *.json) — never touches the tribunal's live PreToolUse emit path. Enriches each distinct denial SHAPE with a known resolution from knowledge/thing-denial-resolutions.json. No-op unless .ravenclaude/comfort-posture.yaml exists; never writes stdout; always exits 0."
           },
           {
             "type": "command",
             "command": "${CLAUDE_PLUGIN_ROOT}/hooks/handoff-nudge.sh",
             "timeout": 10,
             "comment": "Session-context handoff nudge. Advisory Stop additionalContext when context_handoff.mode is nag|block and live usage (updates.jsonl totalTokens) is at/over the soft threshold. Fail-open; never writes the brief; not a compact hook; not UserPromptSubmit. Default mode off."
+          },
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/workaround-exhaustion.sh stop",
+            "timeout": 10,
+            "comment": "Blocked-exhaustion gate, stop lane. No-op unless `workaround_exhaustion: warn|block` is set (absent -> off). After a RavenClaude guard denied a tool call this session, a final message shaped like a hand-back ('I'm blocked', 'you'll need to', 'run it manually', 'no way to') is BLOCKED (block) or annotated (warn) until the workaround ledger meets the floor or blocked-ok has been declared; force-allows after `workaround_exhaustion_max_blocks` (default 4) consecutive blocks so it can never deadlock a session. Reads last_assistant_message + stop_hook_active off the Stop payload (a host without last_assistant_message is silent by construction). Derived values only; exit 0 on every error path."
           }
         ]
       }
@@ -352,7 +364,7 @@
             "type": "command",
             "command": "${CLAUDE_PLUGIN_ROOT}/hooks/worktree-guard.sh register",
             "timeout": 10,
-            "comment": "Worktree-hygiene guard (register). Records this session's own registry file under ${RC_WORKTREE_GUARD_HOME:-$HOME/.ravenclaude/worktree-guard} and GC-sweeps its PATH_KEY bucket (never depends on Stop firing) when worktree_guard != off. Reads `worktree_guard: off|warn|block` (default warn) and `worktree_bound: off|warn|block` (default block). On worktree_guard warn/block emits a SessionStart nudge only on CONTENTION or ANCHOR-WORK. When worktree_bound != off and sibling worktrees exist, also emits a LANE pin (toplevel/branch/host/siblings[/task]) \u2014 the context-isolation floor. worktree_guard=off still writes nothing to the registry (T7). Both-off short-circuits before any git shell-out. Fail-open on missing git/jq; SessionStart cannot block. Emits a hook-event audit line on a verdict. timeout: 10 is defense-in-depth so an open-stdin stall cannot hold SessionStart unbounded (the host still treats SessionStart as non-blocking, but the subprocess is capped)."
+            "comment": "Worktree-hygiene guard (register). Records this session's own registry file under ${RC_WORKTREE_GUARD_HOME:-$HOME/.ravenclaude/worktree-guard} and GC-sweeps its PATH_KEY bucket (never depends on Stop firing) when worktree_guard != off. Reads `worktree_guard: off|warn|block` (default warn) and `worktree_bound: off|warn|block` (default block). On worktree_guard warn/block emits a SessionStart nudge only on CONTENTION or ANCHOR-WORK. When worktree_bound != off and sibling worktrees exist, also emits a LANE pin (toplevel/branch/host/siblings[/task]) — the context-isolation floor. worktree_guard=off still writes nothing to the registry (T7). Both-off short-circuits before any git shell-out. Fail-open on missing git/jq; SessionStart cannot block. Emits a hook-event audit line on a verdict. timeout: 10 is defense-in-depth so an open-stdin stall cannot hold SessionStart unbounded (the host still treats SessionStart as non-blocking, but the subprocess is capped)."
           },
           {
             "type": "command",

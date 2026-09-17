@@ -132,6 +132,8 @@ _SKIP = {
     # Stop -- out of this generator's fixed subset.
     "thing-denial-kb-sync.sh": _LANE_SCOPE_REASON,
     "handoff-nudge.sh": _LANE_SCOPE_REASON,
+    # PreToolUse(AskUserQuestion) + Stop -- out of this generator's fixed subset.
+    "workaround-exhaustion.sh": _LANE_SCOPE_REASON,
     # Events with no Codex lane wired at all yet.
     "ask-on-ambiguity.sh": _EVENT_UNWIRED_REASON,
     "stream-prompt-attribute.sh": _EVENT_UNWIRED_REASON,
@@ -154,7 +156,10 @@ _LEGACY_SESSIONSTART_HOOKS = ("capability-orientation.sh", "thing-denial-kb-reca
 # UNCONDITIONAL -- these never vary with --legacy-sessionstart; only
 # SessionStart has a legacy/canonical split (see the module docstring).
 _FIXED_PRETOOLUSE = (
-    ("Bash", (("guard-destructive.sh", ""), ("thing-orchestrator.sh", ""), ("runaway-brake.sh", ""))),
+    (
+        "Bash",
+        (("guard-destructive.sh", ""), ("thing-orchestrator.sh", ""), ("runaway-brake.sh", "")),
+    ),
     ("Edit|Write|MultiEdit", (("enforce-layout.sh", ""),)),
     ("WebFetch", (("guard-web-access.sh", ""),)),
 )
@@ -271,12 +276,16 @@ def _event_of(manifest: dict, script: str) -> str:
     return "unknown"
 
 
-def build(shim: str, hooks_dir: str, manifest: dict | None = None, legacy_sessionstart: bool = False) -> tuple:
+def build(
+    shim: str, hooks_dir: str, manifest: dict | None = None, legacy_sessionstart: bool = False
+) -> tuple:
     """Return (config, wired, skipped). Pure -- no I/O beyond the manifest read
     already done by the caller, so `--check` and the install path cannot
     diverge. `wired`/`skipped` entries are (script, event, ...) tuples,
     matching the sibling generators' shape."""
-    manifest = manifest if manifest is not None else json.loads(_MANIFEST.read_text(encoding="utf-8"))
+    manifest = (
+        manifest if manifest is not None else json.loads(_MANIFEST.read_text(encoding="utf-8"))
+    )
 
     if legacy_sessionstart:
         ss_groups, ss_wired = _legacy_sessionstart(shim, hooks_dir)
@@ -336,9 +345,13 @@ def build(shim: str, hooks_dir: str, manifest: dict | None = None, legacy_sessio
 
 
 def main(argv: list) -> int:
-    ap = argparse.ArgumentParser(description="Project the SessionStart lane onto Codex CLI's native hooks.json.")
+    ap = argparse.ArgumentParser(
+        description="Project the SessionStart lane onto Codex CLI's native hooks.json."
+    )
     ap.add_argument("--shim", default="<SHIM>", help="absolute path to hooks/codex-hook-env.sh")
-    ap.add_argument("--hooks-dir", default="<HOOKS>", help="absolute path to the plugin's hooks/ directory")
+    ap.add_argument(
+        "--hooks-dir", default="<HOOKS>", help="absolute path to the plugin's hooks/ directory"
+    )
     ap.add_argument("--out")
     ap.add_argument(
         "--legacy-sessionstart",
@@ -355,7 +368,9 @@ def main(argv: list) -> int:
     legacy = args.legacy_sessionstart or bool(os.environ.get("RC_CODEX_SESSIONSTART_LEGACY"))
 
     manifest = json.loads(_MANIFEST.read_text(encoding="utf-8"))
-    cfg, wired, skipped = build(args.shim, args.hooks_dir, manifest=manifest, legacy_sessionstart=legacy)
+    cfg, wired, skipped = build(
+        args.shim, args.hooks_dir, manifest=manifest, legacy_sessionstart=legacy
+    )
 
     if args.check:
         canonical = _all_canonical_scripts(manifest)
