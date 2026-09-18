@@ -1022,7 +1022,13 @@ def resolve_tier_config(root: Path, posture: dict | None) -> tuple[dict, str | N
         if not isinstance(block, dict):
             return
         if "hardening_edit" in block:
-            hardening_edit = bool(block.get("hardening_edit"))
+            v = block.get("hardening_edit")
+            # Mirror thing_enabled_for's master-gate string parsing: a quoted-scalar
+            # YAML emitter (or a hand edit `hardening_edit: "false"`) must not leave
+            # the feature ON — bool("false") is True, which would silently defeat
+            # the only opt-out now that the default flipped to ON.
+            hardening_edit = not (v is False or (isinstance(v, str) and v.strip().lower() in
+                                                  {"off", "false", "no", "0"}))
         mcp_block = block.get("mcp")
         if isinstance(mcp_block, dict) and isinstance(mcp_block.get("allowed_servers"), list):
             mcp_allowed = [s for s in mcp_block["allowed_servers"] if isinstance(s, str)]

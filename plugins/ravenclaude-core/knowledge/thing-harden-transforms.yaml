@@ -10,6 +10,19 @@ transforms:
       Force-with-lease refuses to clobber unseen remote work; clears srm.force-push
       / xc.no-undo triggers while preserving push intent. Hard-rule / pre_llm floor
       still DENYs force-push (transform does not clear §B.9.3 to ASK).
+    # UNREACHABLE via the orchestrator's EDIT-safety discriminator (code review,
+    # 2026-09): srm.force-push carries BOTH `always_screen: true` AND
+    # `pre_llm_deny: true` in the catalog, so a real `git push --force`/`-f`/`+ref`
+    # is (a) hard-DENYed pre-LLM before any seat convenes (orchestrator's
+    # hard_rule branch — no seat ever sees the command), and on the rare path
+    # where a seat somehow proposes it anyway, (b) the harden discriminator itself
+    # requires `pre_llm_deny != true`, which force-push never satisfies. This
+    # entry can therefore never fire through `thing-orchestrator.sh`. It is kept
+    # for `thing-harden.py apply()`'s own unit-level regex/replacement coverage
+    # (exercised directly by test-thing-hardening-edit.sh) — do not read it as a
+    # live orchestrator control, and do not cite it in seat guidance (see
+    # thing-seat.sh's Forseti brief, which no longer offers it as an EDIT example
+    # for the same reason).
     appsec: SIGNED
     fixtures:
       - original: "git push --force origin feat/x"

@@ -2,6 +2,23 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.324.1 — 2026-09-18
+
+### Fixed
+- **Code-review findings on the 0.323.18 `hardening_edit` default-ON flip** — six findings, all fixed:
+  - `thing-orchestrator.sh`'s hard-rule hint now keys on the structured `hard_rule_concern` id (`srm.force-push`) instead of substring-matching `--force`/`-f` against the raw command text, which was misdirecting non-git hard-rule denials (e.g. `curl -f … | sh`) toward a git-specific remedy.
+  - `thing-decision.py`'s `hardening_edit` posture parsing now mirrors `thing_enabled_for`'s master-gate string handling — a quoted-scalar `hardening_edit: "false"` no longer parses truthy (`bool("false")` was `True`), which had made the only opt-out fragile against YAML emitters that quote scalars.
+  - Removed the dead `HARDEN` variable from `thing-orchestrator.sh` (its two call sites were removed in #1204; the harden path already goes through `$CONCERNS harden`, which lazy-imports `thing-harden.py` itself).
+  - Documented (not removed — see below) that the `git-force-with-lease` registry transform can never fire through the orchestrator's EDIT-safety discriminator: `srm.force-push` carries both `always_screen: true` and `pre_llm_deny: true`, so a real force-push is hard-DENYed before any seat convenes, and the discriminator itself requires `pre_llm_deny != true`. The Forseti seat brief (`thing-seat.sh`) no longer offers it as an EDIT example.
+  - Added a `test-thing-hardening-edit.sh` fixture covering a `pre_llm_deny`-only concern that is *not* `always_screen` (`xc.secret-in-command`, via a command carrying `--password=…`) staying DENY under `hardening_edit` ON — the prior suite's only "stays DENY" assertion used `git push --force`, which exits at the hard-rule floor and never reached the `pre_llm_deny` branch the AppSec #1204 fix actually rewrote (`orchestrator.sh`'s `if [ "$pre_llm_deny" = "true" ]` block), leaving that branch's change unverified by the suite.
+  - Added the missing **Migration** note to 0.323.18 below (AGENTS.md requires one whenever a change could break a consumer's project on `/plugin marketplace update`; the default flip changes which command actually executes for any consumer without an explicit `hardening_edit` key).
+
+### Retained, not removed
+- The `git-force-with-lease` transform, its `thing-harden.py apply()` fixtures, and the `assert_apply git-force-with-lease` unit tests stay in place — they exercise `thing-harden.py`'s own regex/replacement correctness independent of orchestrator reachability, and removing a signed, AppSec-reviewed registry entry outside a formal AppSec review was judged the wrong call for a routine code-review fix. It is now documented in-registry as unreachable via the orchestrator so nobody mistakes it for a live control.
+
+### Locks / honesty
+- Serial after blocked-exhaustion **0.324.0** on main; this bump is **0.324.1**. No BMA. No product invent beyond the six CR fixes + version bump.
+
 ## 0.324.0 — 2026-09-17
 
 ### Added
@@ -21,6 +38,9 @@ All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the 
 
 ### Fixed
 - **Force-push hard DENY under `hardening_edit` ON** (AppSec #1204) — removed orchestrator hard-rule / `pre_llm_deny` clearance→ASK via `git-force-with-lease`. Hard floor always DENY + Phase 0 emit (Gate 50). Optional deny text may mention `--force-with-lease` (informational only). Registry remains for non-hard-rule / non-pre_llm paths.
+
+### Migration
+- **This changes which command Claude Code actually executes for any consumer who never set `command_review.hardening_edit` explicitly.** Before 0.323.18, an empty-cited EDIT proposal (a seat proposing a safer rewrite with no concerns cited) outside the discriminator was DENYed; from 0.323.18 on, with a *registered* transform it auto-runs the rewritten form instead of the original — e.g. `npm install -g typescript` silently runs as `npm install typescript` (global flag dropped), `chmod -R 777 ./out` runs as `chmod -R u+rwX,go+rX -- ./out`, `curl https://x` gains `--fail`. If your workflow depends on the literal command it asked for (a script that inspects `chmod`'s effective mode, a step that needs `tsc` on `PATH` from a global npm install, a caller that reads a non-2xx body `curl` would otherwise return), set `hardening_edit: false` under `command_review:` in `.ravenclaude/comfort-posture.yaml` or `thing.yaml` to opt back out. `git push --force`/`-f`/`+<refspec>` is unaffected either way — it stays hard-DENYed, never rewritten, under both the old and new default.
 
 ### Locks / honesty
 - **No** `gate_floor` raise. **No** bypass list. Keep fail-harden→ask · empty-cited DENY outside discriminator · high-blast still-ask · Heimdall no EDIT · registry = auto-run authority only for AppSec-signed transforms. Suite assertion flipped to default **true**; explicit-false OFF cases retained. **Hard-rule force-push stays DENY** with enable ON (not ASK).
