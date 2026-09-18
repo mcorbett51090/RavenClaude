@@ -2321,7 +2321,7 @@ Probe: `unprobed: the delivery fact is a host-platform property; it is modelled 
 
 **Sources:** [measured in the FORGE product-inventory run](https://github.com/mcorbett51090/RavenClaude/pull/997)
 
-_Last verified: 2026-09-17_
+_Last verified: 2026-09-18_
 
 
 ---
@@ -2407,7 +2407,7 @@ Probe: `unprobed: requires a real consumer install cycle, which no CI job perfor
 
 **Sources:** [measured in the FORGE product-inventory run](https://github.com/mcorbett51090/RavenClaude/pull/997)
 
-_Last verified: 2026-09-17_
+_Last verified: 2026-09-18_
 
 
 ---
@@ -3549,7 +3549,7 @@ Probe: `plugins/ravenclaude-core/hooks/tests/test-thing-hardening-edit.sh`.
 
 **Sources:** [PE DIGEST ship Thing hardening EDIT (0.323.5), 2026-09-15](https://github.com/mcorbett51090/RavenClaude/blob/feat/thing-hardening-edit/plugins/ravenclaude-core/knowledge/thing-harden-transforms.yaml) · [knowledge/thing-harden-transforms.yaml](https://github.com/mcorbett51090/RavenClaude/blob/feat/thing-hardening-edit/plugins/ravenclaude-core/knowledge/thing-harden-transforms.yaml)
 
-_Last verified: 2026-09-16_
+_Last verified: 2026-09-18_
 
 
 ---

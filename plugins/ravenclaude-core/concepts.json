@@ -2792,7 +2792,7 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-09-17",
+      "last_verified": "2026-09-18",
       "refresh_when": null,
       "sources": [
         {
@@ -2857,7 +2857,7 @@
         "plugins/ravenclaude-core/hooks/triage-outcome.sh",
         "plugins/ravenclaude-core/hooks/worktree-guard.sh"
       ],
-      "covers_digest": "sha256:80b3200860a2381b2f453d2e35f4b254430ed5b87839b80a847b36fb8ad06f42",
+      "covers_digest": "sha256:a48e69df95a33759a1a26008a39fb56c6e4403304d6ed3184befe43b13e73917",
       "nuance": "A hook writing to stderr at `exit 0` reaches the model on no event; only `hookSpecificOutput.additionalContext` and `updatedToolOutput` are delivered, so `_advise.sh` advised the terminal for its entire service life.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -2980,7 +2980,7 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-09-17",
+      "last_verified": "2026-09-18",
       "refresh_when": null,
       "sources": [
         {
@@ -3000,7 +3000,7 @@
         "scripts/sync-plugin-versions.py",
         "scripts/generate-copilot-plugin.py"
       ],
-      "covers_digest": "sha256:019b5736833096d7310801d199815d378ffe7fab6997315ff69bdbb205a0a01e",
+      "covers_digest": "sha256:a1f099526abad392e638dcb9e5132092f32eed7c997516707890afd1322e042d",
       "nuance": "The cache key is the `version` string, never a content hash, so `sync-plugin-versions.py` can report clean while every installed session keeps running the old `hooks/` code.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -4586,7 +4586,7 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-09-16",
+      "last_verified": "2026-09-18",
       "refresh_when": null,
       "sources": [
         {
@@ -4609,7 +4609,7 @@
         "plugins/ravenclaude-core/scripts/thing-harden.py",
         "plugins/ravenclaude-core/hooks/thing-orchestrator.sh"
       ],
-      "covers_digest": "sha256:7afbeecb8d218730da3664582065c4e4f0ee5aeff92de64c1dcaf5d1145d9027",
+      "covers_digest": "sha256:9bf8c4e11d36b0e8165ff291b1e83be7ca671fe918a08c4f0d7b39acc8c33100",
       "nuance": "AppSec enable GO flipped seed/default hardening_edit ON (2026-09-16); with explicit false, empty-cited EDIT outside the orchestrator discriminator is DENY rather than ask, while a cited EDIT still allows byte-identical — OFF remains shape-sensitive, not a uniform no-op.",
       "nuance_evidence": {
         "measured": "2026-09-16",

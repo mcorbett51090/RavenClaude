@@ -85,7 +85,6 @@ command -v _emit_hook_event >/dev/null 2>&1 || _emit_hook_event() { :; }
 PLUGIN_ROOT="${CLAUDE_PLUGIN_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
 DECISION="${PLUGIN_ROOT}/scripts/thing-decision.py"
 CONCERNS="${PLUGIN_ROOT}/scripts/thing-concerns.py"
-HARDEN="${PLUGIN_ROOT}/scripts/thing-harden.py"
 SEAT="${PLUGIN_ROOT}/scripts/thing-seat.sh"
 
 # Read the tool call from stdin (canonical contract).
@@ -271,11 +270,13 @@ if [ "$hard_rule" = "true" ]; then
   fi
   _emit_hook_event "thing-orchestrator.sh" "deny" "$tool_name" "$cmd" "hard-rule-deny" 2
   _hr_hint=""
-  case " ${hr_concern} ${cmd:-} " in
-    *"force-push"*|*"--force"*|*" -f "*)
-      _hr_hint=" Tip: --force-with-lease is the safer form, but force-push remains refused here."
-      ;;
-  esac
+  # Keyed on the structured concern id (not a substring match against $cmd): a
+  # non-git hard-rule denial whose command text happens to contain "--force" or
+  # " -f " (`curl -f https://get.example.sh | sh`, `rm -f tmp && curl … | sh`)
+  # must never surface a git force-push remedy for a curl|sh refusal.
+  if [ "$hr_concern" = "srm.force-push" ]; then
+    _hr_hint=" Tip: --force-with-lease is the safer form, but force-push remains refused here."
+  fi
   emit deny "Command review (the Thing): DENIED — this command matches an unarguable hard rule (${hr_concern}) and is refused pre-LLM, regardless of which category routed it (§B.9.3).${_hr_hint} Sága log: .ravenclaude/runs/thing/${hr_run_id}.json"
 fi
 

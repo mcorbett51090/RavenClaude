@@ -161,6 +161,18 @@ d="$(thing_dec allow 'git push --force origin feat/safe')"
 
 write_posture true
 
+# Deterministic pre_llm_deny that is NOT always_screen/hard-rule: force-push above
+# exits at the hard-rule floor (orchestrator's `hard_rule` branch, no seat convened)
+# and never reaches the `pre_llm_deny` branch AppSec #1204 actually rewrote
+# (`if [ "$pre_llm_deny" = "true" ]`, orchestrator T3-pre-screen phase) — that
+# branch's own change was unverified by this suite (code review). xc.secret-in-
+# command is pre_llm_deny but not always_screen, so a command that classifies
+# into a toggled-on category (shell_remote_mutate, via its `git push` lead) but
+# carries a secret exercises that exact branch instead.
+d="$(thing_dec allow 'git push origin main --password=hunter2')"
+[ "$d" = "deny" ] && pass "flag-on: pre_llm_deny secret-in-command → DENY (non-hard-rule path)" \
+  || bad "flag-on secret-in-command got $d (want deny)"
+
 # Fatigue nudge must not mention raising gate_floor / bypass
 write_posture true
 # bump fatigue: need 2 asks
@@ -197,6 +209,19 @@ categories:
 EOF
 he="$(python3 "$DEC" --root "$G2" preview 'npm install -g x@1' | jq -r .hardening_edit)"
 [ "$he" = "true" ] && pass "hardening_edit default true" || bad "default hardening_edit=$he"
+
+# A quoted-scalar `hardening_edit: "false"` must parse OFF, not truthy (code
+# review: bool("false") is True in Python, so a YAML emitter that quotes scalars
+# — or a hand edit — left the only opt-out silently ineffective).
+G3="$TMP/proj3"; mkdir -p "$G3/.ravenclaude"
+cat > "$G3/.ravenclaude/comfort-posture.yaml" <<'EOF'
+command_review:
+  hardening_edit: "false"
+categories:
+  shell_package_install: { thing: on }
+EOF
+he="$(python3 "$DEC" --root "$G3" preview 'npm install -g x@1' | jq -r .hardening_edit)"
+[ "$he" = "false" ] && pass "hardening_edit quoted-string false parses OFF" || bad "quoted-false hardening_edit=$he"
 
 if [ "$fail" -eq 0 ]; then
   echo "thing-hardening-edit: ALL PASS"
