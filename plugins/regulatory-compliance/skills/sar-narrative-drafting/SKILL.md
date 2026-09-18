@@ -16,7 +16,7 @@ description: Draft SAR / STR narratives that survive regulator review — typolo
 
 ## Important confidentiality note
 
-**SAR / STR content is regulator-only.** It must not leave the secure environment, must not be shared with the subject customer, must not appear in any general-purpose committed file. The plugin's [`hooks/scrub-confidential-pre-write.sh`](../../hooks/scrub-confidential-pre-write.sh) is one defensive layer; treat the agent's working directory itself as restricted. **For SAR / STR drafting, flip the hook from `exit 0` to `exit 1` (blocking).**
+**SAR / STR content is regulator-only.** It must not leave the secure environment, must not be shared with the subject customer, must not appear in any general-purpose committed file. The plugin's [`hooks/scrub-confidential-pre-write.sh`](../../hooks/scrub-confidential-pre-write.sh) is one defensive layer; treat the agent's working directory itself as restricted. **For SAR / STR drafting, flip the hook's bottom `exit 0` to `exit 2` (the PreToolUse deny code that actually blocks the write; `exit 1` is a non-blocking error Claude Code silently swallows, so it would NOT block).**
 
 ## The shape of a strong narrative
 

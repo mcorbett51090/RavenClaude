@@ -73,7 +73,7 @@ Full list (plus anti-patterns) in [`CLAUDE.md`](CLAUDE.md) §3 / §4.
 
 [`hooks/scrub-confidential-pre-write.sh`](hooks/scrub-confidential-pre-write.sh) is a **PreToolUse** hook (runs *before* the write completes), scanning the pending content for confidentiality-violating patterns. Catches SSNs, EINs, IBANs, credit-card numbers, Bermuda TIN patterns, passport / driver's-licence shapes, and free-form wire instructions.
 
-**Advisory by default.** For sensitive engagements — and **always for SAR / STR drafting** — flip `exit 0` to `exit 1` at the bottom of the script so the hook blocks the write entirely. Real client PII should never land on disk in a shared repo.
+**Advisory by default.** For sensitive engagements — and **always for SAR / STR drafting** — flip the bottom `exit 0` to `exit 2` (the documented PreToolUse deny code; `exit 1` is a non-blocking error Claude Code silently swallows and would **not** block the write) so the hook blocks the write entirely. Real client PII should never land on disk in a shared repo.
 
 The hook is conservative; tune the Bermuda-specific patterns to match your actual TIN / passport / DL formats. See [`CLAUDE.md`](CLAUDE.md) §7.
 

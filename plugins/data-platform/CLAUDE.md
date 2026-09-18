@@ -153,7 +153,7 @@ The `hooks/` directory ships [`flag-data-platform-smells.sh`](hooks/flag-data-pl
 
 **Scope notes:** the RLS check is **Postgres-only by design** — it doesn't fire on missing Cube `securityContext` or DAX role; those are caught at the semantic-layer skill-review level, not by this hook. (Broadening to detect missing semantic-layer scope rules is a v0.2.0+ enhancement.)
 
-Advisory by default (`exit 0` with stderr warnings). Flip the final `exit 0` to `exit 1` to enforce. To wire into a consumer project's `.claude/settings.json`, see the hook file's header comment.
+Advisory by default (`exit 0` with stderr warnings). To enforce, set `DATA_PLATFORM_STRICT=1` in the environment — the hook then exits 2 (the only PreToolUse code that blocks the tool call; `exit 1` is a non-blocking error Claude Code silently swallows). To wire into a consumer project's `.claude/settings.json`, see the hook file's header comment.
 
 ---
 
