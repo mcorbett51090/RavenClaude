@@ -145,7 +145,7 @@ The `hooks/` directory ships [`flag-psm-anti-patterns.sh`](hooks/flag-psm-anti-p
 | Multiple partner names visible in a `To:` line | Files matching `*email*`, `*broadcast*`, `*comms*` | §4 — multi-partner email with names visible |
 | Health-score status (red / yellow) without named signals | Files matching `*health*`, `*qbr*` | §3 #4 — cite the signal |
 
-The hook is **advisory by default** (prints to stderr, doesn't block). To enforce in CI, flip the final `exit 0` to `exit 1`. The plugin's [`hooks/hooks.json`](hooks/hooks.json) wires it into PostToolUse.
+The hook is **advisory by default** (prints to stderr, doesn't block). It is a **PostToolUse** hook, so it runs *after* the write completes and cannot block the edit — no exit code prevents a PostToolUse write (`exit 1` is a non-blocking error silently swallowed; `exit 2` only surfaces the violation's stderr back to the agent). Set `EDTECH_PS_STRICT=1` to escalate a violation into that agent-visible stderr; to actually *block* a write the hook would need to be re-wired as PreToolUse. The plugin's [`hooks/hooks.json`](hooks/hooks.json) wires it into PostToolUse.
 
 The hook is conservative — it only fires on conventional PSM artifact file-name patterns, so unrelated edits aren't flagged.
 

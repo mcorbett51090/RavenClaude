@@ -2,6 +2,12 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.33.4] — 2026-09-18
+
+### Fixed
+
+- Corrected the `flag-data-platform-smells.sh` enforcement instruction in `CLAUDE.md` §7: it said "flip the final `exit 0` to `exit 1` to enforce," but Claude Code's PreToolUse contract blocks only on **exit 2** (`exit 1` is a non-blocking error silently swallowed), and the hook's real enforcement switch is `DATA_PLATFORM_STRICT=1` (which already exits 2). The doc now points at the env var and states the correct exit-code semantics. Docs only, no behaviour change. **Migration:** none.
+
 ## [0.33.3] — 2026-09-14
 
 ### Changed
