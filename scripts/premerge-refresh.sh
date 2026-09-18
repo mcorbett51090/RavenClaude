@@ -61,7 +61,7 @@ cd "$ROOT" || exit 2
 BASE="origin/main"
 while [ $# -gt 0 ]; do
   case "$1" in
-    --base) BASE="${2:-origin/main}"; shift 2 ;;
+    --base) [ $# -ge 2 ] || { echo "--base needs a value" >&2; exit 2; }; BASE="$2"; shift 2 ;;
     *) echo "unknown argument: $1" >&2; exit 2 ;;
   esac
 done
