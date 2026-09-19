@@ -32,6 +32,8 @@ Schema (schema_version 1):
   M5  ask-first default — auto_install is `off | ask | auto`; absent/unknown => off.
       `auto` is honored ONLY when explicitly set (Option A follow-on 0.323.17);
       empty-cited auto install remains forbidden (AppSec #6).
+      Auto + --execute requires tip/SHA (or equiv) integrity pin verify (fail-closed
+      pin_missing / pin_mismatch). Prefer ask until pins are configured.
   M6  the ledger is gitignored / local-only.
   M7  tracking defaults ON once a comfort-posture file is present.
 
@@ -57,6 +59,7 @@ escape). Writes are atomic (tmp + rename).
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import subprocess
@@ -221,6 +224,7 @@ def read_posture_lifecycle(project_dir: str) -> dict:
         auto_uninstall bool (M2: default False)
         auto_install  str   (M5: "off"|"ask"|"auto"; unknown/absent -> "off")
         pins          list[str]
+        install_pins  dict[str,str]  (plugin key -> expected tip/SHA for auto execute)
 
     No posture file -> tracking False (opt-in by presence, like every other knob).
     """
@@ -231,6 +235,7 @@ def read_posture_lifecycle(project_dir: str) -> dict:
         "auto_uninstall": False,
         "auto_install": "off",
         "pins": [],
+        "install_pins": {},  # key -> expected tip/SHA (auto-execute integrity)
     }
     cfg = Path(project_dir) / ".ravenclaude" / "comfort-posture.yaml"
     if not cfg.exists():
@@ -245,6 +250,8 @@ def read_posture_lifecycle(project_dir: str) -> dict:
     in_block = False
     block_indent = 0
     in_pins = False
+    in_install_pins = False
+    install_pins_indent = 0
     for raw in lines:
         line = raw.rstrip("\n")
         stripped = line.strip()
@@ -258,6 +265,19 @@ def read_posture_lifecycle(project_dir: str) -> dict:
         indent = len(line) - len(line.lstrip())
         if indent <= block_indent:
             break  # dedented out of the block
+        if in_install_pins:
+            if indent <= install_pins_indent:
+                in_install_pins = False  # fall through
+            else:
+                if ":" in stripped:
+                    ik, _, iv = stripped.partition(":")
+                    ik = ik.strip().strip('"').strip("'")
+                    iv = iv.strip().strip('"').strip("'")
+                    if iv and "#" in iv and not iv.startswith("["):
+                        iv = iv.split("#", 1)[0].strip()
+                    if ik and iv:
+                        result["install_pins"][ik] = iv
+                continue
         if in_pins:
             item = stripped
             if item.startswith("- "):
@@ -288,6 +308,7 @@ def read_posture_lifecycle(project_dir: str) -> dict:
             # M5 follow-on: off|ask|auto. Unknown -> off (never invent auto).
             result["auto_install"] = v if v in ("off", "ask", "auto") else "off"
         elif key == "pins":
+            in_install_pins = False
             if val.startswith("[") and val.endswith("]"):
                 inner = val[1:-1]
                 result["pins"] = [
@@ -295,6 +316,22 @@ def read_posture_lifecycle(project_dir: str) -> dict:
                 ]
             elif val == "":
                 in_pins = True
+        elif key == "install_pins":
+            in_pins = False
+            if val.startswith("{") and val.endswith("}"):
+                try:
+                    parsed = json.loads(val)
+                    if isinstance(parsed, dict):
+                        result["install_pins"] = {
+                            str(k).strip(): str(v).strip()
+                            for k, v in parsed.items()
+                            if str(k).strip() and str(v).strip()
+                        }
+                except json.JSONDecodeError:
+                    pass
+            elif val == "":
+                in_install_pins = True
+                install_pins_indent = indent
     return result
 
 
@@ -708,8 +745,193 @@ def execute_uninstall(key: str) -> dict:
     }
 
 
-def execute_install(key: str) -> dict:
-    """Opt-in install via ``claude plugin install <key> -y`` (ravenclaude allowlist upstream)."""
+
+def _normalize_sha(value: str) -> str:
+    """Lowercase hex SHA; empty if not hex."""
+    s = (value or "").strip().lower()
+    if s.startswith("0x"):
+        s = s[2:]
+    if not s or any(c not in "0123456789abcdef" for c in s):
+        return ""
+    return s
+
+
+def _sha_equal(expected: str, observed: str) -> bool:
+    """Equality with short/long prefix tolerance (min 7 hex chars)."""
+    a, b = _normalize_sha(expected), _normalize_sha(observed)
+    if not a or not b:
+        return False
+    if a == b:
+        return True
+    if len(a) >= 7 and len(b) >= 7 and (a.startswith(b) or b.startswith(a)):
+        return True
+    return False
+
+
+def resolve_expected_install_pin(
+    key: str, expected_sha_cli: str | None, posture: dict
+) -> str:
+    """Operator-supplied expected tip/SHA: CLI > posture install_pins > env."""
+    if expected_sha_cli:
+        n = _normalize_sha(expected_sha_cli)
+        if n:
+            return n
+    pins = posture.get("install_pins") or {}
+    if isinstance(pins, dict):
+        for candidate in (key, plugin_of(key)):
+            raw = pins.get(candidate)
+            if raw:
+                n = _normalize_sha(str(raw))
+                if n:
+                    return n
+    env_sha = os.environ.get("PLUGIN_LIFECYCLE_EXPECTED_SHA", "").strip()
+    if env_sha:
+        n = _normalize_sha(env_sha)
+        if n:
+            return n
+    return ""
+
+
+def _git_rev_parse_head(repo: Path) -> str:
+    """Best-effort local marketplace tip SHA (no network)."""
+    git_dir = repo / ".git"
+    if not git_dir.exists():
+        return ""
+    try:
+        proc = subprocess.run(
+            ["git", "-C", str(repo), "rev-parse", "HEAD"],
+            capture_output=True,
+            text=True,
+            timeout=5.0,
+            check=False,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return ""
+    if proc.returncode != 0:
+        return ""
+    return _normalize_sha((proc.stdout or "").strip())
+
+
+def _content_hash_plugin_dir(install_path: str) -> str:
+    """Deterministic sha256 of plugin.json + sorted critical entry files."""
+    root = Path(install_path)
+    if not root.is_dir():
+        return ""
+    hasher = hashlib.sha256()
+    candidates = [
+        root / ".claude-plugin" / "plugin.json",
+        root / "plugin.json",
+        root / "hooks" / "hooks.json",
+        root / "concepts.json",
+    ]
+    found = False
+    for p in candidates:
+        if p.is_file():
+            found = True
+            hasher.update(p.name.encode("utf-8"))
+            hasher.update(b"\0")
+            try:
+                hasher.update(p.read_bytes())
+            except OSError:
+                return ""
+            hasher.update(b"\0")
+    if not found:
+        return ""
+    return hasher.hexdigest()
+
+
+def resolve_observed_install_pin(key: str, install_path: str | None = None) -> str:
+    """Observed tip/SHA before install: env inject > tip map > marketplace HEAD > content hash.
+
+    Suite injects PLUGIN_LIFECYCLE_OBSERVED_SHA / PLUGIN_LIFECYCLE_TIP_SHA_MAP so
+    unit tests never need live network git. Production prefers local marketplace
+    clone HEAD (ravenclaude monorepo tip) or content hash of a cache candidate.
+    """
+    env_sha = os.environ.get("PLUGIN_LIFECYCLE_OBSERVED_SHA", "").strip()
+    if env_sha:
+        n = _normalize_sha(env_sha)
+        if n:
+            return n
+    tip_map_raw = os.environ.get("PLUGIN_LIFECYCLE_TIP_SHA_MAP", "").strip()
+    if tip_map_raw:
+        try:
+            tip_map = json.loads(tip_map_raw)
+        except json.JSONDecodeError:
+            tip_map = None
+        if isinstance(tip_map, dict):
+            for candidate in (key, plugin_of(key)):
+                raw = tip_map.get(candidate)
+                if raw:
+                    n = _normalize_sha(str(raw))
+                    if n:
+                        return n
+    roots: list[Path] = []
+    env_mp = os.environ.get("PLUGIN_LIFECYCLE_MARKETPLACE_ROOT", "").strip()
+    if env_mp:
+        roots.append(Path(env_mp))
+    roots.append(Path.home() / ".claude" / "plugins" / "marketplaces" / ALLOWED_MARKETPLACE)
+    for root in roots:
+        tip = _git_rev_parse_head(root)
+        if tip:
+            return tip
+    if install_path and _install_path_ok(install_path):
+        h = _content_hash_plugin_dir(install_path)
+        if h:
+            return h
+    return ""
+
+
+def verify_install_pin(key: str, expected: str, observed: str) -> dict:
+    """Fail-closed integrity pin compare for auto-install execute.
+
+    Returns {ok, reason, expected, observed, key} with reason in
+    {pin_ok, pin_missing, pin_mismatch}.
+    """
+    result = {
+        "ok": False,
+        "reason": "pin_missing",
+        "expected": expected or "",
+        "observed": observed or "",
+        "key": key,
+    }
+    if not expected or not observed:
+        result["reason"] = "pin_missing"
+        return result
+    if _sha_equal(expected, observed):
+        result["ok"] = True
+        result["reason"] = "pin_ok"
+        return result
+    result["reason"] = "pin_mismatch"
+    return result
+
+
+def execute_install(
+    key: str,
+    *,
+    expected_sha: str | None = None,
+    install_path: str | None = None,
+    posture: dict | None = None,
+) -> dict:
+    """Opt-in install via ``claude plugin install <key> -y`` (ravenclaude allowlist upstream).
+
+    Integrity pin (AppSec condition 2): verify expected tip/SHA (or equiv) against
+    observed marketplace tip/content-hash BEFORE shelling -y. Fail-closed on
+    pin_missing / pin_mismatch — mock/real CLI never invoked when pin fails.
+    """
+    posture = posture or {"install_pins": {}}
+    expected = resolve_expected_install_pin(key, expected_sha, posture)
+    observed = resolve_observed_install_pin(key, install_path)
+    pin = verify_install_pin(key, expected, observed)
+    if not pin["ok"]:
+        return {
+            "key": key,
+            "action": "install",
+            "executed": False,
+            "reason": pin["reason"],
+            "pin": pin,
+            "argv": [],
+            "exit_code": None,
+        }
     bin_ = _claude_bin()
     argv = [bin_, "plugin", "install", key, "-y"]
     ran = _run_plugin_cli(argv)
@@ -718,7 +940,8 @@ def execute_install(key: str) -> dict:
         "action": "install",
         "executed": bool(ran["ok"]),
         "exit_code": ran["exit_code"],
-        "reason": ran["reason"],
+        "reason": ran["reason"] if not ran["ok"] else "pin_ok",
+        "pin": pin,
         "argv": ran["argv"],
     }
 
@@ -837,7 +1060,8 @@ def cmd_ask_install(args) -> int:
       off  -> Bifröst CTA only (default / absent)
       ask  -> confirm plan when cited need present; else CTA (AppSec #6)
       auto -> when explicitly set + cited need: mode auto; optional --execute
-             runs ``claude plugin install <key> -y``. Uncited auto -> CTA.
+             runs ``claude plugin install <key> -y`` only after tip/SHA pin
+             verify (fail-closed pin_missing/pin_mismatch). Uncited auto -> CTA.
 
     Rejects a non-ravenclaude plugin outright (M4). Never claims Bifröst executed.
     """
@@ -939,11 +1163,20 @@ def cmd_ask_install(args) -> int:
             "install_cmd": install_cmd,
             "cli_install_argv": [_claude_bin(), "plugin", "install", key, "-y"],
             "reload_cmd": reload_cmd,
-            "note": "auto_install auto + cited need: may execute claude plugin install -y; reload BEFORE use.",
+            "note": (
+                "auto_install auto + cited need: may execute claude plugin install -y "
+                "after tip/SHA pin verify; prefer ask until pins configured; reload BEFORE use."
+            ),
         }
         if do_execute:
-            ran = execute_install(key)
+            ran = execute_install(
+                key,
+                expected_sha=getattr(args, "expected_sha", None),
+                install_path=getattr(args, "install_path", None),
+                posture=posture,
+            )
             payload["execution"] = ran
+            payload["pin"] = ran.get("pin")
             if ran.get("executed"):
                 payload["note"] = (
                     "auto install executed; run /reload-plugins before claiming usable."
@@ -1087,7 +1320,13 @@ def build_parser() -> argparse.ArgumentParser:
     sp.add_argument(
         "--execute",
         action="store_true",
-        help="when auto_install: auto + cited need, run claude plugin install -y",
+        help="when auto_install: auto + cited need, run claude plugin install -y (pin-gated)",
+    )
+    sp.add_argument(
+        "--expected-sha",
+        dest="expected_sha",
+        default=None,
+        help="expected marketplace tip/SHA (or content-hash) required for auto --execute",
     )
     sp.set_defaults(func=cmd_ask_install)
 

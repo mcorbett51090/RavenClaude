@@ -83,6 +83,9 @@ workaround_exhaustion: warn
 # ON whenever this posture file exists (M7). Dangerous verbs stay OFF:
 #   auto_uninstall: off   (absent ⇒ off; M2)
 #   auto_install: off     (off | ask | auto; absent/unknown => off; auto only when explicit; M5 follow-on)
+# Prefer ask for production installs until operators configure tip/SHA pins.
+# auto + --execute is pin-gated (install_pins / --expected-sha); fail-closed on
+# pin_missing / pin_mismatch. Seed stays OFF — never default auto.
 # unused_days: 90 (M1). ravenclaude-core is never auto-removed (M3).
 # Ledger: .ravenclaude/plugin-lifecycle.json (gitignored, M6).
 # plugin_lifecycle:
@@ -91,6 +94,7 @@ workaround_exhaustion: warn
 #   auto_uninstall: off
 #   auto_install: off
 #   pins: []
+#   install_pins: {}   # optional map "<name>@ravenclaude": "<tip-sha>" for auto execute
 
 # Claude orchestrator for non-Claude CLIs (off | decide | full).
 # No-op under Claude Code (host already IS Claude). Default: full (owner choice — route to Claude; costs more tokens).

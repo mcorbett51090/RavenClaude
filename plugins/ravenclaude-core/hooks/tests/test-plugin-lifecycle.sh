@@ -15,6 +15,7 @@
 #   ASK    ask-install: off => CTA; ask + cited need => confirm; ask, no
 #          citation => CTA (AppSec #6, no empty-cited install)
 #   AUTO   auto_install: auto honored when explicit; uncited => CTA; garbage => off
+#   PINAUTO auto --execute: no pin => refuse; match => allow; mismatch => refuse
 #   EXEC   auto_uninstall ON + mock CLI => uninstall -y invoked; OFF => never
 #   ALLOW  allowlist rejects a non-ravenclaude marketplace / bad install path (M4)
 #   NORG   the sweep hook body NEVER references the cache-reset DR command (#7)
@@ -261,19 +262,86 @@ else
   fail "EXEC plan-only still invoked CLI: $(cat "$LOG")"
 fi
 
-# AUTO execute with mock
-p="$(mk_project autoexecon on off auto '[]')"
-LOG="$TMP/auto-exec.log"
+# ── PIN-AUTO: tip/SHA integrity pin before auto --execute (AppSec condition 2) ─
+SHA_A="aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+SHA_B="bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+
+# no pin + --execute => refuse pin_missing; mock never invoked
+p="$(mk_project autopinnone on off auto '[]')"
+LOG="$TMP/pin-none.log"
 : >"$LOG"
 out="$(env PLUGIN_LIFECYCLE_CLAUDE="$MOCK_U" PLUGIN_LIFECYCLE_MOCK_LOG="$LOG" \
   python3 "$ENGINE" --project "$p" ask-install --plugin finance --need "cited" --execute --json)"
 mode="$(printf '%s' "$out" | json_get "['mode']")"
 ex="$(printf '%s' "$out" | python3 -c "import json,sys;d=json.load(sys.stdin);print(d.get('execution',{}).get('executed'))")"
-if [ "$mode" = "auto" ] && [ "$ex" = "True" ] && grep -q 'plugin install finance@ravenclaude -y' "$LOG"; then
-  pass "AUTO --execute => mock CLI plugin install … -y"
+reason="$(printf '%s' "$out" | python3 -c "import json,sys;d=json.load(sys.stdin);print(d.get('execution',{}).get('reason'))")"
+if [ "$mode" = "auto" ] && [ "$ex" = "False" ] && [ "$reason" = "pin_missing" ] && [ ! -s "$LOG" ]; then
+  pass "PINAUTO no pin + --execute => refuse pin_missing (mock never called)"
 else
-  fail "AUTO --execute failed (mode=$mode ex=$ex log=$(cat "$LOG" 2>/dev/null))"
+  fail "PINAUTO no-pin (mode=$mode ex=$ex reason=$reason log=$(cat "$LOG" 2>/dev/null))"
 fi
+
+# pin match + --execute => allow; mock gets plugin install … -y
+p="$(mk_project autopinok on off auto '[]')"
+LOG="$TMP/pin-ok.log"
+: >"$LOG"
+out="$(env PLUGIN_LIFECYCLE_CLAUDE="$MOCK_U" PLUGIN_LIFECYCLE_MOCK_LOG="$LOG" \
+  PLUGIN_LIFECYCLE_OBSERVED_SHA="$SHA_A" \
+  python3 "$ENGINE" --project "$p" ask-install --plugin finance --need "cited" \
+  --expected-sha "$SHA_A" --execute --json)"
+mode="$(printf '%s' "$out" | json_get "['mode']")"
+ex="$(printf '%s' "$out" | python3 -c "import json,sys;d=json.load(sys.stdin);print(d.get('execution',{}).get('executed'))")"
+reason="$(printf '%s' "$out" | python3 -c "import json,sys;d=json.load(sys.stdin);print(d.get('execution',{}).get('reason'))")"
+if [ "$mode" = "auto" ] && [ "$ex" = "True" ] && [ "$reason" = "pin_ok" ] \
+  && grep -q 'plugin install finance@ravenclaude -y' "$LOG"; then
+  pass "PINAUTO pin match + --execute => allow; mock CLI plugin install … -y"
+else
+  fail "PINAUTO match (mode=$mode ex=$ex reason=$reason log=$(cat "$LOG" 2>/dev/null))"
+fi
+
+# pin mismatch + --execute => refuse pin_mismatch; mock never invoked
+p="$(mk_project autopinbad on off auto '[]')"
+LOG="$TMP/pin-bad.log"
+: >"$LOG"
+out="$(env PLUGIN_LIFECYCLE_CLAUDE="$MOCK_U" PLUGIN_LIFECYCLE_MOCK_LOG="$LOG" \
+  PLUGIN_LIFECYCLE_OBSERVED_SHA="$SHA_B" \
+  python3 "$ENGINE" --project "$p" ask-install --plugin finance --need "cited" \
+  --expected-sha "$SHA_A" --execute --json)"
+mode="$(printf '%s' "$out" | json_get "['mode']")"
+ex="$(printf '%s' "$out" | python3 -c "import json,sys;d=json.load(sys.stdin);print(d.get('execution',{}).get('executed'))")"
+reason="$(printf '%s' "$out" | python3 -c "import json,sys;d=json.load(sys.stdin);print(d.get('execution',{}).get('reason'))")"
+if [ "$mode" = "auto" ] && [ "$ex" = "False" ] && [ "$reason" = "pin_mismatch" ] && [ ! -s "$LOG" ]; then
+  pass "PINAUTO pin mismatch + --execute => refuse pin_mismatch (mock never called)"
+else
+  fail "PINAUTO mismatch (mode=$mode ex=$ex reason=$reason log=$(cat "$LOG" 2>/dev/null))"
+fi
+
+# posture install_pins map + observed match (no CLI --expected-sha)
+p="$(mk_project autopinposture on off auto '[]')"
+{
+  printf 'schema_version: 5\n'
+  printf 'plugin_lifecycle:\n'
+  printf '  tracking: on\n'
+  printf '  unused_days: 90\n'
+  printf '  auto_uninstall: off\n'
+  printf '  auto_install: auto\n'
+  printf '  pins: []\n'
+  printf '  install_pins:\n'
+  printf '    finance@ravenclaude: %s\n' "$SHA_A"
+} >"$p/.ravenclaude/comfort-posture.yaml"
+LOG="$TMP/pin-posture.log"
+: >"$LOG"
+out="$(env PLUGIN_LIFECYCLE_CLAUDE="$MOCK_U" PLUGIN_LIFECYCLE_MOCK_LOG="$LOG" \
+  PLUGIN_LIFECYCLE_OBSERVED_SHA="$SHA_A" \
+  python3 "$ENGINE" --project "$p" ask-install --plugin finance --need "cited" --execute --json)"
+ex="$(printf '%s' "$out" | python3 -c "import json,sys;d=json.load(sys.stdin);print(d.get('execution',{}).get('executed'))")"
+reason="$(printf '%s' "$out" | python3 -c "import json,sys;d=json.load(sys.stdin);print(d.get('execution',{}).get('reason'))")"
+if [ "$ex" = "True" ] && [ "$reason" = "pin_ok" ] && grep -q 'plugin install finance@ravenclaude -y' "$LOG"; then
+  pass "PINAUTO posture install_pins match => allow execute"
+else
+  fail "PINAUTO posture pins (ex=$ex reason=$reason log=$(cat "$LOG" 2>/dev/null))"
+fi
+
 
 # ── NORG: sweep must never INVOKE cache-reset DR / ragnarok (#7) ──────────────
 if [ -f "$SWEEP" ]; then

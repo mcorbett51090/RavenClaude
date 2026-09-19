@@ -2,6 +2,18 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.324.2 — 2026-09-19
+
+### Added
+- **P3 tip/SHA integrity pin before auto-install execute** — closes AppSec residual condition 2 (DIGEST-appsec-plugin-lifecycle-uninstall-p3-2026-09-16). When `auto_install: auto` + `ask-install --execute`, `execute_install` verifies an expected tip/SHA (CLI `--expected-sha` or posture `plugin_lifecycle.install_pins`) against the observed marketplace tip (env inject / local marketplace `git rev-parse HEAD`) or content-hash of a ravenclaude cache candidate. Fail-closed: `pin_missing` / `pin_mismatch` refuse execute (CLI never invoked). `pin_ok` proceeds to `claude plugin install … -y`.
+
+### Changed
+- Prefer **ask** for production installs until operators configure pins; seed/defaults remain `auto_install: off`. OFF/ask CTA/confirm paths unchanged (no pin required).
+- Docs: comfort-posture comments, `plugin-lifecycle` concept, `xc.plugin-install` concern — pin-gated auto execute.
+
+### Locks / honesty
+- Seed OFF · core hard-pin · ravenclaude-only · no empty-cited · no ragnarok · no Thing/`gate_floor` weaken. Tip/SHA/content-hash v1 only — not full PKI/audit-gates. READY_FOR_APPSEC; Sage sole SCM.
+
 ## 0.324.1 — 2026-09-18
 
 ### Fixed
