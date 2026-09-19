@@ -228,14 +228,18 @@ cross_cutting:
       installed plugin's hooks and skills become code execution surface. Empty-cited
       agent installs are forbidden; v1 allowlist is the `ravenclaude` marketplace
       only. `auto_install: auto` is opt-in (explicit posture only; absent => off)
-      and still requires a cited need. Prefer ask-first confirm or the
-      Bifröst copy-paste wizard (which never executes). Do not bypass
+      and still requires a cited need. Auto `--execute` is tip/SHA (or equiv)
+      integrity pin-gated — fail-closed on pin_missing / pin_mismatch. Prefer
+      ask-first confirm or the Bifröst copy-paste wizard (which never executes)
+      until operators configure install_pins / --expected-sha. Do not bypass
       guard-destructive patterns or launder the install via an EDIT past gate_floor.
     resolution: >-
       Require an explicit user confirm (ask mode) or route the human through
       Bifröst. Reject non-ravenclaude marketplaces and installPaths outside the
-      ravenclaude plugin cache. After install, require `/reload-plugins` before
-      claiming the capability usable. Never claim Bifröst executed the install.
+      ravenclaude plugin cache. For auto execute, supply expected tip/SHA and
+      verify against marketplace tip (or content-hash). After install, require
+      `/reload-plugins` before claiming the capability usable. Never claim
+      Bifröst executed the install.
     judgment_only: true
   - id: xc.plugin-uninstall
     name: Agent-driven marketplace plugin uninstall

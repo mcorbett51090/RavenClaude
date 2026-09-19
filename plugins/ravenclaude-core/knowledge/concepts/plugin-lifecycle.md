@@ -14,7 +14,7 @@ covers:
   - plugins/ravenclaude-core/scripts/plugin-lifecycle-sweep.sh
   - plugins/ravenclaude-core/scripts/plugin-lifecycle-telemetry.sh
 covers_digest: "sha256:6bbb35ebcb31a44c392757c6ed379f9c5ec72bfd72ba415bd404e4169eea1561"
-nuance: "auto_uninstall OFF => zero uninstall CLI calls. auto_uninstall ON => may shell `claude plugin uninstall … -y` for fail-closed-eligible plugins only. auto_install accepts off|ask|auto (absent/unknown => off); auto still needs a cited need. ravenclaude-core@ravenclaude is a hard pin even if pins:[] is empty. Never ragnarok."
+nuance: "auto_uninstall OFF => zero uninstall CLI calls. auto_uninstall ON => may shell `claude plugin uninstall … -y` for fail-closed-eligible plugins only. auto_install accepts off|ask|auto (absent/unknown => off); prefer ask until tip/SHA pins are configured. auto + --execute requires expected tip/SHA (CLI --expected-sha or posture install_pins) matching observed marketplace tip/content-hash — fail-closed pin_missing/pin_mismatch. auto still needs a cited need. ravenclaude-core@ravenclaude is a hard pin even if pins:[] is empty. Never ragnarok."
 nuance_evidence:
   measured: 2026-09-15
   control: "bash plugins/ravenclaude-core/hooks/tests/test-plugin-lifecycle.sh — M2 zero uninstalls when OFF; EXEC mock CLI when ON; AUTO mode opt-in; M3/MF teeth core never uninstallable; NORG"
@@ -44,7 +44,8 @@ control: `bash plugins/ravenclaude-core/hooks/tests/test-plugin-lifecycle.sh` (2
 Measured 2026-09-16: with `auto_uninstall` OFF the sweep makes zero uninstall CLI
 calls; with ON + mock CLI it records executed uninstalls via `claude plugin
 uninstall -y`. `auto_install: auto` is honored only when explicit (absent => off);
-uncited auto stays CTA. Core is hard-pinned (MF teeth).
+uncited auto stays CTA. Auto `--execute` is tip/SHA pin-gated (prefer ask).
+Core is hard-pinned (MF teeth).
 
 ## Why it matters
 
