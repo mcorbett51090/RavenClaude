@@ -2743,15 +2743,15 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-09-16",
-      "refresh_when": "Telemetry signals, unused_days default, auto_uninstall/auto_install defaults, install_pins / tip-SHA pin gate, or the core hard-pin change.",
+      "last_verified": "2026-09-19",
+      "refresh_when": "Telemetry signals, unused_days default, auto_uninstall/auto_install defaults, or the core hard-pin change.",
       "sources": [
         {
           "label": "scripts/plugin-lifecycle.py",
           "url": "plugins/ravenclaude-core/scripts/plugin-lifecycle.py"
         }
       ],
-      "body_md": "## What a reader would have assumed instead\n\nA SessionStart sweep that uninstalls unused plugins when defaults stay OFF-violating, or an auto-install\npath that quietly pulls marketplace packages without ask — and that presence in the\ninstalled list counts as \"used.\"\n\n## The discriminator\n\ncontrol: `bash plugins/ravenclaude-core/hooks/tests/test-plugin-lifecycle.sh` (PIN-AUTO suite).\nMeasured 2026-09-16: with `auto_uninstall` OFF the sweep makes zero uninstall CLI\ncalls; with ON + mock CLI it records executed uninstalls via `claude plugin\nuninstall -y`. `auto_install: auto` is honored only when explicit (absent => off);\nuncited auto stays CTA. Auto `--execute` is tip/SHA pin-gated (prefer ask).\nCore is hard-pinned (MF teeth).\n\n## Why it matters\n\nDefaults OFF + opt-in execute/auto keep the surface careful. Ask-first ravenclaude-only\ninstall and `/reload-plugins` before usable close the empty-cited and cache-path\nAppSec locks. Copilot `-p` and Cursor SessionStart caveats stay honest — no slash\nparity claim.\n\nFalsifier: sweep shells uninstall when OFF, cache-reset DR, `auto` installs without\ncited need, or core lands in `would_uninstall`.\n\nProbe: `plugins/ravenclaude-core/hooks/tests/test-plugin-lifecycle.sh`.",
+      "body_md": "## What a reader would have assumed instead\n\nA SessionStart sweep that uninstalls unused plugins when defaults stay OFF-violating, or an auto-install\npath that quietly pulls marketplace packages without ask — and that presence in the\ninstalled list counts as \"used.\"\n\n## The discriminator\n\ncontrol: `bash plugins/ravenclaude-core/hooks/tests/test-plugin-lifecycle.sh` (41 pass).\nMeasured 2026-09-19: with `auto_uninstall` OFF the sweep makes zero uninstall CLI\ncalls; with ON + mock CLI it records executed uninstalls via `claude plugin\nuninstall -y`. `auto_install: auto` is honored only when explicit (absent => off);\nuncited auto stays CTA. Auto `--execute` is tip/SHA pin-gated (prefer ask).\nCore is hard-pinned (MF teeth).\n\n## Why it matters\n\nDefaults OFF + opt-in execute/auto keep the surface careful. Ask-first ravenclaude-only\ninstall and `/reload-plugins` before usable close the empty-cited and cache-path\nAppSec locks. Copilot `-p` and Cursor SessionStart caveats stay honest — no slash\nparity claim.\n\nFalsifier: sweep shells uninstall when OFF, cache-reset DR, `auto` installs without\ncited need or pin, or core lands in `would_uninstall`.\n\nProbe: `plugins/ravenclaude-core/hooks/tests/test-plugin-lifecycle.sh`.",
       "diagram": null,
       "diagram_mini": null,
       "steps": [],
@@ -2763,12 +2763,12 @@
         "plugins/ravenclaude-core/scripts/plugin-lifecycle-sweep.sh",
         "plugins/ravenclaude-core/scripts/plugin-lifecycle-telemetry.sh"
       ],
-      "covers_digest": "sha256:6bbb35ebcb31a44c392757c6ed379f9c5ec72bfd72ba415bd404e4169eea1561",
-      "nuance": "auto_uninstall OFF => zero uninstall CLI calls. auto_uninstall ON => may shell `claude plugin uninstall … -y` for fail-closed-eligible plugins only. auto_install accepts off|ask|auto (absent/unknown => off); prefer ask until tip/SHA pins are configured. auto + --execute requires expected tip/SHA (CLI --expected-sha or posture install_pins) matching observed marketplace tip/content-hash — fail-closed pin_missing/pin_mismatch. auto still needs a cited need. ravenclaude-core@ravenclaude is a hard pin even if pins:[] is empty. Never ragnarok.",
+      "covers_digest": "sha256:91bc197c98dca552e593ef59249ed0381055c26b07049a6ef6eaed35b19b3332",
+      "nuance": "auto_uninstall OFF => zero uninstall CLI calls; ON => may shell `claude plugin uninstall … -y` for fail-closed-eligible only. auto_install off|ask|auto (absent=>off); prefer ask until tip/SHA pins. auto --execute needs expected tip/SHA (CLI or install_pins) matching observed tip/hash — fail-closed pin_missing/mismatch. Cited need. Core hard-pinned. Never ragnarok.",
       "nuance_evidence": {
-        "measured": "2026-09-15",
-        "control": "bash plugins/ravenclaude-core/hooks/tests/test-plugin-lifecycle.sh — M2 zero uninstalls when OFF; EXEC mock CLI when ON; AUTO mode opt-in; M3/MF teeth core never uninstallable; NORG",
-        "falsifier": "sweep uninstalling when auto_uninstall OFF, shelling cache-reset DR, auto install without cited need, or core appearing in would_uninstall",
+        "measured": "2026-09-19",
+        "control": "bash plugins/ravenclaude-core/hooks/tests/test-plugin-lifecycle.sh — M2/EXEC/AUTO; PINAUTO pin_missing/match/mismatch/install_pins; M3/MF; NORG",
+        "falsifier": "sweep uninstall when OFF, cache-reset DR, auto install without cited need/pin, or core in would_uninstall",
         "probe": "plugins/ravenclaude-core/hooks/tests/test-plugin-lifecycle.sh"
       },
       "nuance_source": "plugins/ravenclaude-core/scripts/plugin-lifecycle.py; AppSec land DIGEST SHIP-WITH-CONDITIONS 2026-09-15",
@@ -2980,7 +2980,7 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-09-18",
+      "last_verified": "2026-09-19",
       "refresh_when": null,
       "sources": [
         {
@@ -3000,7 +3000,7 @@
         "scripts/sync-plugin-versions.py",
         "scripts/generate-copilot-plugin.py"
       ],
-      "covers_digest": "sha256:a1f099526abad392e638dcb9e5132092f32eed7c997516707890afd1322e042d",
+      "covers_digest": "sha256:7791d79754e50cd14a90b3edc1581d32652aa8234c54d830b8fe179c2caf5b8b",
       "nuance": "The cache key is the `version` string, never a content hash, so `sync-plugin-versions.py` can report clean while every installed session keeps running the old `hooks/` code.",
       "nuance_evidence": {
         "measured": "2026-08-19",

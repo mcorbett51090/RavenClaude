@@ -2273,11 +2273,12 @@ installed list counts as "used."
 
 ## The discriminator
 
-control: `bash plugins/ravenclaude-core/hooks/tests/test-plugin-lifecycle.sh` (28 pass).
-Measured 2026-09-16: with `auto_uninstall` OFF the sweep makes zero uninstall CLI
+control: `bash plugins/ravenclaude-core/hooks/tests/test-plugin-lifecycle.sh` (41 pass).
+Measured 2026-09-19: with `auto_uninstall` OFF the sweep makes zero uninstall CLI
 calls; with ON + mock CLI it records executed uninstalls via `claude plugin
 uninstall -y`. `auto_install: auto` is honored only when explicit (absent => off);
-uncited auto stays CTA. Core is hard-pinned (MF teeth).
+uncited auto stays CTA. Auto `--execute` is tip/SHA pin-gated (prefer ask).
+Core is hard-pinned (MF teeth).
 
 ## Why it matters
 
@@ -2287,7 +2288,7 @@ AppSec locks. Copilot `-p` and Cursor SessionStart caveats stay honest — no sl
 parity claim.
 
 Falsifier: sweep shells uninstall when OFF, cache-reset DR, `auto` installs without
-cited need, or core lands in `would_uninstall`.
+cited need or pin, or core lands in `would_uninstall`.
 
 Probe: `plugins/ravenclaude-core/hooks/tests/test-plugin-lifecycle.sh`.
 
@@ -2295,7 +2296,7 @@ Probe: `plugins/ravenclaude-core/hooks/tests/test-plugin-lifecycle.sh`.
 
 **Sources:** [scripts/plugin-lifecycle.py](../plugins/ravenclaude-core/scripts/plugin-lifecycle.py)
 
-_Last verified: 2026-09-16_
+_Last verified: 2026-09-19_
 
 
 ---
@@ -2407,7 +2408,7 @@ Probe: `unprobed: requires a real consumer install cycle, which no CI job perfor
 
 **Sources:** [measured in the FORGE product-inventory run](https://github.com/mcorbett51090/RavenClaude/pull/997)
 
-_Last verified: 2026-09-18_
+_Last verified: 2026-09-19_
 
 
 ---
