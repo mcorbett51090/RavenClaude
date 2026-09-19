@@ -1,4 +1,9 @@
 #!/usr/bin/env bash
 # Shim — the canonical script ships inside the plugin (plugins/ravenclaude-core/scripts/).
 # Root copy kept so the marketplace's own AGENTS.md / CI references keep resolving.
-exec bash "$(git rev-parse --show-toplevel)/plugins/ravenclaude-core/scripts/branch-hygiene.sh" "$@"
+root="$(git rev-parse --show-toplevel 2>/dev/null)" || root=""
+if [ -z "$root" ]; then
+  echo "branch-hygiene: must be run from inside the RavenClaude git work tree" >&2
+  exit 1
+fi
+exec bash "$root/plugins/ravenclaude-core/scripts/branch-hygiene.sh" "$@"
