@@ -2,6 +2,12 @@
 
 All notable changes to this plugin are documented here. Versioning is semver; bump on every user-visible change (AGENTS.md).
 
+## [0.1.3] — 2026-09-19
+
+### Added
+
+- **`craft-candidate-materials` skill + command** — thin candidate-side packaging (resume / LinkedIn Experience / About / cover / recruiter paste) as DIGEST + `/workspace` paste paths. Honesty locks (no invented metrics; Raven/current role present tense; no LinkedIn push). Not employer-side TA and not `staffing-operations`.
+
 ## [0.1.2] — 2026-08-14
 
 ### Changed

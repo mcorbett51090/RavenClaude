@@ -17,7 +17,7 @@
 | [`total-rewards-comp-analyst`](agents/total-rewards-comp-analyst.md) | The numbers — comp bands, compa-ratio, pay equity, benefits, and the headcount budget. | "Build comp bands"; "are we paying equitably?"; comp & rewards |
 | [`people-analytics-engagement-specialist`](agents/people-analytics-engagement-specialist.md) | The signals — attrition cost/cause, engagement, performance, and manager quality. | "Why are people leaving?"; "read our engagement survey"; people analytics |
 
-**Team growth ships as skills + knowledge + templates, not as new parallel agents** (marketplace house rule). When a new capability is needed, add a skill or knowledge file the existing 4 can reach — don't fork a fifth agent unless a genuinely new lane appears.
+**Team growth ships as skills + knowledge + templates, not as new parallel agents** (marketplace house rule). When a new capability is needed, add a skill or knowledge file the existing 4 can reach — don't fork a fifth agent unless a genuinely new lane appears. Candidate materials (`craft-candidate-materials`) is candidate-side packaging via skill — not a fifth agent.
 
 ---
 
