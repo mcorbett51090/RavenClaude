@@ -1763,7 +1763,7 @@
       "name": "people-operations-hr",
       "source": "./plugins/people-operations-hr",
       "description": "People Operations / HR specialist team \u2014 agents (people-ops-lead, talent-acquisition-strategist, total-rewards-comp-analyst, people-analytics-engagement-specialist), skills, templates, commands, an advisory hook, best-practice rules, and a research-grounded knowledge bank. A People-Ops team for an HRBP, People-Ops leader, or founder accountable for headcount, attrition, comp, and engagement \u2014 it quantifies attrition cost and cause before acting, pays to a defensible band rather than the counteroffer, treats time-to-fill and quality-of-hire as a hiring system, and reads engagement segmented as a leading indicator of regretted exits. Inherits ravenclaude-core protocols.",
-      "version": "0.1.3",
+      "version": "0.1.4",
       "author": {
         "name": "Matt Corbett"
       },

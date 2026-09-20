@@ -7,7 +7,7 @@ argument-hint: "[artifact: resume|linkedin-experience|linkedin-about|cover-lette
 
 You are running `/people-operations-hr:craft-candidate-materials` for `$ARGUMENTS`.
 
-Follow [`../skills/craft-candidate-materials/SKILL.md`](../skills/craft-candidate-materials/SKILL.md) exactly — thin candidate-side packaging, not employer TA / not staffing-operations.
+Follow [`../skills/craft-candidate-materials/SKILL.md`](../skills/craft-candidate-materials/SKILL.md) exactly. Resume/recruiter-pack **HARD:** pitch-line Summary + importance-ordered Experience + Skills (target may reorder for JD; never omit). — thin candidate-side packaging, not employer TA / not staffing-operations.
 
 ## Steps (do not skip)
 1. Parse artifact type + evidence paths + target from `$ARGUMENTS` (default evidence: `/workspace/cli-out/resume-cursor-da-user-ops/`).
