@@ -158,5 +158,27 @@ Non-claims: People Ops does not push LinkedIn/apply
 Confidence: High|Med|Low — falsifier: ...
 ```
 
+## Multi-model DONE gate (HARD — Matthew 2026-09-20)
+
+Talent materials READY is **not** met by same-model sequential loops (same prompt ×N on Claude/Codex/Grok/Cursor).
+
+**DONE gate:** run **orthogonal** lenses in order **Claude → Codex → Grok**, each must **PASS** (or ladder-documented skip with reason):
+
+| Order | Model | Default lens |
+|-------|-------|--------------|
+| 1 | Claude Max | Honesty / fabrication + JD fit |
+| 2 | Codex | Structure / ATS / keywords + cross-file consistency |
+| 3 | Grok | Recruiter 6s skim + pitch punch |
+
+- Prefer PE pack `/workspace/cli-out/prompts/PACK-talent-forge-multimodel-2026-09-20.md` (or successor).
+- Merge DIGEST required before People Ops marks craft READY for CoS paste.
+- **NEVER** same-model sequential; **NEVER** collapse three lenses into one Cursor cloud call.
+- Cursor cloud / Bot session = **last resort**, **one** lens prompt only if ladder blocked.
+- Claude Max dry → skip to Codex (note skip); backfill Claude when available.
+- Structure HARD + About QA + no-invent + no-BMA still apply; 3-model gate is additive.
+
+DIGEST must include: `3-model DONE: Claude PASS|SKIP · Codex PASS|SKIP · Grok PASS|SKIP — overall PASS required for READY`
+
+
 ## Owner
 People Ops runs this skill (Claude Max). Prompt Engineer crafts/amends the pack. CoS never drafts.
