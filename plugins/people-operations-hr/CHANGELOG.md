@@ -7,6 +7,8 @@ All notable changes to this plugin are documented here. Versioning is semver; bu
 ### Changed
 
 - **`craft-candidate-materials`** — Matthew STANDING HARD resume defaults: pitch-line Summary, importance-ordered Experience bullets, and Skills section. Target-specific packs may reorder for JD (e.g. Cursor DA vs Power Platform) but must never omit these. DIGEST gates: `Pitch Summary` / `Experience order` / `Skills`.
+- Pitch Summary MUST major-highlight **agentic AI variety** (not Power BI/Fabric-only); DIGEST gate `Pitch agentic highlight`.
+
 
 ## [0.1.3] — 2026-09-19
 

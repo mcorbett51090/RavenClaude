@@ -49,8 +49,9 @@ These are **not optional**. Every `resume` and every `recruiter-pack` that inclu
 ### 1) Pitch-line Summary (HARD)
 - One tight pitch (prefer **1–2 sentences**, ~≤220 chars for the lead clause) that answers: **what you build / for whom / proof shape** — scannable in 6 seconds.
 - **Not** an essay stack of every tool. Detail lives in Experience.
+- **Agentic AI variety = major highlight (HARD):** pitch MUST name agentic / multi-agent delivery as a primary highlight (e.g. Cursor/Claude/Grok orchestration, software-factory / specialist-bot shipping) — **not** a Power BI/Fabric-only summary. BI/Fabric/SQL may appear as proof craft, but must not crowd out agentic AI as a headline identity. Target packs may lead with JD craft (e.g. Cursor DA ops-reporting) **while keeping agentic AI visible as a major beat** — never erase it for a BI-only pitch.
 - Target packs retarget the pitch to the JD (e.g. ops-reporting vs PP factory) without inventing claims.
-- Run **Resume Summary QA** (A1/A3–A6) before READY; DIGEST must note `Pitch Summary: PASS|FAIL`.
+- Run **Resume Summary QA** (A1/A3–A6) before READY; DIGEST must note `Pitch Summary: PASS|FAIL` and `Pitch agentic highlight: PASS|FAIL`.
 
 ### 2) Importance-ordered Experience bullets (HARD)
 - Within each role, bullets are ordered **most important / most JD-relevant first** (ownership, production dependency, primary craft) → supporting → tooling last.
@@ -64,7 +65,7 @@ These are **not optional**. Every `resume` and every `recruiter-pack` that inclu
 - Only evidenced skills; no stuffing.
 - DIGEST: `Skills: present + importance-ordered — PASS|FAIL`.
 
-READY forbidden if any of Pitch Summary / Experience order / Skills FAIL.
+READY forbidden if any of Pitch Summary / Pitch agentic highlight / Experience order / Skills FAIL.
 
 ## Steps
 1. **Read evidence first** — resume SSOT + prior DIGESTs/packs + tipped JD; list gaps as NEED-INPUT, do not fill with fiction.
@@ -148,6 +149,7 @@ Honesty locks held: no invented metrics/%/$; tense OK; no BMA on fleet packaging
 About QA: A1..A8 PASS|FAIL (required when artifact includes About)
 Summary QA: A1/A3–A6 PASS|FAIL (when resume Summary touched)
 Pitch Summary: PASS|FAIL (required on resume / recruiter-pack)
+Pitch agentic highlight: PASS|FAIL (agentic AI variety major — not BI/Fabric-only)
 Experience order: importance-sorted for <target|general> — PASS|FAIL
 Skills: present + importance-ordered — PASS|FAIL
 Diff summary: (3–7 bullets)
