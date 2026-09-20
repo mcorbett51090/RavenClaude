@@ -1,7 +1,11 @@
 {
   "payload": {
     "plugins/ravenclaude-core/dashboard.html": [
-      ["seeded 2026-08-19", 30555, "measured before any inventory authoring"],
+      [
+        "seeded 2026-08-19",
+        30555,
+        "measured before any inventory authoring"
+      ],
       [
         "P9 wave 1 (12 entries)",
         31500,
@@ -89,7 +93,11 @@
       ]
     ],
     "index.html": [
-      ["seeded 2026-08-19", 6694, "measured before any inventory authoring"],
+      [
+        "seeded 2026-08-19",
+        6694,
+        "measured before any inventory authoring"
+      ],
       [
         "repo-review inventory entry (repo-review-corroboration-bucket-diff, /repo-review Phase 1 build, 2026-09-02)",
         6720,
@@ -104,12 +112,21 @@
         "host-scope chips on index portal (0.323.3, PR #1182)",
         7300,
         "Same PR #1182 host-scope chips fold into marketplace index portal (pd-host-filter + agent/skill scope badges). Island payload 7,292 > prior 6,745 by 547 (largest panel commands-payload). Re-measured on this branch head; appended, never edited."
+      ],
+      [
+        "people-operations-hr craft-candidate-materials skill+command (0.1.3) + skill-index restamp (PR #1215)",
+        7320,
+        "people-operations-hr 0.1.3 adds craft-candidate-materials skill+command; Gate 283 regen skill-index and Gate 237 restamp of skill-index-self-reference-convergence regenerate index.html. Island payload 7,306 > prior 7,300 by 6 (largest panel commands-payload). Same no-diagrams-for-inventory-entries shape; pure content-size raise. Re-measured on this branch head; appended, never edited."
       ]
     ]
   },
   "bytes": {
     "plugins/ravenclaude-core/dashboard.html": [
-      ["seeded 2026-08-19", 10273863, "measured before any inventory authoring"],
+      [
+        "seeded 2026-08-19",
+        10273863,
+        "measured before any inventory authoring"
+      ],
       [
         "R12 strength badge CSS",
         10276000,
@@ -247,7 +264,11 @@
       ]
     ],
     "index.html": [
-      ["seeded 2026-08-19", 9263430, "measured before any inventory authoring"],
+      [
+        "seeded 2026-08-19",
+        9263430,
+        "measured before any inventory authoring"
+      ],
       [
         "P9 wave 1 (12 entries)",
         9300000,

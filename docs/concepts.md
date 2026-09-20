@@ -3277,7 +3277,7 @@ remove `skill-index` from its own index, defeating the "still shows the way back
 
 **Sources:** [FORGE run dynamic-skill-context, plan.md phase P0](https://github.com/mcorbett51090/RavenClaude)
 
-_Last verified: 2026-09-08_
+_Last verified: 2026-09-20_
 
 
 ---
