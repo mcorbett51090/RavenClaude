@@ -104,6 +104,11 @@
         "host-scope chips on index portal (0.323.3, PR #1182)",
         7300,
         "Same PR #1182 host-scope chips fold into marketplace index portal (pd-host-filter + agent/skill scope badges). Island payload 7,292 > prior 6,745 by 547 (largest panel commands-payload). Re-measured on this branch head; appended, never edited."
+      ],
+      [
+        "people-operations-hr craft-candidate-materials skill+command (0.1.3) + skill-index restamp (PR #1215)",
+        7320,
+        "people-operations-hr 0.1.3 adds craft-candidate-materials skill+command; Gate 283 regen skill-index and Gate 237 restamp of skill-index-self-reference-convergence regenerate index.html. Island payload 7,306 > prior 7,300 by 6 (largest panel commands-payload). Same no-diagrams-for-inventory-entries shape; pure content-size raise. Re-measured on this branch head; appended, never edited."
       ]
     ]
   },
@@ -305,5 +310,5 @@
       ]
     ]
   },
-  "measured_against": "0f4101ace8fdfcd2baa2e1d45904d1730204b5c1"
+  "measured_against": "cf7a6890ba36239bbcc140af2002129b2120691d"
 }

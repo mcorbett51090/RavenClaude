@@ -25,7 +25,7 @@ Every entry below names its owning plugin. To bring a disabled plugin's skills b
 /reload-plugins
 ```
 
-## Index (956 skills across 184 plugins)
+## Index (957 skills across 184 plugins)
 
 | Skill | Plugin | Description |
 |---|---|---|
@@ -612,6 +612,7 @@ Every entry below names its owning plugin. To bring a disabled plugin's skills b
 | `design-an-mdf-program` | `partnerships-alliances` | Design market-development funds as a measured investment tied to a plan and an ROI floor — not a channel rebate nobody tracks. Reach for this when standing up or fixing MDF/co-op funds. |
 | `size-partner-sourced-pipeline` | `partnerships-alliances` | Size partner-sourced vs partner-influenced pipeline with a defined attribution rule, so the program number is one finance trusts and nothing is double-counted with direct. Reach for this before any partner-revenue claim. |
 | `structure-a-co-sell-motion` | `partnerships-alliances` | Build a co-sell motion around a named rep-to-rep play — mapped account overlap, a joint value proposition, and a shared incentive — not a 'we'll co-sell' press release. Reach for this when activating an alliance. |
+| `craft-candidate-materials` | `people-operations-hr` | Craft honest candidate materials — resume, LinkedIn Experience, LinkedIn About, cover letter, recruiter paste pack — as DIGEST + paste paths under /workspace. Reach for this when packaging Matthew (or fleet user) for a role; never invent metrics; Raven/current role present tense only; CoS does not own prose. |
 | `design-comp-bands` | `people-operations-hr` | Design defensible comp bands tied to leveling and dated market data — set midpoints/spreads, compute compa-ratio and range penetration, surface over/under-band outliers. Reach for this on a banding or offer question. |
 | `diagnose-attrition` | `people-operations-hr` | Diagnose an attrition spike with cost and cause — split regretted from non-regretted, localize to team/manager, price the loss, name the driver. Reach for this on a retention question. |
 | `model-hiring-plan` | `people-operations-hr` | Model a capacity-tied hiring plan — back-solve the funnel pipeline for target hires, flag the leaking stage, size recruiter capacity, and hand off the comp envelope. Reach for this on a hiring-plan or stuck-req question. |
