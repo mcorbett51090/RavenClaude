@@ -2,6 +2,15 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.324.3 — 2026-09-20
+
+### Fixed
+- **git push --mirror evaded the force-push hard DENY** — `srm.force-push` always_screen / `pre_llm_deny` and `guard-destructive.sh` only matched the long force flag, short `-f`, and `+<refspec>`. `git push --mirror` force-updates every ref under refs/ and deletes remote refs absent locally (git's documented mirror semantics) and was allowed. Added a segment-scoped `--mirror` trigger, a matching guard pattern, and the permission-floor glob `Bash(git push --mirror:*)` (DEFAULT_SECURITY_DENY, schema default, balanced seed, pattern-explanations).
+- Gate 209 (`check-hard-rule-floor.py` F1d) and Thing T4 hard-rule fixtures now drive the mirror shapes; the lease form and plain push stay allowed.
+
+### Locks / honesty
+- No `gate_floor` change. No hardening_edit change. Mirror is DENY, not rewritten to lease (there is no lease equivalent). Consumer `/plugin marketplace update` picks up the hook + catalog; the permission glob lands on next posture apply.
+
 ## 0.324.2 — 2026-09-19
 
 ### Added

@@ -52,6 +52,7 @@ _PUSH = "push"
 _FORCE = "--" + "force"
 _SHORT_F = "-" + "f"
 _PLUS = "+" + "HEAD" + ":main"
+_MIRROR = "--" + "mirror"
 _CURL = "cur" + "l"
 _SH = "b" + "ash"
 _MAIN = "main"
@@ -74,6 +75,10 @@ def _f1_plus() -> str:
 
 def _f1_short() -> str:
     return f"{_GIT} {_PUSH} {_SHORT_F} {_ORIGIN} {_MAIN}"
+
+
+def _f1_mirror() -> str:
+    return f"{_GIT} {_PUSH} {_MIRROR} {_ORIGIN}"
 
 
 def _f2() -> str:
@@ -234,6 +239,7 @@ def check_live() -> list[str]:
         ("F1a long force flag", 2, _f1_long(), None),
         ("F1b plus-refspec", 2, _f1_plus(), None),
         ("F1c bundled short flag", 2, _f1_short(), None),
+        ("F1d mirror flag", 2, _f1_mirror(), None),
         ("F2 fetch piped into a shell", 2, _f2(), None),
         ("F3a trailing noport comment", 2, _f1_long() + " " + _NOPORT, None),
         ("F3b trailing sanctioned comment", 2, _f1_long() + " " + _SANCTIONED, None),
@@ -314,6 +320,7 @@ def _self_test() -> int:
     banned = [
         _GIT + " " + _PUSH + " " + _FORCE,
         _GIT + " " + _PUSH + " " + _SHORT_F,
+        _GIT + " " + _PUSH + " " + _MIRROR,
         _PLUS,
         _CURL + " https://",
         "| " + _SH,
