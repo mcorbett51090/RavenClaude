@@ -39,13 +39,40 @@ Default evidence home (Matthew): `/workspace/cli-out/resume-cursor-da-user-ops/`
 - **No push** — write paste packs + browser notes only; LinkedIn/apply = CoS computerUse after READY
 - **No staffing-operations** invoke for this craft
 - **No employer-side TA strategist** roleplay for candidate packaging
+- **Resume structure HARD:** pitch-line Summary + importance-ordered Experience + Skills section (see below) — standing Matthew default
+
+
+## Resume structure HARD defaults (Matthew STANDING 2026-09-20)
+
+These are **not optional**. Every `resume` and every `recruiter-pack` that includes a resume MUST ship all three. Target packs (Cursor DA vs Power Platform, etc.) may **reorder** bullets/skills for the JD — they must **never drop** pitch Summary, importance order, or Skills.
+
+### 1) Pitch-line Summary (HARD)
+- One tight pitch (prefer **1–2 sentences**, ~≤220 chars for the lead clause) that answers: **what you build / for whom / proof shape** — scannable in 6 seconds.
+- **Not** an essay stack of every tool. Detail lives in Experience.
+- Target packs retarget the pitch to the JD (e.g. ops-reporting vs PP factory) without inventing claims.
+- Run **Resume Summary QA** (A1/A3–A6) before READY; DIGEST must note `Pitch Summary: PASS|FAIL`.
+
+### 2) Importance-ordered Experience bullets (HARD)
+- Within each role, bullets are ordered **most important / most JD-relevant first** (ownership, production dependency, primary craft) → supporting → tooling last.
+- Target packs reorder for the JD (e.g. Cursor DA: SQL/ops-reporting/DQ before agent stack; PP pack: Dataverse/Apps before orchestration).
+- Do **not** bury the ownership signal in bullet 4+. ATS checklist “first bullet carries ownership” remains in force.
+- DIGEST: `Experience order: importance-sorted for <target|general> — PASS|FAIL`.
+
+### 3) Skills section (HARD)
+- Resume **always** includes a Skills section (never omit).
+- Order skills by **importance to the target** (or general default: primary craft → platforms → data → orchestration last when agentic is supporting).
+- Only evidenced skills; no stuffing.
+- DIGEST: `Skills: present + importance-ordered — PASS|FAIL`.
+
+READY forbidden if any of Pitch Summary / Experience order / Skills FAIL.
 
 ## Steps
 1. **Read evidence first** — resume SSOT + prior DIGESTs/packs + tipped JD; list gaps as NEED-INPUT, do not fill with fiction.
 2. **Choose artifact + voice** — scannable bullets; blank line between LinkedIn Experience bullets; About = short first-person honest. **If About/Summary: run About QA checklist before READY.**
-3. **Draft paste pack** under `/workspace/cli-out/...` (prefer evidence folder).
-4. **Write DIGEST** with schema below; Status=READY only if paste pack is CoS-paste-safe.
-5. **Return condensed summary + absolute paths** to People Ops → CoS (≤~2k).
+3. **If resume/recruiter-pack:** enforce **pitch-line Summary + importance-ordered Experience + Skills** (HARD defaults). Target may reorder for JD; never omit.
+4. **Draft paste pack** under `/workspace/cli-out/...` (prefer evidence folder).
+5. **Write DIGEST** with schema below; Status=READY only if paste pack is CoS-paste-safe **and** structure HARD gates PASS.
+6. **Return condensed summary + absolute paths** to People Ops → CoS (≤~2k).
 
 
 ## LinkedIn About QA checklist (P0 — HARD before READY)
@@ -120,6 +147,9 @@ Verdict: YES-as-is | IMPROVE | REWRITE
 Honesty locks held: no invented metrics/%/$; tense OK; no BMA on fleet packaging
 About QA: A1..A8 PASS|FAIL (required when artifact includes About)
 Summary QA: A1/A3–A6 PASS|FAIL (when resume Summary touched)
+Pitch Summary: PASS|FAIL (required on resume / recruiter-pack)
+Experience order: importance-sorted for <target|general> — PASS|FAIL
+Skills: present + importance-ordered — PASS|FAIL
 Diff summary: (3–7 bullets)
 Browser/Auth notes: (field order / blank-line paste — CoS only)
 Non-claims: People Ops does not push LinkedIn/apply
