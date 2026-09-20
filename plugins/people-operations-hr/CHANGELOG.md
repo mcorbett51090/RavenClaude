@@ -2,6 +2,12 @@
 
 All notable changes to this plugin are documented here. Versioning is semver; bump on every user-visible change (AGENTS.md).
 
+## [0.1.5] — 2026-09-20
+
+### Changed
+
+- **`craft-candidate-materials`** — Multi-model DONE gate (HARD): Claude → Codex → Grok orthogonal lenses; never same-model sequential. DIGEST `3-model DONE` required for READY. PE pack SSOT: `PACK-talent-forge-multimodel-2026-09-20.md`.
+
 ## [0.1.4] — 2026-09-20
 
 ### Changed
