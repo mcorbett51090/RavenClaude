@@ -18,13 +18,14 @@ Today this marketplace ships **184 plugins** (live inventory: **[portal Marketpl
 
 ### What's new in core (through **0.324.2**)
 
-- **Thing tribunal** — opt-in command-review for risky tools; **hardening EDIT** behind `command_review.hardening_edit` (**default ON**; set false to opt out).
+- **Thing tribunal** — opt-in command-review for risky tools; **hardening EDIT** behind `command_review.hardening_edit` (**default ON**; set false to opt out). Force-push / hard-rule floors stay DENY under EDIT ON.
 - **Runes ready-queue** — Oath-hook + `rc runes`; dashboard **Runes at session start** opt-in (`runes:` absent ⇒ off); may auto-claim ungated ready work when On; never auto Longship merge.
 - **Prompt Builder** — `#/prompt-builder` with Gate 144 / Host Context floors; catalog model SSOT; blank modes + canned Task/Few-shot.
-- **Plugin lifecycle** — per-project last-used ledger; opt-in deprecate/uninstall sweep (**auto_uninstall default OFF**; uninstall plan-only until a reviewed API); ask-first install from the **ravenclaude** marketplace only.
+- **Plugin lifecycle** — per-project last-used ledger; `auto_uninstall` / `auto_install` default **OFF** (`auto_install`: off|ask|auto); opt-in uninstall execute when ON; tip/SHA integrity pin required before `auto` install `--execute` (fail-closed on missing/mismatch); ask-first install from the **ravenclaude** marketplace only; `ravenclaude-core` hard-pinned.
+- **Blocked-exhaustion gate** — after a RavenClaude guard denies a tool, hand-backs to the human are refused until distinct-channel workarounds are logged (`rc workaround …`); knob `workaround_exhaustion: off|warn|block` (absent ⇒ off).
 - **Comfort-posture + dashboard** — deny/ask/allow autonomy; Settings + Pipeline; host-scope badges; Learn tab for teaching the system.
 
-> **Count-drift note:** specialist/skill/hook tallies change every release. Treat the portal and `claude plugin details ravenclaude-core` as SSOT — do not trust stale “15 specialists / 58 skills” prose if it reappears elsewhere.
+> **Count-drift note:** specialist/skill/hook tallies change every release. Treat the portal and `claude plugin details ravenclaude-core` as SSOT — do not trust stale “15 specialists / 58 skills” prose if it reappears elsewhere. Marketplace plugin count on tip: see portal / `.claude-plugin/marketplace.json` (currently **184**).
 
 ---
 
