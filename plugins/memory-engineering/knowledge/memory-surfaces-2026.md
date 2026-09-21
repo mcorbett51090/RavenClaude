@@ -153,6 +153,27 @@ State both. A negative finding that is not written down gets re-invented as a po
 1. **There is no Agent SDK memory API.** No such documented surface exists; the SDK inherits the Claude Code surface (CLAUDE.md, auto memory, subagent memory, compaction). Do not invent one to fill the gap. `[unverified — absence of evidence; a complete docs-index enumeration was not finished this session]`
 2. **A prefix cache is not a memory tier.** vLLM's automatic prefix caching evicts reference-count-0 blocks LRU on exhaustion; it is opportunistic and replica-local, so it is never durable persistence. A returning session whose blocks were evicted re-prefills from scratch. **Source:** https://docs.vllm.ai/en/stable/design/prefix_caching/ (retrieved 2026-08-06).
 
+
+## Grok Build Memory (GA 1.0.34) — [verify-at-use · retrieved via angle 2026-09-16 · UNVERIFIED]
+
+DOC adapt 2026-09-20. This is a **vendor surface map**, not a claim that RavenClaude operates Grok Memory.
+
+- **Who holds the bytes:** Grok Build host memory store (vendor-managed markdown notes).
+- **Scopes:** per-project workspace + global preferences.
+- **Operator verbs:** `/memory` (read-only browse / filter / enable-disable);
+  `/dream` (merge observations into topic files; also periodic background).
+- **Capture:** background after each turn; does not interrupt the session.
+- **Session rule:** applies to **new sessions only** (`/new` or fresh `grok`);
+  notes begin after first completed turn.
+- **Non-store (HARD):** task state, tentative conclusions, secrets, facts already
+  in repo/docs.
+- **Authority:** current conversation instructions take precedence over recall.
+- **RC disposition:** leave-native runtime; map here as a surface; design/eval
+  questions still route to memory-engineering agents — do not fork a Grok-only
+  memory product inside RavenClaude.
+- **Dream disambiguation:** Grok `/dream` (native host consolidation) ≠ Claude
+  Managed Agents **Dreams** (API beta, surface 5b above). Do not conflate.
+
 ## Porting this to a non-Anthropic stack
 
 The vendor changes; the questions do not. For each surface in whatever platform you are on, write down:
