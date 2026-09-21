@@ -2352,7 +2352,7 @@ Probe: `unprobed: the delivery fact is a host-platform property; it is modelled 
 
 **Sources:** [measured in the FORGE product-inventory run](https://github.com/mcorbett51090/RavenClaude/pull/997)
 
-_Last verified: 2026-09-18_
+_Last verified: 2026-09-20_
 
 
 ---
@@ -2474,7 +2474,7 @@ Probe: `scripts/audit-gates.sh`
 
 **Sources:** [measured in the FORGE product-inventory run](https://github.com/mcorbett51090/RavenClaude/pull/997)
 
-_Last verified: 2026-09-17_
+_Last verified: 2026-09-20_
 
 
 ---
@@ -3055,7 +3055,7 @@ is not an optimization over a simpler one-hop lookup; the one-hop lookup does no
 
 **Sources:** [session-relay build, 2026-09-01 -- live ListAgents/session-registry comparison in this authoring session](../plugins/ravenclaude-core/knowledge/cross-session-messaging.md)
 
-_Last verified: 2026-09-01_
+_Last verified: 2026-09-20_
 
 
 ---
