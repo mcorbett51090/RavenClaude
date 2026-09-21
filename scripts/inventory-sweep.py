@@ -460,24 +460,45 @@ def _hook_benign(root: Path, paths: list[str], ctx: dict) -> dict:
                 "cwd": str(sandbox),
             }
         )
+        # CLI-dispatch hooks (hooks.json ends with ask|stop): invoke those lanes
+        # with the benign Read stdin. Sandbox-as-$1 hits usage exit 2 on that ABI
+        # and must not be conflated with deny (see workaround-exhaustion.sh).
+        cli_lanes = _cli_dispatch_lanes(root)
         for p in paths:
             name = Path(p).name
             if name in GLOBAL_LOCK_HOOKS:
                 out[p] = (SKIP, "global-lock-hook")
                 continue
             fp = root / p
-            r = _run(sandbox, ["bash", str(fp), str(sandbox)], stdin=payload, timeout=8, env=env)
-            if r.returncode == 124:
-                # ⛔ A TIMEOUT IS UNKNOWN, NEVER A PASS. "did not deny within 8s"
-                # and "does not deny" are different facts, and recording the second
-                # from the first is the manufactured-clean shape.
+            lanes = cli_lanes.get(name)
+            if lanes:
+                # Primary PreToolUse lane is ask; also probe stop when registered.
+                argv_variants = [["bash", str(fp), lane] for lane in lanes]
+            else:
+                argv_variants = [["bash", str(fp), str(sandbox)]]
+            timed_out = False
+            saw_exit_2 = False
+            for argv in argv_variants:
+                r = _run(sandbox, argv, stdin=payload, timeout=8, env=env)
+                if r.returncode == 124:
+                    # ⛔ A TIMEOUT IS UNKNOWN, NEVER A PASS. "did not deny within 8s"
+                    # and "does not deny" are different facts, and recording the second
+                    # from the first is the manufactured-clean shape.
+                    timed_out = True
+                    break
+                if r.returncode == 2:
+                    saw_exit_2 = True
+                    break
+            if timed_out:
                 out[p] = (UNKNOWN, "probe-timeout")
                 continue
-            # ⛔ Exit 2 is the DENY channel. Anything else (0, 1, even a crash) is
-            # not a denial — claim 8: a failing Bash tool_response carries no
-            # exit-code field, so the emitted envelope is authoritative, never an
-            # inferred code.
-            out[p] = (FAIL, "denies-benign-payload") if r.returncode == 2 else (PASS, "ok")
+            # ⛔ Exit 2 is the DENY channel only for hooks whose ABI uses exit 2 as
+            # deny (path-taking guards). CLI-dispatch hooks use exit 2 for usage /
+            # unknown subcommand — that is not deny; those hooks are invoked via
+            # ask|stop above. Anything else (0, 1, even a crash) is not a denial —
+            # claim 8: a failing Bash tool_response carries no exit-code field, so
+            # the emitted envelope is authoritative, never an inferred code.
+            out[p] = (FAIL, "denies-benign-payload") if saw_exit_2 else (PASS, "ok")
     return out
 
 
@@ -586,6 +607,30 @@ def _registered_hook_names(root: Path) -> set[str]:
         blob = cfg.read_text(encoding="utf-8", errors="replace")
         names.update(re.findall(r"([A-Za-z0-9_.-]+\.sh)", blob))
     return names
+
+
+# Host lanes for multi-subcommand / CLI-dispatch hooks. hooks.json wires
+# `hook.sh ask` / `hook.sh stop` — not a sandbox path. Closed set: only the
+# lanes the host actually registers (ask|stop). Unknown words stay CLI-loud.
+_CLI_DISPATCH_LANE_RE = re.compile(r"([A-Za-z0-9_.-]+\.sh)\s+(ask|stop)\b")
+
+
+def _cli_dispatch_lanes(root: Path) -> dict[str, list[str]]:
+    """Basename → ordered unique host lanes from hooks.json / settings.json.
+
+    Used by hook-benign-passthrough so CLI-dispatch hooks are probed with the
+    same argv shape the host uses. Prefer real ask|stop invoke over SKIP.
+    """
+    lanes: dict[str, list[str]] = {}
+    for cfg in (root / PLUGIN / "hooks" / "hooks.json", root / ".claude" / "settings.json"):
+        if not cfg.is_file():
+            continue
+        blob = cfg.read_text(encoding="utf-8", errors="replace")
+        for name, lane in _CLI_DISPATCH_LANE_RE.findall(blob):
+            seen = lanes.setdefault(name, [])
+            if lane not in seen:
+                seen.append(lane)
+    return lanes
 
 
 def _haystack_parts(root: Path, patterns: tuple[str, ...]) -> dict[str, str]:
