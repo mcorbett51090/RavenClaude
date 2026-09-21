@@ -44,6 +44,16 @@ Measured 2026-08-26: Copilot CLI's `--model auto` rejects `--effort` outright at
 
 Falsifier: a future Copilot CLI release accepting `--effort` together with `--model auto`.
 
+
+## Copilot auto-tiers vs cheap lane (DOC adapt 2026-09-20 — UNVERIFIED)
+Copilot may expose **efficiency / balance / intelligence** as auto-selection
+weights (cost · quality · latency). That does **not** invent a pinned
+`--model` slug for `copilot-delegate.sh`. Until measured otherwise: lane
+still `"cheap"`; agent still `grok|copilot`; Copilot differentiation remains
+timeout budget and/or explicit non-`auto` model when effort is required.
+If a future CLI accepts named auto-tier flags with `auto`, re-measure and
+update this card + `nuance_evidence`.
+
 ## UMM absorption (0.323.11)
 
 The agent × model × effort × budget matrix is now also the **Unified Model Matrix**

@@ -30,6 +30,13 @@ Turn "which Copilot model?" into a defensible, cost-aware choice grounded in [`.
 ## The discipline (in order)
 
 1. **Traverse the decision tree first.** Read the `## Decision Tree` in the knowledge bank and place the task: latency-dominated inline work → fast/completion tier; long unsupervised agentic run → coding-agent tier; genuinely hard reasoning → top frontier; everything else → `Auto` or the balanced default. Do **not** keyword-match the task to a model name.
+   When the picker exposes Copilot **auto model tiers** (rolling out per
+   github.blog weekly 2026-09-14 — [verify-at-use]), map tree leaves to:
+   - **efficiency** ≈ cost/latency-first (fast/completion leaf)
+   - **balance** ≈ default everyday / prior `Auto`-balanced leaf
+   - **intelligence** ≈ hard-reasoning / top-frontier leaf
+   Same model *pool*; the tier is a cost·quality·latency weight — still
+   scope to surface + plan + retrieval date. Do not invent SKU names.
 2. **Scope availability to the surface AND the date.** Completions, Chat, coding agent, cloud agent, and mobile expose **different** model sets, and the set churns. Never say "model X is in Copilot" flat — say "as of <retrieval date>, on <surface>, per the supported-models doc." A removal from one surface (e.g. web chat) is not a picker-wide removal.
 3. **Respect plan gating.** Free / Pro / Business / Enterprise expose different models. If you don't know the consumer's plan, say so and give the answer conditional on it.
 4. **Right-size for cost.** Default to `Auto` or the balanced tier; reserve the top frontier for the hard tail. The metric is cost-per-resolved-task, not model rank.
@@ -51,7 +58,7 @@ Model names, surface availability, plan gating, and org model-rules behavior are
 ```
 Goal: <the task + why model choice matters here>
 Surface & plan: <completions/chat/coding-agent/cloud-agent/mobile; plan if known>
-Tier (from the tree): <fast / coding-agent / top-frontier / balanced-Auto> + why
+Tier (from the tree): <fast / coding-agent / top-frontier / balanced-Auto | efficiency|balance|intelligence as Copilot-native aliases> + why
 Candidate model(s): <current SKU(s) for that surface, DATED + verify-at-use>
 Cost note: <right-sizing rationale; cost-per-resolved-task>
 Verify: <the live source to confirm availability before relying>
@@ -66,3 +73,29 @@ Plus the cross-plugin **Structured Output Protocol** JSON block ([`../../ravencl
 - **"Available in Copilot" is always scoped.** Surface + plan + date, or it's a half-truth.
 - **A removal from one surface is not a removal from Copilot.** Check before you alarm someone.
 - **Never invent a SKU.** "GPT-5.6" doesn't exist until the verified lineup says it does.
+
+ (efficiency | balance | intelligence)
+
+```markdown
+## Copilot auto-tier picker (efficiency | balance | intelligence)
+
+Use when GitHub Copilot's auto model selection exposes named tiers that
+weigh **cost · quality · latency** over the **same model pool**
+([verify-at-use] github.blog Copilot weekly 2026-09-14).
+
+| Copilot auto-tier | RC decision-tree leaf | When |
+|-------------------|----------------------|------|
+| **efficiency** | fast / completion | Latency- or cost-dominated inline/triage work |
+| **balance** | balanced / `Auto` default | Everyday implementation; default when unsure |
+| **intelligence** | top-frontier / hard reasoning | Genuinely hard tail only; cost-per-resolved-task must justify |
+
+Rules:
+1. Traverse the vendor-neutral tree **before** naming a SKU.
+2. Tier ≠ new SKU — closed-world lineup still governs model names.
+3. Scope every availability claim: surface + plan + retrieval date.
+4. Cheap-lane / Copilot CLI: named auto-tiers do not by themselves fix
+   `--model auto` + `--effort` incompatibility — re-measure before wiring flags.
+5. Multi-harness: Grok bots | Cursor | Claude | SuperGrok — only apply
+   Copilot tier names on Copilot surfaces; siblings keep their own dials.
+```
+

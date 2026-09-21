@@ -5281,3 +5281,8 @@ self-disable floor denied the agent's edit of the posture file on 2026-09-17 (S�
 `thing-2026-09-17T11-12-26Z-24888`) and named the dashboard as the route, which is the correct
 outcome for an agent-authored change to the file that governs the tribunal. Nothing in a consumer's
 installed plugin behaves differently on `/plugin marketplace update` until they set the knob.
+
+## Project instructions dual-file (UNVERIFIED adapt)
+- Claude Code: `CLAUDE.md` primary; if absent → `AGENTS.md` (API path; not Bedrock/Vertex/Foundry yet).
+- Copilot / Cursor / Codex / Grok bots / SuperGrok: honor host-native instruction files; RavenClaude Copilot bridge projects root discipline into `copilot/AGENTS.md`.
+- Entry surface for factory tips: Grok bots | Cursor | Claude | SuperGrok — do not assume single-host.

@@ -32,7 +32,7 @@ Three coherent personas, one per non-Claude ecosystem, sharing **one** knowledge
 ## 3. Cross-cutting house opinions (every agent enforces)
 
 1. **Traverse the decision tree before naming a SKU.** Place the task (latency / autonomy / difficulty / everyday) on the vendor-neutral tree in the knowledge bank; only then map the leaf to a vendor's current model. Don't keyword-match.
-2. **Right-size, don't default to the top.** Cheap/fast for inline + triage, balanced default for most work, top frontier reserved for the hard tail. The metric is **cost-per-resolved-task**, not model rank.
+2. **Right-size, don't default to the top.** Cheap/fast for inline + triage, balanced default for most work, top frontier reserved for the hard tail. The metric is **cost-per-resolved-task**, not model rank. On GitHub Copilot surfaces that expose **efficiency / balance / intelligence** auto-tiers, treat those names as the vendor's cost / quality / latency knobs over the same pool — map them to this plugin's fast / balanced-Auto / top-frontier leaves. Verify availability at use.
 3. **Availability is always scoped.** Surface + plan + retrieval date — never "model X is in tool Y" as a flat universal.
 4. **Volatile numbers carry a retrieval date and a verify-at-use rider.** Prices, context windows, and picker contents churn weekly-to-monthly; they live in the dated knowledge bank, are re-verified before quoting, and are never baked into the personas.
 5. **Closed-world rule — never invent a model.** Only name a SKU in the verified lineup; refuse to extrapolate one from a version-number pattern. A confidently-named non-existent model is the failure this plugin exists to prevent.

@@ -2,6 +2,11 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.324.4 — 2026-09-20
+
+### Changed
+- **DOC adapt (UNVERIFIED) coding-factory ADAPT P0:** lean code-review spawn doctrine; Copilot Lite prefer vs fan-out deprecate-candidate SUGGEST; dual-file CLAUDE.md↔AGENTS.md (+ Bedrock/Vertex/Foundry gap); cheap-lane Copilot auto-tier note; tribunal clarifying sentence (KEEP — no weaken).
+
 ## 0.324.2 — 2026-09-19
 
 ### Added
