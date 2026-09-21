@@ -2,6 +2,12 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.324.6 — 2026-09-20
+
+### Changed
+- **DOC adapt (UNVERIFIED) coding-factory ADAPT P2 / Adapt #7:** Gemini CLI 0.60 host-security alignment in `knowledge/gemini-customization.md` + header pointer on thin shim `hooks/gemini-hook-adapter.sh` (OAuth issuer / extension consent+env / path·symlink·SFN / envelope provenance / sandbox·Seatbelt). **KEEP** FOREIGN-TREE / exit-2 deny — adapter does not re-implement OAuth/SFN.
+- **DOC adapt (UNVERIFIED) TaskOutput deprecate-candidate:** Claude Code 2.1.277 removed `TaskOutput`; teach **`Read` on background output file**; annotate `knowledge/cross-session-messaging.md`; Gate 289 fixture/ADR comments drop removed-tool token (no file deletes).
+
 ## 0.324.5 — 2026-09-20
 
 ### Changed
@@ -286,6 +292,8 @@ All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the 
   fail and that `Bash(git a, b)`, `TaskOutput` / `TaskStop` and a `disallowedTools: Agent`
   pass clean. Until now the only guard was `guard-recursive-spawn.sh`, a grep over prose
   that warns and cannot block.
+  *(Post-2.1.277 footnote — UNVERIFIED DOC adapt 2026-09-20: `TaskOutput` removed upstream;
+  Gate 289 fixture updated separately to use still-valid look-alikes.)*
 - **`handoff-tax-meter` sees nesting** (ledger schema v2). Hooks fire inside subagents and
   the input then carries the caller's `agent_id` / `agent_type`, so each ledger line records
   `caller_agent_id`, `caller_agent_type`, `nested`, and a reconstructed `depth` (1 = main

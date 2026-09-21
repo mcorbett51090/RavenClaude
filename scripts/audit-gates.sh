@@ -6807,7 +6807,8 @@ echo "── Gate 289: nested dispatch (no shipped agent may be able to call age
 # reason. Teeth: inline / block / flow-sequence `Agent`, `Task`, `"*"` and
 # `Agent(scout)` all fail; stale + reasonless exemptions fail; a reasoned
 # exemption passes with an advisory; `Bash(git a, b)` (comma inside parens),
-# TaskOutput / TaskStop / AgentMap and `disallowedTools: Agent` pass clean;
+# Grep / TaskStop / AgentMap and `disallowedTools: Agent` pass clean;
+# (TaskOutput removed CC 2.1.277 — fixture no longer uses removed tool);
 # an empty roster is not a pass. The determination this enforces:
 # docs/decisions/2026-09-14-nested-dispatch-determination.md.
 rc=0; python3 scripts/check-nested-dispatch.py --check >/dev/null 2>&1 || rc=$?
