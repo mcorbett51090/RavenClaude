@@ -1066,6 +1066,8 @@ The **`gate_floor`** knob (default `high`) is the lowest tier whose *confident A
 
 Feature flag `command_review.hardening_edit` (default **true** after AppSec enable GO 2026-09-16; set false to opt out). Design **A+C/H3**: seat proposes a safer Bash equivalent; the signed transform registry verifies. Harden fail → ask. Empty-cited EDIT outside the orchestrator discriminator → DENY. High-blast v1 → still ask + show hardened form. **Hard-rule / pre_llm (e.g. force-push) stays DENY** under the flag ON — transforms do not clear that floor to ASK. No bypass list; no raising `gate_floor`. See `skills/thing/SKILL.md` and `knowledge/thing-harden-transforms.yaml`.
 
+> Copilot Lite multi-agent *PR* review is not a substitute for the command-review tribunal (shell PreToolUse adjudication).
+
 ```mermaid
 flowchart TD
   A[Bash PreToolUse] --> B{category toggled on?}
@@ -1955,6 +1957,34 @@ Copilot CLI is itself a plugin host with the same lifecycle events (SessionStart
 
 The design pillar is **frictionless updates**: instead of Copilot's re-install-to-update flow, the plugin loads **live** via `copilot --plugin-dir copilot/`, so an update is just **`git pull`** (`ravenclaude update`). No re-install, ever.
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+## Dual-file project instructions (DOC adapt 2026-09-20 — UNVERIFIED)
+- **Copilot:** `AGENTS.md` remains first-class (root / cwd /
+  `COPILOT_CUSTOM_INSTRUCTIONS_DIRS`) — unchanged.
+- **Claude Code (Anthropic API):** if a project has **no** `CLAUDE.md`,
+  Claude Code reads **`AGENTS.md`** as project instructions (CC 2.1.277);
+  change under Project instructions in `/config`.
+- **Gap:** AGENTS.md-as-CLAUDE-fallback is **not yet** on **Bedrock,
+  Vertex, or Foundry** per changelog — keep `CLAUDE.md` on those hosts.
+- Multi-harness repos: prefer keeping **both** files in sync, or a short
+  `CLAUDE.md` that points at shared policy also mirrored in `AGENTS.md`.
+
 ```mermaid
 flowchart TD
   CANON[Canonical plugin] --> GEN[generate-copilot-plugin.py]
@@ -2372,6 +2402,16 @@ Measured 2026-08-26: Copilot CLI's `--model auto` rejects `--effort` outright at
 
 Falsifier: a future Copilot CLI release accepting `--effort` together with `--model auto`.
 
+
+## Copilot auto-tiers vs cheap lane (DOC adapt 2026-09-20 — UNVERIFIED)
+Copilot may expose **efficiency / balance / intelligence** as auto-selection
+weights (cost · quality · latency). That does **not** invent a pinned
+`--model` slug for `copilot-delegate.sh`. Until measured otherwise: lane
+still `"cheap"`; agent still `grok|copilot`; Copilot differentiation remains
+timeout budget and/or explicit non-`auto` model when effort is required.
+If a future CLI accepts named auto-tier flags with `auto`, re-measure and
+update this card + `nuance_evidence`.
+
 ## UMM absorption (0.323.11)
 
 The agent × model × effort × budget matrix is now also the **Unified Model Matrix**
@@ -2408,7 +2448,7 @@ Probe: `unprobed: requires a real consumer install cycle, which no CI job perfor
 
 **Sources:** [measured in the FORGE product-inventory run](https://github.com/mcorbett51090/RavenClaude/pull/997)
 
-_Last verified: 2026-09-19_
+_Last verified: 2026-09-20_
 
 
 ---
