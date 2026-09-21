@@ -34,6 +34,12 @@
 # Usage (from a generated .gemini/settings.json entry):
 #   gemini-hook-adapter.sh <mode> /abs/path/to/real-hook.sh [args...]
 # Modes: pretool | posttool | sessionstart
+#
+# Gemini CLI 0.60+ host security (DOC pointer — UNVERIFIED):
+# MCP OAuth RFC 9207 issuer strictness · extension consent/env sanitize ·
+# path/symlink/SFN boundaries · untrusted tool-output envelope provenance ·
+# sandbox/Seatbelt isolation. See knowledge/gemini-customization.md §0.60.
+# This shim does NOT implement those checks and MUST NOT weaken them.
 set -uo pipefail
 
 mode="${1:-}"

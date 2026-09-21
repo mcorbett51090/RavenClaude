@@ -121,6 +121,13 @@ Anthropic API; the transcript is stored server-side per Anthropic's Data Usage p
 
 ## Background tasks / agent view — subagent-researched + directly observed, 2026-09-01
 
+> **Deprecate-candidate (Claude Code 2.1.277 — UNVERIFIED until CoS GO):**
+> The `TaskOutput` tool was **removed**. Do not grant it in agent `tools:` lists
+> or teach it in runbooks. To inspect background task output, **`Read` the
+> background output file**. `taskOutputMaxChars` / `TASK_MAX_OUTPUT_LENGTH` are
+> inert. Human GO required before deleting any historical references.
+
+
 `claude agents` ("agent view") is a separate, also-research-preview supervisor-managed
 background-session UI (`claude --bg`, `/bg`, `/fork`) — a per-user daemon hosts sessions under
 `~/.claude/jobs/<id>/`. A background session **does** bind a messaging socket and shows up in
@@ -130,6 +137,9 @@ session:** the deferred tool list includes `Monitor` and `TaskStop` (both loadab
 schemas as part of this research, so their exact contract (e.g. a rumored `TaskOutput(task_id)` /
 `TaskStop(task_id)` pair for reading/stopping a backgrounded shell command) stays
 `[unverified — subagent found only third-party blog descriptions, not official docs text]`.
+**Update (Claude Code 2.1.277 — UNVERIFIED):** `TaskOutput` was **removed** upstream — do not
+teach it as available; for background shell output use **`Read` on the task's output file**.
+Keep `TaskStop`/`Monitor` notes only if still verified present `[verify-at-use]`.
 
 ## The correlation problem `session-relay` solves
 
@@ -169,6 +179,9 @@ that happens, instead of guessing.
   (the bare `name` is sufficient), but don't assume it's a hash of anything found above.
 - `TaskOutput`/`TaskStop`/`Monitor`'s precise contracts beyond what this session's own tool
   descriptions state — `[unverified — training/third-party, not official docs]`.
+  **Deprecate-candidate:** `TaskOutput` removed in Claude Code 2.1.277; do not teach as
+  available. Prefer **`Read` on the background output file**. `TaskStop`/`Monitor` remain
+  `[verify-at-use]`.
 - The Remote Control announcement date (~2026-02-24) rests on secondary sources, not a fetched
   Anthropic post — `[unverified]`.
 - Whether `crossSessionInbound`/`isolatePeerMachines` are configured anywhere in this repo's

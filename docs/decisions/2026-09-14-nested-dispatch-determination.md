@@ -77,9 +77,17 @@ No exemption is on file today. The first one to be added must pass the shape tes
 
 ## 5. What shipped for this determination
 
+> **Supersession note (Claude Code 2.1.277 — UNVERIFIED DOC adapt 2026-09-20):**
+> The `TaskOutput` tool was **removed** upstream. Gate 289 clean-list examples that
+> historically cited `TaskOutput` as a non-dispatch look-alike now use still-valid
+> tools (e.g. `Grep`). To inspect background task output, **`Read` the background
+> output file**. `taskOutputMaxChars` / `TASK_MAX_OUTPUT_LENGTH` are inert. Do not
+> restore `TaskOutput` in agent `tools:` lists or teaching prose.
+
+
 | Layer | Artifact | Binds? |
 | --- | --- | --- |
-| **Gate 289** — the declaration | [`scripts/check-nested-dispatch.py`](../../scripts/check-nested-dispatch.py) in `scripts/audit-gates.sh`: fails any `agents/*.md` whose `tools:` grants `Agent` / `Agent(...)` / `Task` / `"*"` without a reasoned exemption; fails a stale or reasonless exemption; an empty roster is not a pass; `--must-fail` proves all six grant forms fail and a clean list (incl. `Bash(a, b)`, `TaskOutput`, `disallowedTools: Agent`) passes | **yes** — CI |
+| **Gate 289** — the declaration | [`scripts/check-nested-dispatch.py`](../../scripts/check-nested-dispatch.py) in `scripts/audit-gates.sh`: fails any `agents/*.md` whose `tools:` grants `Agent` / `Agent(...)` / `Task` / `"*"` without a reasoned exemption; fails a stale or reasonless exemption; an empty roster is not a pass; `--must-fail` proves all six grant forms fail and a clean list (incl. `Bash(a, b)`, `Grep` [was `TaskOutput` pre-2.1.277], `disallowedTools: Agent`) passes | **yes** — CI |
 | **Meter** — the observation | [`handoff-tax-meter.py`](../../plugins/ravenclaude-core/scripts/handoff-tax-meter.py) schema v2: records `caller_agent_id`, `caller_agent_type`, `nested`, `depth` (reconstructed from the caller's own ledger line; a stated lower bound when the caller was never seen spawned), the `nested_dispatch` flag + advisory naming the caller, layer, off-switch and this document; `dispatch-summary` gains a `nesting` row. Gate 285's hook test drives the nested path through the real bash contract (legs H1–H6) | no — advisory, by design |
 | **Prose** | `subagent-isolation-and-tooling.md` (the stale "cannot spawn"), `rules/agent-collaboration.md` (hard layer = `tools:`, gated), `model-tier-delegation.md` § "Multi-hop delegation", `AGENTS.md` rule 11, the agent template, the `agent-quality-rubric` skill | no |
 | **Prose, written under maintainer override** | `plugins/ravenclaude-core/CLAUDE.md` core-rule paragraph and `CHANGELOG.md` 0.323.0 entry — the tribunal's whole-file screen blocked every tool-mediated attempt (§ 6); applied 2026-09-14 from the shell after the maintainer overrode the rule for this task | no |
@@ -110,7 +118,7 @@ Option 1 is the durable one and stays open as the design check-in (ledger `rc-6c
 **Added**
 
 - **Determination: may a called agent call agents?** Possible — yes, the platform nests three layers deep by default (`CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH`). Enabled in this roster — no, and now by declaration: all 623 agents omit `Agent` from `tools:`, which is the layer that actually binds (`Agent(type)` scoping is ignored in a subagent definition, so `Agent` in any form is an unscoped grant). Desirable — not as a default; the one sanctionable shape is a frontier-tier parent fanning out to fast-tier read-only leaves, exempted per agent by name with a reason. This document is the full record; the operating summary is `knowledge/model-tier-delegation.md` § "Multi-hop delegation".
-- **Gate 289 — `scripts/check-nested-dispatch.py`** (marketplace CI): fails any `agents/*.md` whose `tools:` grants `Agent` / `Agent(...)` / `Task` / `"*"` without a reasoned entry in `tests/fixtures/nested-dispatch-exemptions.json`; a stale or reasonless exemption fails; an empty roster is not a pass. `--must-fail` proves all six grant forms fail and that `Bash(git a, b)`, `TaskOutput` / `TaskStop` and a `disallowedTools: Agent` pass clean. Until now the only guard was `guard-recursive-spawn.sh`, a grep over prose that warns and cannot block.
+- **Gate 289 — `scripts/check-nested-dispatch.py`** (marketplace CI): fails any `agents/*.md` whose `tools:` grants `Agent` / `Agent(...)` / `Task` / `"*"` without a reasoned entry in `tests/fixtures/nested-dispatch-exemptions.json`; a stale or reasonless exemption fails; an empty roster is not a pass. `--must-fail` proves all six grant forms fail and that `Bash(git a, b)`, `Grep` / `TaskStop` (historically `TaskOutput` / `TaskStop` pre-2.1.277) and a `disallowedTools: Agent` pass clean. Until now the only guard was `guard-recursive-spawn.sh`, a grep over prose that warns and cannot block.
 - **`handoff-tax-meter` sees nesting** (ledger schema v2). Hooks fire inside subagents and the input then carries the caller's `agent_id` / `agent_type`, so each ledger line records `caller_agent_id`, `caller_agent_type`, `nested`, and a reconstructed `depth` (1 = main thread; the caller's own depth + 1 when the caller was spawned in this session's ledger; else `2` marked `depth_is_lower_bound`). New advisory flag **`nested_dispatch`** names the caller, the layer, the off-switch and this decision; `rc dispatch-summary` gains a `nesting` row. This is how the three vectors Gate 289 cannot reach — the built-in `general-purpose` / `claude` types, a fork, a consumer's project-local agent — become visible. Gate 285's hook test drives the nested path through the real bash contract (legs H1–H6).
 
 **Changed**
