@@ -2,6 +2,12 @@
 
 All notable changes to this plugin are documented here. Versioning is semver; bump on every user-visible change (AGENTS.md).
 
+## [0.1.3] — 2026-09-20
+
+### Changed
+
+- **DOC adapt (UNVERIFIED) coding-factory ADAPT P1 / Adapt #8:** Grok Build Memory GA side-by-side — leave-native `/memory` `/dream`; HARD doctrine stamp (NEW-SESSION-ONLY · NO SECRETS · NO TASK-STATE · NO SECOND PRODUCT · REPO FACTS IN REPO · CURRENT TURN WINS); surfaces map row; ASI06 untrusted-input applies when reading Grok notes; dual-dream disambiguation (Grok `/dream` ≠ Claude Dreams). No second memory product. `grok-bot-creation` / `grok-bot-delegation` remain NOT FOUND (not invented).
+
 ## [0.1.2] — 2026-08-14
 
 ### Added

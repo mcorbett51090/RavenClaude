@@ -2,6 +2,11 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.324.5 — 2026-09-20
+
+### Changed
+- **DOC adapt (UNVERIFIED) coding-factory ADAPT P1 / Adapt #6:** Codex 0.155 agents overview hide/archive/delete + managed worktree ownership; daemon update schedules + goal/thread recovery after restart; cleanup-worktrees / new-worktree language aligned so Sleipnir RC trees are not conflated with Codex managed worktrees. **Guardian approval evidence KEEP** — no soften.
+
 ## 0.324.4 — 2026-09-20
 
 ### Changed
