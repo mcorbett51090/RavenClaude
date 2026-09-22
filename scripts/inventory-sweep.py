@@ -401,7 +401,15 @@ def _script_selftest(root: Path, paths: list[str], ctx: dict) -> dict:
         if decl.returncode != 0 or "must-fail-teeth-exit:" not in decl.stdout:
             out[p] = (SKIP, "no-selftest-declared")
             continue
-        want = decl.stdout.split("must-fail-teeth-exit:")[1].strip().split()[0]
+        _tail = decl.stdout.split("must-fail-teeth-exit:")[1].strip().split()
+        if not _tail:
+            # Marker present but no value (e.g. authoring typo `must-fail-teeth-exit:`
+            # with an empty tail). Treat as an undeclared convention rather than
+            # letting `[]`[0] raise IndexError, which — uncaught at the call site —
+            # would abort the entire sweep and lose every other probe's result.
+            out[p] = (SKIP, "no-selftest-declared")
+            continue
+        want = _tail[0]
         # ⛔ A GENEROUS TIMEOUT, AND A TIMEOUT IS NOT A MISMATCH. Measured: the
         # sweep probing ITSELF (and the judge, which may attempt model calls) blew
         # a 120s budget and returned 124, which the comparison then read as
