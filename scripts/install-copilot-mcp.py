@@ -128,6 +128,11 @@ def cmd_install(catalog: dict[str, dict], dest: Path, wanted_raw: str) -> int:
             continue
         servers[name] = catalog[name]["config"]
         added.append(name)
+    if not added:
+        # Nothing new to add: never rewrite the global config just to re-serialize
+        # it (that would clobber a user's hand-formatting for no reason). Mirror
+        # install-codex-mcp.py, which returns early on an empty add set.
+        return 0
     dest.parent.mkdir(parents=True, exist_ok=True)
     dest.write_text(json.dumps(cur, indent=2) + "\n", encoding="utf-8")
     for name in added:

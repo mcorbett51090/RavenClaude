@@ -275,6 +275,13 @@ def main(argv: list) -> int:
         if missing:
             print(f"cursor-hooks: NOT accounted for: {sorted(missing)}", file=sys.stderr)
             return 1
+        stale = set(_SKIP) - canonical
+        if stale:
+            print(
+                f"cursor-hooks: the skip map names hooks that no longer exist: {sorted(stale)}",
+                file=sys.stderr,
+            )
+            return 1
         if not any(ev == "beforeShellExecution" for _, _, ev, _ in wired):
             print(
                 "cursor-hooks: nothing wired to beforeShellExecution — the lane would "
