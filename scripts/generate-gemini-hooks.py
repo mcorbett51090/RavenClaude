@@ -312,6 +312,13 @@ def main(argv: list) -> int:
         if missing:
             print(f"gemini-hooks: NOT accounted for: {sorted(missing)}", file=sys.stderr)
             return 1
+        stale = set(_SKIP) - canonical
+        if stale:
+            print(
+                f"gemini-hooks: the skip map names hooks that no longer exist: {sorted(stale)}",
+                file=sys.stderr,
+            )
+            return 1
         if not any(ev == "BeforeTool" for _, _, ev, _ in wired):
             print(
                 "gemini-hooks: nothing wired to BeforeTool — the lane would enforce NOTHING.",

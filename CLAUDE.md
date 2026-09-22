@@ -133,8 +133,9 @@ Why both: Claude Code issue [#23478](https://github.com/anthropics/claude-code/i
 
 ## Slash commands shipped by the plugin
 
-`ravenclaude-core` ships 9 slash commands (`plugins/ravenclaude-core/commands/`) — the full,
-gate-checked list is in [README.md](README.md)'s "What's in each plugin" table. One is worth calling
+`ravenclaude-core` ships its slash commands from `plugins/ravenclaude-core/commands/` — that
+directory is the authoritative list (one `*.md` per command), so the count is never restated here
+to go stale (owner decision D1: drop the count, don't sync it). One is worth calling
 out here because it's the marketplace-dev-facing setup path:
 
 - `/init-agent-ready` — guided setup: creates `AGENTS.md`, `CLAUDE.md`, `.repo-layout.json`, and optionally a CI workflow tailored to the consumer's repo type (application / library / monorepo / docs / data / IaC).

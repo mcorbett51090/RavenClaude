@@ -106,7 +106,7 @@ jobs:
             echo "::warning::could not read branch rulesets ($rules) — assertion inconclusive, not OK"
             exit 0
           fi
-          if printf '%s' "$rules" | grep -q 'Inventory sweep'; then
+          if grep -q 'Inventory sweep' <<<"$rules"; then
             echo "::error::This sweep appears in a branch ruleset. A scheduled workflow"
             echo "::error::reports nothing on a PR, so a required check on it hangs the PR forever."
             exit 1

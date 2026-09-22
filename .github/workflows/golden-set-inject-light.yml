@@ -61,7 +61,7 @@ jobs:
             echo "::warning::could not read branch rulesets ($rules) — assertion inconclusive, not OK"
             exit 0
           fi
-          if echo "$rules" | grep -Fqi "Golden-set inject"; then
+          if grep -Fqi "Golden-set inject" <<<"$rules"; then
             echo "::error::This light job appears in a branch ruleset. It must never be required."
             exit 1
           fi
