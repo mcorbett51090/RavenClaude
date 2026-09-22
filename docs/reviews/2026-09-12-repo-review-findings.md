@@ -101,6 +101,13 @@ safe to enable anywhere as `active`." The agent + `/coordinate` command ship; th
 repo defers to a human. Recommend applying the staged PR-1 patch + its 3-case fixture in a dedicated,
 reviewed change.
 
+> **✅ Resolved 2026-09-22 (PR #1241).** The patch landed once commit 8063c3c (#1238) fixed the
+> maintainer-substrate exemption's REST-vs-GraphQL blocker; all 31 documented acceptance cases plus
+> the two `deny_patterns` entries were verified live before merge. See the CLAUDE.md milestone at
+> "guard-destructive.sh: bypass-shaped-merge patch" and
+> [`docs/pending-guard-destructive-merge-patch.md`](../pending-guard-destructive-merge-patch.md), now
+> a historical record.
+
 ### 6. [P2] Python secret-scrub pattern ports are hand-copied with no drift gate
 
 `thing-denial-kb.py:127` and `precompact-digest.py:71` carry Python ports of `hooks/_scrub.sh`'s

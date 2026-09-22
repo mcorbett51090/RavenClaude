@@ -4989,17 +4989,20 @@ verified end-to-end: 20/20 real concurrency runs with exactly 1 winner, the cont
 reproducing the race post-fix, and `acquire`/`heartbeat`/`release` correctly recognizing the same
 holder across genuinely separate Bash tool invocations.
 
-**⛔ One piece is a documented, staged, human-actionable pending item — not shipped this release.**
+**✅ Landed 2026-09-22 (PR #1241) — was a documented, staged, human-actionable pending item.**
 Task 3.3's `guard-destructive.sh` merge-deny patch (`_is_dangerous_merge()`, narrowed to bypass-shaped
 merges only) and Task 2.4's two `deny_patterns` additions (a destructive DELETE-verb API call, raw
-`git update-ref -d`) could not be applied from this session — `guard-destructive.sh` genuinely *is*
-tribunal-adjacent security tooling, so unlike `coordinator-lock.sh` a directory relocation would be a
-real circumvention of `THING_SUBSTRATE`, not a content-neutral choice. The exact patch, the 3-case
-acceptance fixture, and the full diagnosis are staged at
+`git update-ref -d`) could not be applied from the *originating* session — `guard-destructive.sh`
+genuinely *is* tribunal-adjacent security tooling, so unlike `coordinator-lock.sh` a directory
+relocation would have been a real circumvention of `THING_SUBSTRATE`, not a content-neutral choice.
+It landed once commit 8063c3c (#1238) switched the maintainer-substrate exemption's ownership check
+from `gh repo view` (GraphQL, blocked by this environment's proxy) to `gh api` (REST, which resolves):
+a session with `gh` installed and `GITHUB_TOKEN`-authenticated could then apply the edit directly. All
+31 documented acceptance cases + the two new `deny_patterns` entries were verified live against a
+scratch git repo before merge; the original diagnosis and patch text remain at
 [`docs/pending-guard-destructive-merge-patch.md`](../../docs/pending-guard-destructive-merge-patch.md)
-for a human (or a differently-configured session with working `gh` GraphQL access, or the dashboard's
-own posture editor) to apply directly. This is also **PR 1** of the plan's own 2-PR rollout split (§5)
-— it must land, alone, before the rest of this feature is safe to enable anywhere as `active`.
+as a historical record. This was **PR 1** of the plan's own 2-PR rollout split (§5) — the rest of this
+feature is now safe to enable as `active` once its own preconditions (below) hold.
 
 **Deliberately not built this release, per the plan's own scope:** the coordinator's actual dedicated
 worktree (a Task 4.1 *runtime* action, not a shipped file — created on first real invocation), the
