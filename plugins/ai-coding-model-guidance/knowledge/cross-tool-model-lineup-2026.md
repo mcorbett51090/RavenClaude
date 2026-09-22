@@ -96,6 +96,13 @@ The practical phrasing: **"as of `<date>`, on `<surface>`, for `<plan>`, model X
 
 ## GitHub Copilot — model picker (retrieved 2026-05-31)
 
+### Copilot auto model tiers (efficiency | balance | intelligence) — [verify-at-use · angle 2026-09-14]
+Auto model selection can weigh **cost / quality / response time** via named
+tiers **efficiency**, **balance**, **intelligence** (same model pool; rollout
+across VS Code, Copilot CLI, Copilot app). Map to this file's decision-tree
+leaves; re-fetch supported-models + changelog before quoting plan/surface coverage.
+
+
 Copilot's picker spans **five vendors' models** — Anthropic Claude, OpenAI GPT/Codex, Google Gemini, Moonshot AI (open-weight Kimi), and xAI (Grok) — and **availability varies by plan, surface (completions / chat / coding agent / cloud agent / mobile), and IDE.** Always confirm against the live picker in `github.com/copilot` or the supported-models doc; the set below is a dated snapshot.
 
 | Surface | Models seen (2026-05-31) — verify live |

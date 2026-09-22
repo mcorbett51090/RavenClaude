@@ -6,12 +6,12 @@ kind: ravenclaude-built
 entry_class: inventory
 order: 917
 summary: "resolve-worktree-session.sh's two-hop worktree->pid->name join exists because the obvious one-hop guess -- deriving the ListAgents ref from session_id -- is false."
-last_verified: 2026-09-01
+last_verified: 2026-09-20
 covers:
   - plugins/ravenclaude-core/scripts/resolve-worktree-session.sh
   - plugins/ravenclaude-core/skills/session-relay/SKILL.md
   - plugins/ravenclaude-core/knowledge/cross-session-messaging.md
-covers_digest: "sha256:7015365f398eb00723c9f8c7d8355a9304eb5948c9929b9a06089e0d85fa5b42"
+covers_digest: "sha256:98275c0a7ae8e89c05c3e6bba94de105da82d199b6bd96938a5ba196a17e0a04"
 nuance: "ListAgents' bracketed [ref] does not derive from a session's session_id: this
   authoring session's own id (d20158bb-...) shares no substring with its displayed
   [2eb70b]. The real join is worktree -> worktree-guard's pid -> that pid's

@@ -3366,11 +3366,11 @@ cap_out="$(CLAUDE_PROJECT_DIR="$G19" AZURE_CLIENT_ID="cid-abc-not-secret" AZURE_
 rc=0; printf '%s' "$cap_out" | jq -e '.hookSpecificOutput.additionalContext | test("ravenclaude-capabilities")' >/dev/null 2>&1 || rc=1
 gate "capability: emits SessionStart banner" must_pass "$rc"
 # (b) reports the SPN by env-var NAME (proves detection works)
-rc=0; printf '%s' "$cap_out" | grep -q "AZURE_CLIENT_SECRET" || rc=1
+rc=0; [[ "$cap_out" == *"AZURE_CLIENT_SECRET"* ]] || rc=1
 gate "capability: reports SPN env NAME" must_pass "$rc"
 # (c) never emits ANY env-var value — neither the secret nor the non-secret id
-secret_absent() { ! printf '%s' "$1" | grep -qF "$CAP_SECRET"; }
-rc=0; { secret_absent "$cap_out" && ! printf '%s' "$cap_out" | grep -qF "cid-abc-not-secret"; } || rc=1
+secret_absent() { [[ "$1" != *"$CAP_SECRET"* ]]; }
+rc=0; { secret_absent "$cap_out" && [[ "$cap_out" != *"cid-abc-not-secret"* ]]; } || rc=1
 gate "capability: banner emits no env-var value" must_pass "$rc"
 # bidirectional: the secret-absent check FAILS on a planted leak (so it can catch one)
 rc=0; secret_absent "the value is $CAP_SECRET" || rc=1
@@ -3391,11 +3391,11 @@ printf '{"schema_version":1,"ts":"2026-05-28T09:00:00Z","hook":"enforce-layout.s
 printf '{"schema_version":1,"ts":"2026-05-27T08:00:00Z","scope":"project","source":"dashboard-save","security_deny_diff":{"added":["Read(./.env)"],"removed":[]},"override_diff":{"added":[],"removed":[]}}\n' > "$G19R/.ravenclaude/posture-events.jsonl"
 runtime_out="$(CLAUDE_PROJECT_DIR="$G19R" bash "$CAP_HOOK" 2>/dev/null || true)"
 runtime_ctx="$(printf '%s' "$runtime_out" | jq -r '.hookSpecificOutput.additionalContext' 2>/dev/null || true)"
-# emits the section with the deny count
-rc=0; printf '%s' "$runtime_ctx" | grep -q "RECENT GUARDRAIL ACTIVITY" && printf '%s' "$runtime_ctx" | grep -q "1 hook denial" || rc=1
+# emits the section with the deny count (pipefail-safe [[ == *needle* ]]; needles unchanged)
+rc=0; [[ "$runtime_ctx" == *"RECENT GUARDRAIL ACTIVITY"* ]] && [[ "$runtime_ctx" == *"1 hook denial"* ]] || rc=1
 gate "capability: runtime-activity section emits counts" must_pass "$rc"
 # never leaks the raw deny path (injection safety)
-rc=0; printf '%s' "$runtime_ctx" | grep -qF "$G19_BADPATH" && rc=1
+rc=0; [[ "$runtime_ctx" == *"$G19_BADPATH"* ]] && rc=1
 gate "capability: runtime section emits no raw event content" must_pass "$rc"
 
 # (e) FRAME-BREAK safety: a hostile design-project.json name/mirror_dir carrying a
@@ -3423,7 +3423,7 @@ n_close=$(printf '%s' "$frame_ctx" | grep -c '</ravenclaude-capabilities>' || tr
 rc=0; [ "$n_close" = "1" ] || rc=1
 gate "capability: hostile design name cannot inject a frame close tag" must_pass "$rc"
 # the injection marker never begins a line (the newline that would start it was stripped)
-rc=0; printf '%s' "$frame_ctx" | grep -qE '^GATE19FRAMEPWNED' && rc=1
+rc=0; grep -qE '^GATE19FRAMEPWNED' <<<"$frame_ctx" && rc=1
 gate "capability: hostile design name cannot start an out-of-frame line" must_pass "$rc"
 
 echo
@@ -6809,7 +6809,8 @@ echo "── Gate 289: nested dispatch (no shipped agent may be able to call age
 # reason. Teeth: inline / block / flow-sequence `Agent`, `Task`, `"*"` and
 # `Agent(scout)` all fail; stale + reasonless exemptions fail; a reasoned
 # exemption passes with an advisory; `Bash(git a, b)` (comma inside parens),
-# TaskOutput / TaskStop / AgentMap and `disallowedTools: Agent` pass clean;
+# Grep / TaskStop / AgentMap and `disallowedTools: Agent` pass clean;
+# (TaskOutput removed CC 2.1.277 — fixture no longer uses removed tool);
 # an empty roster is not a pass. The determination this enforces:
 # docs/decisions/2026-09-14-nested-dispatch-determination.md.
 rc=0; python3 scripts/check-nested-dispatch.py --check >/dev/null 2>&1 || rc=$?

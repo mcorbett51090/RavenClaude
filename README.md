@@ -16,7 +16,7 @@ Today this marketplace ships **184 plugins** (live inventory: **[portal Marketpl
 
 **[`ravenclaude-core`](plugins/ravenclaude-core/)** is the foundation: Team Lead + specialist agents, dispatch playbooks, gates, hooks, templates, comfort-posture, and the Learn / teaching surfaces on the dashboard. Domain plugins (Power Platform, cloud, finance, security, and many more) install beside it.
 
-### What's new in core (through **0.324.3**)
+### What's new in core (through **0.324.7**)
 
 - **Thing tribunal** — opt-in command-review for risky tools; **hardening EDIT** behind `command_review.hardening_edit` (**default ON**; set false to opt out). Force-push / mirror-push / hard-rule floors stay DENY under EDIT ON.
 - **Runes ready-queue** — Oath-hook + `rc runes`; dashboard **Runes at session start** opt-in (`runes:` absent ⇒ off); may auto-claim ungated ready work when On; never auto Longship merge.

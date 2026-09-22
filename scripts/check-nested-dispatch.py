@@ -31,7 +31,8 @@ WHAT IT FAILS ON: an `agents/*.md` whose frontmatter `tools:` grants dispatch �
 `Agent`, `Agent(...)`, the historical alias `Task`, or the wildcard `*` — with
 no reasoned exemption in tests/fixtures/nested-dispatch-exemptions.json
 ({"<agent-name>": "<reason>"}). A stale exemption (no such agent) fails; a
-reasonless one fails. `TaskOutput` / `TaskStop` are different tools and pass.
+reasonless one fails. Non-dispatch look-alikes (e.g. `Grep` / `TaskStop` / `AgentMap`) pass.
+(Note: `TaskOutput` removed in Claude Code 2.1.277 — not a live tool; fixture uses Grep instead.)
 A `disallowedTools:` entry is not a grant. An empty roster is not a pass.
 
 WHAT IT DOES NOT DO: read `hooks.json`, run anything, or judge whether nesting
@@ -64,7 +65,8 @@ _BLOCK_ITEM = re.compile(r"^[ \t]+-[ \t]*(.+?)[ \t]*$")
 _NON_DEFINITION_DOCS = frozenset({"readme.md", "changelog.md", "notes.md"})
 
 # The tool names that grant dispatch. Exact base-name match (before any "(")
-# so `TaskOutput` / `TaskStop` / `AgentMap` never trip it.
+# so look-alikes like `TaskStop` / `AgentMap` / `Grep` never trip it.
+# (TaskOutput removed CC 2.1.277 — not a live tool; do not restore as fixture token.)
 DISPATCH_TOOLS = frozenset({"agent", "task"})
 
 
@@ -314,13 +316,14 @@ def must_fail() -> int:
             print("✗ must-fail: a stale exemption was accepted.")
             return 0
         # 4. CONTROL — a normal allow-list passes clean, including `Bash(git a, b)` with a
-        #    comma inside the parentheses and the look-alikes TaskOutput / TaskStop / AgentMap
+        #    comma inside the parentheses and look-alikes TaskStop / AgentMap
+        #    (TaskOutput removed CC 2.1.277 — fixture uses Grep, not a removed tool)
         _fake_roster(
             fake,
             "p",
             [
                 ("a", "tools: Read, Grep, Glob, Bash(git log, git show), WebFetch"),
-                ("b", "tools: Read, TaskOutput, TaskStop, AgentMap"),
+                ("b", "tools: Read, Grep, TaskStop, AgentMap"),
                 ("c", "tools: Read, Edit\ndisallowedTools: Agent"),
             ],
         )
@@ -346,7 +349,7 @@ def must_fail() -> int:
             return 0
     print('✓ must-fail: `Agent`, `Task`, `"*"`, `Agent(scout)`, block-form and flow-form grants')
     print("  all fail; a stale or reasonless exemption fails; a reasoned exemption passes with an")
-    print("  advisory; a normal allow-list (incl. `Bash(a, b)`, TaskOutput/TaskStop/AgentMap and a")
+    print("  advisory; a normal allow-list (incl. `Bash(a, b)`, Grep/TaskStop/AgentMap and a")
     print("  `disallowedTools: Agent`) passes clean; an empty roster is not a pass.")
     print("  Exiting 3, the DECLARED teeth code.")
     return 3

@@ -2,7 +2,7 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
-## 0.324.3 — 2026-09-20
+## 0.324.7 — 2026-09-22
 
 ### Fixed
 - **git push --mirror evaded the force-push hard DENY** — `srm.force-push` always_screen / `pre_llm_deny` and `guard-destructive.sh` only matched the long force flag, short `-f`, and `+<refspec>`. `git push --mirror` force-updates every ref under refs/ and deletes remote refs absent locally (git's documented mirror semantics) and was allowed. Added a segment-scoped `--mirror` trigger, a matching guard pattern, and the permission-floor glob `Bash(git push --mirror:*)` (DEFAULT_SECURITY_DENY, schema default, balanced seed, pattern-explanations).
@@ -11,6 +11,21 @@ All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the 
 ### Locks / honesty
 - No `gate_floor` change. No hardening_edit change. Mirror is DENY, not rewritten to lease (there is no lease equivalent). Consumer `/plugin marketplace update` picks up the hook + catalog; the permission glob lands on next posture apply.
 
+## 0.324.6 — 2026-09-20
+
+### Changed
+- **DOC adapt (UNVERIFIED) coding-factory ADAPT P2 / Adapt #7:** Gemini CLI 0.60 host-security alignment in `knowledge/gemini-customization.md` + header pointer on thin shim `hooks/gemini-hook-adapter.sh` (OAuth issuer / extension consent+env / path·symlink·SFN / envelope provenance / sandbox·Seatbelt). **KEEP** FOREIGN-TREE / exit-2 deny — adapter does not re-implement OAuth/SFN.
+- **DOC adapt (UNVERIFIED) TaskOutput deprecate-candidate:** Claude Code 2.1.277 removed `TaskOutput`; teach **`Read` on background output file**; annotate `knowledge/cross-session-messaging.md`; Gate 289 fixture/ADR comments drop removed-tool token (no file deletes).
+
+## 0.324.5 — 2026-09-20
+
+### Changed
+- **DOC adapt (UNVERIFIED) coding-factory ADAPT P1 / Adapt #6:** Codex 0.155 agents overview hide/archive/delete + managed worktree ownership; daemon update schedules + goal/thread recovery after restart; cleanup-worktrees / new-worktree language aligned so Sleipnir RC trees are not conflated with Codex managed worktrees. **Guardian approval evidence KEEP** — no soften.
+
+## 0.324.4 — 2026-09-20
+
+### Changed
+- **DOC adapt (UNVERIFIED) coding-factory ADAPT P0:** lean code-review spawn doctrine; Copilot Lite prefer vs fan-out deprecate-candidate SUGGEST; dual-file CLAUDE.md↔AGENTS.md (+ Bedrock/Vertex/Foundry gap); cheap-lane Copilot auto-tier note; tribunal clarifying sentence (KEEP — no weaken).
 ## 0.324.2 — 2026-09-19
 
 ### Added
@@ -285,6 +300,8 @@ All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the 
   fail and that `Bash(git a, b)`, `TaskOutput` / `TaskStop` and a `disallowedTools: Agent`
   pass clean. Until now the only guard was `guard-recursive-spawn.sh`, a grep over prose
   that warns and cannot block.
+  *(Post-2.1.277 footnote — UNVERIFIED DOC adapt 2026-09-20: `TaskOutput` removed upstream;
+  Gate 289 fixture updated separately to use still-valid look-alikes.)*
 - **`handoff-tax-meter` sees nesting** (ledger schema v2). Hooks fire inside subagents and
   the input then carries the caller's `agent_id` / `agent_type`, so each ledger line records
   `caller_agent_id`, `caller_agent_type`, `nested`, and a reconstructed `depth` (1 = main
