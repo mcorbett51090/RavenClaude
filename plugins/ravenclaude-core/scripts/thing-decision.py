@@ -502,10 +502,17 @@ def _substrate_paths(project_root: Path) -> tuple[set[str], set[tuple[int, int]]
 def _gh_owner(root: Path) -> str | None:
     """Return the gh-authenticated repo's 'owner/repo' string, or None on any error.
 
-    Calls `gh repo view --json nameWithOwner -q .nameWithOwner` from `root`.
-    This is the ONLY signal used for repo identity — NOT a marker file, path
-    string, or remote URL the session could forge. Wrapped in try/except so
-    any failure (missing gh, no auth, network, non-zero exit) returns None.
+    Calls `gh api repos/<_EXEMPT_REPO> --jq .full_name` (REST), NOT
+    `gh repo view --json nameWithOwner` (GraphQL): Claude Code web/remote sessions
+    route `gh` through an agent proxy that BLOCKS GraphQL (HTTP 403 → "use the REST
+    API"), so the GraphQL form failed in exactly the remote-maintainer environment
+    this exemption exists to serve. The REST call is an equal authenticated
+    ownership proof — a token without read access to the private repo gets 404 and
+    this returns None — and the repo it queries is this module's own `_EXEMPT_REPO`
+    constant, NOT a marker file, path string, or remote URL the session could forge.
+    Location is bound separately by signal (c) (marketplace.json under `root`).
+    Wrapped in try/except so any failure (missing gh, no auth, network, non-zero
+    exit) returns None.
 
     Designed to be thin so tests can stub it: pass an injected owner via
     `_maintainer_substrate_exempt(root, posture, _resolved_owner=<stub>)`.
@@ -521,7 +528,7 @@ def _gh_owner(root: Path) -> str | None:
 
     try:
         result = subprocess.run(
-            ["gh", "repo", "view", "--json", "nameWithOwner", "-q", ".nameWithOwner"],
+            ["gh", "api", f"repos/{_EXEMPT_REPO}", "--jq", ".full_name"],
             capture_output=True,
             text=True,
             timeout=10,
@@ -1027,8 +1034,10 @@ def resolve_tier_config(root: Path, posture: dict | None) -> tuple[dict, str | N
             # YAML emitter (or a hand edit `hardening_edit: "false"`) must not leave
             # the feature ON — bool("false") is True, which would silently defeat
             # the only opt-out now that the default flipped to ON.
-            hardening_edit = not (v is False or (isinstance(v, str) and v.strip().lower() in
-                                                  {"off", "false", "no", "0"}))
+            hardening_edit = not (
+                v is False
+                or (isinstance(v, str) and v.strip().lower() in {"off", "false", "no", "0"})
+            )
         mcp_block = block.get("mcp")
         if isinstance(mcp_block, dict) and isinstance(mcp_block.get("allowed_servers"), list):
             mcp_allowed = [s for s in mcp_block["allowed_servers"] if isinstance(s, str)]
