@@ -37,11 +37,19 @@
     },
     "requires": {
       "type": "object",
-      "description": "Compatibility constraints. The `ravenclaude-core` key is the conventional way for domain plugins to declare a minimum core version.",
+      "description": "Compatibility constraints. Every domain plugin uses the `plugins` array (e.g. [\"ravenclaude-core@>=0.7.0\"]); the legacy `ravenclaude-core` key is an alternate spelling of the same minimum-core-version constraint.",
       "properties": {
         "ravenclaude-core": {
           "type": "string",
           "pattern": "^[><=^~]{0,2}\\d+\\.\\d+\\.\\d+$"
+        },
+        "plugins": {
+          "type": "array",
+          "description": "Dependency constraints as `<plugin-name>@<version-range>` strings. This is the field every domain plugin actually uses; it was previously unvalidated (additionalProperties fell through), so a malformed name/range passed silently.",
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9-]*@[><=^~]{0,2}\\d+\\.\\d+\\.\\d+$"
+          }
         }
       },
       "additionalProperties": true
