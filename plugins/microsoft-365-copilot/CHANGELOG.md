@@ -2,6 +2,12 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.5.9] — 2026-09-21
+
+### Fixed
+
+- `flag-copilot-anti-patterns.sh`: strict mode (`M365_COPILOT_STRICT=1`) now exits **2** (BLOCK) instead of **1** on a violation. Exit 1 is a non-blocking error that Claude Code silently swallows, so strict mode was a silent no-op — the opposite of its intent, and the exact mistake the six sibling advisory hooks (finance, edtech, staffing, web-design, power-platform, database-engineering) explicitly warn against by using exit 2. Header comment corrected to match. **Migration:** none — advisory default (exit 0) is unchanged; only the opt-in `M365_COPILOT_STRICT=1` path is affected, and only to start working as documented.
+
 ## [0.5.8] — 2026-09-14
 
 ### Changed

@@ -2352,7 +2352,7 @@ Probe: `unprobed: the delivery fact is a host-platform property; it is modelled 
 
 **Sources:** [measured in the FORGE product-inventory run](https://github.com/mcorbett51090/RavenClaude/pull/997)
 
-_Last verified: 2026-09-20_
+_Last verified: 2026-09-22_
 
 
 ---
@@ -2448,7 +2448,7 @@ Probe: `unprobed: requires a real consumer install cycle, which no CI job perfor
 
 **Sources:** [measured in the FORGE product-inventory run](https://github.com/mcorbett51090/RavenClaude/pull/997)
 
-_Last verified: 2026-09-20_
+_Last verified: 2026-09-22_
 
 
 ---
@@ -2474,7 +2474,7 @@ Probe: `scripts/audit-gates.sh`
 
 **Sources:** [measured in the FORGE product-inventory run](https://github.com/mcorbett51090/RavenClaude/pull/997)
 
-_Last verified: 2026-09-21_
+_Last verified: 2026-09-22_
 
 
 ---

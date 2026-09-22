@@ -314,7 +314,7 @@
       "displayName": "RavenClaude Core",
       "source": "./plugins/ravenclaude-core",
       "description": "Domain-neutral Claude Code foundation: specialist agents, skills, gates, hooks, rules, templates. Capability Grounding Protocol, Structured Output Protocol, Researcher meta-skill, comfort-posture dashboard, opt-in command-review tribunal (the Thing), WebFetch sanitizer, branch-archive escape hatch, brand-extraction (homepage \u2192 brand kit), /wireframe (describe anything \u2192 validated model + high-fi Artifact + Mermaid), Problems & Resolutions view, declarative-visualization (Vega-Lite/Deneb/SVG, Gate 101 + Gate 103 svg-report-lint, viz-spec-reviewer), and Claude orchestrator escape hatch (/claude-orchestrate). Slash commands: /init-agent-ready, /wrap, /set-posture, /dashboard, /forge, /wireframe, /reset-plugin-cache, /handoff.",
-      "version": "0.324.6",
+      "version": "0.324.7",
       "author": {
         "name": "Matt Corbett"
       },
@@ -663,7 +663,7 @@
       "name": "microsoft-365-copilot",
       "source": "./plugins/microsoft-365-copilot",
       "description": "Microsoft 365 Copilot extensibility & administration team \u2014 agents (copilot-extensibility-architect, declarative-agent-engineer, graph-connector-engineer, api-plugin-engineer, agents-sdk-engineer, copilot-admin-governance) covering declarative agents (pinned manifest schema + the 50/25/4096/45s hard-limit wall), custom-engine agents on the M365 Agents SDK/Toolkit, Copilot (Graph) connectors (synced vs federated/MCP, semantic labels, ACL trimming), API plugins (OpenAPI + Entra/OAuth2), the app-package publish lifecycle, and M365 Agent Registry + Purview DLP-for-Copilot governance. citation-grounded knowledge bank (two Mermaid decision trees), skills, templates, an advisory hook (house opinions). Disjoint from power-platform's Copilot Studio low-code coverage (cross-linked). Seams: Copilot Studio \u2192 power-platform; CEA engine \u2192 claude-app-engineering; Entra/hosting \u2192 azure-cloud; security \u2192 ravenclaude-core. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.5.8",
+      "version": "0.5.9",
       "author": {
         "name": "Matt Corbett"
       },
