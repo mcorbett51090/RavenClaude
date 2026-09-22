@@ -121,7 +121,7 @@ README_COUNT_RE = re.compile(r"ships\s+\*\*(\d+)\s+plugins\*\*", re.IGNORECASE)
 README_PLUGINS_RE = re.compile(r"(?:\*\*|\bthe\s+|[~≈])(\d+)\s+plugins\b", re.IGNORECASE)
 README_REQUIRES_RE = re.compile(r"(\d+)\s+of\s+the\s+\d+\s+plugins\b", re.IGNORECASE)
 CORE_README = PLUGINS / "ravenclaude-core" / "README.md"
-CORE_HOOKS_JSON = PLUGINS / "ravenclaude-core" / "hooks" / "hooks.json"
+CORE_HOOKS_DIR = PLUGINS / "ravenclaude-core" / "hooks"
 CORE_RULES_DIR = PLUGINS / "ravenclaude-core" / "rules"
 # "| <Label> | <N> |" table-row matchers (the core README "What's inside" table).
 _CORE_TABLE_RES = {
@@ -189,21 +189,22 @@ def actual_requires_core_count() -> int:
 
 
 def actual_core_hook_count() -> int:
-    """Distinct hook commands registered in ravenclaude-core/hooks/hooks.json."""
-    if not CORE_HOOKS_JSON.is_file():
+    """`hooks/*.sh` files in ravenclaude-core/hooks/.
+
+    The core README "What's inside" table lists Hooks against [`hooks/`](hooks/),
+    which is a directory listing, not a wiring map. Distinct commands in
+    hooks.json is a different number (43 vs 49 as of #1043): helpers (`_*.sh`)
+    and host adapters live in the directory but are not registered events, and
+    some registrations invoke `scripts/*.sh` instead. Dashboard/pipeline maps
+    still count registrations.
+
+    Counting registrations here made post-merge `--fix` rewrite 49→43 every
+    time, which opened looping self-heal PRs (#1037, #1042) against a cell that
+    was already correct.
+    """
+    if not CORE_HOOKS_DIR.is_dir():
         return 0
-    try:
-        data = json.loads(CORE_HOOKS_JSON.read_text())
-    except (json.JSONDecodeError, OSError):
-        return 0
-    cmds = set()
-    for groups in data.get("hooks", {}).values():
-        for grp in groups:
-            for h in grp.get("hooks", []):
-                cmd = h.get("command", "")
-                if cmd:
-                    cmds.add(cmd)
-    return len(cmds)
+    return sum(1 for p in CORE_HOOKS_DIR.glob("*.sh") if p.is_file())
 
 
 def actual_core_rule_count() -> int:
@@ -500,6 +501,24 @@ def fix_counts() -> list[str]:
         if rm and int(rm.group(1)) != actual_req:
             README.write_text(raw[: rm.start(1)] + str(actual_req) + raw[rm.end(1) :])
             changes.append(f"README.md '<M> of the N plugins' -> {actual_req}")
+
+    # AGENTS.md carries the same hand-maintained "~N plugins" total (see the
+    # AGENTS_MD comment above) — check_count_drift_family() checks it, so --fix
+    # must also rewrite it, or a drifted AGENTS.md fails identically forever
+    # (mpclaims-agentsmd-checked-not-fixed).
+    if AGENTS_MD.is_file():
+        raw = AGENTS_MD.read_text()
+        new_raw, n = README_PLUGINS_RE.subn(
+            lambda mm: (
+                mm.group(0)[: mm.start(1) - mm.start(0)]
+                + str(actual_plugins)
+                + mm.group(0)[mm.end(1) - mm.start(0) :]
+            ),
+            raw,
+        )
+        if new_raw != raw:
+            AGENTS_MD.write_text(new_raw)
+            changes.append(f"AGENTS.md '<N> plugins' claims -> {actual_plugins}")
 
     if CORE_README.is_file():
         core = CORE_README.read_text()

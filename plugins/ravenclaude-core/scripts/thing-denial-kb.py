@@ -35,12 +35,18 @@ and is the committed, cross-consumer knowledge; learned resolutions stay local.
 from __future__ import annotations
 
 import argparse
+import contextlib
 import hashlib
 import json
 import os
 import re
 import sys
 from pathlib import Path
+
+try:
+    import fcntl
+except ImportError:  # non-POSIX (e.g. Windows) — lock degrades to a no-op below.
+    fcntl = None  # type: ignore[assignment]
 
 # ── Path resolution ────────────────────────────────────────────────────────────
 # The seed resolutions map ships beside this script: scripts/ -> ../knowledge/.
@@ -71,6 +77,43 @@ def _cursor_path(root: Path) -> Path:
 
 def _learned_path(root: Path) -> Path:
     return _thing_dir(root) / "denial-learned.json"
+
+
+@contextlib.contextmanager
+def _kb_lock(root: Path):
+    """Advisory exclusive lock serializing a KB read-modify-write cycle.
+
+    cmd_sync / cmd_record / cmd_resolve each read denial-kb.jsonl (+ the cursor /
+    learned-resolutions sidecars), mutate in memory, then write back via
+    _atomic_write's per-PID tmp.replace(path). The per-PID temp name only prevents a
+    TORN write — it does nothing to stop the classic lost-update race: two concurrent
+    invocations (this module's own docstring notes SessionStart routinely fires both
+    the plugin and dev-mirror wiring at once) can both read the same starting state
+    and each replace() clobbers the other's update. This flocks a sibling
+    ``denial-kb.lock`` file across the FULL read+write, mirroring stream-ops.py's
+    ``_registry_lock``. FAIL-SAFE: if the thing dir can't be created, fcntl is
+    unavailable (non-POSIX), or the lock can't be taken, it proceeds WITHOUT the lock
+    rather than raising — matching this tool's fail-safe-always-exit-0 contract.
+    """
+    fh = None
+    try:
+        tdir = _thing_dir(root)
+        tdir.mkdir(parents=True, exist_ok=True)
+        fh = open(tdir / "denial-kb.lock", "w")
+        if fcntl is not None:
+            with contextlib.suppress(OSError):
+                fcntl.flock(fh.fileno(), fcntl.LOCK_EX)
+    except OSError:
+        fh = None
+    try:
+        yield
+    finally:
+        if fh is not None:
+            if fcntl is not None:
+                with contextlib.suppress(OSError):
+                    fcntl.flock(fh.fileno(), fcntl.LOCK_UN)
+            with contextlib.suppress(OSError):
+                fh.close()
 
 
 # ── Small IO helpers (all soft — a bad file is treated as absent) ───────────────
@@ -249,59 +292,64 @@ def cmd_sync(root: Path) -> int:
     if not tdir.is_dir():
         return 0  # the Thing has never run here — nothing to learn, stay silent.
 
-    cursor = _read_json(_cursor_path(root), {}) or {}
-    processed = set(cursor.get("processed", []))
-    learned = _read_json(_learned_path(root), {}) or {}
-    rules = _load_rules()
+    with _kb_lock(root):
+        cursor = _read_json(_cursor_path(root), {}) or {}
+        processed = set(cursor.get("processed", []))
+        learned = _read_json(_learned_path(root), {}) or {}
+        rules = _load_rules()
 
-    # Load the current materialised KB keyed by signature.
-    kb: dict[str, dict] = {}
-    kb_file = _kb_path(root)
-    if kb_file.is_file():
-        for line in kb_file.read_text(encoding="utf-8").splitlines():
-            row = _read_json_line(line)
-            if row and row.get("signature"):
-                kb[row["signature"]] = row
+        # Load the current materialised KB keyed by signature.
+        kb: dict[str, dict] = {}
+        kb_file = _kb_path(root)
+        if kb_file.is_file():
+            for line in kb_file.read_text(encoding="utf-8").splitlines():
+                row = _read_json_line(line)
+                if row and row.get("signature"):
+                    kb[row["signature"]] = row
 
-    new_events = 0
-    for filepath, kind, rec in _iter_source_records(root):
-        token = str(filepath)
-        if token in processed:
-            continue
-        processed.add(token)
-        event = _event_from_decision(rec) if kind == "decision" else _event_from_command(rec)
-        if not event:
-            continue
-        new_events += 1
-        sig = _sig(event["source"], event["key"])
-        entry = kb.get(sig)
-        if entry is None:
-            resolution, doc, rule_id = _match_resolution(event, rules)
-            learned_hit = learned.get(sig)
-            entry = {
-                "signature": sig,
-                "source": event["source"],
-                "category": event["category"],
-                "verdict": event["verdict"],
-                "first_seen": event["timestamp"],
-                "last_seen": event["timestamp"],
-                "count": 0,
-                "sample": event["sample"],
-                "reasoning": event["reasoning"],
-                "resolution": (learned_hit or {}).get("resolution") or resolution,
-                "resolution_source": "learned" if learned_hit else ("seed" if resolution else None),
-                "doc": (learned_hit or {}).get("doc") or doc,
-                "rule_id": rule_id,
-            }
-            kb[sig] = entry
-        entry["count"] += 1
-        if event["timestamp"] and event["timestamp"] >= entry.get("last_seen", ""):
-            entry["last_seen"] = event["timestamp"]
-            entry["sample"] = event["sample"]
+        new_events = 0
+        for filepath, kind, rec in _iter_source_records(root):
+            token = str(filepath)
+            if token in processed:
+                continue
+            processed.add(token)
+            event = (
+                _event_from_decision(rec) if kind == "decision" else _event_from_command(rec)
+            )
+            if not event:
+                continue
+            new_events += 1
+            sig = _sig(event["source"], event["key"])
+            entry = kb.get(sig)
+            if entry is None:
+                resolution, doc, rule_id = _match_resolution(event, rules)
+                learned_hit = learned.get(sig)
+                entry = {
+                    "signature": sig,
+                    "source": event["source"],
+                    "category": event["category"],
+                    "verdict": event["verdict"],
+                    "first_seen": event["timestamp"],
+                    "last_seen": event["timestamp"],
+                    "count": 0,
+                    "sample": event["sample"],
+                    "reasoning": event["reasoning"],
+                    "resolution": (learned_hit or {}).get("resolution") or resolution,
+                    "resolution_source": "learned"
+                    if learned_hit
+                    else ("seed" if resolution else None),
+                    "doc": (learned_hit or {}).get("doc") or doc,
+                    "rule_id": rule_id,
+                }
+                kb[sig] = entry
+            entry["count"] += 1
+            if event["timestamp"] and event["timestamp"] >= entry.get("last_seen", ""):
+                entry["last_seen"] = event["timestamp"]
+                entry["sample"] = event["sample"]
 
-    _write_kb(root, kb)
-    cursor["processed"] = sorted(processed)
-    _atomic_write(_cursor_path(root), json.dumps(cursor, indent=1))
+        _write_kb(root, kb)
+        cursor["processed"] = sorted(processed)
+        _atomic_write(_cursor_path(root), json.dumps(cursor, indent=1))
     if new_events:
         unresolved = sum(1 for e in kb.values() if not e.get("resolution"))
         print(
@@ -392,22 +440,23 @@ def cmd_recall(root: Path, limit: int, unresolved_only: bool, as_json: bool) -> 
 
 # ── resolve ──────────────────────────────────────────────────────────────────────
 def cmd_resolve(root: Path, signature: str, resolution: str, doc: str | None) -> int:
-    learned = _read_json(_learned_path(root), {}) or {}
-    learned[signature] = {"resolution": resolution, "doc": doc}
-    _atomic_write(_learned_path(root), json.dumps(learned, indent=1, ensure_ascii=False))
-    # Fold it straight into the materialised KB so `recall` reflects it now.
-    kb_file = _kb_path(root)
-    if kb_file.is_file():
-        kb: dict[str, dict] = {}
-        for line in kb_file.read_text(encoding="utf-8").splitlines():
-            row = _read_json_line(line)
-            if row and row.get("signature"):
-                kb[row["signature"]] = row
-        if signature in kb:
-            kb[signature]["resolution"] = resolution
-            kb[signature]["resolution_source"] = "learned"
-            kb[signature]["doc"] = doc
-            _write_kb(root, kb)
+    with _kb_lock(root):
+        learned = _read_json(_learned_path(root), {}) or {}
+        learned[signature] = {"resolution": resolution, "doc": doc}
+        _atomic_write(_learned_path(root), json.dumps(learned, indent=1, ensure_ascii=False))
+        # Fold it straight into the materialised KB so `recall` reflects it now.
+        kb_file = _kb_path(root)
+        if kb_file.is_file():
+            kb: dict[str, dict] = {}
+            for line in kb_file.read_text(encoding="utf-8").splitlines():
+                row = _read_json_line(line)
+                if row and row.get("signature"):
+                    kb[row["signature"]] = row
+            if signature in kb:
+                kb[signature]["resolution"] = resolution
+                kb[signature]["resolution_source"] = "learned"
+                kb[signature]["doc"] = doc
+                _write_kb(root, kb)
     print(f"thing-denial-kb: learned a resolution for {signature}.", file=sys.stderr)
     return 0
 
@@ -430,38 +479,41 @@ def cmd_record(root: Path) -> int:
         "timestamp": str(payload.get("timestamp", "")),
     }
     rules = _load_rules()
-    learned = _read_json(_learned_path(root), {}) or {}
-    kb: dict[str, dict] = {}
-    kb_file = _kb_path(root)
-    if kb_file.is_file():
-        for line in kb_file.read_text(encoding="utf-8").splitlines():
-            row = _read_json_line(line)
-            if row and row.get("signature"):
-                kb[row["signature"]] = row
-    sig = _sig(event["source"], event["key"])
-    entry = kb.get(sig)
-    if entry is None:
-        resolution, doc, rule_id = _match_resolution(event, rules)
-        learned_hit = learned.get(sig)
-        entry = {
-            "signature": sig,
-            "source": event["source"],
-            "category": event["category"],
-            "verdict": event["verdict"],
-            "first_seen": event["timestamp"],
-            "last_seen": event["timestamp"],
-            "count": 0,
-            "sample": event["sample"],
-            "reasoning": event["reasoning"],
-            "resolution": (learned_hit or {}).get("resolution") or resolution,
-            "resolution_source": "learned" if learned_hit else ("seed" if resolution else None),
-            "doc": (learned_hit or {}).get("doc") or doc,
-            "rule_id": rule_id,
-        }
-        kb[sig] = entry
-    entry["count"] += 1
-    entry["last_seen"] = event["timestamp"] or entry.get("last_seen", "")
-    _write_kb(root, kb)
+    with _kb_lock(root):
+        learned = _read_json(_learned_path(root), {}) or {}
+        kb: dict[str, dict] = {}
+        kb_file = _kb_path(root)
+        if kb_file.is_file():
+            for line in kb_file.read_text(encoding="utf-8").splitlines():
+                row = _read_json_line(line)
+                if row and row.get("signature"):
+                    kb[row["signature"]] = row
+        sig = _sig(event["source"], event["key"])
+        entry = kb.get(sig)
+        if entry is None:
+            resolution, doc, rule_id = _match_resolution(event, rules)
+            learned_hit = learned.get(sig)
+            entry = {
+                "signature": sig,
+                "source": event["source"],
+                "category": event["category"],
+                "verdict": event["verdict"],
+                "first_seen": event["timestamp"],
+                "last_seen": event["timestamp"],
+                "count": 0,
+                "sample": event["sample"],
+                "reasoning": event["reasoning"],
+                "resolution": (learned_hit or {}).get("resolution") or resolution,
+                "resolution_source": "learned"
+                if learned_hit
+                else ("seed" if resolution else None),
+                "doc": (learned_hit or {}).get("doc") or doc,
+                "rule_id": rule_id,
+            }
+            kb[sig] = entry
+        entry["count"] += 1
+        entry["last_seen"] = event["timestamp"] or entry.get("last_seen", "")
+        _write_kb(root, kb)
     # Echo the resolution so a caller can surface it in-band at denial time.
     if entry.get("resolution"):
         print(entry["resolution"])

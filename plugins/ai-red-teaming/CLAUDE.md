@@ -12,7 +12,7 @@
 
 | Agent | Owns | When to spawn |
 |---|---|---|
-| [`ai-redteam-lead`](agents/ai-redteam-lead.md) | **What** we test + **under what rules**: the threat model (assets, attackers, trust boundaries), the safety-vs-security split, the prioritized attack taxonomy (OWASP LLM Top 10 2025 + MITRE ATLAS), the rules of engagement, and the likelihood×impact success/severity criteria. Decision-tree-driven. | "How should we red-team this LLM feature?"; "safety or security problem?"; "what should we attack first?"; "what are the rules of engagement / disclosure?" |
+| [`ai-redteam-lead`](agents/ai-redteam-lead.md) | **What** we test + **under what rules**: the threat model (assets, attackers, trust boundaries), the safety-vs-security split, the prioritized attack taxonomy (OWASP LLM Top 10 2026 + MITRE ATLAS), the rules of engagement, and the likelihood×impact success/severity criteria. Decision-tree-driven. | "How should we red-team this LLM feature?"; "safety or security problem?"; "what should we attack first?"; "what are the rules of engagement / disclosure?" |
 | [`adversarial-testing-engineer`](agents/adversarial-testing-engineer.md) | **Executing & hardening** it: running direct/indirect prompt injection, jailbreaks (roleplay/encoding/many-shot/crescendo), extraction/exfiltration, agentic tool-abuse, and multimodal attacks; building automated harnesses (PyRIT/Garak/Promptfoo red-team/Giskard); triaging findings by likelihood×impact; and driving defense-in-depth remediation + retest. | "Run the jailbreak and injection attacks"; "build an automated red-team suite"; "can the agent be tricked into a tool call?"; "triage these findings and harden the system" |
 
 Two agents, one clean seam: **scope** (lead) → **execute & harden** (engineer). Per the marketplace house rule, this plugin ships specialist *doing*-agents; it does not fork core's *review* roles (core's `architect` is a domain-neutral software architect, not this red-team lead).
@@ -99,7 +99,7 @@ Reference docs with `Last reviewed:` dates + confidence notation. Inline priors 
 
 | File | Read when |
 |---|---|
-| [`knowledge/ai-attack-taxonomy-decision-tree.md`](knowledge/ai-attack-taxonomy-decision-tree.md) | Scoping/prioritizing an engagement — the Mermaid decision tree (reads / does / knows / accepts / depends-on → attack class) + the OWASP LLM Top 10 2025 map + the OWASP Top 10 for Agentic Applications (ASI, 2026) companion map + MITRE ATLAS anchor + likelihood×impact severity table + seams |
+| [`knowledge/ai-attack-taxonomy-decision-tree.md`](knowledge/ai-attack-taxonomy-decision-tree.md) | Scoping/prioritizing an engagement — the Mermaid decision tree (reads / does / knows / accepts / depends-on → attack class) + the OWASP LLM Top 10 2026 map + the OWASP Top 10 for Agentic Applications (ASI, 2026) companion map + MITRE ATLAS anchor + likelihood×impact severity table + seams |
 | [`knowledge/ai-red-teaming-patterns-2026.md`](knowledge/ai-red-teaming-patterns-2026.md) | Executing/hardening — safety-vs-security, the attack families, the jailbreak catalog, agentic tool-abuse, automated red-teaming, defense-in-depth, severity, responsible disclosure, and a dated 2026 tooling map |
 
 ---

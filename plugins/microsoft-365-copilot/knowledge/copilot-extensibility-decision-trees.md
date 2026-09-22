@@ -340,7 +340,7 @@ flowchart TD
 
 ## Refresh triggers
 
-- A new DA manifest (v1.7→…) or plugin manifest (v2.4→…) version ships → re-verify version-pinned leaves + capability names.
+- A new DA manifest (v1.8→…) or plugin manifest (v2.4→…) version ships → re-verify version-pinned leaves + capability names.
 - Federated/MCP connector, Retrieval API, or Foundry-publish paths change GA/preview status `[verify-at-build]`.
 - GCC-High / sovereign-cloud auth-support or Agents-Toolkit-publishing support changes.
 - RSS/RCD or DLP-for-Copilot capabilities change (re-verify they remain non-boundaries / processing-only).

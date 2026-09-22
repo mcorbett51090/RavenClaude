@@ -32,13 +32,14 @@ Three coherent personas, one per non-Claude ecosystem, sharing **one** knowledge
 ## 3. Cross-cutting house opinions (every agent enforces)
 
 1. **Traverse the decision tree before naming a SKU.** Place the task (latency / autonomy / difficulty / everyday) on the vendor-neutral tree in the knowledge bank; only then map the leaf to a vendor's current model. Don't keyword-match.
-2. **Right-size, don't default to the top.** Cheap/fast for inline + triage, balanced default for most work, top frontier reserved for the hard tail. The metric is **cost-per-resolved-task**, not model rank.
+2. **Right-size, don't default to the top.** Cheap/fast for inline + triage, balanced default for most work, top frontier reserved for the hard tail. The metric is **cost-per-resolved-task**, not model rank. On GitHub Copilot surfaces that expose **efficiency / balance / intelligence** auto-tiers, treat those names as the vendor's cost / quality / latency knobs over the same pool — map them to this plugin's fast / balanced-Auto / top-frontier leaves. Verify availability at use.
 3. **Availability is always scoped.** Surface + plan + retrieval date — never "model X is in tool Y" as a flat universal.
 4. **Volatile numbers carry a retrieval date and a verify-at-use rider.** Prices, context windows, and picker contents churn weekly-to-monthly; they live in the dated knowledge bank, are re-verified before quoting, and are never baked into the personas.
 5. **Closed-world rule — never invent a model.** Only name a SKU in the verified lineup; refuse to extrapolate one from a version-number pattern. A confidently-named non-existent model is the failure this plugin exists to prevent.
 6. **Reasoning level is a dial (Codex).** Raise reasoning on the same model before jumping to a bigger, pricier SKU.
 7. **Flag retirements with billing consequences first** (e.g. `grok-code-fast-1` → redirects to Grok 4.3 pricing).
 8. **Stay in your lane; seam to Claude.** The moment the right answer is a Claude model's capabilities or a Claude build, hand to `claude-app-engineering` — don't half-answer.
+9. **Quota / token exhaustion is a hard gate.** Do not silent-fail or blindly retry an exhausted surface. Traverse [`knowledge/ai-coding-quota-exhaustion-decision-tree.md`](knowledge/ai-coding-quota-exhaustion-decision-tree.md) before naming a substitute SKU; then still apply the vendor-neutral tier tree + closed-world lineup.
 
 ---
 
@@ -52,6 +53,7 @@ Three coherent personas, one per non-Claude ecosystem, sharing **one** knowledge
 - Letting a consumer keep a retired model id (`grok-code-fast-1`) and eat silent rebilling (#7).
 - Answering a "should I use Claude?" question inside this plugin instead of seaming to `claude-app-engineering` (#8).
 - Keyword-matching the task to a SKU without traversing the decision tree (#1).
+- Silent-failing or blind-retrying an exhausted quota/rate-limit surface (#9).
 
 ---
 
@@ -95,7 +97,7 @@ This is a **knowledge/advisory** vertical — there is no consumer codebase, run
 | Item | Disposition | Note |
 |---|---|---|
 | scenarios/ bank | **BUILT (completed)** | README already indexed 4; added the 3 missing dated, scope-tagged scenarios — Codex reasoning-dial-before-upgrade, grok-code-fast-1 retirement silent-rebill, hallucinated-model closed-world catch. Bank now matches its README index. |
-| Decision-tree (Mermaid) knowledge | **BUILT** | 2 NEW files complementing the PR #315 trees: `ai-coding-right-size-cost-decision-tree.md` (cost-per-resolved-task right-sizing) and `ai-coding-mode-selection-decision-tree.md` (completion vs chat vs agent mode). Both opted into the citation gate. |
+| Decision-tree (Mermaid) knowledge | **BUILT** | Companion trees: `ai-coding-right-size-cost-decision-tree.md`, `ai-coding-mode-selection-decision-tree.md`, and `ai-coding-quota-exhaustion-decision-tree.md` (hard gate: no silent-fail / blind retry). Right-size + mode opted into the citation gate. |
 | Runnable script (`scripts/`) | **BUILT** | `right_size_cost.py` — `per-task` (rank tiers by cost-per-resolved-task) + `mix` (single-pin vs right-sized spend). **No baked-in prices** — every number is user-supplied; stdlib-only; `ruff`-clean. The one runtime item with real advisory value. |
 | Bundled code-aware MCP server | **N-A** | Advisory knowledge plugin — no consumer codebase to index and no vendor model-picker MCP verified to exist. Per `docs/best-practices/bundled-mcp-servers.md`, bundling an unverified/authenticated server is out of scope; the agents stay advisory (they never call a vendor API on the consumer's behalf, §6). |
 | LSP integration | **N-A** | LSP is a code-editing protocol; there is no source language in a model-selection advisory vertical. |

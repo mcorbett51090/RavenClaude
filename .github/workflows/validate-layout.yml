@@ -7,6 +7,15 @@ on:
       - main
   workflow_dispatch:
 
+# Supersede in-flight runs for the same ref. Measured 2026-08-24: 35 of 1,000
+# sampled RavenClaude runs (9% of compute) were still running when a newer push
+# to the same branch started. Safe here — this workflow only READS the repo.
+# Same shape as validate-macos.yml. Do NOT add `paths:` to pull_request (this
+# is a required check — a skipped workflow hangs the PR forever).
+concurrency:
+  group: validate-layout-${{ github.ref }}
+  cancel-in-progress: true
+
 # Least-privilege GITHUB_TOKEN: this workflow only reads the repo to validate it.
 permissions:
   contents: read

@@ -1,5 +1,14 @@
 # Data-platform decision trees
 
+> **Last reviewed (file-level marker, added FORGE dashboard-top1pct P1-12, 2026-09-03):**
+> 2026-05-30 — the OLDEST of this file's own per-tree "Last verified" dates (2026-05-30
+> through 2026-06-05), used deliberately rather than the newest: a file-level freshness claim
+> should be as stale as its stalest section, not its freshest. This file previously had no
+> top-level date at all — only per-tree ones — which meant `scripts/check-data-platform-
+> knowledge-freshness.py` (new, same phase) could not evaluate it. Refresh when any individual
+> tree's own "Last verified" date is updated; move this line forward only when EVERY tree in
+> the file has been re-verified, not just the newest one.
+
 > Canonical `## Decision Tree:` sections for the four-layer dashboard engagement (DB / ELT / dashboard / embed). Each tree follows the marketplace format in [`../../../docs/best-practices/decision-trees-in-knowledge-files.md`](../../../docs/best-practices/decision-trees-in-knowledge-files.md): an observable **When this applies**, a **Last verified** date (anti-staleness backstop), a Mermaid flowchart, per-leaf rationale, and a tradeoffs table for any tree with ≥3 leaves.
 >
 > **Decision-tree traversal (priors).** When a user's situation matches a tree's entry condition, traverse the Mermaid graph top-to-bottom **before** selecting a method — do NOT pattern-match on keywords in the situation description. The first branch where the condition resolves cleanly is the leaf to apply.

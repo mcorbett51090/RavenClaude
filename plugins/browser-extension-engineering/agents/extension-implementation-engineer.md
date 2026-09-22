@@ -2,7 +2,7 @@
 name: extension-implementation-engineer
 description: "Build an MV3 extension: the manifest.json, the event-driven service worker (no persistent globals; the MV2→MV3 trap), content scripts + message passing, chrome.storage, per-store packaging. NOT for architecture/permissions design (extension-architect) or popup UI (frontend-engineering)."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
-model: opus
+model: sonnet
 audience: [frontend-engineer, fullstack-engineer, extension-developer]
 works_with: [extension-architect, frontend-engineering, api-engineering]
 scenarios:

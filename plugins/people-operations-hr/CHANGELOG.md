@@ -2,6 +2,26 @@
 
 All notable changes to this plugin are documented here. Versioning is semver; bump on every user-visible change (AGENTS.md).
 
+## [0.1.5] — 2026-09-20
+
+### Changed
+
+- **`craft-candidate-materials`** — Multi-model DONE gate (HARD): Claude → Codex → Grok orthogonal lenses; never same-model sequential. DIGEST `3-model DONE` required for READY. PE pack SSOT: `PACK-talent-forge-multimodel-2026-09-20.md`.
+
+## [0.1.4] — 2026-09-20
+
+### Changed
+
+- **`craft-candidate-materials`** — Matthew STANDING HARD resume defaults: pitch-line Summary, importance-ordered Experience bullets, and Skills section. Target-specific packs may reorder for JD (e.g. Cursor DA vs Power Platform) but must never omit these. DIGEST gates: `Pitch Summary` / `Experience order` / `Skills`.
+- Pitch Summary MUST major-highlight **agentic AI variety** (not Power BI/Fabric-only); DIGEST gate `Pitch agentic highlight`.
+
+
+## [0.1.3] — 2026-09-19
+
+### Added
+
+- **`craft-candidate-materials` skill + command** — thin candidate-side packaging (resume / LinkedIn Experience / About / cover / recruiter paste) as DIGEST + `/workspace` paste paths. Honesty locks (no invented metrics; Raven/current role present tense; no LinkedIn push). Not employer-side TA and not `staffing-operations`.
+
 ## [0.1.2] — 2026-08-14
 
 ### Changed

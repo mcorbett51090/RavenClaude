@@ -89,6 +89,8 @@ printf '# brief\n\nDo the next step.\n' > "$T/proj/.ravenclaude/runs/demo/handof
 out="$(_spawn --task-id demo --project-root "$T/proj" --dry-run 2>&1)" || true
 _assert_contains "dry-run prints grok quote" "$out" 'grok "'
 _assert_contains "dry-run names the run dir" "$out" ".ravenclaude/runs/demo/handoff.md"
+_assert_contains "product line names a new interactive session" "$out" "NEW interactive session"
+_assert_contains "product line names cheap-lane as the other product" "$out" "not cheap-lane-delegation"
 _assert_absent "no grok -p" "$out" "grok -p"
 _assert_absent "no --single" "$out" "--single"
 _assert_absent "no --prompt-file" "$out" "--prompt-file"
@@ -107,17 +109,36 @@ _assert_contains "same-host dry-run names vscode" "$out" "detected-ui=vscode"
 _assert_contains "same-host dry-run says VS Code terminal" "$out" "VS Code terminal"
 _assert_absent "vscode recipe never uses Terminal.app" "$out" "open -na Terminal"
 
+printf 'schema_version: 5\ncheap_lane:\n  mode: agent\n  tier: fast\n' > "$T/proj/.ravenclaude/comfort-posture.yaml"
+out="$(_spawn --task-id demo --project-root "$T/proj" --dry-run 2>&1)" || true
+_assert_contains "cheap_lane agent names the host-switch" "$out" "cheap_lane.mode=agent is on"
+_assert_contains "cheap_lane agent still names the product" "$out" "NEW interactive session"
+_assert_absent "cheap_lane agent still never emits grok -p" "$out" "grok -p"
+
+printf 'schema_version: 5\ncheap_lane:\n  mode: off\n' > "$T/proj/.ravenclaude/comfort-posture.yaml"
+out="$(_spawn --task-id demo --project-root "$T/proj" --dry-run 2>&1)" || true
+_assert_absent "cheap_lane off does not claim a host-switch" "$out" "cheap_lane.mode="
+
 if [ "$mode" = "--must-fail-headless" ]; then
   mutant="$T/mutant.sh"
   python3 - "$SPAWN" "$mutant" <<'PY'
 from pathlib import Path
 import sys
 src = Path(sys.argv[1]).read_text()
-old = 'seed="grok \\"Continue task ${task_id}'
+# handoff-spawn.sh now separates the RAW exec value ($grok_prompt, shell-quoted
+# via _shq() at the actual `exec grok ...` site) from the human-readable $seed
+# used only for dry-run/copy-paste display and the forbidden-seed deny checks
+# below (see the command-injection fix — $seed no longer feeds `exec` at all).
+# The mutant must inject "-p" into $seed (what dry-run echoes), at the SAME
+# unset-host fallback assignment `--must-fail-headless` actually exercises.
+old = 'seed="grok \\"${grok_prompt}\\""'
 if old not in src:
     raise SystemExit("handoff-spawn.sh drifted — update Gate 213 mutant")
-src = src.replace(old, 'seed="grok -p \\"Continue task ${task_id}', 1)
-# also neuter the deny-list so the mutant actually emits it
+src = src.replace(old, 'seed="grok -p \\"${grok_prompt}\\""', 1)
+# also neuter EVERY deny-list check guarding $seed (there are two call
+# sites — an early one right after this assignment, and a second later in
+# the script) so the mutant's injected "-p" actually survives to the
+# dry-run echo instead of being refused by the second, still-intact check.
 src = src.replace('*"grok -p"*|', "")
 Path(sys.argv[2]).write_text(src)
 PY

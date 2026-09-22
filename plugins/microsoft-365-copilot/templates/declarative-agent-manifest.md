@@ -4,9 +4,9 @@ Copy + fill. Source of truth: [`../knowledge/declarative-agent-manifest-2026.md`
 
 ```jsonc
 {
-  // PIN THE SCHEMA — never "latest". Currently v1.7 [verify-at-build].
-  "$schema": "https://developer.microsoft.com/json-schemas/copilot/declarative-agent/v1.7/schema.json",
-  "version": "v1.7",
+  // PIN THE SCHEMA — never "latest". Currently v1.8 [verify-at-build].
+  "$schema": "https://developer.microsoft.com/json-schemas/copilot/declarative-agent/v1.8/schema.json",
+  "version": "v1.8",
   "name": "<agent display name>",
   "description": "<one-line scope; what it does, for whom>",
 

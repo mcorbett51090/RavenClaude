@@ -47,7 +47,7 @@ When the situation matches an entry condition in [`../knowledge/api-testing-gove
 
 ## Grounding the volatile facts
 
-The `RateLimit`/`RateLimit-Policy` headers are **active IETF drafts, not RFCs** as of 2026-06 `[verify-at-build]`; the `Sunset` header is RFC 8594 and `Deprecation` is its own draft/RFC track `[verify-at-build]` — verify before quoting status. Gateway product capabilities (APIM, Kong, Apigee, AWS API Gateway, Cloudflare) are volatile — re-verify a specific feature/limit against vendor docs before quoting, and prefer expressing the policy product-independently.
+The `RateLimit`/`RateLimit-Policy` headers are **active IETF drafts, not RFCs** as of 2026-06 `[verify-at-build]`; the `Sunset` header is RFC 8594 and `Deprecation` is now **RFC 9745** (Standards Track). Gateway product capabilities (APIM, Kong, Apigee, AWS API Gateway, Cloudflare) are volatile — re-verify a specific feature/limit against vendor docs before quoting, and prefer expressing the policy product-independently.
 
 ## Escalation — infra and verdicts seam out
 

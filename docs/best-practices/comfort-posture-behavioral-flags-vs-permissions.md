@@ -54,6 +54,7 @@ The three surfaces at a glance:
 - [`plugins/ravenclaude-core/copilot/AGENTS.md`](../../plugins/ravenclaude-core/copilot/AGENTS.md) § "Relay mode" — the three relay-activation conditions (condition 3 is the literal-key requirement).
 - [`plugins/ravenclaude-core/skills/set-posture/SKILL.md`](../../plugins/ravenclaude-core/skills/set-posture/SKILL.md) — the (category, level) → permission-rule translation pipeline.
 - [`plugins/ravenclaude-core/knowledge/orchestrator-data-egress.md`](../../plugins/ravenclaude-core/knowledge/orchestrator-data-egress.md) — orchestrator scopes + the ZDR attestation.
+- [`plugin-lifecycle-off-ask-auto.md`](./plugin-lifecycle-off-ask-auto.md) — `plugin_lifecycle:` is a third surface (`off` / `ask` / `auto`, uninstall ON/OFF). Setting every `categories.*` to `allow` does not install or uninstall plugins.
 
 ## Provenance
 

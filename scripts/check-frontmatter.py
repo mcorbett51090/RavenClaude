@@ -35,6 +35,18 @@ live under `plugins/*/copilot/agents/` and are NOT matched by the `plugins/*/
 agents/*.md` glob, so they are excluded from this check (they are generated and
 inherit their tool grant from the canonical agent).
 
+Agents also carry a model-tier contract (added 2026-09-14, the model-tier
+delegation milestone): every `agents/*.md` MUST declare `model:` with one of the
+Claude Code aliases `opus` / `sonnet` / `haiku` / `fable` / `inherit`
+(sub-agents doc § "Choose a model", retrieved 2026-09-14). The `model:` line is
+the price-mix half of the delegation discipline (knowledge/model-tier-
+delegation.md): an omitted `model:` silently resolves to the main conversation's
+model — on an Opus session, that is an Opus worker for grep-shaped work — and a
+full model id pinned in frontmatter goes stale when the SKU rotates (the
+model-catalog drift gate, Gate 134, exists because that happened). Aliases float
+with the catalog; ids do not. `inherit` is allowed because it is an explicit,
+visible choice rather than a silent default.
+
 Usage:
     check-frontmatter.py [--root <dir>]
 """
@@ -83,6 +95,12 @@ def _is_blank(v: object) -> bool:
 # Cap each agent description so enabling many plugins at once stays affordable.
 # Char-based (deterministic, no tokenizer needed); ~300 chars ≈ ~75 tokens.
 _AGENT_DESCRIPTION_MAX_CHARS = 300
+
+# The `model:` aliases Claude Code accepts in subagent frontmatter, plus `inherit`
+# (docs-verified 2026-09-14). Aliases only — a pinned full id (`claude-opus-4-8`)
+# is rejected so the tier floats with knowledge/model-catalog.json instead of
+# rotting in 600+ agent files when a SKU is superseded.
+_AGENT_MODEL_ALIASES = frozenset({"opus", "sonnet", "haiku", "fable", "inherit"})
 
 
 def _agent_scenario_violations(data: dict) -> list[str]:
@@ -189,6 +207,47 @@ def _violations(root: Path) -> list[tuple[str, str]]:
                         "'tools: \"*\"' to opt into all tools explicitly.",
                     )
                 )
+            elif not isinstance(tools, str):
+                # scripts/generate-copilot-plugin.py's frontmatter parser is a
+                # hand-rolled per-line regex, not real YAML — a block/flow list
+                # `tools:` value parses there as an EMPTY tools list (the list
+                # items live on lines the parser never matches), which the
+                # Copilot projection reads as "all tools, unrestricted": the
+                # exact privilege-escalation shape this gate exists to close.
+                # Only the comma-separated scalar form round-trips through both
+                # readers correctly.
+                bad.append(
+                    (
+                        rel,
+                        "'tools' must be the comma-separated scalar form "
+                        "(e.g. 'tools: Read, Grep, Glob') — a YAML list form "
+                        "parses as an EMPTY allowlist in the Copilot projection "
+                        "(scripts/generate-copilot-plugin.py's line-based "
+                        "parser doesn't read list items), silently granting "
+                        "unrestricted tool access there.",
+                    )
+                )
+            model = data.get("model")
+            if _is_blank(model):
+                bad.append(
+                    (
+                        rel,
+                        "missing or empty 'model' — every agent must pin a model "
+                        "tier (opus | sonnet | haiku | fable | inherit). An omitted "
+                        "model silently inherits the main session's (frontier) "
+                        "model for every worker; see knowledge/model-tier-delegation.md.",
+                    )
+                )
+            elif not isinstance(model, str) or model.strip() not in _AGENT_MODEL_ALIASES:
+                bad.append(
+                    (
+                        rel,
+                        f"'model: {model}' is not an allowed alias — use one of "
+                        f"{', '.join(sorted(_AGENT_MODEL_ALIASES))}. A pinned full "
+                        "model id goes stale when the SKU rotates; aliases float "
+                        "with knowledge/model-catalog.json.",
+                    )
+                )
             desc = data.get("description")
             if isinstance(desc, str) and len(desc) > _AGENT_DESCRIPTION_MAX_CHARS:
                 bad.append(
@@ -234,7 +293,7 @@ def main() -> int:
     print(
         "Frontmatter OK — every skill/agent parses as strict YAML with a description, "
         "every agent carries the scenario-authoring schema, declares an explicit tools "
-        "allowlist, and has a description within the "
+        "allowlist, pins a model-tier alias, and has a description within the "
         f"{_AGENT_DESCRIPTION_MAX_CHARS}-char cap."
     )
     return 0

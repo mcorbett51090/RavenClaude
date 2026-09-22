@@ -60,34 +60,47 @@ for n in "8px" "1.5rem" "1200px" "0 2px 8px rgba(0,0,0,0.1)" "#0055ff"; do
 done
 
 # 3) NEUTRALIZE — hostile payloads absent; no shadow emitted (whole value dropped, no salvage)
-python3 "$APPLY" "$FX/hostile-shadow.json" --target-brand "$TARGET" --out "$OUT/hostile" >/dev/null 2>&1
-HCSS="$OUT/hostile/design-schema.css"
-for n in "url(" "javascript:" "//exfil" "background:" "expression("; do
-  if grep -qF -- "$n" "$HCSS" 2>/dev/null; then
-    bad "NEUTRALIZE: hostile payload $n LEAKED into design-schema.css"
-  else
-    ok "NEUTRALIZE: hostile payload $n absent"
-  fi
-done
-if grep -qF -- "--shadow-" "$HCSS" 2>/dev/null; then
-  bad "NEUTRALIZE: a hostile shadow was emitted (partial salvage — must drop the whole value)"
+if ! python3 "$APPLY" "$FX/hostile-shadow.json" --target-brand "$TARGET" --out "$OUT/hostile" >/dev/null 2>&1; then
+  bad "NEUTRALIZE: apply_schema.py exited non-zero on hostile-shadow.json fixture"
 else
-  ok "NEUTRALIZE: no hostile shadow emitted (whole value dropped)"
+  HCSS="$OUT/hostile/design-schema.css"
+  if [ ! -f "$HCSS" ]; then
+    bad "NEUTRALIZE: apply_schema.py produced no $HCSS — cannot verify neutralization"
+  else
+    for n in "url(" "javascript:" "//exfil" "background:" "expression("; do
+      if grep -qF -- "$n" "$HCSS" 2>/dev/null; then
+        bad "NEUTRALIZE: hostile payload $n LEAKED into design-schema.css"
+      else
+        ok "NEUTRALIZE: hostile payload $n absent"
+      fi
+    done
+    if grep -qF -- "--shadow-" "$HCSS" 2>/dev/null; then
+      bad "NEUTRALIZE: a hostile shadow was emitted (partial salvage — must drop the whole value)"
+    else
+      ok "NEUTRALIZE: no hostile shadow emitted (whole value dropped)"
+    fi
+  fi
 fi
 
 # 4) IDENTITY (structural) — reference signature color absent (replaced by a target token),
 #    and the output tree carries ZERO logo/image files under any name
-python3 "$APPLY" "$FX/identity-color-in-shadow.json" --target-brand "$TARGET" --out "$OUT/identity" >/dev/null 2>&1
-python3 "$APPLY" "$FX/reference-with-logo-and-primary.json" --target-brand "$TARGET" --out "$OUT/bundle" >/dev/null 2>&1
-if grep -qF -- "#e10098" "$OUT/identity/design-schema.css" "$OUT/bundle/design-schema.css" 2>/dev/null; then
-  bad "IDENTITY: the reference signature color reached design-schema.css"
+if ! python3 "$APPLY" "$FX/identity-color-in-shadow.json" --target-brand "$TARGET" --out "$OUT/identity" >/dev/null 2>&1; then
+  bad "IDENTITY: apply_schema.py exited non-zero on identity-color-in-shadow.json fixture"
+elif ! python3 "$APPLY" "$FX/reference-with-logo-and-primary.json" --target-brand "$TARGET" --out "$OUT/bundle" >/dev/null 2>&1; then
+  bad "IDENTITY: apply_schema.py exited non-zero on reference-with-logo-and-primary.json fixture"
+elif [ ! -f "$OUT/identity/design-schema.css" ] || [ ! -f "$OUT/bundle/design-schema.css" ]; then
+  bad "IDENTITY: apply_schema.py produced no design-schema.css under identity/ or bundle/ — cannot verify neutralization"
 else
-  ok "IDENTITY: reference signature color absent (neutralized to a target token)"
-fi
-if grep -qF -- "var(--brand-shadow-color)" "$OUT/identity/design-schema.css" 2>/dev/null; then
-  ok "IDENTITY: neutralized shadow references the target shadow token"
-else
-  bad "IDENTITY: neutralized shadow did not use the target shadow token"
+  if grep -qF -- "#e10098" "$OUT/identity/design-schema.css" "$OUT/bundle/design-schema.css" 2>/dev/null; then
+    bad "IDENTITY: the reference signature color reached design-schema.css"
+  else
+    ok "IDENTITY: reference signature color absent (neutralized to a target token)"
+  fi
+  if grep -qF -- "var(--brand-shadow-color)" "$OUT/identity/design-schema.css" 2>/dev/null; then
+    ok "IDENTITY: neutralized shadow references the target shadow token"
+  else
+    bad "IDENTITY: neutralized shadow did not use the target shadow token"
+  fi
 fi
 imgs=$(find "$OUT" -type f \( -name '*.svg' -o -name '*.png' -o -name '*.jpg' -o -name '*.jpeg' \
   -o -name '*.gif' -o -name '*.webp' -o -name '*.ico' -o -name '*.avif' -o -name '*.bmp' \) 2>/dev/null | wc -l | tr -d ' ')

@@ -53,6 +53,12 @@ _SECTIONS = [
     "## PR conventions",
     "## House rules",
     "## Accuracy discipline (cross-tool pointer)",
+    # verify-before-assert Phase 8 — the portable text floor. Aider reads NOTHING
+    # automatically (CONVENTIONS.md is opt-in via `--read`), and no hook of any
+    # kind reaches this host, so this projection is the ONLY form the cause
+    # discipline takes here. A missing header RAISES rather than shipping a
+    # CONVENTIONS.md with a hole where the floor should be.
+    "## Naming a cause (the portable floor)",
 ]
 
 _PREAMBLE = """# CONVENTIONS.md

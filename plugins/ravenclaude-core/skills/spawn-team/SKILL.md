@@ -1,6 +1,6 @@
 ---
 name: spawn-team
-description: Team Lead dispatch playbook. Given a feature or task, decide which specialized agents to dispatch, prepare their briefs, allocate worktrees, run them in the right order, and re-route on blockers. Load this skill whenever you (the Team Lead) are about to dispatch more than one agent on a request — and also when you are weighing whether a request warrants delegation at all, since Step 1.5 argues that fork in both directions and the current model under-spawns by default. Keeps routing consistent across sessions and avoids re-deriving the workflow each time.
+description: Team Lead dispatch playbook. Pick the surface first (slash command vs skill vs specialist agent vs orchestration shape — Step 1.25), then whether to delegate (Step 1.5), then which agents and order. Load whenever choosing skill vs agent vs slash, weighing delegation, or about to dispatch more than one agent. Keeps routing consistent; platform description-match alone is not the router.
 ---
 
 # Skill: spawn-team
@@ -20,6 +20,31 @@ Write down, in your own words:
 - What's *out* of scope (explicit, to prevent drift).
 
 If you can't write these in three minutes, the request is unclear — ask the user before spawning anyone.
+
+---
+
+## Step 1.25 — Pick the *surface* first (slash / skill / agent / shape)
+
+**Platform auto-select is not the router.** Claude Code (and other hosts) fuzzy-match skill and agent `name` + `description`; that is a weak signal. RavenClaude's stronger signal is this step — traverse it **before** Step 1.5 (whether to spawn) and Step 2 (which playbook / orchestration shape). Companion diagram: [`../../knowledge/orchestration-decision-trees.md`](../../knowledge/orchestration-decision-trees.md) § "Runtime surface selection". Say which surface you chose in your summary.
+
+Traverse top-to-bottom against **observable** signals — do NOT keyword-match the request to a skill or agent name.
+
+1. **User named a slash command** (`/forge`, `/wireframe`, `/dashboard`, `/set-posture`, …) → invoke that command (its skill). Stop here.
+2. **A shipped skill already encodes this exact multi-step procedure** — the skill's description matches, the body is a playbook the **main session** can follow, and the ask does **not** need a separate specialist judgment role, merge gate, or distinct deliverable format → load that skill in the main session. Do **not** spawn a specialist to re-derive the procedure. Reciprocal precedent: `/wireframe` (fast mockup Artifact) vs `designer` (full design spec + a11y + handoff).
+3. **Need a specialist's judgment, a gate, or a distinct deliverable format** (architect plan, security verdict, design spec + a11y handoff, code review, RAID hygiene, …) → **agent path** → continue to Step 1.5, then [`agent-routing.md`](../../knowledge/agent-routing.md).
+4. **Orchestration shape exceeds turn-by-turn specialist dispatch** (massively parallel, adversarial, reviewed plan from a raw idea, long-running peer team) → pick the shape from [`dynamic-workflows.md`](../../knowledge/dynamic-workflows.md) / `/forge` per Step 2 — not a single specialist playbook alone.
+
+**Tradeoffs (authoritative):**
+
+| Surface | Who holds the procedure | Cost | Use when | Anti-pattern |
+|---|---|---|---|---|
+| Slash command | Command → skill body | Low | User named it, or it is the documented entry | Ignoring `/forge` (etc.) and hand-rolling |
+| Skill (main session) | Skill body | Low | Repeatable procedure already authored | Spawning an agent to reinvent the skill |
+| Specialist agent | Brief + agent tools | Medium | Judgment, gate, or distinct deliverable format | Spawning for a procedure a skill already owns |
+| Team Lead direct | This session | 0 | Trivial / already in context (Step 1.5) | Spawning for a ≤10-line single-file tweak |
+| Dynamic workflow / FORGE / agent team | Script or harness | High | Shape table in `dynamic-workflows.md` | Hand-orchestrating dozens of agents turn by turn |
+
+**What this does NOT replace.** Step 1.5 still decides *whether* to spawn once the surface is "agent(s)". [`agent-routing.md`](../../knowledge/agent-routing.md) still decides *which* specialist. Step 2 still picks the multi-agent *playbook* and orchestration *shape*. This step only answers **what kind of surface** should run.
 
 ---
 
@@ -52,12 +77,27 @@ costs more than doing the work. (This is the `(none — Team Lead direct)` row o
 - **Fresh context beats yours.** For verifying work *you* just did, a subagent that never saw you do it
   is the point — self-critique inherits your premises. FORGE's G4a critic exists for exactly this.
 - **Context you shouldn't hold.** Bulk reading that would crowd your window is the cheapest thing to
-  delegate; the subagent returns the conclusion, not the transcript.
+  delegate; the subagent returns the conclusion, not the transcript. **And it is the cheapest in
+  dollars, not just in your context** — a read-heavy, judgment-light subtask is the one that belongs on
+  the fast tier ([`scout`](../../agents/scout.md), `model: haiku`). Reading ten files yourself spends
+  frontier input tokens on grunt work; a scout spends haiku tokens and returns ten lines.
+
+**The test that decides whether the hierarchy pays for itself** — from
+[`knowledge/model-tier-delegation.md`](../../knowledge/model-tier-delegation.md): delegation saves
+*money* when the volume of tokens moves to a cheaper tier; it never saves *tokens*, because every
+handoff is a brief written at premium rates plus a report re-read at premium rates. So a short,
+sequential task (one file, one function, one question) is cheaper done here on the strong model — the
+"do it yourself" row above — and a long, parallelisable, mechanical-reading task is cheaper pushed
+down. **Push down only when all four hold:** the subtask is well-specified after *you* did the
+thinking; the worker needs the brief + files, not the conversation; it returns a small artifact
+(paths / diff manifest / extracted fields / pass-fail); a failure is cheap to retry. If you would
+have to paste the transcript to brief it, it was not decomposed — it was forwarded.
 
 **What this does NOT relax.** The `parallelism` cap still binds (Step 5) — honor the configured breadth.
 Sub-agents still never spawn peers (single-orchestrator, [`agent-collaboration.md`](../../rules/agent-collaboration.md)).
-The routing tree still decides **which** specialist. This step decides only **whether**, and "spawn more"
-is never a licence to skip the cap, the tree, or the shape choice in Step 2.
+The routing tree still decides **which** specialist. This step decides only **whether** (and only after
+Step 1.25 chose the **agent** surface). "Spawn more" is never a licence to skip the cap, the surface
+choice, the tree, or the shape choice in Step 2.
 
 **Re-check the direction on a model swap.** This counterweight is calibrated to Opus 4.8's under-spawn
 default. **Fable 5 inverts it** — it *"dispatches parallel subagents more readily than prior models"*
@@ -68,7 +108,13 @@ this step needs re-reading, not copying.
 
 ## Step 2 — Pick the playbook
 
-**Before you fan out, pick the orchestration *shape*.** A multi-agent request is not automatically a turn-by-turn subagent dispatch. Traverse the table in [`../../knowledge/dynamic-workflows.md`](../../knowledge/dynamic-workflows.md) `## Choosing an orchestration shape` first: if the work is massively-parallel or adversarial, you'll rerun it, or you're coordinating more agents than this conversation can track, it's a **dynamic workflow** (`ultracode`) — not a hand-orchestrated dispatch. If the deliverable is a reviewed *plan* from a raw idea, it's `/forge`. Otherwise the playbooks below (you, the Team Lead, dispatching specialists turn by turn) are the right shape. Say which shape you chose in your summary.
+**Only after Step 1.25 chose an agent / multi-agent surface.** If Step 1.25 landed on a slash command or a main-session skill, you should already have stopped — do not continue into these playbooks to "also" spawn someone.
+
+**Before you fan out, pick the orchestration *shape*.** A multi-agent request is not automatically a turn-by-turn subagent dispatch. Traverse the table in [`../../knowledge/dynamic-workflows.md`](../../knowledge/dynamic-workflows.md) `## Choosing an orchestration shape` first: if the work is massively-parallel or adversarial, you'll rerun it, or you're coordinating more agents than this conversation can track, it's a **dynamic workflow** (`ultracode`) — not a hand-orchestrated dispatch. If the deliverable is a reviewed *plan* from a raw idea, it's `/forge`. Otherwise the playbooks below (you, the Team Lead, dispatching specialists turn by turn) are the right shape. Say which shape you chose in your summary. That table answers *subagent vs skill vs team vs workflow vs FORGE at orchestration scale*; Step 1.25 already answered the finer *slash vs skill vs specialist* question for a single turn.
+
+**Choosing a non-Claude host for a piece of work** (distinct from the shape question above): [`../../knowledge/agent-routing-matrix.json`](../../knowledge/agent-routing-matrix.json) is an optional reference for which agent (Claude Code / Codex CLI / Copilot CLI / Copilot Chat / Grok Build CLI) a given task shape probably fits best — a prose pointer, not a required lookup; nothing here reads the file automatically.
+
+**If a [`prompt-optimizer`](../prompt-optimizer/SKILL.md) `dispatch_plan` preceded this turn** (distinct from both pointers above): its `recommended_agents[]` is advisory context only — prompt-optimizer is architecturally incapable of dispatching anything itself (its Never-dispatches invariant), so this playbook remains the mechanism that actually performs the dispatch. Weigh the plan's suggestions alongside Step 1's routing decision-tree; they are one more input, never a pre-made routing decision.
 
 These are the standard dispatch patterns. Pick the one that matches the request, adapt as needed, and *say which playbook you're running* in your final summary.
 
@@ -159,6 +205,9 @@ A bad brief is the most common cause of bad agent output. Every brief includes:
 5. **Boundaries** — what's out of scope.
 6. **Reporting cap** — word / line limit ("under 300 words").
 7. **Playbook context** — which playbook step this is, what the previous step produced, what the next step expects.
+8. **Worker contract** — the model tier and why, the exact inputs, the tools, the deterministic success
+   check, and a hard `Max output`. This is the block that decides whether the dispatch saves money or
+   costs it (Step 4.25).
 
 Template:
 ```
@@ -180,9 +229,53 @@ Template:
 ## Playbook context
 Step <N> of <playbook name>. Previous step produced <X>. Next step expects <Y>.
 
+## Worker contract
+- Model tier: <haiku | sonnet | opus> — <one clause why this tier fits this subtask>
+- Inputs: <exact paths / excerpts — never the conversation>
+- Tools you need: <subset; read-only for scouts>
+- Success check: <the deterministic thing the Team Lead will run to verify>
+- Max output: <N> words + the Structured Output Protocol JSON. Longer material -> write it to
+  .ravenclaude/runs/<run-id>/<phase>.{md,json} and return the path.
+
 ## Reporting
 Return your standard structured report. Cap your response at <N> words.
 ```
+
+**Never paste the conversation into `Context`.** The worker has no prior memory *by design* — that is
+what makes its context cheap. Give it paths and excerpts. A brief that opens with "here is what we
+discussed…" and runs long is the transcript-forwarding tell; the
+[`handoff-tax-meter`](../../hooks/handoff-tax-meter.sh) flags it (`brief_over_cap`, default 600 words).
+
+## Step 4.25 — Pick the model tier (the price mix is the saving)
+
+The brief names *what*; this step names *who pays for it*. Full reference and rationale:
+[`knowledge/model-tier-delegation.md`](../../knowledge/model-tier-delegation.md).
+
+| The subtask is… | Tier | How to select it |
+|---|---|---|
+| search / grep / classify / extract fields / inventory / cross-reference — reads a lot, returns a little | **fast** (`haiku`) | dispatch [`scout`](../../agents/scout.md) (pins `haiku`), or pass `model: "haiku"` on the Agent call |
+| a bounded edit against a plan, a known API call, tests for a stated contract, first-draft prose from supplied inputs | **mid** (`sonnet`) | the coders / `tester-qa` / `documentarian` / `project-manager` already pin `sonnet` |
+| design, adjudication, a gate that holds merge, cited research the run depends on | **frontier** (`opus`) | `architect` / `code-reviewer` / `security-reviewer` / `deep-researcher` pin `opus` — **never** pass a cheaper `model:` to a gate |
+| recovery after a worker returned `blocked` / `partial` / a falsified result | **one tier up** | haiku → sonnet → opus. Fix the brief if it was ambiguous, but do not re-run the same tier with more words |
+
+Three things the tier table cannot tell you, so they are stated here:
+
+- **The built-in `Explore` is not a free scout.** Since Claude Code v2.1.198 it inherits the main
+  conversation's model `[docs-verified 2026-09-14]`; on an Opus session an un-pinned `Explore` is an
+  Opus dispatch. Pin `model: "haiku"` per invocation or use `scout`. On Claude Code with a posture
+  file present, [`explore-tier-pin`](../../hooks/explore-tier-pin.sh) rewrites an un-pinned `Explore`
+  to `haiku` for you (`handoff_tax.pin_explore`, default `haiku`) — it never overrides a `model` you
+  passed, so the discipline is still yours; the pin is the backstop. Elsewhere (Copilot / Codex /
+  Cursor / Gemini) no hook binds and the meter's `frontier_readonly` flag is the only tell.
+- **Resolution order:** per-invocation `model` → the agent's `model:` frontmatter →
+  `CLAUDE_CODE_SUBAGENT_MODEL`. Every agent in this marketplace declares `model:` (gated), so the
+  frontmatter is always there to fall back on; you only need the per-invocation parameter to
+  *override* it — and overriding a gate downward is the one override you never make.
+- **Parallel scouts must read disjoint slices.** N scouts that each `grep -r` the same tree pay N
+  times for one read. When the fan-out shares a corpus, dispatch one scout to build an index artifact
+  first (`.ravenclaude/runs/<run-id>/00-index.json`), then fan the others out over the index.
+
+State the tier in your summary's Sequence table (Step 8) so cost-per-completed-task is auditable.
 
 ---
 
@@ -328,6 +421,7 @@ When an agent surfaces a problem, route by the *type* of problem, not by which a
 | Documentarian surfaces a fact gap | Source insufficient | **deep-researcher** if external; ask the user if internal |
 | Agent A asserts another agent's prior artifact is wrong (confidence ≥ 0.7, correctness-critical domain) | Contested claim that one orchestrator test can't settle | **deep-researcher in citation-only mode** — apply [Cited-Adjudicator Escalation](../../rules/agent-collaboration.md#cited-adjudicator-escalation) |
 | Any agent goes silent for >5 minutes | Blocked or stuck | abort and re-dispatch with a tighter brief |
+| A finding is relevant to a **different worktree with its own live session** | Cross-session relevance | **[`session-relay`](../session-relay/SKILL.md)** — hand it to the peer session already working there via `ListAgents`/`SendMessage`, instead of paging the human or letting it go stale. See [`knowledge/cross-session-messaging.md`](../../knowledge/cross-session-messaging.md) for the underlying capability. |
 
 ---
 
@@ -359,6 +453,13 @@ When an agent surfaces a problem, route by the *type* of problem, not by which a
 - Run [`cleanup-worktrees`](../cleanup-worktrees/SKILL.md) to remove finished worktrees.
 - If shipping, hand to [`create-pr`](../create-pr/SKILL.md).
 - Summarize for the user: which playbook ran, what shipped, what didn't, what's open.
+- **One cost line, from the ledger, not from memory.** Run
+  `bash plugins/ravenclaude-core/bin/rc dispatch-summary` and put its rollup in the summary:
+  dispatches by tier, frontier share, any `frontier_readonly` / over-cap counts. If the ledger is
+  empty (no posture file, or a non-Claude-Code host), say so in one clause rather than estimating —
+  an absent number is honest; a guessed one is the metric this whole step exists to replace. A run
+  whose frontier share is above what the Step 4.25 table would predict is the retrospective's first
+  question, not a footnote.
 
 ---
 

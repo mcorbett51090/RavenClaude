@@ -9,7 +9,7 @@ A **People Operations / HR specialist team** for an HRBP, People-Ops leader, tal
 | Surface | Contents |
 |---|---|
 | **agents** | `people-ops-lead` (orchestrator), `talent-acquisition-strategist`, `total-rewards-comp-analyst`, `people-analytics-engagement-specialist` |
-| **skills / commands** | `diagnose-attrition`, `model-hiring-plan`, `design-comp-bands`, `run-pay-equity-review`, `read-engagement-signals` |
+| **skills / commands** | `diagnose-attrition`, `model-hiring-plan`, `design-comp-bands`, `run-pay-equity-review`, `read-engagement-signals`, `craft-candidate-materials` |
 | **knowledge bank** | KPI glossary · unit economics · 2025–2026 benchmark/regulatory context · Mermaid decision trees |
 | **templates** | scorecard · exec readout · engagement brief · hiring-plan tracker |
 | **an advisory hook** | flags People-Ops anti-patterns (unbaselined metric, unsourced benchmark, employee PII) in generated deliverables |

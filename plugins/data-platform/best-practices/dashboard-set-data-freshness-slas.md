@@ -54,6 +54,34 @@ schedule: { cron: "0 */6 * * *" }   # 6-hourly meets a ≤12h freshness SLA; no 
 - **Case A (Evidence.dev portfolio)** — refresh is on the build cadence (monthly/quarterly); the "as-of" is the last static deploy date, shown on the page.
 - **Snowflake/Delta Sharing** — freshness is the provider's, not yours; surface *their* as-of and the share's latency, not a pipeline SLA you don't own.
 
+## The dashboard-side degradation contract (added FORGE dashboard-top1pct P2-16, 2026-09-03)
+
+The rule above says "show the as-of timestamp" and "alert on breach." The gap this section closes:
+**what does the widget itself show when the SLA is already breached?** Confirmed against this
+plugin's own two starters before writing this: `commands/build-embedded-dashboard.md` step 5 has
+mandated a visible as-of timestamp since it was written, and **neither starter rendered one** —
+the gap between a command's steps and the artifacts it points at is exactly where an agent
+produces confidently wrong work, because nothing failed loudly enough to notice.
+
+A widget past its declared SLA must **never silently render a normal-looking number** — the
+failure mode this whole rule exists to prevent (silent staleness) is not fixed by having an
+as-of timestamp *somewhere on the page* if the number next to it still looks fine. The contract:
+
+- **On time:** the as-of timestamp renders in a neutral, low-emphasis style — informational, not
+  a warning.
+- **Past the SLA:** the as-of timestamp switches to a visibly distinct state — an icon **and**
+  text change, never color alone (WCAG 2.2 AA, per
+  [`dashboard-meet-the-accessibility-floor.md`](./dashboard-meet-the-accessibility-floor.md)'s
+  Use-of-Color criterion) — e.g. `⚠ Stale — last updated 14h ago (SLA: 12h)`. The widget's own
+  data value is not hidden or blocked (a stale number is still information), but the staleness
+  state must be at least as visually prominent as the number itself, not a small footnote.
+- **This plugin's `<FreshnessBadge>` component** (`templates/cube-nextjs-dashboard-starter/
+  components/FreshnessBadge.tsx`, `templates/cube-astro-dashboard-starter/src/components/
+  FreshnessBadge.tsx`) implements this contract: it queries a Cube `max()` measure over the
+  fact table's `updated_at` column, compares against a `slaMinutes` prop (the SLA is per-dashboard,
+  set by the caller — there is no single correct default, matching this file's own "declare a
+  freshness SLA per source/dashboard" rule above), and renders the two states.
+
 ## See also
 
 - [`./ingest-idempotent-and-replayable.md`](./ingest-idempotent-and-replayable.md) — a freshness breach often means re-running the load; it must be replay-safe
@@ -68,4 +96,4 @@ Distilled from CLAUDE.md house opinion #7 (provenance/as-of on every widget clai
 
 ---
 
-_Last reviewed: 2026-05-30 by `claude`_
+_Last reviewed: 2026-09-03 by `claude` (added the dashboard-side degradation contract, FORGE dashboard-top1pct P2-16)_

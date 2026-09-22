@@ -1,0 +1,23 @@
+{
+  "name": "grok-bot-creation",
+  "version": "0.1.0",
+  "description": "Grok Bot creation specialist — design token-efficient, mostly autonomous Grok Bot personas (CreateAgent / UpdateAgent) with statistically insignificant quality loss: create checklist, gold description template, safe token hygiene, and the recipe for upstreaming net-new skills into RavenClaude via GitHub Sage. Distinct from ai-agent-engineering (building production agentic systems / frameworks) and ravenclaude-core (Claude Code orchestration). Requires ravenclaude-core@>=0.7.0.",
+  "author": {
+    "name": "Matt Corbett"
+  },
+  "homepage": "https://github.com/mcorbett51090/RavenClaude",
+  "license": "MIT",
+  "keywords": [
+    "grok-bots",
+    "createagent",
+    "personas",
+    "bot-design",
+    "token-hygiene",
+    "autonomous-agents",
+    "ravenclaude-sync",
+    "github-sage"
+  ],
+  "requires": {
+    "plugins": ["ravenclaude-core@>=0.7.0"]
+  }
+}

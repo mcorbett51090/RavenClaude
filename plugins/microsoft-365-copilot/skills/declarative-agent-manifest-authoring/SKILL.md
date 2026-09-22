@@ -1,6 +1,6 @@
 ---
 name: declarative-agent-manifest-authoring
-description: "Author and review a Microsoft 365 Copilot declarative-agent manifest — pin the schema version (v1.7), keep instructions within the ~8,000-char budget, declare only the needed capabilities, write scope-demonstrating conversation starters, wire API actions, and pass manifest + Responsible-AI validation against the 50/25/4096/45s hard-limit wall. Use when building or reviewing a declarative agent."
+description: "Author and review a Microsoft 365 Copilot declarative-agent manifest — pin the schema version (v1.8), keep instructions within the ~8,000-char budget, declare only the needed capabilities, write scope-demonstrating conversation starters, wire API actions, and pass manifest + Responsible-AI validation against the 50/25/4096/45s hard-limit wall. Use when building or reviewing a declarative agent."
 ---
 
 # Declarative-agent manifest authoring
@@ -8,7 +8,7 @@ description: "Author and review a Microsoft 365 Copilot declarative-agent manife
 Playbook for `declarative-agent-engineer`. Source of truth: [`../../knowledge/declarative-agent-manifest-2026.md`](../../knowledge/declarative-agent-manifest-2026.md). Skeleton: [`../../templates/declarative-agent-manifest.md`](../../templates/declarative-agent-manifest.md).
 
 ## 1. Pin the schema
-Set `$schema` / `schema_version` to a concrete version (currently **v1.7** `[verify-at-build]`), never "latest". Record the version you pinned and why in the manifest comment / PR.
+Set `$schema` / `schema_version` to a concrete version (currently **v1.8** `[verify-at-build]`), never "latest". Record the version you pinned and why in the manifest comment / PR.
 
 ## 2. Budget before you write
 - Instructions ≤ **~8,000 chars**.

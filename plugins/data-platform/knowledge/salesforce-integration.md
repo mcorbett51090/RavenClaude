@@ -39,14 +39,16 @@ The OAuth credentials come from a **Connected App** the org admin creates. Treat
 
 | Limit | Value | Notes |
 |---|---|---|
-| Records / 24 hours | **150,000,000** | The headline ceiling |
-| Batch submissions / 24 hours | **15,000** | Per org |
-| Records per batch | **10,000** | Hard ceiling |
-| Batch payload size | **10 MB** | Includes column overhead |
+| Records / 24 hours | **150,000,000** `[unresolved conflict — see note below, 2026-09-03]` | The headline ceiling |
+| Batch submissions / 24 hours | **15,000** `[verified 2026-09-03 — shared quota across Bulk API 1.0 and 2.0]` | Per org |
+| Records per batch | **10,000** `[verified 2026-09-03]` | Hard ceiling |
+| Batch payload size | **10 MB** `[verified 2026-09-03]` | Includes column overhead |
 
 **Rolling 24-hour window** — not a calendar day. Org-wide limits apply across all integrations.
 
-> Source: [Bulk API 2.0 Limits](https://developer.salesforce.com/docs/atlas.en-us.api_asynch.meta/api_asynch/bulk_common_limits.htm)
+**Records/24h figure — genuinely unresolved, not silently forced to look settled `[2026-09-03]`:** direct fetches of both `developer.salesforce.com` pages 403'd this session (member/bot-gated), so this was checked via secondary sources twice, independently, with conflicting results. One pass found several current practitioner writeups plus Salesforce's own PDF cheatsheet agreeing on **150,000,000** — which is also internally consistent with this table's own other two rows (15,000 batches × 10,000 records/batch = 150,000,000, i.e. it may simply be the *derived* ceiling, not a separately-published cap). A second, independent pass found multiple 2026 sources stating **100,000,000** records/24h as the actual current limit, distinct from the batch-math ceiling. Both are left standing here rather than picking one — **do not quote either figure to a client without a live check against the actual org's Bulk API 2.0 job history / a direct primary-source read**, and re-run this check with an authenticated Salesforce Developer Docs session if one is available, since the anonymous-fetch wall is exactly why this couldn't be settled outright this session.
+
+> Source: [Bulk API 2.0 Limits](https://developer.salesforce.com/docs/atlas.en-us.api_asynch.meta/api_asynch/bulk_common_limits.htm) — both attempts to fetch this and the developer-limits-cheatsheet page directly returned HTTP 403 this session (2026-09-03).
 
 ## Connector availability
 

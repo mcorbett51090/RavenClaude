@@ -6,9 +6,116 @@
         "P9 wave 1 (12 entries)",
         31500,
         "P9 wave 1: 12 mechanism inventory entries. Measured cost 34 payload elements per entry against the ~411/concept the Learn tab carries, because an inventory entry ships no mermaid block (the diagrams-opt-in decision, R2 corollary). Projection to a 162-entry corpus is ~5,500 elements, not the ~90,000 the plan feared. Headroom left for wave 2."
+      ],
+      [
+        "dependency-update-sweep inventory entry (Gate 242 inception-coverage fix, 2026-09-03)",
+        31560,
+        "The dependency-update-sweep skill's Gate-242 inception-coverage fix added one new inventory concept (dependency-update-sweep -- the measured 175->85/27 finding-count fix for scan_markers' host-scoping bug) covering dependency-sweep.py, host-version-probe.py, the skill's SKILL.md, and four test fixtures -- seven paths in one mechanism entry. Measured at 31,536 island payload elements (over the prior 31,500 ceiling by 36 -- the wave-1 headroom was exhausted by the intervening waves already appended to the byte ceiling below). Same no-diagrams-for-inventory-entries shape as every prior wave; a pure content-size raise, not a DOM control. Re-measured on rebased HEAD after merging origin/main; appended, never edited."
+      ],
+      [
+        "grok-bot-orchestration-skill-restates-core inventory entry (PR #1104 inception-coverage fix, 2026-09-04)",
+        31590,
+        "PR #1104's (grok-bot-creation + grok-bot-delegation plugins) Gate-242 inception-coverage fix added one new inventory concept (grok-bot-orchestration-skill-restates-core -- the cite-vs-restate divergence in skills/ravenclaude-core-orchestration/SKILL.md, forced by a Grok Bot's inability to resolve a cross-plugin markdown link) covering skills/game-theory-basics/SKILL.md, skills/quantitative-problem-solving/SKILL.md, and skills/ravenclaude-core-orchestration/SKILL.md -- three paths in one mechanism entry. Measured at 31,574 island payload elements (over the prior 31,560 ceiling by 14). Same no-diagrams-for-inventory-entries shape as every prior wave; a pure content-size raise, not a DOM control. Re-measured on rebased HEAD after merging origin/main; appended, never edited."
+      ],
+      [
+        "claude-code-parallel-and-modes inventory entry (PR #1114 Gate 240 fix, 2026-09-05)",
+        31640,
+        "PR #1114 adds one new inventory concept (claude-code-parallel-and-modes \u2014 the verified negative that there is no /max-parallel Claude Code command; remap to plan/subagents/worktrees/ultracode/ultrathink/effort) covering skills/claude-code-parallel-and-modes/SKILL.md. Regenerating dashboard.html for R12 badge parity measured island payload at 31,610 (over the prior 31,590 ceiling by 20). Same no-diagrams-for-inventory-entries shape as every prior wave; a pure content-size raise, not a DOM control. Re-measured on rebased HEAD after #1113; appended, never edited."
+      ],
+      [
+        "launch-guard-installer-is-fail-open inventory entry (claude-launch-safeguard build, Gate 281, 2026-09-08)",
+        31660,
+        "The claude-launch-safeguard build (anthropics/claude-code#92932) added one new inventory concept (launch-guard-installer-is-fail-open -- covering plugins/ravenclaude-core/scripts/install_launch_guard.py, the Gate-242 inception-coverage fix for that new artifact). Measured island payload at 31,651 (over the prior 31,640 ceiling by 11). Same no-diagrams-for-inventory-entries shape as every prior wave; a pure content-size raise, not a DOM control. Re-measured on rebased HEAD (merge base a6050429c857); appended, never edited."
+      ],
+      [
+        "skill-index inventory entry (FORGE plan dynamic-skill-context, phase P0, 2026-09-08)",
+        31720,
+        "FORGE plan dynamic-skill-context's phase P0 adds one new inventory concept (skill-index-self-reference-convergence \u2014 the generator's own self-referential fixed-point bug: its first write always undercounts by one entry since it indexes its own not-yet-written output file) covering scripts/generate-skill-index.py and plugins/ravenclaude-core/skills/skill-index/SKILL.md. Measured at 31,663 island payload elements when this row was first set against a 31,640 base; re-measured again at THIS merge, appended after origin/main's own launch-guard-installer-is-fail-open row (31,660) which landed first \u2014 appended, never edited, per this file's own convention."
+      ],
+      [
+        "merge: forge/prompt-optimizer into origin/main (2026-09-09)",
+        31800,
+        "Merging forge/prompt-optimizer (two new inventory concepts: prompt-optimizer-tier0-heuristic-limit -- the Tier-0 whitelist's documented adversarial-paraphrase residual -- covering the prompt-optimizer skill's 9 artifacts; hooks-selftest-crashes-on-a-per-host-generator-error -- covering scripts/hooks-selftest.py) with origin/main's own concurrent skill-index + claude-launch-safeguard growth (each already reflected in the rows above) regenerates dashboard.html to 31,797 island payload elements (over the prior 31,720 ceiling by 77). Same no-diagrams-for-inventory-entries shape as every prior wave -- a pure content-size raise, no DOM control. Re-measured on the merge commit; appended, never edited."
+      ],
+      [
+        "source-control-coordinator agent + /coordinate command (PR #1146, 2026-09-09)",
+        31830,
+        "PR #1146 adds the source-control-coordinator agent and the /coordinate command (source-control-coordinator, its knowledge files, coordinator-lock.sh) to the Discover/Commands payloads. Measured island payload at 31,812 (over the prior 31,800 ceiling by 12; largest panel learn-payload at 25,081). Same no-diagrams-for-inventory-entries shape as every prior wave -- a pure content-size raise, no DOM control. Re-measured on this PR's own head (77f0dc4); appended, never edited."
+      ],
+      [
+        "ledger-global-flags-precede-subcommand inventory entry (PR #1146, closing check-inception-coverage, 2026-09-09)",
+        31900,
+        "The inception-coverage gate (check-inception-coverage.py) required source-control-coordinator.md and coordinate.md to be named in some inventory entry's covers[] before this PR could pass CI. Added one new concept (ledger-global-flags-precede-subcommand -- the argparse global-flag-ordering bug found live while building the coordinator) covering both files plus the ledger convention doc and ledger.py itself. Measured island payload at 31,888 (over the prior 31,830 ceiling by 58; largest panel learn-payload at 25,157). Same no-diagrams-for-inventory-entries shape as every prior wave -- a pure content-size raise, no DOM control. Re-measured on this PR's own head; appended, never edited."
+      ],
+      [
+        "routine-review-tribunal inventory entry (routine-review-tribunal build, tribunal gate for scheduled routines, 2026-09-11)",
+        31950,
+        "The routine-review-tribunal build (a two-panel, cross-model tribunal gate for the plugin-discovery and research-cadence scheduled routines, modeled on /forge-pipeline's divergent-panel + tiebreak shape) added one new inventory concept (routine-review-tribunal-reuses-thing-config \u2014 the measured fact that resolve_panels() imports thing-decision.resolve_panel_config rather than hand-copying a seat/model table) covering plugins/ravenclaude-core/scripts/routine-review-tribunal.py and plugins/ravenclaude-core/skills/routine-review-tribunal/SKILL.md. Measured island payload at 31,931 (over the prior 31,900 ceiling by 31; largest panel learn-payload at 25,200). Same no-diagrams-for-inventory-entries shape as every prior wave; a pure content-size raise, not a DOM control. Re-measured on this branch's own head; appended, never edited."
+      ],
+      [
+        "handoff-tax-flags-on-role-not-frontmatter inventory entry (model-tier delegation build, v0.322.0, 2026-09-14)",
+        32050,
+        "The model-tier delegation build (knowledge/model-tier-delegation.md doctrine, the haiku-tier scout agent, the model: frontmatter gate in check-frontmatter.py, and the handoff-tax-meter PostToolUse(Agent) hook + Gate 285) added one new inventory concept covering scout.md, handoff-tax-meter.sh, handoff-tax-meter.py and the Gate 285 test. Measured at 31,994 island payload elements -- over the prior 31,950 ceiling by exactly 44, the per-entry cost the budget report itself quotes (33 entries / +1,439 elements). Same content-size shape as every prior inventory row; not a DOM control change. Appended, never edited."
+      ],
+      [
+        "explore-tier-pin-stands-down-under-fleet-env inventory entry (model-tier delegation build pass 2, v0.322.0, 2026-09-14)",
+        32100,
+        "Pass 2 of the model-tier delegation build added the explore-tier-pin PreToolUse(Agent|Task) rewrite hook (+ Gate 286), the handoff-tax-meter --summary / rc dispatch-summary rollup, the Gate 287 frontier-share ratchet, and the handoff_tax block in the posture template + dashboard round-trip. check-inception-coverage required the two new pin artifacts to be named in an inventory entry, so one new concept (explore-tier-pin-stands-down-under-fleet-env -- the measured stand-down when CLAUDE_CODE_SUBAGENT_MODEL is set, because a per-invocation pin would OVERRIDE the fleet-wide env choice) covers explore-tier-pin.sh, explore-tier-pin.py and the Gate 286 test. Measured at 32,058 island payload elements -- over the prior 32,050 ceiling by 8 (largest panel learn-payload at 25,327). Same no-diagrams-for-inventory-entries shape as every prior row; a pure content-size raise, not a DOM control. Re-measured on this branch's own head; appended, never edited."
+      ],
+      [
+        "host-scope chips + Pipeline hook categories (0.323.3, PR #1182)",
+        32700,
+        "dashboard host-scope chips + Pipeline hook-event category headers (0.323.3, PR #1182). Host-scope badges + filter strip on every Commands card and index Agents/Skills detail; Pipeline lane heads promote canonical hook events (attrs/::after only for Gate 132 \u03940). Island payload 32,659 > prior 32,100 by 559 (largest panel learn-payload). Re-measured on this branch head; appended, never edited."
+      ],
+      [
+        "Thing hardening EDIT inventory entry (0.323.5, PR #1185)",
+        32710,
+        "Thing hardening EDIT inventory entry (thing-hardening-edit-registry, core 0.323.5, PR #1185). check-inception-coverage required newly added scripts/thing-harden.py to be named in covers[]; one new inventory concept covers that script. Cosmetic covers_digest restamps on hook-message-channels (thing-orchestrator.sh) and plugin-cache-is-version-keyed (plugin.json 0.323.5). Measured island payload 32,702 > prior 32,700 by 2 (largest panel learn-payload at 25,410); dashboard.html 10,781,292 bytes > prior 10,780,000 by 1,292. Same no-diagrams-for-inventory-entries shape as every prior wave \u2014 pure content-size raise, not a DOM control. Re-measured on this branch head; appended, never edited."
+      ],
+      [
+        "plugin-lifecycle inventory entry (PR #1187 Gate 240/242, 2026-09-15)",
+        32800,
+        "PR #1187 plugin lifecycle Option A (core 0.323.7) converts plugin-lifecycle to entry_class:inventory covering plugin-lifecycle.py + sweep/telemetry shells (Gate 242 inception). Measured island payload 32,747 (over prior 32,710 by 37; learn-payload 25,454). Same inventory shape; mermaid retained on this entry. Re-measured on this branch head; appended, never edited."
+      ],
+      [
+        "repo-review-block-planner-capacity-floor inventory entry (block_planner.py Gate 258/260 inception-coverage fix, /repo-review block-mode build, 2026-09-16)",
+        32850,
+        "The /repo-review block-mode build added a new inventory concept (repo-review-block-planner-capacity-floor -- block_planner.py's _capacity() clamp masking its own impossibly-small-safe-ceiling guard) covering block_planner.py, repo-sweep.workflow.js, and SKILL.md, to satisfy check-inception-coverage for the new block_planner.py script. Measured island payload 32,802 (over prior 32,800 by 2; largest panel learn-payload at 25,509). Same no-diagrams-for-inventory-entries shape as every prior wave. Re-measured on this branch head; appended, never edited."
+      ],
+      [
+        "workaround-exhaustion-own-deny-never-anchors inventory entry (blocked-exhaustion gate, core 0.324.0, Gate 290 inception, 2026-09-17)",
+        32900,
+        "The blocked-exhaustion gate build (core 0.324.0) added a new inventory concept (workaround-exhaustion-own-deny-never-anchors -- the gate must exclude its own block-mode deny from the anchor it measures the ledger from) covering workaround-exhaustion.sh, its Gate 290 test, and knowledge/workaround-routes.md, to satisfy check-inception-coverage for the new hook. Measured island payload 32,866 (over prior 32,850 by 16; largest panel learn-payload at 25,573). Same no-diagrams-for-inventory-entries shape as every prior wave; the Pipeline tab is unchanged because the hook is listed in _PIPELINE_EXCLUDED_HOOKS with a reason. Re-measured on this branch head; appended, never edited."
+      ],
+      [
+        "ADAPT P0 inventory restamp + code-reviewer spawn doctrine (PR #1223, core 0.324.4, 2026-09-20)",
+        32950,
+        "ADAPT P0 (sage/coding-factory-adapt-p0-2026-09-20, PR #1223) regenerates dashboard.html after core 0.324.4 version pin, code-reviewer spawn doctrine (Claude/Codex/Copilot projections), Copilot auto-tiers + AGENTS.md dual-file docs, and the Gate 237 inventory restamp of plugin-cache-is-version-keyed. Measured island payload 32,909 (over prior 32,900 by 9; largest panel learn-payload at 25,603). Same no-diagrams-for-inventory-entries shape as every prior wave; no new inventory concept card -- growth is restamp/agent projection churn on existing Learn-tab entries. Re-measured on this branch head; appended, never edited."
       ]
     ],
-    "index.html": [["seeded 2026-08-19", 6694, "measured before any inventory authoring"]]
+    "index.html": [
+      ["seeded 2026-08-19", 6694, "measured before any inventory authoring"],
+      [
+        "repo-review inventory entry (repo-review-corroboration-bucket-diff, /repo-review Phase 1 build, 2026-09-02)",
+        6720,
+        "The /repo-review build added one new inventory concept (repo-review-corroboration-bucket-diff -- the live cross-model proof that findings_merge.py's near-dup bucket-diff bound silently missed same-line duplicate findings) covering the skill's SKILL.md, command, dimensions reference, all five scripts, and the Workflow script -- nine paths in one mechanism entry. Measured at 10,486,820 bytes on dashboard.html (island payload 31,460 <= 31,500, unaffected -- same no-diagrams-for-inventory-entries shape as every prior wave) and 6,706 island payload elements on index.html (bytes 9,288,904 <= 9,300,000, unaffected). Re-measured on the merge base (origin/main @ 9ba8c08c58b6), not a stale ancestor; appended, never edited."
+      ],
+      [
+        "source-control-coordinator agent + /coordinate command (PR #1146, 2026-09-09)",
+        6745,
+        "Same PR as the dashboard.html row above. index.html's Commands payload gains one new command (/coordinate). Measured island payload at 6,731 (over the prior 6,720 ceiling by 11; largest panel commands-payload at 6,590). A pure content-size raise, no DOM control. Re-measured on this PR's own head (77f0dc4); appended, never edited."
+      ],
+      [
+        "host-scope chips on index portal (0.323.3, PR #1182)",
+        7300,
+        "Same PR #1182 host-scope chips fold into marketplace index portal (pd-host-filter + agent/skill scope badges). Island payload 7,292 > prior 6,745 by 547 (largest panel commands-payload). Re-measured on this branch head; appended, never edited."
+      ],
+      [
+        "people-operations-hr craft-candidate-materials skill+command (0.1.3) + skill-index restamp (PR #1215)",
+        7320,
+        "people-operations-hr 0.1.3 adds craft-candidate-materials skill+command; Gate 283 regen skill-index and Gate 237 restamp of skill-index-self-reference-convergence regenerate index.html. Island payload 7,306 > prior 7,300 by 6 (largest panel commands-payload). Same no-diagrams-for-inventory-entries shape; pure content-size raise. Re-measured on this branch head; appended, never edited."
+      ]
+    ]
   },
   "bytes": {
     "plugins/ravenclaude-core/dashboard.html": [
@@ -22,6 +129,136 @@
         "P9 wave 1 (12 entries)",
         10400000,
         "P9 wave 1: 12 mechanism inventory entries plus their nuance and evidence blocks rendered into the concept cards. 74 KB for 12 entries is ~6 KB each; a 162-entry corpus projects to ~1 MB on this surface, well inside the 8-12 MB the plan warned about, again because no diagrams are rendered."
+      ],
+      [
+        "merge: forge/stall-watchdog into origin/main (2026-08-27)",
+        10410000,
+        "MERGE-TIME RE-MEASURE. The stall-watchdog branch and origin/main's cheap-lane + inventory work were authored in parallel; dashboard.html fit the 10,400,000 ceiling on each side alone, but the union of both sides' Learn-tab concepts and inventory entries regenerates deterministically to 10,403,505 bytes (island payload unchanged at 31,143 <= 31,500, still within budget). Neither side's number was wrong in isolation \u2014 this is the same PR #991 shape the ratchet-freshness gate defends, applied to the byte ceiling: re-measured on the merge commit and APPENDED, never edited. Headroom to 10,410,000 (+0.06%)."
+      ],
+      [
+        "merge: advisory_knobs + cheap_lane both land (forge/vba-impl <- origin/main)",
+        10412000,
+        "Merging origin/main into forge/vba-impl combined two independently-under-budget posture round-trip features into the one dashboard serializer: the branch's advisory scalar knobs (probe_validity + four cause_* keys) and main's cheap_lane block. Each stayed under 10,400,000 on its own branch; the merged emitYaml()/applyGuardrailConfig() source pushed dashboard.html to 10,406,310 (+6,310 over the P9 wave 1 ceiling). Both features are state-slot round-trips with NO DOM control, so the island-payload table is unchanged (still 31,140 <= 31,500) and this is a pure JS-source bytes raise. Appended per the R5 reviewed-raise rule; the growth is deliberate and visible rather than a silent creep."
+      ],
+      [
+        "merge: #1025 <- origin/main after #1023 stall-watchdog (2026-08-28)",
+        10420000,
+        "MERGE-TIME RE-MEASURE. After #1004 and #1023 landed, merging origin/main into forge/vba-impl regenerates dashboard.html to 10,417,453 bytes (island payload 31,181 <= 31,500). The prior 10,412,000 ceiling was measured before stall-watchdog inventory entries were on main; this is the same PR #991 shape applied to the byte ceiling. Appended, never edited. Headroom to 10,420,000 (+0.03%)."
+      ],
+      [
+        "MCP result quarantine + analog-closeness-scorecard \u2014 2 inventory entries (Q1+Q2, analog-repos-gap-fill leftovers, 2026-08-30/31)",
+        10436000,
+        "Two independent PRs each added one inventory entry (mcp-quarantine-matcher-is-a-prefix and analog-closeness-quality-bar-is-independent-of-score) and each stayed under a 10,428,000 ceiling in isolation; merging them combines both entries' nuance+evidence blocks on the one dashboard.html surface, measured at 10,432,946 bytes. MCP quarantine's Pipeline-tab mention was folded into the existing sanitize-webfetch-output card (not a new card) to stay within the DOM-budget ratchet, so this is a pure JS-source/content bytes raise, no DOM growth beyond that. Re-measured on the merge; appended, never edited."
+      ],
+      [
+        "precompact-digest inventory entry (precompact-critical-context FORGE plan, P6 regen-discipline, 2026-09-01)",
+        10447000,
+        "The precompact-critical-context feature's P6 regen-discipline pass added one new inventory concept (precompact-digest \u2014 the detached-worker proof for hooks/precompact-digest.sh + scripts/precompact-digest.py) plus cosmetic covers_digest restamps on five pre-existing concepts whose covered artifacts (copilot-hook-adapter.sh, hooks.json, plugin.json, audit-gates.sh, generate-dashboards.py) legitimately changed content earlier in the same feature. Measured at 10,443,430 bytes (island payload 31,294 <= 31,500, unaffected \u2014 same no-diagrams-for-inventory-entries shape as every prior wave). Re-measured on the regenerated artifact; appended, never edited."
+      ],
+      [
+        "agent-routing-matrix inventory entry (agent-routing-matrix FORGE plan, inception-coverage fix, 2026-09-01)",
+        10460000,
+        "The agent-routing-matrix build's Gate-242 inception-coverage fix added one new inventory concept (agent-routing-matrix-ban-list-scope \u2014 the scoped-vs-every-leaf-string ban-list correction for check-agent-routing-matrix.py's Gate 255 check B) plus cosmetic covers_digest restamps on three pre-existing concepts (cheap-lane-agent-matrix, plugin-cache-is-version-keyed, must-fail-conventions-diverge) whose covered artifacts drifted from this PR's own plugin.json version bump plus the merged origin/main's own bump. Measured at 10,457,685 bytes (island payload 31,346 <= 31,500, unaffected \u2014 same no-diagrams-for-inventory-entries shape as every prior wave). Re-measured on the regenerated artifact; appended, never edited."
+      ],
+      [
+        "session-relay inventory entry (2026-09-02)",
+        10472000,
+        "session-relay inventory entry (session-relay-two-hop-join, cross-session-messaging research build, 2026-09-02). Adds one new inventory concept (the verified negative that ListAgents' bracketed [ref] does not derive from a session's session_id, plus the two-hop worktree->pid->name join resolve-worktree-session.sh performs instead) covering scripts/resolve-worktree-session.sh, skills/session-relay/SKILL.md, and knowledge/cross-session-messaging.md. Measured at 10,470,812 bytes (island payload 31,408 <= 31,500, unaffected -- same no-diagrams-for-inventory-entries shape as every prior wave). Re-measured on rebased HEAD after merging origin/main; appended, never edited."
+      ],
+      [
+        "repo-review inventory entry (repo-review-corroboration-bucket-diff, /repo-review Phase 1 build, 2026-09-02)",
+        10500000,
+        "The /repo-review build added one new inventory concept (repo-review-corroboration-bucket-diff -- the live cross-model proof that findings_merge.py's near-dup bucket-diff bound silently missed same-line duplicate findings) covering the skill's SKILL.md, command, dimensions reference, all five scripts, and the Workflow script -- nine paths in one mechanism entry. Measured at 10,486,820 bytes on dashboard.html (island payload 31,460 <= 31,500, unaffected -- same no-diagrams-for-inventory-entries shape as every prior wave) and 6,706 island payload elements on index.html (bytes 9,288,904 <= 9,300,000, unaffected). Re-measured on the merge base (origin/main @ 9ba8c08c58b6), not a stale ancestor; appended, never edited."
+      ],
+      [
+        "caveman-auto-routing-packaging inventory entry (caveman-routing-decision-tree PR #1095 CI fix, 2026-09-03)",
+        10520000,
+        "PR #1095's CI-green pass added one new inventory concept (caveman-auto-routing-packaging -- the SHADOW-only enforcement plus the scripts/-not-hooks/ packaging exception for the four new caveman auto-routing artifacts) covering scripts/caveman-route.py, scripts/caveman-apply-mode.sh, scripts/caveman-route-hook.sh, and scripts/caveman-route-engine.py -- the artifacts check-inception-coverage.py flagged as uncovered. Also carries substantive restamps on two pre-existing entries (hook-emitter-collision, must-fail-conventions-diverge) whose covered artifacts (hooks.json, audit-gates.sh) genuinely changed after merging origin/main. Measured at 10,502,032 bytes on dashboard.html (island payload 31,493 <= 31,500, unaffected -- same no-diagrams-for-inventory-entries shape as every prior wave). Re-measured on rebased HEAD after merging origin/main; appended, never edited."
+      ],
+      [
+        "grok-bot-orchestration-skill-restates-core inventory entry + 2 new plugins (PR #1104, 2026-09-04)",
+        10540000,
+        "PR #1104 (grok-bot-creation + grok-bot-delegation) adds the marketplace's 185th and 186th plugins plus one new inventory concept (grok-bot-orchestration-skill-restates-core -- see the payload table above for the covered paths). Measured at 10,529,761 bytes on dashboard.html (island payload 31,574 <= 31,590, see the raised payload ceiling above). Re-measured on rebased HEAD after merging origin/main; appended, never edited."
+      ],
+      [
+        "merge: forge/dashboard-starter (dashboard-top1pct FORGE plan, 21 phases) into origin/main (2026-09-08)",
+        10560000,
+        "MERGE-TIME RE-MEASURE. forge/dashboard-starter's dashboard-top1pct build (P2-16..P3-21: freshness badges, per-widget query tagging, light/dark theming, the scaffold script, the bi-report Case-E disposition) landed 11 new Gates (268-278) and best-practice/knowledge entries, each fine in isolation against the pre-merge ceiling. Merging origin/main's own concurrent inventory growth (through PR #1104) onto this branch regenerates dashboard.html to 10,545,871 bytes, over the prior 10,540,000 ceiling by 5,871 (island payload unchanged at 31,614 <= 31,640, see the payload table above -- a pure content-size raise, no DOM control). Re-measured on the merge commit; appended, never edited."
+      ],
+      [
+        "merge: forge/dynamic-skill-context (skill-index P0) with origin/main's claude-launch-safeguard (2026-09-08)",
+        10570000,
+        "MERGE-TIME RE-MEASURE at PR #1132's second merge into main. Combining this branch's skill-index inventory entry with origin/main's own concurrent launch-guard-installer-is-fail-open entry (each fine in isolation against the 10,560,000 ceiling) regenerates dashboard.html to 10,567,959 bytes (island payload 31,700 <= 31,720, see the raised payload ceiling above -- a pure content-size raise, no DOM control). Re-measured on the merge commit; appended, never edited."
+      ],
+      [
+        "merge: forge/prompt-optimizer into origin/main (2026-09-09)",
+        10610000,
+        "MERGE-TIME RE-MEASURE. Same merge as the payload row above. Merging forge/prompt-optimizer's two new inventory concepts (prompt-optimizer-tier0-heuristic-limit, hooks-selftest-crashes-on-a-per-host-generator-error) with origin/main's own concurrent skill-index + claude-launch-safeguard growth regenerates dashboard.html to 10,601,620 bytes (over the prior 10,570,000 ceiling by 31,620; island payload 31,797 <= 31,800, see the raised payload ceiling above -- a pure content-size raise, no DOM control). Re-measured on the merge commit; appended, never edited."
+      ],
+      [
+        "ledger-global-flags-precede-subcommand inventory entry (PR #1146, closing check-inception-coverage, 2026-09-09)",
+        10630000,
+        "Same PR/entry as the payload row above. Measured at 10,618,091 bytes (over the prior 10,610,000 ceiling by 8,091 = 0.08%; cumulative growth since seed remains a small single-digit percentage). Re-measured on this PR's own head; appended, never edited."
+      ],
+      [
+        "routine-review-tribunal inventory entry (2026-09-11)",
+        10645000,
+        "Same build/entry as the payload row above. Measured at 10,637,815 bytes (over the prior 10,630,000 ceiling by 7,815 = 0.07%; cumulative growth since seed remains a small single-digit percentage). Re-measured on this branch's own head; appended, never edited."
+      ],
+      [
+        "model-tier delegation build, both passes (handoff-tax + explore-tier-pin inventory entries, handoff_tax posture round-trip, v0.322.0, 2026-09-14)",
+        10680000,
+        "Same build as the two payload rows above. Two new inventory concepts (handoff-tax-flags-on-role-not-frontmatter, explore-tier-pin-stands-down-under-fleet-env) plus the handoff_tax block (report_cap_words / brief_cap_words / pin_explore) added to emitYaml()/applyGuardrailConfig() so the dashboard's Save round-trips the new knobs -- the same state-slot JS-source shape as the advisory_knobs + cheap_lane row. Measured at 10,664,077 bytes (over the prior 10,645,000 ceiling by 19,077 = 0.18%; cumulative growth since seed remains a small single-digit percentage). Re-measured on this branch's own head after regenerating; appended, never edited."
+      ],
+      [
+        "host-scope chips + Pipeline hook categories (0.323.3, PR #1182)",
+        10780000,
+        "Same PR #1182 host-scope + Pipeline categories (core 0.323.3). dashboard.html 10,766,083 bytes > prior 10,680,000 by 86,083 (0.08 MB). Island payload raise is the sibling row. Re-measured on this branch head; appended, never edited."
+      ],
+      [
+        "Thing hardening EDIT inventory entry (0.323.5, PR #1185)",
+        10782000,
+        "Same PR #1185 Thing hardening EDIT inventory entry (core 0.323.5). dashboard.html 10,781,292 bytes > prior 10,780,000 by 1,292 (0.00 MB). Island payload raise is the sibling row. Re-measured on this branch head; appended, never edited."
+      ],
+      [
+        "Prompt Builder gap close wave 1 (0.323.6, PR #1186)",
+        10792000,
+        "Same PR #1186 Prompt Builder gap close wave 1 (core 0.323.6). dashboard.html 10,791,584 bytes > prior 10,782,000 by 9,584 (0.01 MB). Cosmetic covers_digest restamps (plugin-cache-is-version-keyed, must-fail-conventions-diverge, islanded-panel-costs-two) after generate-dashboards.py / audit-gates.sh / plugin.json churn. Island payload unchanged under prior ceiling. Re-measured on this branch head; appended, never edited."
+      ],
+      [
+        "plugin-lifecycle inventory entry (PR #1187, 0.323.7, 2026-09-15)",
+        10810000,
+        "Same PR #1187 plugin lifecycle Option A P1\u2192P2\u2192P3 ask (core 0.323.7). dashboard.html 10,801,134 bytes > prior 10,792,000 by 9,134 (0.01 MB). Inventory fields + R12 badge + covers. Re-measured on this branch head; appended, never edited."
+      ],
+      [
+        "repo-review-block-planner-capacity-floor inventory entry (block_planner.py Gate 258/260 inception-coverage fix, /repo-review block-mode build, 2026-09-16)",
+        10820000,
+        "Same /repo-review block-mode build as the payload entry above. dashboard.html 10,813,894 bytes > prior 10,810,000 by 3,894 (0.00 MB). Re-measured on this branch head; appended, never edited."
+      ],
+      [
+        "Pipeline Pre\u2192Post decision-tree island (0.323.13, PR #1195)",
+        10850000,
+        "Same PR #1195 Pipeline decision-tree island (core 0.323.13). dashboard.html 10,842,220 bytes > prior 10,820,000 by 22,220 (0.02 MB). Gate 132 island +2 static (mount+JSON); JS seats SVG/chrome on activate. Re-measured on this branch head; appended, never edited."
+      ],
+      [
+        "Dashboard UX vision Wave-1 (0.323.15)",
+        10860000,
+        "Wave-1 Pipeline label/aria text swaps plus the JS-seated Learn to Prompt Builder teaching bridge (core 0.323.15). dashboard.html 10,853,674 bytes > prior 10,850,000 by 3,674 (0.00 MB). Three Task/System/Few-shot cards are createElement-only after Learn hydration; static Gate 132 delta is zero and the island payload remains under its existing ceiling. Re-measured on this branch head; appended, never edited."
+      ],
+      [
+        "Dashboard UX vision Wave-2 (0.323.16)",
+        10870000,
+        "Wave-2 Pipeline progressive disclosure (<details> folds for pipe-hint / Advanced tool limits / File path rules) plus Learn PE academy JS path (core 0.323.16). dashboard.html 10,860,407 bytes > prior 10,860,000 by 407 (0.00 MB). Static Gate 132 +26 (details/summary pairs); island payload remains under its existing ceiling. Re-measured on this branch head; appended, never edited."
+      ],
+      [
+        "workaround-exhaustion-own-deny-never-anchors inventory entry (blocked-exhaustion gate, core 0.324.0, 2026-09-17)",
+        10880000,
+        "Same blocked-exhaustion gate build as the payload entry above (core 0.324.0). dashboard.html 10,873,943 bytes > prior 10,870,000 by 3,943 (0.00 MB) -- the new inventory concept card plus the _PIPELINE_EXCLUDED_HOOKS reason text for workaround-exhaustion.sh. Static Gate 132 delta is zero (no DOM control; the hook is deliberately not a Pipeline stage card). Re-measured on this branch head; appended, never edited."
+      ],
+      [
+        "ADAPT P0 inventory restamp + code-reviewer spawn doctrine (PR #1223, core 0.324.4, 2026-09-20)",
+        10890000,
+        "Same ADAPT P0 regen as the payload entry above (PR #1223, core 0.324.4 + code-reviewer spawn doctrine + Copilot auto-tiers). dashboard.html 10,880,450 bytes > prior 10,880,000 by 450 (0.00 MB) -- restamp of existing inventory concept cards and agent projection text, not a new concept. Static Gate 132 delta is zero (no DOM control added). Re-measured on this branch head; appended, never edited."
       ]
     ],
     "index.html": [
@@ -30,8 +267,58 @@
         "P9 wave 1 (12 entries)",
         9300000,
         "The marketplace index embeds the same concept registry; 12 entries added 1,352 bytes."
+      ],
+      [
+        "merge-time re-measure: Gate 266 SessionStart safeguards land (96ea5e05)",
+        9310000,
+        "MERGE-TIME RE-MEASURE. Base commit 96ea5e05 (SessionStart safeguards + Gate 266 runtime self-test) added embedded content (a new hooks-selftest tool, host-support/knowledge updates, and two substantive concept restamps for hook-message-channels + must-fail-conventions-diverge). index.html regenerates deterministically to 9,300,513 bytes, over the prior 9,300,000 ceiling by 513. island payload unchanged at 6,707 <= 6,720 \u2014 a pure content-size raise, no DOM control. Re-measured on the merge base (96ea5e05); appended, never edited. Headroom to 9,310,000 (+0.10%)."
+      ],
+      [
+        "merge: forge/dashboard-starter (dashboard-top1pct FORGE plan, 21 phases) into origin/main (2026-09-08)",
+        9330000,
+        "MERGE-TIME RE-MEASURE. Same merge as the dashboard.html row above. index.html regenerates to 9,316,383 bytes, over the prior 9,310,000 ceiling by 6,383 (island payload unchanged at 6,707 <= 6,720, see the payload table above -- a pure content-size raise, no DOM control). Re-measured on the merge commit; appended, never edited."
+      ],
+      [
+        "subagent_dispatch 13th posture category (v0.321.4)",
+        9340000,
+        "Same PR as the DOM-budget raise. index.html regenerates to 9,335,752 bytes (over the prior 9,330,000 ceiling by 5,752) because the Configuration presets and embedded schema grow by one category. Island payload 6,731 <= 6,745 unchanged enough to stay under the payload ceiling -- a pure content-size raise, no DOM-island control. Re-measured on this PR's own head; appended, never edited."
+      ],
+      [
+        "host-scope chips on index portal (0.323.3, PR #1182)",
+        9490000,
+        "Same PR #1182 host-scope chips on index portal. index.html 9,480,230 bytes > prior 9,340,000 by 140,230 (0.13 MB). Re-measured on this branch head; appended, never edited."
+      ],
+      [
+        "Prompt Builder gap close wave 1 (0.323.6, PR #1186)",
+        9496000,
+        "Same PR #1186 Prompt Builder gap close wave 1 (core 0.323.6). index.html 9,495,814 bytes > prior 9,490,000 by 5,814 (0.01 MB). Re-measured on this branch head; appended, never edited."
+      ],
+      [
+        "plugin-lifecycle inventory entry (PR #1187, 0.323.7, 2026-09-15)",
+        9500000,
+        "Same PR #1187 plugin lifecycle (core 0.323.7). index.html 9,496,737 bytes > prior 9,496,000 by 737. Re-measured on this branch head; appended, never edited."
+      ],
+      [
+        "Pipeline Pre\u2192Post decision-tree island (0.323.13, PR #1195)",
+        9530000,
+        "Same PR #1195 Pipeline decision-tree island (core 0.323.13). index.html 9,524,104 bytes > prior 9,500,000 by 24,104 (0.02 MB). Portal fold embeds same island. Re-measured on this branch head; appended, never edited."
+      ],
+      [
+        "Phase D posture alias soak (0.323.14, PR #1196)",
+        9531000,
+        "Same PR #1196 Phase D alias soak (core 0.323.14). index.html 9,530,630 bytes > prior 9,530,000 by 630 (0.00 MB). Inventory restamp (hook-emitter-collision covers + islanded-panel-costs-two / plugin-cache-is-version-keyed). Re-measured on this branch head; appended, never edited."
+      ],
+      [
+        "Dashboard UX vision Wave-1 (0.323.15)",
+        9540000,
+        "Same Wave-1 dashboard UX vision build (core 0.323.15). index.html 9,535,673 bytes > prior 9,531,000 by 4,673 (0.00 MB). Portal fold embeds the same CSS/JS bridge; static Gate 132 delta is zero and the island payload remains under its existing ceiling. Re-measured on this branch head; appended, never edited."
+      ],
+      [
+        "Dashboard UX vision Wave-2 (0.323.16)",
+        9550000,
+        "Same Wave-2 dashboard UX vision build (core 0.323.16). index.html 9,542,513 bytes > prior 9,540,000 by 2,513 (0.00 MB). Portal fold embeds the same disclosure CSS/JS academy; static Gate 132 +26 and the island payload remains under its existing ceiling. Re-measured on this branch head; appended, never edited."
       ]
     ]
   },
-  "measured_against": "8ec497c21625ce6086c89c4dea9987bd7fd30e9d"
+  "measured_against": "e8a15454cf0f191403c5177e2880093a65f28801"
 }

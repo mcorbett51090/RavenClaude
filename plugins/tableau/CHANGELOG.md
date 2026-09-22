@@ -3,6 +3,17 @@
 All notable changes to the `tableau` plugin. Versioning is semver; the authoritative version is
 the `version` field in `.claude-plugin/plugin.json` (mirrored in `marketplace.json`).
 
+## 0.4.2 — 2026-09-01
+
+Cross-linked `tableau-viz-engineer.md` to `data-platform`'s new
+[`dashboard-visual-craft-2026.md`](../data-platform/knowledge/dashboard-visual-craft-2026.md) —
+dashboard-*level* composition (one dominant KPI, whitespace over borders, above-the-fold
+hierarchy), which is a separate craft layer from this plugin's existing per-view chart-type
+(`viz-chart-type-follows-the-question.md`) and color/contrast (`viz-formatting-and-accessibility.md`)
+coverage — added as an unnumbered `Personality & house opinions` bullet, not a renumbered house
+opinion (those numbers are cited by number across `best-practices/*.md` and must not shift).
+**Migration:** none — knowledge-file cross-link only.
+
 ## 0.4.1 — 2026-07-08
 
 Weekly Tier-A news sweep (2026-07-08) — **correction** in `CLAUDE.md`: Tableau now **also** offers a fully cloud-hosted / managed MCP service at **`https://mcp.tableau.com`** using **OAuth 2.1** (per-user identity, no self-hosting, no per-tenant PAT secret) — a second consumer path alongside the self-hosted `npx @tableau/mcp-server` + PAT flow; still per-tenant-authenticated, so still recommend-not-bundle. Re-verified via the tableau-mcp README. **Migration:** none — knowledge-file content only.

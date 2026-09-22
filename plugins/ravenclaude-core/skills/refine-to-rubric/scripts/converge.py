@@ -125,9 +125,16 @@ def keep_best(iterations):
 # Finding / hard-gate analysis (all deterministic)
 # ──────────────────────────────────────────────────────────────────────────────
 def _blocking_findings(iteration):
-    """The set of (dimension, severity) blocking findings in an iteration."""
+    """The set of (dimension, severity) blocking findings in an iteration.
+
+    `findings` is judge-verdict-derived and may be schema-permitted-null: a
+    real judge.sh call can return `"findings": null` (valid JSON, key present),
+    which defeats the `.get(..., [])` default (the default only applies when
+    the key is ABSENT, not when it's present-but-null). `or []` normalizes
+    both "key absent" and "key present but null" to the same safe fallback.
+    """
     out = set()
-    for f in iteration.get("findings", []):
+    for f in (iteration.get("findings") or []):
         if f.get("severity") in BLOCKING_SEVERITIES:
             out.add((f.get("dimension", ""), f.get("severity", "")))
     return out
@@ -148,8 +155,12 @@ def _has_new_blocking_finding(iterations, idx):
 def _red_hard_gates(iteration):
     """List of dimension ids whose objective hard gate is RED (False) in this
     iteration. A red hard gate blocks convergence regardless of the weighted
-    score — objective signals are the primary stop authority."""
-    return sorted(d for d, ok in iteration.get("hard_gates", {}).items() if not ok)
+    score — objective signals are the primary stop authority.
+
+    `hard_gates` is judge-verdict-derived and may be schema-permitted-null
+    (key present, value null) — same defect class as `findings` above; `or {}`
+    guards both absent and present-but-null."""
+    return sorted(d for d, ok in (iteration.get("hard_gates") or {}).items() if not ok)
 
 
 def _total_model_calls(iterations):
@@ -161,7 +172,9 @@ def _residual_gaps(rubric, iteration):
     scoring below 1.0, every RED hard gate, plus every UNVERIFIED/derived
     dimension (surfaced, never silently graded)."""
     gaps = []
-    scores = iteration.get("scores", {})
+    # `scores` is judge-verdict-derived and may be schema-permitted-null
+    # (key present, value null) — same defect class as `findings`/`hard_gates`.
+    scores = iteration.get("scores") or {}
     for dim in rubric.get("dimensions", []):
         did = dim["id"]
         if dim.get("source") in ("library", "explicit") and bool(dim.get("verified")):

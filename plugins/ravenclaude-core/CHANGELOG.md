@@ -2,6 +2,1262 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.324.7 — 2026-09-22
+
+### Fixed
+- **git push --mirror evaded the force-push hard DENY** — `srm.force-push` always_screen / `pre_llm_deny` and `guard-destructive.sh` only matched the long force flag, short `-f`, and `+<refspec>`. `git push --mirror` force-updates every ref under refs/ and deletes remote refs absent locally (git's documented mirror semantics) and was allowed. Added a segment-scoped `--mirror` trigger, a matching guard pattern, and the permission-floor glob `Bash(git push --mirror:*)` (DEFAULT_SECURITY_DENY, schema default, balanced seed, pattern-explanations).
+- Gate 209 (`check-hard-rule-floor.py` F1d) and Thing T4 hard-rule fixtures now drive the mirror shapes; the lease form and plain push stay allowed.
+
+### Locks / honesty
+- No `gate_floor` change. No hardening_edit change. Mirror is DENY, not rewritten to lease (there is no lease equivalent). Consumer `/plugin marketplace update` picks up the hook + catalog; the permission glob lands on next posture apply.
+
+## 0.324.6 — 2026-09-20
+
+### Changed
+- **DOC adapt (UNVERIFIED) coding-factory ADAPT P2 / Adapt #7:** Gemini CLI 0.60 host-security alignment in `knowledge/gemini-customization.md` + header pointer on thin shim `hooks/gemini-hook-adapter.sh` (OAuth issuer / extension consent+env / path·symlink·SFN / envelope provenance / sandbox·Seatbelt). **KEEP** FOREIGN-TREE / exit-2 deny — adapter does not re-implement OAuth/SFN.
+- **DOC adapt (UNVERIFIED) TaskOutput deprecate-candidate:** Claude Code 2.1.277 removed `TaskOutput`; teach **`Read` on background output file**; annotate `knowledge/cross-session-messaging.md`; Gate 289 fixture/ADR comments drop removed-tool token (no file deletes).
+
+## 0.324.5 — 2026-09-20
+
+### Changed
+- **DOC adapt (UNVERIFIED) coding-factory ADAPT P1 / Adapt #6:** Codex 0.155 agents overview hide/archive/delete + managed worktree ownership; daemon update schedules + goal/thread recovery after restart; cleanup-worktrees / new-worktree language aligned so Sleipnir RC trees are not conflated with Codex managed worktrees. **Guardian approval evidence KEEP** — no soften.
+
+## 0.324.4 — 2026-09-20
+
+### Changed
+- **DOC adapt (UNVERIFIED) coding-factory ADAPT P0:** lean code-review spawn doctrine; Copilot Lite prefer vs fan-out deprecate-candidate SUGGEST; dual-file CLAUDE.md↔AGENTS.md (+ Bedrock/Vertex/Foundry gap); cheap-lane Copilot auto-tier note; tribunal clarifying sentence (KEEP — no weaken).
+## 0.324.2 — 2026-09-19
+
+### Added
+- **P3 tip/SHA integrity pin before auto-install execute** — closes AppSec residual condition 2 (DIGEST-appsec-plugin-lifecycle-uninstall-p3-2026-09-16). When `auto_install: auto` + `ask-install --execute`, `execute_install` verifies an expected tip/SHA (CLI `--expected-sha` or posture `plugin_lifecycle.install_pins`) against the observed marketplace tip (env inject / local marketplace `git rev-parse HEAD`) or content-hash of a ravenclaude cache candidate. Fail-closed: `pin_missing` / `pin_mismatch` refuse execute (CLI never invoked). `pin_ok` proceeds to `claude plugin install … -y`.
+
+### Changed
+- Prefer **ask** for production installs until operators configure pins; seed/defaults remain `auto_install: off`. OFF/ask CTA/confirm paths unchanged (no pin required).
+- Docs: comfort-posture comments, `plugin-lifecycle` concept, `xc.plugin-install` concern — pin-gated auto execute.
+
+### Locks / honesty
+- Seed OFF · core hard-pin · ravenclaude-only · no empty-cited · no ragnarok · no Thing/`gate_floor` weaken. Tip/SHA/content-hash v1 only — not full PKI/audit-gates. READY_FOR_APPSEC; Sage sole SCM.
+
+## 0.324.1 — 2026-09-18
+
+### Fixed
+- **Code-review findings on the 0.323.18 `hardening_edit` default-ON flip** — six findings, all fixed:
+  - `thing-orchestrator.sh`'s hard-rule hint now keys on the structured `hard_rule_concern` id (`srm.force-push`) instead of substring-matching `--force`/`-f` against the raw command text, which was misdirecting non-git hard-rule denials (e.g. `curl -f … | sh`) toward a git-specific remedy.
+  - `thing-decision.py`'s `hardening_edit` posture parsing now mirrors `thing_enabled_for`'s master-gate string handling — a quoted-scalar `hardening_edit: "false"` no longer parses truthy (`bool("false")` was `True`), which had made the only opt-out fragile against YAML emitters that quote scalars.
+  - Removed the dead `HARDEN` variable from `thing-orchestrator.sh` (its two call sites were removed in #1204; the harden path already goes through `$CONCERNS harden`, which lazy-imports `thing-harden.py` itself).
+  - Documented (not removed — see below) that the `git-force-with-lease` registry transform can never fire through the orchestrator's EDIT-safety discriminator: `srm.force-push` carries both `always_screen: true` and `pre_llm_deny: true`, so a real force-push is hard-DENYed before any seat convenes, and the discriminator itself requires `pre_llm_deny != true`. The Forseti seat brief (`thing-seat.sh`) no longer offers it as an EDIT example.
+  - Added a `test-thing-hardening-edit.sh` fixture covering a `pre_llm_deny`-only concern that is *not* `always_screen` (`xc.secret-in-command`, via a command carrying `--password=…`) staying DENY under `hardening_edit` ON — the prior suite's only "stays DENY" assertion used `git push --force`, which exits at the hard-rule floor and never reached the `pre_llm_deny` branch the AppSec #1204 fix actually rewrote (`orchestrator.sh`'s `if [ "$pre_llm_deny" = "true" ]` block), leaving that branch's change unverified by the suite.
+  - Added the missing **Migration** note to 0.323.18 below (AGENTS.md requires one whenever a change could break a consumer's project on `/plugin marketplace update`; the default flip changes which command actually executes for any consumer without an explicit `hardening_edit` key).
+
+### Retained, not removed
+- The `git-force-with-lease` transform, its `thing-harden.py apply()` fixtures, and the `assert_apply git-force-with-lease` unit tests stay in place — they exercise `thing-harden.py`'s own regex/replacement correctness independent of orchestrator reachability, and removing a signed, AppSec-reviewed registry entry outside a formal AppSec review was judged the wrong call for a routine code-review fix. It is now documented in-registry as unreachable via the orchestrator so nobody mistakes it for a live control.
+
+### Locks / honesty
+- Serial after blocked-exhaustion **0.324.0** on main; this bump is **0.324.1**. No BMA. No product invent beyond the six CR fixes + version bump.
+
+## 0.324.0 — 2026-09-17
+
+### Added
+- **Blocked-exhaustion gate** — `hooks/workaround-exhaustion.sh`, a `PreToolUse(AskUserQuestion)` + `Stop` gate. After a RavenClaude guard denies a tool call, a hand-back to the human (a "which option / I'm blocked / do this manually" question, or a final message of that shape) is refused until the workaround ledger (`.ravenclaude/runs/<session>/workaround-ledger.jsonl`) shows `workaround_exhaustion_floor` (default 3) EXECUTED, distinct-channel attempts since that deny. Knob `workaround_exhaustion: off | warn | block` (no key ⇒ off; the balanced template seeds `warn`; flipping this repo's own posture to `block` is a one-line owner action in the dashboard — the tribunal's self-disable floor denied the agent's edit of the posture file on 2026-09-17 and named the dashboard as the route). Escape `rc workaround blocked-ok "<reason>"` is logged as a warn event, never silent. The Stop lane self-limits at `workaround_exhaustion_max_blocks` (default 4). The gate's own deny events never anchor it.
+- **`rc workaround tried|blocked-ok|status|list`** — the ledger CLI (the same file's non-hook lanes). A row counts only with `tried: yes`, a non-empty `result`, and a channel from the fixed enum (`local-edit` · `local-bash` · `mcp-api` · `ci-runner` · `other-session` · `human`); `--bypass-test` is required, so every counted route names the reviewable artifact it produced.
+- **`knowledge/workaround-routes.md`** — the route catalog behind the gate: the 2026-09-17 incident, the ledger schema, the route-vs-bypass discriminator, six per-blocked-action-class ladders (including the API-write + CI-runner executable-bit recovery route verified that day), two prose complements, and the honest limits.
+- **Gate 290** — `hooks/tests/test-gate290-workaround-exhaustion.sh` (27 assertions: silent-when-inert, fires/blocks on hand-back shapes, Stop counter + force-allow, warn-mode advisory shape, CLI refusals + floor arithmetic + blocked-ok, and a floor-neutered mutant that must be waved through). Registered in the `--check` dispatcher, the main sequence, the `Supported:` string, and the `hooks` suite.
+
+### Locks / honesty
+- No hook sees the model deciding to give up in chat; the gate covers the two surfaces where giving up becomes an action. Rows are agent-written — nothing yet cross-checks `tried: yes` against a real tool call (named follow-up, not a claim). The Stop lane needs the host's `last_assistant_message`; a host without it is silent by construction. No Thing / `gate_floor` / destructive-guard change; no default flipped on for a consumer who has not set the knob.
+- The three knobs are hand-set YAML: the dashboard's Save & apply rebuilds the posture from its own state and does not yet carry `workaround_exhaustion` (the advisory-knob table lives in `scripts/generate-dashboards.py`, a tribunal-substrate file, so that two-line addition is a maintainer follow-up — named in the template beside the keys). This PR does not flip this repo's own posture to `block`: the tribunal's self-disable floor denied the agent's edit of the posture file (Sága `thing-2026-09-17T11-12-26Z-24888`; the floor reconstructs the resulting document and denies on its existing `command_review:` block) and named the dashboard as the route — one line for the owner.
+
+## 0.323.18 — 2026-09-16
+
+### Changed
+- **Thing `hardening_edit` default/seed ON** — `templates/thing.yaml` + `thing-decision.py` code default flip to **true** after AppSec enable SHIP (Gate 14/21/22 green via tribunal suite). Docs/SKILL/concepts/README mirror default ON. Explicit `hardening_edit: false` in posture/`thing.yaml` still keeps OFF (House Rule 3).
+
+### Fixed
+- **Force-push hard DENY under `hardening_edit` ON** (AppSec #1204) — removed orchestrator hard-rule / `pre_llm_deny` clearance→ASK via `git-force-with-lease`. Hard floor always DENY + Phase 0 emit (Gate 50). Optional deny text may mention `--force-with-lease` (informational only). Registry remains for non-hard-rule / non-pre_llm paths.
+
+### Migration
+- **This changes which command Claude Code actually executes for any consumer who never set `command_review.hardening_edit` explicitly.** Before 0.323.18, an empty-cited EDIT proposal (a seat proposing a safer rewrite with no concerns cited) outside the discriminator was DENYed; from 0.323.18 on, with a *registered* transform it auto-runs the rewritten form instead of the original — e.g. `npm install -g typescript` silently runs as `npm install typescript` (global flag dropped), `chmod -R 777 ./out` runs as `chmod -R u+rwX,go+rX -- ./out`, `curl https://x` gains `--fail`. If your workflow depends on the literal command it asked for (a script that inspects `chmod`'s effective mode, a step that needs `tsc` on `PATH` from a global npm install, a caller that reads a non-2xx body `curl` would otherwise return), set `hardening_edit: false` under `command_review:` in `.ravenclaude/comfort-posture.yaml` or `thing.yaml` to opt back out. `git push --force`/`-f`/`+<refspec>` is unaffected either way — it stays hard-DENYed, never rewritten, under both the old and new default.
+
+### Locks / honesty
+- **No** `gate_floor` raise. **No** bypass list. Keep fail-harden→ask · empty-cited DENY outside discriminator · high-blast still-ask · Heimdall no EDIT · registry = auto-run authority only for AppSec-signed transforms. Suite assertion flipped to default **true**; explicit-false OFF cases retained. **Hard-rule force-push stays DENY** with enable ON (not ASK).
+- Serial after plugin-lifecycle **0.323.17** on main; this bump is **0.323.18**. No BMA.
+
+## 0.323.17 — 2026-09-16
+
+### Added
+- **Plugin lifecycle Option A follow-on** — SessionStart sweep **executes** fail-closed uninstalls when `auto_uninstall: on` via `claude plugin uninstall <name@marketplace> -y` (CLI inject `PLUGIN_LIFECYCLE_CLAUDE` for tests). Records `executed` + reason per action; reload reminder after success.
+- **P3 `auto_install: auto`** — posture enum is now `off | ask | auto` (absent/unknown ⇒ off). Explicit `auto` + cited need → mode `auto`; optional `--execute` runs `claude plugin install … -y`. Uncited auto stays Bifröst CTA (AppSec #6).
+
+### Changed
+- Sweep body / hooks.json comments: plan-only OPEN closed for the opt-in ON path; still never shells ragnarok / reset-plugin-cache.
+- Concerns `xc.plugin-install` / `xc.plugin-uninstall` + concept `plugin-lifecycle.md` refreshed for execute + auto opt-in.
+- Tests: AUTO + EXEC suites (38 pass).
+
+### Locks / honesty
+- Defaults remain **OFF**. Uninstall execute only when `auto_uninstall` explicitly ON. P3 auto only when `auto_install: auto` explicitly set. Core hard-pin unchanged. No Thing / `gate_floor` / guard-destructive weaken. No BMA / no push from PE.
+
+
+## 0.323.16 — 2026-09-16
+
+### Changed
+- **Pipeline progressive disclosure (Wave-2)** — long `.pipe-hint` prose folds behind honest `<details class="pipe-hint-more">` summaries; rarely-touched PreToolUse clusters (`runaway` / `parallelism`) collapse under **Advanced tool limits**; file-path textareas under **File path rules**. Spine stages (Thing · Decision · Web · Orchestrator · Cheap lane) stay immediately scannable. Decision-tree island remains rung 0 (closed default, `#/pipeline/decision-tree`).
+- **Learn PE academy path** — Wave-1 Task / System / Few-shot bridge becomes an ordered ≤8-step curriculum (intro → PB practice → Host Context → Pipeline → decision-tree → concept buffer). JS-seated only; no static Gate 132 growth; no Mermaid CDN.
+
+### Locks / honesty
+- No Thing / `gate_floor` / destructive-guard / `cheap_lane` default weaken. No Mode label redo. No Settings islanding. No Gas Town / Beads / BMA.
+
+## 0.323.15 — 2026-09-16
+
+### Changed
+- **Pipeline control clarity** — the five overloaded “Mode” labels now read **Runes**, **Decision mode**, **Orchestrator**, **Cheap lane**, and **Context handoff**, with unique accessible names. Enums, defaults, and behavior are unchanged.
+- **Learn → Prompt Builder bridge** — three JS-seated teaching cards distinguish Task, System, and Few-shot prompts and open shipped Prompt Builder templates for hands-on practice. The bridge adds no static Gate 132 elements and uses no CDN.
+
+### Locks / honesty
+- No Settings changes. No Thing / `gate_floor` / destructive-guard weaken. No `cheap_lane` default change. No Pipeline behavior or prompt-mode invention.
+
+## 0.323.14 — 2026-09-16
+
+### Added
+- **Phase D alias soak (R1)** — SessionStart `alias-deprecation-advisory` emits a one-line additionalContext notice when `handoff_tax.pin_explore` / `model_tier_surfaces.*` are the effective source or diverge from `model_matrix.surfaces.*` (quiet when seed leftovers match). Once-per-session marker; not a Stop/per-turn nag. Dashboard Settings banner on alias hydrate.
+
+### Changed
+- **Dashboard YAML writer** — explore / precompact / handoff pins Save as `model_matrix.surfaces.*` only (never `pin_explore` / `model_tier_surfaces.*`). Hydrate still: new wins, old alias fallback. Meter caps stay under `handoff_tax`.
+- Comfort seed soak comments updated for Phase D; **aliases KEEP in seed** (House Rule 3 — no consumer clobber; seed drop later).
+
+### Locks / honesty
+- **No** alias hard-delete from seed. **No** Thing / `gate_floor` / `guard-destructive` weaken. **No** `cheap_lane` default on. Readers unchanged (haiku default). No push/PR/BMA from PE.
+
+## 0.323.13 — 2026-09-16
+
+### Added
+- **Pipeline decision-tree island** — interactive PreToolUse → PostToolUse matcher-order viz under the Pipeline flow strip (`#/pipeline`, deep-link `#/pipeline/decision-tree`). Gate 132 island: empty `#pipe-dtree-mount` + JSON payload only (+2 static). Outcomes from stage tips / excluded-hook reasons / hook headers — no invented behavior; no Mermaid CDN.
+
+### Locks (Matthew GO)
+- Default disclosure **closed**; excluded hooks **collapsed/expandable**; Learn deep-link glue **v1 skip**; keep **EDIT** outcome label; `#/pipeline/decision-tree` force-expands.
+
+## 0.323.12 — 2026-09-16
+
+### Added
+- **Routing map** — `knowledge/routing-map.md` four-row nav: spawn-team → agent-routing → agent-routing-matrix → UMM. Brief pointer from `CLAUDE.md`.
+- **Handoff taxonomy glossary** — `knowledge/handoff-taxonomy.md` (mechanisms KEEP; `/compact` default vs `/handoff` earn-it).
+- **Guard stack diagram** — `knowledge/guard-stack.md` (Guardrails stack; floors KEEP; docs-only).
+
+### Changed
+- **R1 soak plan (aliases KEEP)** — comfort-posture template comments mark `model_tier_surfaces.*` + `handoff_tax.pin_explore` as **alias deprecated after soak**; Phase D seed drop later. New `model_matrix.surfaces.*` remains SSOT.
+- **Cheap-lane skill matrix** → UMM pointer; live-verified Copilot/Grok nuance retained (concept card KEEP).
+- **`concepts/forge.md`** thinned to one-screen dashboard card; gate depth cites `forge-pipeline` skill. `last_verified` → 2026-09-16.
+- **Boundary banners** — symmetric NOT-UMM / NOT-agent-routing-matrix on both matrix docs + routing-map Related.
+
+### Locks / honesty
+- Docs/templates only. **No** alias hard-delete. **No** Thing / `gate_floor` / `guard-destructive` weaken. **No** `cheap_lane` default on. **No** Chat∪CLI merge. **No** handoff mechanism collapse. No push/PR/BMA from PE.
+
+
+## 0.323.11 — 2026-09-16
+
+### Added
+- **Unified Model Matrix (UMM)** — `knowledge/unified-model-matrix.md` + `.json` (+ schema). Cheap-lane agent×model×effort×budget cells are SSOT; Claude role→tier and archival surface pins are rows on one matrix.
+- **`model_matrix.surfaces` posture knobs** — `explore_pin` / `precompact_fallback` / `handoff_fill` / `never_inherit_session`. One-release aliases keep `model_tier_surfaces.*` and `handoff_tax.pin_explore` working; **new keys win** when both set. Absent ⇒ haiku defaults (House Rule 3 seed-only).
+
+### Changed
+- PreCompact / handoff fill / Explore pin readers resolve via UMM surfaces with old-key fallback; cheapest fit haiku/`fast`; never inherit session for archival surfaces.
+- `knowledge/model-tier-delegation.md` → stub pointer to UMM (short role table retained).
+- Cheap-lane skill + `concepts/cheap-lane-agent-matrix.md` point matrix SSOT at UMM JSON (live-verified nuance kept).
+
+### Locks / honesty
+- `cheap_lane` default stays **off**. Tribunal seats **cited-only** (no auto demotion). Grok rows **visible** when mode:off. Did **not** fix native CC auto-compact summarizer (still session model). No Thing / gate_floor weaken. Folds open PR #1192 PreCompact tip content into this tip.
+
+### Tests
+- Self-tests: UMM vs alias precedence + haiku defaults in `precompact-digest.py`, `context-handoff.py`, `explore-tier-pin.py`.
+
+## 0.323.10 — 2026-09-16
+
+### Fixed
+- **PreCompact Claude fallback model-tier** — `_try_claude_fallback` pins `THING_MODEL=haiku` (cheapest fit; LOCK ADDENDUM). Never inherits the session model; never leaves `full` → orchestrate sonnet default. Cheap-lane stays first when on. Self-test asserts the pin (fails on sonnet/opus/fable/empty without explicit posture override).
+
+### Added
+- **Detached handoff MODEL FILL** — `context-handoff.py fill` fills the eight `<!-- MODEL FILL -->` sections via fit-tier (default haiku; cheap-lane first when on). Session role: skeleton `write` + `/compact` steering only. Low-headroom `/compact-only` unchanged.
+- **`model_tier_surfaces` comfort knobs** — `precompact_fallback_model` / `handoff_fill_model` (default haiku; sonnet = comfort override; never session/opus/fable).
+
+### Honesty
+- Did **not** fix Claude Code native auto-compact summarizer model (still session model).
+- Did **not** enable `cheap_lane` by default.
+- Did **not** change Thing / `gate_floor`.
+
+### Docs
+- `knowledge/concepts/precompact-digest.md`, `knowledge/model-tier-delegation.md`, `skills/session-handoff/SKILL.md`, `commands/handoff.md`, handoff-nudge wording, comfort-posture-balanced template.
+
+## 0.323.9 — 2026-09-16
+
+### Security
+- **Forge harden (AppSec F1–F8 + AppEng P1/P2)** — publish path/symlink jail; `--plan` under `.ravenclaude/runs/forge/<slug>/`; session-dir under `$GROK_HOME/sessions/`; receipt refuse outside-run-dir on pass + key allowlist/scrub; worktree receipts via `json.dumps` + label sanitize; `--base` allowlist; `FORGE_RECEIPT=off` verify ⇒ non-zero; `FORGE_WORKTREE=required` / secret-glob checkpoint (no unbounded `add -A`); five-file `resolve-plugin-root` conjunct; publish TOCTOU / `GROK_SESSION_ID`; append last-wins; verify `--strict`; route missing-plan honest exit; unknown worktree flags exit 2.
+
+### Locks
+- No raise `gate_floor`. No Thing / `guard-destructive` bypass. AppSec SHIP-WITH-CONDITIONS (F9 P3 OPEN non-blocking). Sage sole SCM. No BMA.
+- Version **0.323.9** (not 0.323.8): `#1190` repo-review converge-loop already stamped core 0.323.8 on main.
+
+### Tests
+- Extended forge publish / worktree / receipt / resolve-plugin-root self-tests + hook teeth for F1–F5 jails.
+
+## 0.323.8 — 2026-09-16
+
+### Fixed
+- **`/repo-review` converge-loop cache gap** — iteration ≥2 of `--converge` re-paid the full plan's
+  cache-check cost regardless of what a Fix pass actually touched; a `resolveBatchesForFiles()` helper
+  now scopes re-review to only the batches containing files the prior iteration actually changed.
+  Findings dir moved to a single shared (non-suffixed) path across the whole run to support this.
+- **`block_planner.py`'s finalize-capacity guard** — `_capacity()`'s unconditional `max(1, ...)` floor
+  masked the "impossibly small `--safe-ceiling`" error condition; fixed by checking the raw available
+  budget before clamping.
+
+### Added
+- **`/repo-review` block mode** — `scripts/block_planner.py` (new, self-tested) partitions a plan too
+  large for the `Workflow` tool's 1,000-`agent()`-call cap across multiple invocations sharing one
+  `run_id`; `repo-sweep.workflow.js` gained `args.batchIds`/`args.finalizeBlock` (additive, opt-in,
+  byte-identical single-shot behavior when absent). Gate 258 gained `block_planner.py --self-test`;
+  Gate 260 gained 6 new structural checks + a 3rd must-fail mutant.
+
+## 0.323.7 — 2026-09-15
+
+### Added
+- **Plugin lifecycle Option A (P1→P2→P3 ask)** — per-project `.ravenclaude/plugin-lifecycle.json` last-used ledger (gitignored); comfort-posture `plugin_lifecycle:` block (`tracking` ON after P1, `unused_days` 90, `auto_uninstall`/`auto_install` default OFF; `auto` coerced off). Telemetry bumps on skill/agent/slash only — **not** SessionStart presence or dashboard open. SessionStart sweep notices deprecated plugins; uninstall plan is fail-closed and **never executed** from the hook body (OPEN: no non-interactive uninstall API). Hard pin: `ravenclaude-core@ravenclaude` never auto-removed. Ask-first install allowlist: ravenclaude marketplace only (+ cache path check). Settings ⚙ + Pipeline + Bifröst adjacency list. Thing concerns `xc.plugin-install` / `xc.plugin-uninstall`.
+
+### Locks
+- Matthew M1–M7 locked. AppSec SHIP-WITH-CONDITIONS. P3 `auto` NO-SHIP v1. Sage sole SCM. No BMA. No ragnarok from sweep.
+
+### Tests
+- `hooks/tests/test-plugin-lifecycle.sh` — TRACK/NOSS/M2/M3/PIN/MID/ASK/ALLOW/NORG/JAIL + MF teeth.
+
+## 0.323.6 — 2026-09-15
+
+### Fixed
+- **Prompt Builder gap close (Pass 1)** — Gate 144 mount + estimate-label honesty; instructions-only linter; catalog-driven `PB_MODELS`; blank/mode entry restored; Task/Few-shot canned seeds; template-id deep link `#/prompt-builder/<tpl>`; Host Context XSS split to own sentinel/gate; a11y (meter, live debounce, severity text, nested tabpanel); save debounce; export fence; copy fallback; template apply clear+arm.
+
+### Notes
+- Matthew product rulings locked for model SSOT / canned / blank modes / lint object / URL share / Claude-only / HC ownership. No BMA. Gate 132 unchanged (JS-rendered).
+
+## 0.323.5 — 2026-09-15
+
+### Added
+- **Thing hardening EDIT** (feature flag `command_review.hardening_edit`, **default OFF**) — when a confident panel-ALLOW would ask via `gate_floor`, seats may propose an empty-cited safer Bash EDIT; `knowledge/thing-harden-transforms.yaml` (registry v1, AppSec-signed transforms) verifies via `thing-concerns.py harden` / `thing-harden.py`. Fail → **ask** (never silent ALLOW past floor). Empty-cited outside discriminator → **DENY**. v1 high-blast still-ask + show hardened form. Heimdall no EDIT. Fatigue nudge retargets to filing a transform (never raise `gate_floor` / add bypass). Registry version folded into `config_hash`.
+
+### Locks
+- No bypass list. No raise `gate_floor`. Sage sole SCM. AppSec SHIP-WITH-CONDITIONS; flag OFF until countersign on land.
+
+## 0.323.4 — 2026-09-15
+
+### Added
+- **Runes dashboard opt-in → automatic** — comfort-posture `runes: off|on` (absent ⇒ off). Settings **⚙ Runes at session start** and Pipeline SessionStart **Runes ready-queue (Oath-hook)** share one state; Save & apply round-trips either surface.
+- **Auto-depth B:** when On, SessionStart Oath-hook surfaces hanging MUST-RUN + ready summary and may **auto-claim** the next **ungated** ready Rune. Gates (`matthew`/`appsec`/`cos`/`sage`/`money`) refuse; **never** auto Longship merge.
+- **`rc runes open --kind fix|feature|chore`** — optional kind **tag** only (flat Runes + strands; no epic hierarchy). Auto-create-from-ask contract documented.
+- **`human_gate: money`** added to the claim wall set.
+
+### Changed
+- Oath-hook quiet when `runes` absent/off (kill switch = Off + Save). CLI always works.
+- Factory surface remains **ravenclaude-core** (CLI + hooks + skill) for any harness — not CoS-only.
+
+### Notes
+- Gate 132: measured under existing budget (no ratchet). MH-18 host caveat on tooltips. No Gas Town/Beads/Hird/BMA.
+
+## 0.323.3 — 2026-09-15
+
+### Changed
+- **Dashboard Pipeline hook categories** — Guardrail Pipeline lane heads promote SessionStart / PreToolUse / PostToolUse / Stop as category titles (stacked event→when, hairline); flow strip shows canonical names via `data-event` + CSS `::after`. Gate 132 element delta **0**. Folded with host-scope tip.
+
+## 0.323.2 — 2026-09-15
+
+### Added
+- **Dashboard host-scope badges** — Commands cards (Help→Commands) and index portal Agents/Skills show `.rc-badge--host-*` scope chips (All agents / Claude Code / Cursor / Codex / Copilot / Grok reserved / Gemini / Multi) with a filter strip + empty state. Inventory `platform_dependency` snapshot in `dashboard-assets/host-scope-map.json`. Extends MH-18; does not invent `_HOST_EQUIVALENTS`.
+
+## 0.323.1 — 2026-09-15
+
+### Added
+- **Runes ready-queue** — ledger projection + `rc runes ready|claim|sling|show|open|release|hanging` (alias `rc ready`). Deps + `hook_owner` + `human_gate`; Verðandi/Skuld facet labels only (do not overload Norns panel).
+- **Oath-hook (GUPP)** — SessionStart `hooks/oath-hook.sh`: hanging Runes on your hook ⇒ MUST surface/run.
+- **strand apply** — `rc strand apply <PE pack>` expands formulas into child Runes.
+- **Longship** — `rc longship open|add|land-request|show` Sage-facing delivery batch; **never auto-merge**. (Delivery was briefly Hird; Matthew/CoS amend → Longship.)
+- Docs: `docs/runes-ready-queue.md` citing `docs/norse-mythology-feature-map.md`.
+
+### Notes
+- Extends `ledger.py` with `hook` + `meta` event types and Runes fields (`longship_id`, `strand_id`, `human_gate`, …). No new plugin. No Beads/Gas Town UX names. No BMA. Sage sole SCM.
+
+## 0.323.0 — 2026-09-14
+
+### Added
+
+- **Determination: may a called agent call agents?** Possible — yes, the platform nests
+  three layers deep by default (`CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH`). Enabled in this
+  roster — no, and now by declaration: all 623 agents omit `Agent` from `tools:`, which is
+  the layer that actually binds (`Agent(type)` scoping is ignored in a subagent definition,
+  so `Agent` in any form is an unscoped grant). Desirable — not as a default; the one
+  sanctionable shape is a frontier-tier parent fanning out to fast-tier read-only leaves,
+  exempted per agent by name with a reason. Full record:
+  `docs/decisions/2026-09-14-nested-dispatch-determination.md`; operating summary in
+  `knowledge/model-tier-delegation.md` § "Multi-hop delegation".
+- **Gate 289 — `scripts/check-nested-dispatch.py`** (marketplace CI): fails any
+  `agents/*.md` whose `tools:` grants `Agent` / `Agent(...)` / `Task` / `"*"` without a
+  reasoned entry in `tests/fixtures/nested-dispatch-exemptions.json`; a stale or reasonless
+  exemption fails; an empty roster is not a pass. `--must-fail` proves all six grant forms
+  fail and that `Bash(git a, b)`, `TaskOutput` / `TaskStop` and a `disallowedTools: Agent`
+  pass clean. Until now the only guard was `guard-recursive-spawn.sh`, a grep over prose
+  that warns and cannot block.
+  *(Post-2.1.277 footnote — UNVERIFIED DOC adapt 2026-09-20: `TaskOutput` removed upstream;
+  Gate 289 fixture updated separately to use still-valid look-alikes.)*
+- **`handoff-tax-meter` sees nesting** (ledger schema v2). Hooks fire inside subagents and
+  the input then carries the caller's `agent_id` / `agent_type`, so each ledger line records
+  `caller_agent_id`, `caller_agent_type`, `nested`, and a reconstructed `depth` (1 = main
+  thread; the caller's own depth + 1 when the caller was spawned in this session's ledger;
+  else `2` marked `depth_is_lower_bound`). New advisory flag **`nested_dispatch`** names the
+  caller, the layer, the off-switch and the decision; `rc dispatch-summary` gains a
+  `nesting` row. This is how the three vectors Gate 289 cannot reach — the built-in
+  `general-purpose` / `claude` types, a fork, a consumer's project-local agent — become
+  visible. Gate 285's hook test drives the nested path through the real bash contract
+  (legs H1–H7).
+- **Live verification on Claude Code 2.1.271** (five runs, maintainer's account): two- and
+  three-layer chains nest; a fourth layer finds `Agent` silently absent from the 3rd-layer
+  subagent's toolset (the ceiling is a tool removal, not an error); `sonnet` → `claude-sonnet-5`,
+  `haiku` → `claude-haiku-4-5-20251001`. The harness is committed as
+  `hooks/tests/live-nested-dispatch.sh` — opt-in (`RC_LIVE=1` + a signed-in `claude`), never in
+  CI, prints *SKIP — a skip is NOT a pass* otherwise. Decision doc § 7 has the ledgers.
+
+### Fixed
+
+- **`handoff-tax-meter` depth was a floor in every live run.** Hooks fire child-first (the
+  child's `PostToolUse` runs inside the caller, before the caller's own dispatch completes),
+  so at write time the caller's line never exists and every nested line recorded `2, lower
+  bound` — a layer-3 leaf included. `--summary` now re-resolves each depth by walking the
+  `caller_agent_id` chain over the complete ledger (`_resolve_depths`, cycle-safe); the line
+  keeps its honest floor. The synthetic tests had written lines parent-first and could not
+  see this; new legs write them live-order (self-test *live order*, Gate 285 H7a/H7b).
+- **The `nested_dispatch` advisory reached the wrong reader and derailed it.** A
+  `PostToolUse` hook's `additionalContext` returns to whoever made the call — inside a
+  subagent, that subagent, never the Team Lead. Text written to the orchestrator ("a called
+  agent called an agent, not you") read as injected content to the calling worker; live, the
+  coordinator's whole report became an explanation that it was "not acting on" the notice
+  and the leaf's answer was never relayed. The flag is now recorded on the ledger and surfaced
+  by `--summary` only; per-dispatch flags the caller does pay for are still spoken to it,
+  addressed as a subagent, with a do-not-relay footer. Post-fix live run: the report was the
+  answer and nothing else.
+- **`scripts/inventory-sweep.py` no longer executes the audit harness.** Its script-selftest
+  probe greps each script for the literal `--must-fail-convention` and then runs it with that
+  flag under a 30 s kill; `audit-gates.sh` contains the string because it is the thing that asks
+  other scripts for it, does not parse the flag, and so the ENTIRE suite ran and was killed
+  mid-run — three times this session leaving Gate 14's in-place mutant
+  (`verdict="allow"; reason="MUTANT pre-fix…"`, a fail-OPEN tie-breaker) in
+  `hooks/thing-orchestrator.sh`, surfacing only as covers-digest drift in Gates 237/239. The
+  window is wide now that a signed-in `claude -p` makes the tribunal seats real rather than
+  instant abstentions. The harness is now `SKIP harness-would-run-full-suite`, beside the
+  existing self-probe exclusion; the sweep drops from a 180 s preflight timeout to ~35 s.
+
+### Changed
+
+- **`knowledge/subagent-isolation-and-tooling.md`** — (1) "subagents cannot spawn
+  subagents" was a platform claim and was false; it now states the house rule, the `tools:`
+  layer that enforces it, and Gate 289. (2) The `CLAUDE_CODE_SUBAGENT_MODEL` section had
+  the env var as step 1 of the resolution order; stale since v2.1.251 (it is step 3, a
+  fleet default that per-invocation and frontmatter override); v2.1.257's
+  `CLAUDE_CODE_SUBAGENT_MODEL_FORCE` is the only thing that flattens a roster pin.
+  Consequence stated: a consumer's plain env var no longer overrides the `opus` pin on the
+  three merge gates.
+- **`rules/agent-collaboration.md`** — the single-orchestrator sentence names the layer
+  that binds (`tools:`, gated) and the sanctioned exemption shape.
+- **`CLAUDE.md`** core-rule paragraph — "enforced soft by `guard-recursive-spawn.sh`" now
+  names the `tools:` layer, Gate 289 and the meter.
+- `AGENTS.md` step 11, the agent-definition template and the `agent-quality-rubric` skill
+  state the `tools:` dispatch rule and Gate 289.
+
+### Known
+
+- **Host-contract finding.** On a host whose edit tool reaches the hook as a whole-file
+  `Write` (Cursor), the §B.9.3 hard rules screen the entire payload, so any file that
+  *documents* a hard-rule command — this file and `CLAUDE.md` — is un-editable by an agent
+  regardless of what the edit adds. This entry and the constitution paragraph were applied
+  under an explicit per-task maintainer override; the durable fix (screen added lines only
+  for `Write`) is a design check-in tracked in the ledger (`rc-6c598f5546e8`) and written up
+  in the decision document § 6.
+
+## 0.322.2
+
+### Added
+- Routine-review tribunal `design_decision` axis + `merge_authority: auto|human` so approved routine PRs can auto-merge when no seat flags a design/architecture decision.
+
+## 0.322.1
+
+### Fixed
+- Schema-v5 comfort-posture applies now use flock + atomic `os.replace` writes for `settings.json` (same path as v3/v4), closing a tear/clobber race.
+
+## 0.322.0 — 2026-09-14
+
+### Added
+
+- **Model-tier delegation** — the price-mix half of orchestration: push the
+  *expensive tokens* down, not just the tasks. Doctrine in
+  [`knowledge/model-tier-delegation.md`](knowledge/model-tier-delegation.md); the
+  Team Lead prior in `CLAUDE.md` § "Model-tier delegation"; `spawn-team`
+  **Step 4.25** (pick the tier) and a Step 8 cost line sourced from the ledger.
+- **`scout`** — the shipped `haiku` worker for read-a-lot/return-a-little work
+  (search, grep, classify, extract, inventory, cross-reference). Returns the
+  exact shape the brief asked for, capped by the brief — an artifact path when
+  the material exceeds the cap — never a transcript.
+- **`model:` frontmatter is now required on every agent** (`haiku` / `sonnet` /
+  `opus` / `fable` / `inherit`; full model ids rejected) — gated by
+  `scripts/check-frontmatter.py`. An omitted `model:` silently inherited the
+  main conversation's (frontier) model for every worker.
+- **`hooks/handoff-tax-meter.sh`** (`PostToolUse` on `Agent|Task`) — one
+  counts-only ledger line per dispatch (tier, brief/report words, final-request
+  tokens, flags) to `.ravenclaude/runs/<session>/dispatch-ledger.jsonl`; advises
+  on `report_over_cap` / `brief_over_cap` / `frontier_readonly`. Observation, not
+  a gate. `handoff-tax-meter.py --summary` and **`rc dispatch-summary`** roll it up
+  into a cost-per-completed-task view.
+- **`hooks/explore-tier-pin.sh`** (`PreToolUse` on `Agent|Task`) — the one binding
+  piece: rewrites an un-pinned built-in `Explore` dispatch to `model: haiku` via
+  `hookSpecificOutput.updatedInput` (since Claude Code v2.1.198 `Explore`
+  inherits the session model, so on Opus an un-pinned Explore is an Opus grep).
+  Never overrides an explicit `model`; stands down under
+  `CLAUDE_CODE_SUBAGENT_MODEL`; knob `handoff_tax.pin_explore: haiku | sonnet | off`.
+- **Posture template** seeds a `handoff_tax` block (`report_cap_words: 400`,
+  `brief_cap_words: 600`, `pin_explore: haiku`); the dashboard's Save now
+  round-trips it instead of silently dropping the block.
+- **Worker contract** in the brief template (inputs / tools / success check /
+  max output) and its report-side mirror in `rules/agent-collaboration.md`; a
+  Tier column + `scout` leaf in `knowledge/agent-routing.md`; the escalation
+  ladder (haiku → sonnet → opus, recovery goes up, never sideways) in the doctrine.
+- **Cross-host honesty:** the Copilot `.agent.md` and Codex `.toml` projections
+  now state each agent's canonical tier in the generated header. Neither host
+  takes a tier alias (Copilot wants a plan-specific picker id, Codex a model id),
+  so the field is deliberately not emitted and the agent inherits the session
+  default until the consumer pins it — said in the file, not discovered on the
+  bill. Per-host truth: `host-support.json` `components.agents.<host>.model_tier`.
+- **Authoring surfaces carry the tier:** `templates/agent-definition-template.md`
+  now opens with the gated frontmatter block (`name` / `description` / `tools` /
+  `model` / scenarios) and the role → tier rule, so a new agent is not copied
+  from a template that omits the one line the gate requires;
+  `templates/agent-brief.md` gains field 8 (*how much judgment does the work
+  need?* → tier) and `draft-agent-brief` maps it to `model:`;
+  `agent-quality-rubric` gains **Gate 0** — the mechanical frontmatter
+  prerequisites plus the one judgment the gate cannot make, *does the tier fit
+  the role?* (an `opus` agent with grep-shaped scenarios, or a `haiku` agent
+  asked to gate a merge, is a review comment).
+- **Orchestration skills say the tier at dispatch time:**
+  `claude-code-parallel-and-modes` gains hard rule 8 (*read-only fan-out is not
+  free* — an un-pinned `Explore` inherits the main model), a remap-table row for
+  cheap read-only fan-out (`scout` / `model: haiku`), a tiered decision-tree
+  step, and T7's three explorers now dispatch on `haiku` with a capped return;
+  `ravenclaude-core-orchestration` Recipe A names the tier as the second axis of
+  spawn cost, the focused-task brief checklist gains a *Model tier* box, and
+  the anti-patterns gain *paying frontier rates for reading*. These are the two
+  skills a Team Lead reads while dispatching; neither mentioned a tier before.
+
+### Marketplace gates (repo-side, shipped alongside)
+
+- **Gate 286** — `explore-tier-pin` self-test + must-fail canary.
+- **Gate 287** — `scripts/check-model-tier-ratchet.py`: the roster-wide
+  `opus`/`fable`/`inherit` share may not rise and the `haiku` count may not fall
+  against `tests/fixtures/model-tier-ratchet.json` (bound to the merge base by
+  `check-ratchet-freshness.py`). Loosen with `--stamp --allow-loosen`, out loud.
+- **Gate 288** — `scripts/check-model-tier-fit.py`: the tier must fit the role the
+  agent itself declares. A ratchet freezes a roster; it cannot tell whether the
+  roster it froze was right — the day Gate 287 shipped, 24 agents named
+  `*-implementation-engineer` / described "Use to BUILD …" sat on `opus` while
+  the early app-craft plugins (backend / frontend / api / database) tiered the
+  same role `sonnet`, and both gates passed. Gate 288 reads `name:` + the
+  *opening* of `description:`: an implementer may not sit on a frontier alias,
+  the three core merge gates may not sit below one, the core `scout` — the
+  doctrine's named fast-tier worker, the agent every "dispatch `scout`" line
+  resolves to — may not sit above `haiku` (a floor symmetric to the merge
+  gates), and any *other* scout-shaped agent (`scout` / `-scout` name, or a
+  "Haiku-tier" / "Read-only" opener) above `haiku` is advised, never failed.
+  The first cut's scout leg matched only "Read-only" openers and classified
+  zero roster agents — the shipped `scout` opens "Haiku-tier worker" — so it
+  had synthetic teeth and no positive control; the `scout` name and the
+  "Haiku-tier" opener close that. Mis-reads are exempted **by name with a
+  reason** in `tests/fixtures/model-tier-fit-exemptions.json`; a stale exemption
+  fails. **Roster re-tier shipped alongside (marketplace-wide, not this
+  plugin):** the 24 implementers moved `opus` → `sonnet` across 23 domain
+  plugins (each patch-bumped), frontier share 484/623 (77.7%) → 460/623
+  (73.8%), and the Gate 287 baseline was re-stamped as a tightening. **Second
+  pass, same day:** the gate reads the gerund (`Use for BUILDING …`) as the
+  build verb, and `--report` now prints a **pair-review queue** — every
+  frontier `*-engineer` that is unshaped, sits beside its plugin's
+  `*-architect` / `*-lead` / `*-strategist`, and does not open by deciding.
+  Report-only, never a verdict: a lower-case `build` also opens "build a GHG
+  inventory" (an analyst), so this shape is tiered by hand with the
+  sibling-plugin analog as tie-breaker. The doctrine states that as the
+  **sibling-plugin parity rule** (every `aws-cloud` / `gcp-cloud` engineer sat
+  on `sonnet` while every same-shaped `azure-cloud` engineer sat on `opus`).
+  26 more build-half agents moved `opus` → `sonnet` across 14 plugins (each
+  patch-bumped, reason in each CHANGELOG), 460/623 (73.8%) → 434/623 (69.7%),
+  baseline re-stamped as a tightening again.
+
+### Notes
+
+Migration: none for a consumer's project files. On `/plugin marketplace update`
+the two new hooks register via `hooks.json` and are **opt-in by posture** like
+every other advisory hook — no `.ravenclaude/comfort-posture.yaml`, no ledger, no
+pin. A consumer who *does* have a posture file gets the pin at its default
+(`haiku`) immediately; pass `model` explicitly or set `pin_explore: off` to opt
+out. Honest limit: the ledger's token column covers the sub-agent's **final**
+request only (a lower bound); its word counts are exact.
+
+## 0.321.7 — 2026-09-13
+
+### Added
+
+- **Runtime surface-selection router** for the Team Lead: `spawn-team` **Step 1.25**
+  (slash command vs skill vs specialist agent vs orchestration shape) before the
+  whether-to-delegate fork and agent-routing tree. Platform fuzzy-match on
+  `description` remains a weak signal; this step is the stronger behavioral one.
+- Companion diagram + tradeoffs pointer in
+  [`knowledge/orchestration-decision-trees.md`](knowledge/orchestration-decision-trees.md)
+  (deliberately **not** a canonical `## Decision Tree:` header — avoids the
+  `render-trees.py` SVG gate). Cross-refs in `agent-routing.md`,
+  `dynamic-workflows.md`, `cheap-lane-delegation`, and the Team Lead prior in
+  `CLAUDE.md`.
+
+### Notes
+
+Migration: none. Additive playbook guidance. Does **not** reopen the closed
+succinct-skill-descriptions program (P8 STOP) — this strengthens runtime
+dispatch discipline, not mass description rewriting.
+
+## 0.321.6 — 2026-09-11
+
+### Added
+
+- New `routine-review-tribunal` skill + `scripts/routine-review-tribunal.py`: gates an
+  unattended scheduled routine's produced diff/PR (plugin-discovery, research-cadence)
+  through a two-panel, cross-model tribunal before it is finalized — mirrors
+  `/forge-pipeline`'s divergent-panel + tiebreak shape, applied after the fact to a
+  completed diff instead of before code exists. Reuses the existing Mímir/Forseti/Thor
+  seat personas and `thing-decision.resolve_panel_config` model resolution (no new
+  agents); deterministic `tally()` core with 9 self-test fixtures
+  (`--self-test`, matching `forge-route.py`'s convention); a bounded revision loop
+  (default 2 rounds) that always resolves to `escalate` rather than looping forever or
+  landing unreviewed; per-round receipts under
+  `.ravenclaude/runs/routine-review/<slug>/<timestamp>/`.
+- Wires the new gate into both PR-producing scheduled routines' run contracts:
+  `docs/plugin-discovery-routine-policy.md` (§ "Tribunal gate," + the drop-in
+  schedule-prompt replacement) and `docs/research-routine-two-cadence.md`
+  (§ "How a weekly news-sweep run should behave," step 6).
+
+### Notes
+
+Migration: none. Purely additive — a new skill + script + a required step in two
+routines' own run contracts (not a hook, not a required CI check); no existing
+agent, skill, or manifest entry changes shape. A consumer who never runs those two
+specific scheduled routines sees no behavior change at all.
+
+## 0.321.5 — 2026-09-10
+
+### Fixed
+
+- `prompt-optimizer` SKILL.md now matches the Phase-6 hook wiring: the
+  classifier is a live `UserPromptSubmit` hook, not an unwired sibling.
+
+## 0.321.4 — 2026-09-10
+
+### Added
+
+- Comfort-posture 13th category `subagent_dispatch` emits bare `"Agent"`
+  (recommended preset `allow`). Absent key still falls back to
+  `global_default`.
+- Caveman auto-routing P7 live-apply: when `caveman_routing: live`, classifier
+  `on`→`lite` and `off`→`off`. Shadow still never applies. Default remains
+  off. Owner overrode the uncleared P5 soak gates.
+- The new Settings-tab category card is +82 live DOM elements on both
+  dashboard surfaces (Gate 132 ratchet raised to match).
+
+## 0.321.3 — 2026-09-10
+
+### Fixed
+
+`/repo-review` recovery batch — 18 CONFIRMED findings fixed across `ravenclaude-core`, recovered
+from a hand-run `findings_merge.py` pass after two automated `/repo-review` dispatches failed (see
+`skills/repo-review/SKILL.md`'s "Recovering from a mid-run dispatch failure" section). Each finding
+was independently verified CONFIRMED before being fixed; none was committed until this batch. Notable
+fixes: a git-blame-verified trust check closing `dod-gate.sh`'s self-attestation bypass
+(`b26-dodgate-cmd-exec-trusted-bypass`); a SIGPIPE-prone `printf | grep` swapped for a here-string in
+`thing-seat.sh`'s egress secret backstop (`thingseat-grepq-pipefail-egress`); a shell-injection close
+plus a dead third-model verifier fix in `repo-sweep.workflow.js`
+(`sec-repo-sweep-models-shell-injection`, `repo-sweep-third-model-verifier-dead`); a
+`shift`-beyond-`$#` infinite-loop fix applied across three delegate scripts
+(`cheaplane-agent-shift2-hang`, `copilot-delegate-shift2-hang`, `forge-publish-shift2-infinite-loop`);
+an `html.unescape()` fix closing a named-entity XSS bypass + a crash in `declarative-visualization`'s
+lint.py (`b100-lint-named-entity-href-bypass`, `dvlint-entity-chr-crash`); and a
+`latency_ms`→`latency_ordinal` field-name fix that was permanently disabling
+`agent-dispatch-evaluator`'s latency circuit breaker (`eval-dispatch-latency-ordinal-not-ms`),
+re-synced into both `rc-deep-research.js` byte-identical mirror copies. Full list in the recovery
+report at `.ravenclaude/runs/repo-review-full-20260910/report.md` (gitignored, local to the run).
+
+## 0.321.0 — 2026-09-09
+
+### Added
+
+- **`skills.deny_plugins` posture key — durable skill-wiring exclusion.** A consumer project can now
+  list plugin names in `.ravenclaude/comfort-posture.yaml` (`skills: { deny_plugins: [...] }`) to
+  exclude those plugins' skills from `.claude/skills/` symlinking. `wire_plugin_skills()` in
+  `scripts/ravenclaude` checks a new `is_skill_wiring_denied()` helper before wiring each plugin.
+
+  **Why this exists:** every symlinked skill under `.claude/skills/` gets its name+description
+  injected into every Copilot Chat/CLI turn (VS Code's native Agent Skills feature reads that
+  directory directly). A consumer whose project only needs 2-3 of the wired plugins had no way to
+  keep the rest out — and a local, after-the-fact pruning pass (moving symlinks aside by hand) was
+  silently undone on the very next `ravenclaude setup`/`update`, because `wire_plugin_skills()`
+  re-wires the full roster unconditionally, every time. This key makes the exclusion live *inside*
+  the wiring step itself, so it survives re-wires instead of needing to be manually re-applied.
+
+  **Purely additive:** no posture file, no `skills:` key, no `python3`, or a malformed YAML all
+  resolve to "not denied" — existing installs are unaffected unless they opt in. `ravenclaude-core`
+  itself is never deniable by this mechanism. Plugin-level granularity only (not per-skill) —
+  matches the smallest scope that solves the observed problem.
+
+  Full docs: `skills/set-posture/SKILL.md` § "Skill-wiring exclusions".
+
+## 0.320.2 — 2026-09-09
+
+### Fixed — doc-accuracy from 2026-09-08 repo review
+
+- `dependency-update-sweep` SKILL no longer documents a nonexistent `queue --host` subcommand
+  (queue rows are written by `apply`).
+- Root README command list now includes `/repo-review`.
+- `/repo-review` "Related artifacts" links now resolve from the command file.
+
+**Migration:** none — documentation only.
+
+## 0.320.1 — 2026-09-09
+
+### Fixed — broken relative links after the plan-archive move
+
+Repointed six skills' plan-reference links (`adaptive-run-classifier`, `agent-dispatch-evaluator`,
+`analog-closeness-scorecard`, `mimir`, `probe-kit`, `repo-build-studio`) to the new
+`docs/plans/archive/…` locations. The 2026-09-09 `docs: archive … plans` commit moved the plan
+directories without updating references, which turned the required `check-md-links.py` CI gate red
+for every PR. Link targets only — no behavioral change. **Migration:** none.
+
+## 0.320.0 — 2026-09-08
+
+### New skill — `skill-index` (FORGE plan `dynamic-skill-context`, phase P0)
+
+A new always-on skill, `skill-index`, indexes every skill shipped by every marketplace plugin — so a
+plugin that's currently disabled still has a findable, re-enableable entry instead of being silently
+invisible. Generated by `scripts/generate-skill-index.py`, freshness-gated by CI as Gate 282. See
+[`knowledge/concepts/skill-index-self-reference-convergence.md`](knowledge/concepts/skill-index-self-reference-convergence.md)
+for a real mechanism quirk found while building it: the generator indexes its own output, so a first
+write always undercounts by one entry — run it twice (or once, then `--check`, then once more) before
+committing.
+
+**Migration:** none — a new additive skill; nothing in a consumer's installed plugin changes on
+`/plugin marketplace update` until they invoke `skill-index`.
+
+## 0.317.0 — 2026-09-03
+
+### ⛔ Migration — Codex gains 6 SessionStart hooks + matchers; run `/hooks` to re-trust
+
+**If you run `ravenclaude update` (or a fresh `--host codex` install) after this release, Codex's
+guardrails go silently OFF until you run `/hooks` inside Codex.** Codex tracks hook trust by hash
+(MH-17); rewriting `.codex/hooks.json` — which this release does — marks every hook for review and
+Codex skips them until re-trusted. The installer's `_rc_rearm_notice` prints this reminder on
+install/update with the before/after hook count; it is easy to miss if you don't read installer
+output.
+
+**What changed underneath:** Codex's SessionStart wiring was, until this release, a hand-maintained
+2-hook, matcher-less list (`capability-orientation.sh`, `thing-denial-kb-recall.sh`) — meaning both
+hooks **re-fired on every mid-conversation compaction** on Codex, the exact PR #1084 defect that
+every other host already had fixed. `scripts/generate-codex-hooks.py` (new) replaces the hand-list
+with a generator derived from `hooks.json`: **6 previously-absent SessionStart hooks now wire**
+(`reapply-posture.sh`, `ensure-default-mode.sh`, `keep-awake.sh`, `worktree-guard.sh` register,
+`dashboard-autostart.sh`, `handoff-successor-ack.sh`), and **all 9 hooks gain a `matcher`** — the
+two pre-existing hooks stop re-firing on compaction. PreToolUse/PostToolUse/Stop are reproduced
+byte-identically (out of scope this release; see the knowledge doc for the diff-proof pointer).
+Kill switch if you need to back out before re-trusting: `RC_CODEX_SESSIONSTART_LEGACY=1`.
+
+### Added
+
+- **Multi-host SessionStart safeguards** (`sessionstart-safeguards-multihost` FORGE run) — a static
+  ledger (Gate 259, extended) and a runtime self-test (Gate 266, new) that between them assert every
+  supported host's SessionStart wiring matches the canonical manifest AND that the host's adapter
+  seam actually dispatches + delivers context. Full reference:
+  [`knowledge/sessionstart-hook-safeguards.md`](knowledge/sessionstart-hook-safeguards.md).
+  - `scripts/generate-codex-hooks.py` (new) — see the migration note above.
+  - **`rc hooks selftest [--host <h>] [--tier a|d|auto] [--json]`** (new `bin/rc` verb) — the
+    on-demand front door: per-host pass/fail with the runtime tier printed on every row (a host
+    declared tier D that only achieves A is a FAIL, never a silent downgrade). The `copilot-cli` row
+    always force-prints a `chat: unverified (surfaces.chat.supported=false)` line — every mechanism
+    in this release reaches Copilot **CLI** only, never Copilot **Chat**.
+  - **Gate 266** (`SKIP_GATE_266=1` kill switch; renumbered from 264 at merge time — `origin/main`
+    independently claimed Gates 264/265 for its own caveman-auto-routing work) — Tier-A-only runtime
+    proof (invocation + context delivery + ledger completeness), registered in all three required
+    surfaces. Tier D (a real host binary spawn) is never run in CI; it's owner-run on demand via
+    `rc hooks selftest --tier d`.
+  - A per-host, dated `drift_override` field on the ledger — a narrower escape than `SKIP_GATE_266`
+    for the case where one third-party host CLI's own hook-config shape legitimately drifts, without
+    silencing every other host's assertion.
+  - `_host-canary.sh` gained a SessionStart lane (Tier A) and a Tier D lane (real short-lived host
+    session, Claude-Code-anchored, scratch-project-scoped, never the real project).
+- **`host-support.json` schema addition** — every `components.hooks.<host>` row that has a
+  SessionStart lane now carries a `sessionstart_verification` sub-object (`tier`, `basis`,
+  `mechanism`, `note`). This is a schema change other tooling reading that file should account for,
+  not a value-only edit — see the file's own `_schema_note_2026_09_03` field.
+
+### Fixed
+
+- Grok is now explicitly classified in the SessionStart ledger (`_UNSUPPORTED_HOSTS`, with a reason
+  and machine-checked promotion criteria) rather than silently absent — a converse self-audit
+  re-checks the exclusion's own promotion criteria against disk on every run, so a future real Grok
+  adapter can't satisfy the classification by lookup alone without the exclusion being re-examined.
+
+## 0.314.0 — 2026-09-02
+
+### Added
+
+- **Pre-compaction handoff convergence.** `handoff-nudge.py` (the `Stop`-hook context-hot nudge) now
+  actually fires on Claude Code and Copilot — a real, previously-unknown bug (the trigger checked a
+  `reason` field neither host's real `Stop` payload carries) is fixed, along with a confirmed-outcome
+  throttle (retry after a failed attempt instead of permanent silence), per-session state scoping, and
+  a low-headroom degradation so the procedure itself cannot trip the compaction it precedes.
+  `context-handoff.py` gained `chmod(0o600)` on every file it writes and a new `finalize` subcommand
+  that scrubs the final judgment content and re-secures file modes. `/session-handoff`'s procedure now
+  calls `finalize` and gates its escalation-to-a-new-session step on a mandatory `git status --porcelain`
+  probe rather than spawning unconditionally. The pre-existing, opt-in `precompact-digest.sh` fallback
+  is untouched and stays gated behind `cheap_lane.mode` — nothing about this release un-gates it.
+  `context_handoff.mode` still defaults `off`; the mechanism ships working and opt-in, not default-on.
+  See the `CLAUDE.md` milestones ("Pre-compaction handoff convergence…" and "The Stop-lane host table
+  was wrong…") for the full arc, including the six security-review conditions (C1–C6) and the
+  structural, host-level Copilot `nag`-delivery gap (only `mode: block` reaches the agent there).
+- **A real dashboard control for `context_handoff.mode`** (Pipeline tab, Stop lane) — an off/nag/block
+  `<select>`, so the mechanism above is toggleable without hand-editing `comfort-posture.yaml`.
+- **Gates 260 and 261** — `handoff-nudge.py`/`context-handoff.py`/`precompact-digest.py` retention (5
+  must-fail halves) and a `session-handoff/SKILL.md` text-drift guard (1 must-fail half), respectively.
+
+## 0.312.0 — 2026-09-01
+
+### Fixed
+
+- **VS Code Copilot Chat context-overflow — proactive compaction, no custom trigger needed.** Built
+  via `/forge` (`.ravenclaude/runs/forge/copilot-preemptive-compact/`) against the ask "force
+  autocompaction before a prompt would overflow the context window, plus a fallback." Research
+  (verified against the shipping Copilot Chat bundle, not docs) found the literal "predict and block"
+  mechanism is not buildable — no VS Code API exposes a third-party extension the active session's
+  accumulated token usage — but Copilot Chat already has a native, mis-defaulted setting for exactly
+  this:  `github.copilot.chat.summarizeAgentConversationHistoryThreshold` defaults to `null` (only
+  compact at 100% full). `vscode-extension/` (`ravenclaude-precompact-guard`, bumped 0.1.0 → 0.2.0) now
+  contributes `0.8` as the default for that setting via `contributes.configurationDefaults` — a
+  ~3-line manifest addition, no custom file-writing, no cross-platform path resolution, no VS Code
+  Profiles risk. Direct code-trace confirmed this setting genuinely gates a background summarization
+  applied before the next request renders. Fallback (ask #2 in the original request) was already
+  satisfied natively: `github.copilot.chat.compact` (a real command) + Copilot's own context-window
+  usage indicator + the already-shipped `ravenclaude.forceCompactWithDigest` command.
+- **The extension was silently disabled in VS Code's Restricted Mode** (found by the FORGE run's own
+  red-team pass) — a default-path trigger on any unfamiliar/large repo, correlating with exactly the
+  sessions most likely to overflow. Fixed with `capabilities.untrustedWorkspaces: "limited"`.
+- **Gate 256** (`scripts/check-vscode-extension-config-defaults.py`) — the FORGE run's own red-team
+  found VS Code silently drops a `contributes.configurationDefaults` override on three distinct
+  shapes (unregistered key, `disallowConfigurationDefault`, disallowed scope) with no error surfaced
+  anywhere, and `vscode-extension/package.json` had zero gate coverage before this. `--self-test` and
+  `--must-fail` are fully synthetic (CI-safe, no real VS Code needed); `--check` runs against a real
+  installed Copilot Chat when one is present and exits 0 (loud-skip) rather than failing when VS Code
+  is absent `[verified this session: scripts/check-vscode-extension-config-defaults.py:54,388]`.
+  Landed as Gate 256, not 255 — 255 was independently claimed by the concurrent `agent-routing-matrix`
+  PR (#1067), which merged first.
+
+## 0.311.0 — 2026-09-01
+
+### Added
+
+- **`knowledge/agent-routing-matrix.{json,schema.json,md}`** — a host-agnostic task-shape →
+  {agent, model tier, basis, rationale, sources} routing table covering 5 agent surfaces (Claude
+  Code, Codex CLI, Copilot CLI, Copilot Chat, Grok Build CLI) and 5 task classes (2 coding, 3
+  non-coding: research/writing/data-analysis). Heuristic only — no numeric confidence field, ranked
+  by ordinal `rank` + a `basis` provenance tag instead. Every vendor fact is cited via `sources[]`,
+  never duplicated; volatile facts stay owned by `cross-tool-model-lineup-2026.md`,
+  `model-selection-and-2026-capability-map.md`, and `substrate-tier-map.json`. Built via `/forge`
+  `standard` (two divergent cross-model panels → a correlated-error critic that found and fixed 5
+  real blockers → 11 tiebreak rulings → an adversarial red-team pass that found and fixed 3 more,
+  including this build's own reconciled design → synthesis). See the `CLAUDE.md` milestone for the
+  full arc, including a corrected false claim about Gate 51 this build's own review caught and fixed
+  at all 5 sites it had spread to.
+- **Gate 255** (`scripts/check-agent-routing-matrix.py`) — 9 checks (schema validation with
+  schema-mutating meta-teeth; a vendor-fact ban-list derived at gate time from
+  `substrate-tier-map.json` + `model-catalog.json`'s own values, scanned against both the JSON and
+  the whitespace-normalized `.md`; no numeric confidence; strict host/tier referential integrity,
+  deliberately never via `resolve_tier()`; framework-rule quote verification; ownership-metadata
+  value checks; `route-task.py --self-test` coverage; bounded per-task_class totality). 13 mutants +
+  2 must-NOT-fire companions + 1 live positive control, all verified this session.
+- One-paragraph, prose-only pointers from `cheap-lane-delegation/SKILL.md` and `spawn-team/SKILL.md`
+  to the new matrix as an optional input to their existing agent/host choices — no code or schema
+  change to either; `route-task.py --self-test` stays 17/17, verified before and after.
+
+### Fixed
+
+- **A false claim — "Gate 51 enforces the `run_config` byte-identical-when-disabled floor" — was
+  spread across 5 files** (`adaptive-run-classifier/SKILL.md`, `rc-deep-research/SKILL.md`, both
+  `rc-deep-research.js` mirror copies, and an unrelated wrong-gate-number in
+  `pbir-layout-engine/lint.py`). Gate 51 is the portal shell-router gate; no gate currently
+  CI-enforces the `run_config` disabled floor — it holds today as a behavioral invariant only. Found
+  by this build's own correlated-error critic pass (both independent design panels had inherited the
+  false claim from one upstream source and neither verified it against `scripts/audit-gates.sh`).
+  Fixed at all 5 sites in one commit; Gate 126 (the mirror byte-identity gate) confirmed the two
+  `.js` copies stayed identical throughout.
+
+## 0.311.1 — 2026-09-01
+
+### Fixed
+
+- **`copilot-hook-adapter.sh`'s tool-name map was missing `powershell`, Copilot's Windows
+  command-execution tool** — the direct analogue of `bash`, and until now unmapped, so a `powershell`
+  command silently bypassed the command-review tribunal and `guard-web-access.sh` under Copilot exactly
+  like the original bash/edit/view P0 (2026-07-28). Mapped to `Bash`, with a defensive
+  `.command // .script // .commandLine` coalescing (the exact JSON key Copilot's `powershell` tool
+  uses for its command text is not docs-verified, so this doesn't assume `.command`). Security-reviewed
+  (verdict CLEAR-WITH-CHANGES, applied): the fix is real and net-positive for shell-portable command
+  text, but does NOT close the gap for PowerShell-native attack syntax (`iex`, `-EncodedCommand`, …) —
+  the tribunal's catalog triggers are POSIX-only by construction (tracked follow-up, not fixed here) —
+  and whether a `powershell` call even reaches the adapter on Copilot CLI ≥1.0.62 depends on
+  undocumented native matcher-translation behavior, honestly flagged VERIFY-IN-COPILOT rather than
+  claimed closed. `glob`/`grep`/`task` also mapped (naming-accuracy hygiene only — Claude Code's own
+  dispatch case doesn't tribunal-review those tool types either, so this only removes a false
+  "unmapped tool name" warning, no behavior change). `ask_user` deliberately left unmapped — mapping it
+  to `AskUserQuestion` would misrepresent `generate-copilot-hooks.py`'s own explicit decision to never
+  wire `route-decision-review.sh` for Copilot. Extended `test-gate167-copilot-tribunal-e2e.sh` with 7
+  new assertions (incl. a teeth half reproducing the closed gap) — 10/10 pass. Grounded in this
+  session's Copilot Chat/CLI research: `docs/research/2026-09-01-copilot-chat-grandmaster/synthesis.md`.
+
+## 0.310.1 — 2026-09-01
+
+### Fixed
+
+- **Prompt Builder threw on a cold `#/prompt-builder` deep-link/reload** — `PB_MODELS`/`PB_PRESETS`
+  (`var`, not hoisted-with-value) are declared later in the dashboard's single concatenated `<script>`
+  than the initial `applyHash()` dispatch, so a direct hash-load called `initPromptBuilder()` →
+  `pbBuildControls()` before those arrays were assigned, throwing `Cannot read properties of undefined
+  (reading 'forEach')`. Normal in-app click navigation was unaffected (the whole script had already
+  finished executing by then), which is why this only surfaced on a bookmarked/direct-loaded URL.
+  Fixed at the call site with `setTimeout(initPromptBuilder, 0)` — the same ordering-bug class as the
+  documented `pipelineServerAvailable` TDZ fix, resolved by deferring the call instead of relocating
+  the (non-stub-able, real) Prompt Builder data arrays. Verified with a real headless-Chrome render:
+  zero console errors and correct data (5 models, 6 templates) on both the deep-link and click paths.
+
+## 0.310.0 — 2026-09-01
+
+### Added
+
+- **`templates/DESIGN.md` + `knowledge/design-md-resolution.md`** — a house-default visual identity
+  (the real [`google-labs-code/design.md`](https://github.com/google-labs-code/design.md) alpha
+  format, verified against its own spec) for ad-hoc HTML any agent generates to explain/diagnose/report
+  something — not a client's branded product (that stays `web-design`/`brand-identity-studio`'s job,
+  always project-specific). Two-tier resolution: a project-root `DESIGN.md` wins for that repo; its
+  absence falls through to this shipped default (the same "cool near-black canvas + one green accent"
+  look as `dashboard-assets/shared-tokens.css`). Not auto-scaffolded into consumer repos. See the
+  `CLAUDE.md` milestone for the full rationale, including why this is core rather than a duplicate of
+  `web-design`'s DESIGN.md note (PR #1063).
+
+## 0.309.0 — 2026-09-01
+
+### Added
+
+- **Pre-compaction critical-info capture — Tier 1 hook + Tier 2 VS Code extension.** Built via
+  `/forge` (`.ravenclaude/runs/forge/precompact-critical-context/`) against the ask "warn me before
+  an imminent compact, composed with the critical info to retain." Two research passes falsified the
+  premise both draft panels shared — `PreCompact`'s `systemMessage`/`stopReason` are a verified no-op
+  on VS Code Copilot Chat — and found the actual mechanism: a VS Code extension can trigger
+  `/compact <text>` via the stable, public `workbench.action.chat.open` command.
+  - **`hooks/precompact-digest.sh` + `scripts/precompact-digest.py`** — a new `PreCompact` hook (first
+    of its kind in this manifest's history), host-differentiated (fire-and-forget archival digest on
+    Claude Code + projected Copilot/skipped-with-reason on Cursor/Gemini), gated by the existing
+    `cheap_lane.mode` knob (no new knob invented) plus a fail-closed egress floor
+    (`orchestrator_repo_pii: false` OR `cheap_lane_zdr_confirmed: true`) mirroring
+    `claude-orchestrate.sh`'s own A-on-C floor. `compact-anchor.py` extended to also surface the
+    newest digest's path — derived values only, never digest/transcript content.
+  - **`vscode-extension/` (`ravenclaude-precompact-guard`)** — a new, standalone VS Code extension
+    (not a Claude Code plugin component) registering a Language Model Tool + a manual command +
+    status-bar item, all driving `workbench.action.chat.open({query: '/compact ' + digest})`. Honest
+    limit: works only for explicit/triggered compaction, never automatic background compaction
+    (`summarizationInstructions` has zero references in the auto-compact code path). VS Code
+    Marketplace publishing needs the owner's own publisher account — not attempted; `.vsix` is locally
+    buildable via `code --install-extension`.
+  - New inventory concept [`precompact-digest`](knowledge/concepts/precompact-digest.md) — the
+    detached-worker proof (the hook returns near-instantly even under a deliberately slow digest
+    engine, so it can never become a synchronous ceiling on a turn).
+  - Hooks count 50 → 51. See the CLAUDE.md milestone for the full P4 security-review disposition and
+    the three-projector (`generate-copilot-hooks.py` / `generate-cursor-hooks.py` /
+    `generate-gemini-hooks.py`) wiring.
+
+## 0.308.0 — 2026-08-30
+
+### Added
+
+- **MCP result quarantine (`sanitize-mcp-output.sh`/`.py`)** — extends F1's WebFetch
+  injection-quarantine ([#928](https://github.com/mcorbett51090/RavenClaude/pull/928)) to any
+  `mcp__*` tool result, closing the accepted-limit that hook's own comment named. Same fail-open
+  contract, same underlying `sanitize()`; new envelope handling for MCP's content-array shape and a
+  prefix-boundary matcher (`mcp__` prefix, not substring). Q1/L4 of the analog-repos-gap-fill
+  leftovers, unparked on owner request. See
+  [`docs/decisions/2026-08-30-mcp-result-quarantine.md`](../../docs/decisions/2026-08-30-mcp-result-quarantine.md).
+- **`check-trigger-scoping-consistency.py` (Gate 253)** — PR 6 / Phase 9 of the
+  2026-08-13 recurring-defect-hardening initiative, the last un-shipped PR from
+  that 17-PR set. Statically flags a bare unscoped `.*` trigger sitting beside
+  a properly separator-scoped sibling in the same command-review category —
+  the exact shape of the `srm.force-push` (v0.242.0) and `sce.curl-pipe-shell`
+  (v0.244.0/.1) incidents, this time caught before merge instead of after.
+- **`analog-closeness-scorecard` skill** — recomputes the M/H/G/O/E/I/T/V weighted
+  closeness score from the 2026-08-14 analog-repos-gap-fill survey as a reusable,
+  self-tested script, instead of hand-deriving the arithmetic for a future
+  comparison. `--self-test` pins two published survey rows verbatim (regression
+  proof) plus a must-fail-shaped fixture (a high arithmetic score with M=H=G=0 and
+  every dimension inferred, not observed) that the quality bar must still reject.
+  Q2 of the analog-repos-gap-fill leftovers, unparked on owner request. Skill
+  count 56 → 57.
+
+### Fixed
+
+- **Two previously-uncaught instances of that same defect class**, found by
+  the new checker's first real run and fixed in the same change:
+  `xc.no-undo`'s `curl … -X DELETE` trigger and
+  `srm.push-to-protected-branch`'s trigger both used a bare `.*` beside an
+  already-scoped sibling in their own category/entry. Both now use the same
+  `[^|&;\n]*` convention as their siblings. Neither was independently
+  exploitable as a security bypass (the bare `.*` only risked over-triggering
+  across a chained command, never under-detecting); both are real consistency
+  defects the new gate exists to catch.
+
+## 0.307.2 — 2026-08-31
+
+### Added
+
+- **Hook-event catalog gained `PreModelSwitch`/`PostModelSwitch` (research-sweep).** `knowledge/claude-code-permissions.md`'s ~30-event hook-event catalog table was missing the two new hook events Claude Code v2.1.251 (2026-08-28) added — before/after a mid-session model switch, letting a hook block/confirm/annotate it. Added the row plus a dated pass note in the header blockquote. Source: [Claude Code v2.1.251 release](https://github.com/anthropics/claude-code/releases/tag/v2.1.251) (fetched directly this session).
+
+## 0.307.0 — 2026-08-28
+
+### Fixed
+
+- **Stale Claude Code platform facts (draft #987, recut).** `main` still taught
+  "nested sub-agents up to 5 levels deep (v2.1.172)" after the changelog
+  superseded it. Recut from current main (do **not** merge #987 as-is — that
+  commit rewinds the plugin to 0.283.0). Facts, re-checked against the changelog
+  through 2.1.250 (2026-08-28):
+  - Nesting default is **depth 3** (`CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH`;
+    v2.1.217 disabled-by-default, v2.1.219 set 3). House single-orchestrator
+    policy is unchanged.
+  - Native concurrent cap **20** (`CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS`,
+    v2.1.217). The 200 per-session cap was **removed** in v2.1.224.
+  - `/reload-plugins` is often unnecessary since v2.1.221.
+  - Marketplace `archive` (v2.1.224) and `command` (v2.1.229) source types.
+
+## 0.306.1 — 2026-08-28
+
+### Fixed
+
+- **`session-handoff` vs `cheap-lane-delegation` are two products, not one
+  "give this to Grok".** Skill descriptions now route the fork (bounded job
+  that returns vs new unbounded TUI). `handoff-spawn.sh` prints a `PRODUCT`
+  line before launch; when `cheap_lane` is `advise`/`agent` it also names the
+  spawn as a host-switch. Measured 2026-08-28: "pass remaining work to grok"
+  from a quota-limited Claude session spawned an interactive grok-4.6 TUI via
+  `/handoff` and never called `cheap-lane-delegate.sh`. Gate 213 asserts the
+  product line and the cheap_lane clause.
+
+## 0.306.0 — 2026-08-28
+
+### Added
+
+- **Cause-taxonomy phases 1–11 + P1-3 must-fail teeth.** The verify-before-assert
+  surface: SSOT cause grammar, post-failure triage, remediation-cause and
+  cause-closure guards (shipping at `warn`), a portable cause floor, outcome-eval
+  that the ship gate is satisfiable, and anti-rot parity/fired-count checks.
+  Gates 245–250 plus Gate 252 (pre-flight command review — WARN-only, one
+  measured rule). Pre-flight was Gate 244 on this branch; #1023 had already
+  shipped stall-watchdog as Gate 244, so the merge yields the number rather
+  than colliding. P1-3 closed: the remaining three `--must-fail` halves now
+  call `check()`, so blinding `check()` turns them red.
+
+### Migration
+
+None — additive gates and warn-level hooks. Nothing in an installed plugin
+behaves differently on `/plugin marketplace update`.
+
+## 0.305.3 — 2026-08-28
+
+### Fixed
+
+- **SessionStart hooks that had no `timeout` now cap at 10s.** `reapply-posture.sh`,
+  `ensure-default-mode.sh`, and `worktree-guard.sh register` were the remaining
+  SessionStart entries without a host timeout. Claude Code's SessionStart contract
+  is still additive (it cannot deny a session), but an unbounded hook subprocess
+  can still sit on stdin. This is defense-in-depth for a fresh-session TUI that
+  never reaches `/usage`; the load-bearing hang observed 2026-08-27 was MCP
+  needs-auth (Figma/Vercel/fal), not these hooks. Dev-mirror in `.claude/settings.json`
+  matches.
+
+## 0.303.0 — 2026-08-26
+
+### Added
+
+- **The cheap lane — `skills/cheap-lane-delegation`, `scripts/route-task.py`,
+  `scripts/grok-delegate.sh` — route everyday work to Grok, escalate the hard
+  work to Claude.** Measured (14-day, main-loop output): 41.2M tokens, 83.2%
+  top-tier model, essentially none of it on a cheap model, and none of it
+  sub-agent spend — `agent-dispatch-evaluator` tunes sub-agent tier and cannot
+  touch this. The fix is upstream of tier selection: decide whether a task needs
+  the main Claude session's reasoning loop at all.
+
+  `route-task.py` is a deterministic text classifier, no model call, self-tested
+  (`--self-test`, 17 cases + 2 teeth checks: one proves the router is not a
+  constant `claude`, one proves an escalation rule dominates a co-occurring cheap
+  rule rather than the reverse). **The default is `claude`, deliberately
+  asymmetric** — an unmatched, ambiguous, or both-lanes task all resolve to
+  `claude`; a task wrongly sent to Grok can produce a confidently wrong
+  multi-file change that costs more to unwind than it saved, a task wrongly kept
+  on Claude only costs money.
+
+  `grok-delegate.sh` is the transport, mirroring `claude-orchestrate.sh`'s
+  hardening pointed the other way: a recursion guard (nested delegation, or
+  called from inside a tribunal seat), a pre-egress secret scrub (refuses
+  before anything leaves the machine, never after), and a bounded timeout with
+  fall-back-to-local on any non-zero exit.
+
+  ⛔ **Containment is two independent layers, verified with a positive control
+  after an initial false conclusion.** The first version of this file claimed
+  Grok's `--sandbox` flags do not contain, based on a probe run *inside* one of
+  `--sandbox read-only`'s own always-writable temp paths — a write there is not
+  a containment failure. Re-tested outside every allowlisted path: the kernel
+  (Seatbelt on macOS) genuinely refused the write and logged it to
+  `~/.grok/sandbox-events.jsonl`. Fixed same-session — `--sandbox <profile>` is
+  the real, kernel-enforced boundary (`advise`→`read-only`, `agent`→`workspace`);
+  the disposable worktree/scratch-dir is what Grok can reach in the first place
+  and, for `agent` mode, the reviewable diff before merge. Neither layer
+  replaces the other.
+
+  **Off by default**, matching `design_checkins` / `decision_review` /
+  `parallelism` / `orchestrator`: `cheap_lane: { mode: off | advise | agent,
+  tier: fast | balanced }` in `.ravenclaude/comfort-posture.yaml`. `off` is
+  inert — nothing runs until a consumer opts in. Full contract:
+  [`skills/cheap-lane-delegation/SKILL.md`](skills/cheap-lane-delegation/SKILL.md);
+  the composition with `spawn-team` and `agent-dispatch-evaluator`, and why
+  this milestone does **not** flip the evaluator's own gated `binding`-mode
+  default, in [`CLAUDE.md`](CLAUDE.md) § "The cheap lane".
+
+  **Migration:** none — `cheap_lane` defaults to `off`; nothing in an installed
+  plugin changes on `/plugin marketplace update` until a consumer sets the
+  knob. Skill count 55 → 56; script-tool count 32 → 33 (`route-task.py`;
+  `grok-delegate.sh` is bash and is not counted by `_scan_scripts`'s `*.py`
+  glob).
+
+### Fixed
+
+- **`scripts/inventory-nuance-judge.py` re-ran the full 24-item golden-set
+  calibration on every invocation, and it is invoked independently by at least
+  two callers in one `audit-gates.sh` run.** Measured: gate 238 (inventory
+  sweep) 540.1s, gate 241 (nuance floor) 146.1s. Now content-hash + a
+  short, disclosed TTL (default 1h — `--cache-ttl-hours` / `INVENTORY_JUDGE_CACHE_TTL_HOURS`,
+  `--no-cache` / `INVENTORY_JUDGE_CACHE=off` restores the exact prior behavior).
+  The report line reads `cached, verified <age> ago`, never blended into
+  "verified now" — the file's own strongest stated invariant ("calibration
+  must hold IN THE SAME RUN") is honored by disclosure and a short window,
+  not silently reinterpreted. Per-entry verdicts cache without a TTL (the key
+  IS the judged text, so a hit means the question is byte-identical) but are
+  only ever read when calibration is CURRENTLY valid.
+
+  Verified with a new `--self-test` (12 assertions, 5 of them mutation-style
+  teeth) rather than a live model call: a live nested `claude -p` from inside
+  this repo's own working directory was found to hang intermittently during
+  this work (up to 60s+, no answer — isolated with a positive control to a
+  directory with no `.claude/settings.local.json`, which answers in ~6s every
+  time). That is a separate, unfixed finding, not something this caching fix
+  addresses or depends on.
+
+  **Migration:** none — cache lives at `.ravenclaude/cache/` (gitignored),
+  read/write is fail-safe on every error path, and `--must-fail`/
+  `--must-fail-convention`'s existing structural teeth are unchanged.
+
+## 0.302.0 — 2026-08-26
+
+### Added
+
+- **`hooks/guard-foreground-suite.sh` — a PreToolUse(Bash) guard that denies a FOREGROUND
+  invocation of a suite that provably cannot finish inside the Bash tool's hard ceiling.**
+
+  The Bash tool clamps `timeout` at **600000 ms**, and `scripts/audit-gates.sh` (917 gates)
+  outgrew it. A foreground full-suite run is therefore **structurally guaranteed** to wedge the
+  session for the full ten minutes and then be auto-backgrounded anyway — the operator sees a
+  stall, and the run they were waiting on was never going to return in-band.
+
+  **control (session `94d2ba9f`, 2026-08-25):** foreground call at `02:21:45Z`, result at
+  `02:31:49Z` — *"Command did not complete within its 600s timeout and was moved to the
+  background (ID: bg7y7j7s7)."*
+
+  ⛔ **Raising the timeout is a non-fix, and it fails silently.** The same session tried
+  `timeout: 900000` at `07:17:42Z` and received the byte-identical *"within its 600s timeout"*
+  message at `07:27:45Z`. 900000 is clamped to 600000 with no warning, so the guard now calls
+  that out explicitly in its denial rather than letting the next person rediscover it.
+
+  ⛔ **Why a hook and not a note.** This fired 3+ times in one week, and the third time it fired
+  at a session that had **already adopted `run_in_background: true`** — five clean runs that
+  morning — and regressed off it hours later. A written note demonstrably did not hold. This is
+  the control that does.
+
+  **Three escapes, all allowed:** `run_in_background: true` (the right answer for a full suite),
+  `--check N` (one gate, seconds), and a literal `RC_SUITE_FOREGROUND_ACK=1` prefix. The ACK is
+  read out of the **command text**, not the environment — an env var cannot reach a PreToolUse
+  hook from inside the command it gates, so spelling it as a prefix is what makes it reachable.
+
+  ⛔ **Matching is INVOCATION-only, never substring.** The command is split into segments and
+  each segment's **first word** is checked, so `grep`, `sed`, `git show` and `wc` that merely
+  **name** the suite still run. A guard that cannot tell a command from a description of one
+  blocks its own repair — this repo has already paid for that twice.
+
+  **Posture: fails OPEN.** An unreadable payload, absent `jq`, or absent `python3` all ALLOW and
+  emit a `warn` event. This is an ergonomic guard, not a trust boundary; denying a tool call
+  because a convenience hook could not read its own input would be a worse failure than the ten
+  minutes it prevents. (Contrast `worktree-guard.sh`, which gates a trust boundary and fails
+  closed.) It reads its own payload with `_rc_timeout`+`cat`, never `read -t` — the latter
+  deadlines a *complete line* and bash reads a pipe one byte per `read(2)`, which turns the
+  deadline into a payload-size cap.
+
+  **Pinned by Gate 251** (`hooks/tests/test-guard-foreground-suite.sh`, 23 assertions), registered
+  in the `--check` dispatcher, the main sequence, and the `Supported:` string. The load-bearing
+  half is the **must-fail** one: it neuters the matcher and asserts the deny disappears, and it
+  carries its **own vacuity control** — if the mutation fails to apply, the half fails rather
+  than reporting green against a byte-identical copy.
+
+  **Migration:** none required. If you genuinely want to spend the ten minutes, prefix the
+  command with `RC_SUITE_FOREGROUND_ACK=1`. Extend coverage to another long suite via
+  `RC_FOREGROUND_SUITES` (space-separated basenames; default `audit-gates.sh`).
+
+## 0.301.0 — 2026-08-25
+
+### Added
+
+- **Stall watchdog** — an out-of-session detector for wedged Claude Code sessions
+  (`scripts/stall_watch.py` + `scripts/stall_reach.py` + `scripts/install_stall_watch.py`),
+  installed as a macOS LaunchAgent on a 300s interval. Verified end-to-end under launchd against a
+  real 174-minute stall: detected, `0600` secret read from the launchd context, sink returned
+  **HTTP 200**, escalation rung advanced only after the receipt.
+
+  **Why this cannot be a hook, measured:** all 39 registered hooks fire on a turn or tool boundary
+  (SessionStart 9, PreToolUse 12, PostToolUse 10, UserPromptSubmit 2, SubagentStart 1, Stop 5). A
+  stall is *defined* by the absence of a turn boundary. `handoff-nudge.sh` — the guard built for a
+  hot window — is a **Stop** hook: if the turn never stops it never runs. Detection must come from
+  outside the process.
+
+  **The observable is last-ASSISTANT-record age.** Every alternative failed toward "looks alive",
+  which is the dangerous direction: last-entry-of-any-type **masked the real stall by 44.3 min**
+  (the owner's own queued prompts plus a product-generated `system/away_summary` reset the clock —
+  the stalled session's last six timestamped records contain *zero* assistant records); file mtime
+  diverges up to 100 min the same way, and 99.03% of transcripts end in an untimestamped record;
+  registry `statusUpdatedAt` is a genuine but coarse progress signal (~17-min bump cadence, measured
+  over 35 samples — **not** the "transition latch" an earlier analysis claimed) and is simply
+  superseded, since the assistant-record distribution has p99.9 = 4.52 min.
+
+  **The registry (`~/.claude/sessions/<pid>.json`) is used for liveness and idle-exclusion only.**
+  It does *not* close the killed-session class structurally: `SIGKILL` **orphans** the `.json`/`.key`/
+  `.sock` (measured, with a clean-exit positive control that *did* remove them), so dedup state is
+  retained rather than demoted.
+
+  Security invariants: the webhook URL never enters `argv` (`curl --config` over a `0600` file —
+  `ps -Ao args` would otherwise expose it 288×/day, and a real bootstrapped LaunchAgent sees only 12
+  env vars with `RAVENCLAUDE_NOTIFY_WEBHOOK` **absent**); no untrusted text is ever interpolated into
+  `osascript` (a cloned repo names its own directory); payloads carry a salted-hash project key and
+  validated integers only. `scripts/notify.sh` is deliberately **not** reused — its
+  `curl … >/dev/null 2>&1 || true` discards the HTTP status that is the entire justification for the
+  channel. A 2xx means "accepted by the sink", never "a human saw it"; a zero-subscriber topic
+  returns 200, and that limit is carried as an explicit accepted-risk waiver.
+
+- **Gate 244** (`hooks/tests/test-stall-watch.py`) — one gate slot, five check groups, each with a
+  must-fail half **proven to flip**: the RT-2 mutant drops a naive detector to 1.0 min (a miss) while
+  the whitelist detector still reads 141.0 min; widening the whitelist moves the answer 141.0 → 96.7;
+  the `time.mktime` variant differs by the zone offset, so the UTC bug is detectable here. Registered
+  in `scripts/audit-gates.sh` in **both** the `--check` dispatcher and the main sequence, and verified
+  to *bite* (mutating the observable turns it red) — a gate no workflow invokes and a gate that cannot
+  fail are both this repo's documented silent-green classes.
+
+- **Frozen fixtures** (`tests/fixtures/stall-watchdog/`) — derived skeletons of one positive and three
+  negative sessions, **timestamps and record types only, no message content**: raw transcripts carry
+  credentials, tool output and fetched web bodies and must never be committed. 14.7 MB → 606 KB, and
+  the skeletons reproduce the ground truth including the 44.3-min masking effect.
+
+## 0.299.1 — 2026-08-25
+
+### Fixed
+
+- **`worktree-guard.sh` no longer hangs forever on an inherited pipe.** The hook read its stdin
+  payload with a bare `cat`, gated on `[ ! -t 0 ]`. That test cannot distinguish *"a payload is on
+  its way"* from *"fd 0 is an open pipe nobody will ever write to"* — both are simply not-a-tty — so
+  the gate was satisfied in precisely the case that blocks, and the read never returned. Every caller
+  downstream stalled with it, `audit-gates.sh` Gate 140 included, which invokes this hook and
+  inherits whatever stdin the harness was launched with.
+
+  Measured under a FIFO with a held-open writer: `status --json` and `check` both hung until killed
+  at 6s, while a control script that reads no stdin exited in 1s under the identical descriptor — the
+  differential is the read, not the environment.
+
+  The read is bounded with **`_rc_timeout` + `cat`** (`_portable.sh`'s existing `timeout → gtimeout →
+  perl alarm` ladder, already sourced by this hook), so the ceiling applies to the **writer** —
+  `RC_GUARD_STDIN_TIMEOUT`, default 10s, arithmetically clamped, `0` restores the old blocking read.
+
+  ⛔ **`read -t` was the wrong instrument, and that took two attempts to see.** It deadlines a
+  **complete line**, and bash reads a pipe one byte per `read(2)`. A Claude Code payload is
+  single-line JSON, so the deadline ends up racing bash's byte loop instead of the writer, and payload
+  **size** consumes the budget meant for writer latency. A `Write` of this repo's own `dashboard.html`
+  JSON-encodes to **~11 MB on one line** (escaping turns all ~17k newlines into `\n`). Measured
+  through a real pipe on bash 3.2.57: `read -t 10` took **4.6s idle** and lost the **entire payload at
+  10.04s under a load of ~4 on 10 cores**, while `_rc_timeout 10 cat` did the same bytes in **0.3s**
+  either way. Any deadline on `read` is a bet against payload size × machine load. It also bounds the
+  **whole** read — `read` plus an unbounded `cat` drain still hung once one line had arrived (measured
+  past 14s), so only the zero-byte case had actually been fixed. And it sidesteps a platform split
+  this host cannot test: bash 3.2 discards partial input on timeout (measured — the variable is left
+  untouched) while bash ≥4 documents retaining it, which on a Linux runner would hand the parser a
+  **truncated** payload. There is no partial-line branch any more, so neither behaviour is reachable.
+
+  ⛔ **An unreadable payload now fails CLOSED on `check`.** A payload with no `tool_name` sends every
+  classifier to its `*)` default — "not mutating / no deny / no enforcement" — so the default-block
+  FOREIGN-TREE deny and the session lease both silently disarm. The boundary is deliberate: a
+  zero-byte **clean EOF** is the documented no-payload contract (a bare CLI or test invocation) and
+  still allows; what denies is a **timeout** or an **unparseable** payload, the shapes a stalled or
+  truncating writer produces. `register` is exempt by contract and `status` no longer reads stdin at
+  all — it carries no payload and was paying the full deadline ~15× per Gate 140 run.
+
+  ⛔ **The knob is clamped arithmetically, not by character class.** `00` and
+  `99999999999999999999` are all-digits, so a `*[!0-9]*` filter passed them and the timeout tool then
+  rejected them as an argument error — an empty payload in 0s, i.e. the guard disarmed by the most
+  natural attempt to configure it. Out-of-range falls back to the **default**, never the ceiling:
+  clamping `2000` to 3600 would hand an operator who assumed milliseconds a 33-minute deadline.
+
+  Pinned by **T18** in `test-worktree-guard-core.sh` (Gate 140), in seven halves — (a) the hook exits
+  under a held-open FIFO; (b) a must-fail half restores the bare `cat` and asserts it *still* hangs,
+  so (a) measures the read and not the fixture; (c) payload fidelity, labelled as a **fidelity**
+  detector rather than a bound detector because the pre-fix hook passes it too; (d) a truncated
+  payload fails closed while clean-EOF-empty and a readable payload still allow; (e) a 3s-late writer
+  is served by the shipped deadline **and starved by a 1s one**, so the margin is tested rather than
+  asserted; (f) eight malformed/extreme knob values all still read the payload; (g) a 3 MB
+  single-line payload is read whole. `audit-gates.sh` also redirects Gate 140's three invocation
+  sites from `/dev/null` — the suites drive a stdin-reading hook, and a bound is a ceiling, not a
+  reason to hand a suite an open pipe.
+
+  ⛔ **Not fixed here, and the count is reported with its command because three regexes gave three
+  answers.** Of the **169** plugin hook scripts (`find plugins -path '*/hooks/*.sh' -not -path
+  '*/tests/*'`), **145** slurp stdin with a bare `cat` and **134** of those gate on `-t 0`
+  (`grep -lE '\$\(cat( 2>/dev/null)?( \|\| (true|printf|:))?\)'`, 2026-08-25). Two independent
+  recounts produced 143/138 and 148/137 on different patterns — so treat any single number as a
+  function of its regex, not a fact.
+
+  What all three agree on, and the worse class: **11 hooks read stdin with an unconditional bare
+  `cat` and no tty test at all** — `agent-dispatch-evaluator.sh`, `codex-hook-env.sh`,
+  `cursor-hook-adapter.sh`, `enforce-portability.sh`, `ensure-default-mode.sh`,
+  `gemini-hook-adapter.sh`, `guard-premise.sh`, `log-probe.sh`, `route-decision-review.sh`,
+  `stream-session-close.sh`, and `power-platform/hooks/nudge-dataverse-preflight.sh`. All of these are
+  invoked by Claude Code, which writes the payload and closes the descriptor, so none is *known* to
+  hang in practice — but the shape is the one just fixed, and this fix is not applied to them. Out of
+  scope for this patch; recorded so the survey is not mistaken for a clean bill of health.
+
+## 0.299.0 — 2026-08-25
+
+### Added
+
+- **The org-skill studio** (`skills/authoring-org-skills/`) — lint, pack and verify a claude.ai
+  Organization Skill. 41 rules across a fail/warn split, hard refusals `R1`–`R4` with no override, a
+  `pack`/`verify` separation that shares data and never code, and tiers that are **derived from a
+  recorded evidence file** rather than hand-set, so a constraint the vendor contradicts itself on
+  ships as WARN instead of a guess. (Backfilled entry — the 0.299.0 bump landed in #1021 without one.)
+
 ## 0.298.0 — 2026-08-24
 
 ### Changed
@@ -12,7 +1268,7 @@ All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the 
   against how agentic AI works today; several were empirically re-confirmed this session (the agent loop,
   tool-gating, compaction, the Explore subagent dispatch, MCP servers connecting).
 
-  This **honors the concept-inventory design** (`docs/plans/2026-08-19-product-inventory/plan.md` §5.3):
+  This **honors the concept-inventory design** (`docs/plans/archive/2026-08-19-product-inventory/plan.md` §5.3):
   `platform-fact` entries carry a **90-day BLOCKING** calendar gate on PRs — deliberately stricter than
   the 180-day warn-on-PR inventory corpus — because the ~17-entry population is small enough to service by
   re-verification rather than by relaxing the gate. The seven were ~80 days old and would have crossed 90

@@ -94,7 +94,7 @@ def run_loop(rubric, evaluate_fn, judge_fn, refine_fn, config=None, score_fn=_de
         iterations.append({
             "index": idx,
             "score": score,
-            "scores": {**judge_scores, **objective_scores},
+            "scores": _merged,
             "findings": findings,
             "hard_gates": hard_gates,
             "model_calls": model_calls,
@@ -174,10 +174,101 @@ def render_report(scorecard):
     return report
 
 
+def self_test() -> int:
+    """Built-in regression fixtures — no model, no I/O. Run via `loop.py --self-test`.
+
+    Covers the null-scores crash this function exists to prevent: `judge.sh`'s own
+    validation only checks the TOP-LEVEL verdict is an object, never that `scores`
+    specifically is one, so a real judge call can return `"scores": null` (schema-
+    permitted, a plausible LLM slip). `judge_scores = verdict.get("scores", {})` then
+    evaluates to `None` (the `{}` default only applies when the key is ABSENT, not
+    when it's present-but-null) — `iterations[-1]["scores"]` must survive that.
+    """
+    fails = []
+
+    rubric = {
+        "dimensions": [
+            {"id": "quality", "source": "library", "verified": True, "weight": 1},
+        ]
+    }
+    cfg = {
+        "iteration_cap": 6,
+        "model_call_budget": 12,
+        "score_floor": 0.5,
+        "epsilon": 0.01,
+        "plateau_patience": 0,  # converges/plateaus after a single iteration
+    }
+
+    def evaluate_fn(_idx):
+        return {"judge_needed": True, "hard_gates": {}, "scores": {}, "model_calls": 0}
+
+    def refine_fn(_idx):
+        return None
+
+    # Fixture 1: judge verdict with scores: null (and findings: null) — the crash case.
+    try:
+        scorecard = run_loop(
+            rubric,
+            evaluate_fn,
+            lambda _idx: {"scores": None, "findings": None},
+            refine_fn,
+            config=cfg,
+        )
+    except TypeError as exc:
+        fails.append(f"null-scores verdict crashed run_loop: {exc}")
+    else:
+        got = scorecard["iterations"][0]["scores"]
+        if got != {}:
+            fails.append(f"null-scores verdict: expected empty merged scores, got {got!r}")
+
+    # Fixture 2: judge verdict with scores absent entirely — the `.get(..., {})` default path.
+    try:
+        scorecard = run_loop(
+            rubric, evaluate_fn, lambda _idx: {"findings": []}, refine_fn, config=cfg
+        )
+    except TypeError as exc:
+        fails.append(f"absent-scores verdict crashed run_loop: {exc}")
+    else:
+        got = scorecard["iterations"][0]["scores"]
+        if got != {}:
+            fails.append(f"absent-scores verdict: expected empty merged scores, got {got!r}")
+
+    # Fixture 3: normal (non-null) verdict — objective scores must still win on collision.
+    def evaluate_fn_obj(_idx):
+        return {
+            "judge_needed": True,
+            "hard_gates": {},
+            "scores": {"quality": 0.9},
+            "model_calls": 0,
+        }
+
+    scorecard = run_loop(
+        rubric,
+        evaluate_fn_obj,
+        lambda _idx: {"scores": {"quality": 0.4}, "findings": []},
+        refine_fn,
+        config=cfg,
+    )
+    got = scorecard["iterations"][0]["scores"].get("quality")
+    if got != 0.9:
+        fails.append(f"objective-override: expected quality=0.9 (objective wins), got {got!r}")
+
+    if fails:
+        for f in fails:
+            print(f"loop self-test FAIL: {f}", file=sys.stderr)
+        print(f"loop self-test: {len(fails)} FAILED", file=sys.stderr)
+        return 1
+    print("loop self-test: 3 fixtures OK")
+    return 0
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(description="Convergence Engine demonstration harness.")
     ap.add_argument("--scorecard", help="render a constrained report from an existing scorecard JSON")
+    ap.add_argument("--self-test", action="store_true", help="run built-in regression fixtures and exit")
     args = ap.parse_args(argv)
+    if args.self_test:
+        return self_test()
     if args.scorecard:
         try:
             with open(args.scorecard, encoding="utf-8") as fh:

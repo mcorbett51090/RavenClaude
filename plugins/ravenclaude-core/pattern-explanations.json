@@ -462,6 +462,10 @@
       "what": "Short flag for force-push.",
       "why": "Hard-denied. Same reason as --force."
     },
+    "Bash(git push --mirror:*)": {
+      "what": "Mirror-push — force-update every ref on the remote and delete refs that do not exist locally.",
+      "why": "Hard-denied. git push --mirror is a whole-remote rewrite (stronger than a single-branch force flag): every refs/ entry is force-updated and remote-only branches/tags are deleted. There is no --force-with-lease equivalent. Use a named-ref push, or run a mirror yourself with explicit confirmation."
+    },
     "Bash(git reset --hard:*)": {
       "what": "Discard working-tree and staged changes irreversibly.",
       "why": "Hard-denied. No undo — uncommitted work is gone. Use git stash or git restore for recoverable alternatives."

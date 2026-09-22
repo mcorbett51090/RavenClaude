@@ -45,6 +45,22 @@ export class PosReconciler {
     return `${catalogObjectId}::${locationId}::${state}`;
   }
 
+  /**
+   * Namespaced idempotency key for the inventory-event dedup path.
+   *
+   * The `IdempotencyStore` passed into this class may be the SAME instance
+   * `verifyAndParseSquareWebhook` (webhook.ts) already used to `remember()`
+   * this same `event_id` before this reconciler ever saw it -- that
+   * function's own doc comment frames this class's dedup as "on top of"
+   * its layer, which only holds if the two layers don't collide on one
+   * key. Prefixing keeps this reconciler's own de-dup from ever reading as
+   * "already seen" purely because the upstream webhook layer remembered
+   * the raw event id first.
+   */
+  private inventoryEventKey(eventId: string): string {
+    return `pos-reconciliation:inventory:${eventId}`;
+  }
+
   /** Current known quantity for a catalog object at a location/state, or `undefined` if never reconciled. */
   getQuantity(catalogObjectId: string, locationId: string, state = "IN_STOCK"): number | undefined {
     return this.stock.get(this.key(catalogObjectId, locationId, state))?.quantity;
@@ -61,10 +77,11 @@ export class PosReconciler {
    * envelope's inventory counts and reconcile the local mirror.
    */
   async applyInventoryEvent(envelope: SquareWebhookEnvelope): Promise<void> {
-    if (await this.idempotency.seen(envelope.event_id)) {
+    const key = this.inventoryEventKey(envelope.event_id);
+    if (await this.idempotency.seen(key)) {
       return; // exact-duplicate delivery -- no-op, never re-applied
     }
-    await this.idempotency.remember(envelope.event_id);
+    await this.idempotency.remember(key);
 
     for (const count of extractInventoryCounts(envelope)) {
       this.applyCount(count);
@@ -117,9 +134,15 @@ export class PosReconciler {
     if (await this.idempotency.seen(envelope.event_id)) {
       return;
     }
-    await this.idempotency.remember(envelope.event_id);
 
+    // Only remember the event AFTER the pull-and-apply succeeds. Marking it
+    // seen up front would permanently swallow the catalog change if
+    // fetchChangedObjects/applyChangedObjects throws (e.g. a transient
+    // Catalog API error) -- Square's redelivery of the same event_id is the
+    // only other path back here, and the `seen()` guard above would then
+    // skip it forever.
     const changed = await fetchChangedObjects(lastKnownVersion);
     applyChangedObjects(changed);
+    await this.idempotency.remember(envelope.event_id);
   }
 }

@@ -46,7 +46,7 @@ flowchart TD
 
 **When this applies:** Uploading a file to OneDrive/SharePoint via Graph and choosing the upload mechanism by size.
 
-**Last verified:** 2026-05-30 against Graph driveItem upload docs (simple PUT for small files; upload session for large, chunked). `[verify-at-build]` — the simple-PUT size ceiling is version-specific (historically ~4 MB).
+**Last verified:** 2026-08-28 against Graph driveItem upload docs (simple PUT for small files; upload session for large, chunked). `[verify-at-build]` — for the **Graph v1.0** `driveItem: PUT /content` surface the simple-PUT ceiling is **250 MB** ([driveItem: PUT content](https://learn.microsoft.com/graph/api/driveitem-put-content?view=graph-rest-1.0)); the legacy OneDrive-REST concept doc still cites ~4 MB. Microsoft still recommends an upload session for files larger than ~10 MiB (resumability) even under the ceiling — the 250 MB is the hard cap, not a recommended single-PUT size.
 
 ```mermaid
 flowchart TD

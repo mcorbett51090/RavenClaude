@@ -103,7 +103,7 @@ Domain-specific opinions live in each agent's own file. These plugin-wide opinio
 
 This plugin inherits the Capability Grounding Protocol from `ravenclaude-core`. Before any compliance agent says "I can't do X" or "this isn't possible", it must:
 
-1. **Check available skills first** — review `aml-program-review`, `regulatory-mapping`, `sar-narrative-drafting`, `examination-readiness`, `kyc-edd-review`, `sanctions-hit-disposition`, `risk-register-build`, `supervisory-return-prep`, `control-testing`, and any imported reference content.
+1. **Check available skills first** — review `aml-program-review`, `regulatory-mapping`, `compliance-policy-authoring`, `sar-narrative-drafting`, `examination-readiness`, `kyc-edd-review`, `sanctions-hit-disposition`, `risk-register-build`, `supervisory-return-prep`, `control-testing`, `bma-licensing-classification`, and any imported reference content.
 2. **Check for partial capability** — determine whether part of the task can be completed or guidance can still be provided.
 3. **Try alternative methods from easiest to most difficult before declaring blocked.** When a regulatory citation, mapping, or data lookup fails — a regulator's public site lacks the version you need, a control framework doesn't map cleanly to your scenario, an SAR-narrative element can't be sourced — enumerate at least 2–3 alternative approaches, rank them by cost (research time, defensibility, regulator-acceptance risk), and try the next-easiest one before reporting blocked. Compliance alternatives often include: a different framework that does map (FFIEC if SOC2 is too narrow), a control narrative that documents the gap rather than ignoring it, a triangulation across primary + secondary sources, or a directly-cited regulator-issued guidance instead of a derivative summary. See the upstream protocol in [`../ravenclaude-core/CLAUDE.md`](../ravenclaude-core/CLAUDE.md) for the full rule.
 4. **Consider team composition** — could another agent in `ravenclaude-core`, `finance`, or this plugin handle a portion of the work?
@@ -196,6 +196,7 @@ The hook is **advisory by default** (prints to stderr, doesn't block). For sensi
 |---|---|---|
 | [`skills/aml-program-review/SKILL.md`](skills/aml-program-review/SKILL.md) | `aml-kyc-analyst` | Structured review of an AML program against FATF / FFIEC expectations; the 5 pillars; common findings |
 | [`skills/regulatory-mapping/SKILL.md`](skills/regulatory-mapping/SKILL.md) | `risk-and-controls-specialist`, `policy-and-procedure-writer` | Mapping internal controls to regulatory citations; gap analysis output |
+| **v0.12.5** [`skills/compliance-policy-authoring/SKILL.md`](skills/compliance-policy-authoring/SKILL.md) | `policy-and-procedure-writer` (primary) | Draft / refresh a policy: regime first, policy vs procedure, outcome-framed conduct, cite + named owner + exceptions. Same playbook as `/write-compliance-policy`. Gap analysis stays in `regulatory-mapping`. |
 | [`skills/sar-narrative-drafting/SKILL.md`](skills/sar-narrative-drafting/SKILL.md) | `aml-kyc-analyst` | How to draft SAR / STR narratives that survive regulator review; the W's; what to omit |
 | [`skills/examination-readiness/SKILL.md`](skills/examination-readiness/SKILL.md) | `examination-prep-specialist` | Pre-exam playbook: PBC, walkthrough rehearsal, mock interviews, exam-week posture |
 | [`skills/kyc-edd-review/SKILL.md`](skills/kyc-edd-review/SKILL.md) | `aml-kyc-analyst` | KYC file + EDD review playbook: risk-rating logic, BOI/UBO verification, SoW vs SoF, EDD triggers, sign-off chain |
@@ -333,7 +334,7 @@ Every value-add menu item is dispositioned honestly below. This is a **NON-CODE 
 | Monitors / background jobs | **N-A** | Nothing to watch — no build, no repo, no long-running process. |
 | output-styles / themes | **N-A** | Output styling is a code/UX concern; deliverables here are Markdown governed by the §6 Output Contract. |
 | `settings.json` / permissions tuning | **N-A** | No tool-permission surface specific to this vertical beyond what `ravenclaude-core` provides. The PII-scrub hook (§7) is the one vertical-specific guard and already ships. |
-| skills / hooks / commands / templates | **SUFFICIENT** | 10 skills, 5 commands, 11 templates, 1 defensive PII hook already cover the surface; no obvious high-value gap this round. The new trees + script + scenarios extend reach without a new agent (team-growth-as-knowledge house rule). |
+| skills / hooks / commands / templates | **UPDATED 2026-08-28** | 11th skill `compliance-policy-authoring` shipped (monthly skill-gap audit #821) so spawned `policy-and-procedure-writer` loads the draft/refresh playbook. TM-tuning and BSCR workpaper remain named MEDIUM gaps. |
 | CHANGELOG.md | **BUILT** | Added with a top `0.12.0` entry. |
 | NOTICE.md | **N-A** | No third-party content bundled — the script is original + stdlib-only; all regulatory sources are cited inline, not vendored. |
 

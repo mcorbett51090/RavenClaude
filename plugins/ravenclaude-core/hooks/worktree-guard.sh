@@ -86,16 +86,131 @@ command -v _ee_sanitize_session >/dev/null 2>&1 || _ee_sanitize_session() {
   case "$s" in .|.. | "") s="unknown" ;; esac; printf '%s' "$s"
 }
 
+# ⛔ If _portable.sh did not load, degrade to the OLD UNBOUNDED read, never to an
+# empty payload. A stub that returned nothing would turn a missing helper into a
+# silently disarmed guard — strictly worse than the hang it replaced.
+command -v _rc_timeout >/dev/null 2>&1 || _rc_timeout() { shift; "$@"; }
+
 SUBCMD="${1:-}"
 
-# ── read the stdin payload (check/register carry one; status usually does not) ─
+# ── read the stdin payload (check/register carry one; status never does) ──────
+# ⛔ THE BOUND IS ON THE WRITER, NOT ON BASH'S BYTE LOOP.
+#
+# A bare `cat` here blocks FOREVER: `[ ! -t 0 ]` cannot tell "a payload is on its
+# way" from "fd 0 is an open pipe nobody will ever write to" — both are simply
+# not-a-tty — so the test gating the read is satisfied in precisely the case that
+# hangs, stalling every caller downstream, audit-gates.sh Gate 140 included.
+# control: FIFO with a held-open writer -> `status --json` and `check` both hung
+#   until killed, while a script reading no stdin exited in 1s on the same fd.
+#
+# ⛔ `read -t` WAS THE WRONG INSTRUMENT, AND WAS THE FIRST TWO ATTEMPTS HERE.
+# It deadlines a COMPLETE LINE, and bash reads a pipe one byte per read(2). A
+# Claude Code payload is single-line JSON, so the deadline races bash's byte loop
+# rather than the writer, and payload SIZE eats the budget meant for writer
+# latency. A `Write` of this repo's own dashboard.html JSON-encodes to ~11 MB on
+# ONE line (escaping turns all ~17k newlines into `\n`).
+# control, same 11 MB through a real pipe, bash 3.2.57:
+#   `IFS= read -r -t 10` -> 4.6s idle, complete; 0 BYTES at 10.04s under load ~4
+#                           on 10 cores — the entire payload lost
+#   `_rc_timeout 10 cat` -> 0.3s, complete, idle and loaded alike
+# So the size dimension is removed rather than widened; a deadline on `read` is a
+# bet against payload size x machine load, and `cat` does not take that bet.
+# It also bounds the WHOLE read: `read` plus an unbounded `cat` drain still hung
+# once one line had arrived (measured past 14s) — only the zero-byte case was fixed.
+# ⛔ And it sidesteps a PLATFORM SPLIT this hook cannot test on one host: bash 3.2
+# discards partial input on timeout (measured here — the variable is left
+# untouched) while bash >=4 documents retaining it, which on a Linux runner would
+# hand the parser a TRUNCATED payload. There is no partial-line branch any more,
+# so neither behaviour is reachable.
 payload=""
-[ ! -t 0 ] && payload="$(cat 2>/dev/null || printf '')"
+_wg_stdin_state="none"          # none | ok | timeout | error
+
+# ⛔ THE DEADLINE IS VALIDATED ARITHMETICALLY, NOT BY CHARACTER CLASS.
+# `00` and `99999999999999999999` are all-digits, so a `*[!0-9]*` filter passes
+# them and the timeout tool then rejects them as an argument error — an EMPTY
+# payload in 0s, which is the exact fail-open this block exists to prevent, and
+# reachable by the most natural way an operator would try to disable the bound.
+# control: RC_GUARD_STDIN_TIMEOUT=99999999999999999999 under the old filter ->
+#   `invalid timeout specification`, elapsed 0s, payload 0 B; `00` -> same.
+# An out-of-range value falls back to the DEFAULT, never to the ceiling: clamping
+# 2000 to 3600 would hand an operator who assumed milliseconds a 33-minute
+# deadline, which is the original hang wearing a configured face.
+_wg_deadline="${RC_GUARD_STDIN_TIMEOUT:-10}"
+case "$_wg_deadline" in ''|*[!0-9]*) _wg_deadline=10 ;; esac
+# Cap the LENGTH before the arithmetic: $(( 10#99999999999999999999 )) overflows
+# bash's signed 64-bit integers, and an overflowed comparison is not a clamp.
+# Anything over 4 digits is already past the ceiling below.
+[ "${#_wg_deadline}" -gt 4 ] && _wg_deadline=10
+# 10# forces base 10 — $((08)) is an octal error in bash, $((10#08)) is 8.
+_wg_deadline=$(( 10#$_wg_deadline ))
+[ "$_wg_deadline" -gt 3600 ] && _wg_deadline=10
+
+# ⛔ `status` NEVER READS STDIN. It carries no payload, it is the read-only
+# dashboard/test path, and test-worktree-guard-core.sh calls it ~15x with stdin
+# inherited — every one of which would otherwise pay the full deadline for a
+# payload it does not use.
+if [ "$SUBCMD" != "status" ] && [ ! -t 0 ]; then
+  if [ "$_wg_deadline" -eq 0 ]; then
+    # 0 is the documented escape back to the old unbounded read.
+    payload="$(cat 2>/dev/null || printf '')"; _wg_stdin_state="ok"
+  else
+    payload="$(_rc_timeout "$_wg_deadline" cat 2>/dev/null)"; _wg_stdin_rc=$?
+    case "$_wg_stdin_rc" in
+      0)       _wg_stdin_state="ok" ;;
+      124|142) _wg_stdin_state="timeout"; payload="" ;;   # 124 GNU timeout, 142 perl alarm
+      *)       _wg_stdin_state="error" ;;
+    esac
+  fi
+  # ⛔ VALIDATE THE RESULT, NOT JUST THE EXIT CODE. A truncated payload parses to
+  # nothing and disarms the guard exactly like an absent one, and whether a
+  # truncation is even possible depends on the bash version. Checking that what
+  # arrived is parseable is platform-independent, so it holds on a runner this
+  # host cannot reproduce. jq is already required one block below.
+  if [ "$_wg_stdin_state" = "ok" ] && [ -n "$payload" ] && command -v jq >/dev/null 2>&1; then
+    printf '%s' "$payload" | jq -e . >/dev/null 2>&1 || _wg_stdin_state="error"
+  fi
+fi
+
+# ⛔ AN UNREADABLE PAYLOAD FAILS CLOSED ON `check`, AND ONLY ON `check`.
+# A payload with no `tool_name` sends every classifier to its `*)` default —
+# "not mutating / no deny / no enforcement" — so the default-block FOREIGN-TREE
+# deny and the session lease BOTH silently disarm. control: with tn="" the case
+# statements at :374, :608 and :704 all return 1, while tn="Write" matches its arm.
+#
+# ⛔ THE BOUNDARY IS `timeout`/`error`, NOT "payload is empty", and the difference
+# is deliberate. A zero-byte CLEAN EOF is the documented no-payload contract — a
+# bare CLI or test invocation of `check` — and still allows, exactly as before.
+# What denies is a writer that existed and delivered something unusable: the read
+# timed out, or bytes arrived that are not parseable JSON. Those are the shapes a
+# stalled or truncating writer produces, and waving one through is the failure
+# this hook exists to prevent — so it denies loudly, with an event, never dark in
+# hook-events.jsonl.
+# `register` is exempt by contract (a SessionStart hook can never block) and
+# `status` never reaches here.
+if [ "$_wg_stdin_state" = "timeout" ] || [ "$_wg_stdin_state" = "error" ]; then
+  printf '%s\n' "worktree-guard: stdin payload unreadable (${_wg_stdin_state}, deadline ${_wg_deadline}s, RC_GUARD_STDIN_TIMEOUT)." >&2
+  if [ "$SUBCMD" = "check" ]; then
+    printf '%s\n' "worktree-guard: DENIED — refusing to wave through a tool call it could not read. Retry; if this repeats the payload writer is stalled, and RC_GUARD_STDIN_TIMEOUT=0 restores the old unbounded read." >&2
+    _emit_hook_event "worktree-guard.sh" "deny" "unknown" "" "stdin-${_wg_stdin_state}" "2"
+    exit 2
+  fi
+  printf '%s\n' "worktree-guard: ${SUBCMD:-<none>} proceeds UNGUARDED for this call." >&2
+  _emit_hook_event "worktree-guard.sh" "warn" "unknown" "" "stdin-${_wg_stdin_state}" "0"
+fi
 
 # ── project dir (for the knob) + cwd (for git) ────────────────────────────────
 cwd=""
+wg_transcript_path=""
 if [ -n "$payload" ] && command -v jq >/dev/null 2>&1; then
   cwd="$(printf '%s' "$payload" | jq -r '.cwd // empty' 2>/dev/null || printf '')"
+  # Present on SessionStart's own payload on every host observed, and on
+  # Claude Code's/Gemini's PreToolUse payload — but NOT on Copilot's or
+  # Cursor's PreToolUse-adapter payload (both project down to exactly
+  # {tool_name, tool_input, cwd, session_id}; confirmed by reading
+  # copilot-hook-adapter.sh / cursor-hook-adapter.sh directly). Empty here on
+  # those two hosts is expected, not an error — _wg_lease_write() degrades to
+  # identity_source: "pid-ttl" visibly when this is empty, never silently.
+  wg_transcript_path="$(printf '%s' "$payload" | jq -r '.transcript_path // empty' 2>/dev/null || printf '')"
 fi
 [ -z "$cwd" ] && cwd="${CLAUDE_PROJECT_DIR:-$PWD}"
 posture="${cwd}/.ravenclaude/comfort-posture.yaml"
@@ -503,12 +618,74 @@ _wg_lease_idle_secs() {
 
 _wg_lease_holder() { _wg_json_field "$LEASE_FILE" session_id 2>/dev/null || printf ''; }
 
+#
+# ⛔ jq-safe construction, not raw printf. A free-form field (transcript_hash's
+# SOURCE, before hashing) interpolated unescaped into a printf JSON literal is
+# how a stray quote turns the lease file into invalid JSON — which
+# _wg_json_field then reads back as an EMPTY holder, which the check clause's
+# own logic treats as "no lease exists, claim it freely": the whole mechanism
+# silently stops enforcing, in the opposite direction of a false deny. Storing
+# a hash (fixed hex, never a quote) rather than the raw path removes the risk
+# at its source; jq is the second, general layer for every other field.
 _wg_lease_write() {
   mkdir -p "$LEASE_DIR" 2>/dev/null || return 1
-  printf '{"session_id":"%s","pid":"%s","tree":"%s","claimed_at":"%s"}\n' \
-    "$session" "$SESSION_PID" "$REAL_TOP" "$(date +%s 2>/dev/null || printf '0')" \
-    > "$LEASE_FILE" 2>/dev/null || return 1
+  local ts_path="${1:-}" host claimed thash isrc
+  host="$(hostname 2>/dev/null || printf 'unknown')"
+  claimed="$(date +%s 2>/dev/null || printf '0')"
+  if [ -n "$ts_path" ]; then
+    thash="$(_wg_sha256 "$ts_path" 2>/dev/null)"
+    [ -n "$thash" ] && isrc="transcript_path" || isrc="pid-ttl"
+  else
+    thash=""
+    isrc="pid-ttl"
+  fi
+  if command -v jq >/dev/null 2>&1; then
+    jq -cn --arg sid "$session" --arg pid "$SESSION_PID" --arg tree "$REAL_TOP" \
+       --arg claimed "$claimed" --arg host "$host" --arg isrc "$isrc" --arg thash "$thash" \
+       '{session_id:$sid,pid:$pid,tree:$tree,claimed_at:$claimed,host:$host,
+         identity_source:$isrc,transcript_hash:$thash}' \
+       > "$LEASE_FILE" 2>/dev/null || return 1
+  else
+    # No-jq fallback: the 4 original fields + identity_source (a fixed enum,
+    # never free-form) only. host/transcript_hash are omitted here rather than
+    # risking an unescaped interpolation on a path without jq to guard it.
+    printf '{"session_id":"%s","pid":"%s","tree":"%s","claimed_at":"%s","identity_source":"%s"}\n' \
+      "$session" "$SESSION_PID" "$REAL_TOP" "$claimed" "$isrc" \
+      > "$LEASE_FILE" 2>/dev/null || return 1
+  fi
   return 0
+}
+
+# Positively-confirmed-dead check for a lease holder's pid. Deliberately NOT
+# _wg_is_live: that function returns "not live" on ANY read/parse failure
+# (missing file, unparseable pid, unreadable mtime) — correct for CONTENTION
+# (an unreadable sibling record is not a live sibling) but WRONG here.
+# _wg_lease_idle's own comment states the invariant this function exists to
+# preserve: "Empty => unknown, and an unknown age must NEVER be treated as
+# stale." Reusing _wg_is_live at check-time would invert that — a lease that
+# merely failed to parse would trigger a takeover-plus-auto-commit against
+# what could be a live session's tree. This returns true ONLY on a positively
+# confirmed dead pid; every read/parse failure returns false (not-dead /
+# unknown), never true. _wg_is_live itself is never modified by this file.
+_wg_lease_holder_dead() {
+  local f="$1" pid
+  [ -f "$f" ] || return 1
+  pid="$(_wg_json_field "$f" pid)"
+  [ -n "$pid" ] || return 1
+  case "$pid" in ''|*[!0-9]*) return 1 ;; esac
+  kill -0 "$pid" 2>/dev/null && return 1   # alive -> not dead
+  return 0                                  # kill -0 explicitly failed -> positively dead
+}
+
+# Layer 1 escape hatch: read a plain `key: value` line from a release marker —
+# deliberately NOT _wg_json_field (that requires valid JSON; this file mirrors
+# the premise-gate's own control.md convention, plain text, human-writable
+# without needing jq to construct it right). Empty/missing -> empty, same
+# fail-open contract as every other lease reader here.
+_wg_release_field() {
+  local f="$1" key="$2"
+  [ -f "$f" ] || return 1
+  sed -n "s/^[[:space:]]*${key}:[[:space:]]*//p" "$f" 2>/dev/null | head -1
 }
 
 # Idle seconds since the holder last touched the lease. Empty => unknown, and an
@@ -713,6 +890,27 @@ case "$SUBCMD" in
     # (T7: guard=off writes nothing). Lane pin is gated on worktree_bound != off
     # and sibling count > 0 — no registry mkdir (so T7 still holds when bound=block).
     ctx=""
+
+    # LEASE ORPHAN GC (P1) — independent of worktree_guard's $mode; gated on
+    # worktree_lease specifically (its own knob — must run even when
+    # worktree_guard is off, since the two are independent by this file's own
+    # design). A dead-pid lease left behind by a fork/resume or a crashed
+    # session is exactly what silently causes the self-denial this whole
+    # mechanism exists to prevent, and register (SessionStart) is the safe,
+    # non-blocking point to clear it — before any mutating command reaches
+    # `check` and pays the deny/autocheckin dance for a holder that is
+    # already, positively, gone.
+    if [ "$(_wg_lease_mode)" != "off" ] && [ -f "$LEASE_DIR/lease.json" ] \
+       && _wg_lease_holder_dead "$LEASE_DIR/lease.json"; then
+      # RT-8: only clear when the tree is CLEAN. A dirty tree behind a dead
+      # holder still needs the existing autocheckin ceremony at check-time —
+      # GC must never bypass the safety net that preserves uncommitted work,
+      # it only clears the common (clean-tree) case cheaply.
+      if [ -z "$(wg_git status --porcelain 2>/dev/null)" ]; then
+        rm -f "$LEASE_DIR/lease.json" "$LEASE_DIR/release.md" 2>/dev/null || true
+      fi
+    fi
+
     if [ "$mode" != "off" ]; then
       mkdir -p "$SESS_DIR" 2>/dev/null || true
       _wg_gc
@@ -766,14 +964,27 @@ case "$SUBCMD" in
        && _wg_lease_should_enforce; then
       _wg_holder="$(_wg_lease_holder)"
       if [ -z "$_wg_holder" ] || [ "$_wg_holder" = "$session" ]; then
-        _wg_lease_write || true          # claim / heartbeat; failure is not fatal
+        _wg_lease_write "$wg_transcript_path" || true   # claim / heartbeat; failure is not fatal
+      elif [ -f "$LEASE_DIR/release.md" ] && [ -n "$_wg_holder" ] && [ "$(_wg_release_field "$LEASE_DIR/release.md" holder)" = "$_wg_holder" ]; then
+        # LAYER 1 — explicit release marker, written OUTSIDE this tree at
+        # $GUARD_HOME/leases/<PATH_KEY>/release.md (never under the leased
+        # repo's own .ravenclaude/ — a release file INSIDE the tree would be
+        # denied by the very lease it is meant to release; verified directly
+        # against _wg_lease_should_enforce/_wg_is_in_this_tree). The prior
+        # holder (or a human) wrote this to say "I am done, take over now" —
+        # skip the wait/autocheckin dance entirely, since the departing
+        # session already had its chance to land its own work.
+        _wg_lease_write "$wg_transcript_path" || true
+        rm -f "$LEASE_DIR/release.md" 2>/dev/null || true
+        printf '%s\n' "worktree-guard: session ${_wg_holder} released this lease explicitly; took over immediately." >&2
+        _emit_hook_event "worktree-guard.sh" "warn" "${tn:-Bash}" "" "lease-released" "0"
       else
         _wg_idle="$(_wg_lease_idle || printf '')"
         _wg_ttl="$(_wg_lease_idle_secs)"
         if [ -n "$_wg_idle" ] && [ "$_wg_idle" -ge "$_wg_ttl" ] 2>/dev/null; then
           # STALE -> take over, but only after the holder's work is safely in.
           if _wg_lease_autocheckin "$_wg_holder" "$_wg_idle"; then
-            _wg_lease_write || true
+            _wg_lease_write "$wg_transcript_path" || true
             printf '%s\n' "worktree-guard: took over a stale worktree lease from session ${_wg_holder} (idle $(( _wg_idle / 60 ))m). Their work was auto-committed as a wip(worktree-lease) checkpoint first." >&2
             _emit_hook_event "worktree-guard.sh" "warn" "${tn:-Bash}" "" "lease-takeover" "0"
           elif [ "$(_wg_lease_mode)" = "warn" ]; then
@@ -785,7 +996,7 @@ case "$SUBCMD" in
         elif [ "$(_wg_lease_mode)" = "warn" ]; then
           printf '%s\n' "worktree-guard: session ${_wg_holder} holds this worktree (idle $(( ${_wg_idle:-0} / 60 ))m of ${_wg_ttl} s). Proceeding because worktree_lease is 'warn'." >&2
         else
-          printf '%s\n' "worktree-guard: DENIED — session ${_wg_holder} holds a live lease on ${REAL_TOP} (idle $(( ${_wg_idle:-0} / 60 ))m; it expires at $(( _wg_ttl / 60 ))m). Open your own worktree (rcwt / forge-worktree.sh), or wait for the lease to go stale — the next session then takes over automatically and their work is auto-committed first. Set 'worktree_lease: off' in .ravenclaude/comfort-posture.yaml to disable." >&2
+          printf '%s\n' "worktree-guard: DENIED — session ${_wg_holder} holds a live lease on ${REAL_TOP} (idle $(( ${_wg_idle:-0} / 60 ))m; it expires at $(( _wg_ttl / 60 ))m). Open your own worktree (rcwt / forge-worktree.sh), wait for the lease to go stale (the next session then auto-commits their work and takes over), or — if you ARE that session continuing after a restart/fork — release it yourself: write \"holder: ${_wg_holder}\" into ${LEASE_DIR}/release.md (outside this tree; the Write tool can reach it) and retry. Set 'worktree_lease: off' in .ravenclaude/comfort-posture.yaml to disable." >&2
           _emit_hook_event "worktree-guard.sh" "deny" "${tn:-Bash}" "" "lease-held" "2"
           exit 2
         fi

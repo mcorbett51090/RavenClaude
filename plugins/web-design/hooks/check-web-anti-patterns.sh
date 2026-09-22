@@ -16,7 +16,9 @@
 #
 # Advisory by default: prints warnings to stderr so Claude and the user
 # both see them, but exits 0 so the edit is not blocked. To make this hook
-# BLOCK on violation, change `exit 0` to `exit 1`.
+# BLOCK on violation, set WEB_DESIGN_STRICT=1 in the env (exit 2 = block in
+# Claude Code; exit 1 is a non-blocking error Claude Code silently swallows,
+# so it would NOT block).
 
 set -euo pipefail
 
@@ -136,11 +138,13 @@ EOF
 
   See plugins/web-design/CLAUDE.md §3 (house opinions) and §4
   (anti-patterns) for the full rules. This hook is advisory — the
-  edit was not blocked. To enforce, change `exit 0` to `exit 1` at
-  the bottom of plugins/web-design/hooks/check-web-anti-patterns.sh.
+  edit was not blocked. To enforce, set WEB_DESIGN_STRICT=1 in your
+  env (exit 2 = BLOCK; exit 1 is non-blocking and would silently
+  allow the edit).
 ────────────────────────────────────────────────────────────────────
 
 EOF
+  if [[ "${WEB_DESIGN_STRICT:-0}" == "1" ]]; then exit 2; fi
 fi
 
 exit 0

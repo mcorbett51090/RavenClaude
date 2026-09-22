@@ -91,5 +91,9 @@ Needs review (1):
 - Never `git branch -D` (force-delete) without approval. `-d` will refuse to delete unmerged branches; that's the correct behavior.
 - Never delete the worktree you're currently running inside.
 
+
+## Codex managed worktrees (DOC adapt 2026-09-20 — UNVERIFIED)
+This skill targets RavenClaude / Sleipnir agent worktrees under `.claude/worktrees/`. Codex 0.155 agents overview owns **managed** worktree hide/archive/confirmed-delete. If `git worktree list` shows a Codex-managed path still owned by the overview, prefer the overview confirmed-delete path; do not silently remove it here. Do not conflate Sleipnir hygiene with Codex managed-worktree lifecycle. Guardian approval evidence KEEP elsewhere is unchanged by this note.
+
 ## Why a skill, when the Agent tool has built-in `isolation: "worktree"`?
 The Agent tool's native worktree isolation auto-cleans up its own ephemeral worktrees. This skill cleans up the *managed* worktrees created by [`new-worktree`](../new-worktree/SKILL.md) — predictable paths, predictable branch names, persisting across multiple sub-agent runs so the Team Lead can hand a worktree off between agents. Those won't be cleaned by the harness, so the Team Lead runs this skill at the end of a multi-agent session and weekly as hygiene.

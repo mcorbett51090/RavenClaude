@@ -13,7 +13,9 @@
 #
 # Advisory by default: prints warnings to stderr so Claude and the user both see them,
 # but exits 0 so the edit is not blocked. Set M365_COPILOT_STRICT=1 to make it BLOCK
-# (exit 1) on any violation.
+# (exit 2) on any violation. (exit 2 = BLOCK with stderr surfaced to the agent;
+# exit 1 is a non-blocking error that Claude Code silently swallows — see the sibling
+# advisory hooks in this marketplace, which all use exit 2 for the same strict feature.)
 
 set -euo pipefail
 
@@ -58,7 +60,7 @@ case "$file" in
       # A pinned manifest names a concrete version: $schema URL ending in vN.N(.N) or a
       # "schema_version"/"version" field with a dotted version literal.
       if ! grep -Eqi '("\$schema"[^,]*v[0-9]+\.[0-9]+|"schema_version"[[:space:]]*:[[:space:]]*"[0-9]+\.[0-9]+|"version"[[:space:]]*:[[:space:]]*"[0-9]+\.[0-9]+)' "$file" 2>/dev/null; then
-        violations+=("  [unpinned-manifest-schema] $file looks like a declarative-agent manifest but has no pinned \$schema / schema_version (e.g. v1.7). 'latest' is a moving target — the manifest ships ~monthly. Pin it. See CLAUDE.md §3 #2.")
+        violations+=("  [unpinned-manifest-schema] $file looks like a declarative-agent manifest but has no pinned \$schema / schema_version (e.g. v1.8). 'latest' is a moving target — the manifest ships ~monthly. Pin it. See CLAUDE.md §3 #2.")
       fi
     fi
     ;;
@@ -142,7 +144,10 @@ EOF
 
 EOF
   if [[ "${M365_COPILOT_STRICT:-0}" == "1" ]]; then
-    exit 1
+    # exit 2 = BLOCK (Claude Code surfaces stderr to the agent); exit 1 is a
+    # non-blocking error that is silently swallowed, which would make strict mode
+    # a silent no-op — the exact bug the sibling advisory hooks warn against.
+    exit 2
   fi
 fi
 

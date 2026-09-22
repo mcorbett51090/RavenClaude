@@ -35,7 +35,7 @@ When the user's situation matches the entry condition of a `## Decision Tree:` s
 
 - **Poll/delta vs change-notification subscription** — "tell me what changed" is not automatically a webhook.
 - **Simple vs rich (resource-data) notifications** — resource data in the payload means an encryption certificate and a private key you must guard.
-- **Small upload (PUT) vs large-file upload session** — the ~4 MiB / 250 MiB boundary `[verify-at-build]`.
+- **Small upload (PUT) vs large-file upload session** — a single PUT caps at **250 MB**; prefer an upload session above ~10 MiB (resumability) `[verify-at-build]`.
 - **Which Teams message permission (RSC vs application vs delegated)** — scope, install model, and the protected-API/metered caveat differ per leaf.
 - **Group type selection (security vs M365 vs dynamic)** — `groupTypes` + `mailEnabled` + `securityEnabled` determine the type and what Graph can manage.
 

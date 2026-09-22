@@ -43,6 +43,16 @@ _EVENT = {
     "SessionStart": ("SessionStart", "sessionstart"),
 }
 
+# _gemini_matcher() translates a Claude TOOL-name matcher (Bash, Read, ...) into
+# Gemini's tool vocabulary — it was only ever designed for that. PreToolUse and
+# PostToolUse matchers are tool names, so they belong here. SessionStart's matcher
+# is a SOURCE name (startup/resume/clear/compact/fork) — a different vocabulary
+# entirely. Routing it through _gemini_matcher() finds no translation (these
+# strings aren't in _TOOL_TO_GEMINI) and, once a hook actually carries a
+# SessionStart matcher, silently drops the hook from Gemini instead of wiring it
+# unconditionally as it always used to when the matcher was absent.
+_TOOL_SHAPED_EVENTS = {"PreToolUse", "PostToolUse"}
+
 # Claude tool name -> Gemini tool name(s), for translating the MATCHER. The shim
 # translates the reverse direction at runtime; these two must stay consistent or a
 # hook is scoped to a tool that never fires.
@@ -62,6 +72,36 @@ _SKIP = {
         "schemas were not published on the verified pages — mapping by name "
         "similarity would assert coverage that may not exist."
     ),
+    # ⛔ NEWLY VISIBLE, NOT NEWLY BROKEN. `ask-on-ambiguity.sh` has been registered
+    # since v0.273.0 and was DROPPED SILENTLY by all three host projectors for its
+    # whole service life, because `_script_of` matched only `/hooks/` and this hook
+    # body lives under `/scripts/` (the packaging exception the tribunal's
+    # substrate guard forces). The generator's own "explicit skip or raise"
+    # contract never fired, because a hook it cannot see is a hook it cannot
+    # refuse. Widening the resolver surfaced it and this entry is the decision the
+    # contract was always supposed to demand.
+    # control: with the widened resolver, 42 of 42 registered commands resolve to a
+    # script name and 0 are dropped; before it, 4 were dropped and none of the
+    # three generators said a word.
+    "ask-on-ambiguity.sh": (
+        "UserPromptSubmit — same unverified lifecycle mapping as "
+        "stream-prompt-attribute.sh above. It is an advisory nudge that never "
+        "blocks, so the cost of the gap is one un-nudged prompt, not lost "
+        "enforcement."
+    ),
+    "prompt-optimizer-gate.sh": (
+        "UserPromptSubmit — same unverified lifecycle mapping as "
+        "stream-prompt-attribute.sh above. Ships prompt_optimizer.enabled: false "
+        "by default, is fail-open on every error path, and only ever ADDS "
+        "advisory additionalContext — never blocks — so the cost of the gap is "
+        "one un-augmented prompt on Gemini, not lost enforcement."
+    ),
+    "plugin-lifecycle-telemetry.sh": (
+        "UserPromptSubmit (slash bumps) has no Gemini lane; PostToolUse matchers "
+        "Skill and Agent|Task have no Gemini tool equivalents in _TOOL_TO_GEMINI — "
+        "Claude Code telemetry only. SessionStart sweep remains wired via "
+        "plugin-lifecycle-sweep.sh."
+    ),
     "dod-gate.sh": (
         "Stop. Gemini's AfterAgent/SessionEnd are plausible counterparts but "
         "unverified; a definition-of-done gate that fires on the wrong lifecycle "
@@ -71,6 +111,14 @@ _SKIP = {
     "stream-session-close.sh": ("Stop — same unverified lifecycle mapping."),
     "thing-denial-kb-sync.sh": ("Stop — same unverified lifecycle mapping."),
     "handoff-nudge.sh": ("Stop — same unverified lifecycle mapping as dod-gate.sh."),
+    "workaround-exhaustion.sh": (
+        "Two lanes, neither reachable here: the PreToolUse lane matches "
+        "AskUserQuestion, a Claude Code tool with no Gemini equivalent (same as "
+        "route-decision-review.sh); the Stop lane is the same unverified lifecycle "
+        "mapping as dod-gate.sh AND reads last_assistant_message off Claude Code's "
+        "Stop payload, without which it is silent by construction. Projecting it "
+        "would register a no-op that reads as coverage."
+    ),
     "handoff-successor-ack.sh": (
         "SessionStart startup handshake (file write). Gemini SessionStart "
         "payload/matcher names are unverified; a wrong-event ack would lie."
@@ -90,16 +138,50 @@ _SKIP = {
         "SubagentStart. Gemini exposes no verified subagent hook event; this hook is "
         "an audit-only shadow that never denies, so the cost is observability."
     ),
+    "precompact-digest.sh": (
+        "PreCompact. Gemini exposes no verified compaction-hook event on the pages "
+        "verified, so mapping it by name-similarity would assert coverage that may "
+        "not exist. Archival-only and never denies — the cost of the gap is one "
+        "un-archived digest, not lost enforcement."
+    ),
+    # ⛔ R7 — THE THREE verify-before-assert CELLS SHIP **UNWIRED AND DECLARED**,
+    # for the same reason as the Cursor lane: docs-verified only, never
+    # round-tripped against the live product. A guardrail fully wired and
+    # reviewing nothing is the exact MH-01 shape, and tool-name normalisation
+    # (run_shell_command -> Bash) is not optional when these are eventually wired.
+    # control (G7.2, 2026-08-25): host-support.json still reads updated
+    # 2026-08-14 — no newer evidence than the plan had — so the downgrade stands.
+    "preflight-command-review.sh": (
+        "UNWIRED — declared (R7). Not round-tripped against the live product; "
+        "ships skipped rather than wired-and-hopeful. Host degrades to the "
+        "portable text floor."
+    ),
+    "guard-remediation-cause.sh": (
+        "UNWIRED — declared (R7). Same basis; carries a deny path at "
+        "cause_remediation: block, so a silent no-op would claim a fail-closed "
+        "surface that does not exist."
+    ),
+    "guard-cause-closure.sh": (
+        "UNWIRED — declared (R7). Write-shaped, and the tool_input FIELD NAME "
+        "carrying a file path is unverified here — the same gap that keeps "
+        "enforce-layout.sh skipped above."
+    ),
+    "caveman-route-hook.sh": (
+        "routes a Claude-Code-only third-party plugin; the target mode store does "
+        "not exist on this host."
+    ),
 }
 
 
 def _script_of(command: str) -> str:
-    m = re.search(r"/hooks/([A-Za-z0-9._-]+\.sh)", command)
+    m = re.search(r"/(?:hooks|scripts)/([A-Za-z0-9._-]+\.sh)", command)
     return m.group(1) if m else ""
 
 
 def _extra_args(command: str, script: str) -> str:
     marker = "/hooks/" + script
+    if marker not in command:
+        marker = "/scripts/" + script
     tail = command.split(marker, 1)[1].strip() if marker in command else ""
     return tail.replace(_ARGV_TOKEN, "").strip()
 
@@ -150,17 +232,29 @@ def project(manifest: dict, adapter: str, hooks_dir: str) -> tuple:
                         "skip with a reason."
                     )
                 gem_event, mode = _EVENT[event]
-                gmatch = _gemini_matcher(matcher)
-                if matcher and not gmatch:
-                    skipped.append(
-                        (
-                            script,
-                            event,
-                            f"matcher {matcher!r} has no Gemini tool equivalent — wiring it "
-                            "would register a hook that can never fire.",
+                if event in _TOOL_SHAPED_EVENTS:
+                    gmatch = _gemini_matcher(matcher)
+                    if matcher and not gmatch:
+                        skipped.append(
+                            (
+                                script,
+                                event,
+                                f"matcher {matcher!r} has no Gemini tool equivalent — wiring "
+                                "it would register a hook that can never fire.",
+                            )
                         )
-                    )
-                    continue
+                        continue
+                else:
+                    # Non-tool-shaped event (SessionStart today). The manifest matcher
+                    # is a SOURCE name, not a Claude tool name — Gemini's SessionStart
+                    # source-filtering semantics are unverified (same unverified-schema
+                    # class as handoff-successor-ack.sh's skip above), so rather than
+                    # guess at a translation, wire unconditionally. This reproduces the
+                    # hook's own prior (matcher-less) behavior on Gemini specifically:
+                    # it may still re-fire on `compact` there until Gemini's SessionStart
+                    # payload is docs-verified, but it is never silently dropped, which
+                    # is the worse failure direction for a session-setup hook.
+                    gmatch = ""
                 args = _extra_args(command, script)
                 cmd = f'bash "{adapter}" {mode} "{hooks_dir}/{script}"'
                 if args:

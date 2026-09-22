@@ -212,7 +212,7 @@ def write_csvs(tables: dict, out_dir: str) -> list:
     for table, rows in tables.items():
         path = os.path.join(out_dir, table + ".csv")
         fields = _fieldnames(rows) or empty_headers.get(table, [])
-        with open(path, "w", newline="") as fh:
+        with open(path, "w", newline="", encoding="utf-8") as fh:
             w = csv.DictWriter(fh, fieldnames=fields)
             w.writeheader()
             for r in rows:
@@ -232,7 +232,7 @@ def main(argv=None) -> int:
     p.add_argument("--out-dir", help="write one CSV per table into this directory")
     a = p.parse_args(argv)
 
-    with open(a.package) as fh:
+    with open(a.package, encoding="utf-8") as fh:
         pkg = json.load(fh)
     tables = to_rows(pkg, a.entity_id)
 
@@ -245,7 +245,7 @@ def main(argv=None) -> int:
             print(f"  {t}: {n} row(s)")
     text = json.dumps(tables, indent=2)
     if a.out_json:
-        with open(a.out_json, "w") as fh:
+        with open(a.out_json, "w", encoding="utf-8") as fh:
             fh.write(text + "\n")
         print(f"wrote {a.out_json}")
     if not a.out_dir and not a.out_json:

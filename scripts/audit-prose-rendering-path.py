@@ -66,7 +66,7 @@ SHELL_SHAPES = (
 
 # A single-quoted bash block that opens an embedded interpreter program.
 _EMBEDDED = re.compile(
-    r"(?:python3?|awk|perl)\s+(?:-\s|-c\s|)'(?P<body>(?:[^']|\n)*?)'",
+    r"(?P<interp>python3?|awk|perl)\s+(?:-\s|-c\s|)'(?P<body>(?:[^']|\n)*?)'",
     re.MULTILINE,
 )
 
@@ -171,8 +171,11 @@ def check_apostrophe_blocks(root: Path) -> tuple[list[str], int]:
             # An apostrophe cannot survive inside a single-quoted block; if the
             # extracted program looks like python and does not compile, the block
             # was truncated by one. Only python is compile-checkable here.
-            head = text[max(0, m.start() - 40) : m.start()]
-            if "python" not in head:
+            # ⛔ Check the matched interpreter keyword itself, not a text window
+            # BEFORE the match — `m.start()` already points AT the keyword (the
+            # regex begins with it), so a "before the match" window never
+            # contains it and this guard would always skip every real match.
+            if not m.group("interp").startswith("python"):
                 continue
             if len(body.strip()) < 20:
                 continue

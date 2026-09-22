@@ -10,7 +10,7 @@ last_verified: 2026-08-20
 covers:
   - plugins/ravenclaude-core/hooks/guard-premise.sh
   - scripts/spike-tprose-canary.sh
-covers_digest: "sha256:93898f0b02b5309f27d3403a90e3dd565c66b60d4529c2340344420ad4f20e3d"
+covers_digest: "sha256:aab5c1c185347e87698163f4dbf693b9a632ca889a5a9b3c2187caca5b34dd6e"
 nuance: "A `last_verified` date is itself a `_STAMP` match, so `guard-premise.sh` arms on metadata rather than on anything the author wrote; only a claim seven lines below the frontmatter escapes the window."
 nuance_evidence:
   measured: 2026-08-19

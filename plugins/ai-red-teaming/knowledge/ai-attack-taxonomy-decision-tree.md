@@ -1,7 +1,7 @@
 # Knowledge — AI attack-taxonomy decision tree
 
-> **Last reviewed:** 2026-07-13 · **Confidence:** Medium-High (consensus on the OWASP LLM Top 10 2025 categories, the MITRE ATLAS framing, and the direct-vs-indirect-injection / excessive-agency prioritization; **Medium on the newer, more-volatile OWASP Top 10 for Agentic Applications (ASI) 2026 edition — added 2026-07-13, carries a retrieval date; specific model-version behaviors, named jailbreak techniques, and harness feature sets are volatile — carry retrieval dates and re-verify before a client commitment**).
-> The most-asked AI-red-team question is "what should we attack first?". This is the decision tree the `ai-redteam-lead` traverses **before** naming an attack, plus the OWASP LLM Top 10 (2025) mapping, the OWASP Top 10 for Agentic Applications (2026) companion map, the MITRE ATLAS anchor, the likelihood×impact severity table, and the seams to adjacent plugins.
+> **Last reviewed:** 2026-08-31 (OWASP LLM Top 10 bumped 2025 → 2026 edition; see Provenance) · **Confidence:** Medium-High (consensus on the OWASP LLM Top 10 categories, the MITRE ATLAS framing, and the direct-vs-indirect-injection / excessive-agency prioritization; **Medium on the newer, more-volatile OWASP Top 10 for Agentic Applications (ASI) 2026 edition — added 2026-07-13, carries a retrieval date; specific model-version behaviors, named jailbreak techniques, and harness feature sets are volatile — carry retrieval dates and re-verify before a client commitment**).
+> The most-asked AI-red-team question is "what should we attack first?". This is the decision tree the `ai-redteam-lead` traverses **before** naming an attack, plus the OWASP LLM Top 10 (2026) mapping, the OWASP Top 10 for Agentic Applications (2026) companion map, the MITRE ATLAS anchor, the likelihood×impact severity table, and the seams to adjacent plugins.
 
 The team's discipline: **derive the attack taxonomy from the system's assets × attackers × trust boundaries first, name the specific jailbreak/injection technique second.** Content-policy / harmful-content-at-scale questions are **safety**, not this security layer — they leave for `trust-and-safety`; quality-regression eval leaves for `llm-evaluation-engineering`; non-AI pentest leaves for `security-engineering`.
 
@@ -21,13 +21,13 @@ graph TD
   INDIRECT --> DOES
   DIRECT --> DOES
 
-  DOES{Can it DO things<br/>tools / actions / side effects?} -->|Yes — tools, code exec, email, payments, browsing| AGENCY[Excessive agency LLM06<br/>· unauthorized tool calls · privilege escalation<br/>· exfiltration via tools — HIGH impact]
-  DOES -->|No — text output only| OUTPUT[Improper output handling LLM05<br/>· XSS/SSRF/SQLi if output is trusted downstream]
+  DOES{Can it DO things<br/>tools / actions / side effects?} -->|Yes — tools, code exec, email, payments, browsing| AGENCY[Excessive agency LLM03<br/>· unauthorized tool calls · privilege escalation<br/>· exfiltration via tools — HIGH impact]
+  DOES -->|No — text output only| OUTPUT[Improper output handling LLM10<br/>· XSS/SSRF/SQLi if output is trusted downstream]
 
   AGENCY --> KNOWS
   OUTPUT --> KNOWS
 
-  KNOWS{What sensitive data<br/>does it KNOW / reach?} -->|System prompt / config| LEAK[System-prompt leakage LLM07<br/>· extract instructions, keys, guardrails]
+  KNOWS{What sensitive data<br/>does it KNOW / reach?} -->|System prompt / config| LEAK[Hidden context exposure LLM08<br/>· extract instructions, keys, guardrails]
   KNOWS -->|User PII / business data| DISC[Sensitive info disclosure LLM02<br/>· data exfiltration · cross-tenant leakage]
   KNOWS -->|Training / fine-tune corpus| EXTRACT[Training-data extraction<br/>· memorized-secret / PII regurgitation]
 
@@ -39,11 +39,11 @@ graph TD
   ACCEPTS -->|Text only| VECTOR{RAG / embeddings in the loop?}
 
   MULTI --> DEPENDS
-  VECTOR -->|Yes| VEC[Vector & embedding weaknesses LLM08<br/>· poisoned chunks · embedding-inversion leakage]
+  VECTOR -->|Yes| VEC[Vector & embedding weaknesses LLM09<br/>· poisoned chunks · embedding-inversion leakage]
   VECTOR -->|No| DEPENDS
 
   VEC --> DEPENDS
-  DEPENDS{Third-party models,<br/>data, or plugins?} -->|Yes| SUPPLY[Supply chain LLM03 + Data/model poisoning LLM04<br/>· poisoned model/dataset · malicious plugin]
+  DEPENDS{Third-party models,<br/>data, or plugins?} -->|Yes| SUPPLY[Supply chain LLM04 + Data/model poisoning LLM05<br/>· poisoned model/dataset · malicious plugin]
   DEPENDS -->|No| SEV
 
   SUPPLY --> SEV
@@ -52,28 +52,28 @@ graph TD
   SEV -->|Needs insider / low impact| P2[P2 — test if time]
 
   %% cross-cutting classes that apply regardless of the branch
-  SEV -.also always consider.-> MISINFO[Misinformation LLM09<br/>· confident falsehoods with downstream reliance]
-  SEV -.also always consider.-> DOS[Unbounded consumption LLM10<br/>· token/cost exhaustion · wallet-drain DoS]
+  SEV -.also always consider.-> MISINFO[Misinformation LLM07<br/>· confident falsehoods with downstream reliance]
+  SEV -.also always consider.-> DOS[Unbounded consumption LLM06<br/>· token/cost exhaustion · wallet-drain DoS]
 ```
 
 ---
 
-## OWASP LLM Top 10 (2025 edition) — the class map
+## OWASP LLM Top 10 (2026 edition) — the class map
 
 | ID | Class | What the red-teamer probes | Typical highest-impact target |
 |---|---|---|---|
 | **LLM01** | **Prompt injection** (direct + indirect) | Override instructions via the user turn OR via content the model reads (web/doc/RAG/tool result) | Any model; indirect is the defining risk for RAG + agents |
 | **LLM02** | **Sensitive information disclosure** | Coax out PII, secrets, business data, cross-tenant data | Multi-tenant assistants, data-connected bots |
-| **LLM03** | **Supply chain** | Poisoned base model, tampered dataset, malicious plugin/adapter | Fine-tuned / plugin-extended systems |
-| **LLM04** | **Data & model poisoning** | Corrupt training/fine-tune/RAG data to implant behavior or backdoors | RAG corpora, continuous-learning loops |
-| **LLM05** | **Improper output handling** | Model output trusted downstream → XSS, SSRF, SQLi, code exec | Output rendered as HTML / fed to a shell/DB |
-| **LLM06** | **Excessive agency** | Induce unauthorized tool calls, privilege escalation, action-taking | Tool-using agents (email, payments, code exec) |
-| **LLM07** | **System prompt leakage** | Extract the system prompt, embedded keys, guardrail logic | Any bot with a secret-bearing system prompt |
-| **LLM08** | **Vector & embedding weaknesses** | Poison retrieved chunks; embedding-inversion to leak source text | RAG / vector-store-backed systems |
-| **LLM09** | **Misinformation** | Elicit confident falsehoods where a human relies on them | Advice/decision-support assistants |
-| **LLM10** | **Unbounded consumption** | Token/compute/cost exhaustion; wallet-drain denial-of-service | Metered/paid API-backed deployments |
+| **LLM03** | **Excessive agency** | Induce unauthorized tool calls, privilege escalation, action-taking | Tool-using agents (email, payments, code exec) |
+| **LLM04** | **Supply chain** | Poisoned base model, tampered dataset, malicious plugin/adapter | Fine-tuned / plugin-extended systems |
+| **LLM05** | **Data & model poisoning** | Corrupt training/fine-tune/RAG data to implant behavior or backdoors | RAG corpora, continuous-learning loops |
+| **LLM06** | **Unbounded consumption** | Token/compute/cost exhaustion; wallet-drain denial-of-service | Metered/paid API-backed deployments |
+| **LLM07** | **Misinformation** | Elicit confident falsehoods where a human relies on them | Advice/decision-support assistants |
+| **LLM08** | **Hidden context exposure** (renamed from *System prompt leakage*) | Extract the system prompt, embedded keys, guardrail logic | Any bot with a secret-bearing system prompt |
+| **LLM09** | **Vector & embedding weaknesses** | Poison retrieved chunks; embedding-inversion to leak source text | RAG / vector-store-backed systems |
+| **LLM10** | **Improper output handling** | Model output trusted downstream → XSS, SSRF, SQLi, code exec | Output rendered as HTML / fed to a shell/DB |
 
-> **Volatile:** the OWASP LLM Top 10 is versioned (this maps the **2025** edition); category names/IDs shift between editions. Treat this as a 2026-07 snapshot and re-verify the current edition before quoting IDs in a deliverable.
+> **Volatile:** the OWASP LLM Top 10 is versioned (this maps the **2026** edition, published 2026-08-04 by the OWASP GenAI Security Project — for the first time incorporating real-incident data at 25% weight alongside a 75%-weighted community vote); category names/IDs shift between editions. Treat this as a 2026-08 snapshot and re-verify the current edition against [genai.owasp.org/llm-top-10](https://genai.owasp.org/llm-top-10/) before quoting IDs in a deliverable — `owasp.org`/`genai.owasp.org` were network-blocked this session, so this edition was verified via the official GitHub repo ([GenAI-Security-Project/GenAI-LLM-Top10](https://github.com/GenAI-Security-Project/GenAI-LLM-Top10/tree/main/2026/final)) cross-referenced against independent secondaries, not the primary site directly.
 
 ---
 
@@ -84,14 +84,14 @@ When the target is not a single LLM call but an **agent** (or a multi-agent syst
 | ID | Class | What the red-teamer probes | Closest LLM-Top-10 anchor\* |
 |---|---|---|---|
 | **ASI01** | **Agent goal hijack** | Redirect the agent's objective / decision path via malicious content it plans over | LLM01 (injection, applied to *goals*) |
-| **ASI02** | **Tool misuse & exploitation** | Unsafe tool chaining, ambiguous tool instructions, manipulated tool outputs → harmful actions | LLM06 excessive agency |
+| **ASI02** | **Tool misuse & exploitation** | Unsafe tool chaining, ambiguous tool instructions, manipulated tool outputs → harmful actions | LLM03 excessive agency |
 | **ASI03** | **Agent identity & privilege abuse** | Inherited / cached / over-broad credentials; the agent acting beyond its authorized identity | *(new — agent identity)* |
-| **ASI04** | **Agentic supply chain vulnerabilities** | Malicious or tampered tools, plugins, MCP servers, or agent components | LLM03 supply chain |
-| **ASI05** | **Unexpected code execution / RCE** | Agent generates or runs attacker-controlled code in its execution environment | LLM05 improper output handling |
-| **ASI06** | **Memory & context poisoning** | Persistent corruption of the agent's memory / stored context so a *later* session misbehaves | LLM04 poisoning *(persistent-memory variant)* |
+| **ASI04** | **Agentic supply chain vulnerabilities** | Malicious or tampered tools, plugins, MCP servers, or agent components | LLM04 supply chain |
+| **ASI05** | **Unexpected code execution / RCE** | Agent generates or runs attacker-controlled code in its execution environment | LLM10 improper output handling |
+| **ASI06** | **Memory & context poisoning** | Persistent corruption of the agent's memory / stored context so a *later* session misbehaves | LLM05 poisoning *(persistent-memory variant)* |
 | **ASI07** | **Insecure inter-agent communication** | Spoofed / tampered / eavesdropped messages between agents in a multi-agent system | *(new — multi-agent)* |
 | **ASI08** | **Cascading failures** | One agent's failure or compromise propagating — blast-radius amplification across the fleet | *(new — multi-agent)* |
-| **ASI09** | **Human-agent trust exploitation** | Abusing the human's trust in the agent (the agent as a social-engineering vector) | LLM09 misinformation *(trust variant)* |
+| **ASI09** | **Human-agent trust exploitation** | Abusing the human's trust in the agent (the agent as a social-engineering vector) | LLM07 misinformation *(trust variant)* |
 | **ASI10** | **Rogue agents** | A compromised or misaligned agent diverging from intended behavior, evading oversight | *(new — agent behavior)* |
 
 \* The anchor column is **this plugin's cross-walk** to the LLM Top 10 for readers already fluent in it — **not** an OWASP-canonical mapping. `*(new)*` marks classes with no clean LLM-Top-10 predecessor (the agent-, memory-, and multi-agent-specific risks).
@@ -140,7 +140,7 @@ Impact rises with **what the system can do** (a jailbroken chatbot leaks text; a
 
 ## Provenance
 
-- OWASP Top 10 for LLM Applications **2025** edition (LLM01–LLM10 as mapped above) and MITRE ATLAS framing, reviewed 2026-07-09 — **Medium-High confidence** on the durable categories.
-- OWASP Top 10 for **Agentic Applications** (ASI01–ASI10, **2026 edition**, published December 2025 by the OWASP GenAI Security Project) — the companion agentic map, added 2026-07-13. Retrieved 2026-07-13 via `WebSearch` (genai.owasp.org 403s automated fetch); IDs/titles cross-referenced across the OWASP resource page + F5 / Promptfoo / Adversa / Giskard — **Medium confidence** (newer framework, exact per-edition titles more volatile than the LLM Top 10; the anchor-to-LLM cross-walk is this plugin's, not OWASP-canonical).
+- OWASP Top 10 for LLM Applications **2026** edition (LLM01–LLM10 as mapped above), published **2026-08-04** by the OWASP GenAI Security Project, superseding the 2025 edition this file carried through 2026-08-31. Significant reordering vs. 2025: Excessive Agency moved LLM06→LLM03, System Prompt Leakage was renamed **Hidden Context Exposure** and moved LLM07→LLM08, Improper Output Handling moved LLM05→LLM10 (full mapping in the table above). Retrieved 2026-08-31 via the official [GenAI-Security-Project/GenAI-LLM-Top10 GitHub repo](https://github.com/GenAI-Security-Project/GenAI-LLM-Top10/tree/main/2026/final) cross-referenced against independent secondaries (Help Net Security, cybersecuritynews.com) — `owasp.org`/`genai.owasp.org` were network-blocked this session, so re-confirm directly against [genai.owasp.org/llm-top-10](https://genai.owasp.org/llm-top-10/) when that domain is reachable. MITRE ATLAS framing, reviewed 2026-07-09 — **Medium-High confidence** on the durable categories.
+- OWASP Top 10 for **Agentic Applications** (ASI01–ASI10, **2026 edition**, published December 2025 by the OWASP GenAI Security Project) — the companion agentic map, added 2026-07-13; its LLM-Top-10 anchor column was updated 2026-08-31 to match the LLM Top 10's 2026 IDs. Retrieved 2026-07-13 via `WebSearch` (genai.owasp.org 403s automated fetch); IDs/titles cross-referenced across the OWASP resource page + F5 / Promptfoo / Adversa / Giskard — **Medium confidence** (newer framework, exact per-edition titles more volatile than the LLM Top 10; the anchor-to-LLM cross-walk is this plugin's, not OWASP-canonical).
 - Direct-vs-indirect injection, excessive-agency-as-highest-impact, and likelihood×impact triage are consensus practice across the LLM-security literature, reviewed 2026-07-09.
-- **Volatile:** OWASP edition/IDs (both the LLM Top 10 and the Agentic ASI list), ATLAS technique IDs, named jailbreak techniques, and model-version behaviors change frequently — treat all specifics as a 2026-07 snapshot and re-verify with `ravenclaude-core/deep-researcher` before a client commitment.
+- **Volatile:** OWASP edition/IDs (both the LLM Top 10 and the Agentic ASI list), ATLAS technique IDs, named jailbreak techniques, and model-version behaviors change frequently — treat all specifics as a 2026-08 snapshot and re-verify with `ravenclaude-core/deep-researcher` before a client commitment.

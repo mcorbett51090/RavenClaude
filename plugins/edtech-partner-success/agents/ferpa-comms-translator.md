@@ -136,6 +136,8 @@ The extended JSON fields (`audiences_drafted`, `languages_drafted`, `privacy_fla
 
 ## References
 - Constitution: [`../CLAUDE.md`](../CLAUDE.md) §3, §4, §6
+- Skill: [`../skills/ferpa-comms-translation/SKILL.md`](../skills/ferpa-comms-translation/SKILL.md) (primary playbook)
+- Skill: [`../skills/advocacy-program-design/SKILL.md`](../skills/advocacy-program-design/SKILL.md) (case-study quotes / consent ladder)
 - Generic docs / prose patterns: [`../../ravenclaude-core/agents/documentarian.md`](../../ravenclaude-core/agents/documentarian.md)
 - Regulatory-compliance plugin (when installed): [`../../regulatory-compliance/CLAUDE.md`](../../regulatory-compliance/CLAUDE.md)
 - Templates: [`../templates/escalation-memo.md`](../templates/escalation-memo.md), [`../templates/annual-partner-review.md`](../templates/annual-partner-review.md)

@@ -13,7 +13,7 @@ A Copilot agent fits the declarative model (grounds + answers, no loop). If the 
 
 ## Steps
 
-1. **Pin the manifest `$schema` + `version`** to a known version (currently v1.7), never "latest" — the manifest ships ~monthly and an unpinned version is a time bomb (the hook flags it) (`design-to-66-percent-of-the-declarative-agent-wall.md`).
+1. **Pin the manifest `$schema` + `version`** to a known version (currently v1.8), never "latest" — the manifest ships ~monthly and an unpinned version is a time bomb (the hook flags it) (`design-to-66-percent-of-the-declarative-agent-wall.md`).
 2. **Keep all behavioral directives inside `instructions`, under the 8,000-char cap** — never offload overflow to a SharePoint doc or knowledge source; XPIA classifiers can silently sanitize it and anyone with edit access can hijack behavior (`da-keep-instructions-in-the-manifest-not-knowledge.md`). When over budget, compress and push *factual reference* into grounding.
 3. **Declare only the capabilities the scenario needs, each scoped** to the named connection/site/mailbox — `People`/`Email`/`Meetings` are elevated reach that must be justified (`da-scope-capabilities-to-only-what-the-agent-needs.md`).
 4. **Design to ~66% of every hard limit** — 50 grounding / 25 plugin-response items / ~4,096 tokens / 45s, all inclusive of overhead; single grounding op + single tool call, sequential, no loops (`design-to-66-percent-of-the-declarative-agent-wall.md`).

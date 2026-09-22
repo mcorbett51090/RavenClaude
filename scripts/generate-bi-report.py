@@ -783,13 +783,27 @@ _COLOR = {
 
 
 def color_of(c: str) -> str:
-    return _COLOR.get(c, c or "var(--rc-accent)")
+    # `c` can be attacker-influenced data.json content (row["band"], segment/row
+    # "color") that lands unescaped in an HTML/SVG attribute (style=/stroke=/fill=)
+    # at every call site. A value found in the fixed _COLOR map is safe by
+    # construction; anything else MUST pass the same colour grammar the `theme`
+    # override uses (_safe_color/_COLOR_RE) before being interpolated, or a string
+    # like `red"><script>...` breaks out of the attribute (bireport-color-of-
+    # unescaped-xss). Reject anything that doesn't validate rather than pass it
+    # through raw.
+    if c in _COLOR:
+        return _COLOR[c]
+    safe = _safe_color(c) if c else None
+    return safe if safe is not None else "var(--rc-accent)"
 
 
 def _render_kpis(kpis) -> str:
     out = []
     for k in kpis:
-        d = k.get("delta", 0)
+        # Mirror render_report's KPI loop (~line 522): a hand-authored data.json
+        # can quote delta or omit label/value, and an unguarded k["label"] /
+        # unguarded `d > 0` on a string aborts the whole multi-plugin run.
+        d = _num(k.get("delta", 0))
         good = k.get("good", "up")
         unit = k.get("unit", "")
         if d == 0:
@@ -800,9 +814,9 @@ def _render_kpis(kpis) -> str:
             cls = "up" if is_good else "down"
             arrow = "▲" if rising else "▼"
         out.append(
-            f'<div class="kpi"><div class="k">{esc(k["label"])}'
+            f'<div class="kpi"><div class="k">{esc(k.get("label", ""))}'
             f'<span class="info" tabindex="0" title="{esc(k.get("plain", ""))}">?</span></div>'
-            f'<div class="v">{esc(k["value"])}{esc(unit)}</div>'
+            f'<div class="v">{esc(k.get("value", ""))}{esc(unit)}</div>'
             f'<div class="d {cls}">{arrow} {abs(d)}{esc(unit) if unit == "%" else ""} vs last period</div>'
             f'<div class="full">{esc(k.get("short", ""))}</div></div>'
         )
@@ -923,7 +937,11 @@ def svg_range2(cfg) -> str:
     def x(v):
         return pad + iw * (v - vmin) / rng
 
-    band = cfg.get("band", [vmin, vmax])
+    band = cfg.get("band")
+    # A hand-authored data.json may give `band` as a scalar, a 1-element list, or
+    # omit it — band[0]/band[1] below would IndexError/TypeError unchecked.
+    if not (isinstance(band, (list, tuple)) and len(band) >= 2):
+        band = [vmin, vmax]
     marker = cfg.get("marker", (band[0] + band[1]) / 2)
     ty = 58
     out = [
@@ -942,9 +960,10 @@ def svg_range2(cfg) -> str:
         f'<text x="{x(marker):.1f}" y="{ty - 18}" text-anchor="middle" font-size="10" fill="var(--accent)">{esc(cfg.get("markerLabel", "middle"))}</text>'
     )
     for p in cfg.get("points", []):
+        pv = p.get("value", 0)
         out.append(
-            f'<circle cx="{x(p["value"]):.1f}" cy="{ty}" r="5" fill="{color_of(p.get("color", "teal"))}" '
-            f'stroke="var(--rc-surface)" stroke-width="1.5"><title>{esc(p.get("label", ""))}: {esc(p["value"])}</title></circle>'
+            f'<circle cx="{x(pv):.1f}" cy="{ty}" r="5" fill="{color_of(p.get("color", "teal"))}" '
+            f'stroke="var(--rc-surface)" stroke-width="1.5"><title>{esc(p.get("label", ""))}: {esc(pv)}</title></circle>'
         )
     for gv in (vmin, (vmin + vmax) / 2, vmax):
         out.append(

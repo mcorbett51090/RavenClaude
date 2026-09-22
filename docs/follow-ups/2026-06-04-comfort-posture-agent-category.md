@@ -1,5 +1,11 @@
 # Follow-up — comfort-posture has no `subagent_dispatch` category
 
+**Status: SHIPPED in ravenclaude-core 0.321.4** — 13th category
+`subagent_dispatch` emits bare `"Agent"`. Recommended preset is `allow`.
+Absent key still falls back to `global_default` (backward compatible). Do
+not keep the hand-added `settings.local.json` workaround as the source of
+truth.
+
 **Date:** 2026-06-04
 **Severity:** medium (UX papercut, not a security issue)
 **Surfaced by:** Matt during `/code-review` xhigh — every one of 9 parallel finder agents prompted for permission

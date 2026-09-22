@@ -1,6 +1,6 @@
 ---
 name: session-handoff
-description: "Write a host-paired handoff and start a fresh window before auto-compact — Claude Code, Grok TUI, Copilot Chat new session, or Copilot CLI. Use for /handoff, 'context is full', 'fresh window', or a Stop-hook hot-window nag."
+description: "Write a run-dir handoff and start a NEW interactive session (unbounded TUI — never a headless print-flag). Use for /handoff, context full, fresh window, quota host-switch, 'pass remaining work to Grok'. NOT for one bounded Grok/Copilot job → cheap-lane-delegation."
 user-invocable: true
 allowed-tools: Bash, Read, Write, Edit
 ---
@@ -32,19 +32,28 @@ So the burden is on `/handoff` to earn the reset. It earns it here:
 
 ⛔ **The two halves of this skill are INDEPENDENT — do not conflate them.** *Writing the brief*
 is durable and always worth it; *opening the window* is the expensive half. You may run steps
-1–5 (write `handoff.md` + `summary.md` + `decisions.md`), then **`/compact` and keep going**. The
+1–5 (write skeleton → detached `fill` → `finalize`; optional `summary.md` / `decisions.md`), then **`/compact` and keep going**. The
 run dir banks the expensive knowledge either way, and it survives compaction, a crash, and the
 session ending. **Skipping step 6 is a supported outcome, not an abandoned handoff.**
 
 ## Gotchas (read these; they are the load-bearing rules)
 
 - **Same `task-id`.** Continue in `.ravenclaude/runs/<task-id>/`. Never invent a parallel id for the same work.
-- **The hook cannot write the narrative.** `handoff-nudge` only nags. You fill `<!-- MODEL FILL -->` sections.
+- **The hook cannot write the narrative.** `handoff-nudge` only nags. **Detached fit-tier fill** (`context-handoff.py fill`, default **haiku**) fills `<!-- MODEL FILL -->` sections — the live session model does **not** burn frontier tokens on extract/format. Comfort override: `model_tier_surfaces.handoff_fill_model: sonnet` (never session/opus/fable).
 - **Seed is host-paired.** Grok: positional `grok "…"`. Chat: `chat-resume.md` + Cmd+N / New Chat + paste. CLI: interactive `copilot` (never a one-shot flag). **A Chat or CLI successor must not launch grok.**
 - **Never `grok -p`**, never `--single`, never `--prompt-file`, never `--prompt-json`.
+- **Cheap-lane is a different product.** One well-defined job with `cheap_lane: advise|agent` is `cheap-lane-delegation` (bounded, returns) — **do not spawn**. Quota escape, leftover multi-item work, plugin-cache reload, or "the next reader is not this session" is this skill. When `cheap_lane` is on and you still hand off, state in one clause why.
 - **Never `/fork`.** Fork copies the bloated history — the opposite of a reset.
 - **Never a Grok `SessionStart` injection as the seed.** Grok ignores SessionStart stdout.
-- **Never a PreCompact persist hook.** Compaction is append-only.
+- **Never a PreCompact *persist* hook** — one that tries to carry the model's live plan *through*
+  compaction. That is the v0.244.1 retraction and it stands: compaction appends, so there is nothing
+  to rescue. ⛔ **This repo does ship a PreCompact hook, and it is a different thing:**
+  `hooks/precompact-digest.sh` is **archival** — it writes a file to disk before the compaction
+  boundary and makes **no** claim that anything survives compaction. Its own first line says so
+  (`# precompact-digest.sh — PreCompact hook (archival only).`). It is also **opt-in**, gated on
+  `cheap_lane.mode`, and it is **not** the mechanism this skill relies on: the durable brief is
+  written via `context-handoff.py write` + detached `fill` (haiku) + `finalize` — judgment-shaped
+  sections without burning the session frontier model on extract/format.
 - **Never encode 40% / 30% / 300K as a trigger.** The compact threshold is ~85%. Soft threshold default 70, always below auto-compact.
 - **Do not read `GROK_SESSION_ID` from the agent env.** It is unset here. Detection is hook-only.
 - **Never infer Chat from `TERM_PROGRAM=vscode` alone.** That is also Grok-in-VS-Code. Pass `--host` from what you actually are: `claude-code` | `grok` | `cli` | `chat` each have their own recipe; `codex` | `cursor` | `gemini` | `aider` | `windsurf` | `other` get a host-neutral block. ⛔ **Never substitute a host you are not.** An agent that read an older, shorter list here passed `--host chat` from a Claude Code session and produced a Copilot-Chat seed for a Claude Code successor (2026-08-18).
@@ -56,9 +65,34 @@ session ending. **Skipping step 6 is a supported outcome, not an abandoned hando
 2. Resolve **origin host** (you are Claude Code / Grok TUI / Copilot CLI / Copilot Chat — do not guess from `TERM_PROGRAM=vscode` alone) → `claude-code` | `grok` | `cli` | `chat`. On any other host, pass its `host-support.json` name (`codex` | `cursor` | `gemini` | `aider` | `windsurf`) or `other`; you will get a host-neutral block, which is correct.
 3. `bash plugins/ravenclaude-core/bin/rc artifacts new <task-id>` (continue-in-place).
 4. `python3 plugins/ravenclaude-core/scripts/context-handoff.py write --task-id <id> --host <pair>` to refresh the derive-fill skeleton.
-5. **Fill** every `<!-- MODEL FILL -->` section in `.ravenclaude/runs/<id>/handoff.md`. Update `summary.md` / `decisions.md` only when there is real content — never stamp empty files.
-6. Spawn: `bash plugins/ravenclaude-core/bin/rc handoff --task-id <id> --host <pair> --recipe same-host`. If spawn is `copy-paste-only` or fails, print the exact copy-paste block. Report which path was taken.
-7. If stdout contains `SUCCESSOR_ACK`, the successor has begun. **Stop this session.** You cannot `/quit` — the user closes the tab.
+5. **Detached fill** (do **not** fill the eight sections yourself on the session model): `python3 plugins/ravenclaude-core/scripts/context-handoff.py fill --task-id <id>` — fit-tier default **haiku** (cheap-lane first when on; else `claude-orchestrate` with `THING_MODEL=haiku`). Update `summary.md` / `decisions.md` only when there is real content — never stamp empty files. Then run `python3 plugins/ravenclaude-core/scripts/context-handoff.py finalize --task-id <id>` — this re-scrubs and re-`chmod`s the file now that the filled content actually exists (§F3 of the run's `plan.md`). Session role after this change: skeleton `write` + `/compact` steering only (when headroom allows). Low-headroom `/compact-only` path unchanged.
+
+5.5 **Evaluate the three escalation conditions (`SKILL.md:29-31`).**
+
+   **Case 1 — "a plugin/hook change must go live" — has a MECHANICAL signal, and you MUST run it
+   before you may conclude "none hold":**
+
+   ```
+   git status --porcelain -- 'plugins/*/hooks' 'plugins/*/scripts' 'plugins/*/.claude-plugin'
+   ```
+
+   Non-empty output ⇒ **case 1 holds** ⇒ escalate (step 6).
+   ⛔ Empty output does **not** by itself clear case 1: a change already committed but not yet loaded
+   also qualifies. In a marketplace checkout, also compare the installed plugin-cache version against
+   the working tree's `plugin.json` version.
+
+   **Cases 2 and 3 are DECLARATIONS ABOUT INTENT, not detections.** There is no signal for "the next
+   reader is a different CLI" or "the task is done". Answer them honestly; do not manufacture evidence.
+
+   **None hold ⇒ stop after step 5** and print:
+
+   > Brief written to `<path>`. Not spawning — none of the three escalation cases applies (working
+   > tree clean under `plugins/*/hooks`, `plugins/*/scripts`, `plugins/*/.claude-plugin`). Compose
+   > your `/compact` steering text now and surface it; **type `/compact <steering>` when you're
+   > ready**, or let the host's own threshold fire. I cannot type it for you — `/compact` is
+   > documented as not exposed to the model.
+6. **Only if one of the three escalation cases from step 5.5 holds**, spawn: `bash plugins/ravenclaude-core/bin/rc handoff --task-id <id> --host <pair> --recipe same-host`. The script prints a `PRODUCT` line (`NEW interactive session` / `not cheap-lane-delegation`) **before** it launches — that line is the product label; do not treat a launch as cheap-lane. If `cheap_lane` is `advise`/`agent`, it also prints that the spawn is a host-switch. If spawn is `copy-paste-only` or fails, print the exact copy-paste block. Report which path was taken.
+7. **(Escalation branch only — step 6 ran.)** If stdout contains `SUCCESSOR_ACK`, the successor has begun. **Stop this session.** You cannot `/quit` — the user closes the tab.
 
 ## Out of scope for this skill
 
@@ -67,4 +101,8 @@ session ending. **Skipping step 6 is a supported outcome, not an abandoned hando
 - A per-host **launch recipe** beyond Claude Code / Grok / Copilot CLI / Copilot Chat. The other `host-support.json` hosts are accepted and answered host-neutrally; inventing a launch command for them is what is out of scope.
 - A `copilot-chat` marketplace install column.
 - Enabling origin `context_handoff`.
-- Touching `hooks/compact-anchor.sh` or `scripts/compact-anchor.py`.
+- Re-designing `compact-anchor`'s **transcript-pointer contract** or its session-id matching (the
+  triple-synced writer/reader agreement at `hooks/precompact-digest.sh:127-131` vs
+  `scripts/compact-anchor.py:66-67,154-163`) or its silent-degrade-on-no-digest behaviour
+  (`compact-anchor.py:210-214`). ⛔ Do **not** read this line as "compact-anchor is frozen": its
+  **digest-pointer** extension (`compact-anchor.py:166-185`, v0.309.0) already shipped.

@@ -2,6 +2,43 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.18.8] — 2026-09-15
+
+### Fixed
+
+- **`scan-placeholder-first-match-only`** — completes the `b61` fix below. `hooks/scan-finance-secrets.sh`
+  scoped the placeholder check to the matched span, but inspected only the FIRST match on a line
+  (`grep -oE … | head -n1`), so a documented placeholder value sharing a line with a genuine secret for
+  the same rule still masked it (a realistic false-negative in CSV/JSON records with several values per
+  line, including the `--ci` merge gate). Now every matched span on the line is checked; the line is
+  suppressed only when ALL spans are placeholder-shaped. Added two regression tests to
+  `scripts/test_secrets_gate.py` (now 15/15).
+- **`flag-finance-exit-code-guidance`** — `hooks/flag-finance-anti-patterns.sh`'s comment and runtime
+  banner told a maintainer to change `exit 0` to `exit 1` to BLOCK on a sensitive engagement, but
+  Claude Code's PreToolUse contract only blocks on `exit 2` (`exit 1` is a non-blocking error it
+  silently swallows) — following it gave false enforcement. Now documents and implements the sibling
+  convention: set `FINANCE_STRICT=1` to block via `exit 2`.
+
+## [0.18.6] — 2026-09-10
+
+### Fixed
+
+- **`b61-scan-placeholder-re-overbroad`** — `hooks/scan-finance-secrets.sh`'s placeholder-exclusion
+  regex matched against the WHOLE grep line, so a real secret sharing a line with an unrelated benign
+  token (e.g. an `os.environ` reference, an `example.com` URL) was silently dropped from the scan.
+  Scoped the placeholder check to just the matched secret span instead of the full line; the 13-test
+  acceptance suite (`scripts/test_secrets_gate.py`) still passes unchanged.
+- **`stmteng-nonstrict-keyerror`** — `scripts/statement_engine.py`'s non-strict IS/BS build raised an
+  uncaught `KeyError` on an account missing from the COA mapping instead of degrading per the
+  documented non-strict contract. Now skips the unmapped row and surfaces it only via the existing
+  `lint_mapping` warnings list.
+
+Both found + verified CONFIRMED via a hand-recovered `/repo-review` pass.
+
+## [0.18.5] — 2026-08-31
+
+**P2 — `scan-finance-secrets.sh` fail-open on macOS/BSD grep (2026-08-31 autonomous repo review).** The US-SSN, credit-card-PAN, and IBAN rules used `\b` for word-boundary anchoring — a GNU grep extension undefined by POSIX ERE. Stock/BSD grep (macOS) doesn't honor it, so on macOS these three rules matched **nothing**: a silent fail-open on exactly the highest-sensitivity secret/PII shapes this gate exists to catch, on both the advisory PostToolUse path and the `--ci` pre-merge gate. Replaced with portable `(^|[^X])...([^X]|$)` boundary patterns (pure POSIX ERE, no GNU extension); the 13-test acceptance suite (`scripts/test_secrets_gate.py`) passes unchanged, confirming detection behavior is preserved on GNU grep.
+
 ## [0.18.4] — 2026-08-14
 
 ### Changed

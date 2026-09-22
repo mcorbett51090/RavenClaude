@@ -42,11 +42,11 @@ Before any QBO pipeline runs, someone has to register an app in Intuit's develop
 
 | Endpoint | Limit | Notes |
 |---|---|---|
-| Standard API | **10 req/s per realm-ID & app** | Concurrent ~10 |
-| Batch endpoint | **120 req/min per realm-ID** | Each batch can have up to 30 operations |
+| Standard API | **10 req/s per realm-ID & app** `[verified 2026-09-03]` | Concurrent ~10 |
+| Batch endpoint | **120 req/min per realm-ID** `[verified 2026-09-03]` | Each batch can have up to 30 operations |
 | Bulk operations | Use batch wherever possible | Reduces request count materially |
 
-**HTTP 429 / 403 on exceed.** Honor `Retry-After` header. Exponential backoff with ceiling.
+**HTTP 429 / 403 on exceed.** Honor `Retry-After` header. Exponential backoff with ceiling. Re-verified 2026-09-03 against current third-party practitioner write-ups (Truto, Satva, Coefficient) — primary developer.intuit.com docs remain member-gated, unchanged from this file's original 2026-05-21 sourcing caveat. Also confirmed, not previously in this table: 500 req/min per realm on standard endpoints and 200 req/min on resource-intensive endpoints — both `[verified 2026-09-03]` but outside this table's original scope, noted here rather than silently omitted.
 
 **These figures come from practitioner write-ups** (Satva Solutions, Coefficient); the Intuit docs themselves use "subject to throttling" language. **Verify against Intuit Developer portal directly before quoting to a client.**
 

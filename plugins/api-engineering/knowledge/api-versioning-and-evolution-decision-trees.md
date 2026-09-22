@@ -1,6 +1,6 @@
 # API Engineering — versioning & evolution decision trees
 
-**Last reviewed:** 2026-06-05 · **Confidence:** medium-high (first-party specs + IETF datatracker, web-verified this date). Volatile facts (IETF draft status of `Deprecation`/`Sunset`/`RateLimit`, OpenAPI extension conventions) carry inline markers + per-tree `Last verified` dates; re-verify on the Researcher sweep before quoting.
+**Last reviewed:** 2026-06-05 · **Confidence:** medium-high (first-party specs + IETF datatracker, web-verified this date). Volatile facts (IETF status of `Deprecation`/`Sunset`/`RateLimit`, OpenAPI extension conventions) carry inline markers + per-tree `Last verified` dates; re-verify on the Researcher sweep before quoting.
 
 > Topic-specific trees that **complement** [`api-design-decision-trees.md`](api-design-decision-trees.md)'s high-level "is it breaking, and where does the version live?" tree. That tree picks the *versioning posture*; these two go a level deeper into the two questions that actually trip teams in production: **(1) is THIS specific change breaking — from the strictest consumer's point of view?** and **(2) once I must break, what's the safe rollout sequence?** Traverse the relevant tree top-to-bottom against the observable change before classifying (per the pre-action-traversal prior in [`../CLAUDE.md`](../CLAUDE.md) §5). Owned by `api-design-architect`; the deprecation-rollout tree is shared with `api-platform-engineer`.
 
@@ -58,7 +58,7 @@ flowchart TD
 
 **When this applies:** You've classified a change as breaking (tree above) and must retire the old version/field without a flag-day outage. Covers the `Deprecation`/`Sunset` signalling clock and the expand/contract sequence on the producer side.
 
-**Last verified:** 2026-06-05. `Sunset` is **RFC 8594**; `Deprecation` is an **IETF draft (draft-ietf-httpapi-deprecation-header)** — verify RFC-vs-draft status before quoting it as standardized. `[verify-at-build]`
+**Last verified:** 2026-08-24. `Sunset` is **RFC 8594**; `Deprecation` is now **RFC 9745** (Standards Track, 2025 — published from draft-ietf-httpapi-deprecation-header). `[verify-at-build]`
 
 ```mermaid
 flowchart TD
@@ -102,4 +102,4 @@ Windows are conventions, not standards — there is no RFC-mandated deprecation 
 **Sources (retrieved 2026-06-05):**
 - OpenAPI Specification (3.1 / 3.2) — https://spec.openapis.org/
 - RFC 8594 (`Sunset` header) — https://www.rfc-editor.org/rfc/rfc8594
-- `Deprecation` header (IETF draft) — https://datatracker.ietf.org/doc/draft-ietf-httpapi-deprecation-header/
+- `Deprecation` header — **RFC 9745** — https://www.rfc-editor.org/rfc/rfc9745.html

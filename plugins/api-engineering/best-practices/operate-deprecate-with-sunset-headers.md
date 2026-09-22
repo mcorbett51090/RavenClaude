@@ -39,7 +39,7 @@ Rollout: announce -> headers live -> migration guide + consumer comms ->
 
 ## Edge cases / when the rule does NOT apply
 
-A critical security issue may force an accelerated sunset — shorten the clock and escalate, don't skip the announcement. An internal API with one coordinated consumer can compress the process but still records the change. The `Deprecation` header's RFC-vs-draft status is verified before quoting (`[verify-at-build]`); `Sunset` is RFC 8594.
+A critical security issue may force an accelerated sunset — shorten the clock and escalate, don't skip the announcement. An internal API with one coordinated consumer can compress the process but still records the change. The `Deprecation` header is **RFC 9745** (Standards Track); `Sunset` is RFC 8594.
 
 ## See also
 
@@ -49,8 +49,8 @@ A critical security issue may force an accelerated sunset — shorten the clock 
 
 ## Provenance
 
-Codifies house opinion #10 (CLAUDE.md §3) and pairs with OWASP API9 (inventory). `Sunset` = RFC 8594; `Deprecation` header status verified before quoting. Retrieved/verified 2026-06-04.
+Codifies house opinion #10 (CLAUDE.md §3) and pairs with OWASP API9 (inventory). `Sunset` = RFC 8594; `Deprecation` = **RFC 9745** (Standards Track). Retrieved/verified 2026-08-24.
 
 ---
 
-_Last reviewed: 2026-06-04 by `claude`_
+_Last reviewed: 2026-08-24 by `claude`_

@@ -18,7 +18,7 @@ Start from the smallest capability set that satisfies the scenario, scope each c
 
 ```jsonc
 {
-  "version": "v1.7",
+  "version": "v1.8",
   "name": "Contoso Policy Assistant",
   "capabilities": [
     // Scope GraphConnectors to a NAMED connection — not "all connectors"

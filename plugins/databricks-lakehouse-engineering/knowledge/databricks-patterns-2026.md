@@ -29,6 +29,8 @@
 
 ## Delta Live Tables (DLT)
 
+> **Naming (2026):** Databricks renamed this product from **Delta Live Tables (DLT)** to **Lakeflow Spark Declarative Pipelines (SDP)** (the docs also call the product "Lakeflow pipelines"; the interim name "Lakeflow Declarative Pipelines" was superseded 2025-11-12). **Existing DLT code runs unchanged** — classic SKUs still begin with `DLT` and the `dlt` Python module still imports — but the recommended Python API changed: `import dlt` → `from pyspark import pipelines as dp`; `@dlt.table` → `@dp.table` (streaming tables); `@dlt.view` → `@dp.temporary_view`; new `@dp.materialized_view` for materialized views. Source: [Microsoft Learn — What happened to DLT?](https://learn.microsoft.com/azure/databricks/ldp/concepts/where-is-dlt) (fetched 2026-08-24). `[verify-at-use]`
+
 - Declarative pipelines with built-in **expectations** (data-quality constraints that can warn, drop, or fail), lineage, and managed orchestration. Good when you want the platform to own retries/checkpoints/scaling and you can express the transform declaratively.
 - Not a fit when you need imperative control flow, external-system side effects, or fine-grained custom orchestration — use notebooks + Jobs then, or escalate to `data-orchestration`.
 

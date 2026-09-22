@@ -12,7 +12,7 @@ Copy one line into a fresh window. Do not `/fork`. Do not `/compact`.
 
 | Pick | Exact prompt |
 |---|---|
-| **Q1 / L4** MCP quarantine | `Forge leftover Q1 — MCP result quarantine as its own plan. Read docs/follow-ups/2026-08-14-analog-repos-leftovers.md first. Do not extend the WebFetch sanitizer matcher with mcp__.` |
+| **Q1 / L4** MCP quarantine | **SHIPPED 0.308.0** — do not re-forge. Residual host-projection (Codex/Cursor) is a separate ask. |
 | **Q2** closeness scorecard | `Forge leftover Q2 — analog closeness scorecard skill as its own plan. Read docs/follow-ups/2026-08-14-analog-repos-leftovers.md first.` |
 | **Hygiene** stale analog worktrees | `Clean the analog-repos stale worktrees listed in docs/follow-ups/2026-08-14-analog-repos-leftovers.md. Use the cleanup-worktrees skill. Do not force-delete.` |
 | **This checkout is stale** | `Work from a tree that has origin/main. Do not edit plugins on a behind-main checkout.` |
@@ -30,7 +30,7 @@ If that run dir is missing, **this file is the brief**. The increment run dir li
 
 | Item | Status | Cite |
 |---|---|---|
-| Survey N=13 (cap 30, shortfall 17) | **closed** — honest. Do not pad to 30. | [catalog](../plans/2026-08-14-analog-repos-gap-fill/catalog.md) |
+| Survey N=13 (cap 30, shortfall 17) | **closed** — honest. Do not pad to 30. | [catalog](../plans/archive/2026-08-14-analog-repos-gap-fill/catalog.md) |
 | F1 WebFetch sanitizer | **shipped** #928, `0.267.0`, hooks 34 | [decision](../decisions/2026-08-14-analog-repos-gap-fill.md) |
 | F2 injection + minting evals | **shipped** #929 | same |
 | F3 docs promote | **shipped** on `main` | same |
@@ -41,25 +41,19 @@ Next plugin-touching PR verifies HEAD and bumps to **0.270.0**. Do not reuse 0.2
 
 ## Parked items
 
-### 1. Q1 / L4 — MCP result quarantine
+### 1. Q1 / L4 — MCP result quarantine — SHIPPED
 
-**Trigger to unpark:** owner asks for MCP quarantine, or a judged hole shows unsanitized `mcp__.*` tool output reaching the model.
+**Closed 2026-09-10.** This leftover row was stale. `sanitize-mcp-output.sh` / `.py` shipped in ravenclaude-core **0.308.0** (`docs/decisions/2026-08-30-mcp-result-quarantine.md`). Matcher is `tool_name.startswith("mcp__")`. Do **not** extend `sanitize-webfetch-output` with `mcp__`.
 
-**What it is:** PostToolUse `updatedToolOutput` matcher for `mcp__.*`, same fail-open contract as F1. **Product-shaped default change** — needs its own `/forge` and a House Rule 3 walkthrough. Depends on F1 already shipped.
+Residual (not this leftover): Codex projection still skips both sanitizers; Cursor/Gemini are unwired. That is a host-projection follow-up, not a re-forge of Q1.
 
-**What it is not:** adding `mcp__.*` to `sanitize-webfetch-output`’s existing matcher. That is explicitly banned until this forge lands.
+**Queue row:** [pr-queue.md](../plans/archive/2026-08-14-analog-repos-gap-fill/pr-queue.md) Q1.
 
-**Acceptance:** same fail-open fixtures on an MCP-shaped payload; House Rule 3 walkthrough; version **0.270.0+**.
+### 2. Q2 — analog closeness scorecard skill — SHIPPED
 
-**Queue row:** [pr-queue.md](../plans/2026-08-14-analog-repos-gap-fill/pr-queue.md) Q1.
+**Closed 2026-09-10.** Skill exists at `plugins/ravenclaude-core/skills/analog-closeness-scorecard/` (`SKILL.md` + `score_closeness.py`). Do not re-build. The leftover trigger below is historical.
 
-### 2. Q2 — analog closeness scorecard skill
-
-**Trigger to unpark:** owner asks for the scorecard. Surface budget for the analog increment already spent the one counted class (the WebFetch hook).
-
-**What it is:** a skill that recomputes M/H/G/O/E/I/T/V + closeness from analog evidence. Must-fail fixture required.
-
-**What it is not:** a fourth analog fill. Not a reason to add a hook.
+**Was:** owner asks for the scorecard. Surface budget for the analog increment already spent the one counted class (the WebFetch hook).
 
 **Queue row:** pr-queue.md Q2.
 
@@ -99,7 +93,7 @@ That tree is the shared anchor and is often many commits behind. The analog incr
 | Tier | Path | Who sees it |
 |---|---|---|
 | **Committed (this file)** | `docs/follow-ups/2026-08-14-analog-repos-leftovers.md` | every clone after pull |
-| Catalog / matrix / queue | `docs/plans/2026-08-14-analog-repos-gap-fill/` | every clone |
+| Catalog / matrix / queue | `docs/plans/archive/2026-08-14-analog-repos-gap-fill/` | every clone |
 | Close-out decision | `docs/decisions/2026-08-14-analog-repos-gap-fill.md` | every clone |
 | Local leftover run | `.ravenclaude/runs/analog-repos-leftovers/` | this machine |
 | Closed increment run | `.ravenclaude/runs/analog-repos-gap-fill/` | machine that wrote the handoff (update worktree) |

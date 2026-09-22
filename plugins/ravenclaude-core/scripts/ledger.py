@@ -106,7 +106,7 @@ DEFAULT_CONFIG: dict[str, Any] = {
 }
 
 STATE_ORDINAL = {"in_progress": 0, "ready": 1, "proposed": 2, "done": 3}
-ITEM_BEARING = ("open", "state", "verify", "link", "redact", "provenance")
+ITEM_BEARING = ("open", "state", "verify", "link", "redact", "provenance", "hook", "meta")
 CROCKFORD = "0123456789ABCDEFGHJKMNPQRSTVWXYZ"
 
 # Fields that are DERIVED and must never appear as stored asserted keys (G-LED-07).
@@ -170,6 +170,37 @@ def resolve_config(repo_root: Path) -> dict[str, Any]:
     if env_view:
         config["view_path"] = env_view
     return config
+
+
+def _confined_path(repo_root: Path, relative: str, label: str) -> Path:
+    """Join `relative` onto `repo_root` and REFUSE if the result escapes it.
+
+    ⛔ `.ravenclaude/ledger-config.json` is untrusted config (loaded unvalidated
+    by `resolve_config()`, also overridable via `RC_LEDGER_DIR`/`RC_LEDGER_VIEW`).
+    `pathlib` treats an ABSOLUTE right-hand operand as REPLACING the whole path
+    (`Path('/repo') / '/etc/x' == Path('/etc/x')`), and a relative value with
+    `..` segments can walk out of `repo_root` just as easily. A hostile
+    `ledger_dir`/`view_path` (e.g. from a malicious PR or cloned repo) would
+    otherwise let any writing ledger command write attacker-chosen content to
+    an attacker-chosen path outside the repo. Every `repo_root / config[...]`
+    join in this file MUST go through this helper instead of the raw `/`
+    operator — fail closed, not silently sanitized.
+    """
+    if Path(relative).is_absolute():
+        raise LedgerError(
+            f"{label}_escapes_repo: {relative!r} is an absolute path. "
+            f"{label} must be a path relative to the repo root."
+        )
+    candidate = repo_root / relative
+    root_resolved = repo_root.resolve()
+    candidate_resolved = candidate.resolve()
+    if not candidate_resolved.is_relative_to(root_resolved):
+        raise LedgerError(
+            f"{label}_escapes_repo: {relative!r} resolves to {candidate_resolved}, "
+            f"which is outside the repo root {root_resolved}. Refusing to write "
+            "outside the repo."
+        )
+    return candidate
 
 
 def find_repo_root(start: Path | None = None) -> Path:
@@ -647,6 +678,13 @@ def fold(
                 "last_event_ts": ts,
                 "worktree": machine.get("worktree"),
                 "state_events": 0,
+                # Runes ready-queue projection fields (Norse Beads semantics).
+                "hook_owner": None,
+                "human_gate": asserted.get("human_gate") or "none",
+                "formula_ref": asserted.get("formula_ref"),
+                "strand_id": asserted.get("strand_id"),
+                "longship_id": asserted.get("longship_id"),
+                "mist": bool(asserted.get("mist") or False),
             }
             continue
 
@@ -726,6 +764,30 @@ def fold(
                 {"pr": machine.get("pr"), "merge_commit": machine.get("merge_commit"),
                  "merged_at": machine.get("merged_at")}
             )
+
+        elif etype == "hook":
+            op = asserted.get("op")
+            if op == "claim":
+                owner = asserted.get("hook_owner")
+                if not owner:
+                    unrecognized.append(
+                        {"reason": "hook claim missing hook_owner", "value": op,
+                         "event_id": event_id, "item_id": item_id, "ts": ts}
+                    )
+                    continue
+                item["hook_owner"] = owner
+            elif op == "release":
+                item["hook_owner"] = None
+            else:
+                unrecognized.append(
+                    {"reason": "unrecognized hook op", "value": op, "event_id": event_id,
+                     "item_id": item_id, "ts": ts}
+                )
+
+        elif etype == "meta":
+            for key in ("human_gate", "formula_ref", "strand_id", "longship_id", "mist"):
+                if key in asserted:
+                    item[key] = asserted[key]
 
         elif etype == "redact":
             pass  # already applied above; the event itself carries no item state
@@ -1436,7 +1498,7 @@ def build_event(
 
 def cmd_init(repo_root: Path, args: argparse.Namespace) -> int:
     config = resolve_config(repo_root)
-    ledger_dir = repo_root / config["ledger_dir"]
+    ledger_dir = _confined_path(repo_root, config["ledger_dir"], "ledger_dir")
     ledger_rel = str(Path(config["ledger_dir"]) / "_probe.jsonl")
 
     code, report = check_committable(repo_root, ledger_rel)
@@ -1474,7 +1536,7 @@ def cmd_init(repo_root: Path, args: argparse.Namespace) -> int:
 
 def cmd_open(repo_root: Path, args: argparse.Namespace) -> int:
     config = resolve_config(repo_root)
-    ledger_dir = repo_root / config["ledger_dir"]
+    ledger_dir = _confined_path(repo_root, config["ledger_dir"], "ledger_dir")
     ts = args.ts or utcnow_iso()
     machine = machine_block(repo_root, args.actor, ts)
     item_id = mint_item_id(machine["source"], ts, args.subject, _existing_item_ids(ledger_dir))
@@ -1485,6 +1547,16 @@ def cmd_open(repo_root: Path, args: argparse.Namespace) -> int:
         asserted["priority"] = args.priority
     if args.tag:
         asserted["tags"] = list(args.tag)
+    if getattr(args, "human_gate", None):
+        asserted["human_gate"] = args.human_gate
+    if getattr(args, "formula_ref", None):
+        asserted["formula_ref"] = args.formula_ref
+    if getattr(args, "strand_id", None):
+        asserted["strand_id"] = args.strand_id
+    if getattr(args, "longship_id", None):
+        asserted["longship_id"] = args.longship_id
+    if getattr(args, "mist", False):
+        asserted["mist"] = True
     event = build_event(repo_root, "open", item_id, asserted, args.actor, ts)
     append_record(ledger_dir, event, int(config["max_record_bytes"]))
     print(item_id)
@@ -1506,7 +1578,7 @@ def _asserted_from_kv(pairs: Sequence[str]) -> dict[str, Any]:
 
 def cmd_append(repo_root: Path, args: argparse.Namespace) -> int:
     config = resolve_config(repo_root)
-    ledger_dir = repo_root / config["ledger_dir"]
+    ledger_dir = _confined_path(repo_root, config["ledger_dir"], "ledger_dir")
     asserted = _asserted_from_kv(args.set)
     event = build_event(repo_root, args.type, args.item, asserted, args.actor, args.ts)
     path = append_record(ledger_dir, event, int(config["max_record_bytes"]))
@@ -1517,10 +1589,10 @@ def cmd_append(repo_root: Path, args: argparse.Namespace) -> int:
 def _emit(projection: Projection, config: dict[str, Any], repo_root: Path, write: bool) -> None:
     if not write:
         return
-    view = repo_root / config["view_path"]
+    view = _confined_path(repo_root, config["view_path"], "view_path")
     view.parent.mkdir(parents=True, exist_ok=True)
     view.write_text(projection.markdown, encoding="utf-8")
-    out = repo_root / config["ledger_dir"] / "open-set.json"
+    out = _confined_path(repo_root, config["ledger_dir"], "ledger_dir") / "open-set.json"
     out.write_text(json.dumps(projection.scp_block, indent=2, sort_keys=True) + "\n",
                    encoding="utf-8")
 
@@ -1539,7 +1611,7 @@ def repo_basis(repo_root: Path, config: dict[str, Any]) -> str:
 
 def cmd_project(repo_root: Path, args: argparse.Namespace) -> int:
     config = resolve_config(repo_root)
-    ledger_dir = repo_root / config["ledger_dir"]
+    ledger_dir = _confined_path(repo_root, config["ledger_dir"], "ledger_dir")
     validator = None if args.no_schema else load_validator()
     now = parse_ts(args.now) if args.now else None
     projection = project(ledger_dir, config, now=now, validator=validator,
@@ -1561,7 +1633,7 @@ def cmd_project(repo_root: Path, args: argparse.Namespace) -> int:
 
 def cmd_check_enumeration(repo_root: Path, args: argparse.Namespace) -> int:
     config = resolve_config(repo_root)
-    ledger_dir = repo_root / config["ledger_dir"]
+    ledger_dir = _confined_path(repo_root, config["ledger_dir"], "ledger_dir")
 
     # ⛔ THE INDEPENDENT LOWER BOUND. This is the ONLY path in the design that
     # fires when the ledger is EMPTY: a turn that produced action-shaped output
@@ -1878,13 +1950,19 @@ def main(argv: list[str] | None = None) -> int:
     p_open.add_argument("--owner")
     p_open.add_argument("--priority", type=int, choices=[1, 2, 3, 4])
     p_open.add_argument("--tag", action="append")
+    p_open.add_argument("--human-gate", dest="human_gate",
+                        choices=["none", "cos", "matthew", "appsec", "sage"])
+    p_open.add_argument("--formula-ref", dest="formula_ref")
+    p_open.add_argument("--strand-id", dest="strand_id")
+    p_open.add_argument("--longship-id", dest="longship_id")
+    p_open.add_argument("--mist", action="store_true")
     p_open.add_argument("--ts")
     p_open.set_defaults(func=cmd_open)
 
     p_append = sub.add_parser("append", help="append any typed event")
     p_append.add_argument("--type", required=True,
                           choices=["state", "verify", "link", "redact", "provenance",
-                                   "bridge_health"])
+                                   "bridge_health", "hook", "meta"])
     p_append.add_argument("--item")
     p_append.add_argument("--set", action="append", default=[], metavar="KEY=JSON")
     p_append.add_argument("--ts")

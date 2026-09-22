@@ -36,6 +36,8 @@ import re
 import sys
 from pathlib import Path
 
+from _host_scope import resolve_platform_dependency
+
 # Sibling module holding the self-contained HTML/CSS/JS shell. Importable because
 # Python puts this script's directory (scripts/) on sys.path[0] at launch.
 from _index_dashboard_template import TEMPLATE as _TEMPLATE
@@ -318,7 +320,7 @@ CATEGORIES: list[dict] = [
 ]
 
 # Comfort-posture preset profiles surfaced in the Configuration section. Each
-# maps the 12 v5 categories to a deny/ask/allow level. Faithful to the v5 model
+# maps the 13 v5 categories to a deny/ask/allow level. Faithful to the v5 model
 # read from dashboard-schema.json; the four named profiles requested by the
 # product brief.
 POSTURE_PRESETS: list[dict] = [
@@ -342,6 +344,7 @@ POSTURE_PRESETS: list[dict] = [
             "network_read": "allow",
             "network_write": "deny",
             "mcp_tools": "ask",
+            "subagent_dispatch": "ask",
         },
     },
     {
@@ -364,6 +367,7 @@ POSTURE_PRESETS: list[dict] = [
             "network_read": "allow",
             "network_write": "ask",
             "mcp_tools": "ask",
+            "subagent_dispatch": "allow",
         },
     },
     {
@@ -386,6 +390,7 @@ POSTURE_PRESETS: list[dict] = [
             "network_read": "allow",
             "network_write": "ask",
             "mcp_tools": "allow",
+            "subagent_dispatch": "allow",
         },
     },
     {
@@ -400,6 +405,7 @@ POSTURE_PRESETS: list[dict] = [
             "file_edit_global", "shell_readonly", "shell_local_mutate",
             "shell_remote_mutate", "shell_code_exec", "shell_package_install",
             "network_read", "network_write", "mcp_tools",
+            "subagent_dispatch",
         ], "allow"),
     },
 ]
@@ -409,6 +415,7 @@ POSTURE_PRESETS: list[dict] = [
 # what a preset can never relax.
 SECURITY_FLOOR: list[str] = [
     "Bash(rm -rf:*)", "Bash(git push --force:*)", "Bash(git push -f:*)",
+    "Bash(git push --mirror:*)",
     "Bash(git reset --hard:*)", "Bash(git clean -fd:*)", "Bash(npm publish:*)",
     "Bash(curl * | sh)", "Bash(curl * | bash)", "Bash(sudo:*)",
     "Bash(mkfs:*)", "Bash(shred:*)", "Bash(git branch -D:*)",
@@ -545,6 +552,11 @@ def _scan_agents(plugin_dir: Path) -> list[dict]:
                     })
         quickstart_raw = fm.get("quickstart") or []
         quickstart = [q for q in quickstart_raw if isinstance(q, str)] if isinstance(quickstart_raw, list) else []
+        plugin = plugin_dir.name
+        ep = f"plugins/{plugin}/agents/{md.name}"
+        host_scope = resolve_platform_dependency(
+            kind="agent", plugin=plugin, name=name, evidence_path=ep
+        )
         agents.append({
             "name": name,
             "label": _humanize(name),
@@ -555,6 +567,7 @@ def _scan_agents(plugin_dir: Path) -> list[dict]:
             "triggers": triggers[:3],
             "scenarios": scenarios,
             "quickstart": quickstart,
+            "host_scope": host_scope,
         })
     return agents
 
@@ -681,10 +694,21 @@ def _scan_skills(plugin_dir: Path) -> list[dict]:
         block = _split_frontmatter(skill_md.read_text(encoding="utf-8", errors="replace"))
         fm = _parse_frontmatter(block) if block else {}
         name = fm.get("name") or sdir.name
+        plugin = plugin_dir.name
+        ep = f"plugins/{plugin}/skills/{sdir.name}/SKILL.md"
+        host_scope = resolve_platform_dependency(
+            kind="skill", plugin=plugin, name=name, evidence_path=ep
+        )
+        # also try folder name if frontmatter name differs
+        if host_scope == "claude-code":
+            host_scope = resolve_platform_dependency(
+                kind="skill", plugin=plugin, name=sdir.name, evidence_path=ep
+            )
         out.append({
             "name": name,
             "label": _humanize(name),
             "description": _first_sentence(fm.get("description", ""), 200),
+            "host_scope": host_scope,
         })
     return out
 

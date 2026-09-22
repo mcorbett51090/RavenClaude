@@ -27,11 +27,16 @@ So every byte emitted is one of exactly four things:
   1. a fixed string authored here,
   2. an integer this script validated as an integer,
   3. a `trigger` matched against a two-item allowlist, or
-  4. the transcript PATH, which comes from the trusted harness payload.
+  4. a PATH — either the transcript path (from the trusted harness payload) or the
+     newest PreCompact digest file's path (derived from a glob over a filesystem
+     location this script itself constructs — see `find_latest_digest` below).
 
-**No line of transcript content is ever echoed.** This is the same rule the
-capability banner, the run-state monitor and the Muninn recall digest follow, and
-Gate 186 proves it with a sentinel planted inside a `tool_result`.
+**No line of transcript OR digest content is ever echoed — only the digest file's
+PATH.** This is the same rule the capability banner, the run-state monitor and the
+Muninn recall digest follow, and Gate 186 proves it with a sentinel planted inside a
+`tool_result`. The digest file (written by `hooks/precompact-digest.sh`, P2 of the
+precompact-critical-context FORGE plan) itself carries transcript-derived text — this
+script never opens it, only checks that it exists and reports where it is.
 
 FAIL-SAFE
 ---------
@@ -42,6 +47,7 @@ hook that crashes at session start is worse than one that says nothing.
 
 from __future__ import annotations  # stock macOS ships Python 3.9
 
+import glob
 import json
 import os
 import re
@@ -51,6 +57,14 @@ import sys
 # no convenience is worth stalling session start.
 MAX_TRANSCRIPT_BYTES = 512 * 1024 * 1024
 MAX_PATH_LEN = 4096
+
+# Session-id sanitization charset. MUST mirror precompact-digest.sh's own
+# `tr -dc 'A-Za-z0-9._-' | cut -c1-128` — the hook (writer) and this reader
+# derive the run-dir path independently, and if the two derivations diverge the
+# reader looks in a directory the writer never used. See the matching comment in
+# hooks/precompact-digest.sh.
+_SESSION_CHARS = re.compile(r"[^A-Za-z0-9._-]")
+_MAX_SESSION_LEN = 128
 
 # Cheap substring prefilter so we json-decode ONE line instead of every line.
 _BOUNDARY_NEEDLE = b'"compact_boundary"'
@@ -137,7 +151,41 @@ def scan_transcript(path):
     }
 
 
-def render(path, facts):
+def _sanitize_session_id(value):
+    """Path-safe session-id token. Returns "unknown" for anything empty/unusable,
+    matching precompact-digest.sh's own fallback so the two agree on the run-dir
+    even when the payload's session_id is missing or garbage."""
+    if not isinstance(value, str):
+        return "unknown"
+    cleaned = _SESSION_CHARS.sub("", value)[:_MAX_SESSION_LEN]
+    if cleaned in ("", ".", ".."):
+        return "unknown"
+    return cleaned
+
+
+def find_latest_digest(project_dir, session_id):
+    """Return the newest precompact-digest-*.md path for this session's run-dir, or
+    None. Best-effort and silent on any error — a missing/unreadable digest means
+    no pointer is added, never a crash. Only the PATH is ever returned; the file's
+    contents are never opened here (the derived-values-only invariant)."""
+    if not project_dir or not isinstance(project_dir, str):
+        return None
+    sid = _sanitize_session_id(session_id)
+    run_dir = os.path.join(project_dir, ".ravenclaude", "runs", sid)
+    try:
+        matches = glob.glob(os.path.join(run_dir, "precompact-digest-*.md"))
+    except OSError:
+        return None
+    if not matches:
+        return None
+    try:
+        latest = max(matches, key=lambda p: os.path.getmtime(p))
+    except OSError:
+        latest = sorted(matches)[-1]  # filenames are timestamp-sortable as a fallback
+    return _clean_path(latest)
+
+
+def render(path, facts, digest_path=None):
     """Build the additionalContext string from validated, derived values only."""
     times = "once" if facts["boundary_count"] == 1 else f"{facts['boundary_count']} times"
     lines = [
@@ -158,6 +206,12 @@ def render(path, facts):
         if facts["trigger"] is not None:
             detail += f" [{facts['trigger']}]"
         lines.append(detail)
+
+    if digest_path:
+        lines.append(
+            f"  digest:      {digest_path}  (pre-compaction critical-info digest, "
+            "if extraction succeeded)"
+        )
 
     lines += [
         "",
@@ -204,12 +258,22 @@ def main():
     if facts is None:
         return 0
 
+    # P2b: also point at the newest PreCompact digest for this session's run-dir,
+    # if precompact-digest.sh wrote one. Best-effort and additive — a missing or
+    # unreadable digest just means no extra line, never a failure of the transcript
+    # pointer above. project_dir comes from the harness env (the same variable
+    # every other run-dir-writing hook in this repo reads); session_id comes from
+    # the trusted SessionStart payload.
+    digest_path = find_latest_digest(
+        os.environ.get("CLAUDE_PROJECT_DIR"), payload.get("session_id")
+    )
+
     print(
         json.dumps(
             {
                 "hookSpecificOutput": {
                     "hookEventName": "SessionStart",
-                    "additionalContext": render(path, facts),
+                    "additionalContext": render(path, facts, digest_path),
                 }
             }
         )

@@ -74,7 +74,7 @@ MANIFEST_TAIL = Path(".claude-plugin") / "plugin.json"
 # sits at 8+, and the root/metadata keys sit at 2/4. Both patterns are anchored,
 # so neither can match a nested or top-level key. This is still only a heuristic,
 # which is why scan_version_lines() cross-checks it against json.load().
-NAME_LINE_RE = re.compile(r'^ {6}"name": "([^"]*)",$')
+NAME_LINE_RE = re.compile(r'^ {6}"name": "([^"]*)",?$')
 VERSION_LINE_RE = re.compile(r'^( {6}"version": ")([^"]*)(",?)$')
 
 

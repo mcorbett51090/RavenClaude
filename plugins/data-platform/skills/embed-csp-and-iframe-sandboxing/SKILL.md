@@ -1,6 +1,7 @@
 ---
 name: embed-csp-and-iframe-sandboxing
 description: Configure CSP `frame-ancestors`, iframe `sandbox` attributes, postMessage origin checks, and web-component shadow-DOM boundaries for embedded dashboards. Invoked by `ravenclaude-core/security-reviewer` when a diff touches embed-auth flow; generated alongside dashboard code by `dashboard-builder`.
+invoked_by: ravenclaude-core/security-reviewer
 ---
 
 # Skill: embed-csp-and-iframe-sandboxing

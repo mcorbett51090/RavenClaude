@@ -42,7 +42,7 @@
 ## 3. Cross-cutting house opinions (15; every agent enforces; the hook flags the grep-able ones)
 
 1. **Declarative-first; custom-engine only when forced.** Reach for a declarative agent (inherits M365 compliance, no hosting). Move to a custom-engine agent only when a hard limit forces it: iterative reasoning / loops, proactive or autonomous behavior, off-M365 channels, or a non-Copilot model.
-2. **Pin the manifest schema version.** The declarative-agent manifest ships ~monthly; an unpinned `$schema`/`version` is a time bomb. Pin to a known version (currently v1.7) and bump deliberately.
+2. **Pin the manifest schema version.** The declarative-agent manifest ships ~monthly; an unpinned `$schema`/`version` is a time bomb. Pin to a known version (currently v1.8) and bump deliberately.
 3. **Optimize to ~66% of every hard limit.** Grounding 50 items, plugin response 25 items, ~4,096 tokens, 45 s timeout — all **inclusive of overhead**. Design to two-thirds, not to the ceiling.
 4. **Single grounding op + single tool call, sequential, NO loops.** A declarative agent cannot iterate. If the task needs a loop, it's a custom-engine agent (#1).
 5. **Synced connector for scale, federated (MCP) for real-time, API plugin for actions.** Match the grounding source to the job — index-and-rank vs live-fetch vs transactional.
@@ -118,7 +118,7 @@ Reference docs with `Last reviewed:` dates + confidence notation + Microsoft Lea
 | File | Read when |
 |---|---|
 | [`knowledge/agent-platform-decision-2026.md`](knowledge/agent-platform-decision-2026.md) | Choosing the build path — declarative vs custom-engine vs Copilot-Studio; the Mermaid platform decision tree + the explicit seams. Cross-links `power-platform/knowledge/copilot-agents-2026.md` |
-| [`knowledge/declarative-agent-manifest-2026.md`](knowledge/declarative-agent-manifest-2026.md) | Authoring/reviewing a DA — schema capability map (v1.7), the hard limits (50/25/4096/45s, sequential no-loop), instructions budget, version-pin discipline |
+| [`knowledge/declarative-agent-manifest-2026.md`](knowledge/declarative-agent-manifest-2026.md) | Authoring/reviewing a DA — schema capability map (v1.8), the hard limits (50/25/4096/45s, sequential no-loop), instructions budget, version-pin discipline |
 | [`knowledge/grounding-source-decision-2026.md`](knowledge/grounding-source-decision-2026.md) | Choosing a grounding source — synced/federated connector vs SharePoint knowledge vs API plugin; the Mermaid grounding decision tree + semantic-index latency + license gating |
 | [`knowledge/grounding-freshness-decision-2026.md`](knowledge/grounding-freshness-decision-2026.md) | **Diagnosing stale grounding** — a grounded agent returns stale/missing/just-changed-but-not-reflected results; the Mermaid staleness tree (federated vs SharePoint-index-latency vs deletion-gap vs cadence-cap vs structural re-architect). Complements (doesn't replace) the connector-mode + crawl-strategy trees — those pick the source/mode, this routes the *fix* |
 | [`knowledge/copilot-extensibility-decision-trees.md`](knowledge/copilot-extensibility-decision-trees.md) | The consolidated deep-cut trees (build-path, grounding-source, connector-mode, plugin-auth scheme, oversharing-launch-gate, crawl strategy, instruction-redesign, admin-gate) — traverse before committing to a method |

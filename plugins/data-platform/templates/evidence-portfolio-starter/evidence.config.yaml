@@ -1,0 +1,5 @@
+project:
+  name: Case Studies Portfolio (data-platform Case A starter)
+  evidence: "0.9.1"
+
+pages: ./pages

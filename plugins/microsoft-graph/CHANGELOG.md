@@ -2,6 +2,10 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.4.5] — 2026-08-28
+
+Weekly research sweep. Graph v1.0 `driveItem: PUT /content` simple-PUT ceiling is **250 MB**, not the legacy OneDrive-REST ~4 MB; decision tree, best-practice, and workloads agent corrected. ~10 MiB recommended upload-session threshold and 4 MiB / 320 KiB chunk guidance left untouched. Verified 2026-08-28 against MS Learn [`driveitem-put-content?view=graph-rest-1.0`](https://learn.microsoft.com/graph/api/driveitem-put-content?view=graph-rest-1.0). **Migration:** none — knowledge-file content only.
+
 ## [0.4.4] — 2026-07-08
 
 Weekly Tier-A news sweep (2026-07-08) — **additions**. `knowledge/identity-auth-decision-trees.md`: new **GA (July 2026)** least-privileged permissions **`User.Create`** (create a user) and **`User.ReadUpdate.All`** (update a user) — prefer over `User.ReadWrite.All`/`Directory.ReadWrite.All`. `knowledge/workloads-notifications-decision-trees.md`: new **browser-native Web Push** change-notification channel (`vapidPublicKey` + Web Push encryption properties) — **PREVIEW / `/beta` only**, marked do-not-ship-to-prod. Sources: Graph what's-new July-2026 (Microsoft-Learn MCP). **Migration:** none — knowledge-file content only.

@@ -1,6 +1,6 @@
 ---
 target_path: plugins/ravenclaude-core/skills/spec-reread-ritual/SKILL.md
-description: Before writing any code for a task in a multi-task build, the agent MUST re-read the relevant spec section verbatim, paste it into the work log, and quote the prior. NO work from memory. Counters the "100% spec drift" failure mode from the Claude Code bug study (issue #19739) — where 11/11 sessions drifted from the spec and exact-match format compliance was 0%.
+description: 'Before writing any code for a task in a multi-task build, the agent MUST re-read the relevant spec section verbatim, paste it into the work log, and quote the prior. NO work from memory. Counters the "100% spec drift" failure mode from the Claude Code bug study (issue #19739) — where 11/11 sessions drifted from the spec and exact-match format compliance was 0%.'
 allowed-tools: Bash, Read, Grep
 audience: [coder, architect, any sub-agent executing a brief]
 counters_failure_modes: [T-3 silently dropped requirements, T-10 gaslighting/semantic inversion, T-12 self-awareness != behavioral change, T-7 lost-in-context]

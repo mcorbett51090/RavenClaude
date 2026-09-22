@@ -1,7 +1,7 @@
 # Declarative-agent manifest + the hard limits (2026)
 
 **Last reviewed:** 2026-05-30
-**Confidence:** High on the limit values + version-pin discipline (first-party). `[verify-at-build]` on the exact current schema version — it ships ~monthly (latest verified **v1.7**).
+**Confidence:** High on the limit values + version-pin discipline (first-party). `[verify-at-build]` on the exact current schema version — it ships ~monthly (latest verified **v1.8**, re-verified 2026-08-28 — v1.8 adds the `EmailActions` + `MeetingActions` capabilities over v1.7).
 **Read when:** authoring or reviewing a declarative-agent manifest, or sizing a design against the wall.
 
 ---
@@ -20,7 +20,7 @@
 
 ## The manifest (pinned schema)
 
-Pin the schema — never "latest". The manifest ships ~monthly; latest verified **v1.7** `[verify-at-build]`. Grounding: [declarative agent manifest v1.7](https://learn.microsoft.com/microsoft-365/copilot/extensibility/declarative-agent-manifest-1.7).
+Pin the schema — never "latest". The manifest ships ~monthly; latest verified **v1.8** `[verify-at-build]`. Grounding: [declarative agent manifest v1.8](https://learn.microsoft.com/microsoft-365/copilot/extensibility/declarative-agent-manifest-1.8).
 
 Capability map (high level):
 - **`name` / `description`** — discovery surface.

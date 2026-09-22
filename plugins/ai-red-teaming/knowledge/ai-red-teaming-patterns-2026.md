@@ -116,5 +116,5 @@ Layer, don't rely on one control:
 
 ## Provenance
 
-- Durable concepts (safety-vs-security, direct/indirect injection, the jailbreak families, agentic tool-abuse, defense-in-depth, reproducible findings, likelihood×impact severity, responsible disclosure) are consensus practice across the LLM-security / AI-red-teaming literature (OWASP LLM Top 10 2025, MITRE ATLAS, NIST AI RMF framing), reviewed 2026-07-09 — **High confidence**.
+- Durable concepts (safety-vs-security, direct/indirect injection, the jailbreak families, agentic tool-abuse, defense-in-depth, reproducible findings, likelihood×impact severity, responsible disclosure) are consensus practice across the LLM-security / AI-red-teaming literature (OWASP LLM Top 10 2026, MITRE ATLAS, NIST AI RMF framing), reviewed 2026-08-31 — **High confidence**.
 - The tooling map (PyRIT, Garak, Promptfoo red-team, Giskard) and the jailbreak-technique catalog are a **2026-07 snapshot**; feature sets, probe catalogs, named techniques, and model-version behaviors are volatile, carry the retrieval dates above, and must be re-verified before pinning in a deliverable.

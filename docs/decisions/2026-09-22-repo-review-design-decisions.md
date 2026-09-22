@@ -11,9 +11,15 @@ this repo's Claim-Grounding discipline.
 `sync-plugin-versions.py --check` in sync. The genuine findings below are subtle logic/architecture matters
 that no gate catches.
 
-- **Seven fixes with no design input were implemented directly** and ship in the accompanying PR (see
-  "Implemented" at the bottom) — each low-blast, clearly-correct, and validated locally (self-tests re-run,
-  all 182 plugin.json re-validated against the modified schema, prettier/ruff clean).
+- **Three code/precision fixes with no design input were implemented directly** and ship in the
+  accompanying PR (see "Implemented" at the bottom) — each low-blast, clearly-correct, and validated locally
+  (self-tests re-run, prettier/ruff clean). Three further no-design fixes surfaced but did **not** ship:
+  one (`plugin.schema.json` `requires.plugins` validation) had **already landed independently on `main`**
+  via a parallel review by the time this branch merged `main`, and two (the root-README per-plugin skill
+  counts and the `marketplace.json` self-count) are **derivable counts** that were re-rotting in real time as
+  parallel plugin PRs merged (`main` moved from 182 to 184 plugins mid-run) — exactly the cross-PR count
+  contagion this repo's self-healing gate design avoids, so they are folded into the self-heal follow-up
+  below rather than hand-patched here.
 - **Two new findings are routed here for your decision** (D6, D7) — each either changes a data-integrity
   guard's matching or is a product-direction call.
 - **One confirmed P2 doc fix was deferred** (D8) because landing it correctly forces a `ravenclaude-core`
@@ -145,7 +151,7 @@ run" class.
 ## Implemented in the accompanying PR (no design input required — each verified against source + validated locally)
 
 Grouped by final (tie-broken) priority. None touches shipped plugin content, so no version bump is required;
-all live in `scripts/`, `schemas/`, or root docs.
+all three live under `scripts/` (with the review write-up under `docs/decisions/`).
 
 ### P2
 
@@ -159,12 +165,18 @@ all live in `scripts/`, `schemas/`, or root docs.
 | # | Fix | File | Validation |
 | - | --- | ---- | ---------- |
 | F3 | **Meta-gate precision.** `DEFAULT_ARM` matched any case-arm starting with `*` (e.g. `*_denied)`), so a verdict `case` lacking a true bare `*)` catch-all could go undetected — the fail-open this gate exists to catch. Tightened the regex to require a real catch-all (`*` followed by `)` or `|`) and added an M4 self-test fixture. Latent today (no live trigger). | `scripts/check-verdict-default-nonpermissive.py` | `--self-test` teeth verified (M4 now caught); real-tree run still green |
-| F4 | **Schema coverage gap.** `requires.ravenclaude-core` (used by 0 plugins) was documented while the universally-used `requires.plugins` array (181 plugins) fell through `additionalProperties` unvalidated — a malformed name/range on the required schema check passed silently. Added a lenient `plugins` items schema (`<name>@<range>` pattern). | `schemas/plugin.schema.json` | all 182 `plugin.json` validate clean; a malformed entry now correctly rejected |
-| F5 | **README per-plugin skill counts** (root README's hand-maintained bullet list — NOT covered by the self-healing `check-marketplace-claims` gate, which validates the `plugin.json`/`marketplace.json` entries): finance 9→**23**, power-platform 21→**23**, web-design 11→**13**, ravenclaude-core 52→**54** (`39 hooks` left as-is — verified accurate). Counts mirror both the skill-dir and `SKILL.md` counts. | `README.md` | direct count ×2 metrics |
-| F6 | **Marketplace self-count.** `metadata.description` said "plus 180 domain plugins"; there are 181 (182 entries − core). | `.claude-plugin/marketplace.json` | direct count |
 
-> **Durable follow-up for F5/F6 (P3):** these root-README/marketplace bullet counts are derivable but sit
-> **outside** the self-healing `check-marketplace-claims.py --fix` scope, so they will re-rot on the next
-> plugin/skill addition. The durable fix is to bring them under that gate's self-heal coverage (the same
-> pattern already used for the `plugin.json`/`marketplace.json` entries). Filed here rather than expanded into
-> this PR to keep the gate-infra change reviewable on its own.
+### Surfaced but not shipped in this PR
+
+| # | Fix | Why not shipped |
+| - | --- | --------------- |
+| F4 | **Schema coverage gap** — validate the universally-used `requires.plugins` array (was unvalidated via `additionalProperties`). | **Already landed on `main` independently** via a parallel review (`schemas/plugin.schema.json` now carries a `requires.plugins` items pattern). This branch's identical fix was dropped when merging `main` in — the merge took `main`'s version. No action needed. |
+| F5 | **README per-plugin skill counts** (finance 9→23, power-platform 21→23, web-design 11→13, ravenclaude-core 52→54). | **Derivable count, re-rotting.** `main` restructured the README during this run and deprecated the hand-maintained bullet list ("prefer the portal over any hand-maintained essay list"). Rather than fight the restructure with a P3 cosmetic edit, folded into the self-heal follow-up below. |
+| F6 | **Marketplace self-count** ("plus N domain plugins"). | **Derivable count, re-rotting.** `main` moved from 182 → 184 plugins mid-run, so the value churned (was 181, now 183) before this PR could land. Left to the self-heal follow-up rather than shipping a value already stale on arrival. |
+
+> **Durable follow-up for F5/F6 (P3):** these root-README/marketplace self-counts are derivable but sit
+> **outside** the self-healing `check-marketplace-claims.py --fix` scope, so they rot on the next
+> plugin/skill addition (as this run demonstrated live). The durable fix is to bring them under that gate's
+> self-heal coverage (the same pattern already used for the `plugin.json`/`marketplace.json` entries), so a
+> post-merge job rewrites them rather than a human/agent hand-patching a moving target on every PR. Filed here
+> as its own gate-infra change rather than expanded into this PR.

@@ -16,7 +16,7 @@
 | Milestone | Date | Action |
 |---|---|---|
 | Announce | `<YYYY-MM-DD>` | Migration guide published; known consumers emailed; changelog entry |
-| Headers live | `<YYYY-MM-DD>` | `Deprecation: true` + `Sunset` + `Link rel="deprecation"` on every deprecated response |
+| Headers live | `<YYYY-MM-DD>` | `Deprecation: @<unix-ts>` (RFC 9745) + `Sunset` + `Link rel="deprecation"` on every deprecated response |
 | Reminder | `<YYYY-MM-DD>` | Chase remaining consumers still on the old surface (per traffic data) |
 | Brownout (optional) | `<YYYY-MM-DD>` | Brief scheduled outages of the old surface to surface hidden dependencies |
 | **Sunset** | `<YYYY-MM-DD>` | Old surface returns `410 Gone`; only if traffic has drained or sign-off obtained |
@@ -24,7 +24,7 @@
 ## In-band signals (the headers)
 
 ```http
-Deprecation: true
+Deprecation: @<unix-timestamp>                   # RFC 9745 (Structured Field Date: @ + Unix seconds)
 Sunset: <Sat, 30 Nov 2026 23:59:59 GMT>          # RFC 8594
 Link: <https://api.example.com/docs/migrate>; rel="deprecation"
 Warning: 299 - "This version is deprecated; migrate before <date>"

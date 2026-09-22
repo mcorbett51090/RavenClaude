@@ -6,11 +6,11 @@ kind: ravenclaude-built
 entry_class: inventory
 order: 912
 summary: "Asking a script a question is not free: one that ignores arguments simply runs."
-last_verified: 2026-08-20
+last_verified: 2026-09-21
 covers:
   - scripts/inventory-sweep.py
   - scripts/audit-prose-rendering-path.py
-covers_digest: "sha256:ce946fc704195d1519164d4d58837add70d2e069a42b5c43c4173f4c15131e0c"
+covers_digest: "sha256:9a92b1347a021dd3124df46498c454e1df66451586c1dba7240f971947366906"
 nuance: "A script that never calls `argparse` simply runs, so asking 183 of them for `--must-fail-convention` wrote `forge-route.py` to a stray file rather than answering."
 nuance_evidence:
   measured: 2026-08-19

@@ -1,0 +1,83 @@
+{
+  "derived_on": "corpus scan",
+  "corpus_size": 934,
+  "descriptions_with_a_trigger_clause": 489,
+  "min_support": 3,
+  "markers": [
+    {
+      "idiom": "reach for this when",
+      "support": 166,
+      "example": "Reach for this when the user asks 'what do we add so a slow/failing dependency doesn't take us down?', 'is a n"
+    },
+    {
+      "idiom": "reach for this on",
+      "support": 150,
+      "example": "Reach for this on an allocation question.\""
+    },
+    {
+      "idiom": "reach for this",
+      "support": 105,
+      "example": "Reach for this first on any cost spike.\""
+    },
+    {
+      "idiom": "use when",
+      "support": 43,
+      "example": "Use when a program spans multiple teams and you need to know what actually decides the date.\""
+    },
+    {
+      "idiom": "triggers on",
+      "support": 10,
+      "example": "Triggers on phrases like \"freshness check failing\", \"regenerated locally but diff doesn't match\", \"works in CI"
+    },
+    {
+      "idiom": "reach for it",
+      "support": 6,
+      "example": "Reach for it to keep quality consistent across locations and protect the license."
+    },
+    {
+      "idiom": "when",
+      "support": 3,
+      "example": "When to escalate to product vs coach the partner's admin."
+    },
+    {
+      "idiom": "reach for it when",
+      "support": 3,
+      "example": "Reach for it when someone hands you an FDD."
+    }
+  ],
+  "below_threshold": [
+    {
+      "idiom": "invoke when",
+      "support": 2
+    },
+    {
+      "idiom": "reach for this for",
+      "support": 2
+    },
+    {
+      "idiom": "when the",
+      "support": 1
+    },
+    {
+      "idiom": "use to",
+      "support": 1
+    },
+    {
+      "idiom": "use this skill when",
+      "support": 1
+    },
+    {
+      "idiom": "when an",
+      "support": 1
+    },
+    {
+      "idiom": "before you",
+      "support": 1
+    },
+    {
+      "idiom": "use whenever",
+      "support": 1
+    }
+  ],
+  "limits": "Covers the idioms THIS corpus uses at support >= 3. A phrasing absent from the corpus is missed by construction. This bound is why DS02 ships at WARN."
+}

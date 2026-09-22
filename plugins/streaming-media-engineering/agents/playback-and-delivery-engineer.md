@@ -2,7 +2,7 @@
 name: playback-and-delivery-engineer
 description: "Use for streaming playback & delivery: player integration (hls.js/dash.js/Shaka/ExoPlayer/AVPlayer), ABR tuning, QoE (rebuffer, startup, VSF), low-latency live client, client DRM, CDN/edge cache tuning. NOT architecture -> media-streaming-architect; NOT encoding -> transcoding-pipeline-engineer."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
-model: opus
+model: sonnet
 audience: [playback-engineer, client-engineer, delivery-engineer]
 works_with: [media-streaming-architect, transcoding-pipeline-engineer]
 scenarios:

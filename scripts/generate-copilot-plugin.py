@@ -58,7 +58,15 @@ GROUNDING_SECTION_HEADER = "## Accuracy discipline (cross-tool pointer)"
 # because a Copilot session writing artifacts somewhere no other CLI looks is
 # the same class of gap as one making unverified claims — invisible until the
 # next tool cannot find the work.
-STORAGE_SECTION_HEADER = "## Where work files go — the cross-CLI storage contract (READ THIS BEFORE WRITING ANY FILE)"
+STORAGE_SECTION_HEADER = (
+    "## Where work files go — the cross-CLI storage contract (READ THIS BEFORE WRITING ANY FILE)"
+)
+# verify-before-assert Phase 8 — the portable text floor. Copilot CHAT's hooks are
+# `supported: false`, so on that surface this projection is the ONLY form the cause
+# discipline takes: there is no event to gate, and the section says so rather than
+# implying enforcement it does not have. Same class of gap as the two above —
+# invisible until a confident wrong cause has already been acted on.
+CAUSE_FLOOR_SECTION_HEADER = "## Naming a cause (the portable floor)"
 
 # "Launch the dashboard" directive appended to copilot/AGENTS.md. The `/dashboard`
 # slash command is Claude-Code-only and does not exist in Copilot CLI, so without
@@ -211,7 +219,7 @@ def split_frontmatter(text: str) -> tuple[str, str]:
     m = FRONTMATTER_RE.match(text)
     if not m:
         return "", text
-    return m.group(1), text[m.end():]
+    return m.group(1), text[m.end() :]
 
 
 def scalar(raw: str) -> str:
@@ -290,18 +298,32 @@ _AGENT_TOOL_MAP: dict[str, tuple[str, ...]] = {
 # ceiling would let `security-reviewer` (which declares Bash) receive `edit`,
 # the exact grant it withholds.
 _CLAUDE_TOOL_CLASS = {
-    "Read": _TOOL_CLASS_READ, "Grep": _TOOL_CLASS_READ, "Glob": _TOOL_CLASS_READ,
-    "WebFetch": _TOOL_CLASS_READ, "WebSearch": _TOOL_CLASS_READ,
+    "Read": _TOOL_CLASS_READ,
+    "Grep": _TOOL_CLASS_READ,
+    "Glob": _TOOL_CLASS_READ,
+    "WebFetch": _TOOL_CLASS_READ,
+    "WebSearch": _TOOL_CLASS_READ,
     "NotebookRead": _TOOL_CLASS_READ,
-    "Edit": _TOOL_CLASS_WRITE, "Write": _TOOL_CLASS_WRITE, "MultiEdit": _TOOL_CLASS_WRITE,
-    "Bash": _TOOL_CLASS_EXEC, "Task": _TOOL_CLASS_WRITE,
+    "Edit": _TOOL_CLASS_WRITE,
+    "Write": _TOOL_CLASS_WRITE,
+    "MultiEdit": _TOOL_CLASS_WRITE,
+    "Bash": _TOOL_CLASS_EXEC,
+    "Task": _TOOL_CLASS_WRITE,
 }
 _COPILOT_TOOL_CLASS = {
-    "read": _TOOL_CLASS_READ, "view": _TOOL_CLASS_READ, "grep": _TOOL_CLASS_READ,
-    "search": _TOOL_CLASS_READ, "glob": _TOOL_CLASS_READ, "web": _TOOL_CLASS_READ,
+    "read": _TOOL_CLASS_READ,
+    "view": _TOOL_CLASS_READ,
+    "grep": _TOOL_CLASS_READ,
+    "search": _TOOL_CLASS_READ,
+    "glob": _TOOL_CLASS_READ,
+    "web": _TOOL_CLASS_READ,
     "todo": _TOOL_CLASS_READ,
-    "edit": _TOOL_CLASS_WRITE, "agent": _TOOL_CLASS_WRITE, "custom-agent": _TOOL_CLASS_WRITE,
-    "shell": _TOOL_CLASS_EXEC, "bash": _TOOL_CLASS_EXEC, "powershell": _TOOL_CLASS_EXEC,
+    "edit": _TOOL_CLASS_WRITE,
+    "agent": _TOOL_CLASS_WRITE,
+    "custom-agent": _TOOL_CLASS_WRITE,
+    "shell": _TOOL_CLASS_EXEC,
+    "bash": _TOOL_CLASS_EXEC,
+    "powershell": _TOOL_CLASS_EXEC,
     "execute": _TOOL_CLASS_EXEC,
 }
 
@@ -327,20 +349,39 @@ def project_tools(claude_tools: list[str]) -> list[str]:
     return out
 
 
-def parse_agent_frontmatter(frontmatter: str, fallback_name: str) -> tuple[str, str, list[str]]:
-    """Extract `name`, `description` and `tools` from a Claude agent.
+def parse_agent_frontmatter(
+    frontmatter: str, fallback_name: str
+) -> tuple[str, str, list[str], str]:
+    """Extract `name`, `description`, `tools` and `model` from a Claude agent.
 
-    `model`, `audience`, `works_with`, `scenarios` and `quickstart` are still
-    dropped — Copilot's `.agent.md` has no equivalent, so that part is genuinely
-    inert. `tools` is NOT inert and is now projected (MH-10): Copilot defaults an
-    agent to ALL tools, so dropping the field handed `security-reviewer` —
-    canonically `Read, Grep, Glob, Bash, WebFetch`, with Write/Edit deliberately
-    withheld — unrestricted write and shell. AGENTS.md house rule 9 names this
-    exact hazard: "An omitted `tools:` line silently grants ALL tools."
+    `audience`, `works_with`, `scenarios` and `quickstart` are dropped —
+    Copilot's `.agent.md` has no equivalent, so that part is genuinely inert.
+    `tools` is NOT inert and is projected (MH-10): Copilot defaults an agent to
+    ALL tools, so dropping the field handed `security-reviewer` — canonically
+    `Read, Grep, Glob, Bash, WebFetch`, with Write/Edit deliberately withheld —
+    unrestricted write and shell. AGENTS.md house rule 9 names this exact
+    hazard: "An omitted `tools:` line silently grants ALL tools."
+
+    `model` is READ but not projected as a frontmatter field, and the reason is
+    the opposite of "no equivalent": Copilot custom agents DO honour a `model`
+    property — "Model to use when this custom agent executes. If unset, inherits
+    the default model" `[docs-verified 2026-09-14 —
+    docs.github.com/en/copilot/reference/custom-agents-configuration]`. But its
+    VALUE is a Copilot model-picker id, which is plan- and org-specific and
+    churns monthly (see ai-coding-model-guidance/knowledge/cross-tool-model-
+    lineup-2026.md), while the canonical value is a Claude tier alias
+    (`haiku` / `sonnet` / `opus` / `inherit`). Emitting the alias verbatim would
+    ship a `model:` Copilot cannot resolve; inventing an alias→picker-id map
+    would hard-code one tenant's lineup into every consumer. So the canonical
+    tier is carried into the generated header as a stated fact the consumer can
+    act on, and the agent inherits the session default until they do — which is
+    exactly what an absent `model:` means on that host, said out loud instead
+    of silently.
     """
     name = ""
     description = ""
     tools: list[str] = []
+    model = ""
     for line in frontmatter.splitlines():
         kv = YAML_KV_RE.match(line)
         if not kv:
@@ -350,6 +391,8 @@ def parse_agent_frontmatter(frontmatter: str, fallback_name: str) -> tuple[str, 
             name = scalar(raw)
         elif key == "description" and not description:
             description = scalar(raw)
+        elif key == "model" and not model:
+            model = scalar(raw).strip()
         elif key == "tools" and not tools:
             # `tools: Read, Grep` and `tools: "*"` are the two shapes the
             # canonical agents use (check-frontmatter.py gates the field's
@@ -357,7 +400,7 @@ def parse_agent_frontmatter(frontmatter: str, fallback_name: str) -> tuple[str, 
             tools = [t.strip() for t in scalar(raw).split(",") if t.strip()]
     if not name:
         name = fallback_name
-    return name, description, tools
+    return name, description, tools, model
 
 
 def yaml_quote(value: str) -> str:
@@ -367,12 +410,23 @@ def yaml_quote(value: str) -> str:
     return f'"{escaped}"'
 
 
-def build_agent_doc(name: str, description: str, body: str, tools: list[str] | None = None) -> str:
+def build_agent_doc(
+    name: str,
+    description: str,
+    body: str,
+    tools: list[str] | None = None,
+    model: str = "",
+) -> str:
     """Render a Copilot .agent.md: frontmatter, then the verbatim original body.
 
     `tools` is the ALREADY-PROJECTED Copilot name list (see project_tools). An
     empty list emits NO `tools:` line, which Copilot reads as all tools — correct
     only for a canonical `*`, and never a silent default.
+
+    `model` is the canonical Claude tier alias. It is stated in the header
+    comment, never emitted as a frontmatter field — see parse_agent_frontmatter
+    for why. `inherit` (or empty) says nothing: inheriting the default is what
+    Copilot does anyway, so there is no gap to name.
     """
     fm = f"---\nname: {yaml_quote(name)}\ndescription: {yaml_quote(description)}\n"
     if tools:
@@ -389,8 +443,21 @@ def build_agent_doc(name: str, description: str, body: str, tools: list[str] | N
     fm += (
         "<!-- GENERATED by scripts/generate-copilot-plugin.py — do not edit by hand.\n"
         f"     Edit plugins/ravenclaude-core/agents/{name}.md and regenerate;\n"
-        "     the --check freshness gate fails CI on drift. -->\n"
+        "     the --check freshness gate fails CI on drift."
     )
+    tier = (model or "").strip().lower()
+    if tier and tier != "inherit":
+        # Copilot honours `model:` but wants a picker id, not a tier alias; the
+        # alias is stated so a consumer can pin it on their lineup, and so the
+        # cost consequence of NOT pinning is visible in the file rather than
+        # discovered on the bill.
+        fm += (
+            f"\n     Canonical model tier: {tier}. Copilot's `model:` frontmatter is honoured\n"
+            "     but takes a plan-specific picker id, so the tier is NOT projected — this\n"
+            "     agent inherits the session's default model until you pin one. -->\n"
+        )
+    else:
+        fm += " -->\n"
     # The canonical body already begins with a blank line after the closing
     # `---`; preserve it verbatim so the output is a faithful projection.
     return fm + body
@@ -477,10 +544,10 @@ def build_readme() -> str:
         "> **Source** — the page the Copilot CLI docs designate as authoritative\n"
         "> for this field, `docs.github.com/en/copilot/reference/custom-agents-\n"
         "> configuration` [docs-verified 2026-07-29]: the properties apply to\n"
-        "> \"agent profiles in GitHub.com, the Copilot CLI, and supported IDEs\";\n"
-        "> `tools` is \"List of tool names the custom agent can use... If unset,\n"
-        "> defaults to all tools\"; and **\"All unrecognized tool names are\n"
-        "> ignored\"**.\n"
+        '> "agent profiles in GitHub.com, the Copilot CLI, and supported IDEs";\n'
+        '> `tools` is "List of tool names the custom agent can use... If unset,\n'
+        '> defaults to all tools"; and **"All unrecognized tool names are\n'
+        '> ignored"**.\n'
         ">\n"
         "> **That last line sets the failure direction, and it is why this ships.**\n"
         "> A name we get wrong is DROPPED, never widened — the worst case is an\n"
@@ -516,6 +583,27 @@ def build_readme() -> str:
         "> them, the probe named `git` and `curl` — neither exists as a tool; the\n"
         "> follow-up leak attempt failed with \"Skill 'curl' not found\". Test the\n"
         "> BEHAVIOUR (can it write?), never the description.\n"
+        ">\n"
+        "> ### Model tier is STATED, not projected (2026-09-14)\n"
+        ">\n"
+        "> Every canonical agent pins a `model:` tier alias (`haiku` for `scout`,\n"
+        "> `sonnet` for the coders, `opus` for the gates). Copilot custom agents DO\n"
+        '> honour a `model` property — "Model to use when this custom agent\n'
+        '> executes. If unset, inherits the default model" [docs-verified\n'
+        "> 2026-09-14, same reference page] — but its value is a **model-picker id**,\n"
+        "> which is plan- and org-specific and churns monthly, not a tier alias.\n"
+        "> Emitting `model: haiku` would ship a value Copilot cannot resolve;\n"
+        "> inventing an alias→id map would hard-code one tenant's picker into every\n"
+        "> consumer. So each generated `.agent.md` states its canonical tier in the\n"
+        "> header comment and emits NO `model:` line.\n"
+        ">\n"
+        "> **Consequence, said plainly:** on this host every projected agent —\n"
+        "> `scout` included — runs on the session's default model until you pin\n"
+        "> one. The haiku saving described in\n"
+        "> `knowledge/model-tier-delegation.md` does not arrive here by itself.\n"
+        "> To get it, add `model: <your lineup's Haiku-class picker id>` to the\n"
+        "> agents whose header says `Canonical model tier: haiku` — in a copy you\n"
+        "> own, since regeneration overwrites this directory.\n"
         "- `AGENTS.md` — the cross-tool claim-grounding discipline, projected\n"
         "  verbatim from RavenClaude's root `AGENTS.md`. Copilot reads `AGENTS.md`\n"
         "  natively `[docs-verified 2026-05-31]`, but only from *your* repo — so\n"
@@ -675,6 +763,7 @@ def build_agents_md() -> str:
     # The storage contract travels too — a Copilot session that writes its work
     # where no other CLI looks has produced nothing the next tool can use.
     section = section.rstrip() + "\n\n" + extract_section(root_agents, STORAGE_SECTION_HEADER)
+    section = section.rstrip() + "\n\n" + extract_section(root_agents, CAUSE_FLOOR_SECTION_HEADER)
     banner = (
         "# ravenclaude-core — Copilot grounding instructions\n"
         "\n"
@@ -722,8 +811,10 @@ def generate() -> dict[str, str]:
             continue
         text = read_text(agent_path)
         frontmatter, body = split_frontmatter(text)
-        name, description, claude_tools = parse_agent_frontmatter(frontmatter, agent_path.stem)
-        doc = build_agent_doc(name, description, body, project_tools(claude_tools))
+        name, description, claude_tools, model = parse_agent_frontmatter(
+            frontmatter, agent_path.stem
+        )
+        doc = build_agent_doc(name, description, body, project_tools(claude_tools), model)
         tree[f"{rel_root}/agents/{agent_path.stem}.agent.md"] = doc
 
     return tree

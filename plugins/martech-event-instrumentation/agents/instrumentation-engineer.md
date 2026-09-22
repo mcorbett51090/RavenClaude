@@ -2,7 +2,7 @@
 name: instrumentation-engineer
 description: "Use to IMPLEMENT event tracking on a chosen CDP: typed client/server Track/Identify calls, a codegen'd tracking library, schema validation in CI, consent gating (Consent Mode/TCF/GPC), destinations + reverse ETL, stream QA. NOT taxonomy/CDP design → event-taxonomy-architect."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
-model: opus
+model: sonnet
 audience: [data-engineer, growth-engineer, frontend-engineer, backend-engineer, dev]
 works_with: [analytics-engineering, experimentation-growth-engineering, marketing-operations, data-governance-privacy, data-platform]
 scenarios:

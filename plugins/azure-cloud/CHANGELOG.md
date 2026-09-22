@@ -4,6 +4,12 @@ Versioning is semver; bump on every user-visible change and keep it in sync with
 
 > Note: this file tracks the major arcs; the authoritative version history is the `version` field in `.claude-plugin/plugin.json` + git history (per the marketplace CHANGELOG convention). The 0.2.x–0.4.x bumps between the initial release and the build-out below were tracked in `plugin.json` + git, not back-filled here.
 
+## [0.5.7] — 2026-09-14
+
+### Changed
+
+- `app-platform-engineer`, `azure-ops-engineer`, `bicep-iac-engineer`, `entra-identity-engineer`, `integration-engineer`, `network-engineer`: `model: opus` → `model: sonnet`. Second model-tier pass — parity with the same-shaped `aws-cloud` / `gcp-cloud` engineers, which already pin `sonnet` beside their `opus` architect; `azure-architect` stays on `opus`. This is the `sonnet` row of the marketplace's tier table (`ravenclaude-core/knowledge/model-tier-delegation.md`: bounded, well-specified work against a design made upstream), and the sibling-plugin parity rule the doctrine now states: the same role shape gets the same tier across plugins. Listed by the model-tier-fit gate's `--report` pair-review queue (`check-model-tier-fit.py`, Gate 288). No behaviour change beyond the model the agents run on — they move tier, not role.
+
 ## [0.5.6] — 2026-08-14
 
 ### Changed

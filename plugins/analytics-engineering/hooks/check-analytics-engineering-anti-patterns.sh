@@ -32,7 +32,7 @@ command -v _rc_pcre_match >/dev/null 2>&1 || _rc_pcre_match() {
 }
 
 findings=()
-if grep -nEi "\\bfrom\\s+(raw|source|prod)\\.[a-z_]+\\.[a-z_]+|\\bfrom\\s+`[^`]+\\.[^`]+`" "$file" >/dev/null 2>&1; then
+if grep -nEi "\\bfrom\\s+(raw|source|prod)\\.[a-z_]+\\.[a-z_]+|\\bfrom\\s+\`[^\`]+\\.[^\`]+\`" "$file" >/dev/null 2>&1; then
   findings+=("Querying a raw/source table directly — use {{ source() }} (in staging) or {{ ref() }} for lineage; don't hardcode warehouse paths.")
 fi
 if _rc_pcre_match "$file" "materialized\\s*=\\s*['\\\"]incremental['\\\"](?![\\s\\S]{0,200}unique_key)"; then

@@ -18,8 +18,8 @@ Treat 8,000 chars as a design constraint. Instructions hold role + scope + tone 
 
 ```jsonc
 {
-  "$schema": "https://developer.microsoft.com/json-schemas/copilot/declarative-agent/v1.7/schema.json",
-  "version": "v1.7",
+  "$schema": "https://developer.microsoft.com/json-schemas/copilot/declarative-agent/v1.8/schema.json",
+  "version": "v1.8",
   "name": "Contoso Policy Assistant",
   "description": "Answers HR-policy questions from the indexed policy library.",
   // ≤ 8,000 chars. Behavior only. NOT "see the rules in /sites/hr/agent-rules.docx".

@@ -167,25 +167,64 @@ else
   fail "G70.4b confirm-file present should exit 0; got rc=$rc_dod2"
 fi
 
-# G70.4c — trusted:true bypass -> exit 0 without confirm
+# G70.4c — trusted:true bypass -> exit 0, but ONLY when git blame shows the
+# `trusted:` line and the `cmd:` line were last touched in DIFFERENT commits
+# (b26-dodgate-cmd-exec-trusted-bypass — see dod-gate.sh's own comment block).
+# Trust granted as a genuinely separate act, after the cmd already existed.
 sb_dod_trusted="$(mktemp -d)"
 mkdir -p "$sb_dod_trusted/.ravenclaude"
+git -C "$sb_dod_trusted" init -q
+git -C "$sb_dod_trusted" config user.email "test@example.com"
+git -C "$sb_dod_trusted" config user.name "test"
+cat > "$sb_dod_trusted/.ravenclaude/comfort-posture.yaml" <<'YAML'
+definition_of_done:
+  cmd: "echo trusted-bypass"
+  trusted: false
+YAML
+git -C "$sb_dod_trusted" add .ravenclaude/comfort-posture.yaml
+git -C "$sb_dod_trusted" commit -q -m "add cmd"
 cat > "$sb_dod_trusted/.ravenclaude/comfort-posture.yaml" <<'YAML'
 definition_of_done:
   cmd: "echo trusted-bypass"
   trusted: true
 YAML
-git -C "$sb_dod_trusted" init -q
+git -C "$sb_dod_trusted" add .ravenclaude/comfort-posture.yaml
+git -C "$sb_dod_trusted" commit -q -m "trust it, separately"
 echo "x" > "$sb_dod_trusted/x.py"
 git -C "$sb_dod_trusted" add x.py 2>/dev/null
 rc_dod3=0
 CLAUDE_PROJECT_DIR="$sb_dod_trusted" bash "$HOOK_DOD" <<< "{\"cwd\":\"$sb_dod_trusted\",\"session_id\":\"s2\"}" >/dev/null 2>&1 || rc_dod3=$?
 if [ "$rc_dod3" -eq 0 ]; then
-  pass "G70.4c trusted:true -> exit 0 (bypass)"
+  pass "G70.4c trusted:true, separate commit from cmd -> exit 0 (bypass)"
 else
-  fail "G70.4c trusted:true should exit 0; got rc=$rc_dod3"
+  fail "G70.4c trusted:true (separate commit) should exit 0; got rc=$rc_dod3"
 fi
-rm -rf "$sb_dod" "$sb_dod_trusted" 2>/dev/null || true
+
+# G70.4d — the b26 regression itself: trusted:true set in the SAME commit as
+# cmd (the finding's exact trigger — one PR/commit setting both fields
+# together) must NOT bypass -> still exit 2, confirm-file challenge stands.
+sb_dod_samecommit="$(mktemp -d)"
+mkdir -p "$sb_dod_samecommit/.ravenclaude"
+git -C "$sb_dod_samecommit" init -q
+git -C "$sb_dod_samecommit" config user.email "test@example.com"
+git -C "$sb_dod_samecommit" config user.name "test"
+cat > "$sb_dod_samecommit/.ravenclaude/comfort-posture.yaml" <<'YAML'
+definition_of_done:
+  cmd: "echo same-commit-attack"
+  trusted: true
+YAML
+git -C "$sb_dod_samecommit" add .ravenclaude/comfort-posture.yaml
+git -C "$sb_dod_samecommit" commit -q -m "one commit sets both cmd and trusted"
+echo "x" > "$sb_dod_samecommit/x.py"
+git -C "$sb_dod_samecommit" add x.py 2>/dev/null
+rc_dod4=0
+CLAUDE_PROJECT_DIR="$sb_dod_samecommit" bash "$HOOK_DOD" <<< "{\"cwd\":\"$sb_dod_samecommit\",\"session_id\":\"s3\"}" >/dev/null 2>&1 || rc_dod4=$?
+if [ "$rc_dod4" -eq 2 ]; then
+  pass "G70.4d same-commit cmd+trusted:true (b26 attack) -> exit 2 (still blocked)"
+else
+  fail "G70.4d same-commit cmd+trusted:true should still exit 2; got rc=$rc_dod4"
+fi
+rm -rf "$sb_dod" "$sb_dod_trusted" "$sb_dod_samecommit" 2>/dev/null || true
 
 # ── G70.5 — guard-web-access first-use ask ───────────────────────────────────
 echo ""

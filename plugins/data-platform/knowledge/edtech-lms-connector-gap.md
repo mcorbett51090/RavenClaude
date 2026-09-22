@@ -55,7 +55,7 @@ For a real EdTech engagement, the connector path is:
 5. **Cursor-based pagination + state checkpointing** — production tenants have millions of rows; resumable runs are non-negotiable
 6. **Rate-limit-aware retry** — honor `Retry-After`, exponential backoff with ceiling
 
-See [`../skills/connector-configuration/SKILL.md`](../skills/connector-configuration/SKILL.md) for the operational pattern, and route deeper custom-connector work to `connector-developer`.
+See [`../skills/airbyte-cdk-authoring/SKILL.md`](../skills/airbyte-cdk-authoring/SKILL.md) for the custom-connector playbook, and [`../skills/connector-configuration/SKILL.md`](../skills/connector-configuration/SKILL.md) only when a vendor already ships the connector.
 
 ## Cross-plugin handoff to `edtech-partner-success`
 

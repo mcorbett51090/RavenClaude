@@ -1,8 +1,12 @@
 ---
 name: connector-developer
 description: "Use this agent for custom Airbyte connector authoring when an ELT vendor doesn't ship a connector for the source the engagement needs. NOT for configuring an existing Airbyte / Fivetran connector (that's `etl-pipeline-engineer`)."
+# tools rationale (FORGE P1-13, 2026-09-03): Bash for `airbyte-ci connectors test`/`pytest`/schema
+# validation (see "Tools" section below); WebFetch/WebSearch for source-API docs, OpenAPI specs,
+# Airbyte CDK reference, and rate-limit changelogs when authoring a connector no vendor ships —
+# not a pricing lookup, so out of scope for CLAUDE.md §10's deep-researcher routing; kept as-is.
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
-model: opus
+model: sonnet
 audience: [data-engineer, dev]
 works_with: [etl-pipeline-engineer, database-setup-guide]
 scenarios:
@@ -114,7 +118,8 @@ Use the standard data-platform output block (see [`../CLAUDE.md`](../CLAUDE.md) 
 
 ## References
 - Constitution: [`../CLAUDE.md`](../CLAUDE.md) §3, §4, §6
-- Skill: [`../skills/connector-configuration/SKILL.md`](../skills/connector-configuration/SKILL.md) (shared with `etl-pipeline-engineer`)
+- Skill: [`../skills/airbyte-cdk-authoring/SKILL.md`](../skills/airbyte-cdk-authoring/SKILL.md) (primary playbook)
+- Skill: [`../skills/connector-configuration/SKILL.md`](../skills/connector-configuration/SKILL.md) (configuring a *shipped* connector — hand off to `etl-pipeline-engineer`)
 - Knowledge: [`../knowledge/edtech-lms-connector-gap.md`](../knowledge/edtech-lms-connector-gap.md) (canonical custom-connector use case)
 - Knowledge: [`../knowledge/ipaas-connector-landscape-2026.md`](../knowledge/ipaas-connector-landscape-2026.md)
 - Cross-plugin route: [`../../edtech-partner-success/CLAUDE.md`](../../edtech-partner-success/CLAUDE.md) (partner-success motions on top of LMS data)

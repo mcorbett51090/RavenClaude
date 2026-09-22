@@ -39,6 +39,11 @@ A **memory-engineering specialist team** for the engineer who has to design, cos
 - **DSAR process, legal basis, records-retention policy** → [`data-governance-privacy`](../data-governance-privacy/). This team names the engineering residue a delete leaves behind — embeddings, derived indexes, version history — it does not make the legal call.
 - **Corpus retrieval and chunking** → [`ai-rag-engineering`](../ai-rag-engineering/). **Generic eval harnesses and ship-gates** → [`llm-evaluation-engineering`](../llm-evaluation-engineering/). **The Claude app itself** → [`claude-app-engineering`](../claude-app-engineering/).
 
+
+## Grok Build Memory GA (native — leave-native · DOC adapt 2026-09-20 UNVERIFIED)
+
+Grok Build 1.0.34 ships host Memory (`/memory`, `/dream`). This plugin stays **advisory** — do **not** invent a parallel RavenClaude Memory product. HARD: **new-session-only · no secrets · no task-state · no second product · repo facts stay in repo · current turn wins**. See [`CLAUDE.md`](CLAUDE.md) §2b and [`knowledge/memory-surfaces-2026.md`](knowledge/memory-surfaces-2026.md).
+
 ## What it is not
 
 Not an agent-topology practice, a retrieval team, an eval vendor, a red-team, or a privacy authority. It certifies nothing and makes no legal determination. Vendor surface details move fast — every dated fact in [`knowledge/`](knowledge/memory-surfaces-2026.md) carries a `**Last verified:**` line, and the freshness sweep reports **age, never correctness**. Re-verify before quoting.

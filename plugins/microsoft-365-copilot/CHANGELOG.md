@@ -2,6 +2,22 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.5.9] — 2026-09-21
+
+### Fixed
+
+- `flag-copilot-anti-patterns.sh`: strict mode (`M365_COPILOT_STRICT=1`) now exits **2** (BLOCK) instead of **1** on a violation. Exit 1 is a non-blocking error that Claude Code silently swallows, so strict mode was a silent no-op — the opposite of its intent, and the exact mistake the six sibling advisory hooks (finance, edtech, staffing, web-design, power-platform, database-engineering) explicitly warn against by using exit 2. Header comment corrected to match. **Migration:** none — advisory default (exit 0) is unchanged; only the opt-in `M365_COPILOT_STRICT=1` path is affected, and only to start working as documented.
+
+## [0.5.8] — 2026-09-14
+
+### Changed
+
+- `agents-sdk-engineer`, `api-plugin-engineer`, `declarative-agent-engineer`, `graph-connector-engineer`: `model: opus` → `model: sonnet`. Second model-tier pass — each builds the surface `copilot-extensibility-architect` chose (custom-engine agent, API plugin, declarative manifest, connector); the architect and `copilot-admin-governance` stay on `opus`. This is the `sonnet` row of the marketplace's tier table (`ravenclaude-core/knowledge/model-tier-delegation.md`: bounded, well-specified work against a design made upstream), and the sibling-plugin parity rule the doctrine now states: the same role shape gets the same tier across plugins. Listed by the model-tier-fit gate's `--report` pair-review queue (`check-model-tier-fit.py`, Gate 288). No behaviour change beyond the model the agents run on — they move tier, not role.
+
+## [0.5.7] — 2026-08-28
+
+Weekly research sweep. Latest declarative-agent manifest schema is **v1.8** (adds `EmailActions` + `MeetingActions` over v1.7); pin target moved in lockstep across knowledge, CLAUDE.md, the agent, skill, command, template, best-practices, and the anti-pattern hook. Pin-don't-chase and `[verify-at-build]` kept. Verified 2026-08-28 against MS Learn [`declarative-agent-manifest-1.8`](https://learn.microsoft.com/microsoft-365/copilot/extensibility/declarative-agent-manifest-1.8) (the v1.7 page's own "Important" callout names v1.8 as latest). **Migration:** none — knowledge/pin-target only.
+
 ## [0.5.6] — 2026-08-14
 
 ### Changed

@@ -10,6 +10,11 @@ description: Scaffold Cube semantic-layer schemas with mandatory `securityContex
 > **When to invoke:** scaffolding a new Cube schema for Case C (productized SaaS) or Case B (client deliverable when Cube is the chosen layer). Designing measures + dimensions + pre-aggregations. Authoring `securityContext` policies for multi-tenant scoping.
 >
 > **Output:** Cube `cubes/` directory scaffold with `securityContext` baked in, measure + dimension authoring, pre-aggregation hints, and cross-boundary denial test pattern.
+>
+> ⛔ **Version floor: Cube Core >=1.2.0.** `access_policy` (Data Access Policies) ships starting at Cube
+> Core v1.2.0 — verify the target Cube instance meets this floor before scaffolding a schema on this
+> pattern; below it, `access_policy` is not a mechanism the server implements, and a schema that "has"
+> one is silently unenforced.
 
 ## When Cube is the right choice
 

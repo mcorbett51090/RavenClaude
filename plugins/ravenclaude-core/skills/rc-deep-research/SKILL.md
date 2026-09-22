@@ -1,6 +1,6 @@
 ---
 name: rc-deep-research
-description: "Deep research harness — fan-out web searches, fetch sources, adversarially verify claims, synthesize a cited report. Includes an inline substrate adapter that reads .ravenclaude/run-config.json once at startup; when enabled:false (the default) all agent() calls are byte-identical to the pre-port baseline (Gate 51)."
+description: "Deep research harness — fan-out web searches, fetch sources, adversarially verify claims, synthesize a cited report. Includes an inline substrate adapter that reads .ravenclaude/run-config.json once at startup; when enabled:false (the default) all agent() calls are byte-identical to the pre-port baseline (a behavioral invariant — no gate currently CI-enforces it)."
 ---
 
 # Skill: rc-deep-research
@@ -34,7 +34,7 @@ files out of the marketplace.
 The harness carries an inline adapter that reads `.ravenclaude/run-config.json` **once at startup**
 for per-phase model-tier / reasoning routing. **It is disabled and safe when that file is absent**
 — with no `run-config.json` (or `enabled:false`, the default) `adapterOpts()` returns `{}` on every
-call, so every `agent()` invocation is byte-identical to the unconfigured baseline (Gate 51 invariant).
+call, so every `agent()` invocation is byte-identical to the unconfigured baseline (a behavioral invariant, not currently CI-gated).
 A consumer who never creates the file pays nothing and sees the plain harness.
 
 ## Runtime facts (re-verify at use — research-preview feature)
@@ -46,3 +46,13 @@ A consumer who never creates the file pays nothing and sees the plain harness.
 
 Authoritative guidance + the orchestration-shape decision aid:
 [`knowledge/dynamic-workflows.md`](../../knowledge/dynamic-workflows.md).
+
+## Parent-context survival (disk-first)
+
+When adapting this harness for a live research run:
+
+- Each Search / Fetch / Verify **angle agent MUST write** its angle file under the run dir **before** returning to the parent.
+- **Never** inline scrapes or full fetch bodies into the parent merge prompt.
+- The parent synthesizer **re-reads** angle files from disk (survives `/compact`, `/clear`, resume).
+- Adapt the `.js` shape; agents do the IO — enforce file-back in the adapted harness (do not byte-run blindly).
+- Evidence: DIGEST-rc-deep-research-session-agent-token-loss (2026-09-05; fleet cli-out).

@@ -2,6 +2,27 @@
 
 All notable changes to the `web-commerce` plugin. Versions follow semver; the plugin's `version` in `.claude-plugin/plugin.json` is the source of truth.
 
+## 0.1.2 — 2026-09-10
+
+### Fixed
+
+- **`shopify-webhook-amount-decimal-assumption`** — `templates/shopify/framework/webhook.ts` assumed
+  every currency has 2 decimal places when normalizing to minor units (`×100`), silently
+  mis-converting 0-decimal (JPY, KRW, …) and 3-decimal (KWD, BHD, …) currencies. Added a per-currency
+  ISO-4217 minor-unit exponent lookup.
+- **`posrecon-catalog-remember-before-fetch`** / **`posrecon-shared-idempotency-store-skips-inventory`**
+  — `templates/square/framework/pos-reconciliation.ts`'s `applyCatalogVersionEvent` marked an event
+  processed *before* the Catalog API fetch/apply succeeded (a transient failure permanently skipped
+  reconciliation on redelivery), and `applyInventoryEvent` deduped on the raw event id, colliding with
+  `webhook.ts`'s own `remember()` of the same id on a shared `IdempotencyStore`. Fixed the ordering and
+  namespaced the inventory-reconciler's dedup key.
+- **`sq-webhook-refund-status-ignored`** — `templates/square/static/webhook.ts` mapped any
+  `refund.created`/`refund.updated` event to `payment.refunded` regardless of the refund's actual
+  status, matching the same house opinion violation the sibling payment-status gating already guarded
+  against. Now gates on `status === "COMPLETED"`.
+
+All four found + verified CONFIRMED via a hand-recovered `/repo-review` pass.
+
 ## 0.1.1 — 2026-07-14
 
 Captured field learnings from using the plugin on a live engagement (scaffolded a Square store; designed shop packaging + product-on-site integration for a real site).

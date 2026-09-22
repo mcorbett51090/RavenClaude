@@ -46,6 +46,17 @@ _REPO = Path(__file__).resolve().parent.parent
 _MANIFEST = _REPO.joinpath("plugins", "ravenclaude-core", "hooks", "hooks.json")
 _ARGV_TOKEN = '"$CLAUDE_TOOL_FILE_PATH"'
 
+# `SessionStart`'s matcher is never emitted for Cursor, and that is CORRECT, not a
+# gap: `[docs-verified 2026-09-02 — cursor.com/docs/agent/hooks]` Cursor's matcher
+# config section enumerates matcher support per event, and `sessionStart` is not
+# among them — its documented input payload (session_id, is_background_agent,
+# composer_mode + the common base fields) carries no `source`/`matcher`-able field
+# either. So there is no Claude-Code-style startup/resume/clear/compact/fork
+# discrimination to wire on this host; every SessionStart hook fires on every
+# Cursor session start unconditionally, by platform design. (The payload DOES
+# carry `transcript_path`, same field name as Claude Code's — see
+# knowledge/cursor-customization.md for why that matters for the lease-identity
+# work this comment sits next to in history.)
 _EVENT = {
     "SessionStart": ("sessionStart", "sessionstart"),
     "PostToolUse": ("afterFileEdit", "file-posttool"),
@@ -71,6 +82,13 @@ _SKIP = {
     "route-decision-review.sh": (
         "matches AskUserQuestion, a Claude Code tool with no Cursor equivalent."
     ),
+    "workaround-exhaustion.sh": (
+        "Two lanes, neither reachable here: the PreToolUse lane matches "
+        "AskUserQuestion (no Cursor equivalent, as route-decision-review.sh above); "
+        "the Stop lane reads last_assistant_message off Claude Code's Stop payload, "
+        "and no verified Cursor event carries that field — without it the hook is "
+        "silent by construction, so a projection would read as coverage it cannot give."
+    ),
     "agent-dispatch-evaluator.sh": (
         "SubagentStart. Cursor does expose subagentStart, but its payload schema is "
         "not published on the page verified, and this hook is an audit-only shadow "
@@ -79,16 +97,84 @@ _SKIP = {
     "mark-web-domain-seen.sh": (
         "PostToolUse on WebFetch; pairs with guard-web-access.sh, which is skipped."
     ),
+    "handoff-tax-meter.sh": (
+        "PostToolUse on Agent|Task (a subagent-dispatch RESULT). Cursor's only "
+        "PostToolUse lane here is afterFileEdit, which carries a file edit, not a "
+        "dispatch — wiring it there would register a meter that can only ever "
+        "no-op on its tool_name guard, and the generated config would claim "
+        "coverage the host does not give. Cursor has no verified after-subagent "
+        "event with the dispatch payload; the dispatch ledger is Claude-Code-only "
+        "on this host."
+    ),
+    "explore-tier-pin.sh": (
+        "PreToolUse on Agent|Task that REWRITES the tool input via Claude Code's "
+        "hookSpecificOutput.updatedInput. Cursor's verified pre-tool lane carries a "
+        "shell command and has no input-rewrite field, so the pin cannot bind here. "
+        "On Cursor, pick the model tier in the dispatch call itself."
+    ),
+    "precompact-digest.sh": (
+        "PreCompact. Cursor has no verified compaction-hook event (nothing analogous "
+        "to Claude Code's PreCompact is published on the pages verified), so wiring "
+        "this would claim coverage that does not exist. This hook is archival-only "
+        "and never denies, so the cost of the gap is one un-archived digest, not "
+        "lost enforcement."
+    ),
+    # ⛔ R7 — THE THREE verify-before-assert CELLS SHIP **UNWIRED AND DECLARED**.
+    # This is a deliberate DOWNGRADE from what the lane would otherwise do: both
+    # Bash-shaped hooks below would map cleanly onto beforeShellExecution, and the
+    # generator would wire them without complaint. They are skipped anyway.
+    #
+    # The governing rule: a lane whose event is not LIVE-verified ships as
+    # explicitly skipped with a stated reason, never as wired-and-hopeful. A
+    # silent no-op guardrail is strictly worse than a documented gap, because it
+    # produces a false sense of coverage that survives into the next session's
+    # priors. The in-repo existence proof is Copilot: plugin-level hooks were
+    # DOCUMENTED to fire, were shipped that way, and only github/copilot-cli#2540
+    # -- a live product bug report, not a docs re-read -- revealed they never do.
+    # A synthetic-fixture canary would have stayed green throughout.
+    #
+    # ⛔ Cursor additionally FAILS OPEN on a malformed hook response, so a cell
+    # that is wrong here is wrong SILENTLY.
+    #
+    # control (G7.2, 2026-08-25): re-read knowledge/host-support.json rather than
+    # trusting its standing "unverified" note. `updated` still reads 2026-08-14 --
+    # no newer evidence than the plan had -- so the downgrade stands unmodified.
+    # These move to wired only when G7.1 is satisfied in full: a cited dated URL
+    # for the event's input schema, the field name carrying a file path for the
+    # write-path gate, AND a live round-trip against the real product.
+    "preflight-command-review.sh": (
+        "UNWIRED — declared (R7). Bash-shaped and would map to "
+        "beforeShellExecution, but that round-trip has never been run against the "
+        "live product, and Cursor fails OPEN on a malformed response. Ships "
+        "skipped until G7.1 passes; the host degrades to the portable text floor."
+    ),
+    "guard-remediation-cause.sh": (
+        "UNWIRED — declared (R7). Same basis as preflight-command-review.sh. This "
+        "one carries a deny path at cause_remediation: block, so a silently "
+        "fail-open cell would claim a fail-closed surface that does not exist."
+    ),
+    "guard-cause-closure.sh": (
+        "UNWIRED — declared (R7). Write/Edit/MultiEdit-shaped: Cursor's verified "
+        "enforcement event carries a shell command, not file content, and the "
+        "file-write events reachable here fire AFTER the edit. Same skip basis as "
+        "enforce-layout.sh above, plus the R7 live-round-trip requirement."
+    ),
+    "caveman-route-hook.sh": (
+        "routes a Claude-Code-only third-party plugin; the target mode store does "
+        "not exist on this host."
+    ),
 }
 
 
 def _script_of(command: str) -> str:
-    m = re.search(r"/hooks/([A-Za-z0-9._-]+\.sh)", command)
+    m = re.search(r"/(?:hooks|scripts)/([A-Za-z0-9._-]+\.sh)", command)
     return m.group(1) if m else ""
 
 
 def _extra_args(command: str, script: str) -> str:
     marker = "/hooks/" + script
+    if marker not in command:
+        marker = "/scripts/" + script
     tail = command.split(marker, 1)[1].strip() if marker in command else ""
     return tail.replace(_ARGV_TOKEN, "").strip()
 
@@ -187,9 +273,7 @@ def main(argv: list) -> int:
         accounted = {s for s, *_ in wired} | {s for s, *_ in skipped}
         missing = canonical - accounted
         if missing:
-            print(
-                f"cursor-hooks: NOT accounted for: {sorted(missing)}", file=sys.stderr
-            )
+            print(f"cursor-hooks: NOT accounted for: {sorted(missing)}", file=sys.stderr)
             return 1
         if not any(ev == "beforeShellExecution" for _, _, ev, _ in wired):
             print(

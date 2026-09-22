@@ -1,0 +1,124 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema#",
+  "$id": "https://ravenclaude/schemas/agent-routing-matrix.json",
+  "title": "Agent routing matrix",
+  "description": "Host-agnostic task-shape -> {agent, model, effort-tier} routing table. Heuristic, cited, ordinal-ranked (no numeric confidence). See agent-routing-matrix.md for the framework this schema encodes.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "owner",
+    "staleness_tier",
+    "review_trigger",
+    "last_reviewed",
+    "sources",
+    "agent_hosts",
+    "task_classes"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": { "type": "string", "enum": ["1"] },
+    "owner": { "type": "string", "minLength": 1 },
+    "staleness_tier": {
+      "type": "string",
+      "enum": ["Tier-1", "Tier-2", "Tier-3", "Tier-4", "Tier-5"]
+    },
+    "review_trigger": { "type": "string", "minLength": 1 },
+    "last_reviewed": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$" },
+    "sources": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id"],
+        "additionalProperties": true,
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "path": { "type": "string" },
+          "note": { "type": "string" }
+        }
+      }
+    },
+    "agent_hosts": {
+      "type": "object",
+      "description": "5 routable agent ids -> the real substrate-tier-map.json host keys. Data, not inferred by a resolver.",
+      "minProperties": 1,
+      "propertyNames": {
+        "enum": ["claude-code", "codex-cli", "copilot-cli", "copilot-chat", "grok-build-cli"]
+      },
+      "additionalProperties": {
+        "type": "string",
+        "enum": ["claude", "codex", "copilot", "grok"]
+      }
+    },
+    "task_classes": {
+      "type": "object",
+      "description": "Open, data-level registry. Adding a class is a data-only edit -- see the extension procedure in agent-routing-matrix.md.",
+      "propertyNames": { "pattern": "^[a-z][a-z0-9-]*$" },
+      "additionalProperties": {
+        "type": "object",
+        "required": ["label", "complexity_note", "recommendations"],
+        "additionalProperties": false,
+        "properties": {
+          "label": { "type": "string", "minLength": 1 },
+          "complexity_note": { "type": "string", "minLength": 1 },
+          "recommendations": {
+            "type": "array",
+            "minItems": 1,
+            "items": { "$ref": "#/$defs/recommendation" }
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "recommendation": {
+      "type": "object",
+      "required": [
+        "interaction_mode",
+        "blast_radius",
+        "agent",
+        "model_ref",
+        "rank",
+        "basis",
+        "rationale",
+        "sources"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "interaction_mode": { "type": "string", "enum": ["inline", "chat", "agent"] },
+        "blast_radius": { "type": "string", "enum": ["reversible", "irreversible"] },
+        "agent": {
+          "type": "string",
+          "enum": ["claude-code", "codex-cli", "copilot-cli", "copilot-chat", "grok-build-cli"]
+        },
+        "model_ref": {
+          "type": "object",
+          "required": ["host", "tier"],
+          "additionalProperties": false,
+          "properties": {
+            "host": { "type": "string", "enum": ["claude", "codex", "copilot", "grok"] },
+            "tier": { "type": "string", "enum": ["fast", "balanced", "top"] }
+          }
+        },
+        "rank": { "type": "integer", "minimum": 1 },
+        "basis": {
+          "type": "string",
+          "enum": ["framework-rule", "capability-fact", "cost-heuristic", "editorial-judgment"]
+        },
+        "quote": { "type": "string", "minLength": 1 },
+        "rationale": { "type": "string", "minLength": 1 },
+        "sources": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "minLength": 1 }
+        }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "basis": { "const": "framework-rule" } }, "required": ["basis"] },
+          "then": { "required": ["quote"] }
+        }
+      ]
+    }
+  }
+}

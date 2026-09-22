@@ -688,7 +688,14 @@ def _ext_from(ctype: str | None, url: str) -> str:
             return mapping[ctype]
     path = urlparse(url).path
     ext = os.path.splitext(path)[1].lstrip(".").lower()
-    return ext if ext else "img"
+    # The URL path is untrusted (attacker/compromised reference site). Restrict the
+    # extension to a safe, short, alphanumeric charset before it becomes part of an
+    # on-disk filename and brand.json's local_path — an unsanitized extension can
+    # carry quotes/angle-brackets that break out of an HTML attribute downstream
+    # (see _write_report_template's logo_rel interpolation).
+    if not re.match(r"^[a-z0-9]{1,5}$", ext):
+        return "img"
+    return ext
 
 
 def _build_logo_candidates(
@@ -1132,7 +1139,7 @@ def _write_report_template(brand: dict, path: str, logo_rel: str | None) -> None
     )
     source_url = html.escape(str(brand["source"].get("url") or ""), quote=True)
     logo_html = (
-        f'<img src="{logo_rel}" alt="{title} logo" class="brand-logo" />'
+        f'<img src="{html.escape(logo_rel, quote=True)}" alt="{title} logo" class="brand-logo" />'
         if logo_rel
         else f'<span class="brand-wordmark">{title}</span>'
     )

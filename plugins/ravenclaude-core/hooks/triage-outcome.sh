@@ -154,7 +154,7 @@ trap 'exit 0' EXIT
 _rc_hd="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" 2>/dev/null && pwd || printf '.')"
 if [ -f "$_rc_hd/_advise.sh" ]; then
   . "$_rc_hd/_advise.sh"
-  rc_advise_init PostToolUse 0
+  rc_advise_init PostToolUse 0 silent
 fi
 
 # ── hook-event substrate (fail-safe: stub if absent) ────────────────────────
@@ -457,6 +457,33 @@ sess = os.path.join(proj, ".ravenclaude", "runs", "cause-triage", sid)
 scope = rc_scope_key(cwd, proj)
 run = os.path.join(sess, "scopes", scope)
 ids = [c.id for c in candidates]
+
+# SECRET SCRUB BEFORE THE DURABLE WRITE.
+# The fs: and URL arms are derived, but the cmd: fallback is the raw command
+# truncated to 40 chars, so a credential typed on a failing command line was
+# written verbatim into open.jsonl and read back by two downstream gates.
+# _emit-event.sh scrubs its own rule and path fields for exactly this reason and
+# says so; this writer never did.
+# control: a failing command carrying a ghp_-shaped token produced the row
+# subject cmd:ghp_BBBB...; with this scrub the same input yields [REDACTED].
+# Mirrors the high-confidence shapes in hooks/_scrub.sh. Deliberately a SUBSET:
+# these are the prefix-anchored shapes that cannot false-positive on ordinary
+# command text.
+_SECRET_SHAPES = (
+    r"AKIA[0-9A-Z]{12,}",
+    r"sk-(?:ant-)?[A-Za-z0-9-]{20,}",
+    r"(?:sk|rk)_live_[A-Za-z0-9]{24,}",
+    r"ghp_[A-Za-z0-9]{30,}",
+    r"github_pat_[A-Za-z0-9_]{20,}",
+    r"glpat-[A-Za-z0-9_-]{15,}",
+    r"xox[baprs]-[A-Za-z0-9-]{10,}",
+    r"AIza[0-9A-Za-z_-]{30,}",
+    r"npm_[A-Za-z0-9]{30,}",
+    r"hf_[A-Za-z0-9]{30,}",
+    r"eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{20,}",
+)
+for _pat in _SECRET_SHAPES:
+    subject = re.sub(_pat, "[REDACTED]", subject)
 
 suppressed = False
 try:

@@ -43,7 +43,7 @@ For a 4-6 engagement/year solo consulting practice, the **minimum viable databas
 - **Compute:** $0.375/RPU-hour; 4 RPU base capacity minimum; 60-second minimum charge
 - **Storage:** $0.024/GB/month managed
 - **Always-on floor:** 4 × $0.375 = $1.50/hr ≈ $1,080/mo (auto-pause cuts this; real SMB analytics bills $100-300/mo for intermittent use)
-- **3-year Serverless Reservations** launched Feb 2026 — up to 45% savings (per [AWS Whats New Feb 2026](https://aws.amazon.com/about-aws/whats-new/2026/02/amazon-redshift-serverless-three-year-reservations/))
+- **3-year Serverless Reservations** launched Feb 2026 — up to 45% savings (per [AWS What's New Feb 2026](https://aws.amazon.com/about-aws/whats-new/2026/02/amazon-redshift-serverless-three-year-reservations/))
 - **When to pick:** AWS-native shop with sustained analytical queries
 - **When NOT to default:** SMB consulting (the minimum doesn't fit)
 
@@ -99,8 +99,8 @@ For a 4-6 engagement/year solo consulting practice, the **minimum viable databas
 
 ### Supabase
 - **Free:** 2 projects, 500 MB DB, 50k MAU, projects pause after 7 days inactivity
-- **Pro:** **$25/mo + usage; 8 GB DB, 100k MAU, 100 GB file storage** — verified [supabase.com/pricing](https://supabase.com/pricing) 2026-05-21
-- **Team:** $599/mo with SOC 2
+- **Pro:** **$25/mo + usage; 8 GB DB, 100k MAU, 100 GB file storage** — verified [supabase.com/pricing](https://supabase.com/pricing) `[re-verified 2026-09-03 — unchanged]`
+- **Team:** $599/mo with SOC 2 `[verified 2026-09-03 — unchanged]`
 - **HIPAA:** requires Team plan + BAA + HIPAA add-on [per Supabase HIPAA Compliance docs](https://supabase.com/docs/guides/security/hipaa-compliance)
 - **Setup complexity:** lowest of all options — `supabase init`, get URL + anon key. Includes auth, storage, edge functions, realtime, REST + GraphQL auto-API.
 - **The default.** Especially for embedded-in-website use case.

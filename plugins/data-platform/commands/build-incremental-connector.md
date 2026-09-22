@@ -5,7 +5,7 @@ argument-hint: "[the source ELT vendors don't ship, e.g. 'Canvas LMS' or 'a nich
 
 # Build an incremental connector
 
-You are running `/data-platform:build-incremental-connector`. Author the connector for the source the user named (`$ARGUMENTS`), following this plugin's `connector-developer` discipline. A connector that works on a 100-row dev account and falls over on a 10M-row tenant is the recurring failure.
+You are running `/data-platform:build-incremental-connector`. Author the connector for the source the user named (`$ARGUMENTS`), following this plugin's `connector-developer` discipline. The agent-consumed playbook is [`../skills/airbyte-cdk-authoring/SKILL.md`](../skills/airbyte-cdk-authoring/SKILL.md); keep this command and that skill in lockstep. A connector that works on a 100-row dev account and falls over on a 10M-row tenant is the recurring failure.
 
 ## When to use this
 

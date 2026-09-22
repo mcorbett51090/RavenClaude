@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ravenclaude.internal/schemas/verdict.schema.json",
+  "title": "Repo review verdicts",
+  "description": "Output of the verify pass: a judgment on one prior finding. A verify agent typically returns every verdict for a file's findings at once (verdictBatch), so the top-level schema accepts either a single verdict object or a batch of them.",
+  "oneOf": [{ "$ref": "#/$defs/verdict" }, { "$ref": "#/$defs/verdictBatch" }],
+  "$defs": {
+    "verdict": {
+      "type": "object",
+      "description": "One verify agent's judgment on one finding.",
+      "required": ["id", "verdict", "rationale", "fixable_in_place", "verifier"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Matches the id of the finding this verdict is about."
+        },
+        "verdict": {
+          "type": "string",
+          "enum": ["CONFIRMED", "PLAUSIBLE", "REFUTED"]
+        },
+        "rationale": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Free text explaining the verdict; must quote the source line it rests on."
+        },
+        "fixable_in_place": {
+          "type": "boolean",
+          "description": "Whether the issue can be fixed with a local, self-contained edit."
+        },
+        "verifier": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The model tag that produced this verdict, e.g. \"opus\"."
+        }
+      }
+    },
+    "verdictBatch": {
+      "type": "array",
+      "description": "One verify agent's verdicts for every finding in a file, returned together.",
+      "items": { "$ref": "#/$defs/verdict" }
+    }
+  }
+}
