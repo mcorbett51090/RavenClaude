@@ -415,6 +415,7 @@ POSTURE_PRESETS: list[dict] = [
 # what a preset can never relax.
 SECURITY_FLOOR: list[str] = [
     "Bash(rm -rf:*)", "Bash(git push --force:*)", "Bash(git push -f:*)",
+    "Bash(git push --mirror:*)",
     "Bash(git reset --hard:*)", "Bash(git clean -fd:*)", "Bash(npm publish:*)",
     "Bash(curl * | sh)", "Bash(curl * | bash)", "Bash(sudo:*)",
     "Bash(mkfs:*)", "Bash(shred:*)", "Bash(git branch -D:*)",

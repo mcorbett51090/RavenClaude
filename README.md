@@ -16,9 +16,9 @@ Today this marketplace ships **184 plugins** (live inventory: **[portal Marketpl
 
 **[`ravenclaude-core`](plugins/ravenclaude-core/)** is the foundation: Team Lead + specialist agents, dispatch playbooks, gates, hooks, templates, comfort-posture, and the Learn / teaching surfaces on the dashboard. Domain plugins (Power Platform, cloud, finance, security, and many more) install beside it.
 
-### What's new in core (through **0.324.2**)
+### What's new in core (through **0.324.7**)
 
-- **Thing tribunal** — opt-in command-review for risky tools; **hardening EDIT** behind `command_review.hardening_edit` (**default ON**; set false to opt out). Force-push / hard-rule floors stay DENY under EDIT ON.
+- **Thing tribunal** — opt-in command-review for risky tools; **hardening EDIT** behind `command_review.hardening_edit` (**default ON**; set false to opt out). Force-push / mirror-push / hard-rule floors stay DENY under EDIT ON.
 - **Runes ready-queue** — Oath-hook + `rc runes`; dashboard **Runes at session start** opt-in (`runes:` absent ⇒ off); may auto-claim ungated ready work when On; never auto Longship merge.
 - **Prompt Builder** — `#/prompt-builder` with Gate 144 / Host Context floors; catalog model SSOT; blank modes + canned Task/Few-shot.
 - **Plugin lifecycle** — per-project last-used ledger; `auto_uninstall` / `auto_install` default **OFF** (`auto_install`: off|ask|auto); opt-in uninstall execute when ON; tip/SHA integrity pin required before `auto` install `--execute` (fail-closed on missing/mismatch); ask-first install from the **ravenclaude** marketplace only; `ravenclaude-core` hard-pinned.

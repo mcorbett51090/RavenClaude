@@ -802,14 +802,14 @@ categories:
         regex:
           - 'git\s+push\b[^|&;\n]*\b(origin\s+)?(main|master)(\s|$)'
     - id: srm.force-push
-      name: git push --force / -f / +<refspec> (without --force-with-lease)
+      name: git push --force / -f / +<refspec> / --mirror (without --force-with-lease)
       severity: critical
       pre_llm_deny: true
       always_screen: true
       description: >-
         Caught by security_deny. The tribunal must continue to deny; never relax.
         Includes the `+<refspec>` force form (`git push origin +main`), which
-        force-updates the named ref exactly like `--force`.
+        force-updates the named ref exactly like `--force`, and `git push --mirror`, which force-updates every ref under refs/ and deletes remote refs absent locally.
       resolution: DENY. (Reaffirms the baseline.)
       triggers:
         # `--force` (but not `--force-with-lease`) or short `-f`. The second regex
@@ -820,6 +820,7 @@ categories:
         regex:
           - 'git\s+push\b[^|&;\n]*(--force(?!-with-lease)\b|(?-i:\s-[A-Za-z]*f[A-Za-z]*(\s|$)))'
           - 'git\s+push\b[^|&;\n]*\s\+\S'
+          - 'git\s+push\b[^|&;\n]*--mirror\b'
     - id: srm.pr-merge-without-checks
       name: gh pr merge on a PR whose CI is not passing
       severity: high

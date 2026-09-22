@@ -245,6 +245,7 @@ DEFAULT_SECURITY_DENY: list[str] = [
     "Bash(rm -rf:*)",
     "Bash(git push --force:*)",
     "Bash(git push -f:*)",
+    "Bash(git push --mirror:*)",
     "Bash(git reset --hard:*)",
     "Bash(git clean -fd:*)",
     "Bash(npm publish:*)",
