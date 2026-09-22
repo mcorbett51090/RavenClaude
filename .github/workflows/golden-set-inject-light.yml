@@ -35,7 +35,6 @@ on:
 
 permissions:
   contents: read
-  actions: read
 
 concurrency:
   group: golden-set-inject-light-${{ github.ref }}
