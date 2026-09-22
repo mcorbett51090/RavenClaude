@@ -274,10 +274,17 @@ def self_test() -> int:
         empty_failures, empty_surfaces = scan(Path(tmp))
         if empty_surfaces != 0:
             bad.append("empty-scope probe unexpectedly read surfaces")
-        if not empty_failures:
-            # scan() itself reports no failures on an empty tree; main() is what
-            # converts "read nothing" into exit 2. Assert that wiring here.
-            pass
+        # scan() itself reports no failures on an empty tree; main() is what
+        # converts "read nothing" into exit 2 (fail closed). Drive main() against
+        # the empty tree and assert the exit code, so a regression that turns
+        # `if surfaces == 0: return 2` into a silent allow goes red here.
+        _saved_argv = sys.argv
+        try:
+            sys.argv = ["check-description-count-literals.py", tmp]
+            if main() != 2:
+                bad.append("empty scope did not fail closed: main() != 2 on an empty tree")
+        finally:
+            sys.argv = _saved_argv
 
     if bad:
         print("SELF-TEST FAILED:")

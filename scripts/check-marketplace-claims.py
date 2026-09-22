@@ -95,9 +95,7 @@ SKILLS_RE = re.compile(r"(\d+)\s+skills", re.IGNORECASE)
 # `\b` before the digit is load-bearing: without it, "M365 Agents SDK" (a
 # product name) is read as a "365 agents" claim. The DROP (D1) removed the
 # leading "N agents" inventory that used to shadow this false match.
-AGENTS_RE = re.compile(
-    r"\b(\d+)\s+(?:specialist\s+|strategist\s+)?agents?\b", re.IGNORECASE
-)
+AGENTS_RE = re.compile(r"\b(\d+)\s+(?:specialist\s+|strategist\s+)?agents?\b", re.IGNORECASE)
 README_COUNT_RE = re.compile(r"ships\s+\*\*(\d+)\s+plugins\*\*", re.IGNORECASE)
 # Count-drift family (the recurring hand-maintained-prose bug — README once said
 # "99 plugins" / "98 of the 99" / core "20 skills, 5 hooks" while reality was
@@ -180,7 +178,11 @@ def actual_requires_core_count() -> int:
         if not manifest_path.is_file():
             continue
         try:
-            reqs = json.loads(manifest_path.read_text()).get("requires", {}).get("plugins", [])
+            reqs = (
+                json.loads(manifest_path.read_text(encoding="utf-8"))
+                .get("requires", {})
+                .get("plugins", [])
+            )
         except (json.JSONDecodeError, OSError):
             continue
         if any("ravenclaude-core" in str(r) for r in reqs):
@@ -238,7 +240,7 @@ def check_architecture_roster(plugin_names: list[str]) -> None:
     if not ARCHITECTURE.is_file():
         failures.append("docs/architecture.md: missing (cannot verify plugin roster)")
         return
-    arch = ARCHITECTURE.read_text()
+    arch = ARCHITECTURE.read_text(encoding="utf-8")
     for name in plugin_names:
         if f"](../plugins/{name}/)" not in arch:
             failures.append(
@@ -253,7 +255,7 @@ def check_readme_plugin_count(plugin_names: list[str]) -> None:
     if not README.is_file():
         failures.append("README.md: missing (cannot verify plugin count)")
         return
-    readme = README.read_text()
+    readme = README.read_text(encoding="utf-8")
     m = README_COUNT_RE.search(readme)
     if m is None:
         failures.append(
@@ -285,7 +287,7 @@ def check_count_drift_family(plugin_names: list[str]) -> None:
     for _src, _path in (("README.md", README), ("AGENTS.md", AGENTS_MD)):
         if not _path.is_file():
             continue
-        _text = _path.read_text()
+        _text = _path.read_text(encoding="utf-8")
         for m in README_PLUGINS_RE.finditer(_text):
             if int(m.group(1)) != actual_plugins:
                 failures.append(
@@ -294,7 +296,7 @@ def check_count_drift_family(plugin_names: list[str]) -> None:
                 )
                 break
     if README.is_file():
-        readme = README.read_text()
+        readme = README.read_text(encoding="utf-8")
         req = README_REQUIRES_RE.search(readme)
         if req is not None:
             actual_req = actual_requires_core_count()
@@ -306,7 +308,7 @@ def check_count_drift_family(plugin_names: list[str]) -> None:
                 )
 
     if CORE_README.is_file():
-        core = CORE_README.read_text()
+        core = CORE_README.read_text(encoding="utf-8")
         for label, regex, actual in (
             ("Skills", _CORE_TABLE_RES["Skills"], actual_skill_count(PLUGINS / "ravenclaude-core")),
             ("Hooks", _CORE_TABLE_RES["Hooks"], actual_core_hook_count()),
@@ -326,7 +328,7 @@ def _iter_plugin_dirs() -> list[Path]:
 
 def collect_structural() -> None:
     """Checks 1, 3, 4a — the non-derivable failures that must block a PR."""
-    marketplace = json.loads(MARKETPLACE.read_text())
+    marketplace = json.loads(MARKETPLACE.read_text(encoding="utf-8"))
     mp_entries = {p["name"]: p for p in marketplace.get("plugins", [])}
     plugin_dirs = _iter_plugin_dirs()
     plugin_names = [p.name for p in plugin_dirs]
@@ -347,7 +349,7 @@ def collect_structural() -> None:
         manifest_path = plugin_dir / ".claude-plugin" / "plugin.json"
         if not manifest_path.is_file():
             continue  # already reported as missing
-        manifest = json.loads(manifest_path.read_text())
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
         # Check 3 (per-plugin) — description length cap, both files.
         check_description_length(f"{name} plugin.json", manifest.get("description", ""))
         mp = mp_entries.get(name)
@@ -357,7 +359,7 @@ def collect_structural() -> None:
 
 def collect_counts() -> None:
     """Checks 2, 2b, 3b, 4b — the derivable counts that self-heal via --fix."""
-    marketplace = json.loads(MARKETPLACE.read_text())
+    marketplace = json.loads(MARKETPLACE.read_text(encoding="utf-8"))
     mp_entries = {p["name"]: p for p in marketplace.get("plugins", [])}
     plugin_dirs = _iter_plugin_dirs()
     plugin_names = [p.name for p in plugin_dirs]
@@ -385,7 +387,7 @@ def collect_counts() -> None:
         manifest_path = plugin_dir / ".claude-plugin" / "plugin.json"
         if not manifest_path.is_file():
             continue
-        manifest = json.loads(manifest_path.read_text())
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
         mp = mp_entries.get(name)
 
         # Check 2 — skill-count accuracy.
@@ -441,12 +443,12 @@ def _replace_json_string(path: Path, old: str, new: str) -> bool:
     """
     if old == new:
         return False
-    raw = path.read_text()
+    raw = path.read_text(encoding="utf-8")
     for ensure_ascii in (False, True):
         esc_old = json.dumps(old, ensure_ascii=ensure_ascii)[1:-1]
         esc_new = json.dumps(new, ensure_ascii=ensure_ascii)[1:-1]
         if esc_old in raw:
-            path.write_text(raw.replace(esc_old, esc_new, 1))
+            path.write_text(raw.replace(esc_old, esc_new, 1), encoding="utf-8")
             return True
     return False
 
@@ -454,7 +456,7 @@ def _replace_json_string(path: Path, old: str, new: str) -> bool:
 def fix_counts() -> list[str]:
     """Rewrite the derivable counts. Returns a list of human-readable changes."""
     changes: list[str] = []
-    marketplace = json.loads(MARKETPLACE.read_text())
+    marketplace = json.loads(MARKETPLACE.read_text(encoding="utf-8"))
     mp_entries = {p["name"]: p for p in marketplace.get("plugins", [])}
     plugin_dirs = _iter_plugin_dirs()
     plugin_names = [p.name for p in plugin_dirs]
@@ -471,17 +473,17 @@ def fix_counts() -> list[str]:
 
     # 4b — README plugin count.
     if README.is_file():
-        raw = README.read_text()
+        raw = README.read_text(encoding="utf-8")
         m = README_COUNT_RE.search(raw)
         if m and int(m.group(1)) != len(plugin_names):
             fixed = raw[: m.start(1)] + str(len(plugin_names)) + raw[m.end(1) :]
-            README.write_text(fixed)
+            README.write_text(fixed, encoding="utf-8")
             changes.append(f"README.md 'ships **N plugins**' -> {len(plugin_names)}")
 
     # 4c — count-drift family: every "<N> plugins" claim + "<M> of the <N>" + core table.
     actual_plugins = len(plugin_names)
     if README.is_file():
-        raw = README.read_text()
+        raw = README.read_text(encoding="utf-8")
         # All "<N> plugins" → actual_plugins (digit-only, formatting-preserving).
         new_raw, n = README_PLUGINS_RE.subn(
             lambda mm: (
@@ -492,14 +494,16 @@ def fix_counts() -> list[str]:
             raw,
         )
         if new_raw != raw:
-            README.write_text(new_raw)
+            README.write_text(new_raw, encoding="utf-8")
             changes.append(f"README.md '<N> plugins' claims -> {actual_plugins}")
             raw = new_raw
         # "<M> of the <N> plugins" → M = require-core count.
         actual_req = actual_requires_core_count()
         rm = README_REQUIRES_RE.search(raw)
         if rm and int(rm.group(1)) != actual_req:
-            README.write_text(raw[: rm.start(1)] + str(actual_req) + raw[rm.end(1) :])
+            README.write_text(
+                raw[: rm.start(1)] + str(actual_req) + raw[rm.end(1) :], encoding="utf-8"
+            )
             changes.append(f"README.md '<M> of the N plugins' -> {actual_req}")
 
     # AGENTS.md carries the same hand-maintained "~N plugins" total (see the
@@ -521,7 +525,7 @@ def fix_counts() -> list[str]:
             changes.append(f"AGENTS.md '<N> plugins' claims -> {actual_plugins}")
 
     if CORE_README.is_file():
-        core = CORE_README.read_text()
+        core = CORE_README.read_text(encoding="utf-8")
         for label, regex, actual in (
             ("Skills", _CORE_TABLE_RES["Skills"], actual_skill_count(PLUGINS / "ravenclaude-core")),
             ("Hooks", _CORE_TABLE_RES["Hooks"], actual_core_hook_count()),
@@ -531,15 +535,15 @@ def fix_counts() -> list[str]:
             if m and int(m.group(2)) != actual:
                 core = core[: m.start(2)] + str(actual) + core[m.end(2) :]
                 changes.append(f"ravenclaude-core/README.md table {label} -> {actual}")
-        if core != CORE_README.read_text():
-            CORE_README.write_text(core)
+        if core != CORE_README.read_text(encoding="utf-8"):
+            CORE_README.write_text(core, encoding="utf-8")
 
     for plugin_dir in plugin_dirs:
         name = plugin_dir.name
         manifest_path = plugin_dir / ".claude-plugin" / "plugin.json"
         if not manifest_path.is_file():
             continue
-        manifest = json.loads(manifest_path.read_text())
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
         desc = manifest.get("description", "")
         n_skills, n_agents = actual_skill_count(plugin_dir), actual_agent_count(plugin_dir)
 

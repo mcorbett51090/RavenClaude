@@ -229,6 +229,22 @@ def load_ledger(path: str, branch: str) -> dict:
         raise LedgerError(f"ledger at {path} is not a review ledger")
     if not isinstance(data.get("rounds"), list):
         raise LedgerError(f"ledger at {path} has no rounds array")
+    # Branch-collision guard (repo-review 2026-09): branch_slug() maps '/' to '-'
+    # but leaves an existing '-' untouched, so 'feat/x' and 'feat-x' slug to the
+    # same on-disk key. Without this check, the second branch would silently
+    # read+append the first branch's closed-finding memory and emit false
+    # reopened/fixed verdicts attributed to the wrong branch — the exact error
+    # class this tool exists to prevent. Fail LOUD instead of contaminating.
+    # Only fires when the stored branch is a non-empty string that differs
+    # (back-compatible with pre-`branch` ledgers, which have None/"").
+    stored = data.get("branch")
+    if isinstance(stored, str) and stored and stored != branch:
+        raise LedgerError(
+            f"ledger at {path} belongs to branch {stored!r}, not {branch!r} — "
+            "two branch names collided onto one slug. Rename one branch (avoid a "
+            "name that differs from another only by '/' vs '-'), or remove the "
+            "stale ledger dir; refusing to read/append another branch's review memory."
+        )
     return data
 
 
