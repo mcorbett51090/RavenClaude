@@ -310,7 +310,15 @@ def main(argv: list[str]) -> int:
         files = [f for f in args.files.split(",") if f]
         dims = [d for d in args.dimensions.split(",") if d]
         models = [m for m in args.models.split(",") if m]
-        print(json.dumps(batch_status(args.cache_dir, args.repo_root, files, dims, models)))
+        try:
+            result = batch_status(args.cache_dir, args.repo_root, files, dims, models)
+        except ValueError as e:
+            # Consistent with the lookup/store branches: a bad rel-path
+            # (../ or absolute) raised by _validate_rel_path is a contract
+            # error (exit 2), not an uncaught traceback (exit 1).
+            print(f"error: {e}", file=sys.stderr)
+            return 2
+        print(json.dumps(result))
         return 0
 
     return 2
