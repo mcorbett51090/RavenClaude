@@ -178,7 +178,7 @@ When in doubt, the hook is conservative — it doesn't fire on files outside Pow
 
 ## 8. Imported + Expanded skills (veteran-level reference content)
 
-The `skills/` directory contains **9 skills imported** (with attribution) from Daniel Kerridge's [`claude-code-power-platform-skills`](https://github.com/DanielKerridge/claude-code-power-platform-skills) under MIT — see [`NOTICE.md`](NOTICE.md) — **plus 9 added in-house**: `grounding-protocol` and `maintainability-review` (cross-cutting), `power-automate` and `power-bi` (deepening `flow-engineer` and supporting `power-bi-engineer`), and five new senior-maker playbooks — `alm-pipeline-design`, `dlp-policy-design`, `canvas-app-performance`, `copilot-studio-bot-design`, `power-pages-permissions` — each owned by the matching specialist agent. 18 skills total.
+The `skills/` directory contains **9 skills imported** (with attribution) from Daniel Kerridge's [`claude-code-power-platform-skills`](https://github.com/DanielKerridge/claude-code-power-platform-skills) under MIT — see [`NOTICE.md`](NOTICE.md) — **plus 9 added in-house**: `grounding-protocol` and `maintainability-review` (cross-cutting), `power-automate` and `power-bi` (deepening `flow-engineer` and supporting `power-bi-engineer`), and five new senior-maker playbooks — `alm-pipeline-design`, `dlp-policy-design`, `canvas-app-performance`, `copilot-studio-bot-design`, `power-pages-permissions` — each owned by the matching specialist agent. 23 skills total (further in-house skills have been added since the original nine).
 
 Each skill is a folder with a `SKILL.md` (the playbook) and a `resources/` directory of reference docs the skill consults on demand.
 

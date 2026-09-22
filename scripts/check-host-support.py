@@ -100,6 +100,8 @@ def check_map(path: Path) -> int:
 
         for host in sorted(hosts):
             cell = comp[host]
+            if not isinstance(cell, dict):
+                return _fail(f"'{name}.{host}' must be an object")
             if not isinstance(cell.get("supported"), bool):
                 return _fail(f"'{name}.{host}'.supported must be a boolean answer")
             if cell["supported"] is False and not cell.get("blocked_by"):
@@ -129,7 +131,9 @@ def check_generator_derives() -> int:
     )
     got = getattr(module, "_HOOK_CAPABLE_HOSTS", None)
     if got != want:
-        return _fail(f"_HOOK_CAPABLE_HOSTS is {got!r}, but the map says {want!r} — restated, not derived")
+        return _fail(
+            f"_HOOK_CAPABLE_HOSTS is {got!r}, but the map says {want!r} — restated, not derived"
+        )
     return 0
 
 
