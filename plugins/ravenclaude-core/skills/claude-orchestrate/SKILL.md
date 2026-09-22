@@ -18,6 +18,8 @@ Route the current task through a Claude brain via `claude -p`, even when the hos
 
 **Under Claude Code (`THING_HOST == claude-code` or unset):** the host IS Claude — this skill is a no-op. It will tell you so clearly.
 
+**A [`prompt-optimizer`](../prompt-optimizer/SKILL.md) `dispatch_plan` may itself name a non-Claude host as the better fit** for a task, per its Phase 5 classifier. That is advisory context only — prompt-optimizer never dispatches or invokes anything (its Never-dispatches invariant) — so a recommendation still requires the human/assistant to actually run this skill's steps below; the plan cannot trigger `claude-orchestrate.sh` on its own.
+
 ---
 
 ## Step 1 — Host check

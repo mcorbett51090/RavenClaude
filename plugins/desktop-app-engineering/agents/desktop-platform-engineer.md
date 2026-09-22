@@ -2,7 +2,7 @@
 name: desktop-platform-engineer
 description: "Use for the desktop platform layer: code-signing + notarization (Windows Authenticode/EV; macOS Developer ID + notarytool + staple), safe signed auto-update (channels, staged rollout, rollback, version floor), and native OS integration (tray, menus, notifications, deep links, secure storage)."
 tools: Read, Grep, Glob, Bash, Edit, Write, WebFetch, WebSearch
-model: opus
+model: sonnet
 audience: [dev]
 works_with:
   [desktop-architect, electron-engineer, tauri-engineer, devops-cicd/cicd-pipeline-engineer]

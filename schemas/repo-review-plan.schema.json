@@ -1,0 +1,173 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ravenclaude.internal/schemas/repo-review-plan.schema.json",
+  "title": "Repo review plan",
+  "description": "The review-plan.json document produced by repo_map.py for the repo-review skill: a whole-repo inventory partitioned into risk-ranked, token-budgeted batches for downstream review agents to consume one batch at a time, plus counts of what was excluded and how much of the tree the plan actually covers.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "commit",
+    "generated_by",
+    "totals",
+    "excluded",
+    "batches",
+    "coverage"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": 1,
+      "description": "Document format version. Bump when the shape of review-plan.json changes incompatibly."
+    },
+    "commit": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$",
+      "description": "The full git commit SHA the plan was generated against."
+    },
+    "generated_by": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Producer tag, e.g. \"repo_map.py@1\" — the tool and its own version that emitted this plan."
+    },
+    "totals": {
+      "type": "object",
+      "description": "Whole-tree counts before exclusion.",
+      "required": ["tracked", "reviewable", "est_source_tokens"],
+      "additionalProperties": false,
+      "properties": {
+        "tracked": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Total files tracked by git at `commit`."
+        },
+        "reviewable": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Files remaining after all exclusion categories are removed — the files eligible to appear in `batches`."
+        },
+        "est_source_tokens": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Estimated total token count across all reviewable source files."
+        }
+      }
+    },
+    "excluded": {
+      "type": "object",
+      "description": "Counts of files removed from consideration, by reason. These are disjoint categories that, together with `totals.reviewable`, should account for `totals.tracked`.",
+      "required": ["binary", "vendored", "oversize", "non_source", "explicit"],
+      "additionalProperties": false,
+      "properties": {
+        "binary": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Files detected as binary content."
+        },
+        "vendored": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Files under a recognized vendored/third-party directory (e.g. node_modules, vendor)."
+        },
+        "oversize": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Files that exceeded the per-file size/token ceiling."
+        },
+        "non_source": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Files that are not source code by extension/heuristic (e.g. images, lockfiles, generated data)."
+        },
+        "explicit": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Files excluded by an explicit ignore rule (e.g. .repo-review-ignore) rather than a heuristic."
+        }
+      }
+    },
+    "batches": {
+      "type": "array",
+      "description": "The review batches, each independently reviewable, ordered by `risk_rank` (lower = reviewed first).",
+      "items": { "$ref": "#/$defs/batch" }
+    },
+    "coverage": {
+      "type": "object",
+      "description": "How much of the reviewable tree the plan actually schedules into batches, and what was left out.",
+      "required": [
+        "batches_planned",
+        "batches_budgeted",
+        "files_covered",
+        "files_deferred",
+        "deferred_reason",
+        "top_deferred_dirs"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "batches_planned": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Number of batches the planner identified as needed to cover the full reviewable set."
+        },
+        "batches_budgeted": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Number of batches actually included in `batches` under the run's budget (<= batches_planned)."
+        },
+        "files_covered": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Count of reviewable files that appear in at least one batch in `batches`."
+        },
+        "files_deferred": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Count of reviewable files not scheduled into any batch this run."
+        },
+        "deferred_reason": {
+          "type": ["string", "null"],
+          "description": "Free-text reason files were deferred (e.g. \"batch budget exhausted\"), or null when nothing was deferred."
+        },
+        "top_deferred_dirs": {
+          "type": "array",
+          "description": "The directories with the most deferred files, most-affected first, for a human to see at a glance what was skipped.",
+          "items": { "type": "string" }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "batch": {
+      "type": "object",
+      "required": ["id", "risk_rank", "files", "est_tokens", "modules"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^b[0-9]+$",
+          "description": "Stable batch id, e.g. \"b01\"."
+        },
+        "risk_rank": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "1-based priority order across all batches; lower is reviewed first."
+        },
+        "files": {
+          "type": "array",
+          "minItems": 1,
+          "description": "Repo-relative paths of the files assigned to this batch.",
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "est_tokens": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Estimated total token count for this batch's files."
+        },
+        "modules": {
+          "type": "array",
+          "description": "The top-level module/directory names this batch's files belong to, for human-readable grouping.",
+          "items": { "type": "string" }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,9 @@
+# Standard Next.js ignores — relevant once this scaffold is copied out into
+# its own engagement repo (the marketplace repo itself doesn't run `npm
+# install` here, but a consumer copying this template will).
+node_modules/
+.next/
+.env.local
+.env*.local
+*.tsbuildinfo
+next-env.d.ts

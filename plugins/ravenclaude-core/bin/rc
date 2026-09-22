@@ -7,6 +7,7 @@
 #   rc dashboard [--port N] [--no-open]   Launch the comfort-posture dashboard.
 #   rc streams <subcommand>               Inspect / manage Agentic Work-Streams.
 #   rc converge <subcommand>              Convergence Engine (refine-to-rubric) helpers.
+#   rc hooks selftest [...]               Per-host SessionStart wiring + tier self-test.
 #
 # DESIGN — why this never `cd`s:
 #   serve-dashboards.py resolves the project root from `Path.cwd()`, so
@@ -50,6 +51,8 @@ Usage:
   rc artifacts list|new <id>   where work files go, across CLIs
   rc handoff --task-id <id> [--dry-run] [--host claude-code|grok|cli|chat|other]
                                         [--recipe copy-paste|same-host|os-terminal]
+  rc dispatch-summary [--session ID] [--json]   Per-session handoff-tax rollup: tier mix, brief/report
+                                        sizes, flags — the "cost per completed task" shape.
                                         Print (and optionally spawn) a same-host
                                         successor from a run-dir handoff.md.
   rc forge-worktree init|checkpoint|path|--self-test
@@ -59,11 +62,34 @@ Usage:
   rc premise-gate --run-dir DIR | --self-test | --must-fail
                                         FORGE G3b premise gate.
   rc classify-claim --text "…"          Grammatical claim classifier (upward-only).
+  rc workaround tried --channel <c> --result "…" --bypass-test "…" [--session ID]
+                                        Record one EXECUTED workaround attempt on the
+                                        blocked-exhaustion ledger (channel: local-edit |
+                                        local-bash | mcp-api | ci-runner | other-session | human).
+  rc workaround blocked-ok [--session ID] <reason…>
+                                        Declare a genuine, specific blocker (logged, never silent).
+  rc workaround status|list [--session ID]
+                                        Show the ledger vs the floor since the last guard deny.
   rc streams show <id> [--limit N]      Show a stream's resume state + recent DERIVED history.
   rc streams status                     One-line summary: active stream + stream count.
   rc streams create <name>              Create a named stream (slugified).
   rc streams set-active <id>            Point the active-stream pointer at <id>.
   rc streams get-active                 Print the active stream id (or "none").
+
+  rc hooks selftest [--host <h>] [--tier a|d|auto] [--json]
+                                        Per-host SessionStart wiring + runtime-tier
+                                        self-test (marketplace-dev tool -- audits THIS
+                                        repo's own hooks.json across the declared hosts).
+                                        Exit 0 all-pass, 2 any host failed its declared
+                                        tier, 1 could not run. Never exit 1 for a finding.
+
+  rc runes ready|claim|sling|show|open|release|hanging
+                                        Runes ready-queue over the task ledger.
+  rc ready                              Alias for 'rc runes ready'.
+  rc strand apply <formula/pack>        Expand a PE pack (formula) into child Runes.
+  rc longship open|add|land-request|show
+                                        Longship delivery batch for Sage land —
+                                        NEVER auto-merges.
 
   rc converge report <scorecard.json>            Render the constrained convergence report
                                                  (verdict + keep-best + honest residual gaps).
@@ -197,6 +223,37 @@ PY
         ;;
     esac
     ;;
+  hooks)
+    shift
+    # `rc hooks` with no subcommand is a usage error (A8.6): print usage and
+    # exit 1, matching the "no verb" branch below rather than silently no-op.
+    sub="${1:-}"
+    case "$sub" in
+      selftest)
+        shift
+        st="$PLUGIN_ROOT/scripts/hooks-selftest.py"
+        if [ ! -f "$st" ]; then
+          echo "rc: cannot find hooks-selftest.py at $st" >&2
+          exit 1
+        fi
+        command -v python3 >/dev/null 2>&1 || {
+          echo "rc: python3 not found in PATH — 'rc hooks selftest' needs python3." >&2
+          exit 1
+        }
+        exec python3 "$st" "$@"
+        ;;
+      "")
+        echo "rc hooks: a subcommand is required (try: selftest)" >&2
+        _usage
+        exit 1
+        ;;
+      *)
+        echo "rc hooks: unknown subcommand '$sub' (try: selftest)" >&2
+        _usage
+        exit 1
+        ;;
+    esac
+    ;;
   converge)
     shift
     cdir="$PLUGIN_ROOT/skills/refine-to-rubric/scripts"
@@ -247,6 +304,13 @@ PY
     shift
     exec bash "$PLUGIN_ROOT/scripts/forge-worktree.sh" "$@"
     ;;
+  workaround)
+    # The blocked-exhaustion ledger CLI. The same file is also the
+    # PreToolUse(AskUserQuestion) + Stop gate; the CLI lanes are its
+    # `tried` / `blocked-ok` / `status` / `list` subcommands.
+    shift
+    exec bash "$PLUGIN_ROOT/hooks/workaround-exhaustion.sh" "$@"
+    ;;
   forge-route)
     shift
     command -v python3 >/dev/null 2>&1 || {
@@ -291,6 +355,14 @@ PY
     shift
     exec bash "$PLUGIN_ROOT/scripts/handoff-spawn.sh" "$@"
     ;;
+  dispatch-summary)
+    shift
+    command -v python3 >/dev/null 2>&1 || {
+      echo "rc: python3 not found in PATH — 'rc dispatch-summary' needs python3." >&2
+      exit 1
+    }
+    exec python3 "$PLUGIN_ROOT/scripts/handoff-tax-meter.py" --summary "$@"
+    ;;
   artifacts)
     shift
     # The cross-CLI work-file index. Lives at the MARKETPLACE root scripts/ (not
@@ -312,8 +384,41 @@ PY
     exec python3 "$art" "$@"
     ;;
 
+  runes)
+    shift
+    command -v python3 >/dev/null 2>&1 || {
+      echo "rc: python3 not found in PATH — 'rc runes' needs python3." >&2
+      exit 1
+    }
+    exec python3 "$PLUGIN_ROOT/scripts/runes.py" "$@"
+    ;;
+  ready)
+    # Alias: rc ready → rc runes ready
+    shift
+    command -v python3 >/dev/null 2>&1 || {
+      echo "rc: python3 not found in PATH — 'rc ready' needs python3." >&2
+      exit 1
+    }
+    exec python3 "$PLUGIN_ROOT/scripts/runes.py" ready "$@"
+    ;;
+  strand)
+    shift
+    command -v python3 >/dev/null 2>&1 || {
+      echo "rc: python3 not found in PATH — 'rc strand' needs python3." >&2
+      exit 1
+    }
+    exec python3 "$PLUGIN_ROOT/scripts/runes.py" strand "$@"
+    ;;
+  longship)
+    shift
+    command -v python3 >/dev/null 2>&1 || {
+      echo "rc: python3 not found in PATH — 'rc longship' needs python3." >&2
+      exit 1
+    }
+    exec python3 "$PLUGIN_ROOT/scripts/runes.py" longship "$@"
+    ;;
   *)
-    echo "rc: unknown command '$cmd' (try: rc dashboard | rc streams | rc converge | rc artifacts | rc handoff | rc forge-worktree | rc forge-route | rc premise-gate | rc classify-claim)" >&2
+    echo "rc: unknown command '$cmd' (try: rc dashboard | rc streams | rc runes | rc ready | rc longship | rc strand | rc hooks selftest | rc converge | rc artifacts | rc handoff | rc forge-worktree | rc forge-route | rc premise-gate | rc classify-claim)" >&2
     _usage
     exit 1
     ;;

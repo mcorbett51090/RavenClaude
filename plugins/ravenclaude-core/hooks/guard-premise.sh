@@ -135,6 +135,23 @@ ti   = d.get("tool_input", {}) or {}
 path = str(ti.get("file_path", ""))
 sid  = d.get("session_id", "nosession")
 
+# ⛔ session_id is attacker-influenceable (it rides the PreToolUse payload) and is
+# used raw, below, to build every path under .ravenclaude/runs/premise/<sid>/ —
+# unsanitized, a `../../../../tmp/pwn`-shaped id resolves those paths OUTSIDE the
+# run tree, and this hook then both READS from it (echoing content back into the
+# deny reason shown to the agent) and WRITES to it (os.makedirs + control.applied
+# in rc_record_control()). guard-web-access.sh already hardens this EXACT field
+# for this EXACT reason (its `_ee_sanitize_session`, citing PR #363) — mirror it:
+# strip to a safe charset, cap the length, and refuse a pure-dot id that would
+# resolve the path out of runs/.
+def rc_sanitize_session(s):
+    s = re.sub(r"[^A-Za-z0-9._-]", "", str(s))[:128]
+    if s in ("", ".", ".."):
+        return "nosession"
+    return s
+
+sid = rc_sanitize_session(sid)
+
 if not path:
     sys.exit(0)
 
@@ -550,14 +567,22 @@ def family(subject):
 # on every retry, so it would be an unclearable block whose only exit is
 # RC_PREMISE_OVERRIDE — and a gate whose sole remedy is its own override
 # teaches the override, which costs more than the case it covers.
-resolved, unresolved = set(), {}
+# ⛔ Walk the ledger CHRONOLOGICALLY: a family is unresolved iff its LAST verdict
+# was negative. A prior version tracked a permanent `resolved` set — a positive
+# anywhere in history exempted the family from ever being flagged again, so a
+# later negative on the SAME family (a fresh probe, run after the positive, that
+# came back negative again) was silently dropped instead of denying, violating
+# the invariant this function documents ("a negative with no LATER positive
+# on the SAME subject"). A positive must only clear the CURRENTLY pending
+# negative (`.pop()` already does that) — it must never prevent a SUBSEQUENT
+# negative from being tracked again.
+unresolved = {}
 for e in entries:
     fam = family(e.get("subject", ""))
     if e.get("verdict") == "positive":
-        resolved.add(fam)
         unresolved.pop(fam, None)
-    elif e.get("verdict") == "negative" and fam not in resolved:
-        unresolved.setdefault(fam, e)
+    elif e.get("verdict") == "negative":
+        unresolved[fam] = e
 
 ctrl = os.environ.get("RC_PREMISE_CONTROL", "")
 if ctrl:

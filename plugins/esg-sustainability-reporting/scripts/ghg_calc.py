@@ -70,9 +70,7 @@ def _instrument(s: str) -> tuple[float, float]:
     """Parse a 'kwh:factor' market-based instrument into (kwh, factor)."""
     parts = s.split(":")
     if len(parts) != 2:
-        raise argparse.ArgumentTypeError(
-            f"instrument must be 'kwh:factor', got {s!r}"
-        )
+        raise argparse.ArgumentTypeError(f"instrument must be 'kwh:factor', got {s!r}")
     try:
         kwh, factor = float(parts[0]), float(parts[1])
     except ValueError:
@@ -80,9 +78,7 @@ def _instrument(s: str) -> tuple[float, float]:
             f"instrument must be 'kwh:factor' numbers, got {s!r}"
         ) from None
     if kwh < 0 or factor < 0:
-        raise argparse.ArgumentTypeError(
-            f"instrument kwh and factor must be >= 0, got {s!r}"
-        )
+        raise argparse.ArgumentTypeError(f"instrument kwh and factor must be >= 0, got {s!r}")
     return kwh, factor
 
 
@@ -101,17 +97,12 @@ def cmd_scope2(args: argparse.Namespace) -> int:
     residual_kwh = args.kwh - instrument_kwh
     if residual_kwh < -1e-6:
         print(
-            "error: instrument kWh exceed total --kwh "
-            f"({instrument_kwh:,.0f} > {args.kwh:,.0f})",
+            f"error: instrument kWh exceed total --kwh ({instrument_kwh:,.0f} > {args.kwh:,.0f})",
             file=sys.stderr,
         )
         return 2
     residual_kwh = max(residual_kwh, 0.0)
-    residual_factor = (
-        args.residual_factor
-        if args.residual_factor is not None
-        else args.grid_factor
-    )
+    residual_factor = args.residual_factor if args.residual_factor is not None else args.grid_factor
     residual_emissions = residual_kwh * residual_factor
     market_based = instrument_emissions + residual_emissions
 
@@ -125,8 +116,10 @@ def cmd_scope2(args: argparse.Namespace) -> int:
             print(f"    {kwh:>14,.0f} kWh x {f:g} = {kwh * f:,.4f}")
     else:
         print("    (none supplied)")
-    print(f"  residual (grid) kWh     : {residual_kwh:,.0f} x {residual_factor:g}"
-          f" = {residual_emissions:,.4f}")
+    print(
+        f"  residual (grid) kWh     : {residual_kwh:,.0f} x {residual_factor:g}"
+        f" = {residual_emissions:,.4f}"
+    )
     print(f"  -> MARKET-BASED         : {market_based:,.4f}")
     print("  note: BOTH figures are reported where market instruments exist —")
     print("        never silently pick one (CLAUDE.md S4 #5). Name and quality-")
@@ -137,6 +130,14 @@ def cmd_scope2(args: argparse.Namespace) -> int:
 
 def _read_inventory_csv(path: str) -> list[dict[str, str]]:
     if path == "-":
+        # Read stdin as UTF-8 regardless of the host locale (a non-UTF-8 default,
+        # e.g. cp1252 / LANG=C, would otherwise UnicodeDecodeError on a UTF-8 CSV,
+        # matching the explicit encoding on the file-path branch below). Guarded so a
+        # non-reconfigurable stream (a replaced sys.stdin in a test) never crashes.
+        try:
+            sys.stdin.reconfigure(encoding="utf-8")
+        except (AttributeError, ValueError):
+            pass
         return list(csv.DictReader(sys.stdin))
     with open(path, newline="", encoding="utf-8") as fh:
         return list(csv.DictReader(fh))
@@ -163,8 +164,7 @@ def cmd_inventory(args: argparse.Namespace) -> int:
             factor = float(row["emission_factor"])
         except (KeyError, ValueError):
             print(
-                f"error: row {i} needs numeric 'activity' and "
-                "'emission_factor' columns",
+                f"error: row {i} needs numeric 'activity' and 'emission_factor' columns",
                 file=sys.stderr,
             )
             return 2
@@ -182,8 +182,7 @@ def cmd_inventory(args: argparse.Namespace) -> int:
     print("  per-scope totals:")
     for scope in sorted(scope_totals):
         share = scope_totals[scope] / gross * 100 if gross else 0.0
-        print(f"    Scope {scope:<2}             : {scope_totals[scope]:,.4f}"
-              f"  ({share:.1f}%)")
+        print(f"    Scope {scope:<2}             : {scope_totals[scope]:,.4f}  ({share:.1f}%)")
     if category_totals:
         print("  Scope-3 category breakdown:")
         for cat in sorted(category_totals, key=_cat_sort_key):
@@ -214,12 +213,13 @@ def cmd_intensity(args: argparse.Namespace) -> int:
 
     print("Emissions intensity (a ratio, not a reduction)")
     print(f"  emissions               : {args.emissions:,.4f}")
-    print(f"  denominator             : {args.denominator:,.4f} "
-          f"{args.denominator_unit}")
+    print(f"  denominator             : {args.denominator:,.4f} {args.denominator_unit}")
     if args.per != 1:
         print(f"  per                     : {args.per:,.0f} {args.denominator_unit}")
-    print(f"  -> INTENSITY            : {intensity:,.6f} emissions per "
-          f"{args.per:,.0f} {args.denominator_unit}")
+    print(
+        f"  -> INTENSITY            : {intensity:,.6f} emissions per "
+        f"{args.per:,.0f} {args.denominator_unit}"
+    )
     print("  note: intensity is a RATIO — a falling intensity with rising")
     print("        absolute emissions is NOT a cut. Report absolute and")
     print("        intensity together, on a consistent base year (CLAUDE.md S4 #6).")
@@ -238,34 +238,50 @@ def build_parser() -> argparse.ArgumentParser:
     sub = p.add_subparsers(dest="cmd", required=True)
 
     s2 = sub.add_parser("scope2", help="Dual location- and market-based Scope 2")
-    s2.add_argument("--kwh", type=float, required=True,
-                    help="total purchased electricity (kWh)")
-    s2.add_argument("--grid-factor", type=float, required=True,
-                    help="grid-average emission factor per kWh (your input)")
-    s2.add_argument("--instrument", type=_instrument, action="append", default=[],
-                    metavar="KWH:FACTOR",
-                    help="a market-based instrument as kwh:factor "
-                    "(repeatable; e.g. 800000:0.0)")
-    s2.add_argument("--residual-factor", type=float, default=None,
-                    help="factor for kWh not covered by instruments "
-                    "(default: the grid factor)")
+    s2.add_argument("--kwh", type=float, required=True, help="total purchased electricity (kWh)")
+    s2.add_argument(
+        "--grid-factor",
+        type=float,
+        required=True,
+        help="grid-average emission factor per kWh (your input)",
+    )
+    s2.add_argument(
+        "--instrument",
+        type=_instrument,
+        action="append",
+        default=[],
+        metavar="KWH:FACTOR",
+        help="a market-based instrument as kwh:factor (repeatable; e.g. 800000:0.0)",
+    )
+    s2.add_argument(
+        "--residual-factor",
+        type=float,
+        default=None,
+        help="factor for kWh not covered by instruments (default: the grid factor)",
+    )
     s2.set_defaults(func=cmd_scope2)
 
     inv = sub.add_parser("inventory", help="Sum activity x factor across scopes")
-    inv.add_argument("--csv", required=True,
-                     help="path to inventory CSV ('-' for stdin); see module "
-                     "docstring for the header")
+    inv.add_argument(
+        "--csv",
+        required=True,
+        help="path to inventory CSV ('-' for stdin); see module docstring for the header",
+    )
     inv.set_defaults(func=cmd_inventory)
 
     it = sub.add_parser("intensity", help="Emissions per revenue / output")
-    it.add_argument("--emissions", type=float, required=True,
-                    help="total emissions (your inventory total)")
-    it.add_argument("--denominator", type=float, required=True,
-                    help="revenue / units / FTEs / floor area / ...")
-    it.add_argument("--denominator-unit", default="unit",
-                    help="label for the denominator (e.g. 'USD revenue')")
-    it.add_argument("--per", type=float, default=1.0,
-                    help="scale the denominator (e.g. 1000000 for per-$M)")
+    it.add_argument(
+        "--emissions", type=float, required=True, help="total emissions (your inventory total)"
+    )
+    it.add_argument(
+        "--denominator", type=float, required=True, help="revenue / units / FTEs / floor area / ..."
+    )
+    it.add_argument(
+        "--denominator-unit", default="unit", help="label for the denominator (e.g. 'USD revenue')"
+    )
+    it.add_argument(
+        "--per", type=float, default=1.0, help="scale the denominator (e.g. 1000000 for per-$M)"
+    )
     it.set_defaults(func=cmd_intensity)
 
     return p

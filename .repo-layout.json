@@ -27,6 +27,7 @@
     "ruff.toml",
     ".prettierignore",
     ".repo-layout.json",
+    ".cursor/**",
     ".ravenclaude/comfort-posture.yaml",
     ".ravenclaude/design-project.json",
     ".ravenclaude/dispatch-config.json",
@@ -78,7 +79,8 @@
     "plugins/*/dashboard-assets/**",
     "plugins/*/scripts/**",
     "plugins/*/bin/**",
-    "plugins/*/.lsp.json"
+    "plugins/*/.lsp.json",
+    "plugins/ravenclaude-core/vscode-extension/**"
   ],
   "forbidden_globs": [".ravenclaude/runs/thing/**", ".ravenclaude/runs/*/hook-events.jsonl"],
   "suggestions": {

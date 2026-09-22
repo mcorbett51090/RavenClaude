@@ -200,8 +200,17 @@ fi
 
 # ── project dir (for the knob) + cwd (for git) ────────────────────────────────
 cwd=""
+wg_transcript_path=""
 if [ -n "$payload" ] && command -v jq >/dev/null 2>&1; then
   cwd="$(printf '%s' "$payload" | jq -r '.cwd // empty' 2>/dev/null || printf '')"
+  # Present on SessionStart's own payload on every host observed, and on
+  # Claude Code's/Gemini's PreToolUse payload — but NOT on Copilot's or
+  # Cursor's PreToolUse-adapter payload (both project down to exactly
+  # {tool_name, tool_input, cwd, session_id}; confirmed by reading
+  # copilot-hook-adapter.sh / cursor-hook-adapter.sh directly). Empty here on
+  # those two hosts is expected, not an error — _wg_lease_write() degrades to
+  # identity_source: "pid-ttl" visibly when this is empty, never silently.
+  wg_transcript_path="$(printf '%s' "$payload" | jq -r '.transcript_path // empty' 2>/dev/null || printf '')"
 fi
 [ -z "$cwd" ] && cwd="${CLAUDE_PROJECT_DIR:-$PWD}"
 posture="${cwd}/.ravenclaude/comfort-posture.yaml"
@@ -609,12 +618,74 @@ _wg_lease_idle_secs() {
 
 _wg_lease_holder() { _wg_json_field "$LEASE_FILE" session_id 2>/dev/null || printf ''; }
 
+#
+# ⛔ jq-safe construction, not raw printf. A free-form field (transcript_hash's
+# SOURCE, before hashing) interpolated unescaped into a printf JSON literal is
+# how a stray quote turns the lease file into invalid JSON — which
+# _wg_json_field then reads back as an EMPTY holder, which the check clause's
+# own logic treats as "no lease exists, claim it freely": the whole mechanism
+# silently stops enforcing, in the opposite direction of a false deny. Storing
+# a hash (fixed hex, never a quote) rather than the raw path removes the risk
+# at its source; jq is the second, general layer for every other field.
 _wg_lease_write() {
   mkdir -p "$LEASE_DIR" 2>/dev/null || return 1
-  printf '{"session_id":"%s","pid":"%s","tree":"%s","claimed_at":"%s"}\n' \
-    "$session" "$SESSION_PID" "$REAL_TOP" "$(date +%s 2>/dev/null || printf '0')" \
-    > "$LEASE_FILE" 2>/dev/null || return 1
+  local ts_path="${1:-}" host claimed thash isrc
+  host="$(hostname 2>/dev/null || printf 'unknown')"
+  claimed="$(date +%s 2>/dev/null || printf '0')"
+  if [ -n "$ts_path" ]; then
+    thash="$(_wg_sha256 "$ts_path" 2>/dev/null)"
+    [ -n "$thash" ] && isrc="transcript_path" || isrc="pid-ttl"
+  else
+    thash=""
+    isrc="pid-ttl"
+  fi
+  if command -v jq >/dev/null 2>&1; then
+    jq -cn --arg sid "$session" --arg pid "$SESSION_PID" --arg tree "$REAL_TOP" \
+       --arg claimed "$claimed" --arg host "$host" --arg isrc "$isrc" --arg thash "$thash" \
+       '{session_id:$sid,pid:$pid,tree:$tree,claimed_at:$claimed,host:$host,
+         identity_source:$isrc,transcript_hash:$thash}' \
+       > "$LEASE_FILE" 2>/dev/null || return 1
+  else
+    # No-jq fallback: the 4 original fields + identity_source (a fixed enum,
+    # never free-form) only. host/transcript_hash are omitted here rather than
+    # risking an unescaped interpolation on a path without jq to guard it.
+    printf '{"session_id":"%s","pid":"%s","tree":"%s","claimed_at":"%s","identity_source":"%s"}\n' \
+      "$session" "$SESSION_PID" "$REAL_TOP" "$claimed" "$isrc" \
+      > "$LEASE_FILE" 2>/dev/null || return 1
+  fi
   return 0
+}
+
+# Positively-confirmed-dead check for a lease holder's pid. Deliberately NOT
+# _wg_is_live: that function returns "not live" on ANY read/parse failure
+# (missing file, unparseable pid, unreadable mtime) — correct for CONTENTION
+# (an unreadable sibling record is not a live sibling) but WRONG here.
+# _wg_lease_idle's own comment states the invariant this function exists to
+# preserve: "Empty => unknown, and an unknown age must NEVER be treated as
+# stale." Reusing _wg_is_live at check-time would invert that — a lease that
+# merely failed to parse would trigger a takeover-plus-auto-commit against
+# what could be a live session's tree. This returns true ONLY on a positively
+# confirmed dead pid; every read/parse failure returns false (not-dead /
+# unknown), never true. _wg_is_live itself is never modified by this file.
+_wg_lease_holder_dead() {
+  local f="$1" pid
+  [ -f "$f" ] || return 1
+  pid="$(_wg_json_field "$f" pid)"
+  [ -n "$pid" ] || return 1
+  case "$pid" in ''|*[!0-9]*) return 1 ;; esac
+  kill -0 "$pid" 2>/dev/null && return 1   # alive -> not dead
+  return 0                                  # kill -0 explicitly failed -> positively dead
+}
+
+# Layer 1 escape hatch: read a plain `key: value` line from a release marker —
+# deliberately NOT _wg_json_field (that requires valid JSON; this file mirrors
+# the premise-gate's own control.md convention, plain text, human-writable
+# without needing jq to construct it right). Empty/missing -> empty, same
+# fail-open contract as every other lease reader here.
+_wg_release_field() {
+  local f="$1" key="$2"
+  [ -f "$f" ] || return 1
+  sed -n "s/^[[:space:]]*${key}:[[:space:]]*//p" "$f" 2>/dev/null | head -1
 }
 
 # Idle seconds since the holder last touched the lease. Empty => unknown, and an
@@ -819,6 +890,27 @@ case "$SUBCMD" in
     # (T7: guard=off writes nothing). Lane pin is gated on worktree_bound != off
     # and sibling count > 0 — no registry mkdir (so T7 still holds when bound=block).
     ctx=""
+
+    # LEASE ORPHAN GC (P1) — independent of worktree_guard's $mode; gated on
+    # worktree_lease specifically (its own knob — must run even when
+    # worktree_guard is off, since the two are independent by this file's own
+    # design). A dead-pid lease left behind by a fork/resume or a crashed
+    # session is exactly what silently causes the self-denial this whole
+    # mechanism exists to prevent, and register (SessionStart) is the safe,
+    # non-blocking point to clear it — before any mutating command reaches
+    # `check` and pays the deny/autocheckin dance for a holder that is
+    # already, positively, gone.
+    if [ "$(_wg_lease_mode)" != "off" ] && [ -f "$LEASE_DIR/lease.json" ] \
+       && _wg_lease_holder_dead "$LEASE_DIR/lease.json"; then
+      # RT-8: only clear when the tree is CLEAN. A dirty tree behind a dead
+      # holder still needs the existing autocheckin ceremony at check-time —
+      # GC must never bypass the safety net that preserves uncommitted work,
+      # it only clears the common (clean-tree) case cheaply.
+      if [ -z "$(wg_git status --porcelain 2>/dev/null)" ]; then
+        rm -f "$LEASE_DIR/lease.json" "$LEASE_DIR/release.md" 2>/dev/null || true
+      fi
+    fi
+
     if [ "$mode" != "off" ]; then
       mkdir -p "$SESS_DIR" 2>/dev/null || true
       _wg_gc
@@ -872,14 +964,27 @@ case "$SUBCMD" in
        && _wg_lease_should_enforce; then
       _wg_holder="$(_wg_lease_holder)"
       if [ -z "$_wg_holder" ] || [ "$_wg_holder" = "$session" ]; then
-        _wg_lease_write || true          # claim / heartbeat; failure is not fatal
+        _wg_lease_write "$wg_transcript_path" || true   # claim / heartbeat; failure is not fatal
+      elif [ -f "$LEASE_DIR/release.md" ] && [ -n "$_wg_holder" ] && [ "$(_wg_release_field "$LEASE_DIR/release.md" holder)" = "$_wg_holder" ]; then
+        # LAYER 1 — explicit release marker, written OUTSIDE this tree at
+        # $GUARD_HOME/leases/<PATH_KEY>/release.md (never under the leased
+        # repo's own .ravenclaude/ — a release file INSIDE the tree would be
+        # denied by the very lease it is meant to release; verified directly
+        # against _wg_lease_should_enforce/_wg_is_in_this_tree). The prior
+        # holder (or a human) wrote this to say "I am done, take over now" —
+        # skip the wait/autocheckin dance entirely, since the departing
+        # session already had its chance to land its own work.
+        _wg_lease_write "$wg_transcript_path" || true
+        rm -f "$LEASE_DIR/release.md" 2>/dev/null || true
+        printf '%s\n' "worktree-guard: session ${_wg_holder} released this lease explicitly; took over immediately." >&2
+        _emit_hook_event "worktree-guard.sh" "warn" "${tn:-Bash}" "" "lease-released" "0"
       else
         _wg_idle="$(_wg_lease_idle || printf '')"
         _wg_ttl="$(_wg_lease_idle_secs)"
         if [ -n "$_wg_idle" ] && [ "$_wg_idle" -ge "$_wg_ttl" ] 2>/dev/null; then
           # STALE -> take over, but only after the holder's work is safely in.
           if _wg_lease_autocheckin "$_wg_holder" "$_wg_idle"; then
-            _wg_lease_write || true
+            _wg_lease_write "$wg_transcript_path" || true
             printf '%s\n' "worktree-guard: took over a stale worktree lease from session ${_wg_holder} (idle $(( _wg_idle / 60 ))m). Their work was auto-committed as a wip(worktree-lease) checkpoint first." >&2
             _emit_hook_event "worktree-guard.sh" "warn" "${tn:-Bash}" "" "lease-takeover" "0"
           elif [ "$(_wg_lease_mode)" = "warn" ]; then
@@ -891,7 +996,7 @@ case "$SUBCMD" in
         elif [ "$(_wg_lease_mode)" = "warn" ]; then
           printf '%s\n' "worktree-guard: session ${_wg_holder} holds this worktree (idle $(( ${_wg_idle:-0} / 60 ))m of ${_wg_ttl} s). Proceeding because worktree_lease is 'warn'." >&2
         else
-          printf '%s\n' "worktree-guard: DENIED — session ${_wg_holder} holds a live lease on ${REAL_TOP} (idle $(( ${_wg_idle:-0} / 60 ))m; it expires at $(( _wg_ttl / 60 ))m). Open your own worktree (rcwt / forge-worktree.sh), or wait for the lease to go stale — the next session then takes over automatically and their work is auto-committed first. Set 'worktree_lease: off' in .ravenclaude/comfort-posture.yaml to disable." >&2
+          printf '%s\n' "worktree-guard: DENIED — session ${_wg_holder} holds a live lease on ${REAL_TOP} (idle $(( ${_wg_idle:-0} / 60 ))m; it expires at $(( _wg_ttl / 60 ))m). Open your own worktree (rcwt / forge-worktree.sh), wait for the lease to go stale (the next session then auto-commits their work and takes over), or — if you ARE that session continuing after a restart/fork — release it yourself: write \"holder: ${_wg_holder}\" into ${LEASE_DIR}/release.md (outside this tree; the Write tool can reach it) and retry. Set 'worktree_lease: off' in .ravenclaude/comfort-posture.yaml to disable." >&2
           _emit_hook_event "worktree-guard.sh" "deny" "${tn:-Bash}" "" "lease-held" "2"
           exit 2
         fi

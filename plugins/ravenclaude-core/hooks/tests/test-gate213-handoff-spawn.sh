@@ -125,11 +125,20 @@ if [ "$mode" = "--must-fail-headless" ]; then
 from pathlib import Path
 import sys
 src = Path(sys.argv[1]).read_text()
-old = 'seed="grok \\"Continue task ${task_id}'
+# handoff-spawn.sh now separates the RAW exec value ($grok_prompt, shell-quoted
+# via _shq() at the actual `exec grok ...` site) from the human-readable $seed
+# used only for dry-run/copy-paste display and the forbidden-seed deny checks
+# below (see the command-injection fix — $seed no longer feeds `exec` at all).
+# The mutant must inject "-p" into $seed (what dry-run echoes), at the SAME
+# unset-host fallback assignment `--must-fail-headless` actually exercises.
+old = 'seed="grok \\"${grok_prompt}\\""'
 if old not in src:
     raise SystemExit("handoff-spawn.sh drifted — update Gate 213 mutant")
-src = src.replace(old, 'seed="grok -p \\"Continue task ${task_id}', 1)
-# also neuter the deny-list so the mutant actually emits it
+src = src.replace(old, 'seed="grok -p \\"${grok_prompt}\\""', 1)
+# also neuter EVERY deny-list check guarding $seed (there are two call
+# sites — an early one right after this assignment, and a second later in
+# the script) so the mutant's injected "-p" actually survives to the
+# dry-run echo instead of being refused by the second, still-intact check.
 src = src.replace('*"grok -p"*|', "")
 Path(sys.argv[2]).write_text(src)
 PY

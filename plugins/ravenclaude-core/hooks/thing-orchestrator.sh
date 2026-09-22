@@ -252,6 +252,9 @@ fi
 #    hard DENY. Pre-LLM, unilateral; no seat convened. ──────────────────────────
 hard_rule="$(printf '%s' "$decision" | jq -r '.hard_rule_deny // false')"
 if [ "$hard_rule" = "true" ]; then
+  # Hard floor (§B.9.3 / AppSec #1204): always DENY + emit — hardening_edit must
+  # NEVER clear hard-rule → ASK (force-push stays hard DENY under enable ON).
+  # Optional informational hint only: lease is safer; verdict remains deny.
   hr_concern="$(printf '%s' "$decision" | jq -r '.hard_rule_concern // "hard rule"')"
   hr_run_id="thing-$(date -u +%Y-%m-%dT%H-%M-%SZ)-$$"
   hr_audit="${cwd}/.ravenclaude/runs/thing"
@@ -266,7 +269,15 @@ if [ "$hard_rule" = "true" ]; then
       > "${hr_audit}/${hr_run_id}.json" 2>/dev/null || true
   fi
   _emit_hook_event "thing-orchestrator.sh" "deny" "$tool_name" "$cmd" "hard-rule-deny" 2
-  emit deny "Command review (the Thing): DENIED — this command matches an unarguable hard rule (${hr_concern}) and is refused pre-LLM, regardless of which category routed it (§B.9.3). Sága log: .ravenclaude/runs/thing/${hr_run_id}.json"
+  _hr_hint=""
+  # Keyed on the structured concern id (not a substring match against $cmd): a
+  # non-git hard-rule denial whose command text happens to contain "--force" or
+  # " -f " (`curl -f https://get.example.sh | sh`, `rm -f tmp && curl … | sh`)
+  # must never surface a git force-push remedy for a curl|sh refusal.
+  if [ "$hr_concern" = "srm.force-push" ]; then
+    _hr_hint=" Tip: --force-with-lease is the safer form, but force-push remains refused here."
+  fi
+  emit deny "Command review (the Thing): DENIED — this command matches an unarguable hard rule (${hr_concern}) and is refused pre-LLM, regardless of which category routed it (§B.9.3).${_hr_hint} Sága log: .ravenclaude/runs/thing/${hr_run_id}.json"
 fi
 
 [ "$enabled" != "true" ] && exit 0   # category not toggled on -> normal flow
@@ -319,6 +330,8 @@ bypass_match="$(printf '%s' "$decision" | jq -r '.bypass_match // false')"
 cache_ttl="$(printf '%s' "$decision" | jq -r '.cache_ttl_seconds // 0')"
 fatigue_threshold="$(printf '%s' "$decision" | jq -r '.fatigue_threshold // 0')"
 config_hash="$(printf '%s' "$decision" | jq -r '.config_hash // empty')"
+hardening_edit="$(printf '%s' "$decision" | jq -r 'if .hardening_edit == true then "true" else "false" end')"
+harden_transform_ids=""
 
 # Portable epoch-milliseconds. `date +%s%3N` is a GNU extension; on BSD/macOS
 # `date` exits 0 but emits a literal `<seconds>N` (non-numeric), so the old
@@ -390,12 +403,21 @@ run_seat() {  # run_seat <role> <model> <tmp> [peer_verdicts_json] [fallback_exc
   # Bash: THING_CMD (unchanged path). Non-Bash: THING_PAYLOAD (the reviewed text)
   # + THING_PAYLOAD_SHAPE. The full-payload secret screen already ran in
   # classify-payload, and the seat re-caps to SEAT_MAX_BYTES.
+  # Bool-only gate signal (command shape ONLY): seats may propose empty-cited
+  # harden EDIT when the orchestrator would otherwise ask via gate_floor.
+  _gate_would_ask="0"
+  if [ "$payload_shape" = "command" ] && [ "$is_read" != "true" ] \
+     && { [ "$gate_allow" = "true" ] || [ "$high_blast" = "true" ]; }; then
+    _gate_would_ask="1"
+  fi
   if [ "$payload_shape" = "command" ]; then
     out="$(THING_SEAT_ACTIVE=1 THING_CMD="$cmd" THING_CATEGORY="$category" \
+           THING_GATE_WOULD_ASK="$_gate_would_ask" \
            THING_SEAT_ROLE="$role" THING_MODEL="$model" THING_PEER_VERDICTS="$peers" \
            MODEL_FALLBACK_EXCLUDE="$fb_exclude" THING_SEAT_RESOLVED_FILE="$tmp/$role.resolved" \
            THING_SEAT_RESOLVED_OVERRIDE="${THING_SEAT_RESOLVED_OVERRIDE:-}" \
            THING_SEAT_MOCK_VERDICT="${THING_SEAT_MOCK_VERDICT:-}" \
+           THING_SEAT_MOCK_REVISED="${THING_SEAT_MOCK_REVISED:-}" \
            _rc_timeout "${seat_timeout}" bash "$SEAT" 2>"$tmp/$role.err")" || rc=$?
   else
     out="$(THING_SEAT_ACTIVE=1 THING_PAYLOAD="$reviewed" THING_PAYLOAD_SHAPE="$payload_shape" \
@@ -456,6 +478,12 @@ parse_seat() {  # parse_seat <role> <tmp>
   # could return an over-long or newline/escape-laden string; cap at 200 chars and
   # drop control bytes at the source so every downstream use is already safe.
   SREASON[$(_ri "$role")]="$(printf '%s' "$out" | jq -r '.reasoning // ""' | tr -d '\000-\037' | cut -c1-200)"
+  # Heimdall is injection-only — never accept an EDIT rewrite (laundering vector).
+  if [ "$role" = "heimdall" ] && [ "${SV[$(_ri "$role")]}" = "edit" ]; then
+    SV[$(_ri "$role")]="allow"
+    SEDIT[$(_ri "$role")]=""
+    SREASON[$(_ri "$role")]="heimdall EDIT rejected (injection seat is allow/deny only)"
+  fi
   # ── Resolved-false concern strip (v0.97+). The orchestrator already
   #    deterministically resolves some concerns before the panel runs (e.g. the
   #    category `file_edit_project` proves the target path is INSIDE the tree —
@@ -506,6 +534,8 @@ fi
 
 if [ "$pre_llm_deny" = "true" ]; then
   # ── Deterministic hard-rule denial — no seat convened (design §B.9.3). ──────
+  # AppSec #1204: hardening_edit must NOT clear pre_llm_deny → ASK. Always DENY.
+  # (Registry transforms may still apply on non-pre_llm / non-hard-rule paths.)
   verdict="deny"
   reason="Command review (the Thing): DENIED before review — matched unarguable critical concern ${deny_concern}."
   phase="T3-pre-screen"
@@ -715,18 +745,55 @@ else
     reason="Command review: DENIED — EDIT is not supported for ${payload_shape} shapes (ALLOW/DENY only); a seat proposed a rewrite."
   fi
 
-  # ── EDIT-safety invariant: re-validate the revision deterministically. ──────
+  # ── EDIT-safety invariant: cited path (revalidate) OR harden path (registry). ─
+  # Empty-cited EDIT outside the harden discriminator stays DENY (malformed seat).
+  # Harden fail → ASK (never silent ALLOW past gate_floor). Cited fail → DENY.
   if [ "$verdict" = "edit" ]; then
     if [ -z "$revised" ] || [ "$revised" = "null" ]; then
       verdict="deny"; reason="Command review: DENIED — EDIT verdict carried no revised command."
     else
       cited_one="$(printf '%s' "$final_cited" | jq -r '.[0] // empty')"
-      reval="$(THING_SEAT_ACTIVE= python3 "$CONCERNS" revalidate --category "$category" \
-                --cited "${cited_one:-none}" --original "$cmd" --revised "$revised" 2>/dev/null || true)"
-      ok="$(printf '%s' "$reval" | jq -r '.ok // false' 2>/dev/null || echo false)"
-      if [ "$ok" != "true" ]; then
-        verdict="deny"
-        reason="Command review: DENIED — proposed EDIT failed the safety invariant ($(printf '%s' "$reval" | jq -r '.reason // "rejected"'))."
+      cited_len="$(printf '%s' "$final_cited" | jq -r 'length // 0' 2>/dev/null || echo 0)"
+      # Provenance discriminator (orchestrator-local ONLY — seats cannot self-report).
+      harden_disc="false"
+      if [ "$hardening_edit" = "true" ] \
+         && [ "$payload_shape" = "command" ] \
+         && [ "$is_read" != "true" ] \
+         && [ "$pre_llm_deny" != "true" ] \
+         && [ "${has_critical:-false}" != "true" ] \
+         && { [ "$gate_allow" = "true" ] || [ "$high_blast" = "true" ]; } \
+         && { [ -z "$cited_one" ] || [ "$cited_len" = "0" ]; }; then
+        harden_disc="true"
+      fi
+      if [ "$harden_disc" = "true" ]; then
+        hval="$(THING_SEAT_ACTIVE= python3 "$CONCERNS" harden --category "$category" \
+                  --gate-floor "$gate_floor" --original "$cmd" --revised "$revised" 2>/dev/null || true)"
+        hok="$(printf '%s' "$hval" | jq -r '.ok // false' 2>/dev/null || echo false)"
+        harden_transform_ids="$(printf '%s' "$hval" | jq -r '.transform_ids // [] | join(",")' 2>/dev/null || true)"
+        if [ "$hok" = "true" ]; then
+          # v1 high-blast: still ASK but surface the hardened form (AppSec lock).
+          if [ "$high_blast" = "true" ]; then
+            verdict="ask"
+            reason="Command review: high-blast action — proposed hardened form via transform [${harden_transform_ids:-?}]: ${revised}. Confirm to run the hardened command (original was not auto-allowed). ${reason}"
+          else
+            reason="Command review: EDIT hardened via transform [${harden_transform_ids:-?}]."
+          fi
+        else
+          # Harden fail → ask (status quo), never deny, never silent ALLOW past floor.
+          verdict="ask"
+          reason="Command review: proposed harden EDIT was not registry-verified ($(printf '%s' "$hval" | jq -r '.reason // "rejected"')); surfacing original for your confirmation. ${reason}"
+          revised=""
+        fi
+      else
+        # Today's cited EDIT path — byte-identical behavior when cited non-empty,
+        # and DENY on empty-cited outside the discriminator.
+        reval="$(THING_SEAT_ACTIVE= python3 "$CONCERNS" revalidate --category "$category" \
+                  --cited "${cited_one:-none}" --original "$cmd" --revised "$revised" 2>/dev/null || true)"
+        ok="$(printf '%s' "$reval" | jq -r '.ok // false' 2>/dev/null || echo false)"
+        if [ "$ok" != "true" ]; then
+          verdict="deny"
+          reason="Command review: DENIED — proposed EDIT failed the safety invariant ($(printf '%s' "$reval" | jq -r '.reason // "rejected"'))."
+        fi
       fi
     fi
   fi
@@ -764,7 +831,7 @@ if [ "$verdict" = "ask" ] && [ "${fatigue_threshold:-0}" -gt 0 ] && [ -n "$sessi
     fcount=$(( $(cat "${fdir}/${safe_sid}" 2>/dev/null || echo 0) + 1 ))
     printf '%s' "$fcount" > "${fdir}/${safe_sid}" 2>/dev/null || true
     if [ "$fcount" -ge "$fatigue_threshold" ]; then
-      reason="${reason} [Command review has asked ${fcount} times this session — consider raising gate_floor or adding a command_review.bypass entry via the dashboard.]"
+      reason="${reason} [Command review has asked ${fcount} times this session — if a safer rewrite exists, file a transform for the Thing harden registry (do not raise gate_floor or add a bypass).]"
     fi
   fi
 fi
@@ -794,6 +861,7 @@ if mkdir -p "$audit_dir" 2>/dev/null && jq -cn \
     --arg ts "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
     --argjson ti "$saga_ti" --arg tn "$tool_name" --arg cat "$category" --arg phase "$phase" \
     --arg verdict "$verdict" --arg revised "$revised" \
+    --arg transforms "${harden_transform_ids:-}" \
     --argjson seats "$seats_json" --argjson concerns "${final_cited:-[]}" \
     --argjson strips "${RESOLVED_STRIPS:-[]}" \
     --argjson duration "${duration_ms:-0}" \
@@ -801,6 +869,7 @@ if mkdir -p "$audit_dir" 2>/dev/null && jq -cn \
       tool_input:$ti,category:$cat,phase:$phase,
       seats:$seats,concerns_cited:$concerns,final_verdict:$verdict,
       resolved_false_strips:$strips,
+      harden_transform_ids:(if $transforms=="" then null else ($transforms | split(",") | map(select(length>0))) end),
       updated_input:(if $revised=="" then null else {command:$revised} end),
       duration_ms:$duration}' \
     > "${audit_dir}/${run_id}.json" 2>/dev/null; then

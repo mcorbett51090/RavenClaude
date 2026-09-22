@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Teeth for forge-publish-session-plan.sh: empty source fails; copy is non-empty
-# and size-matched; missing Grok session group is an honest skip (exit 0).
+# Teeth for forge-publish-session-plan.sh: empty source fails; jail refuses;
+# copy is non-empty and size-matched; missing Grok session group is honest skip.
 set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")/../.." && pwd)"
@@ -13,15 +13,25 @@ trap 'rm -rf "$T"' EXIT
 _ok() { printf '  ok   %s\n' "$1"; }
 _fail() { printf '  FAIL %s\n' "$1"; fails=$((fails + 1)); }
 
+_plant() {
+  mkdir -p "$T/.ravenclaude/runs/forge/demo-slug"
+  python3 -c 'import pathlib; pathlib.Path("'"$T"'/.ravenclaude/runs/forge/demo-slug/plan.md").write_text("# Plan\n\n" + ("line\n" * 20))'
+  printf '%s\n' "$T/.ravenclaude/runs/forge/demo-slug/plan.md"
+}
+
+SRC="$(_plant)"
+
 # empty source → 2
-: > "$T/empty.md"
+mkdir -p "$T/.ravenclaude/runs/forge/empty-slug"
+: > "$T/.ravenclaude/runs/forge/empty-slug/plan.md"
+mkdir -p "$T/gh/sessions/enc/sess"
 ec=0
-out="$(bash "$PUB" --plan "$T/empty.md" --session-dir "$T/sess" 2>&1)" || ec=$?
+out="$(GROK_HOME="$T/gh" bash "$PUB" --plan "$T/.ravenclaude/runs/forge/empty-slug/plan.md" --session-dir "$T/gh/sessions/enc/sess" 2>&1)" || ec=$?
 if [ "$ec" -eq 2 ]; then _ok "empty source exits 2"; else _fail "empty source ec=$ec"; fi
 
 # missing source → 2
 ec=0
-out="$(bash "$PUB" --plan "$T/nope.md" --session-dir "$T/sess" 2>&1)" || ec=$?
+out="$(GROK_HOME="$T/gh" bash "$PUB" --plan "$T/.ravenclaude/runs/forge/demo-slug/nope.md" --session-dir "$T/gh/sessions/enc/sess" 2>&1)" || ec=$?
 if [ "$ec" -eq 2 ]; then _ok "missing source exits 2"; else _fail "missing source ec=$ec"; fi
 
 # no --plan → 2
@@ -29,16 +39,13 @@ ec=0
 out="$(bash "$PUB" 2>&1)" || ec=$?
 if [ "$ec" -eq 2 ]; then _ok "missing --plan exits 2"; else _fail "missing --plan ec=$ec"; fi
 
-# publish to explicit session dir
-mkdir -p "$T/sess"
-printf 'PLAN BODY %s\n' "x" > "$T/src.md"
-# pad so it is obviously non-empty
-python3 -c 'import pathlib; pathlib.Path("'"$T"'/src.md").write_text("# Plan\\n\\n" + ("line\\n" * 20))'
+# publish to explicit jailed session dir
+mkdir -p "$T/gh/sessions/enc/sess"
 ec=0
-out="$(bash "$PUB" --plan "$T/src.md" --session-dir "$T/sess" 2>&1)" || ec=$?
-if [ "$ec" -eq 0 ] && [ -s "$T/sess/plan.md" ]; then
-  srcb="$(wc -c < "$T/src.md" | tr -d ' ')"
-  dstb="$(wc -c < "$T/sess/plan.md" | tr -d ' ')"
+out="$(GROK_HOME="$T/gh" bash "$PUB" --plan "$SRC" --session-dir "$T/gh/sessions/enc/sess" 2>&1)" || ec=$?
+if [ "$ec" -eq 0 ] && [ -s "$T/gh/sessions/enc/sess/plan.md" ]; then
+  srcb="$(wc -c < "$SRC" | tr -d ' ')"
+  dstb="$(wc -c < "$T/gh/sessions/enc/sess/plan.md" | tr -d ' ')"
   if [ "$srcb" = "$dstb" ] && echo "$out" | grep -q "FORGE_SESSION_PLAN"; then
     _ok "copy publishes non-empty size-matched plan.md"
   else
@@ -48,40 +55,60 @@ else
   _fail "publish ec=$ec out=$out"
 fi
 
-# dest emptied after copy is a fail — plant by making dest a directory named plan.md
-rm -rf "$T/sess2"
-mkdir -p "$T/sess2/plan.md"
+# dest-is-dir → 2
+rm -rf "$T/gh/sessions/enc/sess2"
+mkdir -p "$T/gh/sessions/enc/sess2/plan.md"
 ec=0
-out="$(bash "$PUB" --plan "$T/src.md" --session-dir "$T/sess2" 2>&1)" || ec=$?
+out="$(GROK_HOME="$T/gh" bash "$PUB" --plan "$SRC" --session-dir "$T/gh/sessions/enc/sess2" 2>&1)" || ec=$?
 if [ "$ec" -eq 2 ]; then _ok "dest-is-dir exits 2"; else _fail "dest-is-dir ec=$ec out=$out"; fi
 
 # no Grok session group → skip 0
 ec=0
-out="$(env GROK_HOME="$T/nogrok" bash "$PUB" --plan "$T/src.md" --cwd "$T/proj" 2>&1)" || ec=$?
+out="$(env GROK_HOME="$T/nogrok" bash "$PUB" --plan "$SRC" --cwd "$T/proj" 2>&1)" || ec=$?
 if [ "$ec" -eq 0 ] && echo "$out" | grep -q "skip"; then
   _ok "missing session group is skip/0"
 else
   _fail "skip-path ec=$ec out=$out"
 fi
 
-# GROK_SESSION_ID wins when the dir exists
+# GROK_SESSION_ID wins
 enc="$(python3 -c 'from urllib.parse import quote; from pathlib import Path; print(quote(str(Path("/tmp").resolve()), safe=""))')"
-mkdir -p "$T/gh/sessions/$enc/sid-old" "$T/gh/sessions/$enc/sid-new"
-printf 'OLD' > "$T/gh/sessions/$enc/sid-old/keep"
-printf 'NEW' > "$T/gh/sessions/$enc/sid-new/keep"
-touch -t 202001010000 "$T/gh/sessions/$enc/sid-old"
-touch -t 202601010000 "$T/gh/sessions/$enc/sid-new"
+mkdir -p "$T/gh2/sessions/$enc/sid-old" "$T/gh2/sessions/$enc/sid-new"
 ec=0
-out="$(env GROK_HOME="$T/gh" GROK_SESSION_ID=sid-old bash "$PUB" --plan "$T/src.md" --cwd /tmp 2>&1)" || ec=$?
-if [ "$ec" -eq 0 ] && [ -s "$T/gh/sessions/$enc/sid-old/plan.md" ] && [ ! -f "$T/gh/sessions/$enc/sid-new/plan.md" ]; then
+out="$(env GROK_HOME="$T/gh2" GROK_SESSION_ID=sid-old bash "$PUB" --plan "$SRC" --cwd /tmp 2>&1)" || ec=$?
+if [ "$ec" -eq 0 ] && [ -s "$T/gh2/sessions/$enc/sid-old/plan.md" ] && [ ! -f "$T/gh2/sessions/$enc/sid-new/plan.md" ]; then
   _ok "GROK_SESSION_ID wins over newest mtime"
 else
   _fail "session-id prefer ec=$ec out=$out"
 fi
 
-if [ "$fails" -ne 0 ]; then
-  echo "test-forge-publish-session-plan: $fails failed"
-  exit 1
+# F1 symlink dest refuse
+mkdir -p "$T/gh3/sessions/enc/s" "$T/outside"
+printf 'SECRET\n' > "$T/outside/t"
+ln -s "$T/outside/t" "$T/gh3/sessions/enc/s/plan.md"
+ec=0
+out="$(GROK_HOME="$T/gh3" bash "$PUB" --plan "$SRC" --session-dir "$T/gh3/sessions/enc/s" 2>&1)" || ec=$?
+if [ "$ec" -eq 2 ] && grep -qx 'SECRET' "$T/outside/t"; then
+  _ok "symlink dest refused"
+else
+  _fail "symlink dest ec=$ec"
 fi
-echo "test-forge-publish-session-plan: ok"
-exit 0
+
+# F2 plan outside jail
+printf 'x\n' > "$T/loose.md"
+ec=0
+out="$(GROK_HOME="$T/gh" bash "$PUB" --plan "$T/loose.md" --session-dir "$T/gh/sessions/enc/sess" 2>&1)" || ec=$?
+if [ "$ec" -eq 2 ]; then _ok "plan outside forge run-dir refused"; else _fail "plan jail ec=$ec"; fi
+
+# F2 session-dir outside sessions
+mkdir -p "$T/not-sess"
+ec=0
+out="$(GROK_HOME="$T/gh" bash "$PUB" --plan "$SRC" --session-dir "$T/not-sess" 2>&1)" || ec=$?
+if [ "$ec" -eq 2 ]; then _ok "session-dir outside sessions refused"; else _fail "session jail ec=$ec"; fi
+
+if [ "$fails" -eq 0 ]; then
+  echo "PASS: test-forge-publish-session-plan.sh"
+  exit 0
+fi
+echo "FAIL: $fails assertion(s)"
+exit 1

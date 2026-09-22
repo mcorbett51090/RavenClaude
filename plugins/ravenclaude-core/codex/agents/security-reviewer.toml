@@ -6,6 +6,10 @@
 # review-only agent whatever the main session has — the same silent
 # privilege grant that MH-10 fixed on Copilot.
 # Derived from the canonical tools: Read, Grep, Glob, Bash, WebFetch
+#
+# Canonical model tier: opus. `model` is NOT emitted — it takes a Codex
+# model id, and the canonical value is a Claude tier alias. Until you pin
+# one, this agent runs on the session's model.
 name = "security-reviewer"
 description = "Use this agent whenever a diff touches authentication, authorization, cryptography, secrets, sessions, untrusted input parsing, file uploads, deserialization, SQL, shell, network egress, or third-party integrations. Spawn it AFTER code-reviewer or in parallel with it."
 sandbox_mode = "read-only"

@@ -66,8 +66,16 @@ const pieces = [
   app.match(/const WORKTREE_GUARD_DEFAULT = [^;]*;/)[0],
   app.match(/const WORKTREE_BOUND_VALUES = \[[^\]]*\];/)[0],
   app.match(/const WORKTREE_BOUND_DEFAULT = [^;]*;/)[0],
+  // Session lease + sleep-assertion hold — both entirely unmodelled until this fix.
+  app.match(/const WORKTREE_LEASE_VALUES = \[[^\]]*\];/)[0],
+  app.match(/const WORKTREE_LEASE_DEFAULT = [^;]*;/)[0],
+  app.match(/const WORKTREE_LEASE_IDLE_DEFAULT = [^;]*;/)[0],
+  app.match(/const KEEP_AWAKE_VALUES = \[[^\]]*\];/)[0],
+  app.match(/const KEEP_AWAKE_DEFAULT = [^;]*;/)[0],
   app.match(/const DASHBOARD_AUTOSTART_VALUES = \[[^\]]*\];/)[0],
   app.match(/const DASHBOARD_AUTOSTART_DEFAULT = [^;]*;/)[0],
+  app.match(/const RUNES_VALUES = \[[^\]]*\];/)[0],
+  app.match(/const RUNES_DEFAULT = [^;]*;/)[0],
   app.match(/const ORCHESTRATOR_VALUES = \[[^\]]*\];/)[0],
   app.match(/const ORCHESTRATOR_DEFAULT = [^;]*;/)[0],
   app.match(/const ORCHESTRATOR_SCOPE_VALUES = \[[^\]]*\];/)[0],
@@ -96,6 +104,22 @@ const pieces = [
   app.match(/const CHEAP_LANE_AGENT_VALUES = \[[^\]]*\];/)[0],
   app.match(/const CHEAP_LANE_AGENT_DEFAULT = [^;]*;/)[0],
   extract(app, "const CHEAP_LANE_DEFAULT ="),
+  // Handoff tax (model-tier delegation, v0.61.0 data-loss class) — pin enum + cap defaults + freeze default.
+  app.match(/const HANDOFF_TAX_PIN_VALUES = \[[^\]]*\];/)[0],
+  app.match(/const HANDOFF_TAX_PIN_DEFAULT = [^;]*;/)[0],
+  app.match(/const HANDOFF_TAX_REPORT_CAP_DEFAULT = [^;]*;/)[0],
+  app.match(/const HANDOFF_TAX_BRIEF_CAP_DEFAULT = [^;]*;/)[0],
+  app.match(/const HANDOFF_TAX_CAP_MAX = [^;]*;/)[0],
+  extract(app, "const HANDOFF_TAX_DEFAULT ="),
+  // UMM surfaces (Phase D write SSOT) + alias-deprecation hydrate flags.
+  app.match(/const MODEL_MATRIX_SURFACE_VALUES = \[[^\]]*\];/)[0],
+  app.match(/const MODEL_MATRIX_PIN_DEFAULT = [^;]*;/)[0],
+  extract(app, "const MODEL_MATRIX_SURFACES_DEFAULT ="),
+  extract(app, "const ALIAS_DEPRECATION_DEFAULT ="),
+  // Prompt optimizer (Phases 2-6, task-6 dashboard wiring) — mode enum + freeze default.
+  app.match(/const PROMPT_OPTIMIZER_MODE_VALUES = \[[^\]]*\];/)[0],
+  app.match(/const PROMPT_OPTIMIZER_MODE_DEFAULT = [^;]*;/)[0],
+  extract(app, "const PROMPT_OPTIMIZER_DEFAULT ="),
   extract(app, "function freshTiers()"),
   extract(app, "function quoteYamlKey("),
   extract(app, "function applyGuardrailConfig("),
@@ -142,7 +166,11 @@ function _freshState() {
     decision_review: DECISION_REVIEW_DEFAULT,
     worktree_guard: WORKTREE_GUARD_DEFAULT,
     worktree_bound: WORKTREE_BOUND_DEFAULT,
+    worktree_lease: WORKTREE_LEASE_DEFAULT,
+    worktree_lease_idle_minutes: WORKTREE_LEASE_IDLE_DEFAULT,
+    keep_awake: KEEP_AWAKE_DEFAULT,
     dashboard_autostart: DASHBOARD_AUTOSTART_DEFAULT,
+    runes: RUNES_DEFAULT,
     definition_of_done: Object.assign({}, DOD_DEFAULT),
     orchestrator: ORCHESTRATOR_DEFAULT,
     orchestrator_scope: ORCHESTRATOR_SCOPE_DEFAULT,
@@ -154,6 +182,10 @@ function _freshState() {
     context_handoff: Object.assign({}, CONTEXT_HANDOFF_DEFAULT),
     advisory_knobs: Object.assign({}, ADVISORY_KNOBS_DEFAULT),
     cheap_lane: Object.assign({}, CHEAP_LANE_DEFAULT),
+    handoff_tax: Object.assign({}, HANDOFF_TAX_DEFAULT),
+    model_matrix: { surfaces: Object.assign({}, MODEL_MATRIX_SURFACES_DEFAULT) },
+    alias_deprecation: Object.assign({}, ALIAS_DEPRECATION_DEFAULT),
+    prompt_optimizer: Object.assign({}, PROMPT_OPTIMIZER_DEFAULT),
     expanded: {},
   };
 }
@@ -181,7 +213,11 @@ function check(name, cond) {
   s.decision_review = "binding";
   s.worktree_guard = "block";
   s.worktree_bound = "off";
+  s.worktree_lease = "warn";
+  s.worktree_lease_idle_minutes = 45;
+  s.keep_awake = "on";
   s.dashboard_autostart = "open";
+  s.runes = "on";
   s.definition_of_done = { cmd: "npm test && npm run lint", max_blocks: 4 };
   s.command_review.dev_repo_exempt = true;
   s.orchestrator = "decide";
@@ -195,6 +231,20 @@ function check(name, cond) {
   s.conserve_tokens_auto_pct = 65;
   s.context_handoff = { mode: "nag", spawn: "os-terminal", context_window_tokens: 150000 };
   s.cheap_lane = { mode: "agent", tier: "top", agent: "copilot" };
+  s.handoff_tax = {
+    off: false,
+    report_cap_words: 250,
+    brief_cap_words: 900,
+  };
+  s.model_matrix = {
+    surfaces: {
+      explore_pin: "sonnet",
+      precompact_fallback: "",
+      handoff_fill: "",
+      never_inherit_session: null,
+    },
+  };
+  s.prompt_optimizer = { enabled: true, mode: "advisory" };
   api._set(s);
 
   const yaml = api.emitYaml();
@@ -205,7 +255,11 @@ function check(name, cond) {
   check("decision_review emitted", /^decision_review: binding$/m.test(yaml));
   check("worktree_guard emitted", /^worktree_guard: block$/m.test(yaml));
   check("worktree_bound emitted", /^worktree_bound: off$/m.test(yaml));
+  check("worktree_lease emitted", /^worktree_lease: warn$/m.test(yaml));
+  check("worktree_lease_idle_minutes emitted", /^worktree_lease_idle_minutes: 45$/m.test(yaml));
+  check("keep_awake emitted", /^keep_awake: on$/m.test(yaml));
   check("dashboard_autostart emitted", /^dashboard_autostart: open$/m.test(yaml));
+  check("runes emitted", /^runes: on$/m.test(yaml));
   check("definition_of_done.cmd emitted", /^  cmd: "npm test && npm run lint"$/m.test(yaml));
   check("definition_of_done.max_blocks emitted", /^  max_blocks: 4$/m.test(yaml));
   check("command_review.dev_repo_exempt emitted", /^  dev_repo_exempt: true$/m.test(yaml));
@@ -229,6 +283,14 @@ function check(name, cond) {
   check("cheap_lane.mode emitted", /^  mode: agent$/m.test(yaml));
   check("cheap_lane.tier emitted", /^  tier: top$/m.test(yaml));
   check("cheap_lane.agent emitted", /^  agent: copilot$/m.test(yaml));
+  check("handoff_tax block emitted", /^handoff_tax:$/m.test(yaml));
+  check("handoff_tax.report_cap_words emitted", /^  report_cap_words: 250$/m.test(yaml));
+  check("handoff_tax.brief_cap_words emitted", /^  brief_cap_words: 900$/m.test(yaml));
+  check("Phase D: pin_explore NOT under handoff_tax", !/^  pin_explore:/m.test(yaml));
+  check("model_matrix.surfaces.explore_pin emitted", /^    explore_pin: sonnet$/m.test(yaml));
+  check("prompt_optimizer block emitted", /^prompt_optimizer:$/m.test(yaml));
+  check("prompt_optimizer.enabled emitted", /^  enabled: true$/m.test(yaml));
+  check("prompt_optimizer.mode emitted", /^  mode: advisory$/m.test(yaml));
 
   // And the hydrator reads them back into a fresh state.
   api._set(api._freshState());
@@ -238,7 +300,11 @@ function check(name, cond) {
     decision_review: "binding",
     worktree_guard: "block",
     worktree_bound: "off",
+    worktree_lease: "warn",
+    worktree_lease_idle_minutes: 45,
+    keep_awake: "on",
     dashboard_autostart: "open",
+    runes: "on",
     definition_of_done: { cmd: "npm test && npm run lint", max_blocks: 4 },
     command_review: { dev_repo_exempt: true },
     orchestrator: "decide",
@@ -252,6 +318,9 @@ function check(name, cond) {
     conserve_tokens_auto_pct: 65,
     context_handoff: { mode: "nag", spawn: "os-terminal", context_window_tokens: 150000 },
     cheap_lane: { mode: "agent", tier: "top", agent: "copilot" },
+    handoff_tax: { report_cap_words: 250, brief_cap_words: 900 },
+    model_matrix: { surfaces: { explore_pin: "sonnet" } },
+    prompt_optimizer: { enabled: true, mode: "advisory" },
   });
   const h = api._get();
   check("hydrate runaway.max_total", h.runaway.max_total === 500);
@@ -260,7 +329,11 @@ function check(name, cond) {
   check("hydrate decision_review", h.decision_review === "binding");
   check("hydrate worktree_guard", h.worktree_guard === "block");
   check("hydrate worktree_bound", h.worktree_bound === "off");
+  check("hydrate worktree_lease", h.worktree_lease === "warn");
+  check("hydrate worktree_lease_idle_minutes", h.worktree_lease_idle_minutes === 45);
+  check("hydrate keep_awake", h.keep_awake === "on");
   check("hydrate dashboard_autostart", h.dashboard_autostart === "open");
+  check("hydrate runes", h.runes === "on");
   check("hydrate dod.cmd", /npm test/.test(h.definition_of_done.cmd));
   check("hydrate dev_repo_exempt", h.command_review.dev_repo_exempt === true);
   check("hydrate orchestrator", h.orchestrator === "decide");
@@ -281,6 +354,15 @@ function check(name, cond) {
   check("hydrate cheap_lane.mode", h.cheap_lane.mode === "agent");
   check("hydrate cheap_lane.tier", h.cheap_lane.tier === "top");
   check("hydrate cheap_lane.agent", h.cheap_lane.agent === "copilot");
+  check("hydrate handoff_tax.report_cap_words", h.handoff_tax.report_cap_words === 250);
+  check("hydrate handoff_tax.brief_cap_words", h.handoff_tax.brief_cap_words === 900);
+  check(
+    "hydrate model_matrix.surfaces.explore_pin",
+    h.model_matrix.surfaces.explore_pin === "sonnet",
+  );
+  check("hydrate handoff_tax.off stays false for a block", h.handoff_tax.off === false);
+  check("hydrate prompt_optimizer.enabled", h.prompt_optimizer.enabled === true);
+  check("hydrate prompt_optimizer.mode", h.prompt_optimizer.mode === "advisory");
 }
 
 // ── Test 2: defaults are NOT emitted (absent ⇒ default; no posture bloat) ─────
@@ -292,7 +374,11 @@ function check(name, cond) {
   check("no decision_review at default", !/decision_review:/.test(yaml));
   check("no worktree_guard at default", !/^worktree_guard:/m.test(yaml));
   check("no worktree_bound at default", !/^worktree_bound:/m.test(yaml));
+  check("no worktree_lease at default", !/^worktree_lease:/m.test(yaml));
+  check("no worktree_lease_idle_minutes at default", !/^worktree_lease_idle_minutes:/m.test(yaml));
+  check("no keep_awake at default", !/^keep_awake:/m.test(yaml));
   check("no dashboard_autostart at default", !/^dashboard_autostart:/m.test(yaml));
+  check("no runes at default", !/^runes:/m.test(yaml));
   check("no definition_of_done at default", !/definition_of_done:/.test(yaml));
   check("no dev_repo_exempt at default", !/dev_repo_exempt:/.test(yaml));
   check("no orchestrator at default", !/^orchestrator:/m.test(yaml));
@@ -306,6 +392,8 @@ function check(name, cond) {
   check("no conserve_tokens_auto_pct at default", !/^conserve_tokens_auto_pct:/m.test(yaml));
   check("no context_handoff block at default", !/^context_handoff:/m.test(yaml));
   check("no cheap_lane block at default", !/^cheap_lane:/m.test(yaml));
+  check("no handoff_tax at default", !/^handoff_tax:/m.test(yaml));
+  check("no prompt_optimizer block at default", !/^prompt_optimizer:/m.test(yaml));
 }
 
 // ── Test 3: runaway: off scalar form ─────────────────────────────────────────
@@ -544,6 +632,166 @@ function check(name, cond) {
     api.applyGuardrailConfig({ cheap_lane: { agent: v } });
     check(`agent enum accepts ${v}`, api._get().cheap_lane.agent === v);
   }
+}
+
+// ── Test 9: prompt_optimizer (task-6 dashboard wiring) round-trips with ONLY
+//            `enabled` set — the live-posture shape a consumer opting in writes
+//            first (`prompt_optimizer: { enabled: true }`, mode still shadow,
+//            the frozen default). mode stays absent from the emitted block
+//            (it's still the default), but the block MUST still be written so
+//            `enabled: true` survives a Save — this is the exact key a Save
+//            would have silently dropped before this fix (verified absent
+//            from emitYaml() prior to it, per task-6-report.md). ──
+{
+  const s = api._freshState();
+  s.prompt_optimizer = { enabled: true, mode: "shadow" };
+  api._set(s);
+  const yaml = api.emitYaml();
+  check("prompt_optimizer block emitted for enabled-only", /^prompt_optimizer:$/m.test(yaml));
+  check("prompt_optimizer.enabled emitted (enabled-only)", /^  enabled: true$/m.test(yaml));
+  check("prompt_optimizer.mode NOT emitted when default shadow", !/^  mode:/m.test(yaml));
+
+  // An unknown mode value is rejected by the enum guard, so an otherwise-
+  // default block emits nothing (a Save neither invents nor corrupts a value).
+  api._set(api._freshState());
+  api.applyGuardrailConfig({ prompt_optimizer: { mode: "not-a-real-mode" } });
+  check("unknown mode ignored on hydrate", api._get().prompt_optimizer.mode === "shadow");
+  check("all-default prompt_optimizer emits no block", !/^prompt_optimizer:/m.test(api.emitYaml()));
+
+  // A non-boolean `enabled` is rejected, not coerced.
+  api._set(api._freshState());
+  api.applyGuardrailConfig({ prompt_optimizer: { enabled: "yes" } });
+  check("non-boolean enabled ignored on hydrate", api._get().prompt_optimizer.enabled === false);
+
+  // Every accepted mode value round-trips.
+  for (const v of ["shadow", "advisory", "binding-context"]) {
+    api._set(api._freshState());
+    api.applyGuardrailConfig({ prompt_optimizer: { mode: v } });
+    check(`mode enum accepts ${v}`, api._get().prompt_optimizer.mode === v);
+  }
+  for (const v of [true, false]) {
+    api._set(api._freshState());
+    api.applyGuardrailConfig({ prompt_optimizer: { enabled: v } });
+    check(`enabled accepts ${v}`, api._get().prompt_optimizer.enabled === v);
+  }
+}
+
+// ── Test 10: Phase D — handoff_tax caps/off + model_matrix.surfaces pin write.
+//            pin_explore under handoff_tax is hydrate-only alias; Save emits
+//            model_matrix.surfaces.explore_pin only. Caps still round-trip.
+{
+  // scalar off — both the boolean (parsed YAML) and string forms hydrate.
+  for (const v of [false, "off"]) {
+    api._set(api._freshState());
+    api.applyGuardrailConfig({ handoff_tax: v });
+    check(
+      `handoff_tax scalar off hydrates from ${JSON.stringify(v)}`,
+      api._get().handoff_tax.off === true,
+    );
+    const yaml = api.emitYaml();
+    check(
+      `handoff_tax: off emitted as the scalar (from ${JSON.stringify(v)})`,
+      /^handoff_tax: off$/m.test(yaml),
+    );
+    check(
+      "scalar off emits no block fields",
+      !/^  pin_explore:/m.test(yaml) && !/^  report_cap_words:/m.test(yaml),
+    );
+  }
+
+  // pin-only via NEW key — model_matrix.surfaces.explore_pin
+  const s = api._freshState();
+  s.model_matrix.surfaces.explore_pin = "sonnet";
+  api._set(s);
+  const yaml = api.emitYaml();
+  check("model_matrix block emitted for pin-only", /^model_matrix:$/m.test(yaml));
+  check("surfaces.explore_pin emitted (pin-only)", /^    explore_pin: sonnet$/m.test(yaml));
+  check("Phase D: no handoff_tax.pin_explore on pin-only Save", !/^  pin_explore:/m.test(yaml));
+  check("pin-only does not emit handoff_tax when caps default", !/^handoff_tax:/m.test(yaml));
+
+  // alias hydrate: old pin_explore fills surfaces when new absent
+  api._set(api._freshState());
+  api.applyGuardrailConfig({ handoff_tax: { pin_explore: "sonnet" } });
+  check(
+    "alias pin_explore hydrates into model_matrix.surfaces.explore_pin",
+    api._get().model_matrix.surfaces.explore_pin === "sonnet",
+  );
+  check("alias flag set on hydrate", api._get().alias_deprecation.pin_explore === true);
+  check(
+    "alias hydrate Save writes new key only",
+    /^    explore_pin: sonnet$/m.test(api.emitYaml()) && !/^  pin_explore:/m.test(api.emitYaml()),
+  );
+
+  // new wins over alias
+  api._set(api._freshState());
+  api.applyGuardrailConfig({
+    model_matrix: { surfaces: { explore_pin: "haiku" } },
+    handoff_tax: { pin_explore: "sonnet" },
+  });
+  check(
+    "new explore_pin wins over alias",
+    api._get().model_matrix.surfaces.explore_pin === "haiku",
+  );
+  check("diverge flag when alias differs", api._get().alias_deprecation.diverge === true);
+
+  // model_tier_surfaces alias → surfaces
+  api._set(api._freshState());
+  api.applyGuardrailConfig({
+    model_tier_surfaces: { precompact_fallback_model: "sonnet", handoff_fill_model: "haiku" },
+  });
+  check(
+    "mts precompact alias hydrates",
+    api._get().model_matrix.surfaces.precompact_fallback === "sonnet",
+  );
+  check("mts flag set", api._get().alias_deprecation.model_tier_surfaces === true);
+  // haiku is default → not emitted; sonnet is
+  const yMts = api.emitYaml();
+  check(
+    "mts Save emits precompact under surfaces",
+    /^    precompact_fallback: sonnet$/m.test(yMts),
+  );
+  check("mts Save does NOT emit model_tier_surfaces", !/^model_tier_surfaces:/m.test(yMts));
+
+  // all-default / unknown dropped
+  api._set(api._freshState());
+  api.applyGuardrailConfig({
+    handoff_tax: { pin_explore: "opus", report_cap_words: -5, brief_cap_words: "lots" },
+  });
+  check(
+    "unknown pin_explore ignored on hydrate",
+    api._get().model_matrix.surfaces.explore_pin === "",
+  );
+  check("negative report cap ignored on hydrate", api._get().handoff_tax.report_cap_words === null);
+  check(
+    "non-numeric brief cap ignored on hydrate",
+    api._get().handoff_tax.brief_cap_words === null,
+  );
+  check(
+    "all-default emits no handoff_tax / model_matrix",
+    !/^handoff_tax/m.test(api.emitYaml()) && !/^model_matrix:/m.test(api.emitYaml()),
+  );
+
+  // Accepted pin values via alias hydrate
+  for (const [v, want] of [
+    ["haiku", "haiku"],
+    ["sonnet", "sonnet"],
+    ["off", "off"],
+    [false, "off"],
+  ]) {
+    api._set(api._freshState());
+    api.applyGuardrailConfig({ handoff_tax: { pin_explore: v } });
+    check(
+      `alias pin_explore accepts ${JSON.stringify(v)}`,
+      api._get().model_matrix.surfaces.explore_pin === want,
+    );
+  }
+  api._set(api._freshState());
+  api.applyGuardrailConfig({ handoff_tax: { pin_explore: "off" } });
+  check(
+    "pin_explore: off Save emits surfaces.explore_pin",
+    /^    explore_pin: off$/m.test(api.emitYaml()),
+  );
+  check("pin_explore: off Save never writes old key", !/^  pin_explore:/m.test(api.emitYaml()));
 }
 
 if (failures) {

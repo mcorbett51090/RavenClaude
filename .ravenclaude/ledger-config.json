@@ -1,0 +1,11 @@
+{
+  "aging_policy": "rollup",
+  "brief_max_bytes": 4096,
+  "brief_max_items": 12,
+  "config_version": 1,
+  "dormant_after_days": 90,
+  "ledger_dir": ".ravenclaude/ledger",
+  "max_record_bytes": 8192,
+  "stale_days": 7,
+  "view_path": "docs/pm/task-list.md"
+}

@@ -42,6 +42,7 @@ Usage:
   python3 lint.py --list-checks
 """
 
+import html
 import json
 import os
 import re
@@ -153,7 +154,8 @@ def _safe_path(raw: str) -> str:
         sys.exit(2)
     repo = _repo_root()
     abs_path = os.path.realpath(os.path.join(os.getcwd(), raw))
-    if not abs_path.startswith(os.path.realpath(repo)):
+    real_repo = os.path.realpath(repo)
+    if not (abs_path == real_repo or abs_path.startswith(real_repo + os.sep)):
         print(f"[error] path escapes repo root: {abs_path!r}", file=sys.stderr)
         sys.exit(2)
     return abs_path
@@ -185,7 +187,8 @@ def _walk(obj, violations: list, path: str = "$") -> None:
         if isinstance(transforms, list):
             for i, t in enumerate(transforms):
                 if isinstance(t, dict) and t.get("lookup") is not None:
-                    from_data = t.get("from", {}).get("data", {})
+                    from_val = t.get("from") or {}
+                    from_data = from_val.get("data", {}) if isinstance(from_val, dict) else {}
                     if isinstance(from_data, dict) and "url" in from_data:
                         violations.append(
                             ("transform-lookup", f"{path}.transform[{i}].from.data.url")
@@ -234,6 +237,7 @@ def _check_json_quality(obj: dict, violations: list, warnings: list) -> None:
         mark_type = mark["type"].lower()
 
     encoding = obj.get("encoding") or {}
+    encoding = encoding if isinstance(encoding, dict) else {}
 
     # (i) encoding-completeness
     if mark_type in _POSITION_REQUIRED_MARKS:
@@ -341,16 +345,21 @@ _RE_REMOTE_HREF = re.compile(
 # decodes to a tab) executes as javascript: in a browser but would otherwise fail
 # the ^javascript: match (2026-08 review).
 _RE_URL_CTRL = re.compile(r"[\t\r\n]")
-# Numeric XML character entity patterns — decoded before applying _RE_REMOTE_HREF
-# to prevent entity-encoding bypass (e.g., &#106;avascript:alert(1) → javascript:alert(1)).
-_RE_ENTITY_DEC = re.compile(r"&#(\d+);")
-_RE_ENTITY_HEX = re.compile(r"&#[xX]([0-9a-fA-F]+);")
-
-
+# Numeric AND named XML/HTML character entity patterns — decoded before applying
+# _RE_REMOTE_HREF to prevent entity-encoding bypass (e.g., &#106;avascript:alert(1)
+# and jav&colon;ascript:alert(1) both → javascript:alert(1)). A browser's HTML
+# parser decodes BOTH numeric (&#106; / &#x6A;) and named (&colon; / &Tab;)
+# character references in attribute values before URL-scheme resolution, so both
+# forms must be decoded here or the svg-remote-href check can be bypassed
+# (2026-09 review — b100-lint-named-entity-href-bypass).
 def _decode_numeric_entities(text: str) -> str:
-    text = _RE_ENTITY_DEC.sub(lambda m: chr(int(m.group(1))), text)
-    text = _RE_ENTITY_HEX.sub(lambda m: chr(int(m.group(1), 16)), text)
-    return text
+    # html.unescape() decodes both numeric AND named HTML5 character references,
+    # and — unlike a hand-rolled chr(int(...)) — never raises on an out-of-range
+    # numeric reference (e.g. &#99999999; or &#xFFFFFFFF;): CPython's own decoder
+    # substitutes U+FFFD for any code point outside range(0x110000) instead of
+    # calling chr() on it, so this also closes the chr() ValueError crash
+    # (dvlint-entity-chr-crash) without a separate try/except.
+    return html.unescape(text)
 
 
 def _check_svg(content: str, violations: list) -> None:

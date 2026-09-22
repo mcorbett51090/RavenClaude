@@ -41,6 +41,30 @@ worktree_guard: warn
 # Not a Chat-is-protected claim — Chat Preview hook fire is unverified.
 worktree_bound: block
 
+# Blocked-exhaustion gate (workaround_exhaustion: off | warn | block). After a
+# RavenClaude guard denies a tool call, a hand-back to you — an AskUserQuestion
+# shaped like "which option / I'm blocked / do this manually", or a final message
+# that ends the turn with the same shape — must be backed by a workaround ledger
+# (`rc workaround tried --channel <c> --result "…" --bypass-test "…"`) showing at
+# least `workaround_exhaustion_floor` EXECUTED, distinct-channel attempts since
+# that deny. "Considered" is not a row. The escape is
+# `rc workaround blocked-ok "<the specific route or permission you lack>"` —
+# logged as a warn event, never silent. Routes: knowledge/workaround-routes.md.
+#   off   — (absent ⇒ off) the gate is inert.
+#   warn  — (default here) an advisory notice on the hand-back; never blocks.
+#   block — DENIES the question / blocks the Stop until the floor is met or
+#           blocked-ok is declared; the Stop lane force-allows after
+#           `workaround_exhaustion_max_blocks` consecutive blocks (anti-deadlock).
+# A PR you own that is red is work now, not a wait — see the routes file.
+workaround_exhaustion: warn
+# workaround_exhaustion_floor: 3
+# workaround_exhaustion_max_blocks: 4
+# Known gap (2026-09-17): these three keys are hand-set YAML. The dashboard's
+# Save & apply rebuilds this file from its own state and does not yet carry
+# them (they are not in the advisory-knob table in scripts/generate-dashboards.py,
+# a tribunal-substrate file — that two-line addition is a maintainer follow-up),
+# so a dashboard Save drops them; re-add them by hand after a Save.
+
 # Bring the comfort-posture dashboard up at session start (dashboard_autostart:
 # off | serve | open). Read by hooks/dashboard-autostart.sh. LEFT UNSET ON PURPOSE —
 # absent ⇒ off, because auto-launching a local server (and stealing focus with a
@@ -50,6 +74,27 @@ worktree_bound: block
 # It probes 127.0.0.1:8000 first, so concurrent sessions never spawn a second
 # server or a second tab. Until you set this, `rc dashboard` stays the launch verb.
 # dashboard_autostart: open
+
+# Runes at session start (off | on; default off / absent).
+# On = Oath-hook hanging MUST-RUN + ready + auto-claim ungated; never auto Longship merge.
+# runes: on
+
+# Plugin lifecycle (per-project last-used ledger). After P1, tracking defaults
+# ON whenever this posture file exists (M7). Dangerous verbs stay OFF:
+#   auto_uninstall: off   (absent ⇒ off; M2)
+#   auto_install: off     (off | ask | auto; absent/unknown => off; auto only when explicit; M5 follow-on)
+# Prefer ask for production installs until operators configure tip/SHA pins.
+# auto + --execute is pin-gated (install_pins / --expected-sha); fail-closed on
+# pin_missing / pin_mismatch. Seed stays OFF — never default auto.
+# unused_days: 90 (M1). ravenclaude-core is never auto-removed (M3).
+# Ledger: .ravenclaude/plugin-lifecycle.json (gitignored, M6).
+# plugin_lifecycle:
+#   tracking: on
+#   unused_days: 90
+#   auto_uninstall: off
+#   auto_install: off
+#   pins: []
+#   install_pins: {}   # optional map "<name>@ravenclaude": "<tip-sha>" for auto execute
 
 # Claude orchestrator for non-Claude CLIs (off | decide | full).
 # No-op under Claude Code (host already IS Claude). Default: full (owner choice — route to Claude; costs more tokens).
@@ -95,6 +140,56 @@ orchestrator_pseudonymize: false
 cheap_lane:
   mode: off
   tier: fast # fast (default) | balanced — the Grok tier for delegated work
+
+# Unified Model Matrix surfaces (0.323.11) — SSOT:
+#   knowledge/unified-model-matrix.md + .json
+# Posture only overrides pins; tier×agent cells live in the JSON.
+# cheap_lane block above stays as today (default mode: off).
+# Grok rows remain visible in the matrix when mode:off (inactive routing ≠ unsupported).
+model_matrix:
+  surfaces:
+    explore_pin: haiku # haiku (default) | sonnet | off — un-pinned Explore PreToolUse rewrite
+    precompact_fallback: haiku # haiku (default) | sonnet — PreCompact archival digest fallback
+    handoff_fill: haiku # haiku (default) | sonnet — detached handoff MODEL FILL
+    never_inherit_session: [precompact, handoff, explore]
+
+# Handoff tax — meter caps stay here. pin_explore is a ONE-RELEASE ALIAS for
+# model_matrix.surfaces.explore_pin (new key wins if both set).
+#   handoff-tax-meter.sh  (PostToolUse Agent) — measures every sub-agent
+#       dispatch: brief words, report words, resolved tier; writes one line to
+#       .ravenclaude/runs/<session>/dispatch-ledger.jsonl (gitignored) and
+#       ADVISES (never blocks) when a report/brief is over cap or a read-only
+#       worker ran on the frontier tier. `rc dispatch-summary` rolls the ledger
+#       up per session — the "cost per completed task" view.
+#   explore-tier-pin.sh   (PreToolUse Agent) — REWRITES an un-pinned built-in
+#       `Explore` dispatch to `model: <explore_pin>` before it runs (an
+#       un-pinned Explore inherits the main model since Claude Code v2.1.198,
+#       so on an Opus session every "go find X" bills at Opus). Never touches
+#       a dispatch that names a model (including `inherit`), never emits a
+#       permissionDecision — `subagent_dispatch` below still gates the call.
+# Absent block = defaults below. `handoff_tax: off` silences the advisory AND
+# disables the pin (the ledger line is still written, so the summary stays honest).
+#
+# SOAK PLAN (0.323.14 Phase D — advisory + dashboard write; aliases KEEP in seed):
+#   1) SessionStart advisory when old keys are sole source or diverge (not Stop spam).
+#   2) Dashboard Save writes ONLY model_matrix.surfaces.* (never pin_explore /
+#      model_tier_surfaces.*). Readers: new wins, old alias fallback, haiku default.
+#   3) After Matthew soak window: LATER ship may drop aliases from SEED only
+#      (House Rule 3 — never clobber consumer custom old keys).
+#   Comment marker: "alias deprecated after soak" — aliases NOT removed this release.
+handoff_tax:
+  report_cap_words: 400 # a worker report longer than this is a failed handoff
+  brief_cap_words: 600 # a brief longer than this is re-feeding the transcript
+  pin_explore: haiku # ALIAS deprecated after soak → model_matrix.surfaces.explore_pin
+
+# ALIASES for model_matrix.surfaces (0.323.10 names) — deprecated after soak.
+# New surfaces.* keys win when both set; absent new ⇒ these ⇒ haiku default.
+# House Rule 3: seed-only — existing consumer custom model_tier_surfaces is never
+# clobbered by marketplace update; absent ⇒ old defaults (haiku).
+# Later (post-soak): remove from seed only; do NOT hard-delete consumer keys.
+model_tier_surfaces:
+  precompact_fallback_model: haiku # ALIAS deprecated after soak → surfaces.precompact_fallback
+  handoff_fill_model: haiku # ALIAS deprecated after soak → surfaces.handoff_fill
 
 # Model-fallback ladder (added 2026-06-24). When a model a RavenClaude process
 # invokes (a tribunal seat, the convergence judge, the orchestrator) ERRORS or is
@@ -143,12 +238,52 @@ model_fallback:
 #   max_blocks: 8                     # consecutive Stop-blocks before force-allow
 #   trusted: false                    # default — first run requires `touch <path>` confirm
 
+# Skill-wiring exclusion (v0.319.0+). `ravenclaude setup --with-plugin <name>`
+# symlinks a plugin's WHOLE skills/ directory into .claude/skills/ — every
+# skill's name+description then gets injected into every Copilot Chat/CLI
+# turn (VS Code's native Agent Skills feature reads that directory live).
+# List plugins here whose skills your project doesn't need; wire_plugin_skills()
+# skips them on every setup/update — durably, unlike a one-off local prune
+# (which gets silently undone the next time you update). Plugin-level only,
+# purely additive: absent key = unchanged full-roster behavior.
+# skills:
+#   deny_plugins:
+#     - finance
+#     - web-design
+
 # Session-context handoff (quality reset before auto-compact). Absent / off =
 # silent. Ship default off so a marketplace update does not nag. Threshold is a
 # compact-pressure percent, not a quality-rot lore number (do not use 40).
+#
+# When the handoff-nudge (Stop hook) fires, it has the live agent write a full
+# handoff.md via `context-handoff.py write` (real judgment content, no egress),
+# then surfaces a ready-to-run /compact steering line — this is the PRIMARY
+# mechanism (precompact-handoff-convergence, v0.314.0); the separate, opt-in
+# `cheap_lane`-gated precompact-digest.sh above is only the rare fallback for a
+# compaction with no intervening Stop (never un-gated by this).
+#
+# Per-host delivery — `mode` is NOT symmetric across hosts:
+#   Claude Code            — nag delivers (additionalContext at Stop); block also works.
+#   Copilot CLI / Chat     — nag delivers NOTHING (agentStop's output contract has no
+#                             context-injection field — a host limit, not a RavenClaude
+#                             gap). mode: block is the ONLY mode that reaches the agent
+#                             there.
+#   Codex CLI               — docs-verified Stop coverage, same as Claude Code; nag untested live.
+#   Grok TUI                — no hook surface at all; this knob is inert there regardless.
+# So `mode: block` is the recommended universal on-switch if you want delivery on
+# every host, at the cost of a forced extra turn on Copilot/Codex when it fires.
+#
 # context_handoff:
-#   mode: nag                    # off | nag | block. Absent / off = silent.
-#   threshold_percent: 70        # before auto-compact (~85). Not a quality-rot %.
+#   mode: block                  # off | nag | block. Absent / off = silent.
+#                                 # RECOMMENDED: block (delivers on every host; nag is
+#                                 # dead on Copilot — see the table above).
+#   threshold_percent: 70        # RECOMMENDED. Before auto-compact (~85 non-Claude,
+#                                 # ~80 Claude Code). Not a quality-rot %.
+#                                 # ⛔ Anything above 74 leaves too little headroom for
+#                                 # the write-and-fill procedure itself to complete
+#                                 # before auto-compact fires mid-write (Claude Code's
+#                                 # clamp ceiling of 79 is a LEGAL value that is a BAD
+#                                 # one) — stay at or below 74, 70 is the tested default.
 #   spawn: copy-paste-only       # copy-paste-only | same-host | os-terminal
 #                                  same-host is host-paired: Chat→new Chat,
 #                                  Grok→Grok TUI, Copilot CLI→CLI
@@ -172,6 +307,7 @@ security_deny:
   - "Bash(rm -rf:*)"
   - "Bash(git push --force:*)"
   - "Bash(git push -f:*)"
+  - "Bash(git push --mirror:*)"
   - "Bash(git reset --hard:*)"
   - "Bash(git clean -fd:*)"
   - "Bash(npm publish:*)"
@@ -255,6 +391,12 @@ categories:
     user: inherit
     local: inherit
     project: allow
+  # Bare Agent — without this, every /code-review fan-out prompts.
+  # Absent key still falls back to global_default (backward compatible).
+  subagent_dispatch:
+    user: inherit
+    local: inherit
+    project: allow
   # ── Reaches outside the repo — prompt first ─────────────────────
   file_edit_global:
     user: inherit
@@ -298,3 +440,14 @@ cause_triage: warn
 cause_preflight: warn
 cause_remediation: warn
 cause_closure: warn
+
+# ── source-control-coordinator (opt-in, default off) ────────────────────────
+# Owns merge/CI-triage/branch-hygiene handed off via the task ledger from other
+# sessions. off = no runtime behavior change (nothing auto-subscribes, auto-
+# merges, or auto-creates ledger items). advise = proposes/escalates, never
+# acts. active = also acts, subject to its own per-repo runaway/
+# definition_of_done precondition (self-downgrades to advise if unconfigured).
+# Any value that is not exactly `advise` or `active` — absent, empty,
+# mis-cased, or unrecognized — resolves to `off`.
+# source_control_coordinator: off | advise | active   # default: off
+# coordinator_escalation_hours: 24                     # default: 24; integer in [1, 168], else 24

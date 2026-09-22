@@ -69,7 +69,7 @@ def _ym_str(n: int) -> str:
 
 
 def _read_csv(path: str) -> list[dict]:
-    with open(path, newline="") as fh:
+    with open(path, newline="", encoding="utf-8") as fh:
         return list(csv.DictReader(fh))
 
 
@@ -373,7 +373,7 @@ def _emit(result: dict, out: str | None, strict: bool) -> int:
         return 5
     text = json.dumps(result, indent=2)
     if out:
-        with open(out, "w") as fh:
+        with open(out, "w", encoding="utf-8") as fh:
             fh.write(text + "\n")
         print(f"wrote {out}  [{result['schedule']}]  ties={result['ties']}")
     else:

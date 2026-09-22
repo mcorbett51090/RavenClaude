@@ -112,6 +112,7 @@ STANDALONE_SCRIPTS = {
     "content-scan.py": "ad hoc research tool mirroring reddit-scan.py; invoked manually per topic",
     "generate-document-map.py": "seeds a doc map once, then hand-curated; header says run once",
     "gh-health.py": "manual diagnostic ('is this GitHub's problem or mine?'), run when CI looks wrong",
+    "premerge-refresh.sh": "human-run pre-merge regen+restamp tool; header says run once a branch is caught up, never a pipeline step",
 }
 
 # Verdict vocabulary. ⛔ CLOSED SET. A record may never carry free text derived
@@ -333,6 +334,25 @@ def _script_callgraph(root: Path, paths: list[str], ctx: dict) -> dict:
 def _script_selftest(root: Path, paths: list[str], ctx: dict) -> dict:
     out = {}
     _self = Path(__file__).name
+    # ⛔ SCRUBBED ENV, NEVER THE FULL INHERITED ONE. These two calls execute
+    # arbitrary repo-tracked script code (--must-fail-convention / --must-fail
+    # are attacker-reachable via any PR touching scripts/*, plugins/*/scripts/*,
+    # plugins/*/bin/*), and this probe runs at the default T0 tier on every
+    # audit-gates.sh / CI invocation. Neither call previously passed env=, so
+    # subprocess.run inherited the FULL parent environment — CI secrets
+    # included (e.g. GITHUB_TOKEN). A full env/cwd sandbox (matching
+    # _hook_benign below) was tried first and REJECTED: several declared
+    # --must-fail conventions (e.g. check-artifact-budgets.py) measure real
+    # repo-tree state via `Path(".").resolve()`, and redirecting HOME broke
+    # Python's user-site-packages resolution (pyyaml import failures) — both
+    # produced false convention-mismatch FAILs on real scripts. So cwd and HOME
+    # stay untouched; only env VARS whose NAME looks secret-shaped are dropped
+    # before exec, closing the concrete leak (CI tokens/keys reaching an
+    # attacker-authored script) without perturbing scripts' own behavior.
+    _secret_name = re.compile(
+        r"TOKEN|SECRET|_KEY$|API_KEY|PASSWORD|PASSWD|CREDENTIAL", re.IGNORECASE
+    )
+    _scrubbed_env = {k: v for k, v in os.environ.items() if not _secret_name.search(k)}
     for p in paths:
         # ⛔ THE SWEEP DOES NOT PROBE ITSELF. Measured: script-selftest ran
         # `inventory-sweep.py --must-fail`, whose teeth run performs a full sweep,
@@ -343,6 +363,22 @@ def _script_selftest(root: Path, paths: list[str], ctx: dict) -> dict:
         # anyway. Reported as a SKIP with a reason, never silently dropped.
         if Path(p).name == _self:
             out[p] = (SKIP, "self-probe-would-recurse")
+            continue
+        # ⛔ NOR DOES IT PROBE THE HARNESS. audit-gates.sh contains the literal
+        # "--must-fail-convention" because it is the thing that asks OTHER scripts
+        # for it (rc_mustfail) — it does not parse the flag itself, so the grep
+        # below matches and the execute step launches the ENTIRE audit suite under
+        # a 30s timeout. Killed mid-run, any gate that mutates a live file in place
+        # and restores it afterwards (Gate 14 mutates thing-orchestrator.sh to prove
+        # the fail-closed tie-breaker has teeth) is left mutated, with no signal
+        # here. Observed 2026-09-14/15: three times in one session the working tree
+        # held `verdict="allow"; reason="MUTANT pre-fix…"` in the tribunal — a
+        # fail-OPEN change — surfacing only as covers-digest drift in Gates 237/239
+        # hundreds of gates later. subprocess.run's timeout kills the bash, not its
+        # children, so the restore `cp` never runs. The harness's own teeth are
+        # exercised by CI running it whole; probing it here can only corrupt.
+        if Path(p).name == "audit-gates.sh":
+            out[p] = (SKIP, "harness-would-run-full-suite")
             continue
         # ⛔ READ BEFORE YOU EXECUTE. The first version invoked all 183 scripts with
         # --must-fail-convention to find out whether they implemented it. Two
@@ -361,17 +397,25 @@ def _script_selftest(root: Path, paths: list[str], ctx: dict) -> dict:
             out[p] = (SKIP, "no-selftest-declared")
             continue
         runner = "python3" if p.endswith(".py") else "bash"
-        decl = _run(root, [runner, p, "--must-fail-convention"], timeout=30)
+        decl = _run(root, [runner, p, "--must-fail-convention"], timeout=30, env=_scrubbed_env)
         if decl.returncode != 0 or "must-fail-teeth-exit:" not in decl.stdout:
             out[p] = (SKIP, "no-selftest-declared")
             continue
-        want = decl.stdout.split("must-fail-teeth-exit:")[1].strip().split()[0]
+        _tail = decl.stdout.split("must-fail-teeth-exit:")[1].strip().split()
+        if not _tail:
+            # Marker present but no value (e.g. authoring typo `must-fail-teeth-exit:`
+            # with an empty tail). Treat as an undeclared convention rather than
+            # letting `[]`[0] raise IndexError, which — uncaught at the call site —
+            # would abort the entire sweep and lose every other probe's result.
+            out[p] = (SKIP, "no-selftest-declared")
+            continue
+        want = _tail[0]
         # ⛔ A GENEROUS TIMEOUT, AND A TIMEOUT IS NOT A MISMATCH. Measured: the
         # sweep probing ITSELF (and the judge, which may attempt model calls) blew
         # a 120s budget and returned 124, which the comparison then read as
         # "declared 1, observed 124 — convention-mismatch". Two false findings from
         # a clock, not from a contract. A timeout is reported as UNKNOWN.
-        _r = _run(root, [runner, p, "--must-fail"], timeout=420)
+        _r = _run(root, [runner, p, "--must-fail"], timeout=420, env=_scrubbed_env)
         if _r.returncode == 124:
             out[p] = (UNKNOWN, "probe-timeout")
             continue
@@ -424,24 +468,45 @@ def _hook_benign(root: Path, paths: list[str], ctx: dict) -> dict:
                 "cwd": str(sandbox),
             }
         )
+        # CLI-dispatch hooks (hooks.json ends with ask|stop): invoke those lanes
+        # with the benign Read stdin. Sandbox-as-$1 hits usage exit 2 on that ABI
+        # and must not be conflated with deny (see workaround-exhaustion.sh).
+        cli_lanes = _cli_dispatch_lanes(root)
         for p in paths:
             name = Path(p).name
             if name in GLOBAL_LOCK_HOOKS:
                 out[p] = (SKIP, "global-lock-hook")
                 continue
             fp = root / p
-            r = _run(sandbox, ["bash", str(fp), str(sandbox)], stdin=payload, timeout=8, env=env)
-            if r.returncode == 124:
-                # ⛔ A TIMEOUT IS UNKNOWN, NEVER A PASS. "did not deny within 8s"
-                # and "does not deny" are different facts, and recording the second
-                # from the first is the manufactured-clean shape.
+            lanes = cli_lanes.get(name)
+            if lanes:
+                # Primary PreToolUse lane is ask; also probe stop when registered.
+                argv_variants = [["bash", str(fp), lane] for lane in lanes]
+            else:
+                argv_variants = [["bash", str(fp), str(sandbox)]]
+            timed_out = False
+            saw_exit_2 = False
+            for argv in argv_variants:
+                r = _run(sandbox, argv, stdin=payload, timeout=8, env=env)
+                if r.returncode == 124:
+                    # ⛔ A TIMEOUT IS UNKNOWN, NEVER A PASS. "did not deny within 8s"
+                    # and "does not deny" are different facts, and recording the second
+                    # from the first is the manufactured-clean shape.
+                    timed_out = True
+                    break
+                if r.returncode == 2:
+                    saw_exit_2 = True
+                    break
+            if timed_out:
                 out[p] = (UNKNOWN, "probe-timeout")
                 continue
-            # ⛔ Exit 2 is the DENY channel. Anything else (0, 1, even a crash) is
-            # not a denial — claim 8: a failing Bash tool_response carries no
-            # exit-code field, so the emitted envelope is authoritative, never an
-            # inferred code.
-            out[p] = (FAIL, "denies-benign-payload") if r.returncode == 2 else (PASS, "ok")
+            # ⛔ Exit 2 is the DENY channel only for hooks whose ABI uses exit 2 as
+            # deny (path-taking guards). CLI-dispatch hooks use exit 2 for usage /
+            # unknown subcommand — that is not deny; those hooks are invoked via
+            # ask|stop above. Anything else (0, 1, even a crash) is not a denial —
+            # claim 8: a failing Bash tool_response carries no exit-code field, so
+            # the emitted envelope is authoritative, never an inferred code.
+            out[p] = (FAIL, "denies-benign-payload") if saw_exit_2 else (PASS, "ok")
     return out
 
 
@@ -550,6 +615,30 @@ def _registered_hook_names(root: Path) -> set[str]:
         blob = cfg.read_text(encoding="utf-8", errors="replace")
         names.update(re.findall(r"([A-Za-z0-9_.-]+\.sh)", blob))
     return names
+
+
+# Host lanes for multi-subcommand / CLI-dispatch hooks. hooks.json wires
+# `hook.sh ask` / `hook.sh stop` — not a sandbox path. Closed set: only the
+# lanes the host actually registers (ask|stop). Unknown words stay CLI-loud.
+_CLI_DISPATCH_LANE_RE = re.compile(r"([A-Za-z0-9_.-]+\.sh)\s+(ask|stop)\b")
+
+
+def _cli_dispatch_lanes(root: Path) -> dict[str, list[str]]:
+    """Basename → ordered unique host lanes from hooks.json / settings.json.
+
+    Used by hook-benign-passthrough so CLI-dispatch hooks are probed with the
+    same argv shape the host uses. Prefer real ask|stop invoke over SKIP.
+    """
+    lanes: dict[str, list[str]] = {}
+    for cfg in (root / PLUGIN / "hooks" / "hooks.json", root / ".claude" / "settings.json"):
+        if not cfg.is_file():
+            continue
+        blob = cfg.read_text(encoding="utf-8", errors="replace")
+        for name, lane in _CLI_DISPATCH_LANE_RE.findall(blob):
+            seen = lanes.setdefault(name, [])
+            if lane not in seen:
+                seen.append(lane)
+    return lanes
 
 
 def _haystack_parts(root: Path, patterns: tuple[str, ...]) -> dict[str, str]:
@@ -733,6 +822,11 @@ def main() -> int:
     ap.add_argument("--json", action="store_true")
     ap.add_argument("--capping-table", action="store_true")
     ap.add_argument("--stamp", default="latest", help="record filename stem (no clock in-process)")
+    ap.add_argument(
+        "--no-record",
+        action="store_true",
+        help="skip write_records() — for a read-only --check invocation (e.g. ci-preflight.py)",
+    )
     ap.add_argument("--must-fail", action="store_true")
     ap.add_argument("--must-fail-convention", action="store_true")
     args = ap.parse_args()
@@ -750,7 +844,7 @@ def main() -> int:
         return _capping_table(root)
 
     result = sweep(root, tier=args.tier)
-    rec_path = write_records(root, result, args.stamp)
+    rec_path = None if args.no_record else write_records(root, result, args.stamp)
 
     if args.json:
         print(
@@ -768,7 +862,10 @@ def main() -> int:
         by_class[rec["class"]][rec["verdict"]] += 1
 
     print("── inventory sweep (path-keyed; ZERO inventory entries required) ──")
-    print(f"  records : {rec_path.relative_to(root)}  (gitignored, derived labels only)")
+    if rec_path is None:
+        print("  records : --no-record — nothing written")
+    else:
+        print(f"  records : {rec_path.relative_to(root)}  (gitignored, derived labels only)")
     print()
     print(f"  {'CLASS':<26} {'TIER':<13} {'STRENGTH':<13} VERDICTS")
     for name, spec in CLASSES.items():

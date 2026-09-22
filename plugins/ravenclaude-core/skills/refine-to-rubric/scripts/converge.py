@@ -125,9 +125,16 @@ def keep_best(iterations):
 # Finding / hard-gate analysis (all deterministic)
 # ──────────────────────────────────────────────────────────────────────────────
 def _blocking_findings(iteration):
-    """The set of (dimension, severity) blocking findings in an iteration."""
+    """The set of (dimension, severity) blocking findings in an iteration.
+
+    `findings` is judge-verdict-derived and may be schema-permitted-null: a
+    real judge.sh call can return `"findings": null` (valid JSON, key present),
+    which defeats the `.get(..., [])` default (the default only applies when
+    the key is ABSENT, not when it's present-but-null). `or []` normalizes
+    both "key absent" and "key present but null" to the same safe fallback.
+    """
     out = set()
-    for f in iteration.get("findings", []):
+    for f in iteration.get("findings") or []:
         if f.get("severity") in BLOCKING_SEVERITIES:
             out.add((f.get("dimension", ""), f.get("severity", "")))
     return out
@@ -148,8 +155,12 @@ def _has_new_blocking_finding(iterations, idx):
 def _red_hard_gates(iteration):
     """List of dimension ids whose objective hard gate is RED (False) in this
     iteration. A red hard gate blocks convergence regardless of the weighted
-    score — objective signals are the primary stop authority."""
-    return sorted(d for d, ok in iteration.get("hard_gates", {}).items() if not ok)
+    score — objective signals are the primary stop authority.
+
+    `hard_gates` is judge-verdict-derived and may be schema-permitted-null
+    (key present, value null) — same defect class as `findings` above; `or {}`
+    guards both absent and present-but-null."""
+    return sorted(d for d, ok in (iteration.get("hard_gates") or {}).items() if not ok)
 
 
 def _total_model_calls(iterations):
@@ -161,7 +172,9 @@ def _residual_gaps(rubric, iteration):
     scoring below 1.0, every RED hard gate, plus every UNVERIFIED/derived
     dimension (surfaced, never silently graded)."""
     gaps = []
-    scores = iteration.get("scores", {})
+    # `scores` is judge-verdict-derived and may be schema-permitted-null
+    # (key present, value null) — same defect class as `findings`/`hard_gates`.
+    scores = iteration.get("scores") or {}
     for dim in rubric.get("dimensions", []):
         did = dim["id"]
         if dim.get("source") in ("library", "explicit") and bool(dim.get("verified")):
@@ -251,7 +264,7 @@ def terminate(rubric, iterations, config=None):
         patience = int(cfg["plateau_patience"])
         if n_iters < patience + 1:
             return False
-        window = iterations[-(patience + 1):]
+        window = iterations[-(patience + 1) :]
         for prev, cur in zip(window, window[1:]):
             delta = abs(float(cur.get("score", 0.0)) - float(prev.get("score", 0.0)))
             if delta >= float(cfg["epsilon"]):
@@ -324,7 +337,9 @@ def _load(path):
 def main(argv=None):
     ap = argparse.ArgumentParser(description="Deterministic convergence terminate() predicate.")
     ap.add_argument("--rubric", required=True, help="path to a rubric.schema.json document")
-    ap.add_argument("--scorecard", required=True, help="path to a convergence-scorecard.schema.json document")
+    ap.add_argument(
+        "--scorecard", required=True, help="path to a convergence-scorecard.schema.json document"
+    )
     ap.add_argument("--emit-verdict", action="store_true", help="print the verdict JSON to stdout")
     args = ap.parse_args(argv)
 
@@ -340,7 +355,12 @@ def main(argv=None):
 
     try:
         should_stop, verdict = terminate(rubric, iterations, config)
-    except (KeyError, TypeError, ValueError) as exc:
+    except (KeyError, TypeError, ValueError, AttributeError) as exc:
+        # AttributeError covers a schema-permitted-but-wrong-typed judge field
+        # (e.g. hard_gates/scores present as a list where a dict/null is expected,
+        # so `(… or {}).items()` / `….get(…)` raises). Without it, that case
+        # escapes as an unhandled traceback → exit 1, which callers read as the
+        # "loop should continue" verdict rather than the contract error it is.
         print(f"converge: contract error: {exc}", file=sys.stderr)
         return 2
 

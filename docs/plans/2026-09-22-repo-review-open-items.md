@@ -9,6 +9,26 @@ This doc lists what the PR **did not** apply and why, with ready-to-paste patche
 that need a deliberate maintainer action, plus three systemic recommendations. Everything a
 panel verified and that was safely applicable is in the accompanying PR.
 
+## Post-merge reconciliation (2026-09-22)
+
+Between this branch being cut and merge time, `main` advanced ~30 commits — including several
+**parallel** repo-review PRs (#1236, #1235, #1231, #1228, …) and a core bump to `0.324.8`. After
+merging `main` in and de-duplicating, only the still-unique, unambiguous **code/config** fixes were
+kept in this PR (no version bumps, no generated-file churn):
+
+- **Landed:** A1 (dead self-test assertion), A2 (non-dict host cell → exit 2), A3 (utf-8 encoding),
+  and C1's two dev-mirror hooks (`triage-outcome.sh`, `guard-foreground-suite.sh`). `keep-awake.sh`
+  already landed on `main` via a parallel PR.
+- **Dropped as superseded/stale:** D1 (main restructured the README away from the hand-maintained
+  skill-count list), D2 (`power-platform/CLAUDE.md` "18 skills total" — still valid but deferred to
+  avoid a version-bump cascade on a fast-moving `main`), and D3 (now **inaccurate**: `main` added
+  more `scripts/`-based hooks, so the count is **8**, not the "four" this branch wrote — needs a
+  proper re-count, not the stale edit).
+- **New evidence for recommendation #2 (parity gate):** `main` itself now carries **three more**
+  unmirrored dev-mirror hooks (`explore-tier-pin.sh`, `handoff-tax-meter.sh`, `sanitize-mcp-output.sh`)
+  — the same gap recurring, which is exactly why the systemic parity gate below is the real fix rather
+  than chasing mirrors by hand.
+
 ## Implemented in the PR (no decision needed)
 
 | ID | Sev | Fix | Files |

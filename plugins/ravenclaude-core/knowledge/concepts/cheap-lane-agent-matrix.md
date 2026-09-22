@@ -6,14 +6,14 @@ kind: ravenclaude-built
 entry_class: inventory
 order: 903
 summary: "route-task.py picks a lane, not a vendor; cheap-lane-delegate.sh picks the agent — and the two CLIs' real capability shapes genuinely diverge."
-last_verified: 2026-08-26
+last_verified: 2026-09-16
 covers:
   - plugins/ravenclaude-core/scripts/cheap-lane-delegate.sh
   - plugins/ravenclaude-core/scripts/copilot-delegate.sh
   - plugins/ravenclaude-core/scripts/grok-delegate.sh
   - plugins/ravenclaude-core/scripts/route-task.py
   - plugins/ravenclaude-core/skills/cheap-lane-delegation/SKILL.md
-covers_digest: "sha256:40a22d94b0a8080e593d8bdc4cbc84da9ccecd825113bf6a36519fca3ee0a2fb"
+covers_digest: "sha256:6c37b64584b9569fedf9c7c1f981d4a8d20d07a3897fea861e05e50405fba9bc"
 nuance: "Copilot CLI's `--model auto` rejects `--effort` outright at runtime — a real error, not a doc gap — so the Copilot lane differentiates by timeout budget only unless a caller pins an effort-capable model."
 nuance_evidence:
   measured: 2026-08-26
@@ -43,3 +43,21 @@ Measured 2026-08-26: Copilot CLI's `--model auto` rejects `--effort` outright at
 `route-task.py`'s `lane` field now reads `"cheap"`, not `"grok"` — the router decides whether work leaves Claude at all, never which CLI it lands on. `cheap-lane-delegate.sh --agent grok|copilot` is the layer that actually picks the coding agent, and the two agents' tier tables cannot share one row: Grok's model/effort/perspective come from the shared `substrate-tier-map.json`; Copilot's does not, because none of six guessed pinned model slugs validated as a real `--model` value against the installed CLI, and the only value confirmed to work (`auto`) is exactly the one that forbids `--effort`.
 
 Falsifier: a future Copilot CLI release accepting `--effort` together with `--model auto`.
+
+
+## Copilot auto-tiers vs cheap lane (DOC adapt 2026-09-20 — UNVERIFIED)
+Copilot may expose **efficiency / balance / intelligence** as auto-selection
+weights (cost · quality · latency). That does **not** invent a pinned
+`--model` slug for `copilot-delegate.sh`. Until measured otherwise: lane
+still `"cheap"`; agent still `grok|copilot`; Copilot differentiation remains
+timeout budget and/or explicit non-`auto` model when effort is required.
+If a future CLI accepts named auto-tier flags with `auto`, re-measure and
+update this card + `nuance_evidence`.
+
+## UMM absorption (0.323.11)
+
+The agent × model × effort × budget matrix is now also the **Unified Model Matrix**
+SSOT at [`../unified-model-matrix.json`](../unified-model-matrix.json). This concept
+entry keeps the Copilot `--effort` honesty discriminator; tier cell values live in
+the UMM JSON. `cheap_lane.mode: off` still means inactive routing — Grok rows remain
+visible in the matrix.

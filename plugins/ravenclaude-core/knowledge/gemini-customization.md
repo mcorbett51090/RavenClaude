@@ -95,3 +95,24 @@ file.**
    `SessionEnd` are plausible counterparts, but their payload schemas were not published on the
    pages verified, and mapping a lifecycle event by name-similarity is how a lane ends up asserting
    coverage it does not have. Wire them when their schemas are read, not before.
+
+## Gemini CLI 0.60 — host-security alignment (DOC adapt 2026-09-20 — UNVERIFIED)
+[verify-at-use · angle release-gemini-cli-0.60.0 · KEEP sandbox/path gates]
+
+These controls ship **in Gemini CLI**. RavenClaude's `hooks/gemini-hook-adapter.sh`
+stays a thin shim (tool-name normalize + `THING_HOST` + exit-2 passthrough). Do
+**not** weaken RC FOREIGN-TREE / Seatbelt-aligned guidance when documenting them.
+
+| 0.60 theme | Operator / adapter expectation | RC posture |
+|------------|--------------------------------|------------|
+| **MCP OAuth RFC 9207 issuer strictness** | Issuer identification in MCP OAuth must match strictly; mis-issuer → fail closed | Document only; no adapter bypass. Multi-harness: Grok bots \| Cursor \| Claude \| SuperGrok — applies when host is Gemini |
+| **Extension consent + env sanitize** | Explicit consent before extension-driven env changes; sanitize runtime-altering env vars | Do not inject unsanitized env in installer/settings generators |
+| **Path / symlink / SFN (NTFS 8.3) boundary hardening** | Workspace boundary validation, symlink resolution, short-name mitigation across command safety + discovery | KEEP — aligns with existing worktree-bound / FOREIGN-TREE note at top of this file; do not recommend `experimental.worktrees` |
+| **Envelope metadata provenance (untrusted tool outputs)** | Treat tool-result envelope metadata as **untrusted provenance**; do not promote it to trusted policy input | Adapter must not strip provenance fields if/when present; guards that consume outputs should assume hostile metadata |
+| **Sandbox / settings / temp isolation + macOS Seatbelt path isolation** | Settings/temp dirs isolated in sandbox containers | KEEP gate/host safety — compare DIGEST KEEP bullet; adapt docs only |
+| **System-wide config ownership checks + extension loader path resolution** | Strict permission/ownership on system config paths; hardened extension loader boundaries | Installers must not chmod/chown their way around checks |
+
+### Hook-adapter non-goals (do not "helpfully" encode in the shim)
+- Re-implementing Gemini's OAuth issuer checks inside bash.
+- Softening exit-2 deny into JSON-allow on parse failure (Cursor fail-open class — Gemini is exit-2 safe).
+- Treating envelope metadata as authenticated identity.

@@ -122,6 +122,33 @@ fi
 
 # ── 3. Install / refresh the ~/.bashrc block (idempotent, marker-bounded) ─────
 touch "$BASHRC"
+
+# Lock the whole check-then-act + write sequence below so two concurrent
+# invocations against the same $HOME (a Codespace rebuild racing a manual
+# re-run, or two parallel setup jobs on a shared container) can't both read
+# "no marker yet" before either has written, then both append a block —
+# producing duplicate/interleaved begin/end pairs the marker-state check
+# above would then refuse to auto-fix. `mkdir` is atomic on every POSIX
+# filesystem and needs no extra binary (no `flock`, which isn't installed by
+# default on macOS) — the portable choice for a plain bash script.
+BASHRC_LOCK="${BASHRC}.rc-lock"
+LOCK_ACQUIRED=""
+lock_tries=0
+while ! mkdir "$BASHRC_LOCK" 2>/dev/null; do
+  lock_tries=$((lock_tries + 1))
+  if [ "$lock_tries" -ge 50 ]; then
+    log "WARN: could not acquire lock on $BASHRC after ${lock_tries}0.1s tries (stale lock at $BASHRC_LOCK?) — proceeding without it."
+    break
+  fi
+  sleep 0.1
+done
+if [ "$lock_tries" -lt 50 ]; then
+  LOCK_ACQUIRED=1
+  # Release on any exit (normal or error) so a crash never leaves a stale lock
+  # that would wedge every future invocation.
+  trap 'rmdir "$BASHRC_LOCK" 2>/dev/null || true' EXIT
+fi
+
 # Strip a prior block so a re-run updates in place. Data-loss-safe: only strip a
 # SINGLE, correctly-ordered, exact-line-matched marker pair. Any other state
 # (lone marker, duplicate markers, out-of-order) → leave the file untouched and
@@ -186,6 +213,14 @@ stop-watching() { python3 "\$TERMINAL_WATCHER_PY" --stop; }
 watcher-log()   { tail -f /tmp/terminal-watcher.log; }
 $END_MARK
 EOF
+fi
+
+# Release the lock as soon as the write is durable — nothing below this point
+# touches $BASHRC. The EXIT trap above is the fail-safe for any earlier error
+# path; this just shrinks the held window on the normal-completion path.
+if [ -n "$LOCK_ACQUIRED" ]; then
+  rmdir "$BASHRC_LOCK" 2>/dev/null || true
+  trap - EXIT
 fi
 
 log "Done. In a NEW terminal (or after 'source ~/.bashrc'):"

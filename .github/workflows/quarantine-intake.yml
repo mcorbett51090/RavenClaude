@@ -38,6 +38,9 @@ jobs:
   quarantine:
     name: Scrub, stage, and open a quarantine PR
     runs-on: ubuntu-latest
+    # Bound the runner: this job is triggered by an externally-filed issue; without
+    # an explicit cap it defaults to GitHub's 6-hour ceiling on a hang.
+    timeout-minutes: 15
     # Only react to the specific label, and never to a bot/Actions-created issue loop.
     if: >-
       github.event.label.name == 'scenario-submission' &&

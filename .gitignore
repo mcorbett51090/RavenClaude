@@ -9,11 +9,19 @@
 # Posture-change audit log (per-project, append-only — P0.4 event substrate)
 .ravenclaude/posture-events.jsonl
 # Per-machine handoff spawn marker; consumed by the successor's SessionStart hook.
-.ravenclaude/handoff-pending.json
+# Task_id-scoped (handoff-pending-<slug>.json) since handoff-spawn.sh v0.313.x —
+# the glob also matches the legacy unscoped handoff-pending.json name.
+.ravenclaude/handoff-pending*.json
 
 # inventory-nuance-judge.py's content-hash calibration/entry cache — machine- and
 # model-behavior-specific, never meant to be shared or committed.
 .ravenclaude/cache/
+
+# /repo-review's review_cache.py content-hash cache (scripts/repo_map.py CACHE_DIR) —
+# machine-local, per-run, never meant to be committed. Gap found 2026-09-10: the first
+# real dev-repo /repo-review run left 602 untracked JSON files that failed prettier's
+# whole-tree --check (prettier respects .gitignore, so this closes it for good).
+.ravenclaude/repo-review-cache/
 
 # Local/runtime config — not part of the committed marketplace (rc-deep-research
 # substrate baseline arm + local self-heal setup notes). Templates live in
@@ -36,6 +44,7 @@ node_modules/
 
 # Local Claude Code runtime state
 .claude/scheduled_tasks.lock
+.claude/*.lock
 .claude/__pycache__/
 .claude/.comfort-posture-applied.local.json
 
@@ -60,3 +69,11 @@ evals/__pycache__/
 # by the plugin's skills during a run; never source, never committed.
 tests/fixtures/report-regeneration/_out/
 .ravenclaude/handoff-nudge-state.json
+.ravenclaude/handoff-nudge-state/
+
+# F3 golden-set light judge reports (artifact-only; never commit churn)
+evals/reports/
+evals/inject-golden-set/__pycache__/
+
+# Plugin-lifecycle last-used ledger (per-project, local-only — M6)
+.ravenclaude/plugin-lifecycle.json

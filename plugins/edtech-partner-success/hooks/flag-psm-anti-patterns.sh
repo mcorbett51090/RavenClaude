@@ -17,13 +17,15 @@
 #      matching *health*, *qbr* (§3 #4 — cite the signal)
 #
 # Advisory by default: prints warnings to stderr so Claude and the user both see
-# them, but exits 0 so the edit is not blocked. To make this hook BLOCK on
-# violation, change the final `exit 0` to `exit 2` (or set
-# EDTECH_PS_STRICT=1 in the environment).
+# them, and exits 0. This hook is registered PostToolUse (see hooks.json), so the
+# write has ALREADY happened when it runs — no exit code can block it. Setting
+# EDTECH_PS_STRICT=1 makes it exit 2, which surfaces the violation's stderr back
+# to the agent as an error it must address, but it cannot undo the completed
+# write. To actually BLOCK a write, the hook would have to be re-wired PreToolUse.
 #
-# Claude Code PreToolUse: exit 2 = BLOCK the tool call with stderr surfaced to
-# the agent. exit 1 = non-blocking error (silently swallowed). STRICT=1 below
-# uses exit 2 — the only blocking code.
+# Claude Code exit codes: on PreToolUse exit 2 = BLOCK the tool call; on
+# PostToolUse (this hook) exit 2 only surfaces stderr to the agent (the tool
+# already ran). exit 1 is a non-blocking error silently swallowed on both.
 
 set -euo pipefail
 
@@ -165,15 +167,17 @@ EOF
   names are a PII / professionalism issue. Unverified claims invite
   pushback.
 
-  This hook is advisory — the edit was not blocked. To enforce, set
-  EDTECH_PS_STRICT=1 in your env or change \`exit 0\` to \`exit 2\` at
-  the bottom of this script (exit 2 = BLOCK; exit 1 is non-blocking
-  and would silently allow the edit).
+  This hook is advisory and runs PostToolUse — the write already
+  happened, so the edit cannot be blocked here. Set EDTECH_PS_STRICT=1
+  to exit 2, which surfaces this violation back to the agent as an
+  error to address (exit 1 is non-blocking and silently swallowed).
+  To actually block a write, re-wire this hook as PreToolUse.
 ────────────────────────────────────────────────────────────────────
 
 EOF
-  # exit 2 = BLOCK (Claude Code PreToolUse blocking code); exit 1 is
-  # non-blocking and would silently allow the edit despite the warning.
+  # PostToolUse: the tool already ran, so exit 2 cannot block it — it only
+  # surfaces this stderr to the agent as an error to address. exit 1 is a
+  # non-blocking error silently swallowed.
   if [[ "${EDTECH_PS_STRICT:-0}" == "1" ]]; then exit 2; fi
 fi
 

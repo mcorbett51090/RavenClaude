@@ -2,7 +2,7 @@
 name: prompt-implementation-engineer
 description: "Use to write and iterate the actual prompts: refine wording, curate few-shot examples, implement structured outputs (JSON mode / tool schemas), build templates, budget tokens. NOT the architecture (prompt-architect) or the eval harness (prompt-reliability-engineer)."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
-model: opus
+model: sonnet
 audience: [ai-engineer, application-developer, prompt-implementation-engineer, backend-engineer]
 works_with: [prompt-architect, prompt-reliability-engineer, retrieval-engineer, backend-architect]
 scenarios:

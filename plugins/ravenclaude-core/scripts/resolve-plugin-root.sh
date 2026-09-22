@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # resolve-plugin-root.sh — print the ravenclaude-core plugin root that holds
-# ALL THREE FORGE helpers (forge-route.py, forge-worktree.sh, premise-gate.py).
+# ALL FIVE FORGE helpers (forge-route.py, forge-worktree.sh, premise-gate.py,
+# forge-receipt.py, forge-publish-session-plan.sh).
 #
 # Why: /forge and skills/forge-pipeline cite helpers as
 # ${CLAUDE_PLUGIN_ROOT}/scripts/…. Claude Code sets that variable. VS Code
@@ -8,9 +9,9 @@
 # This script finds the same directory without requiring the variable.
 #
 # A PARTIAL set is a fail — never "routing exists, premise/worktree do not".
-# Missing any one of the three is exit 2, same as finding nothing.
+# Missing any one of the five is exit 2, same as finding nothing.
 #
-# Resolution order (first hit that has all three):
+# Resolution order (first hit that has all five):
 #   1. $CLAUDE_PLUGIN_ROOT
 #   2. $PLUGIN_ROOT (Codex / _portable.sh alias)
 #   3. this script's parent (invoke-by-path; dirname $0/..)
@@ -26,7 +27,7 @@
 #   resolve-plugin-root.sh --self-test  scratch fixtures (nonzero on failure)
 #
 # Exit 0 = printed an absolute plugin root.
-# Exit 2 = no candidate held all three; stderr names every try.
+# Exit 2 = no candidate held all five; stderr names every try.
 # Exit 1 = usage / could-not-run.
 
 set -euo pipefail
@@ -48,11 +49,14 @@ _abs() {
 }
 
 _has_three() {
+  # Name kept for call-site stability; checks FIVE helpers (AppEng P1).
   local root="${1:-}"
   [ -n "$root" ] || return 1
   [ -f "$root/scripts/forge-route.py" ] || return 1
   [ -f "$root/scripts/forge-worktree.sh" ] || return 1
   [ -f "$root/scripts/premise-gate.py" ] || return 1
+  [ -f "$root/scripts/forge-receipt.py" ] || return 1
+  [ -f "$root/scripts/forge-publish-session-plan.sh" ] || return 1
   return 0
 }
 
@@ -153,8 +157,8 @@ cmd_resolve() {
     _note "RAVENCLAUDE_MARKET → <unset>"
   fi
 
-  printf 'resolve-plugin-root.sh: no candidate held all three FORGE helpers\n' >&2
-  printf '(scripts/forge-route.py, scripts/forge-worktree.sh, scripts/premise-gate.py).\n' >&2
+  printf 'resolve-plugin-root.sh: no candidate held all five FORGE helpers\n' >&2
+  printf '(forge-route.py, forge-worktree.sh, premise-gate.py, forge-receipt.py, forge-publish-session-plan.sh).\n' >&2
   printf 'Tried:\n%s' "$_TRIED" >&2
   return 2
 }
@@ -167,11 +171,13 @@ _st_fail() {
 }
 
 _plant_three() {
-  # $1 = plugin root
+  # $1 = plugin root — plants all five FORGE helpers
   mkdir -p "$1/scripts" "$1/skills/forge-pipeline"
   : >"$1/scripts/forge-route.py"
   : >"$1/scripts/forge-worktree.sh"
   : >"$1/scripts/premise-gate.py"
+  : >"$1/scripts/forge-receipt.py"
+  : >"$1/scripts/forge-publish-session-plan.sh"
 }
 
 cmd_self_test() {
@@ -253,7 +259,7 @@ cmd_self_test() {
   fi
   printf '%s' "$err" | grep -q 'Tried:' || _st_fail "empty candidates stderr missing Tried:"
 
-  # Fixture 6: plugin root missing one of the three → exit 2.
+  # Fixture 6: plugin root missing one of the five → exit 2.
   plugin="${scratch}/p6"
   _plant_three "$plugin"
   rm -f "$plugin/scripts/premise-gate.py"
@@ -262,15 +268,45 @@ cmd_self_test() {
     env -u CLAUDE_PROJECT_DIR PATH="/usr/bin:/bin" \
     bash "${lonely}/resolve-plugin-root.sh" 2>/dev/null)" || rc=$?
   if [ "$rc" -eq 0 ]; then
-    _st_fail "missing-one-of-three accepted ($out)"
+    _st_fail "missing-one-of-five (premise) accepted ($out)"
   fi
   if [ "$rc" -ne 2 ]; then
-    _st_fail "missing-one-of-three expected exit 2, got $rc"
+    _st_fail "missing-one-of-five expected exit 2, got $rc"
+  fi
+
+  # Fixture 7: missing forge-receipt.py alone → exit 2 (five-file conjunct).
+  plugin="${scratch}/p7"
+  _plant_three "$plugin"
+  rm -f "$plugin/scripts/forge-receipt.py"
+  rc=0
+  out="$(CLAUDE_PLUGIN_ROOT="$plugin" PLUGIN_ROOT="" RAVENCLAUDE_MARKET="" \
+    env -u CLAUDE_PROJECT_DIR PATH="/usr/bin:/bin" \
+    bash "${lonely}/resolve-plugin-root.sh" 2>/dev/null)" || rc=$?
+  if [ "$rc" -eq 0 ]; then
+    _st_fail "missing-receipt accepted ($out)"
+  fi
+  if [ "$rc" -ne 2 ]; then
+    _st_fail "missing-receipt expected exit 2, got $rc"
+  fi
+
+  # Fixture 8: missing publish script alone → exit 2.
+  plugin="${scratch}/p8"
+  _plant_three "$plugin"
+  rm -f "$plugin/scripts/forge-publish-session-plan.sh"
+  rc=0
+  out="$(CLAUDE_PLUGIN_ROOT="$plugin" PLUGIN_ROOT="" RAVENCLAUDE_MARKET="" \
+    env -u CLAUDE_PROJECT_DIR PATH="/usr/bin:/bin" \
+    bash "${lonely}/resolve-plugin-root.sh" 2>/dev/null)" || rc=$?
+  if [ "$rc" -eq 0 ]; then
+    _st_fail "missing-publish accepted ($out)"
+  fi
+  if [ "$rc" -ne 2 ]; then
+    _st_fail "missing-publish expected exit 2, got $rc"
   fi
 
   rm -rf "$scratch"
   if [ "$ST_RC" -eq 0 ]; then
-    echo "SELF-TEST PASS: resolve-plugin-root.sh (6 fixtures)"
+    echo "SELF-TEST PASS: resolve-plugin-root.sh (8 fixtures)"
   fi
   return "$ST_RC"
 }

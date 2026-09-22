@@ -91,15 +91,19 @@ mandatory indirection layer.
 
 ### The matrix — coding agent x model x effort x turn/timeout budget
 
+> **SSOT (0.323.12 Phase C):** canonical agent × tier **cells** live only in
+> [`knowledge/unified-model-matrix.json`](../../knowledge/unified-model-matrix.json)
+> (+ [`unified-model-matrix.md`](../../knowledge/unified-model-matrix.md)).
+> This skill keeps **live-verified nuance** below (Copilot `--effort` honesty,
+> containment, levers). When cells disagree, **UMM JSON wins**.
+> **`cheap_lane.mode: off` does not hide Grok** — off = inactive routing; matrix
+> rows stay documented. Nav: [`routing-map.md`](../../knowledge/routing-map.md).
+
 This is **not a single-vendor tool.** `--tier` resolves the same three-row shape
 -- `fast` / `balanced` / `top` -- differently per agent, because each CLI's real,
-**live-verified** (2026-08-26) capability shape differs:
-
-| Tier | **Grok** -- model / effort / perspective | **Grok** budget | **Copilot** -- effort | **Copilot** budget |
-|---|---|---|---|---|
-| `fast` (default) | grok-4.5 / low / scanner | 15 turns / 300s | low `[see honest limit below]` | 300s (no turn-count flag exists) |
-| `balanced` | grok-4.5 / high / architect | 30 turns / 600s | medium `[see honest limit below]` | 600s |
-| `top` (never auto-assigned) | grok-4.6 / high / critic | 60 turns / 1200s | high `[see honest limit below]` | 1200s |
+**live-verified** (2026-08-26) capability shape differs. **Do not re-author the
+cell table here** — open UMM. Concept card (nuance digest):
+[`concepts/cheap-lane-agent-matrix.md`](../../knowledge/concepts/cheap-lane-agent-matrix.md).
 
 Grok's model+effort+perspective come from the shared
 [`knowledge/substrate-tier-map.json`](../../knowledge/substrate-tier-map.json)
@@ -118,8 +122,8 @@ exact "looks like one source of truth, isn't verified for this use" trap.
 non-interactively) **rejects `--effort` outright at the API level**
 (`"Model \"auto\" does not support reasoning effort configuration"`, a real
 runtime error, not a guess). So out of the box, **the Copilot lane's tier
-ladder differentiates by timeout budget only** -- the effort column above is
-what `--effort` WOULD carry if a caller pins a real, effort-capable model via
+ladder differentiates by timeout budget only** -- the UMM Copilot effort
+column is what `--effort` WOULD carry if a caller pins a real, effort-capable model via
 `copilot-delegate.sh --model <slug>` (confirmed via the interactive `/model`
 picker on your own account), at which point `--effort` is sent for real.
 
@@ -131,7 +135,7 @@ Plus the levers that are orthogonal to tier and always available:
 | `mode` | `advise` (suggestion only) \| `agent` (disposable worktree, human reviews the diff) | `cheap_lane.mode` in `comfort-posture.yaml` -- the containment lever |
 | `--effort` | Grok: `low`\|`medium`\|`high` (CLI rejects `xhigh`). Copilot: `none`\|`minimal`\|`low`\|`medium`\|`high`\|`xhigh`\|`max`, sent ONLY with a pinned `--model` (see above) | An explicit CLI override -- wins over the tier-resolved effort |
 | `--model <slug>` | Copilot only; Grok's model comes from the tier map, unoverridable here | An explicit CLI override for a caller who has confirmed their own valid slug |
-| `--timeout <secs>` / `--max-turns <n>` (Grok only -- no verified Copilot turn-count flag) | any positive int | An explicit CLI override -- wins over the tier's budget row above |
+| `--timeout <secs>` / `--max-turns <n>` (Grok only -- no verified Copilot turn-count flag) | any positive int | An explicit CLI override -- wins over the UMM tier budget row |
 
 **Why turn/timeout scale with tier at all.** Before this, every delegated task got the
 same flat 30-turn/600s budget regardless of how trivial or how deep the task was -- a
@@ -177,10 +181,12 @@ on anything you would not also hand write access via a worktree alone.
 
 | Question | Answered by |
 |---|---|
-| Does this multi-agent orchestration need a Claude sub-agent, a skill, or a dynamic workflow? | `spawn-team` Step 2 |
+| Slash command vs skill vs specialist agent vs orchestration shape? | `spawn-team` **Step 1.25** |
+| Does this multi-agent orchestration need a Claude sub-agent, a skill, or a dynamic workflow *at scale*? | `spawn-team` Step 2 + `dynamic-workflows.md` |
 | Is this ONE well-defined task cheap enough to route off Claude entirely? | **This skill** |
 | Must a **new session** on another host own the rest (quota, leftover list, plugin-cache reload)? | `session-handoff` — not this skill |
 | Should a sub-agent dispatch downgrade/upgrade tier? | `agent-dispatch-evaluator` (governs sub-agent calls only — see its own `dispatch-config.json`) |
+| Which agent — `grok` or `copilot` — is the better fit for THIS task shape? | Optional: [`../../knowledge/agent-routing-matrix.json`](../../knowledge/agent-routing-matrix.json) (prose pointer only — `cheap_lane.agent` today has no principled basis beyond the operator's own choice; the matrix's task-shape-aware recommendations are one input to that choice, not a required one) |
 
 This skill and `agent-dispatch-evaluator` are **not the same mechanism** and do not
 conflict: the evaluator tunes which *model tier* a Claude sub-agent dispatch uses;

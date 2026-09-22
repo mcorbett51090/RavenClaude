@@ -69,12 +69,23 @@ print(json.dumps({"hookSpecificOutput": {"hookEventName": ev,
 ' 2>/dev/null || true
 }
 
-# rc_advise_init <EventName> [forced_exit_code]
+# rc_advise_init <EventName> [forced_exit_code] [silent]
 #   forced_exit_code: pass 0 for a hook whose contract is "always exit 0" (it
 #   replaces an existing `trap 'exit 0' EXIT`, e.g. guard-probe-validity.sh).
+#   Pass "" to leave the natural exit code alone (e.g. a PreToolUse hook that
+#   may still `block`).
+#   silent: pass the literal string "silent" to suppress the human-visible UI
+#   notice (the `cat ... >&2` line below) while STILL delivering additionalContext
+#   -- i.e. the model sees it, the terminal does not. Added 2026-09-02 for the
+#   cause-taxonomy family, whose whole value is a machine-side nudge the agent
+#   triages and only surfaces when it actually points at something broken; the
+#   human-visible banner on every empty grep/find was the complaint. Opt-in per
+#   call site: omit the 3rd arg and every other `rc_advise_init` caller (11 other
+#   hooks as of this writing) is byte-identical to before.
 rc_advise_init() {
   RC_ADVISE_EVENT="${1:-PostToolUse}"
   RC_ADVISE_FORCED="${2:-}"
+  RC_ADVISE_SILENT="${3:-}"
   RC_ADVISE_BUF="$(mktemp "${TMPDIR:-/tmp}/rc-advise.XXXXXX" 2>/dev/null)" || return 0
   exec 3>&2                            # save the REAL stderr FIRST
   exec 2>"$RC_ADVISE_BUF"              # then buffer
@@ -86,7 +97,9 @@ rc_advise_flush() {
   [ -n "${RC_ADVISE_FORCED:-}" ] && _rc_rc="$RC_ADVISE_FORCED"
   exec 2>&3 3>&- || true               # restore the real stderr
   if [ -s "${RC_ADVISE_BUF:-/nonexistent}" ]; then
-    cat "$RC_ADVISE_BUF" >&2           # keep the UI notice EXACTLY as before
+    if [ "${RC_ADVISE_SILENT:-}" != "silent" ]; then
+      cat "$RC_ADVISE_BUF" >&2         # keep the UI notice EXACTLY as before
+    fi
     rc_advise_emit "$RC_ADVISE_EVENT" "$(cat "$RC_ADVISE_BUF")"
   fi
   rm -f "${RC_ADVISE_BUF:-}" 2>/dev/null || true
@@ -121,6 +134,45 @@ print("  OK   over-cap payload is truncated LOUDLY, with the full byte count")
   else
     echo "  OK   empty message emits nothing"
   fi
+
+  # ── SILENT MODE — split terminal vs machine channel (added 2026-09-02) ─────
+  # A full init/write/flush/exit cycle, run in a real subshell so the EXIT trap
+  # fires for real. Bidirectional: proves silent mode suppresses the terminal
+  # notice (without a marker leaking to real stderr) AND that the default
+  # (no 3rd arg) call shape is UNCHANGED — the 11 other rc_advise_init callers
+  # must keep seeing their notice, so this is a regression guard, not just a
+  # feature test.
+  _self="${BASH_SOURCE[0]}"
+  _silent_err_f="$(mktemp)"
+  _silent_out="$(bash -c '
+    . "$1"
+    rc_advise_init PostToolUse "" silent
+    echo "SILENT_MARKER" >&2
+  ' _ "$_self" 2>"$_silent_err_f")"
+  _silent_err="$(cat "$_silent_err_f" 2>/dev/null || true)"
+  rm -f "$_silent_err_f"
+  if printf '%s' "$_silent_err" | grep -q "SILENT_MARKER"; then
+    echo "  FAIL silent mode: marker leaked to real stderr"; _fail=1
+  elif ! printf '%s' "$_silent_out" | grep -q "SILENT_MARKER"; then
+    echo "  FAIL silent mode: marker missing from additionalContext (stdout)"; _fail=1
+  else
+    echo "  OK   silent mode: suppressed from stderr, still delivered via additionalContext"
+  fi
+
+  _loud_err_f="$(mktemp)"
+  bash -c '
+    . "$1"
+    rc_advise_init PostToolUse ""
+    echo "LOUD_MARKER" >&2
+  ' _ "$_self" 2>"$_loud_err_f" >/dev/null
+  _loud_err="$(cat "$_loud_err_f" 2>/dev/null || true)"
+  rm -f "$_loud_err_f"
+  if ! printf '%s' "$_loud_err" | grep -q "LOUD_MARKER"; then
+    echo "  FAIL default (non-silent) mode: marker did not reach real stderr — regression"; _fail=1
+  else
+    echo "  OK   default (non-silent) mode unchanged: marker still reaches real stderr"
+  fi
+
   [ "$_fail" -eq 0 ] && echo "  _advise self-test: PASS" || echo "  _advise self-test: FAIL"
   exit "$_fail"
 fi

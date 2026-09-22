@@ -82,6 +82,34 @@ hook_event_name · cursor_version · workspace_roots[] · user_email · transcri
 
 ---
 
+## Input schema — `sessionStart`, and why it never carries a `matcher`
+
+`[docs-verified 2026-09-02 — cursor.com/docs/agent/hooks]`, checked while investigating a live
+`worktree-guard.sh` self-lease-denial incident (see [`kb-tribunal-seats-abstaining.md`]'s sibling
+research, `.ravenclaude/runs/forge/sessionstart-hook-safeguards/`). `sessionStart` adds to the common
+envelope above:
+
+```
+session_id · is_background_agent · composer_mode ("agent" | "ask" | "edit")
+```
+
+**`sessionStart` carries no `source`-shaped field, and the matcher-config section of the docs does not
+list `sessionStart` among the events matcher applies to at all** — unlike Claude Code's own
+`SessionStart`, which matches `startup` / `resume` / `clear` / `compact` / `fork`. So
+[`scripts/generate-cursor-hooks.py`](../../../scripts/generate-cursor-hooks.py) never emitting a
+matcher for `SessionStart` is **not** an unverified-schema gap to fix later — it is the platform's own
+documented ceiling: there is nothing to filter by. Every `SessionStart`-registered hook fires on every
+Cursor session start, always, by design of the host, not this generator.
+
+**What IS useful here:** `transcript_path` is present in the common envelope, same field name as
+Claude Code's own hook payload — a candidate stable-across-resume identity anchor for anything (like a
+worktree/session lease) that needs to recognize "this is the same logical conversation continuing"
+across a process boundary, portable across at least these two hosts. Not yet verified: whether Cursor's
+`transcript_path` value is stable across whatever Cursor's own equivalent of a context-compaction /
+session-resume event is — that would need its own host-specific probe before a design leans on it.
+
+---
+
 ## Rules — `.cursor/rules/*.mdc` (MH-25)
 
 `[docs-verified — cursor.com/docs]` Cursor's primary rules mechanism is `.cursor/rules/*.mdc`, with

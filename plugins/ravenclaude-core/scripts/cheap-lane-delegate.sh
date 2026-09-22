@@ -40,7 +40,7 @@ agent=""
 args=()
 while [ $# -gt 0 ]; do
   case "$1" in
-    --agent) agent="${2:-}"; shift 2 ;;
+    --agent) agent="${2:-}"; shift; shift ;;
     *) args+=("$1"); shift ;;
   esac
 done

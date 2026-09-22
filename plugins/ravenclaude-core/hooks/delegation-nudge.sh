@@ -74,11 +74,21 @@ done
 # Specific delegation phrasings (NOT a generic "check"). Three shapes:
 #  (a) sending the user to a portal/UI; (b) "you/the user should manually check/verify…";
 #  (c) "check the run history" / "go check…".
-phrase='((open|go to|navigate to|log ?in to|sign ?in to)[^.]{0,40}(portal|admin center|maker portal|power automate|azure portal|the ui)|(you|the user|please)[[:space:]]+([a-z]+[[:space:]]+){0,3}(manually[[:space:]]+)?(check|verify|look at|review|inspect)\b|(check|view|inspect|review)[[:space:]]+the[[:space:]]+run[[:space:]]+history|\bgo[[:space:]]+(check|look|verify)\b)'
+#
+# Word boundaries are spelled as POSIX-portable `(^|[^[:alnum:]_])` /
+# `([^[:alnum:]_]|$)`, deliberately NOT `\b`. These patterns are matched by
+# bash's own `[[ =~ ]]` — i.e. the system regcomp(3) in plain REG_EXTENDED
+# mode — and `\b` is not POSIX ERE: it is a GNU-libc extension, and macOS's
+# libc is not expected to honour it there [unverified — training knowledge;
+# the portable spelling sidesteps the question on every host either way]. No
+# other hook in this plugin puts `\b` inside `[[ =~ ]]`; every other `\b` in the
+# tree lives in embedded Python `re` or a `grep -E` call, which is a different
+# engine (macOS door, once more).
+phrase='((open|go to|navigate to|log ?in to|sign ?in to)[^.]{0,40}(portal|admin center|maker portal|power automate|azure portal|the ui)|(you|the user|please)[[:space:]]+([a-z]+[[:space:]]+){0,3}(manually[[:space:]]+)?(check|verify|look at|review|inspect)([^[:alnum:]_]|$)|(check|view|inspect|review)[[:space:]]+the[[:space:]]+run[[:space:]]+history|(^|[^[:alnum:]_])go[[:space:]]+(check|look|verify)([^[:alnum:]_]|$))'
 # A genuine hand-back reason on the line legitimizes the delegation (CGP Rule 4).
 # Must be the ACCESS-LACKING shape — a bare "if/when" would over-suppress (e.g.
 # "to see if it failed, open the portal" is NOT a hand-back reason).
-reason='(unless you|if you (lack|don'\''?t|do not|can'\''?t|cannot)|because you (lack|don'\''?t|do not|can'\''?t|cannot)|\bcannot\b|\bcan'\''?t\b|do(n'\''?t| not) hold|no (access|route|permission|spn|token)|not authoriz)'
+reason='(unless you|if you (lack|don'\''?t|do not|can'\''?t|cannot)|because you (lack|don'\''?t|do not|can'\''?t|cannot)|(^|[^[:alnum:]_])cannot([^[:alnum:]_]|$)|(^|[^[:alnum:]_])can'\''?t([^[:alnum:]_]|$)|do(n'\''?t| not) hold|no (access|route|permission|spn|token)|not authoriz)'
 # A line that already cites a held route is documenting the self-serve path, not delegating.
 route='(Web API|GET |POST |PATCH |DELETE |pac |az |gh |/api/data/|curl )'
 
@@ -87,6 +97,18 @@ in_fence=0
 in_frontmatter=0
 lineno=0
 first_nonblank_seen=0
+
+# Per-line matching below uses bash's own `[[ =~ ]]`/`==` instead of piping each
+# line through `echo | grep` (each such pipeline forks a subshell + a grep
+# process, so a naive per-line implementation is O(N) subprocess creation over
+# the file). `nocasematch` makes those bash-native comparisons case-insensitive
+# to match the prior `grep -qi…` behavior; it is turned OFF around the `route`
+# check, which was intentionally case-SENSITIVE (`grep -qE`, no `-i`) — mixed
+# case matters there ("Web API", "GET ", vs. lowercase "pac "/"az "/"gh ").
+# Gate 122's teeth half (hooks/tests/test-gate122-delegation-nudge.sh, case C)
+# neuters the two `&& continue` suppressions below by exact text — keep their
+# spelling in sync with that fixture if you touch them.
+shopt -s nocasematch
 
 while IFS= read -r line || [[ -n "$line" ]]; do
   lineno=$((lineno + 1))
@@ -108,16 +130,23 @@ while IFS= read -r line || [[ -n "$line" ]]; do
   [[ "$line" =~ ^[[:space:]]*\> ]] && continue
   [[ "$line" =~ ^[[:space:]]*#{1,6}[[:space:]] ]] && continue
 
-  echo "$line" | grep -qiF 'delegation-nudge-ok' && continue
+  [[ "$line" == *"delegation-nudge-ok"* ]] && continue
 
-  if echo "$line" | grep -qiE "$phrase"; then
+  if [[ "$line" =~ $phrase ]]; then
     # Suppress: a genuine hand-back reason, or a line that cites a held route.
-    echo "$line" | grep -qiE "$reason" && continue
-    echo "$line" | grep -qE "$route" && continue
-    trimmed="$(echo "$line" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
+    [[ "$line" =~ $reason ]] && continue
+    shopt -u nocasematch
+    route_hit=0
+    [[ "$line" =~ $route ]] && route_hit=1
+    shopt -s nocasematch
+    [[ "$route_hit" -eq 1 ]] && continue
+    trimmed="${line#"${line%%[![:space:]]*}"}"
+    trimmed="${trimmed%"${trimmed##*[![:space:]]}"}"
     violations+=("  $file:$lineno: $trimmed")
   fi
 done < "$file"
+
+shopt -u nocasematch
 
 if [[ ${#violations[@]} -gt 0 ]]; then
   cat >&2 <<EOF

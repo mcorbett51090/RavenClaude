@@ -33,6 +33,10 @@ After create, write the lane stamp (`plugins/ravenclaude-core/scripts/write-lane
 ## Cleanup
 Worktrees are NOT auto-removed. Use [`cleanup-worktrees`](../cleanup-worktrees/SKILL.md) when the task is integrated.
 
+
+## Codex managed worktrees (DOC adapt 2026-09-20 — UNVERIFIED)
+This skill creates RavenClaude / Sleipnir agent worktrees under `.claude/worktrees/`. Codex 0.155 **managed** worktrees are owned by the Codex agents overview / app-server daemon lane — different product, different delete path. Do not treat overview-managed trees as Sleipnir stables; prefer overview confirmed-delete for Codex-managed trees (see `knowledge/codex-cli-customization.md`).
+
 ## Why this exists
 Two parallel coder agents on the same working tree will silently corrupt each other's diffs. Worktrees are cheap; recovery from a stomped diff is not.
 

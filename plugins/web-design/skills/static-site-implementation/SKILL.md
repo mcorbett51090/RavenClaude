@@ -62,6 +62,11 @@ Reach for the platform before a library. The safe-in-2026 surface and Baseline c
 Pick the stack against [`modern-web-stacks-2026.md`](../../knowledge/modern-web-stacks-2026.md); the static-first bias is **SSG > ISR > SSR > CSR** (#9), and CSR needs a written reason. G1 of the pipeline should already have chosen the stack with a rationale + ≥2 alternatives — honour that choice; this section is *how to build it well*, not *whether*.
 
 - **Astro (static output)** — islands architecture, **zero JS by default**, Content Layer API for content sites, Server Islands to mix static + dynamic per-component. The performance default for content/marketing sites. Add `client:*` directives (`client:load` / `client:visible` / `client:idle`) **only** on components that genuinely need interactivity — partial hydration is the whole point; a page that hydrates everything has thrown away the win.
+  - **The rendering decision is one-way and must be justified at each step down:** prerendered static HTML → on-demand rendering (only if request-time data is genuinely required) → server islands with `server:defer` (an isolated dynamic region inside an otherwise static page) → client islands (only if the interaction can't be expressed in HTML/CSS). Document the reason for every hydrated island's directive choice, not just the choice.
+  - **`client:*` directive selection is need-driven, never a default:** `client:load` (immediately visible/interactive), `client:idle` (lower priority, non-critical), `client:visible` (below-fold/expensive — the common right answer, underused), `client:media` (conditional on a media query, e.g. a mobile-only widget), `client:only` (last resort — no server-rendered fallback; needs a documented reason).
+  - **Content Layer API discipline:** define collections in `src/content.config.ts` with a required loader (`glob()`/`file()`), a Zod schema unless the data is intentionally unstructured, `render(entry)` from `astro:content` (not the legacy `entry.render()`), an **explicit sort** (collection order is not guaranteed), and draft/visibility/locale/access filters applied to **every** output surface (HTML, feed, sitemap, an optional Markdown mirror) — a filter that only gates the HTML page while the feed/sitemap still leak a draft is the common miss. Reject legacy `src/content/config.ts` / collection `type` / `entry.slug` patterns unless the installed Astro version requires them.
+  - **Agent-driven dev/preview servers:** use `astro dev --background` (and, on Astro 7.2+, `astro preview --background`) with the matching `status`/`logs`/`stop` subcommands and the `/_astro/status` health endpoint, instead of guessing ports, sleeping, or leaving duplicate servers running — the concrete Astro instance of "verify against the rendered layout, don't infer" (§8).
+  - Sourced from [`../../knowledge/design-sources/astro-frontend-developer-skill.md`](../../knowledge/design-sources/astro-frontend-developer-skill.md) — a dense, checkable Astro 7+ skill worth re-reading directly for its 13-item anti-pattern list and verification-matrix table.
 - **11ty (Eleventy)** — data-cascade + templating (Nunjucks/Liquid/etc.) for pure-static content sites with minimal build machinery; ship interactivity as small progressively-enhanced vanilla-JS/web-component sprinkles, not a framework runtime.
 - **Hugo** — fastest builds for large content/docs sites; Go templates + partials. Same rule: interactivity is a deliberate, budgeted addition.
 - **Plain semantic HTML + token-driven CSS** — for a handful of pages, no generator is the right generator. A build step for minification/Brotli + an image pipeline is still worth wiring.
@@ -154,6 +159,19 @@ Report against the plugin Output Contract (`web-design/CLAUDE.md` §6) with `Sta
 - **Lorem ipsum in a "final" mock** — realistic copy lengths expose the layout bugs lorem hides (#6).
 - **A green one-off Lighthouse run with no CI budget** — unenforced perf regresses silently.
 - **`px` typographic breakpoints** that ignore user zoom (use `em`).
+
+## Astro ecosystem pointers (starting points, not load-bearing citations)
+
+- **Official Astro Themes catalog** (<https://astro.build/themes/>) — auto-updates daily from the
+  Astro Developer Portal; a starting point when scaffolding a new site rather than building the shell
+  from nothing.
+- **`one-aalam/awesome-astro`** — actively-maintained awesome-list; the go-to index when a specific
+  Astro integration/template is needed.
+- **`incluud/astro-agent-skills`** — a real but young (9★, 2 commits as of this writing) Astro-focused
+  agent-skill pack (component creation, content collections, integrations, best-practices). Worth
+  watching, not yet a load-bearing citation — re-check activity before treating it as authoritative.
+
+Full sourcing + refresh cadence for all three: [`../../knowledge/design-sources/additional-sources.md`](../../knowledge/design-sources/additional-sources.md).
 
 ## See also
 

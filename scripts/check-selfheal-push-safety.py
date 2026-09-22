@@ -29,12 +29,15 @@ catching the enumerated literal shapes at PR-review time, where a human is looki
 instead of after the fact. Claiming more than that would be the false-assurance
 failure this initiative exists to close.
 
-## Four shapes, because one literal would leave three uncaught
+## Five shapes, because one literal would leave the rest uncaught
 
 A fixture testing only the plain `git push origin main` would pass a workflow that
 used `HEAD:main` -- the exact "gate that asserts less than it appears to" trap this
-check is meant to prevent, reproduced inside the check itself. All four are
-enumerated and each has its own must-fail fixture.
+check is meant to prevent, reproduced inside the check itself. All five are
+enumerated and each has its own must-fail fixture. The fifth, `origin +main`, is
+git's force-push shorthand (a leading `+` on the destination refspec); it escaped
+the other four because they each require `\s+`, `HEAD:`, `:refs/heads/`, or
+`--admin` immediately around the protected name.
 
 ## Two false-positive classes, both found in the live tree before wiring
 
@@ -90,11 +93,18 @@ SELFHEAL_ACTION = re.compile(r"create-pull-request|\bgit\s+commit\b")
 # The protected refs a self-heal must never push to directly.
 _PROTECTED = r"(?:main|master)"
 
-# The four enumerated shapes. Each carries its own name so a finding says which.
+# The five enumerated shapes. Each carries its own name so a finding says which.
 PUSH_SHAPES: list[tuple[str, re.Pattern[str]]] = [
     (
         "plain-push-to-protected",
         re.compile(rf"\bgit\s+push\b[^\n]*\borigin\s+{_PROTECTED}\b"),
+    ),
+    (
+        # git's force-push shorthand: a leading `+` on the destination refspec
+        # (the `origin +<branch>` form). The plain shape above requires `origin`
+        # then whitespace then the protected name, so the `+` slips past it.
+        "plus-refspec-protected",
+        re.compile(rf"\bgit\s+push\b[^\n]*\borigin\s+\+{_PROTECTED}\b"),
     ),
     (
         "head-colon-protected",
@@ -201,9 +211,7 @@ def is_selfheal(src: str) -> bool:
     """
     if not all(p.search(src) for p in SELFHEAL_MARKERS):
         return False
-    code = "\n".join(
-        "" if ln.strip().startswith("#") else ln for ln in src.splitlines()
-    )
+    code = "\n".join("" if ln.strip().startswith("#") else ln for ln in src.splitlines())
     return bool(SELFHEAL_ACTION.search(code))
 
 
@@ -255,6 +263,8 @@ def _self_test() -> int:
         ("shape-refs-heads", _wf(f"{_PUSH} origin HEAD:refs/heads/main"), True),
         ("shape-admin-merge", _wf(f'{_MERGE} "$n" --squash --admin'), True),
         ("shape-master-too", _wf(f"{_PUSH} origin master"), True),
+        # the force-push shorthand: a leading `+` on the destination refspec
+        ("shape-plus-refspec", _wf(f"{_PUSH} origin +main"), True),
         # --- the sanctioned landing path is NOT a finding ---
         ("sanctioned-pr-merge", _wf(f'{_MERGE} "$n" --squash --delete-branch'), False),
         # --- FALSE POSITIVE CLASS 1: a comment documenting the rule (REAL) ---
@@ -278,7 +288,9 @@ def _self_test() -> int:
             # block -- another gate's test data, which block membership alone
             # cannot exclude.
             "quoted-fixture-array-inside-run-is-silent",
-            _wf(f'CASES=(\n"{_PUSH} -f origin main"\n"{_PUSH} origin +HEAD:main"\n)\ngit commit -m x'),
+            _wf(
+                f'CASES=(\n"{_PUSH} -f origin main"\n"{_PUSH} origin +HEAD:main"\n)\ngit commit -m x'
+            ),
             False,
         ),
         ("sentinel-honored", _wf(f"{_PUSH} origin main  # selfheal-push-ok"), False),

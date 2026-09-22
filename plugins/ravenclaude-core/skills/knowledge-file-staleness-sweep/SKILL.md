@@ -211,3 +211,4 @@ After running the sweep, produce a brief report + the queue file, then emit the 
 - [`../../../docs/best-practices/decision-trees-in-knowledge-files.md`](../../../../docs/best-practices/decision-trees-in-knowledge-files.md) — defines the 90/180/365 thresholds and the `Last verified:` field format.
 - [`plugin-release-checklist.md`](../plugin-release-checklist/SKILL.md) — wires the pre-release gate into the release process.
 - [`spawn-team.md`](../spawn-team/SKILL.md) — how the Team Lead routes the re-verification work after the queue lands.
+- [`dependency-update-sweep`](../dependency-update-sweep/SKILL.md) — the sibling sweep for **host-version-triggered** staleness (a tracked host tool ships a new version, not a calendar interval). This sweep is calendar-triggered and topic-agnostic; that one fires off a host-version fingerprint and is scoped to citations naming a bumped host.

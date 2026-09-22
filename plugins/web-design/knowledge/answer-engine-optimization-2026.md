@@ -27,5 +27,12 @@ Both matter. The strongest GEO performers have strong technical-SEO foundations 
 ## The honest caveat
 Much GEO "best practice" in 2026 is **emergent and vendor-marketed**; the engines are opaque and change monthly. Lead clients with the **durable** moves (strong SEO foundation, answer-ready structure, real entity authority, E-E-A-T) — these help regardless of how any single engine weights things — and treat `llms.txt`/specific-tactic claims as experiments to measure, not guarantees. (House opinion: cite volatile claims with a retrieval date.)
 
+## Claim discipline — what NOT to promise a client (added 2026-09-03)
+Two claims recur in GEO/AEO pitches and neither survives scrutiny:
+- **"Reduced JS / a Markdown endpoint / `llms.txt` / structured data improves ranking or guarantees LLM citation."** None of these are demonstrated ranking or citation guarantees — frame them as engineering choices (determinism, simplicity, non-JS-crawler compatibility) that *may* help extraction, never as a lever with a promised outcome.
+- **"Client-side JS inherently prevents Google indexing."** False — Google renders JS. A CSR page can be indexed; it's slower and less reliable than pre-rendered HTML, which is the real (and sufficient) reason to prefer static output, not an indexing-guarantee claim.
+
+Sourced from [`design-sources/astro-frontend-developer-skill.md`](design-sources/astro-frontend-developer-skill.md)'s "claim discipline" section — a sharper, Astro-sourced framing of the same honest-caveat discipline above. This closes the one recommendation from that note (`Where this should feed into RavenClaude`) that PR #1071 hadn't yet landed.
+
 ## Sources (retrieved 2026-05-28)
 2026 GEO/AEO guides (llmrefs.com, mersel.ai, stackmatix AEO-vs-SEO-vs-GEO, cubitrek); Schema.org `FAQPage`; the `llms.txt` proposal. Re-verify on the Researcher sweep — this field dates quickly.

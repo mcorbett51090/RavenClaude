@@ -45,7 +45,7 @@ fi
 if _rc_pcre_match "$file" "kind:\\s*(Deployment|StatefulSet)(?![\\s\\S]*readinessProbe)"; then
   findings+=("Workload without a readinessProbe nearby — readiness gates traffic; add it.")
 fi
-if grep -nEi "clusterrolebinding[\\s\\S]*cluster-admin" "$file" >/dev/null 2>&1; then
+if _rc_pcre_match "$file" "clusterrolebinding[\\s\\S]*cluster-admin"; then
   findings+=("Binding to cluster-admin — workloads should use namespace-scoped least-privilege RBAC.")
 fi
 

@@ -50,6 +50,8 @@ RavenClaude's [`two-panel-plan-review`](../../../.claude/workflows/two-panel-pla
 
 ## Choosing an orchestration shape
 
+> **Prerequisite.** [`spawn-team`](../skills/spawn-team/SKILL.md) **Step 1.25** already decided whether this turn is a slash command, a main-session skill, a specialist agent, or an orchestration-scale shape. Use **this** section only when Step 1.25 (or an equivalent read) said the work needs an orchestration *shape* — not to re-litigate "skill vs `designer`" for a single mockup.
+
 > **Format note:** this is a "when to use X vs Y" routing aid with shallow branching, so per [`docs/best-practices/decision-trees-in-knowledge-files.md`](../../../docs/best-practices/decision-trees-in-knowledge-files.md) the **tradeoffs table below is authoritative**. The flowchart is a visual companion (GitHub renders it natively); it is deliberately **not** a canonical `## Decision Tree:` section — that prefix triggers the `render-trees.py` SVG gate (needs the `mmdc`/Chromium toolchain). Promote it to a canonical tree + pre-rendered SVG later if it earns a Guidance-tab card.
 
 ```mermaid
@@ -81,6 +83,12 @@ flowchart TD
 - _FORGE_ — when the deliverable is a **plan** (not a multi-agent execution); FORGE adds scope/critic/fact-verification/tiebreak layers a bare workflow doesn't.
 
 ## Agent teams & RavenClaude's hub-and-spoke constitution
+
+> **Don't conflate this with the broader, newer cross-session messaging layer.** `ListAgents` +
+> `SendMessage` reach *any* live Claude Code peer — subagents, other local sessions, cloud sessions,
+> Remote Control peers — with no team setup and no experimental flag, and are distinct from the
+> flag-gated feature this section documents. See [`cross-session-messaging.md`](cross-session-messaging.md)
+> for that layer and the [`session-relay`](../skills/session-relay/SKILL.md) skill built on it.
 
 > **Why this section exists.** Agent teams are the one orchestration shape that **partially conflicts** with RavenClaude's [core dispatch rule](../CLAUDE.md) — *"Sub-agents should not freely spawn or directly invoke other sub-agents. Only the Team Lead performs dispatching and orchestration."* The conflict is narrower than it looks, and getting the boundary exact matters before you enable the feature in a guardrailed repo. Facts below are _[verified — official docs ([code.claude.com/docs/en/agent-teams](https://code.claude.com/docs/en/agent-teams)), retrieved 2026-06-20; feature described as of Claude Code v2.1.178]_; it is **experimental and disabled by default**, so re-verify at use.
 

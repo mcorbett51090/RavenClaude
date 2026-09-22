@@ -81,5 +81,9 @@ one command surfaces it. Keep it that way:
 - `scripts/audit-gates.sh` Gate 13 (render prep) and Gate 97 (index freshness).
 - `docs/best-practices/ci-gate-audit.md` — the bidirectional (fail-on-bad /
   pass-on-good) gate discipline this composes with.
+- [`ci-preflight-vs-premerge-refresh.md`](./ci-preflight-vs-premerge-refresh.md) —
+  `ci-preflight.py` is the read-only preview (never `--stamp` / generator write).
+  `premerge-refresh.sh` is the **intentional** in-place regen+stamp, run by a
+  person or agent *after* a merge commit, not by a validation gate.
 - `plugins/ravenclaude-core/CLAUDE.md` § "Self-healing artifacts (freshness
   enforced post-merge, not on PRs)".

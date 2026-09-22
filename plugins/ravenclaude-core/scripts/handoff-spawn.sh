@@ -159,7 +159,14 @@ fi
 # `exec $seed`, so it would have LAUNCHED the wrong agent, not merely named it.
 #
 # Fix: teach it `claude-code`, and refuse this fallback for case (b) only.
-seed="grok \"Continue task ${task_id} in this repo. Read .ravenclaude/runs/${task_id}/handoff.md first (then meta.json, decisions.md, summary.md if present). Fresh window. Do not /fork. Do not /compact. Do not re-derive the brief from history you do not have. Execute the next steps in the brief.\""
+# ⛔ grok_prompt is the RAW prompt text (no embedded shell quoting) precisely so
+# it can be single-quote-escaped via _shq() when a launch script execs it (see
+# the host=grok branch far below). $seed keeps the human-readable `grok "..."`
+# form (literal quotes embedded) for copy-paste display and the forbidden-seed
+# checks below — it must NEVER be interpolated unquoted into an executed
+# heredoc; that was the command-injection hole `_shq($grok_prompt)` closes.
+grok_prompt="Continue task ${task_id} in this repo. Read .ravenclaude/runs/${task_id}/handoff.md first (then meta.json, decisions.md, summary.md if present). Fresh window. Do not /fork. Do not /compact. Do not re-derive the brief from history you do not have. Execute the next steps in the brief."
+seed="grok \"${grok_prompt}\""
 
 case "$seed" in
   *"grok -p"*|*"--single"*|*"--prompt-file"*|*"--prompt-json"*)
@@ -393,7 +400,7 @@ if [ "$host" = "unknown" ] && [ "${TERM_PROGRAM:-}" = "vscode" ]; then
 fi
 
 if [ "$host" = "grok" ]; then
-  seed="grok \"Continue task ${task_id} in this repo. Read .ravenclaude/runs/${task_id}/handoff.md first (then meta.json, decisions.md, summary.md if present). Fresh window. Do not /fork. Do not /compact. Do not re-derive the brief from history you do not have. Execute the next steps in the brief.\""
+  seed="grok \"${grok_prompt}\""
 elif [ "$host" = "chat" ]; then
   chat_resume="$(write_chat_resume)"
   seed="# Read ${chat_resume} and .ravenclaude/runs/${task_id}/handoff.md then continue. Do not /fork. Do not launch grok."
@@ -566,7 +573,17 @@ if [ "$recipe" = "copy-paste" ]; then
 fi
 
 run_dir="$project_root/.ravenclaude/runs/$task_id"
-pending="$project_root/.ravenclaude/handoff-pending.json"
+# ⛔ Scoped by task_id (slugified) so two concurrent handoff-spawn.sh
+# invocations in the same project_root never share one pending-marker file.
+# Unscoped, whichever write landed last won, AND a failed launch's
+# unconditional `rm -f "$pending"` (below) could delete a SIBLING session's
+# still-valid marker. Safe by construction now: an `rm` of a task_id-scoped
+# file can only ever remove THIS invocation's own marker — see the
+# handoff-successor-ack.py reader, which glob-scans `handoff-pending*.json`
+# (matches both this scoped form and the legacy unscoped name) rather than
+# looking up one fixed filename, so the reader side stays in sync.
+task_slug="$(printf '%s' "$task_id" | tr -c 'A-Za-z0-9._-' '_')"
+pending="$project_root/.ravenclaude/handoff-pending-${task_slug}.json"
 ack="$run_dir/successor-ack.json"
 launch="$run_dir/launch-successor.sh"
 
@@ -607,12 +624,19 @@ exec claude $(_shq "$successor_prompt")
 EOF
 elif [ "$host" = "grok" ] || { [ "$host" = "unknown" ] && [ "$named_but_unknown" -eq 0 ]; }; then
   # host=grok, or case (a): nothing named and nothing detected, which the
-  # grok-first fallback carries (see the seed comment). $seed is the grok
-  # command in both, so exec-ing it is the documented behaviour, unchanged.
+  # grok-first fallback carries (see the seed comment).
+  # ⛔ $seed is host-neutral COPY-PASTE DISPLAY text (`grok "..."`, with the
+  # quotes literally embedded in the string) meant for a human's shell to
+  # re-parse when pasted. Interpolating it unquoted into this heredoc let a
+  # hostile --task-id value carrying a stray double-quote break out of those
+  # embedded quotes and inject arbitrary commands into a script this process
+  # itself writes and execs. Fix: exec grok with its prompt argument
+  # single-quote-escaped via _shq() — the same treatment the claude-code
+  # branch below already gives $successor_prompt. Never `exec $seed` raw.
   cat > "$launch" <<EOF
 #!/bin/bash
 cd $(printf '%q' "$project_root") || exit 1
-exec $seed
+exec grok $(_shq "$grok_prompt")
 EOF
 else
   # ⛔ CASE (b): A NAMED HOST WE DO NOT KNOW ⇒ LAUNCH NOTHING. This branch was a

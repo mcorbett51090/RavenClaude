@@ -9,7 +9,7 @@ summary: "What a post-failure hook can and cannot read after a Bash call fails."
 last_verified: 2026-08-25
 covers:
   - plugins/ravenclaude-core/hooks/triage-outcome.sh
-covers_digest: "sha256:9a2df20ae75bb49090262342007b0a89fee94d0c4f62e7a9099fc5ce09dc9ed2"
+covers_digest: "sha256:e972561bd9d78e46d0899d4c7fad7b5ce6b86c64a13f4c7a37ca4d3de58e2eea"
 nuance: "A failing Bash `tool_response` carries no exit-code field at all, so a hook that branches on `.tool_response.exit_code` never fires; `triage-outcome.sh` reads stream shape instead."
 nuance_evidence:
   measured: 2026-08-19

@@ -60,6 +60,15 @@ rows2 = [{"type": "user"}, boundary(10, 5, 5, trigger="$(whoami)")]
 (d / "bogus.jsonl").write_text("".join(json.dumps(r) + "\n" for r in rows2))
 PY
 
+# P2b fixture: a fake project dir + PreCompact digest file under the run-dir
+# precompact-digest.sh would have written, carrying a sentinel that must appear
+# as a PATH only — never as echoed content.
+DIGEST_SENTINEL="ZZDIGESTCONTENTSENTINELZZ"
+RUN_DIR="$T/project/.ravenclaude/runs/gate186"
+mkdir -p "$RUN_DIR"
+DIGEST_FILE="$RUN_DIR/precompact-digest-20260101T000000Z.md"
+printf '# Pre-compaction critical-info digest\n\n- %s\n' "$DIGEST_SENTINEL" > "$DIGEST_FILE"
+
 _payload() { # $1=source $2=transcript_path(optional)
   python3 -c '
 import json,sys
@@ -96,13 +105,28 @@ if [ "$mode" = "--must-fail-leak" ]; then
   MUT="$T/mutant.py"
   python3 - "$ENGINE" "$MUT" <<'MUTPY'
 import pathlib, sys
-src = pathlib.Path(sys.argv[1]).read_text()
+target = pathlib.Path(sys.argv[1])
+src = target.read_text()
 # Neuter the invariant: append the first raw transcript line to the emitted context.
+# Vacuity guard: if this call site's exact text ever changes (e.g. render()'s
+# signature growing a parameter, as it did in P2b), a silent .replace() no-op
+# would make the mutant byte-identical to the real engine and the assertion
+# below would report "the mutant did NOT leak" for the WRONG reason — the
+# mutation never applied, not because the invariant held. Fail loudly instead.
+needle = '"additionalContext": render(path, facts, digest_path),'
+if needle not in src:
+    print(f"MUST-FAIL SETUP ERROR: mutation target not found in {target} "
+          "(render()'s call site changed — update this fixture)", file=sys.stderr)
+    sys.exit(1)
 src = src.replace(
-    '"additionalContext": render(path, facts),',
-    '"additionalContext": render(path, facts) + open(path).readlines()[1],')
+    needle,
+    '"additionalContext": render(path, facts, digest_path) + open(path).readlines()[1],')
 pathlib.Path(sys.argv[2]).write_text(src)
 MUTPY
+  if [ "$?" -ne 0 ]; then
+    echo "Gate 186 — must-fail half SETUP FAILED (see stderr above)"
+    exit 1
+  fi
   echo "Gate 186 — must-fail half (mutant echoes a raw transcript line)"
   out="$(_run "$MUT" "$(_payload compact "$T/good.jsonl")")"
   _assert_absent "no-leak holds against the mutant" "$out" "$SENTINEL"
@@ -144,6 +168,23 @@ _assert_absent   "torn boundary leaks nothing"      "$out" "$SENTINEL"
 out="$(_run "$ENGINE" "$(_payload compact "$T/bogus.jsonl")")"
 _assert_contains "bogus trigger still emits" "$out" "CONTEXT WAS COMPACTED"
 _assert_absent   "bogus trigger not echoed"  "$out" "whoami"
+
+# ---- P2b: the digest-file pointer (compact-anchor.py extended in P2b) --------
+# CLAUDE_PROJECT_DIR + the payload's session_id are how the reader locates the
+# same run-dir precompact-digest.sh (P2) writes into. Only the PATH must ever
+# surface — the digest file's own content (the sentinel) must never be echoed.
+out="$(CLAUDE_PROJECT_DIR="$T/project" _run "$ENGINE" "$(_payload compact "$T/good.jsonl")")"
+_assert_contains "digest pointer: surfaces the digest file path" "$out" "$DIGEST_FILE"
+_assert_absent   "digest pointer: NEVER echoes digest content"   "$out" "$DIGEST_SENTINEL"
+
+# No CLAUDE_PROJECT_DIR / no digest on disk -> the digest line is simply absent
+# (additive: the transcript pointer itself still fires).
+out="$(_run "$ENGINE" "$(_payload compact "$T/good.jsonl")")"
+_assert_contains "digest pointer absent: transcript pointer still fires" "$out" "CONTEXT WAS COMPACTED"
+_assert_absent   "digest pointer absent: no digest line when unresolvable" "$out" "digest:"
+
+out="$(CLAUDE_PROJECT_DIR="$T/no-such-project" _run "$ENGINE" "$(_payload compact "$T/good.jsonl")")"
+_assert_absent   "digest pointer absent: no digest line for an unknown project dir" "$out" "digest:"
 
 # The hook wrapper must pass stdin through and always exit 0.
 out="$(printf '%s' "$(_payload compact "$T/good.jsonl")" | bash "$HOOK" 2>/dev/null)"; rc=$?

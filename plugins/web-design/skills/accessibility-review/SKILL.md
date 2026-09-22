@@ -115,6 +115,20 @@ Default audit standard: **AA**. AAA where the product / audience warrants.
 - Form errors visible-only (not associated with the field for screen readers)
 - Modal that traps focus but doesn't return on close
 
+## Normative + worked-example references
+
+- **[WAI-ARIA Authoring Practices Guide (APG)](https://www.w3.org/WAI/ARIA/apg/)** — the canonical
+  reference for accessible widget patterns (roles, states, keyboard-interaction model) per component
+  type. Cite this, not a blog post's paraphrase of it, when a finding is about widget-pattern
+  correctness (a custom combobox, a tab panel, a disclosure).
+- **[GOV.UK Design System](https://design-system.service.gov.uk/)** — components tested against real
+  assistive technology for WCAG 2.2 AA, not merely documented as compliant. Its **error-summary
+  pattern** is a battle-tested reference for accessible form errors with real focus management —
+  worth citing directly when a finding is about form-error handling rather than re-deriving the
+  pattern from scratch.
+
+Sourcing + refresh cadence: [`../../knowledge/design-sources/additional-sources.md`](../../knowledge/design-sources/additional-sources.md).
+
 ## See also
 
 - Template: [`../../templates/accessibility-audit-report.md`](../../templates/accessibility-audit-report.md)

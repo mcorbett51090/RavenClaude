@@ -239,3 +239,5 @@ All retrieved 2026-06-09:
 - [Adding agent skills for Copilot CLI](https://docs.github.com/en/copilot/how-tos/copilot-cli/customize-copilot/add-skills)
 - [Using hooks with Copilot CLI](https://docs.github.com/en/copilot/how-tos/copilot-cli/customize-copilot/use-hooks) · [Hooks configuration reference](https://docs.github.com/en/copilot/reference/hooks-configuration)
 - [Using GitHub Copilot CLI](https://docs.github.com/en/copilot/how-tos/use-copilot-agents/use-copilot-cli) · [#2540 — plugin hooks don't fire](https://github.com/github/copilot-cli/issues/2540)
+
+> **Dual-file note (DOC adapt 2026-09-20 — UNVERIFIED):** On Claude Code Anthropic API, absent `CLAUDE.md` → `AGENTS.md` (CC 2.1.277). Not yet on Bedrock/Vertex/Foundry — keep `CLAUDE.md` there. See `concepts/copilot-bridge.md`.

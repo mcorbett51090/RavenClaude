@@ -154,6 +154,29 @@ def main(argv: list[str]) -> int:
         check("malformed 2/5 — bare SKILL.md at root is NOT a FAIL while ZP02 is unsettled",
               not [x for x in f if x["rule_id"] == "ZP02" and x["tier"] == "fail"],
               "ZP02 blocked on an unsettled question: %s" % ids(f))
+        check("        …and ZP05 does NOT hard-fail a layout-B archive (SKILL.md + "
+              "reference/ are separate top-level entries there BY DEFINITION)",
+              "ZP05" not in ids(f), "ids=%s" % ids(f))
+
+        # ── ZP05 must not contradict Layout B, which `pack(..., layout="B")` ITSELF
+        # produces. Regression fixture: ZP05 used to require exactly one top-level zip
+        # entry unconditionally, so this exact archive — built by the packer's own
+        # documented B path — hard-failed its own verifier. ZP05 is the Layout-A
+        # invariant only; it must gate on the observed layout the same way ZP02 does.
+        src_b = _tree(tmp, "reviewing-timesheets", with_ref=True)
+        layout_b_zip = os.path.join(tmp, "layout-b.zip")
+        res_b = packer.pack(src_b, layout_b_zip, table, [], layout="B")
+        check("pack(layout=\"B\") writes SKILL.md and reference/ as SEPARATE top-level "
+              "entries (the shape ZP05 must accept)",
+              sorted(res_b["entries"]) == ["SKILL.md", "reference/fields.md"],
+              "entries=%s" % res_b["entries"])
+        f, _ = packer.verify(layout_b_zip, table, _EVIDENCE, [])
+        check("verify(pack(..., layout=\"B\")) has NO fail findings at all",
+              not [x for x in f if x["tier"] == "fail"],
+              "a layout-B archive the packer itself produced was hard-rejected: %s"
+              % [(x["rule_id"], x["tier"]) for x in f])
+        check("        …specifically, ZP05 does not fire on it",
+              "ZP05" not in ids(f), "ids=%s" % ids(f))
 
         finder = os.path.join(tmp, "finder.zip")
         with zipfile.ZipFile(finder, "w") as zf:

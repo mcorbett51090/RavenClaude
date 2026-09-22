@@ -1,0 +1,184 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ravenclaude.internal/schemas/findings.schema.json",
+  "title": "Repo review findings",
+  "description": "Covers the three finding-shaped documents a downstream tool in the repo-review pipeline may hand this schema: a per-batch findingShard written by one review agent, or the mergedFindings document produced by the merge/dedup step. A bare $defs/finding is the atomic unit both shapes are built from.",
+  "oneOf": [{ "$ref": "#/$defs/findingShard" }, { "$ref": "#/$defs/mergedFindings" }],
+  "$defs": {
+    "finding": {
+      "type": "object",
+      "description": "One reported issue from a review agent's pass over a batch. Deliberately closed (additionalProperties: false) when used directly, e.g. as a findingShard item, so a drifted producer is caught by schema validation. NOTE: $defs/survivorFinding and findingShard both compose this schema via allOf + $ref and close the RESULT with `unevaluatedProperties: false` rather than relying on this keyword directly — additionalProperties: false on a base schema does not compose across allOf/$ref boundaries (a closed schema cannot be extended with sibling properties), so this definition is intentionally left open at its own level and closure is applied at each use site instead.",
+      "required": [
+        "id",
+        "file",
+        "line",
+        "severity",
+        "title",
+        "failure_scenario",
+        "evidence_quote",
+        "category"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Stable finding id, unique within its producing shard."
+        },
+        "file": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Repo-relative path of the file the finding is about."
+        },
+        "line": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "1-based line number the finding anchors to."
+        },
+        "severity": {
+          "type": "string",
+          "enum": ["blocking", "major", "minor", "nit"]
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "description": "One-line summary of the issue."
+        },
+        "failure_scenario": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Concrete description of how this bug manifests / what breaks."
+        },
+        "evidence_quote": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The exact source snippet the finding rests on."
+        },
+        "category": {
+          "type": "string",
+          "enum": [
+            "correctness",
+            "security",
+            "concurrency",
+            "resource-leaks",
+            "error-handling",
+            "performance",
+            "dead-code-simplification",
+            "ci-cd-actions-security"
+          ]
+        }
+      }
+    },
+    "findingShard": {
+      "type": "array",
+      "description": "What one review agent writes per batch: every finding it surfaced, each closed to exactly the finding shape.",
+      "items": {
+        "allOf": [{ "$ref": "#/$defs/finding" }],
+        "unevaluatedProperties": false
+      }
+    },
+    "survivorFinding": {
+      "type": "object",
+      "description": "The merge step's output shape: a finding annotated with which models/dimensions corroborated it. Composes $defs/finding via allOf so the eight base properties are referenced, not duplicated; closes over the combined property set with `unevaluatedProperties: false` (see the note on $defs/finding for why `additionalProperties` cannot do this job here).",
+      "allOf": [{ "$ref": "#/$defs/finding" }],
+      "required": [
+        "source_models",
+        "dimensions",
+        "corroboration",
+        "near_duplicate",
+        "near_duplicate_of"
+      ],
+      "properties": {
+        "source_models": {
+          "type": "array",
+          "description": "Model tags that independently produced this finding (or a near-duplicate of it) before merge.",
+          "items": { "type": "string" }
+        },
+        "dimensions": {
+          "type": "array",
+          "minItems": 1,
+          "description": "Review dimensions/passes that surfaced this finding.",
+          "items": { "type": "string" }
+        },
+        "corroboration": {
+          "type": ["string", "null"],
+          "enum": ["cross-model", null],
+          "description": "\"cross-model\" when >1 model independently surfaced this finding; null otherwise."
+        },
+        "near_duplicate": {
+          "type": "boolean",
+          "description": "True if this finding was folded in as a near-duplicate of another survivor rather than found as a fresh, distinct issue."
+        },
+        "near_duplicate_of": {
+          "type": ["string", "null"],
+          "description": "The id of the survivor this was merged into, when `near_duplicate` is true; null otherwise."
+        }
+      },
+      "unevaluatedProperties": false
+    },
+    "judgeCandidatePair": {
+      "type": "object",
+      "description": "Two finding ids the merge step could not confidently dedup on its own and is deferring to a judge pass.",
+      "required": ["a", "b"],
+      "additionalProperties": false,
+      "properties": {
+        "a": { "type": "string", "minLength": 1 },
+        "b": { "type": "string", "minLength": 1 }
+      }
+    },
+    "mergeStats": {
+      "type": "object",
+      "description": "Counts describing what the merge/dedup step did.",
+      "required": ["raw_input_count", "after_dedup_count", "survivors_count", "over_cap_count"],
+      "additionalProperties": false,
+      "properties": {
+        "raw_input_count": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Total findings across all input shards before any deduplication."
+        },
+        "after_dedup_count": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Findings remaining after near-duplicates were folded together."
+        },
+        "survivors_count": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Count of findings in `survivors` (within cap, kept)."
+        },
+        "over_cap_count": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Count of findings in `over_cap` (deduped and valid, but cut for exceeding a cap)."
+        }
+      }
+    },
+    "mergedFindings": {
+      "type": "object",
+      "description": "The output of the merge step over all findingShard documents: deduplicated findings, whichever were cut for exceeding the cap, any pairs deferred to a judge, and summary stats.",
+      "required": ["schema_version", "survivors", "over_cap", "judge_candidates", "stats"],
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "const": 1
+        },
+        "survivors": {
+          "type": "array",
+          "description": "Deduplicated findings kept within the output cap.",
+          "items": { "$ref": "#/$defs/survivorFinding" }
+        },
+        "over_cap": {
+          "type": "array",
+          "description": "Deduplicated, valid findings cut for exceeding the output cap.",
+          "items": { "$ref": "#/$defs/survivorFinding" }
+        },
+        "judge_candidates": {
+          "type": "array",
+          "description": "Finding-id pairs the merge step could not confidently resolve as duplicate-or-not on its own.",
+          "items": { "$ref": "#/$defs/judgeCandidatePair" }
+        },
+        "stats": { "$ref": "#/$defs/mergeStats" }
+      }
+    }
+  }
+}

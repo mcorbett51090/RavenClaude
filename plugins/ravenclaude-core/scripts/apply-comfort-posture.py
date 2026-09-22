@@ -55,11 +55,18 @@ parser if not, since the YAML shape is tiny and constrained).
 from __future__ import annotations
 
 import argparse
+import contextlib
 import json
 import os
 import sys
+import uuid
 from datetime import datetime, timezone
 from pathlib import Path
+
+try:  # POSIX advisory file locking; absent on non-POSIX hosts.
+    import fcntl
+except ImportError:  # pragma: no cover - non-POSIX
+    fcntl = None  # type: ignore[assignment]
 
 REPO_ROOT_ENV = "CLAUDE_PROJECT_DIR"
 
@@ -88,8 +95,6 @@ EMISSIONS: dict[str, list[str]] = {
     ],
     "file_edit_project": [
         "Edit(**)",
-        "Write(**)",
-        "MultiEdit(**)",
     ],
     "file_read_global": [
         "Read(~/**)",
@@ -97,9 +102,7 @@ EMISSIONS: dict[str, list[str]] = {
     ],
     "file_edit_global": [
         "Edit(~/**)",
-        "Write(~/**)",
         "Edit(//**)",
-        "Write(//**)",
     ],
     # ── Shell categories ────────────────────────────────────────
     "shell_readonly": [
@@ -229,6 +232,10 @@ EMISSIONS: dict[str, list[str]] = {
     # category serves as the GLOBAL default; per-server overrides win.
     # Emit no rules for v0.1.0; document the gap in the skill.
     "mcp_tools": [],
+    # Bare "Agent" matches every subagent/Task dispatch (Claude Code
+    # permissions docs). No path glob — the tool is not path-scoped.
+    # Absent YAML key still falls back to global_default.
+    "subagent_dispatch": ["Agent"],
 }
 
 
@@ -238,6 +245,7 @@ DEFAULT_SECURITY_DENY: list[str] = [
     "Bash(rm -rf:*)",
     "Bash(git push --force:*)",
     "Bash(git push -f:*)",
+    "Bash(git push --mirror:*)",
     "Bash(git reset --hard:*)",
     "Bash(git clean -fd:*)",
     "Bash(npm publish:*)",
@@ -303,7 +311,9 @@ def level_to_bucket(level: str) -> str:
     raise ValueError(f"Unknown level: {level!r}")
 
 
-_POSTURE_MAX_BYTES = 256 * 1024  # 256 KB cap — protects the no-PyYAML hand-rolled parser from OOM on a malicious posture.
+_POSTURE_MAX_BYTES = (
+    256 * 1024
+)  # 256 KB cap — protects the no-PyYAML hand-rolled parser from OOM on a malicious posture.
 
 
 def parse_yaml(text: str) -> dict:
@@ -315,9 +325,7 @@ def parse_yaml(text: str) -> dict:
     fast and loudly rather than blow up RAM on the dashboard server.
     """
     if len(text) > _POSTURE_MAX_BYTES:
-        raise ValueError(
-            f"posture file too large: {len(text)} bytes (max {_POSTURE_MAX_BYTES})"
-        )
+        raise ValueError(f"posture file too large: {len(text)} bytes (max {_POSTURE_MAX_BYTES})")
     try:
         import yaml as pyyaml  # type: ignore
     except ImportError:
@@ -358,11 +366,71 @@ def _load_settings_json(path: Path) -> dict:
         return json.loads(path.read_text(encoding="utf-8"))
     except json.JSONDecodeError as exc:
         print(
-            f"ERROR: {path} is not valid JSON ({exc}). "
-            "Fix or remove the file, then retry.",
+            f"ERROR: {path} is not valid JSON ({exc}). Fix or remove the file, then retry.",
             file=sys.stderr,
         )
         raise SystemExit(1)
+
+
+def _write_settings_json_atomic(path: Path, payload: str) -> None:
+    """Write settings.json via a private temp file + os.replace (atomic on POSIX).
+
+    A plain ``path.write_text(...)`` truncates the target in place, so a reader
+    (another apply, the dashboard's /__save, Claude Code itself re-reading
+    settings on session start) can observe a torn/partially-written file mid-write.
+    Writing to a pid+uuid-suffixed sibling temp file and then atomically renaming
+    it into place means any concurrent reader sees either the old complete file
+    or the new complete file, never a partial one — same pattern as
+    stream-ops.py's ``write_registry``.
+    """
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_name(f"{path.name}.{os.getpid()}.{uuid.uuid4().hex}.tmp")
+    try:
+        tmp.write_text(payload, encoding="utf-8")
+        os.replace(tmp, path)  # atomic on POSIX
+    finally:
+        # If os.replace failed, don't leave the private temp behind.
+        with contextlib.suppress(OSError):
+            if tmp.exists():
+                tmp.unlink()
+
+
+@contextlib.contextmanager
+def _settings_lock(settings_path: Path):
+    """Advisory exclusive lock serializing a settings.json read-modify-write cycle.
+
+    /set-posture can be invoked concurrently from more than one place this repo
+    documents: the dashboard's ThreadingHTTPServer /__save handler, the
+    SessionStart reapply-posture.sh hook (fires per session; multiple concurrent
+    sessions are supported), and manual /set-posture. Without serialization two
+    concurrent applies can each read the same settings.json, mutate their own
+    in-memory copy, and the second writer's write silently clobbers the first's
+    edit (a classic check-then-act race). This flocks a ``.settings.lock``
+    sibling file across the whole read+overwrite+write span.
+
+    FAIL-SAFE: if the lock file can't be opened, fcntl is unavailable
+    (non-POSIX), or the lock can't be taken, this proceeds WITHOUT the lock
+    rather than raising — a missed lock only reintroduces the pre-existing race,
+    it must never turn a permission-apply into a hard failure.
+    """
+    fh = None
+    try:
+        settings_path.parent.mkdir(parents=True, exist_ok=True)
+        fh = open(settings_path.with_name(f".{settings_path.name}.lock"), "w")
+        if fcntl is not None:
+            with contextlib.suppress(OSError):
+                fcntl.flock(fh.fileno(), fcntl.LOCK_EX)
+    except OSError:
+        fh = None
+    try:
+        yield
+    finally:
+        if fh is not None:
+            if fcntl is not None:
+                with contextlib.suppress(OSError):
+                    fcntl.flock(fh.fileno(), fcntl.LOCK_UN)
+            with contextlib.suppress(OSError):
+                fh.close()
 
 
 def _split_scalar_kv(content: str) -> tuple[str, str]:
@@ -379,10 +447,10 @@ def _split_scalar_kv(content: str) -> tuple[str, str]:
         q = content[0]
         end = content.find(q, 1)
         if end != -1:
-            rest = content[end + 1:]
+            rest = content[end + 1 :]
             colon = rest.find(":")
             if colon != -1:
-                return content[1:end], rest[colon + 1:].strip()
+                return content[1:end], rest[colon + 1 :].strip()
     k, v = content.split(":", 1)
     return k.strip().strip("'\""), v.strip()
 
@@ -788,10 +856,14 @@ def append_local_to_gitignore(root: Path) -> None:
 
 def ephemeral_user_warning() -> str | None:
     if os.environ.get("CODESPACE_NAME"):
-        return ("you're in a GitHub Codespace; the user layer (~/.claude/settings.json) is "
-                "ephemeral and vanishes on rebuild. Prefer the local layer to persist in the project.")
+        return (
+            "you're in a GitHub Codespace; the user layer (~/.claude/settings.json) is "
+            "ephemeral and vanishes on rebuild. Prefer the local layer to persist in the project."
+        )
     if os.environ.get("CI") in ("1", "true"):
-        return "you're in CI; the user layer (~/.claude/settings.json) won't be seen by the next job."
+        return (
+            "you're in CI; the user layer (~/.claude/settings.json) won't be seen by the next job."
+        )
     return None
 
 
@@ -829,46 +901,71 @@ def run_v5(posture: dict, root: Path, args) -> int:
             # Nothing authored here now. If a side-car says we wrote it before, clear our buckets.
             if side_car and side_car.is_file():
                 if not args.dry_run and target.is_file():
-                    settings = _load_settings_json(target)
-                    overwrite_permissions(settings, {"allow": [], "ask": [], "deny": []})
-                    target.write_text(
-                        json.dumps(settings, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
-                    )
-                    side_car.unlink(missing_ok=True)
-                print(f"{'(dry-run) ' if args.dry_run else ''}cleared posture rules from {scope} layer")
+                    # Same lock + atomic-write pair as the v3/v4 path: a
+                    # concurrent SessionStart reapply + dashboard /__save must
+                    # never observe a truncated settings.json mid-write.
+                    with _settings_lock(target):
+                        settings = _load_settings_json(target)
+                        overwrite_permissions(settings, {"allow": [], "ask": [], "deny": []})
+                        _write_settings_json_atomic(
+                            target,
+                            json.dumps(settings, indent=2, ensure_ascii=False) + "\n",
+                        )
+                        side_car.unlink(missing_ok=True)
+                print(
+                    f"{'(dry-run) ' if args.dry_run else ''}cleared posture rules from {scope} layer"
+                )
             continue
 
         em = emission[scope]
-        if target.is_file():
-            settings = _load_settings_json(target)
-        else:
-            settings = {"$schema": "https://json.schemastore.org/claude-code-settings.json"}
-        # Snapshot the prior buckets BEFORE overwrite — overwrite_permissions
-        # mutates settings["permissions"] in place, so a live reference would
-        # already reflect the new state by the time we diff for the audit event.
-        _prev_live = settings.get("permissions", {})
-        prev = {b: list(_prev_live.get(b, []) or []) for b in ("allow", "ask", "deny")}
-        prev_counts = {b: len(prev[b]) for b in ("allow", "ask", "deny")}
-        overwrite_permissions(settings, em)
-        if scope == "project":
-            ensure_default_mode(settings)
-        new_counts = {b: len(em[b]) for b in ("allow", "ask", "deny")}
+        # Bind `target` as a default arg so the loader does not close over the
+        # for-loop variable (ruff B023).
+        def _load_or_blank(path: Path = target) -> dict:
+            if path.is_file():
+                return _load_settings_json(path)
+            return {"$schema": "https://json.schemastore.org/claude-code-settings.json"}
 
         rel = target if scope == "user" else target.relative_to(root)
         if args.dry_run:
+            settings = _load_or_blank()
+            _prev_live = settings.get("permissions", {})
+            prev = {b: list(_prev_live.get(b, []) or []) for b in ("allow", "ask", "deny")}
+            prev_counts = {b: len(prev[b]) for b in ("allow", "ask", "deny")}
+            overwrite_permissions(settings, em)
+            if scope == "project":
+                ensure_default_mode(settings)
+            new_counts = {b: len(em[b]) for b in ("allow", "ask", "deny")}
             print(f"(dry-run) {scope} layer → {rel}")
         else:
-            target.parent.mkdir(parents=True, exist_ok=True)
-            target.write_text(json.dumps(settings, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
-            if side_car:
-                write_side_car(side_car, scope)
-            if scope == "local":
-                append_local_to_gitignore(root)
-            _emit_posture_event(root, scope, prev, em, _resolve_source(args))
+            # Critical section matches v3/v4: flock the sibling lock across
+            # the whole read-modify-write, then replace via a temp file so a
+            # concurrent reader (another apply, Claude Code re-reading
+            # settings on session start) never sees a torn permissions file.
+            # run_v5 originally used Path.write_text, which truncates in place.
+            with _settings_lock(target):
+                settings = _load_or_blank()
+                _prev_live = settings.get("permissions", {})
+                prev = {b: list(_prev_live.get(b, []) or []) for b in ("allow", "ask", "deny")}
+                prev_counts = {b: len(prev[b]) for b in ("allow", "ask", "deny")}
+                overwrite_permissions(settings, em)
+                if scope == "project":
+                    ensure_default_mode(settings)
+                new_counts = {b: len(em[b]) for b in ("allow", "ask", "deny")}
+                _write_settings_json_atomic(
+                    target,
+                    json.dumps(settings, indent=2, ensure_ascii=False) + "\n",
+                )
+                if side_car:
+                    write_side_car(side_car, scope)
+                if scope == "local":
+                    append_local_to_gitignore(root)
+                _emit_posture_event(root, scope, prev, em, _resolve_source(args))
             print(f"Applied {scope} layer → {rel}")
         for b in ("allow", "ask", "deny"):
             d = new_counts[b] - prev_counts[b]
-            print(f"    permissions.{b}: {prev_counts[b]} -> {new_counts[b]} ({'+' if d > 0 else ''}{d})")
+            print(
+                f"    permissions.{b}: {prev_counts[b]} -> {new_counts[b]} ({'+' if d > 0 else ''}{d})"
+            )
         wrote.append(scope)
 
     verb = "(dry-run) would apply" if args.dry_run else "Applied"
@@ -1000,8 +1097,13 @@ def _resolve_source(args) -> str:
 
 
 def main() -> int:
-    p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    p.add_argument("--project-root", help="Override project root detection. Default: search upward from CWD for .claude/ or .git/.")
+    p = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
+    p.add_argument(
+        "--project-root",
+        help="Override project root detection. Default: search upward from CWD for .claude/ or .git/.",
+    )
     p.add_argument("--dry-run", action="store_true", help="Print what would change; don't write.")
     p.add_argument(
         "--scope",
@@ -1076,44 +1178,55 @@ def main() -> int:
     except ValueError as exc:
         return _posture_error(exc)
 
-    if settings_path.is_file():
-        settings = _load_settings_json(settings_path)
-    else:
-        settings = {"$schema": "https://json.schemastore.org/claude-code-settings.json"}
+    # The whole read -> mutate -> write span is a critical section: /set-posture
+    # can be invoked concurrently (the dashboard's /__save handler, the
+    # SessionStart reapply-posture.sh hook on every session, and manual
+    # /set-posture all target this same settings_path). _settings_lock serializes
+    # concurrent applies so a second writer's stale in-memory snapshot can't
+    # silently clobber the first's edit, and the write itself goes through a
+    # temp-file + os.replace so a concurrent reader never observes a torn file.
+    with _settings_lock(settings_path):
+        if settings_path.is_file():
+            settings = _load_settings_json(settings_path)
+        else:
+            settings = {"$schema": "https://json.schemastore.org/claude-code-settings.json"}
 
-    # Snapshot before overwrite — overwrite_permissions mutates in place.
-    _prev_live = settings.get("permissions", {})
-    prev_perms = {b: list(_prev_live.get(b, []) or []) for b in ("allow", "ask", "deny")}
-    prev_counts = {b: len(prev_perms[b]) for b in ("allow", "ask", "deny")}
+        # Snapshot before overwrite — overwrite_permissions mutates in place.
+        _prev_live = settings.get("permissions", {})
+        prev_perms = {b: list(_prev_live.get(b, []) or []) for b in ("allow", "ask", "deny")}
+        prev_counts = {b: len(prev_perms[b]) for b in ("allow", "ask", "deny")}
 
-    updated = overwrite_permissions(settings, new_emission)
-    ensure_default_mode(updated)
-    new_counts = {b: len(updated["permissions"][b]) for b in ("allow", "ask", "deny")}
+        updated = overwrite_permissions(settings, new_emission)
+        ensure_default_mode(updated)
+        new_counts = {b: len(updated["permissions"][b]) for b in ("allow", "ask", "deny")}
 
-    if args.dry_run:
-        print("DRY RUN — would overwrite permissions buckets:")
-        print(f"  {settings_path}:")
-        for bucket in ("allow", "ask", "deny"):
-            delta = new_counts[bucket] - prev_counts[bucket]
-            sign = "+" if delta > 0 else ""
-            print(f"    permissions.{bucket}: {prev_counts[bucket]} -> {new_counts[bucket]} ({sign}{delta})")
-        if stale_snapshot.is_file():
-            print(f"  Would delete stale snapshot: {stale_snapshot.relative_to(root)}")
-    else:
-        settings_path.parent.mkdir(parents=True, exist_ok=True)
-        settings_path.write_text(
-            json.dumps(updated, indent=2, ensure_ascii=False) + "\n",
-            encoding="utf-8",
-        )
-        if stale_snapshot.is_file():
-            stale_snapshot.unlink()
-            print(f"Deleted stale snapshot: {stale_snapshot.relative_to(root)}")
-        _emit_posture_event(root, "project", prev_perms, new_emission, _resolve_source(args))
-        print(f"Applied comfort posture to {settings_path.relative_to(root)}:")
-        for bucket in ("allow", "ask", "deny"):
-            delta = new_counts[bucket] - prev_counts[bucket]
-            sign = "+" if delta > 0 else ""
-            print(f"  permissions.{bucket}: {prev_counts[bucket]} -> {new_counts[bucket]} ({sign}{delta})")
+        if args.dry_run:
+            print("DRY RUN — would overwrite permissions buckets:")
+            print(f"  {settings_path}:")
+            for bucket in ("allow", "ask", "deny"):
+                delta = new_counts[bucket] - prev_counts[bucket]
+                sign = "+" if delta > 0 else ""
+                print(
+                    f"    permissions.{bucket}: {prev_counts[bucket]} -> {new_counts[bucket]} ({sign}{delta})"
+                )
+            if stale_snapshot.is_file():
+                print(f"  Would delete stale snapshot: {stale_snapshot.relative_to(root)}")
+        else:
+            _write_settings_json_atomic(
+                settings_path,
+                json.dumps(updated, indent=2, ensure_ascii=False) + "\n",
+            )
+            if stale_snapshot.is_file():
+                stale_snapshot.unlink()
+                print(f"Deleted stale snapshot: {stale_snapshot.relative_to(root)}")
+            _emit_posture_event(root, "project", prev_perms, new_emission, _resolve_source(args))
+            print(f"Applied comfort posture to {settings_path.relative_to(root)}:")
+            for bucket in ("allow", "ask", "deny"):
+                delta = new_counts[bucket] - prev_counts[bucket]
+                sign = "+" if delta > 0 else ""
+                print(
+                    f"  permissions.{bucket}: {prev_counts[bucket]} -> {new_counts[bucket]} ({sign}{delta})"
+                )
 
     print(
         "\nNote: comfort-posture works best with session mode at 'default'.\n"

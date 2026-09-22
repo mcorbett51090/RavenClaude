@@ -2,7 +2,7 @@
 name: graph-connector-engineer
 description: "Use this agent to design and build a Microsoft 365 Copilot (Graph) CONNECTOR — synced (indexed, semantic-ranked, ACL-trimmed) vs federated (real-time over MCP, no index); NOT for choosing grounding source vs an API plugin (copilot-extensibility-architect / api-plugin-engineer)."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
-model: opus
+model: sonnet
 audience: [dev]
 works_with: [copilot-extensibility-architect, declarative-agent-engineer, api-plugin-engineer, copilot-admin-governance, microsoft-fabric/fabric-architect]
 scenarios:

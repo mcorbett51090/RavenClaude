@@ -66,6 +66,14 @@ Dispatch with **`effort: 'xhigh'`** (the dispatch option, not a brief keyword �
 below) — a missed correlated error is the most expensive failure FORGE exists to catch, and this is the
 gate that catches it. → `critic-brief.md`.
 
+**When SKILL.md §2 G0's risk scan flagged a security signal, the `security` overlay prior is
+mandatory on this brief** (the table above lists it "optionally" for G4a/G4b/G5 — that optionality
+stands for the generic case; a G0-flagged security signal removes it). **Not** a specialist-agentType
+swap: `security-reviewer` lacks `Write` (see the "Why inject-prior and not dispatch a real specialist"
+note above, which already rules this out for exactly this gate — G4a must write `critic-brief.md` per
+§0's artifact contract), so the correction stays a stronger prior on the same generic worker, not a
+different one.
+
 ## G4b — Per-conflict expert tiebreak
 
 For each real conflict (from `gap-delta.md` + `critic-brief.md` — read from disk, not relayed):

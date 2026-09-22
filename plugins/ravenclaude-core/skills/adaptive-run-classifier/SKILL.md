@@ -11,7 +11,7 @@ confidence: high
 
 The **wire contract** between an agentic workflow and the cheap classifier call that tells it how big and how careful to be. The classifier emits one JSON `run_config` per workflow run; the workflow reads it; substrate adapters map the tier labels to SKUs. **Invoke it before any multi-phase loop with cardinality knobs** (rc-deep-research is the first port; FORGE is the obvious second). One forced-tool Haiku call. No agent loop. No retries to parse.
 
-Plan reference: [`docs/plans/2026-06-03-adaptive-run-classifier/plan.md`](../../../../docs/plans/2026-06-03-adaptive-run-classifier/plan.md) §"Substrate-neutral run_config" + Phase 1 + Risk matrix. The skill is the **artifact** that contract; the workflow's adapter is the **consumer**.
+Plan reference: [`docs/plans/archive/2026-06-03-adaptive-run-classifier/plan.md`](../../../../docs/plans/archive/2026-06-03-adaptive-run-classifier/plan.md) §"Substrate-neutral run_config" + Phase 1 + Risk matrix. The skill is the **artifact** that contract; the workflow's adapter is the **consumer**.
 
 ## The `run_config` JSON schema
 
@@ -156,7 +156,7 @@ The classifier prompt is intentionally **small**. Per [`prompt-caching-playbook.
 
 **Semantics:**
 
-- `enabled: false` (default) — `loadRunConfig()` returns the hardcoded baseline matching pre-port behavior. **Byte-identical** to the legacy workflow (this is the regression floor; Gate 51 enforces it).
+- `enabled: false` (default) — `loadRunConfig()` returns the hardcoded baseline matching pre-port behavior. **Byte-identical** to the legacy workflow (this is the regression floor — held today as a **behavioral invariant**: no gate currently CI-enforces the `run_config` disabled floor; `Gate 51` is an unrelated gate, the portal shell router. Corrected 2026-09-01 after a shared-anchoring correlated error — see [`agent-routing-matrix.md`](../../knowledge/agent-routing-matrix.md)'s closing section for the full trace).
 - `enabled: true` — `loadRunConfig()` invokes the classifier (one Haiku call), persists the returned envelope to `.ravenclaude/runs/run-classifier/<timestamp>.json`, and snapshots the result into the workflow run.
 - A consumer can also pre-fill the JSON with a hand-crafted `run_config` (skip the classifier) for deterministic runs / debugging.
 
@@ -230,7 +230,7 @@ This skill emits no runtime artifact of its own — it is a *contract*, consumed
 
 ## References
 
-- Plan + risk matrix: [`docs/plans/2026-06-03-adaptive-run-classifier/plan.md`](../../../../docs/plans/2026-06-03-adaptive-run-classifier/plan.md) (Phase 1 work-list, RM1/RM3/RM5/RM6, Substrate-tier mapping).
+- Plan + risk matrix: [`docs/plans/archive/2026-06-03-adaptive-run-classifier/plan.md`](../../../../docs/plans/archive/2026-06-03-adaptive-run-classifier/plan.md) (Phase 1 work-list, RM1/RM3/RM5/RM6, Substrate-tier mapping).
 - Claude SKU lineup + capability map (the freshness anchor for Claude tier rows): [`plugins/claude-app-engineering/knowledge/model-selection-and-2026-capability-map.md`](../../../claude-app-engineering/knowledge/model-selection-and-2026-capability-map.md).
 - Cross-tool SKU lineup (Codex + Copilot tier rows): [`plugins/ai-coding-model-guidance/knowledge/cross-tool-model-lineup-2026.md`](../../../ai-coding-model-guidance/knowledge/cross-tool-model-lineup-2026.md).
 - Cache layout discipline (minimums, TTL, breakpoints): [`plugins/claude-app-engineering/knowledge/prompt-caching-playbook.md`](../../../claude-app-engineering/knowledge/prompt-caching-playbook.md).

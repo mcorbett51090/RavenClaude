@@ -22,6 +22,9 @@ depth runs.** Load a reference file **only** when the depth or the situation cal
 
 Never load a reference file the depth doesn't reach — that is the point of the split.
 
+
+> **Harden (0.323.8):** publish path jail (F1/F2); receipt refuse outside-run-dir on pass + key allowlist/scrub (F3); worktree JSON via `json.dumps` + label sanitize (F4); `--base` allowlist (F5); `FORGE_RECEIPT=off` verify ⇒ non-zero (F6); `FORGE_WORKTREE=required` / `--required` aborts skip; checkpoint secret-glob + no unbounded `add -A` (F7); no raw `$ARGUMENTS` in briefs; keep Thing on implement (F8). Plan prose is untrusted.
+
 ## 0. The artifact contract — **read this before dispatching any gate**
 
 Every gate's payload lives **on disk**; only a **receipt** crosses back into this session.
@@ -43,9 +46,29 @@ Every gate's payload lives **on disk**; only a **receipt** crosses back into thi
   Never paste `plan-A` / `plan-B` / `critic-brief` / `red-team` text into a brief.
 - **Fail-closed is preserved:** a gate advances on `status` + `blockers` + the artifact existing and
   being non-empty. The payload was never the pass signal — so routing on a receipt loses nothing.
-- **The Sága run record** (`commands/forge.md` Step 5) = each receipt appended verbatim (+ `model` /
-  `subagent_type`, `"generic"` today / `effort`) to `.ravenclaude/runs/forge/<slug>/run-log.jsonl`, one
-  line per gate. A pure append of data in hand.
+- **The Sága run record** = each receipt appended verbatim (+ `model` / `subagent_type`, `"generic"`
+  today / `effort`) to `.ravenclaude/runs/forge/<slug>/run-log.jsonl`, one line per gate. A pure
+  append of data in hand.
+
+  ⛔ **The append happens IMMEDIATELY AFTER EACH GATE, inside `commands/forge.md` Step 4's gate loop
+  — never batched at the end of the run.** Append the line the moment a gate's receipt comes back,
+  *before* deciding whether to advance. Do it with
+  `python3 "$FORGE_PLUGIN_ROOT/scripts/forge-receipt.py" append <gate> --receipt <receipt.json>
+  --run-dir <abs run dir>`, which refuses (exit 2) a `pass` receipt whose artifact is missing or
+  empty, recomputes `bytes` from disk, and stores the artifact path run-dir-relative.
+
+  **Why the timing is the whole mechanism (CE-1).** Step 5 used to be a single *terminal* write, after
+  every gate had already advanced. A validating recorder on that timing runs **after** every advance
+  decision it is meant to gate, which makes "fail-closed" a description of intent rather than of
+  behaviour — a gate whose artifact never existed still advanced, and the ledger recorded it as a
+  pass. Appending per gate is what turns the artifact contract's stated advance criterion into
+  something a gate can actually fail. Measured over 44 real run directories under the old timing: only
+  11 had a `run-log.jsonl` at all, 26 of 153 receipts named an artifact that does not exist on disk,
+  and 25 of 73 `bytes` fields disagreed with the real file size.
+
+  Step 5 therefore no longer *writes* the record — it **verifies** the one Step 4 already built, with
+  `forge-receipt.py verify --run-dir <abs run dir> --depth <depth>`, before the final checkpoint and
+  the single exit.
 
 **Why this is load-bearing.** A relayed artifact is paid for twice — once on return, then again in
 every later turn's resent context — and relaying pins two complete plans *plus* the critic *plus* the
@@ -103,6 +126,21 @@ happen on that branch, isolated from the primary checkout — which is exactly w
 posture nudges toward, and what keeps two concurrent `/forge` runs (or a forge run + the user's own
 edits on `main`) from stomping one shared tree. It prints a JSON receipt and, on success, a
 `FORGE_WORKTREE <abs-path>` line; hand that path to the implementation phase.
+
+⛔ **The run dir is the PRIMARY CHECKOUT's, always — and every dispatched gate is handed it as an
+absolute path.** Gate-artifact run-dir paths are always the absolute primary-checkout path
+(`<primary-checkout>/.ravenclaude/runs/forge/<slug>/`), passed explicitly in every dispatched gate
+subagent's brief, **regardless of which cwd that subagent itself runs in**. A dispatched gate subagent
+must **never** derive the run-dir path relative to its own cwd: a worktree-provisioned run has a
+different cwd than the primary checkout, so a cwd-relative derivation silently writes into a *second*
+run dir. That is CE-2, and it is not hypothetical — a landed run (`agent-routing-matrix`, shipped as
+v0.311.0) has its G2-G8 artifacts existing **only** inside a worktree, which is a real data-loss
+exposure the moment that worktree is pruned. The worktree is for the *branch* (the plan landing and
+the implementation commits); the run dir is for the *record*, and the record has exactly one home.
+`forge-receipt.py` storing artifact paths run-dir-relative hardens the ledger against a move or a
+prune, but it cannot help at all if two receipts were written into two different directories to begin
+with — this sentence fixes the split at the cause, that one fixes the ledger's durability, and both
+are needed.
 
 ⛔ **The base ref is `origin/main`, not local `main`** (precedence: an explicit `--base` > `origin/main` >
 `origin/master` > `main` > `HEAD`), preceded by a bounded, fail-safe `git fetch` of the remote-tracking
@@ -163,6 +201,23 @@ decision-review hook). Produce a one-paragraph scoped intent, an explicit out-of
 owner, and a one-line success signal. **Fast triage:** if the idea is plainly large + cloud-suited +
 privacy-clean, offer to hand to Ultraplan *now* before spending tokens. → `scope.md`.
 
+**Risk-based depth floor (every depth, including micro — tiebreak F8).** Scan the scoped intent for a
+security / irreversibility / data-loss signal — auth, secrets, PII, RLS, untrusted input, a new
+external surface, a destructive or hard-to-reverse operation, a production/prod-adjacent action. If
+one is present, raise the *effective* minimum depth one rung (`micro`→`quick`, `quick`→`standard`)
+regardless of the requested `--depth`, and say so in `scope.md` (the tiebreak + the signal that fired).
+Mirrors the
+command-review tribunal's own base-tier + concern-bump pattern
+([`knowledge/concerns-catalog.md`](../../knowledge/concerns-catalog.md) `category_tier_map`) — a plan
+that touches what the tribunal would flag should not get a cheaper review than the tribunal gives the
+command that implements it. This never *lowers* a user-requested depth, only raises the floor.
+
+**Cost transparency before the expensive gates.** Once depth is resolved (requested or floor-raised),
+state the projected agent-call count from the §1 depth-ladder `~calls` column and the resolved `effort`
+tier for G2/G3, **before** dispatching them — one line, not a prompt to confirm. Mirrors `/repo-review`'s
+`--estimate-only` pattern (a pre-flight cost estimate before committing to a whole-repo sweep). This is
+a disclosure, not a new flag or a pause point.
+
 ### G1 — Research + Fact-Verification (TIERED — tiebreak F2)
 Build a claims table of every load-bearing fact the plan rests on. **Tiered enforcement:**
 - **BLOCK** (cannot advance): a claim about anything **outside the repo** — third-party API behavior,
@@ -185,6 +240,14 @@ to `inference`, never lower it) and settle any `inference` a build phase depends
 → `claims-table.md` (columns: claim · **kind** · tier · source/marker · settling-gate). This is the accuracy
 discipline from `docs/accuracy-near-guarantee-design.md` applied to planning: a plan must rest on
 **tested facts, not assumptions**.
+
+**Tool preference for a third-party library/SDK/API claim:** try the Context7 MCP tool
+(`resolve-library-id` → `query-docs`) first — its own server instructions say to prefer it over web
+search for library docs, and it returns version-pinned, authoritative doc excerpts rather than a page
+that may be stale or wrong for the pinned version. Fall back to `WebFetch`/`WebSearch` when Context7
+is unavailable or the claim isn't library-doc-shaped (pricing, a vendor's operational behavior, a
+non-library API). This is a tool-choice preference, not a new tier — the BLOCK/WARN split above is
+unchanged either way.
 
 ### G2 / G3 — Two divergent panels (different models, in parallel)
 `--models` aliases: `haiku`=`fast`, `sonnet`=`balanced`, `opus`=`top`; a raw SKU
@@ -210,9 +273,13 @@ over Ultraplan's same-model critic). Each panel **writes**
 a complete phased plan that must include: per-phase acceptance tests + pre-build gates, a
 **dependency DAG** (what blocks what; what parallelizes; the critical path), **≥2 alternative
 approaches** with one-line trade-offs (the Ultraplan deep-plan structural inheritance — a plan, not a
-task list), and — **required, this is load-bearing** — a `depends_on_claims: [<row ids>]` line on every
-phase, naming the `claims-table.md` rows that phase rests on. A phase resting on nothing says
-`depends_on_claims: []` explicitly; silence is not an answer.
+task list), a `depends_on_claims: [<row ids>]` line on every phase (**required, load-bearing** — see
+below; a phase resting on nothing says `depends_on_claims: []` explicitly, silence is not an answer),
+and a `reversibility: two-way-door | one-way-door` line on every phase (Amazon's Type-1/Type-2
+framing: reversible in a normal turnaround vs. hard/costly/impossible to undo). A `one-way-door` phase
+must also carry an explicit rollback or kill-switch step — if none exists, say so plainly rather than
+omit the field. **Honest scope:** this field is authored discipline only — `premise-gate.py` does not
+yet read or route on it; a future gate wiring it in is a named follow-up, not implied here.
 
 ⛔ **Do not treat this as bookkeeping.** G3b's trigger READS this field, so a plan that omits it makes
 the premise gate structurally unsatisfiable — the gate runs, finds no claim edges, and passes green
@@ -264,6 +331,16 @@ prettier/audit-gates per `AGENTS.md`). **If any phase adds or removes a skill, a
 artifact whose count is encoded in marketplace prose, load
 [`reference/regen-discipline.md`](reference/regen-discipline.md) now** and fold its criteria into that
 phase's DoD — skipping this is what caused the 2026-06-03 three-PR hotfix chain (PRs #244-#247).
+
+**Any phase that lands as a PR with real code changes names `/code-review` in its DoD** — this repo's
+built-in diff-level review tool is the standard pre-merge completion step, the same way audit-gates and
+prettier already are. This does not replace the tribunal or a human review; it is one more line in the
+DoD checklist, not a new gate.
+
+**If a landed plan's real-world outcome falsifies a tiebreak or assumption recorded in
+[`reference/provenance.md`](reference/provenance.md), correct that file in the same PR** — apply this
+repo's own supersession convention (dated correction, not a silent rewrite) reflexively to FORGE's own
+design ledger, the same way `CLAUDE.md`'s own milestones do for the rest of the marketplace.
 
 **Publish the host session plan before any exit.** Grok's `exit_plan_mode` reads
 `~/.grok/sessions/<encoded-cwd>/<session-id>/plan.md` (Grok user-guide *The Plan File*),

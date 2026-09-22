@@ -5,6 +5,15 @@ no CLI can drive that surface. Until the tables below carry real observations,
 `surfaces.chat.supported` stays `false` and Chat is the **operator lane only** —
 do not claim Chat is protected.
 
+### Environment attempt (2026-09-10, this Cloud Agent)
+
+Tried to fill the tables from `cursor/closeout-decisions-9846`. This VM has
+**no** `code` and **no** `copilot` CLI (`command -v` → not found). Copilot Chat
+Agent mode is not reachable here, so inventing CL-3 / CL-19b rows would be a
+false premise. **Matthew (or any session already inside VS Code Chat):** run
+`plugins/ravenclaude-core/templates/worktree-lane/chat-ceiling.md` and paste
+the observations into the tables below. Do not guess.
+
 Procedure: `plugins/ravenclaude-core/templates/worktree-lane/chat-ceiling.md`.
 Plan: `docs/plans/2026-08-14-chat-write-deny.md`.
 
