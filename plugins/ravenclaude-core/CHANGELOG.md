@@ -2,6 +2,27 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.324.8 — 2026-09-22
+
+### Fixed
+
+- **`converge.py` mapped a wrong-typed judge field to the "continue" verdict instead of a contract
+  error.** `main()`'s guard caught `(KeyError, TypeError, ValueError)` to return exit 2 on a malformed
+  scorecard, but a schema-permitted-but-wrong-typed field (e.g. `hard_gates`/`scores` present as a
+  list where a dict/null is expected) raises `AttributeError` (`[…].items()` / `….get(…)`), which
+  escaped the guard as an unhandled traceback → exit 1. A shell/gate caller reads exit 1 as
+  "should_stop is false → keep iterating," so a malformed verdict was silently misread rather than
+  surfaced. Added `AttributeError` to the guard (the existing `or {}`/`or []` null-guards already
+  defend the same "weird judge output" class; this extends them to wrong-typed containers).
+- **`review_cache.py batch-status` crashed with an uncaught traceback on a bad rel-path.** The
+  `lookup`/`store` CLI branches map a `_validate_rel_path` `ValueError` (a `..` or absolute path) to
+  exit 2; the `batch-status` branch did not, so the same input produced an unhandled traceback (exit
+  1). Wrapped it in the same guard for consistency. (Robustness/consistency — the `--files` list is
+  pipeline-enumerated, so not a likely production crash.)
+
+_Both defects were found by an autonomous whole-repo review sweep and verified by reproduction. No API
+or behavioral change for well-formed input._
+
 ## 0.324.7 — 2026-09-22
 
 ### Fixed
