@@ -511,6 +511,147 @@ _is_dangerous_git_clean() {
   return 1
 }
 
+# Bypass-shaped merge only — added for source-control-coordinator (build-plan.md
+# Task 3.3). Deliberately NARROW: it does NOT deny an ordinary merge with no
+# bypass flag (e.g. `gh pr merge <n> --squash`) — a blanket "any merge to a
+# protected branch" pattern would disable the coordinator's own sanctioned
+# invocation via the hook this plan calls the least-privilege bound, which is
+# its entire reason for existing. Whether a *particular* sanctioned call is
+# *safe to make right now* is the coordinator's own authoritative pre-merge
+# check's job (source-control-coordinator.md), not this hook's.
+#
+# Two bypass shapes, both order-independent:
+#   (a) `gh pr merge` carrying an admin-override flag (`--admin`), in any flag
+#       order — both `gh pr merge <n> --admin --squash` and
+#       `gh pr merge <n> --squash --admin` must match.
+#   (b) a LOCAL `git merge` while checked out on a protected branch (main/
+#       master) without `--ff-only` — capable of landing a real merge commit
+#       directly on that branch, bypassing PR review entirely. `--ff-only` is
+#       explicitly exempted: a pure fast-forward changes no history shape and
+#       is not the bypass this rule targets.
+#
+# ⛔ Eight review findings folded in across five Bugbot passes (all real,
+# none hypothetical — each pass reviewed the PRIOR pass's fix and found
+# genuine regressions or gaps in it):
+#   - (round 1) The `--ff-only` exemption is checked ONLY within the `git
+#     merge` segment, mirroring how the `--admin` check above it is already
+#     scoped per segment — an unscoped check against the WHOLE command
+#     string would let a `--ff-only` token anywhere else in a compound
+#     command falsely exempt a real merge-commit-shaped bypass.
+#   - (round 1) The effective branch is tracked ACROSS segments, not read
+#     once from current HEAD before the command runs — `git checkout main
+#     && git merge feature --no-ff` changes HEAD mid-command, so reading it
+#     once at hook-eval time sees the PRE-checkout branch and misses the
+#     bypass entirely.
+#   - (round 2) EVERY `git merge` segment is evaluated in order, never
+#     stopping at the first — the round-1 fix matched the substring "git
+#     merge" and broke on the first hit, which also fires on `git merge-base`
+#     and `git mergetool` (neither actually merges), so a command opening
+#     with either before the real merge would have stopped the scan too
+#     early. The merge check is now a proper word-boundary match ("git
+#     merge" followed by whitespace/EOL, never "-base"/"tool") and the loop
+#     never breaks — it denies on the FIRST segment that is genuinely
+#     dangerous, wherever it falls.
+#   - (round 3) The checkout/switch parser distinguishes the CREATED branch
+#     from a start-point operand — `git checkout -b newbranch main` (or
+#     `git switch -c feature main`) ends up ON `newbranch`/`feature`, NOT on
+#     `main`; a round-2 "last leftover word wins" heuristic would have
+#     tracked "main" instead, since it's the LAST word in the segment. The
+#     parser now special-cases `-b`/`-B`/`-c`/`--orphan`: the word
+#     IMMEDIATELY FOLLOWING one of those flags is the target, taking
+#     priority over any other operand in the segment. Absent one of those
+#     flags, the target is the FIRST non-flag word after `checkout`/`switch`
+#     (not the last) — which also closes a related round-2 gap: a trailing
+#     redirect or comment after the real branch name (`git checkout main
+#     2>/dev/null`) no longer overwrites a correctly-tracked branch, since
+#     only the FIRST positional word is taken, not whatever comes last.
+#   - (round 3) Every per-segment structural check (the merge/checkout-
+#     switch word-boundary tests) now reuses `${_CMD_BOUNDARY}` — the SAME
+#     boundary-character class the outer two gates and the `--admin` check
+#     already use — instead of a separately hardcoded `(^|[[:space:]])`.
+#     Whatever `_CMD_BOUNDARY` recognizes as a command-start boundary
+#     (parens, backticks, `;`/`&`/`|`, …) the per-segment checks now
+#     recognize too, so a path-qualified or command-substitution-embedded
+#     `git merge`/`checkout` that the outer gate can see is never silently
+#     invisible to the segment-level checks one level in.
+#   - (round 4) The checkout/switch word scan now IGNORES any token BEFORE
+#     the actual `git checkout`/`git switch` keyword pair, not just the
+#     whole segment naively. A leading redirect (`2>/dev/null git checkout
+#     main`), an inline env-var assignment (`FOO=bar git checkout main`), a
+#     command wrapper (`sudo git checkout main`) — all valid, realistic bash
+#     — were mistaken for the branch by a round-3 loop that took the FIRST
+#     non-flag word anywhere in the segment. Isolating everything after the
+#     keyword closes the whole class at once rather than chasing prefixes
+#     one at a time.
+#   - (round 5) The keyword itself is located by exact WORD equality across
+#     adjacent tokens (the previous word is literally "git" AND the current
+#     word is literally "checkout"/"switch"), not by a substring search. A
+#     round-4 draft used `${seg#*"$kw"}` — bash string-prefix removal on the
+#     literal text "checkout"/"switch" — which strips at the FIRST substring
+#     occurrence, coincidental or not. A prefix token whose own VALUE
+#     happens to contain that substring (`FOO=checkout git checkout main`)
+#     would have been stripped at the WRONG, earlier occurrence, leaving the
+#     real keyword and branch still inside the scanned "tail" — undoing the
+#     round-4 fix for that specific shape. Exact per-token equality across
+#     ADJACENT words (via ordinary word-splitting, which already respects
+#     token boundaries) cannot be fooled by a substring landing inside a
+#     single compound token, since `FOO=checkout` is one word, never equal
+#     to the bare word `checkout`.
+_is_dangerous_merge() {
+  local c="$1" seg found=1
+  if [[ "$c" =~ ${_CMD_BOUNDARY}gh[[:space:]]+pr[[:space:]]+merge([[:space:]]|$) ]]; then
+    while IFS= read -r seg; do
+      case "$seg" in *"gh pr merge"*) ;; *) continue ;; esac
+      [[ "$seg" =~ ${_CMD_BOUNDARY}--admin([[:space:]]|$) ]] && { found=0; break; }
+    done <<EOF
+$(printf '%s' "$c" | tr ';&|' '\n\n\n')
+EOF
+    [ "$found" -eq 0 ] && return 0
+  fi
+  if [[ "$c" =~ ${_CMD_BOUNDARY}git[[:space:]]+merge([[:space:]]|$) ]]; then
+    local branch word prev seen seg_target pending double_dash first_pos
+    branch="$(git rev-parse --abbrev-ref HEAD 2>/dev/null || true)"
+    while IFS= read -r seg; do
+      if [[ "$seg" =~ ${_CMD_BOUNDARY}git[[:space:]]+(checkout|switch)([[:space:]]|$) ]]; then
+        prev="" seen="" seg_target="" pending="" double_dash="" first_pos=""
+        for word in $seg; do
+          if [ -z "$seen" ]; then
+            if [ "$prev" = "git" ] && { [ "$word" = "checkout" ] || [ "$word" = "switch" ]; }; then
+              seen=1
+            fi
+            prev="$word"
+            continue
+          fi
+          if [ -n "$pending" ]; then
+            seg_target="$word"; pending=""; continue
+          fi
+          case "$word" in
+            --) double_dash=1; break ;;
+            -b|-B|-c|--orphan) pending=1 ;;
+            -*) ;;
+            *) [ -z "$first_pos" ] && first_pos="$word" ;;
+          esac
+        done
+        if [ -n "$seg_target" ]; then
+          branch="$seg_target"
+        elif [ -z "$double_dash" ] && [ -n "$first_pos" ]; then
+          branch="$first_pos"
+        fi
+      fi
+      if [[ "$seg" =~ ${_CMD_BOUNDARY}git[[:space:]]+merge([[:space:]]|$) ]]; then
+        if ! [[ "$seg" =~ ${_CMD_BOUNDARY}--ff-only([[:space:]]|$) ]]; then
+          case "$branch" in
+            main|master) return 0 ;;
+          esac
+        fi
+      fi
+    done <<EOF
+$(printf '%s' "$c" | tr ';&|' '\n\n\n')
+EOF
+  fi
+  return 1
+}
+
 # --- Pattern array (matched against the normalized command) ----------------
 # The settings.json deny-list catches the top-level form; this catches them
 # when nested / wrapped / reordered.
@@ -544,6 +685,8 @@ deny_patterns=(
   '>[[:space:]]*/dev/(sd|nvme|hd|disk|vd|xvd|mmcblk)'
   # fork bomb
   ':[[:space:]]*\([[:space:]]*\)[[:space:]]*\{[[:space:]]*:\|:&[[:space:]]*\}'
+  '(gh[[:space:]]+api|curl)[^;&|]*-X[[:space:]]*DELETE([[:space:]]|$)'   # destructive DELETE-verb API call
+  'git[[:space:]]+update-ref[[:space:]]+(-[a-zA-Z]*d[a-zA-Z]*|--delete)([[:space:]]|$)'   # raw ref deletion (archive-branch.sh's own internal primitive; no other caller should touch it directly)
 )
 
 _deny() {
@@ -570,6 +713,7 @@ if _is_dangerous_truncate "$norm"; then _deny "truncate-zero-of-dangerous-target
 if _is_dangerous_git_branch_delete "$norm"; then _deny "git-branch-force-delete"; fi
 if _is_dangerous_git_push_delete "$norm";   then _deny "git-push-remote-branch-delete"; fi
 if _is_dangerous_git_clean "$norm";         then _deny "git-clean-force"; fi
+if _is_dangerous_merge "$norm";      then _deny "bypass-shaped-merge"; fi
 
 # Then the pattern array.
 for pat in "${deny_patterns[@]}"; do
