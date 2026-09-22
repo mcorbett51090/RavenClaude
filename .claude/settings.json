@@ -103,6 +103,16 @@
             "comment": "Marketplace-dev hook (dev-mirror of the plugin's hooks/hooks.json PostToolUse(Bash) entry). Cause-triage: after a failed/empty Bash command, nudges toward a discriminating probe before a remediating action. Reads the `cause_triage` knob (this repo dogfoods `cause_triage: warn`); fail-safe, never blocks."
           }
         ]
+      },
+      {
+        "matcher": "mcp__.*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PROJECT_DIR}/plugins/ravenclaude-core/hooks/sanitize-mcp-output.sh",
+            "comment": "Marketplace-dev mirror of the plugin's hooks/hooks.json PostToolUse(mcp__.*) entry. Deterministic prompt-injection quarantine of MCP tool results (the sanitize-webfetch-output.sh sibling, extended from WebFetch to any mcp__* call, #928). Reuses sanitize-webfetch-body.py. Fail-open: parse/IO/sanitizer errors exit 0 and leave the original result. Same script consumers get via ${CLAUDE_PLUGIN_ROOT}."
+          }
+        ]
       }
     ],
     "PreToolUse": [
