@@ -628,11 +628,11 @@ EOF
     [ "$found" -eq 0 ] && return 0
   fi
   if [[ "$c" =~ ${_CMD_BOUNDARY}git[[:space:]]+merge([[:space:]]|$) ]]; then
-    local branch word prev seen seg_target pending double_dash first_pos
+    local branch word prev seen seg_target pending pending_kind double_dash first_pos symref_target
     branch="$(git rev-parse --abbrev-ref HEAD 2>/dev/null || true)"
     while IFS= read -r seg; do
       if [[ "$seg" =~ ${_CMD_BOUNDARY}git[[:space:]]+(checkout|switch)([[:space:]]|$) ]]; then
-        prev="" seen="" seg_target="" pending="" double_dash="" first_pos=""
+        prev="" seen="" seg_target="" pending="" pending_kind="" double_dash="" first_pos=""
         for word in $seg; do
           if [ -z "$seen" ]; then
             if [ "$prev" = "git" ] && { [ "$word" = "checkout" ] || [ "$word" = "switch" ]; }; then
@@ -642,11 +642,24 @@ EOF
             continue
           fi
           if [ -n "$pending" ]; then
-            seg_target="$word"; pending=""; continue
+            if [ "$pending_kind" = "track" ]; then
+              # Round 2 (2026-09-22, Bugbot): `git checkout -t origin/main`
+              # (or `switch -t`) creates a LOCAL branch named after the
+              # remote-tracking ref's own name (stripping the leading
+              # "<remote>/"), not a branch literally called "origin/main" —
+              # so the bare main|master case arm below never matched. Strip
+              # up to the first "/" the same way a real -t/--track resolves
+              # the local branch name.
+              seg_target="${word#*/}"
+            else
+              seg_target="$word"
+            fi
+            pending=""; pending_kind=""; continue
           fi
           case "$word" in
             --) double_dash=1; break ;;
-            -b|-B|-c|--orphan) pending=1 ;;
+            -b|-B|-c|--orphan) pending=1; pending_kind="name" ;;
+            -t|--track) pending=1; pending_kind="track" ;;
             -*) ;;
             *) [ -z "$first_pos" ] && first_pos="$word" ;;
           esac
@@ -656,6 +669,32 @@ EOF
         elif [ -z "$double_dash" ] && [ -n "$first_pos" ]; then
           branch="$first_pos"
         fi
+      fi
+      # Round 2 (2026-09-22, Bugbot): `git symbolic-ref HEAD <ref>` is a
+      # THIRD way (alongside checkout/switch) of pointing HEAD at a
+      # different branch — the tracker only recognized the first two, so
+      # `git symbolic-ref HEAD refs/heads/main; git merge feature`
+      # bypassed the deny entirely. `symbolic-ref` writes the ref
+      # literally (no DWIM), so the operand is always a full ref path;
+      # normalize it the same way as a full-ref-path checkout.
+      if [[ "$seg" =~ ${_CMD_BOUNDARY}git[[:space:]]+symbolic-ref([[:space:]]|$) ]]; then
+        symref_target=""
+        prev="" seen=""
+        for word in $seg; do
+          if [ -z "$seen" ]; then
+            if [ "$prev" = "git" ] && [ "$word" = "symbolic-ref" ]; then
+              seen=1
+            fi
+            prev="$word"
+            continue
+          fi
+          case "$word" in
+            HEAD) : ;;
+            -*) ;;
+            *) [ -z "$symref_target" ] && symref_target="$word" ;;
+          esac
+        done
+        [ -n "$symref_target" ] && branch="$symref_target"
       fi
       if [[ "$seg" =~ ${_CMD_BOUNDARY}git[[:space:]]+merge([[:space:]]|$) ]]; then
         if ! [[ "$seg" =~ ${_CMD_BOUNDARY}--ff-only([[:space:]]|$) ]]; then
@@ -744,7 +783,13 @@ deny_patterns=(
   # of the exact same verb on both tools — sailed through. `--method` isn't a
   # real curl flag and `--request` isn't a real gh flag; harmlessly matching
   # both against both tools is a wider net, never a narrower one.
-  '(gh[[:space:]]+api|curl)[^;&|]*(-X|--method|--request)[[:space:]]*DELETE([[:space:]]|$)'
+  # Round 2 (2026-09-22): the flag/value separator was `[[:space:]]*`, which
+  # cannot match a literal `=` — so `--method=DELETE` / `--request=DELETE`
+  # (the equals-attached long-flag form both tools accept) sailed through.
+  # Widened to `[[:space:]=]*` and the trailing boundary to `${_CMD_END}` so
+  # a chained/piped/newline-terminated command is still caught, matching the
+  # boundary discipline used elsewhere in this file.
+  "(gh[[:space:]]+api|curl)[^;&|]*(-X|--method|--request)[[:space:]=]*DELETE${_CMD_END}"
 )
 
 _deny() {
