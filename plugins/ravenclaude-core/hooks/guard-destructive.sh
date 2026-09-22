@@ -599,10 +599,29 @@ _is_dangerous_git_clean() {
 #     to the bare word `checkout`.
 _is_dangerous_merge() {
   local c="$1" seg found=1
-  if [[ "$c" =~ ${_CMD_BOUNDARY}gh[[:space:]]+pr[[:space:]]+merge([[:space:]]|$) ]]; then
+  # ⛔ Bugbot review (2026-09-22, PR #1241): the original gate required the
+  # literal contiguous substring "gh pr merge" and closed --admin with
+  # ([[:space:]]|$), so it missed EVERY realistic real-world spelling: gh
+  # global flags between the subcommand and `pr` (`gh -R owner/repo pr merge`,
+  # `gh --repo owner/repo pr merge`), a command-substitution wrapper
+  # (`$(gh pr merge 1 --admin)` — the string does not END right after
+  # `--admin`, `)` does), and `--admin=true`. Fixed by (a) testing for `gh`,
+  # `pr`, `merge`, and `--admin` as four independent boundary-anchored WORDS
+  # in the same segment — order- and adjacency-independent, so gh globals in
+  # between cannot hide the pattern — and (b) using `_CMD_END` (which already
+  # covers `)`/backtick/space/EOL) plus an optional `=value` tail for the
+  # admin flag itself. Looser word-presence matching can in principle flag a
+  # segment that merely MENTIONS all four words (e.g. explaining this fix in
+  # a commit message run through the same Bash call) — the same accepted
+  # prose-vs-command tradeoff this file already makes for the force-push and
+  # curl-pipe-shell hard rules; under-blocking a real bypass is the worse
+  # failure for a `pre_llm_deny`-adjacent security floor.
+  if [[ "$c" =~ ${_CMD_BOUNDARY}gh([[:space:]]|$) ]]; then
     while IFS= read -r seg; do
-      case "$seg" in *"gh pr merge"*) ;; *) continue ;; esac
-      [[ "$seg" =~ ${_CMD_BOUNDARY}--admin([[:space:]]|$) ]] && { found=0; break; }
+      [[ "$seg" =~ ${_CMD_BOUNDARY}gh([[:space:]]|$) ]] || continue
+      [[ "$seg" =~ ${_CMD_BOUNDARY}pr([[:space:]]|$) ]] || continue
+      [[ "$seg" =~ ${_CMD_BOUNDARY}merge([[:space:]]|$) ]] || continue
+      [[ "$seg" =~ ${_CMD_BOUNDARY}--admin(=[^[:space:]]*)?${_CMD_END} ]] && { found=0; break; }
     done <<EOF
 $(printf '%s' "$c" | tr ';&|' '\n\n\n')
 EOF
@@ -640,7 +659,16 @@ EOF
       fi
       if [[ "$seg" =~ ${_CMD_BOUNDARY}git[[:space:]]+merge([[:space:]]|$) ]]; then
         if ! [[ "$seg" =~ ${_CMD_BOUNDARY}--ff-only([[:space:]]|$) ]]; then
-          case "$branch" in
+          # ⛔ Bugbot review (2026-09-22, PR #1241): `git checkout
+          # refs/heads/main` tracks $branch as the literal string
+          # "refs/heads/main", which the bare main|master case arm below
+          # never matched — a full-ref-path checkout silently bypassed the
+          # deny. Strip a leading refs/heads/ before comparing (the only
+          # form this repo's own docs/scripts use for a local branch ref);
+          # refs/remotes/* is a detached-HEAD checkout, not a same-named
+          # local branch, and is out of this fix's scope.
+          local branch_check="${branch#refs/heads/}"
+          case "$branch_check" in
             main|master) return 0 ;;
           esac
         fi
@@ -649,6 +677,31 @@ EOF
 $(printf '%s' "$c" | tr ';&|' '\n\n\n')
 EOF
   fi
+  return 1
+}
+
+# raw ref deletion — archive-branch.sh's own internal-only primitive; no other
+# caller should touch it directly. Bugbot review (2026-09-22, PR #1241): the
+# original deny_patterns regex required `-d`/`--delete` IMMEDIATELY after
+# `update-ref`, so any other flag placed first (`git update-ref --no-deref -d
+# refs/heads/tmp`) walked straight past it — the exact "immediately after"
+# bug this file's own `git clean` helper (above) already fixed once for a
+# different command. Word-scan the whole "git update-ref" segment instead:
+# the flag is exact-word `-d` or `--delete` anywhere, order-independent,
+# mirroring _is_dangerous_git_clean's force-flag-anywhere scan.
+_is_dangerous_update_ref() {
+  local c="$1" seg word
+  [[ "$c" =~ ${_CMD_BOUNDARY}git[[:space:]]+update-ref([[:space:]]|$) ]] || return 1
+  while IFS= read -r seg; do
+    [[ "$seg" =~ ${_CMD_BOUNDARY}git[[:space:]]+update-ref([[:space:]]|$) ]] || continue
+    for word in $seg; do
+      case "$word" in
+        -d|--delete) return 0 ;;
+      esac
+    done
+  done <<EOF
+$(printf '%s' "$c" | tr ';&|' '\n\n\n')
+EOF
   return 1
 }
 
@@ -685,8 +738,13 @@ deny_patterns=(
   '>[[:space:]]*/dev/(sd|nvme|hd|disk|vd|xvd|mmcblk)'
   # fork bomb
   ':[[:space:]]*\([[:space:]]*\)[[:space:]]*\{[[:space:]]*:\|:&[[:space:]]*\}'
-  '(gh[[:space:]]+api|curl)[^;&|]*-X[[:space:]]*DELETE([[:space:]]|$)'   # destructive DELETE-verb API call
-  'git[[:space:]]+update-ref[[:space:]]+(-[a-zA-Z]*d[a-zA-Z]*|--delete)([[:space:]]|$)'   # raw ref deletion (archive-branch.sh's own internal primitive; no other caller should touch it directly)
+  # destructive DELETE-verb API call. Bugbot review (2026-09-22, PR #1241): the
+  # original pattern only matched the short `-X` flag, so `gh api ... --method
+  # DELETE` and `curl ... --request DELETE` — the documented long-form spelling
+  # of the exact same verb on both tools — sailed through. `--method` isn't a
+  # real curl flag and `--request` isn't a real gh flag; harmlessly matching
+  # both against both tools is a wider net, never a narrower one.
+  '(gh[[:space:]]+api|curl)[^;&|]*(-X|--method|--request)[[:space:]]*DELETE([[:space:]]|$)'
 )
 
 _deny() {
@@ -714,6 +772,7 @@ if _is_dangerous_git_branch_delete "$norm"; then _deny "git-branch-force-delete"
 if _is_dangerous_git_push_delete "$norm";   then _deny "git-push-remote-branch-delete"; fi
 if _is_dangerous_git_clean "$norm";         then _deny "git-clean-force"; fi
 if _is_dangerous_merge "$norm";      then _deny "bypass-shaped-merge"; fi
+if _is_dangerous_update_ref "$norm"; then _deny "git-update-ref-delete"; fi
 
 # Then the pattern array.
 for pat in "${deny_patterns[@]}"; do
