@@ -18,11 +18,11 @@
  * assumed) against the pairs this starter actually renders as text:
  *   light content.strong  on light background.DEFAULT:  17.74:1
  *   light content.DEFAULT on light background.DEFAULT:   4.83:1
- *   light content.subtle  on light background.DEFAULT:   4.57:1  (fixed —
- *     was #9ca3af at 2.54:1, a pre-existing failure surfaced while
- *     reworking this file for dark mode; content.subtle renders real
- *     provenance-footer and status text, not decoration, so this was a
- *     genuine floor violation, not a hypothetical one)
+ *   light content.subtle  on light background.muted:     4.69:1  (fixed 2026-09-16 —
+ *     was #6f7684 at 4.37:1 on body bg-muted #f9fafb; prior note verified
+ *     subtle only on background.DEFAULT/white at 4.56:1, which axe does not
+ *     see for page-chrome text sitting on muted. #6a7180 clears 4.5:1 on muted
+ *     and white; content.subtle is real provenance/status text, not decoration)
  *   dark  content.strong  on dark  background.DEFAULT:  19.27:1
  *   dark  content.DEFAULT on dark  background.DEFAULT:   7.93:1
  *   dark  content.subtle  on dark  background.DEFAULT:   5.35:1
@@ -48,7 +48,7 @@
 
   --tremor-border-DEFAULT: #e5e7eb;
 
-  --tremor-content-subtle: #6f7684;
+  --tremor-content-subtle: #6a7180;
   --tremor-content-DEFAULT: #6b7280;
   --tremor-content-emphasis: #374151;
   --tremor-content-strong: #111827;

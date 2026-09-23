@@ -41,6 +41,8 @@ for a marketplace install, or your local checkout path).
 
 ## To make a hook blocking instead of advisory
 
-Open the script and change the final `exit 0` to `exit 1`. The edit will then
-be rejected when a violation is detected. Recommended only after you've shaken
-out false positives in your codebase.
+Set `POWER_PLATFORM_STRICT=1` in the env. The hook then exits **2** — the only
+code Claude Code's PreToolUse contract treats as blocking, so the edit is
+rejected when a violation is detected. (`exit 1` is a non-blocking error Claude
+Code silently swallows, so it would NOT block.) Recommended only after you've
+shaken out false positives in your codebase.

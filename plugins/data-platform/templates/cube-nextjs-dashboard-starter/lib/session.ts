@@ -29,8 +29,21 @@ export interface Session {
  * Placeholder implementation — throws so a misconfigured deployment fails
  * loudly rather than silently serving an unscoped dashboard. Replace with a
  * real session lookup before deploying.
+ *
+ * CI-only escape hatch: when DATA_PLATFORM_STARTER_CI_SESSION=1 (set by
+ * validate-data-platform-starters.yml smoke steps only), return a clearly
+ * fake stub so headless smoke can load `/` without inventing product auth.
+ * Production / unset → keep the throw-loud seam.
  */
 export async function getSession(): Promise<Session> {
+  if (process.env.DATA_PLATFORM_STARTER_CI_SESSION === "1") {
+    return {
+      userId: "ci-smoke-user",
+      tenantId: "ci-smoke-tenant",
+      locale: "en-US",
+      timezone: "UTC",
+    };
+  }
   throw new Error(
     "lib/session.ts is a documented seam, not an implementation. " +
       "Wire getSession() to your host app's real authentication before deploying.",

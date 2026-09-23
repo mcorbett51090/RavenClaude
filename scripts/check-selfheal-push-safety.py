@@ -29,12 +29,15 @@ catching the enumerated literal shapes at PR-review time, where a human is looki
 instead of after the fact. Claiming more than that would be the false-assurance
 failure this initiative exists to close.
 
-## Four shapes, because one literal would leave three uncaught
+## Five shapes, because one literal would leave the rest uncaught
 
 A fixture testing only the plain `git push origin main` would pass a workflow that
 used `HEAD:main` -- the exact "gate that asserts less than it appears to" trap this
-check is meant to prevent, reproduced inside the check itself. All four are
-enumerated and each has its own must-fail fixture.
+check is meant to prevent, reproduced inside the check itself. All five are
+enumerated and each has its own must-fail fixture. The fifth, `origin +main`, is
+git's force-push shorthand (a leading `+` on the destination refspec); it escaped
+the other four because they each require `\s+`, `HEAD:`, `:refs/heads/`, or
+`--admin` immediately around the protected name.
 
 ## Two false-positive classes, both found in the live tree before wiring
 
@@ -90,11 +93,18 @@ SELFHEAL_ACTION = re.compile(r"create-pull-request|\bgit\s+commit\b")
 # The protected refs a self-heal must never push to directly.
 _PROTECTED = r"(?:main|master)"
 
-# The four enumerated shapes. Each carries its own name so a finding says which.
+# The five enumerated shapes. Each carries its own name so a finding says which.
 PUSH_SHAPES: list[tuple[str, re.Pattern[str]]] = [
     (
         "plain-push-to-protected",
         re.compile(rf"\bgit\s+push\b[^\n]*\borigin\s+{_PROTECTED}\b"),
+    ),
+    (
+        # git's force-push shorthand: a leading `+` on the destination refspec
+        # (the `origin +<branch>` form). The plain shape above requires `origin`
+        # then whitespace then the protected name, so the `+` slips past it.
+        "plus-refspec-protected",
+        re.compile(rf"\bgit\s+push\b[^\n]*\borigin\s+\+{_PROTECTED}\b"),
     ),
     (
         "head-colon-protected",
@@ -180,9 +190,50 @@ def _run_block_lines(src: str) -> list[tuple[int, str]]:
 _WHOLE_LINE_STRING = re.compile(r"""^\s*["'][^"']*["']\s*(?:#.*)?$""")
 
 
+def _join_continuations(lines: list[tuple[int, str]]) -> list[tuple[int, str]]:
+    """Merge shell line-continuations (a physical line ending in `\\`) into one
+    logical line before shape-matching.
+
+    ⛔ FOUND BY REVIEW, not imagined (repo-review 2026-09-23): every PUSH_SHAPE
+    regex uses `[^\\n]*`, which cannot cross a newline, so a command split across
+    physical lines with an ordinary `\\` continuation slipped every shape. The
+    evasion is not exotic — it is the normal way a `gh pr merge` or `git push`
+    grows once it has several flags:
+
+        gh pr merge "$n" \\
+          --squash --admin
+
+    Here `--admin` sits on a different physical line from `gh pr merge`, so the
+    `admin-merge-bypass` shape (`\\bgh\\s+pr\\s+merge\\b[^\\n]*--admin\\b`) never
+    matched — the exact admin-bypass this gate exists to catch. Joining first
+    closes it. The first physical line's number is kept for reporting; the
+    per-logical-line SENTINEL and whole-line-string fixture exclusions still run
+    on the joined text (one-quoted-push-per-line fixtures do not end in `\\`, so
+    they are never joined and stay excluded)."""
+    out: list[tuple[int, str]] = []
+    buf = ""
+    buf_lineno: int | None = None
+    for lineno, line in lines:
+        if line.endswith("\\"):
+            frag = line[:-1].rstrip()
+            if buf_lineno is None:
+                buf_lineno = lineno
+            buf = (buf + " " + frag).strip() if buf else frag
+            continue
+        if buf_lineno is not None:
+            out.append((buf_lineno, (buf + " " + line).strip()))
+            buf = ""
+            buf_lineno = None
+        else:
+            out.append((lineno, line))
+    if buf_lineno is not None:  # a trailing continuation with no terminating line
+        out.append((buf_lineno, buf))
+    return out
+
+
 def check_source(src: str, rel: str) -> list[Finding]:
     findings: list[Finding] = []
-    for lineno, line in _run_block_lines(src):
+    for lineno, line in _join_continuations(_run_block_lines(src)):
         if SENTINEL.search(line) or _WHOLE_LINE_STRING.match(line):
             continue
         for shape, pat in PUSH_SHAPES:
@@ -201,9 +252,7 @@ def is_selfheal(src: str) -> bool:
     """
     if not all(p.search(src) for p in SELFHEAL_MARKERS):
         return False
-    code = "\n".join(
-        "" if ln.strip().startswith("#") else ln for ln in src.splitlines()
-    )
+    code = "\n".join("" if ln.strip().startswith("#") else ln for ln in src.splitlines())
     return bool(SELFHEAL_ACTION.search(code))
 
 
@@ -255,6 +304,8 @@ def _self_test() -> int:
         ("shape-refs-heads", _wf(f"{_PUSH} origin HEAD:refs/heads/main"), True),
         ("shape-admin-merge", _wf(f'{_MERGE} "$n" --squash --admin'), True),
         ("shape-master-too", _wf(f"{_PUSH} origin master"), True),
+        # the force-push shorthand: a leading `+` on the destination refspec
+        ("shape-plus-refspec", _wf(f"{_PUSH} origin +main"), True),
         # --- the sanctioned landing path is NOT a finding ---
         ("sanctioned-pr-merge", _wf(f'{_MERGE} "$n" --squash --delete-branch'), False),
         # --- FALSE POSITIVE CLASS 1: a comment documenting the rule (REAL) ---
@@ -278,7 +329,9 @@ def _self_test() -> int:
             # block -- another gate's test data, which block membership alone
             # cannot exclude.
             "quoted-fixture-array-inside-run-is-silent",
-            _wf(f'CASES=(\n"{_PUSH} -f origin main"\n"{_PUSH} origin +HEAD:main"\n)\ngit commit -m x'),
+            _wf(
+                f'CASES=(\n"{_PUSH} -f origin main"\n"{_PUSH} origin +HEAD:main"\n)\ngit commit -m x'
+            ),
             False,
         ),
         ("sentinel-honored", _wf(f"{_PUSH} origin main  # selfheal-push-ok"), False),

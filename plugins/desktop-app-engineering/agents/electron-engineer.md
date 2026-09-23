@@ -2,7 +2,7 @@
 name: electron-engineer
 description: "Use for Electron implementation: the main/preload/renderer model, the hardened baseline (contextIsolation on, nodeIntegration off, sandbox, strict CSP), a narrow contextBridge + validated ipcMain handlers, window/lifecycle, and the build (electron-builder/Forge)."
 tools: Read, Grep, Glob, Bash, Edit, Write, WebFetch, WebSearch
-model: opus
+model: sonnet
 audience: [dev]
 works_with:
   [desktop-architect, desktop-platform-engineer, auth-identity/auth-implementation-engineer]

@@ -2,6 +2,18 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.12.10] — 2026-09-18
+
+### Fixed
+
+- Corrected the `flag-psm-anti-patterns.sh` enforcement docs in `CLAUDE.md` §7 and the hook's own header comment + runtime banner. All claimed the hook could BLOCK a write by using `exit 2`, but the hook is registered **PostToolUse** — it runs after the write completes, so no exit code can block it (`exit 1` is silently swallowed; `exit 2` only surfaces the violation's stderr back to the agent). Docs now state the PostToolUse semantics honestly and note that blocking would require re-wiring to PreToolUse. Comment/stderr text only — no control-flow or exit-code behaviour change. **Migration:** none.
+
+## [0.12.8] — 2026-09-09
+
+### Fixed
+
+- Repointed broken plan-reference links in three `knowledge/` files and the `dashboard-tier-0.5-reference` template to the new `docs/plans/archive/2026-06-04-partner-success-command-center/…` locations. The 2026-09-09 plan-archive commit moved the directories without updating references, turning the required `check-md-links.py` CI gate red. Link targets only. **Migration:** none.
+
 ## [0.12.7] — 2026-08-28
 
 ### Added

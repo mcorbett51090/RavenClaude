@@ -340,6 +340,9 @@ TEMPLATE = r"""<!doctype html>
       .pd-filters button { border-color: var(--border); background: var(--surface); }
       .pd-filters button .count { margin-left: 4px; }
       .pd-filters button.active .count { color: var(--teal-2); }
+      .pd-host-filters { margin: 8px 0 14px; }
+      .pd-host-filters .rc-host-filter { margin-bottom: 0; }
+      [data-host-scope][hidden] { display: none !important; }
       .mkt-filters { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 18px; align-items: center; }
       .mkt-filters input { flex: 1; min-width: 200px; height: 40px; padding: 0 14px; border-radius: 10px; background: var(--surface); border: 1px solid var(--border); color: var(--text); font-family: inherit; }
       .mkt-filters input:focus { border-color: var(--teal-dim); }
@@ -1343,11 +1346,33 @@ TEMPLATE = r"""<!doctype html>
         const qs = (a) => (a.quickstart && a.quickstart.length) ? `<div style="margin-top:8px"><div class="ri-d" style="text-transform:uppercase;letter-spacing:.04em;font-size:.7rem">Quickstart</div><ol class="qs">${a.quickstart.map((q) => `<li>${esc(q)}</li>`).join("")}</ol></div>` : "";
         const aud = (a) => (a.audience && a.audience.length) ? `<div class="tags" style="margin:6px 0">${a.audience.map((x) => `<span class="chip">${esc(x)}</span>`).join("")}</div>` : "";
         const ww = (a) => (a.works_with && a.works_with.length) ? `<div style="margin-top:8px;font-size:.8rem;color:var(--muted)">Works well with: ${a.works_with.map((x) => `<span class="chip">${esc(x)}</span>`).join(" ")}</div>` : "";
-        const agents = p.agents.map((a) => `<div class="card" style="padding:14px">
-          <div style="display:flex;align-items:baseline;gap:8px"><span class="nm" style="font-weight:600">${esc(a.label)}</span>${a.model ? `<span class="chip">${esc(a.model)}</span>` : ""}</div>
+        const HOST_SCOPE = {
+          "host-agnostic": { chip: "All agents", tip: "All coding agents / host-agnostic", mod: "host-agnostic", filter: "all-agents" },
+          "claude-code": { chip: "Claude Code", tip: "Claude Code only", mod: "host-claude", filter: "claude-code" },
+          "cursor": { chip: "Cursor", tip: "Cursor", mod: "host-cursor", filter: "cursor" },
+          "codex": { chip: "Codex", tip: "OpenAI Codex CLI", mod: "host-codex", filter: "codex" },
+          "copilot": { chip: "Copilot", tip: "GitHub Copilot CLI", mod: "host-copilot", filter: "copilot" },
+          "gemini": { chip: "Gemini", tip: "Gemini CLI", mod: "host-gemini", filter: "gemini" },
+          "grok": { chip: "Grok", tip: "Grok (reserved — not in host-support.json)", mod: "host-grok", filter: "grok" },
+          "multi": { chip: "Multi", tip: "Multiple hosts (see card)", mod: "host-multi", filter: "multi" },
+        };
+        const hostMeta = (dep) => HOST_SCOPE[dep] || HOST_SCOPE.multi;
+        const hostBadge = (dep) => {
+          const m = hostMeta(dep || "claude-code");
+          return `<span class="rc-badge rc-badge--${m.mod}" title="${esc(m.tip)}" aria-label="${esc(m.tip)}">${esc(m.chip)}</span>`;
+        };
+        const hostFilterTok = (dep) => hostMeta(dep || "claude-code").filter;
+        const agents = p.agents.map((a) => {
+          const dep = a.host_scope || "claude-code";
+          return `<div class="card" style="padding:14px" data-host-scope="${esc(hostFilterTok(dep))}" data-pd-host-item="1">
+          <div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap"><span class="nm" style="font-weight:600">${esc(a.label)}</span>${hostBadge(dep)}${a.model ? `<span class="chip">${esc(a.model)}</span>` : ""}</div>
           ${aud(a)}<div class="desc" style="color:var(--muted);font-size:.85rem">${esc(a.description || "")}</div>${scn(a)}${qs(a)}${ww(a)}
-        </div>`).join("");
-        const named = (i) => `<div class="ref-item"><div class="ri-n">${esc(i.name)}</div>${i.description ? `<div class="ri-d">${esc(i.description)}</div>` : ""}</div>`;
+        </div>`;
+        }).join("");
+        const named = (i) => {
+          const dep = i.host_scope || "claude-code";
+          return `<div class="ref-item" data-host-scope="${esc(hostFilterTok(dep))}" data-pd-host-item="1"><div class="ri-n">${esc(i.name)} ${hostBadge(dep)}</div>${i.description ? `<div class="ri-d">${esc(i.description)}</div>` : ""}</div>`;
+        };
         const hookItem = (i) => `<div class="ref-item"><div class="ri-n">${esc(i.name)} ${i.event ? `<span class="chip">${esc(i.event)}</span>` : ""}</div>${i.description ? `<div class="ri-d">${esc(i.description)}</div>` : ""}</div>`;
         const refGrid = (title, items, fmt) => (items && items.length) ? `<div class="section-title"><h2>${title} <span class="hint">${items.length}</span></h2></div><div class="grid cols-2">${items.map(fmt).join("")}</div>` : "";
         const scnItem = (i) => `<div class="ref-item"><div class="ri-n">${esc(i.name)}${i.description ? ` <span class="chip">${esc(i.description)}</span>` : ""}</div></div>`;
@@ -1390,6 +1415,17 @@ TEMPLATE = r"""<!doctype html>
         ].filter((s) => s.body);
         const pdNav = `<button data-sec="all" class="active">${svg("market")} All <span class="count">${sectionDefs.reduce((n, s) => n + s.count, 0)}</span></button>` +
           sectionDefs.map((s) => `<button data-sec="${s.id}">${svg(s.icon)} ${esc(s.label)} <span class="count">${s.count}</span></button>`).join("");
+        const hostFilterBtns = [
+          ["all-agents", "All agents", "All coding agents / host-agnostic"],
+          ["claude-code", "Claude Code", "Claude Code only"],
+          ["cursor", "Cursor", "Cursor"],
+          ["codex", "Codex", "OpenAI Codex CLI"],
+          ["copilot", "Copilot", "GitHub Copilot CLI"],
+          ["grok", "Grok", "Grok (reserved — not in host-support.json)"],
+          ["gemini", "Gemini", "Gemini CLI"],
+          ["multi", "Multi", "Multiple hosts (see card)"],
+        ].map(([id, lab, tip]) => `<button type="button" class="rc-host-filter__btn" data-host-filter="${id}" aria-pressed="false" title="${esc(tip)}" aria-label="${esc(tip)}">${esc(lab)}</button>`).join("");
+        const hostFilterRow = `<div class="pd-host-filters"><div class="rc-host-filter" id="pd-host-filter" role="group" aria-label="Filter by coding agent">${hostFilterBtns}<button type="button" class="rc-host-filter__clear" data-host-filter-clear="1" hidden>Clear filter</button></div><p class="rc-host-filter__empty" data-host-filter-empty hidden>No cards for this host. Clear the filter or pick <strong>All agents</strong> for host-agnostic tools.</p></div>`;
         const pdBody = sectionDefs.map((s) => `<div data-pdsec="${s.id}">${s.body}</div>`).join("");
         $("#view").innerHTML = `
           <a class="btn ghost" href="#/discover/${p.category}" style="margin-bottom:18px">← Back to ${esc(catLabel)}</a>
@@ -1401,6 +1437,7 @@ TEMPLATE = r"""<!doctype html>
               <a class="btn" href="#/configure">${svg("sliders")} Configure agents</a>
             </div></div>
           <nav class="mkt-nav pd-filters" id="pd-filters" aria-label="Filter this plugin's contents">${pdNav}</nav>
+          ${hostFilterRow}
           ${p.requires && p.requires.length ? `<div class="callout" style="margin-top:14px">${svg("info")}<span>Requires ${p.requires.map((r) => `<code>${esc(r)}</code>`).join(", ")}</span></div>` : ""}
           ${pdBody}
           <div class="tags" style="margin-top:20px">${p.keywords.map((k) => `<span class="chip">${esc(k)}</span>`).join("")}</div>`;
@@ -1413,6 +1450,50 @@ TEMPLATE = r"""<!doctype html>
           $$("#pd-filters button").forEach((x) => x.classList.toggle("active", x === b));
           $$("[data-pdsec]").forEach((el) => { el.style.display = (sel === "all" || el.dataset.pdsec === sel) ? "" : "none"; });
         });
+        (function wirePdHostFilter() {
+          const strip = document.getElementById("pd-host-filter");
+          if (!strip) return;
+          const root = $("#view");
+          const empty = root.querySelector("[data-host-filter-empty]");
+          const clearBtn = strip.querySelector("[data-host-filter-clear]");
+          const items = () => Array.from(root.querySelectorAll("[data-pd-host-item][data-host-scope]"));
+          function selected() {
+            return Array.from(strip.querySelectorAll(".rc-host-filter__btn[aria-pressed='true']")).map((b) => b.getAttribute("data-host-filter"));
+          }
+          function apply() {
+            const sel = selected();
+            if (clearBtn) clearBtn.hidden = sel.length === 0;
+            let visible = 0;
+            items().forEach((card) => {
+              const scopes = (card.getAttribute("data-host-scope") || "").split(/\s+/).filter(Boolean);
+              let show;
+              if (!sel.length) show = true;
+              else if (sel.includes("all-agents") && sel.length === 1) show = scopes.includes("all-agents");
+              else {
+                const hosts = sel.filter((s) => s !== "all-agents");
+                show = hosts.some((h) => scopes.includes(h));
+                if (sel.includes("all-agents")) show = show || scopes.includes("all-agents");
+              }
+              card.hidden = !show;
+              if (show) visible += 1;
+            });
+            if (empty) empty.hidden = !(sel.length && visible === 0);
+          }
+          strip.addEventListener("click", (e) => {
+            const clear = e.target.closest("[data-host-filter-clear]");
+            if (clear) {
+              strip.querySelectorAll(".rc-host-filter__btn").forEach((b) => b.setAttribute("aria-pressed", "false"));
+              apply();
+              return;
+            }
+            const btn = e.target.closest(".rc-host-filter__btn");
+            if (!btn || !strip.contains(btn)) return;
+            const on = btn.getAttribute("aria-pressed") === "true";
+            btn.setAttribute("aria-pressed", on ? "false" : "true");
+            apply();
+          });
+          apply();
+        })();
         $("#view").focus();
         window.scrollTo({ top: 0, behavior: "smooth" });
       };

@@ -502,10 +502,17 @@ def _substrate_paths(project_root: Path) -> tuple[set[str], set[tuple[int, int]]
 def _gh_owner(root: Path) -> str | None:
     """Return the gh-authenticated repo's 'owner/repo' string, or None on any error.
 
-    Calls `gh repo view --json nameWithOwner -q .nameWithOwner` from `root`.
-    This is the ONLY signal used for repo identity — NOT a marker file, path
-    string, or remote URL the session could forge. Wrapped in try/except so
-    any failure (missing gh, no auth, network, non-zero exit) returns None.
+    Calls `gh api repos/<_EXEMPT_REPO> --jq .full_name` (REST), NOT
+    `gh repo view --json nameWithOwner` (GraphQL): Claude Code web/remote sessions
+    route `gh` through an agent proxy that BLOCKS GraphQL (HTTP 403 → "use the REST
+    API"), so the GraphQL form failed in exactly the remote-maintainer environment
+    this exemption exists to serve. The REST call is an equal authenticated
+    ownership proof — a token without read access to the private repo gets 404 and
+    this returns None — and the repo it queries is this module's own `_EXEMPT_REPO`
+    constant, NOT a marker file, path string, or remote URL the session could forge.
+    Location is bound separately by signal (c) (marketplace.json under `root`).
+    Wrapped in try/except so any failure (missing gh, no auth, network, non-zero
+    exit) returns None.
 
     Designed to be thin so tests can stub it: pass an injected owner via
     `_maintainer_substrate_exempt(root, posture, _resolved_owner=<stub>)`.
@@ -521,7 +528,7 @@ def _gh_owner(root: Path) -> str | None:
 
     try:
         result = subprocess.run(
-            ["gh", "repo", "view", "--json", "nameWithOwner", "-q", ".nameWithOwner"],
+            ["gh", "api", f"repos/{_EXEMPT_REPO}", "--jq", ".full_name"],
             capture_output=True,
             text=True,
             timeout=10,
@@ -1008,15 +1015,29 @@ def resolve_tier_config(root: Path, posture: dict | None) -> tuple[dict, str | N
     bypass: list[str] = []
     cache_ttl = 0
     fatigue = 0
+    # Hardening EDIT (Thing A+C/H3): seat may propose empty-cited safer rewrite;
+    # registry verifies. DEFAULT ON after AppSec enable GO (2026-09-16);
+    # explicit false in posture/thing.yaml still wins (House Rule 3).
+    hardening_edit = True
     # §MCP identity — the deterministic server allowlist. thing.yaml carries it at
     # top level (`mcp.allowed_servers:`); comfort-posture carries it under
     # `command_review.mcp.allowed_servers`. Last-present-wins (posture > thing.yaml).
     mcp_allowed: list[str] = []
 
     def _apply(block) -> None:
-        nonlocal gate_floor, bypass, cache_ttl, fatigue, mcp_allowed
+        nonlocal gate_floor, bypass, cache_ttl, fatigue, mcp_allowed, hardening_edit
         if not isinstance(block, dict):
             return
+        if "hardening_edit" in block:
+            v = block.get("hardening_edit")
+            # Mirror thing_enabled_for's master-gate string parsing: a quoted-scalar
+            # YAML emitter (or a hand edit `hardening_edit: "false"`) must not leave
+            # the feature ON — bool("false") is True, which would silently defeat
+            # the only opt-out now that the default flipped to ON.
+            hardening_edit = not (
+                v is False
+                or (isinstance(v, str) and v.strip().lower() in {"off", "false", "no", "0"})
+            )
         mcp_block = block.get("mcp")
         if isinstance(mcp_block, dict) and isinstance(mcp_block.get("allowed_servers"), list):
             mcp_allowed = [s for s in mcp_block["allowed_servers"] if isinstance(s, str)]
@@ -1075,6 +1096,7 @@ def resolve_tier_config(root: Path, posture: dict | None) -> tuple[dict, str | N
     cfg["bypass"] = bypass
     cfg["cache_ttl_seconds"] = cache_ttl
     cfg["fatigue_threshold"] = fatigue
+    cfg["hardening_edit"] = bool(hardening_edit)
     cfg["mcp_allowed_servers"] = mcp_allowed
     return cfg, error
 
@@ -1181,15 +1203,32 @@ def _decision_detail(root: Path, posture: dict, command: str, category: str | No
     d["bypass_match"] = bool(bypass_match) and route.get("max_severity") != "critical"
     d["cache_ttl_seconds"] = int(cfg.get("cache_ttl_seconds") or 0)
     d["fatigue_threshold"] = int(cfg.get("fatigue_threshold") or 0)
+    d["hardening_edit"] = bool(cfg.get("hardening_edit"))
     # config_hash invalidates the verdict cache when the rules (tiers/panel/
-    # gate_floor/category map) OR the concern catalog change — so a cached
-    # permissive verdict is never reused after the policy that produced it moves.
+    # gate_floor/category map) OR the concern catalog OR the harden registry
+    # change — so a cached permissive/harden verdict is never reused after the
+    # policy that produced it moves.
+    harden_reg_version = "0"
+    harden_reg_text = ""
+    try:
+        _hr = _HERE.parent / "knowledge" / "thing-harden-transforms.yaml"
+        harden_reg_text = _hr.read_text(encoding="utf-8")
+        # Prefer the YAML registry_version field when present.
+        for _line in harden_reg_text.splitlines():
+            if _line.strip().startswith("registry_version:"):
+                harden_reg_version = _line.split(":", 1)[1].strip().strip('"').strip("'")
+                break
+    except OSError:
+        harden_reg_text = ""
+    d["harden_registry_version"] = harden_reg_version
     cfg_blob = json.dumps(
         {
             "tiers": cfg["tiers"],
             "panel": cfg["panel"],
             "gate_floor": cfg["gate_floor"],
             "category_tier_map": cfg["category_tier_map"],
+            "hardening_edit": bool(cfg.get("hardening_edit")),
+            "harden_registry_version": harden_reg_version,
             # Track B §Serialization: fold the substrate set + classifier version so a
             # cached verdict is invalidated when either changes (the VALUEs, not file
             # mtimes — deterministic across checkouts).
@@ -1205,7 +1244,9 @@ def _decision_detail(root: Path, posture: dict, command: str, category: str | No
         cat_text = (_HERE.parent / "knowledge" / "concerns-catalog.md").read_text(encoding="utf-8")
     except OSError:
         cat_text = ""
-    d["config_hash"] = hashlib.sha256((cfg_blob + cat_text).encode("utf-8")).hexdigest()[:16]
+    d["config_hash"] = hashlib.sha256(
+        (cfg_blob + cat_text + harden_reg_text).encode("utf-8")
+    ).hexdigest()[:16]
 
     # Human-readable predicted outcome for the simulator.
     if d.get("pre_llm_deny"):

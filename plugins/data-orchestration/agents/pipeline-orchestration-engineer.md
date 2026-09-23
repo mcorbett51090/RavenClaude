@@ -2,7 +2,7 @@
 name: pipeline-orchestration-engineer
 description: "Use to BUILD orchestration on a chosen engine — DAG/asset design, dependencies, scheduling/sensors, backfills + catchup, idempotent retries with backoff, partitioning, freshness SLAs + alerting, lineage. Airflow/Dagster/Prefect-fluent. NOT for engine selection (orchestration-architect)."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
-model: opus
+model: sonnet
 audience: [data-engineer, platform-engineer, analytics-engineer, dev]
 works_with: [data-platform, analytics-engineering, data-streaming-engineering]
 scenarios:

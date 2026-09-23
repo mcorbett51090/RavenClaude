@@ -6,7 +6,7 @@
 
 > 📚 **New here?** The dashboard's **Learn** tab explains the moving parts — permission layers, the command-review tribunal, hooks — with diagrams and interactive widgets. The same reference, readable on GitHub, is generated at **[docs/concepts.md](../../docs/concepts.md)**.
 
-Ships the orchestrator-worker dispatch model, generalist specialist agents (architect, backend/frontend/fullstack coders, code-reviewer, security-reviewer, tester-qa, data-engineer, deep-researcher, designer, documentarian, project-manager, partner-success-manager, prompt-engineer, viz-spec-reviewer), skills, hooks, rule-sets, working templates, slash commands (`/init-agent-ready`, `/wrap`, `/set-posture`, `/dashboard`, `/forge`, `/handoff`, `/reset-plugin-cache` (alias `/ragnarok`)), and a knowledge bank the Researcher cross-checks. Every other plugin in the marketplace extends this one.
+Ships the orchestrator-worker dispatch model, generalist specialist agents (architect, backend/frontend/fullstack coders, code-reviewer, security-reviewer, tester-qa, data-engineer, deep-researcher, designer, documentarian, project-manager, partner-success-manager, prompt-engineer, viz-spec-reviewer), skills, hooks, rule-sets, working templates, slash commands (`/init-agent-ready`, `/wrap`, `/set-posture`, `/dashboard`, `/forge`, `/handoff`, `/stream`, `/coordinate`, `/optimize`, `/repo-review`, `/reset-plugin-cache` (alias `/ragnarok`); see [`commands/`](commands/) for the authoritative list), and a knowledge bank the Researcher cross-checks. Every other plugin in the marketplace extends this one.
 
 ## Install
 
@@ -22,16 +22,17 @@ This is the prerequisite plugin — domain plugins (`power-platform`, `finance`,
 
 | Component | Count | Where |
 |-----------|-------|-------|
-| Specialist agents | 15 | [`agents/`](agents/) |
-| Skills | 64 | [`skills/`](skills/) |
-| Hooks | 51 | [`hooks/`](hooks/) |
+| Specialist agents | 17 | [`agents/`](agents/) |
+| Skills | 67 | [`skills/`](skills/) |
+| Hooks | 56 | [`hooks/`](hooks/) |
 | Rule-sets | 5 | [`rules/`](rules/) |
-| Slash commands | `/init-agent-ready`, `/wrap`, `/set-posture`, `/dashboard`, `/forge`, `/stream`, `/handoff`, `/reset-plugin-cache` (alias `/ragnarok`) | [`commands/`](commands/) |
+| Slash commands | `/init-agent-ready`, `/wrap`, `/set-posture`, `/dashboard`, `/forge`, `/stream`, `/handoff`, `/coordinate`, `/optimize`, `/repo-review`, `/reset-plugin-cache` (alias `/ragnarok`) | [`commands/`](commands/) |
 | Knowledge files | see [`knowledge/`](knowledge/) | [`knowledge/`](knowledge/) |
 
 ## The protocols it provides to the whole marketplace
 
 - **Orchestrator-worker dispatch** — only the Team Lead spawns specialists; sub-agents hand back, they don't fan out.
+- **Model-tier delegation** — every agent pins a `model:` tier (gated); the Team Lead plans and judges on the frontier tier, coders run on `sonnet`, and the `haiku` [`scout`](agents/scout.md) does the high-volume reading. Briefs carry a worker contract (inputs, tools, success check, `Max output`); the opt-in [`handoff-tax-meter`](hooks/handoff-tax-meter.sh) ledgers brief/report size + tier per dispatch. Doctrine: [`knowledge/model-tier-delegation.md`](knowledge/model-tier-delegation.md).
 - **Capability Grounding Protocol** — pre-action environment + decision-tree checks, alternate-methods enumeration, and honest blocked-phrasing before any "I can't."
 - **Structured Output Protocol** — every handoff ends with a `---RESULT_START--- … ---RESULT_END---` JSON block alongside human-readable Markdown.
 - **Comfort-posture** — `/set-posture` translates a per-category YAML into `.claude/settings.json` permission rules, with an always-on `security_deny` baseline.

@@ -35,7 +35,7 @@ incidents = data.get("incidents", [])
 relevant = [
     i for i in incidents
     if any(c.get("name") in ("Actions", "Pages", "API Requests", "Git Operations")
-           for c in i.get("incident_updates", [{}])[0].get("affected_components", []))
+           for c in (i.get("incident_updates") or [{}])[0].get("affected_components", []))
 ]
 
 if not incidents:

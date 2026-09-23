@@ -54,6 +54,34 @@
         ]
       },
       {
+        "matcher": "Agent|Task",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/handoff-tax-meter.sh",
+            "timeout": 10,
+            "comment": "Handoff-tax meter (model-tier delegation, measurement leg). ADVISORY, never blocks. On every subagent dispatch it reads the PostToolUse payload (brief = tool_input.prompt, report = tool_response.content, tier from resolvedModel) and appends one counts-only line to .ravenclaude/runs/<session>/dispatch-ledger.jsonl — never the prompt or report text. Speaks (additionalContext) only when a threshold trips: report_over_cap (worker returned more than the Team Lead would have pasted itself; default 400 words), brief_over_cap (transcript-forwarding shape; default 600), or frontier_readonly (Explore/scout ran on an opus-class model — since v2.1.198 an un-pinned Explore inherits the main model). Opt-in (no-op without .ravenclaude/comfort-posture.yaml); `handoff_tax: off` silences the advisory but keeps the ledger; caps under `handoff_tax: { report_cap_words, brief_cap_words }`. Fail-safe: no python3/jq, malformed payload, background (async_launched) dispatch -> exit 0. HONEST LIMIT: totalTokens covers the subagent's FINAL request only (lower bound); word counts are exact. Reference: knowledge/model-tier-delegation.md."
+          },
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/plugin-lifecycle-telemetry.sh\"",
+            "timeout": 5,
+            "comment": "Plugin-lifecycle telemetry (P1). Bumps last_used_at when a plugin-namespaced Agent/Task subagent is spawned (subagent_type prefix before ':'). Built-ins without a namespace are a no-op. Does NOT count SessionStart presence. Fail-open; always exits 0."
+          }
+        ]
+      },
+      {
+        "matcher": "Skill",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/plugin-lifecycle-telemetry.sh\"",
+            "timeout": 5,
+            "comment": "Plugin-lifecycle telemetry (P1). Bumps last_used_at when a plugin-namespaced Skill is invoked (prefix before ':'). Does NOT count SessionStart presence or dashboard open. Fail-open; always exits 0. Lives under scripts/ (executable-bit constraint on new hooks/*.sh)."
+          }
+        ]
+      },
+      {
         "matcher": "mcp__.*",
         "hooks": [
           {
@@ -83,6 +111,17 @@
       }
     ],
     "PreToolUse": [
+      {
+        "matcher": "Agent|Task",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/explore-tier-pin.sh",
+            "timeout": 10,
+            "comment": "Explore tier pin (model-tier delegation, prevention leg). REWRITES INPUT, never gates: when the built-in `Explore` is dispatched without `model`, returns hookSpecificOutput.updatedInput with `model: haiku` (posture `handoff_tax: { pin_explore: haiku | sonnet | off }`; `handoff_tax: off` also disables) plus an additionalContext explaining the pin. Emits NO permissionDecision, so the posture's `subagent_dispatch` category still gates the call unchanged. Why: since v2.1.198 an un-pinned Explore inherits the main model, so on an Opus session every 'go find X' is an Opus dispatch whose whole job is reading; handoff-tax-meter.sh names that `frontier_readonly` only AFTER the tokens are spent. Stands down on: any explicit `model` (including `inherit`), any type but Explore (scout pins haiku in frontmatter; general-purpose/Plan do real work), CLAUDE_CODE_SUBAGENT_MODEL set (the fleet-wide route would be overridden), no comfort-posture (opt-in), or any error (exit 0, no stdout -> Claude's input runs unchanged). Reference: knowledge/model-tier-delegation.md."
+          }
+        ]
+      },
       {
         "matcher": "Bash|Read|Write|Edit|MultiEdit|WebFetch|WebSearch|mcp__.*",
         "hooks": [
@@ -152,7 +191,7 @@
           {
             "type": "command",
             "command": "${CLAUDE_PLUGIN_ROOT}/hooks/worktree-guard.sh check",
-            "comment": "Worktree-hygiene guard (check). Two independent knobs in .ravenclaude/comfort-posture.yaml: `worktree_guard: off|warn|block` (default warn) for CONTENTION/ANCHOR, and `worktree_bound: off|warn|block` (default block) for FOREIGN-TREE \u2014 a Write/Edit/MultiEdit or mutating git -C / GIT_WORK_TREE whose target is a sibling worktree. FOREIGN-TREE is evaluated first and does not depend on worktree_guard. On worktree_guard=block DENIES (exit 2) a MUTATING op only on contention or anchor-work; never a read / git status / rcwt / sibling Read. Escape hatches: RC_WORKTREE_GUARD_ACK=1 (contention/anchor ONLY), RC_WORKTREE_BOUND_ACK=1 (FOREIGN-TREE). ⛔ NEITHER ACK releases the third knob, the SESSION LEASE (`worktree_lease`, default on): the lease clause is evaluated BEFORE contention, so where a lease is held its denial is what you get, and GUARD_ACK does not touch it. That is deliberate — the lease is a mutual-exclusion control and an env var must not defeat it. Its own escapes: open your own worktree, wait for the lease to go stale (the next session then takes over and auto-commits the holder's work), or set `worktree_lease: off`. Both-off short-circuits before any git shell-out. Fail-open on missing git/jq; emits a hook-event audit line on a verdict."
+            "comment": "Worktree-hygiene guard (check). Two independent knobs in .ravenclaude/comfort-posture.yaml: `worktree_guard: off|warn|block` (default warn) for CONTENTION/ANCHOR, and `worktree_bound: off|warn|block` (default block) for FOREIGN-TREE — a Write/Edit/MultiEdit or mutating git -C / GIT_WORK_TREE whose target is a sibling worktree. FOREIGN-TREE is evaluated first and does not depend on worktree_guard. On worktree_guard=block DENIES (exit 2) a MUTATING op only on contention or anchor-work; never a read / git status / rcwt / sibling Read. Escape hatches: RC_WORKTREE_GUARD_ACK=1 (contention/anchor ONLY), RC_WORKTREE_BOUND_ACK=1 (FOREIGN-TREE). ⛔ NEITHER ACK releases the third knob, the SESSION LEASE (`worktree_lease`, default on): the lease clause is evaluated BEFORE contention, so where a lease is held its denial is what you get, and GUARD_ACK does not touch it. That is deliberate — the lease is a mutual-exclusion control and an env var must not defeat it. Its own escapes: open your own worktree, wait for the lease to go stale (the next session then takes over and auto-commits the holder's work), or set `worktree_lease: off`. Both-off short-circuits before any git shell-out. Fail-open on missing git/jq; emits a hook-event audit line on a verdict."
           }
         ]
       },
@@ -174,6 +213,12 @@
             "command": "${CLAUDE_PLUGIN_ROOT}/hooks/route-decision-review.sh",
             "timeout": 90,
             "comment": "Decision-review enforcement (the Thing, decision mode). No-ops (fast grep) unless `decision_review: advisory|binding` is set in .ravenclaude/comfort-posture.yaml (default off). When opted in AND the AskUserQuestion is a single, binary, non-multiselect yes/no-shaped question, routes it through thing-decide.py; on a BINDING yes/no verdict it DENIES the prompt with the verdict + reasoning so the agent proceeds without interrupting the user. Defer / advisory / high-blast / low-confidence / any error -> allow (the human answers). Every routed decision is Saga-logged under .ravenclaude/runs/thing/decisions/."
+          },
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/workaround-exhaustion.sh ask",
+            "timeout": 10,
+            "comment": "Blocked-exhaustion gate, ask lane. No-op unless `workaround_exhaustion: warn|block` is set in .ravenclaude/comfort-posture.yaml (absent -> off). After a RavenClaude guard denied a tool call this session (read off hook-events.jsonl; the gate's own events never anchor it), an AskUserQuestion shaped like a hand-back (which option / I'm blocked / do it manually) is DENIED (block) or annotated (warn) until the workaround ledger under .ravenclaude/runs/<session>/workaround-ledger.jsonl shows `workaround_exhaustion_floor` (default 3) EXECUTED, distinct-channel attempts since that deny, or `rc workaround blocked-ok <reason>` has been declared (logged as a warn event, never silent). Routes: knowledge/workaround-routes.md. Derived values only; fail-open; exit 0 on every error path."
           }
         ]
       },
@@ -222,13 +267,19 @@
           {
             "type": "command",
             "command": "${CLAUDE_PLUGIN_ROOT}/hooks/thing-denial-kb-sync.sh",
-            "comment": "Thing-denial knowledge base (Muninn). On session end, materialise any NEW command/decision-tribunal denials/defers into the per-repo denial KB (thing-denial-kb.py sync). Hot-path-safe: reads ONLY the S\u00e1ga audit records the Thing already wrote under .ravenclaude/runs/thing/ (decisions/*.json + command-review *.json) \u2014 never touches the tribunal's live PreToolUse emit path. Enriches each distinct denial SHAPE with a known resolution from knowledge/thing-denial-resolutions.json. No-op unless .ravenclaude/comfort-posture.yaml exists; never writes stdout; always exits 0."
+            "comment": "Thing-denial knowledge base (Muninn). On session end, materialise any NEW command/decision-tribunal denials/defers into the per-repo denial KB (thing-denial-kb.py sync). Hot-path-safe: reads ONLY the Sága audit records the Thing already wrote under .ravenclaude/runs/thing/ (decisions/*.json + command-review *.json) — never touches the tribunal's live PreToolUse emit path. Enriches each distinct denial SHAPE with a known resolution from knowledge/thing-denial-resolutions.json. No-op unless .ravenclaude/comfort-posture.yaml exists; never writes stdout; always exits 0."
           },
           {
             "type": "command",
             "command": "${CLAUDE_PLUGIN_ROOT}/hooks/handoff-nudge.sh",
             "timeout": 10,
             "comment": "Session-context handoff nudge. Advisory Stop additionalContext when context_handoff.mode is nag|block and live usage (updates.jsonl totalTokens) is at/over the soft threshold. Fail-open; never writes the brief; not a compact hook; not UserPromptSubmit. Default mode off."
+          },
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/workaround-exhaustion.sh stop",
+            "timeout": 10,
+            "comment": "Blocked-exhaustion gate, stop lane. No-op unless `workaround_exhaustion: warn|block` is set (absent -> off). After a RavenClaude guard denied a tool call this session, a final message shaped like a hand-back ('I'm blocked', 'you'll need to', 'run it manually', 'no way to') is BLOCKED (block) or annotated (warn) until the workaround ledger meets the floor or blocked-ok has been declared; force-allows after `workaround_exhaustion_max_blocks` (default 4) consecutive blocks so it can never deadlock a session. Reads last_assistant_message + stop_hook_active off the Stop payload (a host without last_assistant_message is silent by construction). Derived values only; exit 0 on every error path."
           }
         ]
       }
@@ -246,13 +297,25 @@
             "type": "command",
             "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/caveman-route-hook.sh\" --event prompt",
             "timeout": 10,
-            "comment": "Caveman auto-routing (FORGE P3 — SHADOW ONLY). No-ops (test -f + one anchored grep) unless .ravenclaude/comfort-posture.yaml sets `caveman_routing: shadow|live` (absent/off => zero file writes of any kind). When opted in, calls scripts/caveman-route-engine.py -> caveman-route.py's classifier over an incremental transcript-tail cursor and appends a decision line to .ravenclaude/runs/<session>/caveman-route.jsonl. SHADOW is what \"enabled\" means in this phase: decide + record, NEVER call caveman-apply-mode.sh — the applier exists (P2) but nothing calls it until a future phase (P7) opens that one-way door. Lives under scripts/ (C1/C2-b: chmod +x is denied on new hooks/*.sh here), invoked via `bash` matching ask-on-ambiguity.sh's own registration. Latency budget RC_CAVEMAN_ROUTE_BUDGET_S (default 3s, [unverified]) enforced via _rc_timeout (hooks/_portable.sh — stock macOS has no GNU timeout). Fail-open unconditionally: every path exits 0, never blocks or alters a prompt."
+            "comment": "Caveman auto-routing (FORGE P7 — live-apply when opted in). No-ops (test -f + one anchored grep) unless .ravenclaude/comfort-posture.yaml sets `caveman_routing: shadow|live` (absent/off => zero file writes of any kind). When opted in, calls scripts/caveman-route-engine.py -> caveman-route.py's classifier over an incremental transcript-tail cursor and appends a decision line to .ravenclaude/runs/<session>/caveman-route.jsonl. live calls caveman-apply-mode.sh (on→lite, off→off; hold does not apply). shadow still decides + records and never applies. Lives under scripts/ (C1/C2-b: chmod +x is denied on new hooks/*.sh here), invoked via `bash` matching ask-on-ambiguity.sh's own registration. Latency budget RC_CAVEMAN_ROUTE_BUDGET_S (default 3s, [unverified]) enforced via _rc_timeout (hooks/_portable.sh — stock macOS has no GNU timeout). Fail-open unconditionally: every path exits 0, never blocks or alters a prompt."
           },
           {
             "type": "command",
             "command": "${CLAUDE_PLUGIN_ROOT}/hooks/stream-prompt-attribute.sh",
             "timeout": 10,
             "comment": "Agentic Work-Streams (P4 — OPT-IN, FAIL-OPEN). No-ops (a single grep, zero cost) unless .ravenclaude/comfort-posture.yaml sets `stream_hook: per_prompt` (default session_boundary). When opted in: if a work-stream is ACTIVE, attribute the prompt to it as ONE derived event (sticky — does NOT re-classify); if none is active AND stream_classify is `auto`, classify + set-active on a confident match. NEVER blocks/alters the prompt (always exit 0); a latency budget (RC_STREAM_HOOK_BUDGET_S, default 3s) caps the inner work. NO-EGRESS: only derived labels/terms/word-count are persisted (stream-ops refuses raw-content fields) — the prompt text never reaches disk."
+          },
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/plugin-lifecycle-telemetry.sh\"",
+            "timeout": 5,
+            "comment": "Plugin-lifecycle telemetry (P1, slash). On UserPromptSubmit, if the prompt starts with a plugin-namespaced slash (`/ns:cmd`), bump last_used_at for that plugin. Bare built-in slashes (`/clear`) are a no-op. Does NOT count SessionStart or dashboard open. Fail-open; always exits 0."
+          },
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/prompt-optimizer-gate.sh\"",
+            "timeout": 90,
+            "comment": "Prompt optimizer (Phases 2-6 — OPT-IN, FAIL-OPEN, ships default OFF). Config-gated by the YAML-block-scoped `prompt_optimizer.enabled` in .ravenclaude/comfort-posture.yaml — absent/false costs a single test -f + one awk pass and nothing else. When enabled, a free Tier-0 pre-filter + a paid Tier-1 Haiku classifier (claude -p --tools=\"\") decide skip/rewrite/dispatch_plan; on a non-skip verdict this hook dispatches to the matching Phase 3/4 generator (prompt-optimizer-rewrite.sh / prompt-optimizer-dispatch.sh), hands the result to Phase 5's formatter (prompt-optimizer-format.py — semantic screen + inline/file-pointer delivery shape + its own on-disk audit artifact under .ravenclaude/runs/<session>/prompt-optimizer/), then gates the FINAL emission on `prompt_optimizer.mode`: shadow (default) runs the whole pipeline and writes the audit artifact but emits an EMPTY additionalContext (log-only, invisible on the turn); advisory/binding-context emit the composed additionalContext. Fails open at every stage (missing claude/jq/python3, timeout, unparseable/invalid output) — never blocks, never crashes. Lives under scripts/ (not hooks/) for the same executable-bit/CI reason ask-on-ambiguity.sh does — hence the `bash` prefix. Never modifies agent-dispatch-evaluator.sh/dispatch-config.json/evaluate-dispatch.js/adaptive-run-classifier/agent-routing-matrix.json/route-task.py."
           }
         ]
       }
@@ -301,7 +364,7 @@
             "type": "command",
             "command": "${CLAUDE_PLUGIN_ROOT}/hooks/worktree-guard.sh register",
             "timeout": 10,
-            "comment": "Worktree-hygiene guard (register). Records this session's own registry file under ${RC_WORKTREE_GUARD_HOME:-$HOME/.ravenclaude/worktree-guard} and GC-sweeps its PATH_KEY bucket (never depends on Stop firing) when worktree_guard != off. Reads `worktree_guard: off|warn|block` (default warn) and `worktree_bound: off|warn|block` (default block). On worktree_guard warn/block emits a SessionStart nudge only on CONTENTION or ANCHOR-WORK. When worktree_bound != off and sibling worktrees exist, also emits a LANE pin (toplevel/branch/host/siblings[/task]) \u2014 the context-isolation floor. worktree_guard=off still writes nothing to the registry (T7). Both-off short-circuits before any git shell-out. Fail-open on missing git/jq; SessionStart cannot block. Emits a hook-event audit line on a verdict. timeout: 10 is defense-in-depth so an open-stdin stall cannot hold SessionStart unbounded (the host still treats SessionStart as non-blocking, but the subprocess is capped)."
+            "comment": "Worktree-hygiene guard (register). Records this session's own registry file under ${RC_WORKTREE_GUARD_HOME:-$HOME/.ravenclaude/worktree-guard} and GC-sweeps its PATH_KEY bucket (never depends on Stop firing) when worktree_guard != off. Reads `worktree_guard: off|warn|block` (default warn) and `worktree_bound: off|warn|block` (default block). On worktree_guard warn/block emits a SessionStart nudge only on CONTENTION or ANCHOR-WORK. When worktree_bound != off and sibling worktrees exist, also emits a LANE pin (toplevel/branch/host/siblings[/task]) — the context-isolation floor. worktree_guard=off still writes nothing to the registry (T7). Both-off short-circuits before any git shell-out. Fail-open on missing git/jq; SessionStart cannot block. Emits a hook-event audit line on a verdict. timeout: 10 is defense-in-depth so an open-stdin stall cannot hold SessionStart unbounded (the host still treats SessionStart as non-blocking, but the subprocess is capped)."
           },
           {
             "type": "command",
@@ -319,7 +382,25 @@
             "type": "command",
             "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/caveman-route-hook.sh\" --event session",
             "timeout": 10,
-            "comment": "Caveman auto-routing (FORGE P3 — SHADOW ONLY), SessionStart half of the same hook body registered under UserPromptSubmit above — see that entry's comment for the full contract (short-circuit, SHADOW-never-applies, latency budget, fail-open). Joins this EXISTING startup|resume|clear|fork matcher group deliberately (no `compact` entry, no new matcher block) — a `compact` re-fire on this hook would be the v0.302.0-era 7-SessionStart-hooks incident in a new place, with nothing useful to do on that source."
+            "comment": "Caveman auto-routing (FORGE P7), SessionStart half of the same hook body registered under UserPromptSubmit above — see that entry's comment for the full contract (short-circuit, live-apply / shadow-never-applies, latency budget, fail-open). Joins this EXISTING startup|resume|clear|fork matcher group deliberately (no `compact` entry, no new matcher block) — a `compact` re-fire on this hook would be the v0.302.0-era 7-SessionStart-hooks incident in a new place, with nothing useful to do on that source."
+          },
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/oath-hook.sh",
+            "timeout": 10,
+            "comment": "Oath-hook (GUPP). OPT-IN via comfort-posture `runes: off|on` (absent => off). When On: hanging MUST-RUN + ready summary + auto-claim next ungated ready Rune (human_gate matthew|appsec|cos|sage|money refuse; never auto Longship merge). When Off: quiet; CLI still works. Kill switch = Off + Save. Fail-silent; SessionStart cannot block. Names LOCKED: Rune · Oath-hook · Longship. Flat Runes + strands; kind tag only. MH-18 host-scoped. Cosmology: docs/norse-mythology-feature-map.md."
+          },
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/plugin-lifecycle-sweep.sh\"",
+            "timeout": 10,
+            "comment": "Plugin-lifecycle sweep (P2). When tracking is on, marks unused plugins deprecated and surfaces a notice. Uninstall executes only if auto_uninstall: on (default OFF, M2) via claude plugin uninstall -y (fail-closed; plan-only when OFF). ravenclaude-core is never auto-removed (M3). Never shells the cache-reset disaster-recovery command. Does NOT bump last_used_at (SessionStart presence is not a use). Fail-silent; SessionStart cannot block. Joins this existing startup|resume|clear|fork matcher group (no compact re-fire)."
+          },
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/alias-deprecation-advisory.sh",
+            "timeout": 10,
+            "comment": "Phase D alias soak (R1). When comfort-posture still relies on deprecated keys (handoff_tax.pin_explore / model_tier_surfaces.*) as the effective source — or they diverge from model_matrix.surfaces.* — emits a one-line SessionStart additionalContext advisory. Quiet when seed leftovers match the new keys. Once-per-session marker under .ravenclaude/runs/<session_id>/. Never writes posture (House Rule 3). Not a Stop/per-turn nag. Fail-silent; SessionStart cannot block."
           }
         ]
       },

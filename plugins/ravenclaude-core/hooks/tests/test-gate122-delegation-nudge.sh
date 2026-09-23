@@ -6,7 +6,7 @@
 #   B silent-on-good: a hand-back-with-reason line, a line citing the held route, a
 #     `delegation-nudge-ok` line, a non-knowledge file, and a no-posture project are
 #     all silent.
-#   C teeth (must-fail half): a copy of the hook with the suppression greps neutered
+#   C teeth (must-fail half): a copy of the hook with the suppression checks neutered
 #     fires on the hand-back-with-reason line that the real hook suppresses.
 set -uo pipefail
 
@@ -67,10 +67,16 @@ printf '# x\n\nopen the portal and check the run history.\n' >"$NOPOSTURE/x.md"
 fires "$HOOK" "$NOPOSTURE/x.md" && fail "B5: no comfort-posture should be a no-op" \
   || pass "B5: opt-in — no comfort-posture is a no-op"
 
-# C — teeth: neuter the suppression greps; the reason line must then fire
+# C — teeth: neuter the suppression checks; the reason line must then fire.
+# The hook's suppressions are bash-native `[[ =~ ]]` tests followed by
+# `&& continue` (no per-line grep fork since the v0.323.x fork-storm fix) —
+# the mutant rewrites exactly those two lines to `&& :`. If the hook's spelling
+# changes, this sed silently becomes a no-op, which the `grep -q '&& :'` guard
+# below turns into a loud "fixture stale" failure rather than a false pass.
+# BRE-portable on BSD sed: `[` is escaped, `]` outside a bracket is ordinary.
 MUT="$TMP/mut-delegation-nudge.sh"
-sed -e 's/grep -qiE "\$reason" && continue/grep -qiE "\$reason" \&\& :/' \
-    -e 's/grep -qE "\$route" && continue/grep -qE "\$route" \&\& :/' \
+sed -e 's/\[\[ "\$line" =~ \$reason ]] && continue/[[ "$line" =~ $reason ]] \&\& :/' \
+    -e 's/\[\[ "\$route_hit" -eq 1 ]] && continue/[[ "$route_hit" -eq 1 ]] \&\& :/' \
     "$HOOK" >"$MUT"
 chmod +x "$MUT"
 if ! grep -q '&& :' "$MUT"; then

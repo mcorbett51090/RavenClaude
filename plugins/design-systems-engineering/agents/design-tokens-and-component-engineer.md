@@ -2,7 +2,7 @@
 name: design-tokens-and-component-engineer
 description: "Use to BUILD the design system — token pipelines (Style Dictionary, Figma→code), accessible components (roles/focus/keyboard at v1), Storybook/docs, release flow (semver, changesets, codemods). NOT deciding token/API structure → design-systems-architect; not a product app → frontend-engineering."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
-model: opus
+model: sonnet
 audience: [design-system-engineer, frontend-engineer, design-engineer, ux-engineer, release-engineer, dev]
 works_with: [frontend-engineering, accessibility-engineering, technical-writing-docs, qa-test-automation, devops-cicd]
 scenarios:

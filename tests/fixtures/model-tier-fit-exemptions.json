@@ -1,0 +1,4 @@
+{
+  "_readme": "Agents the model-tier-fit classifier (scripts/check-model-tier-fit.py) mis-reads, exempted BY NAME with the reason in the diff. An exemption naming an agent that no longer exists fails the gate — stale rows are how allow-lists rot. See plugins/ravenclaude-core/knowledge/model-tier-delegation.md.",
+  "solar-project-developer": "renewable-energy: 'developer' is the real-estate/energy-project sense (site, permitting, incentive structuring) — judgment work, not code implementation; stays on the frontier tier"
+}

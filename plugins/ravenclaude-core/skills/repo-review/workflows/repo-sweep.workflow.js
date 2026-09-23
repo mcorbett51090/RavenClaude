@@ -19,7 +19,7 @@ export const meta = {
   description:
     "Whole-repo systematic bug sweep across 8 review dimensions (including ci-cd-actions-security for GitHub Actions/CI-gate defects) — maps the repo into risk-ranked batches, reviews each batch per dimension/model with a cache-hit skip, merges + dedupes findings into a P0-P3 priority breakdown, adversarially verifies every file's survivors, optionally auto-fixes CONFIRMED + fixable findings file-by-file (once, or iteratively via args.converge until no P0-P3 findings remain or no further auto-fixable progress is possible), and reports coverage + convergence honestly.",
   whenToUse:
-    "When the user wants a comprehensive, multi-dimension bug sweep over an entire repository (or a --only/--since-narrowed slice of it), with adversarial verification gating any fix. Requires args.effort to be one of high, xhigh, max, or ultra — low and medium are refused outright, no phase runs for them. Set args.converge:true to loop Review->Merge->Verify->Fix until the repo has 0 open P0-P3 findings or no further auto-fixable progress can be made (capped at args.convergeMaxIterations, default 5).",
+    "When the user wants a comprehensive, multi-dimension bug sweep over an entire repository (or a --only/--since-narrowed slice of it), with adversarial verification gating any fix. Requires args.effort to be one of high, xhigh, max, or ultra — low and medium are refused outright, no phase runs for them. Set args.converge:true to loop Review->Merge->Verify->Fix until the repo has 0 open P0-P3 findings or no further auto-fixable progress can be made (capped at args.convergeMaxIterations, default 5). For a plan too large for one invocation's agent-call budget, run scripts/block_planner.py first and dispatch one invocation per block, passing args.batchIds (that block's slice) and args.finalizeBlock:true on the LAST block only — every block must share the SAME args.runId so their Review shards land in one findings dir.",
   phases: [
     {
       title: "Map",
@@ -29,7 +29,7 @@ export const meta = {
     {
       title: "Review",
       detail:
-        "Dimensions run SEQUENTIALLY (pipeline); within each dimension, models x batches run in PARALLEL. A cheap cache-check step precedes each real review agent and replays a full cache hit instead of re-reviewing. Repeats per convergence iteration when args.converge is set.",
+        "Dimensions run SEQUENTIALLY (pipeline); within each dimension, models x batches run in PARALLEL. A cheap cache-check step precedes each real review agent and replays a full cache hit instead of re-reviewing. Iteration 1 reviews args.batchIds (or the full plan when absent — block mode); a converge iteration>=2 reviews only the batches containing files the prior Fix pass changed.",
     },
     {
       title: "Merge",
@@ -383,6 +383,11 @@ const SAFE_PATHSPEC_RE = /^[A-Za-z0-9._\-/~:@,*?[\]^]+$/;
 // rejects/strips ".." — so this charset additionally excludes "/" outright
 // (an id can never introduce a new path segment, traversal or otherwise).
 const SAFE_RUN_ID_RE = /^[A-Za-z0-9_-]+$/;
+// Batch ids from repo_map.py are never shell-interpolated directly (they flow
+// into prompt TEXT asking an agent to "find the batch whose id is X"), but a
+// caller-supplied args.batchIds (block mode, below) is still validated to the
+// same defense-in-depth standard as every other caller-controlled field here.
+const SAFE_BATCH_ID_RE = /^[A-Za-z0-9_.-]+$/;
 function isSafeShellArg(value, pattern) {
   return typeof value === "string" && pattern.test(value);
 }
@@ -427,8 +432,13 @@ function resolveModels(count, argsModels) {
 // source_models, the verify agent's model should be a THIRD model tag
 // distinct from both, IF the caller's configured model list has 3+ entries;
 // otherwise use whichever configured model is NOT source_models[0].
-// `models` here is the run's EFFECTIVE configured model list (args.models
-// when the caller supplied one, else this workflow's own default pool) — a
+// Callers MUST pass `verifierPool` (the FULL effective configured model
+// list — args.models when the caller supplied one, else this workflow's own
+// 3-entry default pool), never the per-batch-dispatch-capped `models`
+// variable: `models` is deliberately sliced down to modelCount (<=2) for
+// per-batch dispatch cost control, so passing it here makes the
+// `pool.length >= 3` branch below structurally unreachable on every
+// unqualified run — see verifierPool's own definition comment. A
 // caller-supplied list under 3 entries correctly falls through to the
 // "not source_models[0]" branch below, exactly as the caller intended.
 function pickVerifier(models, sourceModels) {
@@ -513,7 +523,48 @@ if (EFFORT === "high") {
 }
 
 const modelCount = resolveModelCount(EFFORT, crossModelActive);
+
+// ─── args.models validation (shell-injection guard) ───────────────────────
+// Every accepted model entry ends up interpolated VERBATIM into
+// review_cache.py's --model flag inside reviewBatch()'s shell-command
+// instruction text (both the cache lookup at "review_cache.py lookup" and
+// the store step at "review_cache.py store") — the same
+// shell-interpolation boundary REPO_PATH/RUN_ID/ONLY_VALUE/SINCE_VALUE/
+// NEAR_DUP_POLICY are already guarded at above. DEFAULT_MODEL_POOL is a
+// hardcoded literal and needs no check; only a caller-supplied args.models
+// can carry an unsafe value. Real model identifiers are always alphanumeric
+// with "." "_" "-" (e.g. "claude-opus-4-8", "claude-haiku-4-5-20251001"), so
+// a tight allow-list refuses cleanly rather than silently stripping — same
+// discipline as SAFE_PATH_RE/SAFE_RUN_ID_RE/SAFE_PATHSPEC_RE.
+const SAFE_MODEL_RE = /^[A-Za-z0-9._-]+$/;
+if (args && Array.isArray(args.models)) {
+  for (const m of args.models) {
+    if (!isSafeShellArg(m, SAFE_MODEL_RE)) {
+      return {
+        error:
+          `repo-sweep refuses a model in args.models = ${JSON.stringify(args.models)} — ${JSON.stringify(m)} ` +
+          `contains characters not allowed in a shell-interpolated --model value (must match ${SAFE_MODEL_RE}). ` +
+          `This guards against command injection into the review_cache.py lookup/store instructions this ` +
+          `workflow issues (--model is interpolated verbatim into the dispatched Bash subagent's ` +
+          `instructions).`,
+      };
+    }
+  }
+}
+
 const models = resolveModels(modelCount, args && args.models);
+// The FULL effective model pool, uncapped by modelCount — used ONLY by
+// pickVerifier's third-model selection (see pickVerifier's own comment).
+// `models` above is deliberately capped to modelCount for per-batch
+// dispatch cost control; passing that capped array to pickVerifier instead
+// of this one made its third-model branch structurally unreachable on every
+// unqualified run (repo-sweep-third-model-verifier-dead). Already validated
+// above (same args.models source as `models`); DEFAULT_MODEL_POOL is a
+// hardcoded-safe literal.
+const verifierPool =
+  args && Array.isArray(args.models) && args.models.length
+    ? args.models.slice()
+    : DEFAULT_MODEL_POOL.slice();
 const activeDimensions = tierCfg.dims;
 
 const VERIFY_CAP =
@@ -625,8 +676,14 @@ log(
 const estimate = await agent(
   [
     `Run this exact command and capture its stdout JSON:`,
+    // NOTE: do NOT pass --agent-budget ${BUDGET_BATCHES} here. BUDGET_BATCHES is a
+    // batch count (repo_map.py --budget-batches, line 653); estimate_cost.py's
+    // --agent-budget is a *total agent-call* ceiling (defaults to 900). Passing the
+    // batch count made the best-effort cardinality log nonsensically pessimistic on
+    // every run (batches_affordable ~0). Omitting it lets the estimator use its own
+    // correct default ceiling.
     `python3 ${SCRIPTS_DIR}/estimate_cost.py --plan ${PLAN_PATH} --effort-tier ${EFFORT}` +
-      `${crossModelActive ? " --cross-model" : ""} --agent-budget ${BUDGET_BATCHES} ` +
+      `${crossModelActive ? " --cross-model" : ""} ` +
       `--verify-cap ${VERIFY_CAP} --fix-cap ${FIX_CAP}`,
     `Return ONLY structured output: {estimate_summary: "<one short line summarizing the cardinality estimate the tool reported>"}.`,
   ].join("\n"),
@@ -637,7 +694,80 @@ if (estimate && estimate.estimate_summary)
 
 const batchIds = mapReceipt.batch_ids;
 
-// ─── Phase 2: Review (per-iteration; findingsDir varies by iteration) ─────
+// ─── Block mode (optional) ─────────────────────────────────────────────────
+// Lets a caller split a large plan's cold-cache iteration-1 Review across
+// MULTIPLE Workflow invocations that share the same run_id/findings dir —
+// each invocation reviews only an explicit slice of batchIds, so a plan too
+// large for one Workflow run's 1000-agent()-call cap can still be swept
+// completely. See scripts/block_planner.py, which computes safe slices and
+// marks exactly one block "finalize" (the one that also runs Merge/Verify/
+// Fix/Report/converge, after every block's Review has landed its shards).
+//
+// Absent args.batchIds -> BLOCK_MODE is false and every downstream branch is
+// BYTE-IDENTICAL to the pre-block-mode single-shot behavior — this is the
+// backward-compatibility invariant Gate 260 pins.
+const RAW_BATCH_IDS_ARG =
+  args && Array.isArray(args.batchIds) && args.batchIds.length > 0 ? args.batchIds : null;
+if (RAW_BATCH_IDS_ARG) {
+  for (const id of RAW_BATCH_IDS_ARG) {
+    if (!isSafeShellArg(id, SAFE_BATCH_ID_RE)) {
+      return {
+        error:
+          `repo-sweep refuses a batch id in args.batchIds = ${JSON.stringify(RAW_BATCH_IDS_ARG)} — ` +
+          `${JSON.stringify(id)} contains characters not allowed (must match ${SAFE_BATCH_ID_RE}).`,
+      };
+    }
+  }
+  const fullBatchIdSet = new Set(batchIds);
+  const unknownBatchIds = RAW_BATCH_IDS_ARG.filter((id) => !fullBatchIdSet.has(id));
+  if (unknownBatchIds.length > 0) {
+    return {
+      error:
+        `repo-sweep refuses args.batchIds — ${JSON.stringify(unknownBatchIds)} do not appear in this ` +
+        `plan's own batch_ids (${JSON.stringify(batchIds)}). Every block invocation must derive its ` +
+        `slice from the SAME repo_map.py plan (identical args.only/args.since/args.repoPath) as every ` +
+        `other block in the sequence.`,
+    };
+  }
+}
+const BATCH_IDS_ARG = RAW_BATCH_IDS_ARG ? Array.from(new Set(RAW_BATCH_IDS_ARG)) : null;
+const BLOCK_MODE = BATCH_IDS_ARG !== null;
+const FINALIZE_BLOCK = BLOCK_MODE && !!(args && args.finalizeBlock === true);
+const iteration1ReviewBatchIds = BLOCK_MODE ? BATCH_IDS_ARG : batchIds;
+if (BLOCK_MODE) {
+  log(
+    `Block mode: this invocation reviews ${iteration1ReviewBatchIds.length} of ${batchIds.length} ` +
+      `total batch(es) — ${FINALIZE_BLOCK ? "FINALIZE block (runs Merge/Verify/Fix/Report/converge after)" : "review-only block (returns after Review)"}.`,
+  );
+}
+// Shared across the WHOLE run (every iteration) AND across every block
+// invocation sharing this run_id — see resolveBatchesForFiles() below for
+// why a per-iteration-suffixed dir would silently drop still-valid findings
+// once convergence iterations stop re-reviewing every batch.
+const FINDINGS_DIR = joinPath(RUN_DIR, "findings");
+
+if (BLOCK_MODE) {
+  await runReviewPhase(FINDINGS_DIR, iteration1ReviewBatchIds);
+  if (!FINALIZE_BLOCK) {
+    return {
+      block: {
+        mode: "review-only",
+        run_id: RUN_ID,
+        plan_path: PLAN_PATH,
+        batch_ids: iteration1ReviewBatchIds,
+        findings_dir: FINDINGS_DIR,
+        coverage: mapReceipt.coverage,
+      },
+    };
+  }
+  log(
+    `Block: finalize block's own review-only slice complete (${iteration1ReviewBatchIds.length} ` +
+      `batch(es)); proceeding to Merge over the shared findings dir at ${FINDINGS_DIR}/ (assumes every ` +
+      `prior review-only block already ran and wrote its shards under the SAME run_id="${RUN_ID}").`,
+  );
+}
+
+// ─── Phase 2: Review (per-iteration; shares ONE findings dir all run) ─────
 // Cardinality-bounding structure (deliberate, per the spec):
 //   pipeline(dimensions, d => parallel(models.map(m => () => parallel(batchIds.map(b => () => agent(...))))))
 // Dimensions run SEQUENTIALLY (pipeline, one dimension at a time); within a
@@ -735,7 +865,7 @@ async function reviewBatch(dim, model, batchId, findingsDir) {
   };
 }
 
-async function runReviewPhase(findingsDir) {
+async function runReviewPhase(findingsDir, idsToReview) {
   phase("Review");
   return pipeline(activeDimensions, async (dim) => {
     const dimModels = resolveModelsForDimension(dim, models);
@@ -761,12 +891,14 @@ async function runReviewPhase(findingsDir) {
       );
     }
     log(
-      `Review: dimension "${dim}" starting — ${uniqueDimModels.length} model(s) x ${batchIds.length} batch(es)`,
+      `Review: dimension "${dim}" starting — ${uniqueDimModels.length} model(s) x ${idsToReview.length} batch(es)`,
     );
     const perModel = await parallel(
       uniqueDimModels.map(
         (model) => () =>
-          parallel(batchIds.map((batchId) => () => reviewBatch(dim, model, batchId, findingsDir))),
+          parallel(
+            idsToReview.map((batchId) => () => reviewBatch(dim, model, batchId, findingsDir)),
+          ),
       ),
     );
     const shards = perModel.flat().filter(Boolean);
@@ -861,7 +993,7 @@ async function runVerifyPhase(mergeReceipt) {
       const sourceModels = Array.from(
         new Set(findings.flatMap((f) => (Array.isArray(f.source_models) ? f.source_models : []))),
       );
-      const verifierModel = pickVerifier(models, sourceModels);
+      const verifierModel = pickVerifier(verifierPool, sourceModels);
       const ids = findings.map((f) => f.id);
       return agent(
         [
@@ -915,7 +1047,13 @@ async function runFixPhase(mergeReceipt, verifyResults, iterSuffix) {
 
   if (confirmedFixable.length === 0) {
     log("Fix: no CONFIRMED + fixable_in_place findings — nothing to fix.");
-    return { fixSummaryPath: null, fixPatchPath: null, filesSkippedOverCap: [], appliedTotal: 0 };
+    return {
+      fixSummaryPath: null,
+      fixPatchPath: null,
+      filesSkippedOverCap: [],
+      appliedTotal: 0,
+      filesActuallyFixed: [],
+    };
   }
 
   // Pre-fix snapshot — never commits/stages/pushes anything.
@@ -972,6 +1110,13 @@ async function runFixPhase(mergeReceipt, verifyResults, iterSuffix) {
   const appliedTotal = fixAgentResults
     .filter(Boolean)
     .reduce((s, r) => s + (r.applied_count || 0), 0);
+  // Which files a --converge iteration>=2 must re-review — see
+  // resolveBatchesForFiles() below. A file whose fix agent errored or
+  // applied nothing is NOT in this list (nothing on disk changed for it).
+  const filesActuallyFixed = fixAgentResults
+    .filter(Boolean)
+    .filter((r) => (r.applied_count || 0) > 0)
+    .map((r) => r.file);
   log(`Fix: ${fixFilesInCap.length} file(s) fixed, ${appliedTotal} finding(s) applied.`);
 
   const summaryMdPath = joinPath(RUN_DIR, `fix-summary${iterSuffix}.md`);
@@ -1009,7 +1154,43 @@ async function runFixPhase(mergeReceipt, verifyResults, iterSuffix) {
     );
   }
 
-  return { fixSummaryPath, fixPatchPath, filesSkippedOverCap, appliedTotal };
+  return { fixSummaryPath, fixPatchPath, filesSkippedOverCap, appliedTotal, filesActuallyFixed };
+}
+
+// A file->batch lookup used ONLY for iteration>=2 of a --converge run: rather
+// than re-reviewing every batch in the plan (paying a cache-check agent()
+// call per (dim,model,batch) triple for batches nothing touched — cheap in
+// tokens thanks to review_cache.py, but NOT cheap in agent()-CALL COUNT,
+// which is what the Workflow tool's 1000-call cap actually bounds), resolve
+// just the batch id(s) containing files the prior Fix phase actually
+// changed and re-review only those. Correctness depends on FINDINGS_DIR
+// being SHARED across the whole run (defined above, before the iteration
+// loop) rather than per-iteration-suffixed: a batch's shard from an earlier
+// pass stays on disk and visible to Merge until that SAME batch is
+// re-reviewed, so skipping a batch here never drops its still-valid
+// findings from the merge.
+const RESOLVE_BATCHES_SCHEMA = {
+  type: "object",
+  required: ["batch_ids"],
+  properties: { batch_ids: { type: "array", items: { type: "string" } } },
+};
+async function resolveBatchesForFiles(files) {
+  if (!files || files.length === 0) return [];
+  const result = await agent(
+    [
+      `Read ${PLAN_PATH} (JSON — a "batches" array; each batch has "id" and "files").`,
+      `For each of these files: ${JSON.stringify(files)}`,
+      `find every batch id whose "files" array contains that file.`,
+      `Return ONLY structured output: {batch_ids: [<deduped batch ids, as strings>]}.`,
+    ].join("\n"),
+    {
+      label: "converge:resolve-batches",
+      phase: "Review",
+      schema: RESOLVE_BATCHES_SCHEMA,
+      model: CACHE_CHECK_MODEL,
+    },
+  ).catch(() => null);
+  return result && Array.isArray(result.batch_ids) ? result.batch_ids : [];
 }
 
 // ─── Iteration loop ─────────────────────────────────────────────────────────
@@ -1035,17 +1216,50 @@ const iterationLog = [];
 while (iteration < MAX_ITERATIONS) {
   iteration += 1;
   const suffix = iteration > 1 ? `-iter${iteration}` : "";
-  const findingsDir = joinPath(RUN_DIR, `findings${suffix}`);
   const mergedPath = joinPath(RUN_DIR, `merged${suffix}.json`);
 
   if (CONVERGE) log(`Converge: iteration ${iteration}/${MAX_ITERATIONS} starting.`);
 
-  await runReviewPhase(findingsDir);
-  const mergeReceipt = await runMergePhase(findingsDir, mergedPath);
+  if (iteration === 1) {
+    if (BLOCK_MODE) {
+      // Already reviewed by the pre-loop block section above (this branch is
+      // only reached by a FINALIZE block — a review-only block returned
+      // before the loop was ever entered).
+      log(
+        "Review: iteration 1 already completed via block-mode pre-loop review; proceeding to Merge " +
+          "over the shared findings dir.",
+      );
+    } else {
+      await runReviewPhase(FINDINGS_DIR, batchIds);
+    }
+  } else {
+    // Targeted re-review: only the batches whose files the PRIOR iteration's
+    // Fix pass actually changed — see resolveBatchesForFiles()'s own comment
+    // for why this is both cheaper AND still correct under the shared
+    // FINDINGS_DIR.
+    const filesFixedLastIteration =
+      (lastResult && lastResult.fixResult && lastResult.fixResult.filesActuallyFixed) || [];
+    const idsToReReview = await resolveBatchesForFiles(filesFixedLastIteration);
+    if (idsToReReview.length > 0) {
+      await runReviewPhase(FINDINGS_DIR, idsToReReview);
+    } else {
+      log(
+        `Converge: iteration ${iteration} — no batch could be resolved for the fixed file(s); ` +
+          `reviewing nothing new this pass (every existing shard remains authoritative).`,
+      );
+    }
+  }
+  const mergeReceipt = await runMergePhase(FINDINGS_DIR, mergedPath);
 
   if (!mergeReceipt || !mergeReceipt.artifact) {
     return {
-      error: `Merge phase failed at iteration ${iteration} — findings_merge.py did not return a usable receipt.`,
+      error:
+        `Merge phase failed at iteration ${iteration} — findings_merge.py did not return a usable receipt. ` +
+        `This does NOT mean the review work was lost — every completed review agent already wrote its ` +
+        `shard to ${FINDINGS_DIR}/ before this failure. Before re-dispatching, check that directory and, ` +
+        `if it has shards, run findings_merge.py over it BY HAND to recover them (uncapped, mark the ` +
+        `result unverified — no Verify pass ran on a hand-recovered merge). See SKILL.md § "Recovering ` +
+        `from a mid-run dispatch failure".`,
     };
   }
 
@@ -1074,7 +1288,7 @@ while (iteration < MAX_ITERATIONS) {
 
   lastResult = {
     iteration,
-    findingsDir,
+    findingsDir: FINDINGS_DIR,
     mergeReceipt,
     verifyResults,
     counts,
@@ -1193,6 +1407,11 @@ const reportBody = [
   `Dimensions reviewed: ${activeDimensions.join(", ")}`,
   `Batches: ${batchIds.length}`,
   CONVERGE ? `Converge mode: ${iteration} iteration(s) run (max ${MAX_ITERATIONS})` : null,
+  BLOCK_MODE
+    ? `Block mode: this run's iteration-1 Review was split across multiple invocations sharing ` +
+      `run_id="${RUN_ID}"; this invocation was the FINALIZE block (${iteration1ReviewBatchIds.length} ` +
+      `of ${batchIds.length} batch(es) reviewed by this invocation itself).`
+    : null,
   "",
   "## Verify results (final iteration)",
   `- CONFIRMED: ${finalCounts.confirmed}`,
@@ -1224,7 +1443,7 @@ const reportBody = [
     : null,
   "",
   "## Artifacts",
-  `- Findings shards (final iteration): ${lastResult.findingsDir}/`,
+  `- Findings shards (shared across the whole run): ${lastResult.findingsDir}/`,
   `- Merged findings (final iteration): ${finalMergeReceipt.artifact}`,
   `- Plan: ${PLAN_PATH}`,
 ]
@@ -1255,4 +1474,5 @@ return {
         open_after: lastResult.openAfterCount,
       }
     : undefined,
+  block: BLOCK_MODE ? { mode: "finalize", run_id: RUN_ID, findings_dir: FINDINGS_DIR } : undefined,
 };

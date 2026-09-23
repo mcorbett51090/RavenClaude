@@ -9,7 +9,7 @@ allowed-tools: Read, Write, Edit, Bash, WebFetch
 > **What this is.** The cheap, secure way to get the Claude-Design-style experience (prompt Claude,
 > watch a website/dashboard render before your eyes, commit it to a real repo) **without building a
 > custom studio backend.** It composes surfaces that already exist. FORGE verdict (2026-06-24,
-> `docs/plans/2026-06-24-repo-build-studio/`): the from-scratch studio's signature feature is a
+> `docs/plans/archive/2026-06-24-repo-build-studio/`): the from-scratch studio's signature feature is a
 > self-canceling design and a supply-chain trap; this loop delivers the same outcome at ~0 build cost.
 
 ## The loop (the Willison pattern)
@@ -65,7 +65,7 @@ Drop one into a repo, point Claude at it with the constraint above, and iterate.
   "looks like Claude Code" skin (Anthropic branding terms) — "Powered by Claude" only.
 
 ## Cross-references
-- FORGE plan + the premise analysis: [`../../../../docs/plans/2026-06-24-repo-build-studio/plan.md`](../../../../docs/plans/2026-06-24-repo-build-studio/plan.md).
+- FORGE plan + the premise analysis: [`../../../../docs/plans/archive/2026-06-24-repo-build-studio/plan.md`](../../../../docs/plans/archive/2026-06-24-repo-build-studio/plan.md).
 - Brand a generated page to a target site: the [`brand-extraction`](../brand-extraction/SKILL.md) skill.
 - Iterate a page toward pixel-perfect: the [`visual-feedback-loop`](../visual-feedback-loop/SKILL.md) skill.
 - Data-connected dashboards: the `data-platform` plugin (`dashboard-builder`, connectors).

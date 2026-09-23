@@ -17,7 +17,7 @@ _Compiled 2026-06-04 by background `/wrap`. Maps the new spec (`./spec.md`) onto
 
 **Status of the agent itself:** awaiting Ultraplan execution (per `project_data_viz_designer_in_flight` memory, 2026-06-02). When it lands, it becomes the natural consultee for the design layer of the dashboard in this spec.
 
-### A.2 Today's `unified-dashboard-shell` plan — `docs/plans/2026-06-04-unified-dashboard-shell/plan.md`
+### A.2 Today's `unified-dashboard-shell` plan — `docs/plans/archive/2026-06-04-unified-dashboard-shell/plan.md`
 
 **Relationship: parallel infrastructure, NOT competing.** That plan is about *RavenClaude's own* dashboard UI shell (collapse `index.html` + `dashboard.html` + `repo-guide.html` into one front door via iframe lazy-loading). It does NOT speak to a Partner-Success operational dashboard for a PSM. The two could share zero code and both ship. If a future Partner-Success dashboard were itself a RavenClaude artifact, the shell pattern (iframe + route table + smart-fallback banner) would be the template — but the spec captured here reads as a customer-deliverable, not a marketplace artifact.
 
@@ -118,4 +118,4 @@ _Compiled 2026-06-04 by background `/wrap`. Maps the new spec (`./spec.md`) onto
 
 ## D. Suggested home plugin for the build
 
-**If Matt decides to formalize this:** the build artifact belongs in `plugins/edtech-partner-success/` (it's PSM-shaped) with `plugins/data-platform/` carrying the connector + warehouse + semantic-layer work below it. The `data-viz-designer` (when shipped) is consulted for the chart layer. The unified-dashboard-shell pattern from `docs/plans/2026-06-04-unified-dashboard-shell/` is the iframe-routing template if the dashboard ever needs to be embedded inside RavenClaude itself.
+**If Matt decides to formalize this:** the build artifact belongs in `plugins/edtech-partner-success/` (it's PSM-shaped) with `plugins/data-platform/` carrying the connector + warehouse + semantic-layer work below it. The `data-viz-designer` (when shipped) is consulted for the chart layer. The unified-dashboard-shell pattern from `docs/plans/archive/2026-06-04-unified-dashboard-shell/` is the iframe-routing template if the dashboard ever needs to be embedded inside RavenClaude itself.

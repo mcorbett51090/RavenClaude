@@ -2,6 +2,35 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.33.4] — 2026-09-18
+
+### Fixed
+
+- Corrected the `flag-data-platform-smells.sh` enforcement instruction in `CLAUDE.md` §7: it said "flip the final `exit 0` to `exit 1` to enforce," but Claude Code's PreToolUse contract blocks only on **exit 2** (`exit 1` is a non-blocking error silently swallowed), and the hook's real enforcement switch is `DATA_PLATFORM_STRICT=1` (which already exits 2). The doc now points at the env var and states the correct exit-code semantics. Docs only, no behaviour change. **Migration:** none.
+
+## [0.33.3] — 2026-09-14
+
+### Changed
+
+- `connector-developer`: `model: opus` → `model: sonnet`. The role is the implementation half of an architect/engineer pair — bounded, well-specified work against a design made upstream — which is the `sonnet` row of the marketplace's tier table (`ravenclaude-core/knowledge/model-tier-delegation.md`), and the tier the earlier app-craft plugins (backend / frontend / api / database) already give their implementers. Enforced going forward by the marketplace's model-tier-fit CI gate (`check-model-tier-fit.py`, Gate 288). No behaviour change beyond the model the agent runs on; the architect sibling stays on `opus`.
+
+## [0.33.2] — 2026-09-10
+
+### Fixed
+
+- **`pbi-embed-idor-resource-entitlement`** — `templates/pbi-embed-token-endpoint.ts`'s Power BI
+  Embedded App-Owns-Data token endpoint minted a token for any `workspaceId`/`reportId` an
+  authenticated caller supplied, with no check that the resolved session's identity was actually
+  entitled to that workspace/report (an IDOR). `getEffectiveIdentityForSession`'s return type now
+  carries `entitledWorkspaceIds`/`entitledReportIds`, and `generateEmbedToken` refuses (fail-closed)
+  unless the requested `workspaceId`/`reportId` are in the resolved identity's entitlement lists.
+- **`pbi-embedurl-undefined-133`** — the endpoint destructured `embedUrl` off the `GenerateToken`
+  response, which never carries it (only `{token, tokenId, expiration}`) — `embedUrl` was always
+  `undefined`. Now issues a second `GET .../reports/{reportId}` (GetReportInGroup) call to fetch the
+  real `embedUrl`. Recovered via a hand-recovered `/repo-review` pass (see
+  `plugins/ravenclaude-core/skills/repo-review/SKILL.md`'s "Recovering from a mid-run dispatch
+  failure" section) — both findings independently CONFIRMED by a verify agent before being fixed.
+
 ## [0.33.1] — 2026-09-03
 
 ### Fixed

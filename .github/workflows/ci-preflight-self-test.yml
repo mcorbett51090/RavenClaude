@@ -1,0 +1,51 @@
+########################################################################
+# ci-preflight-self-test.yml — P4 (§3.9) of the ci-preflight-diff-aware
+# FORGE run. Exercises scripts/ci-preflight.py's OWN primitives (exit-
+# aggregation contract, bounded-timeout + process-group-kill, the
+# content-fingerprint TOCTOU detector, the missing-checker guard) via its
+# `--self-test` subcommand.
+#
+# THIS WORKFLOW MUST NEVER BECOME A REQUIRED STATUS CHECK. Per AGENTS.md's
+# own house rule -- "no new numbered audit-gates.sh gate, and no addition
+# to the required validate-marketplace.yml workflow" -- this is
+# deliberately a plain, non-required check. scripts/check-checkout-
+# fresh.sh is this repo's own live precedent for a local-only preflight
+# tool's test surface staying outside the required harness. Making THIS
+# workflow required is an out-of-band GitHub repository-settings action;
+# nothing in this file does that, and nothing should.
+#
+# `--self-test` is fully hermetic (scratch tempdirs + scratch git repos
+# with explicit `-c user.*` flags) -- it never touches this checkout's own
+# tree, so no `fetch-depth: 0` or write permission is needed.
+########################################################################
+name: CI preflight self-test
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+# Supersede in-flight runs for the same ref, same rationale as
+# validate-layout.yml/validate-macos.yml: this workflow only READS the
+# repo and runs hermetic fixtures, so an in-flight run has nothing a newer
+# push needs to wait for.
+concurrency:
+  group: ci-preflight-self-test-${{ github.ref }}
+  cancel-in-progress: true
+
+# Least-privilege GITHUB_TOKEN: this workflow only checks out the repo to
+# run a self-contained test subcommand against it.
+permissions:
+  contents: read
+
+jobs:
+  self-test:
+    name: ci-preflight.py --self-test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Run ci-preflight.py --self-test
+        run: python3 scripts/ci-preflight.py --self-test

@@ -85,6 +85,23 @@ A candidate is **critical** (clears regardless of the breadth concern, even if a
      2. **Roadmap hygiene** — refresh the roadmap doc to record "catalog saturated; no candidate cleared the value/criticality bar this cycle," carry forward the held candidates, and note the *next* signal that would unlock one.
    - **Never** scaffold a speculative plugin to have output. That contradicts the #409 parked-plugins decision and dilutes the catalog.
 4. **"10" is not a quota — and neither is "build a batch."** The roadmap lists the candidates that **clear or near-clear** the bar (which may be 0, 1, or a handful), each with its score and the gate it fails if held — not a forced ten. A run **builds at most one** plugin (to gold standard); the rest of the list is a prioritized map, not a work order. Keep the held/again-considered candidates marked `held — <gate not met>` so the map stays complete.
+5. **Before opening (or marking ready) the PR: run it through the [`routine-review-tribunal`](../plugins/ravenclaude-core/skills/routine-review-tribunal/SKILL.md) skill** (§ "Tribunal gate" below). This runs unattended — CI plus a single agent's own self-review was the only gate on its output before this was added; the tribunal is the second, cross-model opinion a human reviewer would otherwise have to supply by hand.
+
+---
+
+## Tribunal gate — reviewed-and-approved, or revised-and-reapproved, before the PR is final
+
+**Added 2026-09-11**, per Matt's directive to gate this routine's output the same way `/forge-pipeline` gates a plan — a two-panel, cross-model review, applied to the diff this routine just produced, instead of to an idea before code exists. Full mechanics: [`routine-review-tribunal/SKILL.md`](../plugins/ravenclaude-core/skills/routine-review-tribunal/SKILL.md). Which engine to reach for (and which ones are not substitutes): [`docs/best-practices/routine-review-vs-other-tribunals.md`](best-practices/routine-review-vs-other-tribunals.md).
+
+Run this **after** the gold-standard gate suite is green and **before** the PR is opened (first run) or marked ready (a resumed run):
+
+1. Dispatch the two voting seats (Mímir, Forseti) against the accumulated diff + this policy's gold-standard bar as the DoD.
+2. **`approved`, `merge_authority: "auto"`** (added 2026-09-11) → **merge the PR directly** per the [`routine-review-tribunal`](../plugins/ravenclaude-core/skills/routine-review-tribunal/SKILL.md) skill's "Auto-merge procedure": mark ready if draft, wait for `main`'s required checks (not the non-required Cursor-bot ones), then squash-merge via the GitHub MCP `merge_pull_request` tool. Notify per the discipline above with what shipped, already merged.
+3. **`approved`, `merge_authority: "human"`** → open/ready the PR as usual, note which seat flagged `design_decision` and why, and notify — but **do not merge it yourself.** A person merges.
+4. **`needs_revision`** → apply the tribunal's `required_edits`, re-run the gate suite, and re-submit for review (bounded to 2 rounds total).
+5. **`escalate`** (round ceiling exhausted, injection flagged, or both seats abstained) → open the PR as a **flagged draft** — title-prefix `[needs human review]`, the tribunal's reasoning + required_edits in the PR body — and **notify** even though nothing "shipped," because an escalation is exactly the kind of finding the notification discipline already carves out an exception for. Do not merge, and do not start a third revision round.
+
+**Why a routine is allowed to merge its own PR at all** (the `"auto"` branch above): this repo's platform-level standing instruction is "don't merge without explicit user instruction," and repo-level GitHub auto-merge is deliberately OFF (`CLAUDE.md` § "Admin bypass is deliberate"). This section — written, dated, and directly sourced from Matt's 2026-09-11 directive ("I want as much auto-merged as possible; the only thing I should review is a design or architecture decision") — is intended to *be* that explicit instruction for this routine's own `merge_authority: "auto"` PRs specifically, so a future unattended run does not need a live chat message to act on it. This has not yet been exercised by an actual unattended run end-to-end; treat the first few auto-merges under this policy as worth a spot-check, not as proof the mechanism works unattended.
 
 ---
 
@@ -92,7 +109,8 @@ A candidate is **critical** (clears regardless of the breadth concern, even if a
 
 This routine runs unattended; its egress is the notification channel. Apply the standing rule:
 
-- **Built something** (a candidate cleared the bar) → notify with the PR + what shipped.
+- **Built something, `merge_authority: "auto"`** → notify with the PR + what shipped — already merged, nothing pending.
+- **Built something, `merge_authority: "human"`** → notify with the PR + which seat flagged `design_decision` and why — waiting on a merge.
 - **Found a real problem** (e.g. a main-breaking CI issue, like the two fixed in #502) → notify.
 - **Nothing cleared the bar / steady-state no-op** → **stay silent.** "I ran and nothing warranted a new plugin" is not worth an interruption unless Matt asked for a heartbeat.
 
@@ -104,11 +122,12 @@ The recurring schedule still fires with a fixed task prompt (its text lives in t
 
 **Drop-in replacement for the literal schedule prompt** (paste into the Claude Code web schedule config to make the prompt match this policy):
 
-> Read `docs/plugin-discovery-routine-policy.md` first. Select the single highest-priority unbuilt plugin candidate that clears the Value/Criticality bar (or resume the one a prior run left unfinished). Build exactly that ONE plugin, and loop — build → run all gates → self-review against the gold-standard bar → fix the top gap — until it is fully built out to gold standard and all gates are green. Then commit and open a PR. If no candidate clears the bar and none is in progress, build nothing (record the no-op in the roadmap) and stay silent. Never start a second plugin until the current one is gold-standard-complete and merged.
+> Read `docs/plugin-discovery-routine-policy.md` first. Select the single highest-priority unbuilt plugin candidate that clears the Value/Criticality bar (or resume the one a prior run left unfinished). Build exactly that ONE plugin, and loop — build → run all gates → self-review against the gold-standard bar → fix the top gap — until it is fully built out to gold standard and all gates are green. Then run it through the `routine-review-tribunal` skill: on `approved` with `merge_authority: "auto"`, commit, open the PR, and merge it once required checks pass; on `approved` with `merge_authority: "human"`, open/ready the PR and stop there for a person to merge; on `needs_revision`, apply the required edits and resubmit (bounded to 2 rounds); on `escalate`, open a flagged draft PR and notify instead of merging. If no candidate clears the bar and none is in progress, build nothing (record the no-op in the roadmap) and stay silent. Never start a second plugin until the current one is gold-standard-complete and merged.
 
 ---
 
 ## Change log
 
+- **2026-09-11** — Adds the **tribunal gate**: before the PR is opened/marked ready, the diff goes through the `routine-review-tribunal` skill (two-panel cross-model review + bounded revision round + escalate-on-disagreement, mirroring `/forge-pipeline`'s divergent-panel shape applied post-hoc to a diff). Updates the drop-in schedule-prompt replacement to route through it. Per Matt's directive: this routine runs unattended, so its output needs the same cross-checked review a human reviewer would otherwise supply.
 - **2026-07-02** — **One plugin per run, built to GOLD STANDARD via an iterate-until-complete loop**, per Matt's directive. Selection (the Value/Criticality bar) is unchanged; the build *target* rises from "gate-passing minimum" to the new gold-standard bar (adds required advisory hook, ≥5 skills, ≥7 best-practices, ≥3 templates/commands, a calculator script where the domain has one, and a build→self-review→fix loop). A plugin is carried across runs until it reaches the bar; no new candidate is started until the current one is gold-standard-complete. Records the drop-in replacement for the literal schedule prompt. Context: the #543 batch of 10 was built to the *minimum* — that is now the floor, not the finish line.
 - **2026-06-24** — Created. Adds the value/criticality bar + "build nothing if nothing clears" contract, per Matt's directive to stop manufacturing speculative candidates at a mature (119-plugin) catalog. Sharpens, and is consistent with, the #409 build-on-real-demand decision.

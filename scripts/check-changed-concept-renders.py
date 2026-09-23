@@ -70,7 +70,25 @@ def changed_concepts(root: Path, base: str) -> tuple[list[str], str | None]:
     # reporting "0 changed concepts, all clean" would manufacture a pass out of a
     # broken query. But a CI checkout legitimately has no origin/main, so the base
     # is resolved through _base_ref before UNKNOWN is concluded.
-    mb, how = _resolve_merge_base(root, base)
+    #
+    # ⛔ force_fetch=True — WITHOUT it this gate can silently attribute OTHER
+    # PRs' concept changes to a PR that touched zero concepts. Measured live on
+    # PR #1242 (RavenPower-Website triage session, 2026-09-23): a settings.json
+    # -only diff reported "36 changed concepts" on the FIRST run and again
+    # identically on a re-run (not a flake). Root cause, reproduced locally —
+    # `origin/main` resolved as a REF in the depth-2 CI checkout, but shared no
+    # walkable history with HEAD, so unforced `merge_base()` took its documented
+    # "no shared history — using the base tip" fallback (_base_ref.py's own R1
+    # regression, deliberately backward-compatible for force_fetch=False
+    # callers) and diffed HEAD against origin/main's CURRENT tip instead of the
+    # true merge-base — surfacing every concept file anyone else had touched
+    # since this branch forked as if THIS PR had touched it. A full-history
+    # local clone (`git fetch --unshallow`) reproduced the fix directly: 0
+    # changed concepts, matching the PR's real 1-file diff. `force_fetch=True`
+    # is exactly _base_ref.py's own sanctioned fix for this shape (see its R1
+    # section) and is what scripts/ci-preflight.py already passes for the same
+    # reason — this call was the one gap left unforced.
+    mb, how = _resolve_merge_base(root, base, force_fetch=True)
     if not mb:
         return [], f"{how} — the changed set is UNKNOWN, not empty"
     rc, out = _git(root, "diff", "--name-only", mb, "--", f"{CONCEPT_DIR}/*.md")

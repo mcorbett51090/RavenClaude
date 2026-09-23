@@ -10,7 +10,7 @@ last_verified: 2026-08-30
 covers:
   - plugins/ravenclaude-core/skills/analog-closeness-scorecard/SKILL.md
   - plugins/ravenclaude-core/skills/analog-closeness-scorecard/score_closeness.py
-covers_digest: "sha256:ab0fb7dd893151b6c78de30fd20be77d1dcd09e9825eb01d9b6a7408992f2bf9"
+covers_digest: "sha256:af0e64cc57230d17995e78913f0f472b6bdef0406a02d9dca7b73d433c45b441"
 nuance: "A row scoring M=H=G=0 (arithmetic weighted >=18 via O/E/I/T/V alone) with every dimension inferred, not observed, still fails the quality bar — the two checks are independent, not one gate."
 nuance_evidence:
   measured: 2026-08-30

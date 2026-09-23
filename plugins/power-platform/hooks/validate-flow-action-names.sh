@@ -11,8 +11,9 @@
 #
 # DETERMINISTIC + ADVISORY: fires on a structural pattern (an action key matching a
 # default-name shape), not by LLM judgment. Prints warnings to stderr so Claude and the
-# user both see them, but exits 0 — never blocks (to enforce, flip the final exit 0 to 1).
-# FAIL-SAFE: any parse/IO error exits 0. Discovery-credit: the agentic Power Automate
+# user both see them, but exits 0 — never blocks (to enforce, set POWER_PLATFORM_STRICT=1
+# in the env: exit 2 = block in Claude Code; exit 1 is a non-blocking error Claude Code
+# silently swallows, so it would NOT block). FAIL-SAFE: any parse/IO error exits 0. Discovery-credit: the agentic Power Automate
 # build/validate pattern this supports is from Flow Studio
 # (https://github.com/ninihen1/power-automate-mcp-skills) + standard Flow-Checker/BPA
 # guidance — re-implemented here in our own words against the flow-definition JSON shape.
@@ -92,7 +93,9 @@ if [[ -n "$warnings" ]]; then
     echo "$warnings"
     echo "  → rename auto-named actions to describe what they do (not their type)."
     echo "    See plugins/power-platform/best-practices/name-flow-actions-descriptively.md."
+    echo "    (advisory; set POWER_PLATFORM_STRICT=1 to BLOCK — exit 2, not exit 1.)"
   } >&2
+  if [[ "${POWER_PLATFORM_STRICT:-0}" == "1" ]]; then exit 2; fi
 fi
 
 exit 0

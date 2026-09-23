@@ -57,7 +57,7 @@ jobs:
           python-version: "3.x"
 
       - name: Install jsonschema
-        run: pip install --quiet jsonschema
+        run: python3 -m pip install --quiet jsonschema
 
       - name: Validate every plugin.json against schemas/plugin.schema.json
         run: |

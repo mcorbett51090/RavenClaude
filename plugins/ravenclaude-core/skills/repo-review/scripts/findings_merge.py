@@ -48,6 +48,7 @@ def priority_for(severity) -> str | None:
     P2)."""
     return PRIORITY_MAP.get(severity)
 
+
 # <dimension>.<model>.<batch_id>.json — batch_id may itself contain dots, so
 # dimension and model are the first two dot-separated segments and batch_id
 # is everything remaining before the final ".json".
@@ -59,8 +60,13 @@ SHARD_NAME_RE = re.compile(r"^(?P<dimension>[^.]+)\.(?P<model>[^.]+)\.(?P<batch_
 # --------------------------------------------------------------------------- #
 
 
-def title_tokens(title: str) -> list[str]:
-    return sorted(set(TOKEN_RE.findall((title or "").lower())))
+def title_tokens(title) -> list[str]:
+    # Coerce a non-string title (an LLM shard can emit "title": 42) to str before
+    # .lower(), mirroring the defensive try/except already guarding the line field
+    # in _line_bucket(). A truthy non-string here previously raised AttributeError
+    # and crashed the whole Merge phase for the entire sweep.
+    t = title if isinstance(title, str) else ("" if not title else str(title))
+    return sorted(set(TOKEN_RE.findall(t.lower())))
 
 
 def _line_bucket(line) -> int:
@@ -71,9 +77,21 @@ def _line_bucket(line) -> int:
 
 
 def compute_key(file: str, line, title: str) -> str:
-    tokens = title_tokens(title)[:6]
+    # Keep the 6 most DISTINGUISHING tokens, not the 6 alphabetically-earliest.
+    # title_tokens() is sorted(set(...)); a bare [:6] kept only the alpha-early
+    # tokens, so two genuinely distinct findings sharing 6 early filler words
+    # ("a broken command custom detected each …") collapsed into one survivor,
+    # silently dropping the second and falsely reporting cross-model corroboration.
+    # Selecting longer tokens first preserves the rare distinguishing word
+    # (e.g. "injection" vs "xss"); re-sort alpha afterward so the key is stable.
+    all_tokens = title_tokens(title)
+    tokens = sorted(sorted(all_tokens, key=lambda t: (-len(t), t))[:6])
     bucket = _line_bucket(line)
-    raw = f"{os.path.normpath(file or '')}:{bucket}:{':'.join(tokens)}"
+    # Coerce a non-string file field defensively (same class as title above):
+    # os.path.normpath() raises TypeError on a non-string, which would crash the
+    # whole Merge phase on a single malformed shard finding.
+    file_str = file if isinstance(file, str) else str(file or "")
+    raw = f"{os.path.normpath(file_str)}:{bucket}:{':'.join(tokens)}"
     return hashlib.sha1(raw.encode("utf-8")).hexdigest()
 
 
@@ -689,8 +707,7 @@ def _self_test() -> int:
         )
         check(
             "test9: cap-fixture survivors carry the right priority",
-            {s["id"]: s["priority"] for s in r5["survivors"]}
-            == {"cap-1": "P0", "cap-2": "P1"},
+            {s["id"]: s["priority"] for s in r5["survivors"]} == {"cap-1": "P0", "cap-2": "P1"},
             str({s["id"]: s["priority"] for s in r5["survivors"]}),
         )
         r5_by_priority = run_merge(t5, cap=0, near_dup_policy="keep-separate")["by_priority"]
@@ -704,6 +721,37 @@ def _self_test() -> int:
             list(r5_by_priority.keys()) == PRIORITY_ORDER,
             str(list(r5_by_priority.keys())),
         )
+
+    # ------------------------------------------------------------- #
+    # Test 10 — compute_key keeps the DISTINGUISHING token, not the
+    # alpha-earliest 6. Two distinct findings sharing 6 early filler
+    # tokens must NOT collide; identical titles must still collide.
+    # ------------------------------------------------------------- #
+    _t_sql = "a broken command custom detected each function injection sql"
+    _t_xss = "a broken command custom detected each function xss reflected stored"
+    check(
+        "test10: distinct titles sharing 6 alpha-early tokens do NOT collide",
+        compute_key("app.py", 10, _t_sql) != compute_key("app.py", 12, _t_xss),
+    )
+    check(
+        "test10: identical titles still collide",
+        compute_key("app.py", 10, _t_sql) == compute_key("app.py", 11, _t_sql),
+    )
+
+    # ------------------------------------------------------------- #
+    # Test 11 — a non-string title/file in a shard finding must NOT
+    # crash compute_key()/title_tokens() (an LLM shard can emit
+    # "title": 42 or "file": 7). Previously raised AttributeError /
+    # TypeError and killed the whole Merge phase for the entire sweep.
+    # ------------------------------------------------------------- #
+    _crashed = False
+    try:
+        compute_key(7, 10, 42)  # both file and title non-string
+        title_tokens(42)
+        title_tokens(None)
+    except (AttributeError, TypeError):
+        _crashed = True
+    check("test11: non-string title/file does not crash compute_key", not _crashed)
 
     print(f"\n{'ALL PASS' if not failures else f'{len(failures)} FAILED'}: {len(failures)} failing")
     return 1 if failures else 0

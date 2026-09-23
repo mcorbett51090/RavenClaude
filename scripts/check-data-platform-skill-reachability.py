@@ -113,7 +113,9 @@ def main() -> int:
     for skill_dir in skill_dirs:
         name = skill_dir.name
         skill_md = skill_dir / "SKILL.md"
-        reachable = name in agents_text or bool(_invoked_by(skill_md))
+        reachable = bool(
+            re.search(r"(?<![\w-])" + re.escape(name) + r"(?![\w-])", agents_text)
+        ) or bool(_invoked_by(skill_md))
         if name == _POSITIVE_CONTROL_SKILL:
             control_ok = reachable
         if not reachable:

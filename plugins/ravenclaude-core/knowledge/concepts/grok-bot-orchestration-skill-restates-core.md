@@ -6,12 +6,12 @@ kind: ravenclaude-built
 entry_class: inventory
 order: 921
 summary: "The skill duplicates CGP/dispatch prose as freestanding text, against this repo's cite-not-restate convention, since a Grok Bot cannot resolve a cross-plugin markdown link."
-last_verified: 2026-09-04
+last_verified: 2026-09-15
 covers:
   - plugins/ravenclaude-core/skills/game-theory-basics/SKILL.md
   - plugins/ravenclaude-core/skills/quantitative-problem-solving/SKILL.md
   - plugins/ravenclaude-core/skills/ravenclaude-core-orchestration/SKILL.md
-covers_digest: "sha256:03238cda6ad23a7dcc14129d14959ffd868cc0197c3dc91326cb5de95f195261"
+covers_digest: "sha256:ae2b2dfd6933c081dab30478bf99b03749d4c0194eab3e927af4b2c662b22986"
 nuance: "ravenclaude-core-orchestration/SKILL.md restates the single-orchestrator and Capability Grounding rules as freestanding prose instead of linking to ravenclaude-core/CLAUDE.md -- the opposite of this repo's own 'cite, not restate' convention -- because a Grok Bot cannot resolve a cross-plugin markdown link the way a Claude Code agent can."
 nuance_evidence:
   measured: 2026-09-04

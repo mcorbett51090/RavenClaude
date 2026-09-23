@@ -124,9 +124,30 @@ _SKIP = {
         "an AskUserQuestion payload — wiring it would be a liability on exactly the "
         "versions where the matcher cannot protect it."
     ),
+    "workaround-exhaustion.sh": (
+        "Two lanes, neither reachable here. The PreToolUse lane matches "
+        "AskUserQuestion — the same no-Copilot-equivalent + pre-1.0.62 "
+        "unhonored-matcher liability as route-decision-review.sh above. The Stop "
+        "lane reads last_assistant_message off the Stop payload; the adapter's stop "
+        "mode forwards no such field (copilot-hook-adapter.sh names it nowhere, "
+        "checked 2026-09-17), so the hook is silent by construction there. "
+        "Projecting either lane would ship a no-op that reads as coverage."
+    ),
     "caveman-route-hook.sh": (
         "routes a Claude-Code-only third-party plugin; the target mode store does "
         "not exist on this host."
+    ),
+    "explore-tier-pin.sh": (
+        "PreToolUse on Agent|Task that REWRITES the tool input via Claude Code's "
+        "hookSpecificOutput.updatedInput [docs-verified 2026-09-14, Claude Code hooks "
+        "reference]. Copilot's hook output contract has no verified input-rewrite "
+        "field, and the adapter does not translate one — wiring it would ship a "
+        "rewrite that is silently ignored while the generated config says the pin "
+        "is in force. Copilot custom agents DO honour a `model` frontmatter field, "
+        "but it takes a plan-specific picker id, so generate-copilot-plugin.py states "
+        "the canonical tier in each projected agent's header for the consumer to pin "
+        "rather than inventing an alias→id map; until pinned, the agent inherits the "
+        "session default."
     ),
 }
 

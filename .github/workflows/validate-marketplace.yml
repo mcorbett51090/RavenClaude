@@ -467,7 +467,18 @@ jobs:
         # job or a second copy of the always-on set.
         run: |
           set -euo pipefail
-          for suite in $(scripts/audit-gates.sh --list-suites); do
+          # Capture the suite list into a variable FIRST. `for x in $(cmd)` does NOT
+          # propagate a failed/empty command substitution under `set -e` (bash does
+          # not abort on a failed $() used as a for-loop word-list), so a broken or
+          # empty --list-suites would silently run ZERO suites while this required
+          # check still reported success. An assignment DOES abort on a failed $(),
+          # and the explicit emptiness guard closes the "succeeded-but-empty" case.
+          suites="$(scripts/audit-gates.sh --list-suites)"
+          if [ -z "${suites}" ]; then
+            echo "::error::audit-gates.sh --list-suites returned no suites — refusing to report success" >&2
+            exit 1
+          fi
+          for suite in ${suites}; do
             echo "::group::Suite: ${suite}"
             scripts/audit-gates.sh --suite "${suite}"
             echo "::endgroup::"
@@ -630,7 +641,11 @@ jobs:
           all_names="$(jq -r '.name' plugins/*/.claude-plugin/plugin.json)"
           while IFS= read -r name; do
             [ -n "$name" ] || continue
-            if ! printf '%s\n' "$all_names" | grep -qxF "$name"; then
+            # Here-string, not `printf | grep -q`. This step is `set -o pipefail`;
+            # grep -q closes the pipe on the first match and printf then gets
+            # SIGPIPE, which pipefail reports as failure — a present name looks
+            # orphaned (seen on PR #1155 for cli-tooling-engineering).
+            if ! grep -qxF -- "$name" <<<"$all_names"; then
               echo "::error file=.claude-plugin/marketplace.json::orphaned catalog entry '$name' — no plugins/*/plugin.json declares this name"
               status=1
             fi

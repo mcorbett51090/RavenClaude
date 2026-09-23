@@ -25,6 +25,15 @@ The `ravenclaude-core` plugin installs four hooks automatically:
 
 To disable any of them, override in `.claude/settings.json`.
 
+## Model tier on every dispatch (Claude Code only)
+
+Delegation saves money only when the volume moves to a cheaper tier — every roster agent in `docs/team-constitution.md` already pins its `model:` (`scout` on `haiku` for read-a-lot/return-a-little work, implementers on `sonnet`, the architect and the review gates on `opus`), so dispatching a roster agent carries its price with it. Two things are yours to do in this repo:
+
+- **Pin the built-in `Explore`.** Since Claude Code v2.1.198 an un-pinned `Explore` inherits the session's model — on an Opus session, a grep is an Opus dispatch. Pass `model: "haiku"` per call, or dispatch `scout` instead. With a `.ravenclaude/comfort-posture.yaml` present, the plugin's `explore-tier-pin` hook (PreToolUse) adds the pin for you (`handoff_tax.pin_explore`, default `haiku`); it never overrides a `model` you set.
+- **Cap what crosses the boundary.** Every brief carries the worker contract (tier + why, exact inputs, tools, success check, max output); the `handoff-tax-meter` hook (PostToolUse, posture-gated, advisory) writes one line per dispatch to `.ravenclaude/runs/<session>/dispatch-ledger.jsonl` and speaks only when a brief or report is over its cap. `bash <plugin-root>/bin/rc dispatch-summary` rolls it up.
+
+Never de-escalate a gate: `security-reviewer` and `code-reviewer` stay on `opus`. Doctrine: the constitution's "Model-tier delegation" section.
+
 ## Comfort-posture dashboard (Claude Code only)
 
 `ravenclaude-core` ships an interactive **comfort-posture dashboard** — a point-and-click way to set Claude Code permission rules (deny / ask / allow, per category and per settings layer) and toggle the command-review tribunal (the Thing). It's a static, no-backend HTML page that ships **inside the installed plugin**, at the plugin cache root:

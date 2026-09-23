@@ -85,8 +85,8 @@ old_1 = (
     "  boundary and makes **no** claim that anything survives compaction. Its own first line says so\n"
     "  (`# precompact-digest.sh — PreCompact hook (archival only).`). It is also **opt-in**, gated on\n"
     "  `cheap_lane.mode`, and it is **not** the mechanism this skill relies on: the durable brief is\n"
-    "  written by the *live agent* via `context-handoff.py write`, in a turn, with real judgment content —\n"
-    "  which is precisely what an archival extractor cannot produce."
+    "  written via `context-handoff.py write` + detached `fill` (haiku) + `finalize` — judgment-shaped\n"
+    "  sections without burning the session frontier model on extract/format."
 )
 new_1 = "- **Never a PreCompact persist hook.** Compaction is append-only."
 if old_1 not in text:

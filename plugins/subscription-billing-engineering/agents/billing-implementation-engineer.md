@@ -2,7 +2,7 @@
 name: billing-implementation-engineer
 description: "Use to BUILD recurring billing — wire Stripe Billing/Chargebee, idempotent webhook handlers + reconciliation, usage metering & reporting, proration code, dunning automation, entitlement checks. NOT the model choice → billing-systems-architect; NOT payment rails → fintech-payments-engineering."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
-model: opus
+model: sonnet
 audience: [backend-engineer, full-stack-engineer, platform-engineer]
 works_with: [billing-systems-architect, fintech-payments-engineering, backend-engineering, database-engineering]
 scenarios:

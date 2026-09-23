@@ -94,10 +94,10 @@ SAFE_FIELDS = (
 # as the single source of truth so the audit-gate and this script agree on the
 # ban list. (Substring-based: `tenant` also bans `tenant_id`, etc.)
 BANNED_ENV_FIELD_SUBSTRINGS = (
-    "env",          # active_env, environment, env_name
+    "env",  # active_env, environment, env_name
     "role",
     "tenant",
-    "auth",         # auth_mechanism_name
+    "auth",  # auth_mechanism_name
     "active_env",
     "spn",
     "credential",
@@ -197,14 +197,22 @@ def derive_posture_label(root: Path) -> str:
     """DERIVE a coarse preset label from the posture's global_default.
 
     This is a label, NOT the raw YAML (FM4): open|default|balanced|strict|unknown.
-    Absent posture file / unrecognized value => 'unknown' (honest, not a crash).
+    Absent posture *file* / unrecognized value => 'unknown' (honest, not a crash).
+    A posture file that is PRESENT but omits the top-level `global_default` key is
+    NOT unknown: it mirrors the engine, which reads
+    `posture.get("global_default", "ask")` (apply-comfort-posture.py), so an
+    absent key means the effective default is 'ask' -> 'balanced'. The seeded
+    balanced template and real posture files omit the key, so returning 'unknown'
+    for the present-but-keyless case mislabelled the common case as 'unknown'
+    (repo-review 2026-09).
 
     Mapping rationale (the three-level canonical vocabulary from
     apply-comfort-posture.py: allow/ask/deny):
       allow  -> open     (categories run without prompting)
       ask    -> balanced (the seeded "balanced" preset's global default)
       deny   -> strict   (locked down by default)
-      (none) -> unknown
+      (no file)          -> unknown
+      (file, no key)     -> balanced (engine default 'ask')
     Legacy 5-level names collapse the same way the engine collapses them.
     """
     posture_path = root / ".ravenclaude" / "comfort-posture.yaml"
@@ -212,7 +220,8 @@ def derive_posture_label(root: Path) -> str:
         return "unknown"
     level = _read_posture_global_default(posture_path)
     if level is None:
-        return "unknown"
+        # File present but no top-level global_default key -> engine default 'ask'.
+        level = "ask"
     level = level.lower()
     if level in ("allow", "mostly-allow", "autopilot"):
         return "open"
@@ -294,7 +303,9 @@ def render_yaml(bundle: dict) -> str:
     if "plugin_versions" in bundle:
         lines.append("  plugin_versions:")
         for name in sorted(bundle["plugin_versions"]):
-            lines.append(f"    {_yaml_scalar(name)}: {_yaml_scalar(bundle['plugin_versions'][name])}")
+            lines.append(
+                f"    {_yaml_scalar(name)}: {_yaml_scalar(bundle['plugin_versions'][name])}"
+            )
     if "posture_label" in bundle:
         lines.append(f"  posture_label: {_yaml_scalar(bundle['posture_label'])}")
     if "capture_method" in bundle:
@@ -336,7 +347,10 @@ def run_check() -> int:
             print("CHECK FAIL: empty fixture posture_label should be unknown", file=sys.stderr)
             ok = False
         if set(b) - set(SAFE_FIELDS):
-            print(f"CHECK FAIL: bundle emitted non-allowlisted keys: {set(b) - set(SAFE_FIELDS)}", file=sys.stderr)
+            print(
+                f"CHECK FAIL: bundle emitted non-allowlisted keys: {set(b) - set(SAFE_FIELDS)}",
+                file=sys.stderr,
+            )
             ok = False
 
         # 3b. Populated sources => auto, real values, only safe keys.
@@ -359,17 +373,43 @@ def run_check() -> int:
             print("CHECK FAIL: plugin_versions not captured", file=sys.stderr)
             ok = False
         if b2.get("posture_label") != "balanced":
-            print(f"CHECK FAIL: posture_label should derive to 'balanced', got {b2.get('posture_label')!r}", file=sys.stderr)
+            print(
+                f"CHECK FAIL: posture_label should derive to 'balanced', got {b2.get('posture_label')!r}",
+                file=sys.stderr,
+            )
             ok = False
         if set(b2) - set(SAFE_FIELDS):
-            print(f"CHECK FAIL: populated bundle emitted non-allowlisted keys: {set(b2) - set(SAFE_FIELDS)}", file=sys.stderr)
+            print(
+                f"CHECK FAIL: populated bundle emitted non-allowlisted keys: {set(b2) - set(SAFE_FIELDS)}",
+                file=sys.stderr,
+            )
+            ok = False
+
+        # 3b'. Posture file PRESENT but with NO global_default key (the real,
+        # common shape: the seeded balanced template and live posture files omit
+        # it). Must derive to 'balanced' via the engine default 'ask', not
+        # 'unknown'. This is the case the original fixture (which wrote the key)
+        # never exercised, masking the mislabel. (repo-review 2026-09)
+        (root / ".ravenclaude" / "comfort-posture.yaml").write_text(
+            "schema_version: 5\ncategories:\n  network: ask\n", encoding="utf-8"
+        )
+        b3 = build_bundle(root, model_arg="claude-opus-4-8")
+        if b3.get("posture_label") != "balanced":
+            print(
+                "CHECK FAIL: posture file present but keyless should derive to "
+                f"'balanced' (engine default 'ask'), got {b3.get('posture_label')!r}",
+                file=sys.stderr,
+            )
             ok = False
 
         # 3c. render_yaml never emits a banned env field name.
         block = render_yaml(b2)
         for banned in BANNED_ENV_FIELD_SUBSTRINGS:
             if f"{banned}:" in block.lower() or f"  {banned}" in block.lower():
-                print(f"CHECK FAIL: rendered block contains banned token {banned!r}:\n{block}", file=sys.stderr)
+                print(
+                    f"CHECK FAIL: rendered block contains banned token {banned!r}:\n{block}",
+                    file=sys.stderr,
+                )
                 ok = False
 
     if ok:
@@ -382,7 +422,9 @@ def main(argv: list[str]) -> int:
     parser = argparse.ArgumentParser(
         description="Emit a minimal, safe run_context YAML block for a scenario contribution.",
     )
-    parser.add_argument("--project-root", help="Project root (default: git toplevel / search up from CWD).")
+    parser.add_argument(
+        "--project-root", help="Project root (default: git toplevel / search up from CWD)."
+    )
     parser.add_argument("--model", help="Model id to record (else $CLAUDE_MODEL, else degraded).")
     parser.add_argument("--check", action="store_true", help="Run the self-test and exit.")
     args = parser.parse_args(argv)

@@ -56,18 +56,23 @@ def _const_str(node: ast.AST) -> str | None:
     return None
 
 
+def _is_sys_executable(node: ast.AST) -> bool:
+    """True iff node is the `sys.executable` attribute access (the python launcher)."""
+    return (
+        isinstance(node, ast.Attribute)
+        and node.attr == "executable"
+        and isinstance(node.value, ast.Name)
+        and node.value.id == "sys"
+    )
+
+
 def _is_allowed_dynamic(node: ast.AST) -> bool:
     """Allow only constant-bearing, request-independent expressions:
     - sys.executable           (the interpreter path)
     - str(<anything constant-ish>)  e.g. str(REPO_ROOT), str(SCRIPT / "x")
     These cannot carry HTTP request data (they reference module constants only)."""
     # sys.executable
-    if (
-        isinstance(node, ast.Attribute)
-        and node.attr == "executable"
-        and isinstance(node.value, ast.Name)
-        and node.value.id == "sys"
-    ):
+    if _is_sys_executable(node):
         return True
     # str(...) wrapping a constant path expression (Name / Attribute / BinOp on /)
     if (
@@ -141,10 +146,14 @@ def check(path: Path) -> int:
                 f"action {kname!r} has argv of length {len(val.elts)} (< 2) — "
                 f"serve-dashboards.py._handle_run indexes argv[1] unconditionally"
             )
-        # bash/sh are only safe with no `-c`-form anywhere — catch every spelling
-        # (`-c`, `-lc`, `-ec`, `--login -c`, … at any index), not just argv[1].
+        # An interpreter launcher is only safe with no `-c`-form anywhere — catch every
+        # spelling (`-c`, `-lc`, `-ec`, `--login -c`, … at any index), not just argv[1].
+        # This applies to bash/sh AND to sys.executable (python's `-c <script>` is the
+        # same inline-code hazard); gating the check on shell literals alone let
+        # `[sys.executable, "-c", "…"]` through, contradicting the module docstring.
         argv0_lit = _const_str(val.elts[0]) if val.elts else None
         argv0_is_shell = argv0_lit in ALLOWED_ARGV0
+        argv0_is_interpreter = argv0_is_shell or bool(val.elts and _is_sys_executable(val.elts[0]))
         for i, elt in enumerate(val.elts):
             lit = _const_str(elt)
             if lit is not None:
@@ -155,9 +164,12 @@ def check(path: Path) -> int:
                 if i == 0 and lit in ALLOWED_ARGV0:
                     continue
                 # Any later short-flag cluster bearing `c` (`-c`/`-lc`/`-ec`/…) turns
-                # a following element into an inline script — forbidden for a shell.
-                if argv0_is_shell and i >= 1 and re.fullmatch(r"-[A-Za-z]*c[A-Za-z]*", lit):
-                    return _fail(f"action {kname!r} uses a shell -c form (argv[{i}] == {lit!r})")
+                # a following element into an inline script — forbidden for a shell
+                # OR a python (sys.executable) launcher.
+                if argv0_is_interpreter and i >= 1 and re.fullmatch(r"-[A-Za-z]*c[A-Za-z]*", lit):
+                    return _fail(
+                        f"action {kname!r} uses an inline -c script form (argv[{i}] == {lit!r})"
+                    )
                 continue
             # non-literal element — only the whitelisted constant expressions pass
             if _is_allowed_dynamic(elt):

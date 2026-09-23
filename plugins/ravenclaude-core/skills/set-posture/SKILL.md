@@ -71,6 +71,14 @@ Highlights:
 
 `mcp_tools` is intentionally empty in v0.1.0's `EMISSIONS`. Per-MCP-server trust is configured in Claude Code's user settings (`~/.claude/settings.json`); comfort-posture's `mcp_tools` is a global default that doesn't have a direct one-to-one rule mapping. v0.2.0 should map this to per-server rules once the marketplace has a stable list of MCP servers consumers connect.
 
+### Subagent dispatch (v0.321.4)
+
+| Category | Patterns |
+|---|---|
+| `subagent_dispatch` | `Agent` (bare — matches every subagent/Task dispatch) |
+
+`allow` emits `"Agent"` into the allow array; `deny` emits `"Agent"` into deny (that disables ALL subagents); `ask` emits `"Agent"` into ask (same prompt Claude Code already uses for an unmatched Agent). A missing key is backward compatible: v3/v4 falls back to `global_default`; v5 treats it as inherit and emits nothing (same as every other category). Per-subagent overrides use `Agent(SubagentName)` via the existing `overrides:` map. Recommended preset is `allow`.
+
 ## Overwrite semantics (v0.17.0+)
 
 The script **overwrites** `permissions.allow`, `permissions.ask`, and `permissions.deny` in `.claude/settings.json` with the resolved emission. Non-posture fields (`$schema`, `model`, `env`, `hooks`, `permissions.additionalDirectories`) are untouched.
@@ -133,6 +141,38 @@ Two top-level posture keys carry **trust flags** that hooks read at runtime — 
 These flags address Codex desktop trust review Findings 1 + 5 (an untrusted YAML edit auto-executing on `Stop` / auto-allowing on `WebFetch`). They are tool-layer trust signals — `security_deny` is still the layer-independent floor.
 
 **Authoring:** in the dashboard, both flags will surface as a single "Trust this repo's YAML for…" toggle per trust surface (UI TBD). For now, hand-edit `comfort-posture.yaml` or copy the documented examples from `templates/comfort-posture-balanced.yaml`.
+
+## Skill-wiring exclusions (v0.319.0+)
+
+`ravenclaude setup --with-plugin <name>` symlinks a plugin's *entire* `skills/` directory into
+`.claude/skills/` (`wire_plugin_skills()` in `scripts/ravenclaude`) — every skill's name+description
+then gets read by VS Code's native Agent Skills feature and injected into every Copilot Chat/CLI
+turn. For a project that only uses part of a wired plugin's skill set, that's fixed overhead with no
+opt-out — and it re-materializes on every `setup`/`update`, so a one-off local pruning pass (moving
+symlinks out of `.claude/skills/` by hand) is silently undone the next time you update.
+
+`skills.deny_plugins` makes an exclusion **durable across re-wires**, because the wiring step itself
+checks it before symlinking a plugin, instead of a separate pass fixing it up afterward:
+
+```yaml
+skills:
+  deny_plugins:
+    - finance
+    - web-design
+    - frontend-engineering
+```
+
+- **Plugin-level only** (not per-skill) — deliberately the smallest scope that solves the observed
+  problem; a plugin whose skills are only partially wanted is a case for a narrower `--with-plugin`
+  install, not this key.
+- **Purely additive.** No `skills:` key, no posture file at all, no `python3`, or a malformed YAML —
+  every one of those resolves to "not denied," i.e. today's unchanged full-roster behavior. This can
+  only ever narrow what gets wired; it cannot break an install that predates it.
+- `ravenclaude-core` itself is never denied by this mechanism regardless of what's listed — it's
+  always wired first, unconditionally, before any `--with-plugin` entry is processed.
+- To see what a plugin's skills actually cost before deciding to deny it, count/measure
+  `.claude/skills/*/SKILL.md` for that plugin's symlinks directly — there's no built-in reporting
+  command for this yet (a natural follow-up: a `ravenclaude skills-report` or similar).
 
 ## Per-pattern overrides (v0.17.0+)
 

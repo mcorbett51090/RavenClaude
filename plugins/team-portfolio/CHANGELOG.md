@@ -2,6 +2,27 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.2.4] — 2026-09-16
+
+### Fixed
+
+- Dropped the dead `mcorbett51090/RavenPowerWebsite` entry from the "Raven Power Website" project's
+  `match.repos` (in `templates/team-portfolio.json` and the matching example in
+  `skills/cross-repo-project-tracking/SKILL.md`). The repo it pointed at was deprecated (never had any
+  code, superseded by `RavenPower-Website`) and was never in the config's top-level `repos[]`, so
+  `scripts/portfolio-config-check.py` already flagged it as a dead rule (`match.repos references
+  "mcorbett51090/RavenPowerWebsite", which is not in repos[]`).
+
+## [0.2.3] — 2026-09-10
+
+### Fixed
+
+- **`b106-collect-empty-commit-msg-indexerror`** — `scripts/portfolio-collect.py`'s commit-event loop
+  raised an `IndexError` on a commit with an empty message (`splitlines()` returns `[]`), crashing the
+  whole run rather than the per-repo fail-soft the plugin's own house opinion (§4 #5) requires. Now
+  falls back to `[""]` before indexing. Found + verified CONFIRMED via a hand-recovered `/repo-review`
+  pass.
+
 ## [0.2.2] — 2026-08-14
 
 ### Changed

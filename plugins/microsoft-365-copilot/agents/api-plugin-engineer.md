@@ -2,7 +2,7 @@
 name: api-plugin-engineer
 description: "Use this agent to turn a REST API into a Microsoft 365 Copilot API PLUGIN / action — the four-file architecture (app + plugin manifest + OpenAPI + adaptive cards), the `operationId` mapping, and Entra OAuth2 / API-key auth."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
-model: opus
+model: sonnet
 audience: [dev]
 works_with: [copilot-extensibility-architect, declarative-agent-engineer, graph-connector-engineer, azure-cloud/entra-identity-engineer]
 scenarios:

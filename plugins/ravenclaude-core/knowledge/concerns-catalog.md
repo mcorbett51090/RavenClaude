@@ -204,9 +204,61 @@ cross_cutting:
         - '(?s)\A(?=.{0,4000}comfort-posture\.yaml)(?=.{0,4000}thing:\s*(off|false|no)\b)'
         # (4) writing the T5 tier config (command_review: / gate_floor:) into
         #     comfort-posture.yaml — neutering the tiers / gate_floor is a
-        #     self-disable. Scoped to the `key:` write-shape so a plain READ of
-        #     the file (grep/cat) is not over-blocked.
-        - '(?s)\A(?=.{0,4000}comfort-posture\.yaml)(?=.{0,4000}(command_review|gate_floor)\s*:)'
+        #     self-disable. The comment above this trigger has always claimed
+        #     it is "scoped to the `key:` write-shape so a plain READ of the
+        #     file (grep/cat) is not over-blocked" — but the regex never
+        #     actually checked for a write shape, only co-occurrence of the two
+        #     substrings anywhere in the command. A read-only `grep -n
+        #     "command_review:" .../comfort-posture.yaml` (or `cat file | grep
+        #     command_review:`) matched and was pre-LLM denied — discovered
+        #     live 2026-09-03 diagnosing an unrelated dev-repo-exemption
+        #     question. The third lookahead below closes that: it requires an
+        #     actual write-shape signal (a redirect, `tee`, or an
+        #     in-place-flagged stream editor — the same discriminator triggers
+        #     (1)/(2b) in this same entry already use) to co-occur with the two
+        #     substrings, so a bare read no longer matches while every real
+        #     write still does.
+        - '(?s)\A(?=.{0,4000}comfort-posture\.yaml)(?=.{0,4000}(command_review|gate_floor)\s*:)(?=.{0,4000}(>>?|\btee\b|\b(?:sed|perl|awk)\b[^;|&\n]{0,120}?(?:--in-place|-[A-Za-z0-9.]*i[A-Za-z0-9.]*\b|\binplace\b)))'
+  - id: xc.plugin-install
+    name: Agent-driven marketplace plugin install
+    severity: high
+    description: >-
+      The command installs a Claude Code marketplace plugin (`/plugin install`
+      or an equivalent shell that mutates the plugin cache). After reload, the
+      installed plugin's hooks and skills become code execution surface. Empty-cited
+      agent installs are forbidden; v1 allowlist is the `ravenclaude` marketplace
+      only. `auto_install: auto` is opt-in (explicit posture only; absent => off)
+      and still requires a cited need. Auto `--execute` is tip/SHA (or equiv)
+      integrity pin-gated — fail-closed on pin_missing / pin_mismatch. Prefer
+      ask-first confirm or the Bifröst copy-paste wizard (which never executes)
+      until operators configure install_pins / --expected-sha. Do not bypass
+      guard-destructive patterns or launder the install via an EDIT past gate_floor.
+    resolution: >-
+      Require an explicit user confirm (ask mode) or route the human through
+      Bifröst. Reject non-ravenclaude marketplaces and installPaths outside the
+      ravenclaude plugin cache. For auto execute, supply expected tip/SHA and
+      verify against marketplace tip (or content-hash). After install, require
+      `/reload-plugins` before claiming the capability usable. Never claim
+      Bifröst executed the install.
+    judgment_only: true
+  - id: xc.plugin-uninstall
+    name: Agent-driven marketplace plugin uninstall
+    severity: high
+    description: >-
+      The command uninstalls a marketplace plugin. Silent uninstall causes
+      capability loss; uninstalling `ravenclaude-core` disables the guardrails that
+      police further installs. Auto-uninstall defaults OFF; ravenclaude-core is a
+      hard pin and must never be auto-removed. Mid-flight uninstall (plugin in
+      active session use) must fail closed / skip. Must not shell the cache-reset
+      disaster-recovery command as a cleanup path.
+    resolution: >-
+      Skip uninstall when auto_uninstall is off, when the plugin is pinned or is
+      ravenclaude-core, when requires/transitive deps are unknown, or when the
+      plugin was used this session. When auto_uninstall is explicitly ON, the
+      sweep may run `claude plugin uninstall <name@marketplace> -y` (fail-soft).
+      Prefer deprecate notice when OFF. Remind `/reload-plugins` after uninstall.
+      Never invoke ragnarok / reset-plugin-cache --execute from a sweep.
+    judgment_only: true
   - id: xc.ragnarok-non-user-invocation
     name: Command would execute a plugin-cache reset (Ragnarök) by shelling its script
     severity: critical
@@ -750,14 +802,14 @@ categories:
         regex:
           - 'git\s+push\b[^|&;\n]*\b(origin\s+)?(main|master)(\s|$)'
     - id: srm.force-push
-      name: git push --force / -f / +<refspec> (without --force-with-lease)
+      name: git push --force / -f / +<refspec> / --mirror (without --force-with-lease)
       severity: critical
       pre_llm_deny: true
       always_screen: true
       description: >-
         Caught by security_deny. The tribunal must continue to deny; never relax.
         Includes the `+<refspec>` force form (`git push origin +main`), which
-        force-updates the named ref exactly like `--force`.
+        force-updates the named ref exactly like `--force`, and `git push --mirror`, which force-updates every ref under refs/ and deletes remote refs absent locally.
       resolution: DENY. (Reaffirms the baseline.)
       triggers:
         # `--force` (but not `--force-with-lease`) or short `-f`. The second regex
@@ -768,6 +820,7 @@ categories:
         regex:
           - 'git\s+push\b[^|&;\n]*(--force(?!-with-lease)\b|(?-i:\s-[A-Za-z]*f[A-Za-z]*(\s|$)))'
           - 'git\s+push\b[^|&;\n]*\s\+\S'
+          - 'git\s+push\b[^|&;\n]*--mirror\b'
     - id: srm.pr-merge-without-checks
       name: gh pr merge on a PR whose CI is not passing
       severity: high

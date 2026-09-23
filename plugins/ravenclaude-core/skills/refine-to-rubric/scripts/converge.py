@@ -134,7 +134,7 @@ def _blocking_findings(iteration):
     both "key absent" and "key present but null" to the same safe fallback.
     """
     out = set()
-    for f in (iteration.get("findings") or []):
+    for f in iteration.get("findings") or []:
         if f.get("severity") in BLOCKING_SEVERITIES:
             out.add((f.get("dimension", ""), f.get("severity", "")))
     return out
@@ -264,7 +264,7 @@ def terminate(rubric, iterations, config=None):
         patience = int(cfg["plateau_patience"])
         if n_iters < patience + 1:
             return False
-        window = iterations[-(patience + 1):]
+        window = iterations[-(patience + 1) :]
         for prev, cur in zip(window, window[1:]):
             delta = abs(float(cur.get("score", 0.0)) - float(prev.get("score", 0.0)))
             if delta >= float(cfg["epsilon"]):
@@ -337,7 +337,9 @@ def _load(path):
 def main(argv=None):
     ap = argparse.ArgumentParser(description="Deterministic convergence terminate() predicate.")
     ap.add_argument("--rubric", required=True, help="path to a rubric.schema.json document")
-    ap.add_argument("--scorecard", required=True, help="path to a convergence-scorecard.schema.json document")
+    ap.add_argument(
+        "--scorecard", required=True, help="path to a convergence-scorecard.schema.json document"
+    )
     ap.add_argument("--emit-verdict", action="store_true", help="print the verdict JSON to stdout")
     args = ap.parse_args(argv)
 
@@ -353,7 +355,12 @@ def main(argv=None):
 
     try:
         should_stop, verdict = terminate(rubric, iterations, config)
-    except (KeyError, TypeError, ValueError) as exc:
+    except (KeyError, TypeError, ValueError, AttributeError) as exc:
+        # AttributeError covers a schema-permitted-but-wrong-typed judge field
+        # (e.g. hard_gates/scores present as a list where a dict/null is expected,
+        # so `(… or {}).items()` / `….get(…)` raises). Without it, that case
+        # escapes as an unhandled traceback → exit 1, which callers read as the
+        # "loop should continue" verdict rather than the contract error it is.
         print(f"converge: contract error: {exc}", file=sys.stderr)
         return 2
 

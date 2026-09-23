@@ -2,7 +2,7 @@
 name: scraper-implementation-engineer
 description: "Use to BUILD web extraction — resilient fetchers/parsers (structured data over selectors, JSON-endpoint-first), the extract→validate→dedup→store pipeline, and polite rate-limiting/backoff. NOT deciding what's legal to scrape → extraction-architect; not generic services → backend-engineering."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
-model: opus
+model: sonnet
 audience: [data-engineer, backend-engineer, python-engineer, node-engineer, dev]
 works_with: [data-orchestration, backend-engineering, data-governance-privacy, qa-test-automation, observability-sre]
 scenarios:

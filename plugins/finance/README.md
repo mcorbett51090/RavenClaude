@@ -20,10 +20,10 @@ The plugin requires `ravenclaude-core@>=0.5.0` for the cross-plugin protocols (G
 | Component | Count | Where |
 |-----------|-------|-------|
 | Specialist agents | 7 | [`agents/`](agents/) |
-| Skills | 9 | [`skills/`](skills/) |
-| Knowledge bank | 10 | [`knowledge/`](knowledge/) |
-| Hooks | 1 (advisory) | [`hooks/`](hooks/) |
-| Templates | 8 | [`templates/`](templates/) |
+| Skills | 23 | [`skills/`](skills/) |
+| Knowledge bank | 17 | [`knowledge/`](knowledge/) |
+| Hooks | 2 (advisory + secret-scan) | [`hooks/`](hooks/) |
+| Templates | 9 | [`templates/`](templates/) |
 
 See [`CLAUDE.md`](CLAUDE.md) for the full team constitution (roster, routing rules, house opinions, anti-patterns, output contract, escalation paths).
 
@@ -58,7 +58,7 @@ The full list (plus the anti-patterns every agent flags) is in [`CLAUDE.md`](CLA
 
 ## Hooks
 
-- [`hooks/flag-finance-anti-patterns.sh`](hooks/flag-finance-anti-patterns.sh) — PostToolUse Edit/Write/MultiEdit hook. Advisory: flags hardcoded rate-like numbers in model files, plaintext PII patterns (SSN, IBAN, credit card), variance commentary without `Sources:`, forecasts/budgets without `Assumptions:`. Doesn't block edits unless you flip `exit 0` to `exit 1` for a sensitive engagement.
+- [`hooks/flag-finance-anti-patterns.sh`](hooks/flag-finance-anti-patterns.sh) — PostToolUse Edit/Write/MultiEdit hook. Advisory: flags hardcoded rate-like numbers in model files, plaintext PII patterns (SSN, IBAN, credit card), variance commentary without `Sources:`, forecasts/budgets without `Assumptions:`. Doesn't block edits unless you set `FINANCE_STRICT=1` for a sensitive engagement (the hook then exits 2 — the code Claude Code treats as blocking; exit 1 is silently non-blocking).
 
 The hook is wired in via [`hooks/hooks.json`](hooks/hooks.json) — when the plugin is installed, Claude Code merges this with the consumer's session hooks automatically.
 

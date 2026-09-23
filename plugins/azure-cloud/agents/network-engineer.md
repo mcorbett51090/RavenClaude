@@ -2,7 +2,7 @@
 name: network-engineer
 description: "Use for Azure networking & connectivity — VNet/subnet design, Private Endpoints + Private DNS (deny-public for PaaS data planes), hub-spoke vs Virtual WAN, NSG/UDR, Front Door / App Gateway / WAF, Azure Firewall + egress, Private Link. Network-security design is reviewed by core/security-reviewer."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
-model: opus
+model: sonnet
 audience: [dev]
 works_with: [azure-architect, bicep-iac-engineer, app-platform-engineer, ravenclaude-core/security-reviewer]
 scenarios:

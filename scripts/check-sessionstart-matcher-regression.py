@@ -70,13 +70,16 @@ _SOURCE_HOOKS = frozenset(
         "thing-denial-kb-recall.sh",
         "dashboard-autostart.sh",
         "caveman-route-hook.sh",
+        "oath-hook.sh",
+        "plugin-lifecycle-sweep.sh",
+        "alias-deprecation-advisory.sh",
     }
 )
 _COMPACT_HOOK = "compact-anchor.sh"
 
 # The full canonical SessionStart hook set, across ALL matcher lanes (the
 # `startup|resume|clear|fork` group, the `startup`-only group, and the
-# `compact` group) -- 9 hooks as of this writing, read directly off
+# `compact` group) -- 11 hooks as of this writing, read directly off
 # hooks.json's own SessionStart block (see check_a_canonical_matcher's
 # _SOURCE_HOOKS/_COMPACT_HOOK, which only cover two of the three groups).
 _HANDOFF_HOOK = "handoff-successor-ack.sh"
@@ -227,7 +230,7 @@ _WIRED_SET_LEDGER = {
         # generate-codex-hooks.py's SessionStart lane is a full derivation off
         # hooks.json's own SessionStart block (Phase 4, sessionstart-safeguards-
         # multihost) -- unlike copilot-cli/cursor/gemini, it has NO _SKIP entry
-        # for any of the 9 SessionStart-lane hooks (its ~25 _SKIP entries are all
+        # for any of the 10 SessionStart-lane hooks (its ~25 _SKIP entries are all
         # PreToolUse/PostToolUse/Stop/other-event hooks, deliberately out of this
         # generator's SessionStart-only scope) -- required is the full canonical
         # set, same as claude-code/copilot-cli/cursor.

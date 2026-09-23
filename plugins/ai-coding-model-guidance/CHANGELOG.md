@@ -7,6 +7,11 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.3.19] — 2026-09-20
+
+### Changed
+- **DOC adapt (UNVERIFIED):** Copilot auto-tiers efficiency/balance/intelligence mapped to decision-tree leaves ([verify-at-use · coding-factory ADAPT P0]).
+
 ## [0.3.18] — 2026-08-31
 
 Scheduled research-routine sweep (17 days since 0.3.15) — folded into

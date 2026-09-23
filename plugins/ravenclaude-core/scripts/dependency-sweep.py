@@ -452,6 +452,8 @@ def classify(findings: list[Finding], changelog_text: str, new_version: str | No
     return [classify_one(f, changelog_text, new_version) for f in findings]
 
 
+_VERSION_HISTORY_CAP = 200
+
 _PRIORITY_ORDER = {"P0": 0, "P1": 1, "P2": 2, "P3": 3}
 
 
@@ -896,6 +898,36 @@ def apply_mechanical(
     }
 
 
+def _fingerprint_path(root: Path) -> Path:
+    return root / "plugins" / "ravenclaude-core" / "knowledge" / "host-version-fingerprint.json"
+
+
+def read_last_swept_version(root: Path, host_id: str) -> str | None:
+    """Read-only lookup of the CURRENT `last_swept_version` for `host_id`,
+    used by `apply` to auto-resolve `--old-version` when the caller omits it
+    (mitigation A: `apply` previously never consulted its own state file, so
+    an invoker who forgot to read the fingerprint first got a silently wrong
+    `changed` bool — this closes that gap at the source). Never raises;
+    returns None on any absent/unparseable file, absent host, or a null/empty
+    stored value — every failure mode collapses to "no prior version known,"
+    the same honest default as a never-swept host.
+    """
+    fp_path = _fingerprint_path(root)
+    try:
+        with fp_path.open("r", encoding="utf-8") as f:
+            fp = json.load(f)
+    except (OSError, json.JSONDecodeError, ValueError):
+        return None
+    hosts = fp.get("hosts")
+    if not isinstance(hosts, dict):
+        return None
+    entry = hosts.get(host_id)
+    if not isinstance(entry, dict):
+        return None
+    v = entry.get("last_swept_version")
+    return v if isinstance(v, str) and v else None
+
+
 def update_fingerprint(root: Path, host_id: str, new_version: str, changed: bool, tool_version: str = "v1") -> bool:
     """Phase 4 step 5: record that this host was swept — IN THE SAME `apply`
     call as any content fixes/verifications it reports on (mitigation 2),
@@ -905,11 +937,25 @@ def update_fingerprint(root: Path, host_id: str, new_version: str, changed: bool
     when `changed` is True, so a future SessionStart nudge can distinguish a
     real delta from a routine confirmation (the `last_checked_at`/
     `last_change_detected_at` split named in plan.md §4's folded-in note).
+
+    Also appends to `version_history` (mitigation B) — an append-only log of
+    the DISTINCT versions this host has been swept at, each stamped with the
+    date it was first recorded. Deliberately NOT a log of every check: a
+    "confirmed still on X" run (changed=False) never appends a duplicate —
+    `last_checked_at` already carries that signal. An entry lands only when
+    the host has no history yet (its first-ever sweep) or the version
+    genuinely differs from the most recent history entry, so the log reflects
+    real transitions, one row per version, not one row per run. Capped at
+    `_VERSION_HISTORY_CAP` (oldest dropped first) as a defensive bound, not a
+    queue — real hosts bump on the order of once a month, so the cap is not
+    expected to bind in practice, but an unbounded per-sweep-run list is the
+    wrong shape to leave unguarded.
+
     Returns True on success, False on any read/write/schema failure (the
     caller decides whether that's fatal — apply's other outcomes still hold
     even if the fingerprint write itself fails).
     """
-    fp_path = root / "plugins" / "ravenclaude-core" / "knowledge" / "host-version-fingerprint.json"
+    fp_path = _fingerprint_path(root)
     try:
         with fp_path.open("r", encoding="utf-8") as f:
             fp = json.load(f)
@@ -927,6 +973,17 @@ def update_fingerprint(root: Path, host_id: str, new_version: str, changed: bool
     if changed:
         entry["last_change_detected_at"] = today
     entry["written_by"] = f"dependency-sweep.py {tool_version}"
+
+    history = entry.get("version_history")
+    if not isinstance(history, list):
+        history = []
+    last_recorded = history[-1].get("version") if history and isinstance(history[-1], dict) else None
+    if not history or last_recorded != new_version:
+        history.append({"version": new_version, "recorded_at": today})
+    if len(history) > _VERSION_HISTORY_CAP:
+        history = history[-_VERSION_HISTORY_CAP:]
+    entry["version_history"] = history
+
     hosts[host_id] = entry
     try:
         with fp_path.open("w", encoding="utf-8") as f:
@@ -1071,6 +1128,96 @@ def _self_test_apply() -> int:
         check("update-fingerprint-no-changed-at-when-unchanged", fp_after2["hosts"]["codex"]["last_change_detected_at"] is None)
         check("update-fingerprint-still-sets-checked-at-when-unchanged", fp_after2["hosts"]["codex"]["last_checked_at"] is not None)
 
+        # 7d. read_last_swept_version — mitigation A's fallback source.
+        check("read-last-swept-existing-host", read_last_swept_version(scratch, "copilot") == "1.0.70")
+        check("read-last-swept-absent-host", read_last_swept_version(scratch, "not-a-host") is None)
+        scratch_no_fp = Path(tempfile.mkdtemp(prefix="depsweep-no-fp-"))
+        try:
+            check("read-last-swept-absent-file", read_last_swept_version(scratch_no_fp, "copilot") is None)
+        finally:
+            shutil.rmtree(scratch_no_fp, ignore_errors=True)
+
+        # 7e. version_history — mitigation B: one entry per DISTINCT version,
+        # never a duplicate for a plain re-confirmation.
+        check("version-history-first-entry", fp_after["hosts"]["copilot"]["version_history"] == [
+            {"version": "1.0.70", "recorded_at": fp_after["hosts"]["copilot"]["last_checked_at"]}
+        ])
+        update_fingerprint(scratch, "copilot", "1.0.70", changed=False)  # re-confirm, same version
+        fp_after3 = json.loads(fp_path.read_text())
+        check("version-history-no-dup-on-reconfirm", len(fp_after3["hosts"]["copilot"]["version_history"]) == 1)
+        update_fingerprint(scratch, "copilot", "1.0.83", changed=True)  # real transition
+        fp_after4 = json.loads(fp_path.read_text())
+        hist = fp_after4["hosts"]["copilot"]["version_history"]
+        check("version-history-appends-on-transition", len(hist) == 2 and hist[-1]["version"] == "1.0.83")
+
+        # 7f. version_history cap — oldest dropped first, never grows past
+        # _VERSION_HISTORY_CAP (defensive bound, not a queue).
+        for i in range(_VERSION_HISTORY_CAP + 5):
+            update_fingerprint(scratch, "codex", f"9.9.{i}", changed=True)
+        fp_after5 = json.loads(fp_path.read_text())
+        codex_hist = fp_after5["hosts"]["codex"]["version_history"]
+        check("version-history-cap-enforced", len(codex_hist) == _VERSION_HISTORY_CAP)
+        check("version-history-cap-drops-oldest-first", codex_hist[-1]["version"] == f"9.9.{_VERSION_HISTORY_CAP + 4}")
+
+        # 7g. _cmd_apply auto-resolves --old-version from the fingerprint when
+        # the caller omits it, and reports WHERE the value came from
+        # (old_version_source: cli | fingerprint | none) so a report never
+        # silently claims a comparison it didn't actually make.
+        import contextlib
+        import io as _io
+        import types as _types
+
+        scratch2 = Path(tempfile.mkdtemp(prefix="depsweep-cmdapply-selftest-"))
+        try:
+            fp2_dir = scratch2 / "plugins" / "ravenclaude-core" / "knowledge"
+            fp2_dir.mkdir(parents=True)
+            (fp2_dir / "host-version-fingerprint.json").write_text(json.dumps({
+                "schema_version": 1,
+                "hosts": {
+                    "gemini": {"last_swept_version": "0.50.0", "last_checked_at": "2026-01-01",
+                               "last_change_detected_at": None, "written_by": None},
+                    "aider": {"last_swept_version": None, "last_checked_at": None,
+                              "last_change_detected_at": None, "written_by": None},
+                },
+            }))
+            cmap_path = scratch2 / "cmap.json"
+            cmap_path.write_text(json.dumps({"host": "gemini", "findings": [], "_meta": {"skipped_surfaces": []}}))
+
+            def run_apply(host: str, old_version: str | None, new_version: str) -> dict:
+                ns = _types.SimpleNamespace(
+                    host=host, old_version=old_version, new_version=new_version,
+                    citation_map=str(cmap_path), changelog=None, root=str(scratch2),
+                    sweep_id="selftest-cmdapply", yes=True,
+                )
+                buf = _io.StringIO()
+                with contextlib.redirect_stdout(buf):
+                    _cmd_apply(ns)
+                return json.loads(buf.getvalue())
+
+            r_fp = run_apply("gemini", None, "0.59.0")
+            check("cmd-apply-omitted-old-version-uses-fingerprint", r_fp["old_version"] == "0.50.0")
+            check("cmd-apply-old-version-source-fingerprint", r_fp["old_version_source"] == "fingerprint")
+
+            r_cli = run_apply("gemini", "0.10.0", "0.59.0")
+            check("cmd-apply-explicit-old-version-wins-over-fingerprint", r_cli["old_version"] == "0.10.0")
+            check("cmd-apply-old-version-source-cli", r_cli["old_version_source"] == "cli")
+
+            cmap_path2 = scratch2 / "cmap-aider.json"
+            cmap_path2.write_text(json.dumps({"host": "aider", "findings": [], "_meta": {"skipped_surfaces": []}}))
+            ns_never = _types.SimpleNamespace(
+                host="aider", old_version=None, new_version="0.86.2",
+                citation_map=str(cmap_path2), changelog=None, root=str(scratch2),
+                sweep_id="selftest-cmdapply", yes=True,
+            )
+            buf2 = _io.StringIO()
+            with contextlib.redirect_stdout(buf2):
+                _cmd_apply(ns_never)
+            r_never = json.loads(buf2.getvalue())
+            check("cmd-apply-never-swept-source-none", r_never["old_version_source"] == "none")
+            check("cmd-apply-never-swept-old-version-empty", r_never["old_version"] == "")
+        finally:
+            shutil.rmtree(scratch2, ignore_errors=True)
+
         # 8. write_queue: files actually land on disk
         classified_q = [
             ClassifiedFinding(
@@ -1099,20 +1246,40 @@ def _cmd_apply(args: argparse.Namespace) -> int:
     killed = apply_is_killswitched(root)
     if killed:
         print("dependency_update_sweep.apply: off — forced dry-run", file=sys.stderr)
+
+    # Mitigation A: `--old-version` is optional. When the caller omits it,
+    # fall back to the fingerprint's OWN currently-recorded `last_swept_version`
+    # for this host, rather than silently treating "omitted" as "no prior
+    # version" (the bug this fixes: `changed` used to always come out False on
+    # an omitted flag, even when a real prior version was sitting right there
+    # in the state file this same command is about to overwrite).
+    if args.old_version:
+        old_version = args.old_version
+        old_version_source = "cli"
+    else:
+        fingerprint_old = read_last_swept_version(root, args.host)
+        if fingerprint_old:
+            old_version = fingerprint_old
+            old_version_source = "fingerprint"
+        else:
+            old_version = ""
+            old_version_source = "none"  # genuinely never swept before
+
     citation_map = json.loads(Path(args.citation_map).read_text())
     findings = [Finding(**f) for f in citation_map["findings"]]
     changelog_text = Path(args.changelog).read_text() if args.changelog else ""
     classified = classify(findings, changelog_text, args.new_version)
     report = apply_mechanical(
-        root, classified, args.host, args.old_version or "", args.new_version or "",
+        root, classified, args.host, old_version, args.new_version or "",
         dry_run=killed or not args.yes,
     )
+    report["old_version_source"] = old_version_source
     primary, overflow = build_queue(classified)
     queue_paths = write_queue(root, primary, overflow, args.sweep_id or "dependency-sweep-latest", args.host)
     report["queue"] = queue_paths
     real_run = not (killed or not args.yes)
     if real_run and args.new_version:
-        changed = bool(args.old_version and args.old_version != args.new_version)
+        changed = bool(old_version and old_version != args.new_version)
         report["fingerprint_updated"] = update_fingerprint(root, args.host, args.new_version, changed)
     else:
         report["fingerprint_updated"] = False
@@ -1148,7 +1315,10 @@ def main(argv: list[str] | None = None) -> int:
 
     p_apply = sub.add_parser("apply")
     p_apply.add_argument("--host", required=True)
-    p_apply.add_argument("--old-version", required=False)
+    p_apply.add_argument(
+        "--old-version", required=False,
+        help="defaults to host-version-fingerprint.json's current last_swept_version for this host when omitted",
+    )
     p_apply.add_argument("--new-version", required=False)
     p_apply.add_argument("--citation-map", required=True)
     p_apply.add_argument("--changelog", required=False)

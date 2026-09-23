@@ -236,3 +236,46 @@ and that surface is not yet worth the risk.
 Any row above marked `[inferred]` must be verified before it is built on. The rest were read from
 the linked source on 2026-07-28. If Codex changes its hook contract, this file — not a Copilot doc —
 is the thing to update.
+
+
+---
+
+## Codex 0.155 — Agents overview, managed worktrees, daemon goal recovery
+[verify-at-use · angle release-codex-0.155.0 · UNVERIFIED]
+
+### Agents overview lifecycle
+- Overview supports **hide / archive / delete** for tasks (codex rust-v0.155.0).
+- Deletion of **clean managed worktrees** is confirmed in-product — treat as
+  Codex-managed lifecycle, not a substitute for RavenClaude `cleanup-worktrees`
+  (Sleipnir / `.claude/worktrees/` hygiene).
+- Show **worktree ownership** details before destructive overview actions.
+- Multi-harness note: Grok bots | Cursor | Claude | SuperGrok — this section
+  applies only when the active host is Codex.
+
+### Worktree ownership (host-adapter)
+- Codex **managed worktrees** are owned by the Codex agents overview / app-server
+  daemon lane.
+- RavenClaude `new-worktree` / `cleanup-worktrees` skills own **RC agent**
+  worktrees under the Sleipnir convention.
+- ⛔ Do not `git worktree remove` a Codex-managed tree from an RC skill unless
+  overview ownership shows it is already released / clean and the operator
+  confirmed — prefer the overview's confirmed delete path for managed trees.
+- FOREIGN-TREE / `worktree-guard.sh` posture in this file remains in force.
+
+### Daemon update schedules + goal recovery
+- Daemon update schedules are configurable; `codex app-server daemon update`
+  is the operator verb `[verify-at-use]`.
+- After daemon restart: **saved threads** and active **goals** are expected to
+  recover (0.155.0). Operators should verify goal continuity before re-spawning
+  duplicate goal workers.
+- Do not encode "goals always survive forever" as a hard SLA — classify
+  UNVERIFIED until measured on the consumer daemon.
+
+### Guardian approval evidence — KEEP (do not weaken)
+- Compare KEEP: Guardian approval reviews preserve complete actions +
+  authorization evidence more reliably; distinguish review failures from
+  unsafe-action findings.
+- Host-adapter patches for overview/worktrees/daemon **must not** relax
+  Guardian evidence requirements, retry semantics, or fail-closed review
+  failure handling.
+

@@ -2,9 +2,9 @@
 
 **Slug:** `partner-success-command-center` · **Depth:** quick → expand · **Date:** 2026-06-04 · **Route:** stays local (pending G7)
 
-**Source:** verbatim spec at [`docs/research/2026-06-04-partner-success-dashboard-requirements/spec.md`](../../research/2026-06-04-partner-success-dashboard-requirements/spec.md) (Matt's wife, real PSM, edtech).
+**Source:** verbatim spec at [`docs/research/2026-06-04-partner-success-dashboard-requirements/spec.md`](../../../research/2026-06-04-partner-success-dashboard-requirements/spec.md) (Matt's wife, real PSM, edtech).
 
-**Substrate inventory:** mapped in [`docs/research/2026-06-04-partner-success-dashboard-requirements/cross-references.md`](../../research/2026-06-04-partner-success-dashboard-requirements/cross-references.md). Home plugin: `plugins/edtech-partner-success/`. Connector layer: `plugins/data-platform/`. Design-layer consultee (when shipped): `data-viz-designer` (in flight per `project_data_viz_designer_in_flight` memory).
+**Substrate inventory:** mapped in [`docs/research/2026-06-04-partner-success-dashboard-requirements/cross-references.md`](../../../research/2026-06-04-partner-success-dashboard-requirements/cross-references.md). Home plugin: `plugins/edtech-partner-success/`. Connector layer: `plugins/data-platform/`. Design-layer consultee (when shipped): `data-viz-designer` (in flight per `project_data_viz_designer_in_flight` memory).
 
 **Companion build artifacts (for a credit-budget Codex desktop build):**
 
@@ -38,7 +38,7 @@ This serves three audiences in priority order:
 | # | Decision | Choice | Why | Alternatives kept on record |
 |---|---|---|---|---|
 | **S1** | Rendering platform | **v0: extend the `bi-report/` static pattern** (one JSON contract, regenerated `report.html`); **v1: Evidence** (SQL-on-warehouse, deployable as static or behind an auth proxy); **v2 only-if-needed: real React + Tremor** | v0 ships value tonight using the existing `scripts/generate-bi-report.py` plumbing; v1 unlocks dynamic filters / dates / drill-downs without inventing a backend. Evidence runs on Snowflake natively and has the lowest deploy ceremony of the three real-app options. | Superset (auth + caching but heavier); Metabase (similar tradeoff); Cube + custom React (max flexibility, max ceremony — wait for real ask). |
-| **S2** | Identity spine | **Salesforce Account ID as the canonical `account_uid`**, every other system joined via `bridge_account_xref` per [`plugins/data-platform/skills/cross-system-identity-resolution/SKILL.md`](../../../plugins/data-platform/skills/cross-system-identity-resolution/SKILL.md). Planhat: `externalId == SFDC Account ID` (per `planhat-integration.md`). | SFDC is already the contracted system of record for the PSM org. Planhat's external-id convention makes the spine zero-cost. The `cross-system-identity-resolution` SKILL is in-plugin and already authored for this exact problem shape. | Email-domain as primary (drifts on M&A); name-similarity (false-positive prone); per-source IDs only (no cross-system joins). |
+| **S2** | Identity spine | **Salesforce Account ID as the canonical `account_uid`**, every other system joined via `bridge_account_xref` per [`plugins/data-platform/skills/cross-system-identity-resolution/SKILL.md`](../../../../plugins/data-platform/skills/cross-system-identity-resolution/SKILL.md). Planhat: `externalId == SFDC Account ID` (per `planhat-integration.md`). | SFDC is already the contracted system of record for the PSM org. Planhat's external-id convention makes the spine zero-cost. The `cross-system-identity-resolution` SKILL is in-plugin and already authored for this exact problem shape. | Email-domain as primary (drifts on M&A); name-similarity (false-positive prone); per-source IDs only (no cross-system joins). |
 | **S3** | Priority Score rubric | **9-signal weighted average normalized 0-100, weights config-driven** in `bi-report/data.json` `priority_weights{}`. Wife tunes via direct JSON edit (v0) or a small admin pane (v1). Each "today's top accounts" row carries the **per-signal contribution breakdown** inline (Rule 4: "Cite the signal"). | Spec enumerates the 9 inputs but not the weights — making weights config-driven keeps the rubric tunable without code change. Per-signal breakdown closes Rule 4 *by construction*, not by discipline. | Hardcoded rubric (locks in opinion); Planhat-native score (vendor-tied); ML model (premature — no training data + no obvious target). |
 
 ---
@@ -79,7 +79,7 @@ Each tier ships independently. Tier 0 is foundational and MUST precede every oth
 **New plugin assets:**
 - `plugins/edtech-partner-success/bi-report/data.schema.json`
 - `plugins/edtech-partner-success/bi-report/synthesize.py`
-- `plugins/edtech-partner-success/knowledge/dashboard-identity-spine.md` (extends [`plugins/data-platform/skills/cross-system-identity-resolution/SKILL.md`](../../../plugins/data-platform/skills/cross-system-identity-resolution/SKILL.md))
+- `plugins/edtech-partner-success/knowledge/dashboard-identity-spine.md` (extends [`plugins/data-platform/skills/cross-system-identity-resolution/SKILL.md`](../../../../plugins/data-platform/skills/cross-system-identity-resolution/SKILL.md))
 - `plugins/edtech-partner-success/knowledge/dashboard-priority-score-rubric.md`
 
 **Agents:** `data-engineer` (primary — schema + synthesize.py), `learning-analytics-analyst` (primary — score rubric + signal selection), `architect` (schema review), `security-reviewer` (FERPA — synthetic data must be FERPA-safe by construction).

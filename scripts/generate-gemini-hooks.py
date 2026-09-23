@@ -89,6 +89,19 @@ _SKIP = {
         "blocks, so the cost of the gap is one un-nudged prompt, not lost "
         "enforcement."
     ),
+    "prompt-optimizer-gate.sh": (
+        "UserPromptSubmit — same unverified lifecycle mapping as "
+        "stream-prompt-attribute.sh above. Ships prompt_optimizer.enabled: false "
+        "by default, is fail-open on every error path, and only ever ADDS "
+        "advisory additionalContext — never blocks — so the cost of the gap is "
+        "one un-augmented prompt on Gemini, not lost enforcement."
+    ),
+    "plugin-lifecycle-telemetry.sh": (
+        "UserPromptSubmit (slash bumps) has no Gemini lane; PostToolUse matchers "
+        "Skill and Agent|Task have no Gemini tool equivalents in _TOOL_TO_GEMINI — "
+        "Claude Code telemetry only. SessionStart sweep remains wired via "
+        "plugin-lifecycle-sweep.sh."
+    ),
     "dod-gate.sh": (
         "Stop. Gemini's AfterAgent/SessionEnd are plausible counterparts but "
         "unverified; a definition-of-done gate that fires on the wrong lifecycle "
@@ -98,6 +111,14 @@ _SKIP = {
     "stream-session-close.sh": ("Stop — same unverified lifecycle mapping."),
     "thing-denial-kb-sync.sh": ("Stop — same unverified lifecycle mapping."),
     "handoff-nudge.sh": ("Stop — same unverified lifecycle mapping as dod-gate.sh."),
+    "workaround-exhaustion.sh": (
+        "Two lanes, neither reachable here: the PreToolUse lane matches "
+        "AskUserQuestion, a Claude Code tool with no Gemini equivalent (same as "
+        "route-decision-review.sh); the Stop lane is the same unverified lifecycle "
+        "mapping as dod-gate.sh AND reads last_assistant_message off Claude Code's "
+        "Stop payload, without which it is silent by construction. Projecting it "
+        "would register a no-op that reads as coverage."
+    ),
     "handoff-successor-ack.sh": (
         "SessionStart startup handshake (file write). Gemini SessionStart "
         "payload/matcher names are unverified; a wrong-event ack would lie."
@@ -290,6 +311,13 @@ def main(argv: list) -> int:
         missing = canonical - accounted
         if missing:
             print(f"gemini-hooks: NOT accounted for: {sorted(missing)}", file=sys.stderr)
+            return 1
+        stale = set(_SKIP) - canonical
+        if stale:
+            print(
+                f"gemini-hooks: the skip map names hooks that no longer exist: {sorted(stale)}",
+                file=sys.stderr,
+            )
             return 1
         if not any(ev == "BeforeTool" for _, _, ev, _ in wired):
             print(

@@ -110,7 +110,21 @@ def _curl_config(sink: dict, title: str, body: str, cfg: dict) -> str:
         lines.append('header = "Title: %s"' % title)
         lines.append('header = "Priority: high"')
         lines.append('header = "Tags: warning"')
-        lines.append('data = "%s"' % body.replace('\\', '\\\\').replace('"', '\\"'))
+        # body can contain literal LFs (build_message joins alert lines with
+        # "\n"). curl's --config parser requires a quoted value to close on
+        # the same physical line, so a raw newline here would break out of
+        # the quoted "data = ..." value mid-document. Escape backslash/quote
+        # first, then convert real newlines/carriage returns to the curl
+        # config file's own \n/\r escape sequences (curl's parseconfig
+        # supports \\, \", \t, \n, \r, \v inside a double-quoted value).
+        escaped_body = (
+            body.replace('\\', '\\\\')
+            .replace('"', '\\"')
+            .replace('\r\n', '\\n')
+            .replace('\n', '\\n')
+            .replace('\r', '\\r')
+        )
+        lines.append('data = "%s"' % escaped_body)
     return "\n".join(lines) + "\n"
 
 

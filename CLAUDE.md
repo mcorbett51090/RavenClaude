@@ -25,7 +25,7 @@ The capability chain (last verified 2026-07-06):
 | **GitHub MCP server** (`mcp__github__*`) | ⚠️ not connected 2026-07-06 | `ToolSearch` for `github`/`pull_request` returned **no** github tools this session (the "dynamic client registration" auth path failed earlier). Was the sanctioned path on 2026-06-11. |
 | `git push` | ✅ (push only) | Remote is a local git proxy (`http://local_proxy@127.0.0.1:<port>/git/mcorbett51090/RavenClaude`) forwarding to github.com. |
 
-**Recommended order (2026-07-06):** **probe first**, then use whatever works this session. On 2026-07-06 the fastest path was `gh`: `gh pr create --base main --head <branch> --title … --body-file …`, then `gh pr merge <n> --auto --squash` (arms auto-merge — it lands the instant CI is green), prefixing `GH_TOKEN="${GITHUB_TOKEN}"` if `gh` isn't already authed. If `gh` is absent/403s this session, fall back to the **GitHub MCP server** (`mcp__github__create_pull_request`, loaded via `ToolSearch` first). Don't hard-code either as "the" path — the two `❌`→`✅` flips above are why.
+**Recommended order (2026-07-06):** **probe first**, then use whatever works this session. On 2026-07-06 the fastest path was `gh`: `gh pr create --base main --head <branch> --title … --body-file …`, then merge (prefixing `GH_TOKEN="${GITHUB_TOKEN}"` if `gh` isn't already authed). ⚠️ **The `gh pr merge <n> --auto --squash` this line originally recommended is superseded — see the 2026-09-03 correction below: repo-level auto-merge is OFF and `--auto` fails outright.** Watch checks explicitly (`gh pr checks <n> --watch --interval 15`) then merge with a plain `gh pr merge <n> --squash` once everything reports `pass`. If `gh` is absent/403s this session, fall back to the **GitHub MCP server** (`mcp__github__create_pull_request`, loaded via `ToolSearch` first). Don't hard-code either as "the" path — the two `❌`→`✅` flips above are why.
 
 > **⛔ Dated correction (2026-09-03): repo-level auto-merge is OFF, deliberately — the line above is stale.** `gh pr merge <n> --auto --squash` now fails outright with `GraphQL: Auto merge is not allowed for this repository (enablePullRequestAutoMerge)`. Confirmed this is the **intended** state, not a regression to fix — do not re-enable it in repo settings without being asked. The working replacement: after `gh pr create`, watch checks explicitly (`gh pr checks <n> --watch --interval 15`, backgrounded — it can run several minutes) and merge with a plain `gh pr merge <n> --squash` once everything reports `pass`. `gh pr checks --watch` can occasionally miss a run that was still being created seconds after push and report "no checks reported" — re-run it rather than concluding CI never fired; cross-check with `gh run list --branch <branch> --json headSha,status` against the current `gh pr view <n> --json headRefOid` if in doubt.
 
@@ -100,6 +100,8 @@ Two registration paths exist, **both required**:
 
 Both wirings call idempotent scripts, but the two paths *do* fire on the same events when both are active. This is intentional during dev. To migrate to plugin-only, the maintainer would need to either (a) launch Claude Code with `claude --plugin-dir ./plugins/ravenclaude-core` (per the Create-plugins doc), or (b) run `/plugin marketplace update ravenclaude` after every commit and accept the cached-copy lag. The dev-mirror block is the pragmatic choice.
 
+> **The cached copy does not refresh on an equal version string** (observed 2026-09-15, Claude Code 2.1.271). `claude plugin update ravenclaude-core@ravenclaude` compares the catalog `version` to the installed one and reports *"already at the latest version"* when they match — it never looks at content. So if `plugin.json` was bumped **before** the last edits (the normal order in a multi-commit pass), `/reload-plugins` and `plugin update` both leave the stale cache in place; `diff -rq ~/.claude/plugins/cache/ravenclaude/ravenclaude-core/<version> plugins/ravenclaude-core` showed six differing files, including the hook script under test. `claude plugin install` has no force flag. **The refresh that works:** `claude plugin uninstall ravenclaude-core@ravenclaude && claude plugin install ravenclaude-core@ravenclaude`, then re-run that `diff -rq` and expect zero differing files (lines starting `Only in` are fine — they are gitignored artifacts). Or sidestep the cache entirely with `--plugin-dir`, as in (a). This is the marketplace-dev case only; a consumer's `/plugin marketplace update` sees a new version string on every release and is unaffected.
+
 If you need a marketplace-only hook (i.e., one that should NOT ship to consumers), add it to `.claude/settings.json` under `hooks` separately from the dev-mirror block above.
 
 ### Notification channel (marketplace-only) — added 2026-06-23
@@ -115,6 +117,12 @@ This repo's scheduled routines run unattended on Claude Code on the web, where t
 
 The curl is bounded (`--connect-timeout 5 -m 10`) so a slow/blocked sink can never stall a session, and a missing `curl`/`jq` or network failure is swallowed. **This is the stand-in for `PushNotification`; if a managed push tool is present in a given environment, prefer it and treat this as the durable fallback record.**
 
+### Plugin-durability bootstrap (marketplace-only) — added 2026-09-09
+
+Some remote/web sessions run in a container that is **ephemeral** — reclaimed after inactivity and re-cloned fresh next time — so `claude plugin install`'s user-scope state (`~/.claude.json`) does not survive across sessions in that environment. [`scripts/ensure-plugin-installed.sh`](scripts/ensure-plugin-installed.sh) closes that gap the same way `scripts/notify.sh` closes the push-notification gap: a **marketplace-only** hook (deliberately **not** in any plugin's `hooks.json`, so it never ships to consumers — installing "ravenclaude pointing at itself" only makes sense inside this marketplace's own dev/orchestration environment), registered as a `SessionStart` hook (`startup`-only lane) in `.claude/settings.json`.
+
+It idempotently re-wires the `ravenclaude` marketplace plus `ravenclaude-core`/`devops-cicd`/`api-engineering`/`team-portfolio` at every fresh container startup, resolving the checkout path dynamically via `$CLAUDE_PROJECT_DIR` (never a baked-in absolute path — a committed `--scope project` marketplace declaration was tried and rejected: it reformats the whole `.claude/settings.json` file, dropping every hook's `comment` field, and bakes in one container's absolute path). Fast-paths to a no-op once everything is already installed; fail-safe, never blocks `SessionStart`, always exits 0.
+
 ## Layout enforcement (Claude Code path)
 
 The plugin's `hooks/enforce-layout.sh` runs `PreToolUse` on `Write|Edit|MultiEdit`. It reads `.repo-layout.json` at the project root, matches the target path against `allowed_globs`, and denies off-pattern writes with a suggested correct location. The hook silently allows everything if `.repo-layout.json` is absent — so consumers who install the plugin without setting up a layout manifest are not surprised.
@@ -125,8 +133,9 @@ Why both: Claude Code issue [#23478](https://github.com/anthropics/claude-code/i
 
 ## Slash commands shipped by the plugin
 
-`ravenclaude-core` ships 9 slash commands (`plugins/ravenclaude-core/commands/`) — the full,
-gate-checked list is in [README.md](README.md)'s "What's in each plugin" table. One is worth calling
+`ravenclaude-core` ships its slash commands from `plugins/ravenclaude-core/commands/` — that
+directory is the authoritative list (one `*.md` per command), so the count is never restated here
+to go stale (owner decision D1: drop the count, don't sync it). One is worth calling
 out here because it's the marketplace-dev-facing setup path:
 
 - `/init-agent-ready` — guided setup: creates `AGENTS.md`, `CLAUDE.md`, `.repo-layout.json`, and optionally a CI workflow tailored to the consumer's repo type (application / library / monorepo / docs / data / IaC).

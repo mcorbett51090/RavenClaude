@@ -26,7 +26,7 @@ to the **first** project whose `match` covers it, by ANY of these rules:
 {
   "name": "Raven Power Website",
   "match": {
-    "repos": ["mcorbett51090/RavenPower-Website", "mcorbett51090/RavenPowerWebsite"],
+    "repos": ["mcorbett51090/RavenPower-Website"],
     "labels": ["website"],
     "title_prefixes": ["[web]"]
   }

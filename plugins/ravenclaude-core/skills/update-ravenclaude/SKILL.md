@@ -106,3 +106,7 @@ This is why a Copilot update is "just `git pull`" (the design pillar of the brid
 - `GETTING_STARTED.md` § "Updating RavenClaude (Copilot CLI)" — the consumer-facing copy of the Copilot flow.
 - `scripts/ravenclaude` — the `setup` / `install` / `update` / `status` subcommands.
 - `commands/reset-plugin-cache.md` — the disaster-recovery reset for a broken Claude Code cache.
+
+## Related: plugin lifecycle
+
+Routine refresh is marketplace update + `/reload-plugins` (this skill). Per-project last-used tracking / deprecate notices live under comfort-posture `plugin_lifecycle:` — see `knowledge/concepts/plugin-lifecycle.md`. Do **not** use `/reset-plugin-cache` (/ragnarok) for routine cleanup or install.

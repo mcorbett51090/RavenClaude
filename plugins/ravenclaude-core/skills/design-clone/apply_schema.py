@@ -209,7 +209,10 @@ def _target_tokens(target_brand_kit: dict) -> dict:
                 return f.get("family")
         return None
 
-    heading = _css_font_safe(font_by_role("heading") or (fonts[0].get("family") if fonts else None))
+    heading = _css_font_safe(
+        font_by_role("heading")
+        or (fonts[0].get("family") if fonts and isinstance(fonts[0], dict) else None)
+    )
     body = _css_font_safe(font_by_role("body") or heading)
     return {
         "primary": primary,

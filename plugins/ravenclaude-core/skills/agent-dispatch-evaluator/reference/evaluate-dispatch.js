@@ -94,7 +94,13 @@ async function loadDispatchConfig() {
     mode: "shadow",
     subagent_type_allowlist: ["Explore", "statusline-setup", "claude"],
     downgrade_blocked_types: [],
-    latency_circuit_breaker: { median_ms_threshold: 1500, window_size: 20 },
+    // NOTE: `_now()` above is a monotonic call-order ORDINAL, not wall-clock ms
+    // (the workflow runtime forbids Date.now()/new Date() — see the "Resume-safe
+    // time source" block at the top of this file). `median_ms_threshold` is
+    // therefore compared against that ordinal, never real milliseconds — its
+    // default is scaled to ordinal units (in-flight-dispatch-depth), not ms;
+    // an ms-scale value here (e.g. 1500) makes the breaker permanently dead.
+    latency_circuit_breaker: { median_ms_threshold: 8, window_size: 20 },
     tribunal_seat_mode: "shadow",
     async_mode: false,
   };
@@ -189,7 +195,10 @@ async function evaluateDispatch(
     const verdict = JSON.parse(raw.trim());
     // Validate minimum shape
     if (!verdict.verdict || !verdict.suggested_tier || !verdict.confidence) return null;
-    return { ...verdict, latency_ms: latency };
+    // NOT wall-clock ms — see the `_now()` ordinal note above. Named
+    // `latency_ordinal` (not `latency_ms`) so it is never mislabeled downstream
+    // (e.g. in the persisted audit log — see _appendAuditLog below).
+    return { ...verdict, latency_ordinal: latency };
   } catch (e) {
     return null; // fail-open
   }
@@ -287,10 +296,14 @@ async function evaluatedAgent(prompt, opts = {}, dispatchCfg) {
 
 // ─── Internal helpers ─────────────────────────────────────────────────────────
 
-function _trackLatency(latencyMs, dispatchCfg) {
-  const threshold = dispatchCfg?.latency_circuit_breaker?.median_ms_threshold ?? 1500;
+function _trackLatency(latencyOrdinal, dispatchCfg) {
+  // `median_ms_threshold` is compared against `_now()`'s ordinal output, NOT
+  // real wall-clock ms (see the `_now()` note near the top of this file) — the
+  // name is retained for dispatchCfg schema/backward-compat, but its default
+  // (and any override) is scaled to ordinal units, never literal milliseconds.
+  const threshold = dispatchCfg?.latency_circuit_breaker?.median_ms_threshold ?? 8;
   const windowSize = dispatchCfg?.latency_circuit_breaker?.window_size ?? 20;
-  _latency.window.push(latencyMs);
+  _latency.window.push(latencyOrdinal);
   if (_latency.window.length > windowSize) _latency.window.shift();
 
   const sorted = [..._latency.window].sort((a, b) => a - b);
@@ -298,7 +311,8 @@ function _trackLatency(latencyMs, dispatchCfg) {
   if (median > threshold && !_latency.tripped) {
     _latency.tripped = true;
     log(
-      `[dispatch-eval] LATENCY CIRCUIT-BREAKER TRIPPED: rolling median ${median}ms > ${threshold}ms. ` +
+      `[dispatch-eval] LATENCY CIRCUIT-BREAKER TRIPPED: rolling median ${median} > ${threshold} ` +
+        `(ordinal dispatch-depth units, NOT wall-clock ms — see _now() above). ` +
         `Session flipped to pass-through. (Emitting evaluator-latency-trip to hook-events.jsonl.)`,
     );
     // Surface the trip on the Heimdall perimeter panel. _emit_hook_event lives in
@@ -339,7 +353,9 @@ async function _appendAuditLog(envelope, verdict, applied, dispatchCfg) {
     confidence: verdict?.confidence ?? null,
     rationale_first120: (verdict?.rationale ?? "").slice(0, 120),
     applied,
-    latency_ms: verdict?.latency_ms ?? null,
+    // NOT wall-clock ms — see _now()'s ordinal note above; renamed from the
+    // prior `latency_ms` key so the persisted audit trail is never mislabeled.
+    latency_ordinal: verdict?.latency_ordinal ?? null,
   });
 
   // Append via a pass-through agent() call (skip marker prevents re-evaluation).

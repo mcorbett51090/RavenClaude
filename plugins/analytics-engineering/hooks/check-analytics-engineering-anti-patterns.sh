@@ -16,7 +16,28 @@ if [[ -z "$file" ]] && [[ ! -t 0 ]] && command -v jq >/dev/null 2>&1; then
   fi
 fi
 [ -z "$file" ] && exit 0
-[ ! -f "$file" ] && exit 0
+# --- proposed-edit scan target (repo-review 2026-09-23) ----------------------
+# At PreToolUse the write has NOT landed: the on-disk file is the PRE-edit state
+# (or absent for a new-file Write), so grepping "$file" misses the very content
+# this hook exists to catch. Build the scan target from the tool payload —
+# .tool_input.content (Write) / .tool_input.new_string (Edit) /
+# .tool_input.edits[].new_string (MultiEdit) — and scan THAT. The on-disk file is
+# used only as a legacy fallback for a manual, no-stdin invocation (payload unset).
+# (Fix propagated from data-platform/hooks/flag-data-platform-smells.sh, 2026-09-03.)
+scan_target="$file"
+if [ -n "${payload:-}" ] && command -v jq >/dev/null 2>&1; then
+  _rc_proposed="$(printf '%s' "$payload" | jq -r '[.tool_input.content // empty, .tool_input.new_string // empty, ((.tool_input.edits // [])[]?.new_string // empty)] | map(select(. != "")) | join("\n")' 2>/dev/null || true)"
+  if [ -n "$_rc_proposed" ]; then
+    _rc_scan_tmp="$(mktemp 2>/dev/null || true)"
+    if [ -n "$_rc_scan_tmp" ]; then
+      printf '%s\n' "$_rc_proposed" > "$_rc_scan_tmp"
+      scan_target="$_rc_scan_tmp"
+      trap 'rm -f "$_rc_scan_tmp"' EXIT
+    fi
+  fi
+fi
+[ -z "$scan_target" ] && exit 0
+[ ! -f "$scan_target" ] && exit 0
 
 # Stock-toolchain portability: `grep -P` (PCRE) is a GNU extension — BSD/macOS grep exits
 # 2, which inside `if grep -Pzi ...; then` reads as NO MATCH, so these checks silently
@@ -32,13 +53,13 @@ command -v _rc_pcre_match >/dev/null 2>&1 || _rc_pcre_match() {
 }
 
 findings=()
-if grep -nEi "\\bfrom\\s+(raw|source|prod)\\.[a-z_]+\\.[a-z_]+|\\bfrom\\s+`[^`]+\\.[^`]+`" "$file" >/dev/null 2>&1; then
+if grep -nEi "\\bfrom\\s+(raw|source|prod)\\.[a-z_]+\\.[a-z_]+|\\bfrom\\s+\`[^\`]+\\.[^\`]+\`" "$scan_target" >/dev/null 2>&1; then
   findings+=("Querying a raw/source table directly — use {{ source() }} (in staging) or {{ ref() }} for lineage; don't hardcode warehouse paths.")
 fi
-if _rc_pcre_match "$file" "materialized\\s*=\\s*['\\\"]incremental['\\\"](?![\\s\\S]{0,200}unique_key)"; then
+if _rc_pcre_match "$scan_target" "materialized\\s*=\\s*['\\\"]incremental['\\\"](?![\\s\\S]{0,200}unique_key)"; then
   findings+=("Incremental model without a unique_key nearby — incremental needs a reliable unique key or it drops/dups rows.")
 fi
-if grep -nEi "select\\s+\\*\\s+from\\s+\\{\\{\\s*ref" "$file" >/dev/null 2>&1; then
+if grep -nEi "select\\s+\\*\\s+from\\s+\\{\\{\\s*ref" "$scan_target" >/dev/null 2>&1; then
   findings+=("SELECT * from a ref in a mart — name columns to keep a stable contract and avoid surprise column drift.")
 fi
 

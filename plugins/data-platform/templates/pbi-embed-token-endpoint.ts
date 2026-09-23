@@ -61,18 +61,24 @@ function getMsalClient(): ConfidentialClientApplication {
 /**
  * SEAM: resolve the caller's DAX EffectiveIdentity server-side. A real
  * engagement wires this to the host app's session (tenantId -> DAX
- * USERNAME(), plus whichever DAX role that tenant should see) and, ideally,
- * an allowlist confirming the session's tenant is actually entitled to
- * `workspaceId`/`reportId`. Placeholder throws so a caller can't silently
- * ship this unwired.
+ * USERNAME(), plus whichever DAX role that tenant should see) AND an
+ * allowlist confirming the session's tenant is actually entitled to the
+ * requested `workspaceId`/`reportId` — `generateEmbedToken` below refuses to
+ * mint a token for a workspaceId/reportId not present in
+ * `entitledWorkspaceIds`/`entitledReportIds`, so this seam must return the
+ * caller's real entitlements, not just their DAX role. Placeholder throws so
+ * a caller can't silently ship this unwired.
  */
 export async function getEffectiveIdentityForSession(_input: GenerateEmbedTokenInput): Promise<{
   username: string;
   roles: string[];
+  entitledWorkspaceIds: string[];
+  entitledReportIds: string[];
 }> {
   throw new Error(
     "getEffectiveIdentityForSession() is a documented seam, not an implementation. " +
-      "Wire it to your host app's real session + tenant-to-DAX-role mapping before deploying.",
+      "Wire it to your host app's real session + tenant-to-DAX-role mapping " +
+      "+ workspaceId/reportId entitlement allowlist before deploying.",
   );
 }
 
@@ -92,6 +98,16 @@ export async function generateEmbedToken(
     throw new Error(
       "Refusing to issue an embed token for an identity with no DAX role — " +
         "a roleless EffectiveIdentity applies no row filter.",
+    );
+  }
+
+  if (
+    !identity.entitledWorkspaceIds?.includes(input.workspaceId) ||
+    !identity.entitledReportIds?.includes(input.reportId)
+  ) {
+    throw new Error(
+      "Refusing to issue an embed token — the resolved session is not entitled to " +
+        "the requested workspaceId/reportId.",
     );
   }
 
@@ -130,6 +146,23 @@ export async function generateEmbedToken(
     throw new Error(`Power BI GenerateToken failed: ${embedTokenResponse.status}`);
   }
 
-  const { token, embedUrl } = await embedTokenResponse.json();
+  const { token } = await embedTokenResponse.json();
+
+  // GenerateToken's response body only contains { token, tokenId, expiration } —
+  // embedUrl is returned only by the separate GetReportInGroup call below.
+  const reportResponse = await fetch(
+    `https://api.powerbi.com/v1.0/myorg/groups/${input.workspaceId}/reports/${input.reportId}`,
+    {
+      headers: {
+        Authorization: `Bearer ${tokenResponse.accessToken}`,
+      },
+    },
+  );
+
+  if (!reportResponse.ok) {
+    throw new Error(`Power BI GetReportInGroup failed: ${reportResponse.status}`);
+  }
+
+  const { embedUrl } = await reportResponse.json();
   return { embedToken: token, embedUrl };
 }

@@ -1,0 +1,120 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema#",
+  "$id": "https://ravenclaude/schemas/unified-model-matrix.json",
+  "title": "Unified Model Matrix",
+  "description": "SSOT for agent × model × effort × surface routing. Cheap-lane cells + Claude role tiers + archival surface pins in one matrix.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "name",
+    "owner",
+    "staleness_tier",
+    "last_reviewed",
+    "review_trigger",
+    "claude_alias",
+    "tiers",
+    "agents",
+    "surfaces",
+    "tier_cells",
+    "surface_defaults",
+    "posture_surfaces"
+  ],
+  "additionalProperties": true,
+  "properties": {
+    "schema_version": { "type": "string", "enum": ["1"] },
+    "name": { "type": "string", "const": "unified-model-matrix" },
+    "owner": { "type": "string", "minLength": 1 },
+    "staleness_tier": {
+      "type": "string",
+      "enum": ["Tier-1", "Tier-2", "Tier-3", "Tier-4", "Tier-5"]
+    },
+    "last_reviewed": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$" },
+    "review_trigger": { "type": "string", "minLength": 1 },
+    "claim": { "type": "string" },
+    "claude_alias": {
+      "type": "object",
+      "required": ["fast", "balanced", "top"],
+      "additionalProperties": { "type": "string" },
+      "properties": {
+        "fast": { "type": "string" },
+        "balanced": { "type": "string" },
+        "top": { "type": "string" }
+      }
+    },
+    "tiers": {
+      "type": "array",
+      "minItems": 3,
+      "items": { "type": "string", "enum": ["fast", "balanced", "top"] }
+    },
+    "agents": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string", "enum": ["claude", "grok", "copilot"] }
+    },
+    "surfaces": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "enum": [
+          "session",
+          "subagent",
+          "cheap-lane",
+          "tribunal",
+          "precompact",
+          "handoff",
+          "explore"
+        ]
+      }
+    },
+    "levers": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "mode": { "type": "object" },
+    "tier_cells": {
+      "type": "object",
+      "required": ["claude", "grok", "copilot"],
+      "additionalProperties": {
+        "type": "object",
+        "required": ["fast", "balanced", "top"],
+        "properties": {
+          "fast": { "type": "object" },
+          "balanced": { "type": "object" },
+          "top": { "type": "object" }
+        }
+      }
+    },
+    "surface_defaults": { "type": "object", "minProperties": 1 },
+    "posture_surfaces": {
+      "type": "object",
+      "required": ["explore_pin", "precompact_fallback", "handoff_fill", "never_inherit_session"],
+      "properties": {
+        "explore_pin": { "type": "string" },
+        "precompact_fallback": { "type": "string" },
+        "handoff_fill": { "type": "string" },
+        "never_inherit_session": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "compat_aliases": { "type": "object" },
+    "non_goals": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "sources": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id"],
+        "properties": {
+          "id": { "type": "string" },
+          "path": { "type": "string" },
+          "note": { "type": "string" }
+        }
+      }
+    }
+  }
+}

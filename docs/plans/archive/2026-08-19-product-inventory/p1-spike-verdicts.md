@@ -12,7 +12,7 @@ result needs a positive control — every row below names one.
 
 | Spike | Command run | Literal verdict | Consequence |
 |---|---|---|---|
-| **S1** — T-PROSE canary | `bash scripts/spike-tprose-canary.sh` | **8 verdicts, 8/8 asserted, positive control DENIED as required.** Q1 DENY · Q2 ALLOW · Q3 DENY · Q4a DENY · Q4b ALLOW · Q5 DENY · Q6 ALLOW | Authoring rule is **one `control:` per CLAIM**, placed **above** it. Two ledger corrections (§below). Rule written to [`inventory-authoring.md`](../../best-practices/inventory-authoring.md). |
+| **S1** — T-PROSE canary | `bash scripts/spike-tprose-canary.sh` | **8 verdicts, 8/8 asserted, positive control DENIED as required.** Q1 DENY · Q2 ALLOW · Q3 DENY · Q4a DENY · Q4b ALLOW · Q5 DENY · Q6 ALLOW | Authoring rule is **one `control:` per CLAIM**, placed **above** it. Two ledger corrections (§below). Rule written to [`inventory-authoring.md`](../../../best-practices/inventory-authoring.md). |
 | **S2** — `claude -p` in scheduled CI | `.github/workflows/spike-claude-availability.yml` (`workflow_dispatch` + weekly `cron`) | **PENDING a dispatch run.** Local host probe: `command -v claude` → `/Users/…/.local/bin/claude` — evidence about **this host**, explicitly **not** a CI verdict. | No phase is cancelled either way. The workflow reports `yes` / `no` / **`UNKNOWN`**, and UNKNOWN is not `no`. A `no` activates the §7.4 substitute ladder. |
 | **S3** — self-heal contract | `bash scripts/spike-selfheal-contract.sh` | **`covers-digest-drift` → FATAL — self-heal aborts.** 1 of 3 content-freshness classes detonates. Extractor found 1 survivability pattern (`staleness gate FAILED`); teeth run confirms a class outside it is reported FATAL. | R4 / X1 converted from a read-derived inference to a **measured fact**. P2 fixes it and this script is its standing regression. |
 | **S4** — prose rendering path | `python3 scripts/audit-prose-rendering-path.py` | **CLEAN.** 18 prose consumers traced, **0** shell-interpolation findings; 199 shell files parsed, **0** syntax or embedded-block failures. `--must-fail` → both detectors bit. | Red-team #8 closed by measurement. The audit becomes a standing gate. |
@@ -75,7 +75,7 @@ An admitted gap beats a false claim of coverage.
 - [x] S1 includes a file that **should** deny **and does** (`S1-C0`), so "it did not
       deny" is falsifiable rather than vacuous.
 - [x] The line-offset rule and template shape recorded in
-      [`docs/best-practices/inventory-authoring.md`](../../best-practices/inventory-authoring.md).
+      [`docs/best-practices/inventory-authoring.md`](../../../best-practices/inventory-authoring.md).
 - [x] S4's apostrophe rule is enforced mechanically, not stated.
 - [ ] S2 dispatched in CI — the one row that stays **PENDING**, honestly, rather
       than being marked done from a local probe.

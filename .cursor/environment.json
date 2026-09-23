@@ -1,5 +1,5 @@
 {
-  "name": "RavenClaude marketplace",
+  "name": "ravenclaude-cloud",
   "install": "bash .cursor/install.sh",
   "terminals": [
     {

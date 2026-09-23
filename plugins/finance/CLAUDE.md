@@ -147,7 +147,7 @@ The `hooks/` directory ships [`flag-finance-anti-patterns.sh`](hooks/flag-financ
 | Variance commentary file without a `Sources:` or `Source:` line | files matching `*variance*.md` | §3 #1, §3 #7 — source-cite every number; numbers don't ship without commentary |
 | Forecast or budget file without an `Assumptions:` section | files matching `*forecast*.md`, `*budget*.md` | §4 — forecast without documented assumption set |
 
-The hook is **advisory by default** (prints to stderr, doesn't block the edit). To enforce on a sensitive engagement, flip the final `exit 0` to `exit 1`. The plugin's [`hooks/hooks.json`](hooks/hooks.json) wires it into PostToolUse automatically when the plugin is installed.
+The hook is **advisory by default** (prints to stderr, doesn't block the edit). To enforce on a sensitive engagement, set `FINANCE_STRICT=1` in the env — the hook then exits **2** (the only code Claude Code's PreToolUse contract treats as blocking; `exit 1` is a non-blocking error it silently swallows). The plugin's [`hooks/hooks.json`](hooks/hooks.json) wires it into PostToolUse automatically when the plugin is installed.
 
 When in doubt, the hook is conservative — it only fires on files in finance-conventional locations or matching finance file-name patterns, so unrelated code edits aren't flagged.
 

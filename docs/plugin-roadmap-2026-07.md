@@ -2,7 +2,9 @@
 
 > Research + prioritization for the next wave of RavenClaude plugins. Compiled 2026-07-04 by `claude` (scheduled routine). The marketplace already ships **131 plugins**; this doc identifies **10 genuinely uncovered gaps**, each verified against the existing catalog (no dedicated plugin exists for any of the ten), with a purpose/value note, an implementation approach, dependencies, and a priority.
 >
-> **Two of the ten are built in the accompanying PR** (P1 `med-spa-aesthetics`, P2 `craft-beverage-operations`). The remaining eight are scoped here as the backlog, ordered by priority.
+> **2026-09-10 close-out:** P1–P5, P7, P10 are built. P6 / P8 / P9 (`urgent-care`, `franchise-multi-unit`, `moving-relocation`) are **struck** — do not author them from this roadmap. This file is historical, not a live backlog.
+>
+> **Two of the ten were built in the accompanying PR** (P1 `med-spa-aesthetics`, P2 `craft-beverage-operations`). The remaining eight were scoped here as the backlog, ordered by priority.
 
 ---
 
@@ -30,14 +32,14 @@ Ranked on two axes:
 |---|---|---|---|---|---|
 | 1 | **med-spa-aesthetics** | SMB vertical-ops | High (fast-growing sector) | High (zero overlap, clean fit) | **P1 — built** |
 | 2 | **craft-beverage-operations** | SMB vertical-ops | High (large SMB category) | High (zero overlap) | **P2 — built** |
-| 3 | **self-storage-operations** | SMB vertical-ops | High (large asset class) | High (zero overlap) | P3 |
-| 4 | **community-association-management** | SMB vertical-ops | High (HOA/COA ubiquity) | Med (seam vs property-management) | P4 |
-| 5 | **media-streaming-engineering** | Engineering-team | Med-High | High (zero overlap) | P5 |
-| 6 | **urgent-care-operations** | SMB vertical-ops | Med-High | Med (seam vs medical-revenue-cycle) | P6 |
-| 7 | **chaos-resilience-engineering** | Engineering-team | Med | Med (seam vs observability-sre) | P7 |
-| 8 | **franchise-multi-unit-operations** | SMB vertical-ops | Med | Med (seam vs retail/restaurant) | P8 |
-| 9 | **moving-relocation-operations** | SMB vertical-ops | Med | High (zero overlap) | P9 |
-| 10 | **funeral-home-operations** | SMB vertical-ops | Med | High (zero overlap) | P10 |
+| 3 | **self-storage-operations** | SMB vertical-ops | High (large asset class) | High (zero overlap) | **P3 — built** (`plugins/self-storage-operations/`) |
+| 4 | **community-association-management** | SMB vertical-ops | High (HOA/COA ubiquity) | Med (seam vs property-management) | **P4 — built** as `hoa-community-association-management` |
+| 5 | **media-streaming-engineering** | Engineering-team | Med-High | High (zero overlap) | **P5 — built** as `streaming-media-engineering` (#551) |
+| 6 | **urgent-care-operations** | SMB vertical-ops | Med-High | Med (seam vs medical-revenue-cycle) | P6 — **struck 2026-09-10** (owner: not building) |
+| 7 | **chaos-resilience-engineering** | Engineering-team | Med | Med (seam vs observability-sre) | **P7 — built** as `chaos-engineering-resilience` |
+| 8 | **franchise-multi-unit-operations** | SMB vertical-ops | Med | Med (seam vs retail/restaurant) | P8 — **struck 2026-09-10** (owner: not building) |
+| 9 | **moving-relocation-operations** | SMB vertical-ops | Med | High (zero overlap) | P9 — **struck 2026-09-10** (owner: not building) |
+| 10 | **funeral-home-operations** | SMB vertical-ops | Med | High (zero overlap) | **P10 — built** (`plugins/funeral-home-operations/`) |
 
 The two built first (P1/P2) are the highest-demand candidates that **also** have zero overlap and the cleanest template fit — the combination that maximizes value-per-authoring-risk in an unattended build.
 
@@ -77,7 +79,9 @@ The two built first (P1/P2) are the highest-demand candidates that **also** have
 - **Implementation.** Engineering-team template. 3 agents: `streaming-architect-lead` (delivery architecture, codec/ABR strategy, live vs VOD, cost/quality trade-offs), `encoding-and-packaging-engineer` (transcode pipelines, ABR ladders, HLS/DASH/CMAF, DRM integration), `delivery-and-qoe-engineer` (CDN, low-latency, playback QoE, buffering/startup metrics). Decision trees: codec choice, ABR-ladder design, live-latency tier, DRM tier. Reference file dated (codec/DRM/CDN landscape volatile, verify-at-use).
 - **Dependencies.** `ravenclaude-core@>=0.7.0`. Seams to `performance-engineering`, `frontend-engineering` (player), `observability-sre`.
 
-### P6 — urgent-care-operations
+### P6 — urgent-care-operations — STRUCK 2026-09-10
+
+Owner decision: do not build. Scope below is historical.
 
 - **Purpose / value.** Urgent-care / retail-clinic operations: **door-to-door throughput**, provider staffing to demand curves, **payer mix** and occupational-health/employer contracts, point-of-care testing, and multi-site standardization. `medical-revenue-cycle` covers billing/claims; it does not cover the throughput, staffing-to-demand, and occ-health-contract economics of an urgent-care front line.
 - **Implementation.** SMB vertical-ops template. 3 agents: `urgent-care-operations-lead` (throughput, staffing-to-demand, capacity, multi-site), `payer-and-occhealth-manager` (payer mix, employer/occ-health contracts, self-pay pricing), `clinical-flow-and-compliance-advisor` (patient flow, POCT, protocols, scope — flags to professional). Seam to `medical-revenue-cycle` for the billing tail.
@@ -89,13 +93,17 @@ The two built first (P1/P2) are the highest-demand candidates that **also** have
 - **Implementation.** Engineering-team template. 3 agents: `resilience-architect-lead` (resilience patterns, failure-mode analysis, blast-radius design), `chaos-experiment-engineer` (experiment design, steady-state hypotheses, fault injection, game-day runbooks), `recovery-and-continuity-engineer` (failover, backup/restore drills, DR/RTO-RPO). Decision trees: what to inject, blast-radius gating, resilience-pattern selection.
 - **Dependencies.** `ravenclaude-core@>=0.7.0`. Seams to `observability-sre`, `performance-engineering`, `cloud-native-kubernetes`.
 
-### P8 — franchise-multi-unit-operations
+### P8 — franchise-multi-unit-operations — STRUCK 2026-09-10
+
+Owner decision: do not build. Scope below is historical.
 
 - **Purpose / value.** Franchisor/franchisee and multi-unit operations: **royalty/fee economics**, **brand-standard compliance & field consulting**, unit-economics roll-ups, franchise development, and multi-unit P&L. `retail-store-operations` and `restaurant-operations` are single-concept operators; the franchise layer (franchisor–franchisee relationship, FDD concepts, field-consulting cadence) is uncovered.
 - **Implementation.** SMB vertical-ops template. 3 agents: `franchise-operations-lead` (unit-economics roll-up, royalty/fee model, multi-unit P&L), `brand-standards-and-field-consulting-manager` (audits, field-consulting cadence, standard compliance), `franchise-development-advisor` (development pipeline, FDD/franchise-sale concepts — flags to professional). Seam to `restaurant-operations`/`retail-store-operations` for single-unit mechanics.
 - **Dependencies.** `ravenclaude-core@>=0.7.0`. FDD/franchise-law concepts flagged, not decided.
 
-### P9 — moving-relocation-operations
+### P9 — moving-relocation-operations — STRUCK 2026-09-10
+
+Owner decision: do not build. Scope below is historical.
 
 - **Purpose / value.** Moving-company operations: **survey-to-estimate accuracy** (binding vs non-binding), crew/truck dispatch and utilization, **claims & valuation** (released vs full-value protection), and interstate (DOT/FMCSA) vs local compliance. `fleet-logistics` covers fleet asset ops and `field-service-management` covers dispatch generically; the estimate-accuracy → claims → valuation chain specific to household-goods moving is uncovered.
 - **Implementation.** SMB vertical-ops template. 3 agents: `moving-operations-lead` (crew/truck utilization, job costing, seasonal capacity), `estimating-and-sales-manager` (survey-to-estimate, binding vs non-binding, conversion), `claims-and-compliance-advisor` (valuation/claims, DOT/FMCSA vs local — flags to professional).
@@ -121,4 +129,4 @@ The two built first (P1/P2) are the highest-demand candidates that **also** have
 - **Scope honesty:** all ten to full quality in one unattended run would dilute the repo's citation/cross-reference bar, so P1/P2 are built completely (gate-passing) and P3–P10 are scoped here as the backlog. Each backlog item is a known-good template instantiation — the authoring risk is low, the work is volume.
 - Every built/planned plugin is **operations or engineering decision-support**, stores **no PII**, and **flags** (never decides) legal/tax/clinical/regulatory questions — consistent with the marketplace's standing scope discipline.
 
-_Last reviewed: 2026-07-04 by `claude` (scheduled routine)._
+_Last reviewed: 2026-07-04 by `claude` (scheduled routine). Disk check 2026-09-10: P3/P4/P5/P7/P10 have shipped under the names in the table; P6/P8/P9 are the remaining backlog._

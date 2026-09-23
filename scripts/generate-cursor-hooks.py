@@ -82,6 +82,13 @@ _SKIP = {
     "route-decision-review.sh": (
         "matches AskUserQuestion, a Claude Code tool with no Cursor equivalent."
     ),
+    "workaround-exhaustion.sh": (
+        "Two lanes, neither reachable here: the PreToolUse lane matches "
+        "AskUserQuestion (no Cursor equivalent, as route-decision-review.sh above); "
+        "the Stop lane reads last_assistant_message off Claude Code's Stop payload, "
+        "and no verified Cursor event carries that field — without it the hook is "
+        "silent by construction, so a projection would read as coverage it cannot give."
+    ),
     "agent-dispatch-evaluator.sh": (
         "SubagentStart. Cursor does expose subagentStart, but its payload schema is "
         "not published on the page verified, and this hook is an audit-only shadow "
@@ -89,6 +96,21 @@ _SKIP = {
     ),
     "mark-web-domain-seen.sh": (
         "PostToolUse on WebFetch; pairs with guard-web-access.sh, which is skipped."
+    ),
+    "handoff-tax-meter.sh": (
+        "PostToolUse on Agent|Task (a subagent-dispatch RESULT). Cursor's only "
+        "PostToolUse lane here is afterFileEdit, which carries a file edit, not a "
+        "dispatch — wiring it there would register a meter that can only ever "
+        "no-op on its tool_name guard, and the generated config would claim "
+        "coverage the host does not give. Cursor has no verified after-subagent "
+        "event with the dispatch payload; the dispatch ledger is Claude-Code-only "
+        "on this host."
+    ),
+    "explore-tier-pin.sh": (
+        "PreToolUse on Agent|Task that REWRITES the tool input via Claude Code's "
+        "hookSpecificOutput.updatedInput. Cursor's verified pre-tool lane carries a "
+        "shell command and has no input-rewrite field, so the pin cannot bind here. "
+        "On Cursor, pick the model tier in the dispatch call itself."
     ),
     "precompact-digest.sh": (
         "PreCompact. Cursor has no verified compaction-hook event (nothing analogous "
@@ -251,8 +273,13 @@ def main(argv: list) -> int:
         accounted = {s for s, *_ in wired} | {s for s, *_ in skipped}
         missing = canonical - accounted
         if missing:
+            print(f"cursor-hooks: NOT accounted for: {sorted(missing)}", file=sys.stderr)
+            return 1
+        stale = set(_SKIP) - canonical
+        if stale:
             print(
-                f"cursor-hooks: NOT accounted for: {sorted(missing)}", file=sys.stderr
+                f"cursor-hooks: the skip map names hooks that no longer exist: {sorted(stale)}",
+                file=sys.stderr,
             )
             return 1
         if not any(ev == "beforeShellExecution" for _, _, ev, _ in wired):

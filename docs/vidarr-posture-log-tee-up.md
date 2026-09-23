@@ -1,6 +1,6 @@
 # Víðarr — posture/security event-log panel: tee-up
 
-> **Status:** TEE-UP (design, not started). Drafted 2026-05-30 after Heimdall (PR #142, core v0.67.0) landed the first reader of the event substrate. This doc reconciles the build-plan §3.11 Víðarr spec against the patterns Heimdall actually established, so the next session can build straight from here. Docs-only → commits to `main`, no PR (per AGENTS.md PR conventions).
+> **Status:** SHIPPED. Víðarr is a live dashboard tab + reader (`plugins/ravenclaude-core/knowledge/concepts/vidarr.md`). This file is the 2026-05-30 tee-up that preceded the build — keep for provenance, do not re-implement. Stamped 2026-09-10.
 
 ## What Víðarr is
 

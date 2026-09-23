@@ -17,6 +17,12 @@
 # model-behavior-specific, never meant to be shared or committed.
 .ravenclaude/cache/
 
+# /repo-review's review_cache.py content-hash cache (scripts/repo_map.py CACHE_DIR) —
+# machine-local, per-run, never meant to be committed. Gap found 2026-09-10: the first
+# real dev-repo /repo-review run left 602 untracked JSON files that failed prettier's
+# whole-tree --check (prettier respects .gitignore, so this closes it for good).
+.ravenclaude/repo-review-cache/
+
 # Local/runtime config — not part of the committed marketplace (rc-deep-research
 # substrate baseline arm + local self-heal setup notes). Templates live in
 # plugins/ravenclaude-core/templates/; the live per-repo copies stay local.
@@ -38,6 +44,7 @@ node_modules/
 
 # Local Claude Code runtime state
 .claude/scheduled_tasks.lock
+.claude/*.lock
 .claude/__pycache__/
 .claude/.comfort-posture-applied.local.json
 
@@ -67,3 +74,6 @@ tests/fixtures/report-regeneration/_out/
 # F3 golden-set light judge reports (artifact-only; never commit churn)
 evals/reports/
 evals/inject-golden-set/__pycache__/
+
+# Plugin-lifecycle last-used ledger (per-project, local-only — M6)
+.ravenclaude/plugin-lifecycle.json

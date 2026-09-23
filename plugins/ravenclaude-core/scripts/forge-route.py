@@ -295,7 +295,14 @@ def main() -> int:
         return self_test()
     if not a.plan:
         ap.error("--plan is required (or use --self-test)")
-    text = Path(a.plan).read_text(encoding="utf-8", errors="replace")
+    try:
+        text = Path(a.plan).read_text(encoding="utf-8", errors="replace")
+    except FileNotFoundError:
+        print(f"forge-route: plan not found: {a.plan}", file=sys.stderr)
+        return 2
+    except OSError as exc:
+        print(f"forge-route: plan unreadable: {exc}", file=sys.stderr)
+        return 2
     print(json.dumps(route(text, a.size, a.research_done, a.privacy), indent=2))
     return 0
 

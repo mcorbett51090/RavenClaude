@@ -783,7 +783,18 @@ _COLOR = {
 
 
 def color_of(c: str) -> str:
-    return _COLOR.get(c, c or "var(--rc-accent)")
+    # `c` can be attacker-influenced data.json content (row["band"], segment/row
+    # "color") that lands unescaped in an HTML/SVG attribute (style=/stroke=/fill=)
+    # at every call site. A value found in the fixed _COLOR map is safe by
+    # construction; anything else MUST pass the same colour grammar the `theme`
+    # override uses (_safe_color/_COLOR_RE) before being interpolated, or a string
+    # like `red"><script>...` breaks out of the attribute (bireport-color-of-
+    # unescaped-xss). Reject anything that doesn't validate rather than pass it
+    # through raw.
+    if c in _COLOR:
+        return _COLOR[c]
+    safe = _safe_color(c) if c else None
+    return safe if safe is not None else "var(--rc-accent)"
 
 
 def _render_kpis(kpis) -> str:

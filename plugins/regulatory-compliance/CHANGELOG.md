@@ -2,6 +2,12 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.12.6] — 2026-09-18
+
+### Fixed
+
+- Corrected the confidentiality-hook enforcement instruction in `README.md` and `skills/sar-narrative-drafting/SKILL.md`: both told the user to flip `exit 0` to `exit 1` to make `scrub-confidential-pre-write.sh` block a write, but Claude Code's PreToolUse contract blocks only on **exit 2** — `exit 1` is a non-blocking error silently swallowed, so the documented SAR/STR enforcement would not have blocked. The hook itself was already correct (`CLAUDE.md` §7 already said exit 2); this fixes the two docs that drifted. Docs only, no behaviour change. **Migration:** none.
+
 ## [0.12.5] — 2026-08-28
 
 ### Added

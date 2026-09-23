@@ -19,7 +19,7 @@
       "pattern": "^rc-[0-9a-f]{12}$"
     },
     "type": {
-      "description": "⛔ EIGHT members. `redact` is in this enum deliberately: plan-A's four-member enum made G-LED-01 reject every redact and left the erasure path inert (bug A-3). A type used anywhere must be declared here.",
+      "description": "⛔ TEN members. `redact` is in this enum deliberately: plan-A's four-member enum made G-LED-01 reject every redact and left the erasure path inert (bug A-3). `hook` binds/unbinds a Rune to an Oath-hook owner; `meta` carries Runes projection fields (human_gate, longship_id, strand_id, formula_ref, mist). A type used anywhere must be declared here.",
       "enum": [
         "open",
         "state",
@@ -28,7 +28,9 @@
         "redact",
         "provenance",
         "bridge_health",
-        "ledger_init"
+        "ledger_init",
+        "hook",
+        "meta"
       ]
     },
     "machine": { "$ref": "#/$defs/machine" },
@@ -97,6 +99,24 @@
     {
       "if": { "properties": { "type": { "const": "ledger_init" } }, "required": ["type"] },
       "then": { "properties": { "asserted": { "$ref": "#/$defs/assertedLedgerInit" } } }
+    },
+    {
+      "if": { "properties": { "type": { "const": "hook" } }, "required": ["type"] },
+      "then": {
+        "properties": {
+          "item_id": { "type": "string" },
+          "asserted": { "$ref": "#/$defs/assertedHook" }
+        }
+      }
+    },
+    {
+      "if": { "properties": { "type": { "const": "meta" } }, "required": ["type"] },
+      "then": {
+        "properties": {
+          "item_id": { "type": "string" },
+          "asserted": { "$ref": "#/$defs/assertedMeta" }
+        }
+      }
     }
   ],
   "$defs": {
@@ -184,7 +204,31 @@
           "items": { "type": "string", "pattern": "^[a-z0-9-]{1,32}$" },
           "maxItems": 12
         },
-        "due": { "type": ["string", "null"], "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$" }
+        "due": { "type": ["string", "null"], "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$" },
+        "human_gate": {
+          "type": "string",
+          "enum": ["none", "cos", "matthew", "appsec", "sage"],
+          "description": "Human-out-of-loop wall. none = Verðandi-eligible."
+        },
+        "formula_ref": {
+          "type": ["string", "null"],
+          "maxLength": 256,
+          "description": "PE pack / formula path or id."
+        },
+        "strand_id": {
+          "type": ["string", "null"],
+          "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+          "description": "Parent strand (instantiated formula)."
+        },
+        "longship_id": {
+          "type": ["string", "null"],
+          "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+          "description": "Longship delivery batch for Sage — never auto-merge."
+        },
+        "mist": {
+          "type": "boolean",
+          "description": "Ephemeral orchestration mark."
+        }
       }
     },
     "assertedState": {
@@ -327,6 +371,38 @@
         "config_version": { "type": "integer", "minimum": 1 },
         "ledger_dir": { "type": "string", "minLength": 1 },
         "view_path": { "type": "string", "minLength": 1 }
+      }
+    },
+    "assertedHook": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["op"],
+      "properties": {
+        "op": { "enum": ["claim", "release"] },
+        "hook_owner": {
+          "type": ["string", "null"],
+          "minLength": 1,
+          "maxLength": 128,
+          "description": "Required when op=claim."
+        }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "op": { "const": "claim" } }, "required": ["op"] },
+          "then": { "required": ["hook_owner"] }
+        }
+      ]
+    },
+    "assertedMeta": {
+      "type": "object",
+      "additionalProperties": false,
+      "minProperties": 1,
+      "properties": {
+        "human_gate": { "type": "string", "enum": ["none", "cos", "matthew", "appsec", "sage"] },
+        "formula_ref": { "type": ["string", "null"], "maxLength": 256 },
+        "strand_id": { "type": ["string", "null"], "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$" },
+        "longship_id": { "type": ["string", "null"], "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$" },
+        "mist": { "type": "boolean" }
       }
     }
   }

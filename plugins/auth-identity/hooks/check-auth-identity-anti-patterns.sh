@@ -20,38 +20,59 @@ if [[ -z "$file" ]] && [[ ! -t 0 ]] && command -v jq >/dev/null 2>&1; then
   fi
 fi
 [ -z "$file" ] && exit 0
-[ ! -f "$file" ] && exit 0
+# --- proposed-edit scan target (repo-review 2026-09-23) ----------------------
+# At PreToolUse the write has NOT landed: the on-disk file is the PRE-edit state
+# (or absent for a new-file Write), so grepping "$file" misses the very content
+# this hook exists to catch. Build the scan target from the tool payload —
+# .tool_input.content (Write) / .tool_input.new_string (Edit) /
+# .tool_input.edits[].new_string (MultiEdit) — and scan THAT. The on-disk file is
+# used only as a legacy fallback for a manual, no-stdin invocation (payload unset).
+# (Fix propagated from data-platform/hooks/flag-data-platform-smells.sh, 2026-09-03.)
+scan_target="$file"
+if [ -n "${payload:-}" ] && command -v jq >/dev/null 2>&1; then
+  _rc_proposed="$(printf '%s' "$payload" | jq -r '[.tool_input.content // empty, .tool_input.new_string // empty, ((.tool_input.edits // [])[]?.new_string // empty)] | map(select(. != "")) | join("\n")' 2>/dev/null || true)"
+  if [ -n "$_rc_proposed" ]; then
+    _rc_scan_tmp="$(mktemp 2>/dev/null || true)"
+    if [ -n "$_rc_scan_tmp" ]; then
+      printf '%s\n' "$_rc_proposed" > "$_rc_scan_tmp"
+      scan_target="$_rc_scan_tmp"
+      trap 'rm -f "$_rc_scan_tmp"' EXIT
+    fi
+  fi
+fi
+[ -z "$scan_target" ] && exit 0
+[ ! -f "$scan_target" ] && exit 0
 
 findings=()
 
 # 1) Token in localStorage/sessionStorage — one XSS discloses every token (CLAUDE.md §3 #3).
-if grep -nEi "(localStorage|sessionStorage)\.(set|get)Item\(\s*['\"][^'\"]*(token|jwt|auth|session|access|refresh)" "$file" >/dev/null 2>&1; then
+if grep -nEi "(localStorage|sessionStorage)\.(set|get)Item\(\s*['\"][^'\"]*(token|jwt|auth|session|access|refresh)" "$scan_target" >/dev/null 2>&1; then
   findings+=("Token-like value in localStorage/sessionStorage — readable by any JS in the origin; use memory + an HttpOnly+Secure+SameSite cookie.")
 fi
 
 # 2) OAuth Implicit flow (response_type=token) — removed in OAuth 2.1 (CLAUDE.md §3 #2).
-if grep -nEi "response_type\s*[=:]\s*['\"]?token\b" "$file" >/dev/null 2>&1; then
+if grep -nEi "response_type\s*[=:]\s*['\"]?token\b" "$scan_target" >/dev/null 2>&1; then
   findings+=("OAuth Implicit flow (response_type=token) — removed in OAuth 2.1; migrate to Authorization Code + PKCE.")
 fi
 
 # 3) Wildcard / non-exact redirect URI — RFC 9700 requires exact matching (CLAUDE.md best-practice).
-if grep -nEi "redirect_uri\s*[=:].*(\*|/\s*['\"]|\{[^}]*\})" "$file" >/dev/null 2>&1; then
+if grep -nEi "redirect_uri\s*[=:].*(\*|/\s*['\"]|\{[^}]*\})" "$scan_target" >/dev/null 2>&1; then
   findings+=("redirect_uri looks non-exact (wildcard/pattern/interpolated) — RFC 9700 requires exact string matching; register exact per-environment URIs.")
 fi
 
 # 4) JWT decoded without verification — decode != verify (CLAUDE.md §3 #5).
-if grep -nEi "(jwt\.decode\([^)]*verify\s*[=:]\s*(false|False)|decode\([^)]*\{?\s*complete|jwtDecode\(|jwt_decode\()" "$file" >/dev/null 2>&1; then
+if grep -nEi "(jwt\.decode\([^)]*verify\s*[=:]\s*(false|False)|decode\([^)]*\{?\s*complete|jwtDecode\(|jwt_decode\()" "$scan_target" >/dev/null 2>&1; then
   findings+=("JWT decoded without verification — decoding is not validating; verify the signature against the issuer JWKS + check iss/aud/exp server-side.")
 fi
 
 # 5) Hardcoded client secret / signing key / service key — must come from env/secret store (CLAUDE.md §4).
-if grep -nEi "(client_secret|service_role|signing_?key|api[_-]?secret|private_?key)\s*[=:]\s*['\"][A-Za-z0-9_./+-]{12,}['\"]" "$file" >/dev/null 2>&1; then
+if grep -nEi "(client_secret|service_role|signing_?key|api[_-]?secret|private_?key)\s*[=:]\s*['\"][A-Za-z0-9_./+-]{12,}['\"]" "$scan_target" >/dev/null 2>&1; then
   findings+=("A secret/signing/service key looks hardcoded — load it from env or a secret store; the service key must never reach the browser.")
 fi
 
 # 6) Session cookie without HttpOnly — JS-readable session cookie (CLAUDE.md §3 #3/#4).
-if grep -nEi "(set-?cookie|cookies?\.set|res\.cookie)\b" "$file" >/dev/null 2>&1; then
-  if ! grep -nEi "httponly" "$file" >/dev/null 2>&1; then
+if grep -nEi "(set-?cookie|cookies?\.set|res\.cookie)\b" "$scan_target" >/dev/null 2>&1; then
+  if ! grep -nEi "httponly" "$scan_target" >/dev/null 2>&1; then
     findings+=("A cookie is set but no HttpOnly appears in this file — session/refresh cookies need HttpOnly + Secure + SameSite.")
   fi
 fi

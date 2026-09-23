@@ -38,7 +38,8 @@ is the claim under audit; it cannot also be the evidence.
 
 EXIT CODES ARE A CONTRACT (mirrors premise-gate.py's 0/1/2 exactly — reusing a
 shape this repo has already hardened rather than inventing a new one):
-  0  clean    — appended, or every required gate is accounted for, or disabled
+  0  clean    — appended, or every required gate is accounted for
+                (verify NEVER returns 0 when the kill switch is engaged)
   2  refused  — fail-closed: a `pass` receipt whose artifact is missing/empty, or
                 a required gate with no pass/waived receipt
   1  COULD NOT RUN — malformed/absent inputs, unreadable run-dir or run-log.
@@ -48,9 +49,10 @@ shape this repo has already hardened rather than inventing a new one):
 
 Kill switch (mirrors forge-worktree.sh's FORGE_WORKTREE / `forge_worktree: off`
 shape): `FORGE_RECEIPT=off` in the env, or `forge_receipt: off` in
-`.ravenclaude/comfort-posture.yaml`. Either makes both subcommands exit 0
-immediately with a `"status":"disabled"` result, so a new mechanism can never
-wedge a run. Absent => ON (the default).
+`.ravenclaude/comfort-posture.yaml`. **append** exits 0 with `"status":"disabled"`
+(never wedges a mid-run write). **verify** exits **2** (non-clean) with a loud
+WARN — disabled verify must never report a clean G8 exit (AppSec F6). Absent =>
+ON (the default).
 
 Python 3.9 compatible (stock macOS ships 3.9.6). Stdlib only — no PyYAML.
 """
@@ -174,6 +176,50 @@ def _relativize(abs_path, run_dir):
     return rel, rel.startswith("..")
 
 
+
+# Receipt keys written to run-log.jsonl (AppSec F3). Extra keys are dropped.
+RECEIPT_KEY_ALLOWLIST = frozenset({
+    "gate", "status", "artifact", "bytes", "bytes_verified",
+    "artifact_outside_run_dir", "digest", "blockers", "confidence",
+    "ts", "outcome", "waiver", "waived_reason", "note",
+})
+
+# Secret-shaped strings scrubbed before durable run-log write (AppSec F3).
+_SECRET_RES = (
+    re.compile(r"(?i)(api[_-]?key|secret|token|password|passwd|authorization|bearer)\s*[:=]\s*\S+"),
+    re.compile(r"(?i)\b(sk-[a-zA-Z0-9]{16,}|ghp_[a-zA-Z0-9]{20,}|xox[baprs]-[a-zA-Z0-9-]{10,})\b"),
+    re.compile(r"(?i)-----BEGIN [A-Z ]*PRIVATE KEY-----"),
+)
+
+
+def _scrub_str(s):
+    out = str(s)
+    for rx in _SECRET_RES:
+        out = rx.sub("[REDACTED]", out)
+    return out
+
+
+def _scrub_value(v):
+    if isinstance(v, str):
+        return _scrub_str(v)
+    if isinstance(v, list):
+        return [_scrub_value(x) for x in v]
+    if isinstance(v, dict):
+        return {k: _scrub_value(val) for k, val in v.items()}
+    return v
+
+
+def _allowlist_receipt(rec):
+    """Drop non-allowlisted keys; scrub secret-shaped strings (F3)."""
+    cleaned = {}
+    for k, v in rec.items():
+        if k not in RECEIPT_KEY_ALLOWLIST:
+            continue
+        cleaned[k] = _scrub_value(v)
+    return cleaned
+
+
+
 # -- append -------------------------------------------------------------------
 
 
@@ -250,6 +296,10 @@ def append(gate, receipt_path, run_dir):
         rec["bytes"] = max(size, 0)
         rec["bytes_verified"] = size > 0
         rel, escapes = _relativize(abs_path, run_dir) if abs_path else ("", False)
+        # AppSec F3: on pass, refuse artifacts outside run-dir (not just flag).
+        if escapes and not _NEUTER_ARTIFACT_CHECK:
+            return 2, {"error": "refused: status=pass but artifact is outside run-dir: %s" % artifact,
+                       "gate": gate, "artifact": artifact, "artifact_outside_run_dir": True}
         rec["artifact"] = rel
         if escapes:
             rec["artifact_outside_run_dir"] = True
@@ -259,10 +309,14 @@ def append(gate, receipt_path, run_dir):
         # how a ledger ends up describing only the happy path.
         if artifact:
             abs_path = _resolve_artifact(artifact, run_dir)
-            try:
-                size = os.path.getsize(abs_path)
-            except OSError:
+            # Mirror isfile: getsize on a directory is misleading (AppEng P3).
+            if os.path.isdir(abs_path) or not os.path.isfile(abs_path):
                 size = -1
+            else:
+                try:
+                    size = os.path.getsize(abs_path)
+                except OSError:
+                    size = -1
             rel, escapes = _relativize(abs_path, run_dir)
             rec["artifact"] = rel
             if escapes:
@@ -276,11 +330,28 @@ def append(gate, receipt_path, run_dir):
             rec["bytes_verified"] = False
 
     rec.setdefault("ts", _now())
+    rec = _allowlist_receipt(rec)
 
     log = os.path.join(run_dir, "run-log.jsonl")
+    # AppEng P2: last-wins on duplicate gate — rewrite log replacing prior lines.
     try:
-        with open(log, "a", encoding="utf-8") as fh:
-            fh.write(json.dumps(rec, sort_keys=True) + "\n")
+        existing = []
+        if os.path.isfile(log):
+            with open(log, encoding="utf-8") as fh:
+                for line in fh:
+                    if not line.strip():
+                        continue
+                    try:
+                        obj = json.loads(line)
+                    except ValueError:
+                        existing.append(line if line.endswith("\n") else line + "\n")
+                        continue
+                    if isinstance(obj, dict) and str(obj.get("gate", "")).strip() == gate:
+                        continue  # drop prior same-gate lines
+                    existing.append(json.dumps(obj, sort_keys=True) + "\n")
+        existing.append(json.dumps(rec, sort_keys=True) + "\n")
+        with open(log, "w", encoding="utf-8") as fh:
+            fh.writelines(existing)
     except OSError as exc:
         return 1, {"error": "could not append to run-log.jsonl: %s" % exc}
 
@@ -308,8 +379,11 @@ def _short_circuits(rec):
     return bool(_REJECT_RE.search(blob))
 
 
-def verify(run_dir, depth):
-    """Return (exit_code, result_dict)."""
+def verify(run_dir, depth, strict=False):
+    """Return (exit_code, result_dict).
+
+    strict=True (AppEng P2): re-stat pass artifacts; a deleted/empty file is not complete.
+    """
     depth = str(depth or "").strip().lower()
     if depth not in DEPTH_GATES:
         return 1, {"error": "unknown depth %r (expected %s)"
@@ -357,10 +431,20 @@ def verify(run_dir, depth):
             sc_gate, sc_idx = g, idx
 
     accounted, failed = set(), set()
+    stale_artifacts = []
     for rec in records:
         g = str(rec.get("gate", ""))
         st = str(rec.get("status", "")).lower()
         if st in ("pass", "waived"):
+            if strict and st == "pass":
+                art = str(rec.get("artifact") or "").strip()
+                if not art:
+                    stale_artifacts.append(g)
+                    continue
+                abs_path = _resolve_artifact(art, run_dir)
+                if (not os.path.isfile(abs_path)) or os.path.getsize(abs_path) <= 0:
+                    stale_artifacts.append(g)
+                    continue
             accounted.add(g)
         elif st == "fail":
             failed.add(g)
@@ -377,6 +461,8 @@ def verify(run_dir, depth):
             continue  # the terminating gate itself: its fail receipt IS the record
         if g in failed:
             failing.append(g)
+        elif g in stale_artifacts:
+            failing.append(g)
         else:
             missing.append(g)
 
@@ -386,9 +472,11 @@ def verify(run_dir, depth):
         "accounted": sorted(accounted),
         "missing": missing,
         "failing": failing,
+        "stale_artifacts": stale_artifacts,
         "short_circuit_gate": sc_gate,
         "after_short_circuit": after_short_circuit,
         "records": len(records),
+        "strict": bool(strict),
     }
     if missing or failing:
         return 2, result
@@ -580,8 +668,7 @@ def self_test(broken=False):
             code, _ = verify(rd_d, "enormous")
             chk("(g5) an unknown depth is could-not-run (1)", code, 1)
 
-            # (h) the kill switch: both subcommands exit 0 immediately, and append
-            #     writes nothing. A new mechanism must never be able to wedge a run.
+            # (h) kill switch: append exits 0 (no wedge); verify exits NON-ZERO (F6).
             os.environ["FORGE_RECEIPT"] = "off"
             try:
                 chk("(h) is_disabled honours the env kill switch", is_disabled(), True)
@@ -593,9 +680,58 @@ def self_test(broken=False):
                     os.path.exists(os.path.join(rd_h, "run-log.jsonl")), False)
                 rc_h = main(["verify", "--run-dir", os.path.join(tmp, "no-such"),
                              "--depth", "quick"])
-                chk("(h) verify exits 0 when disabled, even on a bad run-dir", rc_h, 0)
+                chk("(h) verify exits NON-ZERO when disabled (F6 non-clean)", rc_h != 0, True)
             finally:
                 os.environ.pop("FORGE_RECEIPT", None)
+
+            # (i) pass artifact outside run-dir is refused (F3).
+            rd_i = os.path.join(tmp, "i")
+            os.makedirs(rd_i)
+            outside = _write(os.path.join(tmp, "outside-secret.env"), "TOKEN=abc\n")
+            r_i = _receipt_file(tmp, "i.json",
+                                {"gate": "G2", "status": "pass", "artifact": outside})
+            code, res = append("G2", r_i, rd_i)
+            chk("(i) pass artifact outside run-dir refused (2)", code, 2)
+            chk("(i) error names outside", "outside" in res.get("error", ""), True)
+
+            # (j) last-wins duplicate gate.
+            rd_j = os.path.join(tmp, "j")
+            os.makedirs(rd_j)
+            body_j = "first\n"
+            _write(os.path.join(rd_j, "a.md"), body_j)
+            r_j1 = _receipt_file(tmp, "j1.json",
+                                 {"gate": "G0", "status": "pass", "artifact": "a.md"})
+            code, _ = append("G0", r_j1, rd_j)
+            chk("(j1) first append clean", code, 0)
+            body_j2 = "second-longer\n"
+            _write(os.path.join(rd_j, "a.md"), body_j2)
+            r_j2 = _receipt_file(tmp, "j2.json",
+                                 {"gate": "G0", "status": "pass", "artifact": "a.md",
+                                  "digest": ["api_key=supersecretVALUE"]})
+            code, _ = append("G0", r_j2, rd_j)
+            chk("(j2) duplicate gate last-wins (0)", code, 0)
+            lines_j = _log_lines(rd_j)
+            chk("(j2) exactly one G0 line after last-wins", len(lines_j), 1)
+            chk("(j2) secret-shaped digest scrubbed",
+                "[REDACTED]" in str(lines_j[0].get("digest")), True)
+
+            # (k) verify --strict: deleted artifact not complete.
+            rd_k = os.path.join(tmp, "k")
+            os.makedirs(rd_k)
+            art_k = _write(os.path.join(rd_k, "plan.md"), "body\n")
+            for g in DEPTH_GATES["micro"]:
+                r_k = _receipt_file(tmp, "k-%s.json" % g,
+                                    {"gate": g, "status": "pass", "artifact": "plan.md"})
+                code, _ = append(g, r_k, rd_k)
+                if code != 0:
+                    ok = False
+                    print("  FAIL (k) seed append %s got %r" % (g, code))
+            code, _ = verify(rd_k, "micro", strict=True)
+            chk("(k1) strict verify clean while artifacts exist", code, 0)
+            os.remove(art_k)
+            code, res = verify(rd_k, "micro", strict=True)
+            chk("(k2) strict verify refuses deleted artifacts (2)", code, 2)
+            chk("(k2) stale_artifacts non-empty", bool(res.get("stale_artifacts")), True)
 
             # (h2) the posture kill switch, read without PyYAML.
             proj = os.path.join(tmp, "proj")
@@ -633,6 +769,8 @@ def main(argv=None):
                            help="assert the depth's required gate set is accounted for")
     p_ver.add_argument("--run-dir", required=True)
     p_ver.add_argument("--depth", required=True)
+    p_ver.add_argument("--strict", action="store_true",
+                       help="re-stat pass artifacts; deleted/empty => incomplete")
 
     args = ap.parse_args(argv)
 
@@ -649,10 +787,16 @@ def main(argv=None):
     if not args.cmd:
         ap.error("a subcommand is required (append | verify), or use --self-test / --must-fail")
 
-    # ⛔ The kill switch is checked BEFORE any work, so a disabled recorder can
-    # never block, refuse, or write. Exit 0 with an honest `disabled` status.
+    # ⛔ Kill switch: append exits 0 (never wedges). verify exits 2 (F6 non-clean).
     if is_disabled(getattr(args, "run_dir", "") or ""):
         res = _disabled_result(args.cmd)
+        warn = ("forge-receipt: DISABLED (%s) — verify is NON-CLEAN while the "
+                "recorder is off (AppSec F6)" % res["reason"])
+        if args.cmd == "verify":
+            print(json.dumps(res) if args.json else "WARN: " + warn)
+            print("⛔ Do not report a clean G8 exit while forge-receipt verify is disabled.",
+                  file=sys.stderr)
+            return 2
         print(json.dumps(res) if args.json else "forge-receipt: DISABLED (%s)" % res["reason"])
         return 0
 
@@ -672,7 +816,7 @@ def main(argv=None):
             print("⛔ This is NOT a pass. A recorder that cannot run must not report clean.")
         return code
 
-    code, res = verify(args.run_dir, args.depth)
+    code, res = verify(args.run_dir, args.depth, strict=bool(getattr(args, "strict", False)))
     if args.json:
         print(json.dumps(res, indent=2, sort_keys=True))
     elif code == 0:

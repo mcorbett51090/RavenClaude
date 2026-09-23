@@ -2,6 +2,16 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.3.4] — 2026-09-10
+
+### Fixed
+
+- **`recon_diff-currency-mismatch-triple-count`** — `scripts/recon_diff.py`'s `reconcile()` counted a
+  cross-currency shared reference in `currency_mismatch` AND both `ledger_only`/`psp_only`, reporting
+  one real discrepancy as three with contradictory remediation labels. `ledger_only`/`psp_only` now
+  skip references already resolved by the `currency_mismatch` pass. Found + verified CONFIRMED via a
+  hand-recovered `/repo-review` pass.
+
 ## [0.3.3] — 2026-08-14
 
 ### Changed

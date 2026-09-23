@@ -48,6 +48,9 @@ permissions:
 jobs:
   nextjs-starter:
     runs-on: ubuntu-latest
+    # Bound the runner: this job runs npm ci/build on PR-supplied code; without an
+    # explicit cap it defaults to GitHub's 6-hour ceiling on a hang.
+    timeout-minutes: 20
     defaults:
       run:
         working-directory: plugins/data-platform/templates/cube-nextjs-dashboard-starter
@@ -76,6 +79,8 @@ jobs:
           NEXT_PUBLIC_CUBE_API_URL: "http://localhost:4000/cubejs-api/v1"
           CUBE_API_ORIGIN: "http://localhost:4000"
           JWT_SIGNING_KEY: "smoke-test-only-key-not-a-real-secret-32-bytes-min"
+          # CI-only stub for getSession() — see lib/session.ts. Unset in prod.
+          DATA_PLATFORM_STARTER_CI_SESSION: "1"
         run: |
           set -euo pipefail
           npx --yes next start -p 4173 &
@@ -103,6 +108,9 @@ jobs:
 
   astro-starter:
     runs-on: ubuntu-latest
+    # Bound the runner: this job runs npm ci/build on PR-supplied code; without an
+    # explicit cap it defaults to GitHub's 6-hour ceiling on a hang.
+    timeout-minutes: 20
     defaults:
       run:
         working-directory: plugins/data-platform/templates/cube-astro-dashboard-starter
@@ -133,6 +141,8 @@ jobs:
           JWT_SIGNING_KEY: "smoke-test-only-key-not-a-real-secret-32-bytes-min"
           HOST: "0.0.0.0"
           PORT: "4321"
+          # CI-only stub for getSession() — see src/lib/session.ts. Unset in prod.
+          DATA_PLATFORM_STARTER_CI_SESSION: "1"
         run: |
           set -euo pipefail
           node ./dist/server/entry.mjs &

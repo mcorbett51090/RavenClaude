@@ -6,11 +6,11 @@ kind: ravenclaude-built
 entry_class: inventory
 order: 931
 summary: "generate-skill-index.py's first write omits its own not-yet-written output file from the count; a second run is required to converge on a stable total."
-last_verified: 2026-09-08
+last_verified: 2026-09-20
 covers:
   - scripts/generate-skill-index.py
   - plugins/ravenclaude-core/skills/skill-index/SKILL.md
-covers_digest: "sha256:25dd815fa3f77c1998287ea9fe91f7cc282bb98906d30323227f8491ab2bb2a9"
+covers_digest: "sha256:55c766ca8fbba4748d8cac7d1d6976effeabc3c643952881e284b46b48676778"
 nuance: "The generator discovers skills by globbing plugins/*/skills/*/SKILL.md, and its own output
   file matches that glob. On a fresh repo the first write cannot see itself (the file does not exist
   yet), so it writes N entries; running it again now finds N+1 (itself included) and writes THAT count

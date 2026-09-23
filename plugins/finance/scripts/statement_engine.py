@@ -69,7 +69,7 @@ CREDIT_POSITIVE = {
 
 
 def _read_csv(path: str) -> list[dict]:
-    with open(path, newline="") as fh:
+    with open(path, newline="", encoding="utf-8") as fh:
         return list(csv.DictReader(fh))
 
 
@@ -155,7 +155,11 @@ def build_income_statement(tb: list[dict], mapping: dict):
     trail = []
     ni_check = 0.0
     for r in tb:
-        mp = mapping[r["account"]]
+        mp = mapping.get(r["account"])
+        if mp is None:
+            # Unmapped account: lint_mapping already recorded this in errs (surfaced
+            # in a non-strict run's "warnings"); skip it here rather than KeyError.
+            continue
         if mp["statement"] != "IS":
             continue
         amt = _present(r, mp["section"])
@@ -212,7 +216,11 @@ def build_balance_sheet(tb: list[dict], mapping: dict, net_income: float):
     section_totals = dict.fromkeys(BS_SECTIONS, 0.0)
     trail = []
     for r in tb:
-        mp = mapping[r["account"]]
+        mp = mapping.get(r["account"])
+        if mp is None:
+            # Unmapped account: lint_mapping already recorded this in errs (surfaced
+            # in a non-strict run's "warnings"); skip it here rather than KeyError.
+            continue
         if mp["statement"] != "BS":
             continue
         amt = _present(r, mp["section"])
@@ -361,7 +369,7 @@ def main(argv=None) -> int:
     p.add_argument("--out", help="write statements JSON here (else stdout)")
     a = p.parse_args(argv)
 
-    with open(a.entity) as fh:
+    with open(a.entity, encoding="utf-8") as fh:
         entity = json.load(fh)
 
     if a.lint_map:
@@ -377,7 +385,7 @@ def main(argv=None) -> int:
     out = run(entity, a.coa, a.tb, a.gl_detail, a.prior_tb, a.strict)
     text = json.dumps(out, indent=2)
     if a.out:
-        with open(a.out, "w") as fh:
+        with open(a.out, "w", encoding="utf-8") as fh:
             fh.write(text + "\n")
         print(
             f"wrote {a.out}  [{out['traceability_badge']}]  net income "

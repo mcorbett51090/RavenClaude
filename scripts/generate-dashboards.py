@@ -37,11 +37,19 @@ import argparse
 import html
 import importlib.util
 import json
+import re
 import sys
 from pathlib import Path
 
-# Sibling helper (scripts/ is on sys.path whether run directly or imported by
-# generate-index-dashboard.py). Provides the CSS scoper used by render_fragment.
+from _host_scope import (
+    render_filter_strip as _render_host_scope_filter,
+)
+from _host_scope import (
+    render_scope_badge as _render_host_scope_badge,
+)
+from _host_scope import (
+    scope_tokens as _host_scope_tokens,
+)
 from _html_merge import iife_wrap, scope_css
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -282,7 +290,7 @@ def _page_kwargs(plugin_dir: Path, schema: dict, include_trees: bool = True) -> 
         "streams_html": _render_streams_tab(),
         "bifrost_html": _render_bifrost_tab(),
         "about_html": _render_about_tab(description, plugin_name),
-        "pipeline_html": _render_pipeline_tab(),
+        "pipeline_html": _render_pipeline_tab(plugin_dir),
         # Each *_json below is spliced verbatim into an inline <script> block, so
         # a literal `</script` substring in any value would end the script element
         # early (HTML raw-text rule) and turn the rest into parsed markup. Escape
@@ -755,6 +763,24 @@ _PIPELINE_LANES = [
                     "set": "Built in.",
                 },
             },
+            {
+                "id": "runes-oath-hook",
+                "title": "Runes ready-queue (Oath-hook)",
+                "badge": "dynamic",
+                "badge_default": "Off",
+                "controls": "runes",
+                "tip": "When On: hanging MUST-RUN + ready summary each SessionStart; agents may auto-claim the next ungated ready Rune (gates block; no Longship merge). Off (default): use the CLI. Same setting as Settings → Runes at session start.",
+                "detail": {
+                    "steps": [
+                        "Reads runes: off|on from .ravenclaude/comfort-posture.yaml (absent means off).",
+                        "When On, surfaces hanging MUST-RUN work and a ready-queue summary.",
+                        "May auto-claim the next ungated ready Rune; matthew/appsec/cos/sage/money walls refuse.",
+                        "Never auto-merges a Longship — Sage sole land.",
+                    ],
+                    "trip": "Informational only — SessionStart cannot block. Kill switch = Off + Save.",
+                    "set": "Off / On below, or Settings → ⚙ Runes at session start. Shared one posture key.",
+                },
+            },
         ],
     },
     {
@@ -942,6 +968,21 @@ _PIPELINE_LANES = [
                     "set": "Pick off / advise / agent, the tier, and the coding agent below.",
                 },
             },
+            {
+                "id": "explore-tier-pin",
+                "title": "Explore tier pin",
+                "badge": "advisory",
+                "tip": "When the robot sends its built-in file-searcher out without naming a model, pins it to the cheap tier before it runs — so searching never bills at the flagship rate.",
+                "detail": {
+                    "steps": [
+                        "Watches every sub-agent dispatch for the built-in `Explore` with no `model` named.",
+                        "Rewrites the call to add `model: haiku` (or the tier you pick) before the sub-agent starts.",
+                        "Leaves alone anything that names a model, any other agent type, and any project already routing sub-agents by environment variable.",
+                    ],
+                    "trip": "Rewrites input only — never allows, asks, or blocks; your dispatch permission stays exactly as set.",
+                    "set": "`model_matrix.surfaces.explore_pin: haiku | sonnet | off` in .ravenclaude/comfort-posture.yaml (default haiku; alias `handoff_tax.pin_explore` still reads; `handoff_tax: off` also disables).",
+                },
+            },
         ],
     },
     {
@@ -1121,6 +1162,7 @@ _PIPELINE_STAGE_HOOKS = {
     "reapply-posture": "reapply-posture.sh",
     "ensure-default-mode": "ensure-default-mode.sh",
     "capability-orientation": "capability-orientation.sh",
+    "runes-oath-hook": "oath-hook.sh",
     "guard-destructive": "guard-destructive.sh",
     "thing": "thing-orchestrator.sh",
     "runaway-brake": "runaway-brake.sh",
@@ -1132,6 +1174,7 @@ _PIPELINE_STAGE_HOOKS = {
     "guard-web-access": "guard-web-access.sh",
     "claude-orchestrator": None,  # behavioral: spawn-team reads `orchestrator:` — no hook
     "cheap-lane-delegation": None,  # behavioral: cheap-lane-delegation skill reads `cheap_lane:` — no hook
+    "explore-tier-pin": "explore-tier-pin.sh",
     "sanitize-webfetch-output": "sanitize-webfetch-output.sh",
     "format-on-write": "format-on-write.sh",
     "guard-recursive-spawn": "guard-recursive-spawn.sh",
@@ -1149,6 +1192,13 @@ _PIPELINE_STAGE_HOOKS = {
 # reason) — so a newly-registered hook lands in NEITHER list and fails the build,
 # which is exactly what would have caught the missing `delegation-nudge`.
 _PIPELINE_EXCLUDED_HOOKS = {
+    "workaround-exhaustion.sh": "blocked-exhaustion gate (PreToolUse AskUserQuestion + Stop) governed by the "
+    "`workaround_exhaustion:` comfort-posture knob -- absent => off, `warn` advisory, "
+    "`block` denies a hand-back QUESTION or blocks a hand-back TURN END until the "
+    "workaround ledger under .ravenclaude/runs/<session>/ meets the floor. It gates the "
+    "agent's decision to give up, not a tool's blast radius, and its knob is a posture "
+    "scalar surfaced with the other posture settings -- same class as "
+    "enforce-git-protocol.sh, so it is deliberately NOT a Pipeline stage card",
     "log-probe.sh": "the RECORDER half of the premise gate (PostToolUse); it only writes a "
     "derived negative-result ledger and never denies. Its own card would be noise — but it is "
     "NOT optional: if it is missing, `guard-premise.sh` FAILS CLOSED rather than reporting "
@@ -1158,6 +1208,11 @@ _PIPELINE_EXCLUDED_HOOKS = {
     "stream-session-close.sh": "work-stream tracking (Stop); observability, not a guardrail",
     "stream-prompt-attribute.sh": "work-stream tracking (UserPromptSubmit); observability, not a guardrail",
     "agent-dispatch-evaluator.sh": "audit-only shadow (SubagentStart), opt-in; never denies",
+    "handoff-tax-meter.sh": "handoff-tax meter (PostToolUse Agent) — per-dispatch ledger of brief/report "
+    "size + model tier under .ravenclaude/runs/<session>/dispatch-ledger.jsonl and an ADVISORY when a "
+    "report/brief exceeds its cap or a read-only worker ran on a frontier model; opt-in, never denies. "
+    "Observability for knowledge/model-tier-delegation.md, not a guardrail — same class as "
+    "agent-dispatch-evaluator.sh and the stream-* trackers",
     "worktree-guard.sh": "worktree_guard + worktree_bound knobs are surfaced Settings-only "
     "(DOM-budget-exempt panel) + live status as the Activity-tab Sleipnir badges; "
     "FOREIGN-TREE is the third clause (sibling Write / git -C); deliberately NOT a Pipeline stage card",
@@ -1221,7 +1276,381 @@ _PIPELINE_EXCLUDED_HOOKS = {
     "sibling, DID get a stage card — see the 'context-handoff' row in "
     "_PIPELINE_STAGE_HOOKS — once the owner asked for a real DOM control on "
     "`context_handoff.mode`, so it is no longer in this excluded set.)",
+    "alias-deprecation-advisory.sh": "SessionStart alias-soak advisory (Phase D). Emits "
+    "additionalContext when deprecated posture keys are sole source or diverge; quiet "
+    "when seed leftovers match. Never writes posture, never denies, never inspects a "
+    "tool call — same class as thing-denial-kb-recall.sh, so deliberately NOT a "
+    "Pipeline stage card",
 }
+
+
+# Pipeline PreToolUse → PostToolUse decision-tree island (Gate 132: mount + JSON only).
+# Outcomes / strengths cited from stage tips + excluded-hook reasons + hook headers —
+# never invented. Matthew GO 2026-09-16: default disclosure closed; excluded collapsed;
+# deep-link #/pipeline/decision-tree force-expands; keep EDIT; Learn glue v1 skip.
+
+_PIPE_DTREE_HOOK_META = {
+    "claim-grounding-lint.sh": {
+        "title": "Claim grounding lint",
+        "outcomes": ["ask"],
+        "strength": "advisory",
+        "note": "ADVISORY nudge — never blocks (hook header).",
+    },
+    "delegation-nudge.sh": {
+        "title": "Delegation nudge",
+        "outcomes": ["ask"],
+        "strength": "advisory",
+        "note": "ADVISORY nudge — never blocks (hook header).",
+    },
+    "enforce-git-protocol.sh": {
+        "title": "Git protocol (excluded card)",
+        "outcomes": ["ask", "deny"],
+        "strength": "advisory",
+        "note": "Default WARN; denies only at git_protocol: block. Style, not safety floor.",
+    },
+    "enforce-layout.sh": {
+        "title": "Folder & task limits",
+        "outcomes": ["deny"],
+        "strength": "dynamic",
+        "note": "Blocks write outside allowed folders / task scope.",
+    },
+    "enforce-portability.sh": {
+        "title": "Portability lint (excluded card)",
+        "outcomes": ["ask", "deny"],
+        "strength": "advisory",
+        "note": "Default WARN; denies at block posture. Convention, not safety floor card.",
+    },
+    "explore-tier-pin.sh": {
+        "title": "Explore tier pin",
+        "outcomes": ["EDIT"],
+        "strength": "advisory",
+        "note": "Rewrites input only — never allows, asks, or blocks (stage tip).",
+    },
+    "format-on-write.sh": {
+        "title": "Auto-tidy",
+        "outcomes": ["EDIT"],
+        "strength": "always",
+        "note": "Formats after save — never blocks.",
+    },
+    "guard-cause-closure.sh": {
+        "title": "Cause closure guard",
+        "outcomes": ["ask"],
+        "strength": "advisory",
+        "note": "Cause-closure check — no hard-block claim without stage tip.",
+    },
+    "guard-destructive.sh": {
+        "title": "Danger guard",
+        "outcomes": ["deny"],
+        "strength": "hard-block",
+        "note": "Always-on safety floor — blocks never-allowed patterns.",
+    },
+    "guard-foreground-suite.sh": {
+        "title": "Foreground suite guard (excluded card)",
+        "outcomes": ["deny"],
+        "strength": "hard-block",
+        "note": "DENIES long foreground suites (exit 2). Operator-time guard, not Pipeline card.",
+    },
+    "guard-memory-compaction.sh": {
+        "title": "Memory safety net",
+        "outcomes": ["deny", "ask"],
+        "strength": "dynamic",
+        "note": "Stops large one-shot memory shrink; asks for diff.",
+    },
+    "guard-premise.sh": {
+        "title": "Premise check",
+        "outcomes": ["deny"],
+        "strength": "hard-block",
+        "note": "Blocks NEW source create on unresolved failed probe; fail-closed if recorder missing.",
+    },
+    "guard-probe-validity.sh": {
+        "title": "Probe validity (excluded card)",
+        "outcomes": ["ask"],
+        "strength": "advisory",
+        "note": "Advisory nudge — Settings posture; not a Pipeline stage card.",
+    },
+    "guard-recursive-spawn.sh": {
+        "title": "Recursive spawn guard",
+        "outcomes": ["ask"],
+        "strength": "advisory",
+        "note": "Watches agent-definition edits — see stage tip.",
+    },
+    "guard-remediation-cause.sh": {
+        "title": "Remediation cause guard",
+        "outcomes": ["ask"],
+        "strength": "advisory",
+        "note": "Cause-tracking guard — not invented as hard-block without stage tip.",
+    },
+    "guard-web-access.sh": {
+        "title": "Website guard",
+        "outcomes": ["allow", "ask", "deny"],
+        "strength": "dynamic",
+        "note": "Allow/deny lists; unset → normal ask prompt.",
+    },
+    "handoff-tax-meter.sh": {
+        "title": "Handoff tax meter (excluded card)",
+        "outcomes": ["ask"],
+        "strength": "advisory",
+        "note": "ADVISORY meter — never denies. Observability, not guardrail card.",
+    },
+    "log-probe.sh": {
+        "title": "Probe recorder (excluded card)",
+        "outcomes": [],
+        "strength": "internal",
+        "note": "Recorder half of premise gate — never denies; missing → premise fail-closed.",
+    },
+    "mark-web-domain-seen.sh": {
+        "title": "Mark web domain seen (excluded card)",
+        "outcomes": [],
+        "strength": "internal",
+        "note": "Consent-ordering bookkeeping for guard-web-access.",
+    },
+    "plugin-lifecycle-telemetry.sh": {
+        "title": "Plugin lifecycle telemetry",
+        "outcomes": [],
+        "strength": "internal",
+        "note": "Telemetry — no allow/ask/deny claim.",
+    },
+    "preflight-command-review.sh": {
+        "title": "Preflight command review",
+        "outcomes": ["ask"],
+        "strength": "advisory",
+        "note": "Preflight surface — label from registration order; see hook for posture.",
+    },
+    "regen-on-manifest-change.sh": {
+        "title": "Manifest regen (excluded card)",
+        "outcomes": [],
+        "strength": "internal",
+        "note": "Marketplace-internal artifact regen — not an agent guardrail.",
+    },
+    "route-decision-review.sh": {
+        "title": "Decision routing",
+        "outcomes": ["allow", "ask"],
+        "strength": "dynamic",
+        "note": "Behavioral flag — off / advisory / binding. Not a tool permission.",
+    },
+    "runaway-brake.sh": {
+        "title": "Runaway brake",
+        "outcomes": ["deny"],
+        "strength": "dynamic",
+        "note": "Pauses when step/loop limits trip (posture-tunable).",
+    },
+    "sanitize-mcp-output.sh": {
+        "title": "MCP-result cleaner",
+        "outcomes": ["EDIT"],
+        "strength": "always",
+        "note": "Same quarantine as webfetch cleaner for mcp__* (one Pipeline card covers both).",
+    },
+    "sanitize-webfetch-output.sh": {
+        "title": "Fetched-page cleaner",
+        "outcomes": ["EDIT"],
+        "strength": "always",
+        "note": "Strips instruction-shaped junk — never blocks (fail-open).",
+    },
+    "storage-placement-nudge.sh": {
+        "title": "Storage placement nudge",
+        "outcomes": ["ask"],
+        "strength": "advisory",
+        "note": "ADVISORY — never blocks, always exits 0.",
+    },
+    "thing-orchestrator.sh": {
+        "title": "Command review (the Thing)",
+        "outcomes": ["allow", "ask", "deny", "EDIT"],
+        "strength": "dynamic",
+        "note": "Panel votes allow / fix (EDIT) / block; risk floor + fatigue can ask.",
+    },
+    "triage-outcome.sh": {
+        "title": "Post-failure triage",
+        "outcomes": ["ask"],
+        "strength": "advisory",
+        "note": "Advisory only (hook header).",
+    },
+    "worktree-guard.sh": {
+        "title": "Worktree guard (Settings-only)",
+        "outcomes": ["deny", "ask"],
+        "strength": "dynamic",
+        "note": "Behavioral/Settings-surfaced — deliberately NOT a Pipeline stage card.",
+    },
+}
+
+
+_PIPE_DTREE_TOOL_CLASSES = [
+    "Bash",
+    "Write|Edit|MultiEdit",
+    "Agent|Task",
+    "WebFetch",
+    "Read",
+    "WebSearch",
+    "mcp",
+    "AskUserQuestion",
+    "Skill",
+]
+
+_PIPE_DTREE_LEGEND = [
+    {"id": "allow", "label": "allow", "kind": "ok", "tip": "Proceed without stopping you"},
+    {"id": "ask", "label": "ask", "kind": "warn", "tip": "Prompt / advisory nudge / fatigue ask"},
+    {"id": "deny", "label": "deny", "kind": "danger", "tip": "Hard stop or pause (exit 2 / block)"},
+    {"id": "EDIT", "label": "EDIT", "kind": "ok", "tip": "Rewrite input or output (Thing fix / sanitize / format)"},
+    {"id": "advisory", "label": "advisory", "kind": "neutral", "tip": "Nudge only — never a hard permission floor"},
+    {"id": "hard-block", "label": "hard-block", "kind": "danger", "tip": "Always-on or exit-2 safety floor"},
+]
+
+_PIPE_DTREE_EVENT_WHEN = {
+    "PreToolUse": "Before each tool",
+    "PostToolUse": "After each tool",
+}
+
+_PIPE_DTREE_HOOK_BASENAME_RE = re.compile(
+    r"(?:hooks|scripts)/([A-Za-z0-9_.-]+\.(?:sh|py))"
+)
+
+
+def _pipe_dtree_tools_for_matcher(matcher: str) -> list[str]:
+    """Map a hooks.json matcher string onto the filter chip ids used by the island."""
+    if not matcher:
+        return []
+    known = {
+        "Agent|Task": ["Agent|Task"],
+        "Bash": ["Bash"],
+        "Write|Edit|MultiEdit": ["Write|Edit|MultiEdit"],
+        "Edit|Write|MultiEdit": ["Write|Edit|MultiEdit"],
+        "Bash|Write|Edit|MultiEdit": ["Bash", "Write|Edit|MultiEdit"],
+        "WebFetch": ["WebFetch"],
+        "AskUserQuestion": ["AskUserQuestion"],
+        "Skill": ["Skill"],
+        "mcp__.*": ["mcp"],
+        "Bash|WebFetch": ["Bash", "WebFetch"],
+        "Bash|Read|Write|Edit|MultiEdit|WebFetch|WebSearch|mcp__.*": [
+            "Bash",
+            "Write|Edit|MultiEdit",
+            "WebFetch",
+            "Read",
+            "WebSearch",
+            "mcp",
+        ],
+    }
+    if matcher in known:
+        return list(known[matcher])
+    tools: list[str] = []
+    for p in matcher.split("|"):
+        p = p.strip()
+        if p in ("Write", "Edit", "MultiEdit"):
+            if "Write|Edit|MultiEdit" not in tools:
+                tools.append("Write|Edit|MultiEdit")
+        elif p in ("Agent", "Task"):
+            if "Agent|Task" not in tools:
+                tools.append("Agent|Task")
+        elif p.startswith("mcp"):
+            if "mcp" not in tools:
+                tools.append("mcp")
+        elif p in _PIPE_DTREE_TOOL_CLASSES and p not in tools:
+            tools.append(p)
+    return tools
+
+
+def _pipe_dtree_script_basename(command: str) -> str | None:
+    m = _PIPE_DTREE_HOOK_BASENAME_RE.search(command or "")
+    return m.group(1) if m else None
+
+
+def _build_pipe_dtree_payload(plugin_dir: Path, version: str) -> dict:
+    """Build JSON payload from hooks.json matcher order + cited hook meta."""
+    hooks_path = plugin_dir / "hooks" / "hooks.json"
+    raw = json.loads(hooks_path.read_text(encoding="utf-8"))
+    events_out = []
+    for event in ("PreToolUse", "PostToolUse"):
+        groups_out = []
+        for i, group in enumerate(raw.get("hooks", {}).get(event, [])):
+            matcher = group.get("matcher") or ""
+            hooks_out = []
+            for h in group.get("hooks", []):
+                script = _pipe_dtree_script_basename(h.get("command", ""))
+                if not script:
+                    continue
+                meta = _PIPE_DTREE_HOOK_META.get(script)
+                if meta is None:
+                    entry = {
+                        "script": script,
+                        "title": script,
+                        "outcomes": [],
+                        "strength": "unknown",
+                        "note": "Registered in hooks.json — no stage-tip/header outcome cited yet.",
+                        "excluded": script in _PIPELINE_EXCLUDED_HOOKS,
+                    }
+                else:
+                    entry = {
+                        "script": script,
+                        "title": meta["title"],
+                        "outcomes": list(meta["outcomes"]),
+                        "strength": meta["strength"],
+                        "note": meta["note"],
+                        "excluded": script in _PIPELINE_EXCLUDED_HOOKS,
+                    }
+                hooks_out.append(entry)
+            groups_out.append(
+                {
+                    "i": i,
+                    "matcher": matcher,
+                    "tools": _pipe_dtree_tools_for_matcher(matcher),
+                    "hooks": hooks_out,
+                }
+            )
+        events_out.append(
+            {
+                "event": event,
+                "when": _PIPE_DTREE_EVENT_WHEN[event],
+                "groups": groups_out,
+            }
+        )
+    return {
+        "version": version,
+        "source": "plugins/ravenclaude-core/hooks/hooks.json",
+        "toolClasses": list(_PIPE_DTREE_TOOL_CLASSES),
+        "legend": list(_PIPE_DTREE_LEGEND),
+        "events": events_out,
+        "honesty": (
+            "Outcomes labeled from Pipeline stage tips + excluded-hook reasons + hook headers. "
+            "Strength advisory vs hard-block is explicit. Unknowns stay unlabeled rather than invented."
+        ),
+    }
+
+
+def _render_pipe_dtree_island(plugin_dir: Path, version: str) -> str:
+    """Empty mount + JSON payload only (+2 static elements for Gate 132)."""
+    payload = _build_pipe_dtree_payload(plugin_dir, version)
+    payload_json = json.dumps(payload, ensure_ascii=False, separators=(",", ":"))
+    payload_json = payload_json.replace("</", "<" + "\\/")
+    return (
+        '<div id="pipe-dtree-mount" class="pipe-dtree-mount" aria-live="polite" '
+        'data-pdt-ready="0"></div>\n'
+        f'<script type="application/json" id="pipe-dtree-payload">{payload_json}</script>\n'
+    )
+
+
+
+def _pipe_hint_more(summary: str, body_html: str) -> str:
+    """Fold tertiary `.pipe-hint` prose behind native <details> (Gate 132 +2).
+
+    Summary text must be SR-honest (not bare "More…"). Body may be an existing
+    `<p class="pipe-hint">…</p>` reparented unchanged.
+    """
+    return (
+        f'<details class="pipe-hint-more">'
+        f"<summary>{html.escape(summary)}</summary>"
+        f"{body_html}"
+        f"</details>"
+    )
+
+
+def _pipe_adv_fold(summary: str, body_html: str) -> str:
+    """Collapse rarely-touched control clusters (Gate 132 +2; no wrapper div)."""
+    return (
+        f'<details class="pipe-adv-fold">'
+        f"<summary>{html.escape(summary)}</summary>"
+        f"{body_html}"
+        f"</details>"
+    )
+
+
 
 _PIPELINE_CONTROLS = {
     "thing": (
@@ -1232,35 +1661,56 @@ _PIPELINE_CONTROLS = {
         '<label class="pipe-ctl">Ask me when risk is at or above '
         '<select id="pipe-gate-floor"><option value="medium">medium</option>'
         '<option value="high">high</option><option value="extreme">extreme</option></select></label>'
-        '<p class="pipe-hint">Turn individual command types on/off, and tune the reviewer panel, in the '
-        '<a href="#/settings">Settings</a> tab.</p>'
+        + _pipe_hint_more(
+            "More about command review Settings",
+            '<p class="pipe-hint">Turn individual command types on/off, and tune the reviewer panel, in the '
+            '<a href="#/settings">Settings</a> tab.</p>',
+        )
     ),
-    "runaway": (
-        '<label class="pipe-ctl"><input type="checkbox" id="pipe-runaway-off"> Turn the brake off</label>'
-        '<label class="pipe-ctl">Most steps in one session '
-        '<input type="number" id="pipe-runaway-total" min="1" step="1"></label>'
-        '<label class="pipe-ctl">Most identical tries in a row '
-        '<input type="number" id="pipe-runaway-consec" min="1" step="1"></label>'
+    "runaway": _pipe_adv_fold(
+        "Advanced tool limits",
+        (
+            '<label class="pipe-ctl"><input type="checkbox" id="pipe-runaway-off"> Turn the brake off</label>'
+            '<label class="pipe-ctl">Most steps in one session '
+            '<input type="number" id="pipe-runaway-total" min="1" step="1"></label>'
+            '<label class="pipe-ctl">Most identical tries in a row '
+            '<input type="number" id="pipe-runaway-consec" min="1" step="1"></label>'
+        ),
     ),
-    "parallelism": (
-        '<label class="pipe-ctl"><input type="checkbox" id="pipe-parallelism-enabled"> '
-        "Allow parallel workers</label>"
-        '<label class="pipe-ctl"><input type="checkbox" id="pipe-parallelism-unlimited"> '
-        "No limit (unlimited workers)</label>"
-        '<label class="pipe-ctl">Most workers at once '
-        '<input type="number" id="pipe-parallelism-workers" min="1" step="1"></label>'
-        '<label class="pipe-ctl"><input type="checkbox" id="pipe-conserve-tokens"> '
-        "Conserve tokens (work one step at a time)</label>"
-        '<p class="pipe-hint">The default is MAXIMUM: fan-out work '
-        "(subagents / worktrees) runs in parallel with no limit. Untick “No limit” and set a "
-        "cap to batch it, or untick “Allow parallel workers” to keep the work sequential. "
-        "“Conserve tokens” is the standing exception — it makes the robot work one step at a "
-        "time until you turn it back off. It also switches on by itself when a prompt says "
-        "“conserve tokens” or the session runs low on room.</p>"
+    "parallelism": _pipe_adv_fold(
+        "Advanced tool limits",
+        (
+            '<label class="pipe-ctl"><input type="checkbox" id="pipe-parallelism-enabled"> '
+            "Allow parallel workers</label>"
+            '<label class="pipe-ctl"><input type="checkbox" id="pipe-parallelism-unlimited"> '
+            "No limit (unlimited workers)</label>"
+            '<label class="pipe-ctl">Most workers at once '
+            '<input type="number" id="pipe-parallelism-workers" min="1" step="1"></label>'
+            '<label class="pipe-ctl"><input type="checkbox" id="pipe-conserve-tokens"> '
+            "Conserve tokens (work one step at a time)</label>"
+            + _pipe_hint_more(
+                "More about parallel workers defaults",
+                '<p class="pipe-hint">The default is MAXIMUM: fan-out work '
+                "(subagents / worktrees) runs in parallel with no limit. Untick “No limit” and set a "
+                "cap to batch it, or untick “Allow parallel workers” to keep the work sequential. "
+                "“Conserve tokens” is the standing exception — it makes the robot work one step at a "
+                "time until you turn it back off. It also switches on by itself when a prompt says "
+                "“conserve tokens” or the session runs low on room.</p>",
+            )
+        ),
+    ),
+    "runes": (
+        '<label class="pipe-ctl">Runes '
+        '<select id="pipe-runes-mode" '
+        'title="Behavioral flag — Off by default. On = Oath-hook hanging + ready + auto-claim ungated; gates block; no Longship merge. Kill switch = Off + Save. SessionStart-hook hosts only (MH-18)." '
+        'aria-label="Runes at session start">'
+        "<option value=\"off\">Off — I'll use the CLI</option>"
+        '<option value="on">On — ready + auto-claim ungated</option>'
+        "</select></label>"
     ),
     "decision": (
-        '<label class="pipe-ctl">Mode '
-        '<select id="pipe-decision-review">'
+        '<label class="pipe-ctl">Decision mode '
+        '<select id="pipe-decision-review" aria-label="Decision review mode">'
         '<option value="off">off — you answer every yes/no</option>'
         '<option value="advisory">advisory — panel suggests, you still answer</option>'
         '<option value="binding">binding — panel answers the easy ones</option>'
@@ -1271,25 +1721,32 @@ _PIPELINE_CONTROLS = {
         '<input type="text" id="pipe-dod-cmd" placeholder="npm test &amp;&amp; npm run lint"></label>'
         '<label class="pipe-ctl">Times it may re-try before giving up '
         '<input type="number" id="pipe-dod-maxblocks" min="1" step="1"></label>'
-        '<p class="pipe-hint">Leave the command empty to turn the done-check off.</p>'
+        + _pipe_hint_more(
+            "More about the done-check",
+            '<p class="pipe-hint">Leave the command empty to turn the done-check off.</p>',
+        )
     ),
     "orchestrator": (
-        '<label class="pipe-ctl">Mode '
-        '<select id="pipe-orchestrator">'
+        '<label class="pipe-ctl">Orchestrator '
+        '<select id="pipe-orchestrator" aria-label="Orchestrator mode">'
         '<option value="off">off — host CLI orchestrates (default, zero extra cost)</option>'
         '<option value="decide">decide — Claude plans, host runs agents '
         "(+tokens for planning; lower cost)</option>"
         '<option value="full">full — Claude reasons through the task, host writes files '
         "(+most tokens; bounded cost; locked intent)</option>"
         "</select></label>"
-        '<p class="pipe-hint"><strong>[host-only — inert under Claude Code]</strong> '
-        "Active only when your CLI is <em>not</em> Claude Code (e.g. GitHub Copilot routing GPT/Grok). "
-        "Under Claude Code the host already is Claude — this knob is a no-op. "
-        "<strong>off</strong> — zero cost, host orchestrates as always. "
-        "<strong>decide</strong> — Claude returns a JSON dispatch plan; host runs the agents "
-        "(brain / hands split; lower cost). "
-        "<strong>full</strong> — one Claude call reasons through the task and returns artifact "
-        "content; host writes the files (guaranteed intent; highest cost, bounded).</p>"
+        + _pipe_hint_more(
+            "More about Orchestrator modes",
+            '<p class="pipe-hint"><strong>[host-only — inert under Claude Code]</strong> '
+            "Active only when your CLI is <em>not</em> Claude Code (e.g. GitHub Copilot routing GPT/Grok). "
+            "Under Claude Code the host already is Claude — this knob is a no-op. "
+            "<strong>off</strong> — zero cost, host orchestrates as always. "
+            "<strong>decide</strong> — Claude returns a JSON dispatch plan; host runs the agents "
+            "(brain / hands split; lower cost). "
+            "<strong>full</strong> — one Claude call reasons through the task and returns artifact "
+            "content; host writes the files (guaranteed intent; highest cost, bounded).</p>",
+        )
+        + (
         '<label class="pipe-ctl">Scope — <em>when</em> the orchestrator fires '
         '<select id="pipe-orchestrator-scope">'
         '<option value="team">team — only on a team-of-agents dispatch (default; lowest egress)</option>'
@@ -1297,11 +1754,16 @@ _PIPELINE_CONTROLS = {
         "</select></label>"
         '<div id="pipe-orch-relay-opts" style="display:none;border-left:3px solid #c47f17;'
         'padding:.4rem .7rem;margin:.5rem 0">'
-        '<p class="pipe-hint"><strong>⚠ Relay-all sends a second copy of every prompt — plus the '
-        "files it references — to your Claude account (a <em>different</em> processor than GitHub "
-        "Copilot) on every turn.</strong> It is guarded by the egress floor below and "
-        "<strong>fails closed</strong> (answers host-side, nothing egresses) unless one condition holds. "
-        "Bedrock/Vertex deployments are auto-detected and always pass.</p>"
+        )
+        + _pipe_hint_more(
+            "More about relay-all egress",
+            '<p class="pipe-hint"><strong>⚠ Relay-all sends a second copy of every prompt — plus the '
+            "files it references — to your Claude account (a <em>different</em> processor than GitHub "
+            "Copilot) on every turn.</strong> It is guarded by the egress floor below and "
+            "<strong>fails closed</strong> (answers host-side, nothing egresses) unless one condition holds. "
+            "Bedrock/Vertex deployments are auto-detected and always pass.</p>",
+        )
+        + (
         '<label class="pipe-ctl"><input type="checkbox" id="pipe-orch-zdr"> '
         "Zero-data-retention is ON for my Anthropic org "
         '<span class="pipe-hint">(it is OFF by default, per-org — confirm before checking)</span></label>'
@@ -1309,14 +1771,19 @@ _PIPELINE_CONTROLS = {
         "This repo contains NO client PII</label>"
         '<label class="pipe-ctl"><input type="checkbox" id="pipe-orch-pseudo"> '
         "<strong>Pseudonymize structured PII before egress (optional layer A)</strong></label>"
-        '<p class="pipe-hint">Layer A masks emails / SSNs / card &amp; phone shapes to random tokens, '
-        "restored locally on return. Defense-in-depth on <em>top</em> of the floor — <strong>not</strong> a "
-        "guarantee: pattern detection does not catch free-text names or addresses, which is exactly why "
-        "the floor above is the real protection.</p></div>"
+        )
+        + _pipe_hint_more(
+            "More about Layer A pseudonymization",
+            '<p class="pipe-hint">Layer A masks emails / SSNs / card &amp; phone shapes to random tokens, '
+            "restored locally on return. Defense-in-depth on <em>top</em> of the floor — <strong>not</strong> a "
+            "guarantee: pattern detection does not catch free-text names or addresses, which is exactly why "
+            "the floor above is the real protection.</p>",
+        )
+        + "</div>"
     ),
     "cheap_lane": (
-        '<label class="pipe-ctl">Mode '
-        '<select id="pipe-cheap-lane-mode">'
+        '<label class="pipe-ctl">Cheap lane '
+        '<select id="pipe-cheap-lane-mode" aria-label="Cheap lane mode">'
         '<option value="off">off — every task stays with Claude (default, zero extra cost)</option>'
         "<option value=\"advise\">advise — the delegated agent's output comes back as a "
         "suggestion only</option>"
@@ -1337,47 +1804,56 @@ _PIPELINE_CONTROLS = {
         '<option value="copilot">Copilot — CLI-documented path restriction, not a kernel '
         "sandbox</option>"
         "</select></label>"
-        '<p class="pipe-hint">Off by default — nothing here executes until mode is set to '
-        "<em>advise</em> or <em>agent</em>. <strong>advise</strong> — the delegated agent runs in "
-        "an isolated scratch dir with no repo access; its output is a suggestion for you to apply, "
-        "never applied automatically. <strong>agent</strong> — the delegated agent runs in a "
-        "disposable git worktree with write access; <strong>you review the diff before it "
-        "merges.</strong> A task the router judges ambiguous, escalation-shaped, or "
-        "security-sensitive always stays on Claude regardless of this setting — the routing "
-        "asymmetry is deliberate. See "
-        "<code>skills/cheap-lane-delegation/SKILL.md</code>.</p>"
+        + _pipe_hint_more(
+            "More about Cheap lane",
+            '<p class="pipe-hint">Off by default — nothing here executes until mode is set to '
+            "<em>advise</em> or <em>agent</em>. <strong>advise</strong> — the delegated agent runs in "
+            "an isolated scratch dir with no repo access; its output is a suggestion for you to apply, "
+            "never applied automatically. <strong>agent</strong> — the delegated agent runs in a "
+            "disposable git worktree with write access; <strong>you review the diff before it "
+            "merges.</strong> A task the router judges ambiguous, escalation-shaped, or "
+            "security-sensitive always stays on Claude regardless of this setting — the routing "
+            "asymmetry is deliberate. See "
+            "<code>skills/cheap-lane-delegation/SKILL.md</code>.</p>",
+        )
     ),
     "context_handoff": (
-        '<label class="pipe-ctl">Mode '
-        '<select id="pipe-context-handoff-mode">'
+        '<label class="pipe-ctl">Context handoff '
+        '<select id="pipe-context-handoff-mode" aria-label="Context handoff mode">'
         '<option value="off">off — never writes a handoff brief (default)</option>'
         '<option value="nag">nag — suggests a handoff brief to Claude Code at Stop</option>'
         "<option value=\"block\">block — required on hosts a suggestion can't reach "
         "(e.g. Copilot)</option>"
         "</select></label>"
-        '<p class="pipe-hint">Proactively writes a full handoff brief before compaction, so a '
-        "fresh session or a teammate can pick up without losing the thread. off = never; "
-        "nag = suggest to Claude Code at Stop; block = required on hosts where nag can't "
-        "reach the agent (e.g. Copilot, whose Stop hook has no context-injection field).</p>"
+        + _pipe_hint_more(
+            "More about Context handoff",
+            '<p class="pipe-hint">Proactively writes a full handoff brief before compaction, so a '
+            "fresh session or a teammate can pick up without losing the thread. off = never; "
+            "nag = suggest to Claude Code at Stop; block = required on hosts where nag can't "
+            "reach the agent (e.g. Copilot, whose Stop hook has no context-injection field).</p>",
+        )
     ),
-    "files": (
-        '<div class="pipe-file" data-file=".repo-layout.json">'
-        '<div class="pipe-file-head"><strong>Allowed folders</strong> '
-        "<code>.repo-layout.json</code>"
-        '<button type="button" class="pipe-file-load" data-target=".repo-layout.json">Load</button>'
-        '<button type="button" class="pipe-file-save" data-target=".repo-layout.json">Save</button></div>'
-        '<textarea class="pipe-file-text" data-target=".repo-layout.json" spellcheck="false" '
-        'aria-label="repo-layout.json contents"></textarea>'
-        '<span class="pipe-file-status" data-target=".repo-layout.json"></span></div>'
-        '<div class="pipe-file" data-file=".ravenclaude/task-scope.json">'
-        '<div class="pipe-file-head"><strong>This task’s files</strong> '
-        "<code>.ravenclaude/task-scope.json</code>"
-        '<button type="button" class="pipe-file-load" data-target=".ravenclaude/task-scope.json">Load</button>'
-        '<button type="button" class="pipe-file-save" data-target=".ravenclaude/task-scope.json">Save</button></div>'
-        '<textarea class="pipe-file-text" data-target=".ravenclaude/task-scope.json" spellcheck="false" '
-        'aria-label="task-scope.json contents" '
-        'placeholder=\'{ "in_scope": ["src/**"], "spec": "SPEC.md" }\'></textarea>'
-        '<span class="pipe-file-status" data-target=".ravenclaude/task-scope.json"></span></div>'
+    "files": _pipe_adv_fold(
+        "File path rules",
+        (
+            '<div class="pipe-file" data-file=".repo-layout.json">'
+            '<div class="pipe-file-head"><strong>Allowed folders</strong> '
+            "<code>.repo-layout.json</code>"
+            '<button type="button" class="pipe-file-load" data-target=".repo-layout.json">Load</button>'
+            '<button type="button" class="pipe-file-save" data-target=".repo-layout.json">Save</button></div>'
+            '<textarea class="pipe-file-text" data-target=".repo-layout.json" spellcheck="false" '
+            'aria-label="repo-layout.json contents"></textarea>'
+            '<span class="pipe-file-status" data-target=".repo-layout.json"></span></div>'
+            '<div class="pipe-file" data-file=".ravenclaude/task-scope.json">'
+            '<div class="pipe-file-head"><strong>This task’s files</strong> '
+            "<code>.ravenclaude/task-scope.json</code>"
+            '<button type="button" class="pipe-file-load" data-target=".ravenclaude/task-scope.json">Load</button>'
+            '<button type="button" class="pipe-file-save" data-target=".ravenclaude/task-scope.json">Save</button></div>'
+            '<textarea class="pipe-file-text" data-target=".ravenclaude/task-scope.json" spellcheck="false" '
+            'aria-label="task-scope.json contents" '
+            'placeholder=\'{ "in_scope": ["src/**"], "spec": "SPEC.md" }\'></textarea>'
+            '<span class="pipe-file-status" data-target=".ravenclaude/task-scope.json"></span></div>'
+        ),
     ),
     # guard-web-access's knob lives in .ravenclaude/web-access.yaml, which is
     # OPTIONAL and absent by default (guard-web-access.sh fail-safes to "ask as
@@ -1390,14 +1866,16 @@ _PIPELINE_CONTROLS = {
         '<p class="pipe-web-state" id="pipe-web-state">Not configured yet — every website falls '
         "through to the normal ask prompt (allow once / this session / permanently / deny). The guard "
         "never blocks web access until you set up lists, so this is a safe default.</p>"
-        '<p class="pipe-hint">Set up allow / deny lists on the <a href="#/web-access">Web access</a> '
-        "page — saved to <code>.ravenclaude/web-access.yaml</code>, enforced by "
-        "<code>guard-web-access.sh</code>. Nothing to configure here; this is a shortcut to that "
-        "editor.</p>"
-        "</div>"
+        + _pipe_hint_more(
+            "More about Web access setup",
+            '<p class="pipe-hint">Set up allow / deny lists on the <a href="#/web-access">Web access</a> '
+            "page — saved to <code>.ravenclaude/web-access.yaml</code>, enforced by "
+            "<code>guard-web-access.sh</code>. Nothing to configure here; this is a shortcut to that "
+            "editor.</p>",
+        )
+        + "</div>"
     ),
 }
-
 
 _PIPELINE_CSS = """<style>
 .pipeline-tab { max-width: 1120px; }
@@ -1415,15 +1893,20 @@ _PIPELINE_CSS = """<style>
   background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--rc-radius-pill);
   padding: .15rem .6rem; white-space: nowrap; }
 .pipe-flow-step.pipe-flow-loop { border-color: var(--accent); }
+.pipe-flow-step[data-event]::after { content: " · " attr(data-event);
+  font-family: ui-monospace, monospace; font-weight: 500; font-size: .72rem;
+  color: var(--muted); }
 .pipe-flow-arr { color: var(--accent); font-weight: 700; }
 .pipe-readme { font-size: .84rem; }
 .pipe-lane { border: 1px solid var(--border); border-radius: var(--rc-radius-lg);
   padding: .4rem .6rem; margin: 0; background: var(--surface); box-shadow: var(--rc-shadow-sm); }
-.pipe-lane-head { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; }
-.pipe-lane-when { font-weight: 600; color: var(--text, #eee); }
-.pipe-lane-event { font-family: ui-monospace, monospace; font-size: .76rem;
-  color: var(--muted, #999); background: var(--bg, #111); padding: .1rem .4rem;
-  border-radius: 4px; }
+.pipe-lane-head { display: flex; flex-direction: column; align-items: flex-start;
+  gap: .15rem; padding-bottom: .35rem; margin-bottom: .2rem;
+  border-bottom: 1px solid var(--border); }
+/* Category = hook event (primary); plain-English when = subtitle. Gate 132: same 2 spans. */
+.pipe-lane-event { font-family: ui-monospace, monospace; font-size: 1.1rem; font-weight: 600;
+  color: var(--text, #eee); letter-spacing: -0.01em; line-height: 1.25; }
+.pipe-lane-when { font-size: .85rem; font-weight: 500; color: var(--muted, #999); }
 .pipe-lane-tip { margin: .15rem 0 .35rem; color: var(--muted, #aaa); font-size: .83rem; line-height: 1.32; }
 .pipe-row { display: flex; flex-wrap: wrap; gap: .35rem; }
 .pipe-stage { flex: 1 1 230px; min-width: 200px; border: 1px solid var(--border);
@@ -1457,6 +1940,21 @@ _PIPELINE_CSS = """<style>
    value truncates in place instead of running off the right edge. */
 .pipe-ctl select { flex: 1 1 16rem; max-width: 100%; min-width: 0; }
 .pipe-hint { margin: .08rem 0 0; font-size: .76rem; color: var(--muted, #888); }
+/* Wave-2 progressive disclosure — kinship with .pipe-more / .pipe-dtree-details */
+.pipe-hint-more, .pipe-adv-fold { margin: .2rem 0 0; border: 1px solid var(--border);
+  border-radius: var(--rc-radius-sm); background: var(--surface-2); padding: .15rem .45rem .25rem; }
+.pipe-hint-more > summary, .pipe-adv-fold > summary {
+  cursor: pointer; font-size: .78rem; font-weight: 600; color: var(--muted);
+  list-style: none; display: inline-flex; align-items: center; gap: .3rem;
+  user-select: none; padding: .1rem 0; }
+.pipe-hint-more > summary::-webkit-details-marker,
+.pipe-adv-fold > summary::-webkit-details-marker { display: none; }
+.pipe-hint-more > summary::before, .pipe-adv-fold > summary::before {
+  content: "▸"; font-size: .7rem; color: var(--accent); transition: transform .15s ease; }
+.pipe-hint-more[open] > summary::before, .pipe-adv-fold[open] > summary::before { transform: rotate(90deg); }
+.pipe-hint-more[open], .pipe-adv-fold[open] { border-color: var(--border-strong, var(--border)); }
+.pipe-adv-fold[open] > summary { color: var(--text); margin-bottom: .15rem; }
+.pipe-hint-more .pipe-hint { margin: .15rem 0 .1rem; }
 .pipe-web-state { margin: .08rem 0 .15rem; font-size: .82rem; color: var(--text, #eee); }
 /* Expandable "How it works" subprocess detail (native <details>, accessible). */
 .pipe-more { margin: .3rem 0 0; }
@@ -1602,10 +2100,112 @@ _PIPELINE_CSS = """<style>
 .concern-stats-table tr.concern-row-hot td { color: var(--warn, #fbbf24); }
 .concern-stats-table tr.concern-row-cold td { color: var(--text, #ddd); }
 .concern-stats-table code { font-family: ui-monospace, monospace; font-size: 12px; }
+
+/* ── Pipeline decision-tree island (JS-seated; --rc-* tokens only) ──────── */
+.pipe-dtree-mount { margin: .55rem 0 .7rem; }
+.pipe-dtree-details { margin: 0; }
+.pipe-dtree-details > summary.pdt-summary,
+.pdt-summary { cursor: pointer; font-size: .9rem; font-weight: 650; color: var(--text);
+  list-style: none; display: inline-flex; align-items: center; gap: .35rem;
+  padding: .15rem 0 .35rem; user-select: none; }
+.pdt-summary::-webkit-details-marker { display: none; }
+.pdt-summary::before { content: "▸"; font-size: .75rem; color: var(--accent);
+  transition: transform .15s ease; }
+.pipe-dtree-details[open] > .pdt-summary::before { transform: rotate(90deg); }
+.pdt-shell { border: 1px solid var(--border); border-radius: var(--rc-radius-lg);
+  background: var(--surface); box-shadow: var(--rc-shadow-sm); padding: .55rem .7rem .7rem;
+  display: flex; flex-direction: column; gap: .55rem; }
+.pdt-chrome { display: flex; flex-direction: column; gap: .4rem; }
+.pdt-head { display: flex; flex-direction: column; gap: .12rem;
+  padding-bottom: .35rem; border-bottom: 1px solid var(--border); }
+.pdt-title { margin: 0; font-size: .95rem; font-weight: 650; color: var(--text); }
+.pdt-sub { margin: 0; font-size: .76rem; color: var(--muted); line-height: 1.35; }
+.pdt-filters { display: flex; flex-wrap: wrap; gap: .28rem; }
+.pdt-chip { font-size: .72rem; font-weight: 600; padding: .18rem .5rem;
+  border-radius: var(--rc-radius-pill); border: 1px solid var(--border);
+  background: var(--surface-2); color: var(--muted); cursor: pointer; font-family: inherit; }
+.pdt-chip:focus-visible { outline: 2px solid var(--rc-focus-ring, var(--accent));
+  outline-offset: 2px; }
+.pdt-chip.is-active { background: var(--rc-accent-soft, var(--surface-2));
+  border-color: var(--accent); color: var(--text); }
+.pdt-legend { display: flex; flex-wrap: wrap; gap: .35rem .7rem; align-items: center; }
+.pdt-legend-item { display: inline-flex; align-items: center; gap: .28rem;
+  font-size: .72rem; color: var(--muted); max-width: 100%; }
+.pdt-legend-tip { overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  max-width: 14rem; }
+.pdt-honesty { margin: 0; font-size: .72rem; color: var(--muted); line-height: 1.35; }
+.pdt-pill { display: inline-flex; align-items: center; font-size: .66rem; font-weight: 700;
+  padding: .08rem .4rem; border-radius: var(--rc-radius-pill); letter-spacing: .01em;
+  border: 1px solid transparent; white-space: nowrap; }
+.pdt-pill--ok { background: var(--rc-ok-bg); color: var(--rc-ok-fg); }
+.pdt-pill--warn { background: var(--rc-warn-bg); color: var(--rc-warn-fg); }
+.pdt-pill--danger { background: var(--rc-danger-bg); color: var(--rc-danger-fg); }
+.pdt-pill--neutral { background: var(--rc-neutral-bg); color: var(--rc-neutral-fg);
+  border-color: var(--border); }
+.pdt-spine-wrap { overflow-x: auto; border: 1px solid var(--border);
+  border-radius: var(--rc-radius); background: var(--surface-2); padding: .2rem .3rem; }
+.pdt-spine-svg { width: 100%; max-width: 720px; height: auto; display: block; margin: 0 auto; }
+.pdt-spine-line { stroke: var(--border-strong, var(--border)); stroke-width: 2; }
+.pdt-spine-branch { stroke: var(--accent); stroke-width: 1.5; opacity: .75; }
+.pdt-spine-node { fill: var(--surface); stroke: var(--accent); stroke-width: 2; }
+.pdt-spine-pre, .pdt-spine-post { fill: var(--rc-accent-soft, var(--surface-2)); }
+.pdt-spine-mid { stroke: var(--muted); }
+.pdt-spine-tick { fill: var(--accent); stroke: none; }
+.pdt-spine-label { fill: var(--text); font-size: 11px; font-weight: 650;
+  text-anchor: middle; font-family: ui-monospace, monospace; }
+.pdt-spine-label--muted { fill: var(--muted); font-weight: 500; font-family: inherit; }
+.pdt-spine-meta { fill: var(--muted); font-size: 9px; text-anchor: middle; }
+.pdt-cols { display: grid; grid-template-columns: 1fr 1fr; gap: .55rem; }
+@media (max-width: 820px) { .pdt-cols { grid-template-columns: 1fr; } }
+.pdt-col { border: 1px solid var(--border); border-radius: var(--rc-radius);
+  background: var(--surface-2); padding: .4rem .45rem .5rem; min-width: 0; }
+.pdt-col-head { display: flex; flex-direction: column; gap: .1rem;
+  padding-bottom: .3rem; margin-bottom: .3rem; border-bottom: 1px solid var(--border); }
+.pdt-col-event { font-family: ui-monospace, monospace; font-size: .95rem; font-weight: 650;
+  color: var(--text); }
+.pdt-col-when { font-size: .76rem; color: var(--muted); }
+.pdt-groups { display: flex; flex-direction: column; gap: .3rem; }
+.pdt-group { border: 1px solid var(--border); border-radius: var(--rc-radius-sm);
+  background: var(--surface); overflow: hidden; transition: opacity .15s ease; }
+.pdt-group.is-muted { opacity: .38; }
+.pdt-group.is-open { border-color: var(--border-strong, var(--accent)); }
+.pdt-group-sum { width: 100%; display: flex; flex-wrap: wrap; align-items: center; gap: .35rem;
+  padding: .32rem .45rem; border: 0; background: transparent; color: var(--text);
+  cursor: pointer; text-align: left; font-family: inherit; font-size: .78rem; }
+.pdt-group-sum:focus-visible { outline: 2px solid var(--rc-focus-ring, var(--accent));
+  outline-offset: -2px; }
+.pdt-group-idx { font-family: ui-monospace, monospace; font-size: .7rem; color: var(--muted);
+  font-weight: 600; }
+.pdt-matcher { font-size: .72rem; color: var(--accent); background: var(--rc-accent-soft, transparent);
+  padding: .05rem .3rem; border-radius: 4px; max-width: 100%; overflow-wrap: anywhere; }
+.pdt-group-count { margin-left: auto; font-size: .7rem; color: var(--muted); }
+.pdt-group-body { padding: .15rem .45rem .4rem; display: flex; flex-direction: column; gap: .35rem;
+  border-top: 1px solid var(--border); }
+.pdt-hook { padding: .25rem 0; border-bottom: 1px dashed var(--border); }
+.pdt-hook:last-child { border-bottom: 0; }
+.pdt-hook-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: .35rem; }
+.pdt-hook-title { font-weight: 600; font-size: .8rem; color: var(--text); }
+.pdt-hook-script { font-size: .68rem; color: var(--muted); }
+.pdt-outcomes { display: flex; flex-wrap: wrap; gap: .22rem; margin: .2rem 0; }
+.pdt-hook-note { margin: .1rem 0 0; font-size: .72rem; color: var(--muted); line-height: 1.35; }
+.pdt-excluded { margin-top: .2rem; border: 1px dashed var(--border); border-radius: var(--rc-radius-sm);
+  padding: .15rem .35rem .25rem; background: transparent; }
+.pdt-excluded > summary { cursor: pointer; font-size: .72rem; font-weight: 600; color: var(--muted);
+  list-style: none; padding: .15rem 0; }
+.pdt-excluded > summary::-webkit-details-marker { display: none; }
+.pdt-excluded > summary::before { content: "▸ "; color: var(--accent); }
+.pdt-excluded[open] > summary::before { content: "▾ "; }
+.pdt-excluded-body { display: flex; flex-direction: column; gap: .3rem; padding-top: .15rem; }
+@media (prefers-reduced-motion: reduce) {
+  .pdt-group { transition: none; }
+  .pdt-summary::before { transition: none; }
+  .pipe-hint-more > summary::before,
+  .pipe-adv-fold > summary::before { transition: none; }
+}
 </style>"""
 
 
-def _render_pipeline_tab() -> str:
+def _render_pipeline_tab(plugin_dir: Path) -> str:
     """Render the Pipeline tab — the all-events guardrail flow with live state,
     5th-grade tooltips, and inline editors. JS (in _JS) hydrates it on open."""
     # Rendered from the single _HOOK_CAPABLE_HOSTS list so the host scope stated
@@ -1624,6 +2224,10 @@ def _render_pipeline_tab() -> str:
         if _HOST_SUPPORT["components"]["hooks"][h]["supported"] is not True
     ]
     _no_hook_hosts_text = html.escape(_oxford(_no_hook_hosts))
+    # Decision-tree island (Gate 132 +2). Placed under flow strip / before lanes.
+    _pj = json.loads((plugin_dir / ".claude-plugin" / "plugin.json").read_text(encoding="utf-8"))
+    _dtree_ver = str(_pj.get("version", ""))
+    dtree_island = _render_pipe_dtree_island(plugin_dir, _dtree_ver)
     lanes_html = []
     for lane in _PIPELINE_LANES:
         cards = []
@@ -1652,7 +2256,7 @@ def _render_pipeline_tab() -> str:
             # surfaced Settings-only, so it carries the badge there, not here.)
             behavioral_html = (
                 _render_behavioral_flag_badge()
-                if controls in ("decision", "orchestrator", "cheap_lane", "context_handoff")
+                if controls in ("decision", "orchestrator", "cheap_lane", "context_handoff", "runes")
                 else ""
             )
             detail = st.get("detail")
@@ -1681,8 +2285,8 @@ def _render_pipeline_tab() -> str:
         lanes_html.append(
             '<section class="pipe-lane">'
             '<div class="pipe-lane-head">'
-            f'<span class="pipe-lane-when">{html.escape(lane["when"])}</span>'
-            f'<span class="pipe-lane-event">{html.escape(lane["event"])}</span></div>'
+            f'<span class="pipe-lane-event">{html.escape(lane["event"])}</span>'
+            f'<span class="pipe-lane-when">{html.escape(lane["when"])}</span></div>'
             f'<p class="pipe-lane-tip">{html.escape(lane["tip"])}</p>'
             f'<div class="pipe-row">{"".join(cards)}</div>'
             "</section>"
@@ -1693,19 +2297,19 @@ def _render_pipeline_tab() -> str:
   <h2>Guardrail pipeline</h2>
   <p class="page-desc">Everything an AI agent passes through, top to bottom. Each box shows whether it's on right now, what it does (in plain words), the step-by-step of how it works, and the knobs you can turn. Changes save to your <code>.ravenclaude/comfort-posture.yaml</code>.
   IMPORTANT — these guardrails fire under {_hook_hosts_text}, and nowhere else yet. &ldquo;Always on&rdquo; below means &ldquo;not a knob you can switch off&rdquo;; it does NOT mean every host runs it. Under {_no_hook_hosts_text} nothing here wires itself, so none of it fires — the stages are shown for reference, not as protection you currently have.</p>
-  <div class="pipe-flow" role="img" aria-label="Flow: session starts, then before-each-step and after-each-step checkpoints loop for every command, then a final check when it tries to stop.">
-    <span class="pipe-flow-step">Session starts</span>
+  <div class="pipe-flow" role="img" aria-label="Flow: SessionStart (session starts), then PreToolUse (before each step) and PostToolUse (after each step) checkpoints loop for every command, then Stop (when it tries to stop).">
+    <span class="pipe-flow-step" data-event="SessionStart">Session starts</span>
     <span class="pipe-flow-arr">→</span>
-    <span class="pipe-flow-step pipe-flow-loop">Before each step</span>
+    <span class="pipe-flow-step pipe-flow-loop" data-event="PreToolUse">Before each step</span>
     <span class="pipe-flow-arr">→</span>
     <span class="pipe-flow-step">the tool runs</span>
     <span class="pipe-flow-arr">→</span>
-    <span class="pipe-flow-step pipe-flow-loop">After each step</span>
+    <span class="pipe-flow-step pipe-flow-loop" data-event="PostToolUse">After each step</span>
     <span class="pipe-flow-arr" title="repeats for every command or edit">↺</span>
     <span class="pipe-flow-arr">→</span>
-    <span class="pipe-flow-step">When it tries to stop</span>
+    <span class="pipe-flow-step" data-event="Stop">When it tries to stop</span>
   </div>
-  <p class="page-desc pipe-readme">The two middle checkpoints repeat for <em>every</em> command and file edit — that's the ↺ loop. Open <strong>“How it works, step by step”</strong> on any box to see exactly what it checks and what happens if it trips. Badges: <span class="pipe-badge pipe-badge-on">Always on</span> can't be turned off · <span class="pipe-badge pipe-badge-advisory">Advisory</span> only nudges, never blocks · <span class="pipe-badge pipe-badge-dynamic">On / Off</span> depends on your settings (filled in live below).</p>
+  {dtree_island}  <p class="page-desc pipe-readme">The two middle checkpoints repeat for <em>every</em> command and file edit — that's the ↺ loop. Open <strong>“How it works, step by step”</strong> on any box to see exactly what it checks and what happens if it trips. Badges: <span class="pipe-badge pipe-badge-on">Always on</span> can't be turned off · <span class="pipe-badge pipe-badge-advisory">Advisory</span> only nudges, never blocks · <span class="pipe-badge pipe-badge-dynamic">On / Off</span> depends on your settings (filled in live below).</p>
   <div id="pipeline-server-note" class="pipe-note" hidden>This page has no server behind it, so the live state and editors are read-only. Launch the dashboard with <code>ravenclaude dashboard --project &lt;repo&gt;</code> to edit and apply.</div>
   {body}
   <div class="pipe-savebar">
@@ -2356,13 +2960,19 @@ def _render_command_card(cmd: dict) -> str:
         )
         pill = '<span class="cmd-pill" title="A web page can&#39;t run this for you. Copy it and paste it into Claude Code, where it runs the whole job.">Copy &rarr; paste into Claude</span>'
 
+    # Host-scope chip: slash commands are Claude Code. Verified _HOST_EQUIVALENTS
+    # stay Claude Code + "any host: rc …" prose (UX DIGEST) — never fake All agents.
+    scope_dep = "claude-code"
+    scope_attr = " ".join(_host_scope_tokens(scope_dep))
+    scope_badge = _render_host_scope_badge(scope_dep)
     return (
-        '<article class="cmd-card">'
+        f'<article class="cmd-card" data-host-scope="{html.escape(scope_attr)}">'
         '<header class="cmd-card-head">'
         f'<h3 class="cmd-card-title">{html.escape(slash)}</h3>'
         f'<span class="cmd-card-badge" '
         f'title="Shipped by the {html.escape(cmd["owner"])} plugin">'
         f"{html.escape(cmd['owner'])}</span>"
+        f"{scope_badge}"
         f"{pill}"
         "</header>"
         f'<p class="cmd-card-desc">{html.escape(desc)}</p>'
@@ -2411,7 +3021,14 @@ def _render_commands_tab() -> str:
         f"<p>{len(cmds)} command{plural} shipped by the marketplace plugins.{run_note}{host_note}</p>"
         "</div>"
     )
-    return intro + f'<div class="cmd-grid">{cards}</div>'
+    filt = _render_host_scope_filter(strip_id="commands-host-filter")
+    return (
+        '<div class="cmd-host-scope-root" id="commands-host-scope-root">'
+        + intro
+        + filt
+        + f'<div class="cmd-grid">{cards}</div>'
+        + "</div>"
+    )
 
 
 # ── Guidance tab (marketplace-wide decision trees + best practices) ──────────
@@ -2779,7 +3396,7 @@ def _render_settings_tab(properties: dict, presets: dict) -> str:
 
     design_checkins_html = _render_design_checkins(
         properties.get("design_checkins", {})
-    ) + _render_dashboard_autostart()
+    ) + _render_dashboard_autostart() + _render_runes_session_start()
 
     category_intro_html = (
         '<div class="category-intro"><p>'
@@ -3334,6 +3951,35 @@ def _render_dashboard_autostart() -> str:
         "<option value=\"off\">Off — I'll launch it myself</option>"
         '<option value="serve">Serve — start it quietly, no tab</option>'
         '<option value="open">Open — start it and open a tab</option>'
+        "</select>"
+        "</div>"
+    )
+
+
+
+
+def _render_runes_session_start() -> str:
+    """Render the `runes:` opt-in control (behavioral flag, NOT a permission).
+
+    Mirrors `_render_dashboard_autostart`: lean .design-checkins-bar + h3 + select.
+    Default OFF (absent ⇒ off). On = SessionStart Oath-hook hanging MUST-RUN +
+    ready summary + auto-claim next ungated ready Rune; gates refuse; never auto
+    Longship merge. Kill switch = Off + Save. EXACTLY 5 static elements
+    (wrapper, h3, select, 2 options) — Gate 132 measured after regen.
+    """
+    tip = (
+        "Behavioral flag — not a tool permission. Off by default (opt-in per repo). "
+        "On = Oath-hook + ready every SessionStart, and auto-claim next ungated ready "
+        "Rune (gates still block). No auto Longship merge. Kill switch = Off + Save. "
+        "SessionStart-hook hosts only (MH-18). Never Gas Town / Beads."
+    )
+    return (
+        '<div class="design-checkins-bar" id="runes-session-bar">'
+        "<h3>⚙ Runes at session start</h3>"
+        f'<select id="runes-session-mode" title="{html.escape(tip)}" '
+        'aria-label="Opt in to automatic Runes at session start">'
+        "<option value=\"off\">Off — I'll use the CLI</option>"
+        '<option value="on">On — ready + auto-claim ungated</option>'
         "</select>"
         "</div>"
     )
@@ -6325,6 +6971,60 @@ footer.page-footer a:hover { text-decoration: underline; }
   background: var(--accent);
   clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
 }
+/* Wave-1/2 PE academy is JS-seated after the Learn island hydrates. None of this
+   card chrome adds to the static Gate 132 surface. */
+.learn-pe-bridge {
+  margin: 0 0 20px; padding: 18px; border: 1px solid var(--border);
+  border-radius: var(--rc-radius-lg); background: var(--surface-2);
+}
+.learn-pe-title { margin: 0; font-size: 17px; color: var(--text); }
+.learn-pe-intro { margin: 5px 0 14px; color: var(--muted); font-size: 13px; line-height: 1.5; }
+.learn-pe-path {
+  list-style: none; margin: 0; padding: 0;
+  display: flex; flex-direction: column; gap: 10px;
+  counter-reset: pe-step;
+}
+.learn-pe-step {
+  counter-increment: pe-step;
+  display: flex; flex-direction: column; align-items: flex-start; gap: 7px;
+  min-width: 0; padding: 14px; border: 1px solid var(--border);
+  border-radius: var(--radius); background: var(--surface); box-shadow: var(--rc-shadow-sm);
+}
+.learn-pe-step-meta {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+}
+.learn-pe-step-num {
+  color: var(--accent); font: 700 10.5px/1.2 var(--font-mono);
+  letter-spacing: .06em; text-transform: uppercase;
+}
+.learn-pe-step-num::before { content: "Step " counter(pe-step) " · "; }
+.learn-pe-kicker {
+  color: var(--muted); font: 700 10.5px/1.2 var(--font-mono);
+  letter-spacing: .06em; text-transform: uppercase;
+}
+.learn-pe-step h3 { margin: 0; font-size: 15px; color: var(--text); }
+.learn-pe-step p { margin: 0; color: var(--muted); font-size: 12.5px; line-height: 1.5; }
+.learn-pe-cta {
+  margin-top: 2px; padding: 6px 10px; border: 1px solid var(--accent);
+  border-radius: var(--radius); color: var(--accent); font-size: 12.5px; font-weight: 700;
+  text-decoration: none;
+}
+.learn-pe-cta:hover { background: var(--accent-soft); text-decoration: none; }
+.learn-pe-cta:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.learn-pe-concepts { margin: 0; padding-left: 1.1rem; color: var(--muted); font-size: 12.5px; line-height: 1.45; }
+.learn-pe-concepts li { margin: .15rem 0; }
+.learn-pe-concepts a { color: var(--accent); }
+.learn-pe-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.learn-pe-card {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 7px;
+  min-width: 0; padding: 14px; border: 1px solid var(--border);
+  border-radius: var(--radius); background: var(--surface); box-shadow: var(--rc-shadow-sm);
+}
+.learn-pe-card h3 { margin: 0; font-size: 15px; color: var(--text); }
+.learn-pe-card p { margin: 0; color: var(--muted); font-size: 12.5px; line-height: 1.5; }
+.learn-pe-host { margin: 12px 0 0; color: var(--muted); font-size: 12px; }
+.learn-pe-host a { color: var(--accent); }
+@media (max-width: 760px) { .learn-pe-grid { grid-template-columns: 1fr; } }
 
 .learn-tier { margin: 8px 0 26px; }
 .learn-tier[hidden] { display: none; }
@@ -7231,7 +7931,6 @@ footer.page-footer a:hover { text-decoration: underline; }
 .pb-token { display: inline-flex; align-items: baseline; gap: 5px; padding: 5px 10px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 999px; font-size: 12px; color: var(--muted); white-space: nowrap; }
 .pb-token strong { color: var(--text); font-variant-numeric: tabular-nums; }
 .pb-token .pb-token-band { font-size: 11px; opacity: .8; }
-.pb-info { display: inline-flex; align-items: center; justify-content: center; width: 15px; height: 15px; border-radius: 50%; border: 1px solid var(--border); color: var(--muted); font-size: 10px; font-weight: 700; cursor: help; }
 
 .pb-btn { appearance: none; font: inherit; font-size: 12.5px; font-weight: 600; padding: 6px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--surface-2); color: var(--text); cursor: pointer; transition: background .15s, border-color .15s; }
 .pb-btn:hover { border-color: var(--accent); }
@@ -7316,6 +8015,25 @@ footer.page-footer a:hover { text-decoration: underline; }
 .pb-toast.pb-show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
 @media (max-width: 960px) { .pb-grid { grid-template-columns: 1fr; } .pb-preview { max-height: 320px; } }
+
+.pb-modes { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; flex: 1 1 100%; }
+.pb-mode { appearance: none; border: 1px solid var(--border); background: var(--surface-2); color: var(--muted); font: inherit; font-size: 12.5px; font-weight: 600; padding: 6px 12px; border-radius: 999px; cursor: pointer; }
+.pb-mode[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--bg); }
+.pb-token-honesty { flex: 1 1 100%; margin: 0; font-size: 11px; color: var(--muted); line-height: 1.4; }
+.pb-sev-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; margin-right: 6px; color: var(--muted); }
+.pb-issue.pb-sev-bad .pb-sev-label { color: var(--danger); }
+.pb-issue.pb-sev-warn .pb-sev-label { color: var(--warn); }
+.pb-issue.pb-sev-tip .pb-sev-label { color: var(--accent); }
+.pb-sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+.pb-preview-empty { margin: 0 0 6px; font-size: 12.5px; color: var(--muted); }
+.pb-preview-empty[hidden] { display: none !important; }
+.pb-gauge-wrap { display: inline-flex; }
+@media (forced-colors: active) {
+  .pb-issue.pb-sev-bad { border-left: 4px solid CanvasText; outline: 1px solid CanvasText; }
+  .pb-issue.pb-sev-warn { border-left: 4px dashed CanvasText; }
+  .pb-issue.pb-sev-tip { border-left: 4px dotted CanvasText; }
+  .pb-count.pb-ok, .pb-count.pb-warn { forced-color-adjust: none; }
+}
 @media (prefers-reduced-motion: reduce) { .pb-gauge circle.pb-gauge-fill { transition: none; } .pb-toast { transition: none; } }
 """.strip()
 
@@ -8460,6 +9178,14 @@ _JS = r"""
    * class). Settings renders the control via `_render_dashboard_autostart()`. */
   const DASHBOARD_AUTOSTART_VALUES = ["off", "serve", "open"];
   const DASHBOARD_AUTOSTART_DEFAULT = "off";
+  /* Runes at session start (read by hooks/oath-hook.sh + scripts/oath_hook.py).
+   * OPT-IN — default `off` (and off when the key is absent), so emitYaml writes
+   * it only when the user picks on, preserving "absent ⇒ off". SSOT key `runes:`
+   * (not dual-written as oath_hook:). Settings + Pipeline SessionStart share
+   * one state slot. On = hanging MUST-RUN + ready + auto-claim ungated; never
+   * auto Longship merge. Kill switch = Off + Save. */
+  const RUNES_VALUES = ["off", "on"];
+  const RUNES_DEFAULT = "off";
   const ORCHESTRATOR_VALUES = ["off", "decide", "full"];
   const ORCHESTRATOR_DEFAULT = "full";
   const ORCHESTRATOR_SCOPE_VALUES = ["team", "all"];
@@ -8517,6 +9243,61 @@ _JS = r"""
   const CHEAP_LANE_AGENT_VALUES = ["grok", "copilot"];
   const CHEAP_LANE_AGENT_DEFAULT = "grok";
   const CHEAP_LANE_DEFAULT = Object.freeze({ mode: "off", tier: "fast", agent: "grok" });
+  /* Handoff tax (model-tier delegation) — meter caps + scalar `off` only.
+   * Phase D (0.323.14): Explore pin WRITE path moved to model_matrix.surfaces.
+   * explore_pin; handoff_tax.pin_explore is still READ as a one-release alias
+   * (hydrate only). Caps/off stay here. Round-tripped so a Save no longer
+   * strips caps (v0.61.0 data-loss class). NO DOM control. */
+  const HANDOFF_TAX_PIN_VALUES = ["haiku", "sonnet", "off"];
+  const HANDOFF_TAX_PIN_DEFAULT = "haiku";
+  const HANDOFF_TAX_REPORT_CAP_DEFAULT = 400;
+  const HANDOFF_TAX_BRIEF_CAP_DEFAULT = 600;
+  const HANDOFF_TAX_CAP_MAX = 999999;
+  const HANDOFF_TAX_DEFAULT = Object.freeze({ off: false, report_cap_words: null, brief_cap_words: null });
+  /* Unified Model Matrix surfaces (0.323.11+; Phase D write SSOT).
+   * Dashboard Save writes ONLY these keys for explore/precompact/handoff pins.
+   * Hydrate: new wins; old handoff_tax.pin_explore / model_tier_surfaces.* fall
+   * back. Absent ⇒ haiku defaults at the reader (emit omits defaults).
+   * alias_deprecation tracks whether hydrate saw old keys (Settings banner). */
+  const MODEL_MATRIX_SURFACE_VALUES = ["haiku", "sonnet", "off", "fast", "balanced"];
+  const MODEL_MATRIX_PIN_DEFAULT = "haiku";
+  const MODEL_MATRIX_SURFACES_DEFAULT = Object.freeze({
+    explore_pin: "",
+    precompact_fallback: "",
+    handoff_fill: "",
+    never_inherit_session: null,
+  });
+  const ALIAS_DEPRECATION_DEFAULT = Object.freeze({
+    pin_explore: false,
+    model_tier_surfaces: false,
+    diverge: false,
+  });
+
+  /* Prompt optimizer (Phases 2-6) — round-tripped here so a Save no longer
+   * strips it (the v0.61.0 data-loss class, closed the same shape as
+   * context_handoff / cheap_lane above). `enabled` is the master switch
+   * prompt-optimizer-gate.sh's own config gate reads; `mode` is gated ONLY
+   * on the final additionalContext emission (shadow = log-only, never
+   * advisory/binding-context = emits the composed text) — see
+   * design-lock.md §6 and prompt-optimizer-gate.sh's own header. NO DOM
+   * control — state-slot round-trip only, same pattern as worktree_bound /
+   * context_handoff / cheap_lane (Gate 132's DOM budget is at zero slack;
+   * a rendered control is a follow-up, not this phase's job).
+   * TODO(dashboard-control, task-6 follow-up): the same reader table
+   * `context_handoff` used through v0.313.0 — no rendered control until an
+   * owner-approved Gate 132 ratchet raise, then a control shipped the same
+   * release (see the "Pre-compaction handoff convergence" v0.314.0 milestone
+   * above: dashboard.html/index.html each +23 elements, `PROMPT_OPTIMIZER_MODE_VALUES`
+   * driving a `<select>`). When `prompt_optimizer` earns the same treatment,
+   * copy that exact recipe: request/record the ratchet raise in Gate 132's
+   * RATCHET table, then add a `_PIPELINE_CONTROLS["prompt_optimizer"]` block
+   * (mirroring `_PIPELINE_CONTROLS["context_handoff"]`'s `<select id="pipe-...-mode">`
+   * shape) plus its `onChange` wiring near `pipe-context-handoff-mode`'s. This
+   * comment is the durable pointer; the state/emit/hydrate plumbing already
+   * done above needs no rework — only a DOM control gets added on top of it. */
+  const PROMPT_OPTIMIZER_MODE_VALUES = ["shadow", "advisory", "binding-context"];
+  const PROMPT_OPTIMIZER_MODE_DEFAULT = "shadow";
+  const PROMPT_OPTIMIZER_DEFAULT = Object.freeze({ enabled: false, mode: "shadow" });
 
   /* Per-tier panel defaults — mirror thing-decision.py's built-in tier table.
    * Seats are forseti | mimir | heimdall (thor is the tie-breaker, never a seat).
@@ -8598,6 +9379,7 @@ _JS = r"""
     worktree_lease_idle_minutes: WORKTREE_LEASE_IDLE_DEFAULT,
     keep_awake: KEEP_AWAKE_DEFAULT,
     dashboard_autostart: DASHBOARD_AUTOSTART_DEFAULT,
+    runes: RUNES_DEFAULT,
     orchestrator: ORCHESTRATOR_DEFAULT,
     orchestrator_scope: ORCHESTRATOR_SCOPE_DEFAULT,
     orchestrator_zdr_confirmed: false,
@@ -8628,6 +9410,16 @@ _JS = r"""
      * No DOM control (worktree_bound pattern) — cheap-lane-delegate.sh /
      * grok-delegate.sh / route-task.py own the semantics, we only preserve. */
     cheap_lane: Object.assign({}, CHEAP_LANE_DEFAULT),
+    /* Handoff tax (caps + off). Pin write path is model_matrix.surfaces. */
+    handoff_tax: Object.assign({}, HANDOFF_TAX_DEFAULT),
+    /* UMM surfaces — Phase D dashboard write SSOT for explore/precompact/handoff. */
+    model_matrix: { surfaces: Object.assign({}, MODEL_MATRIX_SURFACES_DEFAULT) },
+    /* Hydrate-only flags for Settings alias-deprecation banner (no YAML emit). */
+    alias_deprecation: Object.assign({}, ALIAS_DEPRECATION_DEFAULT),
+    /* Prompt optimizer (Phases 2-6). Held in state so a Save round-trips it
+     * instead of silently dropping it. No DOM control — see the constant's
+     * own comment above for why. */
+    prompt_optimizer: Object.assign({}, PROMPT_OPTIMIZER_DEFAULT),
     expanded: {},   /* category -> boolean */
   };
 
@@ -8697,6 +9489,7 @@ _JS = r"""
       /* Pipeline-stage guardrails (runaway / decision_review / definition_of_done
        * / dev_repo_exempt) — restored via the shared validator. */
       applyGuardrailConfig(parsed);
+      try { refreshAliasDeprecationBanner(); } catch (e) {}
       /* command-review panel: keep only known seats/models + a valid threshold */
       if (parsed.command_review && typeof parsed.command_review === "object") {
         const pcr = parsed.command_review;
@@ -8761,6 +9554,15 @@ _JS = r"""
     sel.value = DASHBOARD_AUTOSTART_VALUES.includes(state.dashboard_autostart)
       ? state.dashboard_autostart
       : DASHBOARD_AUTOSTART_DEFAULT;
+  }
+
+  /* Runes at session start — Settings + Pipeline share one state.runes key. */
+  function syncRunesSessionStart() {
+    const val = RUNES_VALUES.includes(state.runes) ? state.runes : RUNES_DEFAULT;
+    const sel = document.getElementById("runes-session-mode");
+    if (sel) sel.value = val;
+    const pipe = document.getElementById("pipe-runes-mode");
+    if (pipe) pipe.value = val;
   }
 
   /* Command-review master enable (AND-gate, not bulk-setter).
@@ -8871,6 +9673,7 @@ _JS = r"""
     });
     syncDesignCheckins();
     syncDashAutostart();
+    syncRunesSessionStart();
     syncMasterEnable();
   }
   syncDomToState();
@@ -8998,6 +9801,15 @@ _JS = r"""
    * Returns true if anything was applied. */
   function applyGuardrailConfig(src) {
     if (!src || typeof src !== "object") return false;
+    /* Phase D slots — older localStorage payloads may lack them. */
+    if (!state.model_matrix || typeof state.model_matrix !== "object") {
+      state.model_matrix = { surfaces: Object.assign({}, MODEL_MATRIX_SURFACES_DEFAULT) };
+    } else if (!state.model_matrix.surfaces || typeof state.model_matrix.surfaces !== "object") {
+      state.model_matrix.surfaces = Object.assign({}, MODEL_MATRIX_SURFACES_DEFAULT);
+    }
+    if (!state.alias_deprecation || typeof state.alias_deprecation !== "object") {
+      state.alias_deprecation = Object.assign({}, ALIAS_DEPRECATION_DEFAULT);
+    }
     let touched = false;
     const rw = src.runaway;
     if (rw && typeof rw === "object") {
@@ -9062,6 +9874,9 @@ _JS = r"""
     if (DASHBOARD_AUTOSTART_VALUES.includes(src.dashboard_autostart)) {
       state.dashboard_autostart = src.dashboard_autostart; touched = true;
     }
+    if (RUNES_VALUES.includes(src.runes)) {
+      state.runes = src.runes; touched = true;
+    }
     if (ORCHESTRATOR_VALUES.includes(src.orchestrator)) {
       state.orchestrator = src.orchestrator; touched = true;
     }
@@ -9121,6 +9936,77 @@ _JS = r"""
       if (CHEAP_LANE_TIER_VALUES.includes(cl.tier)) { state.cheap_lane.tier = cl.tier; touched = true; }
       if (CHEAP_LANE_AGENT_VALUES.includes(cl.agent)) { state.cheap_lane.agent = cl.agent; touched = true; }
     }
+    /* model_matrix.surfaces (UMM / Phase D write SSOT). New keys win. */
+    const mm = src.model_matrix;
+    if (mm && typeof mm === "object" && mm.surfaces && typeof mm.surfaces === "object") {
+      const srf = mm.surfaces;
+      const ep = srf.explore_pin === false ? "off" : srf.explore_pin;
+      if (typeof ep === "string" && MODEL_MATRIX_SURFACE_VALUES.includes(ep)) {
+        state.model_matrix.surfaces.explore_pin = ep; touched = true;
+      }
+      if (typeof srf.precompact_fallback === "string"
+          && MODEL_MATRIX_SURFACE_VALUES.includes(srf.precompact_fallback)) {
+        state.model_matrix.surfaces.precompact_fallback = srf.precompact_fallback; touched = true;
+      }
+      if (typeof srf.handoff_fill === "string"
+          && MODEL_MATRIX_SURFACE_VALUES.includes(srf.handoff_fill)) {
+        state.model_matrix.surfaces.handoff_fill = srf.handoff_fill; touched = true;
+      }
+      if (Array.isArray(srf.never_inherit_session)) {
+        state.model_matrix.surfaces.never_inherit_session = srf.never_inherit_session.slice();
+        touched = true;
+      }
+    }
+    /* Handoff tax — caps + off. pin_explore is ALIAS hydrate only (Phase D). */
+    const ht = src.handoff_tax;
+    if (ht === false || ht === "off") {
+      state.handoff_tax.off = true; touched = true;
+    } else if (ht && typeof ht === "object") {
+      const rc = parseInt(ht.report_cap_words, 10);
+      if (Number.isFinite(rc) && rc > 0 && rc <= HANDOFF_TAX_CAP_MAX) { state.handoff_tax.report_cap_words = rc; touched = true; }
+      const bc = parseInt(ht.brief_cap_words, 10);
+      if (Number.isFinite(bc) && bc > 0 && bc <= HANDOFF_TAX_CAP_MAX) { state.handoff_tax.brief_cap_words = bc; touched = true; }
+      const pe = ht.pin_explore === false ? "off" : ht.pin_explore;
+      if (typeof pe === "string" && HANDOFF_TAX_PIN_VALUES.includes(pe)) {
+        state.alias_deprecation.pin_explore = true; touched = true;
+        if (!state.model_matrix.surfaces.explore_pin) {
+          state.model_matrix.surfaces.explore_pin = pe;
+        } else if (state.model_matrix.surfaces.explore_pin !== pe) {
+          state.alias_deprecation.diverge = true;
+        }
+      }
+    }
+    /* model_tier_surfaces — ALIAS hydrate for precompact/handoff fill. */
+    const mts = src.model_tier_surfaces;
+    if (mts && typeof mts === "object") {
+      let saw = false;
+      if (typeof mts.precompact_fallback_model === "string"
+          && MODEL_MATRIX_SURFACE_VALUES.includes(mts.precompact_fallback_model)) {
+        saw = true;
+        if (!state.model_matrix.surfaces.precompact_fallback) {
+          state.model_matrix.surfaces.precompact_fallback = mts.precompact_fallback_model;
+        } else if (state.model_matrix.surfaces.precompact_fallback !== mts.precompact_fallback_model) {
+          state.alias_deprecation.diverge = true;
+        }
+      }
+      if (typeof mts.handoff_fill_model === "string"
+          && MODEL_MATRIX_SURFACE_VALUES.includes(mts.handoff_fill_model)) {
+        saw = true;
+        if (!state.model_matrix.surfaces.handoff_fill) {
+          state.model_matrix.surfaces.handoff_fill = mts.handoff_fill_model;
+        } else if (state.model_matrix.surfaces.handoff_fill !== mts.handoff_fill_model) {
+          state.alias_deprecation.diverge = true;
+        }
+      }
+      if (saw) { state.alias_deprecation.model_tier_surfaces = true; touched = true; }
+    }
+    /* Prompt optimizer (Phases 2-6). Validate against prompt-optimizer-gate.sh's
+     * own accepted sets — an unrecognized value is dropped, never canonicalized. */
+    const po = src.prompt_optimizer;
+    if (po && typeof po === "object") {
+      if (typeof po.enabled === "boolean") { state.prompt_optimizer.enabled = po.enabled; touched = true; }
+      if (PROMPT_OPTIMIZER_MODE_VALUES.includes(po.mode)) { state.prompt_optimizer.mode = po.mode; touched = true; }
+    }
     const cr = src.command_review;
     if (cr && typeof cr === "object" && typeof cr.dev_repo_exempt === "boolean") {
       state.command_review.dev_repo_exempt = cr.dev_repo_exempt; touched = true;
@@ -9128,7 +10014,41 @@ _JS = r"""
     return touched;
   }
 
+
+  /* Phase D — Settings banner when hydrate saw deprecated alias keys. */
+  function refreshAliasDeprecationBanner() {
+    const ad = state.alias_deprecation || {};
+    const show = !!(ad.pin_explore || ad.model_tier_surfaces);
+    let el = document.getElementById("alias-deprecation-banner");
+    if (!show) {
+      if (el) el.hidden = true;
+      return;
+    }
+    if (!el) {
+      const form = document.querySelector(".settings-form");
+      if (!form) return;
+      el = document.createElement("div");
+      el.id = "alias-deprecation-banner";
+      el.className = "cat-project-warn";
+      el.setAttribute("role", "status");
+      form.insertBefore(el, form.firstChild);
+    }
+    el.hidden = false;
+    const bits = [];
+    if (ad.pin_explore) bits.push("handoff_tax.pin_explore");
+    if (ad.model_tier_surfaces) bits.push("model_tier_surfaces.*");
+    const diverge = ad.diverge ? " (diverges from model_matrix.surfaces — new keys win)" : "";
+    el.innerHTML = '<span class="warn-icon" aria-hidden="true">&#9888;</span> '
+      + "Alias deprecated: " + bits.join(" + ") + diverge
+      + ". Prefer <code>model_matrix.surfaces.{explore_pin,precompact_fallback,handoff_fill}</code>. "
+      + "Save writes new keys only; old keys still resolve until seed drop after soak.";
+  }
+
   function emitYaml() {
+    if (!state.model_matrix || !state.model_matrix.surfaces) {
+      state.model_matrix = { surfaces: Object.assign({}, MODEL_MATRIX_SURFACES_DEFAULT) };
+    }
+    if (!state.handoff_tax) state.handoff_tax = Object.assign({}, HANDOFF_TAX_DEFAULT);
     const lines = [
       "# Comfort-posture for Claude Code agents (v5 — per-layer).",
       "# Save to .ravenclaude/comfort-posture.yaml in your project root.",
@@ -9302,6 +10222,15 @@ _JS = r"""
       lines.push("");
     }
 
+    /* Runes at session start (read by hooks/oath-hook.sh). Emitted only when
+     * non-default so "absent ⇒ off" holds. Settings + Pipeline share this key. */
+    if (RUNES_VALUES.includes(state.runes)
+        && state.runes !== RUNES_DEFAULT) {
+      lines.push("# Runes at session start (off | on; default off). On = Oath-hook hanging MUST-RUN + ready + auto-claim ungated; never auto Longship merge.");
+      lines.push(`runes: ${state.runes}`);
+      lines.push("");
+    }
+
     if (ORCHESTRATOR_VALUES.includes(state.orchestrator)
         && state.orchestrator !== ORCHESTRATOR_DEFAULT) {
       lines.push("# Claude orchestrator for non-Claude CLIs (off | decide | full). No-op under Claude Code.");
@@ -9417,6 +10346,66 @@ _JS = r"""
       lines.push("");
     }
 
+    /* model_matrix.surfaces — Phase D write SSOT. NEVER emit pin_explore under
+     * handoff_tax or model_tier_surfaces.* (aliases are hydrate/read only). */
+    const mms = state.model_matrix.surfaces;
+    const mmEp = mms.explore_pin && mms.explore_pin !== MODEL_MATRIX_PIN_DEFAULT
+      && MODEL_MATRIX_SURFACE_VALUES.includes(mms.explore_pin);
+    const mmPc = mms.precompact_fallback && mms.precompact_fallback !== MODEL_MATRIX_PIN_DEFAULT
+      && MODEL_MATRIX_SURFACE_VALUES.includes(mms.precompact_fallback);
+    const mmHf = mms.handoff_fill && mms.handoff_fill !== MODEL_MATRIX_PIN_DEFAULT
+      && MODEL_MATRIX_SURFACE_VALUES.includes(mms.handoff_fill);
+    const mmNi = Array.isArray(mms.never_inherit_session) && mms.never_inherit_session.length > 0;
+    if (mmEp || mmPc || mmHf || mmNi) {
+      lines.push("# Unified Model Matrix surfaces — explore/precompact/handoff pins (SSOT).");
+      lines.push("model_matrix:");
+      lines.push("  surfaces:");
+      if (mmEp) lines.push(`    explore_pin: ${mms.explore_pin}`);
+      if (mmPc) lines.push(`    precompact_fallback: ${mms.precompact_fallback}`);
+      if (mmHf) lines.push(`    handoff_fill: ${mms.handoff_fill}`);
+      if (mmNi) {
+        const ni = mms.never_inherit_session.map(x => String(x)).join(", ");
+        lines.push(`    never_inherit_session: [${ni}]`);
+      }
+      lines.push("");
+    }
+
+    /* Handoff tax — caps + scalar off ONLY (Phase D: no pin_explore write). */
+    const htx = state.handoff_tax;
+    const htxRc = Number.isFinite(htx.report_cap_words) && htx.report_cap_words > 0
+      && htx.report_cap_words !== HANDOFF_TAX_REPORT_CAP_DEFAULT;
+    const htxBc = Number.isFinite(htx.brief_cap_words) && htx.brief_cap_words > 0
+      && htx.brief_cap_words !== HANDOFF_TAX_BRIEF_CAP_DEFAULT;
+    if (htx.off === true) {
+      lines.push("# Handoff tax — sub-agent dispatch advisory + Explore tier pin, silenced (ledger still written).");
+      lines.push("handoff_tax: off");
+      lines.push("");
+    } else if (htxRc || htxBc) {
+      lines.push("# Handoff tax — sub-agent brief/report caps (Explore pin → model_matrix.surfaces.explore_pin).");
+      lines.push("handoff_tax:");
+      if (htxRc) lines.push(`  report_cap_words: ${htx.report_cap_words}`);
+      if (htxBc) lines.push(`  brief_cap_words: ${htx.brief_cap_words}`);
+      lines.push("");
+    }
+
+    /* Prompt optimizer (Phases 2-6, v0.61.0 data-loss class). Emit the block
+     * when ANY sub-field is non-default, and emit only the set sub-fields —
+     * so a Save preserves whatever the owner set instead of silently
+     * dropping it ("absent ⇒ default" holds for an untouched dashboard).
+     * Read back by prompt-optimizer-gate.sh's own config gate. No editable
+     * control (worktree_bound / context_handoff / cheap_lane pattern). */
+    const po = state.prompt_optimizer;
+    const poEnabled = po.enabled === true;
+    const poMode = po.mode && po.mode !== PROMPT_OPTIMIZER_MODE_DEFAULT
+      && PROMPT_OPTIMIZER_MODE_VALUES.includes(po.mode);
+    if (poEnabled || poMode) {
+      lines.push("# Prompt optimizer — pre-turn classify/rewrite/dispatch-plan advisory (default OFF).");
+      lines.push("prompt_optimizer:");
+      if (poEnabled) lines.push(`  enabled: true`);
+      if (poMode) lines.push(`  mode: ${po.mode}`);
+      lines.push("");
+    }
+
     /* security_deny */
     const activeDeny = state.security_deny_baseline.filter(
       p => state.security_deny.includes(p)
@@ -9473,6 +10462,7 @@ _JS = r"""
         worktree_guard: state.worktree_guard,
         worktree_bound: state.worktree_bound,
         dashboard_autostart: state.dashboard_autostart,
+        runes: state.runes,
         orchestrator: state.orchestrator,
         orchestrator_scope: state.orchestrator_scope,
         orchestrator_zdr_confirmed: state.orchestrator_zdr_confirmed,
@@ -9585,6 +10575,21 @@ _JS = r"""
         if (!DASHBOARD_AUTOSTART_VALUES.includes(asSel.value)) return;
         state.dashboard_autostart = asSel.value;
         syncDashAutostart();
+        flagUnsaved();
+        render();
+      });
+    }
+  }
+
+  /* Runes at session start — Settings surface (same state.runes as Pipeline). */
+  {
+    const rSel = document.getElementById("runes-session-mode");
+    if (rSel) {
+      rSel.addEventListener("change", () => {
+        if (!RUNES_VALUES.includes(rSel.value)) return;
+        state.runes = rSel.value;
+        syncRunesSessionStart();
+        if (typeof syncPipelineTab === "function") syncPipelineTab();
         flagUnsaved();
         render();
       });
@@ -10446,6 +11451,58 @@ _JS = r"""
     });
   })();
 
+function wireHostScopeFilter(root) {
+  if (!root) return;
+  const strip = root.querySelector(".rc-host-filter");
+  if (!strip || strip.dataset.wired === "1") return;
+  strip.dataset.wired = "1";
+  const empty = root.querySelector("[data-host-filter-empty]");
+  const clearBtn = strip.querySelector("[data-host-filter-clear]");
+  const cards = () => Array.from(root.querySelectorAll("[data-host-scope]"));
+  function selected() {
+    return Array.from(strip.querySelectorAll(".rc-host-filter__btn[aria-pressed='true']"))
+      .map((b) => b.getAttribute("data-host-filter"));
+  }
+  function apply() {
+    const sel = selected();
+    if (clearBtn) clearBtn.hidden = sel.length === 0;
+    let visible = 0;
+    cards().forEach((card) => {
+      const scopes = (card.getAttribute("data-host-scope") || "").split(/\s+/).filter(Boolean);
+      let show;
+      if (!sel.length) {
+        show = true;
+      } else if (sel.includes("all-agents") && sel.length === 1) {
+        show = scopes.includes("all-agents");
+      } else {
+        // Host chips: match that host token only (universal NOT auto-included).
+        const hosts = sel.filter((s) => s !== "all-agents");
+        show = hosts.some((h) => scopes.includes(h));
+        if (sel.includes("all-agents")) {
+          show = show || scopes.includes("all-agents");
+        }
+      }
+      card.hidden = !show;
+      if (show) visible += 1;
+    });
+    if (empty) empty.hidden = visible !== 0 || !sel.length;
+  }
+  strip.addEventListener("click", (e) => {
+    const clear = e.target.closest("[data-host-filter-clear]");
+    if (clear) {
+      strip.querySelectorAll(".rc-host-filter__btn").forEach((b) => b.setAttribute("aria-pressed", "false"));
+      apply();
+      return;
+    }
+    const btn = e.target.closest(".rc-host-filter__btn");
+    if (!btn || !strip.contains(btn)) return;
+    const on = btn.getAttribute("aria-pressed") === "true";
+    btn.setAttribute("aria-pressed", on ? "false" : "true");
+    apply();
+  });
+  apply();
+}
+
   /* ── Commands panel (DOM-islanded) — bind on activate ─────────────────
    * panel-commands ships its card grid in a <script type="application/json">
    * payload injected on the first activate("commands"). Its interactive buttons —
@@ -10479,6 +11536,7 @@ _JS = r"""
         });
       });
     }
+    wireHostScopeFilter(mount.querySelector("#commands-host-scope-root") || mount);
   }
 
   /* ── Guidance — best-practice preview-on-click ────────────────────────
@@ -10775,6 +11833,7 @@ _JS = r"""
     try {
       mount.innerHTML = JSON.parse(payload.textContent);
       learnLoaded = true;
+      initLearnPromptBridge();
       initLearn();
       initConceptWidgets();
       initConceptSteppers();
@@ -10854,22 +11913,33 @@ _JS = r"""
     if (tab === "heimdall" && !heimdallLoaded) loadHeimdall();
     if (tab === "vidarr" && !vidarrLoaded) loadVidarr();
     if (tab === "nidhoggr" && !nidhoggrLoaded) loadNidhoggr();
-    if (tab === "pipeline") syncPipelineTab();
+    if (tab === "pipeline") {
+      syncPipelineTab();
+      // Matthew GO: #/pipeline/decision-tree force-expands the Pre→Post tree.
+      ensurePipeDtree(sub === "decision-tree");
+    }
     if (tab === "plugin-vars") activatePluginVars(sub);
     if (tab === "web-access") hydrateWebAccess();
     if (tab === "prompt-builder" && !pbLoaded) {
-      pbLoaded = true;
-      // Deferred, not called inline: PB_MODELS/PB_PRESETS (var, not hoisted-with-value)
-      // are declared LATER in this same script than the initial applyHash() call
-      // below, so a cold #/prompt-builder deep-link/reload calling initPromptBuilder()
-      // synchronously here would read them as undefined mid-script (TypeError on
-      // .forEach). setTimeout defers to after the whole script finishes executing,
-      // by which point every var in this file is assigned -- the same ordering bug
-      // class as the pipelineServerAvailable TDZ fix below, fixed at the call site
-      // instead of by relocating PB_MODELS/PB_PRESETS (real data, not a stub-able flag).
-      setTimeout(initPromptBuilder, 0);
+      // Deferred: PB_MODELS/PB_PRESETS declared later than initial applyHash().
+      // G30: latch pbLoaded only after successful init; reset on throw.
+      // G28: optional sub is template id only (#/prompt-builder/<template>).
+      var pbDeepTpl = sub || null;
+      setTimeout(function () {
+        try {
+          if (initPromptBuilder(pbDeepTpl)) pbLoaded = true;
+        } catch (e) {
+          pbLoaded = false;
+          var root = document.getElementById("pb-root");
+          if (root) root.removeAttribute("data-pb-ready");
+          console.error("Prompt Builder init failed", e);
+        }
+      }, 0);
     }
-    if (tab === "host-context" && !hcLoaded) { hcLoaded = true; initHostContext(); }
+    if (tab === "host-context" && !hcLoaded) {
+      try { initHostContext(); hcLoaded = true; }
+      catch (e) { hcLoaded = false; console.error("Host Context init failed", e); }
+    }
   }
   // Navigate: activate immediately, then reflect the page in the URL hash for
   // deep-linking + browser back/forward. (The hashchange listener re-applies on
@@ -11312,6 +12382,276 @@ _JS = r"""
     } catch (e) { /* keep the not-configured default */ }
   }
 
+
+  /* ── Pipeline decision-tree island (Gate 132 JS seat; zero Mermaid) ─────────
+   * Matthew GO locks: default disclosure CLOSED; excluded hooks collapsed/
+   * expandable; #/pipeline/decision-tree force-expands; keep EDIT label;
+   * Learn deep-link glue v1 skip.
+   */
+  var _pdtState = null;
+  var _pdtData = null;
+  var _pdtMount = null;
+
+  function _pdtEl(tag, attrs, kids) {
+    var n = document.createElement(tag);
+    if (attrs) {
+      Object.keys(attrs).forEach(function (k) {
+        if (k === "className") n.className = attrs[k];
+        else if (k === "text") n.textContent = attrs[k];
+        else if (k.slice(0, 2) === "on" && typeof attrs[k] === "function") n.addEventListener(k.slice(2).toLowerCase(), attrs[k]);
+        else if (attrs[k] === false || attrs[k] == null) return;
+        else n.setAttribute(k, attrs[k]);
+      });
+    }
+    (kids || []).forEach(function (c) {
+      if (c == null) return;
+      n.appendChild(typeof c === "string" ? document.createTextNode(c) : c);
+    });
+    return n;
+  }
+
+  function _pdtLegendKind(id, legend) {
+    for (var i = 0; i < legend.length; i++) if (legend[i].id === id) return legend[i].kind || "neutral";
+    return "neutral";
+  }
+
+  function _pdtPill(label, kind, tip) {
+    var KIND = { ok: "pdt-pill--ok", warn: "pdt-pill--warn", danger: "pdt-pill--danger", neutral: "pdt-pill--neutral" };
+    return _pdtEl("span", {
+      className: "pdt-pill " + (KIND[kind] || KIND.neutral),
+      title: tip || label,
+      text: label
+    });
+  }
+
+  function _pdtMatchesFilter(group, filter) {
+    if (!filter || filter === "all") return true;
+    return (group.tools || []).indexOf(filter) !== -1;
+  }
+
+  function _pdtBuildChrome(data, state) {
+    var filters = _pdtEl("div", { className: "pdt-filters", role: "toolbar", "aria-label": "Filter by tool class" });
+    function addChip(id, label) {
+      var active = state.filter === id;
+      filters.appendChild(_pdtEl("button", {
+        type: "button",
+        className: "pdt-chip" + (active ? " is-active" : ""),
+        "aria-pressed": active ? "true" : "false",
+        text: label,
+        onClick: function () { state.filter = id; _pdtPaint(); }
+      }));
+    }
+    addChip("all", "All tools");
+    (data.toolClasses || []).forEach(function (tc) {
+      addChip(tc, tc === "Write|Edit|MultiEdit" ? "Write/Edit" : tc === "Agent|Task" ? "Agent/Task" : tc);
+    });
+    var legend = _pdtEl("div", { className: "pdt-legend", role: "list", "aria-label": "Outcome legend" });
+    (data.legend || []).forEach(function (L) {
+      legend.appendChild(_pdtEl("span", { className: "pdt-legend-item", role: "listitem" }, [
+        _pdtPill(L.label, L.kind, L.tip),
+        _pdtEl("span", { className: "pdt-legend-tip", text: L.tip || "" })
+      ]));
+    });
+    return _pdtEl("div", { className: "pdt-chrome" }, [
+      _pdtEl("div", { className: "pdt-head" }, [
+        _pdtEl("h3", { className: "pdt-title", id: "pdt-title", text: "Decision tree" }),
+        _pdtEl("p", {
+          className: "pdt-sub",
+          text: "PreToolUse → tool runs → PostToolUse · matcher order from hooks.json · core " + (data.version || "")
+        })
+      ]),
+      filters,
+      legend,
+      _pdtEl("p", { className: "pdt-honesty", text: data.honesty || "" })
+    ]);
+  }
+
+  function _pdtBuildSpine(data, state) {
+    var W = 720, H = 88;
+    var ns = "http://www.w3.org/2000/svg";
+    var svg = document.createElementNS(ns, "svg");
+    svg.setAttribute("viewBox", "0 0 " + W + " " + H);
+    svg.setAttribute("class", "pdt-spine-svg");
+    svg.setAttribute("role", "img");
+    svg.setAttribute("aria-labelledby", "pdt-svg-title pdt-svg-desc");
+    var title = document.createElementNS(ns, "title");
+    title.setAttribute("id", "pdt-svg-title");
+    title.textContent = "PreToolUse to PostToolUse decision spine";
+    svg.appendChild(title);
+    var desc = document.createElementNS(ns, "desc");
+    desc.setAttribute("id", "pdt-svg-desc");
+    desc.textContent = "Horizontal spine from PreToolUse matcher groups through the tool run to PostToolUse matcher groups. Filter by tool class to highlight matching branches.";
+    svg.appendChild(desc);
+    function line(x1, y1, x2, y2, cls) {
+      var L = document.createElementNS(ns, "line");
+      L.setAttribute("x1", x1); L.setAttribute("y1", y1);
+      L.setAttribute("x2", x2); L.setAttribute("y2", y2);
+      L.setAttribute("class", cls || "pdt-spine-line");
+      svg.appendChild(L);
+    }
+    function circ(cx, cy, r, cls) {
+      var c = document.createElementNS(ns, "circle");
+      c.setAttribute("cx", cx); c.setAttribute("cy", cy); c.setAttribute("r", r);
+      c.setAttribute("class", cls || "pdt-spine-node");
+      svg.appendChild(c);
+    }
+    function text(x, y, s, cls) {
+      var te = document.createElementNS(ns, "text");
+      te.setAttribute("x", x); te.setAttribute("y", y);
+      te.setAttribute("class", cls || "pdt-spine-label");
+      te.textContent = s;
+      svg.appendChild(te);
+    }
+    var y = 44;
+    line(40, y, 680, y, "pdt-spine-line");
+    circ(80, y, 8, "pdt-spine-node pdt-spine-pre");
+    circ(360, y, 7, "pdt-spine-node pdt-spine-mid");
+    circ(640, y, 8, "pdt-spine-node pdt-spine-post");
+    text(80, 22, "PreToolUse", "pdt-spine-label");
+    text(360, 22, "tool runs", "pdt-spine-label pdt-spine-label--muted");
+    text(640, 22, "PostToolUse", "pdt-spine-label");
+    function ticks(eventObj, x0, x1, side) {
+      var groups = (eventObj && eventObj.groups) || [];
+      var vis = groups.filter(function (g) { return _pdtMatchesFilter(g, state.filter); });
+      var n = Math.max(vis.length, 1);
+      vis.forEach(function (g, i) {
+        var x = x0 + ((x1 - x0) * (i + 1)) / (n + 1);
+        var y2 = side < 0 ? y - 18 : y + 18;
+        line(x, y, x, y2, "pdt-spine-branch");
+        circ(x, y2, 3, "pdt-spine-tick");
+      });
+      text((x0 + x1) / 2, 78, vis.length + " matcher groups", "pdt-spine-meta");
+    }
+    var pre = (data.events || []).find(function (e) { return e.event === "PreToolUse"; });
+    var post = (data.events || []).find(function (e) { return e.event === "PostToolUse"; });
+    ticks(pre, 100, 300, -1);
+    ticks(post, 400, 620, 1);
+    return svg;
+  }
+
+  function _pdtHookCard(h, data) {
+    var outcomes = _pdtEl("div", { className: "pdt-outcomes" });
+    (h.outcomes || []).forEach(function (o) {
+      outcomes.appendChild(_pdtPill(o, _pdtLegendKind(o, data.legend || []), o));
+    });
+    if (h.strength) {
+      var sk = h.strength === "hard-block" ? "danger"
+        : h.strength === "always" ? "ok"
+        : (h.strength === "advisory" || h.strength === "internal" || h.strength === "unknown") ? "neutral"
+        : "warn";
+      outcomes.appendChild(_pdtPill(h.strength, sk, h.note || h.strength));
+    }
+    return _pdtEl("div", { className: "pdt-hook" }, [
+      _pdtEl("div", { className: "pdt-hook-head" }, [
+        _pdtEl("span", { className: "pdt-hook-title", text: h.title || h.script }),
+        _pdtEl("code", { className: "pdt-hook-script", text: h.script })
+      ]),
+      outcomes,
+      _pdtEl("p", { className: "pdt-hook-note", text: h.note || "" })
+    ]);
+  }
+
+  function _pdtPaint() {
+    if (!_pdtMount || !_pdtData || !_pdtState) return;
+    var mount = _pdtMount, data = _pdtData, state = _pdtState;
+    mount.textContent = "";
+    // Matthew lock: default disclosure CLOSED (open only when force-expanded / user opened).
+    var details = _pdtEl("details", { className: "pipe-dtree-details" });
+    if (state.expanded) details.setAttribute("open", "");
+    var sum = _pdtEl("summary", { className: "pdt-summary", text: "Decision tree — PreToolUse → PostToolUse" });
+    details.appendChild(sum);
+    details.addEventListener("toggle", function () { state.expanded = details.open; });
+    var shell = _pdtEl("div", { className: "pdt-shell", role: "region", "aria-labelledby": "pdt-title" });
+    shell.appendChild(_pdtBuildChrome(data, state));
+    shell.appendChild(_pdtEl("div", { className: "pdt-spine-wrap" }, [_pdtBuildSpine(data, state)]));
+    var cols = _pdtEl("div", { className: "pdt-cols" });
+    (data.events || []).forEach(function (ev) {
+      var col = _pdtEl("section", { className: "pdt-col", "aria-label": ev.event });
+      col.appendChild(_pdtEl("header", { className: "pdt-col-head" }, [
+        _pdtEl("span", { className: "pdt-col-event", text: ev.event }),
+        _pdtEl("span", { className: "pdt-col-when", text: ev.when || "" })
+      ]));
+      var list = _pdtEl("div", { className: "pdt-groups" });
+      (ev.groups || []).forEach(function (g) {
+        var open = !!state.open[ev.event + ":" + g.i];
+        var muted = !_pdtMatchesFilter(g, state.filter);
+        var gsum = _pdtEl("button", {
+          type: "button",
+          className: "pdt-group-sum",
+          "aria-expanded": open ? "true" : "false"
+        }, [
+          _pdtEl("span", { className: "pdt-group-idx", text: "#" + g.i }),
+          _pdtEl("code", { className: "pdt-matcher", text: g.matcher || "(none)" }),
+          _pdtEl("span", { className: "pdt-group-count", text: (g.hooks || []).length + " hooks" })
+        ]);
+        gsum.addEventListener("click", function () {
+          var key = ev.event + ":" + g.i;
+          state.open[key] = !state.open[key];
+          _pdtPaint();
+        });
+        var body = _pdtEl("div", { className: "pdt-group-body" });
+        if (!open) body.hidden = true;
+        var primary = [];
+        var excluded = [];
+        (g.hooks || []).forEach(function (h) {
+          if (h.excluded) excluded.push(h);
+          else primary.push(h);
+        });
+        primary.forEach(function (h) { body.appendChild(_pdtHookCard(h, data)); });
+        // Matthew lock: excluded hooks collapsed / expandable (not always-visible).
+        if (excluded.length) {
+          var ex = _pdtEl("details", { className: "pdt-excluded" });
+          ex.appendChild(_pdtEl("summary", {
+            text: "Excluded from stage cards (" + excluded.length + ") — expandable"
+          }));
+          var exBody = _pdtEl("div", { className: "pdt-excluded-body" });
+          excluded.forEach(function (h) { exBody.appendChild(_pdtHookCard(h, data)); });
+          ex.appendChild(exBody);
+          body.appendChild(ex);
+        }
+        list.appendChild(_pdtEl("div", {
+          className: "pdt-group" + (muted ? " is-muted" : "") + (open ? " is-open" : ""),
+          "data-tools": (g.tools || []).join(" ")
+        }, [gsum, body]));
+      });
+      col.appendChild(list);
+      cols.appendChild(col);
+    });
+    shell.appendChild(cols);
+    details.appendChild(shell);
+    mount.appendChild(details);
+  }
+
+  function loadPipeDtree(forceExpand) {
+    var mount = document.getElementById("pipe-dtree-mount");
+    var payload = document.getElementById("pipe-dtree-payload");
+    if (!mount || !payload) return false;
+    try {
+      if (mount.getAttribute("data-pdt-ready") !== "1") {
+        var data = JSON.parse(payload.textContent);
+        var state = { filter: "all", open: {}, expanded: false }; // Matthew: default CLOSED
+        (data.events || []).forEach(function (ev) {
+          if (ev.groups && ev.groups.length) state.open[ev.event + ":0"] = true;
+        });
+        _pdtMount = mount; _pdtData = data; _pdtState = state;
+        mount.setAttribute("data-pdt-ready", "1");
+      }
+      if (forceExpand && _pdtState) _pdtState.expanded = true;
+      _pdtPaint();
+      mount.removeAttribute("hidden");
+      return true;
+    } catch (e) {
+      console.error("pipe-dtree seat failed", e);
+      return false;
+    }
+  }
+
+  function ensurePipeDtree(forceExpand) {
+    return loadPipeDtree(!!forceExpand);
+  }
+  window.loadPipeDtree = loadPipeDtree;
+  window.ensurePipeDtree = ensurePipeDtree;
+
   function syncPipelineTab() {
     const cr = state.command_review;
     const en = document.getElementById("pipe-thing-enabled");
@@ -11347,6 +12687,10 @@ _JS = r"""
                   ? (state.parallelism.unlimited ? "On · unlimited" : ("On · " + state.parallelism.max_workers + " workers"))
                   : "Off",
               (state.conserve_tokens !== true && state.parallelism.enabled) ? "pipe-badge-on" : "pipe-badge-off");
+    const rmode = document.getElementById("pipe-runes-mode");
+    if (rmode) rmode.value = RUNES_VALUES.includes(state.runes) ? state.runes : RUNES_DEFAULT;
+    pipeBadge("runes-oath-hook", state.runes === "on" ? "On" : "Off",
+              state.runes === "on" ? "pipe-badge-on" : "pipe-badge-off");
     const dr = document.getElementById("pipe-decision-review");
     if (dr) dr.value = state.decision_review;
     pipeBadge("route-decision-review", state.decision_review,
@@ -11459,6 +12803,11 @@ _JS = r"""
     onChange("pipe-parallelism-unlimited", el => { state.parallelism.unlimited = el.checked; });
     onInput("pipe-parallelism-workers", el => { const v = parseInt(el.value, 10); if (Number.isFinite(v) && v > 0) state.parallelism.max_workers = v; });
     onChange("pipe-conserve-tokens", el => { state.conserve_tokens = el.checked; });
+    onChange("pipe-runes-mode", el => {
+      if (!RUNES_VALUES.includes(el.value)) return;
+      state.runes = el.value;
+      syncRunesSessionStart();
+    });
     onChange("pipe-decision-review", el => { if (DECISION_REVIEW_VALUES.includes(el.value)) state.decision_review = el.value; });
     onChange("pipe-orchestrator", el => { if (ORCHESTRATOR_VALUES.includes(el.value)) { state.orchestrator = el.value; syncPipelineTab(); } });
     onChange("pipe-orchestrator-scope", el => { if (ORCHESTRATOR_SCOPE_VALUES.includes(el.value)) { state.orchestrator_scope = el.value; syncPipelineTab(); } });
@@ -13261,6 +14610,7 @@ _JS = r"""
      * / command_review.dev_repo_exempt, via the shared validator (same shape as
      * the localStorage path). */
     if (applyGuardrailConfig(parsed)) touched = true;
+      try { refreshAliasDeprecationBanner(); } catch (e) {}
     /* ── Per-category permission posture ─────────────────────────────── */
     /* The committed file expresses the SAME shape the dashboard authors, so we
      * map it back field-for-field, guarding every access (a key the file omits
@@ -13384,6 +14734,154 @@ _JS = r"""
   probeReadEndpoint().then(served => {
     if (served) hydrateFromRepo();
   });
+
+  /* ── Learn → Prompt Builder PE bridge (Wave-1) ───────────────────────
+     JS-seated only after the existing Learn island hydrates: three teaching
+     cards, zero static Gate 132 elements. PB deep links reuse shipped template
+     ids, so each CTA opens the matching Task / System / Few-shot mode without
+     inventing a new route or builder behavior. */
+  function initLearnPromptBridge() {
+    const panel = document.querySelector('.tab-panel[data-tab="learn"]');
+    const tab = panel && panel.querySelector(".learn-tab");
+    if (!tab || tab.querySelector("#learn-prompt-bridge")) return;
+
+    /* Wave-2 ordered PE academy (≤8 steps). Island/JS only — 0 static Gate 132.
+       Extends Wave-1 Task/System/Few-shot CTAs with Host Context, Pipeline, and
+       decision-tree deep-link. Concept buffer filters existing catalog ids. */
+    const steps = [
+      {
+        kind: "intro",
+        kicker: "Academy",
+        title: "How to use this path",
+        copy: "Work the steps in order. Learn the idea here, practice it in Prompt Builder, then see where it runs (Host Context) and what guards it (Pipeline). Open a step’s link when you are ready — you can return anytime."
+      },
+      {
+        kind: "pb",
+        kicker: "Prompt pattern",
+        title: "Task prompts",
+        copy: "Ask for the work needed this turn. Put the request, useful context, constraints, and expected output in the user message.",
+        href: "#/prompt-builder/summarize",
+        cta: "Open Task prompt in Prompt Builder"
+      },
+      {
+        kind: "pb",
+        kicker: "Prompt pattern",
+        title: "System prompts",
+        copy: "Set standing instructions: the model's role, durable rules, boundaries, tone, and output policy. Keep the turn's actual task separate.",
+        href: "#/prompt-builder/agent-system",
+        cta: "Open System prompt in Prompt Builder"
+      },
+      {
+        kind: "pb",
+        kicker: "Prompt pattern",
+        title: "Few-shot teaching",
+        copy: "Teach a repeatable pattern with concrete input/output examples. Examples demonstrate the task; they are not folklore or hidden rules.",
+        href: "#/prompt-builder/fewshot-classifier",
+        cta: "Open Few-shot prompt in Prompt Builder"
+      },
+      {
+        kind: "nav",
+        kicker: "Where it runs",
+        title: "Host Context",
+        copy: "See which coding agents honor hooks, skills, and settings — so a prompt practice matches the host you actually use.",
+        href: "#/host-context",
+        cta: "Open Host & context"
+      },
+      {
+        kind: "nav",
+        kicker: "What guards this",
+        title: "Pipeline guards",
+        copy: "Open the Guardrail Pipeline to see SessionStart → PreToolUse → PostToolUse → Stop stages and the knobs that shape behavior.",
+        href: "#/pipeline",
+        cta: "Open Guardrail Pipeline"
+      },
+      {
+        kind: "nav",
+        kicker: "Matcher honesty",
+        title: "Decision tree",
+        copy: "Expand the Pre→Post decision tree to see matcher order and outcomes (allow / ask / deny / EDIT) before inventing folklore about what fires.",
+        href: "#/pipeline/decision-tree",
+        cta: "Open Pipeline decision tree"
+      },
+      {
+        kind: "buffer",
+        kicker: "Concept pointers",
+        title: "Related PE concepts",
+        copy: "Dive deeper in the concept catalog below — these ids are PE-relevant starting points, not a second encyclopedia.",
+        concepts: [
+          { id: "agent-harness-loop", label: "The agent loop: one turn" },
+          { id: "claim-grounding", label: "Claim grounding" },
+          { id: "capability-grounding-protocol", label: "Capability Grounding Protocol" },
+          { id: "prompt-optimizer-tier0-heuristic-limit", label: "Prompt optimizer tier-0 limit" }
+        ]
+      }
+    ];
+
+    function peEl(tag, cls, text) {
+      const el = document.createElement(tag);
+      if (cls) el.className = cls;
+      if (text != null) el.textContent = text;
+      return el;
+    }
+
+    const bridge = peEl("section", "learn-pe-bridge");
+    bridge.id = "learn-prompt-bridge";
+    bridge.setAttribute("aria-labelledby", "learn-pe-title");
+    const title = peEl("h2", "learn-pe-title", "PE academy path");
+    title.id = "learn-pe-title";
+    bridge.appendChild(title);
+    bridge.appendChild(peEl(
+      "p",
+      "learn-pe-intro",
+      "An ordered path from prompt patterns to host honesty and pipeline guards. Practice in Prompt Builder; then see where it runs and what guards it."
+    ));
+
+    const list = peEl("ol", "learn-pe-path");
+    list.setAttribute("aria-label", "Ordered prompt-engineering academy path");
+    steps.forEach((step, idx) => {
+      const li = peEl("li", "learn-pe-step");
+      li.setAttribute("aria-posinset", String(idx + 1));
+      li.setAttribute("aria-setsize", String(steps.length));
+      const meta = peEl("div", "learn-pe-step-meta");
+      meta.appendChild(peEl("span", "learn-pe-step-num", ""));
+      meta.appendChild(peEl("span", "learn-pe-kicker", step.kicker));
+      li.appendChild(meta);
+      li.appendChild(peEl("h3", null, step.title));
+      li.appendChild(peEl("p", null, step.copy));
+      if (step.href && step.cta) {
+        const cta = peEl("a", "learn-pe-cta", step.cta);
+        cta.href = step.href;
+        cta.setAttribute("aria-label", step.cta);
+        li.appendChild(cta);
+      }
+      if (step.kind === "buffer" && step.concepts && step.concepts.length) {
+        const ul = peEl("ul", "learn-pe-concepts");
+        step.concepts.forEach(c => {
+          const item = peEl("li", null, null);
+          const a = peEl("a", null, c.label);
+          a.href = "#/learn";
+          a.dataset.conceptId = c.id;
+          a.setAttribute("aria-label", "Find concept: " + c.label);
+          a.addEventListener("click", (ev) => {
+            const search = tab.querySelector("#learn-search");
+            if (search) {
+              search.value = c.id.replace(/-/g, " ");
+              search.dispatchEvent(new Event("input", { bubbles: true }));
+            }
+          });
+          item.appendChild(a);
+          ul.appendChild(item);
+        });
+        li.appendChild(ul);
+      }
+      list.appendChild(li);
+    });
+    bridge.appendChild(list);
+
+    const legend = tab.querySelector(".learn-legend");
+    if (legend) legend.insertAdjacentElement("afterend", bridge);
+    else tab.prepend(bridge);
+  }
 
   /* ── Learn tab: search · expand/collapse · no-results ──────────────── */
   function initLearn() {
@@ -13756,11 +15254,10 @@ _JS = r"""
   // Claude 4.7+/5-family tokenize ~30% heavier (4.2), hence the split. Verify with the
   // count_tokens API for billing-critical use; the number never gates any action.
   var PB_MODELS = [
-    { id: "opus-5",    label: "Opus 5",    divisor: 3.6, hint: "Opus 5 is literal and can over-trigger on \"CRITICAL/MUST\" language — dial it back. It runs verbose by default (prompt for concision) and self-verifies (drop carried-over \"double-check your answer\" lines)." },
-    { id: "sonnet-5",  label: "Sonnet 5",  divisor: 3.6, hint: "Current tokenizer. Newer models follow the system prompt closely — be explicit about the output you want, not emphatic about it." },
-    { id: "opus-4-8",  label: "Opus 4.8",  divisor: 3.6, hint: "Current tokenizer generation. Prefer general instructions (\"think thoroughly\") over a prescriptive step list (1.6)." },
-    { id: "haiku-4-5", label: "Haiku 4.5", divisor: 4.0, hint: "Older tokenizer (pre-4.7). A smaller model can benefit from more explicit, decomposed instructions — heuristic, not Anthropic-stated (5.3)." },
-    { id: "fable-5",   label: "Fable 5",   divisor: 3.6, hint: "Current tokenizer; thinking is always on — reasoning depth is the effort parameter, not a prompt phrase (5.4)." }
+    { id: "claude-opus-4-8", label: "Opus (opus 4 8)", divisor: 3.6, hint: "Current catalog Opus. Prefer explicit output shape over stacked CRITICAL/MUST (5.2)." },
+    { id: "claude-sonnet-5", label: "Sonnet (sonnet 5)", divisor: 3.6, hint: "Current catalog Sonnet. Be explicit about the output you want, not emphatic about it." },
+    { id: "claude-haiku-4-5-20251001", label: "Haiku (haiku 4 5 20251001)", divisor: 4.0, hint: "Older tokenizer generation (pre-4.7 family). Smaller models can benefit from more explicit, decomposed instructions — heuristic (5.3)." },
+    { id: "claude-fable-5", label: "Fable (fable 5)", divisor: 3.6, hint: "Current catalog Fable; thinking depth is the effort parameter, not a prompt phrase (5.4)." },
   ];
   var PB_BAND = 0.20; // +/-20% band (claim 4.5); widened on code/CJK content
 
@@ -13769,7 +15266,7 @@ _JS = r"""
   function pbEx() { return { input: "", output: "", reasoning: "" }; }
   function pbDefault() {
     return {
-      mode: "task", model: "opus-5", reasoning: false, template: null,
+      mode: "task", model: "claude-opus-4-8", reasoning: false, template: null,
       task:    { directive: "", context: "", dataTag: "input", data: "", constraints: "", outputFormat: "", success: "" },
       system:  { role: "", rules: [""], tone: "", boundaries: "", outputPolicy: "" },
       fewshot: { directive: "", outputFormat: "", examples: [pbEx(), pbEx(), pbEx()] }
@@ -13864,18 +15361,60 @@ _JS = r"""
         { label: "Markdown headings", text: "Organize longer answers under short markdown headings." },
         { label: "Structured handoff", text: "End with a machine-readable block:\n---RESULT_START---\n{\"status\": \"complete|partial|blocked\", \"summary\": \"one sentence\"}\n---RESULT_END---" }
       ]
+    },
+    task: {
+      directive: [
+        { label: "Summarize key points", text: "Summarize the text in the data tag into the key points." },
+        { label: "Extract fields as JSON", text: "Extract the requested fields from the text in the data tag." },
+        { label: "Classify into one label", text: "Classify the text in the data tag into exactly one category from the allowed set." },
+        { label: "Rewrite in plain language", text: "Rewrite the text in the data tag in warmer, plain-language tone for a general audience." }
+      ],
+      context: [
+        { label: "Executives want decisions", text: "These go to executives who want decisions, not discussion." },
+        { label: "Audience is developers", text: "The audience is working software engineers who know the codebase." }
+      ],
+      constraints: [
+        { label: "One sentence each", text: "Keep each item to one sentence." },
+        { label: "Stay inside source", text: "Use only information present in the source text." }
+      ],
+      outputFormat: [
+        { label: "Numbered list only", text: "A numbered list. Output only the list." },
+        { label: "JSON only", text: "Return a JSON object. Output only valid JSON, no prose." },
+        { label: "One label only", text: "Respond with exactly one label. Output only the label." }
+      ],
+      success: [
+        { label: "Owner on every item", text: "Every action item names an owner." },
+        { label: "No invented facts", text: "Nothing is asserted that is not supported by the source." }
+      ]
+    },
+    fewshot: {
+      directive: [
+        { label: "Sentiment classify", text: "Classify the sentiment of each review as positive, negative, or neutral." },
+        { label: "Intent classify", text: "Classify each message into exactly one intent label from the allowed set." }
+      ],
+      outputFormat: [
+        { label: "One word sentiment", text: "One word: positive, negative, or neutral." },
+        { label: "One intent label", text: "Output only the intent label." }
+      ]
     }
   };
 
   var PB_PATTERNS = [
-    { id: "cot", label: "+ Chain-of-thought", tip: "Ask Claude to reason before answering (1.6). On current models the primary lever is the effort parameter, not a phrase.", apply: function (s) { s.reasoning = true; } },
+    { id: "cot", label: "+ Chain-of-thought", tip: "Ask Claude to reason before answering (1.6). On current models the primary lever is the effort parameter, not a phrase.", modes: { task: 1, fewshot: 1 }, apply: function (s) { s.reasoning = true; } },
     { id: "xml", label: "+ XML data tag", tip: "Wrap variable input in its own XML tag so Claude can't confuse instructions with data (1.4).", modes: { task: 1 }, apply: function (s) { if (!pbSafeTag(s.task.dataTag)) s.task.dataTag = "input"; } },
     { id: "example", label: "+ Example", tip: "Add an example (2.2).", modes: { fewshot: 1 }, apply: function (s) { if (s.fewshot.examples.length < 8) s.fewshot.examples.push(pbEx()); } },
-    { id: "structured", label: "+ Structured-output block", tip: "Insert RavenClaude's house ---RESULT_START--- handoff block (R.1). A house convention for agent hand-offs, not a universal Claude rule.", apply: function (s) { var add = "\n\nEnd your response with a machine-readable block:\n---RESULT_START---\n{\"status\": \"complete|partial|blocked\", \"summary\": \"one sentence\"}\n---RESULT_END---"; var mk = s.mode === "system" ? "outputPolicy" : "outputFormat"; s[s.mode][mk] = (s[s.mode][mk] || "").replace(/\s+$/, "") + add; } },
+    { id: "structured", label: "+ Structured-output block", tip: "Insert RavenClaude's house ---RESULT_START--- handoff block (R.1). A house convention for agent hand-offs, not a universal Claude rule.", apply: function (s) { var mk = s.mode === "system" ? "outputPolicy" : "outputFormat"; var cur = s[s.mode][mk] || ""; if (cur.indexOf("---RESULT_START---") !== -1) return; var add = "\n\nEnd your response with a machine-readable block:\n---RESULT_START---\n{\"status\": \"complete|partial|blocked\", \"summary\": \"one sentence\"}\n---RESULT_END---"; s[s.mode][mk] = cur.replace(/\s+$/, "") + add; } },
     { id: "prefill", label: "Response prefill", deprecated: true, tip: "Deprecated — prefilled assistant turns return a 400 error on Claude 4.6+ (1.9). Use the Structured-output block instead.", apply: function () { /* no-op: prefill is never emitted (1.9) */ } }
   ];
 
   // ── pbEl: the ONLY DOM factory. createElement + textContent + setAttribute; never a markup sink. ──
+  function pbSafeUrl(v) {
+    var s = String(v == null ? "" : v);
+    if (!s) return "";
+    if (s.charAt(0) === "#") return s;
+    if (/^(?:https?:|blob:)/i.test(s)) return s;
+    return "";
+  }
   function pbEl(tag, props, kids) {
     var el = document.createElement(tag);
     if (props) {
@@ -13888,6 +15427,11 @@ _JS = r"""
         else if (k === "for") el.htmlFor = v;
         else if (k.charAt(0) === "o" && k.charAt(1) === "n" && typeof v === "function") el.addEventListener(k.slice(2), v);
         else if (k.charAt(0) === "o" && k.charAt(1) === "n") continue; // never let an on* key become an inline-handler attribute (defense-in-depth)
+        else if (k === "href" || k === "src") {
+          var safe = pbSafeUrl(v);
+          if (safe) el.setAttribute(k, safe);
+          continue;
+        }
         else if (v === true) el.setAttribute(k, "");
         else el.setAttribute(k, v);
       }
@@ -13964,13 +15508,19 @@ _JS = r"""
   }
 
   // ── Linter: per-mode weighted 0-100 minus anti-folklore penalties. Structure, NOT semantics. ──
+  var PB_INSTR_KEYS = {
+    task: { directive: 1, context: 1, constraints: 1, outputFormat: 1, success: 1 },
+    system: { role: 1, rules: 1, tone: 1, boundaries: 1, outputPolicy: 1 },
+    fewshot: { directive: 1, outputFormat: 1 }
+  };
   function pbAllText(s) {
-    var o = s[s.mode], parts = [];
+    var mode = s.mode, o = s[mode], allow = PB_INSTR_KEYS[mode] || {}, parts = [];
     for (var k in o) {
       if (!Object.prototype.hasOwnProperty.call(o, k)) continue;
+      if (!allow[k]) continue;
       var v = o[k];
       if (typeof v === "string") parts.push(v);
-      else if (Array.isArray(v)) v.forEach(function (it) { if (typeof it === "string") parts.push(it); else if (it) { for (var kk in it) { if (typeof it[kk] === "string") parts.push(it[kk]); } } });
+      else if (Array.isArray(v)) v.forEach(function (it) { if (typeof it === "string") parts.push(it); });
     }
     return parts.join("\n").slice(0, PB_SCAN_CAP);
   }
@@ -13995,9 +15545,10 @@ _JS = r"""
       dims.push({ w: 25, f: pbSubstantive(t.directive) ? 1 : (t.directive.trim() ? 0.4 : 0), label: "Task is specific", why: "Vague tasks get vague answers — be explicit (1.2).", key: "directive" });
       dims.push({ w: 15, f: t.context.trim() ? 1 : 0, label: "Context / motivation", why: "Explaining the “why” helps Claude generalize correctly (1.3).", key: "context" });
       dims.push({ w: 15, f: t.data.trim() ? 1 : 0.6, label: "Input delimited", why: "Variable data belongs in its own XML tag (1.4).", key: "data", optional: true });
-      dims.push({ w: 20, f: t.outputFormat.trim() ? 1 : 0, label: "Output format explicit", why: "State exactly how the answer should be shaped (6.4).", key: "outputFormat" });
-      dims.push({ w: 15, f: pbFramingFrac(t.constraints + " " + t.directive), label: "Positive framing", why: "Tell Claude what TO do, not what not to do (1.5).", key: "constraints" });
-      dims.push({ w: 10, f: t.success.trim() ? 1 : 0, label: "Success criteria", why: "Define what a good answer satisfies (6.8).", key: "success", optional: true });
+      dims.push({ w: 18, f: t.outputFormat.trim() ? 1 : 0, label: "Output format explicit", why: "State exactly how the answer should be shaped (6.4).", key: "outputFormat" });
+      dims.push({ w: 12, f: pbFramingFrac((t.constraints || "").trim() ? t.constraints : t.directive), label: "Positive framing", why: "Tell Claude what TO do, not what not to do (1.5).", key: "directive" });
+      dims.push({ w: 8, f: t.constraints.trim() ? 1 : 0, label: "Constraints present", why: "Positive constraints help Claude stay on rails (1.5).", key: "constraints", optional: true });
+      dims.push({ w: 7, f: t.success.trim() ? 1 : 0, label: "Success criteria", why: "Define what a good answer satisfies (6.8).", key: "success", optional: true });
     } else if (mode === "system") {
       var y = s.system;
       dims.push({ w: 35, f: pbSubstantive(y.role, 15) ? 1 : (y.role.trim() ? 0.4 : 0), label: "Role defined", why: "A clear persona focuses tone + behavior (3.1).", key: "role" });
@@ -14026,7 +15577,7 @@ _JS = r"""
     (function () { var o = s[mode]; for (var k in o) { if (typeof o[k] === "string" && pbIsPrefill(o[k])) prefill = true; } })();
     if (prefill) { penalty += 20; issues.unshift({ sev: "bad", label: "Looks like response prefilling", why: "Prefilled assistant turns return a 400 error on Claude 4.6+ — use a Structured-output block instead (1.9).", key: null, claim: "1.9" }); }
     for (var i = 0; i < PB_FOLKLORE.length; i++) { if (PB_FOLKLORE[i].test(all)) { issues.push({ sev: "tip", label: "“Magic phrase” detected", why: "Folklore like “you are an expert” / “I'll tip $200” doesn't survive an A/B test on current models — it earns no credit (R.2).", key: null }); break; } }
-    if (mode === "task" && s.model === "opus-5" && s.task.success.trim()) issues.push({ sev: "tip", label: "Self-check may be redundant on Opus 5", why: "Opus 5 self-verifies — an explicit success-check can over-trigger (5.2).", key: "success" });
+    if (mode === "task" && s.model === "claude-opus-4-8" && s.task.success.trim()) issues.push({ sev: "tip", label: "Self-check may be redundant on Opus 5", why: "Opus 5 self-verifies — an explicit success-check can over-trigger (5.2).", key: "success" });
     if (assembled.length / (pbModel(s.model).divisor) > 20000) issues.push({ sev: "tip", label: "Long prompt — consider data-first order", why: "Above ~20k tokens, putting long data at the top and the query at the end can improve quality up to ~30% (1.7).", key: null });
 
     score = Math.max(0, Math.min(100, Math.round(score - penalty)));
@@ -14035,7 +15586,7 @@ _JS = r"""
   function pbFramingFrac(text) { if (!(text || "").trim()) return 0; var n = pbNegations(text); return n === 0 ? 1 : n <= 2 ? 0.6 : 0.2; }
 
   // ── Rendering (all via pbEl) ──────────────────────────────────────────────
-  var pbRoot, pbPreviewEl, pbTokenEl, pbFieldsEl, pbIssuesEl, pbGaugeFill, pbGaugeText, pbGaugeSub, pbNoteEl, pbDegradedEl, pbModelHintEl, pbTplRow, pbRaf = 0, pbToastEl = null, pbToastTimer = 0;
+  var pbRoot, pbPreviewEl, pbPreviewEmptyEl, pbTokenEl, pbTokenCapEl, pbFieldsEl, pbIssuesEl, pbIssuesLiveEl, pbGaugeEl, pbGaugeFill, pbGaugeText, pbGaugeSub, pbNoteEl, pbDegradedEl, pbModelHintEl, pbTplRow, pbModeRow, pbRaf = 0, pbToastEl = null, pbToastTimer = 0, pbSaveTimer = 0, pbLiveTimer = 0, pbPendingTpl = null;
   var PB_GAUGE_C = 2 * Math.PI * 32;
 
   // ── Per-field canned-value picker: a compact <select> that fills/appends a vetted
@@ -14054,16 +15605,23 @@ _JS = r"""
   }
   function pbInsertCanned(f, text) {
     var slot = pbState[pbState.mode];
+    var focusIdx = null;
     if (f.type === "list") {
       var arr = slot[f.key];
-      if (arr.length === 1 && !String(arr[0]).trim()) arr[0] = text; else arr.push(text);
+      var blank = -1;
+      for (var i = 0; i < arr.length; i++) { if (!String(arr[i]).trim()) { blank = i; break; } }
+      if (blank >= 0) { arr[blank] = text; focusIdx = blank; }
+      else { arr.push(text); focusIdx = arr.length - 1; }
     } else {
       var cur = slot[f.key] || "";
       slot[f.key] = cur.trim() ? cur.replace(/\s+$/, "") + (f.type === "text" ? ", " : "\n") + text : text;
     }
     pbRebuildFields();
     pbUpdate();
-    pbFocusField(f.key);
+    if (focusIdx != null) {
+      var el = pbFieldsEl.querySelector('[data-pb-list="' + f.key + '"][data-pb-idx="' + focusIdx + '"]');
+      if (el && el.focus) { el.focus(); if (el.scrollIntoView) el.scrollIntoView({ block: "center" }); }
+    } else pbFocusField(f.key);
   }
 
   function pbField(f) {
@@ -14102,7 +15660,7 @@ _JS = r"""
     var wrap = pbEl("div", { class: "pb-field" });
     var exs = pbState.fewshot.examples, n = exs.length;
     var cls = n >= 3 && n <= 5 ? "pb-count pb-ok" : "pb-count pb-warn";
-    wrap.appendChild(pbEl("label", {}, [f.label, pbEl("span", { class: cls, text: " (" + n + ")" }), pbEl("span", { class: "pb-hint", text: "— " + f.hint })]));
+    wrap.appendChild(pbEl("label", {}, [f.label, pbEl("span", { class: cls, text: " (" + n + " example" + (n === 1 ? "" : "s") + ")" }), pbEl("span", { class: "pb-hint", text: "— " + f.hint })]));
     var list = pbEl("div", { class: "pb-repeat" });
     exs.forEach(function (e, i) {
       var head = pbEl("div", { class: "pb-repeat-head" }, [
@@ -14131,7 +15689,7 @@ _JS = r"""
     var chips = pbEl("div", { class: "pb-chips" });
     PB_PATTERNS.forEach(function (p) {
       if (p.modes && !p.modes[pbState.mode]) return;
-      if (p.deprecated) { chips.appendChild(pbEl("button", { type: "button", class: "pb-chip pb-deprecated", title: p.tip, "aria-disabled": "true", disabled: true, text: p.label })); return; }
+      if (p.deprecated) { chips.appendChild(pbEl("button", { type: "button", class: "pb-chip pb-deprecated", title: p.tip, "aria-disabled": "true", "aria-label": p.label + " (deprecated): " + p.tip, text: p.label, onclick: function (e) { e.preventDefault(); pbToast("Prefill is deprecated on Claude 4.6+"); } })); return; }
       chips.appendChild(pbEl("button", { type: "button", class: "pb-chip", title: p.tip, text: p.label, onclick: function () { p.apply(pbState); pbRebuildFields(); pbSyncControls(); pbUpdate(); } }));
     });
     rail.appendChild(chips);
@@ -14159,23 +15717,57 @@ _JS = r"""
     else if (t.dataset.pbList === "examples") pbState.fewshot.examples[parseInt(t.dataset.pbIdx, 10)][t.dataset.pbSub] = val;
     else if (key === "reasoning") pbState.reasoning = val;
     else pbState[pbState.mode][key] = val;
+    if (pbState.template) { pbState.template = null; pbSyncTemplateRow(); }
     pbScheduleUpdate();
   }
   function pbScheduleUpdate() { if (pbRaf) return; pbRaf = (window.requestAnimationFrame || function (cb) { return setTimeout(cb, 16); })(function () { pbRaf = 0; pbUpdate(); }); }
 
+  function pbFlushSave() {
+    if (pbSaveTimer) { clearTimeout(pbSaveTimer); pbSaveTimer = 0; }
+    pbSave();
+  }
+  function pbScheduleSave() {
+    if (pbSaveTimer) clearTimeout(pbSaveTimer);
+    pbSaveTimer = setTimeout(function () { pbSaveTimer = 0; pbSave(); }, 400);
+  }
+  function pbAnnounceIssues(r) {
+    if (!pbIssuesLiveEl) return;
+    if (!r.issues.length) { pbIssuesLiveEl.textContent = "All best-practice structure present. Score " + r.score + " of 100."; return; }
+    pbIssuesLiveEl.textContent = r.issues.length + " quality issue" + (r.issues.length === 1 ? "" : "s") + ". Score " + r.score + " of 100.";
+  }
+  function pbScheduleAnnounce(r) {
+    if (pbLiveTimer) clearTimeout(pbLiveTimer);
+    pbLiveTimer = setTimeout(function () { pbLiveTimer = 0; pbAnnounceIssues(r); }, 500);
+  }
   function pbUpdate() {
     var assembled = pbAssemble(pbState);
+    if (pbPreviewEmptyEl) pbPreviewEmptyEl.hidden = !!assembled;
     pbPreviewEl.textContent = assembled; // THE single whole-string sink (structurally XSS-safe)
     pbRenderToken(assembled);
     pbRenderQuality(assembled);
-    pbSave();
+    pbScheduleSave();
   }
   function pbRenderToken(assembled) {
     var e = pbEstimate(assembled, pbState.model);
     pbClear(pbTokenEl);
+    pbTokenEl.setAttribute("aria-label", "Rough size estimate about " + e.est + " tokens, band " + e.low + " to " + e.high);
     pbTokenEl.appendChild(pbEl("strong", { text: "~" + e.est.toLocaleString() }));
     pbTokenEl.appendChild(pbEl("span", { text: " tokens" }));
-    pbTokenEl.appendChild(pbEl("span", { class: "pb-token-band", text: "(est. " + e.low.toLocaleString() + "–" + e.high.toLocaleString() + ")" }));
+    pbTokenEl.appendChild(pbEl("span", { class: "pb-token-band", text: "(est. " + e.low.toLocaleString() + "\u2013" + e.high.toLocaleString() + ")" }));
+    if (pbTokenCapEl) {
+      if (assembled.length > PB_SCAN_CAP) {
+        pbTokenCapEl.hidden = false;
+        pbTokenCapEl.textContent = "Band uses the first " + PB_SCAN_CAP.toLocaleString() + " characters of a longer prompt \u2014 estimate still uses full length.";
+      } else {
+        pbTokenCapEl.hidden = true;
+        pbTokenCapEl.textContent = "";
+      }
+    }
+  }
+  function pbSevPrefix(sev) {
+    if (sev === "bad") return "Error";
+    if (sev === "warn") return "Warning";
+    return "Tip";
   }
   function pbRenderQuality(assembled) {
     var r = pbLint(pbState, assembled);
@@ -14184,16 +15776,26 @@ _JS = r"""
     pbGaugeFill.setAttribute("stroke-dasharray", PB_GAUGE_C.toFixed(1));
     pbGaugeFill.setAttribute("stroke-dashoffset", (PB_GAUGE_C * (1 - r.score / 100)).toFixed(1));
     pbGaugeText.textContent = String(r.score);
+    if (pbGaugeEl) {
+      pbGaugeEl.setAttribute("aria-valuenow", String(r.score));
+      pbGaugeEl.setAttribute("aria-label", "Structure completeness " + r.score + " of 100");
+    }
     pbClear(pbIssuesEl);
-    if (!r.issues.length) { pbIssuesEl.appendChild(pbEl("li", { class: "pb-clean", text: "✓ All best-practice structure present." })); return; }
+    if (!r.issues.length) { pbIssuesEl.appendChild(pbEl("li", { class: "pb-clean", text: "\u2713 All best-practice structure present." })); pbScheduleAnnounce(r); return; }
     r.issues.forEach(function (is) {
       pbIssuesEl.appendChild(pbEl("li", { class: "pb-issue pb-sev-" + is.sev }, [
-        pbEl("div", { class: "pb-issue-title" }, [pbEl("span", { text: is.label }), is.claim ? pbEl("span", { class: "pb-issue-claim", text: is.claim }) : null]),
+        pbEl("div", { class: "pb-issue-title" }, [
+          pbEl("span", { class: "pb-sev-label", text: pbSevPrefix(is.sev) }),
+          pbEl("span", { text: is.label }),
+          is.claim ? pbEl("span", { class: "pb-issue-claim", text: is.claim }) : null
+        ]),
         pbEl("p", { class: "pb-issue-why", text: is.why }),
-        is.key ? pbEl("button", { type: "button", class: "pb-issue-fix", text: "Jump to field →", onclick: function () { pbFocusField(is.key); } }) : null
+        is.key ? pbEl("button", { type: "button", class: "pb-issue-jump", text: "Jump to field \u2192", onclick: function () { pbFocusField(is.key); } }) : null
       ]));
     });
+    pbScheduleAnnounce(r);
   }
+
   function pbFocusField(key) {
     var el = document.getElementById("pb-f-" + key) || pbFieldsEl.querySelector('[data-pb-key="' + key + '"]');
     if (el && el.focus) { el.focus(); if (el.scrollIntoView) el.scrollIntoView({ block: "center" }); }
@@ -14218,33 +15820,87 @@ _JS = r"""
     });
     if (!def.system.rules.length) def.system.rules = [""];
     if (!def.fewshot.examples.length) def.fewshot.examples = [pbEx(), pbEx(), pbEx()];
-    if (pbModel(def.model).id !== def.model) def.model = "opus-5";
+    if (pbModel(def.model).id !== def.model) def.model = "claude-opus-4-8";
     return def;
   }
 
-  function pbSetMode(mode) {
-    pbState.mode = mode;
-    pbRebuildFields();
+  function pbModeIsDirty(mode) {
+    var def = pbDefault()[mode], cur = pbState[mode];
+    return JSON.stringify(def) !== JSON.stringify(cur);
   }
-  // Load a template: set its mode, fill the starting fields, mark it active. This is
-  // the one "pick a starting point" action (the toggle row calls it) — mode is now
-  // implicit in the chosen template, so there is no separate mode control.
-  function pbApplyTemplate(p) {
+  function pbAnyDirty() {
+    return pbModeIsDirty("task") || pbModeIsDirty("system") || pbModeIsDirty("fewshot") || !!pbState.template || pbState.reasoning;
+  }
+  function pbClearModeSlot(mode) {
+    var fresh = pbDefault();
+    pbState[mode] = fresh[mode];
+  }
+  function pbSetMode(mode, blank) {
+    pbState.mode = mode;
+    if (blank) { pbClearModeSlot(mode); pbState.template = null; pbState.reasoning = false; }
+    pbRebuildFields();
+    pbSyncControls();
+    pbUpdate();
+  }
+  function pbBlankCurrent() {
+    pbClearModeSlot(pbState.mode);
+    pbState.template = null;
+    pbState.reasoning = false;
+    pbRebuildFields();
+    pbSyncControls();
+    pbUpdate();
+    pbReflectHash();
+  }
+  function pbApplyTemplate(p, force) {
     if (!p) return;
+    if (!force && pbAnyDirty() && pbPendingTpl !== p.id) {
+      pbPendingTpl = p.id;
+      pbToast("Click again to apply template (replaces current " + p.mode + " fields)");
+      pbSyncTemplateRow();
+      return;
+    }
+    pbPendingTpl = null;
+    pbClearModeSlot(p.mode);
     pbState.template = p.id;
     pbState.mode = p.mode;
     p.apply(pbState);
     pbRebuildFields();
     pbSyncControls();
     pbUpdate();
+    pbReflectHash();
   }
-  function pbApplyTemplateById(id) { for (var i = 0; i < PB_PRESETS.length; i++) { if (PB_PRESETS[i].id === id) { pbApplyTemplate(PB_PRESETS[i]); return; } } }
-  function pbSyncTemplateRow() { if (!pbTplRow) return; var btns = pbTplRow.querySelectorAll(".pb-tpl"); for (var i = 0; i < btns.length; i++) { btns[i].setAttribute("aria-pressed", btns[i].getAttribute("data-tpl") === pbState.template ? "true" : "false"); } }
+  function pbApplyTemplateById(id, force) { for (var i = 0; i < PB_PRESETS.length; i++) { if (PB_PRESETS[i].id === id) { pbApplyTemplate(PB_PRESETS[i], force); return; } } }
+  function pbSyncTemplateRow() {
+    if (!pbTplRow) return;
+    var btns = pbTplRow.querySelectorAll(".pb-tpl");
+    for (var i = 0; i < btns.length; i++) {
+      var id = btns[i].getAttribute("data-tpl");
+      var pressed = id === pbState.template || id === pbPendingTpl;
+      btns[i].setAttribute("aria-pressed", pressed ? "true" : "false");
+      if (id === pbPendingTpl && id !== pbState.template) btns[i].textContent = "Really apply?";
+      else {
+        for (var j = 0; j < PB_PRESETS.length; j++) if (PB_PRESETS[j].id === id) { btns[i].textContent = PB_PRESETS[j].label; break; }
+      }
+    }
+  }
+  function pbSyncModeRow() {
+    if (!pbModeRow) return;
+    var btns = pbModeRow.querySelectorAll("[data-pb-mode]");
+    for (var i = 0; i < btns.length; i++) btns[i].setAttribute("aria-pressed", btns[i].getAttribute("data-pb-mode") === pbState.mode ? "true" : "false");
+  }
   function pbSyncControls() {
     pbSyncTemplateRow();
-    var ms = pbRoot.querySelector("#pb-model");
+    pbSyncModeRow();
+    var ms = pbRoot && pbRoot.querySelector("#pb-model");
     if (ms) ms.value = pbState.model;
     pbRenderModelHint();
+  }
+  function pbReflectHash() {
+    try {
+      var base = "#/prompt-builder";
+      var want = pbState.template ? base + "/" + encodeURIComponent(pbState.template) : base;
+      if (location.hash !== want) location.hash = want.slice(1);
+    } catch (e) { /* ignore */ }
   }
   function pbRenderModelHint() { if (pbModelHintEl) pbModelHintEl.textContent = pbModel(pbState.model).hint; }
 
@@ -14260,26 +15916,44 @@ _JS = r"""
     else pbFallbackCopy(text);
   }
   function pbFallbackCopy(text) {
-    try { var ta = pbEl("textarea", { readonly: true, style: "position:fixed;top:-1000px;opacity:0" }); ta.value = text; document.body.appendChild(ta); ta.select(); document.execCommand("copy"); document.body.removeChild(ta); pbToast("Copied"); }
-    catch (e) { pbToast("Copy failed — select the text manually"); }
+    try {
+      var ta = pbEl("textarea", { readonly: true, style: "position:fixed;top:-1000px;opacity:0" });
+      ta.value = text; document.body.appendChild(ta); ta.select();
+      var ok = document.execCommand("copy");
+      document.body.removeChild(ta);
+      if (ok) pbToast("Copied"); else pbToast("Copy failed — select the text manually");
+    } catch (e) { pbToast("Copy failed — select the text manually"); }
   }
   function pbDownload(name, mime, content) {
     try { var url = URL.createObjectURL(new Blob([content], { type: mime })); var a = pbEl("a", { href: url, download: name }); document.body.appendChild(a); a.click(); document.body.removeChild(a); setTimeout(function () { URL.revokeObjectURL(url); }, 0); pbToast("Exported"); }
     catch (e) { pbToast("Export failed"); }
   }
-  function pbExportMd() { pbDownload("claude-prompt-" + pbState.mode + ".md", "text/markdown", "# Claude prompt (" + pbState.mode + " mode — " + pbModel(pbState.model).label + ")\n\n```\n" + pbAssemble(pbState) + "\n```\n"); }
+  function pbMdFence(content) {
+    var max = 2, m, re = /`+/g;
+    while ((m = re.exec(content))) { if (m[0].length > max) max = m[0].length; }
+    return new Array(max + 2).join("`");
+  }
+  function pbExportMd() {
+    var body = pbAssemble(pbState), fence = pbMdFence(body);
+    pbDownload("claude-prompt-" + pbState.mode + ".md", "text/markdown", "# Claude prompt (" + pbState.mode + " mode — " + pbModel(pbState.model).label + ")\n\n" + fence + "\n" + body + "\n" + fence + "\n");
+  }
   function pbExportJson() {
     var assembled = pbAssemble(pbState), lint = pbLint(pbState, assembled), est = pbEstimate(assembled, pbState.model);
     pbDownload("claude-prompt-" + pbState.mode + ".json", "application/json", JSON.stringify({ schemaVersion: 1, mode: pbState.mode, model: pbState.model, fields: pbState[pbState.mode], reasoning: pbState.reasoning, assembled: assembled, score: lint.score, tokenEstimate: { estimate: est.est, low: est.low, high: est.high, band: est.band } }, null, 2));
   }
   function pbResetBtn(btn) {
-    if (btn.dataset.armed === "1") { pbState = pbDefault(); try { localStorage.removeItem(PB_STORAGE_KEY); } catch (e) { } pbSetMode(pbState.mode); pbSyncControls(); pbUpdate(); btn.dataset.armed = ""; btn.textContent = "Reset"; }
+    if (btn.dataset.armed === "1") { pbState = pbDefault(); try { localStorage.removeItem(PB_STORAGE_KEY); } catch (e) { } pbSetMode(pbState.mode, false); pbSyncControls(); pbUpdate(); pbReflectHash(); btn.dataset.armed = ""; btn.textContent = "Reset"; }
     else { btn.dataset.armed = "1"; btn.textContent = "Really reset?"; setTimeout(function () { if (btn.dataset.armed === "1") { btn.dataset.armed = ""; btn.textContent = "Reset"; } }, 3000); }
   }
 
   function pbBuildControls() {
-    // One template toggle row (replaces the old Task/System/Few-shot segmented
-    // control + the separate "Preset…" dropdown). Each button loads a template.
+    pbModeRow = pbEl("div", { class: "pb-modes", role: "group", "aria-label": "Prompt mode" });
+    pbModeRow.appendChild(pbEl("span", { class: "pb-tpl-label", text: "Mode" }));
+    ["task", "system", "fewshot"].forEach(function (m) {
+      var label = m === "fewshot" ? "Few-shot" : m.charAt(0).toUpperCase() + m.slice(1);
+      pbModeRow.appendChild(pbEl("button", { type: "button", class: "pb-mode", "data-pb-mode": m, "aria-pressed": m === pbState.mode ? "true" : "false", text: label, onclick: function () { pbSetMode(m, false); pbReflectHash(); } }));
+    });
+    pbModeRow.appendChild(pbEl("button", { type: "button", class: "pb-btn pb-ghost", text: "Start blank", title: "Clear the current mode fields", onclick: function () { pbBlankCurrent(); } }));
     pbTplRow = pbEl("div", { class: "pb-templates", role: "group", "aria-label": "Start from a template" });
     pbTplRow.appendChild(pbEl("span", { class: "pb-tpl-label", text: "Template" }));
     PB_PRESETS.forEach(function (p) {
@@ -14287,46 +15961,87 @@ _JS = r"""
     });
     var modelSel = pbEl("select", { class: "pb-select", id: "pb-model", "aria-label": "Target model", onchange: function (e) { pbState.model = e.target.value; pbRenderModelHint(); pbUpdate(); } });
     PB_MODELS.forEach(function (m) { var o = pbEl("option", { value: m.id, text: m.label }); if (m.id === pbState.model) o.selected = true; modelSel.appendChild(o); });
-    pbTokenEl = pbEl("span", { class: "pb-token", title: "Rough size estimate — Anthropic publishes no official ratio (4.1); newer models tokenize ~30% heavier (4.2). Verify with count_tokens for billing." });
+    pbTokenEl = pbEl("span", { class: "pb-token", role: "status", "aria-label": "Rough size estimate", title: "Rough size estimate — Anthropic publishes no official ratio (4.1); newer models tokenize ~30% heavier (4.2). Verify with count_tokens for billing." });
     pbTokenEl.appendChild(pbEl("strong", { text: "~0" }));
     pbTokenEl.appendChild(pbEl("span", { text: " tokens" }));
+    pbTokenCapEl = pbEl("p", { class: "pb-token-honesty", hidden: true, text: "" });
+    var honesty = pbEl("p", { class: "pb-token-honesty", text: "Estimate only — Anthropic publishes no official chars-per-token ratio. Verify with count_tokens for billing." });
     return pbEl("div", { class: "pb-controls" }, [
+      pbModeRow,
       pbTplRow,
       pbEl("span", { class: "pb-ctl" }, [pbEl("label", { for: "pb-model", text: "Model" }), modelSel]),
       pbEl("span", { class: "pb-spacer" }),
       pbTokenEl,
-      pbEl("button", { type: "button", class: "pb-btn pb-ghost pb-danger", onclick: function (e) { pbResetBtn(e.currentTarget); }, text: "Reset" })
+      pbEl("button", { type: "button", class: "pb-btn pb-ghost pb-danger", onclick: function (e) { pbResetBtn(e.currentTarget); }, text: "Reset" }),
+      honesty,
+      pbTokenCapEl
     ]);
   }
   function pbBuildInputPane() {
-    pbFieldsEl = pbEl("div", { class: "pb-fields", id: "pb-fields", role: "tabpanel", "aria-label": "Prompt inputs" });
+    pbFieldsEl = pbEl("div", { class: "pb-fields", id: "pb-fields", role: "group", "aria-label": "Prompt inputs" });
     pbModelHintEl = pbEl("p", { class: "pb-note pb-note-info", text: pbModel(pbState.model).hint });
     pbDegradedEl = pbEl("p", { class: "pb-degraded", hidden: true, text: "Autosave unavailable in this browser mode — your work won't persist across reloads." });
     return pbEl("section", { class: "pb-pane" }, [pbEl("h3", { text: "Inputs" }), pbDegradedEl, pbFieldsEl, pbModelHintEl]);
   }
   function pbBuildPreviewPane() {
-    pbPreviewEl = pbEl("pre", { class: "pb-preview", id: "pb-preview", "data-empty": "Your assembled prompt appears here as you type…", tabindex: "0", "aria-label": "Assembled prompt preview" });
+    pbPreviewEmptyEl = pbEl("p", { class: "pb-preview-empty", id: "pb-preview-empty", text: "Your assembled prompt appears here as you type…" });
+    pbPreviewEl = pbEl("pre", { class: "pb-preview", id: "pb-preview", tabindex: "0", "aria-label": "Assembled prompt preview", "aria-describedby": "pb-preview-empty" });
     var actions = pbEl("div", { class: "pb-preview-actions" }, [
       pbEl("button", { type: "button", class: "pb-btn pb-primary", onclick: pbCopy, text: "Copy" }),
       pbEl("button", { type: "button", class: "pb-btn", onclick: pbExportMd, text: "Export .md" }),
       pbEl("button", { type: "button", class: "pb-btn", onclick: pbExportJson, text: "Export .json" }),
       pbEl("span", { class: "pb-hint", text: "Ctrl/⌘+Enter copies" })
     ]);
-    return pbEl("section", { class: "pb-pane" }, [pbEl("h3", { text: "Live preview" }), pbEl("div", { class: "pb-preview-wrap" }, [actions, pbPreviewEl])]);
+    return pbEl("section", { class: "pb-pane" }, [pbEl("h3", { text: "Live preview" }), pbEl("div", { class: "pb-preview-wrap" }, [actions, pbPreviewEmptyEl, pbPreviewEl])]);
   }
   function pbSvg(tag, attrs) { var el = document.createElementNS("http://www.w3.org/2000/svg", tag); for (var k in attrs) { if (Object.prototype.hasOwnProperty.call(attrs, k)) el.setAttribute(k, attrs[k]); } return el; }
   function pbBuildQualityPane() {
-    var svg = pbSvg("svg", { class: "pb-gauge", viewBox: "0 0 76 76", role: "img", "aria-label": "Structure completeness score" });
+    pbGaugeEl = pbEl("div", { class: "pb-gauge-wrap", role: "meter", "aria-valuemin": "0", "aria-valuemax": "100", "aria-valuenow": "0", "aria-label": "Structure completeness 0 of 100" });
+    var svg = pbSvg("svg", { class: "pb-gauge", viewBox: "0 0 76 76", "aria-hidden": "true" });
     svg.appendChild(pbSvg("circle", { class: "pb-gauge-track", cx: "38", cy: "38", r: "32", fill: "none", "stroke-width": "7" }));
     pbGaugeFill = pbSvg("circle", { class: "pb-gauge-fill pb-band-bad", cx: "38", cy: "38", r: "32", fill: "none", "stroke-width": "7", "stroke-dasharray": PB_GAUGE_C.toFixed(1), "stroke-dashoffset": PB_GAUGE_C.toFixed(1) });
     svg.appendChild(pbGaugeFill);
     pbGaugeText = pbSvg("text", { x: "38", y: "45", "text-anchor": "middle" }); pbGaugeText.textContent = "0"; svg.appendChild(pbGaugeText);
+    pbGaugeEl.appendChild(svg);
     var meta = pbEl("div", { class: "pb-gauge-meta" }, [pbEl("div", { class: "pb-gauge-label", text: "Structure completeness" }), pbEl("div", { class: "pb-gauge-sub", text: "how many best-practice elements are present" })]);
-    pbIssuesEl = pbEl("ul", { class: "pb-issues", "aria-live": "polite", "aria-label": "Prompt quality issues" });
-    var honesty = pbEl("p", { class: "pb-honesty", text: "Heuristic structural score — it checks whether best-practice elements are present + flags anti-patterns, not the semantic quality of your writing. A 100 is not a guarantee of a good prompt; test it against the real model." });
-    return pbEl("section", { class: "pb-pane" }, [pbEl("h3", { text: "Quality" }), pbEl("div", { class: "pb-gauge-row" }, [svg, meta]), pbIssuesEl, honesty]);
+    pbIssuesEl = pbEl("ul", { class: "pb-issues", "aria-label": "Prompt quality issues" });
+    pbIssuesLiveEl = pbEl("div", { class: "pb-sr-only", role: "status", "aria-live": "polite", "aria-atomic": "true" });
+    var honesty = pbEl("p", { class: "pb-honesty", text: "Heuristic structural score — it checks whether best-practice elements are present + flags anti-patterns, not the semantic quality of your writing. A 100 is not a guarantee of a good prompt; test it against the real model. Claude-tuned: deprecation and imperative penalties are Claude-specific." });
+    return pbEl("section", { class: "pb-pane" }, [pbEl("h3", { text: "Quality" }), pbEl("div", { class: "pb-gauge-row" }, [pbGaugeEl, meta]), pbIssuesEl, pbIssuesLiveEl, honesty]);
   }
 
+  function initPromptBuilder(deepTpl) {
+    pbRoot = document.getElementById("pb-root");
+    if (!pbRoot || pbRoot.getAttribute("data-pb-ready") === "1") return true;
+    pbRoot.setAttribute("data-pb-ready", "1");
+    var pbHadSaved = pbLoad();
+    pbClear(pbRoot);
+    pbRoot.appendChild(pbEl("div", { class: "pb-intro" }, [
+      pbEl("h2", { text: "Prompt Builder" }),
+      pbEl("p", { class: "pb-lead", text: "Fill in the inputs and watch a best-practice Claude prompt assemble live — with a quality score and a rough size estimate. Everything runs in your browser; nothing is sent anywhere. Targets Claude models: the structure carries over to other models, but the deprecation and tuning rules are Claude-specific and may not." })
+    ]));
+    pbRoot.appendChild(pbBuildControls());
+    pbRoot.appendChild(pbEl("div", { class: "pb-grid" }, [pbBuildInputPane(), pbBuildPreviewPane(), pbBuildQualityPane()]));
+    pbRoot.addEventListener("keydown", function (e) { if ((e.ctrlKey || e.metaKey) && (e.key === "Enter" || e.keyCode === 13)) { e.preventDefault(); pbCopy(); } });
+    function pbFlushOnHide() { pbFlushSave(); }
+    document.addEventListener("visibilitychange", function () { if (document.visibilityState === "hidden") pbFlushOnHide(); });
+    window.addEventListener("pagehide", pbFlushOnHide);
+    window.addEventListener("beforeunload", pbFlushOnHide);
+    var tpl = deepTpl || null;
+    if (tpl) {
+      pbApplyTemplateById(tpl, true);
+    } else if (!pbHadSaved && !pbState.template) {
+      pbApplyTemplateById("agent-system", true);
+    } else {
+      pbSetMode(pbState.mode, false);
+    }
+    pbSyncControls();
+    pbUpdate();
+    return true;
+  }
+  /* PROMPT-BUILDER:END */
+
+  /* HOST-CONTEXT:START — Host & context (#/host-context). Own XSS floor; not Gate 144 PB. */
   /* ── Host & context (#/host-context) — MH-14 part 2 ─────────────────────────
      Built with createElement/textContent only. The matrix is UNTRUSTED-INPUT-FREE
      (it is our own committed JSON) but the same no-HTML-string-sink discipline as
@@ -14415,6 +16130,15 @@ _JS = r"""
     root.appendChild(hcEl("p", "hc-src",
       "Source: knowledge/host-support.json (updated " + (data.updated || "?") +
       "). Hover any cell to see why. Each answer also records how we know it \u2014 checked in this repo, read in the vendor\u2019s own docs, or inferred \u2014 so you can tell a tested fact from an educated guess."));
+
+    /* Scope-chip legend — matches Commands / plugin-detail host-scope badges.
+       Capability SSOT remains host-support.json; inventory tags are catalog-only.
+       Grok appears as reserved in filters, not as a supported host here. */
+    const legend = hcEl("p", "hc-legend");
+    legend.appendChild(document.createTextNode(
+      "Scope chips elsewhere in the dashboard: All agents (host-agnostic) \u00b7 Claude Code \u00b7 Cursor \u00b7 Codex \u00b7 Copilot \u00b7 Gemini \u00b7 Multi. Grok is reserved (inventory filter only \u2014 not listed as supported above). Capability SSOT: host-support.json; catalog tags: inventory platform_dependency."
+    ));
+    root.appendChild(legend);
 
     /* 3 — Where work files go. The cross-CLI storage contract had NO user-facing
        surface at all: it lived in AGENTS.md and the session-start banner, both of
@@ -14515,34 +16239,8 @@ _JS = r"""
     root.querySelectorAll("tbody th").forEach((th) => th.setAttribute("scope", "row"));
   }
 
-  function initPromptBuilder() {
-    pbRoot = document.getElementById("pb-root");
-    if (!pbRoot || pbRoot.getAttribute("data-pb-ready") === "1") return;
-    pbRoot.setAttribute("data-pb-ready", "1");
-    var pbHadSaved = pbLoad();
-    pbClear(pbRoot);
-    pbRoot.appendChild(pbEl("div", { class: "pb-intro" }, [
-      pbEl("h2", { text: "Prompt Builder" }),
-      // MH-39 — say WHICH models this targets. The linter's rules are
-      // Claude-version-specific (prefill is a 400 on Claude 4.6+, and the
-      // imperative-stacking penalty is tuned to current Claude behaviour). A
-      // Copilot operator routing GPT or Grok was being handed those as universal
-      // prompt hygiene. Most of it transfers; the deprecation and model-tuning
-      // rules do not necessarily, and the tool never said so.
-      pbEl("p", { class: "pb-lead", text: "Fill in the inputs and watch a best-practice Claude prompt assemble live — with a quality score and a rough size estimate. Everything runs in your browser; nothing is sent anywhere. Targets Claude models: the structure carries over to other models, but the deprecation and tuning rules are Claude-specific and may not." })
-    ]));
-    pbRoot.appendChild(pbBuildControls());
-    pbRoot.appendChild(pbEl("div", { class: "pb-grid" }, [pbBuildInputPane(), pbBuildPreviewPane(), pbBuildQualityPane()]));
-    pbRoot.addEventListener("keydown", function (e) { if ((e.ctrlKey || e.metaKey) && (e.key === "Enter" || e.keyCode === 13)) { e.preventDefault(); pbCopy(); } });
-    if (!pbHadSaved && !pbState.template) {
-      pbApplyTemplateById("agent-system"); // fresh visit → open on the most-used template
-    } else {
-      pbSetMode(pbState.mode);
-    }
-    pbSyncControls();
-    pbUpdate();
-  }
-  /* PROMPT-BUILDER:END */
+  /* HOST-CONTEXT:END */
+
 
 })();
 """.strip()

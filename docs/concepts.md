@@ -1042,6 +1042,32 @@ Routing is **tiered**. Every command resolves to `low → medium → high → ex
 
 The **`gate_floor`** knob (default `high`) is the lowest tier whose *confident ALLOW* is surfaced to you as an `ask`. DENY still blocks and EDIT still rewrites autonomously, so the tribunal pre-filters the dangerous and the fixable before either reaches you. Two hard overrides ignore the knob: **reads are never surfaced**, and **irreversible high-blast allows always are**. An abstaining panel always fails **closed**. It can never relax the `security_deny` floor.
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+## Hardening EDIT (default ON)
+
+Feature flag `command_review.hardening_edit` (default **true** after AppSec enable GO 2026-09-16; set false to opt out). Design **A+C/H3**: seat proposes a safer Bash equivalent; the signed transform registry verifies. Harden fail → ask. Empty-cited EDIT outside the orchestrator discriminator → DENY. High-blast v1 → still ask + show hardened form. **Hard-rule / pre_llm (e.g. force-push) stays DENY** under the flag ON — transforms do not clear that floor to ASK. No bypass list; no raising `gate_floor`. See `skills/thing/SKILL.md` and `knowledge/thing-harden-transforms.yaml`.
+
+> Copilot Lite multi-agent *PR* review is not a substitute for the command-review tribunal (shell PreToolUse adjudication).
+
 ```mermaid
 flowchart TD
   A[Bash PreToolUse] --> B{category toggled on?}
@@ -1931,6 +1957,34 @@ Copilot CLI is itself a plugin host with the same lifecycle events (SessionStart
 
 The design pillar is **frictionless updates**: instead of Copilot's re-install-to-update flow, the plugin loads **live** via `copilot --plugin-dir copilot/`, so an update is just **`git pull`** (`ravenclaude update`). No re-install, ever.
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+## Dual-file project instructions (DOC adapt 2026-09-20 — UNVERIFIED)
+- **Copilot:** `AGENTS.md` remains first-class (root / cwd /
+  `COPILOT_CUSTOM_INSTRUCTIONS_DIRS`) — unchanged.
+- **Claude Code (Anthropic API):** if a project has **no** `CLAUDE.md`,
+  Claude Code reads **`AGENTS.md`** as project instructions (CC 2.1.277);
+  change under Project instructions in `/config`.
+- **Gap:** AGENTS.md-as-CLAUDE-fallback is **not yet** on **Bedrock,
+  Vertex, or Foundry** per changelog — keep `CLAUDE.md` on those hosts.
+- Multi-harness repos: prefer keeping **both** files in sync, or a short
+  `CLAUDE.md` that points at shared policy also mirrored in `AGENTS.md`.
+
 ```mermaid
 flowchart TD
   CANON[Canonical plugin] --> GEN[generate-copilot-plugin.py]
@@ -2077,13 +2131,15 @@ _Last verified: 2026-06-08_
 
 ### FORGE — the gated planning pipeline · _RavenClaude-built_
 
-> The /forge pipeline turns a raw idea into a fact-grounded, two-panel-reviewed, critic-checked, tiebroken, red-teamed, routed plan — with depth-scaled gates so cheap ideas stay cheap.
+> Dashboard card for /forge: depth-scaled, fail-closed planning gates. Gate depth lives in the forge-pipeline skill — this card is one screen + cite.
 
-**FORGE** is RavenClaude's gated planning pipeline — what `/forge` runs. It formalizes the pattern the maintainer runs by hand: *clarify → research + verify → two divergent panels on different models → critic → gap-analysis → per-conflict expert tiebreak → red-team → synthesize → route → exit.* Each gate is **fail-closed** (no advance without an explicit pass or a recorded waiver) and emits a typed artifact into the run directory, so the whole plan-building process is auditable after the fact.
+**FORGE** is RavenClaude's gated planning pipeline — what `/forge` runs. Raw idea → clarify → research/verify → divergent panels → critic/tiebreak/red-team (depth-scaled) → synthesize → deterministic route/exit. Gates are **fail-closed**; artifacts land in the run dir.
 
-The pipeline scales with **depth** rather than running a fixed set of gates: `micro` runs only scope + synthesize + route, `quick` (the default) adds research and the two panels, `standard` adds the critic, tiebreak, and red-team, and `deep` removes the conflict cap and adds checkpoint/resume. Two ideas make FORGE more than a copy of Claude Code's dynamic-workflows deep-plan loop: it runs the two review panels on **different models** (cross-model divergence catches blind spots a same-model critic shares), and it adds a **fact-verification gate** that blocks on any load-bearing claim about anything outside the repo unless it carries a this-session source or an explicit `[unverified]` marker. A correlated-error **critic** then hunts for places the two panels *agree on something wrong* — the failure a disagreement-keyed gap-analysis structurally can't see.
+**Depth ladder (summary):** `micro` → scope + synthesize + route · `quick` (default) + research + panels · `standard` + critic/tiebreak/red-team · `deep` uncapped conflict + checkpoint/resume.
 
-The final gate routes the plan **deterministically** (no model judgment): a script decides whether to execute locally or hand off to Ultraplan in the cloud, and whether the plan lands on `main` or via a draft PR. FORGE raises the floor on plan quality and shifts the odds against a confidently-wrong plan — it does **not** guarantee correctness; the critic, red-team, and tiebreak reduce, not eliminate, the residual risk.
+**Two differentiators:** cross-model panels (catches same-model blind spots) and a fact-verification gate (load-bearing outside-repo claims need a this-session source or `[unverified]`).
+
+⛔ **This card is thin on purpose (0.323.12).** Gate scripts, waivers, receipt shape, and worktree rules live exclusively in [`skills/forge-pipeline/SKILL.md`](../plugins/ravenclaude-core/skills/forge-pipeline/SKILL.md). `/forge` stays a thin command entry. FORGE raises plan-quality odds — it does **not** guarantee correctness.
 
 ```mermaid
 flowchart TD
@@ -2100,9 +2156,9 @@ flowchart TD
 
 **See also:** Command-review tribunal (the Thing) · /wrap and the scenarios bank
 
-**Sources:** [forge-pipeline skill](../plugins/ravenclaude-core/skills/forge-pipeline/SKILL.md) · [/forge command](../plugins/ravenclaude-core/commands/forge.md)
+**Sources:** [forge-pipeline skill (gate SSOT)](../plugins/ravenclaude-core/skills/forge-pipeline/SKILL.md) · [/forge command (thin entry)](../plugins/ravenclaude-core/commands/forge.md)
 
-_Last verified: 2026-06-08_
+_Last verified: 2026-09-16_
 
 
 ---
@@ -2235,6 +2291,46 @@ _Last verified: 2026-06-08_
 
 ## Inventory — measured mechanisms
 
+### Plugin lifecycle (last-used ledger) · _RavenClaude-built_
+
+> Per-project last-used tracking for installed marketplace plugins, with opt-in deprecate/uninstall and ask-first ravenclaude-only install — ravenclaude-core is never auto-removed.
+
+## What a reader would have assumed instead
+
+A SessionStart sweep that uninstalls unused plugins when defaults stay OFF-violating, or an auto-install
+path that quietly pulls marketplace packages without ask — and that presence in the
+installed list counts as "used."
+
+## The discriminator
+
+control: `bash plugins/ravenclaude-core/hooks/tests/test-plugin-lifecycle.sh` (41 pass).
+Measured 2026-09-19: with `auto_uninstall` OFF the sweep makes zero uninstall CLI
+calls; with ON + mock CLI it records executed uninstalls via `claude plugin
+uninstall -y`. `auto_install: auto` is honored only when explicit (absent => off);
+uncited auto stays CTA. Auto `--execute` is tip/SHA pin-gated (prefer ask).
+Core is hard-pinned (MF teeth).
+
+## Why it matters
+
+Defaults OFF + opt-in execute/auto keep the surface careful. Ask-first ravenclaude-only
+install and `/reload-plugins` before usable close the empty-cited and cache-path
+AppSec locks. Copilot `-p` and Cursor SessionStart caveats stay honest — no slash
+parity claim.
+
+Falsifier: sweep shells uninstall when OFF, cache-reset DR, `auto` installs without
+cited need or pin, or core lands in `would_uninstall`.
+
+Probe: `plugins/ravenclaude-core/hooks/tests/test-plugin-lifecycle.sh`.
+
+**See also:** Bifröst install wizard · Comfort-posture dashboard · Command-review tribunal (the Thing)
+
+**Sources:** [scripts/plugin-lifecycle.py](../plugins/ravenclaude-core/scripts/plugin-lifecycle.py)
+
+_Last verified: 2026-09-19_
+
+
+---
+
 ### Hook message channels · _RavenClaude-built_
 
 > A hook can write to the terminal or to the model, and only one of those reaches the model.
@@ -2256,7 +2352,7 @@ Probe: `unprobed: the delivery fact is a host-platform property; it is modelled 
 
 **Sources:** [measured in the FORGE product-inventory run](https://github.com/mcorbett51090/RavenClaude/pull/997)
 
-_Last verified: 2026-09-04_
+_Last verified: 2026-09-23_
 
 
 ---
@@ -2282,7 +2378,7 @@ Probe: `unprobed: needs a live two-hook host session; scheduled for the T2 sampl
 
 **Sources:** [measured in the FORGE product-inventory run](https://github.com/mcorbett51090/RavenClaude/pull/997)
 
-_Last verified: 2026-09-03_
+_Last verified: 2026-09-17_
 
 
 ---
@@ -2306,9 +2402,27 @@ Measured 2026-08-26: Copilot CLI's `--model auto` rejects `--effort` outright at
 
 Falsifier: a future Copilot CLI release accepting `--effort` together with `--model auto`.
 
+
+## Copilot auto-tiers vs cheap lane (DOC adapt 2026-09-20 — UNVERIFIED)
+Copilot may expose **efficiency / balance / intelligence** as auto-selection
+weights (cost · quality · latency). That does **not** invent a pinned
+`--model` slug for `copilot-delegate.sh`. Until measured otherwise: lane
+still `"cheap"`; agent still `grok|copilot`; Copilot differentiation remains
+timeout budget and/or explicit non-`auto` model when effort is required.
+If a future CLI accepts named auto-tier flags with `auto`, re-measure and
+update this card + `nuance_evidence`.
+
+## UMM absorption (0.323.11)
+
+The agent × model × effort × budget matrix is now also the **Unified Model Matrix**
+SSOT at [`../unified-model-matrix.json`](../plugins/ravenclaude-core/knowledge/unified-model-matrix.json). This concept
+entry keeps the Copilot `--effort` honesty discriminator; tier cell values live in
+the UMM JSON. `cheap_lane.mode: off` still means inactive routing — Grok rows remain
+visible in the matrix.
+
 **Sources:** [verified live against the installed grok and copilot CLIs, this session](https://github.com/mcorbett51090/RavenClaude/pull/1030)
 
-_Last verified: 2026-08-26_
+_Last verified: 2026-09-16_
 
 
 ---
@@ -2334,7 +2448,7 @@ Probe: `unprobed: requires a real consumer install cycle, which no CI job perfor
 
 **Sources:** [measured in the FORGE product-inventory run](https://github.com/mcorbett51090/RavenClaude/pull/997)
 
-_Last verified: 2026-09-03_
+_Last verified: 2026-09-22_
 
 
 ---
@@ -2360,7 +2474,7 @@ Probe: `scripts/audit-gates.sh`
 
 **Sources:** [measured in the FORGE product-inventory run](https://github.com/mcorbett51090/RavenClaude/pull/997)
 
-_Last verified: 2026-09-05_
+_Last verified: 2026-09-22_
 
 
 ---
@@ -2584,7 +2698,7 @@ Probe: `scripts/inventory-census.py`
 
 **Sources:** [measured in the FORGE product-inventory run](https://github.com/mcorbett51090/RavenClaude/pull/997)
 
-_Last verified: 2026-08-20_
+_Last verified: 2026-09-21_
 
 
 ---
@@ -2610,7 +2724,7 @@ Probe: `scripts/check-artifact-budgets.py`
 
 **Sources:** [measured in the FORGE product-inventory run](https://github.com/mcorbett51090/RavenClaude/pull/997)
 
-_Last verified: 2026-09-03_
+_Last verified: 2026-09-17_
 
 
 ---
@@ -2636,7 +2750,7 @@ Probe: `scripts/inventory-sweep.py`
 
 **Sources:** [measured in the FORGE product-inventory run](https://github.com/mcorbett51090/RavenClaude/pull/997)
 
-_Last verified: 2026-08-20_
+_Last verified: 2026-09-21_
 
 
 ---
@@ -2680,7 +2794,7 @@ event where its predicate exists, not to widen it until the lexical form passed.
 Probe: `replay-outcome-rules.py --rule R-1 --sample 40`, then read whether the
 predicate names anything the command has not done yet.
 
-**Sources:** [measured in the verify-before-assert Phase 1 corpus run](https://github.com/mcorbett51090/RavenClaude/blob/main/docs/plans/2026-08-19-verify-before-assert/plan.md)
+**Sources:** [measured in the verify-before-assert Phase 1 corpus run](https://github.com/mcorbett51090/RavenClaude/blob/main/docs/plans/archive/2026-08-19-verify-before-assert/plan.md)
 
 _Last verified: 2026-08-25_
 
@@ -2729,7 +2843,7 @@ the thing being investigated.
 
 **Sources:** [measured in the FORGE stall-watchdog run](https://github.com/mcorbett51090/RavenClaude/tree/forge/stall-watchdog)
 
-_Last verified: 2026-08-25_
+_Last verified: 2026-09-10_
 
 
 ---
@@ -2833,9 +2947,20 @@ found in the prior design: egress happens, but the digest the hook was supposed 
 because the reader was killed first. Detachment removes that race by construction rather than by
 tuning a timeout.
 
+## Model-tier pin (0.323.10) + honesty bound
+
+When cheap-lane is unavailable, the Claude-orchestrate fallback pins `THING_MODEL` to
+**haiku** (or `model_matrix.surfaces.precompact_fallback (alias: model_tier_surfaces.precompact_fallback_model)`, default haiku; comfort
+override may raise to sonnet). It never inherits the live session model and never leaves
+`full` → orchestrate's sonnet default unset.
+
+**Honesty:** this fixes RavenClaude's **archival** PreCompact digest extraction only.
+Claude Code's **native auto-compact summarizer** still uses the **session model** until
+Anthropic ships an equivalent of `compactModel`. Do not claim that native path is fixed.
+
 **Sources:** [P2 of the precompact-critical-context FORGE plan, hardened per the P4 security review](../plugins/ravenclaude-core/hooks/precompact-digest.sh)
 
-_Last verified: 2026-09-01_
+_Last verified: 2026-09-16_
 
 
 ---
@@ -2930,7 +3055,7 @@ is not an optimization over a simpler one-hop lookup; the one-hop lookup does no
 
 **Sources:** [session-relay build, 2026-09-01 -- live ListAgents/session-registry comparison in this authoring session](../plugins/ravenclaude-core/knowledge/cross-session-messaging.md)
 
-_Last verified: 2026-09-01_
+_Last verified: 2026-09-20_
 
 
 ---
@@ -2976,30 +3101,30 @@ both 0 and 1, with a permanent regression assertion so this cannot silently regr
 
 **Sources:** [repo-review build + live proof-run, 2026-09-02 -- cross-model dispatch against the fixture repo caught the defect in findings_merge.py itself](../plugins/ravenclaude-core/skills/repo-review/SKILL.md)
 
-_Last verified: 2026-09-02_
+_Last verified: 2026-09-10_
 
 
 ---
 
-### Caveman auto-routing: SHADOW-only, and the scripts/ packaging exception · _RavenClaude-built_
+### Caveman auto-routing: scripts/ packaging exception, live-apply since P7 · _RavenClaude-built_
 
-> The caveman auto-routing hook decides and records but never calls the mode applier this phase, and ships from scripts/ because a new hooks/*.sh chmod is denied.
+> The caveman auto-routing hook ships from scripts/ because a new hooks/*.sh chmod is denied. Since P7, live posture calls the mode applier (on→lite, off→off); shadow still never applies.
 
 ## What a reader would have assumed instead
 
 That a new SessionStart/UserPromptSubmit hook body would live in `hooks/`, like every other hook in
-this plugin, and that turning the posture knob to `live` would make the routing decision actually take
-effect immediately.
+this plugin, and (before P7) that turning the posture knob to `live` would still only decide and
+record.
 
 ## The discriminator
 
 control: ask-on-ambiguity.sh (also in scripts/, registered via the identical bash-prefixed escape)
 already proves the substrate guard denies a NEW hooks/*.sh chmod but not a scripts/*.sh one -- the same
 escape pattern, reused rather than re-argued from scratch
-Measured 2026-09-03: caveman-route-hook.sh ships from scripts/, not hooks/ -- a NEW hooks/*.sh file
-needs a chmod the tribunal's own substrate guard denies, the same reason ask-on-ambiguity.sh lives
-there too. Even when the posture is live, this phase's hook only decides and records: it never calls
-the applier.
+Measured 2026-09-10: caveman-route-hook.sh still ships from scripts/, not hooks/. P7 wires
+live-apply in caveman-route-engine.py: classifier on→lite, off→off, hold never applies,
+shadow never calls the applier. Default remains absent/off. Owner overrode the uncleared
+P5 soak gates; this is not a claim that soak passed.
 
 ## Why it matters
 
@@ -3010,7 +3135,7 @@ Probe: `plugins/ravenclaude-core/hooks/tests/test-gate264-caveman-routing.sh`
 
 **Sources:** [measured in the FORGE caveman-routing-decision-tree run](https://github.com/mcorbett51090/RavenClaude/pull/1095)
 
-_Last verified: 2026-09-03_
+_Last verified: 2026-09-10_
 
 
 ---
@@ -3036,7 +3161,7 @@ Falsifier: a future `host-support.json` restructuring that removes the per-host 
 
 **Sources:** [/code-review found the pre-fix undercount and this session verified the fix's measured effect](https://github.com/mcorbett51090/RavenClaude/pull/1101)
 
-_Last verified: 2026-09-03_
+_Last verified: 2026-09-09_
 
 
 ---
@@ -3059,7 +3184,7 @@ A Grok Bot is a separate, non-Claude-Code runtime -- it has no mechanism to `@`-
 
 **Sources:** [PR #1104 -- grok-bot-creation + grok-bot-delegation plugins](https://github.com/mcorbett51090/RavenClaude/pull/1104)
 
-_Last verified: 2026-09-04_
+_Last verified: 2026-09-15_
 
 
 ---
@@ -3087,7 +3212,7 @@ See skill `claude-code-parallel-and-modes` section **Survive parent context** (D
 
 **Sources:** [rc-deep-research DIGEST + VERIFY (2026-09-05) + PLUGIN-DECISION lock to ravenclaude-core](https://github.com/mcorbett51090/RavenClaude/pull/1114)
 
-_Last verified: 2026-09-05_
+_Last verified: 2026-09-14_
 
 
 ---
@@ -3123,7 +3248,34 @@ Probe: `plugins/ravenclaude-core/scripts/install_launch_guard.py`
 
 **Sources:** [measured during the claude-launch-safeguard FORGE build (anthropics/claude-code#92932)](https://github.com/anthropics/claude-code/issues/92932)
 
-_Last verified: 2026-09-08_
+_Last verified: 2026-09-09_
+
+
+---
+
+### The prompt-optimizer's free pre-filter can never fully close on non-anchored prompts · _RavenClaude-built_
+
+> Tier-0's zero-cost skip rule is a whitelist over sentence shape, not a semantic understanding of triviality — an adversarial reviewer can always construct one more evasive phrasing.
+
+## What a reader would have assumed instead
+
+That once the reviewer's 3 adversarial paraphrases ("How do we migrate our monolith to microservices with zero downtime and full audit logging for compliance?" and its siblings) were fixed and added as golden-set regression fixtures, the Tier-0 free pre-filter's false-skip problem was closed for good — the same way a fixed bug in ordinary code stays fixed.
+
+## The discriminator
+
+control: the same 3 adversarial strings correctly TIER0_FALLTHROUGH after the `cluster_hits==0` + possessive-pronoun tightening, proving the fix closed the demonstrated instances.
+
+Measured 2026-09-03 (round-2 re-review, agent a49c618f5d3d2c9c6): the reviewer's own three NEW adversarial variants — deliberately avoiding both signals the fix keys on (organizational-possessive pronouns and domain-keyword clusters) — still reproduce `TIER0_SKIP` on genuinely non-trivial prompts: *"Why is the checkout process so confusing?"*, a third-person migration question, and a tradeoffs-summary request. The fix is real (the originally-demonstrated shapes are closed and regression-gated in the 47-entry golden set), but the underlying gap — a zero-cost heuristic distinguishing "trivial" from "non-trivial" by sentence shape rather than meaning — is not closable by patching individual phrasings.
+
+## Why it matters
+
+`prompt-optimizer-gate.sh`'s Tier-0 pre-filter exists specifically so the paid Tier-1 Haiku classifier is never invoked on an obviously-trivial ask. Any whitelist-shaped rule for "obviously trivial" necessarily has an adversarial complement: a prompt built to avoid every signal the whitelist checks. The SDD fix loop closed this at round 2 (not round 3) via an explicit controller ruling rather than continuing to chase phrasings, because the feature ships `prompt_optimizer.enabled: false` by default, is advisory-only (`additionalContext`, never blocking), and the failure direction is a missed optimization (Tier-1 simply never fires on that turn) — identical to the feature's own off-by-default baseline for that narrow prompt shape, not a regression below it. The residual is disclosed in the script's own header comment (search for "HONEST LIMIT").
+
+Falsifier: a future Tier-0 rewrite that classifies by parsed intent rather than sentence-shape whitelist, which would not be defeated by a novel third-person or impersonal phrasing.
+
+**Sources:** [SDD fix-loop ledger — round-2 re-review adversarial variants + the controller's ruling to close the loop with a disclosed residual rather than a round-3 fix](https://github.com/mcorbett51090/RavenClaude/pull/1098)
+
+_Last verified: 2026-09-10_
 
 
 ---
@@ -3165,7 +3317,365 @@ remove `skill-index` from its own index, defeating the "still shows the way back
 
 **Sources:** [FORGE run dynamic-skill-context, plan.md phase P0](https://github.com/mcorbett51090/RavenClaude)
 
+_Last verified: 2026-09-20_
+
+
+---
+
+### `rc hooks selftest` crashes the whole run on one host's generator error · _RavenClaude-built_
+
+> A single host projector (e.g. generate-gemini-hooks.py) raising a hard error takes down the entire multi-host selftest, not just that host's row.
+
+## What a reader would have assumed instead
+
+That `rc hooks selftest`'s per-host design (one row per host, each independently marked PASS/FAIL/TIER) means a single host's evaluation failing would show up as one red row while every other host's row still renders — the same isolation the tool's own `--json` schema (`{host, declared_tier, achieved_tier, wired_set, runtime, verdict}` per row) implies.
+
+## The discriminator
+
+control: with the underlying generator fixed (a missing skip-map entry added), the identical `rc hooks selftest --json` invocation completes cleanly with a full per-host row set and Gate 266's Phase 8 assertions (A8.1-A8.7) all pass.
+
+Measured 2026-09-08: merging `forge/prompt-optimizer`'s new `hooks.json` entry (a `UserPromptSubmit` registration with no corresponding Gemini skip-map or lane) into `origin/main` made `bash plugins/ravenclaude-core/bin/rc hooks selftest --json` crash outright with an uncaught `subprocess.CalledProcessError` from deep inside `_wired_set_check` -> `_extract_gemini` -> `_run_host_generator` -> `generate-gemini-hooks.py`. The traceback took down the WHOLE command, not just Gemini's row — `Gate 266: Phase 8 on-demand front door` failed all 8 of its A8.x assertions in the same run, because the tool never got far enough to emit its `--json` array at all.
+
+## Why it matters
+
+A cross-host self-test whose failure mode is "the entire tool crashes" rather than "one row reports FAIL" hides exactly the information an operator needs most: which host is broken and why. In this instance the underlying cause (a hook registered with no per-host skip-map entry) was itself a real, separate, already-documented failure mode in `generate-gemini-hooks.py` (see its own `_SKIP` dict and header comment) — but `hooks-selftest.py`'s lack of per-host exception isolation meant that one omission escalated from "Gemini's row would show a clear projector error" into "the whole selftest front door is down," which is a materially worse failure for anyone trying to diagnose it from the tool's own output alone.
+
+Falsifier: a future `hooks-selftest.py` revision that wraps each host's extractor call and reports a per-host FAIL row instead of raising.
+
+**Sources:** [reproduced live during the forge/prompt-optimizer merge into origin/main, this session — traceback ending in generate-gemini-hooks.py's CalledProcessError, root-caused to a missing skip-map entry, fixed there](https://github.com/mcorbett51090/RavenClaude/pull/1098)
+
 _Last verified: 2026-09-08_
+
+
+---
+
+### --actor and --repo-root go before the verb, not after · _RavenClaude-built_
+
+> rc ledger's --repo-root/--actor are top-level argparse flags; placing them after the subcommand fails outright with 'unrecognized arguments' — verified live while building source-control-coordinator.
+
+# --actor and --repo-root go before the verb, not after
+
+`rc ledger`'s exact CLI surface was documented and cited many times before this build (Citation #5 in
+the build plan, this repo's own `agents/architect.md`-shaped precedent authoring), but no prior citation
+had actually driven the CLI end-to-end with `--actor` present. The build plan's own §4.4 ledger usage
+table — the exact invocations `source-control-coordinator.md` and `coordinate.md` both cite for claiming
+and releasing a handoff item — placed `--actor coordinator` *after* `append`, on every single row.
+
+## Why it silently looked right
+
+`--repo-root`/`--actor` are genuinely real, documented flags on `ledger.py`'s parser. Nothing about the
+flag names, their defaults, or their presence in `--help` output signals that position matters. The
+failure only surfaces the moment the exact invocation is run:
+
+```
+$ rc ledger --repo-root <dir> append --type state --item <id> --set state=in_progress --actor coordinator
+ledger.py: error: unrecognized arguments: --actor coordinator
+```
+
+argparse's subparser model treats each subcommand (`init`, `open`, `append`, `project`, ...) as its own
+independent parser. A flag added to the *parent* parser before `add_subparsers()` is only visible
+*before* the subcommand token on the command line — a subparser has to explicitly re-declare a flag to
+also accept it after its own name, and `append`'s subparser (`p_append`) never does.
+
+## The fix, and why it generalizes
+
+Move both global flags between `--repo-root` and the subcommand:
+
+```
+rc ledger --repo-root <primary> --actor coordinator append --type state --item <id> --set state=in_progress
+```
+
+Verified live: this form succeeds (exit 0), and `machine.actor` in the written JSONL event correctly
+carries `"coordinator"`. Every citation in `coordinator-ledger-convention.md` and both new agent/command
+files now places `--actor` in this position — this concept exists so the *next* mechanism that shells
+out to `rc ledger` (or documents doing so) doesn't silently re-introduce the same defect, since nothing
+about reading the flag's own `--help` text reveals the ordering constraint.
+
+## The companion exit-code correction
+
+The same build plan claimed a freshly-initialized ledger returns exit 2 (UNKNOWN) "by design." Verified
+live: `rc ledger init` always appends a `ledger_init` event as part of initialization (`cmd_init`,
+`ledger.py`), so a fresh ledger has `parsed_records: 1`, not 0 — `cmd_project`'s exit-2 branch fires only
+on `parsed_records == 0`, which `rc ledger init` never produces. The true fresh-ledger state is exit 0
+(PASS, 0 open items). A *literal* zero-event ledger (no init marker at all — e.g. a hand-created empty
+`.jsonl`) is the actual exit-2 case, and it is not a state `rc ledger init` ever leaves behind.
+
+**Sources:** [source-control-coordinator build (PR #1146), live CLI verification against a scratch ledger, 2026-09-09](https://github.com/mcorbett51090/RavenClaude/pull/1146)
+
+_Last verified: 2026-09-22_
+
+
+---
+
+### The routine-review tribunal borrows its panel, not just its shape · _RavenClaude-built_
+
+> routine-review-tribunal.py imports thing-decision.py and calls its resolve_panel_config directly, so the model-diversity guarantee is inherited, not re-implemented.
+
+## What a reader would have assumed instead
+
+That a new tribunal-shaped script would need its own model/agent config — either a duplicated seat table or a fresh entry in `.ravenclaude/thing.yaml` — since it reviews a different payload (a diff, not a command or a question) from the Thing or decision-review.
+
+## The discriminator
+
+control: ran `routine-review-tribunal.py --root . panels`; the returned seat->model mapping matched thing-decision's own built-in defaults for the same seat names, not a separately hardcoded pair.
+
+Measured 2026-09-11: `resolve_panels()` loads `thing-decision.py` via `importlib.util.spec_from_file_location` and calls `resolve_panel_config(root, posture)` on it directly — the exact function the live command-review tribunal and decision-review already use. There is no second, parallel model table to keep in sync.
+
+## Why it matters
+
+If `.ravenclaude/comfort-posture.yaml` or `.ravenclaude/thing.yaml` ever repoints a seat to a different model (e.g. to raise Forseti's reasoning effort), the routine-review tribunal picks that up automatically on its next `panels` call — the same way the Thing and decision-review would. A script that had instead hardcoded `"agent": "security-reviewer", "model": "claude-opus-4-8"` would silently keep reviewing routine diffs with a stale seat long after the rest of the marketplace moved on.
+
+Falsifier: a future edit to `routine-review-tribunal.py` that hardcodes a seat's model/agent instead of calling `resolve_panel_config`.
+
+**Sources:** [written + verified this session, alongside the routine-review-tribunal build](https://github.com/mcorbett51090/RavenClaude/pull/1161)
+
+_Last verified: 2026-09-11_
+
+
+---
+
+### The handoff-tax meter keys frontier_readonly on worker role × resolved model, not on the agent's model: line · _RavenClaude-built_
+
+> frontier_readonly is computed from the payload's resolvedModel × subagent_type, never the agent's model: line — a scout overridden to opus is caught; an architect on opus is not.
+
+## What a reader would have assumed instead
+
+The meter reads the dispatched agent's `model:` frontmatter, so a `scout` (pinned `haiku`) can
+never trip `frontier_readonly` — the frontmatter is the tier, and the gate on `model:` in
+`check-frontmatter.py` is what makes the flag unnecessary for shipped agents.
+
+## The discriminator
+
+control: with `resolvedModel` held at `claude-opus-4-8` across three self-test payloads, `Explore`
+and `ravenclaude-core:scout` both returned `SIGNAL frontier_readonly` while `architect` returned
+`OK` — the role was the only input that changed between the flagged and the unflagged runs.
+Measured 2026-09-14: the flag is computed from the `PostToolUse(Agent)` payload alone —
+`tool_response.resolvedModel` classified to a tier, crossed with the basename of
+`tool_input.subagent_type` against `READ_ONLY_TYPES = {explore, scout}` — and the agent file is
+never opened, so a per-invocation `model` override that puts a scout on opus is caught while a
+judgment role on opus is deliberately not.
+
+## Why it matters
+
+The `model:` frontmatter gate closes one door (a shipped agent cannot silently inherit the
+session's model), but Claude Code resolves the model **per invocation first** — the Team Lead's
+`model` parameter, then the frontmatter, then `CLAUDE_CODE_SUBAGENT_MODEL`. A meter that trusted
+the frontmatter would report every scout as haiku forever. Reading `resolvedModel` is what lets
+the ledger's `tier` column be the tier the worker actually billed at, and what lets the built-in
+`Explore` (which has no frontmatter and since v2.1.198 inherits the main model) be flagged at all.
+
+Falsifier: an `architect` dispatch on an opus id emitting `frontier_readonly`, or a `scout`
+dispatch on an opus id staying silent.
+
+Probe: `plugins/ravenclaude-core/scripts/handoff-tax-meter.py --self-test` (exit 1 on any failed
+check; the three role-crossed payloads are named `Explore on opus`, `plugin-scoped scout on opus`,
+`architect on opus`).
+
+**Sources:** [knowledge/model-tier-delegation.md — the doctrine this meter measures](https://github.com/mcorbett51090/RavenClaude/blob/main/plugins/ravenclaude-core/knowledge/model-tier-delegation.md) · [Claude Code sub-agents — "Choose a model" (Explore inherits the main model since v2.1.198)](https://code.claude.com/docs/en/sub-agents)
+
+_Last verified: 2026-09-15_
+
+
+---
+
+### explore-tier-pin rewrites an un-pinned Explore to haiku — but stands down entirely when CLAUDE_CODE_SUBAGENT_MODEL is set · _RavenClaude-built_
+
+> The pin fires only on an un-pinned `explore`; a set CLAUDE_CODE_SUBAGENT_MODEL makes it stand down even then — a per-invocation pin would OVERRIDE the fleet-wide env choice, not add to it.
+
+## What a reader would have assumed instead
+
+The pin is a cost guardrail, so it always applies: any `Explore` dispatched without a `model`
+gets `haiku`, full stop — and a consumer who has already set `CLAUDE_CODE_SUBAGENT_MODEL` to route
+every sub-agent gets the pin *on top of* that, belt and braces.
+
+## The discriminator
+
+control: `decide(_payload(), "haiku", {})` returned an envelope whose `updatedInput.model` was
+`haiku`, whose original `subagent_type` / `prompt` fields were preserved, and which carried **no**
+`permissionDecision`; `decide(_payload(), "haiku", {"CLAUDE_CODE_SUBAGENT_MODEL": "haiku"})`
+returned `None`. Same payload, same knob — the environment variable was the only input that
+changed. Measured 2026-09-14 via the script's `--self-test` (the checks are named
+`envelope: updatedInput.model == haiku`, `envelope: NO permissionDecision (gate untouched)` and
+`stand down: CLAUDE_CODE_SUBAGENT_MODEL set`).
+
+## Why it matters
+
+Claude Code resolves a sub-agent's model **per invocation first**: the Team Lead's `model`
+parameter beats the agent's frontmatter, which beats `CLAUDE_CODE_SUBAGENT_MODEL`. A hook that
+injects `model: haiku` into `tool_input` is therefore writing at the *highest*-precedence slot —
+so on a host where the consumer already routes the whole fleet by env var (say, to `sonnet` for a
+compliance reason), an always-on pin would not be belt-and-braces; it would silently **override**
+the consumer's decision with this plugin's. Standing down is what keeps the pin a default rather
+than a policy. The same logic is why an explicit `model` — including an explicit `inherit` — is
+honoured untouched, and why the envelope never carries a `permissionDecision`: this hook changes
+the model of a dispatch that was already allowed; it never becomes a gate.
+
+Falsifier: an envelope emitted while `CLAUDE_CODE_SUBAGENT_MODEL` is set, or a
+`permissionDecision` key appearing in any emitted envelope.
+
+Probe: `plugins/ravenclaude-core/scripts/explore-tier-pin.py --self-test` (exit 1 on any failed
+check; 25 checks covering the envelope shape, the eight stand-down conditions and the knob parse).
+
+**Sources:** [knowledge/model-tier-delegation.md — "The one place a hook does bind"](https://github.com/mcorbett51090/RavenClaude/blob/main/plugins/ravenclaude-core/knowledge/model-tier-delegation.md) · [Claude Code sub-agents — model resolution order (per-call `model` > frontmatter > CLAUDE_CODE_SUBAGENT_MODEL)](https://code.claude.com/docs/en/sub-agents) · [Claude Code hooks — PreToolUse `updatedInput` (rewrite without a permissionDecision)](https://code.claude.com/docs/en/hooks)
+
+_Last verified: 2026-09-16_
+
+
+---
+
+### Runes ready-queue, Oath-hook, and Longship land-request never merge · _RavenClaude-built_
+
+> Opt-in runes: off|on (absent⇒off). On = SessionStart hanging MUST-RUN + ready + auto-claim ungated; gates refuse; Longship land-request never merges. Flat Runes + strands; kind tag only.
+
+## What a reader would have assumed instead
+
+A delivery-batch CLI that can open a PR and merge it, or a SessionStart hook that is
+advisory only — hanging claimed work stays invisible until someone remembers to ask.
+
+## The discriminator
+
+control: `python3 plugins/ravenclaude-core/scripts/runes.py --self-test` exercises
+ready/claim/sling, Oath-hook hanging assembly, the human_gate refuse path, strand apply,
+and Longship open/add/land-request. Measured 2026-09-15: `land-request` returns
+`auto_merge: false` with a Sage-facing message and performs no merge; a Rune with
+`human_gate=matthew` prints REFUSED and never sets `hook_owner`.
+
+## Why it matters
+
+Ready-queue UX without an Oath-hook leaves claimed work optional. A Longship that could
+merge would bypass Sage sole-SCM. The three surfaces share one ledger projection and keep
+product names free of Hird/Beads/Gas Town.
+
+Falsifier: `land-request` invoking `gh pr merge`, a matthew-gated claim succeeding, or
+Oath-hook silent while hanging Runes exist for the owner.
+
+Probe: `plugins/ravenclaude-core/scripts/runes.py --self-test` (and
+`hooks/tests/test-runes-ready-queue.sh`).
+
+**Sources:** [PE DIGEST ship Norse Runes ready-queue (Longship amend), 2026-09-15](https://github.com/mcorbett51090/RavenClaude/blob/feat/runes-ready-queue/docs/runes-ready-queue.md) · [docs/runes-ready-queue.md](https://github.com/mcorbett51090/RavenClaude/blob/feat/runes-ready-queue/docs/runes-ready-queue.md)
+
+_Last verified: 2026-09-15_
+
+
+---
+
+### Thing hardening EDIT default ON; OFF remains shape-sensitive · _RavenClaude-built_
+
+> A signed transform registry can rewrite Bash via empty-cited EDIT, gated by hardening_edit.
+
+## What a reader would have assumed instead
+
+That turning the feature flag off would make every EDIT path behave the same — either all
+ask, or all no-op — and that an empty-cited safer rewrite would be treated like any other
+seat EDIT while the registry sits dark.
+
+## The discriminator
+
+control: `bash plugins/ravenclaude-core/hooks/tests/test-thing-hardening-edit.sh` with the
+flag unset/false: empty-cited EDIT → DENY; cited EDIT → allow+updated; registered harden
+never fires. Measured 2026-09-15: OFF is shape-sensitive, not a blanket mute.
+
+## Why it matters
+
+AppSec enable GO flipped seed/default `hardening_edit` **ON** (2026-09-16; Gate 14/21/22
+green + AppSec SHIP). Explicit `hardening_edit: false` keeps OFF (House Rule 3). Operators
+who assume "flag off = no tribunal EDIT policy" would miss the hard DENY on empty-cited
+rewrites outside the discriminator — a silent allow would be the dangerous opposite
+failure. OFF remains shape-sensitive.
+
+Falsifier: flag OFF collapsing empty-cited EDIT to ask, or applying a registry transform
+while `hardening_edit` is false.
+
+Probe: `plugins/ravenclaude-core/hooks/tests/test-thing-hardening-edit.sh`.
+
+**Sources:** [PE DIGEST ship Thing hardening EDIT (0.323.5), 2026-09-15](https://github.com/mcorbett51090/RavenClaude/blob/feat/thing-hardening-edit/plugins/ravenclaude-core/knowledge/thing-harden-transforms.yaml) · [knowledge/thing-harden-transforms.yaml](https://github.com/mcorbett51090/RavenClaude/blob/feat/thing-hardening-edit/plugins/ravenclaude-core/knowledge/thing-harden-transforms.yaml)
+
+_Last verified: 2026-09-18_
+
+
+---
+
+### A capacity floor masked the guard it was supposed to let fire · _RavenClaude-built_
+
+> block_planner.py's _capacity() unconditionally floored its result at 1, so the 'even a 1-batch finalize block does not fit' guard could never actually raise.
+
+## What a reader would have assumed instead
+
+That `if finalize_capacity < 1: raise BlockPlanError(...)` was a live, reachable guard against
+an impossibly small `--safe-ceiling` -- the self-test even had a fixture asserting exactly that
+("an impossibly small safe_ceiling raises BlockPlanError"). Reading the guard in isolation gives
+no reason to doubt it; the defect is only visible by reading it alongside the helper that feeds
+it.
+
+## The discriminator
+
+control: `_capacity(available, per_batch_cost, cap)` returns `max(1, min(cap, int(available //
+per_batch_cost)))` -- for `safe_ceiling=1` against an "ultra" tier plan, `available` (the budget
+left after reserving verify/fix/overhead) goes deeply negative, `int(available // per_batch_cost)`
+is a large negative number, `min(cap, negative)` stays negative, and then `max(1, negative)`
+clamps it back up to exactly `1`. The guard that follows, `if finalize_capacity < 1`, is checking
+a value that can never be less than 1 by construction -- the clamp and the check were reading the
+same post-clamp number.
+
+## Why it matters
+
+Falsifier: a `safe_ceiling` value, however small, that made the old check raise. None exists --
+`max(1, x) >= 1` for every real `x`, so the branch was dead code that looked live. Fixed by
+computing the raw `finalize_available` budget and comparing it against the real per-batch cost
+`r` **before** calling `_capacity()`'s clamp: `if r > 0 and finalize_available < r: raise
+BlockPlanError(...)`. `_capacity()` itself is unchanged -- clamping to a minimum of 1 is correct
+for every OTHER caller, since a block that exists should always cover at least one batch; the fix
+is moving the "does anything fit at all" question to before the clamp runs, not removing the
+clamp.
+
+This is the same shape as this repo's own recorded `guard-premise.sh` bare-`mkdir` incident and
+the `srm.force-push`/`sce.curl-pipe-shell` unscoped-`.*` incidents: a guard whose input has
+already had its failure signal smoothed away is a guard that can pass every review and still
+never fire. It was caught here the cheapest possible way -- the tool's own `--self-test` failed
+on its very first run, before the module shipped, rather than surviving to become a silent gap
+in a later release.
+
+**Sources:** [repo-review block-mode build, 2026-09-16 -- block_planner.py's own --self-test caught the defect on first run](../plugins/ravenclaude-core/skills/repo-review/SKILL.md)
+
+_Last verified: 2026-09-16_
+
+
+---
+
+### The blocked-exhaustion gate must not anchor on its own deny · _RavenClaude-built_
+
+> The gate measures the ledger from the most recent guard deny; if its own block-mode deny counted as that anchor, every block would reset the window to 0 of 3 and it could never be satisfied.
+
+## What a reader would have assumed instead
+
+That "the most recent guard deny this session" is simply the last `verdict: deny` line in
+`hook-events.jsonl`. It is the obvious query, and it is wrong for this one hook, because this
+hook is itself a guard that writes deny lines to that file. A gate that anchors on the newest
+deny and also emits denies measures its own output.
+
+## The discriminator
+
+control: Gate 290 B4 drives a block-mode hand-back question against a session with one guard
+deny on record and zero ledger rows -> `permissionDecision: deny`; B5 finds that deny in the
+session's `hook-events.jsonl` with `hook: workaround-exhaustion.sh`; B6 then records one
+`mcp-api` row and re-runs the question -> the nudge reads `1 of 3`. If the gate's own deny were
+the anchor, that row (written after the original deny but before the gate's) would fall behind
+the window and the count would read `0 of 3`. The `jq` select in `_last_deny` is
+`select(.verdict=="deny" and (.hook // "") != "workaround-exhaustion.sh")`; the name test is the
+whole mechanism.
+
+## Why it matters
+
+Falsifier: a `hook-events.jsonl` line from this gate that `_last_deny` returns. None can, by the
+select above. Without the filter the failure is not loud -- the gate keeps firing, every
+re-record looks ignored, and the only exit is `blocked-ok`, which is exactly the escape the
+gate exists to make rare. That shape (a guard whose own output feeds its trigger) is the same
+class as a runaway brake that counts its own denials as tool calls; the fix is one predicate,
+and the test that pins it is the one that records a row *between* the two denies.
+
+**Sources:** [ravenclaude-core 0.324.0 -- the blocked-exhaustion gate (CHANGELOG + constitution milestone), 2026-09-17](../plugins/ravenclaude-core/CHANGELOG.md) · [the route catalog the gate points at](../plugins/ravenclaude-core/knowledge/workaround-routes.md)
+
+_Last verified: 2026-09-17_
 
 
 ---

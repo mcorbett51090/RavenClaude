@@ -2,7 +2,7 @@
 name: shopify-app-engineer
 description: "BUILD on Shopify — Admin GraphQL API, OAuth/session tokens, HMAC-verified webhooks (+ mandatory GDPR ones), App Bridge/Polaris, Functions & checkout UI extensions, Liquid/OS 2.0, Hydrogen, Billing API, GraphQL rate-limit/bulk ops. shopify-app-architect designs; this builds it."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
-model: opus
+model: sonnet
 audience: [shopify-developer, app-developer, frontend-engineer, fullstack-engineer, ecommerce-engineer, dev]
 works_with: [ecommerce-dtc, frontend-engineering, web-design, qa-test-automation, auth-identity]
 scenarios:

@@ -1,0 +1,3 @@
+{
+  "_comment": "Agents whose `tools:` may grant dispatch (`Agent` / `Task` / `*`) — {agent-name: reason}. Gate 289 (scripts/check-nested-dispatch.py) fails any grant not listed here, and fails a listed name that is no longer on the roster. The house verdict on nested dispatch is docs/decisions/2026-09-14-nested-dispatch-determination.md; an entry here is a per-agent exception to it and its reason must say why the observability and tier costs that decision names are acceptable for this agent."
+}

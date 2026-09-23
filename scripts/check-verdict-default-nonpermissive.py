@@ -42,11 +42,19 @@ VERDICT_CASE = re.compile(
     r'^\s*case\s+"?\$\{?(verdict|decision|final_verdict|panel_verdict|v)\}?"?\s+in\b'
 )
 CASE_END = re.compile(r"^\s*esac\b")
-DEFAULT_ARM = re.compile(r"^\s*(\*|\*\))\s*\)?")
+# The catch-all default arm. Must be a TRUE catch-all: a `*` (at the start of the
+# pattern list, after optional whitespace) immediately followed by the arm
+# terminator `)` or an alternation `|` (where `*` is one alternative and still
+# matches everything). A `*` followed by any other char is a SPECIFIC glob
+# (e.g. `*_denied)`, `*.sh)`), NOT the default — treating it as the default was a
+# fail-open: a verdict `case` whose only star-arm is such a glob has no real
+# catch-all, yet the old regex `^\s*(\*|\*\))\s*\)?` matched it and suppressed the
+# `no-default-arm` finding this gate exists to raise. (repo-review 2026-09)
+DEFAULT_ARM = re.compile(r"^\s*\*\s*[|)]")
 # An arm that resolves permissively. `emit_allow` is this repo's own name for it.
 PERMISSIVE = re.compile(r"\b(emit_allow|permissionDecision\"?\s*:\s*\"?allow|exit\s+0)\b")
 
-TRAP_EXIT = re.compile(r'^\s*trap\s+.*\bEXIT\b')
+TRAP_EXIT = re.compile(r"^\s*trap\s+.*\bEXIT\b")
 SET_LINE = re.compile(r"^\s*set\s+-")
 # A line that can abort under `set -e` before the trap is armed. Assignments of
 # literals cannot; a command substitution or an external command can.
@@ -84,21 +92,29 @@ def check_verdict_defaults(path: Path, lines: list[str]) -> list[Finding]:
                 default_at = j
             j += 1
         if default_at is None:
-            out.append(Finding(
-                path.as_posix(), start + 1, "no-default-arm",
-                "a verdict `case` with no `*)` arm — an out-of-protocol verdict "
-                "falls through and resolves to whatever follows, which is not a decision",
-            ))
+            out.append(
+                Finding(
+                    path.as_posix(),
+                    start + 1,
+                    "no-default-arm",
+                    "a verdict `case` with no `*)` arm — an out-of-protocol verdict "
+                    "falls through and resolves to whatever follows, which is not a decision",
+                )
+            )
         else:
             body = "\n".join(_strip(x) for x in lines[default_at:j])
             if PERMISSIVE.search(body):
-                out.append(Finding(
-                    path.as_posix(), default_at + 1, "permissive-default",
-                    "the `*)` arm of a verdict chain resolves PERMISSIVELY — any "
-                    "out-of-protocol verdict (a typo, a salvaged string, a future "
-                    "name) becomes an allow. A default must deny or defer to the "
-                    "category posture, never allow.",
-                ))
+                out.append(
+                    Finding(
+                        path.as_posix(),
+                        default_at + 1,
+                        "permissive-default",
+                        "the `*)` arm of a verdict chain resolves PERMISSIVELY — any "
+                        "out-of-protocol verdict (a typo, a salvaged string, a future "
+                        "name) becomes an allow. A default must deny or defer to the "
+                        "category posture, never allow.",
+                    )
+                )
         i = j + 1
     return out
 
@@ -106,32 +122,38 @@ def check_verdict_defaults(path: Path, lines: list[str]) -> list[Finding]:
 def check_trap_ordering(path: Path, lines: list[str]) -> list[Finding]:
     trap_at = next((n for n, ln in enumerate(lines) if TRAP_EXIT.match(_strip(ln))), None)
     if trap_at is None:
-        return []   # no EXIT trap is a design choice, not a defect this can judge
+        return []  # no EXIT trap is a design choice, not a defect this can judge
     set_at = next((n for n, ln in enumerate(lines) if SET_LINE.match(_strip(ln))), None)
     if set_at is None:
         return []
     for n in range(set_at + 1, trap_at):
         code = _strip(lines[n])
         if FALLIBLE.search(code):
-            return [Finding(
-                path.as_posix(), trap_at + 1, "trap-armed-late",
-                f"the fail-closed EXIT trap is armed at line {trap_at + 1}, but line "
-                f"{n + 1} can already abort under `set -e`. An abort before the trap "
-                "exits non-zero WITHOUT the deny — which the harness treats as a "
-                "non-blocking error, i.e. fail-OPEN. Arm the trap first.",
-            )]
+            return [
+                Finding(
+                    path.as_posix(),
+                    trap_at + 1,
+                    "trap-armed-late",
+                    f"the fail-closed EXIT trap is armed at line {trap_at + 1}, but line "
+                    f"{n + 1} can already abort under `set -e`. An abort before the trap "
+                    "exits non-zero WITHOUT the deny — which the harness treats as a "
+                    "non-blocking error, i.e. fail-OPEN. Arm the trap first.",
+                )
+            ]
     return []
 
 
 def audit(root: Path) -> list[Finding]:
     hook_dir = root / HOOK_DIR
     if not hook_dir.is_dir():
-        raise SystemExit(f"verdict-default: {hook_dir} is not a directory — refusing to pass vacuously")
+        raise SystemExit(
+            f"verdict-default: {hook_dir} is not a directory — refusing to pass vacuously"
+        )
     found: list[Finding] = []
     n = 0
     for p in sorted(hook_dir.glob("*.sh")):
         if p.name.startswith("_"):
-            continue    # sourced helpers have no verdict of their own
+            continue  # sourced helpers have no verdict of their own
         try:
             lines = p.read_text(encoding="utf-8", errors="replace").splitlines()
         except OSError:
@@ -155,32 +177,53 @@ def self_test() -> int:
         # M1 — a permissive default on a verdict chain.
         (d / "permissive.sh").write_text(
             '#!/usr/bin/env bash\nset -euo pipefail\ncase "$verdict" in\n'
-            '  deny) exit 2 ;;\n  *) emit_allow ;;\nesac\n', encoding="utf-8")
+            "  deny) exit 2 ;;\n  *) emit_allow ;;\nesac\n",
+            encoding="utf-8",
+        )
         # M2 — a verdict chain with no default arm at all.
         (d / "nodefault.sh").write_text(
             '#!/usr/bin/env bash\nset -euo pipefail\ncase "$verdict" in\n'
-            '  deny) exit 2 ;;\n  edit) emit_edit ;;\nesac\n', encoding="utf-8")
+            "  deny) exit 2 ;;\n  edit) emit_edit ;;\nesac\n",
+            encoding="utf-8",
+        )
         # M3 — the EXIT trap armed after a fallible operation.
         (d / "latetrap.sh").write_text(
-            '#!/usr/bin/env bash\nset -euo pipefail\nroot="$(pwd)"\n'
-            'trap fail_closed EXIT\n', encoding="utf-8")
+            '#!/usr/bin/env bash\nset -euo pipefail\nroot="$(pwd)"\ntrap fail_closed EXIT\n',
+            encoding="utf-8",
+        )
+        # M4 — a verdict chain whose only star-arm is a SPECIFIC glob (`*_denied)`),
+        # not a bare catch-all `*)`. No true default exists, so a verdict matching
+        # neither `deny` nor `*_denied` falls through the case (fail-open). The old
+        # loose DEFAULT_ARM regex mistook `*_denied)` for the default and missed
+        # this; the tightened regex must flag it `no-default-arm`.
+        (d / "globstar.sh").write_text(
+            '#!/usr/bin/env bash\nset -euo pipefail\ncase "$verdict" in\n'
+            "  deny) exit 2 ;;\n  *_denied) emit_deny ;;\nesac\n",
+            encoding="utf-8",
+        )
         # C1 — the correct shapes, which must NOT be flagged.
         (d / "correct.sh").write_text(
-            '#!/usr/bin/env bash\nset -euo pipefail\ntrap fail_closed EXIT\n'
+            "#!/usr/bin/env bash\nset -euo pipefail\ntrap fail_closed EXIT\n"
             'root="$(pwd)"\ncase "$verdict" in\n  allow) emit_allow ;;\n'
-            '  *) emit_deny ;;\nesac\n', encoding="utf-8")
+            "  *) emit_deny ;;\nesac\n",
+            encoding="utf-8",
+        )
         # C2 — no trap and no verdict chain: silence, not a guess.
         (d / "plain.sh").write_text(
-            '#!/usr/bin/env bash\nset -uo pipefail\necho hi\n', encoding="utf-8")
+            "#!/usr/bin/env bash\nset -uo pipefail\necho hi\n", encoding="utf-8"
+        )
 
         found = audit(Path(tmp))
         by = {}
         for f in found:
             by.setdefault(Path(f.path).name, set()).add(f.kind)
 
-        for name, kind in (("permissive.sh", "permissive-default"),
-                           ("nodefault.sh", "no-default-arm"),
-                           ("latetrap.sh", "trap-armed-late")):
+        for name, kind in (
+            ("permissive.sh", "permissive-default"),
+            ("nodefault.sh", "no-default-arm"),
+            ("globstar.sh", "no-default-arm"),
+            ("latetrap.sh", "trap-armed-late"),
+        ):
             if kind in by.get(name, set()):
                 print(f"  ✓ caught: {kind} ({name})")
             else:
@@ -222,7 +265,9 @@ def main() -> int:
         for f in findings:
             print(f.render(), file=sys.stderr)
         return 2
-    print("verdict-default: every verdict chain defaults non-permissively; every EXIT trap is armed first")
+    print(
+        "verdict-default: every verdict chain defaults non-permissively; every EXIT trap is armed first"
+    )
     return 0
 
 

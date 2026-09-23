@@ -16,7 +16,28 @@ if [[ -z "$file" ]] && [[ ! -t 0 ]] && command -v jq >/dev/null 2>&1; then
   fi
 fi
 [ -z "$file" ] && exit 0
-[ ! -f "$file" ] && exit 0
+# --- proposed-edit scan target (repo-review 2026-09-23) ----------------------
+# At PreToolUse the write has NOT landed: the on-disk file is the PRE-edit state
+# (or absent for a new-file Write), so grepping "$file" misses the very content
+# this hook exists to catch. Build the scan target from the tool payload —
+# .tool_input.content (Write) / .tool_input.new_string (Edit) /
+# .tool_input.edits[].new_string (MultiEdit) — and scan THAT. The on-disk file is
+# used only as a legacy fallback for a manual, no-stdin invocation (payload unset).
+# (Fix propagated from data-platform/hooks/flag-data-platform-smells.sh, 2026-09-03.)
+scan_target="$file"
+if [ -n "${payload:-}" ] && command -v jq >/dev/null 2>&1; then
+  _rc_proposed="$(printf '%s' "$payload" | jq -r '[.tool_input.content // empty, .tool_input.new_string // empty, ((.tool_input.edits // [])[]?.new_string // empty)] | map(select(. != "")) | join("\n")' 2>/dev/null || true)"
+  if [ -n "$_rc_proposed" ]; then
+    _rc_scan_tmp="$(mktemp 2>/dev/null || true)"
+    if [ -n "$_rc_scan_tmp" ]; then
+      printf '%s\n' "$_rc_proposed" > "$_rc_scan_tmp"
+      scan_target="$_rc_scan_tmp"
+      trap 'rm -f "$_rc_scan_tmp"' EXIT
+    fi
+  fi
+fi
+[ -z "$scan_target" ] && exit 0
+[ ! -f "$scan_target" ] && exit 0
 
 # Stock-toolchain portability: `grep -P` (PCRE) is a GNU extension — BSD/macOS grep exits
 # 2, which inside `if grep -Pzi ...; then` reads as NO MATCH, so these checks silently
@@ -32,16 +53,16 @@ command -v _rc_pcre_match >/dev/null 2>&1 || _rc_pcre_match() {
 }
 
 findings=()
-if grep -nEi "(UserDefaults|SharedPreferences|AsyncStorage)[\\s\\S]{0,60}(token|password|secret|credential|apikey|api_key)" "$file" >/dev/null 2>&1; then
+if grep -nEi "(UserDefaults|SharedPreferences|AsyncStorage)[\\s\\S]{0,60}(token|password|secret|credential|apikey|api_key)" "$scan_target" >/dev/null 2>&1; then
   findings+=("Secret stored in UserDefaults/SharedPreferences/AsyncStorage — use the Keychain/Keystore secure store; on-device storage is untrusted.")
 fi
-if _rc_pcre_match "$file" "\\{\\s*\\[?\\s*self\\b(?![\\s\\S]{0,40}weak)|capture.*self(?!.*weak)"; then
+if _rc_pcre_match "$scan_target" "\\{\\s*\\[?\\s*self\\b(?![\\s\\S]{0,40}weak)|capture.*self(?!.*weak)"; then
   findings+=("Closure capturing self strongly (iOS) — use [weak self] where it can cause a retain cycle.")
 fi
-if grep -nEi "(NSAllowsArbitraryLoads|usesCleartextTraffic\\s*=\\s*\\\"?true|cleartextTrafficPermitted\\s*=\\s*\\\"?true)" "$file" >/dev/null 2>&1; then
+if grep -nEi "(NSAllowsArbitraryLoads|usesCleartextTraffic\\s*=\\s*\\\"?true|cleartextTrafficPermitted\\s*=\\s*\\\"?true)" "$scan_target" >/dev/null 2>&1; then
   findings+=("Cleartext/arbitrary HTTP allowed — require TLS; mobile traffic must not be cleartext.")
 fi
-if grep -nEi "(while\\s*\\(true\\)[\\s\\S]{0,80}(fetch|http|request)|setInterval\\([\\s\\S]{0,40},\\s*[0-9]{1,4}\\))" "$file" >/dev/null 2>&1; then
+if grep -nEi "(while\\s*\\(true\\)[\\s\\S]{0,80}(fetch|http|request)|setInterval\\([\\s\\S]{0,40},\\s*[0-9]{1,4}\\))" "$scan_target" >/dev/null 2>&1; then
   findings+=("Possible polling loop — prefer push (APNs/FCM) or batched/deferred work; polling drains battery + data.")
 fi
 

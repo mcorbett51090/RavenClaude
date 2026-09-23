@@ -75,7 +75,7 @@ Panel 1's assignments reviewed and confirmed:
   - Historical references to `repo-guide.html` in `CHANGELOG.md` and dated
     `docs/plans/**`, `docs/research/**`, `docs/reviews/**` write-ups — these are
     records of what was true when written.
-  - `docs/plans/2026-08-17-forms-engineering-plugin/plan.md` broken
+  - `docs/plans/archive/2026-08-17-forms-engineering-plugin/plan.md` broken
     `../../ravenclaude-core/…` links — a dated historical plan.
   - `plugins/data-governance-privacy/best-practices/access-request-workflow-not-ad-hoc.md`
     `[@jane-smith-steward](steward)` — an *illustrative example* of an access-request

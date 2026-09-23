@@ -77,3 +77,15 @@ flowchart LR
   C --> U[update = git pull]
   class C,A,U built
 ```
+
+
+## Dual-file project instructions (DOC adapt 2026-09-20 — UNVERIFIED)
+- **Copilot:** `AGENTS.md` remains first-class (root / cwd /
+  `COPILOT_CUSTOM_INSTRUCTIONS_DIRS`) — unchanged.
+- **Claude Code (Anthropic API):** if a project has **no** `CLAUDE.md`,
+  Claude Code reads **`AGENTS.md`** as project instructions (CC 2.1.277);
+  change under Project instructions in `/config`.
+- **Gap:** AGENTS.md-as-CLAUDE-fallback is **not yet** on **Bedrock,
+  Vertex, or Foundry** per changelog — keep `CLAUDE.md` on those hosts.
+- Multi-harness repos: prefer keeping **both** files in sync, or a short
+  `CLAUDE.md` that points at shared policy also mirrored in `AGENTS.md`.

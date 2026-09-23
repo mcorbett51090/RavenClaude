@@ -6,6 +6,10 @@
 # review-only agent whatever the main session has — the same silent
 # privilege grant that MH-10 fixed on Copilot.
 # Derived from the canonical tools: Read, Grep, Glob, Bash
+#
+# Canonical model tier: opus. `model` is NOT emitted — it takes a Codex
+# model id, and the canonical value is a Claude tier alias. Until you pin
+# one, this agent runs on the session's model.
 name = "viz-spec-reviewer"
 description = "Review Vega-Lite/Vega/SVG specs for correctness, security, and pixel-perfect quality. Spawn after declarative-viz linter (Gate 101) or svg-report-lint (Gate 103) flags a concern, or before embedding any viz spec in a shipped report."
 sandbox_mode = "read-only"

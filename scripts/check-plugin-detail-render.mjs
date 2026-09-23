@@ -54,11 +54,24 @@ const ISLANDED_AGENT_KEYS = ["scenarios", "quickstart", "works_with"];
  * de-hardcode it from scan_repo — that is the forbidden tautology. ────────── */
 const RC = "ravenclaude-core";
 const RC_BASELINE = {
-  agents: 15,
-  skills: 65, // 64 -> 65: skills/skill-index (FORGE plan dynamic-skill-context,
-  //   phase P0 — a generated always-on index of every marketplace skill, so a
-  //   disabled plugin's skills are still findable + re-enableable).
-  //   COUNTED, not inferred: `ls plugins/ravenclaude-core/skills | wc -l` -> 65 on this tree.
+  // 16 -> 17: agents/scout.md (model-tier delegation build, v0.322.0 — the first
+  //   haiku-tier worker: search/grep/classify/extract, returns a small artifact).
+  //   COUNTED, not inferred: `ls plugins/ravenclaude-core/agents | wc -l` -> 17 on this tree.
+  //        15 -> 16: agents/source-control-coordinator.md (PR #1146 — cross-session
+  //   merge/CI-triage handoff via the task ledger). COUNTED, not inferred:
+  //   `ls plugins/ravenclaude-core/agents | wc -l` -> 16 on this tree.
+  agents: 17,
+  skills: 67, // 66 -> 67: skills/routine-review-tribunal (the routine-review-tribunal
+  //   build — gates an unattended scheduled routine's produced diff through a
+  //   two-panel, cross-model tribunal before it is finalized, mirroring
+  //   /forge-pipeline's divergent-panel shape applied post-hoc to a diff).
+  //   COUNTED, not inferred: `ls plugins/ravenclaude-core/skills | wc -l` -> 67 on this tree.
+  //        64 -> 66: skills/prompt-optimizer (forge/prompt-optimizer merge — gated
+  //   prompt-to-routing pipeline, PR #1098) + skills/skill-index (FORGE plan
+  //   dynamic-skill-context, phase P0 — a generated always-on index of every
+  //   marketplace skill, so a disabled plugin's skills are still findable +
+  //   re-enableable) — both landed independently and merged together.
+  //   COUNTED, not inferred: `ls plugins/ravenclaude-core/skills | wc -l` -> 66 on this tree.
   //        63 -> 64: skills/claude-code-parallel-and-modes (PR #1114,
   //   Claude Code parallel agents + modes playbook in ravenclaude-core).
   //   COUNTED, not inferred: `ls plugins/ravenclaude-core/skills | wc -l` -> 64 on this tree.
@@ -76,10 +89,41 @@ const RC_BASELINE = {
   //        53 -> 54: skills/session-handoff (v0.266.0, context-quality reset)
   //        52 -> 53: skills/design-clone (v0.253.0, design-schema capture+apply)
   //        51 -> 52: skills/github-gold-standard (v0.246.0, the gold-standard scorecard)
-  tools: 50, // 49 -> 50: scripts/install_launch_guard.py (P2 of the claude-launch-safeguard
-  //   build, anthropics/claude-code#92932 — the rc-file installer for the launch-guard shell
-  //   function). COUNTED, not inferred: `find plugins/ravenclaude-core/scripts -maxdepth 1
-  //   -name "*.py" | wc -l` -> 50 on this tree.
+  tools: 60, // 59 -> 60: scripts/alias-deprecation-advisory.py (Phase D alias soak, core 0.323.14 —
+  //   SessionStart advisory when deprecated posture keys are sole source or diverge). COUNTED,
+  //   not inferred: the plugin-detail island's scripts_index for ravenclaude-core -> 60.
+  //        58 -> 59: scripts/plugin-lifecycle.py (plugin lifecycle Option A ledger engine,
+  //   core 0.323.7 — P1 ledger / P2 plan-only sweep / P3 ask-install; .sh wrappers are bash
+  //   so the scripts_index *.py glob does not count them). COUNTED, not inferred: the
+  //   plugin-detail island's scripts_index for ravenclaude-core -> 59.
+  //        57 -> 58: scripts/thing-harden.py (Thing hardening EDIT registry,
+  //   core 0.323.5 — signed transform apply + harden_ok verify behind hardening_edit
+  //   default OFF). COUNTED, not inferred: the plugin-detail island's scripts_index
+  //   for ravenclaude-core -> 58.
+  //        55 -> 57: scripts/runes.py + scripts/oath_hook.py (Runes ready-queue /
+  //   Oath-hook / Longship delivery, core 0.323.1 — ledger projection CLI + SessionStart
+  //   GUPP assembler; Longship land-request never merges). COUNTED, not inferred:
+  //   the plugin-detail island's scripts_index for ravenclaude-core -> 57.
+  //        54 -> 55: scripts/explore-tier-pin.py (model-tier delegation build pass 2,
+  //   v0.322.0 — the PreToolUse(Agent|Task) decide() engine behind
+  //   hooks/explore-tier-pin.sh: pins an un-pinned Explore to the posture's
+  //   pin_explore tier via updatedInput; self-tested, Gate 286). COUNTED, not
+  //   inferred: the plugin-detail island's scripts_index for ravenclaude-core -> 55.
+  //        53 -> 54: scripts/handoff-tax-meter.py (model-tier delegation build,
+  //   v0.322.0 — the PostToolUse(Agent) brief/report/tier meter behind
+  //   hooks/handoff-tax-meter.sh; self-tested, Gate 285).
+  //        52 -> 53: scripts/routine-review-tribunal.py (the routine-review-tribunal
+  //   build's deterministic tally engine — reuses thing-decision.resolve_panel_config,
+  //   no new agents). COUNTED, not inferred:
+  //   `find plugins/ravenclaude-core/scripts -maxdepth 1 -name "*.py" | wc -l` -> 53 on this tree.
+  //        49 -> 52: scripts/prompt-optimizer-format.py + scripts/prompt-optimizer-judge-soak.py
+  //   (forge/prompt-optimizer merge — the Phase 5 formatter + the standalone judge-soak tool;
+  //   the sibling prompt-optimizer-gate.sh/-rewrite.sh/-dispatch.sh/-judge-soak.sh are bash, so
+  //   the *.py glob does not count them) + scripts/install_launch_guard.py (P2 of the
+  //   claude-launch-safeguard build, anthropics/claude-code#92932 — the rc-file installer for
+  //   the launch-guard shell function) — both landed independently and merged together.
+  //   COUNTED, not inferred:
+  //   `find plugins/ravenclaude-core/scripts -maxdepth 1 -name "*.py" | wc -l` -> 52 on this tree.
   //        48 -> 49: scripts/hooks-selftest.py (Gate 266 SessionStart runtime
   //   self-test front door, 96ea5e05 — did not exist before). COUNTED, not inferred:
   //   `find plugins/ravenclaude-core/scripts -maxdepth 1 -name "*.py" | wc -l` -> 49 on this tree.
@@ -147,7 +191,31 @@ const RC_BASELINE = {
   //        19 -> 22: premise-gate.py + classify_claim.py + check-design-schema.py
   //                  (v0.263.0, PR 3b packaging move)
   scenarios: 4,
-  hooks: 47, // 45 -> 47: caveman-route-hook.sh WIRED on UserPromptSubmit + SessionStart(startup|
+  hooks: 58, // 56 -> 58: workaround-exhaustion.sh WIRED twice — PreToolUse(AskUserQuestion) `ask`
+  //   lane + Stop `stop` lane (the blocked-exhaustion gate, core 0.324.0; absent posture key => off).
+  //   COUNTED, not inferred: hooks.json on this tree holds 58 registrations.
+  //        55 -> 56: alias-deprecation-advisory.sh WIRED on SessionStart(startup|resume|clear|fork)
+  //   (Phase D alias soak, core 0.323.14 — additionalContext advisory; never writes posture).
+  //   COUNTED, not inferred: hooks.json on this tree holds 56 registrations.
+  //        51 -> 55: plugin-lifecycle-telemetry.sh x3 (PostToolUse Agent|Task + Skill +
+  //   UserPromptSubmit) + plugin-lifecycle-sweep.sh on SessionStart(startup|resume|clear|fork)
+  //   (plugin lifecycle Option A, core 0.323.7 — plan-only sweep; auto_* defaults OFF).
+  //   COUNTED, not inferred: hooks.json on this tree holds 55 registrations.
+  //        50 -> 51: oath-hook.sh WIRED on SessionStart(startup|resume|clear|fork)
+  //   (Runes ready-queue / Oath-hook / Longship, core 0.323.1 — GUPP surfaces hanging
+  //   Runes; fail-silent). COUNTED, not inferred: hooks.json on this tree holds 51
+  //   registrations.
+  //        49 -> 50: explore-tier-pin.sh WIRED on PreToolUse(Agent|Task) (model-tier
+  //   delegation build pass 2, v0.322.0 — rewrites an un-pinned Explore dispatch's
+  //   model via updatedInput; never emits a permissionDecision). COUNTED, not
+  //   inferred: hooks.json on this tree holds 50 registrations.
+  //        48 -> 49: handoff-tax-meter.sh WIRED on PostToolUse(Agent|Task) (model-tier
+  //   delegation build, v0.322.0 — advisory dispatch ledger + report_over_cap /
+  //   brief_over_cap / frontier_readonly nudges; opt-in, never blocks).
+  //        47 -> 48: prompt-optimizer-gate.sh WIRED on UserPromptSubmit (forge/prompt-optimizer
+  //   merge — Phase 6, one registration). COUNTED, not inferred: hooks.json on this tree holds
+  //   48 registrations.
+  //        45 -> 47: caveman-route-hook.sh WIRED on UserPromptSubmit + SessionStart(startup|
   //   resume|clear|fork) (the caveman auto-routing hook body, merged in from origin/main's P3
   //   caveman routing plan — two registrations for the one hook, hence +2). COUNTED, not
   //   inferred: hooks.json on this tree holds 47 registrations. Its body lives under scripts/

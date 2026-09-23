@@ -2,7 +2,7 @@
 name: monorepo-engineer
 description: "Use for hands-on monorepo wiring + dependency policy — pnpm/Nx/Turborepo workspaces, task-graph & affected/since config, version policy + lockfile hygiene, renovate/dependabot, supply-chain (SBOM/pinning), codegen. NOT tool SELECTION → build-systems-architect; NOT the CI pipeline → devops-cicd."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
-model: opus
+model: sonnet
 audience: [dev, platform-engineer, build-engineer]
 works_with: [devops-cicd, backend-engineering, frontend-engineering, ravenclaude-core/security-reviewer]
 scenarios:

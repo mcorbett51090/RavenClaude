@@ -42,6 +42,15 @@
 #
 # Usage:
 #   claude-launch-guard check -- "$@"    the contract above
+#   claude-launch-guard preferred list|add [path]|remove [path]
+#                                         manage ~/.claude/launch-guard/preferred
+#                                         (path defaults to $PWD on add/remove)
+#   claude-launch-guard recommend        up to 5 candidate directories (one per
+#                                         line) an unsafe-launch UX can offer as
+#                                         a one-click switch: every still-existing
+#                                         preferred dir, then the last-used dir
+#                                         (deduped). Fail-safe: prints nothing on
+#                                         any error, always exit 0 — advisory only.
 #   claude-launch-guard --self-test      run built-in fixtures (nonzero on failure)
 #
 # Kill switch (checked FIRST, before anything else): RAVENCLAUDE_LAUNCH_GUARD=off
@@ -52,6 +61,16 @@
 #
 # Allowlist: ~/.claude/launch-guard/allow — one path or `*` per line (absent
 # file = no entries, not an error). A match -> exit 0 silently.
+#
+# Preferred dirs: ~/.claude/launch-guard/preferred — one absolute path per
+# line, comments (`#`) and blank lines ignored (absent file = none, not an
+# error). Distinct from the allowlist: the allowlist SUPPRESSES the warning
+# for a path; `preferred` is a set of SUGGESTIONS the unsafe-launch menu can
+# offer to switch into, never consulted by `check`.
+#
+# Last-used dir: ~/.claude/launch-guard/last-dir — one path, overwritten on
+# every SAFE launch by the installed shell function (P2), never written by
+# this script. `recommend` reads it as a fallback suggestion.
 #
 # Knob (informational only — does NOT change the 0/10 contract; warn-vs-block
 # policy belongs to the CALLER, i.e. the shell function built in a later
@@ -104,6 +123,93 @@ _allowlisted() {
     fi
   done < "$allow_file" 2>/dev/null
   return 1
+}
+
+# --- preferred-directory list --------------------------------------------------
+# ~/.claude/launch-guard/preferred: one absolute path per line (comments `#`
+# and blank lines ignored), the user's explicitly-designated "launch from
+# here" directories — distinct from the allowlist (which SUPPRESSES the
+# warning) and from the last-used dir (which is tracked automatically).
+_preferred_file() { printf '%s' "${HOME:-}/.claude/launch-guard/preferred"; }
+
+cmd_preferred() {
+  local sub="${1:-list}" pref_file
+  pref_file="$(_preferred_file)"
+  case "$sub" in
+    list)
+      [ -n "${HOME:-}" ] && [ -f "$pref_file" ] || return 0
+      local line
+      while IFS= read -r line || [ -n "$line" ]; do
+        line="${line%%#*}"
+        line="$(printf '%s' "$line" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' 2>/dev/null)"
+        [ -n "$line" ] && [ -d "$line" ] && printf '%s\n' "$line"
+      done < "$pref_file" 2>/dev/null
+      return 0
+      ;;
+    add)
+      if [ -z "${HOME:-}" ]; then
+        printf 'claude-launch-guard: HOME unset — cannot save a preferred directory\n' >&2
+        return 1
+      fi
+      local target="${2:-$PWD}"
+      mkdir -p "${HOME}/.claude/launch-guard" 2>/dev/null
+      if [ -f "$pref_file" ] && grep -Fxq "$target" "$pref_file" 2>/dev/null; then
+        printf 'claude-launch-guard: %s is already a preferred directory\n' "$target"
+        return 0
+      fi
+      printf '%s\n' "$target" >> "$pref_file" 2>/dev/null
+      printf 'claude-launch-guard: added preferred directory: %s\n' "$target"
+      return 0
+      ;;
+    remove)
+      [ -n "${HOME:-}" ] && [ -f "$pref_file" ] || return 0
+      local target="${2:-$PWD}" tmp
+      tmp="$(mktemp 2>/dev/null || echo '')"
+      [ -n "$tmp" ] || return 1
+      grep -Fxv "$target" "$pref_file" > "$tmp" 2>/dev/null
+      mv "$tmp" "$pref_file" 2>/dev/null
+      printf 'claude-launch-guard: removed (if present): %s\n' "$target"
+      return 0
+      ;;
+    *)
+      printf "claude-launch-guard: unknown 'preferred' subcommand '%s' (list|add|remove)\n" "$sub" >&2
+      return 2
+      ;;
+  esac
+}
+
+# --- recommend -------------------------------------------------------------------
+# Prints, one per line, up to 5 candidate directories a shell wrapper can
+# offer as a one-click switch when the cwd is unsafe: every still-existing
+# preferred directory, then the last-used directory (if known, still exists,
+# and isn't already in the preferred list) — deduped, capped. FAIL-SAFE:
+# advisory output for a menu only, never load-bearing — any error prints
+# nothing and this always exits 0.
+cmd_recommend() {
+  [ -n "${HOME:-}" ] || return 0
+  local cap=5 count=0 line seen=""
+  while IFS= read -r line; do
+    [ -n "$line" ] || continue
+    case "$seen" in
+      *"|${line}|"*) continue ;;
+    esac
+    seen="${seen}|${line}|"
+    printf '%s\n' "$line"
+    count=$((count + 1))
+    [ "$count" -ge "$cap" ] && return 0
+  done < <(cmd_preferred list 2>/dev/null)
+
+  local last_dir_file="${HOME}/.claude/launch-guard/last-dir" last
+  if [ -f "$last_dir_file" ]; then
+    last="$(head -n1 "$last_dir_file" 2>/dev/null)"
+    if [ -n "$last" ] && [ -d "$last" ]; then
+      case "$seen" in
+        *"|${last}|"*) : ;;
+        *) [ "$count" -lt "$cap" ] && printf '%s\n' "$last" ;;
+      esac
+    fi
+  fi
+  return 0
 }
 
 # Bounded `git rev-parse --is-inside-work-tree`. Sets the global
@@ -519,8 +625,62 @@ FAKEGIT
   )
   [ "$?" -eq 0 ] || _st_fail "env -i PATH=/usr/bin:/bin full check path failed"
 
+  # --- preferred/recommend fixtures ------------------------------------------
+
+  # Fixture 15: preferred add/list/remove round-trip, non-existent-dir entries
+  # silently excluded from list (a real cd target must exist).
+  (
+    local d1="${scratch}/pref1" d2="${scratch}/pref2"
+    mkdir -p "$d1" "$d2"
+    HOME="$fake_home" bash "$script_abs" preferred add "$d1" >/dev/null 2>&1
+    HOME="$fake_home" bash "$script_abs" preferred add "$d2" >/dev/null 2>&1
+    out="$(HOME="$fake_home" bash "$script_abs" preferred list 2>&1)"
+    printf '%s' "$out" | grep -qF "$d1" || exit 111
+    printf '%s' "$out" | grep -qF "$d2" || exit 112
+    HOME="$fake_home" bash "$script_abs" preferred remove "$d1" >/dev/null 2>&1
+    out="$(HOME="$fake_home" bash "$script_abs" preferred list 2>&1)"
+    printf '%s' "$out" | grep -qF "$d1" && exit 113
+    printf '%s' "$out" | grep -qF "$d2" || exit 114
+    # A preferred entry whose directory has since been deleted must not list.
+    rmdir "$d2"
+    HOME="$fake_home" bash "$script_abs" preferred remove "$d1" >/dev/null 2>&1
+    out="$(HOME="$fake_home" bash "$script_abs" preferred list 2>&1)"
+    [ -z "$out" ] || exit 115
+  ) || _st_fail "preferred add/list/remove round-trip failed ($?)"
+
+  # Fixture 16: recommend = preferred (deduped) then last-dir, capped, and
+  # a last-dir that duplicates a preferred entry is not repeated.
+  (
+    rm -f "${fake_home}/.claude/launch-guard/preferred" "${fake_home}/.claude/launch-guard/last-dir"
+    local p1="${scratch}/rec1" p2="${scratch}/rec2" p3="${scratch}/rec3"
+    mkdir -p "$p1" "$p2" "$p3"
+    HOME="$fake_home" bash "$script_abs" preferred add "$p1" >/dev/null 2>&1
+    HOME="$fake_home" bash "$script_abs" preferred add "$p2" >/dev/null 2>&1
+    mkdir -p "${fake_home}/.claude/launch-guard"
+    printf '%s\n' "$p1" > "${fake_home}/.claude/launch-guard/last-dir"
+    out="$(HOME="$fake_home" bash "$script_abs" recommend 2>&1)"
+    lines="$(printf '%s' "$out" | grep -c .)"
+    [ "$lines" -eq 2 ] || exit 121
+    printf '%s\n' "$p3" > "${fake_home}/.claude/launch-guard/last-dir"
+    out="$(HOME="$fake_home" bash "$script_abs" recommend 2>&1)"
+    lines="$(printf '%s' "$out" | grep -c .)"
+    [ "$lines" -eq 3 ] || exit 122
+    printf '%s' "$out" | tail -n1 | grep -qF "$p3" || exit 123
+    HOME="$fake_home" bash "$script_abs" preferred remove "$p1" >/dev/null 2>&1
+    HOME="$fake_home" bash "$script_abs" preferred remove "$p2" >/dev/null 2>&1
+    rm -f "${fake_home}/.claude/launch-guard/last-dir"
+  ) || _st_fail "recommend dedup/cap/last-dir logic failed ($?)"
+
+  # Fixture 17 (fail-open): HOME unset -> recommend prints nothing, exits 0.
+  (
+    out="$(env -u HOME bash "$script_abs" recommend 2>&1)"
+    rc=$?
+    [ "$rc" -eq 0 ] || exit 131
+    [ -z "$out" ] || exit 132
+  ) || _st_fail "recommend with HOME unset did not fail open ($?)"
+
   if [ "$ST_RC" -eq 0 ]; then
-    printf 'SELF-TEST PASS: claude-launch-guard (14 fixtures)\n'
+    printf 'SELF-TEST PASS: claude-launch-guard (17 fixtures)\n'
   fi
   return "$ST_RC"
 }
@@ -535,6 +695,14 @@ main() {
       cmd_check "$@"
       exit $?
       ;;
+    preferred)
+      cmd_preferred "$@"
+      exit $?
+      ;;
+    recommend)
+      cmd_recommend
+      exit $?
+      ;;
     --self-test|self-test)
       cmd_self_test
       exit $?
@@ -543,7 +711,7 @@ main() {
       grep -E '^#( |$)' "$0" | sed -E 's/^# ?//'
       ;;
     *)
-      printf "claude-launch-guard: unknown subcommand '%s' (check|--self-test)\n" "$sub" >&2
+      printf "claude-launch-guard: unknown subcommand '%s' (check|preferred|recommend|--self-test)\n" "$sub" >&2
       exit 2
       ;;
   esac
