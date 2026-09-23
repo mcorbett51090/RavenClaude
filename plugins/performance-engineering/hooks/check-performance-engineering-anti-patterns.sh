@@ -16,36 +16,57 @@ if [[ -z "$file" ]] && [[ ! -t 0 ]] && command -v jq >/dev/null 2>&1; then
   fi
 fi
 [ -z "$file" ] && exit 0
-[ ! -f "$file" ] && exit 0
+# --- proposed-edit scan target (repo-review 2026-09-23) ----------------------
+# At PreToolUse the write has NOT landed: the on-disk file is the PRE-edit state
+# (or absent for a new-file Write), so grepping "$file" misses the very content
+# this hook exists to catch. Build the scan target from the tool payload —
+# .tool_input.content (Write) / .tool_input.new_string (Edit) /
+# .tool_input.edits[].new_string (MultiEdit) — and scan THAT. The on-disk file is
+# used only as a legacy fallback for a manual, no-stdin invocation (payload unset).
+# (Fix propagated from data-platform/hooks/flag-data-platform-smells.sh, 2026-09-03.)
+scan_target="$file"
+if [ -n "${payload:-}" ] && command -v jq >/dev/null 2>&1; then
+  _rc_proposed="$(printf '%s' "$payload" | jq -r '[.tool_input.content // empty, .tool_input.new_string // empty, ((.tool_input.edits // [])[]?.new_string // empty)] | map(select(. != "")) | join("\n")' 2>/dev/null || true)"
+  if [ -n "$_rc_proposed" ]; then
+    _rc_scan_tmp="$(mktemp 2>/dev/null || true)"
+    if [ -n "$_rc_scan_tmp" ]; then
+      printf '%s\n' "$_rc_proposed" > "$_rc_scan_tmp"
+      scan_target="$_rc_scan_tmp"
+      trap 'rm -f "$_rc_scan_tmp"' EXIT
+    fi
+  fi
+fi
+[ -z "$scan_target" ] && exit 0
+[ ! -f "$scan_target" ] && exit 0
 
 findings=()
 
 # 1. A performance target/NFR with no load attached or no percentile — the §4 #1 / #2 rules.
 #    Heuristic: a line that sets a latency target (ms/p50/p95/p99) but the file mentions no req/s or RPS load.
-if grep -qiE "(p9[0-9]|p50|latency|response\s*time).*(<=?|<|target|budget|SLA|SLO)" "$file" 2>/dev/null \
-  || grep -qiE "(target|budget|nfr).*(latency|response\s*time|ms\b)" "$file" 2>/dev/null; then
-  if ! grep -qiE "(req/s|rps|requests?/s|requests? per second|arrival rate|throughput|concurrent|vus?\b)" "$file" 2>/dev/null; then
+if grep -qiE "(p9[0-9]|p50|latency|response\s*time).*(<=?|<|target|budget|SLA|SLO)" "$scan_target" 2>/dev/null \
+  || grep -qiE "(target|budget|nfr).*(latency|response\s*time|ms\b)" "$scan_target" 2>/dev/null; then
+  if ! grep -qiE "(req/s|rps|requests?/s|requests? per second|arrival rate|throughput|concurrent|vus?\b)" "$scan_target" 2>/dev/null; then
     findings+=("A latency target with no load attached — state the percentile + threshold + the load it holds at (e.g. 'p99 <= 200 ms at 5,000 req/s'). A target with no workload is unfalsifiable.")
   fi
 fi
 
 # 2. An assertion on average/mean latency instead of a percentile — the §4 #2 rule.
-if grep -qiE "(average|mean|avg)[ _-]*(latency|response\s*time|duration)" "$file" 2>/dev/null \
-  || grep -qiE "(latency|response\s*time|duration)[ _-]*(average|mean|avg)" "$file" 2>/dev/null; then
+if grep -qiE "(average|mean|avg)[ _-]*(latency|response\s*time|duration)" "$scan_target" 2>/dev/null \
+  || grep -qiE "(latency|response\s*time|duration)[ _-]*(average|mean|avg)" "$scan_target" 2>/dev/null; then
   findings+=("Average/mean latency used as a target or assertion — report p95/p99/max instead; the mean hides the tail that pages you.")
 fi
 
 # 3. A load-test script that pins neither think time nor an arrival rate — likely a stampede / coordinated-omission risk.
-if grep -qiE "(k6|gatling|locust|jmeter|import http from)" "$file" 2>/dev/null \
-  || grep -qiE "(scenarios?|executor|virtual users?|\bvus?\b)" "$file" 2>/dev/null; then
-  if ! grep -qiE "(think|sleep|pacing|arrival|rate|constant-arrival|ramping-arrival|throughput)" "$file" 2>/dev/null; then
+if grep -qiE "(k6|gatling|locust|jmeter|import http from)" "$scan_target" 2>/dev/null \
+  || grep -qiE "(scenarios?|executor|virtual users?|\bvus?\b)" "$scan_target" 2>/dev/null; then
+  if ! grep -qiE "(think|sleep|pacing|arrival|rate|constant-arrival|ramping-arrival|throughput)" "$scan_target" 2>/dev/null; then
     findings+=("Load-test scenario with no think time and no arrival rate — a zero-think-time closed loop measures a stampede and risks coordinated omission. Set an open arrival-rate executor or explicit think time.")
   fi
 fi
 
 # 4. A regression claim with no baseline — the §4 #8 rule.
-if grep -qiE "(regress|slower|faster|degrad|improv)" "$file" 2>/dev/null; then
-  if ! grep -qiE "(baseline|threshold|delta|compared? to|vs\.?\s|reference run)" "$file" 2>/dev/null; then
+if grep -qiE "(regress|slower|faster|degrad|improv)" "$scan_target" 2>/dev/null; then
+  if ! grep -qiE "(baseline|threshold|delta|compared? to|vs\.?\s|reference run)" "$scan_target" 2>/dev/null; then
     findings+=("A performance regression/improvement claim with no baseline or threshold — gate on a committed baseline + a p95/p99 delta, not 'feels slower'.")
   fi
 fi

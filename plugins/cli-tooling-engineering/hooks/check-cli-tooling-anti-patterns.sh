@@ -17,27 +17,48 @@ if [[ -z "$file" ]] && [[ ! -t 0 ]] && command -v jq >/dev/null 2>&1; then
   fi
 fi
 [ -z "$file" ] && exit 0
-[ ! -f "$file" ] && exit 0
+# --- proposed-edit scan target (repo-review 2026-09-23) ----------------------
+# At PreToolUse the write has NOT landed: the on-disk file is the PRE-edit state
+# (or absent for a new-file Write), so grepping "$file" misses the very content
+# this hook exists to catch. Build the scan target from the tool payload —
+# .tool_input.content (Write) / .tool_input.new_string (Edit) /
+# .tool_input.edits[].new_string (MultiEdit) — and scan THAT. The on-disk file is
+# used only as a legacy fallback for a manual, no-stdin invocation (payload unset).
+# (Fix propagated from data-platform/hooks/flag-data-platform-smells.sh, 2026-09-03.)
+scan_target="$file"
+if [ -n "${payload:-}" ] && command -v jq >/dev/null 2>&1; then
+  _rc_proposed="$(printf '%s' "$payload" | jq -r '[.tool_input.content // empty, .tool_input.new_string // empty, ((.tool_input.edits // [])[]?.new_string // empty)] | map(select(. != "")) | join("\n")' 2>/dev/null || true)"
+  if [ -n "$_rc_proposed" ]; then
+    _rc_scan_tmp="$(mktemp 2>/dev/null || true)"
+    if [ -n "$_rc_scan_tmp" ]; then
+      printf '%s\n' "$_rc_proposed" > "$_rc_scan_tmp"
+      scan_target="$_rc_scan_tmp"
+      trap 'rm -f "$_rc_scan_tmp"' EXIT
+    fi
+  fi
+fi
+[ -z "$scan_target" ] && exit 0
+[ ! -f "$scan_target" ] && exit 0
 
 findings=()
 
 # Raw ANSI escape sequences emitted directly (color/styling not gated behind a TTY check).
-if grep -nE '\\(033|x1[bB]|u001[bB]|e)\[' "$file" >/dev/null 2>&1; then
+if grep -nE '\\(033|x1[bB]|u001[bB]|e)\[' "$scan_target" >/dev/null 2>&1; then
   findings+=("Raw ANSI escape sequence in source — gate color/styling behind an isatty check and honor NO_COLOR (and FORCE_COLOR), or it ends up in piped/redirected output.")
 fi
 
 # Error/usage text printed to stdout (diagnostics belong on stderr).
-if grep -nE '(console\.log|print|fmt\.Print(ln|f)?)\(.*([Ee]rror|[Uu]sage:)' "$file" >/dev/null 2>&1; then
+if grep -nE '(console\.log|print|fmt\.Print(ln|f)?)\(.*([Ee]rror|[Uu]sage:)' "$scan_target" >/dev/null 2>&1; then
   findings+=("Looks like an error/usage message on stdout — write diagnostics to stderr (console.error / print(..., file=sys.stderr) / fmt.Fprintln(os.Stderr, ...)) so stdout stays clean for data.")
 fi
 
 # Boolean used as an exit code (exits non-zero/zero unexpectedly across languages).
-if grep -nE '(sys\.exit|process\.exit|os\.Exit)\((true|false|True|False)\)' "$file" >/dev/null 2>&1; then
+if grep -nE '(sys\.exit|process\.exit|os\.Exit)\((true|false|True|False)\)' "$scan_target" >/dev/null 2>&1; then
   findings+=("Boolean passed as an exit code — exit codes are integers (0 success, distinct non-zero per failure class); a bool exits 1/0 by surprise.")
 fi
 
 # Secrets accepted as a CLI flag (leak into shell history and the process table).
-if grep -nE '(--password|--token|--secret|--api-key|--apikey)\b' "$file" >/dev/null 2>&1; then
+if grep -nE '(--password|--token|--secret|--api-key|--apikey)\b' "$scan_target" >/dev/null 2>&1; then
   findings+=("Secret accepted as a CLI flag — flags leak into shell history and 'ps'; accept secrets via an env var or a file path instead.")
 fi
 
