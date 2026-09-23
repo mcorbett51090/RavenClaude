@@ -791,6 +791,7 @@ EOF
   # bypass is the worse failure for a `pre_llm_deny`-adjacent floor.
   if [[ "$c" =~ ${_CMD_BOUNDARY}git([[:space:]]|$) ]] && [[ "$c" =~ ${_CMD_BOUNDARY}merge([[:space:]]|$) ]]; then
     local branch word prev seen seg_target pending pending_kind double_dash first_pos symref_target
+    local branch_tracked=""
     local effective_cwd="" cd_word cd_prev cd_seen cd_target gd_word
     # Round 5 (2026-09-23, Bugbot): a persistent GIT_DIR set earlier in the
     # same chain (`export GIT_DIR=<dir>; git merge …`) retargets every
@@ -900,7 +901,13 @@ EOF
         seg_split="${seg_split//</ < }"
         for word in $seg_split; do
           if [ -z "$seen" ]; then
-            if [ "$prev" = "git" ] && { [ "$word" = "checkout" ] || [ "$word" = "switch" ]; }; then
+            # Round 8 (2026-09-23, Bugbot): a strict `[ "$prev" = "git" ]`
+            # equality check doesn't recognize a path-qualified git binary
+            # (`/usr/bin/git checkout main`), unlike other parts of this
+            # file — $_CMD_BOUNDARY itself already includes `/` for exactly
+            # this class of case. Also match when $prev ENDS IN "/git".
+            if { [ "$prev" = "git" ] || case "$prev" in */git) true;; *) false;; esac; } \
+               && { [ "$word" = "checkout" ] || [ "$word" = "switch" ]; }; then
               seen=1
             fi
             prev="$word"
@@ -935,12 +942,14 @@ EOF
           else
             branch="$_AMBIGUOUS_BRANCH_SENTINEL"
           fi
+          branch_tracked=1
         elif [ -z "$double_dash" ] && [ -n "$first_pos" ]; then
           if _is_safe_ref_token "$first_pos"; then
             branch="$first_pos"
           else
             branch="$_AMBIGUOUS_BRANCH_SENTINEL"
           fi
+          branch_tracked=1
         fi
       fi
       # Round 2 (2026-09-22, Bugbot): `git symbolic-ref HEAD <ref>` is a
@@ -955,7 +964,10 @@ EOF
         prev="" seen=""
         for word in $seg; do
           if [ -z "$seen" ]; then
-            if [ "$prev" = "git" ] && [ "$word" = "symbolic-ref" ]; then
+            # Same path-qualified-git-binary fix as the checkout/switch
+            # tracker above (round 8, Bugbot finding #3).
+            if { [ "$prev" = "git" ] || case "$prev" in */git) true;; *) false;; esac; } \
+               && [ "$word" = "symbolic-ref" ]; then
               seen=1
             fi
             prev="$word"
@@ -980,6 +992,7 @@ EOF
           else
             branch="$_AMBIGUOUS_BRANCH_SENTINEL"
           fi
+          branch_tracked=1
         fi
       fi
       # Round 7 (2026-09-23, Bugbot): same word-presence relaxation as the
@@ -1013,18 +1026,46 @@ EOF
           # local branch, and is out of this fix's scope.
           # Round 4 (2026-09-23, Bugbot): re-resolve HEAD for a -C/--git-dir
           # flag on THIS merge invocation, or a preceding `cd` in the same
-          # chain, before falling back to the textually-tracked $branch.
+          # chain.
+          # Round 8 (2026-09-23, Bugbot): the resolved live branch used to
+          # REPLACE the textually-tracked $branch outright — but a trivially
+          # "resolvable" override (e.g. a `cd .` back to the SAME repo)
+          # resolves fine to the real current HEAD, silently discarding the
+          # hook's own conservative textual assumption that a preceding
+          # `checkout main` succeeded (`git checkout main && cd . &&
+          # git merge feature` was allowed).
+          #
+          # Fix: when there IS a resolvable retarget (merge_check_branch
+          # non-empty — a -C/--git-dir/GIT_DIR/cd/pushd override was
+          # present), that resolved branch is the primary signal of what
+          # repo/branch the merge actually runs against. But an EXPLICIT
+          # checkout/switch/symbolic-ref TRACKED earlier in this same
+          # command chain ($branch_tracked) is still an independent danger
+          # signal — deny if EITHER it or the resolved branch indicates
+          # main/master/the ambiguous sentinel. When there is NO retarget
+          # (merge_check_branch empty), $branch is the only signal we have
+          # (whether tracked or just the hook process's own real cwd
+          # branch) — this reproduces the original pre-round-4 behavior for
+          # the plain "on main, git merge feature" case with no cd/-C at
+          # all, which must still deny.
           local merge_check_branch
           merge_check_branch="$(_resolve_merge_check_branch "$raw_seg" "$effective_cwd" "$effective_gitdir")"
-          local branch_check
+          local textual_check="${branch#refs/heads/}"
           if [ -n "$merge_check_branch" ]; then
-            branch_check="${merge_check_branch#refs/heads/}"
+            local resolved_check="${merge_check_branch#refs/heads/}"
+            case "$resolved_check" in
+              main|master|"$_AMBIGUOUS_BRANCH_SENTINEL") return 0 ;;
+            esac
+            if [ -n "$branch_tracked" ]; then
+              case "$textual_check" in
+                main|master|"$_AMBIGUOUS_BRANCH_SENTINEL") return 0 ;;
+              esac
+            fi
           else
-            branch_check="${branch#refs/heads/}"
+            case "$textual_check" in
+              main|master|"$_AMBIGUOUS_BRANCH_SENTINEL") return 0 ;;
+            esac
           fi
-          case "$branch_check" in
-            main|master|"$_AMBIGUOUS_BRANCH_SENTINEL") return 0 ;;
-          esac
         fi
       fi
     done <<EOF
@@ -1045,9 +1086,17 @@ EOF
 # mirroring _is_dangerous_git_clean's force-flag-anywhere scan.
 _is_dangerous_update_ref() {
   local c="$1" seg word
-  [[ "$c" =~ ${_CMD_BOUNDARY}git[[:space:]]+update-ref([[:space:]]|$) ]] || return 1
+  # Round 8 (2026-09-23, Bugbot): the strict `git[[:space:]]+update-ref`
+  # adjacency requirement has the SAME multi-token-value fragility round 7
+  # already fixed for _is_dangerous_merge — a `-C`/`--git-dir` value
+  # containing an unexpanded command substitution (`-C $(echo /path)`)
+  # inserts a space between "git" and "update-ref", so the strict adjacency
+  # regex never recognized the command as an update-ref invocation at all.
+  # Replaced with the same order/adjacency-independent word-presence check
+  # already used for _is_dangerous_merge's two detection sites.
+  [[ "$c" =~ ${_CMD_BOUNDARY}git([[:space:]]|$) ]] && [[ "$c" =~ ${_CMD_BOUNDARY}update-ref([[:space:]]|$) ]] || return 1
   while IFS= read -r seg; do
-    [[ "$seg" =~ ${_CMD_BOUNDARY}git[[:space:]]+update-ref([[:space:]]|$) ]] || continue
+    [[ "$seg" =~ ${_CMD_BOUNDARY}git([[:space:]]|$) ]] && [[ "$seg" =~ ${_CMD_BOUNDARY}update-ref([[:space:]]|$) ]] || continue
     for word in $seg; do
       case "$word" in
         -d|--delete) return 0 ;;
