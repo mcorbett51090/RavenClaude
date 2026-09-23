@@ -94,7 +94,7 @@ resource "google_billing_budget" "per_project" {
 }
 ```
 
-Route the Pub/Sub topic to Slack/PagerDuty via a Cloud Function or Eventarc.
+Route the Pub/Sub topic to Slack/PagerDuty via a Cloud Run function or Eventarc.
 
 ## Step 4 — Committed-use discounts (CUDs)
 

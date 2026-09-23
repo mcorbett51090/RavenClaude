@@ -4,6 +4,10 @@ Versioning is semver; bump on every user-visible change and keep it in sync with
 
 > Note: this file tracks the major arcs; the authoritative version history is the `version` field in `.claude-plugin/plugin.json` + git history (per the marketplace CHANGELOG convention). The 0.2.x–0.4.x bumps between the initial release and the build-out below were tracked in `plugin.json` + git, not back-filled here.
 
+## [0.5.8] — 2026-09-23
+
+Weekly Tier-A news sweep (2026-09-23) — **corrections** in `knowledge/azure-data-store-decision-tree.md`, `best-practices/data-tier-pick-the-azure-database.md`, and `knowledge/azure-ai-foundry.md`: PostgreSQL Single Server **retired 2025-03-28** (repo previously said "retiring" — tense fix, four occurrences); the Assistants API **retired 2026-08-26** (repo previously described it as a future sunset — tense fix). Independently re-verified this session against official Microsoft Learn docs. **Skipped:** the reported Azure Cache for Redis "new-creation blocked for existing customers from 2026-10-01" correction — Microsoft's own July 2026 "What's New in Azure Cache for Redis" update states that block was **removed**; only the April 1, 2026 block on new customers stands, with retirement itself unchanged at 2028-09-30. Not applied to `azure-data-store-decision-tree.md:55` to avoid writing a now-superseded claim. **Migration:** none — knowledge-file content only.
+
 ## [0.5.7] — 2026-09-14
 
 ### Changed

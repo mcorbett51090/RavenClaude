@@ -443,7 +443,7 @@
       "name": "data-platform",
       "source": "./plugins/data-platform",
       "description": "Data-platform team \u2014 agents (database-setup-guide, etl-pipeline-engineer, dashboard-builder, connector-developer) for cloud DBs, ELT (Airbyte / Fivetran / n8n) with connectors for QuickBooks / Stripe / Salesforce / HubSpot / GA4 / Shopify / HRIS / Planhat / Intercom / Slack-as-source plus 8-vendor support-tool integration coverage (Zendesk, Freshdesk, Intercom Conv+Tkt, SFDC Service Cloud, JSM, HubSpot Service, Help Scout, Front + 2026 Fivetran connector-MAR build-vs-buy math), and embedded dashboards (Evidence.dev / Superset / Metabase / Cube + Tremor). skills (incl. support-ticket-normalization \u2014 conformed fct_ticket / fct_conversation_event over 8 vendors; cross-system-identity-resolution \u2014 the Salesforce\u2194Planhat\u2194Intercom\u2194Slack account spine), templates, a knowledge bank, best-practices. Opinionated against per-viewer-priced BI for greenfield SMB. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.33.4",
+      "version": "0.33.5",
       "author": {
         "name": "Matt Corbett"
       },
@@ -568,7 +568,7 @@
       "name": "microsoft-fabric",
       "source": "./plugins/microsoft-fabric",
       "description": "Microsoft Fabric specialist team \u2014 agents (fabric-architect, lakehouse-engineer, warehouse-engineer, data-factory-engineer, realtime-intelligence-engineer, fabric-semantic-model-engineer, fabric-admin) covering OneLake, Lakehouse (Spark/Delta/medallion/materialized lake views), Warehouse (T-SQL/ACID), Data Factory (mirroring/copy-job/dataflow-gen2/pipelines), Real-Time Intelligence (Eventstream/Eventhouse/KQL/Activator), Direct Lake semantic models, and platform admin (capacity FinOps, OneLake security, domains, Purview, ALM). citation-grounded knowledge bank (two Mermaid decision trees + a dated 2026 capability map), templates, an advisory hook (house opinions). Seams: enterprise Microsoft/Fabric here vs non-Microsoft/SMB embedded to data-platform; Fabric storage + Direct Lake here vs standalone Power BI/.pbix to power-platform/power-bi-engineer. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.8.11",
+      "version": "0.8.12",
       "author": {
         "name": "Matt Corbett"
       },
@@ -614,7 +614,7 @@
       "name": "azure-cloud",
       "source": "./plugins/azure-cloud",
       "description": "Azure cloud infrastructure & platform specialist team \u2014 agents (azure-architect, bicep-iac-engineer, entra-identity-engineer, network-engineer, app-platform-engineer, integration-engineer, azure-ops-engineer) for the Azure layer under the Microsoft stack: landing zones / CAF, IaC (Bicep + Terraform + Azure Verified Modules + Deployment Stacks), Entra identity (managed identity, workload identity federation, RBAC, PIM, External ID), networking (Private Endpoints, hub-spoke, Front Door, WAF), compute selection (App Service / Container Apps / Functions / AKS), integration (Logic Apps, Service Bus, Event Grid, APIM), and observability + FinOps + governance. dated knowledge bank (two Mermaid decision trees + a 2026 capability map), templates, an advisory hook (house opinions). Seams: Logic Apps here vs Power Automate to power-platform; Fabric data to microsoft-fabric; Azure host here vs Claude app to claude-app-engineering. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.5.7",
+      "version": "0.5.8",
       "author": {
         "name": "Matt Corbett"
       },
@@ -688,7 +688,7 @@
       "name": "tableau",
       "source": "./plugins/tableau",
       "description": "Tableau analytics team \u2014 specialist agents for Tableau Desktop/Cloud/Server, Tableau Prep, and the developer surface: VizQL and chart-type selection, calculations (LOD expressions, table calcs, FIXED/INCLUDE/EXCLUDE), data modeling (relationships vs joins vs blends, extracts vs live), workbook/extract performance, Server/Cloud governance and permissions, content/ALM promotion, embedding (Embedding API v3, Connected Apps/JWT), and the next-gen surface (Tableau Pulse, Tableau Next, CRM Analytics, Einstein/Agent). Citation-grounded knowledge bank with Mermaid decision trees + a best-practices library. Seams: Salesforce platform data \u2192 salesforce; warehouse/semantic modeling \u2192 data-platform/microsoft-fabric; Power BI comparison \u2192 power-platform; methodology/security-review \u2192 ravenclaude-core. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.4.2",
+      "version": "0.4.3",
       "author": {
         "name": "Matt Corbett"
       },
@@ -896,7 +896,7 @@
       "name": "database-engineering",
       "source": "./plugins/database-engineering",
       "description": "Database-engineering team \u2014 agents (schema-architect, query-performance-engineer, migration-engineer, db-reliability-engineer) for the OPERATIONAL/transactional data layer (OLTP): relational schema design and normalization (and when to denormalize), indexing strategy and query/EXPLAIN-plan tuning, safe zero-downtime schema migrations (expand/contract), and connection-pooling, transactions/isolation, replication, and backup/restore reliability. Postgres-leaning, principles portable to MySQL/SQL Server; NoSQL access-pattern guidance where it fits. skills, a decision-tree knowledge bank (index-choice + migration-safety trees + a dated 2026 capability map), best-practices, templates, commands, an advisory hook. Distinct from data-platform (analytics/ELT/warehouse) and analytics-engineering (dbt). Seams: ELT/warehouse -> data-platform, ORM/app data-access -> backend-engineering, managed DB infra -> cloud plugins. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.3.8",
+      "version": "0.3.9",
       "author": {
         "name": "Matt Corbett"
       },
@@ -988,7 +988,7 @@
       "name": "aws-cloud",
       "source": "./plugins/aws-cloud",
       "description": "AWS cloud infrastructure & platform team \u2014 agents (aws-architect, aws-iam-identity-engineer, aws-network-engineer, aws-compute-platform-engineer, aws-ops-finops-engineer) for the AWS layer of a stack: multi-account landing zones (Organizations, Control Tower, SCPs), least-privilege IAM (roles over keys, IRSA, permission boundaries, Identity Center), VPC networking (subnets, security groups, PrivateLink/endpoints, Transit Gateway), compute selection (Lambda / ECS / EKS / Fargate / App Runner), event-driven integration (SQS/SNS/EventBridge/Step Functions), and observability + FinOps + Well-Architected governance. skills, a decision-tree knowledge bank (compute-selection + account-strategy trees + a dated 2026 capability map), best-practices, templates, commands, an advisory hook. Multi-cloud seam to azure-cloud/gcp-cloud; IaC -> terraform-iac; containers -> cloud-native-kubernetes; security verdicts -> ravenclaude-core/security-reviewer. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.3.4",
+      "version": "0.3.5",
       "author": {
         "name": "Matt Corbett"
       },
@@ -1011,7 +1011,7 @@
       "name": "gcp-cloud",
       "source": "./plugins/gcp-cloud",
       "description": "Google Cloud (GCP) infrastructure & platform team \u2014 agents (gcp-architect, gcp-iam-engineer, gcp-network-engineer, gcp-data-and-compute-engineer) for the GCP layer of a stack: the resource hierarchy (organization/folders/projects) and org policy constraints, least-privilege IAM (predefined over primitive roles, service accounts + Workload Identity Federation, no key files), VPC networking (Shared VPC, firewall rules, Private Service Connect, Cloud NAT), compute selection (Cloud Run / GKE / Cloud Functions / GCE), and the data services (BigQuery, Pub/Sub, Cloud SQL) at a selection level. skills, a decision-tree knowledge bank (compute-selection + project-hierarchy trees + a dated 2026 capability map), best-practices, templates, commands, an advisory hook. Multi-cloud seam to aws-cloud/azure-cloud; IaC -> terraform-iac; BigQuery analytics -> data-platform; security verdicts -> ravenclaude-core/security-reviewer. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.3.6",
+      "version": "0.3.7",
       "author": {
         "name": "Matt Corbett"
       },
@@ -1126,7 +1126,7 @@
       "name": "analytics-engineering",
       "source": "./plugins/analytics-engineering",
       "description": "Analytics-engineering team \u2014 agents (analytics-engineer, semantic-layer-engineer, data-quality-testing-engineer) for the TRANSFORMATION layer in the modern data stack: dbt modeling (staging -> intermediate -> marts, the medallion/Kimball split, incremental models, materializations), a governed semantic/metrics layer (one definition of revenue/active-user, metrics-as-code) so every tool agrees, and data quality (dbt tests, freshness, model contracts, anomaly checks) that gates the warehouse. Warehouse-neutral (Snowflake/BigQuery/Redshift/Databricks). skills, a decision-tree knowledge bank (materialization + model-layer trees + a dated 2026 map), best-practices, templates, commands, an advisory hook. Distinct from data-platform (ingestion/warehouse/BI) and database-engineering (OLTP). Seams: ELT/warehouse provisioning -> data-platform, OLTP -> database-engineering, BI -> tableau/data-platform, enterprise lakehouse -> microsoft-fabric. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.3.8",
+      "version": "0.3.9",
       "author": {
         "name": "Matt Corbett"
       },

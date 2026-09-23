@@ -2,6 +2,10 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.3.7] — 2026-09-23
+
+Weekly Tier-A news sweep (2026-09-23) — **correction** across `knowledge/gcp-cloud-decision-trees.md`, both compute/cost-governance skills, `agents/gcp-data-and-compute-engineer.md`, `CLAUDE.md`, `README.md`, `.claude-plugin/plugin.json`, and three `best-practices/` files: **"Cloud Functions" has been "Cloud Run functions" since August 2024**, folded into the Cloud Run platform. Independently re-verified this session against Google Cloud's own release notes ("Cloud Run functions (formerly known as Cloud Functions)"). **Migration:** none — knowledge-file content only.
+
 ## [0.3.6] — 2026-08-14
 
 ### Changed
