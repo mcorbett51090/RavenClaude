@@ -409,7 +409,7 @@ _git_invocation_present() {
 # change at any of its five call sites.
 _git_alias_names=""
 _scan_git_alias_names() {
-  local c="$1" name rhs
+  local c="$1" name rhs remain whole
   _git_alias_names=""
   # `alias NAME=git` / `alias NAME='git'` / `alias NAME="git"` / `alias
   # NAME=/path/to/git` (a path ending in "/git") / an otherwise-
@@ -418,16 +418,32 @@ _scan_git_alias_names() {
   # BASH_REMATCH[1] here -- the NAME/RHS groups below land at [2]/[3], not
   # [1]/[2] (verified live; the off-by-one silently emptied $name on the
   # first draft of this fix).
-  if [[ "$c" =~ ${_CMD_BOUNDARY}alias[[:space:]]+([A-Za-z_][A-Za-z0-9_]*)=(\'[^\']*\'|\"[^\"]*\"|[^[:space:]\;\&\|]*) ]]; then
+  #
+  # Round 18 (2026-09-23, Cursor Security Agent): `[[ =~ ]]` finds only
+  # the LEFTMOST match anywhere in the whole string -- a single `if`
+  # test can never find a SECOND alias definition later in the same
+  # command, so a decoy definition preceding the real git-wrapper
+  # definition (`alias dummy=echo; alias g=/usr/bin/git; g checkout
+  # main && g merge feature`) permanently hid the real one. Live-
+  # verified allowed pre-fix. Fixed by looping over a shrinking $remain
+  # copy of $c, matching repeatedly and stripping past each consumed
+  # match, so every occurrence is examined -- not just the first. Each
+  # of the three checks below gets its OWN independent $remain reset,
+  # since they scan for different, positionally-unrelated patterns.
+  remain="$c"
+  while [[ "$remain" =~ ${_CMD_BOUNDARY}alias[[:space:]]+([A-Za-z_][A-Za-z0-9_]*)=(\'[^\']*\'|\"[^\"]*\"|[^[:space:]\;\&\|]*) ]]; do
+    whole="${BASH_REMATCH[0]}"
+    [ -z "$whole" ] && break
     name="${BASH_REMATCH[2]}"
     rhs="${BASH_REMATCH[3]}"
     rhs="${rhs#\'}"; rhs="${rhs%\'}"
     rhs="${rhs#\"}"; rhs="${rhs%\"}"
     case "$rhs" in
-      git|*/git) _git_alias_names="$name" ;;
-      *) _looks_unresolvable_method_value "$rhs" && _git_alias_names="$name" ;;
+      git|*/git) _git_alias_names="$_git_alias_names $name" ;;
+      *) _looks_unresolvable_method_value "$rhs" && _git_alias_names="$_git_alias_names $name" ;;
     esac
-  fi
+    remain="${remain#*"$whole"}"
+  done
   # A shell FUNCTION whose body mentions "git" anywhere (`NAME() { git
   # "$@"; }`, `NAME () { ...git...; }`, or the `function NAME { ... }`
   # form) -- deliberately broad (any function wrapping "git" in its body,
@@ -442,16 +458,24 @@ _scan_git_alias_names() {
   # boundary character from the second regex instead of the function
   # name from the first).
   local fname fbody
-  if [[ "$c" =~ ([A-Za-z_][A-Za-z0-9_]*)[[:space:]]*\(\)[[:space:]]*\{([^}]*)\} ]]; then
+  remain="$c"
+  while [[ "$remain" =~ ([A-Za-z_][A-Za-z0-9_]*)[[:space:]]*\(\)[[:space:]]*\{([^}]*)\} ]]; do
+    whole="${BASH_REMATCH[0]}"
+    [ -z "$whole" ] && break
     fname="${BASH_REMATCH[1]}"
     fbody="${BASH_REMATCH[2]}"
     [[ "$fbody" =~ ${_CMD_BOUNDARY}git([[:space:]]|$) ]] && _git_alias_names="$_git_alias_names $fname"
-  fi
-  if [[ "$c" =~ function[[:space:]]+([A-Za-z_][A-Za-z0-9_]*)[[:space:]]*(\(\))?[[:space:]]*\{([^}]*)\} ]]; then
+    remain="${remain#*"$whole"}"
+  done
+  remain="$c"
+  while [[ "$remain" =~ function[[:space:]]+([A-Za-z_][A-Za-z0-9_]*)[[:space:]]*(\(\))?[[:space:]]*\{([^}]*)\} ]]; do
+    whole="${BASH_REMATCH[0]}"
+    [ -z "$whole" ] && break
     fname="${BASH_REMATCH[1]}"
     fbody="${BASH_REMATCH[3]}"
     [[ "$fbody" =~ ${_CMD_BOUNDARY}git([[:space:]]|$) ]] && _git_alias_names="$_git_alias_names $fname"
-  fi
+    remain="${remain#*"$whole"}"
+  done
 }
 
 # rm of a dangerous root (/, ~, $HOME — but NOT ./relative) recursively, in any
