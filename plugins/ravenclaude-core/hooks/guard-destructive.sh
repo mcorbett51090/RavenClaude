@@ -597,6 +597,24 @@ _is_dangerous_git_clean() {
 #     token boundaries) cannot be fooled by a substring landing inside a
 #     single compound token, since `FOO=checkout` is one word, never equal
 #     to the bare word `checkout`.
+# Round 3 (2026-09-23, Bugbot): the checkout/switch/symbolic-ref word-scan
+# used to accept ANY captured token as the new branch name, including one
+# glued to a shell redirect (`git checkout main>/dev/null` — the shell
+# splits this into the arg "main" plus a redirection, but our plain
+# whitespace-based `for word in $seg` sees "main>/dev/null" as ONE word)
+# or a command substitution (`git checkout $(true)` — the real branch is
+# whatever $(true) evaluates to, which we cannot know). Either shape let
+# the tracker "leave" main/master without actually knowing where HEAD
+# ended up, silently clearing the deny. Only accept a token that looks
+# like a literal git ref (letters/digits/`._/-`, no shell metacharacters)
+# as an override; anything else is left alone, keeping the more
+# conservative prior value of $branch rather than trusting an ambiguous
+# token — under-blocking is the worse failure here, so ambiguity must
+# never CLEAR a suspected-main baseline.
+_is_safe_ref_token() {
+  [[ "$1" =~ ^[A-Za-z0-9._/-]+$ ]]
+}
+
 _is_dangerous_merge() {
   local c="$1" seg found=1
   # ⛔ Bugbot review (2026-09-22, PR #1241): the original gate required the
@@ -664,9 +682,9 @@ EOF
             *) [ -z "$first_pos" ] && first_pos="$word" ;;
           esac
         done
-        if [ -n "$seg_target" ]; then
+        if [ -n "$seg_target" ] && _is_safe_ref_token "$seg_target"; then
           branch="$seg_target"
-        elif [ -z "$double_dash" ] && [ -n "$first_pos" ]; then
+        elif [ -z "$double_dash" ] && [ -n "$first_pos" ] && _is_safe_ref_token "$first_pos"; then
           branch="$first_pos"
         fi
       fi
@@ -694,10 +712,26 @@ EOF
             *) [ -z "$symref_target" ] && symref_target="$word" ;;
           esac
         done
-        [ -n "$symref_target" ] && branch="$symref_target"
+        [ -n "$symref_target" ] && _is_safe_ref_token "$symref_target" && branch="$symref_target"
       fi
       if [[ "$seg" =~ ${_CMD_BOUNDARY}git[[:space:]]+merge([[:space:]]|$) ]]; then
-        if ! [[ "$seg" =~ ${_CMD_BOUNDARY}--ff-only([[:space:]]|$) ]]; then
+        # Round 3 (2026-09-23, Bugbot): the old check only asked "does
+        # --ff-only appear ANYWHERE in this segment?", so it treated
+        # `--ff-only` as sticky even when a LATER flag in the same
+        # invocation overrides it. Real git flag parsing is last-wins for
+        # this trio, so `git merge --ff-only --no-ff feature` performs an
+        # ordinary (non-fast-forward-only) merge — verified live — but the
+        # old regex still saw --ff-only and skipped the deny. Word-scan the
+        # segment and track only the LAST of --ff-only/--no-ff/--ff seen;
+        # only skip the deny when that last flag is --ff-only.
+        local ff_word ff_state=""
+        for ff_word in $seg; do
+          case "$ff_word" in
+            --ff-only) ff_state="ff-only" ;;
+            --no-ff|--ff) ff_state="not-ff-only" ;;
+          esac
+        done
+        if [ "$ff_state" != "ff-only" ]; then
           # ⛔ Bugbot review (2026-09-22, PR #1241): `git checkout
           # refs/heads/main` tracks $branch as the literal string
           # "refs/heads/main", which the bare main|master case arm below
@@ -736,6 +770,16 @@ _is_dangerous_update_ref() {
     for word in $seg; do
       case "$word" in
         -d|--delete) return 0 ;;
+        # Round 3 (2026-09-23, Bugbot): git's `--stdin` mode reads ref
+        # updates (including `delete <ref>` / `option no-deref` lines)
+        # from stdin, so the actual delete never appears as a `-d`/
+        # `--delete` FLAG on the command line at all — the flag-only
+        # scan above can never see it. We cannot reliably inspect what
+        # a piped/heredoc stdin stream will contain, so treat `--stdin`
+        # itself as dangerous (deny outright, matching this file's
+        # under-blocking-never posture on constructs we can't fully
+        # scan).
+        --stdin) return 0 ;;
       esac
     done
   done <<EOF
