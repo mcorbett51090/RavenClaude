@@ -98,7 +98,7 @@ _A static key pasted into a CI variable is the last resort, never the default �
 | Capability | 2026 state `[verify-at-build]` | Notes |
 |---|---|---|
 | GitHub Actions OIDC to cloud | GA | Prefer over long-lived keys; federate to AWS/Azure/GCP |
-| GitHub Actions workflow execution protections | Public preview (2026-06) | Rulesets-based allow-list controlling who (users/roles/Apps/Copilot/Dependabot) and which events (push, pull_request, pull_request_target, workflow_dispatch) may trigger workflows; `evaluate`/shadow mode before enforce. Restrict pull_request_target + workflow_dispatch to disrupt poisoned-pipeline execution. [Changelog 2026-06-18](https://github.blog/changelog/2026-06-18-control-who-and-what-triggers-github-actions-workflows/) `[verify-at-build]` |
+| GitHub Actions workflow execution protections | **Generally available (2026-09-17)** `[re-verified 2026-09-23]` — supersedes the earlier "public preview" state | Rulesets-based allow-list controlling who (users/roles/Apps/Copilot/Dependabot) and which events (push, pull_request, pull_request_target, workflow_dispatch) may trigger workflows; `evaluate`/shadow mode before enforce. GA adds **workflow-file targeting** (scope a rule to one workflow file, not the whole repo), rule-evaluation insights, and a REST API. **New default for public repos:** a public repo with no existing event policy gets a default rule that disables `pull_request_target`, running in evaluate mode first; **GitHub auto-enforces it 2026-11-02** for affected repos (does not apply to private/internal repos) — configure an explicit Actions policy before then if `pull_request_target` is genuinely needed. Restrict pull_request_target + workflow_dispatch to disrupt poisoned-pipeline execution. [GA changelog 2026-09-17](https://github.blog/changelog/2026-09-17-workflow-execution-protections-in-github-actions-generally-available/) |
 | Argo CD | GA, CNCF graduated | App-of-apps, ApplicationSets, drift self-heal |
 | Flux | GA, CNCF graduated | GitOps Toolkit controllers |
 | SLSA provenance | v1.0 framework | Build L2/L3 levels; pair with signing (cosign/Sigstore) |
@@ -145,7 +145,7 @@ flowchart TD
 
 **When this applies:** creating or updating a production container image Dockerfile. The base image choice has direct implications for image size, CVE surface, and rebuild cadence.
 
-**Last verified:** 2026-06-05 against Google distroless project, Alpine, and Docker Hub official images.
+**Last verified:** 2026-09-23 against the GoogleContainerTools/distroless README (upstream now bases every image on Debian 13/trixie — there is no `-debian12` or `nodejs20` tag in the current listing) and Node.js's own EOL schedule (Node 20 reached EOL 2026-04-30). Superseded the 2026-06-05 verification.
 
 ```mermaid
 flowchart TD
@@ -154,11 +154,13 @@ flowchart TD
     Q2 -->|yes| ALPINE[Alpine Linux - musl libc, minimal package set]
     Q2 -->|no| SLIM[debian-slim or ubuntu-minimal - prune after install]
     Q1 -->|no| Q3{Single compiled binary - Go, Rust, or similar?}
-    Q3 -->|yes| DISTROLESS_STATIC[gcr.io/distroless/static-debian12 - no libc needed]
+    Q3 -->|yes| DISTROLESS_STATIC[gcr.io/distroless/static-debian13 - no libc needed]
     Q3 -->|no| Q4{Needs glibc - Python, JVM, Node?}
-    Q4 -->|yes| DISTROLESS_BASE[gcr.io/distroless/base-debian12 - glibc only]
-    Q4 -->|no| DISTROLESS_LANG[Language distroless - python3 / java21 / nodejs20]
+    Q4 -->|yes| DISTROLESS_BASE[gcr.io/distroless/base-debian13 - glibc only]
+    Q4 -->|no| DISTROLESS_LANG[Language distroless - python3-debian13 / java21-debian13 / nodejs22-debian13]
 ```
+
+_`-debian12` tags and the `nodejs20` variant are gone from upstream's current listing — use `-debian13`. Node 20 is EOL; use `nodejs22-debian13` (LTS) or `nodejs24-debian13`._
 
 **Rationale per leaf:**
 - *Alpine* — smallest full-shell base; musl libc means fewer CVEs vs glibc; requires testing for musl compatibility.

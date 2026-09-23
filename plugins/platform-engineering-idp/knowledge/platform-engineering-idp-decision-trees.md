@@ -9,7 +9,7 @@ flowchart TD
     A[Low adoption] --> B{Is the golden path<br/>the EASY path?}
     B -- "Harder than workaround" --> B1[Friction problem: pave the road,<br/>not mandate it, §3 #2]
     B -- "Easy path" --> C{Measured with DORA<br/>or just sentiment?}
-    C -- "Sentiment only" --> C1[Measure: four DORA keys +<br/>adoption ratio, §3 #3 #7]
+    C -- "Sentiment only" --> C1[Measure: the 5 DORA metrics +<br/>adoption ratio, §3 #3 #7]
     C -- "Measured" --> D{Reliable enough<br/>to depend on?}
     D -- "Flaky paved action" --> D1[Reliability problem: SLOs +<br/>error budget, §3 #6]
     D -- "Reliable" --> D2[Awareness/onboarding gap;<br/>product marketing the path, §3 #1]

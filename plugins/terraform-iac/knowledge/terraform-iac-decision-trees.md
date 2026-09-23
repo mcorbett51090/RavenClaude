@@ -48,7 +48,7 @@ graph TD
   A[Need remote state] --> B{Want a managed run/state platform with policy + RBAC?}
   B -- Yes --> C[Terraform/Tofu Cloud or Spacelift/Scalr]
   B -- No, self-managed --> D{Primary cloud?}
-  D -- AWS --> E[S3 with native lockfile or DynamoDB lock]
+  D -- AWS --> E[S3 with use_lockfile = true - native S3 locking, GA since Terraform 1.11<br/>DynamoDB locking is deprecated - keep only mid-migration]
   D -- GCP --> F[GCS - built-in locking]
   D -- Azure --> G[azurerm - blob lease lock]
   D -- Multi/none --> H[Pick one cloud's object store as the home + its lock]
@@ -99,8 +99,8 @@ _The wrong move is a reflexive `apply` that reverts an emergency console fix and
 | Capability | 2026 state `[verify-at-build]` | Notes |
 |---|---|---|
 | Terraform | GA (BSL license since 1.6) | Verify licensing fit |
-| OpenTofu | GA (MPL, Linux Foundation fork) | Drop-in for many; verify provider/module parity · **Pin ≥ 1.12.3** — earlier 1.12.x had GHSA-q7j3-v8qv-22vq (crafted-git-URL arbitrary file read). |
-| State locking backends | mature (S3+DynamoDB/GCS/azurerm/TFC) | Locking is non-negotiable |
+| OpenTofu | GA (MPL, Linux Foundation fork) | Drop-in for many; verify provider/module parity · **Pin ≥ 1.12.6 (or ≥ 1.11.14 on the 1.11 line)** `[re-verified 2026-09-23]` — supersedes the older ≥1.12.3 floor. **1.12.6 / 1.11.14 (2026-08-19)** fix a credential-leak bug: earlier versions could resend OCI-registry credentials to the target of an HTTP redirect, plus a `tofu init` high-CPU/memory DoS from a crafted relative URL in an attacker-controlled backend/registry response. This matters here because the OCI-registry row below actively recommends the exact distribution path the credential leak affects. |
+| State locking backends | mature (S3 native `use_lockfile`/GCS/azurerm/TFC) | **DynamoDB locking for the S3 backend is deprecated as of Terraform 1.11** (`[re-verified 2026-09-23]`) — S3-native locking (`use_lockfile = true`) is GA and is now the recommended path; keep `dynamodb_table` set only while migrating (both locks can be held simultaneously during the transition), then drop it. Locking itself remains non-negotiable. |
 | Terragrunt | mature | DRY + explicit; extra tool |
 | OPA/Conftest, Sentinel | mature | Evaluate plan JSON; preventive guardrails |
 | terraform test | GA | Native module testing |
@@ -149,7 +149,9 @@ flowchart TD
 
 **When this applies:** A team is starting a new IaC project or migrating an existing one and must choose between Terraform (BSL license) and OpenTofu (MPL, Linux Foundation fork). The observable inputs are: the organization's license policy, the required provider/module ecosystem, and the team's existing toolchain.
 
-**Last verified:** 2026-06-05; **OpenTofu version + OCI distribution re-verified 2026-06-11** against Terraform BSL terms and OpenTofu release notes. Current OpenTofu GA is **1.12.x** (latest **1.12.3, 2026-06-18**; 1.12.2 2026-06-12). **1.12.3 is a security patch fixing GHSA-q7j3-v8qv-22vq** (arbitrary file read during git operations via a maliciously crafted URL) affecting all earlier v1.12 releases, backported to **1.11.10** — **pin OpenTofu ≥ 1.12.3** (or ≥ 1.11.10 on the 1.11 line). [releases](https://github.com/opentofu/opentofu/releases). Since **OpenTofu 1.10**, modules **and** providers can be distributed via **OCI registries** (reuse existing container-registry infra; [OCI registry integrations](https://opentofu.org/docs/cli/oci_registries/)).
+**Last verified:** 2026-06-05; **OpenTofu security-pin floor re-verified 2026-09-23** against the OpenTofu v1.12.6 GitHub release notes. Current OpenTofu GA is **1.12.6** (2026-08-19; **1.13.0-rc1** is out as of 2026-09-17). **1.12.6 / 1.11.14 are security patches** fixing a credential-leak bug — earlier versions could incorrectly resend credentials intended for the original origin to the target of an HTTP redirect when talking to an OCI Distribution registry for module/provider installation — plus a `tofu init` high-CPU/high-memory issue from resolving crafted relative URLs served by an attacker-controlled backend or registry. **This supersedes the older ≥1.12.3 pin** (which addressed a different issue, GHSA-q7j3-v8qv-22vq): **pin OpenTofu ≥ 1.12.6** (or ≥ 1.11.14 on the 1.11 line, its final planned patch). [v1.12.6 release](https://github.com/opentofu/opentofu/releases/tag/v1.12.6). Since **OpenTofu 1.10**, modules **and** providers can be distributed via **OCI registries** (reuse existing container-registry infra; [OCI registry integrations](https://opentofu.org/docs/cli/oci_registries/)) — exactly the path the credential-leak fix covers, so the pin matters most for anyone using that feature.
+
+**Terraform** is separately at **1.16.4** (2026-09-23; 1.16.0 released 2026-08-26, 1.17.0-beta2 is out) `[re-verified 2026-09-23]`. Terraform 1.11 also **deprecated DynamoDB-based S3 state locking** in favor of GA'd S3-native locking (`use_lockfile = true`) — see the backend-selection tree and capability map above.
 
 ```mermaid
 flowchart TD
