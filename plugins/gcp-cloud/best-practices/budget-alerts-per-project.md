@@ -60,7 +60,7 @@ resource "google_pubsub_topic" "billing_alerts" {
 
 **Do:**
 - Set thresholds at 50%, 90%, 100% (actual spend) and 120% (forecasted) — the forecasted threshold catches runaway trends before the month ends.
-- Route alerts to a Pub/Sub topic and trigger a Cloud Function that posts to Slack/PagerDuty, not just email.
+- Route alerts to a Pub/Sub topic and trigger a Cloud Run function that posts to Slack/PagerDuty, not just email.
 - Include both development and production projects — dev environments are often the highest-waste category.
 - Review budget amounts quarterly; a static budget becomes wrong as workloads scale.
 

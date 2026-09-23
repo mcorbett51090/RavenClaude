@@ -41,7 +41,12 @@ Only step up to S if:
 
 Never use Snowpark-Optimized for BI — 1.5× credit rate, M-minimum size, no XS available.
 
-**Adaptive (Gen2) warehouses** (2026): can deliver 20–40% lower cost than Standard on variable workloads by scaling up only the slowest portion of a query plan. **Pilot only after the Tier-A workload is steady** — cold-start behavior differs from Standard. [vendor — Flexera Gen2]
+**Gen2 warehouses and Adaptive Compute are two different products, not one "Adaptive (Gen2)" tier** `[docs-verified 2026-09-23 — docs.snowflake.com/en/user-guide/warehouses-gen2, docs.snowflake.com/en/user-guide/warehouses-adaptive]`:
+
+- **Gen2 standard warehouses** (GA since 2025-05-05): faster per-query, but cost **1.35× Gen1 credits on AWS/GCP and 1.25× on Azure**. Gen2 delivers better performance *within* the familiar fixed-size compute model — it's a straight size-for-size upgrade, not a new pricing shape.
+- **Adaptive Compute** (GA 2026-06-16): a separate workload-aware compute pool with no fixed warehouse size — it uses query-based billing (charged for the compute each query actually consumes, not a fixed per-second reservation). Snowflake frames its ~1.2× price-performance claim (vs. Gen2, on its own internal TPC-DS 10TB benchmark) as throughput-per-dollar, not a guaranteed lower bill.
+
+**Pilot either only after the Tier-A workload is steady** — cold-start behavior differs from Standard for both. For this recipe's own sporadic XS dashboard workload, the 60s minimum-charge rule usually dominates either product's benefit, so **do not assume Gen2's 1.35× credit rate or Adaptive's throughput claim automatically lowers cost here** — model it against the workload's actual query pattern first.
 
 DDL pattern:
 
@@ -199,7 +204,7 @@ CREATE WAREHOUSE psm_streamlit_code_xs
 - Step up to M / L / XL without first exhausting pre-aggregations and clustering analysis → 80%-deploy-poorly cluster-key trap.
 - Snowpark-Optimized warehouse for BI workloads → 1.5× credit rate for no BI-relevant benefit.
 - Streamlit code WH pointing at one warehouse and query WH pointing at another → doubles the cold-start tax.
-- Pilot Adaptive (Gen2) warehouses on day one → cold-start behavior differs from Standard; pilot after baseline is steady.
+- Pilot Gen2 or Adaptive Compute warehouses on day one → cold-start behavior differs from Standard for both; pilot after baseline is steady. Also: quoting Gen2's 1.35× credit multiplier and Adaptive Compute's throughput-per-dollar claim as the same thing → they're separate products with separate pricing mechanics (see above).
 - Long-lived `STATEMENT_TIMEOUT_IN_SECONDS` (>5 min) on the dashboard role → runaway query can rack up a full credit before Resource Monitor's 5-10 min accounting lag catches it.
 
 ---
