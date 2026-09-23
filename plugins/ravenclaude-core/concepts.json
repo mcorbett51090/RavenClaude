@@ -2857,7 +2857,7 @@
         "plugins/ravenclaude-core/hooks/triage-outcome.sh",
         "plugins/ravenclaude-core/hooks/worktree-guard.sh"
       ],
-      "covers_digest": "sha256:4e98a1ceb5a7bed9b004a045a11e425fe4af68e29f31be521495d1249dc34c76",
+      "covers_digest": "sha256:68aca7ad6640ffedbb76d71a1d8a134a7aadf2260c68592be7de620dc3e57098",
       "nuance": "A hook writing to stderr at `exit 0` reaches the model on no event; only `hookSpecificOutput.additionalContext` and `updatedToolOutput` are delivered, so `_advise.sh` advised the terminal for its entire service life.",
       "nuance_evidence": {
         "measured": "2026-08-19",

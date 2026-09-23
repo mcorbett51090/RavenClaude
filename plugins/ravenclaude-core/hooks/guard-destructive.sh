@@ -896,9 +896,65 @@ EOF
     done <<EOF
 $(printf '%s' "$raw" | tr ';&|' '\n\n\n')
 EOF
+    # Round 16 (2026-09-23, Cursor Security Agent): a checkout/switch/
+    # symbolic-ref segment tracked below sets $branch to its TARGET
+    # regardless of whether that command actually succeeds at runtime --
+    # this is a static text scan, it cannot know whether the ref exists.
+    # Only a literal "&&" between that tracking segment and a later merge/
+    # pull segment actually GUARANTEES the checkout succeeded before the
+    # merge runs; every other separator this file treats as a segment
+    # boundary (single ";", single "&", "|", or "||") does NOT -- ";" and
+    # "&" run unconditionally, "|" only pipes stdout, and "||" runs only on
+    # FAILURE (the opposite guarantee). `git checkout <nonexistent-ref>;
+    # git merge --no-ff feature` on main previously merged with HEAD still
+    # on main because the tracker trusted the ";"-joined checkout target as
+    # if it were guaranteed. Live-verified allowed pre-fix.
+    #
+    # Build a same-length "gate" array alongside the SAME tr-based segment
+    # split the main loop below reads ($c via `tr ';&|' '\n\n\n'`, which
+    # emits an EMPTY segment between a doubled operator's two characters,
+    # e.g. "&&" or "||" -- the array below replicates that exact shape so
+    # its indices line up 1:1 with $_idx, the same index the $raw_seg
+    # lookup above already relies on). _and_gate_before[i] is 1 only when
+    # the operator immediately preceding segment i was a literal "&&"; 0
+    # for every other separator (or for segment 0, which has none).
+    local -a _and_gate_before=(0)
+    local _gs="$c" _gi=0 _gn=${#c} _gch _gsegidx=0
+    while [ "$_gi" -lt "$_gn" ]; do
+      _gch="${_gs:_gi:1}"
+      case "$_gch" in
+        ';'|'&'|'|')
+          if { [ "$_gch" = '&' ] || [ "$_gch" = '|' ]; } && [ "${_gs:$((_gi+1)):1}" = "$_gch" ]; then
+            _gsegidx=$((_gsegidx + 1)); _and_gate_before[_gsegidx]=0   # the blank segment tr inserts between the doubled operator's two chars
+            _gsegidx=$((_gsegidx + 1))
+            if [ "$_gch" = '&' ]; then
+              _and_gate_before[_gsegidx]=1   # literal "&&" -- guarantees the preceding segment succeeded
+            else
+              _and_gate_before[_gsegidx]=0   # "||" -- runs only on the preceding segment's FAILURE, the opposite guarantee
+            fi
+            _gi=$((_gi + 2))
+          else
+            _gsegidx=$((_gsegidx + 1)); _and_gate_before[_gsegidx]=0
+            _gi=$((_gi + 1))
+          fi
+          ;;
+        *) _gi=$((_gi + 1)) ;;
+      esac
+    done
+    local original_branch="$branch"
+    local chain_and_only=""
     while IFS= read -r seg; do
       local raw_seg="${_raw_segs[_idx]:-$seg}"
+      local _this_gate="${_and_gate_before[_idx]:-0}"
       _idx=$((_idx + 1))
+      # A doubled-operator ("&&"/"||") inserts an EMPTY placeholder segment
+      # between the two real segments it joins (see the array-builder
+      # comment above) -- that blank segment's own gate value is always 0
+      # and means nothing; applying it here would incorrectly break a
+      # chain that a real "&&" segment right after it is about to prove
+      # intact. Only a REAL (non-empty) segment's gate is allowed to
+      # break $chain_and_only.
+      [ -z "$seg" ] || { [ "$_this_gate" = "1" ] || chain_and_only=0; }
       # Round 4 (2026-09-23, Bugbot): `cd <dir> && git merge ...` targets a
       # DIFFERENT repo than the one the hook process's own cwd sits in — the
       # $branch computed above (from the hook's cwd) is then simply wrong
@@ -982,7 +1038,25 @@ EOF
       # and the checkout was silently untracked. Widened to the same
       # order/adjacency-independent word-presence check already used for
       # merge/update-ref detection.
-      if [[ "$seg" =~ ${_CMD_BOUNDARY}git([[:space:]]|$) ]] && [[ "$seg" =~ ${_CMD_BOUNDARY}(checkout|switch)([[:space:]]|$) ]]; then
+      # Round 16 (2026-09-23, Cursor Security Agent): this outer gate still
+      # required a boundary-anchored LITERAL "git" while the merge/pull
+      # detection a few lines below already accepts "git OR an
+      # unresolvable-looking word" via _git_invocation_present (round 15) --
+      # so `$GIT checkout main && git merge feature` (or
+      # `$(command -v git) checkout main && git merge feature`) never
+      # entered THIS block at all, leaving $branch untracked and pinned to
+      # whatever the hook process's own real HEAD happened to be, while the
+      # merge segment (a literal "git merge") was independently evaluated
+      # against that stale value. Live-verified allowed pre-fix. Widened to
+      # the identical git-OR-unresolvable-word test already used for merge/
+      # pull -- when the word is unresolvable rather than literal "git",
+      # the inner scan below still won't confidently locate "checkout"/
+      # "switch" as the subcommand (its own $prev check still requires a
+      # literal "git"/"*/git"), so it correctly falls through to the
+      # existing round-9 "never silently leave it untracked" sentinel
+      # fallback a few lines down -- the conservative-deny outcome, not a
+      # new bypass.
+      if _git_invocation_present "$seg" && [[ "$seg" =~ ${_CMD_BOUNDARY}(checkout|switch)([[:space:]]|$) ]]; then
         prev="" seen="" seg_target="" pending="" pending_kind="" double_dash="" first_pos=""
         # Round 4 (2026-09-23, Bugbot): a redirect glued directly onto the
         # target with no whitespace (`git checkout main>/dev/null`) reads
@@ -1048,6 +1122,11 @@ EOF
             branch="$_AMBIGUOUS_BRANCH_SENTINEL"
           fi
           branch_tracked=1
+          # Round 16 (2026-09-23, Cursor Security Agent): re-arm the
+          # unbroken-&&-chain tracker fresh at every point this file
+          # actually tracks a HEAD retarget (see the array-builder comment
+          # near $_and_gate_before above for why this exists).
+          chain_and_only=1
         elif [ -z "$double_dash" ] && [ -n "$first_pos" ]; then
           if _is_safe_ref_token "$first_pos"; then
             branch="$first_pos"
@@ -1055,6 +1134,11 @@ EOF
             branch="$_AMBIGUOUS_BRANCH_SENTINEL"
           fi
           branch_tracked=1
+          # Round 16 (2026-09-23, Cursor Security Agent): re-arm the
+          # unbroken-&&-chain tracker fresh at every point this file
+          # actually tracks a HEAD retarget (see the array-builder comment
+          # near $_and_gate_before above for why this exists).
+          chain_and_only=1
         elif [ -z "$seen" ]; then
           # Round 9 (2026-09-23, Bugbot): the outer gate matched (a
           # "checkout"/"switch" word is present in this segment) but the
@@ -1067,6 +1151,11 @@ EOF
           # in this file (the conservative-deny sentinel).
           branch="$_AMBIGUOUS_BRANCH_SENTINEL"
           branch_tracked=1
+          # Round 16 (2026-09-23, Cursor Security Agent): re-arm the
+          # unbroken-&&-chain tracker fresh at every point this file
+          # actually tracks a HEAD retarget (see the array-builder comment
+          # near $_and_gate_before above for why this exists).
+          chain_and_only=1
         fi
       fi
       # Round 2 (2026-09-22, Bugbot): `git symbolic-ref HEAD <ref>` is a
@@ -1083,7 +1172,14 @@ EOF
       # unexpanded multi-token command substitution (`-C $(echo .)`) broke
       # it identically: `git -C $(echo .) symbolic-ref HEAD refs/heads/main
       # && git merge feat` left the symbolic-ref completely untracked.
-      if [[ "$seg" =~ ${_CMD_BOUNDARY}git([[:space:]]|$) ]] && [[ "$seg" =~ ${_CMD_BOUNDARY}symbolic-ref([[:space:]]|$) ]]; then
+      # Round 16 (2026-09-23, Cursor Security Agent): same literal-"git"-vs-
+      # _git_invocation_present asymmetry as the checkout/switch gate above
+      # (this round's finding named checkout/switch explicitly; symbolic-ref
+      # is the third HEAD-retargeting verb this file tracks and carries the
+      # identical gap -- fixed in lockstep rather than left as a matching
+      # unpatched sibling, per this file's own "when two rules in one block
+      # disagree about scoping, the unscoped one is the bug" precedent).
+      if _git_invocation_present "$seg" && [[ "$seg" =~ ${_CMD_BOUNDARY}symbolic-ref([[:space:]]|$) ]]; then
         symref_target=""
         prev="" seen=""
         for word in $seg; do
@@ -1117,6 +1213,11 @@ EOF
             branch="$_AMBIGUOUS_BRANCH_SENTINEL"
           fi
           branch_tracked=1
+          # Round 16 (2026-09-23, Cursor Security Agent): re-arm the
+          # unbroken-&&-chain tracker fresh at every point this file
+          # actually tracks a HEAD retarget (see the array-builder comment
+          # near $_and_gate_before above for why this exists).
+          chain_and_only=1
         elif [ -z "$seen" ]; then
           # Round 10 (2026-09-23, Bugbot): same "never silently leave it
           # untracked" fallback as the checkout/switch gate (round 9) --
@@ -1125,6 +1226,11 @@ EOF
           # immediately after "git" (or a path-qualified git binary).
           branch="$_AMBIGUOUS_BRANCH_SENTINEL"
           branch_tracked=1
+          # Round 16 (2026-09-23, Cursor Security Agent): re-arm the
+          # unbroken-&&-chain tracker fresh at every point this file
+          # actually tracks a HEAD retarget (see the array-builder comment
+          # near $_and_gate_before above for why this exists).
+          chain_and_only=1
         fi
       fi
       # Round 7 (2026-09-23, Bugbot): same word-presence relaxation as the
@@ -1219,6 +1325,25 @@ EOF
             case "$textual_check" in
               main|master|"$_AMBIGUOUS_BRANCH_SENTINEL") return 0 ;;
             esac
+            # Round 16 (2026-09-23, Cursor Security Agent): with no
+            # resolvable retarget, $textual_check (the checkout/switch/
+            # symbolic-ref TARGET tracked earlier in this chain) was
+            # previously the ONLY signal checked -- but a static scan can
+            # never confirm that checkout actually succeeded. When the
+            # chain from that tracking point to THIS merge segment is not
+            # an unbroken run of literal "&&" ($chain_and_only != 1 --
+            # see the $_and_gate_before builder above), the checkout's
+            # success is unguaranteed, so ALSO check the untouched,
+            # pre-chain real branch and deny if EITHER it or the tracked
+            # target is main/master/the ambiguous sentinel. Under an
+            # unbroken "&&" chain (chain_and_only=1) this extra check is
+            # skipped, preserving the ordinary, fully-guaranteed
+            # `git checkout <branch> && git merge <other>` pattern.
+            if [ -n "$branch_tracked" ] && [ "$chain_and_only" != "1" ]; then
+              case "${original_branch#refs/heads/}" in
+                main|master|"$_AMBIGUOUS_BRANCH_SENTINEL") return 0 ;;
+              esac
+            fi
           fi
         fi
       fi
@@ -1401,8 +1526,18 @@ _seg_has_delete_method() {
       # meant `-X=DELETE`/`-X=delete`/an unresolvable `-X=$(...)` all sailed
       # through unmatched.
       --method=*|--request=*|-X=*)
+        # Round 16 (2026-09-23, Cursor Security Agent): this exact-match arm
+        # required "${word#*=}" to be LITERALLY "DELETE" and nothing else --
+        # the same glued-suffix gap round 15 already fixed for the SPACED
+        # flag form (`--request DELETE|cat`, line ~1392 above) was never
+        # applied here: `--method=DELETE|cat` is one whitespace-delimited
+        # word to this scan (the `|` isn't in $IFS), so `${word#*=}` reads
+        # "DELETE|cat", which matched neither the old exact-DELETE case nor
+        # the unresolvable-value fallback below. Live-verified allowed
+        # pre-fix. Widened to accept anything glued after DELETE, exactly
+        # like the spaced-form fix.
         case "${word#*=}" in
-          [Dd][Ee][Ll][Ee][Tt][Ee]) return 0 ;;
+          [Dd][Ee][Ll][Ee][Tt][Ee]*) return 0 ;;
         esac
         _looks_unresolvable_method_value "${word#*=}" && return 0
         ;;
