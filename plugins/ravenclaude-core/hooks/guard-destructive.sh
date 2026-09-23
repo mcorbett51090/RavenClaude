@@ -985,7 +985,14 @@ EOF
       # bypassed the deny entirely. `symbolic-ref` writes the ref
       # literally (no DWIM), so the operand is always a full ref path;
       # normalize it the same way as a full-ref-path checkout.
-      if [[ "$seg" =~ ${_CMD_BOUNDARY}git[[:space:]]+symbolic-ref([[:space:]]|$) ]]; then
+      # Round 10 (2026-09-23, Bugbot): same word-presence relaxation as the
+      # checkout/switch gate above (round 9) -- this gate relied on the
+      # same pre-existing generic git-global-option strip to collapse a
+      # single-token flag before the adjacency regex could match, and an
+      # unexpanded multi-token command substitution (`-C $(echo .)`) broke
+      # it identically: `git -C $(echo .) symbolic-ref HEAD refs/heads/main
+      # && git merge feat` left the symbolic-ref completely untracked.
+      if [[ "$seg" =~ ${_CMD_BOUNDARY}git([[:space:]]|$) ]] && [[ "$seg" =~ ${_CMD_BOUNDARY}symbolic-ref([[:space:]]|$) ]]; then
         symref_target=""
         prev="" seen=""
         for word in $seg; do
@@ -1018,6 +1025,14 @@ EOF
           else
             branch="$_AMBIGUOUS_BRANCH_SENTINEL"
           fi
+          branch_tracked=1
+        elif [ -z "$seen" ]; then
+          # Round 10 (2026-09-23, Bugbot): same "never silently leave it
+          # untracked" fallback as the checkout/switch gate (round 9) --
+          # the outer gate matched (a "symbolic-ref" word is present) but
+          # the inner scan never confidently located it as the subcommand
+          # immediately after "git" (or a path-qualified git binary).
+          branch="$_AMBIGUOUS_BRANCH_SENTINEL"
           branch_tracked=1
         fi
       fi
