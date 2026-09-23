@@ -16,7 +16,28 @@ if [[ -z "$file" ]] && [[ ! -t 0 ]] && command -v jq >/dev/null 2>&1; then
   fi
 fi
 [ -z "$file" ] && exit 0
-[ ! -f "$file" ] && exit 0
+# --- proposed-edit scan target (repo-review 2026-09-23) ----------------------
+# At PreToolUse the write has NOT landed: the on-disk file is the PRE-edit state
+# (or absent for a new-file Write), so grepping "$file" misses the very content
+# this hook exists to catch. Build the scan target from the tool payload —
+# .tool_input.content (Write) / .tool_input.new_string (Edit) /
+# .tool_input.edits[].new_string (MultiEdit) — and scan THAT. The on-disk file is
+# used only as a legacy fallback for a manual, no-stdin invocation (payload unset).
+# (Fix propagated from data-platform/hooks/flag-data-platform-smells.sh, 2026-09-03.)
+scan_target="$file"
+if [ -n "${payload:-}" ] && command -v jq >/dev/null 2>&1; then
+  _rc_proposed="$(printf '%s' "$payload" | jq -r '[.tool_input.content // empty, .tool_input.new_string // empty, ((.tool_input.edits // [])[]?.new_string // empty)] | map(select(. != "")) | join("\n")' 2>/dev/null || true)"
+  if [ -n "$_rc_proposed" ]; then
+    _rc_scan_tmp="$(mktemp 2>/dev/null || true)"
+    if [ -n "$_rc_scan_tmp" ]; then
+      printf '%s\n' "$_rc_proposed" > "$_rc_scan_tmp"
+      scan_target="$_rc_scan_tmp"
+      trap 'rm -f "$_rc_scan_tmp"' EXIT
+    fi
+  fi
+fi
+[ -z "$scan_target" ] && exit 0
+[ ! -f "$scan_target" ] && exit 0
 
 # Stock-toolchain portability: `grep -P` (PCRE) is a GNU extension — BSD/macOS grep exits
 # 2, which inside `if grep -Pzi ...; then` reads as NO MATCH, so these checks silently
@@ -32,16 +53,16 @@ command -v _rc_pcre_match >/dev/null 2>&1 || _rc_pcre_match() {
 }
 
 findings=()
-if grep -nEi "(p[_-]?value|p\\s*<\\s*0\\.0?5|statistically significant|significant at)" "$file" >/dev/null 2>&1; then
+if grep -nEi "(p[_-]?value|p\\s*<\\s*0\\.0?5|statistically significant|significant at)" "$scan_target" >/dev/null 2>&1; then
   findings+=("Computing/asserting statistical significance here — route significance (power/MDE/p-value) to applied-statistics; this layer produces clean data, not verdicts.")
 fi
-if grep -nEi "(stop.*experiment.*significan|peek|check.*results.*daily.*stop)" "$file" >/dev/null 2>&1; then
+if grep -nEi "(stop.*experiment.*significan|peek|check.*results.*daily.*stop)" "$scan_target" >/dev/null 2>&1; then
   findings+=("Possible peeking-to-stop — pre-register duration or use a sequential method (with applied-statistics); peeking inflates false positives.")
 fi
-if _rc_pcre_match "$file" "(flag|feature)\\s*[:=].*(true|enabled)(?![\\s\\S]{0,120}(owner|remove|expire|kill))"; then
+if _rc_pcre_match "$scan_target" "(flag|feature)\\s*[:=].*(true|enabled)(?![\\s\\S]{0,120}(owner|remove|expire|kill))"; then
   findings+=("Feature flag without an apparent owner/removal/kill-switch nearby — every temp flag needs an owner + removal date; risky ones need a kill switch.")
 fi
-if grep -nEi "(track|capture|logEvent)\\([\\s\\S]{0,40}[\\\"'][A-Z ]{2,}|track\\([\\s\\S]{0,40}[\\\"'][a-z]+ [a-z]+" "$file" >/dev/null 2>&1; then
+if grep -nEi "(track|capture|logEvent)\\([\\s\\S]{0,40}[\\\"'][A-Z ]{2,}|track\\([\\s\\S]{0,40}[\\\"'][a-z]+ [a-z]+" "$scan_target" >/dev/null 2>&1; then
   findings+=("Possibly ad-hoc/inconsistent event name — follow the tracking plan's object_action convention; inconsistent names are the data mess.")
 fi
 
