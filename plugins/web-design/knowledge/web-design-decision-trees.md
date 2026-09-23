@@ -13,23 +13,26 @@ These are the canonical branching decisions the web-design agents face repeatedl
 
 **When this applies:** You're building an interactive control (button, menu, modal, tabs, combobox, disclosure) and must decide whether to use a native HTML element, a native platform primitive (`<dialog>`/Popover), an accessible library primitive, or hand-rolled ARIA. The observable trigger: you're about to add `role=` / `tabindex` / `aria-*` to a `<div>` or `<span>`.
 
-**Last verified:** 2026-05-30 against the `accessibility-auditor` agent + `reach-for-semantic-html-before-aria.md` + `web-platform-capabilities-2026.md`. WCAG 2.2 version `[verify-at-build]`.
+**Last verified:** 2026-09-23 against MDN's Popover API docs (`mdn/content` `popover_api/index.md`, retrieved 2026-09-23: "Popovers created using the Popover API are always non-modal. If you want to create a modal popover, a `<dialog>` element is the right way to go."). WCAG 2.2 version `[verify-at-build]`.
 
 ```mermaid
 flowchart TD
     START[Need an interactive control] --> Q1{Does a native HTML element carry this role?}
     Q1 -->|Yes: button, a, input, select, details/summary, nav, table| NATIVE[Use the native element — keyboard, focus, role free]
-    Q1 -->|No native element| Q2{Is it a dialog, menu, tooltip, or popover?}
-    Q2 -->|Yes| PLATFORM[Use native dialog / Popover API — focus + Esc handled by the platform]
-    Q2 -->|No: combobox, tree, tablist, grid| Q3{Is an accessible primitive available in the stack?}
+    Q1 -->|No native element| Q2{Is it a MODAL dialog, or a non-modal tooltip/toast/menu?}
+    Q2 -->|Modal dialog| DIALOG[Use dialog.showModal — the platform makes the rest of the page inert + traps focus + Esc-to-close]
+    Q2 -->|Non-modal: tooltip, toast, teaching UI, menu| Q2b{Does it need APG menu semantics (roving tabindex, arrow keys)?}
+    Q2b -->|Just positioning/dismissal — tooltip, toast, hint| POPOVER[Use the Popover API — light-dismiss + Esc-returns-focus, but NON-MODAL: no focus trap, no inert background]
+    Q2b -->|Yes: action menu, listbox-like menu| Q3{Is an accessible primitive available in the stack?}
     Q3 -->|Yes: Radix / React Aria / Fluent v9| PRIMITIVE[Use the APG-implementing primitive — don't re-derive roles/keys]
-    Q3 -->|No primitive available| ARIA[Hand-roll ARIA from the APG pattern — own ALL keyboard + state]
+    Q3 -->|No primitive available| ARIA[Hand-roll ARIA from the APG menu pattern — own ALL keyboard + state]
 ```
 
 **Rationale per leaf:**
 - *NATIVE* — the element already ships the role, focus, and keyboard handling; reinventing it on a `<div>` is how a Lighthouse-100 page stays keyboard-broken. First rule of ARIA: don't.
-- *PLATFORM* — native `<dialog>` and the Popover API handle focus trap, Esc, and return-focus without a JS library; reach for them before a bespoke modal/menu. **requires:** target browser support — check Baseline for the audience.
-- *PRIMITIVE* — when no native element exists (combobox, tree, tablist), an APG-faithful library (Radix / React Aria / Fluent v9) gives you the roles/states/keys correctly instead of you re-deriving them.
+- *DIALOG* — `<dialog>` opened via `.showModal()` is the only platform-native way to get a real focus trap + inert background + Esc-to-close; use it for anything that must block interaction with the rest of the page.
+- *POPOVER* — the Popover API (`popover` attribute) is **always non-modal** per MDN — it gives light-dismiss, top-layer stacking, an implicit `aria-expanded`/`aria-details` wire-up, and Esc-returns-focus-to-invoker, but it does **not** trap focus and does **not** make the rest of the page inert; correct for tooltips/toasts/teaching-UI, wrong for anything that must block the page. `<dialog popover>` combines both if you want popover light-dismiss with dialog semantics. **requires:** target browser support — check Baseline for the audience.
+- *PRIMITIVE* — a menu still needs real menu semantics (role, roving tabindex, arrow-key navigation) that neither `<dialog>` nor Popover provide on their own; when no native element exists (combobox, tree, tablist, menu), an APG-faithful library (Radix / React Aria / Fluent v9) gives you the roles/states/keys correctly instead of you re-deriving them.
 - *ARIA* — only when no native element and no primitive exists; you now own the full APG keyboard map, roving tabindex, and every `aria-*` state staying in sync with the UI.
 
 **Tradeoffs summary table:**
@@ -37,8 +40,9 @@ flowchart TD
 | Leaf | A11y cost to you | Maintenance | Keyboard handling | Use when |
 |---|---|---|---|---|
 | NATIVE | ~zero | lowest | free | A native element carries the role (the common case) |
-| PLATFORM (`<dialog>`/Popover) | low | low | platform-provided | Dialog/menu/tooltip/popover + supported browsers |
-| PRIMITIVE (Radix/React Aria/Fluent) | low | medium (dep) | library-provided | Composite widget with no native element |
+| DIALOG (`<dialog>.showModal()`) | low | low | platform-provided (focus trap + inert bg) | Anything that must block the rest of the page |
+| POPOVER (Popover API) | low | low | platform-provided, but **non-modal** (no trap, no inert) | Tooltip / toast / teaching UI + supported browsers |
+| PRIMITIVE (Radix/React Aria/Fluent) | low | medium (dep) | library-provided | Menu / combobox / tree / tablist — no native element, needs real menu semantics |
 | ARIA hand-rolled | high (you own it all) | highest | you implement it | No native element AND no primitive available |
 
 ---
@@ -47,7 +51,7 @@ flowchart TD
 
 **When this applies:** Field data (CrUX / RUM at p75) shows a failing metric, or a page "feels" slow/janky/jumpy. The observable trigger is a specific failing metric, not a vibe — get the field number first. Thresholds: LCP < 2.5 s, INP < 200 ms, CLS < 0.1 `[verify-at-build — 2026 CWV thresholds]`.
 
-**Last verified:** 2026-05-30 against the `performance-engineer` fix-by-symptom maps + `web-platform-capabilities-2026.md` + the `perf-*` best-practice docs.
+**Last verified:** 2026-09-23 against the HTTP Archive Web Almanac 2025 Performance chapter (mobile "good" rates: LCP 62%, INP 77%, CLS 81% — LCP is the most-failed metric on mobile overall, not INP; INP is still the weakest metric on JS-heavy/high-traffic sites, where the top-1,000 sites' mobile INP is only 63% good) + the `performance-engineer` fix-by-symptom maps + `web-platform-capabilities-2026.md` + the `perf-*` best-practice docs.
 
 ```mermaid
 flowchart TD
@@ -67,15 +71,15 @@ flowchart TD
 - *LCP_PRIO* — late discovery / low priority is the most common and cheapest LCP regression; preload + `fetchpriority="high"` moves it by seconds. (`perf-protect-lcp-with-preload-and-priority.md`)
 - *LCP_IMG* — an oversized hero blows the byte budget; modern format + responsive `srcset` + dimensions fix weight and CLS together.
 - *LCP_BLOCK* — when the LCP is text or the image waits on render-blocking resources, the fix is the critical path (inline critical CSS, defer JS, preload the font), not the image.
-- *INP* — INP is the most-failed 2026 metric and almost always long main-thread tasks; yield, defer, and shed third-party JS. (`perf-keep-inp-under-200ms.md`)
+- *INP* — LCP is the most-failed CWV on mobile overall (62% good vs INP's 77% and CLS's 81%, per Web Almanac 2025), but INP is the weakest metric on JS-heavy or high-traffic sites (top-1,000 mobile sites: only 63% good) and is almost always caused by long main-thread tasks; yield, defer, and shed third-party JS. (`perf-keep-inp-under-200ms.md`)
 - *CLS_DIM / CLS_FONT / CLS_INSERT* — every shift is unreserved late content; reserve the box, match font metrics, or stop inserting above existing content. (`perf-reserve-space-to-prevent-cls.md`)
 
 **Tradeoffs summary table:**
 
 | Failing metric | First-line fix | Effort | Risk if ignored |
 |---|---|---|---|
-| LCP > 2.5 s | preload + priority + right-sized format | low–medium | Page feels slow to appear; bounce |
-| INP > 200 ms | break up long tasks, shed third-party JS | medium | Taps/typing feel laggy (most-failed metric) |
+| LCP > 2.5 s | preload + priority + right-sized format | low–medium | Page feels slow to appear; bounce (most-failed metric on mobile overall — 62% good) |
+| INP > 200 ms | break up long tasks, shed third-party JS | medium | Taps/typing feel laggy (weakest metric on JS-heavy/high-traffic sites) |
 | CLS > 0.1 | reserve space, match font metrics | low | Mis-taps; "jumpy" feel; trust loss |
 
 ---
@@ -338,7 +342,7 @@ See the [`information-architecture`](../skills/information-architecture/SKILL.md
 
 **When this applies:** Adding animation/motion and choosing the implementation. Observable inputs: whether motion serves a purpose, its complexity, and the reduced-motion + INP budget.
 
-**Last verified:** 2026-06-01 against `modern-css-2026.md` (View Transitions) + `a11y-respect-motion` best-practice.
+**Last verified:** 2026-09-23 against the `web-features` npm package (3.39.0 `data.json`: `view-transitions` Baseline newly-available 2025-10-14 for same-document; `cross-document-view-transitions` still `false`/not Baseline — no Firefox) + `modern-css-2026.md` (View Transitions) + `a11y-respect-motion` best-practice.
 
 ```mermaid
 flowchart TD
@@ -347,7 +351,8 @@ flowchart TD
     Q0 -->|Yes| Q1{Always gate on prefers-reduced-motion}
     Q1 --> Q2{What kind of motion?}
     Q2 -->|Simple state/hover/enter-exit transition| CSS[CSS transition / @keyframes — cheapest, GPU-friendly]
-    Q2 -->|Page/element transition between views/routes| VT[View Transitions API — native cross-document/SPA transitions]
+    Q2 -->|Transition within one page/SPA route| VT_SAME[Same-document View Transitions API — Baseline since 2025-10-14, all major browsers]
+    Q2 -->|Transition across a full MPA navigation| VT_CROSS[Cross-document View Transitions — NOT Baseline, no Firefox; progressive enhancement only, gate with a feature check]
     Q2 -->|Dynamic, interrupt-driven, JS-computed values| WAAPI[Web Animations API — scriptable, no library]
     Q2 -->|Complex orchestration/physics beyond the above| LIB[A JS animation library — last resort; weigh the bundle vs INP budget]
 ```
@@ -356,7 +361,8 @@ flowchart TD
 
 - _Skip/minimal_ — motion costs INP budget, battery, and accessibility surface; decorative-only animation is debt (house opinion #13).
 - _CSS transition/keyframes_ — the cheapest, most GPU-friendly path for the vast majority of UI motion; reach here first.
-- _View Transitions API_ — native page/route/element transitions (2026 baseline-ish) without a library; the right tool for view-to-view continuity.
+- _Same-document View Transitions_ — `document.startViewTransition()` for in-page/SPA route changes is Baseline newly available since 2025-10-14 (Firefox 144 closed the gap); safe to use without a library or fallback.
+- _Cross-document View Transitions_ — `@view-transition` for full MPA navigations is **not Baseline**: Chrome 126+ and Safari 18.2+ ship it, Firefox does not. Treat it as progressive enhancement — feature-detect (`document.startViewTransition` existing is not sufficient; check for cross-document support) and ship a normal navigation as the fallback, never a required experience.
 - _WAAPI_ — when values are computed/interrupt-driven at runtime and CSS can't express it, before reaching for a library.
 - _JS library_ — only for genuine complex orchestration/physics; weigh the bundle against the INP/perf budget, and still gate on reduced-motion.
 
@@ -367,7 +373,8 @@ flowchart TD
 | Mechanism | Cost | Best for | Note |
 |---|---|---|---|
 | CSS transition/keyframes | lowest | most UI motion | reach first |
-| View Transitions API | low | view/route transitions | native, no lib |
+| Same-document View Transitions | low | in-page/SPA route transitions | Baseline (2025-10-14), no lib, no fallback needed |
+| Cross-document View Transitions | low | full MPA navigations | **not Baseline — no Firefox**; progressive enhancement only |
 | WAAPI | low-medium | dynamic/interrupt-driven | scriptable, no lib |
 | JS library | highest (bundle) | complex orchestration | last resort; mind INP |
 
@@ -379,7 +386,7 @@ See [`modern-css-2026.md`](modern-css-2026.md) and [`../best-practices/a11y-resp
 
 **When this applies:** Adding or auditing dark mode on a site or component. Observable trigger: a design spec includes dark-mode colors, or a user preference query is being considered for theming.
 
-**Last verified:** 2026-06-05 against `dark-mode-via-prefers-color-scheme` best-practice + `modern-css-2026.md`.
+**Last verified:** 2026-09-23 against Tailwind's own dark-mode docs (`tailwindlabs/tailwindcss.com` `src/docs/dark-mode.mdx`, retrieved 2026-09-23 — v4 has no `darkMode` config key; toggling is CSS-first via `@custom-variant`) + `dark-mode-via-prefers-color-scheme` best-practice + `modern-css-2026.md`.
 
 ```mermaid
 flowchart TD
@@ -389,7 +396,7 @@ flowchart TD
     Q1 -->|NO, plain CSS or Tailwind| Q2{Are design tokens already defined as CSS custom properties in root?}
     Q2 -->|YES| MEDIA[Override semantic tokens in prefers-color-scheme: dark; add data-theme attribute for user toggle]
     Q2 -->|NO — hardcoded values or Tailwind utilities| Q3{Is the project using Tailwind?}
-    Q3 -->|YES| TW[Enable darkMode: class in tailwind.config; add prefers-color-scheme listener to set the class on html]
+    Q3 -->|YES| TW["Tailwind v4: dark: follows prefers-color-scheme by default. For a user toggle, declare @custom-variant dark in CSS and set the class/data-theme before first paint"]
     Q3 -->|NO| TOKENS[First: extract colors to CSS custom properties in root; then apply the MEDIA path]
 ```
 
@@ -397,7 +404,7 @@ flowchart TD
 - *Fluent v9* — use the library's own theme mechanism; fighting it with raw CSS media queries creates specificity conflicts.
 - *CSS-in-JS* — same principle: expose theming through the library's intent, not around it.
 - *MEDIA (CSS custom properties)* — the standard path: redefine semantic tokens in the media query; add a `data-theme` override for user choice; `<meta name="color-scheme">` for native chrome.
-- *Tailwind dark class* — Tailwind's `darkMode: 'class'` is the documented path; wire a `prefers-color-scheme` listener to set the initial class before first paint.
+- *Tailwind dark variant* — Tailwind v4 is **CSS-first**: there is no `darkMode` key in `tailwind.config.js` (v4 doesn't require a JS config at all). `dark:` utilities follow `prefers-color-scheme` by default. For a class-based user toggle, declare `@custom-variant dark (&:where(.dark, .dark *));` in CSS (or `@custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *));` for a data attribute), then set the class/attribute on `<html>` before first paint to avoid a flash.
 - *Extract first* — if values are hardcoded, the media query would require duplicating every component; extract to tokens first.
 
 **Tradeoffs summary:**
@@ -406,7 +413,7 @@ flowchart TD
 |---|---|---|---|
 | Fluent v9 createDarkTheme | React + Fluent v9 | Low | Via FluentProvider |
 | CSS custom properties | Any CSS-capable framework | Low | data-theme attribute |
-| Tailwind darkMode class | Tailwind | Low | JS class toggle |
+| Tailwind v4 `@custom-variant dark` | Tailwind v4 (CSS-first, no `tailwind.config.js` key) | Low | JS class/data-theme toggle set pre-paint |
 | CSS-in-JS library | Specific library | Medium | Library hook |
 
 ---
@@ -452,31 +459,31 @@ flowchart TD
 
 **When this applies:** Deciding whether to optimize a piece of content for classic search ranking, for AI answer engine citations (AEO/GEO), or for both. Observable trigger: a content strategy question about whether headings/schema/structure choices should prioritize SERP position or AI Overview / Perplexity / ChatGPT citation.
 
-**Last verified:** 2026-06-05 against `answer-engine-optimization-2026.md` and `seo-semantic-structure-and-metadata` best-practice.
+**Last verified:** 2026-09-23 — FAQPage and SiteLinksSearchBox guidance corrected against Google's own announcements (FAQ rich results stopped showing in Google Search 2026-05-07; the FAQ Search Console report, Rich Results Test support, and API data were removed by August 2026 — FAQPage remains valid schema.org markup with no Google SERP benefit. The sitelinks search box feature was retired 2024-11-21 per [Google Search Central](https://developers.google.com/search/blog/2024/10/sitelinks-search-box).) against `answer-engine-optimization-2026.md` and `seo-semantic-structure-and-metadata` best-practice.
 
 ```mermaid
 flowchart TD
     START[Optimize content for discoverability] --> Q1{Is the primary goal classic search rank, AI citation, or both?}
     Q1 -->|Classic search rank only| SEO[Classic SEO: keyword in title, H1, meta description, clean URL, canonical, internal links, page speed]
-    Q1 -->|AI citation only| AEO[AEO: FAQ schema, answer-ready headings as questions, E-E-A-T signals, entity markup, direct answer in first paragraph]
+    Q1 -->|AI citation only| AEO[AEO: answer-ready headings as questions, E-E-A-T signals, entity markup, direct answer in first paragraph — FAQ schema optional, not a Google rich result, AI-citation benefit unproven]
     Q1 -->|Both - which is more important| BOTH{Is the query type informational e.g. how-to or what-is, or transactional e.g. buy or download?}
-    BOTH -->|Informational — AI Overviews and answer engines most likely| AIHEAVIER[Prioritize AEO structure: direct answer first, FAQ schema, question headings; classic SEO fundamentals still apply]
+    BOTH -->|Informational — AI Overviews and answer engines most likely| AIHEAVIER[Prioritize AEO structure: direct answer first, question headings, entity markup; classic SEO fundamentals still apply]
     BOTH -->|Transactional — users in buy or do mode| SEOHEAVIER[Prioritize classic SEO: conversion page structure, fast LCP, schema for product/event/review; AEO signals are secondary]
 ```
 
 **Rationale per leaf:**
 - *Classic SEO* — keyword-targeting, technical SEO (canonical, speed, schema), and link authority still dominate SERP rank for most queries and are not optional for any searchable site.
-- *AEO* — informational queries are the primary surface for AI Overviews, Perplexity, and ChatGPT; direct answers in the first 1–2 paragraphs plus FAQ and entity schema signal answer-readiness to LLM-based engines.
-- *AIHEAVIER* — for informational content (how-to, definitions, comparisons), the structure that earns AI citations (question headings, direct answers, FAQ schema) also improves SERP featured-snippet capture; prioritize it.
+- *AEO* — informational queries are the primary surface for AI Overviews, Perplexity, and ChatGPT; direct answers in the first 1–2 paragraphs plus entity schema signal answer-readiness to LLM-based engines. **FAQPage markup is no longer a Google rich-result driver** (Google dropped FAQ rich results 2026-05-07) and its AI-citation benefit is unproven — it's harmless, valid schema.org markup, not a highest-impact tactic.
+- *AIHEAVIER* — for informational content (how-to, definitions, comparisons), the structure that earns AI citations (question headings, direct answers, entity markup) also improves SERP featured-snippet capture; prioritize it. Don't lead with FAQ schema as the lever.
 - *SEOHEAVIER* — transactional pages (product, pricing, contact) are less frequently cited by AI engines and more dependent on classic conversion signals and page quality for SERP rank; classic SEO fundamentals dominate.
 
 **Tradeoffs summary:**
 
 | Query type | Primary tactic | Secondary | Key schema |
 |---|---|---|---|
-| Informational | AEO: answer-first, FAQ schema, E-E-A-T | Classic SEO fundamentals | FAQ, HowTo, Article |
+| Informational | AEO: answer-first structure, entity markup, E-E-A-T | Classic SEO fundamentals | HowTo, Article (FAQPage optional — no Google rich result since 2026-05-07, AI benefit unproven) |
 | Transactional | Classic SEO: conversion + speed + links | AEO entity signals | Product, Offer, Review |
-| Navigational | Classic SEO: brand + structured data | SiteLinksSearchBox | Organization, WebSite |
+| Navigational | Classic SEO: brand + structured data | — (Google retired the sitelinks search box 2024-11-21; `SiteLinksSearchBox` schema no longer produces that result) | Organization, WebSite |
 
 See [`answer-engine-optimization-2026.md`](answer-engine-optimization-2026.md) for the full AEO/GEO strategy.
 

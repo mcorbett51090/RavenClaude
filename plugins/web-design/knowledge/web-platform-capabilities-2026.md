@@ -7,16 +7,16 @@
 | Metric | Measures | "Good" | Notes |
 |---|---|---|---|
 | **LCP** (Largest Contentful Paint) | loading | **< 2.5 s** | optimize the hero image/font; `fetchpriority="high"` on the LCP image; preconnect |
-| **INP** (Interaction to Next Paint) | responsiveness | **< 200 ms** | **replaced FID**; the **most-failed** CWV in 2026 (~43% of sites fail). Measures the *full* interaction lifecycle. Fix: break up long tasks, `scheduler.yield()`, defer non-critical JS, avoid heavy event handlers |
+| **INP** (Interaction to Next Paint) | responsiveness | **< 200 ms** | **replaced FID**. Per the HTTP Archive Web Almanac 2025, INP's mobile "good" rate is **77%** — LCP (62% good) is the most-failed CWV on mobile *overall*; INP is the weakest metric specifically on JS-heavy/high-traffic sites (top-1,000 mobile sites: 63% good). Measures the *full* interaction lifecycle. Fix: break up long tasks, `scheduler.yield()` where supported (guard for Safari, which doesn't ship it — fall back to `setTimeout`), defer non-critical JS, avoid heavy event handlers |
 | **CLS** (Cumulative Layout Shift) | visual stability | **< 0.1** | reserve space for images/fonts/ads/embeds; `size` on fonts; no inserting content above existing content |
 
-Measure **field** (CrUX / RUM) not just lab (Lighthouse). INP is where most 2026 effort goes (house opinion #2: every page has a budget).
+Measure **field** (CrUX / RUM) not just lab (Lighthouse). Web Almanac 2025 mobile "good" rates: LCP 62%, INP 77%, CLS 81% — LCP is the metric most sites fail; watch INP closely on interactive/JS-heavy pages (house opinion #2: every page has a budget).
 
 ## Newly-usable platform features (reach for the platform first)
 - **Speculation Rules API** — declarative `prefetch`/`prerender` of likely-next pages for near-instant navigation; supports eagerness + document rules; **"prerender until script"** (Chrome 144, Jan 2026) prerenders HTML + subresources but pauses JS at the first blocking script. The modern replacement for hand-rolled hover-prefetch.
 - **bfcache** (back/forward cache) — instant back/forward; don't break it (no `unload` handlers, mind `Cache-Control: no-store`). Test in DevTools.
 - **`fetchpriority`** + **priority hints** — raise the LCP image, lower below-the-fold; pair with `loading="lazy"` and responsive `srcset`/`<picture>`.
-- **Native `<dialog>`** + the **Popover API** (`popover` attribute) — accessible modals/menus/tooltips without a JS library (keyboard + focus handled). Prefer over a bespoke component.
+- **Native `<dialog>`** (via `.showModal()`) + the **Popover API** (`popover` attribute) — accessible modals/tooltips/toasts without a JS library. These are **not interchangeable**: `<dialog>.showModal()` is the only one that traps focus and makes the rest of the page inert; the Popover API is **always non-modal** (per MDN) — light-dismiss + Esc-returns-focus, but no focus trap and no `role`/keyboard menu semantics. A menu still needs the APG menu pattern or an accessible primitive (Radix / React Aria / Fluent v9). Prefer these over a bespoke component for what they actually cover.
 - **View Transitions API** — see [`modern-css-2026.md`](modern-css-2026.md); gate on `prefers-reduced-motion`.
 - **Web Components / custom elements** — framework-agnostic encapsulation for design-system primitives shared across stacks.
 

@@ -31,7 +31,7 @@ Prefer the element that already carries the role. Use the modern platform primit
 
 **Do:**
 - Use the landmark / heading / list / form / table element that matches the meaning.
-- Reach for native `<dialog>` + the Popover API before a bespoke modal/menu component.
+- Reach for native `<dialog>.showModal()` before a bespoke modal, and the Popover API before a bespoke tooltip/toast — but note the Popover API is **always non-modal** (per MDN) and doesn't supply menu semantics on its own; an action menu still needs the APG menu pattern or an accessible primitive (Radix / React Aria / Fluent v9).
 - When ARIA is unavoidable, make `aria-label` match the accessible-name calculation — never `aria-label` away the visible text.
 
 **Don't:**

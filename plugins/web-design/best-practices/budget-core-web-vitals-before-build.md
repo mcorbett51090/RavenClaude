@@ -10,7 +10,7 @@
 
 ## Why this exists
 
-Optimizations without measurement are theater, and "we'll make it fast later" is how a marketing page ships at 1.5 MB+ with a 4-second LCP. A budget set up front turns performance into a contract that can be defended in CI rather than a subjective argument at launch. The field data is the reality check: **INP is the most-failed 2026 metric (~43% of sites fail)** because it measures the full interaction lifecycle, not a single first input. A budget makes that failure visible before it ships, not after CrUX reports it in production.
+Optimizations without measurement are theater, and "we'll make it fast later" is how a marketing page ships at 1.5 MB+ with a 4-second LCP. A budget set up front turns performance into a contract that can be defended in CI rather than a subjective argument at launch. The field data is the reality check: per the HTTP Archive Web Almanac 2025, **LCP is the most-failed CWV on mobile overall** (62% good, vs. INP's 77% and CLS's 81%), and **INP is the weakest metric specifically on JS-heavy/high-traffic sites** (top-1,000 mobile sites: 63% good) because it measures the full interaction lifecycle, not a single first input. A budget makes that failure visible before it ships, not after CrUX reports it in production.
 
 ## How to apply
 
@@ -46,7 +46,7 @@ Third-party scripts <= 5 total, <= 2 in the critical path
 
 ## See also
 
-- [`../knowledge/web-platform-capabilities-2026.md`](../knowledge/web-platform-capabilities-2026.md) — the 2026 CWV thresholds, INP-as-most-failed, `fetchpriority`, Speculation Rules, bfcache
+- [`../knowledge/web-platform-capabilities-2026.md`](../knowledge/web-platform-capabilities-2026.md) — the 2026 CWV thresholds + Web Almanac 2025 pass rates, `fetchpriority`, Speculation Rules, bfcache
 - [`../agents/performance-engineer.md`](../agents/performance-engineer.md) — the agent that owns the budget
 - [`./reach-for-semantic-html-before-aria.md`](./reach-for-semantic-html-before-aria.md)
 

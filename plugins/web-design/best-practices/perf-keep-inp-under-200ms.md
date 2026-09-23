@@ -10,7 +10,7 @@
 
 ## Why this exists
 
-INP (Interaction to Next Paint) replaced FID and measures the **full** interaction lifecycle — input delay + processing + presentation — not just the first input. It is the **most-failed 2026 CWV (~43% of sites fail)** because it surfaces real responsiveness, not a single early moment [verify-at-build — INP threshold + failure rate]. The "good" bar is **< 200 ms** at field p75. The dominant cause is long JavaScript tasks blocking the main thread: heavy event handlers, synchronous hydration, and third-party scripts that monopolize the CPU when the user is trying to act.
+INP (Interaction to Next Paint) replaced FID and measures the **full** interaction lifecycle — input delay + processing + presentation — not just the first input. Per the HTTP Archive Web Almanac 2025, INP's mobile "good" rate is **77%**, ahead of LCP (62%, the most-failed CWV on mobile overall); INP is still the weakest metric on JS-heavy or high-traffic sites (top-1,000 mobile sites: only 63% good), which is why it stays a primary diagnostic here. The "good" bar is **< 200 ms** at field p75. The dominant cause is long JavaScript tasks blocking the main thread: heavy event handlers, synchronous hydration, and third-party scripts that monopolize the CPU when the user is trying to act.
 
 ## How to apply
 
@@ -23,16 +23,31 @@ function onClick() {
   updateDom();            // user sees nothing until this completes — INP spikes
 }
 
-// Do: update the UI immediately, then yield before the heavy part
+// Don't: call scheduler.yield() unguarded — it throws a ReferenceError in Safari,
+// which ships neither `scheduler` nor `requestIdleCallback`.
+async function onClickUnsafe() {
+  showPendingState();
+  await scheduler.yield();  // ReferenceError in Safari — ships in Chrome 129+/Firefox 142+ only
+  await processInChunks(items, { chunkSize: 50 });
+}
+
+// Do: update the UI immediately, then yield with a cross-browser fallback
+async function yieldToMain() {
+  if (typeof scheduler !== 'undefined' && scheduler.yield) {
+    return scheduler.yield();      // Chrome/Edge 129+, Firefox 142+
+  }
+  return new Promise((resolve) => setTimeout(resolve, 0)); // Safari fallback
+}
+
 async function onClick() {
   showPendingState();              // immediate visual feedback (the "next paint")
-  await scheduler.yield();         // hand control back so the paint can happen
+  await yieldToMain();             // hand control back so the paint can happen, cross-browser
   await processInChunks(items, { chunkSize: 50 }); // break the long task up
 }
 ```
 
 **Do:**
-- Break long tasks with `scheduler.yield()` (or `postTask` / `setTimeout(0)` fallback); paint a pending state *before* the heavy work.
+- Break long tasks with a guarded yield (`scheduler.yield()` when present — Chrome/Edge 129+, Firefox 142+ — falling back to `setTimeout(fn, 0)` for Safari, which ships neither `scheduler` nor `requestIdleCallback`); paint a pending state *before* the heavy work.
 - Defer / `async` non-critical JS, code-split, and lazy-load below-the-fold interactivity (and the third-party scripts that cause most INP failures).
 - Measure INP in the **field** (CrUX / RUM at p75), since lab tools don't fire real interactions.
 
@@ -51,13 +66,13 @@ async function onClick() {
 - [`./budget-core-web-vitals-before-build.md`](./budget-core-web-vitals-before-build.md) — INP sits in the budget
 - [`./frontend-progressive-enhancement.md`](./frontend-progressive-enhancement.md) — less JS shipped is less main-thread work
 - [`../knowledge/web-design-decision-trees.md`](../knowledge/web-design-decision-trees.md) — "Which CWV is failing → which fix" tree
-- [`../knowledge/web-platform-capabilities-2026.md`](../knowledge/web-platform-capabilities-2026.md) — INP as most-failed, `scheduler.yield()`, third-party debt
+- [`../knowledge/web-platform-capabilities-2026.md`](../knowledge/web-platform-capabilities-2026.md) — INP CWV data, `scheduler.yield()`, third-party debt
 - [`../agents/performance-engineer.md`](../agents/performance-engineer.md) — INP fix-by-symptom map
 
 ## Provenance
 
-Distilled from the `performance-engineer` agent's INP fix-by-symptom map (long JS task on input, debounce, hydration cost, third-party blocking) and the CWV table in `web-platform-capabilities-2026.md` (INP replaced FID; most-failed in 2026; `scheduler.yield()`; retrieved 2026-05-28).
+Distilled from the `performance-engineer` agent's INP fix-by-symptom map (long JS task on input, debounce, hydration cost, third-party blocking) and the CWV table in `web-platform-capabilities-2026.md` (INP replaced FID; `scheduler.yield()`). INP mobile "good" rate (77%), the LCP-is-most-failed-on-mobile correction, and the Safari `scheduler.yield()` gap corrected against the HTTP Archive Web Almanac 2025 Performance chapter and the `web-features` npm package (3.39.0), retrieved 2026-09-23.
 
 ---
 
-_Last reviewed: 2026-05-30 by `claude`_
+_Last reviewed: 2026-09-23 by `claude`_
