@@ -14,7 +14,7 @@ Discoverability now spans two surfaces: classic search rank *and* citation insid
 
 ## How to apply
 
-Ship the metadata baseline on every page, keep one clean heading tree, and add JSON-LD schema that validates — `FAQPage` is the highest-impact type for AI citation.
+Ship the metadata baseline on every page, keep one clean heading tree, and add JSON-LD schema that validates. Prioritize `Article`/`Organization`/`Person` entity schema and answer-ready structure — `FAQPage` is optional, valid markup with **no Google rich result since 2026-05-07** and an unproven AI-citation benefit; don't lead with it.
 
 ```html
 <head>
