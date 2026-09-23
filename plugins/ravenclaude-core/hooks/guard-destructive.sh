@@ -334,11 +334,17 @@ _gstripped="$(printf '%s' "$norm" | sed -E "s/(^|[;&|[:space:]])git(([[:space:]]
 # Single-quoted so the literal backtick can't trigger command substitution here.
 _CMD_BOUNDARY='(^|[;&|(`/[:space:]])'
 
-# Characters that CLOSE a command word: whitespace, end-of-string, or a command-
-# substitution closer — `)` or a backtick — so a trailing action inside `$(…)` /
-# `` `…` `` (e.g. `$(find / -delete)`) is recognized. Single-quoted so the literal
-# backtick can't trigger command substitution here (mirrors _CMD_BOUNDARY).
-_CMD_END='([[:space:])`]|$)'
+# Characters that CLOSE a command word: whitespace, end-of-string, a command-
+# substitution closer (`)` or a backtick, so a trailing action inside `$(…)` /
+# `` `…` `` like `$(find / -delete)` is recognized), or a shell metacharacter
+# that can be GLUED directly onto a flag with no whitespace (`;`, `&`, `|`,
+# `<`, `>`) — round 14 (2026-09-23, Bugbot) found `gh pr merge 123
+# --admin|cat` and `--admin>/dev/null` bypassed the --admin matcher because
+# neither `|` nor `>` was a recognized closer, so the flag's own boundary
+# never matched. Single-quoted so the literal backtick can't trigger command
+# substitution here (mirrors _CMD_BOUNDARY, which already includes `;&|` in
+# its own boundary class for the identical reason).
+_CMD_END='([[:space:];&|<>)`]|$)'
 
 # A recursive flag in ANY spelling/order: -r, -R, -rf, -fr, -Rf, --recursive.
 _has_recursive() { [[ "$1" =~ (^|[[:space:]])(-[a-zA-Z]*[rR][a-zA-Z]*|--recursive)([[:space:]]|$) ]]; }
@@ -1286,11 +1292,23 @@ EOF
 # can't fully parse (`--stdin`, an unresolvable -C/--git-dir merge target,
 # an unresolvable checkout/switch subcommand) — treat an UNRESOLVABLE
 # method value as dangerous too, rather than silently letting it pass.
+# Round 14 (2026-09-23, Bugbot): the leading-anchor case patterns below
+# only matched when the substitution/variable was the ENTIRE token --
+# `--$FLAG` and `--$(printf admin)` (a flag-shaped PREFIX glued onto an
+# unresolvable suffix) never matched, so `gh pr merge 123 --$FLAG` sailed
+# through even though this helper exists specifically to conservative-deny
+# a value we can't resolve. Widened from "the token STARTS WITH ..." to
+# "the token CONTAINS ... anywhere" -- a flag prefix (or any other prefix)
+# glued onto a substitution/variable is just as unresolvable as a bare one.
+# Also recognizes the literal `{}` xargs replacement-string placeholder
+# (`xargs -I{} curl -X{}`) as unresolvable -- it is static text, not a
+# shell variable, but it is exactly as opaque to a static scan: xargs
+# substitutes the piped value in at runtime, which could be anything.
 _looks_unresolvable_method_value() {
   case "$1" in
-    '$('*|'`'*|'${'*) return 0 ;;   # command substitution / braced expansion
-    '$'[A-Za-z_]*) return 0 ;;      # bare variable reference ($M, $VAR)
+    *'$('*|*'`'*|*'${'*|*'{}'*) return 0 ;;   # command substitution / braced expansion / xargs -I{} placeholder, anywhere in the token
   esac
+  [[ "$1" =~ \$[A-Za-z_][A-Za-z0-9_]* ]] && return 0   # a variable reference ($M, $VAR), anywhere in the token
   return 1
 }
 
@@ -1317,10 +1335,34 @@ _seg_has_delete_method() {
         esac
         _looks_unresolvable_method_value "${word#*=}" && return 0
         ;;
-      -X[Dd][Ee][Ll][Ee][Tt][Ee]) return 0 ;;  # curl's glued -XDELETE form
+      # Round 14 (2026-09-23, Bugbot): the old exact-match glued arm
+      # (`-X[Dd][Ee][Ll][Ee][Tt][Ee]` with no trailing `*`) required the
+      # word to be EXACTLY "-XDELETE" -- a glued redirect/pipe right after
+      # it (`-XDELETE>file`, `-XDELETE|cat`) is one whitespace-delimited
+      # word to a naive `for word in $seg` split (redirection operators
+      # aren't in $IFS), so the extra trailing bytes broke the exact
+      # match. Widened to accept anything glued after DELETE. Also covers
+      # the glued-but-unresolvable spellings (`-X$M`, `-X$(...)`, `-X{}`)
+      # by checking the remainder after stripping the "-X" prefix.
+      -X[Dd][Ee][Ll][Ee][Tt][Ee]*) return 0 ;;  # curl's glued -XDELETE form, with or without a glued redirect/pipe suffix
+      -X?*)
+        _looks_unresolvable_method_value "${word#-X}" && return 0
+        ;;
     esac
     prev="$word"
   done
+  # Round 14 (2026-09-23, Bugbot): a BARE trailing -X/--method/--request
+  # (no value at all in the visible text -- `printf DELETE | xargs curl
+  # -X`) leaves $prev set to the flag with the loop simply ending, so the
+  # `case "$prev" in -X|--method|--request)` branch above never gets a
+  # chance to run on a next iteration. xargs appends the piped value as a
+  # NEW argument at runtime that this static scan cannot see -- matching
+  # this file's established posture on `--stdin` (a flag whose real
+  # danger is expressed in content we can't inspect), treat a trailing
+  # bare method flag as dangerous too.
+  case "$prev" in
+    -X|--method|--request) return 0 ;;
+  esac
   return 1
 }
 
