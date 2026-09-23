@@ -326,6 +326,18 @@ _norm_before_gitstrip="$norm"
 _gstripped="$(printf '%s' "$norm" | sed -E "s/(^|[;&|[:space:]])git(([[:space:]]+${_gitglobal})+)[[:space:]]+/\1git /g" 2>/dev/null || true)"
 [ -n "$_gstripped" ] && norm="$_gstripped"
 
+# Round 5 (2026-09-23, Bugbot): mirror the git-global fold above for the
+# GitHub CLI's own global options (`-R owner/repo`, `--repo owner/repo`,
+# `--hostname host`, …) sitting between `gh` and its subcommand. Without
+# this, `gh -R owner/repo api ... -X DELETE` / `gh --repo owner/repo api
+# ... --method DELETE` / `gh --hostname github.com api ... -X DELETE`
+# dodge the `gh[[:space:]]+api` anchor in the destructive-DELETE
+# deny_patterns entry below, exactly like the git-global gap this same
+# stripper closed for git subcommands.
+_ghglobal='(-R[[:space:]]*[^[:space:]]+|--(repo|hostname)(=[^[:space:]]*|[[:space:]]+[^[:space:]]+)|--[A-Za-z][A-Za-z-]*(=[^[:space:]]*)?|-[A-Za-z]+)'
+_ghstripped="$(printf '%s' "$norm" | sed -E "s/(^|[;&|[:space:]])gh(([[:space:]]+${_ghglobal})+)[[:space:]]+/\1gh /g" 2>/dev/null || true)"
+[ -n "$_ghstripped" ] && norm="$_ghstripped"
+
 # --- Order-independent helpers ---------------------------------------------
 # Characters that open a fresh command word before rm/chmod: line start, ;, &, |,
 # whitespace, a command-substitution opener — `(` or a backtick — so `$(rm -rf ~)`
@@ -663,9 +675,25 @@ _GIT_MERGE_GLOBAL_OPTS='((-C|--git-dir)[[:space:]=]+[^[:space:]]+[[:space:]]+)*'
 # fall back to $effective_cwd if a prior `cd` set one; otherwise print
 # nothing so the caller keeps using the textually-tracked $branch (the
 # pre-existing, same-repo behavior — unchanged when neither applies).
+#
+# Round 5 (2026-09-23, Bugbot): the round-4 fix followed -C/--git-dir FLAGS
+# and a `cd` chain, but git also honors the GIT_DIR environment variable —
+# either as a one-shot prefix on the SAME command (`GIT_DIR=<dir> git
+# merge …`) or exported earlier in the chain (`export GIT_DIR=<dir>; git
+# merge …`) — and neither was tracked, so retargeting through the
+# environment instead of a flag sailed through. `gitdir_override` carries
+# a persistent GIT_DIR set earlier in the same chain (mirrors
+# $effective_cwd for `cd`/`pushd`); the same-segment `GIT_DIR=<dir>` prefix
+# is checked first here since it is the most specific (a one-shot prefix
+# overrides any exported value for that single invocation, matching real
+# shell semantics).
 _resolve_merge_check_branch() {
-  local seg="$1" fallback_dir="$2" word prev="" dir="" mode=""
+  local seg="$1" fallback_dir="$2" gitdir_override="$3" word prev="" dir="" mode=""
   for word in $seg; do
+    case "$word" in
+      GIT_DIR=*) dir="${word#GIT_DIR=}"; mode="--git-dir" ;;
+    esac
+    [ -n "$dir" ] && break
     case "$prev" in
       -C) dir="$word"; mode="-C" ;;
       --git-dir) dir="$word"; mode="--git-dir" ;;
@@ -677,6 +705,9 @@ _resolve_merge_check_branch() {
     [ -n "$dir" ] && break
     prev="$word"
   done
+  if [ -z "$dir" ] && [ -n "$gitdir_override" ]; then
+    dir="$gitdir_override"; mode="--git-dir"
+  fi
   if [ -z "$dir" ] && [ -n "$fallback_dir" ]; then
     dir="$fallback_dir"; mode="-C"
   fi
@@ -720,7 +751,13 @@ EOF
   fi
   if [[ "$c" =~ ${_CMD_BOUNDARY}git[[:space:]]+${_GIT_MERGE_GLOBAL_OPTS}merge([[:space:]]|$) ]]; then
     local branch word prev seen seg_target pending pending_kind double_dash first_pos symref_target
-    local effective_cwd="" cd_word cd_prev cd_seen cd_target
+    local effective_cwd="" cd_word cd_prev cd_seen cd_target gd_word
+    # Round 5 (2026-09-23, Bugbot): a persistent GIT_DIR set earlier in the
+    # same chain (`export GIT_DIR=<dir>; git merge …`) retargets every
+    # subsequent git invocation exactly like `cd` does for the working
+    # directory — tracked separately since GIT_DIR is a `--git-dir`-shaped
+    # override, not a `-C`-shaped one.
+    local effective_gitdir=""
     branch="$(git rev-parse --abbrev-ref HEAD 2>/dev/null || true)"
     # Round 4 (2026-09-23, Bugbot): the earlier `git[[:space:]]+global-option
     # strip` normalization (applied to `$norm` before this function ever
@@ -747,11 +784,16 @@ EOF
       # for the merge that follows. Track the effective directory across
       # `cd` segments so a later `git merge` in the same chain can re-resolve
       # HEAD from the right place (see _resolve_merge_check_branch below).
-      if [[ "$seg" =~ ${_CMD_BOUNDARY}cd([[:space:]]|$) ]]; then
+      # Round 5 (2026-09-23, Bugbot): `pushd <dir>` retargets the working
+      # directory for every subsequent command in the chain exactly like
+      # `cd <dir>` does (we don't track `popd`'s later restoration —
+      # staying pinned to the pushd'd directory is the conservative,
+      # under-blocking-never direction for a security floor).
+      if [[ "$seg" =~ ${_CMD_BOUNDARY}(cd|pushd)([[:space:]]|$) ]]; then
         cd_prev="" cd_seen="" cd_target=""
         for cd_word in $seg; do
           if [ -z "$cd_seen" ]; then
-            [ "$cd_word" = "cd" ] && cd_seen=1
+            { [ "$cd_word" = "cd" ] || [ "$cd_word" = "pushd" ]; } && cd_seen=1
             cd_prev="$cd_word"
             continue
           fi
@@ -766,6 +808,33 @@ EOF
             *) [ -n "$effective_cwd" ] && effective_cwd="$effective_cwd/$cd_target" || effective_cwd="$cd_target" ;;
           esac
         fi
+      fi
+      # Round 5 (2026-09-23, Bugbot): git also honors the GIT_DIR
+      # environment variable, which can be set persistently earlier in the
+      # same command chain (`export GIT_DIR=<dir>; git merge …`, or a bare
+      # `GIT_DIR=<dir>` — real shell semantics require `export` for a LATER
+      # separate command to see it, but a security floor treats the
+      # ambiguous unexported form as dangerous too, matching this file's
+      # posture elsewhere). Only a single assignment token is recognized
+      # (no quoting/expansion), matching the same-scope limits already
+      # accepted for `cd`/`pushd` target parsing above.
+      if [[ "$seg" =~ ${_CMD_BOUNDARY}(export[[:space:]]+)?GIT_DIR= ]]; then
+        gd_word=""
+        for gd_word in $seg; do
+          case "$gd_word" in
+            GIT_DIR=*)
+              # A same-segment prefix directly preceding a git invocation
+              # (`GIT_DIR=<dir> git merge …`) is a ONE-SHOT override for
+              # that command only — handled by _resolve_merge_check_branch
+              # itself (it re-scans the segment), not here. Only persist a
+              # standalone assignment/export (no git command in the SAME
+              # segment) as the running override for later segments.
+              if [[ ! "$seg" =~ ${_CMD_BOUNDARY}git([[:space:]]|$) ]]; then
+                effective_gitdir="${gd_word#GIT_DIR=}"
+              fi
+              ;;
+          esac
+        done
       fi
       if [[ "$seg" =~ ${_CMD_BOUNDARY}git[[:space:]]+(checkout|switch)([[:space:]]|$) ]]; then
         prev="" seen="" seg_target="" pending="" pending_kind="" double_dash="" first_pos=""
@@ -847,7 +916,20 @@ EOF
             *) [ -z "$symref_target" ] && symref_target="$word" ;;
           esac
         done
-        [ -n "$symref_target" ] && _is_safe_ref_token "$symref_target" && branch="$symref_target"
+        # Round 5 (2026-09-23, Bugbot): only checkout/switch got the round-4
+        # conservative-deny sentinel — symbolic-ref still just left the
+        # PRIOR $branch value in place on an unresolvable target, so
+        # `git symbolic-ref HEAD $(echo refs/heads/main)` off a non-main
+        # HEAD silently kept the tracker on the old (non-main) branch
+        # instead of treating the ambiguous target as dangerous, unlike the
+        # equivalent checkout form. Apply the identical sentinel treatment.
+        if [ -n "$symref_target" ]; then
+          if _is_safe_ref_token "$symref_target"; then
+            branch="$symref_target"
+          else
+            branch="$_AMBIGUOUS_BRANCH_SENTINEL"
+          fi
+        fi
       fi
       if [[ "$seg" =~ ${_CMD_BOUNDARY}git[[:space:]]+${_GIT_MERGE_GLOBAL_OPTS}merge([[:space:]]|$) ]]; then
         # Round 3 (2026-09-23, Bugbot): the old check only asked "does
@@ -879,7 +961,7 @@ EOF
           # flag on THIS merge invocation, or a preceding `cd` in the same
           # chain, before falling back to the textually-tracked $branch.
           local merge_check_branch
-          merge_check_branch="$(_resolve_merge_check_branch "$raw_seg" "$effective_cwd")"
+          merge_check_branch="$(_resolve_merge_check_branch "$raw_seg" "$effective_cwd" "$effective_gitdir")"
           local branch_check
           if [ -n "$merge_check_branch" ]; then
             branch_check="${merge_check_branch#refs/heads/}"
