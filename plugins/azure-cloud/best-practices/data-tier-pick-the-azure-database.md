@@ -20,7 +20,7 @@ Match the engine to the **dominant access pattern and consistency need**, not to
 |---|---|---|
 | **Azure SQL Database** | Relational, transactional, strong consistency; joins + reporting; an existing SQL Server app | Choose vCore (predictable) vs DTU (simple); serverless for spiky/dev; Hyperscale past ~1–4 TB |
 | **Azure SQL Managed Instance** | Lift-and-shift of on-prem SQL Server needing instance-scoped features (SQL Agent, cross-DB queries, CLR) | Higher floor cost + longer deploy than SQL DB — only when you need instance features |
-| **PostgreSQL Flexible Server** | Open-source relational, OSS portability, PG extensions (PostGIS, pgvector) | Flexible Server (not the retiring Single Server); pick zone-redundant HA for prod |
+| **PostgreSQL Flexible Server** | Open-source relational, OSS portability, PG extensions (PostGIS, pgvector) | Flexible Server (not the retired Single Server, retired 2025-03-28); pick zone-redundant HA for prod |
 | **Cosmos DB** | Global distribution, single-digit-ms at scale, schemaless/document or key-value, massive write throughput | Partition-key choice is permanent and load-bearing; model for the query, provision RU/s deliberately (or autoscale); strong consistency costs RU + latency |
 | **Azure Storage (Table/Blob)** | Cheap key-value at scale, blobs, append logs, archival | Not a query engine — no joins, no rich filter; pair with a real DB if you need to query |
 
@@ -31,7 +31,7 @@ Match the engine to the **dominant access pattern and consistency need**, not to
 
 **Do:** pick by access pattern + consistency + scale; right-size the tier (serverless/autoscale for variable load); make every data plane private (see the private-by-default rule); use managed identity for app→DB auth (passwordless).
 
-**Don't:** default to one engine for every app; use Cosmos for a small relational app (RU cost + modeling pain); use Storage Tables as a queryable database; pick Single Server PostgreSQL (retiring).
+**Don't:** default to one engine for every app; use Cosmos for a small relational app (RU cost + modeling pain); use Storage Tables as a queryable database; pick Single Server PostgreSQL (retired 2025-03-28).
 
 ## Edge cases / when the rule does NOT apply
 
