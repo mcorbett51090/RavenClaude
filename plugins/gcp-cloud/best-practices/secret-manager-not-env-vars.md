@@ -8,7 +8,7 @@
 
 ## Why this exists
 
-Environment variables in Cloud Run services, GKE pods, and Cloud Functions are visible to anyone with sufficient IAM access to describe the service or pod spec. They appear in the Cloud Console UI, in Terraform state, and in any CI artifact that captures the deployment manifest. Secret Manager stores secrets encrypted at rest, versioned, auditable, and accessible only via IAM-controlled API calls. A Cloud Run service referencing a Secret Manager secret by name exposes the value only at runtime to the service account — not in any deployment artifact.
+Environment variables in Cloud Run services, GKE pods, and Cloud Run functions are visible to anyone with sufficient IAM access to describe the service or pod spec. They appear in the Cloud Console UI, in Terraform state, and in any CI artifact that captures the deployment manifest. Secret Manager stores secrets encrypted at rest, versioned, auditable, and accessible only via IAM-controlled API calls. A Cloud Run service referencing a Secret Manager secret by name exposes the value only at runtime to the service account — not in any deployment artifact.
 
 ## How to apply
 

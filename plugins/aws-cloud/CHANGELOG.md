@@ -2,6 +2,10 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.3.5] — 2026-09-23
+
+Weekly Tier-A news sweep (2026-09-23) — **correction** across `knowledge/aws-cloud-decision-trees.md`, `skills/aws-compute-selection/SKILL.md`, `agents/aws-compute-platform-engineer.md`, `CLAUDE.md`, `README.md`, `.claude-plugin/plugin.json`: AWS App Runner has been **closed to new customers since 2026-04-30** and is in maintenance mode (no new features); AWS recommends **Amazon ECS Express Mode** (GA re:Invent 2025) as the replacement, noting it has no scale-to-zero. Independently re-verified this session against the AWS App Runner availability-change notice and HashiCorp `terraform-provider-aws` issue #47161 (deprecating `aws_apprunner_*` resources). **Migration:** none — knowledge-file content only.
+
 ## [0.3.4] — 2026-08-14
 
 ### Changed

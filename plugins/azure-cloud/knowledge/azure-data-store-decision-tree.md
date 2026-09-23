@@ -32,7 +32,7 @@ flowchart TD
 
 - *Azure SQL Database* — relational, transactional, strong consistency, joins+reporting, or an existing SQL Server app that doesn't need instance-scoped features. The default relational pick. **Sub-choice:** vCore (predictable) vs DTU (simple); serverless for spiky/dev; Hyperscale past ~1–4 TB. `[verify-at-use]` for current tier limits.
 - *Azure SQL Managed Instance* — a lift-and-shift of on-prem SQL Server that genuinely needs **instance-scoped** features (SQL Agent, cross-database queries, CLR, Service Broker). Higher floor cost + longer deploy than SQL DB — only when you need the instance surface.
-- *PostgreSQL Flexible Server* — open-source relational, OSS portability, or PG extensions (PostGIS, **pgvector** for embeddings). Use **Flexible Server**, not the retiring Single Server; pick zone-redundant HA for prod.
+- *PostgreSQL Flexible Server* — open-source relational, OSS portability, or PG extensions (PostGIS, **pgvector** for embeddings). Use **Flexible Server**, not the retired Single Server (retired 2025-03-28); pick zone-redundant HA for prod.
 - *Cosmos DB* — global distribution, single-digit-ms reads at scale, schemaless/document or key-value, or massive write throughput (incl. vector search). **The partition key is permanent and load-bearing** — model for the query; provision RU/s deliberately (or autoscale); strong consistency costs RU + latency.
 - *Azure Storage (Blob/Table)* — cheap key-value at scale, blobs, append logs, archival. **Not a query engine** — no joins, no rich filtering; pair with a real DB if you need to query. Don't use Storage Tables as a queryable database.
 
@@ -42,7 +42,7 @@ flowchart TD
 |---|---|---|---|---|
 | **Azure SQL Database** | relational | strong; single-region → Hyperscale | tier choice (vCore/DTU/serverless/Hyperscale) | relational+transactional app, no instance features |
 | **SQL Managed Instance** | relational | strong; instance-scoped | higher floor cost + deploy time | lift-and-shift needing SQL Agent / cross-DB / CLR |
-| **PostgreSQL Flexible Server** | relational (OSS) | strong; zone-redundant HA | use Flexible (Single Server retiring) | OSS portability / PG extensions (PostGIS, pgvector) |
+| **PostgreSQL Flexible Server** | relational (OSS) | strong; zone-redundant HA | use Flexible (Single Server retired 2025-03-28) | OSS portability / PG extensions (PostGIS, pgvector) |
 | **Cosmos DB** | document / key-value / vector | tunable; global, web-scale write | partition key is permanent; RU cost | global distribution or schemaless write-scale |
 | **Azure Storage** | blob / key-value | massive, cheap | not queryable — no joins/filter | blobs / archival / append logs only |
 
