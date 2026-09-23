@@ -315,6 +315,14 @@ norm="$(printf '%s' "$norm" | tr -s '[:space:]' ' ')"   # collapse whitespace ru
 # git global. Subcommand options like `-f`/`--force`/`-D` are never in the leading
 # run (they follow the subcommand), so they are preserved.
 _gitglobal='(-[cC][[:space:]]*[^[:space:]]+|--(git-dir|work-tree|namespace|exec-path|config-env)(=[^[:space:]]*|[[:space:]]+[^[:space:]]+)|--[A-Za-z][A-Za-z-]*(=[^[:space:]]*)?|-[A-Za-z]+)'
+# Round 4 (2026-09-23, Bugbot): this stripping step is exactly why a
+# `-C <dir>`/`--git-dir=<dir>` on a `git merge` invocation used to bypass
+# _is_dangerous_merge's HEAD-branch check entirely — by the time `norm`
+# reached that function, the -C/--git-dir flag (and the dir it named) was
+# already gone, folded away into a bare "git merge". Keep the PRE-strip
+# text around so _is_dangerous_merge can still see which directory the
+# merge actually targets.
+_norm_before_gitstrip="$norm"
 _gstripped="$(printf '%s' "$norm" | sed -E "s/(^|[;&|[:space:]])git(([[:space:]]+${_gitglobal})+)[[:space:]]+/\1git /g" 2>/dev/null || true)"
 [ -n "$_gstripped" ] && norm="$_gstripped"
 
@@ -615,8 +623,73 @@ _is_safe_ref_token() {
   [[ "$1" =~ ^[A-Za-z0-9._/-]+$ ]]
 }
 
+# Round 4 (2026-09-23, Bugbot): an ambiguous checkout/switch/symbolic-ref
+# target (one that fails _is_safe_ref_token — a redirect-glued token our
+# plain whitespace split didn't fully separate, or a command-substitution
+# form we cannot statically resolve) used to just leave the PRIOR $branch
+# value in place, on the theory that under-blocking never should trust an
+# unresolvable token as an override. That correctly stops an ambiguous
+# token from CLEARING a suspected-main baseline (round 3) — but it also
+# means an ambiguous token can never SET a genuinely-main target either:
+# `git checkout $(echo main)` off a non-main HEAD left $branch at the
+# non-main value and silently allowed the following merge. This file's own
+# posture on constructs it cannot fully inspect (already applied to
+# `--stdin` in _is_dangerous_update_ref above) is to treat the unresolvable
+# case as conservatively AS DANGEROUS AS the thing it might be — so an
+# ambiguous target sets this sentinel instead, which the final branch
+# comparison below treats exactly like main/master.
+_AMBIGUOUS_BRANCH_SENTINEL='__ravenclaude_ambiguous_branch__'
+
+# Round 4 (2026-09-23, Bugbot): the merge-detection regexes required the
+# literal contiguous substring "git merge" (git, whitespace, merge, nothing
+# else in between) — so `git -C /other/repo merge --no-ff feature` or
+# `git --git-dir=/other/repo/.git merge feature` never matched AT ALL (not
+# even the outer gate), because git's own global `-C`/`--git-dir` options
+# sit between the "git" token and the "merge" subcommand. This fragment
+# tolerates zero-or-more such global options in between, on both the outer
+# whole-command gate and the per-segment scan below.
+_GIT_MERGE_GLOBAL_OPTS='((-C|--git-dir)[[:space:]=]+[^[:space:]]+[[:space:]]+)*'
+
+# Round 4 (2026-09-23, Bugbot): `_is_dangerous_merge` computed the "current
+# branch" exactly ONCE, from the hook process's own cwd, and never revisited
+# it for (a) a `-C <dir>`/`--git-dir=<dir>` flag on the `git merge`
+# invocation ITSELF, which targets a wholly different repo than the hook's
+# cwd, or (b) a preceding `cd <dir> &&` segment in the same command chain
+# redirecting into a different repo entirely. Either shape let a merge into
+# another repo's main/master sail through using the WRONG repo's branch
+# name. Given a merge segment and the tracked $effective_cwd (updated by
+# `cd` segments seen so far), resolve the real branch to check: a -C/
+# --git-dir flag on THIS segment wins outright (most specific); otherwise
+# fall back to $effective_cwd if a prior `cd` set one; otherwise print
+# nothing so the caller keeps using the textually-tracked $branch (the
+# pre-existing, same-repo behavior — unchanged when neither applies).
+_resolve_merge_check_branch() {
+  local seg="$1" fallback_dir="$2" word prev="" dir="" mode=""
+  for word in $seg; do
+    case "$prev" in
+      -C) dir="$word"; mode="-C" ;;
+      --git-dir) dir="$word"; mode="--git-dir" ;;
+    esac
+    [ -n "$dir" ] && break
+    case "$word" in
+      --git-dir=*) dir="${word#--git-dir=}"; mode="--git-dir" ;;
+    esac
+    [ -n "$dir" ] && break
+    prev="$word"
+  done
+  if [ -z "$dir" ] && [ -n "$fallback_dir" ]; then
+    dir="$fallback_dir"; mode="-C"
+  fi
+  [ -z "$dir" ] && return 1
+  if [ "$mode" = "--git-dir" ]; then
+    git --git-dir="$dir" rev-parse --abbrev-ref HEAD 2>/dev/null || true
+  else
+    git -C "$dir" rev-parse --abbrev-ref HEAD 2>/dev/null || true
+  fi
+}
+
 _is_dangerous_merge() {
-  local c="$1" seg found=1
+  local c="$1" raw="${2:-$1}" seg found=1
   # ⛔ Bugbot review (2026-09-22, PR #1241): the original gate required the
   # literal contiguous substring "gh pr merge" and closed --admin with
   # ([[:space:]]|$), so it missed EVERY realistic real-world spelling: gh
@@ -645,13 +718,67 @@ $(printf '%s' "$c" | tr ';&|' '\n\n\n')
 EOF
     [ "$found" -eq 0 ] && return 0
   fi
-  if [[ "$c" =~ ${_CMD_BOUNDARY}git[[:space:]]+merge([[:space:]]|$) ]]; then
+  if [[ "$c" =~ ${_CMD_BOUNDARY}git[[:space:]]+${_GIT_MERGE_GLOBAL_OPTS}merge([[:space:]]|$) ]]; then
     local branch word prev seen seg_target pending pending_kind double_dash first_pos symref_target
+    local effective_cwd="" cd_word cd_prev cd_seen cd_target
     branch="$(git rev-parse --abbrev-ref HEAD 2>/dev/null || true)"
+    # Round 4 (2026-09-23, Bugbot): the earlier `git[[:space:]]+global-option
+    # strip` normalization (applied to `$norm` before this function ever
+    # sees it) folds a `-C <dir>`/`--git-dir=<dir>` on a `git merge`
+    # invocation away entirely, so `$seg` (derived from `$c` == the
+    # STRIPPED command) can no longer see which directory that merge
+    # targets. `$raw` is the PRE-strip text passed in by the caller;
+    # split it into an index-aligned segment array so the merge check
+    # below can look at the unstripped `raw_seg` for the -C/--git-dir
+    # flag while everything else keeps using the stripped `seg`.
+    local -a _raw_segs=()
+    local _rseg _idx=0
+    while IFS= read -r _rseg; do
+      _raw_segs+=("$_rseg")
+    done <<EOF
+$(printf '%s' "$raw" | tr ';&|' '\n\n\n')
+EOF
     while IFS= read -r seg; do
+      local raw_seg="${_raw_segs[_idx]:-$seg}"
+      _idx=$((_idx + 1))
+      # Round 4 (2026-09-23, Bugbot): `cd <dir> && git merge ...` targets a
+      # DIFFERENT repo than the one the hook process's own cwd sits in — the
+      # $branch computed above (from the hook's cwd) is then simply wrong
+      # for the merge that follows. Track the effective directory across
+      # `cd` segments so a later `git merge` in the same chain can re-resolve
+      # HEAD from the right place (see _resolve_merge_check_branch below).
+      if [[ "$seg" =~ ${_CMD_BOUNDARY}cd([[:space:]]|$) ]]; then
+        cd_prev="" cd_seen="" cd_target=""
+        for cd_word in $seg; do
+          if [ -z "$cd_seen" ]; then
+            [ "$cd_word" = "cd" ] && cd_seen=1
+            cd_prev="$cd_word"
+            continue
+          fi
+          case "$cd_word" in
+            -*) ;;
+            *) [ -z "$cd_target" ] && cd_target="$cd_word" ;;
+          esac
+        done
+        if [ -n "$cd_target" ] && [[ "$cd_target" =~ ^[A-Za-z0-9._/~+-]+$ ]]; then
+          case "$cd_target" in
+            /*) effective_cwd="$cd_target" ;;
+            *) [ -n "$effective_cwd" ] && effective_cwd="$effective_cwd/$cd_target" || effective_cwd="$cd_target" ;;
+          esac
+        fi
+      fi
       if [[ "$seg" =~ ${_CMD_BOUNDARY}git[[:space:]]+(checkout|switch)([[:space:]]|$) ]]; then
         prev="" seen="" seg_target="" pending="" pending_kind="" double_dash="" first_pos=""
-        for word in $seg; do
+        # Round 4 (2026-09-23, Bugbot): a redirect glued directly onto the
+        # target with no whitespace (`git checkout main>/dev/null`) reads
+        # as ONE word under a plain `for word in $seg` split, so the target
+        # extraction below never saw "main" in isolation. Insert whitespace
+        # around `<`/`>` first so the split sees them as separate tokens —
+        # this only ever ADDS a word boundary, it cannot merge two tokens
+        # that were already separate.
+        local seg_split="${seg//>/ > }"
+        seg_split="${seg_split//</ < }"
+        for word in $seg_split; do
           if [ -z "$seen" ]; then
             if [ "$prev" = "git" ] && { [ "$word" = "checkout" ] || [ "$word" = "switch" ]; }; then
               seen=1
@@ -682,10 +809,18 @@ EOF
             *) [ -z "$first_pos" ] && first_pos="$word" ;;
           esac
         done
-        if [ -n "$seg_target" ] && _is_safe_ref_token "$seg_target"; then
-          branch="$seg_target"
-        elif [ -z "$double_dash" ] && [ -n "$first_pos" ] && _is_safe_ref_token "$first_pos"; then
-          branch="$first_pos"
+        if [ -n "$seg_target" ]; then
+          if _is_safe_ref_token "$seg_target"; then
+            branch="$seg_target"
+          else
+            branch="$_AMBIGUOUS_BRANCH_SENTINEL"
+          fi
+        elif [ -z "$double_dash" ] && [ -n "$first_pos" ]; then
+          if _is_safe_ref_token "$first_pos"; then
+            branch="$first_pos"
+          else
+            branch="$_AMBIGUOUS_BRANCH_SENTINEL"
+          fi
         fi
       fi
       # Round 2 (2026-09-22, Bugbot): `git symbolic-ref HEAD <ref>` is a
@@ -714,7 +849,7 @@ EOF
         done
         [ -n "$symref_target" ] && _is_safe_ref_token "$symref_target" && branch="$symref_target"
       fi
-      if [[ "$seg" =~ ${_CMD_BOUNDARY}git[[:space:]]+merge([[:space:]]|$) ]]; then
+      if [[ "$seg" =~ ${_CMD_BOUNDARY}git[[:space:]]+${_GIT_MERGE_GLOBAL_OPTS}merge([[:space:]]|$) ]]; then
         # Round 3 (2026-09-23, Bugbot): the old check only asked "does
         # --ff-only appear ANYWHERE in this segment?", so it treated
         # `--ff-only` as sticky even when a LATER flag in the same
@@ -740,9 +875,19 @@ EOF
           # form this repo's own docs/scripts use for a local branch ref);
           # refs/remotes/* is a detached-HEAD checkout, not a same-named
           # local branch, and is out of this fix's scope.
-          local branch_check="${branch#refs/heads/}"
+          # Round 4 (2026-09-23, Bugbot): re-resolve HEAD for a -C/--git-dir
+          # flag on THIS merge invocation, or a preceding `cd` in the same
+          # chain, before falling back to the textually-tracked $branch.
+          local merge_check_branch
+          merge_check_branch="$(_resolve_merge_check_branch "$raw_seg" "$effective_cwd")"
+          local branch_check
+          if [ -n "$merge_check_branch" ]; then
+            branch_check="${merge_check_branch#refs/heads/}"
+          else
+            branch_check="${branch#refs/heads/}"
+          fi
           case "$branch_check" in
-            main|master) return 0 ;;
+            main|master|"$_AMBIGUOUS_BRANCH_SENTINEL") return 0 ;;
           esac
         fi
       fi
@@ -833,7 +978,14 @@ deny_patterns=(
   # Widened to `[[:space:]=]*` and the trailing boundary to `${_CMD_END}` so
   # a chained/piped/newline-terminated command is still caught, matching the
   # boundary discipline used elsewhere in this file.
-  "(gh[[:space:]]+api|curl)[^;&|]*(-X|--method|--request)[[:space:]=]*DELETE${_CMD_END}"
+  # Round 4 (2026-09-23, Bugbot): the DELETE literal was case-sensitive, so
+  # `--method delete` / `-X delete` / `--method=delete` (curl and gh both
+  # accept a lowercase verb) sailed through untouched. Rather than `shopt -s
+  # nocasematch` for the whole array (which would also loosen every OTHER
+  # pattern matched in the same loop below — unintended side effects on
+  # unrelated hard rules), spell DELETE as an explicit per-letter character
+  # class so only this one pattern is case-insensitive.
+  "(gh[[:space:]]+api|curl)[^;&|]*(-X|--method|--request)[[:space:]=]*[Dd][Ee][Ll][Ee][Tt][Ee]${_CMD_END}"
 )
 
 _deny() {
@@ -860,7 +1012,7 @@ if _is_dangerous_truncate "$norm"; then _deny "truncate-zero-of-dangerous-target
 if _is_dangerous_git_branch_delete "$norm"; then _deny "git-branch-force-delete"; fi
 if _is_dangerous_git_push_delete "$norm";   then _deny "git-push-remote-branch-delete"; fi
 if _is_dangerous_git_clean "$norm";         then _deny "git-clean-force"; fi
-if _is_dangerous_merge "$norm";      then _deny "bypass-shaped-merge"; fi
+if _is_dangerous_merge "$norm" "$_norm_before_gitstrip";      then _deny "bypass-shaped-merge"; fi
 if _is_dangerous_update_ref "$norm"; then _deny "git-update-ref-delete"; fi
 
 # Then the pattern array.
