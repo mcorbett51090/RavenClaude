@@ -1,4 +1,14 @@
-# PENDING HUMAN ACTION — `guard-destructive.sh` merge-deny patch (Task 3.3)
+# RESOLVED — `guard-destructive.sh` merge-deny patch (Task 3.3)
+
+> **✅ Landed 2026-09-22 (PR #1241).** Commit 8063c3c (#1238) fixed the maintainer-substrate
+> exemption's ownership check (switched `gh repo view`, GraphQL, blocked by this environment's proxy,
+> to `gh api`, REST, which resolves). A session with `gh` installed and authenticated via
+> `GITHUB_TOKEN` could then apply the edit directly, exactly as this doc predicted in its "for a
+> human (or a differently-configured session with working `gh` GraphQL access...)" line — the fix
+> just arrived as a REST-based exemption rather than a working GraphQL one. All 31 documented
+> acceptance cases below plus the two new `deny_patterns` entries were verified live against a
+> scratch git repo before merge. The rest of this document is kept as the historical diagnosis + the
+> exact patch text that was applied — do not re-apply it.
 
 **Status: blocked, not built.** Every other buildable piece of the source-control-coordinator plan
 was completed this session. This one file could not be edited from this session, for a reason worth

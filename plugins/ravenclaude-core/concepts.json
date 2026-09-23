@@ -2792,7 +2792,7 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-09-22",
+      "last_verified": "2026-09-23",
       "refresh_when": null,
       "sources": [
         {
@@ -2857,7 +2857,7 @@
         "plugins/ravenclaude-core/hooks/triage-outcome.sh",
         "plugins/ravenclaude-core/hooks/worktree-guard.sh"
       ],
-      "covers_digest": "sha256:52c2104cfbd1f748bbdef53a379cc86f0ed7ecac3f568808ccee29bb60b302a9",
+      "covers_digest": "sha256:68aca7ad6640ffedbb76d71a1d8a134a7aadf2260c68592be7de620dc3e57098",
       "nuance": "A hook writing to stderr at `exit 0` reaches the model on no event; only `hookSpecificOutput.additionalContext` and `updatedToolOutput` are delivered, so `_advise.sh` advised the terminal for its entire service life.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -4327,7 +4327,7 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-09-09",
+      "last_verified": "2026-09-22",
       "refresh_when": null,
       "sources": [
         {
@@ -4348,7 +4348,7 @@
         "plugins/ravenclaude-core/knowledge/coordinator-ledger-convention.md",
         "plugins/ravenclaude-core/scripts/ledger.py"
       ],
-      "covers_digest": "sha256:acdfac546c770aaaa9c304e2e8e4226628922106fd53f4a2b8ddcf83bcdca8a0",
+      "covers_digest": "sha256:b7fd60ce46b957cafbe64b2c0ed23b737cabf282dfffe7deaf50274c478b973c",
       "nuance": "--repo-root/--actor are ledger.py's TOP-LEVEL parser flags, added before add_subparsers(); a build plan citing them AFTER `append` fails with 'unrecognized arguments', verified live. A companion claim (fresh ledger = exit 2/UNKNOWN) was also wrong: cmd_init always appends a ledger_init event, so the true fresh state is exit 0/PASS.",
       "nuance_evidence": {
         "measured": "2026-09-09",
