@@ -20,10 +20,10 @@ The plugin requires `ravenclaude-core@>=0.5.0` for the cross-plugin protocols (G
 | Component | Count | Where |
 |-----------|-------|-------|
 | Specialist agents | 7 | [`agents/`](agents/) |
-| Skills | 9 | [`skills/`](skills/) |
-| Knowledge bank | 10 | [`knowledge/`](knowledge/) |
-| Hooks | 1 (advisory) | [`hooks/`](hooks/) |
-| Templates | 8 | [`templates/`](templates/) |
+| Skills | 23 | [`skills/`](skills/) |
+| Knowledge bank | 17 | [`knowledge/`](knowledge/) |
+| Hooks | 2 (advisory + secret-scan) | [`hooks/`](hooks/) |
+| Templates | 9 | [`templates/`](templates/) |
 
 See [`CLAUDE.md`](CLAUDE.md) for the full team constitution (roster, routing rules, house opinions, anti-patterns, output contract, escalation paths).
 

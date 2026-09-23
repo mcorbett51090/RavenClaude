@@ -190,9 +190,50 @@ def _run_block_lines(src: str) -> list[tuple[int, str]]:
 _WHOLE_LINE_STRING = re.compile(r"""^\s*["'][^"']*["']\s*(?:#.*)?$""")
 
 
+def _join_continuations(lines: list[tuple[int, str]]) -> list[tuple[int, str]]:
+    """Merge shell line-continuations (a physical line ending in `\\`) into one
+    logical line before shape-matching.
+
+    ⛔ FOUND BY REVIEW, not imagined (repo-review 2026-09-23): every PUSH_SHAPE
+    regex uses `[^\\n]*`, which cannot cross a newline, so a command split across
+    physical lines with an ordinary `\\` continuation slipped every shape. The
+    evasion is not exotic — it is the normal way a `gh pr merge` or `git push`
+    grows once it has several flags:
+
+        gh pr merge "$n" \\
+          --squash --admin
+
+    Here `--admin` sits on a different physical line from `gh pr merge`, so the
+    `admin-merge-bypass` shape (`\\bgh\\s+pr\\s+merge\\b[^\\n]*--admin\\b`) never
+    matched — the exact admin-bypass this gate exists to catch. Joining first
+    closes it. The first physical line's number is kept for reporting; the
+    per-logical-line SENTINEL and whole-line-string fixture exclusions still run
+    on the joined text (one-quoted-push-per-line fixtures do not end in `\\`, so
+    they are never joined and stay excluded)."""
+    out: list[tuple[int, str]] = []
+    buf = ""
+    buf_lineno: int | None = None
+    for lineno, line in lines:
+        if line.endswith("\\"):
+            frag = line[:-1].rstrip()
+            if buf_lineno is None:
+                buf_lineno = lineno
+            buf = (buf + " " + frag).strip() if buf else frag
+            continue
+        if buf_lineno is not None:
+            out.append((buf_lineno, (buf + " " + line).strip()))
+            buf = ""
+            buf_lineno = None
+        else:
+            out.append((lineno, line))
+    if buf_lineno is not None:  # a trailing continuation with no terminating line
+        out.append((buf_lineno, buf))
+    return out
+
+
 def check_source(src: str, rel: str) -> list[Finding]:
     findings: list[Finding] = []
-    for lineno, line in _run_block_lines(src):
+    for lineno, line in _join_continuations(_run_block_lines(src)):
         if SENTINEL.search(line) or _WHOLE_LINE_STRING.match(line):
             continue
         for shape, pat in PUSH_SHAPES:
