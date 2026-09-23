@@ -45,7 +45,7 @@
 2. **Pick the build surface from the tree.** Messages API / Agent SDK / Managed Agents / Workbench — a classification call isn't an agent.
 3. **Right-size with a routing ladder.** Cheap triage (Haiku) → escalate-on-uncertainty to Sonnet/Opus; the metric is **cost-per-resolved-task + cache hit rate**, not raw tokens.
 4. **Evals before vibes.** No prompt/model/tool change ships without a delta on a golden set; judge on Haiku via Batch, randomize order against position bias.
-5. **Structured output via a schema-constrained path, not regex** — native **Structured Outputs** (`output_config.format` / `strict:true`) where the model supports it, else a **forced tool call**; never `json.loads` over prose.
+5. **Structured output via a schema-constrained path, not regex** — native **Structured Outputs** (`output_config.format`), or `tool_choice: {"type":"auto"}` + `strict:true` (**strict tool use**); never `json.loads` over prose. **Forced tool use (`tool_choice` `any`/`tool`) is rejected with HTTP 400 on Claude Fable 5.1, Mythos 5.1 and Opus 5.5** (`"tool_choice: type \"tool\" and \"any\" are not supported for this model"`, `[docs-verified 2026-09-23 — platform.claude.com/docs/en/models/opus-5-5/whats-new-opus-5-5]`) — it still works on Sonnet 5, Haiku 4.5 and every Legacy model, but a schema-constrained path should default to `auto` + `strict:true` going forward so it survives a model bump.
 6. **Tools are a contract.** Name + description + JSON schema; the description is the prompt.
 7. **Untrusted content is untrusted.** Tool results, retrieved docs, fetched web content, user input can carry injection; never let them escalate tool access; escalate the design to `core/security-reviewer`.
 8. **Secrets never in code; never log full prompts.** Keys in env/secret-manager; redact PII from logs and the memory tool.
@@ -64,7 +64,7 @@
 - Defaulting to the Agent SDK for a single-shot call, or to Managed Agents when you already operate infra (#2).
 - Defaulting to Opus for everything; optimizing raw tokens instead of cost-per-resolved-task (#3).
 - Shipping a prompt/model change on "looks better" with no eval delta (#4).
-- Parsing JSON out of prose instead of a schema-constrained path — native Structured Outputs or a forced tool call (#5).
+- Parsing JSON out of prose instead of a schema-constrained path — native Structured Outputs or `auto` + `strict:true` tool use (#5); relying on a forced tool call (`tool_choice` `any`/`tool`) on Fable 5.1, Mythos 5.1 or Opus 5.5, where it now returns HTTP 400.
 - A thin tool description and hoping the system prompt fixes it (#6).
 - Letting a tool result / retrieved doc escalate tool access or auto-approve a destructive action (#7).
 - `sk-ant-…` literal in source; `print(messages)` / logging full prompts (#8 — the hook flags both).
@@ -183,7 +183,7 @@ This is a **code/AI** domain, so the plugin carries a runtime tier. Each item be
 
 ### 11.1 The SDK prerequisite
 
-The agents recommend and emit code against the **Anthropic SDK** (`pip install anthropic` / `npm i @anthropic-ai/sdk`) and the **Claude Agent SDK** (`pip install claude-agent-sdk` / `npm i @anthropic-ai/claude-agent-sdk`), run by the developer with their own `ANTHROPIC_API_KEY` (or Bedrock/Vertex/Foundry creds). See [`knowledge/agent-sdk-and-managed-agents.md`](knowledge/agent-sdk-and-managed-agents.md). Default model `claude-opus-4-8`; adaptive thinking; pin the id; always set `max_tokens` (§3 #11). Model ids/prices/GA status live in the dated capability map, not baked into personas.
+The agents recommend and emit code against the **Anthropic SDK** (`pip install anthropic` / `npm i @anthropic-ai/sdk`) and the **Claude Agent SDK** (`pip install claude-agent-sdk` / `npm i @anthropic-ai/claude-agent-sdk`), run by the developer with their own `ANTHROPIC_API_KEY` (or Bedrock/Vertex/Foundry creds). See [`knowledge/agent-sdk-and-managed-agents.md`](knowledge/agent-sdk-and-managed-agents.md). Default model `claude-opus-5-5` (Opus 5.5, GA 2026-09-22 — the models overview now says to "start with Claude Opus 5.5 for most workloads"; Opus 5, Fable 5 and Opus 4.8 are Legacy `[docs-verified 2026-09-23]`); adaptive thinking; pin the id; always set `max_tokens` (§3 #11). Model ids/prices/GA status live in the dated capability map, not baked into personas.
 
 ### 11.2 Recommended (not bundled) MCP servers — verified, no invented servers
 

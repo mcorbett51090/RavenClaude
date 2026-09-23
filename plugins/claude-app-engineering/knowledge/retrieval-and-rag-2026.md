@@ -13,7 +13,7 @@ flowchart TD
     F -->|Yes| FILES[Files API — upload once, reference by id]
     F -->|No, search a big/growing KB| RAG[Contextual Retrieval pipeline]
 ```
-- **Long context first.** If the knowledge base fits under ~200K tokens and is reasonably static, **skip RAG** — put it in the prompt and cache the prefix (cache read = 0.1× input). Simpler, faster, fewer moving parts.
+- **Long context first.** If the knowledge base fits under ~200K tokens and is reasonably static, **skip RAG** — put it in the prompt and cache the prefix (cache read = 0.1× input on most models; 0.05× on Opus 5.5, 0.025× on Fable 5.1/Mythos 5.1). Simpler, faster, fewer moving parts.
 - **Files API** when it's a known small set of documents per request (upload once, reference by id) — see [`server-side-tools-and-files.md`](server-side-tools-and-files.md).
 - **RAG** when the corpus is large, dynamic, per-tenant, or you must surface citations.
 

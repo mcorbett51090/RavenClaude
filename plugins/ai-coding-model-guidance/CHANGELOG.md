@@ -7,6 +7,12 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.3.20] — 2026-09-23
+
+### Changed
+
+- **Weekly research-sweep corrections (docs-verified 2026-09-23 via GitHub changelog + tech-press, several confirmed via WebSearch).** GPT-6 Astra is GA (2026-09-04, GitHub Copilot) — corrects the 2026-08-13 "held OUT, not confirmed GPT-6" note. GPT-6 Sol and Luna shipped 2026-09-22 (ChatGPT Work/Codex/API). Grok 4.7 shipped 2026-09-21, superseding Grok 4.6 as flagship. Claude Fable 5.1 (2026-09-01) and Opus 5.5 (2026-09-22) are now in GitHub Copilot, with Opus 5.5 the top Copilot Claude option. Copilot deprecates Gemini 3.7 Flash, GPT-5.5, GPT-5.4, GPT-5.4 mini, GPT-5 mini, and Grok 4.5 on 2026-10-19. Vendor-neutral decision tree + Codex/Grok tables updated to the new lineup.
+
 ## [0.3.19] — 2026-09-20
 
 ### Changed

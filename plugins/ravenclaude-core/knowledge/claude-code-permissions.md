@@ -66,19 +66,25 @@ Source: `src/tools/BashTool/readOnlyValidation.ts` (per the Claude Code core `/f
 
 ## Permission modes (the six modes)
 
+> **Auto-mode facts below re-verified 2026-09-23** against [code.claude.com/docs/en/permission-modes](https://code.claude.com/docs/en/permission-modes) — several claims below (research-preview label, Anthropic-API-only, Sonnet 4.6/Opus 4.6+ everywhere, project-settings-only exclusion) were stale. `[docs-verified 2026-09-23]`
+
 | Mode                | What it does                                                                                          | Where it's set                          |
 | ------------------- | ----------------------------------------------------------------------------------------------------- | --------------------------------------- |
-| `default`           | Standard prompt-on-uncertain behavior                                                                 | Per-session                             |
+| `default`           | Standard prompt-on-uncertain behavior. **Labeled "Manual"** in the CLI/VS Code/JetBrains/desktop app since v2.1.200+ (config value stays `default`; `manual` works as a CLI alias). | Per-session |
 | `acceptEdits`       | Auto-approves common filesystem Bash inside cwd (`mkdir`, `touch`, `rm`, `rmdir`, `mv`, `cp`, `sed`)  | Per-session                             |
 | `plan`              | Planning mode — read/think only, no writes                                                            | Per-session                             |
-| `auto`              | Research-preview; classifier-driven autonomy. **Silently drops broad allow rules** (`Bash(*)` etc.)   | `~/.claude/settings.json` only          |
+| `auto`              | **NOT research-preview** — a second (classifier) model reviews actions instead of prompting you. **Silently drops broad allow rules** (`Bash(*)` etc.)   | `~/.claude/settings.json`, project, or managed settings (see gotchas) |
 | `dontAsk`           | Auto-deny everything not explicitly allowed (useful for CI)                                           | Per-session / per-invocation            |
 | `bypassPermissions` | Skips most checks. **`rm -rf /` and `rm -rf ~` still prompt** as a circuit breaker                    | Launch flag only                        |
 
-**`auto` mode gotchas:**
-- Requires Claude Code v2.1.83+, Sonnet 4.6 / Opus 4.6+, Anthropic API only (not Bedrock/Vertex/Foundry).
-- Drops `Bash(*)`, `PowerShell(*)`, wildcarded interpreters like `Bash(python*)`, package-manager run wildcards (`npm run *`), all `Agent` allow rules. They restore when you leave auto mode.
-- `defaultMode: "auto"` is **ignored** in project-level settings — must be set in user-level `~/.claude/settings.json`.
+**`auto` mode gotchas (corrected 2026-09-23 — the gates below are the live ones, not this file's prior 2026-07-era figures):**
+- **On Pro, Max and Team plans, `auto` is now the built-in starting permission mode** (Claude Code v2.1.228+ on macOS/Linux/WSL, v2.1.233+ on native Windows; earlier versions default to Manual). Not a research preview.
+- **Available on the Anthropic API, Claude Platform on AWS, Amazon Bedrock, Google Cloud's Agent Platform, Microsoft Foundry, and signed-in Claude apps gateway sessions** — not Anthropic-API-only.
+- **Model gate is per-provider, not one flat rule:** on the **Anthropic API and Claude Platform on AWS** — Opus 4.6+, Sonnet 4.6+, or a Fable model. On **Bedrock, Google Cloud's Agent Platform, Foundry, and gateway sessions** — only the narrower **Sonnet 5, Opus 4.7+, or a Fable model**. Older models (Sonnet 4.5, Opus 4.5, Haiku, claude-3.x) are unsupported on any provider.
+- Drops on entry, restores on exit: blanket `Bash(*)`/`PowerShell(*)`, wildcarded interpreters (`Bash(python*)`), package-manager run commands, all `Agent` allow rules, and (**since v2.1.236**) all `Monitor` allow rules (Claude Code runs Monitor commands through the shell). Narrow rules like `Bash(npm test)` stay in effect.
+- Disable per-org with `permissions.disableAutoMode: "disable"` in managed settings.
+- `defaultMode: "auto"` set in **project-level `.claude/settings.json` or `.claude/settings.local.json` does NOT take effect** — Claude Code falls back to the built-in default. It **does** work from user-level `~/.claude/settings.json` or from managed settings — "must be user-level only" was too narrow.
+- The mode that always prompts is now labeled **"Manual"** in the CLI/VS Code/JetBrains/desktop app (config value stays `default`; CLI accepts `manual` as an alias) — since v2.1.200+.
 
 ## Subagents inherit the parent's permission mode — and under `bypassPermissions` it can't be overridden
 

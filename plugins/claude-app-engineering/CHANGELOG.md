@@ -2,6 +2,12 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## 0.9.21 — 2026-09-23
+
+### Fixed
+
+- **Weekly research-sweep corrections (docs-verified 2026-09-23 against platform.claude.com, fetched directly this session).** Opus 5.5 (GA 2026-09-22) and Fable 5.1 (GA 2026-09-01) are now the current lineup; Opus 5, Fable 5 and Opus 4.8 are Legacy. Forced tool use (`tool_choice` `any`/`tool`) now returns HTTP 400 on Opus 5.5/Fable 5.1/Mythos 5.1 — house opinion #5 and `tool-use-and-structured-output.md` corrected to recommend `auto` + `strict:true` (strict tool use) or Structured Outputs on those models, with the forced-tool-call path scoped to the models that still accept it. Cache-read multiplier is no longer a flat 0.1× (0.05× on Opus 5.5, 0.025× on Fable 5.1/Mythos 5.1) and the cache-minimums table was too coarse (Opus 4.7 = 2,048, Opus 4.8 = 1,024, not both 4,096) — both corrected in `prompt-caching-playbook.md` and propagated to every file quoting the old flat multiplier. Model-selection decision tree's defaults (Sonnet 4.6/Opus 4.8) updated to Sonnet 5/Opus 5.5. Fast-mode and Dynamic-Workflows scope notes updated. `CLAUDE.md` §11.1 default model updated to `claude-opus-5-5`.
+
 ## 0.9.20 — 2026-09-14
 
 ### Changed

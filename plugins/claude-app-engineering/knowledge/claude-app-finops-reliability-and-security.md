@@ -4,7 +4,7 @@
 **Owner:** `claude-app-ops-engineer` (security design escalates to `ravenclaude-core/security-reviewer`).
 
 ## FinOps — the cost levers, in priority order
-1. **Prompt caching** — the biggest lever. Cache reads are 0.1× input; a well-laid-out static prefix can cut input cost by an order of magnitude. Track **cache hit rate** ([`prompt-caching-playbook.md`](prompt-caching-playbook.md)).
+1. **Prompt caching** — the biggest lever. Cache reads are 0.1× input on most models — **0.05× on Opus 5.5, 0.025× on Fable 5.1/Mythos 5.1** `[docs-verified 2026-09-23]`; a well-laid-out static prefix can cut input cost by an order of magnitude. Track **cache hit rate** ([`prompt-caching-playbook.md`](prompt-caching-playbook.md)).
 2. **Model routing ladder (house opinion #3)** — a cheap model (Haiku) triages/classifies; escalate-on-uncertainty to Sonnet; reserve Opus for the hard tail. The metric is **cost-per-resolved-task**, not raw tokens — a Haiku call that fails and re-routes to Opus is more expensive than starting on Sonnet.
 3. **Batch the async (house opinion #10)** — the **Batch API** is 50% off with ~24h async SLA; the `output-300k-2026-03-24` beta header raises batch `max_tokens` to 300k (Opus 4.7/4.6, Sonnet 4.6). Any non-interactive workload (evals, backfills, bulk enrichment) belongs on Batch.
 4. **`max_tokens` discipline** — always set it (a missing/oversized `max_tokens` risks silent truncation and overspend); size it to the actual output.
