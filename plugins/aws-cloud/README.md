@@ -7,7 +7,7 @@ The **aws-cloud** plugin — designing and operating well-architected AWS — mu
 - **`aws-architect`** — AWS architecture and the account strategy: Well-Architected trade-offs, multi-account landing zone (Organizations/Control Tower/SCPs), region/AZ design, service selection across the estate, and resilience/DR posture
 - **`aws-iam-identity-engineer`** — AWS identity and access: least-privilege IAM policies, roles over keys, permission boundaries, SCPs, IAM Identity Center (SSO), cross-account access, IRSA for EKS, and OIDC federation for CI
 - **`aws-network-engineer`** — AWS networking: VPC and subnet design, security groups vs NACLs, PrivateLink and VPC endpoints, Transit Gateway / peering, NAT and egress control, Route 53, and private-by-default connectivity
-- **`aws-compute-platform-engineer`** — Compute selection and configuration: Lambda, ECS/Fargate, EKS, App Runner, EC2; the serverless-vs-containers-vs-VMs decision, autoscaling, and the data/integration services (RDS/DynamoDB/S3, SQS/SNS/EventBridge/Step Functions) at a selection level
+- **`aws-compute-platform-engineer`** — Compute selection and configuration: Lambda, ECS/Fargate, EKS, ECS Express Mode, EC2; the serverless-vs-containers-vs-VMs decision, autoscaling, and the data/integration services (RDS/DynamoDB/S3, SQS/SNS/EventBridge/Step Functions) at a selection level
 - **`aws-ops-finops-engineer`** — Operations and cost: CloudWatch/X-Ray observability hooks, cost allocation tags, budgets and anomaly detection, rightsizing and Savings Plans/RIs, backup/DR operations, and Well-Architected operational excellence
 
 ## Install
