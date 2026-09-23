@@ -349,6 +349,38 @@ _CMD_END='([[:space:];&|<>)`]|$)'
 # A recursive flag in ANY spelling/order: -r, -R, -rf, -fr, -Rf, --recursive.
 _has_recursive() { [[ "$1" =~ (^|[[:space:]])(-[a-zA-Z]*[rR][a-zA-Z]*|--recursive)([[:space:]]|$) ]]; }
 
+# Round 15 (2026-09-23, Bugbot): `_is_dangerous_merge`'s git+(merge|pull)
+# gates and `_is_dangerous_update_ref`'s git+update-ref gates required a
+# literal boundary-anchored "git" word -- `$GIT merge feature` (the git
+# binary invoked through a variable) bypassed both, the same class of
+# bypass rounds 12-13 already closed for gh/curl by DROPPING the command-
+# name requirement entirely. That approach does NOT generalize here:
+# "merge"/"pull"/"update-ref" alone (unlike the 3-4-word gh/curl combos)
+# are common enough as bare English words or as another tool's own
+# subcommand that dropping "git" outright produced real false positives,
+# caught live by this round's own negative-control pass -- an innocuous
+# `echo "please pull the latest and merge it"` and, far more seriously,
+# the explicitly-sanctioned `gh pr merge 123 --squash` invocation were
+# BOTH denied once "git" was dropped (both mention "merge"/"pull" as bare
+# words with no git invocation at all). The correct, narrower signal:
+# require git OR an unresolvable-looking word (the exact shape of a
+# git-binary-via-variable bypass) to be present -- this reaches `$GIT
+# merge feature` without reaching ordinary prose or a `gh` command that
+# merely shares the word "merge".
+_has_unresolvable_word() {
+  local text="$1" w
+  for w in $text; do
+    _looks_unresolvable_method_value "$w" && return 0
+  done
+  return 1
+}
+_git_invocation_present() {
+  local text="$1"
+  [[ "$text" =~ ${_CMD_BOUNDARY}git([[:space:]]|$) ]] && return 0
+  _has_unresolvable_word "$text" && return 0
+  return 1
+}
+
 # rm of a dangerous root (/, ~, $HOME — but NOT ./relative) recursively, in any
 # flag order. Force is NOT required: a recursive rm of / or $HOME is fatal on
 # its own. `rm -rf ./tmp/build` is allowed (target is relative, starts with `.`).
@@ -831,7 +863,13 @@ EOF
   # tracking block (checkout, cd, symbolic-ref, AND merge/pull detection)
   # was silently skipped entirely for `git checkout main && git pull
   # --no-ff . feat`. Widened to git+(merge|pull) word-presence.
-  if [[ "$c" =~ ${_CMD_BOUNDARY}git([[:space:]]|$) ]] && { [[ "$c" =~ ${_CMD_BOUNDARY}merge([[:space:]]|$) ]] || [[ "$c" =~ ${_CMD_BOUNDARY}pull([[:space:]]|$) ]]; }; then
+  # Round 15 (2026-09-23, Bugbot): "git" alone was too narrow ($GIT merge
+  # feature bypassed it) but dropping it outright was too broad (see
+  # _git_invocation_present's own comment for the false-positive proof --
+  # an innocuous merge/pull PROSE sentence and the sanctioned `gh pr merge
+  # --squash` invocation were both wrongly denied by a first attempt that
+  # dropped "git" entirely). Requires git OR an unresolvable-looking word.
+  if _git_invocation_present "$c" && { [[ "$c" =~ ${_CMD_BOUNDARY}merge([[:space:]]|$) ]] || [[ "$c" =~ ${_CMD_BOUNDARY}pull([[:space:]]|$) ]]; }; then
     local branch word prev seen seg_target pending pending_kind double_dash first_pos symref_target
     local branch_tracked=""
     local effective_cwd="" cd_word cd_prev cd_seen cd_target gd_word
@@ -1096,7 +1134,10 @@ EOF
       # `git pull` performs the identical non-ff-only merge `git merge`
       # does (see the outer gate above), so the same ff-state/branch-
       # resolution analysis below applies unchanged to either verb.
-      if [[ "$seg" =~ ${_CMD_BOUNDARY}git([[:space:]]|$) ]] && { [[ "$seg" =~ ${_CMD_BOUNDARY}merge([[:space:]]|$) ]] || [[ "$seg" =~ ${_CMD_BOUNDARY}pull([[:space:]]|$) ]]; }; then
+      # Round 15 (2026-09-23, Bugbot): same git-OR-unresolvable-word
+      # widening as the outer gate above (see _git_invocation_present's
+      # own comment for why dropping "git" outright was wrong).
+      if _git_invocation_present "$seg" && { [[ "$seg" =~ ${_CMD_BOUNDARY}merge([[:space:]]|$) ]] || [[ "$seg" =~ ${_CMD_BOUNDARY}pull([[:space:]]|$) ]]; }; then
         # Round 3 (2026-09-23, Bugbot): the old check only asked "does
         # --ff-only appear ANYWHERE in this segment?", so it treated
         # `--ff-only` as sticky even when a LATER flag in the same
@@ -1207,9 +1248,15 @@ _is_dangerous_update_ref() {
   # regex never recognized the command as an update-ref invocation at all.
   # Replaced with the same order/adjacency-independent word-presence check
   # already used for _is_dangerous_merge's two detection sites.
-  [[ "$c" =~ ${_CMD_BOUNDARY}git([[:space:]]|$) ]] && [[ "$c" =~ ${_CMD_BOUNDARY}update-ref([[:space:]]|$) ]] || return 1
+  # Round 15 (2026-09-23, Bugbot): dropped the "git" requirement entirely
+  # -- `$GIT update-ref refs/heads/tmp <all-zero-oid>` bypassed both gates
+  # below since neither ever saw the literal word "git", the same class of
+  # bypass rounds 12-13 already closed for gh/curl by dropping their
+  # command-name requirement. "update-ref" alone is a specific enough
+  # anchor (no other common tool shares that exact subcommand name).
+  [[ "$c" =~ ${_CMD_BOUNDARY}update-ref([[:space:]]|$) ]] || return 1
   while IFS= read -r seg; do
-    [[ "$seg" =~ ${_CMD_BOUNDARY}git([[:space:]]|$) ]] && [[ "$seg" =~ ${_CMD_BOUNDARY}update-ref([[:space:]]|$) ]] || continue
+    [[ "$seg" =~ ${_CMD_BOUNDARY}update-ref([[:space:]]|$) ]] || continue
     for word in $seg; do
       case "$word" in
         -d|--delete) return 0 ;;
@@ -1304,11 +1351,27 @@ EOF
 # (`xargs -I{} curl -X{}`) as unresolvable -- it is static text, not a
 # shell variable, but it is exactly as opaque to a static scan: xargs
 # substitutes the piped value in at runtime, which could be anything.
+# Round 15 (2026-09-23, Bugbot): the bare-variable regex below only
+# matched a named variable ($M, $VAR) -- bash's POSITIONAL parameters
+# ($1, $2, ...) and SPECIAL parameters ($@, $*, $#, $?, $$, $!, $-) are
+# just as unresolvable to a static scan (their value is whatever the
+# invoking shell happened to pass/hold) but never matched the
+# letter-or-underscore-only name class, so `--admin$1` sailed through as
+# if "$1" were safe literal text. Added a second alternative covering
+# both parameter forms. The pattern is single-quote-assigned to a
+# variable first, then referenced unquoted in the `=~` test (the same
+# idiom this file already uses for `_CMD_END`) -- writing the special
+# parameters directly inline in the `[[ =~ ... ]]` test would let bash's
+# OWN parameter expansion try to resolve a literal `$!` etc. in the
+# pattern text before the regex ever runs, which fails under `set -u`
+# when that parameter happens to be unset (verified live: exactly this
+# broke the hook with "line N: $!: unbound variable").
+_unresolvable_param_re='\$([A-Za-z_][A-Za-z0-9_]*|[0-9@*#?$!-])'
 _looks_unresolvable_method_value() {
   case "$1" in
     *'$('*|*'`'*|*'${'*|*'{}'*) return 0 ;;   # command substitution / braced expansion / xargs -I{} placeholder, anywhere in the token
   esac
-  [[ "$1" =~ \$[A-Za-z_][A-Za-z0-9_]* ]] && return 0   # a variable reference ($M, $VAR), anywhere in the token
+  [[ "$1" =~ $_unresolvable_param_re ]] && return 0   # a named variable ($M, $VAR), positional ($1, $2), or special ($@, $*, $#, $?, $$, $!, $-) parameter, anywhere in the token
   return 1
 }
 
@@ -1318,7 +1381,15 @@ _seg_has_delete_method() {
     case "$prev" in
       -X|--method|--request)
         case "$word" in
-          [Dd][Ee][Ll][Ee][Tt][Ee]) return 0 ;;
+          # Round 15 (2026-09-23, Bugbot): the exact-match pattern below
+          # required the word to be LITERALLY "DELETE" and nothing else --
+          # a glued pipe/redirect right after it (`--request DELETE|cat`)
+          # is one whitespace-delimited word to a naive `for word in $seg`
+          # split (redirection/pipe operators aren't in $IFS), same as the
+          # already-fixed glued `-XDELETE|cat` case (round 14), but this
+          # is the SPACED flag form, which that fix didn't reach. Widened
+          # to accept anything glued after the literal DELETE.
+          [Dd][Ee][Ll][Ee][Tt][Ee]*) return 0 ;;
         esac
         _looks_unresolvable_method_value "$word" && return 0
         ;;
