@@ -491,7 +491,7 @@
       "name": "auth-identity",
       "source": "./plugins/auth-identity",
       "description": "End-user authentication & identity team \u2014 agents (auth-architect, auth-implementation-engineer) for adding login to a web app (React/Next), an API, and an analytics dashboard. A variety of methods: Google, Apple, Microsoft, GitHub social SSO plus magic link, passkeys/WebAuthn, and email+password \u2014 via managed auth (leaning Supabase Auth, so adding a provider is config not architecture). skills, templates, best-practices, and a web-verified knowledge bank with Mermaid decision trees (build-vs-buy, which-providers, OAuth-flow, token-storage, gate-the-dashboard). House rules: Authorization Code + PKCE never Implicit; never store tokens in localStorage; validate ID tokens server-side. The boundary: this plugin AUTHENTICATES the person; data-platform AUTHORIZES the data (RLS / embed-JWT); Microsoft/enterprise Entra seams to azure-cloud, concrete auth code to security-reviewer. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.3.4",
+      "version": "0.3.5",
       "author": {
         "name": "Matt Corbett"
       },
@@ -1241,7 +1241,7 @@
       "name": "security-engineering",
       "source": "./plugins/security-engineering",
       "description": "Security-engineering (AppSec) team \u2014 agents (appsec-engineer, threat-modeler, supply-chain-security-engineer, cloud-security-engineer) for building security INTO software: threat modeling (STRIDE, data-flow diagrams, trust boundaries), application security testing (SAST/DAST/IAST/SCA in CI, OWASP Top 10 web), secrets management (detection, rotation, vaulting, no plaintext), software supply-chain integrity (SBOM consumption, dependency CVEs, SLSA verification, pinning), and cloud security posture (CSPM, IAM least-privilege, network exposure). skills, a decision-tree knowledge bank (vuln-triage + secrets-handling trees + a dated 2026 tooling map), best-practices, templates, commands, an advisory hook. **Proposes controls; every ship/no-ship security VERDICT escalates to ravenclaude-core/security-reviewer.** Seams: API OWASP -> api-engineering, identity -> auth-identity, data privacy -> data-governance-privacy. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.3.8",
+      "version": "0.3.9",
       "author": {
         "name": "Matt Corbett"
       },

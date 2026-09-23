@@ -2,6 +2,20 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.3.9] — 2026-09-23
+
+Weekly Tier-A news sweep (2026-09-23) — 5 independently re-verified corrections:
+
+### Changed
+
+- **CISA BOD 22-01 → BOD 26-04.** BOD 22-01 was revoked; **BOD 26-04 "Prioritizing Security Updates Based on Risk"** (issued 2026-06-10) supersedes it (and BOD 19-02), replacing a flat KEV-catalog clock with a four-factor risk matrix (exposure, KEV status, exploit automatability, technical impact) — close to this plugin's existing risk-band shape. Updated in `knowledge/vulnerability-severity-vs-risk-decision-tree.md` (:43, :62), `scripts/sec_risk.py` (:34, :141 — help text only, no logic change), and `CLAUDE.md` §5. Re-verified via WebSearch (CISA's own page titles indexed as "Revoked" / the BOD 26-04 announcement; cisa.gov itself was egress-blocked this session, consistent with the original sweep report — the exact 3/14/60-day tier table is flagged `[verify-at-build]` pending a direct read of the directive).
+- **`best-practices/container-image-scanning-in-ci.md`** — the CI example used `aquasecurity/trivy-action@master`, a mutable ref. Confirmed via GHSA-69fq-xp46-6x23 (CVE-2026-33634, aquasecurity/trivy, published 2026-03-21): a threat actor with compromised maintainer credentials force-pushed 76 of 77 `trivy-action` version tags (and all `setup-trivy` tags) to a credential-stealing payload in March 2026. Pinned to the current `v0.36.0` tag's commit SHA (`ed142fd0673e97e23eac54620cfb913e5ce36c25`, resolved via `git ls-remote` against the live repo this session, not invented) with an inline comment explaining why and how to re-verify. Also bumped `github/codeql-action/upload-sarif@v3` → `@v4` (v3 is deprecated December 2026; Node 20, which v3 runs on, reached EOL 2026-04-30).
+- **`best-practices/sast-tune-for-signal.md`** — `returntocorp/semgrep-action@v1` is deprecated and archived (confirmed 2024-04-09, via the repo's own README). Replaced with the native `semgrep ci` CLI pattern (verified current flag syntax: `--config` per ruleset, `--sarif --sarif-output=`; `SEMGREP_RULES` is real but documented incompatible with `SEMGREP_APP_TOKEN`, so rulesets are passed via `--config` instead). Also fixed a cosmetic bug in the same example: `# nosec B105` is Bandit suppression syntax sitting in a Semgrep example — corrected to `# nosemgrep`.
+- **`knowledge/security-engineering-decision-trees.md:110`** — capability map: SLSA v1.0 → **v1.2** (approved 2025-11-12, promotes the Source Track from experimental to approved).
+- **`knowledge/sast-dast-sca-scanner-selection-decision-tree.md:61`** and **`CLAUDE.md` §6.1** — OSV-Scanner v2.4.0 → **v2.6.0** (released 2026-09-14; v2.5.0 migrated scanning/filtering/matching to osv-scalibr end-to-end).
+
+**Migration:** none — knowledge-file and CI-example content only; no agent/skill behavior change.
+
 ## [0.3.8] — 2026-08-14
 
 ### Changed
