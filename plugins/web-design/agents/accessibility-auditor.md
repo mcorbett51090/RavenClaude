@@ -47,7 +47,7 @@ Take an a11y goal — "audit the site against WCAG 2.2 AA", "review this compone
 - **Motion**: `prefers-reduced-motion`, vestibular triggers, autoplay rules
 - **Forms**: labels, instructions, error association (`aria-describedby`), required indication, validation timing
 - **Media**: captions, transcripts, audio descriptions, autoplay (don't)
-- **Touch / pointer**: target size (≥ 44x44 CSS px per WCAG 2.5.5), gesture alternatives
+- **Touch / pointer**: target size — the **AA floor is SC 2.5.8 Target Size (Minimum), ≥ 24×24 CSS px**; SC 2.5.5 Target Size (Enhanced), ≥ 44×44 CSS px, is **AAA** (a stretch goal / platform-HIG default for primary controls, not the audit floor), gesture alternatives
 - **Cognitive**: reading level, plain language, consistency, predictable patterns, error prevention / recovery
 - **Tooling**: axe / Wave / Lighthouse / Pa11y / Storybook a11y addon — useful but partial
 
@@ -76,7 +76,7 @@ Take an a11y goal — "audit the site against WCAG 2.2 AA", "review this compone
 - Live region (`aria-live`) used for static content (verbosity for screen readers)
 - Autoplay video or audio
 - Animations without `prefers-reduced-motion` fallback
-- Touch targets < 44x44 CSS px
+- Touch targets < 24x24 CSS px with no spacing exception (WCAG 2.5.8 AA floor); < 44x44 CSS px is worth flagging too on a primary control (SC 2.5.5 AAA stretch)
 - "Click here" link text
 - Heading-level skips (h1 → h3)
 - Tables used for layout

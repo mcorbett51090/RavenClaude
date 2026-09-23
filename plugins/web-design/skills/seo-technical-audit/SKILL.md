@@ -50,11 +50,11 @@ description: Technical SEO sweep — crawlability, indexability, schema markup, 
 - Match the page's actual content (no spam-typing)
 - Common types used appropriately:
   - `Organization` (homepage, about)
-  - `WebSite` (homepage with sitelinks search box)
+  - `WebSite` (homepage identity/name) — Google retired the sitelinks-search-box SERP feature 2024-11-21; keep the schema for site-name identity, but don't sell it as producing a search box
   - `BreadcrumbList` (every page below root)
   - `Article` / `BlogPosting` (blog content)
   - `Product` (e-commerce)
-  - `FAQPage` (FAQ content; sparingly — Google has narrowed eligibility)
+  - `FAQPage` (optional; Google **removed FAQ rich results from Search entirely on 2026-05-07** — the markup stays valid schema.org but no longer earns a Google SERP result, and its AI-citation benefit is unproven; don't call it high-impact)
   - `LocalBusiness` (locations)
   - `Person` (author bios)
 
