@@ -128,7 +128,7 @@ When the cost-stacking math on Sigma/Looker/ThoughtSpot doesn't pencil:
 ## What you almost certainly don't need
 
 - **DB-per-tenant from day 1** — over-provisioning. Start pooled; promote to schema-per-tenant or DB-per-tenant when a specific enterprise customer needs it as a contractual carve-out.
-- **Adaptive Compute Preview as your scaling answer** — vendor-claimed 1.6×-3.5× speedup, but Preview, Enterprise+ only, three regions. Seemore Data's caveat is sober: it changes the interface, not the engineering problem.
+- **Adaptive Compute as your scaling answer** — **GA since 2026-06-16 on AWS, expanded to select Azure/GCP regions 2026-07-28** `[docs-verified 2026-09-23 — docs.snowflake.com/en/release-notes/2026/other/2026-06-16-adaptive-compute-ga]` (no longer Preview — correcting the earlier "Preview, Enterprise+ only, three regions" note); still Enterprise Edition+ only, and 5XL/6XL, Snowpark-optimized, and interactive warehouses cannot convert. Vendor-claimed speedup framed as throughput-per-dollar. Seemore Data's caveat is sober: it changes the interface, not the engineering problem.
 - **A custom RLS layer when Cube does it** — Cube's JWT security context is mature, well-trodden. Build it yourself only if Cube is rejected for other reasons.
 
 ---
@@ -137,7 +137,7 @@ When the cost-stacking math on Sigma/Looker/ThoughtSpot doesn't pencil:
 
 - **Qrvey, Toucan, Tinybird changelogs** — flat-rate embed shifts.
 - **Cube blog** — semantic layer + agentic analytics (Cube D3, Analytics Chat API).
-- **Snowflake release notes** — Snowpipe pricing, Adaptive Compute GA promotion, Cortex Analyst pricing.
+- **Snowflake release notes** — Snowpipe pricing, Adaptive Compute region expansion (GA as of 2026-06-16), Cortex Analyst pricing.
 - **MotherDuck docs** — Hypertenancy + DuckDB-WASM.
 - **Tremor changelog** (Vercel-owned) — v4 stable signal.
 - **Gartner Magic Quadrant Embedded Analytics** — annual refresh.

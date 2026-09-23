@@ -187,7 +187,9 @@ flowchart TD
 
 **When this applies:** You need to add a column with a NOT NULL constraint to a table that is receiving concurrent writes. A naive ALTER TABLE will take a long lock and potentially block reads and writes for minutes on a large table.
 
-**Last verified:** 2026-06-05 against PostgreSQL documentation on ALTER TABLE and lock behavior.
+**Last verified:** 2026-09-23 against PostgreSQL documentation on ALTER TABLE and lock behavior, and PG18's NOT NULL constraint rework.
+
+**⚠️ Version gate:** the `ADD CONSTRAINT ... NOT NULL ... NOT VALID` / `VALIDATE CONSTRAINT` form (Step 3 below) is a **PostgreSQL 18+ only** feature — support for `NOT VALID`/`VALIDATE` on a *named* `NOT NULL` constraint landed in PG18 `[docs-verified 2026-09-23 — neon.com/postgresql/18/not-null-as-not-valid, dbi-services.com "PostgreSQL 18: Allow NOT NULL constraints to be added as NOT VALID"]`. Running it on PostgreSQL ≤17 (most managed fleets, still commonly on 15–17) fails with a syntax error. On PG12–17, use the CHECK-constraint workaround (Step 3-alt below) instead — it achieves the same non-locking outcome.
 
 ```mermaid
 flowchart TD
@@ -198,20 +200,28 @@ flowchart TD
     Q1 -->|Yes - computed default or FK-derived value| EXPAND
     EXPAND --> STEP1[Step 1 - ALTER TABLE ADD COLUMN new_col TYPE NULL]
     STEP1 --> STEP2[Step 2 - backfill in batches - see backfill rule]
-    STEP2 --> STEP3[Step 3 - ALTER TABLE ADD CONSTRAINT NOT NULL NOT VALID]
+    STEP2 --> Q3{Is this PostgreSQL 18 or later?}
+    Q3 -->|Yes - PG18+| STEP3[Step 3 - ALTER TABLE ADD CONSTRAINT NOT NULL NOT VALID]
     STEP3 --> STEP4[Step 4 - VALIDATE CONSTRAINT - lightweight lock]
-    IMMDEFAULT --> DONE[Deploy in one migration]
+    Q3 -->|No - PG12-17| STEP3ALT[Step 3-alt - ADD CONSTRAINT chk CHECK col IS NOT NULL NOT VALID]
+    STEP3ALT --> STEP4ALT[Step 4-alt - VALIDATE CONSTRAINT chk - lightweight lock]
+    STEP4ALT --> STEP5ALT[Step 5-alt - ALTER COLUMN col SET NOT NULL - fast: validated CHECK lets PG skip the full scan]
+    STEP5ALT --> STEP6ALT[Step 6-alt - DROP CONSTRAINT chk]
+    STEP6ALT --> DONE[Deploy in one migration]
+    IMMDEFAULT --> DONE
     STEP4 --> DONE
 ```
 
 **Rationale per leaf:**
 - *PG11+ instant default* — PostgreSQL 11 rewrote how constant defaults are stored; `ADD COLUMN ... DEFAULT constant NOT NULL` no longer rewrites the table; it is instant and safe.
 - *Expand/contract for computed defaults* — when the default requires a backfill (a function, a JOIN-derived value), the expand/contract sequence spreads the change across safe, non-locking steps.
-- *NOT VALID then VALIDATE* — `ADD CONSTRAINT NOT VALID` adds the constraint for new rows immediately without checking existing rows; `VALIDATE CONSTRAINT` checks existing rows under a ShareUpdateExclusiveLock (the lightest write-compatible lock) rather than an AccessExclusiveLock.
+- *NOT VALID then VALIDATE (PG18+)* — `ADD CONSTRAINT NOT VALID` adds the constraint for new rows immediately without checking existing rows; `VALIDATE CONSTRAINT` checks existing rows under a ShareUpdateExclusiveLock (the lightest write-compatible lock) rather than an AccessExclusiveLock. **This exact syntax is PG18+ only** — see the version gate above.
+- *CHECK-constraint workaround (PG12-17)* — the portable pre-PG18 pattern: add a `CHECK (col IS NOT NULL) NOT VALID` (no scan), `VALIDATE CONSTRAINT` it under the lightweight lock, then `SET NOT NULL` — PostgreSQL recognizes the already-validated CHECK and skips its own full-table scan — then drop the now-redundant CHECK.
 
 **Tradeoffs summary:**
 
 | Method | Cost / time | Blast radius | Approval gate? | Use when |
 |---|---|---|---|---|
 | PG11+ instant default | Minimal | None | None | Constant default, PG11+ |
-| Expand/contract | High - multi-deploy | Non-locking | Release coordination | Computed default or pre-PG11 |
+| Expand/contract, native NOT VALID | High - multi-deploy | Non-locking | Release coordination | Computed default, **PG18+ only** |
+| Expand/contract, CHECK workaround | High - multi-deploy, one extra step | Non-locking | Release coordination | Computed default, **PG12-17** |
