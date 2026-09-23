@@ -7,7 +7,7 @@
 With **1M-token** context (Opus 4.7, Sonnet 4.6), the question is no longer "how do I word the prompt" but **"what is the right *set of tokens* in the window at this step, and in what order."** More context is not better — every token competes for attention; irrelevant or stale context degrades quality ("context rot"). Curate deliberately.
 
 ## The levers
-1. **Caching layout** — stable, high-value context above the breakpoint (system, tools, long static docs); volatile below. The cheapest way to *keep* large context is to cache it (0.1× read). See [`prompt-caching-playbook.md`](prompt-caching-playbook.md).
+1. **Caching layout** — stable, high-value context above the breakpoint (system, tools, long static docs); volatile below. The cheapest way to *keep* large context is to cache it (0.1× read on most models; 0.05× on Opus 5.5, 0.025× on Fable 5.1/Mythos 5.1). See [`prompt-caching-playbook.md`](prompt-caching-playbook.md).
 2. **Retrieve vs hold** — under ~200K tokens + static → just hold the corpus in context; large/dynamic → retrieve the relevant slice (RAG). The boundary is the first context-engineering decision ([`retrieval-and-rag-2026.md`](retrieval-and-rag-2026.md)).
 3. **Order matters** — put long reference material **first** (cacheable + better recall), the actual task/question **last**; ask Claude to quote the relevant span before answering long docs.
 4. **Context editing / compaction** — for long-running agent sessions, prune or summarize stale turns/tool-results so the window holds *current* signal, not history. The Agent SDK manages this; in raw Messages-API loops you own it (summarize old turns, drop superseded tool results — but mind cache invalidation).

@@ -1,6 +1,6 @@
 # Claude app decision trees (canonical)
 
-**Last reviewed:** 2026-05-30 · **Confidence:** high (grounded in this plugin's own knowledge bank — caching, model-selection, RAG, tool-use, MCP, evals, orchestration — all retrieved 2026-05-28; statuses dated).
+**Last reviewed:** 2026-05-30, model-selection tree corrected 2026-09-23 · **Confidence:** high (grounded in this plugin's own knowledge bank — caching, model-selection, RAG, tool-use, MCP, evals, orchestration — all retrieved 2026-05-28; statuses dated).
 **Owner:** all six agents (traverse the relevant tree **before** recommending — don't keyword-match on the user's situation).
 
 This file collects the plugin's canonical `## Decision Tree:` sections in the marketplace's standard shape ([`../../../docs/best-practices/decision-trees-in-knowledge-files.md`](../../../docs/best-practices/decision-trees-in-knowledge-files.md)). The **build-surface** tree (Messages API / Agent SDK / Managed Agents / Workbench) already lives canonically in [`claude-build-surface-decision-tree.md`](claude-build-surface-decision-tree.md) `## Decision Tree: Claude Build Surface` — traverse it there; this file does **not** duplicate it. The sections below cover the model, retrieval strategy, single-document input mode, capability home (tool / MCP / prompt-only), and the eval-gate decisions.
@@ -13,33 +13,33 @@ This file collects the plugin's canonical `## Decision Tree:` sections in the ma
 
 **When this applies:** A request needs a model assigned and the observable inputs are the task *shape* — is it high-volume classification/extraction/triage; is it general app work (drafting, summarizing, moderate reasoning, tool use); or is it the genuinely hard reasoning tail (deep agentic work, multi-file refactors, hard analysis). Use this **after** the build surface is chosen ([`claude-build-surface-decision-tree.md`](claude-build-surface-decision-tree.md)) — surface and model are orthogonal. Not for the deployment-target call (Claude API vs Bedrock/Vertex/Foundry).
 
-**Last verified:** 2026-05-30 against [`model-selection-and-2026-capability-map.md`](model-selection-and-2026-capability-map.md) (lineup dated 2026-05-28; the platform ships monthly — re-confirm the model ids).
+**Last verified:** 2026-09-23 against [`model-selection-and-2026-capability-map.md`](model-selection-and-2026-capability-map.md) (corrected — the 2026-05-30 version of this tree named Sonnet 4.6/Opus 4.8, both now superseded; the platform ships monthly — re-confirm the model ids).
 
 ```mermaid
 flowchart TD
     A[Task needs a model] --> V{High-volume classify / extract / triage / eval-judge?}
     V -->|Yes| HAIKU[Haiku 4.5<br/>cheap + fast; default eval judge]
     V -->|No| G{General app work<br/>draft / summarize / tool use / moderate reasoning?}
-    G -->|Yes| SONNET[Sonnet 4.6<br/>balanced default; 1M context; adaptive thinking]
+    G -->|Yes| SONNET[Sonnet 5<br/>balanced default; 1M context; adaptive thinking]
     G -->|No, genuinely hard tail| LADDER{Can a cheap model triage<br/>+ escalate on uncertainty?}
     LADDER -->|Yes| RUNG[Routing ladder:<br/>Haiku triage -> Sonnet -> Opus on the hard tail]
-    LADDER -->|No, uniformly hard / latency-bound| OPUS[Opus 4.8<br/>hardest reasoning, agentic depth; 1M context]
+    LADDER -->|No, uniformly hard / latency-bound| OPUS[Opus 5.5<br/>hardest reasoning, agentic depth; 1M context]
 ```
 
 **Rationale per leaf:**
 
 - _Haiku 4.5_ — high-volume, latency-sensitive, or schema-constrained extraction; also the **default eval judge**. Cheapest per token; right-size here before reaching up.
-- _Sonnet 4.6_ — the **balanced default** for most app work (1M context, adaptive thinking). Start here unless an observable says otherwise.
+- _Sonnet 5_ — the **balanced default** for most app work (1M context, adaptive thinking; GA 2026-06-30, superseded Sonnet 4.6). Start here unless an observable says otherwise.
 - _Routing ladder_ — when uncertainty is measurable (schema-invalid output, low self-reported confidence, a judge flag), triage cheap and escalate; the metric is **cost-per-resolved-task**, not raw tokens — a Haiku call that fails and re-routes to Opus is *more* expensive than starting on Sonnet.
-- _Opus 4.8_ — reserve for the genuinely hard tail (deep agentic reasoning, large-repo refactors) or when a multi-hop ladder's re-route cost / latency outweighs its savings. Don't *default* here unmeasured (anti-pattern #3).
+- _Opus 5.5_ — reserve for the genuinely hard tail (deep agentic reasoning, large-repo refactors) or when a multi-hop ladder's re-route cost / latency outweighs its savings. GA 2026-09-22, superseded Opus 5 and Opus 4.8 (both now Legacy). Don't *default* here unmeasured (anti-pattern #3).
 
 **Tradeoffs summary table:**
 
 | Model | Relative cost | Speed | Best for | Avoid when |
 |---|---|---|---|---|
 | Haiku 4.5 | lowest | fastest | volume classify/extract/triage; eval judge | the task needs deep reasoning the model can't reach |
-| Sonnet 4.6 | mid | fast | general app work; balanced default; 1M context | proven-trivial work Haiku resolves (overspend) |
-| Opus 4.8 | highest | slower | hardest reasoning / agentic depth; 1M context | as a blanket default "to be safe" (the #3 anti-pattern) |
+| Sonnet 5 | mid | fast | general app work; balanced default; 1M context | proven-trivial work Haiku resolves (overspend) |
+| Opus 5.5 | highest | slower | hardest reasoning / agentic depth; 1M context | as a blanket default "to be safe" (the #3 anti-pattern) |
 | Routing ladder | mid (amortized) | varies | mixed difficulty where uncertainty is measurable | strict latency budgets (the extra hop adds round-trips) |
 
 Re-baseline **deliberately** when the platform ships a new model — a default shift is an eval event ([`evals-and-quality.md`](evals-and-quality.md)), not a silent swap.
@@ -63,7 +63,7 @@ flowchart TD
 
 **Rationale per leaf:**
 
-- _Long context + caching_ — under the threshold + static, the whole corpus sits above a cache breakpoint and reads at 0.1× input; simpler, faster, often cheaper than any pipeline. Skip RAG ([`../best-practices/rag-skip-it-under-200k.md`](../best-practices/rag-skip-it-under-200k.md)).
+- _Long context + caching_ — under the threshold + static, the whole corpus sits above a cache breakpoint and reads at a fraction of input cost (0.1× on most models; 0.05× on Opus 5.5, 0.025× on Fable 5.1/Mythos 5.1 — see [`prompt-caching-playbook.md`](prompt-caching-playbook.md)); simpler, faster, often cheaper than any pipeline. Skip RAG ([`../best-practices/rag-skip-it-under-200k.md`](../best-practices/rag-skip-it-under-200k.md)).
 - _Files API_ — a known small set of documents per request: upload once, reference by id, avoid re-sending bytes every call. The middle ground between "hold inline" and "full RAG."
 - _Contextual Retrieval pipeline_ — large, dynamic, per-tenant, or citation-required corpora: retrieve a tight, high-precision slice (quality over quantity — [`../best-practices/rag-retrieve-quality-over-quantity.md`](../best-practices/rag-retrieve-quality-over-quantity.md)).
 
@@ -71,7 +71,7 @@ flowchart TD
 
 | Strategy | Setup cost | Per-request cost | Freshness | Citations | Use when |
 |---|---|---|---|---|---|
-| Long context + caching | none | low (cached 0.1×) | static only | weak (whole corpus in window) | small + static corpus |
+| Long context + caching | none | low (cached 0.1× on most models — 0.05×/0.025× on the newest) | static only | weak (whole corpus in window) | small + static corpus |
 | Files API | low (upload once) | low (by-id reference) | per-upload | per-file | a handful of known files per request |
 | Contextual Retrieval (RAG) | high (pipeline + eval) | mid (retrieve + generate) | dynamic / per-tenant | strong (chunk→source) | large/dynamic KB; must cite sources |
 

@@ -1,12 +1,14 @@
 # Dynamic workflows in Claude Code — when to reach for one, and how RavenClaude uses them
 
-**Last reviewed:** 2026-06-20 · **Confidence:** high (official docs + first-party article) · **Owner:** Team Lead (`spawn-team`)
+**Last reviewed:** 2026-06-20; re-verified 2026-09-23 (label + runtime-cap corrections below) · **Confidence:** high (official docs + first-party article) · **Owner:** Team Lead (`spawn-team`)
+
+> **2026-09-23 correction.** The current [Claude Code workflows doc](https://code.claude.com/docs/en/workflows) carries **no "research preview" label anywhere** — every "research preview" reference below (the file intro, the Runtime facts table) is stale and is corrected in place. Availability, the concurrency/size caps, and several other runtime facts changed too — see the corrected [§ Runtime facts & constraints](#runtime-facts--constraints). `[docs-verified 2026-09-23]`
 
 > **2026-06-20 update.** The **agent-team** shape was corrected + reconciled against this marketplace's hub-and-spoke constitution after the [2026-06-20 Claude subreddit scan](../../../docs/research/2026-06-20-claude-subreddit-scan/README.md) surfaced that the shipped feature has **peer-to-peer mailbox messaging** (teammates message each other directly), which the prior text understated. See [§ Agent teams & RavenClaude's hub-and-spoke constitution](#agent-teams--ravenclaudes-hub-and-spoke-constitution). Grounded in the official [Orchestrate teams of Claude Code sessions](https://code.claude.com/docs/en/agent-teams) doc (retrieved 2026-06-20).
 
-> **What this file is for.** Claude Code shipped **dynamic workflows** (research preview) — Claude writes a JavaScript harness on the fly that orchestrates many subagents. RavenClaude pioneered this pattern locally before it was official (`.claude/workflows/rc-deep-research.js`, `two-panel-plan-review.js`). This file is the Team Lead's authoritative account: what the feature is, the runtime facts/limits, **when** to reach for a workflow versus a subagent / skill / agent-team / FORGE, and what RavenClaude already ships.
+> **What this file is for.** Claude Code shipped **dynamic workflows** — Claude writes a JavaScript harness on the fly that orchestrates many subagents. **The current docs carry no "research preview" label** (corrected 2026-09-23; the label was accurate at this file's original 2026-06-04 writing but has since been dropped). RavenClaude pioneered this pattern locally before it was official (`.claude/workflows/rc-deep-research.js`, `two-panel-plan-review.js`). This file is the Team Lead's authoritative account: what the feature is, the runtime facts/limits, **when** to reach for a workflow versus a subagent / skill / agent-team / FORGE, and what RavenClaude already ships.
 >
-> Sources: [Orchestrate subagents at scale with dynamic workflows](https://code.claude.com/docs/en/workflows) and the article _"A harness for every task: dynamic workflows in Claude Code"_ (Thariq / @trq212, Claude blog) — both retrieved 2026-06-04. Research-preview facts (version gates, caps) carry that date per the Claim Grounding protocol; re-verify at use.
+> Sources: [Orchestrate subagents at scale with dynamic workflows](https://code.claude.com/docs/en/workflows), retrieved 2026-06-04 and re-fetched 2026-09-23, and the article _"A harness for every task: dynamic workflows in Claude Code"_ (Thariq / @trq212, Claude blog), retrieved 2026-06-04. Version gates and caps carry their own retrieval date per the Claim Grounding protocol; re-verify at use.
 
 ---
 
@@ -114,18 +116,20 @@ flowchart TD
 
 ## Runtime facts & constraints
 
-| Fact | Detail _(retrieved 2026-06-04; re-verify at use)_ |
+| Fact | Detail _(retrieved 2026-06-04 unless noted; re-verify at use)_ |
 |---|---|
-| Availability | Research preview, Claude Code **v2.1.154+**, all paid plans + API/Bedrock/Vertex/Foundry. On Pro, enable in `/config`. |
-| Save location | `.claude/workflows/` (project, shared on clone) **or** `~/.claude/workflows/` (personal). Project wins a name clash with personal. Becomes a `/<name>` command. |
+| Availability | **No "research preview" label in the current docs** `[docs-verified 2026-09-23]`. Available on all paid plans, with Anthropic API access, and on Amazon Bedrock, Google Cloud's Agent Platform, and Microsoft Foundry. On Pro, enable from the "Dynamic workflows" row in `/config`. |
+| Save location | `.claude/workflows/` (project, shared on clone) **or** `~/.claude/workflows/` (personal). Project wins a name clash with personal. Becomes a `/<name>` command. **Plugins can also ship a workflow natively** in a `workflows/` directory at the plugin root (or a path named by the `workflows` manifest field) — it runs namespaced as `/<plugin-name>:<script-name>` `[docs-verified 2026-09-23]`. RavenClaude currently bundles `rc-deep-research` and `two-panel-plan-review` as skills that carry a `.js` template rather than through this native mechanism — migrating to it is a live follow-up, not done here. |
 | Input | The script reads a global named `args` (structured data; `undefined` if omitted). |
 | Triggers | `ultracode` keyword in a prompt (was `workflow` before **v2.1.160**), `/effort ultracode` (whole session), or natural language ("use a workflow"). |
 | Management | `/workflows` lists running/done runs; drill in for per-phase agent counts/tokens; press `s` to **save** a run's script as a command. |
-| Concurrency cap | **≤16 concurrent agents** (fewer on low-CPU machines). |
-| Total cap | **1,000 agents per run** (runaway guard). |
-| No mid-run input | Only agent permission prompts can pause a run. For sign-off between stages, run each stage as its own workflow. |
+| Concurrency cap | **Up to 16 concurrent agents by default** (fewer on low-CPU machines/containers) — **now configurable** via `CLAUDE_CODE_WORKFLOW_MAX_CONCURRENT_AGENTS` (1–256), requires Claude Code **v2.1.269+**. `[docs-verified 2026-09-23]` |
+| Total cap | **1,000 agents per run** (runaway guard) — unchanged. A single `parallel()`/`pipeline()` call is separately capped at **4,096 items**; a longer list errors rather than silently dropping items. `[docs-verified 2026-09-23]` |
+| Size guideline | A `workflowSizeGuideline` setting (`unrestricted`/`small` <5 agents/`medium` <10/`large` <50) advises Claude on scale when it writes a workflow — advisory, not a hard cap. **Default is `medium`, or `small` when signed in on a Pro plan** (Claude Code v2.1.271+). `[docs-verified 2026-09-23]` |
+| No mid-run input | Only agent permission prompts (and, since **v2.1.271**, a usage-limit wait — see below) can pause a run. For sign-off between stages, run each stage as its own workflow. |
+| Usage-limit pause | Since **v2.1.271**, a run that hits your claude.ai usage limit **pauses rather than failing** the affected agent, and resumes automatically after the limit resets (interactive, signed-in sessions with `autoContinueAtUsageLimit` on only); earlier versions fail the affected agent instead. `[docs-verified 2026-09-23]` |
 | Isolation | The script has **no direct filesystem/shell access** — agents do the IO; the script coordinates. |
-| Resume | Resumable **within the same session**; exiting Claude Code restarts a running workflow fresh next session. |
+| Resume | Resumable **within the same session**; exiting Claude Code restarts a running workflow fresh next session (a cloud/web session also saves results with the conversation history, so a reopened cloud session can still relaunch and reuse completed agents). |
 | Model routing | Each agent uses the session model unless the script routes a stage to another; ask for a smaller model on stages that don't need the strongest. |
 | Disable | `/config` toggle, `"disableWorkflows": true` in settings, or `CLAUDE_CODE_DISABLE_WORKFLOWS=1`. |
 

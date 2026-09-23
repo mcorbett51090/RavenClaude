@@ -98,7 +98,7 @@ flowchart TD
 
 **When this applies:** A developer using OpenAI Codex CLI or cloud is getting insufficient quality and needs to decide between accepting the default, raising the reasoning level, or upgrading to a bigger model. Observable triggers: "the default Codex model isn't getting this right"; "should I use a higher reasoning setting?"; "do I need the frontier Codex model?"
 
-**Last verified:** 2026-06-05 against `cross-tool-model-lineup-2026.md` Codex section `[verify-at-use]`.
+**Last verified:** 2026-09-23 against `cross-tool-model-lineup-2026.md` Codex section (GPT-6 Astra/Sol/Luna now current; the fast-tier example below should read as "the fast model — GPT-6 Luna or equivalent" going forward) `[verify-at-use]`.
 
 ```mermaid
 flowchart TD
