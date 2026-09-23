@@ -623,6 +623,14 @@ _is_safe_ref_token() {
   [[ "$1" =~ ^[A-Za-z0-9._/-]+$ ]]
 }
 
+# Round 7 (2026-09-23, Bugbot): the path-shaped counterpart of
+# _is_safe_ref_token, for a -C/--git-dir/GIT_DIR/cd/pushd TARGET rather
+# than a branch name (so it additionally allows `~` and `+`, the two
+# extra characters a real path can carry that a ref name never does).
+_is_safe_path_token() {
+  [[ "$1" =~ ^[A-Za-z0-9._/~+-]+$ ]]
+}
+
 # Round 4 (2026-09-23, Bugbot): an ambiguous checkout/switch/symbolic-ref
 # target (one that fails _is_safe_ref_token — a redirect-glued token our
 # plain whitespace split didn't fully separate, or a command-substitution
@@ -645,10 +653,15 @@ _AMBIGUOUS_BRANCH_SENTINEL='__ravenclaude_ambiguous_branch__'
 # else in between) — so `git -C /other/repo merge --no-ff feature` or
 # `git --git-dir=/other/repo/.git merge feature` never matched AT ALL (not
 # even the outer gate), because git's own global `-C`/`--git-dir` options
-# sit between the "git" token and the "merge" subcommand. This fragment
-# tolerates zero-or-more such global options in between, on both the outer
-# whole-command gate and the per-segment scan below.
-_GIT_MERGE_GLOBAL_OPTS='((-C|--git-dir)[[:space:]=]+[^[:space:]]+[[:space:]]+)*'
+# sit between the "git" token and the "merge" subcommand. Round 4 fixed
+# this with a fragment tolerating zero-or-more such global options in
+# between — but round 7 found that fragment itself assumes each global's
+# VALUE is a single whitespace-delimited token, which an unexpanded
+# command substitution (`-C $(echo /path)`) is not, and the strict
+# adjacency match failed again. Both detection sites now just check that
+# "git" and "merge" are both present as boundary-anchored words anywhere
+# in the text (order/adjacency-independent) — see the comments at each
+# site; this fragment is retired, not reused.
 
 # Round 4 (2026-09-23, Bugbot): `_is_dangerous_merge` computed the "current
 # branch" exactly ONCE, from the hook process's own cwd, and never revisited
@@ -700,11 +713,34 @@ _resolve_merge_check_branch() {
     dir="$fallback_dir"; mode="-C"
   fi
   [ -z "$dir" ] && return 1
-  if [ "$mode" = "--git-dir" ]; then
-    git --git-dir="$dir" rev-parse --abbrev-ref HEAD 2>/dev/null || true
-  else
-    git -C "$dir" rev-parse --abbrev-ref HEAD 2>/dev/null || true
+  # Round 7 (2026-09-23, Bugbot): a captured -C/--git-dir/GIT_DIR/cd/pushd
+  # target that is NOT a literal, resolvable path (a command substitution
+  # like `$(echo /path)`, an unexpanded `$HOME`/`~/...`, or already the
+  # ambiguous sentinel propagated from an earlier ambiguous `cd`) used to
+  # just fail the `git -C/--git-dir rev-parse` call silently and fall
+  # through to the caller's textually-tracked $branch — which is the
+  # hook's OWN cwd branch, not the branch of wherever this invocation is
+  # actually retargeting. That is precisely the "ambiguous token must
+  # never be treated as safe" principle already applied to checkout/
+  # switch/symbolic-ref targets (rounds 4-5): apply the SAME sentinel
+  # here, both when the token itself doesn't look like a real path and
+  # when it looks fine but still fails to resolve (an empty rev-parse —
+  # e.g. the directory doesn't exist, or isn't a git repo at all).
+  if [ "$dir" = "$_AMBIGUOUS_BRANCH_SENTINEL" ] || ! _is_safe_path_token "$dir"; then
+    printf '%s' "$_AMBIGUOUS_BRANCH_SENTINEL"
+    return 0
   fi
+  local resolved
+  if [ "$mode" = "--git-dir" ]; then
+    resolved="$(git --git-dir="$dir" rev-parse --abbrev-ref HEAD 2>/dev/null || true)"
+  else
+    resolved="$(git -C "$dir" rev-parse --abbrev-ref HEAD 2>/dev/null || true)"
+  fi
+  if [ -z "$resolved" ]; then
+    printf '%s' "$_AMBIGUOUS_BRANCH_SENTINEL"
+    return 0
+  fi
+  printf '%s' "$resolved"
 }
 
 _is_dangerous_merge() {
@@ -737,7 +773,23 @@ $(printf '%s' "$c" | tr ';&|' '\n\n\n')
 EOF
     [ "$found" -eq 0 ] && return 0
   fi
-  if [[ "$c" =~ ${_CMD_BOUNDARY}git[[:space:]]+${_GIT_MERGE_GLOBAL_OPTS}merge([[:space:]]|$) ]]; then
+  # Round 7 (2026-09-23, Bugbot): the strict `git <globals> merge` regex
+  # (via _GIT_MERGE_GLOBAL_OPTS) assumes each global flag's VALUE is a
+  # single whitespace-delimited token — but an unexpanded command
+  # substitution like `-C $(echo /path)` contains an internal space, so
+  # our static text scan sees it as TWO tokens and the adjacency-based
+  # regex fails to match "merge" at all (this exact command sailed
+  # through the outer gate entirely on the pre-fix version, verified
+  # live). Detection now only needs "git" and "merge" to both be present
+  # as boundary-anchored WORDS anywhere in the command — order/adjacency-
+  # independent, the same shape already used for the "gh"+"api" DELETE
+  # check and the "gh"+"pr"+"merge"+"--admin" bypass check above. This is
+  # deliberately wider than before (a command that merely MENTIONS both
+  # words also enters this block) — the per-segment scan below still does
+  # the real per-segment merge/ff-only/branch analysis, so a false
+  # entry here costs nothing but a wasted pass; under-blocking a real
+  # bypass is the worse failure for a `pre_llm_deny`-adjacent floor.
+  if [[ "$c" =~ ${_CMD_BOUNDARY}git([[:space:]]|$) ]] && [[ "$c" =~ ${_CMD_BOUNDARY}merge([[:space:]]|$) ]]; then
     local branch word prev seen seg_target pending pending_kind double_dash first_pos symref_target
     local effective_cwd="" cd_word cd_prev cd_seen cd_target gd_word
     # Round 5 (2026-09-23, Bugbot): a persistent GIT_DIR set earlier in the
@@ -790,7 +842,18 @@ EOF
             *) [ -z "$cd_target" ] && cd_target="$cd_word" ;;
           esac
         done
-        if [ -n "$cd_target" ] && [[ "$cd_target" =~ ^[A-Za-z0-9._/~+-]+$ ]]; then
+        # Round 7 (2026-09-23, Bugbot): this used to only ever update
+        # $effective_cwd when $cd_target already looked like a real path,
+        # silently leaving $effective_cwd UNCHANGED for an unresolvable
+        # target (`cd $(echo /other/repo)`, `cd $HOME/other-repo`) — which
+        # meant the merge check below fell through to the textually-
+        # tracked $branch as if no `cd` had happened at all. Always
+        # propagate $cd_target now (even when it doesn't look safe) and
+        # let _resolve_merge_check_branch's own safety/resolution check
+        # decide — it treats anything that isn't a literal, resolvable
+        # path as the ambiguous sentinel, which is the correct
+        # under-blocking-never outcome here too.
+        if [ -n "$cd_target" ]; then
           case "$cd_target" in
             /*) effective_cwd="$cd_target" ;;
             *) [ -n "$effective_cwd" ] && effective_cwd="$effective_cwd/$cd_target" || effective_cwd="$cd_target" ;;
@@ -919,7 +982,10 @@ EOF
           fi
         fi
       fi
-      if [[ "$seg" =~ ${_CMD_BOUNDARY}git[[:space:]]+${_GIT_MERGE_GLOBAL_OPTS}merge([[:space:]]|$) ]]; then
+      # Round 7 (2026-09-23, Bugbot): same word-presence relaxation as the
+      # outer gate above — an unexpanded multi-token global-flag value
+      # (`-C $(echo /path)`) broke the strict adjacency regex here too.
+      if [[ "$seg" =~ ${_CMD_BOUNDARY}git([[:space:]]|$) ]] && [[ "$seg" =~ ${_CMD_BOUNDARY}merge([[:space:]]|$) ]]; then
         # Round 3 (2026-09-23, Bugbot): the old check only asked "does
         # --ff-only appear ANYWHERE in this segment?", so it treated
         # `--ff-only` as sticky even when a LATER flag in the same
@@ -995,6 +1061,14 @@ _is_dangerous_update_ref() {
         # under-blocking-never posture on constructs we can't fully
         # scan).
         --stdin) return 0 ;;
+        # Round 7 (2026-09-23, Bugbot): git also deletes a ref when its
+        # NEW VALUE is the all-zero object id (40 hex zeros) — an
+        # `update-ref <ref> <all-zero-oid>` call never carries -d/
+        # --delete/--stdin at all, so the flag-only scan above can't see
+        # this form either. Recognize the literal 40-zero token itself as
+        # dangerous, matching this file's posture on constructs whose
+        # danger is expressed as a VALUE rather than a flag.
+        0000000000000000000000000000000000000000) return 0 ;;
       esac
     done
   done <<EOF
