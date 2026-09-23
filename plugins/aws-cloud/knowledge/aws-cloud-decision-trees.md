@@ -20,10 +20,10 @@ graph TD
   G -- No --> D
   F -- Yes --> I{Need k8s / multi-cloud portability?}
   I -- Yes --> J[EKS -> cloud-native-kubernetes]
-  I -- No --> K[Fargate / App Runner]
+  I -- No --> K[Fargate / ECS Express Mode]
 ```
 
-_Don't run EKS to host one container._
+_Don't run EKS to host one container._ _App Runner has been closed to new customers since 2026-04-30 and is in maintenance mode (no new features); AWS recommends **ECS Express Mode** (GA re:Invent 2025) as the replacement leaf here — note it has no scale-to-zero, so a workload that genuinely needs that should route to Lambda instead. `[verified 2026-09-23 — AWS App Runner availability-change notice; HashiCorp terraform-provider-aws issue #47161 deprecating aws_apprunner_* resources]`_
 
 ## Decision Tree: How many AWS accounts?
 
