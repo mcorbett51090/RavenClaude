@@ -768,6 +768,20 @@ _is_dangerous_merge() {
       [[ "$seg" =~ ${_CMD_BOUNDARY}pr([[:space:]]|$) ]] || continue
       [[ "$seg" =~ ${_CMD_BOUNDARY}merge([[:space:]]|$) ]] || continue
       [[ "$seg" =~ ${_CMD_BOUNDARY}--admin(=[^[:space:]]*)?${_CMD_END} ]] && { found=0; break; }
+      # Round 11 (2026-09-23, Bugbot): the literal-word check above never
+      # sees `--admin` when it's expanded from a shell variable rather than
+      # written on the command line (`ADMIN=--admin; gh pr merge 123
+      # $ADMIN`, or a bare `gh pr merge 123 $FLAG` of unknown content) --
+      # we cannot resolve what a variable/substitution actually expands to.
+      # Reusing the same unresolvable-value conservative-deny already used
+      # for the DELETE method check: any word in a `gh ... pr ... merge`
+      # segment that looks like a command substitution or a bare variable
+      # reference is treated as dangerous too, since it might expand to
+      # `--admin` at runtime.
+      local admin_word
+      for admin_word in $seg; do
+        _looks_unresolvable_method_value "$admin_word" && { found=0; break 2; }
+      done
     done <<EOF
 $(printf '%s' "$c" | tr ';&|' '\n\n\n')
 EOF
@@ -946,6 +960,17 @@ EOF
             --) double_dash=1; break ;;
             -b|-B|-c|--orphan) pending=1; pending_kind="name" ;;
             -t|--track) pending=1; pending_kind="track" ;;
+            # Round 11 (2026-09-23, Bugbot): `git checkout -` / `git switch
+            # -` is the "previous branch" shorthand (like `cd -`) -- it
+            # switches HEAD to whatever branch was checked out immediately
+            # before this one, which this static scan has no way to know
+            # (it could easily be main/master). The generic `-*)` catch-all
+            # below silently matched the bare "-" token too (a glob `*`
+            # matches zero characters) and dropped it without ever setting
+            # $seg_target/$first_pos, leaving $branch completely untracked.
+            # Intercept it explicitly and treat it the same as every other
+            # unresolvable checkout target in this file.
+            -) seg_target="$_AMBIGUOUS_BRANCH_SENTINEL" ;;
             -*) ;;
             *) [ -z "$first_pos" ] && first_pos="$word" ;;
           esac
@@ -1159,7 +1184,22 @@ _is_dangerous_update_ref() {
         # dangerous, matching this file's posture on constructs whose
         # danger is expressed as a VALUE rather than a flag.
         0000000000000000000000000000000000000000) return 0 ;;
+        # Round 11 (2026-09-23, Bugbot): a SHA-256 repo's all-zero OID is
+        # 64 hex zeros, not 40 -- the literal-40-zero check above never
+        # matches it, and an all-zero value still deletes the ref there
+        # exactly as it does on a SHA-1 repo.
+        0000000000000000000000000000000000000000000000000000000000000000) return 0 ;;
       esac
+      # Round 11 (2026-09-23, Bugbot): live-verified (see
+      # .ravenclaude/runs/premise/.../control.md for this round) that
+      # `$(printf "%040d" 0)` and a bare `$ZERO_OID` variable both bypass
+      # every literal-value check above even though they delete the ref
+      # identically once expanded at runtime -- the same unresolvable-
+      # value gap already closed for the DELETE method check and the
+      # gh-pr-merge --admin check. Apply the same conservative-deny
+      # treatment: any unresolvable-looking word in this update-ref
+      # segment is treated as dangerous too.
+      _looks_unresolvable_method_value "$word" && return 0
     done
   done <<EOF
 $(printf '%s' "$c" | tr ';&|' '\n\n\n')
@@ -1216,7 +1256,12 @@ _seg_has_delete_method() {
         ;;
     esac
     case "$word" in
-      --method=*|--request=*)
+      # Round 11 (2026-09-23, Bugbot): `--method=`/`--request=` already had
+      # an `=`-attached arm, but `-X=` did not -- gh's own flag parser
+      # accepts `-X=DELETE` identically to `-X DELETE`, and the missing arm
+      # meant `-X=DELETE`/`-X=delete`/an unresolvable `-X=$(...)` all sailed
+      # through unmatched.
+      --method=*|--request=*|-X=*)
         case "${word#*=}" in
           [Dd][Ee][Ll][Ee][Tt][Ee]) return 0 ;;
         esac
