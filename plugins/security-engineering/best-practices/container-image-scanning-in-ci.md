@@ -26,7 +26,14 @@ jobs:
         run: docker build -t my-service:${{ github.sha }} .
 
       - name: Scan with Trivy
-        uses: aquasecurity/trivy-action@master
+        # Pin to a full commit SHA, never a mutable tag/branch ref like @master or @v0.x.
+        # In March 2026 (GHSA-69fq-xp46-6x23 / CVE-2026-33634) an attacker with compromised
+        # maintainer credentials force-pushed 76 of 77 trivy-action version tags to a
+        # credential-stealing payload — exactly the "trust a tag" pattern this example used
+        # to teach. The SHA below is aquasecurity/trivy-action's v0.36.0 tag (current as of
+        # 2026-09-23; re-verify before reusing: `git ls-remote --tags
+        # https://github.com/aquasecurity/trivy-action.git`), which post-dates the compromise.
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           image-ref: my-service:${{ github.sha }}
           format: sarif
@@ -37,7 +44,7 @@ jobs:
 
       - name: Upload SARIF results
         if: always()
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4 # v3 is deprecated Dec 2026 (Node 20 EOL)
         with:
           sarif_file: trivy-results.sarif
 
@@ -67,8 +74,8 @@ Scanning third-party images you don't control (external databases, proxies, side
 
 ## Provenance
 
-Codifies Trivy and Grype CI integration patterns and the CISA Kubernetes Hardening Guide recommendation for image scanning before registry push.
+Codifies Trivy and Grype CI integration patterns and the CISA Kubernetes Hardening Guide recommendation for image scanning before registry push. The SHA-pinning requirement above is drawn from GHSA-69fq-xp46-6x23 (aquasecurity/trivy, published 2026-03-21): a threat actor used compromised maintainer credentials to force-push malicious commits onto nearly every `trivy-action` and `setup-trivy` version tag, and the advisory's own remediation is "pin GitHub Actions to full, immutable commit SHA hashes, don't use mutable version tags." Treat any third-party scanner/security Action the same way — the scanner itself is supply chain, not exempt from it.
 
 ---
 
-_Last reviewed: 2026-06-05 by `claude`_
+_Last reviewed: 2026-09-23 by `claude` (corrected `trivy-action`/`codeql-action` pinning per the 2026-09-23 weekly research sweep — see `CHANGELOG.md`)_

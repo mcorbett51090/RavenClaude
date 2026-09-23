@@ -4,7 +4,7 @@
 >
 > **The boundary still holds:** everything here only **authenticates the person** on the edge. Row/tenant scope after login is `data-platform`'s lane (see [`../CLAUDE.md`](../CLAUDE.md) §0). D1 has no `auth.uid()`/RLS engine, so the identity→authorization seam is *more* your responsibility here than on Supabase — scope rows in your Worker/query layer against the verified session subject, and route that authz design through `data-platform` + `security-reviewer`.
 >
-> **Volatility note.** Better Auth / Auth.js adapter status, an open GitHub bug's fix state, and Cloudflare's Zero-Trust pricing + terms all move. Every claim below carries an inline retrieval date; re-verify anything `[verify-at-build]` before quoting or shipping.
+> **Volatility note.** Better Auth / Auth.js adapter status, a closed-but-unconfirmed-fix GitHub bug's state, and Cloudflare's Zero-Trust pricing + terms all move. Every claim below carries an inline retrieval date; re-verify anything `[verify-at-build]` before quoting or shipping.
 
 **Last verified: 2026-07-14** (from a real customer-SSO build: Google/Apple/Microsoft on Cloudflare Workers + D1 for an Astro app).
 
@@ -13,7 +13,7 @@
 ## TL;DR — the four learnings
 
 1. **Workers + D1 is a viable customer-auth substrate.** Use a library that has **native D1 support** — **Better Auth** does (pass the D1 binding directly); **Auth.js** ships a D1 adapter but is not Astro-first.
-2. **Better Auth trap — do NOT combine `cookieCache` with a KV `secondaryStorage`.** Open bug [#4203](https://github.com/better-auth/better-auth/issues/4203) (reopened Jan 2026) logs users out after **exactly 5 minutes**. Use server-side DB sessions; add a config assertion.
+2. **Better Auth trap — do NOT combine `cookieCache` with a KV `secondaryStorage`.** Bug [#4203](https://github.com/better-auth/better-auth/issues/4203) (**closed 2026-04-23; fix path unconfirmed** — see below) logs users out after **exactly 5 minutes**. Use server-side DB sessions; add a config assertion.
 3. **Cloudflare Access is WORKFORCE (Zero Trust) auth, not customer auth.** 50-user free cap, then $7/user/mo, Cloudflare-branded login, and Service-Specific Terms restrict reselling. Use Access for your **operator/admin** surface; use a real customer auth (Better Auth / Auth.js on D1) for **end customers**.
 4. **Apple private-relay email breaks email-based account binding.** A `@privaterelay.appleid.com` alias won't match the billing/CRM email on file, so auto-binding by email silently misses. Fall back to a **signed, single-use, short-TTL claim link emailed to the ON-FILE address**, account-scoped.
 
@@ -36,7 +36,9 @@ Cloudflare D1 is SQLite-at-the-edge with a Worker **binding** (not a connection 
 
 ## 2. Better Auth trap — `cookieCache` + `secondaryStorage` (KV) = logout after 5 minutes
 
-**Bug [#4203](https://github.com/better-auth/better-auth/issues/4203) (reopened Jan 2026) `[verify-at-build — track fix state]`:** enabling Better Auth's **`cookieCache`** *together with* a **`secondaryStorage`** (e.g. Cloudflare KV) causes users to be logged out after **exactly 5 minutes** — the default cookie-cache TTL. The mechanism: when the cached session cookie expires, Better Auth treats the expired cache as a **logout signal** instead of **falling back to `secondaryStorage`** to re-hydrate the session. The two features are individually reasonable; the interaction is the bug.
+**Bug [#4203](https://github.com/better-auth/better-auth/issues/4203) — status corrected 2026-09-23 `[verify-at-build — track fix state]`:** enabling Better Auth's **`cookieCache`** *together with* a **`secondaryStorage`** (e.g. Cloudflare KV) causes users to be logged out after **exactly 5 minutes** — the default cookie-cache TTL. The mechanism: when the cached session cookie expires, Better Auth treats the expired cache as a **logout signal** instead of **falling back to `secondaryStorage`** to re-hydrate the session. The two features are individually reasonable; the interaction is the bug.
+
+> **Correction, 2026-09-23:** this doc previously said the issue was "reopened Jan 2026." It is **closed** (2026-04-23), but the fix status is unconfirmed: the directly-linked fix PR #8861 ("recover sessions from DB when secondary storage TTL expires") was **closed unmerged/abandoned** the same day, and a later PR (#9991, merged 2026-06-11) hardened cookie-cache authority without referencing #4203. **Keep the guard below regardless of the issue's closed state** — closed does not mean fixed here, and no one has reproduced this as resolved on a current Better Auth release (latest on npm: 1.7.5, 2026-09-14). Re-verify against a current release before relaxing the "do not combine" rule.
 
 **Mitigation (what shipped this build):**
 
@@ -45,8 +47,9 @@ Cloudflare D1 is SQLite-at-the-edge with a Worker **binding** (not a connection 
 - **Add a config assertion** at startup that fails the build/boot if both are set together, so a future well-meaning "add KV to speed up session reads" change can't silently reintroduce the 5-minute logout:
 
 ```ts
-// Guard against Better Auth #4203 (reopened Jan 2026): cookieCache + secondaryStorage
-// silently logs users out after ~5 min. Fail fast instead of shipping the trap.
+// Guard against Better Auth #4203 (closed 2026-04-23; fix path unconfirmed):
+// cookieCache + secondaryStorage silently logs users out after ~5 min.
+// Fail fast instead of shipping the trap.
 if (authConfig.session?.cookieCache?.enabled && authConfig.secondaryStorage) {
   throw new Error(
     "auth misconfig: cookieCache + secondaryStorage together trip Better Auth #4203 " +
@@ -128,15 +131,15 @@ This is deliberately **account binding**, not authentication: Apple already auth
 
 ## Refresh triggers
 
-- Better Auth **#4203** changes state (fixed/closed) — update §2's "do not combine" from a hard rule to a version-gated one.
+- Better Auth **#4203**'s fix state is confirmed (a reproduction on a current release shows the trap is gone) — update §2's "do not combine" from a hard rule to a version-gated one. The issue itself is already closed (2026-04-23); the fix is what remains unconfirmed.
 - Better Auth or Auth.js changes D1-adapter support or Astro ergonomics (§1).
 - Cloudflare restructures Zero-Trust pricing, the 50-user free cap, or the reselling terms (§3).
 - Apple changes private-relay behavior or the first-login email contract (§4).
 
 ## Sources
 
-All retrieved 2026-07-14: [hono.dev — Better Auth on Cloudflare](https://hono.dev/examples/better-auth-on-cloudflare) · [github: zpg6/better-auth-cloudflare](https://github.com/zpg6/better-auth-cloudflare) · [Better Auth #4203 — cookieCache + secondaryStorage 5-min logout](https://github.com/better-auth/better-auth/issues/4203) · [authjs.dev — D1 adapter](https://authjs.dev/getting-started/adapters/d1) · [cloudflare.com/plans/zero-trust-services](https://www.cloudflare.com/plans/zero-trust-services/) · [Cloudflare Zero Trust Service-Specific Terms](https://www.cloudflare.com/service-specific-terms-zero-trust-services/) · [developer.apple.com — Sign in with Apple (private email relay)](https://developer.apple.com/documentation/sign_in_with_apple).
+All retrieved 2026-07-14 except where noted: [hono.dev — Better Auth on Cloudflare](https://hono.dev/examples/better-auth-on-cloudflare) · [github: zpg6/better-auth-cloudflare](https://github.com/zpg6/better-auth-cloudflare) · [Better Auth #4203 — cookieCache + secondaryStorage 5-min logout, closed 2026-04-23 — retrieved 2026-09-23](https://github.com/better-auth/better-auth/issues/4203) · [authjs.dev — D1 adapter](https://authjs.dev/getting-started/adapters/d1) · [cloudflare.com/plans/zero-trust-services](https://www.cloudflare.com/plans/zero-trust-services/) · [Cloudflare Zero Trust Service-Specific Terms](https://www.cloudflare.com/service-specific-terms-zero-trust-services/) · [developer.apple.com — Sign in with Apple (private email relay)](https://developer.apple.com/documentation/sign_in_with_apple).
 
 ---
 
-_Last reviewed: 2026-07-14 by `claude`. Adapter status, the #4203 fix state, Cloudflare Zero-Trust pricing/terms, and Apple's relay behavior are volatile — re-verify before quoting or shipping._
+_Last reviewed: 2026-07-14 by `claude`; #4203 status corrected 2026-09-23 (closed 2026-04-23, fix path unconfirmed — see §2). Adapter status, Cloudflare Zero-Trust pricing/terms, and Apple's relay behavior were not re-checked this pass and remain volatile — re-verify before quoting or shipping._
