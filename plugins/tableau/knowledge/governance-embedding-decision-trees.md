@@ -144,23 +144,23 @@ flowchart TD
 
 ## Decision Tree: Next-gen surface — Tableau Pulse vs Tableau Next vs classic dashboard
 
-**When this applies:** A stakeholder wants to "track a metric" and you're choosing the surface. Observable trigger: "should this be Pulse or a dashboard?", "automate this KPI with insights," or a request to build agentic/semantic-layer analytics on Data Cloud. **This whole tree is volatile** — the next-gen surface moves every quarter; mark every leaf `[verify-at-build]` before quoting.
+**When this applies:** A stakeholder wants to "track a metric" and you're choosing the surface. Observable trigger: "should this be Pulse or a dashboard?", "automate this KPI with insights," or a request to build agentic/semantic-layer analytics on Data 360. **This whole tree is volatile** — the next-gen surface moves every quarter; mark every leaf `[verify-at-build]` before quoting.
 
-**Last verified:** 2026-05-30 against Tableau Pulse (metrics layer + automated insights), Tableau Next (Data-Cloud-native, agentic/semantic reimagining), and CRM Analytics (Salesforce-platform-native) — **all positioning `[unverified — training knowledge; changes fast]`**.
+**Last verified:** 2026-09-23 (naming correction only) against Tableau Pulse (metrics layer + automated insights), Tableau Next (Data-360-native, agentic/semantic reimagining), and CRM Analytics (Salesforce-platform-native) — positioning claims remain **`[unverified — training knowledge; changes fast]`** beyond the rename itself. **Salesforce Data Cloud was renamed "Data 360" on 2025-10-14** as part of the Agentforce 360 rebrand `[docs-verified 2026-09-23 — help.salesforce.com "Understanding Salesforce and Data 360 Terms"; salesforceben.com]`. Functionality is unchanged; only the product name changed.
 
 ```mermaid
 flowchart TD
     START[Stakeholder wants to track/answer with a metric] --> Q1{Is the deliverable a single tracked METRIC with trend + automated insight + subscriptions?}
     Q1 -->|YES| LEAF_A[Tableau Pulse — metric definition, not a hand-built dashboard]
-    Q1 -->|NO — needs rich exploration/interaction across many fields| Q2{Does the data live in Salesforce Data Cloud, and do you want agentic/semantic-layer, on-platform analytics?}
-    Q2 -->|YES — Data Cloud native, agentic/semantic| LEAF_B[Tableau Next — Data-Cloud-native surface]
+    Q1 -->|NO — needs rich exploration/interaction across many fields| Q2{Does the data live in Salesforce Data 360, and do you want agentic/semantic-layer, on-platform analytics?}
+    Q2 -->|YES — Data 360 native, agentic/semantic| LEAF_B[Tableau Next — Data-360-native surface]
     Q2 -->|NO — but data is Salesforce-platform-native| LEAF_D[CRM Analytics — Salesforce-platform analytics, seam with salesforce plugin]
     Q2 -->|NO — classic governed self-service viz| LEAF_C[Classic Tableau dashboard on a published data source]
 ```
 
 **Rationale per leaf:**
 - *Tableau Pulse* — a tracked metric with automatic trend/anomaly insights and subscriptions; a metric *definition*, not a viz you lay out by hand. Use it when the ask is "watch this number and tell me when it moves" `[verify-at-build]`.
-- *Tableau Next* — the Data-Cloud-native, agentic/semantic-layer reimagining of the platform; reach for it when the data is in Salesforce Data Cloud and you want on-platform semantic/agentic analytics `[unverified — positioning changes fast; verify-at-build]`.
+- *Tableau Next* — the Data-360-native, agentic/semantic-layer reimagining of the platform (Data 360 is the 2025-10-14 rename of Salesforce Data Cloud); reach for it when the data is in Salesforce Data 360 and you want on-platform semantic/agentic analytics `[unverified — positioning changes fast; verify-at-build]`.
 - *CRM Analytics* (formerly Einstein Analytics / Tableau CRM) — Salesforce-platform-native analytics; the leaf when the data and audience live on the Salesforce platform. **Seam with the `salesforce` plugin.** `[verify-at-build]`
 - *Classic dashboard* — the right answer when the user genuinely needs rich, interactive, multi-field exploration on a governed published data source — most "build me a dashboard" requests still land here.
 
@@ -169,7 +169,7 @@ flowchart TD
 | Leaf | Best for | Interaction depth | Platform coupling | Volatility | Use when |
 |---|---|---|---|---|---|
 | Tableau Pulse | One tracked metric + insights | Low (metric-centric) | Tableau Cloud `[vab]` | High | "Watch this KPI, alert me on moves" |
-| Tableau Next | Agentic/semantic on Data Cloud | Emerging | Salesforce Data Cloud `[unverified]` | Very high | Data-Cloud-native, agentic analytics |
+| Tableau Next | Agentic/semantic on Data 360 | Emerging | Salesforce Data 360 `[unverified]` | Very high | Data-360-native, agentic analytics |
 | CRM Analytics | Salesforce-platform analytics | Medium | Salesforce platform `[vab]` | High | Data + audience on Salesforce |
 | Classic dashboard | Rich multi-field exploration | High | Tableau Server/Cloud | Low | Governed self-service viz |
 
