@@ -762,9 +762,14 @@ _is_dangerous_merge() {
   # prose-vs-command tradeoff this file already makes for the force-push and
   # curl-pipe-shell hard rules; under-blocking a real bypass is the worse
   # failure for a `pre_llm_deny`-adjacent security floor.
-  if [[ "$c" =~ ${_CMD_BOUNDARY}gh([[:space:]]|$) ]]; then
+  # Round 12 (2026-09-23, Bugbot): the pre-filter used to require a literal
+  # boundary-anchored "gh" word, which never appears when the binary itself
+  # is invoked through a variable or substitution (`$GH pr merge 1
+  # --admin`, `$(which gh) pr merge 1 --admin`) -- `pr`+`merge`+`--admin`
+  # remain literal in the string either way, so "gh" is dropped from the
+  # pre-filter; the real gating is the per-segment check below.
+  if [[ "$c" =~ ${_CMD_BOUNDARY}pr([[:space:]]|$) ]] && [[ "$c" =~ ${_CMD_BOUNDARY}merge([[:space:]]|$) ]]; then
     while IFS= read -r seg; do
-      [[ "$seg" =~ ${_CMD_BOUNDARY}gh([[:space:]]|$) ]] || continue
       [[ "$seg" =~ ${_CMD_BOUNDARY}pr([[:space:]]|$) ]] || continue
       [[ "$seg" =~ ${_CMD_BOUNDARY}merge([[:space:]]|$) ]] || continue
       [[ "$seg" =~ ${_CMD_BOUNDARY}--admin(=[^[:space:]]*)?${_CMD_END} ]] && { found=0; break; }
@@ -783,8 +788,17 @@ _is_dangerous_merge() {
         _looks_unresolvable_method_value "$admin_word" && { found=0; break 2; }
       done
     done <<EOF
-$(printf '%s' "$c" | tr ';&|' '\n\n\n')
+$(printf '%s' "$c" | tr ';&' '\n\n')
 EOF
+    # Round 12 (2026-09-23, Bugbot): the `;&|`-split above treated each
+    # pipeline STAGE as its own independent segment, so `echo 1 --admin |
+    # xargs gh pr merge` put `--admin` in one segment and `gh pr merge` in
+    # another and the checker never saw them together -- even though the
+    # shell still runs an admin merge (xargs appends the piped value as an
+    # argument). Unlike `;`/`&`, a `|`-connected pipeline genuinely passes
+    # data from one stage into the next, so it is NOT split here (only `;`
+    # and `&` are true independent-command separators) -- a full pipeline
+    # is scanned as one blob, which is what the loop above now does.
     [ "$found" -eq 0 ] && return 0
   fi
   # Round 7 (2026-09-23, Bugbot): the strict `git <globals> merge` regex
@@ -803,7 +817,15 @@ EOF
   # the real per-segment merge/ff-only/branch analysis, so a false
   # entry here costs nothing but a wasted pass; under-blocking a real
   # bypass is the worse failure for a `pre_llm_deny`-adjacent floor.
-  if [[ "$c" =~ ${_CMD_BOUNDARY}git([[:space:]]|$) ]] && [[ "$c" =~ ${_CMD_BOUNDARY}merge([[:space:]]|$) ]]; then
+  # Round 12 (2026-09-23, Bugbot): `git pull` is fetch+merge and creates
+  # the exact same non-fast-forward merge commit `git merge` does (its
+  # default, absent --ff-only, is "fast-forward when possible, else merge
+  # commit" -- identical to plain `git merge`) -- but the word "merge"
+  # never appears in a `git pull` invocation, so this whole per-segment
+  # tracking block (checkout, cd, symbolic-ref, AND merge/pull detection)
+  # was silently skipped entirely for `git checkout main && git pull
+  # --no-ff . feat`. Widened to git+(merge|pull) word-presence.
+  if [[ "$c" =~ ${_CMD_BOUNDARY}git([[:space:]]|$) ]] && { [[ "$c" =~ ${_CMD_BOUNDARY}merge([[:space:]]|$) ]] || [[ "$c" =~ ${_CMD_BOUNDARY}pull([[:space:]]|$) ]]; }; then
     local branch word prev seen seg_target pending pending_kind double_dash first_pos symref_target
     local branch_tracked=""
     local effective_cwd="" cd_word cd_prev cd_seen cd_target gd_word
@@ -1064,7 +1086,11 @@ EOF
       # Round 7 (2026-09-23, Bugbot): same word-presence relaxation as the
       # outer gate above — an unexpanded multi-token global-flag value
       # (`-C $(echo /path)`) broke the strict adjacency regex here too.
-      if [[ "$seg" =~ ${_CMD_BOUNDARY}git([[:space:]]|$) ]] && [[ "$seg" =~ ${_CMD_BOUNDARY}merge([[:space:]]|$) ]]; then
+      # Round 12 (2026-09-23, Bugbot): widened to git+(merge|pull) --
+      # `git pull` performs the identical non-ff-only merge `git merge`
+      # does (see the outer gate above), so the same ff-state/branch-
+      # resolution analysis below applies unchanged to either verb.
+      if [[ "$seg" =~ ${_CMD_BOUNDARY}git([[:space:]]|$) ]] && { [[ "$seg" =~ ${_CMD_BOUNDARY}merge([[:space:]]|$) ]] || [[ "$seg" =~ ${_CMD_BOUNDARY}pull([[:space:]]|$) ]]; }; then
         # Round 3 (2026-09-23, Bugbot): the old check only asked "does
         # --ff-only appear ANYWHERE in this segment?", so it treated
         # `--ff-only` as sticky even when a LATER flag in the same
@@ -1080,6 +1106,21 @@ EOF
             --ff-only) ff_state="ff-only" ;;
             --no-ff|--ff) ff_state="not-ff-only" ;;
           esac
+          # Round 12 (2026-09-23, Bugbot): live-verified (see
+          # .ravenclaude/runs/premise/.../control.md) that the last-wins
+          # scan above only recognizes the three literal flag spellings --
+          # an unresolvable word ($FLAG, $(echo --no-ff)) anywhere in the
+          # segment is simply ignored, so an earlier --ff-only stayed
+          # "sticky" even though that later word can expand to --no-ff at
+          # runtime. Reusing the same unresolvable-value conservative-deny
+          # already used for --admin/DELETE/update-ref: any unresolvable
+          # word anywhere in the segment forces ff_state to the dangerous
+          # "not-ff-only" outcome, permanently (never overridden by a
+          # later literal --ff-only) -- once genuinely ambiguous, always
+          # ambiguous.
+          if [ "$ff_state" != "unresolvable" ]; then
+            _looks_unresolvable_method_value "$ff_word" && ff_state="unresolvable"
+          fi
         done
         if [ "$ff_state" != "ff-only" ]; then
           # ⛔ Bugbot review (2026-09-22, PR #1241): `git checkout
