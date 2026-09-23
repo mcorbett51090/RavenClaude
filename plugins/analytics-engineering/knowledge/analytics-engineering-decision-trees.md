@@ -142,16 +142,16 @@ flowchart TD
 
 **When this applies:** a model is being converted from `table` to `incremental`, or an existing incremental model is producing wrong results (duplicate rows, missing updates). Observable inputs: warehouse dialect, whether records can be updated after insert, and the availability of a reliable unique key.
 
-**Last verified:** 2026-06-05; **dbt version line re-verified 2026-06-11.** dbt Core **v1.x remains the production default**. **dbt Core v2.0** (the Rust engine shared with **Fusion**, Apache-2.0) was announced 2026-06-01 at Snowflake Summit as a **first alpha — NOT GA** ([dbt-core v2 roadmap](https://github.com/dbt-labs/dbt-core/blob/main/docs/roadmap/2026-06-announcing-v2.md)); the **Fusion** engine is **GA for dbt-platform projects on Snowflake and in preview for other adapters** (BigQuery/Redshift/Databricks) — scope the "is it production-ready?" answer to the adapter, not just "Stable" `[verify-at-use 2026-07-01]`. **Pin v1.x for production until v2.0 reaches GA** (secondary coverage that says "v2.0 is here" elides the alpha status).
+**Last verified:** 2026-09-23. **dbt v2.0 is GA** (dbt Summit, 2026-09-14-18; PyPI `dbt` and `dbt-oss` both published `2.0.0` on 2026-09-14 — [dbt v2.0 is GA](https://docs.getdbt.com/blog/dbt-v2-is-ga)). The naming from the 2026-06-01 alpha announcement changed at GA: the engine formerly called **Fusion** is now distributed as **`dbt`** (proprietary, dbt Product License), and **dbt Core v2 is now called `dbt OSS`** (Apache-2.0) — see [What's the difference between dbt and dbt OSS?](https://docs.getdbt.com/blog/comparing-dbt-and-dbt-oss). The **dbt v1 (Python, `dbt-core`) line remains maintained**, currently at 1.12.x. v2 has Snowflake/BigQuery/Redshift/Databricks built in (DuckDB/Spark/ClickHouse in beta); Postgres was not in the v2 built-in adapter list at GA `[unverified — confirm before recommending v2 for a Postgres-backed project]`. **Choose per adapter: v2 ("dbt" or "dbt OSS") where the adapter is GA; stay on v1 elsewhere or where pure-Apache-2.0 licensing is required** (a consultancy handing off to a client needing OSS-only licensing should pin `dbt OSS`, not `dbt`, even though both are free to use).
 
 ```mermaid
 flowchart TD
     START[Adding or debugging an incremental model] --> Q1{Can records be updated after initial insert?}
     Q1 -->|YES - updates and inserts| Q2{Warehouse?}
     Q1 -->|NO - append-only events| APPEND[strategy: append - no unique_key needed]
-    Q2 -->|Snowflake or BigQuery| MERGE[strategy: merge - unique_key required]
-    Q2 -->|Redshift| INSERT_OVR[strategy: insert_overwrite - partition-key required]
-    Q2 -->|Postgres| DELETE_INSERT[strategy: delete+insert - unique_key required]
+    Q2 -->|Snowflake, BigQuery, or Redshift| MERGE[strategy: merge - unique_key required]
+    Q2 -->|BigQuery, Spark, or Databricks - date/int partitioned| INSERT_OVR[strategy: insert_overwrite - partition-key required]
+    Q2 -->|Postgres or Redshift - no reliable partition key| DELETE_INSERT[strategy: delete+insert - unique_key required]
     Q2 -->|Databricks Delta| MERGE
     MERGE --> KEY{Is the unique_key reliable - no NULLs - no late-arriving changes to key columns?}
     DELETE_INSERT --> KEY
@@ -165,9 +165,9 @@ flowchart TD
 
 **Rationale per leaf:**
 - *APPEND* — append-only event logs (clicks, webhook events) never update rows; no unique_key dedup is needed and `append` is the fastest strategy.
-- *MERGE* — the standard strategy on Snowflake/BigQuery/Databricks; deduplicates on the unique_key using a MERGE statement.
-- *INSERT_OVR* — Redshift performs better with partition-based overwrite than row-level MERGE; the partition key must align with the query filter.
-- *DELETE+INSERT* — Postgres doesn't support MERGE natively (pre-15); delete matching rows then re-insert is the correct approach.
+- *MERGE* — the standard strategy on Snowflake/BigQuery/Databricks, and it is also **dbt-redshift's supported merge strategy** (default when a `unique_key` is set); deduplicates on the unique_key using a MERGE/UPSERT statement.
+- *INSERT_OVR* — `insert_overwrite` is a **BigQuery/Spark/Databricks strategy; dbt-redshift does not support it** — [docs-verified 2026-09-23, Redshift configurations](https://docs.getdbt.com/reference/resource-configs/redshift-configs) (lists append/merge/delete+insert/microbatch only) — do not route Redshift here. On the supported adapters, partition-based overwrite outperforms row-level MERGE; the partition key must align with the query filter.
+- *DELETE+INSERT* — Postgres <15 and Redshift both lack robust native upsert for this shape; `delete+insert` (dbt-redshift's default when `unique_key` is set) deletes matching rows then re-inserts. Postgres ≥15 with current dbt-postgres also supports `merge` as an alternative.
 - *TABLE* — if the unique_key has NULLs or key columns can change (making the merge key unreliable), stay on `table` until the key is fixed; a broken incremental silently drops or duplicates rows.
 
 **Tradeoffs summary:**
@@ -175,9 +175,10 @@ flowchart TD
 | Strategy | Warehouse | Unique key required | Update support | Use when |
 |---|---|---|---|---|
 | append | All | No | No | Append-only event streams |
-| merge | Snowflake/BigQuery/Databricks | Yes | Yes | Standard updatable fact |
-| insert_overwrite | Redshift | No (partition key) | Partition-level | Redshift date-partitioned facts |
-| delete+insert | Postgres | Yes | Yes | Postgres updatable fact |
+| merge | Snowflake/BigQuery/Databricks/**Redshift** | Yes | Yes | Standard updatable fact |
+| insert_overwrite | BigQuery/Spark/Databricks (**not Redshift**) | No (partition key) | Partition-level | Date-partitioned facts on a supported adapter |
+| delete+insert | Postgres/**Redshift** | Yes | Yes | Postgres or Redshift updatable fact without a partition-friendly key |
+| microbatch | Snowflake/BigQuery/Redshift/Databricks/dbt-postgres (via merge) | Yes (`event_time`) | Yes | Large, time-partitioned incremental with backfill support |
 
 ---
 
@@ -185,7 +186,7 @@ flowchart TD
 
 **When this applies:** a project needs a governed metrics layer and must choose between dbt Semantic Layer / MetricFlow and Cube. Observable inputs: whether the project already uses dbt, whether a custom query API / pre-aggregations / multi-source joins are needed, and whether the BI tools in use have native MetricFlow integration.
 
-**Last verified:** 2026-06-05 against dbt Semantic Layer GA docs and Cube OSS v0.35 docs.
+**Last verified:** 2026-09-23 against dbt Semantic Layer GA docs and Cube OSS. Cube's current release is **1.7.43** (`@cubejs-backend/server-core`, npm registry dist-tag `latest`, checked 2026-09-23) `[docs-verified 2026-09-23]` — the earlier "v0.35" anchor was stale by over two major lines (0.35.0 → 1.0.0 in Oct 2024).
 
 ```mermaid
 flowchart TD
@@ -221,9 +222,9 @@ flowchart TD
 
 | Capability | 2026 state `[verify-at-build]` | Notes |
 |---|---|---|
-| dbt Core / Cloud | GA — **v1.x = production default** | staging/intermediate/marts; tests; docs. **v2.0 (Rust/Fusion, Apache-2.0) in _alpha_ — not GA**; Fusion engine **GA for dbt-platform projects on Snowflake, preview for other adapters** (BigQuery/Redshift/Databricks) `[verify-at-use 2026-07-01]` |
+| dbt Core / Cloud | GA — **v1.x (dbt-core, Apache-2.0) remains maintained, currently 1.12.x**; **v2.0 GA 2026-09-14** as `dbt` (proprietary distribution) / `dbt OSS` (Apache-2.0) — Snowflake/BigQuery/Redshift/Databricks built in, DuckDB/Spark/ClickHouse in beta `[docs-verified 2026-09-23 — docs.getdbt.com/blog/dbt-v2-is-ga]` | staging/intermediate/marts; tests; docs. Choose v1 vs v2 per adapter; Postgres v2 support `[unverified — confirm before recommending]` |
 | dbt Semantic Layer / MetricFlow | GA | metrics-as-code; one definition |
 | dbt model contracts | GA | enforce names/types at boundaries |
-| Incremental strategies | GA (merge/insert_overwrite/append) | warehouse-dependent |
+| Incremental strategies | GA (merge/delete+insert/insert_overwrite/append/microbatch — **`insert_overwrite` is BigQuery/Spark/Databricks only, not Redshift**) | warehouse-dependent |
 | Snowflake/BigQuery/Redshift/Databricks | GA | warehouse-neutral modeling; mind cost model |
 | Source freshness | GA | gate stale data |

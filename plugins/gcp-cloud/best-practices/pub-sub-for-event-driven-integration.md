@@ -8,7 +8,7 @@
 
 ## Why this exists
 
-Direct service-to-service calls over HTTP create tight coupling: the caller waits for the receiver, the receiver's failure is the caller's failure, and scaling either side independently requires careful orchestration. Pub/Sub decouples producers from consumers — a Cloud Run service publishes an event to a topic, and one or more Cloud Run services (or Cloud Functions) subscribe via push subscriptions without the producer knowing about them. This enables independent scaling, retry (dead-letter topics), and fan-out without changing the producer.
+Direct service-to-service calls over HTTP create tight coupling: the caller waits for the receiver, the receiver's failure is the caller's failure, and scaling either side independently requires careful orchestration. Pub/Sub decouples producers from consumers — a Cloud Run service publishes an event to a topic, and one or more Cloud Run services (or Cloud Run functions) subscribe via push subscriptions without the producer knowing about them. This enables independent scaling, retry (dead-letter topics), and fan-out without changing the producer.
 
 ## How to apply
 
@@ -54,7 +54,7 @@ resource "google_pubsub_subscription" "orders_processor" {
 
 **Do:**
 - Always configure a dead-letter topic — a message that fails 5+ times should not silently disappear.
-- Use OIDC authentication on push subscriptions to Cloud Run or Cloud Functions — the push endpoint should not accept unauthenticated calls.
+- Use OIDC authentication on push subscriptions to Cloud Run or Cloud Run functions — the push endpoint should not accept unauthenticated calls.
 - Monitor dead-letter topic message count — messages landing in the DLQ are a signal, not a silent discard.
 - Use `ack_deadline_seconds` matched to the expected processing time — too short causes redelivery of messages still in flight.
 

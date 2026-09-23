@@ -1,6 +1,6 @@
 ---
 name: gcp-compute-selection
-description: "Choose GCP compute by operational burden: Cloud Run (default for stateless containers/HTTP, scale-to-zero), GKE/Autopilot (k8s/portability), Cloud Functions (small event handlers), GCE (legacy); design Pub/Sub integration with idempotency + dead-letter topics."
+description: "Choose GCP compute by operational burden: Cloud Run (default for stateless containers/HTTP, scale-to-zero), GKE/Autopilot (k8s/portability), Cloud Run functions (small event handlers), GCE (legacy); design Pub/Sub integration with idempotency + dead-letter topics."
 ---
 
 # GCP Compute Selection
@@ -9,7 +9,7 @@ description: "Choose GCP compute by operational burden: Cloud Run (default for s
 |---|---|
 | Stateless container / HTTP (most services) | **Cloud Run** (default) |
 | Need k8s / portability | **GKE** (Autopilot to cut ops) |
-| Small event handler | **Cloud Functions** |
+| Small event handler | **Cloud Run functions** |
 | Legacy / specific OS | **GCE** |
 
 Cloud Run is the right default; reach for GKE only when k8s genuinely earns it.
