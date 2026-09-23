@@ -375,10 +375,83 @@ _has_unresolvable_word() {
   return 1
 }
 _git_invocation_present() {
-  local text="$1"
+  local text="$1" _gan_word
   [[ "$text" =~ ${_CMD_BOUNDARY}git([[:space:]]|$) ]] && return 0
   _has_unresolvable_word "$text" && return 0
+  # Round 17 (2026-09-23, Cursor Security Agent): also recognize a
+  # same-command alias/function that wraps "git" under an ordinary-
+  # looking name -- see _scan_git_alias_names below for why. $_git_alias_
+  # names is populated once per top-level _is_dangerous_merge call, before
+  # its main loop, so it's already set by the time any of this function's
+  # five call sites (on either $c or a per-segment $seg) run.
+  for _gan_word in $_git_alias_names; do
+    [[ "$text" =~ ${_CMD_BOUNDARY}${_gan_word}([[:space:]]|$) ]] && return 0
+  done
   return 1
+}
+
+# Round 17 (2026-09-23, Cursor Security Agent): _git_invocation_present
+# only recognized a literal "git" word or an unresolvable-looking word
+# ($VAR, $(...), `...`) as a git invocation -- a shell alias or function
+# that WRAPS git under an ordinary-looking name sails past both checks:
+# the wrapper's own name is neither "git" nor unresolvable-looking.
+# `alias g=git; g merge feature` and `g() { git "$@"; }; g merge feature`
+# were both allowed on this head while `git merge feature` was denied.
+# Live-verified allowed pre-fix. We cannot execute the command to see what
+# an alias/function actually resolves to, so -- matching this file's
+# posture on every other construct it can't fully parse -- detect a
+# SAME-COMMAND definition that assigns or wraps the literal word "git"
+# (or an UNRESOLVABLE right-hand side, exactly as opaque as a wrapper this
+# scan can't see into) and treat that name as an ADDITIONAL git-invocation
+# word for the rest of this command, on top of literal "git" and an
+# unresolvable word. A non-local ("global") variable, so the top-level
+# _git_invocation_present function above can read it without a signature
+# change at any of its five call sites.
+_git_alias_names=""
+_scan_git_alias_names() {
+  local c="$1" name rhs
+  _git_alias_names=""
+  # `alias NAME=git` / `alias NAME='git'` / `alias NAME="git"` / `alias
+  # NAME=/path/to/git` (a path ending in "/git") / an otherwise-
+  # unresolvable right-hand side ($(...), a variable, etc.).
+  # NOTE: $_CMD_BOUNDARY itself is a capturing group, so it consumes
+  # BASH_REMATCH[1] here -- the NAME/RHS groups below land at [2]/[3], not
+  # [1]/[2] (verified live; the off-by-one silently emptied $name on the
+  # first draft of this fix).
+  if [[ "$c" =~ ${_CMD_BOUNDARY}alias[[:space:]]+([A-Za-z_][A-Za-z0-9_]*)=(\'[^\']*\'|\"[^\"]*\"|[^[:space:]\;\&\|]*) ]]; then
+    name="${BASH_REMATCH[2]}"
+    rhs="${BASH_REMATCH[3]}"
+    rhs="${rhs#\'}"; rhs="${rhs%\'}"
+    rhs="${rhs#\"}"; rhs="${rhs%\"}"
+    case "$rhs" in
+      git|*/git) _git_alias_names="$name" ;;
+      *) _looks_unresolvable_method_value "$rhs" && _git_alias_names="$name" ;;
+    esac
+  fi
+  # A shell FUNCTION whose body mentions "git" anywhere (`NAME() { git
+  # "$@"; }`, `NAME () { ...git...; }`, or the `function NAME { ... }`
+  # form) -- deliberately broad (any function wrapping "git" in its body,
+  # not just a pure passthrough), matching this file's under-blocking-
+  # never posture on constructs it can't fully parse.
+  #
+  # NOTE: each match's NAME/BODY groups are copied to local vars
+  # IMMEDIATELY -- referencing $BASH_REMATCH again after a SECOND `=~`
+  # test (the body-contains-git check) reads THAT test's own capture
+  # groups instead, since `=~` overwrites the array on every match
+  # (verified live: the first draft of this fix silently read the
+  # boundary character from the second regex instead of the function
+  # name from the first).
+  local fname fbody
+  if [[ "$c" =~ ([A-Za-z_][A-Za-z0-9_]*)[[:space:]]*\(\)[[:space:]]*\{([^}]*)\} ]]; then
+    fname="${BASH_REMATCH[1]}"
+    fbody="${BASH_REMATCH[2]}"
+    [[ "$fbody" =~ ${_CMD_BOUNDARY}git([[:space:]]|$) ]] && _git_alias_names="$_git_alias_names $fname"
+  fi
+  if [[ "$c" =~ function[[:space:]]+([A-Za-z_][A-Za-z0-9_]*)[[:space:]]*(\(\))?[[:space:]]*\{([^}]*)\} ]]; then
+    fname="${BASH_REMATCH[1]}"
+    fbody="${BASH_REMATCH[3]}"
+    [[ "$fbody" =~ ${_CMD_BOUNDARY}git([[:space:]]|$) ]] && _git_alias_names="$_git_alias_names $fname"
+  fi
 }
 
 # rm of a dangerous root (/, ~, $HOME — but NOT ./relative) recursively, in any
@@ -783,6 +856,11 @@ _resolve_merge_check_branch() {
 
 _is_dangerous_merge() {
   local c="$1" raw="${2:-$1}" seg found=1
+  # Round 17 (2026-09-23, Cursor Security Agent): populate the git-alias/
+  # function wrapper name set (see _scan_git_alias_names's own comment
+  # above) BEFORE any of this function's _git_invocation_present calls run
+  # -- the very first one is a few lines below, on $c.
+  _scan_git_alias_names "$c"
   # ⛔ Bugbot review (2026-09-22, PR #1241): the original gate required the
   # literal contiguous substring "gh pr merge" and closed --admin with
   # ([[:space:]]|$), so it missed EVERY realistic real-world spelling: gh
@@ -1139,7 +1217,7 @@ EOF
           # actually tracks a HEAD retarget (see the array-builder comment
           # near $_and_gate_before above for why this exists).
           chain_and_only=1
-        elif [ -z "$seen" ]; then
+        elif [ -z "$seen" ] || { [ -z "$double_dash" ] && [ -z "$first_pos" ]; }; then
           # Round 9 (2026-09-23, Bugbot): the outer gate matched (a
           # "checkout"/"switch" word is present in this segment) but the
           # inner scan never confidently located it as the subcommand
@@ -1149,6 +1227,26 @@ EOF
           # switch cannot be confidently parsed. Never silently leave it
           # untracked: treat it the same as every other unresolvable token
           # in this file (the conservative-deny sentinel).
+          # Round 17 (2026-09-23, Cursor Security Agent): the ORIGINAL
+          # `elif [ -z "$seen" ]` only caught the case above (checkout/
+          # switch never confidently located at all) -- once $seen WAS set
+          # (the subcommand WAS found) but no target was ever extracted
+          # into $seg_target/$first_pos, NOTHING fired: a glued short flag
+          # with no case arm to recognize it (`git checkout -Bmain`, unlike
+          # the already-handled SPACED `-B main` form) fell into the
+          # generic `-*) ;;` catch-all and was silently discarded, and a
+          # target supplied only via stdin/xargs (`printf main | xargs git
+          # checkout`) never appears as a word in this segment's text at
+          # all -- both left $branch/$branch_tracked completely untouched,
+          # pinned to whatever HEAD was BEFORE this checkout. Live-verified
+          # allowed pre-fix from a non-main session. Widened to also fire
+          # whenever nothing was extracted AND this wasn't the legitimate
+          # `git checkout -- <path>` file-restore form (double_dash set,
+          # which is not a branch switch at all and must NOT be forced
+          # into the sentinel -- $first_pos/$double_dash are both
+          # guaranteed unset here as a pure `-- ` restore with no leading
+          # positional token, so checking $double_dash keeps that case
+          # correctly untouched).
           branch="$_AMBIGUOUS_BRANCH_SENTINEL"
           branch_tracked=1
           # Round 16 (2026-09-23, Cursor Security Agent): re-arm the
