@@ -326,18 +326,6 @@ _norm_before_gitstrip="$norm"
 _gstripped="$(printf '%s' "$norm" | sed -E "s/(^|[;&|[:space:]])git(([[:space:]]+${_gitglobal})+)[[:space:]]+/\1git /g" 2>/dev/null || true)"
 [ -n "$_gstripped" ] && norm="$_gstripped"
 
-# Round 5 (2026-09-23, Bugbot): mirror the git-global fold above for the
-# GitHub CLI's own global options (`-R owner/repo`, `--repo owner/repo`,
-# `--hostname host`, …) sitting between `gh` and its subcommand. Without
-# this, `gh -R owner/repo api ... -X DELETE` / `gh --repo owner/repo api
-# ... --method DELETE` / `gh --hostname github.com api ... -X DELETE`
-# dodge the `gh[[:space:]]+api` anchor in the destructive-DELETE
-# deny_patterns entry below, exactly like the git-global gap this same
-# stripper closed for git subcommands.
-_ghglobal='(-R[[:space:]]*[^[:space:]]+|--(repo|hostname)(=[^[:space:]]*|[[:space:]]+[^[:space:]]+)|--[A-Za-z][A-Za-z-]*(=[^[:space:]]*)?|-[A-Za-z]+)'
-_ghstripped="$(printf '%s' "$norm" | sed -E "s/(^|[;&|[:space:]])gh(([[:space:]]+${_ghglobal})+)[[:space:]]+/\1gh /g" 2>/dev/null || true)"
-[ -n "$_ghstripped" ] && norm="$_ghstripped"
-
 # --- Order-independent helpers ---------------------------------------------
 # Characters that open a fresh command word before rm/chmod: line start, ;, &, |,
 # whitespace, a command-substitution opener — `(` or a backtick — so `$(rm -rf ~)`
@@ -1015,6 +1003,63 @@ EOF
   return 1
 }
 
+# destructive DELETE-verb API call (`gh api ... -X DELETE` / `curl ...
+# --request DELETE`). This detector's history is the file's own recurring
+# lesson about matching a REGEX SUBSTRING instead of the actual shell
+# grammar: round 2 (2026-09-22) widened the flag/value separator to catch
+# `--method=DELETE`; round 4 (2026-09-23) made the DELETE literal case-
+# insensitive; round 5 (2026-09-23) tried to close a `gh -R/--repo/
+# --hostname api ... DELETE` gap by FOLDING recognized "gh global" tokens
+# out of the string before matching — but that fold could not tell a real
+# gh global apart from `--method`/`-X` sitting in front of `api` (which
+# gh's own flag parser accepts), so it silently ate the very flag the
+# pattern needed to see and REOPENED the bypass in a new shape (Bugbot,
+# round 6). None of these were going to hold: a fixed-position regex
+# cannot express "these two words are both present in this segment,
+# in any order, with any number of other words between them" — which is
+# exactly what gh's own flag-anywhere parsing requires. Replaced with an
+# order-independent WORD-SCAN, the same shape `_is_dangerous_merge`
+# already uses for `gh pr merge --admin` a few functions above: no
+# folding, no adjacency requirement, so a global flag or the method flag
+# can sit in front of OR behind the subcommand and still be seen.
+_seg_has_delete_method() {
+  local seg="$1" word prev=""
+  for word in $seg; do
+    case "$prev" in
+      -X|--method|--request)
+        case "$word" in
+          [Dd][Ee][Ll][Ee][Tt][Ee]) return 0 ;;
+        esac
+        ;;
+    esac
+    case "$word" in
+      --method=*|--request=*)
+        case "${word#*=}" in
+          [Dd][Ee][Ll][Ee][Tt][Ee]) return 0 ;;
+        esac
+        ;;
+      -X[Dd][Ee][Ll][Ee][Tt][Ee]) return 0 ;;  # curl's glued -XDELETE form
+    esac
+    prev="$word"
+  done
+  return 1
+}
+
+_is_dangerous_gh_curl_delete() {
+  local c="$1" seg
+  while IFS= read -r seg; do
+    if [[ "$seg" =~ ${_CMD_BOUNDARY}gh([[:space:]]|$) ]] && [[ "$seg" =~ ${_CMD_BOUNDARY}api([[:space:]]|$) ]]; then
+      _seg_has_delete_method "$seg" && return 0
+    fi
+    if [[ "$seg" =~ ${_CMD_BOUNDARY}curl([[:space:]]|$) ]]; then
+      _seg_has_delete_method "$seg" && return 0
+    fi
+  done <<EOF
+$(printf '%s' "$c" | tr ';&|' '\n\n\n')
+EOF
+  return 1
+}
+
 # --- Pattern array (matched against the normalized command) ----------------
 # The settings.json deny-list catches the top-level form; this catches them
 # when nested / wrapped / reordered.
@@ -1048,26 +1093,6 @@ deny_patterns=(
   '>[[:space:]]*/dev/(sd|nvme|hd|disk|vd|xvd|mmcblk)'
   # fork bomb
   ':[[:space:]]*\([[:space:]]*\)[[:space:]]*\{[[:space:]]*:\|:&[[:space:]]*\}'
-  # destructive DELETE-verb API call. Bugbot review (2026-09-22, PR #1241): the
-  # original pattern only matched the short `-X` flag, so `gh api ... --method
-  # DELETE` and `curl ... --request DELETE` — the documented long-form spelling
-  # of the exact same verb on both tools — sailed through. `--method` isn't a
-  # real curl flag and `--request` isn't a real gh flag; harmlessly matching
-  # both against both tools is a wider net, never a narrower one.
-  # Round 2 (2026-09-22): the flag/value separator was `[[:space:]]*`, which
-  # cannot match a literal `=` — so `--method=DELETE` / `--request=DELETE`
-  # (the equals-attached long-flag form both tools accept) sailed through.
-  # Widened to `[[:space:]=]*` and the trailing boundary to `${_CMD_END}` so
-  # a chained/piped/newline-terminated command is still caught, matching the
-  # boundary discipline used elsewhere in this file.
-  # Round 4 (2026-09-23, Bugbot): the DELETE literal was case-sensitive, so
-  # `--method delete` / `-X delete` / `--method=delete` (curl and gh both
-  # accept a lowercase verb) sailed through untouched. Rather than `shopt -s
-  # nocasematch` for the whole array (which would also loosen every OTHER
-  # pattern matched in the same loop below — unintended side effects on
-  # unrelated hard rules), spell DELETE as an explicit per-letter character
-  # class so only this one pattern is case-insensitive.
-  "(gh[[:space:]]+api|curl)[^;&|]*(-X|--method|--request)[[:space:]=]*[Dd][Ee][Ll][Ee][Tt][Ee]${_CMD_END}"
 )
 
 _deny() {
@@ -1096,6 +1121,7 @@ if _is_dangerous_git_push_delete "$norm";   then _deny "git-push-remote-branch-d
 if _is_dangerous_git_clean "$norm";         then _deny "git-clean-force"; fi
 if _is_dangerous_merge "$norm" "$_norm_before_gitstrip";      then _deny "bypass-shaped-merge"; fi
 if _is_dangerous_update_ref "$norm"; then _deny "git-update-ref-delete"; fi
+if _is_dangerous_gh_curl_delete "$norm"; then _deny "destructive-delete-api-call"; fi
 
 # Then the pattern array.
 for pat in "${deny_patterns[@]}"; do
