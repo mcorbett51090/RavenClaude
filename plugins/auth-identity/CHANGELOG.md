@@ -2,6 +2,18 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.3.5] — 2026-09-23
+
+Weekly Tier-A news sweep (2026-09-23) — 3 independently re-verified corrections:
+
+### Changed
+
+- **Clerk's free tier is 50K, not 10K.** Clerk raised its free allotment to **50,000 MRU** (Monthly *Retained* Users — narrower than MAU) on 2026-02-05; overage is $0.02/MRU for the 50,001–100,000 band, stepping down toward ~$0.012/MRU at 10M+. Corrected in `knowledge/auth-provider-landscape-2026.md` (the pricing table + scale checkpoints) and `knowledge/auth-identity-decision-trees.md` (the Clerk leaf rationale). Verified via Clerk's own pricing page (indexed; clerk.com was egress-blocked this session) plus 4 independent secondaries in agreement.
+- **AWS Cognito's tiered-pricing change dates from 2024-11-22, not "2026."** The 10K-MAU-free / **Essentials**-default (~$0.015/MAU flat) change applies to pools created on/after that date; pools with earlier activity keep a legacy 50K-free tier on the **Lite** rate (~$0.0055→$0.0025/MAU, volume-based). Corrected in `knowledge/auth-provider-landscape-2026.md` (pricing table, scale checkpoints, refresh triggers) and `knowledge/auth-identity-decision-trees.md`. Verified via multiple independent secondaries agreeing on the 2024-11-22 cutoff and the Essentials-is-default fact; the AWS pricing page itself was egress-blocked this session.
+- **Better Auth #4203 is closed, not "reopened Jan 2026."** GitHub shows the issue closed 2026-04-23 (confirmed via a direct fetch this session, independent of the original sweep's own fetch). **The fix status is unconfirmed** — the linked fix PR #8861 was closed unmerged/abandoned the same day, and a later PR (#9991, merged 2026-06-11) doesn't reference #4203 — so the existing "do not combine `cookieCache` with `secondaryStorage`" guard (both the prose rule and the startup config assertion) is **kept as-is**; only the issue-status claim changed. Corrected in `knowledge/edge-auth-on-cloudflare-workers-d1-2026.md` (§2, the code comment, the refresh trigger, and the sources footer).
+
+**Migration:** none — knowledge-file content only; no agent/skill behavior change, and the Better Auth defensive guard is unchanged.
+
 ## [0.3.4] — 2026-09-14
 
 ### Changed

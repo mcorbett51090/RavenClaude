@@ -25,13 +25,13 @@ flowchart TD
     Q3 -->|NO — consumer/SMB, Google SSO primary| Q4{Is the data layer Postgres/Supabase and will it use RLS?}
     Q4 -->|YES — the house case| LEAF_A[Supabase Auth — JWT to auth.uid to RLS synergy, lowest per-MAU overage]
     Q4 -->|NO — but want best-in-class DX / pre-built UI| LEAF_B[Clerk — drop-in components, orgs, strong DX]
-    Q4 -->|NO — already all-in on Firebase/AWS| LEAF_C[Firebase Auth / Cognito — in-ecosystem; watch Cognito 2026 pricing]
+    Q4 -->|NO — already all-in on Firebase/AWS| LEAF_C[Firebase Auth / Cognito — in-ecosystem; watch Cognito's 2024-11-22 tiered pricing for new pools]
 ```
 
 **Rationale per leaf:**
 - *Supabase Auth* — **the house default.** Google SSO + sessions built in, and its session JWT maps to Postgres `auth.uid()` — the exact claim `data-platform`'s RLS keys off, so the authn→authz seam is nearly free. Lowest per-MAU overage of the managed set. **requires:** Postgres/Supabase data layer for the synergy to pay off.
-- *Clerk* — best DX + pre-built React UI/orgs when the RLS synergy isn't the deciding factor. **requires:** acceptance of ~$0.02/MAU after the free tier.
-- *Firebase Auth / Cognito* — in-ecosystem convenience when already on Firebase/AWS. **requires:** awareness that Cognito raised pricing for 60K+ MAU and cut the new-pool free tier to 10K (2026).
+- *Clerk* — best DX + pre-built React UI/orgs when the RLS synergy isn't the deciding factor. **requires:** acceptance of ~$0.02/MRU beyond the 50K-MRU free tier (raised from 10K on 2026-02-05 — `[verified 2026-09-23]`).
+- *Firebase Auth / Cognito* — in-ecosystem convenience when already on Firebase/AWS. **requires:** awareness that a Cognito user pool created on/after 2024-11-22 defaults to the Essentials tier (10K MAU free, then ~$0.015/MAU flat) rather than the legacy 50K-free tier (`[verified 2026-09-23]`).
 - *WorkOS / Auth0* — enterprise B2B SSO (SAML/SCIM); WorkOS prices **per connection**, fitting few-large-tenants. **requires:** the SSO requirement to dominate the cost model.
 - *Keycloak / Authentik (self-host)* — a real IdP you operate, for a hard data-residency/air-gap constraint. **requires:** you accept the ops + security-surface burden.
 - *Auth.js / Better Auth (library)* — auth *in* a JS/TS app; you own the session store + DB. **requires:** you own (and secure) the storage + posture.

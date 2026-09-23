@@ -2,6 +2,18 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.3.12] — 2026-09-23
+
+Research-sweep **corrections** (weekly deep-research sweep, issue #1229), each independently re-verified this session via WebSearch before shipping:
+
+- **HPA scale-to-zero.** Kubernetes 1.37 made `HPAScaleToZero` (KEP-2021) Beta and on by default — an HPA with `minReplicas: 0` is now accepted on an Object/External metric. Updated the "HPA, VPA, or KEDA" tree, its rationale, and its tradeoffs table; KEDA remains the practical source of the Object/External metric and the only scale-to-zero path below 1.37 or with no metrics adapter — the two are complementary, not substitutes.
+- **VPA in-place resize.** In-place pod resize graduated to GA in Kubernetes 1.35; VPA's `InPlaceOrRecreate` update mode resizes without a restart where possible. Updated the "Auto means pod restarts" leaf.
+- **Distroless image tags.** Upstream `GoogleContainerTools/distroless` now bases every image on Debian 13 — there is no `-debian12` or `nodejs20` tag in the current listing, and Node 20 is EOL (2026-04-30). Retagged the container-image-base tree and `best-practices/distroless-base-images.md` to `-debian13` / `nodejs22`.
+- **Cluster-upgrade support window.** Upstream Kubernetes support is ~14 months after GA (12 months standard + 2 months maintenance mode), not 12; e.g. 1.34 entered maintenance 2026-08-27 and reaches EOL 2026-10-27, so it is still in (maintenance) support. Updated the upgrade-blocking tree and the capability map.
+- **Istio ambient mode GA.** Ambient mode (ztunnel, L7 waypoints, and the APIs) reached full GA in Istio v1.24 (Nov 2024), not "emerging". Updated the capability map and `best-practices/sidecar-or-ambient-mesh-decision.md` (previously said 1.22/L4-only GA).
+
+Decision-tree SVGs re-rendered for the 2 trees whose diagrams changed (container-image-base, HPA/VPA/KEDA); the rest of the 799-tree inventory is untouched.
+
 ## [0.3.11] — 2026-09-10
 
 ### Fixed

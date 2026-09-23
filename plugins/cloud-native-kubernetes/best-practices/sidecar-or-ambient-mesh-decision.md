@@ -8,7 +8,7 @@
 
 ## Why this exists
 
-Service mesh adoption often stalls because the sidecar model (Envoy injected into every pod) visibly increases CPU and memory overhead — sometimes 50–200m CPU and 50–100Mi per pod. Teams either abandon the mesh or run it at inconsistent injection. Ambient mode (Istio 1.22+, GA for L4 in 2024) moves the data plane out of pod sidecars into a per-node ztunnel and a per-namespace waypoint proxy — radically reducing per-pod overhead for L4 mTLS, while adding a waypoint proxy only for pods needing L7 features. The decision to use sidecar or ambient depends on whether you need L7 per-pod policies, your Kubernetes and Istio version, and whether the added complexity of ambient is justified.
+Service mesh adoption often stalls because the sidecar model (Envoy injected into every pod) visibly increases CPU and memory overhead — sometimes 50–200m CPU and 50–100Mi per pod. Teams either abandon the mesh or run it at inconsistent injection. Ambient mode reached **General Availability in Istio v1.24 (Nov 2024)** — ztunnel, L7 waypoints, and the ambient APIs are all marked Stable by the Istio TOC, so this is no longer an L4-only or "emerging" GA. Ambient moves the data plane out of pod sidecars into a per-node ztunnel and a per-namespace waypoint proxy — radically reducing per-pod overhead for L4 mTLS, while adding a waypoint proxy only for pods needing L7 features. The decision to use sidecar or ambient depends on whether you need L7 per-pod policies, your Kubernetes and Istio version, and whether the added complexity of ambient is justified.
 
 ## How to apply
 
@@ -19,7 +19,7 @@ Service mesh adoption often stalls because the sidecar model (Envoy injected int
 | mTLS for all east-west + no per-pod CPU overhead | Ambient (ztunnel only) |
 | L7 per-request retry/timeout/traffic-split | Ambient with waypoint proxy |
 | Fine-grained per-pod L7 policies, precise header routing | Sidecar |
-| Istio version < 1.22 or ambient not GA in your CNI/cloud | Sidecar |
+| Istio version < 1.24 or ambient not GA in your CNI/cloud | Sidecar |
 | Simplest possible install, most mature | Sidecar |
 
 **Sidecar (traditional):**
@@ -63,8 +63,8 @@ istioctl waypoint apply --namespace production --enroll-namespace
 
 ## Provenance
 
-Codifies the `service-mesh-networking-engineer` remit from `CLAUDE.md` §1: "service-mesh (mTLS, traffic-splitting for canary, retries/timeouts/circuit-breaking)" and the capability map note: "Istio/Linkerd — mTLS, traffic-split; weigh sidecar cost (ambient mode emerging)." Ambient mode reached L4 GA in Istio 1.22 (2024); verify L7 GA status before production adoption.
+Codifies the `service-mesh-networking-engineer` remit from `CLAUDE.md` §1: "service-mesh (mTLS, traffic-splitting for canary, retries/timeouts/circuit-breaking)" and the capability map note: "Istio/Linkerd — mTLS, traffic-split; weigh sidecar cost (ambient mode GA since v1.24)." Ambient mode (ztunnel, L7 waypoints, and the ambient APIs) reached full GA in Istio v1.24 (Nov 2024) — both L4 and L7 are Stable, not just L4.
 
 ---
 
-_Last reviewed: 2026-06-05 by `claude`_
+_Last reviewed: 2026-09-23 by `claude` (re-verified the Istio ambient-mode GA version/date against istio.io/latest/blog/2024/ambient-reaches-ga and the CNCF blog mirror)_

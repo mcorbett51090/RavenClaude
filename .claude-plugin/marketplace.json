@@ -402,7 +402,7 @@
       "name": "web-design",
       "source": "./plugins/web-design",
       "description": "Web design & build specialist team \u2014 web architect (IA, stack, hosting), UX designer (wireframes, flows, conversion), visual designer (brand, typography, tokens), frontend implementer (HTML/CSS/JS, React, Astro, Next), content strategist (copy, microcopy, SEO content), accessibility auditor (WCAG 2.2 AA/AAA), and performance engineer (Core Web Vitals, image/font optimization). skills (the gold-standard-website-pipeline gated build pipeline, static-site build, design-system audit, card/tile UI, accessibility review, Core Web Vitals tuning, technical SEO audit, information architecture, conversion design, content audit, design-tokens scaffolding, third-party hygiene, Fluent UI v9 + React implementation), templates, an advisory hook, and a knowledge bank seeded with a curated 2026 reference set of \"cutting edge yet simple\" marketing-site donors \u2014 the design agents carry compact inline priors plus a pointer to the full brief. Inherits ravenclaude-core protocols.",
-      "version": "0.18.3",
+      "version": "0.18.4",
       "author": {
         "name": "Matt Corbett"
       },
@@ -491,7 +491,7 @@
       "name": "auth-identity",
       "source": "./plugins/auth-identity",
       "description": "End-user authentication & identity team \u2014 agents (auth-architect, auth-implementation-engineer) for adding login to a web app (React/Next), an API, and an analytics dashboard. A variety of methods: Google, Apple, Microsoft, GitHub social SSO plus magic link, passkeys/WebAuthn, and email+password \u2014 via managed auth (leaning Supabase Auth, so adding a provider is config not architecture). skills, templates, best-practices, and a web-verified knowledge bank with Mermaid decision trees (build-vs-buy, which-providers, OAuth-flow, token-storage, gate-the-dashboard). House rules: Authorization Code + PKCE never Implicit; never store tokens in localStorage; validate ID tokens server-side. The boundary: this plugin AUTHENTICATES the person; data-platform AUTHORIZES the data (RLS / embed-JWT); Microsoft/enterprise Entra seams to azure-cloud, concrete auth code to security-reviewer. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.3.4",
+      "version": "0.3.5",
       "author": {
         "name": "Matt Corbett"
       },
@@ -942,7 +942,7 @@
       "name": "frontend-engineering",
       "source": "./plugins/frontend-engineering",
       "description": "Frontend-engineering team \u2014 agents (frontend-architect, react-implementation-engineer, frontend-state-and-data-engineer, frontend-performance-engineer) for building app-grade frontends (React/Next, TypeScript): component architecture and composition, the rendering-strategy choice (CSR/SSR/SSG/ISR/React Server Components), client state vs server-cache (TanStack Query/RSC) and form/validation, bundle/performance discipline (code-splitting, Core Web Vitals, hydration cost), and accessibility-in-code (semantic HTML, ARIA, keyboard, focus). TypeScript-first. skills, a decision-tree knowledge bank (rendering-strategy + state-location trees + a dated 2026 map), best-practices, templates, commands, an advisory hook. Distinct from web-design (brand/UX/marketing sites). Seams: design/brand/WCAG-audit -> web-design, auth UX -> auth-identity, API consumption -> api-engineering, native -> mobile-engineering. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.4.3",
+      "version": "0.4.4",
       "author": {
         "name": "Matt Corbett"
       },
@@ -1241,7 +1241,7 @@
       "name": "security-engineering",
       "source": "./plugins/security-engineering",
       "description": "Security-engineering (AppSec) team \u2014 agents (appsec-engineer, threat-modeler, supply-chain-security-engineer, cloud-security-engineer) for building security INTO software: threat modeling (STRIDE, data-flow diagrams, trust boundaries), application security testing (SAST/DAST/IAST/SCA in CI, OWASP Top 10 web), secrets management (detection, rotation, vaulting, no plaintext), software supply-chain integrity (SBOM consumption, dependency CVEs, SLSA verification, pinning), and cloud security posture (CSPM, IAM least-privilege, network exposure). skills, a decision-tree knowledge bank (vuln-triage + secrets-handling trees + a dated 2026 tooling map), best-practices, templates, commands, an advisory hook. **Proposes controls; every ship/no-ship security VERDICT escalates to ravenclaude-core/security-reviewer.** Seams: API OWASP -> api-engineering, identity -> auth-identity, data privacy -> data-governance-privacy. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.3.8",
+      "version": "0.3.9",
       "author": {
         "name": "Matt Corbett"
       },
@@ -1287,7 +1287,7 @@
       "name": "devops-cicd",
       "source": "./plugins/devops-cicd",
       "description": "DevOps & CI/CD delivery-pipeline team \u2014 agents (pipeline-engineer, release-engineer, gitops-engineer, build-and-artifact-engineer) for the path from commit to production: CI design (stages, caching, matrix, fail-fast, required checks), progressive delivery (blue-green, canary, feature-flagged rollouts, automated rollback), GitOps continuous delivery (Argo CD / Flux, desired-state in Git, drift detection), and build/artifact integrity (reproducible builds, semantic versioning, SBOM, provenance/SLSA, registry hygiene). skills, a decision-tree knowledge bank (deploy-strategy + CI-vs-CD-boundary trees + a dated 2026 tooling map), best-practices, templates, commands, an advisory hook. Seams: IaC -> terraform-iac, clusters -> cloud-native-kubernetes, telemetry/SLOs -> observability-sre, supply-chain verdicts -> ravenclaude-core/security-reviewer. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.3.4",
+      "version": "0.3.5",
       "author": {
         "name": "Matt Corbett"
       },
@@ -1310,7 +1310,7 @@
       "name": "cloud-native-kubernetes",
       "source": "./plugins/cloud-native-kubernetes",
       "description": "Cloud-native & Kubernetes team \u2014 agents (kubernetes-architect, container-build-engineer, k8s-platform-operator, service-mesh-networking-engineer) for running workloads on Kubernetes well: workload design (Deployment/StatefulSet/Job, probes, requests/limits, PDBs, HPA/VPA), container build hygiene (minimal non-root images, distroless, multi-stage), platform ops (namespaces, RBAC, network policies, resource quotas, admission control, upgrades), and service-mesh networking (ingress/gateway, mTLS, traffic-splitting, observability). Cloud-agnostic. skills, a decision-tree knowledge bank (workload-type + ingress trees + a dated 2026 ecosystem map), best-practices, templates, commands, an advisory hook. Seams: managed control plane (AKS/EKS/GKE) -> azure/aws/gcp-cloud, GitOps reconcile -> devops-cicd, telemetry/SLOs -> observability-sre. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.3.11",
+      "version": "0.3.12",
       "author": {
         "name": "Matt Corbett"
       },
@@ -1333,7 +1333,7 @@
       "name": "terraform-iac",
       "source": "./plugins/terraform-iac",
       "description": "Terraform & IaC team \u2014 agents (iac-architect, terraform-module-engineer, iac-policy-and-state-engineer) for cloud-agnostic infrastructure-as-code: module design (composable, versioned, registry-published, the root-vs-child split), remote state and backend safety (locking, isolation by blast radius, no secrets in state), environment promotion (workspaces vs directories vs Terragrunt), drift detection, and policy-as-code guardrails (OPA/Sentinel/Conftest) in the plan pipeline. Terraform + OpenTofu. skills, a decision-tree knowledge bank (state-isolation + module-boundary trees + a dated 2026 tooling map), best-practices, templates, commands, an advisory hook. Seams: per-cloud resources -> azure-cloud (Bicep too)/aws-cloud/gcp-cloud, plan in CI -> devops-cicd, posture verdicts -> security-engineering. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.3.6",
+      "version": "0.3.7",
       "author": {
         "name": "Matt Corbett"
       },
@@ -2041,7 +2041,7 @@
       "name": "platform-engineering-idp",
       "source": "./plugins/platform-engineering-idp",
       "description": "Platform Engineering (IDP) specialist team \u2014 agents (platform-eng-lead, golden-path-architect, developer-experience-analyst, platform-reliability-specialist), skills, templates, commands, an advisory hook, best-practice rules, and a research-grounded knowledge bank. A platform-engineering team for a platform lead or eng director accountable for developer productivity and adoption \u2014 it treats the platform as a product with developers as customers, paves golden paths over mandates, measures DevEx with DORA and lead time, and runs the platform on SLOs and an error budget. Inherits ravenclaude-core protocols.",
-      "version": "0.1.2",
+      "version": "0.1.3",
       "author": {
         "name": "Matt Corbett"
       },

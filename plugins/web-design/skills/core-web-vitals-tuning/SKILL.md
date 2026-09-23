@@ -29,7 +29,7 @@ Field data (CrUX / RUM) at the **75th percentile** is the standard measurement t
 
 **When this applies:** any CWV regression that needs diagnosis before fix-selection. **Traverse this tree top-to-bottom before picking a fix** — diagnosing the wrong vital wastes the budget.
 
-**Last verified:** 2026-05-22 against web.dev current guidance + Core Web Vitals 2024 INP transition.
+**Last verified:** 2026-09-23 against the HTTP Archive Web Almanac 2025 Performance chapter, the `web-features` npm package (3.39.0 — `scheduler.yield` ships Chrome/Edge 129+ and Firefox 142+, **not Safari**; `requestIdleCallback` also absent from Safari), and React's CHANGELOG (React 19.3.0, 2026-09-09).
 
 ```mermaid
 flowchart TD
@@ -48,9 +48,9 @@ flowchart TD
     CLS_Q -->|Ad / embed injected late| CLS_AD["Reserve container min-height<br/>+ lazy-load below the fold"]
     CLS_Q -->|Animation triggers reflow| CLS_ANIM["Use transform/opacity only<br/>NOT width/height/top/left"]
 
-    INP_Q -->|Heavy JS on click handler| INP_JS["Split work with scheduler.yield<br/>or requestIdleCallback"]
+    INP_Q -->|Heavy JS on click handler| INP_JS["Split work with scheduler.yield<br/>guarded — falls back to setTimeout on Safari<br/>(no scheduler, no requestIdleCallback there)"]
     INP_Q -->|Synchronous third-party| INP_3P["Defer/async load<br/>or remove the script"]
-    INP_Q -->|Large React re-render| INP_REACT["Memoize + virtualize lists<br/>+ React 18 concurrent features"]
+    INP_Q -->|Large React re-render| INP_REACT["Memoize + virtualize lists<br/>+ React 19 transitions / React Compiler"]
     INP_Q -->|Slow paint after JS| INP_PAINT["Use will-change:transform<br/>OR composite-only properties"]
 ```
 
@@ -64,9 +64,9 @@ flowchart TD
 - *CLS_FONT* — `size-adjust` + `ascent-override` + `descent-override` match the fallback metrics to the web font so swap-in is invisible.
 - *CLS_AD* — late-injected ads or embeds shift everything below. Reserve container `min-height`; lazy-load if below the fold.
 - *CLS_ANIM* — animating `width` / `height` / `top` / `left` triggers reflow; animating `transform` / `opacity` is composited and doesn't shift layout.
-- *INP_JS* — long tasks block the main thread. `scheduler.yield()` (modern) or `requestIdleCallback` / `setTimeout(fn, 0)` chunks the work.
+- *INP_JS* — long tasks block the main thread. `scheduler.yield()` chunks the work in Chrome/Edge 129+ and Firefox 142+, but it is **not supported in Safari** (which also lacks `requestIdleCallback`) — feature-detect and fall back to `setTimeout(fn, 0)` rather than calling `scheduler.yield()` unguarded (it throws a `ReferenceError` in Safari).
 - *INP_3P* — synchronous third-party scripts (chat widgets, A/B test SDKs) are common INP killers. Defer/async OR remove.
-- *INP_REACT* — large lists virtualize (React Virtuoso, TanStack Virtual); state updates that cascade memoize with `useMemo`/`useCallback`/`React.memo`.
+- *INP_REACT* — large lists virtualize (React Virtuoso, TanStack Virtual); state updates that cascade memoize with `useMemo`/`useCallback`/`React.memo`, or lean on React Compiler's automatic memoization (1.0 shipped 2025-10-07) where enabled; React 19.3 (2026-09-09) also made transitions render independently instead of entangling, which helps interaction responsiveness during concurrent updates.
 - *INP_PAINT* — slow paint after JS often means the layer isn't composited. `will-change: transform` hints the browser to promote.
 
 **Tradeoffs summary:**

@@ -31,7 +31,8 @@ anywhere Python 3.9+ is present.
 IMPORTANT: outputs are decision-support, not a verdict. The ship/no-ship /
 accept-the-risk call routes to ravenclaude-core/security-reviewer (see
 ../CLAUDE.md §2). Validate the band and SLA against the org's own policy
-(and any regulatory window, e.g. CISA BOD 22-01 for federal) before acting.
+(and any regulatory window, e.g. CISA BOD 26-04 for federal — issued
+2026-06-10, supersedes BOD 22-01) before acting.
 
 Examples
 --------
@@ -138,8 +139,9 @@ def cmd_risk_band(a: argparse.Namespace) -> int:
     print(f"  Approval gate      : {info['gate']}")
     print("-" * 52)
     print("  Note: the SLA day-counts are a default to tune to the org's risk")
-    print("  appetite (+ any regulatory window, e.g. CISA BOD 22-01). The")
-    print("  ship/no-ship / accept-the-risk verdict routes to security-reviewer.")
+    print("  appetite (+ any regulatory window, e.g. CISA BOD 26-04, which")
+    print("  supersedes BOD 22-01). The ship/no-ship / accept-the-risk verdict")
+    print("  routes to security-reviewer.")
     return 0
 
 
@@ -196,14 +198,28 @@ def build_parser() -> argparse.ArgumentParser:
 
     rb = sub.add_parser("risk-band", help="CVSS + context -> risk band + proposed SLA")
     rb.add_argument("--cvss", type=float, required=True, help="CVSS base score 0.0-10.0")
-    rb.add_argument("--reachable", default="unknown", help="vulnerable path reachable? yes/no/unknown")
-    rb.add_argument("--internet-exposed", default="unknown", help="exposed to untrusted/internet input? yes/no/unknown")
-    rb.add_argument("--auth-required", default="yes", help="authentication required to trigger? yes/no/unknown")
-    rb.add_argument("--kev", default="no", help="on CISA KEV / known-exploited / public PoC? yes/no")
-    rb.add_argument("--epss", type=float, default=None, help="optional EPSS probability 0.0-1.0 (tie-breaker)")
+    rb.add_argument(
+        "--reachable", default="unknown", help="vulnerable path reachable? yes/no/unknown"
+    )
+    rb.add_argument(
+        "--internet-exposed",
+        default="unknown",
+        help="exposed to untrusted/internet input? yes/no/unknown",
+    )
+    rb.add_argument(
+        "--auth-required", default="yes", help="authentication required to trigger? yes/no/unknown"
+    )
+    rb.add_argument(
+        "--kev", default="no", help="on CISA KEV / known-exploited / public PoC? yes/no"
+    )
+    rb.add_argument(
+        "--epss", type=float, default=None, help="optional EPSS probability 0.0-1.0 (tie-breaker)"
+    )
     rb.set_defaults(func=cmd_risk_band)
 
-    ct = sub.add_parser("cvss-temporal", help="approximate within-band CVSS re-weighting (ranking aid)")
+    ct = sub.add_parser(
+        "cvss-temporal", help="approximate within-band CVSS re-weighting (ranking aid)"
+    )
     ct.add_argument("--cvss", type=float, required=True, help="CVSS base score 0.0-10.0")
     ct.add_argument(
         "--exploit-maturity",
