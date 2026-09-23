@@ -13,7 +13,7 @@ description: Scaffold a dbt project that ships — sources → staging → inter
 
 ## When dbt is the right modeling layer
 
-dbt (dbt-core OSS, MIT-licensed) is the strongest transform layer for:
+dbt (dbt-core OSS, Apache-2.0-licensed `[docs-verified 2026-09-23 — PyPI JSON API for dbt-core: license_expression "Apache-2.0"]`) is the strongest transform layer for:
 
 - **Case B** (per-client deliverable) where the dashboard needs cleaned, tested marts rather than raw landing tables
 - **Case C** (productized SaaS) — same plus stable contracts between the warehouse and the semantic layer

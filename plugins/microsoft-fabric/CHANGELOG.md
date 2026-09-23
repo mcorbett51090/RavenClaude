@@ -2,6 +2,25 @@
 
 All notable changes to this plugin are documented here. Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.8.12] — 2026-09-23
+
+Weekly Tier-A deep-research sweep (2026-09-23, issue #1229) — **3 corrections** in `knowledge/fabric-2026-capability-map.md`, plus a consumption-path clarification in `fabric-2026-capability-map.md` and `fabric-data-science-and-ai.md`. All independently re-verified this session via the Microsoft-Learn MCP (direct `microsoft_docs_fetch` of the cited pages, not just search snippets).
+
+### Fixed
+
+- **Runtime 1.3 was labeled "current GA (LTS) — production default"; Microsoft's release-stage is EOSA (end-of-support announced).** `runtime.md`'s comparison table: "Release Stage | EOSA | GA" (1.3 vs 2.0); `runtime-1-3.md` is titled "Fabric Runtime 1.3 (EOSA)". It remains the new-workspace default (until the flip to 2.0, planned late Sept 2026) but Microsoft explicitly recommends Runtime 2.0 for production. EOS 2026-09-30, then LTS through March 2027 (unchanged from the prior entry — only the release-stage label and the "production default" framing were wrong).
+- **"Cosmos DB in Fabric: GA-track (verify)" → GA (November 2025).** `whats-new-archive.md`: "November 2025 | Cosmos DB in Microsoft Fabric (GA) ... now generally available to all users."
+- **"Materialized lake views: GA-track — verify" → GA (March 2026).** `whats-new-archive.md`: "March 2026 | Materialized Lake Views (Generally Available)." PySpark authoring of an MLV remains preview; SQL authoring is GA.
+
+### Added
+
+- **Fabric Data Agent external/programmatic consumption via the OpenAI Assistants API ended 2026-08-26** (OpenAI-side sunset) — the Python client SDK's old `beta.assistants`/`beta.threads` path no longer works. Added migration guidance to the **MCP endpoint** or the **Fabric OpenAI Responses client** (available since 2026-08-11) in both `fabric-2026-capability-map.md` and `fabric-data-science-and-ai.md`. Microsoft's `concept-data-agent.md` still describes the agent's *internal* engine as using Azure OpenAI Assistant APIs — that description is not false, so it was kept, with the external-consumption distinction called out explicitly.
+
+### Not shipped (needs independent confirmation, tracked separately)
+
+- The same sweep reported a probable correction for `microsoft-365-copilot`'s Copilot Retrieval API (preview → v1.0/GA). No explicit "generally available" statement was found in Microsoft's docs this session (contrast e.g. "Custom engine agents generally available" or the Cosmos DB/MLV lines above, which do state it explicitly) — one current overview page omits the Retrieval API's earlier "(preview)" tag while a different, older overview page still calls it "prerelease status." Left as-is in `microsoft-365-copilot` pending a clearer primary-source GA announcement.
+- `power-platform` was not reached at all in this sweep (constraint-limited); tracked as a dedicated follow-up, not silently dropped.
+
 ## [0.8.11] — 2026-09-14
 
 ### Changed

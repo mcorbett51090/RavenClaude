@@ -2,6 +2,12 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.33.5] — 2026-09-23
+
+### Fixed
+
+- Corrected three stale facts caught by the 2026-09-23 weekly deep-research sweep, each independently re-verified against a primary source before being written: **Snowflake Adaptive Compute is GA as of 2026-06-16** (confirmed via Snowflake's own release notes + two blog posts) — `dashboard-productization-multi-tenant-2026.md` said Preview. The sizing recipe in `snowflake-warehouse-sizing-recipes.md` **conflated Gen2 and Adaptive Compute as one product** — split into two entries (Gen2: fixed-size, 1.35x/1.25x credit multiplier, GA 2025-05-05; Adaptive Compute: query-based billing, GA 2026-06-16). `skills/dbt-project-scaffolding/SKILL.md` mislabeled **dbt-core as MIT-licensed** — confirmed Apache-2.0 via a direct `pypi.org/pypi/dbt-core/json` query. Docs only, no behaviour change. **Migration:** none.
+
 ## [0.33.4] — 2026-09-18
 
 ### Fixed
