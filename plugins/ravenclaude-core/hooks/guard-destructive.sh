@@ -1243,8 +1243,17 @@ _is_dangerous_update_ref() {
       _looks_unresolvable_method_value "$word" && return 0
     done
   done <<EOF
-$(printf '%s' "$c" | tr ';&|' '\n\n\n')
+$(printf '%s' "$c" | tr ';&' '\n\n')
 EOF
+  # Round 13 (2026-09-23, Bugbot): the `;&|`-split above treated each
+  # pipeline STAGE as its own independent segment (same class round 12
+  # already fixed for the gh-pr-merge --admin check), so `echo <40-zero> |
+  # xargs git update-ref refs/heads/main` put the zero-OID value in one
+  # segment and `git update-ref` in another and the checker never saw
+  # them together, even though xargs still appends the piped value as the
+  # ref-update's new value. Only `;` and `&` (true independent-command
+  # separators) split segments now; a full pipeline is scanned as one
+  # blob, so the zero-OID literal/unresolvable-value checks above see it.
   return 1
 }
 
@@ -1318,14 +1327,19 @@ _seg_has_delete_method() {
 _is_dangerous_gh_curl_delete() {
   local c="$1" seg
   while IFS= read -r seg; do
-    if [[ "$seg" =~ ${_CMD_BOUNDARY}gh([[:space:]]|$) ]] && [[ "$seg" =~ ${_CMD_BOUNDARY}api([[:space:]]|$) ]]; then
-      _seg_has_delete_method "$seg" && return 0
-    fi
-    if [[ "$seg" =~ ${_CMD_BOUNDARY}curl([[:space:]]|$) ]]; then
-      _seg_has_delete_method "$seg" && return 0
-    fi
+    # Round 13 (2026-09-23, Bugbot): requiring a literal boundary-anchored
+    # "gh"/"curl" word in the same segment as the DELETE method never
+    # matches when the binary itself is invoked through a variable or
+    # substitution (`$CURL -X DELETE ...`, `$(which curl) -X DELETE ...`)
+    # -- the exact same class of bypass round 12 already closed for
+    # `gh pr merge --admin` by dropping its "gh" requirement. The method
+    # detector (`_seg_has_delete_method`) is itself already specific
+    # enough (an -X/--method/--request flag carrying DELETE or an
+    # unresolvable value) that no command-name gate is needed to avoid
+    # false positives on unrelated tools.
+    _seg_has_delete_method "$seg" && return 0
   done <<EOF
-$(printf '%s' "$c" | tr ';&|' '\n\n\n')
+$(printf '%s' "$c" | tr ';&' '\n\n')
 EOF
   return 1
 }
