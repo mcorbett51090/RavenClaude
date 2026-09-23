@@ -28,13 +28,13 @@
 |---|---|---|---|
 | **Supabase Auth** | Pro plan ($25/mo) includes a large MAU allotment | **~$0.00325/MAU** beyond the allotment | **Lowest per-user overage of the compared set**; Google OAuth + sessions + RLS-friendly JWT built in. `[verified 2026-06-03]` |
 | **Firebase Auth** | Free up to a threshold | **~$0.0055/MAU** standard auth | In-Google-Cloud; enterprise SSO is a separate paid tier. `[secondary, 2026-06-03]` |
-| **AWS Cognito** | Free up to 10K MAU for **new** user pools | **~$0.0055/MAU** | **Amazon raised Cognito pricing for large bases (60K+ MAU) and cut the new-pool free tier from 50K→10K MAU.** Historically cheapest; less so now. `[secondary, 2026-06-03]` |
-| **Clerk** | ~10K MAU free | **~$0.02/MAU** after free tier | Best-in-class DX + pre-built UI/orgs. `[secondary, 2026-06-03]` |
+| **AWS Cognito** | Free up to 10K MAU (**Essentials**, the default tier for pools created on/after **2024-11-22**) | **~$0.015/MAU** (Essentials, flat) — **Lite** is a volume-based ~$0.0055→$0.0025/MAU but is opt-in, not the default | **Correction, 2026-09-23:** the 10K-free/tiered-pricing change took effect for new pools on **2024-11-22**, not "2026" — pools with activity before that date keep a legacy 50K free tier (Lite). Essentials is the *default* for new pools, so a fresh Cognito pool at 50K MAU costs roughly $600/mo (40K over the free tier × $0.015), not $0. `[verified 2026-09-23]` |
+| **Clerk** | **50K MRU free** (Monthly **Retained** Users — narrower than MAU; a user counts only once they return ≥24h after signup; raised from 10K on 2026-02-05) | **$0.02/MRU** for the 50,001–100,000 band, stepping down toward ~$0.012/MRU at 10M+ | Best-in-class DX + pre-built UI/orgs. **Correction, 2026-09-23:** the free allotment is 50K, not 10K. `[verified 2026-09-23]` |
 | **Auth0 (Okta)** | Free dev tier | **~$0.07/MAU** | Most feature-complete + most expensive at scale; liberal "active" definition → bill surprises. `[secondary, 2026-06-03]` |
 | **Stytch** | Free up to ~25 MAU (very low) | **~$0.05/MAU** | Passwordless/embedded-auth focus. `[secondary, 2026-06-03]` |
 | **WorkOS** | Free for a generous user count | **~$125–$250 per SAML/SSO connection / month** | **Per-connection, not per-MAU** — built for B2B enterprise SSO with few large tenants. `[secondary, 2026-06-03]` |
 
-**Rough scale checkpoints (compiled secondary, 2026-06-03 — verify before quoting):** at **50K MAU**, Firebase/Cognito ≈ $0 (free tier), Clerk ≈ $800/mo, Auth0 ≈ $1,200/mo. At **100K MAU**, Firebase/Cognito ≈ $275/mo, Clerk ≈ $1,200/mo, Auth0 ≈ $2,400/mo. Supabase's overage rate is the lowest of the set. **Treat these as shape, not quotes.**
+**Rough scale checkpoints (updated 2026-09-23 — verify before quoting):** at **50K MAU/MRU**, Clerk ≈ **$0** (inside its 50K-MRU free tier), a **new** Cognito pool (Essentials) ≈ $600/mo (40K over its 10K free tier × $0.015), Auth0 ≈ $1,200/mo. At **100K**, Clerk ≈ **$1,025/mo** (50K × $0.02 + the $25/mo Pro base), a new Cognito pool ≈ $1,350/mo (90K × $0.015), Auth0 ≈ $2,400/mo. Supabase's overage rate is still the lowest of the set, and a Cognito pool with activity **before 2024-11-22** keeps a legacy 50K free tier that makes it cheaper than shown here. **Treat these as shape, not quotes.**
 
 ## OSS / self-host options
 
@@ -62,7 +62,7 @@ This is an **authentication** provider landscape — login, SSO, sessions, ident
 
 ## Refresh triggers
 
-- Any provider restructures per-MAU pricing or free-tier limits (Cognito did in 2026; Microsoft/Auth0 do this periodically).
+- Any provider restructures per-MAU pricing or free-tier limits (Cognito did for new pools from 2024-11-22; Clerk raised its free tier to 50K MRU on 2026-02-05; Microsoft/Auth0 do this periodically).
 - A new managed entrant takes meaningful share.
 - Supabase Auth changes its Google-provider or session mechanics (would also touch [`oauth-oidc-and-google-sso.md`](oauth-oidc-and-google-sso.md)).
 - OAuth 2.1 finalizes (touches the flow doc, not pricing).

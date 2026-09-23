@@ -16,17 +16,26 @@ Start with a curated baseline ruleset. Suppress confirmed false positives with i
 
 ```yaml
 # Semgrep CI configuration: only block on high-confidence rules
-- name: Semgrep SAST scan
-  uses: returntocorp/semgrep-action@v1
-  with:
-    config: >-
-      p/owasp-top-ten
-      p/secrets
-      p/sql-injection
-    # Only block the PR on high severity, not info/warning
-    generateSarif: true
-  env:
-    SEMGREP_APP_TOKEN: ${{ secrets.SEMGREP_APP_TOKEN }}
+# NOTE: returntocorp/semgrep-action (the wrapper Action) is DEPRECATED and its repo
+# archived (2024-04-09) — "stop using this wrapper script and migrate to native
+# Semgrep support instead" (github.com/semgrep/semgrep-action). Run the `semgrep`
+# CLI directly, e.g. via the official container image, instead of a wrapper Action.
+semgrep-scan:
+  runs-on: ubuntu-latest
+  container:
+    image: semgrep/semgrep
+  steps:
+    - uses: actions/checkout@v4
+    - name: Semgrep SAST scan
+      # Pass rulesets via --config (repeatable), not the SEMGREP_RULES env var — that
+      # var is documented as incompatible with SEMGREP_APP_TOKEN, and this example
+      # uses both the curated rulesets and the AppSec Platform token.
+      run: >-
+        semgrep ci
+        --config p/owasp-top-ten --config p/secrets --config p/sql-injection
+        --sarif --sarif-output=semgrep.sarif
+      env:
+        SEMGREP_APP_TOKEN: ${{ secrets.SEMGREP_APP_TOKEN }} # omit if not using Semgrep AppSec Platform
 
 - name: Fail on high severity findings only
   run: |
@@ -35,7 +44,7 @@ Start with a curated baseline ruleset. Suppress confirmed false positives with i
 
 ```python
 # Inline suppression (use sparingly, with justification)
-password = get_env("DB_PASSWORD")  # nosec B105 — not a hardcoded password; reads from env
+password = get_env("DB_PASSWORD")  # nosemgrep: hardcoded-secret — not a hardcoded password; reads from env
 ```
 
 Tuning process:
@@ -66,8 +75,8 @@ New projects may run SAST in "report only" mode during onboarding to build the i
 
 ## Provenance
 
-Codifies OWASP SAST tuning guidance and Semgrep's recommended "start with p/security-audit, narrow to p/owasp-top-ten" ramp-up strategy from their enterprise documentation.
+Codifies OWASP SAST tuning guidance and Semgrep's recommended "start with p/security-audit, narrow to p/owasp-top-ten" ramp-up strategy from their enterprise documentation. `returntocorp/semgrep-action` (archived 2024-04-09; github.com/semgrep/semgrep-action) is deprecated in favor of running the `semgrep` CLI natively — see the example above.
 
 ---
 
-_Last reviewed: 2026-06-05 by `claude`_
+_Last reviewed: 2026-09-23 by `claude` (replaced the deprecated `semgrep-action` wrapper with the native `semgrep ci` CLI pattern, and fixed the `nosec`→`nosemgrep` suppression example, per the 2026-09-23 weekly research sweep — see `CHANGELOG.md`)_
