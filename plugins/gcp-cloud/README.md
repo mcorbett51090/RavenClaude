@@ -7,7 +7,7 @@ The **gcp-cloud** plugin — designing and operating Google Cloud well — the r
 - **`gcp-architect`** — GCP architecture and the resource hierarchy: organization/folders/projects layout, org policy constraints, region/zone design, service selection across the estate, and resilience posture
 - **`gcp-iam-engineer`** — GCP identity and access: predefined/custom roles over primitive, service accounts + Workload Identity Federation (no key files), Workload Identity for GKE, IAM Conditions, and policy at the right hierarchy level
 - **`gcp-network-engineer`** — GCP networking: VPC and Shared VPC design, firewall rules (default-deny + tags/SAs), Private Google Access, Private Service Connect, Cloud NAT, Cloud Load Balancing, and Cloud DNS
-- **`gcp-data-and-compute-engineer`** — Compute selection (Cloud Run / GKE / Cloud Functions / GCE) and the data services at a selection level: BigQuery (as a service), Pub/Sub event-driven integration, Cloud SQL/Spanner/Firestore choice, and autoscaling
+- **`gcp-data-and-compute-engineer`** — Compute selection (Cloud Run / GKE / Cloud Run functions / GCE) and the data services at a selection level: BigQuery (as a service), Pub/Sub event-driven integration, Cloud SQL/Spanner/Firestore choice, and autoscaling
 
 ## Install
 

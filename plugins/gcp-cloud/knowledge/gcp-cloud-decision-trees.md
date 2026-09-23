@@ -11,7 +11,7 @@ Cloud Run is the default; GKE must earn its cluster ops.
 ```mermaid
 graph TD
   A[A workload] --> B{Small, single-purpose event handler?}
-  B -- Yes --> C[Cloud Functions]
+  B -- Yes --> C[Cloud Run functions]
   B -- No --> D{Stateless container / HTTP service?}
   D -- Yes --> E{Need k8s features / multi-cloud portability?}
   E -- No --> F[Cloud Run - the default]
@@ -21,7 +21,7 @@ graph TD
   H -- No --> F
 ```
 
-_Don't reach for GKE when Cloud Run fits._
+_Don't reach for GKE when Cloud Run fits._ _"Cloud Functions" has been "Cloud Run functions" since August 2024 (folded into the Cloud Run platform). `[verified 2026-09-23 — Google Cloud's own release notes: "Cloud Run functions (formerly known as Cloud Functions)"]`_
 
 ## Decision Tree: GCP data store selection
 
@@ -110,7 +110,7 @@ _Owner/Editor 'to make it work' is the most common over-grant; reach for predefi
 
 ## Decision Tree: GCP secret management — how should a workload access a secret?
 
-**When this applies:** A GCP workload (Cloud Run, GKE pod, Cloud Function, GCE VM) needs to access a credential, API key, or other secret at runtime. The observable inputs are: where the workload runs, whether it is a GCP-native workload, and whether the secret is a cloud identity credential or an application secret.
+**When this applies:** A GCP workload (Cloud Run, GKE pod, Cloud Run function, GCE VM) needs to access a credential, API key, or other secret at runtime. The observable inputs are: where the workload runs, whether it is a GCP-native workload, and whether the secret is a cloud identity credential or an application secret.
 
 **Last verified:** 2026-06-05 against GCP Secret Manager and Workload Identity documentation.
 
@@ -124,7 +124,7 @@ flowchart TD
     SM --> MOUNT{How to surface in the workload?}
     MOUNT -->|Cloud Run| ENV[Secret Manager env var reference in service config]
     MOUNT -->|GKE| CSI[Secrets Store CSI Driver<br/>mount as file]
-    MOUNT -->|Cloud Function| CODE[Secret Manager API call at startup<br/>cache in memory]
+    MOUNT -->|Cloud Run function| CODE[Secret Manager API call at startup<br/>cache in memory]
     MOUNT -->|GCE VM| CODE
 ```
 
@@ -133,7 +133,7 @@ flowchart TD
 - *Workload Identity Federation* — external callers (GitHub Actions, GitLab, on-prem) exchange an OIDC token for short-lived GCP credentials; no key to store.
 - *Secret Manager env var reference* — Cloud Run reads the secret at deploy time and surfaces it as an environment variable at runtime; the secret value never appears in the service spec.
 - *Secrets Store CSI Driver* — GKE pods mount Secret Manager secrets as files; the Kubernetes Secret object remains base64 plaintext, so CSI bypasses it.
-- *API call at startup* — Cloud Functions and GCE can call the Secret Manager API directly using the attached SA; cache the result in memory to avoid per-request latency.
+- *API call at startup* — Cloud Run functions and GCE can call the Secret Manager API directly using the attached SA; cache the result in memory to avoid per-request latency.
 
 **Tradeoffs summary:**
 
@@ -143,7 +143,7 @@ flowchart TD
 | WIF | No | Yes via Audit Logs | External CI/CD callers |
 | Secret Manager env ref | No | Yes per-version | Cloud Run secrets |
 | CSI Driver | No | Yes | GKE pod secrets |
-| SM API call in code | No | Yes per call | Cloud Functions/GCE |
+| SM API call in code | No | Yes per call | Cloud Run functions/GCE |
 
 ---
 
@@ -197,7 +197,7 @@ flowchart TD
     SCOPE -->|All projects in a folder - one team| FB[Folder-scoped budget]
     SCOPE -->|Entire billing account| OB[Billing account budget<br/>org-level backstop]
     PB --> ACTION{Should budget also trigger automated action?}
-    ACTION -->|Yes - stop resources at limit| PS[Budget + Pub/Sub + Cloud Function<br/>to disable billing or stop compute]
+    ACTION -->|Yes - stop resources at limit| PS[Budget + Pub/Sub + Cloud Run function<br/>to disable billing or stop compute]
     ACTION -->|No - alert only| ALERT[Budget with email or Pub/Sub notification only]
     FB --> ACTION
     OB --> ALERT
@@ -208,7 +208,7 @@ flowchart TD
 - *Label-filtered budget* — when one team owns resources across multiple projects, a label filter (e.g., `team=payments`) gives a single budget view across project boundaries.
 - *Folder-scoped budget* — when a folder represents a business unit or team and all spend there has a shared limit.
 - *Billing account budget* — the org-level backstop; fires last but catches everything; useful as a high-water-mark alarm.
-- *Pub/Sub + Cloud Function* — only use automated budget responses (disabling billing/stopping VMs) in dev/test; never in prod without extensive testing and runbook.
+- *Pub/Sub + Cloud Run function* — only use automated budget responses (disabling billing/stopping VMs) in dev/test; never in prod without extensive testing and runbook.
 - **Note (2026-06-16):** new Cloud Billing accounts now default to **billing-account-scoped resource-based CUD sharing ON** — one commitment applies across every linked project (existing accounts with no active commitments were auto-switched). If you use project- or folder-scoped budgets for chargeback/cost isolation, **verify CUD sharing scope**, because a shared commitment can subsidize projects outside the intended cost center. [Share CUDs across projects](https://cloud.google.com/compute/docs/instances/committed-use-discounts-overview) `[verify-at-use]`
 
 **Tradeoffs summary:**
