@@ -888,7 +888,21 @@ EOF
           esac
         done
       fi
-      if [[ "$seg" =~ ${_CMD_BOUNDARY}git[[:space:]]+(checkout|switch)([[:space:]]|$) ]]; then
+      # Round 9 (2026-09-23, Bugbot): the strict `git[[:space:]]+(checkout|
+      # switch)` adjacency requirement relied on the file's pre-existing
+      # generic git-global-option strip (the `_gitglobal`/`_gstripped` fold
+      # near the top of the file) to collapse a single-token flag like
+      # `-C /real/dir` down to nothing, leaving "git checkout" adjacent.
+      # That fold's own regex only matches a flag's value as ONE
+      # whitespace-delimited token — the exact single-token assumption
+      # round 7 already found broken for merge detection via an unexpanded
+      # command substitution (`-C $(echo .)` contains an internal space,
+      # so the fold leaves ".)" behind as a stray token) — so this gate
+      # never even entered the block for `git -C $(echo .) checkout main`,
+      # and the checkout was silently untracked. Widened to the same
+      # order/adjacency-independent word-presence check already used for
+      # merge/update-ref detection.
+      if [[ "$seg" =~ ${_CMD_BOUNDARY}git([[:space:]]|$) ]] && [[ "$seg" =~ ${_CMD_BOUNDARY}(checkout|switch)([[:space:]]|$) ]]; then
         prev="" seen="" seg_target="" pending="" pending_kind="" double_dash="" first_pos=""
         # Round 4 (2026-09-23, Bugbot): a redirect glued directly onto the
         # target with no whitespace (`git checkout main>/dev/null`) reads
@@ -949,6 +963,18 @@ EOF
           else
             branch="$_AMBIGUOUS_BRANCH_SENTINEL"
           fi
+          branch_tracked=1
+        elif [ -z "$seen" ]; then
+          # Round 9 (2026-09-23, Bugbot): the outer gate matched (a
+          # "checkout"/"switch" word is present in this segment) but the
+          # inner scan never confidently located it as the subcommand
+          # immediately after "git" (or a path-qualified git binary) —
+          # meaning something ambiguous (an unresolvable multi-token global
+          # flag value, or similar) sits between them and this checkout/
+          # switch cannot be confidently parsed. Never silently leave it
+          # untracked: treat it the same as every other unresolvable token
+          # in this file (the conservative-deny sentinel).
+          branch="$_AMBIGUOUS_BRANCH_SENTINEL"
           branch_tracked=1
         fi
       fi
@@ -1145,6 +1171,24 @@ EOF
 # already uses for `gh pr merge --admin` a few functions above: no
 # folding, no adjacency requirement, so a global flag or the method flag
 # can sit in front of OR behind the subcommand and still be seen.
+# Round 9 (2026-09-23, Bugbot): the flag-value check only recognized the
+# LITERAL word "DELETE" as dangerous — a value that is a command
+# substitution (`$(printf DELETE)`) or a variable expansion (`$M`) is
+# never the literal text "DELETE" on the command line, even though gh/curl
+# will still issue an HTTP DELETE once that value expands at runtime. We
+# cannot resolve what a substitution or variable actually evaluates to, so
+# — matching this file's established posture on every other construct it
+# can't fully parse (`--stdin`, an unresolvable -C/--git-dir merge target,
+# an unresolvable checkout/switch subcommand) — treat an UNRESOLVABLE
+# method value as dangerous too, rather than silently letting it pass.
+_looks_unresolvable_method_value() {
+  case "$1" in
+    '$('*|'`'*|'${'*) return 0 ;;   # command substitution / braced expansion
+    '$'[A-Za-z_]*) return 0 ;;      # bare variable reference ($M, $VAR)
+  esac
+  return 1
+}
+
 _seg_has_delete_method() {
   local seg="$1" word prev=""
   for word in $seg; do
@@ -1153,6 +1197,7 @@ _seg_has_delete_method() {
         case "$word" in
           [Dd][Ee][Ll][Ee][Tt][Ee]) return 0 ;;
         esac
+        _looks_unresolvable_method_value "$word" && return 0
         ;;
     esac
     case "$word" in
@@ -1160,6 +1205,7 @@ _seg_has_delete_method() {
         case "${word#*=}" in
           [Dd][Ee][Ll][Ee][Tt][Ee]) return 0 ;;
         esac
+        _looks_unresolvable_method_value "${word#*=}" && return 0
         ;;
       -X[Dd][Ee][Ll][Ee][Tt][Ee]) return 0 ;;  # curl's glued -XDELETE form
     esac
