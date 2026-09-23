@@ -2,6 +2,15 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.3.7] — 2026-09-23
+
+Research-sweep **corrections** (weekly deep-research sweep, issue #1229), independently re-verified this session via WebSearch before shipping:
+
+- **OpenTofu security-pin floor raised.** OpenTofu 1.12.6 / 1.11.14 (2026-08-19) fix a credential-leak bug — earlier versions could resend credentials to the target of an HTTP redirect when installing modules/providers from an OCI registry — plus a `tofu init` DoS from crafted relative URLs. Raised the pin from ≥1.12.3 to **≥1.12.6 (or ≥1.11.14)**; this supersedes the older floor, which addressed a different CVE. Updated the capability map and the Terraform-vs-OpenTofu tree's dated note.
+- **DynamoDB state locking deprecated.** Terraform 1.11 deprecated the S3 backend's `dynamodb_table` locking arguments in favor of GA'd S3-native locking (`use_lockfile = true`). Updated the "which remote state backend?" tree's leaf, the capability map's "state locking backends" row, and `best-practices/remote-state-with-locking.md`.
+
+Decision-tree SVG re-rendered for the 1 tree whose diagram changed (which remote state backend); the rest of the inventory is untouched.
+
 ## [0.3.6] — 2026-08-14
 
 ### Changed

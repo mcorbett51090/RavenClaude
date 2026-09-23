@@ -4,12 +4,15 @@
 
 ## DORA & delivery
 
+> **DORA now publishes 5 metrics, not 4** `[re-verified 2026-09-23]` — deployment frequency, lead time for changes, change fail rate, **failed deployment recovery time** (the renamed "MTTR"/time-to-restore, regrouped as a **throughput** metric rather than stability), and **deployment rework rate** (added 2024/2025). Sources: CD Foundation, ["The DORA 4 key metrics become 5"](https://cd.foundation/blog/2025/10/16/dora-5-metrics/) (2025-10-16); [dora.dev's own metrics history](https://dora.dev/insights/dora-metrics-history/). The table below is updated to the 5-metric set; the elite/high/medium/low tier framing referenced elsewhere in this plugin is this team's own retained **house convention** — DORA's 2025 report itself replaced those four tiers with seven team archetypes (see `platform-engineering-idp-economics.md` §4).
+
 | Metric | Definition | Window | Note |
 |---|---|---|---|
 | **Deploy frequency** | Deployments to production per unit time | Rolling, per service/team | A throughput key; classify against the bands (§3 #3). |
 | **Lead time for change** | Commit → running in production | Median, per service | The flow key; decompose to find the slow stage. |
-| **Change-failure rate** | Deployments causing a degradation ÷ total | Rolling | A stability key; pairs with MTTR. |
-| **MTTR** | Time to restore service after a failed change | Median | Often a platform-reliability signal, not just a team one (§3 #6). |
+| **Change-failure rate** | Deployments causing a degradation ÷ total | Rolling | A stability key; pairs with failed deployment recovery time. |
+| **Failed deployment recovery time** (formerly "MTTR" / time to restore) | Time to restore service after a failed change | Median | DORA moved this from a stability key to a **throughput** metric in its 2025 metric set `[re-verified 2026-09-23]`; still often a platform-reliability signal, not just a team one (§3 #6). |
+| **Deployment rework rate** | Ratio of deployments that are unplanned rework triggered by a prior production issue | Rolling | DORA's 5th metric, added 2024/2025 `[re-verified 2026-09-23]` — a proxy for how much change-failure rate forces a team to redo work. |
 
 ## Adoption & cognitive load
 

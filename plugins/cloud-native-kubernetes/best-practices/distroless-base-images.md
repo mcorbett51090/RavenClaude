@@ -24,7 +24,7 @@ COPY . .
 RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -o /app/server ./cmd/server
 
 # Stage 2: minimal runtime (distroless nonroot)
-FROM gcr.io/distroless/static-debian12:nonroot
+FROM gcr.io/distroless/static-debian13:nonroot
 COPY --from=builder /app/server /server
 USER nonroot:nonroot
 EXPOSE 8080
@@ -39,7 +39,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir --target /app/deps -r requirements.txt
 COPY . .
 
-FROM gcr.io/distroless/python3-debian12:nonroot
+FROM gcr.io/distroless/python3-debian13:nonroot
 COPY --from=builder /app/deps /app/deps
 COPY --from=builder /app/src /app/src
 ENV PYTHONPATH=/app/deps
@@ -51,15 +51,15 @@ ENTRYPOINT ["python3", "/app/src/main.py"]
 
 | Runtime | Image |
 |---|---|
-| Go static binary | `gcr.io/distroless/static-debian12:nonroot` |
-| Go with glibc | `gcr.io/distroless/base-debian12:nonroot` |
-| Python | `gcr.io/distroless/python3-debian12:nonroot` |
-| Java | `gcr.io/distroless/java21-debian12:nonroot` |
-| Node.js | `gcr.io/distroless/nodejs20-debian12:nonroot` |
+| Go static binary | `gcr.io/distroless/static-debian13:nonroot` |
+| Go with glibc | `gcr.io/distroless/base-debian13:nonroot` |
+| Python | `gcr.io/distroless/python3-debian13:nonroot` |
+| Java | `gcr.io/distroless/java21-debian13:nonroot` |
+| Node.js | `gcr.io/distroless/nodejs22-debian13:nonroot` (or `nodejs24-debian13`) |
 
 **Do:**
 - Use the `:nonroot` tag variant — the image runs as a non-root user by default.
-- Pin to a specific Debian release (e.g., `debian12`) rather than `latest`.
+- Pin to a specific Debian release (e.g., `debian13` — upstream retired `debian12` tags; there is no `nodejs20` variant since Node 20 is EOL) rather than `latest`.
 - Use `gcr.io/distroless/static` for Go binaries compiled with `CGO_ENABLED=0` — static binaries need nothing except the OS syscall layer.
 - Scan with Trivy or Grype after switching to distroless — confirm CVE count drops.
 
@@ -71,7 +71,7 @@ ENTRYPOINT ["python3", "/app/src/main.py"]
 ## Edge cases / when the rule does NOT apply
 
 - **Tooling containers** (init containers running migration scripts): these may legitimately need a shell and a package manager — use `alpine` or `debian:slim` and keep them separate from the application container.
-- **Applications requiring `libc` plugins** not packaged in distroless: evaluate `base-debian12` which includes libc but not the full OS; fall back to `alpine` before `ubuntu`.
+- **Applications requiring `libc` plugins** not packaged in distroless: evaluate `base-debian13` which includes libc but not the full OS; fall back to `alpine` before `ubuntu`.
 
 ## See also
 
@@ -84,4 +84,4 @@ Codifies the `container-build-engineer` remit from `CLAUDE.md` §1: "distroless/
 
 ---
 
-_Last reviewed: 2026-06-05 by `claude`_
+_Last reviewed: 2026-09-23 by `claude` (re-verified the distroless tag set against the GoogleContainerTools/distroless README — upstream now bases every image on Debian 13; retagged `-debian12` → `-debian13` and `nodejs20` → `nodejs22`/`nodejs24`)_

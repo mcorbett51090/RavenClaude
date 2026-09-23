@@ -2,6 +2,15 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.3.5] — 2026-09-23
+
+Research-sweep **corrections** (weekly deep-research sweep, issue #1229), independently re-verified this session via WebSearch before shipping:
+
+- **Workflow execution protections went GA 2026-09-17** (was "public preview"). GA adds workflow-file targeting, rule-evaluation insights, and a REST API. **New default:** a public repo with no event policy gets `pull_request_target` disabled by default, in evaluate mode first; GitHub auto-enforces it 2026-11-02. Updated the capability map row.
+- **Distroless image tags.** Same root cause as the `cloud-native-kubernetes` finding this sweep — upstream `GoogleContainerTools/distroless` now bases every image on Debian 13, with no `-debian12` or `nodejs20` tag (Node 20 is EOL 2026-04-30). Retagged the "Image base selection" tree and `best-practices/artifact-image-layer-hygiene.md` to `-debian13` / `nodejs22`.
+
+Decision-tree SVG re-rendered for the 1 tree whose diagram changed (image base selection); the rest of the inventory is untouched. **Not done this pass** (flagged by the sweep but out of `knowledge/` scope, time-critical but mechanical): bumping the node20-era action majors (`checkout@v4`, `setup-terraform@v3`, `upload-artifact@v4`, `configure-aws-credentials@v4`, `google-github-actions/auth@v2`) pinned in various `best-practices/`/`skills/` examples across this plugin and `terraform-iac` — GitHub Actions removed Node 20 from runners on 2026-09-23 (today); tracked as a separate follow-up.
+
 ## [0.3.4] — 2026-08-14
 
 ### Changed
