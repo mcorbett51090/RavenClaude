@@ -27,19 +27,20 @@ semgrep-scan:
   steps:
     - uses: actions/checkout@v4
     - name: Semgrep SAST scan
-      # Pass rulesets via --config (repeatable), not the SEMGREP_RULES env var — that
-      # var is documented as incompatible with SEMGREP_APP_TOKEN, and this example
-      # uses both the curated rulesets and the AppSec Platform token.
+      # Use `semgrep scan` with explicit --config rulesets (repeatable), not `semgrep
+      # ci`. The `ci` subcommand REFUSES --config when SEMGREP_APP_TOKEN is set — it
+      # expects rulesets to come from the AppSec Platform instead, and errors out
+      # ("Cannot run `semgrep ci` with --config while logged in"). This example
+      # curates its own baseline ruleset inline, so it stays on `scan` with no token.
+      # Switch to `semgrep ci` (drop --config, set SEMGREP_APP_TOKEN) if you manage
+      # rules in the Semgrep AppSec Platform UI instead of inline --config flags.
       run: >-
-        semgrep ci
+        semgrep scan
         --config p/owasp-top-ten --config p/secrets --config p/sql-injection
         --sarif --sarif-output=semgrep.sarif
-      env:
-        SEMGREP_APP_TOKEN: ${{ secrets.SEMGREP_APP_TOKEN }} # omit if not using Semgrep AppSec Platform
-
-- name: Fail on high severity findings only
-  run: |
-    jq -e '.runs[].results[] | select(.level == "error")' semgrep.sarif && exit 1 || exit 0
+    - name: Fail on high severity findings only
+      run: |
+        jq -e '.runs[].results[] | select(.level == "error")' semgrep.sarif && exit 1 || exit 0
 ```
 
 ```python
