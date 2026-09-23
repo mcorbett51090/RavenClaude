@@ -407,17 +407,66 @@ _git_invocation_present() {
 # unresolvable word. A non-local ("global") variable, so the top-level
 # _git_invocation_present function above can read it without a signature
 # change at any of its five call sites.
+# Round 19 (2026-09-23, Cursor Security Agent): a same-command alias or
+# function may already embed the DANGEROUS SUBCOMMAND itself (`alias
+# gm='git merge'; gm feature`, or `gm() { git merge feature; }; gm`) --
+# invoking the bare name never puts a literal "checkout"/"switch"/"merge"
+# word anywhere in that command at all, so even a fully-resolved
+# _git_alias_names entry can't help: the outer per-subcommand gates below
+# require that literal word to be present in the segment before they ever
+# look at whether the invoked word is a known git alias. These two lists
+# name, independently of whether the definition also resolves to "git"
+# itself, any alias/function whose OWN right-hand-side/body already
+# mentions checkout/switch (as a git-invocation-adjacent word) or merge --
+# a name in either list is treated by the two outer gates as if the
+# corresponding literal keyword were present in any segment invoking it,
+# routing straight to those gates' existing "keyword present but not
+# confidently parsed" conservative-deny sentinel (a real subcommand-word
+# extraction can't run off a name it doesn't recognize, and that is
+# exactly the safe fallback these lists exist to trigger).
 _git_alias_names=""
+_git_alias_checkout_names=""
+_git_alias_merge_names=""
+# Round 19: does $2 (a space-separated name list) contain, as a
+# boundary-anchored WORD, any name that also appears as a boundary-
+# anchored word in $1? Loops the same shrinking-$remain shape as the
+# scan above -- a single `=~` test would only ever prove the FIRST name
+# in the list either matches or doesn't; every name needs its own check.
+_word_in_list() {
+  local text="$1" list="$2" nm
+  for nm in $list; do
+    [ -z "$nm" ] && continue
+    [[ "$text" =~ ${_CMD_BOUNDARY}${nm}([[:space:]]|$) ]] && return 0
+  done
+  return 1
+}
 _scan_git_alias_names() {
   local c="$1" name rhs remain whole
   _git_alias_names=""
+  _git_alias_checkout_names=""
+  _git_alias_merge_names=""
   # `alias NAME=git` / `alias NAME='git'` / `alias NAME="git"` / `alias
   # NAME=/path/to/git` (a path ending in "/git") / an otherwise-
   # unresolvable right-hand side ($(...), a variable, etc.).
   # NOTE: $_CMD_BOUNDARY itself is a capturing group, so it consumes
-  # BASH_REMATCH[1] here -- the NAME/RHS groups below land at [2]/[3], not
-  # [1]/[2] (verified live; the off-by-one silently emptied $name on the
-  # first draft of this fix).
+  # BASH_REMATCH[1] here -- the NAME/RHS-ish groups below land one past
+  # where a naive reading expects (verified live; the off-by-one silently
+  # emptied $name on the first draft of this fix).
+  #
+  # Round 19 (2026-09-23, Cursor Security Agent): `alias -- NAME=...` (the
+  # POSIX end-of-options marker, valid before an alias name) and a quoted
+  # RHS wrapped in a leading `command ` invocation (`alias g='command
+  # git'` -- a real, common pattern for bypassing a PRIOR alias of the
+  # same name) both sailed past the round-17 regex/RHS-comparison
+  # entirely: the "--" made the NAME capture fail outright, and "command
+  # git" matched neither the bare `git`/`*/git` case nor
+  # _looks_unresolvable_method_value (which doesn't know "command " is a
+  # no-op prefix). Live-verified allowed pre-fix. Fixed by (a) accepting
+  # an optional `-- ` between `alias` and NAME (a new, non-capturing-in-
+  # spirit-but-ERE-forces-capturing group, shifting every group below by
+  # one -- NAME/RHS now land at [3]/[4], not [2]/[3]) and (b) stripping a
+  # leading `command ` (possibly repeated) off the unquoted RHS before
+  # the git/unresolvable comparison.
   #
   # Round 18 (2026-09-23, Cursor Security Agent): `[[ =~ ]]` finds only
   # the LEFTMOST match anywhere in the whole string -- a single `if`
@@ -428,24 +477,54 @@ _scan_git_alias_names() {
   # verified allowed pre-fix. Fixed by looping over a shrinking $remain
   # copy of $c, matching repeatedly and stripping past each consumed
   # match, so every occurrence is examined -- not just the first. Each
-  # of the three checks below gets its OWN independent $remain reset,
-  # since they scan for different, positionally-unrelated patterns.
+  # of the checks below gets its OWN independent $remain reset, since
+  # they scan for different, positionally-unrelated patterns.
+  # Round 19 (2026-09-23, Cursor Security Agent, continued): by the time
+  # this function ever sees $c, the caller's own quote-stripping
+  # normalization (run long before _is_dangerous_merge is reached) has
+  # already removed every single/double quote from the command -- so
+  # `alias g='command git'` arrives here as the UNQUOTED text `alias
+  # g=command git`, and the original bare-token alternative below
+  # (`[^[:space:]...]*`, which stops at the first whitespace) only ever
+  # captured "command", never "git". Live-verified allowed pre-fix. Added
+  # a `command[[:space:]]+<word>` alternative so this specific, common
+  # bypass shape (an alias whose value simply re-invokes its target
+  # through the no-op `command` builtin, defeating a PRIOR alias of the
+  # same name) is captured whole. The SAME quote-stripping also broke the
+  # embedded-subcommand case (`alias gm='git merge'` -> unquoted `alias
+  # gm=git merge`) identically: the plain bare-token alternative stopped
+  # at "git" and never saw "merge" at all, so `gm feature` after a
+  # tracked `git checkout main` sailed through with neither
+  # _git_alias_merge_names nor _git_alias_names (via the widened `git `-
+  # prefix case arm below) ever populated. Live-verified allowed pre-fix.
+  # Added a second `git[[:space:]]+<word>` alternative for the same
+  # reason. The quoted alternatives below are dead code at THIS call site
+  # for the same quote-stripping reason and are kept only because a plain
+  # bare-token capture must still work when $c genuinely never contained
+  # a quote to begin with.
   remain="$c"
-  while [[ "$remain" =~ ${_CMD_BOUNDARY}alias[[:space:]]+([A-Za-z_][A-Za-z0-9_]*)=(\'[^\']*\'|\"[^\"]*\"|[^[:space:]\;\&\|]*) ]]; do
+  while [[ "$remain" =~ ${_CMD_BOUNDARY}alias[[:space:]]+(--[[:space:]]+)?([A-Za-z_][A-Za-z0-9_]*)=(\'[^\']*\'|\"[^\"]*\"|command[[:space:]]+[^[:space:]\;\&\|]*|git[[:space:]]+[^[:space:]\;\&\|]*|[^[:space:]\;\&\|]*) ]]; do
     whole="${BASH_REMATCH[0]}"
     [ -z "$whole" ] && break
-    name="${BASH_REMATCH[2]}"
-    rhs="${BASH_REMATCH[3]}"
+    name="${BASH_REMATCH[3]}"
+    rhs="${BASH_REMATCH[4]}"
     rhs="${rhs#\'}"; rhs="${rhs%\'}"
     rhs="${rhs#\"}"; rhs="${rhs%\"}"
+    while [[ "$rhs" == command\ * ]]; do rhs="${rhs#command }"; done
     case "$rhs" in
-      git|*/git) _git_alias_names="$_git_alias_names $name" ;;
+      git|*/git|git\ *) _git_alias_names="$_git_alias_names $name" ;;
       *) _looks_unresolvable_method_value "$rhs" && _git_alias_names="$_git_alias_names $name" ;;
     esac
+    [[ "$rhs" =~ ${_CMD_BOUNDARY}(checkout|switch)([[:space:]]|$) ]] && _git_alias_checkout_names="$_git_alias_checkout_names $name"
+    [[ "$rhs" =~ ${_CMD_BOUNDARY}merge([[:space:]]|$) ]] && _git_alias_merge_names="$_git_alias_merge_names $name"
     remain="${remain#*"$whole"}"
   done
   # A shell FUNCTION whose body mentions "git" anywhere (`NAME() { git
-  # "$@"; }`, `NAME () { ...git...; }`, or the `function NAME { ... }`
+  # "$@"; }`, `NAME () { ...git...; }`, `NAME() ( git "$@" )` -- the
+  # POSIX subshell form using parens instead of braces, added round 19
+  # after the identical bare-braces-only gap round 17 left open let
+  # `g() ( git "$@" ); g checkout main && g merge feature` sail through
+  # (live-verified allowed pre-fix) -- or the `function NAME { ... }`
   # form) -- deliberately broad (any function wrapping "git" in its body,
   # not just a pure passthrough), matching this file's under-blocking-
   # never posture on constructs it can't fully parse.
@@ -465,6 +544,19 @@ _scan_git_alias_names() {
     fname="${BASH_REMATCH[1]}"
     fbody="${BASH_REMATCH[2]}"
     [[ "$fbody" =~ ${_CMD_BOUNDARY}git([[:space:]]|$) ]] && _git_alias_names="$_git_alias_names $fname"
+    [[ "$fbody" =~ ${_CMD_BOUNDARY}(checkout|switch)([[:space:]]|$) ]] && _git_alias_checkout_names="$_git_alias_checkout_names $fname"
+    [[ "$fbody" =~ ${_CMD_BOUNDARY}merge([[:space:]]|$) ]] && _git_alias_merge_names="$_git_alias_merge_names $fname"
+    remain="${remain#*"$whole"}"
+  done
+  remain="$c"
+  while [[ "$remain" =~ ([A-Za-z_][A-Za-z0-9_]*)[[:space:]]*\(\)[[:space:]]*\(([^\)]*)\) ]]; do
+    whole="${BASH_REMATCH[0]}"
+    [ -z "$whole" ] && break
+    fname="${BASH_REMATCH[1]}"
+    fbody="${BASH_REMATCH[2]}"
+    [[ "$fbody" =~ ${_CMD_BOUNDARY}git([[:space:]]|$) ]] && _git_alias_names="$_git_alias_names $fname"
+    [[ "$fbody" =~ ${_CMD_BOUNDARY}(checkout|switch)([[:space:]]|$) ]] && _git_alias_checkout_names="$_git_alias_checkout_names $fname"
+    [[ "$fbody" =~ ${_CMD_BOUNDARY}merge([[:space:]]|$) ]] && _git_alias_merge_names="$_git_alias_merge_names $fname"
     remain="${remain#*"$whole"}"
   done
   remain="$c"
@@ -474,6 +566,8 @@ _scan_git_alias_names() {
     fname="${BASH_REMATCH[1]}"
     fbody="${BASH_REMATCH[3]}"
     [[ "$fbody" =~ ${_CMD_BOUNDARY}git([[:space:]]|$) ]] && _git_alias_names="$_git_alias_names $fname"
+    [[ "$fbody" =~ ${_CMD_BOUNDARY}(checkout|switch)([[:space:]]|$) ]] && _git_alias_checkout_names="$_git_alias_checkout_names $fname"
+    [[ "$fbody" =~ ${_CMD_BOUNDARY}merge([[:space:]]|$) ]] && _git_alias_merge_names="$_git_alias_merge_names $fname"
     remain="${remain#*"$whole"}"
   done
 }
@@ -971,7 +1065,24 @@ EOF
   # an innocuous merge/pull PROSE sentence and the sanctioned `gh pr merge
   # --squash` invocation were both wrongly denied by a first attempt that
   # dropped "git" entirely). Requires git OR an unresolvable-looking word.
-  if _git_invocation_present "$c" && { [[ "$c" =~ ${_CMD_BOUNDARY}merge([[:space:]]|$) ]] || [[ "$c" =~ ${_CMD_BOUNDARY}pull([[:space:]]|$) ]]; }; then
+  # Round 19 (2026-09-23, Cursor Security Agent): the ENTIRE per-segment
+  # checkout/symbolic-ref/merge tracking loop below lives inside this one
+  # top-level gate -- so an alias/function that embeds its subcommand
+  # (`alias gm='git merge'; git checkout main; gm feature`) needed the
+  # gate widened too, not just the per-segment merge gate further down:
+  # after quote-stripping normalization the alias definition text becomes
+  # `alias gm=git merge; ...`, where "merge" is directly followed by ";"
+  # with no space -- failing this file's OWN trailing-boundary convention
+  # of `([[:space:]]|$)` (space or end-of-string only, unlike the leading
+  # _CMD_BOUNDARY which already accepts `;`/`&`/`|`/etc.). So the literal-
+  # word branch below never recognized the alias-embedded "merge" either,
+  # and with no OTHER literal merge/pull word anywhere in the command,
+  # this whole top gate never opened at all -- checkout tracking never
+  # even started. Live-verified allowed pre-fix. Widened with the same
+  # _word_in_list check used by the two per-segment gates further down,
+  # so a command whose ONLY merge/checkout signal is an embedded-
+  # subcommand alias/function still enters the tracking loop.
+  if { _git_invocation_present "$c" && { [[ "$c" =~ ${_CMD_BOUNDARY}merge([[:space:]]|$) ]] || [[ "$c" =~ ${_CMD_BOUNDARY}pull([[:space:]]|$) ]]; }; } || _word_in_list "$c" "$_git_alias_merge_names" || _word_in_list "$c" "$_git_alias_checkout_names"; then
     local branch word prev seen seg_target pending pending_kind double_dash first_pos symref_target
     local branch_tracked=""
     local effective_cwd="" cd_word cd_prev cd_seen cd_target gd_word
@@ -1158,7 +1269,17 @@ EOF
       # existing round-9 "never silently leave it untracked" sentinel
       # fallback a few lines down -- the conservative-deny outcome, not a
       # new bypass.
-      if _git_invocation_present "$seg" && [[ "$seg" =~ ${_CMD_BOUNDARY}(checkout|switch)([[:space:]]|$) ]]; then
+      # Round 19 (2026-09-23, Cursor Security Agent): widened to also fire
+      # when this segment invokes a same-command alias/function whose own
+      # RHS/body already embeds "checkout"/"switch" (see
+      # _git_alias_checkout_names' own comment above) -- such an
+      # invocation carries no literal "checkout"/"switch" word of its
+      # own, so the inner word-scan below will never set $seen and falls
+      # straight through to its existing "keyword present but not
+      # confidently parsed" conservative-deny sentinel, which is exactly
+      # the safe outcome for a subcommand this scan structurally cannot
+      # parse out of an opaque alias/function body.
+      if { _git_invocation_present "$seg" && [[ "$seg" =~ ${_CMD_BOUNDARY}(checkout|switch)([[:space:]]|$) ]]; } || _word_in_list "$seg" "$_git_alias_checkout_names"; then
         prev="" seen="" seg_target="" pending="" pending_kind="" double_dash="" first_pos=""
         # Round 4 (2026-09-23, Bugbot): a redirect glued directly onto the
         # target with no whitespace (`git checkout main>/dev/null`) reads
@@ -1365,7 +1486,17 @@ EOF
       # Round 15 (2026-09-23, Bugbot): same git-OR-unresolvable-word
       # widening as the outer gate above (see _git_invocation_present's
       # own comment for why dropping "git" outright was wrong).
-      if _git_invocation_present "$seg" && { [[ "$seg" =~ ${_CMD_BOUNDARY}merge([[:space:]]|$) ]] || [[ "$seg" =~ ${_CMD_BOUNDARY}pull([[:space:]]|$) ]]; }; then
+      # Round 19 (2026-09-23, Cursor Security Agent): widened to also fire
+      # when this segment invokes a same-command alias/function whose own
+      # RHS/body already embeds "merge" (`alias gm='git merge'; gm
+      # feature`, or the matching function form) -- see
+      # _git_alias_merge_names' own comment above. Everything below this
+      # gate (the ff-state scan, the branch/chain checks) runs unchanged
+      # off the ALREADY-TRACKED $branch/$branch_tracked/$chain_and_only
+      # state, independent of whether a literal "merge"/"pull" word is
+      # present in this segment, so no further change is needed to
+      # correctly deny a bare `gm` invocation on a dangerous branch.
+      if { _git_invocation_present "$seg" && { [[ "$seg" =~ ${_CMD_BOUNDARY}merge([[:space:]]|$) ]] || [[ "$seg" =~ ${_CMD_BOUNDARY}pull([[:space:]]|$) ]]; }; } || _word_in_list "$seg" "$_git_alias_merge_names"; then
         # Round 3 (2026-09-23, Bugbot): the old check only asked "does
         # --ff-only appear ANYWHERE in this segment?", so it treated
         # `--ff-only` as sticky even when a LATER flag in the same
