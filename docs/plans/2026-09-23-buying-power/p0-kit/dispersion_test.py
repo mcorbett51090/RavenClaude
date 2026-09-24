@@ -239,7 +239,7 @@ def bootstrap_ci(rows, noise_variance, n_boot=2000, seed=1234, sensitivity=False
 
     for _ in range(n_boot):
         sample = []
-        for prod, prod_rows in by_product.items():
+        for _prod, prod_rows in by_product.items():
             n = len(prod_rows)
             sample.extend(prod_rows[rng.randrange(n)] for _ in range(n))
         try:
@@ -415,7 +415,7 @@ def self_test():
     rows = []
     for prod in products:
         base_price = {"ProdA": 100.0, "ProdB": 50.0, "ProdC": 200.0}[prod]
-        for i in range(20):
+        for _i in range(20):
             volume = rng.choice([10, 25, 50, 100, 250, 500])
             term = rng.choice([12, 24, 36])
             year = rng.choice([2023, 2024, 2025, 2026])
@@ -484,7 +484,7 @@ def self_test():
     flat_rows = []
     for prod in products:
         base_price = {"ProdA": 100.0, "ProdB": 50.0, "ProdC": 200.0}[prod]
-        for i in range(20):
+        for _i in range(20):
             volume = rng.choice([10, 25, 50, 100, 250, 500])
             term = rng.choice([12, 24, 36])
             year = rng.choice([2023, 2024, 2025, 2026])
