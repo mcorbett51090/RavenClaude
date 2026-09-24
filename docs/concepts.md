@@ -2724,7 +2724,7 @@ Probe: `scripts/check-artifact-budgets.py`
 
 **Sources:** [measured in the FORGE product-inventory run](https://github.com/mcorbett51090/RavenClaude/pull/997)
 
-_Last verified: 2026-09-17_
+_Last verified: 2026-09-24_
 
 
 ---

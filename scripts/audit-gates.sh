@@ -6948,10 +6948,10 @@ for p in (m.DASHBOARD, m.INDEX):
     r = m.measure(p)
     if sum(r["panels"].values()) + r["shell"] != r["total"]:
         sys.exit(1)
-    if len(r["panels"]) != 17:  # 17th = panel-host-context (v0.216.0, MH-14)
+    if len(r["panels"]) != 18:  # 17th = panel-host-context (v0.216.0, MH-14); 18th = panel-reserve (routine token reserve PR 2, v0.326.0)
         sys.exit(1)
 PY
-gate "dom-budget: SUM(panels)+shell == whole doc, 17 panels both surfaces" must_pass "$rc"
+gate "dom-budget: SUM(panels)+shell == whole doc, 18 panels both surfaces" must_pass "$rc"
 
 # F3 / §0.2b rail: an EXEMPT panel (settings) must never be silently islanded.
 # Neither existing gate catches this — Gate 35 (posture round-trip) is DOM-free by

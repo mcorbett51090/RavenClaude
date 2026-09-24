@@ -19,8 +19,8 @@
   },
   "surfaces": {
     "dashboard": {
-      "href_count": 24,
-      "distinct_static": 17,
+      "href_count": 25,
+      "distinct_static": 18,
       "distinct_dynamic": 0,
       "static_href_routes": [
         {
@@ -101,6 +101,13 @@
           "resolved": true
         },
         {
+          "route": "#/reserve",
+          "section": "reserve",
+          "sub": null,
+          "destination": "activate:reserve",
+          "resolved": true
+        },
+        {
           "route": "#/saga",
           "section": "saga",
           "sub": null,
@@ -147,8 +154,8 @@
       "nav_routes": []
     },
     "index": {
-      "href_count": 54,
-      "distinct_static": 24,
+      "href_count": 56,
+      "distinct_static": 25,
       "distinct_dynamic": 4,
       "static_href_routes": [
         {
@@ -268,6 +275,13 @@
           "section": "prompt-builder",
           "sub": null,
           "destination": "viewDashboard:prompt-builder",
+          "resolved": true
+        },
+        {
+          "route": "#/reserve",
+          "section": "reserve",
+          "sub": null,
+          "destination": "viewDashboard:reserve",
           "resolved": true
         },
         {
@@ -397,6 +411,7 @@
           "activity": "activity",
           "streams": "activity",
           "sleipnir": "activity",
+          "reserve": "activity",
           "settings": "control",
           "comfort-posture": "control",
           "web-access": "control",

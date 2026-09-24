@@ -5319,6 +5319,22 @@ Nothing changes for a consumer on `/plugin marketplace update` until they run `/
 and set the knob. The hooks are explicitly skipped for Copilot, Codex and Gemini (no Routines or
 statusline data there).
 
+**PR 2 (v0.326.0) — the dashboard Reserve tab.** `#/reserve`, under Activity on both the standalone
+`dashboard.html` and the portal. It reads `GET /__reserve` and writes through `POST /__reserve-override`
+(CSRF + same-origin, like every other write), both in the two `serve-dashboards.py` copies with
+byte-identical helpers (Gate 32 parity). Two decisions worth keeping:
+
+- **Viewing must not move the numbers.** `compute_and_save` gained `save=False`; the GET computes in
+  memory and never writes `reserve.json` / `calibration.json`, which the advise hook reads. Gate 291
+  section F asserts the GET leaves no `reserve.json` behind.
+- **One implementation of the override.** `set_override` / `clear_override` moved out of the CLI into
+  engine functions that both the command and the server call; the server adds only input validation
+  (a bool, a string or an out-of-range number is a 400 before the engine sees it).
+
+The tab's interactive parts are built by JS from the payload, so its static footprint is small; the
+DOM-budget ratchet (Gate 132) gained a row and lifted its plateau in lockstep, and the committed-routes
+fixture (Gate 51) was re-emitted for the new route.
+
 ## Project instructions dual-file (UNVERIFIED adapt)
 - Claude Code: `CLAUDE.md` primary; if absent → `AGENTS.md` (API path; not Bedrock/Vertex/Foundry yet).
 - Copilot / Cursor / Codex / Grok bots / SuperGrok: honor host-native instruction files; RavenClaude Copilot bridge projects root discipline into `copilot/AGENTS.md`.

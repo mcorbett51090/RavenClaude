@@ -731,7 +731,9 @@ def mirror_dir() -> Path:
     return state_dir() / "mirror"
 
 
-def compute_and_save(now: float, cfg: dict) -> dict:
+def compute_and_save(now: float, cfg: dict, save: bool = True) -> dict:
+    """Project from the local state. `save=False` is the read-only form the dashboard's
+    GET /__reserve uses: same result, nothing written."""
     sd = state_dir()
     result = project(
         load_samples(mirror_dir() / "samples", now),
@@ -741,10 +743,39 @@ def compute_and_save(now: float, cfg: dict) -> dict:
         now,
         _read_json(sd / "calibration.json", []) or [],
     )
-    _write_json_atomic(sd / "calibration.json", result.pop("_history"))
+    history = result.pop("_history")
     result["mode"] = cfg["mode"]
-    _write_json_atomic(sd / "reserve.json", result)
+    if save:
+        _write_json_atomic(sd / "calibration.json", history)
+        _write_json_atomic(sd / "reserve.json", result)
     return result
+
+
+def set_override(pct: float, now: float) -> tuple[bool, str]:
+    """Hold exactly `pct`% of the weekly cap until the CURRENT weekly reset. Refuses
+    without a live reset time — an override with no expiry would outlive the week."""
+    try:
+        pct = float(pct)
+    except (TypeError, ValueError):
+        return False, "override must be a number from 0 to 100"
+    if pct != pct or not 0.0 <= pct <= 100.0:  # NaN or out of range
+        return False, "override must be a number from 0 to 100"
+    reading = _read_json(state_dir() / "rate-limits.json") or {}
+    expires = parse_ts(reading.get("resets_at"))
+    if expires is None or expires <= now:
+        return False, "no current weekly reset known (no statusline reading); override not set"
+    _write_json_atomic(state_dir() / "override.json", {"override_pct": pct, "expires_at": expires})
+    return True, f"override {pct:g}% until {_iso(expires)}"
+
+
+def clear_override() -> tuple[bool, str]:
+    try:
+        (state_dir() / "override.json").unlink()
+    except FileNotFoundError:
+        pass
+    except OSError as exc:
+        return False, f"could not clear override: {exc}"
+    return True, "override cleared"
 
 
 def _home_url(home: str) -> str | None:
@@ -1060,28 +1091,10 @@ def main(argv: list[str] | None = None) -> int:
         if out:
             print(json.dumps(out))
         return 0
-    if args.cmd == "set-override":
-        reading = _read_json(state_dir() / "rate-limits.json") or {}
-        expires = parse_ts(reading.get("resets_at"))
-        if expires is None or expires <= now:
-            print(
-                "no current weekly reset known (no statusline reading); override not set",
-                file=sys.stderr,
-            )
-            return 1
-        pct = min(100.0, max(0.0, args.pct))
-        _write_json_atomic(
-            state_dir() / "override.json", {"override_pct": pct, "expires_at": expires}
-        )
-        print(f"override {pct}% until {_iso(expires)}")
-        return 0
-    if args.cmd == "clear-override":
-        try:
-            (state_dir() / "override.json").unlink()
-        except OSError:
-            pass
-        print("override cleared")
-        return 0
+    if args.cmd in ("set-override", "clear-override"):
+        ok, msg = set_override(args.pct, now) if args.cmd == "set-override" else clear_override()
+        print(msg, file=sys.stdout if ok else sys.stderr)
+        return 0 if ok else 1
     return 2
 
 

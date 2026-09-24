@@ -24,6 +24,10 @@ verified data sources and honest limits: [`../../knowledge/routine-token-reserve
 | `clear-override` | `… clear-override`. |
 | `uninstall` | Delete the meter Routine, restore the previous statusline, set the knob to `off`. Leave the data branch in place and name it. |
 
+The same reading and the same override are also on the dashboard's **Reserve** tab (`#/reserve`, under
+Activity) when it is served (`bin/rc dashboard`). The tab never recomputes into the stored state; its
+Set/Clear buttons call the same `set-override` / `clear-override` code as the verbs above.
+
 ## Requirements (say which are missing; never guess past one)
 
 - Claude Code with the claude.ai Remote tools (`list_triggers`, `create_trigger`, …). Load them with

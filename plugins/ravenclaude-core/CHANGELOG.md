@@ -2,6 +2,20 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.326.0 — 2026-09-24
+
+### Added
+
+- **Routine token reserve — dashboard Reserve tab (PR 2 of 3).** A `#/reserve` tab under Activity shows
+  the weekly percentage (source + age), the effective reserve and line, the per-Routine table and
+  anything not counted, with a this-week-only override (Set / Clear) and a Refresh. New served
+  endpoints in both `serve-dashboards.py` copies: `GET /__reserve` (computes in memory — never writes
+  `reserve.json` or `calibration.json`) and `POST /__reserve-override` (CSRF + same-origin; a
+  non-numeric, boolean or out-of-range `pct` is a 400; setting without a live weekly reading is a 409).
+  The engine's `set_override` / `clear_override` are now functions shared by the command and the
+  server, and `compute_and_save` takes `save=False`. Gate 291 gained section F (read-only GET, input
+  validation, set + clear round-trip). Static hosts show an explanation instead of data.
+
 ## 0.325.0 — 2026-09-24
 
 ### Added

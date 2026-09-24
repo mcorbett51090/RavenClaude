@@ -1790,6 +1790,75 @@ def _read_concern_stats(project_root: Path) -> dict:
         return {**empty, "error": str(e)[:200]}
 
 
+# Module-level cache of the routine-reserve engine (its file name has a hyphen, so it is
+# loaded by path, like thing-concern-stats.py above).
+_RESERVE_MOD = None
+
+
+def _reserve_engine(project_root: Path):
+    """Load scripts/routine-reserve.py once: the dev repo's plugin copy first, else the
+    copy bundled beside this server. None when missing or broken — the Reserve tab then
+    shows an honest empty state instead of a 500."""
+    global _RESERVE_MOD
+    if _RESERVE_MOD is None:
+        import importlib.util
+
+        script = project_root / "plugins" / "ravenclaude-core" / "scripts" / "routine-reserve.py"
+        if not script.is_file():
+            script = Path(__file__).resolve().parent / "routine-reserve.py"
+        if not script.is_file():
+            return None
+        try:
+            spec = importlib.util.spec_from_file_location("rc_routine_reserve", script)
+            mod = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(mod)
+            _RESERVE_MOD = mod
+        except Exception:  # noqa: BLE001 — best-effort observability tool
+            return None
+    return _RESERVE_MOD
+
+
+def _read_reserve(project_root: Path) -> dict:
+    """GET /__reserve — the routine token reserve projection (knowledge/
+    routine-token-reserve.md), computed READ-ONLY (save=False) from the account-scoped
+    state in ~/.ravenclaude/usage/ plus this project's posture knobs. Duplicated
+    byte-identically in both server copies — the parity gate guards endpoint NAMES
+    only, so edit both. Never raises."""
+    mod = _reserve_engine(project_root)
+    if mod is None:
+        return {"available": False, "reason": "routine-reserve engine not found"}
+    try:
+        cfg = mod.load_config(project_root)
+        out = mod.compute_and_save(time.time(), cfg, save=False)
+    except Exception as e:  # noqa: BLE001 — a projection failure is an empty state
+        return {"available": False, "reason": f"projection failed: {type(e).__name__}"}
+    out["available"] = True
+    out["home"] = cfg.get("home") or None
+    return out
+
+
+def _write_reserve_override(project_root: Path, body) -> tuple[int, dict]:
+    """POST /__reserve-override — {"action": "set", "pct": N} | {"action": "clear"}.
+    Writes ONLY ~/.ravenclaude/usage/override.json, through the engine's own validated
+    set_override/clear_override: the client never names a path, and a set without a live
+    weekly reset time is refused (an override must expire with the week). Origin + CSRF
+    are enforced in do_POST before this runs."""
+    mod = _reserve_engine(project_root)
+    if mod is None:
+        return 503, {"ok": False, "message": "routine-reserve engine not found"}
+    action = body.get("action") if isinstance(body, dict) else None
+    if action == "set":
+        pct = body.get("pct")
+        if isinstance(pct, bool) or not isinstance(pct, (int, float)) or not 0 <= pct <= 100:
+            return 400, {"ok": False, "message": "pct must be a number from 0 to 100"}
+        ok, msg = mod.set_override(pct, time.time())
+    elif action == "clear":
+        ok, msg = mod.clear_override()
+    else:
+        return 400, {"ok": False, "message": 'action must be "set" or "clear"'}
+    return (200 if ok else 409), {"ok": ok, "message": msg}
+
+
 class DashboardHandler(SimpleHTTPRequestHandler):
     """SimpleHTTPRequestHandler (serving the plugin dir) + the dashboard endpoints."""
 
@@ -1933,6 +2002,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             or self.path.startswith("/__nidhoggr")
             or self.path.startswith("/__mimir")
             or self.path.startswith("/__streams")
+            or self.path.startswith("/__reserve")
             or self.path.startswith("/__knowledge-health")
             or self.path.startswith("/__sleipnir")
             or self.path.startswith("/__runs")
@@ -1990,6 +2060,9 @@ class DashboardHandler(SimpleHTTPRequestHandler):
         if self.path.startswith("/__streams"):
             self._handle_streams()
             return
+        if self.path.split("?", 1)[0] == "/__reserve":
+            self._handle_reserve()
+            return
         if self.path.startswith("/__knowledge-health"):
             self._handle_knowledge_health()
             return
@@ -2042,7 +2115,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
         self.wfile.write(body)
 
     def do_OPTIONS(self):
-        if self.path in ("/__save", "/__classify"):
+        if self.path in ("/__save", "/__classify", "/__reserve-override"):
             self.send_response(204)
             self.send_header("Allow", "POST, HEAD, OPTIONS")
             self.end_headers()
@@ -2067,6 +2140,9 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             return
         if self.path == "/__classify":
             self._handle_classify()
+            return
+        if self.path == "/__reserve-override":
+            self._handle_reserve_override()
             return
         if self.path != "/__save":
             self.send_error(404, "endpoint not found")
@@ -2563,6 +2639,30 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             self.send_error(403, "refused: cross-origin or non-local Origin/Host")
             return
         self._json(200, _read_streams(PROJECT_ROOT))
+
+    def _handle_reserve(self):
+        """GET /__reserve — the Reserve tab payload (routine token reserve): weekly-cap
+        reading, projected + effective reserve, per-Routine breakdown. Read-only (the
+        projection is computed with save=False); same Origin/Host guard as /__read.
+        (Mirror of the root server's /__reserve — edit BOTH; Gate 32 checks names.)"""
+        if not self._local_request_ok():
+            self.send_error(403, "refused: cross-origin or non-local Origin/Host")
+            return
+        self._json(200, _read_reserve(PROJECT_ROOT))
+
+    def _handle_reserve_override(self):
+        """POST /__reserve-override — set or clear the this-week-only reserve override.
+        Reached only through do_POST, after the Origin + CSRF checks."""
+        length = self._parse_content_length(4096)
+        if length is None:
+            return
+        try:
+            body = json.loads(self.rfile.read(length).decode("utf-8"))
+        except (UnicodeDecodeError, json.JSONDecodeError) as e:
+            self.send_error(400, f"invalid JSON body: {e}")
+            return
+        code, payload = _write_reserve_override(PROJECT_ROOT, body)
+        self._json(code, payload)
 
     def _handle_knowledge_health(self):
         """GET /__knowledge-health — knowledge-health card under the Heimdall

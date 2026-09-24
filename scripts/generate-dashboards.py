@@ -288,6 +288,7 @@ def _page_kwargs(plugin_dir: Path, schema: dict, include_trees: bool = True) -> 
         "norns_html": _render_norns_tab(),
         "mimir_html": _render_mimir_tab(),
         "streams_html": _render_streams_tab(),
+        "reserve_html": _render_reserve_tab(),
         "bifrost_html": _render_bifrost_tab(),
         "about_html": _render_about_tab(description, plugin_name),
         "pipeline_html": _render_pipeline_tab(plugin_dir),
@@ -551,6 +552,21 @@ def _render_streams_tab() -> str:
     return _STREAMS_TAB_TEMPLATE
 
 
+def _render_reserve_tab() -> str:
+    """Render the 'Routine reserve' tab — the projected share of the weekly usage cap to
+    hold back for the consumer's claude.ai Routines, with a this-week-only override.
+
+    Three card hosts hydrated by JS from /__reserve on open (served-only: the state is
+    account-scoped under ~/.ravenclaude/usage/, which a generator run cannot see): the
+    week summary, the override form (POST /__reserve-override, CSRF-guarded), and the
+    per-Routine table. On a static host the cards show an "open the served dashboard"
+    empty state. The static skeleton is bytes-free of dynamic content so the
+    dashboard.html freshness gate (Gate 13) stays exact-match; the JS lives in _JS
+    (loadReserve / renderReserve*). Reference: knowledge/routine-token-reserve.md.
+    """
+    return _RESERVE_TAB_TEMPLATE
+
+
 def _render_vidarr_tab() -> str:
     """Render the 'Security log' (Víðarr) tab — a read-only, filterable,
     chronological log of posture changes + security-relevant hook denials.
@@ -712,6 +728,7 @@ def _oxford(items: list) -> str:
     if len(items) == 2:
         return f"{items[0]} and {items[1]}"
     return ", ".join(items[:-1]) + f", and {items[-1]}"
+
 
 _PIPELINE_LANES = [
     {
@@ -1259,7 +1276,7 @@ _PIPELINE_EXCLUDED_HOOKS = {
     "guard-probe-validity.sh": "advisory probe-validity nudge (PreToolUse Bash) governed by the "
     "`probe_validity:` comfort-posture knob — WARN is its ONLY verdict (there is no `block` value "
     "and no exit-2 path), on exactly one shape: `grep -v` used in quiet mode, where the exit status "
-    "stops answering \"is there a line that does NOT match?\" and starts reporting whether the "
+    'stops answering "is there a line that does NOT match?" and starts reporting whether the '
     "pattern is ABSENT. Same class as enforce-git-protocol.sh and enforce-portability.sh — it flags "
     "a correctness hazard in how the agent PHRASED a probe rather than the safety floor the drawn "
     "PreToolUse cards represent, and its knob is surfaced with the other posture settings — so it is "
@@ -1489,9 +1506,24 @@ _PIPE_DTREE_LEGEND = [
     {"id": "allow", "label": "allow", "kind": "ok", "tip": "Proceed without stopping you"},
     {"id": "ask", "label": "ask", "kind": "warn", "tip": "Prompt / advisory nudge / fatigue ask"},
     {"id": "deny", "label": "deny", "kind": "danger", "tip": "Hard stop or pause (exit 2 / block)"},
-    {"id": "EDIT", "label": "EDIT", "kind": "ok", "tip": "Rewrite input or output (Thing fix / sanitize / format)"},
-    {"id": "advisory", "label": "advisory", "kind": "neutral", "tip": "Nudge only — never a hard permission floor"},
-    {"id": "hard-block", "label": "hard-block", "kind": "danger", "tip": "Always-on or exit-2 safety floor"},
+    {
+        "id": "EDIT",
+        "label": "EDIT",
+        "kind": "ok",
+        "tip": "Rewrite input or output (Thing fix / sanitize / format)",
+    },
+    {
+        "id": "advisory",
+        "label": "advisory",
+        "kind": "neutral",
+        "tip": "Nudge only — never a hard permission floor",
+    },
+    {
+        "id": "hard-block",
+        "label": "hard-block",
+        "kind": "danger",
+        "tip": "Always-on or exit-2 safety floor",
+    },
 ]
 
 _PIPE_DTREE_EVENT_WHEN = {
@@ -1499,9 +1531,7 @@ _PIPE_DTREE_EVENT_WHEN = {
     "PostToolUse": "After each tool",
 }
 
-_PIPE_DTREE_HOOK_BASENAME_RE = re.compile(
-    r"(?:hooks|scripts)/([A-Za-z0-9_.-]+\.(?:sh|py))"
-)
+_PIPE_DTREE_HOOK_BASENAME_RE = re.compile(r"(?:hooks|scripts)/([A-Za-z0-9_.-]+\.(?:sh|py))")
 
 
 def _pipe_dtree_tools_for_matcher(matcher: str) -> list[str]:
@@ -1626,7 +1656,6 @@ def _render_pipe_dtree_island(plugin_dir: Path, version: str) -> str:
     )
 
 
-
 def _pipe_hint_more(summary: str, body_html: str) -> str:
     """Fold tertiary `.pipe-hint` prose behind native <details> (Gate 132 +2).
 
@@ -1649,7 +1678,6 @@ def _pipe_adv_fold(summary: str, body_html: str) -> str:
         f"{body_html}"
         f"</details>"
     )
-
 
 
 _PIPELINE_CONTROLS = {
@@ -1704,7 +1732,7 @@ _PIPELINE_CONTROLS = {
         '<select id="pipe-runes-mode" '
         'title="Behavioral flag — Off by default. On = Oath-hook hanging + ready + auto-claim ungated; gates block; no Longship merge. Kill switch = Off + Save. SessionStart-hook hosts only (MH-18)." '
         'aria-label="Runes at session start">'
-        "<option value=\"off\">Off — I'll use the CLI</option>"
+        '<option value="off">Off — I\'ll use the CLI</option>'
         '<option value="on">On — ready + auto-claim ungated</option>'
         "</select></label>"
     ),
@@ -1747,13 +1775,13 @@ _PIPELINE_CONTROLS = {
             "content; host writes the files (guaranteed intent; highest cost, bounded).</p>",
         )
         + (
-        '<label class="pipe-ctl">Scope — <em>when</em> the orchestrator fires '
-        '<select id="pipe-orchestrator-scope">'
-        '<option value="team">team — only on a team-of-agents dispatch (default; lowest egress)</option>'
-        '<option value="all">all — relay EVERY prompt to Claude (content-only)</option>'
-        "</select></label>"
-        '<div id="pipe-orch-relay-opts" style="display:none;border-left:3px solid #c47f17;'
-        'padding:.4rem .7rem;margin:.5rem 0">'
+            '<label class="pipe-ctl">Scope — <em>when</em> the orchestrator fires '
+            '<select id="pipe-orchestrator-scope">'
+            '<option value="team">team — only on a team-of-agents dispatch (default; lowest egress)</option>'
+            '<option value="all">all — relay EVERY prompt to Claude (content-only)</option>'
+            "</select></label>"
+            '<div id="pipe-orch-relay-opts" style="display:none;border-left:3px solid #c47f17;'
+            'padding:.4rem .7rem;margin:.5rem 0">'
         )
         + _pipe_hint_more(
             "More about relay-all egress",
@@ -1764,13 +1792,13 @@ _PIPELINE_CONTROLS = {
             "Bedrock/Vertex deployments are auto-detected and always pass.</p>",
         )
         + (
-        '<label class="pipe-ctl"><input type="checkbox" id="pipe-orch-zdr"> '
-        "Zero-data-retention is ON for my Anthropic org "
-        '<span class="pipe-hint">(it is OFF by default, per-org — confirm before checking)</span></label>'
-        '<label class="pipe-ctl"><input type="checkbox" id="pipe-orch-nopii"> '
-        "This repo contains NO client PII</label>"
-        '<label class="pipe-ctl"><input type="checkbox" id="pipe-orch-pseudo"> '
-        "<strong>Pseudonymize structured PII before egress (optional layer A)</strong></label>"
+            '<label class="pipe-ctl"><input type="checkbox" id="pipe-orch-zdr"> '
+            "Zero-data-retention is ON for my Anthropic org "
+            '<span class="pipe-hint">(it is OFF by default, per-org — confirm before checking)</span></label>'
+            '<label class="pipe-ctl"><input type="checkbox" id="pipe-orch-nopii"> '
+            "This repo contains NO client PII</label>"
+            '<label class="pipe-ctl"><input type="checkbox" id="pipe-orch-pseudo"> '
+            "<strong>Pseudonymize structured PII before egress (optional layer A)</strong></label>"
         )
         + _pipe_hint_more(
             "More about Layer A pseudonymization",
@@ -1785,7 +1813,7 @@ _PIPELINE_CONTROLS = {
         '<label class="pipe-ctl">Cheap lane '
         '<select id="pipe-cheap-lane-mode" aria-label="Cheap lane mode">'
         '<option value="off">off — every task stays with Claude (default, zero extra cost)</option>'
-        "<option value=\"advise\">advise — the delegated agent's output comes back as a "
+        '<option value="advise">advise — the delegated agent\'s output comes back as a '
         "suggestion only</option>"
         '<option value="agent">agent — the delegated agent writes to a disposable worktree; '
         "you review the diff before it merges</option>"
@@ -1799,7 +1827,7 @@ _PIPELINE_CONTROLS = {
         "</select></label>"
         '<label class="pipe-ctl">Coding agent '
         '<select id="pipe-cheap-lane-agent">'
-        "<option value=\"grok\">Grok — kernel-sandboxed (Seatbelt / Landlock), the stronger "
+        '<option value="grok">Grok — kernel-sandboxed (Seatbelt / Landlock), the stronger '
         "containment (default)</option>"
         '<option value="copilot">Copilot — CLI-documented path restriction, not a kernel '
         "sandbox</option>"
@@ -1822,7 +1850,7 @@ _PIPELINE_CONTROLS = {
         '<select id="pipe-context-handoff-mode" aria-label="Context handoff mode">'
         '<option value="off">off — never writes a handoff brief (default)</option>'
         '<option value="nag">nag — suggests a handoff brief to Claude Code at Stop</option>'
-        "<option value=\"block\">block — required on hosts a suggestion can't reach "
+        '<option value="block">block — required on hosts a suggestion can\'t reach '
         "(e.g. Copilot)</option>"
         "</select></label>"
         + _pipe_hint_more(
@@ -2256,7 +2284,8 @@ def _render_pipeline_tab(plugin_dir: Path) -> str:
             # surfaced Settings-only, so it carries the badge there, not here.)
             behavioral_html = (
                 _render_behavioral_flag_badge()
-                if controls in ("decision", "orchestrator", "cheap_lane", "context_handoff", "runes")
+                if controls
+                in ("decision", "orchestrator", "cheap_lane", "context_handoff", "runes")
                 else ""
             )
             detail = st.get("detail")
@@ -2524,8 +2553,9 @@ def _render_concept_card(plugin_dir: Path, c: dict, titles: dict[str, str]) -> s
     strength = ""
     sb = c.get("strength_badge")
     if sb:
-        cls = {"Probed": "probed", "Findable": "findable",
-               "Observed": "observed"}.get(sb, "unverified")
+        cls = {"Probed": "probed", "Findable": "findable", "Observed": "observed"}.get(
+            sb, "unverified"
+        )
         rationale = (c.get("verify") or {}).get("rationale") or ""
         title_attr = f' title="{html.escape(rationale)}"' if rationale else ""
         strength = (
@@ -2542,7 +2572,7 @@ def _render_concept_card(plugin_dir: Path, c: dict, titles: dict[str, str]) -> s
         probe_html = (
             f'<span class="concept-unprobed">{html.escape(probe)}</span>'
             if probe.startswith("unprobed: ")
-            else f'<code>{html.escape(probe)}</code>'
+            else f"<code>{html.escape(probe)}</code>"
         )
         rat = (c.get("verify") or {}).get("rationale")
         rat_html = f'<p class="concept-rationale">{html.escape(rat)}</p>' if rat else ""
@@ -2702,7 +2732,8 @@ def _operator_health_card(concepts: list[dict]) -> str:
         covered.update(e.get("covers") or [])
     tier_none = [e for e in entries if (e.get("verify") or {}).get("tier") == "none"]
     unprobed = [
-        e for e in entries
+        e
+        for e in entries
         if str((e.get("nuance_evidence") or {}).get("probe") or "").startswith("unprobed: ")
     ]
     by_strength: dict[str, int] = {}
@@ -3394,9 +3425,11 @@ def _render_settings_tab(properties: dict, presets: dict) -> str:
 
     security_deny_html = _render_security_deny(properties.get("security_deny", {}))
 
-    design_checkins_html = _render_design_checkins(
-        properties.get("design_checkins", {})
-    ) + _render_dashboard_autostart() + _render_runes_session_start()
+    design_checkins_html = (
+        _render_design_checkins(properties.get("design_checkins", {}))
+        + _render_dashboard_autostart()
+        + _render_runes_session_start()
+    )
 
     category_intro_html = (
         '<div class="category-intro"><p>'
@@ -3948,14 +3981,12 @@ def _render_dashboard_autostart() -> str:
         "<h3>⚙ Open this dashboard at session start</h3>"
         f'<select id="dash-autostart-mode" title="{html.escape(tip)}" '
         'aria-label="Dashboard autostart mode">'
-        "<option value=\"off\">Off — I'll launch it myself</option>"
+        '<option value="off">Off — I\'ll launch it myself</option>'
         '<option value="serve">Serve — start it quietly, no tab</option>'
         '<option value="open">Open — start it and open a tab</option>'
         "</select>"
         "</div>"
     )
-
-
 
 
 def _render_runes_session_start() -> str:
@@ -3978,7 +4009,7 @@ def _render_runes_session_start() -> str:
         "<h3>⚙ Runes at session start</h3>"
         f'<select id="runes-session-mode" title="{html.escape(tip)}" '
         'aria-label="Opt in to automatic Runes at session start">'
-        "<option value=\"off\">Off — I'll use the CLI</option>"
+        '<option value="off">Off — I\'ll use the CLI</option>'
         '<option value="on">On — ready + auto-claim ungated</option>'
         "</select>"
         "</div>"
@@ -7612,6 +7643,22 @@ footer.page-footer a:hover { text-decoration: underline; }
 }
 .mimir-unreach-list li { font-size: 12.5px; color: var(--muted); }
 
+/* ── Routine reserve: weekly-cap share held back for claude.ai Routines ── */
+.reserve-form { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 13px; }
+.reserve-form input {
+  width: 6em; padding: 4px 6px; border: 1px solid var(--border); border-radius: 6px;
+  background: var(--surface-2); color: var(--text); font: inherit;
+}
+.reserve-form button {
+  padding: 4px 10px; border: 1px solid var(--border); border-radius: 6px;
+  background: var(--surface-2); color: var(--text); font: inherit; cursor: pointer;
+}
+.reserve-msg { margin: 8px 0 0; font-size: 12.5px; color: var(--muted); }
+.reserve-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.reserve-table th, .reserve-table td { text-align: left; padding: 4px 8px; border-bottom: 1px solid var(--border); }
+.reserve-table th { color: var(--muted); font-weight: 600; }
+.reserve-table td.num { font-family: var(--font-mono); text-align: right; }
+
 /* ── Review log: plain-language reason + expandable decision panel ── */
 .saga-reason {
   font-size: 12px; color: var(--text); line-height: 1.45;
@@ -8804,6 +8851,38 @@ _STREAMS_TAB_TEMPLATE = """
 """.strip()
 
 
+_RESERVE_TAB_TEMPLATE = """
+<div class="mimir-layout" id="reserve">
+  <div class="saga-hdr">
+    <h2><span aria-hidden="true">&#9203;</span> Routine reserve</h2>
+    <button type="button" class="saga-refresh" id="reserve-refresh-btn">Refresh</button>
+  </div>
+  <p class="activity-intro">How much of your weekly usage cap to hold back for your claude.ai Routines &mdash; each Routine&rsquo;s remaining runs before the weekly reset &times; its recent cost &times; a safety margin. It shrinks as the week runs down. Set it up with <code>/routine-reserve setup</code>; the mechanism and its limits are in <code>knowledge/routine-token-reserve.md</code>.</p>
+  <div class="mimir-grid">
+    <section class="mimir-card" aria-labelledby="reserve-summary-h">
+      <h3 id="reserve-summary-h">This week</h3>
+      <div id="reserve-summary"><div class="saga-empty"><p>Loading&hellip;</p></div></div>
+    </section>
+    <section class="mimir-card" aria-labelledby="reserve-override-h">
+      <h3 id="reserve-override-h">Override (this week only)</h3>
+      <form class="reserve-form" id="reserve-override-form">
+        <label for="reserve-override-pct">Hold</label>
+        <input type="number" id="reserve-override-pct" min="0" max="100" step="1" inputmode="decimal">
+        <span>% of the weekly cap</span>
+        <button type="submit" id="reserve-override-set">Set</button>
+        <button type="button" id="reserve-override-clear">Clear</button>
+      </form>
+      <p class="reserve-msg" id="reserve-override-msg" role="status" aria-live="polite">Reverts to the projection at the weekly reset.</p>
+    </section>
+    <section class="mimir-card mimir-card--full" aria-labelledby="reserve-routines-h">
+      <h3 id="reserve-routines-h">Routines</h3>
+      <div id="reserve-routines"><div class="saga-empty"><p>Loading&hellip;</p></div></div>
+    </section>
+  </div>
+</div>
+""".strip()
+
+
 # Bifröst — the install-bridge wizard (§3.6). A guided 4-step copy-paste flow for
 # installing a marketplace plugin into a Claude Code project. The wizard NEVER
 # executes a slash command — the user runs each in their own session and pastes
@@ -8945,6 +9024,7 @@ _BIFROST_TAB_TEMPLATE = (
 """.rstrip()
 ).strip()
 
+
 # The Prompt Builder ships as a bare mount + a <noscript> pointer. The whole
 # interactive UI is built by initPromptBuilder() via createElement/textContent
 # (no HTML-string sink), so the static generated DOM stays ~4 elements (Gate 132).
@@ -9044,7 +9124,7 @@ def _render_host_context_tab() -> str:
     payload = json.dumps(data, separators=(",", ":"))
     return (
         '<div id="hc-root" class="hc-root"></div>\n'
-        '<noscript><p>The host matrix needs JavaScript. The same data is in '
+        "<noscript><p>The host matrix needs JavaScript. The same data is in "
         "<code>plugins/ravenclaude-core/knowledge/host-support.json</code>, which is the "
         "single source of truth for which RavenClaude components run on which CLI.</p></noscript>\n"
         f'<script type="application/json" id="host-support-payload">{payload}</script>'
@@ -11756,6 +11836,7 @@ function wireHostScopeFilter(root) {
   let nornsLoaded = false;
   let mimirLoaded = false;
   let streamsLoaded = false;
+  let reserveLoaded = false;
   let vidarrEvents = [];
   let vidarrKindFilter = "all";
   /* Has the security-event emitter EVER written for this project? Distinguishes a
@@ -11909,6 +11990,7 @@ function wireHostScopeFilter(root) {
     if (tab === "saga" && !sagaLoaded) loadSaga();
     if (tab === "mimir" && !mimirLoaded) loadMimir();
     if (tab === "streams" && !streamsLoaded) loadStreams();
+    if (tab === "reserve" && !reserveLoaded) loadReserve();
     if (tab === "norns" && !nornsLoaded) loadNorns();
     if (tab === "heimdall" && !heimdallLoaded) loadHeimdall();
     if (tab === "vidarr" && !vidarrLoaded) loadVidarr();
@@ -14444,6 +14526,164 @@ function wireHostScopeFilter(root) {
   const streamsRefBtn = document.getElementById("streams-refresh-btn");
   if (streamsRefBtn) streamsRefBtn.addEventListener("click", () => { streamsLoaded = false; loadStreams(); });
 
+  /* ── Routine reserve — weekly-cap share held back for claude.ai Routines ──
+   * Fetches /__reserve (served-only; the server computes it read-only from the
+   * account-scoped ~/.ravenclaude/usage/). The override form POSTs
+   * /__reserve-override {action:"set",pct} | {action:"clear"} with the CSRF header;
+   * the server writes only the override file and refuses a set with no live weekly
+   * reset. All DOM is built with createElement + textContent (no HTML injection). */
+  const RESERVE_STATE_PILL = {
+    ok: "pdt-pill--ok", warn: "pdt-pill--warn", over: "pdt-pill--danger", infeasible: "pdt-pill--danger"
+  };
+  function reserveFmtPct(v) {
+    return (v === null || v === undefined) ? "—" : (Math.round(Number(v) * 10) / 10) + "%";
+  }
+  function renderReserveSummary(d) {
+    const host = document.getElementById("reserve-summary");
+    if (!host) return;
+    if (!d || !d.available) {
+      host.replaceChildren(hmEmpty("The routine reserve is not available here" + (d && d.reason ? " (" + d.reason + ")" : "") + ". Set it up with", "/routine-reserve setup"));
+      return;
+    }
+    const frag = document.createDocumentFragment();
+    const pill = document.createElement("span");
+    pill.className = "mimir-pill " + (RESERVE_STATE_PILL[d.state] || "");
+    pill.textContent = (d.state || "unknown") + (d.estimated ? " · estimated" : "");
+    frag.appendChild(pill);
+    if (d.mode === "off") {
+      const off = document.createElement("p");
+      off.className = "reserve-msg";
+      off.textContent = "routine_reserve is off in this project's comfort posture: the numbers show, but no warnings fire.";
+      frag.appendChild(off);
+    }
+    const dl = document.createElement("dl");
+    dl.className = "norns-dl";
+    const hasOv = d.override_pct !== null && d.override_pct !== undefined;
+    const rows = [
+      ["Weekly usage", reserveFmtPct(d.current_pct) + (d.current_source ? " (" + d.current_source + ")" : "")],
+      ["Recommended reserve", reserveFmtPct(d.reserve_pct_recommended)],
+      ["Override", hasOv ? reserveFmtPct(d.override_pct) + " until " + (d.override_expires_at || "the reset") : "none"],
+      ["Reserve in effect", reserveFmtPct(d.reserve_pct_effective)],
+      ["Your use stops at", reserveFmtPct(d.line_pct)],
+      ["Headroom left", reserveFmtPct(d.headroom_pct)],
+      ["Weekly reset", (d.reset_at || "—") + (d.reset_assumed ? " (assumed — no statusline reading)" : "")],
+      ["Calibration", (d.k_source || "—") + " · margin " + (d.margin_pct != null ? d.margin_pct + "%" : "—")],
+      ["Data branch home", d.home || "not set — run /routine-reserve setup"],
+    ];
+    for (const [k, v] of rows) {
+      const dt = document.createElement("dt");
+      dt.textContent = k;
+      const dd = document.createElement("dd");
+      dd.textContent = v;
+      dl.append(dt, dd);
+    }
+    frag.appendChild(dl);
+    host.replaceChildren(frag);
+  }
+  function renderReserveRoutines(d) {
+    const host = document.getElementById("reserve-routines");
+    if (!host) return;
+    const rows = (d && Array.isArray(d.routines)) ? d.routines : [];
+    if (!rows.length) {
+      host.replaceChildren(hmEmpty("No Routine data yet: the hourly meter has not recorded a sample. Check with", "/routine-reserve status"));
+      return;
+    }
+    const table = document.createElement("table");
+    table.className = "reserve-table";
+    const thead = document.createElement("thead");
+    const head = document.createElement("tr");
+    for (const h of ["Routine", "Schedule", "Runs left", "Avg cost / run", "Runs measured", "Reserve"]) {
+      const th = document.createElement("th");
+      th.scope = "col";
+      th.textContent = h;
+      head.appendChild(th);
+    }
+    thead.appendChild(head);
+    table.appendChild(thead);
+    const tbody = document.createElement("tbody");
+    for (const r of rows) {
+      const tr = document.createElement("tr");
+      const cells = [
+        r.name || r.trigger_id,
+        r.schedule || "—",
+        r.remaining_firings == null ? "not counted" : String(r.remaining_firings),
+        r.avg_cost_usd == null ? "—" : "$" + Number(r.avg_cost_usd).toFixed(2),
+        String(r.runs_measured || 0) + (r.estimated ? " (estimated)" : ""),
+        r.reserve_usd == null ? "—" : "$" + Number(r.reserve_usd).toFixed(2),
+      ];
+      cells.forEach((c, i) => {
+        const td = document.createElement("td");
+        if (i >= 2) td.className = "num";
+        td.textContent = c;
+        tr.appendChild(td);
+      });
+      if (!r.active) tr.style.opacity = "0.6";
+      tbody.appendChild(tr);
+    }
+    table.appendChild(tbody);
+    const frag = document.createDocumentFragment();
+    frag.appendChild(table);
+    if (Array.isArray(d.not_counted) && d.not_counted.length) {
+      const p = document.createElement("p");
+      p.className = "reserve-msg";
+      p.textContent = "Not counted (no countable schedule or no cost yet): " + d.not_counted.join(", ");
+      frag.appendChild(p);
+    }
+    host.replaceChildren(frag);
+  }
+  async function loadReserve() {
+    reserveLoaded = true;
+    try {
+      const res = await fetchT("/__reserve");
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      const data = await res.json();
+      renderReserveSummary(data);
+      renderReserveRoutines(data);
+    } catch (e) {
+      reserveLoaded = false; /* allow retry on next visit */
+      const served = await probeReadEndpoint();
+      const msg = served
+        ? ["Could not reach /__reserve. Is the server running?", "python3 scripts/serve-dashboards.py"]
+        : ["The routine reserve needs the served dashboard — open it via", "rc dashboard"];
+      for (const id of ["reserve-summary", "reserve-routines"]) {
+        const host = document.getElementById(id);
+        if (host) host.replaceChildren(hmEmpty(msg[0], msg[1]));
+      }
+    }
+  }
+  async function postReserveOverride(body) {
+    const msg = document.getElementById("reserve-override-msg");
+    try {
+      const res = await fetch("/__reserve-override", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...(await csrfHeaders()) },
+        body: JSON.stringify(body)
+      });
+      const j = await res.json().catch(() => ({}));
+      if (msg) msg.textContent = (j && j.message) || ("HTTP " + res.status);
+    } catch (e) {
+      if (msg) msg.textContent = "Could not reach /__reserve-override — open the served dashboard (rc dashboard).";
+    }
+    reserveLoaded = false;
+    loadReserve();
+  }
+  const reserveForm = document.getElementById("reserve-override-form");
+  if (reserveForm) reserveForm.addEventListener("submit", (ev) => {
+    ev.preventDefault();
+    const input = document.getElementById("reserve-override-pct");
+    const pct = input ? Number(input.value) : NaN;
+    if (!input || input.value === "" || !Number.isFinite(pct) || pct < 0 || pct > 100) {
+      const msg = document.getElementById("reserve-override-msg");
+      if (msg) msg.textContent = "Enter a number from 0 to 100.";
+      return;
+    }
+    postReserveOverride({ action: "set", pct: pct });
+  });
+  const reserveClearBtn = document.getElementById("reserve-override-clear");
+  if (reserveClearBtn) reserveClearBtn.addEventListener("click", () => postReserveOverride({ action: "clear" }));
+  const reserveRefBtn = document.getElementById("reserve-refresh-btn");
+  if (reserveRefBtn) reserveRefBtn.addEventListener("click", () => { reserveLoaded = false; loadReserve(); });
+
   /* ── Bifröst — install-bridge wizard (§3.6) ─────────────────────────────
    * Pure client-side copy-paste flow. The wizard NEVER runs a slash command —
    * the user runs each in their session and pastes the output; we parse it with
@@ -16678,6 +16918,7 @@ _PAGE_TEMPLATE = """<!doctype html>
       <a class="ds-sub" href="#/saga" data-tab="saga">Saga</a>
       <a class="ds-sub" href="#/mimir" data-tab="mimir">Session</a>
       <a class="ds-sub" href="#/streams" data-tab="streams">Streams</a>
+      <a class="ds-sub" href="#/reserve" data-tab="reserve">Routine reserve</a>
       <a class="ds-sub" href="#/norns" data-tab="norns">Lineage</a>
     </div>
     <div class="ds-group">
@@ -16710,6 +16951,7 @@ _PAGE_TEMPLATE = """<!doctype html>
     <button class="tab-btn" type="button" id="tab-saga" data-tab="saga" aria-selected="false" title="Saga — the command-review verdict log (Review log)">Saga</button>
     <button class="tab-btn" type="button" id="tab-mimir" data-tab="mimir" aria-selected="false" title="Session — Claude Code session state for this project (Mímir's well)">Session</button>
     <button class="tab-btn" type="button" id="tab-streams" data-tab="streams" aria-selected="false" title="Streams — the agentic work-streams for this project">Streams</button>
+    <button class="tab-btn" type="button" id="tab-reserve" data-tab="reserve" aria-selected="false" title="Routine reserve — the weekly-cap share held back for your claude.ai Routines">Routine reserve</button>
     <button class="tab-btn" type="button" id="tab-norns" data-tab="norns" aria-selected="false" title="Lineage — plugin past / present / proposed future (The Norns)">Lineage</button>
     <button class="tab-btn" type="button" id="tab-heimdall" data-tab="heimdall" aria-selected="false" title="Perimeter alerts — what your guardrails caught at the edge (Heimdall)">Perimeter alerts</button>
     <button class="tab-btn" type="button" id="tab-vidarr" data-tab="vidarr" aria-selected="false" title="Security log — posture changes &amp; security-relevant denials (Víðarr)">Security log</button>
@@ -16763,6 +17005,9 @@ _PAGE_TEMPLATE = """<!doctype html>
   </section>
   <section class="tab-panel" id="panel-streams" data-tab="streams" role="tabpanel" aria-label="Streams">
 {streams_html}
+  </section>
+  <section class="tab-panel" id="panel-reserve" data-tab="reserve" role="tabpanel" aria-label="Routine reserve">
+{reserve_html}
   </section>
   <section class="tab-panel" id="panel-norns" data-tab="norns" role="tabpanel" aria-label="Lineage">
 {norns_html}

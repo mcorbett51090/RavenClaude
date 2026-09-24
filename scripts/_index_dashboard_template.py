@@ -955,7 +955,7 @@ TEMPLATE = r"""<!doctype html>
       const DASH_OWNER = {
         heimdall: "guardrails", vidarr: "guardrails", nidhoggr: "guardrails",
         norns: "activity", mimir: "activity", saga: "activity", activity: "activity",
-        streams: "activity", sleipnir: "activity",
+        streams: "activity", sleipnir: "activity", reserve: "activity",
         settings: "control", "comfort-posture": "control", "web-access": "control",
         pipeline: "control", "prompt-builder": "control", "host-context": "control",
         // P5: overview/simulator tabs deleted (resolve via SECTION_ALIAS → Control);
@@ -1084,14 +1084,15 @@ TEMPLATE = r"""<!doctype html>
         // enumerates + resolves each individually, mirroring the control branch.
         if (id === "activity") {
           const cur = location.hash.replace(/^#\/?/, "").split("/")[0];
-          const active = ["saga", "mimir", "streams", "norns"].includes(cur) ? cur : "activity";
+          const active = ["saga", "mimir", "streams", "norns", "reserve"].includes(cur) ? cur : "activity";
           const a = (tab) => (tab === active ? " active" : "");
           return (
             `<a class="nav-subitem${a("activity")}" href="#/activity">Run feed</a>` +
             `<a class="nav-subitem${a("saga")}" href="#/saga">Saga</a>` +
             `<a class="nav-subitem${a("mimir")}" href="#/mimir">Session</a>` +
             `<a class="nav-subitem${a("streams")}" href="#/streams">Streams</a>` +
-            `<a class="nav-subitem${a("norns")}" href="#/norns">Lineage</a>`
+            `<a class="nav-subitem${a("norns")}" href="#/norns">Lineage</a>` +
+            `<a class="nav-subitem${a("reserve")}" href="#/reserve">Routine reserve</a>`
           );
         }
         // Guardrails gets a sub-nav for its Observe sub-pages (A-split un-merge):

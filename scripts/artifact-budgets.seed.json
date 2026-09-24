@@ -269,6 +269,11 @@
         "routine-reserve-errs-toward-a-larger-reserve inventory entry (routine token reserve PR 1, core 0.325.0, 2026-09-24)",
         10900000,
         "Same routine token reserve build as the payload entry above (core 0.325.0). dashboard.html 10,893,196 bytes > prior 10,890,000 by 3,196 (0.00 MB) -- the new inventory concept card plus the routine-reserve skill/command/hook rows. Re-measured on this branch head; appended, never edited."
+      ],
+      [
+        "Routine reserve dashboard tab (routine token reserve PR 2, core 0.326.0, 2026-09-24)",
+        10910000,
+        "Reserve tab (#/reserve): panel skeleton, CSS and render/override JS in the standalone dashboard. dashboard.html 10,903,947 bytes > prior 10,900,000 by 3,947 (0.00 MB). Island payload unchanged (32,958 <= 33,000). Re-measured on this branch head; appended, never edited."
       ]
     ],
     "index.html": [
@@ -327,6 +332,11 @@
         "Dashboard UX vision Wave-2 (0.323.16)",
         9550000,
         "Same Wave-2 dashboard UX vision build (core 0.323.16). index.html 9,542,513 bytes > prior 9,540,000 by 2,513 (0.00 MB). Portal fold embeds the same disclosure CSS/JS academy; static Gate 132 +26 and the island payload remains under its existing ceiling. Re-measured on this branch head; appended, never edited."
+      ],
+      [
+        "Routine reserve dashboard tab (routine token reserve PR 2, core 0.326.0, 2026-09-24)",
+        9560000,
+        "Same Reserve tab folded into the portal via render_fragment, plus the Activity sub-nav link. index.html 9,559,304 bytes > prior 9,550,000 by 9,304 (0.01 MB). Island payload unchanged (7,319 <= 7,320). Re-measured on this branch head; appended, never edited."
       ]
     ]
   },
