@@ -2,7 +2,7 @@
 Template for the hourly usage-meter Routine created by `/routine-reserve setup`.
 Setup replaces {{HOME_REPO}} (owner/repo, PRIVATE) and {{ENGINE_SHA256}} (sha256 of
 routine-reserve.py as committed to the data branch) and passes everything below the
-`--- PROMPT ---` line as the Routine's prompt. Each firing starts from nothing.
+PROMPT marker line as the Routine's prompt. Each firing starts from nothing.
 -->
 
 --- PROMPT ---
@@ -32,6 +32,8 @@ mkdir -p "$RAW/sessions"
 printf 'export WORK=%q RAW=%q\n' "$WORK" "$RAW" > /tmp/usage-meter.env
 echo "RAW=$RAW"
 ```
+
+If the `git clone` fails because the repo is not reachable from this session, call `mcp__Claude_Code_Remote__add_repo` with `owner`/`repo` from `{{HOME_REPO}}` and `access: "push"` (load its schema with ToolSearch first), then run step 1 again exactly once. Do not clone anywhere else.
 
 Shell variables do not survive between separate Bash calls, so every later Bash step starts with `source /tmp/usage-meter.env`. Note the printed `RAW` path: the Write tool calls below need it literally. A checksum mismatch means someone changed the engine on the branch: stop and report it.
 
