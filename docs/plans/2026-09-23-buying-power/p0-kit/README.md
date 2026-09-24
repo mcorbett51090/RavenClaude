@@ -17,6 +17,7 @@ before any code gets written). Nothing here substitutes for reading P0a itself (
 | `counsel-scoping-brief.md`                                             | One-pager to get a lawyer's quote for the N1 narrow check and L1 antitrust scoping (kept separate, per the plan).                                                                                                                           | Drafted                                                               |
 | `tec-premortem-findings.md`                                            | Live research on whether TEC (the closest prior-art competitor) is still operating, and why/why not.                                                                                                                                        | Done — desk research only (egress-blocked); see "Needs a human" in the file for the 6 follow-ups that would firm it up |
 | `incumbent-check-findings.md`                                          | Live research on whether LearnPlatform or GovSpend already offer a comparable price benchmark.                                                                                                                                              | Done — desk research only (egress-blocked); see "Needs a human" in the file for the 4 follow-ups that would firm it up |
+| `outreach-templates.md`                                                | Ready-to-send drafts for the four highest-leverage "needs a human" follow-ups: TEC founder outreach, LearnPlatform demo request, GovSpend trial request, Gluona/Colorado call request.                                                     | Drafted — edit before sending                                         |
 
 ## What the research found (short version — read the files for the real thing)
 
@@ -43,11 +44,14 @@ before any code gets written). Nothing here substitutes for reading P0a itself (
    than after collecting 60 contracts.
 3. Fill in and sign `preregistration-template.md` — lock the products, thresholds, and exclusion
    rules before collecting a single contract.
-4. Start `contract-collection-playbook.md` and the two interview tracks in parallel — they don't
+4. Send the two low-friction outreach messages in `outreach-templates.md` (TEC founders, Gluona)
+   right away — they're the cheapest way to move several `[unverified]` findings, and replies take
+   time regardless of when you send.
+5. Start `contract-collection-playbook.md` and the two interview tracks in parallel — they don't
    depend on each other, and both take weeks (records requests especially).
-5. Once contracts are in, normalize them per the pre-registration's rules, run
+6. Once contracts are in, normalize them per the pre-registration's rules, run
    `dispersion_test.py` for real, and check the result against `preregistration-template.md` §4.
-6. Combine the dispersion result with the interview/TEC/incumbent/runway findings against the
+7. Combine the dispersion result with the interview/TEC/incumbent/runway findings against the
    full (a)–(f) GO/PIVOT/STOP criteria in `plan.md` — the script only ever answers (a).
 
 ## Honest scope
