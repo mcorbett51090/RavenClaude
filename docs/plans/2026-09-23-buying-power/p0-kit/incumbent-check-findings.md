@@ -212,3 +212,40 @@ script below).
   price benchmark and collective negotiation.
 - https://blogs.civiciq.com/2026/04/02/powerschool-government-contracts-k-12-sis-market-share-pricing-competitor-analysis/
   — vendor-side public price commentary.
+
+## Addendum — 2026-09-24 (same research date, follow-up WebSearch pass)
+
+Same method as the TEC addendum: `WebSearch` rather than `WebFetch`/`curl`, chasing whether any of the
+"Needs a human" items are actually search-crawlable. `WebFetch` remains `EGRESS_BLOCKED` on every domain
+tried this pass too (`govspend.com`, `gluona.org`) — a re-confirmation, not a new finding.
+
+- **GovSpend pricing: real numbers surfaced, and they complicate the "free for agencies" framing.**
+  [observation: snippet] Vendr's 2026 marketplace page reports a **median annual subscription of
+  $11,576/year** (range **$8,500–$24,750/year**, based on 31 verified purchases), and **"GovSpend offers
+  no free tier."** Fed-Spend's 2026 pricing comparison independently describes negotiated,
+  custom-quoted pricing with no published free tier.
+  - This **does not resolve** the original open question — it may describe a different product/tier than
+    the free, data-sharing "Agency Launchpad" access the original `smartprocure.us` snippet described
+    (the two brands, SmartProcure and GovSpend, may have diverged on this point, or "free for
+    data-sharing agencies" may itself now be stale). **Confidence: low, either way.** These pricing pages
+    look vendor/buyer-agnostic (aimed at whoever is evaluating GovSpend as a purchase), and none of them
+    specifically confirms or denies free access for a *data-sharing K-12 district*.
+  - **This raises, not lowers, the value of the GovSpend demo already queued in "Needs a human" item 2** —
+    the free-vs-paid question is now a live discrepancy between two sources, not just an unconfirmed
+    claim, and the demo's question 5 ("is agency/district access still free with data sharing, in
+    writing?") should get a direct, sourced answer rather than accepting either snippet at face value.
+- **LearnPlatform: no reversal.** [observation: snippet] The most recent findable Instructure material
+  (an EdTech Top 40 press release citing the 2024–25 school year) is usage/selectivity analytics, with no
+  mention of price benchmarking or TEC-style cross-district reports. This **confirms**, rather than
+  changes, the original verdict — recorded so a future pass doesn't re-run the same search expecting a
+  different outcome.
+- **Gluona/Colorado Empowered Learning relationship, clarified (not a correction — the original finding
+  was directionally right, just under-specified).** [observation: snippet] **Colorado Empowered Learning
+  (CEL) is the state-funded program** (under HB 16-1222); **Gluona is the technical partner/vendor CEL
+  contracts with to operate the Equitable EdTech Pricing initiative specifically** — participating
+  districts email `info@gluona.org` to join. State funding covers the first 5,000 student accounts free,
+  then $0.50/student. This sharpens, rather than undermines, the original finding: Gluona is a company
+  worth a direct outreach call in its own right (it may have multi-state ambitions independent of any one
+  state's specific funding), not just a state-government program confined to Colorado. No new evidence
+  found either way on expansion beyond Colorado — that remains open, per the original "Needs a human"
+  item 3.
