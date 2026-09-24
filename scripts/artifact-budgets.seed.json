@@ -91,6 +91,11 @@
         "ADAPT P0 inventory restamp + code-reviewer spawn doctrine (PR #1223, core 0.324.4, 2026-09-20)",
         32950,
         "ADAPT P0 (sage/coding-factory-adapt-p0-2026-09-20, PR #1223) regenerates dashboard.html after core 0.324.4 version pin, code-reviewer spawn doctrine (Claude/Codex/Copilot projections), Copilot auto-tiers + AGENTS.md dual-file docs, and the Gate 237 inventory restamp of plugin-cache-is-version-keyed. Measured island payload 32,909 (over prior 32,900 by 9; largest panel learn-payload at 25,603). Same no-diagrams-for-inventory-entries shape as every prior wave; no new inventory concept card -- growth is restamp/agent projection churn on existing Learn-tab entries. Re-measured on this branch head; appended, never edited."
+      ],
+      [
+        "routine-reserve-errs-toward-a-larger-reserve inventory entry (routine token reserve PR 1, core 0.325.0, Gate 291 inception, 2026-09-24)",
+        33000,
+        "The routine token reserve build (core 0.325.0) added a new inventory concept (routine-reserve-errs-toward-a-larger-reserve -- the %-per-dollar calibration counts only metered spend, so unseen spend enlarges the reserve) covering routine-reserve.py, routine-reserve-hook.sh, the routine-reserve skill and command. Island payload 32,958 > prior 32,950 by 8 (largest panel learn-payload at 25,639). Same no-diagrams-for-inventory shape as prior entries. Re-measured on this branch head; appended, never edited."
       ]
     ],
     "index.html": [
@@ -259,6 +264,11 @@
         "ADAPT P0 inventory restamp + code-reviewer spawn doctrine (PR #1223, core 0.324.4, 2026-09-20)",
         10890000,
         "Same ADAPT P0 regen as the payload entry above (PR #1223, core 0.324.4 + code-reviewer spawn doctrine + Copilot auto-tiers). dashboard.html 10,880,450 bytes > prior 10,880,000 by 450 (0.00 MB) -- restamp of existing inventory concept cards and agent projection text, not a new concept. Static Gate 132 delta is zero (no DOM control added). Re-measured on this branch head; appended, never edited."
+      ],
+      [
+        "routine-reserve-errs-toward-a-larger-reserve inventory entry (routine token reserve PR 1, core 0.325.0, 2026-09-24)",
+        10900000,
+        "Same routine token reserve build as the payload entry above (core 0.325.0). dashboard.html 10,893,196 bytes > prior 10,890,000 by 3,196 (0.00 MB) -- the new inventory concept card plus the routine-reserve skill/command/hook rows. Re-measured on this branch head; appended, never edited."
       ]
     ],
     "index.html": [
