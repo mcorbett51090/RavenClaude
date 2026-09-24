@@ -227,3 +227,38 @@ revealed-preference bar as live regardless.
 - https://www.edweek.org/education/harold-o-levy-former-new-york-city-schools-chief-dead-at-65/2018/11 — the board
   chair's death.
 - https://www.linkedin.com/company/technology-for-education-consortium-tec- — 106 followers, 3 employees listed.
+
+## Addendum — 2026-09-24 (same research date, follow-up WebSearch pass)
+
+Follow-up searches, using `WebSearch` rather than `WebFetch`, to chase the "Needs a human" items that
+turn out to be search-crawlable rather than fetch-only. `WebFetch`/`curl` remain `EGRESS_BLOCKED` on
+every domain tried (`gofundme.com` added to the block list this pass) — that's a re-confirmation of the
+method limit above, not a new finding.
+
+- **False lead, ruled out: `tec-coop.org` is a different, unrelated organization.** [observation: snippet]
+  It's **The Education Cooperative (TEC)**, a Massachusetts public educational collaborative founded in
+  **1968**, running the **TEC Student Data Privacy Alliance** (DPA negotiation support, not pricing) across
+  1,900+ districts in 10 states since 2017. The only connection is the shared "TEC" initials. **Do not
+  conflate this with Technology for Education Consortium (techedconsortium.org, EIN 81-0704220) in any
+  future pass** — a plausible-looking domain match cost real time to rule out this round.
+  - Incidentally relevant, not as prior art but as a base-rate data point: it's an existence proof that a
+    nonprofit district-collaborative negotiation service **can** sustain multi-year, multi-state operation
+    in an ed-tech-adjacent space (legal/privacy terms, not price). Weak evidence against "this kind of
+    model can't work at all"; says nothing about the pricing-specific mechanism.
+- **New, unresolved lead: a GoFundMe "charity" page exists for "Technology for Education Consortium
+  Inc"** (`gofundme.com/charity/technology-for-education-consortium-inc`). **Confidence: very low, on
+  significance.** [observation: snippet]
+  - GoFundMe auto-generates a charity landing page for many registered 501(c)(3)s regardless of whether
+    anyone has ever run a real fundraiser through it — so **this could be evidence of an active or past
+    funding appeal, or could be nothing at all.** `WebFetch` to the page itself was `EGRESS_BLOCKED`, so
+    the goal amount, amount raised, dates and campaign description (if any exist) were not seen.
+  - **What would settle it (new "Needs a human" item, ranks below founder outreach in value but is
+    5 minutes of work):** open the URL directly and note whether it shows a real campaign with a
+    description/date, or only the generic "support this charity" template with no activity. If it shows
+    a real, dated appeal, that's a second independent data point for the funding-cliff hypothesis and
+    should be timestamped and cross-checked against the 2019 990.
+- **IRS auto-revocation status and BoardDocs member-district names: still not resolved by search.**
+  General IRS auto-revocation/990-N policy pages surfaced, but nothing specific to EIN 81-0704220's
+  current status. No BoardDocs board-minute results named specific TEC member districts. These remain
+  genuinely fetch-only or account-only tasks — items 1 and 5 of "Needs a human" above still stand as
+  written.
