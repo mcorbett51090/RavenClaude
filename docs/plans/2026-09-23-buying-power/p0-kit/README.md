@@ -15,8 +15,25 @@ before any code gets written). Nothing here substitutes for reading P0a itself (
 | `buyer-interview-guide.md`                                             | Script for the ~20–25 buyer interviews (demand, willingness-to-pay, private data-sharing, board-packet memo interest).                                                                                                                      | Drafted                                                               |
 | `coop-interview-guide.md`                                              | Script for 2–4 purchasing-cooperative interviews (spend share, their own benchmark plans, licensing interest, gentle future-partnership scouting).                                                                                          | Drafted                                                               |
 | `counsel-scoping-brief.md`                                             | One-pager to get a lawyer's quote for the N1 narrow check and L1 antitrust scoping (kept separate, per the plan).                                                                                                                           | Drafted                                                               |
-| `tec-premortem-findings.md`                                            | Live research on whether TEC (the closest prior-art competitor) is still operating, and why/why not.                                                                                                                                        | _(filled in once the research agent reports back)_                    |
-| `incumbent-check-findings.md`                                          | Live research on whether LearnPlatform or GovSpend already offer a comparable price benchmark.                                                                                                                                              | _(filled in once the research agent reports back)_                    |
+| `tec-premortem-findings.md`                                            | Live research on whether TEC (the closest prior-art competitor) is still operating, and why/why not.                                                                                                                                        | Done — desk research only (egress-blocked); see "Needs a human" in the file for the 6 follow-ups that would firm it up |
+| `incumbent-check-findings.md`                                          | Live research on whether LearnPlatform or GovSpend already offer a comparable price benchmark.                                                                                                                                              | Done — desk research only (egress-blocked); see "Needs a human" in the file for the 4 follow-ups that would firm it up |
+
+## What the research found (short version — read the files for the real thing)
+
+- **TEC (F11):** provisionally dormant since ~2019–2020, in a pattern consistent with a **funding-cliff**
+  (Gates grants ended, revenue crashed to ~$150K/yr, both founders moved to other roles) — not an
+  established demand-side failure. Does **not** trip the plan's STOP trigger, but doesn't clear it either;
+  the highest-value unresolved step is a direct outreach to TEC's two founders.
+- **Incumbents (criterion e):** neither LearnPlatform nor GovSpend provisionally meets "comparable depth"
+  on public evidence, but **GovSpend is closer than the plan assumed** — its Agency Launchpad already
+  shows buyers an average-price graph and "what comparable agencies paid" from raw PO data, just without
+  per-seat/term normalization. A live demo on the pre-registered products is now a real precondition
+  for trusting criterion (e), not a formality.
+- **New finding, not in the original plan:** **Colorado runs a live, state-funded, buyer-side SaaS price
+  benchmark + collective-negotiation program (Gluona / Colorado Empowered Learning)** — effectively TEC's
+  model, still operating. It doesn't trip criterion (e) for a Texas launch, but it argues for **avoiding
+  Colorado as a launch state** and treating Gluona as a possible partner/licensee lead, not a competitor
+  to route around blind.
 
 ## Suggested order of operations
 
