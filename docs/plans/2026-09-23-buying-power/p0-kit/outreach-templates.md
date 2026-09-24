@@ -84,6 +84,12 @@ The open question is whether it normalizes to **per-seat, per-term** SaaS pricin
 PO/line-item level (which would leave Buying Power's normalization work as the real differentiator).
 Plan-A Alt 6 already sanctions a trial for internal validation, never resale.
 
+**Update (2026-09-24 follow-up search):** the free-access question below is now a real discrepancy, not
+just an unconfirmed claim — a 2026 third-party pricing page (Vendr) reports a median $11,576/year
+subscription with **no free tier**, which conflicts with the original "free for data-sharing agencies"
+snippet. Don't accept either source at face value; get a direct, sourced answer (see
+`incumbent-check-findings.md`'s 2026-09-24 addendum).
+
 **Draft (trial/demo request, ideally as a district-affiliated buyer if possible — GovSpend's agency
 product is agency-facing, so a founder cold-request may get routed to vendor sales instead):**
 
