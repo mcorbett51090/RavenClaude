@@ -61,7 +61,10 @@ const RC_BASELINE = {
   //   merge/CI-triage handoff via the task ledger). COUNTED, not inferred:
   //   `ls plugins/ravenclaude-core/agents | wc -l` -> 16 on this tree.
   agents: 17,
-  skills: 67, // 66 -> 67: skills/routine-review-tribunal (the routine-review-tribunal
+  skills: 68, // 67 -> 68: skills/routine-reserve (routine token reserve PR 1, core 0.325.0 —
+  //   setup/status/override for the weekly-cap reserve held for claude.ai Routines).
+  //   COUNTED, not inferred: `ls plugins/ravenclaude-core/skills | wc -l` -> 68 on this tree.
+  //        66 -> 67: skills/routine-review-tribunal (the routine-review-tribunal
   //   build — gates an unattended scheduled routine's produced diff through a
   //   two-panel, cross-model tribunal before it is finalized, mirroring
   //   /forge-pipeline's divergent-panel shape applied post-hoc to a diff).
@@ -89,7 +92,10 @@ const RC_BASELINE = {
   //        53 -> 54: skills/session-handoff (v0.266.0, context-quality reset)
   //        52 -> 53: skills/design-clone (v0.253.0, design-schema capture+apply)
   //        51 -> 52: skills/github-gold-standard (v0.246.0, the gold-standard scorecard)
-  tools: 60, // 59 -> 60: scripts/alias-deprecation-advisory.py (Phase D alias soak, core 0.323.14 —
+  tools: 61, // 60 -> 61: scripts/routine-reserve.py (routine token reserve engine, core 0.325.0).
+  //   COUNTED, not inferred: the plugin-detail island's scripts_index for ravenclaude-core -> 61
+  //   (check-plugin-detail-render.mjs on this tree reported "tools": 61).
+  //        59 -> 60: scripts/alias-deprecation-advisory.py (Phase D alias soak, core 0.323.14 —
   //   SessionStart advisory when deprecated posture keys are sole source or diverge). COUNTED,
   //   not inferred: the plugin-detail island's scripts_index for ravenclaude-core -> 60.
   //        58 -> 59: scripts/plugin-lifecycle.py (plugin lifecycle Option A ledger engine,
@@ -191,7 +197,11 @@ const RC_BASELINE = {
   //        19 -> 22: premise-gate.py + classify_claim.py + check-design-schema.py
   //                  (v0.263.0, PR 3b packaging move)
   scenarios: 4,
-  hooks: 58, // 56 -> 58: workaround-exhaustion.sh WIRED twice — PreToolUse(AskUserQuestion) `ask`
+  hooks: 60, // 58 -> 60: routine-reserve-hook.sh WIRED twice — UserPromptSubmit `--event prompt`
+  //   advisory + SessionStart(startup|resume|clear|fork) `--event session` background refresh
+  //   (routine token reserve, core 0.325.0; absent posture key => off).
+  //   COUNTED, not inferred: hooks.json on this tree holds 60 registrations.
+  //        56 -> 58: workaround-exhaustion.sh WIRED twice — PreToolUse(AskUserQuestion) `ask`
   //   lane + Stop `stop` lane (the blocked-exhaustion gate, core 0.324.0; absent posture key => off).
   //   COUNTED, not inferred: hooks.json on this tree holds 58 registrations.
   //        55 -> 56: alias-deprecation-advisory.sh WIRED on SessionStart(startup|resume|clear|fork)
@@ -277,7 +287,10 @@ const RC_BASELINE = {
   //        30 -> 31: enforce-git-protocol.sh (v0.246.0, the in-loop git-protocol hook)
   //        31 -> 32: enforce-portability.sh (v0.255.0, the in-loop macOS-portability lint)
   rules: 5,
-  templates: 26, // 25 -> 26: templates/DESIGN.md (v0.310.0, the house-default visual
+  templates: 27, // 26 -> 27: templates/routine-reserve/ (core 0.325.0 — the meter Routine
+  //        prompt + the data-branch README). Top-level scan only, so the TWO files count once.
+  //        COUNTED, not inferred: `ls plugins/ravenclaude-core/templates | wc -l` -> 27.
+  //        25 -> 26: templates/DESIGN.md (v0.310.0, the house-default visual
   //        identity for ad-hoc HTML artifacts). Top-level scan only.
   //        24 -> 25: templates/ledger/ (task-ledger Phase 0 — the event +
   //        config JSON Schemas). Top-level scan only, so the TWO schema files

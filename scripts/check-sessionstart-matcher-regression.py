@@ -73,6 +73,7 @@ _SOURCE_HOOKS = frozenset(
         "oath-hook.sh",
         "plugin-lifecycle-sweep.sh",
         "alias-deprecation-advisory.sh",
+        "routine-reserve-hook.sh",  # matched by basename; "--event session" stripped
     }
 )
 _COMPACT_HOOK = "compact-anchor.sh"
@@ -95,17 +96,19 @@ _GEMINI_HOST_EXEMPT = frozenset(
     {
         "caveman-route-hook.sh",  # routes a Claude-Code-only plugin; see
         # generate-gemini-hooks.py's _SKIP entry for the same hook.
+        "routine-reserve-hook.sh",  # claude.ai Routines + Claude Code statusline
+        # data only; see the same generator's _SKIP entry.
     }
 )
 
 # Same exemption, independently declared by generate-copilot-hooks.py's own
 # `_SKIP` map ("routes a Claude-Code-only third-party plugin; the target mode
 # store does not exist on this host" -- identical reasoning to Gemini's).
-_COPILOT_HOST_EXEMPT = frozenset({"caveman-route-hook.sh"})
+_COPILOT_HOST_EXEMPT = frozenset({"caveman-route-hook.sh", "routine-reserve-hook.sh"})
 
 # Same exemption again, independently declared by generate-cursor-hooks.py's
 # own `_SKIP` map (identical reasoning).
-_CURSOR_HOST_EXEMPT = frozenset({"caveman-route-hook.sh"})
+_CURSOR_HOST_EXEMPT = frozenset({"caveman-route-hook.sh", "routine-reserve-hook.sh"})
 
 # The declared per-host WIRED-SET ledger. Each entry:
 #   "required"          -- must be wired, regardless of matcher precision
@@ -392,8 +395,7 @@ def check_d_unsupported_entries_valid(findings: list) -> None:
         reason = entry.get("reason")
         if not isinstance(reason, str) or not reason.strip():
             findings.append(
-                "D: %s's _UNSUPPORTED_HOSTS entry has an empty or missing "
-                "'reason'" % host
+                "D: %s's _UNSUPPORTED_HOSTS entry has an empty or missing 'reason'" % host
             )
         criteria = entry.get("promotion_criteria")
         if (
@@ -419,10 +421,7 @@ def _promotion_criterion_met(index: int, host: str, repo: Path) -> tuple:
     not mis-evaluated against the wrong primitive).
     """
     if index == 0:
-        desc = (
-            "a %s row in host-support.json with supported:true and a dated "
-            "basis" % host
-        )
+        desc = "a %s row in host-support.json with supported:true and a dated basis" % host
         hs_path = repo / "plugins" / "ravenclaude-core" / "knowledge" / "host-support.json"
         if not hs_path.exists():
             return False, desc
@@ -488,8 +487,7 @@ def check_d_converse_promotion_criteria(findings: list, repo: Path | None = None
                 findings.append(
                     "D: PROMOTION-CRITERIA-MET -- %s's exclusion from "
                     "_WIRED_SET_LEDGER needs review -- criterion %d (%s) "
-                    "now holds on disk (stated as: %r)"
-                    % (host, idx + 1, desc, criterion_text)
+                    "now holds on disk (stated as: %r)" % (host, idx + 1, desc, criterion_text)
                 )
 
 
@@ -813,11 +811,7 @@ def check_c_drift_override_shape(findings: list) -> None:
                 "malformed, and therefore NOT suppressing anything" % (host, ov)
             )
             continue
-        missing = [
-            k
-            for k in ("reason", "recorded")
-            if not (ov.get(k) or "").strip()
-        ]
+        missing = [k for k in ("reason", "recorded") if not (ov.get(k) or "").strip()]
         if "expires_review" not in ov:
             missing.append("expires_review")
         if missing:
@@ -878,8 +872,7 @@ def check_c_wired_set(findings: list, repo: Path | None = None) -> None:
                 "C: EMPTY-EXTRACTION -- %s's extractor returned ZERO wired "
                 "SessionStart hooks while %d are required; this is either a "
                 "broken extractor or a host that silently stopped wiring "
-                "SessionStart entirely, and neither may pass silently"
-                % (host, len(required))
+                "SessionStart entirely, and neither may pass silently" % (host, len(required))
             )
             continue
         missing = required - wired_names
@@ -1133,8 +1126,8 @@ def self_test(must_fail: bool = False) -> int:
         gemini_gen = repo / "scripts" / "generate-gemini-hooks.py"
         src = gemini_gen.read_text(encoding="utf-8")
         mutant = src.replace(
-            "_TOOL_SHAPED_EVENTS = {\"PreToolUse\", \"PostToolUse\"}",
-            "_TOOL_SHAPED_EVENTS = {\"PreToolUse\", \"PostToolUse\", \"SessionStart\"}",
+            '_TOOL_SHAPED_EVENTS = {"PreToolUse", "PostToolUse"}',
+            '_TOOL_SHAPED_EVENTS = {"PreToolUse", "PostToolUse", "SessionStart"}',
         )
         if mutant == src:
             check("self-test MUST-FAIL setup: mutant string found in generator", False)
@@ -1227,12 +1220,14 @@ def self_test(must_fail: bool = False) -> int:
         src8 = cursor_gen.read_text(encoding="utf-8")
         mutant8 = src8.replace(
             'out.setdefault(cursor_event, []).append({"command": cmd, "timeout": 90})',
-            'out.setdefault(cursor_event, []).append('
+            "out.setdefault(cursor_event, []).append("
             '{"command": cmd, "timeout": 90, "matcher": "mutant-a2-4"})',
             1,
         )
         if mutant8 == src8:
-            check("self-test MUST-FAIL setup: A2.4 matcher-add (inverse) mutant string found", False)
+            check(
+                "self-test MUST-FAIL setup: A2.4 matcher-add (inverse) mutant string found", False
+            )
         else:
             cursor_gen.write_text(mutant8, encoding="utf-8")
             f8: list = []
@@ -1325,17 +1320,20 @@ def self_test(must_fail: bool = False) -> int:
         src10 = codex_gen.read_text(encoding="utf-8")
         mutant10 = src10.replace(
             "            args = _extra_args(command, script)\n"
-            '            items.append(_cmd(shim, hooks_dir, script, args))\n'
+            "            items.append(_cmd(shim, hooks_dir, script, args))\n"
             "            wired.append(script)\n",
             '            if script == "keep-awake.sh":\n'
             "                continue\n"
             "            args = _extra_args(command, script)\n"
-            '            items.append(_cmd(shim, hooks_dir, script, args))\n'
+            "            items.append(_cmd(shim, hooks_dir, script, args))\n"
             "            wired.append(script)\n",
             1,
         )
         if mutant10 == src10:
-            check("self-test MUST-FAIL setup: A4.4 codex keep-awake.sh drop mutant string found", False)
+            check(
+                "self-test MUST-FAIL setup: A4.4 codex keep-awake.sh drop mutant string found",
+                False,
+            )
         else:
             codex_gen.write_text(mutant10, encoding="utf-8")
             f10: list = []
@@ -1367,7 +1365,10 @@ def self_test(must_fail: bool = False) -> int:
             1,
         )
         if mutant11 == src11:
-            check("self-test MUST-FAIL setup: A4.5 codex SessionStart-revert mutant string found", False)
+            check(
+                "self-test MUST-FAIL setup: A4.5 codex SessionStart-revert mutant string found",
+                False,
+            )
         else:
             codex_gen.write_text(mutant11, encoding="utf-8")
             f11: list = []
@@ -1410,7 +1411,7 @@ def self_test(must_fail: bool = False) -> int:
         #     the completeness scan must name grok.
         grok_adapter_a52 = repo / "plugins" / "ravenclaude-core" / "hooks" / "grok-hook-adapter.sh"
         grok_adapter_a52.write_text(
-            "#!/usr/bin/env bash\nset -euo pipefail\ncase \"$1\" in\n  sessionstart) ;;\nesac\n",
+            '#!/usr/bin/env bash\nset -euo pipefail\ncase "$1" in\n  sessionstart) ;;\nesac\n',
             encoding="utf-8",
         )
         saved_grok_entry_a52 = _UNSUPPORTED_HOSTS.pop("grok", None)
@@ -1524,9 +1525,7 @@ def self_test(must_fail: bool = False) -> int:
                 "when its own criterion 2 now holds on disk, even though the "
                 "entry is already present and classified",
                 any(
-                    "PROMOTION-CRITERIA-MET" in x
-                    and "grok" in x
-                    and "criterion 2" in x
+                    "PROMOTION-CRITERIA-MET" in x and "grok" in x and "criterion 2" in x
                     for x in f16
                 ),
             )
@@ -1535,8 +1534,7 @@ def self_test(must_fail: bool = False) -> int:
                 "planted criterion 2 is actually met) -- the check "
                 "discriminates per-criterion, it does not blanket-flag the host",
                 not any(
-                    ("criterion 1" in x or "criterion 3" in x or "criterion 4" in x)
-                    for x in f16
+                    ("criterion 1" in x or "criterion 3" in x or "criterion 4" in x) for x in f16
                 ),
             )
         finally:
@@ -1649,7 +1647,11 @@ def self_test(must_fail: bool = False) -> int:
 def main() -> int:
     ap = argparse.ArgumentParser(description="Gate 259: SessionStart matcher regression floor")
     ap.add_argument("--self-test", action="store_true")
-    ap.add_argument("--must-fail", action="store_true", help="run self-test and require every teeth check to bite")
+    ap.add_argument(
+        "--must-fail",
+        action="store_true",
+        help="run self-test and require every teeth check to bite",
+    )
     args = ap.parse_args()
 
     if args.self_test or args.must_fail:
@@ -1657,7 +1659,9 @@ def main() -> int:
 
     code, findings = run()
     if code == 0:
-        print("check-sessionstart-matcher-regression: OK -- canonical matcher, parity, and wired-set all clean")
+        print(
+            "check-sessionstart-matcher-regression: OK -- canonical matcher, parity, and wired-set all clean"
+        )
     else:
         print("check-sessionstart-matcher-regression: FAIL")
         for f in findings:

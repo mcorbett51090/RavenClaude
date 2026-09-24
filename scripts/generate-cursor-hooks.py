@@ -163,6 +163,10 @@ _SKIP = {
         "routes a Claude-Code-only third-party plugin; the target mode store does "
         "not exist on this host."
     ),
+    "routine-reserve-hook.sh": (
+        "protects claude.ai cloud Routines using Claude Code's statusline rate_limits; "
+        "neither exists on this host, so both lanes would be silent by construction."
+    ),
 }
 
 
