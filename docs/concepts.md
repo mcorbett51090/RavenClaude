@@ -2378,7 +2378,7 @@ Probe: `unprobed: needs a live two-hook host session; scheduled for the T2 sampl
 
 **Sources:** [measured in the FORGE product-inventory run](https://github.com/mcorbett51090/RavenClaude/pull/997)
 
-_Last verified: 2026-09-17_
+_Last verified: 2026-09-24_
 
 
 ---
@@ -2448,7 +2448,7 @@ Probe: `unprobed: requires a real consumer install cycle, which no CI job perfor
 
 **Sources:** [measured in the FORGE product-inventory run](https://github.com/mcorbett51090/RavenClaude/pull/997)
 
-_Last verified: 2026-09-22_
+_Last verified: 2026-09-24_
 
 
 ---
@@ -2474,7 +2474,7 @@ Probe: `scripts/audit-gates.sh`
 
 **Sources:** [measured in the FORGE product-inventory run](https://github.com/mcorbett51090/RavenClaude/pull/997)
 
-_Last verified: 2026-09-22_
+_Last verified: 2026-09-24_
 
 
 ---

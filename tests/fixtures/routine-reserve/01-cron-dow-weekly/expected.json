@@ -1,0 +1,28 @@
+{
+  "estimated": false,
+  "line_pct": 97.1,
+  "reserve_pct_recommended": 2.9,
+  "reserve_usd": 29.04,
+  "reset_assumed": false,
+  "routines": [
+    {
+      "name": "disabled",
+      "remaining_firings": 0
+    },
+    {
+      "avg_cost_usd": 0.2,
+      "estimated": false,
+      "name": "hourly",
+      "remaining_firings": 96,
+      "runs_measured": 3
+    },
+    {
+      "avg_cost_usd": 5.0,
+      "estimated": false,
+      "name": "saturday",
+      "remaining_firings": 1,
+      "runs_measured": 3
+    }
+  ],
+  "state": "ok"
+}

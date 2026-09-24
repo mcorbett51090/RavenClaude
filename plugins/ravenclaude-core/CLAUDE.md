@@ -5285,6 +5285,40 @@ self-disable floor denied the agent's edit of the posture file on 2026-09-17 (S�
 outcome for an agent-authored change to the file that governs the tribunal. Nothing in a consumer's
 installed plugin behaves differently on `/plugin marketplace update` until they set the knob.
 
+## Routine token reserve — keep enough weekly cap for your claude.ai Routines (added 2026-09-24, v0.325.0)
+
+**The ask:** run Claude non-stop up to a point, while scheduled claude.ai Routines keep enough of the
+weekly usage cap to run; show a projected, shrinking-through-the-week reserve the user can override for
+the current week. **Shipped (PR 1 of 3):** the engine
+([`scripts/routine-reserve.py`](scripts/routine-reserve.py)), the hourly **meter Routine** prompt
+([`templates/routine-reserve/meter-prompt.md`](templates/routine-reserve/meter-prompt.md)), the
+`/routine-reserve` skill + command (setup / status / override / clear-override / uninstall), the
+`routine_reserve: off | advise` knob (default off), and an advise-mode hook
+([`scripts/routine-reserve-hook.sh`](scripts/routine-reserve-hook.sh)): a background refresh at
+SessionStart and a once-per-band `systemMessage` warning on UserPromptSubmit. Gate 291. Next: the
+dashboard "Reserve" tab (PR 2) and a `guard` value that asks before autonomous work past the line (PR 3).
+
+**Why it is shaped this way — each a this-session observation, recorded in
+[`knowledge/routine-token-reserve.md`](knowledge/routine-token-reserve.md):**
+
+- A Routine run's cost is only reachable through the Remote MCP `get_session`, which only an agent can
+  call, and `list_triggers` returns only the *last* run — so the collector is itself a Routine that
+  accumulates history, and the store is a never-merged orphan branch in a **private** home repo.
+- The weekly-cap position reaches only the statusline command (`rate_limits.seven_day`), never a hook,
+  and a plugin cannot set the main statusline — so setup installs a self-contained user-level shim that
+  wraps the user's existing statusline.
+- A headless `PreToolUse` `ask` is a denial (nested `claude -p`, observed), so nothing asks where no human
+  is present; the meter records its own `CLAUDE_CODE_SESSION_ATTENDED` value to settle what a real
+  Routine run sees.
+- The %-per-dollar calibration counts only spend it can see, which biases the reserve **up** — the
+  safe direction. An adversarial review caught the plan's first draft stating that direction backwards.
+- Default "home repo = this repo" was dropped when this repo turned out to be public (GitHub API,
+  `private:false`): samples are account telemetry, allow-listed, and setup refuses a public home.
+
+Nothing changes for a consumer on `/plugin marketplace update` until they run `/routine-reserve setup`
+and set the knob. The hooks are explicitly skipped for Copilot, Codex and Gemini (no Routines or
+statusline data there).
+
 ## Project instructions dual-file (UNVERIFIED adapt)
 - Claude Code: `CLAUDE.md` primary; if absent → `AGENTS.md` (API path; not Bedrock/Vertex/Foundry yet).
 - Copilot / Cursor / Codex / Grok bots / SuperGrok: honor host-native instruction files; RavenClaude Copilot bridge projects root discipline into `copilot/AGENTS.md`.

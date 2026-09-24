@@ -149,6 +149,12 @@ _SKIP = {
         "rather than inventing an alias→id map; until pinned, the agent inherits the "
         "session default."
     ),
+    "routine-reserve-hook.sh": (
+        "The routine token reserve protects claude.ai cloud Routines and reads the "
+        "weekly-cap position from Claude Code's statusline `rate_limits` — neither exists "
+        "on this host, so both lanes would be silent by construction. Projecting them "
+        "would ship a no-op that reads as coverage."
+    ),
 }
 
 

@@ -1,0 +1,25 @@
+{
+  "estimated": true,
+  "line_pct": 50.0,
+  "override_pct": 50.0,
+  "reserve_pct_effective": 50.0,
+  "reserve_pct_recommended": 10.6,
+  "reserve_usd": 52.84,
+  "routines": [
+    {
+      "avg_cost_usd": 2.0346,
+      "estimated": false,
+      "name": "daily-persistent",
+      "remaining_firings": 1,
+      "runs_measured": 3
+    },
+    {
+      "avg_cost_usd": 1.1667,
+      "estimated": true,
+      "name": "new-hourly",
+      "remaining_firings": 36,
+      "runs_measured": 1
+    }
+  ],
+  "state": "over"
+}
