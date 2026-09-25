@@ -12,14 +12,14 @@ covers:
   - plugins/ravenclaude-core/scripts/routine-reserve-hook.sh
   - plugins/ravenclaude-core/skills/routine-reserve/SKILL.md
   - plugins/ravenclaude-core/commands/routine-reserve.md
-covers_digest: "sha256:906c3893ba369c90a09d98473a2514717062ae04afb7811ef1c52a96a3aab0d9"
+covers_digest: "sha256:25af15d0d2737f1fae3628c7a1b9be85f46913ddab05c1a6bcbef9bbafa9bb47"
 nuance: "k = weekly % / metered spend. A session first seen mid-week counts only its growth after that\nsnapshot (unless created inside the window), so unseen spend RAISES k and the reserve —\nthe safe error. Over-counting (double-counted or pre-window cost) is what starves Routines."
 nuance_evidence:
   measured: 2026-09-24
   control: "fixture 05-calibrated: three sessions created inside the window count from zero (0.6) while a long session created before it counts only its in-window growth (59.4 - 50.0 = 9.4); total 10.0, k_week = 12 / 10 = 1.2, reproduced exactly by self-test"
   falsifier: "a fixture where a session first seen mid-window contributes its full cumulative cost to window_spend, or where removing spend lowers the recommended reserve"
   probe: "plugins/ravenclaude-core/hooks/tests/test-gate291-routine-reserve.sh"
-nuance_source: "plugins/ravenclaude-core/scripts/routine-reserve.py:1-40"
+nuance_source: "plugins/ravenclaude-core/scripts/routine-reserve.py:549-585"
 verify:
   tier: "effect"
   strength: "executed"

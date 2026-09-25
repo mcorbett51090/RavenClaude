@@ -123,6 +123,40 @@ out="$(printf 'not json at all' | python3 "$ENGINE" ingest-statusline --wrap 'ec
 rc=$?
 [ "$rc" -eq 0 ] && case "$out" in STILL-OK*) true ;; *) false ;; esac && pass "junk stdin never breaks the wrapped statusline" || fail "junk stdin broke the statusline (rc=$rc): $out"
 
+echo "── F: dashboard server — /__reserve reads without writing; the override POST validates"
+SERVER="$PLUGIN/scripts/serve-dashboards.py"
+now_epoch="$(date +%s)"
+printf '{"seven_day_pct": 40, "resets_at": %s, "captured_at": %s}\n' "$((now_epoch + 3 * 86400))" "$now_epoch" >"$RAVENCLAUDE_USAGE_DIR/rate-limits.json"
+rm -f -- "$RAVENCLAUDE_USAGE_DIR/reserve.json" "$RAVENCLAUDE_USAGE_DIR/override.json"
+if out="$(python3 - "$SERVER" "$PROJ" 2>&1 <<'PY'
+import importlib.util, os, sys
+from pathlib import Path
+server, proj = sys.argv[1], Path(sys.argv[2])
+spec = importlib.util.spec_from_file_location("rc_serve_dashboards", server)
+mod = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(mod)
+state = Path(os.environ["RAVENCLAUDE_USAGE_DIR"])
+r = mod._read_reserve(proj)
+assert r.get("available") is True, r
+assert r.get("current_pct") == 40.0, r
+assert not (state / "reserve.json").exists(), "GET /__reserve wrote reserve.json"
+for bad in ({"action": "set", "pct": True}, {"action": "set", "pct": 150}, {"action": "set", "pct": "30"}, {"action": "nuke"}, []):
+    code, _ = mod._write_reserve_override(proj, bad)
+    assert code == 400, (bad, code)
+code, body = mod._write_reserve_override(proj, {"action": "set", "pct": 30})
+assert code == 200 and body["ok"], (code, body)
+assert mod._read_reserve(proj).get("override_pct") == 30.0
+code, body = mod._write_reserve_override(proj, {"action": "clear"})
+assert code == 200 and not (state / "override.json").exists(), (code, body)
+print("ok")
+PY
+)"; then
+  pass "read-only GET, 400 on bool/out-of-range/string pct and unknown action, set + clear round-trip"
+else
+  fail "server helper check failed:"
+  printf '%s\n' "$out" | tail -5 | sed 's/^/      /'
+fi
+
 echo ""
 if [ "$fails" -eq 0 ]; then
   echo "Gate 291 PASS — routine token reserve: fixtures match, DOW mutant rejected, samples allow-listed, advise hook opt-in + once-per-band, statusline pass-through."

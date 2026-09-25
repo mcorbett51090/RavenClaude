@@ -53,6 +53,22 @@ cannot set the main `statusLine` and `${CLAUDE_PLUGIN_ROOT}` does not expand the
 ([plugins reference](https://code.claude.com/docs/en/plugins-reference)), so setup installs a
 self-contained copy of the engine at `~/.ravenclaude/bin/` and wraps any statusline you already have.
 
+## On the dashboard
+
+The **Reserve** tab (`#/reserve`, under Activity) shows the same numbers as `/routine-reserve status`:
+the weekly percentage with its source and age, the effective reserve and the line, the per-Routine table
+(runs left, average cost, estimated flag) and anything *not counted*. It needs the served dashboard
+(`bin/rc dashboard`); a static copy shows an explanation instead.
+
+- `GET /__reserve` computes the projection **in memory** from the files above and never writes
+  `reserve.json` or `calibration.json` — viewing the tab cannot move the numbers the hooks read.
+- `POST /__reserve-override` takes `{"action": "set", "pct": 0-100}` or `{"action": "clear"}`, and
+  requires the dashboard's CSRF token and a same-origin request like every other write. A value that
+  is not a real number in range is rejected (400); setting an override without a live weekly reading
+  is refused (409), because an override expires at the reset and there is no reset to expire at.
+- Both endpoints call the engine's own `set_override` / `clear_override`, so the command and the tab
+  cannot drift apart.
+
 ## Safety properties
 
 - **The error runs in the safe direction.** Spend is only counted where it is known (a session first

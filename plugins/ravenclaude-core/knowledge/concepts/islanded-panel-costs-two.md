@@ -6,13 +6,13 @@ kind: ravenclaude-built
 entry_class: inventory
 order: 911
 summary: "What the DOM budget measures, and the far larger number it does not."
-last_verified: 2026-09-17
+last_verified: 2026-09-24
 covers:
   - scripts/check-dom-budget.py
   - scripts/check-artifact-budgets.py
   - scripts/generate-dashboards.py
   - scripts/generate-index-dashboard.py
-covers_digest: "sha256:efbc048430e6d2b4cf818afe48ad1a3ad5b784bb73ce94a5af1e4903767a429b"
+covers_digest: "sha256:b6303017e2655c4a6b43dcbc2274d6b8559ec30f90a353553496f6848d4107c9"
 nuance: "`ISLANDED_PANEL_COST` is a flat 2 because the parser reads the payload as CDATA, so `check-dom-budget.py` cannot fire on `learn-payload` no matter how far past 23,861 elements it grows."
 nuance_evidence:
   measured: 2026-08-19
