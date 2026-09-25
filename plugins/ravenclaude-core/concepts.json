@@ -2886,7 +2886,7 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-09-17",
+      "last_verified": "2026-09-24",
       "refresh_when": null,
       "sources": [
         {
@@ -2906,7 +2906,7 @@
         "plugins/ravenclaude-core/hooks/alias-deprecation-advisory.sh",
         "plugins/ravenclaude-core/scripts/alias-deprecation-advisory.py"
       ],
-      "covers_digest": "sha256:96260b3807ce5ac620a2ff7a89f7b867026cf18a957b4045a43c338767d742a5",
+      "covers_digest": "sha256:98b0e18ed78cd42ff4b53645df26c455502c1d7347abbafcca70455c079efbf9",
       "nuance": "Two `additionalContext` emitters on one event concatenate rather than last-write-wins, but two `updatedToolOutput` emitters replace, so the second silently discards the first.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -2980,7 +2980,7 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-09-22",
+      "last_verified": "2026-09-24",
       "refresh_when": null,
       "sources": [
         {
@@ -3000,7 +3000,7 @@
         "scripts/sync-plugin-versions.py",
         "scripts/generate-copilot-plugin.py"
       ],
-      "covers_digest": "sha256:f4e368cadcbf1dbbf39241300c3abcc817804663974e5ceed475d11693331f6f",
+      "covers_digest": "sha256:856c1b58f2ba2690205b7b863e14461ee7dc4a18c5cad8a7dc2907b44f185de3",
       "nuance": "The cache key is the `version` string, never a content hash, so `sync-plugin-versions.py` can report clean while every installed session keeps running the old `hooks/` code.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -3029,7 +3029,7 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-09-22",
+      "last_verified": "2026-09-24",
       "refresh_when": null,
       "sources": [
         {
@@ -3062,7 +3062,7 @@
         "scripts/inventory-nuance-judge.py",
         "plugins/ravenclaude-core/scripts/forge-receipt.py"
       ],
-      "covers_digest": "sha256:98b61de6534966fa3893c81745b93364fc246c8d6c5144ed3d49e3e2958ebfec",
+      "covers_digest": "sha256:57833380305eded8a11cc8412d425b224627de81ff2d342f2ce21802edc267f3",
       "nuance": "The teeth bit is the exit a tool own CHECK returns on a planted defect, never the exit `--must-fail` itself returns: `premise-gate.py` denies at `exit 0` while `sync-plugin-versions.py` reddens at `exit 2`, so an auditor that hard-codes one number can never be right for both.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -4236,7 +4236,7 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-09-20",
+      "last_verified": "2026-09-24",
       "refresh_when": null,
       "sources": [
         {
@@ -4255,7 +4255,7 @@
         "scripts/generate-skill-index.py",
         "plugins/ravenclaude-core/skills/skill-index/SKILL.md"
       ],
-      "covers_digest": "sha256:273d8e17421e935de1b9dc2b4ad8115040e6711af47762a917fe9c826130d72d",
+      "covers_digest": "sha256:58a193922bf73575c521c86541741da9dd6db22c3681e547834a01fd4388a3ab",
       "nuance": "The generator discovers skills by globbing plugins/*/skills/*/SKILL.md, and its own output file matches that glob. On a fresh repo the first write cannot see itself (the file does not exist yet), so it writes N entries; running it again now finds N+1 (itself included) and writes THAT count -- a fixed point reached on the second pass, never the first.",
       "nuance_evidence": {
         "measured": "2026-09-08",
@@ -4725,6 +4725,56 @@
         "strength": "executed",
         "class": "gate-self-test",
         "probe": "scripts/audit-gates.sh --check 290",
+        "teeth_exit": 1
+      },
+      "strength_badge": "Probed"
+    },
+    {
+      "id": "routine-reserve-errs-toward-a-larger-reserve",
+      "title": "Routine reserve: the calibration errs toward a larger reserve",
+      "category": "Inventory — measured mechanisms",
+      "kind": "ravenclaude-built",
+      "order": 941,
+      "summary": "The %-of-cap per dollar rate counts only spend the meter actually saw, so missing spend inflates it and enlarges the reserve held for Routines — the safe direction. Over-counting is what starves them.",
+      "see_also": [],
+      "widget": null,
+      "try_it": null,
+      "node_links": {},
+      "last_verified": "2026-09-24",
+      "refresh_when": null,
+      "sources": [
+        {
+          "label": "built and measured in the routine token reserve PR 1 session",
+          "url": "https://github.com/mcorbett51090/RavenClaude/blob/main/plugins/ravenclaude-core/knowledge/routine-token-reserve.md"
+        }
+      ],
+      "body_md": "## What a reader would have assumed instead\n\nThat missing spend makes the reserve too small — the intuitive worry when a meter cannot see every\nsession (local runs on other machines, the part of a long session before the meter first saw it).\nThe first draft of this feature's own plan stated exactly that, and an adversarial review caught it.\n\n## The discriminator\n\nThe reserve is `k × projected Routine dollars`, and `k = weekly % ÷ metered spend`. Spend sits in the\ndenominator, so seeing less of it makes `k` — and the reserve — larger. The engine leans into that on\npurpose: `window_spend` counts a session from zero only when it was created inside the window, and\notherwise only its growth after the first in-window snapshot. Fixture `05-calibrated` pins the\narithmetic (0.6 + 9.4 = 10.0 → k = 1.2), and Gate 291 fails if it drifts.\n\n## Why it matters\n\nThe direction of an estimation error decides which failure you get. Here the cheap error — a reserve\nthat is too generous, so the warning fires early — is the one the design accepts. The expensive error\n— Routines starved because interactive work was allowed to use their share — needs spend to be\n*over*-counted, which is why sessions are deduped by id and pre-window cost is never charged to the week.\n\nProbe: `plugins/ravenclaude-core/hooks/tests/test-gate291-routine-reserve.sh`",
+      "diagram": null,
+      "diagram_mini": null,
+      "steps": [],
+      "svg": null,
+      "svg_mini": null,
+      "entry_class": "inventory",
+      "covers": [
+        "plugins/ravenclaude-core/scripts/routine-reserve.py",
+        "plugins/ravenclaude-core/scripts/routine-reserve-hook.sh",
+        "plugins/ravenclaude-core/skills/routine-reserve/SKILL.md",
+        "plugins/ravenclaude-core/commands/routine-reserve.md"
+      ],
+      "covers_digest": "sha256:906c3893ba369c90a09d98473a2514717062ae04afb7811ef1c52a96a3aab0d9",
+      "nuance": "k = weekly % / metered spend. A session first seen mid-week counts only its growth after that\nsnapshot (unless created inside the window), so unseen spend RAISES k and the reserve —\nthe safe error. Over-counting (double-counted or pre-window cost) is what starves Routines.",
+      "nuance_evidence": {
+        "measured": "2026-09-24",
+        "control": "fixture 05-calibrated: three sessions created inside the window count from zero (0.6) while a long session created before it counts only its in-window growth (59.4 - 50.0 = 9.4); total 10.0, k_week = 12 / 10 = 1.2, reproduced exactly by self-test",
+        "falsifier": "a fixture where a session first seen mid-window contributes its full cumulative cost to window_spend, or where removing spend lowers the recommended reserve",
+        "probe": "plugins/ravenclaude-core/hooks/tests/test-gate291-routine-reserve.sh"
+      },
+      "nuance_source": "plugins/ravenclaude-core/scripts/routine-reserve.py:1-40",
+      "verify": {
+        "tier": "effect",
+        "strength": "executed",
+        "class": "script-selftest",
+        "probe": "plugins/ravenclaude-core/hooks/tests/test-gate291-routine-reserve.sh",
         "teeth_exit": 1
       },
       "strength_badge": "Probed"

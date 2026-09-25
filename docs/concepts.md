@@ -2378,7 +2378,7 @@ Probe: `unprobed: needs a live two-hook host session; scheduled for the T2 sampl
 
 **Sources:** [measured in the FORGE product-inventory run](https://github.com/mcorbett51090/RavenClaude/pull/997)
 
-_Last verified: 2026-09-17_
+_Last verified: 2026-09-24_
 
 
 ---
@@ -2448,7 +2448,7 @@ Probe: `unprobed: requires a real consumer install cycle, which no CI job perfor
 
 **Sources:** [measured in the FORGE product-inventory run](https://github.com/mcorbett51090/RavenClaude/pull/997)
 
-_Last verified: 2026-09-22_
+_Last verified: 2026-09-24_
 
 
 ---
@@ -2474,7 +2474,7 @@ Probe: `scripts/audit-gates.sh`
 
 **Sources:** [measured in the FORGE product-inventory run](https://github.com/mcorbett51090/RavenClaude/pull/997)
 
-_Last verified: 2026-09-22_
+_Last verified: 2026-09-24_
 
 
 ---
@@ -3317,7 +3317,7 @@ remove `skill-index` from its own index, defeating the "still shows the way back
 
 **Sources:** [FORGE run dynamic-skill-context, plan.md phase P0](https://github.com/mcorbett51090/RavenClaude)
 
-_Last verified: 2026-09-20_
+_Last verified: 2026-09-24_
 
 
 ---
@@ -3676,6 +3676,40 @@ and the test that pins it is the one that records a row *between* the two denies
 **Sources:** [ravenclaude-core 0.324.0 -- the blocked-exhaustion gate (CHANGELOG + constitution milestone), 2026-09-17](../plugins/ravenclaude-core/CHANGELOG.md) · [the route catalog the gate points at](../plugins/ravenclaude-core/knowledge/workaround-routes.md)
 
 _Last verified: 2026-09-17_
+
+
+---
+
+### Routine reserve: the calibration errs toward a larger reserve · _RavenClaude-built_
+
+> The %-of-cap per dollar rate counts only spend the meter actually saw, so missing spend inflates it and enlarges the reserve held for Routines — the safe direction. Over-counting is what starves them.
+
+## What a reader would have assumed instead
+
+That missing spend makes the reserve too small — the intuitive worry when a meter cannot see every
+session (local runs on other machines, the part of a long session before the meter first saw it).
+The first draft of this feature's own plan stated exactly that, and an adversarial review caught it.
+
+## The discriminator
+
+The reserve is `k × projected Routine dollars`, and `k = weekly % ÷ metered spend`. Spend sits in the
+denominator, so seeing less of it makes `k` — and the reserve — larger. The engine leans into that on
+purpose: `window_spend` counts a session from zero only when it was created inside the window, and
+otherwise only its growth after the first in-window snapshot. Fixture `05-calibrated` pins the
+arithmetic (0.6 + 9.4 = 10.0 → k = 1.2), and Gate 291 fails if it drifts.
+
+## Why it matters
+
+The direction of an estimation error decides which failure you get. Here the cheap error — a reserve
+that is too generous, so the warning fires early — is the one the design accepts. The expensive error
+— Routines starved because interactive work was allowed to use their share — needs spend to be
+*over*-counted, which is why sessions are deduped by id and pre-window cost is never charged to the week.
+
+Probe: `plugins/ravenclaude-core/hooks/tests/test-gate291-routine-reserve.sh`
+
+**Sources:** [built and measured in the routine token reserve PR 1 session](https://github.com/mcorbett51090/RavenClaude/blob/main/plugins/ravenclaude-core/knowledge/routine-token-reserve.md)
+
+_Last verified: 2026-09-24_
 
 
 ---

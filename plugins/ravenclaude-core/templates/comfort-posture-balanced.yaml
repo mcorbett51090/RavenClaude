@@ -451,3 +451,18 @@ cause_closure: warn
 # mis-cased, or unrecognized — resolves to `off`.
 # source_control_coordinator: off | advise | active   # default: off
 # coordinator_escalation_hours: 24                     # default: 24; integer in [1, 168], else 24
+
+# ── routine token reserve (opt-in, default off) ─────────────────────────────
+# Holds back enough of the weekly usage cap for your claude.ai Routines so non-stop
+# interactive work never starves them. An hourly meter Routine records each Routine
+# run's cost to a PRIVATE data branch; the reserve = remaining firings before the
+# weekly reset x recent-weighted cost x (1 + margin), shrinking as the week runs
+# down. Wire it with `/routine-reserve setup` (see knowledge/routine-token-reserve.md).
+# off = nothing runs. advise = the dashboard/status projection + a once-per-band
+# warning when interactive use nears or enters the reserve. Any value that is not
+# exactly `advise` resolves to `off`.
+# routine_reserve: off | advise                       # default: off
+# routine_reserve_home: owner/repo                    # the private repo holding ravenclaude/usage-meter
+# routine_reserve_margin_pct: 20                      # safety margin on the projection
+# routine_reserve_warn_points: 5                      # warn this many points before the line
+# routine_reserve_weekly_budget_usd: 0                # manual %-per-$ calibration; 0 = automatic

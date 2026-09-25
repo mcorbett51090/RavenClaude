@@ -1,0 +1,66 @@
+{
+  "config": {
+    "weekly_budget_usd": 100
+  },
+  "now": "2026-09-24T12:00:00Z",
+  "reading": {
+    "captured_at": 1790251140.0,
+    "resets_at": 1790596800.0,
+    "seven_day_pct": 95
+  },
+  "samples": [
+    {
+      "active": true,
+      "cron": "0 * * * *",
+      "kind": "trigger",
+      "name": "hourly",
+      "t": 1790250600.0,
+      "trigger_id": "T1"
+    },
+    {
+      "fired_at": 1790215200.0,
+      "kind": "run",
+      "session_id": "h0",
+      "t": 1790222400.0,
+      "trigger_id": "T1"
+    },
+    {
+      "cost_usd": 0.2,
+      "created_at": 1790215200.0,
+      "kind": "cost",
+      "session_id": "h0",
+      "t": 1790222400.0,
+      "updated_at": 1790215500.0
+    },
+    {
+      "fired_at": 1790218800.0,
+      "kind": "run",
+      "session_id": "h1",
+      "t": 1790226000.0,
+      "trigger_id": "T1"
+    },
+    {
+      "cost_usd": 0.2,
+      "created_at": 1790218800.0,
+      "kind": "cost",
+      "session_id": "h1",
+      "t": 1790226000.0,
+      "updated_at": 1790219100.0
+    },
+    {
+      "fired_at": 1790222400.0,
+      "kind": "run",
+      "session_id": "h2",
+      "t": 1790229600.0,
+      "trigger_id": "T1"
+    },
+    {
+      "cost_usd": 0.2,
+      "created_at": 1790222400.0,
+      "kind": "cost",
+      "session_id": "h2",
+      "t": 1790229600.0,
+      "updated_at": 1790222700.0
+    }
+  ]
+}

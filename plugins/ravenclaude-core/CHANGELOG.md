@@ -2,6 +2,24 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.325.0 — 2026-09-24
+
+### Added
+
+- **Routine token reserve (PR 1 of 3).** Keeps enough of the weekly usage cap for your claude.ai
+  Routines while you run Claude non-stop. An hourly meter Routine records each Routine run's cost
+  (via the Remote `get_session` tool) to a never-merged orphan branch in a **private** home repo; the
+  new engine `scripts/routine-reserve.py` projects the reserve as remaining firings before the weekly
+  reset × recent-weighted cost × (1 + margin), shrinking through the week, with a this-week-only
+  override. The weekly-cap position is read from Claude Code's statusline `rate_limits` through a
+  user-level shim that wraps any existing statusline. New: `/routine-reserve` command + skill
+  (setup / status / override / clear-override / uninstall), `routine_reserve: off | advise` posture
+  knob (default off), an advise-mode hook (`scripts/routine-reserve-hook.sh`: background SessionStart
+  refresh + once-per-band `systemMessage` warning), `knowledge/routine-token-reserve.md`, and Gate 291
+  (hand-derived projection fixtures, a day-of-week-blind mutant that must fail, allow-listed samples,
+  hook opt-in, statusline pass-through). Hooks are explicitly skipped for Copilot, Codex and Gemini.
+  No behaviour change until a consumer runs `/routine-reserve setup` and sets the knob.
+
 ## 0.324.10 — 2026-09-23
 
 ### Fixed
