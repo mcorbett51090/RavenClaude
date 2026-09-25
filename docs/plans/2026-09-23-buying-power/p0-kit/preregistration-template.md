@@ -19,21 +19,55 @@ districts (not so customized that "unit price" is meaningless); a mix of at leas
 dispersion product and one likely-more-commoditized product, so the test isn't picking only favorable
 cases.
 
-1. **Product A:** `[ NAME ]` — why chosen: `[ ]`
-2. **Product B:** `[ NAME ]` — why chosen: `[ ]`
-3. **Product C (optional):** `[ NAME ]` — why chosen: `[ ]`
+1. **Product A: PowerSchool SIS** (student information system) — why chosen: the **high-dispersion
+   candidate**, and not a guess — `incumbent-check-findings.md` already surfaced a direct, sourced data
+   point (CiviCIQ, 2026-04-02) showing PowerSchool renewals averaging **$24,939 versus $10,604 at first
+   purchase**, a >2x spread in real board-approval data. SIS is close to universal-adoption
+   infrastructure (satisfies the 15–20-contract gettability bar), heavily represented in board packets
+   (the fastest source-mix channel), and prices on a defensible per-student or per-district-enrollment
+   basis.
+2. **Product B: IXL Learning** (adaptive practice platform) — why chosen: the **more-commoditized
+   candidate**, to avoid picking only favorable cases. IXL publishes comparatively standardized public
+   per-student list pricing `[unverified — training knowledge, not re-checked this session]`, which makes
+   it a good test of whether that list-price discipline actually holds once real contracts are examined,
+   or masks the same kind of variance PowerSchool shows in the open. Broad, well-distributed adoption
+   across elementary/middle grades; different vendor and category from A and C, which helps rule out a
+   single-category artifact driving the result.
+3. **Product C: Instructure Canvas** (LMS) — why chosen: a third product lifts statistical power
+   meaningfully at this sample size (`plan.md`'s own power table: ~65% vs. ~34% at n=15–20 for 3 products
+   vs. 2). Canvas surfaced incidentally in this session's own research as a board-packet example
+   ("Contract Renewal – Infrastructure (Canvas)"), is a third distinct vendor and category (LMS, not SIS
+   or adaptive-practice), and licenses per-student like the other two — genuinely comparable, and a
+   further hedge against a category-specific result.
+
+**Honest caveat:** these were selected by Claude at Matt's explicit direction (2026-09-24), reasoning
+from what this session's research already established (PowerSchool) plus general category knowledge for
+the other two (flagged `[unverified]` where not re-checked live). IXL and Canvas adoption/comparability
+should get a quick sanity check against the first few contracts actually collected — if either turns out
+to be badly customized per-district or too thin in the sample states, swap it before the noise-floor
+double-normalization work starts, per the pre-registration's own addendum rule below.
 
 ## 2. Sampling frame
 
 - **Target n per product:** 15–20 (45–60 total across all products).
 - **Stratification:** by contract-size band. Define the bands now:
-  - Sub-threshold band: `[ e.g. under the launch state's competitive-bid threshold ]`
-  - Mid band: `[ ]`
-  - Large band: `[ ]`
+  - Sub-threshold band: **under $50,000, aggregated over 12 months** — Texas's competitive-bid threshold
+    per `plan.md` (citation K7). `plan.md` also flags a possible SB 1173 threshold of $100,000
+    `[unverified]` (U14) — if N1 counsel confirms SB 1173 is enacted before data collection starts, treat
+    that as superseding this band via a dated addendum, not a silent edit.
+  - Mid band: **$50,000–$250,000** — typical single-product annual spend for a mid-size district
+    `[unverified — reasoned estimate, not independently sourced this session]`.
+  - Large band: **above $250,000** — multi-year or multi-campus contracts (common for SIS/LMS at
+    district scale) `[unverified — reasoned estimate, not independently sourced this session]`.
   - **Sub-threshold contracts must be deliberately included, not excluded as "hard to find."** This is
     the segment public records are weakest on and where price-gouging is most plausible — dropping it
     would bias the sample toward the cases least likely to show dispersion.
-- **Geographic/state scope:** `[ which state(s) — affects which public-records law applies ]`
+- **Geographic/state scope: Texas.** This is `plan.md` §4.1's own stated **default candidate**, not a
+  new choice — the final launch-state selection is explicitly reserved for the founder at P0a exit,
+  re-ranked on the §4.1 factors (seedability, co-op saturation, private-school population, records-egress
+  posture). Using Texas for the pre-registration's data-collection push doesn't foreclose that re-rank;
+  it just gives contract collection a starting state so work can begin. Records law is strong on prices
+  (Tex. Gov't Code §552.0222); terms are `[unverified]` per the plan's own tracking (U15).
 - **Source mix (in priority order, fastest/most-reliable first):**
   1. Check registers (actual totals)
   2. Board packets (fast, but often not-to-exceed totals only — flag these as such, don't treat as exact)
@@ -82,16 +116,30 @@ strong unused-seat pain.
 dispersion is no larger than the noise floor **and** there's no utilization pain; or (f) fails.
 
 **Exclusion rules (define now, not after seeing the data):**
-- A contract is excluded if: `[ e.g. bundled with unrelated products with no per-product breakdown,
-  missing volume/term entirely, price point is a known promotional/pilot rate, ... ]`
+- A contract is excluded if:
+  1. it's bundled with unrelated products with no per-product price breakdown;
+  2. it's missing volume, metric or term entirely;
+  3. the price point is a known promotional, pilot, or first-year-discount rate;
+  4. it's a **not-to-exceed-only total with no actual paid amount available** — `plan.md`'s own data-
+     quality rule (line 380: not-to-exceed-only totals are excluded from unit-price cells, board-packet
+     figures are flagged as such rather than treated as exact).
 - Exclusions must be logged with a reason, not silently dropped.
 
 ## 5. Sign-off
 
 | Role | Name | Date |
 |---|---|---|
-| Founder | | |
+| Founder | Matt | 2026-09-24 |
 | (anyone else co-deciding) | | |
+
+**Provenance note (required by this repo's accuracy discipline, not part of the pre-registration
+itself):** the product picks (§1), sampling-frame bands and state (§2), and exclusion rules (§4) above
+were filled in by Claude at Matt's direct, explicit instruction ("Pick the target products and sign the
+pre-registration template," 2026-09-24) — not inferred or assumed. The model specification (§3) and
+GO/PIVOT/STOP thresholds (§4) were already locked by the FORGE plan itself and are unchanged. Matt should
+review this record before contract collection begins and amend anything that doesn't match his intent —
+per this file's own rule, any change after that review is a new dated addendum below this line, never a
+silent edit above it.
 
 *Once signed, this record is frozen. See `plan.md` P0a for the full acceptance-test text this
 pre-registration implements, and `dispersion_test.py` for the statistical implementation.*
