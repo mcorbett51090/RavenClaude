@@ -103,22 +103,25 @@ def _read_text(path: Path) -> str:
         return ""
 
 
-def _write_json_atomic(path: Path, obj) -> None:
+def _write_json_atomic(path: Path, obj) -> bool:
+    """Write `obj` as JSON via tmp+replace. Returns False on I/O failure (never raises)."""
     try:
         path.parent.mkdir(parents=True, exist_ok=True)
         fd, tmp = tempfile.mkstemp(dir=str(path.parent), prefix=".tmp-", suffix=".json")
     except OSError:
-        return
+        return False
     try:
         with os.fdopen(fd, "w", encoding="utf-8") as fh:
             json.dump(obj, fh, indent=1, sort_keys=True)
             fh.write("\n")
         os.replace(tmp, path)
+        return True
     except OSError:
         try:
             os.unlink(tmp)
         except OSError:
             pass
+        return False
 
 
 def load_config(project_dir: Path | None = None) -> dict:
@@ -764,7 +767,10 @@ def set_override(pct: float, now: float) -> tuple[bool, str]:
     expires = parse_ts(reading.get("resets_at"))
     if expires is None or expires <= now:
         return False, "no current weekly reset known (no statusline reading); override not set"
-    _write_json_atomic(state_dir() / "override.json", {"override_pct": pct, "expires_at": expires})
+    if not _write_json_atomic(
+        state_dir() / "override.json", {"override_pct": pct, "expires_at": expires}
+    ):
+        return False, "could not write override"
     return True, f"override {pct:g}% until {_iso(expires)}"
 
 

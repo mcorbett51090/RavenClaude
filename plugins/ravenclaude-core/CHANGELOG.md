@@ -2,6 +2,20 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.326.1 — 2026-09-27
+
+### Fixed
+
+- **`set_override` returned True after `_write_json_atomic` swallowed `OSError`.** The writer
+  caught disk-full / `EACCES` and returned nothing; `set_override` then always `return True`.
+  The dashboard maps True to HTTP 200 and the CLI to exit 0, so a failed persist is
+  indistinguishable from a saved override. `clear_override` already returned False on
+  `OSError`. The writer now returns a bool; `set_override` returns False / "could not write
+  override" on I/O failure (dashboard 409, CLI exit 1). Gate 291 section F covers ENOSPC on
+  `mkstemp`. This-session control: HEAD `set_override(80)` with `mkstemp` raising
+  `OSError(28)` returned `ok=True` and left `override.json` uncreated; the same probe on
+  this tree returned `ok=False` / "could not write override".
+
 ## 0.326.0 — 2026-09-24
 
 ### Added
