@@ -65,7 +65,8 @@ the weekly percentage with its source and age, the effective reserve and the lin
 - `POST /__reserve-override` takes `{"action": "set", "pct": 0-100}` or `{"action": "clear"}`, and
   requires the dashboard's CSRF token and a same-origin request like every other write. A value that
   is not a real number in range is rejected (400); setting an override without a live weekly reading
-  is refused (409), because an override expires at the reset and there is no reset to expire at.
+  is refused (409), because an override expires at the reset and there is no reset to expire at. A
+  failed write of `override.json` (disk full, permissions) is also 409 — never reported as saved.
 - Both endpoints call the engine's own `set_override` / `clear_override`, so the command and the tab
   cannot drift apart.
 

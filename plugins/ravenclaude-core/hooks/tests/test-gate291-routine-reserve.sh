@@ -148,10 +148,27 @@ assert code == 200 and body["ok"], (code, body)
 assert mod._read_reserve(proj).get("override_pct") == 30.0
 code, body = mod._write_reserve_override(proj, {"action": "clear"})
 assert code == 200 and not (state / "override.json").exists(), (code, body)
+# A failed atomic write after validation must not report success (dashboard 200 /
+# CLI exit 0 with no override.json). Trigger: mkstemp OSError (ENOSPC/EACCES).
+engine = mod._reserve_engine(proj)
+real_mkstemp = engine.tempfile.mkstemp
+def boom(*_a, **_k):
+    raise OSError(28, "No space left on device")
+engine.tempfile.mkstemp = boom
+try:
+    code, body = mod._write_reserve_override(proj, {"action": "set", "pct": 40})
+    assert code == 409 and body.get("ok") is False, (code, body)
+    assert not (state / "override.json").exists(), "failed write still created override.json"
+finally:
+    engine.tempfile.mkstemp = real_mkstemp
+code, body = mod._write_reserve_override(proj, {"action": "set", "pct": 40})
+assert code == 200 and body["ok"] and (state / "override.json").exists(), (code, body)
+code, body = mod._write_reserve_override(proj, {"action": "clear"})
+assert code == 200 and not (state / "override.json").exists(), (code, body)
 print("ok")
 PY
 )"; then
-  pass "read-only GET, 400 on bool/out-of-range/string pct and unknown action, set + clear round-trip"
+  pass "read-only GET, 400 on bool/out-of-range/string pct and unknown action, set + clear round-trip, write-failure is 409"
 else
   fail "server helper check failed:"
   printf '%s\n' "$out" | tail -5 | sed 's/^/      /'
