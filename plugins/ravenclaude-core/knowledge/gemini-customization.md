@@ -116,3 +116,8 @@ stays a thin shim (tool-name normalize + `THING_HOST` + exit-2 passthrough). Do
 - Re-implementing Gemini's OAuth issuer checks inside bash.
 - Softening exit-2 deny into JSON-allow on parse failure (Cursor fail-open class — Gemini is exit-2 safe).
 - Treating envelope metadata as authenticated identity.
+
+## Gemini CLI 0.61.0 — versioned Flash model ID preserve (DOC adapt 2026-09-28 — UNVERIFIED)
+[verify-at-use · angle `release-gemini-cli-0.61.0`]
+
+Gemini CLI 0.61.0 **preserves explicit versioned Flash model IDs and uses them directly during routing and execution** — i.e. **pinning a versioned Flash id now sticks; the router no longer rewrites it to an alias.** Routing note for anyone pinning a Flash model on Gemini: a version pin is now honored end-to-end rather than being silently normalized. **Which Flash version strings this applies to = UNVERIFIED** (not in the angle) — do not list specific ids; confirm the exact pinned string against the live Gemini CLI before relying on it. This is a **Gemini CLI behavior**; `hooks/gemini-hook-adapter.sh` stays a thin shim (tool-name normalize + `THING_HOST` + exit-2 passthrough) — the adapter neither rewrites nor depends on the model id, so **no adapter change is needed** for this (grep-report only). [angle `release-gemini-cli-0.61.0`] `[verify-at-use — Gemini CLI platform behavior; dated 2026-09-28]`

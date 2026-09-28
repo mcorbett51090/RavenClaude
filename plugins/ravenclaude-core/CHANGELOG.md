@@ -2,6 +2,12 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.326.1 — 2026-09-28
+
+### Changed
+
+- **Coding-factory ADAPT P0 (model matrix) — angle-sourced doc deltas (Claude Code platform facts).** `knowledge/model-tier-delegation.md`: added a **Claude Code platform notes** section — Pro/Team Standard now default to Opus (Opus 5.5, CC 2.1.280); `/effort` no longer inherits onto a newly released model (set it per model after switching); managed `availableModelsMatch: "exact"` + `deniedModels` allowlist (CC 2.1.283, "blocked until listed"). `knowledge/concepts/cheap-lane-agent-matrix.md`: added a "default is no longer the cheap lane" adapt note (session default may now be Opus, so the push-down/cheap-lane decision matters more). `knowledge/gemini-customization.md`: added a Gemini CLI 0.61.0 versioned-Flash-id-preserve routing note (no ids listed; adapter unchanged). **`model-catalog.json` deliberately NOT changed** — `current.opus` stays `claude-opus-4-8`; migrating the internal catalog to Opus 5.5 is a separate ratchet/drift-gate change. Regen at land: `concepts.json` / `dashboard.html` / `index.html` (concept-card body changed).
+
 ## 0.326.0 — 2026-09-24
 
 ### Added

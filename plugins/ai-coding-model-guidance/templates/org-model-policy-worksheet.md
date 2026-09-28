@@ -32,6 +32,21 @@
 
 ---
 
+## Claude Code (managed settings — `availableModelsMatch` / `deniedModels`)
+
+> Claude Code 2.1.283 added a managed **model allowlist** with an exact-match mode. Document it here so a release of a new model does not silently become unavailable (or stay available when it should not). [angle `release-claude-code-2.1.283`]
+
+| Setting | Current value | Notes |
+|---|---|---|
+| `availableModels` (managed) | [list or "not set"] | The models this org may select. |
+| `availableModelsMatch` | [`exact` / not set] | **With `"exact"`, ONLY the named versions are allowed — a NEW model release stays BLOCKED until its id is added to `availableModels`.** This is the "blocked until listed" footgun: every release-compare model adapt (a new Opus/Sonnet/etc.) must also add the id here. |
+| `deniedModels` | [list or "not set"] | Blocks specific models **even when `availableModels` allows them** — the cost/risk deny lever. |
+| New-model add-to-allowlist process owner | [name / role] | Who updates `availableModels` when a new model ships (only needed under `exact`). |
+
+- Escalate any allowlist/deny-list *policy* change to `ravenclaude-core/security-reviewer` (cost/risk posture).
+
+---
+
 ## OpenAI Codex / API
 
 **Org plan:** [Free / Pay-as-you-go / Enterprise]

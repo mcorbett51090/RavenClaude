@@ -61,3 +61,7 @@ SSOT at [`../unified-model-matrix.json`](../unified-model-matrix.json). This con
 entry keeps the Copilot `--effort` honesty discriminator; tier cell values live in
 the UMM JSON. `cheap_lane.mode: off` still means inactive routing — Grok rows remain
 visible in the matrix.
+
+## The default is no longer the cheap lane (DOC adapt 2026-09-28 — angle-sourced)
+
+Claude Code 2.1.280 changed **Pro and Team Standard to default to Opus** (Claude Opus 5.5), matching Max / Team Premium (plan name UNVERIFIED) / Enterprise. So the **session default model can now be the top tier, not a cheap one** — a "route it off Claude / push it down a tier" decision can no longer assume the main-loop model is already the fast lane. The cheap-lane router (`route-task.py`) and the model-tier push-down are **more** valuable under this default, not less: the explicit push-down to `sonnet` / `haiku` (or the cheap lane entirely) is what keeps everyday, read-a-lot work off the newly-Opus default. **Set `/effort` explicitly per model after switching — CC 2.1.280 stopped inheriting a saved `/effort` level onto a newly released model** (it starts at the model default until picked), so do not assume a low-effort posture carried over when the session model changed. [angle `release-claude-code-2.1.280`] `[verify-at-use — Claude Code platform behavior; dated 2026-09-28]`

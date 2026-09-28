@@ -7,6 +7,12 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.3.21] — 2026-09-28
+
+### Changed
+
+- **Coding-factory ADAPT P0 (model matrix) — angle-sourced doc deltas.** `cross-tool-model-lineup-2026.md`: added a **Copilot weekly Sep 21** bullet with the release note's plan gates (Opus 5.5 + GPT-6 Sol → Pro+/Max/Business/Enterprise; GPT-6 Luna + **Grok 4.7** → Pro and above) — **Grok 4.7 is a NEW Copilot SKU** the 2026-09-23 sweep did not carry; a **Codex 0.157.0** note that GPT-6 Sol/Luna gained **Amazon Bedrock support + migration prompts**; and a dated CF-adapt sweep note. `org-model-policy-worksheet.md`: added a **Claude Code (managed settings)** section for `availableModelsMatch: "exact"` + `deniedModels` (the "blocked until listed" allowlist footgun). No prices/multipliers/context/slugs asserted (UNVERIFIED per the angles); efficiency/balance/intelligence tier mapping unchanged.
+
 ## [0.3.20] — 2026-09-23
 
 ### Changed
