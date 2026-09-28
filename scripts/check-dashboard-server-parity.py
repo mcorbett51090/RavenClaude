@@ -180,9 +180,13 @@ def unguarded_get_handlers(path: Path) -> list[str]:
     if not m_get:
         return ["do_GET not found — the dispatch table moved; this check needs updating"]
     get_body = m_get.group(0)
-    # `if self.path.startswith("/__x"):` (or `== "/__x"`) followed by `self._handle_y()`
+    # `if self.path.startswith("/__x"):` / `== "/__x"` / `.split("?", 1)[0] == "/__x"`
+    # followed by `self._handle_y()`. The optional `.split(...)[0]` clause matches the
+    # query-string-stripping dispatch form used by /__reserve, which the prior regex
+    # missed entirely — so _handle_reserve rode the static path, escaping this check's
+    # "every GET handler calls _local_request_ok()" assertion (MH-33).
     dispatch = re.findall(
-        r'self\.path(?:\.startswith|\s*==)\s*\(?\s*"(/__[\w-]+)"\)?\s*:\s*\n\s*self\.(_handle_[\w]+)\(',
+        r'self\.path(?:\.split\([^)]*\)\[0\])?(?:\.startswith|\s*==)\s*\(?\s*"(/__[\w-]+)"\)?\s*:\s*\n\s*self\.(_handle_[\w]+)\(',
         get_body,
     )
     unguarded = []

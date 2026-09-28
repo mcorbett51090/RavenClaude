@@ -349,8 +349,17 @@ def _script_selftest(root: Path, paths: list[str], ctx: dict) -> dict:
     # stay untouched; only env VARS whose NAME looks secret-shaped are dropped
     # before exec, closing the concrete leak (CI tokens/keys reaching an
     # attacker-authored script) without perturbing scripts' own behavior.
+    # Broadened 2026-09-28: the prior pattern (TOKEN|SECRET|_KEY$|API_KEY|PASSWORD|
+    # PASSWD|CREDENTIAL) missed common real credential-var names — AWS_ACCESS_KEY_ID
+    # (ends _ID, so _KEY$ never matched it), DATABASE_URL, and *_WEBHOOK (including this
+    # repo's own documented RAVENCLAUDE_NOTIFY_WEBHOOK) — so those leaked into an
+    # attacker-authored --must-fail run's env. Unanchored KEY subsumes _KEY$/API_KEY.
+    # Every added token is credential-shaped and NAME-only: PATH/HOME/LANG/PWD/etc.
+    # still never match, so child scripts' behavior stays unperturbed (the reason cwd
+    # and HOME are deliberately left untouched above).
     _secret_name = re.compile(
-        r"TOKEN|SECRET|_KEY$|API_KEY|PASSWORD|PASSWD|CREDENTIAL", re.IGNORECASE
+        r"TOKEN|SECRET|KEY|PASSWORD|PASSWD|CREDENTIAL|WEBHOOK|DATABASE_URL|CONNECTION_STRING",
+        re.IGNORECASE,
     )
     _scrubbed_env = {k: v for k, v in os.environ.items() if not _secret_name.search(k)}
     for p in paths:

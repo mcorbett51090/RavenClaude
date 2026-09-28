@@ -1227,7 +1227,10 @@ def main(argv: list[str] | None = None) -> int:
         print(f"[ok] {args.output} is up to date")
         return 0
 
-    args.output.write_text(html, encoding="utf-8")
+    # write_bytes, not write_text: write_text's default newline=None translates \n ->
+    # \r\n on Windows, which would churn the committed index.html and fail the whole-tree
+    # prettier gate (matches generate-dashboards.py / generate-copilot-plugin.py; LF preserved).
+    args.output.write_bytes(html.encode("utf-8"))
     kb = len(html.encode("utf-8")) / 1024
     print(f"[ok] wrote {args.output} ({kb:.0f} KB) — "
           f"{data['stats']['plugins']} plugins, "
