@@ -189,6 +189,13 @@ Two consequences, and RavenClaude was bitten by both **while running matcher-fre
 - **`COPILOT_CUSTOM_INSTRUCTIONS_DIRS`** — comma-separated dirs Copilot also scans for `AGENTS.md`.
 - **Permissions:** Copilot asks before a tool that modifies/executes (e.g. `touch`, `chmod`, `node`, `sed`); approve per-op / per-session / deny. `--allow-all` and `--yolo` enable everything (use with care).
 
+> **App sandbox ≠ CLI sandbox (Sep 2026).** The GitHub Copilot **app** shipped a separate **local
+> sandboxing** public preview (per-project file/network/credential policy, `/sandbox on`, fails closed
+> if the OS can't enforce, not for cloud/remote hosts) — it is a **distinct product from Copilot CLI
+> sandbox settings** and is documented in
+> [`copilot-chat-customization.md`](copilot-chat-customization.md) §8. Do not project a CLI setting as
+> if it configured the app sandbox. `[docs-verified 2026-09-23 · angle release-copilot-weekly-2026-09-21 · github.blog/changelog]`
+
 ## 6. How RavenClaude maps onto each surface
 
 | Copilot CLI surface | RavenClaude wiring |

@@ -135,3 +135,65 @@ is exactly the shape of this repo's most distinctive mechanism, the layout allow
 5. **This lane is untested against a running Cursor** in this repo `[verified — no Cursor binary
    here]`. It is docs-verified, gated on its translation, and honestly labelled as such. Do not
    upgrade that claim without an actual session.
+
+---
+
+## Cursor cloud bots (Teams/Enterprise) — Rollouts + Security Review
+
+`[docs-verified 2026-09-23 — cursor.com/changelog · angle release-cursor-rollouts-security-review-2026-09-23]`
+
+These are Cursor **cloud** product bots (Teams / Enterprise plans), distinct from the in-loop
+hooks/rules surface above. RavenClaude does **not** wrap or duplicate them — the doctrine is
+**leave-native** where they run, and keep the RC agents for the hosts and phases they don't cover.
+
+### Rollouts — native deploy/change monitor (leave-native)
+
+On PR open the bot reads the diff + systems touched and writes a **monitoring plan** as a PR comment
+(risks, intended effect, signals, instrumentation gaps; editable in the PR). It wakes on deploy events
+for the change's commit, runs the plan against logs/metrics/traces, tracks each environment separately,
+and reports change health per environment: **verified healthy / regression detected / inconclusive**.
+On a regression it names the suspected change, notifies the author, and **may open a revert PR or hand
+the finding to a cloud agent** — it **does not merge or roll back on its own**. Integrations: Origin or
+GitHub SCM, CD deploy events, Datadog + other telemetry.
+
+**Doctrine:**
+- Where Rollouts is enabled, it **is** the deploy/change monitor — **do not build an RC monitor
+  wrapper.** RC's ops agents (the `observability-sre` and `devops-cicd` plugins) stay for non-Cursor
+  hosts, Rollouts-off repos, and SLO / postmortem authorship (work Rollouts does not do).
+- ⛔ **A Rollouts-opened revert PR in an RC-governed repo is an ordinary PR** — it carries no special
+  merge authority. Merging it stays under existing SCM doctrine (Source Control Sage / human); the bot
+  itself already does not merge or roll back.
+- Pricing, plan limits, and the "coming soon" feature-flag integration = **UNVERIFIED** (not in the
+  angle). Built with Cursor's Bot Development Kit `[angle-noted; mechanism UNVERIFIED]`.
+
+### Security Review — exploitable-bug PR bot (≠ Bugbot ≠ RC security-reviewer)
+
+Reads every PR in codebase context and posts **one** review comment reporting **exploitable** bugs —
+injection (SQL/command/template), authz/authn bypasses (incl. a check a refactor stopped running),
+secrets in source, SSRF / unvalidated redirects, unsafe deserialization, dependency CVEs — tracing
+user-input paths. Each finding carries **severity, attack path, and a proposed fix**; a
+**dismiss-with-reason won't re-raise** on that PR. Draft PRs are skipped; enabled per repository.
+**Team rules** enforce codebase-specific constraints (e.g. external calls must go through X; never query
+table Y from a request handler).
+
+**Three-way split — who owns what when the host is Cursor:**
+
+| Reviewer | Scope | Shape |
+|---|---|---|
+| **Bugbot** (Cursor) | style / quality | Cursor's general PR review bot — *no RC inventory row (grep 0); referenced by name only* |
+| **Cursor Security Review** (Cursor) | **exploitable** bugs only | **one** comment per PR; per-repo; team rules |
+| **RC [`security-reviewer`](../agents/security-reviewer.md)** | pre-merge structured review, threat-model depth, **non-Cursor hosts** | multi-harness; the RC gate; escalation target for every acceptability verdict |
+
+**Doctrine:**
+- **Keep RC `security-reviewer` doctrine intact** — Cursor Security Review is a native PR bot on one
+  host, not a replacement for the RC pre-merge gate (which runs on every host and carries threat-model
+  depth). The two **compose**: on Cursor, the native bot is an extra, earlier signal.
+- Where the host is Cursor, **map RC's codebase-specific security constraints onto Cursor's Team rules**
+  so the same invariants are enforced natively in-PR (a suggestion, not a wrapper).
+
+> **Human-decision choice (per the marketplace menu rule):** whether to *also* keep an RC-side
+> security-review projection on a Cursor host, or rely on the native Security Review alone.
+> **Recommended (primary): keep the RC `security-reviewer` doctrine and treat Cursor Security Review as a
+> complementary native signal** — the RC gate is cross-host and threat-model-deep; the native bot is
+> one-host and exploitable-bug-scoped, so they cover different ground. Any *deprecation* of an RC
+> security-review projection is a **suggest-only · human decision** and out of scope here (grep-report only).

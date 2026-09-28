@@ -2,6 +2,12 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.326.2 — 2026-09-28
+
+### Changed
+
+- **Coding-factory ADAPT P1 (host adapters) — angle-sourced doc deltas, no code/agent changes.** Four host-knowledge files gained delta sections from the 2026-09-23 Cursor changelog and the 2026-09-21..25 Codex/Copilot releases. `knowledge/cursor-customization.md`: a **Cursor cloud bots (Teams/Enterprise)** section — **Rollouts** (native deploy/change monitor → leave-native; RC ops agents stay for non-Cursor hosts / Rollouts-off / SLO+postmortem; a Rollouts-opened revert PR is an ordinary PR, merge stays under SCM doctrine) and **Security Review** (exploitable-bug PR bot; a three-way **Bugbot vs Cursor Security Review vs RC `security-reviewer`** split table; keep RC security-reviewer doctrine; map RC security constraints onto Cursor Team rules where the host is Cursor). `knowledge/codex-cli-customization.md`: a **0.156/0.157 DELTA** section (over the existing 0.155 notes) — worktrees enabled by default + created from the command center (managed-vs-RC lane ownership, no double-worktree), `/usage` mapped as a **cross-check** for RC meters (skill ≠ meter, no auto-ingest), `/daemon` + `--no-daemon` + automatic daemon startup (0.157). `knowledge/copilot-chat-customization.md`: a **Copilot app** section — local sandboxing (public preview; OS-level containment; **app sandbox ≠ CLI sandbox**; complements RC hooks/tribunal, not replaced), enterprise-managed OpenTelemetry (content off by default, aligns with RC content-capture caution), and the **Dev Containers on SSH/Tunnel/WSL remote-host delta** (VS Code 1.139; no prior local Dev Containers note exists — grep 0). `knowledge/copilot-cli-customization.md`: a one-note app-vs-CLI sandbox split cross-ref. Every non-angle fact (pricing, plan limits, feature-flag integration, sandbox/OTel policy keys, `/usage` export format, Codex "eligible session" criteria) is marked **UNVERIFIED**; no config samples authored. No agents, scripts, hooks, or tribunal/security-reviewer doctrine changed.
+
 ## 0.326.1 — 2026-09-28
 
 ### Changed

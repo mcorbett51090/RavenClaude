@@ -101,3 +101,46 @@ Implemented in [`../vscode-extension/`](../vscode-extension/README.md) (`ravencl
 - Do not write "Chat is protected" or "Copilot is protected" without the Preview qualifier.
 - Do not add a `copilot-chat` key to `host-support.json` `hosts` (the dashboard treats every host key as an install column).
 - Keep host key `copilot` labeled **GitHub Copilot CLI**.
+
+## 8. Copilot app — local sandbox + enterprise OpenTelemetry (Sep 2026); Dev Containers on remote hosts
+
+[docs-verified 2026-09-21..23 · angle release-copilot-weekly-2026-09-21 · github.blog/changelog (weekly Sep 21 + local-sandboxing 2026-09-23 + OpenTelemetry 2026-09-22)]
+
+The Sep 2026 weekly groups these under the Copilot **app** (the editor / coding-agent surface, **not**
+the CLI); documented here as the closest non-CLI Copilot home. The exact app-vs-Chat product boundary
+is not separately verified `[UNVERIFIED]`, and this does **not** add a `host-support.json` key (§7).
+
+### Local sandboxing (public preview) — an OS-level containment layer, complementary to RC hooks/tribunal
+- The Copilot **app** can limit an agent's access to **files, networks, and credentials** via a
+  **per-project** policy; `/sandbox on` enables it for the active session. It **fails closed if the OS
+  cannot enforce** it, and it is **not for cloud/remote hosts**.
+- ⛔ **This is the Copilot *app* sandbox — a SEPARATE product from Copilot CLI sandbox settings**
+  (see [`copilot-cli-customization.md`](copilot-cli-customization.md) §5). Do not conflate the two, and
+  do not project a CLI sandbox setting as if it configured the app sandbox.
+- **How it composes with RavenClaude:** the native sandbox is an **OS-level containment layer**
+  (files / network / creds) — the same category as the container/worktree boundary in
+  [`../CLAUDE.md`](../CLAUDE.md) § "Containment posture". RC hooks + the command-review tribunal are
+  **command adjudication** (which command runs; ALLOW / EDIT / DENY). They are **complementary, not
+  replaced** — the sandbox bounds a blast radius the tribunal can't reach (a subprocess), and the
+  tribunal reviews intent the sandbox can't see. Keep both.
+- **Policy schema / keys = UNVERIFIED** (not in the angle) — do **not** author a sandbox-policy config
+  sample.
+
+### Enterprise-managed OpenTelemetry — content off by default
+- The Copilot app can emit **OpenTelemetry** for agent activity — **sessions, model requests, tools** —
+  via **enterprise-managed settings**. **Prompt/response content is excluded by default.**
+- The content-off default **aligns with RC's own content-capture caution** (the OTEL / meter guidance in
+  the cost rails — `handoff-tax-meter` and the `observability-sre` plugin treat captured content as
+  sensitive). Where this OTel is on, treat it as a **cross-check** for RC observability, not a
+  replacement.
+- **OTel setting names = UNVERIFIED** (not in the angle) — do not author config samples.
+
+### Dev Containers on SSH / Tunnel / WSL hosts (VS Code 1.139, gradual rollout) — remote-host delta only
+- VS Code 1.139 runs Copilot **agents in Dev Containers on SSH / Tunnel / WSL** hosts (gradual
+  rollout). RC's own containment posture already treats a dev container as an OS-enforced boundary, so a
+  Copilot agent running inside one on a remote host inherits that boundary — no RC change required.
+- ⛔ **This is the remote-host delta only.** RavenClaude has **no prior "Copilot agents in local Dev
+  Containers" host-support note** (grep 0 across `plugins/` on RC main — every existing `devcontainer`
+  reference is RavenClaude's own Codespace auto-setup scaffolding under `templates/codespace-copilot/`, a
+  different thing). Whether a **local** Dev Containers note ever landed from the Sep 14 weekly =
+  **UNVERIFIED / out of this window** — not back-filled here.

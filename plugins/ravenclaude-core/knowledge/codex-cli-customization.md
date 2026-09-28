@@ -279,3 +279,44 @@ is the thing to update.
   Guardian evidence requirements, retry semantics, or fail-closed review
   failure handling.
 
+---
+
+## Codex 0.156 / 0.157 — worktrees-by-default, `/usage`, `/daemon`, auto daemon (DELTA over 0.155)
+[docs-verified 2026-09-22/25 · angles release-codex-0.156.0 / release-codex-0.157.0 · github.com/openai/codex releases rust-v0.156.0 / rust-v0.157.0]
+
+Delta over the 0.155 section above (agents-overview lifecycle, worktree ownership, daemon goal recovery
+— **not re-stated here**). Same multi-harness rule: this section applies only when the active host is
+Codex.
+
+### Worktrees enabled by default + created from the command center (0.156)
+- Codex 0.156 makes **worktree support enabled by default**, and the agent command center can now
+  **create worktree sessions** directly.
+- This **deepens** the 0.155 ownership boundary rather than changing it: **Codex-managed worktrees stay
+  owned by the Codex command-center / app-server daemon lane; RC `new-worktree` / `cleanup-worktrees`
+  (Sleipnir, `.claude/worktrees/`) own RC-agent worktrees.** With worktrees now on by default, name the
+  lane a tree belongs to before any create/delete so there is **no double-worktree** for one logical
+  task — do not spin an RC worktree for work a Codex command-center session already put in a managed
+  tree, and vice versa.
+- `worktree-guard.sh` FOREIGN-TREE posture is unchanged and still applies.
+
+### `/usage` — vendor analytics dashboard (cross-check, not a meter)
+- `/usage` shows account usage, token totals, and **plugin and skill activity**.
+- Map it as a **cross-check** for RC's own cost rails (`handoff-tax-meter` / the dispatch ledger),
+  **not a replacement**: it is a **skill/usage dashboard, not a spend meter**, and there is **no
+  auto-ingest** — RC does not read `/usage` output and nothing here claims spend-attribution parity.
+  Read the two side by side and reconcile by hand.
+- The `/usage` **export format** = **UNVERIFIED** (not in the angle) — do not build a parser against it.
+
+### `/daemon` + `--no-daemon`, and automatic daemon startup (0.156 → 0.157)
+- `/daemon` updates the local background server; **`--no-daemon` bypasses it** — the flag for **headless
+  / CI lanes** that must not depend on a background server.
+- 0.157 adds **automatic daemon startup for eligible interactive sessions**, plus **recovery choices
+  when server settings are incompatible**.
+- "Eligible session" criteria = **UNVERIFIED** (not in the angle). Do not encode an auto-start guarantee
+  as an SLA; for a non-interactive RC lane prefer `--no-daemon` explicitly rather than relying on the
+  auto-start heuristic.
+
+### Guardian / network-policy KEEP (unchanged)
+- 0.157's Guardian thread-context-default / extra-policy config and the mid-request network-restriction
+  enforcement are **compare-KEEP** (gate / AppSec). Host-adapter notes here **must not** weaken RC
+  tribunal or Guardian evidence doctrine.
