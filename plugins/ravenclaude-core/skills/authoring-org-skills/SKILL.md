@@ -18,6 +18,17 @@ bundle that installs. The constraints are enforced by code, not by this document
 > names both capability and trigger, third person throughout, and progressive disclosure.
 > Saying so beats implying a self-conformance that is not there.
 
+> **Namespace caveat (CC 2.1.282/283 — UNVERIFIED).** In CC 2.1.282 the
+> `anthropic-skills:*` and `claude-ai:*` skill namespaces were **reserved for
+> claude.ai-synced skills**: a `Skill(<ns>:*)` allow rule covered only those (not a
+> plugin that merely used the name), a folder/command/workflow so named stopped loading,
+> and an MCP server so named listed no skills/prompts (its tools still worked). **CC
+> 2.1.283 reverted the `claude-ai` reservation** — `claude-ai`-named items load again and
+> `Skill(claude-ai:*)` is now an **ordinary prefix rule**. Practical guidance: **do not
+> name a RavenClaude plugin/skill/command/MCP server `anthropic-skills`** (its reservation
+> is not named in the revert, so treat it as still in force — UNVERIFIED-inferred); and
+> although `claude-ai` is usable again, **avoid it too for clarity**.
+
 ## Two entry points, deliberately not chained
 
 | You want | Start at | Needs |

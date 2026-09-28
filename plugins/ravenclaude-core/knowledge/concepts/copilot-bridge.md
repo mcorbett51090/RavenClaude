@@ -85,7 +85,8 @@ flowchart LR
 - **Claude Code (Anthropic API):** if a project has **no** `CLAUDE.md`,
   Claude Code reads **`AGENTS.md`** as project instructions (CC 2.1.277);
   change under Project instructions in `/config`.
-- **Gap:** AGENTS.md-as-CLAUDE-fallback is **not yet** on **Bedrock,
-  Vertex, or Foundry** per changelog — keep `CLAUDE.md` on those hosts.
+- **Third-party providers (CC 2.1.281 [angle `release-claude-code-2.1.281`]):** AGENTS.md-as-CLAUDE-fallback is now
+  **supported on Amazon Bedrock, Google Vertex AI, and Microsoft Foundry**, plus
+  **LLM gateways** and **telemetry-off** sessions — the earlier gap closed.
 - Multi-harness repos: prefer keeping **both** files in sync, or a short
   `CLAUDE.md` that points at shared policy also mirrored in `AGENTS.md`.

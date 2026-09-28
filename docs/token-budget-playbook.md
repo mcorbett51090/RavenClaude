@@ -59,6 +59,17 @@ untouched. This repo now ships one:
 > suffix above — the team default deliberately omits it so it doesn't change
 > cache/cost behavior for anyone not on a plan that includes it.
 
+> **Gateway cost-grouping & telemetry-settings placement (CC 2.1.282/283 — verify at use).**
+> Two host facts affect where telemetry/observability config must live: (a) CC 2.1.283
+> adds the `x-claude-code-prompt-id` **gateway hint header** so an LLM gateway can group
+> all requests serving one user prompt for per-prompt cost attribution — opt in with
+> `CLAUDE_CODE_GATEWAY_HINT_HEADERS=1` [angle `release-claude-code-2.1.283`]; (b) CC 2.1.282 makes **project/local
+> `.claude/settings.json` ignore OpenTelemetry env vars** that turn on export / set an
+> endpoint / capture content (e.g. `CLAUDE_CODE_ENABLE_TELEMETRY`, `OTEL_LOG_*`; [angle `release-claude-code-2.1.282`]) — put
+> those in **managed or user settings**, not the repo's project settings, and check
+> `/status` or `claude doctor` for the list of ignored vars [angle `release-claude-code-2.1.282`]. (Gateway product
+> names/config = UNVERIFIED.)
+
 ---
 
 ## Phase 1 — Parallelism (the biggest multiplier)

@@ -7,6 +7,22 @@
 > the *facts* below are snapshots. When a claim gates an irreversible action,
 > re-verify against the provider's current docs first.
 
+## 0. Prompt-hygiene cadence — `/doctor prompt-audit` (optional, report-only)
+
+Claude Code CC 2.1.283 adds **`/doctor prompt-audit`** (alias `/checkup prompt-audit`) [angle `release-claude-code-2.1.283`],
+which audits `CLAUDE.md`, skills, agents, and commands for **prompting patterns written
+for older models**. Recommended PE cadence — **report-only, findings route to a PE pack,
+never auto-applied**:
+
+1. **After each release-compare that adds a new default model** (e.g. an Opus-tier bump)
+   — patterns tuned for a prior model can regress on the new default.
+2. **Before any PE pack that rewrites `CLAUDE.md` or skills** — audit first so the rewrite
+   is informed by what the audit flags.
+
+Its output format, `-p`/headless support, and the specific patterns it flags are
+**UNVERIFIED** — treat findings as input to a human-reviewed PE pass, not a mechanical
+rewrite.
+
 ## 1. Structured-output support (as of 2026-07, verify per model)
 
 Three mechanisms, strongest first. Availability is model-specific — check the

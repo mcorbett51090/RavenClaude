@@ -2,6 +2,12 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.326.3 — 2026-09-28
+
+### Changed
+
+- **Coding-factory ADAPT P2 (doctrine / ops hygiene) — angle-sourced doc deltas, no code/agent changes.** (1) **AGENTS.md on third-party providers (CC 2.1.281):** the Sep-20-landed "not yet on Bedrock/Vertex/Foundry" gap wording in `knowledge/concepts/copilot-bridge.md`, `knowledge/copilot-cli-customization.md`, and this plugin's `CLAUDE.md` § "Project instructions dual-file" is swapped to "supported on Bedrock / Vertex AI / Microsoft Foundry / LLM gateways / telemetry-off since CC 2.1.281"; the dual-file doctrine itself is unchanged (this closes residual-pack **G1** for P2 only; the Sep-21 residual pack **stays HOLD** and G2–G5 proceed only if GOed). (2) **Namespace caveat (CC 2.1.282/283):** `skills/authoring-org-skills/SKILL.md` gains a note not to name an RC plugin/skill/command/MCP server `anthropic-skills` (the `claude-ai` reservation was reverted in 2.1.283 but is still avoided for clarity; whether the `anthropic-skills` reservation persists after 2.1.283 is UNVERIFIED-inferred). (3) **Copilot org skills/instructions (weekly 2026-09-21):** `knowledge/copilot-cli-customization.md` gains a note that org-managed Copilot skills/instructions are an **additional layer** alongside a repo's `AGENTS.md` (exact precedence + non-JetBrains surfaces = UNVERIFIED). Concept-inventory regen (`concepts.json` / `docs/concepts.md` / `dashboard.html` / `index.html`) from the `copilot-bridge` concept edit is deferred to land. No agents, scripts, hooks, or tribunal/security-reviewer doctrine changed.
+
 ## 0.326.2 — 2026-09-28
 
 ### Changed

@@ -3,6 +3,12 @@
 All notable changes to this plugin are documented here. Versioning is semver, bumped
 on every user-visible change and mirrored in `.claude-plugin/marketplace.json`.
 
+## 0.1.3 — 2026-09-28
+
+### Added
+
+- `knowledge/prompt-engineering-2026-reference.md` § 0: an optional, **report-only** `/doctor prompt-audit` (`/checkup prompt-audit`, CC 2.1.283) prompt-hygiene cadence — run it after a release-compare adds a new default model, and before a PE pack that rewrites `CLAUDE.md`/skills; findings route to a PE pack, never auto-applied. Its output format, `-p`/headless support, and the specific patterns it flags are UNVERIFIED. Coding-factory ADAPT P2 #6, angle-sourced; no agent/skill/behaviour change.
+
 ## 0.1.2 — 2026-09-14
 
 ### Changed

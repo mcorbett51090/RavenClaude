@@ -5336,6 +5336,6 @@ DOM-budget ratchet (Gate 132) gained a row and lifted its plateau in lockstep, a
 fixture (Gate 51) was re-emitted for the new route.
 
 ## Project instructions dual-file (UNVERIFIED adapt)
-- Claude Code: `CLAUDE.md` primary; if absent → `AGENTS.md` (API path; not Bedrock/Vertex/Foundry yet).
+- Claude Code: `CLAUDE.md` primary; if absent → `AGENTS.md` (Anthropic API path; extended to Bedrock / Vertex AI / Microsoft Foundry / LLM gateways / telemetry-off in CC 2.1.281).
 - Copilot / Cursor / Codex / Grok bots / SuperGrok: honor host-native instruction files; RavenClaude Copilot bridge projects root discipline into `copilot/AGENTS.md`.
 - Entry surface for factory tips: Grok bots | Cursor | Claude | SuperGrok — do not assume single-host.
