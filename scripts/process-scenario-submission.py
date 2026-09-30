@@ -272,6 +272,19 @@ def main() -> int:
     problem = _strip_injection(fields["problem"]).strip()[:MAX_FREETEXT]
     resolution = _strip_injection(fields["resolution"]).strip()[:MAX_FREETEXT]
 
+    # --- Post-strip secret/PII gate (closes the reconstruction bypass). ---
+    # The gate above scanned _normalize_intake output (NFKC + Cf-strip only), but the
+    # staged fields are built from _strip_injection (that SAME normalize PLUS removal of
+    # every INJECTION_PATTERN). A secret split by an injection-shaped substring — e.g.
+    # `ghp_AAA…<system>…BBB` — survives the pre-strip gate (the tag breaks the contiguous
+    # run SECRET_RE needs) yet _strip_injection deletes the tag and reconstructs the intact
+    # secret into the committed quarantine file. Re-gate the EXACT post-strip text that
+    # will be written. Strictly additive: this can only reject more, never stage more.
+    staged_reason = _has_secret_or_pii("\n".join((title, product, problem, resolution)))
+    if staged_reason:
+        _write_decision("reject", None, None, staged_reason)
+        return 0
+
     plugin = fields["plugin"].strip()
     if plugin in ("not-sure / other", ""):
         plugin = "unknown"
