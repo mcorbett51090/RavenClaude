@@ -57,7 +57,11 @@ jobs:
           python-version: "3.x"
 
       - name: Install jsonschema
-        run: python3 -m pip install --quiet jsonschema
+        # Pinned (like ruff==0.15.8 / prettier@3.9.4 / SHA-pinned actions): this is a
+        # REQUIRED check, and the jsonschema CLI is deprecated ("will be removed in a
+        # future version"), so an unpinned install lets a future release break this
+        # gate with no warning. 4.26.0 still ships the `python3 -m jsonschema` CLI.
+        run: python3 -m pip install --quiet 'jsonschema==4.26.0'
 
       - name: Validate every plugin.json against schemas/plugin.schema.json
         run: |

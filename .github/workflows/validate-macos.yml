@@ -216,8 +216,8 @@ jobs:
         #                an older runner python needs the backport
         # Same plain-then-PEP-668 fallback as the ruff step above.
         run: |
-          python3 -m pip install --quiet pyyaml jsonschema tomli \
-            || python3 -m pip install --quiet --break-system-packages pyyaml jsonschema tomli
+          python3 -m pip install --quiet pyyaml 'jsonschema==4.26.0' tomli \
+            || python3 -m pip install --quiet --break-system-packages pyyaml 'jsonschema==4.26.0' tomli
           python3 -c 'import yaml, jsonschema; print("yaml", yaml.__version__)'
 
       - name: Audit every gate on macOS
