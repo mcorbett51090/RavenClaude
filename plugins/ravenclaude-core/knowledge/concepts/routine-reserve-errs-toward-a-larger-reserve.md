@@ -6,13 +6,13 @@ kind: ravenclaude-built
 entry_class: inventory
 order: 941
 summary: "The %-of-cap per dollar rate counts only spend the meter actually saw, so missing spend inflates it and enlarges the reserve held for Routines — the safe direction. Over-counting is what starves them."
-last_verified: 2026-09-24
+last_verified: 2026-10-01
 covers:
   - plugins/ravenclaude-core/scripts/routine-reserve.py
   - plugins/ravenclaude-core/scripts/routine-reserve-hook.sh
   - plugins/ravenclaude-core/skills/routine-reserve/SKILL.md
   - plugins/ravenclaude-core/commands/routine-reserve.md
-covers_digest: "sha256:25af15d0d2737f1fae3628c7a1b9be85f46913ddab05c1a6bcbef9bbafa9bb47"
+covers_digest: "sha256:854c649cd66f495103382a858745e432eedabb80ebcb5a505f3433473719e6c3"
 nuance: "k = weekly % / metered spend. A session first seen mid-week counts only its growth after that\nsnapshot (unless created inside the window), so unseen spend RAISES k and the reserve —\nthe safe error. Over-counting (double-counted or pre-window cost) is what starves Routines."
 nuance_evidence:
   measured: 2026-09-24

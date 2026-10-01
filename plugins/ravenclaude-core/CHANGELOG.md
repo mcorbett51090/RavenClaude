@@ -2,6 +2,22 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.326.1 — 2026-10-01
+
+### Fixed
+
+- **Routine token reserve — a far-future `resets_at` no longer hangs at 100% CPU.** `ingest_statusline`
+  writes the statusline's `resets_at` verbatim with no unit/range check, and `parse_ts` reads a bare
+  number as epoch **seconds** — so a `resets_at` in epoch **milliseconds** (or a corrupted/clock-skewed
+  value) became a year-~56800 projection horizon, and `Cron.count_between` walked it minute-by-minute
+  (~5e10 iterations) at 100% CPU in the detached `SessionStart` refresh, the `compute`/`status` CLI, and
+  the dashboard `GET /__reserve` thread. `project()` now discards a reset more than ~2 weeks out (a 7-day
+  window never resets that far ahead), falling back to `now + WEEK_S` exactly as the rolled-over case
+  does, and `count_between` carries a belt-and-suspenders one-year iteration cap. Behaviour is unchanged
+  for every valid in-window reset (verified: a valid ISO reset 3 days out is not clamped). Gate 291
+  gained section G (the clamp fires on an epoch-ms/corrupt value with no hang; a valid reset is
+  untouched; `count_between` is bounded).
+
 ## 0.326.0 — 2026-09-24
 
 ### Added
