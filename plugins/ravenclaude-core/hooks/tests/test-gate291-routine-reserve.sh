@@ -157,6 +157,38 @@ else
   printf '%s\n' "$out" | tail -5 | sed 's/^/      /'
 fi
 
+echo "── G: far-future resets_at is clamped — no minute-by-minute 100% CPU hang"
+if out="$(python3 - "$ENGINE" 2>&1 <<'PY'
+import importlib.util, sys, time
+spec = importlib.util.spec_from_file_location("rr", sys.argv[1])
+rr = importlib.util.module_from_spec(spec); spec.loader.exec_module(rr)
+now = time.time(); cfg = rr.load_config()
+# A resets_at in epoch MILLISECONDS (parse_ts reads a bare number as seconds -> year ~56800).
+# Unclamped this spun count_between minute-by-minute (~5e10 iters) at 100% CPU.
+ms = str(int((now + 3 * 86400) * 1000))
+t0 = time.time()
+res = rr.project(samples=[], reading={"resets_at": ms, "seven_day_pct": 42.0, "captured_at": now},
+                 override=None, cfg=cfg, now=now, history=[])
+assert time.time() - t0 < 5, "project() still hangs on a far-future resets_at"
+assert res["reset_assumed"] is True, "clamp did not discard the far-future reset"
+# A VALID reset within the window must be untouched (the clamp changes nothing on valid input).
+import datetime as dt
+iso = dt.datetime.fromtimestamp(now + 3 * 86400, dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+r2 = rr.project(samples=[], reading={"resets_at": iso, "seven_day_pct": 42.0, "captured_at": now},
+                override=None, cfg=cfg, now=now, history=[])
+assert r2["reset_assumed"] is False, "a valid in-window reset was wrongly clamped"
+# Belt-and-suspenders: count_between terminates on a far-future end even if a caller bypasses the clamp.
+t0 = time.time(); rr.Cron("0 * * * *").count_between(now, now + 86400 * 1000)
+assert time.time() - t0 < 10, "count_between still unbounded on a far-future end"
+print("ok")
+PY
+)"; then
+  pass "epoch-ms/corrupt resets_at clamped (no hang); valid in-window reset unchanged; count_between bounded"
+else
+  fail "clamp/cap regression:"
+  printf '%s\n' "$out" | tail -5 | sed 's/^/      /'
+fi
+
 echo ""
 if [ "$fails" -eq 0 ]; then
   echo "Gate 291 PASS — routine token reserve: fixtures match, DOW mutant rejected, samples allow-listed, advise hook opt-in + once-per-band, statusline pass-through."
