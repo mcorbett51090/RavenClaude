@@ -2,6 +2,27 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.326.1 — 2026-10-02
+
+### Fixed
+
+- **Hooks no longer need PyYAML. A fresh Mac's first command stops failing.** A stock macOS
+  `python3` (Xcode Command Line Tools or Homebrew) has no PyYAML. Without it the command-review
+  tribunal (`thing-orchestrator.sh` → `thing-decision.py`) could not parse the posture or the
+  concern catalog. It failed closed and **denied every Bash command, `ls` included**, with a
+  misleading "would tamper with the Thing" reason. A pure-Python PyYAML 6.0.3 (MIT, copied verbatim
+  from the PyPI sdist, sha256-pinned in `scripts/vendor/README.md`) now ships in
+  `scripts/vendor/yaml/`. All seven yaml-importing sites append that directory to `sys.path`:
+  `thing-decision.py`, `thing-concerns.py`, `thing-harden.py`, `apply-comfort-posture.py`, both
+  `serve-dashboards.py` copies, and the inline snippets in `dod-gate.sh` and `guard-web-access.sh`.
+  An installed PyYAML still wins. The vendored copy parses the concern catalog identically.
+  `definition_of_done.trusted` / `web_access.trusted` were silently ignored without PyYAML and are
+  now honoured. Nothing is auto-installed: Homebrew Python refuses `pip install` (PEP 668), and a
+  guardrail hook that runs `pip` would be an unapproved supply-chain change. **Gate 292** simulates a
+  PyYAML-less `python3` and checks four things: read-only commands are not denied, a hard rule is
+  still denied, the catalog matches installed PyYAML, and the teeth case (removing `scripts/vendor/`
+  brings the deny back).
+
 ## 0.326.0 — 2026-09-24
 
 ### Added

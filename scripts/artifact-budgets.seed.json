@@ -274,6 +274,11 @@
         "Routine reserve dashboard tab (routine token reserve PR 2, core 0.326.0, 2026-09-24)",
         10910000,
         "Reserve tab (#/reserve): panel skeleton, CSS and render/override JS in the standalone dashboard. dashboard.html 10,903,947 bytes > prior 10,900,000 by 3,947 (0.00 MB). Island payload unchanged (32,958 <= 33,000). Re-measured on this branch head; appended, never edited."
+      ],
+      [
+        "pyyaml-vendored-fallback inventory entry (no-PyYAML hook fallback, core 0.326.1, Gate 292 inception, 2026-10-02)",
+        10920000,
+        "core 0.326.1 vendors a pure-Python PyYAML into scripts/vendor/ so the hooks work on a stock macOS python3; check-inception-coverage required the 19 new vendor files to be named in covers[], so one new inventory concept (pyyaml-vendored-fallback) covers them, plus four cosmetic covers_digest restamps. dashboard.html 10,913,078 bytes > prior 10,910,000 by 3,078 (0.00 MB) -- the new concept card. Same no-diagrams-for-inventory-entries shape as every prior wave. Re-measured on this branch head; appended, never edited."
       ]
     ],
     "index.html": [
@@ -340,5 +345,5 @@
       ]
     ]
   },
-  "measured_against": "4f3ced16450dfb8da4c1910c631d992026a44ef1"
+  "measured_against": "121432c033df9d42672948acc6df73631ec695e3"
 }

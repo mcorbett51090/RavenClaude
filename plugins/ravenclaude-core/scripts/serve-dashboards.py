@@ -51,6 +51,9 @@ from pathlib import Path
 
 # The plugin install dir (…/ravenclaude-core/<version>/) — static files come from here.
 PLUGIN_DIR = Path(__file__).resolve().parent.parent
+# PyYAML fallback (stock macOS python3 has none): vendored pure-Python copy in
+# scripts/vendor/. APPENDED, so an installed PyYAML still wins. See vendor/README.md.
+sys.path.append(str(PLUGIN_DIR / "scripts" / "vendor"))
 # The marketplace checkout root (the dir that contains plugins/). A CONSUMER launcher must
 # never target this — the guard in main() refuses an explicit --project-root pointing here,
 # so a consumer-repo dashboard can only edit its own repo, never the marketplace.

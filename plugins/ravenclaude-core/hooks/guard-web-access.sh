@@ -177,6 +177,7 @@ if match_host "$host" "${allow_list[@]:-}"; then
     # (bash 3.2 mis-parses that nesting — see the audit-gates gate).
     IFS= read -r -d '' __WEB_TRUSTED_PY <<'PY' || true
 import sys
+if len(sys.argv) > 2: sys.path.append(sys.argv[2])  # vendored PyYAML fallback
 try:
     import yaml
     d = yaml.safe_load(open(sys.argv[1], encoding="utf-8")) or {}
@@ -185,7 +186,8 @@ except Exception:
 wa = d.get("web_access") or {}
 print("true" if (isinstance(wa, dict) and wa.get("trusted") is True) else "false")
 PY
-    web_trusted="$(python3 -c "$__WEB_TRUSTED_PY" "$posture" 2>/dev/null || echo "false")"
+    _yaml_vendor="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")/.." 2>/dev/null && pwd)/scripts/vendor"
+    web_trusted="$(python3 -c "$__WEB_TRUSTED_PY" "$posture" "$_yaml_vendor" 2>/dev/null || echo "false")"
   fi
 
   if [ "$web_trusted" = "true" ]; then
