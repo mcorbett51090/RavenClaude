@@ -78,6 +78,25 @@ if [ -f "$sample" ]; then
 else
   fail "meter-append produced no file: $sample"
 fi
+# The same raw files re-indented, as a format-on-write hook leaves a saved .json:
+# `{` and the first key end up on different lines, and every record must still parse.
+RAW2="$TMP/raw-pretty"
+mkdir -p "$RAW2/sessions"
+cp "$RAW/env.json" "$RAW2/env.json"
+python3 -c 'import json,sys; json.dump(json.load(open(sys.argv[1])), open(sys.argv[2], "w"), indent=2)' \
+  "$RAW/triggers.json" "$RAW2/triggers.json"
+{
+  echo '<other-session nonce="x" untrusted="true">'
+  sed -n 2p "$RAW/sessions/session_abc.json" | python3 -c 'import json,sys; print(json.dumps(json.load(sys.stdin), indent=4))'
+  echo '</other-session nonce="x">'
+} >"$RAW2/sessions/session_abc.json"
+sample2="$(python3 "$ENGINE" meter-append --raw "$RAW2" --out "$TMP/samples-pretty" 2>&1)"
+if [ -f "$sample2" ] && grep -q '"kind": "trigger"' "$sample2" && grep -q '"kind": "run"' "$sample2" \
+  && grep -q '"cost_usd": 0.5' "$sample2"; then
+  pass "pretty-printed raw files parse to the same trigger, run and cost records"
+else
+  fail "pretty-printed raw files lost records: $(cat "$sample2" 2>/dev/null | head -c 400)"
+fi
 
 echo "── D: advise hook — opt-in, once per band, escalates"
 prompt_payload() { printf '{"session_id":"%s","hook_event_name":"UserPromptSubmit","prompt":"hi"}' "$1"; }

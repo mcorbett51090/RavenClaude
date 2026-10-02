@@ -260,17 +260,20 @@ class Cron:
 # ── raw MCP output parsing (meter side) ─────────────────────────────────────
 
 
-def _extract_json(text: str, marker: str):
+def _extract_json(text: str, key: str):
     """Tool results can arrive wrapped (e.g. an untrusted-session envelope around a
-    get_session result). Decode the first JSON object that starts at `marker`."""
-    idx = text.find(marker)
-    if idx < 0:
-        return None
-    try:
-        obj, _ = json.JSONDecoder().raw_decode(text[idx:])
-    except ValueError:
-        return None
-    return obj
+    get_session result) or re-indented (a format-on-write hook pretty-prints a saved
+    .json file). Decode the first JSON object whose first key is `key`, allowing any
+    whitespace between the brace, the key and its colon."""
+    decoder = json.JSONDecoder()
+    for m in re.finditer(r'\{\s*"' + re.escape(key) + r'"\s*:', text):
+        try:
+            obj, _ = decoder.raw_decode(text, m.start())
+        except ValueError:
+            continue
+        if isinstance(obj, dict):
+            return obj
+    return None
 
 
 def _norm_session(sid) -> str | None:
@@ -283,22 +286,22 @@ def _norm_session(sid) -> str | None:
 
 
 def parse_triggers(text: str) -> list[dict]:
-    obj = _extract_json(text, '{"data"')
+    obj = _extract_json(text, "data")
     if not isinstance(obj, dict):
         return []
     return [t for t in obj.get("data") or [] if isinstance(t, dict)]
 
 
 def parse_session(text: str) -> dict | None:
-    obj = _extract_json(text, '{"ccr"')
+    obj = _extract_json(text, "ccr")
     if not isinstance(obj, dict) or not isinstance(obj.get("ccr"), dict):
         return None
     return obj["ccr"]
 
 
 def parse_session_list(text: str) -> list[dict]:
-    for marker in ('{"data"', '{"sessions"'):
-        obj = _extract_json(text, marker)
+    for key in ("data", "sessions"):
+        obj = _extract_json(text, key)
         if isinstance(obj, dict):
             items = obj.get("data") or obj.get("sessions") or []
             return [s for s in items if isinstance(s, dict)]

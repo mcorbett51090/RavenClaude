@@ -3000,7 +3000,7 @@
         "scripts/sync-plugin-versions.py",
         "scripts/generate-copilot-plugin.py"
       ],
-      "covers_digest": "sha256:15584bf335595f254b10eaf8f68ffa6b096568823bf5dc8b49365707c5876c3c",
+      "covers_digest": "sha256:b8b4569a39b93cc3b2fdc46cefac1fa57361534af613d0df407271f63931da21",
       "nuance": "The cache key is the `version` string, never a content hash, so `sync-plugin-versions.py` can report clean while every installed session keeps running the old `hooks/` code.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -3062,7 +3062,7 @@
         "scripts/inventory-nuance-judge.py",
         "plugins/ravenclaude-core/scripts/forge-receipt.py"
       ],
-      "covers_digest": "sha256:f5e40d584601e7d5eb765a56267d7c2f936bd979b454856a73a39948e20ffb54",
+      "covers_digest": "sha256:2062d3e214a846cdbbdce0a4f7c46c6e710ded5f56744bab7cc66a97d88b9ea1",
       "nuance": "The teeth bit is the exit a tool own CHECK returns on a planted defect, never the exit `--must-fail` itself returns: `premise-gate.py` denies at `exit 0` while `sync-plugin-versions.py` reddens at `exit 2`, so an auditor that hard-codes one number can never be right for both.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -3469,7 +3469,7 @@
         "scripts/generate-dashboards.py",
         "scripts/generate-index-dashboard.py"
       ],
-      "covers_digest": "sha256:b6303017e2655c4a6b43dcbc2274d6b8559ec30f90a353553496f6848d4107c9",
+      "covers_digest": "sha256:eceea9474312f71bd2def64a267c4d635d8c7f8f50e8ceacfa4348f83f1b1d40",
       "nuance": "`ISLANDED_PANEL_COST` is a flat 2 because the parser reads the payload as CDATA, so `check-dom-budget.py` cannot fire on `learn-payload` no matter how far past 23,861 elements it grows.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -4740,7 +4740,7 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-09-24",
+      "last_verified": "2026-10-02",
       "refresh_when": null,
       "sources": [
         {
@@ -4761,7 +4761,7 @@
         "plugins/ravenclaude-core/skills/routine-reserve/SKILL.md",
         "plugins/ravenclaude-core/commands/routine-reserve.md"
       ],
-      "covers_digest": "sha256:25af15d0d2737f1fae3628c7a1b9be85f46913ddab05c1a6bcbef9bbafa9bb47",
+      "covers_digest": "sha256:49ddda79dde6250b45e2d984272a60d6c87eb2e8eb0a4e784f1b9feccb0cef1b",
       "nuance": "k = weekly % / metered spend. A session first seen mid-week counts only its growth after that\nsnapshot (unless created inside the window), so unseen spend RAISES k and the reserve —\nthe safe error. Over-counting (double-counted or pre-window cost) is what starves Routines.",
       "nuance_evidence": {
         "measured": "2026-09-24",
@@ -4769,7 +4769,7 @@
         "falsifier": "a fixture where a session first seen mid-window contributes its full cumulative cost to window_spend, or where removing spend lowers the recommended reserve",
         "probe": "plugins/ravenclaude-core/hooks/tests/test-gate291-routine-reserve.sh"
       },
-      "nuance_source": "plugins/ravenclaude-core/scripts/routine-reserve.py:549-585",
+      "nuance_source": "plugins/ravenclaude-core/scripts/routine-reserve.py:552-588",
       "verify": {
         "tier": "effect",
         "strength": "executed",

@@ -2,7 +2,7 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
-## 0.326.1 — 2026-10-02
+## 0.326.2 — 2026-10-02
 
 ### Fixed
 
@@ -22,6 +22,31 @@ All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the 
   PyYAML-less `python3` and checks four things: read-only commands are not denied, a hard rule is
   still denied, the catalog matches installed PyYAML, and the teeth case (removing `scripts/vendor/`
   brings the deny back).
+
+## 0.326.1 — 2026-10-02
+
+### Fixed
+
+- **Routine token reserve — the meter no longer loses a re-indented raw file.** The engine found the
+  JSON object in a saved tool result by searching for the exact text `{"data"` / `{"ccr"`. A raw file
+  that had been pretty-printed — by a format-on-write hook, or by a model saving the result with
+  indentation — has a newline between the brace and the key, so `meter-append` silently recorded
+  **zero** triggers, runs and costs for that firing (observed 2026-10-02 on the first real sample).
+  Extraction now accepts any whitespace between the brace, the key and its colon, and skips a match
+  that does not decode to an object rather than giving up. Gate 291 section C gained a case that
+  re-indents the raw files and requires the same trigger, run and cost records; the pre-fix engine
+  produces none of them. The engine's sha256 changes, so re-run `/routine-reserve setup` to refresh
+  the copy on your data branch and the hash pinned in your meter Routine.
+- **Routine token reserve — a dashboard Save no longer turns the reserve off.** `emitYaml()` rebuilds
+  the whole `comfort-posture.yaml` from `state`, and the five `routine_reserve*` keys had no state
+  slot, so any **Save & apply** silently deleted them: the v0.61.0 data-loss class that already hit
+  `context_handoff` and `cheap_lane`. They now round-trip:
+  - Hydrate validates against exactly what the engine accepts (`off | advise | guard`, an
+    `owner/repo` home, numbers ≥ 0).
+  - Emit writes a key only when it differs from the default.
+  - There is no new DOM control.
+
+  Gate 35 gained the round-trip, a validation test and a must-fail mutant.
 
 ## 0.326.0 — 2026-09-24
 

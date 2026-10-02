@@ -104,6 +104,11 @@ const pieces = [
   app.match(/const CHEAP_LANE_AGENT_VALUES = \[[^\]]*\];/)[0],
   app.match(/const CHEAP_LANE_AGENT_DEFAULT = [^;]*;/)[0],
   extract(app, "const CHEAP_LANE_DEFAULT ="),
+  // Routine token reserve (v0.61.0 data-loss class, found 2026-10-02) — five flat keys.
+  app.match(/const ROUTINE_RESERVE_MODE_VALUES = \[[^\]]*\];/)[0],
+  app.match(/const ROUTINE_RESERVE_HOME_RE = [^;]*;/)[0],
+  app.match(/const ROUTINE_RESERVE_NUM_MAX = [^;]*;/)[0],
+  extract(app, "const ROUTINE_RESERVE_DEFAULT ="),
   // Handoff tax (model-tier delegation, v0.61.0 data-loss class) — pin enum + cap defaults + freeze default.
   app.match(/const HANDOFF_TAX_PIN_VALUES = \[[^\]]*\];/)[0],
   app.match(/const HANDOFF_TAX_PIN_DEFAULT = [^;]*;/)[0],
@@ -182,6 +187,7 @@ function _freshState() {
     context_handoff: Object.assign({}, CONTEXT_HANDOFF_DEFAULT),
     advisory_knobs: Object.assign({}, ADVISORY_KNOBS_DEFAULT),
     cheap_lane: Object.assign({}, CHEAP_LANE_DEFAULT),
+    routine_reserve: Object.assign({}, ROUTINE_RESERVE_DEFAULT),
     handoff_tax: Object.assign({}, HANDOFF_TAX_DEFAULT),
     model_matrix: { surfaces: Object.assign({}, MODEL_MATRIX_SURFACES_DEFAULT) },
     alias_deprecation: Object.assign({}, ALIAS_DEPRECATION_DEFAULT),
@@ -792,6 +798,72 @@ function check(name, cond) {
     /^    explore_pin: off$/m.test(api.emitYaml()),
   );
   check("pin_explore: off Save never writes old key", !/^  pin_explore:/m.test(api.emitYaml()));
+}
+
+// ── Test 11: routine token reserve — five FLAT top-level keys that shipped with no
+//            state slot, so every Save silently deleted them and turned the reserve
+//            off (verified 2026-10-02: all five absent from emitYaml() before this
+//            fix while decision_review survived the same round-trip). ──────────────
+{
+  api._set(api._freshState());
+  api.applyGuardrailConfig({
+    routine_reserve: "advise",
+    routine_reserve_home: "acme/ravenclaude-usage",
+    routine_reserve_margin_pct: 25,
+    routine_reserve_warn_points: "7",
+    routine_reserve_weekly_budget_usd: 120.5,
+  });
+  const yaml = api.emitYaml();
+  check("routine_reserve mode survives a Save", /^routine_reserve: advise$/m.test(yaml));
+  check(
+    "routine_reserve_home survives a Save",
+    /^routine_reserve_home: acme\/ravenclaude-usage$/m.test(yaml),
+  );
+  check(
+    "routine_reserve_margin_pct survives a Save",
+    /^routine_reserve_margin_pct: 25$/m.test(yaml),
+  );
+  check(
+    "routine_reserve_warn_points (string form) survives",
+    /^routine_reserve_warn_points: 7$/m.test(yaml),
+  );
+  check(
+    "routine_reserve_weekly_budget_usd survives a Save",
+    /^routine_reserve_weekly_budget_usd: 120.5$/m.test(yaml),
+  );
+
+  // Absent ⇒ default: an untouched posture emits none of the keys.
+  api._set(api._freshState());
+  check("all-default routine reserve emits nothing", !/^routine_reserve/m.test(api.emitYaml()));
+
+  // Mode-only (the common shape) emits just the mode line.
+  api._set(api._freshState());
+  api.applyGuardrailConfig({ routine_reserve: "guard" });
+  const mo = api.emitYaml();
+  check("mode-only emits the mode", /^routine_reserve: guard$/m.test(mo));
+  check("mode-only emits no numeric knob", !/^routine_reserve_(margin|warn|weekly)/m.test(mo));
+
+  // Values the engine would refuse are refused here too, so a Save never writes them.
+  api._set(api._freshState());
+  api.applyGuardrailConfig({
+    routine_reserve: "maybe",
+    routine_reserve_home: "not a repo; rm -rf /",
+    routine_reserve_margin_pct: -5,
+    routine_reserve_warn_points: "NaN",
+  });
+  const bad = api.emitYaml();
+  check("unknown mode rejected on hydrate", api._get().routine_reserve.mode === "off");
+  check("malformed home rejected on hydrate", api._get().routine_reserve.home === "");
+  check("negative number rejected on hydrate", api._get().routine_reserve.margin_pct === 20);
+  check("rejected values emit nothing", !/^routine_reserve/m.test(bad));
+
+  // YAML `off` parses to boolean false — still means off, and off is the default (not emitted).
+  api._set(api._freshState());
+  api.applyGuardrailConfig({ routine_reserve: false });
+  check(
+    "routine_reserve: off (boolean) hydrates to off",
+    api._get().routine_reserve.mode === "off",
+  );
 }
 
 if (failures) {

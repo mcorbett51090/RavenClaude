@@ -9323,6 +9323,20 @@ _JS = r"""
   const CHEAP_LANE_AGENT_VALUES = ["grok", "copilot"];
   const CHEAP_LANE_AGENT_DEFAULT = "grok";
   const CHEAP_LANE_DEFAULT = Object.freeze({ mode: "off", tier: "fast", agent: "grok" });
+  /* Routine token reserve (v0.325.0+) — five FLAT top-level keys read by
+   * scripts/routine-reserve.py load_config() and the routine-reserve hook. They
+   * shipped with no state slot, so every Save silently deleted them and turned the
+   * reserve off (the v0.61.0 data-loss class, found 2026-10-02). Validated against
+   * exactly what the engine accepts: mode off|advise|guard, home owner/repo
+   * ([\w.-]+/[\w.-]+), numbers >= 0. Emitted only when non-default, so an untouched
+   * posture stays absent. NO DOM control — state-slot round-trip only (cheap_lane
+   * pattern); the Reserve tab edits the weekly override, not these knobs. */
+  const ROUTINE_RESERVE_MODE_VALUES = ["off", "advise", "guard"];
+  const ROUTINE_RESERVE_HOME_RE = /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/;
+  const ROUTINE_RESERVE_NUM_MAX = 1000000;
+  const ROUTINE_RESERVE_DEFAULT = Object.freeze({
+    mode: "off", home: "", margin_pct: 20, warn_points: 5, weekly_budget_usd: 0,
+  });
   /* Handoff tax (model-tier delegation) — meter caps + scalar `off` only.
    * Phase D (0.323.14): Explore pin WRITE path moved to model_matrix.surfaces.
    * explore_pin; handoff_tax.pin_explore is still READ as a one-release alias
@@ -9490,6 +9504,7 @@ _JS = r"""
      * No DOM control (worktree_bound pattern) — cheap-lane-delegate.sh /
      * grok-delegate.sh / route-task.py own the semantics, we only preserve. */
     cheap_lane: Object.assign({}, CHEAP_LANE_DEFAULT),
+    routine_reserve: Object.assign({}, ROUTINE_RESERVE_DEFAULT),
     /* Handoff tax (caps + off). Pin write path is model_matrix.surfaces. */
     handoff_tax: Object.assign({}, HANDOFF_TAX_DEFAULT),
     /* UMM surfaces — Phase D dashboard write SSOT for explore/precompact/handoff. */
@@ -10016,6 +10031,24 @@ _JS = r"""
       if (CHEAP_LANE_TIER_VALUES.includes(cl.tier)) { state.cheap_lane.tier = cl.tier; touched = true; }
       if (CHEAP_LANE_AGENT_VALUES.includes(cl.agent)) { state.cheap_lane.agent = cl.agent; touched = true; }
     }
+    /* Routine token reserve — flat keys (v0.61.0 data-loss class). */
+    if (ROUTINE_RESERVE_MODE_VALUES.includes(src.routine_reserve)) {
+      state.routine_reserve.mode = src.routine_reserve; touched = true;
+    } else if (src.routine_reserve === false) {
+      state.routine_reserve.mode = "off"; touched = true;  /* YAML `off` parses to false */
+    }
+    if (typeof src.routine_reserve_home === "string"
+        && ROUTINE_RESERVE_HOME_RE.test(src.routine_reserve_home.trim())) {
+      state.routine_reserve.home = src.routine_reserve_home.trim(); touched = true;
+    }
+    for (const [yk, sk] of [["routine_reserve_margin_pct", "margin_pct"],
+                            ["routine_reserve_warn_points", "warn_points"],
+                            ["routine_reserve_weekly_budget_usd", "weekly_budget_usd"]]) {
+      const n = typeof src[yk] === "number" ? src[yk] : parseFloat(src[yk]);
+      if (Number.isFinite(n) && n >= 0 && n <= ROUTINE_RESERVE_NUM_MAX) {
+        state.routine_reserve[sk] = n; touched = true;
+      }
+    }
     /* model_matrix.surfaces (UMM / Phase D write SSOT). New keys win. */
     const mm = src.model_matrix;
     if (mm && typeof mm === "object" && mm.surfaces && typeof mm.surfaces === "object") {
@@ -10423,6 +10456,26 @@ _JS = r"""
       if (clnMode) lines.push(`  mode: ${cln.mode}`);
       if (clnTier) lines.push(`  tier: ${cln.tier}`);
       if (clnAgent) lines.push(`  agent: ${cln.agent}`);
+      lines.push("");
+    }
+
+    /* Routine token reserve — emit each FLAT key only when it differs from the
+     * engine default, so "absent ⇒ default" holds and a Save preserves what the
+     * owner set (v0.61.0 data-loss class). Read by scripts/routine-reserve.py. */
+    const rr = state.routine_reserve;
+    const rrNum = (k) => Number.isFinite(rr[k]) && rr[k] >= 0 && rr[k] <= ROUTINE_RESERVE_NUM_MAX
+      && rr[k] !== ROUTINE_RESERVE_DEFAULT[k];
+    const rrLines = [];
+    if (ROUTINE_RESERVE_MODE_VALUES.includes(rr.mode) && rr.mode !== ROUTINE_RESERVE_DEFAULT.mode) {
+      rrLines.push(`routine_reserve: ${rr.mode}`);
+    }
+    if (rr.home && ROUTINE_RESERVE_HOME_RE.test(rr.home)) rrLines.push(`routine_reserve_home: ${rr.home}`);
+    if (rrNum("margin_pct")) rrLines.push(`routine_reserve_margin_pct: ${rr.margin_pct}`);
+    if (rrNum("warn_points")) rrLines.push(`routine_reserve_warn_points: ${rr.warn_points}`);
+    if (rrNum("weekly_budget_usd")) rrLines.push(`routine_reserve_weekly_budget_usd: ${rr.weekly_budget_usd}`);
+    if (rrLines.length) {
+      lines.push("# Routine token reserve — keep weekly cap for your claude.ai Routines.");
+      for (const l of rrLines) lines.push(l);
       lines.push("");
     }
 

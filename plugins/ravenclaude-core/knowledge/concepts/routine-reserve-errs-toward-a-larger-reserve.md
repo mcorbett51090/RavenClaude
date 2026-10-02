@@ -6,20 +6,20 @@ kind: ravenclaude-built
 entry_class: inventory
 order: 941
 summary: "The %-of-cap per dollar rate counts only spend the meter actually saw, so missing spend inflates it and enlarges the reserve held for Routines — the safe direction. Over-counting is what starves them."
-last_verified: 2026-09-24
+last_verified: 2026-10-02
 covers:
   - plugins/ravenclaude-core/scripts/routine-reserve.py
   - plugins/ravenclaude-core/scripts/routine-reserve-hook.sh
   - plugins/ravenclaude-core/skills/routine-reserve/SKILL.md
   - plugins/ravenclaude-core/commands/routine-reserve.md
-covers_digest: "sha256:25af15d0d2737f1fae3628c7a1b9be85f46913ddab05c1a6bcbef9bbafa9bb47"
+covers_digest: "sha256:49ddda79dde6250b45e2d984272a60d6c87eb2e8eb0a4e784f1b9feccb0cef1b"
 nuance: "k = weekly % / metered spend. A session first seen mid-week counts only its growth after that\nsnapshot (unless created inside the window), so unseen spend RAISES k and the reserve —\nthe safe error. Over-counting (double-counted or pre-window cost) is what starves Routines."
 nuance_evidence:
   measured: 2026-09-24
   control: "fixture 05-calibrated: three sessions created inside the window count from zero (0.6) while a long session created before it counts only its in-window growth (59.4 - 50.0 = 9.4); total 10.0, k_week = 12 / 10 = 1.2, reproduced exactly by self-test"
   falsifier: "a fixture where a session first seen mid-window contributes its full cumulative cost to window_spend, or where removing spend lowers the recommended reserve"
   probe: "plugins/ravenclaude-core/hooks/tests/test-gate291-routine-reserve.sh"
-nuance_source: "plugins/ravenclaude-core/scripts/routine-reserve.py:549-585"
+nuance_source: "plugins/ravenclaude-core/scripts/routine-reserve.py:552-588"
 verify:
   tier: "effect"
   strength: "executed"
