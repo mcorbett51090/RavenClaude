@@ -69,6 +69,28 @@ the weekly percentage with its source and age, the effective reserve and the lin
 - Both endpoints call the engine's own `set_override` / `clear_override`, so the command and the tab
   cannot drift apart.
 
+## Guard mode
+
+`routine_reserve: guard` keeps everything `advise` does and adds a `PreToolUse` check on autonomous
+work: `Workflow`, `ScheduleWakeup`, `CronCreate`, a background `Agent` (the default; an explicit
+`run_in_background: false` is not guarded), and a Remote MCP call that starts or feeds a session or
+Routine (`create_session`, `send_message`, `fire_trigger`, `create_trigger`).
+
+| Situation | What it does |
+|---|---|
+| State `over`, a live statusline reading, an attended interactive session, not a subagent | **Asks** before the call. Approving allows autonomous work for the rest of that session this week. |
+| The same, while that ask is pending or was just declined (90 s) | **Denies** with the reason, so parallel calls raise one ask, not several. |
+| State `warn` or `infeasible`; or headless (`CLAUDE_CODE_SESSION_ATTENDED` ≠ 1), an SDK/Actions entrypoint, a subagent's own call, or an estimated reading | **Warns** once per band, never asks. |
+| State `ok` or `unknown`, or any other tool | Silent. |
+
+**Consent is recorded only after the asked call actually ran.** A `PreToolUse` hook cannot see the
+answer to its own ask, so the `PostToolUse` half records consent when the guarded tool runs; a
+declined ask never reaches `PostToolUse`. When the payload carries `tool_use_id`, only the call that
+was asked about can grant it. Consent is per session and per week: a new weekly reset asks again.
+
+**Escape.** Move the line with `/routine-reserve override <pct>` (or the dashboard Reserve tab), or set
+`routine_reserve: advise`. The guard state lives in `~/.ravenclaude/usage/guard/<session>.json`.
+
 ## Safety properties
 
 - **The error runs in the safe direction.** Spend is only counted where it is known (a session first

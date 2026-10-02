@@ -2,6 +2,27 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.327.0 — 2026-10-02
+
+### Added
+
+- **Routine token reserve — guard mode (PR 3 of 3).** `routine_reserve: guard` keeps everything
+  `advise` does and adds a `PreToolUse` check on autonomous work:
+  - **What it guards:** `Workflow`, `ScheduleWakeup`, `CronCreate`, a background `Agent`, and Remote
+    `create_session` / `send_message` / `fire_trigger` / `create_trigger`.
+  - **When it asks:** usage is past the line held for your claude.ai Routines, in an attended
+    interactive session (not a subagent), on a live statusline reading.
+  - **Everywhere else it warns** once per band and never asks. A headless `ask` is a denial, so a
+    Routine is never stalled.
+  - **One ask for parallel calls:** a locked per-session record raises a single ask, and a pending
+    or just-declined ask denies further guarded calls for 90 s.
+  - **Consent is recorded only after the asked call actually ran** (the new `PostToolUse` lane),
+    matched on `tool_use_id`. It is per session and per week.
+
+  The escape is `/routine-reserve override <pct>` or `routine_reserve: advise`. Gate 291 gained
+  section G (19 assertions), including a mutant whose interactivity check always passes, which has
+  to ask headless. Copilot, Codex and Gemini skip the new lanes, as they already skip this hook.
+
 ## 0.326.2 — 2026-10-02
 
 ### Fixed

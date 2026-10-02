@@ -120,6 +120,17 @@
             "comment": "Marketplace-dev mirror of the plugin's hooks/hooks.json PostToolUse(mcp__.*) entry. Deterministic prompt-injection quarantine of MCP tool results (the sanitize-webfetch-output.sh sibling, extended from WebFetch to any mcp__* call, #928). Reuses sanitize-webfetch-body.py. Fail-open: parse/IO/sanitizer errors exit 0 and leave the original result. Same script consumers get via ${CLAUDE_PLUGIN_ROOT}."
           }
         ]
+      },
+      {
+        "matcher": "Workflow|ScheduleWakeup|CronCreate|Agent|Task|mcp__.*__(create_session|send_message|fire_trigger|create_trigger)",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PROJECT_DIR}/plugins/ravenclaude-core/scripts/routine-reserve-hook.sh\" --event consent",
+            "timeout": 10,
+            "comment": "Routine token reserve, guard-mode consent (OPT-IN, `routine_reserve: guard`). The guarded tool ran, so the ask raised for it was approved: records consent for this session and week. A declined ask never reaches PostToolUse, so a refusal is never recorded as consent. FAIL-SAFE: always exits 0, prints nothing."
+          }
+        ]
       }
     ],
     "PreToolUse": [
@@ -243,6 +254,17 @@
             "type": "command",
             "command": "bash ${CLAUDE_PROJECT_DIR}/plugins/ravenclaude-core/scripts/guard-cause-closure.sh",
             "comment": "Marketplace-dev mirror of the plugin's Phase 6 cause-closure gate."
+          }
+        ]
+      },
+      {
+        "matcher": "Workflow|ScheduleWakeup|CronCreate|Agent|Task|mcp__.*__(create_session|send_message|fire_trigger|create_trigger)",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PROJECT_DIR}/plugins/ravenclaude-core/scripts/routine-reserve-hook.sh\" --event guard",
+            "timeout": 10,
+            "comment": "Routine token reserve, guard mode (OPT-IN: no-op unless .ravenclaude/comfort-posture.yaml sets `routine_reserve: guard`). Before autonomous work (a Workflow, ScheduleWakeup, CronCreate, a background Agent; an explicit run_in_background=false is not guarded; or a Remote session/Routine call) it ASKS when weekly usage is past the line held for your claude.ai Routines, but only in an attended interactive session (not a subagent) on a live statusline reading; everywhere else it warns once per band. A headless ask is a denial, so it never asks where no person can answer and never stalls a Routine. Parallel calls raise ONE ask (a locked per-session record); a declined or pending ask denies further guarded calls for 90s. FAIL-SAFE: always exits 0. Reference: knowledge/routine-token-reserve.md."
           }
         ]
       }

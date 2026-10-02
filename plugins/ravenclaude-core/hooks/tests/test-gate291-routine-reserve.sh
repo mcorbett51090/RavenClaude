@@ -14,6 +14,10 @@
 #     stays quiet on a repeat, speaks again on escalation; never exits non-zero.
 #   E statusline: ingest-statusline records the weekly reading AND passes the wrapped
 #     command's output through unchanged; junk stdin never breaks the wrapped output.
+#   G guard: asks before autonomous work only in an attended interactive session on a live
+#     reading; one ask for parallel calls; consent only after the asked call ran; a new week
+#     asks again; headless / SDK / subagent / estimated -> warn, never ask. Teeth: an
+#     always-interactive mutant must ask headless.
 set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
@@ -176,9 +180,91 @@ else
   printf '%s\n' "$out" | tail -5 | sed 's/^/      /'
 fi
 
+echo "── G: guard mode — asks only where a person can answer; one ask; consent only after the asked call ran"
+guard_payload() { # $1=session $2=tool $3=tool_use_id [$4=tool_input json] [$5=extra top-level fields]
+  # Not "${4:-{\}}": bash 3.2 (stock macOS) keeps the backslash and yields `{\}`, which is
+  # invalid JSON, so every guarded call reads as junk stdin and the asks silently vanish.
+  local input="${4:-}"
+  [ -n "$input" ] || input='{}'
+  printf '{"session_id":"%s","hook_event_name":"PreToolUse","tool_name":"%s","tool_use_id":"%s","tool_input":%s%s}' \
+    "$1" "$2" "$3" "$input" "${5:-}"
+}
+run_guard() { # stdin payload; env ATTENDED / ENTRY override the session's attendance + entrypoint
+  CLAUDE_PROJECT_DIR="$PROJ" CLAUDE_CODE_SESSION_ATTENDED="${ATTENDED:-1}" CLAUDE_CODE_ENTRYPOINT="${ENTRY:-cli}" \
+    bash "$HOOK" --event guard
+}
+run_consent() { CLAUDE_PROJECT_DIR="$PROJ" bash "$HOOK" --event consent; }
+decision() { # hook stdout -> none | ask | deny | allow | warn
+  python3 -c 'import json, sys
+t = sys.stdin.read().strip()
+if not t:
+    print("none"); sys.exit()
+h = json.loads(t).get("hookSpecificOutput", {})
+print(h.get("permissionDecision") or ("warn" if h.get("additionalContext") else "other"))'
+}
+write_guard_reserve() { # $1=state $2=current_source [$3=reset_at]
+  printf '{"mode":"guard","state":"%s","current_source":"%s","reading_stale":false,"current_pct":82,"line_pct":75,"reserve_pct_effective":25,"routines":[{"remaining_firings":3}],"reset_at":"%s"}\n' \
+    "$1" "$2" "${3:-2026-10-05T00:00:00Z}" >"$RAVENCLAUDE_USAGE_DIR/reserve.json"
+}
+write_guard_reserve over statusline
+d="$(guard_payload g1 Workflow t1 | run_guard | decision)"
+[ "$d" = "none" ] && pass "guard lane silent under advise (it needs routine_reserve: guard)" || fail "guard lane spoke under advise: $d"
+printf 'schema_version: 5\nroutine_reserve: guard\n' >"$PROJ/.ravenclaude/comfort-posture.yaml"
+d="$(guard_payload g1 Bash t0 | run_guard | decision)"
+[ "$d" = "none" ] && pass "an ordinary tool is not guarded" || fail "guarded Bash: $d"
+d="$(guard_payload g1 Agent t0 '{"run_in_background":false}' | run_guard | decision)"
+[ "$d" = "none" ] && pass "a foreground Agent (run_in_background=false) is not guarded" || fail "guarded a foreground Agent: $d"
+d="$(guard_payload g1 Workflow t1 | run_guard | decision)"
+[ "$d" = "ask" ] && pass "asks before a Workflow past the line (attended, interactive, live reading)" || fail "no ask: $d"
+d="$(guard_payload g1 Agent t2 | run_guard | decision)"
+[ "$d" = "deny" ] && pass "a parallel call while the ask is pending is denied, not asked again" || fail "second call got: $d"
+guard_payload g1 Agent t9 | run_consent
+d="$(guard_payload g1 CronCreate t3 | run_guard | decision)"
+[ "$d" = "deny" ] && pass "a different call running does not count as consent to the one asked about" || fail "foreign tool_use_id granted consent: $d"
+out="$(guard_payload g1 Workflow t1 | run_consent)"
+[ -z "$out" ] && pass "the consent lane prints nothing" || fail "consent lane printed: $out"
+d="$(guard_payload g1 ScheduleWakeup t4 | run_guard | decision)"
+[ "$d" = "none" ] && pass "after the asked call ran, the session is allowed for the rest of the week" || fail "consent not honoured: $d"
+write_guard_reserve over statusline 2026-10-12T00:00:00Z
+d="$(guard_payload g1 Workflow t5 | run_guard | decision)"
+[ "$d" = "ask" ] && pass "a new week asks again" || fail "consent carried into a new week: $d"
+d="$(guard_payload g2 Workflow t1 | ATTENDED=0 run_guard | decision)"
+[ "$d" = "warn" ] && pass "headless (attended=0) warns, never asks" || fail "headless got: $d"
+d="$(guard_payload g2 Workflow t2 | ATTENDED=0 run_guard | decision)"
+[ "$d" = "none" ] && pass "the headless warning is once per band" || fail "headless warning repeated: $d"
+d="$(guard_payload g3 Workflow t1 | ENTRY=sdk-cli run_guard | decision)"
+[ "$d" = "warn" ] && pass "an SDK entrypoint warns, never asks" || fail "sdk entrypoint got: $d"
+d="$(guard_payload g4 Agent t1 '{}' ',"agent_id":"sub-1"' | run_guard | decision)"
+[ "$d" = "warn" ] && pass "a subagent's own call warns, never asks" || fail "subagent got: $d"
+d="$(guard_payload g5 mcp__Claude_Code_Remote__fire_trigger t1 | run_guard | decision)"
+[ "$d" = "ask" ] && pass "a Remote fire_trigger call is guarded" || fail "Remote call not guarded: $d"
+d="$(guard_payload g5b mcp__notes__create_session t1 | run_guard | decision)"
+[ "$d" = "none" ] && pass "another server's create_session is not guarded" || fail "guarded a non-Remote server: $d"
+write_guard_reserve over estimate
+d="$(guard_payload g6 Workflow t1 | run_guard | decision)"
+[ "$d" = "warn" ] && pass "an estimated reading (no live statusline) warns, never asks" || fail "estimated reading got: $d"
+write_guard_reserve ok statusline
+d="$(guard_payload g7 Workflow t1 | run_guard | decision)"
+[ "$d" = "none" ] && pass "silent when ok" || fail "spoke while ok: $d"
+out="$(printf 'not json' | run_guard)"
+rc=$?
+[ -z "$out" ] && [ "$rc" -eq 0 ] && pass "junk stdin: silent, exit 0" || fail "junk stdin (rc=$rc): $out"
+# Teeth: the headless assertions above must depend on the interactivity check. An engine
+# whose check always passes has to ASK in exactly the case the real engine only warns.
+write_guard_reserve over statusline
+sed 's/and live and _interactive(payload, env):/and live and True:/' "$ENGINE" >"$TMP/rr-mutant.py"
+if cmp -s "$ENGINE" "$TMP/rr-mutant.py"; then
+  fail "teeth: the mutant is identical to the engine (the sed no longer matches)"
+else
+  d="$(guard_payload g8 Workflow t1 | CLAUDE_PROJECT_DIR="$PROJ" CLAUDE_CODE_SESSION_ATTENDED=0 \
+    python3 "$TMP/rr-mutant.py" hook-guard | decision)"
+  [ "$d" = "ask" ] && pass "teeth: an always-interactive mutant asks headless (so the warn-only result is load-bearing)" \
+    || fail "teeth: the mutant did not ask headless ($d) — the headless check proves nothing"
+fi
+
 echo ""
 if [ "$fails" -eq 0 ]; then
-  echo "Gate 291 PASS — routine token reserve: fixtures match, DOW mutant rejected, samples allow-listed, advise hook opt-in + once-per-band, statusline pass-through."
+  echo "Gate 291 PASS — routine token reserve: fixtures match, DOW mutant rejected, samples allow-listed, advise hook opt-in + once-per-band, statusline pass-through, guard asks only where a person can answer."
   exit 0
 else
   echo "Gate 291 FAIL — $fails subtest(s) failed."

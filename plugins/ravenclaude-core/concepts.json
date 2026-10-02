@@ -2906,7 +2906,7 @@
         "plugins/ravenclaude-core/hooks/alias-deprecation-advisory.sh",
         "plugins/ravenclaude-core/scripts/alias-deprecation-advisory.py"
       ],
-      "covers_digest": "sha256:98b0e18ed78cd42ff4b53645df26c455502c1d7347abbafcca70455c079efbf9",
+      "covers_digest": "sha256:125b12f3f5db615c490a99aa4c4a2dc14b810ae8951b7a2487e856bc421381b3",
       "nuance": "Two `additionalContext` emitters on one event concatenate rather than last-write-wins, but two `updatedToolOutput` emitters replace, so the second silently discards the first.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -3000,7 +3000,7 @@
         "scripts/sync-plugin-versions.py",
         "scripts/generate-copilot-plugin.py"
       ],
-      "covers_digest": "sha256:b8b4569a39b93cc3b2fdc46cefac1fa57361534af613d0df407271f63931da21",
+      "covers_digest": "sha256:83b45aa152ef159cab6a13ae9e5d4886225586601d74c3a9c3c5a56b1bb64752",
       "nuance": "The cache key is the `version` string, never a content hash, so `sync-plugin-versions.py` can report clean while every installed session keeps running the old `hooks/` code.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -4761,7 +4761,7 @@
         "plugins/ravenclaude-core/skills/routine-reserve/SKILL.md",
         "plugins/ravenclaude-core/commands/routine-reserve.md"
       ],
-      "covers_digest": "sha256:49ddda79dde6250b45e2d984272a60d6c87eb2e8eb0a4e784f1b9feccb0cef1b",
+      "covers_digest": "sha256:a94c87f6c8872718eb268b38fc0e8e8afabc42dc14a2deba0ae41ba6469aa676",
       "nuance": "k = weekly % / metered spend. A session first seen mid-week counts only its growth after that\nsnapshot (unless created inside the window), so unseen spend RAISES k and the reserve —\nthe safe error. Over-counting (double-counted or pre-window cost) is what starves Routines.",
       "nuance_evidence": {
         "measured": "2026-09-24",
@@ -4769,7 +4769,7 @@
         "falsifier": "a fixture where a session first seen mid-window contributes its full cumulative cost to window_spend, or where removing spend lowers the recommended reserve",
         "probe": "plugins/ravenclaude-core/hooks/tests/test-gate291-routine-reserve.sh"
       },
-      "nuance_source": "plugins/ravenclaude-core/scripts/routine-reserve.py:552-588",
+      "nuance_source": "plugins/ravenclaude-core/scripts/routine-reserve.py:553-589",
       "verify": {
         "tier": "effect",
         "strength": "executed",

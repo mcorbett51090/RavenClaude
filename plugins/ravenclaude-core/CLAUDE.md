@@ -5296,7 +5296,7 @@ the current week. **Shipped (PR 1 of 3):** the engine
 `routine_reserve: off | advise` knob (default off), and an advise-mode hook
 ([`scripts/routine-reserve-hook.sh`](scripts/routine-reserve-hook.sh)): a background refresh at
 SessionStart and a once-per-band `systemMessage` warning on UserPromptSubmit. Gate 291. Next: the
-dashboard "Reserve" tab (PR 2) and a `guard` value that asks before autonomous work past the line (PR 3).
+dashboard "Reserve" tab (PR 2) and a `guard` value that asks before autonomous work past the line (PR 3). Both shipped: PR 2 in v0.326.0 and PR 3 in v0.327.0, each described below.
 
 **Why it is shaped this way — each a this-session observation, recorded in
 [`knowledge/routine-token-reserve.md`](knowledge/routine-token-reserve.md):**
@@ -5334,6 +5334,28 @@ byte-identical helpers (Gate 32 parity). Two decisions worth keeping:
 The tab's interactive parts are built by JS from the payload, so its static footprint is small; the
 DOM-budget ratchet (Gate 132) gained a row and lifted its plateau in lockstep, and the committed-routes
 fixture (Gate 51) was re-emitted for the new route.
+
+**PR 3 (v0.327.0) — guard mode.** `routine_reserve: guard` adds a `PreToolUse` lane that **asks** before
+autonomous work (`Workflow`, `ScheduleWakeup`, `CronCreate`, a background `Agent`, Remote
+`create_session`/`send_message`/`fire_trigger`/`create_trigger`) once usage is past the line, plus a
+`PostToolUse` lane that records consent. Three decisions worth keeping:
+
+- **Ask only where a person can answer.** The ask needs `CLAUDE_CODE_SESSION_ATTENDED=1`, a non-SDK,
+  non-Actions entrypoint, no `agent_id` in the payload, and a live statusline reading. Everywhere else it
+  warns once per band. A headless `ask` is a denial, so asking there would stall exactly the Routines
+  the reserve protects.
+- **Consent after the fact, never at ask time.** A `PreToolUse` hook cannot see the answer to its own
+  ask, so consent is written when the guarded tool actually runs (`PostToolUse`, matched on
+  `tool_use_id`). A declined ask leaves a pending record that denies further guarded calls for 90 s,
+  which is also what makes parallel calls raise one ask instead of several. This is the same ordering as
+  `mark-web-domain-seen.sh`.
+- **It lives in the existing hook script.** The two lanes are `--event guard` / `--event consent` in
+  `scripts/routine-reserve-hook.sh`, gated on `routine_reserve: guard` by one `grep`, so an `advise`
+  user never starts Python on an Agent call. The generators already skip this script for Copilot,
+  Codex and Gemini.
+
+Gate 291 section G covers each row of the knowledge file's guard table, with a mutant whose
+interactivity check always passes as the teeth.
 
 ## Project instructions dual-file (UNVERIFIED adapt)
 - Claude Code: `CLAUDE.md` primary; if absent → `AGENTS.md` (API path; not Bedrock/Vertex/Foundry yet).

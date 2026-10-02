@@ -459,9 +459,13 @@ cause_closure: warn
 # weekly reset x recent-weighted cost x (1 + margin), shrinking as the week runs
 # down. Wire it with `/routine-reserve setup` (see knowledge/routine-token-reserve.md).
 # off = nothing runs. advise = the dashboard/status projection + a once-per-band
-# warning when interactive use nears or enters the reserve. Any value that is not
-# exactly `advise` resolves to `off`.
-# routine_reserve: off | advise                       # default: off
+# warning when interactive use nears or enters the reserve. guard = advise, plus an
+# ASK before autonomous work (a Workflow, ScheduleWakeup, CronCreate, a background
+# Agent, a Remote session/Routine call) once usage is past the line — only in an
+# attended interactive session on a live statusline reading; it warns everywhere
+# else, so it never stalls a Routine. Any value that is not exactly `advise` or
+# `guard` resolves to `off`.
+# routine_reserve: off | advise | guard               # default: off
 # routine_reserve_home: owner/repo                    # the private repo holding ravenclaude/usage-meter
 # routine_reserve_margin_pct: 20                      # safety margin on the projection
 # routine_reserve_warn_points: 5                      # warn this many points before the line

@@ -347,8 +347,13 @@
         "Routine reserve posture round-trip (core 0.326.1, 2026-10-02)",
         9563000,
         "Same routine_reserve state slot + hydrate + emit added to the dashboard serializer so a Save stops deleting the five routine_reserve* keys (v0.61.0 data-loss class). index.html 9,562,590 bytes > prior 9,560,000 by 2,590 (0.00 MB). No DOM element added; Gate 132 unchanged. Re-measured on this branch head; appended, never edited."
+      ],
+      [
+        "Routine reserve guard mode (core 0.327.0, 2026-10-02)",
+        9564000,
+        "Same guard-mode release: restamped routine-reserve concept metadata renders into the portal. index.html 9,563,475 bytes > prior 9,563,000 by 475 (0.00 MB). No DOM element added; Gate 132 unchanged. Re-measured on this branch head; appended, never edited."
       ]
     ]
   },
-  "measured_against": "1bef0045841b13b69090aab7a63f40b20d480422"
+  "measured_against": "37cffdff5595e67ed673582b26c916c38e2744e5"
 }

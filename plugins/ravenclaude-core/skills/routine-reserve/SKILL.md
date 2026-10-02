@@ -73,7 +73,10 @@ Set/Clear buttons call the same `set-override` / `clear-override` code as the ve
    (omit `--wrap` when there is none). Save the previous `statusLine` to
    `~/.ravenclaude/usage/statusline-previous.json` so `uninstall` can restore it.
 9. **Config.** Write `~/.ravenclaude/usage/config.json` `{"home": "<owner/repo>"}` and set
-   `routine_reserve: advise` in this repo's `.ravenclaude/comfort-posture.yaml`.
+   `routine_reserve: advise` in this repo's `.ravenclaude/comfort-posture.yaml`. Offer `guard` as the
+   stricter option: it also asks before autonomous work (workflows, scheduled wake-ups, background
+   agents, Remote session and Routine calls) once usage is past the line. See the knowledge file's
+   "Guard mode" section for exactly when it asks and when it only warns.
 10. Finish with `status`.
 
 ## Manual fallback
