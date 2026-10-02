@@ -156,6 +156,12 @@ def install(catalog: dict[str, dict], config: Path, wanted_raw: str) -> int:
             # and a duplicate table is a TOML error besides.
             print(f"  = {name} already configured — left untouched")
             continue
+        if "config" not in catalog[name]:
+            print(
+                f"  catalog entry {name!r} is missing its 'config' key",
+                file=sys.stderr,
+            )
+            return 1
         try:
             blocks.append(render_server(name, catalog[name]["config"]))
         except ValueError as e:
@@ -191,8 +197,7 @@ def install(catalog: dict[str, dict], config: Path, wanted_raw: str) -> int:
             print(f"  refusing to write: result does not parse as TOML — {e}", file=sys.stderr)
             return 1
     else:
-        print("  WARNING: no TOML parser available; wrote without verification",
-              file=sys.stderr)
+        print("  WARNING: no TOML parser available; wrote without verification", file=sys.stderr)
 
     config.parent.mkdir(parents=True, exist_ok=True)
     config.write_text(new_text, encoding="utf-8")
