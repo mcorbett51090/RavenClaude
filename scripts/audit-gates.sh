@@ -5123,6 +5123,14 @@ if command -v node >/dev/null 2>&1; then
   grep -v 'lines.push(`keep_awake: \${state.keep_awake}`)' index.html > "$RT_BAD_KA"
   rc=0; node "$RT" "$RT_BAD_KA" >/dev/null 2>&1 || rc=$?
   gate "dashboard round-trip (drifted: keep_awake emit stripped)" must_fail "$rc"
+  # must_fail (routine_reserve): the five routine-reserve keys shipped with no
+  # state slot, so every Save deleted them and turned the reserve off (found
+  # 2026-10-02 on first real use). Strip the mode emit line — the one whose loss
+  # disables the feature — and Test 11 must catch it.
+  RT_BAD_RR="$TMP/dashboard-drifted-routine-reserve.html"
+  grep -v 'rrLines.push(`routine_reserve: \${rr.mode}`)' index.html > "$RT_BAD_RR"
+  rc=0; node "$RT" "$RT_BAD_RR" >/dev/null 2>&1 || rc=$?
+  gate "dashboard round-trip (drifted: routine_reserve emit stripped)" must_fail "$rc"
 else
   _skip_or_fail "Gate 35 (dashboard round-trip)" node
 fi
