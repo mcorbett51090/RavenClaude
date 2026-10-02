@@ -137,6 +137,7 @@ _SKIP = {
     # Events with no Codex lane wired at all yet.
     "ask-on-ambiguity.sh": _EVENT_UNWIRED_REASON,
     "stream-prompt-attribute.sh": _EVENT_UNWIRED_REASON,
+    "prompt-optimizer-gate.sh": _EVENT_UNWIRED_REASON,
     "plugin-lifecycle-telemetry.sh": _EVENT_UNWIRED_REASON,
     "agent-dispatch-evaluator.sh": _EVENT_UNWIRED_REASON,
     # PreCompact -- see D2 in the sessionstart-safeguards-multihost plan for

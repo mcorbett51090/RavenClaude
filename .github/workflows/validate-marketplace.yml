@@ -421,11 +421,22 @@ jobs:
           # before pushing to a public-readable remote. CI enforces it.
           # Case-insensitive (-i): a copy-pasted "Matt@RavenPower.NET" is the same
           # address and the same leak, so an exact-case match would let it slip past.
-          if grep -rin "matt@ravenpower.net" .claude-plugin/ plugins/*/.claude-plugin/ 2>/dev/null; then
+          #
+          # grep exit codes: 0 = match (a leak), 1 = no match (clean), >=2 = a real
+          # error (an unreadable/missing path). The old `if grep ... 2>/dev/null`
+          # collapsed both 1 AND >=2 to the else branch, so a scan error silently
+          # reported "OK no private emails" — a leak guard that fails open. Split them.
+          matches=$(grep -rin "matt@ravenpower.net" .claude-plugin/ plugins/*/.claude-plugin/ 2>&1) && rc=0 || rc=$?
+          if [ "${rc}" -eq 0 ]; then
+            echo "${matches}"
             echo "::error::Private email 'matt@ravenpower.net' (any case) found in a public manifest. Remove the email field or replace with a noreply alias."
             status=1
-          else
+          elif [ "${rc}" -eq 1 ]; then
             echo "OK no private emails in manifests"
+          else
+            echo "${matches}"
+            echo "::error::Manifest private-email scan failed (grep exit ${rc}) — treating as a failure, not a pass."
+            status=1
           fi
           exit $status
 
@@ -446,7 +457,8 @@ jobs:
         # PATH the gate's _skip_or_fail guard now HARD-FAILS in CI (a skip is not
         # a pass), so install it here — same pre-stage pattern as ruff above and
         # mirroring validate-schemas.yml, which owns the real per-plugin run.
-        run: python3 -m pip install --quiet jsonschema
+        # Pinned: deprecated jsonschema CLI in a required check — see validate-schemas.yml.
+        run: python3 -m pip install --quiet 'jsonschema==4.26.0'
 
       - name: Audit every gate (meta-test — prove each gate fails on bad input AND passes on good)
         # Codifies docs/best-practices/ci-gate-audit.md. If any CI gate
