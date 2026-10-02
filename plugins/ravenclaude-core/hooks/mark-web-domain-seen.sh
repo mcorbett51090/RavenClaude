@@ -74,7 +74,12 @@ fi
 # Host from the URL: strip scheme, userinfo, path, port; lowercase.
 # (Identical normalization to guard-web-access.sh.)
 host="${url#*://}"
-host="${host%%/*}"
+# Authority ends at the first `/ ? # \`, not just `/` — MUST mirror
+# guard-web-access.sh exactly, else the writer keys the seen-file on a spoofed
+# host while the reader parses it correctly (or vice versa). See the security
+# note there: a query/fragment with no path slash would otherwise let `##*@`
+# read userinfo as the host.
+host="${host%%[/?#\\]*}"
 host="${host##*@}"
 host="${host%%:*}"
 host="$(printf '%s' "$host" | tr 'A-Z' 'a-z')"

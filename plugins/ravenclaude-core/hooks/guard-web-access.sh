@@ -65,7 +65,13 @@ fi
 
 # Host from the URL: strip scheme, userinfo, path, port; lowercase.
 host="${url#*://}"
-host="${host%%/*}"
+# Authority ends at the first `/ ? # \`, not just `/`. A query or fragment with
+# no path slash (`evil.example?@trusted.example`, `evil.example#x`, or the `\`
+# variant WHATWG treats as `/`) otherwise leaves the whole string as the "host",
+# so the `##*@` strip below reads `@trusted.example`'s suffix as the host — which
+# spoofs the allow list and bypasses the deny list. Cut the authority delimiter
+# BEFORE stripping userinfo.
+host="${host%%[/?#\\]*}"
 host="${host##*@}"
 host="${host%%:*}"
 host="$(printf '%s' "$host" | tr 'A-Z' 'a-z')"

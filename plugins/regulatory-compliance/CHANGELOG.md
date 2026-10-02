@@ -2,6 +2,12 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.12.7] — 2026-10-02
+
+### Fixed
+
+- `skills/control-testing/SKILL.md` cross-plugin reference to the finance SOC-walkthrough skill pointed at `skills/soc-control-walkthrough.md`; corrected to the real `skills/soc-control-walkthrough/SKILL.md`. Docs only. **Migration:** none.
+
 ## [0.12.6] — 2026-09-18
 
 ### Fixed
