@@ -166,7 +166,7 @@ if is_read_only "$tn" "$cmd"; then read_only=1; fi
 # best-effort write) rather than hanging the hook if the lock is stuck; flock absent
 # (non-Linux) → skip locking and keep the prior best-effort behavior unchanged.
 if command -v flock >/dev/null 2>&1; then
-  exec 9>"${f}.lock" 2>/dev/null && flock -x -w 2 9 2>/dev/null || true
+  { exec 9>"${f}.lock"; } 2>/dev/null && flock -x -w 2 9 2>/dev/null || true
 fi
 
 total=0; last="-"; consec=0

@@ -210,8 +210,7 @@ in every plugin, and a difference needs a reason that names the role, not the ba
 pin and the meter are Claude Code hooks; on Copilot and Codex the projected agent
 carries its canonical tier as a header comment for the consumer to pin (those hosts
 take a picker/model id, not a tier alias) — see
-[`knowledge/model-tier-delegation.md`](knowledge/model-tier-delegation.md) § "Cross-host
-honesty" before claiming the pin is in force anywhere but Claude Code.
+[`knowledge/model-tier-delegation.md`](knowledge/model-tier-delegation.md) before claiming the pin is in force anywhere but Claude Code.
 
 **Composition with the cheap lane (unchanged).** The cheap lane asks *"does this task
 need to be on Claude at all?"* and is a router on the raw task — deliberately off by

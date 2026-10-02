@@ -2,6 +2,16 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.326.1 — 2026-10-02
+
+### Fixed
+
+- **Security — URL-authority parsing in `guard-web-access.sh` / `mark-web-domain-seen.sh`.** The host was extracted with `${host%%/*}`, which terminates the authority only at `/`. A query or fragment with no path slash (`evil.example?@trusted.example`, `evil.example#x`, or the `\` variant WHATWG treats as `/`) left the whole string as the "host", so the subsequent `##*@` userinfo strip read `@trusted.example`'s suffix as the host — **spoofing the allow list and bypassing the deny list** (a reproduced exfiltration channel). Both reader and writer now cut the authority at the first of `/ ? # \` before stripping userinfo. Verified end-to-end: the attack vectors resolve to the real host and are blocked; benign URLs and ports are unaffected. **Migration:** none.
+- **`runaway-brake.sh` deny reason was silently discarded.** `exec 9>"${f}.lock" 2>/dev/null` permanently redirected the script's own fd 2, sending the blocking "Runaway brake" message to `/dev/null`. The redirection is now scoped to the `exec` alone. **Migration:** none.
+- **`enforce-layout.sh` denied every write under a glob-containing project path.** `${file#$project_root/}` left `$project_root` unquoted inside the strip pattern, so brackets/globs in the project directory name (e.g. `~/Clients/[Acme]`) broke the prefix strip and produced a spurious deny. Now quoted. **Migration:** none.
+- **`cleanup-branches.sh` merged-ness proof could resolve a same-named tag.** The ancestor check used an unqualified branch name; it now uses `refs/heads/$b` so a tag sharing a branch's name cannot shadow it. **Migration:** none.
+- **Doc citations repointed to live sections.** Dropped the dead `knowledge/model-tier-delegation.md` §"Cross-host honesty" / "The three ways a dispatch picks its model" anchors (folded away pre-0.323.11); corrected `agents/source-control-coordinator.md`'s "Remote-environment PR mechanics" citation from `AGENTS.md` to `CLAUDE.md`. **Migration:** none.
+
 ## 0.326.0 — 2026-09-24
 
 ### Added

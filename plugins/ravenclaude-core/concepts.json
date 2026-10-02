@@ -2857,7 +2857,7 @@
         "plugins/ravenclaude-core/hooks/triage-outcome.sh",
         "plugins/ravenclaude-core/hooks/worktree-guard.sh"
       ],
-      "covers_digest": "sha256:775339c974a7f131d20b5551936bde38330c2882f7aea32aa50c54cd8ef5830c",
+      "covers_digest": "sha256:a69a7a6b0e72f8e39f55a58ed5245287d4515a4b44b3312904c6995b1f251e83",
       "nuance": "A hook writing to stderr at `exit 0` reaches the model on no event; only `hookSpecificOutput.additionalContext` and `updatedToolOutput` are delivered, so `_advise.sh` advised the terminal for its entire service life.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -3000,7 +3000,7 @@
         "scripts/sync-plugin-versions.py",
         "scripts/generate-copilot-plugin.py"
       ],
-      "covers_digest": "sha256:b73f7d68c24add6b6c60af1ee04b4ebcfbfbd71b6289b8b533e19702d9e26aa6",
+      "covers_digest": "sha256:eb8a08ad39a167496924c3115667979d376c677747f392ffb1fbd3da79150b92",
       "nuance": "The cache key is the `version` string, never a content hash, so `sync-plugin-versions.py` can report clean while every installed session keeps running the old `hooks/` code.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -4348,7 +4348,7 @@
         "plugins/ravenclaude-core/knowledge/coordinator-ledger-convention.md",
         "plugins/ravenclaude-core/scripts/ledger.py"
       ],
-      "covers_digest": "sha256:b7fd60ce46b957cafbe64b2c0ed23b737cabf282dfffe7deaf50274c478b973c",
+      "covers_digest": "sha256:983feeaa5cda1ad9db0b67c063002ed45ef2e016f7bb415cb3301225138faa18",
       "nuance": "--repo-root/--actor are ledger.py's TOP-LEVEL parser flags, added before add_subparsers(); a build plan citing them AFTER `append` fails with 'unrecognized arguments', verified live. A companion claim (fresh ledger = exit 2/UNKNOWN) was also wrong: cmd_init always appends a ledger_init event, so the true fresh state is exit 0/PASS.",
       "nuance_evidence": {
         "measured": "2026-09-09",
