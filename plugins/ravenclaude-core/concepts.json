@@ -2857,7 +2857,7 @@
         "plugins/ravenclaude-core/hooks/triage-outcome.sh",
         "plugins/ravenclaude-core/hooks/worktree-guard.sh"
       ],
-      "covers_digest": "sha256:775339c974a7f131d20b5551936bde38330c2882f7aea32aa50c54cd8ef5830c",
+      "covers_digest": "sha256:4b48fa92af6da0c192b3c1edda926641e1d2070aae873806bdf79790c21ff60d",
       "nuance": "A hook writing to stderr at `exit 0` reaches the model on no event; only `hookSpecificOutput.additionalContext` and `updatedToolOutput` are delivered, so `_advise.sh` advised the terminal for its entire service life.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -3062,7 +3062,7 @@
         "scripts/inventory-nuance-judge.py",
         "plugins/ravenclaude-core/scripts/forge-receipt.py"
       ],
-      "covers_digest": "sha256:2b3e6d3e25d2be76813da7b9c4c71eb3e7b7db0c1486237cba3bdcee57202260",
+      "covers_digest": "sha256:2062d3e214a846cdbbdce0a4f7c46c6e710ded5f56744bab7cc66a97d88b9ea1",
       "nuance": "The teeth bit is the exit a tool own CHECK returns on a planted defect, never the exit `--must-fail` itself returns: `premise-gate.py` denies at `exit 0` while `sync-plugin-versions.py` reddens at `exit 2`, so an auditor that hard-codes one number can never be right for both.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -4609,7 +4609,7 @@
         "plugins/ravenclaude-core/scripts/thing-harden.py",
         "plugins/ravenclaude-core/hooks/thing-orchestrator.sh"
       ],
-      "covers_digest": "sha256:9bf8c4e11d36b0e8165ff291b1e83be7ca671fe918a08c4f0d7b39acc8c33100",
+      "covers_digest": "sha256:2941019948309e8e9f0a7a8ff33787fba637ea99e9ee95c70ece51cfe81837c2",
       "nuance": "AppSec enable GO flipped seed/default hardening_edit ON (2026-09-16); with explicit false, empty-cited EDIT outside the orchestrator discriminator is DENY rather than ask, while a cited EDIT still allows byte-identical — OFF remains shape-sensitive, not a uniform no-op.",
       "nuance_evidence": {
         "measured": "2026-09-16",
@@ -4775,6 +4775,71 @@
         "strength": "executed",
         "class": "script-selftest",
         "probe": "plugins/ravenclaude-core/hooks/tests/test-gate291-routine-reserve.sh",
+        "teeth_exit": 1
+      },
+      "strength_badge": "Probed"
+    },
+    {
+      "id": "pyyaml-vendored-fallback",
+      "title": "No PyYAML, no commands: the vendored fallback",
+      "category": "Inventory — measured mechanisms",
+      "kind": "ravenclaude-built",
+      "order": 942,
+      "summary": "A stock macOS python3 has no PyYAML. Without it the tribunal failed closed on every Bash command, so the plugin now ships a pure-Python PyYAML that each yaml importer appends to sys.path.",
+      "see_also": [],
+      "widget": null,
+      "try_it": null,
+      "node_links": {},
+      "last_verified": "2026-10-02",
+      "refresh_when": null,
+      "sources": [
+        {
+          "label": "reported on a fresh MacBook install (first command failed on hooks)",
+          "url": "https://github.com/mcorbett51090/RavenClaude/blob/main/plugins/ravenclaude-core/scripts/vendor/README.md"
+        }
+      ],
+      "body_md": "## What a reader would have assumed instead\n\nThat a guardrail hook missing an optional parser degrades gracefully. It does the opposite: the\ntribunal treats \"cannot read my own config\" as a reason to deny, which is correct fail-closed\nbehaviour. So a missing module looks exactly like a security verdict.\n\n## The discriminator\n\nRun the same command under a `python3` with no site-packages (`python3 -S`), once with\n`scripts/vendor/` present and once with it removed. Only the vendor dir changes, and only the\nverdict on `ls -la` flips.\n\n## Why it matters\n\nThe first command on a fresh Mac failed, and the deny reason pointed at tampering, not at a missing\nmodule. A hand-written YAML-subset parser was rejected because the catalog is a block of security\nregexes, and parsing them differently would silently weaken a gate. Auto-installing was rejected\ntoo: Homebrew Python refuses `pip install` (PEP 668), and a hook that runs `pip` would be an\nunapproved supply-chain change.",
+      "diagram": null,
+      "diagram_mini": null,
+      "steps": [],
+      "svg": null,
+      "svg_mini": null,
+      "entry_class": "inventory",
+      "covers": [
+        "plugins/ravenclaude-core/scripts/vendor/README.md",
+        "plugins/ravenclaude-core/scripts/vendor/yaml/LICENSE",
+        "plugins/ravenclaude-core/scripts/vendor/yaml/__init__.py",
+        "plugins/ravenclaude-core/scripts/vendor/yaml/composer.py",
+        "plugins/ravenclaude-core/scripts/vendor/yaml/constructor.py",
+        "plugins/ravenclaude-core/scripts/vendor/yaml/cyaml.py",
+        "plugins/ravenclaude-core/scripts/vendor/yaml/dumper.py",
+        "plugins/ravenclaude-core/scripts/vendor/yaml/emitter.py",
+        "plugins/ravenclaude-core/scripts/vendor/yaml/error.py",
+        "plugins/ravenclaude-core/scripts/vendor/yaml/events.py",
+        "plugins/ravenclaude-core/scripts/vendor/yaml/loader.py",
+        "plugins/ravenclaude-core/scripts/vendor/yaml/nodes.py",
+        "plugins/ravenclaude-core/scripts/vendor/yaml/parser.py",
+        "plugins/ravenclaude-core/scripts/vendor/yaml/reader.py",
+        "plugins/ravenclaude-core/scripts/vendor/yaml/representer.py",
+        "plugins/ravenclaude-core/scripts/vendor/yaml/resolver.py",
+        "plugins/ravenclaude-core/scripts/vendor/yaml/scanner.py",
+        "plugins/ravenclaude-core/scripts/vendor/yaml/serializer.py",
+        "plugins/ravenclaude-core/scripts/vendor/yaml/tokens.py"
+      ],
+      "covers_digest": "sha256:4991259f5da458e262da66106f60bb457db563b11bef95c4abb45476434d2a1c",
+      "nuance": "Without PyYAML the tribunal cannot parse its posture or catalog and fails closed, denying even `ls` as \"tampering with the Thing\". The vendored copy is APPENDED to sys.path, so an installed PyYAML still wins.",
+      "nuance_evidence": {
+        "measured": "2026-10-02",
+        "control": "the same plugin with scripts/vendor/ removed, run under the same PyYAML-less python3, denies `ls -la` again; with the vendor dir present it is allowed and curl|sh is still denied",
+        "falsifier": "a PyYAML-less python3 on which thing-orchestrator.sh denies a read-only command while scripts/vendor/yaml is present",
+        "probe": "plugins/ravenclaude-core/hooks/tests/test-gate292-yaml-vendor-fallback.sh"
+      },
+      "nuance_source": "plugins/ravenclaude-core/scripts/vendor/README.md:1-30",
+      "verify": {
+        "tier": "effect",
+        "strength": "executed",
+        "class": "hook-decision",
+        "probe": "plugins/ravenclaude-core/hooks/tests/test-gate292-yaml-vendor-fallback.sh",
         "teeth_exit": 1
       },
       "strength_badge": "Probed"
