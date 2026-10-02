@@ -44,6 +44,9 @@ fi
 
 posture="${cwd}/.ravenclaude/comfort-posture.yaml"
 [ -f "$posture" ] || exit 0
+# Vendored PyYAML fallback dir (stock macOS python3 has no PyYAML) — passed as argv[2]
+# to each snippet below, which APPENDS it so an installed PyYAML still wins.
+_yaml_vendor="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")/.." 2>/dev/null && pwd)/scripts/vendor"
 
 # Pull definition_of_done.cmd + max_blocks (PyYAML with a tolerant fallback).
 # Python read into a var + run via `python3 -c`, NOT a heredoc nested in `$()`
@@ -51,6 +54,7 @@ posture="${cwd}/.ravenclaude/comfort-posture.yaml"
 # audit-gates no-heredoc-in-cmd-substitution gate). read -d '' returns non-zero at EOF.
 IFS= read -r -d '' __DOD_CMD_PY <<'PY' || true
 import sys
+if len(sys.argv) > 2: sys.path.append(sys.argv[2])  # vendored PyYAML fallback
 try:
     import yaml; d = yaml.safe_load(open(sys.argv[1], encoding="utf-8")) or {}
 except Exception:
@@ -58,9 +62,10 @@ except Exception:
 dod = d.get("definition_of_done") or {}
 print(dod.get("cmd","") if isinstance(dod, dict) else "")
 PY
-dod_cmd="$(python3 -c "$__DOD_CMD_PY" "$posture" 2>/dev/null || true)"
+dod_cmd="$(python3 -c "$__DOD_CMD_PY" "$posture" "$_yaml_vendor" 2>/dev/null || true)"
 IFS= read -r -d '' __MAX_BLOCKS_PY <<'PY' || true
 import sys
+if len(sys.argv) > 2: sys.path.append(sys.argv[2])  # vendored PyYAML fallback
 try:
     import yaml; d = yaml.safe_load(open(sys.argv[1], encoding="utf-8")) or {}
 except Exception:
@@ -71,7 +76,7 @@ try: mb = int(mb)
 except Exception: mb = 8
 print(mb)
 PY
-max_blocks="$(python3 -c "$__MAX_BLOCKS_PY" "$posture" 2>/dev/null || echo 8)"
+max_blocks="$(python3 -c "$__MAX_BLOCKS_PY" "$posture" "$_yaml_vendor" 2>/dev/null || echo 8)"
 [ -z "$dod_cmd" ] && exit 0    # no DoD configured -> advisory remind-tests handles the nudge
 case "$max_blocks" in (*[!0-9]*|"") max_blocks=8;; esac
 
@@ -108,6 +113,7 @@ case "$blocks" in (*[!0-9]*|"") blocks=0;; esac
 # to skip the gate entirely (you've reviewed the YAML and accept silent exec).
 IFS= read -r -d '' __DOD_TRUSTED_PY <<'PY' || true
 import sys
+if len(sys.argv) > 2: sys.path.append(sys.argv[2])  # vendored PyYAML fallback
 try:
     import yaml
     d = yaml.safe_load(open(sys.argv[1], encoding="utf-8")) or {}
@@ -116,7 +122,7 @@ except Exception:
 dod = d.get("definition_of_done") or {}
 print("true" if (isinstance(dod, dict) and dod.get("trusted") is True) else "false")
 PY
-dod_trusted="$(python3 -c "$__DOD_TRUSTED_PY" "$posture" 2>/dev/null || echo "false")"
+dod_trusted="$(python3 -c "$__DOD_TRUSTED_PY" "$posture" "$_yaml_vendor" 2>/dev/null || echo "false")"
 
 # ── Sever the trust self-attestation (b26-dodgate-cmd-exec-trusted-bypass) ──
 # `trusted: true` and `cmd` both live in the SAME attacker-writable YAML file, so a

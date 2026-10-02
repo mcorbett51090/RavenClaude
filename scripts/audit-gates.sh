@@ -407,7 +407,7 @@ _suite_gate_tokens() { # $1=suite name -> echoes space-separated gate tokens; re
       # nudge), 216/228/229 (worktree/session/update hygiene cluster), 217
       # (managed-solution-import — same plugins/power-platform/hooks/tests/
       # home as 124/125).
-      echo "3 3b 4 5 5b 6 14 15 16 17 21 22 30 33 36 52 53 90 91 122 123 124 125 126 128 133 135 136 137 138 139 140 162 182 184 186 189 197 201 216 217 225 227 228 229 231 235 247 251 252 253 254 259 285 286 290 291"
+      echo "3 3b 4 5 5b 6 14 15 16 17 21 22 30 33 36 52 53 90 91 122 123 124 125 126 128 133 135 136 137 138 139 140 162 182 184 186 189 197 201 216 217 225 227 228 229 231 235 247 251 252 253 254 259 285 286 290 291 292"
       ;;
     portal)
       # Gap: 27 (consumer-dashboard repo-scoped guard — serve-dashboards.py,
@@ -2027,9 +2027,14 @@ PY
       bash plugins/ravenclaude-core/hooks/tests/test-gate291-routine-reserve.sh
       exit $?
       ;;
+    292)
+      echo "── Gate 292: hooks work on a python3 with no PyYAML (vendored fallback + teeth; per-gate run) ──"
+      bash plugins/ravenclaude-core/hooks/tests/test-gate292-yaml-vendor-fallback.sh
+      exit $?
+      ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254, 255, 256, 257, 258, 259, 260, 261, 262, 263, 264, 265, 266, 267, 268, 269, 280, 281, 282, 283, 284, 285, 286, 287, 288, 289, 290, 291. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254, 255, 256, 257, 258, 259, 260, 261, 262, 263, 264, 265, 266, 267, 268, 269, 280, 281, 282, 283, 284, 285, 286, 287, 288, 289, 290, 291, 292. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -6733,6 +6738,18 @@ gate "workaround-exhaustion: silent when inert + fires on hand-back shapes + Sto
 echo "── Gate 291: routine token reserve (projection fixtures + DOW mutant + allow-listed samples + advise hook + statusline) ──"
 rc=0; bash plugins/ravenclaude-core/hooks/tests/test-gate291-routine-reserve.sh >/dev/null 2>&1 || rc=$?
 gate "routine-reserve: fixtures match hand-derived projections + DOW-blind mutant rejected (teeth) + samples allow-listed + advise hook opt-in/once-per-band + statusline pass-through" must_pass "$rc"
+
+# A stock macOS python3 has no PyYAML. Without it the tribunal could not parse its
+# posture/catalog, failed closed, and denied EVERY Bash command (even `ls`) on a
+# fresh Mac. scripts/vendor/yaml is a pure-Python PyYAML every yaml-importing
+# script appends to sys.path. The test simulates a PyYAML-less python3 (`-S` shim,
+# with a control proving yaml is really gone): read-only allowed, hard rule still
+# denied, catalog identical to installed PyYAML, and teeth — the same plugin with
+# scripts/vendor removed denies `ls` again. Registered in the --check dispatcher,
+# this main sequence, the Supported: string and the `hooks` suite.
+echo "── Gate 292: hooks work on a python3 with no PyYAML (vendored fallback) ──"
+rc=0; bash plugins/ravenclaude-core/hooks/tests/test-gate292-yaml-vendor-fallback.sh >/dev/null 2>&1 || rc=$?
+gate "no-PyYAML python3: read-only not denied + hard rule still denied + catalog parity + vendor-removed teeth" must_pass "$rc"
 
 echo "── Gate 285: handoff-tax-meter.sh (model-tier delegation — the measurement leg) ──"
 # knowledge/model-tier-delegation.md says delegation saves MONEY only when the

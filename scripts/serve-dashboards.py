@@ -59,6 +59,9 @@ from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
+# PyYAML fallback (stock macOS python3 has none): the plugin's vendored pure-Python
+# copy. APPENDED, so an installed PyYAML still wins. See its vendor/README.md.
+sys.path.append(str(REPO_ROOT / "plugins" / "ravenclaude-core" / "scripts" / "vendor"))
 
 # Pipeline-tab editable config files. JSON-validated before write (a malformed
 # write to .repo-layout.json would brick the layout gate, so we never persist

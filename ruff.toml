@@ -25,7 +25,7 @@ select = ["F", "E9", "B", "C4", "I", "UP"]
 #   UP031 printf-style % formatting (3 sites; some are stdlib log_message idioms)
 ignore = ["B904", "UP031"]
 
-exclude = [".git", "__pycache__", "scripts/vendor"]
+exclude = [".git", "__pycache__", "scripts/vendor", "plugins/ravenclaude-core/scripts/vendor/**"]
 
 [lint.per-file-ignores]
 # report-regeneration imports sibling stdlib modules across skill boundaries via

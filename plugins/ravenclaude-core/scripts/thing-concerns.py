@@ -45,6 +45,9 @@ import sys
 from pathlib import Path
 
 _HERE = Path(__file__).resolve().parent
+# PyYAML fallback (stock macOS python3 has none): vendored pure-Python copy in
+# scripts/vendor/. APPENDED, so an installed PyYAML still wins. See vendor/README.md.
+sys.path.append(str(_HERE / "vendor"))
 _CATALOG = _HERE.parent / "knowledge" / "concerns-catalog.md"
 
 # Severity ordering for max-severity + routing.

@@ -63,6 +63,10 @@ import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 
+# PyYAML fallback (stock macOS python3 has none): vendored pure-Python copy in
+# scripts/vendor/. APPENDED, so an installed PyYAML still wins. See vendor/README.md.
+sys.path.append(str(Path(__file__).resolve().parent / "vendor"))
+
 try:  # POSIX advisory file locking; absent on non-POSIX hosts.
     import fcntl
 except ImportError:  # pragma: no cover - non-POSIX
