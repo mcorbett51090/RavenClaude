@@ -261,6 +261,12 @@ definition_of_done:
 # AC only: on battery the hook holds nothing and warns instead.
 keep_awake: on
 
+# Keep enough of the weekly usage cap for the account's claude.ai Routines
+# (off | advise | guard; off when the key is absent). guard warns as usage nears the
+# line and asks before autonomous work past it, in attended sessions only. The home
+# repo is account config (~/.ravenclaude/usage/config.json), not committed here.
+routine_reserve: guard
+
 # /handoff spawns the successor session itself instead of printing a copy-paste
 # block. Owner-flagged on purpose: it launches a process, so it stays opt-in.
 #   same-host   detect the UI and open a new session there.
