@@ -16,6 +16,16 @@ All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the 
   re-indents the raw files and requires the same trigger, run and cost records; the pre-fix engine
   produces none of them. The engine's sha256 changes, so re-run `/routine-reserve setup` to refresh
   the copy on your data branch and the hash pinned in your meter Routine.
+- **Routine token reserve — a dashboard Save no longer turns the reserve off.** `emitYaml()` rebuilds
+  the whole `comfort-posture.yaml` from `state`, and the five `routine_reserve*` keys had no state
+  slot, so any **Save & apply** silently deleted them: the v0.61.0 data-loss class that already hit
+  `context_handoff` and `cheap_lane`. They now round-trip:
+  - Hydrate validates against exactly what the engine accepts (`off | advise | guard`, an
+    `owner/repo` home, numbers ≥ 0).
+  - Emit writes a key only when it differs from the default.
+  - There is no new DOM control.
+
+  Gate 35 gained the round-trip, a validation test and a must-fail mutant.
 
 ## 0.326.0 — 2026-09-24
 
