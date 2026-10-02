@@ -197,7 +197,10 @@ const RC_BASELINE = {
   //        19 -> 22: premise-gate.py + classify_claim.py + check-design-schema.py
   //                  (v0.263.0, PR 3b packaging move)
   scenarios: 4,
-  hooks: 60, // 58 -> 60: routine-reserve-hook.sh WIRED twice — UserPromptSubmit `--event prompt`
+  hooks: 62, // 60 -> 62: routine-reserve-hook.sh WIRED twice more — PreToolUse `--event guard`
+  //   ask lane + PostToolUse `--event consent` (guard mode, core 0.327.0; inert unless
+  //   `routine_reserve: guard`). COUNTED, not inferred: hooks.json on this tree holds 62 registrations.
+  //        58 -> 60: routine-reserve-hook.sh WIRED twice — UserPromptSubmit `--event prompt`
   //   advisory + SessionStart(startup|resume|clear|fork) `--event session` background refresh
   //   (routine token reserve, core 0.325.0; absent posture key => off).
   //   COUNTED, not inferred: hooks.json on this tree holds 60 registrations.

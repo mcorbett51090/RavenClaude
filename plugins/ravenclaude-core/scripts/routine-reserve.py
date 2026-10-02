@@ -38,6 +38,7 @@ Stdlib only. Every command fails safe: an error never blocks a session.
 from __future__ import annotations
 
 import argparse
+import contextlib
 import datetime as dt
 import io
 import json
@@ -960,6 +961,167 @@ def hook_warn(payload: dict, cfg: dict) -> dict | None:
     }
 
 
+# ── guard-mode hooks (PreToolUse ask + PostToolUse consent) ─────────────────
+
+GUARD_COOLDOWN_S = 90
+_GUARD_FIXED = ("Workflow", "ScheduleWakeup", "CronCreate")
+_GUARD_REMOTE = re.compile(r"mcp__(.+)__(create_session|send_message|fire_trigger|create_trigger)")
+
+
+def autonomous_tool(payload: dict) -> str | None:
+    """The guarded tool's label, or None. Autonomous means work that continues without
+    a person watching each step: a workflow, a scheduled wake-up or cron job, a
+    background subagent (the Agent tool's default; an explicit run_in_background=false
+    is a foreground call and is not guarded), or a call that starts or feeds a Remote
+    cloud session or Routine."""
+    name = str(payload.get("tool_name") or "")
+    if name in _GUARD_FIXED:
+        return name
+    if name in ("Agent", "Task"):
+        tin = payload.get("tool_input")
+        if isinstance(tin, dict) and tin.get("run_in_background") is False:
+            return None
+        return "a background subagent"
+    m = _GUARD_REMOTE.fullmatch(name)
+    if m and "remote" in m.group(1).lower():
+        return m.group(2)
+    return None
+
+
+def _interactive(payload: dict, env) -> bool:
+    """A person can answer an ask here. CLAUDE_CODE_SESSION_ATTENDED is set per Claude
+    process (a nested `claude -p` sees 0 under an attended parent), SDK and Actions
+    entrypoints are headless, and a subagent's own calls carry an agent_id."""
+    entry = str(env.get("CLAUDE_CODE_ENTRYPOINT") or "")
+    return (
+        str(env.get("CLAUDE_CODE_SESSION_ATTENDED") or "") == "1"
+        and not entry.startswith("sdk")
+        and "action" not in entry
+        and not payload.get("agent_id")
+    )
+
+
+def _sid(payload: dict) -> str:
+    return re.sub(r"[^A-Za-z0-9._-]", "", str(payload.get("session_id") or "nosession"))[:128]
+
+
+@contextlib.contextmanager
+def _guard_record(sid: str):
+    """Load, modify and save one session's guard record under an exclusive lock, so
+    parallel tool calls see each other's pending ask and only one ask is raised."""
+    d = state_dir() / "guard"
+    d.mkdir(parents=True, exist_ok=True)
+    path = d / f"{sid}.json"
+    with open(d / f"{sid}.lock", "a+") as lock:
+        try:
+            import fcntl
+
+            fcntl.flock(lock, fcntl.LOCK_EX)
+        except (ImportError, OSError):
+            pass
+        rec = _read_json(path, {}) or {}
+        yield rec
+        _write_json_atomic(path, rec)
+
+
+def _pre(decision: str, reason: str) -> dict:
+    return {
+        "systemMessage": reason,
+        "hookSpecificOutput": {
+            "hookEventName": "PreToolUse",
+            "permissionDecision": decision,
+            "permissionDecisionReason": reason,
+        },
+    }
+
+
+def hook_guard(payload: dict, cfg: dict, env=None, now: float | None = None) -> dict | None:
+    """PreToolUse in guard mode: ask before autonomous work past the line, but only
+    where a person can answer — an attended interactive session (not a subagent) on a
+    live statusline reading. Everywhere else (a Routine, `-p`, a subagent, an estimated
+    reading, the warn band, an infeasible week) it warns instead, once per band: a
+    headless `ask` is a denial, and this must never stall a Routine."""
+    if cfg["mode"] != "guard":
+        return None
+    label = autonomous_tool(payload)
+    if not label:
+        return None
+    env = os.environ if env is None else env
+    now = time.time() if now is None else now
+    r = _read_json(state_dir() / "reserve.json") or {}
+    state = r.get("state")
+    if state not in ("warn", "over", "infeasible"):
+        return None
+    live = r.get("current_source") == "statusline" and not r.get("reading_stale")
+    reset = str(r.get("reset_at") or "")
+    runs = sum((row.get("remaining_firings") or 0) for row in r.get("routines", []))
+    est = "" if live else " (estimated — no live weekly reading)"
+    with _guard_record(_sid(payload)) as rec:
+        if rec.get("reset_at") != reset:  # a new week starts clean
+            rec.clear()
+            rec["reset_at"] = reset
+        if state == "over" and live and _interactive(payload, env):
+            if rec.get("consent"):
+                return None
+            pending = rec.get("pending_at")
+            if isinstance(pending, (int, float)) and 0 <= now - pending < GUARD_COOLDOWN_S:
+                wait = int(GUARD_COOLDOWN_S - (now - pending)) + 1
+                return _pre(
+                    "deny",
+                    "Routine reserve: approval to start autonomous work past the line is "
+                    f"pending or was just declined. Retry in {wait}s, or move the line with "
+                    "/routine-reserve override <pct>.",
+                )
+            rec["pending_at"] = now
+            rec["pending_tool_use_id"] = str(payload.get("tool_use_id") or "")
+            return _pre(
+                "ask",
+                f"Routine reserve: weekly usage {r.get('current_pct')}% is past the line at "
+                f"{r.get('line_pct')}% — {r.get('reserve_pct_effective')}% is held for {runs} "
+                f"routine run(s) before {r.get('reset_at')}. Start {label} anyway? Approving "
+                "allows autonomous work for the rest of this session this week.",
+            )
+        band = _BANDS[state]
+        if rec.get("warned", -1) >= band:
+            return None
+        rec["warned"] = band
+        if state == "infeasible":
+            msg = (
+                f"Routine reserve: your Routines alone are projected to need "
+                f"{r.get('reserve_pct_recommended')}% of the weekly cap, more than the "
+                f"{r.get('headroom_pct')}% left{est}. Starting {label} competes with them."
+            )
+        else:
+            msg = (
+                f"Routine reserve {state}: weekly usage {r.get('current_pct')}% vs line "
+                f"{r.get('line_pct')}% — {r.get('reserve_pct_effective')}% held for {runs} "
+                f"routine run(s){est}. {label.capitalize()} spends from the same cap."
+            )
+        return {
+            "systemMessage": msg,
+            "hookSpecificOutput": {"hookEventName": "PreToolUse", "additionalContext": msg},
+        }
+
+
+def hook_consent(payload: dict, cfg: dict) -> None:
+    """PostToolUse in guard mode: the guarded tool actually ran, so the ask raised for
+    it was approved — record consent for this session and week. A declined ask never
+    reaches PostToolUse, so consent is never recorded for a refusal. When the payload
+    carries tool_use_id, only the call that was asked about can grant consent."""
+    if cfg["mode"] != "guard" or not autonomous_tool(payload):
+        return
+    with _guard_record(_sid(payload)) as rec:
+        if rec.get("pending_at") is None:
+            return
+        asked = rec.get("pending_tool_use_id") or ""
+        ran = str(payload.get("tool_use_id") or "")
+        if asked and ran and asked != ran:
+            return
+        rec["consent"] = True
+        rec["pending_at"] = None
+        rec["pending_tool_use_id"] = ""
+
+
 # ── self-test ───────────────────────────────────────────────────────────────
 
 
@@ -1036,7 +1198,7 @@ def main(argv: list[str] | None = None) -> int:
         s = sub.add_parser(name)
         s.add_argument("--raw", required=True, type=Path)
         s.add_argument("--out", type=Path, default=Path("samples"))
-    for name in ("pull", "refresh", "hook-warn", "clear-override"):
+    for name in ("pull", "refresh", "hook-warn", "hook-guard", "hook-consent", "clear-override"):
         sub.add_parser(name)
     for name in ("compute", "status"):
         sub.add_parser(name).add_argument("--json", action="store_true")
@@ -1085,12 +1247,16 @@ def main(argv: list[str] | None = None) -> int:
         else:
             _print_status(r)
         return 0
-    if args.cmd == "hook-warn":
+    if args.cmd in ("hook-warn", "hook-guard", "hook-consent"):
         try:
             payload = json.loads(sys.stdin.read() or "{}")
         except ValueError:
             payload = {}
-        out = hook_warn(payload if isinstance(payload, dict) else {}, cfg)
+        payload = payload if isinstance(payload, dict) else {}
+        if args.cmd == "hook-consent":
+            hook_consent(payload, cfg)
+            return 0
+        out = (hook_warn if args.cmd == "hook-warn" else hook_guard)(payload, cfg)
         if out:
             print(json.dumps(out))
         return 0
