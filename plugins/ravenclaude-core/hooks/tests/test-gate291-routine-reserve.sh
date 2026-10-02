@@ -182,8 +182,12 @@ fi
 
 echo "── G: guard mode — asks only where a person can answer; one ask; consent only after the asked call ran"
 guard_payload() { # $1=session $2=tool $3=tool_use_id [$4=tool_input json] [$5=extra top-level fields]
+  # Not "${4:-{\}}": bash 3.2 (stock macOS) keeps the backslash and yields `{\}`, which is
+  # invalid JSON, so every guarded call reads as junk stdin and the asks silently vanish.
+  local input="${4:-}"
+  [ -n "$input" ] || input='{}'
   printf '{"session_id":"%s","hook_event_name":"PreToolUse","tool_name":"%s","tool_use_id":"%s","tool_input":%s%s}' \
-    "$1" "$2" "$3" "${4:-{\}}" "${5:-}"
+    "$1" "$2" "$3" "$input" "${5:-}"
 }
 run_guard() { # stdin payload; env ATTENDED / ENTRY override the session's attendance + entrypoint
   CLAUDE_PROJECT_DIR="$PROJ" CLAUDE_CODE_SESSION_ATTENDED="${ATTENDED:-1}" CLAUDE_CODE_ENTRYPOINT="${ENTRY:-cli}" \
