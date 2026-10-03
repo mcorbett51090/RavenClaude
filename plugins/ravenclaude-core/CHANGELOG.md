@@ -2,6 +2,35 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.327.1 — 2026-10-03
+
+### Fixed
+
+- **`/repo-review` engine — 13 correctness fixes to the chunk/merge/estimate/cache tooling** (found by
+  the repo-review skill reviewing its own engine during a whole-repo sweep). All in
+  `skills/repo-review/scripts/`; each fix ships with a must-pass teeth assertion in that script's
+  `--self-test` (Gate 258/260 stay green). Behavior-changing / security-control findings from the same
+  sweep were deliberately routed to a design-input doc, not auto-fixed.
+  - **`findings_merge.py`** — a single torn/unreadable shard no longer aborts the whole merge (it is
+    skipped, recorded in `stats.shards_unreadable`, and every good shard survives — restoring the
+    documented hand-recovery path); non-array / bad-name shards and non-dict findings are now counted in
+    `stats` instead of vanishing silently; mixed int/str finding ids no longer crash the sort; a new
+    `by_priority_all` counts every survivor (capped + over-cap) so an over-cap P0 is never invisible to a
+    convergence stop-condition.
+  - **`repo_map.py`** — `.mjs`/`.cjs`/`.mts`/`.cts`/`.ps1` and extensionless shebang scripts are now
+    classified as source (they were silently excluded while coverage reported "full"); `--since` splits
+    the diff on NUL so a non-ASCII changed filename is not dropped, and an unresolvable `--since` ref now
+    fails loudly (exit 2) instead of silently widening the sweep to the whole repo; equal-risk batches
+    tie-break numerically so `b100` no longer sorts before `b11`.
+  - **`fix_summary.py`** — a torn/non-object fix receipt is skipped with a warning instead of crashing
+    the summary after the tree was already edited; markdown table cells escape `|`/newlines so a pipe in
+    a receipt field can't corrupt the row.
+  - **`review_cache.py`** — `store --findings-file` reads + shape-validates inside the exit-2 contract (a
+    missing/invalid/non-list file is a clean error, not an uncaught traceback or a silently-stored dict).
+  - **`estimate_cost.py`** — the redundant `batches_affordable` branch collapsed to `max(0, min(b,
+    planned))`; new `total_exceeds_budget` / `total_exceeds_hard_cap` flags surface a cap-overrun (e.g. a
+    large `--verify-cap`) that was previously emitted without any signal.
+
 ## 0.327.0 — 2026-10-02
 
 ### Added
