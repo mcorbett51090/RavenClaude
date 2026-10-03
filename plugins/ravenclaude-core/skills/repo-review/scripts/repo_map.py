@@ -66,8 +66,21 @@ SOURCE_EXTENSIONS = {
     ".sql",
     ".graphql",
     ".proto",
+    # ESM/CJS/TS module variants + PowerShell: previously classified non_source
+    # while coverage reported "full", so this repo's own check-*.mjs gates and
+    # any .cjs/.mts/.cts/.ps1 were silently never reviewed.
+    ".mjs",
+    ".cjs",
+    ".mts",
+    ".cts",
+    ".ps1",
 }
 ALWAYS_SOURCE_NAMES = {"Dockerfile"}
+
+# Interpreters whose shebang marks an EXTENSIONLESS tracked file as source
+# (e.g. scripts/ravenclaude, bin/rc) — these were excluded as non_source
+# despite being executable code.
+_SHEBANG_INTERP_RE = re.compile(rb"^#!.*\b(bash|sh|zsh|python[0-9.]*|node|ruby|perl|env)\b")
 
 SENSITIVITY_RE = re.compile(r"(auth|crypto|payment|session|admin|migration|deploy)", re.IGNORECASE)
 
@@ -78,9 +91,7 @@ class GitError(RuntimeError):
 
 def run_git(args: list[str], cwd: str) -> bytes:
     try:
-        result = subprocess.run(
-            ["git", *args], cwd=cwd, capture_output=True, timeout=30
-        )
+        result = subprocess.run(["git", *args], cwd=cwd, capture_output=True, timeout=30)
     except subprocess.TimeoutExpired as exc:
         # A slow/hung git process must degrade the same way a failing git
         # process does (GitError), not crash the whole plan build. Every
@@ -124,6 +135,20 @@ def is_source(rel_path: str) -> bool:
     return Path(rel_path).suffix in SOURCE_EXTENSIONS
 
 
+def has_source_shebang(abspath: Path) -> bool:
+    """True if an EXTENSIONLESS file begins with an interpreter shebang. Bounded:
+    only extensionless files are read (one short line), so this adds no I/O for
+    the common doc/data files that already fail the extension check."""
+    if abspath.suffix:
+        return False
+    try:
+        with open(abspath, "rb") as f:
+            first = f.readline(256)
+    except OSError:
+        return False
+    return bool(_SHEBANG_INTERP_RE.match(first))
+
+
 def load_ignore_patterns(repo_root: str) -> list[str]:
     ignore_path = Path(repo_root) / ".ravenclaude" / "review-ignore"
     if not ignore_path.exists():
@@ -146,9 +171,7 @@ def est_tokens(path: Path) -> int:
 
 def churn_rank(repo_root: str, rel_path: str) -> int:
     try:
-        out = run_git(
-            ["log", f"--since={CHURN_WINDOW}", "--oneline", "--", rel_path], repo_root
-        )
+        out = run_git(["log", f"--since={CHURN_WINDOW}", "--oneline", "--", rel_path], repo_root)
     except GitError:
         return 0
     return len(out.decode("utf-8", "surrogateescape").splitlines())
@@ -177,15 +200,25 @@ def build_plan(
     tracked = list_tracked_files(repo_root)
 
     if since:
+        # Validate the ref FIRST: an unresolvable --since previously fell through
+        # `except GitError: pass` and silently reviewed the WHOLE repo — the exact
+        # opposite of what the caller asked for, with no signal. Fail loudly instead.
         try:
-            changed = set(
-                run_git(["diff", "--name-only", f"{since}...HEAD"], repo_root)
-                .decode("utf-8", "surrogateescape")
-                .splitlines()
-            )
-            tracked = [p for p in tracked if p in changed]
-        except GitError:
-            pass
+            run_git(["rev-parse", "--verify", "--quiet", f"{since}^{{commit}}"], repo_root)
+        except GitError as exc:
+            raise GitError(
+                f"--since ref {since!r} is unresolvable; refusing to silently widen scope to the whole repo"
+            ) from exc
+        # -z + NUL split so a changed file whose name git would otherwise quote
+        # (non-ASCII / special chars) is not silently dropped from the diff set.
+        changed = {
+            p
+            for p in run_git(["diff", "-z", "--name-only", f"{since}...HEAD"], repo_root)
+            .decode("utf-8", "surrogateescape")
+            .split("\0")
+            if p
+        }
+        tracked = [p for p in tracked if p in changed]
 
     if only:
         tracked = [p for p in tracked if any(fnmatch.fnmatch(p, pat) for pat in only)]
@@ -212,13 +245,15 @@ def build_plan(
         if tokens > max_file_tokens:
             excluded["oversize"] += 1
             continue
-        if not is_source(rel):
+        if not is_source(rel) and not has_source_shebang(abspath):
             excluded["non_source"] += 1
             continue
         reviewable.append({"path": rel, "tokens": tokens})
 
     for f in reviewable:
-        f["risk"] = churn_rank(repo_root, f["path"]) + (5 if SENSITIVITY_RE.search(f["path"]) else 0)
+        f["risk"] = churn_rank(repo_root, f["path"]) + (
+            5 if SENSITIVITY_RE.search(f["path"]) else 0
+        )
 
     by_dir: dict[str, list[dict]] = {}
     for f in reviewable:
@@ -234,7 +269,9 @@ def build_plan(
         cur: list[dict] = []
         cur_tokens = 0
         for f in files:
-            if cur and (cur_tokens + f["tokens"] > per_agent_tokens or len(cur) >= MAX_FILES_PER_BATCH):
+            if cur and (
+                cur_tokens + f["tokens"] > per_agent_tokens or len(cur) >= MAX_FILES_PER_BATCH
+            ):
                 batches.append(_make_batch(batch_id, cur, cur_tokens, d))
                 batch_id += 1
                 cur, cur_tokens = [], 0
@@ -244,7 +281,10 @@ def build_plan(
             batches.append(_make_batch(batch_id, cur, cur_tokens, d))
             batch_id += 1
 
-    batches.sort(key=lambda b: (-b["_risk"], b["id"]))
+    # Numeric tie-break on the batch number: a lexical sort on "b01".."b100"
+    # puts "b100" before "b11"/"b99", so a --budget-batches cut could keep the
+    # wrong equal-risk batches. int(id[1:]) orders them numerically.
+    batches.sort(key=lambda b: (-b["_risk"], int(b["id"][1:])))
     for i, b in enumerate(batches, start=1):
         b["risk_rank"] = i
         del b["_risk"]
@@ -258,7 +298,9 @@ def build_plan(
         kept = batches[:budget_batches]
         dropped = batches[budget_batches:]
         files_deferred = sum(len(b["files"]) for b in dropped)
-        deferred_reason = f"budget-batches={budget_batches} exceeded ({total_batches_needed} needed)"
+        deferred_reason = (
+            f"budget-batches={budget_batches} exceeded ({total_batches_needed} needed)"
+        )
         dropped_dirs = []
         for b in dropped:
             dropped_dirs.extend(b["modules"])
@@ -314,14 +356,21 @@ def main(argv: list[str]) -> int:
     if args.self_test:
         return _self_test()
 
-    plan = build_plan(
-        args.repo_root,
-        per_agent_tokens=args.per_agent_tokens,
-        max_file_tokens=args.max_file_tokens,
-        only=args.only,
-        since=args.since,
-        budget_batches=args.budget_batches,
-    )
+    try:
+        plan = build_plan(
+            args.repo_root,
+            per_agent_tokens=args.per_agent_tokens,
+            max_file_tokens=args.max_file_tokens,
+            only=args.only,
+            since=args.since,
+            budget_batches=args.budget_batches,
+        )
+    except GitError as exc:
+        # A git failure (e.g. an unresolvable --since ref) is a contract error:
+        # exit 2 with a clear message, not a raw traceback (exit 1, which reads
+        # as "could not run" conflated with a real crash).
+        print(f"error: {exc}", file=sys.stderr)
+        return 2
     text = json.dumps(plan, indent=2, sort_keys=True)
     if args.out:
         Path(args.out).parent.mkdir(parents=True, exist_ok=True)
@@ -448,6 +497,50 @@ def _self_test() -> int:
             set(only_files) == auth_files,
             str(only_files),
         )
+
+        # --- map-003/map-002 teeth: --since validation + narrowing -------------
+        _crashed_badref = False
+        try:
+            build_plan(tmp, since="totally-not-a-ref-xyz")
+        except GitError:
+            _crashed_badref = True
+        check(
+            "map-003: unresolvable --since raises (no silent whole-repo widening)",
+            _crashed_badref,
+        )
+        since_plan = build_plan(tmp, since="HEAD~1")
+        since_files = [f for b in since_plan["batches"] for f in b["files"]]
+        check(
+            "map-002/003: --since narrows to the changed source file",
+            since_files == ["src/auth/session.py"],
+            str(since_files),
+        )
+
+        # --- map-004 teeth: extensionless shebang + .mjs are source; .txt is not
+        _write(tmp, "bin/tool", "#!/usr/bin/env bash\necho hi\n")
+        _write(tmp, "scripts/gate.mjs", "export const x = 1;\n")
+        _write(tmp, "notes_plain.txt", "just prose, not code\n")
+        _sh(tmp, "add", "-A")
+        _sh(tmp, "commit", "-q", "-m", "add shebang + mjs + txt")
+        plan_src = build_plan(tmp, per_agent_tokens=60_000, budget_batches=0)
+        src_files = [f for b in plan_src["batches"] for f in b["files"]]
+        check(
+            "map-004: extensionless shebang file is reviewable",
+            "bin/tool" in src_files,
+            str(src_files),
+        )
+        check("map-004: .mjs file is reviewable", "scripts/gate.mjs" in src_files)
+        check("map-004: plain .txt stays non_source", "notes_plain.txt" not in src_files)
+
+    # --- map-005 teeth: numeric batch-id tie-break orders b11 before b100 ------
+    _ids = ["b100", "b11", "b02", "b99", "b01"]
+    _lexical = sorted(_ids)
+    _numeric = sorted(_ids, key=lambda x: int(x[1:]))
+    check(
+        "map-005: numeric id sort orders b11 before b100 (lexical does not)",
+        _numeric == ["b01", "b02", "b11", "b99", "b100"] and _lexical != _numeric,
+        str(_numeric),
+    )
 
     print(f"\n{'ALL PASS' if not failures else f'{len(failures)} FAILED'}: {len(failures)} failing")
     return 1 if failures else 0

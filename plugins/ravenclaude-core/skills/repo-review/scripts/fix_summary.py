@@ -42,12 +42,31 @@ def load_merged(path: str) -> dict[str, dict]:
 
 
 def load_receipts(receipts_dir: str) -> list[dict]:
-    """Read every *.json file in receipts_dir, sorted for determinism."""
+    """Read every *.json file in receipts_dir, sorted for determinism.
+
+    A torn or non-object receipt is skipped with a stderr warning rather than
+    raising: this runs AFTER the fix pass has already edited the working tree,
+    so crashing here would leave applied edits with no summary record at all.
+    """
     paths = sorted(glob.glob(os.path.join(receipts_dir, "*.json")))
     receipts: list[dict] = []
     for p in paths:
-        with open(p, encoding="utf-8") as f:
-            receipts.append(json.load(f))
+        try:
+            with open(p, encoding="utf-8") as f:
+                data = json.load(f)
+        except (OSError, ValueError) as exc:
+            print(
+                f"[fix_summary] WARN: skipped unreadable receipt {os.path.basename(p)}: {exc}",
+                file=sys.stderr,
+            )
+            continue
+        if not isinstance(data, dict):
+            print(
+                f"[fix_summary] WARN: skipped non-object receipt {os.path.basename(p)}",
+                file=sys.stderr,
+            )
+            continue
+        receipts.append(data)
     return receipts
 
 
@@ -156,18 +175,26 @@ def write_summary(
         )
         return False
 
+    def _md_cell(x: object) -> str:
+        # A raw `|` in a cell silently adds a column (corrupting every downstream
+        # cell of the row); a newline breaks the row out of the table entirely.
+        # Escape the pipe and collapse any CR/LF to a space before interpolating.
+        return (
+            str(x).replace("\\", "\\\\").replace("|", "\\|").replace("\r", " ").replace("\n", " ")
+        )
+
     lines: list[str] = []
     lines.append("| id | file:line | dimension | what changed | status |")
     lines.append("|---|---|---|---|---|")
     for r in rows:
         lines.append(
             "| {id} | {file}:{line} | {dim} | {what} | {status} |".format(
-                id=r["id"],
-                file=r["file"],
-                line=r["line"],
-                dim=r["dimensions"],
-                what=r["summary"],
-                status=r["status"],
+                id=_md_cell(r["id"]),
+                file=_md_cell(r["file"]),
+                line=_md_cell(r["line"]),
+                dim=_md_cell(r["dimensions"]),
+                what=_md_cell(r["summary"]),
+                status=_md_cell(r["status"]),
             )
         )
     lines.append("")
@@ -245,9 +272,7 @@ def main(argv: list[str] | None = None) -> int:
         if not val
     ]
     if missing:
-        parser.error(
-            "missing required arguments (unless --self-test): " + ", ".join(missing)
-        )
+        parser.error("missing required arguments (unless --self-test): " + ", ".join(missing))
 
     merged_index = load_merged(args.merged)
     receipts = load_receipts(args.fix_receipts_dir)
@@ -344,9 +369,7 @@ def run_self_test() -> int:
             merged_index = load_merged(merged_path)
             receipts = load_receipts(receipts_dir)
             total_applied = sum(len(r.get("applied", []) or []) for r in receipts)
-            rows, anomalies, total_skipped, files_touched = build_rows(
-                merged_index, receipts
-            )
+            rows, anomalies, total_skipped, files_touched = build_rows(merged_index, receipts)
             out_summary = os.path.join(td, "summary.md")
             ok = write_summary(
                 out_summary, rows, anomalies, total_applied, total_skipped, files_touched
@@ -355,9 +378,9 @@ def run_self_test() -> int:
             data_rows = [
                 ln
                 for ln in content.splitlines()
-                if ln.startswith("|") and ln not in (
-                    "| id | file:line | dimension | what changed | status |",
-                ) and not ln.startswith("|---")
+                if ln.startswith("|")
+                and ln not in ("| id | file:line | dimension | what changed | status |",)
+                and not ln.startswith("|---")
             ]
             check(
                 "test1: write_summary succeeded",
@@ -399,7 +422,11 @@ def run_self_test() -> int:
             # total_applied claims 2 applied findings, but only 1 row was
             # produced -- a real shortchanged row-writing loop.
             ok = write_summary(
-                out_summary, rows, [], total_applied=2, total_skipped=0,
+                out_summary,
+                rows,
+                [],
+                total_applied=2,
+                total_skipped=0,
                 files_touched={"f.py"},
             )
             check("test2: mismatch is caught (write_summary returns False)", ok is False)
@@ -442,9 +469,7 @@ def run_self_test() -> int:
             merged_index = load_merged(merged_path)
             receipts = load_receipts(receipts_dir)
             total_applied = sum(len(x.get("applied", []) or []) for x in receipts)
-            rows, anomalies, total_skipped, files_touched = build_rows(
-                merged_index, receipts
-            )
+            rows, anomalies, total_skipped, files_touched = build_rows(merged_index, receipts)
             out_summary = os.path.join(td, "summary.md")
             ok = write_summary(
                 out_summary, rows, anomalies, total_applied, total_skipped, files_touched
@@ -488,6 +513,7 @@ def run_self_test() -> int:
     # ---- Test 5: with --repo-root pointing at a real git repo ----------
     try:
         with tempfile.TemporaryDirectory() as td:
+
             def run_git(*cmd: str) -> None:
                 subprocess.run(
                     ["git", "-C", td] + list(cmd),
@@ -535,9 +561,7 @@ def run_self_test() -> int:
             merged_index = load_merged(merged_path)
             receipts = load_receipts(receipts_dir)
             total_applied = sum(len(x.get("applied", []) or []) for x in receipts)
-            rows, anomalies, total_skipped, files_touched = build_rows(
-                merged_index, receipts
-            )
+            rows, anomalies, total_skipped, files_touched = build_rows(merged_index, receipts)
             out_summary = os.path.join(td, "summary.md")
             ok = write_summary(
                 out_summary, rows, anomalies, total_applied, total_skipped, files_touched
@@ -546,9 +570,9 @@ def run_self_test() -> int:
             data_rows = [
                 ln
                 for ln in content.splitlines()
-                if ln.startswith("|") and ln not in (
-                    "| id | file:line | dimension | what changed | status |",
-                ) and not ln.startswith("|---")
+                if ln.startswith("|")
+                and ln not in ("| id | file:line | dimension | what changed | status |",)
+                and not ln.startswith("|---")
             ]
             check("test6: write_summary succeeded on zero receipts", ok is True)
             check(
