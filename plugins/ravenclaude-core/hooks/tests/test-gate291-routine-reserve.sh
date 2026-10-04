@@ -221,6 +221,12 @@ d="$(guard_payload g1 Agent t2 | run_guard | decision)"
 guard_payload g1 Agent t9 | run_consent
 d="$(guard_payload g1 CronCreate t3 | run_guard | decision)"
 [ "$d" = "deny" ] && pass "a different call running does not count as consent to the one asked about" || fail "foreign tool_use_id granted consent: $d"
+# Empty/missing tool_use_id must NOT match a concrete pending id (pre-fix: `asked and
+# ran and asked != ran` treated empty ran as success and granted session-wide consent).
+printf '{"session_id":"g1","hook_event_name":"PostToolUse","tool_name":"CronCreate","tool_input":{}}' | run_consent
+d="$(guard_payload g1 CronCreate t3b | run_guard | decision)"
+[ "$d" = "deny" ] && pass "a PostToolUse with no tool_use_id does not satisfy a concrete pending ask" \
+  || fail "empty tool_use_id granted consent: $d"
 out="$(guard_payload g1 Workflow t1 | run_consent)"
 [ -z "$out" ] && pass "the consent lane prints nothing" || fail "consent lane printed: $out"
 d="$(guard_payload g1 ScheduleWakeup t4 | run_guard | decision)"

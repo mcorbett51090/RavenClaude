@@ -841,17 +841,38 @@ def pull(cfg: dict) -> bool:
         with tarfile.open(fileobj=io.BytesIO(blob)) as tar:
             for member in tar.getmembers():
                 name = member.name
-                if not member.isfile() or not name.endswith(".jsonl") or ".." in Path(name).parts:
+                # Reject absolute names and .. hops: `staging / "/etc/x.jsonl"` discards
+                # the staging root on pathlib join (same class as a classic tar slip).
+                if (
+                    not member.isfile()
+                    or not name.endswith(".jsonl")
+                    or Path(name).is_absolute()
+                    or ".." in Path(name).parts
+                ):
                     continue
-                target = staging / name
+                target = (staging / name).resolve()
+                try:
+                    target.relative_to(staging.resolve())
+                except ValueError:
+                    continue
                 target.parent.mkdir(parents=True, exist_ok=True)
                 src = tar.extractfile(member)
                 if src is not None:
                     target.write_bytes(src.read())
+        # Publish without deleting the live mirror first: move the old tree aside, then
+        # rename staging into place. A crash between those two leaves `.mirror-prev-*`
+        # recoverable; the prior rmtree-then-replace left an empty hole on kill.
         old = mirror_dir()
+        prev = state_dir() / f".mirror-prev-{os.getpid()}-{secrets.token_hex(3)}"
         if old.exists():
-            shutil.rmtree(old, ignore_errors=True)
-        os.replace(staging, old)
+            os.rename(old, prev)
+        try:
+            os.rename(staging, old)
+        except OSError:
+            if prev.exists() and not old.exists():
+                os.rename(prev, old)
+            raise
+        shutil.rmtree(prev, ignore_errors=True)
         return True
     except (OSError, tarfile.TarError):
         shutil.rmtree(staging, ignore_errors=True)
@@ -1106,8 +1127,11 @@ def hook_guard(payload: dict, cfg: dict, env=None, now: float | None = None) -> 
 def hook_consent(payload: dict, cfg: dict) -> None:
     """PostToolUse in guard mode: the guarded tool actually ran, so the ask raised for
     it was approved — record consent for this session and week. A declined ask never
-    reaches PostToolUse, so consent is never recorded for a refusal. When the payload
-    carries tool_use_id, only the call that was asked about can grant consent."""
+    reaches PostToolUse, so consent is never recorded for a refusal. When the ask
+    recorded a tool_use_id, only a PostToolUse with that same id can grant consent —
+    a missing/empty id must not match a concrete pending id (the prior `asked and ran
+    and asked != ran` form treated an empty ran as success and granted session-wide
+    consent without the user approving the ask)."""
     if cfg["mode"] != "guard" or not autonomous_tool(payload):
         return
     with _guard_record(_sid(payload)) as rec:
@@ -1115,7 +1139,7 @@ def hook_consent(payload: dict, cfg: dict) -> None:
             return
         asked = rec.get("pending_tool_use_id") or ""
         ran = str(payload.get("tool_use_id") or "")
-        if asked and ran and asked != ran:
+        if asked and asked != ran:
             return
         rec["consent"] = True
         rec["pending_at"] = None
