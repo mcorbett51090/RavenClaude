@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "status": "draft-for-owner-review",
+  "status": "frozen-2026-10-04",
   "note": "Frozen row list of the harness atlas. 22 core facets, each with named sub-feature rows, plus the unmapped bucket U00. Every row has a cell in every column. Comparison claims are made only on a named row (plan, Design, Facet taxonomy and frozen rows). lever: the lever class a row belongs to, or null. slice: P5 rows are researched first, for the lever guide and the routing-matrix precursor.",
   "lever_classes": ["model", "effort", "mode", "parallelism", "other"],
   "facets": [

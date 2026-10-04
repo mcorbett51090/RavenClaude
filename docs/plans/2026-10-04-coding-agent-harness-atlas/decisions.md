@@ -100,6 +100,12 @@ Two answers were free text mapping to a plan default; both readings are the plan
 
 The plan itself is treated as approved on these answers: the cost envelope was the go/no-go gate, and no answer asked for a revision or a stop. This session is not in plan mode, so there is no separate ExitPlanMode approval.
 
+## P2 answer (2026-10-04): frozen row list
+
+- Question (3 options, shown with the file path on PR #1278): "Keep as drafted / Keep with my edits / Deny, rethink the rows". Owner's answer, verbatim: "Go with rec". **My reading:** the recommended option, which is the plan default, **Keep as drafted** (third free-text "go with rec" answer in this run; correctable at turn 1).
+- Frozen: 22 core facets, 127 named rows, 1,016 cells over 8 columns; 27 lever rows; 32 rows (256 cells) in the P5 slice. `data/facets.json` SHA-256 `9c36e97ad58b6de9665dd42fb75f97031ef8fb184b8b9d73dc771e84e5c50bb9`, recorded in the ledger (`units.jsonl`, unit `p2-freeze`). Two duplicate rows (per-agent model and per-agent effort, which appeared in both F09 and F17/F18) were removed before the question, so the drafted 129 became 127.
+- From now on rows change only through U00 (unmapped) update items.
+
 ## P0 results (2026-10-04)
 
 - **Rows 5, 7 and 13 are settled** in `claims-table.md` (this file's sibling), each from a this-session probe. Row 5: `add_repo` attached nothing and said the git proxy serves public repos; both shallow clones succeeded (gemini-cli `fb972b2f`, codex `335c7f8e`, at `/home/user/google-gemini/gemini-cli` and `/home/user/openai/codex`). Row 7: no per-dispatch effort parameter in this schema or on the two vendor pages read. Row 13: a mechanical facet count, partly confirming the claim (see the row). The rows still open are the not-re-run subagent reports (37 to 43, 50 to 54), which no phase cites. Row 28 had parsed as open only because its source cell held literal table pipes that shifted the columns (a defect of mine in the table, fixed; backlog: `parse_claims` is silent on a row with extra cells).
