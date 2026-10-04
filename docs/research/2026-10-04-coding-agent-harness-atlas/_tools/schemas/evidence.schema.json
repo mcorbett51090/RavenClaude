@@ -1,0 +1,75 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "atlas/evidence.schema.json",
+  "title": "Evidence record",
+  "description": "One dated primary-source quote with enough context to stay checkable after the mirror is gone. quote_verified is set only by script, never by a model.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "surface",
+    "tier",
+    "url",
+    "retrieved",
+    "sha256",
+    "locator",
+    "quote",
+    "context_before",
+    "context_after",
+    "quote_verified"
+  ],
+  "properties": {
+    "id": { "type": "string", "pattern": "^E-[a-z0-9-]+-[0-9]{5}$" },
+    "surface": {
+      "enum": [
+        "claude-code",
+        "codex-cli",
+        "copilot-cli",
+        "copilot-vscode",
+        "cursor",
+        "gemini-cli",
+        "grok-build",
+        "grok-bot"
+      ]
+    },
+    "tier": {
+      "enum": ["E1", "E2", "E3", "E4", "R", "S", "U"],
+      "description": "E1 docs, E2 changelog, E3 source at a commit, E4 executed, R repo statement, S secondary (discovery only), U training knowledge (never verified)"
+    },
+    "url": { "type": "string", "pattern": "^https://" },
+    "url_effective": { "type": "string", "pattern": "^https://" },
+    "retrieved": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$" },
+    "http_status": { "type": "integer" },
+    "bytes": { "type": "integer", "minimum": 0 },
+    "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "product_version": { "type": ["string", "null"] },
+    "version_source": { "type": ["string", "null"] },
+    "locator": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["raw_line_start", "raw_line_end"],
+      "properties": {
+        "heading": { "type": "string" },
+        "raw_line_start": { "type": "integer", "minimum": 1 },
+        "raw_line_end": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "quote": { "type": "string", "maxLength": 300 },
+    "context_before": { "type": "array", "maxItems": 2, "items": { "type": "string" } },
+    "context_after": { "type": "array", "maxItems": 2, "items": { "type": "string" } },
+    "quote_verified": { "type": ["boolean", "null"] },
+    "neutralizer_flags": { "type": "array", "items": { "type": "integer" } },
+    "described_span": {
+      "type": ["object", "null"],
+      "description": "Install and update command lines are stored as a described span, never verbatim; quote is then empty.",
+      "additionalProperties": false,
+      "required": ["description", "raw_line_start", "raw_line_end", "span_sha256"],
+      "properties": {
+        "description": { "type": "string", "maxLength": 200 },
+        "raw_line_start": { "type": "integer", "minimum": 1 },
+        "raw_line_end": { "type": "integer", "minimum": 1 },
+        "span_sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+      }
+    }
+  }
+}

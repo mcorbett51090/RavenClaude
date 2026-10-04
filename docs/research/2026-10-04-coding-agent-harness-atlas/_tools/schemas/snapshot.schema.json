@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "atlas/snapshot.schema.json",
+  "title": "Snapshot: the freeze window and what was frozen",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["freeze_start", "freeze_end", "columns", "index_hashes"],
+  "properties": {
+    "freeze_start": { "type": "string" },
+    "freeze_end": { "type": "string" },
+    "columns": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["surface", "retrieved", "version", "version_source"],
+        "properties": {
+          "surface": { "type": "string" },
+          "retrieved": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$" },
+          "version": { "type": ["string", "null"] },
+          "version_source": { "type": ["string", "null"] },
+          "pages": { "type": "integer", "minimum": 0 },
+          "bytes": { "type": "integer", "minimum": 0 }
+        }
+      }
+    },
+    "index_hashes": {
+      "type": "object",
+      "description": "SHA-256 of every index and sitemap URL set, the addition-drift baseline (M5).",
+      "additionalProperties": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+    },
+    "matrix_sha": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$",
+      "description": "Git blob SHA of agent-routing-matrix.json the lever guide points at."
+    },
+    "params": {
+      "type": "object",
+      "description": "Measured run parameters, for example the scout batch size in KB found by the P4 pilot.",
+      "additionalProperties": true
+    }
+  }
+}

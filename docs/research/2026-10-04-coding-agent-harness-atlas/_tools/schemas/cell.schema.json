@@ -1,0 +1,92 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "atlas/cell.schema.json",
+  "title": "Cell: one surface by one frozen row",
+  "description": "State and verification are separate fields. Each state carries its own evidence obligation, enforced by validate.py (plan, Design, Evidence standard).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "surface", "row", "state", "verification", "evidence"],
+  "properties": {
+    "id": { "type": "string", "description": "<surface>/<row id>" },
+    "surface": {
+      "enum": [
+        "claude-code",
+        "codex-cli",
+        "copilot-cli",
+        "copilot-vscode",
+        "cursor",
+        "gemini-cli",
+        "grok-build",
+        "grok-bot"
+      ]
+    },
+    "row": { "type": "string", "pattern": "^(F[0-9]{2}\\.[a-z0-9-]+|U00)$" },
+    "state": {
+      "enum": [
+        "supported",
+        "partial",
+        "not-exposed",
+        "not-applicable",
+        "undocumented",
+        "not-researched"
+      ]
+    },
+    "verification": { "enum": ["verified", "unverified"] },
+    "value": { "type": "string", "maxLength": 400 },
+    "limitation": {
+      "type": "string",
+      "maxLength": 300,
+      "description": "Required for partial: the restriction, quoted."
+    },
+    "evidence": {
+      "type": "array",
+      "items": { "type": "string", "pattern": "^E-[a-z0-9-]+-[0-9]{5}$" }
+    },
+    "vendor_statement": {
+      "type": "string",
+      "pattern": "^E-[a-z0-9-]+-[0-9]{5}$",
+      "description": "not-exposed: the evidence id of the vendor statement that no control exists."
+    },
+    "reference_page_evidence": {
+      "type": "string",
+      "pattern": "^E-[a-z0-9-]+-[0-9]{5}$",
+      "description": "not-exposed without a vendor statement: the vendor's complete reference page for the surface, as a positive control."
+    },
+    "na_quote": {
+      "type": "string",
+      "pattern": "^E-[a-z0-9-]+-[0-9]{5}$",
+      "description": "not-applicable: a positive quote."
+    },
+    "sweep_report": {
+      "type": "object",
+      "description": "undocumented: a script sweep over the full raw mirror, excluded pages included.",
+      "additionalProperties": false,
+      "required": [
+        "terms",
+        "corpus_sha256",
+        "hits",
+        "hits_reviewed",
+        "positive_control_term",
+        "positive_control_hits"
+      ],
+      "properties": {
+        "terms": { "type": "array", "items": { "type": "string" }, "minItems": 1 },
+        "corpus_sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "hits": { "type": "integer", "minimum": 0 },
+        "hits_reviewed": { "type": "integer", "minimum": 0 },
+        "positive_control_term": { "type": "string" },
+        "positive_control_hits": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "surface_scope": {
+      "type": "array",
+      "items": { "enum": ["ide", "cli", "cloud", "desktop", "web"] }
+    },
+    "marker": {
+      "type": "string",
+      "description": "Derived by the generator: [unverified: <reason>; settles by <probe>]. Authors cannot omit it."
+    },
+    "settles_by": { "type": "string" },
+    "drifted": { "type": "boolean" }
+  }
+}
