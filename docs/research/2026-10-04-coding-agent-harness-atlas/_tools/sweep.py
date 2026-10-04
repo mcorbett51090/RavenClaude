@@ -5,7 +5,9 @@ The sweep scans the whole raw mirror, excluded pages included, line by line for 
 that vendor's pages. An empty search from a blind probe and from an empty subject look the
 same, so a sweep whose control finds nothing raises instead of returning "zero hits".
 
-Terms match one line at a time; a pattern that needs to span a line break cannot hit.
+Terms match one line at a time; a pattern that needs to span a line break cannot hit. Lines
+end at a line feed; a carriage return before it is not part of the line, so a pattern anchored
+with $ matches a page with CRLF line breaks as it does one with LF.
 
 Usage: python3 sweep.py --pages-dir DIR --term REGEX [--term REGEX ...] --control REGEX --out JSON
        python3 sweep.py --selftest
@@ -46,17 +48,23 @@ def sweep(pages, terms, positive_control):
     """Scan every page for the terms and the control; raise SweepBlindError on a blind probe."""
     term_res = [_compile(t) for t in terms]
     control_re = _compile(positive_control)
+    if control_re.search(""):
+        raise ValueError(
+            f"positive control {positive_control!r} matches the empty string, so it would hit "
+            f"on any page and could not show that the probe sees the vendor's text"
+        )
     hits = []
     hit_count = 0
     control_hits = 0
     for pid in sorted(pages):
         for number, line in enumerate(pages[pid].split("\n"), 1):
+            line = line.rstrip("\r")
             if control_re.search(line):
                 control_hits += 1
             if any(r.search(line) for r in term_res):
                 hit_count += 1
                 if len(hits) < MAX_HITS:
-                    hits.append({"page": pid, "line": number, "text": line.rstrip("\r")[:MAX_TEXT]})
+                    hits.append({"page": pid, "line": number, "text": line[:MAX_TEXT]})
     if control_hits == 0:
         raise SweepBlindError(
             f"positive control {positive_control!r} matched no line in {len(pages)} pages: "

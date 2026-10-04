@@ -20,7 +20,7 @@ import sys
 from pathlib import Path
 
 from atlas_common import assert_worktree
-from quotes import raw_span_for_range, verify_quote
+from quotes import lines_text, split_lines, verify_quote
 
 STATUSES = (
     "ok",
@@ -51,9 +51,9 @@ def check_quote_presence(evidence, pages):
             status = "ok"
         elif ev.get("described_span"):
             span = ev["described_span"]
-            current = raw_span_for_range(
-                page["raw_text"], span["raw_line_start"], span["raw_line_end"]
-            )
+            # The hash covers the whole lines of the range, never a capped span, so a change
+            # anywhere in a long install line is seen.
+            current = lines_text(page["raw_text"], span["raw_line_start"], span["raw_line_end"])
             same = hashlib.sha256(current.encode("utf-8")).hexdigest() == span["span_sha256"]
             status = "span_unchanged" if same else "span_changed"
         elif verify_quote(ev.get("quote", ""), page["raw_text"])["found"]:
@@ -106,8 +106,13 @@ _MDY_RE = re.compile(
 _DMY_RE = re.compile(
     r"\b(\d{1,2})(?:st|nd|rd|th)?\s+(" + _MONTH_WORDS + r")\.?,?\s+(\d{4})\b", re.IGNORECASE
 )
-_ENTRY_MARKER_RE = re.compile(r"^\s*(?:#{1,6}\s|[-*+]\s|\d+[.)]\s)")
+_HEADING_LINE_RE = re.compile(r"^\s*#{1,6}\s")
+_BULLET_RE = re.compile(r"^\s*(?:[-*+]|\d+[.)])\s+")
 _LEAD_MARKUP = " \t*_|`>[(~"
+# A version token may sit between the bullet marker and the date: "v1.2.3 - 2026-09-01".
+_VERSION_LEAD_RE = re.compile(
+    r"v?\d+(?:\.\d+)+(?:[-+.][0-9a-z.]+)*\s*[-\u2013\u2014:]?", re.IGNORECASE
+)
 
 
 def _valid(year, month, day):
@@ -139,15 +144,20 @@ def _first_date(line):
 def _entry_start(line):
     """The entry date when this line starts an entry, else None.
 
-    A line starts an entry when it is a heading or bullet containing a date, or when the
-    date leads the line after Markdown emphasis or table markup (a bare date line or a
-    table row). A bullet that merely mentions a date still starts an entry.
+    A heading containing a date anywhere starts an entry. Any other line starts one only when
+    the date leads it: directly after a bullet marker if there is one, then after Markdown
+    emphasis, table markup or a version token (a bullet, a bare date line or a table row).
+    A bullet that merely mentions a date does not.
     """
     hit = _first_date(line)
     if hit is None:
         return None
     start, date = hit
-    if _ENTRY_MARKER_RE.match(line) or not line[:start].strip(_LEAD_MARKUP):
+    if _HEADING_LINE_RE.match(line):
+        return date
+    bullet = _BULLET_RE.match(line)
+    lead = line[bullet.end() if bullet else 0 : start].strip(_LEAD_MARKUP)
+    if not lead or _VERSION_LEAD_RE.fullmatch(lead):
         return date
     return None
 
@@ -159,9 +169,7 @@ def scan_changelog(raw_text, since_date, terms):
         term_res = [(t, re.compile(t, re.IGNORECASE)) for t in terms]
     except re.error as exc:
         raise ValueError(f"invalid regular expression in terms: {exc}") from exc
-    lines = raw_text.split("\n")
-    if len(lines) > 1 and lines[-1] == "":
-        lines.pop()  # the empty piece after the final newline is not a line
+    lines = split_lines(raw_text)
     starts = []
     for number, line in enumerate(lines, 1):
         date = _entry_start(line)
@@ -181,7 +189,7 @@ def scan_changelog(raw_text, since_date, terms):
                     "start_line": number,
                     "end_line": end,
                     "matched_terms": matched,
-                    "first_line": lines[number - 1].strip().rstrip("\r")[:300],
+                    "first_line": lines[number - 1].strip()[:300],
                 }
             )
     return entries

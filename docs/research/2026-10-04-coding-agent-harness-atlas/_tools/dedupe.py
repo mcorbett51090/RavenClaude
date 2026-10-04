@@ -38,52 +38,43 @@ def line_containment(a_lines, b_lines):
 def mark_secondary(pages, aggregates, threshold=0.9):
     """Classify every page as aggregate, canonical or secondary.
 
-    A page is secondary of its best-containing non-aggregate page when that containment
-    is at least threshold, unless the two contain each other at or above the threshold
-    and this page is the canonical one (more non-blank lines wins; on a tie the
-    lexicographically smaller id wins). Ties between equally good parents go to the
-    larger page, then to the smaller id.
+    Non-aggregate pages are put in a total order: more non-blank lines first, then the
+    smaller id. A page is secondary of the first earlier page in that order that contains
+    at least ``threshold`` of its non-blank normalized lines; with no such page it is
+    canonical. A page can only point at an earlier page, so no chain of secondaries can
+    loop and every chain ends at a canonical page. A secondary's ``containment`` is its
+    containment in its parent; a canonical page's is its best containment in any other
+    non-aggregate page (0.0 when there is none), reported for information.
     """
     norm = {pid: _nonblank(lines) for pid, lines in pages.items()}
     sets = {pid: set(lines) for pid, lines in norm.items()}
     aggregate_ids = sorted(pid for pid in pages if pid in aggregates)
-    others = sorted(pid for pid in pages if pid not in aggregates)
+    order = sorted((pid for pid in pages if pid not in aggregates), key=lambda p: (-len(norm[p]), p))
 
     result = {}
     for pid in aggregate_ids:
         result[pid] = {"role": "aggregate", "secondary_of": None, "containment": None}
 
-    def is_canonical_over(pid, other):
-        """True when pid beats other as the canonical copy of mutually containing pages."""
-        if len(norm[pid]) != len(norm[other]):
-            return len(norm[pid]) > len(norm[other])
-        return pid < other
-
-    for pid in others:
-        scores = {q: _containment(norm[pid], sets[q]) for q in others if q != pid}
+    for rank, pid in enumerate(order):
+        scores = {q: _containment(norm[pid], sets[q]) for q in order if q != pid}
         entry = {
             "aggregate_containment": {
                 agg: _containment(norm[pid], sets[agg]) for agg in aggregate_ids
             }
         }
-        if not scores:
-            entry.update({"role": "canonical", "secondary_of": None, "containment": 0.0})
-            result[pid] = entry
-            continue
-        best_score = max(scores.values())
-        parent = min(
-            (q for q in scores if scores[q] == best_score),
-            key=lambda q: (-len(norm[q]), q),
-        )
-        secondary = best_score >= threshold
-        if secondary:
-            mutual = _containment(norm[parent], sets[pid]) >= threshold
-            if mutual and is_canonical_over(pid, parent):
-                secondary = False
-        if secondary:
-            entry.update({"role": "secondary", "secondary_of": parent, "containment": best_score})
+        parent = next((q for q in order[:rank] if scores[q] >= threshold), None)
+        if parent is None:
+            entry.update(
+                {
+                    "role": "canonical",
+                    "secondary_of": None,
+                    "containment": max(scores.values(), default=0.0),
+                }
+            )
         else:
-            entry.update({"role": "canonical", "secondary_of": None, "containment": best_score})
+            entry.update(
+                {"role": "secondary", "secondary_of": parent, "containment": scores[parent]}
+            )
         result[pid] = entry
     return result
 

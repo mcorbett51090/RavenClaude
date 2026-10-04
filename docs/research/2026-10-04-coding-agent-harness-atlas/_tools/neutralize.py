@@ -22,12 +22,18 @@ CLOSE_MARK = "›"
 
 # Longer names come first inside the alternation; the lookahead enforces a name boundary.
 # ``invoke`` is listed because the brief's own example match is an invoke tag.
-TAG_RE = re.compile(
-    r"</?(?:system-reminder|system|assistant|user|human|instructions|instruction|"
+_TAG_NAMES = (
+    r"(?:system-reminder|system|assistant|user|human|instructions|instruction|"
     r"tool_use|tool_result|function_calls|function_results|thinking|invoke|"
-    r"antml:[\w.:-]*)(?=[\s/>])[^>\n]*>",
-    re.IGNORECASE,
+    r"antml:[\w.:-]*)"
 )
+TAG_RE = re.compile(r"</?" + _TAG_NAMES + r"(?=[\s/>])[^>\n]*>", re.IGNORECASE)
+# A tag-like opening with no ``>`` after it on its line (the ``>`` may be on the next line).
+# Once TAG_RE has nothing left to match on a line, every opening this finds is such a case.
+OPENER_RE = re.compile(r"<(?=/?" + _TAG_NAMES + r"(?:[\s/>]|$))", re.IGNORECASE)
+# One pass converts at least one ``<``, so the repeat loop ends; this bounds how deep a
+# hostile nesting may go before the page is refused instead of looped over.
+MAX_PASSES = 1000
 
 INSTRUCTION_RES = [
     re.compile(pattern, re.IGNORECASE)
@@ -55,27 +61,54 @@ def _instruction_shaped(line):
     return any(rx.search(line) for rx in INSTRUCTION_RES)
 
 
+def _neutralize_line(line):
+    """Return ``(neutral_line, number_of_rewrites)`` for one line.
+
+    A match runs from an opening ``<name`` to the first ``>``, so a tag nested inside
+    another keeps its ``<`` after one pass; the substitution repeats until TAG_RE is
+    silent. Whatever opening is then left has no ``>`` on the line and is rewritten alone.
+    """
+    rewrites = 0
+    for _ in range(MAX_PASSES):
+        line, count = TAG_RE.subn(_neutralize_token, line)
+        if not count:
+            break
+        rewrites += count
+    else:
+        if TAG_RE.search(line):
+            raise ValueError(f"tag-like tokens nest more than {MAX_PASSES} passes deep")
+    line, count = OPENER_RE.subn(OPEN_MARK, line)
+    return line, rewrites + count
+
+
 def neutralize_text(raw):
     """Return ``(neutral_text, flagged_line_numbers)``; line numbers are 1-based raw lines.
 
-    A line is flagged when a tag token was rewritten on it or when it is
-    instruction-shaped. Instruction-shaped lines are flagged but not modified.
+    A line is flagged when a tag token or an unclosed tag opening was rewritten on it or
+    when it is instruction-shaped. Instruction-shaped lines are flagged but not modified.
+    Raises ValueError for a line that nests tag tokens deeper than MAX_PASSES.
     """
     out_lines = []
     flagged = []
     for number, line in enumerate(raw.split("\n"), start=1):
-        new_line, replaced = TAG_RE.subn(_neutralize_token, line)
-        if replaced or _instruction_shaped(line):
+        new_line, rewrites = _neutralize_line(line)
+        if rewrites or _instruction_shaped(line):
             flagged.append(number)
         out_lines.append(new_line)
     return "\n".join(out_lines), flagged
 
 
-def check_parity(raw, neutral):
-    """Raise ValueError unless the line counts match and every line round-trips via restore.
+_MARK_SWAPS = {"<": OPEN_MARK, ">": CLOSE_MARK}
 
-    A raw line that itself contains a literal U+2039 or U+203A cannot round-trip
-    byte-for-byte; for those lines the comparison is restore(neutral) == restore(raw).
+
+def check_parity(raw, neutral):
+    """Raise ValueError unless neutral is raw with only ``<`` -> U+2039 and ``>`` -> U+203A.
+
+    The comparison is character by character on every line: a position must be identical,
+    or hold raw ``<`` against neutral U+2039, or raw ``>`` against neutral U+203A. A raw
+    U+2039 or U+203A must therefore survive as itself, so a neutral ``<`` or ``>`` cannot be
+    smuggled in over a literal mark. Lines of different length, and different line counts,
+    raise.
     """
     raw_lines = raw.split("\n")
     neutral_lines = neutral.split("\n")
@@ -85,12 +118,14 @@ def check_parity(raw, neutral):
             f"neutral has {len(neutral_lines)} lines"
         )
     for number, (raw_line, neutral_line) in enumerate(zip(raw_lines, neutral_lines), start=1):
-        if restore(neutral_line) == raw_line:
-            continue
-        has_literal_mark = OPEN_MARK in raw_line or CLOSE_MARK in raw_line
-        if has_literal_mark and restore(neutral_line) == restore(raw_line):
-            continue
-        raise ValueError(f"line {number} does not round-trip through restore")
+        if len(raw_line) != len(neutral_line):
+            raise ValueError(
+                f"line {number} changed length: {len(raw_line)} characters became "
+                f"{len(neutral_line)}"
+            )
+        for position, (before, after) in enumerate(zip(raw_line, neutral_line)):
+            if before != after and _MARK_SWAPS.get(before) != after:
+                raise ValueError(f"line {number} changed at character {position + 1}")
 
 
 def _selftest():
@@ -137,11 +172,11 @@ def main(argv=None):
         print(f"neutralize: {args.raw_path} is not valid UTF-8: {exc}", file=sys.stderr)
         return 2
 
-    neutral, flagged = neutralize_text(raw)
     try:
+        neutral, flagged = neutralize_text(raw)
         check_parity(raw, neutral)
     except ValueError as exc:
-        print(f"neutralize: parity check failed: {exc}", file=sys.stderr)
+        print(f"neutralize: {args.raw_path} refused: {exc}", file=sys.stderr)
         return 1
 
     out_path = Path(args.neutral_path)

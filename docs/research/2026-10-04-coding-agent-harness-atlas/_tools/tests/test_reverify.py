@@ -11,6 +11,7 @@ os.environ["ATLAS_TEST_ALLOW_ANY_TREE"] = "1"
 TOOLS = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(TOOLS))
 
+import quotes  # noqa: E402
 from reverify import addition_drift, check_quote_presence, scan_changelog  # noqa: E402
 
 URL = "https://example.com/docs"
@@ -102,6 +103,44 @@ class PresenceTests(unittest.TestCase):
             self.assertEqual(out["status_by_id"], {"E-a-00002": "span_changed"}, new)
             self.assertEqual(out["drifted_ids"], ["E-a-00002"])
 
+    def test_a_long_install_line_is_unchanged_until_a_character_past_300_changes(self):
+        prefix = "p " * 160  # 320 characters, so the tail is past the 300-character cap
+        old = f"# Install\n{prefix}pip install example-tool\nlast\n"
+        ev = span_evidence("E-a-00004", old, 2, 2)
+        appended = old + "appended note\n"
+        out = check_quote_presence([ev], fresh(appended))
+        self.assertEqual(out["status_by_id"], {"E-a-00004": "span_unchanged"})
+        changed = f"# Install\n{prefix}pip install other-tool\nlast\n"
+        out = check_quote_presence([ev], fresh(changed))
+        self.assertEqual(out["status_by_id"], {"E-a-00004": "span_changed"})
+        self.assertEqual(out["drifted_ids"], ["E-a-00004"])
+
+    def test_the_span_hash_written_by_build_evidence_is_the_one_checked_here(self):
+        prefix = "p " * 160
+        old = f"# Install\n{prefix}pip install example-tool\r\nlast\n"
+        ev, _ = quotes.build_evidence(
+            surface="cursor",
+            tier="E1",
+            url=URL,
+            url_effective=URL,
+            retrieved="2026-10-04",
+            http_status=200,
+            raw_bytes_sha256=sha(old),
+            raw_bytes_len=len(old),
+            product_version=None,
+            version_source=None,
+            raw_text=old,
+            record={"quote": "pip install example-tool", "claim": "c"},
+            seq=1,
+        )
+        self.assertEqual(ev["quote"], "")
+        appended = old + "appended note\n"
+        out = check_quote_presence([ev], fresh(appended))
+        self.assertEqual(out["status_by_id"], {ev["id"]: "span_unchanged"})
+        changed = appended.replace("example-tool", "other-tool")
+        out = check_quote_presence([ev], fresh(changed))
+        self.assertEqual(out["status_by_id"], {ev["id"]: "span_changed"})
+
     def test_described_span_on_an_unchanged_page_is_ok(self):
         old = "a\nb\n"
         out = check_quote_presence([span_evidence("E-a-00003", old, 2, 2)], fresh(old))
@@ -110,8 +149,8 @@ class PresenceTests(unittest.TestCase):
     def test_counts_cover_every_status_and_sum_to_the_input(self):
         newer = OLD + "more\n"
         evidence = [
-            quote_evidence("E-a-00001", "sandbox"),
-            quote_evidence("E-a-00002", "sandbox"),
+            quote_evidence("E-a-00001", "sandbox is on"),
+            quote_evidence("E-a-00002", "sandbox is on"),
             quote_evidence("E-a-00003", "nothing like this"),
             quote_evidence("E-a-00004", "x", url="https://example.com/gone"),
         ]
@@ -169,6 +208,16 @@ Reworked everything about plugins
 
 ### 2.1.0 (5th March 2026)
 Nothing relevant here
+"""
+
+
+# A bullet that merely mentions a date must not start an entry (review 2, finding 7).
+TRAP = """\
+## 2026-09-01
+- Removed the flag that was deprecated on 2025-01-01
+- New hooks API for tool calls
+## 2025-06-01
+- Superseded by the roadmap item for 2027-01-01
 """
 
 
@@ -240,6 +289,61 @@ class ChangelogTests(unittest.TestCase):
         self.assertEqual(
             [(e["date"], e["start_line"], e["end_line"]) for e in entries], [("2026-02-01", 3, 4)]
         )
+
+    def test_lone_carriage_returns_and_crlf_are_line_breaks(self):
+        for text in ("# 2026-05-01\rbody\rlast\r", "# 2026-05-01\r\nbody\r\nlast\r\n"):
+            entries = scan_changelog(text, "2026-01-01", ["last"])
+            self.assertEqual([(e["start_line"], e["end_line"]) for e in entries], [(1, 3)], text)
+            self.assertEqual(entries[0]["first_line"], "# 2026-05-01")
+        mixed = "# 2026-01-01\rold\r\n# 2026-05-01\nnew sandbox\r"
+        entries = scan_changelog(mixed, "2026-02-01", ["sandbox"])
+        self.assertEqual([(e["date"], e["start_line"], e["end_line"]) for e in entries], [("2026-05-01", 3, 4)])
+
+    def test_a_bullet_that_mentions_a_date_does_not_start_an_entry(self):
+        entries = scan_changelog(TRAP, "2026-01-01", ["hooks"])
+        self.assertEqual(
+            [(e["date"], e["start_line"], e["end_line"]) for e in entries], [("2026-09-01", 1, 3)]
+        )
+        self.assertEqual(entries[0]["matched_terms"], ["hooks"])
+        everything = scan_changelog(TRAP, "2000-01-01", [".*"])
+        self.assertEqual(
+            [(e["date"], e["start_line"], e["end_line"]) for e in everything],
+            [("2026-09-01", 1, 3), ("2025-06-01", 4, 5)],
+        )
+        self.assertEqual(scan_changelog(TRAP, "2026-09-01", [".*"]), [])
+
+    def test_a_date_that_leads_the_bullet_starts_an_entry(self):
+        text = (
+            "- v1.2.3 - 2026-09-01: sandbox mode\n"
+            "- **2026-09-02** sandbox again\n"
+            "1. September 3, 2026 sandbox third\n"
+            "* 4 September 2026 - sandbox fourth\n"
+            "- **v2.0** (2026-09-05) sandbox fifth\n"
+            "- 1.2.3: 2026-09-06 sandbox sixth\n"
+            "- Fixed a regression introduced on 2026-09-07 in the sandbox\n"
+        )
+        entries = scan_changelog(text, "2026-01-01", ["sandbox"])
+        self.assertEqual(
+            [(e["date"], e["start_line"], e["end_line"]) for e in entries],
+            [
+                ("2026-09-01", 1, 1),
+                ("2026-09-02", 2, 2),
+                ("2026-09-03", 3, 3),
+                ("2026-09-04", 4, 4),
+                ("2026-09-05", 5, 5),
+                ("2026-09-06", 6, 7),
+            ],
+        )
+
+    def test_a_word_before_the_date_in_a_bullet_is_a_mention_not_a_start(self):
+        text = "## 2026-02-01\n- Released 2026-09-01 as planned\n- see 3 March 2026 notes\n"
+        entries = scan_changelog(text, "2026-01-01", ["notes"])
+        self.assertEqual([(e["date"], e["end_line"]) for e in entries], [("2026-02-01", 3)])
+
+    def test_a_heading_with_a_date_anywhere_still_starts_an_entry(self):
+        text = "## Release notes for the 2026-09-01 build\nsandbox\n"
+        entries = scan_changelog(text, "2026-01-01", ["sandbox"])
+        self.assertEqual([e["date"] for e in entries], ["2026-09-01"])
 
     def test_bare_date_lines_and_table_rows_start_entries(self):
         text = "**September 15, 2026**\nsandbox arrived\n| 2026-09-20 | sandbox fixed |\n"

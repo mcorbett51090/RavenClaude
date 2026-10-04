@@ -15,7 +15,14 @@ Usage: python3 fetch.py --surface ID --urls FILE --raw-dir DIR --manifest FILE
 Exit codes: 0 every new row is fetched or negative; 3 some row is indeterminate (retry it
 later); 4 no row is indeterminate but some row is rejected, refused or cross_host (read the
 manifest); 2 usage error. The manifest gets one sorted-key JSON object per line, appended
-as each URL finishes, so an interrupted run keeps its progress.
+as each URL finishes, so an interrupted run keeps its progress; when the run ends the
+manifest is rewritten atomically with one row per URL (the newest wins), sorted by url, so
+two runs over the same URLs leave identical bytes however the fetches interleaved.
+
+A URL that cannot be requested safely (a space, a control character or a non-ASCII character
+in its text, userinfo or a backslash in its authority, a malformed Location) is a row, never
+an exception: ``rejected`` / ``bad_url`` for bad text, ``refused`` / ``bad_url`` for a bad
+authority, with no retry.
 """
 
 import argparse
@@ -26,9 +33,11 @@ import ipaddress
 import json
 import os
 import random
+import shutil
 import socket
 import ssl
 import sys
+import tempfile
 import threading
 import time
 import urllib.error
@@ -66,6 +75,10 @@ class NetworkError(Exception):
     def __init__(self, kind):
         super().__init__(kind)
         self.kind = kind
+
+
+class BadUrlError(ValueError):
+    """The URL itself is unusable, so retrying can never help (not a transport failure)."""
 
 
 class _Stop(Exception):
@@ -117,14 +130,15 @@ def http_opener(url, timeout=30.0, max_bytes=20_000_000):
 
     A 3xx comes back as a Hop carrying its ``location``. A body over ``max_bytes`` raises
     ``ValueError("body_too_large")``. Transport failures raise ``NetworkError``; an SSL
-    failure other than a timeout is reported as ``"reset"``. ``HTTPS_PROXY`` is honoured by
-    urllib itself.
+    failure other than a timeout is reported as ``"reset"``. A URL that http.client or urllib
+    refuses to send (a space, a control character, text that is not ASCII, no scheme) raises
+    ``BadUrlError`` before any connection. ``HTTPS_PROXY`` is honoured by urllib itself.
     """
     director = urllib.request.build_opener(
         _NoRedirect, urllib.request.HTTPSHandler(context=_ssl_context())
     )
-    request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT}, method="GET")
     try:
+        request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT}, method="GET")
         with director.open(request, timeout=timeout) as resp:
             return _to_hop(resp, max_bytes)
     except urllib.error.HTTPError as err:
@@ -134,8 +148,14 @@ def http_opener(url, timeout=30.0, max_bytes=20_000_000):
             raise NetworkError(_network_kind(exc)) from exc
         finally:
             err.close()
+    except (UnicodeError, http.client.InvalidURL) as exc:
+        raise BadUrlError(f"{type(exc).__name__}: {exc}") from exc
     except _TRANSPORT_ERRORS as exc:
         raise NetworkError(_network_kind(exc)) from exc
+    except ValueError as exc:
+        if str(exc) == "body_too_large":
+            raise
+        raise BadUrlError(f"{type(exc).__name__}: {exc}") from exc
 
 
 # --- policy helpers --------------------------------------------------------------------
@@ -181,6 +201,11 @@ def _parse_retry_after(value):
         return max(0, min(int(value.strip()), MAX_RETRY_AFTER))
     except (AttributeError, ValueError):
         return None
+
+
+def _has_unsafe_text(url):
+    """True for a space, a control character (below 0x20 or 0x7f) or any non-ASCII character."""
+    return any(char <= " " or char >= "\x7f" for char in url)
 
 
 def _is_markdown_path(*urls):
@@ -298,14 +323,23 @@ class Fetcher:
 
     def _check(self, url):
         """Policy for one URL (the request and every redirect target). Returns its host."""
-        parts = urlsplit(url)
-        if parts.scheme != "https":
-            raise _Stop("refused", "not_https")
-        host = parts.hostname
+        if _has_unsafe_text(url):
+            raise _Stop("rejected", "bad_url")
         try:
+            parts = urlsplit(url)
             port = parts.port
         except ValueError:
             raise _Stop("refused", "bad_url")
+        if parts.scheme != "https":
+            raise _Stop("refused", "not_https")
+        if (
+            parts.username is not None
+            or parts.password is not None
+            or "@" in parts.netloc
+            or "\\" in parts.netloc
+        ):
+            raise _Stop("refused", "bad_url")
+        host = parts.hostname
         if not host:
             raise _Stop("refused", "bad_url")
         if _literal_blocked(host):
@@ -344,6 +378,8 @@ class Fetcher:
             except NetworkError as exc:
                 row["status"] = None
                 reason = exc.kind
+            except BadUrlError:
+                raise _Stop("rejected", "bad_url")
             except ValueError as exc:
                 if str(exc) != "body_too_large":
                     raise
@@ -373,7 +409,12 @@ class Fetcher:
                 raise _Stop("rejected", f"status_{hop.status}")
             if followed >= self.max_redirects:
                 raise _Stop("refused", "too_many_redirects")
-            target = urljoin(current, hop.location)
+            if _has_unsafe_text(hop.location):
+                raise _Stop("rejected", "bad_url")
+            try:
+                target = urljoin(current, hop.location)
+            except ValueError:
+                raise _Stop("rejected", "bad_url")
             self._check(target)
             followed += 1
             row["redirects"].append(target)
@@ -423,7 +464,8 @@ def fetch_many(fetcher, urls, workers=6, per_host=3):
 
 def _read_urls(path):
     urls = []
-    with open(path, encoding="utf-8") as fh:
+    # errors="replace": a line that is not valid UTF-8 must become a bad_url row, not abort.
+    with open(path, encoding="utf-8", errors="replace") as fh:
         for line in fh:
             line = line.strip()
             if line and not line.startswith("#") and line not in urls:
@@ -431,8 +473,8 @@ def _read_urls(path):
     return urls
 
 
-def _fetched_in_manifest(manifest, raw_dir):
-    """URLs whose latest manifest row is fetched and whose raw file is still on disk."""
+def _latest_rows(manifest):
+    """The newest manifest row for each URL (a later line replaces an earlier one)."""
     state = {}
     if manifest.exists():
         with open(manifest, encoding="utf-8") as fh:
@@ -440,6 +482,12 @@ def _fetched_in_manifest(manifest, raw_dir):
                 if line.strip():
                     row = json.loads(line)
                     state[row["url"]] = row
+    return state
+
+
+def _fetched_in_manifest(manifest, raw_dir):
+    """URLs whose latest manifest row is fetched and whose raw file is still on disk."""
+    state = _latest_rows(manifest)
     return {
         url
         for url, row in state.items()
@@ -449,6 +497,28 @@ def _fetched_in_manifest(manifest, raw_dir):
 
 def _dump_row(row):
     return json.dumps(row, sort_keys=True, ensure_ascii=False) + "\n"
+
+
+def _rewrite_manifest(manifest):
+    """Replace the manifest with one row per URL (the newest), sorted by url, atomically.
+
+    Rows are appended as URLs finish so an interrupted run can resume; this runs once at the
+    end so the bytes no longer depend on the order the fetches finished in.
+    """
+    if not manifest.exists():
+        return
+    state = _latest_rows(manifest)
+    fd, tmp_name = tempfile.mkstemp(dir=manifest.parent, prefix=f".{manifest.name}.", suffix=".tmp")
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8", newline="\n") as fh:
+            for url in sorted(state):
+                fh.write(_dump_row(state[url]))
+        shutil.copymode(manifest, tmp_name)  # mkstemp makes the file 0600
+        os.replace(tmp_name, manifest)
+    except BaseException:
+        with contextlib.suppress(OSError):
+            os.unlink(tmp_name)
+        raise
 
 
 def _selftest():
@@ -535,6 +605,7 @@ def main(argv=None, opener=None, sleep=time.sleep):
         on_result=on_result,
     )
     rows = fetch_many(fetcher, urls, workers=args.workers)
+    _rewrite_manifest(manifest)
 
     counts = {}
     for row in rows:

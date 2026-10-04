@@ -1233,6 +1233,311 @@ class ContentTests(RenderTestCase):
         self.assertIn('E-claude-code-99999</span> <span class="nodata">(no record)</span>', block)
 
 
+class StalePageTests(RenderTestCase):
+    """Finding 4: a page the renderer no longer produces must never ship silently."""
+
+    EXTRAS = ("harness/old-product.html", "sources/old-surface.html", "leftover.html")
+
+    def write_extras(self):
+        for name in self.EXTRAS:
+            target = self.out_dir / name
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_text("<p>old</p>\n", encoding="utf-8")
+
+    def args(self, *more):
+        return ["--data-dir", str(self.data_dir), "--out", str(self.out_dir), *more]
+
+    def test_check_names_every_extra_page_and_fails(self):
+        self.assertEqual(run_cli(self.args()).returncode, 0)
+        self.write_extras()
+        result = run_cli(self.args("--check"))
+        self.assertEqual(result.returncode, 1, result.stderr)
+        for name in self.EXTRAS:
+            self.assertIn(name, result.stderr)
+        self.assertNotIn("up to date", result.stdout)
+        self.assertNotIn("stale: harness/cursor.html", result.stderr)
+
+    def test_check_passes_again_once_the_extra_pages_are_gone(self):
+        self.assertEqual(run_cli(self.args()).returncode, 0)
+        self.write_extras()
+        for name in self.EXTRAS:
+            (self.out_dir / name).unlink()
+        result = run_cli(self.args("--check"))
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_write_mode_keeps_extra_pages_warns_and_exits_nonzero(self):
+        self.write_extras()
+        result = run_cli(self.args())
+        self.assertEqual(result.returncode, 1, result.stderr)
+        for name in self.EXTRAS:
+            self.assertIn(name, result.stderr)
+            self.assertTrue((self.out_dir / name).is_file(), f"{name} was deleted")
+            self.assertEqual((self.out_dir / name).read_text(encoding="utf-8"), "<p>old</p>\n")
+        written = {p for p in read_tree(self.out_dir) if p.endswith(".html")}
+        self.assertEqual(written, set(EXPECTED_PAGES) | set(self.EXTRAS))
+
+    def test_only_html_files_in_the_three_folders_count(self):
+        self.assertEqual(run_cli(self.args()).returncode, 0)
+        for name in ("notes.txt", "harness/readme.md", "sources/data.json", "elsewhere/page.html"):
+            target = self.out_dir / name
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_text("x", encoding="utf-8")
+        result = run_cli(self.args("--check"))
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_extra_pages_are_found_with_main_in_process_too(self):
+        run_main(self.args())
+        self.write_extras()
+        code, _, err = run_main(self.args("--check"))
+        self.assertEqual(code, 1)
+        self.assertEqual(sum(1 for name in self.EXTRAS if name in err), len(self.EXTRAS))
+
+    def test_the_default_out_folder_is_not_polluted_by_a_check(self):
+        self.assertEqual(run_cli(self.args("--check")).returncode, 1)
+        self.assertFalse(self.out_dir.exists())
+
+
+class LongCitationTests(RenderTestCase):
+    """Finding 12: a long URL must wrap instead of widening the page."""
+
+    @staticmethod
+    def rules():
+        return [
+            ([s.strip() for s in selectors.split(",")], body)
+            for selectors, body in re.findall(r"([^{}@]+)\{([^{}]*)\}", render.CSS)
+        ]
+
+    def wraps(self, selector):
+        return any(
+            selector in selectors and "overflow-wrap:anywhere" in body
+            for selectors, body in self.rules()
+        )
+
+    def test_citations_and_their_links_may_break_anywhere(self):
+        # The rule is the lever that stops the sideways scroll: a headless-browser measurement
+        # needs playwright, which is not importable in this environment.
+        for selector in (".cite", ".cite a", "td a"):
+            self.assertTrue(self.wraps(selector), selector)
+
+    def test_a_long_citation_url_sits_in_a_cite_paragraph_with_the_rule_in_force(self):
+        data = fixture()
+        long_url = "https://code.claude.com/docs/" + "a" * 400
+        data["evidence"]["claude-code"][0]["url"] = long_url
+        pages = render_pages(write_data(self.root / "long", data))
+        block = self.cell_block(pages["harness/claude-code.html"], "claude-code/F04.approval-modes")
+        self.assertRegex(block, r'<p class="cite">Source: <a href="' + re.escape(long_url))
+        self.assertIn(long_url, pages["sources/claude-code.html"])
+
+    def test_the_stylesheet_is_still_small(self):
+        self.assertLess(len(render.CSS.encode("utf-8")), 6 * 1024)
+
+
+class UnnumberedUnmappedTests(RenderTestCase):
+    """Finding 13: <surface>/U00 is as linkable as <surface>/U00/<n>."""
+
+    def test_both_forms_link_to_the_sources_page_anchor(self):
+        data = fixture()
+        unnumbered = cell("claude-code", "U00", "supported", value="First unmapped")
+        data["cells"]["claude-code"].append(unnumbered)
+        data["register"]["entries"][1]["cells"] = [
+            "claude-code/U00",
+            "claude-code/U00/1",
+            "claude-code/U00x",
+        ]
+        pages = render_pages(write_data(self.root / "u00", data))
+        register = pages["register.html"]
+        self.assertIn(
+            '<a href="sources/claude-code.html#claude-code/U00"><code>claude-code/U00</code></a>',
+            register,
+        )
+        self.assertIn('href="sources/claude-code.html#claude-code/U00/1"', register)
+        self.assertNotIn("claude-code/U00x</code></a>", register)
+        self.assertIn("<code>claude-code/U00x</code>", register)
+        self.assertIn('<li id="claude-code/U00">', pages["sources/claude-code.html"])
+
+    def test_the_link_resolves_to_an_id_on_the_target_page(self):
+        data = fixture()
+        data["cells"]["claude-code"].append(cell("claude-code", "U00", "supported"))
+        data["register"]["entries"][1]["cells"] = ["claude-code/U00"]
+        pages = render_pages(write_data(self.root / "u00b", data))
+        self.assertIn("claude-code/U00", scan(pages["sources/claude-code.html"]).ids)
+
+
+def more_evidence(data, count, surface="claude-code", row="F04.approval-modes"):
+    """Give one cell ``count`` evidence ids, adding the records the cell now cites."""
+    ids = [f"E-{surface}-{n:05d}" for n in range(1, count + 1)]
+    kept = [e for e in data["evidence"][surface] if e["id"] not in ids]
+    fresh = [
+        evidence(surface, number, quote=f"Quote number {number} for the cell")
+        for number in range(1, count + 1)
+    ]
+    data["evidence"][surface] = fresh + kept
+    target = next(c for c in data["cells"][surface] if c["row"] == row)
+    target["evidence"] = ids
+    return ids
+
+
+class QuoteBudgetTests(RenderTestCase):
+    """Finding 14: harness pages show two quotes per cell; sources pages keep every record."""
+
+    CELL = "claude-code/F04.approval-modes"
+
+    def render(self, count, **changes):
+        data = fixture()
+        ids = more_evidence(data, count)
+        if changes:
+            changes["apply"](data, ids)
+        return render_pages(write_data(self.root / f"q{count}", data)), ids
+
+    def test_two_quotes_then_a_link_with_the_remaining_count(self):
+        pages, ids = self.render(6)
+        block = self.cell_block(pages["harness/claude-code.html"], self.CELL)
+        self.assertEqual(block.count("<blockquote>"), 2)
+        self.assertEqual(block.count("<li><strong>") + block.count('<li><a class="mono"'), 2)
+        self.assertIn(
+            '<li><a href="../sources/claude-code.html#claude-code/F04.approval-modes">'
+            "4 more on the sources page</a></li>",
+            block,
+        )
+        for eid in ids[:2]:
+            self.assertIn(eid, block)
+        for eid in ids[2:]:
+            self.assertNotIn(f">{eid}<", block)
+
+    def test_the_link_target_exists_and_the_sources_page_keeps_every_record(self):
+        pages, ids = self.render(6)
+        sources = pages["sources/claude-code.html"]
+        self.assertIn(self.CELL, scan(sources).ids)
+        for eid in ids:
+            self.assertIn(f'<tr id="{eid}">', sources)
+        anchor = sources[sources.index(f'<li id="{self.CELL}">') :]
+        anchor = anchor[: anchor.index("</li>")]
+        for eid in ids:
+            self.assertIn(f'href="#{eid}"', anchor)
+
+    def test_exactly_two_quotes_need_no_link_and_no_anchor(self):
+        pages, _ = self.render(2)
+        block = self.cell_block(pages["harness/claude-code.html"], self.CELL)
+        self.assertEqual(block.count("<blockquote>"), 2)
+        self.assertNotIn("more on the sources page", block)
+        self.assertNotIn(f'<li id="{self.CELL}">', pages["sources/claude-code.html"])
+
+    def test_one_more_than_the_budget_says_one_more(self):
+        pages, _ = self.render(3)
+        block = self.cell_block(pages["harness/claude-code.html"], self.CELL)
+        self.assertIn("1 more on the sources page</a>", block)
+
+    def test_a_vendor_statement_is_never_the_quote_that_gets_dropped(self):
+        def apply(data, ids):
+            cell_record = next(
+                c for c in data["cells"]["claude-code"] if c["row"] == "F04.path-scoping"
+            )
+            cell_record["evidence"] = ids[:4]
+            cell_record["vendor_statement"] = "E-claude-code-00005"
+            data["evidence"]["claude-code"].append(
+                evidence("claude-code", 5, quote="The vendor says there is no such control")
+            )
+
+        pages, _ = self.render(4, apply=apply)
+        block = self.cell_block(pages["harness/claude-code.html"], "claude-code/F04.path-scoping")
+        self.assertIn("<strong>Vendor statement:</strong>", block)
+        self.assertIn("The vendor says there is no such control", block)
+        self.assertEqual(block.count("<blockquote>"), 2)
+        self.assertIn("3 more on the sources page", block)
+
+    def test_unmapped_records_keep_every_quote_on_the_sources_page(self):
+        def apply(data, ids):
+            unmapped = next(c for c in data["cells"]["claude-code"] if c["row"] == "U00")
+            unmapped["evidence"] = ids[:5]
+
+        pages, _ = self.render(5, apply=apply)
+        sources = pages["sources/claude-code.html"]
+        item = sources[sources.index('<li id="claude-code/U00/1">') :]
+        item = item[: item.index("</ul></li>")]
+        self.assertEqual(item.count("<blockquote>"), 5)
+
+    def test_every_link_still_resolves(self):
+        pages, _ = self.render(6)
+        ids = {path: set(scan(text).ids) for path, text in pages.items()}
+        for path, text in pages.items():
+            for _, link in scan(text).links:
+                if "://" in link or link.startswith("#"):
+                    continue
+                target, _, fragment = link.partition("#")
+                resolved = posixpath.normpath(posixpath.join(posixpath.dirname(path), target))
+                self.assertIn(resolved, pages, f"{path}: {link}")
+                if fragment:
+                    self.assertIn(unquote(fragment), ids[resolved], f"{path}: {link}")
+
+    def test_ids_stay_unique_on_every_page(self):
+        pages, _ = self.render(6)
+        for path, text in pages.items():
+            repeated = [i for i, n in Counter(scan(text).ids).items() if n > 1]
+            self.assertEqual(repeated, [], path)
+
+    def test_a_dangling_overflow_reference_still_renders(self):
+        def apply(data, ids):
+            next(c for c in data["cells"]["claude-code"] if c["row"] == "F04.approval-modes")[
+                "evidence"
+            ] = [*ids, "E-claude-code-99999"]
+
+        pages, _ = self.render(4, apply=apply)
+        self.assertIn("E-claude-code-99999", pages["sources/claude-code.html"])
+        self.assertIn("3 more on the sources page", pages["harness/claude-code.html"])
+
+
+def synthetic_dataset():
+    """127 frozen rows by 8 surfaces, six 300-character quotes per cell, 400-character values."""
+    facets = load_json(DATA_DIR / "facets.json")["facets"]
+    rows = [r["id"] for facet in facets for r in facet["rows"]]
+    data = {"cells": {}, "evidence": {}}
+    for surface in SURFACES:
+        sid = surface["id"]
+        host = surface["docs_hosts"][0]
+        cells, records, number = [], [], 0
+        for row in rows:
+            ids = []
+            for _ in range(6):
+                number += 1
+                ids.append(f"E-{sid}-{number:05d}")
+                records.append(
+                    evidence(
+                        sid,
+                        number,
+                        url=f"https://{host}/docs/" + "segment/" * 12 + str(number),
+                        quote=(f"quote {number} about {row} " * 30)[:300],
+                    )
+                )
+            value = (f"value for {sid} {row} " * 40)[:400]
+            cells.append(cell(sid, row, "supported", value=value, evidence=ids))
+        data["cells"][sid] = cells
+        data["evidence"][sid] = records
+    return data
+
+
+class WorstCaseSizeTests(RenderTestCase):
+    def test_a_full_dataset_leaves_headroom_under_both_limits(self):
+        data = synthetic_dataset()
+        self.assertEqual(sum(len(v) for v in data["cells"].values()), 127 * 8)
+        base = write_data(self.root / "big", data)
+        encoded = render.encode_pages(render_pages(base))
+        render.check_sizes(encoded)
+        sizes = {path: len(blob) for path, blob in encoded.items()}
+        largest = max(sizes, key=sizes.get)
+        self.assertLessEqual(sizes[largest], 1_500_000, largest)
+        self.assertLess(sum(sizes.values()), 12_000_000)
+        harness = {p: n for p, n in sizes.items() if p.startswith("harness/")}
+        self.assertLess(max(harness.values()), 1_000_000, harness)
+
+    def test_every_record_is_still_on_the_sources_pages_of_the_full_dataset(self):
+        data = synthetic_dataset()
+        base = write_data(self.root / "big2", data)
+        pages = render_pages(base)
+        for sid, records in data["evidence"].items():
+            text = pages[f"sources/{sid}.html"]
+            self.assertEqual(text.count('<tr id="E-'), len(records), sid)
+
+
 class UnitTests(unittest.TestCase):
     def test_clean_replaces_unsafe_characters_and_normalises_newlines(self):
         self.assertEqual(render.clean(None), "")

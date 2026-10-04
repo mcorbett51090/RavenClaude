@@ -268,6 +268,12 @@ def main(argv=None):
 
     out_dir = Path(args.out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
+    # A re-run with fewer chunks must not leave the old tail beside a chunks.json that
+    # no longer lists it.
+    stale = re.compile(re.escape(args.page_id) + r"-[0-9]+\.md")
+    for old in out_dir.iterdir():
+        if old.is_file() and stale.fullmatch(old.name):
+            old.unlink()
     index = []
     for number, chunk in enumerate(chunks, start=1):
         payload = chunk.text.encode("utf-8")

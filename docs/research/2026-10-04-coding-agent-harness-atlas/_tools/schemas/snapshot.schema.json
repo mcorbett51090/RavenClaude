@@ -38,6 +38,28 @@
       "type": "object",
       "description": "Measured run parameters, for example the scout batch size in KB found by the P4 pilot.",
       "additionalProperties": true
+    },
+    "matrix_pending": {
+      "type": "boolean",
+      "description": "True while the routing-matrix precursor PR has not merged, so task-shape rows may carry the pending label."
+    },
+    "known_gaps": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Plain statements of what the atlas does not cover, shown on the index and method pages."
+    },
+    "verification": {
+      "type": "object",
+      "description": "Verification results shown on the method page: for example per-surface quote-pass rates, planted-error catches and recall.",
+      "additionalProperties": { "type": ["number", "string"] }
+    },
+    "coverage": {
+      "type": "object",
+      "description": "Per-surface corpus coverage numbers shown on the sources pages.",
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": { "type": ["number", "string"] }
+      }
     }
   }
 }

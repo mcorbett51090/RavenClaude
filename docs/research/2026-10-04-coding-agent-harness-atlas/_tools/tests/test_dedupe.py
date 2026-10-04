@@ -1,5 +1,6 @@
 import json
 import os
+import random
 import subprocess
 import sys
 import tempfile
@@ -151,6 +152,126 @@ class MarkSecondaryTests(unittest.TestCase):
 
     def test_empty_input(self):
         self.assertEqual(mark_secondary({}, set()), {})
+
+
+def chain_end(result, pid):
+    """Follow secondary_of links; return the page the chain ends at, or None on a loop."""
+    seen = set()
+    while result[pid]["role"] == "secondary":
+        if pid in seen:
+            return None
+        seen.add(pid)
+        pid = result[pid]["secondary_of"]
+    return pid
+
+
+class CycleFreeTests(unittest.TestCase):
+    def test_a_page_inside_a_larger_third_page_is_secondary_of_it(self):
+        # Review finding 7: the old best-parent rule left `a` canonical because its best parent
+        # was its own copy `b`, although 19 of its 20 lines sit inside the larger page `c`.
+        a = lines("a", 20)
+        c = a[:19] + lines("c only", 20)
+        result = mark_secondary({"a": a, "b": list(a), "c": c}, set())
+        self.assertEqual(
+            roles(result),
+            {"c": ("canonical", None), "a": ("secondary", "c"), "b": ("secondary", "c")},
+        )
+        self.assertEqual(result["a"]["containment"], 0.95)
+        self.assertEqual(result["b"]["containment"], 0.95)
+
+    def test_a_smaller_page_inside_an_equal_sized_copy_follows_the_id_order(self):
+        a = lines("a", 20)
+        c = a[:19] + ["a line only c has"]
+        result = mark_secondary({"a": a, "b": list(a), "c": c}, set())
+        self.assertEqual(
+            roles(result),
+            {"a": ("canonical", None), "b": ("secondary", "a"), "c": ("secondary", "a")},
+        )
+
+    def test_the_first_earlier_page_wins_not_the_best_scoring_one(self):
+        small = lines("s", 10)
+        first = small[:9] + lines("first only", 40)  # holds 0.9 of small, ranks first
+        second = small + lines("second only", 20)  # holds all of small, ranks second
+        result = mark_secondary({"p": first, "q": second, "r": small}, set())
+        self.assertEqual(
+            roles(result),
+            {"p": ("canonical", None), "q": ("canonical", None), "r": ("secondary", "p")},
+        )
+        self.assertEqual(result["r"]["containment"], 0.9)
+
+    def test_the_old_cycle_at_threshold_half_is_broken(self):
+        # With the old best-parent rule this input at 0.5 made a -> d -> c -> a, every page
+        # secondary and none canonical.
+        pages = {
+            "a": ["l2", "l3", "l3"],
+            "b": ["l0"],
+            "c": ["l0", "l2", "l2", "l2"],
+            "d": ["l0", "l0", "l3", "l0", "l0"],
+        }
+        result = mark_secondary(pages, set(), threshold=0.5)
+        self.assertEqual(
+            roles(result),
+            {
+                "d": ("canonical", None),
+                "c": ("canonical", None),
+                "a": ("secondary", "d"),
+                "b": ("secondary", "d"),
+            },
+        )
+
+    def test_every_secondary_chain_ends_at_a_canonical_page_on_random_pages(self):
+        rng = random.Random(3)
+        checked_secondary = 0
+        for _ in range(3000):
+            universe = [f"l{i}" for i in range(rng.randint(2, 6))]
+            pages = {
+                chr(97 + i): [rng.choice(universe) for _ in range(rng.randint(1, 6))]
+                for i in range(rng.randint(2, 6))
+            }
+            threshold = rng.choice([0.34, 0.5, 0.67, 0.9])
+            result = mark_secondary(pages, set(), threshold=threshold)
+            self.assertTrue(any(r["role"] == "canonical" for r in result.values()), pages)
+            for pid, entry in result.items():
+                end = chain_end(result, pid)
+                self.assertIsNotNone(end, (pages, threshold, pid))
+                self.assertEqual(result[end]["role"], "canonical")
+                if entry["role"] == "secondary":
+                    checked_secondary += 1
+                    self.assertGreaterEqual(entry["containment"], threshold)
+        self.assertGreater(checked_secondary, 1000)
+
+    def test_the_chain_check_can_see_a_loop(self):
+        looped = {
+            "a": {"role": "secondary", "secondary_of": "b"},
+            "b": {"role": "secondary", "secondary_of": "a"},
+        }
+        self.assertIsNone(chain_end(looped, "a"))
+
+    def test_a_secondary_is_only_ever_of_an_earlier_page_in_the_total_order(self):
+        rng = random.Random(5)
+        for _ in range(1500):
+            universe = [f"l{i}" for i in range(rng.randint(2, 6))]
+            pages = {
+                chr(97 + i): [rng.choice(universe) for _ in range(rng.randint(1, 6))]
+                for i in range(rng.randint(2, 6))
+            }
+            result = mark_secondary(pages, set(), threshold=0.5)
+            rank = {
+                pid: (-len([x for x in lines_ if x.strip()]), pid) for pid, lines_ in pages.items()
+            }
+            for pid, entry in result.items():
+                if entry["role"] == "secondary":
+                    self.assertLess(rank[entry["secondary_of"]], rank[pid], pages)
+
+    def test_aggregates_are_untouched_by_the_total_order(self):
+        shared = lines("shared", 10)
+        pages = {"agg": shared + lines("rest", 40), "x": list(shared), "y": list(shared)}
+        result = mark_secondary(pages, {"agg"})
+        self.assertEqual(
+            result["agg"], {"role": "aggregate", "secondary_of": None, "containment": None}
+        )
+        self.assertEqual(roles(result)["x"], ("canonical", None))
+        self.assertEqual(roles(result)["y"], ("secondary", "x"))
 
 
 class CliTests(unittest.TestCase):

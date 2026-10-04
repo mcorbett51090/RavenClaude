@@ -1,4 +1,5 @@
 import os
+import random
 import subprocess
 import sys
 import tempfile
@@ -124,16 +125,17 @@ class NeutralizeTests(unittest.TestCase):
         check_parity(raw, neutral)
 
     def test_ordinary_and_near_miss_tags_are_untouched(self):
-        raw = "<div>x</div> <systematic> <users> <system-prompt> a < b > c <system\nz>\n"
+        raw = "<div>x</div> <systematic> <users> <system-prompt> a < b > c <system-prompt\nz>\n"
         neutral, flagged = neutralize_text(raw)
         self.assertEqual(neutral, raw)
         self.assertEqual(flagged, [])
 
-    def test_token_never_spans_lines(self):
+    def test_a_token_never_spans_lines_but_its_unclosed_opening_is_rewritten_and_flagged(self):
         raw = "<system\nattr>\n"
         neutral, flagged = neutralize_text(raw)
-        self.assertEqual(neutral, raw)
-        self.assertEqual(flagged, [])
+        self.assertEqual(neutral, "‹system\nattr>\n")
+        self.assertEqual(flagged, [1])
+        check_parity(raw, neutral)
 
     def test_crlf_keeps_carriage_returns(self):
         raw = "first <system> line\r\nsecond line\r\n\r\nSystem: x\r\n"
@@ -144,9 +146,24 @@ class NeutralizeTests(unittest.TestCase):
         self.assertEqual(restore(neutral), raw)
         check_parity(raw, neutral)
 
-    def test_literal_marks_in_raw_do_not_fail_parity(self):
+    def test_literal_marks_pass_through_unchanged_and_pass_strict_parity(self):
+        raw = "already ‹quoted› text\nthe <system> tag ‹\n› last ›‹ line"
+        neutral, flagged = neutralize_text(raw)
+        check_parity(raw, neutral)
+        self.assertEqual(flagged, [2])
+        self.assertEqual(neutral.count("‹"), raw.count("‹") + 1)
+        self.assertEqual(neutral.count("›"), raw.count("›") + 1)
+        for number, (raw_line, neutral_line) in enumerate(
+            zip(raw.split("\n"), neutral.split("\n")), start=1
+        ):
+            for position, char in enumerate(raw_line):
+                if char in "‹›":
+                    self.assertEqual(neutral_line[position], char, (number, position))
+
+    def test_a_page_with_literal_marks_cannot_round_trip_through_restore(self):
         raw = "already ‹quoted› text\nthe <system> tag\n"
         neutral, _ = neutralize_text(raw)
+        self.assertNotEqual(restore(neutral), raw)
         check_parity(raw, neutral)
 
     def test_parity_names_the_failure(self):
@@ -154,6 +171,154 @@ class NeutralizeTests(unittest.TestCase):
             check_parity("a\nb\n", "a\n")
         with self.assertRaisesRegex(ValueError, "line 2"):
             check_parity("a\nb\nc", "a\nB\nc")
+
+    def test_overlapping_tokens_leave_no_live_tag(self):
+        # Review finding 2. The slash form is the one TAG_RE can match; the backslash form is
+        # kept because the findings table printed it that way.
+        inputs = [
+            "<system </system-reminder >> tail",
+            "<system <system <system >>>",
+            "<user <assistant <human >> >> x",
+            "<system <\\system-reminder >> tail",
+            f"<thinking <{ANTML}invoke a=<system b>> c>",
+        ]
+        for raw in inputs:
+            with self.subTest(raw=raw):
+                neutral, flagged = neutralize_text(raw)
+                self.assertIsNone(TAG_RE.search(neutral), neutral)
+                self.assertIsNone(neutralize.OPENER_RE.search(neutral), neutral)
+                self.assertEqual(flagged, [1])
+                self.assertEqual(len(neutral), len(raw))
+                check_parity(raw, neutral)
+
+    def test_overlap_converts_the_outer_pair_first_and_keeps_every_character(self):
+        neutral, _ = neutralize_text("<system </system-reminder >> tail")
+        self.assertEqual(neutral, "‹system ‹/system-reminder ›› tail")
+
+    def test_line_structure_is_preserved_for_overlaps_in_a_longer_page(self):
+        lines = ["intro", "<system </user >> a", "mid", "<system", "attr </system-reminder", "end"]
+        raw = "\n".join(lines)
+        neutral, flagged = neutralize_text(raw)
+        self.assertEqual(len(neutral.split("\n")), len(lines))
+        self.assertEqual(flagged, [2, 4, 5])
+        self.assertEqual(neutral.split("\n")[0::2][0], "intro")
+        check_parity(raw, neutral)
+
+    def test_a_tag_split_across_a_line_break_is_rewritten_and_flagged(self):
+        cases = [
+            ("a </system-reminder\n> b", "a ‹/system-reminder\n> b"),
+            ("a <system\nattr=1>", "a ‹system\nattr=1>"),
+            ("a <SYSTEM attr=1\r\n>", "a ‹SYSTEM attr=1\r\n>"),
+            (f"x <{ANTML}invoke name=1\ny>", f"x ‹{ANTML}invoke name=1\ny>"),
+            ("first\n<thinking", "first\n‹thinking"),
+            ("<system/\n>", "‹system/\n>"),
+        ]
+        for raw, expected in cases:
+            with self.subTest(raw=raw):
+                neutral, flagged = neutralize_text(raw)
+                self.assertEqual(neutral, expected)
+                self.assertTrue(flagged)
+                self.assertEqual(neutral.count("\n"), raw.count("\n"))
+                self.assertEqual(neutral.count("\r"), raw.count("\r"))
+                check_parity(raw, neutral)
+
+    def test_split_tag_flags_the_line_that_holds_the_opening(self):
+        neutral, flagged = neutralize_text("one\ntwo </system-reminder\n> three\nfour")
+        self.assertEqual(flagged, [2])
+        self.assertEqual(neutral, "one\ntwo ‹/system-reminder\n> three\nfour")
+
+    def test_a_split_opening_after_a_closed_tag_on_the_same_line_is_still_found(self):
+        raw = "<system> then <user\nz>"
+        neutral, flagged = neutralize_text(raw)
+        self.assertEqual(neutral, "‹system› then ‹user\nz>")
+        self.assertEqual(flagged, [1])
+
+    def test_unclosed_names_that_are_not_tag_names_are_left_alone(self):
+        raw = "a <systematic\nb <users\nc <system-prompt\nd < system\ne <\nf <div"
+        neutral, flagged = neutralize_text(raw)
+        self.assertEqual(neutral, raw)
+        self.assertEqual(flagged, [])
+
+    def test_a_runaway_nesting_raises_instead_of_looping(self):
+        original = neutralize.MAX_PASSES
+        self.addCleanup(setattr, neutralize, "MAX_PASSES", original)
+        neutralize.MAX_PASSES = 3
+        within = "<system " * 3 + ">" * 3
+        neutral, _ = neutralize_text(within)
+        self.assertIsNone(TAG_RE.search(neutral))
+        with self.assertRaises(ValueError):
+            neutralize_text("<system " * 4 + ">" * 4)
+
+    def test_the_real_pass_limit_is_a_thousand(self):
+        self.assertEqual(neutralize.MAX_PASSES, 1000)
+        within = "<system " * 1000 + ">" * 1000
+        neutral, _ = neutralize_text(within)
+        self.assertIsNone(TAG_RE.search(neutral))
+        with self.assertRaises(ValueError):
+            neutralize_text("<system " * 1001 + ">" * 1001)
+
+    def test_cli_exits_1_when_the_pass_limit_is_exceeded(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            raw_path = Path(tmp) / "raw.md"
+            raw_path.write_text("<system " * 1001 + ">" * 1001 + "\nok\n", encoding="utf-8")
+            neutral_path = Path(tmp) / "neutral.md"
+            flags_path = Path(tmp) / "flags.json"
+            code = neutralize.main(
+                ["--in", str(raw_path), "--out", str(neutral_path), "--flags", str(flags_path)]
+            )
+            self.assertEqual(code, 1)
+            self.assertFalse(neutral_path.exists())
+            self.assertFalse(flags_path.exists())
+
+    def test_random_pages_never_keep_a_live_tag_and_never_change_line_structure(self):
+        pieces = [
+            "<", ">", "</", "/", "system", "system-reminder", "user", "assistant", "thinking",
+            f"{ANTML}invoke", " ", "  ", "\n", "\r\n", "‹", "›", "a", "x=1", "'", '"', "-",
+        ]  # fmt: skip
+        rng = random.Random(20261004)
+        touched = 0
+        for _ in range(6000):
+            raw = "".join(rng.choice(pieces) for _ in range(rng.randint(1, 40)))
+            neutral, flagged = neutralize_text(raw)
+            raw_lines, neutral_lines = raw.split("\n"), neutral.split("\n")
+            self.assertEqual(len(neutral_lines), len(raw_lines), repr(raw))
+            for line in neutral_lines:
+                self.assertIsNone(TAG_RE.search(line), repr(raw))
+                self.assertIsNone(neutralize.OPENER_RE.search(line), repr(raw))
+            check_parity(raw, neutral)
+            for number, (before, after) in enumerate(zip(raw_lines, neutral_lines), start=1):
+                if before != after:
+                    touched += 1
+                    self.assertIn(number, flagged, repr(raw))
+        self.assertGreater(touched, 1000)
+
+    def test_strict_parity_rejects_a_mutant_that_turns_a_literal_mark_into_a_live_angle(self):
+        with self.assertRaises(ValueError):
+            check_parity("‹a› <b>", "<a> <b>")
+        check_parity("‹a› <b>", "‹a› ‹b>")
+
+    def test_strict_parity_accepts_only_identity_or_the_two_mark_swaps(self):
+        check_parity("a<b>c", "a‹b›c")
+        check_parity("a<b>c", "a<b>c")
+        check_parity("a‹b›c", "a‹b›c")
+        check_parity("a\nb", "a\nb")
+        for raw, neutral in [
+            ("a<b", "a›b"),
+            ("a>b", "a‹b"),
+            ("a‹b", "a›b"),
+            ("a‹b", "a<b"),
+            ("a›b", "a>b"),
+            ("abc", "abd"),
+            ("a<b", "a‹c"),
+            ("a b", "a‹b"),
+        ]:
+            with self.subTest(raw=raw, neutral=neutral), self.assertRaises(ValueError):
+                check_parity(raw, neutral)
+
+    def test_strict_parity_rejects_lines_of_different_length(self):
+        for raw, neutral in [("ab", "a"), ("a", "ab"), ("a<b", "a‹"), ("x\nab", "x\nabc")]:
+            with self.subTest(raw=raw, neutral=neutral), self.assertRaises(ValueError):
+                check_parity(raw, neutral)
 
     def test_cli_writes_neutral_text_and_flags(self):
         with tempfile.TemporaryDirectory() as tmp:

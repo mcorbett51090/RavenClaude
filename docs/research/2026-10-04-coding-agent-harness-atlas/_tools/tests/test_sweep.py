@@ -82,6 +82,29 @@ class SweepTests(unittest.TestCase):
         result = sweep({"p": "needle " + "x" * 500 + "\ncontrol\n"}, ["needle"], "control")
         self.assertEqual(len(result["hits"][0]["text"]), 200)
 
+    def test_a_crlf_page_matches_a_dollar_anchored_term(self):
+        crlf = sweep({"p": "vendor docs\r\nfeature sandbox\r\n"}, ["sandbox$"], "vendor")
+        lf = sweep({"p": "vendor docs\nfeature sandbox\n"}, ["sandbox$"], "vendor")
+        self.assertEqual(crlf["hit_count"], 1)
+        self.assertEqual(crlf["hits"], [{"page": "p", "line": 2, "text": "feature sandbox"}])
+        self.assertEqual(crlf["hits"], lf["hits"])
+
+    def test_a_dollar_anchored_control_is_found_on_a_crlf_page(self):
+        result = sweep({"p": "vendor docs\r\nfeature\r\n"}, ["feature"], "docs$")
+        self.assertEqual(result["positive_control_hits"], 1)
+
+    def test_lines_split_on_line_feed_only(self):
+        result = sweep({"p": "a\rb sandbox\nvendor\n"}, ["sandbox"], "vendor")
+        self.assertEqual([(h["line"], h["text"]) for h in result["hits"]], [(1, "a\rb sandbox")])
+
+    def test_a_control_that_matches_the_empty_string_raises(self):
+        for control in ("", "x*", "$", "(?:)", "a?", "^"):
+            with self.assertRaises(ValueError, msg=repr(control)):
+                sweep({"p": "zzz\n"}, ["zzz"], control)
+
+    def test_a_control_that_needs_text_is_still_accepted(self):
+        self.assertEqual(sweep({"p": "zzz\n"}, ["zzz"], "z+")["positive_control_hits"], 1)
+
     def test_invalid_regex_raises_value_error(self):
         with self.assertRaises(ValueError):
             sweep(PAGES, ["(unclosed"], "hooks")

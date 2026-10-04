@@ -324,6 +324,43 @@ class CliTests(unittest.TestCase):
             self.assertGreater(len(index), 5)
             self.assertTrue(all(e["bytes"] <= 1000 for e in index))
 
+    def test_a_rerun_with_fewer_chunks_leaves_no_stale_chunk_files(self):
+        def run(sections, out_dir, page_id="p"):
+            page = Path(out_dir).parent / "page.md"
+            page.write_text("\n".join(f"## S{i}\nbody {i}" for i in range(sections)), "utf-8")
+            args = ["--page", str(page), "--page-id", page_id, "--out-dir", str(out_dir)]
+            self.assertEqual(chunk_tool.main(args), 0)
+
+        with tempfile.TemporaryDirectory() as tmp:
+            out_dir = Path(tmp) / "chunks"
+            run(5, out_dir)
+            self.assertEqual(len(list(out_dir.glob("p-*.md"))), 5)
+            keep = ["other-1.md", "p-x.md", "p-1.txt", "p-1-1.md", "pp-1.md", "p-.md", "notes.md"]
+            for name in keep:
+                (out_dir / name).write_text("keep me", encoding="utf-8")
+            (out_dir / "p-9.md").mkdir()
+            run(3, out_dir)
+            written = sorted(path.name for path in out_dir.glob("p-[0-9].md") if path.is_file())
+            self.assertEqual(written, ["p-1.md", "p-2.md", "p-3.md"])
+            index = json.loads((out_dir / "chunks.json").read_text(encoding="utf-8"))
+            self.assertEqual(len(index), 3)
+            for name in keep:
+                self.assertEqual((out_dir / name).read_text(encoding="utf-8"), "keep me", name)
+            self.assertTrue((out_dir / "p-9.md").is_dir())
+
+    def test_a_failed_run_does_not_delete_the_previous_chunk_files(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            out_dir = Path(tmp) / "chunks"
+            page = Path(tmp) / "page.md"
+            page.write_text("## A\na\n## B\nb", encoding="utf-8")
+            args = ["--page", str(page), "--page-id", "p", "--out-dir", str(out_dir)]
+            self.assertEqual(chunk_tool.main(args), 0)
+            page.write_bytes(b"bad \xff byte\n")
+            self.assertEqual(chunk_tool.main(args), 2)
+            self.assertEqual(
+                sorted(path.name for path in out_dir.glob("p-*.md")), ["p-1.md", "p-2.md"]
+            )
+
     def test_cli_rejects_unsafe_page_id_and_invalid_utf8(self):
         with tempfile.TemporaryDirectory() as tmp:
             page = Path(tmp) / "page.md"

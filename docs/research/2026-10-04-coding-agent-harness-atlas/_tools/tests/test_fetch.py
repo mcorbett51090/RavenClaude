@@ -1,13 +1,19 @@
 import contextlib
+import http.client
 import io
 import json
 import os
+import random
+import shutil
+import stat
 import sys
 import tempfile
 import threading
 import time
 import unittest
+import urllib.request
 from pathlib import Path
+from unittest import mock
 
 os.environ["ATLAS_TEST_ALLOW_ANY_TREE"] = "1"
 TOOLS = Path(__file__).resolve().parents[1]
@@ -43,6 +49,10 @@ def ok(body=GOOD, **headers):
 
 def redirect(location, status=302):
     return Hop(status, {}, b"", location)
+
+
+def ok_opener(_url):
+    return ok()
 
 
 class ScriptedOpener:
@@ -119,13 +129,12 @@ class SchemeAndAllowListTests(unittest.TestCase):
         self.assertEqual((row["outcome"], row["reason"]), ("refused", "not_https"))
         self.assertEqual(opener.calls, [start])
 
-    def test_host_match_is_exact_and_case_insensitive_and_userinfo_does_not_fool_it(self):
+    def test_host_match_is_exact_and_case_insensitive(self):
         row, opener, _ = fetch_one("https://DOCS.Example/a.md", ok(), allow=(HOST,))
         self.assertEqual(row["outcome"], "fetched")
         for url in (
             f"https://sub.{HOST}/a.md",
             f"https://{HOST}.evil.example/a.md",
-            f"https://{HOST}@evil.example/a.md",
         ):
             with self.subTest(url=url):
                 fetcher, opener, _ = make_fetcher({})
@@ -144,6 +153,206 @@ class SchemeAndAllowListTests(unittest.TestCase):
         self.assertEqual(opener.calls, [])
         row = fetcher.fetch(f"https://{HOST}:notaport/a.md")
         self.assertEqual((row["outcome"], row["reason"]), ("refused", "bad_url"))
+
+
+class UserinfoTests(unittest.TestCase):
+    """Review finding 3: urllib and urlsplit may disagree about which authority a URL names."""
+
+    BAD = (
+        "https://evil.example@docs.example/p",
+        "https://docs.example@evil.example/p",
+        "https://127.0.0.1\\@docs.example/",
+        "https://user:secret@docs.example/p",
+        "https://docs.example:443@docs.example/p",
+        "https://docs.example\\@evil.example/p",
+        "https://docs.example\\evil/p",
+        "https://@docs.example/p",
+    )
+    ALLOW = (HOST, "evil.example", "127.0.0.1")
+
+    def test_userinfo_and_backslash_authorities_are_refused_without_a_request(self):
+        for url in self.BAD:
+            with self.subTest(url=url):
+                fetcher, opener, sleeper = make_fetcher({}, allow=self.ALLOW)
+                row = fetcher.fetch(url)
+                self.assertEqual((row["outcome"], row["reason"]), ("refused", "bad_url"))
+                self.assertEqual(opener.calls, [])
+                self.assertEqual(sleeper.delays, [])
+
+    def test_userinfo_on_a_redirect_hop_is_refused_and_never_requested(self):
+        start = f"https://{HOST}/a.md"
+        for target in self.BAD:
+            with self.subTest(target=target):
+                fetcher, opener, _ = make_fetcher({start: [redirect(target)]}, allow=self.ALLOW)
+                row = fetcher.fetch(start)
+                self.assertEqual((row["outcome"], row["reason"]), ("refused", "bad_url"))
+                self.assertEqual(opener.calls, [start])
+                self.assertEqual(row["redirects"], [])
+
+    def test_an_at_sign_or_backslash_outside_the_authority_is_allowed(self):
+        row, opener, _ = fetch_one(f"https://{HOST}/a@b/c\\d.md?x=a@b", ok())
+        self.assertEqual(row["outcome"], "fetched")
+        self.assertEqual(len(opener.calls), 1)
+
+
+class BadUrlTests(unittest.TestCase):
+    """Review findings 1 and 4: a bad URL becomes a row, never a traceback and never a retry."""
+
+    TEXT_BAD = (
+        f"https://{HOST}/a b.md",
+        f"https://{HOST}/a\tb.md",
+        f"https://{HOST}/a\nb.md",
+        f"https://{HOST}/a\rb.md",
+        f"https://{HOST}/a\x00b.md",
+        f"https://{HOST}/a\x1fb.md",
+        f"https://{HOST}/a\x7fb.md",
+        f"https://{HOST}/café.md",
+        f"https://{HOST}/a‮b.md",
+        f"https://{HOST}/a b.md",
+        f"https://{HOST}/�.md",
+        f"https://{HOST}/a b.md",
+        f"https://{HOST}/a.md ",
+        f" https://{HOST}/a.md",
+        f"https://{HOST}/a\ud800.md",
+    )
+
+    def test_bad_url_error_is_a_value_error_that_the_opener_may_raise(self):
+        self.assertTrue(issubclass(fetch_tool.BadUrlError, ValueError))
+
+    def test_bad_url_error_from_the_opener_is_rejected_after_one_attempt_with_no_sleep(self):
+        url = f"https://{HOST}/a.md"
+        row, opener, sleeper = fetch_one(url, fetch_tool.BadUrlError("InvalidURL"))
+        self.assertEqual((row["outcome"], row["reason"]), ("rejected", "bad_url"))
+        self.assertEqual(row["attempts"], 1)
+        self.assertEqual(len(opener.calls), 1)
+        self.assertEqual(sleeper.delays, [])
+        self.assertIsNone(row["status"])
+
+    def test_bad_url_error_after_a_retryable_failure_stops_the_retries(self):
+        url = f"https://{HOST}/a.md"
+        row, opener, sleeper = fetch_one(url, [NetworkError("reset"), fetch_tool.BadUrlError("x")])
+        self.assertEqual((row["outcome"], row["reason"]), ("rejected", "bad_url"))
+        self.assertEqual(row["attempts"], 2)
+        self.assertEqual(len(sleeper.delays), 1)
+
+    def test_bad_url_error_on_a_redirect_hop_is_rejected(self):
+        start, target = f"https://{HOST}/a.md", f"https://{HOST}/b.md"
+        fetcher, opener, sleeper = make_fetcher(
+            {start: [redirect(target)], target: [fetch_tool.BadUrlError("x")]}
+        )
+        row = fetcher.fetch(start)
+        self.assertEqual((row["outcome"], row["reason"]), ("rejected", "bad_url"))
+        self.assertEqual(row["attempts"], 2)
+        self.assertEqual(sleeper.delays, [])
+
+    def test_spaces_control_characters_and_non_ascii_are_rejected_before_any_request(self):
+        for url in self.TEXT_BAD:
+            with self.subTest(url=url):
+                fetcher, opener, sleeper = make_fetcher({}, allow=(HOST,))
+                row = fetcher.fetch(url)
+                self.assertEqual((row["outcome"], row["reason"]), ("rejected", "bad_url"))
+                self.assertEqual(opener.calls, [])
+                self.assertEqual(sleeper.delays, [])
+                self.assertEqual(set(row), ROW_KEYS)
+
+    def test_a_redirect_target_with_such_characters_is_rejected_and_never_requested(self):
+        start = f"https://{HOST}/a.md"
+        locations = ["/café.md", "/a b.md", "/a\x7fb", "/a\nb.md", "/a\tb", "/‮"]
+        for location in locations:
+            with self.subTest(location=location):
+                fetcher, opener, _ = make_fetcher({start: [redirect(location)]})
+                row = fetcher.fetch(start)
+                self.assertEqual((row["outcome"], row["reason"]), ("rejected", "bad_url"))
+                self.assertEqual(opener.calls, [start])
+                self.assertEqual(row["redirects"], [])
+                self.assertEqual(row["url_effective"], start)
+
+    def test_a_malformed_url_or_location_never_raises(self):
+        start = f"https://{HOST}/a.md"
+        for location in ("https://[::1/x", "//[bad", "http://["):
+            with self.subTest(location=location):
+                fetcher, opener, _ = make_fetcher({start: [redirect(location)]})
+                row = fetcher.fetch(start)
+                self.assertEqual((row["outcome"], row["reason"]), ("rejected", "bad_url"))
+                self.assertEqual(opener.calls, [start])
+        for url in ("https://[::1/x", "https://[bad]/x", "https://"):
+            with self.subTest(url=url):
+                fetcher, opener, _ = make_fetcher({})
+                row = fetcher.fetch(url)
+                self.assertEqual(row["outcome"], "refused")
+                self.assertEqual(row["reason"], "bad_url")
+                self.assertEqual(opener.calls, [])
+
+    def test_fetch_never_raises_for_random_urls_or_locations(self):
+        pieces = [
+            "https://", "http://", HOST, "[", "]", "::1", "@", "\\", " ", "\t", "\n", "\u00e9",
+            "/", "?", "#", ":", "443", "99999", "%", "a", "..", "\x7f", "\u202e", "\ud800",
+        ]  # fmt: skip
+        rng = random.Random(7)
+        outcomes = set()
+        for _ in range(3000):
+            text = "".join(rng.choice(pieces) for _ in range(rng.randint(1, 8)))
+            start = f"https://{HOST}/start"
+
+            def opener(url, text=text, start=start):
+                return redirect(text) if url == start else ok()
+
+            for url, use in ((start, opener), (rng.choice(["", "https://", start]) + text, ok_opener)):
+                fetcher = Fetcher({HOST}, use, sleep=lambda _s: None, clock=lambda: "2026-10-04")
+                row = fetcher.fetch(url)
+                self.assertEqual(set(row), ROW_KEYS)
+                outcomes.add((row["outcome"], row["reason"]))
+        self.assertIn(("rejected", "bad_url"), outcomes)
+        self.assertIn(("refused", "bad_url"), outcomes)
+        self.assertIn(("fetched", ""), outcomes)
+
+    def test_fetch_many_reports_a_bad_row_and_carries_on_with_the_rest(self):
+        good = f"https://{HOST}/a.md"
+        bad = f"https://{HOST}/café.md"
+        fetcher, opener, _ = make_fetcher({good: [ok()]})
+        rows = fetch_many(fetcher, [bad, good])
+        self.assertEqual([row["outcome"] for row in rows], ["rejected", "fetched"])
+        self.assertEqual(opener.calls, [good])
+
+    def test_the_production_opener_turns_url_errors_into_bad_url_error_without_connecting(self):
+        urls = [
+            f"https://{HOST}/café.md",
+            f"https://{HOST}/a b",
+            f"https://{HOST}/a\tb",
+            f"https://{HOST}/a\nb",
+            f"https://{HOST}/a\x7fb",
+            "https://café‮.example/x",
+            "no-scheme.example/a",
+        ]
+        refuse = AssertionError("the opener tried to connect")
+        with contextlib.ExitStack() as stack:
+            for connection in (http.client.HTTPConnection, http.client.HTTPSConnection):
+                stack.enter_context(mock.patch.object(connection, "connect", side_effect=refuse))
+            for url in urls:
+                with self.subTest(url=url), self.assertRaises(fetch_tool.BadUrlError):
+                    http_opener(url, timeout=1.0)
+
+    def test_the_production_opener_still_raises_body_too_large_as_a_plain_value_error(self):
+        class Response:
+            headers = {}
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *_exc):
+                return False
+
+            def read(self, count):
+                return b"x" * count
+
+            def getcode(self):
+                return 200
+
+        with mock.patch.object(urllib.request.OpenerDirector, "open", return_value=Response()):
+            with self.assertRaises(ValueError) as caught:
+                http_opener(f"https://{HOST}/big", max_bytes=10)
+        self.assertEqual(str(caught.exception), "body_too_large")
+        self.assertNotIsInstance(caught.exception, fetch_tool.BadUrlError)
 
 
 class PrivateTargetTests(unittest.TestCase):
@@ -569,6 +778,21 @@ class ConcurrencyTests(unittest.TestCase):
             fetch_many(fetcher, ["https://a.example/x"], per_host=0)
 
 
+class OrderedOpener:
+    """Finishes each URL after its own delay and records the order they finished in."""
+
+    def __init__(self, delays):
+        self.delays = delays
+        self.finished = []
+        self.lock = threading.Lock()
+
+    def __call__(self, url):
+        time.sleep(self.delays[url])
+        with self.lock:
+            self.finished.append(url)
+        return ok()
+
+
 class CliTests(unittest.TestCase):
     def setUp(self):
         self._tmp = tempfile.TemporaryDirectory()
@@ -578,9 +802,12 @@ class CliTests(unittest.TestCase):
         self.manifest = self.tmp / "manifest.jsonl"
         self.urls_file = self.tmp / "urls.txt"
 
-    def run_cli(self, urls, script, extra=(), surface="claude-code"):
-        self.urls_file.write_text("\n".join(urls) + "\n", encoding="utf-8")
-        opener = ScriptedOpener(script)
+    def run_cli(self, urls, script, extra=(), surface="claude-code", raw_urls=None, opener=None):
+        if raw_urls is None:
+            self.urls_file.write_text("\n".join(urls) + "\n", encoding="utf-8")
+        else:
+            self.urls_file.write_bytes(raw_urls)
+        opener = opener or ScriptedOpener(script)
         argv = [
             "--surface", surface,
             "--urls", str(self.urls_file),
@@ -656,7 +883,7 @@ class CliTests(unittest.TestCase):
         self.run_cli([url], {url: [Hop(404, {}, b"", None)]})
         _, second, _ = self.run_cli([url], {url: [ok()]})
         self.assertEqual(second.calls, [url])
-        self.assertEqual([row["outcome"] for row in self.rows()], ["negative", "fetched"])
+        self.assertEqual([row["outcome"] for row in self.rows()], ["fetched"])
 
     def test_a_fetched_row_whose_raw_file_is_gone_is_fetched_again(self):
         url = "https://code.claude.com/docs/a.md"
@@ -672,7 +899,7 @@ class CliTests(unittest.TestCase):
         self.run_cli([url], {url: [ok()]})
         _, second, _ = self.run_cli([url], {url: [ok()]}, extra=["--refetch"])
         self.assertEqual(second.calls, [url])
-        self.assertEqual(len(self.rows()), 2)
+        self.assertEqual(len(self.rows()), 1)
 
     def test_an_indeterminate_row_exits_3_even_beside_other_failures(self):
         down, bad = "https://code.claude.com/a", "https://code.claude.com/b"
@@ -714,6 +941,162 @@ class CliTests(unittest.TestCase):
                 self.assertEqual(code, 0)
                 self.assertEqual(self.rows()[-1]["outcome"], "fetched")
                 self.assertTrue(self.rows()[-1]["cross_host"])
+
+    def manifest_row(self, url, outcome, **extra):
+        row = {
+            "url": url,
+            "url_effective": url,
+            "status": None,
+            "outcome": outcome,
+            "reason": "",
+            "bytes": 0,
+            "sha256": "",
+            "content_length": None,
+            "size_mismatch": False,
+            "redirects": [],
+            "attempts": 1,
+            "retrieved": "2026-01-01",
+            "raw_path": "",
+            "cross_host": False,
+        }
+        row.update(extra)
+        return row
+
+    def test_runs_that_finish_in_different_orders_write_byte_identical_manifests(self):
+        urls = [f"https://code.claude.com/docs/{name}.md" for name in "cab"]
+        manifests, finished = [], []
+        for delays in ([0.0, 0.08, 0.16], [0.16, 0.08, 0.0]):
+            shutil.rmtree(self.raw, ignore_errors=True)
+            if self.manifest.exists():
+                self.manifest.unlink()
+            opener = OrderedOpener(dict(zip(urls, delays)))
+            code, _, _ = self.run_cli(urls, None, extra=["--workers", "3"], opener=opener)
+            self.assertEqual(code, 0)
+            manifests.append(self.manifest.read_bytes())
+            finished.append(opener.finished)
+        self.assertEqual(finished[0], urls)
+        self.assertEqual(finished[1], urls[::-1])
+        self.assertEqual(manifests[0], manifests[1])
+        self.assertEqual([row["url"] for row in self.rows()], sorted(urls))
+
+    def test_the_finished_manifest_has_one_row_per_url_the_newest_wins_sorted_by_url(self):
+        a, b, z = (f"https://code.claude.com/docs/{name}.md" for name in "abz")
+        seeded = [
+            self.manifest_row(z, "negative", reason="status_404", status=404),
+            self.manifest_row(b, "negative", reason="status_404", status=404),
+            self.manifest_row(b, "indeterminate", reason="status_503", status=503),
+            self.manifest_row(a, "negative", reason="status_404", status=404),
+        ]
+        self.manifest.write_text("".join(fetch_tool._dump_row(row) for row in seeded), "utf-8")
+        script = {a: [ok()], b: [Hop(403, {}, b"", None)]}
+        code, opener, _ = self.run_cli([b, a], script)
+        self.assertEqual(code, 4)
+        self.assertEqual(sorted(opener.calls), [a, b])
+        rows = self.rows()
+        self.assertEqual([row["url"] for row in rows], [a, b, z])
+        self.assertEqual(
+            [(row["outcome"], row["reason"]) for row in rows],
+            [("fetched", ""), ("rejected", "status_403"), ("negative", "status_404")],
+        )
+        self.assertNotEqual(rows[0]["retrieved"], "2026-01-01")
+        self.assertNotEqual(rows[1]["retrieved"], "2026-01-01")
+        self.assertEqual(rows[2], seeded[0])
+        text = self.manifest.read_text(encoding="utf-8")
+        self.assertTrue(text.endswith("\n"))
+        self.assertEqual(text, "".join(fetch_tool._dump_row(row) for row in rows))
+
+    def test_a_run_with_nothing_new_still_leaves_a_sorted_deduplicated_manifest(self):
+        a, b = (f"https://code.claude.com/docs/{name}.md" for name in "ab")
+        self.run_cli([b, a], {a: [ok()], b: [ok()]})
+        seeded = [json.loads(line) for line in self.manifest.read_text("utf-8").splitlines()]
+        self.manifest.write_text("".join(fetch_tool._dump_row(r) for r in reversed(seeded)), "utf-8")
+        code, opener, out = self.run_cli([a, b], {})
+        self.assertEqual((code, opener.calls), (0, []))
+        self.assertIn("nothing to fetch", out)
+        self.assertEqual([row["url"] for row in self.rows()], [a, b])
+
+    def test_the_manifest_is_rewritten_by_replacing_a_temp_file_from_its_own_directory(self):
+        url = "https://code.claude.com/docs/a.md"
+        calls = []
+        real_replace = os.replace
+
+        def spy(src, dst):
+            calls.append((Path(src), Path(dst), Path(src).read_text(encoding="utf-8")))
+            return real_replace(src, dst)
+
+        with mock.patch.object(fetch_tool.os, "replace", spy):
+            self.run_cli([url], {url: [ok()]})
+        self.assertEqual(len(calls), 1)
+        src, dst, held = calls[0]
+        self.assertEqual(dst, self.manifest)
+        self.assertEqual(src.parent, self.manifest.parent)
+        self.assertNotEqual(src, dst)
+        self.assertEqual(held, self.manifest.read_text(encoding="utf-8"))
+        self.assertEqual(
+            sorted(path.name for path in self.tmp.iterdir()), ["manifest.jsonl", "raw", "urls.txt"]
+        )
+
+    def test_the_rewritten_manifest_keeps_the_mode_a_plain_file_would_get(self):
+        url = "https://code.claude.com/docs/a.md"
+        reference = self.tmp / "reference"
+        reference.write_text("x", encoding="utf-8")
+        self.run_cli([url], {url: [ok()]})
+        self.assertEqual(
+            stat.S_IMODE(self.manifest.stat().st_mode), stat.S_IMODE(reference.stat().st_mode)
+        )
+        self.manifest.chmod(0o640)
+        self.run_cli([url], {url: [ok()]}, extra=["--refetch"])
+        self.assertEqual(stat.S_IMODE(self.manifest.stat().st_mode), 0o640)
+
+    def test_a_failed_rewrite_keeps_the_appended_rows_and_leaves_no_temp_file(self):
+        url = "https://code.claude.com/docs/a.md"
+        with mock.patch.object(fetch_tool.os, "replace", side_effect=OSError("disk full")):
+            with self.assertRaises(OSError):
+                self.run_cli([url], {url: [ok()]})
+        self.assertEqual([row["url"] for row in self.rows()], [url])
+        self.assertEqual(
+            sorted(path.name for path in self.tmp.iterdir()), ["manifest.jsonl", "raw", "urls.txt"]
+        )
+
+    def test_a_bad_line_in_the_urls_file_becomes_a_row_and_the_run_carries_on(self):
+        good = "https://code.claude.com/docs/a.md"
+        cafe = "https://code.claude.com/docs/caf\u00e9.md"
+        spaced = "https://code.claude.com/docs/a b.md"
+        broken = "https://[::1/x"
+        code, opener, out = self.run_cli([cafe, spaced, broken, good], {good: [ok()]})
+        self.assertEqual(code, 4)
+        self.assertEqual(opener.calls, [good])
+        self.assertIn("fetched=1 refused=1 rejected=2", out)
+        by_url = {row["url"]: row for row in self.rows()}
+        self.assertEqual(set(by_url), {good, cafe, spaced, broken})
+        for url in (cafe, spaced):
+            self.assertEqual((by_url[url]["outcome"], by_url[url]["reason"]), ("rejected", "bad_url"))
+            self.assertEqual(by_url[url]["attempts"], 0)
+        self.assertEqual((by_url[broken]["outcome"], by_url[broken]["reason"]), ("refused", "bad_url"))
+        self.assertEqual(by_url[good]["outcome"], "fetched")
+
+    def test_invalid_utf8_in_the_urls_file_does_not_abort_the_run(self):
+        good = "https://code.claude.com/docs/a.md"
+        raw = b"https://code.claude.com/docs/caf\xe9.md\n" + good.encode() + b"\n"
+        code, opener, _ = self.run_cli([], {good: [ok()]}, raw_urls=raw)
+        self.assertEqual(code, 4)
+        self.assertEqual(opener.calls, [good])
+        outcomes = {row["url"]: (row["outcome"], row["reason"]) for row in self.rows()}
+        self.assertEqual(outcomes[good], ("fetched", ""))
+        broken = next(url for url in outcomes if url != good)
+        self.assertEqual(outcomes[broken], ("rejected", "bad_url"))
+
+    def test_a_bad_url_error_from_the_opener_is_one_attempt_and_the_run_carries_on(self):
+        bad, good = "https://code.claude.com/docs/a.md", "https://code.claude.com/docs/b.md"
+        code, opener, _ = self.run_cli(
+            [bad, good], {bad: [fetch_tool.BadUrlError("InvalidURL")], good: [ok()]}
+        )
+        self.assertEqual(code, 4)
+        self.assertEqual(sorted(opener.calls), [bad, good])
+        by_url = {row["url"]: row for row in self.rows()}
+        self.assertEqual((by_url[bad]["outcome"], by_url[bad]["reason"]), ("rejected", "bad_url"))
+        self.assertEqual(by_url[bad]["attempts"], 1)
+        self.assertEqual(by_url[good]["outcome"], "fetched")
 
     def test_selftest_prints_ok(self):
         out = io.StringIO()

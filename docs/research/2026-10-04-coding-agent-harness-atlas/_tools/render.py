@@ -24,6 +24,7 @@ ATLAS_TITLE = "Coding-agent harness atlas"
 MAX_PAGE_BYTES = 1_500_000
 MAX_TOTAL_BYTES = 12_000_000
 CLIP = 60
+MAX_HARNESS_QUOTES = 2
 FORBIDDEN_KEYS = ("confidence", "probability", "certainty")
 EXTRA_HOSTS = ("github.com",)
 REPO_BLOB_BASE = "https://github.com/mcorbett51090/RavenClaude/blob/main/"
@@ -128,6 +129,7 @@ blockquote{margin:var(--s2) 0;padding:var(--s2) var(--s3);border-left:4px solid 
 background:var(--surface)}
 blockquote p{margin:0;white-space:pre-wrap;overflow-wrap:anywhere}
 .cite{font-size:.875rem;color:var(--muted);margin:var(--s1) 0 var(--s2)}
+.cite,.cite a,td a,th a,.cell{overflow-wrap:anywhere}
 ul.cols{columns:2 14rem}
 @media (prefers-reduced-motion: reduce){*,*::before,*::after{transition:none!important;
 animation:none!important}}
@@ -496,6 +498,18 @@ def span_note(record):
     return f"Described span: {clean(span.get('description'))} ({lines})"
 
 
+def split_refs(refs, limit=MAX_HARNESS_QUOTES):
+    """The refs a harness page quotes, and the rest it leaves to the sources page.
+
+    Within the budget the order is kept. Past it, the role-labelled records (the vendor statement,
+    the reference page, the positive quote) are the ones the cell rests on, so they are kept first.
+    """
+    if len(refs) <= limit:
+        return refs, []
+    ranked = sorted(refs, key=lambda ref: ref[0] is None)
+    return ranked[:limit], ranked[limit:]
+
+
 def evidence_block(eid, role, atlas, page):
     record = atlas.evidence.get(eid)
     label = f"<strong>{esc(role)}:</strong> " if role else ""
@@ -689,12 +703,15 @@ def harness_cell(atlas, sid, row_id, page, show_name):
             out.append('<p><strong>Drifted:</strong> <span class="w">drifted</span></p>')
         if isinstance(cell.get("sweep_report"), dict):
             out.append(f'<p class="muted">{esc(sweep_text(cell["sweep_report"]))}</p>')
-        refs = cell_evidence_refs(cell)
-        if refs:
-            out.append("<p><strong>Evidence:</strong></p>")
-            out.append(
-                "<ul>" + "".join(evidence_block(e, r, atlas, page) for r, e in refs) + "</ul>"
-            )
+        shown, hidden = split_refs(cell_evidence_refs(cell))
+        if shown:
+            items = "".join(evidence_block(e, r, atlas, page) for r, e in shown)
+            if hidden:
+                more = local_link(
+                    page, f"sources/{sid}.html", f"{len(hidden)} more on the sources page", cell_id
+                )
+                items += f"<li>{more}</li>"
+            out.append(f"<p><strong>Evidence:</strong></p><ul>{items}</ul>")
     levers = atlas.levers_by_cell.get((sid, row_id), [])
     if levers:
         out.append("<p><strong>Lever locations:</strong></p>")
@@ -834,7 +851,7 @@ def cell_link(atlas, cell_id, page):
     text = f"<code>{esc(cell_id)}</code>"
     if sid not in atlas.surface:
         return text
-    if tail.startswith("U00/"):
+    if tail == "U00" or tail.startswith("U00/"):
         return f'<a href="{href(page, f"sources/{sid}.html", clean(cell_id))}">{text}</a>'
     if tail in atlas.rows:
         return f'<a href="{href(page, atlas.harness_path(sid), clean(cell_id))}">{text}</a>'
@@ -915,6 +932,24 @@ def evidence_row(record, atlas):
     )
 
 
+def cells_over_budget(atlas, sid, page):
+    """Anchored list of the cells whose harness page quotes only some of their records."""
+    items = []
+    for (cell_sid, row_id), cell in atlas.cells.items():
+        refs = cell_evidence_refs(cell)
+        if cell_sid != sid or len(refs) <= MAX_HARNESS_QUOTES:
+            continue
+        cell_id = clean(f"{sid}/{row_id}")
+        cited = ", ".join(
+            (f"{esc(role)}: " if role else "") + evidence_link(eid, atlas, page)
+            for role, eid in refs
+        )
+        items.append(
+            f'<li id="{esc(cell_id)}"><span class="mono">{esc(cell_id)}</span>: {cited}</li>'
+        )
+    return "<ul>" + "".join(items) + "</ul>" if items else ""
+
+
 def render_sources(atlas, sid):
     page = f"sources/{sid}.html"
     name = atlas.surface_name(sid)
@@ -926,6 +961,10 @@ def render_sources(atlas, sid):
         body.append(table(f"{name}: evidence", head, [evidence_row(r, atlas) for r in records]))
     else:
         body.append(nodata_block())
+    over_budget = cells_over_budget(atlas, sid, page)
+    if over_budget:
+        body.append(heading(2, "Cells with more records than their harness page quotes"))
+        body.append(over_budget)
     coverage = atlas.snapshot.get("coverage")
     coverage = coverage.get(sid) if isinstance(coverage, dict) else None
     body.append(heading(2, "Coverage"))
@@ -1135,6 +1174,19 @@ def check_sizes(encoded):
         raise RenderError("; ".join(problems))
 
 
+def extra_pages(out, rendered):
+    """``*.html`` files in the output folder, harness/ and sources/ that no page of ours maps to."""
+    found = []
+    for folder in ("", "harness", "sources"):
+        directory = out / folder if folder else out
+        if directory.is_dir():
+            for path in sorted(directory.glob("*.html")):
+                name = f"{folder}/{path.name}" if folder else path.name
+                if name not in rendered and path.is_file():
+                    found.append(name)
+    return found
+
+
 def main(argv=None):
     assert_worktree()
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
@@ -1149,6 +1201,7 @@ def main(argv=None):
         print(f"render: {exc}", file=sys.stderr)
         return 2
     out = Path(args.out)
+    extras = extra_pages(out, encoded)
     if args.check:
         bad = []
         for path, data in encoded.items():
@@ -1159,8 +1212,13 @@ def main(argv=None):
                 bad.append(f"stale: {path}")
         for line in bad:
             print(f"render: {line}", file=sys.stderr)
+        for path in extras:
+            print(f"render: extra: {path} is not a page the renderer writes", file=sys.stderr)
         if bad:
             print(f"render: {len(bad)} of {len(encoded)} pages out of date", file=sys.stderr)
+        if extras:
+            print(f"render: {len(extras)} extra page(s) in the output folder", file=sys.stderr)
+        if bad or extras:
             return 1
         print(f"render: {len(encoded)} pages up to date")
         return 0
@@ -1169,7 +1227,13 @@ def main(argv=None):
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_bytes(data)
     print(f"render: wrote {len(encoded)} pages ({sum(len(d) for d in encoded.values())} bytes)")
-    return 0
+    for path in extras:
+        print(
+            f"render: warning: extra page {path} is not written by the renderer; "
+            "it was left in place, delete it or restore its data",
+            file=sys.stderr,
+        )
+    return 1 if extras else 0
 
 
 if __name__ == "__main__":
