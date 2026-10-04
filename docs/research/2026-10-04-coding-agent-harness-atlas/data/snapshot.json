@@ -77,9 +77,9 @@
       "pages excluded as out of scope": 0,
       "pages found by index": 219,
       "pages found only by link closure": 6,
-      "pages found only by sitemap or page list": 0,
+      "pages found only by sitemap or page list": 1,
       "pages read by extraction": 222,
-      "pages skipped as near-duplicates": 3
+      "pages skipped as near-duplicates": 4
     },
     "codex-cli": {
       "HTML app shells not extracted": 0,

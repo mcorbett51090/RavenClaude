@@ -166,3 +166,20 @@ Observations (each is a this-session tool result; inferences are marked):
 - Positive controls passed: VS Code 16 sitemap-only agent pages fetched (200) and chunked; sub-agents.md 1,413 lines intact with lines 1045 and 1064 present and 2 lines flagged (the repo sanitizer had deleted 946-1412); every extract page's chunks cover lines 1..N exactly once (998 pages, 0 failures); Codex managed-configuration (965 lines, 8 contiguous chunks): the section the plan called "System requirements" is now headed "Admin-enforced requirements (requirements.toml)" at lines 56-174, so the control holds for the renamed section (the heading text in the docs changed or the plan misnamed it; inference, not checked).
 - Version snapshot: claude 2.1.289 (stable 2.1.285), codex 0.160.0, copilot-cli 1.0.91, gemini 0.62.0, VS Code 1.140 (redirect of /updates), Cursor changelog entry 2026-09-23, Grok Build and Grok Bot none published.
 - Not done in P3 (moved): evidence line_offset support for Gemini slices in quotes.py (needed at P7: page spec carries `line_offset`, quotes.py does not use it yet); product_version stamping of pages-spec from data/versions.json (corpus.py writes null placeholders).
+
+## P3 close — recomputed cost estimate (2026-10-04) [estimate; inputs measured, per-call overhead assumed]
+Measured: 998 pages read by extraction, 8,518 chunks, 18.80 MB of chunk text (bytes/4 = 4.70M tokens), against the plan's 13 to 17 MB (3.3M to 4.3M tokens): about 10% to 40% larger. Claude Code is 48% of it.
+Assumed (unmeasured until P4): brief plus fixed instruction file about 5K tokens per dispatch; CLAUDE.md load 17.6K tokens per dispatch unless `omitClaudeMd` works; 10% retries; multi-turn re-send factor 1 to 2.5 (the plan's own range).
+
+| batch size (chunks, never mixing columns) | scout dispatches | with 10% retries | input tokens, with CLAUDE.md load (x1 to x2.5) | input tokens, omitClaudeMd (x1 to x2.5) |
+|---|---|---|---|---|
+| 80 KB (the plan's design) | 249 | about 274 | 11M to 28M | 6.5M to 16M |
+| 48 KB | 422 | about 464 | 16M to 39M | 7.5M to 19M |
+| 32 KB | 671 | about 738 | 22M to 55M | 9M to 22M |
+| 20 KB | 1,182 | about 1,300 | 35M to 86M | 12M to 29M |
+| 16 KB | 1,456 | about 1,602 | 41M to 103M | 13M to 33M |
+
+Against the approved envelope (about 380 calls and 35M input tokens; re-ask above 1.5x = 570 calls or 52M):
+- At the plan's 80 KB batches the scout line is about 274 calls (plan: 180 to 235), and with the plan's other lines (65 to 145 calls) the total is about 340 to 420 calls and 7M to 29M scout input tokens: inside the envelope and inside 1.5x. **No re-ask is owed before P4.**
+- The envelope does not survive small batches. P1's capacity probes saw scout dispatches fail on large inputs (cause not isolated; recorded in the P1 notes), so 80 KB is not yet shown to work. If P4 measures a safe batch below about 48 KB, the recomputed scout line alone passes 570 calls and may pass 52M tokens: **that triggers the owner re-ask at the P4 gate**, with these options: proceed at the higher figure, cut the corpus (the largest low-yield pages: Claude changelog 942 KB, errors 482 KB, 25 weekly what's-new digests 179 KB, Copilot supported-models 415 KB, Codex config-schema.json 229 KB, Agent SDK reference 1.1 MB), or stop and report.
+- `omitClaudeMd` removes about 17.6K tokens per dispatch if the field works; P4 measures whether it does.

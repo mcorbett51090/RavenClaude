@@ -72,14 +72,15 @@
       "pages": 0
     },
     "secondary": {
-      "bytes": 129695,
-      "pages": 3
+      "bytes": 145765,
+      "pages": 4
     }
   },
   "secondary": {
     "https://code.claude.com/docs/en/microsoft-foundry.md": "claude-code__code-claude-com__docs__en__azure-ai-foundry",
     "https://code.claude.com/docs/en/plugins/overview.md": "claude-code__code-claude-com__docs__en__plugins",
-    "https://code.claude.com/docs/en/slash-commands.md": "claude-code__code-claude-com__docs__en__skills"
+    "https://code.claude.com/docs/en/slash-commands.md": "claude-code__code-claude-com__docs__en__skills",
+    "https://code.claude.com/docs/en/whats-new/index.md": "claude-code__code-claude-com__docs__en__whats-new"
   },
   "surface": "claude-code"
 }

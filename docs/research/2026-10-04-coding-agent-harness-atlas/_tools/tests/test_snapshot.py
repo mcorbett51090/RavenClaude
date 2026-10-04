@@ -22,6 +22,9 @@ from snapshot import (  # noqa: E402
     index_hashes,
     merged_origins,
     npm_version,
+    split_origins,
+    split_rows,
+    unmatched_origins,
     url_set_for,
     vscode_version,
 )
@@ -243,6 +246,34 @@ class RecordTests(unittest.TestCase):
             (p3 / "s.origins-sitemap-all.jsonl").write_text(json.dumps({"url": "https://x.example/y", "source": "sitemap", "origin": "o"}) + "\n")
             got = merged_origins(tmp, "s")
         self.assertEqual([r["url"] for r in got], ["https://x.example/a", "https://x.example/b"])
+
+
+class SplitAndCoverageTests(unittest.TestCase):
+    PAGES = [
+        {
+            "page_id": "g__a",
+            "aggregate_page_id": "g",
+            "source_page_url": "http://g.example/docs/a.md",
+            "url": "https://g.example/llms.txt",
+            "bytes": 10,
+            "slice_sha256": "ab" * 32,
+            "retrieved": "2026-10-04",
+        },
+        {"page_id": "g", "url": "https://g.example/llms.txt", "bytes": 99},
+    ]
+
+    def test_split_pages_get_derived_rows_and_origins_on_the_https_url(self):
+        (row,) = split_rows(self.PAGES)
+        self.assertEqual(row["url"], "https://g.example/docs/a.md")
+        self.assertEqual(row["listed_as"], "http://g.example/docs/a.md")
+        self.assertEqual((row["outcome"], row["status"], row["sha256"]), ("split-from-aggregate", 200, "ab" * 32))
+        (origin,) = split_origins(self.PAGES)
+        self.assertEqual((origin["source"], origin["origin"]), ("index", "https://g.example/llms.txt"))
+
+    def test_an_origin_without_a_manifest_row_is_reported_by_canonical_url(self):
+        origins = [{"url": "https://x.example/a"}, {"url": "https://x.example/b/"}, {"url": "https://x.example/c"}]
+        rows = [{"url": "https://x.example/a.md"}, {"url": "https://x.example/b"}]
+        self.assertEqual(unmatched_origins(origins, rows), ["https://x.example/c"])
 
 
 class CliTests(unittest.TestCase):

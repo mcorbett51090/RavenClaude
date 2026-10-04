@@ -272,15 +272,16 @@ def build_corpus(surface, rows, rules, read_raw, sources, max_bytes=DEFAULT_MAX_
 
     for pid, entry in list(texts.items()):
         page = by_id[pid]
-        if page["role"] != "extract":
-            if page["role"] != "secondary":
-                del texts[pid]
+        if page["role"] not in ("extract", "secondary"):
+            del texts[pid]
             continue
+        # A secondary page is never read, but its line parity is still proven (RT1).
         neutral, flagged = neutralize_text(entry["raw"])
         check_parity(entry["raw"], neutral)
         page["flagged_lines"] = flagged
-        entry["neutral"] = neutral
-        entry["chunks"] = chunk_page(pid, neutral, max_bytes)
+        if page["role"] == "extract":
+            entry["neutral"] = neutral
+            entry["chunks"] = chunk_page(pid, neutral, max_bytes)
     return pages, gaps, texts
 
 

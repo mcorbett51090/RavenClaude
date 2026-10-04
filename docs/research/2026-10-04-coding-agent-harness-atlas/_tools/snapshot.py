@@ -205,6 +205,7 @@ MANIFEST_FIELDS = (
     "retrieved",
     "redirects",
     "cross_host",
+    "listed_as",
 )
 
 
@@ -223,6 +224,42 @@ def merged_origins(run_dir, surface):
         for record in _read_jsonl(path):
             seen[(record["url"], record["source"], record["origin"])] = record
     return [seen[key] for key in sorted(seen)]
+
+
+def split_rows(pages):
+    """Manifest rows for pages cut out of an aggregate file (Gemini): derived, never fetched alone."""
+    rows = []
+    for page in pages:
+        if "aggregate_page_id" not in page:
+            continue
+        listed = page["source_page_url"]
+        rows.append(
+            {
+                "url": re.sub(r"^http://", "https://", listed),
+                "listed_as": listed,
+                "url_effective": page["url"],
+                "outcome": "split-from-aggregate",
+                "status": 200,
+                "reason": f"page of {page['url']}",
+                "bytes": page["bytes"],
+                "sha256": page["slice_sha256"],
+                "retrieved": page["retrieved"],
+            }
+        )
+    return rows
+
+
+def split_origins(pages):
+    return [
+        {"url": row["url"], "source": "index", "origin": row["url_effective"]}
+        for row in split_rows(pages)
+    ]
+
+
+def unmatched_origins(origins, manifest_rows):
+    """Origin URLs with no manifest row, compared by ``canonical``: enumerated but never accounted for."""
+    have = {_try_canonical(row["url"]) for row in manifest_rows}
+    return sorted({o["url"] for o in origins if _try_canonical(o["url"]) not in have})
 
 
 def _write_jsonl(path, records):
@@ -287,9 +324,19 @@ def _cmd_build(args):
             {p["url"] for p in pages if p["role"] != "index" and p["role"] != "html"}
             | {p["source_page_url"] for p in pages if p.get("source_page_url")}
         )
+        manifest_out = sorted(compact_manifest(rows) + split_rows(pages), key=lambda r: r["url"])
+        origins_out = sorted(
+            merged_origins(run_dir, sid) + split_origins(pages),
+            key=lambda r: (r["url"], r["source"], r["origin"]),
+        )
+        missing = unmatched_origins(origins_out, manifest_out)
+        if missing:
+            raise SnapshotError(
+                f"{sid}: {len(missing)} enumerated URLs have no manifest row, for example {missing[:3]}"
+            )
         enum_dir.mkdir(parents=True, exist_ok=True)
-        _write_jsonl(enum_dir / f"{sid}.manifest.jsonl", compact_manifest(rows))
-        _write_jsonl(enum_dir / f"{sid}.origins.jsonl", merged_origins(run_dir, sid))
+        _write_jsonl(enum_dir / f"{sid}.manifest.jsonl", manifest_out)
+        _write_jsonl(enum_dir / f"{sid}.origins.jsonl", origins_out)
         (enum_dir / f"{sid}.urls.txt").write_text("\n".join(baseline) + "\n", encoding="utf-8")
         dump_json(
             enum_dir / f"{sid}.json",

@@ -195,6 +195,7 @@ https://code.claude.com/docs/en/ultrareview.md
 https://code.claude.com/docs/en/voice-dictation.md
 https://code.claude.com/docs/en/vs-code.md
 https://code.claude.com/docs/en/web-quickstart.md
+https://code.claude.com/docs/en/whats-new.md
 https://code.claude.com/docs/en/whats-new/2026-w13.md
 https://code.claude.com/docs/en/whats-new/2026-w14.md
 https://code.claude.com/docs/en/whats-new/2026-w15.md
