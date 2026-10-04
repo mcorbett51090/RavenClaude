@@ -2,6 +2,18 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.327.1 — 2026-10-04
+
+### Fixed
+
+- **Guard-mode consent no longer grants on a missing `tool_use_id`.** `hook_consent` used
+  `if asked and ran and asked != ran: return`, so an empty/omitted PostToolUse `tool_use_id` skipped
+  the mismatch check and recorded session-wide consent while a concrete pending ask was still open.
+  Gate 291 covered a *wrong* non-empty id but not an empty one. Now: when the ask recorded an id,
+  only a PostToolUse with that same id grants consent. Also: `pull()` rejects absolute tar member
+  paths (pathlib join drops the staging root) and publishes the mirror by renaming the old tree
+  aside before replacing it, so a kill mid-swap no longer leaves an empty hole.
+
 ## 0.327.0 — 2026-10-02
 
 ### Added

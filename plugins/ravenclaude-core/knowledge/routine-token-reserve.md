@@ -85,8 +85,9 @@ Routine (`create_session`, `send_message`, `fire_trigger`, `create_trigger`).
 
 **Consent is recorded only after the asked call actually ran.** A `PreToolUse` hook cannot see the
 answer to its own ask, so the `PostToolUse` half records consent when the guarded tool runs; a
-declined ask never reaches `PostToolUse`. When the payload carries `tool_use_id`, only the call that
-was asked about can grant it. Consent is per session and per week: a new weekly reset asks again.
+declined ask never reaches `PostToolUse`. When the ask recorded a `tool_use_id`, only a
+`PostToolUse` with that same id grants consent — a missing or empty id does not match a concrete
+pending id. Consent is per session and per week: a new weekly reset asks again.
 
 **Escape.** Move the line with `/routine-reserve override <pct>` (or the dashboard Reserve tab), or set
 `routine_reserve: advise`. The guard state lives in `~/.ravenclaude/usage/guard/<session>.json`.
