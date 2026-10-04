@@ -954,6 +954,28 @@ class VerifyBatchTests(unittest.TestCase):
         out = verify_batch([record("nope"), record("Intro text here.")], {"p1": page(RAW)})
         self.assertEqual(out["evidence"][0]["id"], "E-claude-code-00001")
 
+    def test_a_page_cut_from_an_aggregate_reports_lines_in_the_aggregate(self):
+        plain = verify_batch([record("Intro text here.")], {"p1": page(RAW)})["evidence"][0]
+        shifted_page = {**page(RAW), "line_offset": 100}
+        shifted = verify_batch([record("Intro text here.")], {"p1": shifted_page})["evidence"][0]
+        self.assertEqual(
+            shifted["locator"]["raw_line_start"], plain["locator"]["raw_line_start"] + 100
+        )
+        self.assertEqual(shifted["locator"]["raw_line_end"], plain["locator"]["raw_line_end"] + 100)
+        self.assertEqual(shifted["quote"], plain["quote"])
+        self.assertEqual(schema_errors(shifted, EVIDENCE_SCHEMA), [])
+
+    def test_the_offset_also_moves_a_described_install_span(self):
+        a, b = continued_install()
+        raw = f"intro\n{a}\n{b}\noutro\n"
+        base = verify_batch([record(a)], {"p1": page(raw)})["evidence"][0]["described_span"]
+        moved = verify_batch([record(a)], {"p1": {**page(raw), "line_offset": 7}})["evidence"][0][
+            "described_span"
+        ]
+        self.assertEqual(moved["raw_line_start"], base["raw_line_start"] + 7)
+        self.assertEqual(moved["raw_line_end"], base["raw_line_end"] + 7)
+        self.assertEqual(moved["span_sha256"], base["span_sha256"])
+
     def test_empty_batch_passes_with_rate_one(self):
         out = verify_batch([], {})
         self.assertEqual(out["pass_rate"], 1.0)

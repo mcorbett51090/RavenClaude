@@ -91,13 +91,48 @@ def catalog_text(facets, style="short"):
     return "\n".join(lines) + "\n"
 
 
-def make_brief(batch_id, chunk_rows, catalog_path, out_json):
-    """chunk_rows: list of dicts with id, page_id, path, product."""
-    table = ["| chunk id | page id | product | file |", "|---|---|---|---|"]
+CHUNK_OPEN = "[[[CHUNK"
+
+
+def combine_chunks(chunk_rows, read_text):
+    """One batch file: every chunk's text under a header line carrying its ids and line range.
+
+    ``read_text`` maps a chunk row to its text. The header is ``[[[CHUNK id=... page=... lines=A-B]]]``
+    and the text follows unchanged, so a quote copied from it is still a quote of the page.
+    """
+    parts = []
     for row in chunk_rows:
-        table.append(
-            f"| {row['id']} | {row['page_id']} | {row.get('product', '')} | `{row['path']}` |"
+        header = (
+            f"{CHUNK_OPEN} id={row['id']} page={row['page_id']} "
+            f"lines={row['start_line']}-{row['end_line']}]]]"
         )
+        parts.append(header + "\n" + read_text(row))
+    return "\n".join(parts) + "\n"
+
+
+def make_brief(batch_id, chunk_rows, catalog_path, out_json, combined_path=None):
+    """chunk_rows: list of dicts with id, page_id, path, product.
+
+    With ``combined_path`` the scout reads one batch file (see ``combine_chunks``) instead of one
+    file per chunk; the table then lists ids only.
+    """
+    if combined_path:
+        table = [
+            f"Read this one file completely: `{combined_path}`. It holds the chunks listed below, "
+            f"each introduced by a `{CHUNK_OPEN} id=... page=... lines=A-B]]]` line. Use the id and "
+            "page from the header of the chunk that contains your quote.",
+            "",
+            "| chunk id | page id | product |",
+            "|---|---|---|",
+        ]
+        for row in chunk_rows:
+            table.append(f"| {row['id']} | {row['page_id']} | {row.get('product', '')} |")
+    else:
+        table = ["| chunk id | page id | product | file |", "|---|---|---|---|"]
+        for row in chunk_rows:
+            table.append(
+                f"| {row['id']} | {row['page_id']} | {row.get('product', '')} | `{row['path']}` |"
+            )
     return INSTRUCTIONS.format(
         batch_id=batch_id,
         out_json=out_json,
@@ -120,6 +155,7 @@ def main():
     b.add_argument("--catalog", required=True)
     b.add_argument("--out-json", required=True)
     b.add_argument("--out-brief", required=True)
+    b.add_argument("--combined", help="write one batch file here and point the brief at it")
     args = ap.parse_args()
     if args.cmd == "catalog":
         text = catalog_text(load_json(DATA_DIR / "facets.json"), args.style)
@@ -130,7 +166,12 @@ def main():
     missing = [i for i in args.ids if i not in chunks]
     if missing:
         sys.exit(f"unknown chunk ids: {missing}")
-    text = make_brief(args.batch_id, [chunks[i] for i in args.ids], args.catalog, args.out_json)
+    rows = [chunks[i] for i in args.ids]
+    if args.combined:
+        body = combine_chunks(rows, lambda r: Path(r["path"]).read_text(encoding="utf-8"))
+        Path(args.combined).write_text(body, encoding="utf-8", newline="")
+        print(f"wrote {args.combined} ({len(body.encode('utf-8'))} bytes)")
+    text = make_brief(args.batch_id, rows, args.catalog, args.out_json, args.combined)
     Path(args.out_brief).write_text(text, encoding="utf-8", newline="\n")
     print(f"wrote {args.out_brief} ({len(text)} bytes)")
 

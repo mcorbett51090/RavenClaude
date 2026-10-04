@@ -47,5 +47,28 @@ class BriefTests(unittest.TestCase):
         self.assertEqual(text.count("Write exactly one file"), 1)
 
 
+
+class CombinedBatchTests(unittest.TestCase):
+    ROWS = [
+        {"id": "p#1", "page_id": "p", "path": "/a", "product": "X", "start_line": 1, "end_line": 2},
+        {"id": "q#1", "page_id": "q", "path": "/b", "product": "X", "start_line": 1, "end_line": 1},
+    ]
+
+    def test_combined_file_keeps_each_chunk_text_unchanged_under_a_header(self):
+        texts = {"/a": "line one\nline two", "/b": "other"}
+        body = briefs.combine_chunks(self.ROWS, lambda r: texts[r["path"]])
+        self.assertEqual(
+            body,
+            "[[[CHUNK id=p#1 page=p lines=1-2]]]\nline one\nline two\n"
+            "[[[CHUNK id=q#1 page=q lines=1-1]]]\nother\n",
+        )
+
+    def test_brief_with_a_combined_file_names_it_once_and_lists_ids_only(self):
+        text = briefs.make_brief("B-9", self.ROWS, "/c.txt", "/o.json", combined_path="/batch.txt")
+        self.assertEqual(text.count("/batch.txt"), 1)
+        self.assertNotIn("`/a`", text)
+        self.assertIn("| p#1 | p | X |", text)
+
+
 if __name__ == "__main__":
     unittest.main()

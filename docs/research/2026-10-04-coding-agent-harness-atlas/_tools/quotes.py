@@ -579,8 +579,26 @@ def build_evidence(
     return evidence, info
 
 
+def _shift_lines(item, offset):
+    """Move an evidence record's line numbers by ``offset``.
+
+    A page cut out of an aggregate file (a Gemini page) is verified as its own text, so its line
+    numbers start at 1; the offset puts them back where a reader finds them in the fetched file.
+    """
+    if not offset:
+        return
+    item["locator"]["raw_line_start"] += offset
+    item["locator"]["raw_line_end"] += offset
+    span = item.get("described_span")
+    if span:
+        span["raw_line_start"] += offset
+        span["raw_line_end"] += offset
+
+
 def verify_batch(records, page_texts, counters=None):
     """Verify every scout record; number evidence per surface.
+
+    A page spec may carry ``line_offset``: the lines before the page in the file it was cut from.
 
     counters maps a surface to the next sequence number to use. It is read and updated in
     place, so several calls for one surface never reuse an id; None starts every surface at 1.
@@ -624,6 +642,7 @@ def verify_batch(records, page_texts, counters=None):
         if item is None:
             dropped.append({**info, "record_index": index})
             continue
+        _shift_lines(item, page.get("line_offset", 0))
         counters[surface] = seq + 1
         evidence.append(item)
         pairs.append({"record_index": index, "evidence_id": item["id"]})
