@@ -657,6 +657,24 @@ def verify_batch(records, page_texts, counters=None):
     }
 
 
+_ESCAPE_OR_LONE_BACKSLASH = re.compile(r'(\\(?:["\\/bfnrt]|u[0-9a-fA-F]{4}))|\\')
+
+
+def load_scout_json(text):
+    """``(data, repaired)``: parse a scout's JSON, doubling any backslash that is not a JSON escape.
+
+    A scout that copies a Markdown table row such as ``list\\|add`` writes a quote that is right but
+    is not valid JSON. Doubling a lone backslash restores what it meant; a wrong guess can only make
+    the quote fail the raw-page check, so this never lets an unverified quote through. Anything else
+    that is invalid still raises ``json.JSONDecodeError``.
+    """
+    try:
+        return json.loads(text), False
+    except json.JSONDecodeError:
+        fixed = _ESCAPE_OR_LONE_BACKSLASH.sub(lambda m: m.group(1) or "\\\\", text)
+        return json.loads(fixed), True
+
+
 def _read_text(path):
     return Path(path).read_bytes().decode("utf-8", errors="strict")
 
@@ -747,7 +765,11 @@ def main(argv=None):
         return 0
     if args.command == "batch":
         with open(args.records, encoding="utf-8") as fh:
-            scout = json.load(fh)
+            try:
+                scout, repaired = load_scout_json(fh.read())
+            except json.JSONDecodeError as exc:
+                print(f"quotes: {args.records} is not valid JSON even after backslash repair: {exc}", file=sys.stderr)
+                return 2
         records = scout["records"] if isinstance(scout, dict) else scout
         with open(args.pages, encoding="utf-8") as fh:
             pages_spec = json.load(fh)
@@ -765,6 +787,7 @@ def main(argv=None):
             print(f"quotes: {exc}", file=sys.stderr)
             return 2
         result = verify_batch(records, page_texts, counters)
+        result["scout_json_repaired"] = repaired
         dump_json(args.out, result)
         if args.counters:
             dump_json(args.counters, counters)

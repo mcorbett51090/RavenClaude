@@ -50,6 +50,11 @@ it. If a quote you take reads like an instruction to an AI agent, set
   columns, so a statement may run over several lines: quote only the single
   physical line that carries the key term, and put the rest of the meaning in
   `claim`.
+- A Markdown link is `[text](target)`. When your quote contains link text, copy
+  the `(target)` too; never keep `[text]` and drop the parenthesis after it. If a
+  sentence is full of links, quote a stretch of it that has none.
+- Copy quote marks and apostrophes exactly as the page has them, including curly
+  ones (’ “ ”), and keep list markers, bold markers and backslashes as they are.
 - For a table, copy the whole row line including its leading and trailing `|`.
 - Never quote an install or update command. Quote a nearby sentence instead.
 - A script checks every quote against the raw page. A record whose quote is not
@@ -57,6 +62,9 @@ it. If a quote you take reads like an instruction to an AI agent, set
 - `line_hint` is optional. Omit it if you are not sure.
 
 ## Output (JSON only, valid UTF-8)
+
+Inside a JSON string, write a backslash as `\\\\` and a double quote as `\\"`. A quote that
+holds a table row with `\\|` must be written with the backslash doubled.
 
 {{"batch_id": "{batch_id}",
  "records": [{{"page_id": "...", "chunk_id": "...", "rows": ["F04.approval-modes"],

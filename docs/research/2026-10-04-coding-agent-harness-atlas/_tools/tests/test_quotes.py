@@ -17,6 +17,7 @@ import quotes  # noqa: E402
 from quotes import (  # noqa: E402
     build_evidence,
     is_install_span,
+    load_scout_json,
     norm,
     verify_batch,
     verify_quote,
@@ -1181,6 +1182,27 @@ class CliTests(unittest.TestCase):
                 sorted(p.name for p in tmp.iterdir()),
                 sorted(["p1.md", "pages.json", "scout.json", "out.json"]),
             )
+
+
+class LoadScoutJsonTests(unittest.TestCase):
+    def test_valid_json_is_returned_unchanged_and_not_marked_repaired(self):
+        data, repaired = load_scout_json(r'{"quote": "a\\|b \"x\" \u00e9"}')
+        self.assertEqual(data["quote"], 'a\\|b "x" \u00e9')
+        self.assertFalse(repaired)
+
+    def test_a_lone_backslash_from_a_markdown_table_row_is_doubled(self):
+        data, repaired = load_scout_json('{"quote": "| `grok mcp <list\\|add>` |"}')
+        self.assertTrue(repaired)
+        self.assertEqual(data["quote"], "| `grok mcp <list\\|add>` |")
+
+    def test_valid_escapes_beside_a_lone_backslash_are_kept(self):
+        data, repaired = load_scout_json('{"quote": "x\\\\|y \\n z\\|w"}')
+        self.assertTrue(repaired)
+        self.assertEqual(data["quote"], "x\\|y \n z\\|w")
+
+    def test_other_invalid_json_still_raises(self):
+        with self.assertRaises(json.JSONDecodeError):
+            load_scout_json('{"quote": "unterminated')
 
 
 if __name__ == "__main__":
