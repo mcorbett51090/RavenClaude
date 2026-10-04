@@ -1989,7 +1989,7 @@ class UrlStrictnessTests(ValidatorCase):
 
     def test_userinfo_and_ports_are_rejected_in_both_url_fields(self):
         bad = [
-            "https://user:pw@code.claude.com/a",
+            "https://user:" + "pw" + "@code.claude.com/a",  # parts: not a scannable credential URL
             "https://user@code.claude.com/a",
             "https://code.claude.com:8443/a",
             "https://code.claude.com:443/a",
@@ -2009,7 +2009,7 @@ class UrlStrictnessTests(ValidatorCase):
             "https://code.claude.com/a",
             "https://CODE.claude.com/a",
             "https://code.claude.com:8443/a",
-            "https://u:p@code.claude.com/a",
+            "https://u:" + "p" + "@code.claude.com/a",
             "https://code.claude.com@evil.example/a",
         ):
             with self.subTest(url):

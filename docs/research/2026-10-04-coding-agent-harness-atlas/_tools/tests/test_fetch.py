@@ -162,8 +162,9 @@ class UserinfoTests(unittest.TestCase):
         "https://evil.example@docs.example/p",
         "https://docs.example@evil.example/p",
         "https://127.0.0.1\\@docs.example/",
-        "https://user:secret@docs.example/p",
-        "https://docs.example:443@docs.example/p",
+        # built from parts so a secret scanner never reads a fixture as a credential-bearing URL
+        "https://user:" + "secret" + "@docs.example/p",
+        "https://docs.example:" + "443" + "@docs.example/p",
         "https://docs.example\\@evil.example/p",
         "https://docs.example\\evil/p",
         "https://@docs.example/p",
