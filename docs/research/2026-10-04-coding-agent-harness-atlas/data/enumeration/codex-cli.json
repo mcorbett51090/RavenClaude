@@ -1,0 +1,124 @@
+{
+  "gaps": [
+    {
+      "outcome": "negative",
+      "reason": "status_404",
+      "status": 404,
+      "url": "https://learn.chatgpt.com/docs/changelog.md"
+    },
+    {
+      "outcome": "negative",
+      "reason": "status_404",
+      "status": 404,
+      "url": "https://learn.chatgpt.com/docs/screenshot-review.md"
+    },
+    {
+      "outcome": "negative",
+      "reason": "status_404",
+      "status": 404,
+      "url": "https://learn.chatgpt.com/docs/security/index.md"
+    },
+    {
+      "outcome": "negative",
+      "reason": "status_404",
+      "status": 404,
+      "url": "https://learn.chatgpt.com/guides/best-practices.md"
+    },
+    {
+      "outcome": "negative",
+      "reason": "status_404",
+      "status": 404,
+      "url": "https://learn.chatgpt.com/guides/build-ai-native-engineering-team.md"
+    },
+    {
+      "outcome": "rejected",
+      "reason": "short_body",
+      "status": 200,
+      "url": "https://learn.chatgpt.com/robots.txt"
+    },
+    {
+      "outcome": "rejected",
+      "reason": "short_body",
+      "status": 200,
+      "url": "https://learn.chatgpt.com/sitemap-index.xml"
+    }
+  ],
+  "index_files": {
+    "https://developers.openai.com/codex/llms.txt": {
+      "entries": 185,
+      "sha256": "afb12a0624deba4b54542d974d53fa35ffde5db888538883917f321625c6f137"
+    },
+    "https://learn.chatgpt.com/chatgpt-sitemap-0.xml": {
+      "entries": 299,
+      "sha256": "cf79ac1fca5ca47ee7e3991466a30b741402363f499c7d754d586fad3aa56eae"
+    }
+  },
+  "origins_by_source": {
+    "closure": 7,
+    "index": 179,
+    "sitemap": 0
+  },
+  "out_of_scope": [
+    "https://learn.chatgpt.com/docs/dots.md",
+    "https://learn.chatgpt.com/docs/dots/channels.md",
+    "https://learn.chatgpt.com/docs/dots/computers-and-apps.md",
+    "https://learn.chatgpt.com/docs/dots/controls.md",
+    "https://learn.chatgpt.com/docs/dots/getting-started.md",
+    "https://learn.chatgpt.com/docs/dots/tasks-and-memory.md",
+    "https://learn.chatgpt.com/docs/enterprise/chatgpt-space.md",
+    "https://learn.chatgpt.com/docs/enterprise/chatgpt-work-cloud-security.md",
+    "https://learn.chatgpt.com/docs/enterprise/chatgpt-work-local-security.md",
+    "https://learn.chatgpt.com/docs/enterprise/chatgpt-work-overview.md",
+    "https://learn.chatgpt.com/docs/enterprise/chatgpt-work-usage-and-cost.md",
+    "https://learn.chatgpt.com/docs/enterprise/dots-admin-guide.md",
+    "https://learn.chatgpt.com/docs/enterprise/gpts-and-sharing.md",
+    "https://learn.chatgpt.com/docs/enterprise/groups-and-provisioning.md",
+    "https://learn.chatgpt.com/docs/enterprise/shared-connections.md",
+    "https://learn.chatgpt.com/docs/enterprise/sites.md",
+    "https://learn.chatgpt.com/docs/enterprise/teams.md",
+    "https://learn.chatgpt.com/docs/features/voice.md",
+    "https://learn.chatgpt.com/docs/get-started-with-work.md",
+    "https://learn.chatgpt.com/docs/integrated-terminal.md",
+    "https://learn.chatgpt.com/docs/migrate-custom-gpts.md",
+    "https://learn.chatgpt.com/docs/security/cli/ci/gitlab.yml",
+    "https://learn.chatgpt.com/docs/space.md",
+    "https://learn.chatgpt.com/docs/space/agents.md",
+    "https://learn.chatgpt.com/docs/space/collaboration.md",
+    "https://learn.chatgpt.com/docs/space/getting-started.md",
+    "https://learn.chatgpt.com/docs/space/pages.md",
+    "https://learn.chatgpt.com/docs/web.md"
+  ],
+  "retrieved": "2026-10-04",
+  "roles": {
+    "aggregate": {
+      "bytes": 2887117,
+      "pages": 1
+    },
+    "excluded": {
+      "bytes": 0,
+      "pages": 0
+    },
+    "extract": {
+      "bytes": 2391060,
+      "pages": 155
+    },
+    "html": {
+      "bytes": 0,
+      "pages": 0
+    },
+    "index": {
+      "bytes": 53872,
+      "pages": 2
+    },
+    "out-of-scope": {
+      "bytes": 303200,
+      "pages": 28
+    },
+    "secondary": {
+      "bytes": 0,
+      "pages": 0
+    }
+  },
+  "secondary": {},
+  "surface": "codex-cli"
+}

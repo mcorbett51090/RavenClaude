@@ -35,7 +35,7 @@ import re
 import sys
 import xml.etree.ElementTree as ET
 from pathlib import Path
-from urllib.parse import urldefrag, urljoin, urlsplit, urlunsplit
+from urllib.parse import parse_qsl, urldefrag, urlencode, urljoin, urlsplit, urlunsplit
 
 from atlas_common import DATA_DIR, assert_worktree, dump_json, load_json, sha256_bytes
 
@@ -61,8 +61,10 @@ class DiscoverError(Exception):
 def canonical(url):
     """A comparison key for a URL; the original URL is what gets fetched.
 
-    Lower-cases scheme and host, drops the fragment, the query, a trailing ``/``, one trailing
-    ``.md`` or ``.html``, and a default ``:443`` port.
+    Lower-cases scheme and host, drops the fragment, a trailing ``/``, one trailing ``.md`` or
+    ``.html``, a default ``:443`` port and the query, except a ``pathname`` parameter: it names the
+    page for the GitHub Article API (``/api/article/body?pathname=...``), so without it every
+    page of that API would compare equal and provenance could not tell them apart.
     """
     parts = urlsplit(url.strip())
     netloc = parts.netloc.lower()
@@ -73,7 +75,8 @@ def canonical(url):
         if path.endswith(suffix):
             path = path[: -len(suffix)]
             break
-    return urlunsplit((parts.scheme, netloc, path, "", ""))
+    identity = [(key, value) for key, value in parse_qsl(parts.query) if key == "pathname"]
+    return urlunsplit((parts.scheme, netloc, path, urlencode(sorted(identity)), ""))
 
 
 def _try_canonical(url):
@@ -442,6 +445,39 @@ def _cmd_closure(args):
     return 0
 
 
+def page_map(rows, skip_urls=()):
+    """``{url: raw_path}`` for each fetched page row, in manifest order, newest row per URL wins.
+
+    Only rows with ``outcome == "fetched"`` and a ``raw_path`` count. ``skip_urls`` (compared by
+    ``canonical``) leaves out index and sitemap files, which are origins and not pages.
+    """
+    skip = {key for key in map(_try_canonical, skip_urls) if key is not None}
+    mapping = {}
+    for row in rows:
+        url = row.get("url")
+        if row.get("outcome") != "fetched" or not row.get("raw_path") or not url:
+            continue
+        if _try_canonical(url) in skip:
+            mapping.pop(url, None)
+            continue
+        mapping[url] = row["raw_path"]
+    return mapping
+
+
+def _cmd_pagemap(args):
+    skip = []
+    for path in _flat(args.skip_file):
+        skip.extend(
+            line.strip()
+            for line in Path(path).read_text(encoding="utf-8").splitlines()
+            if line.strip()
+        )
+    mapping = page_map(_read_jsonl(args.manifest, required=("url",)), skip)
+    dump_json(args.out, mapping)
+    print(f"discover: pagemap holds {len(mapping)} pages", file=sys.stderr)
+    return 0
+
+
 def _cmd_provenance(args):
     rows = _read_jsonl(args.manifest)
     origins = []
@@ -561,6 +597,12 @@ def _build_parser():
     closure.add_argument("--out", required=True)
     closure.set_defaults(handler=_cmd_closure)
 
+    pages = commands.add_parser("pagemap", help="map fetched page URLs to raw files for closure")
+    pages.add_argument("--manifest", required=True)
+    _add_list_option(pages, "--skip-file")
+    pages.add_argument("--out", required=True)
+    pages.set_defaults(handler=_cmd_pagemap)
+
     proof = commands.add_parser("provenance", help="prove every fetched row has an origin")
     proof.add_argument("--manifest", required=True)
     _add_list_option(proof, "--origins", required=True)
@@ -577,7 +619,7 @@ def main(argv=None):
         _selftest()
         return 0
     if not args.command:
-        parser.error("choose a command: index, sitemap, closure or provenance (or --selftest)")
+        parser.error("choose a command: index, sitemap, closure, pagemap or provenance (or --selftest)")
     try:
         return args.handler(args)
     except (DiscoverError, OSError) as exc:

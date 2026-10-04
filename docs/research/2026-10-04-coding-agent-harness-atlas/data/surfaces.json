@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "note": "The eight atlas columns. index_urls come from claims row 2 (fetched 2026-10-04); other fields marked 'p3-confirms' are starting points that P3 confirms or corrects from fetched bytes. A cross-host redirect lands only on a host listed here; anything else is flagged and excluded (plan, Design, Fetch rules).",
+  "note": "The eight atlas columns. index_urls come from claims row 2 (fetched 2026-10-04); version_source statuses were confirmed from fetched bytes on 2026-10-04 (see data/versions.json). A cross-host redirect lands only on a host listed here; anything else is flagged and excluded (plan, Design, Fetch rules).",
   "surfaces": [
     {
       "id": "claude-code",
@@ -16,7 +16,7 @@
       "version_source": {
         "kind": "npm",
         "package": "@anthropic-ai/claude-code",
-        "status": "p3-confirms"
+        "status": "confirmed 2026-10-04"
       },
       "scoping": "all docs pages under /docs/en/"
     },
@@ -28,7 +28,11 @@
       "docs_hosts": ["developers.openai.com", "learn.chatgpt.com"],
       "index_urls": ["https://developers.openai.com/codex/llms.txt"],
       "sitemap_candidates": [],
-      "version_source": { "kind": "npm", "package": "@openai/codex", "status": "p3-confirms" },
+      "version_source": {
+        "kind": "npm",
+        "package": "@openai/codex",
+        "status": "confirmed 2026-10-04"
+      },
       "scoping": "Codex pages only; the index redirects to learn.chatgpt.com and mixes ChatGPT and Codex content, so a deterministic ChatGPT-versus-Codex path rule plus a residual triage list applies; the aggregate codex-manual.md is a cross-check and is excluded from extraction (claims rows 29, 50)"
     },
     {
@@ -40,7 +44,11 @@
       "index_urls": ["https://docs.github.com/llms.txt"],
       "page_list_api": "https://docs.github.com/api/pagelist/en/free-pro-team@latest",
       "sitemap_candidates": [],
-      "version_source": { "kind": "npm", "package": "@github/copilot", "status": "p3-confirms" },
+      "version_source": {
+        "kind": "npm",
+        "package": "@github/copilot",
+        "status": "confirmed 2026-10-04"
+      },
       "scoping": "a harness filter on the Page List API paths (Copilot CLI and agent pages), then one-hop link closure"
     },
     {
@@ -54,7 +62,7 @@
       "version_source": {
         "kind": "release-notes",
         "url": "https://code.visualstudio.com/updates",
-        "status": "p3-confirms"
+        "status": "confirmed 2026-10-04"
       },
       "scoping": "URLs containing /docs/agents, /chat or copilot (52 in the index, claims row 30), plus sitemap-only agent pages and link closure"
     },
@@ -69,7 +77,7 @@
       "version_source": {
         "kind": "changelog-html",
         "url": "https://cursor.com/changelog",
-        "status": "p3-confirms"
+        "status": "confirmed 2026-10-04"
       },
       "scoping": "docs pages under cursor.com/docs; the API reference is out of scope; distinct pages are counted at the start of P3"
     },
@@ -81,7 +89,11 @@
       "docs_hosts": ["geminicli.com"],
       "index_urls": ["https://geminicli.com/llms.txt"],
       "sitemap_candidates": [],
-      "version_source": { "kind": "npm", "package": "@google/gemini-cli", "status": "p3-confirms" },
+      "version_source": {
+        "kind": "npm",
+        "package": "@google/gemini-cli",
+        "status": "confirmed 2026-10-04"
+      },
       "scoping": "one 959,932 B llms.txt split into 97 pages on the page-title lines only, never on the 264 H1 lines (claims row 32)"
     },
     {
@@ -92,7 +104,10 @@
       "docs_hosts": ["docs.x.ai"],
       "index_urls": ["https://docs.x.ai/llms.txt"],
       "sitemap_candidates": ["https://docs.x.ai/sitemap.xml"],
-      "version_source": { "kind": "unknown", "status": "p3-confirms" },
+      "version_source": {
+        "kind": "unknown",
+        "status": "confirmed 2026-10-04"
+      },
       "scoping": "the '## Grok Build' section of the xAI index (24 pages, claims row 43) plus link closure"
     },
     {

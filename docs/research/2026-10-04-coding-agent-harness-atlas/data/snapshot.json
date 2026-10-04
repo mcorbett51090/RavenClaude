@@ -1,0 +1,219 @@
+{
+  "columns": [
+    {
+      "bytes": 9151572,
+      "pages": 222,
+      "retrieved": "2026-10-04",
+      "surface": "claude-code",
+      "version": "2.1.289",
+      "version_source": "https://registry.npmjs.org/@anthropic-ai/claude-code/latest (dist-tags {'stable': '2.1.285', 'latest': '2.1.289', 'next': '2.1.289'})"
+    },
+    {
+      "bytes": 2391060,
+      "pages": 155,
+      "retrieved": "2026-10-04",
+      "surface": "codex-cli",
+      "version": "0.160.0",
+      "version_source": "https://registry.npmjs.org/@openai/codex/latest (dist-tags {'latest': '0.160.0'})"
+    },
+    {
+      "bytes": 2362901,
+      "pages": 156,
+      "retrieved": "2026-10-04",
+      "surface": "copilot-cli",
+      "version": "1.0.91",
+      "version_source": "https://registry.npmjs.org/@github/copilot/latest (dist-tags {'latest': '1.0.91'})"
+    },
+    {
+      "bytes": 1381742,
+      "pages": 100,
+      "retrieved": "2026-10-04",
+      "surface": "copilot-vscode",
+      "version": "1.140",
+      "version_source": "https://code.visualstudio.com/updates redirected to https://code.visualstudio.com/updates/v1_140"
+    },
+    {
+      "bytes": 1973170,
+      "pages": 191,
+      "retrieved": "2026-10-04",
+      "surface": "cursor",
+      "version": "changelog entry 2026-09-23",
+      "version_source": "https://cursor.com/changelog (newest entry date; no version number is published there)"
+    },
+    {
+      "bytes": 959808,
+      "pages": 97,
+      "retrieved": "2026-10-04",
+      "surface": "gemini-cli",
+      "version": "0.62.0",
+      "version_source": "https://registry.npmjs.org/@google/gemini-cli/latest (dist-tags {'preview': '0.63.0-preview.0', 'latest': '0.62.0'})"
+    },
+    {
+      "bytes": 95111,
+      "pages": 25,
+      "retrieved": "2026-10-04",
+      "surface": "grok-build",
+      "version": null,
+      "version_source": "no version published; documentation as of the retrieval date"
+    },
+    {
+      "bytes": 487254,
+      "pages": 52,
+      "retrieved": "2026-10-04",
+      "surface": "grok-bot",
+      "version": null,
+      "version_source": "hosted service; documentation as of the retrieval date"
+    }
+  ],
+  "coverage": {
+    "claude-code": {
+      "HTML app shells not extracted": 0,
+      "aggregate files not extracted": 0,
+      "chunks": 2078,
+      "extraction text (KB)": 8937,
+      "fetches that returned nothing usable": 4,
+      "index and sitemap files mirrored": 3,
+      "lines flagged by the neutralizer": 12,
+      "pages excluded as out of scope": 0,
+      "pages found by index": 219,
+      "pages found only by link closure": 6,
+      "pages found only by sitemap or page list": 0,
+      "pages read by extraction": 222,
+      "pages skipped as near-duplicates": 3
+    },
+    "codex-cli": {
+      "HTML app shells not extracted": 0,
+      "aggregate files not extracted": 1,
+      "chunks": 1240,
+      "extraction text (KB)": 2335,
+      "fetches that returned nothing usable": 7,
+      "index and sitemap files mirrored": 2,
+      "lines flagged by the neutralizer": 0,
+      "pages excluded as out of scope": 28,
+      "pages found by index": 176,
+      "pages found only by link closure": 7,
+      "pages found only by sitemap or page list": 0,
+      "pages read by extraction": 155,
+      "pages skipped as near-duplicates": 0
+    },
+    "copilot-cli": {
+      "HTML app shells not extracted": 0,
+      "aggregate files not extracted": 0,
+      "chunks": 1163,
+      "extraction text (KB)": 2307,
+      "fetches that returned nothing usable": 0,
+      "index and sitemap files mirrored": 2,
+      "lines flagged by the neutralizer": 0,
+      "pages excluded as out of scope": 0,
+      "pages found by index": 0,
+      "pages found only by link closure": 4,
+      "pages found only by sitemap or page list": 155,
+      "pages read by extraction": 156,
+      "pages skipped as near-duplicates": 3
+    },
+    "copilot-vscode": {
+      "HTML app shells not extracted": 1,
+      "aggregate files not extracted": 0,
+      "chunks": 963,
+      "extraction text (KB)": 1349,
+      "fetches that returned nothing usable": 2,
+      "index and sitemap files mirrored": 2,
+      "lines flagged by the neutralizer": 2,
+      "pages excluded as out of scope": 0,
+      "pages found by index": 70,
+      "pages found only by link closure": 0,
+      "pages found only by sitemap or page list": 30,
+      "pages read by extraction": 100,
+      "pages skipped as near-duplicates": 0
+    },
+    "cursor": {
+      "HTML app shells not extracted": 1,
+      "aggregate files not extracted": 0,
+      "chunks": 1724,
+      "extraction text (KB)": 1926,
+      "fetches that returned nothing usable": 4,
+      "index and sitemap files mirrored": 1,
+      "lines flagged by the neutralizer": 2,
+      "pages excluded as out of scope": 0,
+      "pages found by index": 172,
+      "pages found only by link closure": 19,
+      "pages found only by sitemap or page list": 0,
+      "pages read by extraction": 191,
+      "pages skipped as near-duplicates": 0
+    },
+    "gemini-cli": {
+      "HTML app shells not extracted": 0,
+      "aggregate files not extracted": 1,
+      "chunks": 672,
+      "extraction text (KB)": 937,
+      "fetches that returned nothing usable": 1,
+      "index and sitemap files mirrored": 2,
+      "lines flagged by the neutralizer": 0,
+      "pages excluded as out of scope": 0,
+      "pages found by index": 97,
+      "pages found only by link closure": 0,
+      "pages found only by sitemap or page list": 0,
+      "pages read by extraction": 97,
+      "pages skipped as near-duplicates": 0
+    },
+    "grok-bot": {
+      "HTML app shells not extracted": 0,
+      "aggregate files not extracted": 0,
+      "chunks": 563,
+      "extraction text (KB)": 475,
+      "fetches that returned nothing usable": 1,
+      "index and sitemap files mirrored": 2,
+      "lines flagged by the neutralizer": 0,
+      "pages excluded as out of scope": 0,
+      "pages found by index": 52,
+      "pages found only by link closure": 0,
+      "pages found only by sitemap or page list": 0,
+      "pages read by extraction": 52,
+      "pages skipped as near-duplicates": 0
+    },
+    "grok-build": {
+      "HTML app shells not extracted": 1,
+      "aggregate files not extracted": 0,
+      "chunks": 115,
+      "extraction text (KB)": 92,
+      "fetches that returned nothing usable": 0,
+      "index and sitemap files mirrored": 2,
+      "lines flagged by the neutralizer": 0,
+      "pages excluded as out of scope": 0,
+      "pages found by index": 24,
+      "pages found only by link closure": 1,
+      "pages found only by sitemap or page list": 0,
+      "pages read by extraction": 25,
+      "pages skipped as near-duplicates": 0
+    }
+  },
+  "freeze_end": "2026-10-04",
+  "freeze_start": "2026-10-04",
+  "index_hashes": {
+    "https://code.claude.com/docs/llms.txt": "7e9771cb417a2fb7a1200ee9413958b28d34714b4ca276c918816672642cd0e0",
+    "https://code.claude.com/docs/sitemap.xml": "fc94d375109cd77f35bc0001011ce6931a44a580e5977559f5ab6b72aab59434",
+    "https://code.claude.com/sitemap.xml": "fc94d375109cd77f35bc0001011ce6931a44a580e5977559f5ab6b72aab59434",
+    "https://code.visualstudio.com/llms.txt": "37a91824be7b14ac50820a16c2fa82063c6690ebb5e4d059ee54f87466d024ea",
+    "https://code.visualstudio.com/sitemap.xml": "cc0d272b4ca0b681783043d9203ef58bf014bf632b1425225799599f29cb4bc4",
+    "https://cursor.com/llms.txt": "0fbd32c5556d45330da8f1f0c6824980345536152b150fb6371f46520ad7565a",
+    "https://developers.openai.com/codex/llms.txt": "afb12a0624deba4b54542d974d53fa35ffde5db888538883917f321625c6f137",
+    "https://docs.github.com/api/pagelist/en/free-pro-team@latest": "e60ff996561f67cc6dfd1da02237c57ae927ef1946e88ad1fc6a17ce1cd6eed1",
+    "https://docs.github.com/llms.txt": "e2c6c7291dd1dc6c8bea2ba174facfe2f0a5129646c3e11eb27804895589ac50",
+    "https://docs.x.ai/llms.txt": "3b475fa42376ee48ec742efa2499d1845e6ae4459b3dbedf4897794c82403b9e",
+    "https://docs.x.ai/sitemap.xml": "d112dccf7d96351627dfa85563f157d493de8be4f91cb6d0a7a70bd64843e614",
+    "https://geminicli.com/llms.txt": "10ef54242a42cd9d486ddc7289b2507e7c024fde11f569425dae9ccefe49ba48",
+    "https://geminicli.com/sitemap-0.xml": "ec1b5a0fd3358b042eb17905dbddc02b386a64d963b7d5b55c5813acf722d31b",
+    "https://learn.chatgpt.com/chatgpt-sitemap-0.xml": "cf79ac1fca5ca47ee7e3991466a30b741402363f499c7d754d586fad3aa56eae"
+  },
+  "known_gaps": [
+    "All eight columns are documentation as mirrored on 2026-10-04. Source trees (evidence tier E3) and executed probes (E4) are separate tiers that later phases fill, and most cells carry E1 or E2 evidence only.",
+    "Claude Code: only the English pages are mirrored (220 of the 2,617 URLs in the sitemap; 11 other languages carry 218 pages each). docs/en/claude-tag redirects to claude.com and was refused by the host allow-list. Three pages linked from fetched pages (architecture, build-and-test, debugging) answered 404 when fetched.",
+    "Codex: 28 mirrored pages about ChatGPT products (dots, Space, ChatGPT Work, custom-GPT migration, voice) are not read. docs/changelog exists only as a 1.5 MB HTML shell and docs/screenshot-review answered 404 on its HTML and .md forms although the sitemap lists it. The index lists two guides (best-practices, build-ai-native-engineering-team) whose .md URLs answered 404. About 100 /use-cases pages and the docs home page are out of scope. The 2.9 MB codex-manual.md aggregate is mirrored as a cross-check and never read.",
+    "Copilot CLI: of 3,191 docs paths in the Page List API, 155 matched the harness rule. Copilot on github.com, the Copilot SDK and most administration pages are not read. The Page List API is incomplete: four in-scope pages that fetched pages link to were absent from it and were added by link closure.",
+    "Copilot in VS Code: the monthly release notes (1.140 is current) are HTML only and are not mirrored. The AI Toolkit (Intelligent Apps) pages are out of scope. docs/chat/chat-debug-view is linked from a fetched page and answered 404. The index carries a broken /undefined entry, which was dropped.",
+    "Cursor: the product changelog exists only as HTML, and the index line for it is malformed (a doubled host), so only its newest entry date was read, as the version source. The CLI and SDK changelogs are mirrored. The Origin git forge, the API reference, billing and member administration pages are out of scope. Three changelog entry pages are HTML only.",
+    "Gemini CLI: one aggregate file (llms.txt, 960 KB) is the only source for all 97 pages, and its page URLs are written with http://. The 184-byte sitemap-index.xml was rejected as too short; its child sitemap was read and lists the same 97 pages.",
+    "Grok Build: the documentation publishes no version number and grok version was not run. docs.x.ai serves the Grok 4.7 model page as an HTML app shell; its markdown twin was read instead.",
+    "Grok Bot: a hosted service with no version. The Slack authorization link on the team-bots page redirects to slack.com and was refused by the host allow-list. Cursor-hosted mirrors and help pages supplement the 21 canonical xAI pages."
+  ]
+}

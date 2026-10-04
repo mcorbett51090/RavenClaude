@@ -56,6 +56,14 @@ class CanonicalTests(unittest.TestCase):
             with self.subTest(given=given):
                 self.assertEqual(canonical(given), want)
 
+    def test_the_pathname_query_parameter_is_the_page_identity(self):
+        api = "https://docs.example/api/article/body"
+        self.assertNotEqual(canonical(f"{api}?pathname=/en/a"), canonical(f"{api}?pathname=/en/b"))
+        self.assertEqual(
+            canonical(f"{api}?utm=1&pathname=/en/a&x=2#f"), canonical(f"{api}?pathname=/en/a")
+        )
+        self.assertEqual(canonical(f"{api}?x=1"), api)
+
     def test_things_that_must_not_change(self):
         for url in (
             "https://example.com/Docs/Page",  # path case is significant
@@ -1010,6 +1018,38 @@ class CliTests(unittest.TestCase):
         )
         code, _o, _e = self.run_cli("provenance", "--manifest", sneaky, *args)
         self.assertEqual(code, 1)
+
+    def test_pagemap_keeps_fetched_pages_and_leaves_out_origin_files(self):
+        manifest = self.manifest_file(
+            {
+                "url": "https://docs.example/docs/llms.txt",
+                "outcome": "fetched",
+                "raw_path": "i.raw",
+            },
+            {"url": "https://docs.example/docs/a.md", "outcome": "fetched", "raw_path": "a.raw"},
+            {"url": "https://docs.example/docs/b.md", "outcome": "indeterminate", "raw_path": ""},
+            {"url": "https://docs.example/docs/c.md", "outcome": "fetched", "raw_path": "c1.raw"},
+            {"url": "https://docs.example/docs/c.md", "outcome": "fetched", "raw_path": "c2.raw"},
+        )
+        skip = self.write("skip.txt", "https://docs.example/docs/llms.txt\n\n")
+        out = str(self.tmp / "pagemap.json")
+        code, _o, _e = self.run_cli(
+            "pagemap", "--manifest", manifest, "--skip-file", skip, "--out", out
+        )  # fmt: skip
+        self.assertEqual(code, 0)
+        self.assertEqual(
+            load_json(out),
+            {"https://docs.example/docs/a.md": "a.raw", "https://docs.example/docs/c.md": "c2.raw"},
+        )
+
+    def test_pagemap_without_a_skip_file_keeps_every_fetched_row(self):
+        manifest = self.manifest_file(
+            {"url": "https://docs.example/docs/llms.txt", "outcome": "fetched", "raw_path": "i.raw"}
+        )
+        out = str(self.tmp / "pagemap.json")
+        code, _o, _e = self.run_cli("pagemap", "--manifest", manifest, "--out", out)
+        self.assertEqual(code, 0)
+        self.assertEqual(load_json(out), {"https://docs.example/docs/llms.txt": "i.raw"})
 
     def test_selftest_prints_ok(self):
         code, out, _err = self.run_cli("--selftest")

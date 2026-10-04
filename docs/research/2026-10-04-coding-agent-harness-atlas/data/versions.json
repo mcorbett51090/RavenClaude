@@ -1,0 +1,52 @@
+{
+  "versions": [
+    {
+      "retrieved": "2026-10-04",
+      "surface": "claude-code",
+      "version": "2.1.289",
+      "version_source": "https://registry.npmjs.org/@anthropic-ai/claude-code/latest (dist-tags {'stable': '2.1.285', 'latest': '2.1.289', 'next': '2.1.289'})"
+    },
+    {
+      "retrieved": "2026-10-04",
+      "surface": "codex-cli",
+      "version": "0.160.0",
+      "version_source": "https://registry.npmjs.org/@openai/codex/latest (dist-tags {'latest': '0.160.0'})"
+    },
+    {
+      "retrieved": "2026-10-04",
+      "surface": "copilot-cli",
+      "version": "1.0.91",
+      "version_source": "https://registry.npmjs.org/@github/copilot/latest (dist-tags {'latest': '1.0.91'})"
+    },
+    {
+      "retrieved": "2026-10-04",
+      "surface": "copilot-vscode",
+      "version": "1.140",
+      "version_source": "https://code.visualstudio.com/updates redirected to https://code.visualstudio.com/updates/v1_140"
+    },
+    {
+      "retrieved": "2026-10-04",
+      "surface": "cursor",
+      "version": "changelog entry 2026-09-23",
+      "version_source": "https://cursor.com/changelog (newest entry date; no version number is published there)"
+    },
+    {
+      "retrieved": "2026-10-04",
+      "surface": "gemini-cli",
+      "version": "0.62.0",
+      "version_source": "https://registry.npmjs.org/@google/gemini-cli/latest (dist-tags {'preview': '0.63.0-preview.0', 'latest': '0.62.0'})"
+    },
+    {
+      "retrieved": "2026-10-04",
+      "surface": "grok-build",
+      "version": null,
+      "version_source": "no version published; documentation as of the retrieval date"
+    },
+    {
+      "retrieved": "2026-10-04",
+      "surface": "grok-bot",
+      "version": null,
+      "version_source": "hosted service; documentation as of the retrieval date"
+    }
+  ]
+}

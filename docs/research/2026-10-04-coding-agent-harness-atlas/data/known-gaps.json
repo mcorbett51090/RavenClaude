@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "note": "What the mirrored corpus does not cover, as observed on 2026-10-04. Each line is shown on the atlas index and method pages. A gap listed here is a reason a cell may read undocumented or not-researched when the vendor does publish the fact elsewhere. A 404 below is an observation of one fetch on that date; the controls array names the probe that showed the same method returning 200 on a sibling page.",
+  "controls": [
+    "control: curl -H 'Accept: text/markdown' https://learn.chatgpt.com/docs/whats-new.md -> 200 text/markdown, 60,751 bytes (same host and probe as the Codex 404s)",
+    "control: fetch.py on https://code.claude.com/docs/en/plugins.md -> 200, 14,823 bytes (same tool as the Claude Code 404s)"
+  ],
+  "gaps": [
+    "All eight columns are documentation as mirrored on 2026-10-04. Source trees (evidence tier E3) and executed probes (E4) are separate tiers that later phases fill, and most cells carry E1 or E2 evidence only.",
+    "Claude Code: only the English pages are mirrored (220 of the 2,617 URLs in the sitemap; 11 other languages carry 218 pages each). docs/en/claude-tag redirects to claude.com and was refused by the host allow-list. Three pages linked from fetched pages (architecture, build-and-test, debugging) answered 404 when fetched.",
+    "Codex: 28 mirrored pages about ChatGPT products (dots, Space, ChatGPT Work, custom-GPT migration, voice) are not read. docs/changelog exists only as a 1.5 MB HTML shell and docs/screenshot-review answered 404 on its HTML and .md forms although the sitemap lists it. The index lists two guides (best-practices, build-ai-native-engineering-team) whose .md URLs answered 404. About 100 /use-cases pages and the docs home page are out of scope. The 2.9 MB codex-manual.md aggregate is mirrored as a cross-check and never read.",
+    "Copilot CLI: of 3,191 docs paths in the Page List API, 155 matched the harness rule. Copilot on github.com, the Copilot SDK and most administration pages are not read. The Page List API is incomplete: four in-scope pages that fetched pages link to were absent from it and were added by link closure.",
+    "Copilot in VS Code: the monthly release notes (1.140 is current) are HTML only and are not mirrored. The AI Toolkit (Intelligent Apps) pages are out of scope. docs/chat/chat-debug-view is linked from a fetched page and answered 404. The index carries a broken /undefined entry, which was dropped.",
+    "Cursor: the product changelog exists only as HTML, and the index line for it is malformed (a doubled host), so only its newest entry date was read, as the version source. The CLI and SDK changelogs are mirrored. The Origin git forge, the API reference, billing and member administration pages are out of scope. Three changelog entry pages are HTML only.",
+    "Gemini CLI: one aggregate file (llms.txt, 960 KB) is the only source for all 97 pages, and its page URLs are written with http://. The 184-byte sitemap-index.xml was rejected as too short; its child sitemap was read and lists the same 97 pages.",
+    "Grok Build: the documentation publishes no version number and grok version was not run. docs.x.ai serves the Grok 4.7 model page as an HTML app shell; its markdown twin was read instead.",
+    "Grok Bot: a hosted service with no version. The Slack authorization link on the team-bots page redirects to slack.com and was refused by the host allow-list. Cursor-hosted mirrors and help pages supplement the 21 canonical xAI pages."
+  ]
+}

@@ -1,0 +1,59 @@
+{
+  "gaps": [
+    {
+      "outcome": "refused",
+      "reason": "off_allow_list:slack.com",
+      "status": 307,
+      "url": "https://cursor.com/bot/slack-auto-approve"
+    }
+  ],
+  "index_files": {
+    "https://cursor.com/llms.txt": {
+      "entries": 268,
+      "sha256": "0fbd32c5556d45330da8f1f0c6824980345536152b150fb6371f46520ad7565a"
+    },
+    "https://docs.x.ai/llms.txt": {
+      "entries": 175,
+      "sha256": "3b475fa42376ee48ec742efa2499d1845e6ae4459b3dbedf4897794c82403b9e"
+    }
+  },
+  "origins_by_source": {
+    "closure": 0,
+    "index": 54,
+    "sitemap": 0
+  },
+  "out_of_scope": [],
+  "retrieved": "2026-10-04",
+  "roles": {
+    "aggregate": {
+      "bytes": 0,
+      "pages": 0
+    },
+    "excluded": {
+      "bytes": 0,
+      "pages": 0
+    },
+    "extract": {
+      "bytes": 487254,
+      "pages": 52
+    },
+    "html": {
+      "bytes": 0,
+      "pages": 0
+    },
+    "index": {
+      "bytes": 39650,
+      "pages": 2
+    },
+    "out-of-scope": {
+      "bytes": 0,
+      "pages": 0
+    },
+    "secondary": {
+      "bytes": 0,
+      "pages": 0
+    }
+  },
+  "secondary": {},
+  "surface": "grok-bot"
+}
