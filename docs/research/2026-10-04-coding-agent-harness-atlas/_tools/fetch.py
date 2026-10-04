@@ -111,10 +111,17 @@ def _network_kind(exc):
 
 
 def _ssl_context():
+    """The default context, with SSL_CERT_FILE added to it when that names a file.
+
+    Passing the file as ``cafile=`` would REPLACE the system store, and a sandbox bundle that
+    lacks a vendor's issuer (seen with Let's Encrypt's newer intermediates) then fails every
+    request with "unable to get local issuer certificate". Verification stays on either way.
+    """
+    ctx = ssl.create_default_context()
     cafile = os.environ.get("SSL_CERT_FILE")
     if cafile and Path(cafile).is_file():
-        return ssl.create_default_context(cafile=cafile)
-    return ssl.create_default_context()
+        ctx.load_verify_locations(cafile=cafile)
+    return ctx
 
 
 def _to_hop(resp, max_bytes):

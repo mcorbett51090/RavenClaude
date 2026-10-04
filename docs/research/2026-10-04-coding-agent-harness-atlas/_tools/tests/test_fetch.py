@@ -297,7 +297,10 @@ class BadUrlTests(unittest.TestCase):
             def opener(url, text=text, start=start):
                 return redirect(text) if url == start else ok()
 
-            for url, use in ((start, opener), (rng.choice(["", "https://", start]) + text, ok_opener)):
+            for url, use in (
+                (start, opener),
+                (rng.choice(["", "https://", start]) + text, ok_opener),
+            ):
                 fetcher = Fetcher({HOST}, use, sleep=lambda _s: None, clock=lambda: "2026-10-04")
                 row = fetcher.fetch(url)
                 self.assertEqual(set(row), ROW_KEYS)
@@ -718,6 +721,40 @@ class FetchedRowTests(unittest.TestCase):
         self.assertTrue(callable(http_opener))
 
 
+class SslContextTests(unittest.TestCase):
+    """The sandbox CA bundle must be added to the system store, never replace it."""
+
+    def test_ssl_cert_file_is_added_to_the_default_context_not_used_as_cafile(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            bundle = Path(tmp) / "bundle.crt"
+            bundle.write_text("not a real certificate", encoding="utf-8")
+            fake = mock.MagicMock()
+            with (
+                mock.patch.dict(os.environ, {"SSL_CERT_FILE": str(bundle)}),
+                mock.patch.object(
+                    fetch_tool.ssl, "create_default_context", return_value=fake
+                ) as make,
+            ):
+                ctx = fetch_tool._ssl_context()
+        self.assertIs(ctx, fake)
+        # the system store is kept: no cafile argument to create_default_context ...
+        make.assert_called_once_with()
+        # ... and the bundle is added on top of it
+        fake.load_verify_locations.assert_called_once_with(cafile=str(bundle))
+
+    def test_no_bundle_means_the_plain_default_context(self):
+        env = {k: v for k, v in os.environ.items() if k != "SSL_CERT_FILE"}
+        with mock.patch.dict(os.environ, env, clear=True):
+            ctx = fetch_tool._ssl_context()
+        self.assertEqual(ctx.verify_mode, fetch_tool.ssl.CERT_REQUIRED)
+        self.assertTrue(ctx.check_hostname)
+
+    def test_verification_is_always_on(self):
+        ctx = fetch_tool._ssl_context()
+        self.assertEqual(ctx.verify_mode, fetch_tool.ssl.CERT_REQUIRED)
+        self.assertTrue(ctx.check_hostname)
+
+
 class ConcurrencyTests(unittest.TestCase):
     class Probe:
         """A fake opener that sleeps briefly and records peak concurrency per URL host."""
@@ -1009,7 +1046,9 @@ class CliTests(unittest.TestCase):
         a, b = (f"https://code.claude.com/docs/{name}.md" for name in "ab")
         self.run_cli([b, a], {a: [ok()], b: [ok()]})
         seeded = [json.loads(line) for line in self.manifest.read_text("utf-8").splitlines()]
-        self.manifest.write_text("".join(fetch_tool._dump_row(r) for r in reversed(seeded)), "utf-8")
+        self.manifest.write_text(
+            "".join(fetch_tool._dump_row(r) for r in reversed(seeded)), "utf-8"
+        )
         code, opener, out = self.run_cli([a, b], {})
         self.assertEqual((code, opener.calls), (0, []))
         self.assertIn("nothing to fetch", out)
@@ -1070,9 +1109,13 @@ class CliTests(unittest.TestCase):
         by_url = {row["url"]: row for row in self.rows()}
         self.assertEqual(set(by_url), {good, cafe, spaced, broken})
         for url in (cafe, spaced):
-            self.assertEqual((by_url[url]["outcome"], by_url[url]["reason"]), ("rejected", "bad_url"))
+            self.assertEqual(
+                (by_url[url]["outcome"], by_url[url]["reason"]), ("rejected", "bad_url")
+            )
             self.assertEqual(by_url[url]["attempts"], 0)
-        self.assertEqual((by_url[broken]["outcome"], by_url[broken]["reason"]), ("refused", "bad_url"))
+        self.assertEqual(
+            (by_url[broken]["outcome"], by_url[broken]["reason"]), ("refused", "bad_url")
+        )
         self.assertEqual(by_url[good]["outcome"], "fetched")
 
     def test_invalid_utf8_in_the_urls_file_does_not_abort_the_run(self):
