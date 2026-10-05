@@ -101,7 +101,7 @@ def caveat(layer):
     }
     ranked = sorted(counts, key=lambda sid: (-counts[sid], sid))
     detail = ", ".join(f"{layer.name(sid)} {counts[sid]}" for sid in ranked)
-    return f"{CAVEAT_HEAD} Undocumented cells out of 127, most first: {detail}."
+    return f"{CAVEAT_HEAD} Checks, out of 127, where the vendor's documentation says nothing, most first: {detail}."
 
 
 def concept_link(page, concept):
@@ -144,7 +144,7 @@ def agent_rows(layer, page, concept):
                 details.append(f"<p><strong>Documented order:</strong> {esc(note.get('text'))}</p>")
             details.append(conditions_html(cells))
             links = ", ".join(cell_link(layer, page, sid, c["row"]) for c in cells)
-            details.append(f'<p class="cite">Rows: {links}</p>')
+            details.append(f'<p class="cite">Atlas entries behind this line: {links}</p>')
         detail_html = (
             f"<details><summary>Details</summary>{''.join(details)}</details>" if details else ""
         )
@@ -222,7 +222,7 @@ def intro_block(layer):
             "states it, and where it does the step says so.</p>",
             f"<p><strong>The badges</strong> summarise how well a vendor documents the step:</p><ul>{legend}</ul>",
             '<p>A <span class="uv" role="img" aria-label="unverified">!</span> means at least one of '
-            "the underlying cells was outside the verification sample.</p>",
+            "the checks behind it was outside the sample we double-checked.</p>",
             f"<p><strong>Not yet researched:</strong> {esc(', '.join(gaps_full))}. "
             f"<strong>Only partly covered:</strong> {esc(', '.join(gaps_part))}. These are the steps "
             "where a harness often makes up for a weaker model, so the gap matters.</p>",
@@ -300,7 +300,7 @@ def totals_rows(layer, page):
 def model_panel(layer, page):
     out = [heading(2, "Where the model comes into it", "model")]
     out.append(
-        "<p>These are the cells that tie a harness to a model: whether it depends on the model, picks one "
+        "<p>These are the checks that tie a harness to a model: whether it depends on the model, picks one "
         "automatically, shares model choice with a platform, or lets each helper agent use its own. "
         "<em>No documented model dependence</em> means the documentation does not describe one, which "
         "is not the same as there being none.</p>"
@@ -341,7 +341,7 @@ def render_compare(layer):
     head = [th("Agent")] + [
         th(label) for label in ("documented", "with limits", "partly documented", "not documented")
     ]
-    head += [th("Average score"), th("Undocumented cells (of 127)")]
+    head += [th("Average score"), th("Checks with no documentation (of 127)")]
     body.append(
         table("Concepts per agent by how well they are documented", head, totals_rows(layer, page))
     )
@@ -421,8 +421,8 @@ def decision_html(layer, page, sid, dp):
     return (
         f'<div class="cell"><p><strong>Decision point:</strong> {esc(dp.get("question"))}</p>'
         f'<ul class="branches">{"".join(branches)}</ul>'
-        f'<p class="cite">Documented in {cell_link(layer, page, sid, row)}. Each branch quotes the cell; '
-        "the order between decision points is not stated.</p></div>"
+        f'<p class="cite">Source entry: {cell_link(layer, page, sid, row)}. Each branch quotes the '
+        "vendor's documentation word for word; the order between decision points is not stated.</p></div>"
     )
 
 
@@ -586,7 +586,7 @@ def render_trees_index(layer):
         "<strong>controls</strong>, which says where to set the model, the thinking effort and the mode.</p>",
         "<ul><li><strong>Typical order</strong>: the order harnesses usually follow. Vendors seldom document "
         "it, so most orderings are typical, not documented.</li>"
-        "<li><strong>Documented order</strong>: shown only where a cell states it.</li>"
+        "<li><strong>Documented order</strong>: shown only where the vendor's documentation states it.</li>"
         "<li><strong>Decision point</strong>: shown only where the documentation describes a branch, and "
         "each branch quotes it. Many agents have few or none.</li></ul>",
         f'<ul class="cols">{items}</ul>',

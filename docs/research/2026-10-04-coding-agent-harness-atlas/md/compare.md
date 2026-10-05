@@ -5,7 +5,7 @@
 
 Each row a vendor documents as supported scores 2, as partial 1, and as undocumented or deliberately not exposed 0. A concept's score is the average over its rows, as a percentage. A higher score means more documented control, not a better product.
 
-Read this first: Not documented is not the same as cannot. Columns differ a great deal in how much their documentation says, so a low score can reflect thin documentation as much as a missing feature. Undocumented cells out of 127, most first: Grok Bot 45, Grok Build CLI 26, Gemini CLI 16, GitHub Copilot in VS Code (agent and chat) 4, OpenAI Codex CLI 2, Cursor 2, GitHub Copilot CLI 1, Claude Code 0.
+Read this first: Not documented is not the same as cannot. Columns differ a great deal in how much their documentation says, so a low score can reflect thin documentation as much as a missing feature. Checks, out of 127, where the vendor's documentation says nothing, most first: Grok Bot 45, Grok Build CLI 26, Gemini CLI 16, GitHub Copilot in VS Code (agent and chat) 4, OpenAI Codex CLI 2, Cursor 2, GitHub Copilot CLI 1, Claude Code 0.
 
 ## The grid
 

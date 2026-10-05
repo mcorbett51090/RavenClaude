@@ -244,7 +244,7 @@ class CompareTests(LayerCase):
 
     def test_the_caveat_names_every_agent_with_its_undocumented_count(self):
         text = self.pages()["compare.html"]
-        self.assertIn("Undocumented cells out of 127", text)
+        self.assertIn("documentation says nothing", text)
         self.assertIn("Not documented is not the same as cannot", text)
 
     def test_the_editorial_view_is_boxed_and_labelled(self):

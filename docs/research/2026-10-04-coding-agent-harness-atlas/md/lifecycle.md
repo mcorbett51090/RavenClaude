@@ -5,7 +5,7 @@
 
 A harness is the program around a model: it builds the prompt, offers tools, checks permissions, runs commands and shows the result. Steps are in the typical order, which vendors seldom document. Each agent line is tied to its cells by a hash; general text and editorial views are labelled.
 Not yet researched: Reuse the unchanged part of the prompt, Read what the model asked for, Tidy the tool's output. Only partly covered: Assemble the prompt, Send the request and handle trouble.
-Not documented is not the same as cannot. Columns differ a great deal in how much their documentation says, so a low score can reflect thin documentation as much as a missing feature. Undocumented cells out of 127, most first: Grok Bot 45, Grok Build CLI 26, Gemini CLI 16, GitHub Copilot in VS Code (agent and chat) 4, OpenAI Codex CLI 2, Cursor 2, GitHub Copilot CLI 1, Claude Code 0.
+Not documented is not the same as cannot. Columns differ a great deal in how much their documentation says, so a low score can reflect thin documentation as much as a missing feature. Checks, out of 127, where the vendor's documentation says nothing, most first: Grok Bot 45, Grok Build CLI 26, Gemini CLI 16, GitHub Copilot in VS Code (agent and chat) 4, OpenAI Codex CLI 2, Cursor 2, GitHub Copilot CLI 1, Claude Code 0.
 
 ## A. Setup, before the first model call
 

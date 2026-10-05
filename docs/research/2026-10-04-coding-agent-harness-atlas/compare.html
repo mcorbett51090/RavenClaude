@@ -114,12 +114,12 @@ animation:none!important}}
 <h1>What each agent&#x27;s harness documents, step by step</h1>
 <p>What each vendor documents about the harness around its model. The grid compares how well each vendor documents every step of the lifecycle; the sections below name who documents the most, and add a boxed editorial view of why it matters when you choose a model.</p>
 <p>Each row a vendor documents as supported scores 2, as partial 1, and as undocumented or deliberately not exposed 0. A concept&#x27;s score is the average over its rows, as a percentage. A higher score means more documented control, not a better product.</p>
-<p class="gapnote"><strong>Read this first:</strong> Not documented is not the same as cannot. Columns differ a great deal in how much their documentation says, so a low score can reflect thin documentation as much as a missing feature. Undocumented cells out of 127, most first: Grok Bot 45, Grok Build CLI 26, Gemini CLI 16, GitHub Copilot in VS Code (agent and chat) 4, OpenAI Codex CLI 2, Cursor 2, GitHub Copilot CLI 1, Claude Code 0.</p>
+<p class="gapnote"><strong>Read this first:</strong> Not documented is not the same as cannot. Columns differ a great deal in how much their documentation says, so a low score can reflect thin documentation as much as a missing feature. Checks, out of 127, where the vendor&#x27;s documentation says nothing, most first: Grok Bot 45, Grok Build CLI 26, Gemini CLI 16, GitHub Copilot in VS Code (agent and chat) 4, OpenAI Codex CLI 2, Cursor 2, GitHub Copilot CLI 1, Claude Code 0.</p>
 <h2 id="totals">Overview by agent</h2>
 <div class="scroll" tabindex="0" role="region" aria-label="Concepts per agent by how well they are documented">
 <table>
 <caption>Concepts per agent by how well they are documented</caption>
-<thead><tr><th scope="col">Agent</th><th scope="col">documented</th><th scope="col">with limits</th><th scope="col">partly documented</th><th scope="col">not documented</th><th scope="col">Average score</th><th scope="col">Undocumented cells (of 127)</th></tr></thead>
+<thead><tr><th scope="col">Agent</th><th scope="col">documented</th><th scope="col">with limits</th><th scope="col">partly documented</th><th scope="col">not documented</th><th scope="col">Average score</th><th scope="col">Checks with no documentation (of 127)</th></tr></thead>
 <tbody>
 <tr><th scope="row"><a href="trees/claude-code.html">Claude Code</a></th><td>8</td><td>19</td><td>0</td><td>0</td><td>87%</td><td>0</td></tr>
 <tr><th scope="row"><a href="trees/codex-cli.html">OpenAI Codex CLI</a></th><td>9</td><td>16</td><td>2</td><td>0</td><td>86%</td><td>2</td></tr>
@@ -208,7 +208,7 @@ animation:none!important}}
 <div class="cell"><h4><a href="lifecycle.html#c-host-platform">Where it runs and who runs it</a></h4><p>Documents the most: Cursor (83%). Documents the least: Grok Build CLI (0%).</p><aside class="editorial"><span class="label">Editorial: our view, not a vendor claim</span> If two agents share a runtime, differences you see between them come from settings or front doors rather than from separate engines.</aside></div>
 <div class="cell"><h4><a href="lifecycle.html#c-org-oversight">Identity, retention and audit</a></h4><p>Documents the most: Gemini CLI (100%). Documents the least: Grok Build CLI (50%).</p><aside class="editorial"><span class="label">Editorial: our view, not a vendor claim</span> These matter to a company before any quality comparison: a model you cannot approve for data handling is off the table.</aside></div>
 <h2 id="model">Where the model comes into it</h2>
-<p>These are the cells that tie a harness to a model: whether it depends on the model, picks one automatically, shares model choice with a platform, or lets each helper agent use its own. <em>No documented model dependence</em> means the documentation does not describe one, which is not the same as there being none.</p>
+<p>These are the checks that tie a harness to a model: whether it depends on the model, picks one automatically, shares model choice with a platform, or lets each helper agent use its own. <em>No documented model dependence</em> means the documentation does not describe one, which is not the same as there being none.</p>
 <div class="scroll" tabindex="0" role="region" aria-label="Documented ties between harness and model">
 <table>
 <caption>Documented ties between harness and model</caption>
