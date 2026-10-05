@@ -421,3 +421,13 @@ An opus reviewer checked 42 lever facts that the routing matrix and its cited kn
 **Not claimed.** The lever settings beside a row say where the tier's levers live and what they are called, not which value maps to a tier: that mapping (for instance which model name is a column's "fast") stays in the matrix and its tier map, and the atlas does not restate it.
 
 **Open.** P12: landing. The matrix update is a follow-up job after the merge.
+
+## P12 drift check (2026-10-05, one day after the 2026-10-04 snapshot)
+
+**Quote presence.** I re-fetched all 499 pages the committed evidence cites (the same fetcher as P3) and ran `reverify.py`'s presence check over all 2,780 evidence records. Result: **2,351 records on byte-identical pages; 429 on pages whose bytes changed but where the quote is still present (Claude Code 68, Copilot in VS Code 2, Gemini CLI 359, whose single 960 KB aggregate file was rearranged at the same length); 0 drifted; 0 page missing; 0 install spans changed.** No cell needs re-extraction.
+
+**Addition drift.** Each of the 16 index and sitemap files recorded at P3 was re-fetched and compared with the copy mirrored then: for 14 the parsed link sets are identical (0 added, 0 removed); Cursor's `llms.txt` and the Copilot page list are byte-identical (my link parser reads 0 links in either, so for those two the byte comparison is the evidence, not the parse). No page has been added or removed on any recorded index since P3.
+
+**Changelog scan.** The six changelog pages (Claude Code, Codex What's New and plugin changelog, VS Code updates, Cursor CLI and SDK changelogs) have no entry dated after 2026-10-04 that mentions a lever term. Gemini CLI, Grok Build, Grok Bot and Copilot CLI have no changelog page in the cited set, so they were not scanned. `_work/` is not tracked on this branch (nothing to delete).
+
+**Limits.** This is one day of drift. It says the cited quotes still stand and no page was added to the recorded indexes; it does not say the vendors published nothing new about a harness, since new pages reachable only through links would not appear in an index diff.
