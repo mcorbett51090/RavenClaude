@@ -1,0 +1,27 @@
+name: slim probe (temporary)
+on:
+  push:
+    branches: ['tmp/slim-probe']
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-slim
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 2
+          persist-credentials: false
+      - name: tools the cron/changes jobs rely on
+        run: |
+          for t in jq curl git python3 node npm lsof bash perl sed awk grep; do printf '%-8s' "$t"; command -v "$t" || echo MISSING; done
+          echo "--- os / cpu / mem"; grep PRETTY /etc/os-release; nproc; free -m | sed -n 2p
+          echo "--- the changes-job diff"; git diff --name-only HEAD^1 HEAD | head -3; echo "rc=$?"
+          echo "--- https + jq round-trip"
+          code=$(curl -sS --connect-timeout 10 --max-time 20 -o /tmp/z.json -w '%{http_code}' https://api.github.com/zen); echo "HTTP $code"
+          echo '{"recovered":1}' | jq -r '.recovered'
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "22"
+      - run: node --version
