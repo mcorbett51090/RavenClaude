@@ -10,6 +10,9 @@ Snapshot 2026-10-04. What each vendor documents about its coding-agent harness: 
 - One agent, everything: `agents/<id>.md`, ids `claude-code`, `codex-cli`, `copilot-cli`, `copilot-vscode`, `cursor`, `gemini-cli`, `grok-build`, `grok-bot`.
 - One feature across all agents: `rows/<facet>.md` (F01 to F22); find the row id in `rows/index.md`.
 - Where to set model, effort, mode, parallelism: `levers/<class>.md`; per-task advice: `levers/task-shapes.md`.
+- What a harness does before and after a model call, step by step, per agent in plain words: `lifecycle.md`; words used: `glossary.md`.
+- What each agent documents, side by side, with a computed direction: `compare.md`.
+- One agent's request flow, decision points and where to set model, effort and mode: `trees/<id>.md`.
 - Proposed RavenClaude updates, ranked: `register.md`.
 - How it was verified and what is not covered: `known-gaps.md`.
 - The quote or URL behind an evidence id `E-<id>`: grep it in `../data/evidence/<column>.json`.
@@ -74,5 +77,16 @@ Snapshot 2026-10-04. What each vendor documents about its coding-agent harness: 
 - `levers/task-shapes.md` 13390 B, ~3347 tokens
 - `register.md` 99674 B, ~24918 tokens
 - `known-gaps.md` 9905 B, ~2476 tokens
+- `lifecycle.md` 200411 B, ~50102 tokens
+- `compare.md` 21454 B, ~5363 tokens
+- `glossary.md` 3430 B, ~857 tokens
+- `trees/claude-code.md` 39024 B, ~9756 tokens
+- `trees/codex-cli.md` 32024 B, ~8006 tokens
+- `trees/copilot-cli.md` 32001 B, ~8000 tokens
+- `trees/copilot-vscode.md` 31180 B, ~7795 tokens
+- `trees/cursor.md` 32842 B, ~8210 tokens
+- `trees/gemini-cli.md` 24341 B, ~6085 tokens
+- `trees/grok-build.md` 26115 B, ~6528 tokens
+- `trees/grok-bot.md` 18604 B, ~4651 tokens
 
 Regenerate: `python3 _tools/render_md.py`; check: `python3 _tools/render_md.py --check`.
