@@ -1,0 +1,2590 @@
+{
+ "entries": [
+  {
+   "title": "Stop emitting retired approval_policy = \"untrusted\" in the Codex sandbox projection",
+   "type": "correct",
+   "surfaces": [
+    "codex-cli"
+   ],
+   "rows": [
+    "F04.approval-modes",
+    "F20.deprecation-policy"
+   ],
+   "cells": [
+    "codex-cli/F04.approval-modes",
+    "codex-cli/F20.deprecation-policy"
+   ],
+   "repo_files": [
+    {
+     "path": "scripts/emit-codex-config.py",
+     "exists": true
+    },
+    {
+     "path": "plugins/ravenclaude-core/knowledge/codex-cli-customization.md",
+     "exists": true
+    }
+   ],
+   "repo_claim": {
+    "blob_sha": "4ec03898d4dbf35efc6808108c31a33596d3cb16",
+    "path": "scripts/emit-codex-config.py",
+    "line": 36,
+    "quote": "`approval_policy` : \"untrusted\" | \"on-request\" | \"never\" | granular object"
+   },
+   "proposal": "In scripts/emit-codex-config.py, change the restrictive branch of map_posture() (line 197) from approval_policy \"untrusted\" to \"on-request\", letting sandbox_mode = \"read-only\" carry the strictness. Drop \"untrusted\" from APPROVAL_RANK (line 85) and the contract docstring (line 36). Make decide() report an existing \"untrusted\" as a retired value to fix by hand, instead of preserving it as the strictest setting. Update the table at codex-cli-customization.md line 183, the prose at line 162, and the self-test cases that assert \"untrusted\" (lines 476-481).",
+   "ceiling": {
+    "cell": "codex-cli/F04.approval-modes",
+    "quote": "Codex and ChatGPT Work no longer support `approval_policy = \"untrusted\"`."
+   },
+   "value": 3,
+   "reach": 1,
+   "effort": 1,
+   "risk": 2,
+   "basis": {
+    "kind": "observation",
+    "falsified_by": "A current Codex release starting normally with approval_policy = \"untrusted\" in .codex/config.toml, or the vendor's 'Migrate from the retired untrusted approval policy' section naming a replacement other than on-request."
+   },
+   "evidence_strength": 3,
+   "score": 9.0,
+   "status": "proposed",
+   "rank": 1,
+   "id": "ENH-007",
+   "rationale": "editorial-judgment: The emitter writes a value Codex has retired into consumer config, so this is a live defect, not just doc drift. The change is small: one mapping, a rank table, and tests. Needs care because it changes the strictness lattice."
+  },
+  {
+   "title": "Narrow 'identical tool-name values' for Codex: edits are apply_patch, and hosted WebSearch has no hook path",
+   "type": "reconcile",
+   "surfaces": [
+    "codex-cli"
+   ],
+   "rows": [
+    "F01.file-edit-tools",
+    "F12.tool-filtering"
+   ],
+   "cells": [
+    "codex-cli/F01.file-edit-tools",
+    "codex-cli/F12.tool-filtering"
+   ],
+   "repo_files": [
+    {
+     "path": "plugins/ravenclaude-core/knowledge/codex-cli-customization.md",
+     "exists": true
+    },
+    {
+     "path": "plugins/ravenclaude-core/knowledge/host-support.json",
+     "exists": true
+    }
+   ],
+   "repo_claim": {
+    "blob_sha": "8eb6e514b306e9afbe444aa3c23b4764ec6c28b2",
+    "path": "plugins/ravenclaude-core/knowledge/codex-cli-customization.md",
+    "line": 24,
+    "quote": "| Tool-name values | `Bash`, `Read`, … | **identical PascalCase** (`\"Bash\"`) |"
+   },
+   "proposal": "In codex-cli-customization.md line 24 and host-support.json line 80 (both say tool-name values are identical PascalCase), restate the Codex tool paths from the hooks doc: shell and unified exec match as Bash; apply_patch matches as apply_patch, Edit or Write; MCP tools by mcp__ name; other function tools by name. Add that hosted tools such as WebSearch use no hook path (E-codex-cli-01827 context), so the web-access guard cannot gate Codex web search, and a NOT-enforced sentence in the Codex hooks caveat (line 81). Capture one real apply_patch PreToolUse payload to settle the layout gate's file-path read.",
+   "ceiling": {
+    "cell": "codex-cli/F01.file-edit-tools",
+    "quote": "Match as `apply_patch`, `Edit`, or `Write`."
+   },
+   "value": 3,
+   "reach": 1,
+   "effort": 1,
+   "risk": 1,
+   "basis": {
+    "kind": "inference",
+    "falsified_by": "A captured Codex PreToolUse payload for a file edit carrying tool_name Edit or Write with a file_path, or a Codex WebSearch call reaching a registered PreToolUse hook."
+   },
+   "evidence_strength": 3,
+   "score": 9.0,
+   "status": "proposed",
+   "rank": 2,
+   "id": "ENH-008",
+   "rationale": "editorial-judgment: Fixes a false 'identical tool names' claim in two files (codex doc line 24 and host-support line 80). It also discloses that the web guard cannot gate Codex hosted web search. A small doc edit with a security-honesty payoff."
+  },
+  {
+   "title": "host-support.json calls the Chat hooks switch `chat.hooks.enabled`; VS Code documents `chat.useHooks`",
+   "type": "correct",
+   "surfaces": [
+    "copilot-vscode"
+   ],
+   "rows": [
+    "F06.trust-enable",
+    "F06.config-locations"
+   ],
+   "cells": [
+    "copilot-vscode/F06.trust-enable",
+    "copilot-vscode/F06.config-locations"
+   ],
+   "repo_files": [
+    {
+     "path": "plugins/ravenclaude-core/knowledge/host-support.json",
+     "exists": true
+    }
+   ],
+   "repo_claim": {
+    "blob_sha": "02e76fb3a776272037b64db0048c5c6f85ed2e35",
+    "path": "plugins/ravenclaude-core/knowledge/host-support.json",
+    "line": 62,
+    "quote": "Chat Preview may load .github/hooks when org policy / chat.hooks.enabled allows"
+   },
+   "proposal": "In host-support.json components.hooks.copilot.caveat (line 62), replace `chat.hooks.enabled` with `chat.useHooks`. State its documented scope: default on, enterprise policy `ChatHooks`, used only by the Local harness, so it does not govern hook execution in Agent Host Copilot, Claude or Codex sessions. Keep surfaces.chat.supported false: the setting name becomes a documented fact, while live fire stays unprobed. Add the 2026-10-04 retrieval date to the basis.",
+   "ceiling": {
+    "cell": "copilot-vscode/F06.trust-enable",
+    "quote": "This configures the `setting(chat.useHooks)` setting in VS Code."
+   },
+   "value": 2,
+   "reach": 1,
+   "effort": 1,
+   "risk": 1,
+   "basis": {
+    "kind": "observation",
+    "falsified_by": "VS Code 1.140 accepting `chat.hooks.enabled` as the Chat hooks switch (settings schema or release notes), or the hooks docs page listing it as a current setting."
+   },
+   "evidence_strength": 3,
+   "score": 6.0,
+   "status": "proposed",
+   "rank": 3,
+   "id": "ENH-020",
+   "rationale": "editorial-judgment: A one-token correction: the setting's documented name is chat.useHooks. Users told the wrong name cannot find it. Merge with ENH-021 and ENH-019 into one Chat Local-harness scoping edit."
+  },
+  {
+   "title": "Chat doc says `.claude/settings.json` hooks load; VS Code needs `chat.useClaudeHooks`, default off",
+   "type": "reconcile",
+   "surfaces": [
+    "copilot-vscode"
+   ],
+   "rows": [
+    "F06.config-locations",
+    "F06.matchers"
+   ],
+   "cells": [
+    "copilot-vscode/F06.config-locations",
+    "copilot-vscode/F06.matchers"
+   ],
+   "repo_files": [
+    {
+     "path": "plugins/ravenclaude-core/knowledge/copilot-chat-customization.md",
+     "exists": true
+    }
+   ],
+   "repo_claim": {
+    "blob_sha": "c58ecaf159e04e4ae4fee49f955c1b2cf1d138db",
+    "path": "plugins/ravenclaude-core/knowledge/copilot-chat-customization.md",
+    "line": 18,
+    "quote": "Chat **Preview** can load agent hooks from workspace `.github/hooks/*.json` and `.claude/settings.json`, plus `~/.copilot/hooks`."
+   },
+   "proposal": "Rewrite the first sentence of §2 (line 18). `.github/hooks/*.json` is the native workspace location. `.claude/settings.json` and `.claude/settings.local.json` load only when `chat.useClaudeHooks` is enabled (default off); the Local harness then parses their matchers but ignores them. Tell operators to rely on `.github/hooks`, which `ravenclaude install` writes for Copilot, rather than on the Claude-format file reaching Chat.",
+   "ceiling": {
+    "cell": "copilot-vscode/F06.config-locations",
+    "quote": "Requires `setting(chat.useClaudeHooks)`, which is off by default."
+   },
+   "value": 2,
+   "reach": 1,
+   "effort": 1,
+   "risk": 1,
+   "basis": {
+    "kind": "observation",
+    "falsified_by": "VS Code release notes or the hooks docs page showing `.claude/settings.json` hooks loading in Chat with no `chat.useClaudeHooks` opt-in."
+   },
+   "evidence_strength": 3,
+   "score": 6.0,
+   "status": "proposed",
+   "rank": 4,
+   "id": "ENH-021",
+   "rationale": "editorial-judgment: The repo says Chat loads .claude/settings.json hooks, but VS Code requires chat.useClaudeHooks, which is off by default. A consumer relying on that file gets no hooks. A one-sentence rewrite."
+  },
+  {
+   "title": "Correct 'Codex reasoning level costs latency, not dollars': Codex docs say higher effort also raises token usage",
+   "type": "correct",
+   "surfaces": [
+    "codex-cli"
+   ],
+   "rows": [
+    "F18.thinking-budget-visibility"
+   ],
+   "cells": [
+    "codex-cli/F18.thinking-budget-visibility"
+   ],
+   "repo_files": [
+    {
+     "path": "plugins/ai-coding-model-guidance/knowledge/ai-coding-right-size-cost-decision-tree.md",
+     "exists": true
+    }
+   ],
+   "repo_claim": {
+    "blob_sha": "c9fc0d9ce7c711c90600b1e06098179fb7feedb3",
+    "path": "plugins/ai-coding-model-guidance/knowledge/ai-coding-right-size-cost-decision-tree.md",
+    "line": 22,
+    "quote": "reasoning level costs latency, not dollars"
+   },
+   "proposal": "In ai-coding-right-size-cost-decision-tree.md, rewrite line 22 and the table row at line 48 (`Same model cost; latency↑ only (Codex)`): raising reasoning effort lengthens response time and uses more tokens, so total spend or usage-limit draw can rise even though the per-token price is unchanged. Line 37 (`no change in per-token model cost`) stays true; add 'but total tokens rise' so it is not read as a free lever. Keep the advice to try the dial before a model upgrade, framed as a latency-and-token trade-off, and renew the verify-at-use stamp.",
+   "ceiling": {
+    "cell": "codex-cli/F18.thinking-budget-visibility",
+    "quote": "Higher reasoning effort increases response time and token usage, but it can improve quality for complex work."
+   },
+   "value": 2,
+   "reach": 1,
+   "effort": 1,
+   "risk": 1,
+   "basis": {
+    "kind": "observation",
+    "falsified_by": "Codex pricing or usage-limit docs showing that reasoning effort changes neither billed tokens nor usage-limit consumption would make the repo statement right."
+   },
+   "evidence_strength": 3,
+   "score": 6.0,
+   "status": "proposed",
+   "rank": 5,
+   "id": "ENH-051",
+   "rationale": "editorial-judgment: Fixes a false cost claim ('latency, not dollars'). Codex docs say higher effort raises token usage. Two lines in one file, and it currently steers users toward a lever it misprices."
+  },
+  {
+   "title": "Correct 'model_reasoning_effort takes a Codex model id' and map agent tier to effort on Codex",
+   "type": "correct",
+   "surfaces": [
+    "codex-cli"
+   ],
+   "rows": [
+    "F18.effort-values",
+    "F09.per-agent-effort"
+   ],
+   "cells": [
+    "codex-cli/F18.effort-values",
+    "codex-cli/F09.per-agent-effort"
+   ],
+   "repo_files": [
+    {
+     "path": "plugins/ravenclaude-core/knowledge/host-support.json",
+     "exists": true
+    },
+    {
+     "path": "scripts/generate-codex-agents.py",
+     "exists": true
+    }
+   ],
+   "repo_claim": {
+    "blob_sha": "02e76fb3a776272037b64db0048c5c6f85ed2e35",
+    "path": "plugins/ravenclaude-core/knowledge/host-support.json",
+    "line": 232,
+    "quote": "The contract has `model` / `model_reasoning_effort` (docs-verified 2026-07-29) but they take a Codex model id; same alias→id reasoning as Copilot."
+   },
+   "proposal": "Reword host-support.json line 232: `model` takes a model id, but `model_reasoning_effort` takes a level (low, medium, high, ...) that the selected model advertises, so no alias-to-id table is needed for it. In scripts/generate-codex-agents.py emit `model_reasoning_effort` per agent from its tier alias (haiku to low, sonnet to medium, opus to high) and leave `model` unset, so part of the cheap-tier saving reaches Codex. Keep the header comment that states the tier. Confirm first that the generator does not already emit the key.",
+   "ceiling": {
+    "cell": "codex-cli/F18.effort-values",
+    "quote": "Reasoning effort advertised by the selected model, such as `low`, `medium`, `high`, `xhigh`, `max`, or `ultra`. Available levels depend on the model and client."
+   },
+   "value": 2,
+   "reach": 1,
+   "effort": 2,
+   "risk": 2,
+   "basis": {
+    "kind": "inference",
+    "falsified_by": "scripts/generate-codex-agents.py already emits model_reasoning_effort, or a Codex session rejecting low, medium or high for the session's model."
+   },
+   "evidence_strength": 3,
+   "score": 3.0,
+   "status": "proposed",
+   "rank": 6,
+   "id": "ENH-011",
+   "rationale": "editorial-judgment: host-support.json line 232 states something false about model_reasoning_effort's type. The one-line correction ships first. The generator change that maps tier to effort can follow as a separate, reviewable step. Merge with ENH-018."
+  },
+  {
+   "title": "Reconcile 'malformed hook response silently allows' with Cursor's documented block on invalid JSON",
+   "type": "reconcile",
+   "surfaces": [
+    "cursor"
+   ],
+   "rows": [
+    "F06.output-blocking"
+   ],
+   "cells": [
+    "cursor/F06.output-blocking"
+   ],
+   "repo_files": [
+    {
+     "path": "plugins/ravenclaude-core/knowledge/cursor-customization.md",
+     "exists": true
+    },
+    {
+     "path": "plugins/ravenclaude-core/knowledge/host-support.json",
+     "exists": true
+    }
+   ],
+   "repo_claim": {
+    "blob_sha": "53dac52626ae06d8d02c9c77b123e7121c8818db",
+    "path": "plugins/ravenclaude-core/knowledge/cursor-customization.md",
+    "line": 34,
+    "quote": "**A malformed hook response SILENTLY ALLOWS the command.**"
+   },
+   "proposal": "In cursor-customization.md (line 34 and the safety-fact section) and the matching caveat in host-support.json components.hooks.cursor, split the two failure modes Cursor documents. Invalid JSON, or a response that does not match the schema, from a permission hook (beforeShellExecution, preToolUse, beforeReadFile and others) blocks the action. A crash, timeout or non-zero exit other than 2 is the fail-open case unless failClosed is true. Keep the forum-bug citation as history, mark it unreproduced, and add a live-session probe to the untested-lane caveat. The fixed-literal deny design stays.",
+   "ceiling": {
+    "cell": "cursor/F06.output-blocking",
+    "quote": "For permission hooks (`beforeShellExecution`, `beforeMCPExecution`, `beforeReadFile`, `beforeTabFileRead`, `subagentStart`, `preToolUse`), invalid JSON or a response that doesn't match the hook's schema blocks the action."
+   },
+   "value": 2,
+   "reach": 1,
+   "effort": 1,
+   "risk": 1,
+   "basis": {
+    "kind": "observation",
+    "falsified_by": "A live Cursor session where a beforeShellExecution hook exits 0 with malformed JSON and the command still runs would show the vendor docs wrong and the repo claim right."
+   },
+   "evidence_strength": 3,
+   "score": 6.0,
+   "status": "proposed",
+   "rank": 7,
+   "id": "ENH-025",
+   "rationale": "editorial-judgment: The repo's headline Cursor safety fact contradicts Cursor's documented invalid-JSON-blocks behaviour. Splitting the two failure modes is a doc edit across three places. Keep the forum citation and add a probe; the deny design stays unchanged."
+  },
+  {
+   "title": "Permissions note says auto is default from v2.1.228 on paid plans; docs now say v2.1.283 in terminal and VS Code",
+   "type": "reconcile",
+   "surfaces": [
+    "claude-code"
+   ],
+   "rows": [
+    "F19.mode-defaults"
+   ],
+   "cells": [
+    "claude-code/F19.mode-defaults"
+   ],
+   "repo_files": [
+    {
+     "path": "plugins/ravenclaude-core/knowledge/claude-code-permissions.md",
+     "exists": true
+    }
+   ],
+   "repo_claim": {
+    "blob_sha": "55ab21f33f472030a8f081d74855fa61bf8e756a",
+    "path": "plugins/ravenclaude-core/knowledge/claude-code-permissions.md",
+    "line": 81,
+    "quote": "- **On Pro, Max and Team plans, `auto` is now the built-in starting permission mode** (Claude Code v2.1.228+ on macOS/Linux/WSL, v2.1.233+ on native Windows; earlier versions default to Manual). Not a research preview."
+   },
+   "proposal": "In claude-code-permissions.md line 81, state the scope the current docs give: auto is the built-in starting mode for interactive terminal and VS Code sessions from v2.1.283. Either replace the v2.1.228/v2.1.233 plan-gated figures or label them as an earlier rollout stage, with the retrieval date. Add the two caveats the atlas records: a Desktop pick is remembered per folder except Plan, and a first session after an install or upgrade can start in a different mode than later ones. Update the file's 'Last reviewed' header in the same edit.",
+   "ceiling": {
+    "cell": "claude-code/F19.mode-defaults",
+    "quote": "With Claude Code v2.1.283 or later, auto mode is the [built-in starting permission mode](/docs/en/permission-modes#eliminate-prompts-with-auto-mode) for interactive terminal and VS Code sessions"
+   },
+   "value": 2,
+   "reach": 1,
+   "effort": 1,
+   "risk": 1,
+   "basis": {
+    "kind": "observation",
+    "falsified_by": "The permission-modes page still giving v2.1.228 as the plan-gated figure and 2.1.283 as a separate later rollout, in which case both numbers stand and only a pointer between them is needed."
+   },
+   "evidence_strength": 3,
+   "score": 6.0,
+   "status": "proposed",
+   "rank": 8,
+   "id": "ENH-001",
+   "rationale": "editorial-judgment: The version gate and scope for auto mode as the default are out of date. This is a one-line refresh in a core knowledge file that users read to predict permission behaviour."
+  },
+  {
+   "title": "Disclose Codex's 32 KiB AGENTS.md limit: this repo's root AGENTS.md is 49,679 bytes",
+   "type": "reconcile",
+   "surfaces": [
+    "codex-cli"
+   ],
+   "rows": [
+    "F02.context-inclusion",
+    "F03.auto-loaded-files"
+   ],
+   "cells": [
+    "codex-cli/F02.context-inclusion",
+    "codex-cli/F03.auto-loaded-files"
+   ],
+   "repo_files": [
+    {
+     "path": "plugins/ravenclaude-core/knowledge/host-support.json",
+     "exists": true
+    },
+    {
+     "path": "scripts/emit-codex-config.py",
+     "exists": true
+    },
+    {
+     "path": "AGENTS.md",
+     "exists": true
+    }
+   ],
+   "repo_claim": {
+    "blob_sha": "02e76fb3a776272037b64db0048c5c6f85ed2e35",
+    "path": "plugins/ravenclaude-core/knowledge/host-support.json",
+    "line": 306,
+    "quote": "reads AGENTS.md from the repo root"
+   },
+   "proposal": "In host-support.json instruction_files.codex (line 306) add a caveat: Codex adds instruction files only until their combined size reaches project_doc_max_bytes (32 KiB by default), and this repo's root AGENTS.md is 49,679 bytes (wc -c, this session). In scripts/emit-codex-config.py emit(), print a one-line warning when <project>/AGENTS.md exceeds 32768 bytes, naming that knob. Follow-up: a Codex-sized projection of the core discipline, as the Aider lane does with CONVENTIONS.md (line 323).",
+   "ceiling": {
+    "cell": "codex-cli/F02.context-inclusion",
+    "quote": "Codex skips empty files and stops adding files once the combined size reaches the limit defined by `project_doc_max_bytes` (32 KiB by default)."
+   },
+   "value": 2,
+   "reach": 1,
+   "effort": 1,
+   "risk": 1,
+   "basis": {
+    "kind": "inference",
+    "falsified_by": "Starting Codex in a trusted checkout and finding the full 49,679-byte AGENTS.md among the returned instructionSources and the loaded prompt, which would show the cap does not truncate or skip a single oversized file."
+   },
+   "evidence_strength": 3,
+   "score": 6.0,
+   "status": "proposed",
+   "rank": 9,
+   "id": "ENH-009",
+   "rationale": "editorial-judgment: This repo's own AGENTS.md is 49,679 bytes, above Codex's 32 KiB default for instruction files, and the repo never mentions the limit. A caveat plus a one-line installer warning is cheap; leave the projection work to a follow-up."
+  },
+  {
+   "title": "Scope 'CLI rejects xhigh' in the cheap-lane table to the Grok models tested: Grok 4.7 documents xhigh",
+   "type": "reconcile",
+   "surfaces": [
+    "grok-build"
+   ],
+   "rows": [
+    "F18.effort-values"
+   ],
+   "cells": [
+    "grok-build/F18.effort-values"
+   ],
+   "repo_files": [
+    {
+     "path": "plugins/ravenclaude-core/skills/cheap-lane-delegation/SKILL.md",
+     "exists": true
+    },
+    {
+     "path": "plugins/ravenclaude-core/scripts/grok-delegate.sh",
+     "exists": true
+    }
+   ],
+   "repo_claim": {
+    "blob_sha": "d61877733cd298c9c446383b6385d7ee36802bc0",
+    "path": "plugins/ravenclaude-core/skills/cheap-lane-delegation/SKILL.md",
+    "line": 136,
+    "quote": "(CLI rejects `xhigh`)"
+   },
+   "proposal": "Edit the `--effort` row at cheap-lane-delegation/SKILL.md:136. Grok: add that xhigh is documented for Grok 4.7, and scope the 'CLI rejects xhigh' note to the models it was tested against (grok-4.5 and grok-4.6 per the tier map). Leave grok-delegate.sh:137 unchanged until a grok-4.7 delegate call confirms xhigh, then widen its validation per model. Leave the Copilot values alone: copilot-delegate.sh:24 takes its seven from `copilot --help`, an observation the five-value docs list does not override.",
+   "ceiling": {
+    "cell": "grok-build/F18.effort-values",
+    "quote": "**Reasoning efforts (supported):** `low`, `medium`, `high`, `xhigh`"
+   },
+   "value": 2,
+   "reach": 2,
+   "effort": 1,
+   "risk": 1,
+   "basis": {
+    "kind": "inference",
+    "falsified_by": "A grok-4.7 call with `--effort xhigh` rejected by the Grok CLI would show the repo row right."
+   },
+   "evidence_strength": 3,
+   "score": 12.0,
+   "status": "proposed",
+   "rank": 10,
+   "id": "ENH-049",
+   "rationale": "editorial-judgment: Scope 'CLI rejects xhigh' to the Grok models tested; Grok 4.7 documents xhigh. Do the Grok half only. The Copilot half would downgrade values the repo saw in `copilot --help`. Merge with ENH-048."
+  },
+  {
+   "title": "host-support.json denies Copilot CLI user slash commands; docs list .claude/commands/ and /SKILL-NAME",
+   "type": "correct",
+   "surfaces": [
+    "copilot-cli"
+   ],
+   "rows": [
+    "F10.command-skill-relation"
+   ],
+   "cells": [
+    "copilot-cli/F10.command-skill-relation"
+   ],
+   "repo_files": [
+    {
+     "path": "plugins/ravenclaude-core/knowledge/host-support.json",
+     "exists": true
+    },
+    {
+     "path": "scripts/ravenclaude",
+     "exists": true
+    }
+   ],
+   "repo_claim": {
+    "blob_sha": "02e76fb3a776272037b64db0048c5c6f85ed2e35",
+    "path": "plugins/ravenclaude-core/knowledge/host-support.json",
+    "line": 184,
+    "quote": "Copilot CLI has no user slash commands; these are documented shell invocations instead. `rc` is the front door."
+   },
+   "proposal": "In scripts/ravenclaude's Copilot install branch, link plugins/ravenclaude-core/commands/*.md into the project's .claude/commands/, the same way skills already link into .claude/skills. Probe one low-risk command (for example /stream) in a live Copilot CLI session, then set host-support.json slash_commands.copilot to supported: true with a `how` line, listing any command whose body needs a Claude-only tool as an exception. Replace the 'no user slash commands' blocked_by text. Skills also surface as /SKILL-NAME, so say that in the note.",
+   "ceiling": {
+    "cell": "copilot-cli/F10.command-skill-relation",
+    "quote": "Commands are an alternative to skills stored as individual `.md` files in `.claude/commands/`. The command name is derived from the filename."
+   },
+   "value": 3,
+   "reach": 1,
+   "effort": 2,
+   "risk": 1,
+   "basis": {
+    "kind": "observation",
+    "falsified_by": "In a live Copilot CLI session a .claude/commands/<name>.md file does not appear as /<name>, or the docs page behind E-copilot-cli-03646 no longer lists .claude/commands/."
+   },
+   "evidence_strength": 3,
+   "score": 4.5,
+   "status": "proposed",
+   "rank": 11,
+   "id": "ENH-016",
+   "rationale": "editorial-judgment: host-support.json says Copilot CLI has no user slash commands, but its docs list .claude/commands/ and /SKILL-NAME. Correct the text now. Link the commands only after the live probe the entry already specifies."
+  },
+  {
+   "title": "Ten agents declare `effort: normal`, a value outside the documented low/medium/high/xhigh/max set",
+   "type": "correct",
+   "surfaces": [
+    "claude-code"
+   ],
+   "rows": [
+    "F09.per-agent-effort",
+    "F18.effort-values",
+    "F18.where-set",
+    "F11.component-types"
+   ],
+   "cells": [
+    "claude-code/F09.per-agent-effort",
+    "claude-code/F18.effort-values",
+    "claude-code/F18.where-set",
+    "claude-code/F11.component-types"
+   ],
+   "repo_files": [
+    {
+     "path": "plugins/ravenclaude-core/agents/scout.md",
+     "exists": true
+    },
+    {
+     "path": "plugins/ravenclaude-core/agents/fullstack-coder.md",
+     "exists": true
+    },
+    {
+     "path": "plugins/ravenclaude-core/agents/project-manager.md",
+     "exists": true
+    },
+    {
+     "path": "plugins/ravenclaude-core/agents/tester-qa.md",
+     "exists": true
+    },
+    {
+     "path": "plugins/ravenclaude-core/agents/partner-success-manager.md",
+     "exists": true
+    },
+    {
+     "path": "plugins/ravenclaude-core/agents/documentarian.md",
+     "exists": true
+    },
+    {
+     "path": "plugins/ravenclaude-core/agents/designer.md",
+     "exists": true
+    },
+    {
+     "path": "plugins/ravenclaude-core/agents/data-engineer.md",
+     "exists": true
+    },
+    {
+     "path": "plugins/ravenclaude-core/agents/backend-coder.md",
+     "exists": true
+    },
+    {
+     "path": "plugins/ravenclaude-core/agents/frontend-coder.md",
+     "exists": true
+    },
+    {
+     "path": "scripts/check-frontmatter.py",
+     "exists": true
+    }
+   ],
+   "repo_claim": {
+    "blob_sha": "87151b4cf9e65d255f25e7d9aa16a8194a6596a7",
+    "path": "plugins/ravenclaude-core/agents/scout.md",
+    "line": 7,
+    "quote": "effort: normal"
+   },
+   "proposal": "Replace `effort: normal` with a documented value in the ten agents that carry it (fullstack-coder, project-manager, scout, tester-qa, partner-success-manager, documentarian, designer, data-engineer, backend-coder, frontend-coder), or delete the line so they inherit the session level, the documented default. The six `effort: high` lines are valid. Then add an allow-list (low, medium, high, xhigh, max) for `effort` to scripts/check-frontmatter.py so the set cannot drift again. First probe whether a plugin-shipped agent honors `effort` at all: the atlas records that plugin agents honor only a subset of subagent fields and does not name it.",
+   "ceiling": {
+    "cell": "claude-code/F09.per-agent-effort",
+    "quote": "Effort level when this subagent is active. Overrides the session effort level. Default: inherits from session. Options: `low`, `medium`, `high`, `xhigh`, `max`; available levels depend on the model"
+   },
+   "value": 2,
+   "reach": 1,
+   "effort": 2,
+   "risk": 2,
+   "basis": {
+    "kind": "observation",
+    "falsified_by": "A probe of a plugin-shipped agent showing Claude Code accepts `normal` as an alias for the default level, or the effort option list in the sub-agents docs changing to include it."
+   },
+   "evidence_strength": 3,
+   "score": 3.0,
+   "status": "proposed",
+   "rank": 12,
+   "id": "ENH-004",
+   "rationale": "editorial-judgment: Ten core agents ship `effort: normal`, which is outside the documented set. Deleting or replacing the line, plus a check-frontmatter allow-list, is a cheap core fix that keeps the value from drifting again."
+  },
+  {
+   "title": "forge-receipt.py drops model, subagent_type and effort from every receipt, so the run log cannot say how a gate ran",
+   "type": "en-route-defect",
+   "surfaces": [],
+   "rows": [],
+   "cells": [],
+   "repo_files": [
+    {
+     "path": "plugins/ravenclaude-core/scripts/forge-receipt.py",
+     "exists": true
+    },
+    {
+     "path": "plugins/ravenclaude-core/skills/forge-pipeline/SKILL.md",
+     "exists": true
+    }
+   ],
+   "repo_claim": {
+    "blob_sha": "1411eda0463e2a7a628a60064c64b4eda0b59dfd",
+    "path": "plugins/ravenclaude-core/scripts/forge-receipt.py",
+    "line": 216,
+    "quote": "if k not in RECEIPT_KEY_ALLOWLIST:"
+   },
+   "proposal": "Add `model`, `subagent_type` and `effort` to `RECEIPT_KEY_ALLOWLIST` (forge-receipt.py lines 181-185). `_allowlist_receipt` (line 216) drops any other key without a word: a receipt carrying all three appended with exit 0 and stored none of them. forge-pipeline SKILL.md line 49 says each receipt is appended with `model`, `subagent_type` and `effort`. Keep them as scalar strings through `_scrub_value`, and have `append` print the dropped key names on stderr so the next silently dropped field is visible. Add a self-test case that appends a receipt with the three keys and reads them back from `run-log.jsonl`.",
+   "value": 2,
+   "reach": 2,
+   "effort": 1,
+   "risk": 1,
+   "basis": {
+    "kind": "observation",
+    "falsified_by": "Run `forge-receipt.py append G0 --receipt <json with model, subagent_type, effort> --run-dir <dir>` and read run-log.jsonl: if the three keys are stored, the claim is wrong."
+   },
+   "evidence_strength": 1,
+   "score": 4.0,
+   "status": "proposed",
+   "rank": 13,
+   "id": "ENH-031",
+   "rationale": "editorial-judgment: A real core defect. forge-pipeline says receipts carry model, subagent_type and effort, but the allow-list silently drops all three. Three keys and one self-test, which makes the run log honest about how gates ran."
+  },
+  {
+   "title": "Chat doc's instruction and hook claims are not scoped to the Local harness; Agent Host harnesses differ",
+   "type": "reconcile",
+   "surfaces": [
+    "copilot-vscode"
+   ],
+   "rows": [
+    "F03.auto-loaded-files",
+    "F06.event-catalog",
+    "F10.custom-command-format"
+   ],
+   "cells": [
+    "copilot-vscode/F03.auto-loaded-files",
+    "copilot-vscode/F06.event-catalog",
+    "copilot-vscode/F10.custom-command-format"
+   ],
+   "repo_files": [
+    {
+     "path": "plugins/ravenclaude-core/knowledge/copilot-chat-customization.md",
+     "exists": true
+    }
+   ],
+   "repo_claim": {
+    "blob_sha": "c58ecaf159e04e4ae4fee49f955c1b2cf1d138db",
+    "path": "plugins/ravenclaude-core/knowledge/copilot-chat-customization.md",
+    "line": 10,
+    "quote": "VS Code Chat auto-loads workspace always-on instructions from `.github/copilot-instructions.md`, `AGENTS.md` (`chat.useAgentsMdFile`), and `CLAUDE.md` (`chat.useClaudeMdFile`)."
+   },
+   "proposal": "Add a short 'Harness scope' paragraph under the title of copilot-chat-customization.md. State that §1 instruction loading and §2 hooks describe the Local harness; an Agent Host session follows the discovery rules and hook implementation of the harness chosen (Copilot, Claude or Codex), and Local hook events and settings do not automatically apply there. Record that VS Code says the Local agent will be removed in a future release. Mark §2 and §6 'Local harness; re-verify per Agent Host harness'. No behaviour change.",
+   "ceiling": {
+    "cell": "copilot-vscode/F03.auto-loaded-files",
+    "quote": "Agent Host sessions use the discovery rules and file formats of the selected harness."
+   },
+   "value": 2,
+   "reach": 2,
+   "effort": 1,
+   "risk": 1,
+   "basis": {
+    "kind": "observation",
+    "falsified_by": "A live probe showing an Agent Host Copilot-harness session firing the same hook events and reading the same instruction settings as a Local session, or VS Code docs dropping the Local-harness scoping."
+   },
+   "evidence_strength": 3,
+   "score": 12.0,
+   "status": "proposed",
+   "rank": 14,
+   "id": "ENH-019",
+   "rationale": "editorial-judgment: A short, behaviour-neutral 'Harness scope' paragraph. It stops Local-harness facts being read as true for Agent Host sessions, which VS Code is moving toward. Do it in the same edit as ENH-020 and ENH-021."
+  },
+  {
+   "title": "Parallelism 'unlimited' reads as uncapped, but Claude Code refuses a 21st concurrent subagent by default",
+   "type": "reconcile",
+   "surfaces": [
+    "claude-code"
+   ],
+   "rows": [
+    "F14.concurrency-caps",
+    "F14.total-agent-caps"
+   ],
+   "cells": [
+    "claude-code/F14.concurrency-caps",
+    "claude-code/F14.total-agent-caps"
+   ],
+   "repo_files": [
+    {
+     "path": "plugins/ravenclaude-core/CLAUDE.md",
+     "exists": true
+    },
+    {
+     "path": "plugins/ravenclaude-core/skills/spawn-team/SKILL.md",
+     "exists": true
+    },
+    {
+     "path": "plugins/ravenclaude-core/scripts/capability-orientation.py",
+     "exists": true
+    }
+   ],
+   "repo_claim": {
+    "blob_sha": "22dc2694ebe573532d63dc4a12741a8638d5d1c8",
+    "path": "plugins/ravenclaude-core/CLAUDE.md",
+    "line": 2895,
+    "quote": "| `parallelism: {enabled: true, max_workers: unlimited}` | uncapped | uncapped | no |"
+   },
+   "proposal": "In the Parallelism section of plugins/ravenclaude-core/CLAUDE.md and in spawn-team Step 5, say that `unlimited` lifts only RavenClaude's own cap. On Claude Code a session refuses to spawn once 20 subagents are running (`Concurrent subagent limit reached`; the error tells Claude not to retry), spawning works again as the count drops, and an environment variable adjusts the limit. Add a clause to the capability-orientation PARALLELISM banner line: dispatch the next subagent when a running one finishes, do not retry. No total-per-session cap exists; the 1,000-agent total applies per workflow run.",
+   "ceiling": {
+    "cell": "claude-code/F14.concurrency-caps",
+    "quote": "How many [subagents](/docs/en/sub-agents#concurrent-subagent-limit) can be running in one session before the Agent tool refuses to spawn another (default: 20)."
+   },
+   "value": 2,
+   "reach": 1,
+   "effort": 2,
+   "risk": 1,
+   "basis": {
+    "kind": "inference",
+    "falsified_by": "Reading capability-orientation.py and spawn-team Step 5 shows the banner or the dispatch procedure already names the 20-subagent concurrent limit and queues beyond it."
+   },
+   "evidence_strength": 3,
+   "score": 3.0,
+   "status": "proposed",
+   "rank": 15,
+   "id": "ENH-005",
+   "rationale": "editorial-judgment: The core CLAUDE.md says parallelism is 'uncapped', but Claude Code refuses a 21st concurrent subagent and tells the model not to retry. One clarifying sentence in core prevents a stall users would misread."
+  },
+  {
+   "title": "Reconcile 'only confirmed-working Copilot CLI --model value is auto' with documented --model pinning by slug",
+   "type": "reconcile",
+   "surfaces": [
+    "copilot-cli"
+   ],
+   "rows": [
+    "F17.model-flag-env",
+    "F17.model-catalog"
+   ],
+   "cells": [
+    "copilot-cli/F17.model-flag-env",
+    "copilot-cli/F17.model-catalog"
+   ],
+   "repo_files": [
+    {
+     "path": "plugins/ravenclaude-core/knowledge/agent-routing-matrix.md",
+     "exists": true
+    },
+    {
+     "path": "plugins/ravenclaude-core/skills/cheap-lane-delegation/SKILL.md",
+     "exists": true
+    }
+   ],
+   "repo_claim": {
+    "blob_sha": "f9ec0517d7bab1b77ef3b2e76765633723a01505",
+    "path": "plugins/ravenclaude-core/knowledge/agent-routing-matrix.md",
+    "line": 55,
+    "quote": "CLI's only confirmed-working `--model` value is `auto` — six pinned slugs were rejected at the API"
+   },
+   "proposal": "In agent-routing-matrix.md lines 54-58 and cheap-lane-delegation/SKILL.md lines 120-128, restate the finding as a dated probe result on one account and CLI version (v0.305.0: six slugs rejected), not as a property of the CLI, and drop the contrast with Chat that implies the CLI has no `/model` picker. Cite the documented `--model=MODEL` pinning (example `claude-haiku-4.5`) and that users only get models enabled at the enterprise level and listed by `/model`. Add a re-probe: pin a slug that `/model` lists on the same account and record the CLI version and exact error. Keep copilot-delegate.sh on `auto` until it passes.",
+   "ceiling": {
+    "cell": "copilot-cli/F17.model-flag-env",
+    "quote": "Choose the AI model (for example, `gpt-5.4` or `claude-haiku-4.5`). Useful for pinning a model in reproducible workflows."
+   },
+   "value": 2,
+   "reach": 2,
+   "effort": 1,
+   "risk": 1,
+   "basis": {
+    "kind": "observation",
+    "falsified_by": "A `copilot --model claude-haiku-4.5` call, on an account where `/model` lists that model, rejected with an API error on a current CLI build would show the repo statement right."
+   },
+   "evidence_strength": 3,
+   "score": 12.0,
+   "status": "proposed",
+   "rank": 16,
+   "id": "ENH-048"
+  },
+  {
+   "title": "Probe whether the Claude tier map's claude-opus-4-8 pin lags the Opus 5.5 that the Bedrock opus alias resolves to",
+   "type": "probe",
+   "surfaces": [
+    "claude-code"
+   ],
+   "rows": [
+    "F17.model-catalog"
+   ],
+   "cells": [
+    "claude-code/F17.model-catalog"
+   ],
+   "repo_files": [
+    {
+     "path": "plugins/ravenclaude-core/knowledge/substrate-tier-map.json",
+     "exists": true
+    },
+    {
+     "path": "plugins/ravenclaude-core/knowledge/model-catalog.json",
+     "exists": true
+    },
+    {
+     "path": "plugins/ravenclaude-core/scripts/load-substrate-tier-map.py",
+     "exists": true
+    }
+   ],
+   "repo_claim": {
+    "blob_sha": "04f960e724b78c27f6fccf5a695a89a9bb5d6064",
+    "path": "plugins/ravenclaude-core/knowledge/substrate-tier-map.json",
+    "line": 8,
+    "quote": "\"top\": \"claude-opus-4-8\""
+   },
+   "proposal": "Do not move ids on this quote alone: it covers Bedrock aliases only. First check what the `opus` alias resolves to on the first-party API. If it is Opus 5.5, move claude-opus-4-8 to `stale` in model-catalog.json, set hosts.claude.top in substrate-tier-map.json and the two pinned asserts in scripts/load-substrate-tier-map.py, and regenerate the dashboards (Gate 134). If not, add a `notes.claude_aliases` line to substrate-tier-map.json saying tier ids are full pins and the Bedrock `opus` alias resolves to Opus 5.5. Either way the copilot lane (`Claude Opus 5`) and the claude lane stop disagreeing silently.",
+   "ceiling": {
+    "cell": "claude-code/F17.model-catalog",
+    "quote": "Without `ANTHROPIC_DEFAULT_OPUS_MODEL`, the `opus` alias on Amazon Bedrock resolves to Opus 5.5, and without `ANTHROPIC_DEFAULT_SONNET_MODEL`, the `sonnet` alias resolves to Sonnet 4.5."
+   },
+   "value": 2,
+   "reach": 3,
+   "effort": 2,
+   "risk": 2,
+   "basis": {
+    "kind": "inference",
+    "falsified_by": "A first-party Anthropic model doc, or `/model` output, showing the `opus` alias resolving to claude-opus-4-8 outside Bedrock would show the pin is current."
+   },
+   "evidence_strength": 3,
+   "score": 9.0,
+   "status": "proposed",
+   "rank": 17,
+   "id": "ENH-050"
+  },
+  {
+   "title": "Record Grok Build in host-support.json: reads CLAUDE.md and Claude hook matchers, but hook failures fail open",
+   "type": "new-lane",
+   "surfaces": [
+    "grok-build"
+   ],
+   "rows": [
+    "F03.user-vs-project-scope",
+    "F06.matchers",
+    "F06.output-blocking"
+   ],
+   "cells": [
+    "grok-build/F03.user-vs-project-scope",
+    "grok-build/F06.matchers",
+    "grok-build/F06.output-blocking"
+   ],
+   "repo_files": [
+    {
+     "path": "plugins/ravenclaude-core/knowledge/host-support.json",
+     "exists": true
+    }
+   ],
+   "proposal": "Add a `grok` entry to `hosts` in plugins/ravenclaude-core/knowledge/host-support.json and `grok` cells under `hooks` and `instruction_files` with supported:false and basis docs-verified. In the caveat record the vendor-documented facts: CLAUDE.md is read automatically, Claude tool names in hook matchers are mapped, and hook timeouts, crashes and malformed output fail open (only an explicit deny blocks), so any hook failure lets the tool call proceed. State that CLAUDE.md @-import handling is undocumented, so no support claim is made until a canary fires.",
+   "ceiling": {
+    "cell": "grok-build/F06.matchers",
+    "quote": "`matcher` is a regular expression tested against the tool name (Claude tool names such as `Bash`, `Read`, and `Edit` are mapped to Grok's automatically); omit it to match everything."
+   },
+   "value": 2,
+   "reach": 3,
+   "effort": 2,
+   "risk": 2,
+   "basis": {
+    "kind": "observation",
+    "falsified_by": "A Grok row already present in host-support.json or in a generator that reads it (the file's hosts are claude-code, copilot, codex, cursor, gemini, aider, windsurf), or the vendor docs showing PreToolUse hook failures fail closed."
+   },
+   "evidence_strength": 3,
+   "score": 9.0,
+   "status": "proposed",
+   "rank": 18,
+   "id": "ENH-042"
+  },
+  {
+   "title": "Ceiling table marks Chat sibling-path Write `[unverified]`; VS Code documents built-in tools as workspace-folder-only",
+   "type": "reconcile",
+   "surfaces": [
+    "copilot-vscode"
+   ],
+   "rows": [
+    "F05.fs-write-scope"
+   ],
+   "cells": [
+    "copilot-vscode/F05.fs-write-scope"
+   ],
+   "repo_files": [
+    {
+     "path": "plugins/ravenclaude-core/knowledge/copilot-chat-customization.md",
+     "exists": true
+    }
+   ],
+   "repo_claim": {
+    "blob_sha": "c58ecaf159e04e4ae4fee49f955c1b2cf1d138db",
+    "path": "plugins/ravenclaude-core/knowledge/copilot-chat-customization.md",
+    "line": 48,
+    "quote": "Chat built-in Write to a sibling path is `[unverified]` (CL-3)."
+   },
+   "proposal": "In §5's Write row (line 48), keep the `[unverified]` live-fire label for CL-3 but add the documented boundary: VS Code says built-in agent tools can only read and write inside the current workspace folder, so with one folder per worktree window a sibling worktree is outside it. State the carve-outs the docs name: terminal commands and Agent Host sessions are not bounded by this, and a worktree is not a security boundary. Retag the built-in-tool half `[docs-verified 2026-10-04]`.",
+   "ceiling": {
+    "cell": "copilot-vscode/F05.fs-write-scope",
+    "quote": "Built-in agent tools can only read and write files within the current workspace folder."
+   },
+   "value": 2,
+   "reach": 1,
+   "effort": 1,
+   "risk": 1,
+   "basis": {
+    "kind": "inference",
+    "falsified_by": "The CL-3 live probe: a built-in Write from one worktree window to a sibling worktree path succeeds, or the primary-checkout window (which contains nested worktrees) turns out to be the lane that matters."
+   },
+   "evidence_strength": 3,
+   "score": 6.0,
+   "status": "proposed",
+   "rank": 19,
+   "id": "ENH-022"
+  },
+  {
+   "title": "Copilot CLI SessionStart tier A predates the documented prompt-mode repo-hook gate (-p needs an env var)",
+   "type": "reconcile",
+   "surfaces": [
+    "copilot-cli"
+   ],
+   "rows": [
+    "F06.trust-enable"
+   ],
+   "cells": [
+    "copilot-cli/F06.trust-enable"
+   ],
+   "repo_files": [
+    {
+     "path": "plugins/ravenclaude-core/knowledge/host-support.json",
+     "exists": true
+    },
+    {
+     "path": "plugins/ravenclaude-core/hooks/tests/test-tier-d-canary.sh",
+     "exists": true
+    }
+   ],
+   "repo_claim": {
+    "blob_sha": "02e76fb3a776272037b64db0048c5c6f85ed2e35",
+    "path": "plugins/ravenclaude-core/knowledge/host-support.json",
+    "line": 74,
+    "quote": "`copilot -p` spawn genuinely runs (positive control on the spawn mechanism itself), but SessionStart does NOT fire from `.github/hooks/*.json` under `-p`, measured twice"
+   },
+   "proposal": "Re-run hooks/tests/test-tier-d-canary.sh A7.5 with GITHUB_COPILOT_PROMPT_MODE_REPO_HOOKS=true exported to the spawned `copilot -p`, and a second arm with COPILOT_ALLOW_ALL=1, keeping the spawn positive control. If the SessionStart marker then fires, change copilot's sessionstart_verification tier from A to D in host-support.json and rewrite the mechanism text. If it still does not fire, add the env var to the mechanism text as a held-constant variable so 'measured twice' says what was controlled. Align the note on line 47 either way.",
+   "ceiling": {
+    "cell": "copilot-cli/F06.trust-enable",
+    "quote": "Set to `true` to load repository hooks in prompt mode (`-p`). Repository hooks also load automatically when the folder is already trusted or `COPILOT_ALLOW_ALL` is set."
+   },
+   "value": 2,
+   "reach": 1,
+   "effort": 1,
+   "risk": 1,
+   "basis": {
+    "kind": "inference",
+    "falsified_by": "A7.5 re-run with GITHUB_COPILOT_PROMPT_MODE_REPO_HOOKS=true still shows no SessionStart marker while a preToolUse marker from the same config does fire, proving the hooks loaded."
+   },
+   "evidence_strength": 3,
+   "score": 6.0,
+   "status": "proposed",
+   "rank": 20,
+   "id": "ENH-013"
+  },
+  {
+   "title": "Customization doc says path references never auto-load; Copilot CLI documents @path imports that do",
+   "type": "reconcile",
+   "surfaces": [
+    "copilot-cli"
+   ],
+   "rows": [
+    "F03.import-syntax"
+   ],
+   "cells": [
+    "copilot-cli/F03.import-syntax"
+   ],
+   "repo_files": [
+    {
+     "path": "plugins/ravenclaude-core/knowledge/copilot-cli-customization.md",
+     "exists": true
+    }
+   ],
+   "repo_claim": {
+    "blob_sha": "c555f20fef25aa99115afea3f0436bc9af1dd195",
+    "path": "plugins/ravenclaude-core/knowledge/copilot-cli-customization.md",
+    "line": 22,
+    "quote": "the docs say the *instruction files* are auto-included; they do **not** state that a *path reference inside* one (e.g. \"read `.ravenclaude/environment-context.md`\") auto-loads that referenced file's content."
+   },
+   "proposal": "In copilot-cli-customization.md section 1, rewrite the line-22 nuance: a plain path mention is only a pointer, but `@relative/path` on its own line in `.github/copilot-instructions.md`, `AGENTS.md` or `CLAUDE.md` inlines that file immediately (recursive; the file must stay inside the repo or the custom-instructions directory; not expanded in `*.instructions.md` or `GEMINI.md`). Add `@path` as a third placement row in the section 7 table, and as the way to pull `.ravenclaude/environment-context.md` into every request. Probe once in a live session before relying on it.",
+   "ceiling": {
+    "cell": "copilot-cli/F03.import-syntax",
+    "quote": "In `.github/copilot-instructions.md`, `AGENTS.md`, or `CLAUDE.md`, use `@` followed by a relative path to include another file. Copilot CLI reads the referenced file immediately and supports references within referenced files."
+   },
+   "value": 2,
+   "reach": 1,
+   "effort": 1,
+   "risk": 1,
+   "basis": {
+    "kind": "observation",
+    "falsified_by": "In a live Copilot CLI session an `@DOCUMENT-MAP.md` line in .github/copilot-instructions.md is not inlined, or the docs behind E-copilot-cli-02407 stop listing that file."
+   },
+   "evidence_strength": 3,
+   "score": 6.0,
+   "status": "proposed",
+   "rank": 21,
+   "id": "ENH-014"
+  },
+  {
+   "title": "Probe whether Codex local hooks fail open on error or timeout; host-support.json:94 says every other host fails closed",
+   "type": "probe",
+   "surfaces": [
+    "codex-cli"
+   ],
+   "rows": [
+    "F06.output-blocking"
+   ],
+   "cells": [
+    "codex-cli/F06.output-blocking"
+   ],
+   "repo_files": [
+    {
+     "path": "plugins/ravenclaude-core/knowledge/host-support.json",
+     "exists": true
+    },
+    {
+     "path": "plugins/ravenclaude-core/hooks/codex-hook-env.sh",
+     "exists": true
+    }
+   ],
+   "repo_claim": {
+    "blob_sha": "02e76fb3a776272037b64db0048c5c6f85ed2e35",
+    "path": "plugins/ravenclaude-core/knowledge/host-support.json",
+    "line": 94,
+    "quote": "every other supported host fails CLOSED."
+   },
+   "proposal": "Probe first: the vendor's fail-open wording sits under its Work Cloud remote MCP hooks section, so local `.codex/hooks.json` scope is unconfirmed. Run a local PreToolUse command hook that crashes, one that times out and one that returns malformed output, and record whether Codex blocks the tool. Then, in host-support.json line 94, replace 'every other supported host fails CLOSED' with a per-host statement, and add to the Codex hooks caveat (line 81) that only an explicit supported denial blocks and exit 0 with no output counts as success. codex-hook-env.sh (lines 48-50) propagates the exit code verbatim, which keeps exit 2 but adds no fail-closed behaviour.",
+   "ceiling": {
+    "cell": "codex-cli/F06.output-blocking",
+    "quote": "An explicit supported denial can block an action, but a `PreToolUse` callback error, timeout, or malformed response can fail the hook without blocking the tool."
+   },
+   "value": 2,
+   "reach": 1,
+   "effort": 1,
+   "risk": 1,
+   "basis": {
+    "kind": "inference",
+    "falsified_by": "A local-CLI command hook that crashes, times out or returns malformed output being treated as a block by Codex, which would show the fail-open sentence applies only to Work Cloud remote MCP hooks."
+   },
+   "evidence_strength": 3,
+   "score": 6.0,
+   "status": "proposed",
+   "rank": 22,
+   "id": "ENH-010"
+  },
+  {
+   "title": "Reconcile 'batch into quieter check-ins' with the 10-minute expiry of approvals on Bot-to-Bot work",
+   "type": "reconcile",
+   "surfaces": [
+    "grok-bot"
+   ],
+   "rows": [
+    "F15.background-tasks"
+   ],
+   "cells": [
+    "grok-bot/F15.background-tasks"
+   ],
+   "repo_files": [
+    {
+     "path": "plugins/grok-bot-delegation/skills/delegate-via-expert-bots/SKILL.md",
+     "exists": true
+    }
+   ],
+   "repo_claim": {
+    "blob_sha": "e4a61c6441fd19344cc18a599c2a071a2e405b36",
+    "path": "plugins/grok-bot-delegation/skills/delegate-via-expert-bots/SKILL.md",
+    "line": 19,
+    "quote": "- **Immediate ping** only for critical decisions that steer multiple bots or would halt work; otherwise **batch** into quieter check-ins. Hands-off default."
+   },
+   "proposal": "In plugins/grok-bot-delegation/skills/delegate-via-expert-bots/SKILL.md line 19, exempt approval cards from batching. State that approvals on work another Bot or a routine started expire after about 10 minutes, so CoS should either turn on Notifications for the specialist Bot, grant Always allow for pre-vetted actions, or surface the approval immediately. Keep batching for ordinary questions. Add the same one-line caveat to the wall-escalation steps so a blocked specialist is not left waiting on an expired approval.",
+   "ceiling": {
+    "cell": "grok-bot/F15.background-tasks",
+    "quote": "Approvals from work that started without you, like a routine or a message from another Bot, expire after about 10 minutes. Approvals in a chat you are in wait for you. Turn on the Bot's **Notifications**, or choose **Always allow** for actions you trust."
+   },
+   "value": 2,
+   "reach": 1,
+   "effort": 1,
+   "risk": 2,
+   "basis": {
+    "kind": "inference",
+    "falsified_by": "A CoS-to-specialist message producing an approval card that stays pending past 10 minutes in a live Bot, or the skill's 'bot decision widgets' meaning only question prompts and never approval cards."
+   },
+   "evidence_strength": 3,
+   "score": 6.0,
+   "status": "proposed",
+   "rank": 23,
+   "id": "ENH-043"
+  },
+  {
+   "title": "Route coding tasks to Cursor Cloud Agents through Grok Bot delegation in the delegate-via-expert-bots loop",
+   "type": "extend",
+   "surfaces": [
+    "grok-bot"
+   ],
+   "rows": [
+    "F15.delegation",
+    "F21.delegates-to"
+   ],
+   "cells": [
+    "grok-bot/F15.delegation",
+    "grok-bot/F21.delegates-to"
+   ],
+   "repo_files": [
+    {
+     "path": "plugins/grok-bot-delegation/skills/delegate-via-expert-bots/SKILL.md",
+     "exists": true
+    },
+    {
+     "path": "plugins/grok-bot-delegation/CLAUDE.md",
+     "exists": true
+    }
+   ],
+   "proposal": "In plugins/grok-bot-delegation/skills/delegate-via-expert-bots/SKILL.md, add a Loop rule: delegate coding tasks (code changes, PRs) to a Cursor Cloud Agent through the Bot's built-in delegation rather than having a specialist Bot work on the shared computer. Note that the delegation switch is team-wide, on by default and admin-disableable, and that delegated work runs under Cloud Agent network settings, not the Bot computer's. If the switch is off, fall back to routing the task to a specialist Bot.",
+   "ceiling": {
+    "cell": "grok-bot/F15.delegation",
+    "quote": "Grok Bot can delegate coding tasks to separate computers under your existing [Cloud Agent](https://cursor.com/docs/cloud-agent.md) controls. Admins can disable spawning."
+   },
+   "value": 2,
+   "reach": 1,
+   "effort": 1,
+   "risk": 2,
+   "basis": {
+    "kind": "observation",
+    "falsified_by": "The delegation switch being off by default for the account, or another grok-bot-* file already routing coding tasks to Cloud Agents (the only Cloud Agent mention found in the two plugins is the placeholder 'cloud agent' in the gold description template)."
+   },
+   "evidence_strength": 3,
+   "score": 6.0,
+   "status": "proposed",
+   "rank": 24,
+   "id": "ENH-044"
+  },
+  {
+   "title": "Chat doc says automatic compaction cannot be steered; VS Code documents a setting that turns it off",
+   "type": "extend",
+   "surfaces": [
+    "copilot-vscode"
+   ],
+   "rows": [
+    "F02.auto-compaction"
+   ],
+   "cells": [
+    "copilot-vscode/F02.auto-compaction"
+   ],
+   "repo_files": [
+    {
+     "path": "plugins/ravenclaude-core/knowledge/copilot-chat-customization.md",
+     "exists": true
+    },
+    {
+     "path": "plugins/ravenclaude-core/vscode-extension/README.md",
+     "exists": true
+    }
+   ],
+   "repo_claim": {
+    "blob_sha": "c58ecaf159e04e4ae4fee49f955c1b2cf1d138db",
+    "path": "plugins/ravenclaude-core/knowledge/copilot-chat-customization.md",
+    "line": 75,
+    "quote": "⛔ **Works only for EXPLICIT/triggered compaction, never automatic/background compaction.**"
+   },
+   "proposal": "In §6, add the documented lever beside the 'explicit only' finding: setting `github.copilot.chat.summarizeAgentConversationHistory.enabled` to `false` turns automatic compaction off (Experimental, default true), so a steered `/compact <digest>` becomes the only compaction. Have the `ravenclaude-precompact-guard` README offer it as an opt-in workspace setting, never a default, and say that with it off the user or agent must trigger compaction before the window fills.",
+   "ceiling": {
+    "cell": "copilot-vscode/F02.auto-compaction",
+    "quote": "To turn off automatic compaction, set `setting(github.copilot.chat.summarizeAgentConversationHistory.enabled)` to `false`."
+   },
+   "value": 2,
+   "reach": 1,
+   "effort": 1,
+   "risk": 2,
+   "basis": {
+    "kind": "inference",
+    "falsified_by": "With the setting false, a long session fails at the context limit instead of waiting for a user-triggered /compact, or the extension cannot write the setting in the workspace."
+   },
+   "evidence_strength": 3,
+   "score": 6.0,
+   "status": "proposed",
+   "rank": 25,
+   "id": "ENH-023"
+  },
+  {
+   "title": "Warn when MEMORY.md nears the documented 200-line / 25 KB load cap, not only when it shrinks",
+   "type": "extend",
+   "surfaces": [
+    "claude-code"
+   ],
+   "rows": [
+    "F02.persistent-memory"
+   ],
+   "cells": [
+    "claude-code/F02.persistent-memory"
+   ],
+   "repo_files": [
+    {
+     "path": "plugins/ravenclaude-core/hooks/guard-memory-compaction.sh",
+     "exists": true
+    },
+    {
+     "path": "plugins/ravenclaude-core/hooks/_advise.sh",
+     "exists": true
+    },
+    {
+     "path": "plugins/ravenclaude-core/CLAUDE.md",
+     "exists": true
+    }
+   ],
+   "proposal": "Extend plugins/ravenclaude-core/hooks/guard-memory-compaction.sh, which already recognises the memory index and snapshots before each write, to emit a non-blocking advisory (through _advise.sh) when the post-write MEMORY.md passes about 80% of either documented load limit, 200 lines or 25 KB, naming the limit and suggesting detail move to topic files. Never block growth. State the two numbers once in Memory Engineering Rule 4 in plugins/ravenclaude-core/CLAUDE.md, which says only that a store 'grows until its load budget truncates it silently'. The 2026-08-10 pre-rewrite index, 20,853 B, was already about four-fifths of 25 KB.",
+   "ceiling": {
+    "cell": "claude-code/F02.persistent-memory",
+    "quote": "The first 200 lines or 25 KB of the `MEMORY.md` index loads at the start of every session."
+   },
+   "value": 2,
+   "reach": 1,
+   "effort": 1,
+   "risk": 1,
+   "basis": {
+    "kind": "inference",
+    "falsified_by": "guard-memory-compaction.sh already emits a growth advisory, or a probe with a MEMORY.md over 25 KB on the installed Claude Code version shows the index is not truncated at that size."
+   },
+   "evidence_strength": 3,
+   "score": 6.0,
+   "status": "proposed",
+   "rank": 26,
+   "id": "ENH-002"
+  },
+  {
+   "title": "Write a marker-delimited .cursorignore block for secret paths so Cursor's Agent and search cannot read them",
+   "type": "extend",
+   "surfaces": [
+    "cursor"
+   ],
+   "rows": [
+    "F04.path-scoping"
+   ],
+   "cells": [
+    "cursor/F04.path-scoping"
+   ],
+   "repo_files": [
+    {
+     "path": "scripts/ravenclaude",
+     "exists": true
+    },
+    {
+     "path": "plugins/ravenclaude-core/knowledge/host-support.json",
+     "exists": true
+    },
+    {
+     "path": "plugins/ravenclaude-core/knowledge/cursor-customization.md",
+     "exists": true
+    }
+   ],
+   "proposal": "Have the cursor branch of `ravenclaude install` write a marker-delimited block into <project>/.cursorignore listing the secret-file globs the security floor protects, so Cursor's Agent, codebase search and @ mentions cannot read them. Cursor says terminal commands and MCP tools do not honor .cursorignore, so keep the beforeShellExecution hook as the terminal-path control. Never overwrite an existing .cursorignore, document that the block covers in-repo paths only, and record the new file in cursor-customization.md and host-support.json.",
+   "ceiling": {
+    "cell": "cursor/F04.path-scoping",
+    "quote": "Files listed there are blocked from Agent, codebase search, and `@` mentions."
+   },
+   "value": 2,
+   "reach": 1,
+   "effort": 1,
+   "risk": 2,
+   "basis": {
+    "kind": "inference",
+    "falsified_by": "I read only cursor-customization.md and host-support.json, neither of which mentions .cursorignore or Cursor permissions. A grep for cursorignore under scripts/ and plugins/ that finds an existing installer branch would remove the gap."
+   },
+   "evidence_strength": 3,
+   "score": 6.0,
+   "status": "proposed",
+   "rank": 27,
+   "id": "ENH-026"
+  },
+  {
+   "title": "Use disable-model-invocation: true as a documented user-only gate on /reset-plugin-cache and setup skills",
+   "type": "improve",
+   "surfaces": [
+    "claude-code"
+   ],
+   "rows": [
+    "F08.invocation",
+    "F10.custom-command-format"
+   ],
+   "cells": [
+    "claude-code/F08.invocation",
+    "claude-code/F10.custom-command-format"
+   ],
+   "repo_files": [
+    {
+     "path": "plugins/ravenclaude-core/commands/reset-plugin-cache.md",
+     "exists": true
+    },
+    {
+     "path": "plugins/ravenclaude-core/skills/routine-reserve/SKILL.md",
+     "exists": true
+    },
+    {
+     "path": "plugins/ravenclaude-core/skills/design-link/SKILL.md",
+     "exists": true
+    },
+    {
+     "path": "plugins/ravenclaude-core/CLAUDE.md",
+     "exists": true
+    }
+   ],
+   "proposal": "Add `disable-model-invocation: true` to commands/reset-plugin-cache.md (and the /ragnarok alias file if separate), so the command leaves Claude's invocable list and loads no context until a person types it. Today the user-only property rests on an AskUserQuestion confirmation plus the xc.ragnarok-non-user-invocation concern, because the planned $CLAUDE_INVOCATION_SOURCE gate does not exist; keep both as backstops. Consider the same flag for skills only a person starts, such as routine-reserve and design-link. First confirm the key is honored for a plugin command, since the docs say command files take skill frontmatter, and that /ragnarok still resolves.",
+   "ceiling": {
+    "cell": "claude-code/F08.invocation",
+    "quote": "Skills with `disable-model-invocation: true` are not in this list. They stay completely out of context until you invoke them with `/name`."
+   },
+   "value": 2,
+   "reach": 1,
+   "effort": 1,
+   "risk": 2,
+   "basis": {
+    "kind": "inference",
+    "falsified_by": "A scratch plugin command with the key set stays model-invocable, the docs scope the key to skills only, or a Team Lead flow invokes one of these skills."
+   },
+   "evidence_strength": 3,
+   "score": 6.0,
+   "status": "proposed",
+   "rank": 28,
+   "id": "ENH-003"
+  },
+  {
+   "title": "Record Copilot CLI's experimental local OS sandbox as a containment lane; no repo file mentions it",
+   "type": "new-lane",
+   "surfaces": [
+    "copilot-cli"
+   ],
+   "rows": [
+    "F05.os-sandbox"
+   ],
+   "cells": [
+    "copilot-cli/F05.os-sandbox"
+   ],
+   "repo_files": [
+    {
+     "path": "plugins/ravenclaude-core/knowledge/host-support.json",
+     "exists": true
+    },
+    {
+     "path": "plugins/ravenclaude-core/knowledge/copilot-cli-customization.md",
+     "exists": true
+    }
+   ],
+   "proposal": "Add a `containment` component to host-support.json with a copilot row: supported false, blocked_by 'local sandbox is experimental (--experimental)', basis docs-verified. In copilot-cli-customization.md section 5 add a short paragraph: the sandbox runs shell commands and built-in searches as sandboxed child processes; the built-in file read and edit tools are not sandboxed, so the layout hook still guards edits. Do not enable it from the installer until it leaves experimental.",
+   "ceiling": {
+    "cell": "copilot-cli/F05.os-sandbox",
+    "quote": "run as sandboxed child processes, so the operating system enforces the policy directly."
+   },
+   "value": 2,
+   "reach": 1,
+   "effort": 1,
+   "risk": 1,
+   "basis": {
+    "kind": "inference",
+    "falsified_by": "Another RavenClaude file already records a Copilot CLI sandbox statement (for example the plugin CLAUDE.md containment section or copilot/README.md); a search for 'sandbox' there would show it."
+   },
+   "evidence_strength": 3,
+   "score": 6.0,
+   "status": "proposed",
+   "rank": 29,
+   "id": "ENH-015"
+  },
+  {
+   "title": "Project the comfort posture onto Gemini's approval mode and sandbox network setting, tighten-only",
+   "type": "extend",
+   "surfaces": [
+    "gemini-cli"
+   ],
+   "rows": [
+    "F04.approval-modes",
+    "F05.os-sandbox",
+    "F05.network-policy",
+    "F04.bypass-mode"
+   ],
+   "cells": [
+    "gemini-cli/F04.approval-modes",
+    "gemini-cli/F05.os-sandbox",
+    "gemini-cli/F05.network-policy",
+    "gemini-cli/F04.bypass-mode"
+   ],
+   "repo_files": [
+    {
+     "path": "plugins/ravenclaude-core/knowledge/gemini-customization.md",
+     "exists": true
+    },
+    {
+     "path": "scripts/ravenclaude",
+     "exists": true
+    },
+    {
+     "path": "scripts/emit-gemini-config.py",
+     "exists": false
+    }
+   ],
+   "proposal": "Add a script that reads .ravenclaude/comfort-posture.yaml and writes general.defaultApprovalMode (default, auto_edit or plan) and tools.sandboxNetworkAccess into <project>/.gemini/settings.json, called from `ravenclaude install --host gemini`. Make it tighten-only: never loosen a value the user set by hand, never emit yolo (documented as command-line only), and print each refusal. In gemini-customization.md, record that --sandbox defaults to false, so on Gemini the OS boundary is opt-in; the files read here describe no posture projection for Gemini.",
+   "ceiling": {
+    "cell": "gemini-cli/F04.approval-modes",
+    "quote": "The default approval mode for tool execution. 'default' prompts for approval, 'auto_edit' auto-approves edit tools, and 'plan' is read-only mode."
+   },
+   "value": 3,
+   "reach": 1,
+   "effort": 2,
+   "risk": 2,
+   "basis": {
+    "kind": "inference",
+    "falsified_by": "A project .gemini/settings.json value for general.defaultApprovalMode or tools.sandboxNetworkAccess is ignored by a live Gemini CLI, or scripts/ravenclaude already writes them."
+   },
+   "evidence_strength": 3,
+   "score": 4.5,
+   "status": "proposed",
+   "rank": 30,
+   "id": "ENH-037"
+  },
+  {
+   "title": "Chat doc lists sandbox only as a limit; VS Code documents `chat.agent.sandbox.enabled` OS-level containment",
+   "type": "extend",
+   "surfaces": [
+    "copilot-vscode"
+   ],
+   "rows": [
+    "F05.os-sandbox",
+    "F05.subprocess-containment"
+   ],
+   "cells": [
+    "copilot-vscode/F05.os-sandbox",
+    "copilot-vscode/F05.subprocess-containment"
+   ],
+   "repo_files": [
+    {
+     "path": "plugins/ravenclaude-core/knowledge/copilot-chat-customization.md",
+     "exists": true
+    },
+    {
+     "path": "plugins/ravenclaude-core/bin/rcwt",
+     "exists": true
+    }
+   ],
+   "repo_claim": {
+    "blob_sha": "c58ecaf159e04e4ae4fee49f955c1b2cf1d138db",
+    "path": "plugins/ravenclaude-core/knowledge/copilot-chat-customization.md",
+    "line": 48,
+    "quote": "Sandbox does **not** cover built-in file tools."
+   },
+   "proposal": "Add a 'Containment lever' row to §5. `chat.agent.sandbox.enabled: on` applies OS-level file-system and network isolation to agent terminal commands and all their child processes, an OS boundary no row of §5's 'What we can enforce' column lists. Record the limits the cells name: Preview on macOS, Linux and WSL2, Experimental on Windows, built-in file tools unaffected. Have `rcwt new` pin it in the worktree's workspace settings next to the parent-walk pin, behind an opt-out.",
+   "ceiling": {
+    "cell": "copilot-vscode/F05.subprocess-containment",
+    "quote": "Because the enforcement happens at the kernel level, sandboxed processes and all of their child processes cannot bypass these boundaries, even if a command is crafted to attempt it."
+   },
+   "value": 3,
+   "reach": 1,
+   "effort": 2,
+   "risk": 2,
+   "basis": {
+    "kind": "inference",
+    "falsified_by": "With `chat.agent.sandbox.enabled` on, a terminal command in a worktree window still writes outside the workspace folder, or the setting is absent from the VS Code build the owner runs."
+   },
+   "evidence_strength": 3,
+   "score": 4.5,
+   "status": "proposed",
+   "rank": 31,
+   "id": "ENH-024"
+  },
+  {
+   "title": "Wire RavenClaude skills into Cursor: install --host cursor should link skills into .cursor/skills/",
+   "type": "extend",
+   "surfaces": [
+    "cursor"
+   ],
+   "rows": [
+    "F08.discovery-paths"
+   ],
+   "cells": [
+    "cursor/F08.discovery-paths"
+   ],
+   "repo_files": [
+    {
+     "path": "scripts/ravenclaude",
+     "exists": true
+    },
+    {
+     "path": "plugins/ravenclaude-core/knowledge/host-support.json",
+     "exists": true
+    }
+   ],
+   "proposal": "Add a skills step to the cursor branch of `ravenclaude install` that links or copies the plugin skills into <project>/.cursor/skills/, which Cursor discovers recursively, mirroring the Codex .agents/skills step. Then flip components.skills.cursor in host-support.json from unsupported to supported, with a dated doc source in its basis, and add a status line for it. Verify in a scratch install that Cursor lists the skills; if symlinks are not followed, copy instead. Keep skill bodies unchanged, since SKILL.md frontmatter has the same shape.",
+   "ceiling": {
+    "cell": "cursor/F08.discovery-paths",
+    "quote": "You can also organize skills into subfolders, like `.cursor/skills/shipping/deploy-staging/SKILL.md`. Cursor walks the skills root recursively, so category folders work for grouping related skills."
+   },
+   "value": 3,
+   "reach": 1,
+   "effort": 2,
+   "risk": 1,
+   "basis": {
+    "kind": "observation",
+    "falsified_by": "If Cursor's Third-Party Imports setting (on by default) already loads .claude/skills in a repo where the Copilot lane wired them, skills reach Cursor without a new link; a scratch install listing skills in Cursor's Customize view would show this."
+   },
+   "evidence_strength": 3,
+   "score": 4.5,
+   "status": "proposed",
+   "rank": 32,
+   "id": "ENH-027"
+  },
+  {
+   "title": "Back the money, deletion and social-post safeguards with Auto-review 'Ask first' rules, not persona text alone",
+   "type": "improve",
+   "surfaces": [
+    "grok-bot"
+   ],
+   "rows": [
+    "F04.per-tool-rules",
+    "F04.config-scope-precedence"
+   ],
+   "cells": [
+    "grok-bot/F04.per-tool-rules",
+    "grok-bot/F04.config-scope-precedence"
+   ],
+   "repo_files": [
+    {
+     "path": "plugins/grok-bot-delegation/skills/delegate-via-expert-bots/SKILL.md",
+     "exists": true
+    },
+    {
+     "path": "plugins/grok-bot-creation/skills/create-grok-bot/SKILL.md",
+     "exists": true
+    }
+   ],
+   "repo_claim": {
+    "blob_sha": "e4a61c6441fd19344cc18a599c2a071a2e405b36",
+    "path": "plugins/grok-bot-delegation/skills/delegate-via-expert-bots/SKILL.md",
+    "line": 27,
+    "quote": "- Safeguards: never auto-decide **money** or **deletions**; delicate actions (e.g. social posts) need explicit process via CoS."
+   },
+   "proposal": "In plugins/grok-bot-delegation/skills/delegate-via-expert-bots/SKILL.md (Safeguards bullet, line 27) and the gold description template in plugins/grok-bot-creation/skills/create-grok-bot/SKILL.md, add a setup step: create Ask first rules under Settings > General > Auto-review for payments, deletions and public posts, so the app stops matching actions whatever the persona text says. Note that personal rules are stored per desktop, so repeat the step on each desktop. Keep the prose boundary: Auto-review does not review every side effect, such as memory writes.",
+   "ceiling": {
+    "cell": "grok-bot/F04.per-tool-rules",
+    "quote": "**Ask first** rules always stop matching actions, and **Allow automatically** rules let matching actions proceed only when the reviewer finds no other reason to stop."
+   },
+   "value": 3,
+   "reach": 1,
+   "effort": 2,
+   "risk": 2,
+   "basis": {
+    "kind": "inference",
+    "falsified_by": "An Ask first rule worded for payments or deletions failing to stop a matching action in a live Bot, or the vendor docs showing Auto-review rules do not cover the action classes the safeguard names (the docs already say it does not review every side effect)."
+   },
+   "evidence_strength": 3,
+   "score": 4.5,
+   "status": "proposed",
+   "rank": 33,
+   "id": "ENH-045"
+  },
+  {
+   "title": "Set failClosed on Cursor enforcing hooks and exit 2 on adapter failure so crashes stop failing open",
+   "type": "improve",
+   "surfaces": [
+    "cursor"
+   ],
+   "rows": [
+    "F06.output-blocking"
+   ],
+   "cells": [
+    "cursor/F06.output-blocking"
+   ],
+   "repo_files": [
+    {
+     "path": "scripts/generate-cursor-hooks.py",
+     "exists": true
+    },
+    {
+     "path": "plugins/ravenclaude-core/hooks/cursor-hook-adapter.sh",
+     "exists": true
+    },
+    {
+     "path": "plugins/ravenclaude-core/hooks/tests/test-gate159-cursor-hook-adapter.sh",
+     "exists": true
+    },
+    {
+     "path": "plugins/ravenclaude-core/knowledge/cursor-customization.md",
+     "exists": true
+    }
+   ],
+   "proposal": "In scripts/generate-cursor-hooks.py, emit failClosed: true on the beforeShellExecution entries that carry the tribunal and destructive-command guards; leave advisory SessionStart entries fail-open. In hooks/cursor-hook-adapter.sh, make the adapter's own internal-failure path exit 2, which Cursor documents as equivalent to permission deny, instead of crashing with another code. Add a failure-path case to test-gate159-cursor-hook-adapter.sh and record both controls in cursor-customization.md beside the fixed-literal deny. Ship behind an env kill switch, because a crash would then block every shell command.",
+   "ceiling": {
+    "cell": "cursor/F06.output-blocking",
+    "quote": "Enforce and observe at agent lifecycle points (block commands, scrub secrets, audit); distribute by MDM or cloud and set `failClosed` for critical hooks."
+   },
+   "value": 3,
+   "reach": 1,
+   "effort": 2,
+   "risk": 2,
+   "basis": {
+    "kind": "inference",
+    "falsified_by": "I read cursor-customization.md, which describes a JSON-only deny and mentions neither exit codes nor failClosed, but not the generator or adapter. If grep failClosed on scripts/generate-cursor-hooks.py and the adapter already matches, or the adapter already exits 2 on its failure path, this entry is moot."
+   },
+   "evidence_strength": 3,
+   "score": 4.5,
+   "status": "proposed",
+   "rank": 34,
+   "id": "ENH-028"
+  },
+  {
+   "title": "Reconcile Codex tier ids (gpt-5.6-luna/terra/sol) with the gpt-6-luna and gpt-6.1-sol names Codex docs now give",
+   "type": "reconcile",
+   "surfaces": [
+    "codex-cli"
+   ],
+   "rows": [
+    "F17.model-picker",
+    "F18.effort-values",
+    "F18.model-dependence"
+   ],
+   "cells": [
+    "codex-cli/F17.model-picker",
+    "codex-cli/F18.effort-values",
+    "codex-cli/F18.model-dependence"
+   ],
+   "repo_files": [
+    {
+     "path": "plugins/ravenclaude-core/knowledge/substrate-tier-map.json",
+     "exists": true
+    },
+    {
+     "path": "plugins/ai-coding-model-guidance/knowledge/cross-tool-model-lineup-2026.md",
+     "exists": true
+    },
+    {
+     "path": "plugins/ai-coding-model-guidance/agents/codex-model-strategist.md",
+     "exists": true
+    },
+    {
+     "path": "plugins/ravenclaude-core/skills/adaptive-run-classifier/SKILL.md",
+     "exists": true
+    },
+    {
+     "path": "plugins/ravenclaude-core/skills/rc-deep-research/rc-deep-research.js",
+     "exists": true
+    },
+    {
+     "path": "plugins/ravenclaude-core/skills/agent-dispatch-evaluator/reference/evaluate-dispatch.js",
+     "exists": true
+    }
+   ],
+   "repo_claim": {
+    "blob_sha": "04f960e724b78c27f6fccf5a695a89a9bb5d6064",
+    "path": "plugins/ravenclaude-core/knowledge/substrate-tier-map.json",
+    "line": 28,
+    "quote": "\"fast\": \"gpt-5.6-luna\","
+   },
+   "proposal": "Re-check the Codex `/model` list on a current build. If gpt-6-luna and gpt-6.1-sol are offered, change hosts.codex fast and top in substrate-tier-map.json, the same ids in the mirrored tables (rc-deep-research.js, evaluate-dispatch.js, adaptive-run-classifier SKILL.md, codex-model-strategist.md:32), and `GPT-6 Sol` at cross-tool-model-lineup-2026.md:33. The docs name no Terra tier, so mark balanced `[unconfirmed]` rather than guessing a slug. Reword the codex_pro_mode note (line 40): Codex docs give Sol effort as Light to Ultra and never name a pro mode.",
+   "ceiling": {
+    "cell": "codex-cli/F17.model-picker",
+    "quote": "Use `gpt-6-luna` or `gpt-6.1-sol` if shown."
+   },
+   "value": 2,
+   "reach": 2,
+   "effort": 3,
+   "risk": 2,
+   "basis": {
+    "kind": "inference",
+    "falsified_by": "A current Codex `/model` listing that still offers gpt-5.6-luna, gpt-5.6-terra and gpt-5.6-sol would show the repo ids are still valid."
+   },
+   "evidence_strength": 3,
+   "score": 4.0,
+   "status": "proposed",
+   "rank": 35,
+   "id": "ENH-052"
+  },
+  {
+   "title": "Reconcile the Grok tier map (grok-4.5/4.6) with the atlas's grok-4.7 latest model and the lineup file",
+   "type": "reconcile",
+   "surfaces": [
+    "grok-build"
+   ],
+   "rows": [
+    "F17.model-catalog"
+   ],
+   "cells": [
+    "grok-build/F17.model-catalog"
+   ],
+   "repo_files": [
+    {
+     "path": "plugins/ravenclaude-core/knowledge/substrate-tier-map.json",
+     "exists": true
+    },
+    {
+     "path": "plugins/ravenclaude-core/scripts/load-substrate-tier-map.py",
+     "exists": true
+    },
+    {
+     "path": "plugins/ravenclaude-core/scripts/grok-delegate.sh",
+     "exists": true
+    },
+    {
+     "path": "plugins/ai-coding-model-guidance/knowledge/cross-tool-model-lineup-2026.md",
+     "exists": true
+    }
+   ],
+   "repo_claim": {
+    "blob_sha": "04f960e724b78c27f6fccf5a695a89a9bb5d6064",
+    "path": "plugins/ravenclaude-core/knowledge/substrate-tier-map.json",
+    "line": 22,
+    "quote": "\"model\": \"grok-4.6\","
+   },
+   "proposal": "The atlas quote covers the xAI API, not the Grok Build CLI, so probe grok-4.7 first: one advise-mode grok-delegate.sh call pinned to it. If it resolves, set hosts.grok.top to grok-4.7 in substrate-tier-map.json, update the pins in scripts/load-substrate-tier-map.py (lines 72-75) and the tier table in the grok-delegate.sh header, and take effort from the documented Grok 4.7 levels. Leave fast and balanced on grok-4.5 until a documented level set exists for them. cross-tool-model-lineup-2026.md:161 already calls Grok 4.7 the flagship, so the repo currently says two things.",
+   "ceiling": {
+    "cell": "grok-build/F17.model-catalog",
+    "quote": "SpaceXAI's latest model, is available directly on the xAI API."
+   },
+   "value": 2,
+   "reach": 2,
+   "effort": 3,
+   "risk": 2,
+   "basis": {
+    "kind": "inference",
+    "falsified_by": "A grok-4.7 call failing in the Grok Build CLI, or xAI docs naming grok-4.6 as the intended top Grok Build tier, would show the tier map right."
+   },
+   "evidence_strength": 3,
+   "score": 4.0,
+   "status": "proposed",
+   "rank": 36,
+   "id": "ENH-053"
+  },
+  {
+   "title": "forge-worktree.sh checkpoint refuses whenever any .env-shaped file is tracked, even if unchanged",
+   "type": "en-route-defect",
+   "surfaces": [],
+   "rows": [],
+   "cells": [],
+   "repo_files": [
+    {
+     "path": "plugins/ravenclaude-core/scripts/forge-worktree.sh",
+     "exists": true
+    }
+   ],
+   "repo_claim": {
+    "blob_sha": "c050d5c99576423b50c43fd246a08598486d995c",
+    "path": "plugins/ravenclaude-core/scripts/forge-worktree.sh",
+    "line": 400,
+    "quote": "git -C \"$wt_abs\" ls-files -co --exclude-standard"
+   },
+   "proposal": "At forge-worktree.sh line 400, scan only the pending change set, not the whole tree. `git ls-files -co` lists every tracked file, so a committed, unchanged `.env.example` makes `checkpoint` exit 2 with `secret-glob-blocked` and commit nothing; the `.env\\..*` alternative matches `.env.example`. Reproduced in a scratch repo: with one tracked `tpl/.env.example` and one new work file the checkpoint is refused; without the template the same checkpoint commits. Use `git ls-files -mo --exclude-standard` (modified plus untracked) and keep the exclude pathspecs below it. Add a self-test fixture with a tracked template.",
+   "value": 2,
+   "reach": 2,
+   "effort": 1,
+   "risk": 2,
+   "basis": {
+    "kind": "observation",
+    "falsified_by": "In a scratch repo, track an unchanged `tpl/.env.example`, add one new file in the forge worktree and run `forge-worktree.sh checkpoint <slug> <label>`: a committed checkpoint (exit 0) would show the claim wrong."
+   },
+   "evidence_strength": 1,
+   "score": 4.0,
+   "status": "proposed",
+   "rank": 37,
+   "id": "ENH-032"
+  },
+  {
+   "title": "Reconcile 'each Grok Build sub-agent runs in an isolated worktree' with opt-in per-request isolation",
+   "type": "reconcile",
+   "surfaces": [
+    "grok-build"
+   ],
+   "rows": [
+    "F14.parallel-subagents"
+   ],
+   "cells": [
+    "grok-build/F14.parallel-subagents"
+   ],
+   "repo_files": [
+    {
+     "path": "plugins/ai-coding-model-guidance/knowledge/cross-tool-model-lineup-2026.md",
+     "exists": true
+    }
+   ],
+   "repo_claim": {
+    "blob_sha": "2f50953dd2173764b02399a4b018e1501e0dd5dc",
+    "path": "plugins/ai-coding-model-guidance/knowledge/cross-tool-model-lineup-2026.md",
+    "line": 171,
+    "quote": "up to 8 parallel sub-agents each in an isolated Git worktree/branch"
+   },
+   "proposal": "In cross-tool-model-lineup-2026.md:171 change the sub-agent clause to say Grok Build sub-agents can request worktree isolation when the parent delegates parallel work (opt-in per request, not automatic). Name the GROK_SUBAGENTS flag, documented with default 0; the cell says the docs do not settle whether sub-agents are on out of the box. Keep the `up to 8` figure but tag it `[verify-at-use]`: no atlas cell states it.",
+   "ceiling": {
+    "cell": "grok-build/F14.parallel-subagents",
+    "quote": "can also request worktree isolation when the parent delegates parallel work."
+   },
+   "value": 1,
+   "reach": 1,
+   "effort": 1,
+   "risk": 1,
+   "basis": {
+    "kind": "observation",
+    "falsified_by": "Grok Build docs stating that every sub-agent is placed in its own worktree without a request would make the repo statement right."
+   },
+   "evidence_strength": 3,
+   "score": 3.0,
+   "status": "proposed",
+   "rank": 38,
+   "id": "ENH-054"
+  },
+  {
+   "title": "Reconcile 'skills are GLOBAL' with per-Bot enablement of private skills in the Grok Bot plugins",
+   "type": "reconcile",
+   "surfaces": [
+    "grok-bot"
+   ],
+   "rows": [
+    "F08.discovery-paths"
+   ],
+   "cells": [
+    "grok-bot/F08.discovery-paths"
+   ],
+   "repo_files": [
+    {
+     "path": "plugins/grok-bot-creation/skills/create-grok-bot/SKILL.md",
+     "exists": true
+    },
+    {
+     "path": "plugins/grok-bot-delegation/skills/delegate-via-expert-bots/SKILL.md",
+     "exists": true
+    },
+    {
+     "path": "plugins/grok-bot-delegation/skills/grok-bot-token-spend/SKILL.md",
+     "exists": true
+    }
+   ],
+   "repo_claim": {
+    "blob_sha": "edc80ec9a0d0c8fcdbd7bc3c9215a794a928f5d2",
+    "path": "plugins/grok-bot-creation/skills/create-grok-bot/SKILL.md",
+    "line": 28,
+    "quote": "5. Enhance from RavenClaude; skills are GLOBAL."
+   },
+   "proposal": "In plugins/grok-bot-creation/skills/create-grok-bot/SKILL.md line 28, replace 'skills are GLOBAL' with 'private skills are one library shared by all your Bots, but a Bot may still need the skill enabled (Settings > Plugins > Yours) and the relevant plugin or login'. Make the same edit to the 'Skills are global' rule in plugins/grok-bot-delegation/skills/delegate-via-expert-bots/SKILL.md (line 63). This also removes the conflict with grok-bot-token-spend's 'enable skills only where needed'.",
+   "ceiling": {
+    "cell": "grok-bot/F08.discovery-paths",
+    "quote": "If a private skill doesn't appear in the `/` menu, enable it for the current Bot under **Settings** > **Plugins** > **Yours**."
+   },
+   "value": 1,
+   "reach": 1,
+   "effort": 1,
+   "risk": 1,
+   "basis": {
+    "kind": "observation",
+    "falsified_by": "A private skill appearing in every Bot's / menu with no per-Bot enablement step (contradicting E-grok-bot-00069), or the vendor dropping the Settings > Plugins > Yours step."
+   },
+   "evidence_strength": 3,
+   "score": 3.0,
+   "status": "proposed",
+   "rank": 39,
+   "id": "ENH-046"
+  },
+  {
+   "title": "Reconcile Copilot Chat modes (chat/ask/edit/agent) with the Agent, Plan, Ask and custom roles VS Code documents",
+   "type": "reconcile",
+   "surfaces": [
+    "copilot-vscode"
+   ],
+   "rows": [
+    "F19.named-modes"
+   ],
+   "cells": [
+    "copilot-vscode/F19.named-modes"
+   ],
+   "repo_files": [
+    {
+     "path": "plugins/ai-coding-model-guidance/knowledge/cross-tool-model-lineup-2026.md",
+     "exists": true
+    },
+    {
+     "path": "plugins/ai-coding-model-guidance/knowledge/ai-coding-mode-selection-decision-tree.md",
+     "exists": true
+    }
+   ],
+   "repo_claim": {
+    "blob_sha": "2f50953dd2173764b02399a4b018e1501e0dd5dc",
+    "path": "plugins/ai-coding-model-guidance/knowledge/cross-tool-model-lineup-2026.md",
+    "line": 117,
+    "quote": "selectable in VS Code (all modes: chat / ask / edit / agent)"
+   },
+   "proposal": "In cross-tool-model-lineup-2026.md:117 replace `all modes: chat / ask / edit / agent` with the roles the VS Code docs list: Agent, Plan, Ask and custom agents. In ai-coding-mode-selection-decision-tree.md:41 rename the `Copilot Chat / edit` cell to `Copilot Ask / Plan` and keep its `[verify-at-use]` tag. The atlas quote gives examples, not a closed list, so do not state that Edit mode was removed; just stop naming it as current without a source.",
+   "ceiling": {
+    "cell": "copilot-vscode/F19.named-modes",
+    "quote": "Which instructions, tools, and behavior apply to a task. Examples include Agent, Plan, Ask, and custom agents."
+   },
+   "value": 1,
+   "reach": 1,
+   "effort": 1,
+   "risk": 1,
+   "basis": {
+    "kind": "inference",
+    "falsified_by": "Current VS Code Copilot Chat docs listing an Edit mode in the chat mode picker would show the repo wording is still accurate."
+   },
+   "evidence_strength": 3,
+   "score": 3.0,
+   "status": "proposed",
+   "rank": 40,
+   "id": "ENH-055"
+  },
+  {
+   "title": "Reconcile the three settings locations in gemini-customization.md with Gemini's four merged settings files",
+   "type": "reconcile",
+   "surfaces": [
+    "gemini-cli"
+   ],
+   "rows": [
+    "F04.config-scope-precedence"
+   ],
+   "cells": [
+    "gemini-cli/F04.config-scope-precedence"
+   ],
+   "repo_files": [
+    {
+     "path": "plugins/ravenclaude-core/knowledge/gemini-customization.md",
+     "exists": true
+    }
+   ],
+   "repo_claim": {
+    "blob_sha": "e9aa36aa4f701bbc1a9c8c442093ef5eec859070",
+    "path": "plugins/ravenclaude-core/knowledge/gemini-customization.md",
+    "line": 57,
+    "quote": "`.gemini/settings.json` (project) · `~/.gemini/settings.json` (user) ·"
+   },
+   "proposal": "Edit the 'Where hooks are configured' paragraph: say Gemini documents four merged settings files rather than a closed set of three, cite the settings reference for the precedence order instead of restating it, and note that the vendor docs disagree (one FAQ says two files). Add that hooks defined in another layer merge with the installer's project .gemini/settings.json entry, so `ravenclaude status` should read every layer before reporting a guardrail as wired.",
+   "ceiling": {
+    "cell": "gemini-cli/F04.config-scope-precedence",
+    "quote": "Settings are merged from four files. The precedence order for single-value"
+   },
+   "value": 1,
+   "reach": 1,
+   "effort": 1,
+   "risk": 1,
+   "basis": {
+    "kind": "observation",
+    "falsified_by": "The current Gemini CLI settings reference lists exactly three layers (system, user, project) for the version RavenClaude installs against."
+   },
+   "evidence_strength": 3,
+   "score": 3.0,
+   "status": "proposed",
+   "rank": 41,
+   "id": "ENH-038"
+  },
+  {
+   "title": "Project RavenClaude agents to .cursor/agents/ with readonly: true on review-only agents, as the Codex lane does",
+   "type": "extend",
+   "surfaces": [
+    "cursor"
+   ],
+   "rows": [
+    "F09.definition-format",
+    "F09.tool-allowlist"
+   ],
+   "cells": [
+    "cursor/F09.definition-format",
+    "cursor/F09.tool-allowlist"
+   ],
+   "repo_files": [
+    {
+     "path": "plugins/ravenclaude-core/knowledge/host-support.json",
+     "exists": true
+    },
+    {
+     "path": "scripts/generate-cursor-agents.py",
+     "exists": false
+    },
+    {
+     "path": "scripts/generate-codex-agents.py",
+     "exists": true
+    }
+   ],
+   "proposal": "Add scripts/generate-cursor-agents.py, a sibling of generate-codex-agents.py, writing each agents/*.md as .cursor/agents/<name>.md with name, description and prompt body. Set readonly: true on the same five review-only agents the Codex lane marks read-only, because Cursor's default is false and an omitted key grants write. Leave model at its inherit default and state the canonical tier in a header comment, as the Codex projection does. Check generated names against Cursor's built-in subagent names. Wire it into `install --host cursor`, add a Gate-170-style assertion, and flip components.agents.cursor in host-support.json.",
+   "ceiling": {
+    "cell": "cursor/F09.tool-allowlist",
+    "quote": "If `true`, the subagent runs with restricted write permissions (no file edits, no state-changing shell commands)."
+   },
+   "value": 2,
+   "reach": 1,
+   "effort": 2,
+   "risk": 1,
+   "basis": {
+    "kind": "observation",
+    "falsified_by": "A scratch .cursor/agents/<name>.md with readonly: true that can still edit files or run state-changing shell commands in a live Cursor session would show the readonly guarantee does not hold."
+   },
+   "evidence_strength": 3,
+   "score": 3.0,
+   "status": "proposed",
+   "rank": 42,
+   "id": "ENH-029"
+  },
+  {
+   "title": "Register a PermissionDenied hook so auto-mode denials reach hook-events and the blocked-exhaustion gate",
+   "type": "extend",
+   "surfaces": [
+    "claude-code"
+   ],
+   "rows": [
+    "F04.auto-review",
+    "F19.mode-defaults"
+   ],
+   "cells": [
+    "claude-code/F04.auto-review",
+    "claude-code/F19.mode-defaults"
+   ],
+   "repo_files": [
+    {
+     "path": "plugins/ravenclaude-core/hooks/hooks.json",
+     "exists": true
+    },
+    {
+     "path": "plugins/ravenclaude-core/knowledge/claude-code-permissions.md",
+     "exists": true
+    },
+    {
+     "path": "plugins/ravenclaude-core/hooks/workaround-exhaustion.sh",
+     "exists": true
+    },
+    {
+     "path": "plugins/ravenclaude-core/hooks/_emit-event.sh",
+     "exists": true
+    }
+   ],
+   "proposal": "Add a `PermissionDenied` entry to plugins/ravenclaude-core/hooks/hooks.json and the dev-mirror settings, with a body under scripts/ run via `bash` like the other new hooks. It appends a derived-values-only deny event (hook name, tool name, fixed rule token; never command text) to hook-events.jsonl through _emit-event.sh, so Heimdall, and the blocked-exhaustion gate that anchors on that file, see classifier denials, not only RavenClaude guard denials. Also fix claude-code-permissions.md line 289, which says the event fires on any permission-rule denial; the atlas scopes it to auto-mode denials, including ones with no classifier verdict.",
+   "ceiling": {
+    "cell": "claude-code/F04.auto-review",
+    "quote": "Auto mode denies a tool call, including denials without a classifier verdict | Log denials, or tell the model it may retry; Claude Code ignores `retry: true` for no-verdict denials."
+   },
+   "value": 2,
+   "reach": 1,
+   "effort": 2,
+   "risk": 1,
+   "basis": {
+    "kind": "inference",
+    "falsified_by": "Registering a PermissionDenied hook in a scratch project and triggering an auto-mode denial produces no event, or hook-events.jsonl already records classifier denials through another hook."
+   },
+   "evidence_strength": 3,
+   "score": 3.0,
+   "status": "proposed",
+   "rank": 43,
+   "id": "ENH-006"
+  },
+  {
+   "title": "Wire Gemini AfterAgent (exit 2 = automatic retry turn) as the Stop-lane counterpart",
+   "type": "extend",
+   "surfaces": [
+    "gemini-cli"
+   ],
+   "rows": [
+    "F06.output-blocking",
+    "F06.event-catalog"
+   ],
+   "cells": [
+    "gemini-cli/F06.output-blocking",
+    "gemini-cli/F06.event-catalog"
+   ],
+   "repo_files": [
+    {
+     "path": "plugins/ravenclaude-core/knowledge/gemini-customization.md",
+     "exists": true
+    },
+    {
+     "path": "plugins/ravenclaude-core/hooks/gemini-hook-adapter.sh",
+     "exists": true
+    },
+    {
+     "path": "plugins/ravenclaude-core/hooks/dod-gate.sh",
+     "exists": true
+    }
+   ],
+   "proposal": "In gemini-customization.md, replace item 5's 'plausible counterparts' wording with the documented contract: AfterAgent fires once per turn after the model's final response, and exit 2 triggers an automatic retry turn, the Stop-block analogue. Then wire a Stop-lane guardrail such as hooks/dod-gate.sh to AfterAgent through gemini-hook-adapter.sh, with a self-limit so a retry cannot loop. Hold the wiring until the AfterAgent stdin payload is read from the hooks reference (the atlas quotes none), and leave UserPromptSubmit unwired.",
+   "ceiling": {
+    "cell": "gemini-cli/F06.event-catalog",
+    "quote": "**`AfterAgent`**: Fires **once** per turn after the model finishes its final"
+   },
+   "value": 2,
+   "reach": 1,
+   "effort": 2,
+   "risk": 2,
+   "basis": {
+    "kind": "inference",
+    "falsified_by": "In a live Gemini CLI, an AfterAgent hook exiting 2 does not start a retry turn, or its stdin payload lacks a field the Stop-lane guardrail needs."
+   },
+   "evidence_strength": 3,
+   "score": 3.0,
+   "status": "proposed",
+   "rank": 44,
+   "id": "ENH-039"
+  },
+  {
+   "title": "Adopt Copilot's skill allowed-tools frontmatter, currently marked 'not yet adopted'",
+   "type": "extend",
+   "surfaces": [
+    "copilot-cli"
+   ],
+   "rows": [
+    "F08.skill-overrides"
+   ],
+   "cells": [
+    "copilot-cli/F08.skill-overrides"
+   ],
+   "repo_files": [
+    {
+     "path": "plugins/ravenclaude-core/knowledge/copilot-cli-customization.md",
+     "exists": true
+    }
+   ],
+   "repo_claim": {
+    "blob_sha": "c555f20fef25aa99115afea3f0436bc9af1dd195",
+    "path": "plugins/ravenclaude-core/knowledge/copilot-cli-customization.md",
+    "line": 198,
+    "quote": "Copilot's `allowed-tools` is available as a future friction-reducer (not yet adopted)"
+   },
+   "proposal": "Add `allowed-tools` to the SKILL.md frontmatter of one read-only skill first, listing only read tools, and probe in a live Copilot CLI session that listed tools skip the prompt while unlisted ones still ask. Record the tool-name vocabulary the field accepts in section 3 of copilot-cli-customization.md, then replace the 'not yet adopted' sentence on line 198 and in section 6 with the adopted list. Never list shell or write tools in a shared skill.",
+   "ceiling": {
+    "cell": "copilot-cli/F08.skill-overrides",
+    "quote": "In your `SKILL.md` frontmatter, you can use the `allowed-tools` field to list the tools Copilot may use without asking for confirmation each time."
+   },
+   "value": 2,
+   "reach": 1,
+   "effort": 2,
+   "risk": 2,
+   "basis": {
+    "kind": "observation",
+    "falsified_by": "A search for `allowed-tools` across plugins/*/skills/*/SKILL.md already finds adopted skills, which would make line 198 stale rather than a gap."
+   },
+   "evidence_strength": 3,
+   "score": 3.0,
+   "status": "proposed",
+   "rank": 45,
+   "id": "ENH-017"
+  },
+  {
+   "title": "Ship agents/openai.yaml with allow_implicit_invocation: false for explicit-only skills on Codex",
+   "type": "extend",
+   "surfaces": [
+    "codex-cli"
+   ],
+   "rows": [
+    "F08.skill-overrides"
+   ],
+   "cells": [
+    "codex-cli/F08.skill-overrides"
+   ],
+   "repo_files": [
+    {
+     "path": "plugins/ravenclaude-core/knowledge/host-support.json",
+     "exists": true
+    },
+    {
+     "path": "plugins/ravenclaude-core/skills/forge-pipeline/agents/openai.yaml",
+     "exists": false
+    },
+    {
+     "path": "plugins/ravenclaude-core/skills/spawn-team/agents/openai.yaml",
+     "exists": false
+    }
+   ],
+   "proposal": "Codex honours an optional agents/openai.yaml per skill, with allow_implicit_invocation defaulting to true. The Codex lane symlinks every skill unchanged (host-support.json line 150, 'no per-host rewriting') and no skill ships that file, so any skill can be picked implicitly. Add agents/openai.yaml with allow_implicit_invocation: false to the heavyweight, explicit-only entry skills first (forge-pipeline, spawn-team), so Codex runs them only on an explicit $skill call. The symlinked skill directory carries the file with no installer change. Run the layout check for skills/*/agents/.",
+   "ceiling": {
+    "cell": "codex-cli/F08.skill-overrides",
+    "quote": "`allow_implicit_invocation` (default: `true`): When `false`, Codex won't implicitly invoke the skill based on user prompt; explicit `$skill` invocation still works."
+   },
+   "value": 2,
+   "reach": 1,
+   "effort": 2,
+   "risk": 2,
+   "basis": {
+    "kind": "inference",
+    "falsified_by": "An openai.yaml or equivalent invocation policy already present under a skill directory (a glob of plugins for openai.yaml found none this session), or the owner wanting those skills implicitly invocable on Codex."
+   },
+   "evidence_strength": 3,
+   "score": 3.0,
+   "status": "proposed",
+   "rank": 46,
+   "id": "ENH-012"
+  },
+  {
+   "title": "Pin projected agents' model and effort through Copilot's per-agent settings.json entry, not just a header note",
+   "type": "improve",
+   "surfaces": [
+    "copilot-cli"
+   ],
+   "rows": [
+    "F09.per-agent-model",
+    "F09.per-agent-effort"
+   ],
+   "cells": [
+    "copilot-cli/F09.per-agent-model",
+    "copilot-cli/F09.per-agent-effort"
+   ],
+   "repo_files": [
+    {
+     "path": "plugins/ravenclaude-core/knowledge/host-support.json",
+     "exists": true
+    },
+    {
+     "path": "scripts/generate-copilot-plugin.py",
+     "exists": true
+    },
+    {
+     "path": "plugins/ravenclaude-core/copilot/README.md",
+     "exists": true
+    }
+   ],
+   "proposal": "Extend scripts/generate-copilot-plugin.py to emit, beside the agents, a commented settings.json snippet that lists each projected agent by name with `model` left for the consumer to fill, `modelPolicy: preferred`, and an `effortLevel` suggestion. Point the host-support.json model_tier text (line 224) and copilot/README.md at it, replacing 'inherits the session default until the consumer pins it' with the exact pin location. No alias-to-id map ships, so no tenant lineup is hard-coded and the haiku saving for scout becomes one edit away.",
+   "ceiling": {
+    "cell": "copilot-cli/F09.per-agent-model",
+    "quote": "Per-agent model configuration, keyed by agent name. Each value is an object with optional `model` (string), `modelPolicy` (`\"preferred\"` or `\"required\"`), `effortLevel`"
+   },
+   "value": 2,
+   "reach": 1,
+   "effort": 2,
+   "risk": 1,
+   "basis": {
+    "kind": "inference",
+    "falsified_by": "In a live Copilot CLI session a per-agent settings.json entry keyed by a projected agent's name does not change the model that agent runs on."
+   },
+   "evidence_strength": 3,
+   "score": 3.0,
+   "status": "proposed",
+   "rank": 47,
+   "id": "ENH-018"
+  },
+  {
+   "title": "Name the on-demand cap path and its mid-run overshoot in grok-bot-token-spend",
+   "type": "improve",
+   "surfaces": [
+    "grok-bot"
+   ],
+   "rows": [
+    "F22.budget-caps"
+   ],
+   "cells": [
+    "grok-bot/F22.budget-caps"
+   ],
+   "repo_files": [
+    {
+     "path": "plugins/grok-bot-delegation/skills/grok-bot-token-spend/SKILL.md",
+     "exists": true
+    }
+   ],
+   "repo_claim": {
+    "blob_sha": "adfe97793644eda2ed8ae1a68765e937ea5dcabd",
+    "path": "plugins/grok-bot-delegation/skills/grok-bot-token-spend/SKILL.md",
+    "line": 23,
+    "quote": "Do: lean Bot descriptions; enable skills only where needed; file-back large outputs; fresh thread per distinct task; set account on-demand limits."
+   },
+   "proposal": "In plugins/grok-bot-delegation/skills/grok-bot-token-spend/SKILL.md line 23, replace 'set account on-demand limits' with the documented path (Settings > On-demand monthly limit, or the web dashboard's Spending > Monthly Limit). State that the cap is account-level, not a Grok Bot-specific cap, and does not stop a Bot mid-run, so a running task can overshoot. Pair it with the effort-ladder and condensed-returns rules rather than treating the cap as a hard budget.",
+   "ceiling": {
+    "cell": "grok-bot/F22.budget-caps",
+    "quote": "Turn off on-demand, or set a cap. In Grok Bot, open **Settings** > **On-demand monthly limit**."
+   },
+   "value": 1,
+   "reach": 1,
+   "effort": 1,
+   "risk": 1,
+   "basis": {
+    "kind": "observation",
+    "falsified_by": "A live Bot being stopped mid-run exactly at the on-demand cap (contradicting E-grok-bot-00552), or the vendor adding a separate Grok Bot spend cap."
+   },
+   "evidence_strength": 3,
+   "score": 3.0,
+   "status": "proposed",
+   "rank": 48,
+   "id": "ENH-047"
+  },
+  {
+   "title": "Add a .cursor/BUGBOT.md lane: the layout .mdc rule never reaches Cursor Bugbot PR reviews",
+   "type": "new-lane",
+   "surfaces": [
+    "cursor"
+   ],
+   "rows": [
+    "F03.path-scoped-rules",
+    "F03.precedence-scoping"
+   ],
+   "cells": [
+    "cursor/F03.path-scoped-rules",
+    "cursor/F03.precedence-scoping"
+   ],
+   "repo_files": [
+    {
+     "path": "plugins/ravenclaude-core/knowledge/cursor-customization.md",
+     "exists": true
+    },
+    {
+     "path": "plugins/ravenclaude-core/knowledge/host-support.json",
+     "exists": true
+    },
+    {
+     "path": "scripts/ravenclaude",
+     "exists": true
+    }
+   ],
+   "proposal": "Extend `ravenclaude install --host cursor` (scripts/ravenclaude) to write a short .cursor/BUGBOT.md as a marker-delimited block: a pointer to the layout allow-list and the discipline summary the always-on .mdc rule carries. The generated .cursor/rules/*.mdc layout rule does not apply to Bugbot runs, so PR review on Cursor currently sees none of it. Never overwrite an existing BUGBOT.md. Note the new file in cursor-customization.md and add a Bugbot line to the instruction_files caveat in host-support.json.",
+   "ceiling": {
+    "cell": "cursor/F03.path-scoped-rules",
+    "quote": "Cursor [project rules](https://cursor.com/docs/rules.md) (`*.mdc` files in `.cursor/rules/`) do not apply to Bugbot runs. Use `.cursor/BUGBOT.md` or rules configured in Automations instead."
+   },
+   "value": 1,
+   "reach": 1,
+   "effort": 1,
+   "risk": 1,
+   "basis": {
+    "kind": "observation",
+    "falsified_by": "A Bugbot run on a PR in a repo with .cursor/rules/*.mdc and no BUGBOT.md that still applies the layout rule would contradict the vendor statement this entry rests on."
+   },
+   "evidence_strength": 3,
+   "score": 3.0,
+   "status": "proposed",
+   "rank": 49,
+   "id": "ENH-030"
+  },
+  {
+   "title": "premise-gate.py reads 'unsettled' and 'falsified' as settled, and its blast floor misses .md work",
+   "type": "en-route-defect",
+   "surfaces": [],
+   "rows": [],
+   "cells": [],
+   "repo_files": [
+    {
+     "path": "plugins/ravenclaude-core/scripts/premise-gate.py",
+     "exists": true
+    },
+    {
+     "path": "plugins/ravenclaude-core/skills/forge-pipeline/reference/premise-gate.md",
+     "exists": true
+    }
+   ],
+   "repo_claim": {
+    "blob_sha": "a0f714810f75beb2d3fe7dafc1859879dfbc3c26",
+    "path": "plugins/ravenclaude-core/scripts/premise-gate.py",
+    "line": 163,
+    "quote": "\"settled\": any(s in settle for s in _SETTLED),"
+   },
+   "proposal": "In premise-gate.py line 163, replace the substring test with a whole-word match, so a settling cell of `unsettled` or `not yet settled` stays unsettled (today the same 3-file phase gives exit 2 for `open` and exit 0 for `unsettled`). Give `falsified` its own state that trips an over-floor citing phase, as reference/premise-gate.md line 66 says (a falsified claim voids every citing phase). At line 197, add md, html, json, css, yml, yaml, svg and toml to the extension list and end it with a word boundary; today `.md` files count zero, while `.json` and `.html` count only because they match as `.js` and `.h`. Add one failing-before fixture for each.",
+   "value": 3,
+   "reach": 1,
+   "effort": 1,
+   "risk": 2,
+   "basis": {
+    "kind": "observation",
+    "falsified_by": "Run premise-gate.py --run-dir on a claims table whose inference row says `unsettled` (or `falsified`) in the settling column, cited by a 3-file phase: exit 2 would show the claim wrong. A 3-file `.md` phase tripping at exit 2 would show the blast-floor claim wrong."
+   },
+   "evidence_strength": 1,
+   "score": 3.0,
+   "status": "proposed",
+   "rank": 50,
+   "id": "ENH-033"
+  },
+  {
+   "title": "sanitize-webfetch-body.py deletes the rest of a page after a closing code fence followed by the word 'system'",
+   "type": "en-route-defect",
+   "surfaces": [],
+   "rows": [],
+   "cells": [],
+   "repo_files": [
+    {
+     "path": "plugins/ravenclaude-core/scripts/sanitize-webfetch-body.py",
+     "exists": true
+    }
+   ],
+   "repo_claim": {
+    "blob_sha": "7bdb5c9509f3f26ed52e9fb58215646ddb61de9b",
+    "path": "plugins/ravenclaude-core/scripts/sanitize-webfetch-body.py",
+    "line": 135,
+    "quote": "re.compile(r\"```\\s*system\\b.*\\Z\""
+   },
+   "proposal": "In sanitize-webfetch-body.py, anchor the two fence patterns (lines 119 and 135) to an opening fence: `(?m)^[ \\t]*```[ \\t]*system\\b`, replacing `\\s*`, which crosses newlines and so matches a closing fence followed by prose that starts with `system`. Reproduced on a 1,858-char benign page: the unterminated pattern removed 1,832 chars and the CLI exited 0; the paired pattern removed 465 of 499 on a page with a later code block. Have the CLI report bytes removed and the first stripped line on stderr, not only a count. Add Gate 48 fixtures: a closing fence then `System settings` must pass unchanged; real closed, unterminated and nested-decoy ```system fences must still be stripped.",
+   "value": 2,
+   "reach": 1,
+   "effort": 1,
+   "risk": 2,
+   "basis": {
+    "kind": "observation",
+    "falsified_by": "Pipe a page with a closing code fence, a paragraph beginning `System settings`, and 50 more lines through the script: if every line comes out and stderr reports 0 strips, the claim is wrong."
+   },
+   "evidence_strength": 1,
+   "score": 2.0,
+   "status": "proposed",
+   "rank": 51,
+   "id": "ENH-034"
+  },
+  {
+   "title": "cause-triage opens negatives on successful read-only commands and cause-gate matches unrelated ones on a 40-char prefix",
+   "type": "en-route-defect",
+   "surfaces": [],
+   "rows": [],
+   "cells": [],
+   "repo_files": [
+    {
+     "path": "plugins/ravenclaude-core/hooks/triage-outcome.sh",
+     "exists": true
+    },
+    {
+     "path": "plugins/ravenclaude-core/scripts/guard-remediation-cause.sh",
+     "exists": true
+    }
+   ],
+   "repo_claim": {
+    "blob_sha": "32de0343d0322b20c3daf054225543f6f03a0544",
+    "path": "plugins/ravenclaude-core/hooks/triage-outcome.sh",
+    "line": 415,
+    "quote": "subject = \"cmd:\" + re.sub(r\"\\s+\", \" \", subj_src.strip())[:40]"
+   },
+   "proposal": "(1) triage-outcome.sh: for a compound command (`;` or `&&`), open no ledger row, or one only for the segment the error label names. Reproduced: `curl ... https://docs.github.com/llms.txt; ls /no/such/dir`, where curl returned 200, was triaged negative with subject `docs.github.com/llms.txt;`; curl alone is silent. (2) Treat a stderr holding only a harness notice (the run notes name `Shell cwd was reset`) as empty; line 349 counts any stderr as angry. (3) In both hooks replace the `cmd:` fallback, the first 40 characters, with a hash of the command after its leading `cd <path> &&`. Reproduced: a failed grep and an unrelated `git commit` under one `cd` prefix share a subject, and cause-gate fired on the commit.",
+   "value": 2,
+   "reach": 1,
+   "effort": 2,
+   "risk": 2,
+   "basis": {
+    "kind": "observation",
+    "falsified_by": "Replay the three payloads through triage-outcome.sh and guard-remediation-cause.sh: a silent curl-plus-ls case, or no gate advisory on the shared `cd` prefix, would show the claim wrong. Not observed this session: that the live harness puts `Shell cwd was reset` in stderr (a run-notes claim; I fed a synthetic stderr)."
+   },
+   "evidence_strength": 1,
+   "score": 1.0,
+   "status": "proposed",
+   "rank": 52,
+   "id": "ENH-035"
+  },
+  {
+   "title": "premise-gate.py parses numbered headings as phases, so a numbered sub-heading can make an over-floor phase pass",
+   "type": "en-route-defect",
+   "surfaces": [],
+   "rows": [],
+   "cells": [],
+   "repo_files": [
+    {
+     "path": "plugins/ravenclaude-core/scripts/premise-gate.py",
+     "exists": true
+    },
+    {
+     "path": "plugins/ravenclaude-core/skills/forge-pipeline/SKILL.md",
+     "exists": true
+    }
+   ],
+   "repo_claim": {
+    "blob_sha": "a0f714810f75beb2d3fe7dafc1859879dfbc3c26",
+    "path": "plugins/ravenclaude-core/scripts/premise-gate.py",
+    "line": 60,
+    "quote": "#{2,4}\\s*(?:Phase\\s*)?(P?-?\\d+[a-z]?)"
+   },
+   "proposal": "In `_PHASE_RE` (premise-gate.py line 60) require the word `Phase` or a `P` before the number, so `## 1. Goal`, `### 2.1 Detail` and `## 2024 notes` stop opening phases, and state the `## Phase P<n>` heading form in the plan contract (forge-pipeline SKILL.md, near line 273). Reproduced: with one unsettled inference and one 3-file phase, the plan exits 2 when `depends_on_claims` sits directly under the phase and exits 0 when it sits under a `### 1. Details` sub-heading, because the line moves to a phantom phase 1. Add that pair as a self-test fixture, plus a plan with ten numbered section headings that must report only its real phases.",
+   "value": 2,
+   "reach": 1,
+   "effort": 2,
+   "risk": 2,
+   "basis": {
+    "kind": "observation",
+    "falsified_by": "Feed premise-gate.py a claims table with one open inference (row 5) and a plan holding `## Phase P2`, a body naming three .py files, then `### 1. Details` followed by `depends_on_claims: [5]`: exit 2 would show the claim wrong."
+   },
+   "evidence_strength": 1,
+   "score": 1.0,
+   "status": "proposed",
+   "rank": 53,
+   "id": "ENH-036"
+  },
+  {
+   "title": "Package ravenclaude-core as a Gemini extension to carry the skills and agents the installer cannot wire",
+   "type": "probe",
+   "surfaces": [
+    "gemini-cli"
+   ],
+   "rows": [
+    "F11.install-sources",
+    "F09.definition-format",
+    "F08.skill-format",
+    "F11.packaging-format",
+    "F11.versioning-update"
+   ],
+   "cells": [
+    "gemini-cli/F11.install-sources",
+    "gemini-cli/F09.definition-format",
+    "gemini-cli/F08.skill-format",
+    "gemini-cli/F11.packaging-format",
+    "gemini-cli/F11.versioning-update"
+   ],
+   "repo_files": [
+    {
+     "path": "plugins/ravenclaude-core/knowledge/host-support.json",
+     "exists": true
+    },
+    {
+     "path": "plugins/ravenclaude-core/knowledge/gemini-customization.md",
+     "exists": true
+    },
+    {
+     "path": ".repo-layout.json",
+     "exists": true
+    }
+   ],
+   "proposal": "Add plugins/ravenclaude-core/gemini-extension.json (name, version derived from plugin.json, a context file that @-imports AGENTS.md) so `gemini extensions install <local path>` loads the plugin's skills/ and agents/ directories. Project agents as .md files with name, tools and model frontmatter. After a scratch install shows both listed in the CLI, flip the gemini skills and agents cells in host-support.json from unsupported. Document that extension changes need a CLI restart, so an update is 'pull, then restart', and add the manifest path to .repo-layout.json.",
+   "ceiling": {
+    "cell": "gemini-cli/F11.install-sources",
+    "quote": "Install extension from Git URL or local path"
+   },
+   "value": 3,
+   "reach": 1,
+   "effort": 3,
+   "risk": 1,
+   "basis": {
+    "kind": "inference",
+    "falsified_by": "A scratch `gemini extensions install ./plugins/ravenclaude-core` does not surface the skills and agents in the CLI, or the manifest needs fields the plugin layout cannot supply."
+   },
+   "evidence_strength": 1,
+   "score": 1.0,
+   "status": "proposed",
+   "rank": 54,
+   "id": "ENH-040"
+  },
+  {
+   "title": "Reconcile host-support.json gemini activation_gate 'none' with Gemini's untrusted-by-default project hooks",
+   "type": "probe",
+   "surfaces": [
+    "gemini-cli"
+   ],
+   "rows": [
+    "F06.trust-enable"
+   ],
+   "cells": [
+    "gemini-cli/F06.trust-enable"
+   ],
+   "repo_files": [
+    {
+     "path": "plugins/ravenclaude-core/knowledge/host-support.json",
+     "exists": true
+    },
+    {
+     "path": "plugins/ravenclaude-core/knowledge/gemini-customization.md",
+     "exists": true
+    }
+   ],
+   "repo_claim": {
+    "blob_sha": "02e76fb3a776272037b64db0048c5c6f85ed2e35",
+    "path": "plugins/ravenclaude-core/knowledge/host-support.json",
+    "line": 32,
+    "quote": "\"activation_gate\": \"none\""
+   },
+   "proposal": "Atlas shows Gemini treats project hooks (./.gemini/...) as untrusted by default and fingerprints them: a changed hook name or command is a new untrusted hook and warns before it runs. The installer writes project hooks into .gemini/settings.json, so an install or a pulled update can leave guardrails awaiting trust. Probe a live Gemini CLI first. If it prompts, set the gemini activation_gate to hash_trust (or a new value if the fingerprint covers only name and command), add a 'Hook trust' section to gemini-customization.md, and let _rc_rearm_notice print the re-trust reminder at install, update and status.",
+   "ceiling": {
+    "cell": "gemini-cli/F06.trust-enable",
+    "quote": "Gemini CLI **fingerprints** project hooks. If a hook's name or command changes"
+   },
+   "value": 3,
+   "reach": 1,
+   "effort": 2,
+   "risk": 2,
+   "basis": {
+    "kind": "inference",
+    "falsified_by": "A live Gemini CLI loads installer-written .gemini/settings.json hooks and runs them with no trust prompt or warning, on first run and after a hook command changes."
+   },
+   "evidence_strength": 0,
+   "score": 0.0,
+   "status": "proposed",
+   "rank": 55,
+   "id": "ENH-041"
+  }
+ ]
+}
