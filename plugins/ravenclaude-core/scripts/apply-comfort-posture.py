@@ -15,10 +15,19 @@ What it does (v0.17.0 — overwrite mode):
      the pattern in the deny/ask/allow bucket per level_to_bucket().
   3. Union the posture's `security_deny` list into the deny bucket.
   4. OVERWRITE permissions.allow/ask/deny in .claude/settings.json with the
-     resolved emission. Non-posture fields ($schema, model, env, hooks) are
-     left untouched.
+     resolved emission. Non-posture fields ($schema, model, hooks) are left
+     untouched; see nested_dispatch below for the one env key this script owns.
   5. Delete any stale snapshot file from v0.16.0 (no longer used).
   6. Print a per-bucket count + the session-mode warning footer.
+  7. nested_dispatch (v0.20.0): on the project layer only, pin
+     env.CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH from the posture flag
+     `nested_dispatch: off | on` (absent = off; bare true/false accepted).
+     off → "1" (a subagent has no Agent tool); on → "3" — but ONLY if
+     `claude auth status` reports loggedIn. Otherwise apply as off with a WARN.
+     Every off→on transition writes one provenance record under
+     .ravenclaude/runs/nested-dispatch/ (gitignored). Other env keys untouched.
+     Nesting is Claude Code-only; on Cursor / Grok Build the flag is a no-op
+     (those hosts already cap depth at 1).
 
 Design constraints:
   - **Narrow rules only.** Emit `Bash(git push:*)`, NOT `Bash(*)`. Auto-mode
@@ -58,6 +67,8 @@ import argparse
 import contextlib
 import json
 import os
+import shutil
+import subprocess
 import sys
 import uuid
 from datetime import datetime, timezone
@@ -680,7 +691,7 @@ def compute_emission(posture: dict) -> dict[str, list[str]]:
 # settings file per active layer. See skills/set-posture/SKILL.md and
 # docs/dashboard-buildout-plan.md §2 (Phase A).
 
-SCRIPT_VERSION = "0.19.0"
+SCRIPT_VERSION = "0.20.0"
 LAYERS = ("user", "local", "project")
 SIDE_CAR_NAME = ".comfort-posture-applied"
 
@@ -871,6 +882,201 @@ def ephemeral_user_warning() -> str | None:
     return None
 
 
+
+# ── nested_dispatch → CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH (v0.20.0) ─────────
+# Dashboard toggle (default off). Pins the platform nesting ceiling in the
+# consumer's project settings.json env. Auth-gated: `on` only when Claude Code
+# is signed in on this machine. See docs/decisions/2026-09-14-nested-dispatch-
+# determination.md § 8.
+
+NESTED_DISPATCH_ENV = "CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH"
+NESTED_DISPATCH_DEPTH_OFF = "1"
+NESTED_DISPATCH_DEPTH_ON = "3"
+NESTED_DISPATCH_MODES = frozenset({"off", "on"})
+NESTED_DISPATCH_RECORD_DIR = Path(".ravenclaude") / "runs" / "nested-dispatch"
+CLAUDE_BIN_ENV = "RAVENCLAUDE_CLAUDE_BIN"
+
+
+def nested_dispatch_mode(posture: dict) -> str:
+    """Normalize posture.nested_dispatch to 'off' | 'on'. Absent / garbage → off.
+
+    Accepts string spellings and PyYAML bare booleans (true→on, false→off).
+    """
+    raw = posture.get("nested_dispatch", "off")
+    if raw is True:
+        return "on"
+    if raw is False or raw is None:
+        return "off"
+    if isinstance(raw, str):
+        v = raw.strip().lower()
+        if v in ("on", "true", "yes", "1"):
+            return "on"
+        if v in ("off", "false", "no", "0", ""):
+            return "off"
+        # garbage → fail closed
+        return "off"
+    return "off"
+
+
+def claude_auth_status(timeout: float = 8.0) -> dict:
+    """Probe `claude auth status --json`. Returns a small dict; never raises.
+
+    Override the binary with $RAVENCLAUDE_CLAUDE_BIN (Gate 293 stubs this).
+    Exit semantics of --nested-dispatch-auth: 0 signed in, 3 signed out / unknown.
+    """
+    bin_name = os.environ.get(CLAUDE_BIN_ENV, "").strip() or "claude"
+    # Resolve via PATH unless absolute.
+    if "/" in bin_name:
+        claude = bin_name
+    else:
+        claude = shutil.which(bin_name) or bin_name
+    out: dict = {
+        "logged_in": False,
+        "account": None,
+        "error": None,
+        "bin": claude,
+    }
+    try:
+        proc = subprocess.run(
+            [claude, "auth", "status", "--json"],
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+            check=False,
+        )
+    except FileNotFoundError:
+        out["error"] = "claude_not_found"
+        return out
+    except subprocess.TimeoutExpired:
+        out["error"] = "timeout"
+        return out
+    except OSError as exc:
+        out["error"] = f"os_error:{exc}"
+        return out
+    raw = (proc.stdout or "").strip()
+    if not raw:
+        out["error"] = f"empty_stdout:exit={proc.returncode}"
+        return out
+    try:
+        data = json.loads(raw)
+    except json.JSONDecodeError:
+        # Some builds print a prose line then JSON; try last {...} block.
+        start = raw.find("{")
+        end = raw.rfind("}")
+        if start >= 0 and end > start:
+            try:
+                data = json.loads(raw[start : end + 1])
+            except json.JSONDecodeError:
+                out["error"] = "unparseable_json"
+                return out
+        else:
+            out["error"] = "unparseable_json"
+            return out
+    # Claude Code's shape has varied: loggedIn / logged_in / authenticated.
+    logged = data.get("loggedIn")
+    if logged is None:
+        logged = data.get("logged_in")
+    if logged is None:
+        logged = data.get("authenticated")
+    out["logged_in"] = bool(logged) is True and logged is not False
+    # Prefer an email / account label when present.
+    acct = data.get("email") or data.get("account")
+    sub = data.get("subscription")
+    if not acct and isinstance(sub, dict):
+        acct = sub.get("email")
+    if isinstance(acct, str) and acct.strip():
+        out["account"] = acct.strip()
+    if not out["logged_in"] and out["error"] is None:
+        out["error"] = "signed_out"
+    return out
+
+
+def resolve_nested_dispatch(posture: dict) -> tuple[str, str, dict]:
+    """Return (requested, effective, auth_status).
+
+    requested is what the YAML asked for; effective is what we will write.
+    on without auth → effective off.
+    """
+    requested = nested_dispatch_mode(posture)
+    auth = claude_auth_status()
+    if requested == "on" and not auth.get("logged_in"):
+        return requested, "off", auth
+    return requested, requested, auth
+
+
+def apply_nested_dispatch(settings: dict, effective: str) -> str:
+    """Set settings['env'][NESTED_DISPATCH_ENV] from effective mode. Returns depth."""
+    depth = NESTED_DISPATCH_DEPTH_ON if effective == "on" else NESTED_DISPATCH_DEPTH_OFF
+    env = settings.get("env")
+    if not isinstance(env, dict):
+        env = {}
+        settings["env"] = env
+    env[NESTED_DISPATCH_ENV] = depth
+    return depth
+
+
+def record_nested_dispatch_enable(
+    root: Path, auth: dict, source: str, prev: str
+) -> Path | None:
+    """Write one provenance record for an off→on transition. Returns path or None."""
+    rec_dir = root / NESTED_DISPATCH_RECORD_DIR
+    try:
+        rec_dir.mkdir(parents=True, exist_ok=True)
+    except OSError:
+        return None
+    ts = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    path = rec_dir / f"{ts}.json"
+    payload = {
+        "enabled_at": datetime.now(timezone.utc).isoformat(),
+        "previous": prev,
+        "source": source,
+        "account": auth.get("account"),
+        "auth": {k: auth.get(k) for k in ("logged_in", "error", "bin")},
+        "script_version": SCRIPT_VERSION,
+    }
+    try:
+        path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+    except OSError:
+        return None
+    return path
+
+
+def apply_nested_dispatch_to_project(
+    posture: dict, settings: dict, root: Path, *, dry_run: bool, source: str
+) -> list[str]:
+    """Mutate settings for nested_dispatch; return human-readable lines for stdout."""
+    requested, effective, auth = resolve_nested_dispatch(posture)
+    prev_env = (settings.get("env") or {}) if isinstance(settings.get("env"), dict) else {}
+    prev_depth = str(prev_env.get(NESTED_DISPATCH_ENV) or "")
+    prev_mode = "on" if prev_depth == NESTED_DISPATCH_DEPTH_ON else "off"
+    lines: list[str] = []
+    if requested == "on" and effective == "off":
+        lines.append(
+            "WARN: nested_dispatch: on requested but Claude Code is not signed in "
+            f"({auth.get('error') or 'signed_out'}); applying as off (depth 1). "
+            "Fix: `claude auth login`, then re-apply."
+        )
+    depth = apply_nested_dispatch(settings, effective)
+    lines.append(
+        f"{'(dry-run) would set' if dry_run else 'Set'} "
+        f"env.{NESTED_DISPATCH_ENV}={depth!r} "
+        f"(nested_dispatch requested={requested} effective={effective})"
+    )
+    if (
+        not dry_run
+        and effective == "on"
+        and prev_mode != "on"
+    ):
+        rec = record_nested_dispatch_enable(root, auth, source, prev_mode)
+        if rec is not None:
+            try:
+                rel = rec.relative_to(root)
+            except ValueError:
+                rel = rec
+            lines.append(f"Recorded nested_dispatch enable → {rel}")
+    return lines
+
+
 def run_v5(posture: dict, root: Path, args) -> int:
     """Apply a schema-v5 (per-layer) posture: emit one settings file per layer."""
     emission = compute_emission_v5(posture)
@@ -938,6 +1144,10 @@ def run_v5(posture: dict, root: Path, args) -> int:
             overwrite_permissions(settings, em)
             if scope == "project":
                 ensure_default_mode(settings)
+                for line in apply_nested_dispatch_to_project(
+                    posture, settings, root, dry_run=True, source=_resolve_source(args)
+                ):
+                    print(f"    {line}")
             new_counts = {b: len(em[b]) for b in ("allow", "ask", "deny")}
             print(f"(dry-run) {scope} layer → {rel}")
         else:
@@ -952,13 +1162,19 @@ def run_v5(posture: dict, root: Path, args) -> int:
                 prev = {b: list(_prev_live.get(b, []) or []) for b in ("allow", "ask", "deny")}
                 prev_counts = {b: len(prev[b]) for b in ("allow", "ask", "deny")}
                 overwrite_permissions(settings, em)
+                nd_lines: list[str] = []
                 if scope == "project":
                     ensure_default_mode(settings)
+                    nd_lines = apply_nested_dispatch_to_project(
+                        posture, settings, root, dry_run=False, source=_resolve_source(args)
+                    )
                 new_counts = {b: len(em[b]) for b in ("allow", "ask", "deny")}
                 _write_settings_json_atomic(
                     target,
                     json.dumps(settings, indent=2, ensure_ascii=False) + "\n",
                 )
+                for line in nd_lines:
+                    print(f"    {line}")
                 if side_car:
                     write_side_car(side_car, scope)
                 if scope == "local":
@@ -1128,7 +1344,18 @@ def main() -> int:
         help="Provenance recorded in .ravenclaude/posture-events.jsonl for this apply. "
         "Falls back to $RAVENCLAUDE_POSTURE_SOURCE, then 'cli-direct'.",
     )
+    p.add_argument(
+        "--nested-dispatch-auth",
+        action="store_true",
+        help="Probe Claude Code sign-in for the nested_dispatch gate. Prints JSON; "
+        "exit 0 if logged in, exit 3 if signed out / unknown. Does not read or write posture.",
+    )
     args = p.parse_args()
+
+    if args.nested_dispatch_auth:
+        auth = claude_auth_status()
+        print(json.dumps(auth, indent=2, ensure_ascii=False))
+        return 0 if auth.get("logged_in") else 3
 
     root = Path(args.project_root) if args.project_root else find_project_root(Path.cwd())
     posture_path = root / ".ravenclaude" / "comfort-posture.yaml"
@@ -1202,6 +1429,9 @@ def main() -> int:
 
         updated = overwrite_permissions(settings, new_emission)
         ensure_default_mode(updated)
+        nd_lines_v34 = apply_nested_dispatch_to_project(
+            posture, updated, root, dry_run=bool(args.dry_run), source=_resolve_source(args)
+        )
         new_counts = {b: len(updated["permissions"][b]) for b in ("allow", "ask", "deny")}
 
         if args.dry_run:
@@ -1231,6 +1461,9 @@ def main() -> int:
                 print(
                     f"  permissions.{bucket}: {prev_counts[bucket]} -> {new_counts[bucket]} ({sign}{delta})"
                 )
+
+    for line in nd_lines_v34:
+        print(line)
 
     print(
         "\nNote: comfort-posture works best with session mode at 'default'.\n"

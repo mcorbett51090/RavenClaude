@@ -53,6 +53,16 @@ Off by default. When `cheap_lane.mode` ∈ {advise, agent}, cells are the Grok/C
 | `handoff_tax.report_cap_words` / `brief_cap_words` | same | 400 / 600 |
 | `handoff_tax.pin_explore` | same | alias → explore_pin (one release) |
 | `cheap_lane.mode` | same | `off` |
+| `nested_dispatch` | same (Claude Code only; auth-gated `on`) | `off` → depth 1 |
 
 Self-test pins: `python3 plugins/ravenclaude-core/scripts/explore-tier-pin.py --self-test`,
 `precompact-digest.py --self-test`, `context-handoff.py --self-test`.
+
+## Multi-hop delegation (nested dispatch)
+
+Roster rule: shipped agents omit `Agent` / `Task` / `"*"` from `tools:` unless
+exempted by name (Gate 289). Consumer off-switch / opt-in for the **platform**
+depth is the comfort-posture key `nested_dispatch` (default `off` →
+`CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH=1`; `on` → `3`, Claude-auth-gated).
+Full determination + host matrix:
+[`docs/decisions/2026-09-14-nested-dispatch-determination.md`](../../../docs/decisions/2026-09-14-nested-dispatch-determination.md).

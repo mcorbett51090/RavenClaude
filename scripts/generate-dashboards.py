@@ -936,6 +936,22 @@ _PIPELINE_LANES = [
                 },
             },
             {
+                "id": "nested-dispatch",
+                "title": "Nested dispatch",
+                "badge": "dynamic",
+                "controls": "nested",
+                "tip": "Lets a called agent call agents (Claude Code only). Default off. Turning it on needs a signed-in Claude Code account.",
+                "detail": {
+                    "steps": [
+                        "Pins CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH in this project's settings: 1 when off, 3 when on.",
+                        "On only if Claude Code is signed in on this machine — otherwise the save is refused.",
+                        "No-op on Cursor and Grok Build (those hosts already cap nesting at one layer).",
+                    ],
+                    "trip": "Off = a subagent has no Agent tool. On = up to three layers below the main conversation.",
+                    "set": "Tick the box below while signed in, then Save & apply.",
+                },
+            },
+            {
                 "id": "guard-web-access",
                 "title": "Website guard",
                 "badge": "dynamic",
@@ -1188,6 +1204,7 @@ _PIPELINE_STAGE_HOOKS = {
     "memory-compaction": "guard-memory-compaction.sh",
     "guard-premise": "guard-premise.sh",
     "route-decision-review": "route-decision-review.sh",
+    "nested-dispatch": None,  # behavioral: apply-comfort-posture pins CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH — no hook
     "guard-web-access": "guard-web-access.sh",
     "claude-orchestrator": None,  # behavioral: spawn-team reads `orchestrator:` — no hook
     "cheap-lane-delegation": None,  # behavioral: cheap-lane-delegation skill reads `cheap_lane:` — no hook
@@ -1743,6 +1760,18 @@ _PIPELINE_CONTROLS = {
         '<option value="advisory">advisory — panel suggests, you still answer</option>'
         '<option value="binding">binding — panel answers the easy ones</option>'
         "</select></label>"
+    ),
+    "nested": (
+        '<label class="pipe-ctl"><input type="checkbox" id="pipe-nested-dispatch" '
+        'aria-label="Allow nested dispatch"> Allow nested dispatch (depth 3)</label>'
+        '<p class="pipe-hint" id="pipe-nested-auth-hint">Checking Claude Code sign-in…</p>'
+        + _pipe_hint_more(
+            "More about nested dispatch",
+            '<p class="pipe-hint">Default off (depth 1). On requires <code>claude auth login</code>. '
+            "Claude Code only — Cursor and Grok Build already cap nesting at one layer, so this "
+            "checkbox is a documented no-op there. Gate 289 still forbids shipped agents from "
+            "granting <code>Agent</code> in <code>tools:</code>.</p>",
+        )
     ),
     "dod": (
         '<label class="pipe-ctl">Test / build command '
@@ -9216,6 +9245,10 @@ _JS = r"""
   const DOD_DEFAULT = Object.freeze({ cmd: "", max_blocks: 8 });
   const DECISION_REVIEW_VALUES = ["off", "advisory", "binding"];
   const DECISION_REVIEW_DEFAULT = "off";
+  /* Nested dispatch (v0.328.0) — pins CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH.
+   * OPT-IN — default off; emitYaml writes only when on. Auth-gated on save. */
+  const NESTED_DISPATCH_VALUES = ["off", "on"];
+  const NESTED_DISPATCH_DEFAULT = "off";
   /* Worktree-hygiene guard (read by hooks/worktree-guard.sh). Behavioral flag —
    * default `warn` (all repos, not opt-in), so emitYaml writes it only when the
    * user picks off or block, preserving "absent ⇒ warn". */
@@ -9465,6 +9498,7 @@ _JS = r"""
     conserve_tokens: CONSERVE_TOKENS_DEFAULT,
     conserve_tokens_auto_pct: CONSERVE_AUTO_PCT_DEFAULT,
     decision_review: DECISION_REVIEW_DEFAULT,
+    nested_dispatch: NESTED_DISPATCH_DEFAULT,
     worktree_guard: WORKTREE_GUARD_DEFAULT,
     worktree_bound: WORKTREE_BOUND_DEFAULT,
     /* Session lease + sleep-assertion hold — both were entirely unmodelled
@@ -9950,6 +9984,17 @@ _JS = r"""
     if (DECISION_REVIEW_VALUES.includes(src.decision_review)) {
       state.decision_review = src.decision_review; touched = true;
     }
+    {
+      let nd = src.nested_dispatch;
+      if (nd === true) nd = "on";
+      else if (nd === false) nd = "off";
+      if (typeof nd === "string") nd = nd.trim().toLowerCase();
+      if (nd === "true" || nd === "yes" || nd === "1") nd = "on";
+      if (nd === "false" || nd === "no" || nd === "0") nd = "off";
+      if (NESTED_DISPATCH_VALUES.includes(nd)) {
+        state.nested_dispatch = nd; touched = true;
+      }
+    }
     if (WORKTREE_GUARD_VALUES.includes(src.worktree_guard)) {
       state.worktree_guard = src.worktree_guard; touched = true;
     }
@@ -10286,6 +10331,12 @@ _JS = r"""
       lines.push(`decision_review: ${state.decision_review}`);
       lines.push("");
     }
+    if (NESTED_DISPATCH_VALUES.includes(state.nested_dispatch)
+        && state.nested_dispatch !== NESTED_DISPATCH_DEFAULT) {
+      lines.push("# Nested dispatch — Claude Code nesting depth (off=1, on=3; default off; requires sign-in).");
+      lines.push(`nested_dispatch: ${state.nested_dispatch}`);
+      lines.push("");
+    }
 
     if (WORKTREE_GUARD_VALUES.includes(state.worktree_guard)
         && state.worktree_guard !== WORKTREE_GUARD_DEFAULT) {
@@ -10592,6 +10643,7 @@ _JS = r"""
         conserve_tokens: state.conserve_tokens,
         conserve_tokens_auto_pct: state.conserve_tokens_auto_pct,
         decision_review: state.decision_review,
+      nested_dispatch: state.nested_dispatch,
         worktree_guard: state.worktree_guard,
         worktree_bound: state.worktree_bound,
         dashboard_autostart: state.dashboard_autostart,
@@ -10952,6 +11004,32 @@ _JS = r"""
    * /__save — a server restart rotates the per-process token, and a tab holding
    * the old value would otherwise 403 every save for the life of the page. */
   let _csrfToken = null;
+  /* Nested-dispatch sign-in probe (GET /__auth-status). Updates the Pipeline hint. */
+  window.__nestedAuth = null;
+  async function refreshNestedAuth() {
+    const hint = document.getElementById("pipe-nested-auth-hint");
+    try {
+      const res = await fetch("/__auth-status", { headers: { "Accept": "application/json" } });
+      if (!res.ok) {
+        window.__nestedAuth = { logged_in: false, error: "http_" + res.status };
+        if (hint) hint.textContent = "Could not check Claude Code sign-in (is the dashboard server running?).";
+        return window.__nestedAuth;
+      }
+      const j = await res.json();
+      window.__nestedAuth = j || { logged_in: false };
+      if (hint) {
+        if (j && j.logged_in) {
+          hint.textContent = "Signed in" + (j.account ? (" as " + j.account) : "") + " — you can enable nested dispatch.";
+        } else {
+          hint.textContent = "Not signed in — run `claude auth login` before enabling. (Cursor / Grok: this toggle is a no-op.)";
+        }
+      }
+    } catch (e) {
+      window.__nestedAuth = { logged_in: false, error: "fetch_failed" };
+      if (hint) hint.textContent = "Could not reach /__auth-status.";
+    }
+    return window.__nestedAuth;
+  }
   async function fetchCsrf() {
     try {
       const res = await fetch("/__csrf", { headers: { "Accept": "application/json" } });
@@ -10964,6 +11042,7 @@ _JS = r"""
     return _csrfToken;
   }
   const _csrfPromise = fetchCsrf();
+  refreshNestedAuth();
   async function csrfHeaders() {
     const t = _csrfToken || (await _csrfPromise);
     return t ? { "X-CSRF-Token": t } : {};
@@ -11012,10 +11091,18 @@ _JS = r"""
         body: JSON.stringify({ path: REPO_TARGET, content: emitYaml() })
       });
       let res = await doPost();
-      // A 403 usually means the server restarted and rotated its CSRF token, so
-      // this tab's cached token is stale. Refresh it once and retry before
-      // surfacing any error.
+      // A 403 is either a rotated CSRF token OR the nested_dispatch auth gate.
+      // Parse the body once; only retry CSRF when it is not nested_dispatch_auth_required.
       if (res.status === 403) {
+        const errBody = await res.clone().json().catch(() => null);
+        if (errBody && errBody.error === "nested_dispatch_auth_required") {
+          state.nested_dispatch = "off";
+          syncPipelineTab();
+          setStatus("nested dispatch refused — sign in to Claude Code first", "status-error");
+          toast(errBody.message || "Sign in to Claude Code (`claude auth login`) before enabling nested dispatch.");
+          refreshNestedAuth();
+          return;
+        }
         await fetchCsrf();
         res = await doPost();
       }
@@ -12830,6 +12917,11 @@ function wireHostScopeFilter(root) {
     if (dr) dr.value = state.decision_review;
     pipeBadge("route-decision-review", state.decision_review,
               state.decision_review === "off" ? "pipe-badge-off" : "pipe-badge-on");
+    const nd = document.getElementById("pipe-nested-dispatch");
+    if (nd) nd.checked = state.nested_dispatch === "on";
+    pipeBadge("nested-dispatch",
+              state.nested_dispatch === "on" ? "On · depth 3" : "Off · depth 1",
+              state.nested_dispatch === "on" ? "pipe-badge-on" : "pipe-badge-off");
     const po = document.getElementById("pipe-orchestrator");
     if (po) po.value = state.orchestrator;
     pipeBadge("claude-orchestrator", state.orchestrator,
@@ -12944,6 +13036,12 @@ function wireHostScopeFilter(root) {
       syncRunesSessionStart();
     });
     onChange("pipe-decision-review", el => { if (DECISION_REVIEW_VALUES.includes(el.value)) state.decision_review = el.value; });
+    onChange("pipe-nested-dispatch", el => {
+      state.nested_dispatch = el.checked ? "on" : "off";
+      if (el.checked && window.__nestedAuth && window.__nestedAuth.logged_in !== true) {
+        toast("Sign in to Claude Code first (`claude auth login`) — nested dispatch stays off until then.");
+      }
+    });
     onChange("pipe-orchestrator", el => { if (ORCHESTRATOR_VALUES.includes(el.value)) { state.orchestrator = el.value; syncPipelineTab(); } });
     onChange("pipe-orchestrator-scope", el => { if (ORCHESTRATOR_SCOPE_VALUES.includes(el.value)) { state.orchestrator_scope = el.value; syncPipelineTab(); } });
     onChange("pipe-cheap-lane-mode", el => { if (CHEAP_LANE_MODE_VALUES.includes(el.value)) { state.cheap_lane.mode = el.value; syncPipelineTab(); } });

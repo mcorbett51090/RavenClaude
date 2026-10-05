@@ -279,6 +279,11 @@
         "pyyaml-vendored-fallback inventory entry (no-PyYAML hook fallback, core 0.326.1, Gate 292 inception, 2026-10-02)",
         10920000,
         "core 0.326.1 vendors a pure-Python PyYAML into scripts/vendor/ so the hooks work on a stock macOS python3; check-inception-coverage required the 19 new vendor files to be named in covers[], so one new inventory concept (pyyaml-vendored-fallback) covers them, plus four cosmetic covers_digest restamps. dashboard.html 10,913,078 bytes > prior 10,910,000 by 3,078 (0.00 MB) -- the new concept card. Same no-diagrams-for-inventory-entries shape as every prior wave. Re-measured on this branch head; appended, never edited."
+      ],
+      [
+        "nested_dispatch comfort-posture knob (core 0.328.0, Gate 293, 2026-10-05)",
+        10930000,
+        "core 0.328.0 adds the nested_dispatch Pipeline stage (checkbox + auth hint + emit/hydrate/save-403 JS) and restamps three inventory concepts whose covers drifted (plugin.json / audit-gates.sh / generate-dashboards.py). dashboard.html 10,923,116 bytes > prior 10,920,000 by 3,116 (0.00 MB). Island payload unchanged (32,992 <= 33,000). Pure content-size raise, not a DOM control. Re-measured on this branch head; appended, never edited."
       ]
     ],
     "index.html": [
@@ -352,8 +357,13 @@
         "Routine reserve guard mode (core 0.327.0, 2026-10-02)",
         9564000,
         "Same guard-mode release: restamped routine-reserve concept metadata renders into the portal. index.html 9,563,475 bytes > prior 9,563,000 by 475 (0.00 MB). No DOM element added; Gate 132 unchanged. Re-measured on this branch head; appended, never edited."
+      ],
+      [
+        "nested_dispatch comfort-posture knob (core 0.328.0, Gate 293, 2026-10-05)",
+        9575000,
+        "Same nested_dispatch release: regenerating index.html after generate-dashboards.py Pipeline-stage churn + concept restamps. index.html 9,569,483 bytes > prior 9,564,000 by 5,483 (0.01 MB). Island payload unchanged (7,319 <= 7,320). Pure content-size raise. Re-measured on this branch head; appended, never edited."
       ]
     ]
   },
-  "measured_against": "37cffdff5595e67ed673582b26c916c38e2744e5"
+  "measured_against": "34bb344ccc9db53388992c4ebeadf56ff1470028"
 }

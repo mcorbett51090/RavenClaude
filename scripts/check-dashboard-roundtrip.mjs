@@ -62,6 +62,8 @@ const pieces = [
   app.match(/const TIERS = \[[^\]]*\];/)[0],
   app.match(/const DECISION_REVIEW_VALUES = \[[^\]]*\];/)[0],
   app.match(/const DECISION_REVIEW_DEFAULT = [^;]*;/)[0],
+  app.match(/const NESTED_DISPATCH_VALUES = \[[^\]]*\];/)[0],
+  app.match(/const NESTED_DISPATCH_DEFAULT = [^;]*;/)[0],
   app.match(/const WORKTREE_GUARD_VALUES = \[[^\]]*\];/)[0],
   app.match(/const WORKTREE_GUARD_DEFAULT = [^;]*;/)[0],
   app.match(/const WORKTREE_BOUND_VALUES = \[[^\]]*\];/)[0],
@@ -169,6 +171,7 @@ function _freshState() {
     conserve_tokens: CONSERVE_TOKENS_DEFAULT,
     conserve_tokens_auto_pct: CONSERVE_AUTO_PCT_DEFAULT,
     decision_review: DECISION_REVIEW_DEFAULT,
+    nested_dispatch: NESTED_DISPATCH_DEFAULT,
     worktree_guard: WORKTREE_GUARD_DEFAULT,
     worktree_bound: WORKTREE_BOUND_DEFAULT,
     worktree_lease: WORKTREE_LEASE_DEFAULT,
@@ -217,6 +220,7 @@ function check(name, cond) {
   s.runaway = { max_total: 500, max_consecutive: 3, off: false };
   s.parallelism = { enabled: true, max_workers: 6, unlimited: false };
   s.decision_review = "binding";
+  s.nested_dispatch = "on";
   s.worktree_guard = "block";
   s.worktree_bound = "off";
   s.worktree_lease = "warn";
@@ -259,6 +263,7 @@ function check(name, cond) {
   check("parallelism block emitted", /^parallelism:$/m.test(yaml));
   check("parallelism.max_workers emitted", /^  max_workers: 6$/m.test(yaml));
   check("decision_review emitted", /^decision_review: binding$/m.test(yaml));
+  check("nested_dispatch emitted", /^nested_dispatch: on$/m.test(yaml));
   check("worktree_guard emitted", /^worktree_guard: block$/m.test(yaml));
   check("worktree_bound emitted", /^worktree_bound: off$/m.test(yaml));
   check("worktree_lease emitted", /^worktree_lease: warn$/m.test(yaml));
@@ -304,6 +309,7 @@ function check(name, cond) {
     runaway: { max_total: 500, max_consecutive: 3 },
     parallelism: { enabled: true, max_workers: 6 },
     decision_review: "binding",
+    nested_dispatch: "on",
     worktree_guard: "block",
     worktree_bound: "off",
     worktree_lease: "warn",
@@ -333,6 +339,7 @@ function check(name, cond) {
   check("hydrate parallelism.max_workers", h.parallelism.max_workers === 6);
   check("hydrate parallelism.enabled", h.parallelism.enabled === true);
   check("hydrate decision_review", h.decision_review === "binding");
+  check("hydrate nested_dispatch", h.nested_dispatch === "on");
   check("hydrate worktree_guard", h.worktree_guard === "block");
   check("hydrate worktree_bound", h.worktree_bound === "off");
   check("hydrate worktree_lease", h.worktree_lease === "warn");
@@ -378,6 +385,7 @@ function check(name, cond) {
   check("no runaway block at default", !/runaway:/.test(yaml));
   check("no parallelism block at default", !/parallelism:/.test(yaml));
   check("no decision_review at default", !/decision_review:/.test(yaml));
+  check("no nested_dispatch at default", !/^nested_dispatch:/m.test(yaml));
   check("no worktree_guard at default", !/^worktree_guard:/m.test(yaml));
   check("no worktree_bound at default", !/^worktree_bound:/m.test(yaml));
   check("no worktree_lease at default", !/^worktree_lease:/m.test(yaml));
@@ -871,3 +879,24 @@ if (failures) {
   process.exit(1);
 }
 console.log("dashboard round-trip: all guardrail keys survive emit/hydrate; defaults stay absent");
+
+// nested_dispatch boolean spellings (PyYAML bare true/false) + invalid → default
+{
+  api._set(api._freshState());
+  api.applyGuardrailConfig({ nested_dispatch: true });
+  check("nested_dispatch true → on", api._get().nested_dispatch === "on");
+
+  api._set(api._freshState());
+  api.applyGuardrailConfig({ nested_dispatch: false });
+  check("nested_dispatch false → off", api._get().nested_dispatch === "off");
+
+  api._set(api._freshState());
+  api.applyGuardrailConfig({ nested_dispatch: "maybe" });
+  check("nested_dispatch garbage keeps default", api._get().nested_dispatch === "off");
+
+  if (failures) {
+    console.error(`nested_dispatch spellings: ${failures} FAILED`);
+    process.exit(1);
+  }
+  console.log("ok — nested_dispatch boolean / invalid spellings");
+}
