@@ -1,0 +1,1331 @@
+{
+  "agents": {
+    "claude-code": {
+      "assemble-prompt": {
+        "cells_sha": "3409d41524773212f1a23a8b93625d13c944a4ada6d41add1738ba010676a70a",
+        "plain": "The context window holds the system instructions, tool definitions, the conversation and tool results. Some models support a 1 million token window. Some tools load on demand, and a subagent's intermediate work stays inside it, so just its final message returns.",
+        "technical": "Context accumulates the system prompt, tool definitions, conversation history, tool inputs and tool outputs. Fable models, Sonnet 5 and later, Opus 4.6 and later, and Sonnet 4.6 support a 1 million token window. CLAUDE_CODE_AUTO_COMPACT_WINDOW, /autocompact and --autocompact set the auto-compact window. Tool search defers SDK MCP tools."
+      },
+      "built-in-tools": {
+        "cells_sha": "2c0084d974843dae4381813af1eacc92e8bb199eec27b37d5c242af120d0ce09",
+        "plain": "It ships tools for running shell commands, reading, editing and writing files, searching, fetching web pages and starting subagents. Web search is not available on Amazon Bedrock. Shell commands have a default timeout that can be raised up to a cap.",
+        "technical": "Built-in tools include Bash, Read, Write, Edit, Glob, Grep, WebFetch and Agent, and others. Bash foreground timeout defaults to 120000 ms (BASH_DEFAULT_TIMEOUT_MS); the timeout input is capped at 600000 by default. Edit takes replace_all (default False). WebSearch is not available on Amazon Bedrock; CLAUDE_CODE_DISABLE_WEB_FETCH=1 turns off WebFetch."
+      },
+      "extend-share": {
+        "cells_sha": "f82939052fd72bcd13337b79dd17d01f2d1d38450e40a34698024af68abfaa59",
+        "plain": "A plugin bundles skills, hooks, helper agents and MCP servers into one installable unit. Agents shipped in a plugin honor a subset of the subagent fields, and a shared marketplace list applies only after each teammate trusts the folder.",
+        "technical": "A plugin is a directory with an optional manifest at .claude-plugin/plugin.json (only name is required). /reload-plugins applies changes; ${CLAUDE_PLUGIN_DATA} survives updates. Official and community names are accepted only for marketplaces sourced from github.com/anthropics/. Plugin agents honor a subset of the subagent fields; extraKnownMarketplaces applies only after each teammate trusts the folder."
+      },
+      "fence": {
+        "cells_sha": "7304f1dd72742713a53ce8dbc1ed1b3023f7040a9273794e8cd408b4aca61cf7",
+        "plain": "Shell commands can run in a sandbox that limits which files they change and which network addresses they reach. It covers shell commands and their child processes, but hooks and MCP servers run outside it, and some commands are excluded or can fall back to running unsandboxed.",
+        "technical": "sandbox.enabled, sandbox.network.allowedDomains; /sandbox is available on supported platforms only. bubblewrap on Linux, sandbox-exec on macOS; allowWrite (default empty). Applies only to Bash, PowerShell, and Monitor commands and their child processes; hooks and MCP servers run outside the sandbox. excludedCommands run unsandboxed; failIfUnavailable false falls back with a warning on stderr."
+      },
+      "hooks": {
+        "cells_sha": "1317328657348ea0f1a6fa7eaa4d2d0adc2a5367e206d8ef91fe080d815f0376",
+        "order_note": {
+          "cell": "claude-code/F06.output-blocking",
+          "quote": "runs before the rest of the permission flow and can allow, deny, or modify requests",
+          "text": "A PreToolUse hook runs before the rest of the permission flow."
+        },
+        "plain": "Hooks run a script, request, prompt or subagent at set moments and can allow, deny or change a tool call. A hook's allow doesn't skip deny and ask rules. Some hooks exist in one SDK only, and non-interactive runs without the bare option use project hooks in untrusted folders.",
+        "technical": "Handlers: script, HTTP request, MCP tool call, prompt or subagent. Configured under the hooks key in .claude/settings.json (plugins use hooks/hooks.json). Input has session_id, cwd, hook_event_name. matcher: Edit|Write; a JSON array means the hook never fires. A PreToolUse allow doesn't skip deny and ask rules. Some hooks are TypeScript-only. Without --bare, a -p session runs project hooks."
+      },
+      "host-platform": {
+        "cells_sha": "d13dda00b1b16b74d27143c94832bf1bb599df583525ee25951e09958add1cbc",
+        "plain": "The same engine runs in the terminal, editors, Desktop and the web, and plan usage is shared across them. If a host platform embeds it, Claude Code ignores its own provider settings. An API key, when set, is used instead of your subscription.",
+        "technical": "Cloud sessions run on an Anthropic-managed cloud VM by default; a self-hosted environment uses the organization's own runners. With CLAUDE_CODE_PROVIDER_MANAGED_BY_HOST set, Claude Code ignores provider-selection, endpoint, and authentication variables; in Cowork it never fetches server-managed settings. ANTHROPIC_API_KEY, when set, is used instead of your subscription even if you are logged in."
+      },
+      "house-rules": {
+        "cells_sha": "e13ce3df5d0188aca68a08532317920767d7ba93262c959d39e599b74237a077",
+        "order_note": {
+          "cell": "claude-code/F03.precedence-scoping",
+          "quote": "Locations load in order from broadest to most specific scope, so a project instruction appears after a user instruction.",
+          "text": "Broader locations load first, so a project instruction appears after a user instruction."
+        },
+        "plain": "It reads instruction files from your project and home folder at the start of a session and adds their text to every request. Files at all levels contribute at once, and Claude uses judgment when they conflict. Files can import other files, up to four hops deep.",
+        "technical": "CLAUDE.md loads at session start via settingSources, with full content in every request (prompt-cached). Additive: all levels contribute. @path/to/import imports files, to a maximum depth of four hops. A managed policy CLAUDE.md can't be excluded. .claude/rules/ files with paths: frontmatter load only when Claude reads, writes, or edits a matching file. User defaults are at ~/.claude/."
+      },
+      "loop": {
+        "cells_sha": "1e19cb6ed2b483f0d063d5e41dcba942d4516f1d7aaac563cc1ba2e68719ef91",
+        "plain": "A turn runs from a prompt to a response. In the SDKs, read-only tools can run at the same time, while tools that change state run one after another. The command-line turn limit works in print mode only and has no limit by default, and a session doesn't time out on its own.",
+        "technical": "In the SDKs, read-only tools (Read, Glob, Grep, MCP tools marked read-only) run concurrently; Edit, Write, Bash run sequentially. max_turns (Python) and maxTurns (TypeScript) cap agentic turns; reaching it ends with subtype error_max_turns. --max-turns is print mode only with no limit by default; a session does not time out on its own."
+      },
+      "memory-sessions": {
+        "cells_sha": "4df0b341f781d1cf308ecfdc2366331abb6b4d880a1a1934207538d32077a835",
+        "plain": "Claude can keep notes between sessions, and you can resume, rename, branch or export earlier conversations, which are saved locally. Handoff from the command line is one-way: you can pull a cloud session into the terminal, but can't push a terminal session to the cloud.",
+        "technical": "Auto memory is stored per git repository under ~/.claude/projects/; the first 200 lines or 25 KB of the MEMORY.md index load at the start of every session. --fork-session with --resume or --continue creates a new session ID; /branch, /fork, /rename, /export, claude -r. --teleport and /teleport pull a cloud session into the terminal; CLI handoff is one-way."
+      },
+      "model-effort": {
+        "cells_sha": "fe9d11f52642ecf6ae9202bfc3eced54e2f0bda453b36d625432e38606293f4b",
+        "plain": "You pick a model with a picker, a setting or a command option, and set effort per session or by default. It connects to Amazon Bedrock, Microsoft Foundry, Google Cloud and gateways. Foundry has no startup model check, so requests fail if the default is unavailable.",
+        "technical": "/model picker; the model setting is not enforcement (Default in /model resolves to the runtime default). fallbackModel accepts a comma-separated list. --effort takes low, medium, high, xhigh, max or ultracode; CLAUDE_CODE_EFFORT_LEVEL; maxEffortLevel caps it. allowedProviders (v2.1.285 or later). Microsoft Foundry has no startup model check, so requests fail when the default is unavailable."
+      },
+      "org-oversight": {
+        "cells_sha": "faf918a63db734e67bf9cf98dd0bd4f1468ad7331a7ddbfbce3bcad0a1c6dfb9",
+        "plain": "Organizations can require single sign-on, restrict login to a method or organization, and export usage metrics. The default retention period is 30 days, the minimum is 1, and setting 0 is rejected with an error.",
+        "technical": "Login enforcement restricts login to a specific method or Anthropic organization; Team and Enterprise organizations can require SSO. cleanupPeriodDays: default 30 days, minimum 1; setting 0 fails with a validation error. Usage monitoring exports OpenTelemetry metrics; ConfigChange fires when an external process or editor modifies a configuration file."
+      },
+      "org-policy": {
+        "cells_sha": "35cc1df686a526e67139ae197c4cde1bd8f16264ee198a4b1ab6a1b09def5ae1",
+        "order_note": {
+          "cell": "claude-code/F07.policy-lockdown",
+          "quote": "Managed policy settings take precedence over programmatic options.",
+          "text": "Managed policy settings win over options set in code."
+        },
+        "plain": "A company can set rules for its developers' installs: which tools and commands are allowed or denied, which models are offered, and whether background agents run. Managed rules win over options set in code. Claude Tag cloud sessions don't receive server-managed settings.",
+        "technical": "permissions.allow and permissions.deny set allow, ask or deny rules; disableAgentView turns off background agents and agent view. availableModels filters the picker; enforceAvailableModels also constrains the default; it is enforced server-side at /v1/messages, so a denied model returns 400. Claude Tag sessions don't receive server-managed settings."
+      },
+      "outside-tools": {
+        "cells_sha": "dca5d2e3d453be206f03330855429abde8543c6d987c5cb0fa4e095794f6ec7d",
+        "plain": "You connect outside programs through MCP servers, which add extra tools that need explicit permission. Project servers need a one-time approval and administrators can restrict which servers users add. Consent dialogs don't relay: they only appear in the local terminal.",
+        "technical": "claude mcp add takes a server name and URL or command; transports are stdio, SSE or HTTP. Project config is .mcp.json at the repository root (mcpServers key). claude mcp login <name> runs OAuth. Tools are named mcp__<server-name>__<tool-name>. Admins use allowedMcpServers, deniedMcpServers, managedMcpServers. Consent dialogs don't relay; they only appear in the local terminal."
+      },
+      "permission-check": {
+        "cells_sha": "9d8c91bbb05bf8a81c17f76ac8beae0e49610e9b3244ceb8696fa2225818a445",
+        "plain": "Rules allow, ask or deny specific tools, and can be narrowed by path or by command. Command rules match the literal command text, so a deny on one form doesn't block another route to the same effect. In auto mode a model classifier blocks irreversible or destructive actions.",
+        "technical": "Bash(npm *) scopes by command; Edit(path) governs all built-in tools that write files. SDK allowedTools auto-approves listed tools and does not restrict Claude to only those tools. Bash(rm *) doesn't block /bin/rm or find -delete; git -C <dir> push doesn't match a git push rule. Hook matchers match tool names, not file paths; a Write(path) rule is never matched by file permission checks."
+      },
+      "plan-and-ask": {
+        "cells_sha": "4b08672e76dde7aaa8955d17a82dde6481e4c2856a9e28390e1922825891d8c1",
+        "plain": "Plan mode explores and plans without editing source files, and file edits there are never auto-approved. A status line at the bottom can be customized, and a status command shows the API provider and, in auto mode, the auto mode server state.",
+        "technical": "Plan mode: file edits are never auto-approved and prompt through the canUseTool callback; planModeInstructions can replace the default workflow body; the CLI keeps a read-only enforcement preamble and an ExitPlanMode protocol footer. statusLine customizes the bottom line; /status shows an API provider line and, in auto mode, an Auto mode server row (Enabled or Disabled)."
+      },
+      "safety-posture": {
+        "cells_sha": "2de35953a8f35b4b0600cbbf297431bea4a8843214487c0400a87527d14fc413",
+        "order_note": {
+          "cell": "claude-code/F19.mode-defaults",
+          "quote": "takes precedence over defaultMode for that folder",
+          "text": "In Desktop, a mode picked for a folder wins over the default mode setting for that folder."
+        },
+        "plain": "Modes range from plan, the least permissive, through manual and accept-edits to auto and bypass. Manual asks before editing but can change files once you approve. Desktop remembers a mode per folder, except plan, which lasts for the session.",
+        "technical": "Modes: default (alias manual), acceptEdits, plan, auto, dontAsk, bypassPermissions; Shift+Tab cycles; claude --permission-mode plan. Auto is the built-in start mode for interactive terminal and VS Code sessions from v2.1.283. Desktop remembers a mode per folder except Plan; a first session after install or upgrade can start in a different mode. permissions.disableBypassPermissionsMode=disable blocks bypass."
+      },
+      "send-retry": {
+        "cells_sha": "2a1cb25af877170842178b257838b4b61c84c655c085c96447614187ecefad63",
+        "order_note": {
+          "cell": "claude-code/F17.auto-routing",
+          "quote": "switches to the backup and retries the primary at the start of each user turn",
+          "text": "After switching to the backup, the main model is retried at the start of each user turn."
+        },
+        "plain": "If the main model is overloaded or unavailable, a session with a backup model set switches to it and retries the main one at the start of each turn. When a usage limit blocks a request, a command shows ways to keep working, such as waiting for the reset or adding credits.",
+        "technical": "fallbackModel switches when the primary is overloaded or unavailable and retries the primary at the start of each user turn. opusplan applies during plan mode when allowed by availableModels, then switches to Sonnet. /rate-limit-options offers waiting to continue automatically when the limit resets or adding usage credits; /usage shows bars loaded within the past 60 minutes."
+      },
+      "shrink-context": {
+        "cells_sha": "458e2dbb2001cf436ed3c8e4f4484f1f5b7ceb0ae23c5d256dc898a832884b3c",
+        "plain": "When the conversation nears the context limit, Claude Code compacts it automatically, keeping important code and decisions. You can also compact by hand and give instructions on what to focus on.",
+        "technical": "Auto-compaction summarizes older history, keeping recent exchanges and key decisions; the SDK emits a system message with subtype compact_boundary; a PreCompact hook fires. /compact accepts optional instructions (/compact Focus on the API changes); in the SDK, sending /compact as a prompt string triggers it."
+      },
+      "skills-commands": {
+        "cells_sha": "dbc94d2c41919001fe77eb1f98855789c02c8c445b4ac0a4e3b801a788597add",
+        "order_note": {
+          "cell": "claude-code/F10.discovery-paths",
+          "quote": "When an added directory and the project both define a command with the same name, Claude Code runs the project's command.",
+          "text": "If an added directory and the project define a command with the same name, the project's command runs."
+        },
+        "plain": "You add reusable instructions as skills, which Claude loads in full only when it uses one, or as commands you type yourself. They live in set folders or come from plugins, and skills are the recommended way to package multi-step commands. A skill can set its own tools and model.",
+        "technical": "A skill is .claude/skills/name/SKILL.md; a bare .claude/skills/name.md does not appear in /skills. Custom commands are Markdown files in .claude/commands/; $ARGUMENTS takes parameters. Frontmatter: allowed-tools, disallowed-tools, model, effort; disable-model-invocation: true. /reload-skills re-scans; --disable-slash-commands disables all skills and commands."
+      },
+      "subagents": {
+        "cells_sha": "77c26a239b9cfcfbad5ee273bd15b372b47490455214e0f62f4f8765070ed81b",
+        "order_note": {
+          "cell": "claude-code/F09.per-agent-effort",
+          "quote": "overrides the session effort level",
+          "text": "A subagent's own effort setting wins over the session's effort level."
+        },
+        "plain": "It can hand work to helper agents with their own instructions, tools and model, and run several at once, up to 20 by default. The documentation differs on nesting: one page says helpers can start their own helpers, another says by default they lack the tool for it.",
+        "technical": "Defined in .claude/agents/ markdown files (own system prompt, tool access, optional model). tools omitted: inherits every tool available to subagents. Built-ins: Explore, Plan, general-purpose. Default limit 20 ('Concurrent subagent limit reached'). Two pages differ on nesting: 'can also spawn subagents' vs no Agent tool by default. A workflow run is capped at 1,000 agents; no limit on total subagents over a session."
+      },
+      "surface": {
+        "cells_sha": "a5043de4cd4f2a5141b63cf61a971de31aff7dba5270cf5f67bd6a2b20137a15",
+        "plain": "You can use it in a terminal, IDEs, a desktop app, the web, scripts, CI or chat tools. In script mode Claude doesn't spawn teammates, the desktop hand-off needs a Mac or an x64 Windows computer and a Claude subscription, and repository setup works only with github.com.",
+        "technical": "Esc stops Claude mid-action. claude -p runs non-interactively (--output-format stream-json --verbose); in -p mode Claude doesn't spawn teammates. VS Code and JetBrains share the CLI engine; /ide, --ide. /desktop (alias /app) requires macOS or x64 Windows and a Claude subscription. Repository setup works only with github.com repositories."
+      },
+      "thinking": {
+        "cells_sha": "a6bb37699a9a62dd8d9f3c53c32a639a03e742561eff4f164d2063baf549def0",
+        "plain": "Extended thinking is on by default, its tokens are billed as output, and the reasoning shows as gray italic text in the terminal. Not all models support effort levels, and the thinking token cap applies on models with a fixed thinking budget.",
+        "technical": "Extended thinking is on by default; thinking tokens bill as output tokens and the default budget can be tens of thousands of tokens per request. MAX_THINKING_TOKENS caps thinking tokens on models with a fixed thinking budget; effort levels control adaptive reasoning. xhigh falls back to high on models that don't support it. CLAUDE_CODE_DISABLE_ADAPTIVE_THINKING has no effect on Fable models."
+      },
+      "unattended": {
+        "cells_sha": "49b14807546b91493b52cab9a849e2c2877d10f1d8f1413fc39c1b783d31e8f4",
+        "plain": "It can run in the background, on a schedule, in the cloud, or react to outside events such as a failed CI run. To involve a different tool you expose it through MCP, and in every approach the workers are Claude sessions.",
+        "technical": "A session dispatched from agent view keeps running after you close it; stop_task(task_id) stops a background task. A routine runs a session on a schedule in the cloud; /loop repeats a prompt. --cloud starts a cloud session; claude self-hosted-runner hosts cloud sessions on your infrastructure. claude remote-control; /autofix-pr. In every approach the workers are Claude sessions."
+      },
+      "undo-point": {
+        "cells_sha": "46ab4ecd56595abd89cb57fd4b9d88099f51e98335be33a50bfeb5ec6afa05bf",
+        "plain": "Pressing Esc twice, or using the rewind command, opens a menu to restore an earlier conversation and code state. Checkpoints don't track files changed by shell commands, and snapshots are kept for the 100 most recent checkpoints.",
+        "technical": "Esc twice or /rewind opens the rewind menu to restore conversation and code state, or summarize from a selected message. SDK: enableFileCheckpointing. Pre-edit file snapshots are kept for the 100 most recent checkpoints. Checkpointing does not track files modified by Bash commands."
+      },
+      "updates": {
+        "cells_sha": "8cf178119fe7b8a652e492e4bbb2a35fbaeaf5054a257a33763bd313c3e597cc",
+        "plain": "It has a stable and a latest release channel, updates itself or by hand, and shows its changelog in the app. The documentation marks removed and renamed options, and says breaking gateway protocol changes are announced in advance, though indefinite compatibility isn't guaranteed.",
+        "technical": "autoUpdatesChannel follows stable or latest; claude update; claude install accepts a version number or channel. DISABLE_AUTOUPDATER stops only background updates; minimumVersion sets an org-wide minimum. /release-notes shows the changelog; an entry 2.1.289 is dated October 3, 2026. --enable-auto-mode removed in v2.1.111; /pr-comments removed in v2.1.91; --remote is a deprecated alias for --cloud."
+      },
+      "workspace": {
+        "cells_sha": "d251fda93cc31c0f7cf213bb6cfa818109e106b955c3698fab45665aea5e24e5",
+        "plain": "It can give each session its own separate copy of your project in a worktree, so parallel sessions don't edit the same files. Each copy sits on its own branch, and the repository needs at least one commit first.",
+        "technical": "--worktree, the EnterWorktree tool or subagent isolation: worktree creates a git worktree: a separate checkout on its own branch, created from an existing commit, so the repository needs at least one commit first."
+      },
+      "wrap-up": {
+        "cells_sha": "bba9d10784736c27efc144b5c529118eb6d0310e066e8585728e45109933c964",
+        "plain": "It shows usage and cost totals, can export metrics to your own monitoring stack, and writes debug logs. A spending cap exists, but on the command line it works in print mode only, and the SDK cap ignores totals restored from a resumed session.",
+        "technical": "/usage shows session totals; SDK results carry total_cost_usd, usage, num_turns and session_id. --max-budget-usd is print mode only; the SDK max_budget_usd and maxBudgetUsd options count only the call's own spend, not totals restored from a resumed session. OpenTelemetry export; CLAUDE_CODE_ENHANCED_TELEMETRY_BETA=1 gives trace spans. --debug or /debug writes ~/.claude/debug/<session-id>.txt."
+      }
+    },
+    "codex-cli": {
+      "assemble-prompt": {
+        "cells_sha": "5c019696aeffb269d653275e3d86ae99d9e18b2b2180bd7b8be8b07c7b356292",
+        "plain": "The context window size comes from a setting that defaults to automatic for the model. You add files by mentioning paths, and the IDE extension includes open files. It stops adding files once their combined size reaches a cap, 32 KiB by default.",
+        "technical": "model_context_window sets context window tokens (example: 128000; default: auto for model). /mention and @ path autocomplete attach files; /ide-context toggles shared IDE context. tool_output_token_limit (example 12000) sets tokens stored per tool output. Codex stops adding files once the combined size reaches project_doc_max_bytes (32 KiB by default)."
+      },
+      "built-in-tools": {
+        "cells_sha": "06e3cae3167d43f7f119167a183fc73ec38bd2a95e8258fc5e5f97c23b9396fc",
+        "plain": "It comes with tools to edit files by applying patches and to run shell commands, plus helper-agent tools and an image tool that can be turned off. Web search is on by default for local chats but serves a stored index, not live pages, and is not available on Bedrock Runtime.",
+        "technical": "Internal tools include apply_patch and shell; spawn_agent, send_input, resume_agent, wait_agent and close_agent are stable, on by default. background_terminal_max_timeout defaults to 5m. Web search mode is disabled | cached | indexed | live (default cached); --search switches to live. Hosted web search isn't available on Bedrock Runtime."
+      },
+      "extend-share": {
+        "cells_sha": "81d5b6d182e8a38f81423126b8b8cc035787d1b1d8dd2a7046a47d7ccd76aa0f",
+        "plain": "A plugin bundles skills, apps, tool connections and hooks, and is installed from a marketplace that can be pinned to a version. Administrators can restrict marketplace sources. A plugin does not automatically trust its hooks, and Codex skips plugin-bundled hooks.",
+        "technical": "The manifest points to skills, connector mappings, MCP servers and hooks (default hooks/hooks.json); a local marketplace root has .agents/plugins/marketplace.json. codex plugin installs, lists, removes; marketplace/add adds a remote marketplace; --ref pins a Git ref. restrict_to_allowed_sources = true rejects unmatched adds and installs. A plugin doesn't automatically trust its hooks."
+      },
+      "fence": {
+        "cells_sha": "af91223c82ceecf293b2cb760b670c87679975af4209021b6b0506cb805a38dd",
+        "plain": "Commands run inside an operating-system sandbox. Network access is off by default and writes are limited to the active workspace. The sandbox covers spawned commands, not just built-in file edits. It can be disabled, and a shell command you start yourself runs outside it.",
+        "technical": "OS-level sandbox; defaults include no network access and write permissions limited to the active workspace; applies to spawned commands. --add-dir is preferred over --sandbox danger-full-access for more write access. network_access opts in (default false); network_proxy enforces the approved domain. thread/shellCommand runs outside the sandbox with full access."
+      },
+      "hooks": {
+        "cells_sha": "7abe39b35f643d86735acf7e791d9a8e62c5af450d76aafc259daac1f4f6478f",
+        "plain": "You can attach scripts to moments like before a tool runs or at session start. A hook is a guardrail, not a complete enforcement boundary: an error or timeout can leave the tool unblocked. Local hooks are unsupported with cloud orchestration, and matchers apply to some events.",
+        "technical": "Events include PreToolUse, PermissionRequest, PostToolUse, PreCompact, PostCompact, SessionStart, SessionEnd, SubagentStart, SubagentStop, UserPromptSubmit, Stop, Interrupt. Command hooks get one JSON object on stdin; config in config.toml or hooks.json. Some current Codex events honor matcher. A PreToolUse error, timeout or malformed response can fail without blocking; guardrail, not a complete enforcement boundary."
+      },
+      "host-platform": {
+        "cells_sha": "eebbd8817f5550c0fc78ecbd3bea1f7c2986c3ba54b1a9dbcb4e2704b191fd2d",
+        "plain": "Codex runs locally through the desktop app, the IDE extension and the CLI, which read the same local configuration; cloud use is separate. The documentation does not mention shared execution infrastructure, and the desktop app and CLI can include different Codex versions.",
+        "technical": "Desktop app, IDE extension, CLI and SDK read the same local configuration (model_provider in ~/.codex/config.toml). codex app: Launch the ChatGPT desktop app from the terminal on macOS or Windows (launching is what the documentation covers). With Work Cloud local access, behavior and history remain separate. Diff and review views are compared with ChatGPT, not with sibling products."
+      },
+      "house-rules": {
+        "cells_sha": "1b6c72738e357e610bf5aa1ac01bf4f36bd3c57af120630309df58df87550d2d",
+        "order_note": {
+          "cell": "codex-cli/F03.precedence-scoping",
+          "quote": "files closer to the working directory take precedence",
+          "text": "Files closer to the working folder take precedence."
+        },
+        "plain": "It loads instruction files from your Codex home folder and the project, and files closer to your working folder take precedence. The documentation does not mention importing one file into another. It stops searching at your current folder, so put overrides near the work.",
+        "technical": "Codex reads AGENTS.md files before work, walking up from the working directory to a project root; a global file lives in the Codex home directory and files closer to the working directory take precedence. AGENTS.override.md is copied into local managed worktrees. Import syntax: the documentation does not mention one. Codex stops searching once it reaches your current directory."
+      },
+      "loop": {
+        "cells_sha": "3f918d837ada0c97cc31b6941be5bb3c5fde51719066b73b4f7bed5651d2b9d1",
+        "plain": "A turn is one exchange: your prompt plus the agent's reply and actions. Codex receives a tool call, runs it and sends back the result. Limits include stopping a turn after repeated automatic-review denials, a tool timeout, and a time limit for workers.",
+        "technical": "turn/start adds user input to a thread and begins generation. Auto-review interrupts the turn after 3 consecutive denials (open-source implementation), or 10 denials within a rolling window of the last 50. MCP tool_timeout_sec defaults to 60. --max-time-hours is a worker execution time limit (defaults to 96; accepts fractions)."
+      },
+      "memory-sessions": {
+        "cells_sha": "e793f61dc7e038cd280592a242238a8385f2ce7adc76cf9409187de0c60cfacb",
+        "plain": "Memory is off until you turn it on, and it can be switched on or off from inside the terminal screen. You can resume or fork an earlier session, hand one to the desktop app or the cloud, and choose whether transcripts are saved and how large the history file may grow.",
+        "technical": "Memories are off by default; /memories toggles injection or generation; main files live under ~/.codex/memories/. codex resume, codex exec resume (--last, --all, <SESSION_ID>), codex fork (--last) and /fork. Transcripts can be saved under CODEX_HOME; history.persistence and history.max_bytes control it. /app continues in the desktop app; codex cloud submits work to an environment."
+      },
+      "model-effort": {
+        "cells_sha": "a62cc2e7e83f0c94d9cc0a2043c0006598197b2f8ce21a1f0cb41ebf3a443d22",
+        "plain": "You choose the model with a picker or a launch option, and the effort levels depend on the model and client. The documentation gives a default level for the security scan command but does not state one for general sessions. Custom model providers can be set up.",
+        "technical": "/model picks the model; --model overrides one run; the config.toml key model sets the primary one; model_provider defaults to openai. model_reasoning_effort takes levels such as low, medium, high, xhigh, max or ultra, depending on model and client; the Codex Security CLI --effort accepts minimal to max, default xhigh; no default is given for general sessions. /reasoning sets effort for the chat."
+      },
+      "org-oversight": {
+        "cells_sha": "9db3874b8c9c9af4c1a66a76b0b3a3afeaa3e4be3551b7568f7151a2b354b30c",
+        "plain": "Login can use a ChatGPT account, API key or access token, and can be restricted to a workspace. Business data is not used for training by default. Audit logs come through a compliance interface, but hook activity from outside tool servers does not give a complete audit trail.",
+        "technical": "codex login accepts a ChatGPT account, API key, or access token; ChatGPT login can be restricted to a workspace id. No training on your business data by default; history.persistence and history.max_bytes govern transcripts under CODEX_HOME; a requirements.toml setting can require data residency (currently accepts us). Audit logs via the Compliance API; MCP hooks do not provide a complete Compliance API audit trail."
+      },
+      "org-policy": {
+        "cells_sha": "05178b1dc02597b59ef00a4d9188834875193f9b0aba7c31e196c55263884fa1",
+        "order_note": {
+          "cell": "codex-cli/F07.managed-settings",
+          "quote": "MDM and legacy managed-device requirements take precedence over Agent Security",
+          "text": "For local execution, device management and legacy managed-device requirements win over Agent Security, which wins over the device's system requirements file."
+        },
+        "plain": "Administrators can set rules through a requirements file or device management, and can block the full-access and run-freely options. For model lists, one setting enforces the model catalog, but the table for new chats supplies managed defaults, not enforcement.",
+        "technical": "Admin requirements come from requirements.toml and/or MDM; the Agent Security UI manages Local or Codex Cloud settings and the policy API manages Global. Managed organizations can exclude :danger-full-access and --yolo. A requirements.toml setting enforces the JSON model catalog; [models.new_thread] supplies managed defaults, not enforcement."
+      },
+      "outside-tools": {
+        "cells_sha": "88383f3c208645be0814d3b7c72f3eb0f5241ee35b8a0bee17b367ed22c10234",
+        "plain": "It can connect local or remote outside tool servers over two connection types, using a token or a separate sign-in method. Sign-in and sign-out actions work with web-style servers and depend on the server supporting that sign-in. Tools marked destructive ask for approval first.",
+        "technical": "codex mcp adds, authenticates and inspects servers; /mcp shows status. add supports stdio and streamable HTTP. Entries live in ~/.codex/config.toml (mcp_servers, managed server allowlists). OAuth actions (login, logout) work with streamable HTTP servers and when the server supports OAuth; credential store is auto (default), file, or keyring. enabled_tools filters tools."
+      },
+      "permission-check": {
+        "cells_sha": "39b809dabb168d7774ee2a05c6f4bda8d49464889d2fc111cb0e3d357f61b11f",
+        "plain": "Rules can allow, ask about, or forbid commands by prefix, and filesystem rules can deny reads for exact paths or patterns. Tools marked destructive ask first. A reviewer helper can take over eligible approval prompts but does not review actions the sandbox already allows.",
+        "technical": "Rules allow, prompt for, or forbid command prefixes (under ~/.codex/rules/); codex execpolicy check accepts --rules files. Filesystem keys are absolute paths or :minimal / :workspace_roots; 'deny' denies reads for exact paths or globs (beta permission profiles). approval_mode = 'prompt' per MCP tool. approvals_reviewer defaults to user; auto_review hands eligible prompts to the reviewer subagent."
+      },
+      "plan-and-ask": {
+        "cells_sha": "046e149ad4a972fd1732b4320630fe00e91d615d1ee8235850f7c0ce80a9a07c",
+        "plain": "A plan command switches a chat into plan mode for multi-step planning, optionally with a first planning request. The documentation does not say whether plan mode blocks edits or how to leave it beyond toggling. A status command shows model, approval setting and context left.",
+        "technical": "/plan toggles plan mode for multi-step planning, with an optional inline prompt as the first planning request; a plan-mode-specific reasoning override applies, else the built-in preset default. The documentation does not state it is read-only or define an exit beyond the toggle. /status shows the active model, approval policy, writable roots, chat ID, context usage and rate limits."
+      },
+      "safety-posture": {
+        "cells_sha": "97b942ae1a54c957c22ebaebe8cdc4cb6c7b139ed65d505f54f9930eed6237a8",
+        "order_note": {
+          "cell": "codex-cli/F04.config-scope-precedence",
+          "quote": "MDM and legacy managed-device requirements take precedence over Agent Security",
+          "text": "For local execution, device management and legacy managed-device requirements win over Agent Security, which wins over the device's system requirements file."
+        },
+        "plain": "How often it pauses to ask is set separately from how much it may touch, and asking when the model decides is the default. An untrusted project's own settings are ignored. Docs name different starting modes, and plan mode is temporarily unavailable while it is working.",
+        "technical": "approval_policy on-request is the default; approval_policy = untrusted is no longer supported. Untrusted projects: project .codex/ layers, hooks and rules are ignored. --dangerously-bypass-approvals-and-sandbox, --sandbox danger-full-access and --yolo skip prompts. Two pages name different starting modes (Auto vs 'start with Ask for approval'); /plan is temporarily unavailable while Codex is working."
+      },
+      "send-retry": {
+        "cells_sha": "9cb32506c180cf5d3e86463c9780d224d36bdad15ea9d40206a9a74f7d3ae7d3",
+        "plain": "The service can route a request to another model and tells the client when it does. Usage limits are shared with ChatGPT, and running out can pause access to some features.",
+        "technical": "A model/rerouted notification carries threadId, turnId, fromModel, toModel and reason; Codex cloud selects its model automatically. ChatGPT uses the same pricing, credits, and usage limits as Codex; exhausted limits can pause access to eligible features. Memory generation needs a minimum remaining rate-limit percentage (defaults to 25, clamped to 0-100)."
+      },
+      "shrink-context": {
+        "cells_sha": "7416fddea8eb72884bf8744923c11675d309c1ba65e8986b1d7e4fac15c9826a",
+        "plain": "Older history is summarised automatically once it passes a token threshold, and you can trigger a summary yourself. A scope setting chooses between counting the full active context and counting growth after the carried prefix.",
+        "technical": "model_auto_compact_token_limit is the threshold that triggers automatic compaction (unset uses model defaults); the scope setting is total (the default) or body_after_prefix. /compact summarizes the visible chat; thread/compact/start triggers manual compaction and returns immediately with {}."
+      },
+      "skills-commands": {
+        "cells_sha": "ccadbce3269a8a09a5a8563ebb0d44af44237fcca5eb2e67a92a039147036dc4",
+        "plain": "Skills are folders with an instruction file that you or the model can invoke, kept in your home folder or the repository. Custom commands are deprecated, live on your machine, are not shared through the repository, and are read from the top level of one folder, not subfolders.",
+        "technical": "A skill is a SKILL.md plus optional scripts, references and assets; repo skills go in .agents/skills; $<skill-name> or @ invokes; allow_implicit_invocation defaults true. Custom prompts in ~/.codex/prompts/ are deprecated, need explicit invocation, are not shared through your repository, and top-level Markdown files are scanned, not subdirectories; $1 through $9 and $ARGUMENTS."
+      },
+      "subagents": {
+        "cells_sha": "c2de7912da4968073b4f6075f639a90f093a08ac9ebea39948299c6b23eda4b4",
+        "order_note": {
+          "cell": "codex-cli/F09.per-agent-model",
+          "quote": "an explicit spawn model takes precedence over that default",
+          "text": "A model chosen explicitly when a helper is spawned wins over the configured default for spawned agents."
+        },
+        "plain": "It can start helper agents with their own role, model and effort, run several in parallel, and cap how many are open at once. The documentation does not state a depth limit or whether a helper may start its own helpers. Total caps are shown for security deep scans.",
+        "technical": "[agents] in config.toml holds role declarations; agents.enabled defaults to true. agents.max_concurrent_threads_per_session caps open spawned threads (agents.max_threads is a legacy alias). Built-in agents include worker and explorer. The thread/list ancestorThreadId filter is experimental (capabilities.experimentalApi = true); no depth limit is stated. --max-discovery-runs (default 40) covers deep scans."
+      },
+      "surface": {
+        "cells_sha": "db2224179ec67a6ae8fad05a4d25d209ec47cd30a6e96d70122afd98fb02a50a",
+        "plain": "Use it from a terminal screen, inside editors, in a desktop or web app, from a script, or through GitHub and Slack integrations. Driving it from code with the SDK has a caveat: launching its app server locally is meant for development and debugging and may change without notice.",
+        "technical": "codex launches the interactive TUI; codex exec runs headless (read-only sandbox by default) and codex review is non-interactive. IDE extension: VS Code, JetBrains IDEs, Cursor, Windsurf. The Python SDK (3.10 or later) controls the local app-server over JSON-RPC; launching it locally is 'primarily for development and debugging and may change without notice.'"
+      },
+      "thinking": {
+        "cells_sha": "9aa67c1cd5d81f2098b1fb02fe54f42df9b6d22bb480003a6f534635e491b3fe",
+        "plain": "Higher effort makes responses slower and uses more tokens, and the available levels depend on the model. Noisy reasoning output can be silenced, summary detail can be chosen or turned off, and raw reasoning text appears when the model supports it.",
+        "technical": "Each model entry in model/list carries supportedReasoningEfforts; GPT-6.1 Sol ranges from Light to Ultra, with Max and Ultra depending on settings. Higher effort increases response time and token usage. item/reasoning/textDelta streams raw reasoning text '(when supported by the model)'; summary detail can be selected or disabled."
+      },
+      "unattended": {
+        "cells_sha": "0c87b74df558dad372241d9e04780a52b65cd0e4a44c867d593a1dfba47e44c0",
+        "plain": "It can run scheduled tasks and cloud tasks that keep working while your computer sleeps, and a terminal screen can connect to a server on another machine. Background terminal lists may be empty depending on a setting, and event triggers depend on an eligible plan.",
+        "technical": "Scheduled tasks run a prompt later or on a recurring schedule. Cloud tasks have their own workspace; codex apply applies the latest diff locally. codex app-server --listen ws://IP:PORT or --remote unix://. Background terminals appear when unified_exec is in use; otherwise the list may be empty. App-event triggers apply on eligible plans; GitHub PR review first requires enabling Codex Code review."
+      },
+      "undo-point": {
+        "cells_sha": "cfbb12a6068e84bc7e1eb67b5ddd8ac50ef1c588ae250550e9364d78798b9fae",
+        "plain": "The documentation describes a rollback call in the app server that drops the last few turns from memory, and lists a counter for undo actions. The rollback call is deprecated and will be removed.",
+        "technical": "App-server thread/rollback drops the last N turns from the in-memory context and persists a rollback marker; it is deprecated and will be removed. The config docs also list a task.undo counter for the number of undo actions triggered."
+      },
+      "updates": {
+        "cells_sha": "2a11b141b7841d8c7c111f1c6d113b205db9b5dd6810d4df4f08c42f96f7667e",
+        "plain": "The CLI can update itself when the installed release supports self-update, and debug builds say to install a release build. The desktop app and CLI can carry different Codex versions. A support list says it does not provide managed version pinning or a separate release channel.",
+        "technical": "A CLI command updates 'when the installed release supports self-update'; debug builds print a message to install a release build. Codex checks for updates on startup; in_app_updates = false under [features] gives customer-controlled app update distribution. The version command on the troubleshooting page covers the CLI on your system. features.codex_hooks is a deprecated alias; GPT-5.5 retires on October 14, 2026."
+      },
+      "workspace": {
+        "cells_sha": "1e1876c937887b5d94fdbba4aa588094416aee7b53641e05797b22a6a894cd71",
+        "plain": "It can run a chat in a new Git worktree so several independent chats in one project do not interfere with each other. Both local and worktree chats run on your own computer.",
+        "technical": "Worktrees let Codex run multiple independent chats in the same project without interfering with each other; /worktree runs the chat in a new Git worktree. Both Local and Worktree chats run on your computer."
+      },
+      "wrap-up": {
+        "cells_sha": "0ed690800874923e28a1e63d833bcdde6530f27c98a9b9d9830d155fa3c28fa5",
+        "plain": "A usage command shows daily, weekly or total token activity. Rollout budget tracking is under development and off by default. Telemetry export is off by default, and with local access to Work, cloud orchestration events do not reach your own collector.",
+        "technical": "/usage shows daily, weekly, or cumulative ChatGPT token activity. features.rollout_budget.limit_tokens is required when rollout budget tracking (under development, off by default) is enabled; --max-cost stops a scan above a USD amount. OTel export is disabled by default, opt-in via [otel]; for Work with local access, cloud orchestration events do not reach your existing OpenTelemetry collector."
+      }
+    },
+    "copilot-cli": {
+      "assemble-prompt": {
+        "cells_sha": "be0d7c27d3bb7b3f4e425a758a74482076bb7bbb52b453a317c99d127371d389",
+        "order_note": {
+          "cell": "copilot-cli/F02.context-window-size",
+          "quote": "pins the default tier and takes precedence",
+          "text": "A repository context size setting pins the default tier and takes precedence."
+        },
+        "plain": "The latest models support a very large context window, and you can choose a default or longer size. Naming a file adds it to the prompt, organization exclusion rules are respected, and large tool output is saved to a file with a preview sent to the model.",
+        "technical": "1 million token context window on the latest models; Tab in the model picker toggles default and long-context; repository contextTier (default or long_context) pins the tier. @ plus a relative file path adds contents; content exclusion policies are respected for Copilot Business and Copilot Enterprise; tool output larger than 20 KiB is saved to a temporary file."
+      },
+      "built-in-tools": {
+        "cells_sha": "339a863a1e98a83a9d89fbe2f0cd345cbc02b7ec86330237cdab962ea0c2b975",
+        "plain": "It starts with a small set of built-in tools to search, read and edit files, run shell commands and fetch web pages. Shell commands run directly on your machine until you turn on the local sandbox, and web addresses need approval by default.",
+        "technical": "The explore agent uses code intelligence, grep, glob, view and shell tools; --available-tools=TOOL ... limits the model to the listed tools. Local sandboxing is off by default; --allow-tool='shell' skips per-command approval. apply_patch is used by some models. web_fetch applies SSRF protections; URLs require approval by default; --allow-url allows a URL or domain."
+      },
+      "extend-share": {
+        "cells_sha": "f37bbfd629037eaa5e7e3281f27987fc7d77b03dbf8aceb8903594039c4cead9",
+        "order_note": {
+          "cell": "copilot-cli/F11.trust-signing",
+          "quote": "the managed value wins",
+          "text": "When a policy pins a plugin or marketplace, the managed value wins over local changes."
+        },
+        "plain": "A plugin bundles skills, hooks, helper agents and MCP servers, and installs from a repository, a marketplace or a local folder. Installed plugins are cached, so local changes need a reinstall. Auto-update works only in your own or managed settings, not a repository's.",
+        "technical": "marketplace.json defines a marketplace; install from owner/repo, a URL, a marketplace or a local path; copilot plugin update NAME or --all; components are cached, so reinstall a local plugin. Pin to a full 40-character commit SHA. autoUpdate: true on a marketplace entry is currently ignored at the repository level; honored in user or managed settings."
+      },
+      "fence": {
+        "cells_sha": "f40c24ac9261ba04ecdd84073f067e3cb696807039e3d587b65b14306ba10971",
+        "plain": "Shell commands and searches can run in a local sandbox that limits where they write and whether they reach the network. It is experimental. File tools follow it on a best-effort basis, remote MCP servers stay outside it, and enterprise settings can require it.",
+        "technical": "Local sandboxing is experimental: --experimental or /experimental on. Commands write in the working directory and temporary folders. Allow outbound connections is on by default; COPILOT_OFFLINE=true. Built-in file tools run in the CLI itself, so the sandbox cannot constrain them. Remote MCP servers are never sandboxed. /sandbox disable; --no-sandbox is ignored if enterprise policy enforces sandboxing."
+      },
+      "hooks": {
+        "cells_sha": "b886315807fe84ea1113b04910fd02340090475f34b1e7349b259b958577540b",
+        "plain": "Hooks are shell commands that run at points such as session start or before a tool runs, and can allow or deny a tool call. The documentation does not mention matcher rules for choosing which tools a hook covers. A setting can turn hooks off.",
+        "technical": "Events include preToolUse, sessionStart, agentStop. Hooks are shell commands that get JSON input (preToolUse: toolName, toolArgs) and run synchronously; output JSON must be on a single line. Config: .github/hooks/*.json, ~/.copilot/hooks/*.json, plugin hooks.json. In -p mode, repo hooks load when GITHUB_COPILOT_PROMPT_MODE_REPO_HOOKS is true. Matcher semantics: not documented."
+      },
+      "host-platform": {
+        "cells_sha": "98ccdd4e1b56f68f20e9281cec096165c152f64e2e7f74816a4fe505656cd780",
+        "plain": "It is part of GitHub Copilot: the Copilot app is built on it, and it runs in a JetBrains terminal. It needs a Copilot seat unless you bring your own model provider, and delegating needs a sign-in. Pull requests need a Git repository on GitHub; operating systems are not listed.",
+        "technical": "Needs an assigned GitHub Copilot seat; BYOK needs no GitHub authentication. The GitHub Copilot app is built on Copilot CLI, with its own policy and separate sandbox settings. /delegate transfers the session to GitHub's server-side Copilot, not your own model provider, and needs a GitHub sign-in. 1 million token context is in Visual Studio Code and Copilot CLI, so not unique to the CLI."
+      },
+      "house-rules": {
+        "cells_sha": "967d018fcdce31393a11c82bb8f495fd247f195e1eb97983b08d7acbda1da904",
+        "order_note": {
+          "cell": "copilot-cli/F03.precedence-scoping",
+          "quote": "Personal instructions rank highest, then repository, then organization",
+          "text": "Personal instructions rank highest, then repository, then organization, though all sets are provided."
+        },
+        "plain": "It reads instruction files from the repository and your home folder and combines them rather than picking one. The documentation disagrees on absolute paths in imports, and a helper agent does not follow the repository's instructions by default.",
+        "technical": "Loads AGENTS.md, .github/copilot-instructions.md, CLAUDE.md or $HOME/.copilot/copilot-instructions.md; files combine, no priority fallback. A line starting @ inlines a file (depth limit, cycle and size guards); sources disagree on absolute paths. applyTo scopes *.instructions.md, which are not found in intermediate directories. A subagent skips repository instructions by default."
+      },
+      "loop": {
+        "cells_sha": "7239e755f1faaa3384fd6369216df198729fd0667caf56e97f3fbea3a8fdae80",
+        "plain": "It works through a prompt in rounds of model reply and tool use, and a prompt you send while it is thinking is treated as steering. In autopilot a setting caps the follow-on messages, and the documentation disagrees on the default.",
+        "technical": "Span tree per interaction: invoke_agent root with chat and execute_tool child spans. A plain prompt sent while Copilot is thinking is steering; Ctrl+C cancels and clears queued prompts. --max-autopilot-continues=COUNT caps continuation messages; autopilot pauses at the limit. Limit: default disagrees, unlimited vs pausing after 5 automatic continuation messages."
+      },
+      "memory-sessions": {
+        "cells_sha": "19058dd4e9328c53bab3a4bc00ef83d6af3ca6a9afbb5200d94d3bb3468a65fa",
+        "plain": "It can remember facts about your repository, resume or fork earlier sessions, and hand a session between GitHub and your machine. Resuming cannot be combined with a workflow run, and picker screens are not handled by the editor protocol.",
+        "technical": "Copilot Memory is public preview; --enable-memory enables it in prompt mode (disabled by default). --resume or /resume resumes a session, --continue the most recent; /fork and /fork worktree; --share saves a Markdown transcript. Limit: /resume picker not handled by the ACP server; --resume and --continue cannot be combined with copilot workflow run."
+      },
+      "model-effort": {
+        "cells_sha": "90001de060ac30fe74db251054576dc81b07dbf6b4fbbb890c0391eae366193e",
+        "order_note": {
+          "cell": "copilot-cli/F18.where-set",
+          "quote": "takes precedence over the user value",
+          "text": "A repository effort setting that pins the default takes precedence over the user value."
+        },
+        "plain": "You can pick the model and thinking effort in a session, at startup or in a settings file, or use your own model provider. Enterprise rules limit which models appear, the research helper keeps its own model, and the settings file list of effort levels leaves out max.",
+        "technical": "/model or --model=MODEL; model in ~/.copilot/settings.json (auto lets Copilot pick). --effort (alias --reasoning-effort): low, medium, high, xhigh or max; effortLevel setting: low, medium, high or xhigh, default medium. Limit: the research agent uses its defined model regardless of the session model; Copilot cloud agent model choice does not say whether the CLI shares it."
+      },
+      "org-oversight": {
+        "cells_sha": "67c10fc053456d942f442955aa2dd4f0633fb7aa83240072b86d92ad3b4fbe18",
+        "plain": "Users need a Copilot seat and sign in through GitHub, and a list of approved organizations can pin who may sign in. Policy changes appear in the audit log. Anthropic keeps prompts for some Claude models by default, with zero retention on request under a time-bound exemption.",
+        "technical": "Assigned Copilot seat required; gh auth login or copilot login; forceLoginOrgs pins sign-in to approved GitHub organizations. Enterprise policy updates are audit-logged; Copilot usage metrics APIs export data. Anthropic retains prompts and outputs by default for Claude Fable 5 or 5.1; zero data retention can be requested through the end of 2026 under a time-bound exemption."
+      },
+      "org-policy": {
+        "cells_sha": "34e6e0e64cee1370854ccf6c7b80fb3b0c37566b85769eff9120778672fb2ab8",
+        "order_note": {
+          "cell": "copilot-cli/F07.managed-settings",
+          "quote": "load before user settings",
+          "text": "Settings pushed through a device management system load before the user's own settings."
+        },
+        "plain": "Companies can push settings that load before yours, switch off features such as computer use, and limit which models people may pick. A repository can also list the built-in models it allows.",
+        "technical": "Server-managed, MDM-managed or file-based managed settings; MDM settings load before user settings. Managed sandbox.allowBypass set to false removes the ability to approve out-of-sandbox commands. Admins can disable computer use. Users get models enabled at the enterprise level (/model lists them); .github/allowed_models.txt restricts built-in models; Claude Fable 5 and 5.1 must be enabled by an admin."
+      },
+      "outside-tools": {
+        "cells_sha": "7593a26d82dc46b611946c72d2e08244b6cd4e3385737e502e7b06163d65b315",
+        "plain": "It connects to outside tools through MCP, as local programs or remote servers, with GitHub's own server ready. You can allow or deny a whole server or one tool. The documentation names one config file for a single setting and does not give a full list of places.",
+        "technical": "GitHub MCP server preconfigured; /mcp and /mcp list show servers. Transports: stdio, streamable-http, sse. Edit via /mcp edit or ~/.copilot/mcp-config.json (named for Defer Tools); plugin mcp.json; mcp-servers in an agent profile. --allow-tool MyMCP(create_issue); --header; oauthClientId. Limit: no full list of MCP config scopes is stated."
+      },
+      "permission-check": {
+        "cells_sha": "5d0fa46a9958636e0b7c2d21013142212cbbacd50fca01e489f0868b3af0c820",
+        "plain": "Rules can allow or deny tools, folders and shell commands by name. Command matching is literal, with no regular expressions or general wildcards. Assisted approval still asks each time but adds a model's safety recommendation, so the CLI can approve requests it judges acceptable.",
+        "technical": "--allow-tool and --deny-tool take comma-separated lists, e.g. --deny-tool='shell(rm)'; --add-dir adds a trusted directory. Shell matching does not support regular expressions or general glob patterns; a trailing :* in a commandIdentifiers value matches the text before it. /permissions assisted attaches an LLM safety recommendation so the CLI can auto-approve."
+      },
+      "plan-and-ask": {
+        "cells_sha": "02aea63e11c25f97d767f210d8a33ac80998c322fa4f82548ccfe52451f4e273",
+        "plain": "Plan mode lets you work out a plan before code is written, and remote clients can approve or reject it. The plan description does not call plan mode read-only. The terminal shows the model used for each response and whether sandboxing is on.",
+        "technical": "Shift+Tab cycles in and out of plan mode; all prompts trigger the plan workflow; --plan --mode autopilot moves to autopilot once the plan is ready instead of waiting for human approval. Planning happens before code is written, but plan mode is not stated to be read-only. Status line contains sandbox enabled; footer shows N scheduled."
+      },
+      "safety-posture": {
+        "cells_sha": "aa5bb2e275b1ababfcb840b2c5f073a0fb3ef3c3aeded5e6787e523dd59a54fc",
+        "order_note": {
+          "cell": "copilot-cli/F04.config-scope-precedence",
+          "quote": "--deny-tool takes precedence over --allow-all-tools and --allow-tool",
+          "text": "A rule that denies a tool takes precedence over the allow options."
+        },
+        "plain": "It asks before risky actions and asks you to trust a folder. Plan and autopilot modes cycle with a key, and a bypass option skips the questions. The documentation disagrees on how many modes exist and whether autopilot stays on, and does not name the starting mode.",
+        "technical": "--mode takes interactive, plan or autopilot; Shift+Tab cycles; one page says two modes, others three. stayInAutopilot (default true) stays in autopilot; another page says autopilot then returns to interactive mode. No starting mode is named. Plan mode blocks edits. --allow-all (or --yolo); --deny-tool takes precedence over --allow-all-tools and --allow-tool."
+      },
+      "send-retry": {
+        "cells_sha": "6aa93be9225472f0be03a8ca92348cae83c6517521cc58206d857e6a99fb9c9c",
+        "plain": "Auto mode picks a model from system health, performance and task difficulty, and you can ask for a tier. When a setting is on, a rate limit error switches to auto mode and retries, but not for global limits or your own provider. Included credits reset monthly.",
+        "technical": "/model auto TIER (efficiency, balance, or intelligence). When a setting is true, eligible rate limit errors trigger an automatic switch to auto mode and retry; this does not apply to global rate limits or BYOK providers. Included AI credits reset at 00:00:00 UTC on the first day of each calendar month."
+      },
+      "shrink-context": {
+        "cells_sha": "08dccc18fd889fc58fae9cb0bea4fc3938e1455072028605799ac046af4305b4",
+        "plain": "It summarizes older conversation automatically, or you can ask for it by hand and add focus instructions. A finished compaction cannot be undone. The documentation disagrees on when the automatic step starts: about 80 percent in two places, 95 percent in another.",
+        "technical": "Auto-compaction starts at approximately 80% of the context window, leaving about a 20% buffer; dynamic when static context uses roughly 75% or more. One source says 95% of the token limit. /compact manual (e.g. /compact focus on the auth module); Esc cancels; cannot be reversed once completed."
+      },
+      "skills-commands": {
+        "cells_sha": "ba55b319334390d45eb0ea939ad3c859f6c76908b9066203c940efccd24e20a1",
+        "plain": "A skill is a folder of instructions the agent can use when a task fits, or you can call it by name. A command is a simple file, and a skill beats a command with the same name. A skill can pre-approve tools it names; Copilot asks about the rest.",
+        "technical": "Skills: SKILL.md in skills/NAME under .github/skills, .claude/skills or .agents/skills (personal ~/.copilot/skills/); run via /SKILL-NAME; /skills list. allowed-tools pre-approves tools; unlisted tools prompt. Commands: .md files in .claude/commands/, lower priority than same-name skills. Built in, including /fleet, /context, /sandbox, /allow-all (alias /yolo)."
+      },
+      "subagents": {
+        "cells_sha": "720e56882464779954c0add57f57b29c000bc1b5a3a7b987b4ce399abdccc92d",
+        "order_note": {
+          "cell": "copilot-cli/F09.per-agent-effort",
+          "quote": "Precedence, highest first: per-call value, then settings.json subagents override, then the agent definition",
+          "text": "For helper effort, a per-call value wins, then a settings override, then the agent's own definition."
+        },
+        "plain": "Custom helper agents are described in Markdown files with their own tools, and can have their own model and effort. Several run at once under limits on depth and number. The documentation disagrees on the default depth and cap, and the research helper uses a fixed model.",
+        "technical": "Agent profiles are Markdown files; tools field default [\"*\"]; reasoningEffort sets per-agent effort. COPILOT_SUBAGENT_MAX_DEPTH default 4 (range 1-128) vs settings depth default 6, capped at 256. COPILOT_SUBAGENT_MAX_CONCURRENT default 32 (range 1-256) vs plan-based setting capped at 32. /fleet or --fleet runs subtasks in parallel. The research agent model is hard-coded."
+      },
+      "surface": {
+        "cells_sha": "9db6edc68aee3976048e307d3ea4980e922c2aca9a0ac64091c01fd83301a86f",
+        "plain": "You can use it in a terminal, from an editor, in a desktop app, from scripts, in automated workflows or through a pull request comment. The documentation says scripted runs cannot use the cloud sandbox.",
+        "technical": "copilot launches the interactive UI; -p PROMPT runs a prompt non-interactively and exits; copilot workflow run WORKFLOW-NAME; copilot app opens the desktop app; --acp starts an ACP server; runs in GitHub Actions with a personal access token or GITHUB_TOKEN; @copilot in a pull request comment asks the cloud agent. Limit: --cloud cannot be combined with -p or -i."
+      },
+      "thinking": {
+        "cells_sha": "a4311a175b54ca27d384a08782a18152af1d64dc5f1eacbcdc33b84798fcd1c2",
+        "plain": "Some models offer a choice of reasoning depth, and the documentation does not list the levels per model. A key shows or hides the model's reasoning. Summaries appear for supporting OpenAI models, and the documentation does not describe a token budget control.",
+        "technical": "--effort accepts low, medium, high, xhigh or max; max is the highest-depth tier for Anthropic models. Ctrl+T shows or hides reasoning and persists across sessions. Summaries for supporting OpenAI models show by default; --enable-reasoning-summaries is deprecated and ignored. Limit: levels per model not listed; no token budget control described."
+      },
+      "unattended": {
+        "cells_sha": "d499a38b97a72a69d3305ba3e8e028726dd80179bcb8d3c7ce8e65d5ac570de0",
+        "plain": "It can run tasks in the background, repeat or delay a prompt on a schedule, hand work to a cloud agent on GitHub, and be watched or steered from GitHub or GitHub Mobile. Automations react to events such as an issue being opened and skip people without write access by default.",
+        "technical": "/tasks lists background tasks; /every schedules a repeating prompt, /after a one-shot prompt after a delay; /delegate transfers the session to GitHub's server-side Copilot (Copilot CLI policy and cloud agent policy enabled, signed in to GitHub); --connect joins a remote session and conflicts with --resume and --continue; automations ignore events from users without write access by default."
+      },
+      "undo-point": {
+        "cells_sha": "476fbf9ea7921337a4bf1775e2af11e64569277c4e3ed450fa82094dba7f9e64",
+        "plain": "It tracks the file changes it makes for each prompt. Pressing the escape key twice while it is idle rewinds the session to an earlier prompt and can restore your files.",
+        "technical": "Press Esc twice when Copilot is idle to rewind to an earlier point; rewind returns the session to a previous prompt, undoing changes in conversation history, and optionally restores files."
+      },
+      "updates": {
+        "cells_sha": "82650d83ddbd7eb942b58c207fbb156674b3f9b609d6a1d5670e88f0daf1d5f6",
+        "plain": "It can check its version, update itself, show its changelog with an optional summary, and turn automatic updates off for CI. Some features need an experimental switch, and the documentation lists retired models and removed options.",
+        "technical": "copilot version checks for updates; copilot update installs the latest; autoUpdate setting; COPILOT_AUTO_UPDATE set to false disables automatic updates; VERSION installs a specific version; --experimental or /experimental on. --config-dir is deprecated for COPILOT_HOME; --kind, --scope, --mcp and --skill removed. The changelog accepts summarize."
+      },
+      "workspace": {
+        "cells_sha": "5f5d32299bea8476d65f69038399c62689feec5e861b9330d6614024d54a82e3",
+        "plain": "It can create a separate Git worktree and switch to it, leaving your uncommitted changes behind, or fork a session into a new worktree. A setting can start new worktrees from the remote default branch.",
+        "technical": "/worktree creates a new Git worktree and switches to it, leaving uncommitted changes in the current worktree. /fork worktree forks the session with its context into a new worktree branched off HEAD. The defaultBranch setting value starts new worktrees from the remote default branch."
+      },
+      "wrap-up": {
+        "cells_sha": "42c96d923494233a411220691f00749f6ec56efef2c152951e53cd5d89120ae8",
+        "plain": "It shows context use and AI credits spent in a session, can cap spending per response, and can export telemetry in a standard monitoring format. The spending cap is a soft limit, and user budgets are not considered when the organization is billed directly.",
+        "technical": "/context shows the active model and tokens in use; the CLI overview lists AI Credits used. --max-ai-credits is a soft maximum per response, resets per user message, adjustable with /limits; user-level budgets are not considered when billed directly to the organization. OTel traces and metrics are off by default. logLevel: none, error, warning, info, debug, all or default."
+      }
+    },
+    "copilot-vscode": {
+      "assemble-prompt": {
+        "cells_sha": "dd561c9f873cbcd43687ccb21ed7c048ad8896ea14332b51058a7830e42c1cbe",
+        "plain": "Each time the agent sends a request, the editor builds a prompt from multiple sources. You can add MCP resources, a selected page element or referenced files as context. Models differ in context window size, and a chat-input control shows how much of the window is used.",
+        "technical": "VS Code assembles the prompt from multiple sources on each request. Context window size varies by model; a model's optional contextWindow (input plus output, in tokens) lets maxInputTokens be omitted (derived as contextWindow minus maxOutputTokens). MCP resources, a selected element (HTML, CSS, screenshot) and #file: references can be added."
+      },
+      "built-in-tools": {
+        "cells_sha": "f026a3c10db373d88a192e7f2cfeb751c8dfd2b62b742aedd793ae3f6a51cf99",
+        "plain": "The agent picks from the enabled tools, such as reading files, running terminal commands, searching the codebase, fetching web content and using a built-in browser. Terminal commands need your approval by default, and file edits are saved straight to the project folder.",
+        "technical": "Tools include file reads, terminal commands, codebase search, #fetch, and browser tools (workbench.browser.enableChatTools, default true). Each shell command needs approval by default; chat.agentHost.shellTool.initScript.enabled loads ~/.bashrc or PowerShell profiles. chat.tools.edits.autoApprove takes glob patterns. chat.agent.networkFilter filters domains for fetch and the browser."
+      },
+      "extend-share": {
+        "cells_sha": "bdc7a343984361b64b063cde90c418043bd129e993cdcf4ea726b282164aeb0e",
+        "plain": "Agent plugins bundle related customizations such as MCP servers into one package, installed from plugin marketplaces. Plugins from some sources do not update by themselves, and a marketplace allowlist does not retroactively disable plugins already installed.",
+        "technical": "plugin.json at the root with a required $schema string (Agent Plugins 1.0); version optional, Semantic Versioning recommended. chat.plugins.marketplaces (Experimental); ChatExtraMarketplaces and ChatStrictMarketplaces policies. Update check every 24 hours when extensions.autoUpdate is enabled; npm or PyPI plugins show an Update button. strictKnownMarketplaces does not retroactively disable installed plugins."
+      },
+      "fence": {
+        "cells_sha": "511d0ed6dea36f3204f475ca74c8a807e44566f8131e79c2afa6a870151021a0",
+        "order_note": {
+          "cell": "copilot-vscode/F05.sandbox-override",
+          "quote": "set `false` from any channel takes precedence over `true` from another",
+          "text": "If the bypass permission is set to false in one place and true in another, false wins."
+        },
+        "plain": "Terminal commands can run inside an operating-system sandbox that limits files and network access, and child processes inherit it. It is in preview or experimental depending on the system, and it does not restrict the built-in file tools or replace approval controls.",
+        "technical": "chat.agent.sandbox.enabled (off or on): Preview on macOS, Linux, WSL2; Experimental on Windows. Built-in file tools stay in the workspace folder; sandboxing does not restrict them. chat.agent.sandbox.allowNetwork and chat.agent.sandbox.allowUnsandboxedCommands (Preview). Local stdio MCP servers can be sandboxed on macOS and Linux. A worktree does not restrict commands or network."
+      },
+      "hooks": {
+        "cells_sha": "09573d9594f600c9791a22d50dcadfa880e86a43c6039eb9faf6f8619976de33",
+        "order_note": {
+          "cell": "copilot-vscode/F06.output-blocking",
+          "quote": "`deny` overrides `ask`, which overrides `allow`",
+          "text": "For a PreToolUse event, a deny decision wins over ask, and ask wins over allow."
+        },
+        "plain": "Hooks run your own shell commands at points in an agent session, such as before a tool runs, and can block or change the action. They apply to the Local agent, not automatically to Agent Host sessions, and Claude-style hook files need a setting that is off by default.",
+        "technical": "Eight events (PreToolUse, SubagentStart, Stop named), not automatically applied on Agent Host, which does not define one shared hook schema. JSON in on stdin, optional JSON out on stdout. Local ignores matcher values. Claude-format files need chat.useClaudeHooks (off by default); agent frontmatter hooks need chat.useHooks and a trusted workspace. ChatHooks policy false disables hooks in the Local harness."
+      },
+      "host-platform": {
+        "cells_sha": "1367ba0e840af96e4dfa7fc8843974eee66aabd43674a6b288024be8d5b39c82",
+        "plain": "It runs inside VS Code, where the Copilot Chat panel is the harness, and can host Claude and Codex sessions. It uses your Copilot plan, though bring-your-own-key models need none. A setting moves new sessions to the Copilot SDK harness but does not migrate existing ones.",
+        "technical": "Local harness runs in the extension host; Agent Host owns sessions and can run on your machine, a Dev Container or a remote machine. Copilot sessions use the GitHub Copilot SDK; Claude sessions use Anthropic's Claude Agent SDK. chat.editor.preferCopilotHarness (Experimental) does not migrate existing sessions. BYOK works without a GitHub account. Local hook events do not automatically apply to Agent Host."
+      },
+      "house-rules": {
+        "cells_sha": "2ffdc0872f54fd1ced01a29c16c5762446db3fb1b6af5f47c4be1e174ab4b546",
+        "plain": "It reads instruction files from your project and home folder, some applying by file pattern. What works depends on the selected agent harness, and nested and linked files are off by default. Instructions stored just in your editor profile are a legacy location it does not read.",
+        "technical": "Auto-loaded: copilot-instructions.md, AGENTS.md, CLAUDE.md (chat.useClaudeMdFile, default true). Support depends on the harness; Agent Host sessions follow the selected harness's rules. chat.useNestedAgentsMdFiles is disabled by default; chat.includeReferencedInstructions default false; chat.includeApplyingInstructions default true (applyTo). VS Code profile user data is a legacy location."
+      },
+      "loop": {
+        "cells_sha": "7e86c634415b77905d0852e4587f0cb3d55b2f97c1499fa43a2eb174aa32a213",
+        "plain": "The agent repeats reasoning, tool use and checking: it runs a requested tool, feeds the result back, and goes again. You can steer, queue a follow-up or stop a request, though stopping does not undo finished actions. A setting caps how many requests it makes.",
+        "technical": "chat.agent.maxRequests caps requests (listed default 25). VS Code executes the requested tool and feeds the result back for the next iteration; agents self-correct on errors. A request can be steered, given a queued follow-up, or stopped; stopping does not undo completed actions. Terminal commands can set a timeout; when reached the agent stops waiting and returns output so far."
+      },
+      "memory-sessions": {
+        "cells_sha": "3bb4a3f285c9fd191388669d787f3d6ff12ec53b399db2d9bdd2685ba78c8b0b",
+        "plain": "It can keep notes at user, repository and session level, and restore earlier sessions after a reload, in the terminal or from another app. A fork copies the conversation but may share code changes with the original. Transcript formats are not a stable shared interface.",
+        "technical": "Memory tool: /memories/ (user; first 200 lines load into each session), /memories/repo/, /memories/session/ (cleared when the conversation ends); stored locally. /fork or Fork Conversation branches history; the docs differ on whether a fork shares the original session and worktree. Sessions sync to your GitHub account by default; transcript formats are not a stable cross-harness API."
+      },
+      "model-effort": {
+        "cells_sha": "44dab158db3a804fcec7075d8f9b3506fb09caa5c353e913151b1e7a1c58a764",
+        "order_note": {
+          "cell": "copilot-vscode/F17.model-flag-env",
+          "quote": "A prompt file's model field sets its model, and the picker's selection is used if unset",
+          "text": "If a prompt file names a model it uses that one; otherwise the picker's choice applies."
+        },
+        "plain": "You pick the model from a picker in the chat box and can set defaults for chat, planning and inline chat. Bring-your-own-key lets you use other providers, but some features need the Copilot service. Models depend on your account and organization, and effort levels vary.",
+        "technical": "chat.defaultModel (enterprise policy, from 1.127), chat.planAgent.defaultModel, inlineChat.defaultModel; Thinking Effort submenu in the picker. BYOK: inline suggestions, semantic search and embeddings need the GitHub Copilot service. Effort levels (Low, Medium, High) and defaults vary by model and provider. Model and harness are independent choices."
+      },
+      "org-oversight": {
+        "cells_sha": "e4db6928cafe462691bdfee1839a7102a78b2fa9fac259d4c7ad2bc08269a932",
+        "plain": "Copilot reuses your GitHub sign-in, and a policy can switch AI features off until you sign in to a matching organization account. Prompt content is not captured by default. Identity capture for audit is described for Local harness sessions.",
+        "technical": "Sessions reuse VS Code chat's GitHub authentication context; a policy set to a non-empty list disables AI features until sign-in to an account whose organizations intersect it. zeroDataRetentionEnabled (default false); chat.sessionSync.enabled false keeps session data local. Developer: Policy Diagnostics shows the effective policy value and source. Identity capture is described for Local harness sessions."
+      },
+      "org-policy": {
+        "cells_sha": "ab7069d87c8c824a86893b1c37752b4f9023e723ffafec13086dd02a506293b1",
+        "order_note": {
+          "cell": "copilot-vscode/F07.managed-settings",
+          "quote": "override the corresponding user setting on managed devices",
+          "text": "On managed devices, most managed settings win over the person's own setting."
+        },
+        "plain": "Administrators can manage Copilot centrally. Most managed settings override a person's own settings on managed devices, and policy can switch agent mode off, require manual approval for specific tools and restrict which models are offered.",
+        "technical": "Copilot managed settings apply across VS Code and GitHub Copilot CLI; most map to a VS Code enterprise policy and override the user setting on managed devices. ChatAgentMode policy (chat.agent.enabled) prevents agent mode. ChatDefaultModel sets the default model; users can still switch within a conversation."
+      },
+      "outside-tools": {
+        "cells_sha": "b721cd42d2b289969d609f46f1eaeb734d6fade44db30e6c16b14b176f7997bf",
+        "plain": "It connects MCP servers and offers their tools to the model, with explicit approval required for tool calls. Copilot sessions are currently limited to local servers that do not need authentication, and plugin servers are trusted when the plugin is installed.",
+        "technical": "Config: .vscode/mcp.json (top-level servers); Agent Host reads .mcp.json and ~/.copilot/mcp-config.json, not .vscode/mcp.json directly, though VS Code forwards servers except those that require interaction. Transports: stdio, HTTP Stream then SSE, unix:// sockets. OAuth; headers field. Plugin MCP servers are implicitly trusted. ChatMCP policy (chat.mcp.access)."
+      },
+      "permission-check": {
+        "cells_sha": "734a6ed3e21421cefa7e7f3a516a7ba4fe9da9cb1c468291fa59e206d0267f26",
+        "plain": "Approval can be set by tool, by file path pattern and by terminal command, and an automatic reviewer model can judge risk. Command rules use best-effort parsing that shell tricks can slip past, and the permission rules apply to enterprise-managed users and Agent Host sessions.",
+        "technical": "chat.tools.eligibleForAutoApproval; permissions.allow, permissions.ask, permissions.deny (enterprise managed settings and Agent Host). chat.tools.edits.autoApprove globs; selectors Shell, Read, Edit or Write, Domain. chat.tools.terminal.autoApprove: true or false, or a regular expression wrapped in /; aliases and complex shell syntax can bypass. Assisted permissions LLM judge: unapproved calls need your confirmation."
+      },
+      "plan-and-ask": {
+        "cells_sha": "0ea74cba140f2a8b17edc69605e3e1f500175dbd76ff33426dfaa7acedad23ce",
+        "plain": "Plan mode researches the codebase, clarifies requirements and proposes a plan, then waits for your approval before acting. The plan can be handed to an implementation agent. Controls in the chat input show session cost in credits and context use.",
+        "technical": "Built-in Plan agent; the reviewed plan can be handed to an implementation agent. The context window control shows total cost in credits and cumulative context token usage; the Status Bar Copilot status dashboard shows the percentage of the monthly allowance used; a token usage indicator shows a live context budget breakdown."
+      },
+      "safety-posture": {
+        "cells_sha": "d80325679ed2d8b5293363d2818552ef77c08f47302f50bb388b4252849a4b38",
+        "order_note": {
+          "cell": "copilot-vscode/F04.config-scope-precedence",
+          "quote": "Workspace sandbox settings take precedence over User settings, followed by product defaults",
+          "text": "For a local Agent Host, workspace sandbox settings win over user settings, and product defaults come after."
+        },
+        "plain": "You choose how much needs your confirmation: manual approval, an autonomous mode, or a bypass that disables security protections. Plan and Ask modes limit what it does. If enterprise policy disables auto-approval, new sessions start on manual.",
+        "technical": "Permissions: Manual, Autopilot, and a bypass level; chat.permissions.default sets new sessions (Manual if enterprise policy disables auto-approval). chat.tools.global.autoApprove (default false) is YOLO mode. Roles: Agent, Plan, Ask, custom; /plan; github.copilot.chat.switchAgent.enabled (experimental). Workspace sandbox settings beat User settings."
+      },
+      "send-retry": {
+        "cells_sha": "be8a5439a4a0e94266a87b5bf0ea7253d89b74c309cc74a614993f7fddde0d65",
+        "plain": "Auto model selection routes each request to a model based on task complexity and availability. For a temporary rate limit the documentation says to wait a few minutes and retry. Monthly allowances reset each month, and a status dashboard shows when one is reached.",
+        "technical": "Auto evaluates task complexity and real-time model availability; chat.subagents.defaultToAuto (default false) makes subagents use Auto when no model is specified; autoTier managed setting sets initial routing. A temporary rate limit can occur before the monthly AI credits allowance is exhausted: wait a few minutes and retry. The Copilot status dashboard shows whether an allowance has been reached."
+      },
+      "shrink-context": {
+        "cells_sha": "0a04dcda99d051d13ec395b31f1b7363cbf92ddb38f5f1499a2e7b74273ef7ca",
+        "plain": "When a conversation nears the limit, the editor summarizes older parts on its own, and a setting can turn that off. You can also trigger compaction by hand whenever you like and add instructions on what the summary should keep.",
+        "technical": "github.copilot.chat.summarizeAgentConversationHistory.enabled (Experimental, default true); false turns automatic compaction off. A PreCompact hook's trigger value is auto when the conversation exceeds the prompt budget. /compact triggers it manually, for example /compact focus on the database schema decisions."
+      },
+      "skills-commands": {
+        "cells_sha": "36f1a59b823b29bca69b2e7bc46ac86587e3727d4d716c692c108842eb8cead8",
+        "plain": "A skill is a folder with an instruction file that the agent loads when a task fits or when you pick it by name. Custom commands come from prompt files, which are deprecated for Agent Host sessions. The documentation does not mention per-skill tool or model overrides.",
+        "technical": "SKILL.md with YAML frontmatter; name: lowercase letters, numbers, hyphens, at most 64 characters, matching the folder. Example .github/skills/validate-change/SKILL.md; chat.agentSkillsLocations is deprecated. Prompt files (.prompt.md) are deprecated for Agent Host; chat.promptFilesLocations (Deprecated); the Local agent will be removed. Built-ins: /plan, /compact. Per-skill overrides: not mentioned."
+      },
+      "subagents": {
+        "cells_sha": "6516c01ae8e26152b00f03ebcab4160a1217bfc1e0d397834c835ee1dbed45c2",
+        "order_note": {
+          "cell": "copilot-vscode/F09.per-agent-model",
+          "quote": "tried in order until an available one is found",
+          "text": "A custom agent can list several models; they are tried in order until one is available."
+        },
+        "plain": "Custom agents can have their own tools and model, and helpers can run in parallel when the harness supports concurrent subagents. Nesting is off by default and capped at five levels when on. The documentation does not mention per-agent effort.",
+        "technical": "Custom agents: .agent.md with tools, model (single or prioritized list), agents (* or []); frontmatter hooks run for that agent in the Local harness. chat.subagents.allowInvocationsFromSubagents default false, max depth five. chat.agentHost.agentOrchestrationLimits (Experimental): no numeric total stated; off removes limits. Same-folder sessions can edit the same working files."
+      },
+      "surface": {
+        "cells_sha": "21dd141a8f9a559d9f5cc0309b73a49219a9983fdf97b10b0e276219a071766e",
+        "plain": "You can reach it from inside VS Code, from a separate terminal session, from a dedicated Agents window, and through programming interfaces. The documentation does not mention a headless mode or use in CI and chat services.",
+        "technical": "Copilot CLI sessions start from the GitHub Copilot CLI terminal profile, Chat: New Copilot CLI Session, or copilot in an integrated terminal (separate process). Agents window; github.copilot.chat.cli.remote.enabled; GitHub Copilot SDK; Agent Host Protocol (JSON-RPC); Chat API. Headless mode and CI and chat surfaces: not mentioned in the documentation."
+      },
+      "thinking": {
+        "cells_sha": "c39d09d4bc48726379df844e06bc70b74c8d90ff9e01800551cb4be1600a7038",
+        "plain": "Models that support it show a thinking effort choice, and higher effort uses more thinking tokens and more AI credits. Thinking tokens count toward the context window. The thinking itself is typically summarized or left out, and the display setting is experimental.",
+        "technical": "Effort levels and defaults vary by model and provider; non-reasoning models such as GPT-4.1 and GPT-4o show no thinking effort submenu. Higher effort produces more thinking tokens and AI credit use, and they count toward the context window. The actual thinking output is typically summarized or can be omitted entirely for lower latency. chat.agent.thinkingStyle is marked (Experimental)."
+      },
+      "unattended": {
+        "cells_sha": "0e73052da2b3713239ef1f9d16456edd68ebad03241999de077cf491eb24e9d4",
+        "plain": "It can run long commands and sessions in the background, run scheduled automations, send a task to a cloud agent that returns a pull request, and be controlled remotely. Automations are listed as off in Stable, and cloud sessions need a GitHub-backed repository.",
+        "technical": "Automations: hourly, daily or weekly; chat.automations.enabled listed true on Insiders, false on Stable (entry points hidden, scheduled tasks not dispatched). Cloud target: GitHub-backed repositories, returns a pull request. /delegate; Continue in dropdown appears when destinations are supported; remote delegation requires chat.remoteAgentHostsEnabled and chat.remoteSessions.tools.enabled."
+      },
+      "undo-point": {
+        "cells_sha": "bba867e2898152565bd17327d59b64d4ca8ed37baca3a05aa2106512e528c3a5",
+        "plain": "You can hover over an earlier request and restore a checkpoint, which brings back affected workspace files and the chat to that point. It does not undo terminal commands, network requests, deployments or changes to outside services, and it is described for supported sessions.",
+        "technical": "Restore Checkpoint restores affected workspace files and chat history; chat.checkpoints.enabled turns checkpoints on or off. Described for supported sessions. It doesn't reverse terminal commands, network requests, deployments, or changes to external services."
+      },
+      "updates": {
+        "cells_sha": "828869e977b222383e5a33b8ddb9a128813264edbcee4df51e0f1583f928b917",
+        "plain": "The documentation read describes VS Code 1.140. Copilot extensions have a pre-release version, updates can be automatic, and deprecations are noted inline in the docs. Release notes for older versions are on the Updates page.",
+        "technical": "Docs describe Visual Studio Code 1.140. Switch to Pre-Release Version selects the nightly extension; Automations default off in Stable, on in Insiders. UpdateMode policy (update.mode); Code: Check for Updates. Older release notes: Updates page at code.visualstudio.com. Deprecated: infer, github.copilot.chat.customOAIModels, prompt files for Agent Host; legacy copilot_chat.* telemetry keys have no sunset date."
+      },
+      "workspace": {
+        "cells_sha": "7062e9ae3eb23786c770e459a5c754169b924ccbefe0b0c4c2f2848a035a5802",
+        "plain": "A Code isolation control lets a session run in the current folder or in its own Git worktree, so each task gets its own files and branch. Changes can still conflict, and a worktree is not a security boundary.",
+        "technical": "Code isolation control: current folder or separate Git worktree; each session with a new worktree gets its own working files and branch, though integration can still produce conflicts. A worktree is not a security boundary; for the Copilot harness, worktree sessions use Allow all."
+      },
+      "wrap-up": {
+        "cells_sha": "9ddb46520b07ef477bed373259efb8eec17637dd47d94a1d4e073dc1b9c0e9f8",
+        "plain": "It shows token counts and AI credits used for a session. Paid plans have a monthly allowance, with an optional extra budget once credits are exhausted. Copilot Chat can emit OpenTelemetry signals, and debug logs show whether customizations were loaded.",
+        "technical": "Model picker hover shows a cost tier (Low, Medium, High). Paid plans: monthly AI credits allowance; once exhausted, set a budget for additional usage or wait for the monthly reset. github.copilot.chat.otel.enabled emits traces, metrics and events; /troubleshoot analyzes debug logs; github.copilot.chat.otel.captureContent or COPILOT_OTEL_CAPTURE_CONTENT=true captures full content."
+      }
+    },
+    "cursor": {
+      "assemble-prompt": {
+        "cells_sha": "3f7e5d0b25d948efbc33c4847c5296bd44d5de9e5a870460e33a5ad13e0b1d2c",
+        "plain": "Cloud agents let you choose the context window size, and a larger window can cost more. Automations use each model's maximum window with no toggle. Sensitive paths can be kept out of what the model reads, and a hook can block a file before it is sent.",
+        "technical": "Cloud Agents let you select the context window size; a larger window can increase token usage and costs. claude-opus-5[context=300k] sets 300k tokens; Max Mode enables larger windows on request-based plans. Automations use each model's maximum supported context window; there is no context-window toggle. .cursorignore keeps paths out of context; beforeReadFile can block files; dirs adds workspace folders."
+      },
+      "built-in-tools": {
+        "cells_sha": "0c29bb14d14b764e640f93e8025904888f162f69e559a52f2da692e7f05b7ee7",
+        "plain": "The agent can edit files, search the code, run terminal commands and search the web. Terminal commands need your approval by default, and fetching a web page asks first unless the site is on an allow list. Searching without asking is off by default.",
+        "technical": "Tools include file editing, codebase search and terminal execution; the ToolCall union covers shell, edit, read, write, glob, grep, ls, semSearch, mcp, task and others. By default Cursor uses the first terminal profile available and requires approval before executing any terminal command; Run Mode controls when commands run. Web fetch prompts unless allowlisted; Auto-Accept Web Search is off by default."
+      },
+      "extend-share": {
+        "cells_sha": "485d0a674c2b1cfa81419afdb89c60d80efaf3792e138f7f814b206efc9352a2",
+        "plain": "Plugins bundle rules, skills, agents, commands, MCP servers and hooks. They install from the Cursor Marketplace, a Git repository or a local folder, and one repository can host several plugins. Marketplace plugins are manually reviewed before listing.",
+        "technical": "Plugins package rules, skills, agents, commands, MCP servers and hooks; Agent Plugins use plugin.json at the plugin root; a repository needs .cursor-plugin/marketplace.json. --plugin-dir <path> loads a local plugin; --git-ref pins a marketplace. Auto Refresh needs the Cursor GitHub App on GitHub imports; marketplace plugins are not automatically updated from source and each update is manually reviewed."
+      },
+      "fence": {
+        "cells_sha": "fb9978e5797fdcfb8264af89d68502e9faee16ce1d354f5d513a3fce83d1882c",
+        "order_note": {
+          "cell": "cursor/F05.sandbox-override",
+          "quote": "the agent can rerun it outside the sandbox, and the classifier reviews that rerun",
+          "text": "If a sandboxed command fails on a restriction, the agent can rerun it outside the sandbox, and a reviewer then checks that rerun."
+        },
+        "plain": "Commands can run in a sandbox that limits file and network access. Local agents run with the sandbox off by default and can reach the network without restriction. A command that fails inside it can be rerun outside, and a reviewer checks the rerun.",
+        "technical": "/sandbox or --sandbox <mode> (enabled or disabled) persists across sessions; --network enables network access (default: false). Sandboxed writes: working directory, temp directories, paths in sandbox.json. workspace_readwrite is the default type; insecure_none disables the sandbox. Local agents run with local.sandboxOptions.enabled: false by default. macOS uses Seatbelt through sandbox-exec."
+      },
+      "hooks": {
+        "cells_sha": "a8c756438f1e6f32c871ef6666d56b40556c89bea6f313154de0dc4413a8d02f",
+        "plain": "Hooks run your scripts at moments such as before a tool or shell command, after a file edit, or when a session starts or ends. A script can block an action. Hooks are set per user or per project, and project hooks run when the workspace is trusted.",
+        "technical": "Events include preToolUse, beforeShellExecution, afterFileEdit, beforeSubmitPrompt, subagentStart / subagentStop, preCompact, sessionStart, sessionEnd. Command hooks get JSON on stdin; exit code 2 blocks (permission: deny); failClosed can be set. Config: ~/.cursor/hooks.json and <project>/.cursor/hooks.json. Prompt-based hooks do not run on self-hosted workers; SDK hooks are file-based only."
+      },
+      "host-platform": {
+        "cells_sha": "2ebab1ea83879e0c0ab72e3f4a26a0e35a584bbfebe3d49cc8509692617669fb",
+        "plain": "Cursor is based on the VS Code codebase. The SDK, command line, editor and web app run the same agent, and SDK runs follow the same pricing and privacy rules as the editor. Tool calls can run on a customer's own workers while the agent loop stays in Cursor's cloud.",
+        "technical": "Based on the VS Code codebase. The Cursor SDK launches agents with the same harness, runtime and models. env.type cloud uses Cursor-hosted VMs; pool and machine route to the customer's own workers, and pools do not move the agent loop out of Cursor's cloud. A Security Reviewer triggered by a PR event runs on Cursor-managed hosting. openAsCursorGithubApp applies only if autoCreatePr is true."
+      },
+      "house-rules": {
+        "cells_sha": "58dbed6b46e05bc6816d95b6b29271013d6ea42ae4ae033131311af6096ef6a0",
+        "order_note": {
+          "cell": "cursor/F03.precedence-scoping",
+          "quote": "Team Rules work alongside other rule types and take precedence.",
+          "text": "Team rules work alongside other rule types and take precedence over them."
+        },
+        "plain": "Cloud agents read the project's instruction file, and the CLI and editor load project rules on their own. Rules can be scoped to file patterns and can include other files. User rules and project rules both go into the prompt, and team rules take precedence.",
+        "technical": "Cloud agents read AGENTS.md; rules in .cursor/rules load automatically; Bugbot uses .cursor/BUGBOT.md. Rules are .mdc files scoped by path patterns (Apply to Specific Files, e.g. *.tsx); @filename.ts includes a file. User rules are set in Cursor Settings. Cursor project rules (*.mdc) do not apply to Bugbot runs; use .cursor/BUGBOT.md or rules configured in Automations."
+      },
+      "loop": {
+        "cells_sha": "60158f3abf8922a45c717edc7dbf921a56efdff07a6fbb17a94a590e00a26562",
+        "plain": "The agent calls a tool, reads the result and decides its next step. The documentation says there is no limit on the number of tool calls in a task. A stop hook can send a follow-up message to keep it going, with a default limit of 5.",
+        "technical": "A stop hook is called when the agent loop ends and can optionally auto-submit a follow-up user message. There is no limit on the number of tool calls Agent can make during a task. Stop-hook auto follow-ups have a default limit of 5 per script, configurable via loop_limit; null removes the cap. The same limit applies to subagentStop follow-ups."
+      },
+      "memory-sessions": {
+        "cells_sha": "f13741e4fc0daf03cf89024306cfb48b752f4ab5f79c57a8ed32b5493f4ef09e",
+        "plain": "It can keep notes between runs of an automation and save a learned rule from a pull request comment. You can continue, fork, rename and list past chats, and send a chat to a cloud agent, but uncommitted local changes do not go with it.",
+        "technical": "Automation memories persist as named entries (MEMORIES.md by default); @cursor remember [fact] on a PR saves a Bugbot learned rule. --continue (alias for --resume=-1); --resume [thread id]; /fork; /rename <name>; agent ls. Prepending & to a CLI message pushes the chat to a Cloud Agent; 'Move to Cloud' does not snapshot local uncommitted changes. Hooks get transcript_path (null if transcripts disabled)."
+      },
+      "model-effort": {
+        "cells_sha": "7116cd9d56fbb3972ccf6a0dc8bb8dd781e19ed4f1a053034d492a6dc8f4ec0b",
+        "order_note": {
+          "cell": "cursor/F17.model-flag-env",
+          "quote": "resolves the user default model, then the team default, then a system default",
+          "text": "For the cloud agent interface, an omitted model choice falls back from the user default to the team default to a system default."
+        },
+        "plain": "You choose the model from a picker in chat or a command in the command line, and can set a default in settings. Effort levels depend on the model, and Composer has none. You can add your own key for a supported provider. The documentation does not mention shared model selection.",
+        "technical": "Model picker dropdown; default in Cursor Settings > Models; CLI /model. Cloud Agent API resolves the user default model, then the team default, then a system default. Effort is per model: Grok 4.5 high (default), medium, low; Grok 4.6 adds xhigh. Set with model.params, ModelSelection.params or square-bracket id=value options. On Cursor Start, Grok 4.5 is fixed at medium. US data residency is not supported for BYOK."
+      },
+      "org-oversight": {
+        "cells_sha": "109fbc644d57636af9c5e5fc62f875d588dab8fd2772f7574f9d89402b1e2369",
+        "plain": "Single sign-on is listed among team features, and a policy controls which team IDs can log in. Enterprise customers can enroll in US-only data residency, and a few models fall outside the data retention agreements. Admins are advised to review audit logs.",
+        "technical": "SAML/OIDC SSO is listed among Teams features; the AllowedTeamId policy logs out users with unauthorized team IDs; SCIM directory groups are used for team-level spend and policy. Enterprise can enroll in US-only data residency; CMEK for Cloud Agent data. A few models require data retention with the provider and fall outside these agreements. Audit logs: review periodically and stream to a SIEM."
+      },
+      "org-policy": {
+        "cells_sha": "3acfe00ecfec92cc55827084791de37bec4e2dde3886995f6dde50cba0d1b8fb",
+        "order_note": {
+          "cell": "cursor/F07.policy-lockdown",
+          "quote": "A team-defined global Auto-review configuration takes priority",
+          "text": "A team-defined global automatic-review setting takes priority, and Cursor ignores user-level and project-level files."
+        },
+        "plain": "Companies can deploy Cursor with enforced policies through device management, and team hooks sync from a dashboard, though managed hooks need Enterprise. Locking network access and limiting models or MCP servers are Enterprise features; a team review setting takes priority.",
+        "technical": "MDM enforces policies (allowed team IDs, extensions); ~/.cursor/permissions.json can be distributed through MDM for the per-user MCP auto-run allowlist. Team hooks are set in the web dashboard (Enterprise for enterprise-managed hooks). Lock Network Access Policy and the MCP allowlist are Enterprise; model control needs contacting sales, and non-ZDR models need admin approval."
+      },
+      "outside-tools": {
+        "cells_sha": "a8297fec8fb23da53a1cba66cd3842c69e89191b90f69c87d9ab7ce9613ecbb2",
+        "order_note": {
+          "cell": "cursor/F12.server-trust",
+          "quote": "after a connection is approved, each tool call still needs individual approval before running",
+          "text": "A connection is approved first; after that each tool call still needs its own approval."
+        },
+        "plain": "It connects outside tools through MCP in the editor, the command line and cloud agents. Each connection needs approval, and each tool call needs approval unless pre-approved. The documentation gives conflicting answers on whether cloud agents accept one older connection style.",
+        "technical": "Servers are defined in project or user .cursor/mcp.json (command and args; headers or OAuth; env for stdio); agent mcp login <identifier>. Cloud agents: HTTP or stdio; inline definitions (maximum 50). Docs say SSE and mcp-remote are not supported for cloud-agent custom servers, yet the Python SDK type accepts 'http' or 'sse'. Allowlist: configure in the team dashboard (Enterprise only). mcpAllowlist uses server:tool."
+      },
+      "permission-check": {
+        "cells_sha": "96b5ef5b84149a6aaa7c5370b94c34fbb5c130fa3c4a22e8f50266cf3bf32764",
+        "order_note": {
+          "cell": "cursor/F04.command-scoping",
+          "quote": "when set, it overrides the in-app terminal allowlist",
+          "text": "A terminal allow list, when set, overrides the in-app terminal allow list."
+        },
+        "plain": "Rules decide what runs without a prompt, by tool, file pattern or command, and an automatic reviewer can check calls outside the sandbox. Allow lists are a convenience, not a security guarantee, and terminal commands can still read ignored files.",
+        "technical": "permissions.allow, permissions.deny and --force control what runs without prompts; mcpAllowlist; terminalAllowlist entries are matched against the full command string. Read permissions support glob patterns; .cursorignore blocks files from Agent, codebase search and @ mentions. Terminal commands and MCP tools run outside Cursor's file access controls. Allowlists and autoRun are best-effort."
+      },
+      "plan-and-ask": {
+        "cells_sha": "4e2d8c433bf0943fdc80975b85006f8cbefd3f5206204852ebb9cbed1075d511",
+        "plain": "Plan mode researches the code, asks clarifying questions and writes a plan you can edit before building starts. File editing is listed as allowed after you approve the plan. A status line and a context ring show progress and how full the window is.",
+        "technical": "Plan Mode researches the codebase, asks clarifying questions and generates a reviewable plan; enter via Shift+Tab, /plan, --plan or --mode=plan. Over ACP, cursor/create_plan blocks until the client accepts or rejects. File editing is listed as 'Yes (after you approve the plan)'; Plan mode is not labelled read-only. /statusline configures the CLI status line; the context ring opens a breakdown tray."
+      },
+      "safety-posture": {
+        "cells_sha": "86b5b1f28076a5e2db6cce7df454519504db19d3d343cc11ed505692330103a1",
+        "order_note": {
+          "cell": "cursor/F04.config-scope-precedence",
+          "quote": "its value overrides the corresponding Cursor setting on users' devices",
+          "text": "When a policy comes from device management, its value overrides the matching Cursor setting on the user's device."
+        },
+        "plain": "Terminal commands need approval by default. Run modes range from an allow list to an automatic reviewer, and a run-everything mode skips prompts. Plan, ask, debug and design modes exist. The new-folder trust question is off by default; a device policy overrides matching settings.",
+        "technical": "Terminal commands need approval by default. CLI approvalMode: allowlist, auto-review or unrestricted; -f/--force; --yolo; /run-everything [on|off|status] (alias /auto-run). --mode takes plan or ask (agent default). Workspace trust is disabled by default and restricted mode breaks AI features; docs differ on whether --trust works in headless mode only or in interactive sessions too."
+      },
+      "send-retry": {
+        "cells_sha": "f131fdc3eb3296ee6efcfdee4b81b7bd3e5d8a3924a6aaa436ddb8538ec06704",
+        "plain": "At the usage limit you see a notice and can switch on pay-as-you-go or upgrade. Auto uses a router that sends simple requests to fast models and complex work to the most capable ones. The documentation advises backing off with growing delays when rate limited.",
+        "technical": "Cursor Router is the routing behind Auto; on Teams and Enterprise it picks the model for each Auto request based on your optimization mode. A Fable request that trips a security guardrail is routed to Claude Opus. One endpoint is rate limited to 300 requests per minute and 6000 per hour; back off with exponential delay (SDK reports isRetryable: true for transient cases)."
+      },
+      "shrink-context": {
+        "cells_sha": "19d99830ba1f593c250d1c5fefa1d247c362adadf3bf90ba4ede15a269572e4d",
+        "plain": "When the window nears full, Cursor summarises older parts of the conversation to make room, and you can do it by hand with a command. A hook runs before compaction but cannot block or change it.",
+        "technical": "Cursor compresses older conversation into a summary when the context window gets close to full. The preCompact hook is observational; it cannot block or modify compaction. /summarize frees up space; /compress is an alias; /compact and /compress remain as aliases that execute directly."
+      },
+      "skills-commands": {
+        "cells_sha": "91c04bbcf5bc20d02b1fb3be3344faa9493b401d81a783fb5c2e2e9423d81733",
+        "plain": "Skills are folders of instructions the agent can pick when a task fits, or you can run one by typing a slash and its name. Commands are saved prompts kept at team, project or user level. The documentation does not mention per-skill tool or model overrides.",
+        "technical": "Skills are SKILL.md files in a directory under skills/; .cursor/skills/ is walked recursively; descriptions are injected, references/ and scripts/ load on demand. Invoke with / or @. Commands live in .cursor/commands (.md, .mdc, .markdown, .txt). Built-ins: /model [filter], /in-cloud, /agent-review, /side or /btw. disable-model-invocation: true makes a skill act like a slash command."
+      },
+      "subagents": {
+        "cells_sha": "2426c5700e304d5d25fa135abdc3dc2958de29ed86359feebd1b23a5174bc01c",
+        "plain": "Helper agents are set up as text files with their own model, tools and read-only choice, and several can run at once in their own context. The main agent and its direct helpers can start helpers; one started by another helper cannot start more.",
+        "technical": "Custom subagents: markdown in .cursor/agents/; model defaults to inherit; readonly: true (default false). Since Cursor 2.5 subagents can launch child subagents; a subagent launched by another subagent can't launch further ones. Built-ins: Explore, Bash, Browser. Maximum 20 custom subagents per Cloud Agent API run; one active run per agent (409 agent_busy); self-hosted up to 200 workers per user, 1000 per team."
+      },
+      "surface": {
+        "cells_sha": "5f6d820f329c297a0e3368fef8d06a3eecc9904e7c7044d8926d89180f939fbc",
+        "plain": "You can reach Cursor from a terminal, from JetBrains editors, from its own editor and agents window, from a browser, from a script or code library, and from chat and code-hosting tools such as Slack, Teams and GitHub comments.",
+        "technical": "Cursor CLI with no command starts interactive agent mode; -p/--print is non-interactive, with --output-format json, stream-json or text. agent acp runs the CLI as an ACP server over stdio (JetBrains IDEs). Cloud Agents run at cursor.com/agents; Agent.create() takes local or cloud. @cursor works in Slack, GitHub, Bitbucket and Microsoft Teams."
+      },
+      "thinking": {
+        "cells_sha": "ce5eab1405dfd9cdbf8243e90e685314c0f84c809add55941679ba44e6a94452",
+        "plain": "Which thinking options exist depends on the model. The command line can show the model's thinking blocks, and the cloud agent run stream sends thinking text. The documentation says thinking events are suppressed in print mode.",
+        "technical": "Options depend on the model; each model entry in the API response lists accepted id+params combinations. Grok 4.6: xhigh, high (default), medium, low; Muse Spark 1.3: six levels, minimal to max, high default; Grok 4.5: high (default), medium, low. display.showThinkingBlocks renders thinking blocks. thinking events are suppressed in print mode, but the cloud-agent run stream emits them."
+      },
+      "unattended": {
+        "cells_sha": "9588304df91c5cad6bd575c94c49a6d346dac5156cf1e75af5b50a0408fe53b8",
+        "plain": "Automations run cloud agents in the background on a schedule or when events arrive from tools such as GitHub, Slack and Linear. Cloud agents work in full development environments and keep going when your device disconnects. You can take over the remote desktop and hand it back.",
+        "technical": "Automations run cloud agents on a schedule or on events from GitHub, GitLab, Slack, webhooks, Linear. Commenting @cursor on a GitHub PR or issue starts an agent. Subagent is_background: true (default false). /loop skill; timer subscriptions are a one-off reminder or a recurring cron schedule. /in-cloud hands a task to a cloud subagent on its own VM and branch."
+      },
+      "undo-point": {
+        "cells_sha": "643e1fb5e9d2f75b2fadb325ec8435332148964f12b2972d91bc6c5729986aae",
+        "plain": "Restoring a checkpoint on an earlier message rolls back the files the agent changed after that point, but the conversation keeps its messages. The command line can jump back to a previous message, and forking a chat from an earlier message shortens the conversation.",
+        "technical": "Restore Checkpoint on a previous message rolls back all changes Agent made after that point; it reverts files only and does not remove messages from the conversation. In the CLI, /rewind jumps back to a previous message, and the rewind config field enables it. To shorten the conversation, fork the chat from an earlier message."
+      },
+      "updates": {
+        "cells_sha": "b62efc5b9f27d9122755a5bc46bac2d368eb4dfc43f59e3c14fadf3d24a5805a",
+        "plain": "The command line tries to update itself by default, and there are Stable and Early Access channels. A device policy can switch updates off. Changelog pages list new features and fixes, and the documentation gives some deprecations as examples.",
+        "technical": "Channels: Stable (default) and Early Access; CLI config field channel. CLI tries to auto-update by default; /update; UpdateMode MDM policy (update.mode) set to 'none' disables updates. agent --version; /about. SDK changelog covers @cursor/sdk on npm and cursor-sdk on PyPI. Examples: sdk.v1 changes additively; Ask Every Time is deprecated in 3.5; --pool-name is a deprecated alias for --pool <name>."
+      },
+      "workspace": {
+        "cells_sha": "cbd2c659b45f43ce71459aa5cd2ceecb6d6a860d339cdc9c02ad6f56bc63c0c1",
+        "plain": "The command line can run the agent in a new Git worktree instead of your current checkout, and agents started that way from the agents window get a separate checkout. Helper agents share the parent's checkout by default. Worktrees are disabled for multi-root workspaces.",
+        "technical": "-w/--worktree [name] runs the CLI agent in a new Git worktree under ~/.cursor/worktrees/<reponame>/<name>. Agents started in a worktree from the Agents Window get a separate checkout. Subagents share the parent's checkout by default; on request each runs in its own copy. Features that rely on a single git root, like worktrees, are disabled for multi-root workspaces."
+      },
+      "wrap-up": {
+        "cells_sha": "29705916559c048fa632450cb7d8930a391a44735b24745769f0992a4c83af81",
+        "plain": "A spending dashboard shows the cost of requests, and you can fetch billed token use for an agent. You are asked to set a spend limit when you first use cloud agents. Usage metrics can stream to monitoring tools for Enterprise, and a command shows the debug log location.",
+        "technical": "Spending dashboard shows request-level cost and pool details; getUsage fetches billed token usage and dollar cost. Spend limit is requested on first use of Cloud Agents; groups have Spend Limit Overrides. OpenTelemetry Export (OTLP) is Enterprise only; on by default except conversation_content. /logs shows the debug log path; --data-dir <path> sets the base directory on the worker."
+      }
+    },
+    "gemini-cli": {
+      "assemble-prompt": {
+        "cells_sha": "a98970bd564873952a38b9d5ae8f8735c5c2a5b92dd2d5a8e4fd331accb20901",
+        "plain": "You can pull in file contents with an at-sign reference, add extra directories to the workspace, and exclude files through ignore rules. The documentation does not mention the size of the context window.",
+        "technical": "@ in a prompt triggers read_many_files, which reads and concatenates content from multiple files. --include-directories adds directories (comma-separated or multiple flags). A setting makes searches respect .gitignore files; .geminiignore files provide exclusion patterns. The documentation does not mention the context window size."
+      },
+      "built-in-tools": {
+        "cells_sha": "fa829b0ebb02355082aef4c6300a6e81cf6cdc48f4cabfbde1978a41737d4ca3",
+        "plain": "It gives the model tools to search and read files, edit them, run shell commands, which need manual confirmation, and search or fetch from the web. A setting can restrict the set of built-in tools, and a command lists the ones available.",
+        "technical": "grep_search (legacy alias search_file_content); glob, list_directory, read_many_files; run_shell_command runs shell commands, supports interactive sessions and background processes, requires manual confirmation (node-pty). google_web_search; web_fetch validates requests against private and reserved IP ranges and in Plan Mode requires explicit user confirmation. /tools lists available tools."
+      },
+      "extend-share": {
+        "cells_sha": "f87a540c4205e2b89b4f26e90b60c4e43d5099340f40b8ea5abbb17663d38726",
+        "order_note": {
+          "cell": "gemini-cli/F11.trust-signing",
+          "quote": "it overrides the blockGitExtensions setting",
+          "text": "The allowed-extensions list overrides the setting that blocks extensions from Git."
+        },
+        "plain": "Extensions bundle prompts, tool connections, custom commands, themes and helpers, and install from a repository address or local path. Management commands take effect after a restart. The gallery route covers public extensions, which it indexes automatically.",
+        "technical": "gemini-extension.json manifest; loads from <home>/.gemini/extensions; gemini extensions install <source> (Git URL or local path); --auto-update. HEAD commit is treated as latest; commands take effect after you restart the CLI session. The gallery route covers public extensions: it automatically indexes public extensions (topic gemini-cli-extension). security.allowedExtensions, --consent, admin setting."
+      },
+      "fence": {
+        "cells_sha": "b4a04d0378c5f0b6988ce4b0cca5ab033167d99bad3ea2e5a136126f10c32c7a",
+        "plain": "A sandbox can be switched on and is documented as off by default. On Mac, a profile confines writes to the project folder. The sandbox page describes network as allowed, while a network access setting is documented with a default of off, so the two differ.",
+        "technical": "--sandbox (-s), default false; a macOS Seatbelt profile confines writes to the project folder; tools.sandboxAllowedPaths (default []); tools.sandboxNetworkAccess (default false), while the sandbox page describes writes to the project directory with broad file reads and network allowed. v0.35.0 added Linux bubblewrap/seccomp. On a permission failure a Request step shows a modal dialog."
+      },
+      "hooks": {
+        "cells_sha": "76315595c7011bb661f7b7e11c333793fe8682564bed770866021ea630259cfd",
+        "plain": "Hooks run your own scripts at set moments, such as before a model request. For now just command-type hooks are supported, non-text message parts are filtered out, and one event does not support some blocking controls. Project hooks start untrusted.",
+        "technical": "Events include BeforeModel, BeforeToolSelection, AfterAgent. Handler type: currently only 'command'. BeforeModel input has llm_request (model, messages, config); non-text parts are filtered out. Exit Code 2 aborts the turn and skips the LLM call. BeforeToolSelection does not support decision, continue. hooksConfig.enabled (default true); project hooks untrusted by default."
+      },
+      "host-platform": {
+        "cells_sha": "59d56f784e6cbfe196d68e7b690f4e19ee39099d39ef5d7498add5bff94e3b0d",
+        "plain": "It runs on Mac, Windows and Ubuntu with a recent Node runtime. Google AI Pro or Ultra gives higher limits shared with IDE agent mode. Gemini for Workspace plans do not cover its API usage; your organization's tier applies at Workspace sign-in. Shared servers are not documented.",
+        "technical": "macOS 15+, Windows 11 24H2+, Ubuntu 20.04+; Node.js 20.0.0+; Bash, Zsh, or PowerShell. Google AI Pro or Ultra: higher limits shared across Gemini CLI and IDE agent mode; Gemini for workspace plans do not apply to the API usage; organization tiers apply on Workspace sign-in. Not mentioned: shared execution infrastructure, shared agent runtime, delegates to, distinct harness features."
+      },
+      "house-rules": {
+        "cells_sha": "a33421de6e75d436473afbfca0fae7851aad72631f4d43d0935f927adb9174ff",
+        "order_note": {
+          "cell": "gemini-cli/F03.precedence-scoping",
+          "quote": "starting from the current working directory and then in each parent directory up to a stop point",
+          "text": "The search starts in the current folder and moves up through the parent folders to a stop point."
+        },
+        "plain": "It reads instruction files from your home folder and project, searching from the current folder upward and joining what it finds. Files can import other files, and a file in a subfolder holds rules for that folder. It also scans a folder when a tool touches it.",
+        "technical": "Default context file name GEMINI.md (a setting names others); global ~/.gemini/GEMINI.md, project-root ./GEMINI.md, ./src/GEMINI.md for the src folder. Found from the current working directory up through parent directories to a stop point and concatenated. @path/to/file.md imports, nested allowed. When a tool accesses a file or directory, the CLI scans for GEMINI.md files there."
+      },
+      "loop": {
+        "cells_sha": "9eedcab7b58a042a32873341855feb03a1891e354bc5fa484831f38bf7d3be62",
+        "plain": "The core returns tool results to the model for further processing. Turn limits cap a session, a helper's turns, and tool calls per task. Detection of infinite loops can be turned off, and a particular output value can stop the loop at once.",
+        "technical": "A continue field set to false kills the entire agent loop immediately; automatic infinite-loop detection can be disabled via a setting. model.maxSessionTurns caps turns (-1 means unlimited); subagent max_turns defaults to 30; maxActionsPerTask caps tool calls per task; exit code 53 means the session turn maximum was reached (non-interactive mode)."
+      },
+      "memory-sessions": {
+        "cells_sha": "42ef10517bdff0982e19f177a47e667163b28ac889a7dc4f5c9a4c192be79879",
+        "plain": "It keeps durable notes, and an experimental feature drafts new ones from past sessions for you to approve. You can resume, branch and list earlier sessions, saved as local transcripts. For handoff, the documentation describes exporting sessions to files.",
+        "technical": "Auto Memory is experimental: patches are held for review in /memory inbox until approved. /memory reload scans include directories when context.loadMemoryFromIncludeDirectories is true; when false, just the current directory is used. --resume (-r) takes latest or an index; /resume save forks; --list-sessions; history in ~/.gemini. Handoff is documented as the ability to export sessions to files."
+      },
+      "model-effort": {
+        "cells_sha": "58775ba7aa965f1e3c85d7d16b6e0458ae85ba81af6d9681db626d4febc95849",
+        "plain": "You pick the model in a dialog or at launch, and the default is automatic. A Gemini API key is an alternative to a Google sign-in, but an unpaid key is capped at 250 requests a day on the Flash model. The documentation does not mention effort levels or shared model choice.",
+        "technical": "/model dialog; --model (-m) default auto; model.name default undefined. Auto (Gemini 3) picks gemini-3-pro-preview or gemini-3-flash-preview. Unpaid Gemini API key: 250 maximum model requests / user / day, Flash model. thinkingConfig sits in generateContentConfig. Not mentioned: effort values, shared model selection."
+      },
+      "org-oversight": {
+        "cells_sha": "774e61c8984ff4a1626bf5538bddd44fc60ccbea7e89de698a63c50947bfba8b",
+        "plain": "Sign-in is with a Google account for Gemini Code Assist, and Workspace accounts get organization tiers. Old session data is cleaned up automatically by default. A telemetry and auditing section covers configuring the CLI for monitoring.",
+        "technical": "security.auth.enforcedType in system-level settings.json sets the required auth type. Organization tiers apply on Google Workspace sign-in. Old session data is cleaned up automatically by default; --delete on exit deletes the session; set logPrompts to false in an enterprise setting. Telemetry and auditing section: configure Gemini CLI for auditing and monitoring."
+      },
+      "org-policy": {
+        "cells_sha": "219f784ae5af17e706803c46173952baa2e86f654647da5b3165993ec7a7a7b7",
+        "order_note": {
+          "cell": "gemini-cli/F07.policy-lockdown",
+          "quote": "Admin policies always override User, Workspace, and Default policies.",
+          "text": "Admin policies win over user, workspace and default policies."
+        },
+        "plain": "A system settings file sets a baseline and takes precedence over other settings, and admin policies override user, workspace and default ones. Enterprise controls are managed through a console. The documentation does not mention lists of allowed or blocked models.",
+        "technical": "The system settings file defines a baseline configuration and acts as overrides, taking precedence over other settings. Admin policies override User, Workspace, and Default policies. Enterprise Admin Controls are customized via the Management Console. The documentation does not mention model allow and deny lists."
+      },
+      "outside-tools": {
+        "cells_sha": "ca34f702660f8c5bd8a463813f705b3861bd55d209826dda7963485af296a65d",
+        "plain": "It works with MCP servers, which can run as local programs or be reached remotely, and are set up in settings files with optional sign-in. Servers an admin requires are limited to remote connections. Tools can be filtered per server, and admins can list allowed servers.",
+        "technical": "/mcp manages servers; mcpServers in settings.json (System, Workspace and a third level) or gemini-extension.json. Transports: stdio, SSE, httpUrl (streamable HTTP); admin-required servers support remote transports (sse, http). /mcp OAuth, headers, authProviderType. includeTools and excludeTools; --allowed-mcp-server-names; read-only MCP tools need confirmation in Plan Mode by default."
+      },
+      "permission-check": {
+        "cells_sha": "a3f7f117170874afaec02dbd1af27c4532a7a0c8b783a06586542b56fb62a304",
+        "plain": "Rules can be set per tool, per path and per shell command, and an older option for pre-allowing tools is deprecated in favour of the policy engine. An LLM-based security checker is off by default and described as an additional layer of protection.",
+        "technical": "--allowed-tools is deprecated in favour of the Policy Engine; tools.core restricts tools; run_shell_command requires manual confirmation; file tools operate within a rootDirectory; run_shell_command(npm test) scopes a command. security.enableConseca (default false) enables an LLM-based checker, an additional layer of protection against unintended actions."
+      },
+      "plan-and-ask": {
+        "cells_sha": "e7606c031e28ad91c6ee686f3875a739c25aa9118e029e63e3f3a8e0bb81379f",
+        "plain": "Plan mode is a read-only space for designing before implementation, and executing a plan switches to active execution. The footer shows the model name, context usage and the number of loaded instruction files.",
+        "technical": "Plan Mode is read-only; executing a plan switches from plan mode to active execution. Footer shows model name, context usage and number of loaded context files (ui.footer.hideModelInfo hides them). ui.dynamicWindowTitle (default true) shows status icons (Ready, Action Required, Working)."
+      },
+      "safety-posture": {
+        "cells_sha": "8e6c855d822b351d0c9e5a48335ddf5280cd4010b314301e7a71fb8ae4e8d8d7",
+        "order_note": {
+          "cell": "gemini-cli/F04.config-scope-precedence",
+          "quote": "The policy engine applies the highest-priority rule that matches the tool call.",
+          "text": "When several policy rules match a tool call, the highest-priority one is applied."
+        },
+        "plain": "It has four approval modes: ask each time, auto-approve edits, plan (read-only) and run freely. New folders get a trust check. The documentation disagrees on whether run-freely can be turned on by a keyboard shortcut, and on whether settings merge from two files or four.",
+        "technical": "--approval-mode: default, auto_edit, yolo, plan; Shift+Tab cycles default, auto_edit, plan. general.defaultApprovalMode defaults to 'default'. --yolo (-y) is deprecated. YOLO is documented as enabled via command line, yet Ctrl+Y toggles it (unreconciled). --skip-trust; /permissions. Two settings.json files vs four merged settings files (unreconciled); policy engine applies the highest-priority matching rule."
+      },
+      "send-retry": {
+        "cells_sha": "8b4e1f01d6149426cbd9068c06f4498e0263175554bbc131a6721f05d49089e7",
+        "plain": "It routes between models automatically and switches to a fallback model on failure. When the default pro model is rate-limited it switches to flash for the session. The daily limit listed for Google sign-in is 1000 requests.",
+        "technical": "Model routing picks a model and switches to a fallback on model failure (enabled by default); general.plan.modelRouting switches between Pro (planning) and Flash (implementation) by Plan Mode status. Log in with Google: 1000 maximum model requests / user / day. 429 Resource exhausted means the API request limit was exceeded."
+      },
+      "shrink-context": {
+        "cells_sha": "523fc9486bdd9fe9d80e4ed2da6bad4c5094250c936cf2f0b6ef60384f975d15",
+        "plain": "The core compresses the conversation automatically before sending it to the model, at a usage level you can set. You can also compress by hand, which swaps the whole chat for a summary. A hook fires before the automatic summary.",
+        "technical": "model.compressionThreshold sets the fraction of context usage that triggers compression (example values 0.2, 0.3; listed value 0.5). A PreCompress hook fires before the CLI summarizes history. /compress replaces the entire chat context with a summary."
+      },
+      "skills-commands": {
+        "cells_sha": "055b9b7b3327271f15516253c66dcc8b047075dc82b14595a7576fbc2be78086",
+        "order_note": {
+          "cell": "gemini-cli/F10.discovery-paths",
+          "quote": "User and project commands take precedence over extension commands, which have the lowest precedence.",
+          "text": "User and project commands take precedence over extension commands, which rank lowest."
+        },
+        "plain": "A skill is a folder with a description file that the model loads when a task fits. Custom commands are small text files you type yourself, with room for arguments. The documentation does not mention per-skill tool or model overrides, or how commands relate to skills.",
+        "technical": "Skill: directory with SKILL.md in .gemini/skills (user ~/.gemini/skills/); activate_skill loads it; metadata (~100 words) in context, body (<5k words) after trigger; /skills manages. Custom commands: .toml files in ~/.gemini/commands/; commands/gcs/sync.toml becomes /gcs:sync; {{args}} placeholder. Not mentioned: per-skill tool or model overrides, relation of commands to skills."
+      },
+      "subagents": {
+        "cells_sha": "c0b3b3cc4a3c9122a5d9db4bfb4996fe58af7ae386b52491031c961db4682c6e",
+        "plain": "Helpers are defined in text files and can have their own tools and model. The documentation says they cannot call other helpers. It does not mention how many can run at once, in total, or in parallel; separate sessions can use worktrees to avoid collisions.",
+        "technical": "Markdown (.md) with YAML frontmatter; name required; tools array (wildcards *, mcp_*, mcp_server_*; omitted inherits parent tools); model defaults to inherit; agents.overrides in settings.json. Subagents cannot call other subagents, even with the * wildcard. Built-in: Codebase Investigator. Not mentioned: concurrency caps, parallel subagents, total agent caps."
+      },
+      "surface": {
+        "cells_sha": "6c73450690cf3e166e34969606d170f45d2dfe3778eaa0d4ac9000cedc7cad82",
+        "plain": "You can run it in a terminal, either interactively or headless for scripts. It also documents an IDE connection, an early SDK, and a command that sets up automation to triage issues and review proposed changes.",
+        "technical": "Run with the gemini command; --prompt-interactive (-i) runs a prompt then continues interactively. Headless: --prompt (-p) forces non-interactive mode; --output-format takes text, json or stream-json. /ide checks IDE integration (VS Code native diffing). v0.30.0 introduced the initial SDK package. /setup-github sets up GitHub Actions to triage issues and review PRs."
+      },
+      "thinking": {
+        "cells_sha": "28bca7ad85197a199adbcf9f099ffa0c2f3e4299c3377b99f9d95c83588dd10f",
+        "plain": "A model setting block can carry reasoning configuration, and the thinking budget can be controlled directly. The entry describes it just as configuration for models with reasoning, without a per-model list of accepted levels.",
+        "technical": "generateContentConfig accepts a thinkingConfig object ('Configuration for models with reasoning'); no per-model list of accepted levels is given. Model configuration gives direct control over thinkingBudget alongside temperature. ui.inlineThinkingMode: off or full, default off."
+      },
+      "unattended": {
+        "cells_sha": "873c52f6824d318a19cbc03d8861438774bc84433b35ae372848265da8647d0c",
+        "plain": "Shell commands can be moved to the background. Changelog entries mention remote workers and delegating work to remote helpers. The documentation does not mention scheduled routines, remote sessions or event triggers.",
+        "technical": "run_shell_command takes an optional is_background argument; /shells toggles the background shells view; tools.shell.backgroundCompletionBehavior controls what happens on completion. Delegation to remote subagents uses Agent-to-Agent. Not mentioned: scheduled routines, remote sessions, event triggers."
+      },
+      "undo-point": {
+        "cells_sha": "01f6a0a6cb5302f9f262271d1713fe3f19e6dfa4396ee3f4449ec06939038269",
+        "plain": "It can save snapshots automatically for recovery, and you can go back to an earlier state of the conversation. Named checkpoints can be listed, saved, resumed, deleted and shared.",
+        "technical": "/rewind goes back to a previous state in the conversation. Checkpointing automatically saves a snapshot; a setting is described as 'Enable session checkpointing for recovery'. Manual tagged checkpoints support list, save, resume, delete and share subcommands."
+      },
+      "updates": {
+        "cells_sha": "e0756b3a8f921341fb124133ee5f3792aa3eb888322f6da803a85ce4ee25f74f",
+        "plain": "It ships on nightly, preview and stable channels, with a weekly cadence promoting code along that path. Release notes are published as a changelog, and deprecations are announced there and in notes inside the docs.",
+        "technical": "Three channels: nightly, preview, stable; weekly cadence promotes main -> nightly -> preview; nightly runs daily. Stable changelog headed v0.61.0, preview v0.63.0-preview.0. Source checkout: pull latest changes. Release notes at /docs/changelogs. tools.exclude is deprecated in favor of policy rules; the --checkpointing flag was removed."
+      },
+      "workspace": {
+        "cells_sha": "7d479b8d17a82b7d65826d80f627d4481ce63c5eb19d993161ee7f42f0ebf9f0",
+        "plain": "It can create an isolated worktree for a run, with a generated name if you give none, but this is documented as needing an experimental setting to be turned on.",
+        "technical": "--worktree (-w) creates an isolated worktree and starts Gemini in it; a name is generated if none is given. Requires experimental.worktrees: true in settings. Changelog: 'Added native support for Git worktrees'."
+      },
+      "wrap-up": {
+        "cells_sha": "b3c961909ae0c868a8fb249940e27c964e516355ab8ae5c7c64b8c3cfea1c6a1",
+        "plain": "It shows token usage on request and at exit, and records traces through telemetry. A spending setting is scoped to quota exhaustion when AI credits are available: it can prompt each time, use credits automatically, or disable credit usage.",
+        "technical": "/stats shows token usage and cached token savings. billing.overageStrategy is scoped to quota exhaustion when AI credits are available: ask (prompt each time), always (automatically use credits), never (disable credit usage); default ask. OpenTelemetry (OTel) traces; telemetry includes session.id, installation.id, active_approval_mode. --debug (-d)."
+      }
+    },
+    "grok-bot": {
+      "assemble-prompt": {
+        "cells_sha": "633a211fb2fe8eeece8192ff2c622c560668e34182781bd53e76a744c527b827",
+        "plain": "In a conversation you can paste text, links and images, attach files, and mention Bots or plugins. The desktop composer takes up to six attachments at a time. The documentation does not mention the size of the context window.",
+        "technical": "Paste text, links and images; attach files; reference a saved skill with /; mention a Bot, group, routine or plugin with @. Desktop composer: up to six attachments at a time; documents, images and audio up to 25 MB each, videos up to 200 MB. Context window size: not mentioned in the documentation."
+      },
+      "built-in-tools": {
+        "cells_sha": "8318c79333172be822f93d959b8d96da13f4511abe9867d997cc1f906f4aaa5f",
+        "plain": "Its tools are a shell, a browser and computer use on a hosted cloud computer. It runs commands on your own machine only under a local policy that asks for approval by default. The documentation does not mention file editing tools. Sites can block automation or expire a session.",
+        "technical": "Shell, browser and computer use run inside the hosted computer. Local commands via the desktop app only under the local execution policy: per-command approval by default, settable to always allow, ask every time, or never; applies to that desktop alone. File read, edit and write tools: not mentioned in the documentation. Web: a site can still block automation or expire a session."
+      },
+      "extend-share": {
+        "cells_sha": "fc76b9b46f1552d14e866b99dce70368a82d1c6f5cb86a1f89791078d992d8d3",
+        "plain": "Connectors are installed as plugins from a marketplace, and a team admin controls which marketplace plugins members can use; on Teams and Enterprise plans plugins may be required or restricted. The documentation does not mention a packaging format or plugin versioning.",
+        "technical": "Connectors install as plugins from Marketplace; an installed plugin may still need browser authentication. On the Teams plan and the Enterprise plan, team-provided plugins may be required or restricted by an admin. A Cursor team admin controls which marketplace plugins are available. Individual plugin tools can be enabled or disabled. Packaging format and versioning: not mentioned."
+      },
+      "fence": {
+        "cells_sha": "c0e2207de9ddf5e3f65463bd5448cf0004f95b6137fc916323a6daa9b5499e2a",
+        "order_note": {
+          "cell": "grok-bot/F05.sandbox-override",
+          "quote": "a member's own setting still applies when it is stricter than the team's",
+          "text": "A member's own setting still applies when it is stricter than the team's ceiling."
+        },
+        "plain": "Each user's work runs in a dedicated virtual machine in Cursor's cloud, shared by their Bots. Blocking a plugin leaves that service's website open; closing that needs Network Controls, an Enterprise feature. The documentation does not mention containing commands a Bot starts.",
+        "technical": "Dedicated Firecracker microVM per user, hardware-level separation; the computer belongs to the account, so anything on it is available to every Bot. Shared workspace: /workspace. Static egress IP addresses; Allow Local Egress is on by default. Blocking a plugin doesn't block the website; closing that takes Network Controls, Enterprise only. Subprocess containment: not mentioned."
+      },
+      "hooks": {
+        "cells_sha": "f204e98bebe8bcedd3f26072f0ae8719ace9afa45a6ef3f7e05249667c7d7f19",
+        "plain": "The documentation does not mention hooks: which moments they cover, what kinds of handler they run, how they can block an action, or where they are set up.",
+        "technical": "Event catalog, handler types, input contract, output and blocking semantics, matcher semantics, configuration locations, trust and enable controls: the documentation does not mention them."
+      },
+      "host-platform": {
+        "cells_sha": "3f4b8e0c97f81a37f0fe2ed11f28986e9ec88b84887a97e484696d5922823916",
+        "plain": "Grok Bot runs on Cursor's cloud computers, uses your Cursor account instead of a separate login, and can delegate coding tasks to Cursor Cloud Agents. On-premises deployment is not supported today. The documentation does not say whether machines are shared with a sibling product.",
+        "technical": "Runs only on Cursor-hosted cloud computers; on-premises and bring-your-own-image deployment not supported today. One dedicated cloud computer per user, shared across that user's Bots; the documentation does not say whether machines or VMs are shared with a sibling product. Shared agent runtime: not mentioned. The one comparison given: the editor's chat and Tab work without the cursorvm.com patterns."
+      },
+      "house-rules": {
+        "cells_sha": "abb43331730d434e0a0fbfa469fdcf12c7a76b72cc42458003c1e7dfe4747145",
+        "plain": "Each Bot has a description saying what to work on, which sources to use and when to ask first. Team rules applied to Grok Bot are required, so members must leave them on. The documentation does not mention imports or rules scoped to certain folders.",
+        "technical": "Each Bot has a description (what to work on, which sources, when to ask first); only the Bot's owner can change it. Bots in a group read the group's description. Team Rules apply to every member's Bots, scoped to Cursor, Grok Bot, or both; rules applied to Grok Bot are always required. Import syntax and path-scoped rules: not mentioned in the documentation."
+      },
+      "loop": {
+        "cells_sha": "ddf1f4a59227f95aa9fa06f8e76541ebe257c108d59bcf69c7fbf63c134356c4",
+        "plain": "Grok Bot is a computer-use agent that operates apps, browsers and development environments. A direct message takes priority and can redirect the turn; Stop now ends work at once but does not undo actions already done. The documentation does not mention turn or step limits.",
+        "technical": "Computer-use agent for applications, browsers, and development environments. A direct message takes priority over background work and can redirect the current turn; Stop now ends work immediately, but stopping doesn't undo actions the Bot already completed. Turn and step limits: not mentioned in the documentation."
+      },
+      "memory-sessions": {
+        "cells_sha": "b6384706fb1b69ec7ba002724fbbd2909e25d8bf9e7fd3f976841690e2fdf762",
+        "plain": "A named Bot keeps its memory and preferences between sessions, and chats are stored outside its computer and shared across devices. A copy leaves out history, learned memory and attachments. The documentation does not mention resuming a session. Search may vary during rollout.",
+        "technical": "Memory persists per named Bot; Team Bot memory is read by every teammate's conversation. Duplicating a Bot copies profile, settings, enabled skills, routines, avatar, not conversation history, learned memory, or attachments. Chats are stored outside the computer; rm -rf does not delete them. Search: Cmd/Ctrl+K or Cmd/Ctrl+Shift+F; availability can vary during rollout. Resume: not mentioned in the documentation."
+      },
+      "model-effort": {
+        "cells_sha": "ce654076ee5a926eb8ec0be2faa7c7c16f2ab0ec00ab0b1be004d9712aae1b68",
+        "plain": "The vendor says Cursor manages model selection and there is no customer-facing model picker. Usage analytics show which model served each request, and the serving mix can change over time. The documentation does not mention effort levels, bring-your-own-key or a model setting.",
+        "technical": "Cursor manages model selection; no customer-facing model picker, and settings have no model picker. Usage analytics show the model that served each request, including failovers; billing follows the serving model. The serving mix can change over time with no fixed vendor set guaranteed. Model setting and environment, providers and bring-your-own-key, effort values, shared model selection: not mentioned."
+      },
+      "org-oversight": {
+        "cells_sha": "8f3f241682081a8968d06548ae31870c23a247c998513b4a9c7408e6ee7b2c41",
+        "plain": "Members sign in with their Cursor account through single sign-on, which can be required, and the identity provider can provision users. With Privacy Mode on, customer data is not used for training. Audit logs and user provisioning need the Enterprise plan.",
+        "technical": "SAML 2.0 SSO with Okta, Microsoft Entra, Google Workspace and OneLogin; can be required for all members. SCIM 2.0 provisioning and deprovisioning: Enterprise only. Privacy Mode: customer data not used for training; Privacy Mode (Legacy) blocks Grok Bot. Audit logs (Enterprise only) cover admin, security and authentication events plus Grok Bot control-plane events."
+      },
+      "org-policy": {
+        "cells_sha": "434cb0326ece62843ad858c3e0f9468d1d8607a7e7f80067fd18f94328cf7ff5",
+        "order_note": {
+          "cell": "grok-bot/F07.policy-lockdown",
+          "quote": "members can't turn it off unless a group they belong to lifts the lock with Don't enforce for this group",
+          "text": "Enforced Auto-review stays on for members unless a group they belong to lifts the lock."
+        },
+        "plain": "Most settings sit on an admin-only page of the Cursor dashboard, with a few elsewhere. Admins can set team rules, enforce Auto-review and keep a list of allowed models, but several controls need the Enterprise plan, and the model list is not guaranteed to be followed.",
+        "technical": "Most settings: admin-only Grok Bot page of the Cursor dashboard; a few in Team Settings, Team Marketplace or the identity provider. Team Setup (managed setup, via manifests) is Enterprise only, as is enforcing Auto-review. Team admins set Team Rules, Cloud Agent delegation, template sharing, local execution ceiling. Model allowlist: Enterprise only; enforcement is not guaranteed."
+      },
+      "outside-tools": {
+        "cells_sha": "1261d11ad3ed3de205fb48e0fa486f164e15f395d33242aefd337d63af4e85b6",
+        "plain": "Outside services connect as plugins, via MCP calls that Cursor runs. You log in through your browser, and tokens stay on Cursor's side. The team's connector policy applies; its allowlist needs the Enterprise plan, and pushing connectors to members is not available.",
+        "technical": "Hosted connector calls are MCP calls Cursor runs. A Command server runs on whichever computer the conversation uses; custom servers needing secrets: choose Remote HTTPS. Connectors appear as plugins,; pushing connectors to members, mandatory or default-on, is not available. MCP allowlist: Enterprise only. Blocking a plugin doesn't block the website; closing that takes Network Controls (Enterprise only)."
+      },
+      "permission-check": {
+        "cells_sha": "ffc07a4ccd95f622930bf2c80adc0e1077d0ae3bdea9f823676d2f8148355b39",
+        "order_note": {
+          "cell": "grok-bot/F04.per-tool-rules",
+          "quote": "Ask first rules always stop matching actions",
+          "text": "Ask-first rules stop matching actions; allow rules let them proceed only if the reviewer finds no other reason to stop."
+        },
+        "plain": "Members can add Auto-review rules: ask-first rules stop matching actions, allow rules proceed only if the reviewer finds no other reason. A review model checks risky actions, but is skipped where nobody can answer an approval card unless an Enterprise admin enforces it.",
+        "technical": "Auto-review rules (Settings > General > Auto-review): Ask first rules always stop matching actions; Allow automatically rules proceed only when the reviewer finds no other reason to stop. Example: Allow automatically when running git status in /workspace/reports. Auto Review covers shell commands, plugin calls, computer use, automation writes, delegation; described as applying 'With enforcement on'."
+      },
+      "plan-and-ask": {
+        "cells_sha": "f1b140e6db784b001d327d05a7a75eaa967b7236b0eae885be017d6bac4b94e4",
+        "plain": "The sidebar marks Bots that need attention, have unread activity or are working, and notifications can tell you when a Bot finishes or needs input. The documentation does not mention a plan mode.",
+        "technical": "Sidebar distinguishes Bots that need attention (a question, approval, or handoff), unread activity (a new result), and working status. Notifications in a Bot's settings give a system or mobile notification when it finishes or needs input. Plan mode: not mentioned in the documentation."
+      },
+      "safety-posture": {
+        "cells_sha": "c95815e5c17af55e9f8a4ae17187aa1f27185375f3620d6e919fdf484b40ab74",
+        "order_note": {
+          "cell": "grok-bot/F04.config-scope-precedence",
+          "quote": "Ask first wins if two rules conflict",
+          "text": "If two Auto-review rules conflict, the one that says to ask first wins."
+        },
+        "plain": "Prompts offer allow once, always allow or deny; commands on your own computer default to per-command approval, set per desktop. Team admins can cap this; it is separate from cloud approvals. The documentation does not mention named, auto-accept or read-only modes.",
+        "technical": "Approval prompts: Allow once, Always allow, Deny. Local execution: per-command approval by default, applies to that desktop alone; a team admin can cap it; separate from the approvals for work on the cloud computer. Local-access default: Ask every time; default mode and whether a choice persists not stated. Team Auto-review rules: Enterprise only. Named modes, auto-accept, read-only: not mentioned."
+      },
+      "send-retry": {
+        "cells_sha": "d3e447a375ea65fe5392f0c2c2d92eff577250cce1d57b01eab631a5a0b66d98",
+        "plain": "Cursor picks the model for each task, and the mix of serving models can change over time. Paid access includes weekly usage; when it runs out, extra usage continues as on-demand usage if that is turned on, and otherwise Grok Bot stops and says the limit was reached.",
+        "technical": "Cursor picks the model for the specific task; the serving model mix can change over time with no fixed vendor set guaranteed; usage analytics show the serving model, including failovers. Paid Grok Bot access includes Weekly usage, which resets weekly. If on-demand is enabled, On-demand usage continues after it runs out; if off, Grok Bot stops and the screen says you have reached your Grok Bot usage limit."
+      },
+      "shrink-context": {
+        "cells_sha": "22efadf50cede936bed0ea2361dbbe190fbd6d227c6d6174228fe0e41308875b",
+        "plain": "The documentation does not mention automatic or manual compaction of a long conversation.",
+        "technical": "Automatic compaction and manual compaction: the documentation does not mention them."
+      },
+      "skills-commands": {
+        "cells_sha": "8619d26db2ed4a6a3a271358df23d280e8e00bc602ae1dec52a403b2a806e76a",
+        "plain": "A skill is a set of reusable instructions, and a demonstration can become a draft skill. Type a slash in the composer to pick one; a private skill missing from the menu must be switched on for that Bot. The documentation does not mention custom or built-in commands.",
+        "technical": "Skill: steps, decision rules, expected output, safety boundaries; Teach a task turns a demonstration into a draft. Type / to reference a skill; @ mentions a Bot, group, routine or plugin. A private skill missing from the / menu: enable it under Settings > Plugins > Yours; a Bot may still need the relevant plugin or login. Not mentioned: resource loading, skill overrides, built-in or custom commands, arguments."
+      },
+      "subagents": {
+        "cells_sha": "8d4be5fa80156c583c314e0c4e04f7ac54ff2395e398ec52fa328a93900bcc3b",
+        "plain": "A Bot has a name, label and description set by its owner, and Bots can create helper Bots. Bots run in parallel, each with its own screen and one computer-use task at a time; a group chat takes two to six Bots. The documentation does not mention tool lists or built-in types.",
+        "technical": "Bot: name, label, description. Bots can suggest or create a helper Bot. Each Bot gets its own screen: one computer-use task per screen at a time; one bulk computer operation per team at a time. Group chat: select two to six Bots; a teammate's published Team Bot can join, but not alongside Bots that run on your own computer. Tool allow-list, per-agent model and effort, built-in types: not mentioned."
+      },
+      "surface": {
+        "cells_sha": "12c0625abda122f32f2c38ff334d088837c09b437af41abffa6022bc67157588",
+        "plain": "It is reached through desktop and phone apps, a script-driven Organization API, and Slack for Team Bots. The documentation does not mention a terminal, headless or editor route. The script route needs an admin-level key, and Slack needs a published Bot added by its owner.",
+        "technical": "Desktop app: macOS (Apple silicon and Intel), Windows (x64 and Arm64), Linux (x64 and Arm64); phone app: iPhone and Android. Organization API: send a team, members and an action, then poll; needs an Organization API key with admin:* scope. Slack: owner adds a published Team Bot; each teammate links their Slack account first. Interactive CLI, headless mode, IDE integration: not mentioned in the documentation."
+      },
+      "thinking": {
+        "cells_sha": "5816e7313b3db4cce62e1d2d7b99b72b7b20ffe4bd7c2ee20971af9f7b85ea4c",
+        "plain": "The documentation does not mention how thinking effort depends on the model, or whether the reasoning budget is shown or hidden.",
+        "technical": "Model dependence, and thinking budget and visibility: the documentation does not mention them."
+      },
+      "unattended": {
+        "cells_sha": "ea56febe67330c268de8d3361ed6aecd5a34b587e0ff77a4de151b9a4f1294f7",
+        "plain": "Bots work on a persistent cloud computer, so work continues while your laptop is closed, and routines can run on a schedule or when something happens, such as a Slack message. Approvals for work you did not start expire after about 10 minutes. Admins can disable delegation.",
+        "technical": "Persistent cloud computer with browser, filesystem and terminal; work continues while the laptop is closed. Approvals from work that started without you, like a routine or a message from another Bot, expire after about 10 minutes. Routines run on a schedule or on events (Slack, GitHub, Linear, Sentry, PagerDuty, email, webhook). Admins can disable spawning; on-premises deployment is not supported today."
+      },
+      "undo-point": {
+        "cells_sha": "10e1c2f62388ea04a07518a2cb4ddfcf77364ecbc9b7c138f6003d7c331b36a1",
+        "plain": "The documentation describes a reset that rebuilds the computer from your last saved snapshot.",
+        "technical": "Reset rebuilds the computer from your last saved snapshot."
+      },
+      "updates": {
+        "cells_sha": "1e27752f70c3b2da8ec06385a4864604641fbb1bb2a5cc7a664c85b14943aec0",
+        "plain": "The desktop app checks for updates itself, and the account menu shows the version and offers to install and restart. Changes are listed on the Cursor changelog. The vendor does not publish how long older installers stay available, and an unsupported build must update.",
+        "technical": "About shows Version; Copy version info copies version, release track, and OS. Feed per platform: https://api2.cursor.sh/updates/api/download/stable/{platform}/sand. Changelog: https://cursor.com/changelog. Grok Bot requires an update when a version is more than 14 days old and a newer version is out. Cursor doesn't publish how long older installers stay available; a pinned build works only until support stops."
+      },
+      "workspace": {
+        "cells_sha": "a2cd9f11d07acd6da3291e81898d260a86dc55597d42d1bb1126fa8b64ac68fe",
+        "plain": "The documentation does not mention a way to give the agent its own isolated copy of a project, such as a worktree.",
+        "technical": "Worktree isolation: the documentation does not mention it."
+      },
+      "wrap-up": {
+        "cells_sha": "753191c0f2d2ccf16da77995c9ed640e18bf0706d0743cbd833fbec2fbd8239c",
+        "plain": "Usage and billing screens show weekly and on-demand usage, and a monthly on-demand cap can be set, but a running task can go a little past it. Action recording and a telemetry export to a collector are offered, the export on the Enterprise plan; recording is off by default.",
+        "technical": "Usage & Billing shows weekly included and on-demand usage. On-demand cap: Settings > On-demand monthly limit; a separate Grok Bot spend cap is not available today; the cap does not stop a Bot in the middle of a run. OpenTelemetry Export (Team Settings): Enterprise only. Action Recording: off by default, 90 day retention, not on the Audit Log page."
+      }
+    },
+    "grok-build": {
+      "assemble-prompt": {
+        "cells_sha": "d8aa80574e1df0f5bd6942b678fd9b3df0533e94f765c4cfe9175e2c763b52d3",
+        "plain": "A context window setting gives the size in tokens and drives when automatic compaction happens. Rule files are loaded in full with no size cap. One option adds text to the system prompt for a run, and another replaces it entirely.",
+        "technical": "context_window gives the size in tokens and drives auto-compact timing. A prompt can reference a file as @src/main.rs. [tools] respect_gitignore (default false) skips gitignored files in search and read tools. Rule files load in full, with no size cap. --rules appends text to the system prompt for a single run; --system-prompt-override replaces it entirely."
+      },
+      "built-in-tools": {
+        "cells_sha": "ea2207fa37d27622edf25d3920fed29fdfa2610493fb790d3066e9e12f6eb07f",
+        "plain": "Built-in tools can be allowed or removed by name. Shell commands time out after 120 seconds by default, and long-running ones run as background tasks. The web fetch tool is off by default for security, and the write tool can be switched off for read-only sessions.",
+        "technical": "--tools <LIST> and --disallowed-tools <LIST>; [features] lsp_tools (default off). [toolset.bash] timeout_secs default 120; x kills a selected background task; ! is shell mode. [toolset] file_toolset standard (default) or hashline; [features] write_file (default on); GROK_WRITE_FILE 0 disables write. GROK_WEB_FETCH (1/0, off by default); [toolset.web_fetch] allowed_domains; --disable-web-search."
+      },
+      "extend-share": {
+        "cells_sha": "057dc331ba4906df21a04c6e6357ef991f8ed89228dfe473dea5336a3d497829",
+        "plain": "Plugins can add skills, agents, hooks, MCP servers and language servers, and marketplace sources are listed in settings, with a marketplace tab for browsing and installing. Claude Code plugins are read too. The documentation does not mention a packaging format or versioning.",
+        "technical": "Plugins add skills, agents, hooks, MCP servers and LSP servers. Sources: [[marketplace.sources]] in ~/.grok/config.toml and ~/.grok/plugins/known_marketplaces.json; a paths list under [skills]/[plugins]; the TUI has a Marketplace tab. [plugins] enabled takes name lists (project plugins may default off). The documentation does not mention packaging format or versioning and update."
+      },
+      "fence": {
+        "cells_sha": "73659c3e646b0d34cef809f254efa13bb699d9e370551d69e9ac6330e35d3d36",
+        "plain": "The sandbox is off by default; once on, it limits what the agent and its child processes can read, write and reach. Built-in profiles do not permanently protect paths like the SSH folder, and the network limits on child processes are enforced on Linux.",
+        "technical": "Landlock on Linux, Seatbelt on macOS; [sandbox] profile, --sandbox or GROK_SANDBOX. Profiles: off (default), workspace, read-only, strict or custom. restrict_network (Linux seccomp): no-op on macOS for read-only / strict; model API and web tools are not blocked. Built-ins do not permanently protect ~/.ssh. The documentation does not mention a sandbox override."
+      },
+      "hooks": {
+        "cells_sha": "0d7125348eff1f71081c988d8467be3b6b3d60a789c3156e8406697ef1a5a429",
+        "plain": "Hooks run a command, or send the event to a web address, at tool and session events. The hook that runs before a tool is the one that can block it; timeouts, crashes and malformed output let the tool call go ahead. Project hooks need trust before they run.",
+        "technical": "type is \"command\" or \"http\" (url to POST to); timeout in seconds, default 5. PreToolUse is the blocking event; also Stop, StopFailure, SubagentStart, SubagentStop. Exit 0 allows, exit 2 denies; timeouts, crashes and malformed output are fail-open. matcher is a regular expression on the tool name. ~/.grok/hooks/*.json, <project>/.grok/hooks/*.json. /hooks-trust or --trust."
+      },
+      "host-platform": {
+        "cells_sha": "a03082944dc77de01477498a1522e2c58c56df9d7041a2d0d13abd35113c2161",
+        "plain": "The documentation does not mention a host platform, a shared account and billing, shared servers or agent runtime, delegation to another agent, or distinct harness features.",
+        "technical": "The documentation does not mention host platform, shared account and billing, shared execution infrastructure, shared agent runtime, delegates to, or distinct harness features."
+      },
+      "house-rules": {
+        "cells_sha": "a57164cc23e270d973636630442c21d86a9a32e8b5a9254ba90ecd17a689cc29",
+        "order_note": {
+          "cell": "grok-build/F03.precedence-scoping",
+          "quote": "deeper files take precedence on conflicts",
+          "text": "When rule files conflict, the file deeper in the folder tree takes precedence."
+        },
+        "plain": "It reads instruction files and rule folders in a project, including Claude Code ones, and skips files that git ignores. Deeper files win on a conflict, and a nested file covers its own folder tree. The documentation does not mention an import syntax.",
+        "technical": "Per directory: AGENTS.md, Agents.md, AGENT.md, CLAUDE.md, Claude.md, CLAUDE.local.md and the *.md files in .grok/rules/ (.claude/rules/, .cursor/rules/ read for compatibility); gitignored files are skipped. Deeper files take precedence on conflicts; a nested AGENTS.md scopes to its subtree. --rules adds rules for a single run. The documentation does not mention an import syntax."
+      },
+      "loop": {
+        "cells_sha": "b97068bf12a844da9e8d4a3942a09bfa4aa02ec3dbcfe9899a904c838c436362",
+        "plain": "You can cap the number of agent turns, and shell commands have their own timeout. The documentation does not mention the loop's shape.",
+        "technical": "--max-turns <N> sets the maximum number of agent turns; [toolset.bash] timeout_secs sets the foreground bash command timeout (seconds, default 120). The documentation does not mention the loop shape."
+      },
+      "memory-sessions": {
+        "cells_sha": "05538adf6d13d60ff1d2b1a5f1af5c70885f332fd9d0c78731502b01c69c6694",
+        "plain": "Cross-session memory is off by default, and its commands appear once it is switched on. Conversations are saved on disk, keyed by working directory, and can be resumed, forked, listed, renamed and exported, with the same sessions in the terminal, headless and editor use.",
+        "technical": "[memory] enabled is the master switch (default off); --experimental-memory; /remember <note>; grok memory clear [--workspace|--global|--all]. -r, --resume [<ID>]; -c, --continue; /resume; /fork [directive]; --fork-session. Sessions are saved under ~/.grok/sessions/, keyed by working directory; grok export <session-id> [output]; grok sessions <list|search|delete>; /rename <title>."
+      },
+      "model-effort": {
+        "cells_sha": "7039a1e1581196b3d711e2de90be9eab4a8ef96a7066c76e4ab757ffa3036906",
+        "order_note": {
+          "cell": "grok-build/F17.provider-byok",
+          "quote": "model.api_key > model.env_key > active session token > XAI_API_KEY",
+          "text": "A model's own key is used first, then its environment variable, then the active session token, then the general xAI key."
+        },
+        "plain": "You can pick a model from a picker, a command, a startup option or a default setting, and add your own keyed models. Effort levels are given for Grok 4.7, and the documentation does not state a default value. It does not mention shared model selection.",
+        "technical": "Ctrl+M picker; /model <name> (alias /m); -m, --model <MODEL>; GROK_DEFAULT_MODEL; [models] hidden_models. [model.<id>] defines custom/BYOK models. grok-4.7 is on the xAI API. Grok 4.7 supports low, medium, high and xhigh; [models] default_reasoning_effort; /effort. The documentation does not state a default value or mention shared model selection."
+      },
+      "org-oversight": {
+        "cells_sha": "de1ca24530e8baa34edaf3b9970ddb0f8a8ad0ac5e2ef0f0adbc50e2456707e9",
+        "plain": "It supports sign-in through a corporate identity provider and device-code login for headless use. Zero data retention is set per team, with session history kept locally. The documentation does not mention admin audit reports.",
+        "technical": "Four session authentication methods; corporate identity provider (Entra ID, Okta, Auth0); grok login --device-auth; force_login_team_uuid pins login to a team. ZDR is enforced at the team level; local session history is stored in ~/.grok/; /privacy shows or toggles status. Under ZDR, video tools return an error until user-supplied storage is configured. The documentation does not mention admin audit and reporting."
+      },
+      "org-policy": {
+        "cells_sha": "ecbd346884f0b9f05414e2c58351b7bbfe8251b91f12695c7d1c23b3c3448696",
+        "order_note": {
+          "cell": "grok-build/F07.model-allowlist",
+          "quote": "wins over hidden",
+          "text": "A model on the disabled list is removed from the catalog, and that wins over merely hiding it."
+        },
+        "plain": "An administrator can push settings files onto machines, switch off the mode that skips permission prompts, and limit which models can be picked. A lock is honored from root-owned locations, not from a file the user can edit.",
+        "technical": "Managed scope reads ~/.grok/managed_config.toml or /etc/grok/managed_config.toml; /etc/grok/requirements.toml is recommended for MDM; grok setup fetches managed configuration. disable_bypass_permissions_mode = true under [ui] turns always-approve off, honored from root-owned sources, not the user-writable ~/.grok/requirements.toml. [models] allowed_models, disabled_models."
+      },
+      "outside-tools": {
+        "cells_sha": "576764f9ba1cc648867f6590a63b0da86caab8641575ad2f9011038c62f882ca",
+        "order_note": {
+          "cell": "grok-build/F12.config-scope",
+          "quote": "merged below config.toml in priority",
+          "text": "Settings read from the Claude Code, Cursor and project config files are merged in below the main Grok settings file in priority."
+        },
+        "plain": "It connects MCP servers whose tools appear next to the built-in ones. Servers are set up in user or project settings, and Claude Code and Cursor configs are read too. A project server replaces a user one with the same name. Trusting a project also covers its MCP servers.",
+        "technical": "Tools are namespaced <server>__<tool>; grok mcp <list|add|remove|doctor>. url in [mcp_servers.<name>] is an HTTP/SSE MCP server. Declared in ~/.grok/config.toml or project .grok/config.toml (a same-name project server replaces the user one); ~/.claude.json, .cursor/mcp.json and .mcp.json merge below config.toml. bearer_token_env_var; --header is repeatable. GROK_TOOL_SEARCH (1/0). /hooks-trust or --trust."
+      },
+      "permission-check": {
+        "cells_sha": "e0440df6d94010a57d38a25b27412e4a6e650f245921a17984c2b1925f8c9f66",
+        "order_note": {
+          "cell": "grok-build/F04.per-tool-rules",
+          "quote": "`deny` always wins over `allow`",
+          "text": "A deny rule wins over an allow rule."
+        },
+        "plain": "Rules can allow, deny or ask by tool, by path pattern or by shell command pattern, and a deny rule beats an allow rule. Auto mode uses a classifier to auto-approve safe tools; dangerous ones may still prompt, and it is toggled when the feature is enabled.",
+        "technical": "--allow / --deny filters include Bash, Edit, Read, MCPTool, WebFetch and WebSearch; [permission] allow / deny / ask hold rules like Bash(git *), Edit(**/*.rs). A remembered always allow grant still prompts for rm and git push; an explicit config or CLI allow rule auto-approves them. Auto: auto-approves safe tools, dangerous ones may still prompt; toggled with /auto or Shift+Tab when the feature is enabled."
+      },
+      "plan-and-ask": {
+        "cells_sha": "c7fb6d932f015e0dcb5ba1c77af9067fd19fb568c2e071097a387c0445ac448b",
+        "plain": "In plan mode just the plan file can be edited until you approve, and plan review is not skipped under auto or the skip-prompts mode. It gates edit tools, not the shell, so commands can still write through redirection. A bottom row shows live values such as context use and cost.",
+        "technical": "Plan mode: the session plan file can be edited until approval, independent of permission mode; leave with Shift+Tab when idle or q on the approval screen. Gates edit tools, not the shell: bash can still write via redirection. status_line default is disabled; the context item turns amber at the auto-compaction threshold or 80 percent; cost is hidden below $0.005."
+      },
+      "safety-posture": {
+        "cells_sha": "8877b1dd3a93bb2ac67e68156147aa5dd72aa89388d582d435224ac9deacdcb6",
+        "order_note": {
+          "cell": "grok-build/F19.mode-defaults",
+          "quote": "permission_mode wins when more than one is set",
+          "text": "If an older setting and the newer permission mode setting are both set, the newer one wins."
+        },
+        "plain": "It asks before running anything not already allowed. Modes include plan, auto and one that skips permission prompts. The default mode comes from user or managed settings, not project ones. For read-only sessions it describes switching off the write tool, not a named mode.",
+        "technical": "Ask is the default; [ui] permission_mode takes default, ask, auto or always-approve; dontAsk silently denies without an allow rule. Shift+Tab cycles Normal, Plan, Auto (when available) and Always-approve; --always-approve (alias --yolo). Order is deny > ask > allow. Default mode: user config or managed/requirements, not project .grok/config.toml. GROK_WRITE_FILE 0 disables the write tool."
+      },
+      "send-retry": {
+        "cells_sha": "5b70fd44fc1107826be0d9b69ee443b125e480c56248f6d6a71240dc0366d033",
+        "plain": "The documentation does not mention automatic model routing, or how it behaves when it is rate-limited or the service is busy.",
+        "technical": "The documentation does not mention automatic routing or rate-limit behaviour."
+      },
+      "shrink-context": {
+        "cells_sha": "55bf6162f0abaf0723e176659fdf9d55ec54acd985b42ebdf1115e2c96ef9ca5",
+        "plain": "It compacts the conversation automatically as the context window fills, at a set percent of usage, and you can compact by hand with optional notes on what to keep. Hooks can run before and after compaction.",
+        "technical": "[session] auto_compact_threshold_percent (0–100, default 85); PreCompact and PostCompact events; the context status item turns amber at the auto-compaction threshold, or at 80 percent when the agent reports none. /compact [context] compresses the history, with optional instructions about what to preserve."
+      },
+      "skills-commands": {
+        "cells_sha": "885213356baac36f782b0816cf5f2c3c4a4f2d267c36812924889baeba74e7ec",
+        "plain": "Skills are reusable instruction folders that also appear as slash commands. The vendor says a skill's tool list does not grant or restrict tools and model settings are not applied. The documentation gives an autocomplete hint for arguments but not how they are passed.",
+        "technical": "SKILL.md has YAML frontmatter, extra keys ignored; found in ./.grok/skills/ and [skills] paths. /<skill-name>; /local:commit on a collision; disable-model-invocation (default false); user-invocable (default true). allowed-tools does not grant or restrict tools; model, effort, license, compatibility are not applied. argument-hint is an autocomplete hint. The documentation does not mention resource loading."
+      },
+      "subagents": {
+        "cells_sha": "258f47603ec1f7dde1740f3d874fcd91bda50107c452d2a5b3b532cdee6edea8",
+        "plain": "Helpers include a read-only explorer and a planner, can get their own model, and run as parallel child sessions. The documentation does not settle whether subagents are on out of the box, and the one cap it states is for scheduled tasks. It does not mention nesting.",
+        "technical": "Built-in explore (read, list, search; no shell, no edits) and plan; types under .grok/agents/ or ~/.grok/agents/; [subagents.models]. GROK_SUBAGENTS defaults to 0 while Workflows are on by default; unsettled out of the box. At most 50 scheduled tasks; no limit stated on concurrent agents. The documentation does not mention nesting rules, per-agent effort or total agent caps."
+      },
+      "surface": {
+        "cells_sha": "b28d00aa563da924eb9e99da6c2b994e32fda63a69fcc297a3ac0ce9ddf7a951",
+        "plain": "Running it in a terminal opens a full-screen interface, and it can also run inline. It can run in scripts without a screen and connect to editors through the Agent Client Protocol. The documentation does not mention desktop or web apps, or build-pipeline and chat services.",
+        "technical": "Plain grok starts the interactive TUI; [ui] screen_mode is fullscreen (default when unset) or minimal; --no-alt-screen runs inline. Headless: --output-format plain, json or streaming-json; set XAI_API_KEY for CI/CD. grok agent stdio runs an ACP agent over JSON-RPC on stdin/stdout. The documentation does not mention desktop or web apps or CI and chat surfaces."
+      },
+      "thinking": {
+        "cells_sha": "1f1e01d99a21316a11a63cceb325b51bde28074310124839ed9a1241ad75759a",
+        "plain": "Reasoning controls apply when the chosen model supports them, and levels are listed for Grok 4.7. The documentation covers showing or hiding thinking blocks and the width of the thoughts panel, but does not state a token budget.",
+        "technical": "Per-model supports_reasoning_effort / reasoning_effort apply when supported; Grok 4.7 supports low, medium, high and xhigh. GROK_SHOW_THINKING_BLOCKS (default 1); [ui] show_thinking_blocks (default true); [ui] max_thoughts_width (40-500, default 120). The documentation does not state a token budget."
+      },
+      "unattended": {
+        "cells_sha": "a9f719d81dc535a6ca0cbd72eaa21b6b7aa7cbbfd2984f4e6293bf0034bb3e57",
+        "plain": "Commands, subagents and monitors can run in the background, and a recurring loop re-runs a prompt but expires after 7 days, with 50 scheduled tasks at most. A monitor turns each line a script prints into a notification. The documentation does not mention remote sessions.",
+        "technical": "Ctrl+B backgrounds a command; /tasks; [toolset.bash] auto_background_on_timeout (default true). /loop [interval] <prompt>: Ns (minimum 60), Nm, Nh, Nd; loops expire after 7 days; at most 50 scheduled tasks. Grok Bot (/grok-bot/overview) is described as \"AI teammates on a cloud computer\". The documentation does not mention remote sessions or delegation to other agents."
+      },
+      "undo-point": {
+        "cells_sha": "3c592c7632154bea81e7657500c3032e9a42715ea9f0480e5b32210e22eb53d8",
+        "plain": "A rewind command lists a rewind point per prompt, and picking one restores the files and trims the conversation to match. Rewinding changes files on disk, so reverted changes are lost unless they were committed to git.",
+        "technical": "/rewind (or Esc Esc while idle) lists a rewind point per prompt; selecting one restores files to their state at that point and truncates the conversation to match. Rewind modifies files on disk; reverted changes are lost unless committed to git."
+      },
+      "updates": {
+        "cells_sha": "7eb66421eb861d02a5e5a051713e87fb2b6a19ed1bacf8ed4c73c1e27fe3a6e6",
+        "plain": "It has stable and alpha release channels, an update command, and ways to switch off background update checks. A command shows release notes for the current version. The documentation does not mention a deprecation policy or the version it covers.",
+        "technical": "[cli] channel is stable or alpha; grok update accepts --alpha and --stable, checks for updates or installs a specific version. Background checks: --no-auto-update, auto_update = false under [cli] in ~/.grok/config.toml, or GROK_DISABLE_AUTOUPDATER. /release-notes (alias /changelog) views release notes for the current version. The documentation does not mention a deprecation policy."
+      },
+      "workspace": {
+        "cells_sha": "af41c430f86536c76fbead556bf74942e660063979d0ca109155f9172f51da51",
+        "plain": "A worktree session runs in its own copy of your repository so parallel agents do not overwrite each other's files. It needs a git repository and starts from your current state, including uncommitted changes.",
+        "technical": "-w, --worktree [<NAME>] starts the session in a new git worktree; worktrees require a git repository, live under ~/.grok/worktrees/<repo>/<name> and start from your current HEAD, including uncommitted changes."
+      },
+      "wrap-up": {
+        "cells_sha": "8e296b56cfc17011fd4d3db5819bce23a46d67a88004333e5af228e690f24b2e",
+        "plain": "You can view credit usage, a running cost in the status line, and log files for debugging. Policies such as disabling telemetry can be set in a requirements file. The documentation does not mention budgets or spending caps.",
+        "technical": "/usage views credit usage; status line cost item (hidden below $0.005); /context or /session-info. /etc/grok/requirements.toml is authoritative for compliance-critical policies such as disabling telemetry. GROK_LOG_FILE; --debug; GROK_CRASH_HANDLER (default 0). The documentation does not mention budgets and caps."
+      }
+    }
+  },
+  "schema_version": 1
+}

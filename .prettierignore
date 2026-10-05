@@ -38,6 +38,7 @@ docs/plans/archive/2026-06-04-partner-success-command-center/build-plan.html
 # _tools/schemas/*.json files are not listed: the pinned prettier still formats them.
 docs/research/2026-10-04-coding-agent-harness-atlas/data/
 docs/research/2026-10-04-coding-agent-harness-atlas/*.html
+docs/research/2026-10-04-coding-agent-harness-atlas/trees/
 docs/research/2026-10-04-coding-agent-harness-atlas/harness/
 docs/research/2026-10-04-coding-agent-harness-atlas/sources/
 

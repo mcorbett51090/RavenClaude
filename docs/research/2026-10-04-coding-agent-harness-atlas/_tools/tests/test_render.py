@@ -48,6 +48,9 @@ EXPECTED_PAGES = (
     + [f"harness/{p}.html" for p in PRODUCTS]
     + [f"sources/{s}.html" for s in SURFACE_IDS]
 )
+LIFECYCLE_PAGES = ["lifecycle.html", "compare.html", "trees/index.html"] + [
+    f"trees/{s}.html" for s in SURFACE_IDS
+]
 ALLOWED_HOSTS = {h for s in SURFACES for h in s["docs_hosts"]} | {"github.com"}
 BASE_CSP = (
     "default-src 'none'; style-src 'unsafe-inline'; img-src data:; "
@@ -447,7 +450,10 @@ class PageSetTests(RenderTestCase):
     def test_defaults_render_the_real_data_directory(self):
         code, _, err = run_main(["--out", str(self.out_dir)])
         self.assertEqual(code, 0, err)
-        self.assertEqual(sorted(read_tree(self.out_dir)), sorted(EXPECTED_PAGES))
+        expected = EXPECTED_PAGES + (
+            LIFECYCLE_PAGES if (DATA_DIR / "lifecycle.json").exists() else []
+        )
+        self.assertEqual(sorted(read_tree(self.out_dir)), sorted(expected))
 
     def test_a_nearly_empty_data_directory_renders_with_no_data_cells(self):
         empty = write_data(self.root / "empty", {})
@@ -532,6 +538,7 @@ class DeterminismTests(RenderTestCase):
                 "pathlib",
                 "urllib",
                 "atlas_common",
+                "render_lifecycle",  # imported inside render_all: that module imports this one
             },
         )
 

@@ -1,0 +1,842 @@
+{
+  "agents": {
+    "claude-code": {
+      "decision_points": [
+        {
+          "branches": [
+            {
+              "answer": "The rule has no paths list",
+              "clause": "Rules without paths: frontmatter load at session start",
+              "outcome": "It loads at the start of the session, alongside the main instruction file."
+            },
+            {
+              "answer": "The rule has a paths list",
+              "clause": "a rule with YAML paths: frontmatter loads only when Claude reads, writes, or edits a matching file",
+              "outcome": "It loads only when Claude reads, writes or edits a file that matches."
+            }
+          ],
+          "cell": "claude-code/F03.path-scoped-rules",
+          "id": "dp1",
+          "question": "When does a rules file get loaded?"
+        },
+        {
+          "branches": [
+            {
+              "answer": "A skill with default settings",
+              "clause": "full skill content loads only when Claude uses one",
+              "outcome": "Claude sees it in a list of available skills; its full content loads only when Claude uses it."
+            },
+            {
+              "answer": "A skill that blocks model invocation",
+              "clause": "Skills with disable-model-invocation: true are not in that list and stay out of context until you invoke them with /name",
+              "outcome": "It is left out of that list and stays out of context until you invoke it by name."
+            }
+          ],
+          "cell": "claude-code/F08.invocation",
+          "id": "dp2",
+          "question": "How does Claude learn about and use a skill?"
+        },
+        {
+          "branches": [
+            {
+              "answer": "Trust not yet accepted for the folder",
+              "clause": "If workspace trust hasn't been accepted for a directory, Claude Code shows the workspace trust dialog",
+              "outcome": "A workspace trust dialog appears; accepting saves trust for the workspace."
+            },
+            {
+              "answer": "An agent file sits in an untrusted folder",
+              "clause": "A teammate gets an agent definition's tools and instructions only if you've trusted the folder the agent file is in",
+              "outcome": "A teammate gets that agent's tools and instructions only if you trusted that folder; trusting a parent folder doesn't count."
+            }
+          ],
+          "cell": "claude-code/F04.trust-prompt",
+          "id": "dp3",
+          "question": "What happens in a folder I have not trusted yet?"
+        },
+        {
+          "branches": [
+            {
+              "answer": "Main model overloaded, backup set",
+              "clause": "a session with fallbackModel set switches to the backup and retries the primary at the start of each user turn",
+              "outcome": "The session switches to the backup model and retries the main one at the start of each user turn."
+            },
+            {
+              "answer": "Plan-then-execute choice in plan mode",
+              "clause": "opusplan applies during plan mode when allowed by availableModels, then switches to Sonnet for execution",
+              "outcome": "It applies during plan mode if the allowed-models list permits, then switches to Sonnet for execution."
+            },
+            {
+              "answer": "A helper agent has no model set",
+              "clause": "Omitted subagent models follow the subagent model order",
+              "outcome": "It follows the documented order for choosing a helper agent's model."
+            }
+          ],
+          "cell": "claude-code/F17.auto-routing",
+          "id": "dp4",
+          "question": "How does it switch models on its own?"
+        },
+        {
+          "branches": [
+            {
+              "answer": "The command is on the excluded list",
+              "clause": "bypass sandbox restrictions and run unsandboxed automatically without model involvement",
+              "outcome": "It runs unsandboxed automatically, without the model being involved."
+            },
+            {
+              "answer": "The sandbox can't start and failing is turned off",
+              "clause": "falls back to unsandboxed execution with a warning on stderr when the sandbox can't start",
+              "outcome": "It falls back to running without a sandbox and prints a warning."
+            },
+            {
+              "answer": "You type it at the shell-mode prompt",
+              "clause": "Commands typed at the `!` shell-mode prompt run unsandboxed in most sessions",
+              "outcome": "It runs unsandboxed in most sessions."
+            }
+          ],
+          "cell": "claude-code/F05.sandbox-override",
+          "id": "dp5",
+          "question": "When can a command run outside the sandbox?"
+        },
+        {
+          "branches": [
+            {
+              "answer": "Hooks come from managed settings",
+              "clause": "interactive users see a security approval dialog before Claude Code applies them",
+              "outcome": "Interactive users see a security approval dialog before the hooks are applied."
+            },
+            {
+              "answer": "A script-mode run that does not use the \"bare\" setting",
+              "clause": "a -p session runs the hooks in a project's .claude/settings.json, even in a folder you've never trusted",
+              "outcome": "Project hooks run even in a folder you have never trusted, with no workspace trust dialog."
+            },
+            {
+              "answer": "The settings option disables hooks",
+              "clause": "Passing --settings with disableAllHooks set to true",
+              "outcome": "Hooks are switched off for that run."
+            }
+          ],
+          "cell": "claude-code/F06.trust-enable",
+          "id": "dp6",
+          "question": "Do hooks run without asking me first?"
+        }
+      ]
+    },
+    "codex-cli": {
+      "decision_points": [
+        {
+          "branches": [
+            {
+              "answer": "The project is trusted",
+              "clause": "Codex loads project-scoped config files only when the project is trusted",
+              "outcome": "Settings files kept in the project are loaded."
+            },
+            {
+              "answer": "The project is untrusted",
+              "clause": "If the project is untrusted, Codex ignores project .codex/ layers",
+              "outcome": "The project's own settings, hooks and rules are ignored; your user and system settings still load."
+            }
+          ],
+          "cell": "codex-cli/F04.trust-prompt",
+          "id": "dp1",
+          "question": "Does Codex use a project's own settings if I have not trusted the project?"
+        },
+        {
+          "branches": [
+            {
+              "answer": "The tool advertises a destructive marking",
+              "clause": "Destructive app/MCP tool calls always require approval when the tool advertises a destructive annotation",
+              "outcome": "The call requires approval."
+            },
+            {
+              "answer": "It also advertises a read marking",
+              "clause": "unless it advertises a read annotation, which takes priority",
+              "outcome": "Approval is not forced: the read marking takes priority over the destructive one."
+            }
+          ],
+          "cell": "codex-cli/F12.server-trust",
+          "id": "dp2",
+          "question": "Does a destructive-looking outside tool call need my approval?"
+        },
+        {
+          "branches": [
+            {
+              "answer": "Name and identity both match an approved entry",
+              "clause": "the client enables an MCP server only when both its name and identity match an approved entry",
+              "outcome": "Codex enables the server."
+            },
+            {
+              "answer": "They do not match",
+              "clause": "otherwise it disables it.",
+              "outcome": "Codex disables the server."
+            }
+          ],
+          "cell": "codex-cli/F12.server-trust",
+          "id": "dp3",
+          "question": "When does Codex switch on an outside tool server under an allowlist?"
+        },
+        {
+          "branches": [
+            {
+              "answer": "The hook gives an explicit supported denial",
+              "clause": "An explicit supported denial can block an action",
+              "outcome": "The action can be blocked."
+            },
+            {
+              "answer": "The hook errors, times out or is malformed",
+              "clause": "a PreToolUse callback error, timeout, or malformed response can fail the hook without blocking the tool",
+              "outcome": "The hook can fail without blocking the tool."
+            },
+            {
+              "answer": "The hook exits with no output",
+              "clause": "A hook that exits 0 with no output is treated as success and Codex continues.",
+              "outcome": "It counts as success and Codex continues."
+            }
+          ],
+          "cell": "codex-cli/F06.output-blocking",
+          "id": "dp4",
+          "question": "If a safety hook fails or times out, does Codex still block the tool?"
+        },
+        {
+          "branches": [
+            {
+              "answer": "An admin environment override exists",
+              "clause": "an admin environment override can allow a domain denied in Global or deny a domain allowed in Global",
+              "outcome": "It can allow a domain the global rule denies, or deny one the global rule allows."
+            },
+            {
+              "answer": "There is no override",
+              "clause": "without one, the Global rule is inherited",
+              "outcome": "The global rule is inherited."
+            }
+          ],
+          "cell": "codex-cli/F05.network-policy",
+          "id": "dp5",
+          "question": "If an admin sets a different network rule for an environment, which rule applies?"
+        },
+        {
+          "branches": [
+            {
+              "answer": "The installed release supports self-update",
+              "clause": "when the installed release supports self-update",
+              "outcome": "A CLI command checks for and applies updates."
+            },
+            {
+              "answer": "It is a debug build",
+              "clause": "debug builds print a message telling you to install a release build instead.",
+              "outcome": "It prints a message telling you to install a release build instead."
+            }
+          ],
+          "cell": "codex-cli/F20.update-mechanism",
+          "id": "dp6",
+          "question": "Can the command-line tool update itself?"
+        }
+      ]
+    },
+    "copilot-cli": {
+      "decision_points": [
+        {
+          "branches": [
+            {
+              "answer": "The tool is on the skill's allowed list",
+              "clause": "tools that are automatically allowed when the skill is active",
+              "outcome": "The tool is allowed automatically while the skill is active."
+            },
+            {
+              "answer": "The tool is not on the list",
+              "clause": "Copilot will prompt you for permission before using it",
+              "outcome": "Copilot asks you for permission before using the tool."
+            }
+          ],
+          "cell": "copilot-cli/F08.skill-overrides",
+          "id": "dp1",
+          "question": "Will a skill ask before it uses a tool?"
+        },
+        {
+          "branches": [
+            {
+              "answer": "The effective policy permits sandbox bypass",
+              "clause": "a user can explicitly disable sandboxing for the rest of the current session",
+              "outcome": "You can turn sandboxing off for the rest of the current session."
+            },
+            {
+              "answer": "Enterprise managed settings require sandboxing",
+              "clause": "If enterprise managed settings require sandboxing",
+              "outcome": "Ordinary configuration and the no-sandbox startup option do not switch it off."
+            }
+          ],
+          "cell": "copilot-cli/F05.sandbox-override",
+          "id": "dp2",
+          "question": "Can I switch the sandbox off for a session?"
+        },
+        {
+          "branches": [
+            {
+              "answer": "The prompt-mode hooks variable is set to true",
+              "clause": "Repository hooks load in prompt mode (-p) when GITHUB_COPILOT_PROMPT_MODE_REPO_HOOKS is set to true",
+              "outcome": "Repository hooks load in prompt mode."
+            },
+            {
+              "answer": "The folder is trusted or allow-all is set",
+              "clause": "also load automatically when the folder is already trusted or COPILOT_ALLOW_ALL is set",
+              "outcome": "Repository hooks also load automatically."
+            },
+            {
+              "answer": "The user setting that disables hooks is on",
+              "clause": "A user setting can disable all hooks, both repository-level and user-level",
+              "outcome": "Both repository-level and user-level hooks are disabled."
+            }
+          ],
+          "cell": "copilot-cli/F06.trust-enable",
+          "id": "dp3",
+          "question": "When do repository hooks run in one-off prompt mode?"
+        },
+        {
+          "branches": [
+            {
+              "answer": "You use GitHub-hosted models",
+              "clause": "Access to Copilot CLI requires an assigned GitHub Copilot seat",
+              "outcome": "You need an assigned Copilot seat, and each interaction uses AI credits."
+            },
+            {
+              "answer": "You bring your own model provider",
+              "clause": "With BYOK, Copilot CLI can connect to the configured provider without a GitHub account or token",
+              "outcome": "It can connect to your provider without a GitHub account or token."
+            }
+          ],
+          "cell": "copilot-cli/F21.shared-account-billing",
+          "id": "dp4",
+          "question": "Do I need a GitHub account to use it?"
+        },
+        {
+          "branches": [
+            {
+              "answer": "Its agent profile names a model",
+              "clause": "that model is used by the subagent",
+              "outcome": "The helper runs on the model named in that profile."
+            },
+            {
+              "answer": "It is the built-in research agent",
+              "clause": "The built-in research agent is hard-coded to use a particular AI model",
+              "outcome": "It uses a fixed model that the model command does not change."
+            }
+          ],
+          "cell": "copilot-cli/F09.per-agent-model",
+          "id": "dp5",
+          "question": "Which model does a helper agent use?"
+        },
+        {
+          "branches": [
+            {
+              "answer": "Allowed with a command-line allow option",
+              "clause": "--deny-tool takes precedence over --allow-all-tools and --allow-tool",
+              "outcome": "The deny option takes precedence over the allow options."
+            },
+            {
+              "answer": "Approved automatically or saved earlier",
+              "clause": "permission rules that deny a tool take precedence over automatic or saved approvals",
+              "outcome": "A rule that denies the tool takes precedence over those approvals."
+            }
+          ],
+          "cell": "copilot-cli/F04.config-scope-precedence",
+          "id": "dp6",
+          "question": "If I allow a tool but a rule denies it, which wins?"
+        }
+      ]
+    },
+    "copilot-vscode": {
+      "decision_points": [
+        {
+          "branches": [
+            {
+              "answer": "The outside-sandbox setting is on",
+              "clause": "the agent can ask for confirmation to run it outside",
+              "outcome": "The agent can ask you to confirm running the command outside the sandbox."
+            },
+            {
+              "answer": "The outside-sandbox setting is false",
+              "clause": "Allow Outside Sandbox is not offered and such requests fail",
+              "outcome": "The Allow Outside Sandbox choice is not offered and the request fails."
+            }
+          ],
+          "cell": "copilot-vscode/F05.sandbox-override",
+          "id": "dp1",
+          "question": "What happens if a command cannot run inside the sandbox?"
+        },
+        {
+          "branches": [
+            {
+              "answer": "Workspace and user sandbox settings",
+              "clause": "Workspace sandbox settings take precedence over User settings",
+              "outcome": "For a local Agent Host, the workspace setting wins over the user setting."
+            },
+            {
+              "answer": "Copilot managed setting and device policy",
+              "clause": "A Copilot managed setting takes precedence over a VS Code device policy",
+              "outcome": "The Copilot managed setting wins, and the two values are not merged."
+            },
+            {
+              "answer": "A policy value and an ordinary setting",
+              "clause": "A policy value overrides the setting at default, user and workspace level",
+              "outcome": "The policy value overrides the setting at default, user and workspace level."
+            }
+          ],
+          "cell": "copilot-vscode/F04.config-scope-precedence",
+          "id": "dp2",
+          "question": "When two settings disagree, which one wins?"
+        },
+        {
+          "branches": [
+            {
+              "answer": "The skill instructions mention the file",
+              "clause": "only when the instructions reference them",
+              "outcome": "Copilot reads the extra file from the skill folder when the instructions point to it."
+            },
+            {
+              "answer": "Nothing in the instructions mentions the file",
+              "clause": "an unreferenced file is not loaded",
+              "outcome": "The file is not loaded."
+            }
+          ],
+          "cell": "copilot-vscode/F08.resource-loading",
+          "id": "dp3",
+          "question": "Are the extra files in a skill folder read?"
+        },
+        {
+          "branches": [
+            {
+              "answer": "Set a budget for extra usage",
+              "clause": "a user can set a budget for additional usage and keep working",
+              "outcome": "You can keep working on a paid plan by setting a budget for additional usage."
+            },
+            {
+              "answer": "Wait for the next cycle",
+              "clause": "or wait until the next monthly cycle when the allowance resets",
+              "outcome": "You wait until the monthly cycle rolls over and the allowance resets."
+            }
+          ],
+          "cell": "copilot-vscode/F22.budget-caps",
+          "id": "dp4",
+          "question": "What can I do when my monthly AI credits run out?"
+        },
+        {
+          "branches": [
+            {
+              "answer": "The server comes from the workspace",
+              "clause": "workspace MCP servers inherit Workspace Trust",
+              "outcome": "It inherits the folder's trust decision (Workspace Trust)."
+            },
+            {
+              "answer": "The server comes from a plugin",
+              "clause": "Plugin MCP servers are implicitly trusted when you install the plugin",
+              "outcome": "It is trusted when you install the plugin, with no separate trust prompt at startup."
+            }
+          ],
+          "cell": "copilot-vscode/F12.server-trust",
+          "id": "dp5",
+          "question": "Does a connected outside-tool (MCP) server ask me to trust it first?"
+        },
+        {
+          "branches": [
+            {
+              "answer": "You check for extension updates",
+              "clause": "VS Code checks for plugin updates when you run Extensions: Check for Extension Updates",
+              "outcome": "VS Code checks for plugin updates when you run the check command, or on a 24-hour timer if automatic updates are on."
+            },
+            {
+              "answer": "The plugin comes from a package registry",
+              "clause": "Plugins sourced from npm or PyPI never update automatically",
+              "outcome": "It does not update by itself; an Update button appears in the Extensions view."
+            }
+          ],
+          "cell": "copilot-vscode/F11.versioning-update",
+          "id": "dp6",
+          "question": "How does a plugin get updated?"
+        }
+      ]
+    },
+    "cursor": {
+      "decision_points": [
+        {
+          "branches": [
+            {
+              "answer": "A model is blocked for the team",
+              "clause": "if a model is blocked for the team, Cursor Router routes to an allowed model",
+              "outcome": "On Enterprise, Cursor routes the request to a model the team allows."
+            },
+            {
+              "answer": "A helper agent is set to a blocked model",
+              "clause": "a subagent's configured model is not used when an admin has blocked it",
+              "outcome": "The helper's configured model is not used when an admin has blocked it."
+            }
+          ],
+          "cell": "cursor/F07.model-allowlist",
+          "id": "dp1",
+          "question": "What happens when an admin blocks a model for the team?"
+        },
+        {
+          "branches": [
+            {
+              "answer": "A team rule overlaps another rule type",
+              "clause": "Team Rules work alongside other rule types and take precedence",
+              "outcome": "Team rules work alongside other rule types and take precedence."
+            },
+            {
+              "answer": "Policy files sit at several folder levels",
+              "clause": "The closest applicable APPROVAL_POLICY.md has the highest priority for files under its directory",
+              "outcome": "The closest applicable policy file has the highest priority for files under its folder."
+            },
+            {
+              "answer": "A higher-level policy meets a closer one",
+              "clause": "ancestor policies still apply unless they conflict",
+              "outcome": "Higher-level policies still apply, unless they conflict."
+            }
+          ],
+          "cell": "cursor/F03.precedence-scoping",
+          "id": "dp2",
+          "question": "Which rule wins when several rules apply?"
+        },
+        {
+          "branches": [
+            {
+              "answer": "The workspace is trusted",
+              "clause": "Project hooks load and run automatically when team members open the project in a trusted workspace",
+              "outcome": "Project hooks load and run automatically when team members open the project."
+            },
+            {
+              "answer": "The workspace is not trusted",
+              "clause": "the workspace must be trusted to run them",
+              "outcome": "The documentation says the workspace must be trusted to run project hooks."
+            }
+          ],
+          "cell": "cursor/F06.trust-enable",
+          "id": "dp3",
+          "question": "Will a project's hooks run when I open the project?"
+        },
+        {
+          "branches": [
+            {
+              "answer": "It fails on a sandbox restriction",
+              "clause": "the agent can rerun it outside the sandbox, and the classifier reviews that rerun",
+              "outcome": "The agent can rerun it outside the sandbox, and an automatic reviewer checks that rerun."
+            },
+            {
+              "answer": "It needs full system access",
+              "clause": "Cursor indicates when a command runs outside the sandbox and asks for approval",
+              "outcome": "It bypasses the sandbox; Cursor indicates this and asks for approval."
+            }
+          ],
+          "cell": "cursor/F05.sandbox-override",
+          "id": "dp4",
+          "question": "What happens if the sandbox blocks a command the agent wants to run?"
+        },
+        {
+          "branches": [
+            {
+              "answer": "An interval is specified",
+              "clause": "runs a prompt or skill on a recurring or variable interval",
+              "outcome": "The prompt or skill runs on a recurring or variable interval."
+            },
+            {
+              "answer": "No fixed interval is given",
+              "clause": "if you don't specify a fixed interval, the agent chooses when to wake",
+              "outcome": "The agent chooses when to wake."
+            }
+          ],
+          "cell": "cursor/F15.scheduled-routines",
+          "id": "dp5",
+          "question": "How does the repeating prompt skill decide when to run?"
+        },
+        {
+          "branches": [
+            {
+              "answer": "On-demand usage is enabled",
+              "clause": "own-key requests keep working if on-demand usage is enabled",
+              "outcome": "Own-key requests keep working."
+            },
+            {
+              "answer": "On-demand usage is off",
+              "clause": "stop until the next billing cycle if it is off",
+              "outcome": "Own-key requests stop until the next billing cycle."
+            }
+          ],
+          "cell": "cursor/F22.budget-caps",
+          "id": "dp6",
+          "question": "What happens on a Teams or Enterprise plan when the Other Models allowance runs out?"
+        }
+      ]
+    },
+    "gemini-cli": {
+      "decision_points": [
+        {
+          "branches": [
+            {
+              "answer": "The include-directories memory setting is true",
+              "clause": "scans include directories when",
+              "outcome": "A reload scans the include directories as well."
+            },
+            {
+              "answer": "That setting is false",
+              "clause": "when false, only the current directory is used",
+              "outcome": "Just the current directory is used."
+            }
+          ],
+          "cell": "gemini-cli/F02.memory-scope-loading",
+          "id": "dp1",
+          "question": "Does a memory reload also look in extra directories?"
+        },
+        {
+          "branches": [
+            {
+              "answer": "Preview features are enabled",
+              "clause": "resolves to the preview model if preview features are enabled",
+              "outcome": "It resolves to the preview model."
+            },
+            {
+              "answer": "Preview features are not enabled",
+              "clause": "otherwise to the standard pro model",
+              "outcome": "It resolves to the standard pro model."
+            }
+          ],
+          "cell": "gemini-cli/F17.model-catalog",
+          "id": "dp2",
+          "question": "Which model does the automatic choice pick?"
+        },
+        {
+          "branches": [
+            {
+              "answer": "Set to ask (the default)",
+              "clause": "'ask' prompts each time",
+              "outcome": "It prompts you each time."
+            },
+            {
+              "answer": "Set to use credits automatically",
+              "clause": "automatically uses credits",
+              "outcome": "Credits are used without asking."
+            },
+            {
+              "answer": "Set to turn credit use off",
+              "clause": "disables credit usage",
+              "outcome": "Credits are not used."
+            }
+          ],
+          "cell": "gemini-cli/F22.budget-caps",
+          "id": "dp4",
+          "question": "What happens when quota runs out and AI credits are available?"
+        },
+        {
+          "branches": [
+            {
+              "answer": "The allowed-extensions list has entries",
+              "clause": "if nonempty, only matching extensions are allowed",
+              "outcome": "Extensions must match a pattern in the list to be allowed."
+            },
+            {
+              "answer": "The admin setting is false",
+              "clause": "when false, disallows extensions from being installed",
+              "outcome": "Extensions are not allowed to be installed."
+            }
+          ],
+          "cell": "gemini-cli/F11.trust-signing",
+          "id": "dp6",
+          "question": "What decides whether an extension may be installed?"
+        }
+      ]
+    },
+    "grok-bot": {
+      "decision_points": [
+        {
+          "branches": [
+            {
+              "answer": "A rule that should remain true",
+              "clause": "Use the description for rules that should remain true",
+              "outcome": "Put it in the Bot's description."
+            },
+            {
+              "answer": "A task-specific instruction",
+              "clause": "the conversation for task-specific instructions",
+              "outcome": "Give it in the conversation."
+            }
+          ],
+          "cell": "grok-bot/F03.auto-loaded-files",
+          "id": "dp1",
+          "question": "Where should I put a standing rule versus a one-off instruction?"
+        },
+        {
+          "branches": [
+            {
+              "answer": "Two rules conflict",
+              "clause": "Ask first wins if two rules conflict",
+              "outcome": "The ask-first rule wins."
+            },
+            {
+              "answer": "The switch says Required by your admin",
+              "clause": "if the switch says Required by your admin, it cannot be turned off",
+              "outcome": "The member must leave it on."
+            }
+          ],
+          "cell": "grok-bot/F04.config-scope-precedence",
+          "id": "dp2",
+          "question": "Which Auto-review rule wins in a conflict, and can I switch one off?"
+        },
+        {
+          "branches": [
+            {
+              "answer": "Nobody can answer an approval card",
+              "clause": "Where nobody can answer an approval card, the Bot runs without Auto-review",
+              "outcome": "The Bot runs without Auto-review."
+            },
+            {
+              "answer": "An Enterprise admin enforces Auto-review",
+              "clause": "if an Enterprise admin enforces Auto-review, it still checks actions in those chats",
+              "outcome": "It still checks actions in those chats."
+            }
+          ],
+          "cell": "grok-bot/F04.auto-review",
+          "id": "dp3",
+          "question": "Does Auto-review check actions where no one can answer an approval card?"
+        },
+        {
+          "branches": [
+            {
+              "answer": "On-demand usage is turned on",
+              "clause": "extra usage can continue as On-demand usage if on-demand is enabled",
+              "outcome": "Extra usage continues as on-demand usage."
+            },
+            {
+              "answer": "On-demand usage is turned off",
+              "clause": "If on-demand is off, Grok Bot stops when weekly usage runs out",
+              "outcome": "Grok Bot stops, and the screen says you reached the usage limit."
+            }
+          ],
+          "cell": "grok-bot/F22.rate-limits",
+          "id": "dp4",
+          "question": "What happens when my weekly Grok Bot usage runs out?"
+        },
+        {
+          "branches": [
+            {
+              "answer": "The team ceiling is left at its default",
+              "clause": "Always allow (the default; leaves the choice to each member)",
+              "outcome": "The choice is left to each member."
+            },
+            {
+              "answer": "A member's setting is stricter than the team's",
+              "clause": "a member's own setting still applies when it is stricter than the team's",
+              "outcome": "The member's own setting still applies."
+            }
+          ],
+          "cell": "grok-bot/F05.sandbox-override",
+          "id": "dp5",
+          "question": "Who decides whether a Bot may run commands on my own desktop?"
+        },
+        {
+          "branches": [
+            {
+              "answer": "The build is below the minimum version",
+              "clause": "it falls below Cursor's minimum version",
+              "outcome": "The build loses support, and the app shows Update required until you update."
+            },
+            {
+              "answer": "A Grok Bot version is over 14 days old",
+              "clause": "when a version is more than 14 days old and a newer version is out",
+              "outcome": "Grok Bot requires an update once a newer version is out."
+            }
+          ],
+          "cell": "grok-bot/F20.deprecation-policy",
+          "id": "dp6",
+          "question": "When does the app force me to update?"
+        }
+      ]
+    },
+    "grok-build": {
+      "decision_points": [
+        {
+          "branches": [
+            {
+              "answer": "A root-owned location or the system layer",
+              "clause": "The lock is honored only from root-owned sources (`/etc/grok/requirements.toml` or the system layer)",
+              "outcome": "Grok Build honors the lock."
+            },
+            {
+              "answer": "A user-writable file in the home folder",
+              "clause": "not from the user-writable `~/.grok/requirements.toml`",
+              "outcome": "The lock is not honored from the user-writable copy."
+            }
+          ],
+          "cell": "grok-build/F07.policy-lockdown",
+          "id": "dp1",
+          "question": "Where must a company lock live for Grok Build to honor it?"
+        },
+        {
+          "branches": [
+            {
+              "answer": "The hook script exits with code 0 or code 2",
+              "clause": "Exit code 0 allows, exit code 2 denies",
+              "outcome": "Code 0 lets the tool call go ahead and code 2 blocks it."
+            },
+            {
+              "answer": "The hook times out, crashes or prints bad output",
+              "clause": "is fail-open: the failure is recorded in the session but the tool call proceeds",
+              "outcome": "The failure is recorded in the session, but the tool call goes ahead."
+            }
+          ],
+          "cell": "grok-build/F06.output-blocking",
+          "id": "dp2",
+          "question": "What happens when a hook says no, or when a hook breaks?"
+        },
+        {
+          "branches": [
+            {
+              "answer": "A remembered allow grant from an earlier prompt",
+              "clause": "A remembered `always allow` grant still prompts for dangerous patterns such as `rm` and `git push`",
+              "outcome": "Dangerous patterns, such as removing files or pushing code, still prompt."
+            },
+            {
+              "answer": "An explicit allow rule in config or on the command line",
+              "clause": "an explicit config or CLI allow rule auto-approves them",
+              "outcome": "Those commands are approved automatically."
+            }
+          ],
+          "cell": "grok-build/F04.command-scoping",
+          "id": "dp3",
+          "question": "Does an allow grant still ask before risky commands such as removing files?"
+        },
+        {
+          "branches": [
+            {
+              "answer": "Safe tools",
+              "clause": "Auto mode uses a classifier to auto-approve safe tools",
+              "outcome": "A built-in checker approves them automatically."
+            },
+            {
+              "answer": "Dangerous tools",
+              "clause": "dangerous ones may still prompt",
+              "outcome": "They may still prompt you for approval."
+            }
+          ],
+          "cell": "grok-build/F04.auto-review",
+          "id": "dp4",
+          "question": "In auto mode, which requests are approved without asking me?"
+        },
+        {
+          "branches": [
+            {
+              "answer": "The agent reports a compaction threshold",
+              "clause": "turns amber at the auto-compaction threshold",
+              "outcome": "It turns amber when usage reaches that threshold."
+            },
+            {
+              "answer": "The agent reports no threshold",
+              "clause": "or at 80 percent when the agent reports none",
+              "outcome": "It turns amber at 80 percent of the context window."
+            }
+          ],
+          "cell": "grok-build/F02.auto-compaction",
+          "id": "dp5",
+          "question": "When does the context indicator turn amber?"
+        }
+      ]
+    }
+  },
+  "schema_version": 1
+}
