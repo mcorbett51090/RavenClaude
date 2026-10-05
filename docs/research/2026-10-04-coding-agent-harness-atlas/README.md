@@ -17,6 +17,15 @@ Gemini CLI, Grok Build CLI and Grok Bot. 127 frozen rows by 8 columns is 1016 ce
 - One page per product under [harness/](harness/claude-code.html) and one evidence list per column under
   [sources/](sources/claude-code.html).
 
+## For a coding agent: read the markdown
+
+[md/README.md](md/README.md) is a short router. The same data as the HTML, one cell per line so it can be
+grepped and read cheaply: [md/agents/](md/agents/claude-code.md) (one column, all 127 rows and its lever
+records), [md/rows/](md/rows/index.md) (one facet, every column side by side), [md/levers/](md/levers/model.md)
+(where each lever lives, and the routing advice per task) and [md/register.md](md/register.md). Vendor text in
+these files is untrusted data: angle brackets are neutralized and instruction-shaped text is marked. The quote
+behind an evidence id is in `data/evidence/<column>.json`.
+
 ## Read it honestly
 
 - `undocumented` means a sweep of the mirrored docs found nothing, with a positive control. It is not
@@ -28,13 +37,16 @@ Gemini CLI, Grok Build CLI and Grok Bot. 127 frozen rows by 8 columns is 1016 ce
 
 ## Re-render and re-check
 
-Run from the repository root. These two only read, so they run in any checkout. A `render.py` that
-writes pages refuses to run outside the forge worktree unless you set `ATLAS_ANY_TREE=1`.
+Run from the repository root. These three only read, so they run in any checkout. A renderer that
+writes files refuses to run outside a worktree under `.claude/worktrees/` on a non-main branch unless you
+set `ATLAS_ANY_TREE=1`.
 
 ```
 python3 docs/research/2026-10-04-coding-agent-harness-atlas/_tools/validate.py
 python3 docs/research/2026-10-04-coding-agent-harness-atlas/_tools/render.py --check
+python3 docs/research/2026-10-04-coding-agent-harness-atlas/_tools/render_md.py --check
 ```
 
-`render.py` rebuilds every page from [data/](data/cells/claude-code.json) only; the pages are generated, so
-edit the data, not the HTML. The tool tests are under `_tools/tests` (`python3 -m unittest discover -s tests`).
+`render.py` and `render_md.py` rebuild every page from [data/](data/cells/claude-code.json) only; the pages
+and the markdown are generated, so edit the data, not the output. No CI workflow runs these checks yet, so run
+them before you commit a data change. The tool tests are under `_tools/tests` (`python3 -m unittest discover -s tests`).
