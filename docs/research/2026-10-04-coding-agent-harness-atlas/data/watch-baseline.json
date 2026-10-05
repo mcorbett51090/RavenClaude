@@ -1,0 +1,2926 @@
+{
+  "accepted": "2026-10-05",
+  "changelog_since": "2026-10-05",
+  "indexes": {
+    "claude-code": {
+      "https://code.claude.com/docs/llms.txt": [
+        "https://code.claude.com/docs/en/accessibility.md",
+        "https://code.claude.com/docs/en/admin-setup.md",
+        "https://code.claude.com/docs/en/advisor.md",
+        "https://code.claude.com/docs/en/agent-sdk/agent-loop.md",
+        "https://code.claude.com/docs/en/agent-sdk/claude-code-features.md",
+        "https://code.claude.com/docs/en/agent-sdk/configuration.md",
+        "https://code.claude.com/docs/en/agent-sdk/cost-tracking.md",
+        "https://code.claude.com/docs/en/agent-sdk/custom-tools.md",
+        "https://code.claude.com/docs/en/agent-sdk/examples.md",
+        "https://code.claude.com/docs/en/agent-sdk/file-checkpointing.md",
+        "https://code.claude.com/docs/en/agent-sdk/hooks.md",
+        "https://code.claude.com/docs/en/agent-sdk/hosting.md",
+        "https://code.claude.com/docs/en/agent-sdk/mcp.md",
+        "https://code.claude.com/docs/en/agent-sdk/migration-guide.md",
+        "https://code.claude.com/docs/en/agent-sdk/modifying-system-prompts.md",
+        "https://code.claude.com/docs/en/agent-sdk/observability.md",
+        "https://code.claude.com/docs/en/agent-sdk/overview.md",
+        "https://code.claude.com/docs/en/agent-sdk/permissions.md",
+        "https://code.claude.com/docs/en/agent-sdk/plugins.md",
+        "https://code.claude.com/docs/en/agent-sdk/python.md",
+        "https://code.claude.com/docs/en/agent-sdk/quickstart.md",
+        "https://code.claude.com/docs/en/agent-sdk/secure-deployment.md",
+        "https://code.claude.com/docs/en/agent-sdk/session-storage.md",
+        "https://code.claude.com/docs/en/agent-sdk/sessions.md",
+        "https://code.claude.com/docs/en/agent-sdk/skills.md",
+        "https://code.claude.com/docs/en/agent-sdk/streaming-output.md",
+        "https://code.claude.com/docs/en/agent-sdk/streaming-vs-single-mode.md",
+        "https://code.claude.com/docs/en/agent-sdk/structured-outputs.md",
+        "https://code.claude.com/docs/en/agent-sdk/subagents.md",
+        "https://code.claude.com/docs/en/agent-sdk/todo-tracking.md",
+        "https://code.claude.com/docs/en/agent-sdk/tool-search.md",
+        "https://code.claude.com/docs/en/agent-sdk/troubleshooting.md",
+        "https://code.claude.com/docs/en/agent-sdk/typescript-v2-preview.md",
+        "https://code.claude.com/docs/en/agent-sdk/typescript.md",
+        "https://code.claude.com/docs/en/agent-sdk/user-input.md",
+        "https://code.claude.com/docs/en/agent-teams.md",
+        "https://code.claude.com/docs/en/agent-view.md",
+        "https://code.claude.com/docs/en/agents.md",
+        "https://code.claude.com/docs/en/amazon-bedrock.md",
+        "https://code.claude.com/docs/en/analytics.md",
+        "https://code.claude.com/docs/en/artifacts.md",
+        "https://code.claude.com/docs/en/authentication.md",
+        "https://code.claude.com/docs/en/auto-mode-config.md",
+        "https://code.claude.com/docs/en/best-practices.md",
+        "https://code.claude.com/docs/en/champion-kit.md",
+        "https://code.claude.com/docs/en/changelog.md",
+        "https://code.claude.com/docs/en/channels-reference.md",
+        "https://code.claude.com/docs/en/channels.md",
+        "https://code.claude.com/docs/en/checkpointing.md",
+        "https://code.claude.com/docs/en/chrome.md",
+        "https://code.claude.com/docs/en/claude-apps-gateway-config.md",
+        "https://code.claude.com/docs/en/claude-apps-gateway-deploy.md",
+        "https://code.claude.com/docs/en/claude-apps-gateway-on-aws.md",
+        "https://code.claude.com/docs/en/claude-apps-gateway-on-gcp.md",
+        "https://code.claude.com/docs/en/claude-apps-gateway-spend-limits.md",
+        "https://code.claude.com/docs/en/claude-apps-gateway.md",
+        "https://code.claude.com/docs/en/claude-code-on-the-web.md",
+        "https://code.claude.com/docs/en/claude-directory.md",
+        "https://code.claude.com/docs/en/claude-platform-on-aws.md",
+        "https://code.claude.com/docs/en/claude-projects.md",
+        "https://code.claude.com/docs/en/claude-security.md",
+        "https://code.claude.com/docs/en/claude-tag.md",
+        "https://code.claude.com/docs/en/cli-reference.md",
+        "https://code.claude.com/docs/en/cloud-environments.md",
+        "https://code.claude.com/docs/en/code-review.md",
+        "https://code.claude.com/docs/en/commands.md",
+        "https://code.claude.com/docs/en/common-workflows.md",
+        "https://code.claude.com/docs/en/communications-kit.md",
+        "https://code.claude.com/docs/en/computer-use.md",
+        "https://code.claude.com/docs/en/context-window.md",
+        "https://code.claude.com/docs/en/corporate-launcher.md",
+        "https://code.claude.com/docs/en/costs.md",
+        "https://code.claude.com/docs/en/cross-session-messaging.md",
+        "https://code.claude.com/docs/en/data-usage.md",
+        "https://code.claude.com/docs/en/debug-your-config.md",
+        "https://code.claude.com/docs/en/deep-links.md",
+        "https://code.claude.com/docs/en/desktop-ios-simulator.md",
+        "https://code.claude.com/docs/en/desktop-linux.md",
+        "https://code.claude.com/docs/en/desktop-quickstart.md",
+        "https://code.claude.com/docs/en/desktop-scheduled-tasks.md",
+        "https://code.claude.com/docs/en/desktop-wsl.md",
+        "https://code.claude.com/docs/en/desktop.md",
+        "https://code.claude.com/docs/en/devcontainer.md",
+        "https://code.claude.com/docs/en/env-vars.md",
+        "https://code.claude.com/docs/en/errors.md",
+        "https://code.claude.com/docs/en/fast-mode.md",
+        "https://code.claude.com/docs/en/feature-availability.md",
+        "https://code.claude.com/docs/en/features-overview.md",
+        "https://code.claude.com/docs/en/fullscreen.md",
+        "https://code.claude.com/docs/en/gateways.md",
+        "https://code.claude.com/docs/en/github-actions-cloud-providers.md",
+        "https://code.claude.com/docs/en/github-actions.md",
+        "https://code.claude.com/docs/en/github-enterprise-server.md",
+        "https://code.claude.com/docs/en/gitlab-ci-cd.md",
+        "https://code.claude.com/docs/en/glossary.md",
+        "https://code.claude.com/docs/en/goal.md",
+        "https://code.claude.com/docs/en/google-vertex-ai.md",
+        "https://code.claude.com/docs/en/headless.md",
+        "https://code.claude.com/docs/en/hooks-guide.md",
+        "https://code.claude.com/docs/en/hooks.md",
+        "https://code.claude.com/docs/en/how-claude-code-works.md",
+        "https://code.claude.com/docs/en/interactive-mode.md",
+        "https://code.claude.com/docs/en/jetbrains.md",
+        "https://code.claude.com/docs/en/keybindings.md",
+        "https://code.claude.com/docs/en/large-codebases.md",
+        "https://code.claude.com/docs/en/legal-and-compliance.md",
+        "https://code.claude.com/docs/en/llm-gateway-connect.md",
+        "https://code.claude.com/docs/en/llm-gateway-protocol.md",
+        "https://code.claude.com/docs/en/llm-gateway-rollout.md",
+        "https://code.claude.com/docs/en/llm-gateway.md",
+        "https://code.claude.com/docs/en/managed-mcp.md",
+        "https://code.claude.com/docs/en/managed-settings.md",
+        "https://code.claude.com/docs/en/mcp-quickstart.md",
+        "https://code.claude.com/docs/en/mcp.md",
+        "https://code.claude.com/docs/en/memory.md",
+        "https://code.claude.com/docs/en/microsoft-foundry.md",
+        "https://code.claude.com/docs/en/mobile.md",
+        "https://code.claude.com/docs/en/model-config.md",
+        "https://code.claude.com/docs/en/monitoring-usage.md",
+        "https://code.claude.com/docs/en/network-config.md",
+        "https://code.claude.com/docs/en/output-styles.md",
+        "https://code.claude.com/docs/en/overview.md",
+        "https://code.claude.com/docs/en/permission-modes.md",
+        "https://code.claude.com/docs/en/permissions.md",
+        "https://code.claude.com/docs/en/platforms.md",
+        "https://code.claude.com/docs/en/plugin-evals.md",
+        "https://code.claude.com/docs/en/plugins/anthropic-marketplaces.md",
+        "https://code.claude.com/docs/en/plugins/cli-hints.md",
+        "https://code.claude.com/docs/en/plugins/cli-reference.md",
+        "https://code.claude.com/docs/en/plugins/code-intelligence.md",
+        "https://code.claude.com/docs/en/plugins/components.md",
+        "https://code.claude.com/docs/en/plugins/create-marketplace.md",
+        "https://code.claude.com/docs/en/plugins/create.md",
+        "https://code.claude.com/docs/en/plugins/dependencies.md",
+        "https://code.claude.com/docs/en/plugins/host-marketplace.md",
+        "https://code.claude.com/docs/en/plugins/install.md",
+        "https://code.claude.com/docs/en/plugins/loading.md",
+        "https://code.claude.com/docs/en/plugins/manifest-reference.md",
+        "https://code.claude.com/docs/en/plugins/marketplace-reference.md",
+        "https://code.claude.com/docs/en/plugins/measure.md",
+        "https://code.claude.com/docs/en/plugins/mods/admin.md",
+        "https://code.claude.com/docs/en/plugins/mods/api.md",
+        "https://code.claude.com/docs/en/plugins/mods/create.md",
+        "https://code.claude.com/docs/en/plugins/mods/events.md",
+        "https://code.claude.com/docs/en/plugins/mods/gallery.md",
+        "https://code.claude.com/docs/en/plugins/mods/interface.md",
+        "https://code.claude.com/docs/en/plugins/mods/overview.md",
+        "https://code.claude.com/docs/en/plugins/mods/reference.md",
+        "https://code.claude.com/docs/en/plugins/mods/test.md",
+        "https://code.claude.com/docs/en/plugins/mods/troubleshoot.md",
+        "https://code.claude.com/docs/en/plugins/org.md",
+        "https://code.claude.com/docs/en/plugins/overview.md",
+        "https://code.claude.com/docs/en/plugins/publish.md",
+        "https://code.claude.com/docs/en/plugins/relevance.md",
+        "https://code.claude.com/docs/en/plugins/security.md",
+        "https://code.claude.com/docs/en/plugins/troubleshooting.md",
+        "https://code.claude.com/docs/en/prompt-caching.md",
+        "https://code.claude.com/docs/en/prompt-library.md",
+        "https://code.claude.com/docs/en/quickstart.md",
+        "https://code.claude.com/docs/en/remote-control.md",
+        "https://code.claude.com/docs/en/routines.md",
+        "https://code.claude.com/docs/en/sandbox-environments.md",
+        "https://code.claude.com/docs/en/sandboxing.md",
+        "https://code.claude.com/docs/en/scheduled-tasks.md",
+        "https://code.claude.com/docs/en/security-guidance.md",
+        "https://code.claude.com/docs/en/security.md",
+        "https://code.claude.com/docs/en/self-hosted-environments-configuration.md",
+        "https://code.claude.com/docs/en/self-hosted-environments-deploy.md",
+        "https://code.claude.com/docs/en/self-hosted-environments-identity.md",
+        "https://code.claude.com/docs/en/self-hosted-environments-quickstart.md",
+        "https://code.claude.com/docs/en/self-hosted-environments-reference.md",
+        "https://code.claude.com/docs/en/self-hosted-environments-testing.md",
+        "https://code.claude.com/docs/en/self-hosted-environments.md",
+        "https://code.claude.com/docs/en/server-managed-settings.md",
+        "https://code.claude.com/docs/en/sessions.md",
+        "https://code.claude.com/docs/en/settings-example.md",
+        "https://code.claude.com/docs/en/settings-reference.md",
+        "https://code.claude.com/docs/en/settings.md",
+        "https://code.claude.com/docs/en/setup.md",
+        "https://code.claude.com/docs/en/skills.md",
+        "https://code.claude.com/docs/en/slack.md",
+        "https://code.claude.com/docs/en/statusline.md",
+        "https://code.claude.com/docs/en/sub-agents.md",
+        "https://code.claude.com/docs/en/terminal-config.md",
+        "https://code.claude.com/docs/en/third-party-integrations.md",
+        "https://code.claude.com/docs/en/tools-reference.md",
+        "https://code.claude.com/docs/en/troubleshoot-install.md",
+        "https://code.claude.com/docs/en/troubleshooting.md",
+        "https://code.claude.com/docs/en/ultrareview.md",
+        "https://code.claude.com/docs/en/voice-dictation.md",
+        "https://code.claude.com/docs/en/vs-code.md",
+        "https://code.claude.com/docs/en/web-quickstart.md",
+        "https://code.claude.com/docs/en/whats-new/2026-w13.md",
+        "https://code.claude.com/docs/en/whats-new/2026-w14.md",
+        "https://code.claude.com/docs/en/whats-new/2026-w15.md",
+        "https://code.claude.com/docs/en/whats-new/2026-w16.md",
+        "https://code.claude.com/docs/en/whats-new/2026-w17.md",
+        "https://code.claude.com/docs/en/whats-new/2026-w18.md",
+        "https://code.claude.com/docs/en/whats-new/2026-w19.md",
+        "https://code.claude.com/docs/en/whats-new/2026-w20.md",
+        "https://code.claude.com/docs/en/whats-new/2026-w21.md",
+        "https://code.claude.com/docs/en/whats-new/2026-w22.md",
+        "https://code.claude.com/docs/en/whats-new/2026-w23.md",
+        "https://code.claude.com/docs/en/whats-new/2026-w24.md",
+        "https://code.claude.com/docs/en/whats-new/2026-w25.md",
+        "https://code.claude.com/docs/en/whats-new/2026-w26.md",
+        "https://code.claude.com/docs/en/whats-new/2026-w27.md",
+        "https://code.claude.com/docs/en/whats-new/2026-w28.md",
+        "https://code.claude.com/docs/en/whats-new/2026-w29.md",
+        "https://code.claude.com/docs/en/whats-new/2026-w30.md",
+        "https://code.claude.com/docs/en/whats-new/2026-w32.md",
+        "https://code.claude.com/docs/en/whats-new/2026-w33.md",
+        "https://code.claude.com/docs/en/whats-new/2026-w34.md",
+        "https://code.claude.com/docs/en/whats-new/2026-w35.md",
+        "https://code.claude.com/docs/en/whats-new/2026-w36.md",
+        "https://code.claude.com/docs/en/whats-new/2026-w37.md",
+        "https://code.claude.com/docs/en/whats-new/index.md",
+        "https://code.claude.com/docs/en/workflows.md",
+        "https://code.claude.com/docs/en/worktrees.md",
+        "https://code.claude.com/docs/en/zero-data-retention.md"
+      ],
+      "https://code.claude.com/docs/sitemap.xml": [
+        "https://code.claude.com/docs/en/accessibility",
+        "https://code.claude.com/docs/en/admin-setup",
+        "https://code.claude.com/docs/en/advisor",
+        "https://code.claude.com/docs/en/agent-sdk/agent-loop",
+        "https://code.claude.com/docs/en/agent-sdk/claude-code-features",
+        "https://code.claude.com/docs/en/agent-sdk/configuration",
+        "https://code.claude.com/docs/en/agent-sdk/cost-tracking",
+        "https://code.claude.com/docs/en/agent-sdk/custom-tools",
+        "https://code.claude.com/docs/en/agent-sdk/examples",
+        "https://code.claude.com/docs/en/agent-sdk/file-checkpointing",
+        "https://code.claude.com/docs/en/agent-sdk/hooks",
+        "https://code.claude.com/docs/en/agent-sdk/hosting",
+        "https://code.claude.com/docs/en/agent-sdk/mcp",
+        "https://code.claude.com/docs/en/agent-sdk/migration-guide",
+        "https://code.claude.com/docs/en/agent-sdk/modifying-system-prompts",
+        "https://code.claude.com/docs/en/agent-sdk/observability",
+        "https://code.claude.com/docs/en/agent-sdk/overview",
+        "https://code.claude.com/docs/en/agent-sdk/permissions",
+        "https://code.claude.com/docs/en/agent-sdk/plugins",
+        "https://code.claude.com/docs/en/agent-sdk/python",
+        "https://code.claude.com/docs/en/agent-sdk/quickstart",
+        "https://code.claude.com/docs/en/agent-sdk/secure-deployment",
+        "https://code.claude.com/docs/en/agent-sdk/session-storage",
+        "https://code.claude.com/docs/en/agent-sdk/sessions",
+        "https://code.claude.com/docs/en/agent-sdk/skills",
+        "https://code.claude.com/docs/en/agent-sdk/streaming-output",
+        "https://code.claude.com/docs/en/agent-sdk/streaming-vs-single-mode",
+        "https://code.claude.com/docs/en/agent-sdk/structured-outputs",
+        "https://code.claude.com/docs/en/agent-sdk/subagents",
+        "https://code.claude.com/docs/en/agent-sdk/todo-tracking",
+        "https://code.claude.com/docs/en/agent-sdk/tool-search",
+        "https://code.claude.com/docs/en/agent-sdk/troubleshooting",
+        "https://code.claude.com/docs/en/agent-sdk/typescript",
+        "https://code.claude.com/docs/en/agent-sdk/typescript-v2-preview",
+        "https://code.claude.com/docs/en/agent-sdk/user-input",
+        "https://code.claude.com/docs/en/agent-teams",
+        "https://code.claude.com/docs/en/agent-view",
+        "https://code.claude.com/docs/en/agents",
+        "https://code.claude.com/docs/en/amazon-bedrock",
+        "https://code.claude.com/docs/en/analytics",
+        "https://code.claude.com/docs/en/artifacts",
+        "https://code.claude.com/docs/en/authentication",
+        "https://code.claude.com/docs/en/auto-mode-config",
+        "https://code.claude.com/docs/en/best-practices",
+        "https://code.claude.com/docs/en/champion-kit",
+        "https://code.claude.com/docs/en/changelog",
+        "https://code.claude.com/docs/en/channels",
+        "https://code.claude.com/docs/en/channels-reference",
+        "https://code.claude.com/docs/en/checkpointing",
+        "https://code.claude.com/docs/en/chrome",
+        "https://code.claude.com/docs/en/claude-apps-gateway",
+        "https://code.claude.com/docs/en/claude-apps-gateway-config",
+        "https://code.claude.com/docs/en/claude-apps-gateway-deploy",
+        "https://code.claude.com/docs/en/claude-apps-gateway-on-aws",
+        "https://code.claude.com/docs/en/claude-apps-gateway-on-gcp",
+        "https://code.claude.com/docs/en/claude-apps-gateway-spend-limits",
+        "https://code.claude.com/docs/en/claude-code-on-the-web",
+        "https://code.claude.com/docs/en/claude-directory",
+        "https://code.claude.com/docs/en/claude-platform-on-aws",
+        "https://code.claude.com/docs/en/claude-projects",
+        "https://code.claude.com/docs/en/claude-security",
+        "https://code.claude.com/docs/en/cli-reference",
+        "https://code.claude.com/docs/en/cloud-environments",
+        "https://code.claude.com/docs/en/code-review",
+        "https://code.claude.com/docs/en/commands",
+        "https://code.claude.com/docs/en/common-workflows",
+        "https://code.claude.com/docs/en/communications-kit",
+        "https://code.claude.com/docs/en/computer-use",
+        "https://code.claude.com/docs/en/context-window",
+        "https://code.claude.com/docs/en/corporate-launcher",
+        "https://code.claude.com/docs/en/costs",
+        "https://code.claude.com/docs/en/cross-session-messaging",
+        "https://code.claude.com/docs/en/data-usage",
+        "https://code.claude.com/docs/en/debug-your-config",
+        "https://code.claude.com/docs/en/deep-links",
+        "https://code.claude.com/docs/en/desktop",
+        "https://code.claude.com/docs/en/desktop-ios-simulator",
+        "https://code.claude.com/docs/en/desktop-linux",
+        "https://code.claude.com/docs/en/desktop-quickstart",
+        "https://code.claude.com/docs/en/desktop-scheduled-tasks",
+        "https://code.claude.com/docs/en/desktop-wsl",
+        "https://code.claude.com/docs/en/devcontainer",
+        "https://code.claude.com/docs/en/env-vars",
+        "https://code.claude.com/docs/en/errors",
+        "https://code.claude.com/docs/en/fast-mode",
+        "https://code.claude.com/docs/en/feature-availability",
+        "https://code.claude.com/docs/en/features-overview",
+        "https://code.claude.com/docs/en/fullscreen",
+        "https://code.claude.com/docs/en/gateways",
+        "https://code.claude.com/docs/en/github-actions",
+        "https://code.claude.com/docs/en/github-actions-cloud-providers",
+        "https://code.claude.com/docs/en/github-enterprise-server",
+        "https://code.claude.com/docs/en/gitlab-ci-cd",
+        "https://code.claude.com/docs/en/glossary",
+        "https://code.claude.com/docs/en/goal",
+        "https://code.claude.com/docs/en/google-vertex-ai",
+        "https://code.claude.com/docs/en/headless",
+        "https://code.claude.com/docs/en/hooks",
+        "https://code.claude.com/docs/en/hooks-guide",
+        "https://code.claude.com/docs/en/how-claude-code-works",
+        "https://code.claude.com/docs/en/interactive-mode",
+        "https://code.claude.com/docs/en/jetbrains",
+        "https://code.claude.com/docs/en/keybindings",
+        "https://code.claude.com/docs/en/large-codebases",
+        "https://code.claude.com/docs/en/legal-and-compliance",
+        "https://code.claude.com/docs/en/llm-gateway",
+        "https://code.claude.com/docs/en/llm-gateway-connect",
+        "https://code.claude.com/docs/en/llm-gateway-protocol",
+        "https://code.claude.com/docs/en/llm-gateway-rollout",
+        "https://code.claude.com/docs/en/managed-mcp",
+        "https://code.claude.com/docs/en/managed-settings",
+        "https://code.claude.com/docs/en/mcp",
+        "https://code.claude.com/docs/en/mcp-quickstart",
+        "https://code.claude.com/docs/en/memory",
+        "https://code.claude.com/docs/en/microsoft-foundry",
+        "https://code.claude.com/docs/en/mobile",
+        "https://code.claude.com/docs/en/model-config",
+        "https://code.claude.com/docs/en/monitoring-usage",
+        "https://code.claude.com/docs/en/network-config",
+        "https://code.claude.com/docs/en/output-styles",
+        "https://code.claude.com/docs/en/overview",
+        "https://code.claude.com/docs/en/permission-modes",
+        "https://code.claude.com/docs/en/permissions",
+        "https://code.claude.com/docs/en/platforms",
+        "https://code.claude.com/docs/en/plugin-evals",
+        "https://code.claude.com/docs/en/plugins/anthropic-marketplaces",
+        "https://code.claude.com/docs/en/plugins/cli-hints",
+        "https://code.claude.com/docs/en/plugins/cli-reference",
+        "https://code.claude.com/docs/en/plugins/code-intelligence",
+        "https://code.claude.com/docs/en/plugins/components",
+        "https://code.claude.com/docs/en/plugins/create",
+        "https://code.claude.com/docs/en/plugins/create-marketplace",
+        "https://code.claude.com/docs/en/plugins/dependencies",
+        "https://code.claude.com/docs/en/plugins/host-marketplace",
+        "https://code.claude.com/docs/en/plugins/install",
+        "https://code.claude.com/docs/en/plugins/loading",
+        "https://code.claude.com/docs/en/plugins/manifest-reference",
+        "https://code.claude.com/docs/en/plugins/marketplace-reference",
+        "https://code.claude.com/docs/en/plugins/measure",
+        "https://code.claude.com/docs/en/plugins/mods/admin",
+        "https://code.claude.com/docs/en/plugins/mods/api",
+        "https://code.claude.com/docs/en/plugins/mods/create",
+        "https://code.claude.com/docs/en/plugins/mods/events",
+        "https://code.claude.com/docs/en/plugins/mods/gallery",
+        "https://code.claude.com/docs/en/plugins/mods/interface",
+        "https://code.claude.com/docs/en/plugins/mods/overview",
+        "https://code.claude.com/docs/en/plugins/mods/reference",
+        "https://code.claude.com/docs/en/plugins/mods/test",
+        "https://code.claude.com/docs/en/plugins/mods/troubleshoot",
+        "https://code.claude.com/docs/en/plugins/org",
+        "https://code.claude.com/docs/en/plugins/overview",
+        "https://code.claude.com/docs/en/plugins/publish",
+        "https://code.claude.com/docs/en/plugins/relevance",
+        "https://code.claude.com/docs/en/plugins/security",
+        "https://code.claude.com/docs/en/plugins/troubleshooting",
+        "https://code.claude.com/docs/en/prompt-caching",
+        "https://code.claude.com/docs/en/prompt-library",
+        "https://code.claude.com/docs/en/quickstart",
+        "https://code.claude.com/docs/en/remote-control",
+        "https://code.claude.com/docs/en/routines",
+        "https://code.claude.com/docs/en/sandbox-environments",
+        "https://code.claude.com/docs/en/sandboxing",
+        "https://code.claude.com/docs/en/scheduled-tasks",
+        "https://code.claude.com/docs/en/security",
+        "https://code.claude.com/docs/en/security-guidance",
+        "https://code.claude.com/docs/en/self-hosted-environments",
+        "https://code.claude.com/docs/en/self-hosted-environments-configuration",
+        "https://code.claude.com/docs/en/self-hosted-environments-deploy",
+        "https://code.claude.com/docs/en/self-hosted-environments-identity",
+        "https://code.claude.com/docs/en/self-hosted-environments-quickstart",
+        "https://code.claude.com/docs/en/self-hosted-environments-reference",
+        "https://code.claude.com/docs/en/self-hosted-environments-testing",
+        "https://code.claude.com/docs/en/server-managed-settings",
+        "https://code.claude.com/docs/en/sessions",
+        "https://code.claude.com/docs/en/settings",
+        "https://code.claude.com/docs/en/settings-example",
+        "https://code.claude.com/docs/en/settings-reference",
+        "https://code.claude.com/docs/en/setup",
+        "https://code.claude.com/docs/en/skills",
+        "https://code.claude.com/docs/en/slack",
+        "https://code.claude.com/docs/en/statusline",
+        "https://code.claude.com/docs/en/sub-agents",
+        "https://code.claude.com/docs/en/terminal-config",
+        "https://code.claude.com/docs/en/third-party-integrations",
+        "https://code.claude.com/docs/en/tools-reference",
+        "https://code.claude.com/docs/en/troubleshoot-install",
+        "https://code.claude.com/docs/en/troubleshooting",
+        "https://code.claude.com/docs/en/ultrareview",
+        "https://code.claude.com/docs/en/voice-dictation",
+        "https://code.claude.com/docs/en/vs-code",
+        "https://code.claude.com/docs/en/web-quickstart",
+        "https://code.claude.com/docs/en/whats-new",
+        "https://code.claude.com/docs/en/whats-new/2026-w13",
+        "https://code.claude.com/docs/en/whats-new/2026-w14",
+        "https://code.claude.com/docs/en/whats-new/2026-w15",
+        "https://code.claude.com/docs/en/whats-new/2026-w16",
+        "https://code.claude.com/docs/en/whats-new/2026-w17",
+        "https://code.claude.com/docs/en/whats-new/2026-w18",
+        "https://code.claude.com/docs/en/whats-new/2026-w19",
+        "https://code.claude.com/docs/en/whats-new/2026-w20",
+        "https://code.claude.com/docs/en/whats-new/2026-w21",
+        "https://code.claude.com/docs/en/whats-new/2026-w22",
+        "https://code.claude.com/docs/en/whats-new/2026-w23",
+        "https://code.claude.com/docs/en/whats-new/2026-w24",
+        "https://code.claude.com/docs/en/whats-new/2026-w25",
+        "https://code.claude.com/docs/en/whats-new/2026-w26",
+        "https://code.claude.com/docs/en/whats-new/2026-w27",
+        "https://code.claude.com/docs/en/whats-new/2026-w28",
+        "https://code.claude.com/docs/en/whats-new/2026-w29",
+        "https://code.claude.com/docs/en/whats-new/2026-w30",
+        "https://code.claude.com/docs/en/whats-new/2026-w32",
+        "https://code.claude.com/docs/en/whats-new/2026-w33",
+        "https://code.claude.com/docs/en/whats-new/2026-w34",
+        "https://code.claude.com/docs/en/whats-new/2026-w35",
+        "https://code.claude.com/docs/en/whats-new/2026-w36",
+        "https://code.claude.com/docs/en/whats-new/2026-w37",
+        "https://code.claude.com/docs/en/workflows",
+        "https://code.claude.com/docs/en/worktrees",
+        "https://code.claude.com/docs/en/zero-data-retention"
+      ],
+      "https://code.claude.com/sitemap.xml": [
+        "https://code.claude.com/docs/en/accessibility",
+        "https://code.claude.com/docs/en/admin-setup",
+        "https://code.claude.com/docs/en/advisor",
+        "https://code.claude.com/docs/en/agent-sdk/agent-loop",
+        "https://code.claude.com/docs/en/agent-sdk/claude-code-features",
+        "https://code.claude.com/docs/en/agent-sdk/configuration",
+        "https://code.claude.com/docs/en/agent-sdk/cost-tracking",
+        "https://code.claude.com/docs/en/agent-sdk/custom-tools",
+        "https://code.claude.com/docs/en/agent-sdk/examples",
+        "https://code.claude.com/docs/en/agent-sdk/file-checkpointing",
+        "https://code.claude.com/docs/en/agent-sdk/hooks",
+        "https://code.claude.com/docs/en/agent-sdk/hosting",
+        "https://code.claude.com/docs/en/agent-sdk/mcp",
+        "https://code.claude.com/docs/en/agent-sdk/migration-guide",
+        "https://code.claude.com/docs/en/agent-sdk/modifying-system-prompts",
+        "https://code.claude.com/docs/en/agent-sdk/observability",
+        "https://code.claude.com/docs/en/agent-sdk/overview",
+        "https://code.claude.com/docs/en/agent-sdk/permissions",
+        "https://code.claude.com/docs/en/agent-sdk/plugins",
+        "https://code.claude.com/docs/en/agent-sdk/python",
+        "https://code.claude.com/docs/en/agent-sdk/quickstart",
+        "https://code.claude.com/docs/en/agent-sdk/secure-deployment",
+        "https://code.claude.com/docs/en/agent-sdk/session-storage",
+        "https://code.claude.com/docs/en/agent-sdk/sessions",
+        "https://code.claude.com/docs/en/agent-sdk/skills",
+        "https://code.claude.com/docs/en/agent-sdk/streaming-output",
+        "https://code.claude.com/docs/en/agent-sdk/streaming-vs-single-mode",
+        "https://code.claude.com/docs/en/agent-sdk/structured-outputs",
+        "https://code.claude.com/docs/en/agent-sdk/subagents",
+        "https://code.claude.com/docs/en/agent-sdk/todo-tracking",
+        "https://code.claude.com/docs/en/agent-sdk/tool-search",
+        "https://code.claude.com/docs/en/agent-sdk/troubleshooting",
+        "https://code.claude.com/docs/en/agent-sdk/typescript",
+        "https://code.claude.com/docs/en/agent-sdk/typescript-v2-preview",
+        "https://code.claude.com/docs/en/agent-sdk/user-input",
+        "https://code.claude.com/docs/en/agent-teams",
+        "https://code.claude.com/docs/en/agent-view",
+        "https://code.claude.com/docs/en/agents",
+        "https://code.claude.com/docs/en/amazon-bedrock",
+        "https://code.claude.com/docs/en/analytics",
+        "https://code.claude.com/docs/en/artifacts",
+        "https://code.claude.com/docs/en/authentication",
+        "https://code.claude.com/docs/en/auto-mode-config",
+        "https://code.claude.com/docs/en/best-practices",
+        "https://code.claude.com/docs/en/champion-kit",
+        "https://code.claude.com/docs/en/changelog",
+        "https://code.claude.com/docs/en/channels",
+        "https://code.claude.com/docs/en/channels-reference",
+        "https://code.claude.com/docs/en/checkpointing",
+        "https://code.claude.com/docs/en/chrome",
+        "https://code.claude.com/docs/en/claude-apps-gateway",
+        "https://code.claude.com/docs/en/claude-apps-gateway-config",
+        "https://code.claude.com/docs/en/claude-apps-gateway-deploy",
+        "https://code.claude.com/docs/en/claude-apps-gateway-on-aws",
+        "https://code.claude.com/docs/en/claude-apps-gateway-on-gcp",
+        "https://code.claude.com/docs/en/claude-apps-gateway-spend-limits",
+        "https://code.claude.com/docs/en/claude-code-on-the-web",
+        "https://code.claude.com/docs/en/claude-directory",
+        "https://code.claude.com/docs/en/claude-platform-on-aws",
+        "https://code.claude.com/docs/en/claude-projects",
+        "https://code.claude.com/docs/en/claude-security",
+        "https://code.claude.com/docs/en/cli-reference",
+        "https://code.claude.com/docs/en/cloud-environments",
+        "https://code.claude.com/docs/en/code-review",
+        "https://code.claude.com/docs/en/commands",
+        "https://code.claude.com/docs/en/common-workflows",
+        "https://code.claude.com/docs/en/communications-kit",
+        "https://code.claude.com/docs/en/computer-use",
+        "https://code.claude.com/docs/en/context-window",
+        "https://code.claude.com/docs/en/corporate-launcher",
+        "https://code.claude.com/docs/en/costs",
+        "https://code.claude.com/docs/en/cross-session-messaging",
+        "https://code.claude.com/docs/en/data-usage",
+        "https://code.claude.com/docs/en/debug-your-config",
+        "https://code.claude.com/docs/en/deep-links",
+        "https://code.claude.com/docs/en/desktop",
+        "https://code.claude.com/docs/en/desktop-ios-simulator",
+        "https://code.claude.com/docs/en/desktop-linux",
+        "https://code.claude.com/docs/en/desktop-quickstart",
+        "https://code.claude.com/docs/en/desktop-scheduled-tasks",
+        "https://code.claude.com/docs/en/desktop-wsl",
+        "https://code.claude.com/docs/en/devcontainer",
+        "https://code.claude.com/docs/en/env-vars",
+        "https://code.claude.com/docs/en/errors",
+        "https://code.claude.com/docs/en/fast-mode",
+        "https://code.claude.com/docs/en/feature-availability",
+        "https://code.claude.com/docs/en/features-overview",
+        "https://code.claude.com/docs/en/fullscreen",
+        "https://code.claude.com/docs/en/gateways",
+        "https://code.claude.com/docs/en/github-actions",
+        "https://code.claude.com/docs/en/github-actions-cloud-providers",
+        "https://code.claude.com/docs/en/github-enterprise-server",
+        "https://code.claude.com/docs/en/gitlab-ci-cd",
+        "https://code.claude.com/docs/en/glossary",
+        "https://code.claude.com/docs/en/goal",
+        "https://code.claude.com/docs/en/google-vertex-ai",
+        "https://code.claude.com/docs/en/headless",
+        "https://code.claude.com/docs/en/hooks",
+        "https://code.claude.com/docs/en/hooks-guide",
+        "https://code.claude.com/docs/en/how-claude-code-works",
+        "https://code.claude.com/docs/en/interactive-mode",
+        "https://code.claude.com/docs/en/jetbrains",
+        "https://code.claude.com/docs/en/keybindings",
+        "https://code.claude.com/docs/en/large-codebases",
+        "https://code.claude.com/docs/en/legal-and-compliance",
+        "https://code.claude.com/docs/en/llm-gateway",
+        "https://code.claude.com/docs/en/llm-gateway-connect",
+        "https://code.claude.com/docs/en/llm-gateway-protocol",
+        "https://code.claude.com/docs/en/llm-gateway-rollout",
+        "https://code.claude.com/docs/en/managed-mcp",
+        "https://code.claude.com/docs/en/managed-settings",
+        "https://code.claude.com/docs/en/mcp",
+        "https://code.claude.com/docs/en/mcp-quickstart",
+        "https://code.claude.com/docs/en/memory",
+        "https://code.claude.com/docs/en/microsoft-foundry",
+        "https://code.claude.com/docs/en/mobile",
+        "https://code.claude.com/docs/en/model-config",
+        "https://code.claude.com/docs/en/monitoring-usage",
+        "https://code.claude.com/docs/en/network-config",
+        "https://code.claude.com/docs/en/output-styles",
+        "https://code.claude.com/docs/en/overview",
+        "https://code.claude.com/docs/en/permission-modes",
+        "https://code.claude.com/docs/en/permissions",
+        "https://code.claude.com/docs/en/platforms",
+        "https://code.claude.com/docs/en/plugin-evals",
+        "https://code.claude.com/docs/en/plugins/anthropic-marketplaces",
+        "https://code.claude.com/docs/en/plugins/cli-hints",
+        "https://code.claude.com/docs/en/plugins/cli-reference",
+        "https://code.claude.com/docs/en/plugins/code-intelligence",
+        "https://code.claude.com/docs/en/plugins/components",
+        "https://code.claude.com/docs/en/plugins/create",
+        "https://code.claude.com/docs/en/plugins/create-marketplace",
+        "https://code.claude.com/docs/en/plugins/dependencies",
+        "https://code.claude.com/docs/en/plugins/host-marketplace",
+        "https://code.claude.com/docs/en/plugins/install",
+        "https://code.claude.com/docs/en/plugins/loading",
+        "https://code.claude.com/docs/en/plugins/manifest-reference",
+        "https://code.claude.com/docs/en/plugins/marketplace-reference",
+        "https://code.claude.com/docs/en/plugins/measure",
+        "https://code.claude.com/docs/en/plugins/mods/admin",
+        "https://code.claude.com/docs/en/plugins/mods/api",
+        "https://code.claude.com/docs/en/plugins/mods/create",
+        "https://code.claude.com/docs/en/plugins/mods/events",
+        "https://code.claude.com/docs/en/plugins/mods/gallery",
+        "https://code.claude.com/docs/en/plugins/mods/interface",
+        "https://code.claude.com/docs/en/plugins/mods/overview",
+        "https://code.claude.com/docs/en/plugins/mods/reference",
+        "https://code.claude.com/docs/en/plugins/mods/test",
+        "https://code.claude.com/docs/en/plugins/mods/troubleshoot",
+        "https://code.claude.com/docs/en/plugins/org",
+        "https://code.claude.com/docs/en/plugins/overview",
+        "https://code.claude.com/docs/en/plugins/publish",
+        "https://code.claude.com/docs/en/plugins/relevance",
+        "https://code.claude.com/docs/en/plugins/security",
+        "https://code.claude.com/docs/en/plugins/troubleshooting",
+        "https://code.claude.com/docs/en/prompt-caching",
+        "https://code.claude.com/docs/en/prompt-library",
+        "https://code.claude.com/docs/en/quickstart",
+        "https://code.claude.com/docs/en/remote-control",
+        "https://code.claude.com/docs/en/routines",
+        "https://code.claude.com/docs/en/sandbox-environments",
+        "https://code.claude.com/docs/en/sandboxing",
+        "https://code.claude.com/docs/en/scheduled-tasks",
+        "https://code.claude.com/docs/en/security",
+        "https://code.claude.com/docs/en/security-guidance",
+        "https://code.claude.com/docs/en/self-hosted-environments",
+        "https://code.claude.com/docs/en/self-hosted-environments-configuration",
+        "https://code.claude.com/docs/en/self-hosted-environments-deploy",
+        "https://code.claude.com/docs/en/self-hosted-environments-identity",
+        "https://code.claude.com/docs/en/self-hosted-environments-quickstart",
+        "https://code.claude.com/docs/en/self-hosted-environments-reference",
+        "https://code.claude.com/docs/en/self-hosted-environments-testing",
+        "https://code.claude.com/docs/en/server-managed-settings",
+        "https://code.claude.com/docs/en/sessions",
+        "https://code.claude.com/docs/en/settings",
+        "https://code.claude.com/docs/en/settings-example",
+        "https://code.claude.com/docs/en/settings-reference",
+        "https://code.claude.com/docs/en/setup",
+        "https://code.claude.com/docs/en/skills",
+        "https://code.claude.com/docs/en/slack",
+        "https://code.claude.com/docs/en/statusline",
+        "https://code.claude.com/docs/en/sub-agents",
+        "https://code.claude.com/docs/en/terminal-config",
+        "https://code.claude.com/docs/en/third-party-integrations",
+        "https://code.claude.com/docs/en/tools-reference",
+        "https://code.claude.com/docs/en/troubleshoot-install",
+        "https://code.claude.com/docs/en/troubleshooting",
+        "https://code.claude.com/docs/en/ultrareview",
+        "https://code.claude.com/docs/en/voice-dictation",
+        "https://code.claude.com/docs/en/vs-code",
+        "https://code.claude.com/docs/en/web-quickstart",
+        "https://code.claude.com/docs/en/whats-new",
+        "https://code.claude.com/docs/en/whats-new/2026-w13",
+        "https://code.claude.com/docs/en/whats-new/2026-w14",
+        "https://code.claude.com/docs/en/whats-new/2026-w15",
+        "https://code.claude.com/docs/en/whats-new/2026-w16",
+        "https://code.claude.com/docs/en/whats-new/2026-w17",
+        "https://code.claude.com/docs/en/whats-new/2026-w18",
+        "https://code.claude.com/docs/en/whats-new/2026-w19",
+        "https://code.claude.com/docs/en/whats-new/2026-w20",
+        "https://code.claude.com/docs/en/whats-new/2026-w21",
+        "https://code.claude.com/docs/en/whats-new/2026-w22",
+        "https://code.claude.com/docs/en/whats-new/2026-w23",
+        "https://code.claude.com/docs/en/whats-new/2026-w24",
+        "https://code.claude.com/docs/en/whats-new/2026-w25",
+        "https://code.claude.com/docs/en/whats-new/2026-w26",
+        "https://code.claude.com/docs/en/whats-new/2026-w27",
+        "https://code.claude.com/docs/en/whats-new/2026-w28",
+        "https://code.claude.com/docs/en/whats-new/2026-w29",
+        "https://code.claude.com/docs/en/whats-new/2026-w30",
+        "https://code.claude.com/docs/en/whats-new/2026-w32",
+        "https://code.claude.com/docs/en/whats-new/2026-w33",
+        "https://code.claude.com/docs/en/whats-new/2026-w34",
+        "https://code.claude.com/docs/en/whats-new/2026-w35",
+        "https://code.claude.com/docs/en/whats-new/2026-w36",
+        "https://code.claude.com/docs/en/whats-new/2026-w37",
+        "https://code.claude.com/docs/en/workflows",
+        "https://code.claude.com/docs/en/worktrees",
+        "https://code.claude.com/docs/en/zero-data-retention"
+      ]
+    },
+    "copilot-cli": {
+      "https://docs.github.com/api/pagelist/en/free-pro-team@latest": [
+        "https://docs.github.com/en/copilot/concepts/agents",
+        "https://docs.github.com/en/copilot/concepts/agents/about-agent-skills",
+        "https://docs.github.com/en/copilot/concepts/agents/about-github-agentic-workflows",
+        "https://docs.github.com/en/copilot/concepts/agents/about-plugins",
+        "https://docs.github.com/en/copilot/concepts/agents/about-third-party-coding-agents",
+        "https://docs.github.com/en/copilot/concepts/agents/agent-apps",
+        "https://docs.github.com/en/copilot/concepts/agents/anthropic-claude",
+        "https://docs.github.com/en/copilot/concepts/agents/cloud-agent",
+        "https://docs.github.com/en/copilot/concepts/agents/cloud-agent/about-automation-rationale-and-approvals",
+        "https://docs.github.com/en/copilot/concepts/agents/cloud-agent/about-automations",
+        "https://docs.github.com/en/copilot/concepts/agents/cloud-agent/about-cloud-agent",
+        "https://docs.github.com/en/copilot/concepts/agents/cloud-agent/about-custom-agents",
+        "https://docs.github.com/en/copilot/concepts/agents/cloud-agent/agent-management",
+        "https://docs.github.com/en/copilot/concepts/agents/cloud-agent/mcp-and-cloud-agent",
+        "https://docs.github.com/en/copilot/concepts/agents/code-review",
+        "https://docs.github.com/en/copilot/concepts/agents/computer-use",
+        "https://docs.github.com/en/copilot/concepts/agents/copilot-cli",
+        "https://docs.github.com/en/copilot/concepts/agents/copilot-cli/about-cli-extensions",
+        "https://docs.github.com/en/copilot/concepts/agents/copilot-cli/about-copilot-cli",
+        "https://docs.github.com/en/copilot/concepts/agents/copilot-cli/about-custom-agents",
+        "https://docs.github.com/en/copilot/concepts/agents/copilot-cli/about-remote-control",
+        "https://docs.github.com/en/copilot/concepts/agents/copilot-cli/autopilot",
+        "https://docs.github.com/en/copilot/concepts/agents/copilot-cli/cancel-and-roll-back",
+        "https://docs.github.com/en/copilot/concepts/agents/copilot-cli/comparing-cli-features",
+        "https://docs.github.com/en/copilot/concepts/agents/copilot-cli/context-management",
+        "https://docs.github.com/en/copilot/concepts/agents/copilot-cli/copilot-cli-in-github-actions",
+        "https://docs.github.com/en/copilot/concepts/agents/copilot-cli/fleet",
+        "https://docs.github.com/en/copilot/concepts/agents/copilot-cli/lsp-servers",
+        "https://docs.github.com/en/copilot/concepts/agents/copilot-cli/research",
+        "https://docs.github.com/en/copilot/concepts/agents/copilot-cli/rubber-duck",
+        "https://docs.github.com/en/copilot/concepts/agents/copilot-cli/tool-search",
+        "https://docs.github.com/en/copilot/concepts/agents/copilot-cli/understanding-local-sandboxing",
+        "https://docs.github.com/en/copilot/concepts/agents/copilot-in-jetbrains",
+        "https://docs.github.com/en/copilot/concepts/agents/copilot-memory",
+        "https://docs.github.com/en/copilot/concepts/agents/dynamic-workflows",
+        "https://docs.github.com/en/copilot/concepts/agents/github-copilot-app",
+        "https://docs.github.com/en/copilot/concepts/agents/hooks",
+        "https://docs.github.com/en/copilot/concepts/agents/openai-codex",
+        "https://docs.github.com/en/copilot/concepts/billing-and-usage",
+        "https://docs.github.com/en/copilot/concepts/billing-and-usage/copilot-usage-metrics",
+        "https://docs.github.com/en/copilot/concepts/billing-and-usage/copilot-usage-metrics/copilot-metrics",
+        "https://docs.github.com/en/copilot/concepts/billing-and-usage/individuals",
+        "https://docs.github.com/en/copilot/concepts/billing-and-usage/individuals/billing",
+        "https://docs.github.com/en/copilot/concepts/billing-and-usage/individuals/usage-limits",
+        "https://docs.github.com/en/copilot/concepts/billing-and-usage/organizations-and-enterprises",
+        "https://docs.github.com/en/copilot/concepts/billing-and-usage/organizations-and-enterprises/billing",
+        "https://docs.github.com/en/copilot/concepts/billing-and-usage/organizations-and-enterprises/budgets",
+        "https://docs.github.com/en/copilot/concepts/billing-and-usage/organizations-and-enterprises/seats-and-billing-cycles",
+        "https://docs.github.com/en/copilot/concepts/context",
+        "https://docs.github.com/en/copilot/concepts/context/mcp",
+        "https://docs.github.com/en/copilot/concepts/context/repository-indexing",
+        "https://docs.github.com/en/copilot/concepts/context/spaces",
+        "https://docs.github.com/en/copilot/concepts/models",
+        "https://docs.github.com/en/copilot/concepts/models/auto-model-selection",
+        "https://docs.github.com/en/copilot/concepts/models/bring-your-own-key",
+        "https://docs.github.com/en/copilot/concepts/models/fallback-and-lts-models",
+        "https://docs.github.com/en/copilot/concepts/models/overview",
+        "https://docs.github.com/en/copilot/concepts/models/utility-models",
+        "https://docs.github.com/en/copilot/concepts/prompting",
+        "https://docs.github.com/en/copilot/concepts/prompting/prompt-engineering",
+        "https://docs.github.com/en/copilot/concepts/prompting/response-customization",
+        "https://docs.github.com/en/copilot/concepts/security-governance-and-network-settings",
+        "https://docs.github.com/en/copilot/concepts/security-governance-and-network-settings/about-cloud-and-local-sandboxes",
+        "https://docs.github.com/en/copilot/concepts/security-governance-and-network-settings/content-exclusion",
+        "https://docs.github.com/en/copilot/concepts/security-governance-and-network-settings/network-settings",
+        "https://docs.github.com/en/copilot/concepts/security-governance-and-network-settings/risks-and-mitigations",
+        "https://docs.github.com/en/copilot/concepts/security-governance-and-network-settings/session-data",
+        "https://docs.github.com/en/copilot/concepts/tools",
+        "https://docs.github.com/en/copilot/concepts/tools/about-copilot-integrations",
+        "https://docs.github.com/en/copilot/concepts/tools/ai-tools",
+        "https://docs.github.com/en/copilot/get-started/cli-quickstart",
+        "https://docs.github.com/en/copilot/how-tos/cloud-and-local-sandboxes",
+        "https://docs.github.com/en/copilot/how-tos/cloud-and-local-sandboxes/configuring-local-sandbox-settings",
+        "https://docs.github.com/en/copilot/how-tos/cloud-and-local-sandboxes/enabling-or-disabling-cloud-sandboxes-for-your-organization",
+        "https://docs.github.com/en/copilot/how-tos/cloud-and-local-sandboxes/using-local-sandboxing",
+        "https://docs.github.com/en/copilot/how-tos/configure-content-exclusion",
+        "https://docs.github.com/en/copilot/how-tos/configure-content-exclusion/exclude-content-from-copilot",
+        "https://docs.github.com/en/copilot/how-tos/configure-content-exclusion/review-changes",
+        "https://docs.github.com/en/copilot/how-tos/copilot-cli",
+        "https://docs.github.com/en/copilot/how-tos/copilot-cli/administer-copilot-cli-for-your-enterprise",
+        "https://docs.github.com/en/copilot/how-tos/copilot-cli/automate-copilot-cli",
+        "https://docs.github.com/en/copilot/how-tos/copilot-cli/automate-copilot-cli/automate-with-actions",
+        "https://docs.github.com/en/copilot/how-tos/copilot-cli/automate-copilot-cli/quickstart",
+        "https://docs.github.com/en/copilot/how-tos/copilot-cli/automate-copilot-cli/run-cli-programmatically",
+        "https://docs.github.com/en/copilot/how-tos/copilot-cli/automate-copilot-cli/schedule-prompts",
+        "https://docs.github.com/en/copilot/how-tos/copilot-cli/cli-best-practices",
+        "https://docs.github.com/en/copilot/how-tos/copilot-cli/customize-copilot",
+        "https://docs.github.com/en/copilot/how-tos/copilot-cli/customize-copilot/add-custom-instructions",
+        "https://docs.github.com/en/copilot/how-tos/copilot-cli/customize-copilot/add-mcp-servers",
+        "https://docs.github.com/en/copilot/how-tos/copilot-cli/customize-copilot/add-skills",
+        "https://docs.github.com/en/copilot/how-tos/copilot-cli/customize-copilot/change-settings",
+        "https://docs.github.com/en/copilot/how-tos/copilot-cli/customize-copilot/create-custom-agents-for-cli",
+        "https://docs.github.com/en/copilot/how-tos/copilot-cli/customize-copilot/overview",
+        "https://docs.github.com/en/copilot/how-tos/copilot-cli/customize-copilot/plugins-creating",
+        "https://docs.github.com/en/copilot/how-tos/copilot-cli/customize-copilot/plugins-finding-installing",
+        "https://docs.github.com/en/copilot/how-tos/copilot-cli/customize-copilot/plugins-marketplace",
+        "https://docs.github.com/en/copilot/how-tos/copilot-cli/customize-copilot/use-byok-models",
+        "https://docs.github.com/en/copilot/how-tos/copilot-cli/customize-copilot/use-hooks",
+        "https://docs.github.com/en/copilot/how-tos/copilot-cli/set-up-copilot-cli",
+        "https://docs.github.com/en/copilot/how-tos/copilot-cli/set-up-copilot-cli/add-lsp-servers",
+        "https://docs.github.com/en/copilot/how-tos/copilot-cli/set-up-copilot-cli/authenticate-copilot-cli",
+        "https://docs.github.com/en/copilot/how-tos/copilot-cli/set-up-copilot-cli/configure-copilot-cli",
+        "https://docs.github.com/en/copilot/how-tos/copilot-cli/set-up-copilot-cli/install-copilot-cli",
+        "https://docs.github.com/en/copilot/how-tos/copilot-cli/set-up-copilot-cli/troubleshoot-copilot-cli-auth",
+        "https://docs.github.com/en/copilot/how-tos/copilot-cli/use-copilot-cli",
+        "https://docs.github.com/en/copilot/how-tos/copilot-cli/use-copilot-cli-in-actions",
+        "https://docs.github.com/en/copilot/how-tos/copilot-cli/use-copilot-cli/agentic-code-review",
+        "https://docs.github.com/en/copilot/how-tos/copilot-cli/use-copilot-cli/allowing-tools",
+        "https://docs.github.com/en/copilot/how-tos/copilot-cli/use-copilot-cli/ask-a-side-question",
+        "https://docs.github.com/en/copilot/how-tos/copilot-cli/use-copilot-cli/browse-issues-prs-gists",
+        "https://docs.github.com/en/copilot/how-tos/copilot-cli/use-copilot-cli/chronicle",
+        "https://docs.github.com/en/copilot/how-tos/copilot-cli/use-copilot-cli/computer-use",
+        "https://docs.github.com/en/copilot/how-tos/copilot-cli/use-copilot-cli/connecting-vs-code",
+        "https://docs.github.com/en/copilot/how-tos/copilot-cli/use-copilot-cli/delegate-tasks-to-cca",
+        "https://docs.github.com/en/copilot/how-tos/copilot-cli/use-copilot-cli/invoke-custom-agents",
+        "https://docs.github.com/en/copilot/how-tos/copilot-cli/use-copilot-cli/manage-pull-requests",
+        "https://docs.github.com/en/copilot/how-tos/copilot-cli/use-copilot-cli/overview",
+        "https://docs.github.com/en/copilot/how-tos/copilot-cli/use-copilot-cli/roll-back-changes",
+        "https://docs.github.com/en/copilot/how-tos/copilot-cli/use-copilot-cli/set-session-limit",
+        "https://docs.github.com/en/copilot/how-tos/copilot-cli/use-copilot-cli/speed-up-task-completion",
+        "https://docs.github.com/en/copilot/how-tos/copilot-cli/use-copilot-cli/steer-agents",
+        "https://docs.github.com/en/copilot/how-tos/copilot-cli/use-copilot-cli/steer-remotely",
+        "https://docs.github.com/en/copilot/how-tos/copilot-cli/use-copilot-cli/voice-input",
+        "https://docs.github.com/en/copilot/how-tos/copilot-cli/use-copilot-cli/work-with-multiple-sessions",
+        "https://docs.github.com/en/copilot/how-tos/use-copilot-agents",
+        "https://docs.github.com/en/copilot/how-tos/use-copilot-agents/cloud-agent",
+        "https://docs.github.com/en/copilot/how-tos/use-copilot-agents/cloud-agent/changing-the-ai-model",
+        "https://docs.github.com/en/copilot/how-tos/use-copilot-agents/cloud-agent/configuring-agent-settings",
+        "https://docs.github.com/en/copilot/how-tos/use-copilot-agents/cloud-agent/create-automations",
+        "https://docs.github.com/en/copilot/how-tos/use-copilot-agents/cloud-agent/manage-rationale-confidence-approvals",
+        "https://docs.github.com/en/copilot/how-tos/use-copilot-agents/cloud-agent/start-copilot-sessions",
+        "https://docs.github.com/en/copilot/how-tos/use-copilot-agents/cloud-agent/troubleshoot-cloud-agent",
+        "https://docs.github.com/en/copilot/how-tos/use-copilot-agents/cloud-agent/use-agent-apps",
+        "https://docs.github.com/en/copilot/how-tos/use-copilot-agents/cloud-agent/use-cloud-agent-from-cli",
+        "https://docs.github.com/en/copilot/how-tos/use-copilot-agents/cloud-agent/use-cloud-agent-from-raycast",
+        "https://docs.github.com/en/copilot/how-tos/use-copilot-agents/cloud-agent/use-cloud-agent-on-github",
+        "https://docs.github.com/en/copilot/how-tos/use-copilot-agents/cloud-agent/use-cloud-agent-on-mobile",
+        "https://docs.github.com/en/copilot/how-tos/use-copilot-agents/cloud-agent/use-cloud-agent-via-the-api",
+        "https://docs.github.com/en/copilot/how-tos/use-copilot-agents/cloud-agent/use-cloud-agent-with-mcp",
+        "https://docs.github.com/en/copilot/how-tos/use-copilot-agents/copilot-memory",
+        "https://docs.github.com/en/copilot/how-tos/use-copilot-agents/copilot-memory/manage-as-administrator",
+        "https://docs.github.com/en/copilot/how-tos/use-copilot-agents/copilot-memory/manage-for-yourself",
+        "https://docs.github.com/en/copilot/how-tos/use-copilot-agents/use-code-review",
+        "https://docs.github.com/en/copilot/how-tos/use-copilot-agents/use-dynamic-workflows",
+        "https://docs.github.com/en/copilot/reference/ai-models",
+        "https://docs.github.com/en/copilot/reference/ai-models/model-comparison",
+        "https://docs.github.com/en/copilot/reference/ai-models/model-hosting",
+        "https://docs.github.com/en/copilot/reference/ai-models/supported-models",
+        "https://docs.github.com/en/copilot/reference/copilot-cli-reference",
+        "https://docs.github.com/en/copilot/reference/copilot-cli-reference/acp-server",
+        "https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-command-reference",
+        "https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference",
+        "https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-plugin-reference",
+        "https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-programmatic-reference",
+        "https://docs.github.com/en/copilot/tutorials/copilot-cli-hooks"
+      ],
+      "https://docs.github.com/llms.txt": [
+        "https://docs.github.com/en/copilot/concepts/agents/cloud-agent/about-cloud-agent",
+        "https://docs.github.com/en/copilot/concepts/models/auto-model-selection",
+        "https://docs.github.com/en/copilot/how-tos/copilot-cli/set-up-copilot-cli/install-copilot-cli",
+        "https://docs.github.com/en/copilot/how-tos/copilot-cli/use-copilot-cli/overview",
+        "https://docs.github.com/en/copilot/how-tos/use-copilot-agents/cloud-agent/create-custom-agents-in-your-ide",
+        "https://docs.github.com/en/copilot/how-tos/use-copilot-agents/request-a-code-review/use-code-review",
+        "https://docs.github.com/en/copilot/reference/ai-models/supported-models"
+      ]
+    },
+    "copilot-vscode": {
+      "https://code.visualstudio.com/llms.txt": [
+        "https://code.visualstudio.com/api/extension-guides/ai/ai-extensibility-overview.md",
+        "https://code.visualstudio.com/api/extension-guides/ai/chat-tutorial.md",
+        "https://code.visualstudio.com/api/extension-guides/ai/chat.md",
+        "https://code.visualstudio.com/api/extension-guides/ai/language-model-chat-provider.md",
+        "https://code.visualstudio.com/api/extension-guides/ai/language-model-tutorial.md",
+        "https://code.visualstudio.com/api/extension-guides/ai/language-model.md",
+        "https://code.visualstudio.com/api/extension-guides/ai/mcp.md",
+        "https://code.visualstudio.com/api/extension-guides/ai/prompt-tsx.md",
+        "https://code.visualstudio.com/api/extension-guides/ai/tools.md",
+        "https://code.visualstudio.com/docs/agent-customization/agent-plugins.md",
+        "https://code.visualstudio.com/docs/agent-customization/agent-skills.md",
+        "https://code.visualstudio.com/docs/agent-customization/custom-agents.md",
+        "https://code.visualstudio.com/docs/agent-customization/custom-instructions.md",
+        "https://code.visualstudio.com/docs/agent-customization/hooks.md",
+        "https://code.visualstudio.com/docs/agent-customization/language-models.md",
+        "https://code.visualstudio.com/docs/agent-customization/mcp-servers.md",
+        "https://code.visualstudio.com/docs/agent-customization/overview.md",
+        "https://code.visualstudio.com/docs/agent-customization/prompt-files.md",
+        "https://code.visualstudio.com/docs/agents/agent-troubleshooting/cache-explorer.md",
+        "https://code.visualstudio.com/docs/agents/agent-troubleshooting/chat-debug-view.md",
+        "https://code.visualstudio.com/docs/agents/agent-troubleshooting/faq.md",
+        "https://code.visualstudio.com/docs/agents/agent-troubleshooting/troubleshooting.md",
+        "https://code.visualstudio.com/docs/agents/agents-tutorial.md",
+        "https://code.visualstudio.com/docs/agents/best-practices.md",
+        "https://code.visualstudio.com/docs/agents/concepts/agent-harnesses.md",
+        "https://code.visualstudio.com/docs/agents/concepts/agent-host.md",
+        "https://code.visualstudio.com/docs/agents/concepts/agents.md",
+        "https://code.visualstudio.com/docs/agents/concepts/context.md",
+        "https://code.visualstudio.com/docs/agents/concepts/customization.md",
+        "https://code.visualstudio.com/docs/agents/concepts/language-models.md",
+        "https://code.visualstudio.com/docs/agents/concepts/sessions.md",
+        "https://code.visualstudio.com/docs/agents/concepts/tools.md",
+        "https://code.visualstudio.com/docs/agents/concepts/trust-and-safety.md",
+        "https://code.visualstudio.com/docs/agents/guides/add-a-feature.md",
+        "https://code.visualstudio.com/docs/agents/guides/browser-agent-testing-guide.md",
+        "https://code.visualstudio.com/docs/agents/guides/context-engineering-guide.md",
+        "https://code.visualstudio.com/docs/agents/guides/customize-copilot-guide.md",
+        "https://code.visualstudio.com/docs/agents/guides/delegate-two-tasks.md",
+        "https://code.visualstudio.com/docs/agents/guides/explore-a-codebase.md",
+        "https://code.visualstudio.com/docs/agents/guides/fix-a-bug-with-agents.md",
+        "https://code.visualstudio.com/docs/agents/guides/get-agent-back-on-track.md",
+        "https://code.visualstudio.com/docs/agents/guides/monitoring-agents.md",
+        "https://code.visualstudio.com/docs/agents/guides/notebooks-with-ai.md",
+        "https://code.visualstudio.com/docs/agents/guides/optimize-usage.md",
+        "https://code.visualstudio.com/docs/agents/guides/overview.md",
+        "https://code.visualstudio.com/docs/agents/guides/prompt-examples.md",
+        "https://code.visualstudio.com/docs/agents/guides/refactor-safely.md",
+        "https://code.visualstudio.com/docs/agents/guides/test-code-with-ai.md",
+        "https://code.visualstudio.com/docs/agents/guides/test-driven-development-guide.md",
+        "https://code.visualstudio.com/docs/agents/overview.md",
+        "https://code.visualstudio.com/docs/agents/quickstart.md",
+        "https://code.visualstudio.com/docs/agents/reference/ai-features-cheat-sheet.md",
+        "https://code.visualstudio.com/docs/agents/reference/ai-settings.md",
+        "https://code.visualstudio.com/docs/agents/reference/chat-pet.md",
+        "https://code.visualstudio.com/docs/agents/reference/hooks-reference.md",
+        "https://code.visualstudio.com/docs/agents/reference/mcp-configuration.md",
+        "https://code.visualstudio.com/docs/agents/reference/tools-reference.md",
+        "https://code.visualstudio.com/docs/agents/reference/workspace-context.md",
+        "https://code.visualstudio.com/docs/agents/run/agent-harnesses.md",
+        "https://code.visualstudio.com/docs/agents/run/agents-window-configuration.md",
+        "https://code.visualstudio.com/docs/agents/run/agents-window.md",
+        "https://code.visualstudio.com/docs/agents/run/chat-view.md",
+        "https://code.visualstudio.com/docs/chat/chat-overview.md",
+        "https://code.visualstudio.com/docs/chat/copilot-chat-context.md",
+        "https://code.visualstudio.com/docs/chat/inline-chat.md",
+        "https://code.visualstudio.com/docs/editing/copilot-smart-actions.md",
+        "https://code.visualstudio.com/docs/enterprise/manage-ai-settings.md",
+        "https://code.visualstudio.com/docs/enterprise/policies.md",
+        "https://code.visualstudio.com/docs/intelligentapps/copilot-tools.md",
+        "https://code.visualstudio.com/docs/setup/copilot.md"
+      ],
+      "https://code.visualstudio.com/sitemap.xml": [
+        "https://code.visualstudio.com/api/extension-guides/ai/ai-extensibility-overview",
+        "https://code.visualstudio.com/api/extension-guides/ai/chat",
+        "https://code.visualstudio.com/api/extension-guides/ai/chat-tutorial",
+        "https://code.visualstudio.com/api/extension-guides/ai/language-model",
+        "https://code.visualstudio.com/api/extension-guides/ai/language-model-chat-provider",
+        "https://code.visualstudio.com/api/extension-guides/ai/language-model-tutorial",
+        "https://code.visualstudio.com/api/extension-guides/ai/mcp",
+        "https://code.visualstudio.com/api/extension-guides/ai/prompt-tsx",
+        "https://code.visualstudio.com/api/extension-guides/ai/tools",
+        "https://code.visualstudio.com/docs/agent-customization/agent-plugins",
+        "https://code.visualstudio.com/docs/agent-customization/agent-skills",
+        "https://code.visualstudio.com/docs/agent-customization/custom-agents",
+        "https://code.visualstudio.com/docs/agent-customization/custom-instructions",
+        "https://code.visualstudio.com/docs/agent-customization/hooks",
+        "https://code.visualstudio.com/docs/agent-customization/language-models",
+        "https://code.visualstudio.com/docs/agent-customization/mcp-servers",
+        "https://code.visualstudio.com/docs/agent-customization/overview",
+        "https://code.visualstudio.com/docs/agent-customization/prompt-files",
+        "https://code.visualstudio.com/docs/agent-customization/tool-sets",
+        "https://code.visualstudio.com/docs/agents/agent-troubleshooting/cache-explorer",
+        "https://code.visualstudio.com/docs/agents/agent-troubleshooting/chat-debug-view",
+        "https://code.visualstudio.com/docs/agents/agent-troubleshooting/faq",
+        "https://code.visualstudio.com/docs/agents/agent-troubleshooting/troubleshooting",
+        "https://code.visualstudio.com/docs/agents/agents-tutorial",
+        "https://code.visualstudio.com/docs/agents/best-practices",
+        "https://code.visualstudio.com/docs/agents/concepts/agent-harnesses",
+        "https://code.visualstudio.com/docs/agents/concepts/agent-host",
+        "https://code.visualstudio.com/docs/agents/concepts/agents",
+        "https://code.visualstudio.com/docs/agents/concepts/context",
+        "https://code.visualstudio.com/docs/agents/concepts/customization",
+        "https://code.visualstudio.com/docs/agents/concepts/language-models",
+        "https://code.visualstudio.com/docs/agents/concepts/sessions",
+        "https://code.visualstudio.com/docs/agents/concepts/tools",
+        "https://code.visualstudio.com/docs/agents/concepts/trust-and-safety",
+        "https://code.visualstudio.com/docs/agents/guides/add-a-feature",
+        "https://code.visualstudio.com/docs/agents/guides/browser-agent-testing-guide",
+        "https://code.visualstudio.com/docs/agents/guides/context-engineering-guide",
+        "https://code.visualstudio.com/docs/agents/guides/customize-copilot-guide",
+        "https://code.visualstudio.com/docs/agents/guides/delegate-two-tasks",
+        "https://code.visualstudio.com/docs/agents/guides/explore-a-codebase",
+        "https://code.visualstudio.com/docs/agents/guides/fix-a-bug-with-agents",
+        "https://code.visualstudio.com/docs/agents/guides/get-agent-back-on-track",
+        "https://code.visualstudio.com/docs/agents/guides/monitoring-agents",
+        "https://code.visualstudio.com/docs/agents/guides/notebooks-with-ai",
+        "https://code.visualstudio.com/docs/agents/guides/optimize-usage",
+        "https://code.visualstudio.com/docs/agents/guides/overview",
+        "https://code.visualstudio.com/docs/agents/guides/prompt-engineering-guide",
+        "https://code.visualstudio.com/docs/agents/guides/prompt-examples",
+        "https://code.visualstudio.com/docs/agents/guides/refactor-safely",
+        "https://code.visualstudio.com/docs/agents/guides/test-code-with-ai",
+        "https://code.visualstudio.com/docs/agents/guides/test-driven-development-guide",
+        "https://code.visualstudio.com/docs/agents/overview",
+        "https://code.visualstudio.com/docs/agents/quickstart",
+        "https://code.visualstudio.com/docs/agents/reference/ai-features-cheat-sheet",
+        "https://code.visualstudio.com/docs/agents/reference/ai-settings",
+        "https://code.visualstudio.com/docs/agents/reference/chat-pet",
+        "https://code.visualstudio.com/docs/agents/reference/hooks-reference",
+        "https://code.visualstudio.com/docs/agents/reference/mcp-configuration",
+        "https://code.visualstudio.com/docs/agents/reference/tools-reference",
+        "https://code.visualstudio.com/docs/agents/reference/workspace-context",
+        "https://code.visualstudio.com/docs/agents/run/agent-harnesses",
+        "https://code.visualstudio.com/docs/agents/run/agent-sandboxing",
+        "https://code.visualstudio.com/docs/agents/run/agents-window",
+        "https://code.visualstudio.com/docs/agents/run/agents-window-configuration",
+        "https://code.visualstudio.com/docs/agents/run/approvals",
+        "https://code.visualstudio.com/docs/agents/run/artifacts",
+        "https://code.visualstudio.com/docs/agents/run/automations",
+        "https://code.visualstudio.com/docs/agents/run/browser-tools",
+        "https://code.visualstudio.com/docs/agents/run/chat-view",
+        "https://code.visualstudio.com/docs/agents/run/memory",
+        "https://code.visualstudio.com/docs/agents/run/planning",
+        "https://code.visualstudio.com/docs/agents/run/remote-agent-sessions",
+        "https://code.visualstudio.com/docs/agents/run/review-code-edits",
+        "https://code.visualstudio.com/docs/agents/run/security",
+        "https://code.visualstudio.com/docs/agents/run/sessions/manage-sessions",
+        "https://code.visualstudio.com/docs/agents/run/sessions/session-history",
+        "https://code.visualstudio.com/docs/agents/run/subagents",
+        "https://code.visualstudio.com/docs/agents/run/tools",
+        "https://code.visualstudio.com/docs/chat/chat-overview",
+        "https://code.visualstudio.com/docs/chat/copilot-chat-context",
+        "https://code.visualstudio.com/docs/chat/inline-chat",
+        "https://code.visualstudio.com/docs/editing/copilot-smart-actions",
+        "https://code.visualstudio.com/docs/enterprise/manage-ai-settings",
+        "https://code.visualstudio.com/docs/enterprise/policies",
+        "https://code.visualstudio.com/docs/intelligentapps/copilot-tools",
+        "https://code.visualstudio.com/docs/setup/copilot",
+        "https://code.visualstudio.com/learn/customizations/1-why-customization-matter",
+        "https://code.visualstudio.com/learn/customizations/2-instructions",
+        "https://code.visualstudio.com/learn/customizations/3-skills",
+        "https://code.visualstudio.com/learn/customizations/4-custom-agent",
+        "https://code.visualstudio.com/learn/customizations/5-hooks",
+        "https://code.visualstudio.com/learn/customizations/6-prompt-files",
+        "https://code.visualstudio.com/learn/customizations/7-customization-features-explained",
+        "https://code.visualstudio.com/learn/customizations/8-demo",
+        "https://code.visualstudio.com/learn/foundations/agent-sessions-and-where-agents-run",
+        "https://code.visualstudio.com/learn/foundations/approvals-autonomy-and-context-budget",
+        "https://code.visualstudio.com/learn/foundations/build-your-first-app-with-agent-mode",
+        "https://code.visualstudio.com/learn/foundations/debugging-and-whats-happening-behind-the-scenes",
+        "https://code.visualstudio.com/learn/foundations/introduction-to-agent-first-development",
+        "https://code.visualstudio.com/learn/foundations/reviewing-and-controlling-agent-changes"
+      ]
+    },
+    "cursor": {
+      "https://cursor.com/llms.txt": [
+        "https://cursor.com/docs.md",
+        "https://cursor.com/docs/account/enterprise/cyber-safeguards.md",
+        "https://cursor.com/docs/agent/agent-review.md",
+        "https://cursor.com/docs/agent/agents-window.md",
+        "https://cursor.com/docs/agent/debug-mode.md",
+        "https://cursor.com/docs/agent/design-mode.md",
+        "https://cursor.com/docs/agent/overview.md",
+        "https://cursor.com/docs/agent/plan-mode.md",
+        "https://cursor.com/docs/agent/projects.md",
+        "https://cursor.com/docs/agent/prompting.md",
+        "https://cursor.com/docs/agent/security.md",
+        "https://cursor.com/docs/agent/security/run-modes.md",
+        "https://cursor.com/docs/agent/tools/browser.md",
+        "https://cursor.com/docs/agent/tools/canvas.md",
+        "https://cursor.com/docs/agent/tools/search.md",
+        "https://cursor.com/docs/agent/tools/terminal.md",
+        "https://cursor.com/docs/approval-agents.md",
+        "https://cursor.com/docs/bugbot.md",
+        "https://cursor.com/docs/cli/acp.md",
+        "https://cursor.com/docs/cli/changelog.md",
+        "https://cursor.com/docs/cli/github-actions.md",
+        "https://cursor.com/docs/cli/headless.md",
+        "https://cursor.com/docs/cli/installation.md",
+        "https://cursor.com/docs/cli/overview.md",
+        "https://cursor.com/docs/cli/reference/authentication.md",
+        "https://cursor.com/docs/cli/reference/configuration.md",
+        "https://cursor.com/docs/cli/reference/output-format.md",
+        "https://cursor.com/docs/cli/reference/parameters.md",
+        "https://cursor.com/docs/cli/reference/permissions.md",
+        "https://cursor.com/docs/cli/reference/slash-commands.md",
+        "https://cursor.com/docs/cli/reference/terminal-setup.md",
+        "https://cursor.com/docs/cli/shell-mode.md",
+        "https://cursor.com/docs/cli/using.md",
+        "https://cursor.com/docs/cloud-agent.md",
+        "https://cursor.com/docs/cloud-agent/api/endpoints.md",
+        "https://cursor.com/docs/cloud-agent/api/webhooks.md",
+        "https://cursor.com/docs/cloud-agent/automations.md",
+        "https://cursor.com/docs/cloud-agent/best-practices.md",
+        "https://cursor.com/docs/cloud-agent/builds.md",
+        "https://cursor.com/docs/cloud-agent/capabilities.md",
+        "https://cursor.com/docs/cloud-agent/identity.md",
+        "https://cursor.com/docs/cloud-agent/metadata.md",
+        "https://cursor.com/docs/cloud-agent/mobile.md",
+        "https://cursor.com/docs/cloud-agent/private-connectivity.md",
+        "https://cursor.com/docs/cloud-agent/security-network.md",
+        "https://cursor.com/docs/cloud-agent/security.md",
+        "https://cursor.com/docs/cloud-agent/self-hosted.md",
+        "https://cursor.com/docs/cloud-agent/self-hosted/choose-runtime.md",
+        "https://cursor.com/docs/cloud-agent/self-hosted/computer-use.md",
+        "https://cursor.com/docs/cloud-agent/self-hosted/integrations.md",
+        "https://cursor.com/docs/cloud-agent/self-hosted/my-machines.md",
+        "https://cursor.com/docs/cloud-agent/self-hosted/pool.md",
+        "https://cursor.com/docs/cloud-agent/settings.md",
+        "https://cursor.com/docs/cloud-agent/setup.md",
+        "https://cursor.com/docs/configuration/worktrees.md",
+        "https://cursor.com/docs/cursor-router.md",
+        "https://cursor.com/docs/customize-cursor.md",
+        "https://cursor.com/docs/enterprise.md",
+        "https://cursor.com/docs/enterprise/compliance-and-monitoring.md",
+        "https://cursor.com/docs/enterprise/deployment-patterns.md",
+        "https://cursor.com/docs/enterprise/endpoint-security.md",
+        "https://cursor.com/docs/enterprise/llm-safety-and-controls.md",
+        "https://cursor.com/docs/enterprise/model-and-integration-management.md",
+        "https://cursor.com/docs/enterprise/network-configuration.md",
+        "https://cursor.com/docs/enterprise/opentelemetry-export.md",
+        "https://cursor.com/docs/enterprise/opentelemetry-export/wire.md",
+        "https://cursor.com/docs/enterprise/pooled-usage.md",
+        "https://cursor.com/docs/enterprise/privacy-and-data-governance.md",
+        "https://cursor.com/docs/enterprise/security-hardening.md",
+        "https://cursor.com/docs/get-started/quickstart.md",
+        "https://cursor.com/docs/hooks.md",
+        "https://cursor.com/docs/integrations/azure-devops.md",
+        "https://cursor.com/docs/integrations/bitbucket.md",
+        "https://cursor.com/docs/integrations/cursor-blame.md",
+        "https://cursor.com/docs/integrations/github.md",
+        "https://cursor.com/docs/integrations/gitlab.md",
+        "https://cursor.com/docs/integrations/jetbrains.md",
+        "https://cursor.com/docs/integrations/jira.md",
+        "https://cursor.com/docs/integrations/linear.md",
+        "https://cursor.com/docs/integrations/microsoft-teams.md",
+        "https://cursor.com/docs/integrations/notion.md",
+        "https://cursor.com/docs/integrations/slack.md",
+        "https://cursor.com/docs/integrations/xcode.md",
+        "https://cursor.com/docs/mcp.md",
+        "https://cursor.com/docs/models-and-pricing.md",
+        "https://cursor.com/docs/models/claude-fable-5-1.md",
+        "https://cursor.com/docs/models/claude-opus-5-5.md",
+        "https://cursor.com/docs/models/claude-sonnet-5-5.md",
+        "https://cursor.com/docs/models/cursor-composer-2-5.md",
+        "https://cursor.com/docs/models/gemini-3-1-pro.md",
+        "https://cursor.com/docs/models/gemini-3-8-flash.md",
+        "https://cursor.com/docs/models/gpt-5-6-luna.md",
+        "https://cursor.com/docs/models/gpt-5-6-sol.md",
+        "https://cursor.com/docs/models/gpt-5-6-terra.md",
+        "https://cursor.com/docs/models/grok-4-5.md",
+        "https://cursor.com/docs/models/grok-4-6.md",
+        "https://cursor.com/docs/models/grok-4-7.md",
+        "https://cursor.com/docs/models/muse-spark-1-3.md",
+        "https://cursor.com/docs/plugins.md",
+        "https://cursor.com/docs/reference/deeplinks.md",
+        "https://cursor.com/docs/rollouts.md",
+        "https://cursor.com/docs/rules.md",
+        "https://cursor.com/docs/sdk/bridge.md",
+        "https://cursor.com/docs/sdk/changelog.md",
+        "https://cursor.com/docs/sdk/python.md",
+        "https://cursor.com/docs/sdk/typescript.md",
+        "https://cursor.com/docs/security-agents.md",
+        "https://cursor.com/docs/skills.md",
+        "https://cursor.com/docs/subagents.md",
+        "https://cursor.com/help/ai-features/agent.md",
+        "https://cursor.com/help/ai-features/agentic-coding.md",
+        "https://cursor.com/help/ai-features/ai-pair-programming.md",
+        "https://cursor.com/help/ai-features/ask-mode.md",
+        "https://cursor.com/help/ai-features/automations.md",
+        "https://cursor.com/help/ai-features/background-agents.md",
+        "https://cursor.com/help/ai-features/browser.md",
+        "https://cursor.com/help/ai-features/bugbot.md",
+        "https://cursor.com/help/ai-features/cloud-agents.md",
+        "https://cursor.com/help/ai-features/coding-agents.md",
+        "https://cursor.com/help/ai-features/conversation-search.md",
+        "https://cursor.com/help/ai-features/debug-mode.md",
+        "https://cursor.com/help/ai-features/inline-edit.md",
+        "https://cursor.com/help/ai-features/max-mode.md",
+        "https://cursor.com/help/ai-features/mobile-app.md",
+        "https://cursor.com/help/ai-features/multi-agent.md",
+        "https://cursor.com/help/ai-features/plan-mode.md",
+        "https://cursor.com/help/ai-features/self-hosted-machines.md",
+        "https://cursor.com/help/ai-features/shared-transcripts.md",
+        "https://cursor.com/help/ai-features/side-chats.md",
+        "https://cursor.com/help/ai-features/tab.md",
+        "https://cursor.com/help/ai-features/terminal.md",
+        "https://cursor.com/help/ai-features/vibe-coding.md",
+        "https://cursor.com/help/customization/context.md",
+        "https://cursor.com/help/customization/extensions.md",
+        "https://cursor.com/help/customization/ignore-files.md",
+        "https://cursor.com/help/customization/keyboard-shortcuts.md",
+        "https://cursor.com/help/customization/mcp.md",
+        "https://cursor.com/help/customization/plugins.md",
+        "https://cursor.com/help/customization/rules.md",
+        "https://cursor.com/help/customization/skills.md",
+        "https://cursor.com/help/customization/themes.md",
+        "https://cursor.com/help/getting-started/build-ai-coding-agent.md",
+        "https://cursor.com/help/getting-started/first-project.md",
+        "https://cursor.com/help/getting-started/install.md",
+        "https://cursor.com/help/getting-started/migrate-jetbrains.md",
+        "https://cursor.com/help/getting-started/migrate-vscode.md",
+        "https://cursor.com/help/integrations/cli.md",
+        "https://cursor.com/help/integrations/git.md",
+        "https://cursor.com/help/integrations/github-gitlab.md",
+        "https://cursor.com/help/integrations/third-party.md",
+        "https://cursor.com/help/models-and-usage/api-keys.md",
+        "https://cursor.com/help/models-and-usage/available-models.md",
+        "https://cursor.com/help/models-and-usage/cursor-router.md",
+        "https://cursor.com/help/models-and-usage/grok-4-5.md",
+        "https://cursor.com/help/models-and-usage/grok-4-6.md",
+        "https://cursor.com/help/models-and-usage/grok-4-7.md",
+        "https://cursor.com/help/models-and-usage/token-rate.md",
+        "https://cursor.com/help/models-and-usage/usage-limits.md",
+        "https://cursor.com/help/security-and-privacy/account-compromised.md",
+        "https://cursor.com/help/security-and-privacy/compliance.md",
+        "https://cursor.com/help/security-and-privacy/marketplace-security.md",
+        "https://cursor.com/help/security-and-privacy/privacy.md",
+        "https://cursor.com/help/security-and-privacy/regions.md",
+        "https://cursor.com/help/security-and-privacy/sso.md",
+        "https://cursor.com/help/troubleshooting/agent-issues.md",
+        "https://cursor.com/help/troubleshooting/extensions.md",
+        "https://cursor.com/help/troubleshooting/install-issues.md",
+        "https://cursor.com/help/troubleshooting/network.md",
+        "https://cursor.com/help/troubleshooting/performance.md",
+        "https://cursor.com/help/troubleshooting/reporting-bugs.md",
+        "https://cursor.com/help/troubleshooting/sign-in-domains.md",
+        "https://cursor.com/help/troubleshooting/tab-issues.md"
+      ]
+    },
+    "grok-bot": {
+      "https://cursor.com/llms.txt": [
+        "https://cursor.com/docs/grok-bot.md",
+        "https://cursor.com/docs/grok-bot/computers.md",
+        "https://cursor.com/docs/grok-bot/deployment.md",
+        "https://cursor.com/docs/grok-bot/get-started.md",
+        "https://cursor.com/docs/grok-bot/identity.md",
+        "https://cursor.com/docs/grok-bot/private-networks.md",
+        "https://cursor.com/docs/grok-bot/proxies.md",
+        "https://cursor.com/docs/grok-bot/security-faq.md",
+        "https://cursor.com/docs/grok-bot/security.md",
+        "https://cursor.com/docs/grok-bot/settings.md",
+        "https://cursor.com/docs/grok-bot/teams.md",
+        "https://cursor.com/docs/grok-bot/use-cases.md",
+        "https://cursor.com/docs/grok-bot/work.md",
+        "https://cursor.com/help/grok-bot/computer-recovery.md",
+        "https://cursor.com/help/grok-bot/connect-plugins.md",
+        "https://cursor.com/help/grok-bot/delete-account.md",
+        "https://cursor.com/help/grok-bot/edit-bot.md",
+        "https://cursor.com/help/grok-bot/faqs.md",
+        "https://cursor.com/help/grok-bot/get-help.md",
+        "https://cursor.com/help/grok-bot/group-chats.md",
+        "https://cursor.com/help/grok-bot/how-to.md",
+        "https://cursor.com/help/grok-bot/mobile-purchase.md",
+        "https://cursor.com/help/grok-bot/mobile.md",
+        "https://cursor.com/help/grok-bot/onboarding.md",
+        "https://cursor.com/help/grok-bot/plans.md",
+        "https://cursor.com/help/grok-bot/routines.md",
+        "https://cursor.com/help/grok-bot/secrets.md",
+        "https://cursor.com/help/grok-bot/sign-in.md",
+        "https://cursor.com/help/grok-bot/supergrok.md",
+        "https://cursor.com/help/grok-bot/team-bots.md",
+        "https://cursor.com/help/grok-bot/voice-chat.md"
+      ],
+      "https://docs.x.ai/llms.txt": [
+        "https://docs.x.ai/grok-bot/approvals-security-and-privacy.md",
+        "https://docs.x.ai/grok-bot/bots.md",
+        "https://docs.x.ai/grok-bot/chat-and-collaboration.md",
+        "https://docs.x.ai/grok-bot/computer-and-apps.md",
+        "https://docs.x.ai/grok-bot/computers.md",
+        "https://docs.x.ai/grok-bot/faq.md",
+        "https://docs.x.ai/grok-bot/files-and-results.md",
+        "https://docs.x.ai/grok-bot/get-started.md",
+        "https://docs.x.ai/grok-bot/identity-and-access.md",
+        "https://docs.x.ai/grok-bot/mobile.md",
+        "https://docs.x.ai/grok-bot/overview.md",
+        "https://docs.x.ai/grok-bot/private-networks.md",
+        "https://docs.x.ai/grok-bot/proxies.md",
+        "https://docs.x.ai/grok-bot/security-faq.md",
+        "https://docs.x.ai/grok-bot/security.md",
+        "https://docs.x.ai/grok-bot/settings-and-notifications.md",
+        "https://docs.x.ai/grok-bot/skills-routines-and-automations.md",
+        "https://docs.x.ai/grok-bot/team-bots.md",
+        "https://docs.x.ai/grok-bot/teams-and-enterprises.md",
+        "https://docs.x.ai/grok-bot/troubleshooting.md",
+        "https://docs.x.ai/grok-bot/use-cases.md"
+      ]
+    },
+    "grok-build": {
+      "https://docs.x.ai/llms.txt": [
+        "https://docs.x.ai/build/cli/headless-scripting.md",
+        "https://docs.x.ai/build/cli/reference.md",
+        "https://docs.x.ai/build/cli/terminal-support.md",
+        "https://docs.x.ai/build/enterprise.md",
+        "https://docs.x.ai/build/features/background-tasks.md",
+        "https://docs.x.ai/build/features/dashboard.md",
+        "https://docs.x.ai/build/features/hooks.md",
+        "https://docs.x.ai/build/features/mcp-servers.md",
+        "https://docs.x.ai/build/features/permissions.md",
+        "https://docs.x.ai/build/features/plan-mode.md",
+        "https://docs.x.ai/build/features/project-rules.md",
+        "https://docs.x.ai/build/features/sandbox.md",
+        "https://docs.x.ai/build/features/sessions.md",
+        "https://docs.x.ai/build/features/skills-plugins-marketplaces.md",
+        "https://docs.x.ai/build/features/status-line.md",
+        "https://docs.x.ai/build/features/subagents.md",
+        "https://docs.x.ai/build/features/theming.md",
+        "https://docs.x.ai/build/features/worktrees.md",
+        "https://docs.x.ai/build/keyboard-shortcuts.md",
+        "https://docs.x.ai/build/modes-and-commands.md",
+        "https://docs.x.ai/build/overview.md",
+        "https://docs.x.ai/build/settings.md",
+        "https://docs.x.ai/build/settings/reference.md",
+        "https://docs.x.ai/build/settings/zdr-video-storage.md"
+      ],
+      "https://docs.x.ai/sitemap.xml": [
+        "https://docs.x.ai/build/cli/headless-scripting",
+        "https://docs.x.ai/build/cli/reference",
+        "https://docs.x.ai/build/cli/terminal-support",
+        "https://docs.x.ai/build/enterprise",
+        "https://docs.x.ai/build/features/background-tasks",
+        "https://docs.x.ai/build/features/dashboard",
+        "https://docs.x.ai/build/features/hooks",
+        "https://docs.x.ai/build/features/mcp-servers",
+        "https://docs.x.ai/build/features/permissions",
+        "https://docs.x.ai/build/features/plan-mode",
+        "https://docs.x.ai/build/features/project-rules",
+        "https://docs.x.ai/build/features/sandbox",
+        "https://docs.x.ai/build/features/sessions",
+        "https://docs.x.ai/build/features/skills-plugins-marketplaces",
+        "https://docs.x.ai/build/features/status-line",
+        "https://docs.x.ai/build/features/subagents",
+        "https://docs.x.ai/build/features/theming",
+        "https://docs.x.ai/build/features/worktrees",
+        "https://docs.x.ai/build/keyboard-shortcuts",
+        "https://docs.x.ai/build/modes-and-commands",
+        "https://docs.x.ai/build/overview",
+        "https://docs.x.ai/build/settings",
+        "https://docs.x.ai/build/settings/reference",
+        "https://docs.x.ai/build/settings/zdr-video-storage",
+        "https://docs.x.ai/developers/models/speech-to-speech",
+        "https://docs.x.ai/developers/models/speech-to-text",
+        "https://docs.x.ai/developers/models/text-to-speech"
+      ]
+    }
+  },
+  "pages": {
+    "https://code.claude.com/docs/en/accessibility.md": {
+      "sha256": "c0470c74dd15c77803d076d4639f9115b6a0f748c41c00cd0414f903ab7a84f5"
+    },
+    "https://code.claude.com/docs/en/admin-setup.md": {
+      "sha256": "c51cc19955ecb8155d82c68a46d7e26a84e3e078a9b6b210b456099dff289f76"
+    },
+    "https://code.claude.com/docs/en/advisor.md": {
+      "sha256": "886b5d58cbab9ea256589bf4c6a5ec20e08c8bf85901e2ec733c4f27afda578b"
+    },
+    "https://code.claude.com/docs/en/agent-sdk/agent-loop.md": {
+      "sha256": "74dd31bd6cdf75b1decb6487c32f2bafde9288806180361f54a0636124e33ad8"
+    },
+    "https://code.claude.com/docs/en/agent-sdk/claude-code-features.md": {
+      "sha256": "f30eb3fa7adf75f0b1ace14f7b29dc70a3f617b6930c9267f155d4776de5e66e"
+    },
+    "https://code.claude.com/docs/en/agent-sdk/configuration.md": {
+      "sha256": "3825f95dc2ea2e25da2d1a33fac37f5f85bbd0b837871f5015e8b0d233d650b7"
+    },
+    "https://code.claude.com/docs/en/agent-sdk/custom-tools.md": {
+      "sha256": "d8c1058305e301bfb32463fc14889830d6215eff2f2358ae8b9f24374799dda6"
+    },
+    "https://code.claude.com/docs/en/agent-sdk/hooks.md": {
+      "sha256": "374a68d5f25577467ef1a2128d7dbfc02aea941344ccd976dff3c1f61242c090"
+    },
+    "https://code.claude.com/docs/en/agent-sdk/hosting.md": {
+      "sha256": "b4cb853b97732c685c09be29f50a2b0592b68b3cb1f2468c03a26fe05e90e1a2"
+    },
+    "https://code.claude.com/docs/en/agent-sdk/mcp.md": {
+      "sha256": "c4df347567ca1e21199ecc21b61023a30be185570cbb593f1c0065c4f988006a"
+    },
+    "https://code.claude.com/docs/en/agent-sdk/modifying-system-prompts.md": {
+      "sha256": "d0d2e72c78c6e7c6bc058498155c9bd74228e871a9ce052f504d886e26fc18c2"
+    },
+    "https://code.claude.com/docs/en/agent-sdk/observability.md": {
+      "sha256": "1ac3a6038dd6a5ad9007987d48f3a7a6bc2d6b2889ac32fb5956d390a37d7e14"
+    },
+    "https://code.claude.com/docs/en/agent-sdk/permissions.md": {
+      "sha256": "ebe15d4c985593c7fcc34f3906eb1f6fd88e764de9aa912ed30343a71e8273a4"
+    },
+    "https://code.claude.com/docs/en/agent-sdk/python.md": {
+      "sha256": "47c6a87b526520b4b5f9eb8795a09cae4430b33e2fed78a23501137e9a18cf86"
+    },
+    "https://code.claude.com/docs/en/agent-sdk/quickstart.md": {
+      "sha256": "7b9cea573525e3009a8debea5322b9dff19a624e991faab9c8bbda2d34c24946"
+    },
+    "https://code.claude.com/docs/en/agent-sdk/secure-deployment.md": {
+      "sha256": "26003492e8324564878597e35710575c6f081d6c94d7ecb6e71e2e613234034d"
+    },
+    "https://code.claude.com/docs/en/agent-sdk/session-storage.md": {
+      "sha256": "fd6479a4201c9c17854a247654004df60a794dfad33f71d36a26f03188397ead"
+    },
+    "https://code.claude.com/docs/en/agent-sdk/skills.md": {
+      "sha256": "31830ccd58d3dd34be463b0f5ca9b6267b00db1265d8fb6006725045da640751"
+    },
+    "https://code.claude.com/docs/en/agent-sdk/subagents.md": {
+      "sha256": "e4965cef4b484ff4c5b5542b8378fd875721a92d0547ac4ea82e57c7acd53382"
+    },
+    "https://code.claude.com/docs/en/agent-sdk/todo-tracking.md": {
+      "sha256": "62c37c4a0e0c113eb21600c9b532e06be7349b7611996dfe9bc09ca01b83e69f"
+    },
+    "https://code.claude.com/docs/en/agent-sdk/tool-search.md": {
+      "sha256": "15e9328cc1f74edb24a883144f1f296f8ffa62176fb6c8494432ea7399a546f4"
+    },
+    "https://code.claude.com/docs/en/agent-sdk/typescript.md": {
+      "sha256": "d57286dba2d1bb9aefd328fa34145474870efa4817fab8dca69884c1fcb2aa28"
+    },
+    "https://code.claude.com/docs/en/agent-sdk/user-input.md": {
+      "sha256": "bdff732e3af50c0c28252d84dd0a82c2496092ff55032a4271a5ecf9e4740341"
+    },
+    "https://code.claude.com/docs/en/agent-teams.md": {
+      "sha256": "a2ed185b716d2550240752d988bfd1875cb2cad3f803be3a795f14054f3c0549"
+    },
+    "https://code.claude.com/docs/en/agent-view.md": {
+      "sha256": "21576091eec2a5b4dff3d72232f51eac35d0367353dbc3f8d3f8ac5ecb8bc9c7"
+    },
+    "https://code.claude.com/docs/en/agents.md": {
+      "sha256": "08921413654e592a59bb3a2755677cbcd0a9de5625d9359e4df3b99ec14a4bfd"
+    },
+    "https://code.claude.com/docs/en/amazon-bedrock.md": {
+      "sha256": "f70f86302d503ca7eec913f74fd2d78fc005758100bf6539dea40399b0d02982"
+    },
+    "https://code.claude.com/docs/en/auto-mode-classifier-billing.md": {
+      "sha256": "fc6e438676d7665f1a4722571730a5c70e2b1b789b7a16fff705014421211bd0"
+    },
+    "https://code.claude.com/docs/en/auto-mode-config.md": {
+      "sha256": "012057bef3bfdb529a32a26fa9eecc994cf498d6085750537f64ce32eb28792f"
+    },
+    "https://code.claude.com/docs/en/azure-ai-foundry.md": {
+      "sha256": "54dd25d91c98e8ac091f09a1ff68341985ecd750b6c024fff4d54513859b11c1"
+    },
+    "https://code.claude.com/docs/en/best-practices.md": {
+      "sha256": "f4c5d66cbd7e0b5cdbe448a94f93ba3cc143bace79fbeb511170fa417aeda526"
+    },
+    "https://code.claude.com/docs/en/changelog.md": {
+      "sha256": "ee77a9703fee91a243a7baeedef4860124d00b63d58c7b5a13a94499d2ad62ca"
+    },
+    "https://code.claude.com/docs/en/channels-reference.md": {
+      "sha256": "18ec4c3f114c4af7e3cb22206fb5270f95c04908a61f69fe1d02db96baf5d18a"
+    },
+    "https://code.claude.com/docs/en/channels.md": {
+      "sha256": "1c447daf525e8da4787ca53d6064591b2239448b689e2ff965a1c4f77e675524"
+    },
+    "https://code.claude.com/docs/en/checkpointing.md": {
+      "sha256": "03e9826392dcf26e1aa7cee7fc87f92e092ff5f305ba49b890f218fb705dfbfb"
+    },
+    "https://code.claude.com/docs/en/claude-apps-gateway-config.md": {
+      "sha256": "8e8cd8b149da145b85a03607bf3e677545af0686c63e3d1cebbb8dae1986e6fe"
+    },
+    "https://code.claude.com/docs/en/claude-apps-gateway-deploy.md": {
+      "sha256": "823162001fb4943c9355ddf138a5468692a62707167ff66d763963b7fec67de8"
+    },
+    "https://code.claude.com/docs/en/claude-apps-gateway.md": {
+      "sha256": "613fd2a769a23b96d1aa8e0daece5bdf8ed591263fa58a37b043130936b4eff3"
+    },
+    "https://code.claude.com/docs/en/claude-code-on-the-web.md": {
+      "sha256": "da1cf7ade42864686a29eef728a347206a50937333b6c0510f3223ebae9a3057"
+    },
+    "https://code.claude.com/docs/en/claude-directory.md": {
+      "sha256": "ada65719991b700cd65351402efaa7575fd2b00205aae5915afbe41410ccd178"
+    },
+    "https://code.claude.com/docs/en/claude-projects.md": {
+      "sha256": "2ea0917adb28500211236de1bd068f560d2db1ae8fb277ec234816c4705d3409"
+    },
+    "https://code.claude.com/docs/en/claude-security.md": {
+      "sha256": "eae5d41a6b58ae1910979ea89f0fd1f8dcdd3fd7d618faddbb21ee0c39eb57f7"
+    },
+    "https://code.claude.com/docs/en/cli-reference.md": {
+      "sha256": "82f96e4b4b44c634d0c69443c3fcd745c340968879d0758fa4dc1778d5ea1328"
+    },
+    "https://code.claude.com/docs/en/commands.md": {
+      "sha256": "23a73ce7bf2013b42ac8c8f86e07e1f9231f10fe060ae013575123af6d97982d"
+    },
+    "https://code.claude.com/docs/en/common-workflows.md": {
+      "sha256": "1cc840cc29b0e0fcc169730f60b729ba70e55c9b2d9561f2d48054b565310eaa"
+    },
+    "https://code.claude.com/docs/en/communications-kit.md": {
+      "sha256": "116f0e318fe05812cf75c208d2d07e6d85d940d72744dd81c905fe4a6e6d6c0c"
+    },
+    "https://code.claude.com/docs/en/context-window.md": {
+      "sha256": "6beaae83294f55c48b58daea16de7ef005648a3d8415863ac962facb9c5c50cd"
+    },
+    "https://code.claude.com/docs/en/costs.md": {
+      "sha256": "27085eb4613b063940387cf9a90c9b59d0cb96cf79e3888b30a0cdd0f865fbd2"
+    },
+    "https://code.claude.com/docs/en/data-usage.md": {
+      "sha256": "ef5260591575f5c4d2cc649054349b427fb6f3aa91388f9162662d7e3ba0bb03"
+    },
+    "https://code.claude.com/docs/en/debug-your-config.md": {
+      "sha256": "727e34d879e3ead51849d50c1a5317b37b8a5a4bef0786ec0701c85b5e4fa8f1"
+    },
+    "https://code.claude.com/docs/en/desktop-quickstart.md": {
+      "sha256": "a212782dd66fa22239a8c6aea3f76f82afaa224e9857149df0d7055e11a4e150"
+    },
+    "https://code.claude.com/docs/en/desktop-scheduled-tasks.md": {
+      "sha256": "09b06688da8c5bd6216fd763505496d118d213f9949f488cd55f47d9bf76c9ef"
+    },
+    "https://code.claude.com/docs/en/desktop.md": {
+      "sha256": "75a1d5bfc46a21168957684c780f4c600b94b16aadfa51671d58e73f751061dd"
+    },
+    "https://code.claude.com/docs/en/devcontainer.md": {
+      "sha256": "8e00a93ee9bd1858c00866868b0287a091d9ee35cb66ce69f240a71a323c9aab"
+    },
+    "https://code.claude.com/docs/en/env-vars.md": {
+      "sha256": "016816acaeab3981c1bebd7e3ac884a4fc2ebd9d9bbb65fd12748d4e0bfbab2d"
+    },
+    "https://code.claude.com/docs/en/errors.md": {
+      "sha256": "a516356b9c452b0f893cb12b68365d25567b2444b0c1cdc39978f86d220e196a"
+    },
+    "https://code.claude.com/docs/en/features-overview.md": {
+      "sha256": "b5a7d0ad57b45975e478922ddf8ce1572375f51747b7a53e641f4c4a1308e2e4"
+    },
+    "https://code.claude.com/docs/en/gateways.md": {
+      "sha256": "3069bdb2ae05612f0d61d698552f8573bd498ebf7aea3fd903746b5c88c1cdb0"
+    },
+    "https://code.claude.com/docs/en/github-actions.md": {
+      "sha256": "a5ea6a641a187c3201e3072a8d126be5b7bb2d4057bf8a82a30af3ef60d74316"
+    },
+    "https://code.claude.com/docs/en/glossary.md": {
+      "sha256": "13491643c25a857bcb6f334a422971873455cf60581b7f214269d582866beb06"
+    },
+    "https://code.claude.com/docs/en/goal.md": {
+      "sha256": "6d563dd14b09f5ec51258985c14b948a80111f2ade7e96c92ba675afa832de22"
+    },
+    "https://code.claude.com/docs/en/headless.md": {
+      "sha256": "e2213e785a9105847e0d2ad006f3885c35ded7b88f0db23ce708ea45c43a7fbc"
+    },
+    "https://code.claude.com/docs/en/hooks-guide.md": {
+      "sha256": "addf370e321f65ba567fee6b002c473d6a4e09e83b0849a706ff464fd2b8e22e"
+    },
+    "https://code.claude.com/docs/en/hooks.md": {
+      "sha256": "69c05a2c5eb2ec43f024375a11ffa2dc22fee2364236603fc9bd2e9368b73f24"
+    },
+    "https://code.claude.com/docs/en/how-claude-code-works.md": {
+      "sha256": "9312e0563616cdf1069122fba36f5b3b9c60eb6c63d09777135a49c79955fe5e"
+    },
+    "https://code.claude.com/docs/en/managed-settings.md": {
+      "sha256": "ad7a2e450e26f1a35ae0b229106b731c6d77ff779849032b39f7354e175d1d28"
+    },
+    "https://code.claude.com/docs/en/memory.md": {
+      "sha256": "fe99e50e312feae327c1e16847bc5853c71aaf2755fa554f9014c9008850e2cb"
+    },
+    "https://code.claude.com/docs/en/model-config.md": {
+      "sha256": "66f827e0568361a36228d18a7fab5f2bd2786ee7d4f6e5523193440ae1c8b343"
+    },
+    "https://code.claude.com/docs/en/monitoring-usage.md": {
+      "sha256": "d2839e8c2e2b47e624f82e43f96d7efc165f354a510785f66cf43aba387c70cb"
+    },
+    "https://code.claude.com/docs/en/overview.md": {
+      "sha256": "6649f2482143e140de016c416474989804fd300a0acfc27fd6a0ee653a863553"
+    },
+    "https://code.claude.com/docs/en/permissions.md": {
+      "sha256": "998f954e7ba578251e44a75c8d70ad39c5ba75ee60d3edb04c269a3a4a45eef6"
+    },
+    "https://code.claude.com/docs/en/plugins.md": {
+      "sha256": "eb8b9f92d75d42d777d3bdbc89273c2df881b6a3cf58afaa63418d55a70538f5"
+    },
+    "https://code.claude.com/docs/en/plugins/cli-reference.md": {
+      "sha256": "d96e2e4ef14af7fa0376ced181d08189c9984a9497d79826601a2fd6ab37e877"
+    },
+    "https://code.claude.com/docs/en/plugins/components.md": {
+      "sha256": "7639f74ce85a2d1ce05c3ee5116831d46ee059f9b9d9a740f61224a8fc4d10f6"
+    },
+    "https://code.claude.com/docs/en/plugins/create.md": {
+      "sha256": "80e0614a7420e367658cd43602865e1eb42a3dbe004595f9135272588519cff4"
+    },
+    "https://code.claude.com/docs/en/plugins/mods/admin.md": {
+      "sha256": "60262941b144133783f8d7a0aa4670a3cf7437d036666f367c960b329c7eb106"
+    },
+    "https://code.claude.com/docs/en/plugins/publish.md": {
+      "sha256": "92c66235f389b61deb4fa976f0e6395c478c4053b0db0e08be65a2b8b309951c"
+    },
+    "https://code.claude.com/docs/en/plugins/security.md": {
+      "sha256": "37d743efc55d53d6399b0ab3b4915ed0ae3b1a1587b8c87dc96bf1f776be13c9"
+    },
+    "https://code.claude.com/docs/en/prompt-caching.md": {
+      "sha256": "0e87312bf986dd2b70b72f0900f72921df44f1306217e8006607c33c3d74e1d6"
+    },
+    "https://code.claude.com/docs/en/sandboxing.md": {
+      "sha256": "adc403541050e4fce2df74a54abde2628ae1241c58439b0f662e28a68c89f2e5"
+    },
+    "https://code.claude.com/docs/en/security.md": {
+      "sha256": "5bf996a34531f5e92dea1e19887b13d177373ce4c76dbf44eefe607565130f51"
+    },
+    "https://code.claude.com/docs/en/self-hosted-environments.md": {
+      "sha256": "c08eb11dac8d46c150f2381ea45c2f5a942fc94ac6631dbab9844a7d29ce1eb7"
+    },
+    "https://code.claude.com/docs/en/server-managed-settings.md": {
+      "sha256": "eff5f6adc69d3af4c91875f3ea939e28dfa9d7bf2fc74d494c0eebe111abe668"
+    },
+    "https://code.claude.com/docs/en/settings-reference.md": {
+      "sha256": "85b12d6d5fda13fa8eed53ac0d23b0e4779df1d75853bcaba2f573840b1679a3"
+    },
+    "https://code.claude.com/docs/en/settings.md": {
+      "sha256": "41ea72eb329492a8530f2d4730b093e930151422003f161656297e44cecbf074"
+    },
+    "https://code.claude.com/docs/en/setup.md": {
+      "sha256": "81911db30b87576ff2008ba8c60a00d951a7b63a3de8fa2a4de835ef178adc5e"
+    },
+    "https://code.claude.com/docs/en/sub-agents.md": {
+      "sha256": "b7458cb749979269a7db37d0adf853fe34541cee2ad477463fb16aa616a6c315"
+    },
+    "https://code.claude.com/docs/en/web-quickstart.md": {
+      "sha256": "dc2fdbd576f353c15a4aae144239d25335cd723ca15eb6e90a7c2e799c8ef80b"
+    },
+    "https://code.claude.com/docs/en/workflows.md": {
+      "sha256": "44bbacf7088c723f2fcf0514329b594a2ec5bbb3c36636defceaaa914f293e8f"
+    },
+    "https://code.visualstudio.com/api/extension-guides/ai/ai-extensibility-overview.md": {
+      "sha256": "422b854753086342ea9cb1eb18d4f1c13eb13a17d0d4f176c5e9b4f7b304c87c"
+    },
+    "https://code.visualstudio.com/api/extension-guides/ai/chat.md": {
+      "sha256": "f9ec01b08bf778203da8ceb6c490f1019a437c841c2c2cbb4a239840b3a2b31b"
+    },
+    "https://code.visualstudio.com/api/extension-guides/ai/language-model.md": {
+      "sha256": "398d9cc6ac01798b554a02fb804a49b314f2aa6e664c2b26bbf390469fb7c010"
+    },
+    "https://code.visualstudio.com/api/extension-guides/ai/mcp.md": {
+      "sha256": "29d5cc0853511e4de75746b13692554db96087210483fe7166c1f1398570ee51"
+    },
+    "https://code.visualstudio.com/docs/agent-customization/agent-plugins.md": {
+      "sha256": "1b42dcf35db92757322b49716e7cb963b93022c38a4d603863c6a0aed2e4c64e"
+    },
+    "https://code.visualstudio.com/docs/agent-customization/agent-skills.md": {
+      "sha256": "e04fab1698c42205aa8d1c3637f5648ec5e767b4f9e1b669c13de1b8ee3f6932"
+    },
+    "https://code.visualstudio.com/docs/agent-customization/custom-agents.md": {
+      "sha256": "a714ecde5fe13a36c178be61e4dda3c5587897dca0ef775ba437b1b887d417ae"
+    },
+    "https://code.visualstudio.com/docs/agent-customization/custom-instructions.md": {
+      "sha256": "cf00a96a54cd6e74ce259ac45fd4e5a63fe79364de60606740f6daf9f9ecfeab"
+    },
+    "https://code.visualstudio.com/docs/agent-customization/hooks.md": {
+      "sha256": "2c66203c71c4db5d2b2179956a51cc5eb1c40f6a940a0b0b8bb078a6c5328413"
+    },
+    "https://code.visualstudio.com/docs/agent-customization/language-models.md": {
+      "sha256": "bbd80d62b8755b7c9f4c4a47d154e3b1596c994e2b5210c2343643ac082092ce"
+    },
+    "https://code.visualstudio.com/docs/agent-customization/mcp-servers.md": {
+      "sha256": "c4d19f65e8989ff2f3ad64c422a2bf6c29871f292e031b7ae98f2941e1b52ea3"
+    },
+    "https://code.visualstudio.com/docs/agent-customization/overview.md": {
+      "sha256": "e9301186d55329050e694649c291c0a1ce7ffeefb366a27b6fa56e047e363009"
+    },
+    "https://code.visualstudio.com/docs/agent-customization/prompt-files.md": {
+      "sha256": "430c8ff05794c9e3a4a1d69b3e398740822a89eacc320838984467e15371142e"
+    },
+    "https://code.visualstudio.com/docs/agent-customization/tool-sets.md": {
+      "sha256": "a9f0e61ff4c1f4500c89367f9d85e497acc1c6f31f748011ffb23ef68bb509f5"
+    },
+    "https://code.visualstudio.com/docs/agents/agent-troubleshooting/chat-debug-view.md": {
+      "sha256": "2c452c59a34ba38b62eb076de26607c58ce7b01dba2bf81ea1f5a70baf86696d"
+    },
+    "https://code.visualstudio.com/docs/agents/agent-troubleshooting/faq.md": {
+      "sha256": "94616d0f87ade1f75acdd7b06471eec1751acdcae9d7147a67f48819bfb1048a"
+    },
+    "https://code.visualstudio.com/docs/agents/agent-troubleshooting/troubleshooting.md": {
+      "sha256": "7dcced2055fba4067286c968d3856c0b37ef477144a49a822e6095b15532fd4a"
+    },
+    "https://code.visualstudio.com/docs/agents/agents-tutorial.md": {
+      "sha256": "73dae9e4ee169b82871282e2b4c6b4deb71f8747934072bf0fa07be9569bb4de"
+    },
+    "https://code.visualstudio.com/docs/agents/best-practices.md": {
+      "sha256": "fe233efc3b1305c99bfc286576c0f71caa17e79ed4db5cc4f27c6f41f2e1c6ce"
+    },
+    "https://code.visualstudio.com/docs/agents/concepts/agent-harnesses.md": {
+      "sha256": "0d3b8eb0125dd0112ca7d1f653186de3bf5576e5ae2dbaa74cddb75bd3d52c8f"
+    },
+    "https://code.visualstudio.com/docs/agents/concepts/agent-host.md": {
+      "sha256": "d4f3abeb08750d76b15771a14cb5b2c22958a327d3c09aa8a6a5a507b5962877"
+    },
+    "https://code.visualstudio.com/docs/agents/concepts/agents.md": {
+      "sha256": "e5c9f9bbd8f0e90710d719898824cb333e879109041058a9d9010e7086747085"
+    },
+    "https://code.visualstudio.com/docs/agents/concepts/context.md": {
+      "sha256": "d2db0f94c22a3c9b398c91d8b12da680891b684022969bfc41afa1ef4ca11d53"
+    },
+    "https://code.visualstudio.com/docs/agents/concepts/customization.md": {
+      "sha256": "2fc879e05e3fd0b6cb31e5ac489a3f9ef0aa305af3d3304f082cea5ba015dbcd"
+    },
+    "https://code.visualstudio.com/docs/agents/concepts/language-models.md": {
+      "sha256": "12b0af670587a4b47d356b225d0f6246a68acedcbbf1a144befeab26517e3e6f"
+    },
+    "https://code.visualstudio.com/docs/agents/concepts/sessions.md": {
+      "sha256": "aab099e00dd6bba1b854ec3749043d31404b7a95b778b4183911b5f3b4cd2e52"
+    },
+    "https://code.visualstudio.com/docs/agents/concepts/trust-and-safety.md": {
+      "sha256": "5e72c7bca6c0af8ad84fd323c0e487c1ccfebc452365bda812b862abe1bae8f3"
+    },
+    "https://code.visualstudio.com/docs/agents/guides/context-engineering-guide.md": {
+      "sha256": "0ca5c98defefa6e1d570c65148c77527e423082ae42f84075dc479616afdfbaa"
+    },
+    "https://code.visualstudio.com/docs/agents/guides/customize-copilot-guide.md": {
+      "sha256": "e6823ab62f8bab0c51267fc6c9a3ecfe53aecdc44562929123c58fbc3392f67a"
+    },
+    "https://code.visualstudio.com/docs/agents/guides/delegate-two-tasks.md": {
+      "sha256": "e51fee72d051185b87002d4b3f9aa91a1bdd1b947cda2b252edc4895fe678a18"
+    },
+    "https://code.visualstudio.com/docs/agents/guides/monitoring-agents.md": {
+      "sha256": "c5469b5a9b37e27e66ddb1b133ec0f8294c373a51bc2fd67d755f567e6df365f"
+    },
+    "https://code.visualstudio.com/docs/agents/guides/optimize-usage.md": {
+      "sha256": "e8e1ed4ba5fdedf63fe6d7720e942732ef24d6b4a200a45bd9e769a09c73a365"
+    },
+    "https://code.visualstudio.com/docs/agents/guides/test-driven-development-guide.md": {
+      "sha256": "1a7f08103110e3920458a7c61962a119a5be3bf08e00a572bf426bd78003a8dd"
+    },
+    "https://code.visualstudio.com/docs/agents/overview.md": {
+      "sha256": "78408cb185cd8e5fa6e4602a773211487412a25fc27f3488aa3b97e4b0c9ed19"
+    },
+    "https://code.visualstudio.com/docs/agents/quickstart.md": {
+      "sha256": "17fcf796153942ce51e5c7acb35c5ff70bb3a961d6d1d8b512d22c5c77e095f0"
+    },
+    "https://code.visualstudio.com/docs/agents/reference/ai-features-cheat-sheet.md": {
+      "sha256": "6f0aab3b0f3e8e1670dd61f22ee06b5eccda7535371a747c1d59ddecd255b2cd"
+    },
+    "https://code.visualstudio.com/docs/agents/reference/ai-settings.md": {
+      "sha256": "f5138325f485ee68c9f5cdefb020bc46f9daf7b2a39ae3d7b65d2d31150be67c"
+    },
+    "https://code.visualstudio.com/docs/agents/reference/hooks-reference.md": {
+      "sha256": "449494a07de57d8e8fa00f376aaf82bb2f451ba4a7974551ade8334dd59fd66d"
+    },
+    "https://code.visualstudio.com/docs/agents/reference/mcp-configuration.md": {
+      "sha256": "7a97a769546e3094c3f6b4125f68208aab715dcba11f1d8df1a3e1555f1fbda7"
+    },
+    "https://code.visualstudio.com/docs/agents/reference/tools-reference.md": {
+      "sha256": "255a360257cc632300c643965b7dc84301538f68a1f454c59dc4bf571877d73e"
+    },
+    "https://code.visualstudio.com/docs/agents/run/agent-harnesses.md": {
+      "sha256": "1f66f3b52ae50b1d4a7ccf631abc64996f7c5bb2c4f0fe266f9fcc0f458acbe9"
+    },
+    "https://code.visualstudio.com/docs/agents/run/agent-sandboxing.md": {
+      "sha256": "69acbf20f71c98dd411f89b454192f36e2081c5fe25ebf5d6f07b852619676b3"
+    },
+    "https://code.visualstudio.com/docs/agents/run/agents-window-configuration.md": {
+      "sha256": "d7926a3ad01a8cf7de3641dd1ad3d9476a2a042e21325ed9157758065cbecdd5"
+    },
+    "https://code.visualstudio.com/docs/agents/run/agents-window.md": {
+      "sha256": "7d376b077871e031a1752867155832f6d2195cfcd32357260210231675abb435"
+    },
+    "https://code.visualstudio.com/docs/agents/run/approvals.md": {
+      "sha256": "1b48720182aad85c1289f9d2705f05956cf931397a85a0b67a0bfcbcf21bbafe"
+    },
+    "https://code.visualstudio.com/docs/agents/run/automations.md": {
+      "sha256": "eee35651c99318f9a97582fd5ff606be3f1377508404ac7362b51ee34c53adcc"
+    },
+    "https://code.visualstudio.com/docs/agents/run/memory.md": {
+      "sha256": "1c5cb169b6327627a4828ce9e7ceffec0907617ddc3b75b391292296dbc03789"
+    },
+    "https://code.visualstudio.com/docs/agents/run/planning.md": {
+      "sha256": "196e46aa6855997c85801353f48b077f5e4c55da81411029d966d60be8bb08e4"
+    },
+    "https://code.visualstudio.com/docs/agents/run/remote-agent-sessions.md": {
+      "sha256": "ac8668bde9951df56c44bc792a3fd08a2eda31a0ee32ffda91e775386ddac7b4"
+    },
+    "https://code.visualstudio.com/docs/agents/run/review-code-edits.md": {
+      "sha256": "eddf5cdc3176b90efa424d5ee906c2e274430796b04a44822181d19aa209825b"
+    },
+    "https://code.visualstudio.com/docs/agents/run/security.md": {
+      "sha256": "fece6cd1be989dd605477441937602c32ba9d74409d7f459d88ba98923ac42a2"
+    },
+    "https://code.visualstudio.com/docs/agents/run/sessions/manage-sessions.md": {
+      "sha256": "e1cff84965cca3f0d683683319b5a6a517e875bd929a599c53d255c7493b5755"
+    },
+    "https://code.visualstudio.com/docs/agents/run/sessions/session-history.md": {
+      "sha256": "e0cd4559834220aff10efbd42a1032da7cb57328279bbf0b4ef3a12fe2a79297"
+    },
+    "https://code.visualstudio.com/docs/agents/run/subagents.md": {
+      "sha256": "bab1e3d7b5d5e35fa0a7c74dd428272531ad92d43f3990ba10135a097158caa7"
+    },
+    "https://code.visualstudio.com/docs/agents/run/tools.md": {
+      "sha256": "e1b3149b84eeac04c79a3bae17aed36690151de93c1b025565e1fc0a4915f227"
+    },
+    "https://code.visualstudio.com/docs/chat/chat-overview.md": {
+      "sha256": "0e5a61bd9d474ce236c6d86718eb9e455080c4423f9e8b872086590237b4b84f"
+    },
+    "https://code.visualstudio.com/docs/chat/inline-chat.md": {
+      "sha256": "c7aadab4d10a4b1bef54ed7924630f6badc22bfe4f5ae929572e4921dcd56805"
+    },
+    "https://code.visualstudio.com/docs/enterprise/manage-ai-settings.md": {
+      "sha256": "c767863ad01744802d8f8efc5dd80c5ede94a05ded776d1f0dd273b2bdec31cc"
+    },
+    "https://code.visualstudio.com/docs/enterprise/policies.md": {
+      "sha256": "0f81b03d019df9745a03daf1c272b297e99b11ec79f8af6389f414b768f98859"
+    },
+    "https://code.visualstudio.com/docs/setup/copilot.md": {
+      "sha256": "09f08fd89266fd522e6840f317850f6eecdb17cf7e1ca88bd73a93c0c54bb8c8"
+    },
+    "https://code.visualstudio.com/learn/customizations/5-hooks.md": {
+      "sha256": "ad091a4a1b7b68cdec2d74e00018ad6dea41caf0a2323fd2319bd650f1340acc"
+    },
+    "https://code.visualstudio.com/learn/foundations/agent-sessions-and-where-agents-run.md": {
+      "sha256": "c40e2700a917218066d59804721eafd77503c19d71d76ec3604e23a7b7bbd21d"
+    },
+    "https://code.visualstudio.com/learn/foundations/approvals-autonomy-and-context-budget.md": {
+      "sha256": "96e762879f8ee9831892ab8eec7b1f9513c1a15ae1d0e96eb342328643ae5d7b"
+    },
+    "https://code.visualstudio.com/learn/foundations/build-your-first-app-with-agent-mode.md": {
+      "sha256": "ad09a4e91044b85f4feded5f3e2c7556a8b57df24fc8417f15c453467eca2914"
+    },
+    "https://code.visualstudio.com/learn/foundations/debugging-and-whats-happening-behind-the-scenes.md": {
+      "sha256": "252ae024e1e3bda025622e2f266abc5c876529e67468e863e07eb81491ae054e"
+    },
+    "https://code.visualstudio.com/learn/foundations/introduction-to-agent-first-development.md": {
+      "sha256": "8fb07506dd369da424380b189a5d83d261f28bbf2d7219def1d8721a441c302f"
+    },
+    "https://code.visualstudio.com/updates": {
+      "sha256": "1fe2d1602356cf98e38df8b834c2d7a807f83452fe47b578967d0ed6a0217224"
+    },
+    "https://cursor.com/docs.md": {
+      "sha256": "a7a77a20174247044d76289a7464f8a947068c95bbc518121cf109f55115af08"
+    },
+    "https://cursor.com/docs/account/enterprise/cyber-safeguards.md": {
+      "sha256": "0e7b18545e2358af09f47d484de37c541f96f4d593b436231d452d2e2b08baf5"
+    },
+    "https://cursor.com/docs/account/pricing/request-based-legacy.md": {
+      "sha256": "772ed63ceb893fd773a3111c5e6ea8b8ba8a586b90afd613e2301e05848b97ee"
+    },
+    "https://cursor.com/docs/account/regions.md": {
+      "sha256": "bce421826f66327438403101a871cb6200d5841b6051bcd5da1ecae08dbb3c52"
+    },
+    "https://cursor.com/docs/agent/agent-review.md": {
+      "sha256": "3715e5c3d9d013fdfaa8109e1cef9081d516038b8750f4eee2a995180f4fbb61"
+    },
+    "https://cursor.com/docs/agent/agents-window.md": {
+      "sha256": "3f4b7efbc8aa1238e75ff9fa804fe24a9a63e1cd2ddffca66e37a2e2b4476a32"
+    },
+    "https://cursor.com/docs/agent/debug-mode.md": {
+      "sha256": "e034de33e0c42c44da09d0c4464a2dfe378378687f362b5b99b2b9f62c75ce82"
+    },
+    "https://cursor.com/docs/agent/design-mode.md": {
+      "sha256": "6335b0674fa82baa2c79fd2ea150f174e6abac360d6e38564fa5f9f4dc01aacc"
+    },
+    "https://cursor.com/docs/agent/overview.md": {
+      "sha256": "2b474c20c095efbc1280b9d6d6f8d7670da88a35e82ff66560282f97a90bbc91"
+    },
+    "https://cursor.com/docs/agent/plan-mode.md": {
+      "sha256": "c0d81d9373fbe024d7e554550d0548dbc38b552af6df6214070551bc1770c22a"
+    },
+    "https://cursor.com/docs/agent/projects.md": {
+      "sha256": "7573eccd51d17e43b7e272595ad38e6b3ffd9cf0c5b8d4a9fe75ada14cd1130c"
+    },
+    "https://cursor.com/docs/agent/prompting.md": {
+      "sha256": "438f77bf7295d28002c81ce0658134ce7debe6dfa76bae926058b918ed378410"
+    },
+    "https://cursor.com/docs/agent/security.md": {
+      "sha256": "d54ccd9897c20d5c08b235de8f3adbf1bcc30a95d072988de6a2b773abff9572"
+    },
+    "https://cursor.com/docs/agent/security/run-modes.md": {
+      "sha256": "940e4bed8022c7c93270a906bd292cd9798d56e50a83b1370e2080c898e6a3fe"
+    },
+    "https://cursor.com/docs/agent/tools/browser.md": {
+      "sha256": "bdd6f305af999c703e11598552d6e05b882513e0ec78475dc312900f38dbe2b6"
+    },
+    "https://cursor.com/docs/agent/tools/search.md": {
+      "sha256": "60b8b5e8b4e860e5de0f9939a56b3ff94942ece769732e96471283c71888e8e1"
+    },
+    "https://cursor.com/docs/agent/tools/terminal.md": {
+      "sha256": "aa4e8d89606a6c6302285d5d0551eea499d060822b7d36bf6761c2525e868f7a"
+    },
+    "https://cursor.com/docs/approval-agents.md": {
+      "sha256": "6a24c0821bd8f556b717e17db2fdfb03d6149b7841da63c6dc585650432787fd"
+    },
+    "https://cursor.com/docs/bugbot.md": {
+      "sha256": "330a99003b45cf37dacb5bd3986ed88ecf87baea60569ad1b33a8e1686567310"
+    },
+    "https://cursor.com/docs/cli/acp.md": {
+      "sha256": "65f46c603203646915b98f3ab52db1f0d670c221b46521a2b4e71d70d3c9181b"
+    },
+    "https://cursor.com/docs/cli/changelog.md": {
+      "sha256": "0b0189af89605b81b51016f12eec6b6019f2952aba4dd0815060835213e30877"
+    },
+    "https://cursor.com/docs/cli/installation.md": {
+      "sha256": "50435bbdfe5f3640484df508440b1c6274d8c57f85c2f91ac78ee15caa5a1d3c"
+    },
+    "https://cursor.com/docs/cli/overview.md": {
+      "sha256": "c56ae1d766654ca892b2cfb513a2f7f5ef0082f107d225fb4319fa9f20109e85"
+    },
+    "https://cursor.com/docs/cli/reference/authentication.md": {
+      "sha256": "c578539ee1ae3d574a75937230b22cea360f28e17da37529ddfceeedd04d2a1e"
+    },
+    "https://cursor.com/docs/cli/reference/configuration.md": {
+      "sha256": "d6921fd7a44cf73c0e09063d42aeebd01695fdc1848505df515b573dbf8d579d"
+    },
+    "https://cursor.com/docs/cli/reference/output-format.md": {
+      "sha256": "add17086b1b46485b73e24e995a5f69f16bcdb0f5f9f94f5f86cadb506063d69"
+    },
+    "https://cursor.com/docs/cli/reference/parameters.md": {
+      "sha256": "b50b48d66f4f420a8d1d4a6c3087aa74d3fa37f2c5363933ac30754ef10a8c78"
+    },
+    "https://cursor.com/docs/cli/reference/permissions.md": {
+      "sha256": "9f8264f5d8136496f008e0949cdad81760b8fa7784e3d6a2a04757c13c960f15"
+    },
+    "https://cursor.com/docs/cli/reference/slash-commands.md": {
+      "sha256": "a39f8c0086b6ca6e2bfde6c3595142987cdef4489ad0c0e213510bb746947111"
+    },
+    "https://cursor.com/docs/cli/shell-mode.md": {
+      "sha256": "7acca7788419524ddc8f677930401a10d3413a760f830b33d5bc42c9353bc0c7"
+    },
+    "https://cursor.com/docs/cli/using.md": {
+      "sha256": "b070cb1f882dd8e8b9ab7434ff6f96fe1f181c4907ee242773ae6bbbedb47b0b"
+    },
+    "https://cursor.com/docs/cloud-agent.md": {
+      "sha256": "572cb976481d34aa3b2e393ec4bf28448b490e1f15aa2b974b25bc85716b42d6"
+    },
+    "https://cursor.com/docs/cloud-agent/api/endpoints.md": {
+      "sha256": "e32e17f6da32e7064da243f3bca2f6499d2e1b341240cfe9f800aa37d9c4bb35"
+    },
+    "https://cursor.com/docs/cloud-agent/api/v0.md": {
+      "sha256": "c753c4ee18e097015309f9d0cfd20f59a28a54bdf54179fa5236e6e2cf0c14b2"
+    },
+    "https://cursor.com/docs/cloud-agent/automations.md": {
+      "sha256": "3190fac04bb8ffd01b4921acc32a55e3589a919a46aa1d7e84c03fc638ffcf88"
+    },
+    "https://cursor.com/docs/cloud-agent/best-practices.md": {
+      "sha256": "e3a197dbd3769d30846b8e7a01a2796318da85924a5fd9ec65389ebc0aae1367"
+    },
+    "https://cursor.com/docs/cloud-agent/capabilities.md": {
+      "sha256": "42885b553c13ff35527334cc837d106fabcc06fd72c43a46538d4f55953a0512"
+    },
+    "https://cursor.com/docs/cloud-agent/mobile.md": {
+      "sha256": "5d6f4092c0e1e8609ece930c2eef0f16016dffef334b9b133f19581323f288bd"
+    },
+    "https://cursor.com/docs/cloud-agent/security-network.md": {
+      "sha256": "7870ae40b8ea3ab53d04edf56cbe2a651644703b135ad7ad325af8f51bdeee2d"
+    },
+    "https://cursor.com/docs/cloud-agent/security.md": {
+      "sha256": "451db97caabc7f3ab2ff520e997c709f6bb5127f548896e376d86993e1ac1b7c"
+    },
+    "https://cursor.com/docs/cloud-agent/self-hosted/my-machines.md": {
+      "sha256": "76a177db19e03e36db10e134d05a532eb399c9025cf435528f8eeab0e52c6213"
+    },
+    "https://cursor.com/docs/cloud-agent/self-hosted/pool.md": {
+      "sha256": "0bb086f6b0d8a805b70ef27bc06664b543753b80f137cbaedb2cab82832572e5"
+    },
+    "https://cursor.com/docs/cloud-agent/setup.md": {
+      "sha256": "b36a38f8101b2315372c33190e84e9ed5884cae7327e17519ef6decce45572b3"
+    },
+    "https://cursor.com/docs/configuration/migrations/vscode.md": {
+      "sha256": "14f99d3017a84bdfe4173359000f16f9341ba4fd1c15509853724eb04ac7fc27"
+    },
+    "https://cursor.com/docs/configuration/worktrees.md": {
+      "sha256": "cc4e372cea406d6f15d4bbfc1a7cc6b680781163fa1d6ed680b34fb52ab4e79d"
+    },
+    "https://cursor.com/docs/cursor-router.md": {
+      "sha256": "f91093a0e4de0935ae539cd42266c142917a2e1a814f93a34338e5a46118c7ec"
+    },
+    "https://cursor.com/docs/customize-cursor.md": {
+      "sha256": "9ae0878d97465512ad29459f5406538ec7b427dfbaa39e1cc95d3deb447f363e"
+    },
+    "https://cursor.com/docs/customizing/aws-bedrock.md": {
+      "sha256": "e10153c1935d252cbe6a796024c0146f505ef11c568dcddfd314a917821b49b2"
+    },
+    "https://cursor.com/docs/enterprise.md": {
+      "sha256": "2b7b065b2bd6798446a2922662aa8b1175b10a557ed59f01dacfb1c22fc8aae2"
+    },
+    "https://cursor.com/docs/enterprise/compliance-and-monitoring.md": {
+      "sha256": "c73242e6c9b520b257e8c6093d6169ad9b13467112e0267d8208b89da81e8231"
+    },
+    "https://cursor.com/docs/enterprise/deployment-patterns.md": {
+      "sha256": "474e1ca4de2c9b398746da029394cd6498e6b1ddbd3a30598d4df085b91caaaf"
+    },
+    "https://cursor.com/docs/enterprise/llm-safety-and-controls.md": {
+      "sha256": "4a4d4bd68097abc882ba1dafe86fa37022f986b74b5520afe58b6dba0839f894"
+    },
+    "https://cursor.com/docs/enterprise/model-and-integration-management.md": {
+      "sha256": "2606b4bd74d43bd579c59945506ab691cd49de8da3386556e265c854f6c9d205"
+    },
+    "https://cursor.com/docs/enterprise/opentelemetry-export.md": {
+      "sha256": "6e34aabb750c3855983326e0a88ec037afc23ec2eb9fd3deb08c74826db0e82c"
+    },
+    "https://cursor.com/docs/enterprise/opentelemetry-export/wire.md": {
+      "sha256": "4103c8105d0a34e39fe51febbb7c3170d79a60b44c09a03cf7dadc179574d4b0"
+    },
+    "https://cursor.com/docs/enterprise/pooled-usage.md": {
+      "sha256": "07c668045c3582c786bb141e6f45f733e63d3cfdbc2eb5414134c94f963310ac"
+    },
+    "https://cursor.com/docs/enterprise/privacy-and-data-governance.md": {
+      "sha256": "e1aefe24c2b7954aecb88313d6bbeebe6d6a5fe9670503c67e3f337fb8b20834"
+    },
+    "https://cursor.com/docs/enterprise/security-hardening.md": {
+      "sha256": "7d6fa836b69c41ea22f13c758781f9dd4dafdf1afdff72f677e1822a54278bb7"
+    },
+    "https://cursor.com/docs/get-started/quickstart.md": {
+      "sha256": "f1644b24b45f5ed693ff2d446e9489b5ec10eb1adebc18f77de382ece4be24e1"
+    },
+    "https://cursor.com/docs/grok-bot.md": {
+      "sha256": "2f80c6a162b8498901990a14e03d8aefa24639f4c627aa943d706fa08cc3b8d6"
+    },
+    "https://cursor.com/docs/grok-bot/computers.md": {
+      "sha256": "f49525240552d6632e699d33d926d941e7dd939b060c42c20a2b14b8d1754b85"
+    },
+    "https://cursor.com/docs/grok-bot/deployment.md": {
+      "sha256": "5d908b6cb8713ae33c486073b0daa678460d48a7a0cb6023c8095335c947c04f"
+    },
+    "https://cursor.com/docs/grok-bot/get-started.md": {
+      "sha256": "5cc53d3ca4011f76fb7df716ae44b5a1731435305ab26c765945ee1b5f7e17ac"
+    },
+    "https://cursor.com/docs/grok-bot/private-networks.md": {
+      "sha256": "348c31c3e6ef05316e60bcf183730d76d419e8b9b27b43ca2bcacab62c1618c8"
+    },
+    "https://cursor.com/docs/grok-bot/proxies.md": {
+      "sha256": "25c67e9a0794c5876bce5ad5b1bb455e17fc75b41d794f1632503eeab40f09aa"
+    },
+    "https://cursor.com/docs/grok-bot/security-faq.md": {
+      "sha256": "8e71c04b343f53793ef3e7a34085a680e2bcb561af6fcd3992f55ac8c85a3a52"
+    },
+    "https://cursor.com/docs/grok-bot/security.md": {
+      "sha256": "efa8d4c185f6cf6b5953ff7c29f06f2cc67d970dfd94c657dc41c8911342f60b"
+    },
+    "https://cursor.com/docs/grok-bot/settings.md": {
+      "sha256": "2151ff561497a22de3dd05786decb4a963bb766f8d4221fd9947045d03989538"
+    },
+    "https://cursor.com/docs/grok-bot/teams.md": {
+      "sha256": "561d5143769e06c39c19a09c6796e4e6776cd5947b48e12d2c4b662855c0fccd"
+    },
+    "https://cursor.com/docs/grok-bot/use-cases.md": {
+      "sha256": "7941b5fab61161f1cadcdf6d127669d5fcba754cc19f003ed3f0187ff9097849"
+    },
+    "https://cursor.com/docs/grok-bot/work.md": {
+      "sha256": "b5e8bcd38244d78120d078d550ec2b276933d3993d1d54564e35bdf36c025d70"
+    },
+    "https://cursor.com/docs/hooks.md": {
+      "sha256": "7294a2d63b19d79a5283c948afe174cba8b06a7585563d34a2c41b90f5df0d39"
+    },
+    "https://cursor.com/docs/integrations/jetbrains.md": {
+      "sha256": "088e79280216081e3ff4af6fe92db294633268912f6efd22f5575c68bf46a18f"
+    },
+    "https://cursor.com/docs/integrations/linear.md": {
+      "sha256": "7dbb3617f056d268af6ca9c2931fe41e490706a6825535ed537d3eef7008e33c"
+    },
+    "https://cursor.com/docs/integrations/microsoft-teams.md": {
+      "sha256": "16629cc44d62859376b1a5e3e5ceabc723f8e72fb152f73efaf5ced3914c6a53"
+    },
+    "https://cursor.com/docs/integrations/notion.md": {
+      "sha256": "04018a44c8ce31d1af27f5c445a8d2f5d0103ef0e51692163fff959868d5f701"
+    },
+    "https://cursor.com/docs/integrations/slack.md": {
+      "sha256": "c00d78a024279036104eb7d86f70c2985367117b28bc01db5de42d35c3b16573"
+    },
+    "https://cursor.com/docs/mcp.md": {
+      "sha256": "8f6b54387a93616c82e2087ac5f2198c150832406c4c280880a7350e610c5e7e"
+    },
+    "https://cursor.com/docs/models-and-pricing.md": {
+      "sha256": "acf02bfcab1618470f08d7be86b87a91045d1a1d34fffe831a29b62b7b15875f"
+    },
+    "https://cursor.com/docs/models/grok-4-5.md": {
+      "sha256": "e99c713d6b6b04609957e5852f986ab2e6eb19a9ca09526ff856e8ce12633e9c"
+    },
+    "https://cursor.com/docs/models/grok-4-6.md": {
+      "sha256": "4f64e1ca46c4f0a07b1303b4eacefb650bcdbf8ee0883c09a9e3d7d263de9cbe"
+    },
+    "https://cursor.com/docs/models/muse-spark-1-3.md": {
+      "sha256": "5b523076f9f8c99177b2336b98ea0df8c4953773c0a39ce293c092159fffd6d6"
+    },
+    "https://cursor.com/docs/plugins.md": {
+      "sha256": "cf4ca6bb6ab24ba3f933a4e711881612060a50c013311279b58120aa6403693b"
+    },
+    "https://cursor.com/docs/reference/deeplinks.md": {
+      "sha256": "7ceb657892bdfa5d7a32f1168411fcaeb63c2f6ab41a5f0c45116a0a3f3a6bf4"
+    },
+    "https://cursor.com/docs/reference/permissions.md": {
+      "sha256": "4fda6fee36fbbc94b8665c46a38da57f81d0b747fab625c07932aeb382c97be6"
+    },
+    "https://cursor.com/docs/reference/plugins.md": {
+      "sha256": "5d087ad7c3ae1d48ea3f28f69a6cc67d8a2410e06908e1669ff3f20b2eb5c0ad"
+    },
+    "https://cursor.com/docs/reference/sandbox.md": {
+      "sha256": "b2cc6bccb34dc9438e303e6b5a1964235699e8197d28150d1b97f38be7207672"
+    },
+    "https://cursor.com/docs/reference/third-party-hooks.md": {
+      "sha256": "c2d2e67fd529f5d14feaaab22b3662f9eac2d21a4c54846f3e28fca6d63292c6"
+    },
+    "https://cursor.com/docs/rules.md": {
+      "sha256": "044b5134a59f74dea99ec1a273ed87e96ed44dc6c7fc7b154417d8108833c030"
+    },
+    "https://cursor.com/docs/sdk/bridge.md": {
+      "sha256": "e1670e507eb0a75c957522fbf07c021f3fe3254b6db1965742041995c1a76e99"
+    },
+    "https://cursor.com/docs/sdk/changelog.md": {
+      "sha256": "cb3f5130be508381892697dd60c3cc2cbc17e63e9aa4a05cdf87718b00a2aac9"
+    },
+    "https://cursor.com/docs/sdk/python.md": {
+      "sha256": "62bb82a6870c57f9b996a8da69a5d8758bc31969b41bbc62730ffe4d3d441c5f"
+    },
+    "https://cursor.com/docs/sdk/typescript.md": {
+      "sha256": "70535b80db2e8fa5e03668c545c5252b113e53c60a164179aa5e4a42bb394566"
+    },
+    "https://cursor.com/docs/security-agents.md": {
+      "sha256": "b9627c955b64ecebd5b82d28be20f77d384fec9a35a90379be6309a08c9e51c0"
+    },
+    "https://cursor.com/docs/skills.md": {
+      "sha256": "5ccb25304f16e82a7f58c0241a0a16a072adb33f7697e43c5704c46738e002ac"
+    },
+    "https://cursor.com/docs/subagents.md": {
+      "sha256": "e1be8a37fe4244e970469fbe5e69555d1c56b6503fc0b1e662f68373157a65c8"
+    },
+    "https://cursor.com/help/ai-features/agent.md": {
+      "sha256": "5e874046546a58962022acbdfd4917510b89216aee7fe5d1b8dce3aafc609ccd"
+    },
+    "https://cursor.com/help/ai-features/agentic-coding.md": {
+      "sha256": "28a452c2acfff1f97259a8069392e028d382a117bcbd91b6bdafacf8ad817d62"
+    },
+    "https://cursor.com/help/ai-features/ask-mode.md": {
+      "sha256": "a0d1412dc3cc7c31b543f618cb4d9b28bc34f79e6483a817b1690e384bf54cef"
+    },
+    "https://cursor.com/help/ai-features/background-agents.md": {
+      "sha256": "ac2974704d508f1ffdc383492f9391050138a6a07067d399dc1b531a12eab358"
+    },
+    "https://cursor.com/help/ai-features/bugbot.md": {
+      "sha256": "200999562a6bb6e58f25a8f54ba4059d508cc55562284c5831a2ba1ce6df382e"
+    },
+    "https://cursor.com/help/ai-features/cloud-agents.md": {
+      "sha256": "9ff32ff27b680b2d421fc1832361b9863570bababc3e19e66bcbe175e70de2d7"
+    },
+    "https://cursor.com/help/ai-features/coding-agents.md": {
+      "sha256": "e3b1b38d3ce6ba4eb9a0c16aebbed5d9ae0d05af31845c29ae9dbff86e9d6716"
+    },
+    "https://cursor.com/help/ai-features/mobile-app.md": {
+      "sha256": "447ec3f6204aab91fda1eeeadc2707720f1e551e9ee887b757c955096fca6ff3"
+    },
+    "https://cursor.com/help/ai-features/multi-agent.md": {
+      "sha256": "c000bcb5a60e867ae03dcc797fd90f7c0f732cb14b97f4dc0651531f929d23e3"
+    },
+    "https://cursor.com/help/ai-features/shared-transcripts.md": {
+      "sha256": "33c4cdfe78922d1e1e4098068d3b9d92bc4d2b0d772cc4eacfba77d8620bd84a"
+    },
+    "https://cursor.com/help/ai-features/side-chats.md": {
+      "sha256": "e99c67f92c0841fba02153a5243b8bb6b7da5cb8d8a821fef853fe3912642cf9"
+    },
+    "https://cursor.com/help/ai-features/terminal.md": {
+      "sha256": "93d0913a0d4173b13391bf965e47abcc01a2276e144ef374b209e0dd7e481c6f"
+    },
+    "https://cursor.com/help/customization/ignore-files.md": {
+      "sha256": "d40e70bfa58dcc9f12ac8d23e5bc7139be283ab3e771b529d238346d4eefd29d"
+    },
+    "https://cursor.com/help/customization/mcp.md": {
+      "sha256": "7c8c74b31a00459d06a1b1fef4120d2aa7752fbc0d46adc1435608b8b1128134"
+    },
+    "https://cursor.com/help/customization/plugins.md": {
+      "sha256": "236816235b4b1f4e4c438fe3fe973999490bac1b19276993b20af6dfa8fa0df1"
+    },
+    "https://cursor.com/help/customization/rules.md": {
+      "sha256": "19e6d1c01e6cf141af61ce29b98baf8ad4aeda8d01b9055715b20d243c8d98c9"
+    },
+    "https://cursor.com/help/customization/skills.md": {
+      "sha256": "7d551fc7939d4632228c7f178f89475113a1ad503000f890271ee95a4aee3a49"
+    },
+    "https://cursor.com/help/getting-started/build-ai-coding-agent.md": {
+      "sha256": "34711e3803466767e1d113c277e4c2ff7ec39d68b09f93280eb79b39f1ee737e"
+    },
+    "https://cursor.com/help/grok-bot/computer-recovery.md": {
+      "sha256": "6ef034d7b9c3b5984f70104757b17d67dccb77c87565b07c1eb947e25807c320"
+    },
+    "https://cursor.com/help/grok-bot/connect-plugins.md": {
+      "sha256": "a6ea5b48ec0c2083d5f4c74de0318cf4862caa0095fb8b4281fd50eb71311cda"
+    },
+    "https://cursor.com/help/grok-bot/edit-bot.md": {
+      "sha256": "5c5eabe4abf531eaeec7e75ddf9ef66237e23489f9290b2cc15a4201a12abaf0"
+    },
+    "https://cursor.com/help/grok-bot/faqs.md": {
+      "sha256": "2c1714d6249c345af6dd2042974c093876b6679b9339ead349d695f603421832"
+    },
+    "https://cursor.com/help/grok-bot/group-chats.md": {
+      "sha256": "f644dc91932f3e5b902d62326657c88453f85e90a4d822226a8fc9b5f72badf2"
+    },
+    "https://cursor.com/help/grok-bot/how-to.md": {
+      "sha256": "2b3f827b9c4da23b30e3c9fad4e3342668846eee6a8f772114176dc1e8f02d3c"
+    },
+    "https://cursor.com/help/grok-bot/mobile.md": {
+      "sha256": "fda8d04144171548605814c3e11a54a54811177ca795d31c6222dd6c8f4dfbe9"
+    },
+    "https://cursor.com/help/grok-bot/onboarding.md": {
+      "sha256": "42e7ba665b147325e7cbcb1b54861e7dca6138dc7fc71572965a12301a716b46"
+    },
+    "https://cursor.com/help/grok-bot/plans.md": {
+      "sha256": "3224175b1935058274af0f5053477f7e6717ea12d48f2d083d08151ef8577dc0"
+    },
+    "https://cursor.com/help/grok-bot/routines.md": {
+      "sha256": "5bca6548fb08af3de1403b2a93433333e3ffeb7572fa0619728bf70af2e9c745"
+    },
+    "https://cursor.com/help/grok-bot/sign-in.md": {
+      "sha256": "6b0c1860ee2dab180bae80406a9dea81d75f51a977b2c277a0afaf2e6997d10b"
+    },
+    "https://cursor.com/help/grok-bot/supergrok.md": {
+      "sha256": "c73d875303487e0963fcd749f862115a1340b4b16003ea06c4b004ae638b8f5d"
+    },
+    "https://cursor.com/help/grok-bot/team-bots.md": {
+      "sha256": "9b5fc4d6fa7fda97e5e833f3e71a3151b6c653caacd01e328c744626566bdb9e"
+    },
+    "https://cursor.com/help/grok-bot/voice-chat.md": {
+      "sha256": "da04e7c4ab126cef5ca45d8c3f3fa1ecd5fdaa46089eccabc4c77123db067403"
+    },
+    "https://cursor.com/help/models-and-usage/api-keys.md": {
+      "sha256": "ea08652e0f23573ee30781f24b781bec93274cd849262c30a99fbfec4f40292b"
+    },
+    "https://cursor.com/help/models-and-usage/available-models.md": {
+      "sha256": "807b47c02c4694a0b5a3d1b5a0a0ca3fa57fb448aef3bb324005daac76d48b8a"
+    },
+    "https://cursor.com/help/models-and-usage/grok-4-5.md": {
+      "sha256": "689a42787fa06e8d91d83521d869d2079956ca65e53600511f0b2bde0b548b03"
+    },
+    "https://cursor.com/help/models-and-usage/usage-limits.md": {
+      "sha256": "0012f727fdd6cd9ee108906df7bd8433568614e13025b4e2e09ab632804c88f0"
+    },
+    "https://cursor.com/help/security-and-privacy/marketplace-security.md": {
+      "sha256": "ae1053adc2be00c55109fe20eab46c94b0ec4712287a5a9a2d5d46cde8770048"
+    },
+    "https://cursor.com/help/troubleshooting/agent-issues.md": {
+      "sha256": "1ebba40b2f83fbe9e0d9ca3577bc2b8248d2fcadae0d927f776bdb46d10dc1d9"
+    },
+    "https://cursor.com/help/troubleshooting/install-issues.md": {
+      "sha256": "67378cef13fd86d7160e1d3a79b9b6a9e3e5fb34590922b2eab39a6cff36f4f9"
+    },
+    "https://docs.github.com/api/article/body?pathname=/en/copilot/concepts/agents": {
+      "sha256": "3d0bc33e94e1abd083dab03291b9e27e462a165a95907e4b53808818bf3b9bfb"
+    },
+    "https://docs.github.com/api/article/body?pathname=/en/copilot/concepts/agents/about-agent-skills": {
+      "sha256": "b866a42b0ec0d60bc8046fed4f688afdf701454abd71f195a324bc7f7bdd6461"
+    },
+    "https://docs.github.com/api/article/body?pathname=/en/copilot/concepts/agents/about-plugins": {
+      "sha256": "cd835b233acfcb9984fac32068d634e163762de47873cd01e54ca3827ae4c203"
+    },
+    "https://docs.github.com/api/article/body?pathname=/en/copilot/concepts/agents/about-third-party-coding-agents": {
+      "sha256": "affb91f173e079356ac21af787f979ee40bdb3dbfb033c67f1be34e19bad8ba3"
+    },
+    "https://docs.github.com/api/article/body?pathname=/en/copilot/concepts/agents/cloud-agent/about-automations": {
+      "sha256": "3e0a3fe8e61d7587a725b52fa2597e9b35da988a43a27e5d2f61005e094935c8"
+    },
+    "https://docs.github.com/api/article/body?pathname=/en/copilot/concepts/agents/cloud-agent/about-cloud-agent": {
+      "sha256": "219041faea44587e57f2978686e182fa457c6563f7a58b3f06bcfce08ff05ba0"
+    },
+    "https://docs.github.com/api/article/body?pathname=/en/copilot/concepts/agents/cloud-agent/agent-management": {
+      "sha256": "696080e9f0a2cbfb7d44964d9d11cd8cf0cc173e3e2f4a5479219bcbc02377ac"
+    },
+    "https://docs.github.com/api/article/body?pathname=/en/copilot/concepts/agents/cloud-agent/risks-and-mitigations": {
+      "sha256": "6e9a6c20f2422145393059c63d34e5a459baf62635d81bc8d7274057b2962dfd"
+    },
+    "https://docs.github.com/api/article/body?pathname=/en/copilot/concepts/agents/computer-use": {
+      "sha256": "a0ef540cf9702caf986bf1ecb8f1fd4bc25547a1c203affbda047336bc0e04fe"
+    },
+    "https://docs.github.com/api/article/body?pathname=/en/copilot/concepts/agents/copilot-cli": {
+      "sha256": "955b00ef337f7889f61a09537ba17200f8a60410b28de1bc74498b723e928151"
+    },
+    "https://docs.github.com/api/article/body?pathname=/en/copilot/concepts/agents/copilot-cli/about-cli-extensions": {
+      "sha256": "a1fe135e407b3d8e9029a3de136075028f7cd55cbfa9144f2dbacf475b5b89b5"
+    },
+    "https://docs.github.com/api/article/body?pathname=/en/copilot/concepts/agents/copilot-cli/about-copilot-cli": {
+      "sha256": "d88b94d926f5b26bf9cb021fce1f9fbec9607da2457f1aeaebb57d6d0e0a7e8b"
+    },
+    "https://docs.github.com/api/article/body?pathname=/en/copilot/concepts/agents/copilot-cli/about-custom-agents": {
+      "sha256": "0954cdade5f6c1dda8a9434c0380eba9e073cce47a7ceaef8f8400d110de5c8a"
+    },
+    "https://docs.github.com/api/article/body?pathname=/en/copilot/concepts/agents/copilot-cli/about-remote-control": {
+      "sha256": "f15dabc3e74af6867437948f3a34a2c9447b7d6aeb32697a9edf1fff972810ec"
+    },
+    "https://docs.github.com/api/article/body?pathname=/en/copilot/concepts/agents/copilot-cli/autopilot": {
+      "sha256": "99e6b59f7a7f2c563efeee14adc5e0bafa76eb4a473974767eae44dfd7a4f011"
+    },
+    "https://docs.github.com/api/article/body?pathname=/en/copilot/concepts/agents/copilot-cli/cancel-and-roll-back": {
+      "sha256": "32b1f01810c8b05034d0459d04780c6dfc70ec30377ab0f82a82b8a72e47b4ea"
+    },
+    "https://docs.github.com/api/article/body?pathname=/en/copilot/concepts/agents/copilot-cli/comparing-cli-features": {
+      "sha256": "4b58c4cbf79a5f900db4d28258f4542455da7872d5ebbd16a1b6117db556a36f"
+    },
+    "https://docs.github.com/api/article/body?pathname=/en/copilot/concepts/agents/copilot-cli/context-management": {
+      "sha256": "82e56a068cb1ad49b1ffa9e7db750b0735538f14e0525b5a096ce922f4d068f1"
+    },
+    "https://docs.github.com/api/article/body?pathname=/en/copilot/concepts/agents/copilot-cli/copilot-cli-in-github-actions": {
+      "sha256": "1ada0e342e37abdd6ef3c3f2698cf0521ac111446617487cf9734fcfddbf4a7e"
+    },
+    "https://docs.github.com/api/article/body?pathname=/en/copilot/concepts/agents/copilot-cli/fleet": {
+      "sha256": "cdc6aa5b239deca2befb407b70940c33cb6605a4e521eceb71aae24854c968c0"
+    },
+    "https://docs.github.com/api/article/body?pathname=/en/copilot/concepts/agents/copilot-cli/lsp-servers": {
+      "sha256": "09fb56061325e922f5cca7c5cbbda806f2305f16a652f48c6393d35c52cb3fdc"
+    },
+    "https://docs.github.com/api/article/body?pathname=/en/copilot/concepts/agents/copilot-cli/research": {
+      "sha256": "155fc16f7ddf9e9a522500a89c63ea1970bc811b9e091f39582868f22cf811f1"
+    },
+    "https://docs.github.com/api/article/body?pathname=/en/copilot/concepts/agents/copilot-cli/tool-search": {
+      "sha256": "e0b5c4a03586f44aead638a89fa17c0719302d6df07a5cdf9ee9440fe28f29d3"
+    },
+    "https://docs.github.com/api/article/body?pathname=/en/copilot/concepts/agents/copilot-cli/understanding-local-sandboxing": {
+      "sha256": "0068b3d6a8f687d4cc478a2188a8406efcbf6b6130241d0646c9c4bec8b11346"
+    },
+    "https://docs.github.com/api/article/body?pathname=/en/copilot/concepts/agents/copilot-in-jetbrains": {
+      "sha256": "4e486fb9a7347ba0a1e077e793f5f878f0af290888290e5a193d7819067dbc8b"
+    },
+    "https://docs.github.com/api/article/body?pathname=/en/copilot/concepts/agents/copilot-memory": {
+      "sha256": "a6061387b835f60795ab0ee7277cb51fcc4d610b847f2c15ddbed8ca00d5bcee"
+    },
+    "https://docs.github.com/api/article/body?pathname=/en/copilot/concepts/agents/dynamic-workflows": {
+      "sha256": "94b844e46a33ae558c8343eaaf07a2f37921133edd81e79f6a188630cc04b108"
+    },
+    "https://docs.github.com/api/article/body?pathname=/en/copilot/concepts/agents/github-copilot-app": {
+      "sha256": "894dc7dc77839798c4d509a48e6acf176b219f970bdd44b0cb2c228d477cfe33"
+    },
+    "https://docs.github.com/api/article/body?pathname=/en/copilot/concepts/agents/hooks": {
+      "sha256": "bfd40aa93ad62133efc17a50f189034f01594dc89a5d31a13a0c541d691acede"
+    },
+    "https://docs.github.com/api/article/body?pathname=/en/copilot/concepts/billing-and-usage/copilot-usage-metrics/copilot-metrics": {
+      "sha256": "a176e086b6f8e005ae8154041b6572ffe238b973cb3527f5e78d7ba23c88d641"
+    },
+    "https://docs.github.com/api/article/body?pathname=/en/copilot/concepts/billing-and-usage/individuals/billing": {
+      "sha256": "e4168ae807a5f5e405e2a5ea6925a555d0e5e740470a6e31b9bf3eca4279c632"
+    },
+    "https://docs.github.com/api/article/body?pathname=/en/copilot/concepts/billing-and-usage/individuals/usage-limits": {
+      "sha256": "41fdff6f087fe2c231564eb2463c92c42152dff2ff54e7aeb118954267895a53"
+    },
+    "https://docs.github.com/api/article/body?pathname=/en/copilot/concepts/billing-and-usage/organizations-and-enterprises": {
+      "sha256": "d490682c34a7bc0151300ee467b74f1cafa79e4e6d9d36ed681a7a594cd4bcbc"
+    },
+    "https://docs.github.com/api/article/body?pathname=/en/copilot/concepts/billing-and-usage/organizations-and-enterprises/seats-and-billing-cycles": {
+      "sha256": "82107e40a0248e2b7308aedc1021c6d65c8dd22324fabdcd9a5b5d7cda26d19f"
+    },
+    "https://docs.github.com/api/article/body?pathname=/en/copilot/concepts/context/mcp": {
+      "sha256": "828dbee5903e5d91de11344d8d145a1b2aaa725fa55f1387a6c4ffc48543f677"
+    },
+    "https://docs.github.com/api/article/body?pathname=/en/copilot/concepts/context/repository-indexing": {
+      "sha256": "4d4ff29813cf788b1de8b63b1d883926f926c35dc8cd89950d276e379c2ff59a"
+    },
+    "https://docs.github.com/api/article/body?pathname=/en/copilot/concepts/models/auto-model-selection": {
+      "sha256": "c88cb90f699306ac021b9a859051aae35206fc2dc7f66e637ecf73a0e5d49f4b"
+    },
+    "https://docs.github.com/api/article/body?pathname=/en/copilot/concepts/prompting/response-customization": {
+      "sha256": "6c27ee52912131438ef2647557f0618a9050bc95e10927ccb6872868a48a9a69"
+    },
+    "https://docs.github.com/api/article/body?pathname=/en/copilot/concepts/security-governance-and-network-settings/about-cloud-and-local-sandboxes": {
+      "sha256": "21efd793b5dc1fc70a45ef36186ee8033d3eb5cdc168e0bf4625566a3a8946fb"
+    },
+    "https://docs.github.com/api/article/body?pathname=/en/copilot/concepts/security-governance-and-network-settings/session-data": {
+      "sha256": "5e318aed09dd6e2139bf64bbbdcedeff38f50508e89f87adb47e12f6031cff65"
+    },
+    "https://docs.github.com/api/article/body?pathname=/en/copilot/get-started/cli-quickstart": {
+      "sha256": "f86b7649e518ab5e51c23e9a8ed8b150426d805cffac6fc890cf738c1812f32f"
+    },
+    "https://docs.github.com/api/article/body?pathname=/en/copilot/how-tos/cloud-and-local-sandboxes": {
+      "sha256": "bbc2cffa4b2d847806d7f89d2d870c737168670d71e6317cf395efd6c9acea28"
+    },
+    "https://docs.github.com/api/article/body?pathname=/en/copilot/how-tos/cloud-and-local-sandboxes/configuring-local-sandbox-settings": {
+      "sha256": "c25a5f10ef480f50e90e2d0ced5165f0954202b16668089c76acfce9702b5ced"
+    },
+    "https://docs.github.com/api/article/body?pathname=/en/copilot/how-tos/cloud-and-local-sandboxes/using-local-sandboxing": {
+      "sha256": "f5b4a83513172961e269dc633f772db962030ee2fd7c2ad4ba56fa4ff59123e9"
+    },
+    "https://docs.github.com/api/article/body?pathname=/en/copilot/how-tos/copilot-cli": {
+      "sha256": "31b7115d9dee7a49feba658736aa44e7f3d61391d21db31aafc4d590afaa1271"
+    },
+    "https://docs.github.com/api/article/body?pathname=/en/copilot/how-tos/copilot-cli/administer-copilot-cli-for-your-enterprise": {
+      "sha256": "bd0e2a06a6c66939b3db52ae168513fc35f1825c77f41b2da2af1d5d80df33d3"
+    },
+    "https://docs.github.com/api/article/body?pathname=/en/copilot/how-tos/copilot-cli/automate-copilot-cli/automate-with-actions": {
+      "sha256": "5dde752ffabde06e6b35ae5a6caf79d53130c73359c159151744cca4ef9d9ebb"
+    },
+    "https://docs.github.com/api/article/body?pathname=/en/copilot/how-tos/copilot-cli/automate-copilot-cli/run-cli-programmatically": {
+      "sha256": "44a264aad63d00ec79d473d960e8c35d0276199ba4eb7b7b817ef986059a57e2"
+    },
+    "https://docs.github.com/api/article/body?pathname=/en/copilot/how-tos/copilot-cli/cli-best-practices": {
+      "sha256": "d0d76409c23f6097c26ef3bc27bb85302ff5116f8c769f22bc6d4f10553e2dda"
+    },
+    "https://docs.github.com/api/article/body?pathname=/en/copilot/how-tos/copilot-cli/customize-copilot/add-custom-instructions": {
+      "sha256": "91108ceeac8da4db3f5e4d1624ccfa98d9de541073aebc2b3cc2271b972f3cc1"
+    },
+    "https://docs.github.com/api/article/body?pathname=/en/copilot/how-tos/copilot-cli/customize-copilot/add-mcp-servers": {
+      "sha256": "3008c908b9fd7691002f5d64d3ee6b5b8df013226eb4a1a237c39ee5415c6154"
+    },
+    "https://docs.github.com/api/article/body?pathname=/en/copilot/how-tos/copilot-cli/customize-copilot/add-skills": {
+      "sha256": "9aaaf07c4f28a157f71913bcaec73108ec01f20d3e12356612194cc26af07b22"
+    },
+    "https://docs.github.com/api/article/body?pathname=/en/copilot/how-tos/copilot-cli/customize-copilot/change-settings": {
+      "sha256": "b4984ebfa3939aa55d6feeffbc1774df9627e188a609905632dc56f92623fdf0"
+    },
+    "https://docs.github.com/api/article/body?pathname=/en/copilot/how-tos/copilot-cli/customize-copilot/create-custom-agents-for-cli": {
+      "sha256": "002f2aeb1bb5818b6522ff9e6c9480d9f6562c0651f76032c6a272c75ed903e9"
+    },
+    "https://docs.github.com/api/article/body?pathname=/en/copilot/how-tos/copilot-cli/customize-copilot/overview": {
+      "sha256": "d9d4504ce06cb776fffb5d1debe0a28378f8abe0b4fb29cc698130707873cc37"
+    },
+    "https://docs.github.com/api/article/body?pathname=/en/copilot/how-tos/copilot-cli/customize-copilot/plugins-creating": {
+      "sha256": "bb7e4cd182023f863f6b66d8885bdea726a65605f25b654e3a5a149e329b2931"
+    },
+    "https://docs.github.com/api/article/body?pathname=/en/copilot/how-tos/copilot-cli/customize-copilot/plugins-finding-installing": {
+      "sha256": "dbead5a4d45dfaf28e75945fa3bbdce19e345808519a005a3826d2365763ab96"
+    },
+    "https://docs.github.com/api/article/body?pathname=/en/copilot/how-tos/copilot-cli/customize-copilot/plugins-marketplace": {
+      "sha256": "b6bf47c28cd3332c6ba163731d5f6ce6f683c2dbd8231baa0fa451fe8aa83254"
+    },
+    "https://docs.github.com/api/article/body?pathname=/en/copilot/how-tos/copilot-cli/customize-copilot/use-byok-models": {
+      "sha256": "faafdd64749f50b09529d85eeaafd13d48d556b34bcb4d574f80c47adbc76528"
+    },
+    "https://docs.github.com/api/article/body?pathname=/en/copilot/how-tos/copilot-cli/customize-copilot/use-hooks": {
+      "sha256": "7398fe939ccdc10454998876eaa067546e922a5cca36d2409ed67432e271d972"
+    },
+    "https://docs.github.com/api/article/body?pathname=/en/copilot/how-tos/copilot-cli/set-up-copilot-cli/add-lsp-servers": {
+      "sha256": "6e4f416ea2dac709940fdba13cb0fb14e63ffc0e5006ade9dd7c75a9b75236fc"
+    },
+    "https://docs.github.com/api/article/body?pathname=/en/copilot/how-tos/copilot-cli/set-up-copilot-cli/authenticate-copilot-cli": {
+      "sha256": "4f1860144b2c6afdbbeba3334ba59b079146209b728fde96a0afe70c09aee61f"
+    },
+    "https://docs.github.com/api/article/body?pathname=/en/copilot/how-tos/copilot-cli/set-up-copilot-cli/configure-copilot-cli": {
+      "sha256": "6cdffe93bf8d747b75690d442307dd55adbe1b6cd89036df231520d29ef1e21b"
+    },
+    "https://docs.github.com/api/article/body?pathname=/en/copilot/how-tos/copilot-cli/set-up-copilot-cli/install-copilot-cli": {
+      "sha256": "e3626baed466505215ae1f9ec5a31963b848d7b4695ef8b54626e8b864a01ebb"
+    },
+    "https://docs.github.com/api/article/body?pathname=/en/copilot/how-tos/copilot-cli/set-up-copilot-cli/troubleshoot-copilot-cli-auth": {
+      "sha256": "b75dc098d3283fd710b4e4991b92d76adf6e97a00595ec7bd235a580d12e4643"
+    },
+    "https://docs.github.com/api/article/body?pathname=/en/copilot/how-tos/copilot-cli/use-copilot-cli-in-actions": {
+      "sha256": "8429b6991b74490ccca54272ebb7894d5eeaad3b114d8730f4f66e7c62f97035"
+    },
+    "https://docs.github.com/api/article/body?pathname=/en/copilot/how-tos/copilot-cli/use-copilot-cli/agentic-code-review": {
+      "sha256": "f0e26932f32e58cf054b59d08265e1208c24c38cf770aed168db2f4515eeefd8"
+    },
+    "https://docs.github.com/api/article/body?pathname=/en/copilot/how-tos/copilot-cli/use-copilot-cli/allowing-tools": {
+      "sha256": "bbc5081d6e58ce5f26081d65b8b495399e6365f09c2eb5e0cde44ef5d3b80f36"
+    },
+    "https://docs.github.com/api/article/body?pathname=/en/copilot/how-tos/copilot-cli/use-copilot-cli/chronicle": {
+      "sha256": "addc016ca0efe4e9276f0bdd49e2758e9a10adc1d28a6354407997c145d39bae"
+    },
+    "https://docs.github.com/api/article/body?pathname=/en/copilot/how-tos/copilot-cli/use-copilot-cli/computer-use": {
+      "sha256": "216bafb5ce98ab06f46f7f3ddce92dc2756322323e08502129de3eb352208f99"
+    },
+    "https://docs.github.com/api/article/body?pathname=/en/copilot/how-tos/copilot-cli/use-copilot-cli/connecting-vs-code": {
+      "sha256": "d520cfc40d60e4e4d60a3c65ba9266255720d0d9661cb1ca01c7aac846b6dce3"
+    },
+    "https://docs.github.com/api/article/body?pathname=/en/copilot/how-tos/copilot-cli/use-copilot-cli/delegate-tasks-to-cca": {
+      "sha256": "5e5b5f2d12b2538bb486664d3f9e959420a8009cb5c5631d2b756ad5902c4c99"
+    },
+    "https://docs.github.com/api/article/body?pathname=/en/copilot/how-tos/copilot-cli/use-copilot-cli/manage-pull-requests": {
+      "sha256": "86c64e60c27e13ed264e593cdcb6a93869b7cca72736d979ac3d4c95f4c20e2b"
+    },
+    "https://docs.github.com/api/article/body?pathname=/en/copilot/how-tos/copilot-cli/use-copilot-cli/overview": {
+      "sha256": "c6f2aa4f56b2c08a1c69004be4662090d4ac5c7339e8d7a6169b076c83cf6b90"
+    },
+    "https://docs.github.com/api/article/body?pathname=/en/copilot/how-tos/copilot-cli/use-copilot-cli/roll-back-changes": {
+      "sha256": "b9921e5b7afea7a52c1136823fa75c0d31bf890283e337d804ccb01bcd1e7929"
+    },
+    "https://docs.github.com/api/article/body?pathname=/en/copilot/how-tos/copilot-cli/use-copilot-cli/speed-up-task-completion": {
+      "sha256": "0a9fec8a028fc7fd6237b02a6e30c93aec8a30f50c7636bd54b65ff433b31bf3"
+    },
+    "https://docs.github.com/api/article/body?pathname=/en/copilot/how-tos/copilot-cli/use-copilot-cli/steer-agents": {
+      "sha256": "6c63ba416fba02a6789984b30ca65d887d3a4a9d8f7d037c624ee9725cdc1bb1"
+    },
+    "https://docs.github.com/api/article/body?pathname=/en/copilot/how-tos/copilot-cli/use-copilot-cli/work-with-multiple-sessions": {
+      "sha256": "41dd41e1d4c93700a2223de786093dddf6a66311e5f047d1802010f00cdc730c"
+    },
+    "https://docs.github.com/api/article/body?pathname=/en/copilot/how-tos/use-copilot-agents/cloud-agent": {
+      "sha256": "f86de12a770fbacb739df771b7cc3ef9a5c1fb0575518226a79f130eb9d637f2"
+    },
+    "https://docs.github.com/api/article/body?pathname=/en/copilot/how-tos/use-copilot-agents/cloud-agent/changing-the-ai-model": {
+      "sha256": "6d990909353724a419469792ea2cd1a29b2759d2875aa4eca9012f544cd11a67"
+    },
+    "https://docs.github.com/api/article/body?pathname=/en/copilot/how-tos/use-copilot-agents/cloud-agent/use-cloud-agent-on-github": {
+      "sha256": "8f2e092956c9a3d0de49ea86c471b133c0c3a184ca2d08a1223685d399b1399f"
+    },
+    "https://docs.github.com/api/article/body?pathname=/en/copilot/how-tos/use-copilot-agents/copilot-memory/manage-as-administrator": {
+      "sha256": "63869bf1a57847cc6f1f14c369b731fa87f71aaff6246cf938b568a7f7bb67e7"
+    },
+    "https://docs.github.com/api/article/body?pathname=/en/copilot/reference/ai-models": {
+      "sha256": "0f8b834e77cc99ec87da8e90ea1d63d30896de809b430f597bc38ce5bf66e208"
+    },
+    "https://docs.github.com/api/article/body?pathname=/en/copilot/reference/ai-models/model-hosting": {
+      "sha256": "a44c676b08e537828fd01c3eed858c6f2af7e0deb7216311ea064f25831afcd5"
+    },
+    "https://docs.github.com/api/article/body?pathname=/en/copilot/reference/ai-models/supported-models": {
+      "sha256": "e2811cacc2e65e3c620e22cc856b366d8efc24971945ee0e093118035198f163"
+    },
+    "https://docs.github.com/api/article/body?pathname=/en/copilot/reference/copilot-cli-reference/acp-server": {
+      "sha256": "d1cfb90d219fbcbe5c4b5df3337b96e314d133d902e44c770741d64c9f9b447e"
+    },
+    "https://docs.github.com/api/article/body?pathname=/en/copilot/reference/copilot-cli-reference/cli-command-reference": {
+      "sha256": "66198ea49c0f2f223d9466474f30c4a2a714c79a376a6022127d640996f9dd4d"
+    },
+    "https://docs.github.com/api/article/body?pathname=/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference": {
+      "sha256": "25543cafbdee5add265a7d2e2d90312d48e7ad8fb622e747fe614b9a6ca07319"
+    },
+    "https://docs.github.com/api/article/body?pathname=/en/copilot/reference/copilot-cli-reference/cli-plugin-reference": {
+      "sha256": "0c267d40d11c421776a76e09965e162358c80f57f69abe7e2d87b7febc986801"
+    },
+    "https://docs.github.com/api/article/body?pathname=/en/copilot/reference/copilot-cli-reference/cli-programmatic-reference": {
+      "sha256": "41add277f218d8b462fc7aaa73709f95edd02ab0687be8bc2c467d2f92d6c91d"
+    },
+    "https://docs.github.com/api/article/body?pathname=/en/copilot/tutorials/copilot-cli-hooks": {
+      "sha256": "7a6cdc17f30fe21343c821ea21a07fc483857f07a0a2aa0df82e3f024b72188b"
+    },
+    "https://docs.x.ai/build/cli/headless-scripting.md": {
+      "sha256": "a4f39daf25f81aba5dba79265d12d0e4ec444e6b28dcbe3c2335c05401052097"
+    },
+    "https://docs.x.ai/build/cli/reference.md": {
+      "sha256": "d6c944c885ac72a4f4d6036c1796537b795f805bff512c8a31a5f5f10932ee6e"
+    },
+    "https://docs.x.ai/build/cli/terminal-support.md": {
+      "sha256": "3e5457de56ba63f53249372aead7976c71f7049262d5430a6f47c75b881d2d81"
+    },
+    "https://docs.x.ai/build/enterprise.md": {
+      "sha256": "293a82de2c28c9067056f5f3ad9b47b017cfaf9ce78aa5c927fdcb1799fb9ec7"
+    },
+    "https://docs.x.ai/build/features/background-tasks.md": {
+      "sha256": "75c33f70566d9fdc94000428e32970a9ccaf6a3b8db3b137be1f7634aeb8856b"
+    },
+    "https://docs.x.ai/build/features/dashboard.md": {
+      "sha256": "ee7fe471601153b1c7a40880531b95fa4d5260a4a2d0bd3f65eb982abdf3b7e9"
+    },
+    "https://docs.x.ai/build/features/hooks.md": {
+      "sha256": "4f013d7601893175f27233934a3de60b9df0c0efeb31b041613aae56f1103eeb"
+    },
+    "https://docs.x.ai/build/features/mcp-servers.md": {
+      "sha256": "e0b9ce6bf03bf2979b1bbfa7d8ae54ecc1d38b32cdeb5c5dbfdb103cea9dabf1"
+    },
+    "https://docs.x.ai/build/features/permissions.md": {
+      "sha256": "c5bad5c416aa9aa1178ba178de33d36a1c45739ad5b727bdf28332eca5eb4791"
+    },
+    "https://docs.x.ai/build/features/plan-mode.md": {
+      "sha256": "f4a1a7ce7cc358708b4a859ecc6b41da725a4741f989ad3ce5df4f4ba30a2855"
+    },
+    "https://docs.x.ai/build/features/project-rules.md": {
+      "sha256": "1077d4bf3497f8c2a9022d82c251876e091f621e98f85e0b1c4eb1d5fceab383"
+    },
+    "https://docs.x.ai/build/features/sandbox.md": {
+      "sha256": "6795d7dde08430ad2db159803a8b5e5763e2530ea423637b871334326de52d06"
+    },
+    "https://docs.x.ai/build/features/sessions.md": {
+      "sha256": "1bb367bcc0f77a5e5800e9a84ab7220853ae23872eb615908ff338488ec7d366"
+    },
+    "https://docs.x.ai/build/features/skills-plugins-marketplaces.md": {
+      "sha256": "8a43a3409c751c943b4c9aaba199adf9938e8ea00663cd3a134c815e0970d6ac"
+    },
+    "https://docs.x.ai/build/features/status-line.md": {
+      "sha256": "c85b53a0bb498e35618446f135f8104150ccf394e70d5627e78f1385fb6a91cb"
+    },
+    "https://docs.x.ai/build/features/subagents.md": {
+      "sha256": "42511685ebf61b0e7fb1e188d2e97b08d33afe033f4cc7135a68da5c0bdb8d0b"
+    },
+    "https://docs.x.ai/build/features/worktrees.md": {
+      "sha256": "dee6309cf8ad8f8eab98102dc7011adc78974b2216a28767fe50bab8c8d254a8"
+    },
+    "https://docs.x.ai/build/keyboard-shortcuts.md": {
+      "sha256": "006abd802f37ceb103dfdda13e3b67b254bc457ab64412b646db8178efbb5fc9"
+    },
+    "https://docs.x.ai/build/modes-and-commands.md": {
+      "sha256": "606a03913a41a233627a9c80021c3bb2ce8e99e3e38e4f2c165da2719d5c147a"
+    },
+    "https://docs.x.ai/build/overview.md": {
+      "sha256": "8c85c95a3cdf7eebad2d3cbbd8e20159d567eb49a7bcb9e0f9479670e105a8cf"
+    },
+    "https://docs.x.ai/build/settings.md": {
+      "sha256": "a64f5479e7a99fdc4b08dbd459ff68d528990ce4c85d8fce9e31eba2acf348ac"
+    },
+    "https://docs.x.ai/build/settings/reference.md": {
+      "sha256": "0248ff1ea5e6879e277b714daed82a3dc7c255bcda4a8c800fc35bcc2750430a"
+    },
+    "https://docs.x.ai/build/settings/zdr-video-storage.md": {
+      "sha256": "3e28f9c0799b4b49aacda3647f4ecb208f8691d1de1df88527ef85a7261af79a"
+    },
+    "https://docs.x.ai/developers/models/grok-4.7.md": {
+      "sha256": "3ed635f3374714d627a45b4632753004c43b09418529273f8c75075a5ae6c3e4"
+    },
+    "https://docs.x.ai/grok-bot/approvals-security-and-privacy.md": {
+      "sha256": "37a876b1ff2f73367634adc569ca8bf1b9c50f9c2d914358627850ab02a580f9"
+    },
+    "https://docs.x.ai/grok-bot/bots.md": {
+      "sha256": "c21b84c5083b9f85a9c732e90dd237eaf227e8afd201af9904dcb42ceae6d62d"
+    },
+    "https://docs.x.ai/grok-bot/chat-and-collaboration.md": {
+      "sha256": "13cfa782b8e5fb3915cbcb410db2fe3cb5d25cd5ed7223907aff75979889c292"
+    },
+    "https://docs.x.ai/grok-bot/computer-and-apps.md": {
+      "sha256": "a854c8afee4338d3d88dca622fa29d992d0418deb6d1723d2d181929eece604b"
+    },
+    "https://docs.x.ai/grok-bot/faq.md": {
+      "sha256": "6dbd3940a0e403c2d09b828269476235e9942c248f5d3cbe4b0e3112afd4cb9e"
+    },
+    "https://docs.x.ai/grok-bot/files-and-results.md": {
+      "sha256": "62d0417cc14c9c7d57b33fea90a5e05ee2ebbe593c24d8e878f064504fd9795e"
+    },
+    "https://docs.x.ai/grok-bot/get-started.md": {
+      "sha256": "f5d0122116d3e8ab09a0cd85aa798e8a03866a77eddf3bf75fa5e9d6bf30940a"
+    },
+    "https://docs.x.ai/grok-bot/mobile.md": {
+      "sha256": "fedd9fde278767c34fb496368f9c72dcdaab1484abd82dff0eb0610f7f38e740"
+    },
+    "https://docs.x.ai/grok-bot/overview.md": {
+      "sha256": "776db67333b62277f8d4bb4685dbcf42b8bf79c71e3607fc9affa671e0da518c"
+    },
+    "https://docs.x.ai/grok-bot/private-networks.md": {
+      "sha256": "037e8a41fbd1405c02ffd59f58d5413a4bec09b975eb4967a8c424086c0324be"
+    },
+    "https://docs.x.ai/grok-bot/proxies.md": {
+      "sha256": "011b86e9a52dc01d6523bca4e719dddf8277b35fd0ebc3a41b5374e4041ee2c5"
+    },
+    "https://docs.x.ai/grok-bot/security.md": {
+      "sha256": "917b179235c240ae2250fcafc8666a59cd0eb7666a251e0d882b13cf9c134494"
+    },
+    "https://docs.x.ai/grok-bot/settings-and-notifications.md": {
+      "sha256": "e17fe02042abe58a36364acd09778dbae69256ba851922a5af551c03959fbe6f"
+    },
+    "https://docs.x.ai/grok-bot/skills-routines-and-automations.md": {
+      "sha256": "303b49492614b4519d933e287dab630c673bba9958bdcaaa3a641b46e588eef9"
+    },
+    "https://docs.x.ai/grok-bot/team-bots.md": {
+      "sha256": "1d06833fdc48f86ee791897e85431ddfbf7a95da931c86909dca9c67ec212f40"
+    },
+    "https://docs.x.ai/grok-bot/teams-and-enterprises.md": {
+      "sha256": "9aae8115ed7660a4709910149a4bb954ce5f609b7dce86df54730e31c9bc497a"
+    },
+    "https://geminicli.com/llms.txt": {
+      "sections": {
+        "http://geminicli.com/docs.md": "1b191cc08c8ccbcf0b3e672f4bfd3ad63a91f1dd9634955bdfcec32acfb30ca0",
+        "http://geminicli.com/docs/admin/enterprise-controls.md": "7144678466eefcca62e96065f1a0980a0355a6e2888171ded09d284284fa0392",
+        "http://geminicli.com/docs/behavioral-evals.md": "30372b1bce4997b5d76fe7aa578514f811b1a51ecb2131bd075f2599e2fff912",
+        "http://geminicli.com/docs/changelogs.md": "3b61c3c07696ce2d17d49b481fa7fe638f9bd5a483aae3190a654d87b47396fd",
+        "http://geminicli.com/docs/changelogs/latest.md": "762c1757ad48938a3cafbc96d0db6c2f707be5ed8b8c3c9ea7a1adc8d8172536",
+        "http://geminicli.com/docs/changelogs/preview.md": "ca9fff5c414c676a1c1585b4729fc253c453d54454aeea71fd38e4dcc1d9b0aa",
+        "http://geminicli.com/docs/cli/acp-mode.md": "c6267508c01d3b99920266255da7e4b8082bbe87693bd3cd355c4d7433d421f1",
+        "http://geminicli.com/docs/cli/auto-memory.md": "43ec884ac3bd57d1e27dc7543360dd51a00fb49286748fefd6d407676eaff3e1",
+        "http://geminicli.com/docs/cli/checkpointing.md": "d47f621aab352c2efc3f133340ec98e35dc9709fcad4e909940f29a8ebd82699",
+        "http://geminicli.com/docs/cli/cli-reference.md": "63433dbe6c8566a43836c71a9e616d301603179a3b30248576417ab789c02af0",
+        "http://geminicli.com/docs/cli/creating-skills.md": "39bf2a619199366af8f89db277779fdbdfcca1b9e2b114dbfb483a03c11664f4",
+        "http://geminicli.com/docs/cli/custom-commands.md": "d26374885d51f3f60b897870bb62992e83e05ce66d8d0466b32110d68ed38def",
+        "http://geminicli.com/docs/cli/enterprise.md": "8ab38d8cf168f3e413fbf11e036ecdda814d5b5e9aa97c9d6688f1533813b55a",
+        "http://geminicli.com/docs/cli/gemini-ignore.md": "2dd75e535f4f1677df333b44f0cd09d21037e36322d6f23422c9c2bb75f89c4e",
+        "http://geminicli.com/docs/cli/gemini-md.md": "314e8e2706ecad844b1342a606a23cb66063e69608a1014a360347c240c21a72",
+        "http://geminicli.com/docs/cli/generation-settings.md": "895aacc5b13fbac9d8b9ec9108dcd42ca4c7b9c5bd0de53bd4be5e59588ed55c",
+        "http://geminicli.com/docs/cli/git-worktrees.md": "8672a78655c1d83cc2590e0e74f6fb19648eff37b875e2e179e76342e2b61335",
+        "http://geminicli.com/docs/cli/headless.md": "075b0bb825fa65e22dcacdaed88789e2ccbb3f8325c021dd3c009554b1afcca7",
+        "http://geminicli.com/docs/cli/model-routing.md": "c199acc9b3ab03516fe2176f20c94310e4cb0c2aa38264db3bb4ce19c04d3ff5",
+        "http://geminicli.com/docs/cli/model-steering.md": "172f0ddbd6b682d783ad24eb4168bc4d51e48e125bf00ce5ab9f28de9cbb2d1f",
+        "http://geminicli.com/docs/cli/model.md": "2bfd30946b6441a5abe075489d03004dce696d9d0560f127c2d39a98f75a509e",
+        "http://geminicli.com/docs/cli/notifications.md": "73d102c61ec276f8d990410d42b17bdca94c8cc71b3f53e883fe2bc5a743092e",
+        "http://geminicli.com/docs/cli/plan-mode.md": "9c16443bbd71db2f36540d648c4459a15ee282a1249512bdd629afcbddcceec8",
+        "http://geminicli.com/docs/cli/rewind.md": "c44bdb5557b0f50e922b9bb4a7712dccf57b9bca8fda9b20699e230bea5d2986",
+        "http://geminicli.com/docs/cli/sandbox.md": "d2bd135458193112335034373ea84c653d63e8f59613933f701d35013678fb6b",
+        "http://geminicli.com/docs/cli/session-management.md": "fbd172065e843b5d9587fefc4b773949e7c477e3b2397d4b6c96130f9ad25a9f",
+        "http://geminicli.com/docs/cli/settings.md": "309a1aa4f9d5bc4794920402f89d267ede46f4ce4e0f22c94003e6ff6a4f7b50",
+        "http://geminicli.com/docs/cli/skills-best-practices.md": "c37646e7223b0f46ab58ac306254d3087ac4487ea5f9935f92c2e2210a2bf87a",
+        "http://geminicli.com/docs/cli/skills.md": "4f1130af47c2f22d409baf7815b3842e4ef630cf2513321c789d9666071b1c91",
+        "http://geminicli.com/docs/cli/system-prompt.md": "f96a13e72f307cae2ef2a6b64f184c97ef9012fd3751ce6d72e1377ba875e91a",
+        "http://geminicli.com/docs/cli/telemetry.md": "131dc93294908db4bf0e8b3888fcef321cfd487ffc6777b5d5827433604d11ec",
+        "http://geminicli.com/docs/cli/themes.md": "1fe372b025297474e8ca7042c759bd407034912fd40840e8d14368341c3af77d",
+        "http://geminicli.com/docs/cli/token-caching.md": "343d14c0dcb9f03d0132a8f5f68e9b18ad349f20e6d84006af4f246fd4a0f326",
+        "http://geminicli.com/docs/cli/trusted-folders.md": "f946f35817741b8bf8738798cb4522f4bc57bf6f8e270ecf146e92d148d1ab4f",
+        "http://geminicli.com/docs/cli/tutorials/automation.md": "c8f4c9989b328dea5c63f447d984369eb10edc0e94b2c9d0b11d2fe1744eb711",
+        "http://geminicli.com/docs/cli/tutorials/file-management.md": "48f76d7e9f07a853382341246fda42b14bf3a161bcc914c0a8b6e2862f2738f0",
+        "http://geminicli.com/docs/cli/tutorials/mcp-setup.md": "51d36e8a07361f581c8421e734c9ebe1217d95ebaeb9de9fd83a481ed4677f2d",
+        "http://geminicli.com/docs/cli/tutorials/memory-management.md": "17146d44f87be4dca881e850c724cbfce78797ce4fac0ba0c2d1ee1fde583374",
+        "http://geminicli.com/docs/cli/tutorials/plan-mode-steering.md": "740af1c0c08ff0589f7304173f9be22aee57818d66c6c5158095f2cfad0f87d4",
+        "http://geminicli.com/docs/cli/tutorials/session-management.md": "d6763dfc0fc7a549ba254f5a57b60e362366ce73147aed803736bc9c67303801",
+        "http://geminicli.com/docs/cli/tutorials/shell-commands.md": "8cf2cc6adb84d16385ec0efa7ce21c10c4f5dfd3b3e394f9c607467d9f07e5f8",
+        "http://geminicli.com/docs/cli/tutorials/skills-getting-started.md": "3c76e7322d7b0bd7f23b80059a89e43200a90761a94ca7452e28460586adbcca",
+        "http://geminicli.com/docs/cli/tutorials/task-planning.md": "474743cb8d63ecec5a67fcfe7a8932275e2fd189c0a7804c679be87e5d8f966d",
+        "http://geminicli.com/docs/cli/tutorials/web-tools.md": "4cb3b37b67bd269417f5d37814cffa6fdd80033c32750d976bc6d69737d97713",
+        "http://geminicli.com/docs/cli/using-agent-skills.md": "2c8d5d2c23e079c2be1ed148be741a43647750140abeda2cde181bf0ebbf0be5",
+        "http://geminicli.com/docs/contributing.md": "e10db45044e6d67eae0f672b31d8de6686bf7c556d1f8709a896c7e438ff3779",
+        "http://geminicli.com/docs/core.md": "2ea6cc4f9fb8a5f63e38b4f9a93f30615414f1b2af21c9d927563c01d790fa5e",
+        "http://geminicli.com/docs/core/gemma-setup.md": "f93c24a870361f0f56a2fb1520e642613b16049caa9c958c3f841254a320b03d",
+        "http://geminicli.com/docs/core/local-model-routing.md": "ecd372d090454361ebaece7ac487b921f3be7fd3d8e4231931877f39e5453c9c",
+        "http://geminicli.com/docs/core/remote-agents.md": "da5126ea0e7b2bf4e9765a3a76fb2e81f226ee5b8d894f14a4a07f757532a83c",
+        "http://geminicli.com/docs/core/subagents.md": "3174ef2cc27d93958b8f0076f7111778dd10b23285e28bf01aca84c80074c7f8",
+        "http://geminicli.com/docs/examples/proxy-script.md": "c74bd092700e62c16b2b9c5a43af79a83cc702a5341a56901a528ead880b1940",
+        "http://geminicli.com/docs/extensions.md": "07550e7256cb9d198644e492877a78ef20eb30a498d048d5ab2963cbe7f3c458",
+        "http://geminicli.com/docs/extensions/best-practices.md": "6a027cbde9ea4c7c30938db79607cf3b595ceb7ff7f641fdc9bf71df32e91908",
+        "http://geminicli.com/docs/extensions/reference.md": "4859dfe3916a31c696447ee57ae05c6b10b16ff45c7cb4e19661faee59ef61c2",
+        "http://geminicli.com/docs/extensions/releasing.md": "d4842dcd614605458c394bae34c51f93620eaa12e3f496fe6f944e2433fda1a2",
+        "http://geminicli.com/docs/extensions/writing-extensions.md": "dfa8a9d81071b6148cf75ff04933996700c02acdbca41867bbd26c7c90df62fe",
+        "http://geminicli.com/docs/get-started.md": "fbcb78c91e063b99bf969009d2bda16931a8ee579b76a1ab14a922a843349b46",
+        "http://geminicli.com/docs/get-started/authentication.md": "ce1a9eab0d93dc7bd110ac6f213592d2fd63c6d4d9fe630b5edeb3d84211afeb",
+        "http://geminicli.com/docs/get-started/gemini-3.md": "ffa1dc03287a84a13d69fa30ea8f522b98a8dbf581b96ce6a9d562d32707063f",
+        "http://geminicli.com/docs/get-started/installation.md": "797826990d2893ea8047f7697aeeb1a391d2c475861270db3e250455dc687fef",
+        "http://geminicli.com/docs/hooks.md": "557465c2b42d7a5db15eb6d94e2d7323934c589207d93ac1a066595f48851d03",
+        "http://geminicli.com/docs/hooks/best-practices.md": "ff1fb20beac13e47a35d5b882de96d3650534080fb9cb72e7b6d80a26eede935",
+        "http://geminicli.com/docs/hooks/reference.md": "f2b81016cfcc85f7ab464187c10ff305a86a73ffdf908b1c42b1e02c7efd9cde",
+        "http://geminicli.com/docs/hooks/writing-hooks.md": "70060c560c60f6c1642e15fb03e1d0e9a7cf60b5158be0fb0dc2558a212cb09f",
+        "http://geminicli.com/docs/ide-integration.md": "5e19b89822efd5e77662d94684872ec978f4387af972a239f7ba9b3bb7a0385b",
+        "http://geminicli.com/docs/ide-integration/ide-companion-spec.md": "bb8ce81b15cd4382196be905a904ba04d893226c202fdeefbd7f05bf3a68d8ab",
+        "http://geminicli.com/docs/integration-tests.md": "cf7e551caf05175ce327bca4a95fd966296422d71e66f614ce6b0059f73c1170",
+        "http://geminicli.com/docs/issue-and-pr-automation.md": "89aaf743b3bbf0b954efdaaa65426f0faf889c8f1b247e58e116522100fde62b",
+        "http://geminicli.com/docs/local-development.md": "935d922da6fbd9fb47ea894411c7cbdc0c4202b55a1624432ea2b201ffb26af7",
+        "http://geminicli.com/docs/npm.md": "835cea3539b752bf48df7683cb8e6fb13de0661a12c8156bf5e03898c9bedc84",
+        "http://geminicli.com/docs/reference/commands.md": "080b01202d20e3894a8191b8f70842b0c638b295750d7a29c304b7496e1ce85e",
+        "http://geminicli.com/docs/reference/configuration.md": "2f0fe651ddf4151b4e710da558291a4fb86927d453bb67747d618405e9e62bc4",
+        "http://geminicli.com/docs/reference/keyboard-shortcuts.md": "259f0a39837ce9962c0694f10d0d7c3caa7421e958d84c20f6802cc3a905b358",
+        "http://geminicli.com/docs/reference/memport.md": "f7a13f3e3913b4fae6176464f46b43a42d8b924ea9a68da87ff4c0d0fefaf1c9",
+        "http://geminicli.com/docs/reference/policy-engine.md": "22c7682e947a69dbed7213b9c0a383fa85db10097a5357f82aaa992716fcbd3a",
+        "http://geminicli.com/docs/reference/tools.md": "2d094385520a00fb4bf6381b4f3e72b4d496573948688419f8390dfac483b1b9",
+        "http://geminicli.com/docs/release-confidence.md": "8d1544d68f436862ffd162296ad02d8779b3fc00738e0b43b9282ee5173a4e71",
+        "http://geminicli.com/docs/releases.md": "710994b657d41f93381f8a763096ec165f687250db13bedc940bd436dcfd564d",
+        "http://geminicli.com/docs/resources/faq.md": "d53573d03cb40319968bc37ff0d0c36b03299451d6834c3998cc2e045010955a",
+        "http://geminicli.com/docs/resources/quota-and-pricing.md": "47485c41c3364f47a61c47e95a93df7ce0d7edfbd0975850b8ab64f88ecd3383",
+        "http://geminicli.com/docs/resources/tos-privacy.md": "d2e53bcc0c404fd32868aed090b07a6a4e626f20c574758ddd7af23d520d0120",
+        "http://geminicli.com/docs/resources/troubleshooting.md": "b09ad39986b8e0d3d688ca97097127b613ca6250364e59522d6ca2b8ca71fe55",
+        "http://geminicli.com/docs/resources/uninstall.md": "118d3478bc2ed65687242de552a47cd32fa8e2476baa822b74dbbfcb5648d1ad",
+        "http://geminicli.com/docs/tools/activate-skill.md": "7845350bc03530502e6c9885bb9462c1fa41c42a928bccd9e537dfe155f94d02",
+        "http://geminicli.com/docs/tools/ask-user.md": "bb3ba936fe21e25b02c6e9abaf68ab4ad414eab4518890a00862ebad376799b8",
+        "http://geminicli.com/docs/tools/file-system.md": "3d45ab85c0d92f865b31d6e3388966274c04a29921b2ae53f224db63fd19fadc",
+        "http://geminicli.com/docs/tools/internal-docs.md": "9ba9746f04de57de6577a7e4e3f196c6719bdee00cc81ff5e9854dc40d3d222f",
+        "http://geminicli.com/docs/tools/mcp-resources.md": "92b8cffc4e90d56c123fbcf117b56f8fab2a3bc1f035ae25c7bc82bc2a09a57e",
+        "http://geminicli.com/docs/tools/mcp-server.md": "3f44d52ea5471639c4090ec6198ad2f467faa1b7e3fcee688c406d58388c9f12",
+        "http://geminicli.com/docs/tools/memory.md": "4e39f9e92432eb74248559bfac899c8631cbb24f273c1cd40068db2eb81a5391",
+        "http://geminicli.com/docs/tools/planning.md": "f69680840720f950e1601fec2760873459810c10d2493e654fa5dbb87b1ce798",
+        "http://geminicli.com/docs/tools/shell.md": "be29a85fb77c2ce773c99dcf33f9b926fba231144a534c3dba326d5e1887ab5c",
+        "http://geminicli.com/docs/tools/todos.md": "a079b1b7ba095db31fe20b3fbc5b4c6acf6992bd50042f436180a266a3a13675",
+        "http://geminicli.com/docs/tools/tracker.md": "5f5fafdc94500bb5629984065224a7f8e64d4d879ae707ff2e0b505ae1c32663",
+        "http://geminicli.com/docs/tools/web-fetch.md": "8339e7f9f30265cd897657baf3d8c15a38ef4276b6836c79990a84668dff75c0",
+        "http://geminicli.com/docs/tools/web-search.md": "effa2319f696bf254cf1da832a5b677280ab81f4b3c61567b46c72f7c9d1be03"
+      },
+      "sha256": "e6ea7f8fee362660b39722f7abc13544602798ec553ab12bbd477abb31cf3158"
+    },
+    "https://learn.chatgpt.com/docs/administration.md": {
+      "sha256": "8aa2e1905f79f5c9ec1e939d416c367032ae4f4940f1956aaa959da102f01027"
+    },
+    "https://learn.chatgpt.com/docs/agent-approvals-security.md": {
+      "sha256": "bb78bd122fc94a9871630e39d74d38fc3aa204deddbc3ead74da9b76f99e2afb"
+    },
+    "https://learn.chatgpt.com/docs/agent-configuration/agents-md.md": {
+      "sha256": "9d1f87a2d1cb55b4782b95abe710692b35b9659789c2db31a22c7074a3383e8e"
+    },
+    "https://learn.chatgpt.com/docs/agent-configuration/speed.md": {
+      "sha256": "4609fbd0a6e3b87863a7ae089c5b33868dbc2b20940b5ceb9a155d6514ab6ed7"
+    },
+    "https://learn.chatgpt.com/docs/agent-configuration/subagents.md": {
+      "sha256": "c5ef4eda3d9f876c8f35c697e720a3e7c760b5cf8c4943c97e82d1d8fe1b0054"
+    },
+    "https://learn.chatgpt.com/docs/amazon-bedrock.md": {
+      "sha256": "512891670d5b9ad5037c6ec3beecc576fcdd9a6fde6fe217e133e759386ab9d4"
+    },
+    "https://learn.chatgpt.com/docs/app-server.md": {
+      "sha256": "14c29f997cffff66125e710c1746425c53262eb4e636eb0bbcd5c8b4ec7e4464"
+    },
+    "https://learn.chatgpt.com/docs/artifacts-viewer.md": {
+      "sha256": "16a6ea2620ab1909da72ab6235445ac4fffc046fa316cf69bc0b2f57fbeb4ace"
+    },
+    "https://learn.chatgpt.com/docs/automations.md": {
+      "sha256": "1c64c21ee76020153dc2ec69aaab1f8fda39d2426e9f63732b8e9577d691f968"
+    },
+    "https://learn.chatgpt.com/docs/build-plugins.md": {
+      "sha256": "207cc4ea0da78e02ea090abcbd32dba488063d06bc55f2f290128515ef37a486"
+    },
+    "https://learn.chatgpt.com/docs/build-skills.md": {
+      "sha256": "d15791562748e64a53dfec534b8558aa522e732cec0fdedcf7257fa4ef486a20"
+    },
+    "https://learn.chatgpt.com/docs/cloud.md": {
+      "sha256": "6d4e5f7c3078e670d85ce5927ffa5a7bf930ecc6e81b90f1b6771271dc49ead6"
+    },
+    "https://learn.chatgpt.com/docs/cloud/internet-access.md": {
+      "sha256": "5af493d05e5da1a56212d6a77845728eab70e1ce3b7b0f948b9f4294b4978338"
+    },
+    "https://learn.chatgpt.com/docs/codex-sdk.md": {
+      "sha256": "d4007b53f6a4303b1d5f2f8a760f67ef57c5ec37f041a6a6df1357610fca97dc"
+    },
+    "https://learn.chatgpt.com/docs/codex/cli.md": {
+      "sha256": "36066e8647cfa5f6b8ff08678267e256e3434ccfff8eac6532c5ac0ed4daffdd"
+    },
+    "https://learn.chatgpt.com/docs/computer-use.md": {
+      "sha256": "c0e4f883aa2abc1198ee40e5ce59cea130b055b97c48e9abf7a0e8d75277c819"
+    },
+    "https://learn.chatgpt.com/docs/config-file/config-advanced.md": {
+      "sha256": "12845880f119c64470d41ace86ded50cd397f9b4647339ba3c5a5c27bc211659"
+    },
+    "https://learn.chatgpt.com/docs/config-file/config-basic.md": {
+      "sha256": "646d73b80ffe78962c9526e5960f0cbdb39953db26fe5422241f7cfd3ba6d10c"
+    },
+    "https://learn.chatgpt.com/docs/config-file/config-reference.md": {
+      "sha256": "73242945d7891bc09bf95a39d83117025abd8eca61ae5707db38fda40db16d62"
+    },
+    "https://learn.chatgpt.com/docs/config-file/config-sample.md": {
+      "sha256": "9e683f2fc20d62c8a999c44aecbe4094a60afecc1a38962fdc15452f08d04724"
+    },
+    "https://learn.chatgpt.com/docs/config-file/environment-variables.md": {
+      "sha256": "af767b8d7892d11d0554d9ea5c0d60d7bb463cb64b2a3a51e2ba0efadbc86ba8"
+    },
+    "https://learn.chatgpt.com/docs/custom-prompts.md": {
+      "sha256": "d6f7cf8dd9f31d2faf5604ef3a6f8322132a7b66fa50823109cb681e372a0fa9"
+    },
+    "https://learn.chatgpt.com/docs/customization/memories.md": {
+      "sha256": "7dd55f174448e6092c33e0d5532ebc11abf45abd305e74cbb1407ab8fe958217"
+    },
+    "https://learn.chatgpt.com/docs/customization/overview.md": {
+      "sha256": "e4f466bb13521bc8d4e193962192c45319d5abc0cb58875d4a7eed2a9f9a20d6"
+    },
+    "https://learn.chatgpt.com/docs/cyber-safety.md": {
+      "sha256": "bb0024ac81bd00f9a2b17b6142a2f4c68d42b626827df1522e8466a8b98b03b9"
+    },
+    "https://learn.chatgpt.com/docs/cyber-safety/recommended-configuration.md": {
+      "sha256": "484f48b696445ed7b7dc25e120c9d24dcfebea183492d800172396c7798e9884"
+    },
+    "https://learn.chatgpt.com/docs/developer-commands.md?surface=cli": {
+      "sha256": "6dec20e0f916ad689f9fe6dde8f259835725ca5e3fd07c8bf6222b9bc5659ef7"
+    },
+    "https://learn.chatgpt.com/docs/developer-settings.md?surface=ide": {
+      "sha256": "a4c52f032ce8de051ef4b40d8d8fc0f29da1a9d457732f59052ddcdfeb2fa2ef"
+    },
+    "https://learn.chatgpt.com/docs/enterprise/agent-security.md": {
+      "sha256": "a5328459ce803f3df819cc969c151eb528935ea7724b1fa915288103f3d7dda6"
+    },
+    "https://learn.chatgpt.com/docs/enterprise/cloud-local-access.md": {
+      "sha256": "31a1f0358db503c3d07c15cec14a4674074ec6ac3c1bf871c739c6c8b70a208e"
+    },
+    "https://learn.chatgpt.com/docs/enterprise/gateway-compatibility.md": {
+      "sha256": "d0424e6da77a7aaac01311149bb16b6b640cafad68e54038100fd4c32c53e419"
+    },
+    "https://learn.chatgpt.com/docs/enterprise/govcloud-configuration.md": {
+      "sha256": "19ee7d434677b15ad85fdef12f567a1639a8267512d9b00ec352ac642d5a2e1d"
+    },
+    "https://learn.chatgpt.com/docs/enterprise/manage-app-updates.md": {
+      "sha256": "d287f362a6808ce7d9fd01a9c3df52a801aef99dc32992f0cde9562e6bbeed29"
+    },
+    "https://learn.chatgpt.com/docs/enterprise/managed-configuration.md": {
+      "sha256": "7af4d6e961d34486abed562e8418471133c68fa6de86c5ed0ef1d5856f310912"
+    },
+    "https://learn.chatgpt.com/docs/enterprise/plugin-management.md": {
+      "sha256": "72dde5c337b1b622c95816dbb40b3a88ba9893cd235f65d9fb7a4bf6222565c6"
+    },
+    "https://learn.chatgpt.com/docs/enterprise/roles-and-workspace-permissions.md": {
+      "sha256": "7c0eb5401d996a07ccbafac355147abee92a6f3cddd1a531a2f387d963c28111"
+    },
+    "https://learn.chatgpt.com/docs/enterprise/roll-out-a-gateway.md": {
+      "sha256": "25b9f9dc62c7ed5b362b71762324434c4a8daff67204cac92a6d56622e83424c"
+    },
+    "https://learn.chatgpt.com/docs/enterprise/usage-insights.md": {
+      "sha256": "305f36e4113d2c41c646bf3fb1d01b98c34da8ba8b12ffd36ed9748412cffe84"
+    },
+    "https://learn.chatgpt.com/docs/enterprise/usage-limits.md": {
+      "sha256": "2850ea8890bf1ab86c653f54e92fc78bedc98a419da95b767bd255c469fa2cbb"
+    },
+    "https://learn.chatgpt.com/docs/enterprise/work-admin-faq.md": {
+      "sha256": "c48dbeb65da8c10cbe9ed1e0b60afe7944b964e76414829cef3db1a1f9102e3c"
+    },
+    "https://learn.chatgpt.com/docs/environments/cloud-environment.md": {
+      "sha256": "9a798f89ae50cdb9eebd126458fca1230ec38ab052e67c0b8682d9d8bd88b293"
+    },
+    "https://learn.chatgpt.com/docs/environments/cloud-environments.md": {
+      "sha256": "341b6a58e1f459e2499e3e747602536f6658c720d0425d98d4a214b9fc81d84a"
+    },
+    "https://learn.chatgpt.com/docs/environments/git-worktrees.md": {
+      "sha256": "d163fcbf82ca40859a5d317060f302cb4c45c57e12aba8a2bce75d85de4b5c6c"
+    },
+    "https://learn.chatgpt.com/docs/environments/modes.md": {
+      "sha256": "64d4650883e84046be1dd727c0af6605be3dc9391006ce920114f68d15e470a8"
+    },
+    "https://learn.chatgpt.com/docs/extend/mcp.md": {
+      "sha256": "431c87bd0e5971e9f0dd8b2d16a828d573657764c44911f808919c43b33bf533"
+    },
+    "https://learn.chatgpt.com/docs/features/codex-micro.md": {
+      "sha256": "5324ce0987446a9e0861374eaeca44d388445dea7cde46f9c0b329bef4f70ec4"
+    },
+    "https://learn.chatgpt.com/docs/github-action.md": {
+      "sha256": "3c3a244ef87fffb064114e388f4c7827b3ddc55b712f5aec50f2719a3cf1bc6a"
+    },
+    "https://learn.chatgpt.com/docs/glossary.md": {
+      "sha256": "f8408331c0e9bb3039c4c98f02311701d4a350d597ef033bd36da07cf59fecba"
+    },
+    "https://learn.chatgpt.com/docs/hipaa-configuration.md": {
+      "sha256": "308f6e3b696f18652844284725cfe649f0ac63287e2d81ac728a02683a03466f"
+    },
+    "https://learn.chatgpt.com/docs/hooks.md": {
+      "sha256": "724881d81f1a9fdb35ea42d4851a11b1f6606bbc6e9d2d05c1e8c466fc25c630"
+    },
+    "https://learn.chatgpt.com/docs/import.md": {
+      "sha256": "34893c4daf7be033d4313dc188b3b0e5b89c11f2899d5a3e3cdbe8108f31fac7"
+    },
+    "https://learn.chatgpt.com/docs/linux/linux-app.md": {
+      "sha256": "82b5e912a89b1e11e428ec021fd11e67f93024f5095ecf34044a7bf208f48105"
+    },
+    "https://learn.chatgpt.com/docs/long-running-work.md": {
+      "sha256": "14bba6e57c9bae8bf37b289ef369a4c59863c07f95037fe3d37143b14057246b"
+    },
+    "https://learn.chatgpt.com/docs/models.md": {
+      "sha256": "4ec433ea907935c05961dfc6617f314e8d04e60c571be30587f2ce415710f428"
+    },
+    "https://learn.chatgpt.com/docs/non-interactive-mode.md": {
+      "sha256": "c83fe9259825a206d1d4f7a0ac669e5697d270ce2bebd28c5d36ad829c9a2a08"
+    },
+    "https://learn.chatgpt.com/docs/permission-modes.md": {
+      "sha256": "569d287a163eaf664b60802451e05a082d2843cc3c405af9cfb0782e63181530"
+    },
+    "https://learn.chatgpt.com/docs/permissions.md": {
+      "sha256": "efd27769ace3daafef5be62e1f3d605fd918baeafe0fa0e77466a619c206250f"
+    },
+    "https://learn.chatgpt.com/docs/personalize.md": {
+      "sha256": "750d2692106c063e655a06720574932579dcb4bbd5f74ba2feeef912119b38b0"
+    },
+    "https://learn.chatgpt.com/docs/plugins.md": {
+      "sha256": "817a7ddbff1cb7236e18b3b303b21cdc18dac155676077f430189d1f71a5755f"
+    },
+    "https://learn.chatgpt.com/docs/pricing.md": {
+      "sha256": "a24cb2c8bb026f4dec45f36e9452ecca3be20d30ced987ed61cc95c540654c1e"
+    },
+    "https://learn.chatgpt.com/docs/projects.md": {
+      "sha256": "2492a9886d932e82999f827b963558927dbf952e06494344a3ff329526dc7007"
+    },
+    "https://learn.chatgpt.com/docs/prompting.md": {
+      "sha256": "a139e2b119c9f6e2adb44ed6e854dd1cb2c48b1109b70812f3d5b4e597a86e14"
+    },
+    "https://learn.chatgpt.com/docs/reference/slash-commands.md": {
+      "sha256": "fe0c42252e9043123587703002aa3b34a2b2a945b57a6cc6c128ce70bb07dea8"
+    },
+    "https://learn.chatgpt.com/docs/reference/troubleshooting.md": {
+      "sha256": "a1605679bf1c7a289de778103afedee7702153f4c4689fb8f84ee43b69c1d51f"
+    },
+    "https://learn.chatgpt.com/docs/sandboxing.md": {
+      "sha256": "2cb4a84956c5b8fd5c2e1068d1f15faa44e7ec083a5d69974f81146917ed15af"
+    },
+    "https://learn.chatgpt.com/docs/sandboxing/auto-review.md": {
+      "sha256": "3a6de6d1e8efcab25176e5d575dae8b66ec6d13e6c26bc534a1f625592e4e6d9"
+    },
+    "https://learn.chatgpt.com/docs/security/cli.md": {
+      "sha256": "66498df54ad45d6d6a3eb5aaffb278a57ae52e1ea957df89cdcae86380de00a5"
+    },
+    "https://learn.chatgpt.com/docs/security/cli/reference.md": {
+      "sha256": "970577ae34877d176cebdced13f5884486a83e3f6c0e51083767c9277ab316c3"
+    },
+    "https://learn.chatgpt.com/docs/security/plugin.md": {
+      "sha256": "2ca7d69936887c726f1dd29ffd9ca156d86180789b2eca17ddc2ec09e05d4bb3"
+    },
+    "https://learn.chatgpt.com/docs/security/plugin/changelog.md": {
+      "sha256": "1e51221188cb3963b47fab2c24bff17bb5f050a0524b1fb913b8a248cd0d03c8"
+    },
+    "https://learn.chatgpt.com/docs/security/plugin/deep-scans.md": {
+      "sha256": "971018b7c59e20cd3392b92fd0ec826d31351781daeeedbe225e60c06a02dcba"
+    },
+    "https://learn.chatgpt.com/docs/third-party/github.md": {
+      "sha256": "716a6dc89cf52853894defcc3d95497dc3736000cb70542086f810d2a2ca8a86"
+    },
+    "https://learn.chatgpt.com/docs/third-party/gitlab.md": {
+      "sha256": "7f4a67cc170622d9d8b382946a38c2afa37d3084686aebcd2151254da09e0845"
+    },
+    "https://learn.chatgpt.com/docs/use-chatgpt.md": {
+      "sha256": "53cc375d4167155c9c915f755ba2325be231dffb90f714d3e5670536eec69a8c"
+    },
+    "https://learn.chatgpt.com/docs/whats-new.md": {
+      "sha256": "ec27190487b37575192a4281d580ae66a2bce614a324865d976ecab692bcbe63"
+    },
+    "https://learn.chatgpt.com/docs/windows/windows-sandbox.md": {
+      "sha256": "294f0c8de1d2201ba562ccb88367a21bce2f2472f65f4dc8486b7c0b2e3f3efc"
+    }
+  },
+  "schema_version": 1,
+  "versions": {
+    "claude-code": {
+      "version": "2.1.289"
+    },
+    "codex-cli": {
+      "version": "0.160.0"
+    },
+    "copilot-cli": {
+      "version": "1.0.91"
+    },
+    "copilot-vscode": {
+      "version": "1.140"
+    },
+    "cursor": {
+      "version": "2026-09-23"
+    },
+    "gemini-cli": {
+      "version": "0.62.0"
+    }
+  }
+}

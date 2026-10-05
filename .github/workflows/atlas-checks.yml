@@ -1,0 +1,91 @@
+########################################################################
+# atlas-checks.yml — the harness atlas stays internally consistent.
+#
+# Runs when anything under the atlas directory changes: the data validates, the HTML pages
+# and the markdown are exactly what the renderers write from the data, and the tool tests
+# pass. It carries a `paths:` filter, which is only allowed because it is NOT a required
+# check: AGENTS.md "Required status checks - never add paths: to a required workflow".
+#
+# ⛔ THIS WORKFLOW MUST NEVER BECOME A REQUIRED STATUS CHECK. With the path filter, a
+# PR that touches nothing under the atlas would wait on it forever. The ruleset half is
+# re-measured below on every run.
+#
+# The planted-error half of the audit (a gate must fail on a known-bad input) is the unit
+# tests plus the explicit stale-file step below: a markdown file with one stray character
+# must make `render_md.py --check` fail.
+########################################################################
+name: Atlas checks
+
+on:
+  pull_request:
+    paths:
+      - "docs/research/2026-10-04-coding-agent-harness-atlas/**"
+      - ".github/workflows/atlas-checks.yml"
+  push:
+    branches: [main]
+    paths:
+      - "docs/research/2026-10-04-coding-agent-harness-atlas/**"
+      - ".github/workflows/atlas-checks.yml"
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: atlas-checks-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  atlas:
+    name: Atlas data validates, pages are current, tool tests pass
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    defaults:
+      run:
+        working-directory: docs/research/2026-10-04-coding-agent-harness-atlas/_tools
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Data validates
+        run: python3 validate.py
+
+      - name: HTML pages are what the renderer writes
+        run: python3 render.py --check
+
+      - name: Markdown is what the renderer writes
+        run: python3 render_md.py --check
+
+      - name: A stale markdown file must FAIL the check (known-bad fixture)
+        run: |
+          set -u
+          tmp="$(mktemp -d)"
+          cp -r ../md "$tmp/md"
+          echo "x" >> "$tmp/md/register.md"
+          if python3 render_md.py --check --out "$tmp/md"; then
+            echo "::error::render_md.py --check accepted a stale file"
+            exit 1
+          fi
+          echo "OK: the stale file was caught."
+
+      - name: Tool tests
+        run: python3 -m unittest discover -s tests
+
+      # ── ⛔ RE-MEASURE THE RULESET CLAIM (see the header). Inconclusive is not OK.
+      - name: Assert this workflow is NOT a required status check
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -uo pipefail
+          if ! rules="$(gh api "repos/${GITHUB_REPOSITORY}/rulesets" 2>&1)"; then
+            echo "::warning::could not read branch rulesets ($rules) - assertion inconclusive, not OK"
+            exit 0
+          fi
+          if grep -q 'Atlas data validates' <<<"$rules"; then
+            echo "::error::This workflow appears in a branch ruleset; with its paths filter it would hang PRs."
+            exit 1
+          fi
+          echo "OK: the atlas checks are not named in any branch ruleset."

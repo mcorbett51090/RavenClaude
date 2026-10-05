@@ -48,5 +48,54 @@ python3 docs/research/2026-10-04-coding-agent-harness-atlas/_tools/render_md.py 
 ```
 
 `render.py` and `render_md.py` rebuild every page from [data/](data/cells/claude-code.json) only; the pages
-and the markdown are generated, so edit the data, not the output. No CI workflow runs these checks yet, so run
-them before you commit a data change. The tool tests are under `_tools/tests` (`python3 -m unittest discover -s tests`).
+and the markdown are generated, so edit the data, not the output. The `Atlas checks` workflow runs these
+three checks and the tool tests on every pull request that touches this directory (it is not a required
+check: it carries a `paths:` filter).
+
+## Keeping it current: the watch
+
+The atlas is a snapshot (2026-10-04); vendors ship often. `_tools/watch.py` re-fetches every page the atlas
+cites and compares it with the stored quotes and with a rolling baseline,
+[data/watch-baseline.json](data/watch-baseline.json). It spends no model tokens.
+
+```
+python3 docs/research/2026-10-04-coding-agent-harness-atlas/_tools/watch.py check --out /tmp/atlas-watch
+python3 docs/research/2026-10-04-coding-agent-harness-atlas/_tools/watch.py accept --report /tmp/atlas-watch/report.json
+```
+
+`check` writes `report.json` and `report.md` and exits 0 CLEAN, 1 MATERIAL or 3 UNKNOWN. Material: a cited
+quote no longer on its page, a cited page gone, an in-scope page added to or removed from an index, a
+changelog entry naming a lever. Information only: a version bump, a page that changed with its quotes
+intact. UNKNOWN means a host could not be reached and is never reported as "no change". `accept` writes the
+baseline the last check saw and refuses a MATERIAL or UNKNOWN report unless you pass `--force`; accept in a
+pull request after the affected cells were revised. A run takes about 2.5 minutes.
+
+What it cannot see: docs drift is not behaviour drift (a page can change while the product does not, and
+the reverse); undocumented changes; Grok Build and Grok Bot have no version source, so they get page hashes
+only; Gemini CLI and Copilot CLI have no changelog page in the evidence set, so they get the version only.
+
+- **On a schedule:** `.github/workflows/atlas-watch.yml` runs it every Monday, uploads the report, and opens
+  or updates one `atlas-watch` issue only for material findings. It never commits.
+- **As the harness is used:** `_tools/atlas_nudge.py` adds one line at session start when the Claude Code
+  you run differs from the version the atlas was written against. It reads a local file, starts no process
+  and always exits 0. It is marketplace-only; register it in this repository's `.claude/settings.json` (add
+  a group to the `SessionStart` array):
+
+  ```json
+  {
+    "matcher": "startup",
+    "hooks": [
+      {
+        "type": "command",
+        "command": "python3 \"${CLAUDE_PROJECT_DIR}/docs/research/2026-10-04-coding-agent-harness-atlas/_tools/atlas_nudge.py\"",
+        "timeout": 5,
+        "comment": "Marketplace-ONLY (not in any plugin hooks.json). Says one line when the atlas was written against a different Claude Code version than this session runs. Fail-open, no process, no network."
+      }
+    ]
+  }
+  ```
+
+- **Flag probes:** `_tools/probe_flags.py --out DIR` checks every `cli_flag` lever literal against the
+  `--help` of the CLIs installed on this machine. It needs the product to name itself in its help text
+  (a positive control), reports "not installed, not checked" for the rest, and treats "not in the top-level
+  help" as unproven rather than removed. Results go to `--out`, never into the atlas evidence. The tool tests are under `_tools/tests` (`python3 -m unittest discover -s tests`).

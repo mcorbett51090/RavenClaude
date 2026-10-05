@@ -407,6 +407,8 @@ class Atlas:
 
         snapshot = _read(data_dir / "snapshot.json", False)
         self.snapshot = snapshot if isinstance(snapshot, dict) else {}
+        watch = _read(data_dir / "watch-baseline.json", False)
+        self.watch = watch if isinstance(watch, dict) else {}
         self.columns = {}
         for column in as_list(self.snapshot.get("columns")):
             if isinstance(column, dict):
@@ -868,7 +870,9 @@ def render_levers(atlas):
         else:
             where = NODATA_INLINE
         basis = esc(task.get("basis")) if task.get("basis") else NODATA_INLINE
-        if task.get("basis") != "capability-fact" and (task.get("basis") or isinstance(pointer, dict)):
+        if task.get("basis") != "capability-fact" and (
+            task.get("basis") or isinstance(pointer, dict)
+        ):
             basis += ' <span class="badge">judgment, not measured</span>'
         refs = []
         for ref in as_list(task.get("lever_settings")):
@@ -1091,6 +1095,40 @@ def count_row(atlas, sid, page):
     return (None, [th(name, "row")] + [td(str(n)) for n in numbers])
 
 
+def watch_versions(atlas):
+    """``{column id: version seen at the last accepted watch run, or None}``."""
+    seen = as_dict(atlas.watch.get("versions"))
+    return {sid: as_dict(seen.get(sid)).get("version") for sid in atlas.surface_ids}
+
+
+def freshness_block(atlas):
+    out = [heading(2, "Freshness")]
+    accepted = atlas.watch.get("accepted")
+    if not accepted:
+        out.append(
+            "<p>No watch baseline is recorded yet. <code>python3 _tools/watch.py check --out DIR</code> "
+            "re-fetches every cited page and compares it with the stored quotes.</p>"
+        )
+        return "\n".join(out)
+    out.append(
+        f"<p>Last accepted watch run: {time_html(accepted)}. A watch run re-fetches every cited page "
+        "and compares it with the stored quotes; a page can change while the product does not, and "
+        "the reverse. Run <code>python3 _tools/watch.py check --out DIR</code> for the current state.</p>"
+    )
+    seen = watch_versions(atlas)
+    head = [th(c) for c in ("Column", "Version in the atlas", "Version at the last accepted run")]
+    rows = []
+    for sid in atlas.surface_ids:
+        col = as_dict(atlas.columns.get(sid))
+        atlas_version = esc(col.get("version")) if col.get("version") else "not recorded"
+        run_version = esc(seen[sid]) if seen[sid] else "no version source"
+        rows.append(
+            (None, [th(esc(atlas.surface_name(sid)), "row"), td(atlas_version), td(run_version)])
+        )
+    out.append(table("Version in the atlas and at the last accepted watch run", head, rows))
+    return "\n".join(out)
+
+
 def render_index(atlas):
     page = "index.html"
     snap = atlas.snapshot
@@ -1113,6 +1151,7 @@ def render_index(atlas):
         name = local_link(page, atlas.harness_path(s["id"]), atlas.surface_name(s["id"]))
         rows.append((None, [th(name, "row"), td(f"<code>{esc(s['id'])}</code>"), *cells]))
     body.append(table("Columns and snapshot", head, rows))
+    body.append(freshness_block(atlas))
     body.append(
         f'<p class="signal"><strong>Success signal:</strong> {esc(success_signal(atlas))}</p>'
     )
