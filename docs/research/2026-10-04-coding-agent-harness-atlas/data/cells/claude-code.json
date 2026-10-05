@@ -2,6 +2,246 @@
  "surface": "claude-code",
  "cells": [
   {
+   "id": "claude-code/F01.loop-shape",
+   "surface": "claude-code",
+   "row": "F01.loop-shape",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-claude-code-00426",
+    "E-claude-code-00172",
+    "E-claude-code-00752"
+   ],
+   "value": "A turn of the agent loop runs from receiving a prompt to producing a response. In the SDKs, read-only tools (like Read, Glob, Grep, and MCP tools marked as read-only) can run concurrently; tools that modify state (like Edit, Write, Bash) run sequentially. query() creates the agentic loop and returns an async iterator used to stream messages."
+  },
+  {
+   "id": "claude-code/F01.turn-limits",
+   "surface": "claude-code",
+   "row": "F01.turn-limits",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-claude-code-00536",
+    "E-claude-code-00399",
+    "E-claude-code-07069",
+    "E-claude-code-00902"
+   ],
+   "value": "max_turns (Python) and maxTurns (TypeScript) cap agentic turns (tool-use round trips); a session that reaches its turn limit ends with a result message of subtype error_max_turns. The CLI flag --max-turns limits agentic turns and exits with an error when the limit is reached.",
+   "limitation": "The --max-turns CLI flag is \"print mode only\" and has \"No limit by default\"; \"A session does not time out on its own\" (no top-level session timeout)."
+  },
+  {
+   "id": "claude-code/F01.tool-inventory",
+   "surface": "claude-code",
+   "row": "F01.tool-inventory",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-claude-code-00350",
+    "E-claude-code-00858",
+    "E-claude-code-01460",
+    "E-claude-code-00925"
+   ],
+   "value": "Built-in tools include Bash, Read, Write, Edit, Glob, Grep, WebFetch and Agent, and others. Claude invokes subagents through the Agent tool and calls the AskUserQuestion tool to ask a question; if you specify a tools array, include AskUserQuestion. In the SDK, core built-in tools such as Bash, Read, and Edit load upfront.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "claude-code/F01.shell-tool",
+   "surface": "claude-code",
+   "row": "F01.shell-tool",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-claude-code-00163",
+    "E-claude-code-07964",
+    "E-claude-code-00696",
+    "E-claude-code-06852"
+   ],
+   "value": "The Bash tool runs shell commands, scripts and git operations. Foreground command timeout defaults to 120000 ms (BASH_DEFAULT_TIMEOUT_MS), and the timeout input is capped at 600000 by default, with higher values clamped. Aliases, functions and shell options captured at startup are applied by the Bash tool to each command.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "claude-code/F01.file-edit-tools",
+   "surface": "claude-code",
+   "row": "F01.file-edit-tools",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-claude-code-00162",
+    "E-claude-code-00702",
+    "E-claude-code-00456",
+    "E-claude-code-06299"
+   ],
+   "value": "Built-in file tools are Read, Edit and Write, to read, modify and create files. Edit takes a replace_all option (default False) to replace all occurrences. Edit(path) permission rules govern all built-in tools that write files, including Write and NotebookEdit. Only direct file edits made through Claude's file editing tools are tracked.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "claude-code/F01.web-tools",
+   "surface": "claude-code",
+   "row": "F01.web-tools",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-claude-code-00164",
+    "E-claude-code-08062",
+    "E-claude-code-01994",
+    "E-claude-code-00764"
+   ],
+   "value": "WebSearch and WebFetch search the web and fetch and parse pages. Search results are summarized rather than passing raw content directly into the context. CLAUDE_CODE_DISABLE_WEB_FETCH=1 turns off WebFetch while WebSearch stays available (requires Claude Code v2.1.285 or later).",
+   "limitation": "The WebSearch tool is not available on Amazon Bedrock."
+  },
+  {
+   "id": "claude-code/F02.context-window-size",
+   "surface": "claude-code",
+   "row": "F02.context-window-size",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-claude-code-07422",
+    "E-claude-code-06778",
+    "E-claude-code-07026"
+   ],
+   "value": "Fable models, Sonnet 5 and later, Opus 4.6 and later, and Sonnet 4.6 support a 1 million token context window; see Extended context for availability by plan and how to select a [1m] model. The auto-compact window can be set with CLAUDE_CODE_AUTO_COMPACT_WINDOW, or with /autocompact and a token count where the variable isn't set, or per session with --autocompact.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "claude-code/F02.auto-compaction",
+   "surface": "claude-code",
+   "row": "F02.auto-compaction",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-claude-code-02218",
+    "E-claude-code-00195",
+    "E-claude-code-00339"
+   ],
+   "value": "Claude Code automatically compacts conversation history when you approach context limits, which preserves important code and decisions while freeing space. In the SDK, it summarizes older history, keeping recent exchanges and key decisions, and emits a system message with subtype compact_boundary. A PreCompact hook fires on a compaction request.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "claude-code/F02.manual-compaction",
+   "surface": "claude-code",
+   "row": "F02.manual-compaction",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-claude-code-07204",
+    "E-claude-code-02220",
+    "E-claude-code-00200"
+   ],
+   "value": "/compact summarizes the conversation to free space and accepts optional instructions, like /compact Focus on the API changes. In the SDK, sending /compact as a prompt string triggers compaction on demand.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "claude-code/F02.context-inclusion",
+   "surface": "claude-code",
+   "row": "F02.context-inclusion",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-claude-code-00190",
+    "E-claude-code-00321",
+    "E-claude-code-00816"
+   ],
+   "value": "The context window accumulates the system prompt, tool definitions, conversation history, tool inputs and tool outputs. Tool search is on by default and defers SDK MCP tools: Claude sees each tool's name and loads its full schema on demand. A subagent's intermediate tool calls and results stay inside it; only its final message returns to the parent.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "claude-code/F02.persistent-memory",
+   "surface": "claude-code",
+   "row": "F02.persistent-memory",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-claude-code-09433",
+    "E-claude-code-10565",
+    "E-claude-code-07275",
+    "E-claude-code-08020"
+   ],
+   "value": "Claude can persist learnings across sessions using auto memory: notes Claude writes for itself based on your corrections and preferences, stored per git repository under ~/.claude/projects/. The first 200 lines or 25 KB of the MEMORY.md index loads at the start of every session. /memory can enable or disable auto memory. CLAUDE_CODE_DISABLE_AUTO_MEMORY=1 disables it."
+  },
+  {
+   "id": "claude-code/F02.memory-scope-loading",
+   "surface": "claude-code",
+   "row": "F02.memory-scope-loading",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-claude-code-09433",
+    "E-claude-code-11208",
+    "E-claude-code-07986"
+   ],
+   "value": "Auto memory is stored per git repository under ~/.claude/projects/; all worktrees share one directory, and the first 200 lines or 25 KB of the MEMORY.md index load at the start of every session. CLAUDE.md and CLAUDE.local.md files above the working directory load at launch; subdirectory files load on demand. By default, --add-dir directories do not load memory files."
+  },
+  {
+   "id": "claude-code/F03.auto-loaded-files",
+   "surface": "claude-code",
+   "row": "F03.auto-loaded-files",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-claude-code-00192",
+    "E-claude-code-00127",
+    "E-claude-code-00595"
+   ],
+   "value": "CLAUDE.md files load at session start via settingSources, with full content in every request (prompt-cached, so only the first request pays full cost). A managed policy CLAUDE.md is loaded in every session and can't be excluded. In the Python SDK, project CLAUDE.md instructions load when \"project\" is included in setting_sources.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "claude-code/F03.import-syntax",
+   "surface": "claude-code",
+   "row": "F03.import-syntax",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-claude-code-11220",
+    "E-claude-code-11221",
+    "E-claude-code-11226",
+    "E-claude-code-10143"
+   ],
+   "value": "CLAUDE.md files import other files with @path/to/import; imported files load into context at launch. Imported files can recursively import others, to a maximum depth of four hops. External imports trigger an approval dialog the first time they are encountered in a project; if declined, they stay disabled. A CLAUDE.md can import AGENTS.md."
+  },
+  {
+   "id": "claude-code/F03.precedence-scoping",
+   "surface": "claude-code",
+   "row": "F03.precedence-scoping",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-claude-code-09271",
+    "E-claude-code-11202"
+   ],
+   "value": "CLAUDE.md files are additive: all levels contribute to context at once. Files from the working directory and above load at launch; subdirectories load as you work in them. Locations load in order from broadest to most specific scope, so a project instruction appears after a user instruction. When instructions conflict, Claude uses judgment to reconcile them.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "claude-code/F03.path-scoped-rules",
+   "surface": "claude-code",
+   "row": "F03.path-scoped-rules",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-claude-code-18688",
+    "E-claude-code-06809",
+    "E-claude-code-09920"
+   ],
+   "value": "Rules are modular instruction files in .claude/rules/ that load alongside CLAUDE.md. Rules without paths: frontmatter load at session start; a rule with YAML paths: frontmatter loads only when Claude reads, writes, or edits a matching file. InstructionsLoaded fires at session start and when files are lazily loaded."
+  },
+  {
+   "id": "claude-code/F03.user-vs-project-scope",
+   "surface": "claude-code",
+   "row": "F03.user-vs-project-scope",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-claude-code-09443",
+    "E-claude-code-07375",
+    "E-claude-code-09283",
+    "E-claude-code-02195"
+   ],
+   "value": "Project-scoped configuration lives in a `.claude/` directory at the project root; user-level defaults are at `~/.claude/`. Global preferences apply to every project and load alongside project instructions at the start of every conversation. CLAUDE.md files at managed, user, and project levels all load in full, and CLAUDE.md can be checked into git so a team can contribute.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
    "id": "claude-code/F04.approval-modes",
    "surface": "claude-code",
    "row": "F04.approval-modes",
@@ -14,6 +254,64 @@
     "E-claude-code-00511"
    ],
    "value": "permission_mode controls how much human oversight you want; the SDK evaluates the active mode with allow and deny rules in a fixed order. Modes named in the docs include acceptEdits, bypassPermissions and dontAsk (which never prompts). set_permission_mode changes the mode for the current session."
+  },
+  {
+   "id": "claude-code/F04.per-tool-rules",
+   "surface": "claude-code",
+   "row": "F04.per-tool-rules",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-claude-code-00123",
+    "E-claude-code-00758",
+    "E-claude-code-00954"
+   ],
+   "value": "Permission rules allow, ask, or deny specific tools and commands (managed `permissions.allow`, `permissions.deny`). Every tool and bash command can be configured to allow, block, or prompt the user for approval. In the SDK, `allowedTools` auto-approves listed tools without prompting and does not restrict Claude to only those tools.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "claude-code/F04.path-scoping",
+   "surface": "claude-code",
+   "row": "F04.path-scoping",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-claude-code-00456",
+    "E-claude-code-09980",
+    "E-claude-code-00377"
+   ],
+   "value": "Scoped `Read` and `Edit` rules take a path pattern; `Edit(path)` rules govern all built-in tools that write files, including `Write` and `NotebookEdit`. In a hook `if` condition, `Edit(src/**)` matches only the `src` directory in the working directory, and `Edit(**/src/**)` matches a `src` directory at any depth.",
+   "limitation": "Hook matchers only match tool names, not file paths or other arguments; a `Write(path)` rule is never matched by the file permission checks."
+  },
+  {
+   "id": "claude-code/F04.command-scoping",
+   "surface": "claude-code",
+   "row": "F04.command-scoping",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-claude-code-00170",
+    "E-claude-code-00539",
+    "E-claude-code-07631",
+    "E-claude-code-02107"
+   ],
+   "value": "Tools can be scoped with rules like `Bash(npm *)` to allow only specific commands. A scoped rule such as `Bash(rm *)` leaves the tool available and denies matching calls in every permission mode, including `bypassPermissions`, for the command as written.",
+   "limitation": "Bash rules match the literal command string, not the underlying executable (a `Bash(rm *)` deny rule doesn't block `/bin/rm` or `find -delete`); a push written as `git -C <dir> push` doesn't match a `git push` rule."
+  },
+  {
+   "id": "claude-code/F04.trust-prompt",
+   "surface": "claude-code",
+   "row": "F04.trust-prompt",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-claude-code-01588",
+    "E-claude-code-07033",
+    "E-claude-code-01550",
+    "E-claude-code-06264"
+   ],
+   "value": "If workspace trust hasn't been accepted for a directory, Claude Code shows the workspace trust dialog; accepting saves trust for the workspace. `--bg` checks workspace trust before starting. A teammate gets an agent definition's tools and instructions only if you've trusted the folder the agent file is in; trusting a parent folder doesn't count. The dialog appears only in the local terminal.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
   },
   {
    "id": "claude-code/F04.bypass-mode",
@@ -41,6 +339,374 @@
     "E-claude-code-00342"
    ],
    "value": "Auto mode uses a model classifier to review actions such as shell commands and network requests, allowing or blocking each one it reviews. The classifier blocks anything irreversible, destructive, or aimed outside your environment. A PermissionDenied hook fires when auto mode denies a tool call."
+  },
+  {
+   "id": "claude-code/F04.config-scope-precedence",
+   "surface": "claude-code",
+   "row": "F04.config-scope-precedence",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-claude-code-00124",
+    "E-claude-code-00014",
+    "E-claude-code-00939"
+   ],
+   "value": "`allowManagedPermissionRulesOnly` makes managed settings the only settings source of permission rules. By default Claude Code reads only the highest-ranked managed source you deliver. `resolveSettings()` resolves the effective settings for a directory using the same merge engine as the CLI, without spawning the CLI.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "claude-code/F05.os-sandbox",
+   "surface": "claude-code",
+   "row": "F05.os-sandbox",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-claude-code-00126",
+    "E-claude-code-12218",
+    "E-claude-code-00392",
+    "E-claude-code-07306"
+   ],
+   "value": "OS-level filesystem and network isolation is offered through managed sandboxing (`sandbox.enabled`, `sandbox.network.allowedDomains`), and `/sandbox` toggles sandbox mode. Sandboxing restricts shell commands' filesystem and network access. Separately, the SDK can run inside a sandboxed container for process isolation, resource limits, network control, and an ephemeral filesystem.",
+   "limitation": "Sandboxing applies only to Bash, PowerShell, and Monitor commands and their child processes; `/sandbox` is available on supported platforms only."
+  },
+  {
+   "id": "claude-code/F05.fs-write-scope",
+   "surface": "claude-code",
+   "row": "F05.fs-write-scope",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-claude-code-00767",
+    "E-claude-code-01453",
+    "E-claude-code-02202"
+   ],
+   "value": "The sandbox runtime uses OS primitives (`bubblewrap` on Linux, `sandbox-exec` on macOS) to restrict read/write access to configured paths; `allowWrite` lists file path patterns to allow write access to (default empty). Sandboxing restricts filesystem and network access, letting Claude work more freely within defined boundaries.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "claude-code/F05.network-policy",
+   "surface": "claude-code",
+   "row": "F05.network-policy",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-claude-code-00126",
+    "E-claude-code-00397",
+    "E-claude-code-00726"
+   ],
+   "value": "Managed sandboxing provides OS-level network isolation with domain allowlists (`sandbox.network.allowedDomains`). For production, outbound traffic can be routed through an egress proxy that enforces domain allowlists, injects credentials, and logs requests. `SandboxSettings` lets the SDK configure network restrictions programmatically.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "claude-code/F05.subprocess-containment",
+   "surface": "claude-code",
+   "row": "F05.subprocess-containment",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-claude-code-12218",
+    "E-claude-code-12582",
+    "E-claude-code-12464"
+   ],
+   "value": "Sandboxing's OS-level enforcement applies to Bash, PowerShell, and Monitor commands and their child processes.",
+   "limitation": "Claude Code runs hooks, MCP servers, and the processes a mod starts outside the sandbox; the mod network policy doesn't cover a program started with `$.process.run`."
+  },
+  {
+   "id": "claude-code/F05.sandbox-override",
+   "surface": "claude-code",
+   "row": "F05.sandbox-override",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-claude-code-00729",
+    "E-claude-code-01433",
+    "E-claude-code-12847",
+    "E-claude-code-11092"
+   ],
+   "value": "`excludedCommands` entries (for example `docker *`, default empty) bypass sandbox restrictions and run unsandboxed automatically without model involvement. Setting `failIfUnavailable` to `false` falls back to unsandboxed execution with a warning on stderr when the sandbox can't start. Commands typed at the `!` shell-mode prompt run unsandboxed in most sessions.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "claude-code/F06.event-catalog",
+   "surface": "claude-code",
+   "row": "F06.event-catalog",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-claude-code-00335",
+    "E-claude-code-00199",
+    "E-claude-code-01524",
+    "E-claude-code-07214"
+   ],
+   "value": "The SDK provides hooks for different stages of agent execution. Lifecycle events include `PreCompact` (receives a `trigger` field, `manual` or `auto`), `TeammateIdle` (when a teammate is about to go idle), and `DirectoryAdded` (runs after a successful `/add-dir`).",
+   "limitation": "Some hooks are available in both SDKs, while others are TypeScript-only."
+  },
+  {
+   "id": "claude-code/F06.handler-types",
+   "surface": "claude-code",
+   "row": "F06.handler-types",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-claude-code-09250",
+    "E-claude-code-09492",
+    "E-claude-code-00268"
+   ],
+   "value": "A hook can be a script, HTTP request, MCP tool call, prompt, or subagent triggered by events. A Stop hook can run a script for deterministic checks or a prompt for model-evaluated ones. SDK hooks are callbacks that fire at specific points in the agent loop.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "claude-code/F06.input-contract",
+   "surface": "claude-code",
+   "row": "F06.input-contract",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-claude-code-09907",
+    "E-claude-code-00354",
+    "E-claude-code-01230"
+   ],
+   "value": "When an event fires and a matcher matches, Claude Code passes JSON context about the event to the hook: for command hooks on stdin, for HTTP hooks as the POST request body. All hook inputs share `session_id`, `cwd`, and `hook_event_name`. Hook input also carries `prompt_id`, a UUID for the current user prompt (requires Claude Code v2.1.196 or later).",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "claude-code/F06.output-blocking",
+   "surface": "claude-code",
+   "row": "F06.output-blocking",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-claude-code-01463",
+    "E-claude-code-00434",
+    "E-claude-code-00271",
+    "E-claude-code-01524"
+   ],
+   "value": "A `PreToolUse` hook runs before the rest of the permission flow and can allow, deny, or modify requests; if it rejects a tool call, the call doesn't execute and Claude receives the rejection message. A `TeammateIdle` hook exits with code 2 to send feedback and keep the teammate working.",
+   "limitation": "A hook that returns `allow` does not skip the deny and ask rules; a `PreToolUse` hook allow also can't approve an `rm` or `rmdir` removal targeting a critical path."
+  },
+  {
+   "id": "claude-code/F06.matchers",
+   "surface": "claude-code",
+   "row": "F06.matchers",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-claude-code-00349",
+    "E-claude-code-07614",
+    "E-claude-code-09711"
+   ],
+   "value": "The `matcher` field matches a different value depending on the hook event: tool-based hooks match the tool name, while `Notification` hooks match the notification type. Use a single string with `|` to match multiple tools (for example `Edit|Write`); a JSON array means the hook never fires. An empty `matcher` on a Notification hook fires on all notification types."
+  },
+  {
+   "id": "claude-code/F06.config-locations",
+   "surface": "claude-code",
+   "row": "F06.config-locations",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-claude-code-07617",
+    "E-claude-code-02205",
+    "E-claude-code-00130"
+   ],
+   "value": "Hooks are configured by editing .claude/settings.json; they are defined under the \"hooks\" key in settings.json, and there is no standalone hooks file for project or user config. Only plugins load a separate hooks/hooks.json. A customization lockdown can block hooks from user and project sources so they come only from plugins or managed settings.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "claude-code/F06.trust-enable",
+   "surface": "claude-code",
+   "row": "F06.trust-enable",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-claude-code-00131",
+    "E-claude-code-13381",
+    "E-claude-code-12239",
+    "E-claude-code-09695"
+   ],
+   "value": "An admin can restrict which hooks run and restrict HTTP hook URLs (allowManagedHooksOnly). Hooks in managed settings run shell commands, so interactive users see a security approval dialog before Claude Code applies them. Passing --settings with disableAllHooks set to true turns hooks off for that run.",
+   "limitation": "Without --bare, a -p session runs the hooks in a project's .claude/settings.json, even in a folder you've never trusted, and shows no workspace trust dialog."
+  },
+  {
+   "id": "claude-code/F07.managed-settings",
+   "surface": "claude-code",
+   "row": "F07.managed-settings",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-claude-code-00566",
+    "E-claude-code-00940",
+    "E-claude-code-00003"
+   ],
+   "value": "Endpoint-managed policy loads regardless of setting_sources; resolveSettings() reads MDM sources (macOS plist, Windows HKLM/HKCU). Server-managed settings are fetched when the session authenticates with an organization credential on an eligible ... Claude Tag sessions in a self-hosted environment still read the managed settings file in the runner image.",
+   "limitation": "Claude Tag sessions run in cloud environments but don't receive server-managed settings"
+  },
+  {
+   "id": "claude-code/F07.policy-lockdown",
+   "surface": "claude-code",
+   "row": "F07.policy-lockdown",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-claude-code-00123",
+    "E-claude-code-01827",
+    "E-claude-code-00597"
+   ],
+   "value": "Admin setup lists permission rules (permissions.allow, permissions.deny) that allow, ask or deny specific tools and commands. Administrators can enforce disableAgentView, which turns off background agents and agent view, through managed settings. Managed policy settings take precedence over programmatic options.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "claude-code/F07.model-allowlist",
+   "surface": "claude-code",
+   "row": "F07.model-allowlist",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-claude-code-00135",
+    "E-claude-code-06453",
+    "E-claude-code-00001"
+   ],
+   "value": "availableModels filters which models appear in the picker; adding enforceAvailableModels also constrains the auto-selected default model. It is also enforced server-side at /v1/messages, so a denied model returns 400 regardless of the client; an empty list denies every model. A cloud session rejects a mid-session switch to a model the allowlist excludes.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "claude-code/F07.identity-sso",
+   "surface": "claude-code",
+   "row": "F07.identity-sso",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-claude-code-00132",
+    "E-claude-code-07821",
+    "E-claude-code-06612",
+    "E-claude-code-08304"
+   ],
+   "value": "Login enforcement restricts login to a specific method or Anthropic organization. Team and Enterprise organizations can require SSO for all users. Developers authenticate with corporate SSO and receive short-lived bearer tokens, so offboarding happens in the IdP. Claude Code has an error for when an organization has disabled API key authentication.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "claude-code/F07.data-retention",
+   "surface": "claude-code",
+   "row": "F07.data-retention",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-claude-code-07596",
+    "E-claude-code-06843",
+    "E-claude-code-01537",
+    "E-claude-code-06787"
+   ],
+   "value": "For Free, Pro and Max accounts, data is used to train new models when the setting is on, including Claude Code use. The default retention period is 30 days and the minimum is 1. Retention of team task lists follows the same cleanupPeriodDays setting you control for session transcripts. Deleting a cloud session permanently removes the session and its data.",
+   "limitation": "The default is 30 days and the minimum is 1; setting 0 fails with a validation error."
+  },
+  {
+   "id": "claude-code/F07.admin-audit",
+   "surface": "claude-code",
+   "row": "F07.admin-audit",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-claude-code-00143",
+    "E-claude-code-07914",
+    "E-claude-code-11715",
+    "E-claude-code-09729"
+   ],
+   "value": "Usage monitoring exports OpenTelemetry metrics and lets admins review what the team is running. On Enterprise plans the Compliance API has activity types for GitHub app linking and unlinking. A monitoring event finds machines on an unexpected managed source or that refused to start. ConfigChange fires when an external process or editor modifies a configuration file."
+  },
+  {
+   "id": "claude-code/F08.skill-format",
+   "surface": "claude-code",
+   "row": "F08.skill-format",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-claude-code-07620",
+    "E-claude-code-06816",
+    "E-claude-code-10015"
+   ],
+   "value": "A skill is a SKILL.md file in its own folder, such as .claude/skills/name/SKILL.md; a bare .claude/skills/name.md file does not appear in /skills. A skill directory lets you bundle reference docs, templates or scripts alongside the prompt. Hooks can be defined in skill frontmatter in the same configuration format as settings hooks."
+  },
+  {
+   "id": "claude-code/F08.discovery-paths",
+   "surface": "claude-code",
+   "row": "F08.discovery-paths",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-claude-code-02206",
+    "E-claude-code-08026",
+    "E-claude-code-00130",
+    "E-claude-code-07295"
+   ],
+   "value": "Skills are SKILL.md files in .claude/skills/. Skills also come from plugins and .claude/commands/. A customization lockdown can restrict skills from user and project sources so they come only from plugins or managed settings. /reload-skills re-scans skill and command directories so skills added or changed on disk become available without restarting.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "claude-code/F08.invocation",
+   "surface": "claude-code",
+   "row": "F08.invocation",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-claude-code-07373",
+    "E-claude-code-07230"
+   ],
+   "value": "Claude gets a list of available skills so it knows what it can invoke; full skill content loads only when Claude uses one. Skills with disable-model-invocation: true are not in that list and stay out of context until you invoke them with /name. One command's entry notes it also activates automatically when your code imports anthropic or @anthropic-ai/sdk."
+  },
+  {
+   "id": "claude-code/F08.resource-loading",
+   "surface": "claude-code",
+   "row": "F08.resource-loading",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-claude-code-00194",
+    "E-claude-code-10581",
+    "E-claude-code-00827"
+   ],
+   "value": "Skill descriptions load at session start as short summaries; full content loads only when a skill is invoked. An AgentDefinition skills list preloads the named skills into the agent's context at startup; unlisted skills remain invocable through the Skill tool.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "claude-code/F08.skill-overrides",
+   "surface": "claude-code",
+   "row": "F08.skill-overrides",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-claude-code-06839",
+    "E-claude-code-09403",
+    "E-claude-code-00083"
+   ],
+   "value": "SKILL.md frontmatter fields include allowed-tools, disallowed-tools, model and effort. When a skill is invoked, Claude can use the tools its allowed-tools frontmatter grants. A level that a skill's effort frontmatter set for the flagged request applies to that turn; later turns run at the level the effort resolution order gives the fallback model.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "claude-code/F09.definition-format",
+   "surface": "claude-code",
+   "row": "F09.definition-format",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-claude-code-02210",
+    "E-claude-code-06823",
+    "E-claude-code-01541"
+   ],
+   "value": "Subagents are defined in .claude/agents/; each markdown file in agents/ defines a subagent with its own system prompt, tool access, and optionally its own model. A subagent type can come from the project, user, managed, or plugin subagent scope, and a definition can be reused as a delegated subagent and as an agent team teammate."
+  },
+  {
+   "id": "claude-code/F09.tool-allowlist",
+   "surface": "claude-code",
+   "row": "F09.tool-allowlist",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-claude-code-00600",
+    "E-claude-code-01542",
+    "E-claude-code-07021",
+    "E-claude-code-07387"
+   ],
+   "value": "AgentDefinition's tools field is an array of allowed tool names; if omitted, the agent inherits every tool available to subagents. A teammate from a subagent definition is limited to the definition's tools list. On the CLI, --tools restricts which tools are available. By default a subagent does not get the Agent tool itself, to prevent recursion.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
   },
   {
    "id": "claude-code/F09.per-agent-model",
@@ -85,6 +751,362 @@
    "limitation": "Two cited pages differ: E-claude-code-00839 says subagents \"can also spawn subagents of their own\"; E-claude-code-07387 says a subagent lacks \"by default the Agent tool itself to prevent recursion\"."
   },
   {
+   "id": "claude-code/F09.built-in-agents",
+   "surface": "claude-code",
+   "row": "F09.built-in-agents",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-claude-code-09483",
+    "E-claude-code-00841",
+    "E-claude-code-07623",
+    "E-claude-code-07972"
+   ],
+   "value": "Built-in subagents include Explore, Plan, and general-purpose. Without a subagent_type, the Agent tool uses the built-in general-purpose subagent, even when you define no agents. The built-in Explore and Plan agents skip CLAUDE.md. Setting CLAUDE_AGENT_SDK_DISABLE_BUILTIN_AGENTS=1 disables built-in subagent types and only applies in non-interactive mode (-p).",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "claude-code/F10.built-in-commands",
+   "surface": "claude-code",
+   "row": "F10.built-in-commands",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-claude-code-00794",
+    "E-claude-code-02132",
+    "E-claude-code-00146",
+    "E-claude-code-01596"
+   ],
+   "value": "Built-in commands execute logic coded into the Claude Code process, for example `/compact`. Commands in the set include `/advisor` (set or change the advisor mid-session and save it as your default), `/auto-mode-setup` (drafts `autoMode.environment` entries from your project and recent sessions) and `/bg` (moves an open session into agent view).",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "claude-code/F10.custom-command-format",
+   "surface": "claude-code",
+   "row": "F10.custom-command-format",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-claude-code-00797",
+    "E-claude-code-12613",
+    "E-claude-code-12393"
+   ],
+   "value": "Custom commands are flat Markdown files in `.claude/commands/` whose filenames become command names; skills are their recommended successor. A command's frontmatter can name a `model` other than the session's, which makes that turn a model switch. In a plugin, `commands/<file>.md` becomes `/<plugin>:<file>`; a subdirectory adds a segment."
+  },
+  {
+   "id": "claude-code/F10.arguments",
+   "surface": "claude-code",
+   "row": "F10.arguments",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-claude-code-06817",
+    "E-claude-code-07235",
+    "E-claude-code-09660"
+   ],
+   "value": "A command file can accept parameters with `$ARGUMENTS`, as in `/fix-issue 123`. Built-in commands also take arguments: `/config` accepts `key=value` pairs to set a setting directly, and `/model`, `/effort`, `/fast`, `/color` and `/rename` accept the value as an argument, for example `/model sonnet` (those argument forms require Claude Code v2.1.205 or later).",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "claude-code/F10.discovery-paths",
+   "surface": "claude-code",
+   "row": "F10.discovery-paths",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-claude-code-09451",
+    "E-claude-code-12392",
+    "E-claude-code-12210",
+    "E-claude-code-07295"
+   ],
+   "value": "You can define custom commands as files in `.claude/commands/`, or install them from a plugin; `commands/` is kept for files moved over from `.claude/commands/`. When an added directory and the project both define a command with the same name, Claude Code runs the project's command. `/reload-skills` re-scans skill and command directories without restarting."
+  },
+  {
+   "id": "claude-code/F10.command-skill-relation",
+   "surface": "claude-code",
+   "row": "F10.command-skill-relation",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-claude-code-06815",
+    "E-claude-code-09451",
+    "E-claude-code-07044"
+   ],
+   "value": "A file at `commands/deploy.md` creates `/deploy` the same way a skill at `skills/deploy/SKILL.md` does, and both can be auto-invoked by Claude. Skills use a directory with SKILL.md, letting you bundle supporting files alongside; skills are the recommended way to package multi-step commands. `--disable-slash-commands` disables all skills and commands for a session.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "claude-code/F11.packaging-format",
+   "surface": "claude-code",
+   "row": "F11.packaging-format",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-claude-code-12328",
+    "E-claude-code-12371",
+    "E-claude-code-09469"
+   ],
+   "value": "A plugin is a directory of components, usually with a manifest: a JSON file at `.claude-plugin/plugin.json` giving its name and optionally a version, a description and other metadata. Claude Code loads a plugin without a manifest; inside the file, only `name` is required. A plugin bundles skills, hooks, subagents and MCP servers as a single installable unit.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "claude-code/F11.component-types",
+   "surface": "claude-code",
+   "row": "F11.component-types",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-claude-code-07657",
+    "E-claude-code-06963",
+    "E-claude-code-06842"
+   ],
+   "value": "Plugins add skills, agents, MCP servers and more; the Claude Security plugin adds one command, `/claude-security`.",
+   "limitation": "Agents shipped in a plugin honor a subset of the subagent fields."
+  },
+  {
+   "id": "claude-code/F11.install-sources",
+   "surface": "claude-code",
+   "row": "F11.install-sources",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-claude-code-06569",
+    "E-claude-code-00989",
+    "E-claude-code-07000"
+   ],
+   "value": "Claude Code registers the official marketplace `claude-plugins-official` the first time a developer starts an interactive terminal session, downloading the catalog from `downloads.claude.ai` and, if that fails, cloning it from `github.com`. The Agent SDK `plugins` option loads custom plugins from local paths. `claude plugin` manages plugins from the CLI.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "claude-code/F11.versioning-update",
+   "surface": "claude-code",
+   "row": "F11.versioning-update",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-claude-code-12328",
+    "E-claude-code-07293",
+    "E-claude-code-10011"
+   ],
+   "value": "A plugin manifest can add a version. `/reload-plugins` reloads all active plugins to apply pending changes without restarting. `${CLAUDE_PLUGIN_DATA}` is the plugin's persistent data directory, for dependencies and state that should survive plugin updates.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "claude-code/F11.trust-signing",
+   "surface": "claude-code",
+   "row": "F11.trust-signing",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-claude-code-00129",
+    "E-claude-code-12585",
+    "E-claude-code-12338"
+   ],
+   "value": "Admins can restrict which marketplace sources users can add and install from. A marketplace's name places it in one of three tiers (official, community, third-party), and Claude Code accepts the official and community names only for marketplaces sourced from `github.com/anthropics/` repositories. Anything a plugin runs, it runs as the user."
+  },
+  {
+   "id": "claude-code/F11.marketplace-hosting",
+   "surface": "claude-code",
+   "row": "F11.marketplace-hosting",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-claude-code-12368",
+    "E-claude-code-14358",
+    "E-claude-code-12586"
+   ],
+   "value": "A plugin's marketplace entry is found by walking up from the plugin directory to a `.claude-plugin/marketplace.json` that lists the plugin. Official and community marketplace names are accepted only for marketplaces sourced from `github.com/anthropics/` repositories.",
+   "limitation": "`extraKnownMarketplaces` applies only after each teammate trusts the folder."
+  },
+  {
+   "id": "claude-code/F12.client-support",
+   "surface": "claude-code",
+   "row": "F12.client-support",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-claude-code-02203",
+    "E-claude-code-00408",
+    "E-claude-code-00802",
+    "E-claude-code-00979"
+   ],
+   "value": "Run `claude mcp add` with a server name and URL or command to connect external tools. MCP tool names start with `mcp__`. SDK sessions that configure MCP servers can also expose MCP prompts as commands. With no SDK elicitation callback, MCP requests for user input that no hook handles are declined automatically.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "claude-code/F12.transports",
+   "surface": "claude-code",
+   "row": "F12.transports",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-claude-code-00517",
+    "E-claude-code-09463",
+    "E-claude-code-00318",
+    "E-claude-code-06997"
+   ],
+   "value": "MCP servers can use stdio, SSE or HTTP transports. A local stdio server runs as a process Claude Code starts from the `command` and `args` fields of its configuration. An SDK MCP server for custom tools runs in-process inside the application, not as a separate process. `claude mcp login` works for HTTP, SSE and claude.ai connector servers.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "claude-code/F12.config-scope",
+   "surface": "claude-code",
+   "row": "F12.config-scope",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-claude-code-07626",
+    "E-claude-code-06788",
+    "E-claude-code-00212"
+   ],
+   "value": "Project MCP config goes at the repository root as `.mcp.json`, not inside `.claude/`, with servers under the `mcpServers` key; `.mcp.json` holds project-scoped MCP servers, shared with your team. Admins can deploy a fixed set of servers with `managedMcpServers` or a deployed `managed-mcp.json` file.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "claude-code/F12.auth",
+   "surface": "claude-code",
+   "row": "F12.auth",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-claude-code-06997",
+    "E-claude-code-07273",
+    "E-claude-code-08256",
+    "E-claude-code-06791"
+   ],
+   "value": "`claude mcp login <name>` runs a server's OAuth flow without opening the `/mcp` panel, for HTTP, SSE and claude.ai connector servers; `/mcp` also manages OAuth authentication. `MCP_CLIENT_SECRET` supplies the OAuth client secret for servers that need pre-configured credentials. `.mcp.json` takes environment variable references for secrets, such as `${NOTION_TOKEN}`."
+  },
+  {
+   "id": "claude-code/F12.tool-filtering",
+   "surface": "claude-code",
+   "row": "F12.tool-filtering",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-claude-code-00403",
+    "E-claude-code-00453",
+    "E-claude-code-00824",
+    "E-claude-code-07370"
+   ],
+   "value": "MCP tools are named `mcp__<server-name>__<tool-name>`. Deny rules support tool-name globs: `*` matches every tool and `mcp__*` matches every MCP tool across all servers. An agent's `disallowedTools` also accepts `mcp__server` or `mcp__server__*` to remove every tool from that server. By default, MCP tool schemas stay deferred and load on demand via tool search."
+  },
+  {
+   "id": "claude-code/F12.server-trust",
+   "surface": "claude-code",
+   "row": "F12.server-trust",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-claude-code-00128",
+    "E-claude-code-07628",
+    "E-claude-code-00402",
+    "E-claude-code-06264"
+   ],
+   "value": "Admins can restrict which MCP servers users can add or connect to (allowedMcpServers, deniedMcpServers, allowManagedMcpServersOnly, managedMcpServers). Project-scoped MCP servers require a one-time approval, visible in /mcp. MCP tools require explicit permission before Claude can use them.",
+   "limitation": "Project trust and MCP server consent dialogs don't relay; those only appear in the local terminal."
+  },
+  {
+   "id": "claude-code/F13.resume-continue",
+   "surface": "claude-code",
+   "row": "F13.resume-continue",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-claude-code-00957",
+    "E-claude-code-00490",
+    "E-claude-code-00810",
+    "E-claude-code-00860"
+   ],
+   "value": "The SDK continue option continues the most recent conversation. A Python query() call starts fresh unless you pass continue_conversation=True or resume in ClaudeAgentOptions. After /clear, the previous conversation stays on disk and can be reopened by passing its session ID to resume. A resumed subagent retains its full conversation history.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "claude-code/F13.fork-branch",
+   "surface": "claude-code",
+   "row": "F13.fork-branch",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-claude-code-07054",
+    "E-claude-code-00966",
+    "E-claude-code-07208"
+   ],
+   "value": "With --resume or --continue, --fork-session creates a new session ID instead of reusing the original; the SDK forkSession option does the same when resuming with resume. /branch branches the current conversation to try a different direction, and /fork copies it into a new background session."
+  },
+  {
+   "id": "claude-code/F13.checkpoint-rewind",
+   "surface": "claude-code",
+   "row": "F13.checkpoint-rewind",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-claude-code-02216",
+    "E-claude-code-00962",
+    "E-claude-code-06298",
+    "E-claude-code-06847"
+   ],
+   "value": "Esc twice or /rewind opens the rewind menu to restore previous conversation and code state, or summarize from a selected message. The SDK enableFileCheckpointing option enables file change tracking for rewinding. Pre-edit file snapshots are kept for the 100 most recent checkpoints.",
+   "limitation": "Checkpointing does not track files modified by Bash commands."
+  },
+  {
+   "id": "claude-code/F13.transcript-storage",
+   "surface": "claude-code",
+   "row": "F13.transcript-storage",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-claude-code-02230",
+    "E-claude-code-00775",
+    "E-claude-code-00866",
+    "E-claude-code-07252"
+   ],
+   "value": "Claude Code saves conversations locally. The subprocess writes each batch of transcript entries to local disk first; the SDK then forwards it to your store's append(), so the store mirrors the local transcript. Subagent transcripts are stored in separate files. /export exports the current conversation as plain text.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "claude-code/F13.session-listing",
+   "surface": "claude-code",
+   "row": "F13.session-listing",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-claude-code-07298",
+    "E-claude-code-06981",
+    "E-claude-code-00499"
+   ],
+   "value": "/rename renames the current session and shows the name on the prompt bar, or auto-generates a name from conversation history if none is given. claude -r resumes a session by ID or name. The SDK list_sessions() lists past sessions with metadata, filtered by project directory or across all projects.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "claude-code/F13.cross-surface-handoff",
+   "surface": "claude-code",
+   "row": "F13.cross-surface-handoff",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-claude-code-06736",
+    "E-claude-code-07210",
+    "E-claude-code-07043",
+    "E-claude-code-07758"
+   ],
+   "value": "--teleport and /teleport pull a cloud session into the terminal. --desktop with --continue, or --resume plus a session ID, opens that session in Desktop. In Desktop, choosing Cloud continues the session as a cloud session with the conversation carried over as a summary.",
+   "limitation": "From the CLI, session handoff is one-way: you can pull cloud sessions into your terminal with `--teleport`, but you can't push an existing terminal session to the cloud."
+  },
+  {
+   "id": "claude-code/F14.worktree-isolation",
+   "surface": "claude-code",
+   "row": "F14.worktree-isolation",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-claude-code-01960",
+    "E-claude-code-06793",
+    "E-claude-code-07339"
+   ],
+   "value": "Worktrees give each session a separate git checkout, so parallel sessions never edit the same files. Claude creates a git worktree via --worktree, the EnterWorktree tool, or subagent isolation: worktree. Each worktree is a separate checkout on its own branch, created from an existing commit, so the repository needs at least one commit first.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
    "id": "claude-code/F14.concurrency-caps",
    "surface": "claude-code",
    "row": "F14.concurrency-caps",
@@ -127,6 +1149,20 @@
    "limitation": "\"There's no limit on the total number of subagents Claude can spawn over a session\" (E-claude-code-14937); the cap variable was \"Removed in v2.1.224\" (E-claude-code-08104). The 1,000-agent total applies per workflow run (E-claude-code-15872)."
   },
   {
+   "id": "claude-code/F14.multi-session-coordination",
+   "surface": "claude-code",
+   "row": "F14.multi-session-coordination",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-claude-code-01954",
+    "E-claude-code-01592",
+    "E-claude-code-02237"
+   ],
+   "value": "Claude Code has five ways to work on several tasks at once: subagents, agent view, agent teams, dynamic workflows, and projects. In agent view every prompt starts its own new session, so several can run in parallel. Cross-session messaging lets sessions you run yourself pass findings to each other.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
    "id": "claude-code/F15.background-tasks",
    "surface": "claude-code",
    "row": "F15.background-tasks",
@@ -139,6 +1175,164 @@
     "E-claude-code-00518"
    ],
    "value": "A session dispatched from agent view keeps running after you close agent view. AgentDefinition.background runs an agent as a non-blocking background task, and stop_task(task_id) stops a running background task. Task messages report background tasks such as backgrounded commands and subagents."
+  },
+  {
+   "id": "claude-code/F15.scheduled-routines",
+   "surface": "claude-code",
+   "row": "F15.scheduled-routines",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-claude-code-07665",
+    "E-claude-code-01967",
+    "E-claude-code-07660",
+    "E-claude-code-07272"
+   ],
+   "value": "Claude Code offers three ways to schedule recurring or one-off work. A routine runs a session on a schedule in the cloud, not in parallel on your machine. Desktop scheduled tasks run Claude automatically on a recurring basis. /loop runs a prompt repeatedly while the session stays open; omit the interval and Claude self-paces between iterations.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "claude-code/F15.cloud-agents",
+   "surface": "claude-code",
+   "row": "F15.cloud-agents",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-claude-code-02239",
+    "E-claude-code-06737",
+    "E-claude-code-00220",
+    "E-claude-code-07007"
+   ],
+   "value": "Claude Code in the cloud runs sessions on Anthropic-managed infrastructure by default. The --cloud flag starts a cloud session from the command line. Owners can create organization-shared cloud environments that set network access level, environment variables, and a setup script. claude self-hosted-runner hosts cloud sessions on your infrastructure."
+  },
+  {
+   "id": "claude-code/F15.remote-sessions",
+   "surface": "claude-code",
+   "row": "F15.remote-sessions",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-claude-code-07002",
+    "E-claude-code-06259",
+    "E-claude-code-01957"
+   ],
+   "value": "claude remote-control starts a Remote Control server, with no local interactive session, to control Claude Code from Claude.ai or the Claude app. When a channel declares the permission capability, tool approval prompts are forwarded to it to approve or deny remotely. Projects can run a thread on your computer through Remote Control when you ask.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "claude-code/F15.event-triggers",
+   "surface": "claude-code",
+   "row": "F15.event-triggers",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-claude-code-06254",
+    "E-claude-code-09400",
+    "E-claude-code-07220"
+   ],
+   "value": "A channel is an MCP server that pushes events into a Claude Code session so Claude can react to things happening outside the terminal. With a prompt input, the Claude Code GitHub Action runs in automation mode on any GitHub event, including a cron schedule. /autofix-pr spawns a cloud session that pushes fixes when CI fails or reviewers leave comments.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "claude-code/F15.delegation",
+   "surface": "claude-code",
+   "row": "F15.delegation",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-claude-code-01959",
+    "E-claude-code-07760",
+    "E-claude-code-00065"
+   ],
+   "value": "To involve a different tool, expose it to Claude as an MCP server. An advisor tool lets Claude decide mid-task when to consult a second model. Dispatch is a persistent conversation in the Cowork tab: you message it a task and it decides how to handle it.",
+   "limitation": "In every approach the workers are Claude sessions."
+  },
+  {
+   "id": "claude-code/F16.interactive-cli",
+   "surface": "claude-code",
+   "row": "F16.interactive-cli",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-claude-code-02215",
+    "E-claude-code-00118",
+    "E-claude-code-01955"
+   ],
+   "value": "In the terminal, Esc stops Claude mid-action and preserves context so you can redirect. Screen reader mode makes Claude Code write flat text. claude agents opens agent view, one screen to dispatch and monitor sessions running in the background (research preview).",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "claude-code/F16.headless-mode",
+   "surface": "claude-code",
+   "row": "F16.headless-mode",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-claude-code-02232",
+    "E-claude-code-01489",
+    "E-claude-code-06297"
+   ],
+   "value": "claude -p runs non-interactively in CI, pre-commit hooks, or scripts; add --output-format stream-json --verbose for streaming JSON output.",
+   "limitation": "In non-interactive mode with `-p`, including Agent SDK sessions, Claude doesn't spawn teammates; with channels in `-p` mode, tools that need terminal input, such as multiple-choice questions and plan mode approval, are disabled."
+  },
+  {
+   "id": "claude-code/F16.ide-integration",
+   "surface": "claude-code",
+   "row": "F16.ide-integration",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-claude-code-09484",
+    "E-claude-code-07261",
+    "E-claude-code-07059",
+    "E-claude-code-07997"
+   ],
+   "value": "VS Code and JetBrains are listed as Claude Code surfaces that share the same engine as the CLI. From the CLI, /ide manages IDE integrations and shows status, and --ide connects automatically on startup if exactly one valid IDE is available. Claude Code also connects automatically when launched inside a supported IDE's integrated terminal; this can be switched off.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "claude-code/F16.desktop-web-app",
+   "surface": "claude-code",
+   "row": "F16.desktop-web-app",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-claude-code-07244",
+    "E-claude-code-06764",
+    "E-claude-code-02238"
+   ],
+   "value": "A Claude Code Desktop app exists: /desktop continues the current session there (alias /app), and the app manages multiple local sessions visually, optionally each in its own worktree. Sessions also appear in the sidebar at claude.ai/code, where you can review changes, share, archive or delete them.",
+   "limitation": "/desktop requires macOS or x64 Windows and a Claude subscription."
+  },
+  {
+   "id": "claude-code/F16.sdk-api",
+   "surface": "claude-code",
+   "row": "F16.sdk-api",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-claude-code-00279",
+    "E-claude-code-00161",
+    "E-claude-code-00490",
+    "E-claude-code-00750"
+   ],
+   "value": "The SDK is driven through query() calls: every call accepts an options object (Options in TypeScript, ClaudeAgentOptions in Python), a Python query() returns an async iterator that yields messages as they arrive, and the SDK includes the same tools that power Claude Code. allowedTools can pre-approve tools such as Read, Edit and Glob.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "claude-code/F16.ci-chat",
+   "surface": "claude-code",
+   "row": "F16.ci-chat",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-claude-code-07266",
+    "E-claude-code-06784",
+    "E-claude-code-07008",
+    "E-claude-code-06257"
+   ],
+   "value": "A repository setup walks you through selecting a repo and configuring the integration, with an optional step to set up GitHub Actions workflows and secrets. Claude in Slack sessions are automatically shared with Team visibility. claude setup-token generates a long-lived OAuth token for CI and scripts. Telegram, Discord, iMessage and fakechat channels are in the research preview.",
+   "limitation": "The repository setup works only with github.com repositories."
   },
   {
    "id": "claude-code/F17.model-picker",
@@ -348,6 +1542,74 @@
    "limitation": "Desktop picks are remembered per folder 'except Plan, which applies to the current session only'; a first session after install or upgrade 'can also start in a different permission mode than your later sessions do'."
   },
   {
+   "id": "claude-code/F20.version-at-retrieval",
+   "surface": "claude-code",
+   "row": "F20.version-at-retrieval",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-claude-code-17023"
+   ],
+   "value": "The changelog has an entry labelled 2.1.289, dated October 3, 2026."
+  },
+  {
+   "id": "claude-code/F20.release-channels",
+   "surface": "claude-code",
+   "row": "F20.release-channels",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-claude-code-19820",
+    "E-claude-code-13588",
+    "E-claude-code-14386",
+    "E-claude-code-06983"
+   ],
+   "value": "Claude Code has a stable and a latest release channel. The autoUpdatesChannel setting controls which one it follows for auto-updates and claude update, and claude install accepts a version number or the stable or latest channel names. The Homebrew claude-code cask tracks stable (typically about a week behind, skipping releases with major regressions).",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "claude-code/F20.update-mechanism",
+   "surface": "claude-code",
+   "row": "F20.update-mechanism",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-claude-code-06567",
+    "E-claude-code-00138",
+    "E-claude-code-09325"
+   ],
+   "value": "Claude Code auto-updates and can also be updated with claude update: DISABLE_AUTOUPDATER stops only background updates while claude update still works, and DISABLE_UPDATES is for when laptops must not fetch releases. minimumVersion prevents auto-update from installing below an org-wide minimum. Version checks and downloads go directly to Anthropic, separate from the gateway path."
+  },
+  {
+   "id": "claude-code/F20.changelog-source",
+   "surface": "claude-code",
+   "row": "F20.changelog-source",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-claude-code-07292",
+    "E-claude-code-06874",
+    "E-claude-code-02441"
+   ],
+   "value": "/release-notes shows the changelog in an interactive version picker, with the notes appearing in your transcript without entering the conversation Claude sees. A cached copy is kept at cache/changelog.md and refreshed in the background. The changelog page lists dated Update entries labelled by version, for example 2.1.286 on September 30, 2026.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "claude-code/F20.deprecation-policy",
+   "surface": "claude-code",
+   "row": "F20.deprecation-policy",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-claude-code-07049",
+    "E-claude-code-07287",
+    "E-claude-code-06739",
+    "E-claude-code-06627"
+   ],
+   "value": "Removals and renames are marked in the flag and command references: --enable-auto-mode is marked Removed in v2.1.111 (use --permission-mode auto), /pr-comments Removed in v2.1.91 (ask Claude directly), and --remote still works as a deprecated alias for --cloud. On the gateway page, breaking changes to the protocol are announced in advance, but indefinite backwards compatibility isn't guaranteed.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
    "id": "claude-code/F21.host-platform",
    "surface": "claude-code",
    "row": "F21.host-platform",
@@ -439,6 +1701,92 @@
     "E-claude-code-06611"
    ],
    "value": "Some plugin components are Claude Code-only and don't load on claude.ai or in Cowork; a component support table lists each by app. Claude apps gateway is Anthropic's own gateway, built into the claude binary and tested alongside each Claude Code release."
+  },
+  {
+   "id": "claude-code/F22.usage-visibility",
+   "surface": "claude-code",
+   "row": "F22.usage-visibility",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-claude-code-00158",
+    "E-claude-code-00206",
+    "E-claude-code-00262",
+    "E-claude-code-01038"
+   ],
+   "value": "/usage shows session totals, and a session cost summary is printed when Claude Code exits if the account shows costs. Every SDK result subtype carries total_cost_usd, usage, num_turns and session_id. /context shows context window usage by category, skill and tool, and an SDK method returns the same breakdown."
+  },
+  {
+   "id": "claude-code/F22.budget-caps",
+   "surface": "claude-code",
+   "row": "F22.budget-caps",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-claude-code-07067",
+    "E-claude-code-00537",
+    "E-claude-code-00975",
+    "E-claude-code-00174"
+   ],
+   "value": "--max-budget-usd caps API spend before stopping, and spend from subagents counts toward the cap. The SDK max_budget_usd and maxBudgetUsd options stop the query when the client-side cost estimate reaches a USD value, and options can also limit turns, cost and reasoning depth.",
+   "limitation": "--max-budget-usd is print mode only. The SDK option counts only the call's own spend; totals restored from a resumed session don't count."
+  },
+  {
+   "id": "claude-code/F22.rate-limits",
+   "surface": "claude-code",
+   "row": "F22.rate-limits",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-claude-code-07290",
+    "E-claude-code-06940",
+    "E-claude-code-07441"
+   ],
+   "value": "When a claude.ai usage limit blocks a request, /rate-limit-options shows ways to keep working, including waiting to continue automatically when the limit resets and adding usage credits. Project usage counts against the same plan limits as other sessions. If the usage request fails, /usage shows the last usage bars it loaded within the past 60 minutes.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "claude-code/F22.telemetry-otel",
+   "surface": "claude-code",
+   "row": "F22.telemetry-otel",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-claude-code-07469",
+    "E-claude-code-00425",
+    "E-claude-code-01230"
+   ],
+   "value": "OpenTelemetry export sends metrics from each developer's machine to your own observability stack, with per-user token counts, costs and tool activity. With CLAUDE_CODE_ENHANCED_TELEMETRY_BETA=1 set, each step of the agent loop becomes a trace span. The prompt_id field matches the prompt.id attribute on OpenTelemetry events.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "claude-code/F22.logs-debug",
+   "surface": "claude-code",
+   "row": "F22.logs-debug",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-claude-code-06849",
+    "E-claude-code-06308",
+    "E-claude-code-01782",
+    "E-claude-code-00958"
+   ],
+   "value": "Per-session debug logs are written to debug/ while debug logging is on, started with --debug or /debug; the log is at ~/.claude/debug/<session-id>.txt. claude logs <id> prints the session's recent output. The SDK debug option enables debug mode for the Claude Code process.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "claude-code/F22.status-display",
+   "surface": "claude-code",
+   "row": "F22.status-display",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-claude-code-02185",
+    "E-claude-code-06802",
+    "E-claude-code-02183",
+    "E-claude-code-02095"
+   ],
+   "value": "The statusLine setting customizes the line shown at the bottom while Claude works, and a custom status line can track context usage continuously. /status shows an API provider line (for example Microsoft Foundry with the resource name or base URL you configured) and, in auto mode, an Auto mode server row reading Enabled or Disabled."
   }
  ]
 }

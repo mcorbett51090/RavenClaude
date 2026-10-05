@@ -2,6 +2,252 @@
  "surface": "gemini-cli",
  "cells": [
   {
+   "id": "gemini-cli/F01.loop-shape",
+   "surface": "gemini-cli",
+   "row": "F01.loop-shape",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-gemini-cli-00370",
+    "E-gemini-cli-00371",
+    "E-gemini-cli-00458",
+    "E-gemini-cli-00303"
+   ],
+   "value": "The core interprets tool use requests from the Gemini model and returns tool execution results to the model for further processing. A `continue` field set to `false` kills the entire agent loop immediately. Automatic detection and prevention of infinite loops can be disabled via a setting."
+  },
+  {
+   "id": "gemini-cli/F01.turn-limits",
+   "surface": "gemini-cli",
+   "row": "F01.turn-limits",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-gemini-cli-00301",
+    "E-gemini-cli-00423",
+    "E-gemini-cli-00405",
+    "E-gemini-cli-02103"
+   ],
+   "value": "`model.maxSessionTurns` caps the user/model/tool turns kept in a session (-1 means unlimited). A subagent's `max_turns` field caps conversation turns before it must return (defaults to 30). `maxActionsPerTask` caps tool calls per task; the agent is terminated when the limit is reached. Exit code 53 means the session turn maximum was reached (non-interactive mode only).",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "gemini-cli/F01.tool-inventory",
+   "surface": "gemini-cli",
+   "row": "F01.tool-inventory",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-gemini-cli-00794",
+    "E-gemini-cli-00369",
+    "E-gemini-cli-00598",
+    "E-gemini-cli-00673"
+   ],
+   "value": "`grep_search` searches file contents for a regular expression (legacy alias `search_file_content`). The core registers available tools (for example, file system tools, shell command ...). `/tools` displays the tools currently available. A setting restricts the set of built-in tools with an allowlist.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "gemini-cli/F01.shell-tool",
+   "surface": "gemini-cli",
+   "row": "F01.shell-tool",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-gemini-cli-00793",
+    "E-gemini-cli-02169",
+    "E-gemini-cli-00314",
+    "E-gemini-cli-00640"
+   ],
+   "value": "`run_shell_command` lets the Gemini model execute commands; it executes arbitrary shell commands, supports interactive sessions and background processes, and requires manual confirmation. Interactive shell uses node-pty, and fallback to child_process still applies. Tool output summarization currently supports only run_shell_command.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "gemini-cli/F01.file-edit-tools",
+   "surface": "gemini-cli",
+   "row": "F01.file-edit-tools",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-gemini-cli-02122",
+    "E-gemini-cli-00317",
+    "E-gemini-cli-00603",
+    "E-gemini-cli-02196"
+   ],
+   "value": "Core provides a suite of file system tools. Gemini uses the `glob` or `list_directory` tools to search the project; `@` commands use `read_many_files` internally. A setting disables LLM-based error correction for edit tools; when enabled, tools fail immediately if exact string matches are not found, instead of attempting to self-correct.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "gemini-cli/F01.web-tools",
+   "surface": "gemini-cli",
+   "row": "F01.web-tools",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-gemini-cli-00803",
+    "E-gemini-cli-00804",
+    "E-gemini-cli-00335"
+   ],
+   "value": "`google_web_search` performs a Google Search to find up-to-date information. `web_fetch` retrieves and processes content from specific URLs, validates outbound requests against private and reserved IP ranges, and in Plan Mode requires explicit user confirmation. A setting enables web fetch behavior that bypasses LLM summarization."
+  },
+  {
+   "id": "gemini-cli/F02.context-window-size",
+   "surface": "gemini-cli",
+   "row": "F02.context-window-size",
+   "state": "undocumented",
+   "verification": "verified",
+   "evidence": [],
+   "sweep_report": {
+    "terms": [
+     "context window",
+     "\\d+ ?[kKmM] (tokens|context)",
+     "token limit"
+    ],
+    "corpus_sha256": "d2a59fcc487d9a2378b2b8419a45f7dfa8fdff8934ef804239a7a0cf0487e18a",
+    "hits": 15,
+    "hits_reviewed": 15,
+    "positive_control_term": "gemini",
+    "positive_control_hits": 2380
+   }
+  },
+  {
+   "id": "gemini-cli/F02.auto-compaction",
+   "surface": "gemini-cli",
+   "row": "F02.auto-compaction",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-gemini-cli-00373",
+    "E-gemini-cli-00302",
+    "E-gemini-cli-01893"
+   ],
+   "value": "The core automatically compresses the conversation history before sending it to the model. The fraction of context usage at which compression triggers is set by `model.compressionThreshold` (example values 0.2, 0.3; listed value 0.5). A PreCompress hook fires before the CLI summarizes history to save tokens.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "gemini-cli/F02.manual-compaction",
+   "surface": "gemini-cli",
+   "row": "F02.manual-compaction",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-gemini-cli-00472",
+    "E-gemini-cli-00549"
+   ],
+   "value": "`/compress` replaces the entire chat context with a summary, saving tokens used for future tasks while retaining a high level summary.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "gemini-cli/F02.context-inclusion",
+   "surface": "gemini-cli",
+   "row": "F02.context-inclusion",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-gemini-cli-00796",
+    "E-gemini-cli-00017",
+    "E-gemini-cli-00308",
+    "E-gemini-cli-01008"
+   ],
+   "value": "The `@` symbol in a prompt often triggers `read_many_files`, which reads and concatenates content from multiple files. `--include-directories` adds additional directories to the workspace (comma-separated or multiple flags). A setting makes searches respect .gitignore files, and .geminiignore files provide exclusion patterns."
+  },
+  {
+   "id": "gemini-cli/F02.persistent-memory",
+   "surface": "gemini-cli",
+   "row": "F02.persistent-memory",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-gemini-cli-02141",
+    "E-gemini-cli-02330",
+    "E-gemini-cli-01369",
+    "E-gemini-cli-00339"
+   ],
+   "value": "Gemini CLI persists durable facts, user preferences, and project details; the agent edits the appropriate memory Markdown file when told to remember a fact. Auto Memory is an experimental feature that mines past sessions; extracted patches are written as `.patch` files held for review in /memory inbox, and nothing is applied until you approve it."
+  },
+  {
+   "id": "gemini-cli/F02.memory-scope-loading",
+   "surface": "gemini-cli",
+   "row": "F02.memory-scope-loading",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-gemini-cli-02142",
+    "E-gemini-cli-00475",
+    "E-gemini-cli-00307"
+   ],
+   "value": "Shared project instructions go in repository `GEMINI.md` files; private project notes go in a separate location. `GEMINI.md` files are found in configured locations (global, ...). `/memory reload` scans include directories when `context.loadMemoryFromIncludeDirectories` is true; when false, only the current directory is used.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "gemini-cli/F03.auto-loaded-files",
+   "surface": "gemini-cli",
+   "row": "F03.auto-loaded-files",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-gemini-cli-01401",
+    "E-gemini-cli-00658",
+    "E-gemini-cli-00044",
+    "E-gemini-cli-01333"
+   ],
+   "value": "Context files use the default name `GEMINI.md`, and a setting names the context file or files to load into memory. An extension's `GEMINI.md` context file holds instructions that are loaded into the model's context at the start of every session. An extension's `contextFileName` names its context file."
+  },
+  {
+   "id": "gemini-cli/F03.import-syntax",
+   "surface": "gemini-cli",
+   "row": "F03.import-syntax",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-gemini-cli-02031",
+    "E-gemini-cli-01412",
+    "E-gemini-cli-02007",
+    "E-gemini-cli-02034"
+   ],
+   "value": "GEMINI.md files can import content from other files using the `@file.md` syntax: the `@` symbol followed by the path to the file to import (for example `@path/to/file.md`). Imported files can themselves contain imports, creating a nested structure.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "gemini-cli/F03.precedence-scoping",
+   "surface": "gemini-cli",
+   "row": "F03.precedence-scoping",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-gemini-cli-01403",
+    "E-gemini-cli-02004",
+    "E-gemini-cli-02329",
+    "E-gemini-cli-01741"
+   ],
+   "value": "Context files are found in a hierarchical manner, starting from the current working directory and then in each parent directory up to a stop point; the CLI concatenates the contents of all found files. A subdirectory file such as `./src/GEMINI.md` holds rules specific to the `src` folder.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "gemini-cli/F03.path-scoped-rules",
+   "surface": "gemini-cli",
+   "row": "F03.path-scoped-rules",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-gemini-cli-01407",
+    "E-gemini-cli-01408"
+   ],
+   "value": "When a tool accesses a file or directory, the CLI automatically scans for `GEMINI.md` files in that directory and its ...",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "gemini-cli/F03.user-vs-project-scope",
+   "surface": "gemini-cli",
+   "row": "F03.user-vs-project-scope",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-gemini-cli-01404",
+    "E-gemini-cli-02328",
+    "E-gemini-cli-02142"
+   ],
+   "value": "The global context file is `~/.gemini/GEMINI.md` in the user home directory, and the project-root `./GEMINI.md` holds rules for the current repository. Instructions also go in repository `GEMINI.md` files, per the memory tool reference."
+  },
+  {
    "id": "gemini-cli/F04.approval-modes",
    "surface": "gemini-cli",
    "row": "F04.approval-modes",
@@ -13,6 +259,61 @@
     "E-gemini-cli-00789"
    ],
    "value": "The --approval-mode flag sets approval for tool execution, with choices default, auto_edit, yolo and plan. 'default' prompts for approval, 'auto_edit' auto-approves edit tools, 'plan' is read-only. Shift+Tab cycles default (prompt), auto_edit (auto-approve edits) and plan (read-only); plan is skipped when the agent is busy."
+  },
+  {
+   "id": "gemini-cli/F04.per-tool-rules",
+   "surface": "gemini-cli",
+   "row": "F04.per-tool-rules",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-gemini-cli-00012",
+    "E-gemini-cli-00060",
+    "E-gemini-cli-00793"
+   ],
+   "value": "The `--allowed-tools` flag lists tools allowed to run without confirmation but is deprecated in favour of the Policy Engine. Restricting the tools the model can use is achieved through the `tools.core` setting. `run_shell_command` requires manual confirmation."
+  },
+  {
+   "id": "gemini-cli/F04.path-scoping",
+   "surface": "gemini-cli",
+   "row": "F04.path-scoping",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-gemini-cli-02123",
+    "E-gemini-cli-02058"
+   ],
+   "value": "All file system tools operate within a `rootDirectory`. The tools reference gives an example policy rule that blocks any `write_file` call targeting a given file.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "gemini-cli/F04.command-scoping",
+   "surface": "gemini-cli",
+   "row": "F04.command-scoping",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-gemini-cli-00675",
+    "E-gemini-cli-00807",
+    "E-gemini-cli-01335"
+   ],
+   "value": "A configuration list entry such as `\"run_shell_command(npm test)\"` scopes a shell command (see shell tool command restrictions). A policy rule can ask for user confirmation before executing any `git` command. An extension manifest can specify command-specific restrictions for tools that support it.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "gemini-cli/F04.trust-prompt",
+   "surface": "gemini-cli",
+   "row": "F04.trust-prompt",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-gemini-cli-01677",
+    "E-gemini-cli-00005",
+    "E-gemini-cli-00480",
+    "E-gemini-cli-00689"
+   ],
+   "value": "Trusted Folders is a security setting. `--skip-trust` trusts the current workspace for the session, skipping the folder trust check. `/permissions` manages folder trust settings, and `security.folderTrust.enabled` tracks whether Folder trust is enabled.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
   },
   {
    "id": "gemini-cli/F04.bypass-mode",
@@ -42,6 +343,390 @@
    ],
    "value": "security.enableConseca enables a context-aware security checker that uses an LLM to dynamically generate and enforce security policies for tool use based on your prompt; default false. Telemetry logs security verdicts from ConSeca.",
    "limitation": "Default `false`; described as 'an additional layer of protection against unintended actions'."
+  },
+  {
+   "id": "gemini-cli/F04.config-scope-precedence",
+   "surface": "gemini-cli",
+   "row": "F04.config-scope-precedence",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-gemini-cli-01494",
+    "E-gemini-cli-00606",
+    "E-gemini-cli-02082",
+    "E-gemini-cli-00805"
+   ],
+   "value": "Settings are merged from four files, with a precedence order for single-value settings. Gemini CLI uses JSON settings files for persistent configuration. The policy engine applies the highest-priority rule that matches the tool call.",
+   "limitation": "E-gemini-cli-02082 says configuration is stored in two settings.json files; E-gemini-cli-00606 and E-gemini-cli-01494 say there are four settings files that are merged. The quotes do not reconcile the counts."
+  },
+  {
+   "id": "gemini-cli/F05.os-sandbox",
+   "surface": "gemini-cli",
+   "row": "F05.os-sandbox",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-gemini-cli-00004",
+    "E-gemini-cli-00249",
+    "E-gemini-cli-00065",
+    "E-gemini-cli-00124"
+   ],
+   "value": "`--sandbox` (`-s`) runs the CLI in a sandboxed environment (default `false`). Sandboxing can be enabled using one of several methods in order of precedence, and its use can be enforced to mitigate potentially harmful operations. The v0.36.0 changelog notes native macOS Seatbelt and Windows sandboxing."
+  },
+  {
+   "id": "gemini-cli/F05.fs-write-scope",
+   "surface": "gemini-cli",
+   "row": "F05.fs-write-scope",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-gemini-cli-00179",
+    "E-gemini-cli-00312",
+    "E-gemini-cli-00253"
+   ],
+   "value": "A macOS Seatbelt profile denies operations by default, confining writes to the project folder. `tools.sandboxAllowedPaths` is a list of additional paths the sandbox is allowed to access (default `[]`). The sandbox page describes writes to the project directory while allowing broad file reads and network.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "gemini-cli/F05.network-policy",
+   "surface": "gemini-cli",
+   "row": "F05.network-policy",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-gemini-cli-00313",
+    "E-gemini-cli-00655",
+    "E-gemini-cli-01510",
+    "E-gemini-cli-00804"
+   ],
+   "value": "`tools.sandboxNetworkAccess` sets whether the sandbox is allowed to access the network (default `false`). The browser agent has a list of allowed domains. All outbound traffic can be routed through a corporate proxy. `web_fetch` outbound requests are validated against private and reserved IP ranges."
+  },
+  {
+   "id": "gemini-cli/F05.subprocess-containment",
+   "surface": "gemini-cli",
+   "row": "F05.subprocess-containment",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-gemini-cli-01570",
+    "E-gemini-cli-00318",
+    "E-gemini-cli-02375",
+    "E-gemini-cli-01112"
+   ],
+   "value": "Tool-level sandboxing provides granular isolation for individual tool executions, isolating individual tools instead of the entire CLI process. Sandboxing runs commands inside a secure Docker container. The v0.35.0 changelog entry mentions process-spawning tools and added Linux bubblewrap/seccomp sandboxing support.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "gemini-cli/F05.sandbox-override",
+   "surface": "gemini-cli",
+   "row": "F05.sandbox-override",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-gemini-cli-00271",
+    "E-gemini-cli-00272",
+    "E-gemini-cli-00273",
+    "E-gemini-cli-00473"
+   ],
+   "value": "Sandbox expansion is a dynamic permission system that lets Gemini CLI request additional permissions. When a sandboxed command fails due to permission restrictions, a Request step shows a modal dialog explaining which additional permissions are needed. `--include-directories` can be used when starting the session instead (listed under `/directory`).",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "gemini-cli/F06.event-catalog",
+   "surface": "gemini-cli",
+   "row": "F06.event-catalog",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-gemini-cli-01809",
+    "E-gemini-cli-00452",
+    "E-gemini-cli-00455",
+    "E-gemini-cli-01896"
+   ],
+   "value": "Hooks are triggered by specific events in Gemini CLI's lifecycle. Events named in the cited quotes: `BeforeModel` (fires before sending a request to the LLM), `BeforeToolSelection` (fires before the LLM decides which tools to call) and `AfterAgent` (fires once per turn after the model finishes)."
+  },
+  {
+   "id": "gemini-cli/F06.handler-types",
+   "surface": "gemini-cli",
+   "row": "F06.handler-types",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-gemini-cli-01853",
+    "E-gemini-cli-01802"
+   ],
+   "value": "Hooks are scripts or programs that Gemini CLI executes at specific points in the agentic loop. The hook `type` field names the execution engine.",
+   "limitation": "Currently only \"command\" is supported."
+  },
+  {
+   "id": "gemini-cli/F06.input-contract",
+   "surface": "gemini-cli",
+   "row": "F06.input-contract",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-gemini-cli-00519",
+    "E-gemini-cli-01961",
+    "E-gemini-cli-01913",
+    "E-gemini-cli-00460"
+   ],
+   "value": "A `BeforeModel` hook input includes an `llm_request` object containing `model`, `messages` and `config`. The record.js example reads `llm_request` and `llm_response` from the input. Hooks inherit the environment of the Gemini CLI process.",
+   "limitation": "Message content passed to hooks: \"Non-text parts are filtered out for hooks\"."
+  },
+  {
+   "id": "gemini-cli/F06.output-blocking",
+   "surface": "gemini-cli",
+   "row": "F06.output-blocking",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-gemini-cli-01901",
+    "E-gemini-cli-01900",
+    "E-gemini-cli-00454",
+    "E-gemini-cli-00456"
+   ],
+   "value": "Under the exit-code guidance, a blocking exit blocks the tool for Tool events (the agent continues) and aborts the turn for Agent/Model events. BeforeModel's Exit Code 2 (Block Turn) aborts the turn and skips the LLM call.",
+   "limitation": "BeforeToolSelection: Limitations: Does not support `decision`, `continue`, or (the rest of the field list is cut off in the quote)."
+  },
+  {
+   "id": "gemini-cli/F06.matchers",
+   "surface": "gemini-cli",
+   "row": "F06.matchers",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-gemini-cli-01851",
+    "E-gemini-cli-01820",
+    "E-gemini-cli-01859",
+    "E-gemini-cli-01860"
+   ],
+   "value": "The `matcher` field is a regex (for tools) or exact string (for lifecycle) that filters when the hook runs; `\"*\"` or `\"\"` matches all occurrences. Any built-in tool (for example `read_file`) can be matched, and MCP-server tools follow a documented naming pattern.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "gemini-cli/F06.config-locations",
+   "surface": "gemini-cli",
+   "row": "F06.config-locations",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-gemini-cli-01850",
+    "E-gemini-cli-01821",
+    "E-gemini-cli-01823",
+    "E-gemini-cli-01345"
+   ],
+   "value": "Hooks are defined in settings.json within the hooks object, and Gemini CLI merges configurations from (list truncated in the quote). Project settings are .gemini/settings.json in the current directory, listed as layer 1. Extensions can define hooks in a hooks/hooks.json file within the extension directory.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "gemini-cli/F06.trust-enable",
+   "surface": "gemini-cli",
+   "row": "F06.trust-enable",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-gemini-cli-00342",
+    "E-gemini-cli-01908",
+    "E-gemini-cli-01832",
+    "E-gemini-cli-00561"
+   ],
+   "value": "hooksConfig.enabled is the canonical toggle for the hooks system; when disabled, no hooks are executed (default true). Project hooks (./.gemini/...) are untrusted by default. Gemini CLI fingerprints project hooks (quote truncated after 'If a hook's name or command changes'). The /hooks command can disable a hook by name.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "gemini-cli/F07.managed-settings",
+   "surface": "gemini-cli",
+   "row": "F07.managed-settings",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-gemini-cli-01492",
+    "E-gemini-cli-00612",
+    "E-gemini-cli-01038"
+   ],
+   "value": "The system settings file lets you define a baseline configuration; system settings act as overrides, taking precedence over all other settings. Enterprise Admin Controls are customized via the Management Console.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "gemini-cli/F07.policy-lockdown",
+   "surface": "gemini-cli",
+   "row": "F07.policy-lockdown",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-gemini-cli-00818",
+    "E-gemini-cli-00612",
+    "E-gemini-cli-01039",
+    "E-gemini-cli-01037"
+   ],
+   "value": "Admin policies always override User, Workspace, and Default policies. System settings act as overrides, taking precedence over all other settings. Enterprise Admin Controls are enforced globally and cannot be overridden by (quote truncated). Gemini CLI empowers enterprise administrators to manage and enforce security (quote truncated).",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "gemini-cli/F07.model-allowlist",
+   "surface": "gemini-cli",
+   "row": "F07.model-allowlist",
+   "state": "undocumented",
+   "verification": "verified",
+   "evidence": [],
+   "sweep_report": {
+    "terms": [
+     "(allow|block|deny|restrict)(ed|list)? .{0,30}models?",
+     "model (allow|deny|block)list",
+     "admins?.{0,40}models?",
+     "enabled models"
+    ],
+    "corpus_sha256": "d2a59fcc487d9a2378b2b8419a45f7dfa8fdff8934ef804239a7a0cf0487e18a",
+    "hits": 2,
+    "hits_reviewed": 2,
+    "positive_control_term": "gemini",
+    "positive_control_hits": 2380
+   }
+  },
+  {
+   "id": "gemini-cli/F07.identity-sso",
+   "surface": "gemini-cli",
+   "row": "F07.identity-sso",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-gemini-cli-02094",
+    "E-gemini-cli-00691",
+    "E-gemini-cli-01514",
+    "E-gemini-cli-00953"
+   ],
+   "value": "Supported sign-in: logging in with your Google account to Gemini Code Assist. security.auth.enforcedType in the system-level settings.json sets the required auth type ('If this does not match the selected', quote truncated). Organization tiers apply when you sign in with a Google Workspace account."
+  },
+  {
+   "id": "gemini-cli/F07.data-retention",
+   "surface": "gemini-cli",
+   "row": "F07.data-retention",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-gemini-cli-02085",
+    "E-gemini-cli-01596",
+    "E-gemini-cli-02352",
+    "E-gemini-cli-01513"
+   ],
+   "value": "Google does not use your data to improve Google's machine learning models if you (condition cut off in the quote). By default, Gemini CLI automatically cleans up old session data. The 'Delete session on exit' scenario uses the --delete flag when exiting. Ensure logPrompts is set to false in an enterprise setting."
+  },
+  {
+   "id": "gemini-cli/F07.admin-audit",
+   "surface": "gemini-cli",
+   "row": "F07.admin-audit",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-gemini-cli-01511"
+   ],
+   "value": "Under 'Telemetry and auditing': for auditing and monitoring purposes, you can configure Gemini CLI to send (quote truncated).",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "gemini-cli/F08.skill-format",
+   "surface": "gemini-cli",
+   "row": "F08.skill-format",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-gemini-cli-02378",
+    "E-gemini-cli-01605",
+    "E-gemini-cli-01714"
+   ],
+   "value": "A skill is defined by a directory containing a SKILL.md file (quote continues, truncated). The most important part of a skill is its description. Skills can be installed from a remote repository or from a local .skill package."
+  },
+  {
+   "id": "gemini-cli/F08.discovery-paths",
+   "surface": "gemini-cli",
+   "row": "F08.discovery-paths",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-gemini-cli-02383",
+    "E-gemini-cli-01384",
+    "E-gemini-cli-01347",
+    "E-gemini-cli-01705"
+   ],
+   "value": "Gemini CLI automatically discovers skills in the .gemini/skills directory. A skill can be promoted to your user (~/.gemini/skills/) or workspace directory (quote truncated). The extensions reference describes skill definitions in a skills/ directory. Built-in skills are included with Gemini CLI and always available.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "gemini-cli/F08.invocation",
+   "surface": "gemini-cli",
+   "row": "F08.invocation",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-gemini-cli-00045",
+    "E-gemini-cli-01442",
+    "E-gemini-cli-02113",
+    "E-gemini-cli-00593"
+   ],
+   "value": "The model activates agent skills only when needed. In the code-reviewer example, Gemini identifies that the request matches the skill's description (quote truncated). The activate_skill tool lets Gemini CLI load specialized procedural expertise. The /skills slash command manages Agent Skills.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "gemini-cli/F08.resource-loading",
+   "surface": "gemini-cli",
+   "row": "F08.resource-loading",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-gemini-cli-01606",
+    "E-gemini-cli-01607",
+    "E-gemini-cli-01608",
+    "E-gemini-cli-01447"
+   ],
+   "value": "Skill metadata (name + description) is always in context (~100 words). The SKILL.md body is loaded only after the skill triggers (<5k words). Bundled resources are loaded only as needed by the model. When a skill is activated, the model is granted access to this entire directory.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "gemini-cli/F08.skill-overrides",
+   "surface": "gemini-cli",
+   "row": "F08.skill-overrides",
+   "state": "undocumented",
+   "verification": "verified",
+   "evidence": [],
+   "sweep_report": {
+    "terms": [
+     "skills?\\b.{0,100}(allowed-tools|model|effort|frontmatter)",
+     "allowed-tools"
+    ],
+    "corpus_sha256": "d2a59fcc487d9a2378b2b8419a45f7dfa8fdff8934ef804239a7a0cf0487e18a",
+    "hits": 10,
+    "hits_reviewed": 10,
+    "positive_control_term": "gemini",
+    "positive_control_hits": 2380
+   }
+  },
+  {
+   "id": "gemini-cli/F09.definition-format",
+   "surface": "gemini-cli",
+   "row": "F09.definition-format",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-gemini-cli-01748",
+    "E-gemini-cli-01749",
+    "E-gemini-cli-01349"
+   ],
+   "value": "Remote subagents are defined as Markdown files (.md) with YAML frontmatter; the name field is required and must be a valid slug (lowercase letters, numbers, hyphens, and underscores only). Extensions add agent definition files (.md) to an agents/ directory in the extension root."
+  },
+  {
+   "id": "gemini-cli/F09.tool-allowlist",
+   "surface": "gemini-cli",
+   "row": "F09.tool-allowlist",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-gemini-cli-00419",
+    "E-gemini-cli-00498",
+    "E-gemini-cli-00499",
+    "E-gemini-cli-00428"
+   ],
+   "value": "The optional tools frontmatter array lists tool names the agent can use; wildcards are * (all tools), mcp_* (all MCP tools) and mcp_server_* (all tools from a server). If omitted, it inherits all tools from the parent session. The subagent only has access to the tools you explicitly (quote truncated). Even with the * wildcard it is unable to see or invoke other agents.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
   },
   {
    "id": "gemini-cli/F09.per-agent-model",
@@ -79,6 +764,372 @@
     "E-gemini-cli-00499"
    ],
    "value": "Subagents cannot call other subagents. Even if a subagent is granted the `*` tool wildcard, it will still be unable to see or invoke other agents."
+  },
+  {
+   "id": "gemini-cli/F09.built-in-agents",
+   "surface": "gemini-cli",
+   "row": "F09.built-in-agents",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-gemini-cli-00395",
+    "E-gemini-cli-00228",
+    "E-gemini-cli-00532",
+    "E-gemini-cli-00396"
+   ],
+   "value": "Codebase Investigator is a built-in subagent whose purpose is to analyze the codebase, reverse engineer, and understand complex (quote truncated). cli_help is enabled by default in Plan (Mode, per the heading). /agents list shows all discovered agents, including built-in, local (quote truncated). The Codebase Investigator section shows overrides in settings.json under agents.overrides.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "gemini-cli/F10.built-in-commands",
+   "surface": "gemini-cli",
+   "row": "F10.built-in-commands",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-gemini-cli-01014",
+    "E-gemini-cli-01296",
+    "E-gemini-cli-00086",
+    "E-gemini-cli-00101"
+   ],
+   "value": "Slash commands include `/model` (configures the model Gemini CLI uses), `/plan` with a goal (e.g. `/plan implement authentication` switches to Plan Mode) and `/help` (lists all available commands). A command reference gives detailed slash command documentation.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "gemini-cli/F10.custom-command-format",
+   "surface": "gemini-cli",
+   "row": "F10.custom-command-format",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-gemini-cli-00470",
+    "E-gemini-cli-00049",
+    "E-gemini-cli-01344"
+   ],
+   "value": "Custom slash commands are loaded from `.toml` files; an example file sets `description = \"Generates a fix for a given issue.\"`. A nested file such as `commands/gcs/sync.toml` becomes `/gcs:sync` (namespaced with a colon).",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "gemini-cli/F10.arguments",
+   "surface": "gemini-cli",
+   "row": "F10.arguments",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-gemini-cli-00212",
+    "E-gemini-cli-00213",
+    "E-gemini-cli-00052",
+    "E-gemini-cli-02294"
+   ],
+   "value": "Custom commands support two methods for handling arguments. In the main body of the prompt the `{{args}}` placeholder has the arguments injected exactly as given; under default argument handling the CLI appends the full command you typed to the end of the prompt. For MCP prompt slash commands the CLI automatically handles parsing arguments.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "gemini-cli/F10.discovery-paths",
+   "surface": "gemini-cli",
+   "row": "F10.discovery-paths",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-gemini-cli-01476",
+    "E-gemini-cli-01477",
+    "E-gemini-cli-01295",
+    "E-gemini-cli-01356"
+   ],
+   "value": "Commands are discovered from two locations, loaded in a specific order; the first listed is user (global) commands in `~/.gemini/commands/`. User and project commands take precedence over extension commands, which have the lowest precedence."
+  },
+  {
+   "id": "gemini-cli/F10.command-skill-relation",
+   "surface": "gemini-cli",
+   "row": "F10.command-skill-relation",
+   "state": "undocumented",
+   "verification": "verified",
+   "evidence": [],
+   "sweep_report": {
+    "terms": [
+     "commands?.{0,50}skills?",
+     "skills?.{0,50}commands?"
+    ],
+    "corpus_sha256": "d2a59fcc487d9a2378b2b8419a45f7dfa8fdff8934ef804239a7a0cf0487e18a",
+    "hits": 11,
+    "hits_reviewed": 11,
+    "positive_control_term": "gemini",
+    "positive_control_hits": 2380
+   }
+  },
+  {
+   "id": "gemini-cli/F11.packaging-format",
+   "surface": "gemini-cli",
+   "row": "F11.packaging-format",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-gemini-cli-01459",
+    "E-gemini-cli-01327",
+    "E-gemini-cli-01263",
+    "E-gemini-cli-01215"
+   ],
+   "value": "A `gemini-extension.json` manifest tells Gemini CLI how to load and use an extension; release guidance says to place it at the root. Gemini CLI loads extensions from `<home>/.gemini/extensions`. Extensions package items including prompts, MCP servers, custom commands and themes.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "gemini-cli/F11.component-types",
+   "surface": "gemini-cli",
+   "row": "F11.component-types",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-gemini-cli-01215",
+    "E-gemini-cli-01777",
+    "E-gemini-cli-01824",
+    "E-gemini-cli-00042"
+   ],
+   "value": "Extensions package items including prompts, MCP servers, custom commands and themes. Extensions can bundle and distribute subagents, and installed extensions can define hooks. An extension's MCP server is described as a standard way to expose new tools and data sources to the model.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "gemini-cli/F11.install-sources",
+   "surface": "gemini-cli",
+   "row": "F11.install-sources",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-gemini-cli-01363",
+    "E-gemini-cli-01316",
+    "E-gemini-cli-01259",
+    "E-gemini-cli-00323"
+   ],
+   "value": "`gemini extensions install <source>` installs from a Git URL or local path; an extension is installed by providing its GitHub repository URL or a local file path. Extensions can be released through a Git repository or GitHub Releases. `security.blockGitExtensions` blocks installing and loading extensions from Git."
+  },
+  {
+   "id": "gemini-cli/F11.versioning-update",
+   "surface": "gemini-cli",
+   "row": "F11.versioning-update",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-gemini-cli-01319",
+    "E-gemini-cli-01267",
+    "E-gemini-cli-01288",
+    "E-gemini-cli-01315"
+   ],
+   "value": "`--auto-update` enables automatic updates for an extension. For releases through a Git repository, the `HEAD` commit is always treated as the latest, and Git branches can be used to manage release channels.",
+   "limitation": "Under the 'Manage extensions' heading: '...commands, take effect only after you restart the CLI session.'"
+  },
+  {
+   "id": "gemini-cli/F11.trust-signing",
+   "surface": "gemini-cli",
+   "row": "F11.trust-signing",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-gemini-cli-00324",
+    "E-gemini-cli-01321",
+    "E-gemini-cli-00720"
+   ],
+   "value": "`security.allowedExtensions` is a list of regex patterns for allowed extensions; if nonempty, only matching extensions are allowed, and it overrides the blockGitExtensions setting. The install `--consent` flag acknowledges security risks and skips the confirmation prompt. An `admin` setting, when false, disallows extensions from being installed.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "gemini-cli/F11.marketplace-hosting",
+   "surface": "gemini-cli",
+   "row": "F11.marketplace-hosting",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-gemini-cli-01261",
+    "E-gemini-cli-01262",
+    "E-gemini-cli-00696",
+    "E-gemini-cli-01259"
+   ],
+   "value": "Extensions can be released through a Git repository or GitHub Releases. The gallery automatically indexes public extensions, and adding the GitHub topic `gemini-cli-extension` to a repository is a listing step. An `experimental` setting is described as 'The URI (web URL or local file path) of the extension' (quote cut off).",
+   "limitation": "The gallery route covers public extensions: the quote says it 'automatically indexes public extensions'."
+  },
+  {
+   "id": "gemini-cli/F12.client-support",
+   "surface": "gemini-cli",
+   "row": "F12.client-support",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-gemini-cli-00477",
+    "E-gemini-cli-00799",
+    "E-gemini-cli-02137",
+    "E-gemini-cli-00985"
+   ],
+   "value": "Gemini CLI works with MCP servers: `/mcp` manages configured Model Context Protocol (MCP) servers, MCP resource tools let it discover and retrieve data, and `list_mcp_resources` lists all available resources exposed by connected MCP servers. In tool execution, arguments are validated against the tool's schema."
+  },
+  {
+   "id": "gemini-cli/F12.transports",
+   "surface": "gemini-cli",
+   "row": "F12.transports",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-gemini-cli-02215",
+    "E-gemini-cli-02216",
+    "E-gemini-cli-00729",
+    "E-gemini-cli-01058"
+   ],
+   "value": "Stdio transport spawns a subprocess and communicates via stdin/stdout; SSE transport connects to Server-Sent Events endpoints; `httpUrl` is the URL of an MCP server that uses streamable HTTP transport.",
+   "limitation": "Admin-required MCP servers: 'Required servers only support remote transports (`sse`, `http`).'"
+  },
+  {
+   "id": "gemini-cli/F12.config-scope",
+   "surface": "gemini-cli",
+   "row": "F12.config-scope",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-gemini-cli-02223",
+    "E-gemini-cli-01503",
+    "E-gemini-cli-02320",
+    "E-gemini-cli-01330"
+   ],
+   "value": "MCP servers are configured through the `mcpServers` configuration in `settings.json`, which Gemini CLI loads from three levels (System, Workspace, and a third). The MCP tutorial opens `~/.gemini/settings.json` (or a project-specific one). An extension's `gemini-extension.json` can also carry `mcpServers`, a map of MCP servers to settings.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "gemini-cli/F12.auth",
+   "surface": "gemini-cli",
+   "row": "F12.auth",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-gemini-cli-00478",
+    "E-gemini-cli-02232",
+    "E-gemini-cli-01060",
+    "E-gemini-cli-01059"
+   ],
+   "value": "`/mcp` includes an operation to 'Authenticate with an OAuth-enabled MCP server'. An MCP server's `headers` property sets custom HTTP headers when using `url` or `httpUrl`. In the Required MCP Servers (preview) section, an optional `oauth` object includes `scopes` and `clientId`, and an optional `authProviderType` field names the authentication provider."
+  },
+  {
+   "id": "gemini-cli/F12.tool-filtering",
+   "surface": "gemini-cli",
+   "row": "F12.tool-filtering",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-gemini-cli-01506",
+    "E-gemini-cli-00011",
+    "E-gemini-cli-00978",
+    "E-gemini-cli-00808"
+   ],
+   "value": "Restricting tools within an MCP server is done using the `includeTools` and `excludeTools` properties. The `--allowed-mcp-server-names` flag takes allowed MCP server names (comma-separated or multiple flags). An MCP tool's registered name is potentially prefixed. In the policy engine, `mcp_server_*` matches any tool from a specific MCP server.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "gemini-cli/F12.server-trust",
+   "surface": "gemini-cli",
+   "row": "F12.server-trust",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-gemini-cli-01045",
+    "E-gemini-cli-00011",
+    "E-gemini-cli-00226",
+    "E-gemini-cli-00979"
+   ],
+   "value": "Administrators can define an explicit allowlist of MCP servers. The --allowed-mcp-server-names flag takes allowed MCP server names (comma-separated or multiple flags). By default, read-only MCP tools require user confirmation in Plan Mode. Each DiscoveredMCPTool implements sophisticated confirmation logic.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "gemini-cli/F13.resume-continue",
+   "surface": "gemini-cli",
+   "row": "F13.resume-continue",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-gemini-cli-00014",
+    "E-gemini-cli-00463",
+    "E-gemini-cli-01581"
+   ],
+   "value": "The --resume (-r) flag resumes a previous session; use \"latest\" for the most recent or an index number (for example --resume 5). /chat is an alias for /resume. Session management saves your conversation history so you can resume your work.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "gemini-cli/F13.fork-branch",
+   "surface": "gemini-cli",
+   "row": "F13.fork-branch",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-gemini-cli-02359",
+    "E-gemini-cli-02360",
+    "E-gemini-cli-02358",
+    "E-gemini-cli-01591"
+   ],
+   "value": "Save the current state with /resume save decision-point, then use /resume resume decision-point to fork the conversation back. This creates a new branch of history without losing your original work. Chat checkpoints give named branch points inside a session.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "gemini-cli/F13.checkpoint-rewind",
+   "surface": "gemini-cli",
+   "row": "F13.checkpoint-rewind",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-gemini-cli-01555",
+    "E-gemini-cli-01416",
+    "E-gemini-cli-00621",
+    "E-gemini-cli-00464"
+   ],
+   "value": "The /rewind command lets you go back to a previous state in your conversation. A Checkpointing feature automatically saves a snapshot, and a setting is described as \"Enable session checkpointing for recovery\". Manual tagged checkpoints support list, save, resume, delete and share subcommands."
+  },
+  {
+   "id": "gemini-cli/F13.transcript-storage",
+   "surface": "gemini-cli",
+   "row": "F13.transcript-storage",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-gemini-cli-01501",
+    "E-gemini-cli-01855",
+    "E-gemini-cli-01371",
+    "E-gemini-cli-00466"
+   ],
+   "value": "By default, Gemini CLI stores configuration and history in ~/.gemini. Every session is recorded locally as a transcript. A transcript_path field is documented as an absolute path to the session transcript JSON. Chats are saved into a project-specific directory."
+  },
+  {
+   "id": "gemini-cli/F13.session-listing",
+   "surface": "gemini-cli",
+   "row": "F13.session-listing",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-gemini-cli-00015",
+    "E-gemini-cli-02348",
+    "E-gemini-cli-01590"
+   ],
+   "value": "The --list-sessions flag lists available sessions for the current project and exits. A searchable list of all your past sessions can be opened; press / to enter search mode, then type to filter sessions by ID.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "gemini-cli/F13.cross-surface-handoff",
+   "surface": "gemini-cli",
+   "row": "F13.cross-surface-handoff",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-gemini-cli-01090"
+   ],
+   "value": "A changelog entry lists \"Session Export and Import\" and says it \"Added the ability to export sessions to files\".",
+   "limitation": "Documented as the ability to export sessions to files."
+  },
+  {
+   "id": "gemini-cli/F14.worktree-isolation",
+   "surface": "gemini-cli",
+   "row": "F14.worktree-isolation",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-gemini-cli-00036",
+    "E-gemini-cli-00003",
+    "E-gemini-cli-00125",
+    "E-gemini-cli-00333"
+   ],
+   "value": "The --worktree (-w) flag creates an isolated worktree and starts Gemini in it; if no name is provided, one is generated automatically. A changelog entry says \"Added native support for Git worktrees\". A setting is described as \"Enable automated Git worktree management for parallel work\".",
+   "limitation": "Requires `experimental.worktrees: true` in settings."
   },
   {
    "id": "gemini-cli/F14.concurrency-caps",
@@ -145,6 +1196,18 @@
    }
   },
   {
+   "id": "gemini-cli/F14.multi-session-coordination",
+   "surface": "gemini-cli",
+   "row": "F14.multi-session-coordination",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-gemini-cli-01593"
+   ],
+   "value": "Documented, in the \"Parallel sessions with Git worktrees\" section of the session-management page, as preventing changes in one session from colliding with another.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
    "id": "gemini-cli/F15.background-tasks",
    "surface": "gemini-cli",
    "row": "F15.background-tasks",
@@ -157,6 +1220,181 @@
     "E-gemini-cli-02013"
    ],
    "value": "run_shell_command has an optional is_background argument that moves the process to the background. /shells toggles the background shells view. tools.shell.backgroundCompletionBehavior controls what happens when a background shell command finishes. Ctrl+B toggles current background shell visibility."
+  },
+  {
+   "id": "gemini-cli/F15.scheduled-routines",
+   "surface": "gemini-cli",
+   "row": "F15.scheduled-routines",
+   "state": "undocumented",
+   "verification": "verified",
+   "evidence": [],
+   "sweep_report": {
+    "terms": [
+     "schedul\\w+",
+     "\\bcron\\b",
+     "recurring",
+     "\\broutines?\\b",
+     "every (day|hour|week|morning)"
+    ],
+    "corpus_sha256": "d2a59fcc487d9a2378b2b8419a45f7dfa8fdff8934ef804239a7a0cf0487e18a",
+    "hits": 15,
+    "hits_reviewed": 15,
+    "positive_control_term": "gemini",
+    "positive_control_hits": 2380
+   }
+  },
+  {
+   "id": "gemini-cli/F15.cloud-agents",
+   "surface": "gemini-cli",
+   "row": "F15.cloud-agents",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-gemini-cli-01169",
+    "E-gemini-cli-01141"
+   ],
+   "value": "Changelog entries cite \"remote workers, delegate tedious tasks, or check in on running jobs!\" and \"enhanced support for remote agents, allowing for more distributed\".",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "gemini-cli/F15.remote-sessions",
+   "surface": "gemini-cli",
+   "row": "F15.remote-sessions",
+   "state": "undocumented",
+   "verification": "verified",
+   "evidence": [],
+   "sweep_report": {
+    "terms": [
+     "remote (session|control|agent)",
+     "\\bssh\\b",
+     "teleport",
+     "cloud session",
+     "attach to"
+    ],
+    "corpus_sha256": "d2a59fcc487d9a2378b2b8419a45f7dfa8fdff8934ef804239a7a0cf0487e18a",
+    "hits": 14,
+    "hits_reviewed": 14,
+    "positive_control_term": "gemini",
+    "positive_control_hits": 2380
+   }
+  },
+  {
+   "id": "gemini-cli/F15.event-triggers",
+   "surface": "gemini-cli",
+   "row": "F15.event-triggers",
+   "state": "undocumented",
+   "verification": "verified",
+   "evidence": [],
+   "sweep_report": {
+    "terms": [
+     "webhook",
+     "github (event|trigger)",
+     "on (pull request|push|issue)",
+     "trigger(s|ed)? (a run|an agent|the agent)",
+     "event[- ]driven"
+    ],
+    "corpus_sha256": "d2a59fcc487d9a2378b2b8419a45f7dfa8fdff8934ef804239a7a0cf0487e18a",
+    "hits": 12,
+    "hits_reviewed": 12,
+    "positive_control_term": "gemini",
+    "positive_control_hits": 2380
+   }
+  },
+  {
+   "id": "gemini-cli/F15.delegation",
+   "surface": "gemini-cli",
+   "row": "F15.delegation",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-gemini-cli-01776",
+    "E-gemini-cli-01746",
+    "E-gemini-cli-00694",
+    "E-gemini-cli-01169"
+   ],
+   "value": "Gemini CLI can delegate tasks to remote subagents using Agent-to-Agent, and supports connecting to remote subagents that way. A setting is described as \"Enable local and remote subagents\". A changelog entry mentions \"remote workers, delegate tedious tasks, or check in on running jobs!\".",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "gemini-cli/F16.interactive-cli",
+   "surface": "gemini-cli",
+   "row": "F16.interactive-cli",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-gemini-cli-00999",
+    "E-gemini-cli-00436",
+    "E-gemini-cli-00007"
+   ],
+   "value": "Gemini CLI brings the power of Gemini models directly into your terminal; for most users the recommended way to run it is the gemini command. The --prompt-interactive (-i) flag executes a prompt and continues in interactive mode.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "gemini-cli/F16.headless-mode",
+   "surface": "gemini-cli",
+   "row": "F16.headless-mode",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-gemini-cli-01522",
+    "E-gemini-cli-00006",
+    "E-gemini-cli-00154",
+    "E-gemini-cli-00291"
+   ],
+   "value": "Headless mode provides a programmatic interface to Gemini CLI. The --prompt (-p) flag takes prompt text, appends it to stdin input if provided, and forces non-interactive mode. --output-format json outputs JSON; the CLI output format can be text or json."
+  },
+  {
+   "id": "gemini-cli/F16.ide-integration",
+   "surface": "gemini-cli",
+   "row": "F16.ide-integration",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-gemini-cli-01963",
+    "E-gemini-cli-01924",
+    "E-gemini-cli-00563",
+    "E-gemini-cli-01087"
+   ],
+   "value": "Gemini CLI documents an IDE integration that enables features like native in-editor diffing. The IDE companion plugin spec describes IDE-mode features for VS Code (native diffing, ...). /ide checks the status of IDE integration. Release notes announced native support for Sublime Text and Emacs."
+  },
+  {
+   "id": "gemini-cli/F16.desktop-web-app",
+   "surface": "gemini-cli",
+   "row": "F16.desktop-web-app",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-gemini-cli-01156"
+   ],
+   "value": "A v0.22.0 announcement describes running Gemini CLI headlessly in notebook cells or interactively in the built-in terminal.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "gemini-cli/F16.sdk-api",
+   "surface": "gemini-cli",
+   "row": "F16.sdk-api",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-gemini-cli-01122",
+    "E-gemini-cli-01305",
+    "E-gemini-cli-00008",
+    "E-gemini-cli-01032"
+   ],
+   "value": "v0.30.0 introduced the initial SDK package. ACP mode is a special operational mode of Gemini CLI. --output-format accepts text, json or stream-json. The core package can be used as a standalone package in other projects, if needed.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "gemini-cli/F16.ci-chat",
+   "surface": "gemini-cli",
+   "row": "F16.ci-chat",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-gemini-cli-00592"
+   ],
+   "value": "The /setup-github command sets up GitHub Actions to triage issues and review PRs.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
   },
   {
    "id": "gemini-cli/F17.model-picker",
@@ -373,6 +1611,76 @@
    "value": "general.defaultApprovalMode defaults to 'default', which prompts for approval on each tool call; the setting also covers auto_edit and plan. Plan Mode is enabled by default (as of v0.34.0) and can be managed via /settings."
   },
   {
+   "id": "gemini-cli/F20.version-at-retrieval",
+   "surface": "gemini-cli",
+   "row": "F20.version-at-retrieval",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-gemini-cli-01197",
+    "E-gemini-cli-01202",
+    "E-gemini-cli-01232"
+   ],
+   "value": "The latest-stable changelog page is headed v0.61.0 and calls the latest stable release the recommended one for most users; the preview page is headed v0.63.0-preview.0. The releases page names the registry as the single source of truth for determining the current version.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "gemini-cli/F20.release-channels",
+   "surface": "gemini-cli",
+   "row": "F20.release-channels",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-gemini-cli-01065",
+    "E-gemini-cli-01798",
+    "E-gemini-cli-01021",
+    "E-gemini-cli-00998"
+   ],
+   "value": "Gemini CLI has three major release channels: nightly, preview, and stable. The weekly release cadence promotes code from main -> nightly -> preview. Nightly releases run on a daily schedule."
+  },
+  {
+   "id": "gemini-cli/F20.update-mechanism",
+   "surface": "gemini-cli",
+   "row": "F20.update-mechanism",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-gemini-cli-00956",
+    "E-gemini-cli-01981",
+    "E-gemini-cli-01982"
+   ],
+   "value": "To update a source checkout, pull the latest changes from the repository. Gemini CLI is officially available in the ACP Agent Registry, which lists \"Latest versions\" as ensuring users always have access to the most up-to-date version."
+  },
+  {
+   "id": "gemini-cli/F20.changelog-source",
+   "surface": "gemini-cli",
+   "row": "F20.changelog-source",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-gemini-cli-01017",
+    "E-gemini-cli-01201",
+    "E-gemini-cli-01244"
+   ],
+   "value": "Release notes for all versions are published at /docs/changelogs. Changelog entries read \"Changelog for v0.60.0-preview.0 by @gemini-cli-robot\". The patch release workflow creates a new GitHub release with the patch notes.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "gemini-cli/F20.deprecation-policy",
+   "surface": "gemini-cli",
+   "row": "F20.deprecation-policy",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-gemini-cli-00170",
+    "E-gemini-cli-00815",
+    "E-gemini-cli-01423",
+    "E-gemini-cli-02187"
+   ],
+   "value": "Release-note announcements state deprecations (\"We have deprecated a number of command line arguments in...\"). Docs carry inline notes: the legacy tools.exclude setting \"is deprecated in favor of\" policy rules, tools.exclude is marked [DEPRECATED], and the --checkpointing flag \"was removed in version\".",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
    "id": "gemini-cli/F21.host-platform",
    "surface": "gemini-cli",
    "row": "F21.host-platform",
@@ -509,6 +1817,92 @@
     "positive_control_term": "gemini",
     "positive_control_hits": 2380
    }
+  },
+  {
+   "id": "gemini-cli/F22.usage-visibility",
+   "surface": "gemini-cli",
+   "row": "F22.usage-visibility",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-gemini-cli-01676",
+    "E-gemini-cli-01527",
+    "E-gemini-cli-02091",
+    "E-gemini-cli-02075"
+   ],
+   "value": "Token usage and cached token savings can be viewed with /stats. The headless JSON output carries a stats object with token usage and API latency metrics. A summary of model usage is presented on exit at the end of a session. Cached token information is only displayed when cached tokens are being used.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "gemini-cli/F22.budget-caps",
+   "surface": "gemini-cli",
+   "row": "F22.budget-caps",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-gemini-cli-00299",
+    "E-gemini-cli-00635"
+   ],
+   "value": "billing.overageStrategy sets how to handle quota exhaustion when AI credits are available: 'ask' prompts each time, 'always' automatically uses credits, 'never' disables credit usage. The default is \"ask\".",
+   "limitation": "Scoped to \"quota exhaustion when AI credits are available\"; the options are ask (prompt each time), always (automatically use credits) or never (disable credit usage)."
+  },
+  {
+   "id": "gemini-cli/F22.rate-limits",
+   "surface": "gemini-cli",
+   "row": "F22.rate-limits",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-gemini-cli-00947",
+    "E-gemini-cli-00374",
+    "E-gemini-cli-00444",
+    "E-gemini-cli-02074"
+   ],
+   "value": "For Log in with Google (Gemini Code Assist for individuals), the listed limit is 1000 maximum model requests / user / day. When rate-limited, the CLI automatically switches to the \"flash\" model. It tells you when you reach your Gemini 3 Pro daily usage limit. A 429 Resource exhausted error indicates the API request limit was exceeded."
+  },
+  {
+   "id": "gemini-cli/F22.telemetry-otel",
+   "surface": "gemini-cli",
+   "row": "F22.telemetry-otel",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-gemini-cli-01209",
+    "E-gemini-cli-00122",
+    "E-gemini-cli-00344",
+    "E-gemini-cli-00159"
+   ],
+   "value": "Gemini CLI uses OpenTelemetry (OTel) to record traces that help debug agent behavior. The docs list a Telemetry feature with usage and performance metric details. Telemetry includes session.id, installation.id and active_approval_mode. Telemetry can be sent directly to Google Cloud."
+  },
+  {
+   "id": "gemini-cli/F22.logs-debug",
+   "surface": "gemini-cli",
+   "row": "F22.logs-debug",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-gemini-cli-00019",
+    "E-gemini-cli-00537",
+    "E-gemini-cli-00868",
+    "E-gemini-cli-00287"
+   ],
+   "value": "--debug (-d) runs in debug mode with verbose logging (default false). /chat debug exports the most recent API request as a JSON payload. F12 toggles the debug console for detailed error information. general.debugKeystrokeLogging enables debug logging of keystrokes to the console.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "gemini-cli/F22.status-display",
+   "surface": "gemini-cli",
+   "row": "F22.status-display",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-gemini-cli-00633",
+    "E-gemini-cli-01409",
+    "E-gemini-cli-00294",
+    "E-gemini-cli-00130"
+   ],
+   "value": "The footer shows the model name and context usage (ui.footer.hideModelInfo hides them) and the number of loaded context files. ui.dynamicWindowTitle (default true) puts status icons in the terminal title (Ready, Action Required, Working). v0.33.0 inverted the context window display to show usage.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
   }
  ]
 }

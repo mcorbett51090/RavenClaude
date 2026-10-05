@@ -2,6 +2,237 @@
  "surface": "cursor",
  "cells": [
   {
+   "id": "cursor/F01.loop-shape",
+   "surface": "cursor",
+   "row": "F01.loop-shape",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-cursor-01439",
+    "E-cursor-03987",
+    "E-cursor-00902"
+   ],
+   "value": "The agent works through a series of tool calls, deciding what to do next based on the result of each action. It uses tools to search code, edit files, and run the terminal, then reads each result before its next step. A stop hook is called when the agent loop ends and can optionally auto-submit a follow-up user message to keep iterating."
+  },
+  {
+   "id": "cursor/F01.turn-limits",
+   "surface": "cursor",
+   "row": "F01.turn-limits",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-cursor-01571",
+    "E-cursor-00903"
+   ],
+   "value": "There is no limit on the number of tool calls Agent can make during a task. Stop-hook auto follow-ups have a default limit of 5 per script, configurable via loop_limit; setting loop_limit to null removes the cap. The same limit applies to subagentStop follow-ups.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "cursor/F01.tool-inventory",
+   "surface": "cursor",
+   "row": "F01.tool-inventory",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-cursor-00058",
+    "E-cursor-00071",
+    "E-cursor-00847"
+   ],
+   "value": "Agent tools include file editing, codebase search, terminal execution, and more. First-party tools cover reading files, editing files, running terminal commands, searching the web, and more. Hook matchers filter by tool type, with values including Shell, Read, Write, Grep, Delete, Task, and MCP tools in the MCP:<tool_name> format.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "cursor/F01.shell-tool",
+   "surface": "cursor",
+   "row": "F01.shell-tool",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-cursor-01663",
+    "E-cursor-01577",
+    "E-cursor-00568",
+    "E-cursor-01372"
+   ],
+   "value": "Cursor runs shell commands directly in your terminal; Run Mode controls when commands run, when Cursor asks, and when terminal commands enter the sandbox. By default Cursor uses the first terminal profile available and requires your approval before executing any terminal command. The LocalAgentOptions cwd is the primary working directory for the default shell.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "cursor/F01.file-edit-tools",
+   "surface": "cursor",
+   "row": "F01.file-edit-tools",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-cursor-03803",
+    "E-cursor-01572",
+    "E-cursor-00894"
+   ],
+   "value": "The built-in ToolCall union covers shell, edit, read, write, glob, grep, ls, semSearch, mcp, task, and others. A search tool can search for files by name, read directory structures, and find exact keywords or patterns within files. afterFileEdit fires after the Agent edits a file.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "cursor/F01.web-tools",
+   "surface": "cursor",
+   "row": "F01.web-tools",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-cursor-01573",
+    "E-cursor-00333",
+    "E-cursor-00152"
+   ],
+   "value": "A Web tool generates search queries and performs web searches. For the web fetch tool, without an allowlist entry each fetch prompts for approval, and domains added to allow are auto-approved. An Auto-Accept Web Search permission lets the agent run web searches without pausing for approval each time; it is off by default."
+  },
+  {
+   "id": "cursor/F02.context-window-size",
+   "surface": "cursor",
+   "row": "F02.context-window-size",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-cursor-00369",
+    "E-cursor-01414",
+    "E-cursor-00032",
+    "E-cursor-02019"
+   ],
+   "value": "Cloud Agents let you select the context window size; a larger window can increase token usage and costs. A subagent model string such as claude-opus-5[context=300k] sets the context window to 300k tokens. On request-based plans, Max Mode enables larger context windows.",
+   "limitation": "Automations use each model's maximum supported context window because they run as cloud agents. There is no context-window toggle."
+  },
+  {
+   "id": "cursor/F02.auto-compaction",
+   "surface": "cursor",
+   "row": "F02.auto-compaction",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-cursor-00061",
+    "E-cursor-00909"
+   ],
+   "value": "When the context window gets close to full, Cursor compresses older parts of the conversation into a summary to leave more room for new conversation. The preCompact hook is called before compaction and is observational: it cannot block or modify the compaction behavior.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "cursor/F02.manual-compaction",
+   "surface": "cursor",
+   "row": "F02.manual-compaction",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-cursor-00348",
+    "E-cursor-01892",
+    "E-cursor-01761"
+   ],
+   "value": "/summarize summarizes the conversation to reduce context and frees up space in the context window; /compress is an alias. A changelog entry says /summarize was renamed from /compress, and /compact and /compress remain as aliases that execute directly."
+  },
+  {
+   "id": "cursor/F02.context-inclusion",
+   "surface": "cursor",
+   "row": "F02.context-inclusion",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-cursor-00478",
+    "E-cursor-00895",
+    "E-cursor-01199"
+   ],
+   "value": "Adding sensitive paths to .cursorignore keeps them out of the agent's context. beforeReadFile is called before Agent reads a file and can block sensitive files from being sent to the model. The dirs option adds workspace folders for multi-root setups, so rules, skills, and workspace context load from every path.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "cursor/F02.persistent-memory",
+   "surface": "cursor",
+   "row": "F02.persistent-memory",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-cursor-02045",
+    "E-cursor-01712",
+    "E-cursor-03979"
+   ],
+   "value": "Automation memories let the agent read and write persistent notes across runs for the same automation, stored as named entries (MEMORIES.md by default). Commenting @cursor remember [fact] on a PR makes Bugbot save a learned rule and apply it to future reviews. Conversation search lets Agent query past conversations.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "cursor/F02.memory-scope-loading",
+   "surface": "cursor",
+   "row": "F02.memory-scope-loading",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-cursor-01606",
+    "E-cursor-02045"
+   ],
+   "value": "Each Project maintains a set of files that sync across every cloud and local machine its agents use. Automation memories persist across runs for the same automation, stored as a named entry (MEMORIES.md by default) that exists outside the agent's working filesystem."
+  },
+  {
+   "id": "cursor/F03.auto-loaded-files",
+   "surface": "cursor",
+   "row": "F03.auto-loaded-files",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-cursor-02764",
+    "E-cursor-01887",
+    "E-cursor-01706"
+   ],
+   "value": "Cloud agents read AGENTS.md files. The CLI agent supports the same rules system as the editor; rules in .cursor/rules are automatically loaded and applied based on their configuration. Bugbot reviews are guided by project .cursor/BUGBOT.md files.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "cursor/F03.import-syntax",
+   "surface": "cursor",
+   "row": "F03.import-syntax",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-cursor-03676"
+   ],
+   "value": "Rules can include files in the rule's context using @filename.ts. Rules can also be @mentioned in chat to apply them manually.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "cursor/F03.precedence-scoping",
+   "surface": "cursor",
+   "row": "F03.precedence-scoping",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-cursor-03664",
+    "E-cursor-01707",
+    "E-cursor-00120"
+   ],
+   "value": "Team Rules work alongside other rule types and take precedence. Bugbot merges its rules in the order Team Rules, project .cursor/BUGBOT.md (including nested files), learned rules, manual rules. The closest applicable APPROVAL_POLICY.md has the highest priority for files under its directory; ancestor policies still apply unless they conflict."
+  },
+  {
+   "id": "cursor/F03.path-scoped-rules",
+   "surface": "cursor",
+   "row": "F03.path-scoped-rules",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-cursor-03655",
+    "E-cursor-04284",
+    "E-cursor-04315",
+    "E-cursor-04028"
+   ],
+   "value": "Project rules live in .cursor/rules as .mdc files and are scoped using path patterns, invoked manually, or included based on relevance. The Apply to Specific Files rule type only applies for files matching a pattern (e.g., *.tsx). A paths field on a skill accepts a list or comma-separated string of glob patterns.",
+   "limitation": "Cursor project rules (*.mdc files in .cursor/rules/) do not apply to Bugbot runs. Use .cursor/BUGBOT.md or rules configured in Automations instead."
+  },
+  {
+   "id": "cursor/F03.user-vs-project-scope",
+   "surface": "cursor",
+   "row": "F03.user-vs-project-scope",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-cursor-02956",
+    "E-cursor-02074",
+    "E-cursor-00064"
+   ],
+   "value": "User rules apply to all projects for a specific user, are set in Cursor Settings, and suit personal preferences like code style or preferred libraries. Project and user rules are both included in the prompt.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
    "id": "cursor/F04.approval-modes",
    "surface": "cursor",
    "row": "F04.approval-modes",
@@ -13,6 +244,65 @@
     "E-cursor-00077"
    ],
    "value": "Terminal commands need approval by default. Run Modes, chosen in the desktop app under Settings > Agents > Approvals & Execution, range from a simple allowlist to the Auto-review classifier. The CLI approvalMode field takes allowlist, auto-review or unrestricted."
+  },
+  {
+   "id": "cursor/F04.per-tool-rules",
+   "surface": "cursor",
+   "row": "F04.per-tool-rules",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-cursor-00332",
+    "E-cursor-00585",
+    "E-cursor-01056",
+    "E-cursor-00996"
+   ],
+   "value": "permissions.allow, permissions.deny and --force control what runs without prompts. mcpAllowlist lists MCP tools that can run without approval, and Cursor asks for approval before using MCP tools by default. Users can set the agent to always ask before reading files, editing files, running terminal commands, or making network requests."
+  },
+  {
+   "id": "cursor/F04.path-scoping",
+   "surface": "cursor",
+   "row": "F04.path-scoping",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-cursor-00331",
+    "E-cursor-04251",
+    "E-cursor-00787",
+    "E-cursor-04455"
+   ],
+   "value": "Read permissions control read access to files and directories and support glob patterns. .cursorignore in the project root blocks listed files from Agent, codebase search, and @ mentions, to block agent read and context for secrets and regulated trees.",
+   "limitation": "Terminal commands and MCP tools run outside of Cursor's file access controls, so they may still be able to read ignored files."
+  },
+  {
+   "id": "cursor/F04.command-scoping",
+   "surface": "cursor",
+   "row": "F04.command-scoping",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-cursor-00330",
+    "E-cursor-00549",
+    "E-cursor-01057",
+    "E-cursor-01069"
+   ],
+   "value": "Shell permissions control access to shell commands; the commandBase is the first token in the command line, with glob patterns and an optional command:args syntax. terminalAllowlist lists terminal commands that can run without approval (when set, it overrides the in-app terminal allowlist); each entry is matched against the full command string.",
+   "limitation": "Allowlists and autoRun instructions are best-effort convenience. They are not a security guarantee."
+  },
+  {
+   "id": "cursor/F04.trust-prompt",
+   "surface": "cursor",
+   "row": "F04.trust-prompt",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-cursor-01624",
+    "E-cursor-02924",
+    "E-cursor-00317",
+    "E-cursor-00145"
+   ],
+   "value": "When Workspace Trust is enabled, Cursor prompts users to choose between normal or restricted mode for new workspaces; the WorkspaceTrustEnabled policy controls whether it is enabled. A July 20, 2026 changelog entry says passing --trust in an interactive session trusts the workspace up front, skips the trust dialog and records the same saved trust decision.",
+   "limitation": "Workspace trust is disabled by default; restricted mode breaks AI features. E-cursor-00317 says --trust trusts without prompting in headless mode only; E-cursor-00145 says it now works in interactive sessions too."
   },
   {
    "id": "cursor/F04.bypass-mode",
@@ -40,6 +330,387 @@
     "E-cursor-01361"
    ],
    "value": "In Auto-review mode, allowlisted calls run immediately, other shell commands run in the sandbox when possible, and calls that do not use the sandbox go to the Auto-review classifier. The autoRun permissions field holds natural-language guidance for the classifier; SDK local.autoReview: true routes local tool calls through it."
+  },
+  {
+   "id": "cursor/F04.config-scope-precedence",
+   "surface": "cursor",
+   "row": "F04.config-scope-precedence",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-cursor-00084",
+    "E-cursor-00539",
+    "E-cursor-00604"
+   ],
+   "value": "Auto-review reads permissions.json from two locations. When a Cursor policy is specified through device management solutions, its value overrides the corresponding Cursor setting on users' devices. Cursor resolves the effective MCP allowlist in an ordered sequence.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "cursor/F05.os-sandbox",
+   "surface": "cursor",
+   "row": "F05.os-sandbox",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-cursor-00078",
+    "E-cursor-00301",
+    "E-cursor-01222",
+    "E-cursor-00586"
+   ],
+   "value": "In Auto-review mode, other shell commands run in the sandbox when possible. Command execution sandbox settings are configured with /sandbox or --sandbox <mode> (enabled or disabled) and persist across sessions. Cursor-hosted cloud runs use an isolated VM with the repo cloned in. Agents run on the local machine by default."
+  },
+  {
+   "id": "cursor/F05.fs-write-scope",
+   "surface": "cursor",
+   "row": "F05.fs-write-scope",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-cursor-01356",
+    "E-cursor-03598",
+    "E-cursor-00582",
+    "E-cursor-01353"
+   ],
+   "value": "When sandboxed, writes are limited to the working directory, temp directories and paths allowed in sandbox.json; reads are not restricted to the workspace. Sandbox type workspace_readwrite (default) gives read/write access in the workspace. Enterprise teams can prevent agents from modifying the .cursor directory.",
+   "limitation": "Local agents run with local.sandboxOptions.enabled: false by default; the agent can read and write the working directory, execute shell commands, and reach the network without restriction."
+  },
+  {
+   "id": "cursor/F05.network-policy",
+   "surface": "cursor",
+   "row": "F05.network-policy",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-cursor-00476",
+    "E-cursor-00329",
+    "E-cursor-00458",
+    "E-cursor-01353"
+   ],
+   "value": "Network egress controls restrict outbound traffic to a default set plus an allowlist, or to the allowlist only; enterprise admins can lock the policy org-wide. In the sandbox, --network enables network access (default: false). Cloud Agent network settings apply to Cursor-hosted Cloud Agents.",
+   "limitation": "Network settings apply to Cursor-hosted Cloud Agents. Local agents run with local.sandboxOptions.enabled: false by default and can reach the network without restriction."
+  },
+  {
+   "id": "cursor/F05.subprocess-containment",
+   "surface": "cursor",
+   "row": "F05.subprocess-containment",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-cursor-00099",
+    "E-cursor-01355",
+    "E-cursor-00104"
+   ],
+   "value": "On macOS, Cursor uses Seatbelt through sandbox-exec; a generated sandbox profile limits file access, network access, and other process behavior for the full subprocess tree. When the sandbox is enabled, the SDK constrains every shell tool call and shell-spawned process. Cursor injects environment variables into every sandboxed child process.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "cursor/F05.sandbox-override",
+   "surface": "cursor",
+   "row": "F05.sandbox-override",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-cursor-00088",
+    "E-cursor-00096",
+    "E-cursor-03598"
+   ],
+   "value": "If a sandboxed command fails on a sandbox restriction, such as a permission error, the agent can rerun it outside the sandbox, and the classifier reviews that rerun. Some commands need full system access and bypass the sandbox; Cursor indicates when a command runs outside the sandbox and asks for approval. Sandbox type insecure_none disables the sandbox entirely.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "cursor/F06.event-catalog",
+   "surface": "cursor",
+   "row": "F06.event-catalog",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-cursor-00520",
+    "E-cursor-00800",
+    "E-cursor-01921",
+    "E-cursor-02489"
+   ],
+   "value": "Hooks observe, control or extend the agent loop at lifecycle events, in three categories based on what triggers them. Supported hooks on cloud agents include preToolUse, beforeShellExecution and afterFileEdit, plus beforeSubmitPrompt, subagentStart / subagentStop and preCompact. Worker hooks include sessionStart and sessionEnd when a session claims and releases the machine."
+  },
+  {
+   "id": "cursor/F06.handler-types",
+   "surface": "cursor",
+   "row": "F06.handler-types",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-cursor-00814",
+    "E-cursor-02577",
+    "E-cursor-03831",
+    "E-cursor-01920"
+   ],
+   "value": "Hooks support two execution types: command-based (default) and prompt-based (LLM-evaluated). Cloud agents run command-based hooks from .cursor/hooks.json in the repository.",
+   "limitation": "On self-hosted workers, only command-based hooks run; prompt-based hooks do not run. The SDK docs say hooks are file-based only, with no programmatic hook callback."
+  },
+  {
+   "id": "cursor/F06.input-contract",
+   "surface": "cursor",
+   "row": "F06.input-contract",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-cursor-00815",
+    "E-cursor-00857",
+    "E-cursor-00858",
+    "E-cursor-02580"
+   ],
+   "value": "Command hooks receive JSON input via stdin. All hooks receive a base set of fields in addition to their hook-specific fields, including conversation_id (stable ID of the conversation across many turns). On a claim, sessionStart input also lists the run's repositories via repo_urls and repos.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "cursor/F06.output-blocking",
+   "surface": "cursor",
+   "row": "F06.output-blocking",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-cursor-00816",
+    "E-cursor-00817",
+    "E-cursor-01077",
+    "E-cursor-00786"
+   ],
+   "value": "Exit code 0 means the hook succeeded and its JSON output is used; exit code 2 blocks the action, equivalent to returning permission: deny. For permission hooks, invalid JSON or a response that does not match the hook's schema blocks the action. The nested permissionDecision and updatedInput map to permission and updated_input. failClosed can be set for critical hooks."
+  },
+  {
+   "id": "cursor/F06.matchers",
+   "surface": "cursor",
+   "row": "F06.matchers",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-cursor-00843",
+    "E-cursor-00846",
+    "E-cursor-00847",
+    "E-cursor-00845"
+   ],
+   "value": "A matcher is a regex string that filters when a hook runs; an empty string or * matches everything. For beforeShellExecution it runs against the shell command string; for preToolUse / postToolUse / postToolUseFailure it filters by tool type (values include Shell, Read, Write, Grep, Delete, Task, and MCP:<tool_name>); for subagentStart it runs against the subagent type.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "cursor/F06.config-locations",
+   "surface": "cursor",
+   "row": "F06.config-locations",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-cursor-00824",
+    "E-cursor-01920",
+    "E-cursor-00682",
+    "E-cursor-01071"
+   ],
+   "value": "User hooks are configured in ~/.cursor/hooks.json and project hooks in <project>/.cursor/hooks.json. Cloud agents run command-based hooks from .cursor/hooks.json in the repository (on Enterprise plans also team and enterprise-managed hooks). Hook events carry an optional cursor.plugin.name when the hook came from a plugin. Cursor can also load hooks configured for Claude Code.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "cursor/F06.trust-enable",
+   "surface": "cursor",
+   "row": "F06.trust-enable",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-cursor-03110",
+    "E-cursor-03111",
+    "E-cursor-01072",
+    "E-cursor-03123"
+   ],
+   "value": "Project hooks load and run automatically when team members open the project in a trusted workspace, and the workspace must be trusted to run them. Claude Code hooks load when the Third-Party Imports setting is enabled (on by default). A Hooks tab in Customize and a Hooks output channel show configured and executed hooks and errors."
+  },
+  {
+   "id": "cursor/F07.managed-settings",
+   "surface": "cursor",
+   "row": "F07.managed-settings",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-cursor-00536",
+    "E-cursor-00602",
+    "E-cursor-00830",
+    "E-cursor-01075"
+   ],
+   "value": "The Cursor editor and agent can be deployed to workstations with policies enforced through MDM, and ~/.cursor/permissions.json can be distributed through MDM to set the per-user MCP auto-run allowlist from a managed file. Team hooks are configured in the web dashboard and synced to all team members automatically.",
+   "limitation": "Enterprise-managed hooks and dashboard distribution require an Enterprise plan."
+  },
+  {
+   "id": "cursor/F07.policy-lockdown",
+   "surface": "cursor",
+   "row": "F07.policy-lockdown",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-cursor-00472",
+    "E-cursor-00600",
+    "E-cursor-00086",
+    "E-cursor-00537"
+   ],
+   "value": "Enterprise team admins can lock the network access setting with the Lock Network Access Policy option, and control which MCP servers members may use through an MCP allowlist in the team dashboard (Enterprise only). A team-defined global Auto-review configuration takes priority and Cursor ignores user-level and project-level files. MDM can enforce policies such as allowed team IDs and extensions.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "cursor/F07.model-allowlist",
+   "surface": "cursor",
+   "row": "F07.model-allowlist",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-cursor-00589",
+    "E-cursor-00779",
+    "E-cursor-00508",
+    "E-cursor-01415"
+   ],
+   "value": "Enterprise teams can control which AI models team members can use (contact sales to get access). Admins approve specific models for the organization; non-ZDR models require admin approval. On Enterprise, if a model is blocked for the team, Cursor Router routes to an allowed model, and a subagent's configured model is not used when an admin has blocked it."
+  },
+  {
+   "id": "cursor/F07.identity-sso",
+   "surface": "cursor",
+   "row": "F07.identity-sso",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-cursor-01026",
+    "E-cursor-00542",
+    "E-cursor-00028"
+   ],
+   "value": "SAML/OIDC SSO is listed among the Teams features, alongside centralized team billing and administration. The AllowedTeamId policy (under MDM Configuration) controls which team IDs are allowed to log in, and users with unauthorized team IDs are forcefully logged out. SCIM directory groups are used for team-level spend and policy.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "cursor/F07.data-retention",
+   "surface": "cursor",
+   "row": "F07.data-retention",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-cursor-00754",
+    "E-cursor-00021",
+    "E-cursor-00055",
+    "E-cursor-00775",
+    "E-cursor-00001"
+   ],
+   "value": "Enterprise customers can enroll in US-only data residency. CMEK can be enabled for encryption with your own keys when your compliance program requires it (Cloud Agent data). Some models are marked as requiring data retention approval for Enterprise customers, Teams and individual customers with Privacy Mode enabled.",
+   "limitation": "A few models require data retention with the provider and fall outside these agreements. Requests through a cyber-verified model run with Privacy Mode off for that model only; Cursor cannot honor zero data retention for those requests."
+  },
+  {
+   "id": "cursor/F07.admin-audit",
+   "surface": "cursor",
+   "row": "F07.admin-audit",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-cursor-00774",
+    "E-cursor-02339",
+    "E-cursor-03047",
+    "E-cursor-02860"
+   ],
+   "value": "Admins are advised to periodically review audit logs and stream them to a SIEM. Cloud Agent runs are logged, and team admins can review activity from the Cloud Agents dashboard. Spend alerts notify when team or member spending reaches thresholds the admin sets. The compliance documentation covers audit logs and AI code tracking.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "cursor/F08.skill-format",
+   "surface": "cursor",
+   "row": "F08.skill-format",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-cursor-03572",
+    "E-cursor-00518",
+    "E-cursor-01617"
+   ],
+   "value": "Skills are defined in SKILL.md files, each in its own directory under skills/ (Cursor Plugin reference). Skills package domain knowledge, workflows, and scripts in SKILL.md files. Any skill with a valid frontmatter block can back a Custom Mode; optional icon and color frontmatter fields style its badge.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "cursor/F08.discovery-paths",
+   "surface": "cursor",
+   "row": "F08.discovery-paths",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-cursor-03896",
+    "E-cursor-04306",
+    "E-cursor-04039",
+    "E-cursor-03564"
+   ],
+   "value": "When Cursor starts, it automatically discovers skills from skill directories. A skills root such as .cursor/skills/ is walked recursively, so category subfolders work. Sync Skills for Cloud Agents copies ~/.cursor/skills/ for the user's own Cloud Agents. Plugin skills are each subdirectory of skills/ containing a SKILL.md."
+  },
+  {
+   "id": "cursor/F08.invocation",
+   "surface": "cursor",
+   "row": "F08.invocation",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-cursor-03896",
+    "E-cursor-04317",
+    "E-cursor-01616"
+   ],
+   "value": "Automatic: the agent is presented with available skills and decides when they are relevant based on context. Explicit: type / followed by the skill name in chat to run it, or type @ and select it to attach as context. Option+Enter (Mac) or Alt+Enter (Windows) from the / menu starts a skill as a Custom Mode that stays in context on every turn until you exit the mode.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "cursor/F08.resource-loading",
+   "surface": "cursor",
+   "row": "F08.resource-loading",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-cursor-00065",
+    "E-cursor-03895",
+    "E-cursor-03941",
+    "E-cursor-03940"
+   ],
+   "value": "Skill descriptions are injected into the system context; skills load resources on demand, keeping context usage efficient. A references/ directory holds additional documentation loaded on demand, and a scripts/ directory holds executable code the agent can run, referenced in SKILL.md using relative paths from the skill root.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "cursor/F08.skill-overrides",
+   "surface": "cursor",
+   "row": "F08.skill-overrides",
+   "state": "undocumented",
+   "verification": "verified",
+   "evidence": [],
+   "sweep_report": {
+    "terms": [
+     "skills?\\b.{0,100}(allowed-tools|model|effort|frontmatter)",
+     "allowed-tools"
+    ],
+    "corpus_sha256": "390145d1d3563c71c22069c94238ba01eb2cd5a0a227c049780093a6248fbe46",
+    "hits": 12,
+    "hits_reviewed": 12,
+    "positive_control_term": "cursor",
+    "positive_control_hits": 4980
+   }
+  },
+  {
+   "id": "cursor/F09.definition-format",
+   "surface": "cursor",
+   "row": "F09.definition-format",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-cursor-03976",
+    "E-cursor-01457",
+    "E-cursor-03575",
+    "E-cursor-00390"
+   ],
+   "value": "Custom subagents are markdown files added to .cursor/agents/; plugin agents are markdown files in agents/. The model field in a subagent's YAML frontmatter can be set to a specific model ID; custom subagents default to inherit, which uses the parent agent's model. In the cloud API each custom subagent entry requires name, description and prompt, plus an optional model."
+  },
+  {
+   "id": "cursor/F09.tool-allowlist",
+   "surface": "cursor",
+   "row": "F09.tool-allowlist",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-cursor-01184",
+    "E-cursor-01410",
+    "E-cursor-01468"
+   ],
+   "value": "The SDK tools option allowlists the built-in tools offered to the model, and disallowed_tools removes tools and keeps the rest. In a subagent definition, readonly: true (default false) runs the subagent with restricted write permissions (no file edits, no state-changing shell commands). Subagents can be configured with custom prompts, tool access, and models.",
+   "limitation": "SDK tools and disallowed_tools: both are local agents only for now, and neither persists on the agent; pass them again on resume."
   },
   {
    "id": "cursor/F09.per-agent-model",
@@ -79,6 +750,367 @@
    ],
    "value": "Since Cursor 2.5, subagents can launch child subagents within a nesting limit, forming a tree of coordinated work. The main agent and its direct subagents can launch subagents. The Python SDK docs state the same rule.",
    "limitation": "A subagent launched by another subagent can't launch further ones (E-cursor-01432). Side chats: 'Nesting is not supported. A side chat cannot spawn its own side chats.' (E-cursor-04224)"
+  },
+  {
+   "id": "cursor/F09.built-in-agents",
+   "surface": "cursor",
+   "row": "F09.built-in-agents",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-cursor-01401",
+    "E-cursor-01457",
+    "E-cursor-00116",
+    "E-cursor-00391"
+   ],
+   "value": "Cursor includes three built-in subagents (Explore, Bash, Browser) that handle context-heavy operations. Built-in subagents select their model automatically based on the subtask; the Explore subagent runs in its own context window with a faster model. Custom subagent names cannot collide with built-ins (explore, debug, shell, computerUse, etc.).",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "cursor/F10.built-in-commands",
+   "surface": "cursor",
+   "row": "F10.built-in-commands",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-cursor-00335",
+    "E-cursor-01426",
+    "E-cursor-01542",
+    "E-cursor-01589"
+   ],
+   "value": "Built-in slash commands include `/model [filter]` (select a model; press Tab to edit), `/in-cloud` (the next task you submit runs as a cloud subagent on its own VM and branch), `/agent-review` (trigger a review on demand) and `/side` or `/btw` (open a side chat)."
+  },
+  {
+   "id": "cursor/F10.custom-command-format",
+   "surface": "cursor",
+   "row": "F10.custom-command-format",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-cursor-00521",
+    "E-cursor-03513",
+    "E-cursor-03578"
+   ],
+   "value": "Commands are reusable prompts invoked with `/` in Agent chat; they are markdown files that define a focused workflow or action. Custom commands are defined in a `.cursor/commands` directory. The plugin reference says commands support `.md`, `.mdc`, `.markdown` and `.txt` extensions and can include YAML frontmatter.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "cursor/F10.arguments",
+   "surface": "cursor",
+   "row": "F10.arguments",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-cursor-01589",
+    "E-cursor-00335"
+   ],
+   "value": "Built-in commands take their argument after the command name: `/side` or `/btw` can be followed by your question in the chat input, and `/model [filter]` selects a model (press Tab to edit)."
+  },
+  {
+   "id": "cursor/F10.discovery-paths",
+   "surface": "cursor",
+   "row": "F10.discovery-paths",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-cursor-02961",
+    "E-cursor-03513",
+    "E-cursor-03565"
+   ],
+   "value": "Commands are scoped to teams, projects, or users, and team admins can create organization-wide commands that appear for all developers. Custom commands are defined in a `.cursor/commands` directory; plugin commands are discovered in `commands/` as all `.md`, `.mdc`, `.markdown`, or `.txt` files.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "cursor/F10.command-skill-relation",
+   "surface": "cursor",
+   "row": "F10.command-skill-relation",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-cursor-03937",
+    "E-cursor-03955",
+    "E-cursor-04320",
+    "E-cursor-03897"
+   ],
+   "value": "Skills can also be manually invoked by typing `/` in Agent chat. Setting `disable-model-invocation: true` makes a skill behave like a traditional slash command, included only when you explicitly type `/skill-name`. Built-in `/migrate-to-skills` (Cursor 2.4+) converts eligible rules and commands to skills; slash commands become skills with `disable-model-invocation: true`.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "cursor/F11.packaging-format",
+   "surface": "cursor",
+   "row": "F11.packaging-format",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-cursor-03550",
+    "E-cursor-03462",
+    "E-cursor-03669",
+    "E-cursor-03457"
+   ],
+   "value": "Plugins package rules, skills, agents, commands, MCP servers, and hooks into distributable bundles. Cursor loads plugins in two formats, identified by their manifest location; Agent Plugins have a `plugin.json` manifest at the plugin root. A repository imported from GitHub needs a `.cursor-plugin/marketplace.json`.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "cursor/F11.component-types",
+   "surface": "cursor",
+   "row": "F11.component-types",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-cursor-03457",
+    "E-cursor-00516",
+    "E-cursor-04272"
+   ],
+   "value": "Plugins package rules, skills, agents, commands, MCP servers, and hooks into distributable bundles. Skills and MCP servers are supported by both Agent Plugins and Cursor Plugins."
+  },
+  {
+   "id": "cursor/F11.install-sources",
+   "surface": "cursor",
+   "row": "F11.install-sources",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-cursor-03355",
+    "E-cursor-03466",
+    "E-cursor-03951",
+    "E-cursor-00318"
+   ],
+   "value": "Official plugins install with one click from Customize via the Cursor Marketplace, which distributes plugins as Git repositories. Skills from a GitHub repository are packaged in a plugin and published through a marketplace. `--plugin-dir <path>` loads a local plugin directory (can be specified multiple times).",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "cursor/F11.versioning-update",
+   "surface": "cursor",
+   "row": "F11.versioning-update",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-cursor-03483",
+    "E-cursor-04427",
+    "E-cursor-03067",
+    "E-cursor-00148"
+   ],
+   "value": "A marketplace added from a git URL with `agent plugin marketplace add` can be pinned to a branch, tag, or commit with `--git-ref`. On GitHub imports, Enable Auto Refresh updates plugins whenever changes are pushed to the tracked branch. An extension install cooldown defers installs and updates until a marketplace version has been public for a set number of hours.",
+   "limitation": "Auto Refresh applies to GitHub imports and requires the Cursor GitHub App installed on the repository. Plugins in the marketplace are not automatically updated from source code; every plugin update is manually reviewed."
+  },
+  {
+   "id": "cursor/F11.trust-signing",
+   "surface": "cursor",
+   "row": "F11.trust-signing",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-cursor-03467",
+    "E-cursor-03067",
+    "E-cursor-04425"
+   ],
+   "value": "Marketplace plugins are manually reviewed before listing, must be open source, and each update is reviewed before publishing. An extension install cooldown defers installs and updates until a version has been public for a set number of hours, with optional signature verification. A plugin containing a blocked MCP server installs normally, but the blocked server cannot make calls."
+  },
+  {
+   "id": "cursor/F11.marketplace-hosting",
+   "surface": "cursor",
+   "row": "F11.marketplace-hosting",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-cursor-03587",
+    "E-cursor-01025",
+    "E-cursor-03078"
+   ],
+   "value": "A single Git repository can contain multiple plugins using a marketplace manifest at `.cursor-plugin/marketplace.json` in the repository root. Team plans provide a team marketplace for internal rules, skills, and plugins. Allow Members to Publish on the Default marketplace limits who can share personal skills.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "cursor/F12.client-support",
+   "surface": "cursor",
+   "row": "F12.client-support",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-cursor-00599",
+    "E-cursor-00995",
+    "E-cursor-01885",
+    "E-cursor-00066"
+   ],
+   "value": "MCP lets you connect external tools and data sources to Cursor. Cursor automatically uses MCP tools listed under Available Tools when relevant, including in Plan Mode. The CLI detects and respects your `mcp.json`, enabling the same MCP servers and tools as the editor. Instructions and catalog from connected MCP servers count toward context."
+  },
+  {
+   "id": "cursor/F12.transports",
+   "surface": "cursor",
+   "row": "F12.transports",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-cursor-02121",
+    "E-cursor-01214",
+    "E-cursor-00611",
+    "E-cursor-03345"
+   ],
+   "value": "Custom MCP servers for cloud agents can use HTTP or stdio transport. Local servers are configured with `command` and `args`. MCP servers can be written in any language that can print to `stdout` or serve an HTTP endpoint. The Python SDK HTTP server config has `type: Literal[\"http\", \"sse\"]`, default \"http\".",
+   "limitation": "For cloud-agent custom MCP servers, \"SSE and `mcp-remote` are not supported\" (E-cursor-02121), while the Python SDK config type accepts \"http\" or \"sse\" (E-cursor-01214); the quotes do not reconcile the two."
+  },
+  {
+   "id": "cursor/F12.config-scope",
+   "surface": "cursor",
+   "row": "F12.config-scope",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-cursor-01748",
+    "E-cursor-01832",
+    "E-cursor-02118",
+    "E-cursor-00386"
+   ],
+   "value": "MCP servers are defined in a project-level or user-level `.cursor/mcp.json`; `agent mcp login` uses servers in `.cursor/mcp.json` or `~/.cursor/mcp.json`. For cloud agents, personal servers are added through the MCP dropdown in cursor.com/agents and team admins configure shared servers under Dashboard -> Plugins & MCPs. The cloud agent API accepts inline MCP server definitions (maximum 50)."
+  },
+  {
+   "id": "cursor/F12.auth",
+   "surface": "cursor",
+   "row": "F12.auth",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-cursor-00386",
+    "E-cursor-02120",
+    "E-cursor-01216",
+    "E-cursor-01832"
+   ],
+   "value": "Remote servers support `headers` or OAuth `auth`; stdio servers can receive `env`. Cloud agents support OAuth for MCP servers that need it, per-user, including for team-shared servers. For HTTP servers in the cloud, `headers` and `auth` are handled by Cursor's backend and sensitive fields are redacted before the VM sees them. `agent mcp login <identifier>` authenticates with a configured server.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "cursor/F12.tool-filtering",
+   "surface": "cursor",
+   "row": "F12.tool-filtering",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-cursor-00334",
+    "E-cursor-00550",
+    "E-cursor-01446",
+    "E-cursor-00847"
+   ],
+   "value": "CLI permissions control which MCP tools the agent can run, using `server` (from `mcp.json`) and `tool` name with `*` wildcards. Allowlist entries (`mcpAllowlist`) use `server:tool` syntax for tools that may run without approval. Tools can be toggled on or off by clicking the tool name in the chat panel's tools list. Hook matchers address MCP tools as `MCP:<tool_name>`.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "cursor/F12.server-trust",
+   "surface": "cursor",
+   "row": "F12.server-trust",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-cursor-01621",
+    "E-cursor-00600",
+    "E-cursor-01056",
+    "E-cursor-00316"
+   ],
+   "value": "All MCP connections need approval; after a connection is approved, each tool call still needs individual approval before running, and specific tools can be pre-approved. Enterprise teams can control which MCP servers members may use through an allowlist in the team dashboard. `--approve-mcps` automatically approves all MCP servers; `mcpAllowlist` lists MCP tools that can run without approval.",
+   "limitation": "Configure this in the team dashboard under \"MCP Configuration\" (Enterprise only)."
+  },
+  {
+   "id": "cursor/F13.resume-continue",
+   "surface": "cursor",
+   "row": "F13.resume-continue",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-cursor-00312",
+    "E-cursor-01895",
+    "E-cursor-02313",
+    "E-cursor-03964"
+   ],
+   "value": "`--continue` continues the previous session (alias for `--resume=-1`); `--resume [thread id]` continues an existing thread and loads prior context. Conversation state, metadata and artifacts are saved to Cursor-managed storage so you can review and resume the run. Each subagent execution returns an agent ID to resume it with full context preserved.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "cursor/F13.fork-branch",
+   "surface": "cursor",
+   "row": "F13.fork-branch",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-cursor-00347",
+    "E-cursor-04222",
+    "E-cursor-03975",
+    "E-cursor-04193"
+   ],
+   "value": "`/fork` forks the current chat into a new session. Forking the whole chat, from the tab menu, sidebar, or command palette, copies every message and subagent; forking from a specific message copies the conversation through that message. Recipients can click Fork to Cursor on a shared transcript to continue the conversation in their own editor.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "cursor/F13.checkpoint-rewind",
+   "surface": "cursor",
+   "row": "F13.checkpoint-rewind",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-cursor-01582",
+    "E-cursor-00349",
+    "E-cursor-00305",
+    "E-cursor-03975"
+   ],
+   "value": "Restoring a checkpoint reverts all files to that state. Restore Checkpoint on a previous message rolls back all changes Agent made after that point. In the CLI, `/rewind` jumps back to a previous message, and the `rewind` config field enables it. To shorten the conversation itself, fork the chat from an earlier message.",
+   "limitation": "Restoring a checkpoint reverts files only; it does not remove messages from the conversation."
+  },
+  {
+   "id": "cursor/F13.transcript-storage",
+   "surface": "cursor",
+   "row": "F13.transcript-storage",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-cursor-01514",
+    "E-cursor-02313",
+    "E-cursor-00864",
+    "E-cursor-01158"
+   ],
+   "value": "Cursor stores agent chat history locally; conversation state, metadata and artifacts are also saved to Cursor-managed storage. Hooks receive `transcript_path`, the path to the main conversation transcript file (null if transcripts disabled). In the Python SDK, `run.conversation()` returns a typed `list[ConversationTurn]` and `run.conversation_json()` returns the raw JSON string.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "cursor/F13.session-listing",
+   "surface": "cursor",
+   "row": "F13.session-listing",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-cursor-01897",
+    "E-cursor-00344",
+    "E-cursor-01591",
+    "E-cursor-04132"
+   ],
+   "value": "`agent ls` opens previous chats so one can be resumed, and `/rename <name>` renames the current chat session. In the Agents Window, Cmd+K (Mac) or Ctrl+K (Windows and Linux) opens the command palette to search across conversations; the sidebar manages every agent and chats can be pinned to stay at the top."
+  },
+  {
+   "id": "cursor/F13.cross-surface-handoff",
+   "surface": "cursor",
+   "row": "F13.cross-surface-handoff",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-cursor-01894",
+    "E-cursor-01551",
+    "E-cursor-04115",
+    "E-cursor-04036"
+   ],
+   "value": "Prepending `&` to a CLI message pushes the conversation to a Cloud Agent, which can be picked up on web or mobile at cursor.com/agents. In the Agents Window an agent can move from cloud to local to iterate and back to the cloud. Agents started in the mobile app appear at cursor.com/agents, in the desktop Agents window, and in the app itself.",
+   "limitation": "\"Move to Cloud\" does not snapshot local uncommitted changes. The cloud agent starts from a clean git state on the remote repository and transfers conversation history and context, but not dirty files or uncommitted edits."
+  },
+  {
+   "id": "cursor/F14.worktree-isolation",
+   "surface": "cursor",
+   "row": "F14.worktree-isolation",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-cursor-00366",
+    "E-cursor-00488",
+    "E-cursor-01422",
+    "E-cursor-01662"
+   ],
+   "value": "`-w`/`--worktree [name]` runs the CLI agent in a new Git worktree under `~/.cursor/worktrees/<reponame>/<name>` rather than the current checkout. Agents started in a worktree from the Agents Window get a separate checkout. Subagents share the parent's checkout by default; on request each runs in its own copy of the project.",
+   "limitation": "Some features that rely on a single git root, like worktrees, are disabled for multi-root workspaces."
   },
   {
    "id": "cursor/F14.concurrency-caps",
@@ -121,6 +1153,20 @@
    "limitation": "The maximum of 20 applies to the custom subagents defined for a run."
   },
   {
+   "id": "cursor/F14.multi-session-coordination",
+   "surface": "cursor",
+   "row": "F14.multi-session-coordination",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-cursor-02794",
+    "E-cursor-04126",
+    "E-cursor-00162"
+   ],
+   "value": "Worktrees are for starting several agents on the same repo without conflicts. The Agents Window is Cursor's agent-first workspace for running and managing many agents across repositories and environments. A CLI changelog entry fixes config corruption when running several agents at once, where concurrent CLI processes interleaved writes to `cli-config.json`.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
    "id": "cursor/F15.background-tasks",
    "surface": "cursor",
    "row": "F15.background-tasks",
@@ -132,6 +1178,162 @@
     "E-cursor-01183"
    ],
    "value": "Setting is_background: true (default false) runs a subagent in the background without blocking the parent. Background agents are coding agents that typically run for a very long time, moving a task from the local device to the cloud. A background subagent's result returns to the parent as a follow-up turn on the same run (local agents only)."
+  },
+  {
+   "id": "cursor/F15.scheduled-routines",
+   "surface": "cursor",
+   "row": "F15.scheduled-routines",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-cursor-02012",
+    "E-cursor-02138",
+    "E-cursor-01594",
+    "E-cursor-04059"
+   ],
+   "value": "Automations run cloud agents in the background on a schedule or in response to events. Timer subscriptions are a one-off reminder after a delay or a recurring cron schedule. The built-in `/loop` skill runs a prompt or skill on a recurring or variable interval; if you don't specify a fixed interval, the agent chooses when to wake."
+  },
+  {
+   "id": "cursor/F15.cloud-agents",
+   "surface": "cursor",
+   "row": "F15.cloud-agents",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-cursor-00370",
+    "E-cursor-00451",
+    "E-cursor-00475"
+   ],
+   "value": "The Cloud Agent API can create a Cloud Agent and immediately enqueue its initial run. Runs are listed as a Cloud machine, a Team Pool, or one of My Machines, and agents work in full development environments: they install dependencies, run tests, and verify their changes. Cloud Agents auto-run terminal commands so they can iterate on tests without stopping for approval on every step.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "cursor/F15.remote-sessions",
+   "surface": "cursor",
+   "row": "F15.remote-sessions",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-cursor-02115",
+    "E-cursor-00453",
+    "E-cursor-02463"
+   ],
+   "value": "You can take control of the agent's remote desktop to interact with the software it is building, and hand control back at any time. Agents keep working in the cloud whether or not your device stays connected. My Machines lets a specific user run Cloud Agent tool calls on a machine they already use: a laptop, devbox, or remote VM.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "cursor/F15.event-triggers",
+   "surface": "cursor",
+   "row": "F15.event-triggers",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-cursor-02012",
+    "E-cursor-01909",
+    "E-cursor-02133",
+    "E-cursor-00122"
+   ],
+   "value": "Automations run cloud agents in response to events from GitHub, GitLab, Slack, webhooks, Linear, and more. Commenting `@cursor` on a GitHub PR or issue, or a Bitbucket PR, kicks off an agent. An agent can subscribe to an event source, end its turn, and wake on a matching event. The PR pushed / updated trigger runs an agent when new commits are pushed to an existing PR."
+  },
+  {
+   "id": "cursor/F15.delegation",
+   "surface": "cursor",
+   "row": "F15.delegation",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-cursor-01395",
+    "E-cursor-01552",
+    "E-cursor-01570"
+   ],
+   "value": "Subagents are specialized AI assistants that Cursor's agent can delegate tasks to; each operates in its own context window and returns its result to the parent agent. `/in-cloud` hands a task to a cloud subagent, so long-running work runs on its own VM and branch. In a Project, a coordinator agent plans the work and delegates it to other agents.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "cursor/F16.interactive-cli",
+   "surface": "cursor",
+   "row": "F16.interactive-cli",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-cursor-01793",
+    "E-cursor-00324",
+    "E-cursor-01588",
+    "E-cursor-01870"
+   ],
+   "value": "Cursor CLI lets you interact with AI agents from your terminal to write, review, and modify code. With no command specified, Cursor Agent starts in interactive agent mode. In the CLI, pressing Enter while the agent works steers the active run at a safe boundary, and pressing Enter again interrupts the turn. Shell Mode runs shell commands directly from the CLI.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "cursor/F16.headless-mode",
+   "surface": "cursor",
+   "row": "F16.headless-mode",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-cursor-00309",
+    "E-cursor-01819",
+    "E-cursor-01799",
+    "E-cursor-01807"
+   ],
+   "value": "`-p`/`--print` prints responses to the console for scripts or non-interactive use and has access to all tools, including write and shell. Combined with `--print`, `--output-format` offers `json` and `stream-json` (structured) or `text`. Print mode suits scripts, CI pipelines, or automation; API key authentication is for automation, scripts, or CI environments."
+  },
+  {
+   "id": "cursor/F16.ide-integration",
+   "surface": "cursor",
+   "row": "F16.ide-integration",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-cursor-03226",
+    "E-cursor-01886",
+    "E-cursor-01555",
+    "E-cursor-00354"
+   ],
+   "value": "Cursor's agent runs in IntelliJ IDEA, PyCharm, WebStorm and other JetBrains IDEs through the Agent Client Protocol (ACP). `agent acp` runs Cursor CLI as an ACP server over stdio with JSON-RPC messaging. The editor offers the classic IDE with VS Code extensions. `/open` opens the repository's Git root in Cursor; `/cursor` is an alias.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "cursor/F16.desktop-web-app",
+   "surface": "cursor",
+   "row": "F16.desktop-web-app",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-cursor-03972",
+    "E-cursor-01545",
+    "E-cursor-00077"
+   ],
+   "value": "Agents can be run from the browser at cursor.com/agents using Cloud Agents. The Agents Window is Cursor's agent-first interface, a unified workspace across repos and environments including local, cloud and remote SSH. In the desktop application, go to Settings > Agents > Approvals & Execution.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "cursor/F16.sdk-api",
+   "surface": "cursor",
+   "row": "F16.sdk-api",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-cursor-00370",
+    "E-cursor-01120",
+    "E-cursor-01221",
+    "E-cursor-01886"
+   ],
+   "value": "An API call can create a Cloud Agent and immediately enqueue its initial run; the response returns the durable agent and the initial run. `Agent.create()` takes either `local` or `cloud` to pick a runtime, and a local runtime runs the agent loop inline in your Node process. `agent acp` runs Cursor CLI as an ACP server over stdio with JSON-RPC messaging.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "cursor/F16.ci-chat",
+   "surface": "cursor",
+   "row": "F16.ci-chat",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-cursor-00970",
+    "E-cursor-01909",
+    "E-cursor-00951"
+   ],
+   "value": "Mention @cursor in Slack with a prompt and Cursor tries to detect a repository, model, base branch or named cloud agent environment from your message. Commenting @cursor on a GitHub PR or issue, or on a Bitbucket PR, kicks off an agent. In Microsoft Teams, mentioning @Cursor automatically picks the right repository, model, base branch or environment."
   },
   {
    "id": "cursor/F17.model-picker",
@@ -347,6 +1549,75 @@
    "value": "Agent is the default mode (no --mode value needed in the CLI; the SDK AgentOptions mode defaults to agent). On follow-up SDK sends, omitting mode keeps the conversation's current mode; passing mode switches for that run only. Each mode uses its own context, so switching modes starts a fresh context window."
   },
   {
+   "id": "cursor/F20.version-at-retrieval",
+   "surface": "cursor",
+   "row": "F20.version-at-retrieval",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-cursor-00353",
+    "E-cursor-03695",
+    "E-cursor-01756"
+   ],
+   "value": "`/about` shows CLI version, system and account info and also copies it to the clipboard. The CLI changelog page says to run `agent --version` to check your installed version. `SdkBridgeControlService.GetVersion` can be called to gate on `bridge_version`, `protocol_version` or `capabilities` at runtime.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "cursor/F20.release-channels",
+   "surface": "cursor",
+   "row": "F20.release-channels",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-cursor-04471",
+    "E-cursor-04472",
+    "E-cursor-00304"
+   ],
+   "value": "Update channels include Stable (default, recommended for most users) and Early Access (pre-release builds with the latest features, may be less stable). The CLI configuration has a `channel` string field: the release channel used for CLI updates."
+  },
+  {
+   "id": "cursor/F20.update-mechanism",
+   "surface": "cursor",
+   "row": "F20.update-mechanism",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-cursor-01792",
+    "E-cursor-00342",
+    "E-cursor-00543",
+    "E-cursor-00791"
+   ],
+   "value": "Cursor CLI will try to auto-update by default; `/update` updates Cursor Agent to the latest version. The UpdateMode MDM policy (`update.mode`) controls automatic update behavior; set it to 'none' to disable updates. On Linux, the apt and yum packages provide automatic updates."
+  },
+  {
+   "id": "cursor/F20.changelog-source",
+   "surface": "cursor",
+   "row": "F20.changelog-source",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-cursor-01756",
+    "E-cursor-03697"
+   ],
+   "value": "The CLI changelog page lists the latest features, improvements and fixes shipping to Cursor CLI. A separate SDK changelog covers the latest features, improvements and fixes for `@cursor/sdk` on npm and `cursor-sdk` on PyPI.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "cursor/F20.deprecation-policy",
+   "surface": "cursor",
+   "row": "F20.deprecation-policy",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-cursor-03694",
+    "E-cursor-02002",
+    "E-cursor-01445",
+    "E-cursor-02552"
+   ],
+   "value": "Examples stated in the docs: `sdk.v1` changes additively and a breaking change would ship as `sdk.v2` alongside `v1`; the legacy v0 Cloud Agents API remains available during the migration window; Ask Every Time is deprecated in 3.5; `--pool-name` is a deprecated alias for `--pool <name>`.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
    "id": "cursor/F21.host-platform",
    "surface": "cursor",
    "row": "F21.host-platform",
@@ -446,6 +1717,92 @@
    ],
    "value": "target.openAsCursorGithubApp opens the pull request as the Cursor GitHub App instead of as the user. Cursor says it tunes its harness to each frontier model it supports.",
    "limitation": "openAsCursorGithubApp \"Only applies if autoCreatePr is true. Default: false\". The quotes do not state that no sibling has either feature."
+  },
+  {
+   "id": "cursor/F22.usage-visibility",
+   "surface": "cursor",
+   "row": "F22.usage-visibility",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-cursor-01508",
+    "E-cursor-00062",
+    "E-cursor-01253",
+    "E-cursor-01956"
+   ],
+   "value": "The Spending dashboard shows request-level cost and pool details. The context ring next to the prompt input shows how full the window is; its breakdown tray shows total tokens used by category. `getUsage` fetches billed token usage and dollar cost for the agent, and an API endpoint retrieves token usage for an agent broken down per run."
+  },
+  {
+   "id": "cursor/F22.budget-caps",
+   "surface": "cursor",
+   "row": "F22.budget-caps",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-cursor-00369",
+    "E-cursor-00535",
+    "E-cursor-01530",
+    "E-cursor-01450"
+   ],
+   "value": "You'll be asked to set a spend limit when you first start using Cloud Agents. Team limits are pooled usage plus admin-only controls. A group's settings page includes Spend Limit Overrides. When the Other Models allowance runs out on a Teams or Enterprise plan, own-key requests keep working if on-demand usage is enabled and stop until the next billing cycle if it is off.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "cursor/F22.rate-limits",
+   "surface": "cursor",
+   "row": "F22.rate-limits",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-cursor-04414",
+    "E-cursor-02802",
+    "E-cursor-00416",
+    "E-cursor-03858"
+   ],
+   "value": "At the usage limit you'll see a notification in the editor and can enable on-demand usage (pay-as-you-go) or upgrade to a higher plan. Balance and Intelligence use your usage limits faster than Cost. One endpoint is rate limited to 300 requests per minute and 6000 per hour. Back off using exponential delay (the SDK reports `isRetryable: true` for transient cases).",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "cursor/F22.telemetry-otel",
+   "surface": "cursor",
+   "row": "F22.telemetry-otel",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-cursor-02857",
+    "E-cursor-00620",
+    "E-cursor-00664",
+    "E-cursor-02648"
+   ],
+   "value": "OpenTelemetry Export streams usage metrics and logs to your observability stack over OTLP. Everything is on by default for a new destination except `conversation_content`, and individual families can be turned off in Team Settings. All metrics are monotonic delta sums. Starting a worker with `--management-addr` exposes `GET /metrics`, `/healthz` and `/readyz`.",
+   "limitation": "OpenTelemetry Export is listed as \"(Enterprise only)\"."
+  },
+  {
+   "id": "cursor/F22.logs-debug",
+   "surface": "cursor",
+   "row": "F22.logs-debug",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-cursor-00341",
+    "E-cursor-01843",
+    "E-cursor-01919"
+   ],
+   "value": "`/logs` shows the debug log path and copies it to the clipboard. `--data-dir <path>` on the worker command sets the base directory for logs, artifacts and recording data. Cloud Agents include a built-in Cursor Cloud MCP for run diagnostics, including transcripts, run events, environment details and setup logs."
+  },
+  {
+   "id": "cursor/F22.status-display",
+   "surface": "cursor",
+   "row": "F22.status-display",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-cursor-03909",
+    "E-cursor-00307",
+    "E-cursor-00062"
+   ],
+   "value": "The built-in `/statusline` skill configures the Cursor CLI status line. `display.showStatusLineRunningTime` shows elapsed running time in the status line. A context ring next to the prompt input shows how full the window is at a glance; clicking it opens a breakdown tray of total tokens used by category.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
   }
  ]
 }
