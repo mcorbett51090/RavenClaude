@@ -23,6 +23,7 @@ BADGE_CLASS = {
     "partly documented": "s-not-researched",
     "not documented": "s-undocumented",
     "not researched": "s-nodata",
+    "not applicable": "s-not-applicable",
 }
 BADGE_GLYPH = {
     "documented": "●",
@@ -30,6 +31,7 @@ BADGE_GLYPH = {
     "partly documented": "◔",
     "not documented": "?",
     "not researched": "·",
+    "not applicable": "–",
 }
 SCORE_NOTE = (
     "Each row a vendor documents as supported scores 2, as partial 1, and as undocumented or "

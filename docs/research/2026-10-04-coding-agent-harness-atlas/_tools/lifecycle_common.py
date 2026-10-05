@@ -104,11 +104,15 @@ def aggregate(cells):
         counts[c["state"]] = counts.get(c["state"], 0) + 1
     total = len(cells)
     score = sum(STATE_WEIGHT.get(c["state"], 0) for c in cells)
+    # A row that does not apply to the product is left out of the average. A concept with no row that
+    # was both applicable and researched has no score, rather than a 0% that reads as "documents nothing".
+    applicable = total - counts.get("not-applicable", 0)
+    researched = applicable - counts.get("not-researched", 0)
     return {
         "rows": total,
         "counts": dict(sorted(counts.items())),
         "unverified": sum(1 for c in cells if c["verification"] == "unverified"),
-        "fraction": (score / (2 * total)) if total else None,
+        "fraction": (score / (2 * applicable)) if researched > 0 else None,
     }
 
 
@@ -121,7 +125,14 @@ def badge(agg):
         counts.get("supported", 0) + counts.get("partial", 0) + counts.get("not-exposed", 0)
     )
     if documented == 0:
-        return "not documented"
+        # "not documented" is a sweep finding: it needs every row that applies to have been swept.
+        # Rows nobody researched, or that do not apply, never produce it.
+        applicable = agg["rows"] - counts.get("not-applicable", 0)
+        if not applicable:
+            return "not applicable"
+        if counts.get("undocumented", 0) == applicable:
+            return "not documented"
+        return "not researched"
     if counts.get("undocumented", 0) or counts.get("not-researched", 0):
         return "partly documented"
     if counts.get("partial", 0):

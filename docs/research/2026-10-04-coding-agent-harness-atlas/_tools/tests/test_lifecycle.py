@@ -70,6 +70,27 @@ class ComputedTests(unittest.TestCase):
         self.assertEqual(lc.badge(lc.aggregate([U])), "not documented")
         self.assertEqual(lc.badge(lc.aggregate([])), "not researched")
 
+    def test_cells_nobody_swept_or_that_do_not_apply_never_read_as_not_documented(self):
+        nr = {"state": "not-researched", "verification": "unverified"}
+        na = {"state": "not-applicable", "verification": "verified"}
+        self.assertEqual(lc.badge(lc.aggregate([nr])), "not researched")
+        self.assertEqual(lc.badge(lc.aggregate([nr, na])), "not researched")
+        self.assertEqual(lc.badge(lc.aggregate([U, nr])), "not researched")
+        self.assertEqual(lc.badge(lc.aggregate([na])), "not applicable")
+        self.assertEqual(lc.badge(lc.aggregate([U, na])), "not documented")
+        self.assertEqual(lc.badge(lc.aggregate([A, nr])), "partly documented")
+        self.assertEqual(lc.badge(lc.aggregate([A, na])), "documented")
+
+    def test_the_score_leaves_out_rows_that_do_not_apply_and_has_none_without_a_swept_row(self):
+        nr = {"state": "not-researched", "verification": "unverified"}
+        na = {"state": "not-applicable", "verification": "verified"}
+        self.assertAlmostEqual(lc.aggregate([A, na])["fraction"], 1.0)
+        self.assertAlmostEqual(lc.aggregate([A, nr])["fraction"], 0.5)
+        self.assertIsNone(lc.aggregate([nr])["fraction"])
+        self.assertIsNone(lc.aggregate([na])["fraction"])
+        self.assertIsNone(lc.aggregate([nr, na])["fraction"])
+        self.assertEqual(lc.aggregate([U])["fraction"], 0.0)
+
     def test_conditions_drop_evidence_gap_sentences_and_count_them(self):
         conditions, gaps = lc.derived_conditions([A, B])
         self.assertEqual(
