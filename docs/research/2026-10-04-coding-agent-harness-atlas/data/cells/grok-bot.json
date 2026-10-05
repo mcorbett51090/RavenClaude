@@ -2173,7 +2173,7 @@
     "E-grok-bot-80019"
    ],
    "value": "A Team Bot uses secrets by name; the value is replaced with [REDACTED] in command output, files it reads and plugin calls. Script output is redacted before logging. Action Recording scrubs shell commands. Conversation content export redacts known credential shapes, PEM blocks and email addresses ([REDACTED: ...]).",
-   "limitation": "Script-output redaction belongs to Team Secrets, Enterprise plan only, as are Action Recording and conversation content export (not for Privacy Mode (Legacy) teams). Pattern matching cannot recognize every secret. Team Bot secrets: up to 25, each 8 to 4,096 bytes."
+   "limitation": "Script-output redaction belongs to Team Secrets, Enterprise plan only, as are Action Recording and conversation content export (not for Privacy Mode (Legacy) teams). Pattern matching cannot recognize every secret. Team Bot secrets: up to 25, each at least 8 characters and at most 4,096 bytes."
   }
  ]
 }
