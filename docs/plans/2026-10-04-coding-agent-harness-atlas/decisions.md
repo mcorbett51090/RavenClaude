@@ -287,3 +287,11 @@ The first 19 batches briefed at cap 150 and collected: **1,775 records, 1,775 ve
 - Cap-150 behavior holds: whole batches of dense Claude Code pages hit the cap (143+ records) about one time in eight and are split into halves, which then collect clean (no half has capped yet).
 - Cost recompute from actuals: scouts report 66K–131K subagent tokens per batch, mean about 90K. Spend to date is about 26M for collected batches. Remaining: 257 uncollected batches plus about 25 expected splits, at about 85K each, is about 24M more. Projected total about 50M, inside the 64M–67M the owner accepted (est. calls ~735 disclosed). No re-ask needed.
 - Dispatch is steady at 20 concurrent; queue holds 39 briefed batches; about 198 originals remain unbriefed and are briefed 30 at a time.
+
+## P5 progress check (after 439 collected, 2026-10-05)
+
+- Planned 557 batches; 439 collected, 372 clean, the rest split by the cap rule (cap 150). Every collected batch verified against raw bytes; a handful of records dropped for failing quote verification, never repaired.
+- All remaining batches are briefed and queued (86 queued, 20 running). The lever-first (L-) series is finished; the X- series (all 8 surfaces, rotating) is the tail.
+- Correction logged: at one point a status line said all originals were queued when 28 were still unbriefed. Caught by a probe on the next turn, the 28 were briefed and queued, and a check confirmed zero unbriefed, zero duplicates, zero already-collected entries in the queue.
+- Cost recompute from actuals: mean about 92K subagent tokens per batch. Spend to date about 40M for collected batches; remaining about 118 batches is about 11M more. Projected total about 51M, inside the 64M–67M the owner accepted. No re-ask needed.
+- Known recall limits to state on the atlas methods page: scouts skip table rows that carry no quotable prose phrase (one scout reported leaving out a content-exclusion table row), and the cap-driven splits cover dense pages in halves.
