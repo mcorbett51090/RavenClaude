@@ -1,0 +1,127 @@
+########################################################################
+# atlas-watch.yml — the weekly check of the vendor docs behind the harness atlas.
+#
+# It re-fetches every page the atlas cites, compares each cited quote and a rolling
+# baseline (docs/research/2026-10-04-coding-agent-harness-atlas/data/watch-baseline.json),
+# and reports. It spends no model tokens. See _tools/watch.py for the tiers.
+#
+# ⛔ THIS WORKFLOW MUST NEVER BECOME A REQUIRED STATUS CHECK, and it must never be
+# added to the branch ruleset. A scheduled workflow reports NOTHING on a pull
+# request, and a required check that reports nothing leaves the PR Pending forever.
+# The ruleset half is re-measured below with `gh api` on every run.
+#
+# ⛔ IT NEVER COMMITS. Accepting a change is `watch.py accept --report report.json`
+# in a pull request, after the affected cells were revised.
+#
+# ⛔ AN UNREACHABLE HOST IS UNKNOWN, NEVER "NO CHANGE". Exit 3 from the watch becomes a
+# warning annotation and a job summary that says it is not a clean result; the run
+# stays green so the schedule is not muted, but nothing here says clean.
+#
+# ⛔ ONLY MATERIAL FINDINGS OPEN AN ISSUE (a cited quote vanished, a cited page
+# disappeared, an in-scope page was added or removed, a changelog entry names a lever).
+# A version bump or a page that changed with its quotes intact is in the report only.
+# The issue body is report.md: ids, counts, URLs and dates, no vendor prose.
+########################################################################
+name: Atlas watch (scheduled)
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Off the hour on purpose: scheduler spikes at :00 are real.
+    - cron: "17 6 * * 1"
+
+permissions: {}
+
+concurrency:
+  group: atlas-watch
+  cancel-in-progress: false
+
+jobs:
+  watch:
+    name: Re-fetch the cited vendor pages and compare
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      issues: write
+    env:
+      WATCH_OUT: ${{ github.workspace }}/atlas-watch-out
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # No authenticated git operation is needed, so none is possible.
+          persist-credentials: false
+
+      - name: Watch check (T0 versions, T1 source drift, T2 impact)
+        id: watch
+        run: |
+          set +e
+          python3 docs/research/2026-10-04-coding-agent-harness-atlas/_tools/watch.py check --out "$WATCH_OUT"
+          rc=$?
+          echo "rc=$rc" >> "$GITHUB_OUTPUT"
+          # 0 clean, 1 material, 3 unknown are results; anything else is a broken run.
+          case "$rc" in 0|1|3) exit 0 ;; *) exit "$rc" ;; esac
+
+      - name: Job summary
+        if: always()
+        run: |
+          if [ -f "$WATCH_OUT/report.md" ]; then
+            cat "$WATCH_OUT/report.md" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "## Atlas watch: no report was written" >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Say so when the result is UNKNOWN
+        if: steps.watch.outputs.rc == '3'
+        run: echo "::warning::Atlas watch is UNKNOWN - a host could not be reached. This is not a clean result."
+
+      - name: Upload the report
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: atlas-watch-report
+          path: ${{ github.workspace }}/atlas-watch-out/
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Open or update the one tracking issue (material findings only)
+        if: steps.watch.outputs.rc == '1'
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        with:
+          script: |
+            const fs = require('fs');
+            const { owner, repo } = context.repo;
+            const label = 'atlas-watch';
+            const runUrl = [process.env.GITHUB_SERVER_URL, owner, repo, 'actions/runs', process.env.GITHUB_RUN_ID].join('/');
+            const body = fs.readFileSync(process.env.WATCH_OUT + '/report.md', 'utf8') + '\nRun: ' + runUrl + '\n';
+            const open = await github.paginate(github.rest.issues.listForRepo, {
+              owner, repo, state: 'open', labels: label, per_page: 100,
+            });
+            if (open.length > 0) {
+              await github.rest.issues.update({ owner, repo, issue_number: open[0].number, body });
+            } else {
+              await github.rest.issues.create({
+                owner, repo, labels: [label],
+                title: 'Atlas watch: material change in a cited vendor doc', body,
+              });
+            }
+
+      # ── ⛔ RE-MEASURE THE RULESET CLAIM. This workflow being absent from the
+      #    required checks is an ASSERTION, not an assumption. An API failure is
+      #    inconclusive and says so; it is never reported as OK.
+      - name: Assert this watch is NOT a required status check
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -uo pipefail
+          if ! rules="$(gh api "repos/${GITHUB_REPOSITORY}/rulesets" 2>&1)"; then
+            echo "::warning::could not read branch rulesets ($rules) - assertion inconclusive, not OK"
+            exit 0
+          fi
+          if grep -q 'Atlas watch' <<<"$rules"; then
+            echo "::error::The atlas watch appears in a branch ruleset. A scheduled workflow"
+            echo "::error::reports nothing on a PR, so a required check on it hangs the PR forever."
+            exit 1
+          fi
+          echo "OK: the atlas watch is not named in any branch ruleset."
