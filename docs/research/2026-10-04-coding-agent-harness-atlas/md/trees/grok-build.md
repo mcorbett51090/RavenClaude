@@ -49,7 +49,7 @@ Steps run in the typical order. A documented order appears only where a cell sta
     - A remembered allow grant from an earlier prompt -> Dangerous patterns, such as removing files or pushing code, still prompt. | quote: “A remembered `always allow` grant still prompts for dangerous patterns such as `rm` and `git push`”
     - An explicit allow rule in config or on the command line -> Those commands are approved automatically. | quote: “an explicit config or CLI allow rule auto-approves them”
   - decision point (grok-build/F04.auto-review): In auto mode, which requests are approved without asking me?
-    - Safe tools -> A classifier approves them automatically. | quote: “Auto mode uses a classifier to auto-approve safe tools”
+    - Safe tools -> A built-in checker approves them automatically. | quote: “Auto mode uses a classifier to auto-approve safe tools”
     - Dangerous tools -> They may still prompt you for approval. | quote: “dangerous ones may still prompt”
 - Save an undo point [documented, unverified] A rewind command lists a rewind point per prompt, and picking one restores the files and trims the conversation to match. Rewinding changes files on disk, so reverted changes are lost unless they were committed to git.
 - Run it inside the fence [partly documented, unverified] The sandbox is off by default; once on, it limits what the agent and its child processes can read, write and reach. Built-in profiles do not permanently protect paths like the SSH folder, and the network limits on child processes are enforced on Linux.
@@ -70,9 +70,6 @@ Steps run in the typical order. A documented order appears only where a cell sta
 - Updates and releases [partly documented, unverified] It has stable and alpha release channels, an update command, and ways to switch off background update checks. A command shows release notes for the current version. The documentation does not mention a deprecation policy or the version it covers.
 - Where it runs and who runs it [not documented] The documentation does not mention a host platform, a shared account and billing, shared servers or agent runtime, delegation to another agent, or distinct harness features.
 - Identity, retention and audit [partly documented, unverified] It supports sign-in through a corporate identity provider and device-code login for headless use. Zero data retention is set per team, with session history kept locally. The documentation does not mention admin audit reports.
-  - decision point (grok-build/F07.data-retention): What changes for a team with zero data retention turned on?
-    - Zero data retention is on for the team -> The service that runs the model keeps no prompts, code or responses; local session history stays on the machine. | quote: “no prompts, code, or responses are persisted at the inference layer for ZDR organizations”
-    - Video tools are used before storage is set up -> The video tools return an error until you supply your own storage. | quote: “Until storage is configured, the video tools in Grok Build will return an error.”
 
 ## Where to set the model, effort and mode
 

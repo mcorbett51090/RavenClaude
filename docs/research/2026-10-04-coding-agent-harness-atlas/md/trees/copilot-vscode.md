@@ -18,7 +18,7 @@ Steps run in the typical order. A documented order appears only where a cell sta
     - The skill instructions mention the file -> Copilot reads the extra file from the skill folder when the instructions point to it. | quote: “only when the instructions reference them”
     - Nothing in the instructions mentions the file -> The file is not loaded. | quote: “an unreferenced file is not loaded”
 - Connect outside tools [documented, with limits, unverified] It connects MCP servers and offers their tools to the model, with explicit approval required for tool calls. Copilot sessions are currently limited to local servers that do not need authentication, and plugin servers are trusted when the plugin is installed.
-  - decision point (copilot-vscode/F12.server-trust): Does a connected MCP server ask me to trust it first?
+  - decision point (copilot-vscode/F12.server-trust): Does a connected outside-tool (MCP) server ask me to trust it first?
     - The server comes from the workspace -> It inherits the folder's trust decision (Workspace Trust). | quote: “workspace MCP servers inherit Workspace Trust”
     - The server comes from a plugin -> It is trusted when you install the plugin, with no separate trust prompt at startup. | quote: “Plugin MCP servers are implicitly trusted when you install the plugin”
 - Set the safety posture [documented, with limits, unverified] You choose how much needs your confirmation: manual approval, an autonomous mode, or a bypass that disables security protections. Plan and Ask modes limit what it does. If enterprise policy disables auto-approval, new sessions start on manual.
@@ -51,7 +51,7 @@ Steps run in the typical order. A documented order appears only where a cell sta
 - Run it inside the fence [documented, with limits, unverified] Terminal commands can run inside an operating-system sandbox that limits files and network access, and child processes inherit it. It is in preview or experimental depending on the system, and it does not restrict the built-in file tools or replace approval controls.
   - documented order: If the bypass permission is set to false in one place and true in another, false wins.
   - decision point (copilot-vscode/F05.sandbox-override): What happens if a command cannot run inside the sandbox?
-    - A command cannot run inside the sandbox -> The agent can ask you to confirm running the command outside the sandbox. | quote: “the agent can ask for confirmation to run it outside”
+    - The outside-sandbox setting is on -> The agent can ask you to confirm running the command outside the sandbox. | quote: “the agent can ask for confirmation to run it outside”
     - The outside-sandbox setting is false -> The Allow Outside Sandbox choice is not offered and the request fails. | quote: “Allow Outside Sandbox is not offered and such requests fail”
 - Tidy the tool's output [not researched]
 - Feed the result back and go round again [documented, unverified] The agent repeats reasoning, tool use and checking: it runs a requested tool, feeds the result back, and goes again. You can steer, queue a follow-up or stop a request, though stopping does not undo finished actions. A setting caps how many requests it makes.

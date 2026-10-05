@@ -215,8 +215,8 @@ def intro_block(layer):
             "writes text. The <strong>harness</strong> is the program around it: it decides what the "
             "model reads, offers it tools, checks permissions, runs commands and shows you the result. "
             "This page walks through everything the harness does, in the order it typically happens, "
-            "so you can see how much of what an agent can do has nothing to do with which model sits "
-            "inside it.</p>",
+            "so you can see which parts of an agent's work the harness does itself, and what each "
+            "vendor documents about them.</p>",
             "<p>Each step shows what the vendor's own documentation says for each of eight agents. The "
             "order is the <em>typical</em> order across harnesses; a vendor's documentation seldom "
             "states it, and where it does the step says so.</p>",
@@ -331,9 +331,9 @@ def render_compare(layer):
     page = "compare.html"
     atlas = layer.atlas
     body = [
-        "<p>What each agent's harness can do, whichever model you plug in. The grid compares how well "
+        "<p>What each vendor documents about the harness around its model. The grid compares how well "
         "each vendor documents every step of the lifecycle; the sections below name who documents the "
-        "most, and add a boxed editorial view of why it matters when you choose.</p>",
+        "most, and add a boxed editorial view of why it matters when you choose a model.</p>",
         f"<p>{esc(SCORE_NOTE)}</p>",
         f'<p class="gapnote"><strong>Read this first:</strong> {esc(caveat(layer))}</p>',
         heading(2, "Overview by agent", "totals"),
@@ -394,7 +394,7 @@ def render_compare(layer):
         "output is trimmed.</li></ul>"
     )
     return document(
-        page, "Compare", "What each agent can do, whichever model you use", "\n".join(body)
+        page, "Compare", "What each agent's harness documents, step by step", "\n".join(body)
     )
 
 

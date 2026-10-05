@@ -20,9 +20,6 @@ Steps run in the typical order. A documented order appears only where a cell sta
 - Load skills and custom commands [partly documented, unverified] A skill is a folder with a description file that the model loads when a task fits. Custom commands are small text files you type yourself, with room for arguments. The documentation does not mention per-skill tool or model overrides, or how commands relate to skills.
   - documented order: User and project commands take precedence over extension commands, which rank lowest.
 - Connect outside tools [documented, with limits, unverified] It works with MCP servers, which can run as local programs or be reached remotely, and are set up in settings files with optional sign-in. Servers an admin requires are limited to remote connections. Tools can be filtered per server, and admins can list allowed servers.
-  - decision point (gemini-cli/F12.transports): Which connection types can an MCP server use?
-    - A server in general -> Local programs, event streams and streamable web connections are each described. | quote: “communicates via stdin/stdout”
-    - A server an admin requires -> It is limited to remote connections made over the network. | quote: “Required servers only support remote transports”
 - Set the safety posture [documented, with limits, unverified] It has four approval modes: ask each time, auto-approve edits, plan (read-only) and run freely. New folders get a trust check. The documentation disagrees on whether run-freely can be turned on by a keyboard shortcut, and on whether settings merge from two files or four.
   - documented order: When several policy rules match a tool call, the highest-priority one is applied.
 - Pick the model and thinking effort [partly documented] You pick the model in a dialog or at launch, and the default is automatic. A Gemini API key is an alternative to a Google sign-in, but an unpaid key is capped at 250 requests a day on the Flash model. The documentation does not mention effort levels or shared model choice.
@@ -48,9 +45,6 @@ Steps run in the typical order. A documented order appears only where a cell sta
 - Decide whether it is allowed [documented, with limits, unverified] Rules can be set per tool, per path and per shell command, and an older option for pre-allowing tools is deprecated in favour of the policy engine. An LLM-based security checker is off by default and described as an additional layer of protection.
 - Save an undo point [documented] It can save snapshots automatically for recovery, and you can go back to an earlier state of the conversation. Named checkpoints can be listed, saved, resumed, deleted and shared.
 - Run it inside the fence [documented, unverified] A sandbox can be switched on and is documented as off by default. On Mac, a profile confines writes to the project folder. The sandbox page describes network as allowed, while a network access setting is documented with a default of off, so the two differ.
-  - decision point (gemini-cli/F05.sandbox-override): What if a sandboxed command needs more permission?
-    - The command fails on a permission restriction -> A dialog explains which extra permissions are needed and asks for them. | quote: “When a sandboxed command fails due to permission restrictions, a Request step shows a modal dialog”
-    - You add the directories at session start -> Extra directories can be added when the session starts instead. | quote: “can be used when starting the session instead”
 - Tidy the tool's output [not researched]
 - Feed the result back and go round again [documented, unverified] The core returns tool results to the model for further processing. Turn limits cap a session, a helper's turns, and tool calls per task. Detection of infinite loops can be turned off, and a particular output value can stop the loop at once.
 - Hand work to helpers [partly documented, unverified] Helpers are defined in text files and can have their own tools and model. The documentation says they cannot call other helpers. It does not mention how many can run at once, in total, or in parallel; separate sessions can use worktrees to avoid collisions.
@@ -69,10 +63,9 @@ Steps run in the typical order. A documented order appears only where a cell sta
   - documented order: The allowed-extensions list overrides the setting that blocks extensions from Git.
   - decision point (gemini-cli/F11.trust-signing): What decides whether an extension may be installed?
     - The allowed-extensions list has entries -> Extensions must match a pattern in the list to be allowed. | quote: “if nonempty, only matching extensions are allowed”
-    - Install with the consent option -> The confirmation prompt is skipped after acknowledging risks. | quote: “acknowledges security risks and skips the confirmation prompt”
     - The admin setting is false -> Extensions are not allowed to be installed. | quote: “when false, disallows extensions from being installed”
 - Updates and releases [documented, unverified] It ships on nightly, preview and stable channels, with a weekly cadence promoting code along that path. Release notes are published as a changelog, and deprecations are announced there and in notes inside the docs.
-- Where it runs and who runs it [partly documented] It runs on Mac, Windows and Ubuntu with a recent Node runtime. Google AI Pro or Ultra gives higher limits shared with agent mode in the IDE, while Workspace plans do not cover its API usage. The documentation does not mention shared servers or a shared runtime.
+- Where it runs and who runs it [partly documented] It runs on Mac, Windows and Ubuntu with a recent Node runtime. Google AI Pro or Ultra gives higher limits shared with IDE agent mode. Gemini for Workspace plans do not cover its API usage; your organization's tier applies at Workspace sign-in. Shared servers are not documented.
 - Identity, retention and audit [documented, unverified] Sign-in is with a Google account for Gemini Code Assist, and Workspace accounts get organization tiers. Old session data is cleaned up automatically by default. A telemetry and auditing section covers configuring the CLI for monitoring.
 
 ## Where to set the model, effort and mode

@@ -632,7 +632,7 @@ def render_compare_md(layer):
     atlas = layer.atlas
     lines = [
         GENERATED,
-        "# Compare: what each agent can do, whichever model you use",
+        "# Compare: what each agent's harness documents, step by step",
         "",
         BANNER,
         "",

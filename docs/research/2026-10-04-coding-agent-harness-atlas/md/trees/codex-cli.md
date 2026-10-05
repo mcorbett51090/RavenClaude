@@ -10,7 +10,7 @@ Steps run in the typical order. A documented order appears only where a cell sta
 - Choose the front door [documented, with limits] Use it from a terminal screen, inside editors, in a desktop or web app, from a script, or through GitHub and Slack integrations. Driving it from code with the SDK has a caveat: launching its app server locally is meant for development and debugging and may change without notice.
 - Apply organization rules [documented, with limits] Administrators can set rules through a requirements file or device management, and can block the full-access and run-freely options. For model lists, one setting enforces the model catalog, but the table for new chats supplies managed defaults, not enforcement.
   - documented order: For local execution, device management and legacy managed-device requirements win over Agent Security, which wins over the device's system requirements file.
-- Load the house rules [partly documented] It loads instruction files from your home folder and the project, and files closer to your working folder take precedence. The documentation does not mention importing one file into another. It stops searching once it reaches your current folder, so put overrides near the work.
+- Load the house rules [partly documented] It loads instruction files from your Codex home folder and the project, and files closer to your working folder take precedence. The documentation does not mention importing one file into another. It stops searching at your current folder, so put overrides near the work.
   - documented order: Files closer to the working folder take precedence.
 - Load memory and earlier sessions [documented] Memory is off until you turn it on, and it can be switched on or off from inside the terminal screen. You can resume or fork an earlier session, hand one to the desktop app or the cloud, and choose whether transcripts are saved and how large the history file may grow.
 - Stock the built-in tools [documented, with limits] It comes with tools to edit files by applying patches and to run shell commands, plus helper-agent tools and an image tool that can be turned off. Web search is on by default for local chats but serves a stored index, not live pages, and is not available on Bedrock Runtime.
@@ -18,7 +18,7 @@ Steps run in the typical order. A documented order appears only where a cell sta
 - Connect outside tools [documented, with limits] It can connect local or remote outside tool servers over two connection types, using a token or a separate sign-in method. Sign-in and sign-out actions work with web-style servers and depend on the server supporting that sign-in. Tools marked destructive ask for approval first.
   - decision point (codex-cli/F12.server-trust): Does a destructive-looking outside tool call need my approval?
     - The tool advertises a destructive marking -> The call requires approval. | quote: “Destructive app/MCP tool calls always require approval when the tool advertises a destructive annotation”
-    - It also advertises a read marking -> The read marking takes priority over the destructive one. | quote: “unless it advertises a read annotation, which takes priority”
+    - It also advertises a read marking -> Approval is not forced: the read marking takes priority over the destructive one. | quote: “unless it advertises a read annotation, which takes priority”
   - decision point (codex-cli/F12.server-trust): When does Codex switch on an outside tool server under an allowlist?
     - Name and identity both match an approved entry -> Codex enables the server. | quote: “the client enables an MCP server only when both its name and identity match an approved entry”
     - They do not match -> Codex disables the server. | quote: “otherwise it disables it.”
@@ -60,7 +60,7 @@ Steps run in the typical order. A documented order appears only where a cell sta
   - documented order: A model chosen explicitly when a helper is spawned wins over the configured default for spawned agents.
 - Shrink the context when it fills [documented] Older history is summarised automatically once it passes a token threshold, and you can trigger a summary yourself. A scope setting chooses between counting the full active context and counting growth after the carried prefix.
 - Show the answer or ask you [documented, with limits] A plan command switches a chat into plan mode for multi-step planning, optionally with a first planning request. The documentation does not say whether plan mode blocks edits or how to leave it beyond toggling. A status command shows model, approval setting and context left.
-- Wrap up and keep score [documented, with limits] A usage command shows daily, weekly or total token activity. Rollout budget tracking is under development and off by default. Telemetry export is off by default, and cloud orchestration events do not reach your own collector.
+- Wrap up and keep score [documented, with limits] A usage command shows daily, weekly or total token activity. Rollout budget tracking is under development and off by default. Telemetry export is off by default, and with local access to Work, cloud orchestration events do not reach your own collector.
 
 ## E. Around the session
 

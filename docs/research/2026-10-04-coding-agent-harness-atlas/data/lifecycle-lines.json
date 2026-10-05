@@ -48,8 +48,8 @@
       },
       "loop": {
         "cells_sha": "1e19cb6ed2b483f0d063d5e41dcba942d4516f1d7aaac563cc1ba2e68719ef91",
-        "plain": "A turn runs from a prompt to a response. Read-only tools can run at the same time, while tools that change state run one after another. The command-line turn limit works in print mode only and has no limit by default, and a session doesn't time out on its own.",
-        "technical": "Read-only tools (Read, Glob, Grep, MCP tools marked read-only) run concurrently; Edit, Write, Bash run sequentially. max_turns (Python) and maxTurns (TypeScript) cap agentic turns; reaching it ends with subtype error_max_turns. --max-turns is print mode only with no limit by default; a session does not time out on its own."
+        "plain": "A turn runs from a prompt to a response. In the SDKs, read-only tools can run at the same time, while tools that change state run one after another. The command-line turn limit works in print mode only and has no limit by default, and a session doesn't time out on its own.",
+        "technical": "In the SDKs, read-only tools (Read, Glob, Grep, MCP tools marked read-only) run concurrently; Edit, Write, Bash run sequentially. max_turns (Python) and maxTurns (TypeScript) cap agentic turns; reaching it ends with subtype error_max_turns. --max-turns is print mode only with no limit by default; a session does not time out on its own."
       },
       "memory-sessions": {
         "cells_sha": "4df0b341f781d1cf308ecfdc2366331abb6b4d880a1a1934207538d32077a835",
@@ -88,7 +88,7 @@
       },
       "plan-and-ask": {
         "cells_sha": "4b08672e76dde7aaa8955d17a82dde6481e4c2856a9e28390e1922825891d8c1",
-        "plain": "Plan mode explores and plans without editing source files, and file edits there are never auto-approved. A status line at the bottom can be customized, and a status command shows the API provider and the auto mode server state.",
+        "plain": "Plan mode explores and plans without editing source files, and file edits there are never auto-approved. A status line at the bottom can be customized, and a status command shows the API provider and, in auto mode, the auto mode server state.",
         "technical": "Plan mode: file edits are never auto-approved and prompt through the canUseTool callback; planModeInstructions can replace the default workflow body; the CLI keeps a read-only enforcement preamble and an ExitPlanMode protocol footer. statusLine customizes the bottom line; /status shows an API provider line and, in auto mode, an Auto mode server row (Enabled or Disabled)."
       },
       "safety-posture": {
@@ -98,7 +98,7 @@
           "quote": "takes precedence over defaultMode for that folder",
           "text": "In Desktop, a mode picked for a folder wins over the default mode setting for that folder."
         },
-        "plain": "Modes range from plan, which explores without editing source files, through manual and accept-edits to auto and bypass. Manual asks before editing but can change files once you approve. Desktop remembers a mode per folder, except plan, which lasts for the session.",
+        "plain": "Modes range from plan, the least permissive, through manual and accept-edits to auto and bypass. Manual asks before editing but can change files once you approve. Desktop remembers a mode per folder, except plan, which lasts for the session.",
         "technical": "Modes: default (alias manual), acceptEdits, plan, auto, dontAsk, bypassPermissions; Shift+Tab cycles; claude --permission-mode plan. Auto is the built-in start mode from v2.1.283. Desktop remembers a mode per folder except Plan; a first session after install or upgrade can start in a different mode. permissions.disableBypassPermissionsMode=disable blocks bypass."
       },
       "send-retry": {
@@ -138,7 +138,7 @@
       },
       "surface": {
         "cells_sha": "a5043de4cd4f2a5141b63cf61a971de31aff7dba5270cf5f67bd6a2b20137a15",
-        "plain": "You can use it in a terminal, in IDEs such as VS Code, in a desktop app, on the web, from scripts and through CI or chat tools. In script mode Claude doesn't spawn teammates, the desktop hand-off needs a Mac or Windows computer, and repository setup works only with github.com.",
+        "plain": "You can use it in a terminal, IDEs, a desktop app, the web, scripts, CI or chat tools. In script mode Claude doesn't spawn teammates, the desktop hand-off needs a Mac or Windows computer and a Claude subscription, and repository setup works only with github.com.",
         "technical": "Esc stops Claude mid-action. claude -p runs non-interactively (--output-format stream-json --verbose); in -p mode Claude doesn't spawn teammates. VS Code and JetBrains share the CLI engine; /ide, --ide. /desktop (alias /app) requires macOS or x64 Windows and a Claude subscription. Repository setup works only with github.com repositories."
       },
       "thinking": {
@@ -210,7 +210,7 @@
           "quote": "files closer to the working directory take precedence",
           "text": "Files closer to the working folder take precedence."
         },
-        "plain": "It loads instruction files from your home folder and the project, and files closer to your working folder take precedence. The documentation does not mention importing one file into another. It stops searching once it reaches your current folder, so put overrides near the work.",
+        "plain": "It loads instruction files from your Codex home folder and the project, and files closer to your working folder take precedence. The documentation does not mention importing one file into another. It stops searching at your current folder, so put overrides near the work.",
         "technical": "Codex reads AGENTS.md files before work, walking up from the working directory to a project root; a global file lives in the Codex home directory and files closer to the working directory take precedence. AGENTS.override.md is copied into local managed worktrees. Import syntax: the documentation does not mention one. Codex stops searching once it reaches your current directory."
       },
       "loop": {
@@ -325,8 +325,8 @@
       },
       "wrap-up": {
         "cells_sha": "0ed690800874923e28a1e63d833bcdde6530f27c98a9b9d9830d155fa3c28fa5",
-        "plain": "A usage command shows daily, weekly or total token activity. Rollout budget tracking is under development and off by default. Telemetry export is off by default, and cloud orchestration events do not reach your own collector.",
-        "technical": "/usage shows daily, weekly, or cumulative ChatGPT token activity. features.rollout_budget.limit_tokens is required when rollout budget tracking (under development, off by default) is enabled; --max-cost stops a scan above a USD amount. OTel export is disabled by default, opt-in via [otel]; cloud orchestration events do not reach your existing OpenTelemetry collector. log_dir defaults to $CODEX_HOME/log."
+        "plain": "A usage command shows daily, weekly or total token activity. Rollout budget tracking is under development and off by default. Telemetry export is off by default, and with local access to Work, cloud orchestration events do not reach your own collector.",
+        "technical": "/usage shows daily, weekly, or cumulative ChatGPT token activity. features.rollout_budget.limit_tokens is required when rollout budget tracking (under development, off by default) is enabled; --max-cost stops a scan above a USD amount. OTel export is disabled by default, opt-in via [otel]; for Work with local access, cloud orchestration events do not reach your existing OpenTelemetry collector."
       }
     },
     "copilot-cli": {
@@ -367,7 +367,7 @@
       },
       "host-platform": {
         "cells_sha": "98ccdd4e1b56f68f20e9281cec096165c152f64e2e7f74816a4fe505656cd780",
-        "plain": "It is part of GitHub Copilot: the desktop app is built on it, and it runs in a JetBrains terminal. It needs a Copilot seat unless you bring your own model provider, and delegating needs a sign-in. Pull requests need a Git repository on GitHub; operating systems are not listed.",
+        "plain": "It is part of GitHub Copilot: the Copilot app is built on it, and it runs in a JetBrains terminal. It needs a Copilot seat unless you bring your own model provider, and delegating needs a sign-in. Pull requests need a Git repository on GitHub; operating systems are not listed.",
         "technical": "Needs an assigned GitHub Copilot seat; BYOK needs no GitHub authentication. The GitHub Copilot app is built on Copilot CLI, with its own policy and separate sandbox settings. /delegate transfers the session to GitHub's server-side Copilot, not your own model provider, and needs a GitHub sign-in. 1 million token context is in Visual Studio Code and Copilot CLI, so not unique to the CLI."
       },
       "house-rules": {
@@ -453,7 +453,7 @@
       "skills-commands": {
         "cells_sha": "ba55b319334390d45eb0ea939ad3c859f6c76908b9066203c940efccd24e20a1",
         "plain": "A skill is a folder of instructions the agent can use when a task fits, or you can call it by name. A command is a simple file, and a skill beats a command with the same name. A skill can pre-approve tools it names; Copilot asks about the rest.",
-        "technical": "Skills: SKILL.md in skills/NAME under .github/skills, .claude/skills or .agents/skills (personal ~/.copilot/skills/); run via /SKILL-NAME; /skills list. allowed-tools pre-approves tools; unlisted tools prompt. Commands: .md files in .claude/commands/, lower priority than same-name skills. Built in: /fleet, /context, /sandbox, /allow-all (alias /yolo)."
+        "technical": "Skills: SKILL.md in skills/NAME under .github/skills, .claude/skills or .agents/skills (personal ~/.copilot/skills/); run via /SKILL-NAME; /skills list. allowed-tools pre-approves tools; unlisted tools prompt. Commands: .md files in .claude/commands/, lower priority than same-name skills. Built in, including /fleet, /context, /sandbox, /allow-all (alias /yolo)."
       },
       "subagents": {
         "cells_sha": "720e56882464779954c0add57f57b29c000bc1b5a3a7b987b4ce399abdccc92d",
@@ -677,7 +677,7 @@
       "built-in-tools": {
         "cells_sha": "0c29bb14d14b764e640f93e8025904888f162f69e559a52f2da692e7f05b7ee7",
         "plain": "The agent can edit files, search the code, run terminal commands and search the web. Terminal commands need your approval by default, and fetching a web page asks first unless the site is on an allow list. Searching without asking is off by default.",
-        "technical": "Tools include file editing, codebase search and terminal execution; the ToolCall union covers shell, edit, read, write, glob, grep, ls, semSearch, mcp, task. By default Cursor uses the first terminal profile available and requires approval before executing any terminal command; Run Mode controls when commands run. Web fetch prompts unless allowlisted; Auto-Accept Web Search is off by default."
+        "technical": "Tools include file editing, codebase search and terminal execution; the ToolCall union covers shell, edit, read, write, glob, grep, ls, semSearch, mcp, task and others. By default Cursor uses the first terminal profile available and requires approval before executing any terminal command; Run Mode controls when commands run. Web fetch prompts unless allowlisted; Auto-Accept Web Search is off by default."
       },
       "extend-share": {
         "cells_sha": "485d0a674c2b1cfa81419afdb89c60d80efaf3792e138f7f814b206efc9352a2",
@@ -746,7 +746,7 @@
           "quote": "A team-defined global Auto-review configuration takes priority",
           "text": "A team-defined global automatic-review setting takes priority, and Cursor ignores user-level and project-level files."
         },
-        "plain": "Companies can deploy Cursor with enforced policies through device management, and team hooks sync from a dashboard. Locking network access and limiting models or MCP servers are Enterprise features, and a team review setting takes priority over personal ones.",
+        "plain": "Companies can deploy Cursor with enforced policies through device management, and team hooks sync from a dashboard, though managed hooks need Enterprise. Locking network access and limiting models or MCP servers are Enterprise features; a team review setting takes priority.",
         "technical": "MDM enforces policies (allowed team IDs, extensions); ~/.cursor/permissions.json can be distributed through MDM for the per-user MCP auto-run allowlist. Team hooks are set in the web dashboard (Enterprise for enterprise-managed hooks). Lock Network Access Policy and the MCP allowlist are Enterprise; model control needs contacting sales, and non-ZDR models need admin approval."
       },
       "outside-tools": {
@@ -873,7 +873,7 @@
       },
       "host-platform": {
         "cells_sha": "59d56f784e6cbfe196d68e7b690f4e19ee39099d39ef5d7498add5bff94e3b0d",
-        "plain": "It runs on Mac, Windows and Ubuntu with a recent Node runtime. Google AI Pro or Ultra gives higher limits shared with agent mode in the IDE, while Workspace plans do not cover its API usage. The documentation does not mention shared servers or a shared runtime.",
+        "plain": "It runs on Mac, Windows and Ubuntu with a recent Node runtime. Google AI Pro or Ultra gives higher limits shared with IDE agent mode. Gemini for Workspace plans do not cover its API usage; your organization's tier applies at Workspace sign-in. Shared servers are not documented.",
         "technical": "macOS 15+, Windows 11 24H2+, Ubuntu 20.04+; Node.js 20.0.0+; Bash, Zsh, or PowerShell. Google AI Pro or Ultra: higher limits shared across Gemini CLI and IDE agent mode; Gemini for workspace plans do not apply to the API usage; organization tiers apply on Workspace sign-in. Not mentioned: shared execution infrastructure, shared agent runtime, delegates to, distinct harness features."
       },
       "house-rules": {

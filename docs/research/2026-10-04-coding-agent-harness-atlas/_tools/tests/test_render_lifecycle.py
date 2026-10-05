@@ -339,6 +339,8 @@ class RealDataTests(unittest.TestCase):
             lowered = self.pages[name].lower()
             for banned in (
                 "regardless of model",
+                "whichever model",
+                "whatever model",
                 "the best agent",
                 "is better than",
                 "% of the work",

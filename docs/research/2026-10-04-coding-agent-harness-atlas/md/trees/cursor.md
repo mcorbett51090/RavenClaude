@@ -8,7 +8,7 @@ Steps run in the typical order. A documented order appears only where a cell sta
 ## A. Setup, before the first model call
 
 - Choose the front door [documented, unverified] You can reach Cursor from a terminal, from JetBrains editors, from its own editor and agents window, from a browser, from a script or code library, and from chat and code-hosting tools such as Slack, Teams and GitHub comments.
-- Apply organization rules [documented, with limits, unverified] Companies can deploy Cursor with enforced policies through device management, and team hooks sync from a dashboard. Locking network access and limiting models or MCP servers are Enterprise features, and a team review setting takes priority over personal ones.
+- Apply organization rules [documented, with limits, unverified] Companies can deploy Cursor with enforced policies through device management, and team hooks sync from a dashboard, though managed hooks need Enterprise. Locking network access and limiting models or MCP servers are Enterprise features; a team review setting takes priority.
   - documented order: A team-defined global automatic-review setting takes priority, and Cursor ignores user-level and project-level files.
   - decision point (cursor/F07.model-allowlist): What happens when an admin blocks a model for the team?
     - A model is blocked for the team -> On Enterprise, Cursor routes the request to a model the team allows. | quote: “if a model is blocked for the team, Cursor Router routes to an allowed model”

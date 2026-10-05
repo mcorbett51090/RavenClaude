@@ -86,7 +86,7 @@
         "session",
         "prompt"
       ],
-      "matters_for_model_choice": "A harness that remembers saves you re-explaining. One that does not starts every run cold, whatever model you pick.",
+      "matters_for_model_choice": "A harness that remembers saves you re-explaining. One that does not starts every run cold.",
       "name_plain": "Load memory and earlier sessions",
       "order": 4,
       "predicate_general": "Memory and resume exist only where the harness stores them, often per folder or per account.",
@@ -114,7 +114,7 @@
         "tool",
         "model"
       ],
-      "matters_for_model_choice": "Two harnesses can give the same model different tools. What a model can do is bounded by this list, not by how clever it is.",
+      "matters_for_model_choice": "Two harnesses can give the same model different tools. What a model can do is bounded by this list as well as by how capable it is.",
       "name_plain": "Stock the built-in tools",
       "order": 5,
       "predicate_general": "Web tools and some others can be switched off or limited.",
@@ -170,7 +170,7 @@
         "MCP",
         "tool"
       ],
-      "matters_for_model_choice": "More connections give any model more reach, and more ways to cause harm. Check how each harness approves and filters them.",
+      "matters_for_model_choice": "More connections give the model more reach, and more ways to cause harm. Check how each harness approves and filters them.",
       "name_plain": "Connect outside tools",
       "order": 7,
       "predicate_general": "Each connection needs setting up and usually your approval before it is trusted.",
@@ -258,7 +258,7 @@
       "jargon": [
         "worktree"
       ],
-      "matters_for_model_choice": "Isolation lets you run many attempts and keep the best one. It is a harness feature, so no model can stand in for it.",
+      "matters_for_model_choice": "Isolation lets you run many attempts and keep the best one. It is normally the harness's own feature.",
       "name_plain": "Prepare an isolated workspace",
       "order": 10,
       "predicate_general": "Only where the harness supports it, and usually only when you turn it on.",
@@ -306,7 +306,7 @@
         "hook",
         "tool"
       ],
-      "matters_for_model_choice": "Hooks are the strongest guard you control, and they work with any model. Check which moments each harness exposes and whether a failing hook blocks the action.",
+      "matters_for_model_choice": "Hooks are the strongest guard you control. A plain script hook does not change with the model; a hook that asks a model can. Check which moments each harness exposes and whether a failing hook blocks the action.",
       "name_plain": "Run your own code at set moments",
       "order": 2,
       "predicate_general": "Hooks run only if configured and trusted, and a broken hook may fail without blocking anything.",
@@ -323,7 +323,7 @@
       "typical_after": [
         "assemble-prompt"
       ],
-      "what_it_does": "Hooks attach your own scripts to moments such as before a tool runs, after it finishes, or when a session starts or stops. A script can log, change or block what happens, with no model involved.",
+      "what_it_does": "Hooks attach your own scripts to moments such as before a tool runs, after it finishes, or when a session starts or stops. A script can log, change or block what happens. Most hooks are plain scripts; a few harnesses also let a hook ask a model to decide.",
       "who_normally_does_it": "harness code"
     },
     {
@@ -451,7 +451,7 @@
       "jargon": [
         "checkpoint"
       ],
-      "matters_for_model_choice": "An undo point is what makes it safe to let a model try bold changes. It does not depend on the model.",
+      "matters_for_model_choice": "An undo point is what makes it safe to let a model try bold changes. It is normally the harness's own code, not a model's work.",
       "name_plain": "Save an undo point",
       "order": 3,
       "predicate_general": "Often limited to the edits the harness itself made.",
@@ -474,7 +474,7 @@
       "jargon": [
         "sandbox"
       ],
-      "matters_for_model_choice": "A fence limits the harm from any model's actions. Not every harness has one, and some have it only on some systems.",
+      "matters_for_model_choice": "A fence limits what the commands a model asks for can do. Not every harness has one, and some have it only on some systems.",
       "name_plain": "Run it inside the fence",
       "order": 4,
       "predicate_general": "A sandbox may be optional, limited to some operating systems, or switchable by you.",
@@ -627,7 +627,7 @@
       "jargon": [
         "telemetry"
       ],
-      "matters_for_model_choice": "Cost visibility and caps are what stop a run from surprising you. They live in the harness, not in the model.",
+      "matters_for_model_choice": "Cost visibility and caps are what stop a run from surprising you. They are normally the harness's own controls.",
       "name_plain": "Wrap up and keep score",
       "order": 10,
       "predicate_general": "Spending caps and exports depend on your plan and configuration.",
@@ -684,7 +684,7 @@
         "hook",
         "MCP"
       ],
-      "matters_for_model_choice": "A rich add-on ecosystem lets a team share working setups across models. It is a reason to prefer one harness whatever the model.",
+      "matters_for_model_choice": "A rich add-on ecosystem lets a team share working setups across models. It can be a reason to prefer one harness over another.",
       "name_plain": "Extend and share",
       "order": 2,
       "predicate_general": "Only some harnesses have plug-ins, and trust and signing differ.",

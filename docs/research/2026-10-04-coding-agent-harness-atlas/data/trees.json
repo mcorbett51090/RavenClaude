@@ -66,9 +66,9 @@
               "outcome": "It applies during plan mode if the allowed-models list permits, then switches to Sonnet for execution."
             },
             {
-              "answer": "A subagent has no model set",
+              "answer": "A helper agent has no model set",
               "clause": "Omitted subagent models follow the subagent model order",
-              "outcome": "It follows the subagent model order."
+              "outcome": "It follows the documented order for choosing a helper agent's model."
             }
           ],
           "cell": "claude-code/F17.auto-routing",
@@ -105,7 +105,7 @@
               "outcome": "Interactive users see a security approval dialog before the hooks are applied."
             },
             {
-              "answer": "Print-mode run without the bare option",
+              "answer": "A non-interactive run in script mode",
               "clause": "a -p session runs the hooks in a project's .claude/settings.json, even in a folder you've never trusted",
               "outcome": "Project hooks run even in an untrusted folder, with no workspace trust dialog."
             },
@@ -150,7 +150,7 @@
             {
               "answer": "It also advertises a read marking",
               "clause": "unless it advertises a read annotation, which takes priority",
-              "outcome": "The read marking takes priority over the destructive one."
+              "outcome": "Approval is not forced: the read marking takes priority over the destructive one."
             }
           ],
           "cell": "codex-cli/F12.server-trust",
@@ -348,7 +348,7 @@
         {
           "branches": [
             {
-              "answer": "A command cannot run inside the sandbox",
+              "answer": "The outside-sandbox setting is on",
               "clause": "the agent can ask for confirmation to run it outside",
               "outcome": "The agent can ask you to confirm running the command outside the sandbox."
             },
@@ -433,7 +433,7 @@
           ],
           "cell": "copilot-vscode/F12.server-trust",
           "id": "dp5",
-          "question": "Does a connected MCP server ask me to trust it first?"
+          "question": "Does a connected outside-tool (MCP) server ask me to trust it first?"
         },
         {
           "branches": [
@@ -604,23 +604,6 @@
         {
           "branches": [
             {
-              "answer": "The command fails on a permission restriction",
-              "clause": "When a sandboxed command fails due to permission restrictions, a Request step shows a modal dialog",
-              "outcome": "A dialog explains which extra permissions are needed and asks for them."
-            },
-            {
-              "answer": "You add the directories at session start",
-              "clause": "can be used when starting the session instead",
-              "outcome": "Extra directories can be added when the session starts instead."
-            }
-          ],
-          "cell": "gemini-cli/F05.sandbox-override",
-          "id": "dp3",
-          "question": "What if a sandboxed command needs more permission?"
-        },
-        {
-          "branches": [
-            {
               "answer": "Set to ask (the default)",
               "clause": "'ask' prompts each time",
               "outcome": "It prompts you each time."
@@ -643,31 +626,9 @@
         {
           "branches": [
             {
-              "answer": "A server in general",
-              "clause": "communicates via stdin/stdout",
-              "outcome": "Local programs, event streams and streamable web connections are each described."
-            },
-            {
-              "answer": "A server an admin requires",
-              "clause": "Required servers only support remote transports",
-              "outcome": "It is limited to remote connections made over the network."
-            }
-          ],
-          "cell": "gemini-cli/F12.transports",
-          "id": "dp5",
-          "question": "Which connection types can an MCP server use?"
-        },
-        {
-          "branches": [
-            {
               "answer": "The allowed-extensions list has entries",
               "clause": "if nonempty, only matching extensions are allowed",
               "outcome": "Extensions must match a pattern in the list to be allowed."
-            },
-            {
-              "answer": "Install with the consent option",
-              "clause": "acknowledges security risks and skips the confirmation prompt",
-              "outcome": "The confirmation prompt is skipped after acknowledging risks."
             },
             {
               "answer": "The admin setting is false",
@@ -776,11 +737,6 @@
               "outcome": "The build loses support, and the app shows Update required until you update."
             },
             {
-              "answer": "The build is too old and a newer release exists",
-              "clause": "when it passes a maximum age and a newer release is available",
-              "outcome": "The build loses support, and the app shows Update required until you update."
-            },
-            {
               "answer": "A Grok Bot version is over 14 days old",
               "clause": "when a version is more than 14 days old and a newer version is out",
               "outcome": "Grok Bot requires an update once a newer version is out."
@@ -850,7 +806,7 @@
             {
               "answer": "Safe tools",
               "clause": "Auto mode uses a classifier to auto-approve safe tools",
-              "outcome": "A classifier approves them automatically."
+              "outcome": "A built-in checker approves them automatically."
             },
             {
               "answer": "Dangerous tools",
@@ -878,23 +834,6 @@
           "cell": "grok-build/F02.auto-compaction",
           "id": "dp5",
           "question": "When does the context indicator turn amber?"
-        },
-        {
-          "branches": [
-            {
-              "answer": "Zero data retention is on for the team",
-              "clause": "no prompts, code, or responses are persisted at the inference layer for ZDR organizations",
-              "outcome": "The service that runs the model keeps no prompts, code or responses; local session history stays on the machine."
-            },
-            {
-              "answer": "Video tools are used before storage is set up",
-              "clause": "Until storage is configured, the video tools in Grok Build will return an error.",
-              "outcome": "The video tools return an error until you supply your own storage."
-            }
-          ],
-          "cell": "grok-build/F07.data-retention",
-          "id": "dp6",
-          "question": "What changes for a team with zero data retention turned on?"
         }
       ]
     }

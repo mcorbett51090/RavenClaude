@@ -7,7 +7,7 @@ Steps run in the typical order. A documented order appears only where a cell sta
 
 ## A. Setup, before the first model call
 
-- Choose the front door [documented, with limits, unverified] You can use it in a terminal, in IDEs such as VS Code, in a desktop app, on the web, from scripts and through CI or chat tools. In script mode Claude doesn't spawn teammates, the desktop hand-off needs a Mac or Windows computer, and repository setup works only with github.com.
+- Choose the front door [documented, with limits, unverified] You can use it in a terminal, IDEs, a desktop app, the web, scripts, CI or chat tools. In script mode Claude doesn't spawn teammates, the desktop hand-off needs a Mac or Windows computer and a Claude subscription, and repository setup works only with github.com.
 - Apply organization rules [documented, with limits, unverified] A company can set rules for its developers' installs: which tools and commands are allowed or denied, which models are offered, and whether background agents run. Managed rules win over options set in code. Claude Tag cloud sessions don't receive server-managed settings.
   - documented order: Managed policy settings win over options set in code.
 - Load the house rules [documented, unverified] It reads instruction files from your project and home folder at the start of a session and adds their text to every request. Files at all levels contribute at once, and Claude uses judgment when they conflict. Files can import other files, up to four hops deep.
@@ -23,7 +23,7 @@ Steps run in the typical order. A documented order appears only where a cell sta
     - A skill with default settings -> Claude sees it in a list of available skills; its full content loads only when Claude uses it. | quote: “full skill content loads only when Claude uses one”
     - A skill that blocks model invocation -> It is left out of that list and stays out of context until you invoke it by name. | quote: “Skills with disable-model-invocation: true are not in that list and stay out of context until you invoke them with /name”
 - Connect outside tools [documented, with limits, unverified] You connect outside programs through MCP servers, which add extra tools that need explicit permission. Project servers need a one-time approval and administrators can restrict which servers users add. Consent dialogs don't relay: they only appear in the local terminal.
-- Set the safety posture [documented, with limits, unverified] Modes range from plan, which explores without editing source files, through manual and accept-edits to auto and bypass. Manual asks before editing but can change files once you approve. Desktop remembers a mode per folder, except plan, which lasts for the session.
+- Set the safety posture [documented, with limits, unverified] Modes range from plan, the least permissive, through manual and accept-edits to auto and bypass. Manual asks before editing but can change files once you approve. Desktop remembers a mode per folder, except plan, which lasts for the session.
   - documented order: In Desktop, a mode picked for a folder wins over the default mode setting for that folder.
   - decision point (claude-code/F04.trust-prompt): What happens in a folder I have not trusted yet?
     - Trust not yet accepted for the folder -> A workspace trust dialog appears; accepting saves trust for the workspace. | quote: “If workspace trust hasn't been accepted for a directory, Claude Code shows the workspace trust dialog”
@@ -38,7 +38,7 @@ Steps run in the typical order. A documented order appears only where a cell sta
   - documented order: A PreToolUse hook runs before the rest of the permission flow.
   - decision point (claude-code/F06.trust-enable): Do hooks run without asking me first?
     - Hooks come from managed settings -> Interactive users see a security approval dialog before the hooks are applied. | quote: “interactive users see a security approval dialog before Claude Code applies them”
-    - Print-mode run without the bare option -> Project hooks run even in an untrusted folder, with no workspace trust dialog. | quote: “a -p session runs the hooks in a project's .claude/settings.json, even in a folder you've never trusted”
+    - A non-interactive run in script mode -> Project hooks run even in an untrusted folder, with no workspace trust dialog. | quote: “a -p session runs the hooks in a project's .claude/settings.json, even in a folder you've never trusted”
     - The settings option disables hooks -> Hooks are switched off for that run. | quote: “Passing --settings with disableAllHooks set to true”
 
 ## C. The model call
@@ -48,7 +48,7 @@ Steps run in the typical order. A documented order appears only where a cell sta
   - decision point (claude-code/F17.auto-routing): How does it switch models on its own?
     - Main model overloaded, backup set -> The session switches to the backup model and retries the main one at the start of each user turn. | quote: “a session with fallbackModel set switches to the backup and retries the primary at the start of each user turn”
     - Plan-then-execute choice in plan mode -> It applies during plan mode if the allowed-models list permits, then switches to Sonnet for execution. | quote: “opusplan applies during plan mode when allowed by availableModels, then switches to Sonnet for execution”
-    - A subagent has no model set -> It follows the subagent model order. | quote: “Omitted subagent models follow the subagent model order”
+    - A helper agent has no model set -> It follows the documented order for choosing a helper agent's model. | quote: “Omitted subagent models follow the subagent model order”
 - Set the thinking budget [documented, with limits] Extended thinking is on by default, its tokens are billed as output, and the reasoning shows as gray italic text in the terminal. Not all models support effort levels, and the thinking token cap applies on models with a fixed thinking budget.
 - Reuse the unchanged part of the prompt [not researched]
 
@@ -63,11 +63,11 @@ Steps run in the typical order. A documented order appears only where a cell sta
     - The sandbox can't start and failing is turned off -> It falls back to running without a sandbox and prints a warning. | quote: “falls back to unsandboxed execution with a warning on stderr when the sandbox can't start”
     - You type it at the shell-mode prompt -> It runs unsandboxed in most sessions. | quote: “Commands typed at the `!` shell-mode prompt run unsandboxed in most sessions”
 - Tidy the tool's output [not researched]
-- Feed the result back and go round again [documented, with limits] A turn runs from a prompt to a response. Read-only tools can run at the same time, while tools that change state run one after another. The command-line turn limit works in print mode only and has no limit by default, and a session doesn't time out on its own.
+- Feed the result back and go round again [documented, with limits] A turn runs from a prompt to a response. In the SDKs, read-only tools can run at the same time, while tools that change state run one after another. The command-line turn limit works in print mode only and has no limit by default, and a session doesn't time out on its own.
 - Hand work to helpers [documented, with limits, unverified] It can hand work to helper agents with their own instructions, tools and model, and run several at once, up to 20 by default. The documentation differs on nesting: one page says helpers can start their own helpers, another says by default they lack the tool for it.
   - documented order: A subagent's own effort setting wins over the session's effort level.
 - Shrink the context when it fills [documented, unverified] When the conversation nears the context limit, Claude Code compacts it automatically, keeping important code and decisions. You can also compact by hand and give instructions on what to focus on.
-- Show the answer or ask you [documented] Plan mode explores and plans without editing source files, and file edits there are never auto-approved. A status line at the bottom can be customized, and a status command shows the API provider and the auto mode server state.
+- Show the answer or ask you [documented] Plan mode explores and plans without editing source files, and file edits there are never auto-approved. A status line at the bottom can be customized, and a status command shows the API provider and, in auto mode, the auto mode server state.
 - Wrap up and keep score [documented, with limits, unverified] It shows usage and cost totals, can export metrics to your own monitoring stack, and writes debug logs. A spending cap exists, but on the command line it works in print mode only, and the SDK cap ignores totals restored from a resumed session.
 
 ## E. Around the session
