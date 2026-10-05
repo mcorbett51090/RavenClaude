@@ -1,0 +1,451 @@
+{
+ "surface": "cursor",
+ "cells": [
+  {
+   "id": "cursor/F04.approval-modes",
+   "surface": "cursor",
+   "row": "F04.approval-modes",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-cursor-00075",
+    "E-cursor-00302",
+    "E-cursor-00077"
+   ],
+   "value": "Terminal commands need approval by default. Run Modes, chosen in the desktop app under Settings > Agents > Approvals & Execution, range from a simple allowlist to the Auto-review classifier. The CLI approvalMode field takes allowlist, auto-review or unrestricted."
+  },
+  {
+   "id": "cursor/F04.bypass-mode",
+   "surface": "cursor",
+   "row": "F04.bypass-mode",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-cursor-00080",
+    "E-cursor-00314",
+    "E-cursor-00114"
+   ],
+   "value": "Run Everything mode runs every tool call automatically ('You accept the risk and want zero prompts'). In the CLI, -f/--force force-allows commands unless explicitly denied. Browser tools have an Auto-run approval mode that executes all browser actions without approval."
+  },
+  {
+   "id": "cursor/F04.auto-review",
+   "surface": "cursor",
+   "row": "F04.auto-review",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-cursor-00078",
+    "E-cursor-00076",
+    "E-cursor-01058",
+    "E-cursor-01361"
+   ],
+   "value": "In Auto-review mode, allowlisted calls run immediately, other shell commands run in the sandbox when possible, and calls that do not use the sandbox go to the Auto-review classifier. The autoRun permissions field holds natural-language guidance for the classifier; SDK local.autoReview: true routes local tool calls through it."
+  },
+  {
+   "id": "cursor/F09.per-agent-model",
+   "surface": "cursor",
+   "row": "F09.per-agent-model",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-cursor-01409",
+    "E-cursor-01457",
+    "E-cursor-00390"
+   ],
+   "value": "A subagent's model field takes inherit (the default) or a specific model ID. Custom subagents default to inherit, using the parent agent's model, unless the model field in the YAML frontmatter sets one. Cloud Agent API customSubagents entries also take an optional model."
+  },
+  {
+   "id": "cursor/F09.per-agent-effort",
+   "surface": "cursor",
+   "row": "F09.per-agent-effort",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-cursor-01412",
+    "E-cursor-01413"
+   ],
+   "value": "Appending square brackets to a model ID sets per-model options such as speed, reasoning effort and context window, written as id=value pairs. For example, claude-opus-5[effort=high] sets reasoning effort to high."
+  },
+  {
+   "id": "cursor/F09.nesting-rules",
+   "surface": "cursor",
+   "row": "F09.nesting-rules",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-cursor-01432",
+    "E-cursor-01182",
+    "E-cursor-04224"
+   ],
+   "value": "Since Cursor 2.5, subagents can launch child subagents within a nesting limit, forming a tree of coordinated work. The main agent and its direct subagents can launch subagents. The Python SDK docs state the same rule.",
+   "limitation": "A subagent launched by another subagent can't launch further ones (E-cursor-01432). Side chats: 'Nesting is not supported. A side chat cannot spawn its own side chats.' (E-cursor-04224)"
+  },
+  {
+   "id": "cursor/F14.concurrency-caps",
+   "surface": "cursor",
+   "row": "F14.concurrency-caps",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-cursor-02510",
+    "E-cursor-01945",
+    "E-cursor-01903"
+   ],
+   "value": "Self-Hosted Machines support up to 200 workers per user and 1000 per team. Only one run can be active per agent. Cloud Agents docs also say you can run as many agents as you want in parallel without your local machine connected.",
+   "limitation": "Only one run can be active per agent; another returns 409 agent_busy (E-cursor-01945). Self-hosted: up to 200 workers per user and 1000 per team (E-cursor-02510). Cloud docs say 'as many agents as you want in parallel' (E-cursor-01903); the scopes differ."
+  },
+  {
+   "id": "cursor/F14.parallel-subagents",
+   "surface": "cursor",
+   "row": "F14.parallel-subagents",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-cursor-01397",
+    "E-cursor-00519",
+    "E-cursor-00878"
+   ],
+   "value": "Multiple subagents can be launched simultaneously to work on different parts of the codebase. Subagents take delegated parallel or isolated work, each in its own context window; the subagentStart hook input is_parallel_worker flags whether a subagent runs as a parallel worker."
+  },
+  {
+   "id": "cursor/F14.total-agent-caps",
+   "surface": "cursor",
+   "row": "F14.total-agent-caps",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-cursor-00390",
+    "E-cursor-01571"
+   ],
+   "value": "The Cloud Agent API request body defines custom subagents the main agent can delegate to during the run, maximum 20. The Agent overview says there is no limit on the number of tool calls Agent can make during a task.",
+   "limitation": "The maximum of 20 applies to the custom subagents defined for a run."
+  },
+  {
+   "id": "cursor/F15.background-tasks",
+   "surface": "cursor",
+   "row": "F15.background-tasks",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-cursor-01411",
+    "E-cursor-04013",
+    "E-cursor-01183"
+   ],
+   "value": "Setting is_background: true (default false) runs a subagent in the background without blocking the parent. Background agents are coding agents that typically run for a very long time, moving a task from the local device to the cloud. A background subagent's result returns to the parent as a follow-up turn on the same run (local agents only)."
+  },
+  {
+   "id": "cursor/F17.model-picker",
+   "surface": "cursor",
+   "row": "F17.model-picker",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-cursor-00069",
+    "E-cursor-00308",
+    "E-cursor-01416"
+   ],
+   "value": "In chat, the model picker dropdown at the top of the chat input switches models (Cmd / cycles through them), and a default can be set in Cursor Settings > Models. In the CLI, the /model slash command selects a model. The picker, including Auto, applies to the parent agent; a subagent can run a different model."
+  },
+  {
+   "id": "cursor/F17.model-flag-env",
+   "surface": "cursor",
+   "row": "F17.model-flag-env",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-cursor-00373",
+    "E-cursor-00974",
+    "E-cursor-00943",
+    "E-cursor-01129"
+   ],
+   "value": "Cloud Agent API: when the model selection is omitted, Cursor resolves the user default model, then the team default, then a system default. Slack: @Cursor [options] [prompt] sets the model, among other options, for a run. Linear: a Default Model setting (Cursor Dashboard) is the AI model for Cloud Agents. Python SDK: ModelSelection.params passes per-model options such as reasoning effort."
+  },
+  {
+   "id": "cursor/F17.auto-routing",
+   "surface": "cursor",
+   "row": "F17.auto-routing",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-cursor-00504",
+    "E-cursor-01002",
+    "E-cursor-01451",
+    "E-cursor-00757"
+   ],
+   "value": "Cursor Router is the model routing system behind Auto: simple requests go to fast, efficient models while complex work goes to the most capable ones. Auto selects models that balance intelligence, cost and reliability. Separately, a Fable request that trips a security guardrail is routed to Claude Opus automatically.",
+   "limitation": "On Teams and Enterprise plans, Cursor Router picks the model for each Auto request based on your optimization mode (E-cursor-01002)."
+  },
+  {
+   "id": "cursor/F17.provider-byok",
+   "surface": "cursor",
+   "row": "F17.provider-byok",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-cursor-00053",
+    "E-cursor-00522",
+    "E-cursor-00533",
+    "E-cursor-00765"
+   ],
+   "value": "You can add your own API key for a supported provider under Models. For AWS Bedrock, the recommended setup is an IAM role granting Cursor permission to invoke Bedrock models on your behalf. The Enterprise plan can disable users from using their own API keys (BYOK).",
+   "limitation": "Own keys are for 'a supported provider' (E-cursor-00053); US data residency is not supported for BYOK (E-cursor-00765)."
+  },
+  {
+   "id": "cursor/F17.model-catalog",
+   "surface": "cursor",
+   "row": "F17.model-catalog",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-cursor-00321",
+    "E-cursor-00400",
+    "E-cursor-00051",
+    "E-cursor-00596"
+   ],
+   "value": "The CLI models command lists the models available for the account, and the List Models API endpoint returns model IDs with the parameters and variants each model accepts. Some models in Cursor may be unavailable in certain regions, and Enterprise teams can opt in to new models for their organization."
+  },
+  {
+   "id": "cursor/F18.effort-values",
+   "surface": "cursor",
+   "row": "F18.effort-values",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-cursor-01045",
+    "E-cursor-01047",
+    "E-cursor-01053",
+    "E-cursor-01495"
+   ],
+   "value": "Levels are per model. Grok 4.5 has high (default), medium and low. Grok 4.6 has xhigh, high (default), medium and low. Muse Spark 1.3 has six levels, from minimal to max, with high as the default. Composer has no effort levels."
+  },
+  {
+   "id": "cursor/F18.where-set",
+   "surface": "cursor",
+   "row": "F18.where-set",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-cursor-00374",
+    "E-cursor-01129",
+    "E-cursor-01412",
+    "E-cursor-01496"
+   ],
+   "value": "Effort is set through per-model parameters: the Cloud Agent API model.params array (id and value items, such as reasoning effort or context window size), the SDK's ModelSelection.params, or square-bracket id=value options appended to a model ID.",
+   "limitation": "On Cursor Start, Grok 4.5 is fixed at medium effort in non-fast mode. You cannot change the effort level or enable Fast mode on that plan (E-cursor-01496)."
+  },
+  {
+   "id": "cursor/F18.model-dependence",
+   "surface": "cursor",
+   "row": "F18.model-dependence",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-cursor-01475",
+    "E-cursor-00403",
+    "E-cursor-01047",
+    "E-cursor-01053"
+   ],
+   "value": "Available model parameter options depend on the model. Each model entry in the API response lists the concrete id+params combinations it accepts. Grok 4.6 supports xhigh, high (default), medium and low; Muse Spark 1.3 has six levels, from minimal to max, with high as the default."
+  },
+  {
+   "id": "cursor/F18.thinking-budget-visibility",
+   "surface": "cursor",
+   "row": "F18.thinking-budget-visibility",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-cursor-00306",
+    "E-cursor-01951",
+    "E-cursor-01829",
+    "E-cursor-01045"
+   ],
+   "value": "The CLI setting display.showThinkingBlocks renders model thinking blocks when available. The cloud-agent run stream emits a thinking event carrying thinking text deltas. Grok 4.5 supports three effort levels: high (the default), medium, and low.",
+   "limitation": "`thinking` events are suppressed in print mode and will not appear in any output format (E-cursor-01829); the cloud-agent run stream emits them (E-cursor-01951)."
+  },
+  {
+   "id": "cursor/F19.named-modes",
+   "surface": "cursor",
+   "row": "F19.named-modes",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-cursor-00313",
+    "E-cursor-01558",
+    "E-cursor-01563",
+    "E-cursor-01616"
+   ],
+   "value": "The CLI --mode flag takes plan or ask, with agent as the default. Debug Mode has the agent generate hypotheses, add log statements and use runtime information before a targeted fix. Design Mode lets users direct agents by clicking an element, drawing on the page or describing a change by voice. A skill can be used as a Custom Mode."
+  },
+  {
+   "id": "cursor/F19.entering-modes",
+   "surface": "cursor",
+   "row": "F19.entering-modes",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-cursor-00313",
+    "E-cursor-00337",
+    "E-cursor-01596",
+    "E-cursor-01561"
+   ],
+   "value": "The CLI --mode flag sets plan or ask (agent is the default). /plan switches to Plan mode in the CLI. Shift+Tab from the chat input rotates to Plan Mode. The mode picker dropdown in Agent switches modes."
+  },
+  {
+   "id": "cursor/F19.plan-mode",
+   "surface": "cursor",
+   "row": "F19.plan-mode",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-cursor-01595",
+    "E-cursor-03980",
+    "E-cursor-00130",
+    "E-cursor-01797"
+   ],
+   "value": "Plan Mode researches the codebase, asks clarifying questions and generates a reviewable plan the user can edit before building. In the CLI it is entered via Shift+Tab, /plan, --plan or --mode=plan. Over ACP, cursor/create_plan requests plan approval and blocks until the client accepts or rejects the plan.",
+   "limitation": "File editing is listed as \"Yes (after you approve the plan)\" (E-cursor-03980); no cited quote labels Plan mode read-only."
+  },
+  {
+   "id": "cursor/F19.autonomy-mode",
+   "surface": "cursor",
+   "row": "F19.autonomy-mode",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-cursor-00336",
+    "E-cursor-00570",
+    "E-cursor-00288"
+   ],
+   "value": "The CLI /run-everything [on|off|status] toggles Run Everything, with /auto-run as an alias. Auto-approval for terminal commands can be enabled, with documented risks including destructive commands and prompt injection. --yolo gives fully autonomous runs that auto-approve across trust, MCP, and command approvals."
+  },
+  {
+   "id": "cursor/F19.read-only-mode",
+   "surface": "cursor",
+   "row": "F19.read-only-mode",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-cursor-03993",
+    "E-cursor-00364",
+    "E-cursor-01798",
+    "E-cursor-01410"
+   ],
+   "value": "Ask mode is a read-only mode: Agent answers questions and explores code without making any edits. In the CLI it is entered with /ask or --mode=ask. A subagent with readonly: true runs with restricted write permissions (no file edits, no state-changing shell commands)."
+  },
+  {
+   "id": "cursor/F19.mode-defaults",
+   "surface": "cursor",
+   "row": "F19.mode-defaults",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-cursor-01796",
+    "E-cursor-01371",
+    "E-cursor-01166",
+    "E-cursor-03985"
+   ],
+   "value": "Agent is the default mode (no --mode value needed in the CLI; the SDK AgentOptions mode defaults to agent). On follow-up SDK sends, omitting mode keeps the conversation's current mode; passing mode switches for that run only. Each mode uses its own context, so switching modes starts a fresh context window."
+  },
+  {
+   "id": "cursor/F21.host-platform",
+   "surface": "cursor",
+   "row": "F21.host-platform",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-cursor-02787",
+    "E-cursor-02790"
+   ],
+   "value": "Cursor is based upon the VS Code codebase. It is regularly rebased onto the latest VS Code version, and often uses slightly older VS Code versions for stability."
+  },
+  {
+   "id": "cursor/F21.shared-account-billing",
+   "surface": "cursor",
+   "row": "F21.shared-account-billing",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-cursor-03696",
+    "E-cursor-03238",
+    "E-cursor-03280",
+    "E-cursor-03792"
+   ],
+   "value": "SDK runs follow the same pricing, request pools, and Privacy Mode rules as the IDE and Cloud Agents. Cursor ACP uses the same usage-based pricing as the Cursor subscription. Notion usage is billed through the existing account. Service account API keys bill to the owning team; user API keys bill to that user's plan."
+  },
+  {
+   "id": "cursor/F21.shared-execution-infrastructure",
+   "surface": "cursor",
+   "row": "F21.shared-execution-infrastructure",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-cursor-00376",
+    "E-cursor-03875",
+    "E-cursor-02505"
+   ],
+   "value": "env.type cloud uses Cursor-hosted VMs; pool and machine route to the customer's own workers. Security Agents run on Cloud Agents. Pools do not move the agent loop out of Cursor's cloud; the worker executes tool calls in the customer's infrastructure.",
+   "limitation": "The exception is a team's Security Reviewer: when a pull request event triggers it, the review runs on Cursor-managed hosting instead of a Cloud Agent (E-cursor-03875)."
+  },
+  {
+   "id": "cursor/F21.shared-model-selection",
+   "surface": "cursor",
+   "row": "F21.shared-model-selection",
+   "state": "undocumented",
+   "verification": "verified",
+   "evidence": [],
+   "sweep_report": {
+    "terms": [
+     "same (model|models)\\b",
+     "(shared|same) model",
+     "model (selection|picker|choice).{0,60}(shared|same|across)",
+     "models? .{0,40}(shared|same) (across|between|with)"
+    ],
+    "corpus_sha256": "390145d1d3563c71c22069c94238ba01eb2cd5a0a227c049780093a6248fbe46",
+    "hits": 5,
+    "hits_reviewed": 5,
+    "positive_control_term": "cursor",
+    "positive_control_hits": 4980
+   }
+  },
+  {
+   "id": "cursor/F21.shared-agent-runtime",
+   "surface": "cursor",
+   "row": "F21.shared-agent-runtime",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-cursor-04329",
+    "E-cursor-02942",
+    "E-cursor-03275",
+    "E-cursor-03716"
+   ],
+   "value": "The Cursor SDK launches agents with the same harness, runtime, and models that power Cursor. The CLI is the same agent as the editor's with a different interface. The Notion integration is built on the Cursor SDK. The Python SDK scripts the same agent that runs in the IDE, CLI, and web app."
+  },
+  {
+   "id": "cursor/F21.delegates-to",
+   "surface": "cursor",
+   "row": "F21.delegates-to",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-cursor-01425",
+    "E-cursor-01552",
+    "E-cursor-00294"
+   ],
+   "value": "From a local agent session you can hand off work to a cloud subagent that runs on its own VM and branch; /in-cloud does this from the Agents Window. The CLI changelog lists typing & to transfer the live conversation to a cloud agent."
+  },
+  {
+   "id": "cursor/F21.distinct-harness-features",
+   "surface": "cursor",
+   "row": "F21.distinct-harness-features",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-cursor-00421",
+    "E-cursor-01485"
+   ],
+   "value": "target.openAsCursorGithubApp opens the pull request as the Cursor GitHub App instead of as the user. Cursor says it tunes its harness to each frontier model it supports.",
+   "limitation": "openAsCursorGithubApp \"Only applies if autoCreatePr is true. Default: false\". The quotes do not state that no sibling has either feature."
+  }
+ ]
+}

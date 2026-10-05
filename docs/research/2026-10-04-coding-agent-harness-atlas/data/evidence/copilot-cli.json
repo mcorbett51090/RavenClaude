@@ -1,0 +1,2905 @@
+{
+ "surface": "copilot-cli",
+ "evidence": [
+  {
+   "bytes": 5481,
+   "context_after": [
+    "",
+    "Permission rules that deny a tool take precedence over automatic or saved approvals."
+   ],
+   "context_before": [
+    "Computer use follows the tool permission settings for the Copilot surface where your session is running. These settings determine whether Copilot asks for approval before controlling a desktop application. You can change the tool permission settings for each surface. If prompted to approve access to",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-copilot-cli-00015",
+   "locator": {
+    "heading": "Controlling access for computer use",
+    "raw_line_end": 44,
+    "raw_line_start": 44
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "If you choose **Always allow** for a specific application, Copilot stores the decision locally. The decision applies to both GitHub Copilot CLI and GitHub Copilot app on the same computer. In the app, you can review the list of always allowed applications and remove individual approvals. Removing an",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "a0ef540cf9702caf986bf1ecb8f1fd4bc25547a1c203affbda047336bc0e04fe",
+   "surface": "copilot-cli",
+   "tier": "E1",
+   "url": "https://docs.github.com/api/article/body?pathname=/en/copilot/concepts/agents/computer-use",
+   "url_effective": "https://docs.github.com/api/article/body?pathname=/en/copilot/concepts/agents/computer-use",
+   "version_source": null
+  },
+  {
+   "bytes": 24917,
+   "context_after": [
+    "",
+    "Press <kbd>Shift</kbd>+<kbd>Tab</kbd> to cycle between modes. In plan mode, Copilot analyzes your request, asks clarifying questions to understand scope and requirements, and builds a plan before writing any code. This helps you catch misunderstandings before any code is written, and stay in control"
+   ],
+   "context_before": [
+    "![Screenshot of the Welcome message in the interactive interface of Copilot.](/assets/images/help/copilot/copilot-cli-welcome.png)",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-copilot-cli-00029",
+   "locator": {
+    "heading": "Interactive interface",
+    "raw_line_end": 29,
+    "raw_line_start": 29
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "The interactive interface has two modes. In addition to the default ask/execute mode there is also a **plan mode** in which Copilot will build a structured implementation plan for a task you want to complete.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "d88b94d926f5b26bf9cb021fce1f9fbec9607da2457f1aeaebb57d6d0e0a7e8b",
+   "surface": "copilot-cli",
+   "tier": "E1",
+   "url": "https://docs.github.com/api/article/body?pathname=/en/copilot/concepts/agents/copilot-cli/about-copilot-cli",
+   "url_effective": "https://docs.github.com/api/article/body?pathname=/en/copilot/concepts/agents/copilot-cli/about-copilot-cli",
+   "version_source": null
+  },
+  {
+   "bytes": 24917,
+   "context_after": [
+    "",
+    "### Programmatic interface"
+   ],
+   "context_before": [
+    "The interactive interface has two modes. In addition to the default ask/execute mode there is also a **plan mode** in which Copilot will build a structured implementation plan for a task you want to complete.",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-copilot-cli-00030",
+   "locator": {
+    "heading": "Interactive interface",
+    "raw_line_end": 31,
+    "raw_line_start": 31
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "Press <kbd>Shift</kbd>+<kbd>Tab</kbd> to cycle between modes. In plan mode, Copilot analyzes your request, asks clarifying questions to understand scope and requirements, and builds a plan before writing any code. This helps you catch misunderstandings before any code is written, and stay in control",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "d88b94d926f5b26bf9cb021fce1f9fbec9607da2457f1aeaebb57d6d0e0a7e8b",
+   "surface": "copilot-cli",
+   "tier": "E1",
+   "url": "https://docs.github.com/api/article/body?pathname=/en/copilot/concepts/agents/copilot-cli/about-copilot-cli",
+   "url_effective": "https://docs.github.com/api/article/body?pathname=/en/copilot/concepts/agents/copilot-cli/about-copilot-cli",
+   "version_source": null
+  },
+  {
+   "bytes": 24917,
+   "context_after": [
+    "",
+    "Each time you interact with Copilot in Copilot CLI's interactive interface, or use Copilot CLI programmatically, AI credits are consumed based on the number of tokens processed. The amount consumed per interaction varies depending on the model used. See [Models and pricing for GitHub Copilot](/en/co"
+   ],
+   "context_before": [
+    "## Model usage",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-copilot-cli-00051",
+   "locator": {
+    "heading": "Model usage",
+    "raw_line_end": 323,
+    "raw_line_start": 323
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "You can change the model used by GitHub Copilot CLI by using the `/model` slash command or the `--model` command-line option. Enter this command, then select a model from the list.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "d88b94d926f5b26bf9cb021fce1f9fbec9607da2457f1aeaebb57d6d0e0a7e8b",
+   "surface": "copilot-cli",
+   "tier": "E1",
+   "url": "https://docs.github.com/api/article/body?pathname=/en/copilot/concepts/agents/copilot-cli/about-copilot-cli",
+   "url_effective": "https://docs.github.com/api/article/body?pathname=/en/copilot/concepts/agents/copilot-cli/about-copilot-cli",
+   "version_source": null
+  },
+  {
+   "bytes": 24917,
+   "context_after": [
+    "",
+    "### Models with extended capabilities"
+   ],
+   "context_before": [
+    "You can change the model used by GitHub Copilot CLI by using the `/model` slash command or the `--model` command-line option. Enter this command, then select a model from the list.",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-copilot-cli-00052",
+   "locator": {
+    "heading": "Model usage",
+    "raw_line_end": 325,
+    "raw_line_start": 325
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "Each time you interact with Copilot in Copilot CLI's interactive interface, or use Copilot CLI programmatically, AI credits are consumed based on the number of tokens processed. The amount consumed per interaction varies depending on the model used. See [Models and pricing for GitHub",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "d88b94d926f5b26bf9cb021fce1f9fbec9607da2457f1aeaebb57d6d0e0a7e8b",
+   "surface": "copilot-cli",
+   "tier": "E1",
+   "url": "https://docs.github.com/api/article/body?pathname=/en/copilot/concepts/agents/copilot-cli/about-copilot-cli",
+   "url_effective": "https://docs.github.com/api/article/body?pathname=/en/copilot/concepts/agents/copilot-cli/about-copilot-cli",
+   "version_source": null
+  },
+  {
+   "bytes": 24917,
+   "context_after": [
+    "",
+    "Choosing a larger context window or higher reasoning will impact AI credits consumption; more tokens will be consumed, so more credits will be used. For this reason, we recommend that you use the regular context window and regular reasoning by default, selecting the larger context window and higher "
+   ],
+   "context_before": [
+    "The latest models support a 1 million token context window, so you can work across larger codebases, longer documents, and complex multi-file projects without losing context. After you select a supported model, you will be prompted to choose between the default context size or an extended (1 million",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-copilot-cli-00054",
+   "locator": {
+    "heading": "Models with extended capabilities",
+    "raw_line_end": 331,
+    "raw_line_start": 331
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "In addition, these models also support configurable reasoning levels, which control the depth of the model's reasoning process before it generates a response.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "d88b94d926f5b26bf9cb021fce1f9fbec9607da2457f1aeaebb57d6d0e0a7e8b",
+   "surface": "copilot-cli",
+   "tier": "E1",
+   "url": "https://docs.github.com/api/article/body?pathname=/en/copilot/concepts/agents/copilot-cli/about-copilot-cli",
+   "url_effective": "https://docs.github.com/api/article/body?pathname=/en/copilot/concepts/agents/copilot-cli/about-copilot-cli",
+   "version_source": null
+  },
+  {
+   "bytes": 24917,
+   "context_after": [
+    "",
+    "| Environment variable        | Description                                                                                                                                             |"
+   ],
+   "context_before": [
+    "### Using your own model provider",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-copilot-cli-00055",
+   "locator": {
+    "heading": "Using your own model provider",
+    "raw_line_end": 339,
+    "raw_line_start": 339
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "You can configure Copilot CLI to use your own model provider instead of GitHub-hosted models. This lets you connect to an OpenAI-compatible endpoint, Azure OpenAI, or Anthropic, including locally running models such as Ollama. You configure your model provider using environment variables.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "d88b94d926f5b26bf9cb021fce1f9fbec9607da2457f1aeaebb57d6d0e0a7e8b",
+   "surface": "copilot-cli",
+   "tier": "E1",
+   "url": "https://docs.github.com/api/article/body?pathname=/en/copilot/concepts/agents/copilot-cli/about-copilot-cli",
+   "url_effective": "https://docs.github.com/api/article/body?pathname=/en/copilot/concepts/agents/copilot-cli/about-copilot-cli",
+   "version_source": null
+  },
+  {
+   "bytes": 7783,
+   "context_after": [
+    "",
+    "* **task** — A command execution agent that runs development commands (tests, builds, linters, formatters, dependency installs) and reports results efficiently. It returns a brief summary on success, and full output on failure, keeping the main context clean. It has access to all of the tools the pa"
+   ],
+   "context_before": [
+    "Copilot will automatically use an appropriate built-in agent based on your prompt and the current context. For example, the prompt `How does authentication work in this codebase?` will typically trigger the Explore agent, and using the `/research` slash command will trigger the Research agent.",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-copilot-cli-00060",
+   "locator": {
+    "heading": "Built-in agents",
+    "raw_line_end": 63,
+    "raw_line_start": 63
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "exploration agent. It uses code intelligence, grep, glob, view, and shell tools to search files and understand code structure. It will not change any files, so can be called in parallel to other subagents being run by the main Copilot agent. It has read-only access to GitHub MCP server tools.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "0954cdade5f6c1dda8a9434c0380eba9e073cce47a7ceaef8f8400d110de5c8a",
+   "surface": "copilot-cli",
+   "tier": "E1",
+   "url": "https://docs.github.com/api/article/body?pathname=/en/copilot/concepts/agents/copilot-cli/about-custom-agents",
+   "url_effective": "https://docs.github.com/api/article/body?pathname=/en/copilot/concepts/agents/copilot-cli/about-custom-agents",
+   "version_source": null
+  },
+  {
+   "bytes": 7356,
+   "context_after": [
+    "* **Submit new prompts**: Enter questions or instructions, just as you would in the terminal.",
+    "* **Switch modes**: Change the session mode—for example, between interactive and plan mode."
+   ],
+   "context_before": [
+    "* **Respond to permission requests**: Approve or deny tool, file path, and URL permission requests.",
+    "* **Respond to questions**: Answer when Copilot asks you to supply more information or make a decision."
+   ],
+   "http_status": 200,
+   "id": "E-copilot-cli-00067",
+   "locator": {
+    "heading": "What you can do remotely",
+    "raw_line_end": 39,
+    "raw_line_start": 39
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "* **Approve or reject plans**: Respond to plan approval prompts when Copilot is in plan mode.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "f15dabc3e74af6867437948f3a34a2c9447b7d6aeb32697a9edf1fff972810ec",
+   "surface": "copilot-cli",
+   "tier": "E1",
+   "url": "https://docs.github.com/api/article/body?pathname=/en/copilot/concepts/agents/copilot-cli/about-remote-control",
+   "url_effective": "https://docs.github.com/api/article/body?pathname=/en/copilot/concepts/agents/copilot-cli/about-remote-control",
+   "version_source": null
+  },
+  {
+   "bytes": 10919,
+   "context_after": [
+    "",
+    "```text"
+   ],
+   "context_before": [
+    "## Permissions",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-copilot-cli-00072",
+   "locator": {
+    "heading": "Permissions",
+    "raw_line_end": 41,
+    "raw_line_start": 41
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "When entering autopilot mode, if you have not already granted Copilot all permissions, a message is displayed prompting you to choose between three options:",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "99e6b59f7a7f2c563efeee14adc5e0bafa76eb4a473974767eae44dfd7a4f011",
+   "surface": "copilot-cli",
+   "tier": "E1",
+   "url": "https://docs.github.com/api/article/body?pathname=/en/copilot/concepts/agents/copilot-cli/autopilot",
+   "url_effective": "https://docs.github.com/api/article/body?pathname=/en/copilot/concepts/agents/copilot-cli/autopilot",
+   "version_source": null
+  },
+  {
+   "bytes": 6655,
+   "context_after": [
+    "",
+    "### OpenAI Codex"
+   ],
+   "context_before": [
+    "You can also select **Auto**, which chooses between the supported models below. Choosing **Auto** with third-party agents does **not** leverage Copilot auto model selection. See [About Copilot auto model selection](/en/copilot/concepts/models/auto-model-selection).",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-copilot-cli-00091",
+   "locator": {
+    "heading": "AI models for third-party agents",
+    "raw_line_end": 45,
+    "raw_line_start": 45
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "The following models are available for each agent:",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "affb91f173e079356ac21af787f979ee40bdb3dbfb033c67f1be34e19bad8ba3",
+   "surface": "copilot-cli",
+   "tier": "E1",
+   "url": "https://docs.github.com/api/article/body?pathname=/en/copilot/concepts/agents/about-third-party-coding-agents",
+   "url_effective": "https://docs.github.com/api/article/body?pathname=/en/copilot/concepts/agents/about-third-party-coding-agents",
+   "version_source": null
+  },
+  {
+   "bytes": 7356,
+   "context_after": [
+    "* **End the current operation**: Cancel the agent's current work.",
+    ""
+   ],
+   "context_before": [
+    "* **Approve or reject plans**: Respond to plan approval prompts when Copilot is in plan mode.",
+    "* **Submit new prompts**: Enter questions or instructions, just as you would in the terminal."
+   ],
+   "http_status": 200,
+   "id": "E-copilot-cli-00140",
+   "locator": {
+    "heading": "What you can do remotely",
+    "raw_line_end": 41,
+    "raw_line_start": 41
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "* **Switch modes**: Change the session mode—for example, between interactive and plan mode.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "f15dabc3e74af6867437948f3a34a2c9447b7d6aeb32697a9edf1fff972810ec",
+   "surface": "copilot-cli",
+   "tier": "E1",
+   "url": "https://docs.github.com/api/article/body?pathname=/en/copilot/concepts/agents/copilot-cli/about-remote-control",
+   "url_effective": "https://docs.github.com/api/article/body?pathname=/en/copilot/concepts/agents/copilot-cli/about-remote-control",
+   "version_source": null
+  },
+  {
+   "bytes": 6347,
+   "context_after": [
+    "",
+    "* **Specialization**: If you've defined custom agents that are specialized for certain types of work, these may be used by the subagents. This allows for specialization, with the subagents using the custom agents best suited to the specific subtask they are working on."
+   ],
+   "context_before": [
+    "## Benefits of using `/fleet`",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-copilot-cli-00174",
+   "locator": {
+    "heading": "Benefits of using `/fleet`",
+    "raw_line_end": 21,
+    "raw_line_start": 21
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "* **Speed of task completion**: The main benefit of using the `/fleet` command is that a large, multi-part task can be completed more quickly by running subtasks in parallel. Whether parts of a large task can be worked on in parallel will be determined by the dependencies between the subtasks. Some",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "cdc6aa5b239deca2befb407b70940c33cb6605a4e521eceb71aae24854c968c0",
+   "surface": "copilot-cli",
+   "tier": "E1",
+   "url": "https://docs.github.com/api/article/body?pathname=/en/copilot/concepts/agents/copilot-cli/fleet",
+   "url_effective": "https://docs.github.com/api/article/body?pathname=/en/copilot/concepts/agents/copilot-cli/fleet",
+   "version_source": null
+  },
+  {
+   "bytes": 6347,
+   "context_after": [
+    "",
+    "  If custom agents are available, Copilot will decide whether to use one to complete a particular subtask. However, if you know that a specific custom agent is well-suited to a particular subtask, you can specify this in your prompt by using `@CUSTOM-AGENT-NAME`. For example, within a larger prompt:"
+   ],
+   "context_before": [
+    "* **Specialization**: If you've defined custom agents that are specialized for certain types of work, these may be used by the subagents. This allows for specialization, with the subagents using the custom agents best suited to the specific subtask they are working on.",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-copilot-cli-00177",
+   "locator": {
+    "heading": "Benefits of using `/fleet`",
+    "raw_line_end": 25,
+    "raw_line_start": 25
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "could specify `... Use GPT-5.3-Codex, to create ... Use Claude Opus 5, to analyze ...`. If a subagent uses a custom agent profile that specifies a particular AI model, then that model will be used by the subagent. Using a specific model may produce better quality results for particular types of",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "cdc6aa5b239deca2befb407b70940c33cb6605a4e521eceb71aae24854c968c0",
+   "surface": "copilot-cli",
+   "tier": "E1",
+   "url": "https://docs.github.com/api/article/body?pathname=/en/copilot/concepts/agents/copilot-cli/fleet",
+   "url_effective": "https://docs.github.com/api/article/body?pathname=/en/copilot/concepts/agents/copilot-cli/fleet",
+   "version_source": null
+  },
+  {
+   "bytes": 6347,
+   "context_after": [
+    "* **`/fleet`** is all about using subagents to execute tasks in parallel, while the main agent manages the overall workflow. You can use the `/fleet` slash command in interactive sessions independently of autopilot mode.",
+    ""
+   ],
+   "context_before": [
+    "The `/fleet` slash command is often used in autopilot mode, but these are distinct features that can be used independently:",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-copilot-cli-00179",
+   "locator": {
+    "heading": "Relationship between `/fleet` and autopilot mode",
+    "raw_line_end": 51,
+    "raw_line_start": 51
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "* **Autopilot mode** allows Copilot to continue working autonomously until a task is complete, auto-responding to requests that would otherwise require user intervention.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "cdc6aa5b239deca2befb407b70940c33cb6605a4e521eceb71aae24854c968c0",
+   "surface": "copilot-cli",
+   "tier": "E1",
+   "url": "https://docs.github.com/api/article/body?pathname=/en/copilot/concepts/agents/copilot-cli/fleet",
+   "url_effective": "https://docs.github.com/api/article/body?pathname=/en/copilot/concepts/agents/copilot-cli/fleet",
+   "version_source": null
+  },
+  {
+   "bytes": 9051,
+   "context_after": [
+    "",
+    "* **Report quality varies by query type**: The agent classifies your query into three types and adapts its response accordingly:"
+   ],
+   "context_before": [
+    "  ```",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-copilot-cli-00185",
+   "locator": {
+    "heading": "Considerations and things to be aware of",
+    "raw_line_end": 134,
+    "raw_line_start": 134
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "Copilot CLI command reference](/en/copilot/reference/copilot-cli-reference/cli-command-reference#built-in-agents)). The model selection is not configurable via the `/model` command. The research agent always uses the defined model regardless of what model you've selected for your main session.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "155fc16f7ddf9e9a522500a89c63ea1970bc811b9e091f39582868f22cf811f1",
+   "surface": "copilot-cli",
+   "tier": "E1",
+   "url": "https://docs.github.com/api/article/body?pathname=/en/copilot/concepts/agents/copilot-cli/research",
+   "url_effective": "https://docs.github.com/api/article/body?pathname=/en/copilot/concepts/agents/copilot-cli/research",
+   "version_source": null
+  },
+  {
+   "bytes": 14748,
+   "context_after": [
+    "",
+    "Reusing a workflow means reusing its steps and rules. The path through those steps can change with the inputs or findings, and agents can give different answers on different runs."
+   ],
+   "context_before": [
+    "* **Autopilot** is a mode that's all about autonomy. It lets Copilot keep working through a task without pausing to get your input after each step.",
+    "* **`/fleet`** encourages Copilot to delegate work to subagents and coordinate their work in parallel. Copilot decides how to break down the task each time."
+   ],
+   "http_status": 200,
+   "id": "E-copilot-cli-00217",
+   "locator": {
+    "heading": "How dynamic workflows differ from autopilot and fleet",
+    "raw_line_end": 66,
+    "raw_line_start": 66
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "* **A dynamic workflow** carries out a process defined in code. The workflow's author defines the steps, conditions, and handoffs. The process can use one agent or many, with work happening in sequence, in parallel, or both.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "94b844e46a33ae558c8343eaaf07a2f37921133edd81e79f6a188630cc04b108",
+   "surface": "copilot-cli",
+   "tier": "E1",
+   "url": "https://docs.github.com/api/article/body?pathname=/en/copilot/concepts/agents/dynamic-workflows",
+   "url_effective": "https://docs.github.com/api/article/body?pathname=/en/copilot/concepts/agents/dynamic-workflows",
+   "version_source": null
+  },
+  {
+   "bytes": 6125,
+   "context_after": [
+    "",
+    "Routing occurs along natural cache boundaries and large drifts in conversation complexity to avoid additional cache related costs without quality improvements."
+   ],
+   "context_before": [
+    "> \\[!NOTE] Auto model selection with task optimization is generally available in Copilot Chat on the GitHub website, in VS Code, in Copilot CLI, in GitHub Copilot app, and in JetBrains IDEs.",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-copilot-cli-00236",
+   "locator": {
+    "heading": "Auto with task optimization",
+    "raw_line_end": 13,
+    "raw_line_start": 13
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "selection with task optimization combines two systems to provide high quality results and better reliability. One system tracks real-time system health and availability, while the other evaluates task complexity. Putting these together, auto model selection routes the task to the optimal model.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "c88cb90f699306ac021b9a859051aae35206fc2dc7f66e637ecf73a0e5d49f4b",
+   "surface": "copilot-cli",
+   "tier": "E1",
+   "url": "https://docs.github.com/api/article/body?pathname=/en/copilot/concepts/models/auto-model-selection",
+   "url_effective": "https://docs.github.com/api/article/body?pathname=/en/copilot/concepts/models/auto-model-selection",
+   "version_source": null
+  },
+  {
+   "bytes": 6125,
+   "context_after": [
+    "",
+    "Auto model selection **won't** include these models:"
+   ],
+   "context_before": [
+    "### Policies and availability",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-copilot-cli-00241",
+   "locator": {
+    "heading": "Policies and availability",
+    "raw_line_end": 55,
+    "raw_line_start": 55
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "When you select **Auto**, auto model selection chooses from supported models, subject to your policies and subscription type. Available models may change over time. See [Supported AI models in GitHub",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "c88cb90f699306ac021b9a859051aae35206fc2dc7f66e637ecf73a0e5d49f4b",
+   "surface": "copilot-cli",
+   "tier": "E1",
+   "url": "https://docs.github.com/api/article/body?pathname=/en/copilot/concepts/models/auto-model-selection",
+   "url_effective": "https://docs.github.com/api/article/body?pathname=/en/copilot/concepts/models/auto-model-selection",
+   "version_source": null
+  },
+  {
+   "bytes": 9051,
+   "context_after": [
+    "",
+    "* **Report quality varies by query type**: The agent classifies your query into three types and adapts its response accordingly:"
+   ],
+   "context_before": [
+    "  ```",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-copilot-cli-00259",
+   "locator": {
+    "heading": "Considerations and things to be aware of",
+    "raw_line_end": 134,
+    "raw_line_start": 134
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "* **The research agent uses a specific model**: The research agent is hard-coded to use a particular AI model (see [GitHub Copilot CLI command reference](/en/copilot/reference/copilot-cli-reference/cli-command-reference#built-in-agents)). The model selection is not configurable via the `/model`",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "155fc16f7ddf9e9a522500a89c63ea1970bc811b9e091f39582868f22cf811f1",
+   "surface": "copilot-cli",
+   "tier": "E1",
+   "url": "https://docs.github.com/api/article/body?pathname=/en/copilot/concepts/agents/copilot-cli/research",
+   "url_effective": "https://docs.github.com/api/article/body?pathname=/en/copilot/concepts/agents/copilot-cli/research",
+   "version_source": null
+  },
+  {
+   "bytes": 17787,
+   "context_after": [
+    "",
+    "> \\[!NOTE]"
+   ],
+   "context_before": [
+    "Cloud sandboxing lets you run sessions inside fully isolated, ephemeral Linux environments hosted by GitHub. You can use cloud sandboxing from both Copilot CLI and the GitHub Copilot app. Each cloud sandbox session is isolated from your local environment and from other sessions.",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-copilot-cli-00308",
+   "locator": {
+    "heading": "Cloud sandboxing",
+    "raw_line_end": 118,
+    "raw_line_start": 118
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "Cloud sandboxing is built on Azure Container Apps Sandboxes, with GitHub providing the identity, policy, and billing layer.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "21efd793b5dc1fc70a45ef36186ee8033d3eb5cdc168e0bf4625566a3a8946fb",
+   "surface": "copilot-cli",
+   "tier": "E1",
+   "url": "https://docs.github.com/api/article/body?pathname=/en/copilot/concepts/security-governance-and-network-settings/about-cloud-and-local-sandboxes",
+   "url_effective": "https://docs.github.com/api/article/body?pathname=/en/copilot/concepts/security-governance-and-network-settings/about-cloud-and-local-sandboxes",
+   "version_source": null
+  },
+  {
+   "bytes": 7683,
+   "context_after": [
+    "",
+    "Enterprise and organization owners can provide keys for custom models. Users can select these like any other model: with the Copilot CLI model selector, the `--model` flag, or environment variables. See [Enabling custom models for GitHub Copilot in your enterprise](/en/copilot/how-tos/administer-cop"
+   ],
+   "context_before": [
+    "### Model selection",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-copilot-cli-00353",
+   "locator": {
+    "heading": "Model selection",
+    "raw_line_end": 30,
+    "raw_line_start": 30
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "Users can only access AI models that are enabled at the enterprise level. When you enable or disable models in your enterprise settings, those changes are reflected in Copilot CLI. Users can view which models are available to them using the `/model` command.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "bd0e2a06a6c66939b3db52ae168513fc35f1825c77f41b2da2af1d5d80df33d3",
+   "surface": "copilot-cli",
+   "tier": "E1",
+   "url": "https://docs.github.com/api/article/body?pathname=/en/copilot/how-tos/copilot-cli/administer-copilot-cli-for-your-enterprise",
+   "url_effective": "https://docs.github.com/api/article/body?pathname=/en/copilot/how-tos/copilot-cli/administer-copilot-cli-for-your-enterprise",
+   "version_source": null
+  },
+  {
+   "bytes": 7683,
+   "context_after": [
+    "",
+    "Separately, users can also provide their own LLM keys locally. This is not controlled by enterprise policies. See [Using your own LLM models in GitHub Copilot CLI](/en/copilot/how-tos/copilot-cli/customize-copilot/use-byok-models)."
+   ],
+   "context_before": [
+    "Users can only access AI models that are enabled at the enterprise level. When you enable or disable models in your enterprise settings, those changes are reflected in Copilot CLI. Users can view which models are available to them using the `/model` command.",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-copilot-cli-00354",
+   "locator": {
+    "heading": "Model selection",
+    "raw_line_end": 32,
+    "raw_line_start": 32
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "and organization owners can provide keys for custom models. Users can select these like any other model: with the Copilot CLI model selector, the `--model` flag, or environment variables. See [Enabling custom models for GitHub Copilot in your",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "bd0e2a06a6c66939b3db52ae168513fc35f1825c77f41b2da2af1d5d80df33d3",
+   "surface": "copilot-cli",
+   "tier": "E1",
+   "url": "https://docs.github.com/api/article/body?pathname=/en/copilot/how-tos/copilot-cli/administer-copilot-cli-for-your-enterprise",
+   "url_effective": "https://docs.github.com/api/article/body?pathname=/en/copilot/how-tos/copilot-cli/administer-copilot-cli-for-your-enterprise",
+   "version_source": null
+  },
+  {
+   "bytes": 5743,
+   "context_after": [
+    "",
+    "See [GitHub Copilot CLI programmatic reference](/en/copilot/reference/copilot-cli-reference/cli-programmatic-reference) for options that are particularly useful when running Copilot CLI programmatically."
+   ],
+   "context_before": [
+    "* **Use `-s` (silent)** when capturing output. This suppresses session metadata so you get clean text.",
+    "* **Use `--no-ask-user`** to prevent the agent from attempting to ask clarifying questions."
+   ],
+   "http_status": 200,
+   "id": "E-copilot-cli-00364",
+   "locator": {
+    "heading": "Tips for using Copilot CLI programmatically",
+    "raw_line_end": 33,
+    "raw_line_start": 33
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "* **Set a model explicitly** with `--model` for consistent behavior across environments.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "44a264aad63d00ec79d473d960e8c35d0276199ba4eb7b7b817ef986059a57e2",
+   "surface": "copilot-cli",
+   "tier": "E1",
+   "url": "https://docs.github.com/api/article/body?pathname=/en/copilot/how-tos/copilot-cli/automate-copilot-cli/run-cli-programmatically",
+   "url_effective": "https://docs.github.com/api/article/body?pathname=/en/copilot/how-tos/copilot-cli/automate-copilot-cli/run-cli-programmatically",
+   "version_source": null
+  },
+  {
+   "bytes": 21486,
+   "context_after": [
+    "",
+    "To reset previously approved tools, use:"
+   ],
+   "context_before": [
+    "### Configure allowed tools",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-copilot-cli-00366",
+   "locator": {
+    "heading": "Configure allowed tools",
+    "raw_line_end": 50,
+    "raw_line_start": 50
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "Manage which tools Copilot can run without asking for permission. When Copilot requests permission for an action, you can typically choose either to allow it just this time, or allow the tool to be used for the rest of the CLI session.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "d0d76409c23f6097c26ef3bc27bb85302ff5116f8c769f22bc6d4f10553e2dda",
+   "surface": "copilot-cli",
+   "tier": "E1",
+   "url": "https://docs.github.com/api/article/body?pathname=/en/copilot/how-tos/copilot-cli/cli-best-practices",
+   "url_effective": "https://docs.github.com/api/article/body?pathname=/en/copilot/how-tos/copilot-cli/cli-best-practices",
+   "version_source": null
+  },
+  {
+   "bytes": 21486,
+   "context_after": [
+    "",
+    "| Model               | Best For                                                       | Tradeoffs                                                                                  |"
+   ],
+   "context_before": [
+    "### Select your preferred model",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-copilot-cli-00368",
+   "locator": {
+    "heading": "Select your preferred model",
+    "raw_line_end": 73,
+    "raw_line_start": 73
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "Use `/model` to choose from available models based on your task complexity:",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "d0d76409c23f6097c26ef3bc27bb85302ff5116f8c769f22bc6d4f10553e2dda",
+   "surface": "copilot-cli",
+   "tier": "E1",
+   "url": "https://docs.github.com/api/article/body?pathname=/en/copilot/how-tos/copilot-cli/cli-best-practices",
+   "url_effective": "https://docs.github.com/api/article/body?pathname=/en/copilot/how-tos/copilot-cli/cli-best-practices",
+   "version_source": null
+  },
+  {
+   "bytes": 21486,
+   "context_after": [
+    "* **Claude Opus 5** is ideal for tasks requiring deep reasoning, complex system design, subtle bug investigation, or extensive context understanding.",
+    "* **Switch to Claude Sonnet 5** for routine tasks where speed and cost efficiency matter—it handles the majority of everyday coding effectively."
+   ],
+   "context_before": [
+    "**Recommendations:**",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-copilot-cli-00369",
+   "locator": {
+    "heading": "Select your preferred model",
+    "raw_line_end": 84,
+    "raw_line_start": 84
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "* **Auto** intelligently chooses models based on real-time system health and model performance (reducing rate limiting and providing lower latency and errors), and the complexity of the task you have given Copilot.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "d0d76409c23f6097c26ef3bc27bb85302ff5116f8c769f22bc6d4f10553e2dda",
+   "surface": "copilot-cli",
+   "tier": "E1",
+   "url": "https://docs.github.com/api/article/body?pathname=/en/copilot/how-tos/copilot-cli/cli-best-practices",
+   "url_effective": "https://docs.github.com/api/article/body?pathname=/en/copilot/how-tos/copilot-cli/cli-best-practices",
+   "version_source": null
+  },
+  {
+   "bytes": 21486,
+   "context_after": [
+    "",
+    "See [Using your own model provider](/en/copilot/concepts/agents/copilot-cli/about-copilot-cli#using-your-own-model-provider)."
+   ],
+   "context_before": [
+    "* Built-in sub-agents (`/review`, `/task`, explore, `/fleet`) automatically inherit your provider configuration.",
+    "* Cost estimates are hidden when using your own provider. Token usage (input, output, and cache counts) is still displayed."
+   ],
+   "http_status": 200,
+   "id": "E-copilot-cli-00375",
+   "locator": {
+    "heading": "Use your own model provider",
+    "raw_line_end": 103,
+    "raw_line_start": 103
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "* `/delegate` only works if you are also signed in to GitHub. It transfers the session to GitHub's server-side Copilot, not your provider.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "d0d76409c23f6097c26ef3bc27bb85302ff5116f8c769f22bc6d4f10553e2dda",
+   "surface": "copilot-cli",
+   "tier": "E1",
+   "url": "https://docs.github.com/api/article/body?pathname=/en/copilot/how-tos/copilot-cli/cli-best-practices",
+   "url_effective": "https://docs.github.com/api/article/body?pathname=/en/copilot/how-tos/copilot-cli/cli-best-practices",
+   "version_source": null
+  },
+  {
+   "bytes": 7683,
+   "context_after": [
+    "",
+    "### Controls that do not apply"
+   ],
+   "context_before": [
+    "### Seat assignment",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-copilot-cli-00435",
+   "locator": {
+    "heading": "Seat assignment",
+    "raw_line_end": 58,
+    "raw_line_start": 58
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "Users must have an assigned GitHub Copilot seat to access Copilot CLI.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "bd0e2a06a6c66939b3db52ae168513fc35f1825c77f41b2da2af1d5d80df33d3",
+   "surface": "copilot-cli",
+   "tier": "E1",
+   "url": "https://docs.github.com/api/article/body?pathname=/en/copilot/how-tos/copilot-cli/administer-copilot-cli-for-your-enterprise",
+   "url_effective": "https://docs.github.com/api/article/body?pathname=/en/copilot/how-tos/copilot-cli/administer-copilot-cli-for-your-enterprise",
+   "version_source": null
+  },
+  {
+   "bytes": 21486,
+   "context_after": [
+    "",
+    "Alternatively, you can use  the `/plan` command in normal mode to achieve the same effect."
+   ],
+   "context_before": [
+    "**Models achieve higher success rates when given a concrete plan to follow.** In plan mode, Copilot will create a structured implementation plan before any code is written.",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-copilot-cli-00442",
+   "locator": {
+    "heading": "Plan mode",
+    "raw_line_end": 119,
+    "raw_line_start": 119
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "Press <kbd>Shift</kbd>+<kbd>Tab</kbd> to toggle between normal mode and plan mode. In plan mode, all prompts you enter will trigger the plan workflow.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "d0d76409c23f6097c26ef3bc27bb85302ff5116f8c769f22bc6d4f10553e2dda",
+   "surface": "copilot-cli",
+   "tier": "E1",
+   "url": "https://docs.github.com/api/article/body?pathname=/en/copilot/how-tos/copilot-cli/cli-best-practices",
+   "url_effective": "https://docs.github.com/api/article/body?pathname=/en/copilot/how-tos/copilot-cli/cli-best-practices",
+   "version_source": null
+  },
+  {
+   "bytes": 8457,
+   "context_after": [
+    "",
+    "## Configuring your provider"
+   ],
+   "context_before": [
+    "## Model requirements",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-copilot-cli-00462",
+   "locator": {
+    "heading": "Model requirements",
+    "raw_line_end": 29,
+    "raw_line_start": 29
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "Models must support **tool calling** (also called function calling) and **streaming**. If a model does not support either capability, Copilot CLI returns an error. For best results, use a model with a context window of at least 128k tokens.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "faafdd64749f50b09529d85eeaafd13d48d556b34bcb4d574f80c47adbc76528",
+   "surface": "copilot-cli",
+   "tier": "E1",
+   "url": "https://docs.github.com/api/article/body?pathname=/en/copilot/how-tos/copilot-cli/customize-copilot/use-byok-models",
+   "url_effective": "https://docs.github.com/api/article/body?pathname=/en/copilot/how-tos/copilot-cli/customize-copilot/use-byok-models",
+   "version_source": null
+  },
+  {
+   "bytes": 13601,
+   "context_after": [
+    "",
+    "However, without GitHub authentication, the following features are **not available**:"
+   ],
+   "context_before": [
+    "## Unauthenticated use",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-copilot-cli-00469",
+   "locator": {
+    "heading": "Unauthenticated use",
+    "raw_line_end": 21,
+    "raw_line_start": 21
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "If you configure Copilot CLI to use your own LLM provider API keys (BYOK), GitHub authentication is **not required**. Copilot CLI can connect directly to your configured provider without a GitHub account or token.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "4f1860144b2c6afdbbeba3334ba59b079146209b728fde96a0afe70c09aee61f",
+   "surface": "copilot-cli",
+   "tier": "E1",
+   "url": "https://docs.github.com/api/article/body?pathname=/en/copilot/how-tos/copilot-cli/set-up-copilot-cli/authenticate-copilot-cli",
+   "url_effective": "https://docs.github.com/api/article/body?pathname=/en/copilot/how-tos/copilot-cli/set-up-copilot-cli/authenticate-copilot-cli",
+   "version_source": null
+  },
+  {
+   "bytes": 11705,
+   "context_after": [
+    "",
+    "Be aware that allowing tool access has security implications, see [Security considerations](/en/copilot/concepts/agents/copilot-cli/about-copilot-cli#security-considerations)."
+   ],
+   "context_before": [
+    "## Setting allowed tools",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-copilot-cli-00478",
+   "locator": {
+    "heading": "Setting allowed tools",
+    "raw_line_end": 45,
+    "raw_line_start": 45
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "You can control which tools Copilot CLI can use, either by responding to approval prompts when Copilot attempts to use a tool, or by specifying permissions via command-line flags.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "6cdffe93bf8d747b75690d442307dd55adbe1b6cd89036df231520d29ef1e21b",
+   "surface": "copilot-cli",
+   "tier": "E1",
+   "url": "https://docs.github.com/api/article/body?pathname=/en/copilot/how-tos/copilot-cli/set-up-copilot-cli/configure-copilot-cli",
+   "url_effective": "https://docs.github.com/api/article/body?pathname=/en/copilot/how-tos/copilot-cli/set-up-copilot-cli/configure-copilot-cli",
+   "version_source": null
+  },
+  {
+   "bytes": 11705,
+   "context_after": [
+    "",
+    "* For example:"
+   ],
+   "context_before": [
+    "#### Allowing all tools",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-copilot-cli-00480",
+   "locator": {
+    "heading": "Allowing all tools",
+    "raw_line_end": 89,
+    "raw_line_start": 89
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "Use the `--allow-all-tools` to allow Copilot to use any tool without asking for your approval.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "6cdffe93bf8d747b75690d442307dd55adbe1b6cd89036df231520d29ef1e21b",
+   "surface": "copilot-cli",
+   "tier": "E1",
+   "url": "https://docs.github.com/api/article/body?pathname=/en/copilot/how-tos/copilot-cli/set-up-copilot-cli/configure-copilot-cli",
+   "url_effective": "https://docs.github.com/api/article/body?pathname=/en/copilot/how-tos/copilot-cli/set-up-copilot-cli/configure-copilot-cli",
+   "version_source": null
+  },
+  {
+   "bytes": 3470,
+   "context_after": [
+    "",
+    "If you choose **Always allow** for an application, the saved approval also applies when you use computer use in GitHub Copilot app on the same computer. When a prompt appears, confirm that the application and action match your request. Configured deny rules still take precedence."
+   ],
+   "context_before": [
+    "Replace `APP_NAME` with the name of an application installed on your computer.",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-copilot-cli-00506",
+   "locator": {
+    "heading": "Using computer use",
+    "raw_line_end": 51,
+    "raw_line_start": 51
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "Computer use follows the active Copilot CLI permission mode. This mode determines whether Copilot asks for approval before controlling an application. Enter `/permissions show` to review the active mode. When approval is required, choose **Allow** to grant access for the current computer-use",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "216bafb5ce98ab06f46f7f3ddce92dc2756322323e08502129de3eb352208f99",
+   "surface": "copilot-cli",
+   "tier": "E1",
+   "url": "https://docs.github.com/api/article/body?pathname=/en/copilot/how-tos/copilot-cli/use-copilot-cli/computer-use",
+   "url_effective": "https://docs.github.com/api/article/body?pathname=/en/copilot/how-tos/copilot-cli/use-copilot-cli/computer-use",
+   "version_source": null
+  },
+  {
+   "bytes": 20663,
+   "context_after": [
+    "",
+    "### Include a specific file in your prompt"
+   ],
+   "context_before": [
+    "### Use plan mode",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-copilot-cli-00589",
+   "locator": {
+    "heading": "Use plan mode",
+    "raw_line_end": 78,
+    "raw_line_start": 78
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "Plan mode lets you collaborate with Copilot on an implementation plan before any code is written. Press <kbd>Shift</kbd>+<kbd>Tab</kbd> to cycle in and out of plan mode.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "c6f2aa4f56b2c08a1c69004be4662090d4ac5c7339e8d7a6169b076c83cf6b90",
+   "surface": "copilot-cli",
+   "tier": "E1",
+   "url": "https://docs.github.com/api/article/body?pathname=/en/copilot/how-tos/copilot-cli/use-copilot-cli/overview",
+   "url_effective": "https://docs.github.com/api/article/body?pathname=/en/copilot/how-tos/copilot-cli/use-copilot-cli/overview",
+   "version_source": null
+  },
+  {
+   "bytes": 20663,
+   "context_after": [
+    "",
+    "### Use sandboxing"
+   ],
+   "context_before": [
+    "### Enable all permissions",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-copilot-cli-00626",
+   "locator": {
+    "heading": "Enable all permissions",
+    "raw_line_end": 310,
+    "raw_line_start": 310
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "For situations where you trust Copilot to run freely, you can use the `--allow-all` or `--yolo` flags to enable all permissions at once.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "c6f2aa4f56b2c08a1c69004be4662090d4ac5c7339e8d7a6169b076c83cf6b90",
+   "surface": "copilot-cli",
+   "tier": "E1",
+   "url": "https://docs.github.com/api/article/body?pathname=/en/copilot/how-tos/copilot-cli/use-copilot-cli/overview",
+   "url_effective": "https://docs.github.com/api/article/body?pathname=/en/copilot/how-tos/copilot-cli/use-copilot-cli/overview",
+   "version_source": null
+  },
+  {
+   "bytes": 20663,
+   "context_after": [
+    "",
+    "### Configure settings"
+   ],
+   "context_before": [
+    "### Toggle reasoning visibility",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-copilot-cli-00630",
+   "locator": {
+    "heading": "Toggle reasoning visibility",
+    "raw_line_end": 320,
+    "raw_line_start": 320
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "Press <kbd>Ctrl</kbd>+<kbd>T</kbd> to show or hide the model's reasoning process while it generates a response. This setting persists across sessions, allowing you to observe how Copilot works through complex problems.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "c6f2aa4f56b2c08a1c69004be4662090d4ac5c7339e8d7a6169b076c83cf6b90",
+   "surface": "copilot-cli",
+   "tier": "E1",
+   "url": "https://docs.github.com/api/article/body?pathname=/en/copilot/how-tos/copilot-cli/use-copilot-cli/overview",
+   "url_effective": "https://docs.github.com/api/article/body?pathname=/en/copilot/how-tos/copilot-cli/use-copilot-cli/overview",
+   "version_source": null
+  },
+  {
+   "bytes": 4095,
+   "context_after": [
+    "",
+    "Use up and down keyboard keys to navigate through the list of background tasks. For each subagent task, you can:"
+   ],
+   "context_before": [
+    "### Monitoring progress",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-copilot-cli-00636",
+   "locator": {
+    "heading": "Monitoring progress",
+    "raw_line_end": 27,
+    "raw_line_start": 27
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "Use the `/tasks` slash command to see a list of background tasks relating to the current session. This will include any subtasks handled by subagents when you use the `/fleet` command.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "0a9fec8a028fc7fd6237b02a6e30c93aec8a30f50c7636bd54b65ff433b31bf3",
+   "surface": "copilot-cli",
+   "tier": "E1",
+   "url": "https://docs.github.com/api/article/body?pathname=/en/copilot/how-tos/copilot-cli/use-copilot-cli/speed-up-task-completion",
+   "url_effective": "https://docs.github.com/api/article/body?pathname=/en/copilot/how-tos/copilot-cli/use-copilot-cli/speed-up-task-completion",
+   "version_source": null
+  },
+  {
+   "bytes": 2327,
+   "context_after": [
+    "",
+    "If you select a model that supports configurable reasoning, a second dropdown menu appears so you can choose the reasoning level you want Copilot cloud agent to use for that task. For more information about which models support configurable reasoning, see [Supported AI models in GitHub Copilot](/en/"
+   ],
+   "context_before": [
+    "## Reasoning level",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-copilot-cli-00651",
+   "locator": {
+    "heading": "Reasoning level",
+    "raw_line_end": 45,
+    "raw_line_start": 45
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "Some models support configurable reasoning levels, which control how much time and effort the model spends reasoning before it responds. Higher reasoning levels can improve the quality of responses to complex tasks, but may take longer and use more AI credits.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "6d990909353724a419469792ea2cd1a29b2759d2875aa4eca9012f544cd11a67",
+   "surface": "copilot-cli",
+   "tier": "E1",
+   "url": "https://docs.github.com/api/article/body?pathname=/en/copilot/how-tos/use-copilot-agents/cloud-agent/changing-the-ai-model",
+   "url_effective": "https://docs.github.com/api/article/body?pathname=/en/copilot/how-tos/use-copilot-agents/cloud-agent/changing-the-ai-model",
+   "version_source": null
+  },
+  {
+   "bytes": 590,
+   "context_after": [
+    "",
+    "* [AI model comparison](/en/copilot/reference/ai-models/model-comparison)"
+   ],
+   "context_before": [
+    "* [Supported AI models in GitHub Copilot](/en/copilot/reference/ai-models/supported-models)",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-copilot-cli-00751",
+   "locator": {
+    "heading": "Links",
+    "raw_line_end": 9,
+    "raw_line_start": 9
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "  Learn about the supported AI models in GitHub Copilot.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "0f8b834e77cc99ec87da8e90ea1d63d30896de809b430f597bc38ce5bf66e208",
+   "surface": "copilot-cli",
+   "tier": "E1",
+   "url": "https://docs.github.com/api/article/body?pathname=/en/copilot/reference/ai-models",
+   "url_effective": "https://docs.github.com/api/article/body?pathname=/en/copilot/reference/ai-models",
+   "version_source": null
+  },
+  {
+   "bytes": 415569,
+   "context_after": [
+    "",
+    "Choosing a larger context window or higher reasoning will impact AI credits consumption; more tokens will be consumed, so more credits will be used. For this reason, we recommend that you use the regular context window and regular reasoning by default, selecting the larger context window and higher "
+   ],
+   "context_before": [
+    "",
+    "* **1 million token context window**: Allows the model to process significantly more content in a single session. This is useful when working across large codebases, long documents, or complex multi-file projects. When you select a supported model, you can choose between the default context size or "
+   ],
+   "http_status": 200,
+   "id": "E-copilot-cli-00802",
+   "locator": {
+    "heading": "Models with extended capabilities",
+    "raw_line_end": 137,
+    "raw_line_start": 137
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "* **Configurable reasoning levels**: Controls the depth of the model's reasoning process before it generates a response. When you select a supported model, you can choose which reasoning level you want to use. Higher reasoning levels can improve the quality of responses to complex problems.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "85108143a4acd41577bbd1008ce224538fb3bd1ff77948d22008212f51ca0494",
+   "surface": "copilot-cli",
+   "tier": "E1",
+   "url": "https://docs.github.com/api/article/body?pathname=/en/copilot/reference/ai-models/supported-models",
+   "url_effective": "https://docs.github.com/api/article/body?pathname=/en/copilot/reference/ai-models/supported-models",
+   "version_source": null
+  },
+  {
+   "bytes": 415569,
+   "context_after": [
+    "> * Configurable reasoning levels are available in Visual Studio Code, Copilot CLI, and Copilot cloud agent.",
+    "> * Some models have extended capability pricing see [Models and pricing for GitHub Copilot](/en/copilot/reference/copilot-billing/models-and-pricing#pricing-tables)"
+   ],
+   "context_before": [
+    "> \\[!NOTE]",
+    ">"
+   ],
+   "http_status": 200,
+   "id": "E-copilot-cli-00804",
+   "locator": {
+    "heading": "Models with extended capabilities",
+    "raw_line_end": 143,
+    "raw_line_start": 143
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "> * The 1 million token context window is available in Visual Studio Code and Copilot CLI only.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "85108143a4acd41577bbd1008ce224538fb3bd1ff77948d22008212f51ca0494",
+   "surface": "copilot-cli",
+   "tier": "E1",
+   "url": "https://docs.github.com/api/article/body?pathname=/en/copilot/reference/ai-models/supported-models",
+   "url_effective": "https://docs.github.com/api/article/body?pathname=/en/copilot/reference/ai-models/supported-models",
+   "version_source": null
+  },
+  {
+   "bytes": 14118,
+   "context_after": [
+    "",
+    "For example, this command starts a server whose sessions all use maximum reasoning effort and expose only the `bash` and `view` tools:"
+   ],
+   "context_before": [
+    "| `--available-tools=TOOL ...`                 | A quoted, comma-separated list of tool names | The session can use only the listed tools.     |",
+    "| `--excluded-tools=TOOL ...`                  | A quoted, comma-separated list of tool names | The listed tools are removed from the session. |"
+   ],
+   "http_status": 200,
+   "id": "E-copilot-cli-00816",
+   "locator": {
+    "heading": "Options applied to every session",
+    "raw_line_end": 33,
+    "raw_line_start": 33
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "| `--effort=LEVEL`, `--reasoning-effort=LEVEL` | `low`, `medium`, `high`, `xhigh`, or `max`   | Sets the session's initial reasoning effort.   |",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "d1cfb90d219fbcbe5c4b5df3337b96e314d133d902e44c770741d64c9f9b447e",
+   "surface": "copilot-cli",
+   "tier": "E1",
+   "url": "https://docs.github.com/api/article/body?pathname=/en/copilot/reference/copilot-cli-reference/acp-server",
+   "url_effective": "https://docs.github.com/api/article/body?pathname=/en/copilot/reference/copilot-cli-reference/acp-server",
+   "version_source": null
+  },
+  {
+   "bytes": 441029,
+   "context_after": [
+    "| `/permissions [default\\|assisted\\|allow-all\\|show]`                                                                                                                                                               | Switch between permission modes (`default`, `assisted`, `allow-all`), or show the curr",
+    "| `/permissions reset`                                                                                                                                                                                              | Reset all in-memory tool and path approvals for the current session (re-prompt on next"
+   ],
+   "context_before": [
+    "| `/lsp [show\\|test\\|reload\\|logs\\|help] [SERVER-NAME]`                                                                                                                                                             | Manage the language server configuration. The `logs` subcommand opens the live LSP ser",
+    "| `/mcp [config\\|list\\|show\\|add\\|edit\\|delete\\|disable\\|enable\\|auth\\|reload\\|search] [SERVER-NAME]`                                                                                                               | Manage the MCP server configuration. With no subcommand, or with `config`, the plugins"
+   ],
+   "http_status": 200,
+   "id": "E-copilot-cli-00897",
+   "locator": {
+    "heading": "Slash commands in the interactive interface",
+    "raw_line_end": 517,
+    "raw_line_start": 517
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "| Select the AI model you want to use, or choose **Auto**. By default (or with `--session`, alias `-s`), changes the model, reasoning effort, or context window for the current session only, without touching saved settings. `--repo`/`--local` pins the default model in",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "66198ea49c0f2f223d9466474f30c4a2a714c79a376a6022127d640996f9dd4d",
+   "surface": "copilot-cli",
+   "tier": "E1",
+   "url": "https://docs.github.com/api/article/body?pathname=/en/copilot/reference/copilot-cli-reference/cli-command-reference",
+   "url_effective": "https://docs.github.com/api/article/body?pathname=/en/copilot/reference/copilot-cli-reference/cli-command-reference",
+   "version_source": null
+  },
+  {
+   "bytes": 441029,
+   "context_after": [
+    "| `/permissions [default\\|assisted\\|allow-all\\|show]`                                                                                                                                                               | Switch between permission modes (`default`, `assisted`, `allow-all`), or show the curr",
+    "| `/permissions reset`                                                                                                                                                                                              | Reset all in-memory tool and path approvals for the current session (re-prompt on next"
+   ],
+   "context_before": [
+    "| `/lsp [show\\|test\\|reload\\|logs\\|help] [SERVER-NAME]`                                                                                                                                                             | Manage the language server configuration. The `logs` subcommand opens the live LSP ser",
+    "| `/mcp [config\\|list\\|show\\|add\\|edit\\|delete\\|disable\\|enable\\|auth\\|reload\\|search] [SERVER-NAME]`                                                                                                               | Manage the MCP server configuration. With no subcommand, or with `config`, the plugins"
+   ],
+   "http_status": 200,
+   "id": "E-copilot-cli-00900",
+   "locator": {
+    "heading": "Slash commands in the interactive interface",
+    "raw_line_end": 517,
+    "raw_line_start": 517
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "and applied once the current turn finishes, instead of switching the live model mid-request. Use `/model auto TIER` (`efficiency`, `balance`, or `intelligence`) to select a specific Auto routing tier directly, including from the \"switch\" action on an Auto tier recommendation hint. See [About Copilot",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "66198ea49c0f2f223d9466474f30c4a2a714c79a376a6022127d640996f9dd4d",
+   "surface": "copilot-cli",
+   "tier": "E1",
+   "url": "https://docs.github.com/api/article/body?pathname=/en/copilot/reference/copilot-cli-reference/cli-command-reference",
+   "url_effective": "https://docs.github.com/api/article/body?pathname=/en/copilot/reference/copilot-cli-reference/cli-command-reference",
+   "version_source": null
+  },
+  {
+   "bytes": 441029,
+   "context_after": [
+    "| `/worktree [branch\\|task]`                                                                                                                                                                                        | Create a new Git worktree and switch to it, leaving uncommitted changes behind in the ",
+    "| `/worktree new [PROMPT]`                                                                                                                                                                                          | Deprecated—use `/new worktree` instead. Starts a new conversation in a new Git worktre"
+   ],
+   "context_before": [
+    "| `/voice [on\\|off\\|models\\|devices]`                                                                                                                                                                               | Toggle voice mode, browse available voice models, or choose the input device (micropho",
+    "| `/workflows`                                                                                                                                                                                                      | Observe workflow runs, phases, agents, and progress. Requires a token-based-billing pl"
+   ],
+   "http_status": 200,
+   "id": "E-copilot-cli-00919",
+   "locator": {
+    "heading": "Slash commands in the interactive interface",
+    "raw_line_end": 568,
+    "raw_line_start": 568
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "| Fork the current session into a new session, optionally with a name. Usable while the agent is running—the source session keeps working in the background. `/fork worktree` forks the current session, preserving its conversation context, into a new Git worktree",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "66198ea49c0f2f223d9466474f30c4a2a714c79a376a6022127d640996f9dd4d",
+   "surface": "copilot-cli",
+   "tier": "E1",
+   "url": "https://docs.github.com/api/article/body?pathname=/en/copilot/reference/copilot-cli-reference/cli-command-reference",
+   "url_effective": "https://docs.github.com/api/article/body?pathname=/en/copilot/reference/copilot-cli-reference/cli-command-reference",
+   "version_source": null
+  },
+  {
+   "bytes": 441029,
+   "context_after": [
+    "| `--allow-all-mcp-server-instructions`        | Include initialization instructions from all MCP servers in the system prompt. By default, only allowlisted server instructions are included up front; other servers' instructions are retrieved on demand.                                                ",
+    "| `--allow-all-paths`                          | Disable file path verification and allow access to any path.                                                                                                                                                                                               "
+   ],
+   "context_before": [
+    "| `--additional-mcp-config=JSON`               | Add an MCP server for this session only. The server configuration can be supplied as a JSON string or a file path (prefix with `@`). A relative `@file` path resolves against the session working directory (the `--resume`, `--worktree`, or `-C` director",
+    "| `--agent=AGENT`                              | Specify a custom agent to use. See [About custom agents](/en/copilot/concepts/agents/copilot-cli/about-custom-agents).                                                                                                                                     "
+   ],
+   "http_status": 200,
+   "id": "E-copilot-cli-00938",
+   "locator": {
+    "heading": "Command-line options",
+    "raw_line_end": 595,
+    "raw_line_start": 595
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "| `--allow-all`                                | Enable all permissions (equivalent to `--allow-all-tools --allow-all-paths --allow-all-urls`).",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "66198ea49c0f2f223d9466474f30c4a2a714c79a376a6022127d640996f9dd4d",
+   "surface": "copilot-cli",
+   "tier": "E1",
+   "url": "https://docs.github.com/api/article/body?pathname=/en/copilot/reference/copilot-cli-reference/cli-command-reference",
+   "url_effective": "https://docs.github.com/api/article/body?pathname=/en/copilot/reference/copilot-cli-reference/cli-command-reference",
+   "version_source": null
+  },
+  {
+   "bytes": 441029,
+   "context_after": [
+    "| `--available-tools=TOOL ...`                 | Only these tools will be available to the model. For multiple tools, use a quoted, comma-separated list. See [Allowing and denying tool use](/en/copilot/how-tos/copilot-cli/use-copilot-cli/allowing-tools).                                              ",
+    "| `--banner`, `--no-banner`                    | Show or hide the startup banner.                                                                                                                                                                                                                           "
+   ],
+   "context_before": [
+    "| `--acp`                                      | Start as Agent Client Protocol server.                                                                                                                                                                                                                     ",
+    "| `--attachment PATH`                          | Attach a file to the initial prompt (can be used multiple times). Image files are accepted, but sending them successfully requires the selected model and organization policy to allow vision input.                                                       "
+   ],
+   "http_status": 200,
+   "id": "E-copilot-cli-00948",
+   "locator": {
+    "heading": "Command-line options",
+    "raw_line_end": 604,
+    "raw_line_start": 604
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "| `--autopilot`                                | Enable autopilot continuation—the agent keeps working until `task_complete` is called, then returns to interactive mode. See [Allowing GitHub Copilot CLI to work autonomously](/en/copilot/concepts/agents/copilot-cli/autopilot).",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "66198ea49c0f2f223d9466474f30c4a2a714c79a376a6022127d640996f9dd4d",
+   "surface": "copilot-cli",
+   "tier": "E1",
+   "url": "https://docs.github.com/api/article/body?pathname=/en/copilot/reference/copilot-cli-reference/cli-command-reference",
+   "url_effective": "https://docs.github.com/api/article/body?pathname=/en/copilot/reference/copilot-cli-reference/cli-command-reference",
+   "version_source": null
+  },
+  {
+   "bytes": 441029,
+   "context_after": [
+    "| `--enable-all-github-mcp-tools`              | Enable all GitHub MCP server tools, instead of the default CLI subset. Overrides the `--add-github-mcp-toolset` and `--add-github-mcp-tool` options.                                                                                                       ",
+    "| `--enable-mcp-server=SERVER-NAME`            | Re-enable an MCP server that's disabled in your settings, for this session only (can be used multiple times). The change is not persisted to your configuration.                                                                                           "
+   ],
+   "context_before": [
+    "| `--disable-mcp-server=SERVER-NAME`           | Disable a specific MCP server (can be used multiple times).                                                                                                                                                                                                ",
+    "| `--disallow-temp-dir`                        | Prevent automatic access to the system temporary directory.                                                                                                                                                                                                "
+   ],
+   "http_status": 200,
+   "id": "E-copilot-cli-00962",
+   "locator": {
+    "heading": "Command-line options",
+    "raw_line_end": 618,
+    "raw_line_start": 618
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "| `--effort=LEVEL`, `--reasoning-effort=LEVEL` | Set the reasoning effort level (`low`, `medium`, `high`, `xhigh`, `max`). `max` is the highest-depth tier for Anthropic models.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "66198ea49c0f2f223d9466474f30c4a2a714c79a376a6022127d640996f9dd4d",
+   "surface": "copilot-cli",
+   "tier": "E1",
+   "url": "https://docs.github.com/api/article/body?pathname=/en/copilot/reference/copilot-cli-reference/cli-command-reference",
+   "url_effective": "https://docs.github.com/api/article/body?pathname=/en/copilot/reference/copilot-cli-reference/cli-command-reference",
+   "version_source": null
+  },
+  {
+   "bytes": 441029,
+   "context_after": [
+    "| `--excluded-tools=TOOL ...`                  | These tools will not be available to the model. For multiple tools, use a quoted, comma-separated list.                                                                                                                                                    ",
+    "| `--experimental`                             | Enable experimental features (use `--no-experimental` to disable).                                                                                                                                                                                         "
+   ],
+   "context_before": [
+    "| `--enable-mcp-server=SERVER-NAME`            | Re-enable an MCP server that's disabled in your settings, for this session only (can be used multiple times). The change is not persisted to your configuration.                                                                                           ",
+    "| `--enable-memory`                            | Enable memory in prompt mode (disabled by default).                                                                                                                                                                                                        "
+   ],
+   "http_status": 200,
+   "id": "E-copilot-cli-00966",
+   "locator": {
+    "heading": "Command-line options",
+    "raw_line_end": 622,
+    "raw_line_start": 622
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "| `--enable-reasoning-summaries`               | Deprecated compatibility option (accepted but ignored). Detailed reasoning summaries for supporting OpenAI models are shown by default. Toggle them with <kbd>Ctrl</kbd>+<kbd>T</kbd>.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "66198ea49c0f2f223d9466474f30c4a2a714c79a376a6022127d640996f9dd4d",
+   "surface": "copilot-cli",
+   "tier": "E1",
+   "url": "https://docs.github.com/api/article/body?pathname=/en/copilot/reference/copilot-cli-reference/cli-command-reference",
+   "url_effective": "https://docs.github.com/api/article/body?pathname=/en/copilot/reference/copilot-cli-reference/cli-command-reference",
+   "version_source": null
+  },
+  {
+   "bytes": 441029,
+   "context_after": [
+    "| `-h`, `--help`                               | Display help.                                                                                                                                                                                                                                              ",
+    "| `-i PROMPT`, `--interactive=PROMPT`          | Start an interactive session and automatically execute this prompt.                                                                                                                                                                                        "
+   ],
+   "context_before": [
+    "| `--experimental`                             | Enable experimental features (use `--no-experimental` to disable).                                                                                                                                                                                         ",
+    "| `--extension-sdk-path DIRECTORY`             | Override the bundled `@github/copilot-sdk` injected into extension subprocesses with a local `copilot-sdk/` folder. Invalid paths fall back to the bundled SDK.                                                                                            "
+   ],
+   "http_status": 200,
+   "id": "E-copilot-cli-00970",
+   "locator": {
+    "heading": "Command-line options",
+    "raw_line_end": 626,
+    "raw_line_start": 626
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "| `--fleet`                                    | Run the prompt in fleet mode (parallel subagent orchestration). Combine with `-i`, `-p`, or piped standard input. This requires a prompt from one of those sources, and has no effect on its own. This is equivalent to prefixing an interactive prompt",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "66198ea49c0f2f223d9466474f30c4a2a714c79a376a6022127d640996f9dd4d",
+   "surface": "copilot-cli",
+   "tier": "E1",
+   "url": "https://docs.github.com/api/article/body?pathname=/en/copilot/reference/copilot-cli-reference/cli-command-reference",
+   "url_effective": "https://docs.github.com/api/article/body?pathname=/en/copilot/reference/copilot-cli-reference/cli-command-reference",
+   "version_source": null
+  },
+  {
+   "bytes": 441029,
+   "context_after": [
+    "| `--model=MODEL`                              | Set the AI model you want to use. Pass `auto` as the value to let Copilot pick the best available model automatically. See [About Copilot auto model selection](/en/copilot/concepts/models/auto-model-selection).                                         ",
+    "| `--mouse[=VALUE]`                            | Enable or disable mouse support in the interactive interface. VALUE can be `on` (default) or `off`. When enabled, the CLI captures mouse events—scroll wheel, clicks, and so on—to navigate its own interface, such as scrolling the timeline or clicking t"
+   ],
+   "context_before": [
+    "| `--max-ai-credits=CREDITS`                   | Set a soft maximum for AI Credits allowed for each response. The limit resets per user message and can be adjusted mid-session with `/limits`. See [Setting an AI credit session limit in GitHub Copilot CLI](/en/copilot/how-tos/copilot-cli/use-copilot-c",
+    "| `--max-autopilot-continues=COUNT`            | Maximum number of continuation messages in autopilot mode (default: unlimited). Must be a non-negative integer. Malformed values (`NaN`, negative, fractional, or scientific notation) are rejected. See [Allowing GitHub Copilot CLI to work autonomously]"
+   ],
+   "http_status": 200,
+   "id": "E-copilot-cli-00976",
+   "locator": {
+    "heading": "Command-line options",
+    "raw_line_end": 633,
+    "raw_line_start": 633
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "| `--mode=MODE`                                | Set the initial agent mode (choices: `interactive`, `plan`, `autopilot`). Combine with `--plan` (as `--plan --mode autopilot`) for plan-then-autopilot: the session starts in plan mode and automatically progresses to autopilot mode once the plan is",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "66198ea49c0f2f223d9466474f30c4a2a714c79a376a6022127d640996f9dd4d",
+   "surface": "copilot-cli",
+   "tier": "E1",
+   "url": "https://docs.github.com/api/article/body?pathname=/en/copilot/reference/copilot-cli-reference/cli-command-reference",
+   "url_effective": "https://docs.github.com/api/article/body?pathname=/en/copilot/reference/copilot-cli-reference/cli-command-reference",
+   "version_source": null
+  },
+  {
+   "bytes": 441029,
+   "context_after": [
+    "| `--model=MODEL`                              | Set the AI model you want to use. Pass `auto` as the value to let Copilot pick the best available model automatically. See [About Copilot auto model selection](/en/copilot/concepts/models/auto-model-selection).                                         ",
+    "| `--mouse[=VALUE]`                            | Enable or disable mouse support in the interactive interface. VALUE can be `on` (default) or `off`. When enabled, the CLI captures mouse events—scroll wheel, clicks, and so on—to navigate its own interface, such as scrolling the timeline or clicking t"
+   ],
+   "context_before": [
+    "| `--max-ai-credits=CREDITS`                   | Set a soft maximum for AI Credits allowed for each response. The limit resets per user message and can be adjusted mid-session with `/limits`. See [Setting an AI credit session limit in GitHub Copilot CLI](/en/copilot/how-tos/copilot-cli/use-copilot-c",
+    "| `--max-autopilot-continues=COUNT`            | Maximum number of continuation messages in autopilot mode (default: unlimited). Must be a non-negative integer. Malformed values (`NaN`, negative, fractional, or scientific notation) are rejected. See [Allowing GitHub Copilot CLI to work autonomously]"
+   ],
+   "http_status": 200,
+   "id": "E-copilot-cli-00977",
+   "locator": {
+    "heading": "Command-line options",
+    "raw_line_end": 633,
+    "raw_line_start": 633
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "`plan`, `autopilot`). Combine with `--plan` (as `--plan --mode autopilot`) for plan-then-autopilot: the session starts in plan mode and automatically progresses to autopilot mode once the plan is ready, instead of waiting for a human to approve it. Any other `--plan --mode MODE` pairing is rejected.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "66198ea49c0f2f223d9466474f30c4a2a714c79a376a6022127d640996f9dd4d",
+   "surface": "copilot-cli",
+   "tier": "E1",
+   "url": "https://docs.github.com/api/article/body?pathname=/en/copilot/reference/copilot-cli-reference/cli-command-reference",
+   "url_effective": "https://docs.github.com/api/article/body?pathname=/en/copilot/reference/copilot-cli-reference/cli-command-reference",
+   "version_source": null
+  },
+  {
+   "bytes": 441029,
+   "context_after": [
+    "",
+    "If `permissions.disableBypassPermissionsMode` is set to an unrecognized value, the CLI no longer rejects it outright. Instead, the CLI logs the issue and enforces `\"disable\"` as a fail-closed default, so a malformed managed policy still restricts the allow-all options instead of silently allowing th"
+   ],
+   "context_before": [
+    "When `permissions.disableBypassPermissionsMode` is set to `\"disable\"`, all of the command line options that allow all permissions (`--allow-all-tools`, `--allow-all-paths`, `--allow-all-urls`, `--allow-all`, `--yolo`) are suppressed at startup and cannot be used to grant elevated permissions. The `/",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-copilot-cli-01002",
+   "locator": {
+    "heading": "Restricting the --allow-all options",
+    "raw_line_end": 698,
+    "raw_line_start": 698
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "to `\"allow-auto-only\"` to block full allow-all permissions but permit `/permissions assisted` (LLM-assisted permission approval). Assisted approval still prompts for each request, but attaches an LLM safety recommendation so the CLI can auto-approve requests the model evaluates as acceptable.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "66198ea49c0f2f223d9466474f30c4a2a714c79a376a6022127d640996f9dd4d",
+   "surface": "copilot-cli",
+   "tier": "E1",
+   "url": "https://docs.github.com/api/article/body?pathname=/en/copilot/reference/copilot-cli-reference/cli-command-reference",
+   "url_effective": "https://docs.github.com/api/article/body?pathname=/en/copilot/reference/copilot-cli-reference/cli-command-reference",
+   "version_source": null
+  },
+  {
+   "bytes": 441029,
+   "context_after": [
+    "| `COPILOT_SUBAGENT_MAX_DEPTH`                 | Maximum subagent nesting depth (default: `4`, range: `1`–`128`).                                                                                                                                                                                           ",
+    "| `COPILOT_TASK_WAIT_TIMEOUT_SECONDS`          | Maximum seconds `-p` (and `-p --autopilot`) waits for pending background agents or shell commands to finish before exiting (default: `600`; `0` exits immediately without waiting).                                                                        "
+   ],
+   "context_before": [
+    "| `PLUGINS_DASHBOARD`                          | Set to `false` to disable the plugins dashboard opened by bare `/plugin`, `/mcp`, and `/skills`, and to disable the non-interactive `copilot plugin`/`copilot plugins` commands.                                                                           ",
+    "| `COPILOT_STRIP_REASONING_ON_RESUME`          | Set to `0` or `false` to keep BYOK reasoning tokens across a session resume instead of stripping them. Defaults to stripping them.                                                                                                                         "
+   ],
+   "http_status": 200,
+   "id": "E-copilot-cli-01015",
+   "locator": {
+    "heading": "Environment variables",
+    "raw_line_end": 830,
+    "raw_line_start": 830
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "| `COPILOT_SUBAGENT_MAX_CONCURRENT`            | Maximum concurrent subagents per session (default: `32`, range: `1`–`256`).",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "66198ea49c0f2f223d9466474f30c4a2a714c79a376a6022127d640996f9dd4d",
+   "surface": "copilot-cli",
+   "tier": "E1",
+   "url": "https://docs.github.com/api/article/body?pathname=/en/copilot/reference/copilot-cli-reference/cli-command-reference",
+   "url_effective": "https://docs.github.com/api/article/body?pathname=/en/copilot/reference/copilot-cli-reference/cli-command-reference",
+   "version_source": null
+  },
+  {
+   "bytes": 441029,
+   "context_after": [
+    "| `COPILOT_TASK_WAIT_TIMEOUT_SECONDS`          | Maximum seconds `-p` (and `-p --autopilot`) waits for pending background agents or shell commands to finish before exiting (default: `600`; `0` exits immediately without waiting).                                                                        ",
+    "| `GH_HOST`                                    | GitHub hostname for both GitHub CLI and Copilot CLI (default: `github.com`). Set to your GitHub Enterprise Cloud with data residency hostname. Override with `COPILOT_GH_HOST` for Copilot CLI only.                                                       "
+   ],
+   "context_before": [
+    "| `COPILOT_STRIP_REASONING_ON_RESUME`          | Set to `0` or `false` to keep BYOK reasoning tokens across a session resume instead of stripping them. Defaults to stripping them.                                                                                                                         ",
+    "| `COPILOT_SUBAGENT_MAX_CONCURRENT`            | Maximum concurrent subagents per session (default: `32`, range: `1`–`256`).                                                                                                                                                                                "
+   ],
+   "http_status": 200,
+   "id": "E-copilot-cli-01016",
+   "locator": {
+    "heading": "Environment variables",
+    "raw_line_end": 831,
+    "raw_line_start": 831
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "| `COPILOT_SUBAGENT_MAX_DEPTH`                 | Maximum subagent nesting depth (default: `4`, range: `1`–`128`).",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "66198ea49c0f2f223d9466474f30c4a2a714c79a376a6022127d640996f9dd4d",
+   "surface": "copilot-cli",
+   "tier": "E1",
+   "url": "https://docs.github.com/api/article/body?pathname=/en/copilot/reference/copilot-cli-reference/cli-command-reference",
+   "url_effective": "https://docs.github.com/api/article/body?pathname=/en/copilot/reference/copilot-cli-reference/cli-command-reference",
+   "version_source": null
+  },
+  {
+   "bytes": 441029,
+   "context_after": [
+    "",
+    "Only the root agent can call `store_memory` or `vote_memory` to save or vote on a memory. Subagents keep read access to stored memories through `read_memories`, but can't write or vote on them."
+   ],
+   "context_before": [
+    "| `task`            | gpt-5.6-luna (falls back to gpt-5.4-mini, then claude-haiku-4.5) | Command execution (tests, builds, lints). Returns brief summary on success, full output on failure.                                                                                                                ",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-copilot-cli-01052",
+   "locator": {
+    "heading": "Built-in agents",
+    "raw_line_end": 1281,
+    "raw_line_start": 1281
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "`code-review` and `security-review` never forward a full review to another review agent: launching one already fulfills a request to \"use\" or \"call\" a reviewer, so it performs the review itself instead of delegating the whole task to a nested `code-review` or `security-review` subagent, recursively,",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "66198ea49c0f2f223d9466474f30c4a2a714c79a376a6022127d640996f9dd4d",
+   "surface": "copilot-cli",
+   "tier": "E1",
+   "url": "https://docs.github.com/api/article/body?pathname=/en/copilot/reference/copilot-cli-reference/cli-command-reference",
+   "url_effective": "https://docs.github.com/api/article/body?pathname=/en/copilot/reference/copilot-cli-reference/cli-command-reference",
+   "version_source": null
+  },
+  {
+   "bytes": 441029,
+   "context_after": [
+    "| `tools`                       | string\\[] | No       | Tools available to the agent. Default: `[\"*\"]` (all tools). Include `*` anywhere in the list to grant full tool access—for example, `[\"view\", \"*\"]` grants every tool, not just `view`.                                                            ",
+    ""
+   ],
+   "context_before": [
+    "| `modelPolicy`                 | string    | No       | `\"preferred\"` (default) lets `model`/`models` be overridden by a `subagents` override in `~/.copilot/settings.json` or the `/subagents` picker. `\"required\"` locks dispatch to one of the authored models—overrides are rejected and the picker's *",
+    "| `name`                        | string    | No       | Display name. You can also use this value to select the agent, for example with `--agent`. Defaults to the agent ID.                                                                                                                               "
+   ],
+   "http_status": 200,
+   "id": "E-copilot-cli-01062",
+   "locator": {
+    "heading": "Custom agent frontmatter fields",
+    "raw_line_end": 1297,
+    "raw_line_start": 1297
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "| `reasoningEffort`             | string    | No       | Default reasoning effort for this agent (for example, `\"low\"`, `\"medium\"`, or `\"high\"`). When unset, inherits the outer agent's effort.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "66198ea49c0f2f223d9466474f30c4a2a714c79a376a6022127d640996f9dd4d",
+   "surface": "copilot-cli",
+   "tier": "E1",
+   "url": "https://docs.github.com/api/article/body?pathname=/en/copilot/reference/copilot-cli-reference/cli-command-reference",
+   "url_effective": "https://docs.github.com/api/article/body?pathname=/en/copilot/reference/copilot-cli-reference/cli-command-reference",
+   "version_source": null
+  },
+  {
+   "bytes": 441029,
+   "context_after": [
+    "",
+    "### Custom agent locations"
+   ],
+   "context_before": [
+    "| `tools`                       | string\\[] | No       | Tools available to the agent. Default: `[\"*\"]` (all tools). Include `*` anywhere in the list to grant full tool access—for example, `[\"view\", \"*\"]` grants every tool, not just `view`.                                                            ",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-copilot-cli-01064",
+   "locator": {
+    "heading": "Custom agent frontmatter fields",
+    "raw_line_end": 1300,
+    "raw_line_start": 1300
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "started directly—for example, through the SDK's `session.startSubagent`. Model and effort are resolved with this precedence, highest first: an explicit per-call value, the `subagents` override in `~/.copilot/settings.json`, the agent definition's `model`/`models`/`reasoningEffort` field, then the",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "66198ea49c0f2f223d9466474f30c4a2a714c79a376a6022127d640996f9dd4d",
+   "surface": "copilot-cli",
+   "tier": "E1",
+   "url": "https://docs.github.com/api/article/body?pathname=/en/copilot/reference/copilot-cli-reference/cli-command-reference",
+   "url_effective": "https://docs.github.com/api/article/body?pathname=/en/copilot/reference/copilot-cli-reference/cli-command-reference",
+   "version_source": null
+  },
+  {
+   "bytes": 441029,
+   "context_after": [
+    "",
+    "| Limit          | Default    | Max   |"
+   ],
+   "context_before": [
+    "### Subagent limits",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-copilot-cli-01081",
+   "locator": {
+    "heading": "Subagent limits",
+    "raw_line_end": 1399,
+    "raw_line_start": 1399
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "The CLI enforces depth and concurrency limits to prevent runaway agent spawning.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "66198ea49c0f2f223d9466474f30c4a2a714c79a376a6022127d640996f9dd4d",
+   "surface": "copilot-cli",
+   "tier": "E1",
+   "url": "https://docs.github.com/api/article/body?pathname=/en/copilot/reference/copilot-cli-reference/cli-command-reference",
+   "url_effective": "https://docs.github.com/api/article/body?pathname=/en/copilot/reference/copilot-cli-reference/cli-command-reference",
+   "version_source": null
+  },
+  {
+   "bytes": 441029,
+   "context_after": [
+    "",
+    "The default concurrency limit depends on your Copilot plan:"
+   ],
+   "context_before": [
+    "| Max concurrent | plan-based | `32`  |",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-copilot-cli-01083",
+   "locator": {
+    "heading": "Subagent limits",
+    "raw_line_end": 1406,
+    "raw_line_start": 1406
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "within one another. When the depth limit is reached, the innermost agent cannot spawn further subagents. **Concurrency** counts how many subagents are running simultaneously across the entire session tree. When the limit is reached, new subagent requests are rejected until an active agent completes.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "66198ea49c0f2f223d9466474f30c4a2a714c79a376a6022127d640996f9dd4d",
+   "surface": "copilot-cli",
+   "tier": "E1",
+   "url": "https://docs.github.com/api/article/body?pathname=/en/copilot/reference/copilot-cli-reference/cli-command-reference",
+   "url_effective": "https://docs.github.com/api/article/body?pathname=/en/copilot/reference/copilot-cli-reference/cli-command-reference",
+   "version_source": null
+  },
+  {
+   "bytes": 441029,
+   "context_after": [
+    "* **The plan itself can still be written.** Copilot needs somewhere to keep notes and draft the plan, so it's allowed to create and edit files in its own private planning workspace (including the plan file you'll review and approve).",
+    "* **Delegated sub-tasks are protected too.** If Copilot spins up a helper session to research part of your question, that helper inherits the same restrictions and can't edit your project either."
+   ],
+   "context_before": [
+    "`/plan` starts a planning session where Copilot CLI can explore and analyze your codebase but is blocked from editing your project files. Specifically:",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-copilot-cli-01093",
+   "locator": {
+    "heading": "Plan mode",
+    "raw_line_end": 1509,
+    "raw_line_start": 1509
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "* **Your project files are protected.** Any attempt to edit, patch, or run a shell command that would change a file in your workspace is blocked automatically—this isn't just a suggestion to the model, it's enforced directly, so it doesn't depend on the model choosing to behave.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "66198ea49c0f2f223d9466474f30c4a2a714c79a376a6022127d640996f9dd4d",
+   "surface": "copilot-cli",
+   "tier": "E1",
+   "url": "https://docs.github.com/api/article/body?pathname=/en/copilot/reference/copilot-cli-reference/cli-command-reference",
+   "url_effective": "https://docs.github.com/api/article/body?pathname=/en/copilot/reference/copilot-cli-reference/cli-command-reference",
+   "version_source": null
+  },
+  {
+   "bytes": 170370,
+   "context_after": [
+    "| `copyOnSelect`                                 | `boolean`                                                                               | `true` (macOS), `false` (other) | Automatically copy mouse-selected text to the system clipboard.                                                              ",
+    "| `customAgents.defaultLocalOnly`                | `boolean`                                                                               | `false`                         | Only use local custom agents (no remote organization or enterprise agents).                                                  "
+   ],
+   "context_before": [
+    "| `companyAnnouncements`                         | `string[]`                                                                              | `[]`                            | Custom messages shown randomly on startup. One message is randomly selected each time the CLI starts. Useful for team announc",
+    "| `connectors`                                   | `boolean`                                                                               | `true`                          | Enable Copilot Connectors when available. Set to `false` to disable.                                                         "
+   ],
+   "http_status": 200,
+   "id": "E-copilot-cli-01218",
+   "locator": {
+    "heading": "User settings (`~/.copilot/settings.json`)",
+    "raw_line_end": 455,
+    "raw_line_start": 455
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "| `false`                         | Automatically switch to auto mode when rate-limited. When `true`, eligible rate limit errors trigger an automatic switch to auto mode and retry. Does not apply to global rate limits or BYOK providers.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "25543cafbdee5add265a7d2e2d90312d48e7ad8fb622e747fe614b9a6ca07319",
+   "surface": "copilot-cli",
+   "tier": "E1",
+   "url": "https://docs.github.com/api/article/body?pathname=/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference",
+   "url_effective": "https://docs.github.com/api/article/body?pathname=/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference",
+   "version_source": null
+  },
+  {
+   "bytes": 170370,
+   "context_after": [
+    "| `mouse`                                        | `boolean`                                                                               | `true`                          | Enable mouse support. Can also be set with `--mouse` or `--no-mouse`.                                                        ",
+    "| `permissions.disableBypassPermissionsMode`     | `string`                                                                                | —                               | Set to `\"disable\"` to suppress all allow-all flags (`--allow-all-tools`, `--allow-all-paths`, `--allow-all-urls`, `--allow-al"
+   ],
+   "context_before": [
+    "| `logLevel`                                     | `\"none\"` \\| `\"error\"` \\| `\"warning\"` \\| `\"info\"` \\| `\"debug\"` \\| `\"all\"` \\| `\"default\"` | `\"default\"`                     | Logging verbosity.                                                                                                           ",
+    "| `mergeStrategy`                                | `\"rebase\"` \\| `\"merge\"`                                                                 | —                               | Conflict resolution strategy for `/pr fix conflicts`. When set to `\"rebase\"`, conflicts are resolved by rebasing onto the bas"
+   ],
+   "http_status": 200,
+   "id": "E-copilot-cli-01231",
+   "locator": {
+    "heading": "User settings (`~/.copilot/settings.json`)",
+    "raw_line_end": 478,
+    "raw_line_start": 478
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "| varies                          | AI model to use. Set to `\"auto\"` to let Copilot pick the best available model automatically. Managed by the `/model` slash command.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "25543cafbdee5add265a7d2e2d90312d48e7ad8fb622e747fe614b9a6ca07319",
+   "surface": "copilot-cli",
+   "tier": "E1",
+   "url": "https://docs.github.com/api/article/body?pathname=/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference",
+   "url_effective": "https://docs.github.com/api/article/body?pathname=/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference",
+   "version_source": null
+  },
+  {
+   "bytes": 170370,
+   "context_after": [
+    "| `pinnedPrompts`                                | `boolean`                                                                               | `true`                          | Pin the current section's user prompt just below the top bar while scrolling the timeline, so it stays clear which request th",
+    "| `powershellFlags`                              | `string[]`                                                                              | `[\"-NoProfile\", \"-NoLogo\"]`     | Flags passed to PowerShell on startup. On Windows, the CLI prefers PowerShell 7+ (`pwsh`) and falls back to Windows PowerShel"
+   ],
+   "context_before": [
+    "| `model`                                        | `string`                                                                                | varies                          | AI model to use. Set to `\"auto\"` to let Copilot pick the best available model automatically. Managed by the `/model` slash co",
+    "| `mouse`                                        | `boolean`                                                                               | `true`                          | Enable mouse support. Can also be set with `--mouse` or `--no-mouse`.                                                        "
+   ],
+   "http_status": 200,
+   "id": "E-copilot-cli-01233",
+   "locator": {
+    "heading": "User settings (`~/.copilot/settings.json`)",
+    "raw_line_end": 480,
+    "raw_line_start": 480
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "| —                               | Set to `\"disable\"` to suppress all allow-all flags (`--allow-all-tools`, `--allow-all-paths`, `--allow-all-urls`, `--allow-all`, `--yolo`) at startup so they cannot be used to grant elevated permissions. Set to `\"allow-auto-only\"` to",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "25543cafbdee5add265a7d2e2d90312d48e7ad8fb622e747fe614b9a6ca07319",
+   "surface": "copilot-cli",
+   "tier": "E1",
+   "url": "https://docs.github.com/api/article/body?pathname=/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference",
+   "url_effective": "https://docs.github.com/api/article/body?pathname=/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference",
+   "version_source": null
+  },
+  {
+   "bytes": 170370,
+   "context_after": [
+    "| `pinnedPrompts`                                | `boolean`                                                                               | `true`                          | Pin the current section's user prompt just below the top bar while scrolling the timeline, so it stays clear which request th",
+    "| `powershellFlags`                              | `string[]`                                                                              | `[\"-NoProfile\", \"-NoLogo\"]`     | Flags passed to PowerShell on startup. On Windows, the CLI prefers PowerShell 7+ (`pwsh`) and falls back to Windows PowerShel"
+   ],
+   "context_before": [
+    "| `model`                                        | `string`                                                                                | varies                          | AI model to use. Set to `\"auto\"` to let Copilot pick the best available model automatically. Managed by the `/model` slash co",
+    "| `mouse`                                        | `boolean`                                                                               | `true`                          | Enable mouse support. Can also be set with `--mouse` or `--no-mouse`.                                                        "
+   ],
+   "http_status": 200,
+   "id": "E-copilot-cli-01234",
+   "locator": {
+    "heading": "User settings (`~/.copilot/settings.json`)",
+    "raw_line_end": 480,
+    "raw_line_start": 480
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "so they cannot be used to grant elevated permissions. Set to `\"allow-auto-only\"` to keep blocking full allow-all while still permitting `/allow-all auto` (LLM-assisted auto-approval). See [GitHub Copilot CLI command",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "25543cafbdee5add265a7d2e2d90312d48e7ad8fb622e747fe614b9a6ca07319",
+   "surface": "copilot-cli",
+   "tier": "E1",
+   "url": "https://docs.github.com/api/article/body?pathname=/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference",
+   "url_effective": "https://docs.github.com/api/article/body?pathname=/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference",
+   "version_source": null
+  },
+  {
+   "bytes": 170370,
+   "context_after": [
+    "| `storeTokenPlaintext`                          | `boolean`                                                                               | `false`                         | Allow authentication tokens to be stored in plain text in `config.json` when no system keychain is available.                ",
+    "| `stream`                                       | `boolean`                                                                               | `true`                          | Enable streaming responses.                                                                                                  "
+   ],
+   "context_before": [
+    "| `skillDirectories`                             | `string[]`                                                                              | `[]`                            | Additional directories to search for custom skill definitions (in addition to `~/.copilot/skills/`).                         ",
+    "| `statusLine`                                   | `object`                                                                                | —                               | Custom status line display. `type`: must be `\"command\"`. `command`: path to an executable script that receives session JSON o"
+   ],
+   "http_status": 200,
+   "id": "E-copilot-cli-01266",
+   "locator": {
+    "heading": "User settings (`~/.copilot/settings.json`)",
+    "raw_line_end": 508,
+    "raw_line_start": 508
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "`boolean`                                                                               | `true`                          | Remain in autopilot mode after each task completes. When enabled, the next prompt you enter after a task completes is also handled in autopilot mode. For more information, see",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "25543cafbdee5add265a7d2e2d90312d48e7ad8fb622e747fe614b9a6ca07319",
+   "surface": "copilot-cli",
+   "tier": "E1",
+   "url": "https://docs.github.com/api/article/body?pathname=/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference",
+   "url_effective": "https://docs.github.com/api/article/body?pathname=/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference",
+   "version_source": null
+  },
+  {
+   "bytes": 170370,
+   "context_after": [
+    "| `storeTokenPlaintext`                          | `boolean`                                                                               | `false`                         | Allow authentication tokens to be stored in plain text in `config.json` when no system keychain is available.                ",
+    "| `stream`                                       | `boolean`                                                                               | `true`                          | Enable streaming responses.                                                                                                  "
+   ],
+   "context_before": [
+    "| `skillDirectories`                             | `string[]`                                                                              | `[]`                            | Additional directories to search for custom skill definitions (in addition to `~/.copilot/skills/`).                         ",
+    "| `statusLine`                                   | `object`                                                                                | —                               | Custom status line display. `type`: must be `\"command\"`. `command`: path to an executable script that receives session JSON o"
+   ],
+   "http_status": 200,
+   "id": "E-copilot-cli-01267",
+   "locator": {
+    "heading": "User settings (`~/.copilot/settings.json`)",
+    "raw_line_end": 508,
+    "raw_line_start": 508
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "| `true`                          | Remain in autopilot mode after each task completes. When enabled, the next prompt you enter after a task completes is also handled in autopilot mode. For more information, see [Allowing GitHub Copilot CLI to work",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "25543cafbdee5add265a7d2e2d90312d48e7ad8fb622e747fe614b9a6ca07319",
+   "surface": "copilot-cli",
+   "tier": "E1",
+   "url": "https://docs.github.com/api/article/body?pathname=/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference",
+   "url_effective": "https://docs.github.com/api/article/body?pathname=/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference",
+   "version_source": null
+  },
+  {
+   "bytes": 170370,
+   "context_after": [
+    "| `subagents.disabledSubagents`                  | `string[]`                                                                              | `[]`                            | Agent names to prevent from being dispatched. Only the `rubber-duck` agent cannot be disabled via this setting. All other bui",
+    "| `subagents.maxConcurrency`                     | `number`                                                                                | plan-based                      | Maximum concurrent subagents for this session. Only honored for usage-based billing users; ignored for all other plans. Cappe"
+   ],
+   "context_before": [
+    "| `stream`                                       | `boolean`                                                                               | `true`                          | Enable streaming responses.                                                                                                  ",
+    "| `streamerMode`                                 | `boolean`                                                                               | `false`                         | Hide preview model names, quota details, prompt timestamps, and the update-available notice. Useful when demonstrating Copilo"
+   ],
+   "http_status": 200,
+   "id": "E-copilot-cli-01270",
+   "locator": {
+    "heading": "User settings (`~/.copilot/settings.json`)",
+    "raw_line_end": 512,
+    "raw_line_start": 512
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "`object`                                                                                | `{}`                            | Per-agent model configuration, keyed by agent name. Each value is an object with optional `model` (string), `modelPolicy` (`\"preferred\"` or `\"required\"`), `effortLevel`",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "25543cafbdee5add265a7d2e2d90312d48e7ad8fb622e747fe614b9a6ca07319",
+   "surface": "copilot-cli",
+   "tier": "E1",
+   "url": "https://docs.github.com/api/article/body?pathname=/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference",
+   "url_effective": "https://docs.github.com/api/article/body?pathname=/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference",
+   "version_source": null
+  },
+  {
+   "bytes": 170370,
+   "context_after": [
+    "| `subagents.disabledSubagents`                  | `string[]`                                                                              | `[]`                            | Agent names to prevent from being dispatched. Only the `rubber-duck` agent cannot be disabled via this setting. All other bui",
+    "| `subagents.maxConcurrency`                     | `number`                                                                                | plan-based                      | Maximum concurrent subagents for this session. Only honored for usage-based billing users; ignored for all other plans. Cappe"
+   ],
+   "context_before": [
+    "| `stream`                                       | `boolean`                                                                               | `true`                          | Enable streaming responses.                                                                                                  ",
+    "| `streamerMode`                                 | `boolean`                                                                               | `false`                         | Hide preview model names, quota details, prompt timestamps, and the update-available notice. Useful when demonstrating Copilo"
+   ],
+   "http_status": 200,
+   "id": "E-copilot-cli-01271",
+   "locator": {
+    "heading": "User settings (`~/.copilot/settings.json`)",
+    "raw_line_end": 512,
+    "raw_line_start": 512
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "`effortLevel` (string), and `contextTier` (`\"default\"`, `\"long_context\"`, or `\"inherit\"`) fields. Set `model`, `effortLevel`, or `contextTier` to `\"inherit\"` to use the parent session's value at dispatch time. `modelPolicy` has no effect when the agent definition itself sets",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "25543cafbdee5add265a7d2e2d90312d48e7ad8fb622e747fe614b9a6ca07319",
+   "surface": "copilot-cli",
+   "tier": "E1",
+   "url": "https://docs.github.com/api/article/body?pathname=/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference",
+   "url_effective": "https://docs.github.com/api/article/body?pathname=/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference",
+   "version_source": null
+  },
+  {
+   "bytes": 170370,
+   "context_after": [
+    "| `subagents.maxDepth`                           | `number`                                                                                | `6`                             | Maximum subagent nesting depth. Only honored for usage-based billing users; ignored for all other plans. Capped at `256`. See",
+    "| `tabs.enabled`                                 | `boolean`                                                                               | `true`                          | Show the home tab bar. Set to `false` to hide it entirely.                                                                   "
+   ],
+   "context_before": [
+    "| `subagents.agents`                             | `object`                                                                                | `{}`                            | Per-agent model configuration, keyed by agent name. Each value is an object with optional `model` (string), `modelPolicy` (`\"",
+    "| `subagents.disabledSubagents`                  | `string[]`                                                                              | `[]`                            | Agent names to prevent from being dispatched. Only the `rubber-duck` agent cannot be disabled via this setting. All other bui"
+   ],
+   "http_status": 200,
+   "id": "E-copilot-cli-01274",
+   "locator": {
+    "heading": "User settings (`~/.copilot/settings.json`)",
+    "raw_line_end": 514,
+    "raw_line_start": 514
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "| plan-based                      | Maximum concurrent subagents for this session. Only honored for usage-based billing users; ignored for all other plans. Capped at `32`. See [GitHub Copilot CLI command",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "25543cafbdee5add265a7d2e2d90312d48e7ad8fb622e747fe614b9a6ca07319",
+   "surface": "copilot-cli",
+   "tier": "E1",
+   "url": "https://docs.github.com/api/article/body?pathname=/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference",
+   "url_effective": "https://docs.github.com/api/article/body?pathname=/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference",
+   "version_source": null
+  },
+  {
+   "bytes": 170370,
+   "context_after": [
+    "| `tabs.enabled`                                 | `boolean`                                                                               | `true`                          | Show the home tab bar. Set to `false` to hide it entirely.                                                                   ",
+    "| `tabs.hide`                                    | `string[]`                                                                              | `[]`                            | Tab identifiers to hide. Accepted values: `\"copilot\"`, `\"agents\"`, `\"issues\"`, `\"pull-requests\"`, `\"gists\"` (matched case-ins"
+   ],
+   "context_before": [
+    "| `subagents.disabledSubagents`                  | `string[]`                                                                              | `[]`                            | Agent names to prevent from being dispatched. Only the `rubber-duck` agent cannot be disabled via this setting. All other bui",
+    "| `subagents.maxConcurrency`                     | `number`                                                                                | plan-based                      | Maximum concurrent subagents for this session. Only honored for usage-based billing users; ignored for all other plans. Cappe"
+   ],
+   "http_status": 200,
+   "id": "E-copilot-cli-01275",
+   "locator": {
+    "heading": "User settings (`~/.copilot/settings.json`)",
+    "raw_line_end": 515,
+    "raw_line_start": 515
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "| `6`                             | Maximum subagent nesting depth. Only honored for usage-based billing users; ignored for all other plans. Capped at `256`. See [GitHub Copilot CLI command",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "25543cafbdee5add265a7d2e2d90312d48e7ad8fb622e747fe614b9a6ca07319",
+   "surface": "copilot-cli",
+   "tier": "E1",
+   "url": "https://docs.github.com/api/article/body?pathname=/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference",
+   "url_effective": "https://docs.github.com/api/article/body?pathname=/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference",
+   "version_source": null
+  },
+  {
+   "bytes": 170370,
+   "context_after": [
+    "| `enabledPlugins`         | `Record<string, boolean>`       | Merged—repository overrides user for same key     | Declarative plugin auto-install.                                                                                                                                                         ",
+    "| `extraKnownMarketplaces` | `Record<string, {...}>`         | Merged—repository overrides user for same key     | Plugin marketplaces available in this repository. Each entry's `source` is required. An `autoUpdate: true` on an entry is accepted at the repository level but currently ignored—the auto"
+   ],
+   "context_before": [
+    "| `disabledMcpServers`     | `string[]`                      | Union—repository can add entries, never remove    | MCP servers configured but not started.                                                                                                                                                  ",
+    "| `disabledSkills`         | `string[]`                      | Union—repository can add entries, never remove    | Skills discovered but not loaded.                                                                                                                                                        "
+   ],
+   "http_status": 200,
+   "id": "E-copilot-cli-01303",
+   "locator": {
+    "heading": "Repository settings (`.github/copilot/settings.json`)",
+    "raw_line_end": 555,
+    "raw_line_start": 555
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "| `effortLevel`            | `string`                        | Replaced—repository takes precedence              | Pin the default reasoning effort.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "25543cafbdee5add265a7d2e2d90312d48e7ad8fb622e747fe614b9a6ca07319",
+   "surface": "copilot-cli",
+   "tier": "E1",
+   "url": "https://docs.github.com/api/article/body?pathname=/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference",
+   "url_effective": "https://docs.github.com/api/article/body?pathname=/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference",
+   "version_source": null
+  },
+  {
+   "bytes": 26284,
+   "context_after": [
+    "| `--no-ask-user`              | Prevent the agent from pausing to seek additional user input.                                                                                                                                                                                                              ",
+    "| `--output-format=FORMAT`     | Set the output format: `text` (the default) or `json`. With `json`, the CLI emits JSONL (one JSON object per line), which is convenient for parsing the agent's output in scripts.                                                                                         "
+   ],
+   "context_before": [
+    "| `--excluded-tools=TOOL ...`  | Remove specific tools from those available to the model. For multiple tools, use a quoted, comma-separated list.                                                                                                                                                           ",
+    "| `--fleet`                    | Run the prompt in fleet mode, so Copilot uses parallel subagents to work on separate parts of the task. Combine with `-p` for non-interactive automation, `-i` for an interactive session, or a piped prompt. Not supported in ACP server mode. See [Speeding up task compl"
+   ],
+   "http_status": 200,
+   "id": "E-copilot-cli-01391",
+   "locator": {
+    "heading": "Command line options",
+    "raw_line_end": 37,
+    "raw_line_start": 37
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "| `--model=MODEL`              | Choose the AI model (for example, `gpt-5.4` or `claude-haiku-4.5`). Useful for pinning a model in reproducible workflows. See [Choosing a model](#choosing-a-model) below.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "41add277f218d8b462fc7aaa73709f95edd02ab0687be8bc2c467d2f92d6c91d",
+   "surface": "copilot-cli",
+   "tier": "E1",
+   "url": "https://docs.github.com/api/article/body?pathname=/en/copilot/reference/copilot-cli-reference/cli-programmatic-reference",
+   "url_effective": "https://docs.github.com/api/article/body?pathname=/en/copilot/reference/copilot-cli-reference/cli-programmatic-reference",
+   "version_source": null
+  },
+  {
+   "bytes": 26284,
+   "context_after": [
+    "| `--output-format=FORMAT`     | Set the output format: `text` (the default) or `json`. With `json`, the CLI emits JSONL (one JSON object per line), which is convenient for parsing the agent's output in scripts.                                                                                         ",
+    "| `--secret-env-vars=VAR ...`  | An environment variable whose value you want redacted in output. For multiple variables, use a quoted, comma-separated list. Essential for preventing secrets being exposed in logs. The values in the `GITHUB_TOKEN` and `COPILOT_GITHUB_TOKEN` environment variables are "
+   ],
+   "context_before": [
+    "| `--fleet`                    | Run the prompt in fleet mode, so Copilot uses parallel subagents to work on separate parts of the task. Combine with `-p` for non-interactive automation, `-i` for an interactive session, or a piped prompt. Not supported in ACP server mode. See [Speeding up task compl",
+    "| `--model=MODEL`              | Choose the AI model (for example, `gpt-5.4` or `claude-haiku-4.5`). Useful for pinning a model in reproducible workflows. See [Choosing a model](#choosing-a-model) below.                                                                                                 "
+   ],
+   "http_status": 200,
+   "id": "E-copilot-cli-01392",
+   "locator": {
+    "heading": "Command line options",
+    "raw_line_end": 38,
+    "raw_line_start": 38
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "| `--no-ask-user`              | Prevent the agent from pausing to seek additional user input.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "41add277f218d8b462fc7aaa73709f95edd02ab0687be8bc2c467d2f92d6c91d",
+   "surface": "copilot-cli",
+   "tier": "E1",
+   "url": "https://docs.github.com/api/article/body?pathname=/en/copilot/reference/copilot-cli-reference/cli-programmatic-reference",
+   "url_effective": "https://docs.github.com/api/article/body?pathname=/en/copilot/reference/copilot-cli-reference/cli-programmatic-reference",
+   "version_source": null
+  },
+  {
+   "bytes": 26284,
+   "context_after": [
+    "",
+    "```json copy"
+   ],
+   "context_before": [
+    "Alternatively, you can set the `COPILOT_MODEL` environment variable to specify a model for the duration of the shell session.",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-copilot-cli-01402",
+   "locator": {
+    "heading": "Choosing a model",
+    "raw_line_end": 169,
+    "raw_line_start": 169
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "CLI configuration file. This file is located at `~/.copilot/settings.json` (or `$COPILOT_HOME/settings.json` if you have set the `COPILOT_HOME` environment variable). Some models also allow you to set a reasoning effort level, which controls how much time the model spends thinking before responding.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "41add277f218d8b462fc7aaa73709f95edd02ab0687be8bc2c467d2f92d6c91d",
+   "surface": "copilot-cli",
+   "tier": "E1",
+   "url": "https://docs.github.com/api/article/body?pathname=/en/copilot/reference/copilot-cli-reference/cli-programmatic-reference",
+   "url_effective": "https://docs.github.com/api/article/body?pathname=/en/copilot/reference/copilot-cli-reference/cli-programmatic-reference",
+   "version_source": null
+  },
+  {
+   "bytes": 26284,
+   "context_after": [
+    "* The `--model` command line option.",
+    "* The `COPILOT_MODEL` environment variable."
+   ],
+   "context_before": [
+    "When determining which model to use for a given prompt, the CLI checks for model specifications in the following order of precedence (from highest to lowest):",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-copilot-cli-01405",
+   "locator": {
+    "heading": "Model precedence",
+    "raw_line_end": 185,
+    "raw_line_start": 185
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "* Where a custom agent is used: the model specified in the custom agent definition (if any).",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "41add277f218d8b462fc7aaa73709f95edd02ab0687be8bc2c467d2f92d6c91d",
+   "surface": "copilot-cli",
+   "tier": "E1",
+   "url": "https://docs.github.com/api/article/body?pathname=/en/copilot/reference/copilot-cli-reference/cli-programmatic-reference",
+   "url_effective": "https://docs.github.com/api/article/body?pathname=/en/copilot/reference/copilot-cli-reference/cli-programmatic-reference",
+   "version_source": null
+  },
+  {
+   "bytes": 1920,
+   "context_after": [
+    "",
+    "## About agent skills"
+   ],
+   "context_before": [
+    "",
+    "> \\[!NOTE]"
+   ],
+   "http_status": 200,
+   "id": "E-copilot-cli-01422",
+   "locator": {
+    "heading": "About agent skills",
+    "raw_line_end": 6,
+    "raw_line_start": 6
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "> Agent skills work with Copilot cloud agent, Copilot code review, the GitHub Copilot CLI, the GitHub Copilot app, and agent mode in Visual Studio Code and JetBrains IDEs.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "b866a42b0ec0d60bc8046fed4f688afdf701454abd71f195a324bc7f7bdd6461",
+   "surface": "copilot-cli",
+   "tier": "E1",
+   "url": "https://docs.github.com/api/article/body?pathname=/en/copilot/concepts/agents/about-agent-skills",
+   "url_effective": "https://docs.github.com/api/article/body?pathname=/en/copilot/concepts/agents/about-agent-skills",
+   "version_source": null
+  },
+  {
+   "bytes": 9229,
+   "context_after": [
+    "",
+    "## What is a plugin?"
+   ],
+   "context_before": [
+    "Plugins are installable packages that extend Copilot with reusable agents, skills, hooks, and integrations.",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-copilot-cli-01446",
+   "locator": {
+    "heading": "About GitHub Copilot plugins",
+    "raw_line_end": 5,
+    "raw_line_start": 5
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "Plugins provide a way to distribute custom Copilot functionality. You can use a plugin to add a preconfigured set of capabilities to Copilot, including Copilot CLI, Copilot cloud agent, and the GitHub Copilot app.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "cd835b233acfcb9984fac32068d634e163762de47873cd01e54ca3827ae4c203",
+   "surface": "copilot-cli",
+   "tier": "E1",
+   "url": "https://docs.github.com/api/article/body?pathname=/en/copilot/concepts/agents/about-plugins",
+   "url_effective": "https://docs.github.com/api/article/body?pathname=/en/copilot/concepts/agents/about-plugins",
+   "version_source": null
+  },
+  {
+   "bytes": 16364,
+   "context_after": [
+    "",
+    "See [Changing the AI model for GitHub Copilot cloud agent](/en/copilot/how-tos/use-copilot-agents/cloud-agent/changing-the-ai-model)."
+   ],
+   "context_before": [
+    "## AI models for Copilot cloud agent",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-copilot-cli-01552",
+   "locator": {
+    "heading": "AI models for Copilot cloud agent",
+    "raw_line_end": 96,
+    "raw_line_start": 96
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "Depending on how you start your Copilot cloud agent task, you may be able to select the model used by Copilot cloud agent. You may find that different models perform better, or provide more useful responses, depending on the type of tasks you give Copilot.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "219041faea44587e57f2978686e182fa457c6563f7a58b3f06bcfce08ff05ba0",
+   "surface": "copilot-cli",
+   "tier": "E1",
+   "url": "https://docs.github.com/api/article/body?pathname=/en/copilot/concepts/agents/cloud-agent/about-cloud-agent",
+   "url_effective": "https://docs.github.com/api/article/body?pathname=/en/copilot/concepts/agents/cloud-agent/about-cloud-agent",
+   "version_source": null
+  },
+  {
+   "bytes": 10919,
+   "context_after": [
+    "",
+    "If you'd rather have Copilot CLI automatically switch back to interactive mode after each task completes, you can disable this behavior by setting `stayInAutopilot` to `false`. You can do this in either of the following ways:"
+   ],
+   "context_before": [
+    "## Staying in autopilot mode between tasks",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-copilot-cli-01702",
+   "locator": {
+    "heading": "Staying in autopilot mode between tasks",
+    "raw_line_end": 57,
+    "raw_line_start": 57
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "By default, autopilot mode is sticky: once Copilot determines that a task is complete, Copilot CLI remains in autopilot mode, so the next prompt you enter is also handled in autopilot mode. You can switch back to the standard interactive mode at any time by pressing <kbd>Shift</kbd>+<kbd>Tab</kbd>.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "99e6b59f7a7f2c563efeee14adc5e0bafa76eb4a473974767eae44dfd7a4f011",
+   "surface": "copilot-cli",
+   "tier": "E1",
+   "url": "https://docs.github.com/api/article/body?pathname=/en/copilot/concepts/agents/copilot-cli/autopilot",
+   "url_effective": "https://docs.github.com/api/article/body?pathname=/en/copilot/concepts/agents/copilot-cli/autopilot",
+   "version_source": null
+  },
+  {
+   "bytes": 10919,
+   "context_after": [
+    "",
+    "* During an interactive session, enter `/settings stayInAutopilot false`."
+   ],
+   "context_before": [
+    "By default, autopilot mode is sticky: once Copilot determines that a task is complete, Copilot CLI remains in autopilot mode, so the next prompt you enter is also handled in autopilot mode. You can switch back to the standard interactive mode at any time by pressing <kbd>Shift</kbd>+<kbd>Tab</kbd>.",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-copilot-cli-01703",
+   "locator": {
+    "heading": "Staying in autopilot mode between tasks",
+    "raw_line_end": 59,
+    "raw_line_start": 59
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "If you'd rather have Copilot CLI automatically switch back to interactive mode after each task completes, you can disable this behavior by setting `stayInAutopilot` to `false`. You can do this in either of the following ways:",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "99e6b59f7a7f2c563efeee14adc5e0bafa76eb4a473974767eae44dfd7a4f011",
+   "surface": "copilot-cli",
+   "tier": "E1",
+   "url": "https://docs.github.com/api/article/body?pathname=/en/copilot/concepts/agents/copilot-cli/autopilot",
+   "url_effective": "https://docs.github.com/api/article/body?pathname=/en/copilot/concepts/agents/copilot-cli/autopilot",
+   "version_source": null
+  },
+  {
+   "bytes": 10919,
+   "context_after": [
+    "",
+    "When this setting is disabled, Copilot automatically switches back to the standard interactive mode once a task completes. To run another task in autopilot mode, press <kbd>Shift</kbd>+<kbd>Tab</kbd> and cycle through the available modes until you re-enter autopilot mode, then enter your next prompt"
+   ],
+   "context_before": [
+    "",
+    "* During an interactive session, enter `/settings stayInAutopilot false`."
+   ],
+   "http_status": 200,
+   "id": "E-copilot-cli-01705",
+   "locator": {
+    "heading": "Staying in autopilot mode between tasks",
+    "raw_line_end": 62,
+    "raw_line_start": 62
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "* Add `\"stayInAutopilot\": false` to your user configuration file (`~/.copilot/settings.json`). For more information, see [GitHub Copilot CLI configuration directory](/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference#user-settings-copilotsettingsjson).",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "99e6b59f7a7f2c563efeee14adc5e0bafa76eb4a473974767eae44dfd7a4f011",
+   "surface": "copilot-cli",
+   "tier": "E1",
+   "url": "https://docs.github.com/api/article/body?pathname=/en/copilot/concepts/agents/copilot-cli/autopilot",
+   "url_effective": "https://docs.github.com/api/article/body?pathname=/en/copilot/concepts/agents/copilot-cli/autopilot",
+   "version_source": null
+  },
+  {
+   "bytes": 7528,
+   "context_after": [
+    "",
+    "## Comparing entry points"
+   ],
+   "context_before": [
+    "## Introduction",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-copilot-cli-01840",
+   "locator": {
+    "heading": "Introduction",
+    "raw_line_end": 7,
+    "raw_line_start": 7
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "There are three ways to use GitHub Copilot in JetBrains IDEs: the GitHub Copilot plugin, GitHub Copilot as an agent in JetBrains AI Assistant, and GitHub Copilot CLI in the integrated terminal. Each entry point provides a different set of capabilities depending on how you prefer to work.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "4e486fb9a7347ba0a1e077e793f5f878f0af290888290e5a193d7819067dbc8b",
+   "surface": "copilot-cli",
+   "tier": "E1",
+   "url": "https://docs.github.com/api/article/body?pathname=/en/copilot/concepts/agents/copilot-in-jetbrains",
+   "url_effective": "https://docs.github.com/api/article/body?pathname=/en/copilot/concepts/agents/copilot-in-jetbrains",
+   "version_source": null
+  },
+  {
+   "bytes": 14748,
+   "context_after": [
+    "",
+    "> \\[!IMPORTANT]"
+   ],
+   "context_before": [
+    "```",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-copilot-cli-01891",
+   "locator": {
+    "heading": "About dynamic workflows",
+    "raw_line_end": 41,
+    "raw_line_start": 41
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "When you start a dynamic workflow from a prompt, Copilot runs it in the background, and reports back when it's finished. You can continue working in your session while it runs.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "94b844e46a33ae558c8343eaaf07a2f37921133edd81e79f6a188630cc04b108",
+   "surface": "copilot-cli",
+   "tier": "E1",
+   "url": "https://docs.github.com/api/article/body?pathname=/en/copilot/concepts/agents/dynamic-workflows",
+   "url_effective": "https://docs.github.com/api/article/body?pathname=/en/copilot/concepts/agents/dynamic-workflows",
+   "version_source": null
+  },
+  {
+   "bytes": 14748,
+   "context_after": [
+    "* The maximum number of workflow-owned agents that can be launched, in total, over the course of a run.",
+    "* The maximum active running time, including time used before a pause. Time while the run is paused does not count."
+   ],
+   "context_before": [
+    "You can set the following limits for a dynamic workflow:",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-copilot-cli-01903",
+   "locator": {
+    "heading": "Limiting a dynamic workflow",
+    "raw_line_end": 135,
+    "raw_line_start": 135
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "* The maximum number of workflow-owned agents that can be active at the same time.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "94b844e46a33ae558c8343eaaf07a2f37921133edd81e79f6a188630cc04b108",
+   "surface": "copilot-cli",
+   "tier": "E1",
+   "url": "https://docs.github.com/api/article/body?pathname=/en/copilot/concepts/agents/dynamic-workflows",
+   "url_effective": "https://docs.github.com/api/article/body?pathname=/en/copilot/concepts/agents/dynamic-workflows",
+   "version_source": null
+  },
+  {
+   "bytes": 14748,
+   "context_after": [
+    "* The maximum active running time, including time used before a pause. Time while the run is paused does not count.",
+    "* The approximate maximum number of AI credits that the workflow's agents and their subagents can consume."
+   ],
+   "context_before": [
+    "",
+    "* The maximum number of workflow-owned agents that can be active at the same time."
+   ],
+   "http_status": 200,
+   "id": "E-copilot-cli-01904",
+   "locator": {
+    "heading": "Limiting a dynamic workflow",
+    "raw_line_end": 136,
+    "raw_line_start": 136
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "* The maximum number of workflow-owned agents that can be launched, in total, over the course of a run.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "94b844e46a33ae558c8343eaaf07a2f37921133edd81e79f6a188630cc04b108",
+   "surface": "copilot-cli",
+   "tier": "E1",
+   "url": "https://docs.github.com/api/article/body?pathname=/en/copilot/concepts/agents/dynamic-workflows",
+   "url_effective": "https://docs.github.com/api/article/body?pathname=/en/copilot/concepts/agents/dynamic-workflows",
+   "version_source": null
+  },
+  {
+   "bytes": 14748,
+   "context_after": [
+    "",
+    "### Preventing unexpected AI credit usage"
+   ],
+   "context_before": [
+    "The concurrent-subagent limit makes additional subagents wait until others finish. Reaching it does not stop the workflow.",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-copilot-cli-01915",
+   "locator": {
+    "heading": "Limiting a dynamic workflow",
+    "raw_line_end": 172,
+    "raw_line_start": 172
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "The other limits can stop a run, but its status and saved results are kept so that you can resume it later. When you resume a run that stopped at a limit, increase that limit to allow more work. The new limit is a total for the run, including usage before it stopped, not a fresh allowance.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "94b844e46a33ae558c8343eaaf07a2f37921133edd81e79f6a188630cc04b108",
+   "surface": "copilot-cli",
+   "tier": "E1",
+   "url": "https://docs.github.com/api/article/body?pathname=/en/copilot/concepts/agents/dynamic-workflows",
+   "url_effective": "https://docs.github.com/api/article/body?pathname=/en/copilot/concepts/agents/dynamic-workflows",
+   "version_source": null
+  },
+  {
+   "bytes": 6692,
+   "context_after": [
+    "",
+    "## Availability"
+   ],
+   "context_before": [
+    "The GitHub Copilot app is a desktop application purpose-built for agent-driven development. It gives you a single place to direct AI agents across parallel workstreams, work with GitHub issues and pull requests, and manage the full development lifecycle—without context-switching between terminals, I",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-copilot-cli-01921",
+   "locator": {
+    "heading": "Introduction",
+    "raw_line_end": 9,
+    "raw_line_start": 9
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "The app is built on GitHub Copilot CLI and integrates natively with GitHub, so your repositories, branches, and CI pipelines work out of the box. It's designed for workflows where you want to run multiple agents in parallel and stay focused on directing work rather than doing it all yourself.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "894dc7dc77839798c4d509a48e6acf176b219f970bdd44b0cb2c228d477cfe33",
+   "surface": "copilot-cli",
+   "tier": "E1",
+   "url": "https://docs.github.com/api/article/body?pathname=/en/copilot/concepts/agents/github-copilot-app",
+   "url_effective": "https://docs.github.com/api/article/body?pathname=/en/copilot/concepts/agents/github-copilot-app",
+   "version_source": null
+  },
+  {
+   "bytes": 6692,
+   "context_after": [
+    "",
+    "## Supported operating systems"
+   ],
+   "context_before": [
+    "## Availability",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-copilot-cli-01922",
+   "locator": {
+    "heading": "Availability",
+    "raw_line_end": 13,
+    "raw_line_start": 13
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "GitHub Copilot app is available for all Copilot plans. For Copilot Business and Copilot Enterprise users, the GitHub Copilot app policy must remain enabled. This policy is enabled by default and is separate from the Copilot CLI policy.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "894dc7dc77839798c4d509a48e6acf176b219f970bdd44b0cb2c228d477cfe33",
+   "surface": "copilot-cli",
+   "tier": "E1",
+   "url": "https://docs.github.com/api/article/body?pathname=/en/copilot/concepts/agents/github-copilot-app",
+   "url_effective": "https://docs.github.com/api/article/body?pathname=/en/copilot/concepts/agents/github-copilot-app",
+   "version_source": null
+  },
+  {
+   "bytes": 17787,
+   "context_after": [
+    "",
+    "Sandboxing is available in both GitHub Copilot CLI and the GitHub Copilot app, but the two surfaces expose it differently:"
+   ],
+   "context_before": [
+    "## Introduction",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-copilot-cli-02165",
+   "locator": {
+    "heading": "Introduction",
+    "raw_line_end": 10,
+    "raw_line_start": 10
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "Copilot cloud and local sandboxes are the execution platform powering secure sandboxed experiences for GitHub Copilot CLI and the GitHub Copilot app. As Copilot takes more actions on your behalf—running tools, executing commands, and modifying files—sandboxing provides the isolation, portability,",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "21efd793b5dc1fc70a45ef36186ee8033d3eb5cdc168e0bf4625566a3a8946fb",
+   "surface": "copilot-cli",
+   "tier": "E1",
+   "url": "https://docs.github.com/api/article/body?pathname=/en/copilot/concepts/security-governance-and-network-settings/about-cloud-and-local-sandboxes",
+   "url_effective": "https://docs.github.com/api/article/body?pathname=/en/copilot/concepts/security-governance-and-network-settings/about-cloud-and-local-sandboxes",
+   "version_source": null
+  },
+  {
+   "bytes": 17787,
+   "context_after": [
+    "",
+    "With sandboxing, you can choose where Copilot runs:"
+   ],
+   "context_before": [
+    "* In the GitHub Copilot app, you can run a session in a cloud sandbox or use local sandboxing for local repository and working tree sessions. Project settings define the default for new local sessions, and you can change sandboxing for an active local session. For more information, see [Working with",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-copilot-cli-02168",
+   "locator": {
+    "heading": "Introduction",
+    "raw_line_end": 17,
+    "raw_line_start": 17
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "Local sandbox settings are configured separately in Copilot CLI and the GitHub Copilot app. Enabling or configuring local sandboxing in one surface does not change it in the other.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "21efd793b5dc1fc70a45ef36186ee8033d3eb5cdc168e0bf4625566a3a8946fb",
+   "surface": "copilot-cli",
+   "tier": "E1",
+   "url": "https://docs.github.com/api/article/body?pathname=/en/copilot/concepts/security-governance-and-network-settings/about-cloud-and-local-sandboxes",
+   "url_effective": "https://docs.github.com/api/article/body?pathname=/en/copilot/concepts/security-governance-and-network-settings/about-cloud-and-local-sandboxes",
+   "version_source": null
+  },
+  {
+   "bytes": 7683,
+   "context_after": [
+    "",
+    "## How do other AI controls affect Copilot CLI?"
+   ],
+   "context_before": [
+    "",
+    "> \\[!NOTE]"
+   ],
+   "http_status": 200,
+   "id": "E-copilot-cli-02309",
+   "locator": {
+    "heading": "Enabling or disabling Copilot CLI",
+    "raw_line_end": 18,
+    "raw_line_start": 18
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "> Disabling Copilot CLI does not disable the GitHub Copilot app. The app is governed by its own policy. For more information, see [About the GitHub Copilot app](/en/copilot/concepts/agents/github-copilot-app).",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "bd0e2a06a6c66939b3db52ae168513fc35f1825c77f41b2da2af1d5d80df33d3",
+   "surface": "copilot-cli",
+   "tier": "E1",
+   "url": "https://docs.github.com/api/article/body?pathname=/en/copilot/how-tos/copilot-cli/administer-copilot-cli-for-your-enterprise",
+   "url_effective": "https://docs.github.com/api/article/body?pathname=/en/copilot/how-tos/copilot-cli/administer-copilot-cli-for-your-enterprise",
+   "version_source": null
+  },
+  {
+   "bytes": 2633,
+   "context_after": [
+    "* **Programmatically:** Pass the CLI a prompt directly in a command, and include the `--autopilot` option. For example, to use autopilot mode with full permissions, restricting it to 10 continuations, enter `copilot --autopilot --yolo --max-autopilot-continues 10 -p \"YOUR PROMPT HERE\"`.",
+    ""
+   ],
+   "context_before": [
+    "There are two ways to use autopilot mode:",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-copilot-cli-02804",
+   "locator": {
+    "heading": "Get autopilot to complete tasks autonomously on your local machine",
+    "raw_line_end": 15,
+    "raw_line_start": 15
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "* **Interactively:** In an interactive session, press <kbd>Shift</kbd>+<kbd>Tab</kbd> until you see \"autopilot\" in the status bar. If prompted to choose permissions for autopilot mode, allow full permissions, then enter your prompt.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "5e5b5f2d12b2538bb486664d3f9e959420a8009cb5c5631d2b756ad5902c4c99",
+   "surface": "copilot-cli",
+   "tier": "E1",
+   "url": "https://docs.github.com/api/article/body?pathname=/en/copilot/how-tos/copilot-cli/use-copilot-cli/delegate-tasks-to-cca",
+   "url_effective": "https://docs.github.com/api/article/body?pathname=/en/copilot/how-tos/copilot-cli/use-copilot-cli/delegate-tasks-to-cca",
+   "version_source": null
+  },
+  {
+   "bytes": 9230,
+   "context_after": [
+    "",
+    "## Subcommands"
+   ],
+   "context_before": [
+    "## Prerequisite",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-copilot-cli-02817",
+   "locator": {
+    "heading": "Prerequisite",
+    "raw_line_end": 11,
+    "raw_line_start": 11
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "You must be working in a Git repository that is hosted on GitHub.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "86c64e60c27e13ed264e593cdcb6a93869b7cca72736d979ac3d4c95f4c20e2b",
+   "surface": "copilot-cli",
+   "tier": "E1",
+   "url": "https://docs.github.com/api/article/body?pathname=/en/copilot/how-tos/copilot-cli/use-copilot-cli/manage-pull-requests",
+   "url_effective": "https://docs.github.com/api/article/body?pathname=/en/copilot/how-tos/copilot-cli/use-copilot-cli/manage-pull-requests",
+   "version_source": null
+  },
+  {
+   "bytes": 16471,
+   "context_after": [
+    "",
+    "You're not limited to one session at a time. You can keep several running side by side and switch between them. This can be useful when you are:"
+   ],
+   "context_before": [
+    "* **Conversation context**: Information sent to the large language model to allow it to respond to your prompts appropriately.",
+    "* **Tool activity**: Files Copilot has accessed, commands it has run, searches it has performed."
+   ],
+   "http_status": 200,
+   "id": "E-copilot-cli-02945",
+   "locator": {
+    "heading": "Introduction",
+    "raw_line_end": 13,
+    "raw_line_start": 13
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "* **Session-specific state**: For example, the current working directory, filesystem permissions, access approvals, the current mode (interactive, plan, or autopilot).",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "41dd41e1d4c93700a2223de786093dddf6a66311e5f047d1802010f00cdc730c",
+   "surface": "copilot-cli",
+   "tier": "E1",
+   "url": "https://docs.github.com/api/article/body?pathname=/en/copilot/how-tos/copilot-cli/use-copilot-cli/work-with-multiple-sessions",
+   "url_effective": "https://docs.github.com/api/article/body?pathname=/en/copilot/how-tos/copilot-cli/use-copilot-cli/work-with-multiple-sessions",
+   "version_source": null
+  },
+  {
+   "bytes": 16471,
+   "context_after": [
+    "* **Inactive**: saved to disk but not running. Inactive sessions are indicated with an empty circle (`○`).",
+    ""
+   ],
+   "context_before": [
+    "At any moment, a session is one of two things:",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-copilot-cli-02966",
+   "locator": {
+    "heading": "Active and inactive sessions",
+    "raw_line_end": 150,
+    "raw_line_start": 150
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "right now inside Copilot CLI, whether it's the session you're chatting with or one running in the background. When you switch away from a session it keeps running rather than stopping, so a long task carries on while you move to another. Active sessions are indicated with a filled circle (`●`).",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "41dd41e1d4c93700a2223de786093dddf6a66311e5f047d1802010f00cdc730c",
+   "surface": "copilot-cli",
+   "tier": "E1",
+   "url": "https://docs.github.com/api/article/body?pathname=/en/copilot/how-tos/copilot-cli/use-copilot-cli/work-with-multiple-sessions",
+   "url_effective": "https://docs.github.com/api/article/body?pathname=/en/copilot/how-tos/copilot-cli/use-copilot-cli/work-with-multiple-sessions",
+   "version_source": null
+  },
+  {
+   "bytes": 441029,
+   "context_after": [
+    "| <kbd>Page Up</kbd>/<kbd>Page Down</kbd> | Scroll the timeline up or down by one page.                                                                                |",
+    ""
+   ],
+   "context_before": [
+    "| <kbd>Ctrl</kbd>+<kbd>O</kbd>            | While there is nothing in the prompt input, this expands recent items in Copilot's response timeline to show more details. |",
+    "| <kbd>Ctrl</kbd>+<kbd>E</kbd>            | While there is nothing in the prompt input, this expands all items in Copilot's response timeline.                         |"
+   ],
+   "http_status": 200,
+   "id": "E-copilot-cli-03403",
+   "locator": {
+    "heading": "Timeline shortcuts in the interactive interface",
+    "raw_line_end": 331,
+    "raw_line_start": 331
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "| <kbd>Ctrl</kbd>+<kbd>T</kbd>            | Expand/collapse display of reasoning in responses.                                                                         |",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "66198ea49c0f2f223d9466474f30c4a2a714c79a376a6022127d640996f9dd4d",
+   "surface": "copilot-cli",
+   "tier": "E1",
+   "url": "https://docs.github.com/api/article/body?pathname=/en/copilot/reference/copilot-cli-reference/cli-command-reference",
+   "url_effective": "https://docs.github.com/api/article/body?pathname=/en/copilot/reference/copilot-cli-reference/cli-command-reference",
+   "version_source": null
+  },
+  {
+   "bytes": 170370,
+   "context_after": [
+    "| `enabledMcpServers`                            | `string[]`                                                                              | `[]`                            | Enable built-in MCP servers that are disabled by default.                                                                    ",
+    "| `enabledPlugins`                               | `Record<string, boolean>`                                                               | `{}`                            | Declarative plugin auto-install. Keys are plugin specs; values are `true` (enabled) or `false` (disabled).                   "
+   ],
+   "context_before": [
+    "| `dynamicRetrieval`                             | `{ skills?: boolean }`                                                                  | unset                           | Per-category control of embeddings-based dynamic instruction retrieval. Set `skills` to `false` to disable retrieval for skil",
+    "| `editorMode`                                   | `\"normal\"` \\| `\"vim\"`                                                                   | `\"normal\"`                      | Input composer editing mode. Set by toggling the `/vim` slash command. See [GitHub Copilot CLI command reference](/en/copilot"
+   ],
+   "http_status": 200,
+   "id": "E-copilot-cli-03753",
+   "locator": {
+    "heading": "User settings (`~/.copilot/settings.json`)",
+    "raw_line_end": 464,
+    "raw_line_start": 464
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "| `\"medium\"`                      | Reasoning effort level for extended thinking: `\"low\"`, `\"medium\"`, `\"high\"`, or `\"xhigh\"`. Higher levels use more compute.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "25543cafbdee5add265a7d2e2d90312d48e7ad8fb622e747fe614b9a6ca07319",
+   "surface": "copilot-cli",
+   "tier": "E1",
+   "url": "https://docs.github.com/api/article/body?pathname=/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference",
+   "url_effective": "https://docs.github.com/api/article/body?pathname=/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference",
+   "version_source": null
+  }
+ ]
+}

@@ -1,0 +1,1890 @@
+{
+ "surface": "gemini-cli",
+ "evidence": [
+  {
+   "bytes": 959932,
+   "context_after": [
+    "| `--yolo`                         | `-y`  | boolean | `false`   | **Deprecated.** Auto-approve all actions. Use `--approval-mode=yolo` instead.                                                                                          |",
+    "| `--experimental-acp`             | -     | boolean | -         | Start in ACP (Agent Code Pilot) mode. **Experimental feature.**                                                                                                        |"
+   ],
+   "context_before": [
+    "| `--sandbox`                      | `-s`  | boolean | `false`   | Run in a sandboxed environment for safer execution                                                                                                                     |",
+    "| `--skip-trust`                   | -     | boolean | `false`   | Trust the current workspace for this session, skipping the folder trust check.                                                                                         |"
+   ],
+   "http_status": 200,
+   "id": "E-gemini-cli-00001",
+   "locator": {
+    "heading": "CLI Options",
+    "raw_line_end": 5017,
+    "raw_line_start": 5017
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "| `--approval-mode`                | -     | string  | `default` | Approval mode for tool execution. Choices: `default`, `auto_edit`, `yolo`, `plan`                                                                                      |",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "ed78739aadea2566778fe24a8eb457b7b04ea8c3fcd79a1d9d8bab3acabb449e",
+   "surface": "gemini-cli",
+   "tier": "E1",
+   "url": "https://geminicli.com/llms.txt",
+   "url_effective": "https://geminicli.com/llms.txt",
+   "version_source": null
+  },
+  {
+   "bytes": 959932,
+   "context_after": [
+    "| `--experimental-acp`             | -     | boolean | -         | Start in ACP (Agent Code Pilot) mode. **Experimental feature.**                                                                                                        |",
+    "| `--experimental-zed-integration` | -     | boolean | -         | Run in Zed editor integration mode. **Experimental feature.**                                                                                                          |"
+   ],
+   "context_before": [
+    "| `--skip-trust`                   | -     | boolean | `false`   | Trust the current workspace for this session, skipping the folder trust check.                                                                                         |",
+    "| `--approval-mode`                | -     | string  | `default` | Approval mode for tool execution. Choices: `default`, `auto_edit`, `yolo`, `plan`                                                                                      |"
+   ],
+   "http_status": 200,
+   "id": "E-gemini-cli-00002",
+   "locator": {
+    "heading": "CLI Options",
+    "raw_line_end": 5018,
+    "raw_line_start": 5018
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "| `--yolo`                         | `-y`  | boolean | `false`   | **Deprecated.** Auto-approve all actions. Use `--approval-mode=yolo` instead.                                                                                          |",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "ed78739aadea2566778fe24a8eb457b7b04ea8c3fcd79a1d9d8bab3acabb449e",
+   "surface": "gemini-cli",
+   "tier": "E1",
+   "url": "https://geminicli.com/llms.txt",
+   "url_effective": "https://geminicli.com/llms.txt",
+   "version_source": null
+  },
+  {
+   "bytes": 959932,
+   "context_after": [
+    "| `--prompt`                       | `-p`  | string  | -         | Prompt text. Appended to stdin input if provided. Forces non-interactive mode.                                                                                         |",
+    "| `--prompt-interactive`           | `-i`  | string  | -         | Execute prompt and continue in interactive mode                                                                                                                        |"
+   ],
+   "context_before": [
+    "| `--version`                      | `-v`  | -       | -         | Show CLI version number and exit                                                                                                                                       |",
+    "| `--help`                         | `-h`  | -       | -         | Show help information                                                                                                                                                  |"
+   ],
+   "http_status": 200,
+   "id": "E-gemini-cli-00020",
+   "locator": {
+    "heading": "CLI Options",
+    "raw_line_end": 5011,
+    "raw_line_start": 5011
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "| `--model`                        | `-m`  | string  | `auto`    | Model to use. See [Model Selection](#model-selection) for available values.                                                                                            |",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "ed78739aadea2566778fe24a8eb457b7b04ea8c3fcd79a1d9d8bab3acabb449e",
+   "surface": "gemini-cli",
+   "tier": "E1",
+   "url": "https://geminicli.com/llms.txt",
+   "url_effective": "https://geminicli.com/llms.txt",
+   "version_source": null
+  },
+  {
+   "bytes": 959932,
+   "context_after": [
+    "| `pro`        | `gemini-2.5-pro` or `gemini-3-pro-preview` | For complex reasoning tasks. Uses preview model if enabled.                                                               |",
+    "| `flash`      | `gemini-2.5-flash`                         | Fast, balanced model for most tasks.                                                                                      |"
+   ],
+   "context_before": [
+    "| Alias        | Resolves To                                | Description                                                                                                               |",
+    "| ------------ | ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------- |"
+   ],
+   "http_status": 200,
+   "id": "E-gemini-cli-00021",
+   "locator": {
+    "heading": "Model aliases",
+    "raw_line_end": 5043,
+    "raw_line_start": 5043
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "| `auto`       | `gemini-2.5-pro` or `gemini-3-pro-preview` | **Default.** Resolves to the preview model if preview features are enabled, otherwise resolves to the standard pro model. |",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "ed78739aadea2566778fe24a8eb457b7b04ea8c3fcd79a1d9d8bab3acabb449e",
+   "surface": "gemini-cli",
+   "tier": "E1",
+   "url": "https://geminicli.com/llms.txt",
+   "url_effective": "https://geminicli.com/llms.txt",
+   "version_source": null
+  },
+  {
+   "bytes": 959932,
+   "context_after": [
+    "  capabilities (for example, `thinkingBudget`, `includeThoughts`).",
+    ""
+   ],
+   "context_before": [
+    "- **`topP`**: (`number`) Nucleus sampling probability.",
+    "- **`maxOutputTokens`**: (`number`) Limit on generated response length."
+   ],
+   "http_status": 200,
+   "id": "E-gemini-cli-00033",
+   "locator": {
+    "heading": "`GenerateContentConfig` (Common Parameters)",
+    "raw_line_end": 5696,
+    "raw_line_start": 5696
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "- **`thinkingConfig`**: (`object`) Configuration for models with reasoning",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "ed78739aadea2566778fe24a8eb457b7b04ea8c3fcd79a1d9d8bab3acabb449e",
+   "surface": "gemini-cli",
+   "tier": "E1",
+   "url": "https://geminicli.com/llms.txt",
+   "url_effective": "https://geminicli.com/llms.txt",
+   "version_source": null
+  },
+  {
+   "bytes": 959932,
+   "context_after": [
+    "global default, for example for the `codebaseInvestigator`.",
+    ""
+   ],
+   "context_before": [
+    "### Agent-Specific Parameter Injection",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-gemini-cli-00034",
+   "locator": {
+    "heading": "Agent-Specific Parameter Injection",
+    "raw_line_end": 5724,
+    "raw_line_start": 5724
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "Enforce extended thinking budgets for a specific agent without altering the",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "ed78739aadea2566778fe24a8eb457b7b04ea8c3fcd79a1d9d8bab3acabb449e",
+   "surface": "gemini-cli",
+   "tier": "E1",
+   "url": "https://geminicli.com/llms.txt",
+   "url_effective": "https://geminicli.com/llms.txt",
+   "version_source": null
+  },
+  {
+   "bytes": 959932,
+   "context_after": [
+    "and provides resilience when the primary model is unavailable.",
+    ""
+   ],
+   "context_before": [
+    "",
+    "Gemini CLI includes a model routing feature that automatically switches to a"
+   ],
+   "http_status": 200,
+   "id": "E-gemini-cli-00074",
+   "locator": {
+    "heading": "[Model routing](http://geminicli.com/docs/cli/model-routing.md)",
+    "raw_line_end": 7486,
+    "raw_line_start": 7486
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "fallback model in case of a model failure. This feature is enabled by default",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "ed78739aadea2566778fe24a8eb457b7b04ea8c3fcd79a1d9d8bab3acabb449e",
+   "surface": "gemini-cli",
+   "tier": "E1",
+   "url": "https://geminicli.com/llms.txt",
+   "url_effective": "https://geminicli.com/llms.txt",
+   "version_source": null
+  },
+  {
+   "bytes": 959932,
+   "context_after": [
+    "",
+    "1.  **`--model` command-line flag:** A model specified with the `--model` flag"
+   ],
+   "context_before": [
+    "### Model selection precedence",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-gemini-cli-00080",
+   "locator": {
+    "heading": "Model selection precedence",
+    "raw_line_end": 7527,
+    "raw_line_start": 7527
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "The model used by Gemini CLI is determined by the following order of precedence:",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "ed78739aadea2566778fe24a8eb457b7b04ea8c3fcd79a1d9d8bab3acabb449e",
+   "surface": "gemini-cli",
+   "tier": "E1",
+   "url": "https://geminicli.com/llms.txt",
+   "url_effective": "https://geminicli.com/llms.txt",
+   "version_source": null
+  },
+  {
+   "bytes": 959932,
+   "context_after": [
+    "used by Gemini CLI, giving you more control over your results. Use **Pro**",
+    "models for complex tasks and reasoning, **Flash** models for high speed results,"
+   ],
+   "context_before": [
+    "",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-gemini-cli-00086",
+   "locator": {
+    "heading": "[Gemini CLI model selection (`/model` command)](http://geminicli.com/docs/cli/model.md)",
+    "raw_line_end": 7546,
+    "raw_line_start": 7546
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "Select your Gemini CLI model. The `/model` command lets you configure the model",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "ed78739aadea2566778fe24a8eb457b7b04ea8c3fcd79a1d9d8bab3acabb449e",
+   "surface": "gemini-cli",
+   "tier": "E1",
+   "url": "https://geminicli.com/llms.txt",
+   "url_effective": "https://geminicli.com/llms.txt",
+   "version_source": null
+  },
+  {
+   "bytes": 959932,
+   "context_after": [
+    "| Auto (Gemini 2.5) | Let the system choose the best Gemini 2.5 model for your task. | gemini-2.5-pro, gemini-2.5-flash             |",
+    "| Manual            | Select a specific model.                                       | Any available model.                         |"
+   ],
+   "context_before": [
+    "| Option            | Description                                                    | Models                                       |",
+    "| ----------------- | -------------------------------------------------------------- | -------------------------------------------- |"
+   ],
+   "http_status": 200,
+   "id": "E-gemini-cli-00089",
+   "locator": {
+    "heading": "How to use the `/model` command",
+    "raw_line_end": 7569,
+    "raw_line_start": 7569
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "| Auto (Gemini 3)   | Let the system choose the best Gemini 3 model for your task.   | gemini-3-pro-preview, gemini-3-flash-preview |",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "ed78739aadea2566778fe24a8eb457b7b04ea8c3fcd79a1d9d8bab3acabb449e",
+   "surface": "gemini-cli",
+   "tier": "E1",
+   "url": "https://geminicli.com/llms.txt",
+   "url_effective": "https://geminicli.com/llms.txt",
+   "version_source": null
+  },
+  {
+   "bytes": 959932,
+   "context_after": [
+    "implementation. With Plan Mode, you can:",
+    ""
+   ],
+   "context_before": [
+    "",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-gemini-cli-00093",
+   "locator": {
+    "heading": "[Plan Mode](http://geminicli.com/docs/cli/plan-mode.md)",
+    "raw_line_end": 7664,
+    "raw_line_start": 7664
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "Plan Mode is a read-only environment for architecting robust solutions before",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "ed78739aadea2566778fe24a8eb457b7b04ea8c3fcd79a1d9d8bab3acabb449e",
+   "surface": "gemini-cli",
+   "tier": "E1",
+   "url": "https://geminicli.com/llms.txt",
+   "url_effective": "https://geminicli.com/llms.txt",
+   "version_source": null
+  },
+  {
+   "bytes": 959932,
+   "context_after": [
+    "`/settings` command.",
+    ""
+   ],
+   "context_before": [
+    "- **Plan:** Align on an execution strategy before any code is modified.",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-gemini-cli-00095",
+   "locator": {
+    "heading": "[Plan Mode](http://geminicli.com/docs/cli/plan-mode.md)",
+    "raw_line_end": 7672,
+    "raw_line_start": 7672
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "Plan Mode is enabled by default. You can manage this setting using the",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "ed78739aadea2566778fe24a8eb457b7b04ea8c3fcd79a1d9d8bab3acabb449e",
+   "surface": "gemini-cli",
+   "tier": "E1",
+   "url": "https://geminicli.com/llms.txt",
+   "url_effective": "https://geminicli.com/llms.txt",
+   "version_source": null
+  },
+  {
+   "bytes": 959932,
+   "context_after": [
+    "",
+    "To launch Gemini CLI in Plan Mode once:"
+   ],
+   "context_before": [
+    "",
+    "1.  Use the `/settings` command."
+   ],
+   "http_status": 200,
+   "id": "E-gemini-cli-00097",
+   "locator": {
+    "heading": "Launch in Plan Mode",
+    "raw_line_end": 7688,
+    "raw_line_start": 7688
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "2.  Set **Default Approval Mode** to `Plan`.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "ed78739aadea2566778fe24a8eb457b7b04ea8c3fcd79a1d9d8bab3acabb449e",
+   "surface": "gemini-cli",
+   "tier": "E1",
+   "url": "https://geminicli.com/llms.txt",
+   "url_effective": "https://geminicli.com/llms.txt",
+   "version_source": null
+  },
+  {
+   "bytes": 959932,
+   "context_after": [
+    "  planning complex changes.",
+    "- **[Subagents 🔬](/docs/core/subagents):** Using specialized agents for specific"
+   ],
+   "context_before": [
+    "- **[Model routing](/docs/cli/model-routing):** Automatic fallback resilience.",
+    "- **[Model selection](/docs/cli/model):** Choose the best model for your needs."
+   ],
+   "http_status": 200,
+   "id": "E-gemini-cli-00118",
+   "locator": {
+    "heading": "Features",
+    "raw_line_end": 273,
+    "raw_line_start": 273
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "- **[Plan mode 🔬](/docs/cli/plan-mode):** Use a safe, read-only mode for",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "ed78739aadea2566778fe24a8eb457b7b04ea8c3fcd79a1d9d8bab3acabb449e",
+   "surface": "gemini-cli",
+   "tier": "E1",
+   "url": "https://geminicli.com/llms.txt",
+   "url_effective": "https://geminicli.com/llms.txt",
+   "version_source": null
+  },
+  {
+   "bytes": 959932,
+   "context_after": [
+    "  ([pic](https://imgur.com/a/ABFcWWw),",
+    "  [pr](https://github.com/google-gemini/gemini-cli/pull/8940) by"
+   ],
+   "context_before": [
+    "    `gemini extensions install https://github.com/gemini-cli-extensions/datacommons`",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-gemini-cli-00145",
+   "locator": {
+    "heading": "Announcements: v0.12.0 - 2025-10-27",
+    "raw_line_end": 1673,
+    "raw_line_start": 1673
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "- **Model selection:** Choose the Gemini model for your session with `/model`.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "ed78739aadea2566778fe24a8eb457b7b04ea8c3fcd79a1d9d8bab3acabb449e",
+   "surface": "gemini-cli",
+   "tier": "E1",
+   "url": "https://geminicli.com/llms.txt",
+   "url_effective": "https://geminicli.com/llms.txt",
+   "version_source": null
+  },
+  {
+   "bytes": 959932,
+   "context_after": [
+    "  the task. Simple queries will be sent to Flash while complex analytical or",
+    "  creative tasks will still use the power of Pro. This ensures your quota will"
+   ],
+   "context_before": [
+    "  [pr](https://github.com/google-gemini/gemini-cli/pull/8940) by",
+    "  [@abhipatel12](https://github.com/abhipatel12))."
+   ],
+   "http_status": 200,
+   "id": "E-gemini-cli-00146",
+   "locator": {
+    "heading": "Announcements: v0.12.0 - 2025-10-27",
+    "raw_line_end": 1677,
+    "raw_line_start": 1677
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "- **Model routing:** Gemini CLI will now intelligently pick the best model for",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "ed78739aadea2566778fe24a8eb457b7b04ea8c3fcd79a1d9d8bab3acabb449e",
+   "surface": "gemini-cli",
+   "tier": "E1",
+   "url": "https://geminicli.com/llms.txt",
+   "url_effective": "https://geminicli.com/llms.txt",
+   "version_source": null
+  },
+  {
+   "bytes": 959932,
+   "context_after": [
+    "| Enable Auto Update            | `general.enableAutoUpdate`         | Enable automatic updates.                                                                                                                                                                                                            ",
+    "| Enable Terminal Notifications | `general.enableNotifications`      | Enable terminal run-event notifications for action-required prompts and session completion.                                                                                                                                          "
+   ],
+   "context_before": [
+    "| ----------------------------- | ---------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------",
+    "| Vim Mode                      | `general.vimMode`                  | Enable Vim keybindings                                                                                                                                                                                                               "
+   ],
+   "http_status": 200,
+   "id": "E-gemini-cli-00280",
+   "locator": {
+    "heading": "General",
+    "raw_line_end": 8730,
+    "raw_line_start": 8730
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "Mode         | `general.defaultApprovalMode`      | The default approval mode for tool execution. 'default' prompts for approval, 'auto_edit' auto-approves edit tools, and 'plan' is read-only mode. YOLO mode (auto-approve all actions) can only be enabled via command line (--yolo or",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "ed78739aadea2566778fe24a8eb457b7b04ea8c3fcd79a1d9d8bab3acabb449e",
+   "surface": "gemini-cli",
+   "tier": "E1",
+   "url": "https://geminicli.com/llms.txt",
+   "url_effective": "https://geminicli.com/llms.txt",
+   "version_source": null
+  },
+  {
+   "bytes": 959932,
+   "context_after": [
+    "| Enable Auto Update            | `general.enableAutoUpdate`         | Enable automatic updates.                                                                                                                                                                                                            ",
+    "| Enable Terminal Notifications | `general.enableNotifications`      | Enable terminal run-event notifications for action-required prompts and session completion.                                                                                                                                          "
+   ],
+   "context_before": [
+    "| ----------------------------- | ---------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------",
+    "| Vim Mode                      | `general.vimMode`                  | Enable Vim keybindings                                                                                                                                                                                                               "
+   ],
+   "http_status": 200,
+   "id": "E-gemini-cli-00281",
+   "locator": {
+    "heading": "General",
+    "raw_line_end": 8730,
+    "raw_line_start": 8730
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "| The default approval mode for tool execution. 'default' prompts for approval, 'auto_edit' auto-approves edit tools, and 'plan' is read-only mode. YOLO mode (auto-approve all actions) can only be enabled via command line (--yolo or --approval-mode=yolo). | `\"default\"` |",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "ed78739aadea2566778fe24a8eb457b7b04ea8c3fcd79a1d9d8bab3acabb449e",
+   "surface": "gemini-cli",
+   "tier": "E1",
+   "url": "https://geminicli.com/llms.txt",
+   "url_effective": "https://geminicli.com/llms.txt",
+   "version_source": null
+  },
+  {
+   "bytes": 959932,
+   "context_after": [
+    "| Retry Fetch Errors            | `general.retryFetchErrors`         | Retry on \"exception TypeError: fetch failed sending request\" errors.                                                                                                                                                                 ",
+    "| Max Chat Model Attempts       | `general.maxAttempts`              | Maximum number of attempts for requests to the main chat model. Cannot exceed 10.                                                                                                                                                    "
+   ],
+   "context_before": [
+    "| Enable Plan Mode              | `general.plan.enabled`             | Enable Plan Mode for read-only safety during planning.                                                                                                                                                                               ",
+    "| Plan Directory                | `general.plan.directory`           | The directory where planning artifacts are stored. If not specified, defaults to the system temporary directory. A custom directory requires a policy to allow write access in Plan Mode.                                            "
+   ],
+   "http_status": 200,
+   "id": "E-gemini-cli-00285",
+   "locator": {
+    "heading": "General",
+    "raw_line_end": 8736,
+    "raw_line_start": 8736
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "| Plan Model Routing            | `general.plan.modelRouting`        | Automatically switch between Pro and Flash models based on Plan Mode status. Uses Pro for the planning phase and Flash for the implementation phase.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "ed78739aadea2566778fe24a8eb457b7b04ea8c3fcd79a1d9d8bab3acabb449e",
+   "surface": "gemini-cli",
+   "tier": "E1",
+   "url": "https://geminicli.com/llms.txt",
+   "url_effective": "https://geminicli.com/llms.txt",
+   "version_source": null
+  },
+  {
+   "bytes": 959932,
+   "context_after": [
+    "| Show Thoughts in Title               | `ui.showStatusInTitle`                 | Show Gemini CLI model thoughts in the terminal window title during the working phase                                                                              | `false` |",
+    "| Dynamic Window Title                 | `ui.dynamicWindowTitle`                | Update the terminal window title with current status icons (Ready: ◇, Action Required: ✋, Working: ✦)                                                            | `true`  |"
+   ],
+   "context_before": [
+    "| Terminal Background Polling Interval | `ui.terminalBackgroundPollingInterval` | Interval in seconds to poll the terminal background color.                                                                                                        | `60`    |",
+    "| Hide Window Title                    | `ui.hideWindowTitle`                   | Hide the window title bar                                                                                                                                         | `false` |"
+   ],
+   "http_status": 200,
+   "id": "E-gemini-cli-00292",
+   "locator": {
+    "heading": "UI",
+    "raw_line_end": 8758,
+    "raw_line_start": 8758
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "| Inline Thinking                      | `ui.inlineThinkingMode`                | Display model thinking inline: off or full.                                                                                                                       | `\"off\"` |",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "ed78739aadea2566778fe24a8eb457b7b04ea8c3fcd79a1d9d8bab3acabb449e",
+   "surface": "gemini-cli",
+   "tier": "E1",
+   "url": "https://geminicli.com/llms.txt",
+   "url_effective": "https://geminicli.com/llms.txt",
+   "version_source": null
+  },
+  {
+   "bytes": 959932,
+   "context_after": [
+    "| Max Session Turns             | `model.maxSessionTurns`      | Maximum number of user/model/tool turns to keep in a session. -1 means unlimited.      | `-1`        |",
+    "| Context Compression Threshold | `model.compressionThreshold` | The fraction of context usage at which to trigger context compression (e.g. 0.2, 0.3). | `0.5`       |"
+   ],
+   "context_before": [
+    "| UI Label                      | Setting                      | Description                                                                            | Default     |",
+    "| ----------------------------- | ---------------------------- | -------------------------------------------------------------------------------------- | ----------- |"
+   ],
+   "http_status": 200,
+   "id": "E-gemini-cli-00300",
+   "locator": {
+    "heading": "Model",
+    "raw_line_end": 8805,
+    "raw_line_start": 8805
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "| Model                         | `model.name`                 | The Gemini model to use for conversations.                                             | `undefined` |",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "ed78739aadea2566778fe24a8eb457b7b04ea8c3fcd79a1d9d8bab3acabb449e",
+   "surface": "gemini-cli",
+   "tier": "E1",
+   "url": "https://geminicli.com/llms.txt",
+   "url_effective": "https://geminicli.com/llms.txt",
+   "version_source": null
+  },
+  {
+   "bytes": 959932,
+   "context_after": [
+    "",
+    "### Advanced"
+   ],
+   "context_before": [
+    "| Folder Trust                          | `security.folderTrust.enabled`                  | Setting to track whether Folder trust is enabled.                                                                                                                                                               ",
+    "| Enable Environment Variable Redaction | `security.environmentVariableRedaction.enabled` | Enable redaction of environment variables that may contain secrets.                                                                                                                                             "
+   ],
+   "http_status": 200,
+   "id": "E-gemini-cli-00327",
+   "locator": {
+    "heading": "Security",
+    "raw_line_end": 8855,
+    "raw_line_start": 8855
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "| `security.enableConseca`                        | Enable the context-aware security checker. This feature uses an LLM to dynamically generate and enforce security policies for tool use based on your prompt, providing an additional layer of protection against unintended actions. | `false` |",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "ed78739aadea2566778fe24a8eb457b7b04ea8c3fcd79a1d9d8bab3acabb449e",
+   "surface": "gemini-cli",
+   "tier": "E1",
+   "url": "https://geminicli.com/llms.txt",
+   "url_effective": "https://geminicli.com/llms.txt",
+   "version_source": null
+  },
+  {
+   "bytes": 959932,
+   "context_after": [
+    "| Voice Mode                                           | `experimental.voiceMode`                        | Enable experimental voice dictation and commands (/voice, /voice model).                                                                                                                         ",
+    "| Voice Activation Mode                                | `experimental.voice.activationMode`             | How to trigger voice recording with the Space key.                                                                                                                                               "
+   ],
+   "context_before": [
+    "| UI Label                                             | Setting                                         | Description                                                                                                                                                                                      ",
+    "| ---------------------------------------------------- | ----------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------"
+   ],
+   "http_status": 200,
+   "id": "E-gemini-cli-00330",
+   "locator": {
+    "heading": "Experimental",
+    "raw_line_end": 8868,
+    "raw_line_start": 8868
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "| Gemma Models                                         | `experimental.gemma`                            | Enable access to Gemma 4 models via Gemini API.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "ed78739aadea2566778fe24a8eb457b7b04ea8c3fcd79a1d9d8bab3acabb449e",
+   "surface": "gemini-cli",
+   "tier": "E1",
+   "url": "https://geminicli.com/llms.txt",
+   "url_effective": "https://geminicli.com/llms.txt",
+   "version_source": null
+  },
+  {
+   "bytes": 959932,
+   "context_after": [
+    "",
+    "<details>"
+   ],
+   "context_before": [
+    "##### `plan_execution`",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-gemini-cli-00348",
+   "locator": {
+    "heading": "`plan_execution`",
+    "raw_line_end": 9844,
+    "raw_line_start": 9844
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "Logs when you execute a plan and switch from plan mode to active execution.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "ed78739aadea2566778fe24a8eb457b7b04ea8c3fcd79a1d9d8bab3acabb449e",
+   "surface": "gemini-cli",
+   "tier": "E1",
+   "url": "https://geminicli.com/llms.txt",
+   "url_effective": "https://geminicli.com/llms.txt",
+   "version_source": null
+  },
+  {
+   "bytes": 959932,
+   "context_after": [
+    "",
+    "<details>"
+   ],
+   "context_before": [
+    "##### `gemini_cli.conseca.verdict`",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-gemini-cli-00357",
+   "locator": {
+    "heading": "`gemini_cli.conseca.verdict`",
+    "raw_line_end": 10335,
+    "raw_line_start": 10335
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "Logs security verdicts from ConSeca.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "ed78739aadea2566778fe24a8eb457b7b04ea8c3fcd79a1d9d8bab3acabb449e",
+   "surface": "gemini-cli",
+   "tier": "E1",
+   "url": "https://geminicli.com/llms.txt",
+   "url_effective": "https://geminicli.com/llms.txt",
+   "version_source": null
+  },
+  {
+   "bytes": 959932,
+   "context_after": [
+    "session. This lets you continue working without interruption.",
+    ""
+   ],
+   "context_before": [
+    "",
+    "If you are using the default \"pro\" model and the CLI detects that you are being"
+   ],
+   "http_status": 200,
+   "id": "E-gemini-cli-00374",
+   "locator": {
+    "heading": "Model fallback",
+    "raw_line_end": 11467,
+    "raw_line_start": 11467
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "rate-limited, it automatically switches to the \"flash\" model for the current",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "ed78739aadea2566778fe24a8eb457b7b04ea8c3fcd79a1d9d8bab3acabb449e",
+   "surface": "gemini-cli",
+   "tier": "E1",
+   "url": "https://geminicli.com/llms.txt",
+   "url_effective": "https://geminicli.com/llms.txt",
+   "version_source": null
+  },
+  {
+   "bytes": 959932,
+   "context_after": [
+    "  and increasing turns):",
+    "  ```json"
+   ],
+   "context_before": [
+    "  dependencies of the `AgentRegistry` class.\"",
+    "- **Configuration:** Enabled by default. You can override its settings in"
+   ],
+   "http_status": 200,
+   "id": "E-gemini-cli-00396",
+   "locator": {
+    "heading": "Codebase Investigator",
+    "raw_line_end": 12230,
+    "raw_line_start": 12230
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "  `settings.json` under `agents.overrides`. Example (forcing a specific model",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "ed78739aadea2566778fe24a8eb457b7b04ea8c3fcd79a1d9d8bab3acabb449e",
+   "surface": "gemini-cli",
+   "tier": "E1",
+   "url": "https://geminicli.com/llms.txt",
+   "url_effective": "https://geminicli.com/llms.txt",
+   "version_source": null
+  },
+  {
+   "bytes": 959932,
+   "context_after": [
+    "| `temperature`  | number | No       | Model temperature (0.0 - 2.0). Defaults to `1`.                                                                                                                                                               |",
+    "| `max_turns`    | number | No       | Maximum number of conversation turns allowed for this agent before it must return. Defaults to `30`.                                                                                                          |"
+   ],
+   "context_before": [
+    "| `tools`        | array  | No       | List of tool names this agent can use. Supports wildcards: `*` (all tools), `mcp_*` (all MCP tools), `mcp_server_*` (all tools from a server). **If omitted, it inherits all tools from the parent session.** |",
+    "| `mcpServers`   | object | No       | Configuration for inline Model Context Protocol (MCP) servers isolated to this specific agent.                                                                                                                |"
+   ],
+   "http_status": 200,
+   "id": "E-gemini-cli-00421",
+   "locator": {
+    "heading": "Configuration schema",
+    "raw_line_end": 12535,
+    "raw_line_start": 12535
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "| `model`        | string | No       | Specific model to use (for example, `gemini-3-preview`). Defaults to `inherit` (uses the main session model).                                                                                                 |",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "ed78739aadea2566778fe24a8eb457b7b04ea8c3fcd79a1d9d8bab3acabb449e",
+   "surface": "gemini-cli",
+   "tier": "E1",
+   "url": "https://geminicli.com/llms.txt",
+   "url_effective": "https://geminicli.com/llms.txt",
+   "version_source": null
+  },
+  {
+   "bytes": 959932,
+   "context_after": [
+    "  tool wildcard, it will still be unable to see or invoke other agents.",
+    ""
+   ],
+   "context_before": [
+    "  grant it.",
+    "- **Recursion protection:** To prevent infinite loops and excessive token usage,"
+   ],
+   "http_status": 200,
+   "id": "E-gemini-cli-00426",
+   "locator": {
+    "heading": "Isolation and recursion protection",
+    "raw_line_end": 12559,
+    "raw_line_start": 12559
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "  subagents **cannot** call other subagents. If a subagent is granted the `*`",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "ed78739aadea2566778fe24a8eb457b7b04ea8c3fcd79a1d9d8bab3acabb449e",
+   "surface": "gemini-cli",
+   "tier": "E1",
+   "url": "https://geminicli.com/llms.txt",
+   "url_effective": "https://geminicli.com/llms.txt",
+   "version_source": null
+  },
+  {
+   "bytes": 959932,
+   "context_after": [
+    "> have access, you will see `gemini-3.1-pro-preview`.",
+    ">"
+   ],
+   "context_before": [
+    "> [!NOTE]",
+    "> Gemini 3.1 Pro Preview is rolling out. To determine whether you have"
+   ],
+   "http_status": 200,
+   "id": "E-gemini-cli-00441",
+   "locator": {
+    "heading": "[Gemini 3 Pro and Gemini 3 Flash on Gemini CLI](http://geminicli.com/docs/get-started/gemini-3.md)",
+    "raw_line_end": 13615,
+    "raw_line_start": 13615
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "> access to Gemini 3.1, use the `/model` command and select **Manual**. If you",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "ed78739aadea2566778fe24a8eb457b7b04ea8c3fcd79a1d9d8bab3acabb449e",
+   "surface": "gemini-cli",
+   "tier": "E1",
+   "url": "https://geminicli.com/llms.txt",
+   "url_effective": "https://geminicli.com/llms.txt",
+   "version_source": null
+  },
+  {
+   "bytes": 959932,
+   "context_after": [
+    "    - **Usage:** `/agents config <agent-name>`",
+    ""
+   ],
+   "context_before": [
+    "  - **`config`**:",
+    "    - **Description:** Opens a configuration dialog for the specified agent to"
+   ],
+   "http_status": 200,
+   "id": "E-gemini-cli-00462",
+   "locator": {
+    "heading": "`/agents`",
+    "raw_line_end": 16084,
+    "raw_line_start": 16084
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "      adjust its model, temperature, or execution limits.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "ed78739aadea2566778fe24a8eb457b7b04ea8c3fcd79a1d9d8bab3acabb449e",
+   "surface": "gemini-cli",
+   "tier": "E1",
+   "url": "https://geminicli.com/llms.txt",
+   "url_effective": "https://geminicli.com/llms.txt",
+   "version_source": null
+  },
+  {
+   "bytes": 959932,
+   "context_after": [
+    "  - **`set`**:",
+    "    - **Description:** Set the model to use."
+   ],
+   "context_before": [
+    "- **Sub-commands:**",
+    "  - **`manage`**:"
+   ],
+   "http_status": 200,
+   "id": "E-gemini-cli-00481",
+   "locator": {
+    "heading": "`/model`",
+    "raw_line_end": 16339,
+    "raw_line_start": 16339
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "    - **Description:** Opens a dialog to configure the model.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "ed78739aadea2566778fe24a8eb457b7b04ea8c3fcd79a1d9d8bab3acabb449e",
+   "surface": "gemini-cli",
+   "tier": "E1",
+   "url": "https://geminicli.com/llms.txt",
+   "url_effective": "https://geminicli.com/llms.txt",
+   "version_source": null
+  },
+  {
+   "bytes": 959932,
+   "context_after": [
+    "",
+    "## Subagent tool isolation"
+   ],
+   "context_before": [
+    "- **Recursion protection:** To prevent infinite loops and excessive token usage,",
+    "  subagents **cannot** call other subagents. If a subagent is granted the `*`"
+   ],
+   "http_status": 200,
+   "id": "E-gemini-cli-00499",
+   "locator": {
+    "heading": "Isolation and recursion protection",
+    "raw_line_end": 12560,
+    "raw_line_start": 12560
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "  tool wildcard, it will still be unable to see or invoke other agents.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "ed78739aadea2566778fe24a8eb457b7b04ea8c3fcd79a1d9d8bab3acabb449e",
+   "surface": "gemini-cli",
+   "tier": "E1",
+   "url": "https://geminicli.com/llms.txt",
+   "url_effective": "https://geminicli.com/llms.txt",
+   "version_source": null
+  },
+  {
+   "bytes": 959932,
+   "context_after": [
+    "instruction prefixes or specific safety settings) using the `overrideScope`",
+    "field."
+   ],
+   "context_before": [
+    "#### `modelConfigs.overrides`",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-gemini-cli-00506",
+   "locator": {
+    "heading": "`modelConfigs.overrides`",
+    "raw_line_end": 12677,
+    "raw_line_start": 12677
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "You can target specific subagents with custom model settings (like system",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "ed78739aadea2566778fe24a8eb457b7b04ea8c3fcd79a1d9d8bab3acabb449e",
+   "surface": "gemini-cli",
+   "tier": "E1",
+   "url": "https://geminicli.com/llms.txt",
+   "url_effective": "https://geminicli.com/llms.txt",
+   "version_source": null
+  },
+  {
+   "bytes": 959932,
+   "context_after": [
+    "  one has been generated.",
+    "  - **Note:** This feature is enabled by default. It can be disabled via the"
+   ],
+   "context_before": [
+    "### `/plan`",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-gemini-cli-00576",
+   "locator": {
+    "heading": "`/plan`",
+    "raw_line_end": 16354,
+    "raw_line_start": 16354
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "- **Description:** Switch to Plan Mode (read-only) and view the current plan if",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "ed78739aadea2566778fe24a8eb457b7b04ea8c3fcd79a1d9d8bab3acabb449e",
+   "surface": "gemini-cli",
+   "tier": "E1",
+   "url": "https://geminicli.com/llms.txt",
+   "url_effective": "https://geminicli.com/llms.txt",
+   "version_source": null
+  },
+  {
+   "bytes": 959932,
+   "context_after": [
+    "  manage long-running processes that you've sent to the background.",
+    ""
+   ],
+   "context_before": [
+    "### `/shells` (or `/bashes`)",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-gemini-cli-00591",
+   "locator": {
+    "heading": "`/shells` (or `/bashes`)",
+    "raw_line_end": 16459,
+    "raw_line_start": 16459
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "- **Description:** Toggle the background shells view. This lets you view and",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "ed78739aadea2566778fe24a8eb457b7b04ea8c3fcd79a1d9d8bab3acabb449e",
+   "surface": "gemini-cli",
+   "tier": "E1",
+   "url": "https://geminicli.com/llms.txt",
+   "url_effective": "https://geminicli.com/llms.txt",
+   "version_source": null
+  },
+  {
+   "bytes": 959932,
+   "context_after": [
+    "  - **Default:** `\"off\"`",
+    "  - **Values:** `\"off\"`, `\"full\"`"
+   ],
+   "context_before": [
+    "- **`ui.inlineThinkingMode`** (enum):",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-gemini-cli-00631",
+   "locator": {
+    "heading": "`ui`",
+    "raw_line_end": 16936,
+    "raw_line_start": 16936
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "  - **Description:** Display model thinking inline: off or full.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "ed78739aadea2566778fe24a8eb457b7b04ea8c3fcd79a1d9d8bab3acabb449e",
+   "surface": "gemini-cli",
+   "tier": "E1",
+   "url": "https://geminicli.com/llms.txt",
+   "url_effective": "https://geminicli.com/llms.txt",
+   "version_source": null
+  },
+  {
+   "bytes": 959932,
+   "context_after": [
+    "    requests.",
+    "  - **Default:** `undefined`"
+   ],
+   "context_before": [
+    "- **`billing.vertexAi.requestType`** (enum):",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-gemini-cli-00636",
+   "locator": {
+    "heading": "`billing`",
+    "raw_line_end": 17167,
+    "raw_line_start": 17167
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "  - **Description:** Sets the X-Vertex-AI-LLM-Request-Type header for Vertex AI",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "ed78739aadea2566778fe24a8eb457b7b04ea8c3fcd79a1d9d8bab3acabb449e",
+   "surface": "gemini-cli",
+   "tier": "E1",
+   "url": "https://geminicli.com/llms.txt",
+   "url_effective": "https://geminicli.com/llms.txt",
+   "version_source": null
+  },
+  {
+   "bytes": 959932,
+   "context_after": [
+    "  - **Default:** `undefined`",
+    ""
+   ],
+   "context_before": [
+    "- **`model.name`** (string):",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-gemini-cli-00637",
+   "locator": {
+    "heading": "`model`",
+    "raw_line_end": 17184,
+    "raw_line_start": 17184
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "  - **Description:** The Gemini model to use for conversations.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "ed78739aadea2566778fe24a8eb457b7b04ea8c3fcd79a1d9d8bab3acabb449e",
+   "surface": "gemini-cli",
+   "tier": "E1",
+   "url": "https://geminicli.com/llms.txt",
+   "url_effective": "https://geminicli.com/llms.txt",
+   "version_source": null
+  },
+  {
+   "bytes": 959932,
+   "context_after": [
+    "    finishes. 'silent' (default): quietly exits in background. 'inject':",
+    "    automatically returns output to agent. 'notify': shows brief message in"
+   ],
+   "context_before": [
+    "- **`tools.shell.backgroundCompletionBehavior`** (enum):",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-gemini-cli-00671",
+   "locator": {
+    "heading": "`tools`",
+    "raw_line_end": 18459,
+    "raw_line_start": 18459
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "  - **Description:** Controls what happens when a background shell command",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "ed78739aadea2566778fe24a8eb457b7b04ea8c3fcd79a1d9d8bab3acabb449e",
+   "surface": "gemini-cli",
+   "tier": "E1",
+   "url": "https://geminicli.com/llms.txt",
+   "url_effective": "https://geminicli.com/llms.txt",
+   "version_source": null
+  },
+  {
+   "bytes": 959932,
+   "context_after": [
+    "    uses an LLM to dynamically generate and enforce security policies for tool",
+    "    use based on your prompt, providing an additional layer of protection"
+   ],
+   "context_before": [
+    "",
+    "- **`security.enableConseca`** (boolean):"
+   ],
+   "http_status": 200,
+   "id": "E-gemini-cli-00692",
+   "locator": {
+    "heading": "`security`",
+    "raw_line_end": 18671,
+    "raw_line_start": 18671
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "  - **Description:** Enable the context-aware security checker. This feature",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "ed78739aadea2566778fe24a8eb457b7b04ea8c3fcd79a1d9d8bab3acabb449e",
+   "surface": "gemini-cli",
+   "tier": "E1",
+   "url": "https://geminicli.com/llms.txt",
+   "url_effective": "https://geminicli.com/llms.txt",
+   "version_source": null
+  },
+  {
+   "bytes": 959932,
+   "context_after": [
+    "    - `auto_edit`: Automatically approve edit tools (replace, write_file) while",
+    "      prompting for others"
+   ],
+   "context_before": [
+    "- **`--approval-mode <mode>`**:",
+    "  - Sets the approval mode for tool calls. Available modes:"
+   ],
+   "http_status": 200,
+   "id": "E-gemini-cli-00764",
+   "locator": {
+    "heading": "Command-line arguments",
+    "raw_line_end": 19537,
+    "raw_line_start": 19537
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "    - `default`: Prompt for approval on each tool call (default behavior)",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "ed78739aadea2566778fe24a8eb457b7b04ea8c3fcd79a1d9d8bab3acabb449e",
+   "surface": "gemini-cli",
+   "tier": "E1",
+   "url": "https://geminicli.com/llms.txt",
+   "url_effective": "https://geminicli.com/llms.txt",
+   "version_source": null
+  },
+  {
+   "bytes": 959932,
+   "context_after": [
+    "    `--yolo` for the new unified approach.",
+    "  - Example: `gemini --approval-mode auto_edit`"
+   ],
+   "context_before": [
+    "      > **Note:** This mode is currently under development and not yet fully",
+    "      > functional."
+   ],
+   "http_status": 200,
+   "id": "E-gemini-cli-00769",
+   "locator": {
+    "heading": "Command-line arguments",
+    "raw_line_end": 19545,
+    "raw_line_start": 19545
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "  - Cannot be used together with `--yolo`. Use `--approval-mode=yolo` instead of",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "ed78739aadea2566778fe24a8eb457b7b04ea8c3fcd79a1d9d8bab3acabb449e",
+   "surface": "gemini-cli",
+   "tier": "E1",
+   "url": "https://geminicli.com/llms.txt",
+   "url_effective": "https://geminicli.com/llms.txt",
+   "version_source": null
+  },
+  {
+   "bytes": 959932,
+   "context_after": [
+    "| `app.showMoreLines`           | Expand and collapse blocks of content when not in alternate buffer mode.                                                                           | `Ctrl+O`           |",
+    "| `app.expandPaste`             | Expand or collapse a paste placeholder when cursor is over placeholder.                                                                            | `Ctrl+O`           |"
+   ],
+   "context_before": [
+    "| `app.toggleMouseMode`         | Toggle mouse mode (scrolling and clicking).                                                                                                        | `Ctrl+S`           |",
+    "| `app.toggleYolo`              | Toggle YOLO (auto-approval) mode for tool calls.                                                                                                   | `Ctrl+Y`           |"
+   ],
+   "http_status": 200,
+   "id": "E-gemini-cli-00789",
+   "locator": {
+    "heading": "App Controls",
+    "raw_line_end": 19913,
+    "raw_line_start": 19913
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "| `app.cycleApprovalMode`       | Cycle through approval modes: default (prompt), auto_edit (auto-approve edits), and plan (read-only). Plan mode is skipped when the agent is busy. | `Shift+Tab`        |",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "ed78739aadea2566778fe24a8eb457b7b04ea8c3fcd79a1d9d8bab3acabb449e",
+   "surface": "gemini-cli",
+   "tier": "E1",
+   "url": "https://geminicli.com/llms.txt",
+   "url_effective": "https://geminicli.com/llms.txt",
+   "version_source": null
+  },
+  {
+   "bytes": 959932,
+   "context_after": [
+    "| `app.cycleApprovalMode`       | Cycle through approval modes: default (prompt), auto_edit (auto-approve edits), and plan (read-only). Plan mode is skipped when the agent is busy. | `Shift+Tab`        |",
+    "| `app.showMoreLines`           | Expand and collapse blocks of content when not in alternate buffer mode.                                                                           | `Ctrl+O`           |"
+   ],
+   "context_before": [
+    "| `app.toggleCopyMode`          | Toggle copy mode when in alternate buffer mode.                                                                                                    | `F9`               |",
+    "| `app.toggleMouseMode`         | Toggle mouse mode (scrolling and clicking).                                                                                                        | `Ctrl+S`           |"
+   ],
+   "http_status": 200,
+   "id": "E-gemini-cli-00790",
+   "locator": {
+    "heading": "App Controls",
+    "raw_line_end": 19912,
+    "raw_line_start": 19912
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "| `app.toggleYolo`              | Toggle YOLO (auto-approval) mode for tool calls.                                                                                                   | `Ctrl+Y`           |",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "ed78739aadea2566778fe24a8eb457b7b04ea8c3fcd79a1d9d8bab3acabb449e",
+   "surface": "gemini-cli",
+   "tier": "E1",
+   "url": "https://geminicli.com/llms.txt",
+   "url_effective": "https://geminicli.com/llms.txt",
+   "version_source": null
+  },
+  {
+   "bytes": 959932,
+   "context_after": [
+    "| [`exit_plan_mode`](/docs/tools/planning)  | `Plan` | Finalizes a plan, presents it for review, and requests approval to start implementation. |",
+    ""
+   ],
+   "context_before": [
+    "| Tool                                      | Kind   | Description                                                                              |",
+    "| :---------------------------------------- | :----- | :--------------------------------------------------------------------------------------- |"
+   ],
+   "http_status": 200,
+   "id": "E-gemini-cli-00801",
+   "locator": {
+    "heading": "Planning",
+    "raw_line_end": 20541,
+    "raw_line_start": 20541
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "| [`enter_plan_mode`](/docs/tools/planning) | `Plan` | Switches the CLI to a safe, read-only \"Plan Mode\" for researching complex changes.       |",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "ed78739aadea2566778fe24a8eb457b7b04ea8c3fcd79a1d9d8bab3acabb449e",
+   "surface": "gemini-cli",
+   "tier": "E1",
+   "url": "https://geminicli.com/llms.txt",
+   "url_effective": "https://geminicli.com/llms.txt",
+   "version_source": null
+  },
+  {
+   "bytes": 959932,
+   "context_after": [
+    "  confirmation.",
+    "- `autoEdit`: Optimized for automated code editing; some write tools may be"
+   ],
+   "context_before": [
+    "modes specified, it is always active.",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-gemini-cli-00821",
+   "locator": {
+    "heading": "Approval modes",
+    "raw_line_end": 20813,
+    "raw_line_start": 20813
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "- `default`: The standard interactive mode where most write tools require",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "ed78739aadea2566778fe24a8eb457b7b04ea8c3fcd79a1d9d8bab3acabb449e",
+   "surface": "gemini-cli",
+   "tier": "E1",
+   "url": "https://geminicli.com/llms.txt",
+   "url_effective": "https://geminicli.com/llms.txt",
+   "version_source": null
+  },
+  {
+   "bytes": 959932,
+   "context_after": [
+    "  auto-approved.",
+    "- `plan`: A strict, read-only mode for research and design. See"
+   ],
+   "context_before": [
+    "- `default`: The standard interactive mode where most write tools require",
+    "  confirmation."
+   ],
+   "http_status": 200,
+   "id": "E-gemini-cli-00822",
+   "locator": {
+    "heading": "Approval modes",
+    "raw_line_end": 20815,
+    "raw_line_start": 20815
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "- `autoEdit`: Optimized for automated code editing; some write tools may be",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "ed78739aadea2566778fe24a8eb457b7b04ea8c3fcd79a1d9d8bab3acabb449e",
+   "surface": "gemini-cli",
+   "tier": "E1",
+   "url": "https://geminicli.com/llms.txt",
+   "url_effective": "https://geminicli.com/llms.txt",
+   "version_source": null
+  },
+  {
+   "bytes": 959932,
+   "context_after": [
+    "  [Customizing Plan Mode Policies](/docs/cli/plan-mode#customizing-policies).",
+    "- `yolo`: A mode where all tools are auto-approved (use with extreme caution)."
+   ],
+   "context_before": [
+    "- `autoEdit`: Optimized for automated code editing; some write tools may be",
+    "  auto-approved."
+   ],
+   "http_status": 200,
+   "id": "E-gemini-cli-00823",
+   "locator": {
+    "heading": "Approval modes",
+    "raw_line_end": 20817,
+    "raw_line_start": 20817
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "- `plan`: A strict, read-only mode for research and design. See",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "ed78739aadea2566778fe24a8eb457b7b04ea8c3fcd79a1d9d8bab3acabb449e",
+   "surface": "gemini-cli",
+   "tier": "E1",
+   "url": "https://geminicli.com/llms.txt",
+   "url_effective": "https://geminicli.com/llms.txt",
+   "version_source": null
+  },
+  {
+   "bytes": 959932,
+   "context_after": [
+    "",
+    "To maintain the integrity of Plan Mode as a safe research environment,"
+   ],
+   "context_before": [
+    "- `plan`: A strict, read-only mode for research and design. See",
+    "  [Customizing Plan Mode Policies](/docs/cli/plan-mode#customizing-policies)."
+   ],
+   "http_status": 200,
+   "id": "E-gemini-cli-00824",
+   "locator": {
+    "heading": "Approval modes",
+    "raw_line_end": 20819,
+    "raw_line_start": 20819
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "- `yolo`: A mode where all tools are auto-approved (use with extreme caution).",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "ed78739aadea2566778fe24a8eb457b7b04ea8c3fcd79a1d9d8bab3acabb449e",
+   "surface": "gemini-cli",
+   "tier": "E1",
+   "url": "https://geminicli.com/llms.txt",
+   "url_effective": "https://geminicli.com/llms.txt",
+   "version_source": null
+  },
+  {
+   "bytes": 959932,
+   "context_after": [
+    "- Model requests to Flash model only.",
+    ""
+   ],
+   "context_before": [
+    "includes:",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-gemini-cli-00949",
+   "locator": {
+    "heading": "Log in with Gemini API Key (unpaid)",
+    "raw_line_end": 21394,
+    "raw_line_start": 21394
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "- 250 maximum model requests / user / day",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "ed78739aadea2566778fe24a8eb457b7b04ea8c3fcd79a1d9d8bab3acabb449e",
+   "surface": "gemini-cli",
+   "tier": "E1",
+   "url": "https://geminicli.com/llms.txt",
+   "url_effective": "https://geminicli.com/llms.txt",
+   "version_source": null
+  },
+  {
+   "bytes": 959932,
+   "context_after": [
+    "",
+    "Learn more at"
+   ],
+   "context_before": [
+    "",
+    "- 250 maximum model requests / user / day"
+   ],
+   "http_status": 200,
+   "id": "E-gemini-cli-00950",
+   "locator": {
+    "heading": "Log in with Gemini API Key (unpaid)",
+    "raw_line_end": 21395,
+    "raw_line_start": 21395
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "- Model requests to Flash model only.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "ed78739aadea2566778fe24a8eb457b7b04ea8c3fcd79a1d9d8bab3acabb449e",
+   "surface": "gemini-cli",
+   "tier": "E1",
+   "url": "https://geminicli.com/llms.txt",
+   "url_effective": "https://geminicli.com/llms.txt",
+   "version_source": null
+  },
+  {
+   "bytes": 959932,
+   "context_after": [
+    "account.",
+    ""
+   ],
+   "context_before": [
+    "### Through your organization",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-gemini-cli-00953",
+   "locator": {
+    "heading": "Through your organization",
+    "raw_line_end": 21440,
+    "raw_line_start": 21440
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "These tiers are applicable when you are signing in with a Google Workspace",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "ed78739aadea2566778fe24a8eb457b7b04ea8c3fcd79a1d9d8bab3acabb449e",
+   "surface": "gemini-cli",
+   "tier": "E1",
+   "url": "https://geminicli.com/llms.txt",
+   "url_effective": "https://geminicli.com/llms.txt",
+   "version_source": null
+  },
+  {
+   "bytes": 959932,
+   "context_after": [
+    "and planning.",
+    ""
+   ],
+   "context_before": [
+    "`enter_plan_mode` switches the CLI to Plan Mode. This tool is typically called",
+    "by the agent when you ask it to \"start a plan\" using natural language. In this"
+   ],
+   "http_status": 200,
+   "id": "E-gemini-cli-00966",
+   "locator": {
+    "heading": "1. `enter_plan_mode` (EnterPlanMode)",
+    "raw_line_end": 22332,
+    "raw_line_start": 22332
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "mode, the agent is restricted to read-only tools to allow for safe exploration",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "ed78739aadea2566778fe24a8eb457b7b04ea8c3fcd79a1d9d8bab3acabb449e",
+   "surface": "gemini-cli",
+   "tier": "E1",
+   "url": "https://geminicli.com/llms.txt",
+   "url_effective": "https://geminicli.com/llms.txt",
+   "version_source": null
+  },
+  {
+   "bytes": 959932,
+   "context_after": [
+    "- **[Project context (GEMINI.md)](/docs/cli/gemini-md):** Technical hierarchy of",
+    "  context files."
+   ],
+   "context_before": [
+    "  reference.",
+    "- **[Model configuration](/docs/cli/generation-settings):** Fine-tune generation"
+   ],
+   "http_status": 200,
+   "id": "E-gemini-cli-01009",
+   "locator": {
+    "heading": "Configuration",
+    "raw_line_end": 295,
+    "raw_line_start": 295
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "  parameters like temperature and thinking budget.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "ed78739aadea2566778fe24a8eb457b7b04ea8c3fcd79a1d9d8bab3acabb449e",
+   "surface": "gemini-cli",
+   "tier": "E1",
+   "url": "https://geminicli.com/llms.txt",
+   "url_effective": "https://geminicli.com/llms.txt",
+   "version_source": null
+  },
+  {
+   "bytes": 959932,
+   "context_after": [
+    "  you break down complex tasks and execute them systematically",
+    "  ([#21713](https://github.com/google-gemini/gemini-cli/pull/21713) by @jerop)."
+   ],
+   "context_before": [
+    "## Announcements: v0.34.0 - 2026-03-17",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-gemini-cli-01116",
+   "locator": {
+    "heading": "Announcements: v0.34.0 - 2026-03-17",
+    "raw_line_end": 1203,
+    "raw_line_start": 1203
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "- **Plan Mode Enabled by Default:** Plan Mode is now enabled by default to help",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "ed78739aadea2566778fe24a8eb457b7b04ea8c3fcd79a1d9d8bab3acabb449e",
+   "surface": "gemini-cli",
+   "tier": "E1",
+   "url": "https://geminicli.com/llms.txt",
+   "url_effective": "https://geminicli.com/llms.txt",
+   "version_source": null
+  },
+  {
+   "bytes": 959932,
+   "context_after": [
+    "- **Environment-Specific Behavior**: Distinct configurations for different",
+    "  operating contexts (for example, testing vs. production)."
+   ],
+   "context_before": [
+    "",
+    "- **Precise Hyperparameter Tuning**: Direct control over `temperature`, `topP`,"
+   ],
+   "http_status": 200,
+   "id": "E-gemini-cli-01429",
+   "locator": {
+    "heading": "1. System Overview",
+    "raw_line_end": 5573,
+    "raw_line_start": 5573
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "  `thinkingBudget`, and other SDK-level parameters.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "ed78739aadea2566778fe24a8eb457b7b04ea8c3fcd79a1d9d8bab3acabb449e",
+   "surface": "gemini-cli",
+   "tier": "E1",
+   "url": "https://geminicli.com/llms.txt",
+   "url_effective": "https://geminicli.com/llms.txt",
+   "version_source": null
+  },
+  {
+   "bytes": 959932,
+   "context_after": [
+    "key from Google AI Studio.",
+    ""
+   ],
+   "context_before": [
+    "## Use Gemini API key <a id=\"gemini-api\"></a>",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-gemini-cli-01784",
+   "locator": {
+    "heading": "Use Gemini API key <a id=\"gemini-api\"></a>",
+    "raw_line_end": 12846,
+    "raw_line_start": 12846
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "If you don't want to authenticate using your Google account, you can use an API",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "ed78739aadea2566778fe24a8eb457b7b04ea8c3fcd79a1d9d8bab3acabb449e",
+   "surface": "gemini-cli",
+   "tier": "E1",
+   "url": "https://geminicli.com/llms.txt",
+   "url_effective": "https://geminicli.com/llms.txt",
+   "version_source": null
+  },
+  {
+   "bytes": 959932,
+   "context_after": [
+    "| `background.toggleList`     | Toggle background shell list.                                      | `Ctrl+L`    |",
+    "| `background.kill`           | Kill the active background shell.                                  | `Ctrl+K`    |"
+   ],
+   "context_before": [
+    "| `background.escape`         | Dismiss background shell list.                                     | `Esc`       |",
+    "| `background.select`         | Confirm selection in background shell list.                        | `Enter`     |"
+   ],
+   "http_status": 200,
+   "id": "E-gemini-cli-02013",
+   "locator": {
+    "heading": "Background Shell Controls",
+    "raw_line_end": 19930,
+    "raw_line_start": 19930
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "| `background.toggle`         | Toggle current background shell visibility.                        | `Ctrl+B`    |",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "ed78739aadea2566778fe24a8eb457b7b04ea8c3fcd79a1d9d8bab3acabb449e",
+   "surface": "gemini-cli",
+   "tier": "E1",
+   "url": "https://geminicli.com/llms.txt",
+   "url_effective": "https://geminicli.com/llms.txt",
+   "version_source": null
+  },
+  {
+   "bytes": 959932,
+   "context_after": [
+    "limits to Gemini Code Assist and Gemini CLI. These are shared across Gemini CLI",
+    "and agent mode in the IDE. You can confirm you have higher limits by checking if"
+   ],
+   "context_before": [
+    "### How do I know if I have higher limits for Google AI Pro or Ultra?",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-gemini-cli-02083",
+   "locator": {
+    "heading": "How do I know if I have higher limits for Google AI Pro or Ultra?",
+    "raw_line_end": 21291,
+    "raw_line_start": 21291
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "If you're subscribed to Google AI Pro or Ultra, you automatically have higher",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "ed78739aadea2566778fe24a8eb457b7b04ea8c3fcd79a1d9d8bab3acabb449e",
+   "surface": "gemini-cli",
+   "tier": "E1",
+   "url": "https://geminicli.com/llms.txt",
+   "url_effective": "https://geminicli.com/llms.txt",
+   "version_source": null
+  },
+  {
+   "bytes": 959932,
+   "context_after": [
+    "and agent mode in the IDE. You can confirm you have higher limits by checking if",
+    "you are still subscribed to Google AI Pro or Ultra in your"
+   ],
+   "context_before": [
+    "",
+    "If you're subscribed to Google AI Pro or Ultra, you automatically have higher"
+   ],
+   "http_status": 200,
+   "id": "E-gemini-cli-02084",
+   "locator": {
+    "heading": "How do I know if I have higher limits for Google AI Pro or Ultra?",
+    "raw_line_end": 21292,
+    "raw_line_start": 21292
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "limits to Gemini Code Assist and Gemini CLI. These are shared across Gemini CLI",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "ed78739aadea2566778fe24a8eb457b7b04ea8c3fcd79a1d9d8bab3acabb449e",
+   "surface": "gemini-cli",
+   "tier": "E1",
+   "url": "https://geminicli.com/llms.txt",
+   "url_effective": "https://geminicli.com/llms.txt",
+   "version_source": null
+  },
+  {
+   "bytes": 959932,
+   "context_after": [
+    "Gemini CLI. Supporting these plans is under active consideration for future",
+    "support."
+   ],
+   "context_before": [
+    "These plans currently apply only to the use of Gemini web-based products",
+    "provided by Google-based experiences (for example, the Gemini web app or the"
+   ],
+   "http_status": 200,
+   "id": "E-gemini-cli-02090",
+   "locator": {
+    "heading": "Gemini for workspace plans",
+    "raw_line_end": 21512,
+    "raw_line_start": 21512
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "Flow video editor). These plans do not apply to the API usage which powers the",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "ed78739aadea2566778fe24a8eb457b7b04ea8c3fcd79a1d9d8bab3acabb449e",
+   "surface": "gemini-cli",
+   "tier": "E1",
+   "url": "https://geminicli.com/llms.txt",
+   "url_effective": "https://geminicli.com/llms.txt",
+   "version_source": null
+  },
+  {
+   "bytes": 959932,
+   "context_after": [
+    "  background immediately after starting.",
+    ""
+   ],
+   "context_before": [
+    "- `dir_path` (string, optional): The absolute path or relative path from",
+    "  workspace root where the command runs."
+   ],
+   "http_status": 200,
+   "id": "E-gemini-cli-02171",
+   "locator": {
+    "heading": "Arguments",
+    "raw_line_end": 22583,
+    "raw_line_start": 22583
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "- `is_background` (boolean, optional): Whether to move the process to the",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "ed78739aadea2566778fe24a8eb457b7b04ea8c3fcd79a1d9d8bab3acabb449e",
+   "surface": "gemini-cli",
+   "tier": "E1",
+   "url": "https://geminicli.com/llms.txt",
+   "url_effective": "https://geminicli.com/llms.txt",
+   "version_source": null
+  },
+  {
+   "id": "E-gemini-cli-90001",
+   "surface": "gemini-cli",
+   "tier": "E1",
+   "url": "https://geminicli.com/llms.txt",
+   "url_effective": "https://geminicli.com/llms.txt",
+   "retrieved": "2026-10-04",
+   "http_status": 200,
+   "bytes": 959932,
+   "sha256": "ed78739aadea2566778fe24a8eb457b7b04ea8c3fcd79a1d9d8bab3acabb449e",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "Recommended system specifications",
+    "raw_line_start": 13244,
+    "raw_line_end": 13247
+   },
+   "quote": "- **Operating System:**\n  - macOS 15+\n  - Windows 11 24H2+\n  - Ubuntu 20.04+",
+   "context_before": [
+    "## Recommended system specifications",
+    ""
+   ],
+   "context_after": [
+    "- **Hardware:**",
+    "  - \"Casual\" usage: 4GB+ RAM (short sessions, common tasks and edits)"
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-gemini-cli-90002",
+   "surface": "gemini-cli",
+   "tier": "E1",
+   "url": "https://geminicli.com/llms.txt",
+   "url_effective": "https://geminicli.com/llms.txt",
+   "retrieved": "2026-10-04",
+   "http_status": 200,
+   "bytes": 959932,
+   "sha256": "ed78739aadea2566778fe24a8eb457b7b04ea8c3fcd79a1d9d8bab3acabb449e",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "Recommended system specifications",
+    "raw_line_start": 13251,
+    "raw_line_end": 13252
+   },
+   "quote": "- **Runtime:** Node.js 20.0.0+\n- **Shell:** Bash, Zsh, or PowerShell",
+   "context_before": [
+    "  - \"Casual\" usage: 4GB+ RAM (short sessions, common tasks and edits)",
+    "  - \"Power\" usage: 16GB+ RAM (long sessions, large codebases, deep context)"
+   ],
+   "context_after": [
+    "- **Location:**",
+    "  [Gemini Code Assist supported locations](https://developers.google.com/gemini-code-assist/resources/available-locations#americas)"
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  }
+ ]
+}

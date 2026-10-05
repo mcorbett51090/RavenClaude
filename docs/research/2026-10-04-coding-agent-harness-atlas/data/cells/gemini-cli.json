@@ -1,0 +1,514 @@
+{
+ "surface": "gemini-cli",
+ "cells": [
+  {
+   "id": "gemini-cli/F04.approval-modes",
+   "surface": "gemini-cli",
+   "row": "F04.approval-modes",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-gemini-cli-00001",
+    "E-gemini-cli-00280",
+    "E-gemini-cli-00789"
+   ],
+   "value": "The --approval-mode flag sets approval for tool execution, with choices default, auto_edit, yolo and plan. 'default' prompts for approval, 'auto_edit' auto-approves edit tools, 'plan' is read-only. Shift+Tab cycles default (prompt), auto_edit (auto-approve edits) and plan (read-only); plan is skipped when the agent is busy."
+  },
+  {
+   "id": "gemini-cli/F04.bypass-mode",
+   "surface": "gemini-cli",
+   "row": "F04.bypass-mode",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-gemini-cli-00002",
+    "E-gemini-cli-00281",
+    "E-gemini-cli-00790",
+    "E-gemini-cli-00824"
+   ],
+   "value": "The --yolo flag (-y) auto-approves all actions and is deprecated; use --approval-mode=yolo instead. In yolo mode all tools are auto-approved (use with extreme caution). Ctrl+Y toggles YOLO (auto-approval) mode for tool calls.",
+   "limitation": "YOLO mode (auto-approve all actions) can only be enabled via command line (--yolo or --approval-mode=yolo) [E-gemini-cli-00281]; the keyboard-shortcuts page lists a Ctrl+Y toggle [E-gemini-cli-00790]; the two are not reconciled."
+  },
+  {
+   "id": "gemini-cli/F04.auto-review",
+   "surface": "gemini-cli",
+   "row": "F04.auto-review",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-gemini-cli-00327",
+    "E-gemini-cli-00692",
+    "E-gemini-cli-00357"
+   ],
+   "value": "security.enableConseca enables a context-aware security checker that uses an LLM to dynamically generate and enforce security policies for tool use based on your prompt; default false. Telemetry logs security verdicts from ConSeca.",
+   "limitation": "Default `false`; described as 'an additional layer of protection against unintended actions'."
+  },
+  {
+   "id": "gemini-cli/F09.per-agent-model",
+   "surface": "gemini-cli",
+   "row": "F09.per-agent-model",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-gemini-cli-00421",
+    "E-gemini-cli-00506",
+    "E-gemini-cli-00396",
+    "E-gemini-cli-00462"
+   ],
+   "value": "The `model` entry takes a specific model to use (for example, `gemini-3-preview`) and defaults to `inherit` (uses the main session model). You can target specific subagents with custom model settings. An example under `settings.json` `agents.overrides` forces a specific model. The `/agents` entry says you can 'adjust its model, temperature, or execution limits'."
+  },
+  {
+   "id": "gemini-cli/F09.per-agent-effort",
+   "surface": "gemini-cli",
+   "row": "F09.per-agent-effort",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-gemini-cli-00034"
+   ],
+   "value": "An override scoped to one agent can enforce extended thinking budgets for that agent."
+  },
+  {
+   "id": "gemini-cli/F09.nesting-rules",
+   "surface": "gemini-cli",
+   "row": "F09.nesting-rules",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-gemini-cli-00426",
+    "E-gemini-cli-00499"
+   ],
+   "value": "Subagents cannot call other subagents. Even if a subagent is granted the `*` tool wildcard, it will still be unable to see or invoke other agents."
+  },
+  {
+   "id": "gemini-cli/F14.concurrency-caps",
+   "surface": "gemini-cli",
+   "row": "F14.concurrency-caps",
+   "state": "undocumented",
+   "verification": "verified",
+   "evidence": [],
+   "sweep_report": {
+    "terms": [
+     "concurren",
+     "simultaneous",
+     "at the same time",
+     "max(imum)?.{0,15}(parallel|agents|sessions|subagents|tasks)",
+     "up to \\d+ (agents|sessions|subagents|tasks)"
+    ],
+    "corpus_sha256": "d2a59fcc487d9a2378b2b8419a45f7dfa8fdff8934ef804239a7a0cf0487e18a",
+    "hits": 5,
+    "hits_reviewed": 5,
+    "positive_control_term": "gemini",
+    "positive_control_hits": 2380
+   }
+  },
+  {
+   "id": "gemini-cli/F14.parallel-subagents",
+   "surface": "gemini-cli",
+   "row": "F14.parallel-subagents",
+   "state": "undocumented",
+   "verification": "verified",
+   "evidence": [],
+   "sweep_report": {
+    "terms": [
+     "parallel",
+     "concurrent",
+     "simultaneous",
+     "fan.?out",
+     "multiple (sub-?agents?|agents)"
+    ],
+    "corpus_sha256": "d2a59fcc487d9a2378b2b8419a45f7dfa8fdff8934ef804239a7a0cf0487e18a",
+    "hits": 9,
+    "hits_reviewed": 9,
+    "positive_control_term": "gemini",
+    "positive_control_hits": 2380
+   }
+  },
+  {
+   "id": "gemini-cli/F14.total-agent-caps",
+   "surface": "gemini-cli",
+   "row": "F14.total-agent-caps",
+   "state": "undocumented",
+   "verification": "verified",
+   "evidence": [],
+   "sweep_report": {
+    "terms": [
+     "max(imum)?.{0,15}(turns|steps|agents|calls|iterations|subagents)",
+     "(limit|cap)s?.{0,30}(agents|calls|turns|steps|subagents|iterations)",
+     "up to \\d+ (agents|subagents|turns|steps|calls)"
+    ],
+    "corpus_sha256": "d2a59fcc487d9a2378b2b8419a45f7dfa8fdff8934ef804239a7a0cf0487e18a",
+    "hits": 12,
+    "hits_reviewed": 12,
+    "positive_control_term": "gemini",
+    "positive_control_hits": 2380
+   }
+  },
+  {
+   "id": "gemini-cli/F15.background-tasks",
+   "surface": "gemini-cli",
+   "row": "F15.background-tasks",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-gemini-cli-02171",
+    "E-gemini-cli-00591",
+    "E-gemini-cli-00671",
+    "E-gemini-cli-02013"
+   ],
+   "value": "run_shell_command has an optional is_background argument that moves the process to the background. /shells toggles the background shells view. tools.shell.backgroundCompletionBehavior controls what happens when a background shell command finishes. Ctrl+B toggles current background shell visibility."
+  },
+  {
+   "id": "gemini-cli/F17.model-picker",
+   "surface": "gemini-cli",
+   "row": "F17.model-picker",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-gemini-cli-00086",
+    "E-gemini-cli-00481",
+    "E-gemini-cli-00145",
+    "E-gemini-cli-00441"
+   ],
+   "value": "The `/model` command lets you configure the model Gemini CLI uses, and its reference entry says it 'Opens a dialog to configure the model'. The changelog describes it as choosing the Gemini model for your session. The Gemini 3 page says to use `/model` and select Manual to check access to Gemini 3.1."
+  },
+  {
+   "id": "gemini-cli/F17.model-flag-env",
+   "surface": "gemini-cli",
+   "row": "F17.model-flag-env",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-gemini-cli-00020",
+    "E-gemini-cli-00300",
+    "E-gemini-cli-00637",
+    "E-gemini-cli-00080"
+   ],
+   "value": "The --model (-m) flag chooses the model (default `auto`). The `model.name` setting sets the Gemini model used for conversations (default `undefined`). Model selection follows a defined order of precedence."
+  },
+  {
+   "id": "gemini-cli/F17.auto-routing",
+   "surface": "gemini-cli",
+   "row": "F17.auto-routing",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-gemini-cli-00146",
+    "E-gemini-cli-00074",
+    "E-gemini-cli-00285",
+    "E-gemini-cli-00374"
+   ],
+   "value": "Gemini CLI model routing intelligently picks the best model, and also switches to a fallback model on model failure (enabled by default). general.plan.modelRouting switches between Pro (planning) and Flash (implementation) based on Plan Mode status. When the default pro model is rate-limited, it automatically switches to flash for the current session."
+  },
+  {
+   "id": "gemini-cli/F17.provider-byok",
+   "surface": "gemini-cli",
+   "row": "F17.provider-byok",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-gemini-cli-01784",
+    "E-gemini-cli-00636",
+    "E-gemini-cli-00949",
+    "E-gemini-cli-00950"
+   ],
+   "value": "A Gemini API key is an alternative if you don't want to authenticate using your Google account. billing.vertexAi.requestType sets the X-Vertex-AI-LLM-Request-Type header for Vertex AI requests. Unpaid API-key use is limited to 250 maximum model requests / user / day, Flash model only.",
+   "limitation": "Unpaid Gemini API key: '250 maximum model requests / user / day' (E-gemini-cli-00949) and 'Model requests to Flash model only.' (E-gemini-cli-00950)."
+  },
+  {
+   "id": "gemini-cli/F17.model-catalog",
+   "surface": "gemini-cli",
+   "row": "F17.model-catalog",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-gemini-cli-00089",
+    "E-gemini-cli-00021",
+    "E-gemini-cli-00330",
+    "E-gemini-cli-00950"
+   ],
+   "value": "The /model dialog's Auto (Gemini 3) option picks among gemini-3-pro-preview and gemini-3-flash-preview. The auto alias is the default and resolves to the preview model if preview features are enabled, otherwise to the standard pro model. experimental.gemma enables Gemma 4 models via Gemini API. Unpaid Gemini API key requests go to the Flash model only."
+  },
+  {
+   "id": "gemini-cli/F18.effort-values",
+   "surface": "gemini-cli",
+   "row": "F18.effort-values",
+   "state": "undocumented",
+   "verification": "verified",
+   "evidence": [],
+   "sweep_report": {
+    "terms": [
+     "effort",
+     "reasoning[_ -]?(effort|level|mode)",
+     "thinking[_ -]?(level|budget|mode|effort)"
+    ],
+    "corpus_sha256": "d2a59fcc487d9a2378b2b8419a45f7dfa8fdff8934ef804239a7a0cf0487e18a",
+    "hits": 21,
+    "hits_reviewed": 21,
+    "positive_control_term": "gemini",
+    "positive_control_hits": 2380
+   }
+  },
+  {
+   "id": "gemini-cli/F18.where-set",
+   "surface": "gemini-cli",
+   "row": "F18.where-set",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-gemini-cli-00033",
+    "E-gemini-cli-00034"
+   ],
+   "value": "generateContentConfig accepts a `thinkingConfig` object, 'Configuration for models with reasoning'. An override scoped to one agent can enforce extended thinking budgets for that agent."
+  },
+  {
+   "id": "gemini-cli/F18.model-dependence",
+   "surface": "gemini-cli",
+   "row": "F18.model-dependence",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-gemini-cli-00033"
+   ],
+   "value": "generateContentConfig accepts a `thinkingConfig` object: configuration for models with reasoning.",
+   "limitation": "Only 'Configuration for models with reasoning'; no per-model list of accepted levels is quoted."
+  },
+  {
+   "id": "gemini-cli/F18.thinking-budget-visibility",
+   "surface": "gemini-cli",
+   "row": "F18.thinking-budget-visibility",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-gemini-cli-01429",
+    "E-gemini-cli-00292",
+    "E-gemini-cli-01009",
+    "E-gemini-cli-00631"
+   ],
+   "value": "Model configuration gives direct control over thinkingBudget and other SDK-level parameters (alongside temperature). ui.inlineThinkingMode displays model thinking inline: off or full, default off."
+  },
+  {
+   "id": "gemini-cli/F19.named-modes",
+   "surface": "gemini-cli",
+   "row": "F19.named-modes",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-gemini-cli-00001",
+    "E-gemini-cli-00280",
+    "E-gemini-cli-00789",
+    "E-gemini-cli-00821"
+   ],
+   "value": "Tool-execution approval modes are default, auto_edit, yolo and plan (--approval-mode). default prompts for approval, auto_edit auto-approves edit tools, plan is read-only; YOLO (auto-approve all actions) is enabled only via command line. Shift+Tab cycles default, auto_edit and plan."
+  },
+  {
+   "id": "gemini-cli/F19.entering-modes",
+   "surface": "gemini-cli",
+   "row": "F19.entering-modes",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-gemini-cli-00789",
+    "E-gemini-cli-00097",
+    "E-gemini-cli-00769",
+    "E-gemini-cli-00801"
+   ],
+   "value": "Shift+Tab cycles approval modes default, auto_edit and plan (plan is skipped when the agent is busy). Setting Default Approval Mode to Plan starts in Plan Mode. --approval-mode=yolo is used instead of --yolo (the two cannot be used together). The enter_plan_mode tool switches the CLI to a safe, read-only Plan Mode."
+  },
+  {
+   "id": "gemini-cli/F19.plan-mode",
+   "surface": "gemini-cli",
+   "row": "F19.plan-mode",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-gemini-cli-00093",
+    "E-gemini-cli-00823",
+    "E-gemini-cli-00576",
+    "E-gemini-cli-00348"
+   ],
+   "value": "Plan Mode is a read-only environment for architecting solutions before implementation; the plan approval mode is a strict read-only mode for research and design. A command switches to Plan Mode (read-only) and shows the current plan if one has been generated. Executing a plan switches from plan mode to active execution."
+  },
+  {
+   "id": "gemini-cli/F19.autonomy-mode",
+   "surface": "gemini-cli",
+   "row": "F19.autonomy-mode",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-gemini-cli-00002",
+    "E-gemini-cli-00281",
+    "E-gemini-cli-00790",
+    "E-gemini-cli-00822"
+   ],
+   "value": "--approval-mode=yolo auto-approves all actions (the --yolo flag is deprecated). auto_edit auto-approves edit tools. Ctrl+Y toggles YOLO (auto-approval) mode for tool calls. autoEdit is optimized for automated code editing.",
+   "limitation": "YOLO mode (auto-approve all actions) can only be enabled via command line (--yolo or --approval-mode=yolo) (E-gemini-cli-00281); the keyboard page lists a Ctrl+Y toggle (E-gemini-cli-00790), so the scope of 'only' is unreconciled."
+  },
+  {
+   "id": "gemini-cli/F19.read-only-mode",
+   "surface": "gemini-cli",
+   "row": "F19.read-only-mode",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-gemini-cli-00093",
+    "E-gemini-cli-00823",
+    "E-gemini-cli-00966",
+    "E-gemini-cli-00118"
+   ],
+   "value": "Plan Mode is a read-only environment for designing solutions before implementation. The plan approval mode is a strict read-only mode for research and design, and in Plan Mode the agent is restricted to read-only tools."
+  },
+  {
+   "id": "gemini-cli/F19.mode-defaults",
+   "surface": "gemini-cli",
+   "row": "F19.mode-defaults",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-gemini-cli-00280",
+    "E-gemini-cli-00764",
+    "E-gemini-cli-00095",
+    "E-gemini-cli-01116"
+   ],
+   "value": "general.defaultApprovalMode defaults to 'default', which prompts for approval on each tool call; the setting also covers auto_edit and plan. Plan Mode is enabled by default (as of v0.34.0) and can be managed via /settings."
+  },
+  {
+   "id": "gemini-cli/F21.host-platform",
+   "surface": "gemini-cli",
+   "row": "F21.host-platform",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-gemini-cli-90001",
+    "E-gemini-cli-90002"
+   ],
+   "value": "Gemini CLI's recommended system specifications list the operating systems macOS 15+, Windows 11 24H2+ and Ubuntu 20.04+, the runtime Node.js 20.0.0+, and the shells Bash, Zsh, or PowerShell."
+  },
+  {
+   "id": "gemini-cli/F21.shared-account-billing",
+   "surface": "gemini-cli",
+   "row": "F21.shared-account-billing",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-gemini-cli-02084",
+    "E-gemini-cli-02083",
+    "E-gemini-cli-02090",
+    "E-gemini-cli-00953"
+   ],
+   "value": "Google AI Pro or Ultra subscribers automatically have higher limits for Gemini Code Assist and Gemini CLI, and 'these are shared across Gemini CLI' and agent mode in the IDE (quote truncated). Organization tiers apply when signing in with a Google Workspace account.",
+   "limitation": "Gemini for workspace plans: 'These plans do not apply to the API usage which powers the' Gemini CLI (E-gemini-cli-02090); organization tiers instead apply to Workspace sign-in (E-gemini-cli-00953)."
+  },
+  {
+   "id": "gemini-cli/F21.shared-execution-infrastructure",
+   "surface": "gemini-cli",
+   "row": "F21.shared-execution-infrastructure",
+   "state": "undocumented",
+   "verification": "verified",
+   "evidence": [],
+   "sweep_report": {
+    "terms": [
+     "shared (vm|machine|infrastructure|compute|sandbox|environment)",
+     "same (vm|machine|computer|infrastructure|cloud)",
+     "(vm|machine|computer)s? .{0,30}(shared|same)"
+    ],
+    "corpus_sha256": "d2a59fcc487d9a2378b2b8419a45f7dfa8fdff8934ef804239a7a0cf0487e18a",
+    "hits": 3,
+    "hits_reviewed": 3,
+    "positive_control_term": "gemini",
+    "positive_control_hits": 2380
+   }
+  },
+  {
+   "id": "gemini-cli/F21.shared-model-selection",
+   "surface": "gemini-cli",
+   "row": "F21.shared-model-selection",
+   "state": "undocumented",
+   "verification": "verified",
+   "evidence": [],
+   "sweep_report": {
+    "terms": [
+     "same (model|models)\\b",
+     "(shared|same) model",
+     "model (selection|picker|choice).{0,60}(shared|same|across)",
+     "models? .{0,40}(shared|same) (across|between|with)"
+    ],
+    "corpus_sha256": "d2a59fcc487d9a2378b2b8419a45f7dfa8fdff8934ef804239a7a0cf0487e18a",
+    "hits": 0,
+    "hits_reviewed": 0,
+    "positive_control_term": "gemini",
+    "positive_control_hits": 2380
+   }
+  },
+  {
+   "id": "gemini-cli/F21.shared-agent-runtime",
+   "surface": "gemini-cli",
+   "row": "F21.shared-agent-runtime",
+   "state": "undocumented",
+   "verification": "verified",
+   "evidence": [],
+   "sweep_report": {
+    "terms": [
+     "same (agent|harness|runtime|engine|code|loop)",
+     "powered by",
+     "built on",
+     "shares? (the )?(same )?(agent|harness|runtime|engine)",
+     "underlying (agent|harness|runtime|engine)",
+     "runs? the same"
+    ],
+    "corpus_sha256": "d2a59fcc487d9a2378b2b8419a45f7dfa8fdff8934ef804239a7a0cf0487e18a",
+    "hits": 1,
+    "hits_reviewed": 1,
+    "positive_control_term": "gemini",
+    "positive_control_hits": 2380
+   }
+  },
+  {
+   "id": "gemini-cli/F21.delegates-to",
+   "surface": "gemini-cli",
+   "row": "F21.delegates-to",
+   "state": "undocumented",
+   "verification": "verified",
+   "evidence": [],
+   "sweep_report": {
+    "terms": [
+     "delegat",
+     "hand(s|ing)? (off|over)",
+     "hands? work",
+     "sends? (the )?(task|work|request)s? to",
+     "cloud agent",
+     "cloud (task|session)"
+    ],
+    "corpus_sha256": "d2a59fcc487d9a2378b2b8419a45f7dfa8fdff8934ef804239a7a0cf0487e18a",
+    "hits": 11,
+    "hits_reviewed": 11,
+    "positive_control_term": "gemini",
+    "positive_control_hits": 2380
+   }
+  },
+  {
+   "id": "gemini-cli/F21.distinct-harness-features",
+   "surface": "gemini-cli",
+   "row": "F21.distinct-harness-features",
+   "state": "undocumented",
+   "verification": "verified",
+   "evidence": [],
+   "sweep_report": {
+    "terms": [
+     "only (available|supported|works)",
+     "exclusive",
+     "unique to",
+     "not available (in|on)",
+     "unlike",
+     "compared (to|with)",
+     "differs? from"
+    ],
+    "corpus_sha256": "d2a59fcc487d9a2378b2b8419a45f7dfa8fdff8934ef804239a7a0cf0487e18a",
+    "hits": 20,
+    "hits_reviewed": 20,
+    "positive_control_term": "gemini",
+    "positive_control_hits": 2380
+   }
+  }
+ ]
+}

@@ -1,0 +1,3108 @@
+{
+ "surface": "claude-code",
+ "evidence": [
+  {
+   "bytes": 114798,
+   "context_after": [
+    "",
+    "To fully control the model experience, combine these settings:"
+   ],
+   "context_before": [
+    "### Control the model users run on",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-claude-code-00015",
+   "locator": {
+    "heading": "Control the model users run on",
+    "raw_line_end": 322,
+    "raw_line_start": 322
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "The `model` setting is an initial selection, not enforcement. It sets which model is active when a session starts, but users can still open `/model` and pick Default, which resolves to the system's [runtime default](#default-model-setting) regardless of what `model` is set to, unless",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "66f827e0568361a36228d18a7fab5f2bd2786ee7d4f6e5523193440ae1c8b343",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/model-config.md",
+   "url_effective": "https://code.claude.com/docs/en/model-config.md",
+   "version_source": null
+  },
+  {
+   "bytes": 114798,
+   "context_after": [
+    "",
+    "This example starts users on Sonnet 4.5, limits the picker to Sonnet and Haiku, and ensures Default resolves to a model on the allowlist rather than the tier default:"
+   ],
+   "context_before": [
+    "* **`deniedModels`** and **`availableModelsMatch`**: [block specific versions](#block-specific-models-or-versions) that an `availableModels` entry would otherwise permit",
+    "* **`model`**: sets the initial model selection when a session starts"
+   ],
+   "http_status": 200,
+   "id": "E-claude-code-00016",
+   "locator": {
+    "heading": "Control the model users run on",
+    "raw_line_end": 330,
+    "raw_line_start": 330
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "**`ANTHROPIC_DEFAULT_SONNET_MODEL`** / **`ANTHROPIC_DEFAULT_OPUS_MODEL`** / **`ANTHROPIC_DEFAULT_HAIKU_MODEL`** / **`ANTHROPIC_DEFAULT_FABLE_MODEL`**: control what the `sonnet`, `opus`, `haiku`, and `fable` aliases resolve to, and which version the [account-type default](#default-model-setting) uses",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "66f827e0568361a36228d18a7fab5f2bd2786ee7d4f6e5523193440ae1c8b343",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/model-config.md",
+   "url_effective": "https://code.claude.com/docs/en/model-config.md",
+   "version_source": null
+  },
+  {
+   "bytes": 114798,
+   "context_after": [
+    "",
+    "The available effort levels depend on the model. Models not listed here do not support effort:"
+   ],
+   "context_before": [
+    "### Adjust effort level",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-claude-code-00095",
+   "locator": {
+    "heading": "Adjust effort level",
+    "raw_line_end": 583,
+    "raw_line_start": 583
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "levels](https://platform.claude.com/docs/en/build-with-claude/effort) control adaptive reasoning, which lets the model decide whether and how much to think on each step based on task complexity. Lower effort is faster and cheaper for straightforward tasks, while higher effort provides deeper",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "66f827e0568361a36228d18a7fab5f2bd2786ee7d4f6e5523193440ae1c8b343",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/model-config.md",
+   "url_effective": "https://code.claude.com/docs/en/model-config.md",
+   "version_source": null
+  },
+  {
+   "bytes": 11915,
+   "context_after": [
+    "",
+    "### Read earlier output without losing your place"
+   ],
+   "context_before": [
+    "* Deleting to the end of the line with `Ctrl+K`",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-claude-code-00120",
+   "locator": {
+    "heading": "What your screen reader hears",
+    "raw_line_end": 85,
+    "raw_line_start": 85
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "When you cycle [permission modes](/docs/en/permission-modes) with `Shift+Tab`, Claude Code announces the permission mode you land on, such as `[plan mode on]` or `[accept edits on]`. Claude Code prints the announcement once and doesn't repeat it on later redraws.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "c0470c74dd15c77803d076d4639f9115b6a0f748c41c00cd0414f903ab7a84f5",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/accessibility.md",
+   "url_effective": "https://code.claude.com/docs/en/accessibility.md",
+   "version_source": null
+  },
+  {
+   "bytes": 11915,
+   "context_after": [
+    "",
+    "Yes-or-no prompts ask for a typed answer instead of a two-option menu. Answer `y` or `n` and press Enter. `yes` and `no` also work."
+   ],
+   "context_before": [
+    "* If you type a number that isn't on the list, Claude Code announces the valid range and lets you try again.",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-claude-code-00122",
+   "locator": {
+    "heading": "Answer menus and prompts",
+    "raw_line_end": 111,
+    "raw_line_start": 111
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "The [`/effort`](/docs/en/model-config#adjust-effort-level) selector, which is a slider outside screen reader mode, becomes the same kind of numbered list.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "c0470c74dd15c77803d076d4639f9115b6a0f748c41c00cd0414f903ab7a84f5",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/accessibility.md",
+   "url_effective": "https://code.claude.com/docs/en/accessibility.md",
+   "version_source": null
+  },
+  {
+   "bytes": 26242,
+   "context_after": [
+    "| [Sandboxing](/docs/en/sandboxing) | OS-level filesystem and network isolation with domain allowlists | `sandbox.enabled`, `sandbox.network.allowedDomains` |",
+    "| [Managed policy CLAUDE.md](/docs/en/memory#deploy-organization-wide-claude-md) | Org-wide instructions loaded in every session, can't be excluded | File at the managed policy path |"
+   ],
+   "context_before": [
+    "| [Permission rules](/docs/en/permissions) | Allow, ask, or deny specific tools and commands | `permissions.allow`, `permissions.deny` |",
+    "| [Permission lockdown](/docs/en/permissions#managed-only-settings) | Make managed settings the [only settings source of permission rules](/docs/en/settings-reference#allowmanagedpermissionrulesonly). Disable `--dangerously-skip-permissions` | `allowManagedPermissionRulesOnly`, `permissions.disableB"
+   ],
+   "http_status": 200,
+   "id": "E-claude-code-00125",
+   "locator": {
+    "heading": "Decide what to enforce",
+    "raw_line_end": 92,
+    "raw_line_start": 92
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "| Choose the permission mode your developers' terminal sessions start in instead of the built-in starting permission mode, or remove auto mode. [Switch permission modes](/docs/en/permission-modes#switch-permission-modes) lists when the VS Code extension",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "c51cc19955ecb8155d82c68a46d7e26a84e3e078a9b6b210b456099dff289f76",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/admin-setup.md",
+   "url_effective": "https://code.claude.com/docs/en/admin-setup.md",
+   "version_source": null
+  },
+  {
+   "bytes": 26242,
+   "context_after": [
+    "| [Disable agent view](/docs/en/agent-view#how-background-sessions-are-hosted) | Turn off `claude agents`, `--bg`, `/background`, and the on-demand supervisor | `disableAgentView` |",
+    "| [Configure the corporate launcher](/docs/en/corporate-launcher) | Prefix the [background-agent supervisor](/docs/en/agent-view#how-background-sessions-are-hosted), its workers, and the [other covered background processes](/docs/en/corporate-launcher#what-the-launcher-covers) with a required corpor"
+   ],
+   "context_before": [
+    "| [Hook restrictions](/docs/en/settings-reference#allowmanagedhooksonly) | Restrict which hooks run and restrict HTTP hook URLs; see [what runs under `allowManagedHooksOnly`](/docs/en/settings-reference#what-runs-under-allowmanagedhooksonly) for the full effect list | `allowManagedHooksOnly`, `allow",
+    "| [Login enforcement](/docs/en/settings-reference#forceloginmethod) | Restrict login to a specific method or Anthropic organization. The method restriction applies across the VS Code extension, Agent SDK, `claude setup-token`, and `/install-github-app`, and the terminal's interactive login screen, r"
+   ],
+   "http_status": 200,
+   "id": "E-claude-code-00133",
+   "locator": {
+    "heading": "Decide what to enforce",
+    "raw_line_end": 101,
+    "raw_line_start": 101
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "| [Provider restrictions](/docs/en/settings-reference#allowedproviders) | Limit which API providers a machine may use. A session on a provider that isn't listed is refused at startup, at login, and when it next contacts the API. Requires Claude Code v2.1.285 or later | `allowedProviders` |",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "c51cc19955ecb8155d82c68a46d7e26a84e3e078a9b6b210b456099dff289f76",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/admin-setup.md",
+   "url_effective": "https://code.claude.com/docs/en/admin-setup.md",
+   "version_source": null
+  },
+  {
+   "bytes": 26242,
+   "context_after": [
+    "| [Effort cap](/docs/en/settings-reference#maxeffortlevel) | Cap the [effort level](/docs/en/model-config#adjust-effort-level) for every model or per model, on every provider | `maxEffortLevel` |",
+    "| [Version floor](/docs/en/settings-reference#minimumversion) | Prevent auto-update from installing below an org-wide minimum | `minimumVersion` |"
+   ],
+   "context_before": [
+    "| [Disable agent view](/docs/en/agent-view#how-background-sessions-are-hosted) | Turn off `claude agents`, `--bg`, `/background`, and the on-demand supervisor | `disableAgentView` |",
+    "| [Configure the corporate launcher](/docs/en/corporate-launcher) | Prefix the [background-agent supervisor](/docs/en/agent-view#how-background-sessions-are-hosted), its workers, and the [other covered background processes](/docs/en/corporate-launcher#what-the-launcher-covers) with a required corpor"
+   ],
+   "http_status": 200,
+   "id": "E-claude-code-00135",
+   "locator": {
+    "heading": "Decide what to enforce",
+    "raw_line_end": 104,
+    "raw_line_start": 104
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "| [Model restrictions](/docs/en/model-config#restrict-model-selection) | `availableModels` filters which models appear in the picker. Adding `enforceAvailableModels` also constrains the auto-selected default model. See [surface coverage](/docs/en/model-config#surface-coverage) for how this setting",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "c51cc19955ecb8155d82c68a46d7e26a84e3e078a9b6b210b456099dff289f76",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/admin-setup.md",
+   "url_effective": "https://code.claude.com/docs/en/admin-setup.md",
+   "version_source": null
+  },
+  {
+   "bytes": 26242,
+   "context_after": [
+    "| [Version floor](/docs/en/settings-reference#minimumversion) | Prevent auto-update from installing below an org-wide minimum | `minimumVersion` |",
+    "| [Required version range](/docs/en/settings-reference#requiredminimumversion) | Refuse to start at all when the running version is outside an org-approved range. Stronger than `minimumVersion`, which only blocks downgrades | `requiredMinimumVersion`, `requiredMaximumVersion` |"
+   ],
+   "context_before": [
+    "| [Configure the corporate launcher](/docs/en/corporate-launcher) | Prefix the [background-agent supervisor](/docs/en/agent-view#how-background-sessions-are-hosted), its workers, and the [other covered background processes](/docs/en/corporate-launcher#what-the-launcher-covers) with a required corpor",
+    "| [Model restrictions](/docs/en/model-config#restrict-model-selection) | `availableModels` filters which models appear in the picker. Adding `enforceAvailableModels` also constrains the auto-selected default model. See [surface coverage](/docs/en/model-config#surface-coverage) for how this setting r"
+   ],
+   "http_status": 200,
+   "id": "E-claude-code-00137",
+   "locator": {
+    "heading": "Decide what to enforce",
+    "raw_line_end": 105,
+    "raw_line_start": 105
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "| [Effort cap](/docs/en/settings-reference#maxeffortlevel) | Cap the [effort level](/docs/en/model-config#adjust-effort-level) for every model or per model, on every provider | `maxEffortLevel` |",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "c51cc19955ecb8155d82c68a46d7e26a84e3e078a9b6b210b456099dff289f76",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/admin-setup.md",
+   "url_effective": "https://code.claude.com/docs/en/admin-setup.md",
+   "version_source": null
+  },
+  {
+   "bytes": 16998,
+   "context_after": [
+    "| [Subagents](/docs/en/sub-agents#choose-a-model) with `model` set | For the entire delegated subtask | Claude delegates, or you invoke the subagent |",
+    "| [`/model`](/docs/en/model-config#setting-your-model) | From the next request onward | You switch models |"
+   ],
+   "context_before": [
+    "| - | - | - |",
+    "| Advisor tool | At decision points mid-task | Claude calls it when it needs guidance |"
+   ],
+   "http_status": 200,
+   "id": "E-claude-code-00159",
+   "locator": {
+    "heading": "Compare with related features",
+    "raw_line_end": 199,
+    "raw_line_start": 199
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "| [`opusplan`](/docs/en/model-config#opusplan-model-setting) | During plan mode when [allowed by `availableModels`](/docs/en/model-config#restrict-model-selection), then switches to Sonnet for execution | You enter plan mode |",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "886b5d58cbab9ea256589bf4c6a5ec20e08c8bf85901e2ec733c4f27afda578b",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/advisor.md",
+   "url_effective": "https://code.claude.com/docs/en/advisor.md",
+   "version_source": null
+  },
+  {
+   "bytes": 40168,
+   "context_after": [
+    "",
+    "You can also scope individual tools with rules like `\"Bash(npm *)\"` to allow only specific commands. See [Permissions](/docs/en/agent-sdk/permissions) for the full rule syntax."
+   ],
+   "context_before": [
+    "* **`allowed_tools` / `allowedTools`** auto-approves listed tools. A read-only agent with `[\"Read\", \"Glob\", \"Grep\"]` in its allowed tools list runs those tools without prompting. Tools not listed are still available, and calls to them that need approval fall through to the permission mode and `canUs",
+    "* **`disallowed_tools` / `disallowedTools`** blocks listed tools, regardless of other settings. See [Permissions](/docs/en/agent-sdk/permissions) for the order that rules are checked before a tool runs."
+   ],
+   "http_status": 200,
+   "id": "E-claude-code-00169",
+   "locator": {
+    "heading": "Tool permissions",
+    "raw_line_end": 178,
+    "raw_line_start": 178
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "* **`permission_mode` / `permissionMode`** controls how much human oversight you want. The SDK evaluates the active mode together with your allow and deny rules in a fixed order, described in [How permissions are evaluated](/docs/en/agent-sdk/permissions#how-permissions-are-evaluated). See",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "74dd31bd6cdf75b1decb6487c32f2bafde9288806180361f54a0636124e33ad8",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/agent-sdk/agent-loop.md",
+   "url_effective": "https://code.claude.com/docs/en/agent-sdk/agent-loop.md",
+   "version_source": null
+  },
+  {
+   "bytes": 40168,
+   "context_after": [
+    "",
+    "With [streaming input](/docs/en/agent-sdk/streaming-vs-single-mode), a message that is still queued when a turn ends at the max-turns limit stays queued. Claude Code doesn't add it to that turn's last model call. It starts a new turn for the message, and the max-turns count starts over for that turn"
+   ],
+   "context_before": [
+    "When either limit is hit, the SDK returns a `ResultMessage` with a corresponding error subtype (`error_max_turns` or `error_max_budget_usd`). See [Handle the result](#handle-the-result) for how to check these subtypes and [`ClaudeAgentOptions`](/docs/en/agent-sdk/python#claudeagentoptions) / [`Optio",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-claude-code-00176",
+   "locator": {
+    "heading": "Turns and budget",
+    "raw_line_end": 203,
+    "raw_line_start": 203
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "[subagents](/docs/en/agent-sdk/subagents): their spend counts toward the total. Once spend reaches the cap, spawning another subagent fails with `Budget limit reached`, and Claude Code stops any background subagents still running. The cap-enforcement behaviors require Claude Code v2.1.217 or later.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "74dd31bd6cdf75b1decb6487c32f2bafde9288806180361f54a0636124e33ad8",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/agent-sdk/agent-loop.md",
+   "url_effective": "https://code.claude.com/docs/en/agent-sdk/agent-loop.md",
+   "version_source": null
+  },
+  {
+   "bytes": 40168,
+   "context_after": [
+    "",
+    "| Level | Behavior | Good for |"
+   ],
+   "context_before": [
+    "### Effort level",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-claude-code-00177",
+   "locator": {
+    "heading": "Effort level",
+    "raw_line_end": 209,
+    "raw_line_start": 209
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "The `effort` option controls how much reasoning Claude applies. Lower effort levels use fewer tokens per turn and reduce cost. Not all models support the effort parameter. See [Effort](https://platform.claude.com/docs/en/build-with-claude/effort) for which models support it.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "74dd31bd6cdf75b1decb6487c32f2bafde9288806180361f54a0636124e33ad8",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/agent-sdk/agent-loop.md",
+   "url_effective": "https://code.claude.com/docs/en/agent-sdk/agent-loop.md",
+   "version_source": null
+  },
+  {
+   "bytes": 40168,
+   "context_after": [
+    "",
+    "### Permission mode"
+   ],
+   "context_before": [
+    "</Note>",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-claude-code-00180",
+   "locator": {
+    "heading": "Effort level",
+    "raw_line_end": 225,
+    "raw_line_start": 225
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "(like listing files or running a single grep) to reduce cost and latency. Set `effort` in the top-level `query()` options for the whole session, or per subagent with the `effort` field on [`AgentDefinition`](/docs/en/agent-sdk/subagents#agentdefinition-configuration) to override the session level.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "74dd31bd6cdf75b1decb6487c32f2bafde9288806180361f54a0636124e33ad8",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/agent-sdk/agent-loop.md",
+   "url_effective": "https://code.claude.com/docs/en/agent-sdk/agent-loop.md",
+   "version_source": null
+  },
+  {
+   "bytes": 40168,
+   "context_after": [
+    "| `\"plan\"` | Claude explores and plans without editing your source files; file edits are never auto-approved and prompt through your `canUseTool` callback | You want Claude to propose changes without executing them, such as during code review or when you need to approve changes before they're made |",
+    "| `\"dontAsk\"` | Never prompts. Tools pre-approved by [permission rules](/docs/en/settings-reference#permission-settings) run, and so do calls that need no approval in `default` mode, such as file reads inside your working directories; every call that would otherwise prompt is denied. `AskUserQuestio"
+   ],
+   "context_before": [
+    "| :- | :- | :- |",
+    "| `\"default\"` | Tool calls that need approval and aren't covered by allow rules trigger your `canUseTool` callback; no callback means deny | Interactive applications with a custom approval callback |"
+   ],
+   "http_status": 200,
+   "id": "E-claude-code-00183",
+   "locator": {
+    "heading": "Permission mode",
+    "raw_line_end": 234,
+    "raw_line_start": 234
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "| `\"acceptEdits\"` | Auto-approves file edits and common filesystem commands (`mkdir`, `touch`, `mv`, `cp`, etc.); other Bash commands follow default rules | You trust Claude's edits and want faster iteration, such as during prototyping or when working in an isolated directory |",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "74dd31bd6cdf75b1decb6487c32f2bafde9288806180361f54a0636124e33ad8",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/agent-sdk/agent-loop.md",
+   "url_effective": "https://code.claude.com/docs/en/agent-sdk/agent-loop.md",
+   "version_source": null
+  },
+  {
+   "bytes": 40168,
+   "context_after": [
+    "| `\"dontAsk\"` | Never prompts. Tools pre-approved by [permission rules](/docs/en/settings-reference#permission-settings) run, and so do calls that need no approval in `default` mode, such as file reads inside your working directories; every call that would otherwise prompt is denied. `AskUserQuestio",
+    "| `\"auto\"` | Uses a model classifier to review actions such as shell commands and network requests, allowing or blocking each one it reviews. See [Auto mode](/docs/en/permission-modes#eliminate-prompts-with-auto-mode) for availability and the decision order | Autonomous agents that still want safety"
+   ],
+   "context_before": [
+    "| `\"default\"` | Tool calls that need approval and aren't covered by allow rules trigger your `canUseTool` callback; no callback means deny | Interactive applications with a custom approval callback |",
+    "| `\"acceptEdits\"` | Auto-approves file edits and common filesystem commands (`mkdir`, `touch`, `mv`, `cp`, etc.); other Bash commands follow default rules | You trust Claude's edits and want faster iteration, such as during prototyping or when working in an isolated directory |"
+   ],
+   "http_status": 200,
+   "id": "E-claude-code-00184",
+   "locator": {
+    "heading": "Permission mode",
+    "raw_line_end": 235,
+    "raw_line_start": 235
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "| `\"plan\"` | Claude explores and plans without editing your source files; file edits are never auto-approved and prompt through your `canUseTool` callback | You want Claude to propose changes without executing them, such as during code review or when you need to approve changes before they're made |",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "74dd31bd6cdf75b1decb6487c32f2bafde9288806180361f54a0636124e33ad8",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/agent-sdk/agent-loop.md",
+   "url_effective": "https://code.claude.com/docs/en/agent-sdk/agent-loop.md",
+   "version_source": null
+  },
+  {
+   "bytes": 40168,
+   "context_after": [
+    "| `\"bypassPermissions\"` | Runs all allowed tools without asking, except tools matched by an explicit [`ask` rule](/docs/en/settings-reference#permission-settings), connector tools [your organization set to `ask`](/docs/en/mcp#organization-controls-on-connector-tools), and tools that require user int",
+    ""
+   ],
+   "context_before": [
+    "| `\"plan\"` | Claude explores and plans without editing your source files; file edits are never auto-approved and prompt through your `canUseTool` callback | You want Claude to propose changes without executing them, such as during code review or when you need to approve changes before they're made |",
+    "| `\"dontAsk\"` | Never prompts. Tools pre-approved by [permission rules](/docs/en/settings-reference#permission-settings) run, and so do calls that need no approval in `default` mode, such as file reads inside your working directories; every call that would otherwise prompt is denied. `AskUserQuestio"
+   ],
+   "http_status": 200,
+   "id": "E-claude-code-00186",
+   "locator": {
+    "heading": "Permission mode",
+    "raw_line_end": 237,
+    "raw_line_start": 237
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "| `\"auto\"` | Uses a model classifier to review actions such as shell commands and network requests, allowing or blocking each one it reviews. See [Auto mode](/docs/en/permission-modes#eliminate-prompts-with-auto-mode) for availability and the decision order | Autonomous agents that still want safety",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "74dd31bd6cdf75b1decb6487c32f2bafde9288806180361f54a0636124e33ad8",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/agent-sdk/agent-loop.md",
+   "url_effective": "https://code.claude.com/docs/en/agent-sdk/agent-loop.md",
+   "version_source": null
+  },
+  {
+   "bytes": 40168,
+   "context_after": [
+    "",
+    "For interactive applications, use `\"default\"` with a tool approval callback to surface approval prompts. For autonomous agents on a dev machine, `\"acceptEdits\"` auto-approves file edits and common filesystem commands (`mkdir`, `touch`, `mv`, `cp`, etc.) while still gating other `Bash` commands behin"
+   ],
+   "context_before": [
+    "| `\"dontAsk\"` | Never prompts. Tools pre-approved by [permission rules](/docs/en/settings-reference#permission-settings) run, and so do calls that need no approval in `default` mode, such as file reads inside your working directories; every call that would otherwise prompt is denied. `AskUserQuestio",
+    "| `\"auto\"` | Uses a model classifier to review actions such as shell commands and network requests, allowing or blocking each one it reviews. See [Auto mode](/docs/en/permission-modes#eliminate-prompts-with-auto-mode) for availability and the decision order | Autonomous agents that still want safety"
+   ],
+   "http_status": 200,
+   "id": "E-claude-code-00187",
+   "locator": {
+    "heading": "Permission mode",
+    "raw_line_end": 238,
+    "raw_line_start": 238
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "| `\"bypassPermissions\"` | Runs all allowed tools without asking, except tools matched by an explicit [`ask` rule](/docs/en/settings-reference#permission-settings), connector tools [your organization set to `ask`](/docs/en/mcp#organization-controls-on-connector-tools), and tools that require user",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "74dd31bd6cdf75b1decb6487c32f2bafde9288806180361f54a0636124e33ad8",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/agent-sdk/agent-loop.md",
+   "url_effective": "https://code.claude.com/docs/en/agent-sdk/agent-loop.md",
+   "version_source": null
+  },
+  {
+   "bytes": 17673,
+   "context_after": [
+    "",
+    "In either language, the option accepts a single model or a comma-separated list of backups. For the order and the chain cap, see [Fallback model chains](/docs/en/model-config#fallback-model-chains). In TypeScript, a fallback equal to `model` throws an error at startup."
+   ],
+   "context_before": [
+    "Unless the `model` option, your settings, or your environment selects a model, a new session starts on [Claude Code's default model](/docs/en/model-config#default-model-setting). For the order of those sources, see [Setting your model](/docs/en/model-config#setting-your-model). Set `model` to pin a ",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-claude-code-00284",
+   "locator": {
+    "heading": "Choose a model",
+    "raw_line_end": 82,
+    "raw_line_start": 82
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "Set `fallbackModel` (TypeScript) or `fallback_model` (Python) to name a backup model. When the primary is overloaded or unavailable, the session switches to the backup. The primary is retried at the start of each user turn, so the session returns to it once the outage passes.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "3825f95dc2ea2e25da2d1a33fac37f5f85bbd0b837871f5015e8b0d233d650b7",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/agent-sdk/configuration.md",
+   "url_effective": "https://code.claude.com/docs/en/agent-sdk/configuration.md",
+   "version_source": null
+  },
+  {
+   "bytes": 17673,
+   "context_after": [
+    "",
+    "The example below runs a two-turn session, changes the configuration between the turns, and prints the model that answered each turn. In TypeScript, the prompt stream holds the second message until the setters have run, and the second turn runs on the new model."
+   ],
+   "context_before": [
+    "* **`updateSettings()`**: writes one allowlisted key to a settings file. The [`updateSettings()` reference](/docs/en/agent-sdk/typescript#updatesettings) names the key each source accepts and the version floors.",
+    "  * Pass `\"localSettings\"` to write the project's local settings file, as in `await session.updateSettings(\"localSettings\", { outputStyle: \"Explanatory\" })`. The written key takes effect on the session's next request and persists for later sessions that load `local` settings."
+   ],
+   "http_status": 200,
+   "id": "E-claude-code-00291",
+   "locator": {
+    "heading": "Change configuration mid-session",
+    "raw_line_end": 180,
+    "raw_line_start": 180
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "  * Pass `\"userSettings\"` to write `effortLevel`, the only key that source accepts. Claude Code saves it as the default effort level for the session's current model, and the running session's effort doesn't change.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "3825f95dc2ea2e25da2d1a33fac37f5f85bbd0b837871f5015e8b0d233d650b7",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/agent-sdk/configuration.md",
+   "url_effective": "https://code.claude.com/docs/en/agent-sdk/configuration.md",
+   "version_source": null
+  },
+  {
+   "bytes": 45507,
+   "context_after": [
+    "| `SessionStart` | No | Yes | Session initialization | Initialize logging and telemetry |",
+    "| `SessionEnd` | No | Yes | Session termination | Clean up temporary resources |"
+   ],
+   "context_before": [
+    "| [`PostModelSwitch`](/docs/en/hooks#postmodelswitch) | No | Yes | The session's model changes, including an automatic fallback | Give Claude model-specific guidance for the new model |",
+    "| `PermissionRequest` | Yes | Yes | A tool call needs a permission decision | Custom permission handling |"
+   ],
+   "http_status": 200,
+   "id": "E-claude-code-00342",
+   "locator": {
+    "heading": "Available hooks",
+    "raw_line_end": 165,
+    "raw_line_start": 165
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "| `PermissionDenied` | No | Yes | Auto mode denies a tool call, including denials without a classifier verdict | Log denials, or tell the model it may retry; Claude Code ignores `retry: true` for no-verdict denials. See [PermissionDenied](/docs/en/hooks#permissiondenied) |",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "374a68d5f25577467ef1a2128d7dbfc02aea941344ccd976dff3c1f61242c090",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/agent-sdk/hooks.md",
+   "url_effective": "https://code.claude.com/docs/en/agent-sdk/hooks.md",
+   "version_source": null
+  },
+  {
+   "bytes": 24509,
+   "context_after": [
+    "| No per-subagent wall-clock deadline | Cap each [subagent](/docs/en/agent-sdk/subagents) with `maxTurns` in its `AgentDefinition`. `CLAUDE_ASYNC_AGENT_STALL_TIMEOUT_MS` sets a stall watchdog that fires when a subagent stops producing output; it isn't a total-runtime deadline. |",
+    ""
+   ],
+   "context_before": [
+    "| No top-level session timeout | A session does not time out on its own. Set `maxTurns` in TypeScript or `max_turns` in Python to bound how many tool-use round trips the agent takes before stopping. |",
+    "| Memory growth over long sessions | Cap session length or recycle subprocesses periodically. See [Scaling and concurrency](#scaling-and-concurrency). |"
+   ],
+   "http_status": 200,
+   "id": "E-claude-code-00400",
+   "locator": {
+    "heading": "Known limitations",
+    "raw_line_end": 350,
+    "raw_line_start": 350
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "| Large parallel-subagent fanouts can hit rate limits | Break work into smaller batches rather than issuing one wide dispatch. |",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "b4cb853b97732c685c09be29f50a2b0592b68b3cb1f2468c03a26fe05e90e1a2",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/agent-sdk/hosting.md",
+   "url_effective": "https://code.claude.com/docs/en/agent-sdk/hosting.md",
+   "version_source": null
+  },
+  {
+   "bytes": 38028,
+   "context_after": [
+    "</Note>",
+    ""
+   ],
+   "context_before": [
+    "",
+    "<Note>"
+   ],
+   "http_status": 200,
+   "id": "E-claude-code-00406",
+   "locator": {
+    "heading": "Auto-approve with allowedTools",
+    "raw_line_end": 220,
+    "raw_line_start": 220
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "**Prefer `allowedTools` over permission modes for MCP access.** `permissionMode: \"acceptEdits\"` does not auto-approve MCP tools (only file edits and filesystem Bash commands). `permissionMode: \"bypassPermissions\"` does auto-approve MCP tools but also disables most other safety prompts, which is",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "42df4a29a069fc45aaaa8c2d8b8871c597110d50b18b673c7b63426923cb39fc",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/agent-sdk/mcp.md",
+   "url_effective": "https://code.claude.com/docs/en/agent-sdk/mcp.md",
+   "version_source": null
+  },
+  {
+   "bytes": 35249,
+   "context_after": [
+    "</Note>",
+    ""
+   ],
+   "context_before": [
+    "",
+    "<Note>"
+   ],
+   "http_status": 200,
+   "id": "E-claude-code-00417",
+   "locator": {
+    "heading": "Cache the static part of a custom prompt",
+    "raw_line_end": 336,
+    "raw_line_start": 336
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "Claude Code splits the prompt only when it calls the Claude API directly or runs on [Claude Platform on AWS](/docs/en/claude-platform-on-aws). In every other configuration, such as Amazon Bedrock, Google Cloud's Agent Platform, Microsoft Foundry, or an [LLM gateway](/docs/en/llm-gateway-connect),",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "d0d2e72c78c6e7c6bc058498155c9bd74228e871a9ce052f504d886e26fc18c2",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/agent-sdk/modifying-system-prompts.md",
+   "url_effective": "https://code.claude.com/docs/en/agent-sdk/modifying-system-prompts.md",
+   "version_source": null
+  },
+  {
+   "bytes": 24453,
+   "context_after": [
+    "  </Step>",
+    ""
+   ],
+   "context_before": [
+    "",
+    "  <Step title=\"Deny rules\">"
+   ],
+   "http_status": 200,
+   "id": "E-claude-code-00436",
+   "locator": {
+    "heading": "How permissions are evaluated",
+    "raw_line_end": 21,
+    "raw_line_start": 21
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "`deny` rules (from `disallowed_tools` and [settings.json](/docs/en/settings-reference#permission-settings)). If a deny rule matches, the tool is blocked, even in `bypassPermissions` mode. Bare-name deny rules like `Bash` remove the tool from Claude's context before this evaluation begins, so only",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "ebe15d4c985593c7fcc34f3906eb1f6fd88e764de9aa912ed30343a71e8273a4",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/agent-sdk/permissions.md",
+   "url_effective": "https://code.claude.com/docs/en/agent-sdk/permissions.md",
+   "version_source": null
+  },
+  {
+   "bytes": 24453,
+   "context_after": [
+    "",
+    "    [claude.ai connector](/docs/en/mcp#organization-controls-on-connector-tools) tools your organization has set to `ask` also leave the flow at this step. Every call falls through to the callback, even in `bypassPermissions` mode and even when an allow rule matches. The callback receives the reason"
+   ],
+   "context_before": [
+    "    Check `ask` rules from [settings.json](/docs/en/settings-reference#permission-settings). If an ask rule matches, the call falls through to your [`canUseTool` callback](/docs/en/agent-sdk/user-input) for confirmation, even in `bypassPermissions` mode.",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-claude-code-00438",
+   "locator": {
+    "heading": "How permissions are evaluated",
+    "raw_line_end": 27,
+    "raw_line_start": 27
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "always fall through to the callback, even when an allow rule matches. In `dontAsk` mode both cases are denied instead, because that mode never prompts. The MCP annotation requires Claude Code v2.1.199 or later.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "ebe15d4c985593c7fcc34f3906eb1f6fd88e764de9aa912ed30343a71e8273a4",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/agent-sdk/permissions.md",
+   "url_effective": "https://code.claude.com/docs/en/agent-sdk/permissions.md",
+   "version_source": null
+  },
+  {
+   "bytes": 24453,
+   "context_after": [
+    "    * In other modes, the request falls through.",
+    "  </Step>"
+   ],
+   "context_before": [
+    "    * In `bypassPermissions` mode, Claude Code approves everything that reaches this step except `rm` and `rmdir` removals targeting a [critical path](/docs/en/permission-modes#critical-paths), which fall through instead.",
+    "    * In `acceptEdits` mode, Claude Code approves the file operations listed under [Accept edits mode](#accept-edits-mode-acceptedits)."
+   ],
+   "http_status": 200,
+   "id": "E-claude-code-00442",
+   "locator": {
+    "heading": "How permissions are evaluated",
+    "raw_line_end": 37,
+    "raw_line_start": 37
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "    * In `plan` mode, Claude Code sends file-edit and shell-write tools to your `canUseTool` callback regardless of allow rules, so write operations can't be auto-approved while planning.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "ebe15d4c985593c7fcc34f3906eb1f6fd88e764de9aa912ed30343a71e8273a4",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/agent-sdk/permissions.md",
+   "url_effective": "https://code.claude.com/docs/en/agent-sdk/permissions.md",
+   "version_source": null
+  },
+  {
+   "bytes": 24453,
+   "context_after": [
+    "",
+    "If you don't set one, Claude Code picks the starting permission mode by the rules in [Which mode a session starts in](/docs/en/permission-modes#which-mode-a-session-starts-in):"
+   ],
+   "context_before": [
+    "## Permission modes",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-claude-code-00466",
+   "locator": {
+    "heading": "Permission modes",
+    "raw_line_end": 116,
+    "raw_line_start": 116
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "Permission modes provide global control over how Claude uses tools. You can set the permission mode when calling `query()` or change it dynamically during streaming sessions.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "ebe15d4c985593c7fcc34f3906eb1f6fd88e764de9aa912ed30343a71e8273a4",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/agent-sdk/permissions.md",
+   "url_effective": "https://code.claude.com/docs/en/agent-sdk/permissions.md",
+   "version_source": null
+  },
+  {
+   "bytes": 153076,
+   "context_after": [
+    "| `set_model(model)` | Change the model for the current session. Pass `None` to reset to [Claude Code's default model](/docs/en/model-config) |",
+    "| `rewind_files(user_message_id)` | Restore files to their state at the specified user message. Requires `enable_file_checkpointing=True`. See [File checkpointing](/docs/en/agent-sdk/file-checkpointing) |"
+   ],
+   "context_before": [
+    "| `receive_response()` | Receive messages until and including a ResultMessage |",
+    "| `interrupt()` | Send interrupt signal (only works in streaming mode) |"
+   ],
+   "http_status": 200,
+   "id": "E-claude-code-00511",
+   "locator": {
+    "heading": "Methods",
+    "raw_line_end": 466,
+    "raw_line_start": 466
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "| `set_permission_mode(mode)` | Change the permission mode for the current session |",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "a8c7c841896a18ce5edd00c4c83c4bb613f8a86f6e3a3b778da30cb44b8b4262",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/agent-sdk/python.md",
+   "url_effective": "https://code.claude.com/docs/en/agent-sdk/python.md",
+   "version_source": null
+  },
+  {
+   "bytes": 153076,
+   "context_after": [
+    "| `get_server_info()` | Get the server's initialization info, including available commands and output styles |",
+    "| `disconnect()` | Disconnect from Claude |"
+   ],
+   "context_before": [
+    "| `reconnect_mcp_server(server_name)` | Retry connecting to an MCP server that failed or was disconnected |",
+    "| `toggle_mcp_server(server_name, enabled)` | Enable or disable an MCP server mid-session. Disabling a stdio, SSE, or HTTP server removes its tools |"
+   ],
+   "http_status": 200,
+   "id": "E-claude-code-00518",
+   "locator": {
+    "heading": "Methods",
+    "raw_line_end": 473,
+    "raw_line_start": 473
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "| `stop_task(task_id)` | Stop a running background task. A [`TaskNotificationMessage`](#tasknotificationmessage) with status `\"stopped\"` follows in the message stream |",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "a8c7c841896a18ce5edd00c4c83c4bb613f8a86f6e3a3b778da30cb44b8b4262",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/agent-sdk/python.md",
+   "url_effective": "https://code.claude.com/docs/en/agent-sdk/python.md",
+   "version_source": null
+  },
+  {
+   "bytes": 153076,
+   "context_after": [
+    "| `fallback_model` | `str \\| None` | `None` | Fallback model to use if the primary model fails. Accepts a comma-separated list. For guidance, see [Choose a model](/docs/en/agent-sdk/configuration#choose-a-model) |",
+    "| `betas` | `list[SdkBeta]` | `[]` | Beta features to enable. See [`SdkBeta`](#sdkbeta) for available options |"
+   ],
+   "context_before": [
+    "| `disallowed_tools` | `list[str]` | `[]` | Tools to deny. A bare name such as `\"Bash\"` removes the tool from Claude's context. A scoped rule such as `\"Bash(rm *)\"` leaves the tool available and denies matching calls in every permission mode, including `bypassPermissions`, for the command [as writte",
+    "| `enable_file_checkpointing` | `bool` | `False` | Enable file change tracking for rewinding. See [File checkpointing](/docs/en/agent-sdk/file-checkpointing) |"
+   ],
+   "http_status": 200,
+   "id": "E-claude-code-00541",
+   "locator": {
+    "heading": "`ClaudeAgentOptions`",
+    "raw_line_end": 819,
+    "raw_line_start": 819
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "| `model` | `str \\| None` | `None` | Claude model alias or full model name. See [accepted values and provider-specific IDs](/docs/en/model-config#available-models) |",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "a8c7c841896a18ce5edd00c4c83c4bb613f8a86f6e3a3b778da30cb44b8b4262",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/agent-sdk/python.md",
+   "url_effective": "https://code.claude.com/docs/en/agent-sdk/python.md",
+   "version_source": null
+  },
+  {
+   "bytes": 153076,
+   "context_after": [
+    "| `skills` | No | List of skill names to preload into the agent's context at startup. Unlisted skills remain invocable through the Skill tool |",
+    "| `memory` | No | Memory source for this agent: `\"user\"`, `\"project\"`, or `\"local\"` |"
+   ],
+   "context_before": [
+    "| `tools` | No | Array of allowed tool names. If omitted, inherits every [tool available to subagents](/docs/en/sub-agents#available-tools) |",
+    "| `disallowedTools` | No | Array of tool names to remove from the agent's tool set. MCP server-level patterns are also accepted: `mcp__server` or `mcp__server__*` removes every tool from that server, and `mcp__*` removes every MCP tool from any server |"
+   ],
+   "http_status": 200,
+   "id": "E-claude-code-00602",
+   "locator": {
+    "heading": "`AgentDefinition`",
+    "raw_line_end": 1086,
+    "raw_line_start": 1086
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "| `model` | No | Model override for this agent. Accepts an alias such as `\"sonnet\"`, `\"opus\"`, `\"haiku\"`, or `\"inherit\"`, or a full model ID. When you omit it, Claude Code picks the model in the [subagent model order](/docs/en/sub-agents#choose-a-model) |",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "a8c7c841896a18ce5edd00c4c83c4bb613f8a86f6e3a3b778da30cb44b8b4262",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/agent-sdk/python.md",
+   "url_effective": "https://code.claude.com/docs/en/agent-sdk/python.md",
+   "version_source": null
+  },
+  {
+   "bytes": 153076,
+   "context_after": [
+    "    \"auto\",  # A model classifier reviews actions such as shell commands and network requests",
+    "]"
+   ],
+   "context_before": [
+    "    \"plan\",  # Planning mode - explore without editing",
+    "    \"dontAsk\",  # Deny anything not pre-approved instead of prompting"
+   ],
+   "http_status": 200,
+   "id": "E-claude-code-00615",
+   "locator": {
+    "heading": "`PermissionMode`",
+    "raw_line_end": 1110,
+    "raw_line_start": 1110
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "    \"bypassPermissions\",  # Bypass permission checks; explicit ask rules still prompt (use with caution)",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "a8c7c841896a18ce5edd00c4c83c4bb613f8a86f6e3a3b778da30cb44b8b4262",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/agent-sdk/python.md",
+   "url_effective": "https://code.claude.com/docs/en/agent-sdk/python.md",
+   "version_source": null
+  },
+  {
+   "bytes": 153076,
+   "context_after": [
+    "    \"max\",  # Maximum effort",
+    "]"
+   ],
+   "context_before": [
+    "    \"medium\",  # Moderate thinking",
+    "    \"high\",  # Deep reasoning"
+   ],
+   "http_status": 200,
+   "id": "E-claude-code-00619",
+   "locator": {
+    "heading": "`EffortLevel`",
+    "raw_line_end": 1124,
+    "raw_line_start": 1124
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "    \"xhigh\",  # Extended reasoning; falls back to \"high\" on models that don't support it",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "a8c7c841896a18ce5edd00c4c83c4bb613f8a86f6e3a3b778da30cb44b8b4262",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/agent-sdk/python.md",
+   "url_effective": "https://code.claude.com/docs/en/agent-sdk/python.md",
+   "version_source": null
+  },
+  {
+   "bytes": 40647,
+   "context_after": [
+    "* **Specialized instructions and knowledge**: each subagent can have a tailored system prompt with specific expertise, best practices, and constraints. A `database-migration` subagent can have detailed knowledge about SQL best practices, rollback strategies, and data integrity checks that would be u",
+    "* **Tool restrictions**: subagents can be limited to specific tools, reducing the risk of unintended actions. A `doc-reviewer` subagent might only have access to Read and Grep tools, ensuring it can analyze but never accidentally modify your documentation files."
+   ],
+   "context_before": [
+    "",
+    "* **Context isolation**: each subagent runs in its own conversation, which starts fresh unless the subagent is a [fork](/docs/en/sub-agents#fork-the-current-conversation). Either way, intermediate tool calls and results stay inside the subagent; only its final message returns to the parent. A `resea"
+   ],
+   "http_status": 200,
+   "id": "E-claude-code-00817",
+   "locator": {
+    "heading": "Benefits of using subagents",
+    "raw_line_end": 27,
+    "raw_line_start": 27
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "* **Parallelization**: multiple subagents can run concurrently, so independent subtasks finish in the time of the slowest one rather than the sum of all of them. During a code review, you can run `style-checker`, `security-scanner`, and `test-coverage` subagents simultaneously instead of",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "e4965cef4b484ff4c5b5542b8378fd875721a92d0547ac4ea82e57c7acd53382",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/agent-sdk/subagents.md",
+   "url_effective": "https://code.claude.com/docs/en/agent-sdk/subagents.md",
+   "version_source": null
+  },
+  {
+   "bytes": 40647,
+   "context_after": [
+    "| `skills` | `string[]` | No | List of skill names to preload into the agent's context at startup. Unlisted skills remain invocable through the Skill tool |",
+    "| `memory` | `'user' \\| 'project' \\| 'local'` | No | Memory source for this agent |"
+   ],
+   "context_before": [
+    "| `tools` | `string[]` | No | Array of allowed tool names. If omitted, inherits every [tool available to subagents](/docs/en/sub-agents#available-tools) |",
+    "| `disallowedTools` | `string[]` | No | Array of tool names to remove from the agent's tool set. MCP server-level patterns are also accepted: `mcp__server` or `mcp__server__*` removes every tool from that server, and `mcp__*` removes every MCP tool from any server |"
+   ],
+   "http_status": 200,
+   "id": "E-claude-code-00825",
+   "locator": {
+    "heading": "AgentDefinition configuration",
+    "raw_line_end": 151,
+    "raw_line_start": 151
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "| `model` | `string` | No | Model override for this agent. Accepts an alias such as `'fable'`, `'opus'`, `'sonnet'`, `'haiku'`, `'inherit'`, or a full model ID. `'inherit'` uses the main model. When you omit it, Claude Code picks the model in the [subagent model",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "e4965cef4b484ff4c5b5542b8378fd875721a92d0547ac4ea82e57c7acd53382",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/agent-sdk/subagents.md",
+   "url_effective": "https://code.claude.com/docs/en/agent-sdk/subagents.md",
+   "version_source": null
+  },
+  {
+   "bytes": 40647,
+   "context_after": [
+    "| `skills` | `string[]` | No | List of skill names to preload into the agent's context at startup. Unlisted skills remain invocable through the Skill tool |",
+    "| `memory` | `'user' \\| 'project' \\| 'local'` | No | Memory source for this agent |"
+   ],
+   "context_before": [
+    "| `tools` | `string[]` | No | Array of allowed tool names. If omitted, inherits every [tool available to subagents](/docs/en/sub-agents#available-tools) |",
+    "| `disallowedTools` | `string[]` | No | Array of tool names to remove from the agent's tool set. MCP server-level patterns are also accepted: `mcp__server` or `mcp__server__*` removes every tool from that server, and `mcp__*` removes every MCP tool from any server |"
+   ],
+   "http_status": 200,
+   "id": "E-claude-code-00826",
+   "locator": {
+    "heading": "AgentDefinition configuration",
+    "raw_line_end": 151,
+    "raw_line_start": 151
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "| `string` | No | Model override for this agent. Accepts an alias such as `'fable'`, `'opus'`, `'sonnet'`, `'haiku'`, `'inherit'`, or a full model ID. `'inherit'` uses the main model. When you omit it, Claude Code picks the model in the [subagent model order](/docs/en/sub-agents#choose-a-model) |",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "e4965cef4b484ff4c5b5542b8378fd875721a92d0547ac4ea82e57c7acd53382",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/agent-sdk/subagents.md",
+   "url_effective": "https://code.claude.com/docs/en/agent-sdk/subagents.md",
+   "version_source": null
+  },
+  {
+   "bytes": 40647,
+   "context_after": [
+    "| `omitClaudeMd` | `boolean` | No | Run this agent without the user, project, and local CLAUDE.md files when it runs as a subagent; managed policy files still load. Ignored when the agent runs as the main thread agent. Requires TypeScript Agent SDK v0.3.271 or later. The Python SDK's [`AgentDefiniti",
+    "| `effort` | `'low' \\| 'medium' \\| 'high' \\| 'xhigh' \\| 'max' \\| number` | No | Reasoning effort level for this agent |"
+   ],
+   "context_before": [
+    "| `initialPrompt` | `string` | No | Auto-submitted as the first user turn when this agent runs as the main thread agent. Ignored when the agent is invoked as a subagent |",
+    "| `maxTurns` | `number` | No | Maximum number of agentic turns before the agent stops. When the agent reaches the limit, Claude Code returns its output marked as partial, and you can [resume the agent](#resume-subagents) to continue. The partial marking requires Claude Code v2.1.246 or later |"
+   ],
+   "http_status": 200,
+   "id": "E-claude-code-00832",
+   "locator": {
+    "heading": "AgentDefinition configuration",
+    "raw_line_end": 157,
+    "raw_line_start": 157
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "| `background` | `boolean` | No | Run this agent as a non-blocking background task when invoked |",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "e4965cef4b484ff4c5b5542b8378fd875721a92d0547ac4ea82e57c7acd53382",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/agent-sdk/subagents.md",
+   "url_effective": "https://code.claude.com/docs/en/agent-sdk/subagents.md",
+   "version_source": null
+  },
+  {
+   "bytes": 40647,
+   "context_after": [
+    "| `permissionMode` | `PermissionMode` | No | Permission mode for tool execution within this agent. The [subagent inheritance rules](/docs/en/agent-sdk/permissions#available-modes) decide when it applies |",
+    ""
+   ],
+   "context_before": [
+    "| `background` | `boolean` | No | Run this agent as a non-blocking background task when invoked |",
+    "| `omitClaudeMd` | `boolean` | No | Run this agent without the user, project, and local CLAUDE.md files when it runs as a subagent; managed policy files still load. Ignored when the agent runs as the main thread agent. Requires TypeScript Agent SDK v0.3.271 or later. The Python SDK's [`AgentDefiniti"
+   ],
+   "http_status": 200,
+   "id": "E-claude-code-00834",
+   "locator": {
+    "heading": "AgentDefinition configuration",
+    "raw_line_end": 159,
+    "raw_line_start": 159
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "| `effort` | `'low' \\| 'medium' \\| 'high' \\| 'xhigh' \\| 'max' \\| number` | No | Reasoning effort level for this agent |",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "e4965cef4b484ff4c5b5542b8378fd875721a92d0547ac4ea82e57c7acd53382",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/agent-sdk/subagents.md",
+   "url_effective": "https://code.claude.com/docs/en/agent-sdk/subagents.md",
+   "version_source": null
+  },
+  {
+   "bytes": 40647,
+   "context_after": [
+    "",
+    "### Filesystem-based definition (alternative)"
+   ],
+   "context_before": [
+    "Subagents run in the background by default. An Agent tool call that omits the [`run_in_background`](/docs/en/sub-agents#run-subagents-in-foreground-or-background) input launches a background subagent, and Claude sets `run_in_background: false` when it needs the result before continuing. Set the `bac",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-claude-code-00839",
+   "locator": {
+    "heading": "AgentDefinition configuration",
+    "raw_line_end": 166,
+    "raw_line_start": 166
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "Subagents can also spawn subagents of their own. To limit how deep that nesting goes, how many subagents run at once, and how much a query spends, see [Cap subagent depth, concurrency, and spend](#cap-subagent-depth-concurrency-and-spend).",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "e4965cef4b484ff4c5b5542b8378fd875721a92d0547ac4ea82e57c7acd53382",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/agent-sdk/subagents.md",
+   "url_effective": "https://code.claude.com/docs/en/agent-sdk/subagents.md",
+   "version_source": null
+  },
+  {
+   "bytes": 19339,
+   "context_after": [
+    "",
+    "  * `TodoWrite`"
+   ],
+   "context_before": [
+    "",
+    "<Note>"
+   ],
+   "http_status": 200,
+   "id": "E-claude-code-00893",
+   "locator": {
+    "heading": "Model availability",
+    "raw_line_end": 16,
+    "raw_line_start": 16
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "  The following tools are available by default only on Claude 3.x models, Opus 4 through 4.7, Sonnet 4 through 4.6, and Haiku 4.5. On every other model, including model IDs Claude Code doesn't recognize, they aren't available unless you opt in:",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "62c37c4a0e0c113eb21600c9b532e06be7349b7611996dfe9bc09ca01b83e69f",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/agent-sdk/todo-tracking.md",
+   "url_effective": "https://code.claude.com/docs/en/agent-sdk/todo-tracking.md",
+   "version_source": null
+  },
+  {
+   "bytes": 19339,
+   "context_after": [
+    "</Note>",
+    ""
+   ],
+   "context_before": [
+    "",
+    "<Note>"
+   ],
+   "http_status": 200,
+   "id": "E-claude-code-00904",
+   "locator": {
+    "heading": "Examples",
+    "raw_line_end": 64,
+    "raw_line_start": 64
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "(TypeScript) or [`TaskNotificationMessage`](/docs/en/agent-sdk/python#tasknotificationmessage) (Python) among them, report background tasks such as backgrounded commands and subagents. In the message stream, you see todo activity as `tool_use` blocks in the assistant messages.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "62c37c4a0e0c113eb21600c9b532e06be7349b7611996dfe9bc09ca01b83e69f",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/agent-sdk/todo-tracking.md",
+   "url_effective": "https://code.claude.com/docs/en/agent-sdk/todo-tracking.md",
+   "version_source": null
+  },
+  {
+   "bytes": 275093,
+   "context_after": [
+    "",
+    "#### Example"
+   ],
+   "context_before": [
+    "| `message` | `unknown` | Raw message payload from the transcript |",
+    "| `parent_tool_use_id` | `string \\| null` | For subagent messages, the `tool_use_id` of the `Agent` or `Skill` tool call that started the subagent. `null` for main-session messages and older sessions |"
+   ],
+   "http_status": 200,
+   "id": "E-claude-code-00935",
+   "locator": {
+    "heading": "Return type: `SessionMessage`",
+    "raw_line_end": 319,
+    "raw_line_start": 319
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "| `string \\| null` | For messages from a [nested subagent](/docs/en/sub-agents#let-subagents-spawn-their-own-subagents), the `agentId` of the subagent that spawned it. `null` for main-session messages, messages from top-level subagents, and older sessions. Requires Claude Code v2.1.202 or later |",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "ace8fbe297f55481fd970510727059e9946e8742ae86e33f4737ce59f3ec9c50",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/agent-sdk/typescript.md",
+   "url_effective": "https://code.claude.com/docs/en/agent-sdk/typescript.md",
+   "version_source": null
+  },
+  {
+   "bytes": 275093,
+   "context_after": [
+    "| `forkSession` | `boolean` | `false` | When resuming with `resume`, fork to a new session ID instead of continuing the original session |",
+    "| `forwardSubagentText` | `boolean` | `false` | Forward subagent text and thinking blocks as assistant and user messages with `parent_tool_use_id` set, so consumers can render a nested transcript. Without this option, Claude Code emits subagent `tool_use` and `tool_result` blocks but not text or thi"
+   ],
+   "context_before": [
+    "| `executableArgs` | `string[]` | `[]` | Arguments to pass to the executable |",
+    "| `extraArgs` | `Record<string, string \\| null>` | `{}` | Additional arguments |"
+   ],
+   "http_status": 200,
+   "id": "E-claude-code-00965",
+   "locator": {
+    "heading": "`Options`",
+    "raw_line_end": 485,
+    "raw_line_start": 485
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "| `fallbackModel` | `string` | `undefined` | Model to use if the primary model fails. Accepts a comma-separated list. For the order and the cap, see [Fallback model chains](/docs/en/model-config#fallback-model-chains). For guidance, see [Choose a",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "ace8fbe297f55481fd970510727059e9946e8742ae86e33f4737ce59f3ec9c50",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/agent-sdk/typescript.md",
+   "url_effective": "https://code.claude.com/docs/en/agent-sdk/typescript.md",
+   "version_source": null
+  },
+  {
+   "bytes": 275093,
+   "context_after": [
+    "| `plugins` | [`SdkPluginConfig`](#sdkpluginconfig)`[]` | `[]` | Load custom plugins from local paths. See [Plugins](/docs/en/agent-sdk/plugins) for details |",
+    "| `projectConfigRoot` | `string` | `undefined` | Absolute path of the trusted checkout that `cwd` is a worktree of. Claude Code reads project settings, `.mcp.json`, and the project's `.claude/` commands, agents, skills, workflows, routines, and output styles from this directory instead of `cwd`, and"
+   ],
+   "context_before": [
+    "| `permissionPrompts` | `'host' \\| 'none'` | `'host'` | Who answers permission prompts: `'host'` routes them to your [`canUseTool`](#canusetool) callback or the `permissionPromptToolName` tool, and `'none'` [denies the calls that would have prompted](/docs/en/agent-sdk/permissions#how-permissions-ar",
+    "| `persistSession` | `boolean` | `true` | When `false`, disables session persistence to disk. Sessions cannot be resumed later |"
+   ],
+   "http_status": 200,
+   "id": "E-claude-code-00988",
+   "locator": {
+    "heading": "`Options`",
+    "raw_line_end": 506,
+    "raw_line_start": 506
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "| `planModeInstructions` | `string` | `undefined` | Custom workflow instructions for plan mode. When `permissionMode` is `'plan'`, this string replaces the default plan-mode workflow body. The CLI still wraps it with the read-only enforcement preamble and the ExitPlanMode protocol footer |",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "ace8fbe297f55481fd970510727059e9946e8742ae86e33f4737ce59f3ec9c50",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/agent-sdk/typescript.md",
+   "url_effective": "https://code.claude.com/docs/en/agent-sdk/typescript.md",
+   "version_source": null
+  },
+  {
+   "bytes": 275093,
+   "context_after": [
+    "",
+    "| Field | Type | Description |"
+   ],
+   "context_before": [
+    "```",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-claude-code-01274",
+   "locator": {
+    "heading": "Workflow",
+    "raw_line_end": 3138,
+    "raw_line_start": 3138
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "Runs a [dynamic workflow](/docs/en/workflows): a script that orchestrates many subagents in the background and returns one consolidated result. The `Workflow` tool is available in Agent SDK v0.3.149 and later. At least one of `script`, `name`, or `scriptPath` is required.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "ace8fbe297f55481fd970510727059e9946e8742ae86e33f4737ce59f3ec9c50",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/agent-sdk/typescript.md",
+   "url_effective": "https://code.claude.com/docs/en/agent-sdk/typescript.md",
+   "version_source": null
+  },
+  {
+   "bytes": 40197,
+   "context_after": [
+    "",
+    "A teammate's model and fast mode are fixed when it spawns."
+   ],
+   "context_before": [
+    "",
+    "* `/compact`, `/clear`, and `/rewind` act on the lead's conversation, so Claude Code asks you to confirm before running one of them from this view."
+   ],
+   "http_status": 200,
+   "id": "E-claude-code-01517",
+   "locator": {
+    "heading": "Talk to teammates directly",
+    "raw_line_end": 183,
+    "raw_line_start": 183
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "* `/model` and `/fast` set the lead's model and fast mode, not the teammate's, so they don't run from this view. A notice tells you why.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "a2ed185b716d2550240752d988bfd1875cb2cad3f803be3a795f14054f3c0549",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/agent-teams.md",
+   "url_effective": "https://code.claude.com/docs/en/agent-teams.md",
+   "version_source": null
+  },
+  {
+   "bytes": 133465,
+   "context_after": [
+    "",
+    "<Steps>"
+   ],
+   "context_before": [
+    "## Quick start",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-claude-code-01587",
+   "locator": {
+    "heading": "Quick start",
+    "raw_line_end": 27,
+    "raw_line_start": 27
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "This walkthrough covers the core agent view loop: dispatch a task, watch its row update as Claude works, peek to check on it and reply, and attach for the full conversation. The session you dispatch keeps running after you close agent view, so you can leave and come back to it.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "21576091eec2a5b4dff3d72232f51eac35d0367353dbc3f8d3f8ac5ecb8bc9c7",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/agent-view.md",
+   "url_effective": "https://code.claude.com/docs/en/agent-view.md",
+   "version_source": null
+  },
+  {
+   "bytes": 133465,
+   "context_after": [
+    "",
+    "#### Dispatch defaults"
+   ],
+   "context_before": [
+    "When Claude Code refuses a source's mode as too permissive, the next source in the list decides. For example, if you dispatch from a plan-mode session into a directory whose checked-in settings ask for `acceptEdits`, the new session starts in plan mode. If you move that `defaultMode` to `~/.claude/s",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-claude-code-01762",
+   "locator": {
+    "heading": "Permission mode",
+    "raw_line_end": 683,
+    "raw_line_start": 683
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "Permissiveness runs plan, then Manual and `dontAsk`, then `acceptEdits` and auto, which each count as more permissive than the other, then `bypassPermissions`.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "21576091eec2a5b4dff3d72232f51eac35d0367353dbc3f8d3f8ac5ecb8bc9c7",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/agent-view.md",
+   "url_effective": "https://code.claude.com/docs/en/agent-view.md",
+   "version_source": null
+  },
+  {
+   "bytes": 133465,
+   "context_after": [
+    "",
+    "### Where state is stored"
+   ],
+   "context_before": [
+    "When a session's process stops or restarts, the background shell commands, dynamic workflows, and background subagents Claude started in it carry over to its next process; running monitors and shell commands a subagent started stop with the process. Deleting the session stops everything it carried o",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-claude-code-01818",
+   "locator": {
+    "heading": "The supervisor process",
+    "raw_line_end": 811,
+    "raw_line_start": 811
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "The supervisor and its sessions authenticate with the same stored credentials as your interactive sessions. For which settings and shell variables reach a session, including `PATH`, see [Settings and provider](#settings-and-provider). For gateway endpoints, see [LLM gateway](#llm-gateway).",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "21576091eec2a5b4dff3d72232f51eac35d0367353dbc3f8d3f8ac5ecb8bc9c7",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/agent-view.md",
+   "url_effective": "https://code.claude.com/docs/en/agent-view.md",
+   "version_source": null
+  },
+  {
+   "bytes": 8288,
+   "context_after": [
+    "",
+    "| Approach | What it gives you | Use it when |"
+   ],
+   "context_before": [
+    "> Compare the ways Claude Code can take on multiple tasks at once: subagents, agent view, agent teams, dynamic workflows, and projects.",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-claude-code-01954",
+   "locator": {
+    "heading": "Run agents in parallel",
+    "raw_line_end": 9,
+    "raw_line_start": 9
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "Claude Code has five ways to work on several tasks at once: [subagents](/docs/en/sub-agents), [agent view](/docs/en/agent-view), [agent teams](/docs/en/agent-teams), [dynamic workflows](/docs/en/workflows), and [projects](/docs/en/claude-projects). They differ in how involved you stay, from steering",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "08921413654e592a59bb3a2755677cbcd0a9de5625d9359e4df3b99ec14a4bfd",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/agents.md",
+   "url_effective": "https://code.claude.com/docs/en/agents.md",
+   "version_source": null
+  },
+  {
+   "bytes": 46082,
+   "context_after": [
+    "  </Step>",
+    ""
+   ],
+   "context_before": [
+    "",
+    "  <Step title=\"Start Claude Code and choose Amazon Bedrock\">"
+   ],
+   "http_status": 200,
+   "id": "E-claude-code-01969",
+   "locator": {
+    "heading": "Sign in with Bedrock",
+    "raw_line_end": 102,
+    "raw_line_start": 102
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "Run `claude`. At the login prompt, select **3rd-party platform**, then **Amazon Bedrock**. If you're already signed in and see the chat prompt instead, run `/setup-bedrock` to open the wizard. Until `CLAUDE_CODE_USE_BEDROCK=1` is set, Claude Code [hides the command from the command",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "f70f86302d503ca7eec913f74fd2d78fc005758100bf6539dea40399b0d02982",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/amazon-bedrock.md",
+   "url_effective": "https://code.claude.com/docs/en/amazon-bedrock.md",
+   "version_source": null
+  },
+  {
+   "bytes": 46082,
+   "context_after": [
+    "",
+    "```bash theme={null}"
+   ],
+   "context_before": [
+    "Set these environment variables to specific Amazon Bedrock model IDs.",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-claude-code-01997",
+   "locator": {
+    "heading": "4. Pin model versions",
+    "raw_line_end": 272,
+    "raw_line_start": 272
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "Without `ANTHROPIC_DEFAULT_OPUS_MODEL`, the `opus` alias on Amazon Bedrock resolves to Opus 5.5, and without `ANTHROPIC_DEFAULT_SONNET_MODEL`, the `sonnet` alias resolves to Sonnet 4.5. This example pins each alias to a specific version:",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "f70f86302d503ca7eec913f74fd2d78fc005758100bf6539dea40399b0d02982",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/amazon-bedrock.md",
+   "url_effective": "https://code.claude.com/docs/en/amazon-bedrock.md",
+   "version_source": null
+  },
+  {
+   "bytes": 46082,
+   "context_after": [
+    "",
+    "This example maps four Opus versions to distinct ARNs so users can switch between them without bypassing your organization's inference profiles:"
+   ],
+   "context_before": [
+    "#### Map each model version to an inference profile",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-claude-code-02007",
+   "locator": {
+    "heading": "Map each model version to an inference profile",
+    "raw_line_end": 332,
+    "raw_line_start": 332
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "one inference profile per model family. If your organization needs to expose several versions of the same family in the `/model` picker, each routed to its own application inference profile ARN, use the `modelOverrides` setting in your [settings file](/docs/en/settings#where-settings-live) instead.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "f70f86302d503ca7eec913f74fd2d78fc005758100bf6539dea40399b0d02982",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/amazon-bedrock.md",
+   "url_effective": "https://code.claude.com/docs/en/amazon-bedrock.md",
+   "version_source": null
+  },
+  {
+   "bytes": 30831,
+   "context_after": [
+    "",
+    "<Note>"
+   ],
+   "context_before": [
+    "> Tell the auto mode classifier which repos, buckets, and domains your organization trusts. Set environment context, override the default block and allow rules, and inspect your effective config with the auto-mode CLI subcommands.",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-claude-code-02097",
+   "locator": {
+    "heading": "Configure auto mode",
+    "raw_line_end": 9,
+    "raw_line_start": 9
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "[Auto mode](/docs/en/permission-modes#eliminate-prompts-with-auto-mode) lets Claude Code run without routine permission prompts by routing tool calls through a classifier that blocks anything irreversible, destructive, or aimed outside your environment. Deny and explicit ask rules are evaluated",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "012057bef3bfdb529a32a26fa9eecc994cf498d6085750537f64ce32eb28792f",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/auto-mode-config.md",
+   "url_effective": "https://code.claude.com/docs/en/auto-mode-config.md",
+   "version_source": null
+  },
+  {
+   "bytes": 10794,
+   "context_after": [
+    "",
+    "**Option A: API key authentication**"
+   ],
+   "context_before": [
+    "### 2. Configure Azure credentials",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-claude-code-02169",
+   "locator": {
+    "heading": "2. Configure Azure credentials",
+    "raw_line_end": 111,
+    "raw_line_start": 111
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "Claude Code supports three authentication methods for Microsoft Foundry. Choose the method that best fits your security requirements.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "54dd25d91c98e8ac091f09a1ff68341985ecd750b6c024fff4d54513859b11c1",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/azure-ai-foundry.md",
+   "url_effective": "https://code.claude.com/docs/en/azure-ai-foundry.md",
+   "version_source": null
+  },
+  {
+   "bytes": 10794,
+   "context_after": [
+    "</Warning>",
+    ""
+   ],
+   "context_before": [
+    "",
+    "<Warning>"
+   ],
+   "http_status": 200,
+   "id": "E-claude-code-02177",
+   "locator": {
+    "heading": "4. Pin model versions",
+    "raw_line_end": 170,
+    "raw_line_start": 170
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "for Microsoft Foundry, which can lag the newest release and may not yet be available in your account. Microsoft Foundry has no startup model check, so requests fail when the default is unavailable. When you create Azure deployments, select a specific model version rather than \"auto-update to",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "54dd25d91c98e8ac091f09a1ff68341985ecd750b6c024fff4d54513859b11c1",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/azure-ai-foundry.md",
+   "url_effective": "https://code.claude.com/docs/en/azure-ai-foundry.md",
+   "version_source": null
+  },
+  {
+   "bytes": 36507,
+   "context_after": [
+    "",
+    "The recommended workflow has four phases:"
+   ],
+   "context_before": [
+    "</Tip>",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-claude-code-02186",
+   "locator": {
+    "heading": "Explore first, then plan, then code",
+    "raw_line_end": 62,
+    "raw_line_start": 62
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "Letting Claude jump straight to coding can produce code that solves the wrong problem. Use [plan mode](/docs/en/permission-modes#analyze-before-you-edit-with-plan-mode) to separate exploration from execution.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "f4c5d66cbd7e0b5cdbe448a94f93ba3cc143bace79fbeb511170fa417aeda526",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/best-practices.md",
+   "url_effective": "https://code.claude.com/docs/en/best-practices.md",
+   "version_source": null
+  },
+  {
+   "bytes": 36507,
+   "context_after": [
+    "",
+    "    ```txt title=\"claude (plan mode)\" wrap theme={null}"
+   ],
+   "context_before": [
+    "<Steps>",
+    "  <Step title=\"Explore\">"
+   ],
+   "http_status": 200,
+   "id": "E-claude-code-02187",
+   "locator": {
+    "heading": "Explore first, then plan, then code",
+    "raw_line_end": 68,
+    "raw_line_start": 68
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "    Enter plan mode by pressing `Shift+Tab` until the status bar shows `⏸ plan mode on`, or start the session with `claude --permission-mode plan`. Claude reads files and answers questions without making changes.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "f4c5d66cbd7e0b5cdbe448a94f93ba3cc143bace79fbeb511170fa417aeda526",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/best-practices.md",
+   "url_effective": "https://code.claude.com/docs/en/best-practices.md",
+   "version_source": null
+  },
+  {
+   "bytes": 36507,
+   "context_after": [
+    "",
+    "In Manual mode, Claude Code asks before actions that might modify your system: file writes, Bash commands, MCP tools. That's safe but tedious. After the tenth approval you're clicking through rather than reviewing. Two tools cut those interruptions in Manual mode and apply in auto mode as well:"
+   ],
+   "context_before": [
+    "</Tip>",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-claude-code-02197",
+   "locator": {
+    "heading": "Configure permissions",
+    "raw_line_end": 198,
+    "raw_line_start": 198
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "With Claude Code v2.1.283 or later, auto mode is the [built-in starting permission mode](/docs/en/permission-modes#eliminate-prompts-with-auto-mode) for interactive terminal and VS Code sessions: a separate classifier model reviews most actions instead of you and blocks only what looks risky, such",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "f4c5d66cbd7e0b5cdbe448a94f93ba3cc143bace79fbeb511170fa417aeda526",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/best-practices.md",
+   "url_effective": "https://code.claude.com/docs/en/best-practices.md",
+   "version_source": null
+  },
+  {
+   "bytes": 22814,
+   "context_after": [
+    "",
+    "When you run channels in non-interactive mode with `-p`, tools that need terminal input, such as multiple-choice questions and plan mode approval, are disabled so the session never stalls waiting for input."
+   ],
+   "context_before": [
+    "</Steps>",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-claude-code-06295",
+   "locator": {
+    "heading": "Quickstart",
+    "raw_line_end": 278,
+    "raw_line_start": 278
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "to you so you can approve or deny remotely. For unattended use, [`--dangerously-skip-permissions`](/docs/en/permission-modes#skip-all-checks-with-bypasspermissions-mode) bypasses most prompts, but only use it in environments you trust. Even then, the [actions no mode",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "1c447daf525e8da4787ca53d6064591b2239448b689e2ff965a1c4f77e675524",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/channels.md",
+   "url_effective": "https://code.claude.com/docs/en/channels.md",
+   "version_source": null
+  },
+  {
+   "bytes": 125837,
+   "context_after": [
+    "",
+    "To fix this, set [`enforceAvailableModels: true`](/docs/en/model-config#enforce-the-allowlist-for-the-default-model) in the same `cli` block, then check which kind of entry the list has:"
+   ],
+   "context_before": [
+    "#### Start sessions on a model the policy allows",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-claude-code-06464",
+   "locator": {
+    "heading": "Start sessions on a model the policy allows",
+    "raw_line_end": 864,
+    "raw_line_start": 864
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "If `availableModels` leaves out Claude Code's default model, sessions get `400` responses until the developer picks a listed model, for example with `/model`. In gateway sessions the default is the Opus model the `opus` alias resolves to, and `availableModels` on its own doesn't change it.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "8e8cd8b149da145b85a03607bf3e677545af0686c63e3d1cebbb8dae1986e6fe",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/claude-apps-gateway-config.md",
+   "url_effective": "https://code.claude.com/docs/en/claude-apps-gateway-config.md",
+   "version_source": null
+  },
+  {
+   "bytes": 125837,
+   "context_after": [
+    "| `allowManagedPermissionRulesOnly` | CLI | When `true`, managed settings become the only settings source of permission rules. The [`allowManagedPermissionRulesOnly`](/docs/en/settings-reference#allowmanagedpermissionrulesonly) entry lists every source Claude Code then ignores. |",
+    "| `env` | CLI | Environment variables merged into the CLI process. Use for telemetry, auto-update, and model-name overrides. |"
+   ],
+   "context_before": [
+    "| `availableModels` | Gateway + CLI | Model allowlist. Also checked at `/v1/messages`, so a patched client can't bypass it. |",
+    "| `permissions.allow` / `.deny` | CLI | Tool and command rules. See [Permissions](/docs/en/permissions). |"
+   ],
+   "http_status": 200,
+   "id": "E-claude-code-06475",
+   "locator": {
+    "heading": "What goes in `cli`",
+    "raw_line_end": 946,
+    "raw_line_start": 946
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "| `permissions.disableBypassPermissionsMode` | CLI | Set to `disable` to block [`bypassPermissions`](/docs/en/permission-modes#skip-all-checks-with-bypasspermissions-mode), the mode that skips permission prompts, and the `--dangerously-skip-permissions` flag |",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "8e8cd8b149da145b85a03607bf3e677545af0686c63e3d1cebbb8dae1986e6fe",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/claude-apps-gateway-config.md",
+   "url_effective": "https://code.claude.com/docs/en/claude-apps-gateway-config.md",
+   "version_source": null
+  },
+  {
+   "bytes": 55689,
+   "context_after": [
+    "",
+    "* **Credentials**: the upstream API key or cloud credential lives only in your infrastructure. Developers authenticate with corporate SSO and receive short-lived bearer tokens, so offboarding happens in your IdP. Deprovision a user and their gateway access expires within the session lifetime, one ho"
+   ],
+   "context_before": [
+    "## Why Claude apps gateway",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-claude-code-06611",
+   "locator": {
+    "heading": "Why Claude apps gateway",
+    "raw_line_end": 28,
+    "raw_line_start": 28
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "covers what a gateway does and why you'd run one. Claude apps gateway is Anthropic's own gateway, built into the `claude` binary and tested alongside each Claude Code release, so it forwards the headers and request fields Claude Code sends without operators maintaining a separate",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "613fd2a769a23b96d1aa8e0daece5bdf8ed591263fa58a37b043130936b4eff3",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/claude-apps-gateway.md",
+   "url_effective": "https://code.claude.com/docs/en/claude-apps-gateway.md",
+   "version_source": null
+  },
+  {
+   "bytes": 91624,
+   "context_after": [
+    "          tips: ['Each agent gets a fresh context window, separate from your main session', <>Restrict tool access per agent with the <C>tools:</C> frontmatter field</>, 'Type @ and pick an agent from the autocomplete to delegate directly'],",
+    "          docsLink: '/en/sub-agents',"
+   ],
+   "context_before": [
+    "          oneLiner: 'Specialized subagents with their own context window',",
+    "          when: 'Runs in its own context window when you or Claude invoke it',"
+   ],
+   "http_status": 200,
+   "id": "E-claude-code-06823",
+   "locator": {
+    "heading": "argument-hint: <issue-number>",
+    "raw_line_end": 337,
+    "raw_line_start": 337
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "          description: 'Each markdown file defines a subagent with its own system prompt, tool access, and optionally its own model. Subagents run in a fresh context window, keeping the main conversation clean. Useful for parallel work or isolated tasks.',",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "ada65719991b700cd65351402efaa7575fd2b00205aae5915afbe41410ccd178",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/claude-directory.md",
+   "url_effective": "https://code.claude.com/docs/en/claude-directory.md",
+   "version_source": null
+  },
+  {
+   "bytes": 61605,
+   "context_after": [
+    "4. Ask Claude to [propose threads before starting them and to run a few at a time](#tune-how-claude-runs-a-project), and drop those limits once a few threads come back the way you want.",
+    ""
+   ],
+   "context_before": [
+    "1. [Write project instructions](#write-project-instructions): the brief every thread starts from, such as which branch to target, how a thread checks its work, and what needs your go-ahead.",
+    "2. Send one small piece of the real work, or start one of the threads Claude suggested if it offered any, and open the thread when it finishes to see how it reports back and what it did on its branch. If it assumed something wrong or couldn't reach what it needed, [Threads guessed or stalled instead"
+   ],
+   "http_status": 200,
+   "id": "E-claude-code-06898",
+   "locator": {
+    "heading": "Your first batch",
+    "raw_line_end": 157,
+    "raw_line_start": 157
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "3. Check **Thread model** and **Thread effort** in **Project settings > General**. A new project runs every thread on Opus at high effort, which draws on your plan fastest; [Choose models and let Claude manage context](#choose-models-and-let-claude-manage-context) covers the alternatives.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "2ea0917adb28500211236de1bd068f560d2db1ae8fb277ec234816c4705d3409",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/claude-projects.md",
+   "url_effective": "https://code.claude.com/docs/en/claude-projects.md",
+   "version_source": null
+  },
+  {
+   "bytes": 61605,
+   "context_after": [
+    "",
+    "A thread that reaches your plan's limit waits and continues on its own when the limit resets, so work you left running starts using your next usage window without a message from you. [A thread hit the usage limit](#usage-limit-reached) covers what you see, how to stop it, and the one case that doesn"
+   ],
+   "context_before": [
+    "## Usage and cost",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-claude-code-06940",
+   "locator": {
+    "heading": "Usage and cost",
+    "raw_line_end": 397,
+    "raw_line_start": 397
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "Project usage counts against the same [plan limits](/docs/en/errors#youve-hit-your-session-limit) as your other Claude Code sessions, and a project can't spend past those limits on its own.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "2ea0917adb28500211236de1bd068f560d2db1ae8fb277ec234816c4705d3409",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/claude-projects.md",
+   "url_effective": "https://code.claude.com/docs/en/claude-projects.md",
+   "version_source": null
+  },
+  {
+   "bytes": 46824,
+   "context_after": [
+    "| `--enable-auto-mode` | Removed in v2.1.111. Auto mode is now in the `Shift+Tab` cycle by default; use `--permission-mode auto` to start in it | `claude --permission-mode auto` |",
+    "| `--environment <environment-id>` | Create a new cloud session that runs on the [self-hosted environment](/docs/en/self-hosted-environments) with the given ID. Environment IDs start with `ccpool_`. See [`--environment` dispatch behavior](/docs/en/self-hosted-environments-testing#environment-dispatc"
+   ],
+   "context_before": [
+    "| `--disable-slash-commands` | Disable all skills and commands for this session | `claude --disable-slash-commands` |",
+    "| `--disallowedTools`, `--disallowed-tools` | Deny rules. A bare tool name removes the matching tools from Claude's context: `\"Edit\"` removes Edit, `\"*\"` removes every tool, and `\"mcp__*\"` removes every MCP tool. A scoped rule such as `Bash(rm *)` leaves the tool available and denies only calls that"
+   ],
+   "http_status": 200,
+   "id": "E-claude-code-07046",
+   "locator": {
+    "heading": "CLI flags",
+    "raw_line_end": 86,
+    "raw_line_start": 86
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "| `--effort` | Set the [effort level](/docs/en/model-config#adjust-effort-level) for the current session. Options: `low`, `medium`, `high`, `xhigh`, `max`, or `ultracode`. Available levels depend on the model. `ultracode` requests `xhigh` effort with",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "82f96e4b4b44c634d0c69443c3fcd745c340968879d0758fa4dc1778d5ea1328",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/cli-reference.md",
+   "url_effective": "https://code.claude.com/docs/en/cli-reference.md",
+   "version_source": null
+  },
+  {
+   "bytes": 46824,
+   "context_after": [
+    "| `--enable-auto-mode` | Removed in v2.1.111. Auto mode is now in the `Shift+Tab` cycle by default; use `--permission-mode auto` to start in it | `claude --permission-mode auto` |",
+    "| `--environment <environment-id>` | Create a new cloud session that runs on the [self-hosted environment](/docs/en/self-hosted-environments) with the given ID. Environment IDs start with `ccpool_`. See [`--environment` dispatch behavior](/docs/en/self-hosted-environments-testing#environment-dispatc"
+   ],
+   "context_before": [
+    "| `--disable-slash-commands` | Disable all skills and commands for this session | `claude --disable-slash-commands` |",
+    "| `--disallowedTools`, `--disallowed-tools` | Deny rules. A bare tool name removes the matching tools from Claude's context: `\"Edit\"` removes Edit, `\"*\"` removes every tool, and `\"mcp__*\"` removes every MCP tool. A scoped rule such as `Bash(rm *)` leaves the tool available and denies only calls that"
+   ],
+   "http_status": 200,
+   "id": "E-claude-code-07047",
+   "locator": {
+    "heading": "CLI flags",
+    "raw_line_end": 86,
+    "raw_line_start": 86
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "for the current session. Options: `low`, `medium`, `high`, `xhigh`, `max`, or `ultracode`. Available levels depend on the model. `ultracode` requests `xhigh` effort with [ultracode](/docs/en/workflows#let-claude-decide-with-ultracode) turned on, and requires",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "82f96e4b4b44c634d0c69443c3fcd745c340968879d0758fa4dc1778d5ea1328",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/cli-reference.md",
+   "url_effective": "https://code.claude.com/docs/en/cli-reference.md",
+   "version_source": null
+  },
+  {
+   "bytes": 46824,
+   "context_after": [
+    "| `--permission-prompt-tool` | Specify an MCP tool to handle permission prompts in non-interactive mode. Claude Code waits for that tool's MCP server to connect before running the first turn, up to the [`MCP_TIMEOUT`](/docs/en/env-vars) startup timeout, 30 seconds by default. <br /><br />The prompt ",
+    "| `--permission-prompts` | Set who answers permission prompts in print mode. With the default `host`, Claude Code sends them to the Agent SDK host or the `--permission-prompt-tool` tool. Pass `none` when nobody can answer, and Claude Code denies them instead. See [Turn off permission prompts in unat"
+   ],
+   "context_before": [
+    "| `--no-session-persistence` | Disable session persistence so sessions are not saved to disk and cannot be resumed. Print mode only. The [`CLAUDE_CODE_SKIP_PROMPT_HISTORY`](/docs/en/env-vars) environment variable does the same in any mode | `claude -p --no-session-persistence \"query\"` |",
+    "| `--output-format` | Specify output format for print mode (options: `text`, `json`, `stream-json`) | `claude -p \"query\" --output-format json` |"
+   ],
+   "http_status": 200,
+   "id": "E-claude-code-07077",
+   "locator": {
+    "heading": "CLI flags",
+    "raw_line_end": 111,
+    "raw_line_start": 111
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "`--permission-mode` | Begin in a specified [permission mode](/docs/en/permission-modes). Accepts `default`, `acceptEdits`, `plan`, `auto`, `dontAsk`, `bypassPermissions`, or `manual` as an alias for `default`. The `manual` alias selects the permission mode the UI labels Manual and requires Claude",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "82f96e4b4b44c634d0c69443c3fcd745c340968879d0758fa4dc1778d5ea1328",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/cli-reference.md",
+   "url_effective": "https://code.claude.com/docs/en/cli-reference.md",
+   "version_source": null
+  },
+  {
+   "bytes": 54538,
+   "context_after": [
+    "| `/exit` | Exit the CLI. In an attached [background session](/docs/en/agent-view#attach-to-a-session), this detaches and the session keeps running. Alias: `/quit` |",
+    "| `/export [filename]` | Export the current conversation as plain text. With a filename, writes directly to that file. Without, opens a dialog to copy to clipboard or save to a file |"
+   ],
+   "context_before": [
+    "| `/diff` | Review the changes in your working tree, including the edits Claude has made so far. See [Review changes with /diff](/docs/en/interactive-mode#review-changes-with-%2Fdiff) |",
+    "| `/doctor [prompt-audit [path]]` | **[Skill](/docs/en/skills#bundled-skills).** Run a setup checkup that diagnoses issues and can fix them. Checks installation health, including duplicate or leftover installs, `PATH` problems, and unparseable settings files. Finds unused skills, MCP servers, and pl"
+   ],
+   "http_status": 200,
+   "id": "E-claude-code-07249",
+   "locator": {
+    "heading": "All commands",
+    "raw_line_end": 87,
+    "raw_line_start": 87
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "`/effort [level\\|auto\\|status\\|ultracode [on\\|off]]` | Set the [effort level](/docs/en/model-config#adjust-effort-level): `low` to `xhigh`, `max`, or `auto`; `status` prints it. `ultracode` or `ultracode on` turns [ultracode](/docs/en/workflows#let-claude-decide-with-ultracode) on for the session",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "23a73ce7bf2013b42ac8c8f86e07e1f9231f10fe060ae013575123af6d97982d",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/commands.md",
+   "url_effective": "https://code.claude.com/docs/en/commands.md",
+   "version_source": null
+  },
+  {
+   "bytes": 21477,
+   "context_after": [
+    "mid-session. *Sonnet* is the workhorse default for everyday feature work,",
+    "bugs, tests, and reviews. Reach for *Opus* on large refactors, gnarly"
+   ],
+   "context_before": [
+    "is asking for a re-do.",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-claude-code-07345",
+   "locator": {
+    "heading": "Get started",
+    "raw_line_end": 208,
+    "raw_line_start": 208
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "Claude Code runs on the same models as the Claude app, and you can switch",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "116f0e318fe05812cf75c208d2d07e6d85d940d72744dd81c905fe4a6e6d6c0c",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/communications-kit.md",
+   "url_effective": "https://code.claude.com/docs/en/communications-kit.md",
+   "version_source": null
+  },
+  {
+   "bytes": 60500,
+   "context_after": [
+    "    link: '/en/sub-agents'",
+    "  }, {"
+   ],
+   "context_before": [
+    "    color: '#9B7BC4',",
+    "    vis: 'hidden',"
+   ],
+   "http_status": 200,
+   "id": "E-claude-code-07387",
+   "locator": {
+    "heading": "Explore the context window",
+    "raw_line_end": 266,
+    "raw_line_start": 266
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "    desc: \"The subagent has access to the same MCP servers and skills. It gets most of the parent's tools, minus several that don't apply in a nested context, including plan-mode controls, background-task tools, and by default the Agent tool itself to prevent recursion.\",",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "6beaae83294f55c48b58daea16de7ef005648a3d8415863ac962facb9c5c50cd",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/context-window.md",
+   "url_effective": "https://code.claude.com/docs/en/context-window.md",
+   "version_source": null
+  },
+  {
+   "bytes": 41212,
+   "context_after": [
+    "",
+    "### Reduce MCP server overhead"
+   ],
+   "context_before": [
+    "### Choose the right model",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-claude-code-07490",
+   "locator": {
+    "heading": "Choose the right model",
+    "raw_line_end": 242,
+    "raw_line_start": 242
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "models mid-session, or set a default in `/config`. A switch to Opus also applies to the [subagents that inherit your session's model](/docs/en/model-config#setting-your-model). For simple subagent tasks, specify `model: haiku` in your [subagent configuration](/docs/en/sub-agents#choose-a-model).",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "27085eb4613b063940387cf9a90c9b59d0cb96cf79e3888b30a0cdd0f865fbd2",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/costs.md",
+   "url_effective": "https://code.claude.com/docs/en/costs.md",
+   "version_source": null
+  },
+  {
+   "bytes": 41212,
+   "context_after": [
+    "",
+    "For simpler tasks where deep reasoning isn't needed, you can reduce costs by lowering the [effort level](/docs/en/model-config#adjust-effort-level) with `/effort` or in `/model`, or by disabling thinking in `/config`. You can't turn off thinking on Opus 5.5, Sonnet 5.5, or the Fable models, which al"
+   ],
+   "context_before": [
+    "### Adjust extended thinking",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-claude-code-07503",
+   "locator": {
+    "heading": "Adjust extended thinking",
+    "raw_line_end": 314,
+    "raw_line_start": 314
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "Extended thinking is enabled by default because it significantly improves performance on complex planning and reasoning tasks. Thinking tokens are billed as output tokens, and the default budget can be tens of thousands of tokens per request depending on the model.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "27085eb4613b063940387cf9a90c9b59d0cb96cf79e3888b30a0cdd0f865fbd2",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/costs.md",
+   "url_effective": "https://code.claude.com/docs/en/costs.md",
+   "version_source": null
+  },
+  {
+   "bytes": 85846,
+   "context_after": [
+    "",
+    "To set a default mode for new local sessions, add `permissions.defaultMode` to your [settings file](/docs/en/settings#where-settings-live). The desktop app reads the same settings files as the CLI. A mode you pick in the selector is remembered per folder and takes precedence over `defaultMode` for t"
+   ],
+   "context_before": [
+    "### Choose a permission mode",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-claude-code-07685",
+   "locator": {
+    "heading": "Choose a permission mode",
+    "raw_line_end": 73,
+    "raw_line_start": 73
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "Permission modes control how much autonomy Claude has during a session: whether it asks before editing files, running commands, or both. You can switch permission modes at any time using the mode selector next to the send button. To approve each change yourself, switch to Manual.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "75a1d5bfc46a21168957684c780f4c600b94b16aadfa51671d58e73f751061dd",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/desktop.md",
+   "url_effective": "https://code.claude.com/docs/en/desktop.md",
+   "version_source": null
+  },
+  {
+   "bytes": 85846,
+   "context_after": [
+    "",
+    "| Mode | Settings key | Behavior |"
+   ],
+   "context_before": [
+    "Permission modes control how much autonomy Claude has during a session: whether it asks before editing files, running commands, or both. You can switch permission modes at any time using the mode selector next to the send button. To approve each change yourself, switch to Manual.",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-claude-code-07686",
+   "locator": {
+    "heading": "Choose a permission mode",
+    "raw_line_end": 75,
+    "raw_line_start": 75
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "to your [settings file](/docs/en/settings#where-settings-live). The desktop app reads the same settings files as the CLI. A mode you pick in the selector is remembered per folder and takes precedence over `defaultMode` for that folder, except Plan, which applies to the current session only.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "75a1d5bfc46a21168957684c780f4c600b94b16aadfa51671d58e73f751061dd",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/desktop.md",
+   "url_effective": "https://code.claude.com/docs/en/desktop.md",
+   "version_source": null
+  },
+  {
+   "bytes": 85846,
+   "context_after": [
+    "",
+    "## Let Claude use your computer"
+   ],
+   "context_before": [
+    "### Check usage",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-claude-code-07730",
+   "locator": {
+    "heading": "Check usage",
+    "raw_line_end": 249,
+    "raw_line_start": 249
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "Click the usage ring next to the model picker to see your current context window usage and your plan usage for the period. Context usage is per session; plan usage is shared across all your Claude Code surfaces.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "75a1d5bfc46a21168957684c780f4c600b94b16aadfa51671d58e73f751061dd",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/desktop.md",
+   "url_effective": "https://code.claude.com/docs/en/desktop.md",
+   "version_source": null
+  },
+  {
+   "bytes": 85846,
+   "context_after": [
+    "",
+    "#### MCP servers from the Claude Desktop chat app"
+   ],
+   "context_before": [
+    "* **[Hooks](/docs/en/hooks)** and **[skills](/docs/en/skills)** defined in settings apply to both",
+    "* **[Settings](/docs/en/settings)** in `~/.claude.json` and `~/.claude/settings.json` are shared. Permission rules, allowed tools, and other settings in `settings.json` apply to Desktop sessions."
+   ],
+   "http_status": 200,
+   "id": "E-claude-code-07887",
+   "locator": {
+    "heading": "Shared configuration",
+    "raw_line_end": 901,
+    "raw_line_start": 901
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "* **Models**: the same [models](/docs/en/model-config#available-models) are available in both. In Desktop, select the model from the dropdown next to the send button. You can change the model mid-session from the same dropdown.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "75a1d5bfc46a21168957684c780f4c600b94b16aadfa51671d58e73f751061dd",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/desktop.md",
+   "url_effective": "https://code.claude.com/docs/en/desktop.md",
+   "version_source": null
+  },
+  {
+   "bytes": 163901,
+   "context_after": [
+    "| `ANTHROPIC_AUTH_TOKEN` | Custom value for the `Authorization` header (the value you set here will be prefixed with `Bearer `) |",
+    "| `ANTHROPIC_AWS_API_KEY` | Workspace API key for [Claude Platform on AWS](/docs/en/claude-platform-on-aws), generated in the AWS Console. Sent as `x-api-key` and takes precedence over AWS SigV4 |"
+   ],
+   "context_before": [
+    "| Variable | Purpose |",
+    "| :- | :- |"
+   ],
+   "http_status": 200,
+   "id": "E-claude-code-07928",
+   "locator": {
+    "heading": "Variables",
+    "raw_line_end": 136,
+    "raw_line_start": 136
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "| `ANTHROPIC_API_KEY` | API key sent as `X-Api-Key` header. When set, this key is used instead of your Claude Pro, Max, Team, or Enterprise subscription even if you are logged in. In non-interactive mode (`-p`), the key is always used when present. In interactive mode, you are prompted to approve",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "ee2df39dcb334d0aa15f67fcbfe38e74b904b6b5248ad5b6a7e821f9285239f6",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/env-vars.md",
+   "url_effective": "https://code.claude.com/docs/en/env-vars.md",
+   "version_source": null
+  },
+  {
+   "bytes": 163901,
+   "context_after": [
+    "| `CLAUDE_CODE_DISABLE_ADMIN_ENV_UNION` | Set to `1` to stop Claude Code from merging [managed settings](/docs/en/managed-settings#precedence-within-the-managed-tier) `env` blocks per key across admin sources, so only the highest-priority source's whole `env` block applies, as before v2.1.223. Set i",
+    "| `CLAUDE_CODE_DISABLE_ADVISOR_TOOL` | Set to `1` to disable the [advisor tool](/docs/en/advisor). The `/advisor` command becomes unavailable, any configured `advisorModel` is ignored, and the `--advisor` flag is accepted but has no effect, so existing scripts that pass it continue to work without e"
+   ],
+   "context_before": [
+    "| `CLAUDE_CODE_DEBUG_LOG_LEVEL` | Minimum log level written to the debug log file. Values: `verbose`, `debug` (default), `info`, `warn`, `error`. Set to `verbose` to include high-volume diagnostics like full status line command output, or raise to `error` to reduce noise |",
+    "| `CLAUDE_CODE_DISABLE_1M_CONTEXT` | Set to `1` to disable [1M context window](/docs/en/model-config#extended-context) support. When set, 1M model variants are unavailable in the model picker, and Claude Code holds sessions on models with a native 1M window, such as [Sonnet 5.5](/docs/en/model-confi"
+   ],
+   "http_status": 200,
+   "id": "E-claude-code-08012",
+   "locator": {
+    "heading": "Variables",
+    "raw_line_end": 231,
+    "raw_line_start": 231
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "to `1` to disable [adaptive reasoning](/docs/en/model-config#adjust-effort-level) on Opus 4.6 and Sonnet 4.6 and fall back to the fixed thinking budget controlled by `MAX_THINKING_TOKENS`. Has no effect on [Fable models](/docs/en/model-config#extended-thinking), Sonnet 5 and later, or Opus 4.7 and",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "ee2df39dcb334d0aa15f67fcbfe38e74b904b6b5248ad5b6a7e821f9285239f6",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/env-vars.md",
+   "url_effective": "https://code.claude.com/docs/en/env-vars.md",
+   "version_source": null
+  },
+  {
+   "bytes": 163901,
+   "context_after": [
+    "| `CLAUDE_CODE_ENABLE_AUTO_MODE` | Accepted for compatibility with older releases and has no effect. Auto mode is available by default on every provider, including Amazon Bedrock, Google Cloud's Agent Platform, Microsoft Foundry, and signed-in [Claude apps gateway](/docs/en/claude-apps-gateway) sess",
+    "| `CLAUDE_CODE_ENABLE_AWAY_SUMMARY` | Override [session recap](/docs/en/interactive-mode#session-recap) availability. Set to `0` to force recaps off regardless of the `/config` toggle. Set to `1` to force recaps on when [`awaySummaryEnabled`](/docs/en/settings-reference#awaysummaryenabled) is `false"
+   ],
+   "context_before": [
+    "| `CLAUDE_CODE_DISABLE_WINDOWS_SHELL_LAUNCHER` | Set to `1` to start [PowerShell tool](/docs/en/tools-reference#powershell-tool) commands on Windows directly instead of through the `cmd.exe` launcher. By default, the launcher lets a PowerShell command [running in the background](/docs/en/tools-refer",
+    "| `CLAUDE_CODE_DISABLE_WORKFLOWS` | Set to `1` to disable [workflows](/docs/en/workflows#turn-workflows-off). Equivalent to the [`disableWorkflows`](/docs/en/settings-reference#disableworkflows) setting |"
+   ],
+   "http_status": 200,
+   "id": "E-claude-code-08065",
+   "locator": {
+    "heading": "Variables",
+    "raw_line_end": 279,
+    "raw_line_start": 279
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "| `CLAUDE_CODE_EFFORT_LEVEL` | Set the effort level for supported models. Values: `low`, `medium`, `high`, `xhigh`, `max`, or `auto` to use the model default. Available levels depend on the model. Takes precedence over `--effort`, `/effort`, and the `modelSettings` and `effortLevel` settings. A",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "ee2df39dcb334d0aa15f67fcbfe38e74b904b6b5248ad5b6a7e821f9285239f6",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/env-vars.md",
+   "url_effective": "https://code.claude.com/docs/en/env-vars.md",
+   "version_source": null
+  },
+  {
+   "bytes": 163901,
+   "context_after": [
+    "| `CLAUDE_CODE_MAX_CONTEXT_TOKENS` | Override the context window size Claude Code assumes for the active model. As of v2.1.193, how it applies depends on how Claude Code resolves the model ID; see [Correct the window for a gateway or custom model ID](/docs/en/model-config#correct-the-window-for-a-ga",
+    "| `CLAUDE_CODE_MAX_MCP_DESCRIPTION_LENGTH` | Maximum length in characters of each MCP tool description and each MCP server's instructions that Claude Code sends to the model (default: 2048). Claude Code [truncates longer text](/docs/en/mcp#for-mcp-server-authors). Accepts a positive whole number in "
+   ],
+   "context_before": [
+    "| `CLAUDE_CODE_IDE_SKIP_AUTO_INSTALL` | Set to `1` to skip auto-installation of IDE extensions. Equivalent to setting [`autoInstallIdeExtension`](/docs/en/settings-reference#autoinstallideextension) to `false` |",
+    "| `CLAUDE_CODE_IDE_SKIP_VALID_CHECK` | Set to `1` to skip validation of IDE lockfile entries during connection. Use when auto-connect fails to find your IDE despite it running |"
+   ],
+   "http_status": 200,
+   "id": "E-claude-code-08099",
+   "locator": {
+    "heading": "Variables",
+    "raw_line_end": 311,
+    "raw_line_start": 311
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "| How many [subagents](/docs/en/sub-agents#concurrent-subagent-limit) can be running in one session before the Agent tool refuses to spawn another (default: 20). Accepts a positive whole number in plain digits; anything else is ignored, so the variable can adjust",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "ee2df39dcb334d0aa15f67fcbfe38e74b904b6b5248ad5b6a7e821f9285239f6",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/env-vars.md",
+   "url_effective": "https://code.claude.com/docs/en/env-vars.md",
+   "version_source": null
+  },
+  {
+   "bytes": 163901,
+   "context_after": [
+    "| `CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH` | Number of [subagent layers](/docs/en/sub-agents#let-subagents-spawn-their-own-subagents) allowed below the main conversation (default: 3). At the default, subagents can spawn their own subagents, and a subagent at the third layer can't spawn further; set `1",
+    "| `CLAUDE_CODE_MAX_TOOL_USE_CONCURRENCY` | Maximum number of read-only tools and subagents that can execute in parallel (default: 10). Higher values increase parallelism but consume more resources |"
+   ],
+   "context_before": [
+    "| `CLAUDE_CODE_MAX_OUTPUT_TOKENS` | Set the maximum number of output tokens for most requests. Defaults and caps vary by model; see [max output tokens](https://platform.claude.com/docs/en/about-claude/models/overview#latest-models-comparison). Claude Code lowers a value above a model's cap to the ca",
+    "| `CLAUDE_CODE_MAX_RETRIES` | Override the number of times to retry failed API requests (default: 10). Capped at 15 as of v2.1.186; as of v2.1.199, `CLAUDE_CODE_RETRY_WATCHDOG` raises the default and removes the cap. For unattended sessions that need to wait through longer outages, set `CLAUDE_CODE_"
+   ],
+   "http_status": 200,
+   "id": "E-claude-code-08104",
+   "locator": {
+    "heading": "Variables",
+    "raw_line_end": 316,
+    "raw_line_start": 316
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "| `CLAUDE_CODE_MAX_SUBAGENTS_PER_SESSION` | Removed in v2.1.224 and now a no-op. Previously capped the total number of [subagents](/docs/en/sub-agents) Claude could spawn with the Agent tool in one session (default: 200); spawning past the cap failed with `Subagent spawn limit reached`. The",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "ee2df39dcb334d0aa15f67fcbfe38e74b904b6b5248ad5b6a7e821f9285239f6",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/env-vars.md",
+   "url_effective": "https://code.claude.com/docs/en/env-vars.md",
+   "version_source": null
+  },
+  {
+   "bytes": 163901,
+   "context_after": [
+    "| `CLAUDE_CODE_PROXY_RESOLVES_HOSTS` | Set to `1` to allow the proxy to perform DNS resolution instead of the caller. Opt-in for environments where the proxy should handle hostname resolution |",
+    "| `CLAUDE_CODE_REMOTE` | Set automatically to `true` when Claude Code is running as a [cloud session](/docs/en/claude-code-on-the-web). Read this from a hook or setup script to detect whether you are in a cloud session |"
+   ],
+   "context_before": [
+    "| `CLAUDE_CODE_PROMPT_CACHE_TTL` | Set `5m` or `1h`, the only values Claude Code accepts, to choose the [prompt cache TTL](/docs/en/prompt-caching#cache-lifetime) for the main conversation: your interactive, `-p`, and SDK turns, plus the helpers that run inline with them. Takes precedence over the `",
+    "| `CLAUDE_CODE_PROPAGATE_TRACEPARENT` | Set to `1` to propagate W3C trace context when `ANTHROPIC_BASE_URL` points at a custom proxy. Propagation covers the `traceparent` header on model and HTTP MCP requests and the `TRACEPARENT` environment variable for Bash, PowerShell, and hook subprocesses. By "
+   ],
+   "http_status": 200,
+   "id": "E-claude-code-08143",
+   "locator": {
+    "heading": "Variables",
+    "raw_line_end": 355,
+    "raw_line_start": 355
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "| `CLAUDE_CODE_PROVIDER_MANAGED_BY_HOST` | Set by host platforms that embed Claude Code and manage model provider routing on its behalf. When set, Claude Code ignores provider-selection, endpoint, and authentication variables such as `CLAUDE_CODE_USE_BEDROCK`, `ANTHROPIC_BASE_URL`, and",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "ee2df39dcb334d0aa15f67fcbfe38e74b904b6b5248ad5b6a7e821f9285239f6",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/env-vars.md",
+   "url_effective": "https://code.claude.com/docs/en/env-vars.md",
+   "version_source": null
+  },
+  {
+   "bytes": 163901,
+   "context_after": [
+    "",
+    "After a fresh install, in a non-interactive session such as `claude -p`, the Agent SDK, or the VS Code extension, Claude Code can pick the flags up before it [chooses the starting permission mode](/docs/en/permission-modes#which-mode-a-session-starts-in), but it doesn't always wait for them."
+   ],
+   "context_before": [
+    "### First session after an install or upgrade",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-claude-code-08288",
+   "locator": {
+    "heading": "First session after an install or upgrade",
+    "raw_line_end": 576,
+    "raw_line_start": 576
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "feature](#features-that-need-feature-flag-fetching) can be missing. That session can also start in a different [permission mode](/docs/en/permission-modes#which-mode-a-session-starts-in) than your later sessions do. When Claude Code fetches the flags during that session, it saves them on",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "ee2df39dcb334d0aa15f67fcbfe38e74b904b6b5248ad5b6a7e821f9285239f6",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/env-vars.md",
+   "url_effective": "https://code.claude.com/docs/en/env-vars.md",
+   "version_source": null
+  },
+  {
+   "bytes": 27998,
+   "context_after": [
+    "",
+    "Learn more: [Adjust effort level](/docs/en/model-config#adjust-effort-level)"
+   ],
+   "context_before": [
+    "### Effort level",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-claude-code-09458",
+   "locator": {
+    "heading": "Effort level",
+    "raw_line_end": 147,
+    "raw_line_start": 147
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "that controls adaptive reasoning, which lets the model decide whether and how much to think on each step. Higher effort means more thinking tokens and deeper reasoning; lower effort is faster and cheaper. Effort is supported on Fable models, on Opus 4.6 and later, and on Sonnet 4.6 and later.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "13491643c25a857bcb6f334a422971873455cf60581b7f214269d582866beb06",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/glossary.md",
+   "url_effective": "https://code.claude.com/docs/en/glossary.md",
+   "version_source": null
+  },
+  {
+   "bytes": 27998,
+   "context_after": [
+    "",
+    "Learn more: [Use extended thinking](/docs/en/model-config#extended-thinking)"
+   ],
+   "context_before": [
+    "### Extended thinking",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-claude-code-09459",
+   "locator": {
+    "heading": "Extended thinking",
+    "raw_line_end": 153,
+    "raw_line_start": 153
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "Visible step-by-step reasoning the model performs before responding. You can adjust it with the [effort level](#effort-level), or cap thinking tokens with `MAX_THINKING_TOKENS` on models with a fixed thinking budget. Thinking appears in gray italic text in the terminal.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "13491643c25a857bcb6f334a422971873455cf60581b7f214269d582866beb06",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/glossary.md",
+   "url_effective": "https://code.claude.com/docs/en/glossary.md",
+   "version_source": null
+  },
+  {
+   "bytes": 27998,
+   "context_after": [
+    "",
+    "Learn more: [Platforms and integrations](/docs/en/platforms)"
+   ],
+   "context_before": [
+    "### Surface",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-claude-code-09484",
+   "locator": {
+    "heading": "Surface",
+    "raw_line_end": 313,
+    "raw_line_start": 313
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "Any place you access Claude Code: the CLI, VS Code, JetBrains, Desktop, or claude.ai. All surfaces share the same engine. Sessions on your machine read your local CLAUDE.md, settings, and skills; [cloud sessions](/docs/en/cloud-environments#what-carries-over-from-your-setup) start from a fresh clone",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "13491643c25a857bcb6f334a422971873455cf60581b7f214269d582866beb06",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/glossary.md",
+   "url_effective": "https://code.claude.com/docs/en/glossary.md",
+   "version_source": null
+  },
+  {
+   "bytes": 60442,
+   "context_after": [
+    "",
+    "  * **On the user's machine**: by default, Claude Code in a Cowork session reads the MDM or OS-level policy and the managed settings file on that device, so deploy policy there."
+   ],
+   "context_before": [
+    "* **Cloud sessions**: a session in an Anthropic-hosted environment doesn't read a device's MDM profile or file, so policy for it has to come from server-managed settings. A session in a [self-hosted environment](/docs/en/self-hosted-environments) also reads the managed settings file in its runner im",
+    "* **Claude Tag sessions**: [Claude Tag](https://claude.com/docs/claude-tag/overview) sessions run in cloud environments but don't receive server-managed settings. In a [self-hosted environment](/docs/en/self-hosted-environments), they still read the managed settings file in the runner image. Configu"
+   ],
+   "http_status": 200,
+   "id": "E-claude-code-10965",
+   "locator": {
+    "heading": "Where and when a policy applies",
+    "raw_line_end": 87,
+    "raw_line_start": 87
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "* **Cowork sessions**: [Cowork](https://claude.com/docs/cowork/overview) in the Claude Desktop app runs its sessions on Claude Code. In a Cowork session, Claude Code never fetches server-managed settings from the claude.ai admin console, even when the user signs in with a Team or Enterprise account,",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "ad7a2e450e26f1a35ae0b229106b731c6d77ff779849032b39f7354e175d1d28",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/managed-settings.md",
+   "url_effective": "https://code.claude.com/docs/en/managed-settings.md",
+   "version_source": null
+  },
+  {
+   "bytes": 114798,
+   "context_after": [
+    "",
+    "Frontmatter effort applies when that skill or subagent is active, overriding the session level but not the environment variable. A [`maxEffortLevel`](/docs/en/settings-reference#maxeffortlevel) or [organization effort cap](#organization-effort-limits) still limits the level the skill or subagent run"
+   ],
+   "context_before": [
+    "* **Settings**: set a per-model level in [`modelSettings`](/docs/en/settings-reference#modelsettings), or set [`effortLevel`](/docs/en/settings-reference#effortlevel) to `low`, `medium`, `high`, or `xhigh` as the default for models without one. `max` isn't accepted as a level in either key, and `ult",
+    "* **From a connected device**: in a [Remote Control](/docs/en/remote-control#what-connected-devices-see) session, pick a level from the effort control on your phone or in your browser. The level applies to the current session only. Requires Claude Code v2.1.234 or later"
+   ],
+   "http_status": 200,
+   "id": "E-claude-code-11518",
+   "locator": {
+    "heading": "Set the effort level",
+    "raw_line_end": 678,
+    "raw_line_start": 678
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "* **Skill and subagent frontmatter**: set `effort` in a [skill](/docs/en/skills#frontmatter-reference) or [subagent](/docs/en/sub-agents#supported-frontmatter-fields) markdown file to override the effort level when that skill or subagent runs",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "66f827e0568361a36228d18a7fab5f2bd2786ee7d4f6e5523193440ae1c8b343",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/model-config.md",
+   "url_effective": "https://code.claude.com/docs/en/model-config.md",
+   "version_source": null
+  },
+  {
+   "bytes": 14249,
+   "context_after": [
+    "",
+    "You and your organization configure these permissions directly. For detailed permission configuration, see [Permissions](/docs/en/permissions)."
+   ],
+   "context_before": [
+    "",
+    "* **Auto mode**: A separate classifier model reviews actions instead of you and blocks the ones it judges unsafe. [How the classifier evaluates actions](/docs/en/permission-modes#how-the-classifier-evaluates-actions) lists which actions Claude Code approves outright, which it sends to the classifier"
+   ],
+   "http_status": 200,
+   "id": "E-claude-code-13117",
+   "locator": {
+    "heading": "Permission-based architecture",
+    "raw_line_end": 20,
+    "raw_line_start": 20
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "* **Manual mode**: Claude Code starts with read-only permissions. When it needs to edit files, run tests, or execute commands, it asks you first, and you choose whether to approve the action once or allow it from then on. It runs a built-in set of [read-only",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "5bf996a34531f5e92dea1e19887b13d177373ce4c76dbf44eefe607565130f51",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/security.md",
+   "url_effective": "https://code.claude.com/docs/en/security.md",
+   "version_source": null
+  },
+  {
+   "bytes": 107661,
+   "context_after": [
+    "| `isolation` | No | Set to `worktree` to run the subagent in a temporary [git worktree](/docs/en/worktrees), giving it an isolated copy of the repository branched by default from your [default branch](/docs/en/worktrees#choose-the-base-branch) rather than the parent session's `HEAD`. The worktree i",
+    "| `color` | No | Display color for the subagent in the task list and transcript. Accepts `red`, `blue`, `green`, `yellow`, `purple`, `orange`, `pink`, or `cyan` |"
+   ],
+   "context_before": [
+    "| `background` | No | Set to `true` to keep this subagent in the background even when Claude asks to run it in the foreground. Where [fork mode](#turn-fork-mode-on-or-off) is on, Claude Code already runs the subagents Claude spawns [in the background](#run-subagents-in-foreground-or-background) |",
+    "| `omitClaudeMd` | No | Set to `true` to launch this subagent without the user, project, and local CLAUDE.md files; [managed policy files](/docs/en/memory#how-claude-md-files-load) still load, except for [managed subagents](#choose-the-subagent-scope). Use it for subagents that take everything they "
+   ],
+   "http_status": 200,
+   "id": "E-claude-code-14746",
+   "locator": {
+    "heading": "Write subagent files",
+    "raw_line_end": 316,
+    "raw_line_start": 316
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "| `effort` | No | Effort level when this subagent is active. Overrides the session effort level. Default: inherits from session. Options: `low`, `medium`, `high`, `xhigh`, `max`; available levels depend on the model |",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "b7458cb749979269a7db37d0adf853fe34541cee2ad477463fb16aa616a6c315",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/sub-agents.md",
+   "url_effective": "https://code.claude.com/docs/en/sub-agents.md",
+   "version_source": null
+  },
+  {
+   "bytes": 107661,
+   "context_after": [
+    "",
+    "The limit blocks only subagents Claude spawns with the Agent tool, but other runs occupy the same slots:"
+   ],
+   "context_before": [
+    "Two limits control subagent use, each with its own variable: this one stops Claude from spawning more subagents while too many are running, and the [depth limit](#let-subagents-spawn-their-own-subagents) caps how deeply subagents nest. There's no limit on the total number of subagents Claude can spa",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-claude-code-14935",
+   "locator": {
+    "heading": "Concurrent subagent limit",
+    "raw_line_end": 1045,
+    "raw_line_start": 1045
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "By default, when 20 subagents are running in a session, spawning another with the Agent tool fails with `Concurrent subagent limit reached`, and the error tells Claude not to retry. Spawning succeeds again when the running count drops below the limit. To change the limit, set",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "b7458cb749979269a7db37d0adf853fe34541cee2ad477463fb16aa616a6c315",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/sub-agents.md",
+   "url_effective": "https://code.claude.com/docs/en/sub-agents.md",
+   "version_source": null
+  },
+  {
+   "bytes": 107661,
+   "context_after": [
+    "",
+    "By default, when 20 subagents are running in a session, spawning another with the Agent tool fails with `Concurrent subagent limit reached`, and the error tells Claude not to retry. Spawning succeeds again when the running count drops below the limit. To change the limit, set [`CLAUDE_CODE_MAX_CONCU"
+   ],
+   "context_before": [
+    "### Concurrent subagent limit",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-claude-code-14937",
+   "locator": {
+    "heading": "Concurrent subagent limit",
+    "raw_line_end": 1043,
+    "raw_line_start": 1043
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "subagent use, each with its own variable: this one stops Claude from spawning more subagents while too many are running, and the [depth limit](#let-subagents-spawn-their-own-subagents) caps how deeply subagents nest. There's no limit on the total number of subagents Claude can spawn over a session.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "b7458cb749979269a7db37d0adf853fe34541cee2ad477463fb16aa616a6c315",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/sub-agents.md",
+   "url_effective": "https://code.claude.com/docs/en/sub-agents.md",
+   "version_source": null
+  },
+  {
+   "bytes": 23874,
+   "context_after": [
+    "",
+    "| | Cloud session | Local session | Local session with [Remote Control](/docs/en/remote-control) |"
+   ],
+   "context_before": [
+    "## Compare ways to run Claude Code",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-claude-code-15403",
+   "locator": {
+    "heading": "Compare ways to run Claude Code",
+    "raw_line_end": 39,
+    "raw_line_start": 39
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "Claude Code behaves the same everywhere. What changes is where the session runs and whether your local configuration is available:",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "dc2fdbd576f353c15a4aae144239d25335cd723ca15eb6e90a7c2e799c8ef80b",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/web-quickstart.md",
+   "url_effective": "https://code.claude.com/docs/en/web-quickstart.md",
+   "version_source": null
+  },
+  {
+   "bytes": 23874,
+   "context_after": [
+    "| **You start it from** | claude.ai/code, the Claude mobile app, the Desktop app with **Cloud** selected, or `claude --cloud` | Your terminal, your IDE, or the Desktop app with **Local** selected | Your terminal, the VS Code extension, or the Desktop app |",
+    "| **You chat from** | claude.ai, the mobile app, or the Desktop app | Where you started it | claude.ai or the mobile app, as well as where you started it |"
+   ],
+   "context_before": [
+    "| | Cloud session | Local session | Local session with [Remote Control](/docs/en/remote-control) |",
+    "| :- | :- | :- | :- |"
+   ],
+   "http_status": 200,
+   "id": "E-claude-code-15404",
+   "locator": {
+    "heading": "Compare ways to run Claude Code",
+    "raw_line_end": 43,
+    "raw_line_start": 43
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "| **Code runs on** | Cloud VM, Anthropic-managed by default | Your machine | Your machine |",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "dc2fdbd576f353c15a4aae144239d25335cd723ca15eb6e90a7c2e799c8ef80b",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/web-quickstart.md",
+   "url_effective": "https://code.claude.com/docs/en/web-quickstart.md",
+   "version_source": null
+  },
+  {
+   "bytes": 38851,
+   "context_after": [
+    "* In auto permission mode, you aren't asked to [approve the first workflow launch](#approve-the-plan-before-it-runs)",
+    ""
+   ],
+   "context_before": [
+    "",
+    "* The [`Large workflow` warning](#cost) doesn't appear on a workflow run"
+   ],
+   "http_status": 200,
+   "id": "E-claude-code-15834",
+   "locator": {
+    "heading": "Let Claude decide with ultracode",
+    "raw_line_end": 161,
+    "raw_line_start": 161
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "* The session's [concurrent subagent limit](/docs/en/sub-agents#concurrent-subagent-limit) isn't enforced for the subagents Claude spawns with the Agent tool",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "44bbacf7088c723f2fcf0514329b594a2ec5bbb3c36636defceaaa914f293e8f",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/workflows.md",
+   "url_effective": "https://code.claude.com/docs/en/workflows.md",
+   "version_source": null
+  },
+  {
+   "bytes": 38851,
+   "context_after": [
+    "",
+    "## Manage runs"
+   ],
+   "context_before": [
+    "| In a fan-out, agents that share the first agent's prompt-cache prefix start up to 5 seconds after it by default | All but the first read the [prefix the first agent cached](#prompt-caching-in-a-fan-out) instead of each processing it uncached |",
+    "| Up to 4,096 items in a single `parallel()` or `pipeline()` call: the runtime rejects a longer list with an error | A silent cap would drop part of the workload without telling the script |"
+   ],
+   "http_status": 200,
+   "id": "E-claude-code-15872",
+   "locator": {
+    "heading": "Behavior and limits",
+    "raw_line_end": 368,
+    "raw_line_start": 368
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "| 1,000 agents total per run | Prevents runaway loops |",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "44bbacf7088c723f2fcf0514329b594a2ec5bbb3c36636defceaaa914f293e8f",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/workflows.md",
+   "url_effective": "https://code.claude.com/docs/en/workflows.md",
+   "version_source": null
+  },
+  {
+   "bytes": 40168,
+   "context_after": [
+    "",
+    "Both the TypeScript and Python SDKs bundle a native Claude Code binary, so most installs need no separate Claude Code install. See the [quickstart's install note](/docs/en/agent-sdk/quickstart) for the installs that do."
+   ],
+   "context_before": [
+    "> Understand the message lifecycle, tool execution, context window, and architecture that power your SDK agents.",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-claude-code-16054",
+   "locator": {
+    "heading": "How the agent loop works",
+    "raw_line_end": 9,
+    "raw_line_start": 9
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "The Agent SDK lets you embed Claude Code's autonomous agent loop in your own applications. The SDK is a standalone package that gives you programmatic control over tools, permissions, cost limits, and output.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "74dd31bd6cdf75b1decb6487c32f2bafde9288806180361f54a0636124e33ad8",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/agent-sdk/agent-loop.md",
+   "url_effective": "https://code.claude.com/docs/en/agent-sdk/agent-loop.md",
+   "version_source": null
+  },
+  {
+   "bytes": 20172,
+   "context_after": [
+    "",
+    "When you omit `settingSources`, `query()` reads the same filesystem settings as the Claude Code CLI: user, project, and local settings, CLAUDE.md files, and `.claude/` skills, agents, and commands. To run without these, pass `settingSources: []`, which limits the agent to what you configure programm"
+   ],
+   "context_before": [
+    "> Load project instructions, skills, hooks, and other Claude Code features into your SDK agents.",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-claude-code-16072",
+   "locator": {
+    "heading": "Use Claude Code features in the SDK",
+    "raw_line_end": 9,
+    "raw_line_start": 9
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "The Agent SDK is built on the same foundation as Claude Code, which means your SDK agents have access to the same filesystem-based features: project instructions (`CLAUDE.md` and rules), skills, hooks, and more.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "f30eb3fa7adf75f0b1ace14f7b29dc70a3f617b6930c9267f155d4776de5e66e",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/agent-sdk/claude-code-features.md",
+   "url_effective": "https://code.claude.com/docs/en/agent-sdk/claude-code-features.md",
+   "version_source": null
+  },
+  {
+   "bytes": 18976,
+   "context_after": [
+    "",
+    "* **Code and data storage:** Your repository is cloned into the session's isolated VM. Anthropic stores the session transcript so you can return to the session later. Code and session data are subject to the [retention and usage policies](#data-retention) for your account type"
+   ],
+   "context_before": [
+    "### Cloud execution: Data flow and dependencies",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-claude-code-18037",
+   "locator": {
+    "heading": "Cloud execution: Data flow and dependencies",
+    "raw_line_end": 93,
+    "raw_line_start": 93
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "[Cloud sessions](/docs/en/claude-code-on-the-web) run in Anthropic-managed virtual machines by default instead of locally. Sessions your organization routes to a [self-hosted environment](/docs/en/self-hosted-environments) run on infrastructure you control; for what stays on your machines and what",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "ef5260591575f5c4d2cc649054349b427fb6f3aa91388f9162662d7e3ba0bb03",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/data-usage.md",
+   "url_effective": "https://code.claude.com/docs/en/data-usage.md",
+   "version_source": null
+  },
+  {
+   "bytes": 85846,
+   "context_after": [
+    "",
+    "### Deployment"
+   ],
+   "context_before": [
+    "### Data handling",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-claude-code-18261",
+   "locator": {
+    "heading": "Data handling",
+    "raw_line_end": 835,
+    "raw_line_start": 835
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "Claude Code processes your code locally in local sessions, or in cloud sessions on Anthropic-managed infrastructure, unless your organization routes them to a [self-hosted environment](/docs/en/self-hosted-environments). Cloud sessions, including in a self-hosted environment, send conversations and",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "75a1d5bfc46a21168957684c780f4c600b94b16aadfa51671d58e73f751061dd",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/desktop.md",
+   "url_effective": "https://code.claude.com/docs/en/desktop.md",
+   "version_source": null
+  },
+  {
+   "bytes": 25682,
+   "context_after": [
+    "* [Plugin manifest reference](/docs/en/plugins/manifest-reference): every `plugin.json` field, path rule, and directory",
+    "* [Skills](/docs/en/skills): write the skills your plugin provides"
+   ],
+   "context_before": [
+    "* [Test plugins with evals](/docs/en/plugin-evals): write eval cases and run them with `claude plugin eval` to check how reliably the plugin guides Claude's behavior",
+    "* [Publish a plugin](/docs/en/plugins/publish): version it, put it in a marketplace, and submit it for review"
+   ],
+   "http_status": 200,
+   "id": "E-claude-code-20219",
+   "locator": {
+    "heading": "Next steps",
+    "raw_line_end": 395,
+    "raw_line_start": 395
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "* [Plugin structure and testing](https://claude.com/docs/plugins/build): the same plugin folder installs on claude.ai and in Cowork. Some components are Claude Code-only, and the [component support table](https://claude.com/docs/plugins/platform-support#compare-component-support-by-app) lists which",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "230c3345972110a3c901dec8866545f260cafe3b9eb55e9e049861f4def90e39",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/plugins/create.md",
+   "url_effective": "https://code.claude.com/docs/en/plugins/create.md",
+   "version_source": null
+  },
+  {
+   "bytes": 16122,
+   "context_after": [
+    "  </Step>",
+    ""
+   ],
+   "context_before": [
+    "",
+    "  <Step title=\"Check what loads where\">"
+   ],
+   "http_status": 200,
+   "id": "E-claude-code-21229",
+   "locator": {
+    "heading": "Ship updates to users",
+    "raw_line_end": 148,
+    "raw_line_start": 148
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "    Some plugin components are Claude Code-only and don't load on claude.ai or in Cowork. The [component support table](https://claude.com/docs/plugins/platform-support#compare-component-support-by-app) lists each component by app, so you know what users outside Claude Code will get.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "92c66235f389b61deb4fa976f0e6395c478c4053b0db0e08be65a2b8b309951c",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/plugins/publish.md",
+   "url_effective": "https://code.claude.com/docs/en/plugins/publish.md",
+   "version_source": null
+  },
+  {
+   "bytes": 20253,
+   "context_after": [
+    "",
+    "If your team doesn't use cloud sessions, there's nothing here to configure: sessions in a terminal or IDE always run on the developer's own machine. If you want to run Claude Code on your own always-on machine and drive it from other devices, use [Remote Control](/docs/en/remote-control), which is a"
+   ],
+   "context_before": [
+    "</Note>",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-claude-code-22141",
+   "locator": {
+    "heading": "Self-hosted environments",
+    "raw_line_end": 13,
+    "raw_line_start": 13
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "A self-hosted environment executes Claude Code cloud sessions on infrastructure your organization operates. A [cloud session](/docs/en/claude-code-on-the-web) is any session that runs somewhere other than the developer's machine: developers start them from claude.ai, the mobile and desktop apps, the",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "c08eb11dac8d46c150f2381ea45c2f5a942fc94ac6631dbab9844a7d29ce1eb7",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/self-hosted-environments.md",
+   "url_effective": "https://code.claude.com/docs/en/self-hosted-environments.md",
+   "version_source": null
+  },
+  {
+   "bytes": 23874,
+   "context_after": [
+    "",
+    "1. **Clone and prepare**: your repository is cloned to an Anthropic-managed VM, and your [setup script](/docs/en/cloud-environments#setup-scripts) runs if configured."
+   ],
+   "context_before": [
+    "## How sessions run",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-claude-code-23049",
+   "locator": {
+    "heading": "How sessions run",
+    "raw_line_end": 28,
+    "raw_line_start": 28
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "The steps below describe Anthropic-hosted sessions. In a [self-hosted environment](/docs/en/self-hosted-environments), the clone and everything after it run on your organization's own runners, where network boundaries, setup, and push behavior are operator-configured. When you submit a task:",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "dc2fdbd576f353c15a4aae144239d25335cd723ca15eb6e90a7c2e799c8ef80b",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/web-quickstart.md",
+   "url_effective": "https://code.claude.com/docs/en/web-quickstart.md",
+   "version_source": null
+  }
+ ]
+}

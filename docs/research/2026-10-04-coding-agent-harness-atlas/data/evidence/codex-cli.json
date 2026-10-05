@@ -1,0 +1,2760 @@
+{
+ "surface": "codex-cli",
+ "evidence": [
+  {
+   "bytes": 22356,
+   "context_after": [
+    "appears in the ChatGPT desktop app, Codex CLI, and the IDE extension.",
+    ""
+   ],
+   "context_before": [
+    "<ContentModeSwitch group=\"codex-surface\" ids=\"app,cli,ide\">",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-codex-cli-00001",
+   "locator": {
+    "heading": "Availability",
+    "raw_line_end": 25,
+    "raw_line_start": 25
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "Current Codex releases enable subagent workflows by default. Subagent activity",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "c5ef4eda3d9f876c8f35c697e720a3e7c760b5cf8c4943c97e82d1d8fe1b0054",
+   "surface": "codex-cli",
+   "tier": "E1",
+   "url": "https://learn.chatgpt.com/docs/agent-configuration/subagents.md",
+   "url_effective": "https://learn.chatgpt.com/docs/agent-configuration/subagents.md",
+   "version_source": null
+  },
+  {
+   "bytes": 22356,
+   "context_after": [
+    "thread collects the subagent results into its final response.",
+    ""
+   ],
+   "context_before": [
+    "Ask Codex in an interactive CLI session to use subagents. Codex can also follow",
+    "applicable `AGENTS.md` or skill instructions that request delegation. Use"
+   ],
+   "http_status": 200,
+   "id": "E-codex-cli-00002",
+   "locator": {
+    "heading": "Availability",
+    "raw_line_end": 57,
+    "raw_line_start": 57
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "`/agent` to inspect and switch between agent threads while they run. The main",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "c5ef4eda3d9f876c8f35c697e720a3e7c760b5cf8c4943c97e82d1d8fe1b0054",
+   "surface": "codex-cli",
+   "tier": "E1",
+   "url": "https://learn.chatgpt.com/docs/agent-configuration/subagents.md",
+   "url_effective": "https://learn.chatgpt.com/docs/agent-configuration/subagents.md",
+   "version_source": null
+  },
+  {
+   "bytes": 22356,
+   "context_after": [
+    "  it.",
+    "- **`max`** and **`xhigh`**: Use for especially demanding reasoning when the"
+   ],
+   "context_before": [
+    "for GPT-6 Astra. Adjust for the task using a level the selected model supports.",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-codex-cli-00012",
+   "locator": {
+    "heading": "Reasoning effort (`model_reasoning_effort`)",
+    "raw_line_end": 184,
+    "raw_line_start": 184
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "- **`ultra`**: Use for the deepest reasoning when the selected model supports",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "c5ef4eda3d9f876c8f35c697e720a3e7c760b5cf8c4943c97e82d1d8fe1b0054",
+   "surface": "codex-cli",
+   "tier": "E1",
+   "url": "https://learn.chatgpt.com/docs/agent-configuration/subagents.md",
+   "url_effective": "https://learn.chatgpt.com/docs/agent-configuration/subagents.md",
+   "version_source": null
+  },
+  {
+   "bytes": 22356,
+   "context_after": [
+    "custom agent file sets different defaults.",
+    ""
+   ],
+   "context_before": [
+    "Codex also reapplies the parent turn's live runtime overrides when it spawns a",
+    "child. That includes sandbox and approval choices you set interactively during"
+   ],
+   "http_status": 200,
+   "id": "E-codex-cli-00024",
+   "locator": {
+    "heading": "Approvals and sandbox controls",
+    "raw_line_end": 316,
+    "raw_line_start": 316
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "the session, such as `/permissions` changes or `--yolo`, even if the selected",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "c5ef4eda3d9f876c8f35c697e720a3e7c760b5cf8c4943c97e82d1d8fe1b0054",
+   "surface": "codex-cli",
+   "tier": "E1",
+   "url": "https://learn.chatgpt.com/docs/agent-configuration/subagents.md",
+   "url_effective": "https://learn.chatgpt.com/docs/agent-configuration/subagents.md",
+   "version_source": null
+  },
+  {
+   "bytes": 22356,
+   "context_after": [
+    "the file takes precedence. Before applying the file, Codex resolves each setting",
+    "from an explicit spawn value, then the corresponding `[agents]` default, then"
+   ],
+   "context_before": [
+    "- `developer_instructions`",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-codex-cli-00033",
+   "locator": {
+    "heading": "Custom agents",
+    "raw_line_end": 355,
+    "raw_line_start": 355
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "If a custom agent file sets `model` or `model_reasoning_effort`, the value in",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "c5ef4eda3d9f876c8f35c697e720a3e7c760b5cf8c4943c97e82d1d8fe1b0054",
+   "surface": "codex-cli",
+   "tier": "E1",
+   "url": "https://learn.chatgpt.com/docs/agent-configuration/subagents.md",
+   "url_effective": "https://learn.chatgpt.com/docs/agent-configuration/subagents.md",
+   "version_source": null
+  },
+  {
+   "bytes": 22356,
+   "context_after": [
+    "- When you leave `agents.max_concurrent_threads_per_session` unset, Codex chooses the default. Existing configurations can keep using `agents.max_threads` as a legacy alias.",
+    "- Explicit spawn values override `agents.default_subagent_model` and `agents.default_subagent_reasoning_effort`."
+   ],
+   "context_before": [
+    "**Notes:**",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-codex-cli-00036",
+   "locator": {
+    "heading": "Global settings",
+    "raw_line_end": 381,
+    "raw_line_start": 381
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "- `agents.enabled` defaults to `true`. Set it to `false` to disable multi-agent tools.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "c5ef4eda3d9f876c8f35c697e720a3e7c760b5cf8c4943c97e82d1d8fe1b0054",
+   "surface": "codex-cli",
+   "tier": "E1",
+   "url": "https://learn.chatgpt.com/docs/agent-configuration/subagents.md",
+   "url_effective": "https://learn.chatgpt.com/docs/agent-configuration/subagents.md",
+   "version_source": null
+  },
+  {
+   "bytes": 22356,
+   "context_after": [
+    "| `agents.default_subagent_model`             | string  |    No    | Set the default model for spawned agents.                           |",
+    "| `agents.default_subagent_reasoning_effort`  | string  |    No    | Set the default reasoning effort for spawned agents.                |"
+   ],
+   "context_before": [
+    "| ------------------------------------------- | ------- | :------: | ------------------------------------------------------------------- |",
+    "| `agents.enabled`                            | boolean |    No    | Enable or disable multi-agent tools.                                |"
+   ],
+   "http_status": 200,
+   "id": "E-codex-cli-00037",
+   "locator": {
+    "heading": "Global settings",
+    "raw_line_end": 374,
+    "raw_line_start": 374
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "| `agents.max_concurrent_threads_per_session` | number  |    No    | Cap concurrently open spawned-agent threads, excluding the primary. |",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "c5ef4eda3d9f876c8f35c697e720a3e7c760b5cf8c4943c97e82d1d8fe1b0054",
+   "surface": "codex-cli",
+   "tier": "E1",
+   "url": "https://learn.chatgpt.com/docs/agent-configuration/subagents.md",
+   "url_effective": "https://learn.chatgpt.com/docs/agent-configuration/subagents.md",
+   "version_source": null
+  },
+  {
+   "bytes": 22356,
+   "context_after": [
+    "- Explicit spawn values override `agents.default_subagent_model` and `agents.default_subagent_reasoning_effort`.",
+    "- `agents.interrupt_message` defaults to `true`. Set it to `false` to omit the model-visible interruption message from the agent's context."
+   ],
+   "context_before": [
+    "",
+    "- `agents.enabled` defaults to `true`. Set it to `false` to disable multi-agent tools."
+   ],
+   "http_status": 200,
+   "id": "E-codex-cli-00038",
+   "locator": {
+    "heading": "Global settings",
+    "raw_line_end": 382,
+    "raw_line_start": 382
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "- When you leave `agents.max_concurrent_threads_per_session` unset, Codex chooses the default. Existing configurations can keep using `agents.max_threads` as a legacy alias.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "c5ef4eda3d9f876c8f35c697e720a3e7c760b5cf8c4943c97e82d1d8fe1b0054",
+   "surface": "codex-cli",
+   "tier": "E1",
+   "url": "https://learn.chatgpt.com/docs/agent-configuration/subagents.md",
+   "url_effective": "https://learn.chatgpt.com/docs/agent-configuration/subagents.md",
+   "version_source": null
+  },
+  {
+   "bytes": 22356,
+   "context_after": [
+    "| `agents.interrupt_message`                  | boolean |    No    | Record a model-visible message when an agent turn is interrupted.   |",
+    ""
+   ],
+   "context_before": [
+    "| `agents.max_concurrent_threads_per_session` | number  |    No    | Cap concurrently open spawned-agent threads, excluding the primary. |",
+    "| `agents.default_subagent_model`             | string  |    No    | Set the default model for spawned agents.                           |"
+   ],
+   "http_status": 200,
+   "id": "E-codex-cli-00040",
+   "locator": {
+    "heading": "Global settings",
+    "raw_line_end": 376,
+    "raw_line_start": 376
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "| `agents.default_subagent_reasoning_effort`  | string  |    No    | Set the default reasoning effort for spawned agents.                |",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "c5ef4eda3d9f876c8f35c697e720a3e7c760b5cf8c4943c97e82d1d8fe1b0054",
+   "surface": "codex-cli",
+   "tier": "E1",
+   "url": "https://learn.chatgpt.com/docs/agent-configuration/subagents.md",
+   "url_effective": "https://learn.chatgpt.com/docs/agent-configuration/subagents.md",
+   "version_source": null
+  },
+  {
+   "bytes": 22356,
+   "context_after": [
+    "- `agents.interrupt_message` defaults to `true`. Set it to `false` to omit the model-visible interruption message from the agent's context.",
+    "- If a custom agent name matches a built-in agent such as `explorer`, your custom agent takes precedence."
+   ],
+   "context_before": [
+    "- `agents.enabled` defaults to `true`. Set it to `false` to disable multi-agent tools.",
+    "- When you leave `agents.max_concurrent_threads_per_session` unset, Codex chooses the default. Existing configurations can keep using `agents.max_threads` as a legacy alias."
+   ],
+   "http_status": 200,
+   "id": "E-codex-cli-00041",
+   "locator": {
+    "heading": "Global settings",
+    "raw_line_end": 383,
+    "raw_line_start": 383
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "- Explicit spawn values override `agents.default_subagent_model` and `agents.default_subagent_reasoning_effort`.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "c5ef4eda3d9f876c8f35c697e720a3e7c760b5cf8c4943c97e82d1d8fe1b0054",
+   "surface": "codex-cli",
+   "tier": "E1",
+   "url": "https://learn.chatgpt.com/docs/agent-configuration/subagents.md",
+   "url_effective": "https://learn.chatgpt.com/docs/agent-configuration/subagents.md",
+   "version_source": null
+  },
+  {
+   "bytes": 22356,
+   "context_after": [
+    "",
+    "Codex identifies the custom agent by its `name` field. Matching the filename to"
+   ],
+   "context_before": [
+    "| `developer_instructions` | string |   Yes    | Core instructions that define the agent's behavior.             |",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-codex-cli-00044",
+   "locator": {
+    "heading": "Custom agent file schema",
+    "raw_line_end": 395,
+    "raw_line_start": 395
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "You can also include other supported `config.toml` keys in a custom agent file, such as `model`, `model_reasoning_effort`, `sandbox_mode`, `mcp_servers`, and `skills.config`.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "c5ef4eda3d9f876c8f35c697e720a3e7c760b5cf8c4943c97e82d1d8fe1b0054",
+   "surface": "codex-cli",
+   "tier": "E1",
+   "url": "https://learn.chatgpt.com/docs/agent-configuration/subagents.md",
+   "url_effective": "https://learn.chatgpt.com/docs/agent-configuration/subagents.md",
+   "version_source": null
+  },
+  {
+   "bytes": 25979,
+   "context_after": [
+    "",
+    "Choose the provider for the Amazon Bedrock endpoint you want to use: Bedrock"
+   ],
+   "context_before": [
+    "## Configure the provider",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-codex-cli-00048",
+   "locator": {
+    "heading": "Configure the provider",
+    "raw_line_end": 40,
+    "raw_line_start": 40
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "Codex allows you to configure the provider by setting `model_provider` in `~/.codex/config.toml`. The ChatGPT desktop app, Codex CLI, IDE extension, and SDK read the same local configuration layers.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "512891670d5b9ad5037c6ec3beecc576fcdd9a6fde6fe217e133e759386ab9d4",
+   "surface": "codex-cli",
+   "tier": "E1",
+   "url": "https://learn.chatgpt.com/docs/amazon-bedrock.md",
+   "url_effective": "https://learn.chatgpt.com/docs/amazon-bedrock.md",
+   "version_source": null
+  },
+  {
+   "bytes": 25979,
+   "context_after": [
+    "model picker: models supported through the Bedrock Runtime endpoint for",
+    "`amazon-bedrock-runtime`, or through the Bedrock Mantle endpoint for"
+   ],
+   "context_before": [
+    "### Choose a model",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-codex-cli-00052",
+   "locator": {
+    "heading": "Choose a model",
+    "raw_line_end": 67,
+    "raw_line_start": 67
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "Codex uses the configured `model_provider` to choose which models appear in the",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "512891670d5b9ad5037c6ec3beecc576fcdd9a6fde6fe217e133e759386ab9d4",
+   "surface": "codex-cli",
+   "tier": "E1",
+   "url": "https://learn.chatgpt.com/docs/amazon-bedrock.md",
+   "url_effective": "https://learn.chatgpt.com/docs/amazon-bedrock.md",
+   "version_source": null
+  },
+  {
+   "bytes": 37249,
+   "context_after": [
+    "The retired setting can prevent either client from starting. Remove it from",
+    "user or project configuration, profile files, startup scripts, and managed"
+   ],
+   "context_before": [
+    "## Migrate from the retired `untrusted` approval policy",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-codex-cli-00087",
+   "locator": {
+    "heading": "Migrate from the retired `untrusted` approval policy",
+    "raw_line_end": 19,
+    "raw_line_start": 19
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "Codex and ChatGPT Work no longer support `approval_policy = \"untrusted\"`.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "bb78bd122fc94a9871630e39d74d38fc3aa204deddbc3ead74da9b76f99e2afb",
+   "surface": "codex-cli",
+   "tier": "E1",
+   "url": "https://learn.chatgpt.com/docs/agent-approvals-security.md",
+   "url_effective": "https://learn.chatgpt.com/docs/agent-approvals-security.md",
+   "version_source": null
+  },
+  {
+   "bytes": 37249,
+   "context_after": [
+    "",
+    "Codex asks for approval to edit files outside the workspace or to run commands that require network access. If you want to chat or plan without making changes, switch to `read-only` mode with the `/permissions` command."
+   ],
+   "context_before": [
+    "- **Codex CLI / IDE extension**: OS-level mechanisms enforce sandbox policies. Defaults include no network access and write permissions limited to the active workspace. You can configure the sandbox, approval policy, and network settings based on your risk tolerance.",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-codex-cli-00098",
+   "locator": {
+    "heading": "Sandbox and approvals",
+    "raw_line_end": 70,
+    "raw_line_start": 70
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "In the `Auto` preset (for example, `--sandbox workspace-write --ask-for-approval on-request`), Codex can read files, make edits, and run commands in the working directory automatically.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "bb78bd122fc94a9871630e39d74d38fc3aa204deddbc3ead74da9b76f99e2afb",
+   "surface": "codex-cli",
+   "tier": "E1",
+   "url": "https://learn.chatgpt.com/docs/agent-approvals-security.md",
+   "url_effective": "https://learn.chatgpt.com/docs/agent-approvals-security.md",
+   "version_source": null
+  },
+  {
+   "bytes": 37249,
+   "context_after": [
+    "",
+    "Codex can also elicit approval for app (connector) tool calls that advertise side effects, even when the action isn't a shell command or file change. Destructive app/MCP tool calls always require approval when the tool advertises a destructive annotation (unless the tool advertises a read annotation"
+   ],
+   "context_before": [
+    "In the `Auto` preset (for example, `--sandbox workspace-write --ask-for-approval on-request`), Codex can read files, make edits, and run commands in the working directory automatically.",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-codex-cli-00099",
+   "locator": {
+    "heading": "Sandbox and approvals",
+    "raw_line_end": 72,
+    "raw_line_start": 72
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "Codex asks for approval to edit files outside the workspace or to run commands that require network access. If you want to chat or plan without making changes, switch to `read-only` mode with the `/permissions` command.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "bb78bd122fc94a9871630e39d74d38fc3aa204deddbc3ead74da9b76f99e2afb",
+   "surface": "codex-cli",
+   "tier": "E1",
+   "url": "https://learn.chatgpt.com/docs/agent-approvals-security.md",
+   "url_effective": "https://learn.chatgpt.com/docs/agent-approvals-security.md",
+   "version_source": null
+  },
+  {
+   "bytes": 37249,
+   "context_after": [
+    "  - Version-controlled folders: `Auto` (workspace write + on-request approvals)",
+    "  - Non-version-controlled folders: `read-only`"
+   ],
+   "context_before": [
+    "## Defaults and recommendations",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-codex-cli-00121",
+   "locator": {
+    "heading": "Defaults and recommendations",
+    "raw_line_end": 279,
+    "raw_line_start": 279
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "- On launch, Codex detects whether the folder is version-controlled and recommends:",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "bb78bd122fc94a9871630e39d74d38fc3aa204deddbc3ead74da9b76f99e2afb",
+   "surface": "codex-cli",
+   "tier": "E1",
+   "url": "https://learn.chatgpt.com/docs/agent-approvals-security.md",
+   "url_effective": "https://learn.chatgpt.com/docs/agent-approvals-security.md",
+   "version_source": null
+  },
+  {
+   "bytes": 37249,
+   "context_after": [
+    "  - Non-version-controlled folders: `read-only`",
+    "- Depending on your setup, Codex may also start in `read-only` until you explicitly trust the working directory (for example, via an onboarding prompt or `/permissions`)."
+   ],
+   "context_before": [
+    "",
+    "- On launch, Codex detects whether the folder is version-controlled and recommends:"
+   ],
+   "http_status": 200,
+   "id": "E-codex-cli-00122",
+   "locator": {
+    "heading": "Defaults and recommendations",
+    "raw_line_end": 280,
+    "raw_line_start": 280
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "  - Version-controlled folders: `Auto` (workspace write + on-request approvals)",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "bb78bd122fc94a9871630e39d74d38fc3aa204deddbc3ead74da9b76f99e2afb",
+   "surface": "codex-cli",
+   "tier": "E1",
+   "url": "https://learn.chatgpt.com/docs/agent-approvals-security.md",
+   "url_effective": "https://learn.chatgpt.com/docs/agent-approvals-security.md",
+   "version_source": null
+  },
+  {
+   "bytes": 37249,
+   "context_after": [
+    "",
+    "For a middle ground, `approval_policy = { granular = { ... } }` lets you keep specific approval prompt categories interactive while automatically rejecting others. The granular policy covers sandbox approvals, execpolicy-rule prompts, MCP prompts, `request_permissions` prompts, and skill-script appr"
+   ],
+   "context_before": [
+    "This option works with all `--sandbox` modes, so you still control Codex's level of autonomy. Codex makes a best effort within the constraints you set.",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-codex-cli-00128",
+   "locator": {
+    "heading": "Run without approval prompts",
+    "raw_line_end": 305,
+    "raw_line_start": 305
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "If you need Codex to read files, make edits, and run commands with network access without approval prompts, use `--sandbox danger-full-access` (or the `--dangerously-bypass-approvals-and-sandbox` flag). Use caution before doing so.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "bb78bd122fc94a9871630e39d74d38fc3aa204deddbc3ead74da9b76f99e2afb",
+   "surface": "codex-cli",
+   "tier": "E1",
+   "url": "https://learn.chatgpt.com/docs/agent-approvals-security.md",
+   "url_effective": "https://learn.chatgpt.com/docs/agent-approvals-security.md",
+   "version_source": null
+  },
+  {
+   "bytes": 22356,
+   "context_after": [
+    "",
+    "</ContentModeSwitch>"
+   ],
+   "context_before": [
+    "- **`low`**: Use when the task is straightforward and speed matters most.",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-codex-cli-00172",
+   "locator": {
+    "heading": "Reasoning effort (`model_reasoning_effort`)",
+    "raw_line_end": 192,
+    "raw_line_start": 192
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "Higher reasoning effort increases response time and token usage, but it can improve quality for complex work. For details, see [Models](https://learn.chatgpt.com/docs/models), [Config basics](https://learn.chatgpt.com/docs/config-file/config-basic), and [Configuration",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "c5ef4eda3d9f876c8f35c697e720a3e7c760b5cf8c4943c97e82d1d8fe1b0054",
+   "surface": "codex-cli",
+   "tier": "E1",
+   "url": "https://learn.chatgpt.com/docs/agent-configuration/subagents.md",
+   "url_effective": "https://learn.chatgpt.com/docs/agent-configuration/subagents.md",
+   "version_source": null
+  },
+  {
+   "bytes": 100675,
+   "context_after": [
+    "- `thread/backgroundTerminals/list` - list running background terminals for a loaded thread (experimental; requires `capabilities.experimentalApi`).",
+    "- `thread/backgroundTerminals/terminate` - terminate one running background terminal by app-server `processId` (experimental; requires `capabilities.experimentalApi`)."
+   ],
+   "context_before": [
+    "- `thread/compact/start` - trigger conversation history compaction for a thread; returns `{}` immediately while progress streams via `turn/*` and `item/*` notifications.",
+    "- `thread/shellCommand` - run a user-initiated shell command against a thread. This runs outside the sandbox with full access and doesn't inherit the thread sandbox policy."
+   ],
+   "http_status": 200,
+   "id": "E-codex-cli-00219",
+   "locator": {
+    "heading": "API overview",
+    "raw_line_end": 316,
+    "raw_line_start": 316
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "- `thread/backgroundTerminals/clean` - stop all running background terminals for a thread (experimental; requires `capabilities.experimentalApi`).",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "14c29f997cffff66125e710c1746425c53262eb4e636eb0bbcd5c8b4ec7e4464",
+   "surface": "codex-cli",
+   "tier": "E1",
+   "url": "https://learn.chatgpt.com/docs/app-server.md",
+   "url_effective": "https://learn.chatgpt.com/docs/app-server.md",
+   "version_source": null
+  },
+  {
+   "bytes": 100675,
+   "context_after": [
+    "- `modelProvider/capabilities/read` - read provider capability bounds for model/provider combinations.",
+    "- `experimentalFeature/list` - list feature flags with lifecycle stage metadata and cursor pagination."
+   ],
+   "context_before": [
+    "- `process/kill` - terminate a running process session (experimental).",
+    "- `process/outputDelta` and `process/exited` (notify) - emitted for streaming process output and process exit status (experimental)."
+   ],
+   "http_status": 200,
+   "id": "E-codex-cli-00227",
+   "locator": {
+    "heading": "API overview",
+    "raw_line_end": 335,
+    "raw_line_start": 335
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "- `model/list` - list available models (set `includeHidden: true` to include entries with `hidden: true`) with effort options, optional `upgrade`, and `inputModalities`.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "14c29f997cffff66125e710c1746425c53262eb4e636eb0bbcd5c8b4ec7e4464",
+   "surface": "codex-cli",
+   "tier": "E1",
+   "url": "https://learn.chatgpt.com/docs/app-server.md",
+   "url_effective": "https://learn.chatgpt.com/docs/app-server.md",
+   "version_source": null
+  },
+  {
+   "bytes": 100675,
+   "context_after": [
+    "",
+    "The response below illustrates the structure. Available models, reasoning"
+   ],
+   "context_before": [
+    "### List models (`model/list`)",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-codex-cli-00253",
+   "locator": {
+    "heading": "List models (`model/list`)",
+    "raw_line_end": 391,
+    "raw_line_start": 391
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "Call `model/list` to discover available models and their capabilities before rendering model or personality selectors.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "14c29f997cffff66125e710c1746425c53262eb4e636eb0bbcd5c8b4ec7e4464",
+   "surface": "codex-cli",
+   "tier": "E1",
+   "url": "https://learn.chatgpt.com/docs/app-server.md",
+   "url_effective": "https://learn.chatgpt.com/docs/app-server.md",
+   "version_source": null
+  },
+  {
+   "bytes": 100675,
+   "context_after": [
+    "- `defaultReasoningEffort` - suggested default effort for clients.",
+    "- `upgrade` - optional recommended upgrade model id for migration prompts in clients."
+   ],
+   "context_before": [
+    "Each model entry can include:",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-codex-cli-00255",
+   "locator": {
+    "heading": "List models (`model/list`)",
+    "raw_line_end": 420,
+    "raw_line_start": 420
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "- `supportedReasoningEfforts` - supported effort options for the model.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "14c29f997cffff66125e710c1746425c53262eb4e636eb0bbcd5c8b4ec7e4464",
+   "surface": "codex-cli",
+   "tier": "E1",
+   "url": "https://learn.chatgpt.com/docs/app-server.md",
+   "url_effective": "https://learn.chatgpt.com/docs/app-server.md",
+   "version_source": null
+  },
+  {
+   "bytes": 100675,
+   "context_after": [
+    "",
+    "`sourceKinds` accepts the following values:"
+   ],
+   "context_before": [
+    "- `searchTerm` - restrict results to threads whose extracted title contains this case-sensitive text fragment.",
+    "- `parentThreadId` - restrict results to direct child threads of the given parent thread. This filter is experimental and requires `capabilities.experimentalApi = true`."
+   ],
+   "http_status": 200,
+   "id": "E-codex-cli-00283",
+   "locator": {
+    "heading": "List threads (with pagination & filters)",
+    "raw_line_end": 700,
+    "raw_line_start": 700
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "- `ancestorThreadId` - restrict results to spawned descendants of the given thread at any depth. This filter is experimental and requires `capabilities.experimentalApi = true`; don't combine it with `parentThreadId`.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "14c29f997cffff66125e710c1746425c53262eb4e636eb0bbcd5c8b4ec7e4464",
+   "surface": "codex-cli",
+   "tier": "E1",
+   "url": "https://learn.chatgpt.com/docs/app-server.md",
+   "url_effective": "https://learn.chatgpt.com/docs/app-server.md",
+   "version_source": null
+  },
+  {
+   "bytes": 100675,
+   "context_after": [
+    "",
+    "For `turn/start.collaborationMode`, `settings.developer_instructions: null` means \"use built-in instructions for the selected mode\" rather than clearing mode instructions."
+   ],
+   "context_before": [
+    "- `{ \"type\": \"localImage\", \"path\": \"/tmp/screenshot.png\" }`",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-codex-cli-00301",
+   "locator": {
+    "heading": "Turns",
+    "raw_line_end": 927,
+    "raw_line_start": 927
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "You can override configuration settings per turn (model, effort, personality, `cwd`, sandbox policy, summary). When specified, these settings become the defaults for later turns on the same thread. `outputSchema` applies only to the current turn. For `sandboxPolicy.type = \"externalSandbox\"`, set",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "14c29f997cffff66125e710c1746425c53262eb4e636eb0bbcd5c8b4ec7e4464",
+   "surface": "codex-cli",
+   "tier": "E1",
+   "url": "https://learn.chatgpt.com/docs/app-server.md",
+   "url_effective": "https://learn.chatgpt.com/docs/app-server.md",
+   "version_source": null
+  },
+  {
+   "bytes": 100675,
+   "context_after": [
+    "- `model/verification` - `{ threadId, turnId, verifications }` when the service requires additional account verification.",
+    "- `thread/tokenUsage/updated` - usage updates for the active thread."
+   ],
+   "context_before": [
+    "- `hook/started` and `hook/completed` - `{ threadId, turnId?, run }` when a synchronous lifecycle hook starts and when its final run summary is available. These notifications aren't emitted for asynchronous hooks.",
+    "- `model/safetyBuffering/updated` - `{ threadId, turnId, model, useCases, reasons, showBufferingUi, fasterModel }` when a response enters transient safety buffering."
+   ],
+   "http_status": 200,
+   "id": "E-codex-cli-00324",
+   "locator": {
+    "heading": "Turn events",
+    "raw_line_end": 1316,
+    "raw_line_start": 1316
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "- `model/rerouted` - `{ threadId, turnId, fromModel, toModel, reason }` when the service routes a request to another model.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "14c29f997cffff66125e710c1746425c53262eb4e636eb0bbcd5c8b4ec7e4464",
+   "surface": "codex-cli",
+   "tier": "E1",
+   "url": "https://learn.chatgpt.com/docs/app-server.md",
+   "url_effective": "https://learn.chatgpt.com/docs/app-server.md",
+   "version_source": null
+  },
+  {
+   "bytes": 100675,
+   "context_after": [
+    "- `item/commandExecution/outputDelta` - streams stdout/stderr for a command; append deltas in order.",
+    "- `item/fileChange/outputDelta` - deprecated compatibility notification for legacy `apply_patch` text output. Current app-server versions no longer emit it; use `fileChange` items and `turn/diff/updated` instead."
+   ],
+   "context_before": [
+    "- `item/reasoning/summaryTextDelta` - streams readable reasoning summaries; `summaryIndex` increments when a new summary section opens.",
+    "- `item/reasoning/summaryPartAdded` - marks a boundary between reasoning summary sections."
+   ],
+   "http_status": 200,
+   "id": "E-codex-cli-00328",
+   "locator": {
+    "heading": "Item deltas",
+    "raw_line_end": 1357,
+    "raw_line_start": 1357
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "- `item/reasoning/textDelta` - streams raw reasoning text (when supported by the model).",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "14c29f997cffff66125e710c1746425c53262eb4e636eb0bbcd5c8b4ec7e4464",
+   "surface": "codex-cli",
+   "tier": "E1",
+   "url": "https://learn.chatgpt.com/docs/app-server.md",
+   "url_effective": "https://learn.chatgpt.com/docs/app-server.md",
+   "version_source": null
+  },
+  {
+   "bytes": 54620,
+   "context_after": [
+    "- Use `-c` / `--config` when you need to override an arbitrary key.",
+    ""
+   ],
+   "context_before": [
+    "You can edit `~/.codex/config.toml` or override configuration for a single run from the CLI:",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-codex-cli-00394",
+   "locator": {
+    "heading": "One-off overrides from the CLI",
+    "raw_line_end": 67,
+    "raw_line_start": 67
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "- Prefer dedicated flags when they exist (for example, `--model`).",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "12845880f119c64470d41ace86ded50cd397f9b4647339ba3c5a5c27bc211659",
+   "surface": "codex-cli",
+   "tier": "E1",
+   "url": "https://learn.chatgpt.com/docs/config-file/config-advanced.md",
+   "url_effective": "https://learn.chatgpt.com/docs/config-file/config-advanced.md",
+   "version_source": null
+  },
+  {
+   "bytes": 54620,
+   "context_after": [
+    "",
+    "Define more providers and point `model_provider` at them:"
+   ],
+   "context_before": [
+    "[Deploy Codex through a gateway](https://learn.chatgpt.com/docs/enterprise/roll-out-a-gateway).",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-codex-cli-00398",
+   "locator": {
+    "heading": "Custom model providers",
+    "raw_line_end": 187,
+    "raw_line_start": 187
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "A model provider defines how Codex connects to a model (base URL, wire API, authentication, and optional HTTP headers). Custom providers can't reuse the reserved built-in provider IDs: `openai`, `ollama`, and `lmstudio`.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "12845880f119c64470d41ace86ded50cd397f9b4647339ba3c5a5c27bc211659",
+   "surface": "codex-cli",
+   "tier": "E1",
+   "url": "https://learn.chatgpt.com/docs/config-file/config-advanced.md",
+   "url_effective": "https://learn.chatgpt.com/docs/config-file/config-advanced.md",
+   "version_source": null
+  },
+  {
+   "bytes": 54620,
+   "context_after": [
+    "",
+    "For guidance on editing `config.toml`, see [Common sandbox and approval combinations](https://learn.chatgpt.com/docs/agent-approvals-security#common-sandbox-and-approval-combinations), [Protected paths in writable roots](https://learn.chatgpt.com/docs/agent-approvals-security#protected-paths-in-writ"
+   ],
+   "context_before": [
+    "## Approval policies and sandbox modes",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-codex-cli-00405",
+   "locator": {
+    "heading": "Approval policies and sandbox modes",
+    "raw_line_end": 325,
+    "raw_line_start": 325
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "Pick approval strictness (affects when Codex pauses) and sandbox level (affects file/network access).",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "12845880f119c64470d41ace86ded50cd397f9b4647339ba3c5a5c27bc211659",
+   "surface": "codex-cli",
+   "tier": "E1",
+   "url": "https://learn.chatgpt.com/docs/config-file/config-advanced.md",
+   "url_effective": "https://learn.chatgpt.com/docs/config-file/config-advanced.md",
+   "version_source": null
+  },
+  {
+   "bytes": 54620,
+   "context_after": [
+    "boundary.",
+    ""
+   ],
+   "context_before": [
+    "",
+    "Set `approvals_reviewer = \"auto_review\"` to route eligible interactive approval"
+   ],
+   "http_status": 200,
+   "id": "E-codex-cli-00408",
+   "locator": {
+    "heading": "Approval policies and sandbox modes",
+    "raw_line_end": 338,
+    "raw_line_start": 338
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "requests through automatic review. This changes the reviewer, not the sandbox",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "12845880f119c64470d41ace86ded50cd397f9b4647339ba3c5a5c27bc211659",
+   "surface": "codex-cli",
+   "tier": "E1",
+   "url": "https://learn.chatgpt.com/docs/config-file/config-advanced.md",
+   "url_effective": "https://learn.chatgpt.com/docs/config-file/config-advanced.md",
+   "version_source": null
+  },
+  {
+   "bytes": 54620,
+   "context_after": [
+    "",
+    "```toml"
+   ],
+   "context_before": [
+    "### Hide or surface reasoning events",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-codex-cli-00448",
+   "locator": {
+    "heading": "Hide or surface reasoning events",
+    "raw_line_end": 669,
+    "raw_line_start": 669
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "If you want to reduce noisy \"reasoning\" output (for example in CI logs), you can suppress it:",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "12845880f119c64470d41ace86ded50cd397f9b4647339ba3c5a5c27bc211659",
+   "surface": "codex-cli",
+   "tier": "E1",
+   "url": "https://learn.chatgpt.com/docs/config-file/config-advanced.md",
+   "url_effective": "https://learn.chatgpt.com/docs/config-file/config-advanced.md",
+   "version_source": null
+  },
+  {
+   "bytes": 12810,
+   "context_after": [
+    "`:danger-full-access`. Custom profiles use `[permissions.<name>]` tables and a",
+    "matching `default_permissions` value. See [Permissions](https://learn.chatgpt.com/docs/permissions)."
+   ],
+   "context_before": [
+    "",
+    "Codex also supports named permission profiles for reusable filesystem and"
+   ],
+   "http_status": 200,
+   "id": "E-codex-cli-00460",
+   "locator": {
+    "heading": "Permission profiles",
+    "raw_line_end": 92,
+    "raw_line_start": 92
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "network policies. Built-in profiles are `:read-only`, `:workspace`, and",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "646d73b80ffe78962c9526e5960f0cbdb39953db26fe5422241f7cfd3ba6d10c",
+   "surface": "codex-cli",
+   "tier": "E1",
+   "url": "https://learn.chatgpt.com/docs/config-file/config-basic.md",
+   "url_effective": "https://learn.chatgpt.com/docs/config-file/config-basic.md",
+   "version_source": null
+  },
+  {
+   "bytes": 131163,
+   "context_after": [
+    "[GPT-6.1 Sol availability](https://learn.chatgpt.com/docs/models#gpt-6.1-sol) before using the example value.",
+    ""
+   ],
+   "context_before": [
+    "for examples and approval tradeoffs.",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-codex-cli-00490",
+   "locator": {
+    "heading": "`config.toml`",
+    "raw_line_end": 98,
+    "raw_line_start": 98
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "Set `model` to one available to your signed-in account or workspace. See",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "73242945d7891bc09bf95a39d83117025abd8eca61ae5707db38fda40db16d62",
+   "surface": "codex-cli",
+   "tier": "E1",
+   "url": "https://learn.chatgpt.com/docs/config-file/config-reference.md",
+   "url_effective": "https://learn.chatgpt.com/docs/config-file/config-reference.md",
+   "version_source": null
+  },
+  {
+   "bytes": 131163,
+   "context_after": [
+    "    },",
+    "    {"
+   ],
+   "context_before": [
+    "      type: \"user | auto_review\",",
+    "      description:"
+   ],
+   "http_status": 200,
+   "id": "E-codex-cli-00532",
+   "locator": {
+    "heading": "`config.toml`",
+    "raw_line_end": 194,
+    "raw_line_start": 194
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "        \"Who reviews eligible approval prompts under `on-request` or granular approval policies. Defaults to `user`; `auto_review` uses the reviewer subagent. This setting doesn't change sandboxing or review actions already allowed inside the sandbox.\",",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "73242945d7891bc09bf95a39d83117025abd8eca61ae5707db38fda40db16d62",
+   "surface": "codex-cli",
+   "tier": "E1",
+   "url": "https://learn.chatgpt.com/docs/config-file/config-reference.md",
+   "url_effective": "https://learn.chatgpt.com/docs/config-file/config-reference.md",
+   "version_source": null
+  },
+  {
+   "bytes": 131163,
+   "context_after": [
+    "    },",
+    "    {"
+   ],
+   "context_before": [
+    "      key: \"model_provider\",",
+    "      type: \"string\","
+   ],
+   "http_status": 200,
+   "id": "E-codex-cli-00565",
+   "locator": {
+    "heading": "`config.toml`",
+    "raw_line_end": 117,
+    "raw_line_start": 117
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "      description: \"Provider id from `model_providers` (default: `openai`).\",",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "73242945d7891bc09bf95a39d83117025abd8eca61ae5707db38fda40db16d62",
+   "surface": "codex-cli",
+   "tier": "E1",
+   "url": "https://learn.chatgpt.com/docs/config-file/config-reference.md",
+   "url_effective": "https://learn.chatgpt.com/docs/config-file/config-reference.md",
+   "version_source": null
+  },
+  {
+   "bytes": 131163,
+   "context_after": [
+    "    },",
+    "    {"
+   ],
+   "context_before": [
+    "      key: \"agents.enabled\",",
+    "      type: \"boolean\","
+   ],
+   "http_status": 200,
+   "id": "E-codex-cli-00610",
+   "locator": {
+    "heading": "`config.toml`",
+    "raw_line_end": 760,
+    "raw_line_start": 760
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "      description: \"Enable or disable multi-agent tools (default: true).\",",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "73242945d7891bc09bf95a39d83117025abd8eca61ae5707db38fda40db16d62",
+   "surface": "codex-cli",
+   "tier": "E1",
+   "url": "https://learn.chatgpt.com/docs/config-file/config-reference.md",
+   "url_effective": "https://learn.chatgpt.com/docs/config-file/config-reference.md",
+   "version_source": null
+  },
+  {
+   "bytes": 131163,
+   "context_after": [
+    "    },",
+    "    {"
+   ],
+   "context_before": [
+    "      type: \"number\",",
+    "      description:"
+   ],
+   "http_status": 200,
+   "id": "E-codex-cli-00611",
+   "locator": {
+    "heading": "`config.toml`",
+    "raw_line_end": 766,
+    "raw_line_start": 766
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "        \"Maximum number of spawned-agent threads that can be open concurrently, excluding the primary thread. When unset, Codex chooses the default.\",",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "73242945d7891bc09bf95a39d83117025abd8eca61ae5707db38fda40db16d62",
+   "surface": "codex-cli",
+   "tier": "E1",
+   "url": "https://learn.chatgpt.com/docs/config-file/config-reference.md",
+   "url_effective": "https://learn.chatgpt.com/docs/config-file/config-reference.md",
+   "version_source": null
+  },
+  {
+   "bytes": 131163,
+   "context_after": [
+    "    },",
+    "    {"
+   ],
+   "context_before": [
+    "      type: \"string\",",
+    "      description:"
+   ],
+   "http_status": 200,
+   "id": "E-codex-cli-00612",
+   "locator": {
+    "heading": "`config.toml`",
+    "raw_line_end": 778,
+    "raw_line_start": 778
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "        \"Default model for spawned agents. An explicit spawn model takes precedence.\",",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "73242945d7891bc09bf95a39d83117025abd8eca61ae5707db38fda40db16d62",
+   "surface": "codex-cli",
+   "tier": "E1",
+   "url": "https://learn.chatgpt.com/docs/config-file/config-reference.md",
+   "url_effective": "https://learn.chatgpt.com/docs/config-file/config-reference.md",
+   "version_source": null
+  },
+  {
+   "bytes": 131163,
+   "context_after": [
+    "    },",
+    "    {"
+   ],
+   "context_before": [
+    "      type: \"string\",",
+    "      description:"
+   ],
+   "http_status": 200,
+   "id": "E-codex-cli-00613",
+   "locator": {
+    "heading": "`config.toml`",
+    "raw_line_end": 784,
+    "raw_line_start": 784
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "        \"Default reasoning effort for spawned agents. An explicit spawn effort takes precedence.\",",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "73242945d7891bc09bf95a39d83117025abd8eca61ae5707db38fda40db16d62",
+   "surface": "codex-cli",
+   "tier": "E1",
+   "url": "https://learn.chatgpt.com/docs/config-file/config-reference.md",
+   "url_effective": "https://learn.chatgpt.com/docs/config-file/config-reference.md",
+   "version_source": null
+  },
+  {
+   "bytes": 131163,
+   "context_after": [
+    "    },",
+    "    {"
+   ],
+   "context_before": [
+    "      type: \"string\",",
+    "      description:"
+   ],
+   "http_status": 200,
+   "id": "E-codex-cli-00649",
+   "locator": {
+    "heading": "`config.toml`",
+    "raw_line_end": 1165,
+    "raw_line_start": 1165
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "        \"Reasoning effort advertised by the selected model, such as `low`, `medium`, `high`, `xhigh`, `max`, or `ultra`. Available levels depend on the model and client.\",",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "73242945d7891bc09bf95a39d83117025abd8eca61ae5707db38fda40db16d62",
+   "surface": "codex-cli",
+   "tier": "E1",
+   "url": "https://learn.chatgpt.com/docs/config-file/config-reference.md",
+   "url_effective": "https://learn.chatgpt.com/docs/config-file/config-reference.md",
+   "version_source": null
+  },
+  {
+   "bytes": 131163,
+   "context_after": [
+    "    },",
+    "    {"
+   ],
+   "context_before": [
+    "      type: \"string\",",
+    "      description:"
+   ],
+   "http_status": 200,
+   "id": "E-codex-cli-00650",
+   "locator": {
+    "heading": "`config.toml`",
+    "raw_line_end": 1171,
+    "raw_line_start": 1171
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "        \"Plan-mode-specific reasoning override using a level supported by the selected model. When unset, Plan mode uses its built-in preset default.\",",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "73242945d7891bc09bf95a39d83117025abd8eca61ae5707db38fda40db16d62",
+   "surface": "codex-cli",
+   "tier": "E1",
+   "url": "https://learn.chatgpt.com/docs/config-file/config-reference.md",
+   "url_effective": "https://learn.chatgpt.com/docs/config-file/config-reference.md",
+   "version_source": null
+  },
+  {
+   "bytes": 131163,
+   "context_after": [
+    "    },",
+    "    {"
+   ],
+   "context_before": [
+    "      type: \"auto | concise | detailed | none\",",
+    "      description:"
+   ],
+   "http_status": 200,
+   "id": "E-codex-cli-00651",
+   "locator": {
+    "heading": "`config.toml`",
+    "raw_line_end": 1177,
+    "raw_line_start": 1177
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "        \"Select reasoning summary detail or disable summaries entirely.\",",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "73242945d7891bc09bf95a39d83117025abd8eca61ae5707db38fda40db16d62",
+   "surface": "codex-cli",
+   "tier": "E1",
+   "url": "https://learn.chatgpt.com/docs/config-file/config-reference.md",
+   "url_effective": "https://learn.chatgpt.com/docs/config-file/config-reference.md",
+   "version_source": null
+  },
+  {
+   "bytes": 32945,
+   "context_after": [
+    "",
+    "model = \"gpt-6.1-sol\""
+   ],
+   "context_before": [
+    "################################################################################",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-codex-cli-00919",
+   "locator": {
+    "heading": "Sample Configuration",
+    "raw_line_end": 44,
+    "raw_line_start": 44
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "# Primary model used by Codex. Example when available: \"gpt-6.1-sol\".",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "9e683f2fc20d62c8a999c44aecbe4094a60afecc1a38962fdc15452f08d04724",
+   "surface": "codex-cli",
+   "tier": "E1",
+   "url": "https://learn.chatgpt.com/docs/config-file/config-sample.md",
+   "url_effective": "https://learn.chatgpt.com/docs/config-file/config-sample.md",
+   "version_source": null
+  },
+  {
+   "bytes": 32945,
+   "context_after": [
+    "",
+    "# background_terminal_max_timeout = 300000 # ms; max empty write_stdin poll window (default 5m)"
+   ],
+   "context_before": [
+    "# tool_output_token_limit = 12000 # tokens stored per tool output",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-codex-cli-00926",
+   "locator": {
+    "heading": "Sample Configuration",
+    "raw_line_end": 78,
+    "raw_line_start": 78
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "# model_catalog_json = \"/absolute/path/to/models.json\" # optional startup-only model catalog override",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "9e683f2fc20d62c8a999c44aecbe4094a60afecc1a38962fdc15452f08d04724",
+   "surface": "codex-cli",
+   "tier": "E1",
+   "url": "https://learn.chatgpt.com/docs/config-file/config-sample.md",
+   "url_effective": "https://learn.chatgpt.com/docs/config-file/config-sample.md",
+   "version_source": null
+  },
+  {
+   "bytes": 32945,
+   "context_after": [
+    "",
+    "# log_dir = \"/absolute/path/to/codex-logs\" # log directory; setting explicitly enables codex-tui.log; default: \"$CODEX_HOME/log\""
+   ],
+   "context_before": [
+    "# model_catalog_json = \"/absolute/path/to/models.json\" # optional startup-only model catalog override",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-codex-cli-00927",
+   "locator": {
+    "heading": "Sample Configuration",
+    "raw_line_end": 80,
+    "raw_line_start": 80
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "# background_terminal_max_timeout = 300000 # ms; max empty write_stdin poll window (default 5m)",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "9e683f2fc20d62c8a999c44aecbe4094a60afecc1a38962fdc15452f08d04724",
+   "surface": "codex-cli",
+   "tier": "E1",
+   "url": "https://learn.chatgpt.com/docs/config-file/config-sample.md",
+   "url_effective": "https://learn.chatgpt.com/docs/config-file/config-sample.md",
+   "version_source": null
+  },
+  {
+   "bytes": 32945,
+   "context_after": [
+    "",
+    "# - never: never prompt (risky)"
+   ],
+   "context_before": [
+    "# When to ask for command approval:",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-codex-cli-00935",
+   "locator": {
+    "heading": "Sample Configuration",
+    "raw_line_end": 152,
+    "raw_line_start": 152
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "# - on-request: model decides when to ask (default)",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "9e683f2fc20d62c8a999c44aecbe4094a60afecc1a38962fdc15452f08d04724",
+   "surface": "codex-cli",
+   "tier": "E1",
+   "url": "https://learn.chatgpt.com/docs/config-file/config-sample.md",
+   "url_effective": "https://learn.chatgpt.com/docs/config-file/config-sample.md",
+   "version_source": null
+  },
+  {
+   "bytes": 49129,
+   "context_after": [
+    "",
+    "Use `--remote ws://host:port` or `--remote wss://host:port` to connect the TUI to an app server started with `codex app-server --listen ws://IP:PORT`. For a local Unix socket, use `--remote unix://` for the default socket or `--remote unix://PATH` for an explicit path. Add `--remote-auth-token-env <"
+   ],
+   "context_before": [
+    "### `codex` (interactive)",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-codex-cli-01132",
+   "locator": {
+    "heading": "`codex` (interactive)",
+    "raw_line_end": 41,
+    "raw_line_start": 41
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "with no subcommand launches the interactive terminal UI (TUI). The agent accepts the global flags above plus image attachments. Web search defaults to cached mode; use `--search` to switch to live browsing. For low-friction local work, use `--sandbox workspace-write --ask-for-approval on-request`.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "6dec20e0f916ad689f9fe6dde8f259835725ca5e3fd07c8bf6222b9bc5659ef7",
+   "surface": "codex-cli",
+   "tier": "E1",
+   "url": "https://learn.chatgpt.com/docs/developer-commands.md?surface=cli",
+   "url_effective": "https://learn.chatgpt.com/docs/developer-commands.md?surface=cli",
+   "version_source": null
+  },
+  {
+   "bytes": 49129,
+   "context_after": [
+    "Codex can open a specific workspace path; on Windows, Codex prints the path to",
+    "open."
+   ],
+   "context_before": [
+    "### `codex app`",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-codex-cli-01138",
+   "locator": {
+    "heading": "`codex app`",
+    "raw_line_end": 74,
+    "raw_line_start": 74
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "Launch the ChatGPT desktop app from the terminal on macOS or Windows. On macOS,",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "6dec20e0f916ad689f9fe6dde8f259835725ca5e3fd07c8bf6222b9bc5659ef7",
+   "surface": "codex-cli",
+   "tier": "E1",
+   "url": "https://learn.chatgpt.com/docs/developer-commands.md?surface=cli",
+   "url_effective": "https://learn.chatgpt.com/docs/developer-commands.md?surface=cli",
+   "version_source": null
+  },
+  {
+   "bytes": 49129,
+   "context_after": [
+    "",
+    "<ConfigTable client:load options={debugModelsOptions} />"
+   ],
+   "context_before": [
+    "### `codex debug models`",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-codex-cli-01139",
+   "locator": {
+    "heading": "`codex debug models`",
+    "raw_line_end": 94,
+    "raw_line_start": 94
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "Print the raw model catalog Codex sees as JSON.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "6dec20e0f916ad689f9fe6dde8f259835725ca5e3fd07c8bf6222b9bc5659ef7",
+   "surface": "codex-cli",
+   "tier": "E1",
+   "url": "https://learn.chatgpt.com/docs/developer-commands.md?surface=cli",
+   "url_effective": "https://learn.chatgpt.com/docs/developer-commands.md?surface=cli",
+   "version_source": null
+  },
+  {
+   "bytes": 49129,
+   "context_after": [
+    "",
+    "<ConfigTable client:load options={loginOptions} />"
+   ],
+   "context_before": [
+    "### `codex login`",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-codex-cli-01154",
+   "locator": {
+    "heading": "`codex login`",
+    "raw_line_end": 211,
+    "raw_line_start": 211
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "Authenticate the CLI with a ChatGPT account, API key, or access token. With no flags, Codex opens a browser for the ChatGPT OAuth flow.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "6dec20e0f916ad689f9fe6dde8f259835725ca5e3fd07c8bf6222b9bc5659ef7",
+   "surface": "codex-cli",
+   "tier": "E1",
+   "url": "https://learn.chatgpt.com/docs/developer-commands.md?surface=cli",
+   "url_effective": "https://learn.chatgpt.com/docs/developer-commands.md?surface=cli",
+   "version_source": null
+  },
+  {
+   "bytes": 49129,
+   "context_after": [
+    "| [`/memories`](#configure-memories-with-memories)                                            | Configure memory use and generation.                            | Turn memory injection or memory generation on or off without leaving the TUI.                              |",
+    "| [`/skills`](#use-skills-with-skills)                                                        | Browse and use skills.                                          | Improve task-specific behavior by selecting a relevant local skill.                                        |"
+   ],
+   "context_before": [
+    "| [`/exit`](#exit-the-cli-with-quit-or-exit)                                                  | Exit the CLI (same as `/quit`).                                 | Alternative spelling; both commands exit the session.                                                      |",
+    "| [`/experimental`](#toggle-experimental-features-with-experimental)                          | Toggle experimental features.                                   | Enable options such as Network proxy or Prevent sleep while running.                                       |"
+   ],
+   "http_status": 200,
+   "id": "E-codex-cli-01177",
+   "locator": {
+    "heading": "Built-in slash commands",
+    "raw_line_end": 382,
+    "raw_line_start": 382
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "| [`/approve`](#approve-an-auto-review-denial-with-approve)                                   | Approve one retry of a recent auto review denial.               | Retry a command or action that the auto reviewer denied.                                                   |",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "6dec20e0f916ad689f9fe6dde8f259835725ca5e3fd07c8bf6222b9bc5659ef7",
+   "surface": "codex-cli",
+   "tier": "E1",
+   "url": "https://learn.chatgpt.com/docs/developer-commands.md?surface=cli",
+   "url_effective": "https://learn.chatgpt.com/docs/developer-commands.md?surface=cli",
+   "version_source": null
+  },
+  {
+   "bytes": 49129,
+   "context_after": [
+    "| [`/fast`](#toggle-fast-mode-with-fast)                                                      | Toggle a Fast service tier when the model catalog exposes one.  | Turn the current model's Fast tier on or off and persist the selection.                                    |",
+    "| [`/plan`](#switch-to-plan-mode-with-plan)                                                   | Switch to plan mode and optionally send a prompt.               | Ask Codex to propose an execution plan before implementation work starts.                                  |"
+   ],
+   "context_before": [
+    "| [`/mcp`](#list-mcp-tools-with-mcp)                                                          | List configured Model Context Protocol (MCP) tools.             | Check which external tools Codex can call during the session; add `verbose` for server details.            |",
+    "| [`/mention`](#highlight-files-with-mention)                                                 | Attach a file to the chat.                                      | Point Codex at specific files or folders you want it to inspect next.                                      |"
+   ],
+   "http_status": 200,
+   "id": "E-codex-cli-01182",
+   "locator": {
+    "heading": "Built-in slash commands",
+    "raw_line_end": 391,
+    "raw_line_start": 391
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "| [`/model`](#set-the-active-model-with-model)                                                | Choose the active model (and reasoning effort, when available). | Use `gpt-6-luna` or `gpt-6.1-sol` if shown.            |",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "6dec20e0f916ad689f9fe6dde8f259835725ca5e3fd07c8bf6222b9bc5659ef7",
+   "surface": "codex-cli",
+   "tier": "E1",
+   "url": "https://learn.chatgpt.com/docs/developer-commands.md?surface=cli",
+   "url_effective": "https://learn.chatgpt.com/docs/developer-commands.md?surface=cli",
+   "version_source": null
+  },
+  {
+   "bytes": 49129,
+   "context_after": [
+    "",
+    "While Codex is already working, `/plan` is temporarily unavailable."
+   ],
+   "context_before": [
+    "3. You can paste content or attach images while using inline `/plan` arguments.",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-codex-cli-01193",
+   "locator": {
+    "heading": "Switch to plan mode with `/plan`",
+    "raw_line_end": 470,
+    "raw_line_start": 470
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "Expected: Codex enters plan mode and uses your optional inline prompt as the first planning request.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "6dec20e0f916ad689f9fe6dde8f259835725ca5e3fd07c8bf6222b9bc5659ef7",
+   "surface": "codex-cli",
+   "tier": "E1",
+   "url": "https://learn.chatgpt.com/docs/developer-commands.md?surface=cli",
+   "url_effective": "https://learn.chatgpt.com/docs/developer-commands.md?surface=cli",
+   "version_source": null
+  },
+  {
+   "bytes": 49129,
+   "context_after": [
+    "   permission profiles are active, the picker also shows configured custom",
+    "   profiles and their descriptions."
+   ],
+   "context_before": [
+    "1. Type `/permissions` and press Enter.",
+    "2. Select the approval preset that matches your comfort level, for example"
+   ],
+   "http_status": 200,
+   "id": "E-codex-cli-01205",
+   "locator": {
+    "heading": "Update permissions with `/permissions`",
+    "raw_line_end": 582,
+    "raw_line_start": 582
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "   `Auto` for hands-off runs or `Read Only` to review edits. When named",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "6dec20e0f916ad689f9fe6dde8f259835725ca5e3fd07c8bf6222b9bc5659ef7",
+   "surface": "codex-cli",
+   "tier": "E1",
+   "url": "https://learn.chatgpt.com/docs/developer-commands.md?surface=cli",
+   "url_effective": "https://learn.chatgpt.com/docs/developer-commands.md?surface=cli",
+   "version_source": null
+  },
+  {
+   "bytes": 49129,
+   "context_after": [
+    "",
+    "### Include IDE context with `/ide`"
+   ],
+   "context_before": [
+    "",
+    "Expected: Codex announces the updated policy. Future actions respect the"
+   ],
+   "http_status": 200,
+   "id": "E-codex-cli-01206",
+   "locator": {
+    "heading": "Update permissions with `/permissions`",
+    "raw_line_end": 587,
+    "raw_line_start": 587
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "updated approval mode until you change it again.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "6dec20e0f916ad689f9fe6dde8f259835725ca5e3fd07c8bf6222b9bc5659ef7",
+   "surface": "codex-cli",
+   "tier": "E1",
+   "url": "https://learn.chatgpt.com/docs/developer-commands.md?surface=cli",
+   "url_effective": "https://learn.chatgpt.com/docs/developer-commands.md?surface=cli",
+   "version_source": null
+  },
+  {
+   "bytes": 49129,
+   "context_after": [
+    "",
+    "### Stop background terminals with `/stop`"
+   ],
+   "context_before": [
+    "recent, non-empty output lines so you can gauge progress at a glance.",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-codex-cli-01221",
+   "locator": {
+    "heading": "Check background terminals with `/ps`",
+    "raw_line_end": 739,
+    "raw_line_start": 739
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "Background terminals appear when `unified_exec` is in use; otherwise, the list may be empty.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "6dec20e0f916ad689f9fe6dde8f259835725ca5e3fd07c8bf6222b9bc5659ef7",
+   "surface": "codex-cli",
+   "tier": "E1",
+   "url": "https://learn.chatgpt.com/docs/developer-commands.md?surface=cli",
+   "url_effective": "https://learn.chatgpt.com/docs/developer-commands.md?surface=cli",
+   "version_source": null
+  },
+  {
+   "bytes": 6028,
+   "context_after": [
+    "  model, reasoning effort, permissions, sandbox, MCP servers, and",
+    "  personalization. Codex reads these settings from `config.toml`."
+   ],
+   "context_before": [
+    "The Codex IDE extension has two settings layers:",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-codex-cli-01243",
+   "locator": {
+    "heading": "Developer settings",
+    "raw_line_end": 7,
+    "raw_line_start": 7
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "- **Codex settings** control agent behavior shared with Codex CLI, including the",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "a4c52f032ce8de051ef4b40d8d8fc0f29da1a9d457732f59052ddcdfeb2fa2ef",
+   "surface": "codex-cli",
+   "tier": "E1",
+   "url": "https://learn.chatgpt.com/docs/developer-settings.md?surface=ide",
+   "url_effective": "https://learn.chatgpt.com/docs/developer-settings.md?surface=ide",
+   "version_source": null
+  },
+  {
+   "bytes": 49129,
+   "context_after": [
+    "",
+    "### Set or view a task goal with `/goal`"
+   ],
+   "context_before": [
+    "Expected: Codex enters plan mode and uses your optional inline prompt as the first planning request.",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-codex-cli-01279",
+   "locator": {
+    "heading": "Switch to plan mode with `/plan`",
+    "raw_line_end": 472,
+    "raw_line_start": 472
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "While Codex is already working, `/plan` is temporarily unavailable.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "6dec20e0f916ad689f9fe6dde8f259835725ca5e3fd07c8bf6222b9bc5659ef7",
+   "surface": "codex-cli",
+   "tier": "E1",
+   "url": "https://learn.chatgpt.com/docs/developer-commands.md?surface=cli",
+   "url_effective": "https://learn.chatgpt.com/docs/developer-commands.md?surface=cli",
+   "version_source": null
+  },
+  {
+   "bytes": 53200,
+   "context_after": [
+    "",
+    "```toml"
+   ],
+   "context_before": [
+    "### Example requirements.toml",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-codex-cli-01469",
+   "locator": {
+    "heading": "Example requirements.toml",
+    "raw_line_end": 273,
+    "raw_line_start": 273
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "This example blocks `--ask-for-approval never` and `--sandbox danger-full-access` (including `--yolo`):",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "7af4d6e961d34486abed562e8418471133c68fa6de86c5ed0ef1d5856f310912",
+   "surface": "codex-cli",
+   "tier": "E1",
+   "url": "https://learn.chatgpt.com/docs/enterprise/managed-configuration.md",
+   "url_effective": "https://learn.chatgpt.com/docs/enterprise/managed-configuration.md",
+   "version_source": null
+  },
+  {
+   "bytes": 20447,
+   "context_after": [
+    "",
+    "| Gateway model name                                                                                                     | Codex configuration                                                                                |"
+   ],
+   "context_before": [
+    "## Choose model names and routes",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-codex-cli-01560",
+   "locator": {
+    "heading": "Choose model names and routes",
+    "raw_line_end": 51,
+    "raw_line_start": 51
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "Set Codex's `model` to the gateway's model name. Configure the gateway to route that name to the approved upstream model.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "25b9f9dc62c7ed5b362b71762324434c4a8daff67204cac92a6d56622e83424c",
+   "surface": "codex-cli",
+   "tier": "E1",
+   "url": "https://learn.chatgpt.com/docs/enterprise/roll-out-a-gateway.md",
+   "url_effective": "https://learn.chatgpt.com/docs/enterprise/roll-out-a-gateway.md",
+   "version_source": null
+  },
+  {
+   "bytes": 11496,
+   "context_after": [
+    "| Right     | Go forward in app history. |",
+    "| Down      | Show or hide the sidebar.  |"
+   ],
+   "context_before": [
+    "| Direction | Default action             |",
+    "| --------- | -------------------------- |"
+   ],
+   "http_status": 200,
+   "id": "E-codex-cli-01647",
+   "locator": {
+    "heading": "Use the analog stick and dial",
+    "raw_line_end": 181,
+    "raw_line_start": 181
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "| Up        | Turn Plan mode on or off.  |",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "5324ce0987446a9e0861374eaeca44d388445dea7cde46f9c0b329bef4f70ec4",
+   "surface": "codex-cli",
+   "tier": "E1",
+   "url": "https://learn.chatgpt.com/docs/features/codex-micro.md",
+   "url_effective": "https://learn.chatgpt.com/docs/features/codex-micro.md",
+   "version_source": null
+  },
+  {
+   "bytes": 7266,
+   "context_after": [
+    "- `sandbox`: Match the sandbox mode (`workspace-write`, `read-only`, `danger-full-access`) to the permissions Codex needs during the run.",
+    "- `output-file`: Save the final Codex message to disk so later steps can upload or diff it."
+   ],
+   "context_before": [
+    "- `prompt` or `prompt-file` (choose one): Inline instructions or a repository path to Markdown or text with your task. Consider storing prompts in `.github/codex/prompts/`.",
+    "- `codex-args`: Extra CLI flags. Provide a JSON array (for example `[\"--ephemeral\"]`) or a shell string (`--profile ci`) to configure sessions, profiles, or MCP settings."
+   ],
+   "http_status": 200,
+   "id": "E-codex-cli-01654",
+   "locator": {
+    "heading": "Configure `codex exec`",
+    "raw_line_end": 86,
+    "raw_line_start": 86
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "- `model` and `effort`: Pick the Codex agent configuration you want; leave empty for defaults.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "3c3a244ef87fffb064114e388f4c7827b3ddc55b712f5aec50f2719a3cf1bc6a",
+   "surface": "codex-cli",
+   "tier": "E1",
+   "url": "https://learn.chatgpt.com/docs/github-action.md",
+   "url_effective": "https://learn.chatgpt.com/docs/github-action.md",
+   "version_source": null
+  },
+  {
+   "bytes": 27759,
+   "context_after": [
+    "    },",
+    "    {"
+   ],
+   "context_before": [
+    "      appliesTo: \"Desktop app, CLI, IDE extension\",",
+    "      description:"
+   ],
+   "http_status": 200,
+   "id": "E-codex-cli-01713",
+   "locator": {
+    "heading": "Glossary",
+    "raw_line_end": 566,
+    "raw_line_start": 566
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "        \"Mode where Codex can inspect but not modify without approval.\",",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "f8408331c0e9bb3039c4c98f02311701d4a350d597ef033bd36da07cf59fecba",
+   "surface": "codex-cli",
+   "tier": "E1",
+   "url": "https://learn.chatgpt.com/docs/glossary.md",
+   "url_effective": "https://learn.chatgpt.com/docs/glossary.md",
+   "version_source": null
+  },
+  {
+   "bytes": 27759,
+   "context_after": [
+    "    },",
+    "    {"
+   ],
+   "context_before": [
+    "      appliesTo: \"Desktop app, CLI\",",
+    "      description:"
+   ],
+   "http_status": 200,
+   "id": "E-codex-cli-01730",
+   "locator": {
+    "heading": "Glossary",
+    "raw_line_end": 695,
+    "raw_line_start": 695
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "        \"Workflow where Codex runs delegated agents in parallel and combines their results.\",",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "f8408331c0e9bb3039c4c98f02311701d4a350d597ef033bd36da07cf59fecba",
+   "surface": "codex-cli",
+   "tier": "E1",
+   "url": "https://learn.chatgpt.com/docs/glossary.md",
+   "url_effective": "https://learn.chatgpt.com/docs/glossary.md",
+   "version_source": null
+  },
+  {
+   "bytes": 17387,
+   "context_after": [
+    "beneath the composer to choose an available model and adjust its reasoning effort.",
+    ""
+   ],
+   "context_before": [
+    "## Choose a model",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-codex-cli-01877",
+   "locator": {
+    "heading": "Choose a model",
+    "raw_line_end": 34,
+    "raw_line_start": 34
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "In Work or Codex in the ChatGPT desktop app, use the model and reasoning control",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "4ec433ea907935c05961dfc6617f314e8d04e60c571be30587f2ce415710f428",
+   "surface": "codex-cli",
+   "tier": "E1",
+   "url": "https://learn.chatgpt.com/docs/models.md",
+   "url_effective": "https://learn.chatgpt.com/docs/models.md",
+   "version_source": null
+  },
+  {
+   "bytes": 17387,
+   "context_after": [
+    "",
+    "See [pricing](https://learn.chatgpt.com/docs/pricing) for credit usage and"
+   ],
+   "context_before": [
+    "Use `gpt-6.1-sol`. Available controls depend on your plan, client, and workspace",
+    "settings."
+   ],
+   "http_status": 200,
+   "id": "E-codex-cli-01886",
+   "locator": {
+    "heading": "GPT-6.1 Sol",
+    "raw_line_end": 303,
+    "raw_line_start": 303
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "Reasoning effort ranges from Light to Ultra. Max and Ultra depend on your settings.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "4ec433ea907935c05961dfc6617f314e8d04e60c571be30587f2ce415710f428",
+   "surface": "codex-cli",
+   "tier": "E1",
+   "url": "https://learn.chatgpt.com/docs/models.md",
+   "url_effective": "https://learn.chatgpt.com/docs/models.md",
+   "version_source": null
+  },
+  {
+   "bytes": 17387,
+   "context_after": [
+    "[configuration file](https://learn.chatgpt.com/docs/config-file/config-basic). To specify a model, add a",
+    "`model` entry to your configuration file. If you don't specify a model, the"
+   ],
+   "context_before": [
+    "## Configure your default local model",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-codex-cli-01901",
+   "locator": {
+    "heading": "Configure your default local model",
+    "raw_line_end": 477,
+    "raw_line_start": 477
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "The ChatGPT desktop app, Codex CLI, and IDE extension use the same `config.toml`",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "4ec433ea907935c05961dfc6617f314e8d04e60c571be30587f2ce415710f428",
+   "surface": "codex-cli",
+   "tier": "E1",
+   "url": "https://learn.chatgpt.com/docs/models.md",
+   "url_effective": "https://learn.chatgpt.com/docs/models.md",
+   "version_source": null
+  },
+  {
+   "bytes": 2339,
+   "context_after": [
+    "it sends requests to cross that boundary to automatic review.",
+    ""
+   ],
+   "context_before": [
+    "",
+    "Changing who reviews a request doesn't expand the sandbox. For example,"
+   ],
+   "http_status": 200,
+   "id": "E-codex-cli-01911",
+   "locator": {
+    "heading": "How permissions work",
+    "raw_line_end": 47,
+    "raw_line_start": 47
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "**Approve for me** keeps the same workspace boundary as **Ask for approval**;",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "569d287a163eaf664b60802451e05a082d2843cc3c405af9cfb0782e63181530",
+   "surface": "codex-cli",
+   "tier": "E1",
+   "url": "https://learn.chatgpt.com/docs/permission-modes.md",
+   "url_effective": "https://learn.chatgpt.com/docs/permission-modes.md",
+   "version_source": null
+  },
+  {
+   "bytes": 2339,
+   "context_after": [
+    "[Sandbox](https://learn.chatgpt.com/docs/sandboxing), [automatic review](https://learn.chatgpt.com/docs/sandboxing/auto-review), or",
+    "[permission profiles](https://learn.chatgpt.com/docs/permissions)."
+   ],
+   "context_before": [
+    "IDE extension.",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-codex-cli-01913",
+   "locator": {
+    "heading": "How permissions work",
+    "raw_line_end": 53,
+    "raw_line_start": 53
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "In the CLI, enter `/permissions`. For technical details, see",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "569d287a163eaf664b60802451e05a082d2843cc3c405af9cfb0782e63181530",
+   "surface": "codex-cli",
+   "tier": "E1",
+   "url": "https://learn.chatgpt.com/docs/permission-modes.md",
+   "url_effective": "https://learn.chatgpt.com/docs/permission-modes.md",
+   "version_source": null
+  },
+  {
+   "bytes": 38356,
+   "context_after": [
+    "- `:workspace` allows writes inside the active workspace roots and system temp directories.",
+    "- `:danger-full-access` removes local sandbox restrictions and should be used"
+   ],
+   "context_before": [
+    "Codex includes three built-in permission profiles:",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-codex-cli-01928",
+   "locator": {
+    "heading": "Define and select a profile",
+    "raw_line_end": 47,
+    "raw_line_start": 47
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "- `:read-only` keeps local command execution read-only.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "efd27769ace3daafef5be62e1f3d605fd918baeafe0fa0e77466a619c206250f",
+   "surface": "codex-cli",
+   "tier": "E1",
+   "url": "https://learn.chatgpt.com/docs/permissions.md",
+   "url_effective": "https://learn.chatgpt.com/docs/permissions.md",
+   "version_source": null
+  },
+  {
+   "bytes": 45604,
+   "context_after": [
+    "  ChatGPT uses the same pricing, credits, and usage limits as Codex.",
+    ""
+   ],
+   "context_before": [
+    "> For the complete documentation index, see [llms.txt](https://learn.chatgpt.com/llms.txt). Markdown versions of documentation pages are available by appending `.md` to the page URL.",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-codex-cli-02011",
+   "locator": {
+    "heading": "Pricing",
+    "raw_line_end": 5,
+    "raw_line_start": 5
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "**ChatGPT Work and Codex share usage.** ChatGPT Work usage inside",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "a24cb2c8bb026f4dec45f36e9452ecca3be20d30ced987ed61cc95c540654c1e",
+   "surface": "codex-cli",
+   "tier": "E1",
+   "url": "https://learn.chatgpt.com/docs/pricing.md",
+   "url_effective": "https://learn.chatgpt.com/docs/pricing.md",
+   "version_source": null
+  },
+  {
+   "bytes": 4552,
+   "context_after": [
+    "| `/ide-context`       | Turn shared IDE context on or off.                                                      |",
+    "| `/init`              | Generate an `AGENTS.md` scaffold for the current project.                               |"
+   ],
+   "context_before": [
+    "| `/feedback`          | Open the feedback dialog to submit feedback and optionally include logs.                |",
+    "| `/fork`              | Copy a local chat into a new local chat or worktree.                                    |"
+   ],
+   "http_status": 200,
+   "id": "E-codex-cli-02073",
+   "locator": {
+    "heading": "Available slash commands",
+    "raw_line_end": 30,
+    "raw_line_start": 30
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "| `/goal`              | Set a persistent goal for ChatGPT to work toward; use `/plan` first to shape it.        |",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "fe0c42252e9043123587703002aa3b34a2b2a945b57a6cc6c128ce70bb07dea8",
+   "surface": "codex-cli",
+   "tier": "E1",
+   "url": "https://learn.chatgpt.com/docs/reference/slash-commands.md",
+   "url_effective": "https://learn.chatgpt.com/docs/reference/slash-commands.md",
+   "version_source": null
+  },
+  {
+   "bytes": 4552,
+   "context_after": [
+    "| `/project`           | Choose a project for new chats.                                                         |",
+    "| `/reasoning`         | Choose the reasoning effort for the current chat.                                       |"
+   ],
+   "context_before": [
+    "| `/pet`               | Wake or tuck away the desktop pet.                                                      |",
+    "| `/personality`       | Choose how Codex responds, when the current model supports personalities.               |"
+   ],
+   "http_status": 200,
+   "id": "E-codex-cli-02082",
+   "locator": {
+    "heading": "Available slash commands",
+    "raw_line_end": 39,
+    "raw_line_start": 39
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "| `/plan`              | Toggle plan mode for multi-step planning.                                               |",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "fe0c42252e9043123587703002aa3b34a2b2a945b57a6cc6c128ce70bb07dea8",
+   "surface": "codex-cli",
+   "tier": "E1",
+   "url": "https://learn.chatgpt.com/docs/reference/slash-commands.md",
+   "url_effective": "https://learn.chatgpt.com/docs/reference/slash-commands.md",
+   "version_source": null
+  },
+  {
+   "bytes": 4552,
+   "context_after": [
+    "| `/review`            | Start code review mode to review uncommitted changes or compare against a base branch.  |",
+    "| `/side`              | Start a temporary side chat without interrupting the main chat.                         |"
+   ],
+   "context_before": [
+    "| `/plan`              | Toggle plan mode for multi-step planning.                                               |",
+    "| `/project`           | Choose a project for new chats.                                                         |"
+   ],
+   "http_status": 200,
+   "id": "E-codex-cli-02084",
+   "locator": {
+    "heading": "Available slash commands",
+    "raw_line_end": 41,
+    "raw_line_start": 41
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "| `/reasoning`         | Choose the reasoning effort for the current chat.                                       |",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "fe0c42252e9043123587703002aa3b34a2b2a945b57a6cc6c128ce70bb07dea8",
+   "surface": "codex-cli",
+   "tier": "E1",
+   "url": "https://learn.chatgpt.com/docs/reference/slash-commands.md",
+   "url_effective": "https://learn.chatgpt.com/docs/reference/slash-commands.md",
+   "version_source": null
+  },
+  {
+   "bytes": 9208,
+   "context_after": [
+    "features may reach one surface before the other. Experimental features might",
+    "also land in Codex CLI first."
+   ],
+   "context_before": [
+    "### Feature is working in the Codex CLI but not in the ChatGPT desktop app",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-codex-cli-02104",
+   "locator": {
+    "heading": "Feature is working in the Codex CLI but not in the ChatGPT desktop app",
+    "raw_line_end": 107,
+    "raw_line_start": 107
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "The ChatGPT desktop app and Codex CLI can include different Codex versions, so",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "a1605679bf1c7a289de778103afedee7702153f4c4689fb8f84ee43b69c1d51f",
+   "surface": "codex-cli",
+   "tier": "E1",
+   "url": "https://learn.chatgpt.com/docs/reference/troubleshooting.md",
+   "url_effective": "https://learn.chatgpt.com/docs/reference/troubleshooting.md",
+   "version_source": null
+  },
+  {
+   "bytes": 44924,
+   "context_after": [
+    "| `--max-time-hours HOURS` | Worker execution time limit in hours. Defaults to `96`; accepts fractions.             |",
+    ""
+   ],
+   "context_before": [
+    "| `--subagents N`          | Subagents available to each worker. Defaults to `3`.                                   |",
+    "| `--stop-after-no-new N`  | Stop after `N` consecutive completed worker scans find no new issues. Defaults to `4`. |"
+   ],
+   "http_status": 200,
+   "id": "E-codex-cli-02193",
+   "locator": {
+    "heading": "Configure deep scans",
+    "raw_line_end": 256,
+    "raw_line_start": 256
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "| `--max-discovery-runs N` | Limit on total independent standard-scan runs. Defaults to `40`.                       |",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "970577ae34877d176cebdced13f5884486a83e3f6c0e51083767c9277ab316c3",
+   "surface": "codex-cli",
+   "tier": "E1",
+   "url": "https://learn.chatgpt.com/docs/security/cli/reference.md",
+   "url_effective": "https://learn.chatgpt.com/docs/security/cli/reference.md",
+   "version_source": null
+  },
+  {
+   "bytes": 44924,
+   "context_after": [
+    "| `--plugin-path PATH`                                      | Use a Codex Security plugin directory or ZIP to override the bundled plugin.                             |",
+    "| `--python PATH`                                           | Select the Python interpreter for the plugin runtime.                                                    |"
+   ],
+   "context_before": [
+    "| `--provider {openai,openrouter,fireworks,amazon-bedrock}` | Select the inference provider. The default is `openai`.                                                  |",
+    "| `--model MODEL`                                           | Select the model. The default is `gpt-5.6-sol`. Required for OpenRouter, Fireworks, and Amazon Bedrock.  |"
+   ],
+   "http_status": 200,
+   "id": "E-codex-cli-02264",
+   "locator": {
+    "heading": "Configure the runtime",
+    "raw_line_end": 414,
+    "raw_line_start": 414
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "| `--effort {minimal,low,medium,high,xhigh,max}`            | Select the model's reasoning effort. The default is `xhigh`.                                             |",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "970577ae34877d176cebdced13f5884486a83e3f6c0e51083767c9277ab316c3",
+   "surface": "codex-cli",
+   "tier": "E1",
+   "url": "https://learn.chatgpt.com/docs/security/cli/reference.md",
+   "url_effective": "https://learn.chatgpt.com/docs/security/cli/reference.md",
+   "version_source": null
+  },
+  {
+   "bytes": 60751,
+   "context_after": [
+    "supported local and web surfaces.",
+    ""
+   ],
+   "context_before": [
+    "review and quality assurance for eligible customers. Sol is the flagship",
+    "GPT-5.6 model for complex coding, research, computer use, and security work."
+   ],
+   "http_status": 200,
+   "id": "E-codex-cli-02358",
+   "locator": {
+    "heading": "Use GPT-5.6 Sol for hosted Codex work",
+    "raw_line_end": 868,
+    "raw_line_start": 868
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "Codex cloud selects its model automatically; Terra and Luna remain available on",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "ec27190487b37575192a4281d580ae66a2bce614a324865d976ecab692bcbe63",
+   "surface": "codex-cli",
+   "tier": "E2",
+   "url": "https://learn.chatgpt.com/docs/whats-new.md",
+   "url_effective": "https://learn.chatgpt.com/docs/whats-new.md",
+   "version_source": null
+  },
+  {
+   "bytes": 3825,
+   "context_after": [
+    "  pricing, credits, and usage limits. See [Codex pricing](https://learn.chatgpt.com/docs/pricing) for",
+    "  details."
+   ],
+   "context_before": [
+    "## Availability and billing details",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-codex-cli-02470",
+   "locator": {
+    "heading": "Availability and billing details",
+    "raw_line_end": 47,
+    "raw_line_start": 47
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "**ChatGPT Work and Codex share usage.** Both use the same",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "4609fbd0a6e3b87863a7ae089c5b33868dbc2b20940b5ceb9a155d6514ab6ed7",
+   "surface": "codex-cli",
+   "tier": "E1",
+   "url": "https://learn.chatgpt.com/docs/agent-configuration/speed.md",
+   "url_effective": "https://learn.chatgpt.com/docs/agent-configuration/speed.md",
+   "version_source": null
+  },
+  {
+   "bytes": 4801,
+   "context_after": [
+    "- **Review the work:** Inspect changed files and check results, request follow-up changes, and commit or open a pull request when you're ready.",
+    ""
+   ],
+   "context_before": [
+    "",
+    "- **Start with your project:** Choose repositories. Codex inspects the project, works through setup, and asks you for missing details or access."
+   ],
+   "http_status": 200,
+   "id": "E-codex-cli-02852",
+   "locator": {
+    "heading": "Why use Codex Cloud",
+    "raw_line_end": 18,
+    "raw_line_start": 18
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "- **Keep work moving:** Start tasks from a published environment. Each task has its own workspace and can keep working while your computer is asleep.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "6d4e5f7c3078e670d85ce5927ffa5a7bf930ecc6e81b90f1b6771271dc49ead6",
+   "surface": "codex-cli",
+   "tier": "E1",
+   "url": "https://learn.chatgpt.com/docs/cloud.md",
+   "url_effective": "https://learn.chatgpt.com/docs/cloud.md",
+   "version_source": null
+  },
+  {
+   "bytes": 6710,
+   "context_after": [
+    "",
+    "[Review authentication options](https://learn.chatgpt.com/docs/auth)"
+   ],
+   "context_before": [
+    "### 2. Run Codex and sign in",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-codex-cli-02911",
+   "locator": {
+    "heading": "2. Run Codex and sign in",
+    "raw_line_end": 97,
+    "raw_line_start": 97
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "Open a project directory and run `codex`. The first time you run Codex, choose **Sign in with ChatGPT** or another available sign-in method.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "36066e8647cfa5f6b8ff08678267e256e3434ccfff8eac6532c5ac0ed4daffdd",
+   "surface": "codex-cli",
+   "tier": "E1",
+   "url": "https://learn.chatgpt.com/docs/codex/cli.md",
+   "url_effective": "https://learn.chatgpt.com/docs/codex/cli.md",
+   "version_source": null
+  },
+  {
+   "bytes": 23285,
+   "context_after": [
+    "",
+    ""
+   ],
+   "context_before": [
+    "| [Enterprise requirements](https://learn.chatgpt.com/docs/enterprise/managed-configuration) | Existing local requirements and precedence apply to local Work.                        | Local execution requirements govern the connected computer. Supported Global policy applies to cloud orchestration w",
+    "| Local execution controls                                           | Supported device and operating-system controls apply.                                  | For local execution, MDM and legacy managed-device requirements rank above Agent Security. The system requirements file ranks below it.     "
+   ],
+   "http_status": 200,
+   "id": "E-codex-cli-03364",
+   "locator": {
+    "heading": "Before and after enabling local computer access with Work Cloud",
+    "raw_line_end": 50,
+    "raw_line_start": 50
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "| Existing Codex behavior applies.                                                       | Codex behavior and conversation history remain separate.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "31a1f0358db503c3d07c15cec14a4674074ec6ac3c1bf871c739c6c8b70a208e",
+   "surface": "codex-cli",
+   "tier": "E1",
+   "url": "https://learn.chatgpt.com/docs/enterprise/cloud-local-access.md",
+   "url_effective": "https://learn.chatgpt.com/docs/enterprise/cloud-local-access.md",
+   "version_source": null
+  },
+  {
+   "bytes": 38744,
+   "context_after": [
+    "multi-step tasks. It can gather context from chats, files, workspace",
+    "resources, and connected systems; use approved tools; and create review-ready"
+   ],
+   "context_before": [
+    "> For the complete documentation index, see [llms.txt](https://learn.chatgpt.com/llms.txt). Markdown versions of documentation pages are available by appending `.md` to the page URL.",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-codex-cli-03648",
+   "locator": {
+    "heading": "ChatGPT Work admin FAQ",
+    "raw_line_end": 5,
+    "raw_line_start": 5
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "ChatGPT Work brings the technology behind Codex into ChatGPT for longer,",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "c48dbeb65da8c10cbe9ed1e0b60afe7944b964e76414829cef3db1a1f9102e3c",
+   "surface": "codex-cli",
+   "tier": "E1",
+   "url": "https://learn.chatgpt.com/docs/enterprise/work-admin-faq.md",
+   "url_effective": "https://learn.chatgpt.com/docs/enterprise/work-admin-faq.md",
+   "version_source": null
+  },
+  {
+   "bytes": 38744,
+   "context_after": [
+    "permissions. For eligible Enterprise and Edu workspaces, the default workspace",
+    "role includes Work unless an authorized administrator turns it off. Browser and"
+   ],
+   "context_before": [
+    "ChatGPT Work is available on supported web, mobile, and desktop surfaces for",
+    "eligible plans and workspaces. Where supported, workspace owners or authorized"
+   ],
+   "http_status": 200,
+   "id": "E-codex-cli-03675",
+   "locator": {
+    "heading": "Overview",
+    "raw_line_end": 127,
+    "raw_line_start": 127
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "admins can manage Work Cloud, Work Local, and Codex Local through distinct",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "c48dbeb65da8c10cbe9ed1e0b60afe7944b964e76414829cef3db1a1f9102e3c",
+   "surface": "codex-cli",
+   "tier": "E1",
+   "url": "https://learn.chatgpt.com/docs/enterprise/work-admin-faq.md",
+   "url_effective": "https://learn.chatgpt.com/docs/enterprise/work-admin-faq.md",
+   "version_source": null
+  },
+  {
+   "bytes": 22767,
+   "context_after": [
+    "",
+    "If you use ChatGPT for Healthcare, ChatGPT for Clinicians, or a Regulated workspace, have an applicable OpenAI Business Associate Agreement (BAA), and have the required Codex access, OpenAI handles PHI it receives from Codex consistent with the BAA. OpenAI securely handles prompts, files, and other "
+   ],
+   "context_before": [
+    "## Who's this for",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-codex-cli-03950",
+   "locator": {
+    "heading": "Who's this for",
+    "raw_line_end": 7,
+    "raw_line_start": 7
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "and compliance professionals to get familiar with the shared responsibility for managing Protected Health Information (PHI) in Codex. Codex includes the ChatGPT desktop app, Codex IDE extension, and Codex CLI, which run on your users' computers. It does not include using Codex in the cloud.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "308f6e3b696f18652844284725cfe649f0ac63287e2d81ac728a02683a03466f",
+   "surface": "codex-cli",
+   "tier": "E1",
+   "url": "https://learn.chatgpt.com/docs/hipaa-configuration.md",
+   "url_effective": "https://learn.chatgpt.com/docs/hipaa-configuration.md",
+   "version_source": null
+  },
+  {
+   "bytes": 6516,
+   "context_after": [
+    "lets you pause, resume, edit, or clear the goal while ChatGPT works.",
+    ""
+   ],
+   "context_before": [
+    "<ContentModeSwitch group=\"codex-surface\" id=\"app\">",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-codex-cli-04064",
+   "locator": {
+    "heading": "Long-running work",
+    "raw_line_end": 12,
+    "raw_line_start": 12
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "In the ChatGPT desktop app, enter `/goal` to start Goal mode. The progress row",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "14bba6e57c9bae8bf37b289ef369a4c59863c07f95037fe3d37143b14057246b",
+   "surface": "codex-cli",
+   "tier": "E1",
+   "url": "https://learn.chatgpt.com/docs/long-running-work.md",
+   "url_effective": "https://learn.chatgpt.com/docs/long-running-work.md",
+   "version_source": null
+  },
+  {
+   "bytes": 6516,
+   "context_after": [
+    "the same session to steer the work or ask for a status update.",
+    ""
+   ],
+   "context_before": [
+    "<ContentModeSwitch group=\"codex-surface\" id=\"cli\">",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-codex-cli-04065",
+   "locator": {
+    "heading": "Long-running work",
+    "raw_line_end": 32,
+    "raw_line_start": 32
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "In an interactive Codex CLI session, enter `/goal` to start Goal mode. Continue",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "14bba6e57c9bae8bf37b289ef369a4c59863c07f95037fe3d37143b14057246b",
+   "surface": "codex-cli",
+   "tier": "E1",
+   "url": "https://learn.chatgpt.com/docs/long-running-work.md",
+   "url_effective": "https://learn.chatgpt.com/docs/long-running-work.md",
+   "version_source": null
+  },
+  {
+   "bytes": 2339,
+   "context_after": [
+    "current workspace and pauses before reaching beyond that boundary.",
+    ""
+   ],
+   "context_before": [
+    "for what ChatGPT can do on its own and what needs review.",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-codex-cli-04124",
+   "locator": {
+    "heading": "Permission modes",
+    "raw_line_end": 12,
+    "raw_line_start": 12
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "For most work, start with **Ask for approval**. It lets ChatGPT work within the",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "569d287a163eaf664b60802451e05a082d2843cc3c405af9cfb0782e63181530",
+   "surface": "codex-cli",
+   "tier": "E1",
+   "url": "https://learn.chatgpt.com/docs/permission-modes.md",
+   "url_effective": "https://learn.chatgpt.com/docs/permission-modes.md",
+   "version_source": null
+  },
+  {
+   "bytes": 8297,
+   "context_after": [
+    "  scan a connected GitHub repository in Codex cloud, install the separate",
+    "  **Codex Security Cloud** plugin from the plugin marketplace. See [Cloud"
+   ],
+   "context_before": [
+    "of a local repository in Codex.",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-codex-cli-04691",
+   "locator": {
+    "heading": "Codex Security plugin quickstart",
+    "raw_line_end": 13,
+    "raw_line_start": 13
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "This page covers the Codex Security plugin in the desktop app or Codex CLI. To",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "2ca7d69936887c726f1dd29ffd9ca156d86180789b2eca17ddc2ec09e05d4bb3",
+   "surface": "codex-cli",
+   "tier": "E1",
+   "url": "https://learn.chatgpt.com/docs/security/plugin.md",
+   "url_effective": "https://learn.chatgpt.com/docs/security/plugin.md",
+   "version_source": null
+  },
+  {
+   "bytes": 22905,
+   "context_after": [
+    "  `workers = \"auto\"` settings now resolve to four workers. See",
+    "  [Configure deep-scan runtime](https://learn.chatgpt.com/docs/security/plugin/deep-scans#configure-deep-scan-runtime)."
+   ],
+   "context_before": [
+    "  time limits, partial coverage, restart recovery, and cancellation.",
+    "- Use four concurrent workers by default, stop after four consecutive completed"
+   ],
+   "http_status": 200,
+   "id": "E-codex-cli-04716",
+   "locator": {
+    "heading": "Run deep scans as complete independent audits",
+    "raw_line_end": 162,
+    "raw_line_start": 162
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "  scans add no new findings, and limit a deep scan to 40 worker runs. Existing",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "1e51221188cb3963b47fab2c24bff17bb5f050a0524b1fb913b8a248cd0d03c8",
+   "surface": "codex-cli",
+   "tier": "E2",
+   "url": "https://learn.chatgpt.com/docs/security/plugin/changelog.md",
+   "url_effective": "https://learn.chatgpt.com/docs/security/plugin/changelog.md",
+   "version_source": null
+  },
+  {
+   "bytes": 22905,
+   "context_after": [
+    "",
+    "### Preserve scan results through more failures"
+   ],
+   "context_before": [
+    "- Keep standalone CLI and SDK deep scan settings isolated from other running",
+    "  scans."
+   ],
+   "http_status": 200,
+   "id": "E-codex-cli-04718",
+   "locator": {
+    "heading": "Run deep scans in more environments",
+    "raw_line_end": 184,
+    "raw_line_start": 184
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "- Keep non-interactive approval settings in nested deep scan workers.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "1e51221188cb3963b47fab2c24bff17bb5f050a0524b1fb913b8a248cd0d03c8",
+   "surface": "codex-cli",
+   "tier": "E2",
+   "url": "https://learn.chatgpt.com/docs/security/plugin/changelog.md",
+   "url_effective": "https://learn.chatgpt.com/docs/security/plugin/changelog.md",
+   "version_source": null
+  },
+  {
+   "bytes": 6868,
+   "context_after": [
+    "| `max_time_hours`                | `96`    | Limit worker execution to a positive number of hours up to `96`; use fractions as needed.                          |",
+    ""
+   ],
+   "context_before": [
+    "| `stop_after_no_new`             | `4`     | Stop after this many consecutive completed worker scans produce no new findings.                                   |",
+    "| `stop_after_consecutive_errors` | `3`     | Stop after this many consecutive worker errors.                                                                    |"
+   ],
+   "http_status": 200,
+   "id": "E-codex-cli-04783",
+   "locator": {
+    "heading": "Configure deep-scan runtime",
+    "raw_line_end": 45,
+    "raw_line_start": 45
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "| `max_discovery_runs`            | `40`    | Limit the number of independent standard-scan runs before aggregation.                                             |",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "971018b7c59e20cd3392b92fd0ec826d31351781daeeedbe225e60c06a02dcba",
+   "surface": "codex-cli",
+   "tier": "E1",
+   "url": "https://learn.chatgpt.com/docs/security/plugin/deep-scans.md",
+   "url_effective": "https://learn.chatgpt.com/docs/security/plugin/deep-scans.md",
+   "version_source": null
+  },
+  {
+   "bytes": 14472,
+   "context_after": [
+    "| Agent communication | Prefers nontechnical language and finished outputs                     | Can include technical and implementation details                  |",
+    "| Pull requests pane  | Not available when using ChatGPT Work                                  | Available when enabled                                            |"
+   ],
+   "context_before": [
+    "| Chats you see       | See chats started with Chat on web and mobile, plus ChatGPT Work chats | Focus on Codex chats and development projects                     |",
+    "| Quick chat          | Not available                                                          | When available, access ChatGPT chats from web and mobile in Codex |"
+   ],
+   "http_status": 200,
+   "id": "E-codex-cli-05062",
+   "locator": {
+    "heading": "Compare ChatGPT Work and Codex on desktop",
+    "raw_line_end": 131,
+    "raw_line_start": 131
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "| Technical detail    | Hide technical details like Git or shell commands                      | See developer details, including diff and review views            |",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "53cc375d4167155c9c915f755ba2325be231dffb90f714d3e5670536eec69a8c",
+   "surface": "codex-cli",
+   "tier": "E1",
+   "url": "https://learn.chatgpt.com/docs/use-chatgpt.md",
+   "url_effective": "https://learn.chatgpt.com/docs/use-chatgpt.md",
+   "version_source": null
+  }
+ ]
+}

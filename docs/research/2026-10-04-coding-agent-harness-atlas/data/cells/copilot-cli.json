@@ -1,0 +1,448 @@
+{
+ "surface": "copilot-cli",
+ "cells": [
+  {
+   "id": "copilot-cli/F04.approval-modes",
+   "surface": "copilot-cli",
+   "row": "F04.approval-modes",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-copilot-cli-00506",
+    "E-copilot-cli-00366",
+    "E-copilot-cli-00072",
+    "E-copilot-cli-00478"
+   ],
+   "value": "Copilot CLI has an active permission mode (review with /permissions show) that determines whether approval is requested. A permission request can be allowed just this time or for the rest of the CLI session. Entering autopilot without all permissions prompts a choice of three options. Permissions can also be set by command-line flags."
+  },
+  {
+   "id": "copilot-cli/F04.bypass-mode",
+   "surface": "copilot-cli",
+   "row": "F04.bypass-mode",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-copilot-cli-00626",
+    "E-copilot-cli-00938",
+    "E-copilot-cli-00480",
+    "E-copilot-cli-01233"
+   ],
+   "value": "--allow-all (or --yolo) enables all permissions at once, equivalent to --allow-all-tools --allow-all-paths --allow-all-urls; --allow-all-tools lets Copilot use any tool without asking for approval. A user setting can be set to disable to suppress all allow-all flags at startup so they cannot be used to grant elevated permissions."
+  },
+  {
+   "id": "copilot-cli/F04.auto-review",
+   "surface": "copilot-cli",
+   "row": "F04.auto-review",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-copilot-cli-01002",
+    "E-copilot-cli-01234"
+   ],
+   "value": "Assisted approval (/permissions assisted) still prompts for each request but attaches an LLM safety recommendation so the CLI can auto-approve requests the model evaluates as acceptable. A policy value of allow-auto-only blocks full allow-all while still permitting it.",
+   "limitation": "Assisted approval still prompts for each request, but attaches an LLM safety recommendation so the CLI can auto-approve requests the model evaluates as acceptable. Quotes name it /permissions assisted (E-copilot-cli-01002) and /allow-all auto (E-copilot-cli-01234)."
+  },
+  {
+   "id": "copilot-cli/F09.per-agent-model",
+   "surface": "copilot-cli",
+   "row": "F09.per-agent-model",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-copilot-cli-01270",
+    "E-copilot-cli-01405",
+    "E-copilot-cli-00177",
+    "E-copilot-cli-00259"
+   ],
+   "value": "A custom agent definition can specify the model used when that agent runs. A per-agent model configuration object, keyed by agent name, takes an optional model and a modelPolicy of preferred or required. If a subagent uses a custom agent profile that specifies a particular AI model, that model is used by the subagent.",
+   "limitation": "The built-in research agent is hard-coded to use a particular AI model, and its model selection is not configurable via the /model command (E-copilot-cli-00259)."
+  },
+  {
+   "id": "copilot-cli/F09.per-agent-effort",
+   "surface": "copilot-cli",
+   "row": "F09.per-agent-effort",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-copilot-cli-01062",
+    "E-copilot-cli-01270",
+    "E-copilot-cli-01064",
+    "E-copilot-cli-01271"
+   ],
+   "value": "Custom agent frontmatter reasoningEffort sets that agent's default reasoning effort (for example low, medium, high); unset, it inherits the outer agent's effort. The per-agent settings.json entry accepts effortLevel, which can be set to inherit. Precedence, highest first: per-call value, then settings.json subagents override, then the agent definition."
+  },
+  {
+   "id": "copilot-cli/F09.nesting-rules",
+   "surface": "copilot-cli",
+   "row": "F09.nesting-rules",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-copilot-cli-01016",
+    "E-copilot-cli-01275",
+    "E-copilot-cli-01081",
+    "E-copilot-cli-01052"
+   ],
+   "value": "The CLI enforces depth and concurrency limits to prevent runaway agent spawning. COPILOT_SUBAGENT_MAX_DEPTH sets maximum nesting depth (default 4, range 1-128); a settings.json depth setting (default 6, capped at 256) is honored only for usage-based billing users. code-review and security-review do not delegate a whole review to a nested review subagent.",
+   "limitation": "Docs disagree on the default depth: COPILOT_SUBAGENT_MAX_DEPTH default 4, range 1-128 (E-copilot-cli-01016) vs settings depth default 6, capped at 256, honored only for usage-based billing users (E-copilot-cli-01275)."
+  },
+  {
+   "id": "copilot-cli/F14.concurrency-caps",
+   "surface": "copilot-cli",
+   "row": "F14.concurrency-caps",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-copilot-cli-01015",
+    "E-copilot-cli-01274",
+    "E-copilot-cli-01083",
+    "E-copilot-cli-01903"
+   ],
+   "value": "Per-session subagent caps: COPILOT_SUBAGENT_MAX_CONCURRENT (default 32, range 1-256); a settings.json limit is plan-based, capped at 32, honored only for usage-based billing users. Concurrency counts running subagents across the entire session tree; at the limit, new requests are rejected until one completes. Dynamic workflows cap workflow-owned agents active at once.",
+   "limitation": "Docs disagree on the cap: COPILOT_SUBAGENT_MAX_CONCURRENT defaults to 32, range 1-256 (E-copilot-cli-01015); the settings entry is plan-based, capped at 32, and honored only for usage-based billing users (E-copilot-cli-01274)."
+  },
+  {
+   "id": "copilot-cli/F14.parallel-subagents",
+   "surface": "copilot-cli",
+   "row": "F14.parallel-subagents",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-copilot-cli-00970",
+    "E-copilot-cli-00174",
+    "E-copilot-cli-00060",
+    "E-copilot-cli-00217"
+   ],
+   "value": "The /fleet slash command, or the --fleet option (parallel subagent orchestration, combined with -i, -p or piped input), breaks a large task into subtasks that run in parallel. The explore agent is read-only, so it can be called in parallel to other subagents. A dynamic workflow can run agents in sequence, in parallel, or both."
+  },
+  {
+   "id": "copilot-cli/F14.total-agent-caps",
+   "surface": "copilot-cli",
+   "row": "F14.total-agent-caps",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-copilot-cli-01904",
+    "E-copilot-cli-01915"
+   ],
+   "value": "Dynamic workflows have a limit on the maximum number of workflow-owned agents that can be launched, in total, over the course of a run. Runs stopped by the other limits keep their status and saved results and can be resumed; the new limit is a total for the run, including usage before it stopped."
+  },
+  {
+   "id": "copilot-cli/F15.background-tasks",
+   "surface": "copilot-cli",
+   "row": "F15.background-tasks",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-copilot-cli-00636",
+    "E-copilot-cli-00919",
+    "E-copilot-cli-01891",
+    "E-copilot-cli-02966"
+   ],
+   "value": "/tasks lists background tasks for the current session, including /fleet subagent subtasks. A dynamic workflow started from a prompt runs in the background and reports back when finished. /fork works while the agent runs, the source session keeps working in the background; a session switched away from keeps running."
+  },
+  {
+   "id": "copilot-cli/F17.model-picker",
+   "surface": "copilot-cli",
+   "row": "F17.model-picker",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-copilot-cli-00051",
+    "E-copilot-cli-00368",
+    "E-copilot-cli-00353",
+    "E-copilot-cli-00185"
+   ],
+   "value": "The model used by Copilot CLI can be changed with the /model slash command or the --model command-line option; the docs say to enter the command, then select a model from the list. Users can view which models are available to them with /model. Docs advise using /model to choose from available models based on your task complexity.",
+   "limitation": "Users can only access AI models that are enabled at the enterprise level (E-copilot-cli-00353); the research agent always uses the defined model regardless of what model you've selected for your main session (E-copilot-cli-00185)."
+  },
+  {
+   "id": "copilot-cli/F17.model-flag-env",
+   "surface": "copilot-cli",
+   "row": "F17.model-flag-env",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-copilot-cli-01391",
+    "E-copilot-cli-01231",
+    "E-copilot-cli-00354",
+    "E-copilot-cli-00364"
+   ],
+   "value": "--model=MODEL chooses the AI model (for example gpt-5.4 or claude-haiku-4.5), useful for pinning a model in reproducible workflows. The model setting in ~/.copilot/settings.json selects the model (auto lets Copilot pick) and is managed by /model. Custom enterprise models can be selected with the --model flag or environment variables."
+  },
+  {
+   "id": "copilot-cli/F17.auto-routing",
+   "surface": "copilot-cli",
+   "row": "F17.auto-routing",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-copilot-cli-00369",
+    "E-copilot-cli-00900",
+    "E-copilot-cli-01218",
+    "E-copilot-cli-00236"
+   ],
+   "value": "Auto chooses models from real-time system health and availability, model performance and task complexity. /model auto TIER (efficiency, balance, or intelligence) selects an Auto routing tier directly. When a setting is true, eligible rate limit errors trigger an automatic switch to auto mode and retry; this does not apply to global rate limits or BYOK providers."
+  },
+  {
+   "id": "copilot-cli/F17.provider-byok",
+   "surface": "copilot-cli",
+   "row": "F17.provider-byok",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-copilot-cli-00055",
+    "E-copilot-cli-00462",
+    "E-copilot-cli-00469"
+   ],
+   "value": "Copilot CLI can use your own model provider instead of GitHub-hosted models (OpenAI-compatible endpoint, Azure OpenAI or Anthropic, including local models such as Ollama), set up with environment variables. Models must support tool calling and streaming or the CLI returns an error. GitHub authentication is not required with BYOK."
+  },
+  {
+   "id": "copilot-cli/F17.model-catalog",
+   "surface": "copilot-cli",
+   "row": "F17.model-catalog",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-copilot-cli-00751",
+    "E-copilot-cli-00353",
+    "E-copilot-cli-00241",
+    "E-copilot-cli-00091"
+   ],
+   "value": "Docs have a Supported AI models page listing the models supported in GitHub Copilot. In Copilot CLI, users can only access models enabled at the enterprise level and can view their available models with /model; Auto chooses from supported models subject to policies and subscription type. Third-party agents have a per-agent model list."
+  },
+  {
+   "id": "copilot-cli/F18.effort-values",
+   "surface": "copilot-cli",
+   "row": "F18.effort-values",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-copilot-cli-00962",
+    "E-copilot-cli-03753",
+    "E-copilot-cli-00816"
+   ],
+   "value": "--effort (alias --reasoning-effort) sets reasoning effort to low, medium, high, xhigh or max; the ACP server accepts the same five values as the session's initial effort. The effortLevel setting in settings.json accepts low, medium, high or xhigh with default medium; higher levels use more compute.",
+   "limitation": "--effort accepts low, medium, high, xhigh or max (E-copilot-cli-00962); the effortLevel setting lists only low, medium, high or xhigh, default medium (E-copilot-cli-03753). `max` is the highest-depth tier for Anthropic models."
+  },
+  {
+   "id": "copilot-cli/F18.where-set",
+   "surface": "copilot-cli",
+   "row": "F18.where-set",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-copilot-cli-00897",
+    "E-copilot-cli-01303",
+    "E-copilot-cli-01402",
+    "E-copilot-cli-00816"
+   ],
+   "value": "Effort is set with /model (current session only by default, without touching saved settings), the effortLevel key in ~/.copilot/settings.json, a repository effortLevel key that pins the default and takes precedence over the user value, or the ACP server --effort / --reasoning-effort option for the session's initial effort."
+  },
+  {
+   "id": "copilot-cli/F18.model-dependence",
+   "surface": "copilot-cli",
+   "row": "F18.model-dependence",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-copilot-cli-00651",
+    "E-copilot-cli-00802",
+    "E-copilot-cli-00054",
+    "E-copilot-cli-00962"
+   ],
+   "value": "Configurable reasoning levels are available on some models: when you select a supported model you can choose the reasoning level, and supported models offer levels that control reasoning depth. --effort accepts low, medium, high, xhigh or max, with max the highest-depth tier for Anthropic models.",
+   "limitation": "Some models support configurable reasoning levels (E-copilot-cli-00651); `max` is the highest-depth tier for Anthropic models (E-copilot-cli-00962). Cited quotes mark support per model but list no accepted levels per model."
+  },
+  {
+   "id": "copilot-cli/F18.thinking-budget-visibility",
+   "surface": "copilot-cli",
+   "row": "F18.thinking-budget-visibility",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-copilot-cli-00630",
+    "E-copilot-cli-00966",
+    "E-copilot-cli-03403"
+   ],
+   "value": "Ctrl+T shows or hides the model's reasoning process while it generates a response, and the setting persists across sessions. Detailed reasoning summaries for supporting OpenAI models are shown by default; --enable-reasoning-summaries is deprecated and ignored.",
+   "limitation": "Summaries are shown 'for supporting OpenAI models'; none of the cited quotes describes a token budget control."
+  },
+  {
+   "id": "copilot-cli/F19.named-modes",
+   "surface": "copilot-cli",
+   "row": "F19.named-modes",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-copilot-cli-00976",
+    "E-copilot-cli-00029",
+    "E-copilot-cli-02945"
+   ],
+   "value": "The --mode option takes interactive, plan or autopilot, and session state records the current mode (interactive, plan, or autopilot). The about page instead describes the interactive interface as having two modes: default ask/execute and plan.",
+   "limitation": "E-copilot-cli-00029 says the interactive interface 'has two modes' (default ask/execute and plan); E-copilot-cli-00976 and E-copilot-cli-02945 list three: interactive, plan, autopilot."
+  },
+  {
+   "id": "copilot-cli/F19.entering-modes",
+   "surface": "copilot-cli",
+   "row": "F19.entering-modes",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-copilot-cli-00030",
+    "E-copilot-cli-02804",
+    "E-copilot-cli-01267",
+    "E-copilot-cli-00140"
+   ],
+   "value": "Shift+Tab cycles between modes in an interactive session, for example until 'autopilot' shows in the status bar. With stayInAutopilot enabled, the next prompt after a task completes is also handled in autopilot mode. Remote clients can switch the session mode, for example between interactive and plan mode."
+  },
+  {
+   "id": "copilot-cli/F19.plan-mode",
+   "surface": "copilot-cli",
+   "row": "F19.plan-mode",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-copilot-cli-00589",
+    "E-copilot-cli-00977",
+    "E-copilot-cli-00067",
+    "E-copilot-cli-00442"
+   ],
+   "value": "Plan mode lets you collaborate with Copilot on an implementation plan before any code is written; Shift+Tab cycles in and out of it, and in plan mode all prompts trigger the plan workflow. Remote control can approve or reject plans, and --plan --mode autopilot moves to autopilot once the plan is ready instead of waiting for human approval.",
+   "limitation": "Quotes say planning happens 'before any code is written'; none of them states that plan mode is read-only, and the exits shown are Shift+Tab cycling and plan approval."
+  },
+  {
+   "id": "copilot-cli/F19.autonomy-mode",
+   "surface": "copilot-cli",
+   "row": "F19.autonomy-mode",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-copilot-cli-00948",
+    "E-copilot-cli-00179",
+    "E-copilot-cli-01266",
+    "E-copilot-cli-01392"
+   ],
+   "value": "Autopilot mode lets Copilot work autonomously until a task is complete, auto-responding to requests that would otherwise require user intervention. --autopilot enables autopilot continuation, and --no-ask-user prevents the agent from pausing to seek additional user input. stayInAutopilot (default true) keeps autopilot active after each task.",
+   "limitation": "E-copilot-cli-00948 says --autopilot works until task_complete is called, 'then returns to interactive mode', while E-copilot-cli-01266 says stayInAutopilot (default true) remains in autopilot after each task; the quotes do not reconcile them."
+  },
+  {
+   "id": "copilot-cli/F19.read-only-mode",
+   "surface": "copilot-cli",
+   "row": "F19.read-only-mode",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-copilot-cli-01093"
+   ],
+   "value": "In plan mode, any attempt to edit, patch, or run a shell command that would change a file in the workspace is blocked automatically. The quote states this is enforced directly, so it does not depend on the model choosing to behave."
+  },
+  {
+   "id": "copilot-cli/F19.mode-defaults",
+   "surface": "copilot-cli",
+   "row": "F19.mode-defaults",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-copilot-cli-01702",
+    "E-copilot-cli-01266",
+    "E-copilot-cli-01703",
+    "E-copilot-cli-01705"
+   ],
+   "value": "Autopilot is sticky by default: once a task completes the CLI stays in autopilot and the next prompt is also handled in autopilot (stayInAutopilot, default true). Setting stayInAutopilot to false returns it to interactive mode after each task and can be stored in ~/.copilot/settings.json. Shift+Tab switches back to interactive at any time.",
+   "limitation": "Stickiness is documented only for autopilot ('By default, autopilot mode is sticky'); no cited quote names the mode a new session starts in."
+  },
+  {
+   "id": "copilot-cli/F21.host-platform",
+   "surface": "copilot-cli",
+   "row": "F21.host-platform",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-copilot-cli-01840",
+    "E-copilot-cli-02817"
+   ],
+   "value": "Copilot CLI is one of three ways to use GitHub Copilot in JetBrains IDEs, where it runs in the integrated terminal. The pull-request how-to lists as a prerequisite working in a Git repository that is hosted on GitHub.",
+   "limitation": "'You must be working in a Git repository that is hosted on GitHub' is the pull-request how-to prerequisite; no cited quote lists supported operating systems or shells."
+  },
+  {
+   "id": "copilot-cli/F21.shared-account-billing",
+   "surface": "copilot-cli",
+   "row": "F21.shared-account-billing",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-copilot-cli-00435",
+    "E-copilot-cli-00052",
+    "E-copilot-cli-00469",
+    "E-copilot-cli-01922"
+   ],
+   "value": "Access to Copilot CLI requires an assigned GitHub Copilot seat, and each interaction consumes AI credits based on tokens processed, varying by model. The GitHub Copilot app is available for all Copilot plans. With BYOK, Copilot CLI can connect to the configured provider without a GitHub account or token.",
+   "limitation": "E-copilot-cli-00435 requires an assigned Copilot seat, but E-copilot-cli-00469 says with BYOK 'GitHub authentication is not required'. The app policy is 'separate from the Copilot CLI policy' (E-copilot-cli-01922)."
+  },
+  {
+   "id": "copilot-cli/F21.shared-execution-infrastructure",
+   "surface": "copilot-cli",
+   "row": "F21.shared-execution-infrastructure",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-copilot-cli-02165",
+    "E-copilot-cli-00308"
+   ],
+   "value": "Cloud and local sandboxes are the execution platform behind sandboxed experiences in both Copilot CLI and the GitHub Copilot app. Cloud sandboxing is built on Azure Container Apps Sandboxes, with GitHub providing the identity, policy, and billing layer."
+  },
+  {
+   "id": "copilot-cli/F21.shared-model-selection",
+   "surface": "copilot-cli",
+   "row": "F21.shared-model-selection",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-copilot-cli-01552"
+   ],
+   "value": "For Copilot cloud agent, depending on how a task is started, you may be able to select the model it uses; different models may perform better depending on the type of task.",
+   "limitation": "The quote covers Copilot cloud agent only ('you may be able to select the model'); it does not state whether Copilot CLI shares or defers to that choice."
+  },
+  {
+   "id": "copilot-cli/F21.shared-agent-runtime",
+   "surface": "copilot-cli",
+   "row": "F21.shared-agent-runtime",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-copilot-cli-01921",
+    "E-copilot-cli-01446",
+    "E-copilot-cli-00015",
+    "E-copilot-cli-01422"
+   ],
+   "value": "The GitHub Copilot app is built on GitHub Copilot CLI. Plugins add capabilities to Copilot CLI, Copilot cloud agent and the app, and agent skills work with cloud agent, code review, Copilot CLI and the app. An Always allow decision for computer use is stored locally and applies to both the CLI and the app on the same computer."
+  },
+  {
+   "id": "copilot-cli/F21.delegates-to",
+   "surface": "copilot-cli",
+   "row": "F21.delegates-to",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-copilot-cli-00375"
+   ],
+   "value": "/delegate transfers the session to GitHub's server-side Copilot, not your own model provider.",
+   "limitation": "/delegate only works if you are also signed in to GitHub."
+  },
+  {
+   "id": "copilot-cli/F21.distinct-harness-features",
+   "surface": "copilot-cli",
+   "row": "F21.distinct-harness-features",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-copilot-cli-00804",
+    "E-copilot-cli-02168",
+    "E-copilot-cli-02309"
+   ],
+   "value": "The 1 million token context window is available in Visual Studio Code and Copilot CLI only. Local sandbox settings are configured separately in Copilot CLI and the GitHub Copilot app. Disabling Copilot CLI does not disable the app, which is governed by its own policy.",
+   "limitation": "The 1 million token context window is 'available in Visual Studio Code and Copilot CLI only', so it is not unique to the CLI; the other quotes describe separate settings and policy, not features absent from the app."
+  }
+ ]
+}

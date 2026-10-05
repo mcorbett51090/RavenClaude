@@ -1,0 +1,444 @@
+{
+ "surface": "claude-code",
+ "cells": [
+  {
+   "id": "claude-code/F04.approval-modes",
+   "surface": "claude-code",
+   "row": "F04.approval-modes",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-claude-code-00169",
+    "E-claude-code-00406",
+    "E-claude-code-00438",
+    "E-claude-code-00511"
+   ],
+   "value": "permission_mode controls how much human oversight you want; the SDK evaluates the active mode with allow and deny rules in a fixed order. Modes named in the docs include acceptEdits, bypassPermissions and dontAsk (which never prompts). set_permission_mode changes the mode for the current session."
+  },
+  {
+   "id": "claude-code/F04.bypass-mode",
+   "surface": "claude-code",
+   "row": "F04.bypass-mode",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-claude-code-00187",
+    "E-claude-code-06295",
+    "E-claude-code-00436",
+    "E-claude-code-06475"
+   ],
+   "value": "bypassPermissions runs allowed tools without asking, except those matching an explicit ask rule, connector tools your org set to ask, and tools that require user… A matching deny rule blocks a tool. For unattended use, --dangerously-skip-permissions bypasses most prompts; the docs advise it only in trusted environments. permissions.disableBypassPermissionsMode=disable blocks the mode and the flag."
+  },
+  {
+   "id": "claude-code/F04.auto-review",
+   "surface": "claude-code",
+   "row": "F04.auto-review",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-claude-code-00186",
+    "E-claude-code-02097",
+    "E-claude-code-00342"
+   ],
+   "value": "Auto mode uses a model classifier to review actions such as shell commands and network requests, allowing or blocking each one it reviews. The classifier blocks anything irreversible, destructive, or aimed outside your environment. A PermissionDenied hook fires when auto mode denies a tool call."
+  },
+  {
+   "id": "claude-code/F09.per-agent-model",
+   "surface": "claude-code",
+   "row": "F09.per-agent-model",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-claude-code-00825",
+    "E-claude-code-00602",
+    "E-claude-code-07490",
+    "E-claude-code-06823"
+   ],
+   "value": "AgentDefinition.model overrides the model for one agent and accepts an alias such as fable, opus, sonnet, haiku or inherit (inherit uses the main model), or a full model ID. Each markdown file in agents/ can optionally set its own model; for simple subagent tasks the docs suggest model: haiku. When omitted, Claude Code uses the subagent model order."
+  },
+  {
+   "id": "claude-code/F09.per-agent-effort",
+   "surface": "claude-code",
+   "row": "F09.per-agent-effort",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-claude-code-14746",
+    "E-claude-code-00834",
+    "E-claude-code-00180",
+    "E-claude-code-11518"
+   ],
+   "value": "A subagent's effort field sets its reasoning effort and overrides the session effort level; it defaults to inheriting from the session. Options are low, medium, high, xhigh and max, and AgentDefinition also accepts a number. Available levels depend on the model. Set in subagent markdown frontmatter or on AgentDefinition."
+  },
+  {
+   "id": "claude-code/F09.nesting-rules",
+   "surface": "claude-code",
+   "row": "F09.nesting-rules",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-claude-code-00839",
+    "E-claude-code-00935",
+    "E-claude-code-07387"
+   ],
+   "value": "Subagents can also spawn subagents of their own; the docs link a section on capping nesting depth, concurrency and spend. For messages from a nested subagent, a field gives the agentId of the subagent that spawned it (requires Claude Code v2.1.202 or later). Another page says a subagent gets most of the parent's tools, minus by default the Agent tool itself, to prevent recursion.",
+   "limitation": "Two cited pages differ: E-claude-code-00839 says subagents \"can also spawn subagents of their own\"; E-claude-code-07387 says a subagent lacks \"by default the Agent tool itself to prevent recursion\"."
+  },
+  {
+   "id": "claude-code/F14.concurrency-caps",
+   "surface": "claude-code",
+   "row": "F14.concurrency-caps",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-claude-code-14935",
+    "E-claude-code-08099",
+    "E-claude-code-15834"
+   ],
+   "value": "By default, when 20 subagents are running in a session, spawning another with the Agent tool fails with 'Concurrent subagent limit reached'; a variable sets how many can run before the Agent tool refuses to spawn another (default: 20). In the docs' ultracode section, the limit isn't enforced for Agent-tool subagents."
+  },
+  {
+   "id": "claude-code/F14.parallel-subagents",
+   "surface": "claude-code",
+   "row": "F14.parallel-subagents",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-claude-code-00817",
+    "E-claude-code-01954",
+    "E-claude-code-01274",
+    "E-claude-code-00400"
+   ],
+   "value": "Multiple subagents can run concurrently, so independent subtasks finish in the time of the slowest one. The docs list five ways to work on several tasks at once: subagents, agent view, agent teams, dynamic workflows and projects. The Workflow tool runs a script that orchestrates many subagents in the background. Large parallel-subagent fanouts can hit rate limits."
+  },
+  {
+   "id": "claude-code/F14.total-agent-caps",
+   "surface": "claude-code",
+   "row": "F14.total-agent-caps",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-claude-code-15872",
+    "E-claude-code-14937",
+    "E-claude-code-08104",
+    "E-claude-code-00176"
+   ],
+   "value": "A workflow run is capped at 1,000 agents in total, to prevent runaway loops. There is no limit on the total number of subagents Claude can spawn over a session; the former per-session cap variable was removed in v2.1.224. Once the spend cap is reached, spawning another subagent fails with 'Budget limit reached'.",
+   "limitation": "\"There's no limit on the total number of subagents Claude can spawn over a session\" (E-claude-code-14937); the cap variable was \"Removed in v2.1.224\" (E-claude-code-08104). The 1,000-agent total applies per workflow run (E-claude-code-15872)."
+  },
+  {
+   "id": "claude-code/F15.background-tasks",
+   "surface": "claude-code",
+   "row": "F15.background-tasks",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-claude-code-01587",
+    "E-claude-code-00832",
+    "E-claude-code-00904",
+    "E-claude-code-00518"
+   ],
+   "value": "A session dispatched from agent view keeps running after you close agent view. AgentDefinition.background runs an agent as a non-blocking background task, and stop_task(task_id) stops a running background task. Task messages report background tasks such as backgrounded commands and subagents."
+  },
+  {
+   "id": "claude-code/F17.model-picker",
+   "surface": "claude-code",
+   "row": "F17.model-picker",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-claude-code-00135",
+    "E-claude-code-02007",
+    "E-claude-code-01517",
+    "E-claude-code-06464"
+   ],
+   "value": "The /model picker lets users choose the model; availableModels in managed settings filters which models appear in it, and modelOverrides maps several versions of one family in the /model picker to separate application inference profile ARNs. In agent teams, /model and /fast set the lead's model and fast mode and do not run from a teammate view."
+  },
+  {
+   "id": "claude-code/F17.model-flag-env",
+   "surface": "claude-code",
+   "row": "F17.model-flag-env",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-claude-code-00015",
+    "E-claude-code-00541",
+    "E-claude-code-00965"
+   ],
+   "value": "The model setting sets which model is active when a session starts but is not enforcement: users can pick Default in /model, which resolves to the system's runtime default regardless of what model is set to, unless [quote truncated]. A model option takes a Claude model alias or full model name. fallbackModel is a model to use if the primary fails; it accepts a comma-separated list."
+  },
+  {
+   "id": "claude-code/F17.auto-routing",
+   "surface": "claude-code",
+   "row": "F17.auto-routing",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-claude-code-00284",
+    "E-claude-code-00159",
+    "E-claude-code-00826"
+   ],
+   "value": "When the primary model is overloaded or unavailable, a session with fallbackModel set switches to the backup and retries the primary at the start of each user turn. opusplan applies during plan mode when allowed by availableModels, then switches to Sonnet for execution. Omitted subagent models follow the subagent model order."
+  },
+  {
+   "id": "claude-code/F17.provider-byok",
+   "surface": "claude-code",
+   "row": "F17.provider-byok",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-claude-code-01969",
+    "E-claude-code-02169",
+    "E-claude-code-00417",
+    "E-claude-code-00133"
+   ],
+   "value": "Claude Code connects to Amazon Bedrock (login wizard under 3rd-party platform), Microsoft Foundry (three authentication methods), Google Cloud's Agent Platform, Claude Platform on AWS and LLM gateways. allowedProviders limits which API providers a machine may use; a session on an unlisted provider is refused (requires v2.1.285 or later)."
+  },
+  {
+   "id": "claude-code/F17.model-catalog",
+   "surface": "claude-code",
+   "row": "F17.model-catalog",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-claude-code-00016",
+    "E-claude-code-01997",
+    "E-claude-code-00893",
+    "E-claude-code-02177"
+   ],
+   "value": "ANTHROPIC_DEFAULT_{SONNET,OPUS,HAIKU,FABLE}_MODEL control what the sonnet, opus, haiku and fable aliases resolve to. Without the OPUS or SONNET variable, that alias on Amazon Bedrock resolves to Opus 5.5 or Sonnet 4.5. Tools listed under Model availability are available by default only on Claude 3.x models, Opus 4 through 4.7, Sonnet 4 through 4.6 and Haiku 4.5; other models need an opt-in.",
+   "limitation": "Microsoft Foundry \"has no startup model check, so requests fail when the default is unavailable\" (E-claude-code-02177)."
+  },
+  {
+   "id": "claude-code/F18.effort-values",
+   "surface": "claude-code",
+   "row": "F18.effort-values",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-claude-code-07046",
+    "E-claude-code-07249",
+    "E-claude-code-08065",
+    "E-claude-code-06898"
+   ],
+   "value": "The --effort flag accepts low, medium, high, xhigh, max or ultracode, and available levels depend on the model. /effort accepts low to xhigh, max, or auto; CLAUDE_CODE_EFFORT_LEVEL accepts low, medium, high, xhigh, max, or auto to use the model default. A new project runs every thread on Opus at high effort by default."
+  },
+  {
+   "id": "claude-code/F18.where-set",
+   "surface": "claude-code",
+   "row": "F18.where-set",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-claude-code-07046",
+    "E-claude-code-00122",
+    "E-claude-code-00291",
+    "E-claude-code-00137"
+   ],
+   "value": "Effort is set with the --effort flag for the current session and the /effort selector (a slider outside screen reader mode). Writing effortLevel to userSettings saves it as the default effort for the session's current model without changing the running session. The maxEffortLevel managed setting caps effort for every model or per model."
+  },
+  {
+   "id": "claude-code/F18.model-dependence",
+   "surface": "claude-code",
+   "row": "F18.model-dependence",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-claude-code-07047",
+    "E-claude-code-09458",
+    "E-claude-code-00619",
+    "E-claude-code-00177"
+   ],
+   "value": "Available effort levels depend on the model. Not all models support the effort parameter; effort is supported on Fable models, Opus 4.6 and later, and Sonnet 4.6 and later. xhigh falls back to high on models that don't support it."
+  },
+  {
+   "id": "claude-code/F18.thinking-budget-visibility",
+   "surface": "claude-code",
+   "row": "F18.thinking-budget-visibility",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-claude-code-09459",
+    "E-claude-code-08012",
+    "E-claude-code-07503",
+    "E-claude-code-00095"
+   ],
+   "value": "Extended thinking is on by default; thinking tokens bill as output tokens and the default budget can be tens of thousands of tokens per request depending on the model. Thinking is visible step-by-step reasoning, shown in gray italic text in the terminal. MAX_THINKING_TOKENS caps thinking tokens on fixed-budget models; effort levels control adaptive reasoning.",
+   "limitation": "The cap applies 'on models with a fixed thinking budget'; CLAUDE_CODE_DISABLE_ADAPTIVE_THINKING 'Has no effect on Fable models, Sonnet 5 and later, or Opus 4.7 and' (quote ends there)."
+  },
+  {
+   "id": "claude-code/F19.named-modes",
+   "surface": "claude-code",
+   "row": "F19.named-modes",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-claude-code-07077",
+    "E-claude-code-01762",
+    "E-claude-code-07685"
+   ],
+   "value": "Permission modes are default, acceptEdits, plan, auto, dontAsk and bypassPermissions; 'manual' is an alias for default, labelled Manual in the UI. By permissiveness: plan, then Manual and dontAsk, then acceptEdits and auto, then bypassPermissions."
+  },
+  {
+   "id": "claude-code/F19.entering-modes",
+   "surface": "claude-code",
+   "row": "F19.entering-modes",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-claude-code-02187",
+    "E-claude-code-00120",
+    "E-claude-code-00466",
+    "E-claude-code-00511"
+   ],
+   "value": "Shift+Tab cycles permission modes. To enter plan mode, press Shift+Tab until the status bar shows '⏸ plan mode on', or start the session with claude --permission-mode plan. In the SDK, set the mode when calling query() or change it during streaming sessions; Python's set_permission_mode(mode) changes it for the current session."
+  },
+  {
+   "id": "claude-code/F19.plan-mode",
+   "surface": "claude-code",
+   "row": "F19.plan-mode",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-claude-code-00184",
+    "E-claude-code-00442",
+    "E-claude-code-00988",
+    "E-claude-code-02186"
+   ],
+   "value": "Plan mode explores and plans without editing source files; file edits are never auto-approved and prompt through the canUseTool callback, and file-edit and shell-write tools go there regardless of allow rules. planModeInstructions can replace the default workflow body; the CLI keeps a read-only enforcement preamble and an ExitPlanMode protocol footer."
+  },
+  {
+   "id": "claude-code/F19.autonomy-mode",
+   "surface": "claude-code",
+   "row": "F19.autonomy-mode",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-claude-code-00183",
+    "E-claude-code-02097",
+    "E-claude-code-00615"
+   ],
+   "value": "acceptEdits auto-approves file edits and common filesystem commands (mkdir, touch, mv, cp); other Bash commands follow default rules. Auto mode runs without routine permission prompts by routing tool calls through a classifier that blocks irreversible, destructive or outside-the-environment actions. bypassPermissions skips permission checks, but explicit ask rules still prompt."
+  },
+  {
+   "id": "claude-code/F19.read-only-mode",
+   "surface": "claude-code",
+   "row": "F19.read-only-mode",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-claude-code-13117"
+   ],
+   "value": "Manual mode starts with read-only permissions and asks before editing files, running tests or executing commands; the user approves once or allows from then on.",
+   "limitation": "Not a mode that cannot change files: 'When it needs to edit files, run tests, or execute commands, it asks you first, and you choose whether to approve the action once or allow it from then on.'"
+  },
+  {
+   "id": "claude-code/F19.mode-defaults",
+   "surface": "claude-code",
+   "row": "F19.mode-defaults",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-claude-code-02197",
+    "E-claude-code-00125",
+    "E-claude-code-07686",
+    "E-claude-code-08288"
+   ],
+   "value": "From Claude Code v2.1.283, auto mode is the built-in starting permission mode for interactive terminal and VS Code sessions. A setting lets you choose the starting mode for your developers' terminal sessions instead of the built-in one, or remove auto mode. In Desktop, a picked mode is remembered per folder and takes precedence over defaultMode for that folder.",
+   "limitation": "Desktop picks are remembered per folder 'except Plan, which applies to the current session only'; a first session after install or upgrade 'can also start in a different permission mode than your later sessions do'."
+  },
+  {
+   "id": "claude-code/F21.host-platform",
+   "surface": "claude-code",
+   "row": "F21.host-platform",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-claude-code-08143",
+    "E-claude-code-10965"
+   ],
+   "value": "Host platforms can embed Claude Code and manage model provider routing on its behalf, signalled by CLAUDE_CODE_PROVIDER_MANAGED_BY_HOST. Cowork in the Claude Desktop app runs its sessions on Claude Code.",
+   "limitation": "When a host platform sets the variable, 'Claude Code ignores provider-selection, endpoint, and authentication variables'; in a Cowork session Claude Code 'never fetches server-managed settings from the claude.ai admin console'."
+  },
+  {
+   "id": "claude-code/F21.shared-account-billing",
+   "surface": "claude-code",
+   "row": "F21.shared-account-billing",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-claude-code-07730",
+    "E-claude-code-06940",
+    "E-claude-code-07928",
+    "E-claude-code-01818"
+   ],
+   "value": "Plan usage is shared across all Claude Code surfaces (Desktop's usage ring shows context window and plan usage), and project usage counts against the same plan limits as other Claude Code sessions. The supervisor and its sessions authenticate with the same stored credentials as interactive sessions.",
+   "limitation": "ANTHROPIC_API_KEY: 'When set, this key is used instead of your Claude Pro, Max, Team, or Enterprise subscription even if you are logged in.'"
+  },
+  {
+   "id": "claude-code/F21.shared-execution-infrastructure",
+   "surface": "claude-code",
+   "row": "F21.shared-execution-infrastructure",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-claude-code-15404",
+    "E-claude-code-18037",
+    "E-claude-code-18261",
+    "E-claude-code-22141"
+   ],
+   "value": "Cloud sessions run on an Anthropic-managed cloud VM by default; local sessions process code on the user's own machine. Sessions an organization routes to a self-hosted environment run on infrastructure the organization operates."
+  },
+  {
+   "id": "claude-code/F21.shared-model-selection",
+   "surface": "claude-code",
+   "row": "F21.shared-model-selection",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-claude-code-07887",
+    "E-claude-code-07345"
+   ],
+   "value": "Claude Code runs on the same models as the Claude app. Desktop and the CLI make the same models available; in Desktop the model is selected from the dropdown next to the send button and can be changed mid-session from the same dropdown."
+  },
+  {
+   "id": "claude-code/F21.shared-agent-runtime",
+   "surface": "claude-code",
+   "row": "F21.shared-agent-runtime",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-claude-code-09484",
+    "E-claude-code-15403",
+    "E-claude-code-16054",
+    "E-claude-code-16072"
+   ],
+   "value": "All surfaces (CLI, VS Code, JetBrains, Desktop, claude.ai) share the same engine; Claude Code behaves the same everywhere, and what changes is where the session runs and whether local configuration is available. The Agent SDK embeds Claude Code's autonomous agent loop and is built on the same foundation."
+  },
+  {
+   "id": "claude-code/F21.delegates-to",
+   "surface": "claude-code",
+   "row": "F21.delegates-to",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-claude-code-23049"
+   ],
+   "value": "In a self-hosted environment, a cloud session's clone and everything after it run on the organization's own runners, where network boundaries, setup and push behavior are operator-configured.",
+   "limitation": "The quote covers hand-off to the organization's own runners, not a named sibling surface: 'The steps below describe Anthropic-hosted sessions. In a self-hosted environment, the clone and everything after it run on your organization's own runners'."
+  },
+  {
+   "id": "claude-code/F21.distinct-harness-features",
+   "surface": "claude-code",
+   "row": "F21.distinct-harness-features",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-claude-code-21229",
+    "E-claude-code-20219",
+    "E-claude-code-06611"
+   ],
+   "value": "Some plugin components are Claude Code-only and don't load on claude.ai or in Cowork; a component support table lists each by app. Claude apps gateway is Anthropic's own gateway, built into the claude binary and tested alongside each Claude Code release."
+  }
+ ]
+}

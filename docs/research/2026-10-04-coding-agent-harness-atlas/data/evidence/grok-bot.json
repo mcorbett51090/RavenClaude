@@ -1,0 +1,1368 @@
+{
+ "surface": "grok-bot",
+ "evidence": [
+  {
+   "bytes": 8304,
+   "context_after": [
+    "computer use, automation writes, and delegation such as Cloud Agent and",
+    "subagent launches. It can let an action proceed, require approval, or"
+   ],
+   "context_before": [
+    "### What does Auto Review check?",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-grok-bot-00006",
+   "locator": {
+    "heading": "What does Auto Review check?",
+    "raw_line_end": 94,
+    "raw_line_start": 94
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "With enforcement on, Auto Review evaluates shell commands, plugin calls,",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "8e71c04b343f53793ef3e7a34085a680e2bcb561af6fcd3992f55ac8c85a3a52",
+   "surface": "grok-bot",
+   "tier": "E1",
+   "url": "https://cursor.com/docs/grok-bot/security-faq.md",
+   "url_effective": "https://cursor.com/docs/grok-bot/security-faq.md",
+   "version_source": null
+  },
+  {
+   "bytes": 8304,
+   "context_after": [
+    "deployment, deployment inside your own perimeter, and bring-your-own-image",
+    "deployment are not supported today."
+   ],
+   "context_before": [
+    "### Can we run Grok Bot on-premises or from our own image?",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-grok-bot-00016",
+   "locator": {
+    "heading": "Can we run Grok Bot on-premises or from our own image?",
+    "raw_line_end": 134,
+    "raw_line_start": 134
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "No. Grok Bot runs only on Cursor-hosted cloud computers. On-premises",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "8e71c04b343f53793ef3e7a34085a680e2bcb561af6fcd3992f55ac8c85a3a52",
+   "surface": "grok-bot",
+   "tier": "E1",
+   "url": "https://cursor.com/docs/grok-bot/security-faq.md",
+   "url_effective": "https://cursor.com/docs/grok-bot/security-faq.md",
+   "version_source": null
+  },
+  {
+   "bytes": 16823,
+   "context_after": [
+    "",
+    "Auto Review is the review layer behind those prompts: an independent review model that evaluates risky Bot actions before they run, covering shell commands, plugin calls, computer use, automation writes (changes to routines and event triggers), and delegation such as Cloud Agent and subagent launche"
+   ],
+   "context_before": [
+    "> the current value, proposed value, and expected impact.",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-grok-bot-00017",
+   "locator": {
+    "heading": "Approvals and Auto Review",
+    "raw_line_end": 47,
+    "raw_line_start": 47
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "an action needs approval, the conversation shows the proposed operation and its inputs. **Allow once** lets the Bot continue with that action, **Always allow** can save a matching rule, and **Deny** blocks it. The controls are the same on iPhone. An approval controls the proposed action, not work",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "efa8d4c185f6cf6b5953ff7c29f06f2cc67d970dfd94c657dc41c8911342f60b",
+   "surface": "grok-bot",
+   "tier": "E1",
+   "url": "https://cursor.com/docs/grok-bot/security.md",
+   "url_effective": "https://cursor.com/docs/grok-bot/security.md",
+   "version_source": null
+  },
+  {
+   "bytes": 16823,
+   "context_after": [
+    "",
+    "- **Team admins can enforce Auto-review. Enterprise only.** The switch lives on the Grok Bot page of the Cursor dashboard. When it is on, members can't turn Auto-review off, unless a group they belong to lifts the lock with **Don't enforce for this group**; see [Group settings](https://cursor.com/do"
+   ],
+   "context_before": [
+    "When an action needs approval, the conversation shows the proposed operation and its inputs. **Allow once** lets the Bot continue with that action, **Always allow** can save a matching rule, and **Deny** blocks it. The controls are the same on iPhone. An approval controls the proposed action, not wo",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-grok-bot-00018",
+   "locator": {
+    "heading": "Approvals and Auto Review",
+    "raw_line_end": 49,
+    "raw_line_start": 49
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "Auto Review is the review layer behind those prompts: an independent review model that evaluates risky Bot actions before they run, covering shell commands, plugin calls, computer use, automation writes (changes to routines and event triggers), and delegation such as Cloud Agent and subagent",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "efa8d4c185f6cf6b5953ff7c29f06f2cc67d970dfd94c657dc41c8911342f60b",
+   "surface": "grok-bot",
+   "tier": "E1",
+   "url": "https://cursor.com/docs/grok-bot/security.md",
+   "url_effective": "https://cursor.com/docs/grok-bot/security.md",
+   "version_source": null
+  },
+  {
+   "bytes": 16823,
+   "context_after": [
+    "",
+    "- **The team model allowlist is Enterprise only, and enforcement is not guaranteed.** The list is honored by default. Onboarding presents an acknowledgement that Grok Bot may not follow it, so treat enforcement as configuration dependent. See [model access control](https://cursor.com/docs/enterprise"
+   ],
+   "context_before": [
+    "## Models and data",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-grok-bot-00024",
+   "locator": {
+    "heading": "Models and data",
+    "raw_line_end": 101,
+    "raw_line_start": 101
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "Cursor manages model selection. There is no customer-facing model picker, and the serving mix can change over time with no fixed vendor set guaranteed. Usage analytics show the model that served each request, including failovers, and billing follows the serving model.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "efa8d4c185f6cf6b5953ff7c29f06f2cc67d970dfd94c657dc41c8911342f60b",
+   "surface": "grok-bot",
+   "tier": "E1",
+   "url": "https://cursor.com/docs/grok-bot/security.md",
+   "url_effective": "https://cursor.com/docs/grok-bot/security.md",
+   "version_source": null
+  },
+  {
+   "bytes": 6937,
+   "context_after": [
+    "",
+    "## Computer"
+   ],
+   "context_before": [
+    "- **Bot.** The time zone [routines](https://cursor.com/help/grok-bot/routines.md#how-do-schedules-and-time-zones-work) use for schedules, and your Auto-review switch and rules, plus any team rules your admin requires. Until a desktop is listed under **Computer**, the **Bot** section also shows **Exe",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-grok-bot-00031",
+   "locator": {
+    "heading": "General",
+    "raw_line_end": 14,
+    "raw_line_start": 14
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "Two of these settings deserve care. Execution on Local Computer controls whether Bots can run commands on the desktop in front of you; per-command approval is the default, and the setting applies to that desktop alone. Once desktops are listed under **Settings** > **Computer**, the setting is there",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "2151ff561497a22de3dd05786decb4a963bb766f8d4221fd9947045d03989538",
+   "surface": "grok-bot",
+   "tier": "E1",
+   "url": "https://cursor.com/docs/grok-bot/settings.md",
+   "url_effective": "https://cursor.com/docs/grok-bot/settings.md",
+   "version_source": null
+  },
+  {
+   "bytes": 30896,
+   "context_after": [
+    "",
+    "The security model rests on four principles:"
+   ],
+   "context_before": [
+    "### How Grok Bot is built",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-grok-bot-00033",
+   "locator": {
+    "heading": "How Grok Bot is built",
+    "raw_line_end": 39,
+    "raw_line_start": 39
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "Grok Bot is a computer-use agent that operates applications, browsers, and development environments. It runs in Cursor's cloud, and each user's work executes on a dedicated cloud computer. The desktop and mobile apps are thin clients for chat, review, and approvals.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "561d5143769e06c39c19a09c6796e4e6776cd5947b48e12d2c4b662855c0fccd",
+   "surface": "grok-bot",
+   "tier": "E1",
+   "url": "https://cursor.com/docs/grok-bot/teams.md",
+   "url_effective": "https://cursor.com/docs/grok-bot/teams.md",
+   "version_source": null
+  },
+  {
+   "bytes": 30896,
+   "context_after": [
+    "",
+    "#### Allow Local Egress"
+   ],
+   "context_before": [
+    "#### Execution on Local Computer",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-grok-bot-00049",
+   "locator": {
+    "heading": "Execution on Local Computer",
+    "raw_line_end": 107,
+    "raw_line_start": 107
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "Caps what Bots may do on a member's own machine through the desktop app: open files and run tasks. Pick **Always allow**, **Ask every time**, or **Never allow** on the Grok Bot page. **Always allow**, the default, leaves the choice to each member, whose own setting defaults to asking before every",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "561d5143769e06c39c19a09c6796e4e6776cd5947b48e12d2c4b662855c0fccd",
+   "surface": "grok-bot",
+   "tier": "E1",
+   "url": "https://cursor.com/docs/grok-bot/teams.md",
+   "url_effective": "https://cursor.com/docs/grok-bot/teams.md",
+   "version_source": null
+  },
+  {
+   "bytes": 11465,
+   "context_after": [
+    "",
+    "If your Enterprise admin enforces Auto-review, Auto-review still checks actions in those chats. See [Grok Bot for Teams and Enterprise](https://cursor.com/docs/grok-bot/teams.md#enforce-auto-review)."
+   ],
+   "context_before": [
+    "## How do approvals work on a Team Bot?",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-grok-bot-00079",
+   "locator": {
+    "heading": "How do approvals work on a Team Bot?",
+    "raw_line_end": 79,
+    "raw_line_start": 79
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "Team Bot asks for approval only in its owner's own chat with it. In teammates' chats, in Slack, and in group chats, nobody who can answer an approval card is there. So the Bot works within the permissions its owner set up, without stopping to ask. It still asks before it uses your personal accounts.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "9b5fc4d6fa7fda97e5e833f3e71a3151b6c653caacd01e328c744626566bdb9e",
+   "surface": "grok-bot",
+   "tier": "E1",
+   "url": "https://cursor.com/help/grok-bot/team-bots.md",
+   "url_effective": "https://cursor.com/help/grok-bot/team-bots.md",
+   "version_source": null
+  },
+  {
+   "bytes": 11465,
+   "context_after": [
+    "",
+    "## How do I add a Team Bot to Slack?"
+   ],
+   "context_before": [
+    "A Team Bot asks for approval only in its owner's own chat with it. In teammates' chats, in Slack, and in group chats, nobody who can answer an approval card is there. So the Bot works within the permissions its owner set up, without stopping to ask. It still asks before it uses your personal account",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-grok-bot-00080",
+   "locator": {
+    "heading": "How do approvals work on a Team Bot?",
+    "raw_line_end": 81,
+    "raw_line_start": 81
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "If your Enterprise admin enforces Auto-review, Auto-review still checks actions in those chats. See [Grok Bot for Teams and Enterprise](https://cursor.com/docs/grok-bot/teams.md#enforce-auto-review).",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "9b5fc4d6fa7fda97e5e833f3e71a3151b6c653caacd01e328c744626566bdb9e",
+   "surface": "grok-bot",
+   "tier": "E1",
+   "url": "https://cursor.com/help/grok-bot/team-bots.md",
+   "url_effective": "https://cursor.com/help/grok-bot/team-bots.md",
+   "version_source": null
+  },
+  {
+   "bytes": 6937,
+   "context_after": [
+    "",
+    "Two of these settings deserve care. Execution on Local Computer controls whether Bots can run commands on the desktop in front of you; per-command approval is the default, and the setting applies to that desktop alone. Once desktops are listed under **Settings** > **Computer**, the setting is there "
+   ],
+   "context_before": [
+    "- **Account.** Sign in or out of the Cursor account Grok Bot uses. The account menu also shows the installed version and a link to the iOS app.",
+    "- **Appearance.** Follow System, Light, or Dark."
+   ],
+   "http_status": 200,
+   "id": "E-grok-bot-00106",
+   "locator": {
+    "heading": "General",
+    "raw_line_end": 12,
+    "raw_line_start": 12
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "use for schedules, and your Auto-review switch and rules, plus any team rules your admin requires. Until a desktop is listed under **Computer**, the **Bot** section also shows **Execution on Local Computer**. Cursor manages model selection, so there's no model picker.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "2151ff561497a22de3dd05786decb4a963bb766f8d4221fd9947045d03989538",
+   "surface": "grok-bot",
+   "tier": "E1",
+   "url": "https://cursor.com/docs/grok-bot/settings.md",
+   "url_effective": "https://cursor.com/docs/grok-bot/settings.md",
+   "version_source": null
+  },
+  {
+   "bytes": 30896,
+   "context_after": [
+    "",
+    "#### Public template sharing"
+   ],
+   "context_before": [
+    "#### Cloud Agents",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-grok-bot-00116",
+   "locator": {
+    "heading": "Cloud Agents",
+    "raw_line_end": 91,
+    "raw_line_start": 91
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "coding tasks to Cursor [Cloud Agents](https://cursor.com/docs/cloud-agent.md). The switch is on the Grok Bot page, applies to the whole team, and is on by default. Delegated work runs on separate computers under your existing Cloud Agent controls. Turn it off when your team doesn't need delegation.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "561d5143769e06c39c19a09c6796e4e6776cd5947b48e12d2c4b662855c0fccd",
+   "surface": "grok-bot",
+   "tier": "E1",
+   "url": "https://cursor.com/docs/grok-bot/teams.md",
+   "url_effective": "https://cursor.com/docs/grok-bot/teams.md",
+   "version_source": null
+  },
+  {
+   "bytes": 17874,
+   "context_after": [
+    "analytics show the model that served each request, including failovers, and",
+    "billing follows the serving model."
+   ],
+   "context_before": [
+    "",
+    "Cursor manages model selection. There is no customer-facing model picker, and"
+   ],
+   "http_status": 200,
+   "id": "E-grok-bot-00164",
+   "locator": {
+    "heading": "Models and data",
+    "raw_line_end": 242,
+    "raw_line_start": 242
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "the serving mix can change over time with no fixed vendor set guaranteed. Usage",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "917b179235c240ae2250fcafc8666a59cd0eb7666a251e0d882b13cf9c134494",
+   "surface": "grok-bot",
+   "tier": "E1",
+   "url": "https://docs.x.ai/grok-bot/security.md",
+   "url_effective": "https://docs.x.ai/grok-bot/security.md",
+   "version_source": null
+  },
+  {
+   "bytes": 7371,
+   "context_after": [
+    "",
+    "### Auto-review"
+   ],
+   "context_before": [
+    "* **Execution on Local Computer**",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-grok-bot-00172",
+   "locator": {
+    "heading": "Bot",
+    "raw_line_end": 47,
+    "raw_line_start": 47
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "Cursor manages model selection, so there is no model picker.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "e17fe02042abe58a36364acd09778dbae69256ba851922a5af551c03959fbe6f",
+   "surface": "grok-bot",
+   "tier": "E1",
+   "url": "https://docs.x.ai/grok-bot/settings-and-notifications.md",
+   "url_effective": "https://docs.x.ai/grok-bot/settings-and-notifications.md",
+   "version_source": null
+  },
+  {
+   "bytes": 18894,
+   "context_after": [
+    "permissions it was set up with, unless your team requires Auto-review. See",
+    "[Approvals, security, and privacy](/grok-bot/approvals-security-and-privacy)."
+   ],
+   "context_before": [
+    "The rest of the approval model, including Auto-review, applies to Team Bots as",
+    "it does to every Bot, with one difference. In a conversation where nobody can"
+   ],
+   "http_status": 200,
+   "id": "E-grok-bot-00179",
+   "locator": {
+    "heading": "Personal connectors and approvals",
+    "raw_line_end": 273,
+    "raw_line_start": 273
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "answer an approval card, the Bot runs without Auto-review and stays within the",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "1d06833fdc48f86ee791897e85431ddfbf7a95da931c86909dca9c67ec212f40",
+   "surface": "grok-bot",
+   "tier": "E1",
+   "url": "https://docs.x.ai/grok-bot/team-bots.md",
+   "url_effective": "https://docs.x.ai/grok-bot/team-bots.md",
+   "version_source": null
+  },
+  {
+   "bytes": 29125,
+   "context_after": [
+    "development environments. It runs in Cursor's cloud, and each user's work",
+    "executes on a dedicated cloud computer. The desktop and mobile apps are thin"
+   ],
+   "context_before": [
+    "### How Grok Bot is built",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-grok-bot-00187",
+   "locator": {
+    "heading": "How Grok Bot is built",
+    "raw_line_end": 69,
+    "raw_line_start": 69
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "Grok Bot is a computer-use agent that operates applications, browsers, and",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "9aae8115ed7660a4709910149a4bb954ce5f609b7dce86df54730e31c9bc497a",
+   "surface": "grok-bot",
+   "tier": "E1",
+   "url": "https://docs.x.ai/grok-bot/teams-and-enterprises.md",
+   "url_effective": "https://docs.x.ai/grok-bot/teams-and-enterprises.md",
+   "version_source": null
+  },
+  {
+   "bytes": 5472,
+   "context_after": [
+    "- **Bots learn workflows from demonstration.** Walk a Bot through a multi-step path once, and it can save the path as a [skill](https://cursor.com/docs/grok-bot/work.md#skills-and-routines) and rerun it on a schedule.",
+    "- **Context compounds.** A named Bot keeps its memory, files, browser sessions, and preferences across sessions instead of resetting on every task."
+   ],
+   "context_before": [
+    "- **Each Bot has a computer.** Your Bots run on a persistent cloud computer with a browser, filesystem, and terminal. They use [plugins](https://cursor.com/docs/grok-bot/work.md#connect-plugins) where available and computer use for everything else, and work continues while your laptop is closed.",
+    "- **Setup is a message, not a workflow builder.** Create a Bot, describe the job, and grant access as it asks. The same Bot is reachable from the desktop app and iOS."
+   ],
+   "http_status": 200,
+   "id": "E-grok-bot-00235",
+   "locator": {
+    "heading": "What makes Grok Bot different",
+    "raw_line_end": 16,
+    "raw_line_start": 16
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "- **Bots coordinate with each other.** Your Bots can run in parallel, message each other, share context in [group chats](https://cursor.com/docs/grok-bot/work.md#group-chats), and pass ownership of a task, so you aren't the router between tools.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "2f80c6a162b8498901990a14e03d8aefa24639f4c627aa943d706fa08cc3b8d6",
+   "surface": "grok-bot",
+   "tier": "E1",
+   "url": "https://cursor.com/docs/grok-bot.md",
+   "url_effective": "https://cursor.com/docs/grok-bot.md",
+   "version_source": null
+  },
+  {
+   "bytes": 5472,
+   "context_after": [
+    "",
+    "## A good first handoff"
+   ],
+   "context_before": [
+    "## Your Bots share one computer",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-grok-bot-00238",
+   "locator": {
+    "heading": "Your Bots share one computer",
+    "raw_line_end": 22,
+    "raw_line_start": 22
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "All of your Bots use the same cloud computer, sharing its files, browser sessions, and app logins, which makes handoffs work without repeating setup. The computer belongs to your account, not to an individual Bot, so treat anything placed on it as available to every Bot you run; between users,",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "2f80c6a162b8498901990a14e03d8aefa24639f4c627aa943d706fa08cc3b8d6",
+   "surface": "grok-bot",
+   "tier": "E1",
+   "url": "https://cursor.com/docs/grok-bot.md",
+   "url_effective": "https://cursor.com/docs/grok-bot.md",
+   "version_source": null
+  },
+  {
+   "bytes": 5472,
+   "context_after": [
+    "",
+    "### What does a Bot remember?"
+   ],
+   "context_before": [
+    "Yes. Bots can reason, use plugins, work with files, and coordinate in",
+    "parallel. Each Bot gets its own screen on the shared computer, and one"
+   ],
+   "http_status": 200,
+   "id": "E-grok-bot-00242",
+   "locator": {
+    "heading": "Can several Bots work at the same time?",
+    "raw_line_end": 46,
+    "raw_line_start": 46
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "Bot runs one computer-use task on its screen at a time.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "2f80c6a162b8498901990a14e03d8aefa24639f4c627aa943d706fa08cc3b8d6",
+   "surface": "grok-bot",
+   "tier": "E1",
+   "url": "https://cursor.com/docs/grok-bot.md",
+   "url_effective": "https://cursor.com/docs/grok-bot.md",
+   "version_source": null
+  },
+  {
+   "bytes": 5472,
+   "context_after": [
+    "",
+    "### How much does Grok Bot cost?"
+   ],
+   "context_before": [
+    "The desktop app runs on macOS (Apple silicon and Intel), Windows (x64",
+    "and Arm64), and Linux (x64 and Arm64), and the mobile app runs on iPhone."
+   ],
+   "http_status": 200,
+   "id": "E-grok-bot-00247",
+   "locator": {
+    "heading": "Which platforms are supported?",
+    "raw_line_end": 67,
+    "raw_line_start": 67
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "The computers Bots work on run in Cursor's cloud.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "2f80c6a162b8498901990a14e03d8aefa24639f4c627aa943d706fa08cc3b8d6",
+   "surface": "grok-bot",
+   "tier": "E1",
+   "url": "https://cursor.com/docs/grok-bot.md",
+   "url_effective": "https://cursor.com/docs/grok-bot.md",
+   "version_source": null
+  },
+  {
+   "bytes": 12124,
+   "context_after": [
+    "",
+    "**Grok Bot Computers is Enterprise only**, and it appears only for"
+   ],
+   "context_before": [
+    "# Manage Grok Bot computers",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-grok-bot-00251",
+   "locator": {
+    "heading": "Manage Grok Bot computers",
+    "raw_line_end": 3,
+    "raw_line_start": 3
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "Each member of your team gets one hosted computer where every Bot they run does its work. **Grok Bot Computers** on the [Grok Bot page of the Cursor dashboard](https://cursor.com/dashboard/bot) gives organization admins two ways to manage those computers: run a recreate or terminate across many",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "f49525240552d6632e699d33d926d941e7dd939b060c42c20a2b14b8d1754b85",
+   "surface": "grok-bot",
+   "tier": "E1",
+   "url": "https://cursor.com/docs/grok-bot/computers.md",
+   "url_effective": "https://cursor.com/docs/grok-bot/computers.md",
+   "version_source": null
+  },
+  {
+   "bytes": 12124,
+   "context_after": [
+    "- **Retry Start never duplicates work.** Use it when the dashboard can't confirm the operation started.",
+    ""
+   ],
+   "context_before": [
+    "- **It runs on Cursor's side.** Closing the dialog or the browser doesn't stop it. Reopen **Manage** in the same browser to pick the progress back up.",
+    "- **Large operations take a while.** Members are processed in batches, and each recreate waits for the replacement computer to be ready before it counts as complete."
+   ],
+   "http_status": 200,
+   "id": "E-grok-bot-00260",
+   "locator": {
+    "heading": "How an operation runs",
+    "raw_line_end": 53,
+    "raw_line_start": 53
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "- **One operation per team at a time.** The action buttons stay disabled until you select **Done** on the finished results.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "f49525240552d6632e699d33d926d941e7dd939b060c42c20a2b14b8d1754b85",
+   "surface": "grok-bot",
+   "tier": "E1",
+   "url": "https://cursor.com/docs/grok-bot/computers.md",
+   "url_effective": "https://cursor.com/docs/grok-bot/computers.md",
+   "version_source": null
+  },
+  {
+   "bytes": 12124,
+   "context_after": [
+    "",
+    "## Terminate inactive computers automatically"
+   ],
+   "context_before": [
+    "To roll out across many teams from a script, start the same operations with the [Organization API](https://cursor.com/docs/account/organizations/organization-admin-api.md#grok-bot-computers). You send a team, a list of members, and an action, then poll the operation for counts and a result for each ",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-grok-bot-00262",
+   "locator": {
+    "heading": "Run operations through the API",
+    "raw_line_end": 72,
+    "raw_line_start": 72
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "The API and the dashboard share the limit of one operation per team. An operation started from either place blocks the other until it finishes.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "f49525240552d6632e699d33d926d941e7dd939b060c42c20a2b14b8d1754b85",
+   "surface": "grok-bot",
+   "tier": "E1",
+   "url": "https://cursor.com/docs/grok-bot/computers.md",
+   "url_effective": "https://cursor.com/docs/grok-bot/computers.md",
+   "version_source": null
+  },
+  {
+   "bytes": 18226,
+   "context_after": [
+    "",
+    "## FAQ"
+   ],
+   "context_before": [
+    "- Regular internet traffic still egresses through Cursor's shared static IP ranges unless you route it through your own network. Dedicated per-customer egress IPs are not available.",
+    "- There's no fleet view of script results today. Verify a pilot computer before rolling out team-wide."
+   ],
+   "http_status": 200,
+   "id": "E-grok-bot-00346",
+   "locator": {
+    "heading": "Limitations",
+    "raw_line_end": 177,
+    "raw_line_start": 177
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "recipes for a different product surface; Grok Bot computers are configured through Team Setup as described here. If Grok Bot delegates work to Cloud Agents, those agents run under Cloud Agent network settings, not your computer's network client.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "348c31c3e6ef05316e60bcf183730d76d419e8b9b27b43ca2bcacab62c1618c8",
+   "surface": "grok-bot",
+   "tier": "E1",
+   "url": "https://cursor.com/docs/grok-bot/private-networks.md",
+   "url_effective": "https://cursor.com/docs/grok-bot/private-networks.md",
+   "version_source": null
+  },
+  {
+   "bytes": 16823,
+   "context_after": [
+    "",
+    "## Prompt injection"
+   ],
+   "context_before": [
+    "## Hosting",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-grok-bot-00414",
+   "locator": {
+    "heading": "Hosting",
+    "raw_line_end": 115,
+    "raw_line_start": 115
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "Grok Bot runs only on Cursor-hosted cloud computers. On-premises deployment, deployment inside your own perimeter, and bring-your-own-image deployment are not supported today. Hosted computers use shared static egress by default. Members can route traffic through their desktop, and Enterprise teams",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "efa8d4c185f6cf6b5953ff7c29f06f2cc67d970dfd94c657dc41c8911342f60b",
+   "surface": "grok-bot",
+   "tier": "E1",
+   "url": "https://cursor.com/docs/grok-bot/security.md",
+   "url_effective": "https://cursor.com/docs/grok-bot/security.md",
+   "version_source": null
+  },
+  {
+   "bytes": 30896,
+   "context_after": [
+    "",
+    "## Availability"
+   ],
+   "context_before": [
+    "# Grok Bot for Teams and Enterprise",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-grok-bot-00433",
+   "locator": {
+    "heading": "Grok Bot for Teams and Enterprise",
+    "raw_line_end": 3,
+    "raw_line_start": 3
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "Grok Bot gives each person on your team standing Bots for everyday work: research, operations, documents, browsing, and automations. This page is for team and organization admins rolling Grok Bot out. Security reviewers should start with [Grok Bot",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "561d5143769e06c39c19a09c6796e4e6776cd5947b48e12d2c4b662855c0fccd",
+   "surface": "grok-bot",
+   "tier": "E1",
+   "url": "https://cursor.com/docs/grok-bot/teams.md",
+   "url_effective": "https://cursor.com/docs/grok-bot/teams.md",
+   "version_source": null
+  },
+  {
+   "bytes": 18447,
+   "context_after": [
+    "",
+    "### Edit a Bot"
+   ],
+   "context_before": [
+    "3. Send a real first task with a clear finish line; see [use cases](https://cursor.com/docs/grok-bot/use-cases.md) for starter prompts.",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-grok-bot-00466",
+   "locator": {
+    "heading": "Create a Bot",
+    "raw_line_end": 20,
+    "raw_line_start": 20
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "Your existing Bots can also suggest or create a focused Bot when a job should have a long-lived owner.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "b5e8bcd38244d78120d078d550ec2b276933d3993d1d54564e35bdf36c025d70",
+   "surface": "grok-bot",
+   "tier": "E1",
+   "url": "https://cursor.com/docs/grok-bot/work.md",
+   "url_effective": "https://cursor.com/docs/grok-bot/work.md",
+   "version_source": null
+  },
+  {
+   "bytes": 18447,
+   "context_after": [
+    "",
+    "Every Bot on your account uses the same computer: browser sessions, files, and command-line credentials are shared, and one Bot can continue from work another Bot saved. Each Bot gets its own screen, so several Bots can use browser and desktop tools in parallel (one computer-use task per screen at a"
+   ],
+   "context_before": [
+    "## The computer and apps",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-grok-bot-00476",
+   "locator": {
+    "heading": "The computer and apps",
+    "raw_line_end": 102,
+    "raw_line_start": 102
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "Your Bots work from a persistent cloud computer with a browser, command line, and filesystem. Work continues while your laptop is closed, and files, sign-ins, and browser sessions persist between tasks.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "b5e8bcd38244d78120d078d550ec2b276933d3993d1d54564e35bdf36c025d70",
+   "surface": "grok-bot",
+   "tier": "E1",
+   "url": "https://cursor.com/docs/grok-bot/work.md",
+   "url_effective": "https://cursor.com/docs/grok-bot/work.md",
+   "version_source": null
+  },
+  {
+   "bytes": 18447,
+   "context_after": [
+    "",
+    "### Watch the computer"
+   ],
+   "context_before": [
+    "Your Bots work from a persistent cloud computer with a browser, command line, and filesystem. Work continues while your laptop is closed, and files, sign-ins, and browser sessions persist between tasks.",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-grok-bot-00478",
+   "locator": {
+    "heading": "The computer and apps",
+    "raw_line_end": 104,
+    "raw_line_start": 104
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "files, and command-line credentials are shared, and one Bot can continue from work another Bot saved. Each Bot gets its own screen, so several Bots can use browser and desktop tools in parallel (one computer-use task per screen at a time), but the screens are work surfaces, not security",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "b5e8bcd38244d78120d078d550ec2b276933d3993d1d54564e35bdf36c025d70",
+   "surface": "grok-bot",
+   "tier": "E1",
+   "url": "https://cursor.com/docs/grok-bot/work.md",
+   "url_effective": "https://cursor.com/docs/grok-bot/work.md",
+   "version_source": null
+  },
+  {
+   "bytes": 18447,
+   "context_after": [
+    "",
+    "### Watch the computer"
+   ],
+   "context_before": [
+    "Your Bots work from a persistent cloud computer with a browser, command line, and filesystem. Work continues while your laptop is closed, and files, sign-ins, and browser sessions persist between tasks.",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-grok-bot-00479",
+   "locator": {
+    "heading": "The computer and apps",
+    "raw_line_end": 104,
+    "raw_line_start": 104
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "from work another Bot saved. Each Bot gets its own screen, so several Bots can use browser and desktop tools in parallel (one computer-use task per screen at a time), but the screens are work surfaces, not security boundaries. Don't place a credential on the computer if another of your Bots",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "b5e8bcd38244d78120d078d550ec2b276933d3993d1d54564e35bdf36c025d70",
+   "surface": "grok-bot",
+   "tier": "E1",
+   "url": "https://cursor.com/docs/grok-bot/work.md",
+   "url_effective": "https://cursor.com/docs/grok-bot/work.md",
+   "version_source": null
+  },
+  {
+   "bytes": 18447,
+   "context_after": [
+    "",
+    "## Skills and routines"
+   ],
+   "context_before": [
+    "### Your local computer is separate",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-grok-bot-00493",
+   "locator": {
+    "heading": "Your local computer is separate",
+    "raw_line_end": 142,
+    "raw_line_start": 142
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "machine in front of you. A Bot runs commands on your local computer only under the local execution policy: per-command approval by default, settable to always allow, ask every time, or never. That policy is its own control, separate from the approvals that govern work on the cloud computer. See",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "b5e8bcd38244d78120d078d550ec2b276933d3993d1d54564e35bdf36c025d70",
+   "surface": "grok-bot",
+   "tier": "E1",
+   "url": "https://cursor.com/docs/grok-bot/work.md",
+   "url_effective": "https://cursor.com/docs/grok-bot/work.md",
+   "version_source": null
+  },
+  {
+   "bytes": 10224,
+   "context_after": [
+    "- An **Update** can also take a few minutes when it is downloading a large image or transferring data. If it says **Update still running**, keep waiting.",
+    "- Choose **Recover** only if the update appears stuck and the app offers **Recover computer**. If recovery is not available, keep waiting."
+   ],
+   "context_before": [
+    "## How long should I wait?",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-grok-bot-00502",
+   "locator": {
+    "heading": "How long should I wait?",
+    "raw_line_end": 29,
+    "raw_line_start": 29
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "- **Reconnecting** and **Recover** usually take a few minutes. You can choose **Continue in Background**.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "6ef034d7b9c3b5984f70104757b17d67dccb77c87565b07c1eb947e25807c320",
+   "surface": "grok-bot",
+   "tier": "E1",
+   "url": "https://cursor.com/help/grok-bot/computer-recovery.md",
+   "url_effective": "https://cursor.com/help/grok-bot/computer-recovery.md",
+   "version_source": null
+  },
+  {
+   "bytes": 11366,
+   "context_after": [
+    "",
+    "## Can I pick the model?"
+   ],
+   "context_before": [
+    "## Why did an approval expire before I saw it?",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-grok-bot-00560",
+   "locator": {
+    "heading": "Why did an approval expire before I saw it?",
+    "raw_line_end": 101,
+    "raw_line_start": 101
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "Approvals from work that started without you, like a routine or a message from another Bot, expire after about 10 minutes. Approvals in a chat you are in wait for you. Turn on the Bot's **Notifications**, or choose **Always allow** for actions you trust. See [Why did an approval",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "2c1714d6249c345af6dd2042974c093876b6679b9339ead349d695f603421832",
+   "surface": "grok-bot",
+   "tier": "E1",
+   "url": "https://cursor.com/help/grok-bot/faqs.md",
+   "url_effective": "https://cursor.com/help/grok-bot/faqs.md",
+   "version_source": null
+  },
+  {
+   "bytes": 11366,
+   "context_after": [
+    "",
+    "## Which devices work?"
+   ],
+   "context_before": [
+    "## Can I pick the model?",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-grok-bot-00562",
+   "locator": {
+    "heading": "Can I pick the model?",
+    "raw_line_end": 105,
+    "raw_line_start": 105
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "No. Cursor picks the model for the specific task under the hood. There is no model picker in Grok Bot. See [Grok Bot settings](https://cursor.com/docs/grok-bot/settings.md).",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "2c1714d6249c345af6dd2042974c093876b6679b9339ead349d695f603421832",
+   "surface": "grok-bot",
+   "tier": "E1",
+   "url": "https://cursor.com/help/grok-bot/faqs.md",
+   "url_effective": "https://cursor.com/help/grok-bot/faqs.md",
+   "version_source": null
+  },
+  {
+   "bytes": 19624,
+   "context_after": [
+    "",
+    "On desktop, open the helper Bot's chat, click its name at the top, and choose **Bot settings**. Turn off **Notifications**. The note there is **Get notified when this Bot finishes or needs input**."
+   ],
+   "context_before": [
+    "## How do I turn off notifications for helper Bots?",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-grok-bot-00597",
+   "locator": {
+    "heading": "How do I turn off notifications for helper Bots?",
+    "raw_line_end": 193,
+    "raw_line_start": 193
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "A helper Bot is a Bot that one of your Bots created to help with its work. It shows up in your sidebar and notifies you like any other Bot.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "2b3f827b9c4da23b30e3c9fad4e3342668846eee6a8f772114176dc1e8f02d3c",
+   "surface": "grok-bot",
+   "tier": "E1",
+   "url": "https://cursor.com/help/grok-bot/how-to.md",
+   "url_effective": "https://cursor.com/help/grok-bot/how-to.md",
+   "version_source": null
+  },
+  {
+   "bytes": 17520,
+   "context_after": [
+    "",
+    "| Situation                                               | What to do                                                                                                                              | Grok Bot usage                     |"
+   ],
+   "context_before": [
+    "## How do I get access to Grok Bot?",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-grok-bot-00612",
+   "locator": {
+    "heading": "How do I get access to Grok Bot?",
+    "raw_line_end": 7,
+    "raw_line_start": 7
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "Grok Bot access is included on every paid individual Cursor plan and on Cursor Teams. You can also grant usage to your Cursor account by linking an individual SuperGrok, SuperGrok Plus, SuperGrok Heavy, or X Premium+ subscription.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "3224175b1935058274af0f5053477f7e6717ea12d48f2d083d08151ef8577dc0",
+   "surface": "grok-bot",
+   "tier": "E1",
+   "url": "https://cursor.com/help/grok-bot/plans.md",
+   "url_effective": "https://cursor.com/help/grok-bot/plans.md",
+   "version_source": null
+  },
+  {
+   "bytes": 3592,
+   "context_after": [
+    "",
+    "## How do I sign in to Grok Bot on desktop?"
+   ],
+   "context_before": [
+    "# Sign in to Grok Bot",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-grok-bot-00646",
+   "locator": {
+    "heading": "Sign in to Grok Bot",
+    "raw_line_end": 3,
+    "raw_line_start": 3
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "Grok Bot uses your Cursor account. There is no separate Grok Bot login.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "6b0c1860ee2dab180bae80406a9dea81d75f51a977b2c277a0afaf2e6997d10b",
+   "surface": "grok-bot",
+   "tier": "E1",
+   "url": "https://cursor.com/help/grok-bot/sign-in.md",
+   "url_effective": "https://cursor.com/help/grok-bot/sign-in.md",
+   "version_source": null
+  },
+  {
+   "bytes": 9699,
+   "context_after": [
+    "",
+    "## What do I need before linking SuperGrok?"
+   ],
+   "context_before": [
+    "# Link SuperGrok for Grok Bot",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-grok-bot-00649",
+   "locator": {
+    "heading": "Link SuperGrok for Grok Bot",
+    "raw_line_end": 3,
+    "raw_line_start": 3
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "Link your Grok or X account to grant Grok Bot usage on your Cursor account. Individual SuperGrok, SuperGrok Plus, SuperGrok Heavy, and X Premium+ qualify.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "c73d875303487e0963fcd749f862115a1340b4b16003ea06c4b004ae638b8f5d",
+   "surface": "grok-bot",
+   "tier": "E1",
+   "url": "https://cursor.com/help/grok-bot/supergrok.md",
+   "url_effective": "https://cursor.com/help/grok-bot/supergrok.md",
+   "version_source": null
+  },
+  {
+   "bytes": 7844,
+   "context_after": [
+    "registered computers, the choice moves to **Settings → Computer → Computers**,",
+    "where each computer has its own **Execution on this computer** setting."
+   ],
+   "context_before": [
+    "",
+    "In **Settings → General → Bot → Execution on Local Computer**, choose"
+   ],
+   "http_status": 200,
+   "id": "E-grok-bot-00706",
+   "locator": {
+    "heading": "Control access to your local computer",
+    "raw_line_end": 101,
+    "raw_line_start": 101
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "**Ask every time**, **Always allow**, or **Never allow**. Once your account has",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "37a876b1ff2f73367634adc569ca8bf1b9c50f9c2d914358627850ab02a580f9",
+   "surface": "grok-bot",
+   "tier": "E1",
+   "url": "https://docs.x.ai/grok-bot/approvals-security-and-privacy.md",
+   "url_effective": "https://docs.x.ai/grok-bot/approvals-security-and-privacy.md",
+   "version_source": null
+  },
+  {
+   "bytes": 7844,
+   "context_after": [
+    "specific reason to work on your local files. Your team admin can cap this",
+    "setting for the whole team; when the team's policy is stricter than yours, the"
+   ],
+   "context_before": [
+    "where each computer has its own **Execution on this computer** setting.",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-grok-bot-00707",
+   "locator": {
+    "heading": "Control access to your local computer",
+    "raw_line_end": 105,
+    "raw_line_start": 105
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "The default is **Ask every time**. Use **Never allow** unless a Bot has a",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "37a876b1ff2f73367634adc569ca8bf1b9c50f9c2d914358627850ab02a580f9",
+   "surface": "grok-bot",
+   "tier": "E1",
+   "url": "https://docs.x.ai/grok-bot/approvals-security-and-privacy.md",
+   "url_effective": "https://docs.x.ai/grok-bot/approvals-security-and-privacy.md",
+   "version_source": null
+  },
+  {
+   "bytes": 7844,
+   "context_after": [
+    "",
+    "## Understand the shared-computer boundary"
+   ],
+   "context_before": [
+    "**Always allow** and **Never** set **Execution on Local Computer** for every",
+    "Bot, and you can change the setting later in Settings. If your team's admin has"
+   ],
+   "http_status": 200,
+   "id": "E-grok-bot-00710",
+   "locator": {
+    "heading": "Control access to your local computer",
+    "raw_line_end": 116,
+    "raw_line_start": 116
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "set a stricter ceiling, **Always allow** is unavailable.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "37a876b1ff2f73367634adc569ca8bf1b9c50f9c2d914358627850ab02a580f9",
+   "surface": "grok-bot",
+   "tier": "E1",
+   "url": "https://docs.x.ai/grok-bot/approvals-security-and-privacy.md",
+   "url_effective": "https://docs.x.ai/grok-bot/approvals-security-and-privacy.md",
+   "version_source": null
+  },
+  {
+   "bytes": 6708,
+   "context_after": [
+    "3. Open the group, then edit its generated name if needed.",
+    "4. Describe the shared outcome and who owns the next step."
+   ],
+   "context_before": [
+    "",
+    "1. Choose **New** in the sidebar."
+   ],
+   "http_status": 200,
+   "id": "E-grok-bot-00744",
+   "locator": {
+    "heading": "Start a group chat",
+    "raw_line_end": 68,
+    "raw_line_start": 68
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "2. In **New chat**, select two to six Bots.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "13cfa782b8e5fb3915cbcb410db2fe3cb5d25cd5ed7223907aff75979889c292",
+   "surface": "grok-bot",
+   "tier": "E1",
+   "url": "https://docs.x.ai/grok-bot/chat-and-collaboration.md",
+   "url_effective": "https://docs.x.ai/grok-bot/chat-and-collaboration.md",
+   "version_source": null
+  },
+  {
+   "bytes": 4541,
+   "context_after": [
+    "",
+    "## Manage recurring work"
+   ],
+   "context_before": [
+    "* Return control to the Bot",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-grok-bot-00849",
+   "locator": {
+    "heading": "Review the computer",
+    "raw_line_end": 90,
+    "raw_line_start": 90
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "The screen is the same shared computer used by every Bot on your account.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "fedd9fde278767c34fb496368f9c72dcdaab1484abd82dff0eb0610f7f38e740",
+   "surface": "grok-bot",
+   "tier": "E1",
+   "url": "https://docs.x.ai/grok-bot/mobile.md",
+   "url_effective": "https://docs.x.ai/grok-bot/mobile.md",
+   "version_source": null
+  },
+  {
+   "bytes": 5404,
+   "context_after": [
+    "phone doesn't stop a background turn or a routine.",
+    ""
+   ],
+   "context_before": [
+    "### Does Grok Bot keep working when my laptop is closed?",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-grok-bot-00864",
+   "locator": {
+    "heading": "Does Grok Bot keep working when my laptop is closed?",
+    "raw_line_end": 68,
+    "raw_line_start": 68
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "Yes. Work runs on the cloud computer. Closing the app, your laptop, or your",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "776db67333b62277f8d4bb4685dbcf42b8bf79c71e3607fc9affa671e0da518c",
+   "surface": "grok-bot",
+   "tier": "E1",
+   "url": "https://docs.x.ai/grok-bot/overview.md",
+   "url_effective": "https://docs.x.ai/grok-bot/overview.md",
+   "version_source": null
+  },
+  {
+   "bytes": 18186,
+   "context_after": [
+    "  Agents, those agents run under Cloud Agent network settings, not your",
+    "  computer's network client."
+   ],
+   "context_before": [
+    "  [Cloudflare Tunnel](https://cursor.com/docs/cloud-agent/setup#running-cloudflare-tunnel)",
+    "  recipes for a different product surface; Grok Bot computers are configured"
+   ],
+   "http_status": 200,
+   "id": "E-grok-bot-00898",
+   "locator": {
+    "heading": "Limitations",
+    "raw_line_end": 296,
+    "raw_line_start": 296
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "  through Team Setup as described here. If Grok Bot delegates work to Cloud",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "037e8a41fbd1405c02ffd59f58d5413a4bec09b975eb4967a8c424086c0324be",
+   "surface": "grok-bot",
+   "tier": "E1",
+   "url": "https://docs.x.ai/grok-bot/private-networks.md",
+   "url_effective": "https://docs.x.ai/grok-bot/private-networks.md",
+   "version_source": null
+  },
+  {
+   "bytes": 8825,
+   "context_after": [
+    "which is why a gateway that is fine for the editor can still break Grok Bot.",
+    ""
+   ],
+   "context_before": [
+    "Yes. It is the same list as",
+    "[Enterprise network configuration](https://cursor.com/docs/enterprise/network-configuration#ip-allowlisting)."
+   ],
+   "http_status": 200,
+   "id": "E-grok-bot-00915",
+   "locator": {
+    "heading": "Does this list also cover the Cursor editor?",
+    "raw_line_end": 180,
+    "raw_line_start": 180
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "The editor's chat and Tab features work without the `cursorvm.com` patterns,",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "011b86e9a52dc01d6523bca4e719dddf8277b35fd0ebc3a41b5374e4041ee2c5",
+   "surface": "grok-bot",
+   "tier": "E1",
+   "url": "https://docs.x.ai/grok-bot/proxies.md",
+   "url_effective": "https://docs.x.ai/grok-bot/proxies.md",
+   "version_source": null
+  },
+  {
+   "bytes": 17874,
+   "context_after": [
+    "deployment inside your own perimeter, and bring-your-own-image deployment are",
+    "not supported today. Hosted computers use shared static egress by default."
+   ],
+   "context_before": [
+    "## Hosting",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-grok-bot-00966",
+   "locator": {
+    "heading": "Hosting",
+    "raw_line_end": 283,
+    "raw_line_start": 283
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "Grok Bot runs only on Cursor-hosted cloud computers. On-premises deployment,",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "917b179235c240ae2250fcafc8666a59cd0eb7666a251e0d882b13cf9c134494",
+   "surface": "grok-bot",
+   "tier": "E1",
+   "url": "https://docs.x.ai/grok-bot/security.md",
+   "url_effective": "https://docs.x.ai/grok-bot/security.md",
+   "version_source": null
+  }
+ ]
+}

@@ -1,0 +1,520 @@
+{
+ "surface": "grok-build",
+ "cells": [
+  {
+   "id": "grok-build/F04.approval-modes",
+   "surface": "grok-build",
+   "row": "F04.approval-modes",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-grok-build-00021",
+    "E-grok-build-00185",
+    "E-grok-build-00017",
+    "E-grok-build-00047"
+   ],
+   "value": "Ask (default) prompts for anything not already allowed. [ui] permission_mode takes default, ask, auto or always-approve. dontAsk silently denies anything without an explicit allow rule (headless, CI). Plan mode's file-edit gate is independent of the permission mode (ask, auto, or always-approve)."
+  },
+  {
+   "id": "grok-build/F04.bypass-mode",
+   "surface": "grok-build",
+   "row": "F04.bypass-mode",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-grok-build-00004",
+    "E-grok-build-00019",
+    "E-grok-build-00023",
+    "E-grok-build-00132"
+   ],
+   "value": "--always-approve (alias --yolo) auto-approves all tool executions. Always-approve skips permission prompts for tool calls, but deny rules and PreToolUse hooks still apply. disable_bypass_permissions_mode = true under [ui] turns always-approve off across the deployment."
+  },
+  {
+   "id": "grok-build/F04.auto-review",
+   "surface": "grok-build",
+   "row": "F04.auto-review",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-grok-build-00022",
+    "E-grok-build-00048"
+   ],
+   "value": "Auto mode uses a classifier to auto-approve safe tools; dangerous ones may still prompt, and deny rules and hooks still apply. Toggle with /auto or Shift+Tab when the feature is enabled.",
+   "limitation": "Only safe tools are auto-approved; 'dangerous ones may still prompt', and Auto is toggled 'when the feature is enabled'."
+  },
+  {
+   "id": "grok-build/F09.per-agent-model",
+   "surface": "grok-build",
+   "row": "F09.per-agent-model",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-grok-build-00210"
+   ],
+   "value": "[subagents.models] maps each subagent to a model id, giving per-subagent model routing."
+  },
+  {
+   "id": "grok-build/F09.per-agent-effort",
+   "surface": "grok-build",
+   "row": "F09.per-agent-effort",
+   "state": "undocumented",
+   "verification": "verified",
+   "evidence": [],
+   "sweep_report": {
+    "terms": [
+     "(sub-?agents?|custom agents?|agent definitions?|per-agent|each agent).{0,100}(effort|reasoning|thinking)",
+     "(effort|reasoning|thinking).{0,100}(sub-?agents?|per-agent|custom agents?)"
+    ],
+    "corpus_sha256": "c1bb371b703f895b096c30563910aa91cba3802ae8a2089a54a29e9c9ab4df76",
+    "hits": 0,
+    "hits_reviewed": 0,
+    "positive_control_term": "grok",
+    "positive_control_hits": 349
+   }
+  },
+  {
+   "id": "grok-build/F09.nesting-rules",
+   "surface": "grok-build",
+   "row": "F09.nesting-rules",
+   "state": "undocumented",
+   "verification": "verified",
+   "evidence": [],
+   "sweep_report": {
+    "terms": [
+     "\\bnest(ed|ing)?\\b",
+     "recursiv",
+     "sub-?agents?.{0,80}(cannot|can't|may not|not allowed|spawn)",
+     "spawn\\w*.{0,30}(sub-?agents?|agents?)"
+    ],
+    "corpus_sha256": "c1bb371b703f895b096c30563910aa91cba3802ae8a2089a54a29e9c9ab4df76",
+    "hits": 3,
+    "hits_reviewed": 3,
+    "positive_control_term": "grok",
+    "positive_control_hits": 349
+   }
+  },
+  {
+   "id": "grok-build/F14.concurrency-caps",
+   "surface": "grok-build",
+   "row": "F14.concurrency-caps",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-grok-build-00246"
+   ],
+   "value": "At most 50 scheduled tasks can be active at once. Loops expire after 7 days; the interval accepts Ns (minimum 60), Nm, Nh and Nd.",
+   "limitation": "The cap is stated for scheduled tasks only: 'at most 50 scheduled tasks can be active at once'; the quote gives no limit on concurrent agents or sessions."
+  },
+  {
+   "id": "grok-build/F14.parallel-subagents",
+   "surface": "grok-build",
+   "row": "F14.parallel-subagents",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-grok-build-00306",
+    "E-grok-build-00329",
+    "E-grok-build-00044",
+    "E-grok-build-00066"
+   ],
+   "value": "Subagents spawn independent child sessions that handle tasks in parallel. Workflows orchestrate a bounded set of background subagents (fan out, verify, return a result) and are on by default. Subagents can request worktree isolation when the parent delegates parallel work.",
+   "limitation": "GROK_SUBAGENTS ('Enable subagents / the task tool') defaults to 0 (E-grok-build-00066), while Workflows, which use subagents, are 'on by default' (E-grok-build-00329); these quotes do not settle whether subagents are enabled out of the box."
+  },
+  {
+   "id": "grok-build/F14.total-agent-caps",
+   "surface": "grok-build",
+   "row": "F14.total-agent-caps",
+   "state": "undocumented",
+   "verification": "verified",
+   "evidence": [],
+   "sweep_report": {
+    "terms": [
+     "max(imum)?.{0,15}(turns|steps|agents|calls|iterations|subagents)",
+     "(limit|cap)s?.{0,30}(agents|calls|turns|steps|subagents|iterations)",
+     "up to \\d+ (agents|subagents|turns|steps|calls)"
+    ],
+    "corpus_sha256": "c1bb371b703f895b096c30563910aa91cba3802ae8a2089a54a29e9c9ab4df76",
+    "hits": 1,
+    "hits_reviewed": 1,
+    "positive_control_term": "grok",
+    "positive_control_hits": 349
+   }
+  },
+  {
+   "id": "grok-build/F15.background-tasks",
+   "surface": "grok-build",
+   "row": "F15.background-tasks",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-grok-build-00242",
+    "E-grok-build-00052",
+    "E-grok-build-00321",
+    "E-grok-build-00161"
+   ],
+   "value": "Grok runs commands, subagents and monitors in the background while the conversation continues. Ctrl+B sends the running command to the background; /tasks lists background tasks, subagents and scheduled tasks. [toolset.bash] auto_background_on_timeout (default true) backgrounds a command on timeout."
+  },
+  {
+   "id": "grok-build/F17.model-picker",
+   "surface": "grok-build",
+   "row": "F17.model-picker",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-grok-build-00322",
+    "E-grok-build-00138",
+    "E-grok-build-00159"
+   ],
+   "value": "Ctrl+M picks a model when the prompt is not focused. /model <name> (alias /m) switches the active model. [models] hidden_models hides models from the picker while they stay usable via -m."
+  },
+  {
+   "id": "grok-build/F17.model-flag-env",
+   "surface": "grok-build",
+   "row": "F17.model-flag-env",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-grok-build-00094",
+    "E-grok-build-00062",
+    "E-grok-build-00190"
+   ],
+   "value": "-m, --model <MODEL> sets the model ID to use. GROK_DEFAULT_MODEL sets the session default model (same idea as -m / --model). [ui] fork_secondary_model sets the model for the secondary agent when forking."
+  },
+  {
+   "id": "grok-build/F17.auto-routing",
+   "surface": "grok-build",
+   "row": "F17.auto-routing",
+   "state": "undocumented",
+   "verification": "verified",
+   "evidence": [],
+   "sweep_report": {
+    "terms": [
+     "auto\\w*.{0,20}(rout|select|choos|switch|pick).{0,30}model",
+     "model.{0,30}auto(matic)?",
+     "\\brouting\\b",
+     "\\brouter\\b",
+     "fall.?back model"
+    ],
+    "corpus_sha256": "c1bb371b703f895b096c30563910aa91cba3802ae8a2089a54a29e9c9ab4df76",
+    "hits": 1,
+    "hits_reviewed": 1,
+    "positive_control_term": "grok",
+    "positive_control_hits": 349
+   }
+  },
+  {
+   "id": "grok-build/F17.provider-byok",
+   "surface": "grok-build",
+   "row": "F17.provider-byok",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-grok-build-00160",
+    "E-grok-build-00055",
+    "E-grok-build-00012"
+   ],
+   "value": "[model.<id>] defines custom/BYOK models (OpenAI-compatible or Anthropic Messages); env_key is preferred over api_key. Any custom model can be added in ~/.grok/config.toml. Credentials resolve per model: model.api_key > model.env_key > active session token > XAI_API_KEY."
+  },
+  {
+   "id": "grok-build/F17.model-catalog",
+   "surface": "grok-build",
+   "row": "F17.model-catalog",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-grok-build-00074",
+    "E-grok-build-00345",
+    "E-grok-build-00144"
+   ],
+   "value": "grok-4.7 is available directly on the xAI API and in us-east-1, us-west-2 and us-central-1. [models] disabled_models removes models from the catalog and wins over hidden_models."
+  },
+  {
+   "id": "grok-build/F18.effort-values",
+   "surface": "grok-build",
+   "row": "F18.effort-values",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-grok-build-00344",
+    "E-grok-build-00072"
+   ],
+   "value": "Grok 4.7 supports reasoning efforts low, medium, high and xhigh. [models] default_reasoning_effort sets the default reasoning effort for the default model.",
+   "limitation": "Levels are given for Grok 4.7 only; default_reasoning_effort takes an 'effort level if supported', and the cited quotes do not state a default value."
+  },
+  {
+   "id": "grok-build/F18.where-set",
+   "surface": "grok-build",
+   "row": "F18.where-set",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-grok-build-00139",
+    "E-grok-build-00072",
+    "E-grok-build-00076"
+   ],
+   "value": "/effort sets reasoning effort for the current model. [models] default_reasoning_effort sets the default for the default model. Per-model supports_reasoning_effort / reasoning_effort give reasoning controls when the model supports them."
+  },
+  {
+   "id": "grok-build/F18.model-dependence",
+   "surface": "grok-build",
+   "row": "F18.model-dependence",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-grok-build-00076",
+    "E-grok-build-00344"
+   ],
+   "value": "Per-model supports_reasoning_effort / reasoning_effort provide reasoning controls when the model supports them. Grok 4.7 supports reasoning efforts low, medium, high and xhigh.",
+   "limitation": "Controls apply only 'when supported' by the model; the cited quotes list levels for Grok 4.7 only."
+  },
+  {
+   "id": "grok-build/F18.thinking-budget-visibility",
+   "surface": "grok-build",
+   "row": "F18.thinking-budget-visibility",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-grok-build-00155",
+    "E-grok-build-00179",
+    "E-grok-build-00170"
+   ],
+   "value": "GROK_SHOW_THINKING_BLOCKS (default 1) shows thinking/reasoning blocks in the TUI; [ui] show_thinking_blocks (default true) shows them while streaming. [ui] max_thoughts_width (40-500, default 120) sets the thoughts panel column width.",
+   "limitation": "Cited quotes cover only whether thinking/reasoning blocks are shown and the thoughts panel width; none states a token budget."
+  },
+  {
+   "id": "grok-build/F19.named-modes",
+   "surface": "grok-build",
+   "row": "F19.named-modes",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-grok-build-00024",
+    "E-grok-build-00318",
+    "E-grok-build-00185"
+   ],
+   "value": "Shift+Tab cycles Normal, Plan, Auto (when available) and Always-approve. The [ui] permission_mode setting accepts default, ask, auto or always-approve."
+  },
+  {
+   "id": "grok-build/F19.entering-modes",
+   "surface": "grok-build",
+   "row": "F19.entering-modes",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-grok-build-00024",
+    "E-grok-build-00027",
+    "E-grok-build-00132",
+    "E-grok-build-00318"
+   ],
+   "value": "Shift+Tab cycles Normal, Plan, Auto (when available) and Always-approve. /plan [description] enters plan mode (active on the next prompt). /auto toggles auto mode when the feature is enabled. /always-approve or grok --always-approve enters always-approve."
+  },
+  {
+   "id": "grok-build/F19.plan-mode",
+   "surface": "grok-build",
+   "row": "F19.plan-mode",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-grok-build-00029",
+    "E-grok-build-00028",
+    "E-grok-build-00047",
+    "E-grok-build-00111"
+   ],
+   "value": "In plan mode only the session plan file can be edited until you approve, independent of permission mode; the plan review is not skipped under auto or always-approve. The agent can enter plan mode on its own; leave with Shift+Tab when idle or q on the approval screen.",
+   "limitation": "Plan mode gates edit tools, not the shell — bash can still write via redirection. Reads, bash, and MCP still follow permission mode."
+  },
+  {
+   "id": "grok-build/F19.autonomy-mode",
+   "surface": "grok-build",
+   "row": "F19.autonomy-mode",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-grok-build-00022",
+    "E-grok-build-00132",
+    "E-grok-build-00278"
+   ],
+   "value": "Auto uses a classifier to auto-approve safe tools; dangerous ones may still prompt. Always-approve skips permission prompts for tool calls (/always-approve, Shift+Tab or grok --always-approve). Deny rules and hooks still apply; auto and always-approve do not skip plan review."
+  },
+  {
+   "id": "grok-build/F19.read-only-mode",
+   "surface": "grok-build",
+   "row": "F19.read-only-mode",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-grok-build-00067"
+   ],
+   "value": "GROK_WRITE_FILE (default 1) set to 0 disables the write tool, described as for read-only sessions.",
+   "limitation": "Env var disables the `write` tool (\"read-only sessions\"); the quote does not describe a named read-only mode or cover other file-changing tools."
+  },
+  {
+   "id": "grok-build/F19.mode-defaults",
+   "surface": "grok-build",
+   "row": "F19.mode-defaults",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-grok-build-00025",
+    "E-grok-build-00185",
+    "E-grok-build-00279",
+    "E-grok-build-00026"
+   ],
+   "value": "[ui] permission_mode takes default, ask, auto or always-approve as the default tool-permission behavior. Legacy keys approval_mode and yolo = true still work; permission_mode wins when more than one is set. Plan mode stays on until you approve or quit.",
+   "limitation": "Default in user config only (`~/.grok/config.toml` or managed/requirements — not project `.grok/config.toml`)."
+  },
+  {
+   "id": "grok-build/F21.host-platform",
+   "surface": "grok-build",
+   "row": "F21.host-platform",
+   "state": "undocumented",
+   "verification": "verified",
+   "evidence": [],
+   "sweep_report": {
+    "terms": [
+     "node(\\.js)? ?v?\\d",
+     "(runs?|hosted|available|supported|requires?).{0,50}(windows|macos|linux|ubuntu|browser|cloud)",
+     "operating system",
+     "supported platforms?"
+    ],
+    "corpus_sha256": "c1bb371b703f895b096c30563910aa91cba3802ae8a2089a54a29e9c9ab4df76",
+    "hits": 2,
+    "hits_reviewed": 2,
+    "positive_control_term": "grok",
+    "positive_control_hits": 349
+   }
+  },
+  {
+   "id": "grok-build/F21.shared-account-billing",
+   "surface": "grok-build",
+   "row": "F21.shared-account-billing",
+   "state": "undocumented",
+   "verification": "verified",
+   "evidence": [],
+   "sweep_report": {
+    "terms": [
+     "same (account|plan|subscription|login|billing)",
+     "shares? (your )?(account|usage|billing|quota|limits?|subscription)",
+     "sign in with",
+     "usage (limits?|counts?)"
+    ],
+    "corpus_sha256": "c1bb371b703f895b096c30563910aa91cba3802ae8a2089a54a29e9c9ab4df76",
+    "hits": 0,
+    "hits_reviewed": 0,
+    "positive_control_term": "grok",
+    "positive_control_hits": 349
+   }
+  },
+  {
+   "id": "grok-build/F21.shared-execution-infrastructure",
+   "surface": "grok-build",
+   "row": "F21.shared-execution-infrastructure",
+   "state": "undocumented",
+   "verification": "verified",
+   "evidence": [],
+   "sweep_report": {
+    "terms": [
+     "shared (vm|machine|infrastructure|compute|sandbox|environment)",
+     "same (vm|machine|computer|infrastructure|cloud)",
+     "(vm|machine|computer)s? .{0,30}(shared|same)"
+    ],
+    "corpus_sha256": "c1bb371b703f895b096c30563910aa91cba3802ae8a2089a54a29e9c9ab4df76",
+    "hits": 0,
+    "hits_reviewed": 0,
+    "positive_control_term": "grok",
+    "positive_control_hits": 349
+   }
+  },
+  {
+   "id": "grok-build/F21.shared-model-selection",
+   "surface": "grok-build",
+   "row": "F21.shared-model-selection",
+   "state": "undocumented",
+   "verification": "verified",
+   "evidence": [],
+   "sweep_report": {
+    "terms": [
+     "same (model|models)\\b",
+     "(shared|same) model",
+     "model (selection|picker|choice).{0,60}(shared|same|across)",
+     "models? .{0,40}(shared|same) (across|between|with)"
+    ],
+    "corpus_sha256": "c1bb371b703f895b096c30563910aa91cba3802ae8a2089a54a29e9c9ab4df76",
+    "hits": 0,
+    "hits_reviewed": 0,
+    "positive_control_term": "grok",
+    "positive_control_hits": 349
+   }
+  },
+  {
+   "id": "grok-build/F21.shared-agent-runtime",
+   "surface": "grok-build",
+   "row": "F21.shared-agent-runtime",
+   "state": "undocumented",
+   "verification": "verified",
+   "evidence": [],
+   "sweep_report": {
+    "terms": [
+     "same (agent|harness|runtime|engine|code|loop)",
+     "powered by",
+     "built on",
+     "shares? (the )?(same )?(agent|harness|runtime|engine)",
+     "underlying (agent|harness|runtime|engine)",
+     "runs? the same"
+    ],
+    "corpus_sha256": "c1bb371b703f895b096c30563910aa91cba3802ae8a2089a54a29e9c9ab4df76",
+    "hits": 0,
+    "hits_reviewed": 0,
+    "positive_control_term": "grok",
+    "positive_control_hits": 349
+   }
+  },
+  {
+   "id": "grok-build/F21.delegates-to",
+   "surface": "grok-build",
+   "row": "F21.delegates-to",
+   "state": "undocumented",
+   "verification": "verified",
+   "evidence": [],
+   "sweep_report": {
+    "terms": [
+     "delegat",
+     "hand(s|ing)? (off|over)",
+     "hands? work",
+     "sends? (the )?(task|work|request)s? to",
+     "cloud agent",
+     "cloud (task|session)"
+    ],
+    "corpus_sha256": "c1bb371b703f895b096c30563910aa91cba3802ae8a2089a54a29e9c9ab4df76",
+    "hits": 1,
+    "hits_reviewed": 1,
+    "positive_control_term": "grok",
+    "positive_control_hits": 349
+   }
+  },
+  {
+   "id": "grok-build/F21.distinct-harness-features",
+   "surface": "grok-build",
+   "row": "F21.distinct-harness-features",
+   "state": "undocumented",
+   "verification": "verified",
+   "evidence": [],
+   "sweep_report": {
+    "terms": [
+     "only (available|supported|works)",
+     "exclusive",
+     "unique to",
+     "not available (in|on)",
+     "unlike",
+     "compared (to|with)",
+     "differs? from"
+    ],
+    "corpus_sha256": "c1bb371b703f895b096c30563910aa91cba3802ae8a2089a54a29e9c9ab4df76",
+    "hits": 1,
+    "hits_reviewed": 1,
+    "positive_control_term": "grok",
+    "positive_control_hits": 349
+   }
+  }
+ ]
+}

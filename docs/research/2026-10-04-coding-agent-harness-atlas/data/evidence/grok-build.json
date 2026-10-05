@@ -1,0 +1,1452 @@
+{
+ "surface": "grok-build",
+ "evidence": [
+  {
+   "bytes": 3844,
+   "context_after": [
+    "| `--allow <RULE>`, `--deny <RULE>` | Permission rules — see [Permissions](/build/features/permissions) |",
+    "| `--sandbox <PROFILE>` | Sandbox profile — see [Sandbox](/build/features/sandbox) |"
+   ],
+   "context_before": [
+    "| `-m, --model <MODEL>` | Model ID to use |",
+    "| `--effort <LEVEL>` | Reasoning effort |"
+   ],
+   "http_status": 200,
+   "id": "E-grok-build-00004",
+   "locator": {
+    "heading": "Common flags",
+    "raw_line_end": 46,
+    "raw_line_start": 46
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "| `--always-approve` | Auto-approve all tool executions (alias `--yolo`) |",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "d6c944c885ac72a4f4d6036c1796537b795f805bff512c8a31a5f5f10932ee6e",
+   "surface": "grok-build",
+   "tier": "E1",
+   "url": "https://docs.x.ai/build/cli/reference.md",
+   "url_effective": "https://docs.x.ai/build/cli/reference.md",
+   "version_source": null
+  },
+  {
+   "bytes": 12698,
+   "context_after": [
+    "",
+    "### Enterprise OIDC"
+   ],
+   "context_before": [
+    "| API key | `XAI_API_KEY` env var or `model.api_key` in config | No | Scripts, CI/CD, headless automation |",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-grok-build-00012",
+   "locator": {
+    "heading": "Authentication",
+    "raw_line_end": 84,
+    "raw_line_start": 84
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "When multiple credentials are available, Grok resolves them per model: `model.api_key` > `model.env_key` > active session token > `XAI_API_KEY`.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "293a82de2c28c9067056f5f3ad9b47b017cfaf9ce78aa5c927fdcb1799fb9ec7",
+   "surface": "grok-build",
+   "tier": "E1",
+   "url": "https://docs.x.ai/build/enterprise.md",
+   "url_effective": "https://docs.x.ai/build/enterprise.md",
+   "version_source": null
+  },
+  {
+   "bytes": 12698,
+   "context_after": [
+    "| `acceptEdits` | Auto-approve file edits; prompt for shell commands | Semi-automated workflows |",
+    ""
+   ],
+   "context_before": [
+    "| Mode | Behavior | Typical use |",
+    "| --- | --- | --- |"
+   ],
+   "http_status": 200,
+   "id": "E-grok-build-00017",
+   "locator": {
+    "heading": "Permissions",
+    "raw_line_end": 185,
+    "raw_line_start": 185
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "| `dontAsk` | Silently deny anything without an explicit allow rule | Headless, CI |",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "293a82de2c28c9067056f5f3ad9b47b017cfaf9ce78aa5c927fdcb1799fb9ec7",
+   "surface": "grok-build",
+   "tier": "E1",
+   "url": "https://docs.x.ai/build/enterprise.md",
+   "url_effective": "https://docs.x.ai/build/enterprise.md",
+   "version_source": null
+  },
+  {
+   "bytes": 12698,
+   "context_after": [
+    "",
+    "```text"
+   ],
+   "context_before": [
+    "**Locking bypass-permissions mode**",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-grok-build-00019",
+   "locator": {
+    "heading": "Permissions",
+    "raw_line_end": 203,
+    "raw_line_start": 203
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "Set `disable_bypass_permissions_mode = true` under `[ui]` to turn always-approve (bypass-permissions) off across the deployment. This blocks every way to switch it back on: the `--yolo` and `--permission-mode bypassPermissions` flags, the in-session toggles (Ctrl+O, `/always-approve`, and the",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "293a82de2c28c9067056f5f3ad9b47b017cfaf9ce78aa5c927fdcb1799fb9ec7",
+   "surface": "grok-build",
+   "tier": "E1",
+   "url": "https://docs.x.ai/build/enterprise.md",
+   "url_effective": "https://docs.x.ai/build/enterprise.md",
+   "version_source": null
+  },
+  {
+   "bytes": 2190,
+   "context_after": [
+    "| Auto | Classifier auto-approves safe tools; dangerous ones may still prompt (`deny` rules and hooks still apply) | `/auto`, `Shift+Tab` when the feature is on |",
+    "| Always-approve | Auto-approve tool calls (`deny` rules and PreToolUse hooks still apply) | `/always-approve`, `Ctrl+O`, `Shift+Tab`, `grok --always-approve` |"
+   ],
+   "context_before": [
+    "| Mode | Behavior | Enter via |",
+    "| ---- | -------- | --------- |"
+   ],
+   "http_status": 200,
+   "id": "E-grok-build-00021",
+   "locator": {
+    "heading": "Modes",
+    "raw_line_end": 11,
+    "raw_line_start": 11
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "| Ask (default) | Prompt for anything not already allowed | — |",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "c5bad5c416aa9aa1178ba178de33d36a1c45739ad5b727bdf28332eca5eb4791",
+   "surface": "grok-build",
+   "tier": "E1",
+   "url": "https://docs.x.ai/build/features/permissions.md",
+   "url_effective": "https://docs.x.ai/build/features/permissions.md",
+   "version_source": null
+  },
+  {
+   "bytes": 2190,
+   "context_after": [
+    "| Always-approve | Auto-approve tool calls (`deny` rules and PreToolUse hooks still apply) | `/always-approve`, `Ctrl+O`, `Shift+Tab`, `grok --always-approve` |",
+    ""
+   ],
+   "context_before": [
+    "| ---- | -------- | --------- |",
+    "| Ask (default) | Prompt for anything not already allowed | — |"
+   ],
+   "http_status": 200,
+   "id": "E-grok-build-00022",
+   "locator": {
+    "heading": "Modes",
+    "raw_line_end": 12,
+    "raw_line_start": 12
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "| Auto | Classifier auto-approves safe tools; dangerous ones may still prompt (`deny` rules and hooks still apply) | `/auto`, `Shift+Tab` when the feature is on |",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "c5bad5c416aa9aa1178ba178de33d36a1c45739ad5b727bdf28332eca5eb4791",
+   "surface": "grok-build",
+   "tier": "E1",
+   "url": "https://docs.x.ai/build/features/permissions.md",
+   "url_effective": "https://docs.x.ai/build/features/permissions.md",
+   "version_source": null
+  },
+  {
+   "bytes": 2190,
+   "context_after": [
+    "",
+    "`Shift+Tab` cycles Normal → Plan → Auto (when available) → Always-approve. `/auto` only appears when the auto permission-mode feature is enabled. Running `/auto` while always-approve is on (or the reverse) switches modes rather than stacking them. Status shows `auto` when auto is active and plan mod"
+   ],
+   "context_before": [
+    "| Ask (default) | Prompt for anything not already allowed | — |",
+    "| Auto | Classifier auto-approves safe tools; dangerous ones may still prompt (`deny` rules and hooks still apply) | `/auto`, `Shift+Tab` when the feature is on |"
+   ],
+   "http_status": 200,
+   "id": "E-grok-build-00023",
+   "locator": {
+    "heading": "Modes",
+    "raw_line_end": 13,
+    "raw_line_start": 13
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "| Always-approve | Auto-approve tool calls (`deny` rules and PreToolUse hooks still apply) | `/always-approve`, `Ctrl+O`, `Shift+Tab`, `grok --always-approve` |",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "c5bad5c416aa9aa1178ba178de33d36a1c45739ad5b727bdf28332eca5eb4791",
+   "surface": "grok-build",
+   "tier": "E1",
+   "url": "https://docs.x.ai/build/features/permissions.md",
+   "url_effective": "https://docs.x.ai/build/features/permissions.md",
+   "version_source": null
+  },
+  {
+   "bytes": 2190,
+   "context_after": [
+    "",
+    "Default in user config only (`~/.grok/config.toml` or managed/requirements — not project `.grok/config.toml`):"
+   ],
+   "context_before": [
+    "| Always-approve | Auto-approve tool calls (`deny` rules and PreToolUse hooks still apply) | `/always-approve`, `Ctrl+O`, `Shift+Tab`, `grok --always-approve` |",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-grok-build-00024",
+   "locator": {
+    "heading": "Modes",
+    "raw_line_end": 15,
+    "raw_line_start": 15
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "`Shift+Tab` cycles Normal → Plan → Auto (when available) → Always-approve. `/auto` only appears when the auto permission-mode feature is enabled. Running `/auto` while always-approve is on (or the reverse) switches modes rather than stacking them. Status shows `auto` when auto is active and plan",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "c5bad5c416aa9aa1178ba178de33d36a1c45739ad5b727bdf28332eca5eb4791",
+   "surface": "grok-build",
+   "tier": "E1",
+   "url": "https://docs.x.ai/build/features/permissions.md",
+   "url_effective": "https://docs.x.ai/build/features/permissions.md",
+   "version_source": null
+  },
+  {
+   "bytes": 2190,
+   "context_after": [
+    "",
+    "```text"
+   ],
+   "context_before": [
+    "`Shift+Tab` cycles Normal → Plan → Auto (when available) → Always-approve. `/auto` only appears when the auto permission-mode feature is enabled. Running `/auto` while always-approve is on (or the reverse) switches modes rather than stacking them. Status shows `auto` when auto is active and plan mod",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-grok-build-00025",
+   "locator": {
+    "heading": "Modes",
+    "raw_line_end": 17,
+    "raw_line_start": 17
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "Default in user config only (`~/.grok/config.toml` or managed/requirements — not project `.grok/config.toml`):",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "c5bad5c416aa9aa1178ba178de33d36a1c45739ad5b727bdf28332eca5eb4791",
+   "surface": "grok-build",
+   "tier": "E1",
+   "url": "https://docs.x.ai/build/features/permissions.md",
+   "url_effective": "https://docs.x.ai/build/features/permissions.md",
+   "version_source": null
+  },
+  {
+   "bytes": 2190,
+   "context_after": [
+    "",
+    "[Plan mode](/build/features/plan-mode) is independent: edit tools stay limited while planning, and the plan review UI is not skipped under auto or always-approve."
+   ],
+   "context_before": [
+    "```",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-grok-build-00026",
+   "locator": {
+    "heading": "Modes",
+    "raw_line_end": 24,
+    "raw_line_start": 24
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "Legacy keys `approval_mode` and `yolo = true` still work; `permission_mode` wins when more than one is set.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "c5bad5c416aa9aa1178ba178de33d36a1c45739ad5b727bdf28332eca5eb4791",
+   "surface": "grok-build",
+   "tier": "E1",
+   "url": "https://docs.x.ai/build/features/permissions.md",
+   "url_effective": "https://docs.x.ai/build/features/permissions.md",
+   "version_source": null
+  },
+  {
+   "bytes": 2056,
+   "context_after": [
+    "* **`Shift+Tab`** — Cycle modes. From Normal, one press lands on Plan (then Auto when available, then Always-approve).",
+    ""
+   ],
+   "context_before": [
+    "## Enter plan mode",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-grok-build-00027",
+   "locator": {
+    "heading": "Enter plan mode",
+    "raw_line_end": 16,
+    "raw_line_start": 16
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "* **`/plan`** — Enter plan mode (active on your next prompt). `/plan <description>` enters and starts a turn.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "f4a1a7ce7cc358708b4a859ecc6b41da725a4741f989ad3ce5df4f4ba30a2855",
+   "surface": "grok-build",
+   "tier": "E1",
+   "url": "https://docs.x.ai/build/features/plan-mode.md",
+   "url_effective": "https://docs.x.ai/build/features/plan-mode.md",
+   "version_source": null
+  },
+  {
+   "bytes": 2056,
+   "context_after": [
+    "",
+    "## Review and approve"
+   ],
+   "context_before": [
+    "* **`Shift+Tab`** — Cycle modes. From Normal, one press lands on Plan (then Auto when available, then Always-approve).",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-grok-build-00028",
+   "locator": {
+    "heading": "Enter plan mode",
+    "raw_line_end": 19,
+    "raw_line_start": 19
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "The agent can enter plan mode on its own when a task looks ambiguous. That is not a permission prompt. Leave with `Shift+Tab` when idle, or with `q` on the approval screen.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "f4a1a7ce7cc358708b4a859ecc6b41da725a4741f989ad3ce5df4f4ba30a2855",
+   "surface": "grok-build",
+   "tier": "E1",
+   "url": "https://docs.x.ai/build/features/plan-mode.md",
+   "url_effective": "https://docs.x.ai/build/features/plan-mode.md",
+   "version_source": null
+  },
+  {
+   "bytes": 2056,
+   "context_after": [
+    "* [Subagents](/build/features/subagents) are not edit-gated by the parent’s plan mode; they do inherit permission mode (including auto and always-approve).",
+    "* Status shows `plan` while planning and `plan approval` on the review screen. The `auto` or always-approve flag returns when plan mode ends."
+   ],
+   "context_before": [
+    "## Caveats",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-grok-build-00029",
+   "locator": {
+    "heading": "Caveats",
+    "raw_line_end": 37,
+    "raw_line_start": 37
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "* Only the session plan file may be edited until you approve. Other edit tools are rejected, including under auto or always-approve. Reads, bash, and MCP still follow [permission mode](/build/features/permissions). Plan mode gates edit tools, not the shell — bash can still write via redirection.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "f4a1a7ce7cc358708b4a859ecc6b41da725a4741f989ad3ce5df4f4ba30a2855",
+   "surface": "grok-build",
+   "tier": "E1",
+   "url": "https://docs.x.ai/build/features/plan-mode.md",
+   "url_effective": "https://docs.x.ai/build/features/plan-mode.md",
+   "version_source": null
+  },
+  {
+   "bytes": 1687,
+   "context_after": [
+    "",
+    "## Starting one"
+   ],
+   "context_before": [
+    "# Worktrees",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-grok-build-00044",
+   "locator": {
+    "heading": "Worktrees",
+    "raw_line_end": 5,
+    "raw_line_start": 5
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "cannot overwrite each other's files. Worktrees require a git repository, live under `~/.grok/worktrees/<repo>/<name>`, and start from your current HEAD, including uncommitted changes. [Subagents](/build/features/subagents) can also request worktree isolation when the parent delegates parallel work.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "dee6309cf8ad8f8eab98102dc7011adc78974b2216a28767fe50bab8c8d254a8",
+   "surface": "grok-build",
+   "tier": "E1",
+   "url": "https://docs.x.ai/build/features/worktrees.md",
+   "url_effective": "https://docs.x.ai/build/features/worktrees.md",
+   "version_source": null
+  },
+  {
+   "bytes": 6473,
+   "context_after": [
+    "",
+    "### Auto"
+   ],
+   "context_before": [
+    "### Plan",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-grok-build-00047",
+   "locator": {
+    "heading": "Plan",
+    "raw_line_end": 11,
+    "raw_line_start": 11
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "Plan mode is planning first: only the session plan file can be edited until you approve. That file-edit gate is independent of the permission mode (ask, auto, or always-approve). Enter with `/plan [description]` or `Shift+Tab`, and reopen a plan with `/view-plan`. See [Plan",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "606a03913a41a233627a9c80021c3bb2ce8e99e3e38e4f2c165da2719d5c147a",
+   "surface": "grok-build",
+   "tier": "E1",
+   "url": "https://docs.x.ai/build/modes-and-commands.md",
+   "url_effective": "https://docs.x.ai/build/modes-and-commands.md",
+   "version_source": null
+  },
+  {
+   "bytes": 6473,
+   "context_after": [
+    "",
+    "### Always-approve"
+   ],
+   "context_before": [
+    "### Auto",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-grok-build-00048",
+   "locator": {
+    "heading": "Auto",
+    "raw_line_end": 15,
+    "raw_line_start": 15
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "Auto uses a classifier to auto-approve safe tools; dangerous ones may still prompt. Toggle with `/auto` or `Shift+Tab` when the feature is enabled. Full mode table: [Permissions](/build/features/permissions).",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "606a03913a41a233627a9c80021c3bb2ce8e99e3e38e4f2c165da2719d5c147a",
+   "surface": "grok-build",
+   "tier": "E1",
+   "url": "https://docs.x.ai/build/modes-and-commands.md",
+   "url_effective": "https://docs.x.ai/build/modes-and-commands.md",
+   "version_source": null
+  },
+  {
+   "bytes": 6473,
+   "context_after": [
+    "| `/create-workflow [description]` | Author and save a new workflow |",
+    "| `/workflow <name> [args]` | Launch a saved workflow, or `pause` / `resume` / `stop` / `save` a run |"
+   ],
+   "context_before": [
+    "| `/imagine <prompt>` | Generate an image from a text description |",
+    "| `/imagine-video <prompt>` | Generate a video from a text description |"
+   ],
+   "http_status": 200,
+   "id": "E-grok-build-00052",
+   "locator": {
+    "heading": "Core TUI commands",
+    "raw_line_end": 56,
+    "raw_line_start": 56
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "| `/tasks` | List background tasks, subagents, and scheduled tasks |",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "606a03913a41a233627a9c80021c3bb2ce8e99e3e38e4f2c165da2719d5c147a",
+   "surface": "grok-build",
+   "tier": "E1",
+   "url": "https://docs.x.ai/build/modes-and-commands.md",
+   "url_effective": "https://docs.x.ai/build/modes-and-commands.md",
+   "version_source": null
+  },
+  {
+   "bytes": 3733,
+   "context_after": [
+    "",
+    "```text"
+   ],
+   "context_before": [
+    "## Custom models",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-grok-build-00055",
+   "locator": {
+    "heading": "Custom models",
+    "raw_line_end": 51,
+    "raw_line_start": 51
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "Grok supports any custom model. Add it to your user-level config file, `~/.grok/config.toml` (on Windows, `%USERPROFILE%\\.grok\\config.toml`):",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "8c85c95a3cdf7eebad2d3cbbd8e20159d567eb49a7bcb9e0f9479670e105a8cf",
+   "surface": "grok-build",
+   "tier": "E1",
+   "url": "https://docs.x.ai/build/overview.md",
+   "url_effective": "https://docs.x.ai/build/overview.md",
+   "version_source": null
+  },
+  {
+   "bytes": 20292,
+   "context_after": [
+    "| `GROK_WEB_SEARCH_MODEL` | built-in | Model used by the `web_search` tool. |",
+    "| `GROK_MODELS_BASE_URL` | — | Custom inference base URL; model list from `{base}/models`. |"
+   ],
+   "context_before": [
+    "| Variable | Default | Description |",
+    "| --- | --- | --- |"
+   ],
+   "http_status": 200,
+   "id": "E-grok-build-00062",
+   "locator": {
+    "heading": "Models and updates",
+    "raw_line_end": 18,
+    "raw_line_start": 18
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "| `GROK_DEFAULT_MODEL` | catalog / config | Session default model (same idea as `-m` / `--model`). |",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "0248ff1ea5e6879e277b714daed82a3dc7c255bcda4a8c800fc35bcc2750430a",
+   "surface": "grok-build",
+   "tier": "E1",
+   "url": "https://docs.x.ai/build/settings/reference.md",
+   "url_effective": "https://docs.x.ai/build/settings/reference.md",
+   "version_source": null
+  },
+  {
+   "bytes": 20292,
+   "context_after": [
+    "| `GROK_AGENT` | `grok-build` | Built-in agent name, profile, or absolute path to an agent definition. |",
+    "| `GROK_WRITE_FILE` | `1` | Disable the `write` tool with `0` (read-only sessions). |"
+   ],
+   "context_before": [
+    "| `GROK_WEB_FETCH_PROXY` | — | Egress proxy URL for `web_fetch`. |",
+    "| `GROK_MEMORY` | `0` | Enable cross-session memory (`1`/`0`). |"
+   ],
+   "http_status": 200,
+   "id": "E-grok-build-00066",
+   "locator": {
+    "heading": "Tools, sandbox, and features",
+    "raw_line_end": 35,
+    "raw_line_start": 35
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "| `GROK_SUBAGENTS` | `0` | Enable subagents / the task tool (`1`/`0`). |",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "0248ff1ea5e6879e277b714daed82a3dc7c255bcda4a8c800fc35bcc2750430a",
+   "surface": "grok-build",
+   "tier": "E1",
+   "url": "https://docs.x.ai/build/settings/reference.md",
+   "url_effective": "https://docs.x.ai/build/settings/reference.md",
+   "version_source": null
+  },
+  {
+   "bytes": 20292,
+   "context_after": [
+    "| `GROK_TOOL_SEARCH` | `1` | On-demand MCP tool discovery for large toolsets (`1`/`0`). |",
+    "| `GROK_LSP_TOOLS` | `0` | Enable the LSP code-intel tool (`1`/`0`). |"
+   ],
+   "context_before": [
+    "| `GROK_SUBAGENTS` | `0` | Enable subagents / the task tool (`1`/`0`). |",
+    "| `GROK_AGENT` | `grok-build` | Built-in agent name, profile, or absolute path to an agent definition. |"
+   ],
+   "http_status": 200,
+   "id": "E-grok-build-00067",
+   "locator": {
+    "heading": "Tools, sandbox, and features",
+    "raw_line_end": 37,
+    "raw_line_start": 37
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "| `GROK_WRITE_FILE` | `1` | Disable the `write` tool with `0` (read-only sessions). |",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "0248ff1ea5e6879e277b714daed82a3dc7c255bcda4a8c800fc35bcc2750430a",
+   "surface": "grok-build",
+   "tier": "E1",
+   "url": "https://docs.x.ai/build/settings/reference.md",
+   "url_effective": "https://docs.x.ai/build/settings/reference.md",
+   "version_source": null
+  },
+  {
+   "bytes": 20292,
+   "context_after": [
+    "| `session_summary` | model id | Model used for session summaries. |",
+    "| `image_description` | model id | Model used for image description. |"
+   ],
+   "context_before": [
+    "| `default` | model id (for example `\"grok-build\"`) | Model used for new sessions. |",
+    "| `web_search` | model id | Model used by the client `web_search` tool. |"
+   ],
+   "http_status": 200,
+   "id": "E-grok-build-00072",
+   "locator": {
+    "heading": "`[models]`",
+    "raw_line_end": 97,
+    "raw_line_start": 97
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "| `default_reasoning_effort` | effort level if supported | Default reasoning effort for the default model. |",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "0248ff1ea5e6879e277b714daed82a3dc7c255bcda4a8c800fc35bcc2750430a",
+   "surface": "grok-build",
+   "tier": "E1",
+   "url": "https://docs.x.ai/build/settings/reference.md",
+   "url_effective": "https://docs.x.ai/build/settings/reference.md",
+   "version_source": null
+  },
+  {
+   "bytes": 20292,
+   "context_after": [
+    "",
+    "### `[model.<id>]`"
+   ],
+   "context_before": [
+    "| `allowed_models` | glob list | Restrict model picker / default / `-m` selection. |",
+    "| `hidden_models` | id list | Hide from the picker (still usable via `-m`). |"
+   ],
+   "http_status": 200,
+   "id": "E-grok-build-00074",
+   "locator": {
+    "heading": "`[models]`",
+    "raw_line_end": 106,
+    "raw_line_start": 106
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "| `disabled_models` | id list | Remove from the catalog (wins over hidden). |",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "0248ff1ea5e6879e277b714daed82a3dc7c255bcda4a8c800fc35bcc2750430a",
+   "surface": "grok-build",
+   "tier": "E1",
+   "url": "https://docs.x.ai/build/settings/reference.md",
+   "url_effective": "https://docs.x.ai/build/settings/reference.md",
+   "version_source": null
+  },
+  {
+   "bytes": 20292,
+   "context_after": [
+    "| `stream_tool_calls` | `true` / `false` | Per-model tool-call streaming. |",
+    "| `max_retries` / `inference_idle_timeout_secs` | numbers | Reliability. |"
+   ],
+   "context_before": [
+    "| `extra_headers` | map | Per-request headers. |",
+    "| `supports_backend_search` | `true` / `false` | Whether the endpoint supports Grok-hosted server-side search tools. |"
+   ],
+   "http_status": 200,
+   "id": "E-grok-build-00076",
+   "locator": {
+    "heading": "`[model.<id>]`",
+    "raw_line_end": 125,
+    "raw_line_start": 125
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "| `supports_reasoning_effort` / `reasoning_effort` | bool / effort | Reasoning controls when supported. |",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "0248ff1ea5e6879e277b714daed82a3dc7c255bcda4a8c800fc35bcc2750430a",
+   "surface": "grok-build",
+   "tier": "E1",
+   "url": "https://docs.x.ai/build/settings/reference.md",
+   "url_effective": "https://docs.x.ai/build/settings/reference.md",
+   "version_source": null
+  },
+  {
+   "bytes": 3844,
+   "context_after": [
+    "| `--effort <LEVEL>` | Reasoning effort |",
+    "| `--always-approve` | Auto-approve all tool executions (alias `--yolo`) |"
+   ],
+   "context_before": [
+    "| `-w, --worktree [<NAME>]` | Start the session in a new git worktree |",
+    "| `--ref <REF>` | Branch, tag, or commit to base the worktree on |"
+   ],
+   "http_status": 200,
+   "id": "E-grok-build-00094",
+   "locator": {
+    "heading": "Common flags",
+    "raw_line_end": 44,
+    "raw_line_start": 44
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "| `-m, --model <MODEL>` | Model ID to use |",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "d6c944c885ac72a4f4d6036c1796537b795f805bff512c8a31a5f5f10932ee6e",
+   "surface": "grok-build",
+   "tier": "E1",
+   "url": "https://docs.x.ai/build/cli/reference.md",
+   "url_effective": "https://docs.x.ai/build/cli/reference.md",
+   "version_source": null
+  },
+  {
+   "bytes": 2190,
+   "context_after": [
+    "",
+    "Headless modes such as `dontAsk` and locking always-approve off: [Enterprise Deployments](/build/enterprise#permissions)."
+   ],
+   "context_before": [
+    "Legacy keys `approval_mode` and `yolo = true` still work; `permission_mode` wins when more than one is set.",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-grok-build-00111",
+   "locator": {
+    "heading": "Modes",
+    "raw_line_end": 26,
+    "raw_line_start": 26
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "[Plan mode](/build/features/plan-mode) is independent: edit tools stay limited while planning, and the plan review UI is not skipped under auto or always-approve.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "c5bad5c416aa9aa1178ba178de33d36a1c45739ad5b727bdf28332eca5eb4791",
+   "surface": "grok-build",
+   "tier": "E1",
+   "url": "https://docs.x.ai/build/features/permissions.md",
+   "url_effective": "https://docs.x.ai/build/features/permissions.md",
+   "version_source": null
+  },
+  {
+   "bytes": 6473,
+   "context_after": [
+    "",
+    "## Core TUI commands"
+   ],
+   "context_before": [
+    "### Always-approve",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-grok-build-00132",
+   "locator": {
+    "heading": "Always-approve",
+    "raw_line_end": 19,
+    "raw_line_start": 19
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "Always-approve skips permission prompts for tool calls (`deny` rules and hooks still apply). Toggle with `/always-approve` or `Shift+Tab`, or start with `grok --always-approve`. Modes, allow/deny rules, and how they relate to the sandbox are under [Permissions](/build/features/permissions).",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "606a03913a41a233627a9c80021c3bb2ce8e99e3e38e4f2c165da2719d5c147a",
+   "surface": "grok-build",
+   "tier": "E1",
+   "url": "https://docs.x.ai/build/modes-and-commands.md",
+   "url_effective": "https://docs.x.ai/build/modes-and-commands.md",
+   "version_source": null
+  },
+  {
+   "bytes": 6473,
+   "context_after": [
+    "| `/effort` | Set reasoning effort for the current model |",
+    "| `/always-approve` | Toggle always-approve mode |"
+   ],
+   "context_before": [
+    "| `/find` | Search the conversation scrollback |",
+    "| `/transcript` | View the full transcript in your pager (`$PAGER`) |"
+   ],
+   "http_status": 200,
+   "id": "E-grok-build-00138",
+   "locator": {
+    "heading": "Core TUI commands",
+    "raw_line_end": 46,
+    "raw_line_start": 46
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "| `/model <name>` (alias `/m`) | Switch the active model |",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "606a03913a41a233627a9c80021c3bb2ce8e99e3e38e4f2c165da2719d5c147a",
+   "surface": "grok-build",
+   "tier": "E1",
+   "url": "https://docs.x.ai/build/modes-and-commands.md",
+   "url_effective": "https://docs.x.ai/build/modes-and-commands.md",
+   "version_source": null
+  },
+  {
+   "bytes": 6473,
+   "context_after": [
+    "| `/always-approve` | Toggle always-approve mode |",
+    "| `/auto` | Toggle auto mode (classifier; when feature enabled) |"
+   ],
+   "context_before": [
+    "| `/transcript` | View the full transcript in your pager (`$PAGER`) |",
+    "| `/model <name>` (alias `/m`) | Switch the active model |"
+   ],
+   "http_status": 200,
+   "id": "E-grok-build-00139",
+   "locator": {
+    "heading": "Core TUI commands",
+    "raw_line_end": 47,
+    "raw_line_start": 47
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "| `/effort` | Set reasoning effort for the current model |",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "606a03913a41a233627a9c80021c3bb2ce8e99e3e38e4f2c165da2719d5c147a",
+   "surface": "grok-build",
+   "tier": "E1",
+   "url": "https://docs.x.ai/build/modes-and-commands.md",
+   "url_effective": "https://docs.x.ai/build/modes-and-commands.md",
+   "version_source": null
+  },
+  {
+   "bytes": 3733,
+   "context_after": [
+    "",
+    "```bash customLanguage=\"bash\""
+   ],
+   "context_before": [
+    "## Use Grok 4.7 on the API",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-grok-build-00144",
+   "locator": {
+    "heading": "Use Grok 4.7 on the API",
+    "raw_line_end": 75,
+    "raw_line_start": 75
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "[`grok-4.7`](/developers/models/grok-4.7), SpaceXAI's latest model, is available directly on the xAI API. Drop it into your own agent loop, IDE integration, or coding tool.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "8c85c95a3cdf7eebad2d3cbbd8e20159d567eb49a7bcb9e0f9479670e105a8cf",
+   "surface": "grok-build",
+   "tier": "E1",
+   "url": "https://docs.x.ai/build/overview.md",
+   "url_effective": "https://docs.x.ai/build/overview.md",
+   "version_source": null
+  },
+  {
+   "bytes": 20292,
+   "context_after": [
+    "| `GROK_GROUP_TOOL_VERBS` | `1` | Fold consecutive read/search/list tool rows (`1`/`0`). |",
+    "| `GROK_COLLAPSED_EDIT_BLOCKS` | `0` | Collapse edits to one-line `+N/-M` summaries (`1`/`0`). |"
+   ],
+   "context_before": [
+    "| --- | --- | --- |",
+    "| `GROK_THEME` | built-in | Color theme. |"
+   ],
+   "http_status": 200,
+   "id": "E-grok-build-00155",
+   "locator": {
+    "heading": "UI and appearance",
+    "raw_line_end": 46,
+    "raw_line_start": 46
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "| `GROK_SHOW_THINKING_BLOCKS` | `1` | Show thinking/reasoning blocks in the TUI (`1`/`0`). |",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "0248ff1ea5e6879e277b714daed82a3dc7c255bcda4a8c800fc35bcc2750430a",
+   "surface": "grok-build",
+   "tier": "E1",
+   "url": "https://docs.x.ai/build/settings/reference.md",
+   "url_effective": "https://docs.x.ai/build/settings/reference.md",
+   "version_source": null
+  },
+  {
+   "bytes": 20292,
+   "context_after": [
+    "| `disabled_models` | id list | Remove from the catalog (wins over hidden). |",
+    ""
+   ],
+   "context_before": [
+    "| `stream_tool_calls` | `true` / `false` | Global tool-call streaming request shape (some BYOK endpoints need `false`). |",
+    "| `allowed_models` | glob list | Restrict model picker / default / `-m` selection. |"
+   ],
+   "http_status": 200,
+   "id": "E-grok-build-00159",
+   "locator": {
+    "heading": "`[models]`",
+    "raw_line_end": 105,
+    "raw_line_start": 105
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "| `hidden_models` | id list | Hide from the picker (still usable via `-m`). |",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "0248ff1ea5e6879e277b714daed82a3dc7c255bcda4a8c800fc35bcc2750430a",
+   "surface": "grok-build",
+   "tier": "E1",
+   "url": "https://docs.x.ai/build/settings/reference.md",
+   "url_effective": "https://docs.x.ai/build/settings/reference.md",
+   "version_source": null
+  },
+  {
+   "bytes": 20292,
+   "context_after": [
+    "",
+    "| Setting | Values / default | Description |"
+   ],
+   "context_before": [
+    "### `[model.<id>]`",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-grok-build-00160",
+   "locator": {
+    "heading": "`[model.<id>]`",
+    "raw_line_end": 110,
+    "raw_line_start": 110
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "Custom / BYOK models (OpenAI-compatible or Anthropic Messages). Prefer `env_key` over hardcoding `api_key`.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "0248ff1ea5e6879e277b714daed82a3dc7c255bcda4a8c800fc35bcc2750430a",
+   "surface": "grok-build",
+   "tier": "E1",
+   "url": "https://docs.x.ai/build/settings/reference.md",
+   "url_effective": "https://docs.x.ai/build/settings/reference.md",
+   "version_source": null
+  },
+  {
+   "bytes": 20292,
+   "context_after": [
+    "| `proxy_endpoint` | `[toolset.web_fetch]` | URL | Egress proxy for `web_fetch`. |",
+    "| `allowed_domains` | `[toolset.web_fetch]` | string array | Domain allowlist override for `web_fetch`. |"
+   ],
+   "context_before": [
+    "| `output_byte_limit` | `[toolset.bash]` | bytes (default `20000`) | Max captured bash output. |",
+    "| `max_timeout_secs` | `[toolset.bash]` | seconds (default `36000`) | Cap on model-requested foreground timeouts. |"
+   ],
+   "http_status": 200,
+   "id": "E-grok-build-00161",
+   "locator": {
+    "heading": "`[tools]` and `[toolset.*]`",
+    "raw_line_end": 170,
+    "raw_line_start": 170
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "| `auto_background_on_timeout` | `[toolset.bash]` | `true` / `false` (default `true`) | Auto-background the command on timeout. |",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "0248ff1ea5e6879e277b714daed82a3dc7c255bcda4a8c800fc35bcc2750430a",
+   "surface": "grok-build",
+   "tier": "E1",
+   "url": "https://docs.x.ai/build/settings/reference.md",
+   "url_effective": "https://docs.x.ai/build/settings/reference.md",
+   "version_source": null
+  },
+  {
+   "bytes": 20292,
+   "context_after": [
+    "| `combine_queued_prompts` | `[ui]` | `true` / `false` (default `false`) | Merge consecutive plain follow-ups into one turn. |",
+    "| `theme` | `[ui]` | theme name or `auto` / `system` (default Grok Night) | Color theme. `auto` follows OS light/dark. Also `/theme`. |"
+   ],
+   "context_before": [
+    "| `show_timeline` | `[ui]` | `true` / `false` (default `false`) | Per-turn tick rail instead of the scrollbar. |",
+    "| `page_flip_on_send` | `[ui]` | `true` / `false` (default `true`) | Snap the sent prompt to the top of the viewport. |"
+   ],
+   "http_status": 200,
+   "id": "E-grok-build-00170",
+   "locator": {
+    "heading": "`[ui]`, `[ui.status_line]`, `[ui.display_refresh]`, and `[ui.contextual_hints]`",
+    "raw_line_end": 226,
+    "raw_line_start": 226
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "| `max_thoughts_width` | `[ui]` | `40`–`500` (default `120`) | Column width for the thoughts panel. |",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "0248ff1ea5e6879e277b714daed82a3dc7c255bcda4a8c800fc35bcc2750430a",
+   "surface": "grok-build",
+   "tier": "E1",
+   "url": "https://docs.x.ai/build/settings/reference.md",
+   "url_effective": "https://docs.x.ai/build/settings/reference.md",
+   "version_source": null
+  },
+  {
+   "bytes": 20292,
+   "context_after": [
+    "| `group_tool_verbs` | `[ui]` | `true` / `false` (default `true`) | Fold consecutive read/search/list tool rows into one summary. |",
+    "| `collapsed_edit_blocks` | `[ui]` | `true` / `false` (default `false`) | Show edits as one-line `+N/-M` summaries. |"
+   ],
+   "context_before": [
+    "| `keep_text_selection` | `[ui]` | `flash` (default) | `hold` | `word_select` | In-app selection: brief flash, hold, or double-click word / triple-click paragraph select. |",
+    "| `cursor_blink` | `[ui]` | `true` / `false` (unset inherits terminal) | Force blinking (`true`) or steady (`false`) block cursor. |"
+   ],
+   "http_status": 200,
+   "id": "E-grok-build-00179",
+   "locator": {
+    "heading": "`[ui]`, `[ui.status_line]`, `[ui.display_refresh]`, and `[ui.contextual_hints]`",
+    "raw_line_end": 237,
+    "raw_line_start": 237
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "| `show_thinking_blocks` | `[ui]` | `true` / `false` (default `true`) | Show thinking/reasoning blocks while streaming. |",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "0248ff1ea5e6879e277b714daed82a3dc7c255bcda4a8c800fc35bcc2750430a",
+   "surface": "grok-build",
+   "tier": "E1",
+   "url": "https://docs.x.ai/build/settings/reference.md",
+   "url_effective": "https://docs.x.ai/build/settings/reference.md",
+   "version_source": null
+  },
+  {
+   "bytes": 20292,
+   "context_after": [
+    "| `default_selected_permission` | `[ui]` | `always_allow_all_sessions` (default) | `allow_command_always` | `allow_once` | `reject` | Preselected approval row on the first prompt of a session. |",
+    "| `remember_tool_approvals` | `[ui]` | `true` / `false` (default `true`) | Show per-tool \"Always allow …\" options. Restart required. |"
+   ],
+   "context_before": [
+    "| `scroll_lines` | `[ui]` | `1`–`10` (unset uses terminal profile) | Lines per scroll tick for wheel and trackpad. |",
+    "| `invert_scroll` | `[ui]` | `true` / `false` (default `false`) | Reverse vertical scroll direction. |"
+   ],
+   "http_status": 200,
+   "id": "E-grok-build-00185",
+   "locator": {
+    "heading": "`[ui]`, `[ui.status_line]`, `[ui.display_refresh]`, and `[ui.contextual_hints]`",
+    "raw_line_end": 245,
+    "raw_line_start": 245
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "| `permission_mode` | `[ui]` | `default` | `ask` | `auto` | `always-approve` | Default tool-permission behavior. Enterprise locks use `requirements.toml`. |",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "0248ff1ea5e6879e277b714daed82a3dc7c255bcda4a8c800fc35bcc2750430a",
+   "surface": "grok-build",
+   "tier": "E1",
+   "url": "https://docs.x.ai/build/settings/reference.md",
+   "url_effective": "https://docs.x.ai/build/settings/reference.md",
+   "version_source": null
+  },
+  {
+   "bytes": 20292,
+   "context_after": [
+    "| `voice_keybind_enabled` | `[ui]` | `true` / `false` (default `true`) | Enable Ctrl+Space / F8 for voice dictation (`/voice` still works when off). |",
+    "| `voice_capture_mode` | `[ui]` | `hold` (default) | `toggle` | Hold-to-talk or press-to-toggle voice capture. |"
+   ],
+   "context_before": [
+    "| `cancel_subagents_on_turn_cancel` | `[ui]` | `ask` (default when unset) | `always_stop` | `always_continue` | When cancelling a turn with running subagents. |",
+    "| `hunk_tracker_mode` | `[ui]` | `agent_only` (default) | `all_dirty` | `off` | File-change hunk tracking. Restart required. |"
+   ],
+   "http_status": 200,
+   "id": "E-grok-build-00190",
+   "locator": {
+    "heading": "`[ui]`, `[ui.status_line]`, `[ui.display_refresh]`, and `[ui.contextual_hints]`",
+    "raw_line_end": 250,
+    "raw_line_start": 250
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "| `fork_secondary_model` | `[ui]` | model id (default: main default) | Model for the secondary agent when forking. |",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "0248ff1ea5e6879e277b714daed82a3dc7c255bcda4a8c800fc35bcc2750430a",
+   "surface": "grok-build",
+   "tier": "E1",
+   "url": "https://docs.x.ai/build/settings/reference.md",
+   "url_effective": "https://docs.x.ai/build/settings/reference.md",
+   "version_source": null
+  },
+  {
+   "bytes": 20292,
+   "context_after": [
+    "| `enabled` | `[memory]` | `true` / `false` (default off) | Cross-session memory master switch. |",
+    ""
+   ],
+   "context_before": [
+    "| `enabled` | `[subagents]` | `true` / `false` | Subagent / task tool master switch. |",
+    "| `toggle` | `[subagents.toggle]` | map of subagent → bool | Enable or disable individual subagent types. |"
+   ],
+   "http_status": 200,
+   "id": "E-grok-build-00210",
+   "locator": {
+    "heading": "`[features]`, `[subagents]`, and `[memory]`",
+    "raw_line_end": 283,
+    "raw_line_start": 283
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "| `models` | `[subagents.models]` | map of subagent → model id | Per-subagent model routing. |",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "0248ff1ea5e6879e277b714daed82a3dc7c255bcda4a8c800fc35bcc2750430a",
+   "surface": "grok-build",
+   "tier": "E1",
+   "url": "https://docs.x.ai/build/settings/reference.md",
+   "url_effective": "https://docs.x.ai/build/settings/reference.md",
+   "version_source": null
+  },
+  {
+   "bytes": 1803,
+   "context_after": [
+    "",
+    "## Background commands"
+   ],
+   "context_before": [
+    "# Background Tasks",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-grok-build-00242",
+   "locator": {
+    "heading": "Background Tasks",
+    "raw_line_end": 5,
+    "raw_line_start": 5
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "Grok can run commands, subagents, and monitors in the background while the conversation continues. Press `Ctrl+G` to open the tasks pane listing everything currently running, or run `/tasks` for a snapshot in the scrollback; press `Ctrl+B` to demote a running foreground command to the background",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "75c33f70566d9fdc94000428e32970a9ccaf6a3b8db3b137be1f7634aeb8856b",
+   "surface": "grok-build",
+   "tier": "E1",
+   "url": "https://docs.x.ai/build/features/background-tasks.md",
+   "url_effective": "https://docs.x.ai/build/features/background-tasks.md",
+   "version_source": null
+  },
+  {
+   "bytes": 1803,
+   "context_after": [
+    "",
+    "## Monitors"
+   ],
+   "context_before": [
+    "```",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-grok-build-00246",
+   "locator": {
+    "heading": "Scheduled prompts",
+    "raw_line_end": 19,
+    "raw_line_start": 19
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "The interval accepts `Ns` (minimum 60), `Nm`, `Nh`, and `Nd`. The prompt fires immediately, then repeats; each firing is a new agent turn. Loops expire after 7 days, and at most 50 scheduled tasks can be active at once. Cancel from the tasks pane, or ask the agent to.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "75c33f70566d9fdc94000428e32970a9ccaf6a3b8db3b137be1f7634aeb8856b",
+   "surface": "grok-build",
+   "tier": "E1",
+   "url": "https://docs.x.ai/build/features/background-tasks.md",
+   "url_effective": "https://docs.x.ai/build/features/background-tasks.md",
+   "version_source": null
+  },
+  {
+   "bytes": 2056,
+   "context_after": [
+    "",
+    "| Shortcut | Action |"
+   ],
+   "context_before": [
+    "## Review and approve",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-grok-build-00278",
+   "locator": {
+    "heading": "Review and approve",
+    "raw_line_end": 23,
+    "raw_line_start": 23
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "When planning finishes, the TUI opens a plan preview. Auto and always-approve do not skip this review. Use **`/view-plan`** (aliases `/show-plan`, `/plan-view`) to reopen a saved preview.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "f4a1a7ce7cc358708b4a859ecc6b41da725a4741f989ad3ce5df4f4ba30a2855",
+   "surface": "grok-build",
+   "tier": "E1",
+   "url": "https://docs.x.ai/build/features/plan-mode.md",
+   "url_effective": "https://docs.x.ai/build/features/plan-mode.md",
+   "version_source": null
+  },
+  {
+   "bytes": 2056,
+   "context_after": [
+    "",
+    "## Caveats"
+   ],
+   "context_before": [
+    "| `Tab` | Focus between plan preview and prompt |",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-grok-build-00279",
+   "locator": {
+    "heading": "Review and approve",
+    "raw_line_end": 33,
+    "raw_line_start": 33
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "An empty plan still opens this surface. Plan mode stays on until you approve or quit.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "f4a1a7ce7cc358708b4a859ecc6b41da725a4741f989ad3ce5df4f4ba30a2855",
+   "surface": "grok-build",
+   "tier": "E1",
+   "url": "https://docs.x.ai/build/features/plan-mode.md",
+   "url_effective": "https://docs.x.ai/build/features/plan-mode.md",
+   "version_source": null
+  },
+  {
+   "bytes": 3406,
+   "context_after": [
+    "",
+    "## Claude Code compatibility"
+   ],
+   "context_before": [
+    "## Subagents",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-grok-build-00306",
+   "locator": {
+    "heading": "Subagents",
+    "raw_line_end": 68,
+    "raw_line_start": 68
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "Subagents spawn independent child sessions that handle tasks in parallel. Types and personas are under [Subagents](/build/features/subagents).",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "8a43a3409c751c943b4c9aaba199adf9938e8ea00663cd3a134c815e0970d6ac",
+   "surface": "grok-build",
+   "tier": "E1",
+   "url": "https://docs.x.ai/build/features/skills-plugins-marketplaces.md",
+   "url_effective": "https://docs.x.ai/build/features/skills-plugins-marketplaces.md",
+   "version_source": null
+  },
+  {
+   "bytes": 3178,
+   "context_after": [
+    "| `Ctrl+P` or `?` | Command palette |",
+    "| `Ctrl+.` / `Ctrl+X` | Keyboard shortcuts |"
+   ],
+   "context_before": [
+    "| `Esc Esc` | Clear the prompt, or open rewind when it is empty |",
+    "| `Ctrl+C` | Cancel turn |"
+   ],
+   "http_status": 200,
+   "id": "E-grok-build-00318",
+   "locator": {
+    "heading": "Essentials",
+    "raw_line_end": 16,
+    "raw_line_start": 16
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "| `Shift+Tab` | Cycle mode (Normal / Plan / Auto when available / Always-approve) |",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "006abd802f37ceb103dfdda13e3b67b254bc457ab64412b646db8178efbb5fc9",
+   "surface": "grok-build",
+   "tier": "E1",
+   "url": "https://docs.x.ai/build/keyboard-shortcuts.md",
+   "url_effective": "https://docs.x.ai/build/keyboard-shortcuts.md",
+   "version_source": null
+  },
+  {
+   "bytes": 3178,
+   "context_after": [
+    "| `Ctrl+;` or `Ctrl+'` | Toggle prompt queue |",
+    "| `Ctrl+S` | Open sessions |"
+   ],
+   "context_before": [
+    "| ---- | ------ |",
+    "| `Ctrl+T` | Toggle the [todo pane](/build/features/sessions#todos) (agent screen) |"
+   ],
+   "http_status": 200,
+   "id": "E-grok-build-00321",
+   "locator": {
+    "heading": "Panels and session",
+    "raw_line_end": 58,
+    "raw_line_start": 58
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "| `Ctrl+B` | Send the running command to the background |",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "006abd802f37ceb103dfdda13e3b67b254bc457ab64412b646db8178efbb5fc9",
+   "surface": "grok-build",
+   "tier": "E1",
+   "url": "https://docs.x.ai/build/keyboard-shortcuts.md",
+   "url_effective": "https://docs.x.ai/build/keyboard-shortcuts.md",
+   "version_source": null
+  },
+  {
+   "bytes": 3178,
+   "context_after": [
+    "| `Ctrl+\\` | Open the [Agent Dashboard](/build/features/dashboard) |",
+    ""
+   ],
+   "context_before": [
+    "| `Ctrl+O` | Toggle always-approve |",
+    "| `Ctrl+N` | New session (press twice) |"
+   ],
+   "http_status": 200,
+   "id": "E-grok-build-00322",
+   "locator": {
+    "heading": "Panels and session",
+    "raw_line_end": 65,
+    "raw_line_start": 65
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "| `Ctrl+M` | Pick model, when the prompt is not focused |",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "006abd802f37ceb103dfdda13e3b67b254bc457ab64412b646db8178efbb5fc9",
+   "surface": "grok-build",
+   "tier": "E1",
+   "url": "https://docs.x.ai/build/keyboard-shortcuts.md",
+   "url_effective": "https://docs.x.ai/build/keyboard-shortcuts.md",
+   "version_source": null
+  },
+  {
+   "bytes": 6473,
+   "context_after": [
+    "",
+    "Create one with `/create-workflow` and describe what it should do. Grok asks about fan-out, verification, and scope, then authors, smoke-checks, and saves the file as `.grok/workflows/<name>.rhai` in the project, or `~/.grok/workflows/<name>.rhai` for every project."
+   ],
+   "context_before": [
+    "## Workflows",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-grok-build-00329",
+   "locator": {
+    "heading": "Workflows",
+    "raw_line_end": 105,
+    "raw_line_start": 105
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "Workflows orchestrate a bounded set of [subagents](/build/features/subagents) in the background: fan out work, verify, then return a result. They are on by default.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "606a03913a41a233627a9c80021c3bb2ce8e99e3e38e4f2c165da2719d5c147a",
+   "surface": "grok-build",
+   "tier": "E1",
+   "url": "https://docs.x.ai/build/modes-and-commands.md",
+   "url_effective": "https://docs.x.ai/build/modes-and-commands.md",
+   "version_source": null
+  },
+  {
+   "bytes": 936,
+   "context_after": [
+    "- **Reasoning efforts (default):** `high`",
+    ""
+   ],
+   "context_before": [
+    "- **Structured outputs:** Yes",
+    "- **Reasoning:** Yes"
+   ],
+   "http_status": 200,
+   "id": "E-grok-build-00344",
+   "locator": {
+    "heading": "Capabilities",
+    "raw_line_end": 17,
+    "raw_line_start": 17
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "- **Reasoning efforts (supported):** `low`, `medium`, `high`, `xhigh`",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "3ed635f3374714d627a45b4632753004c43b09418529273f8c75075a5ae6c3e4",
+   "surface": "grok-build",
+   "tier": "E1",
+   "url": "https://docs.x.ai/developers/models/grok-4.7.md",
+   "url_effective": "https://docs.x.ai/developers/models/grok-4.7.md",
+   "version_source": null
+  },
+  {
+   "bytes": 936,
+   "context_after": [],
+   "context_before": [
+    "## Regions",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-grok-build-00345",
+   "locator": {
+    "heading": "Regions",
+    "raw_line_end": 39,
+    "raw_line_start": 39
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "Available in: us-east-1, us-west-2, us-central-1",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "3ed635f3374714d627a45b4632753004c43b09418529273f8c75075a5ae6c3e4",
+   "surface": "grok-build",
+   "tier": "E1",
+   "url": "https://docs.x.ai/developers/models/grok-4.7.md",
+   "url_effective": "https://docs.x.ai/developers/models/grok-4.7.md",
+   "version_source": null
+  }
+ ]
+}

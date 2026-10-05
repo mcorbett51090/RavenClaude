@@ -32,6 +32,15 @@ docs/plans/archive/2026-06-04-partner-success-command-center/reference-build/dat
 # rationale as the generated dashboard/index/report HTML excluded below.
 docs/plans/archive/2026-06-04-partner-success-command-center/build-plan.html
 
+# Harness atlas (docs/research/2026-10-04-coding-agent-harness-atlas): generated data and pages.
+# render.py output is byte-deterministic and validate.py checks the data, so prettier would only
+# churn it, and the committed bytes should not depend on the prettier version. The hand-authored
+# _tools/schemas/*.json files are not listed: the pinned prettier still formats them.
+docs/research/2026-10-04-coding-agent-harness-atlas/data/
+docs/research/2026-10-04-coding-agent-harness-atlas/*.html
+docs/research/2026-10-04-coding-agent-harness-atlas/harness/
+docs/research/2026-10-04-coding-agent-harness-atlas/sources/
+
 # Bundled third-party content keeps its upstream formatting.
 plugins/power-platform/skills/record-screen/extension/
 plugins/power-platform/skills/record-screen/scripts/

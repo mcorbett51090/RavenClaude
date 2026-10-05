@@ -1,0 +1,451 @@
+{
+ "surface": "codex-cli",
+ "cells": [
+  {
+   "id": "codex-cli/F04.approval-modes",
+   "surface": "codex-cli",
+   "row": "F04.approval-modes",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-codex-cli-00935",
+    "E-codex-cli-00405",
+    "E-codex-cli-01132",
+    "E-codex-cli-00087"
+   ],
+   "value": "Approval strictness (when Codex pauses) is set separately from sandbox level. approval_policy on-request, where the model decides when to ask, is the default; --ask-for-approval on-request is paired with --sandbox workspace-write for low-friction local work. approval_policy = untrusted is no longer supported."
+  },
+  {
+   "id": "codex-cli/F04.bypass-mode",
+   "surface": "codex-cli",
+   "row": "F04.bypass-mode",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-codex-cli-00128",
+    "E-codex-cli-01469",
+    "E-codex-cli-00024"
+   ],
+   "value": "--dangerously-bypass-approvals-and-sandbox (or --sandbox danger-full-access) lets Codex read files, make edits and run commands with network access without approval prompts. --yolo is another session-level override. requirements.toml can block --ask-for-approval never and --sandbox danger-full-access, including --yolo."
+  },
+  {
+   "id": "codex-cli/F04.auto-review",
+   "surface": "codex-cli",
+   "row": "F04.auto-review",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-codex-cli-00532",
+    "E-codex-cli-00408",
+    "E-codex-cli-01177"
+   ],
+   "value": "approvals_reviewer defaults to user; auto_review hands eligible approval prompts under on-request or granular approval policies to the reviewer subagent. It changes the reviewer, not the sandbox, and does not review actions already allowed inside the sandbox. /approve approves one retry of a recent auto review denial."
+  },
+  {
+   "id": "codex-cli/F09.per-agent-model",
+   "surface": "codex-cli",
+   "row": "F09.per-agent-model",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-codex-cli-00044",
+    "E-codex-cli-00612",
+    "E-codex-cli-00041"
+   ],
+   "value": "Model can be set per agent: a custom agent file may include a model key, agents.default_subagent_model sets the default for spawned agents, and an explicit spawn model takes precedence over that default."
+  },
+  {
+   "id": "codex-cli/F09.per-agent-effort",
+   "surface": "codex-cli",
+   "row": "F09.per-agent-effort",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-codex-cli-00033",
+    "E-codex-cli-00040",
+    "E-codex-cli-00613",
+    "E-codex-cli-00041"
+   ],
+   "value": "Reasoning effort can be set per agent: a custom agent file can set model_reasoning_effort, and agents.default_subagent_reasoning_effort sets the default reasoning effort for spawned agents. An explicit spawn effort takes precedence over that default."
+  },
+  {
+   "id": "codex-cli/F09.nesting-rules",
+   "surface": "codex-cli",
+   "row": "F09.nesting-rules",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-codex-cli-00283",
+    "E-codex-cli-00036",
+    "E-codex-cli-04718"
+   ],
+   "value": "thread/list can filter to spawned descendants of a thread at any depth through ancestorThreadId. agents.enabled defaults to true and false disables multi-agent tools. Nested deep scan workers keep non-interactive approval settings.",
+   "limitation": "This filter is experimental and requires `capabilities.experimentalApi = true`. No cited quote states a depth limit or whether a subagent may itself spawn subagents."
+  },
+  {
+   "id": "codex-cli/F14.concurrency-caps",
+   "surface": "codex-cli",
+   "row": "F14.concurrency-caps",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-codex-cli-00037",
+    "E-codex-cli-00611",
+    "E-codex-cli-00038"
+   ],
+   "value": "agents.max_concurrent_threads_per_session caps concurrently open spawned-agent threads, excluding the primary thread. When unset, Codex chooses the default. agents.max_threads remains a legacy alias in existing configurations."
+  },
+  {
+   "id": "codex-cli/F14.parallel-subagents",
+   "surface": "codex-cli",
+   "row": "F14.parallel-subagents",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-codex-cli-01730",
+    "E-codex-cli-00001",
+    "E-codex-cli-00610",
+    "E-codex-cli-00002"
+   ],
+   "value": "Subagent workflow has Codex run delegated agents in parallel and combine their results. Current Codex releases enable subagent workflows by default; agents.enabled toggles the multi-agent tools (default true). /agent inspects and switches between agent threads while they run."
+  },
+  {
+   "id": "codex-cli/F14.total-agent-caps",
+   "surface": "codex-cli",
+   "row": "F14.total-agent-caps",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-codex-cli-02193",
+    "E-codex-cli-04783",
+    "E-codex-cli-00611",
+    "E-codex-cli-04716"
+   ],
+   "value": "Deep scans have total caps: --max-discovery-runs limits total independent standard-scan runs (default 40), and a deep scan is limited to 40 worker runs. agents.max_concurrent_threads_per_session caps concurrently open spawned-agent threads, excluding the primary thread.",
+   "limitation": "Total caps appear only for Codex Security deep scans (--max-discovery-runs, default 40). For spawned agents the cited quotes show only a concurrency cap, not a total cap."
+  },
+  {
+   "id": "codex-cli/F15.background-tasks",
+   "surface": "codex-cli",
+   "row": "F15.background-tasks",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-codex-cli-01221",
+    "E-codex-cli-00927",
+    "E-codex-cli-00219",
+    "E-codex-cli-02852"
+   ],
+   "value": "Background terminals are listed when unified_exec is in use. background_terminal_max_timeout sets the maximum empty write_stdin poll window (default 5m). The app-server method thread/backgroundTerminals/clean stops all running background terminals for a thread (experimental). Each cloud task has its own workspace and can keep working while your computer is asleep.",
+   "limitation": "Background terminals appear when `unified_exec` is in use; otherwise, the list may be empty."
+  },
+  {
+   "id": "codex-cli/F17.model-picker",
+   "surface": "codex-cli",
+   "row": "F17.model-picker",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-codex-cli-01182",
+    "E-codex-cli-01877",
+    "E-codex-cli-00253",
+    "E-codex-cli-00052"
+   ],
+   "value": "/model chooses the active model (and reasoning effort, when available). The ChatGPT desktop app has a model and reasoning control. Clients call model/list to discover available models before rendering model or personality selectors, and the configured model_provider decides which models appear in the picker."
+  },
+  {
+   "id": "codex-cli/F17.model-flag-env",
+   "surface": "codex-cli",
+   "row": "F17.model-flag-env",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-codex-cli-00394",
+    "E-codex-cli-00919",
+    "E-codex-cli-01654",
+    "E-codex-cli-00301"
+   ],
+   "value": "--model is the dedicated CLI flag for one-off overrides. The config.toml key model sets the primary model. The GitHub action takes model and effort inputs, with empty meaning defaults. App-server turns can override model per turn, and the override becomes the default for later turns on the thread."
+  },
+  {
+   "id": "codex-cli/F17.auto-routing",
+   "surface": "codex-cli",
+   "row": "F17.auto-routing",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-codex-cli-00324",
+    "E-codex-cli-02358"
+   ],
+   "value": "The service can route a request to another model and reports it with a model/rerouted notification carrying threadId, turnId, fromModel, toModel and reason. Codex cloud selects its model automatically."
+  },
+  {
+   "id": "codex-cli/F17.provider-byok",
+   "surface": "codex-cli",
+   "row": "F17.provider-byok",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-codex-cli-00398",
+    "E-codex-cli-00565",
+    "E-codex-cli-01560"
+   ],
+   "value": "Custom model providers define base URL, wire API, authentication and optional HTTP headers, and can't reuse the reserved IDs openai, ollama or lmstudio. model_provider picks a provider id from model_providers (default openai). Codex's model can be set to the gateway's model name, which the gateway routes to the approved upstream model."
+  },
+  {
+   "id": "codex-cli/F17.model-catalog",
+   "surface": "codex-cli",
+   "row": "F17.model-catalog",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-codex-cli-00490",
+    "E-codex-cli-01139",
+    "E-codex-cli-00227",
+    "E-codex-cli-00926"
+   ],
+   "value": "The model setting must be one available to the signed-in account or workspace. codex debug models prints the raw model catalog Codex sees as JSON, and app-server model/list lists available models with effort options (includeHidden true adds hidden entries). model_catalog_json is an optional startup-only override pointing to a custom catalog file."
+  },
+  {
+   "id": "codex-cli/F18.effort-values",
+   "surface": "codex-cli",
+   "row": "F18.effort-values",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-codex-cli-00649",
+    "E-codex-cli-00012",
+    "E-codex-cli-01886",
+    "E-codex-cli-02264"
+   ],
+   "value": "model_reasoning_effort takes a level advertised by the selected model, such as low, medium, high, xhigh, max or ultra; ultra is the deepest level when the model supports it. GPT-6.1 Sol ranges from Light to Ultra, with Max and Ultra depending on settings. The Codex Security CLI --effort flag accepts minimal to max, default xhigh.",
+   "limitation": "Available levels depend on the model and client. The only default quoted is xhigh for the Codex Security CLI --effort flag; no cited quote gives a default for general sessions."
+  },
+  {
+   "id": "codex-cli/F18.where-set",
+   "surface": "codex-cli",
+   "row": "F18.where-set",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-codex-cli-00649",
+    "E-codex-cli-02084",
+    "E-codex-cli-01877",
+    "E-codex-cli-01654"
+   ],
+   "value": "Set via the model_reasoning_effort key in config.toml, the /reasoning command for the current chat, the model and reasoning control in the ChatGPT desktop app, and the effort input of the GitHub action."
+  },
+  {
+   "id": "codex-cli/F18.model-dependence",
+   "surface": "codex-cli",
+   "row": "F18.model-dependence",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-codex-cli-00255",
+    "E-codex-cli-00649",
+    "E-codex-cli-01886"
+   ],
+   "value": "Each model entry in model/list carries supportedReasoningEfforts, and available levels depend on the model and client. GPT-6.1 Sol ranges from Light to Ultra, with Max and Ultra depending on settings."
+  },
+  {
+   "id": "codex-cli/F18.thinking-budget-visibility",
+   "surface": "codex-cli",
+   "row": "F18.thinking-budget-visibility",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-codex-cli-00172",
+    "E-codex-cli-00448",
+    "E-codex-cli-00651",
+    "E-codex-cli-00328"
+   ],
+   "value": "Higher reasoning effort increases response time and token usage. Noisy reasoning output (for example in CI logs) can be suppressed, reasoning summary detail can be selected or disabled entirely, and raw reasoning text streams when the model supports it.",
+   "limitation": "item/reasoning/textDelta streams raw reasoning text '(when supported by the model)'."
+  },
+  {
+   "id": "codex-cli/F19.named-modes",
+   "surface": "codex-cli",
+   "row": "F19.named-modes",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-codex-cli-00460",
+    "E-codex-cli-01911",
+    "E-codex-cli-02073",
+    "E-codex-cli-04064"
+   ],
+   "value": "Built-in permission profiles include :read-only and :workspace. Approve for me keeps the same workspace boundary as Ask for approval. /goal sets a persistent goal (use /plan first to shape it), and in the desktop app it starts Goal mode."
+  },
+  {
+   "id": "codex-cli/F19.entering-modes",
+   "surface": "codex-cli",
+   "row": "F19.entering-modes",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-codex-cli-01193",
+    "E-codex-cli-01913",
+    "E-codex-cli-04065",
+    "E-codex-cli-01279"
+   ],
+   "value": "In the CLI, enter /permissions for permission settings. Typing /plan switches the active chat into plan mode, with an optional inline prompt used as the first planning request. In an interactive Codex CLI session, /goal starts Goal mode.",
+   "limitation": "While Codex is already working, `/plan` is temporarily unavailable."
+  },
+  {
+   "id": "codex-cli/F19.plan-mode",
+   "surface": "codex-cli",
+   "row": "F19.plan-mode",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-codex-cli-02082",
+    "E-codex-cli-01193",
+    "E-codex-cli-01647",
+    "E-codex-cli-00650"
+   ],
+   "value": "/plan toggles plan mode for multi-step planning; Codex enters plan mode and uses an optional inline prompt as the first planning request. On the Codex Micro device, Up turns Plan mode on or off. A plan-mode-specific reasoning override applies; when unset, Plan mode uses its built-in preset default.",
+   "limitation": "Cited quotes describe plan mode as toggled ('Toggle plan mode for multi-step planning', 'Turn Plan mode on or off'); none states it is read-only or defines an exit beyond the toggle."
+  },
+  {
+   "id": "codex-cli/F19.autonomy-mode",
+   "surface": "codex-cli",
+   "row": "F19.autonomy-mode",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-codex-cli-00098",
+    "E-codex-cli-01205"
+   ],
+   "value": "The Auto preset (for example --sandbox workspace-write --ask-for-approval on-request) lets Codex read files, make edits and run commands in the working directory automatically. Auto is offered for hands-off runs, alongside Read Only to review edits."
+  },
+  {
+   "id": "codex-cli/F19.read-only-mode",
+   "surface": "codex-cli",
+   "row": "F19.read-only-mode",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-codex-cli-00099",
+    "E-codex-cli-01713",
+    "E-codex-cli-00460",
+    "E-codex-cli-01928"
+   ],
+   "value": "Switching to `read-only` mode with the `/permissions` command lets users chat or plan without making changes. The glossary describes read-only as a 'Mode where Codex can inspect but not modify without approval.' Built-in profiles include `:read-only`, which keeps local command execution read-only."
+  },
+  {
+   "id": "codex-cli/F19.mode-defaults",
+   "surface": "codex-cli",
+   "row": "F19.mode-defaults",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-codex-cli-00121",
+    "E-codex-cli-00122",
+    "E-codex-cli-04124",
+    "E-codex-cli-01206"
+   ],
+   "value": "On launch, Codex detects whether the folder is version-controlled and recommends a mode; for version-controlled folders the recommendation is Auto (workspace write + on-request approvals). Another page says 'For most work, start with Ask for approval'. An updated approval mode applies until you change it again.",
+   "limitation": "Two pages name different starting modes: 'Version-controlled folders: Auto (workspace write + on-request approvals)' (E-codex-cli-00122, listed under what Codex 'recommends', E-codex-cli-00121) vs 'For most work, start with Ask for approval' (E-codex-cli-04124)."
+  },
+  {
+   "id": "codex-cli/F21.host-platform",
+   "surface": "codex-cli",
+   "row": "F21.host-platform",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-codex-cli-03950",
+    "E-codex-cli-00048"
+   ],
+   "value": "Codex local surfaces are the ChatGPT desktop app, the IDE extension and the CLI, which run on users' computers; this does not include using Codex in the cloud. The desktop app, CLI, IDE extension and SDK read the same local configuration layers (model_provider is set in ~/.codex/config.toml)."
+  },
+  {
+   "id": "codex-cli/F21.shared-account-billing",
+   "surface": "codex-cli",
+   "row": "F21.shared-account-billing",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-codex-cli-02470",
+    "E-codex-cli-02011",
+    "E-codex-cli-02911",
+    "E-codex-cli-01154"
+   ],
+   "value": "ChatGPT Work and Codex share usage. In the CLI, the first run offers Sign in with ChatGPT or another available sign-in method, and codex login authenticates with a ChatGPT account, API key or access token."
+  },
+  {
+   "id": "codex-cli/F21.shared-execution-infrastructure",
+   "surface": "codex-cli",
+   "row": "F21.shared-execution-infrastructure",
+   "state": "undocumented",
+   "verification": "verified",
+   "evidence": [],
+   "sweep_report": {
+    "terms": [
+     "shared (vm|machine|infrastructure|compute|sandbox|environment)",
+     "same (vm|machine|computer|infrastructure|cloud)",
+     "(vm|machine|computer)s? .{0,30}(shared|same)"
+    ],
+    "corpus_sha256": "bf1c1752d6e24c64ed4ba8f9b41f49c0e48c38bfb821de868ec9e6be1efa05fb",
+    "hits": 41,
+    "hits_reviewed": 41,
+    "positive_control_term": "codex",
+    "positive_control_hits": 8713
+   }
+  },
+  {
+   "id": "codex-cli/F21.shared-model-selection",
+   "surface": "codex-cli",
+   "row": "F21.shared-model-selection",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-codex-cli-01901",
+    "E-codex-cli-00048"
+   ],
+   "value": "The ChatGPT desktop app, Codex CLI and IDE extension use the same config.toml for the default local model, and read the same local configuration layers (model_provider is set in ~/.codex/config.toml)."
+  },
+  {
+   "id": "codex-cli/F21.shared-agent-runtime",
+   "surface": "codex-cli",
+   "row": "F21.shared-agent-runtime",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-codex-cli-01243",
+    "E-codex-cli-03648",
+    "E-codex-cli-02104",
+    "E-codex-cli-03364"
+   ],
+   "value": "Codex settings control agent behavior shared with Codex CLI. ChatGPT Work brings the technology behind Codex into ChatGPT. The ChatGPT desktop app and Codex CLI can each include a different Codex version.",
+   "limitation": "'The ChatGPT desktop app and Codex CLI can include different Codex versions' (E-codex-cli-02104); with Work Cloud local access, 'Codex behavior and conversation history remain separate' (E-codex-cli-03364)."
+  },
+  {
+   "id": "codex-cli/F21.delegates-to",
+   "surface": "codex-cli",
+   "row": "F21.delegates-to",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-codex-cli-01138"
+   ],
+   "value": "The codex app command launches the ChatGPT desktop app from the terminal on macOS or Windows.",
+   "limitation": "Quote covers launching the app only: 'Launch the ChatGPT desktop app from the terminal on macOS or Windows.'"
+  },
+  {
+   "id": "codex-cli/F21.distinct-harness-features",
+   "surface": "codex-cli",
+   "row": "F21.distinct-harness-features",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-codex-cli-05062",
+    "E-codex-cli-04691",
+    "E-codex-cli-03675"
+   ],
+   "value": "In the desktop app, Codex shows developer details, including diff and review views, where the compared column hides technical details like Git or shell commands. The Codex Security plugin works in the desktop app or Codex CLI. Admins manage Work Cloud, Work Local and Codex Local through distinct permissions.",
+   "limitation": "Comparison is with ChatGPT only: the other column will 'Hide technical details like Git or shell commands'; no cited quote states that no sibling has these features."
+  }
+ ]
+}

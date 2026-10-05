@@ -1,0 +1,2905 @@
+{
+ "surface": "copilot-vscode",
+ "evidence": [
+  {
+   "bytes": 22687,
+   "context_after": [
+    "| `model`           | The AI model to use when running the prompt. Specify a single model name (string) or a prioritized list of models (array). When you specify an array, the system tries each model in order until an available one is found. If not specified, the currently selected model in model pi",
+    "| `user-invocable`  | Optional boolean flag to control whether the agent appears in the agents dropdown in chat (default is `true`). Set to `false` to create agents that are only accessible as [subagents](/docs/agents/run/subagents.md) or programmatically. See [Customize the agents dropdown list](#c"
+   ],
+   "context_before": [
+    "| `argument-hint`   | Optional hint text shown in the chat input field to guide users on how to interact with the custom agent. |",
+    "| `tools`           | A list of tool or [tool set](/docs/agent-customization/tool-sets.md) names that are available for this custom agent. Can include built-in tools, tool sets, MCP tools, or tools contributed by extensions. To include all tools of an MCP server, use the `<server name>/*` format.<br"
+   ],
+   "http_status": 200,
+   "id": "E-copilot-vscode-00122",
+   "locator": {
+    "heading": "Header (optional)",
+    "raw_line_end": 146,
+    "raw_line_start": 146
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "| A list of agent names that are available as [subagents](/docs/agents/run/subagents.md) in this agent. Use `*` to allow all agents, or an empty array `[]` to prevent any subagent use. If you specify `agents`, ensure the `agent` tool is included in the `tools` property. To create a",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "a714ecde5fe13a36c178be61e4dda3c5587897dca0ef775ba437b1b887d417ae",
+   "surface": "copilot-vscode",
+   "tier": "E1",
+   "url": "https://code.visualstudio.com/docs/agent-customization/custom-agents.md",
+   "url_effective": "https://code.visualstudio.com/docs/agent-customization/custom-agents.md",
+   "version_source": null
+  },
+  {
+   "bytes": 22687,
+   "context_after": [
+    "| `user-invocable`  | Optional boolean flag to control whether the agent appears in the agents dropdown in chat (default is `true`). Set to `false` to create agents that are only accessible as [subagents](/docs/agents/run/subagents.md) or programmatically. See [Customize the agents dropdown list](#c",
+    "| `disable-model-invocation` | Optional boolean flag to prevent the agent from being invoked as a subagent by other agents (default is `false`). |"
+   ],
+   "context_before": [
+    "| `tools`           | A list of tool or [tool set](/docs/agent-customization/tool-sets.md) names that are available for this custom agent. Can include built-in tools, tool sets, MCP tools, or tools contributed by extensions. To include all tools of an MCP server, use the `<server name>/*` format.<br",
+    "| `agents`          | A list of agent names that are available as [subagents](/docs/agents/run/subagents.md) in this agent. Use `*` to allow all agents, or an empty array `[]` to prevent any subagent use. If you specify `agents`, ensure the `agent` tool is included in the `tools` property. To create"
+   ],
+   "http_status": 200,
+   "id": "E-copilot-vscode-00125",
+   "locator": {
+    "heading": "Header (optional)",
+    "raw_line_end": 147,
+    "raw_line_start": 147
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "| `model`           | The AI model to use when running the prompt. Specify a single model name (string) or a prioritized list of models (array). When you specify an array, the system tries each model in order until an available one is found. If not specified, the currently selected model in model",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "a714ecde5fe13a36c178be61e4dda3c5587897dca0ef775ba437b1b887d417ae",
+   "surface": "copilot-vscode",
+   "tier": "E1",
+   "url": "https://code.visualstudio.com/docs/agent-customization/custom-agents.md",
+   "url_effective": "https://code.visualstudio.com/docs/agent-customization/custom-agents.md",
+   "version_source": null
+  },
+  {
+   "bytes": 16526,
+   "context_after": [
+    "",
+    "### Create your first Local hook"
+   ],
+   "context_before": [
+    "## Configure hooks for the Local harness",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-copilot-vscode-00148",
+   "locator": {
+    "heading": "Configure hooks for the Local harness",
+    "raw_line_end": 75,
+    "raw_line_start": 75
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "The rest of this article describes the Local hook implementation that runs in the extension host. These events, settings, payloads, and output decisions do not automatically apply to Copilot, Claude, or Codex sessions on Agent Host.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "2c66203c71c4db5d2b2179956a51cc5eb1c40f6a940a0b0b8bb078a6c5328413",
+   "surface": "copilot-vscode",
+   "tier": "E1",
+   "url": "https://code.visualstudio.com/docs/agent-customization/hooks.md",
+   "url_effective": "https://code.visualstudio.com/docs/agent-customization/hooks.md",
+   "version_source": null
+  },
+  {
+   "bytes": 32356,
+   "context_after": [
+    "",
+    "![Screenshot that shows the model picker in the Chat view.](images/language-models/model-dropdown-change-model-v2.png)"
+   ],
+   "context_before": [
+    "## Change the model for chat",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-copilot-vscode-00165",
+   "locator": {
+    "heading": "Change the model for chat",
+    "raw_line_end": 11,
+    "raw_line_start": 11
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "Use the language model picker in the chat input field to change the model for chat conversations and code editing.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "bbd80d62b8755b7c9f4c4a47d154e3b1596c994e2b5210c2343643ac082092ce",
+   "surface": "copilot-vscode",
+   "tier": "E1",
+   "url": "https://code.visualstudio.com/docs/agent-customization/language-models.md",
+   "url_effective": "https://code.visualstudio.com/docs/agent-customization/language-models.md",
+   "version_source": null
+  },
+  {
+   "bytes": 32356,
+   "context_after": [
+    "",
+    "To configure the thinking effort:"
+   ],
+   "context_before": [
+    "",
+    "> [!TIP]"
+   ],
+   "http_status": 200,
+   "id": "E-copilot-vscode-00170",
+   "locator": {
+    "heading": "Configure thinking effort",
+    "raw_line_end": 37,
+    "raw_line_start": 37
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "> Higher thinking effort produces more thinking tokens, which increases [AI credit](/docs/agents/concepts/language-models.md#ai-credits-and-model-costs) consumption. Only increase thinking effort for genuinely complex tasks. Learn more about [optimizing AI credit",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "bbd80d62b8755b7c9f4c4a47d154e3b1596c994e2b5210c2343643ac082092ce",
+   "surface": "copilot-vscode",
+   "tier": "E1",
+   "url": "https://code.visualstudio.com/docs/agent-customization/language-models.md",
+   "url_effective": "https://code.visualstudio.com/docs/agent-customization/language-models.md",
+   "version_source": null
+  },
+  {
+   "bytes": 32356,
+   "context_after": [
+    "",
+    "    > [!NOTE]"
+   ],
+   "context_before": [
+    "1. Open the model picker in the chat input field and select a reasoning model.",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-copilot-vscode-00171",
+   "locator": {
+    "heading": "Configure thinking effort",
+    "raw_line_end": 43,
+    "raw_line_start": 43
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "1. Select the **>** arrow that appears next to the model name to open the **Thinking Effort** submenu.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "bbd80d62b8755b7c9f4c4a47d154e3b1596c994e2b5210c2343643ac082092ce",
+   "surface": "copilot-vscode",
+   "tier": "E1",
+   "url": "https://code.visualstudio.com/docs/agent-customization/language-models.md",
+   "url_effective": "https://code.visualstudio.com/docs/agent-customization/language-models.md",
+   "version_source": null
+  },
+  {
+   "bytes": 32356,
+   "context_after": [
+    "",
+    "1. Select an effort level."
+   ],
+   "context_before": [
+    "",
+    "    > [!NOTE]"
+   ],
+   "http_status": 200,
+   "id": "E-copilot-vscode-00172",
+   "locator": {
+    "heading": "Configure thinking effort",
+    "raw_line_end": 46,
+    "raw_line_start": 46
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "    > Non-reasoning models, such as GPT-4.1 and GPT-4o, do not show the thinking effort submenu.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "bbd80d62b8755b7c9f4c4a47d154e3b1596c994e2b5210c2343643ac082092ce",
+   "surface": "copilot-vscode",
+   "tier": "E1",
+   "url": "https://code.visualstudio.com/docs/agent-customization/language-models.md",
+   "url_effective": "https://code.visualstudio.com/docs/agent-customization/language-models.md",
+   "version_source": null
+  },
+  {
+   "bytes": 32356,
+   "context_after": [
+    "",
+    "## Use auto model selection"
+   ],
+   "context_before": [
+    "",
+    "> [!NOTE]"
+   ],
+   "http_status": 200,
+   "id": "E-copilot-vscode-00174",
+   "locator": {
+    "heading": "Configure thinking effort",
+    "raw_line_end": 55,
+    "raw_line_start": 55
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "> The `setting(github.copilot.chat.anthropic.thinking.effort)` and `setting(github.copilot.chat.responsesApiReasoningEffort)` settings are deprecated. Configure thinking effort directly from the language model picker.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "bbd80d62b8755b7c9f4c4a47d154e3b1596c994e2b5210c2343643ac082092ce",
+   "surface": "copilot-vscode",
+   "tier": "E1",
+   "url": "https://code.visualstudio.com/docs/agent-customization/language-models.md",
+   "url_effective": "https://code.visualstudio.com/docs/agent-customization/language-models.md",
+   "version_source": null
+  },
+  {
+   "bytes": 32356,
+   "context_after": [
+    "",
+    "To use auto model selection, select **Auto** from the model picker in chat. Then use **Optimize for** to choose the tier that matches your priorities:"
+   ],
+   "context_before": [
+    "## Use auto model selection",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-copilot-vscode-00175",
+   "locator": {
+    "heading": "Use auto model selection",
+    "raw_line_end": 59,
+    "raw_line_start": 59
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "With auto model selection, VS Code evaluates task complexity and real-time model availability to route each request to the optimal model. For background on how auto model selection works, see [Auto model selection](/docs/agents/concepts/language-models.md#auto-model-selection).",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "bbd80d62b8755b7c9f4c4a47d154e3b1596c994e2b5210c2343643ac082092ce",
+   "surface": "copilot-vscode",
+   "tier": "E1",
+   "url": "https://code.visualstudio.com/docs/agent-customization/language-models.md",
+   "url_effective": "https://code.visualstudio.com/docs/agent-customization/language-models.md",
+   "version_source": null
+  },
+  {
+   "bytes": 32356,
+   "context_after": [
+    "",
+    "To open the Language Models editor, open the model picker in the Chat view and select **Manage Language Models** (gear icon) or run the **Chat: Manage Language Models** command from the Command Palette. The Language Models editor opens by default in a [modal overlay](/docs/editing/getting-started/us"
+   ],
+   "context_before": [
+    "## Manage language models",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-copilot-vscode-00178",
+   "locator": {
+    "heading": "Manage language models",
+    "raw_line_end": 75,
+    "raw_line_start": 75
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "You can use the language models editor to view all available models, choose which models are shown in the model picker, and add more models by adding from built-in providers or from extension-provided model providers.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "bbd80d62b8755b7c9f4c4a47d154e3b1596c994e2b5210c2343643ac082092ce",
+   "surface": "copilot-vscode",
+   "tier": "E1",
+   "url": "https://code.visualstudio.com/docs/agent-customization/language-models.md",
+   "url_effective": "https://code.visualstudio.com/docs/agent-customization/language-models.md",
+   "version_source": null
+  },
+  {
+   "bytes": 32356,
+   "context_after": [
+    "",
+    "BYOK models work without signing into a GitHub account and without a Copilot plan. This enables you to use AI chat features entirely with your own models, including fully offline scenarios with local models such as Ollama."
+   ],
+   "context_before": [
+    "## Bring your own language model key",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-copilot-vscode-00182",
+   "locator": {
+    "heading": "Bring your own language model key",
+    "raw_line_end": 112,
+    "raw_line_start": 112
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "Bring Your Own Key (BYOK) lets you connect to any compatible model provider while still using the VS Code chat experience and tools. You can use BYOK to access models from other providers, to run models locally, or to use models that are not yet available as built-in options in VS Code.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "bbd80d62b8755b7c9f4c4a47d154e3b1596c994e2b5210c2343643ac082092ce",
+   "surface": "copilot-vscode",
+   "tier": "E1",
+   "url": "https://code.visualstudio.com/docs/agent-customization/language-models.md",
+   "url_effective": "https://code.visualstudio.com/docs/agent-customization/language-models.md",
+   "version_source": null
+  },
+  {
+   "bytes": 32356,
+   "context_after": [
+    "",
+    "> [!NOTE]"
+   ],
+   "context_before": [
+    "Bring Your Own Key (BYOK) lets you connect to any compatible model provider while still using the VS Code chat experience and tools. You can use BYOK to access models from other providers, to run models locally, or to use models that are not yet available as built-in options in VS Code.",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-copilot-vscode-00183",
+   "locator": {
+    "heading": "Bring your own language model key",
+    "raw_line_end": 114,
+    "raw_line_start": 114
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "BYOK models work without signing into a GitHub account and without a Copilot plan. This enables you to use AI chat features entirely with your own models, including fully offline scenarios with local models such as Ollama.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "bbd80d62b8755b7c9f4c4a47d154e3b1596c994e2b5210c2343643ac082092ce",
+   "surface": "copilot-vscode",
+   "tier": "E1",
+   "url": "https://code.visualstudio.com/docs/agent-customization/language-models.md",
+   "url_effective": "https://code.visualstudio.com/docs/agent-customization/language-models.md",
+   "version_source": null
+  },
+  {
+   "bytes": 32356,
+   "context_after": [
+    "",
+    "You can also use these models to [override the models used for utility tasks in VS Code](#configure-models-for-other-features) (such as title generation and intent detection)."
+   ],
+   "context_before": [
+    "",
+    "> [!NOTE]"
+   ],
+   "http_status": 200,
+   "id": "E-copilot-vscode-00184",
+   "locator": {
+    "heading": "Bring your own language model key",
+    "raw_line_end": 117,
+    "raw_line_start": 117
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "> For Agent Host sessions, such as Copilot sessions in the [Agents window](/docs/agents/run/agents-window.md), enable `setting(chat.agentHost.byokModels.enabled)` to use BYOK models in those sessions `feature(agent-host-byok-models)`.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "bbd80d62b8755b7c9f4c4a47d154e3b1596c994e2b5210c2343643ac082092ce",
+   "surface": "copilot-vscode",
+   "tier": "E1",
+   "url": "https://code.visualstudio.com/docs/agent-customization/language-models.md",
+   "url_effective": "https://code.visualstudio.com/docs/agent-customization/language-models.md",
+   "version_source": null
+  },
+  {
+   "bytes": 32356,
+   "context_after": [
+    "| `reasoningEffortFormat` | _(Optional)_ Body shape used to forward reasoning effort to the model. `chat-completions` sends a top-level `reasoning_effort` string, `responses` sends a nested `reasoning.effort` object, and `messages` sends `output_config.effort`. When unset, the format follows the URL",
+    "| `requestHeaders` | _(Optional)_ An object of additional HTTP headers to include with requests to this model. Certain reserved headers (forbidden, forwarding, and internal headers) are not allowed and are ignored if present. |"
+   ],
+   "context_before": [
+    "| `streaming` | _(Optional)_ Set to `true` if the model supports streaming responses. Defaults to `true`. |",
+    "| `zeroDataRetentionEnabled` | _(Optional)_ Set to `true` if Zero Data Retention (ZDR) is enabled for this endpoint. When enabled, `previous_response_id` is not sent in requests via the Responses API. Defaults to `false`. |"
+   ],
+   "http_status": 200,
+   "id": "E-copilot-vscode-00210",
+   "locator": {
+    "heading": "Model configuration reference",
+    "raw_line_end": 418,
+    "raw_line_start": 418
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "| `supportsReasoningEffort` | _(Optional)_ An array of reasoning effort levels the model accepts (for example, `[\"low\", \"medium\", \"high\"]`). When set, a **Thinking Effort** picker is shown in the model picker. Common levels are `minimal`, `low`, `medium`, `high`. |",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "bbd80d62b8755b7c9f4c4a47d154e3b1596c994e2b5210c2343643ac082092ce",
+   "surface": "copilot-vscode",
+   "tier": "E1",
+   "url": "https://code.visualstudio.com/docs/agent-customization/language-models.md",
+   "url_effective": "https://code.visualstudio.com/docs/agent-customization/language-models.md",
+   "version_source": null
+  },
+  {
+   "bytes": 12840,
+   "context_after": [
+    "| `model` | No | The language model used when running the prompt. If not specified, the currently selected model in model picker is used. |",
+    "| `tools` | No | A list of tool or [tool set](/docs/agent-customization/tool-sets.md) names that are available for this prompt. Can include built-in tools, tool sets, MCP tools, or tools contributed by extensions. To include all tools of an MCP server, use the `<server name>/*` format.<br/>Learn mor"
+   ],
+   "context_before": [
+    "| `name` | No | The name of the prompt, used after typing `/` in chat. If not specified, the file name is used. |",
+    "| `argument-hint` | No | Hint text shown in the chat input field to guide users on how to interact with the prompt. |"
+   ],
+   "http_status": 200,
+   "id": "E-copilot-vscode-00221",
+   "locator": {
+    "heading": "Prompt file format",
+    "raw_line_end": 42,
+    "raw_line_start": 42
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "| `agent` | No | The agent used for running the prompt: `ask`, `agent`, `plan`, or the name of a [custom agent](/docs/agent-customization/custom-agents.md). By default, the current agent is used. If tools are specified, the default agent is `agent`. |",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "430c8ff05794c9e3a4a1d69b3e398740822a89eacc320838984467e15371142e",
+   "surface": "copilot-vscode",
+   "tier": "E1",
+   "url": "https://code.visualstudio.com/docs/agent-customization/prompt-files.md",
+   "url_effective": "https://code.visualstudio.com/docs/agent-customization/prompt-files.md",
+   "version_source": null
+  },
+  {
+   "bytes": 12840,
+   "context_after": [
+    "| `tools` | No | A list of tool or [tool set](/docs/agent-customization/tool-sets.md) names that are available for this prompt. Can include built-in tools, tool sets, MCP tools, or tools contributed by extensions. To include all tools of an MCP server, use the `<server name>/*` format.<br/>Learn mor",
+    ""
+   ],
+   "context_before": [
+    "| `argument-hint` | No | Hint text shown in the chat input field to guide users on how to interact with the prompt. |",
+    "| `agent` | No | The agent used for running the prompt: `ask`, `agent`, `plan`, or the name of a [custom agent](/docs/agent-customization/custom-agents.md). By default, the current agent is used. If tools are specified, the default agent is `agent`. |"
+   ],
+   "http_status": 200,
+   "id": "E-copilot-vscode-00222",
+   "locator": {
+    "heading": "Prompt file format",
+    "raw_line_end": 43,
+    "raw_line_start": 43
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "| `model` | No | The language model used when running the prompt. If not specified, the currently selected model in model picker is used. |",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "430c8ff05794c9e3a4a1d69b3e398740822a89eacc320838984467e15371142e",
+   "surface": "copilot-vscode",
+   "tier": "E1",
+   "url": "https://code.visualstudio.com/docs/agent-customization/prompt-files.md",
+   "url_effective": "https://code.visualstudio.com/docs/agent-customization/prompt-files.md",
+   "version_source": null
+  },
+  {
+   "bytes": 18663,
+   "context_after": [
+    "",
+    "If you don't want to use AI, you can continue using VS Code without signing in. To hide the built-in AI features, see [Remove AI features from VS Code](/docs/setup/copilot.md#remove-ai-features-from-vs-code)."
+   ],
+   "context_before": [
+    "* Configure a [bring-your-own-key model](/docs/agent-customization/language-models.md#bring-your-own-language-model-key) for supported chat features without GitHub sign-in.",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-copilot-vscode-00249",
+   "locator": {
+    "heading": "Can I use VS Code without signing in?",
+    "raw_line_end": 18,
+    "raw_line_start": 18
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "Some features, including inline suggestions, semantic search, and embeddings, require the GitHub Copilot service and aren't available through bring-your-own-key models.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "94616d0f87ade1f75acdd7b06471eec1751acdcae9d7147a67f48819bfb1048a",
+   "surface": "copilot-vscode",
+   "tier": "E1",
+   "url": "https://code.visualstudio.com/docs/agents/agent-troubleshooting/faq.md",
+   "url_effective": "https://code.visualstudio.com/docs/agents/agent-troubleshooting/faq.md",
+   "version_source": null
+  },
+  {
+   "bytes": 18663,
+   "context_after": [
+    "",
+    "Organizations can restrict access to certain models. If you believe a model should be available, contact your organization administrator."
+   ],
+   "context_before": [
+    "### Not all models are available in the language model picker",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-copilot-vscode-00262",
+   "locator": {
+    "heading": "Not all models are available in the language model picker",
+    "raw_line_end": 170,
+    "raw_line_start": 170
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "You can choose which models are available in the language model picker. Learn how to [customize the language model picker](/docs/agent-customization/language-models.md#customize-the-model-picker).",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "94616d0f87ade1f75acdd7b06471eec1751acdcae9d7147a67f48819bfb1048a",
+   "surface": "copilot-vscode",
+   "tier": "E1",
+   "url": "https://code.visualstudio.com/docs/agents/agent-troubleshooting/faq.md",
+   "url_effective": "https://code.visualstudio.com/docs/agents/agent-troubleshooting/faq.md",
+   "version_source": null
+  },
+  {
+   "bytes": 14736,
+   "context_after": [
+    "    | **Agent** | **Agent** | Uses tools to plan, edit files, run commands, and validate the result. |",
+    "    | **Language model** | **Auto** | Automatically selects a model based on task complexity and availability. |"
+   ],
+   "context_before": [
+    "    | Control | Value | Short description |",
+    "    |---------|-------|-------------------|"
+   ],
+   "http_status": 200,
+   "id": "E-copilot-vscode-00270",
+   "locator": {
+    "heading": "Start an agent session",
+    "raw_line_end": 88,
+    "raw_line_start": 88
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "    | **Session Target** | **Copilot** | Uses the Copilot agent harness to run the session with the GitHub Copilot SDK on your machine. |",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "73dae9e4ee169b82871282e2b4c6b4deb71f8747934072bf0fa07be9569bb4de",
+   "surface": "copilot-vscode",
+   "tier": "E1",
+   "url": "https://code.visualstudio.com/docs/agents/agents-tutorial.md",
+   "url_effective": "https://code.visualstudio.com/docs/agents/agents-tutorial.md",
+   "version_source": null
+  },
+  {
+   "bytes": 14736,
+   "context_after": [
+    "",
+    "    ![Screenshot showing the Copilot Session Target, Agent, and Manual permissions in the redesigned new-session input.](images/getting-started/agent-session-select-harness-role.png)"
+   ],
+   "context_before": [
+    "    | **Agent** | **Agent** | Uses tools to plan, edit files, run commands, and validate the result. |",
+    "    | **Language model** | **Auto** | Automatically selects a model based on task complexity and availability. |"
+   ],
+   "http_status": 200,
+   "id": "E-copilot-vscode-00273",
+   "locator": {
+    "heading": "Start an agent session",
+    "raw_line_end": 91,
+    "raw_line_start": 91
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "    | **Permissions** | **Manual permissions** | Requests your approval for running tools or accessing resources. The agent can make file edits in your project folder. |",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "73dae9e4ee169b82871282e2b4c6b4deb71f8747934072bf0fa07be9569bb4de",
+   "surface": "copilot-vscode",
+   "tier": "E1",
+   "url": "https://code.visualstudio.com/docs/agents/agents-tutorial.md",
+   "url_effective": "https://code.visualstudio.com/docs/agents/agents-tutorial.md",
+   "version_source": null
+  },
+  {
+   "bytes": 21262,
+   "context_after": [
+    "",
+    "* **Experiment and compare.** If you're not satisfied with a response, try a different model. Different models can produce significantly different results for the same prompt."
+   ],
+   "context_before": [
+    "* **Use latest models.** Newer models often have improved capabilities. VS Code continuously adds support for new models and model versions. Check the [available models](/docs/agent-customization/language-models.md) and use the latest models.",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-copilot-vscode-00280",
+   "locator": {
+    "heading": "Choose the right model",
+    "raw_line_end": 116,
+    "raw_line_start": 116
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "* **Pin models in prompt files and agents.** Specify preferred models in your prompt file or custom agent definitions to ensure the right model is used consistently for specific tasks.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "fe233efc3b1305c99bfc286576c0f71caa17e79ed4db5cc4f27c6f41f2e1c6ce",
+   "surface": "copilot-vscode",
+   "tier": "E1",
+   "url": "https://code.visualstudio.com/docs/agents/best-practices.md",
+   "url_effective": "https://code.visualstudio.com/docs/agents/best-practices.md",
+   "version_source": null
+  },
+  {
+   "bytes": 21262,
+   "context_after": [
+    "",
+    "* **Use BYOK for additional control.** Bring your own API key for more model choices and hosting options."
+   ],
+   "context_before": [
+    "* **Experiment and compare.** If you're not satisfied with a response, try a different model. Different models can produce significantly different results for the same prompt.",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-copilot-vscode-00281",
+   "locator": {
+    "heading": "Choose the right model",
+    "raw_line_end": 120,
+    "raw_line_start": 120
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "* **Adjust thinking effort for reasoning models.** Use the [thinking effort control](/docs/agent-customization/language-models.md#configure-thinking-effort) in the model picker to increase effort for complex tasks or reduce it for simpler ones.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "fe233efc3b1305c99bfc286576c0f71caa17e79ed4db5cc4f27c6f41f2e1c6ce",
+   "surface": "copilot-vscode",
+   "tier": "E1",
+   "url": "https://code.visualstudio.com/docs/agents/best-practices.md",
+   "url_effective": "https://code.visualstudio.com/docs/agents/best-practices.md",
+   "version_source": null
+  },
+  {
+   "bytes": 21262,
+   "context_after": [
+    "",
+    "* **Scale with parallel sessions.** Run multiple sessions in parallel for independent tasks to save time and keep contexts separate. You can have multiple sessions running at once, across local, background, and cloud environments, and switch between them via the [sessions list](/docs/agents/run/sess"
+   ],
+   "context_before": [
+    "* **Use subagents for investigation.** Hint the AI to perform research and exploration in isolation by using [subagents](/docs/agents/run/subagents.md) so the findings don't clutter your main context.",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-copilot-vscode-00284",
+   "locator": {
+    "heading": "Manage context and sessions",
+    "raw_line_end": 205,
+    "raw_line_start": 205
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "* **Choose the right session type.** Use local sessions for quick tasks on your current code that need your immediate attention, background tasks for tasks that can run locally and isolated from your main context, or cloud sessions that can benefit from team-collaboration.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "fe233efc3b1305c99bfc286576c0f71caa17e79ed4db5cc4f27c6f41f2e1c6ce",
+   "surface": "copilot-vscode",
+   "tier": "E1",
+   "url": "https://code.visualstudio.com/docs/agents/best-practices.md",
+   "url_effective": "https://code.visualstudio.com/docs/agents/best-practices.md",
+   "version_source": null
+  },
+  {
+   "bytes": 9909,
+   "context_after": [
+    "",
+    "VS Code supports multiple agent harnesses, including Copilot, Anthropic Claude, and OpenAI Codex. This choice lets you use the tools and provider-specific workflows that fit your task while managing sessions through a shared VS Code experience."
+   ],
+   "context_before": [
+    "# Understand agent harnesses",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-copilot-vscode-00287",
+   "locator": {
+    "heading": "Understand agent harnesses",
+    "raw_line_end": 6,
+    "raw_line_start": 6
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "An agent harness is the software layer that runs an agent session. It turns a language model into an agent by connecting the model to context and tools, coordinating the [agent loop](/docs/agents/concepts/agents.md#agent-loop), and maintaining session state as the work progresses.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "0d3b8eb0125dd0112ca7d1f653186de3bf5576e5ae2dbaa74cddb75bd3d52c8f",
+   "surface": "copilot-vscode",
+   "tier": "E1",
+   "url": "https://code.visualstudio.com/docs/agents/concepts/agent-harnesses.md",
+   "url_effective": "https://code.visualstudio.com/docs/agents/concepts/agent-harnesses.md",
+   "version_source": null
+  },
+  {
+   "bytes": 9909,
+   "context_after": [
+    "",
+    "The model provides the reasoning and decides what to say or which tool to request. The harness makes those decisions operate as a stateful workflow by preparing model requests, coordinating tool calls and approvals, returning results to the model, and tracking the conversation and changes."
+   ],
+   "context_before": [
+    "An agent harness is the software layer that runs an agent session. It turns a language model into an agent by connecting the model to context and tools, coordinating the [agent loop](/docs/agents/concepts/agents.md#agent-loop), and maintaining session state as the work progresses.",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-copilot-vscode-00288",
+   "locator": {
+    "heading": "Understand agent harnesses",
+    "raw_line_end": 8,
+    "raw_line_start": 8
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "VS Code supports multiple agent harnesses, including Copilot, Anthropic Claude, and OpenAI Codex. This choice lets you use the tools and provider-specific workflows that fit your task while managing sessions through a shared VS Code experience.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "0d3b8eb0125dd0112ca7d1f653186de3bf5576e5ae2dbaa74cddb75bd3d52c8f",
+   "surface": "copilot-vscode",
+   "tier": "E1",
+   "url": "https://code.visualstudio.com/docs/agents/concepts/agent-harnesses.md",
+   "url_effective": "https://code.visualstudio.com/docs/agents/concepts/agent-harnesses.md",
+   "version_source": null
+  },
+  {
+   "bytes": 9909,
+   "context_after": [
+    "| **Execution environment** | Where workspace tools run and code changes are made, such as your machine, a connected host, a Dev Container, or cloud infrastructure. | The harness coordinates work in the selected environment. The environment is not the harness. |",
+    "| **Session target** | Which harness or cloud target VS Code uses for a session. | The **Session Target** UI control lists harnesses and the Cloud target. For Agent Host sessions, the workspace picker selects the host or Dev Container separately from the harness. |"
+   ],
+   "context_before": [
+    "|---------|--------------------|-----------------------------|",
+    "| **Language model** | How the agent reasons and generates responses. | A harness can offer multiple models, and the same model might be available through more than one harness. The model can run in a different location from the harness. |"
+   ],
+   "http_status": 200,
+   "id": "E-copilot-vscode-00291",
+   "locator": {
+    "heading": "How a harness differs from other agent concepts",
+    "raw_line_end": 37,
+    "raw_line_start": 37
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "| **Agent role** | Which instructions, tools, and behavior apply to a task. Examples include Agent, Plan, Ask, and custom agents. | A role shapes the task behavior within a harness. Changing the role does not replace the harness. |",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "0d3b8eb0125dd0112ca7d1f653186de3bf5576e5ae2dbaa74cddb75bd3d52c8f",
+   "surface": "copilot-vscode",
+   "tier": "E1",
+   "url": "https://code.visualstudio.com/docs/agents/concepts/agent-harnesses.md",
+   "url_effective": "https://code.visualstudio.com/docs/agents/concepts/agent-harnesses.md",
+   "version_source": null
+  },
+  {
+   "bytes": 9909,
+   "context_after": [
+    "",
+    "## Understand what the harness choice changes"
+   ],
+   "context_before": [
+    "The [Copilot harness](/docs/agents/run/agent-harnesses.md#use-the-copilot-harness) uses the GitHub Copilot SDK to access the shared Copilot agent runtime. The runtime also powers GitHub Copilot CLI and the GitHub Copilot app. The SDK provides the runtime integration, not a language model or a user i",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-copilot-vscode-00294",
+   "locator": {
+    "heading": "Harness, runtime, and host",
+    "raw_line_end": 45,
+    "raw_line_start": 45
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "In VS Code, the [Agent Host](/docs/agents/concepts/agent-host.md) runs the harness and owns its sessions. The Chat view and Agents window display and control those sessions. The host can also run other supported harnesses, so its session-hosting capabilities aren't exclusive to Copilot.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "0d3b8eb0125dd0112ca7d1f653186de3bf5576e5ae2dbaa74cddb75bd3d52c8f",
+   "surface": "copilot-vscode",
+   "tier": "E1",
+   "url": "https://code.visualstudio.com/docs/agents/concepts/agent-harnesses.md",
+   "url_effective": "https://code.visualstudio.com/docs/agents/concepts/agent-harnesses.md",
+   "version_source": null
+  },
+  {
+   "bytes": 9226,
+   "context_after": [
+    "",
+    "The Plan agent uses read-only tools while preparing the plan. After you review and approve the approach, you can hand off the plan to an implementation agent. Learn more about [planning with agents](/docs/agents/run/planning.md)."
+   ],
+   "context_before": [
+    "### Planning",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-copilot-vscode-00305",
+   "locator": {
+    "heading": "Planning",
+    "raw_line_end": 75,
+    "raw_line_start": 75
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "Every agent decides which action to take next as part of the agent loop. For a complex task, use the built-in Plan agent to research the codebase, clarify requirements, and propose an implementation plan before code changes begin.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "e5c9f9bbd8f0e90710d719898824cb333e879109041058a9d9010e7086747085",
+   "surface": "copilot-vscode",
+   "tier": "E1",
+   "url": "https://code.visualstudio.com/docs/agents/concepts/agents.md",
+   "url_effective": "https://code.visualstudio.com/docs/agents/concepts/agents.md",
+   "version_source": null
+  },
+  {
+   "bytes": 9226,
+   "context_after": [
+    "",
+    "### Subagents"
+   ],
+   "context_before": [
+    "Every agent decides which action to take next as part of the agent loop. For a complex task, use the built-in Plan agent to research the codebase, clarify requirements, and propose an implementation plan before code changes begin.",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-copilot-vscode-00306",
+   "locator": {
+    "heading": "Planning",
+    "raw_line_end": 77,
+    "raw_line_start": 77
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "The Plan agent uses read-only tools while preparing the plan. After you review and approve the approach, you can hand off the plan to an implementation agent. Learn more about [planning with agents](/docs/agents/run/planning.md).",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "e5c9f9bbd8f0e90710d719898824cb333e879109041058a9d9010e7086747085",
+   "surface": "copilot-vscode",
+   "tier": "E1",
+   "url": "https://code.visualstudio.com/docs/agents/concepts/agents.md",
+   "url_effective": "https://code.visualstudio.com/docs/agents/concepts/agents.md",
+   "version_source": null
+  },
+  {
+   "bytes": 9226,
+   "context_after": [
+    "* **Focused results**: the main agent uses the subagent's result without adding all of its intermediate work to the main context.",
+    ""
+   ],
+   "context_before": [
+    "",
+    "* **Context isolation**: each subagent works in its own context. The harness determines which instructions and conversation history it receives. In the Local harness, subagents receive the delegated task and applicable instructions, not the main conversation history."
+   ],
+   "http_status": 200,
+   "id": "E-copilot-vscode-00308",
+   "locator": {
+    "heading": "Subagents",
+    "raw_line_end": 88,
+    "raw_line_start": 88
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "* **Parallel execution**: independent subtasks can run in parallel when the harness supports concurrent subagents, such as separate correctness and performance reviews.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "e5c9f9bbd8f0e90710d719898824cb333e879109041058a9d9010e7086747085",
+   "surface": "copilot-vscode",
+   "tier": "E1",
+   "url": "https://code.visualstudio.com/docs/agents/concepts/agents.md",
+   "url_effective": "https://code.visualstudio.com/docs/agents/concepts/agents.md",
+   "version_source": null
+  },
+  {
+   "bytes": 9909,
+   "context_after": [
+    "| **Agent role** | Which instructions, tools, and behavior apply to a task. Examples include Agent, Plan, Ask, and custom agents. | A role shapes the task behavior within a harness. Changing the role does not replace the harness. |",
+    "| **Execution environment** | Where workspace tools run and code changes are made, such as your machine, a connected host, a Dev Container, or cloud infrastructure. | The harness coordinates work in the selected environment. The environment is not the harness. |"
+   ],
+   "context_before": [
+    "| Concept | What it determines | Relationship to the harness |",
+    "|---------|--------------------|-----------------------------|"
+   ],
+   "http_status": 200,
+   "id": "E-copilot-vscode-00349",
+   "locator": {
+    "heading": "How a harness differs from other agent concepts",
+    "raw_line_end": 36,
+    "raw_line_start": 36
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "| **Language model** | How the agent reasons and generates responses. | A harness can offer multiple models, and the same model might be available through more than one harness. The model can run in a different location from the harness. |",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "0d3b8eb0125dd0112ca7d1f653186de3bf5576e5ae2dbaa74cddb75bd3d52c8f",
+   "surface": "copilot-vscode",
+   "tier": "E1",
+   "url": "https://code.visualstudio.com/docs/agents/concepts/agent-harnesses.md",
+   "url_effective": "https://code.visualstudio.com/docs/agents/concepts/agent-harnesses.md",
+   "version_source": null
+  },
+  {
+   "bytes": 10070,
+   "context_after": [
+    "",
+    "VS Code sets default effort levels based on evaluations and online performance data, and has adaptive reasoning enabled where supported. For most use cases, the defaults work well without changes."
+   ],
+   "context_before": [
+    "Thinking effort controls how much reasoning a model applies to each request. Higher effort levels produce more thorough internal reasoning, which improves quality for complex problems. Lower effort levels reduce latency and token usage by limiting or skipping the thinking step.",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-copilot-vscode-00381",
+   "locator": {
+    "heading": "Thinking effort",
+    "raw_line_end": 45,
+    "raw_line_start": 45
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "The available effort levels and their default values vary by model and provider. Some models also support *adaptive thinking*, where the model dynamically decides whether and how much to reason based on the complexity of each request, rather than always using a fixed thinking budget.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "12b0af670587a4b47d356b225d0f6246a68acedcbbf1a144befeab26517e3e6f",
+   "surface": "copilot-vscode",
+   "tier": "E1",
+   "url": "https://code.visualstudio.com/docs/agents/concepts/language-models.md",
+   "url_effective": "https://code.visualstudio.com/docs/agents/concepts/language-models.md",
+   "version_source": null
+  },
+  {
+   "bytes": 10070,
+   "context_after": [
+    "",
+    "Learn how to [configure the thinking effort level](/docs/agent-customization/language-models.md#configure-thinking-effort) in VS Code."
+   ],
+   "context_before": [
+    "### Thinking tokens",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-copilot-vscode-00383",
+   "locator": {
+    "heading": "Thinking tokens",
+    "raw_line_end": 51,
+    "raw_line_start": 51
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "count toward the model's context window, even though they are not visible in the response. The actual thinking output is typically returned in summarized form or can be omitted entirely for lower latency. Keep in mind that higher thinking effort levels can produce more thinking tokens, which can",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "12b0af670587a4b47d356b225d0f6246a68acedcbbf1a144befeab26517e3e6f",
+   "surface": "copilot-vscode",
+   "tier": "E1",
+   "url": "https://code.visualstudio.com/docs/agents/concepts/language-models.md",
+   "url_effective": "https://code.visualstudio.com/docs/agents/concepts/language-models.md",
+   "version_source": null
+  },
+  {
+   "bytes": 10070,
+   "context_after": [
+    "",
+    "Auto selects from multiple models and respects your organization's [model access settings](https://docs.github.com/en/copilot/how-tos/use-ai-models/configure-access-to-ai-models). Auto won't select models excluded by administrator policies or models restricted by data-residency policies."
+   ],
+   "context_before": [
+    "### Auto model selection",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-copilot-vscode-00385",
+   "locator": {
+    "heading": "Auto model selection",
+    "raw_line_end": 67,
+    "raw_line_start": 67
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "Auto model selection in GitHub Copilot combines two systems to route each request to the optimal model. One system tracks real-time model health and availability, while the other evaluates task complexity. Together, they match each task to the model that can solve it most efficiently, reserving",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "12b0af670587a4b47d356b225d0f6246a68acedcbbf1a144befeab26517e3e6f",
+   "surface": "copilot-vscode",
+   "tier": "E1",
+   "url": "https://code.visualstudio.com/docs/agents/concepts/language-models.md",
+   "url_effective": "https://code.visualstudio.com/docs/agents/concepts/language-models.md",
+   "version_source": null
+  },
+  {
+   "bytes": 12105,
+   "context_after": [
+    "* **Constrain autonomy.** [Permission levels](/docs/agents/run/approvals.md#permission-levels) decide how much the agent runs on its own, from per-call approvals to broad auto-approval, up to fully autonomous operation with Autopilot.",
+    "* **Enforce boundaries at the OS level.** [Agent sandboxing](#agent-sandboxing) restricts file system and network access for terminal commands so auto-approved actions cannot escape a defined scope."
+   ],
+   "context_before": [
+    "",
+    "* **Review before integrating.** Agents can save edits directly in the session folder or worktree. Inspect the changes in a diff before you commit, merge, or create a pull request. For supported sessions, [checkpoints](/docs/agents/run/review-code-edits.md#edit-requests-and-restore-checkpoints) rest"
+   ],
+   "http_status": 200,
+   "id": "E-copilot-vscode-00405",
+   "locator": {
+    "heading": "Stay in control",
+    "raw_line_end": 20,
+    "raw_line_start": 20
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "in Agent Host sessions, actions that aren't covered by your approval settings require confirmation. File edits might be auto-approved. Configure [sensitive-file approval](/docs/agents/run/review-code-edits.md#edit-sensitive-files) when an edit must require",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "5e72c7bca6c0af8ad84fd323c0e487c1ccfebc452365bda812b862abe1bae8f3",
+   "surface": "copilot-vscode",
+   "tier": "E1",
+   "url": "https://code.visualstudio.com/docs/agents/concepts/trust-and-safety.md",
+   "url_effective": "https://code.visualstudio.com/docs/agents/concepts/trust-and-safety.md",
+   "version_source": null
+  },
+  {
+   "bytes": 10070,
+   "context_after": [
+    "* There is no guarantee that responsible AI filtering is applied to the model's output when using BYOK.",
+    ""
+   ],
+   "context_before": [
+    "",
+    "* BYOK only applies to the chat experience and utility tasks. Inline suggestions (code completions) and features that rely on embeddings, such as semantic search, still require a GitHub Copilot plan."
+   ],
+   "http_status": 200,
+   "id": "E-copilot-vscode-00456",
+   "locator": {
+    "heading": "Considerations",
+    "raw_line_end": 98,
+    "raw_line_start": 98
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "* Capabilities are model-dependent and might differ from the built-in models, for example, support for tool calling, vision, or thinking.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "12b0af670587a4b47d356b225d0f6246a68acedcbbf1a144befeab26517e3e6f",
+   "surface": "copilot-vscode",
+   "tier": "E1",
+   "url": "https://code.visualstudio.com/docs/agents/concepts/language-models.md",
+   "url_effective": "https://code.visualstudio.com/docs/agents/concepts/language-models.md",
+   "version_source": null
+  },
+  {
+   "bytes": 12942,
+   "context_after": [
+    "",
+    "For more information, see [choosing and configuring language models](/docs/agent-customization/language-models.md)."
+   ],
+   "context_before": [
+    "For a low-maintenance default, use **auto model selection** to let VS Code route each request to an efficient model based on task complexity, model health, and availability. For repeatable workflows, configure a preferred model in a [custom agent](/docs/agent-customization/custom-agents.md).",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-copilot-vscode-00490",
+   "locator": {
+    "heading": "Choose models based on evidence",
+    "raw_line_end": 20,
+    "raw_line_start": 20
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "The model picker in chat shows cost details in the hover menu, including cost per token type and a generic cost tier label (Low, Medium, High). Use the [Agent Debug Logs](/docs/agents/agent-troubleshooting/chat-debug-view.md) to compare token usage, tool calls, errors, and duration across test runs.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "e8e1ed4ba5fdedf63fe6d7720e942732ef24d6b4a200a45bd9e769a09c73a365",
+   "surface": "copilot-vscode",
+   "tier": "E1",
+   "url": "https://code.visualstudio.com/docs/agents/guides/optimize-usage.md",
+   "url_effective": "https://code.visualstudio.com/docs/agents/guides/optimize-usage.md",
+   "version_source": null
+  },
+  {
+   "bytes": 11493,
+   "context_after": [
+    "* **Tools and customization**: share your coding standards and test commands through [project instructions](/docs/agents/guides/customize-copilot-guide.md). Connect external systems through [Model Context Protocol (MCP) servers](/docs/agent-customization/mcp-servers.md), package recurring tasks as [",
+    ""
+   ],
+   "context_before": [
+    "* **Models**: choose a [language model](/docs/agents/concepts/language-models.md) based on the reasoning capabilities, speed, and cost your task requires.",
+    "* **Agent harnesses**: use a supported [agent harness](/docs/agents/run/agent-harnesses.md), such as Copilot, Anthropic Claude, or OpenAI Codex, for its tools and workflows. The harness connects a model to tools and manages the session, so changing harnesses is different from switching models."
+   ],
+   "http_status": 200,
+   "id": "E-copilot-vscode-00503",
+   "locator": {
+    "heading": "Choose your models, agents, and tools",
+    "raw_line_end": 85,
+    "raw_line_start": 85
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "access**: use models from your GitHub Copilot plan, [bring your own API key (BYOK)](/docs/agent-customization/language-models.md#bring-your-own-language-model-key), or connect a supported local model. These options let you use an existing model provider account or keep model processing local.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "78408cb185cd8e5fa6e4602a773211487412a25fc27f3488aa3b97e4b0c9ed19",
+   "surface": "copilot-vscode",
+   "tier": "E1",
+   "url": "https://code.visualstudio.com/docs/agents/overview.md",
+   "url_effective": "https://code.visualstudio.com/docs/agents/overview.md",
+   "version_source": null
+  },
+  {
+   "bytes": 11493,
+   "context_after": [
+    "",
+    "Where tools run and where the model is hosted are separate choices. An agent can edit files on your machine while sending model requests to a hosted provider."
+   ],
+   "context_before": [
+    "* **Tools and customization**: share your coding standards and test commands through [project instructions](/docs/agents/guides/customize-copilot-guide.md). Connect external systems through [Model Context Protocol (MCP) servers](/docs/agent-customization/mcp-servers.md), package recurring tasks as [",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-copilot-vscode-00508",
+   "locator": {
+    "heading": "Choose your models, agents, and tools",
+    "raw_line_end": 88,
+    "raw_line_start": 88
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "Available models, tools, and customizations depend on the selected harness, your account, and your organization's policies.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "78408cb185cd8e5fa6e4602a773211487412a25fc27f3488aa3b97e4b0c9ed19",
+   "surface": "copilot-vscode",
+   "tier": "E1",
+   "url": "https://code.visualstudio.com/docs/agents/overview.md",
+   "url_effective": "https://code.visualstudio.com/docs/agents/overview.md",
+   "version_source": null
+  },
+  {
+   "bytes": 11493,
+   "context_after": [
+    "",
+    "## Stay in control"
+   ],
+   "context_before": [
+    "Available models, tools, and customizations depend on the selected harness, your account, and your organization's policies.",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-copilot-vscode-00509",
+   "locator": {
+    "heading": "Choose your models, agents, and tools",
+    "raw_line_end": 90,
+    "raw_line_start": 90
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "Where tools run and where the model is hosted are separate choices. An agent can edit files on your machine while sending model requests to a hosted provider.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "78408cb185cd8e5fa6e4602a773211487412a25fc27f3488aa3b97e4b0c9ed19",
+   "surface": "copilot-vscode",
+   "tier": "E1",
+   "url": "https://code.visualstudio.com/docs/agents/overview.md",
+   "url_effective": "https://code.visualstudio.com/docs/agents/overview.md",
+   "version_source": null
+  },
+  {
+   "bytes": 13801,
+   "context_after": [
+    "",
+    "> [!NOTE]"
+   ],
+   "context_before": [
+    "* [Set up GitHub Copilot in VS Code](/docs/setup/copilot.md).",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-copilot-vscode-00511",
+   "locator": {
+    "heading": "Prerequisites",
+    "raw_line_end": 20,
+    "raw_line_start": 20
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "harness](/docs/agents/run/agent-harnesses.md#use-the-copilot-harness), which connects the model to the tools that build and test your app. To use Anthropic Claude, OpenAI Codex, or a model with your own API key instead, [choose and configure another harness](/docs/agents/run/agent-harnesses.md).",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "17fcf796153942ce51e5c7acb35c5ff70bb3a961d6d1d8b512d22c5c77e095f0",
+   "surface": "copilot-vscode",
+   "tier": "E1",
+   "url": "https://code.visualstudio.com/docs/agents/quickstart.md",
+   "url_effective": "https://code.visualstudio.com/docs/agents/quickstart.md",
+   "version_source": null
+  },
+  {
+   "bytes": 13801,
+   "context_after": [
+    "",
+    "## 1. Create a project folder"
+   ],
+   "context_before": [
+    "",
+    "> [!NOTE]"
+   ],
+   "http_status": 200,
+   "id": "E-copilot-vscode-00512",
+   "locator": {
+    "heading": "Prerequisites",
+    "raw_line_end": 23,
+    "raw_line_start": 23
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "> Requests in this quickstart use AI credits from your Copilot plan. Copilot Free includes a monthly allowance. Open the Copilot status dashboard from the Status Bar to monitor your monthly usage. Learn more about [AI credits and model",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "17fcf796153942ce51e5c7acb35c5ff70bb3a961d6d1d8b512d22c5c77e095f0",
+   "surface": "copilot-vscode",
+   "tier": "E1",
+   "url": "https://code.visualstudio.com/docs/agents/quickstart.md",
+   "url_effective": "https://code.visualstudio.com/docs/agents/quickstart.md",
+   "version_source": null
+  },
+  {
+   "bytes": 60762,
+   "context_after": [
+    "| `setting(chat.subagents.useRichRendering)`<br/>Open each subagent in its own editor instead of showing its full activity inline in the parent chat. | `true` |",
+    "| `setting(github.copilot.chat.searchSubagent.subagentSemanticSearchEnabled)` _(Experimental)_<br/>Enable the semantic search tool for the Search subagent. This only affects the Search subagent and does not disable semantic search elsewhere. | `true` |"
+   ],
+   "context_before": [
+    "| `setting(chat.agent.maxRequests)`<br/>Maximum number of requests that the agent can make. | `25` |",
+    "| `setting(github.copilot.chat.agent.autoFix)`<br/>Automatically diagnose and fix issues in the generated code changes. | `true` |"
+   ],
+   "http_status": 200,
+   "id": "E-copilot-vscode-00558",
+   "locator": {
+    "heading": "Agent behavior",
+    "raw_line_end": 119,
+    "raw_line_start": 119
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "| `setting(chat.subagents.allowInvocationsFromSubagents)`<br/>Enable subagents to invoke other subagents, up to a maximum nesting depth of five. | `false` |",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "f5138325f485ee68c9f5cdefb020bc46f9daf7b2a39ae3d7b65d2d31150be67c",
+   "surface": "copilot-vscode",
+   "tier": "E1",
+   "url": "https://code.visualstudio.com/docs/agents/reference/ai-settings.md",
+   "url_effective": "https://code.visualstudio.com/docs/agents/reference/ai-settings.md",
+   "version_source": null
+  },
+  {
+   "bytes": 60762,
+   "context_after": [
+    "| `setting(chat.assistedPermissions.enabled)` `feature(assisted-permissions)`<br/>Show [Assisted permissions](/docs/agents/run/approvals.md#permission-levels) in supported Agent Host permission pickers. An LLM judge evaluates the risk of each tool call and asks for your approval when it does not app",
+    "| `setting(chat.permissions.default)` _(Experimental)_<br/>Set the default [permission level](/docs/agents/run/approvals.md#permission-levels) for new chat sessions. Options: `default` (Manual permissions), `autoApprove` (Allow all), `autopilot` (Autopilot). You can still change the permission level"
+   ],
+   "context_before": [
+    "| `setting(chat.tools.edits.autoApprove)` <br/>Configure which files require approval before edits are applied. Uses glob patterns to match file paths in your workspace. | `{}` |",
+    "| `setting(chat.tools.terminal.ignoreDefaultAutoApproveRules)` <br/>Ignore the default auto-approve rules for terminal commands. | `false` |"
+   ],
+   "http_status": 200,
+   "id": "E-copilot-vscode-00568",
+   "locator": {
+    "heading": "Approvals and permissions",
+    "raw_line_end": 160,
+    "raw_line_start": 160
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "| `setting(chat.tools.global.autoApprove)`<br/>Automatically approve all tools - this setting [disables critical security protections](/docs/agents/run/security.md). | `false` |",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "f5138325f485ee68c9f5cdefb020bc46f9daf7b2a39ae3d7b65d2d31150be67c",
+   "surface": "copilot-vscode",
+   "tier": "E1",
+   "url": "https://code.visualstudio.com/docs/agents/reference/ai-settings.md",
+   "url_effective": "https://code.visualstudio.com/docs/agents/reference/ai-settings.md",
+   "version_source": null
+  },
+  {
+   "bytes": 60762,
+   "context_after": [
+    "| `setting(chat.permissions.default)` _(Experimental)_<br/>Set the default [permission level](/docs/agents/run/approvals.md#permission-levels) for new chat sessions. Options: `default` (Manual permissions), `autoApprove` (Allow all), `autopilot` (Autopilot). You can still change the permission level",
+    "| `setting(chat.autopilot.advanced.enabled)` _(Experimental)_<br/>Enable [Advanced Autopilot](/docs/agents/run/approvals.md#advanced-autopilot-preview), where a separate model evaluates whether your request is complete after each Autopilot turn and guides the next turn, instead of relying on the age"
+   ],
+   "context_before": [
+    "| `setting(chat.tools.terminal.ignoreDefaultAutoApproveRules)` <br/>Ignore the default auto-approve rules for terminal commands. | `false` |",
+    "| `setting(chat.tools.global.autoApprove)`<br/>Automatically approve all tools - this setting [disables critical security protections](/docs/agents/run/security.md). | `false` |"
+   ],
+   "http_status": 200,
+   "id": "E-copilot-vscode-00569",
+   "locator": {
+    "heading": "Approvals and permissions",
+    "raw_line_end": 161,
+    "raw_line_start": 161
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "[Assisted permissions](/docs/agents/run/approvals.md#permission-levels) in supported Agent Host permission pickers. An LLM judge evaluates the risk of each tool call and asks for your approval when it does not approve a call. | `true` (Insiders)<br/>`false` (Stable) |",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "f5138325f485ee68c9f5cdefb020bc46f9daf7b2a39ae3d7b65d2d31150be67c",
+   "surface": "copilot-vscode",
+   "tier": "E1",
+   "url": "https://code.visualstudio.com/docs/agents/reference/ai-settings.md",
+   "url_effective": "https://code.visualstudio.com/docs/agents/reference/ai-settings.md",
+   "version_source": null
+  },
+  {
+   "bytes": 60762,
+   "context_after": [
+    "| `setting(chat.autopilot.advanced.enabled)` _(Experimental)_<br/>Enable [Advanced Autopilot](/docs/agents/run/approvals.md#advanced-autopilot-preview), where a separate model evaluates whether your request is complete after each Autopilot turn and guides the next turn, instead of relying on the age",
+    "| `setting(chat.tools.urls.autoApprove)` <br/>Control which [URL requests and responses are auto-approved](/docs/agents/run/approvals.md#url-approval). | `[]` |"
+   ],
+   "context_before": [
+    "| `setting(chat.tools.global.autoApprove)`<br/>Automatically approve all tools - this setting [disables critical security protections](/docs/agents/run/security.md). | `false` |",
+    "| `setting(chat.assistedPermissions.enabled)` `feature(assisted-permissions)`<br/>Show [Assisted permissions](/docs/agents/run/approvals.md#permission-levels) in supported Agent Host permission pickers. An LLM judge evaluates the risk of each tool call and asks for your approval when it does not app"
+   ],
+   "http_status": 200,
+   "id": "E-copilot-vscode-00571",
+   "locator": {
+    "heading": "Approvals and permissions",
+    "raw_line_end": 162,
+    "raw_line_start": 162
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "(Manual permissions), `autoApprove` (Allow all), `autopilot` (Autopilot). You can still change the permission level per session. On the Agent Host, Autopilot is selected as an agent mode instead. If enterprise policy disables auto-approval, new sessions use Manual permissions. | `\"default\"` |",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "f5138325f485ee68c9f5cdefb020bc46f9daf7b2a39ae3d7b65d2d31150be67c",
+   "surface": "copilot-vscode",
+   "tier": "E1",
+   "url": "https://code.visualstudio.com/docs/agents/reference/ai-settings.md",
+   "url_effective": "https://code.visualstudio.com/docs/agents/reference/ai-settings.md",
+   "version_source": null
+  },
+  {
+   "bytes": 60762,
+   "context_after": [
+    "| `setting(github.copilot.chat.agent.thinkingTool:true)` _(Experimental)_<br/>Enable the thinking tool when using agents. | `false` |",
+    "| `setting(github.copilot.chat.summarizeAgentConversationHistory.enabled)` _(Experimental)_<br/>Automatically summarize the agent conversation history when the context window is full. | `true` |"
+   ],
+   "context_before": [
+    "| `setting(github.copilot.chat.implementAgent.model)` _(Experimental)_<br/>Select the language model used for the implementation step after planning. | `` |",
+    "| `setting(github.copilot.chat.planAgent.additionalTools)` _(Experimental)_<br/>Give the plan agent access to additional tools during research and planning phases. | `[]` |"
+   ],
+   "http_status": 200,
+   "id": "E-copilot-vscode-00590",
+   "locator": {
+    "heading": "Planning, models, and agent providers",
+    "raw_line_end": 198,
+    "raw_line_start": 198
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "| `setting(github.copilot.chat.claudeAgent.enabled)` <br/>Enable or disable support for Claude agent sessions powered by Anthropic's Claude Agent SDK. | `true` |",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "f5138325f485ee68c9f5cdefb020bc46f9daf7b2a39ae3d7b65d2d31150be67c",
+   "surface": "copilot-vscode",
+   "tier": "E1",
+   "url": "https://code.visualstudio.com/docs/agents/reference/ai-settings.md",
+   "url_effective": "https://code.visualstudio.com/docs/agents/reference/ai-settings.md",
+   "version_source": null
+  },
+  {
+   "bytes": 60762,
+   "context_after": [
+    "| `setting(chat.remoteAgentHostsEnabled)` _(Experimental)_<br/>Allow connections to [remote agent hosts](/docs/agents/run/remote-agent-sessions.md). | `true` |",
+    "| `setting(chat.remoteSessions.tools.enabled)` _(Experimental)_<br/>Provide built-in tools for agents to discover remote hosts, create and inspect remote sessions, and send messages between sessions. Requires remote agent hosts. Turning this off doesn't disconnect hosts or stop remote sessions that "
+   ],
+   "context_before": [
+    "| `setting(chat.agentHost.codexAgent.enabled)` _(Experimental)_<br/>Register the Codex provider in the [Agent Host](/docs/agents/concepts/agent-host.md) process. Enabling takes effect without restarting the Agent Host. Disabling takes effect after the next Agent Host restart. | `false` |",
+    "| `setting(chat.agentHost.devContainer.enabled)`<br/>Show **Use Dev Container** for eligible local folders and folders on SSH, Tunnel, or WSL hosts, and [run Agent Host sessions in the project's Dev Container](/docs/agents/run/agents-window.md#run-a-session-in-a-dev-container). | `false` |"
+   ],
+   "http_status": 200,
+   "id": "E-copilot-vscode-00606",
+   "locator": {
+    "heading": "Agent Host",
+    "raw_line_end": 249,
+    "raw_line_start": 249
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "| `setting(chat.agentHost.agentOrchestrationLimits)` _(Experimental)_<br/>Control process-wide limits on sessions and chats created, messages sent, and recursive session creation by Agent Host session tools. Set to `off` to remove the limits without changing confirmation or validation requirements.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "f5138325f485ee68c9f5cdefb020bc46f9daf7b2a39ae3d7b65d2d31150be67c",
+   "surface": "copilot-vscode",
+   "tier": "E1",
+   "url": "https://code.visualstudio.com/docs/agents/reference/ai-settings.md",
+   "url_effective": "https://code.visualstudio.com/docs/agents/reference/ai-settings.md",
+   "version_source": null
+  },
+  {
+   "bytes": 30515,
+   "context_after": [
+    "| **Code isolation** | Whether changes go into the current folder or a separate Git worktree | **Folder** for the guided quickstart or current uncommitted files |",
+    ""
+   ],
+   "context_before": [
+    "| **Agent** | Which instructions, tools, and behavior apply | **Agent** for implementation or **Plan** to review an approach first. Use **Ask** for questions when the selected target provides it. |",
+    "| **Language model** | How the agent reasons, how quickly it responds, and how it consumes AI credits | **Auto** when it is available |"
+   ],
+   "http_status": 200,
+   "id": "E-copilot-vscode-00627",
+   "locator": {
+    "heading": "Understand the session controls",
+    "raw_line_end": 21,
+    "raw_line_start": 21
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "| **Permissions** | Which actions require your confirmation | **Manual permissions** |",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "1f66f3b52ae50b1d4a7ccf631abc64996f7c5bb2c4f0fe266f9fcc0f458acbe9",
+   "surface": "copilot-vscode",
+   "tier": "E1",
+   "url": "https://code.visualstudio.com/docs/agents/run/agent-harnesses.md",
+   "url_effective": "https://code.visualstudio.com/docs/agents/run/agent-harnesses.md",
+   "version_source": null
+  },
+  {
+   "bytes": 30515,
+   "context_after": [
+    "",
+    "When you need a different workflow, use these guidelines:"
+   ],
+   "context_before": [
+    "## Choose a session target",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-copilot-vscode-00630",
+   "locator": {
+    "heading": "Choose a session target",
+    "raw_line_end": 28,
+    "raw_line_start": 28
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "need. To change reasoning, speed, or model cost, [choose a different model](/docs/agent-customization/language-models.md#change-the-model-for-chat) within that harness when the model is available. Changing the model does not switch harnesses or convert your project customizations to another format.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "1f66f3b52ae50b1d4a7ccf631abc64996f7c5bb2c4f0fe266f9fcc0f458acbe9",
+   "surface": "copilot-vscode",
+   "tier": "E1",
+   "url": "https://code.visualstudio.com/docs/agents/run/agent-harnesses.md",
+   "url_effective": "https://code.visualstudio.com/docs/agents/run/agent-harnesses.md",
+   "version_source": null
+  },
+  {
+   "bytes": 30515,
+   "context_after": [
+    "* Choose **Cloud** for a well-scoped task that can run independently against a GitHub repository and return a pull request.",
+    ""
+   ],
+   "context_before": [
+    "* Choose **Copilot** for general coding tasks that use Copilot-provided models and capabilities. The [agents quickstart](/docs/agents/quickstart.md) uses this option.",
+    "* Choose **Local** when the task needs VS Code built-in tools, extension-provided tools, or a model configured in VS Code."
+   ],
+   "http_status": 200,
+   "id": "E-copilot-vscode-00631",
+   "locator": {
+    "heading": "Choose a session target",
+    "raw_line_end": 34,
+    "raw_line_start": 34
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "* Choose **Claude** or **Codex** when you already use that provider's agent workflow and want its supported project configuration and permission options while working in VS Code. Check [Claude setup and capabilities](#claude-preview) or [Codex setup and capabilities](#codex) before switching.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "1f66f3b52ae50b1d4a7ccf631abc64996f7c5bb2c4f0fe266f9fcc0f458acbe9",
+   "surface": "copilot-vscode",
+   "tier": "E1",
+   "url": "https://code.visualstudio.com/docs/agents/run/agent-harnesses.md",
+   "url_effective": "https://code.visualstudio.com/docs/agents/run/agent-harnesses.md",
+   "version_source": null
+  },
+  {
+   "bytes": 60762,
+   "context_after": [
+    "",
+    "### MCP settings"
+   ],
+   "context_before": [
+    "| `setting(github.copilot.chat.searchSubagent.subagentSemanticSearchEnabled)` _(Experimental)_<br/>Enable the semantic search tool for the Search subagent. This only affects the Search subagent and does not disable semantic search elsewhere. | `true` |",
+    "| `setting(chat.agent.thinking.collapsedTools)` _(Experimental)_<br/>Configure how tool calls are grouped with thinking content: `off` keeps tool calls separate, `withThinking` groups them only when thinking is present, and `always` always groups tool calls in collapsible sections. | `always` |"
+   ],
+   "http_status": 200,
+   "id": "E-copilot-vscode-00649",
+   "locator": {
+    "heading": "Agent behavior",
+    "raw_line_end": 123,
+    "raw_line_start": 123
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "| `setting(chat.agent.thinkingStyle)` _(Experimental)_<br/>Configure how thinking is rendered in chat: `collapsed` collapses thinking by default and can separate reasoning from grouped tool calls, `collapsedPreview` starts expanded and collapses after non-thinking content appears, and",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "f5138325f485ee68c9f5cdefb020bc46f9daf7b2a39ae3d7b65d2d31150be67c",
+   "surface": "copilot-vscode",
+   "tier": "E1",
+   "url": "https://code.visualstudio.com/docs/agents/reference/ai-settings.md",
+   "url_effective": "https://code.visualstudio.com/docs/agents/reference/ai-settings.md",
+   "version_source": null
+  },
+  {
+   "bytes": 30515,
+   "context_after": [
+    "| **Language model** | How the agent reasons, how quickly it responds, and how it consumes AI credits | **Auto** when it is available |",
+    "| **Permissions** | Which actions require your confirmation | **Manual permissions** |"
+   ],
+   "context_before": [
+    "|---------|--------------------|------------|",
+    "| **Session Target** | Which harness runs the session and where its tools operate | **Copilot** for a general coding task |"
+   ],
+   "http_status": 200,
+   "id": "E-copilot-vscode-00699",
+   "locator": {
+    "heading": "Understand the session controls",
+    "raw_line_end": 19,
+    "raw_line_start": 19
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "| **Agent** | Which instructions, tools, and behavior apply | **Agent** for implementation or **Plan** to review an approach first. Use **Ask** for questions when the selected target provides it. |",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "1f66f3b52ae50b1d4a7ccf631abc64996f7c5bb2c4f0fe266f9fcc0f458acbe9",
+   "surface": "copilot-vscode",
+   "tier": "E1",
+   "url": "https://code.visualstudio.com/docs/agents/run/agent-harnesses.md",
+   "url_effective": "https://code.visualstudio.com/docs/agents/run/agent-harnesses.md",
+   "version_source": null
+  },
+  {
+   "bytes": 30515,
+   "context_after": [
+    "* **Agent**: autonomously plans and performs complex coding tasks, edits files, runs commands, and iterates on results.",
+    "* **Plan**: researches a task and creates a structured implementation plan before code changes. Learn more about [planning in a Local session](/docs/agents/run/planning.md#plan-in-a-local-session)."
+   ],
+   "context_before": [
+    "Local sessions provide these built-in agent roles:",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-copilot-vscode-00714",
+   "locator": {
+    "heading": "Choose a built-in agent role",
+    "raw_line_end": 146,
+    "raw_line_start": 146
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "* **Ask**: asks questions and provides guidance without making changes to the code.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "1f66f3b52ae50b1d4a7ccf631abc64996f7c5bb2c4f0fe266f9fcc0f458acbe9",
+   "surface": "copilot-vscode",
+   "tier": "E1",
+   "url": "https://code.visualstudio.com/docs/agents/run/agent-harnesses.md",
+   "url_effective": "https://code.visualstudio.com/docs/agents/run/agent-harnesses.md",
+   "version_source": null
+  },
+  {
+   "bytes": 30515,
+   "context_after": [
+    "",
+    "Enterprise admins can enforce the preference with the `ChatEditorPreferCopilotHarness` device policy, available from version 1.134. Copilot sessions on Agent Host use the shared SDK hooks implementation and load Copilot Policy Hooks. Local sessions do not load SDK Policy Hooks. See [migrate hooks be"
+   ],
+   "context_before": [
+    "### Prefer Copilot for new editor-chat sessions",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-copilot-vscode-00717",
+   "locator": {
+    "heading": "Prefer Copilot for new editor-chat sessions",
+    "raw_line_end": 167,
+    "raw_line_start": 167
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "Enable `setting(chat.editor.preferCopilotHarness)` _(Experimental)_ to use the Copilot SDK harness when Local would otherwise be selected for a new editor-chat session. It does not migrate existing sessions or change explicit or remembered Claude and Codex selections.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "1f66f3b52ae50b1d4a7ccf631abc64996f7c5bb2c4f0fe266f9fcc0f458acbe9",
+   "surface": "copilot-vscode",
+   "tier": "E1",
+   "url": "https://code.visualstudio.com/docs/agents/run/agent-harnesses.md",
+   "url_effective": "https://code.visualstudio.com/docs/agents/run/agent-harnesses.md",
+   "version_source": null
+  },
+  {
+   "bytes": 30515,
+   "context_after": [
+    "* **Full Access**: edit files outside the workspace and use the internet without asking.",
+    ""
+   ],
+   "context_before": [
+    "",
+    "* **Default Permissions**: read and edit workspace files and run routine local commands. Codex asks before using the internet or accessing resources outside the workspace."
+   ],
+   "http_status": 200,
+   "id": "E-copilot-vscode-00741",
+   "locator": {
+    "heading": "Permissions and approvals",
+    "raw_line_end": 306,
+    "raw_line_start": 306
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "* **Auto-Review**: use the same workspace access as **Default Permissions**, but send approval requests to an automatic reviewer instead of prompting you.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "1f66f3b52ae50b1d4a7ccf631abc64996f7c5bb2c4f0fe266f9fcc0f458acbe9",
+   "surface": "copilot-vscode",
+   "tier": "E1",
+   "url": "https://code.visualstudio.com/docs/agents/run/agent-harnesses.md",
+   "url_effective": "https://code.visualstudio.com/docs/agents/run/agent-harnesses.md",
+   "version_source": null
+  },
+  {
+   "bytes": 15824,
+   "context_after": [
+    "",
+    "If the required operating system dependencies are unavailable, VS Code does not silently run the command without the sandbox. Follow the notification to install the missing dependency."
+   ],
+   "context_before": [
+    "If a setting or session toggle is locked, check [whether your organization manages sandboxing](#when-your-organization-manages-sandboxing).",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-copilot-vscode-00750",
+   "locator": {
+    "heading": "Turn on agent sandboxing",
+    "raw_line_end": 74,
+    "raw_line_start": 74
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "Sandboxing is independent of the selected [permission level](/docs/agents/run/approvals.md#permission-levels). For example, an enabled sandbox continues to restrict terminal commands even when you select **Allow all**.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "69acbf20f71c98dd411f89b454192f36e2081c5fe25ebf5d6f07b852619676b3",
+   "surface": "copilot-vscode",
+   "tier": "E1",
+   "url": "https://code.visualstudio.com/docs/agents/run/agent-sandboxing.md",
+   "url_effective": "https://code.visualstudio.com/docs/agents/run/agent-sandboxing.md",
+   "version_source": null
+  },
+  {
+   "bytes": 29455,
+   "context_after": [
+    "",
+    "The sessions list shows the session's status and change statistics while it works. The session is also available in the main VS Code window. Learn more about [managing sessions](/docs/agents/run/sessions/manage-sessions.md)."
+   ],
+   "context_before": [
+    "",
+    "    > [!TIP]"
+   ],
+   "http_status": 200,
+   "id": "E-copilot-vscode-00784",
+   "locator": {
+    "heading": "Start an agent session",
+    "raw_line_end": 127,
+    "raw_line_start": 127
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "    > To start a session in the background without leaving the current session, press `kbstyle(Alt+Enter)` or hold `kbstyle(Alt)` and select **Send**. The new session appears in the sessions list after you send the prompt.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "7d376b077871e031a1752867155832f6d2195cfcd32357260210231675abb435",
+   "surface": "copilot-vscode",
+   "tier": "E1",
+   "url": "https://code.visualstudio.com/docs/agents/run/agents-window.md",
+   "url_effective": "https://code.visualstudio.com/docs/agents/run/agents-window.md",
+   "version_source": null
+  },
+  {
+   "bytes": 30515,
+   "context_after": [
+    "",
+    "Choose Local for interactive tasks that need immediate feedback or access to editor context, such as diagnostics, test results, terminal output, or selections."
+   ],
+   "context_before": [
+    "<summary>Local</summary>",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-copilot-vscode-00799",
+   "locator": {
+    "heading": "Configure a harness or Cloud target",
+    "raw_line_end": 138,
+    "raw_line_start": 138
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "The Local harness runs interactively in the VS Code [extension host](/docs/agents/concepts/agent-host.md#behavior-on-the-extension-host) and works directly in your active workspace. It can use VS Code built-in tools, extension-provided tools, MCP servers, and the models configured in VS Code,",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "1f66f3b52ae50b1d4a7ccf631abc64996f7c5bb2c4f0fe266f9fcc0f458acbe9",
+   "surface": "copilot-vscode",
+   "tier": "E1",
+   "url": "https://code.visualstudio.com/docs/agents/run/agent-harnesses.md",
+   "url_effective": "https://code.visualstudio.com/docs/agents/run/agent-harnesses.md",
+   "version_source": null
+  },
+  {
+   "bytes": 30515,
+   "context_after": [
+    "",
+    "</details>"
+   ],
+   "context_before": [
+    "* **Plan**: researches a task and creates a structured implementation plan before code changes. Learn more about [planning in a Local session](/docs/agents/run/planning.md#plan-in-a-local-session).",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-copilot-vscode-00800",
+   "locator": {
+    "heading": "Choose a built-in agent role",
+    "raw_line_end": 150,
+    "raw_line_start": 150
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "You can switch roles during a session from the agent picker.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "1f66f3b52ae50b1d4a7ccf631abc64996f7c5bb2c4f0fe266f9fcc0f458acbe9",
+   "surface": "copilot-vscode",
+   "tier": "E1",
+   "url": "https://code.visualstudio.com/docs/agents/run/agent-harnesses.md",
+   "url_effective": "https://code.visualstudio.com/docs/agents/run/agent-harnesses.md",
+   "version_source": null
+  },
+  {
+   "bytes": 13699,
+   "context_after": [
+    "",
+    "**Assisted permissions** is available only for supported sessions that run on the [Agent Host](/docs/agents/concepts/agent-host.md). For the Copilot harness, choose **Folder** isolation because worktree sessions always use **Allow all**."
+   ],
+   "context_before": [
+    "Permission levels control how the agent handles approvals for the current chat session. Select a level from the permissions dropdown in the chat input. You can change it at any time.",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-copilot-vscode-00898",
+   "locator": {
+    "heading": "Permission levels",
+    "raw_line_end": 31,
+    "raw_line_start": 31
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "New sessions use the level configured by `setting(chat.permissions.default)`.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "1b48720182aad85c1289f9d2705f05956cf931397a85a0b67a0bfcbcf21bbafe",
+   "surface": "copilot-vscode",
+   "tier": "E1",
+   "url": "https://code.visualstudio.com/docs/agents/run/approvals.md",
+   "url_effective": "https://code.visualstudio.com/docs/agents/run/approvals.md",
+   "version_source": null
+  },
+  {
+   "bytes": 13699,
+   "context_after": [
+    "| **Allow all** | Runs all tool calls without confirmation. |",
+    ""
+   ],
+   "context_before": [
+    "|---|---|",
+    "| **Manual permissions** (default) | Uses your tool, URL, and terminal approval settings. Actions that are not auto-approved require your confirmation. |"
+   ],
+   "http_status": 200,
+   "id": "E-copilot-vscode-00902",
+   "locator": {
+    "heading": "Permission levels",
+    "raw_line_end": 42,
+    "raw_line_start": 42
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "| **Assisted permissions** | Uses an LLM judge to assess each tool call. Calls that the judge does not approve require your confirmation. |",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "1b48720182aad85c1289f9d2705f05956cf931397a85a0b67a0bfcbcf21bbafe",
+   "surface": "copilot-vscode",
+   "tier": "E1",
+   "url": "https://code.visualstudio.com/docs/agents/run/approvals.md",
+   "url_effective": "https://code.visualstudio.com/docs/agents/run/approvals.md",
+   "version_source": null
+  },
+  {
+   "bytes": 13699,
+   "context_after": [
+    "",
+    "Sandboxing is independent of the permission level. **Allow all** and **Autopilot** skip approval prompts, but an enabled sandbox still restricts terminal file system and network access. Because sandboxing applies only to terminal commands, use tool and URL approvals to control other actions with **M"
+   ],
+   "context_before": [
+    "| **Manual permissions** (default) | Uses your tool, URL, and terminal approval settings. Actions that are not auto-approved require your confirmation. |",
+    "| **Assisted permissions** | Uses an LLM judge to assess each tool call. Calls that the judge does not approve require your confirmation. |"
+   ],
+   "http_status": 200,
+   "id": "E-copilot-vscode-00903",
+   "locator": {
+    "heading": "Permission levels",
+    "raw_line_end": 43,
+    "raw_line_start": 43
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "| **Allow all** | Runs all tool calls without confirmation. |",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "1b48720182aad85c1289f9d2705f05956cf931397a85a0b67a0bfcbcf21bbafe",
+   "surface": "copilot-vscode",
+   "tier": "E1",
+   "url": "https://code.visualstudio.com/docs/agents/run/approvals.md",
+   "url_effective": "https://code.visualstudio.com/docs/agents/run/approvals.md",
+   "version_source": null
+  },
+  {
+   "bytes": 13699,
+   "context_after": [
+    "",
+    "* Auto-approves all tools, like **Allow all**."
+   ],
+   "context_before": [
+    "### How Autopilot works",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-copilot-vscode-00906",
+   "locator": {
+    "heading": "How Autopilot works",
+    "raw_line_end": 55,
+    "raw_line_start": 55
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "**Autopilot** is an agent mode, not a permission level. Select it from the mode picker in the chat input to let the agent work autonomously until it determines that the task is complete. Autopilot:",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "1b48720182aad85c1289f9d2705f05956cf931397a85a0b67a0bfcbcf21bbafe",
+   "surface": "copilot-vscode",
+   "tier": "E1",
+   "url": "https://code.visualstudio.com/docs/agents/run/approvals.md",
+   "url_effective": "https://code.visualstudio.com/docs/agents/run/approvals.md",
+   "version_source": null
+  },
+  {
+   "bytes": 10430,
+   "context_after": [
+    "",
+    "1. Answer the agent's clarifying questions as it researches your project. For example, agree on a pagination approach and defaults before it finalizes the plan. If you're unsure, ask it to recommend an approach and explain the tradeoffs."
+   ],
+   "context_before": [
+    "    ```",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-copilot-vscode-00936",
+   "locator": {
+    "heading": "How to plan a task",
+    "raw_line_end": 40,
+    "raw_line_start": 40
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "    `/plan` switches the session to Plan mode and submits your request. Alternatively, select **Plan** from the agent mode picker and enter the task without the slash command.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "196e46aa6855997c85801353f48b077f5e4c55da81411029d966d60be8bb08e4",
+   "surface": "copilot-vscode",
+   "tier": "E1",
+   "url": "https://code.visualstudio.com/docs/agents/run/planning.md",
+   "url_effective": "https://code.visualstudio.com/docs/agents/run/planning.md",
+   "version_source": null
+  },
+  {
+   "bytes": 10430,
+   "context_after": [
+    "",
+    "* **Add tools (Experimental).** Use `setting(github.copilot.chat.planAgent.additionalTools)` to add research tools. Additional tools can expand the agent's capabilities beyond its default read-only project access."
+   ],
+   "context_before": [
+    "These options apply to the built-in Plan agent in Local sessions, not to Copilot Plan mode:",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-copilot-vscode-00949",
+   "locator": {
+    "heading": "Local planning settings",
+    "raw_line_end": 142,
+    "raw_line_start": 142
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "* **Choose default models.** Use `setting(chat.planAgent.defaultModel)` for planning. The experimental `setting(github.copilot.chat.implementAgent.model)` setting selects the model used by **Start Implementation** in the current conversation.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "196e46aa6855997c85801353f48b077f5e4c55da81411029d966d60be8bb08e4",
+   "surface": "copilot-vscode",
+   "tier": "E1",
+   "url": "https://code.visualstudio.com/docs/agents/run/planning.md",
+   "url_effective": "https://code.visualstudio.com/docs/agents/run/planning.md",
+   "version_source": null
+  },
+  {
+   "bytes": 10430,
+   "context_after": [
+    "",
+    "## Related resources"
+   ],
+   "context_before": [
+    "* **Add tools (Experimental).** Use `setting(github.copilot.chat.planAgent.additionalTools)` to add research tools. Additional tools can expand the agent's capabilities beyond its default read-only project access.",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-copilot-vscode-00951",
+   "locator": {
+    "heading": "Local planning settings",
+    "raw_line_end": 146,
+    "raw_line_start": 146
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "* **Let Agent switch to Plan (Experimental).** With `setting(github.copilot.chat.switchAgent.enabled)` enabled, Agent can choose to switch to Plan for research or complex tasks. The model decides when to switch. Use `/plan` when you want to start the dedicated workflow explicitly.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "196e46aa6855997c85801353f48b077f5e4c55da81411029d966d60be8bb08e4",
+   "surface": "copilot-vscode",
+   "tier": "E1",
+   "url": "https://code.visualstudio.com/docs/agents/run/planning.md",
+   "url_effective": "https://code.visualstudio.com/docs/agents/run/planning.md",
+   "version_source": null
+  },
+  {
+   "bytes": 17054,
+   "context_after": [
+    "",
+    "For example, create `.github/agents/codebase-researcher.agent.md` in your workspace with this content. See [Create a custom agent](/docs/agent-customization/custom-agents.md#create-a-custom-agent) for other ways to create the file."
+   ],
+   "context_before": [
+    "### Run a custom agent as a subagent",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-copilot-vscode-01007",
+   "locator": {
+    "heading": "Run a custom agent as a subagent",
+    "raw_line_end": 76,
+    "raw_line_start": 76
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "In Local sessions, a subagent inherits the main agent's instructions and selected tools unless you specify a [custom agent](/docs/agent-customization/custom-agents.md). A custom agent provides task-specific instructions and can override the tools and [model](#select-the-model-for-a-subagent).",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "bab1e3d7b5d5e35fa0a7c74dd428272531ad92d43f3990ba10135a097158caa7",
+   "surface": "copilot-vscode",
+   "tier": "E1",
+   "url": "https://code.visualstudio.com/docs/agents/run/subagents.md",
+   "url_effective": "https://code.visualstudio.com/docs/agents/run/subagents.md",
+   "version_source": null
+  },
+  {
+   "bytes": 17054,
+   "context_after": [
+    "",
+    "The deprecated `infer` property is replaced by these two properties."
+   ],
+   "context_before": [
+    "",
+    "* `user-invocable` controls visibility in the agents dropdown. Set it to `false` to hide a subagent-only helper such as Codebase Researcher. The default is `true`."
+   ],
+   "http_status": 200,
+   "id": "E-copilot-vscode-01010",
+   "locator": {
+    "heading": "Control how a custom agent is invoked",
+    "raw_line_end": 105,
+    "raw_line_start": 105
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "* `disable-model-invocation` controls whether other agents can invoke it as a subagent. The default is `false`.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "bab1e3d7b5d5e35fa0a7c74dd428272531ad92d43f3990ba10135a097158caa7",
+   "surface": "copilot-vscode",
+   "tier": "E1",
+   "url": "https://code.visualstudio.com/docs/agents/run/subagents.md",
+   "url_effective": "https://code.visualstudio.com/docs/agents/run/subagents.md",
+   "version_source": null
+  },
+  {
+   "bytes": 17054,
+   "context_after": [
+    "",
+    "If Auto is unavailable, the subagent uses the main conversation's model."
+   ],
+   "context_before": [
+    "`feature(subagent-auto-model-selection)`",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-copilot-vscode-01018",
+   "locator": {
+    "heading": "Use Auto for subagents",
+    "raw_line_end": 143,
+    "raw_line_start": 143
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "Enable `setting(chat.subagents.defaultToAuto)` to use Auto instead of the main model when neither the tool call nor the agent specifies a model. The setting defaults to `false` and doesn't override an inherited custom agent's model configuration.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "bab1e3d7b5d5e35fa0a7c74dd428272531ad92d43f3990ba10135a097158caa7",
+   "surface": "copilot-vscode",
+   "tier": "E1",
+   "url": "https://code.visualstudio.com/docs/agents/run/subagents.md",
+   "url_effective": "https://code.visualstudio.com/docs/agents/run/subagents.md",
+   "version_source": null
+  },
+  {
+   "bytes": 17054,
+   "context_after": [
+    "",
+    "Keep recursive tasks bounded, and include a stopping condition so agents don't repeatedly delegate the same work."
+   ],
+   "context_before": [
+    "### Nested subagents",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-copilot-vscode-01020",
+   "locator": {
+    "heading": "Nested subagents",
+    "raw_line_end": 151,
+    "raw_line_start": 151
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "Local subagents cannot invoke further subagents by default. For a workflow that delegates work recursively, enable `setting(chat.subagents.allowInvocationsFromSubagents)` (`false` by default). Nesting is limited to a maximum depth of five.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "bab1e3d7b5d5e35fa0a7c74dd428272531ad92d43f3990ba10135a097158caa7",
+   "surface": "copilot-vscode",
+   "tier": "E1",
+   "url": "https://code.visualstudio.com/docs/agents/run/subagents.md",
+   "url_effective": "https://code.visualstudio.com/docs/agents/run/subagents.md",
+   "version_source": null
+  },
+  {
+   "bytes": 15279,
+   "context_after": [
+    "",
+    "{% tabs id=\"select-tools-by-harness\" %}"
+   ],
+   "context_before": [
+    "## Select tools for a request",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-copilot-vscode-01030",
+   "locator": {
+    "heading": "Select tools for a request",
+    "raw_line_end": 69,
+    "raw_line_start": 69
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "The Local and Copilot harnesses use different controls to select client-side tools.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "e1b3149b84eeac04c79a3bae17aed36690151de93c1b025565e1fc0a4915f227",
+   "surface": "copilot-vscode",
+   "tier": "E1",
+   "url": "https://code.visualstudio.com/docs/agents/run/tools.md",
+   "url_effective": "https://code.visualstudio.com/docs/agents/run/tools.md",
+   "version_source": null
+  },
+  {
+   "bytes": 6026,
+   "context_after": [
+    "",
+    "If you change the model during an inline chat session, the selection persists for the remainder of the session. After you reload VS Code, the model resets to the value specified in the `setting(inlineChat.defaultModel)` setting."
+   ],
+   "context_before": [
+    "## Change the model for inline chat",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-copilot-vscode-01033",
+   "locator": {
+    "heading": "Change the model for inline chat",
+    "raw_line_end": 73,
+    "raw_line_start": 73
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "You can change the language model that is used for editor inline chat. To configure the default model for inline chat, use the `setting(inlineChat.defaultModel)` setting. The setting lists all available models from the model picker.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "c7aadab4d10a4b1bef54ed7924630f6badc22bfe4f5ae929572e4921dcd56805",
+   "surface": "copilot-vscode",
+   "tier": "E1",
+   "url": "https://code.visualstudio.com/docs/chat/inline-chat.md",
+   "url_effective": "https://code.visualstudio.com/docs/chat/inline-chat.md",
+   "version_source": null
+  },
+  {
+   "bytes": 53483,
+   "context_after": [
+    "",
+    "* `efficiency` favors lower AI credit consumption."
+   ],
+   "context_before": [
+    "### Set a default Auto tier",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-copilot-vscode-01056",
+   "locator": {
+    "heading": "Set a default Auto tier",
+    "raw_line_end": 183,
+    "raw_line_start": 183
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "When the default model is **Auto**, set the `autoTier` Copilot managed setting to choose how new chats initially optimize model routing:",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "c767863ad01744802d8f8efc5dd80c5ede94a05ded776d1f0dd273b2bdec31cc",
+   "surface": "copilot-vscode",
+   "tier": "E1",
+   "url": "https://code.visualstudio.com/docs/enterprise/manage-ai-settings.md",
+   "url_effective": "https://code.visualstudio.com/docs/enterprise/manage-ai-settings.md",
+   "version_source": null
+  },
+  {
+   "bytes": 17054,
+   "context_after": [
+    "",
+    "> [!NOTE]"
+   ],
+   "context_before": [
+    "## Subagents by harness",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-copilot-vscode-01094",
+   "locator": {
+    "heading": "Subagents by harness",
+    "raw_line_end": 29,
+    "raw_line_start": 29
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "Your [agent harness](/docs/agents/run/agent-harnesses.md#choose-a-session-target) determines how subagents run and which configuration options they support. Select the harness when you [start a session](/docs/agents/run/agent-harnesses.md#start-a-session).",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "bab1e3d7b5d5e35fa0a7c74dd428272531ad92d43f3990ba10135a097158caa7",
+   "surface": "copilot-vscode",
+   "tier": "E1",
+   "url": "https://code.visualstudio.com/docs/agents/run/subagents.md",
+   "url_effective": "https://code.visualstudio.com/docs/agents/run/subagents.md",
+   "version_source": null
+  },
+  {
+   "bytes": 31726,
+   "context_after": [
+    "| `ChatEditorPreferCopilotHarness`<br>`setting(chat.editor.preferCopilotHarness)` | <span data-min-version=\"1.134\">Configure whether VS Code uses the Agent Host Copilot SDK instead of the local harness for new editor chat sessions.</span> |",
+    "| `ChatAgentExtensionTools`<br>`setting(chat.extensionTools.enabled)` | <span data-min-version=\"1.99\">Enable using tools contributed by third-party extensions.</span> |"
+   ],
+   "context_before": [
+    "| `ChatApprovedAccountOrganizations` | <span data-min-version=\"1.118\">Setting this policy to a non-empty list activates the Approved Account gate: all AI features are disabled until the user signs into a GitHub account whose organizations intersect this list AND the account-side policy data has reso",
+    "| `ChatStrictPluginOnlyCustomization` | <span data-min-version=\"1.132\">Blocks standalone user and workspace skills, agents, hooks, instructions, and MCP servers while keeping eligible plugin customizations available.</span> |"
+   ],
+   "http_status": 200,
+   "id": "E-copilot-vscode-01178",
+   "locator": {
+    "heading": "VS Code enterprise policy reference",
+    "raw_line_end": 347,
+    "raw_line_start": 347
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "| `ChatDefaultModel`<br>`setting(chat.defaultModel)` | <span data-min-version=\"1.127\">Sets the default chat model for new conversations. Accepts \"auto\", a model family name (such as \"opus\" or \"gemini\"), or a full model id. Users can still switch the model within a conversation.</span> |",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "0f81b03d019df9745a03daf1c272b297e99b11ec79f8af6389f414b768f98859",
+   "surface": "copilot-vscode",
+   "tier": "E1",
+   "url": "https://code.visualstudio.com/docs/enterprise/policies.md",
+   "url_effective": "https://code.visualstudio.com/docs/enterprise/policies.md",
+   "version_source": null
+  },
+  {
+   "bytes": 31726,
+   "context_after": [
+    "| `ChatToolsTerminalEnableAutoApprove`<br>`setting(chat.tools.terminal.enableAutoApprove)` | <span data-min-version=\"1.104\">Controls whether to allow auto approval in the run in terminal tool.</span> |",
+    "| `ChatHooks`<br>`setting(chat.useHooks)` | <span data-min-version=\"1.109\">Controls whether chat hooks are executed at strategic points during an agent's workflow. Hooks are loaded from the files configured in `#chat.hookFilesLocations#`. This setting is only used by the Local agent harness.</span> "
+   ],
+   "context_before": [
+    "| `CopilotSessionSync`<br>`setting(chat.sessionSync.enabled)` | <span data-min-version=\"1.121\">Enable session sync to GitHub.com for cross-device Copilot session history. When disabled by organization policy, session data is kept local only.</span> |",
+    "| `ChatToolsEligibleForAutoApproval`<br>`setting(chat.tools.eligibleForAutoApproval)` | <span data-min-version=\"1.107\">Controls which tools are eligible for automatic approval. Tools set to 'false' will always present a confirmation and will never offer the option to auto-approve. The default behavi"
+   ],
+   "http_status": 200,
+   "id": "E-copilot-vscode-01186",
+   "locator": {
+    "heading": "VS Code enterprise policy reference",
+    "raw_line_end": 362,
+    "raw_line_start": 362
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "| <span data-min-version=\"1.99\">Global auto approve also known as \"YOLO mode\" disables manual approval completely for all tools in all workspaces, allowing the agent to act fully autonomously. This is extremely dangerous and is *never* recommended, even containerized environments like",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "0f81b03d019df9745a03daf1c272b297e99b11ec79f8af6389f414b768f98859",
+   "surface": "copilot-vscode",
+   "tier": "E1",
+   "url": "https://code.visualstudio.com/docs/enterprise/policies.md",
+   "url_effective": "https://code.visualstudio.com/docs/enterprise/policies.md",
+   "version_source": null
+  },
+  {
+   "bytes": 6396,
+   "context_after": [
+    "",
+    "### Bypass approvals"
+   ],
+   "context_before": [
+    "### Default approvals",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-copilot-vscode-01206",
+   "locator": {
+    "heading": "Default approvals",
+    "raw_line_end": 41,
+    "raw_line_start": 41
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "The default mode. Copilot follows configured settings and shows confirmation dialogs where required. This is the right starting point when learning what the agent does or when working on something sensitive.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "96e762879f8ee9831892ab8eec7b1f9513c1a15ae1d0e96eb342328643ae5d7b",
+   "surface": "copilot-vscode",
+   "tier": "E1",
+   "url": "https://code.visualstudio.com/learn/foundations/approvals-autonomy-and-context-budget.md",
+   "url_effective": "https://code.visualstudio.com/learn/foundations/approvals-autonomy-and-context-budget.md",
+   "version_source": null
+  },
+  {
+   "bytes": 6396,
+   "context_after": [
+    "",
+    "With Bypass Approvals, the agent still stops and waits if it has a blocking question that requires a decision. You've removed the security prompts, but you're still in the loop for judgment calls."
+   ],
+   "context_before": [
+    "### Bypass approvals",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-copilot-vscode-01207",
+   "locator": {
+    "heading": "Bypass approvals",
+    "raw_line_end": 45,
+    "raw_line_start": 45
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "Auto-approves all tool calls and automatically retries when it hits errors. You're stepping back from step-by-step oversight and letting everything run uninterrupted.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "96e762879f8ee9831892ab8eec7b1f9513c1a15ae1d0e96eb342328643ae5d7b",
+   "surface": "copilot-vscode",
+   "tier": "E1",
+   "url": "https://code.visualstudio.com/learn/foundations/approvals-autonomy-and-context-budget.md",
+   "url_effective": "https://code.visualstudio.com/learn/foundations/approvals-autonomy-and-context-budget.md",
+   "version_source": null
+  },
+  {
+   "bytes": 8193,
+   "context_after": [
+    "",
+    "You can think of the harness like a wiring harness in a car. The engine still does the work, but the harness connects it to the dashboard, controls, and sensors so that power becomes usable."
+   ],
+   "context_before": [
+    "## The harness",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-copilot-vscode-01218",
+   "locator": {
+    "heading": "The harness",
+    "raw_line_end": 29,
+    "raw_line_start": 29
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "In VS Code, the GitHub Copilot Chat panel is your harness. The harness is the software layer that wraps around the model and handles everything except the thinking.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "8fb07506dd369da424380b189a5d83d261f28bbf2d7219def1d8721a441c302f",
+   "surface": "copilot-vscode",
+   "tier": "E1",
+   "url": "https://code.visualstudio.com/learn/foundations/introduction-to-agent-first-development.md",
+   "url_effective": "https://code.visualstudio.com/learn/foundations/introduction-to-agent-first-development.md",
+   "version_source": null
+  },
+  {
+   "bytes": 8193,
+   "context_after": [
+    "| Plan | Outlines what it would do, but waits for approval before acting. |",
+    "| Agent | Full autonomy. It plans, executes, and iterates until the task is done. |"
+   ],
+   "context_before": [
+    "| Mode | Behavior |",
+    "| --- | --- |"
+   ],
+   "http_status": 200,
+   "id": "E-copilot-vscode-01221",
+   "locator": {
+    "heading": "Agent modes",
+    "raw_line_end": 45,
+    "raw_line_start": 45
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "| Ask | Back-and-forth conversation. No edits and no commands. |",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "8fb07506dd369da424380b189a5d83d261f28bbf2d7219def1d8721a441c302f",
+   "surface": "copilot-vscode",
+   "tier": "E1",
+   "url": "https://code.visualstudio.com/learn/foundations/introduction-to-agent-first-development.md",
+   "url_effective": "https://code.visualstudio.com/learn/foundations/introduction-to-agent-first-development.md",
+   "version_source": null
+  },
+  {
+   "bytes": 8193,
+   "context_after": [
+    "| Agent | Full autonomy. It plans, executes, and iterates until the task is done. |",
+    ""
+   ],
+   "context_before": [
+    "| --- | --- |",
+    "| Ask | Back-and-forth conversation. No edits and no commands. |"
+   ],
+   "http_status": 200,
+   "id": "E-copilot-vscode-01222",
+   "locator": {
+    "heading": "Agent modes",
+    "raw_line_end": 46,
+    "raw_line_start": 46
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "| Plan | Outlines what it would do, but waits for approval before acting. |",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "8fb07506dd369da424380b189a5d83d261f28bbf2d7219def1d8721a441c302f",
+   "surface": "copilot-vscode",
+   "tier": "E1",
+   "url": "https://code.visualstudio.com/learn/foundations/introduction-to-agent-first-development.md",
+   "url_effective": "https://code.visualstudio.com/learn/foundations/introduction-to-agent-first-development.md",
+   "version_source": null
+  },
+  {
+   "bytes": 8193,
+   "context_after": [
+    "* **Medium**, balanced reasoning and speed. Good for refactoring, code reviews, and standard implementations.",
+    "* **High**, maximum reasoning depth. Best for architecture decisions, multi-file refactors, and difficult debugging."
+   ],
+   "context_before": [
+    "You can control how deeply the model thinks through thinking effort levels.",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-copilot-vscode-01226",
+   "locator": {
+    "heading": "The model",
+    "raw_line_end": 59,
+    "raw_line_start": 59
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "* **Low**, less reasoning and faster responses. Best for formatting, boilerplate, and simple fixes.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "8fb07506dd369da424380b189a5d83d261f28bbf2d7219def1d8721a441c302f",
+   "surface": "copilot-vscode",
+   "tier": "E1",
+   "url": "https://code.visualstudio.com/learn/foundations/introduction-to-agent-first-development.md",
+   "url_effective": "https://code.visualstudio.com/learn/foundations/introduction-to-agent-first-development.md",
+   "version_source": null
+  },
+  {
+   "bytes": 8193,
+   "context_after": [
+    "",
+    "There's also **Auto**, which selects the best available model based on capacity and performance - reducing rate limiting, latency, and errors."
+   ],
+   "context_before": [
+    "* **Low**, less reasoning and faster responses. Best for formatting, boilerplate, and simple fixes.",
+    "* **Medium**, balanced reasoning and speed. Good for refactoring, code reviews, and standard implementations."
+   ],
+   "http_status": 200,
+   "id": "E-copilot-vscode-01227",
+   "locator": {
+    "heading": "The model",
+    "raw_line_end": 61,
+    "raw_line_start": 61
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "* **High**, maximum reasoning depth. Best for architecture decisions, multi-file refactors, and difficult debugging.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "8fb07506dd369da424380b189a5d83d261f28bbf2d7219def1d8721a441c302f",
+   "surface": "copilot-vscode",
+   "tier": "E1",
+   "url": "https://code.visualstudio.com/learn/foundations/introduction-to-agent-first-development.md",
+   "url_effective": "https://code.visualstudio.com/learn/foundations/introduction-to-agent-first-development.md",
+   "version_source": null
+  },
+  {
+   "bytes": 9199,
+   "context_after": [
+    "",
+    "## Planning with the Plan agent"
+   ],
+   "context_before": [
+    "For a project spanning multiple files - database schema, API routing, frontend, integration between them - set thinking effort to High. The model will reason more deeply about how the pieces fit together before writing code.",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-copilot-vscode-01328",
+   "locator": {
+    "heading": "Choosing the right model",
+    "raw_line_end": 15,
+    "raw_line_start": 15
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "Open a fresh chat session, click the model picker, and set thinking effort to High.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "ad09a4e91044b85f4feded5f3e2c7556a8b57df24fc8417f15c453467eca2914",
+   "surface": "copilot-vscode",
+   "tier": "E1",
+   "url": "https://code.visualstudio.com/learn/foundations/build-your-first-app-with-agent-mode.md",
+   "url_effective": "https://code.visualstudio.com/learn/foundations/build-your-first-app-with-agent-mode.md",
+   "version_source": null
+  },
+  {
+   "bytes": 8193,
+   "context_after": [
+    "* **High**, maximum reasoning depth. Best for architecture decisions, multi-file refactors, and difficult debugging.",
+    ""
+   ],
+   "context_before": [
+    "",
+    "* **Low**, less reasoning and faster responses. Best for formatting, boilerplate, and simple fixes."
+   ],
+   "http_status": 200,
+   "id": "E-copilot-vscode-01336",
+   "locator": {
+    "heading": "The model",
+    "raw_line_end": 60,
+    "raw_line_start": 60
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "* **Medium**, balanced reasoning and speed. Good for refactoring, code reviews, and standard implementations.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "8fb07506dd369da424380b189a5d83d261f28bbf2d7219def1d8721a441c302f",
+   "surface": "copilot-vscode",
+   "tier": "E1",
+   "url": "https://code.visualstudio.com/learn/foundations/introduction-to-agent-first-development.md",
+   "url_effective": "https://code.visualstudio.com/learn/foundations/introduction-to-agent-first-development.md",
+   "version_source": null
+  },
+  {
+   "bytes": 18663,
+   "context_after": [
+    "",
+    "### Does switching between the Chat view and Agents window start a new session?"
+   ],
+   "context_before": [
+    "### Can I continue a VS Code Copilot session in the terminal?",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-copilot-vscode-01811",
+   "locator": {
+    "heading": "Can I continue a VS Code Copilot session in the terminal?",
+    "raw_line_end": 198,
+    "raw_line_start": 198
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "Yes, open a Copilot session's context menu and select **Resume in Terminal** to continue it with GitHub Copilot CLI. Learn about [using Copilot CLI in the integrated terminal](/docs/agents/run/agent-harnesses.md#use-copilot-cli-from-the-terminal).",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "94616d0f87ade1f75acdd7b06471eec1751acdcae9d7147a67f48819bfb1048a",
+   "surface": "copilot-vscode",
+   "tier": "E1",
+   "url": "https://code.visualstudio.com/docs/agents/agent-troubleshooting/faq.md",
+   "url_effective": "https://code.visualstudio.com/docs/agents/agent-troubleshooting/faq.md",
+   "version_source": null
+  },
+  {
+   "bytes": 21262,
+   "context_after": [
+    "",
+    "For more information, find practical [prompt examples](https://docs.github.com/en/copilot/copilot-chat-cookbook) in the GitHub Copilot documentation."
+   ],
+   "context_before": [
+    "* **Tell the AI to ask clarifying questions.** If a task is ambiguous, instruct the AI to ask you questions before proceeding. This leads to more accurate results than guessing at requirements.",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-copilot-vscode-01851",
+   "locator": {
+    "heading": "Write effective prompts",
+    "raw_line_end": 86,
+    "raw_line_start": 86
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "* **Parallel tasks.** If you have multiple independent tasks, ask the AI to run them in parallel to save time. For example, \"Perform isolated research about X and Y in parallel and summarize the findings.\"",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "fe233efc3b1305c99bfc286576c0f71caa17e79ed4db5cc4f27c6f41f2e1c6ce",
+   "surface": "copilot-vscode",
+   "tier": "E1",
+   "url": "https://code.visualstudio.com/docs/agents/best-practices.md",
+   "url_effective": "https://code.visualstudio.com/docs/agents/best-practices.md",
+   "version_source": null
+  },
+  {
+   "bytes": 9909,
+   "context_after": [
+    "| **Cloud** | The provider harness for the cloud agent that you select, such as Copilot, Claude, or Codex. | The provider's cloud infrastructure, working against a GitHub repository and returning the result through a pull request. |",
+    ""
+   ],
+   "context_before": [
+    "|-----------------------|---------|-----------------------|",
+    "| **Local** | The built-in VS Code harness. It can use built-in tools, extension tools, MCP servers, and models configured in VS Code. | The extension host on your machine. |"
+   ],
+   "http_status": 200,
+   "id": "E-copilot-vscode-01880",
+   "locator": {
+    "heading": "Map session targets to harnesses",
+    "raw_line_end": 65,
+    "raw_line_start": 65
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "| **Copilot, Claude, or Codex** | The corresponding provider harness and its provider-specific capabilities. | Your machine, a connected host, or a Dev Container, depending on the host and available harness. |",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "0d3b8eb0125dd0112ca7d1f653186de3bf5576e5ae2dbaa74cddb75bd3d52c8f",
+   "surface": "copilot-vscode",
+   "tier": "E1",
+   "url": "https://code.visualstudio.com/docs/agents/concepts/agent-harnesses.md",
+   "url_effective": "https://code.visualstudio.com/docs/agents/concepts/agent-harnesses.md",
+   "version_source": null
+  },
+  {
+   "bytes": 8782,
+   "context_after": [
+    "",
+    "## Agent Host Protocol"
+   ],
+   "context_before": [
+    "The first-party agent adapters run inside the Agent Host process. An adapter translates between its agent runtime and the common AHP session model.",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-copilot-vscode-01895",
+   "locator": {
+    "heading": "Process architecture",
+    "raw_line_end": 31,
+    "raw_line_start": 31
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "The Agent Host lives next to the workspace. It can run on your machine, inside a Dev Container, or on a remote machine. File edits and commands run in the environment that contains the host.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "d4f3abeb08750d76b15771a14cb5b2c22958a327d3c09aa8a6a5a507b5962877",
+   "surface": "copilot-vscode",
+   "tier": "E1",
+   "url": "https://code.visualstudio.com/docs/agents/concepts/agent-host.md",
+   "url_effective": "https://code.visualstudio.com/docs/agents/concepts/agent-host.md",
+   "version_source": null
+  },
+  {
+   "bytes": 10146,
+   "context_after": [
+    "* **Continue in the cloud**: hand off a well-scoped task to the [Cloud target](/docs/agents/run/agent-harnesses.md#start-a-cloud-session) for remote execution and a pull request workflow.",
+    ""
+   ],
+   "context_before": [
+    "",
+    "* **Harness to harness**: continue a Copilot session with Claude or Codex to use provider-specific capabilities."
+   ],
+   "http_status": 200,
+   "id": "E-copilot-vscode-01967",
+   "locator": {
+    "heading": "Hand off a session",
+    "raw_line_end": 66,
+    "raw_line_start": 66
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "* **Plan to implementation**: use the [Plan agent](/docs/agents/run/planning.md) to produce a reviewed plan, then hand off to an implementation agent.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "aab099e00dd6bba1b854ec3749043d31404b7a95b778b4183911b5f3b4cd2e52",
+   "surface": "copilot-vscode",
+   "tier": "E1",
+   "url": "https://code.visualstudio.com/docs/agents/concepts/sessions.md",
+   "url_effective": "https://code.visualstudio.com/docs/agents/concepts/sessions.md",
+   "version_source": null
+  },
+  {
+   "bytes": 19663,
+   "context_after": [
+    "",
+    "> [!NOTE]"
+   ],
+   "context_before": [
+    "For this walkthrough, work in the current folder. If you're using the Agents window, leave **New Worktree** unselected so new sessions can access your uncommitted customization files.",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-copilot-vscode-02028",
+   "locator": {
+    "heading": "Prerequisites",
+    "raw_line_end": 21,
+    "raw_line_start": 21
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "Choose the tabs for your **harness**, not your language model. For example, a Claude model in a Copilot session still uses the Copilot harness.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "e6823ab62f8bab0c51267fc6c9a3ecfe53aecdc44562929123c58fbc3392f67a",
+   "surface": "copilot-vscode",
+   "tier": "E1",
+   "url": "https://code.visualstudio.com/docs/agents/guides/customize-copilot-guide.md",
+   "url_effective": "https://code.visualstudio.com/docs/agents/guides/customize-copilot-guide.md",
+   "version_source": null
+  },
+  {
+   "bytes": 8466,
+   "context_after": [
+    "",
+    "For instructions about starting and working with sessions, see [Use the Agents window](/docs/agents/run/agents-window.md)."
+   ],
+   "context_before": [
+    "# Configure the Agents window",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-copilot-vscode-02441",
+   "locator": {
+    "heading": "Configure the Agents window",
+    "raw_line_end": 5,
+    "raw_line_start": 5
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "The Agents window uses the AI providers and accounts configured in VS Code. It shares settings and the default profile with the main VS Code window. This article describes the shared account options and the window-specific layout, editor, setting, and extension configuration.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "d7926a3ad01a8cf7de3641dd1ad3d9476a2a042e21325ed9157758065cbecdd5",
+   "surface": "copilot-vscode",
+   "tier": "E1",
+   "url": "https://code.visualstudio.com/docs/agents/run/agents-window-configuration.md",
+   "url_effective": "https://code.visualstudio.com/docs/agents/run/agents-window-configuration.md",
+   "version_source": null
+  },
+  {
+   "bytes": 7755,
+   "context_after": [
+    "",
+    "## Share an automation"
+   ],
+   "context_before": [
+    "* Keep the machine that runs the automation awake and its agent available. Agent Host-backed schedules require a running Agent Host process. Other schedules require a running VS Code window. Don't assume that local automations continue after you quit the application.",
+    "* After an interruption, a missed schedule can trigger a catch-up run. Don't rely on every missed occurrence being replayed."
+   ],
+   "http_status": 200,
+   "id": "E-copilot-vscode-02511",
+   "locator": {
+    "heading": "Set a recurring schedule",
+    "raw_line_end": 82,
+    "raw_line_start": 82
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "* An automation runs one session at a time. Another scheduled occurrence doesn't start a parallel run of the same automation.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "eee35651c99318f9a97582fd5ff606be3f1377508404ac7362b51ee34c53adcc",
+   "surface": "copilot-vscode",
+   "tier": "E1",
+   "url": "https://code.visualstudio.com/docs/agents/run/automations.md",
+   "url_effective": "https://code.visualstudio.com/docs/agents/run/automations.md",
+   "version_source": null
+  },
+  {
+   "bytes": 32261,
+   "context_after": [
+    "* Archived sessions are excluded from listings unless explicitly requested.",
+    ""
+   ],
+   "context_before": [
+    "* Sending a message to another session always requires your confirmation.",
+    "* Agents cannot send messages to the same chat they are currently running in."
+   ],
+   "http_status": 200,
+   "id": "E-copilot-vscode-02647",
+   "locator": {
+    "heading": "Orchestrate sessions from agent host sessions",
+    "raw_line_end": 342,
+    "raw_line_start": 342
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "* Burst sends are capped to avoid unbounded fan-out.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "e1cff84965cca3f0d683683319b5a6a517e875bd929a599c53d255c7493b5755",
+   "surface": "copilot-vscode",
+   "tier": "E1",
+   "url": "https://code.visualstudio.com/docs/agents/run/sessions/manage-sessions.md",
+   "url_effective": "https://code.visualstudio.com/docs/agents/run/sessions/manage-sessions.md",
+   "version_source": null
+  },
+  {
+   "bytes": 32261,
+   "context_after": [
+    "",
+    "Removing orchestration limits doesn't change confirmation requirements or input validation. The safety guidance in this section continues to apply."
+   ],
+   "context_before": [
+    "* Archived sessions are excluded from listings unless explicitly requested.",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-copilot-vscode-02648",
+   "locator": {
+    "heading": "Orchestrate sessions from agent host sessions",
+    "raw_line_end": 345,
+    "raw_line_start": 345
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "`setting(chat.agentHost.agentOrchestrationLimits)` controls the process-wide limits for sessions and chats that agents create, messages they send, and recursive session creation. The default `on` value enforces limits that support coordination-heavy workflows. Set it to `off` to remove the limits.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "e1cff84965cca3f0d683683319b5a6a517e875bd929a599c53d255c7493b5755",
+   "surface": "copilot-vscode",
+   "tier": "E1",
+   "url": "https://code.visualstudio.com/docs/agents/run/sessions/manage-sessions.md",
+   "url_effective": "https://code.visualstudio.com/docs/agents/run/sessions/manage-sessions.md",
+   "version_source": null
+  },
+  {
+   "bytes": 32261,
+   "context_after": [
+    "",
+    "Removing orchestration limits doesn't change confirmation requirements or input validation. The safety guidance in this section continues to apply."
+   ],
+   "context_before": [
+    "* Archived sessions are excluded from listings unless explicitly requested.",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-copilot-vscode-02649",
+   "locator": {
+    "heading": "Orchestrate sessions from agent host sessions",
+    "raw_line_end": 345,
+    "raw_line_start": 345
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "limits for sessions and chats that agents create, messages they send, and recursive session creation. The default `on` value enforces limits that support coordination-heavy workflows. Set it to `off` to remove the limits. Changes apply without restarting the Agent Host, and reaching a limit",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "e1cff84965cca3f0d683683319b5a6a517e875bd929a599c53d255c7493b5755",
+   "surface": "copilot-vscode",
+   "tier": "E1",
+   "url": "https://code.visualstudio.com/docs/agents/run/sessions/manage-sessions.md",
+   "url_effective": "https://code.visualstudio.com/docs/agents/run/sessions/manage-sessions.md",
+   "version_source": null
+  },
+  {
+   "bytes": 15279,
+   "context_after": [
+    "",
+    "While a command is running, a **Continue in Background** button appears next to the terminal command in the chat conversation. Select this button to move the command to the background. The command continues running, and the agent can check its output later or use the terminal for other tasks."
+   ],
+   "context_before": [
+    "#### Continue terminal commands in background",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-copilot-vscode-02704",
+   "locator": {
+    "heading": "Continue terminal commands in background",
+    "raw_line_end": 190,
+    "raw_line_start": 190
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "When the agent runs a long-running terminal command, such as starting a development server or running a build in watch mode, you can push the command to the background. This allows the agent to continue with other tasks without waiting for the command to finish.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "e1b3149b84eeac04c79a3bae17aed36690151de93c1b025565e1fc0a4915f227",
+   "surface": "copilot-vscode",
+   "tier": "E1",
+   "url": "https://code.visualstudio.com/docs/agents/run/tools.md",
+   "url_effective": "https://code.visualstudio.com/docs/agents/run/tools.md",
+   "version_source": null
+  },
+  {
+   "bytes": 53483,
+   "context_after": [
+    "",
+    "To disable Claude Agent sessions, set the `Claude3PIntegration` policy to `false`. This configures the `setting(github.copilot.chat.claudeAgent.enabled)` setting in VS Code."
+   ],
+   "context_before": [
+    "## Enable or disable Claude Agent",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-copilot-vscode-02864",
+   "locator": {
+    "heading": "Enable or disable Claude Agent",
+    "raw_line_end": 541,
+    "raw_line_start": 541
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "Claude Agent sessions let developers start and resume agentic coding sessions powered by Anthropic's Claude Agent SDK directly in the editor, using their existing Copilot subscription.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "c767863ad01744802d8f8efc5dd80c5ede94a05ded776d1f0dd273b2bdec31cc",
+   "surface": "copilot-vscode",
+   "tier": "E1",
+   "url": "https://code.visualstudio.com/docs/enterprise/manage-ai-settings.md",
+   "url_effective": "https://code.visualstudio.com/docs/enterprise/manage-ai-settings.md",
+   "version_source": null
+  },
+  {
+   "bytes": 6605,
+   "context_after": [
+    "",
+    "This lets you run multiple agents at once."
+   ],
+   "context_before": [
+    "### Running multiple agents in parallel",
+    ""
+   ],
+   "http_status": 200,
+   "id": "E-copilot-vscode-02976",
+   "locator": {
+    "heading": "Running multiple agents in parallel",
+    "raw_line_end": 27,
+    "raw_line_start": 27
+   },
+   "neutralizer_flags": [],
+   "product_version": null,
+   "quote": "You do not have to finish one session before starting another. Start a new session, and the previous one keeps working in the background.",
+   "quote_verified": true,
+   "retrieved": "2026-10-04",
+   "sha256": "c40e2700a917218066d59804721eafd77503c19d71d76ec3604e23a7b7bbd21d",
+   "surface": "copilot-vscode",
+   "tier": "E1",
+   "url": "https://code.visualstudio.com/learn/foundations/agent-sessions-and-where-agents-run.md",
+   "url_effective": "https://code.visualstudio.com/learn/foundations/agent-sessions-and-where-agents-run.md",
+   "version_source": null
+  }
+ ]
+}

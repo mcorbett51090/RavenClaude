@@ -1,0 +1,452 @@
+{
+ "surface": "copilot-vscode",
+ "cells": [
+  {
+   "id": "copilot-vscode/F04.approval-modes",
+   "surface": "copilot-vscode",
+   "row": "F04.approval-modes",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-copilot-vscode-00273",
+    "E-copilot-vscode-00627",
+    "E-copilot-vscode-00750",
+    "E-copilot-vscode-00405"
+   ],
+   "value": "The session Permissions control sets which actions need your confirmation. Manual permissions requests approval for running tools or accessing resources while the agent can make file edits in the project folder; Allow all is another level. In Agent Host sessions, actions not covered by approval settings require confirmation and file edits might be auto-approved."
+  },
+  {
+   "id": "copilot-vscode/F04.bypass-mode",
+   "surface": "copilot-vscode",
+   "row": "F04.bypass-mode",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-copilot-vscode-00903",
+    "E-copilot-vscode-00568",
+    "E-copilot-vscode-01186",
+    "E-copilot-vscode-01207"
+   ],
+   "value": "Allow all runs all tool calls without confirmation. chat.tools.global.autoApprove (default false) automatically approves all tools and disables critical security protections; the enterprise policy calls it YOLO mode, which disables manual approval for all tools in all workspaces. Bypass Approvals auto-approves all tool calls and retries when it hits errors."
+  },
+  {
+   "id": "copilot-vscode/F04.auto-review",
+   "surface": "copilot-vscode",
+   "row": "F04.auto-review",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-copilot-vscode-00902",
+    "E-copilot-vscode-00569",
+    "E-copilot-vscode-00741"
+   ],
+   "value": "Assisted permissions uses an LLM judge to assess the risk of each tool call, shown in supported Agent Host permission pickers. An Auto-Review option uses the same workspace access as Default Permissions but sends approval requests to an automatic reviewer instead of prompting the user.",
+   "limitation": "Calls that the judge does not approve require your confirmation. The setting that shows Assisted permissions defaults to true (Insiders) and false (Stable)."
+  },
+  {
+   "id": "copilot-vscode/F09.per-agent-model",
+   "surface": "copilot-vscode",
+   "row": "F09.per-agent-model",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-copilot-vscode-00125",
+    "E-copilot-vscode-01007",
+    "E-copilot-vscode-00280"
+   ],
+   "value": "A custom agent's model property takes a single model name or a prioritized list, tried in order until an available one is found; if unset, the currently selected model is used. A custom agent run as a subagent can override the tools and model. Preferred models can be pinned in prompt files or custom agent definitions."
+  },
+  {
+   "id": "copilot-vscode/F09.per-agent-effort",
+   "surface": "copilot-vscode",
+   "row": "F09.per-agent-effort",
+   "state": "undocumented",
+   "verification": "verified",
+   "evidence": [],
+   "sweep_report": {
+    "terms": [
+     "(sub-?agents?|custom agents?|agent definitions?|per-agent|each agent).{0,100}(effort|reasoning|thinking)",
+     "(effort|reasoning|thinking).{0,100}(sub-?agents?|per-agent|custom agents?)"
+    ],
+    "corpus_sha256": "37efbcee170bb9068fae833ce372e283bde9628c790821aff3565037f00d605a",
+    "hits": 0,
+    "hits_reviewed": 0,
+    "positive_control_term": "copilot",
+    "positive_control_hits": 1055
+   }
+  },
+  {
+   "id": "copilot-vscode/F09.nesting-rules",
+   "surface": "copilot-vscode",
+   "row": "F09.nesting-rules",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-copilot-vscode-00558",
+    "E-copilot-vscode-00122",
+    "E-copilot-vscode-01010",
+    "E-copilot-vscode-02648"
+   ],
+   "value": "chat.subagents.allowInvocationsFromSubagents (default false) lets subagents invoke other subagents, up to a maximum nesting depth of five. A custom agent's agents field lists permitted subagents (* for all, [] to prevent any subagent use). chat.agentHost.agentOrchestrationLimits sets process-wide limits on recursive session creation."
+  },
+  {
+   "id": "copilot-vscode/F14.concurrency-caps",
+   "surface": "copilot-vscode",
+   "row": "F14.concurrency-caps",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-copilot-vscode-00606",
+    "E-copilot-vscode-02511",
+    "E-copilot-vscode-02647"
+   ],
+   "value": "An automation runs one session at a time and another scheduled occurrence does not start a parallel run of the same automation. chat.agentHost.agentOrchestrationLimits (Experimental) sets process-wide limits on sessions and chats created, messages sent and recursive session creation by Agent Host session tools. Burst sends are capped to avoid unbounded fan-out.",
+   "limitation": "An automation runs one session at a time. Orchestration limits apply to Agent Host session tools, and no numeric limit is quoted."
+  },
+  {
+   "id": "copilot-vscode/F14.parallel-subagents",
+   "surface": "copilot-vscode",
+   "row": "F14.parallel-subagents",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-copilot-vscode-00308",
+    "E-copilot-vscode-01851"
+   ],
+   "value": "Independent subtasks can run in parallel, such as separate correctness and performance reviews. The user can also ask the AI to run multiple independent tasks in parallel.",
+   "limitation": "Independent subtasks can run in parallel when the harness supports concurrent subagents."
+  },
+  {
+   "id": "copilot-vscode/F14.total-agent-caps",
+   "surface": "copilot-vscode",
+   "row": "F14.total-agent-caps",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-copilot-vscode-00606",
+    "E-copilot-vscode-01020",
+    "E-copilot-vscode-02647",
+    "E-copilot-vscode-02649"
+   ],
+   "value": "chat.agentHost.agentOrchestrationLimits (Experimental) sets process-wide limits on sessions and chats created, messages sent and recursive session creation by Agent Host session tools; the default on value enforces limits and off removes them. Burst sends are capped. Local subagents cannot invoke further subagents by default; nesting is limited to a maximum depth of five.",
+   "limitation": "Limits apply to sessions and chats created, messages sent and recursive session creation by Agent Host session tools; no numeric total is quoted. Set it to off to remove the limits."
+  },
+  {
+   "id": "copilot-vscode/F15.background-tasks",
+   "surface": "copilot-vscode",
+   "row": "F15.background-tasks",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-copilot-vscode-02704",
+    "E-copilot-vscode-00284",
+    "E-copilot-vscode-00784",
+    "E-copilot-vscode-02976"
+   ],
+   "value": "A long-running terminal command can be pushed to the background so the agent continues with other tasks. Background sessions run locally and isolated from the main context; Alt+Enter, or holding Alt and selecting Send, starts a new session in the background, and starting a new session leaves the previous one working in the background."
+  },
+  {
+   "id": "copilot-vscode/F17.model-picker",
+   "surface": "copilot-vscode",
+   "row": "F17.model-picker",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-copilot-vscode-00165",
+    "E-copilot-vscode-00262",
+    "E-copilot-vscode-00490"
+   ],
+   "value": "The language model picker in the chat input field changes the model for chat conversations and code editing. Users can choose which models are available in the picker. Its hover menu shows cost per token type and a generic cost tier label (Low, Medium, High)."
+  },
+  {
+   "id": "copilot-vscode/F17.model-flag-env",
+   "surface": "copilot-vscode",
+   "row": "F17.model-flag-env",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-copilot-vscode-01178",
+    "E-copilot-vscode-00949",
+    "E-copilot-vscode-01033",
+    "E-copilot-vscode-00222"
+   ],
+   "value": "The chat.defaultModel setting (enterprise policy, from 1.127) sets the default chat model for new conversations; chat.planAgent.defaultModel sets the Local planning model; inlineChat.defaultModel sets the inline chat model. A prompt file's model field sets its model, and the picker's selection is used if unset."
+  },
+  {
+   "id": "copilot-vscode/F17.auto-routing",
+   "surface": "copilot-vscode",
+   "row": "F17.auto-routing",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-copilot-vscode-00175",
+    "E-copilot-vscode-00385",
+    "E-copilot-vscode-01018",
+    "E-copilot-vscode-01056"
+   ],
+   "value": "Auto model selection evaluates task complexity and real-time model availability to route each request to the optimal model, combining a model health and availability system with a task-complexity system. chat.subagents.defaultToAuto (default false) makes subagents use Auto when no model is specified; the autoTier managed setting chooses how new chats initially optimize routing."
+  },
+  {
+   "id": "copilot-vscode/F17.provider-byok",
+   "surface": "copilot-vscode",
+   "row": "F17.provider-byok",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-copilot-vscode-00182",
+    "E-copilot-vscode-00503",
+    "E-copilot-vscode-00511",
+    "E-copilot-vscode-00249"
+   ],
+   "value": "Bring Your Own Key (BYOK) connects any compatible model provider, to access models from other providers, run models locally, or use models not yet built in, while keeping the VS Code chat experience and tools. Instead of the Copilot harness, a user can pick Anthropic Claude, OpenAI Codex, or a model with their own API key.",
+   "limitation": "Some features, including inline suggestions, semantic search, and embeddings, require the GitHub Copilot service and aren't available through bring-your-own-key models."
+  },
+  {
+   "id": "copilot-vscode/F17.model-catalog",
+   "surface": "copilot-vscode",
+   "row": "F17.model-catalog",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-copilot-vscode-00178",
+    "E-copilot-vscode-00508",
+    "E-copilot-vscode-00349"
+   ],
+   "value": "The language models editor shows all available models, lets you choose which are shown in the model picker, and adds models from built-in or extension-provided providers. A harness can offer multiple models, and the same model might be available through more than one harness.",
+   "limitation": "Available models, tools, and customizations depend on the selected harness, your account, and your organization's policies."
+  },
+  {
+   "id": "copilot-vscode/F18.effort-values",
+   "surface": "copilot-vscode",
+   "row": "F18.effort-values",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-copilot-vscode-00381",
+    "E-copilot-vscode-01226",
+    "E-copilot-vscode-01336",
+    "E-copilot-vscode-01227"
+   ],
+   "value": "The introduction guide describes Low (less reasoning, faster responses), Medium (balanced reasoning and speed) and High (maximum reasoning depth). Some models also support adaptive thinking, where the model dynamically decides whether and how much to reason.",
+   "limitation": "The available effort levels and their default values vary by model and provider."
+  },
+  {
+   "id": "copilot-vscode/F18.where-set",
+   "surface": "copilot-vscode",
+   "row": "F18.where-set",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-copilot-vscode-00171",
+    "E-copilot-vscode-00281",
+    "E-copilot-vscode-00174",
+    "E-copilot-vscode-01328"
+   ],
+   "value": "Thinking effort is set from the language model picker: select the > arrow next to the model name to open the Thinking Effort submenu. The github.copilot.chat.anthropic.thinking.effort and github.copilot.chat.responsesApiReasoningEffort settings are deprecated; configure thinking effort directly from the picker."
+  },
+  {
+   "id": "copilot-vscode/F18.model-dependence",
+   "surface": "copilot-vscode",
+   "row": "F18.model-dependence",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-copilot-vscode-00381",
+    "E-copilot-vscode-00172",
+    "E-copilot-vscode-00210",
+    "E-copilot-vscode-00456"
+   ],
+   "value": "Available effort levels and defaults vary by model and provider. Non-reasoning models, such as GPT-4.1 and GPT-4o, do not show the thinking effort submenu. The supportsReasoningEffort model property lists the levels a model accepts; when set, a Thinking Effort picker is shown. Capabilities such as thinking are model-dependent and might differ from the built-in models."
+  },
+  {
+   "id": "copilot-vscode/F18.thinking-budget-visibility",
+   "surface": "copilot-vscode",
+   "row": "F18.thinking-budget-visibility",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-copilot-vscode-00170",
+    "E-copilot-vscode-00383",
+    "E-copilot-vscode-00649"
+   ],
+   "value": "Higher thinking effort produces more thinking tokens, which increases AI credit consumption. Thinking tokens count toward the context window though not visible in the response; the output is typically returned in summarized form or can be omitted. The experimental chat.agent.thinkingStyle setting configures how thinking is rendered in chat.",
+   "limitation": "The actual thinking output is typically returned in summarized form or can be omitted entirely for lower latency. chat.agent.thinkingStyle is marked (Experimental)."
+  },
+  {
+   "id": "copilot-vscode/F19.named-modes",
+   "surface": "copilot-vscode",
+   "row": "F19.named-modes",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-copilot-vscode-00291",
+    "E-copilot-vscode-00699",
+    "E-copilot-vscode-00221"
+   ],
+   "value": "Agent roles set which instructions, tools, and behavior apply to a task; examples include Agent, Plan, Ask, and custom agents. Agent is for implementation and Plan is to review an approach first; Ask is for questions when the selected target provides it. A prompt file's agent field accepts ask, agent, plan, or a custom agent name."
+  },
+  {
+   "id": "copilot-vscode/F19.entering-modes",
+   "surface": "copilot-vscode",
+   "row": "F19.entering-modes",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-copilot-vscode-00800",
+    "E-copilot-vscode-00936",
+    "E-copilot-vscode-00906",
+    "E-copilot-vscode-00951"
+   ],
+   "value": "Roles can be switched during a session from the agent picker. /plan switches the session to Plan mode and submits the request; Plan can also be selected from the agent mode picker. Autopilot is selected from the mode picker in the chat input. Experimental github.copilot.chat.switchAgent.enabled lets Agent choose to switch to Plan."
+  },
+  {
+   "id": "copilot-vscode/F19.plan-mode",
+   "surface": "copilot-vscode",
+   "row": "F19.plan-mode",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-copilot-vscode-00305",
+    "E-copilot-vscode-01222",
+    "E-copilot-vscode-01967"
+   ],
+   "value": "The built-in Plan agent researches the codebase, clarifies requirements and proposes an implementation plan before code changes begin; Plan mode outlines what it would do and waits for approval before acting. The reviewed plan can then be handed off to an implementation agent."
+  },
+  {
+   "id": "copilot-vscode/F19.autonomy-mode",
+   "surface": "copilot-vscode",
+   "row": "F19.autonomy-mode",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-copilot-vscode-00906",
+    "E-copilot-vscode-01186",
+    "E-copilot-vscode-01207"
+   ],
+   "value": "Autopilot is an agent mode, chosen from the mode picker in the chat input, in which the agent works autonomously until it determines the task is complete. Global auto approve (YOLO mode) disables manual approval for all tools in all workspaces. Bypass Approvals auto-approves all tool calls and retries on errors."
+  },
+  {
+   "id": "copilot-vscode/F19.read-only-mode",
+   "surface": "copilot-vscode",
+   "row": "F19.read-only-mode",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-copilot-vscode-01221",
+    "E-copilot-vscode-00714",
+    "E-copilot-vscode-00306"
+   ],
+   "value": "Ask mode is back-and-forth conversation with no edits and no commands. The built-in Ask role asks questions and provides guidance without making changes to the code. The Plan agent uses read-only tools while preparing the plan."
+  },
+  {
+   "id": "copilot-vscode/F19.mode-defaults",
+   "surface": "copilot-vscode",
+   "row": "F19.mode-defaults",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-copilot-vscode-00898",
+    "E-copilot-vscode-01206",
+    "E-copilot-vscode-00571"
+   ],
+   "value": "New sessions use the permission level set by chat.permissions.default, which offers Manual, Allow all or Autopilot, and the level can be changed per session. Default approvals is the default mode: Copilot follows configured settings and shows confirmation dialogs where required.",
+   "limitation": "If enterprise policy disables auto-approval, new sessions use Manual permissions. On the Agent Host, Autopilot is selected as an agent mode instead."
+  },
+  {
+   "id": "copilot-vscode/F21.host-platform",
+   "surface": "copilot-vscode",
+   "row": "F21.host-platform",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-copilot-vscode-01218",
+    "E-copilot-vscode-00799",
+    "E-copilot-vscode-00294"
+   ],
+   "value": "Runs in VS Code, where the GitHub Copilot Chat panel is the harness. The Local harness runs interactively in the VS Code extension host in the active workspace; the Agent Host runs the harness and owns sessions, while the Chat view and Agents window display and control them."
+  },
+  {
+   "id": "copilot-vscode/F21.shared-account-billing",
+   "surface": "copilot-vscode",
+   "row": "F21.shared-account-billing",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-copilot-vscode-00512",
+    "E-copilot-vscode-02864",
+    "E-copilot-vscode-02441",
+    "E-copilot-vscode-00183"
+   ],
+   "value": "Requests in the quickstart use AI credits from your Copilot plan, and Copilot Free includes a monthly allowance. Claude Agent sessions use your existing Copilot subscription. The Agents window uses the AI providers and accounts configured in VS Code and shares settings and the default profile with the main VS Code window.",
+   "limitation": "BYOK models work without signing into a GitHub account and without a Copilot plan."
+  },
+  {
+   "id": "copilot-vscode/F21.shared-execution-infrastructure",
+   "surface": "copilot-vscode",
+   "row": "F21.shared-execution-infrastructure",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-copilot-vscode-01880",
+    "E-copilot-vscode-01895"
+   ],
+   "value": "Provider harnesses (Copilot, Claude, Codex) execute on your machine, a connected host, or a Dev Container, depending on the host and available harness. The Agent Host can run on your machine, inside a Dev Container, or on a remote machine, and file edits and commands run in the environment that contains the host."
+  },
+  {
+   "id": "copilot-vscode/F21.shared-model-selection",
+   "surface": "copilot-vscode",
+   "row": "F21.shared-model-selection",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-copilot-vscode-00630",
+    "E-copilot-vscode-02028",
+    "E-copilot-vscode-00509"
+   ],
+   "value": "Model and harness are independent choices: changing the model within a harness does not switch harnesses or convert project customizations, and a Claude model in a Copilot session still uses the Copilot harness. Where tools run and where the model is hosted are separate choices."
+  },
+  {
+   "id": "copilot-vscode/F21.shared-agent-runtime",
+   "surface": "copilot-vscode",
+   "row": "F21.shared-agent-runtime",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-copilot-vscode-00270",
+    "E-copilot-vscode-00287",
+    "E-copilot-vscode-00590",
+    "E-copilot-vscode-00717"
+   ],
+   "value": "The harness is the software layer that coordinates the agent loop. The Copilot session target runs the session through the Copilot agent harness using the GitHub Copilot SDK; Claude agent sessions are powered by Anthropic's Claude Agent SDK. The experimental chat.editor.preferCopilotHarness setting selects the Copilot SDK harness over Local for new editor-chat sessions.",
+   "limitation": "Enable chat.editor.preferCopilotHarness (Experimental) to use the Copilot SDK harness when Local would otherwise be selected for a new editor-chat session. It does not migrate existing sessions."
+  },
+  {
+   "id": "copilot-vscode/F21.delegates-to",
+   "surface": "copilot-vscode",
+   "row": "F21.delegates-to",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-copilot-vscode-00288",
+    "E-copilot-vscode-00631",
+    "E-copilot-vscode-01811"
+   ],
+   "value": "VS Code supports multiple agent harnesses, including Copilot, Anthropic Claude and OpenAI Codex, managed through a shared VS Code session experience. Claude and Codex session targets keep that provider's agent workflow inside VS Code. A Copilot session can be continued in the terminal with GitHub Copilot CLI via Resume in Terminal."
+  },
+  {
+   "id": "copilot-vscode/F21.distinct-harness-features",
+   "surface": "copilot-vscode",
+   "row": "F21.distinct-harness-features",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-copilot-vscode-01094",
+    "E-copilot-vscode-01030",
+    "E-copilot-vscode-00184",
+    "E-copilot-vscode-00148"
+   ],
+   "value": "The chosen harness determines how subagents run and which configuration options they support. The Local and Copilot harnesses use different controls to select client-side tools. BYOK models in Agent Host sessions need chat.agentHost.byokModels.enabled turned on.",
+   "limitation": "These events, settings, payloads, and output decisions do not automatically apply to Copilot, Claude, or Codex sessions on Agent Host (said of the Local hook implementation)."
+  }
+ ]
+}
