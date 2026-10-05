@@ -3636,8 +3636,8 @@
    "row": "F14.parallel-subagents",
    "lever": "parallelism",
    "model": null,
-   "location_kind": "per_dispatch_param",
-   "scope": "Independent subtasks can run in parallel when the harness supports concurrent subagents. If you have multiple independent tasks, ask the AI to run them in parallel.",
+   "location_kind": "undocumented",
+   "scope": "No flag, key or parameter is documented. The docs describe it as a prompt instruction: ask the AI to run independent tasks in parallel; subagents run concurrently when the harness supports it.",
    "state": "partial",
    "verification": "verified",
    "evidence": [
@@ -4887,8 +4887,8 @@
    "surface": "cursor",
    "lever": "model",
    "row": "F17.model-catalog",
-   "location_kind": "settings_key",
-   "scope": "Enterprise teams can opt in to new models for their organization",
+   "location_kind": "undocumented",
+   "scope": "No setting, key or flag is named. The enterprise page says Enterprise teams can opt in to new models for their organization.",
    "state": "supported",
    "verification": "verified",
    "evidence": [
