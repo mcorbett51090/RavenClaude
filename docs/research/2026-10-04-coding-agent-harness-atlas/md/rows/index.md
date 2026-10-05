@@ -175,3 +175,11 @@ Find a row here, then read its facet file for all columns side by side.
 - F22.telemetry-otel — Telemetry and OpenTelemetry: Metrics and traces the harness emits.
 - F22.logs-debug — Logs and debug output: Log files and debug switches.
 - F22.status-display — Status line and display: On-screen status of model, cost and context.
+
+## F23 Request and response handling — `rows/F23.md`
+- F23.prompt-assembly — Prompt assembly: What goes into each model request and in what order (system prompt, instruction files, tool definitions, history, attachments), and what a user can see or change.
+- F23.prompt-caching — Prompt caching: Whether the harness reuses the unchanged start of a prompt across turns, how long it is kept, what invalidates it, and any setting to turn it on, off or tune it.
+- F23.retry-backoff — Retry and back-off: What the harness does when a model call fails or is throttled: automatic retries, waiting, limits on attempts, and the message shown.
+- F23.malformed-call-recovery — Malformed call recovery: What happens when the model asks for a tool that does not exist, gives invalid arguments or returns output that cannot be parsed: error returned to the model, retry or stop.
+- F23.tool-output-limits — Tool output limits: Limits on how much tool output enters the context and how it is cut (truncated, summarized or saved to a file), and any setting that changes them.
+- F23.output-redaction — Output redaction: Whether secrets or sensitive text are removed from tool output, transcripts, logs or telemetry, and how.

@@ -2,14 +2,29 @@
   "agents": {
     "claude-code": {
       "assemble-prompt": {
-        "cells_sha": "3409d41524773212f1a23a8b93625d13c944a4ada6d41add1738ba010676a70a",
-        "plain": "The context window holds the system instructions, tool definitions, the conversation and tool results. Some models support a 1 million token window. Some tools load on demand, and a subagent's intermediate work stays inside it, so just its final message returns.",
-        "technical": "Context accumulates the system prompt, tool definitions, conversation history, tool inputs and tool outputs. Fable models, Sonnet 5 and later, Opus 4.6 and later, and Sonnet 4.6 support a 1 million token window. CLAUDE_CODE_AUTO_COMPACT_WINDOW, /autocompact and --autocompact set the auto-compact window. Tool search defers SDK MCP tools."
+        "cells_sha": "8d7cfa587685625b5ed130b75c5f07df33ddc8d3ac4395ac66c83f2d79e80de7",
+        "order_note": {
+          "cell": "claude-code/F23.prompt-assembly",
+          "quote": "then the new message; rarely-changing content is first",
+          "text": "Rarely changing content goes first in the prompt, and the new message comes after the earlier messages and tool results."
+        },
+        "plain": "Each request re-sends the instructions, project context and conversation so far, with rarely changing content first. The prompt is built on the first request and reused until compaction. Some models take a 1 million token window. A subagent gets its own prompt.",
+        "technical": "Each request re-sends the system prompt, project context, prior messages and tool results; rarely-changing content is first. --system-prompt or --system-prompt-file replaces the default. Built on the first request, reused until compaction (--system-prompt-snapshot with off rebuilds it). 1 million token window: Fable models, Sonnet 5 and later, Opus 4.6 and later, Sonnet 4.6."
       },
       "built-in-tools": {
         "cells_sha": "2c0084d974843dae4381813af1eacc92e8bb199eec27b37d5c242af120d0ce09",
         "plain": "It ships tools for running shell commands, reading, editing and writing files, searching, fetching web pages and starting subagents. Web search is not available on Amazon Bedrock. Shell commands have a default timeout that can be raised up to a cap.",
         "technical": "Built-in tools include Bash, Read, Write, Edit, Glob, Grep, WebFetch and Agent, and others. Bash foreground timeout defaults to 120000 ms (BASH_DEFAULT_TIMEOUT_MS); the timeout input is capped at 600000 by default. Edit takes replace_all (default False). WebSearch is not available on Amazon Bedrock; CLAUDE_CODE_DISABLE_WEB_FETCH=1 turns off WebFetch."
+      },
+      "caching": {
+        "cells_sha": "02d00fad56d2df175eeda74a29315d2b2dd3708bfc3d14ad83e4292b97cf65eb",
+        "order_note": {
+          "cell": "claude-code/F23.prompt-caching",
+          "quote": "`FORCE_PROMPT_CACHING_5M=1` overrides",
+          "text": "A setting that forces the shorter 5 minute cache overrides the settings that ask for 1 hour."
+        },
+        "plain": "Prompt caching is on by default and can be switched off. The main conversation asks for a 1 hour cache on a Claude subscription within plan usage, and 5 minutes otherwise; each hit resets the timer. Switching models invalidates the cache.",
+        "technical": "On by default; DISABLE_PROMPT_CACHING=1 or per-model variants like DISABLE_PROMPT_CACHING_OPUS disable it. Main conversation requests 1 hour only on a Claude subscription within plan usage, otherwise 5 minutes; each hit resets the timer. ENABLE_PROMPT_CACHING_1H=1 or promptCacheTtl (v2.1.242+) request 1 hour; FORCE_PROMPT_CACHING_5M=1 overrides. Switching models invalidates it."
       },
       "extend-share": {
         "cells_sha": "f82939052fd72bcd13337b79dd17d01f2d1d38450e40a34698024af68abfaa59",
@@ -76,6 +91,11 @@
         "plain": "A company can set rules for its developers' installs: which tools and commands are allowed or denied, which models are offered, and whether background agents run. Managed rules win over options set in code. Claude Tag cloud sessions don't receive server-managed settings.",
         "technical": "permissions.allow and permissions.deny set allow, ask or deny rules; disableAgentView turns off background agents and agent view. availableModels filters the picker; enforceAvailableModels also constrains the default; it is enforced server-side at /v1/messages, so a denied model returns 400. Claude Tag sessions don't receive server-managed settings."
       },
+      "output-handling": {
+        "cells_sha": "df5700b5a9bade9fafef8628c818cb9a2354e8c188f91d2b3de0a434eb3759f3",
+        "plain": "Replies from MCP tools are capped, by default at 25000 tokens, and a long file read is paged. The documentation does not give a figure for file-read paging or shell output. Hiding of prompt text and tool output is documented for telemetry alone.",
+        "technical": "MAX_MCP_OUTPUT_TOKENS caps MCP responses (default 25000 tokens, warning above 10,000); a whole-file Read over the token cap is auto-paginated. 20MB cap on Grep, Glob and @-file search output; no figure for Read pagination or Bash. Redaction is documented for OpenTelemetry only: OTEL_LOG_USER_PROMPTS=1 includes prompts; OTEL_LOG_TOOL_CONTENT=1 enables tool.output."
+      },
       "outside-tools": {
         "cells_sha": "dca5d2e3d453be206f03330855429abde8543c6d987c5cb0fa4e095794f6ec7d",
         "plain": "You connect outside programs through MCP servers, which add extra tools that need explicit permission. Project servers need a one-time approval and administrators can restrict which servers users add. Consent dialogs don't relay: they only appear in the local terminal.",
@@ -91,6 +111,11 @@
         "plain": "Plan mode explores and plans without editing source files, and file edits there are never auto-approved. A status line at the bottom can be customized, and a status command shows the API provider and, in auto mode, the auto mode server state.",
         "technical": "Plan mode: file edits are never auto-approved and prompt through the canUseTool callback; planModeInstructions can replace the default workflow body; the CLI keeps a read-only enforcement preamble and an ExitPlanMode protocol footer. statusLine customizes the bottom line; /status shows an API provider line and, in auto mode, an Auto mode server row (Enabled or Disabled)."
       },
+      "read-request": {
+        "cells_sha": "f9e4dff0f72669e81ef16113f2ca7282aed39c4492f4dfd8ac6ae81537265023",
+        "plain": "A tool name it does not recognise is returned to the model as that call's result and the turn continues. Retries for output that fails a format check apply just in non-interactive mode when a format is requested. The documentation does not mention invalid inputs to a known tool.",
+        "technical": "An unknown tool name is returned to Claude as the tool call's result; the turn continues. With --json-schema in -p mode, MAX_STRUCTURED_OUTPUT_RETRIES sets attempts allowed on failed validation, then the run fails; only with --json-schema in non-interactive -p mode. A thinking-only response stream is re-issued; if it breaks again the turn ends with an error. Invalid arguments to a known tool: not mentioned."
+      },
       "safety-posture": {
         "cells_sha": "2de35953a8f35b4b0600cbbf297431bea4a8843214487c0400a87527d14fc413",
         "order_note": {
@@ -102,14 +127,14 @@
         "technical": "Modes: default (alias manual), acceptEdits, plan, auto, dontAsk, bypassPermissions; Shift+Tab cycles; claude --permission-mode plan. Auto is the built-in start mode for interactive terminal and VS Code sessions from v2.1.283. Desktop remembers a mode per folder except Plan; a first session after install or upgrade can start in a different mode. permissions.disableBypassPermissionsMode=disable blocks bypass."
       },
       "send-retry": {
-        "cells_sha": "2a1cb25af877170842178b257838b4b61c84c655c085c96447614187ecefad63",
+        "cells_sha": "c2d607ad834e965462cd11250d865bbd2bb15eadf5eb250d1b3a137c42485c7c",
         "order_note": {
           "cell": "claude-code/F17.auto-routing",
-          "quote": "switches to the backup and retries the primary at the start of each user turn",
-          "text": "After switching to the backup, the main model is retried at the start of each user turn."
+          "quote": "retries the primary at the start of each user turn",
+          "text": "When the main model is overloaded or unavailable, the session switches to the backup and tries the main model again at the start of each user turn."
         },
-        "plain": "If the main model is overloaded or unavailable, a session with a backup model set switches to it and retries the main one at the start of each turn. When a usage limit blocks a request, a command shows ways to keep working, such as waiting for the reset or adding credits.",
-        "technical": "fallbackModel switches when the primary is overloaded or unavailable and retries the primary at the start of each user turn. opusplan applies during plan mode when allowed by availableModels, then switches to Sonnet. /rate-limit-options offers waiting to continue automatically when the limit resets or adding usage credits; /usage shows bars loaded within the past 60 minutes."
+        "plain": "If the main model is overloaded or unavailable, a session with a backup model set switches to it. Temporary failures are retried up to 10 times with growing waits. When a claude.ai usage limit blocks a request, a command offers waiting for the reset or adding credits.",
+        "technical": "fallbackModel switches when the primary is overloaded or unavailable. opusplan applies during plan mode when allowed by availableModels, then Sonnet. Transient failures retry up to 10 times with exponential backoff; CLAUDE_CODE_MAX_RETRIES is capped at 15. TLS certificate failures and content-filter blocks are not retried. For a claude.ai usage limit, /rate-limit-options offers waiting or usage credits."
       },
       "shrink-context": {
         "cells_sha": "458e2dbb2001cf436ed3c8e4f4484f1f5b7ceb0ae23c5d256dc898a832884b3c",
@@ -174,14 +199,24 @@
     },
     "codex-cli": {
       "assemble-prompt": {
-        "cells_sha": "5c019696aeffb269d653275e3d86ae99d9e18b2b2180bd7b8be8b07c7b356292",
-        "plain": "The context window size comes from a setting that defaults to automatic for the model. You add files by mentioning paths, and the IDE extension includes open files. It stops adding files once their combined size reaches a cap, 32 KiB by default.",
-        "technical": "model_context_window sets context window tokens (example: 128000; default: auto for model). /mention and @ path autocomplete attach files; /ide-context toggles shared IDE context. tool_output_token_limit (example 12000) sets tokens stored per tool output. Codex stops adding files once the combined size reaches project_doc_max_bytes (32 KiB by default)."
+        "cells_sha": "2a80348f67c2a2618bd1854561b5306a97054f123010b248582922ab492960c7",
+        "order_note": {
+          "cell": "codex-cli/F23.prompt-assembly",
+          "quote": "later (nearer) files override earlier ones",
+          "text": "Instruction files are joined from the project root downward, and a nearer file overrides an earlier one."
+        },
+        "plain": "The model's reading limit is a setting that defaults to automatic. You attach files by naming paths, and the IDE extension adds open files. Codex joins its instruction files into one chain per run, nearer files winning, and stops adding at a size cap (32 KiB by default).",
+        "technical": "model_context_window sets context window tokens (example: 128000; default: auto for model). /mention and @ path autocomplete attach files; /ide-context toggles IDE context. tool_output_token_limit (example 12000) sets tokens stored per tool output. AGENTS.md chain built once per run, root-down, nearer files override; stops at project_doc_max_bytes (32 KiB default). codex debug prompt-input renders the prompt input."
       },
       "built-in-tools": {
         "cells_sha": "06e3cae3167d43f7f119167a183fc73ec38bd2a95e8258fc5e5f97c23b9396fc",
         "plain": "It comes with tools to edit files by applying patches and to run shell commands, plus helper-agent tools and an image tool that can be turned off. Web search is on by default for local chats but serves a stored index, not live pages, and is not available on Bedrock Runtime.",
         "technical": "Internal tools include apply_patch and shell; spawn_agent, send_input, resume_agent, wait_agent and close_agent are stable, on by default. background_terminal_max_timeout defaults to 5m. Web search mode is disabled | cached | indexed | live (default cached); --search switches to live. Hosted web search isn't available on Bedrock Runtime."
+      },
+      "caching": {
+        "cells_sha": "63f386f7c81376e0c267b9a08922d2a3816f9f718cd1763dc31238b0ebf52a28",
+        "plain": "The documentation does not mention whether Codex asks the model service to remember the unchanged start of the prompt.",
+        "technical": "Prompt caching: the documentation does not mention it; a sweep of the docs found nothing."
       },
       "extend-share": {
         "cells_sha": "81d5b6d182e8a38f81423126b8b8cc035787d1b1d8dd2a7046a47d7ccd76aa0f",
@@ -243,6 +278,11 @@
         "plain": "Administrators can set rules through a requirements file or device management, and can block the full-access and run-freely options. For model lists, one setting enforces the model catalog, but the table for new chats supplies managed defaults, not enforcement.",
         "technical": "Admin requirements come from requirements.toml and/or MDM; the Agent Security UI manages Local or Codex Cloud settings and the policy API manages Global. Managed organizations can exclude :danger-full-access and --yolo. A requirements.toml setting enforces the JSON model catalog; [models.new_thread] supplies managed defaults, not enforcement."
       },
+      "output-handling": {
+        "cells_sha": "9289c57b4b90a11ef2ba0937420ec15c3cd5a7d1c42088c88bac1e767df99d1c",
+        "plain": "Limits are documented for MCP tool output (a token budget per tool) and hook output (about 2,500 tokens by default, extra saved to disk). Telemetry redacts prompts by default, and memory and uploads have secrets redacted. Saved scan logs are not redacted.",
+        "technical": "MCP: setting gives a token budget per MCP tool output, before the standard 20% serialization allowance. Hooks: model-visible output limited to roughly 2,500 tokens by default; more saved to <temp_dir>/hook_outputs/<session_id>/<uuid>.txt. OTel exports user prompts redacted by default (keep log_user_prompt = false). Secrets redacted from memory fields, snapshots. Scan logs (security CLI) aren't redacted."
+      },
       "outside-tools": {
         "cells_sha": "88383f3c208645be0814d3b7c72f3eb0f5241ee35b8a0bee17b367ed22c10234",
         "plain": "It can connect local or remote outside tool servers over two connection types, using a token or a separate sign-in method. Sign-in and sign-out actions work with web-style servers and depend on the server supporting that sign-in. Tools marked destructive ask for approval first.",
@@ -258,6 +298,11 @@
         "plain": "A plan command switches a chat into plan mode for multi-step planning, optionally with a first planning request. The documentation does not say whether plan mode blocks edits or how to leave it beyond toggling. A status command shows model, approval setting and context left.",
         "technical": "/plan toggles plan mode for multi-step planning, with an optional inline prompt as the first planning request; a plan-mode-specific reasoning override applies, else the built-in preset default. The documentation does not state it is read-only or define an exit beyond the toggle. /status shows the active model, approval policy, writable roots, chat ID, context usage and rate limits."
       },
+      "read-request": {
+        "cells_sha": "3351153add9eb5d74f6e038a229f640f669aef55a44292adc199fe6def45c5d8",
+        "plain": "The documentation does not mention how Codex deals with a malformed or incomplete request from the model.",
+        "technical": "Malformed call recovery: the documentation does not mention it; a sweep of the docs found nothing."
+      },
       "safety-posture": {
         "cells_sha": "97b942ae1a54c957c22ebaebe8cdc4cb6c7b139ed65d505f54f9930eed6237a8",
         "order_note": {
@@ -269,9 +314,9 @@
         "technical": "approval_policy on-request is the default; approval_policy = untrusted is no longer supported. Untrusted projects: project .codex/ layers, hooks and rules are ignored. --dangerously-bypass-approvals-and-sandbox, --sandbox danger-full-access and --yolo skip prompts. Two pages name different starting modes (Auto vs 'start with Ask for approval'); /plan is temporarily unavailable while Codex is working."
       },
       "send-retry": {
-        "cells_sha": "9cb32506c180cf5d3e86463c9780d224d36bdad15ea9d40206a9a74f7d3ae7d3",
-        "plain": "The service can route a request to another model and tells the client when it does. Usage limits are shared with ChatGPT, and running out can pause access to some features.",
-        "technical": "A model/rerouted notification carries threadId, turnId, fromModel, toModel and reason; Codex cloud selects its model automatically. ChatGPT uses the same pricing, credits, and usage limits as Codex; exhausted limits can pause access to eligible features. Memory generation needs a minimum remaining rate-limit percentage (defaults to 25, clamped to 0-100)."
+        "cells_sha": "13bcd8acf3805e3cab18f002ef98e7bc01e6a5c45c3c06c715b3d7ca6a26c942",
+        "plain": "The service can reroute a request to another model and says so. Usage limits are shared with ChatGPT, and running out can pause some features. Retry counts are documented for failed requests and dropped streams; the wait between tries is outside what the cited text covers.",
+        "technical": "model/rerouted notification carries threadId, turnId, fromModel, toModel, reason; Codex cloud selects its model automatically. ChatGPT shares Codex pricing, credits, usage limits. Memory generation needs a minimum remaining rate-limit percentage (default 25, clamped 0-100). Per-provider retry counts: HTTP default 4, SSE streaming default 5. Waiting between attempts and the message shown are outside the cited text."
       },
       "shrink-context": {
         "cells_sha": "7416fddea8eb72884bf8744923c11675d309c1ba65e8986b1d7e4fac15c9826a",
@@ -331,19 +376,24 @@
     },
     "copilot-cli": {
       "assemble-prompt": {
-        "cells_sha": "be0d7c27d3bb7b3f4e425a758a74482076bb7bbb52b453a317c99d127371d389",
+        "cells_sha": "fcea7d7f45ed4ecaa9b75efb43968e7ca716fecc4480eba6133ce39e41d6d62c",
         "order_note": {
           "cell": "copilot-cli/F02.context-window-size",
           "quote": "pins the default tier and takes precedence",
-          "text": "A repository context size setting pins the default tier and takes precedence."
+          "text": "A repository setting that pins the default tier takes precedence."
         },
-        "plain": "The latest models support a very large context window, and you can choose a default or longer size. Naming a file adds it to the prompt, organization exclusion rules are respected, and large tool output is saved to a file with a preview sent to the model.",
-        "technical": "1 million token context window on the latest models; Tab in the model picker toggles default and long-context; repository contextTier (default or long_context) pins the tier. @ plus a relative file path adds contents; content exclusion policies are respected for Copilot Business and Copilot Enterprise; tool output larger than 20 KiB is saved to a temporary file."
+        "plain": "The latest models support a very large context window, in a default or longer size. Naming a file adds it to the prompt, a command shows window use, and large tool output goes to a file with a preview. Copilot Business and Enterprise content exclusion rules are respected.",
+        "technical": "1 million token context window on the latest models, default or extended size chosen after picking a model; repository contextTier (default or long_context) pins the default tier and takes precedence. @ plus a relative file path adds contents; content exclusion respected for Copilot Business and Copilot Enterprise; output over 20 KiB goes to a temp file. /context shows usage; --no-custom-instructions skips AGENTS.md."
       },
       "built-in-tools": {
         "cells_sha": "339a863a1e98a83a9d89fbe2f0cd345cbc02b7ec86330237cdab962ea0c2b975",
         "plain": "It starts with a small set of built-in tools to search, read and edit files, run shell commands and fetch web pages. Shell commands run directly on your machine until you turn on the local sandbox, and web addresses need approval by default.",
         "technical": "The explore agent uses code intelligence, grep, glob, view and shell tools; --available-tools=TOOL ... limits the model to the listed tools. Local sandboxing is off by default; --allow-tool='shell' skips per-command approval. apply_patch is used by some models. web_fetch applies SSRF protections; URLs require approval by default; --allow-url allows a URL or domain."
+      },
+      "caching": {
+        "cells_sha": "28d224c7419cf17ae7e5906d58428e9bd696724e7e9ce277e17f5d643144619c",
+        "plain": "GitHub says it uses prompt caching for Claude and Google Gemini models to improve service quality and cut delay. The documentation does not mention how long cached text is kept or a way to switch caching on or off.",
+        "technical": "GitHub states it uses prompt caching for Claude models and for Google Gemini models. Telemetry reports gen_ai.usage.cache_read.input_tokens and gen_ai.usage.cache_creation.input_tokens, which count cached tokens. Stated for Anthropic and Google models; the documentation does not mention a cache lifetime, invalidation rule or on/off setting."
       },
       "extend-share": {
         "cells_sha": "f37bbfd629037eaa5e7e3281f27987fc7d77b03dbf8aceb8903594039c4cead9",
@@ -415,6 +465,11 @@
         "plain": "Companies can push settings that load before yours, switch off features such as computer use, and limit which models people may pick. A repository can also list the built-in models it allows.",
         "technical": "Server-managed, MDM-managed or file-based managed settings; MDM settings load before user settings. Managed sandbox.allowBypass set to false removes the ability to approve out-of-sandbox commands. Admins can disable computer use. Users get models enabled at the enterprise level (/model lists them); .github/allowed_models.txt restricts built-in models; Claude Fable 5 and 5.1 must be enabled by an admin."
       },
+      "output-handling": {
+        "cells_sha": "7fc1a3d5d3149c6202946f7e49332adbccccf8b29d1fd29dbe6a208aceb90055",
+        "plain": "Large tool output is saved to a file; the model gets its location and a preview, and the size limit can be changed. Two GitHub token variables are hidden by default; you can name others. GitHub says it does not currently provide built-in secret hiding for hooks.",
+        "technical": "Tool output larger than 20 KiB is saved to a temporary file by default; the model gets the path and a preview, including for MCP server tools. COPILOT_LARGE_OUTPUT_THRESHOLD_BYTES changes the limit. --secret-env-vars=VAR ... redacts named variables; GITHUB_TOKEN and COPILOT_GITHUB_TOKEN by default. For hooks, GitHub does not currently provide built-in secret redaction."
+      },
       "outside-tools": {
         "cells_sha": "7593a26d82dc46b611946c72d2e08244b6cd4e3385737e502e7b06163d65b315",
         "plain": "It connects to outside tools through MCP, as local programs or remote servers, with GitHub's own server ready. You can allow or deny a whole server or one tool. The documentation names one config file for a single setting and does not give a full list of places.",
@@ -430,6 +485,11 @@
         "plain": "Plan mode lets you work out a plan before code is written, and remote clients can approve or reject it. The plan description does not call plan mode read-only. The terminal shows the model used for each response and whether sandboxing is on.",
         "technical": "Shift+Tab cycles in and out of plan mode; all prompts trigger the plan workflow; --plan --mode autopilot moves to autopilot once the plan is ready instead of waiting for human approval. Planning happens before code is written, but plan mode is not stated to be read-only. Status line contains sandbox enabled; footer shows N scheduled."
       },
+      "read-request": {
+        "cells_sha": "38bd6d8811e63cc7b9ab96502d5ccab61a5d280535ce1f0bf395d3606ef8096f",
+        "plain": "The documentation does not mention what happens when the model's request to run a command or edit a file is badly formed or incomplete.",
+        "technical": "The documentation does not mention malformed call recovery."
+      },
       "safety-posture": {
         "cells_sha": "aa5bb2e275b1ababfcb840b2c5f073a0fb3ef3c3aeded5e6787e523dd59a54fc",
         "order_note": {
@@ -441,9 +501,9 @@
         "technical": "--mode takes interactive, plan or autopilot; Shift+Tab cycles; one page says two modes, others three. stayInAutopilot (default true) stays in autopilot; another page says autopilot then returns to interactive mode. No starting mode is named. Plan mode blocks edits. --allow-all (or --yolo); --deny-tool takes precedence over --allow-all-tools and --allow-tool."
       },
       "send-retry": {
-        "cells_sha": "6aa93be9225472f0be03a8ca92348cae83c6517521cc58206d857e6a99fb9c9c",
-        "plain": "Auto mode picks a model from system health, performance and task difficulty, and you can ask for a tier. When a setting is on, a rate limit error switches to auto mode and retries, but not for global limits or your own provider. Included credits reset monthly.",
-        "technical": "/model auto TIER (efficiency, balance, or intelligence). When a setting is true, eligible rate limit errors trigger an automatic switch to auto mode and retry; this does not apply to global rate limits or BYOK providers. Included AI credits reset at 00:00:00 UTC on the first day of each calendar month."
+        "cells_sha": "0e0930530879781d3c5e6321c24f55d8bee0973f06f9dba8f61a7fdc81cc9c0e",
+        "plain": "Auto mode picks a model by system health, performance and task difficulty. A setting, off by default, makes an eligible rate limit error switch to auto mode and retry, but not for global limits or your own provider. A default limit or wait time is not stated.",
+        "technical": "/model auto TIER (efficiency, balance, or intelligence) selects an Auto routing tier. continueOnAutoMode (default false): eligible rate limit errors trigger an automatic switch to auto mode and retry, not for global rate limits or BYOK providers. Included AI credits reset at 00:00:00 UTC on the first day of each calendar month. The documentation does not mention a default attempt limit, wait time or message."
       },
       "shrink-context": {
         "cells_sha": "08dccc18fd889fc58fae9cb0bea4fc3938e1455072028605799ac046af4305b4",
@@ -503,14 +563,19 @@
     },
     "copilot-vscode": {
       "assemble-prompt": {
-        "cells_sha": "dd561c9f873cbcd43687ccb21ed7c048ad8896ea14332b51058a7830e42c1cbe",
-        "plain": "Each time the agent sends a request, the editor builds a prompt from multiple sources. You can add MCP resources, a selected page element or referenced files as context. Models differ in context window size, and a chat-input control shows how much of the window is used.",
-        "technical": "VS Code assembles the prompt from multiple sources on each request. Context window size varies by model; a model's optional contextWindow (input plus output, in tokens) lets maxInputTokens be omitted (derived as contextWindow minus maxOutputTokens). MCP resources, a selected element (HTML, CSS, screenshot) and #file: references can be added."
+        "cells_sha": "9cd9a4eb408c9623fbb9883cae46eefde0da8ce411e12590e5f5f1bc5e29d5ac",
+        "plain": "Each request, the editor builds a prompt from the system prompt, your custom instructions, the conversation, file contents, tool outputs and your message. A debug view shows what was sent, and a chat control shows how much of the context window is used.",
+        "technical": "Request includes system prompt, custom instructions, conversation history, file contents, tool outputs, current message. Chat Debug view shows system prompt, user prompt, context, tool definitions, tool payloads. Changed via instructions files (applyTo), Configure Tools picker, custom agent tools property. Optional contextWindow lets maxInputTokens be omitted (contextWindow minus maxOutputTokens)."
       },
       "built-in-tools": {
         "cells_sha": "f026a3c10db373d88a192e7f2cfeb751c8dfd2b62b742aedd793ae3f6a51cf99",
         "plain": "The agent picks from the enabled tools, such as reading files, running terminal commands, searching the codebase, fetching web content and using a built-in browser. Terminal commands need your approval by default, and file edits are saved straight to the project folder.",
         "technical": "Tools include file reads, terminal commands, codebase search, #fetch, and browser tools (workbench.browser.enableChatTools, default true). Each shell command needs approval by default; chat.agentHost.shellTool.initScript.enabled loads ~/.bashrc or PowerShell profiles. chat.tools.edits.autoApprove takes glob patterns. chat.agent.networkFilter filters domains for fetch and the browser."
+      },
+      "caching": {
+        "cells_sha": "daa3ed07a9accd2975a5af57fd24354f22d2dd7d000aeb7930f7619336f9175d",
+        "plain": "Prompt caching depends on the provider and model. When it is supported, the provider might reuse the unchanged start of a request, and a change early on can shrink what is reused. A Cache Explorer shows hit rates. The documentation does not state a cache lifetime.",
+        "technical": "Prompt caching is provider and model dependent; when supported, the provider might reuse the start of a request that matches cached content. A change early in the request can reduce the reusable prefix. Stable context across turns lets the provider reuse tokens; forking a session preserves the prompt cache. Cache Explorer shows cache hit rates. Limitation: no cache lifetime or on/off setting is stated."
       },
       "extend-share": {
         "cells_sha": "bdc7a343984361b64b063cde90c418043bd129e993cdcf4ea726b282164aeb0e",
@@ -582,6 +647,11 @@
         "plain": "Administrators can manage Copilot centrally. Most managed settings override a person's own settings on managed devices, and policy can switch agent mode off, require manual approval for specific tools and restrict which models are offered.",
         "technical": "Copilot managed settings apply across VS Code and GitHub Copilot CLI; most map to a VS Code enterprise policy and override the user setting on managed devices. ChatAgentMode policy (chat.agent.enabled) prevents agent mode. ChatDefaultModel sets the default model; users can still switch within a conversation."
       },
+      "output-handling": {
+        "cells_sha": "8f2dd45d5aed9661f0fc16441ad9f64846ef55dad1bbc91eebd86e0c6eefc56d",
+        "plain": "The documentation does not mention limits on tool output size. Telemetry leaves out prompts, responses and tool arguments unless you turn on content capture. Logs and exports can hold sensitive data, so review them before sharing; secret masking is not described.",
+        "technical": "Tool output limits: not mentioned in the documentation. OTel telemetry does not capture prompts, responses or tool arguments unless github.copilot.chat.otel.captureContent is enabled (default false); captureIdentity is also off by default. Debug log exports, Chat Debug output and Copilot logs can contain sensitive data. Capture is opt-in, not scrubbing; no secret masking is described."
+      },
       "outside-tools": {
         "cells_sha": "b721cd42d2b289969d609f46f1eaeb734d6fade44db30e6c16b14b176f7997bf",
         "plain": "It connects MCP servers and offers their tools to the model, with explicit approval required for tool calls. Copilot sessions are currently limited to local servers that do not need authentication, and plugin servers are trusted when the plugin is installed.",
@@ -597,6 +667,11 @@
         "plain": "Plan mode researches the codebase, clarifies requirements and proposes a plan, then waits for your approval before acting. The plan can be handed to an implementation agent. Controls in the chat input show session cost in credits and context use.",
         "technical": "Built-in Plan agent; the reviewed plan can be handed to an implementation agent. The context window control shows total cost in credits and cumulative context token usage; the Status Bar Copilot status dashboard shows the percentage of the monthly allowance used; a token usage indicator shows a live context budget breakdown."
       },
+      "read-request": {
+        "cells_sha": "d873815a900c22601af7f6840d32484588b4737c91db0103f78ce9269691c310",
+        "plain": "The documentation does not mention what the agent does when the model's request to run a command or edit a file is malformed or incomplete.",
+        "technical": "The documentation does not mention malformed call recovery."
+      },
       "safety-posture": {
         "cells_sha": "d80325679ed2d8b5293363d2818552ef77c08f47302f50bb388b4252849a4b38",
         "order_note": {
@@ -608,9 +683,9 @@
         "technical": "Permissions: Manual, Autopilot, and a bypass level; chat.permissions.default sets new sessions (Manual if enterprise policy disables auto-approval). chat.tools.global.autoApprove (default false) is YOLO mode. Roles: Agent, Plan, Ask, custom; /plan; github.copilot.chat.switchAgent.enabled (experimental). Workspace sandbox settings beat User settings."
       },
       "send-retry": {
-        "cells_sha": "be8a5439a4a0e94266a87b5bf0ea7253d89b74c309cc74a614993f7fddde0d65",
-        "plain": "Auto model selection routes each request to a model based on task complexity and availability. For a temporary rate limit the documentation says to wait a few minutes and retry. Monthly allowances reset each month, and a status dashboard shows when one is reached.",
-        "technical": "Auto evaluates task complexity and real-time model availability; chat.subagents.defaultToAuto (default false) makes subagents use Auto when no model is specified; autoTier managed setting sets initial routing. A temporary rate limit can occur before the monthly AI credits allowance is exhausted: wait a few minutes and retry. The Copilot status dashboard shows whether an allowance has been reached."
+        "cells_sha": "e7c740103e23e0a5784e142b4a692c52d1d66dea044af6867aaa6fb17f739b0a",
+        "plain": "Auto mode picks a model for each request from how hard the task is and which models are available. For a temporary rate limit, the documentation says to wait a few minutes and retry yourself. It does not state automatic retries, wait times or attempt limits.",
+        "technical": "Auto evaluates task complexity and real-time model availability; chat.subagents.defaultToAuto (default false) makes subagents use Auto when no model is specified; autoTier managed setting sets initial routing. A rate limit can occur before the monthly AI credits allowance is exhausted: wait a few minutes and retry. Limitation: no automatic retry, back-off timing or attempt limit is stated."
       },
       "shrink-context": {
         "cells_sha": "0a04dcda99d051d13ec395b31f1b7363cbf92ddb38f5f1499a2e7b74273ef7ca",
@@ -670,14 +745,19 @@
     },
     "cursor": {
       "assemble-prompt": {
-        "cells_sha": "3f7e5d0b25d948efbc33c4847c5296bd44d5de9e5a870460e33a5ad13e0b1d2c",
-        "plain": "Cloud agents let you choose the context window size, and a larger window can cost more. Automations use each model's maximum window with no toggle. Sensitive paths can be kept out of what the model reads, and a hook can block a file before it is sent.",
-        "technical": "Cloud Agents let you select the context window size; a larger window can increase token usage and costs. claude-opus-5[context=300k] sets 300k tokens; Max Mode enables larger windows on request-based plans. Automations use each model's maximum supported context window; there is no context-window toggle. .cursorignore keeps paths out of context; beforeReadFile can block files; dirs adds workspace folders."
+        "cells_sha": "79520906b5480a32cd3c85d086411981a8039100619b0a6cfe2603c1eca2af83",
+        "plain": "Cloud agents let you pick the context window size, and a larger one can cost more; automations use each model's maximum. Sensitive files can be kept out of what the model reads. An SDK option, if enabled for your account, can replace the built-in instructions for local agents.",
+        "technical": "Cloud Agents select context window size (larger can raise costs); claude-opus-5[context=300k] sets 300k; Max Mode enables larger windows on request-based plans. Automations use each model's maximum, no toggle. .cursorignore, beforeReadFile, dirs. SDK systemPrompt on Agent.create() replaces the built-in prompt: local agents (cloud throws ConfigurationError), pass again on Agent.resume(), enabled per account."
       },
       "built-in-tools": {
         "cells_sha": "0c29bb14d14b764e640f93e8025904888f162f69e559a52f2da692e7f05b7ee7",
         "plain": "The agent can edit files, search the code, run terminal commands and search the web. Terminal commands need your approval by default, and fetching a web page asks first unless the site is on an allow list. Searching without asking is off by default.",
         "technical": "Tools include file editing, codebase search and terminal execution; the ToolCall union covers shell, edit, read, write, glob, grep, ls, semSearch, mcp, task and others. By default Cursor uses the first terminal profile available and requires approval before executing any terminal command; Run Mode controls when commands run. Web fetch prompts unless allowlisted; Auto-Accept Web Search is off by default."
+      },
+      "caching": {
+        "cells_sha": "87d49f8cfd645f81a9af119226895837e8205e2774e6a1030834c296869815d4",
+        "plain": "The SDK reports how much of the prompt was served from the cache and how much was saved to it, and model pages list cache prices. The documentation does not mention how long the cache lasts, when it is cleared, or a setting to control it.",
+        "technical": "SDK token usage reports cacheReadTokens and cacheWriteTokens (cache_read_tokens / cache_write_tokens in the Python SDK). Model pages price cache reads and writes, for example Fable 5.1 cache reads at $0.25 per million tokens. The documentation reviewed does not mention a cache lifetime, invalidation rule or on/off/tune setting."
       },
       "extend-share": {
         "cells_sha": "485d0a674c2b1cfa81419afdb89c60d80efaf3792e138f7f814b206efc9352a2",
@@ -749,6 +829,11 @@
         "plain": "Companies can deploy Cursor with enforced policies through device management, and team hooks sync from a dashboard, though managed hooks need Enterprise. Locking network access and limiting models or MCP servers are Enterprise features; a team review setting takes priority.",
         "technical": "MDM enforces policies (allowed team IDs, extensions); ~/.cursor/permissions.json can be distributed through MDM for the per-user MCP auto-run allowlist. Team hooks are set in the web dashboard (Enterprise for enterprise-managed hooks). Lock Network Access Policy and the MCP allowlist are Enterprise; model control needs contacting sales, and non-ZDR models need admin approval."
       },
+      "output-handling": {
+        "cells_sha": "b302e950e3d6caa8cfedd1c8ae5e88e195f31df25dc92dcd3ed111b36014eaa3",
+        "plain": "Long tool output is trimmed on some surfaces: the CLI cuts shell output from the top, and SDK and cloud messages mark what was truncated. Cloud agent secrets are hidden, and shared transcripts get best-effort hiding. Redaction of local agent tool output is not described.",
+        "technical": "SDK tool-call messages and the Cloud Agent API stream carry `truncated` when args or result is too large (the API omits that field). CLI long shell output truncates from the top; shell mode truncates large outputs automatically. Cloud Agent Runtime Secrets are redacted from tool results, transcript and commits; shared transcripts are best effort. No size limit given; local agent output redaction is not described."
+      },
       "outside-tools": {
         "cells_sha": "a8297fec8fb23da53a1cba66cd3842c69e89191b90f69c87d9ab7ce9613ecbb2",
         "order_note": {
@@ -774,6 +859,11 @@
         "plain": "Plan mode researches the code, asks clarifying questions and writes a plan you can edit before building starts. File editing is listed as allowed after you approve the plan. A status line and a context ring show progress and how full the window is.",
         "technical": "Plan Mode researches the codebase, asks clarifying questions and generates a reviewable plan; enter via Shift+Tab, /plan, --plan or --mode=plan. Over ACP, cursor/create_plan blocks until the client accepts or rejects. File editing is listed as 'Yes (after you approve the plan)'; Plan mode is not labelled read-only. /statusline configures the CLI status line; the context ring opens a breakdown tray."
       },
+      "read-request": {
+        "cells_sha": "84e027b9b2e6064d34b286cf9477e37bec327a2d272ca503a9b73dc5e998f5e4",
+        "plain": "The documentation does not mention how Cursor handles a malformed or incomplete request from the model, such as a broken command or file edit.",
+        "technical": "Malformed call recovery: the documentation reviewed does not mention it."
+      },
       "safety-posture": {
         "cells_sha": "86b5b1f28076a5e2db6cce7df454519504db19d3d343cc11ed505692330103a1",
         "order_note": {
@@ -785,9 +875,9 @@
         "technical": "Terminal commands need approval by default. CLI approvalMode: allowlist, auto-review or unrestricted; -f/--force; --yolo; /run-everything [on|off|status] (alias /auto-run). --mode takes plan or ask (agent default). Workspace trust is disabled by default and restricted mode breaks AI features; docs differ on whether --trust works in headless mode only or in interactive sessions too."
       },
       "send-retry": {
-        "cells_sha": "f131fdc3eb3296ee6efcfdee4b81b7bd3e5d8a3924a6aaa436ddb8538ec06704",
-        "plain": "At the usage limit you see a notice and can switch on pay-as-you-go or upgrade. Auto uses a router that sends simple requests to fast models and complex work to the most capable ones. The documentation advises backing off with growing delays when rate limited.",
-        "technical": "Cursor Router is the routing behind Auto; on Teams and Enterprise it picks the model for each Auto request based on your optimization mode. A Fable request that trips a security guardrail is routed to Claude Opus. One endpoint is rate limited to 300 requests per minute and 6000 per hour; back off with exponential delay (SDK reports isRetryable: true for transient cases)."
+        "cells_sha": "472fc3636d68f4755127bc4ce9d35051b718d5f6f6adc56dc1a5eecca20aef60",
+        "plain": "Auto sends simple requests to fast models and complex work to the most capable. At the usage limit you get a notice and can pay as you go. The CLI retries dropped connections; attempt counts and delays are not stated, and rate-limit errors are shown, not retried.",
+        "technical": "Cursor Router powers Auto; on Teams and Enterprise it picks by optimization mode. A Fable request tripping a security guardrail routes to Claude Opus. One API is limited to 300 requests per minute and 6000 per hour; back off exponentially (SDK isRetryable: true). CLI retries dropped and stalled streams; SDK option default true. Attempt limits and delays are not stated; rate-limit errors are shown, not retried."
       },
       "shrink-context": {
         "cells_sha": "19d99830ba1f593c250d1c5fefa1d247c362adadf3bf90ba4ede15a269572e4d",
@@ -842,14 +932,19 @@
     },
     "gemini-cli": {
       "assemble-prompt": {
-        "cells_sha": "a98970bd564873952a38b9d5ae8f8735c5c2a5b92dd2d5a8e4fd331accb20901",
-        "plain": "You can pull in file contents with an at-sign reference, add extra directories to the workspace, and exclude files through ignore rules. The documentation does not mention the size of the context window.",
-        "technical": "@ in a prompt triggers read_many_files, which reads and concatenates content from multiple files. --include-directories adds directories (comma-separated or multiple flags). A setting makes searches respect .gitignore files; .geminiignore files provide exclusion patterns. The documentation does not mention the context window size."
+        "cells_sha": "18c752ae300eb07eba6a65fe1befe4a3f2beac8bb7a33322cf9d8c5a15cd2566",
+        "plain": "You can pull in files with an at-sign, add extra folders, and exclude files with ignore rules. A custom file can fully replace the built-in system prompt. Enabled skills are described to the model at session start. The documentation does not mention the context window size.",
+        "technical": "@ in a prompt often triggers read_many_files. --include-directories adds workspace directories. A setting makes searches respect .gitignore; .geminiignore gives exclusion patterns. GEMINI_SYSTEM_MD points to a Markdown file that fully replaces the system prompt (not a merge). Skill name and description are injected at session start; SKILL.md body goes into history. Context window size: not mentioned."
       },
       "built-in-tools": {
         "cells_sha": "fa829b0ebb02355082aef4c6300a6e81cf6cdc48f4cabfbde1978a41737d4ca3",
         "plain": "It gives the model tools to search and read files, edit them, run shell commands, which need manual confirmation, and search or fetch from the web. A setting can restrict the set of built-in tools, and a command lists the ones available.",
         "technical": "grep_search (legacy alias search_file_content); glob, list_directory, read_many_files; run_shell_command runs shell commands, supports interactive sessions and background processes, requires manual confirmation (node-pty). google_web_search; web_fetch validates requests against private and reserved IP ranges and in Plan Mode requires explicit user confirmation. /tools lists available tools."
+      },
+      "caching": {
+        "cells_sha": "c0a2c8fd76d1657a09f9689d3e742b031661891dae1f3daa59570a714dc8ea85",
+        "plain": "It automatically reuses earlier instructions and context to cut the work on later requests, and a stats command shows the savings. This is documented for API key sign-in. The documentation does not mention how long the saved part lasts or a way to change it.",
+        "technical": "Token caching reuses previous system instructions and context to reduce tokens processed in subsequent requests. Documented for API key authentication (Gemini API key or Vertex AI). /stats shows cached token savings when cached tokens are in use. The documentation does not mention a cache lifetime, invalidation rule or setting to turn it on, off or tune it."
       },
       "extend-share": {
         "cells_sha": "f87a540c4205e2b89b4f26e90b60c4e43d5099340f40b8ea5abbb17663d38726",
@@ -916,6 +1011,11 @@
         "plain": "A system settings file sets a baseline and takes precedence over other settings, and admin policies override user, workspace and default ones. Enterprise controls are managed through a console. The documentation does not mention lists of allowed or blocked models.",
         "technical": "The system settings file defines a baseline configuration and acts as overrides, taking precedence over other settings. Admin policies override User, Workspace, and Default policies. Enterprise Admin Controls are customized via the Management Console. The documentation does not mention model allow and deny lists."
       },
+      "output-handling": {
+        "cells_sha": "443ac0a11b81b04e9ef9c45bfed52097a55f2461bb10753de9dbb072adf220f2",
+        "plain": "A size limit, 40000 characters by default, applies when large tool results are cut down. Experimental options save full shell output to a file and summarise long output. Secret hiding is described as an instruction to a memory helper that is off by default, plus a hook idea.",
+        "technical": "tools.truncateToolOutputThreshold: max characters shown (default 40000; 0 or negative disables). Experimental enableToolOutputTruncation saves full shell output to a file. contextManagement (experimental.contextManagement, default false): 10000 tokens shown, LLM summary above 20000. Redaction: extraction agent (Auto Memory, off by default) told to redact secrets; AfterModel hook suggested; telemetry logs masking."
+      },
       "outside-tools": {
         "cells_sha": "ca34f702660f8c5bd8a463813f705b3861bd55d209826dda7963485af296a65d",
         "plain": "It works with MCP servers, which can run as local programs or be reached remotely, and are set up in settings files with optional sign-in. Servers an admin requires are limited to remote connections. Tools can be filtered per server, and admins can list allowed servers.",
@@ -931,6 +1031,11 @@
         "plain": "Plan mode is a read-only space for designing before implementation, and executing a plan switches to active execution. The footer shows the model name, context usage and the number of loaded instruction files.",
         "technical": "Plan Mode is read-only; executing a plan switches from plan mode to active execution. Footer shows model name, context usage and number of loaded context files (ui.footer.hideModelInfo hides them). ui.dynamicWindowTitle (default true) shows status icons (Ready, Action Required, Working)."
       },
+      "read-request": {
+        "cells_sha": "b077a0c0d96ed35bbc2918c812055ebe1361707c947518e0cf6dc4e93af7aec7",
+        "plain": "The documentation does not mention how it handles a malformed or incomplete request from the model.",
+        "technical": "Malformed call recovery: the documentation does not mention it."
+      },
       "safety-posture": {
         "cells_sha": "8e6c855d822b351d0c9e5a48335ddf5280cd4010b314301e7a71fb8ae4e8d8d7",
         "order_note": {
@@ -942,9 +1047,9 @@
         "technical": "--approval-mode: default, auto_edit, yolo, plan; Shift+Tab cycles default, auto_edit, plan. general.defaultApprovalMode defaults to 'default'. --yolo (-y) is deprecated. YOLO is documented as enabled via command line, yet Ctrl+Y toggles it (unreconciled). --skip-trust; /permissions. Two settings.json files vs four merged settings files (unreconciled); policy engine applies the highest-priority matching rule."
       },
       "send-retry": {
-        "cells_sha": "8b4e1f01d6149426cbd9068c06f4498e0263175554bbc131a6721f05d49089e7",
-        "plain": "It routes between models automatically and switches to a fallback model on failure. When the default pro model is rate-limited it switches to flash for the session. The daily limit listed for Google sign-in is 1000 requests.",
-        "technical": "Model routing picks a model and switches to a fallback on model failure (enabled by default); general.plan.modelRouting switches between Pro (planning) and Flash (implementation) by Plan Mode status. Log in with Google: 1000 maximum model requests / user / day. 429 Resource exhausted means the API request limit was exceeded."
+        "cells_sha": "94463c5ad16475324862f9bbfd7ebd1e667906942288a43eb43f8418b12638d1",
+        "plain": "It picks a model and switches to a fallback when one fails or is rate-limited. On busy-service errors it asks whether to keep trying, waiting longer between tries, or fall back. Main requests allow up to 10 attempts. The documentation does not give wait times.",
+        "technical": "Routing picks a model and falls back on failure (default on); general.plan.modelRouting switches Pro/Flash by Plan Mode. Pro rate-limited: switches to flash. Google login: 1000 maximum model requests / user / day. Capacity errors: 'Keep trying' Gemini 3 Pro (exponential backoff) or fall back to Gemini 2.5 Pro. general.maxAttempts: default 10, max 10. Wait times and what general.retryFetchErrors covers are not stated."
       },
       "shrink-context": {
         "cells_sha": "523fc9486bdd9fe9d80e4ed2da6bad4c5094250c936cf2f0b6ef60384f975d15",
@@ -1004,14 +1109,19 @@
     },
     "grok-bot": {
       "assemble-prompt": {
-        "cells_sha": "633a211fb2fe8eeece8192ff2c622c560668e34182781bd53e76a744c527b827",
-        "plain": "In a conversation you can paste text, links and images, attach files, and mention Bots or plugins. The desktop composer takes up to six attachments at a time. The documentation does not mention the size of the context window.",
-        "technical": "Paste text, links and images; attach files; reference a saved skill with /; mention a Bot, group, routine or plugin with @. Desktop composer: up to six attachments at a time; documents, images and audio up to 25 MB each, videos up to 200 MB. Context window size: not mentioned in the documentation."
+        "cells_sha": "922047f7d531e32085415eecfe64d41532870e22d964d29fc6f4d242b33fbc6e",
+        "plain": "In a conversation you can paste text, links and images, attach files, and mention Bots, groups, routines or plugins. The desktop composer takes up to six attachments at a time. The documentation does not mention the context window size or how the prompt is put together.",
+        "technical": "Paste text, links and images; attach files; reference a saved skill with /; mention a Bot, group, routine or plugin with @. Desktop composer: up to six attachments at a time; documents, images and audio up to 25 MB each, videos up to 200 MB. Context window size and prompt assembly: not mentioned in the documentation."
       },
       "built-in-tools": {
         "cells_sha": "8318c79333172be822f93d959b8d96da13f4511abe9867d997cc1f906f4aaa5f",
         "plain": "Its tools are a shell, a browser and computer use on a hosted cloud computer. It runs commands on your own machine only under a local policy that asks for approval by default. The documentation does not mention file editing tools. Sites can block automation or expire a session.",
         "technical": "Shell, browser and computer use run inside the hosted computer. Local commands via the desktop app only under the local execution policy: per-command approval by default, settable to always allow, ask every time, or never; applies to that desktop alone. File read, edit and write tools: not mentioned in the documentation. Web: a site can still block automation or expire a session."
+      },
+      "caching": {
+        "cells_sha": "e41497b63d7db48d530724787f4db5195ce2bbce0707a5b2b35a79dba6993725",
+        "plain": "The documentation does not mention whether the unchanged start of a prompt is reused to make later turns cheaper and faster.",
+        "technical": "Prompt caching: not mentioned in the documentation."
       },
       "extend-share": {
         "cells_sha": "fc76b9b46f1552d14e866b99dce70368a82d1c6f5cb86a1f89791078d992d8d3",
@@ -1073,6 +1183,11 @@
         "plain": "Most settings sit on an admin-only page of the Cursor dashboard, with a few elsewhere. Admins can set team rules, enforce Auto-review and keep a list of allowed models, but several controls need the Enterprise plan, and the model list is not guaranteed to be followed.",
         "technical": "Most settings: admin-only Grok Bot page of the Cursor dashboard; a few in Team Settings, Team Marketplace or the identity provider. Team Setup (managed setup, via manifests) is Enterprise only, as is enforcing Auto-review. Team admins set Team Rules, Cloud Agent delegation, template sharing, local execution ceiling. Model allowlist: Enterprise only; enforcement is not guaranteed."
       },
+      "output-handling": {
+        "cells_sha": "14091fbe5cab643ff2dc35e0562bfa5cfafe35b2c6dcdaf46aa6434154c09458",
+        "plain": "A Team Bot's secrets are replaced with a placeholder in command output, files it reads and plugin calls. Some of the redaction is for the Enterprise plan only, and pattern matching can miss some secrets. The documentation does not mention limits on tool output size.",
+        "technical": "Team Bot secrets (up to 25, each at least 8 characters, at most 4,096 bytes) become [REDACTED] in command output, files read and plugin calls. Script output is redacted before logging; Action Recording scrubs shell commands; content export redacts credential shapes, PEM blocks, emails: Enterprise plan only (not Privacy Mode (Legacy) teams). Pattern matching cannot recognize every secret."
+      },
       "outside-tools": {
         "cells_sha": "1261d11ad3ed3de205fb48e0fa486f164e15f395d33242aefd337d63af4e85b6",
         "plain": "Outside services connect as plugins, via MCP calls that Cursor runs. You log in through your browser, and tokens stay on Cursor's side. The team's connector policy applies; its allowlist needs the Enterprise plan, and pushing connectors to members is not available.",
@@ -1093,6 +1208,11 @@
         "plain": "The sidebar marks Bots that need attention, have unread activity or are working, and notifications can tell you when a Bot finishes or needs input. The documentation does not mention a plan mode.",
         "technical": "Sidebar distinguishes Bots that need attention (a question, approval, or handoff), unread activity (a new result), and working status. Notifications in a Bot's settings give a system or mobile notification when it finishes or needs input. Plan mode: not mentioned in the documentation."
       },
+      "read-request": {
+        "cells_sha": "906d94aefd510aa10b88bda970af1131f388f0fe38646c3ff889e7196f1c99b2",
+        "plain": "The documentation does not mention how a malformed or incomplete request from the model is handled.",
+        "technical": "Malformed call recovery: not mentioned in the documentation."
+      },
       "safety-posture": {
         "cells_sha": "c95815e5c17af55e9f8a4ae17187aa1f27185375f3620d6e919fdf484b40ab74",
         "order_note": {
@@ -1104,9 +1224,9 @@
         "technical": "Approval prompts: Allow once, Always allow, Deny. Local execution: per-command approval by default, applies to that desktop alone; a team admin can cap it; separate from the approvals for work on the cloud computer. Local-access default: Ask every time; default mode and whether a choice persists not stated. Team Auto-review rules: Enterprise only. Named modes, auto-accept, read-only: not mentioned."
       },
       "send-retry": {
-        "cells_sha": "d3e447a375ea65fe5392f0c2c2d92eff577250cce1d57b01eab631a5a0b66d98",
-        "plain": "Cursor picks the model for each task, and the mix of serving models can change over time. Paid access includes weekly usage; when it runs out, extra usage continues as on-demand usage if that is turned on, and otherwise Grok Bot stops and says the limit was reached.",
-        "technical": "Cursor picks the model for the specific task; the serving model mix can change over time with no fixed vendor set guaranteed; usage analytics show the serving model, including failovers. Paid Grok Bot access includes Weekly usage, which resets weekly. If on-demand is enabled, On-demand usage continues after it runs out; if off, Grok Bot stops and the screen says you have reached your Grok Bot usage limit."
+        "cells_sha": "8875f405cd45dcb3556ac37bf580b0b4c2f2bff616491dfe6147eea1c349a549",
+        "plain": "Cursor picks the model for each task, and the mix of models can change over time. Paid access includes weekly usage; if on-demand is on, extra usage continues after it runs out, otherwise Grok Bot stops. The documentation does not mention retrying after trouble.",
+        "technical": "Cursor picks the model for the specific task; serving model mix can change over time, no fixed vendor set guaranteed; usage analytics show the serving model, including failovers. Weekly usage resets weekly. On-demand enabled: On-demand usage continues; off: Grok Bot stops and the screen says you have reached your Grok Bot usage limit. Retry and back-off: not mentioned in the documentation."
       },
       "shrink-context": {
         "cells_sha": "22efadf50cede936bed0ea2361dbbe190fbd6d227c6d6174228fe0e41308875b",
@@ -1161,14 +1281,24 @@
     },
     "grok-build": {
       "assemble-prompt": {
-        "cells_sha": "d8aa80574e1df0f5bd6942b678fd9b3df0533e94f765c4cfe9175e2c763b52d3",
-        "plain": "A context window setting gives the size in tokens and drives when automatic compaction happens. Rule files are loaded in full with no size cap. One option adds text to the system prompt for a run, and another replaces it entirely.",
-        "technical": "context_window gives the size in tokens and drives auto-compact timing. A prompt can reference a file as @src/main.rs. [tools] respect_gitignore (default false) skips gitignored files in search and read tools. Rule files load in full, with no size cap. --rules appends text to the system prompt for a single run; --system-prompt-override replaces it entirely."
+        "cells_sha": "9874978c21da10d59297c384d97a64a04bc45dec6fa2adf0f09110c3d657a896",
+        "order_note": {
+          "cell": "grok-build/F23.prompt-assembly",
+          "quote": "deeper files taking precedence on conflicts",
+          "text": "Project rule files load in a documented order, and when rules conflict the deeper files take precedence."
+        },
+        "plain": "You can set the context window size, which drives when compaction happens. Rule files load in full, and deeper ones win conflicts. Extra rules can be added to the system prompt for a single run, or the system prompt replaced entirely.",
+        "technical": "context_window (tokens) drives auto-compact timing. Prompts can reference files, e.g. @src/main.rs. [tools] respect_gitignore (default false), when true, skips gitignored files in search and read tools. Rule files load in full, no size cap. --rules <TEXT> appends to the system prompt for a single run; --system-prompt-override <TEXT> replaces it entirely. Assembled locally before the inference proxy."
       },
       "built-in-tools": {
         "cells_sha": "ea2207fa37d27622edf25d3920fed29fdfa2610493fb790d3066e9e12f6eb07f",
         "plain": "Built-in tools can be allowed or removed by name. Shell commands time out after 120 seconds by default, and long-running ones run as background tasks. The web fetch tool is off by default for security, and the write tool can be switched off for read-only sessions.",
         "technical": "--tools <LIST> and --disallowed-tools <LIST>; [features] lsp_tools (default off). [toolset.bash] timeout_secs default 120; x kills a selected background task; ! is shell mode. [toolset] file_toolset standard (default) or hashline; [features] write_file (default on); GROK_WRITE_FILE 0 disables write. GROK_WEB_FETCH (1/0, off by default); [toolset.web_fetch] allowed_domains; --disable-web-search."
+      },
+      "caching": {
+        "cells_sha": "a07cec62dc79d952d45fa33b6b707ffcc0d7028d08c3db7861ea94a2fbc34046",
+        "plain": "The documentation does not mention prompt caching, where a tool asks the model service to remember the unchanged start of a long prompt.",
+        "technical": "Prompt caching: the documentation does not mention it."
       },
       "extend-share": {
         "cells_sha": "057dc331ba4906df21a04c6e6357ef991f8ed89228dfe473dea5336a3d497829",
@@ -1235,6 +1365,11 @@
         "plain": "An administrator can push settings files onto machines, switch off the mode that skips permission prompts, and limit which models can be picked. A lock is honored from root-owned locations, not from a file the user can edit.",
         "technical": "Managed scope reads ~/.grok/managed_config.toml or /etc/grok/managed_config.toml; /etc/grok/requirements.toml is recommended for MDM; grok setup fetches managed configuration. disable_bypass_permissions_mode = true under [ui] turns always-approve off, honored from root-owned sources, not the user-writable ~/.grok/requirements.toml. [models] allowed_models, disabled_models."
       },
+      "output-handling": {
+        "cells_sha": "23fbac57d80c974ca336f4c8a8a2a4d30f454e19e5f2a0ee70cf36182a963c6f",
+        "plain": "The documentation does not mention limits on how large a tool's output can be, or hiding sensitive details in that output.",
+        "technical": "Tool output limits and output redaction: the documentation does not mention either."
+      },
       "outside-tools": {
         "cells_sha": "576764f9ba1cc648867f6590a63b0da86caab8641575ad2f9011038c62f882ca",
         "order_note": {
@@ -1260,6 +1395,11 @@
         "plain": "In plan mode just the plan file can be edited until you approve, and plan review is not skipped under auto or the skip-prompts mode. It gates edit tools, not the shell, so commands can still write through redirection. A bottom row shows live values such as context use and cost.",
         "technical": "Plan mode: the session plan file can be edited until approval, independent of permission mode; leave with Shift+Tab when idle or q on the approval screen. Gates edit tools, not the shell: bash can still write via redirection. status_line default is disabled; the context item turns amber at the auto-compaction threshold or 80 percent; cost is hidden below $0.005."
       },
+      "read-request": {
+        "cells_sha": "d380e3af293033cead1b70d66d03622311e29048c0ffbee7652a64d18ff48ac7",
+        "plain": "The documentation does not mention how it handles a request from the model that is malformed or incomplete.",
+        "technical": "Malformed call recovery: the documentation does not mention it."
+      },
       "safety-posture": {
         "cells_sha": "8877b1dd3a93bb2ac67e68156147aa5dd72aa89388d582d435224ac9deacdcb6",
         "order_note": {
@@ -1271,9 +1411,9 @@
         "technical": "Ask is the default; [ui] permission_mode takes default, ask, auto or always-approve; dontAsk silently denies without an allow rule. Shift+Tab cycles Normal, Plan, Auto (when available) and Always-approve; --always-approve (alias --yolo). Order is deny > ask > allow. Default mode: user config or managed/requirements, not project .grok/config.toml. GROK_WRITE_FILE 0 disables the write tool."
       },
       "send-retry": {
-        "cells_sha": "5b70fd44fc1107826be0d9b69ee443b125e480c56248f6d6a71240dc0366d033",
-        "plain": "The documentation does not mention automatic model routing, or how it behaves when it is rate-limited or the service is busy.",
-        "technical": "The documentation does not mention automatic routing or rate-limit behaviour."
+        "cells_sha": "e07b63a4d88889190274296cbbd512ab206a321b0c2630d11a3313cbba554ec7",
+        "plain": "The documentation does not mention automatic model routing or what happens when it is rate-limited. For retries it documents one setting, a global default for retrying model requests; nothing more about retries is described.",
+        "technical": "Automatic routing and rate-limit behaviour: the documentation does not mention them. Retry and back-off is partial: the model settings table lists max_retries (number) as the \"Global inference retry default.\" Limitation: only the max_retries setting is documented, described as \"Global inference retry default.\""
       },
       "shrink-context": {
         "cells_sha": "55bf6162f0abaf0723e176659fdf9d55ec54acd985b42ebdf1115e2c96ef9ca5",

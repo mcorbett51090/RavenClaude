@@ -6,12 +6,13 @@
 Snapshot 2026-10-04 to 2026-10-04. `undocumented` means a sweep of the mirrored docs found nothing, with a positive control; it is not proof the vendor publishes nothing.
 
 ## Verification
-- Cells: 1016 (127 rows x 8 columns): 680 supported, 238 partial, 96 undocumented, 2 not exposed. 695 verified, 321 unverified.
+- Cells: 1064 (133 rows x 8 columns): 689 supported, 261 partial, 112 undocumented, 2 not exposed. 743 verified, 321 unverified.
 - Errors found by the sample: 5 distinct cells of 374 checked were wrong (4 overreach, 1 wrong state). All 5 were revised and re-verified. Codex CLI crossed the 5% sampled-error line, so all its supported cells were checked: 0 unverified.
+- F23 rows (48 cells, added 2026-10-05): Six rows on request and response handling (prompt assembly, prompt caching, retry and back-off, malformed-call recovery, tool-output limits, output redaction) x 8 columns, from a fresh mirror of the vendors' pages. Every cell was checked: a tester pass on all 48 with 16 planted errors, then an opus review of every partial and supported cell. 8 cells were revised for restrictions the first pass missed (a plan or experimental gate, a default, a version, a missed attempt limit). 16 undocumented cells carry a sweep report.
 - Lever records: 497 records (27 lever rows x 8 columns). A script checks that every literal, value, default and model name appears in a cited quote or its URL; a tester pass with 2 planted errors per column found 2 real records with a location kind the quotes do not show; both were corrected.
 - Lever slice (256 cells): Every cell verified: script quote check, tester-qa on 100%, code-reviewer on 100%, planted errors in every wave. 38 undocumented cells carry a sweep report.
 - Other 760 cells: tester-qa on every partial and not-exposed cell and a 30% stratified sample of supported cells (374 distinct cells checked); code-reviewer on every flagged cell. 58 undocumented cells carry a hand-read sweep report; 7 cells flipped to a documented state after the sweeps and were verified.
-- Planted errors: Every planted error was caught: 49 of 49 in the cell waves, 7 of 7 in the re-check packs, 16 of 16 in the lever-record check.
+- Planted errors: Every planted error was caught: 49 of 49 in the cell waves, 7 of 7 in the re-check packs, 16 of 16 in the lever-record check. The F23 rows added on 2026-10-05 were checked separately: 24 of 25 caught (the first tester pass missed 1 dropped limitation; the four opus passes caught all 9 of theirs).
 - Register: 55 entries. Every repo quote, blob SHA, path and ceiling quote is script-checked; the evidence factor and score are derived. An opus reviewer fact-checked the top 22 and ordered the top 15: 21 of 22 held, one became a probe.
 - Unverified cells by column: claude-code 53, codex-cli 0, copilot-cli 50, copilot-vscode 38, cursor 48, gemini-cli 52, grok-build 47, grok-bot 33. Each is a supported cell outside the sample, carries a settles_by line and shows the unverified marker.
 

@@ -32,7 +32,8 @@ Steps run in the typical order. A documented order appears only where a cell sta
 
 ## B. Each turn, before sending
 
-- Assemble the prompt [documented] The context window size comes from a setting that defaults to automatic for the model. You add files by mentioning paths, and the IDE extension includes open files. It stops adding files once their combined size reaches a cap, 32 KiB by default.
+- Assemble the prompt [documented] The model's reading limit is a setting that defaults to automatic. You attach files by naming paths, and the IDE extension adds open files. Codex joins its instruction files into one chain per run, nearer files winning, and stops adding at a size cap (32 KiB by default).
+  - documented order: Instruction files are joined from the project root downward, and a nearer file overrides an earlier one.
 - Run your own code at set moments [documented, with limits] You can attach scripts to moments like before a tool runs or at session start. A hook is a guardrail, not a complete enforcement boundary: an error or timeout can leave the tool unblocked. Local hooks are unsupported with cloud orchestration, and matchers apply to some events.
   - decision point (codex-cli/F06.output-blocking): If a safety hook fails or times out, does Codex still block the tool?
     - The hook gives an explicit supported denial -> The action can be blocked. | quote: “An explicit supported denial can block an action”
@@ -41,20 +42,20 @@ Steps run in the typical order. A documented order appears only where a cell sta
 
 ## C. The model call
 
-- Send the request and handle trouble [documented] The service can route a request to another model and tells the client when it does. Usage limits are shared with ChatGPT, and running out can pause access to some features.
+- Send the request and handle trouble [documented, with limits] The service can reroute a request to another model and says so. Usage limits are shared with ChatGPT, and running out can pause some features. Retry counts are documented for failed requests and dropped streams; the wait between tries is outside what the cited text covers.
 - Set the thinking budget [documented, with limits] Higher effort makes responses slower and uses more tokens, and the available levels depend on the model. Noisy reasoning output can be silenced, summary detail can be chosen or turned off, and raw reasoning text appears when the model supports it.
-- Reuse the unchanged part of the prompt [not researched]
+- Reuse the unchanged part of the prompt [not documented] The documentation does not mention whether Codex asks the model service to remember the unchanged start of the prompt.
 
 ## D. After the model answers, every turn
 
-- Read what the model asked for [not researched]
+- Read what the model asked for [not documented] The documentation does not mention how Codex deals with a malformed or incomplete request from the model.
 - Decide whether it is allowed [documented] Rules can allow, ask about, or forbid commands by prefix, and filesystem rules can deny reads for exact paths or patterns. Tools marked destructive ask first. A reviewer helper can take over eligible approval prompts but does not review actions the sandbox already allows.
 - Save an undo point [documented, with limits] The documentation describes a rollback call in the app server that drops the last few turns from memory, and lists a counter for undo actions. The rollback call is deprecated and will be removed.
 - Run it inside the fence [documented] Commands run inside an operating-system sandbox. Network access is off by default and writes are limited to the active workspace. The sandbox covers spawned commands, not just built-in file edits. It can be disabled, and a shell command you start yourself runs outside it.
   - decision point (codex-cli/F05.network-policy): If an admin sets a different network rule for an environment, which rule applies?
     - An admin environment override exists -> It can allow a domain the global rule denies, or deny one the global rule allows. | quote: “an admin environment override can allow a domain denied in Global or deny a domain allowed in Global”
     - There is no override -> The global rule is inherited. | quote: “without one, the Global rule is inherited”
-- Tidy the tool's output [not researched]
+- Tidy the tool's output [documented, with limits] Limits are documented for MCP tool output (a token budget per tool) and hook output (about 2,500 tokens by default, extra saved to disk). Telemetry redacts prompts by default, and memory and uploads have secrets redacted. Saved scan logs are not redacted.
 - Feed the result back and go round again [documented] A turn is one exchange: your prompt plus the agent's reply and actions. Codex receives a tool call, runs it and sends back the result. Limits include stopping a turn after repeated automatic-review denials, a tool timeout, and a time limit for workers.
 - Hand work to helpers [documented, with limits] It can start helper agents with their own role, model and effort, run several in parallel, and cap how many are open at once. The documentation does not state a depth limit or whether a helper may start its own helpers. Total caps are shown for security deep scans.
   - documented order: A model chosen explicitly when a helper is spawned wins over the configured default for spawned agents.

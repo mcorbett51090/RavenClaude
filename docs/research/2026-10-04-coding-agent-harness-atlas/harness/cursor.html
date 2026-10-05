@@ -144,6 +144,7 @@ animation:none!important}}
 <li><a href="#F19">F19 Modes and autonomy levels</a></li>
 <li><a href="#F20">F20 Version, release channel, update path</a></li>
 <li><a href="#F22">F22 Usage, cost, limits and observability</a></li>
+<li><a href="#F23">F23 Request and response handling</a></li>
 </ul>
 <section id="F21">
 <h2>F21 Relationship to host platform</h2>
@@ -1557,6 +1558,73 @@ animation:none!important}}
 <p class="st"><span class="g" role="img" aria-label="supported">●</span> <span class="w">supported</span> <span class="uv" role="img" aria-label="unverified">!</span> <span class="w">unverified</span> <span class="marker">[unverified: no verified evidence record; settles by A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample.]</span></p>
 <p><strong>Value:</strong> The built-in `/statusline` skill configures the Cursor CLI status line. `display.showStatusLineRunningTime` shows elapsed running time in the status line. A context ring next to the prompt input shows how full the window is at a glance; clicking it opens a breakdown tray of total tokens used by category.</p>
 <p><strong>Evidence:</strong></p><ul><li><a class="mono" href="../sources/cursor.html#E-cursor-03909">E-cursor-03909</a><blockquote><p>| `/statusline`             | Configures the Cursor CLI status line.                                                               |</p></blockquote><p class="cite">Source: <a href="https://cursor.com/docs/skills.md">https://cursor.com/docs/skills.md</a>; retrieved <time datetime="2026-10-04">2026-10-04</time>; version not recorded; tier E1</p></li><li><a class="mono" href="../sources/cursor.html#E-cursor-00307">E-cursor-00307</a><blockquote><p>| `display.showStatusLineRunningTime`   | boolean | Show elapsed running time in the status line                            |</p></blockquote><p class="cite">Source: <a href="https://cursor.com/docs/cli/reference/configuration.md">https://cursor.com/docs/cli/reference/configuration.md</a>; retrieved <time datetime="2026-10-04">2026-10-04</time>; version not recorded; tier E1</p></li><li><a href="../sources/cursor.html#cursor/F22.status-display">1 more on the sources page</a></li></ul>
+<p class="muted"><strong>Register entries:</strong> none cite this cell.</p>
+</div>
+</div>
+</section>
+<section id="F23">
+<h2>F23 Request and response handling</h2>
+<div id="F23.prompt-assembly">
+<h3>Prompt assembly</h3>
+<p class="muted"><code>F23.prompt-assembly</code> What goes into each model request and in what order (system prompt, instruction files, tool definitions, history, attachments), and what a user can see or change.</p>
+<div class="cell s-partial" id="cursor/F23.prompt-assembly">
+<p class="st"><span class="g" role="img" aria-label="partial">◐</span> <span class="w">partial</span></p>
+<p><strong>Value:</strong> SDK `systemPrompt` on `Agent.create()` replaces Cursor&#x27;s built-in system prompt for the main agent loop. The model loses the coding-assistant identity, tool-use protocol and communication guidance; tool schemas, rules and skills still load and subagents keep their own prompts. Must be non-empty. Agent docs list instructions as the system prompt and rules.</p>
+<p><strong>Limitation:</strong> Only the SDK `systemPrompt` option is documented: local agents only (combining it with `cloud` throws `ConfigurationError`), not persisted (pass it again on `Agent.resume()`), and access is enabled per account.</p>
+<p><strong>Evidence:</strong></p><ul><li><a class="mono" href="../sources/cursor.html#E-cursor-80004">E-cursor-80004</a><blockquote><p>`systemPrompt` replaces Cursor&#x27;s built-in system prompt for the main agent loop with your own text. The model loses the coding-assistant identity, tool-use protocol, and communication guidance, so restate whatever the agent still needs. Tool schemas, rules, and skills still load, and subagents keep</p></blockquote><p class="cite">Source: <a href="https://cursor.com/docs/sdk/typescript.md">https://cursor.com/docs/sdk/typescript.md</a>; retrieved <time datetime="2026-10-05">2026-10-05</time>; version not recorded; tier E1</p></li><li><a class="mono" href="../sources/cursor.html#E-cursor-80015">E-cursor-80015</a><blockquote><p>Cursor&#x27;s built-in system prompt for the main agent loop with your own text. The model loses the coding-assistant identity, tool-use protocol, and communication guidance, so restate whatever the agent still needs. Tool schemas, rules, and skills still load, and subagents keep their own prompts.</p></blockquote><p class="cite">Source: <a href="https://cursor.com/docs/sdk/typescript.md">https://cursor.com/docs/sdk/typescript.md</a>; retrieved <time datetime="2026-10-05">2026-10-05</time>; version not recorded; tier E1</p></li><li><a href="../sources/cursor.html#cursor/F23.prompt-assembly">5 more on the sources page</a></li></ul>
+<p class="muted"><strong>Register entries:</strong> none cite this cell.</p>
+</div>
+</div>
+<div id="F23.prompt-caching">
+<h3>Prompt caching</h3>
+<p class="muted"><code>F23.prompt-caching</code> Whether the harness reuses the unchanged start of a prompt across turns, how long it is kept, what invalidates it, and any setting to turn it on, off or tune it.</p>
+<div class="cell s-partial" id="cursor/F23.prompt-caching">
+<p class="st"><span class="g" role="img" aria-label="partial">◐</span> <span class="w">partial</span></p>
+<p><strong>Value:</strong> The SDK reports prompt-cache use in token usage: `cacheReadTokens` (tokens served from the prompt cache) and `cacheWriteTokens` (tokens written to it), and `cache_read_tokens` / `cache_write_tokens` in the Python SDK. Model pages price cache reads and writes, for example Fable 5.1 cache reads at $0.25 per million tokens.</p>
+<p><strong>Limitation:</strong> Only usage counters and per-model cache prices are documented; no cache lifetime, invalidation rule or on/off/tune setting appears in the sweep hits.</p>
+<p><strong>Evidence:</strong></p><ul><li><a class="mono" href="../sources/cursor.html#E-cursor-80048">E-cursor-80048</a><blockquote><p>| `cacheReadTokens`  | Tokens served from the prompt cache.                                                              |</p></blockquote><p class="cite">Source: <a href="https://cursor.com/docs/sdk/typescript.md">https://cursor.com/docs/sdk/typescript.md</a>; retrieved <time datetime="2026-10-05">2026-10-05</time>; version not recorded; tier E1</p></li><li><a class="mono" href="../sources/cursor.html#E-cursor-80049">E-cursor-80049</a><blockquote><p>| `cacheWriteTokens` | Tokens written to the prompt cache.                                                               |</p></blockquote><p class="cite">Source: <a href="https://cursor.com/docs/sdk/typescript.md">https://cursor.com/docs/sdk/typescript.md</a>; retrieved <time datetime="2026-10-05">2026-10-05</time>; version not recorded; tier E1</p></li><li><a href="../sources/cursor.html#cursor/F23.prompt-caching">2 more on the sources page</a></li></ul>
+<p class="muted"><strong>Register entries:</strong> none cite this cell.</p>
+</div>
+</div>
+<div id="F23.retry-backoff">
+<h3>Retry and back-off</h3>
+<p class="muted"><code>F23.retry-backoff</code> What the harness does when a model call fails or is throttled: automatic retries, waiting, limits on attempts, and the message shown.</p>
+<div class="cell s-partial" id="cursor/F23.retry-backoff">
+<p class="st"><span class="g" role="img" aria-label="partial">◐</span> <span class="w">partial</span></p>
+<p><strong>Value:</strong> CLI: dropped and stalled streams, including silent mid-stream stalls caught by HTTP/2 keepalive pings, retry automatically in all modes; transport and network-unreachable errors retry with backoff, show a &#x27;Reconnecting&#x27; indicator and a hint if the network stays down. Subagent turns use the same policy. SDK: an option, default `true`, enables transport and stall auto-retry for local agent runs.</p>
+<p><strong>Limitation:</strong> Documented for the CLI and for SDK local agent runs; attempt limits and delay values are not stated, and rate-limit errors are described as shown with their real message, not as retried.</p>
+<p><strong>Evidence:</strong></p><ul><li><a class="mono" href="../sources/cursor.html#E-cursor-80001">E-cursor-80001</a><blockquote><p>- **HTTP/2 keepalive pings.** Silent connection stalls mid-stream are detected in seconds and retried.</p></blockquote><p class="cite">Source: <a href="https://cursor.com/docs/cli/changelog.md">https://cursor.com/docs/cli/changelog.md</a>; retrieved <time datetime="2026-10-05">2026-10-05</time>; version not recorded; tier E1</p></li><li><a class="mono" href="../sources/cursor.html#E-cursor-80002">E-cursor-80002</a><blockquote><p>- **Transport interruptions retry automatically.** Network-level cancels and aborts no longer end the turn as if Ctrl+C had been pressed.</p></blockquote><p class="cite">Source: <a href="https://cursor.com/docs/cli/changelog.md">https://cursor.com/docs/cli/changelog.md</a>; retrieved <time datetime="2026-10-05">2026-10-05</time>; version not recorded; tier E1</p></li><li><a href="../sources/cursor.html#cursor/F23.retry-backoff">5 more on the sources page</a></li></ul>
+<p class="muted"><strong>Register entries:</strong> none cite this cell.</p>
+</div>
+</div>
+<div id="F23.malformed-call-recovery">
+<h3>Malformed call recovery</h3>
+<p class="muted"><code>F23.malformed-call-recovery</code> What happens when the model asks for a tool that does not exist, gives invalid arguments or returns output that cannot be parsed: error returned to the model, retry or stop.</p>
+<div class="cell s-undocumented" id="cursor/F23.malformed-call-recovery">
+<p class="st"><span class="g" role="img" aria-label="undocumented">?</span> <span class="w">undocumented</span></p>
+<p class="muted">Sweep: terms malformed, invalid (tool|json|argument|parameter|input)|unknown tool|tool (call|use) (error|fail|invalid), schema validation|failed to parse|could not parse|unparseable; hits 10, reviewed 10; positive control cursor (4578 hits); corpus sha256 ca416bf0db988ebef04a51a1699c901f81e1d38899602c36a51612e2aa9e98f8</p>
+<p class="muted"><strong>Register entries:</strong> none cite this cell.</p>
+</div>
+</div>
+<div id="F23.tool-output-limits">
+<h3>Tool output limits</h3>
+<p class="muted"><code>F23.tool-output-limits</code> Limits on how much tool output enters the context and how it is cut (truncated, summarized or saved to a file), and any setting that changes them.</p>
+<div class="cell s-partial" id="cursor/F23.tool-output-limits">
+<p class="st"><span class="g" role="img" aria-label="partial">◐</span> <span class="w">partial</span></p>
+<p><strong>Value:</strong> SDK tool-call messages and the Cloud Agent API stream carry a `truncated` flag when `args` or `result` is too large (the API omits that field). CLI long shell output truncates from the top, and shell mode truncates large outputs automatically. Browser logs are written to files the agent greps and reads selectively.</p>
+<p><strong>Limitation:</strong> Per surface: SDK and Cloud Agent API stream payloads (no size given), CLI shell output, and browser tool logs. No size limit or setting for tool output entering the model context is given in these quotes.</p>
+<p><strong>Evidence:</strong></p><ul><li><a class="mono" href="../sources/cursor.html#E-cursor-80007">E-cursor-80007</a><blockquote><p>`SDKToolUseMessage` is emitted twice for most tool calls: first with `status: &quot;running&quot;` and `args` populated, then again on completion with `status: &quot;completed&quot;` (or `&quot;error&quot;`) and `result` populated. `truncated` flags whether the SDK truncated `args` or `result` because the payload was too large.</p></blockquote><p class="cite">Source: <a href="https://cursor.com/docs/sdk/typescript.md">https://cursor.com/docs/sdk/typescript.md</a>; retrieved <time datetime="2026-10-05">2026-10-05</time>; version not recorded; tier E1</p></li><li><a class="mono" href="../sources/cursor.html#E-cursor-80009">E-cursor-80009</a><blockquote><p>one tool invocation across updates. `name` is the public tool name, such as `read_file`, `run_terminal_cmd`, or `mcp`. `args` and `result` are tool-specific JSON values. If `args` or `result` is too large to include in the stream, Cursor omits that field and sets the matching `truncated` flag.</p></blockquote><p class="cite">Source: <a href="https://cursor.com/docs/cloud-agent/api/endpoints.md">https://cursor.com/docs/cloud-agent/api/endpoints.md</a>; retrieved <time datetime="2026-10-05">2026-10-05</time>; version not recorded; tier E1</p></li><li><a href="../sources/cursor.html#cursor/F23.tool-output-limits">3 more on the sources page</a></li></ul>
+<p class="muted"><strong>Register entries:</strong> none cite this cell.</p>
+</div>
+</div>
+<div id="F23.output-redaction">
+<h3>Output redaction</h3>
+<p class="muted"><code>F23.output-redaction</code> Whether secrets or sensitive text are removed from tool output, transcripts, logs or telemetry, and how.</p>
+<div class="cell s-partial" id="cursor/F23.output-redaction">
+<p class="st"><span class="g" role="img" aria-label="partial">◐</span> <span class="w">partial</span></p>
+<p><strong>Value:</strong> Cloud Agent Runtime Secrets are redacted from tool call results, chat transcript and commits. Shared transcripts get best-effort redaction of known secret patterns. OpenTelemetry export scrubs message text, shell commands and MCP tool I/O: credential shapes, PEM blocks, SSNs and emails become `[REDACTED: ...]`; values under keys like `password` or `token` are redacted.</p>
+<p><strong>Limitation:</strong> Per surface: Cloud Agent Runtime Secrets; shared transcripts (&quot;best-effort&quot;, &quot;not guaranteed&quot;); Enterprise OpenTelemetry export of Cursor&#x27;s Grok Bot records (&quot;best effort&quot;). Redaction of local agent tool output is not described.</p>
+<p><strong>Evidence:</strong></p><ul><li><a class="mono" href="../sources/cursor.html#E-cursor-80023">E-cursor-80023</a><blockquote><p>- **Scrubbed and capped.** Cursor scrubs message text before export and caps each message body at 32 KiB. `cursor.conversation.content_truncated` is true when the exported body is a prefix of the redacted text.</p></blockquote><p class="cite">Source: <a href="https://cursor.com/docs/enterprise/opentelemetry-export.md">https://cursor.com/docs/enterprise/opentelemetry-export.md</a>; retrieved <time datetime="2026-10-05">2026-10-05</time>; version not recorded; tier E1</p></li><li><a class="mono" href="../sources/cursor.html#E-cursor-80026">E-cursor-80026</a><blockquote><p>- **Secrets redacted, best effort.** Cursor runs the same pattern-based scrubber as shell commands and message text: known credential shapes, PEM blocks, US social security numbers, and email addresses become `[REDACTED: ...]` markers, so an `assignee` address exports as `[REDACTED: Email]` and a</p></blockquote><p class="cite">Source: <a href="https://cursor.com/docs/enterprise/opentelemetry-export.md">https://cursor.com/docs/enterprise/opentelemetry-export.md</a>; retrieved <time datetime="2026-10-05">2026-10-05</time>; version not recorded; tier E1</p></li><li><a href="../sources/cursor.html#cursor/F23.output-redaction">5 more on the sources page</a></li></ul>
 <p class="muted"><strong>Register entries:</strong> none cite this cell.</p>
 </div>
 </div>

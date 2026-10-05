@@ -621,7 +621,8 @@ class RealDataTests(unittest.TestCase):
         cited = {e["url"] for sid in inputs["order"] for e in inputs["evidence"][sid]}
         planned = {u for urls in plan.values() for u in urls}
         self.assertTrue(cited <= planned)
-        self.assertEqual(len(cited), 499)
+        # 499 distinct pages at the 2026-10-04 snapshot; the F23 rows of 2026-10-05 cite six more.
+        self.assertGreaterEqual(len(cited), 505)
 
     def test_the_committed_baseline_has_every_cited_page_if_one_exists(self):
         path = DATA_DIR / watch.BASELINE_NAME

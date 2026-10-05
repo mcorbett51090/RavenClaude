@@ -33,7 +33,8 @@ Steps run in the typical order. A documented order appears only where a cell sta
 
 ## B. Each turn, before sending
 
-- Assemble the prompt [documented, unverified] The context window holds the system instructions, tool definitions, the conversation and tool results. Some models support a 1 million token window. Some tools load on demand, and a subagent's intermediate work stays inside it, so just its final message returns.
+- Assemble the prompt [documented, unverified] Each request re-sends the instructions, project context and conversation so far, with rarely changing content first. The prompt is built on the first request and reused until compaction. Some models take a 1 million token window. A subagent gets its own prompt.
+  - documented order: Rarely changing content goes first in the prompt, and the new message comes after the earlier messages and tool results.
 - Run your own code at set moments [documented, with limits, unverified] Hooks run a script, request, prompt or subagent at set moments and can allow, deny or change a tool call. A hook's allow doesn't skip deny and ask rules. Some hooks exist in one SDK only, and non-interactive runs without the bare option use project hooks in untrusted folders.
   - documented order: A PreToolUse hook runs before the rest of the permission flow.
   - decision point (claude-code/F06.trust-enable): Do hooks run without asking me first?
@@ -43,18 +44,19 @@ Steps run in the typical order. A documented order appears only where a cell sta
 
 ## C. The model call
 
-- Send the request and handle trouble [documented, unverified] If the main model is overloaded or unavailable, a session with a backup model set switches to it and retries the main one at the start of each turn. When a usage limit blocks a request, a command shows ways to keep working, such as waiting for the reset or adding credits.
-  - documented order: After switching to the backup, the main model is retried at the start of each user turn.
+- Send the request and handle trouble [documented, unverified] If the main model is overloaded or unavailable, a session with a backup model set switches to it. Temporary failures are retried up to 10 times with growing waits. When a claude.ai usage limit blocks a request, a command offers waiting for the reset or adding credits.
+  - documented order: When the main model is overloaded or unavailable, the session switches to the backup and tries the main model again at the start of each user turn.
   - decision point (claude-code/F17.auto-routing): How does it switch models on its own?
     - Main model overloaded, backup set -> The session switches to the backup model and retries the main one at the start of each user turn. | quote: “a session with fallbackModel set switches to the backup and retries the primary at the start of each user turn”
     - Plan-then-execute choice in plan mode -> It applies during plan mode if the allowed-models list permits, then switches to Sonnet for execution. | quote: “opusplan applies during plan mode when allowed by availableModels, then switches to Sonnet for execution”
     - A helper agent has no model set -> It follows the documented order for choosing a helper agent's model. | quote: “Omitted subagent models follow the subagent model order”
 - Set the thinking budget [documented, with limits] Extended thinking is on by default, its tokens are billed as output, and the reasoning shows as gray italic text in the terminal. Not all models support effort levels, and the thinking token cap applies on models with a fixed thinking budget.
-- Reuse the unchanged part of the prompt [not researched]
+- Reuse the unchanged part of the prompt [documented] Prompt caching is on by default and can be switched off. The main conversation asks for a 1 hour cache on a Claude subscription within plan usage, and 5 minutes otherwise; each hit resets the timer. Switching models invalidates the cache.
+  - documented order: A setting that forces the shorter 5 minute cache overrides the settings that ask for 1 hour.
 
 ## D. After the model answers, every turn
 
-- Read what the model asked for [not researched]
+- Read what the model asked for [documented, with limits] A tool name it does not recognise is returned to the model as that call's result and the turn continues. Retries for output that fails a format check apply just in non-interactive mode when a format is requested. The documentation does not mention invalid inputs to a known tool.
 - Decide whether it is allowed [documented, with limits, unverified] Rules allow, ask or deny specific tools, and can be narrowed by path or by command. Command rules match the literal command text, so a deny on one form doesn't block another route to the same effect. In auto mode a model classifier blocks irreversible or destructive actions.
 - Save an undo point [documented, with limits] Pressing Esc twice, or using the rewind command, opens a menu to restore an earlier conversation and code state. Checkpoints don't track files changed by shell commands, and snapshots are kept for the 100 most recent checkpoints.
 - Run it inside the fence [documented, with limits, unverified] Shell commands can run in a sandbox that limits which files they change and which network addresses they reach. It covers shell commands and their child processes, but hooks and MCP servers run outside it, and some commands are excluded or can fall back to running unsandboxed.
@@ -62,7 +64,7 @@ Steps run in the typical order. A documented order appears only where a cell sta
     - The command is on the excluded list -> It runs unsandboxed automatically, without the model being involved. | quote: “bypass sandbox restrictions and run unsandboxed automatically without model involvement”
     - The sandbox can't start and failing is turned off -> It falls back to running without a sandbox and prints a warning. | quote: “falls back to unsandboxed execution with a warning on stderr when the sandbox can't start”
     - You type it at the shell-mode prompt -> It runs unsandboxed in most sessions. | quote: “Commands typed at the `!` shell-mode prompt run unsandboxed in most sessions”
-- Tidy the tool's output [not researched]
+- Tidy the tool's output [documented, with limits] Replies from MCP tools are capped, by default at 25000 tokens, and a long file read is paged. The documentation does not give a figure for file-read paging or shell output. Hiding of prompt text and tool output is documented for telemetry alone.
 - Feed the result back and go round again [documented, with limits] A turn runs from a prompt to a response. In the SDKs, read-only tools can run at the same time, while tools that change state run one after another. The command-line turn limit works in print mode only and has no limit by default, and a session doesn't time out on its own.
 - Hand work to helpers [documented, with limits, unverified] It can hand work to helper agents with their own instructions, tools and model, and run several at once, up to 20 by default. The documentation differs on nesting: one page says helpers can start their own helpers, another says by default they lack the tool for it.
   - documented order: A subagent's own effort setting wins over the session's effort level.

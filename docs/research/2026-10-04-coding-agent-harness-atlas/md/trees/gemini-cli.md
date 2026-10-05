@@ -30,22 +30,22 @@ Steps run in the typical order. A documented order appears only where a cell sta
 
 ## B. Each turn, before sending
 
-- Assemble the prompt [partly documented] You can pull in file contents with an at-sign reference, add extra directories to the workspace, and exclude files through ignore rules. The documentation does not mention the size of the context window.
+- Assemble the prompt [partly documented] You can pull in files with an at-sign, add extra folders, and exclude files with ignore rules. A custom file can fully replace the built-in system prompt. Enabled skills are described to the model at session start. The documentation does not mention the context window size.
 - Run your own code at set moments [documented, with limits, unverified] Hooks run your own scripts at set moments, such as before a model request. For now just command-type hooks are supported, non-text message parts are filtered out, and one event does not support some blocking controls. Project hooks start untrusted.
 
 ## C. The model call
 
-- Send the request and handle trouble [documented] It routes between models automatically and switches to a fallback model on failure. When the default pro model is rate-limited it switches to flash for the session. The daily limit listed for Google sign-in is 1000 requests.
+- Send the request and handle trouble [documented, with limits] It picks a model and switches to a fallback when one fails or is rate-limited. On busy-service errors it asks whether to keep trying, waiting longer between tries, or fall back. Main requests allow up to 10 attempts. The documentation does not give wait times.
 - Set the thinking budget [documented, with limits] A model setting block can carry reasoning configuration, and the thinking budget can be controlled directly. The entry describes it just as configuration for models with reasoning, without a per-model list of accepted levels.
-- Reuse the unchanged part of the prompt [not researched]
+- Reuse the unchanged part of the prompt [documented, with limits] It automatically reuses earlier instructions and context to cut the work on later requests, and a stats command shows the savings. This is documented for API key sign-in. The documentation does not mention how long the saved part lasts or a way to change it.
 
 ## D. After the model answers, every turn
 
-- Read what the model asked for [not researched]
+- Read what the model asked for [not documented] The documentation does not mention how it handles a malformed or incomplete request from the model.
 - Decide whether it is allowed [documented, with limits, unverified] Rules can be set per tool, per path and per shell command, and an older option for pre-allowing tools is deprecated in favour of the policy engine. An LLM-based security checker is off by default and described as an additional layer of protection.
 - Save an undo point [documented] It can save snapshots automatically for recovery, and you can go back to an earlier state of the conversation. Named checkpoints can be listed, saved, resumed, deleted and shared.
 - Run it inside the fence [documented, unverified] A sandbox can be switched on and is documented as off by default. On Mac, a profile confines writes to the project folder. The sandbox page describes network as allowed, while a network access setting is documented with a default of off, so the two differ.
-- Tidy the tool's output [not researched]
+- Tidy the tool's output [documented, with limits] A size limit, 40000 characters by default, applies when large tool results are cut down. Experimental options save full shell output to a file and summarise long output. Secret hiding is described as an instruction to a memory helper that is off by default, plus a hook idea.
 - Feed the result back and go round again [documented, unverified] The core returns tool results to the model for further processing. Turn limits cap a session, a helper's turns, and tool calls per task. Detection of infinite loops can be turned off, and a particular output value can stop the loop at once.
 - Hand work to helpers [partly documented, unverified] Helpers are defined in text files and can have their own tools and model. The documentation says they cannot call other helpers. It does not mention how many can run at once, in total, or in parallel; separate sessions can use worktrees to avoid collisions.
 - Shrink the context when it fills [documented, unverified] The core compresses the conversation automatically before sending it to the model, at a usage level you can set. You can also compress by hand, which swaps the whole chat for a summary. A hook fires before the automatic summary.

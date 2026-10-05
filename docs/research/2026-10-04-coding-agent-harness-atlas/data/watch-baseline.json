@@ -1500,6 +1500,9 @@
     "https://code.claude.com/docs/en/how-claude-code-works.md": {
       "sha256": "9312e0563616cdf1069122fba36f5b3b9c60eb6c63d09777135a49c79955fe5e"
     },
+    "https://code.claude.com/docs/en/llm-gateway-protocol.md": {
+      "sha256": "4a230d4396c96ab32496e3758cc8d1593c1c9593e7234e54e492a264ca02109b"
+    },
     "https://code.claude.com/docs/en/managed-settings.md": {
       "sha256": "ad7a2e450e26f1a35ae0b229106b731c6d77ff779849032b39f7354e175d1d28"
     },
@@ -1584,6 +1587,9 @@
     "https://code.visualstudio.com/api/extension-guides/ai/mcp.md": {
       "sha256": "29d5cc0853511e4de75746b13692554db96087210483fe7166c1f1398570ee51"
     },
+    "https://code.visualstudio.com/api/extension-guides/ai/tools.md": {
+      "sha256": "4d33488e5327f200099ad58d35e4566f23fb20212eaaaf6c85629a85924a20f6"
+    },
     "https://code.visualstudio.com/docs/agent-customization/agent-plugins.md": {
       "sha256": "1b42dcf35db92757322b49716e7cb963b93022c38a4d603863c6a0aed2e4c64e"
     },
@@ -1613,6 +1619,9 @@
     },
     "https://code.visualstudio.com/docs/agent-customization/tool-sets.md": {
       "sha256": "a9f0e61ff4c1f4500c89367f9d85e497acc1c6f31f748011ffb23ef68bb509f5"
+    },
+    "https://code.visualstudio.com/docs/agents/agent-troubleshooting/cache-explorer.md": {
+      "sha256": "aa39612fd0df8d77b22b107d8efc6ef0cb56fd409f603abb00dccceb230ce265"
     },
     "https://code.visualstudio.com/docs/agents/agent-troubleshooting/chat-debug-view.md": {
       "sha256": "2c452c59a34ba38b62eb076de26607c58ce7b01dba2bf81ea1f5a70baf86696d"
@@ -2009,6 +2018,9 @@
     },
     "https://cursor.com/docs/models-and-pricing.md": {
       "sha256": "acf02bfcab1618470f08d7be86b87a91045d1a1d34fffe831a29b62b7b15875f"
+    },
+    "https://cursor.com/docs/models/claude-fable-5-1.md": {
+      "sha256": "0f9eed4959567f5538e83eeb7b4f2038843afc35c59e72cdf393882a34b11c8b"
     },
     "https://cursor.com/docs/models/grok-4-5.md": {
       "sha256": "e99c713d6b6b04609957e5852f986ab2e6eb19a9ca09526ff856e8ce12633e9c"
@@ -2712,6 +2724,9 @@
     "https://learn.chatgpt.com/docs/cloud/internet-access.md": {
       "sha256": "5af493d05e5da1a56212d6a77845728eab70e1ce3b7b0f948b9f4294b4978338"
     },
+    "https://learn.chatgpt.com/docs/codex-manual.md": {
+      "sha256": "a4215ccf519d338a8bc0a7640e360d3cb0f0bb2e41b1e093d139443a0d71261e"
+    },
     "https://learn.chatgpt.com/docs/codex-sdk.md": {
       "sha256": "d4007b53f6a4303b1d5f2f8a760f67ef57c5ec37f041a6a6df1357610fca97dc"
     },
@@ -2735,6 +2750,9 @@
     },
     "https://learn.chatgpt.com/docs/config-file/environment-variables.md": {
       "sha256": "af767b8d7892d11d0554d9ea5c0d60d7bb463cb64b2a3a51e2ba0efadbc86ba8"
+    },
+    "https://learn.chatgpt.com/docs/config-schema.json": {
+      "sha256": "7ce31bde1ed6ef15c53a96ba460bb1d0fb7b99fd9ab719b567c94c474f62b023"
     },
     "https://learn.chatgpt.com/docs/custom-prompts.md": {
       "sha256": "d6f7cf8dd9f31d2faf5604ef3a6f8322132a7b66fa50823109cb681e372a0fa9"
