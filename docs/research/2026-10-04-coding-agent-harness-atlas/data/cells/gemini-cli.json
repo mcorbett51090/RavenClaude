@@ -1903,6 +1903,105 @@
    ],
    "value": "The footer shows the model name and context usage (ui.footer.hideModelInfo hides them) and the number of loaded context files. ui.dynamicWindowTitle (default true) puts status icons in the terminal title (Ready, Action Required, Working). v0.33.0 inverted the context window display to show usage.",
    "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "gemini-cli/F23.prompt-assembly",
+   "surface": "gemini-cli",
+   "row": "F23.prompt-assembly",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-gemini-cli-80004",
+    "E-gemini-cli-80005",
+    "E-gemini-cli-80006",
+    "E-gemini-cli-80007",
+    "E-gemini-cli-80008",
+    "E-gemini-cli-80016",
+    "E-gemini-cli-80033"
+   ],
+   "value": "GEMINI_SYSTEM_MD points the CLI at an external Markdown file that completely replaces the built-in system prompt (full replacement, not a merge); the file can use variables such as ${AgentSkills} and ${AvailableTools}. At session start the name and description of enabled skills are injected into the system prompt; a skill's SKILL.md body is added to the conversation history."
+  },
+  {
+   "id": "gemini-cli/F23.prompt-caching",
+   "surface": "gemini-cli",
+   "row": "F23.prompt-caching",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-gemini-cli-80009",
+    "E-gemini-cli-80010",
+    "E-gemini-cli-80017",
+    "E-gemini-cli-80034"
+   ],
+   "value": "Gemini CLI automatically optimizes API costs through token caching, which reuses previous system instructions and context to reduce the number of tokens processed in subsequent requests. It applies when using API key authentication (Gemini API key or Vertex AI). Cached token savings are shown by /stats when cached tokens are in use.",
+   "limitation": "Documented for API key authentication (Gemini API key or Vertex AI). The quotes give no cache lifetime, invalidation rule or setting to turn it on, off or tune it."
+  },
+  {
+   "id": "gemini-cli/F23.retry-backoff",
+   "surface": "gemini-cli",
+   "row": "F23.retry-backoff",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-gemini-cli-80012",
+    "E-gemini-cli-80013",
+    "E-gemini-cli-80035",
+    "E-gemini-cli-80036",
+    "E-gemini-cli-80040"
+   ],
+   "value": "On capacity errors, it asks whether to keep trying Gemini 3 Pro or fall back to Gemini 2.5 Pro; 'Keep trying' uses exponential backoff, waiting longer between retries when the system is busy. general.maxAttempts sets the attempts for main chat model requests (default 10, cannot exceed 10). general.retryFetchErrors retries 'fetch failed sending request' errors. Telemetry logs content-error retries.",
+   "limitation": "Backoff is documented only for the 'Keep trying' option on Gemini 3 Pro capacity errors; wait times and message text are outside the cited text. Which request general.retryFetchErrors covers is not stated."
+  },
+  {
+   "id": "gemini-cli/F23.malformed-call-recovery",
+   "surface": "gemini-cli",
+   "row": "F23.malformed-call-recovery",
+   "state": "undocumented",
+   "verification": "verified",
+   "evidence": [],
+   "sweep_report": {
+    "terms": [
+     "malformed",
+     "invalid (tool|json|argument|parameter|input)|unknown tool|tool (call|use) (error|fail|invalid)",
+     "schema validation|failed to parse|could not parse|unparseable"
+    ],
+    "corpus_sha256": "31bc2f484f4904a7f5d51ac24c08095f7d010ada3cefcd293988e5b77ce55501",
+    "hits": 8,
+    "hits_reviewed": 8,
+    "positive_control_term": "gemini",
+    "positive_control_hits": 2379
+   }
+  },
+  {
+   "id": "gemini-cli/F23.tool-output-limits",
+   "surface": "gemini-cli",
+   "row": "F23.tool-output-limits",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-gemini-cli-80001",
+    "E-gemini-cli-80018",
+    "E-gemini-cli-80021",
+    "E-gemini-cli-80022",
+    "E-gemini-cli-80038"
+   ],
+   "value": "tools.truncateToolOutputThreshold: maximum characters shown when truncating large tool outputs (default 40000; 0 or negative disables). Experimental enableToolOutputTruncation truncates shell tool output and saves the full output to a file. contextManagement: 10000 tokens max shown for truncated outputs; an LLM summarizes them above a 20000 threshold.",
+   "limitation": "The contextManagement limits sit behind experimental.contextManagement, which defaults to false. enableToolOutputTruncation is described as experimental."
+  },
+  {
+   "id": "gemini-cli/F23.output-redaction",
+   "surface": "gemini-cli",
+   "row": "F23.output-redaction",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-gemini-cli-80003",
+    "E-gemini-cli-80014",
+    "E-gemini-cli-80037",
+    "E-gemini-cli-80039"
+   ],
+   "value": "Gemini CLI's extraction agent is instructed to redact secrets, tokens and credentials it encounters and never copy large tool outputs verbatim. The docs suggest the AfterModel hook, which fires after every chunk of LLM output, for real-time redaction or PII filtering. A telemetry event logs when tool output is masked for privacy.",
+   "limitation": "Documented only as an instruction to the extraction agent, a hook use-case and a telemetry event on tool-output masking. The extraction agent is part of Auto Memory, which is off by default (experimental). Environment-variable redaction applies to the environment passed to tools, not their output."
   }
  ]
 }

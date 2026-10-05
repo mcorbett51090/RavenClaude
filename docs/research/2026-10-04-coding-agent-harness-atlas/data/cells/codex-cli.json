@@ -1745,6 +1745,106 @@
     "E-codex-cli-02087"
    ],
    "value": "/status displays session configuration and token usage: it confirms the active model, approval policy, writable roots, and remaining context capacity, and shows the chat ID, context usage, and rate limits. The TUI footer status line is an ordered list of status-line item identifiers; null disables it."
+  },
+  {
+   "id": "codex-cli/F23.prompt-assembly",
+   "surface": "codex-cli",
+   "row": "F23.prompt-assembly",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-codex-cli-80013",
+    "E-codex-cli-80014",
+    "E-codex-cli-80015",
+    "E-codex-cli-80019",
+    "E-codex-cli-80028"
+   ],
+   "value": "Codex builds an AGENTS.md instruction chain once per run, concatenating files root-down with blank lines; later (nearer) files override earlier ones. Adding stops at project_doc_max_bytes (32 KiB default). Another setting is described as a \"Replacement for built-in instructions instead of `AGENTS.md`\". `codex debug prompt-input` renders the exact model-visible prompt input as JSON."
+  },
+  {
+   "id": "codex-cli/F23.prompt-caching",
+   "surface": "codex-cli",
+   "row": "F23.prompt-caching",
+   "state": "undocumented",
+   "verification": "verified",
+   "evidence": [],
+   "sweep_report": {
+    "terms": [
+     "prompt[ -]?cach",
+     "cache[_ -]?control|cache (hit|read|write|miss|breakpoint|prefix)|cached (input|token)"
+    ],
+    "corpus_sha256": "6381721e5ba703ec664def652b965ad69d323b8806628b3dd2a4075c3f43751c",
+    "hits": 17,
+    "hits_reviewed": 17,
+    "positive_control_term": "codex",
+    "positive_control_hits": 8612
+   }
+  },
+  {
+   "id": "codex-cli/F23.retry-backoff",
+   "surface": "codex-cli",
+   "row": "F23.retry-backoff",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-codex-cli-80029",
+    "E-codex-cli-80030",
+    "E-codex-cli-80032",
+    "E-codex-cli-80033"
+   ],
+   "value": "Two per-provider settings: retry count for HTTP requests to the provider (default 4), and retry count for SSE streaming interruptions (default 5). The schema describes them as retrying a failed HTTP request to the provider and reconnecting a dropped streaming response before failing.",
+   "limitation": "Only the two retry counts are documented. Waiting between attempts and the message shown are outside the cited text."
+  },
+  {
+   "id": "codex-cli/F23.malformed-call-recovery",
+   "surface": "codex-cli",
+   "row": "F23.malformed-call-recovery",
+   "state": "undocumented",
+   "verification": "verified",
+   "evidence": [],
+   "sweep_report": {
+    "terms": [
+     "malformed",
+     "invalid (tool|json|argument|parameter|input)|unknown tool|tool (call|use) (error|fail|invalid)",
+     "schema validation|failed to parse|could not parse|unparseable"
+    ],
+    "corpus_sha256": "6381721e5ba703ec664def652b965ad69d323b8806628b3dd2a4075c3f43751c",
+    "hits": 28,
+    "hits_reviewed": 28,
+    "positive_control_term": "codex",
+    "positive_control_hits": 8612
+   }
+  },
+  {
+   "id": "codex-cli/F23.tool-output-limits",
+   "surface": "codex-cli",
+   "row": "F23.tool-output-limits",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-codex-cli-80025",
+    "E-codex-cli-80001",
+    "E-codex-cli-80002"
+   ],
+   "value": "MCP: a configuration setting gives a token budget for one MCP tool's output, before the standard 20% serialization allowance, overriding the model's default output truncation budget. Hooks: by default hook output shown to the model is limited to roughly 2,500 tokens; more is saved to `<temp_dir>/hook_outputs/<session_id>/<uuid>.txt`, with a head-and-tail preview.",
+   "limitation": "The token budget is per MCP tool; the roughly 2,500-token default with saving to disk is documented for model-visible hook output."
+  },
+  {
+   "id": "codex-cli/F23.output-redaction",
+   "surface": "codex-cli",
+   "row": "F23.output-redaction",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-codex-cli-80016",
+    "E-codex-cli-80017",
+    "E-codex-cli-80010",
+    "E-codex-cli-80018",
+    "E-codex-cli-80011",
+    "E-codex-cli-80034"
+   ],
+   "value": "OTel telemetry exports user prompts redacted by default; docs say keep `log_user_prompt = false` unless policy permits storing prompt contents. Codex redacts secrets from generated memory fields and known secret patterns before uploading a snapshot. For tool arguments and outputs, docs favour redaction at the collector or SIEM.",
+   "limitation": "Documented for user prompts in telemetry, generated memory fields and uploaded snapshots. Saved scan logs (security CLI) \"aren't redacted\"; docs advise redacting tool arguments and outputs at the collector or SIEM."
   }
  ]
 }

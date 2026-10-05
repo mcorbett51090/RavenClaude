@@ -11919,6 +11919,1369 @@
    ],
    "quote_verified": true,
    "neutralizer_flags": []
+  },
+  {
+   "id": "E-claude-code-80001",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/env-vars.md",
+   "url_effective": "https://code.claude.com/docs/en/env-vars.md",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 164102,
+   "sha256": "016816acaeab3981c1bebd7e3ac884a4fc2ebd9d9bbb65fd12748d4e0bfbab2d",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "Variables",
+    "raw_line_start": 444,
+    "raw_line_end": 444
+   },
+   "quote": "| `DISABLE_PROMPT_CACHING` | Set to `1` to disable [prompt caching](/docs/en/prompt-caching#disable-prompt-caching) for all models (takes precedence over per-model settings) |",
+   "context_before": [
+    "| `DISABLE_LOGIN_COMMAND` | Set to `1` to hide the `/login` command. Useful when authentication is handled externally via API keys or `apiKeyHelper` |",
+    "| `DISABLE_LOGOUT_COMMAND` | Set to `1` to hide the `/logout` command |"
+   ],
+   "context_after": [
+    "| `DISABLE_PROMPT_CACHING_FABLE` | Set to `1` to disable prompt caching for Fable models |",
+    "| `DISABLE_PROMPT_CACHING_HAIKU` | Set to `1` to disable prompt caching for the [default Haiku model](/docs/en/prompt-caching#disable-prompt-caching), wherever it runs |"
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-claude-code-80002",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/env-vars.md",
+   "url_effective": "https://code.claude.com/docs/en/env-vars.md",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 164102,
+   "sha256": "016816acaeab3981c1bebd7e3ac884a4fc2ebd9d9bbb65fd12748d4e0bfbab2d",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "Variables",
+    "raw_line_start": 445,
+    "raw_line_end": 445
+   },
+   "quote": "| `DISABLE_PROMPT_CACHING_FABLE` | Set to `1` to disable prompt caching for Fable models |",
+   "context_before": [
+    "| `DISABLE_LOGOUT_COMMAND` | Set to `1` to hide the `/logout` command |",
+    "| `DISABLE_PROMPT_CACHING` | Set to `1` to disable [prompt caching](/docs/en/prompt-caching#disable-prompt-caching) for all models (takes precedence over per-model settings) |"
+   ],
+   "context_after": [
+    "| `DISABLE_PROMPT_CACHING_HAIKU` | Set to `1` to disable prompt caching for the [default Haiku model](/docs/en/prompt-caching#disable-prompt-caching), wherever it runs |",
+    "| `DISABLE_PROMPT_CACHING_OPUS` | Set to `1` to disable prompt caching for the [default Opus model](/docs/en/prompt-caching#disable-prompt-caching) |"
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-claude-code-80003",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/env-vars.md",
+   "url_effective": "https://code.claude.com/docs/en/env-vars.md",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 164102,
+   "sha256": "016816acaeab3981c1bebd7e3ac884a4fc2ebd9d9bbb65fd12748d4e0bfbab2d",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "Variables",
+    "raw_line_start": 446,
+    "raw_line_end": 446
+   },
+   "quote": "| `DISABLE_PROMPT_CACHING_HAIKU` | Set to `1` to disable prompt caching for the [default Haiku model](/docs/en/prompt-caching#disable-prompt-caching), wherever it runs |",
+   "context_before": [
+    "| `DISABLE_PROMPT_CACHING` | Set to `1` to disable [prompt caching](/docs/en/prompt-caching#disable-prompt-caching) for all models (takes precedence over per-model settings) |",
+    "| `DISABLE_PROMPT_CACHING_FABLE` | Set to `1` to disable prompt caching for Fable models |"
+   ],
+   "context_after": [
+    "| `DISABLE_PROMPT_CACHING_OPUS` | Set to `1` to disable prompt caching for the [default Opus model](/docs/en/prompt-caching#disable-prompt-caching) |",
+    "| `DISABLE_PROMPT_CACHING_SONNET` | Set to `1` to disable prompt caching for the [default Sonnet model](/docs/en/prompt-caching#disable-prompt-caching) |"
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-claude-code-80004",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/env-vars.md",
+   "url_effective": "https://code.claude.com/docs/en/env-vars.md",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 164102,
+   "sha256": "016816acaeab3981c1bebd7e3ac884a4fc2ebd9d9bbb65fd12748d4e0bfbab2d",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "Variables",
+    "raw_line_start": 447,
+    "raw_line_end": 447
+   },
+   "quote": "| `DISABLE_PROMPT_CACHING_OPUS` | Set to `1` to disable prompt caching for the [default Opus model](/docs/en/prompt-caching#disable-prompt-caching) |",
+   "context_before": [
+    "| `DISABLE_PROMPT_CACHING_FABLE` | Set to `1` to disable prompt caching for Fable models |",
+    "| `DISABLE_PROMPT_CACHING_HAIKU` | Set to `1` to disable prompt caching for the [default Haiku model](/docs/en/prompt-caching#disable-prompt-caching), wherever it runs |"
+   ],
+   "context_after": [
+    "| `DISABLE_PROMPT_CACHING_SONNET` | Set to `1` to disable prompt caching for the [default Sonnet model](/docs/en/prompt-caching#disable-prompt-caching) |",
+    "| `DISABLE_TELEMETRY` | Set to any non-empty value, such as `1`, to opt out of telemetry. **Setting it to `0` or `false` still opts out**, unlike most on/off variables; unset the variable to turn telemetry back on. Telemetry events don't include user data like code, file paths, or Bash commands. Als"
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-claude-code-80005",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/env-vars.md",
+   "url_effective": "https://code.claude.com/docs/en/env-vars.md",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 164102,
+   "sha256": "016816acaeab3981c1bebd7e3ac884a4fc2ebd9d9bbb65fd12748d4e0bfbab2d",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "Variables",
+    "raw_line_start": 448,
+    "raw_line_end": 448
+   },
+   "quote": "| `DISABLE_PROMPT_CACHING_SONNET` | Set to `1` to disable prompt caching for the [default Sonnet model](/docs/en/prompt-caching#disable-prompt-caching) |",
+   "context_before": [
+    "| `DISABLE_PROMPT_CACHING_HAIKU` | Set to `1` to disable prompt caching for the [default Haiku model](/docs/en/prompt-caching#disable-prompt-caching), wherever it runs |",
+    "| `DISABLE_PROMPT_CACHING_OPUS` | Set to `1` to disable prompt caching for the [default Opus model](/docs/en/prompt-caching#disable-prompt-caching) |"
+   ],
+   "context_after": [
+    "| `DISABLE_TELEMETRY` | Set to any non-empty value, such as `1`, to opt out of telemetry. **Setting it to `0` or `false` still opts out**, unlike most on/off variables; unset the variable to turn telemetry back on. Telemetry events don't include user data like code, file paths, or Bash commands. Als",
+    "| `DISABLE_UPDATES` | Set to `1` to block all updates including manual `claude update` and `claude install`. Stricter than `DISABLE_AUTOUPDATER`. Use when distributing Claude Code through your own channels and users should not self-update |"
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-claude-code-80007",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/env-vars.md",
+   "url_effective": "https://code.claude.com/docs/en/env-vars.md",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 164102,
+   "sha256": "016816acaeab3981c1bebd7e3ac884a4fc2ebd9d9bbb65fd12748d4e0bfbab2d",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "Variables",
+    "raw_line_start": 455,
+    "raw_line_end": 455
+   },
+   "quote": "| `ENABLE_PROMPT_CACHING_1H` | Set to `1` to request a 1-hour [prompt cache TTL](/docs/en/prompt-caching#cache-lifetime) instead of the default 5 minutes. Intended for API key, [Amazon Bedrock](/docs/en/amazon-bedrock), [Google Cloud's Agent Platform](/docs/en/google-vertex-ai), [Microsoft",
+   "context_before": [
+    "| `ENABLE_BETA_TRACING_DETAILED` | Set to `1`, together with `BETA_TRACING_ENDPOINT`, to turn on [detailed beta tracing](/docs/en/monitoring-usage#traces-beta), which adds content-bearing span attributes and the `claude_code.hook` span. Interactive CLI sessions also require your organization to be a",
+    "| `ENABLE_CLAUDEAI_MCP_SERVERS` | Set to `false` to stop Claude Code from fetching [claude.ai MCP servers](/docs/en/mcp#use-mcp-servers-from-claude-ai). Enabled by default for logged-in users. To disable per-project or per-org, set [`disableClaudeAiConnectors`](/docs/en/settings-reference#disablecla"
+   ],
+   "context_after": [
+    "| `ENABLE_PROMPT_CACHING_1H_BEDROCK` | Deprecated. Use `ENABLE_PROMPT_CACHING_1H` instead |",
+    "| `ENABLE_TOOL_SEARCH` | Controls [MCP tool search](/docs/en/mcp#scale-with-mcp-tool-search). Unset, Claude Code defers all MCP tools by default. It still loads them upfront on Google Cloud's Agent Platform models earlier than the Claude 4.5 generation, on a Microsoft Foundry deployment hosted on Az"
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-claude-code-80010",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/env-vars.md",
+   "url_effective": "https://code.claude.com/docs/en/env-vars.md",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 164102,
+   "sha256": "016816acaeab3981c1bebd7e3ac884a4fc2ebd9d9bbb65fd12748d4e0bfbab2d",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "Variables",
+    "raw_line_start": 461,
+    "raw_line_end": 461
+   },
+   "quote": "| `FORCE_PROMPT_CACHING_5M` | Set to `1` to force the 5-minute prompt cache TTL even when 1-hour TTL would otherwise apply. Overrides `CLAUDE_CODE_PROMPT_CACHE_TTL`, `CLAUDE_CODE_SUBAGENT_PROMPT_CACHE_TTL`, `ENABLE_PROMPT_CACHING_1H`, and the `promptCacheTtl` and `subagentPromptCacheTtl` settings |",
+   "context_before": [
+    "| `FORCE_AUTOUPDATE_PLUGINS` | Set to `1` to force plugin auto-updates even when the main auto-updater is disabled via `DISABLE_AUTOUPDATER` |",
+    "| `FORCE_HYPERLINK` | Set to `1` to enable clickable OSC 8 hyperlinks when your terminal supports them but isn't auto-detected, or `0` to disable them. When unset, Claude Code enables hyperlinks only when it detects terminal support. Claude Code parses this value as a number, not a Boolean, so a val"
+   ],
+   "context_after": [
+    "| `HTTP_PROXY` | Specify HTTP proxy server for network connections |",
+    "| `HTTPS_PROXY` | Specify HTTPS proxy server for network connections |"
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-claude-code-80012",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/env-vars.md",
+   "url_effective": "https://code.claude.com/docs/en/env-vars.md",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 164102,
+   "sha256": "016816acaeab3981c1bebd7e3ac884a4fc2ebd9d9bbb65fd12748d4e0bfbab2d",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "Variables",
+    "raw_line_start": 465,
+    "raw_line_end": 465
+   },
+   "quote": "| `MAX_MCP_OUTPUT_TOKENS` | Maximum number of tokens allowed in MCP tool responses (default: 25000). Claude Code displays a warning when output exceeds 10,000 tokens. Tools that declare [`anthropic/maxResultSizeChars`](/docs/en/mcp#raise-the-limit-for-a-specific-tool) use that character limit for",
+   "context_before": [
+    "| `HTTPS_PROXY` | Specify HTTPS proxy server for network connections |",
+    "| `IS_DEMO` | Set to any non-empty value, such as `1`, to enable demo mode: hides your email and organization name from the header and `/status` output, and skips onboarding. **Setting it to `0` or `false` still enables demo mode**, unlike most on/off variables; unset the variable to turn it off. Us"
+   ],
+   "context_after": [
+    "| `MAX_STRUCTURED_OUTPUT_RETRIES` | Number of attempts Claude Code allows when the model's response fails validation against the [`--json-schema`](/docs/en/cli-reference#cli-flags) in non-interactive mode with the `-p` flag; after that many failed attempts with no valid output, the run fails. The sa",
+    "| `MAX_THINKING_TOKENS` | Fixed token budget for [extended thinking](https://platform.claude.com/docs/en/build-with-claude/extended-thinking). Claude Code caps it at one token below the request's max output tokens and never below 1,024. See `CLAUDE_CODE_MAX_OUTPUT_TOKENS` for how that limit is set. "
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-claude-code-80013",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/env-vars.md",
+   "url_effective": "https://code.claude.com/docs/en/env-vars.md",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 164102,
+   "sha256": "016816acaeab3981c1bebd7e3ac884a4fc2ebd9d9bbb65fd12748d4e0bfbab2d",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "Variables",
+    "raw_line_start": 466,
+    "raw_line_end": 466
+   },
+   "quote": "| `MAX_STRUCTURED_OUTPUT_RETRIES` | Number of attempts Claude Code allows when the model's response fails validation against the [`--json-schema`](/docs/en/cli-reference#cli-flags) in non-interactive mode with the `-p` flag; after that many failed attempts with no valid output, the run fails. The",
+   "context_before": [
+    "| `IS_DEMO` | Set to any non-empty value, such as `1`, to enable demo mode: hides your email and organization name from the header and `/status` output, and skips onboarding. **Setting it to `0` or `false` still enables demo mode**, unlike most on/off variables; unset the variable to turn it off. Us",
+    "| `MAX_MCP_OUTPUT_TOKENS` | Maximum number of tokens allowed in MCP tool responses (default: 25000). Claude Code displays a warning when output exceeds 10,000 tokens. Tools that declare [`anthropic/maxResultSizeChars`](/docs/en/mcp#raise-the-limit-for-a-specific-tool) use that character limit for te"
+   ],
+   "context_after": [
+    "| `MAX_THINKING_TOKENS` | Fixed token budget for [extended thinking](https://platform.claude.com/docs/en/build-with-claude/extended-thinking). Claude Code caps it at one token below the request's max output tokens and never below 1,024. See `CLAUDE_CODE_MAX_OUTPUT_TOKENS` for how that limit is set. ",
+    "| `MCP_CLIENT_SECRET` | OAuth client secret for MCP servers that require [pre-configured credentials](/docs/en/mcp#use-pre-configured-oauth-credentials). Avoids the interactive prompt when adding a server with `--client-secret` |"
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-claude-code-80018",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/env-vars.md",
+   "url_effective": "https://code.claude.com/docs/en/env-vars.md",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 164102,
+   "sha256": "016816acaeab3981c1bebd7e3ac884a4fc2ebd9d9bbb65fd12748d4e0bfbab2d",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "Variables",
+    "raw_line_start": 484,
+    "raw_line_end": 484
+   },
+   "quote": "| `OTEL_LOG_ASSISTANT_RESPONSES` | Set to `1` to include the model's response text on `assistant_response` OpenTelemetry log events. When unset, Claude Code uses the value of `OTEL_LOG_USER_PROMPTS` instead. Set to `0` to keep responses redacted even when `OTEL_LOG_USER_PROMPTS` is set. Set it in",
+   "context_before": [
+    "| `NO_PROXY` | List of domains and IPs to which requests will be directly issued, bypassing proxy |",
+    "| `OTEL_ATTRIBUTE_VALUE_LENGTH_LIMIT` | Standard OpenTelemetry SDK limit on attribute value length. Claude Code caps content-bearing telemetry attributes at the smaller of this and `CLAUDE_CODE_OTEL_CONTENT_MAX_LENGTH`, so the truncation marker stays within the SDK limit. Claude Code reads the `OTEL"
+   ],
+   "context_after": [
+    "| `OTEL_LOG_MANAGED_SETTINGS` | Set to `1` to add the redacted managed settings, and a SHA-256 digest of the settings before redaction, to `managed_settings_resolved` OpenTelemetry log events. Disabled by default. Set it in your shell, user settings, or managed settings; a value in project or local ",
+    "| `OTEL_LOG_RAW_API_BODIES` | Emit Anthropic Messages API request and response JSON as `api_request_body` / `api_response_body` log events. Set to `1` for inline bodies truncated at the content limit, or `file:<dir>` to write untruncated bodies to disk and emit a `body_ref` path instead. `CLAUDE_COD"
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-claude-code-80019",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/env-vars.md",
+   "url_effective": "https://code.claude.com/docs/en/env-vars.md",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 164102,
+   "sha256": "016816acaeab3981c1bebd7e3ac884a4fc2ebd9d9bbb65fd12748d4e0bfbab2d",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "Variables",
+    "raw_line_start": 485,
+    "raw_line_end": 485
+   },
+   "quote": "| `OTEL_LOG_MANAGED_SETTINGS` | Set to `1` to add the redacted managed settings, and a SHA-256 digest of the settings before redaction, to `managed_settings_resolved` OpenTelemetry log events. Disabled by default. Set it in your shell, user settings, or managed settings; a value in project or local",
+   "context_before": [
+    "| `OTEL_ATTRIBUTE_VALUE_LENGTH_LIMIT` | Standard OpenTelemetry SDK limit on attribute value length. Claude Code caps content-bearing telemetry attributes at the smaller of this and `CLAUDE_CODE_OTEL_CONTENT_MAX_LENGTH`, so the truncation marker stays within the SDK limit. Claude Code reads the `OTEL",
+    "| `OTEL_LOG_ASSISTANT_RESPONSES` | Set to `1` to include the model's response text on `assistant_response` OpenTelemetry log events. When unset, Claude Code uses the value of `OTEL_LOG_USER_PROMPTS` instead. Set to `0` to keep responses redacted even when `OTEL_LOG_USER_PROMPTS` is set. Set it in yo"
+   ],
+   "context_after": [
+    "| `OTEL_LOG_RAW_API_BODIES` | Emit Anthropic Messages API request and response JSON as `api_request_body` / `api_response_body` log events. Set to `1` for inline bodies truncated at the content limit, or `file:<dir>` to write untruncated bodies to disk and emit a `body_ref` path instead. `CLAUDE_COD",
+    "| `OTEL_LOG_TOOL_CONTENT` | Set to `1` to include tool content in the `tool.output` OpenTelemetry span event. Span attributes carry tool content under [their own gates](/docs/en/monitoring-usage#new-context-gates). Requires [tracing](/docs/en/monitoring-usage#traces-beta). Disabled by default to pro"
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-claude-code-80021",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/env-vars.md",
+   "url_effective": "https://code.claude.com/docs/en/env-vars.md",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 164102,
+   "sha256": "016816acaeab3981c1bebd7e3ac884a4fc2ebd9d9bbb65fd12748d4e0bfbab2d",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "Variables",
+    "raw_line_start": 487,
+    "raw_line_end": 487
+   },
+   "quote": "| `OTEL_LOG_TOOL_CONTENT` | Set to `1` to include tool content in the `tool.output` OpenTelemetry span event. Span attributes carry tool content under [their own gates](/docs/en/monitoring-usage#new-context-gates). Requires [tracing](/docs/en/monitoring-usage#traces-beta). Disabled by default to",
+   "context_before": [
+    "| `OTEL_LOG_MANAGED_SETTINGS` | Set to `1` to add the redacted managed settings, and a SHA-256 digest of the settings before redaction, to `managed_settings_resolved` OpenTelemetry log events. Disabled by default. Set it in your shell, user settings, or managed settings; a value in project or local ",
+    "| `OTEL_LOG_RAW_API_BODIES` | Emit Anthropic Messages API request and response JSON as `api_request_body` / `api_response_body` log events. Set to `1` for inline bodies truncated at the content limit, or `file:<dir>` to write untruncated bodies to disk and emit a `body_ref` path instead. `CLAUDE_COD"
+   ],
+   "context_after": [
+    "| `OTEL_LOG_TOOL_DETAILS` | Set to `1` to include tool input arguments; MCP server names; user-authored workflow names; raw error strings on tool failures; the refusal `category` on `api_refusal` events; real agent, skill, plugin, and MCP server names on [cost and token metrics](/docs/en/monitoring-",
+    "| `OTEL_LOG_USER_PROMPTS` | Set to `1` to include user prompt text in OpenTelemetry traces and logs. Disabled by default (prompts are redacted). Set it in your shell, user settings, or managed settings. Ignored in [project and local settings](/docs/en/settings-reference#variables-claude-code-ignores"
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-claude-code-80023",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/env-vars.md",
+   "url_effective": "https://code.claude.com/docs/en/env-vars.md",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 164102,
+   "sha256": "016816acaeab3981c1bebd7e3ac884a4fc2ebd9d9bbb65fd12748d4e0bfbab2d",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "Variables",
+    "raw_line_start": 489,
+    "raw_line_end": 489
+   },
+   "quote": "| `OTEL_LOG_USER_PROMPTS` | Set to `1` to include user prompt text in OpenTelemetry traces and logs. Disabled by default (prompts are redacted). Set it in your shell, user settings, or managed settings. Ignored in [project and local",
+   "context_before": [
+    "| `OTEL_LOG_TOOL_CONTENT` | Set to `1` to include tool content in the `tool.output` OpenTelemetry span event. Span attributes carry tool content under [their own gates](/docs/en/monitoring-usage#new-context-gates). Requires [tracing](/docs/en/monitoring-usage#traces-beta). Disabled by default to pro",
+    "| `OTEL_LOG_TOOL_DETAILS` | Set to `1` to include tool input arguments; MCP server names; user-authored workflow names; raw error strings on tool failures; the refusal `category` on `api_refusal` events; real agent, skill, plugin, and MCP server names on [cost and token metrics](/docs/en/monitoring-"
+   ],
+   "context_after": [
+    "| `OTEL_METRICS_INCLUDE_ACCOUNT_UUID` | Set to `false` to exclude account UUID from metrics attributes (default: included). See [Monitoring](/docs/en/monitoring-usage) |",
+    "| `OTEL_METRICS_INCLUDE_ENTRYPOINT` | Set to `true` to include the session entrypoint in metrics attributes (default: excluded). Added in v2.1.152. See [Monitoring](/docs/en/monitoring-usage) |"
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-claude-code-80025",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/settings-reference.md",
+   "url_effective": "https://code.claude.com/docs/en/settings-reference.md",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 418241,
+   "sha256": "a5e98d057a57a426e668bcf0b71722e94338c01775506c8cf72559c7fe2ec859",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "Settings index",
+    "raw_line_start": 734,
+    "raw_line_end": 734
+   },
+   "quote": "| [`promptCacheTtl`](#promptcachettl) | Choose the [prompt cache lifetime](/docs/en/prompt-caching#cache-lifetime) for the main conversation | Model and responses | Any file |",
+   "context_before": [
+    "| [`prependPlugins`](#prependplugins) | Run your organization's [mods](/docs/en/plugins/mods/admin) before every mod a user installs | Plugins and skills | User or managed |",
+    "| [`processWrapper`](#processwrapper) | Run Claude Code's background processes through a [corporate launcher](/docs/en/corporate-launcher) on macOS and Linux | Agents, sessions, and worktrees | User or managed |"
+   ],
+   "context_after": [
+    "| [`promptSuggestionEnabled`](#promptsuggestionenabled) | Hide the grayed-out [prompt suggestions](/docs/en/interactive-mode#prompt-suggestions) in the input box | Interface and terminal | Any file |",
+    "| [`prStatusFooterEnabled`](#prstatusfooterenabled) | Turn off the prompt footer's [PR review status](/docs/en/interactive-mode#pr-review-status) badge and the pull request check behind it | Global config settings | Global config |"
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-claude-code-80026",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/settings-reference.md",
+   "url_effective": "https://code.claude.com/docs/en/settings-reference.md",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 418241,
+   "sha256": "a5e98d057a57a426e668bcf0b71722e94338c01775506c8cf72559c7fe2ec859",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "Settings index",
+    "raw_line_start": 804,
+    "raw_line_end": 804
+   },
+   "quote": "| [`subagentPromptCacheTtl`](#subagentpromptcachettl) | Choose the [prompt cache lifetime](/docs/en/prompt-caching#cache-lifetime) for subagents and other requests outside the main conversation | Model and responses | Any file |",
+   "context_before": [
+    "| [`strictPluginOnlyCustomization.mcp`](#strictpluginonlycustomization-mcp) | Lock [MCP servers](/docs/en/mcp) to plugin and managed sources | Plugins and skills | Managed |",
+    "| [`strictPluginOnlyCustomization.skills`](#strictpluginonlycustomization-skills) | Lock [skills](/docs/en/skills) to plugin and managed sources | Plugins and skills | Managed |"
+   ],
+   "context_after": [
+    "| [`subagentStatusLine`](#subagentstatusline) | Rewrite rows in the [subagent](/docs/en/sub-agents) task display with your own command | Interface and terminal | Any file |",
+    "| [`switchModelsOnFlag`](#switchmodelsonflag) | Switch models automatically or pause when a [safety classifier](/docs/en/model-config#ask-before-switching) flags a request | Model and responses | Any file |"
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-claude-code-80030",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/settings-reference.md",
+   "url_effective": "https://code.claude.com/docs/en/settings-reference.md",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 418241,
+   "sha256": "a5e98d057a57a426e668bcf0b71722e94338c01775506c8cf72559c7fe2ec859",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "`promptCacheTtl`",
+    "raw_line_start": 1285,
+    "raw_line_end": 1285
+   },
+   "quote": "Code runs inline with them. The one-hour lifetime keeps the cache warm across longer breaks, and the API [bills each cache write at a higher rate](https://platform.claude.com/docs/en/build-with-claude/prompt-caching#pricing) than at the five-minute lifetime. Requires Claude Code v2.1.242 or later.",
+   "context_before": [
+    "### `promptCacheTtl`",
+    ""
+   ],
+   "context_after": [
+    "",
+    "* **Scope**: [`Any file`](#scopes)"
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-claude-code-80051",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/sub-agents.md",
+   "url_effective": "https://code.claude.com/docs/en/sub-agents.md",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 107661,
+   "sha256": "b7458cb749979269a7db37d0adf853fe34541cee2ad477463fb16aa616a6c315",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "Write subagent files",
+    "raw_line_start": 272,
+    "raw_line_end": 272
+   },
+   "quote": "The frontmatter defines the subagent's metadata and configuration. The body becomes the system prompt that guides the subagent's behavior. Subagents receive only this system prompt plus basic environment details like the working directory, not the Claude Code system prompt.",
+   "context_before": [
+    "```",
+    ""
+   ],
+   "context_after": [
+    "",
+    "In [non-interactive mode](/docs/en/headless), pass [`--append-subagent-system-prompt`](/docs/en/cli-reference#cli-flags) to append your text to the end of every subagent's system prompt, nested subagents included, apart from a [forked subagent](#fork-the-current-conversation), which reuses the conve"
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-claude-code-80062",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/llm-gateway-protocol.md",
+   "url_effective": "https://code.claude.com/docs/en/llm-gateway-protocol.md",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 43294,
+   "sha256": "4a230d4396c96ab32496e3758cc8d1593c1c9593e7234e54e492a264ca02109b",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "Response headers",
+    "raw_line_start": 178,
+    "raw_line_end": 178
+   },
+   "quote": "| `retry-after` | Return integer seconds rather than an HTTP date. Claude Code waits at least that long before the next [automatic retry](/docs/en/errors#automatic-retries), and outside [`CLAUDE_CODE_RETRY_WATCHDOG`](/docs/en/env-vars) sessions a value above 60 stops the retries and shows the error",
+   "context_before": [
+    "| :- | :- |",
+    "| `content-type` | Return `text/event-stream` on streamed Anthropic Messages-format responses, and `application/vnd.amazon.eventstream`, unmodified, on Amazon Bedrock-format responses, where [a different type fails the request](/docs/en/amazon-bedrock#streaming-errors-behind-a-gateway-or-proxy). [St"
+   ],
+   "context_after": [
+    "| `x-should-retry` | Pass the upstream's value through unchanged. Claude Code reads this header as one input when deciding whether to retry a failed request: `true` marks the response retryable and `false` marks it not retryable. For retry counts, backoff, and which failures Claude Code retries, see",
+    "| `anthropic-ratelimit-unified-*` | Forward the upstream's values unchanged on every response. Claude Code reads them on successful responses to show usage against plan limits to developers signed in with claude.ai, and on a `429` to tell a plan limit or spend cap from a temporary throttle; see [usa"
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-claude-code-80091",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/agent-sdk/typescript.md",
+   "url_effective": "https://code.claude.com/docs/en/agent-sdk/typescript.md",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 275532,
+   "sha256": "d57286dba2d1bb9aefd328fa34145474870efa4817fab8dca69884c1fcb2aa28",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "Read",
+    "raw_line_start": 3836,
+    "raw_line_end": 3836
+   },
+   "quote": "        /** True when a whole-file read was auto-paginated because it exceeded the token cap (the content is a partial first page). */",
+   "context_before": [
+    "        startLine: number;",
+    "        totalLines: number;"
+   ],
+   "context_after": [
+    "        truncatedByTokenCap?: boolean;",
+    "      };"
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-claude-code-80095",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/cli-reference.md",
+   "url_effective": "https://code.claude.com/docs/en/cli-reference.md",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 46824,
+   "sha256": "82f96e4b4b44c634d0c69443c3fcd745c340968879d0758fa4dc1778d5ea1328",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "CLI flags",
+    "raw_line_start": 130,
+    "raw_line_end": 130
+   },
+   "quote": "| `--system-prompt` | Replace the entire system prompt with custom text | `claude --system-prompt \"You are a Python expert\"` |",
+   "context_before": [
+    "| `--settings` | Path to a settings JSON file or an inline JSON string. Values you set here override the same keys in your `settings.json` files for this session. Keys you omit keep their file-based values. The file must be a regular file no larger than 2 MiB. See [settings precedence](/docs/en/sett",
+    "| `--strict-mcp-config` | Only use MCP servers from `--mcp-config`, ignoring all other MCP configurations. See [Exclusive control with managed-mcp.json](/docs/en/managed-mcp#exclusive-control-with-managed-mcp-json) for what the flag does under a managed MCP file | `claude --strict-mcp-config --mcp-c"
+   ],
+   "context_after": [
+    "| `--system-prompt-file` | Load system prompt from a file, replacing the default prompt | `claude --system-prompt-file ./custom-prompt.txt` |",
+    "| `--system-prompt-snapshot` | Pass `off` to rebuild the system prompt on every request instead of reusing the prompt [recorded on the conversation's first request](#system-prompt-flags-in-resumed-conversations), for example while you iterate on `--append-system-prompt` text across `--continue` runs"
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-claude-code-80096",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/cli-reference.md",
+   "url_effective": "https://code.claude.com/docs/en/cli-reference.md",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 46824,
+   "sha256": "82f96e4b4b44c634d0c69443c3fcd745c340968879d0758fa4dc1778d5ea1328",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "CLI flags",
+    "raw_line_start": 131,
+    "raw_line_end": 131
+   },
+   "quote": "| `--system-prompt-file` | Load system prompt from a file, replacing the default prompt | `claude --system-prompt-file ./custom-prompt.txt` |",
+   "context_before": [
+    "| `--strict-mcp-config` | Only use MCP servers from `--mcp-config`, ignoring all other MCP configurations. See [Exclusive control with managed-mcp.json](/docs/en/managed-mcp#exclusive-control-with-managed-mcp-json) for what the flag does under a managed MCP file | `claude --strict-mcp-config --mcp-c",
+    "| `--system-prompt` | Replace the entire system prompt with custom text | `claude --system-prompt \"You are a Python expert\"` |"
+   ],
+   "context_after": [
+    "| `--system-prompt-snapshot` | Pass `off` to rebuild the system prompt on every request instead of reusing the prompt [recorded on the conversation's first request](#system-prompt-flags-in-resumed-conversations), for example while you iterate on `--append-system-prompt` text across `--continue` runs",
+    "| `--teleport` | Resume a [cloud session](/docs/en/claude-code-on-the-web) in your local terminal | `claude --teleport` |"
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-claude-code-80097",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/cli-reference.md",
+   "url_effective": "https://code.claude.com/docs/en/cli-reference.md",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 46824,
+   "sha256": "82f96e4b4b44c634d0c69443c3fcd745c340968879d0758fa4dc1778d5ea1328",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "CLI flags",
+    "raw_line_start": 132,
+    "raw_line_end": 132
+   },
+   "quote": "| `--system-prompt-snapshot` | Pass `off` to rebuild the system prompt on every request instead of reusing the prompt [recorded on the conversation's first request](#system-prompt-flags-in-resumed-conversations), for example while you iterate on `--append-system-prompt` text across `--continue`",
+   "context_before": [
+    "| `--system-prompt` | Replace the entire system prompt with custom text | `claude --system-prompt \"You are a Python expert\"` |",
+    "| `--system-prompt-file` | Load system prompt from a file, replacing the default prompt | `claude --system-prompt-file ./custom-prompt.txt` |"
+   ],
+   "context_after": [
+    "| `--teleport` | Resume a [cloud session](/docs/en/claude-code-on-the-web) in your local terminal | `claude --teleport` |",
+    "| `--teammate-mode` | Set how [agent team](/docs/en/agent-teams) teammates display: `in-process` (default), `auto`, `tmux`, or `iterm2`. Overrides the [`teammateMode`](/docs/en/settings-reference#teammatemode) setting for this session. See [Choose a display mode](/docs/en/agent-teams#choose-a-displa"
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-claude-code-80099",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/cli-reference.md",
+   "url_effective": "https://code.claude.com/docs/en/cli-reference.md",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 46824,
+   "sha256": "82f96e4b4b44c634d0c69443c3fcd745c340968879d0758fa4dc1778d5ea1328",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "System prompt flags in resumed conversations",
+    "raw_line_start": 171,
+    "raw_line_end": 171
+   },
+   "quote": "By default, Claude Code builds the system prompt once, on a conversation's first request, with the text from any system prompt flags applied, and records it in the session. Until the conversation is compacted, every later request uses that recorded prompt, including after you return to the",
+   "context_before": [
+    "#### System prompt flags in resumed conversations",
+    ""
+   ],
+   "context_after": [
+    "",
+    "Outside of [cloud sessions](/docs/en/cloud-environments), if you start Claude Code in [bare mode](/docs/en/headless#start-faster-with-bare-mode) by passing `--bare` or setting `CLAUDE_CODE_SIMPLE=1`, recording stays off unless you pass `--system-prompt-snapshot on`. Before v2.1.268, sessions that do"
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-claude-code-80105",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/prompt-caching.md",
+   "url_effective": "https://code.claude.com/docs/en/prompt-caching.md",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 42520,
+   "sha256": "0e87312bf986dd2b70b72f0900f72921df44f1306217e8006607c33c3d74e1d6",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "How Claude Code uses prompt caching",
+    "raw_line_start": 11,
+    "raw_line_end": 11
+   },
+   "quote": "Claude Code handles prompt caching for you, unless you [disable it](#disable-prompt-caching). It is still useful to know how prompt caching works, because some actions invalidate the cache and make the next response slower and more expensive while it rebuilds. This page covers which actions those",
+   "context_before": [
+    "Prompt caching makes Claude Code faster and more cost-efficient. Without caching, the API would reprocess your full history on every turn. With caching, it reuses what it already processed, bills the re-read at the [cached token rate](https://platform.claude.com/docs/en/about-claude/pricing), and fu",
+    ""
+   ],
+   "context_after": [
+    "",
+    "## How the cache is organized"
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-claude-code-80106",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/prompt-caching.md",
+   "url_effective": "https://code.claude.com/docs/en/prompt-caching.md",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 42520,
+   "sha256": "0e87312bf986dd2b70b72f0900f72921df44f1306217e8006607c33c3d74e1d6",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "How the cache is organized",
+    "raw_line_start": 15,
+    "raw_line_end": 15
+   },
+   "quote": "a new API request. The model doesn't remember anything between requests, so Claude Code re-sends the full context: the system prompt, your project context, every prior message and tool result, and your new message. New content is appended at the end, which means most of each request is",
+   "context_before": [
+    "## How the cache is organized",
+    ""
+   ],
+   "context_after": [
+    "",
+    "The API caches by matching the start of each request, called the prefix, against content it recently processed. On a normal turn, the prefix is the entire previous request and only the latest exchange is new. The match is exact, so a change anywhere in the prefix recomputes everything after it. Ther"
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-claude-code-80107",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/prompt-caching.md",
+   "url_effective": "https://code.claude.com/docs/en/prompt-caching.md",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 42520,
+   "sha256": "0e87312bf986dd2b70b72f0900f72921df44f1306217e8006607c33c3d74e1d6",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "How the cache is organized",
+    "raw_line_start": 23,
+    "raw_line_end": 23
+   },
+   "quote": "To get the most out of prefix matching, Claude Code orders each request so content that rarely changes between turns comes first:",
+   "context_before": [
+    "<img src=\"https://mintcdn.com/claude-code/_xqph1dUOslCOwsj/images/prompt-caching-prefix-dark.svg?fit=max&auto=format&n=_xqph1dUOslCOwsj&q=85&s=297dc1c639f0915cae858d0c4b6f3be5\" className=\"hidden dark:block\" alt=\"Four turns shown as growing horizontal bars. Each turn's request contains everything fro",
+    ""
+   ],
+   "context_after": [
+    "",
+    "| Layer | Content | Changes when |"
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-claude-code-80108",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/prompt-caching.md",
+   "url_effective": "https://code.claude.com/docs/en/prompt-caching.md",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 42520,
+   "sha256": "0e87312bf986dd2b70b72f0900f72921df44f1306217e8006607c33c3d74e1d6",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "How the cache is organized",
+    "raw_line_start": 37,
+    "raw_line_end": 37
+   },
+   "quote": "* **Model**: each model has its own cache. Switching models recomputes the entire request even when the content is identical. See [Switching models](#switching-models) below.",
+   "context_before": [
+    "Two settings don't appear in the layer table but still affect what stays cached:",
+    ""
+   ],
+   "context_after": [
+    "* **Effort level**: on most models, each effort level has its own cache, so changing effort mid-session recomputes the entire request. On Opus 5.5, Sonnet 5.5, and Fable 5.1 with an API key or a Claude subscription, the cache stays intact by default. See [Changing effort level](#changing-effort-leve",
+    ""
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-claude-code-80126",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/prompt-caching.md",
+   "url_effective": "https://code.claude.com/docs/en/prompt-caching.md",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 42520,
+   "sha256": "0e87312bf986dd2b70b72f0900f72921df44f1306217e8006607c33c3d74e1d6",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "Cache lifetime",
+    "raw_line_start": 255,
+    "raw_line_end": 255
+   },
+   "quote": "Cached prefixes expire after a period of inactivity. Each request that hits the cache resets the timer, so the cache stays warm as long as you keep working. After a long enough gap, the next request recomputes the full input and re-establishes the cache, which is why the first turn back after",
+   "context_before": [
+    "## Cache lifetime",
+    ""
+   ],
+   "context_after": [
+    "",
+    "On a Pro or Max plan, when you resume a large session after a long break, Claude Code [offers to resume from a summary](/docs/en/sessions#resume-from-a-summary) so later requests don't carry the full history."
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-claude-code-80127",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/prompt-caching.md",
+   "url_effective": "https://code.claude.com/docs/en/prompt-caching.md",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 42520,
+   "sha256": "0e87312bf986dd2b70b72f0900f72921df44f1306217e8006607c33c3d74e1d6",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "Cache lifetime",
+    "raw_line_start": 259,
+    "raw_line_end": 259
+   },
+   "quote": "The time to live (TTL) controls how long a gap the cache survives. The API offers two: a five-minute TTL, and a [one-hour TTL](https://platform.claude.com/docs/en/build-with-claude/prompt-caching#1-hour-cache-duration) that keeps the cache warm through longer breaks but [bills cache writes at a high",
+   "context_before": [
+    "On a Pro or Max plan, when you resume a large session after a long break, Claude Code [offers to resume from a summary](/docs/en/sessions#resume-from-a-summary) so later requests don't carry the full history.",
+    ""
+   ],
+   "context_after": [
+    "",
+    "### Which TTL each request gets"
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-claude-code-80128",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/errors.md",
+   "url_effective": "https://code.claude.com/docs/en/errors.md",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 484441,
+   "sha256": "a516356b9c452b0f893cb12b68365d25567b2444b0c1cdc39978f86d220e196a",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "Automatic retries",
+    "raw_line_start": 376,
+    "raw_line_end": 376
+   },
+   "quote": "Claude Code retries transient failures up to 10 times with exponential backoff before showing you an error. It doesn't always retry a failure that arrives partway through Claude's response. When you see one of the errors on this page, Claude Code has already made whatever retries apply to that",
+   "context_before": [
+    "## Automatic retries",
+    ""
+   ],
+   "context_after": [
+    "",
+    "Claude Code retries these failures:"
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-claude-code-80129",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/errors.md",
+   "url_effective": "https://code.claude.com/docs/en/errors.md",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 484441,
+   "sha256": "a516356b9c452b0f893cb12b68365d25567b2444b0c1cdc39978f86d220e196a",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "Automatic retries",
+    "raw_line_start": 398,
+    "raw_line_end": 398
+   },
+   "quote": "validation failure, such as a TLS-inspecting proxy, a missing `NODE_EXTRA_CA_CERTS` bundle, or an expired certificate. Claude Code reports the error on the first attempt, so you can fix the certificate setup right away; see [SSL certificate errors](#ssl-certificate-errors). Claude Code still",
+   "context_before": [
+    "Claude Code doesn't retry these failures:",
+    ""
+   ],
+   "context_after": [
+    "* A server error, dropped connection, or stalled stream that arrives after Claude has completed a block of text or a tool call, or has started one after finishing its thinking, but before it finishes the response. Claude Code doesn't re-run the request, because that could execute the same tool calls",
+    "* A failure that arrives after Claude has finished the response: nothing needs retrying, so Claude Code keeps the complete response and ends the turn normally."
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-claude-code-80130",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/errors.md",
+   "url_effective": "https://code.claude.com/docs/en/errors.md",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 484441,
+   "sha256": "a516356b9c452b0f893cb12b68365d25567b2444b0c1cdc39978f86d220e196a",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "Automatic retries",
+    "raw_line_start": 399,
+    "raw_line_end": 399
+   },
+   "quote": "or a tool call, or has started one after finishing its thinking, but before it finishes the response. Claude Code doesn't re-run the request, because that could execute the same tool calls twice. It keeps what Claude completed, runs any tool calls Claude finished, and continues the turn from their",
+   "context_before": [
+    "",
+    "* A TLS certificate validation failure, such as a TLS-inspecting proxy, a missing `NODE_EXTRA_CA_CERTS` bundle, or an expired certificate. Claude Code reports the error on the first attempt, so you can fix the certificate setup right away; see [SSL certificate errors](#ssl-certificate-errors). Claud"
+   ],
+   "context_after": [
+    "* A failure that arrives after Claude has finished the response: nothing needs retrying, so Claude Code keeps the complete response and ends the turn normally.",
+    "* An [Amazon Bedrock streaming response with an unexpected content-type](#bedrock-streaming-response-has-an-unexpected-content-type), because the gateway or proxy rewriting the response would rewrite the retry the same way. Requires Claude Code v2.1.208 or later."
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-claude-code-80133",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/errors.md",
+   "url_effective": "https://code.claude.com/docs/en/errors.md",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 484441,
+   "sha256": "a516356b9c452b0f893cb12b68365d25567b2444b0c1cdc39978f86d220e196a",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "Automatic retries",
+    "raw_line_start": 404,
+    "raw_line_end": 404
+   },
+   "quote": "* A response the API's output content filter blocked. Claude Code shows [Output blocked by content filtering policy](#output-blocked-by-content-filtering-policy) at once and doesn't retry or re-send that request.",
+   "context_before": [
+    "* A non-streaming retry of a failed streaming request that gets a success status but [no Claude API message in the body](#api-returned-an-empty-or-malformed-response). Claude Code ends the turn with that error.",
+    "* A request that your organization's policy check denied, which surfaces as an `API Error:` line carrying the denial message. Your organization's administrators set up the check with [Inference hooks](https://platform.claude.com/docs/en/manage-claude/inference-hooks), a Claude Enterprise feature, an"
+   ],
+   "context_after": [
+    "",
+    "### What you see while Claude Code retries or waits"
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-claude-code-80134",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/errors.md",
+   "url_effective": "https://code.claude.com/docs/en/errors.md",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 484441,
+   "sha256": "a516356b9c452b0f893cb12b68365d25567b2444b0c1cdc39978f86d220e196a",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "What you see while Claude Code retries or waits",
+    "raw_line_start": 408,
+    "raw_line_end": 408
+   },
+   "quote": "network is down, a TLS handshake failed, or you hit a rate limit. For other errors it reads `API error` at first. As of v2.1.198 it switches to the specific reason from the third attempt, or on the final attempt when `CLAUDE_CODE_MAX_RETRIES` allows fewer than three; earlier versions switch only on",
+   "context_before": [
+    "### What you see while Claude Code retries or waits",
+    ""
+   ],
+   "context_after": [
+    "",
+    "As of v2.1.198, the usual spinner tip is suppressed during retries. Once the error reason is revealed, if the failure is a 529 overload the line below the countdown also names where to check service status: `status.claude.com` on the Anthropic API, or the provider or gateway host named in the messag"
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-claude-code-80135",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/errors.md",
+   "url_effective": "https://code.claude.com/docs/en/errors.md",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 484441,
+   "sha256": "a516356b9c452b0f893cb12b68365d25567b2444b0c1cdc39978f86d220e196a",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "What you see while Claude Code retries or waits",
+    "raw_line_start": 412,
+    "raw_line_end": 412
+   },
+   "quote": "If no data arrives on the response stream for 20 seconds while a request is still pending, the spinner shows `Waiting for API response · will retry in … · check your network` before any retry has started. The request hasn't failed yet: the countdown runs to the point where Claude Code aborts the",
+   "context_before": [
+    "As of v2.1.198, the usual spinner tip is suppressed during retries. Once the error reason is revealed, if the failure is a 529 overload the line below the countdown also names where to check service status: `status.claude.com` on the Anthropic API, or the provider or gateway host named in the messag",
+    ""
+   ],
+   "context_after": [
+    "",
+    "* Before Claude has completed a block of text or a tool call, or started one after finishing its thinking, Claude Code retries the request or ends the turn with an error. [Automatic retries](#automatic-retries) says which stalls it retries and how many times."
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-claude-code-80137",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/errors.md",
+   "url_effective": "https://code.claude.com/docs/en/errors.md",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 484441,
+   "sha256": "a516356b9c452b0f893cb12b68365d25567b2444b0c1cdc39978f86d220e196a",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "The response above may be incomplete",
+    "raw_line_start": 542,
+    "raw_line_end": 542
+   },
+   "quote": "* If Claude had completed only its thinking, Claude Code re-issues the request. When the re-issued streams break the same way, the turn ends with `Part of the response never arrived and no response was produced. Try again.` or `The response stream was malformed and no response was produced. Try",
+   "context_before": [
+    "When a dropped, duplicated, or damaged stream event arrives before Claude has started any text or tool call, you don't see this notice:",
+    ""
+   ],
+   "context_after": [
+    "* If nothing had completed, Claude Code re-sends the request without streaming instead. If you turned that fallback off with [`CLAUDE_CODE_DISABLE_NONSTREAMING_FALLBACK`](/docs/en/env-vars), the turn ends with `API Error: Content block not found` for a dropped event or `API Error: Content block alre",
+    ""
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-claude-code-80138",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/errors.md",
+   "url_effective": "https://code.claude.com/docs/en/errors.md",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 484441,
+   "sha256": "a516356b9c452b0f893cb12b68365d25567b2444b0c1cdc39978f86d220e196a",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "The response above may be incomplete",
+    "raw_line_start": 542,
+    "raw_line_end": 542
+   },
+   "quote": "Claude had completed only its thinking, Claude Code re-issues the request. When the re-issued streams break the same way, the turn ends with `Part of the response never arrived and no response was produced. Try again.` or `The response stream was malformed and no response was produced. Try again.`",
+   "context_before": [
+    "When a dropped, duplicated, or damaged stream event arrives before Claude has started any text or tool call, you don't see this notice:",
+    ""
+   ],
+   "context_after": [
+    "* If nothing had completed, Claude Code re-sends the request without streaming instead. If you turned that fallback off with [`CLAUDE_CODE_DISABLE_NONSTREAMING_FALLBACK`](/docs/en/env-vars), the turn ends with `API Error: Content block not found` for a dropped event or `API Error: Content block alre",
+    ""
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-claude-code-80152",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/errors.md",
+   "url_effective": "https://code.claude.com/docs/en/errors.md",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 484441,
+   "sha256": "a516356b9c452b0f893cb12b68365d25567b2444b0c1cdc39978f86d220e196a",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "Tool errors",
+    "raw_line_start": 4066,
+    "raw_line_end": 4066
+   },
+   "quote": "Claude called a tool by a name that isn't in the session's tool list. Claude Code returns the error to Claude as the tool call's result, and the turn continues. When Claude Code can tell why the tool is missing, it adds a sentence after the tool name that gives the reason or names the tool to call",
+   "context_before": [
+    "</h3>",
+    ""
+   ],
+   "context_after": [
+    "",
+    "```text theme={null}"
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-claude-code-80153",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/errors.md",
+   "url_effective": "https://code.claude.com/docs/en/errors.md",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 484441,
+   "sha256": "a516356b9c452b0f893cb12b68365d25567b2444b0c1cdc39978f86d220e196a",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "Tool errors",
+    "raw_line_start": 4066,
+    "raw_line_end": 4066
+   },
+   "quote": "that isn't in the session's tool list. Claude Code returns the error to Claude as the tool call's result, and the turn continues. When Claude Code can tell why the tool is missing, it adds a sentence after the tool name that gives the reason or names the tool to call instead, as in the second line:",
+   "context_before": [
+    "</h3>",
+    ""
+   ],
+   "context_after": [
+    "",
+    "```text theme={null}"
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-claude-code-80158",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/changelog.md",
+   "url_effective": "https://code.claude.com/docs/en/changelog.md",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 942220,
+   "sha256": "ee77a9703fee91a243a7baeedef4860124d00b63d58c7b5a13a94499d2ad62ca",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "Claude Code changelog",
+    "raw_line_start": 1182,
+    "raw_line_end": 1182
+   },
+   "quote": "  * Fixed Grep, Glob and @-file suggestions hanging or running out of memory on searches over the 20MB output cap, and system ripgrep reporting \"no matches\" instead of an error after a flood of warnings",
+   "context_before": [
+    "  * Fixed a crash when resuming a conversation whose transcript contains a malformed message entry, and a fullscreen crash when such a conversation received new messages while scrolled up",
+    "  * Fixed sessions failing to resume or start when their saved transcript contains a malformed message content block"
+   ],
+   "context_after": [
+    "  * Fixed `/rewind` in a forked or background session restoring a zero-filled or truncated file when the session's file-history backups could not be fully copied",
+    "  * Fixed fullscreen sessions sometimes exiting with \"Claude Code exited after an unrecoverable interface error\" when typing fast or holding a key with the slash-command dropdown open"
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-claude-code-80161",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/changelog.md",
+   "url_effective": "https://code.claude.com/docs/en/changelog.md",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 942220,
+   "sha256": "ee77a9703fee91a243a7baeedef4860124d00b63d58c7b5a13a94499d2ad62ca",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "Claude Code changelog",
+    "raw_line_start": 3718,
+    "raw_line_end": 3718
+   },
+   "quote": "  * Fixed Workflow `agent({schema})` subagents looping forever on repeated schema validation failures instead of aborting after 5 attempts",
+   "context_before": [
+    "  * Fixed session cost not showing for usage-based Enterprise and Team subscribers",
+    "  * Fixed agent teams: teammates spawned via tmux/pane backends now inherit the leader's `--effort` level"
+   ],
+   "context_after": [
+    "  * Improved `claude mcp get` and `claude mcp remove` to suggest the closest configured server name on a typo and truncate long server lists",
+    "  * Improved memory: the agent is now reminded to compact its `MEMORY.md` index when nearing the size limit"
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-claude-code-80162",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/changelog.md",
+   "url_effective": "https://code.claude.com/docs/en/changelog.md",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 942220,
+   "sha256": "ee77a9703fee91a243a7baeedef4860124d00b63d58c7b5a13a94499d2ad62ca",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "Claude Code changelog",
+    "raw_line_start": 3723,
+    "raw_line_end": 3723
+   },
+   "quote": "  * Changed `CLAUDE_CODE_MAX_RETRIES` to cap at 15; for unattended sessions, use `CLAUDE_CODE_RETRY_WATCHDOG` instead",
+   "context_before": [
+    "  * Improved skill frontmatter: `display-name`, `default-enabled`, `fallback`, and `metadata.*` keys now accept kebab-case, snake\\_case, and camelCase",
+    "  * Improved malformed `SKILL.md` YAML frontmatter handling: loads the skill body with empty metadata instead of failing silently"
+   ],
+   "context_after": [
+    "  * Changed background subagents to surface permission prompts in the main session instead of auto-denying; the dialog shows which agent is asking, and Esc denies just that tool",
+    "  * Changed `/review <pr>` to use the same review engine as `/code-review medium`"
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-claude-code-80165",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/changelog.md",
+   "url_effective": "https://code.claude.com/docs/en/changelog.md",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 942220,
+   "sha256": "ee77a9703fee91a243a7baeedef4860124d00b63d58c7b5a13a94499d2ad62ca",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "Claude Code changelog",
+    "raw_line_start": 5245,
+    "raw_line_end": 5245
+   },
+   "quote": "  * Improved stalled API stream handling: streams now abort after 5 minutes of no data and retry non-streaming instead of hanging indefinitely",
+   "context_before": [
+    "  * Added background monitor support for plugins via a top-level `monitors` manifest key that auto-arms at session start or on skill invoke",
+    "  * `/proactive` is now an alias for `/loop`"
+   ],
+   "context_after": [
+    "  * Improved network error messages: connection errors now show a retry message immediately instead of a silent spinner",
+    "  * Improved file write display: long single-line writes (e.g. minified JSON) are now truncated in the UI instead of paginating across many screens"
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-claude-code-80167",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/changelog.md",
+   "url_effective": "https://code.claude.com/docs/en/changelog.md",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 942220,
+   "sha256": "ee77a9703fee91a243a7baeedef4860124d00b63d58c7b5a13a94499d2ad62ca",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "Claude Code changelog",
+    "raw_line_start": 5253,
+    "raw_line_end": 5253
+   },
+   "quote": "  * Improved MCP large-output truncation prompt to give format-specific recipes (e.g. `jq` for JSON, computed Read chunk sizes for text)",
+   "context_before": [
+    "  * Improved `WebFetch` to strip `<style>` and `<script>` contents from fetched pages so CSS-heavy pages no longer exhaust the content budget before reaching actual text",
+    "  * Improved stale agent worktree cleanup to remove worktrees whose PR was squash-merged instead of keeping them indefinitely"
+   ],
+   "context_after": [
+    "  * Fixed images attached to queued messages (sent while Claude is working) being dropped",
+    "  * Fixed screen going blank when the prompt input wraps to a second line in long conversations"
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-claude-code-80168",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/prompt-caching.md",
+   "url_effective": "https://code.claude.com/docs/en/prompt-caching.md",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 42520,
+   "sha256": "0e87312bf986dd2b70b72f0900f72921df44f1306217e8006607c33c3d74e1d6",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "Which TTL each request gets",
+    "raw_line_start": 268,
+    "raw_line_end": 268
+   },
+   "quote": "Unless you choose a TTL yourself, Claude Code requests the one-hour TTL only on a Claude subscription within your plan's included usage. There it requests the hour for the main conversation, plus a small set of helper requests that Anthropic controls server-side. This table gives each bucket's",
+   "context_before": [
+    "* **Everything else**: the requests Claude Code makes outside that conversation, such as [subagents](/docs/en/sub-agents), [workflows](/docs/en/workflows), in-process [teammates](/docs/en/agent-teams), forks, compaction, and session titles",
+    ""
+   ],
+   "context_after": [
+    "",
+    "| Request bucket | Claude subscription, within plan usage | Usage credits, API key, or cloud provider |"
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-claude-code-80169",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/env-vars.md",
+   "url_effective": "https://code.claude.com/docs/en/env-vars.md",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 164102,
+   "sha256": "016816acaeab3981c1bebd7e3ac884a4fc2ebd9d9bbb65fd12748d4e0bfbab2d",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "Variables",
+    "raw_line_start": 484,
+    "raw_line_end": 484
+   },
+   "quote": "is set. Set it in your shell, user settings, or managed settings. Ignored in [project and local settings](/docs/en/settings-reference#variables-claude-code-ignores-in-env). Requires Claude Code v2.1.193 or later. See [Monitoring](/docs/en/monitoring-usage#assistant-response-event) |",
+   "context_before": [
+    "| `NO_PROXY` | List of domains and IPs to which requests will be directly issued, bypassing proxy |",
+    "| `OTEL_ATTRIBUTE_VALUE_LENGTH_LIMIT` | Standard OpenTelemetry SDK limit on attribute value length. Claude Code caps content-bearing telemetry attributes at the smaller of this and `CLAUDE_CODE_OTEL_CONTENT_MAX_LENGTH`, so the truncation marker stays within the SDK limit. Claude Code reads the `OTEL"
+   ],
+   "context_after": [
+    "| `OTEL_LOG_MANAGED_SETTINGS` | Set to `1` to add the redacted managed settings, and a SHA-256 digest of the settings before redaction, to `managed_settings_resolved` OpenTelemetry log events. Disabled by default. Set it in your shell, user settings, or managed settings; a value in project or local ",
+    "| `OTEL_LOG_RAW_API_BODIES` | Emit Anthropic Messages API request and response JSON as `api_request_body` / `api_response_body` log events. Set to `1` for inline bodies truncated at the content limit, or `file:<dir>` to write untruncated bodies to disk and emit a `body_ref` path instead. `CLAUDE_COD"
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-claude-code-80170",
+   "surface": "claude-code",
+   "tier": "E1",
+   "url": "https://code.claude.com/docs/en/env-vars.md",
+   "url_effective": "https://code.claude.com/docs/en/env-vars.md",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 164102,
+   "sha256": "016816acaeab3981c1bebd7e3ac884a4fc2ebd9d9bbb65fd12748d4e0bfbab2d",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "Variables",
+    "raw_line_start": 485,
+    "raw_line_end": 485
+   },
+   "quote": "OpenTelemetry log events. Disabled by default. Set it in your shell, user settings, or managed settings; a value in project or local settings doesn't turn it on. Requires Claude Code v2.1.274 or later. See [Monitoring](/docs/en/monitoring-usage#managed-settings-resolved-event) |",
+   "context_before": [
+    "| `OTEL_ATTRIBUTE_VALUE_LENGTH_LIMIT` | Standard OpenTelemetry SDK limit on attribute value length. Claude Code caps content-bearing telemetry attributes at the smaller of this and `CLAUDE_CODE_OTEL_CONTENT_MAX_LENGTH`, so the truncation marker stays within the SDK limit. Claude Code reads the `OTEL",
+    "| `OTEL_LOG_ASSISTANT_RESPONSES` | Set to `1` to include the model's response text on `assistant_response` OpenTelemetry log events. When unset, Claude Code uses the value of `OTEL_LOG_USER_PROMPTS` instead. Set to `0` to keep responses redacted even when `OTEL_LOG_USER_PROMPTS` is set. Set it in yo"
+   ],
+   "context_after": [
+    "| `OTEL_LOG_RAW_API_BODIES` | Emit Anthropic Messages API request and response JSON as `api_request_body` / `api_response_body` log events. Set to `1` for inline bodies truncated at the content limit, or `file:<dir>` to write untruncated bodies to disk and emit a `body_ref` path instead. `CLAUDE_COD",
+    "| `OTEL_LOG_TOOL_CONTENT` | Set to `1` to include tool content in the `tool.output` OpenTelemetry span event. Span attributes carry tool content under [their own gates](/docs/en/monitoring-usage#new-context-gates). Requires [tracing](/docs/en/monitoring-usage#traces-beta). Disabled by default to pro"
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
   }
  ]
 }

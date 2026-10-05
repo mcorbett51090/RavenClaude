@@ -1803,6 +1803,111 @@
    ],
    "value": "The built-in `/statusline` skill configures the Cursor CLI status line. `display.showStatusLineRunningTime` shows elapsed running time in the status line. A context ring next to the prompt input shows how full the window is at a glance; clicking it opens a breakdown tray of total tokens used by category.",
    "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "cursor/F23.prompt-assembly",
+   "surface": "cursor",
+   "row": "F23.prompt-assembly",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-cursor-80004",
+    "E-cursor-80015",
+    "E-cursor-80005",
+    "E-cursor-80006",
+    "E-cursor-80014",
+    "E-cursor-80046",
+    "E-cursor-80047"
+   ],
+   "value": "SDK `systemPrompt` on `Agent.create()` replaces Cursor's built-in system prompt for the main agent loop. The model loses the coding-assistant identity, tool-use protocol and communication guidance; tool schemas, rules and skills still load and subagents keep their own prompts. Must be non-empty. Agent docs list instructions as the system prompt and rules.",
+   "limitation": "Only the SDK `systemPrompt` option is documented: local agents only (combining it with `cloud` throws `ConfigurationError`), not persisted (pass it again on `Agent.resume()`), and access is enabled per account."
+  },
+  {
+   "id": "cursor/F23.prompt-caching",
+   "surface": "cursor",
+   "row": "F23.prompt-caching",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-cursor-80048",
+    "E-cursor-80049",
+    "E-cursor-80050",
+    "E-cursor-80051"
+   ],
+   "value": "The SDK reports prompt-cache use in token usage: `cacheReadTokens` (tokens served from the prompt cache) and `cacheWriteTokens` (tokens written to it), and `cache_read_tokens` / `cache_write_tokens` in the Python SDK. Model pages price cache reads and writes, for example Fable 5.1 cache reads at $0.25 per million tokens.",
+   "limitation": "Only usage counters and per-model cache prices are documented; no cache lifetime, invalidation rule or on/off/tune setting appears in the sweep hits."
+  },
+  {
+   "id": "cursor/F23.retry-backoff",
+   "surface": "cursor",
+   "row": "F23.retry-backoff",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-cursor-80001",
+    "E-cursor-80002",
+    "E-cursor-80003",
+    "E-cursor-80052",
+    "E-cursor-80053",
+    "E-cursor-80054",
+    "E-cursor-80055"
+   ],
+   "value": "CLI: dropped and stalled streams, including silent mid-stream stalls caught by HTTP/2 keepalive pings, retry automatically in all modes; transport and network-unreachable errors retry with backoff, show a 'Reconnecting' indicator and a hint if the network stays down. Subagent turns use the same policy. SDK: an option, default `true`, enables transport and stall auto-retry for local agent runs.",
+   "limitation": "Documented for the CLI and for SDK local agent runs; attempt limits and delay values are not stated, and rate-limit errors are described as shown with their real message, not as retried."
+  },
+  {
+   "id": "cursor/F23.malformed-call-recovery",
+   "surface": "cursor",
+   "row": "F23.malformed-call-recovery",
+   "state": "undocumented",
+   "verification": "verified",
+   "evidence": [],
+   "sweep_report": {
+    "terms": [
+     "malformed",
+     "invalid (tool|json|argument|parameter|input)|unknown tool|tool (call|use) (error|fail|invalid)",
+     "schema validation|failed to parse|could not parse|unparseable"
+    ],
+    "corpus_sha256": "ca416bf0db988ebef04a51a1699c901f81e1d38899602c36a51612e2aa9e98f8",
+    "hits": 10,
+    "hits_reviewed": 10,
+    "positive_control_term": "cursor",
+    "positive_control_hits": 4578
+   }
+  },
+  {
+   "id": "cursor/F23.tool-output-limits",
+   "surface": "cursor",
+   "row": "F23.tool-output-limits",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-cursor-80007",
+    "E-cursor-80009",
+    "E-cursor-80039",
+    "E-cursor-80056",
+    "E-cursor-80057"
+   ],
+   "value": "SDK tool-call messages and the Cloud Agent API stream carry a `truncated` flag when `args` or `result` is too large (the API omits that field). CLI long shell output truncates from the top, and shell mode truncates large outputs automatically. Browser logs are written to files the agent greps and reads selectively.",
+   "limitation": "Per surface: SDK and Cloud Agent API stream payloads (no size given), CLI shell output, and browser tool logs. No size limit or setting for tool output entering the model context is given in these quotes."
+  },
+  {
+   "id": "cursor/F23.output-redaction",
+   "surface": "cursor",
+   "row": "F23.output-redaction",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-cursor-80023",
+    "E-cursor-80026",
+    "E-cursor-80028",
+    "E-cursor-80030",
+    "E-cursor-80043",
+    "E-cursor-80058",
+    "E-cursor-80059"
+   ],
+   "value": "Cloud Agent Runtime Secrets are redacted from tool call results, chat transcript and commits. Shared transcripts get best-effort redaction of known secret patterns. OpenTelemetry export scrubs message text, shell commands and MCP tool I/O: credential shapes, PEM blocks, SSNs and emails become `[REDACTED: ...]`; values under keys like `password` or `token` are redacted.",
+   "limitation": "Per surface: Cloud Agent Runtime Secrets; shared transcripts (\"best-effort\", \"not guaranteed\"); Enterprise OpenTelemetry export of Cursor's Grok Bot records (\"best effort\"). Redaction of local agent tool output is not described."
   }
  ]
 }

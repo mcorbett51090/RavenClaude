@@ -1915,6 +1915,114 @@
    ],
    "value": "A row at the bottom of the TUI shows live session values or the output of your own script (`status_line` default is `disabled`). The `context` item shows context-window usage as a percentage, turning amber at the auto-compaction threshold or at 80 percent when the agent reports none; `cost` shows cost for this Grok process, hidden below $0.005.",
    "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "grok-build/F23.prompt-assembly",
+   "surface": "grok-build",
+   "row": "F23.prompt-assembly",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-grok-build-80001",
+    "E-grok-build-80002",
+    "E-grok-build-80003",
+    "E-grok-build-80004",
+    "E-grok-build-80005",
+    "E-grok-build-80006",
+    "E-grok-build-80014"
+   ],
+   "value": "`--rules <TEXT>` appends extra rules to the system prompt; `--system-prompt-override <TEXT>` replaces it entirely. Project rule files load in a documented order, with deeper files taking precedence on conflicts, and are loaded in full with no size cap. Prompt and file content are assembled locally before being sent to the inference proxy."
+  },
+  {
+   "id": "grok-build/F23.prompt-caching",
+   "surface": "grok-build",
+   "row": "F23.prompt-caching",
+   "state": "undocumented",
+   "verification": "verified",
+   "evidence": [],
+   "sweep_report": {
+    "terms": [
+     "prompt[ -]?cach",
+     "cache[_ -]?control|cache (hit|read|write|miss|breakpoint|prefix)|cached (input|token)"
+    ],
+    "corpus_sha256": "1ed7892a52859bccb21792ca0a77ec02184c8abb88b89c2f5fcf491649f76fca",
+    "hits": 2,
+    "hits_reviewed": 2,
+    "positive_control_term": "grok",
+    "positive_control_hits": 270
+   }
+  },
+  {
+   "id": "grok-build/F23.retry-backoff",
+   "surface": "grok-build",
+   "row": "F23.retry-backoff",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-grok-build-80007"
+   ],
+   "value": "The model settings table lists `max_retries` (number) as the \"Global inference retry default.\"",
+   "limitation": "Only the `max_retries` setting is documented, described as \"Global inference retry default.\""
+  },
+  {
+   "id": "grok-build/F23.malformed-call-recovery",
+   "surface": "grok-build",
+   "row": "F23.malformed-call-recovery",
+   "state": "undocumented",
+   "verification": "verified",
+   "evidence": [],
+   "sweep_report": {
+    "terms": [
+     "malformed",
+     "invalid (tool|json|argument|parameter|input)|unknown tool|tool (call|use) (error|fail|invalid)",
+     "schema validation|failed to parse|could not parse|unparseable"
+    ],
+    "corpus_sha256": "1ed7892a52859bccb21792ca0a77ec02184c8abb88b89c2f5fcf491649f76fca",
+    "hits": 1,
+    "hits_reviewed": 1,
+    "positive_control_term": "grok",
+    "positive_control_hits": 270
+   }
+  },
+  {
+   "id": "grok-build/F23.tool-output-limits",
+   "surface": "grok-build",
+   "row": "F23.tool-output-limits",
+   "state": "undocumented",
+   "verification": "verified",
+   "evidence": [],
+   "sweep_report": {
+    "terms": [
+     "truncat",
+     "output (limit|cap)|too (large|long) (output|result)|first \\d+ (lines|characters|bytes)",
+     "max(imum)? (output|result)s?.{0,30}(size|length|bytes|characters|lines|tokens)"
+    ],
+    "corpus_sha256": "1ed7892a52859bccb21792ca0a77ec02184c8abb88b89c2f5fcf491649f76fca",
+    "hits": 1,
+    "hits_reviewed": 1,
+    "positive_control_term": "grok",
+    "positive_control_hits": 270
+   }
+  },
+  {
+   "id": "grok-build/F23.output-redaction",
+   "surface": "grok-build",
+   "row": "F23.output-redaction",
+   "state": "undocumented",
+   "verification": "verified",
+   "evidence": [],
+   "sweep_report": {
+    "terms": [
+     "redact|scrub",
+     "mask(ed|ing)\\b|sanitiz",
+     "secrets? .{0,30}(removed|stripped|filtered|hidden|omitted)"
+    ],
+    "corpus_sha256": "1ed7892a52859bccb21792ca0a77ec02184c8abb88b89c2f5fcf491649f76fca",
+    "hits": 0,
+    "hits_reviewed": 0,
+    "positive_control_term": "grok",
+    "positive_control_hits": 270
+   }
   }
  ]
 }

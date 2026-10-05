@@ -1787,6 +1787,116 @@
     "E-claude-code-02095"
    ],
    "value": "The statusLine setting customizes the line shown at the bottom while Claude works, and a custom status line can track context usage continuously. /status shows an API provider line (for example Microsoft Foundry with the resource name or base URL you configured) and, in auto mode, an Auto mode server row reading Enabled or Disabled."
+  },
+  {
+   "id": "claude-code/F23.prompt-assembly",
+   "surface": "claude-code",
+   "row": "F23.prompt-assembly",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-claude-code-80106",
+    "E-claude-code-80107",
+    "E-claude-code-80095",
+    "E-claude-code-80096",
+    "E-claude-code-80099",
+    "E-claude-code-80097",
+    "E-claude-code-80051"
+   ],
+   "value": "Each request re-sends the system prompt, project context, every prior message and tool result, then the new message; rarely-changing content is first. `--system-prompt` or `--system-prompt-file` replaces the default. The prompt is built on the first request and reused until compaction (`--system-prompt-snapshot` with `off` rebuilds it). Subagents get only their own prompt and environment details."
+  },
+  {
+   "id": "claude-code/F23.prompt-caching",
+   "surface": "claude-code",
+   "row": "F23.prompt-caching",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-claude-code-80105",
+    "E-claude-code-80001",
+    "E-claude-code-80002",
+    "E-claude-code-80003",
+    "E-claude-code-80004",
+    "E-claude-code-80005",
+    "E-claude-code-80007",
+    "E-claude-code-80010",
+    "E-claude-code-80025",
+    "E-claude-code-80026",
+    "E-claude-code-80030",
+    "E-claude-code-80108",
+    "E-claude-code-80126",
+    "E-claude-code-80127",
+    "E-claude-code-80168"
+   ],
+   "value": "On by default; disable with `DISABLE_PROMPT_CACHING=1` or per-model variants like `DISABLE_PROMPT_CACHING_OPUS`. The main conversation requests 1 hour only on a Claude subscription within plan usage, otherwise 5 minutes; each hit resets the timer. `ENABLE_PROMPT_CACHING_1H=1` or `promptCacheTtl` (v2.1.242+) request 1 hour; `FORCE_PROMPT_CACHING_5M=1` overrides. Switching models invalidates it."
+  },
+  {
+   "id": "claude-code/F23.retry-backoff",
+   "surface": "claude-code",
+   "row": "F23.retry-backoff",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-claude-code-80128",
+    "E-claude-code-80162",
+    "E-claude-code-80062",
+    "E-claude-code-80129",
+    "E-claude-code-80133",
+    "E-claude-code-80135",
+    "E-claude-code-80134",
+    "E-claude-code-80130",
+    "E-claude-code-80165"
+   ],
+   "value": "Claude Code retries transient failures up to 10 times with exponential backoff before showing an error. `CLAUDE_CODE_MAX_RETRIES` is capped at 15; `CLAUDE_CODE_RETRY_WATCHDOG` is for unattended sessions. A gateway `retry-after` is honoured (above 60 stops retries outside watchdog sessions). TLS certificate failures and content-filter blocks are not retried. The spinner shows a retry countdown."
+  },
+  {
+   "id": "claude-code/F23.malformed-call-recovery",
+   "surface": "claude-code",
+   "row": "F23.malformed-call-recovery",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-claude-code-80152",
+    "E-claude-code-80153",
+    "E-claude-code-80013",
+    "E-claude-code-80161",
+    "E-claude-code-80137",
+    "E-claude-code-80138"
+   ],
+   "value": "An unknown tool name is returned to Claude as the tool call's result and the turn continues. With `--json-schema` in `-p` mode, `MAX_STRUCTURED_OUTPUT_RETRIES` sets the attempts allowed when output fails validation; after that the run fails. A response stream that completed only thinking is re-issued; if it breaks again the turn ends with an error.",
+   "limitation": "Schema-validation retries apply only with `--json-schema` in non-interactive `-p` mode (workflow `agent({schema})` subagents abort after 5 attempts). The quotes cover unknown tool names and unparseable output, not invalid arguments to a known tool."
+  },
+  {
+   "id": "claude-code/F23.tool-output-limits",
+   "surface": "claude-code",
+   "row": "F23.tool-output-limits",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-claude-code-80012",
+    "E-claude-code-80167",
+    "E-claude-code-80091",
+    "E-claude-code-80158"
+   ],
+   "value": "MCP tool responses are capped by `MAX_MCP_OUTPUT_TOKENS` (default 25000 tokens), with a warning above 10,000; tools declaring `anthropic/maxResultSizeChars` use that character limit. Large MCP output gets a truncation prompt with format-specific recipes (such as `jq` for JSON). A whole-file Read over the token cap is auto-paginated and returns a partial first page.",
+   "limitation": "Figures exist per tool only: MCP responses (25000-token default, `MAX_MCP_OUTPUT_TOKENS`) and a 20MB cap on Grep, Glob and @-file search output. Read pagination has no figure in the quotes, and none gives a Bash output limit."
+  },
+  {
+   "id": "claude-code/F23.output-redaction",
+   "surface": "claude-code",
+   "row": "F23.output-redaction",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-claude-code-80023",
+    "E-claude-code-80018",
+    "E-claude-code-80021",
+    "E-claude-code-80019",
+    "E-claude-code-80169",
+    "E-claude-code-80170"
+   ],
+   "value": "In OpenTelemetry telemetry, user prompt text is redacted by default (`OTEL_LOG_USER_PROMPTS=1` includes it) and `OTEL_LOG_ASSISTANT_RESPONSES=0` keeps responses redacted. Tool content in the `tool.output` span event is off unless `OTEL_LOG_TOOL_CONTENT=1`. `OTEL_LOG_MANAGED_SETTINGS=1` logs managed settings in redacted form with a SHA-256 digest of the original.",
+   "limitation": "Documented for OpenTelemetry telemetry only. Tool content needs tracing. Prompt and response variables are ignored in project and local settings; the response and managed-settings variables need v2.1.193 and v2.1.274 or later."
   }
  ]
 }
