@@ -165,6 +165,27 @@ class PageSetTests(LayerCase):
         self.assertEqual(a, b)
 
 
+class CommandLineTests(LayerCase):
+    def test_a_page_written_by_the_command_line_has_the_same_nav_as_one_rendered_in_process(self):
+        import subprocess
+
+        base = self.data()
+        out = self.root / "cli-out"
+        out.mkdir()
+        env = dict(os.environ, ATLAS_ANY_TREE="1")
+        done = subprocess.run(
+            [sys.executable, str(TOOLS / "render.py"), "--data-dir", str(base), "--out", str(out)],
+            capture_output=True,
+            text=True,
+            env=env,
+        )
+        self.assertEqual(done.returncode, 0, done.stderr)
+        in_process = render.render_all(base)
+        for name in ("index.html", "lifecycle.html", "compare.html", "trees/claude-code.html"):
+            self.assertEqual((out / name).read_text(encoding="utf-8"), in_process[name], name)
+            self.assertIn(">Compare</a>", (out / name).read_text(encoding="utf-8"), name)
+
+
 class LifecyclePageTests(LayerCase):
     def test_a_planted_script_in_a_plain_line_is_escaped(self):
         pages = self.pages(plain=f"It asks first {XSS}.")
