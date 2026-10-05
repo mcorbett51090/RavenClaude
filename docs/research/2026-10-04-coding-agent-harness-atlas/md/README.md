@@ -77,10 +77,10 @@ Snapshot 2026-10-04. What each vendor documents about its coding-agent harness: 
 - `levers/task-shapes.md` 13390 B, ~3347 tokens
 - `register.md` 99674 B, ~24918 tokens
 - `known-gaps.md` 9905 B, ~2476 tokens
-- `lifecycle.md` 200603 B, ~50150 tokens
+- `lifecycle.md` 200656 B, ~50164 tokens
 - `compare.md` 21508 B, ~5377 tokens
 - `glossary.md` 3430 B, ~857 tokens
-- `trees/claude-code.md` 39048 B, ~9762 tokens
+- `trees/claude-code.md` 39085 B, ~9771 tokens
 - `trees/codex-cli.md` 32068 B, ~8017 tokens
 - `trees/copilot-cli.md` 32013 B, ~8003 tokens
 - `trees/copilot-vscode.md` 31189 B, ~7797 tokens

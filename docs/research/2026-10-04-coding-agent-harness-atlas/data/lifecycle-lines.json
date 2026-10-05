@@ -99,7 +99,7 @@
           "text": "In Desktop, a mode picked for a folder wins over the default mode setting for that folder."
         },
         "plain": "Modes range from plan, the least permissive, through manual and accept-edits to auto and bypass. Manual asks before editing but can change files once you approve. Desktop remembers a mode per folder, except plan, which lasts for the session.",
-        "technical": "Modes: default (alias manual), acceptEdits, plan, auto, dontAsk, bypassPermissions; Shift+Tab cycles; claude --permission-mode plan. Auto is the built-in start mode from v2.1.283. Desktop remembers a mode per folder except Plan; a first session after install or upgrade can start in a different mode. permissions.disableBypassPermissionsMode=disable blocks bypass."
+        "technical": "Modes: default (alias manual), acceptEdits, plan, auto, dontAsk, bypassPermissions; Shift+Tab cycles; claude --permission-mode plan. Auto is the built-in start mode for interactive terminal and VS Code sessions from v2.1.283. Desktop remembers a mode per folder except Plan; a first session after install or upgrade can start in a different mode. permissions.disableBypassPermissionsMode=disable blocks bypass."
       },
       "send-retry": {
         "cells_sha": "2a1cb25af877170842178b257838b4b61c84c655c085c96447614187ecefad63",
@@ -138,7 +138,7 @@
       },
       "surface": {
         "cells_sha": "a5043de4cd4f2a5141b63cf61a971de31aff7dba5270cf5f67bd6a2b20137a15",
-        "plain": "You can use it in a terminal, IDEs, a desktop app, the web, scripts, CI or chat tools. In script mode Claude doesn't spawn teammates, the desktop hand-off needs a Mac or Windows computer and a Claude subscription, and repository setup works only with github.com.",
+        "plain": "You can use it in a terminal, IDEs, a desktop app, the web, scripts, CI or chat tools. In script mode Claude doesn't spawn teammates, the desktop hand-off needs a Mac or an x64 Windows computer and a Claude subscription, and repository setup works only with github.com.",
         "technical": "Esc stops Claude mid-action. claude -p runs non-interactively (--output-format stream-json --verbose); in -p mode Claude doesn't spawn teammates. VS Code and JetBrains share the CLI engine; /ide, --ide. /desktop (alias /app) requires macOS or x64 Windows and a Claude subscription. Repository setup works only with github.com repositories."
       },
       "thinking": {

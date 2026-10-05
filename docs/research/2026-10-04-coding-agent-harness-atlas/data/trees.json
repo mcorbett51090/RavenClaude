@@ -105,9 +105,9 @@
               "outcome": "Interactive users see a security approval dialog before the hooks are applied."
             },
             {
-              "answer": "A non-interactive run in script mode",
+              "answer": "A script-mode run that does not use the \"bare\" setting",
               "clause": "a -p session runs the hooks in a project's .claude/settings.json, even in a folder you've never trusted",
-              "outcome": "Project hooks run even in an untrusted folder, with no workspace trust dialog."
+              "outcome": "Project hooks run even in a folder you have never trusted, with no workspace trust dialog."
             },
             {
               "answer": "The settings option disables hooks",

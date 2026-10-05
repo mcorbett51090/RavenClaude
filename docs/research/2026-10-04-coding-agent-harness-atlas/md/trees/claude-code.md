@@ -7,7 +7,7 @@ Steps run in the typical order. A documented order appears only where a cell sta
 
 ## A. Setup, before the first model call
 
-- Choose the front door [documented, with limits, unverified] You can use it in a terminal, IDEs, a desktop app, the web, scripts, CI or chat tools. In script mode Claude doesn't spawn teammates, the desktop hand-off needs a Mac or Windows computer and a Claude subscription, and repository setup works only with github.com.
+- Choose the front door [documented, with limits, unverified] You can use it in a terminal, IDEs, a desktop app, the web, scripts, CI or chat tools. In script mode Claude doesn't spawn teammates, the desktop hand-off needs a Mac or an x64 Windows computer and a Claude subscription, and repository setup works only with github.com.
 - Apply organization rules [documented, with limits, unverified] A company can set rules for its developers' installs: which tools and commands are allowed or denied, which models are offered, and whether background agents run. Managed rules win over options set in code. Claude Tag cloud sessions don't receive server-managed settings.
   - documented order: Managed policy settings win over options set in code.
 - Load the house rules [documented, unverified] It reads instruction files from your project and home folder at the start of a session and adds their text to every request. Files at all levels contribute at once, and Claude uses judgment when they conflict. Files can import other files, up to four hops deep.
@@ -38,7 +38,7 @@ Steps run in the typical order. A documented order appears only where a cell sta
   - documented order: A PreToolUse hook runs before the rest of the permission flow.
   - decision point (claude-code/F06.trust-enable): Do hooks run without asking me first?
     - Hooks come from managed settings -> Interactive users see a security approval dialog before the hooks are applied. | quote: “interactive users see a security approval dialog before Claude Code applies them”
-    - A non-interactive run in script mode -> Project hooks run even in an untrusted folder, with no workspace trust dialog. | quote: “a -p session runs the hooks in a project's .claude/settings.json, even in a folder you've never trusted”
+    - A script-mode run that does not use the "bare" setting -> Project hooks run even in a folder you have never trusted, with no workspace trust dialog. | quote: “a -p session runs the hooks in a project's .claude/settings.json, even in a folder you've never trusted”
     - The settings option disables hooks -> Hooks are switched off for that run. | quote: “Passing --settings with disableAllHooks set to true”
 
 ## C. The model call
