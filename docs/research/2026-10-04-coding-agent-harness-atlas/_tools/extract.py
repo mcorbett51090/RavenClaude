@@ -8,8 +8,13 @@ missing or at the record cap is split in two and queued again, so a capped batch
 silently. Nothing here dispatches: the Team Lead dispatches a wave, waits for every completion
 notice, then collects those batch ids.
 
+``brief --cap N`` writes the record cap into the brief and remembers it on the batch, so ``collect``
+judges the batch by the cap its scout was told; ``clone`` copies batches under ``K-`` ids to test a
+different cap without touching the originals' evidence (a clone is never split).
+
 Usage: python3 extract.py plan --run-dir DIR [--batch-bytes N] [--cap N] [--wave-size N]
-       python3 extract.py brief --run-dir DIR --batches ID [ID ...]
+       python3 extract.py brief --run-dir DIR --batches ID [ID ...] [--cap N]
+       python3 extract.py clone --run-dir DIR --batches ID [ID ...] --cap N
        python3 extract.py collect --run-dir DIR --batches ID [ID ...]
        python3 extract.py status --run-dir DIR
        python3 extract.py --selftest
@@ -176,6 +181,11 @@ def _plan_batch(plan, batch_id):
     raise ExtractError(f"unknown batch {batch_id!r}")
 
 
+def batch_cap(plan, batch):
+    """The record cap this batch's scout was told (set by ``brief --cap``), else the plan's."""
+    return batch.get("cap") or plan["cap"]
+
+
 def _cmd_brief(args):
     plan = load_json(_paths(args.run_dir)["plan"])
     paths = _paths(args.run_dir)
@@ -195,9 +205,27 @@ def _cmd_brief(args):
         body = combine_chunks(rows, lambda r: Path(r["path"]).read_text(encoding="utf-8"))
         combined.write_text(body, encoding="utf-8", newline="")
         out_json = paths["out"] / f"{batch_id}.json"
-        text = make_brief(batch_id, rows, str(catalog), str(out_json), str(combined), plan["cap"])
+        batch["cap"] = args.cap or batch_cap(plan, batch)
+        text = make_brief(batch_id, rows, str(catalog), str(out_json), str(combined), batch["cap"])
         (paths["briefs"] / f"{batch_id}.md").write_text(text, encoding="utf-8", newline="\n")
         print(str(paths["briefs"] / f"{batch_id}.md"))
+    dump_json(paths["plan"], plan)
+    return 0
+
+
+def _cmd_clone(args):
+    """Copy batches as ``K-`` test batches with their own cap; never queued, never split."""
+    paths = _paths(args.run_dir)
+    plan = load_json(paths["plan"])
+    for batch_id in args.batches:
+        source = _plan_batch(plan, batch_id)
+        new_id = "K-" + batch_id.split("-", 1)[1]
+        clone = {k: v for k, v in source.items() if k not in ("parent", "cap")}
+        clone.update({"id": new_id, "cap": args.cap, "test_of": batch_id})
+        if not any(b["id"] == new_id for b in plan["batches"]):
+            plan["batches"].append(clone)
+        print(new_id)
+    dump_json(paths["plan"], plan)
     return 0
 
 
@@ -241,10 +269,14 @@ def _cmd_collect(args):
                 records = data["records"] if isinstance(data, dict) else data
             except (ValueError, KeyError) as exc:
                 parse_error = str(exc)
-        status, action = classify_result(records, parse_error, plan["cap"])
+        cap = batch_cap(plan, batch)
+        status, action = classify_result(records, parse_error, cap)
+        if batch.get("test_of"):
+            action = None  # a test clone reports its status; it is never split or queued
         summary = {
             "batch": batch_id,
             "surface": surface,
+            "cap": cap,
             "status": status,
             "records": len(records) if records is not None else None,
             "json_repaired": repaired,
@@ -329,7 +361,13 @@ def main(argv=None):
     brief = commands.add_parser("brief")
     brief.add_argument("--run-dir", required=True)
     brief.add_argument("--batches", nargs="+", required=True)
+    brief.add_argument("--cap", type=int, default=None)
     brief.set_defaults(handler=_cmd_brief)
+    clone = commands.add_parser("clone")
+    clone.add_argument("--run-dir", required=True)
+    clone.add_argument("--batches", nargs="+", required=True)
+    clone.add_argument("--cap", type=int, required=True)
+    clone.set_defaults(handler=_cmd_clone)
     collect = commands.add_parser("collect")
     collect.add_argument("--run-dir", required=True)
     collect.add_argument("--batches", nargs="+", required=True)
@@ -342,7 +380,7 @@ def main(argv=None):
         _selftest()
         return 0
     if not args.command:
-        parser.error("choose a command: plan, brief, collect or status (or --selftest)")
+        parser.error("choose a command: plan, brief, clone, collect or status (or --selftest)")
     try:
         return args.handler(args)
     except (ExtractError, OSError, KeyError, ValueError) as exc:

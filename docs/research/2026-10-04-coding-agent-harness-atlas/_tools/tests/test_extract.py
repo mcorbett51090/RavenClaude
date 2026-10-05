@@ -218,6 +218,38 @@ class CliTests(unittest.TestCase):
         self.assertEqual((summary["status"], summary["queued"]), ("malformed", []))
         self.assertIn("single chunk", summary["note"])
 
+    def test_brief_cap_flag_is_written_to_the_brief_and_collect_judges_by_it(self):
+        multi = next(b for b in self.plan["batches"] if len(b["chunks"]) > 1)
+        code, out, _e = self.cli(
+            "brief", "--run-dir", str(self.run_dir), "--batches", multi["id"], "--cap", "10"
+        )
+        self.assertEqual(code, 0)
+        self.assertIn("At most 10 records", Path(out.strip()).read_text(encoding="utf-8"))
+        self.write_out(multi["id"], [self.record() for _ in range(4)])
+        _c, out, _e = self.cli("collect", "--run-dir", str(self.run_dir), "--batches", multi["id"])
+        summary = json.loads(out.strip().splitlines()[0])
+        self.assertEqual((summary["cap"], summary["status"], summary["queued"]), (10, "ok", []))
+
+    def test_clone_makes_a_k_batch_with_its_own_cap_that_is_never_split(self):
+        multi = next(b for b in self.plan["batches"] if len(b["chunks"]) > 1)
+        new_id = "K-" + multi["id"].split("-", 1)[1]
+        code, out, _e = self.cli(
+            "clone", "--run-dir", str(self.run_dir), "--batches", multi["id"], "--cap", "3"
+        )
+        self.assertEqual((code, out.strip()), (0, new_id))
+        plan = json.loads((self.run_dir / "extract" / "plan.json").read_text())
+        clone = next(b for b in plan["batches"] if b["id"] == new_id)
+        self.assertEqual((clone["test_of"], clone["cap"]), (multi["id"], 3))
+        self.assertEqual(clone["chunks"], multi["chunks"])
+        self.assertFalse(any(new_id in w["batches"] for w in plan["waves"]))
+        self.write_out(new_id, [self.record() for _ in range(4)])
+        _c, out, _e = self.cli("collect", "--run-dir", str(self.run_dir), "--batches", new_id)
+        summary = json.loads(out.strip().splitlines()[0])
+        self.assertEqual((summary["status"], summary["queued"]), ("capped", []))
+        verified = self.run_dir / "extract" / "verified"
+        self.assertTrue((verified / f"{new_id}.json").is_file())
+        self.assertFalse((verified / f"{multi['id']}.json").exists())
+
     def test_status_counts_collected_and_pending_batches(self):
         batch = self.plan["batches"][0]
         self.write_out(batch["id"], [self.record()])
