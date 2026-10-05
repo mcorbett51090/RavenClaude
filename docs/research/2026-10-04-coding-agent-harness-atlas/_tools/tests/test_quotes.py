@@ -1209,6 +1209,18 @@ class LinkMarkupTierTests(unittest.TestCase):
         self.assertEqual(len(quotes._translate(line, "markup")), len(line))
 
 
+class TypographyTierTests(unittest.TestCase):
+    RAW = "Intro line.\nAcceptance rate measures how often developers accept Copilot\u2019s suggestions \u2014 daily.\nTail line.\n"
+
+    def test_a_straight_apostrophe_and_dash_match_their_curly_forms(self):
+        found = verify_quote("how often developers accept Copilot's suggestions - daily", self.RAW)
+        self.assertEqual((found["found"], found["tier"], found["start_line"]), (True, "markup", 2))
+        self.assertIn("\u2019", found["raw_span"])
+
+    def test_a_different_word_is_still_not_found(self):
+        self.assertFalse(verify_quote("how often developers accept Copilot's proposals - daily", self.RAW)["found"])
+
+
 class LoadScoutJsonTests(unittest.TestCase):
     def test_valid_json_is_returned_unchanged_and_not_marked_repaired(self):
         data, repaired = load_scout_json(r'{"quote": "a\\|b \"x\" \u00e9"}')

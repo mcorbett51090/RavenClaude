@@ -53,6 +53,19 @@ _NEUTRAL_TABLE = {**_WS_TABLE, ord("‹"): "<", ord("›"): ">"}
 # In the markup tier the right substitute maps to ">", which is itself markup: one pass.
 _MARKUP_TABLE = {**_WS_TABLE, ord("‹"): "<", ord("›"): " "}
 _MARKUP_TABLE.update({ord(c): " " for c in _MARKUP_CHARS})
+# Typographic variants of one character: a scout types the straight form of a curly quote or
+# a dash. Each maps one character to one character, so positions still map straight back.
+_MARKUP_TABLE.update(
+    {
+        ord("\u2018"): "'",
+        ord("\u2019"): "'",
+        ord("\u201c"): '"',
+        ord("\u201d"): '"',
+        ord("\u2013"): "-",
+        ord("\u2014"): "-",
+        ord("\u00a0"): " ",
+    }
+)
 _TABLES = {"ws": _WS_TABLE, "neutral": _NEUTRAL_TABLE, "markup": _MARKUP_TABLE}
 _SUBSTITUTES = ("‹", "›")
 
