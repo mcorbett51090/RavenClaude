@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/mcorbett51090/RavenClaude/plugins/ravenclaude-core/dashboard-schema.json",
   "title": "RavenClaude dashboard",
-  "description": "Your control panel for working with Claude Code under RavenClaude. Set what Claude may do on its own and see the safety checks every command passes through (Set up); review past decisions, live runs, perimeter alerts, and your security log (Look back); read plain-English explainers, command playbooks, and decision-tree guidance (Learn); and add plugins or wire RavenClaude into your tools (Install & help). The Settings page is where you tune permissions — Deny (never), Ask (check first), or Allow (go ahead) per action type, across three layers (User, Local, Project) where the strictest wins; it saves to .ravenclaude/comfort-posture.yaml and the /set-posture skill turns that into Claude Code's own .claude/settings.json rules.",
+  "description": "Your control panel for working with Claude Code under RavenClaude. Set what Claude may do on its own and see the safety checks every command passes through (Set up); review past decisions, live runs, perimeter alerts, and your security log (Look back); read plain-English explainers, command playbooks, and decision-tree guidance (Learn); and add plugins or wire RavenClaude into your tools (Install & help). The Settings page is where you tune permissions \u2014 Deny (never), Ask (check first), or Allow (go ahead) per action type, across three layers (User, Local, Project) where the strictest wins; it saves to .ravenclaude/comfort-posture.yaml and the /set-posture skill turns that into Claude Code's own .claude/settings.json rules.",
   "type": "object",
   "schema_version": 5,
   "$defs": {
@@ -80,8 +80,8 @@
   },
   "presets": {
     "recommended": {
-      "_label": "★ Recommended",
-      "_description": "Applies the per-category recommended level. Reads inside the project flow; writes inside the project ask; everything that touches the outside world (git push, code exec, package install, web writes, files outside the project) asks. The 'we did the thinking for you' starting point — adjust individual rows from here.",
+      "_label": "\u2605 Recommended",
+      "_description": "Applies the per-category recommended level. Reads inside the project flow; writes inside the project ask; everything that touches the outside world (git push, code exec, package install, web writes, files outside the project) asks. The 'we did the thinking for you' starting point \u2014 adjust individual rows from here.",
       "global_default": "ask",
       "categories": {
         "file_read_project": "allow",
@@ -119,7 +119,7 @@
       }
     },
     "ask": {
-      "_description": "Sets every category to ASK. Claude pauses to confirm before every non-trivial action. Maximum oversight, slowest velocity — a good starting point per Koch et al.'s 'OK blindness' finding; relax specific categories as you build trust.",
+      "_description": "Sets every category to ASK. Claude pauses to confirm before every non-trivial action. Maximum oversight, slowest velocity \u2014 a good starting point per Koch et al.'s 'OK blindness' finding; relax specific categories as you build trust.",
       "global_default": "ask",
       "categories": {
         "file_read_project": "ask",
@@ -138,7 +138,7 @@
       }
     },
     "allow": {
-      "_description": "WARNING: Sets every category to ALLOW. Claude acts without asking on every pattern — INCLUDING git push, npm/pip install, arbitrary code execution (python -c), writes outside the project (~/.ssh, /etc), and POSTs to web endpoints. Use only inside throwaway sandboxes where damage can't propagate.",
+      "_description": "WARNING: Sets every category to ALLOW. Claude acts without asking on every pattern \u2014 INCLUDING git push, npm/pip install, arbitrary code execution (python -c), writes outside the project (~/.ssh, /etc), and POSTs to web endpoints. Use only inside throwaway sandboxes where damage can't propagate.",
       "global_default": "allow",
       "categories": {
         "file_read_project": "allow",
@@ -197,50 +197,57 @@
       "type": "boolean",
       "default": true,
       "title": "Design check-ins",
-      "description": "Separate from the permission levels below. When ON, Claude pauses to confirm structural / architectural / design decisions (Keep / Update / Deny) before implementing — at ANY permission level, including Allow. When OFF (nonstop), Claude proceeds through those decisions using its best judgment and reports them afterward. The permission scale governs whether tool actions need a click; this governs whether design judgment is surfaced first. Honored by the Team Lead, which reads this flag at session start — it is a behavioral commitment, not a machine-enforced lock.",
+      "description": "Separate from the permission levels below. When ON, Claude pauses to confirm structural / architectural / design decisions (Keep / Update / Deny) before implementing \u2014 at ANY permission level, including Allow. When OFF (nonstop), Claude proceeds through those decisions using its best judgment and reports them afterward. The permission scale governs whether tool actions need a click; this governs whether design judgment is surfaced first. Honored by the Team Lead, which reads this flag at session start \u2014 it is a behavioral commitment, not a machine-enforced lock.",
       "x-widget": "toggle",
-      "x-on-label": "On — pause for design / architecture decisions",
-      "x-off-label": "Off — nonstop; decide and report afterward"
+      "x-on-label": "On \u2014 pause for design / architecture decisions",
+      "x-off-label": "Off \u2014 nonstop; decide and report afterward"
     },
     "decision_review": {
       "type": "string",
       "enum": ["off", "advisory", "binding"],
       "default": "off",
       "title": "Decision review",
-      "description": "Behavioral flag (not a permission — marked ⚙ in the UI). Routes yes/no decisions through the command-review tribunal before they reach you. off = you decide every yes/no; advisory = the panel recommends, you still decide; binding = a confident, non-high-blast verdict stands (defer / high-blast still escapes to you). Setting every permission to Allow does not change this."
+      "description": "Behavioral flag (not a permission \u2014 marked \u2699 in the UI). Routes yes/no decisions through the command-review tribunal before they reach you. off = you decide every yes/no; advisory = the panel recommends, you still decide; binding = a confident, non-high-blast verdict stands (defer / high-blast still escapes to you). Setting every permission to Allow does not change this."
+    },
+    "nested_dispatch": {
+      "type": "string",
+      "enum": ["off", "on"],
+      "default": "off",
+      "title": "Nested dispatch",
+      "description": "Behavioral flag (not a permission \u2014 marked \u2699). Pins CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH in the project's .claude/settings.json env: off \u2192 \"1\" (a subagent has no Agent tool), on \u2192 \"3\". Default off; absent = off. Turning on requires a signed-in Claude Code account (`claude auth login`) \u2014 the dashboard Save refuses otherwise, and apply-comfort-posture.py fails closed to off with a WARN. Claude Code only: Cursor and Grok Build already hard-cap nesting at one layer, so this flag is a documented no-op there. Gate 289 still forbids shipped agents from granting Agent/Task/\"*\" in tools:."
     },
     "orchestrator": {
       "type": "string",
       "enum": ["off", "decide", "full"],
       "default": "full",
       "title": "Claude orchestrator",
-      "description": "Behavioral flag (not a permission — marked ⚙). Routes team-lead orchestration to Claude via claude -p on non-Claude-Code hosts (e.g. Copilot CLI). Inert under Claude Code (host already IS Claude). ABSENT ⇒ full (reconciled 2026-07: an absent key defaults to full; only an explicit off disables relay eligibility). off = host orchestrates as today; decide = Claude returns a dispatch plan the host runs; full = Claude reasons through the task, host writes the files."
+      "description": "Behavioral flag (not a permission \u2014 marked \u2699). Routes team-lead orchestration to Claude via claude -p on non-Claude-Code hosts (e.g. Copilot CLI). Inert under Claude Code (host already IS Claude). ABSENT \u21d2 full (reconciled 2026-07: an absent key defaults to full; only an explicit off disables relay eligibility). off = host orchestrates as today; decide = Claude returns a dispatch plan the host runs; full = Claude reasons through the task, host writes the files."
     },
     "orchestrator_scope": {
       "type": "string",
       "enum": ["team", "all"],
       "default": "team",
       "title": "Orchestrator scope",
-      "description": "Behavioral flag (not a permission — marked ⚙). Sets WHEN the orchestrator fires (orchestrator sets HOW). team = only on a team-of-agents dispatch (lowest egress); all = relay every prompt to Claude, content-only, guarded by the relay-all egress floor. Host-only; inert under Claude Code."
+      "description": "Behavioral flag (not a permission \u2014 marked \u2699). Sets WHEN the orchestrator fires (orchestrator sets HOW). team = only on a team-of-agents dispatch (lowest egress); all = relay every prompt to Claude, content-only, guarded by the relay-all egress floor. Host-only; inert under Claude Code."
     },
     "worktree_guard": {
       "type": "string",
       "enum": ["off", "warn", "block"],
       "default": "warn",
       "title": "Worktree guard",
-      "description": "Behavioral flag (not a permission — marked ⚙ in the UI). Nudges — or, in block mode, denies a mutating op — when this working tree is already in use by another live session, or when you are mutating the repo's anchor checkout while worktrees exist. Prefer a dedicated git worktree to avoid collisions. off = silent; warn = a SessionStart / PreToolUse nudge on contention or anchor-work, never blocks; block = a mutating op (commit / add / checkout / switch / merge / rebase / rm / mv, or a Write / Edit under the tree) is denied on contention or anchor-work — reads and git status stay allowed, RC_WORKTREE_GUARD_ACK=1 overrides THIS knob only. ⛔ GUARD_ACK does NOT release a held session lease — worktree_lease is a separate knob, evaluated first, and its denial names its own escapes (open your own worktree, wait for it to go stale, or set worktree_lease: off). A pristine single checkout stays completely silent. Setting every permission to Allow does not change this. Independent of worktree_bound and of worktree_lease."
+      "description": "Behavioral flag (not a permission \u2014 marked \u2699 in the UI). Nudges \u2014 or, in block mode, denies a mutating op \u2014 when this working tree is already in use by another live session, or when you are mutating the repo's anchor checkout while worktrees exist. Prefer a dedicated git worktree to avoid collisions. off = silent; warn = a SessionStart / PreToolUse nudge on contention or anchor-work, never blocks; block = a mutating op (commit / add / checkout / switch / merge / rebase / rm / mv, or a Write / Edit under the tree) is denied on contention or anchor-work \u2014 reads and git status stay allowed, RC_WORKTREE_GUARD_ACK=1 overrides THIS knob only. \u26d4 GUARD_ACK does NOT release a held session lease \u2014 worktree_lease is a separate knob, evaluated first, and its denial names its own escapes (open your own worktree, wait for it to go stale, or set worktree_lease: off). A pristine single checkout stays completely silent. Setting every permission to Allow does not change this. Independent of worktree_bound and of worktree_lease."
     },
     "worktree_bound": {
       "type": "string",
       "enum": ["off", "warn", "block"],
       "default": "block",
       "title": "Worktree bound",
-      "description": "Behavioral flag (not a permission — marked ⚙). FOREIGN-TREE: deny a Write/Edit/MultiEdit or a mutating git -C / GIT_WORK_TREE whose target resolves under a sibling worktree. Default block (absent ⇒ block) — leaving your tree is never a preference. Independent of worktree_guard (which stays warn for two-writers-one-tree). off = silence this clause only; warn = nudge; block = exit 2. Escape: RC_WORKTREE_BOUND_ACK=1. Sibling Read is never denied. This is not a claim that VS Code Copilot Chat is protected."
+      "description": "Behavioral flag (not a permission \u2014 marked \u2699). FOREIGN-TREE: deny a Write/Edit/MultiEdit or a mutating git -C / GIT_WORK_TREE whose target resolves under a sibling worktree. Default block (absent \u21d2 block) \u2014 leaving your tree is never a preference. Independent of worktree_guard (which stays warn for two-writers-one-tree). off = silence this clause only; warn = nudge; block = exit 2. Escape: RC_WORKTREE_BOUND_ACK=1. Sibling Read is never denied. This is not a claim that VS Code Copilot Chat is protected."
     },
     "context_handoff": {
       "type": "object",
       "title": "Session-context handoff",
-      "description": "Behavioral block (not a permission — marked ⚙). Round-tripped by the dashboard but has NO editable control (Settings-only, like worktree_bound): it is held in the serializer's state so a Save & apply preserves it instead of silently stripping it (the v0.61.0 data-loss class). Read by hooks/handoff-nudge.sh (Stop context-hot quality-reset nudge), scripts/handoff-spawn.sh (successor spawn), and scripts/context-usage-meter.py (soft-threshold + window). Absent ⇒ no handoff behavior. spawn accepts the union of both readers' enums; absence of spawn means the launcher's copy-paste fallback.",
+      "description": "Behavioral block (not a permission \u2014 marked \u2699). Round-tripped by the dashboard but has NO editable control (Settings-only, like worktree_bound): it is held in the serializer's state so a Save & apply preserves it instead of silently stripping it (the v0.61.0 data-loss class). Read by hooks/handoff-nudge.sh (Stop context-hot quality-reset nudge), scripts/handoff-spawn.sh (successor spawn), and scripts/context-usage-meter.py (soft-threshold + window). Absent \u21d2 no handoff behavior. spawn accepts the union of both readers' enums; absence of spawn means the launcher's copy-paste fallback.",
       "properties": {
         "mode": {
           "type": "string",
@@ -298,17 +305,25 @@
       ]
     },
     "_command_review_shape": {
-      "description": "Documentation-only key (ignored by tooling). Shape of the top-level `command_review:` block authored by the dashboard's Command-review panel and read by the command-review tribunal (the Thing) with higher precedence than .ravenclaude/thing.yaml. `panel` sets the per-seat model; `confidence_threshold` is the global fallback bar (also feeds decision-review); `gate_floor` is the headline comfort knob (enum medium | high | extreme, default high) that decides which risk tier and above is surfaced to the human after the tribunal clears it; `tiers` is the advanced per-tier override map. Tiers are exactly medium | high | extreme (the `low` tier runs no panel and is never emitted). Each tier carries `seats` (which of forseti | mimir | heimdall convene — thor is the tie-breaker and never appears here), `mandatory_seats` (a subset of `seats` that must vote), and a per-tier `confidence_threshold`. A deterministic high/critical concern can bump a command's base tier upward; the resolved tier selects the seats, the confidence bar, and whether a confident panel-ALLOW is surfaced to the human. `enabled` (bool, absent=true) is the master circuit-breaker AND-gated with every per-category toggle: false globally disables all tribunal review without changing per-category toggles; absent or true leaves per-category toggles in control. NOT a bulk setter — it is a top-level off-switch only; the self-disable and hard-rule floors still run whenever any category is toggled on. `dev_repo_exempt` (bool, absent=false, FAIL-SAFE OFF): when true, suppresses ONLY the substrate-path self-disable DENY for marketplace-substrate edits — allowing the plugin maintainer to edit hooks/ and scripts/ in the RavenClaude marketplace repo. Requires ALL three signals: (a) this flag is strictly true, (b) `gh repo view` resolves the authenticated repo to mcorbett51090/RavenClaude, (c) .claude-plugin/marketplace.json exists and parses with name 'ravenclaude'. Any error/missing gh/no auth/network failure/mismatch → exemption OFF (enforce). Does NOT weaken the hard-rule floor (force-push, curl|sh), the secret-egress backstop, xc.injection-attempt, or the discretionary panel.",
+      "description": "Documentation-only key (ignored by tooling). Shape of the top-level `command_review:` block authored by the dashboard's Command-review panel and read by the command-review tribunal (the Thing) with higher precedence than .ravenclaude/thing.yaml. `panel` sets the per-seat model; `confidence_threshold` is the global fallback bar (also feeds decision-review); `gate_floor` is the headline comfort knob (enum medium | high | extreme, default high) that decides which risk tier and above is surfaced to the human after the tribunal clears it; `tiers` is the advanced per-tier override map. Tiers are exactly medium | high | extreme (the `low` tier runs no panel and is never emitted). Each tier carries `seats` (which of forseti | mimir | heimdall convene \u2014 thor is the tie-breaker and never appears here), `mandatory_seats` (a subset of `seats` that must vote), and a per-tier `confidence_threshold`. A deterministic high/critical concern can bump a command's base tier upward; the resolved tier selects the seats, the confidence bar, and whether a confident panel-ALLOW is surfaced to the human. `enabled` (bool, absent=true) is the master circuit-breaker AND-gated with every per-category toggle: false globally disables all tribunal review without changing per-category toggles; absent or true leaves per-category toggles in control. NOT a bulk setter \u2014 it is a top-level off-switch only; the self-disable and hard-rule floors still run whenever any category is toggled on. `dev_repo_exempt` (bool, absent=false, FAIL-SAFE OFF): when true, suppresses ONLY the substrate-path self-disable DENY for marketplace-substrate edits \u2014 allowing the plugin maintainer to edit hooks/ and scripts/ in the RavenClaude marketplace repo. Requires ALL three signals: (a) this flag is strictly true, (b) `gh repo view` resolves the authenticated repo to mcorbett51090/RavenClaude, (c) .claude-plugin/marketplace.json exists and parses with name 'ravenclaude'. Any error/missing gh/no auth/network failure/mismatch \u2192 exemption OFF (enforce). Does NOT weaken the hard-rule floor (force-push, curl|sh), the secret-egress backstop, xc.injection-attempt, or the discretionary panel.",
       "examples": [
         {
           "command_review": {
             "enabled": true,
             "dev_repo_exempt": false,
             "panel": {
-              "forseti": { "model": "claude-opus-4-8" },
-              "mimir": { "model": "claude-haiku-4-5-20251001" },
-              "heimdall": { "model": "claude-haiku-4-5-20251001" },
-              "thor": { "model": "claude-opus-4-8" }
+              "forseti": {
+                "model": "claude-opus-4-8"
+              },
+              "mimir": {
+                "model": "claude-haiku-4-5-20251001"
+              },
+              "heimdall": {
+                "model": "claude-haiku-4-5-20251001"
+              },
+              "thor": {
+                "model": "claude-opus-4-8"
+              }
             },
             "confidence_threshold": 0.5,
             "gate_floor": "high",
@@ -341,14 +356,14 @@
       "description": "Used for any category not explicitly set below. Apply a preset to set this and all categories at once.",
       "x-widget": "segmented",
       "x-recommended": "ask",
-      "x-rec-individual": "Ask — solo work usually wants a moderate default; relax specific categories where you trust Claude more.",
-      "x-rec-team": "Ask — collaborative work wants pauses in ambiguous places; keep the cautious default and grant Productive/Allow per category as needed.",
+      "x-rec-individual": "Ask \u2014 solo work usually wants a moderate default; relax specific categories where you trust Claude more.",
+      "x-rec-team": "Ask \u2014 collaborative work wants pauses in ambiguous places; keep the cautious default and grant Productive/Allow per category as needed.",
       "x-controls": "The fallback autonomy level for any category you don't set explicitly. Acts as a safety net so newly-added categories don't surprise you with a permissive default.",
       "x-examples": [
         "If you set this to 'Ask' and don't touch any per-category row, every category behaves as Ask.",
-        "If you set this to 'Allow' but override `file_edit_global` to 'Deny', everything else is on allow — but Claude still refuses to write outside your project."
+        "If you set this to 'Allow' but override `file_edit_global` to 'Deny', everything else is on allow \u2014 but Claude still refuses to write outside your project."
       ],
-      "x-guidance": "Most users start with 'Ask' here and relax specific categories where they trust Claude more. Setting this to 'Allow' is equivalent to enabling all categories at once — overrides become subtractive."
+      "x-guidance": "Most users start with 'Ask' here and relax specific categories where they trust Claude more. Setting this to 'Allow' is equivalent to enabling all categories at once \u2014 overrides become subtractive."
     },
     "categories": {
       "type": "object",
@@ -373,9 +388,9 @@
           "x-widget": "segmented",
           "x-group": "Files",
           "x-recommended": "allow",
-          "x-rec-individual": "Allow — solo work benefits from Claude moving through your codebase freely; reads are essentially free.",
-          "x-rec-team": "Allow — same as solo; reading shared code doesn't affect teammates and is cheap regardless.",
-          "x-controls": "Anything Claude does to LOOK at files inside your current project directory — opening, scanning, reading. No changes to disk, no shell side effects, no network calls. This is the cheapest category.",
+          "x-rec-individual": "Allow \u2014 solo work benefits from Claude moving through your codebase freely; reads are essentially free.",
+          "x-rec-team": "Allow \u2014 same as solo; reading shared code doesn't affect teammates and is cheap regardless.",
+          "x-controls": "Anything Claude does to LOOK at files inside your current project directory \u2014 opening, scanning, reading. No changes to disk, no shell side effects, no network calls. This is the cheapest category.",
           "x-examples": [
             "ls src/",
             "cat README.md",
@@ -383,7 +398,7 @@
             "Opening a file in the IDE",
             "Walking the directory tree to understand the project layout"
           ],
-          "x-guidance": "Reading source files is essentially free — Claude can't break anything by looking. Most users keep this on 'Allow'. Tighten to 'Ask' or 'Deny' only if your project has files Claude shouldn't routinely scan (a checked-in keystore, a vendored secret, a generated SBOM with binary blobs)."
+          "x-guidance": "Reading source files is essentially free \u2014 Claude can't break anything by looking. Most users keep this on 'Allow'. Tighten to 'Ask' or 'Deny' only if your project has files Claude shouldn't routinely scan (a checked-in keystore, a vendored secret, a generated SBOM with binary blobs)."
         },
         "file_edit_project": {
           "oneOf": [
@@ -403,17 +418,17 @@
           "x-widget": "segmented",
           "x-group": "Files",
           "x-recommended": "allow",
-          "x-rec-individual": "Allow — solo work can rely on git for review; let Claude refactor and generate freely, then look at the diff.",
-          "x-rec-team": "Ask — teammates will be reviewing or blocked-on the changes; pausing on each edit preserves the review handoff and keeps surprises small.",
-          "x-controls": "Write, Edit, MultiEdit — anything Claude does to CHANGE a file inside your current project. The change is recoverable via git as long as you commit regularly, but it does affect your working tree immediately.",
+          "x-rec-individual": "Allow \u2014 solo work can rely on git for review; let Claude refactor and generate freely, then look at the diff.",
+          "x-rec-team": "Ask \u2014 teammates will be reviewing or blocked-on the changes; pausing on each edit preserves the review handoff and keeps surprises small.",
+          "x-controls": "Write, Edit, MultiEdit \u2014 anything Claude does to CHANGE a file inside your current project. The change is recoverable via git as long as you commit regularly, but it does affect your working tree immediately.",
           "x-examples": [
-            "Write('src/new-feature.py', ...) — creating a new file",
-            "Edit('package.json', ...) — modifying an existing file",
+            "Write('src/new-feature.py', ...) \u2014 creating a new file",
+            "Edit('package.json', ...) \u2014 modifying an existing file",
             "MultiEdit refactoring across several files",
             "Generating a new test file from a spec",
             "Adding documentation to an existing module"
           ],
-          "x-guidance": "If you want to review every change before it lands, set this to 'Ask'. If you trust Claude to refactor or generate freely and rely on git for review, 'Allow' works — the diff is visible after the fact. Pair with 'Ask' on shell_remote_mutate so Claude can edit freely but still pauses before pushing."
+          "x-guidance": "If you want to review every change before it lands, set this to 'Ask'. If you trust Claude to refactor or generate freely and rely on git for review, 'Allow' works \u2014 the diff is visible after the fact. Pair with 'Ask' on shell_remote_mutate so Claude can edit freely but still pauses before pushing."
         },
         "file_read_global": {
           "oneOf": [
@@ -433,17 +448,17 @@
           "x-widget": "segmented",
           "x-group": "Files",
           "x-recommended": "ask",
-          "x-rec-individual": "Ask — even solo, you don't want Claude reading ~/.ssh or ~/.aws without a deliberate prompt.",
-          "x-rec-team": "Ask — same as solo; secrets outside the project are always a deliberate decision regardless of who you work with.",
-          "x-controls": "Anything Claude does to READ files that live OUTSIDE your current project — your home directory, system paths, other projects. These paths frequently contain secrets or configuration Claude has no business with.",
+          "x-rec-individual": "Ask \u2014 even solo, you don't want Claude reading ~/.ssh or ~/.aws without a deliberate prompt.",
+          "x-rec-team": "Ask \u2014 same as solo; secrets outside the project are always a deliberate decision regardless of who you work with.",
+          "x-controls": "Anything Claude does to READ files that live OUTSIDE your current project \u2014 your home directory, system paths, other projects. These paths frequently contain secrets or configuration Claude has no business with.",
           "x-examples": [
-            "cat ~/.ssh/config — SSH keys and known hosts",
-            "cat ~/.aws/credentials — AWS access keys",
-            "head /etc/hosts — system DNS overrides",
+            "cat ~/.ssh/config \u2014 SSH keys and known hosts",
+            "cat ~/.aws/credentials \u2014 AWS access keys",
+            "head /etc/hosts \u2014 system DNS overrides",
             "Reading from another project's directory tree",
             "Inspecting browser cookie stores"
           ],
-          "x-guidance": "Almost always set to 'Ask' or 'Deny'. Files outside your project often contain secrets — SSH keys, AWS creds, browser cookies, ~/.netrc. Only relax this if you have a specific reason (e.g., a single global config the agent legitimately needs to consult)."
+          "x-guidance": "Almost always set to 'Ask' or 'Deny'. Files outside your project often contain secrets \u2014 SSH keys, AWS creds, browser cookies, ~/.netrc. Only relax this if you have a specific reason (e.g., a single global config the agent legitimately needs to consult)."
         },
         "file_edit_global": {
           "oneOf": [
@@ -463,11 +478,11 @@
           "x-widget": "segmented",
           "x-group": "Files",
           "x-recommended": "ask",
-          "x-rec-individual": "Ask — solo work that wants to touch ~/.gitconfig or a global setting is the exception, not the rule. Force the pause.",
-          "x-rec-team": "Ask — same as solo; global writes are infrequent enough that always asking is the safe default.",
-          "x-controls": "Anything Claude does to CHANGE files outside your current project — home directory, system config, other projects. These changes are often unrecoverable (no git tracking) and can affect every other workflow on your machine.",
+          "x-rec-individual": "Ask \u2014 solo work that wants to touch ~/.gitconfig or a global setting is the exception, not the rule. Force the pause.",
+          "x-rec-team": "Ask \u2014 same as solo; global writes are infrequent enough that always asking is the safe default.",
+          "x-controls": "Anything Claude does to CHANGE files outside your current project \u2014 home directory, system config, other projects. These changes are often unrecoverable (no git tracking) and can affect every other workflow on your machine.",
           "x-examples": [
-            "Write('~/.profile', ...) — adding to your shell init",
+            "Write('~/.profile', ...) \u2014 adding to your shell init",
             "Editing ~/.gitconfig",
             "Writing into /etc/ (usually requires sudo, separate concern)",
             "Modifying configs in ~/Library/ or ~/.config/",
@@ -493,9 +508,9 @@
           "x-widget": "segmented",
           "x-group": "Shell",
           "x-recommended": "allow",
-          "x-rec-individual": "Allow — cheap shell is cheap regardless of context; let it run freely.",
-          "x-rec-team": "Allow — same as solo; read-only commands can't affect teammates' state.",
-          "x-controls": "Shell commands that DON'T change anything on disk and DON'T talk to a server. The 'cheap' shell — running them and not running them produces the same world afterward.",
+          "x-rec-individual": "Allow \u2014 cheap shell is cheap regardless of context; let it run freely.",
+          "x-rec-team": "Allow \u2014 same as solo; read-only commands can't affect teammates' state.",
+          "x-controls": "Shell commands that DON'T change anything on disk and DON'T talk to a server. The 'cheap' shell \u2014 running them and not running them produces the same world afterward.",
           "x-examples": [
             "ls",
             "cat file.txt",
@@ -504,7 +519,7 @@
             "find . -name '*.md'",
             "wc -l, head, tail, file"
           ],
-          "x-guidance": "Claude Code already auto-allows many of these via its built-in READONLY_COMMANDS list, so the prompt rate is already low. 'Allow' is usually right — 'never ask for cheap shell' is the most common preference. Tighten only if you want every command logged into the prompt history."
+          "x-guidance": "Claude Code already auto-allows many of these via its built-in READONLY_COMMANDS list, so the prompt rate is already low. 'Allow' is usually right \u2014 'never ask for cheap shell' is the most common preference. Tighten only if you want every command logged into the prompt history."
         },
         "shell_local_mutate": {
           "oneOf": [
@@ -524,8 +539,8 @@
           "x-widget": "segmented",
           "x-group": "Shell",
           "x-recommended": "allow",
-          "x-rec-individual": "Allow — solo work benefits from Claude restructuring and committing locally; git history catches anything that goes wrong.",
-          "x-rec-team": "Ask — even local mutations (git checkout switching branches, mkdir reorganizing things) can affect what teammates see if they touch the wrong file later. Pausing on local mutations is cheap insurance.",
+          "x-rec-individual": "Allow \u2014 solo work benefits from Claude restructuring and committing locally; git history catches anything that goes wrong.",
+          "x-rec-team": "Ask \u2014 even local mutations (git checkout switching branches, mkdir reorganizing things) can affect what teammates see if they touch the wrong file later. Pausing on local mutations is cheap insurance.",
           "x-controls": "Shell commands that CHANGE your local filesystem but DON'T talk to a server. Effects stay on your machine and are usually recoverable (git reflog exists, files can be restored from snapshots).",
           "x-examples": [
             "mkdir src/new-feature",
@@ -535,7 +550,7 @@
             "git checkout -b feature/x",
             "rm temp/scratch.txt (recoverable from trash on most OSes)"
           ],
-          "x-guidance": "Local mutations are usually recoverable — git history catches deletes, files can be restored. 'Ask' or 'Allow' is the typical choice. Tighten if you're working in a directory where moves/deletes would be hard to recover (e.g., a folder Claude shouldn't restructure without confirmation)."
+          "x-guidance": "Local mutations are usually recoverable \u2014 git history catches deletes, files can be restored. 'Ask' or 'Allow' is the typical choice. Tighten if you're working in a directory where moves/deletes would be hard to recover (e.g., a folder Claude shouldn't restructure without confirmation)."
         },
         "shell_remote_mutate": {
           "oneOf": [
@@ -551,13 +566,13 @@
           ],
           "default": "ask",
           "title": "Remote shell mutations",
-          "description": "git push, gh pr create, npm publish — anything that touches a shared system.",
+          "description": "git push, gh pr create, npm publish \u2014 anything that touches a shared system.",
           "x-widget": "segmented",
           "x-group": "Shell",
           "x-recommended": "ask",
-          "x-rec-individual": "Ask — even solo, the audit-trail value of confirming each push is worth the friction.",
-          "x-rec-team": "Ask — pushes notify teammates, trigger CI, may break their working state. Every one deserves an explicit click.",
-          "x-controls": "Shell commands that PUBLISH to a system other people can see — git remotes, GitHub Issues/PRs, package registries, cloud buckets. Once these complete, you can't simply 'undo' them; reversal usually requires a counter-action that's also visible.",
+          "x-rec-individual": "Ask \u2014 even solo, the audit-trail value of confirming each push is worth the friction.",
+          "x-rec-team": "Ask \u2014 pushes notify teammates, trigger CI, may break their working state. Every one deserves an explicit click.",
+          "x-controls": "Shell commands that PUBLISH to a system other people can see \u2014 git remotes, GitHub Issues/PRs, package registries, cloud buckets. Once these complete, you can't simply 'undo' them; reversal usually requires a counter-action that's also visible.",
           "x-examples": [
             "git push origin main",
             "gh pr create",
@@ -565,7 +580,7 @@
             "npm publish (uploads to the registry)",
             "aws s3 sync ... s3://bucket/ (changes remote state)"
           ],
-          "x-guidance": "Most users keep this on 'Ask' to preserve the review step. The cost of a wrong push isn't just the bad commit — it's the explanation to teammates, the revert PR, the audit trail. Even when Claude is 'usually right,' the asymmetric cost makes confirming each push worth it."
+          "x-guidance": "Most users keep this on 'Ask' to preserve the review step. The cost of a wrong push isn't just the bad commit \u2014 it's the explanation to teammates, the revert PR, the audit trail. Even when Claude is 'usually right,' the asymmetric cost makes confirming each push worth it."
         },
         "shell_code_exec": {
           "oneOf": [
@@ -585,8 +600,8 @@
           "x-widget": "segmented",
           "x-group": "Shell",
           "x-recommended": "ask",
-          "x-rec-individual": "Ask — arbitrary code exec is the shortest path to RCE if a prompt goes sideways. Worth pausing on every one.",
-          "x-rec-team": "Ask — same as solo; the risk doesn't change with team size.",
+          "x-rec-individual": "Ask \u2014 arbitrary code exec is the shortest path to RCE if a prompt goes sideways. Worth pausing on every one.",
+          "x-rec-team": "Ask \u2014 same as solo; the risk doesn't change with team size.",
           "x-controls": "Any command that lets Claude run code that WASN'T pre-written. These bypass per-tool gating because the inner code can do anything the shell can do.",
           "x-examples": [
             "python -c 'import os; os.system(...)'",
@@ -595,7 +610,7 @@
             "eval $UNTRUSTED_STRING",
             "ruby -e '...', perl -e '...', awk 'BEGIN { system(...) }'"
           ],
-          "x-guidance": "This is the category most often abused in security incidents — Cursor's settings.json injection (GHSA-ff64-7w26-62rf) ended in arbitrary `python -c` execution via SessionStart hooks. 'Ask' is the safe default. Don't relax this unless you have a specific reason (e.g., a sandboxed REPL where exec is the whole point)."
+          "x-guidance": "This is the category most often abused in security incidents \u2014 Cursor's settings.json injection (GHSA-ff64-7w26-62rf) ended in arbitrary `python -c` execution via SessionStart hooks. 'Ask' is the safe default. Don't relax this unless you have a specific reason (e.g., a sandboxed REPL where exec is the whole point)."
         },
         "shell_package_install": {
           "oneOf": [
@@ -615,8 +630,8 @@
           "x-widget": "segmented",
           "x-group": "Shell",
           "x-recommended": "ask",
-          "x-rec-individual": "Ask — supply-chain typosquats are the most common attack vector; verify the package name once per install.",
-          "x-rec-team": "Ask — same as solo; package installs are usually rare enough that asking is cheap.",
+          "x-rec-individual": "Ask \u2014 supply-chain typosquats are the most common attack vector; verify the package name once per install.",
+          "x-rec-team": "Ask \u2014 same as solo; package installs are usually rare enough that asking is cheap.",
           "x-controls": "Commands that download and install packages from a registry. Package installs are higher-risk than they appear: many run post-install scripts with full shell access on your machine.",
           "x-examples": [
             "npm install foo-bar",
@@ -626,7 +641,7 @@
             "cargo install ...",
             "go install github.com/.../..."
           ],
-          "x-guidance": "Most users keep this on 'Ask' so you can review the package name and source before it lands. Supply-chain attacks (typosquats, malicious updates of legitimate packages) are real — the request to install something is the right place to pause."
+          "x-guidance": "Most users keep this on 'Ask' so you can review the package name and source before it lands. Supply-chain attacks (typosquats, malicious updates of legitimate packages) are real \u2014 the request to install something is the right place to pause."
         },
         "network_read": {
           "oneOf": [
@@ -646,8 +661,8 @@
           "x-widget": "segmented",
           "x-group": "Network",
           "x-recommended": "allow",
-          "x-rec-individual": "Allow — Claude needs to look things up to give grounded answers; reads are low-risk.",
-          "x-rec-team": "Allow — same as solo; reading public docs doesn't affect teammates.",
+          "x-rec-individual": "Allow \u2014 Claude needs to look things up to give grounded answers; reads are low-risk.",
+          "x-rec-team": "Allow \u2014 same as solo; reading public docs doesn't affect teammates.",
           "x-controls": "GET-style requests that READ from the web. No mutation, no side effects on the remote system. Risk is limited to what Claude does with the response (which it has to read carefully anyway).",
           "x-examples": [
             "WebFetch('https://docs.anthropic.com/...')",
@@ -656,7 +671,7 @@
             "Fetching a public RFC",
             "Querying a CDN for a library's docs"
           ],
-          "x-guidance": "'Allow' is usually right — Claude needs to look things up to give grounded answers. Tighten to 'Ask' only if you're worried about data exfiltration via URL parameters (e.g., Claude embedding sensitive strings in a GET) — rare but possible."
+          "x-guidance": "'Allow' is usually right \u2014 Claude needs to look things up to give grounded answers. Tighten to 'Ask' only if you're worried about data exfiltration via URL parameters (e.g., Claude embedding sensitive strings in a GET) \u2014 rare but possible."
         },
         "network_write": {
           "oneOf": [
@@ -672,12 +687,12 @@
           ],
           "default": "ask",
           "title": "Web writes",
-          "description": "POST, PUT, DELETE — anything that mutates remote state.",
+          "description": "POST, PUT, DELETE \u2014 anything that mutates remote state.",
           "x-widget": "segmented",
           "x-group": "Network",
           "x-recommended": "ask",
-          "x-rec-individual": "Ask — POSTs have side effects (charged API calls, posted messages, triggered workflows). Even solo, the asymmetric cost makes pausing worth it.",
-          "x-rec-team": "Ask — webhooks may notify teammates or trigger their workflows; pausing is doubly important.",
+          "x-rec-individual": "Ask \u2014 POSTs have side effects (charged API calls, posted messages, triggered workflows). Even solo, the asymmetric cost makes pausing worth it.",
+          "x-rec-team": "Ask \u2014 webhooks may notify teammates or trigger their workflows; pausing is doubly important.",
           "x-controls": "HTTP methods that CHANGE state on the remote system. These have side effects ranging from 'charged my API account' to 'posted a message to a Slack channel' to 'triggered a production deployment.'",
           "x-examples": [
             "curl -X POST https://api.example.com/webhook",
@@ -686,7 +701,7 @@
             "Submitting a Stripe charge",
             "Calling a deployment trigger"
           ],
-          "x-guidance": "Keep this on 'Ask' unless you're operating in a sandbox where remote writes are explicitly part of the workflow (e.g., a test environment with disposable resources). The 'I clicked the wrong button' cost is asymmetric — confirming each one is cheap."
+          "x-guidance": "Keep this on 'Ask' unless you're operating in a sandbox where remote writes are explicitly part of the workflow (e.g., a test environment with disposable resources). The 'I clicked the wrong button' cost is asymmetric \u2014 confirming each one is cheap."
         },
         "mcp_tools": {
           "oneOf": [
@@ -706,17 +721,17 @@
           "x-widget": "segmented",
           "x-group": "Other",
           "x-recommended": "ask",
-          "x-rec-individual": "Ask — MCP tool trust is best done server-by-server; the global default should ask, then you pin trusted servers individually in your Claude Code config.",
-          "x-rec-team": "Ask — same as solo; the global default is conservative; per-server trust is where the team-vs-solo distinction actually matters.",
+          "x-rec-individual": "Ask \u2014 MCP tool trust is best done server-by-server; the global default should ask, then you pin trusted servers individually in your Claude Code config.",
+          "x-rec-team": "Ask \u2014 same as solo; the global default is conservative; per-server trust is where the team-vs-solo distinction actually matters.",
           "x-controls": "The DEFAULT autonomy level applied to any MCP (Model Context Protocol) server you've connected. Each server can also be configured individually in your Claude Code config; this is the fallback for servers without specific trust settings.",
           "x-examples": [
-            "microsoft_learn.docs_search(...) — read-only docs, usually safe",
-            "google_drive.list_files(...) — reads your private files",
-            "uber.get_estimates(...) — third-party API, makes external calls",
-            "github_mcp.create_issue(...) — mutates a shared system",
-            "filesystem_mcp.read_file(...) — depends on what path it can see"
+            "microsoft_learn.docs_search(...) \u2014 read-only docs, usually safe",
+            "google_drive.list_files(...) \u2014 reads your private files",
+            "uber.get_estimates(...) \u2014 third-party API, makes external calls",
+            "github_mcp.create_issue(...) \u2014 mutates a shared system",
+            "filesystem_mcp.read_file(...) \u2014 depends on what path it can see"
           ],
-          "x-guidance": "MCP trust is best done server-by-server, not globally. Keep this on 'Ask' as a safety net and configure trusted servers individually in your Claude Code config. A blanket 'Allow' here means any MCP server you add automatically gets full autonomy — usually not what you want."
+          "x-guidance": "MCP trust is best done server-by-server, not globally. Keep this on 'Ask' as a safety net and configure trusted servers individually in your Claude Code config. A blanket 'Allow' here means any MCP server you add automatically gets full autonomy \u2014 usually not what you want."
         },
         "subagent_dispatch": {
           "oneOf": [
@@ -736,8 +751,8 @@
           "x-widget": "segmented",
           "x-group": "Other",
           "x-recommended": "allow",
-          "x-rec-individual": "Allow — /code-review and multi-agent skills fan out 5–15 subagents; prompting on each one is wall-clock pain, not a security win.",
-          "x-rec-team": "Allow — same as solo; the security_deny floor still blocks the worst Bash patterns inside a subagent.",
+          "x-rec-individual": "Allow \u2014 /code-review and multi-agent skills fan out 5\u201315 subagents; prompting on each one is wall-clock pain, not a security win.",
+          "x-rec-team": "Allow \u2014 same as solo; the security_deny floor still blocks the worst Bash patterns inside a subagent.",
           "x-controls": "Whether Claude can spawn a subagent (Agent / Task) without asking. deny disables ALL subagents. Per-agent overrides use Agent(SubagentName).",
           "x-examples": [
             "Agent (any specialist)",
@@ -745,7 +760,7 @@
             "A /code-review xhigh fan-out of 9 finders",
             "Task tool dispatch from the orchestrator"
           ],
-          "x-guidance": "'Allow' is the recommended starting point — without it, every subagent prompts even when every other category is already allow. Tighten to 'Ask' only if you want to approve each spawn; 'Deny' turns off subagents entirely."
+          "x-guidance": "'Allow' is the recommended starting point \u2014 without it, every subagent prompts even when every other category is already allow. Tighten to 'Ask' only if you want to approve each spawn; 'Deny' turns off subagents entirely."
         }
       },
       "additionalProperties": false

@@ -470,3 +470,11 @@ cause_closure: warn
 # routine_reserve_margin_pct: 20                      # safety margin on the projection
 # routine_reserve_warn_points: 5                      # warn this many points before the line
 # routine_reserve_weekly_budget_usd: 0                # manual %-per-$ calibration; 0 = automatic
+
+# ── nested dispatch (opt-in, default off; Claude Code only) ─────────────────
+# Pins CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH in .claude/settings.json env:
+#   off → "1" (a subagent has no Agent tool)
+#   on  → "3" (platform default nesting depth)
+# Turning on requires `claude auth login` on this machine. Absent = off.
+# No-op on Cursor and Grok Build (those hosts already cap nesting at one layer).
+# nested_dispatch: off | on                            # default: off

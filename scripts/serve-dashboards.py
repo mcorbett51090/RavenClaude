@@ -48,6 +48,7 @@ import errno
 import hmac
 import json
 import os
+import re
 import secrets
 import signal
 import subprocess
@@ -2036,7 +2037,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
 
     def do_HEAD(self):
         if (
-            self.path in ("/__save", "/__run", "/__classify", "/__csrf")
+            self.path in ("/__save", "/__run", "/__classify", "/__csrf", "/__auth-status")
             or self.path.startswith("/__read")
             or self.path.startswith("/__saga")
             or self.path.startswith("/__heimdall")
@@ -2063,6 +2064,99 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             self.send_error(403, "cross-origin/forged-host request refused")
             return
         super().do_HEAD()
+
+
+    # ── nested_dispatch auth gate (Gate 293) ────────────────────────────────
+    _ND_LINE_RE = re.compile(
+        r"^[ \t]*nested_dispatch:[ \t]*([^#\n]+)", re.MULTILINE
+    )
+
+    @staticmethod
+    def _nested_dispatch_requested(content: str) -> str:
+        """Return 'on' if YAML content asks for nested_dispatch on, else 'off'.
+
+        Grep-shaped (matches hooks); accepts on/true/yes/1 and off/false/no/0.
+        Absent or garbage → off.
+        """
+        m = DashboardHandler._ND_LINE_RE.search(content or "")
+        if not m:
+            return "off"
+        raw = m.group(1).strip().strip("\"'").lower()
+        if raw in ("on", "true", "yes", "1"):
+            return "on"
+        return "off"
+
+    def _nested_dispatch_auth(self) -> dict:
+        """Run apply-comfort-posture.py --nested-dispatch-auth; return its JSON."""
+        try:
+            proc = subprocess.run(
+                [
+                    sys.executable,
+                    str(APPLY_SCRIPT),
+                    "--nested-dispatch-auth",
+                ],
+                capture_output=True,
+                text=True,
+                timeout=12,
+                check=False,
+                cwd=str(REPO_ROOT),
+            )
+        except (OSError, subprocess.TimeoutExpired) as exc:
+            return {"logged_in": False, "account": None, "error": f"probe_failed:{exc}", "bin": None}
+        raw = (proc.stdout or "").strip()
+        try:
+            data = json.loads(raw) if raw else {}
+        except json.JSONDecodeError:
+            data = {"logged_in": False, "error": "unparseable", "raw": raw[:200]}
+        if not isinstance(data, dict):
+            data = {"logged_in": False, "error": "bad_shape"}
+        data.setdefault("logged_in", False)
+        data["exit"] = proc.returncode
+        return data
+
+    def _nested_dispatch_gate(self, content: str) -> dict | None:
+        """If content turns nested_dispatch on while signed out, return 403 payload.
+
+        Also refuses when the on-disk posture is already on and the save keeps
+        it on while signed out? No — only off→on (and absent→on) transitions.
+        A save that keeps on while signed out is allowed to write YAML; apply
+        will pin depth 1 with a WARN. The dangerous case is enabling via the
+        dashboard without auth.
+        """
+        requested = self._nested_dispatch_requested(content)
+        if requested != "on":
+            return None
+        # Read current on-disk posture — if already on, allow the save.
+        cur_path = REPO_ROOT / POSTURE_TARGET
+        prev = "off"
+        if cur_path.is_file():
+            try:
+                prev = self._nested_dispatch_requested(
+                    cur_path.read_text(encoding="utf-8")
+                )
+            except OSError:
+                prev = "off"
+        if prev == "on":
+            return None
+        auth = self._nested_dispatch_auth()
+        if auth.get("logged_in"):
+            return None
+        return {
+            "error": "nested_dispatch_auth_required",
+            "message": (
+                "nested_dispatch: on requires a signed-in Claude Code account "
+                "(`claude auth login`). Nothing was written."
+            ),
+            "auth": auth,
+        }
+
+    def _handle_auth_status(self):
+        """GET /__auth-status — Claude Code sign-in probe for the Nested dispatch UI."""
+        if not self._local_request_ok():
+            self.send_error(403, "refused: cross-origin or non-local Origin/Host")
+            return
+        self._json(200, self._nested_dispatch_auth())
+
 
     def do_GET(self):
         # NOTE: static GETs are intentionally ungated. Any NEW data-returning GET
@@ -2119,6 +2213,9 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             return
         if self.path.startswith("/__concern-stats"):
             self._handle_concern_stats()
+            return
+        if self.path.split("?", 1)[0] == "/__auth-status":
+            self._handle_auth_status()
             return
         if self.path == "/__csrf":
             self._handle_csrf()
@@ -2610,6 +2707,13 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                 return
 
         out.parent.mkdir(parents=True, exist_ok=True)
+        # nested_dispatch off→on requires Claude Code sign-in (Gate 293).
+        # Refuse BEFORE writing so a 403 cannot leave a half-applied posture.
+        if target == POSTURE_TARGET:
+            nd_refuse = self._nested_dispatch_gate(content)
+            if nd_refuse is not None:
+                self._json(403, nd_refuse)
+                return
         # write_bytes, not write_text(newline=): Python 3.9 compat (LF preserved)
         out.write_bytes(content.encode("utf-8"))
 
