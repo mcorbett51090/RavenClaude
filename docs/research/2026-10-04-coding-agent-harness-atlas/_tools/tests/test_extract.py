@@ -83,6 +83,8 @@ class RuleTests(unittest.TestCase):
     def test_a_batch_at_the_cap_or_unparseable_or_missing_is_split(self):
         self.assertEqual(classify_result([0] * 89, None, 90), ("capped", "split"))
         self.assertEqual(classify_result([0] * 40, None, 90), ("ok", None))
+        self.assertEqual(classify_result([0] * 143, None, 150), ("capped", "split"))
+        self.assertEqual(classify_result([0] * 142, None, 150), ("ok", None))
         self.assertEqual(classify_result(None, None, 90), ("missing", "split"))
         self.assertEqual(classify_result(None, "bad json", 90), ("malformed", "split"))
 

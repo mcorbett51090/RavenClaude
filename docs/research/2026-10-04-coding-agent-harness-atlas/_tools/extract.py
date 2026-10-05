@@ -22,6 +22,7 @@ Usage: python3 extract.py plan --run-dir DIR [--batch-bytes N] [--cap N] [--wave
 
 import argparse
 import json
+import math
 import re
 import sys
 from chunk import make_batches
@@ -130,7 +131,9 @@ def classify_result(records, parse_error, cap):
         return "malformed", "split"
     if records is None:
         return "missing", "split"
-    if len(records) >= cap - 1:
+    # A scout stops just under the cap it was told (cap-90 runs clustered at 89 to 91), so
+    # "capped" starts at 95% of the cap, not only at cap - 1.
+    if len(records) >= min(cap - 1, math.ceil(cap * 0.95)):
         return "capped", "split"
     return "ok", None
 
