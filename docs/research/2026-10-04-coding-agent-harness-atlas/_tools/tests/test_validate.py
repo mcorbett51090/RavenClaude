@@ -380,6 +380,19 @@ class ValidatorCase(unittest.TestCase):
 
 
 CC, GB = "claude-code", "grok-bot"
+UNDOCUMENTED_SWEPT = {
+    "state": "undocumented",
+    "verification": "verified",
+    "vendor_statement": DROP,
+    "sweep_report": {
+        "terms": ["model"],
+        "corpus_sha256": "e" * 64,
+        "hits": 1,
+        "hits_reviewed": 1,
+        "positive_control_term": "mode",
+        "positive_control_hits": 4,
+    },
+}
 LOOP, TURN, PICKER = "F01.loop-shape", "F01.turn-limits", "F17.model-picker"
 EFFORT, MODES, PLAN = "F18.effort-values", "F19.named-modes", "F19.plan-mode"
 
@@ -1150,6 +1163,16 @@ class LeverTests(ValidatorCase):
                 lambda fx: fx.lever(0, unread_models=["m-1"]),
                 (),
             ),
+            (
+                "verified undocumented lever whose cell was not swept",
+                lambda fx: fx.lever(
+                    0,
+                    location_kind="undocumented",
+                    state="undocumented",
+                    evidence=[],
+                ),
+                (),
+            ),
         ]
         self.cases(self.R, table)
 
@@ -1168,6 +1191,18 @@ class LeverTests(ValidatorCase):
             (
                 "unverified lever with no evidence",
                 lambda fx: fx.lever(0, verification="unverified", evidence=[]),
+            ),
+            (
+                "verified undocumented lever on a swept, verified cell",
+                lambda fx: (
+                    fx.cell(CC, "F17.model-picker", **UNDOCUMENTED_SWEPT),
+                    fx.lever(
+                        0,
+                        location_kind="undocumented",
+                        state="undocumented",
+                        evidence=[],
+                    ),
+                ),
             ),
             (
                 "undocumented location needs no quote",

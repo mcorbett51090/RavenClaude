@@ -939,7 +939,7 @@ class Validator:
         ids = [i for i in listed if isinstance(i, str)] if isinstance(listed, list) else []
         usable = self._resolve_evidence(where, lever.get("surface"), [("evidence", i) for i in ids])
         good = self._has_verified(i for _, i in usable)
-        if lever.get("verification") == "verified" and not good:
+        if lever.get("verification") == "verified" and not (good or self._swept_absence(lever)):
             self.error(R_LEVER, where, "verified lever needs an E1-E4 record, quote verified")
         if lever.get("location_kind") in POSITIVE_LOCATION_KINDS and not good:
             self.error(
@@ -951,6 +951,24 @@ class Validator:
             self.error(R_LEVER, where, "model_conditional needs a non-empty values_by_model")
         if lever.get("unread_models") and lever.get("verification") != "unverified":
             self.error(R_LEVER, where, "unread_models requires verification unverified")
+
+    def _swept_absence(self, lever):
+        """An undocumented lever record rests on its cell's sweep, not on a quote.
+
+        The record mirrors a cell that is undocumented and verified with a sweep_report; it names no
+        evidence and no location, so there is no quote for it to carry.
+        """
+        if lever.get("state") != "undocumented" or lever.get("location_kind") != "undocumented":
+            return False
+        if lever.get("evidence"):
+            return False
+        cell = self.cells_by_id.get(f"{lever.get('surface')}/{lever.get('row')}")
+        return (
+            isinstance(cell, dict)
+            and cell.get("state") == "undocumented"
+            and cell.get("verification") == "verified"
+            and isinstance(cell.get("sweep_report"), dict)
+        )
 
     @staticmethod
     def _lever_label(lever):
