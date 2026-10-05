@@ -69,6 +69,22 @@ NAV = (
     ("register.html", "Register"),
     ("method.html", "Method"),
 )
+NAV_LIFECYCLE = (
+    ("lifecycle.html", "Lifecycle"),
+    ("compare.html", "Compare"),
+    ("trees/index.html", "Decision trees"),
+)
+_NAV_STATE = {"lifecycle": False}
+
+
+def nav_items():
+    """The page list for the header; the lifecycle pages join it only when their data exists."""
+    items = list(NAV)
+    if _NAV_STATE["lifecycle"]:
+        items[2:2] = NAV_LIFECYCLE  # after Overview and Matrix
+    return items
+
+
 EVIDENCE_ROLES = (
     ("vendor_statement", "Vendor statement"),
     ("reference_page_evidence", "Reference page (positive control)"),
@@ -165,6 +181,19 @@ blockquote p{margin:0;white-space:pre-wrap;overflow-wrap:anywhere}
 .cite{font-size:.875rem;color:var(--muted);margin:var(--s1) 0 var(--s2)}
 .cite,.cite a,td a,th a,.cell{overflow-wrap:anywhere}
 ul.cols{columns:2 14rem}
+.label{display:inline-block;font-size:.75rem;font-weight:700;text-transform:uppercase;
+letter-spacing:.04em;color:var(--muted);margin-right:var(--s2)}
+.general,.facts{max-width:75ch}
+.editorial{border-left:4px solid var(--accent);background:var(--surface);
+padding:var(--s2) var(--s3);margin:var(--s3) 0;max-width:75ch}
+.gapnote{border:1px dashed var(--border);padding:var(--s2) var(--s3);max-width:75ch}
+.concept{border-top:1px solid var(--border);margin-top:var(--s4);padding-top:var(--s2)}
+ol.flow{padding-left:var(--s5)}
+ol.flow>li{margin:var(--s3) 0}
+ul.branches{margin:var(--s2) 0}
+details>summary{cursor:pointer}
+dt{font-weight:700;margin-top:var(--s3)}
+dd{margin:0 0 0 var(--s4);max-width:70ch}
 @media (prefers-reduced-motion: reduce){*,*::before,*::after{transition:none!important;
 animation:none!important}}
 """
@@ -409,6 +438,9 @@ class Atlas:
         self.snapshot = snapshot if isinstance(snapshot, dict) else {}
         watch = _read(data_dir / "watch-baseline.json", False)
         self.watch = watch if isinstance(watch, dict) else {}
+        self.life = as_dict(_read(data_dir / "lifecycle.json", False))
+        self.lines = as_dict(_read(data_dir / "lifecycle-lines.json", False))
+        self.trees = as_dict(_read(data_dir / "trees.json", False))
         self.columns = {}
         for column in as_list(self.snapshot.get("columns")):
             if isinstance(column, dict):
@@ -613,7 +645,7 @@ def document(page, title, h1, body):
         f'<li><a href="{href(page, dst)}"'
         + (' aria-current="page"' if dst == page else "")
         + f">{esc(label)}</a></li>"
-        for dst, label in NAV
+        for dst, label in nav_items()
     )
     return (
         "\n".join(
@@ -1239,7 +1271,10 @@ def render_method(atlas):
 
 def render_all(data_dir):
     """Every page as {relative path: text}, in a fixed order."""
+    import render_lifecycle  # here, not at the top: that module imports this one
+
     atlas = Atlas(data_dir)
+    _NAV_STATE["lifecycle"] = bool(atlas.life)
     pages = {"index.html": render_index(atlas), "matrix.html": render_matrix(atlas)}
     for pid in atlas.products:
         pages[f"harness/{pid}.html"] = render_harness(atlas, pid)
@@ -1248,6 +1283,7 @@ def render_all(data_dir):
     for sid in atlas.surface_ids:
         pages[f"sources/{sid}.html"] = render_sources(atlas, sid)
     pages["method.html"] = render_method(atlas)
+    pages.update(render_lifecycle.render_pages(atlas))
     return pages
 
 
@@ -1275,9 +1311,9 @@ def check_sizes(encoded):
 
 
 def extra_pages(out, rendered):
-    """``*.html`` files in the output folder, harness/ and sources/ that no page of ours maps to."""
+    """``*.html`` files in the output folder, harness/, sources/ and trees/ that no page of ours maps to."""
     found = []
-    for folder in ("", "harness", "sources"):
+    for folder in ("", "harness", "sources", "trees"):
         directory = out / folder if folder else out
         if directory.is_dir():
             for path in sorted(directory.glob("*.html")):

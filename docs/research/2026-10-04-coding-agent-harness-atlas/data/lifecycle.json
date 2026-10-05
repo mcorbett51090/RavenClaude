@@ -1,0 +1,837 @@
+{
+  "concepts": [
+    {
+      "depends_on": [],
+      "gap": null,
+      "id": "surface",
+      "jargon": [
+        "CLI",
+        "IDE",
+        "SDK",
+        "headless"
+      ],
+      "matters_for_model_choice": "Pick the door that fits how you work. A door that cannot ask you questions cannot do tasks that need your approval.",
+      "name_plain": "Choose the front door",
+      "order": 1,
+      "predicate_general": "Some doors exist only on some plans or platforms.",
+      "rows": [
+        "F16.interactive-cli",
+        "F16.headless-mode",
+        "F16.ide-integration",
+        "F16.desktop-web-app",
+        "F16.sdk-api",
+        "F16.ci-chat"
+      ],
+      "stage": "A",
+      "typical_after": [],
+      "what_it_does": "You reach an agent through a front door: a terminal, an editor plug-in, a desktop or web app, a script, or a chat or CI service. The door decides what you can see and approve.",
+      "who_normally_does_it": "harness code"
+    },
+    {
+      "depends_on": [],
+      "gap": null,
+      "id": "org-policy",
+      "jargon": [
+        "managed settings"
+      ],
+      "matters_for_model_choice": "In a managed setting your own model and permission choices may be narrower than the docs suggest. Check what your organization allows before planning around a feature.",
+      "name_plain": "Apply organization rules",
+      "order": 2,
+      "predicate_general": "Only when an administrator has set policy up for you.",
+      "rows": [
+        "F07.managed-settings",
+        "F07.policy-lockdown",
+        "F07.model-allowlist"
+      ],
+      "stage": "A",
+      "typical_after": [
+        "surface"
+      ],
+      "what_it_does": "If a company manages the install, its rules load first and override yours: which models you may use, which settings are locked, which features are off.",
+      "who_normally_does_it": "harness code"
+    },
+    {
+      "depends_on": [
+        "org-policy"
+      ],
+      "gap": null,
+      "id": "house-rules",
+      "jargon": [
+        "instruction file",
+        "prompt"
+      ],
+      "matters_for_model_choice": "These files are how you steer any model. How well a model follows them differs by model, but whether they are loaded at all is the harness's doing.",
+      "name_plain": "Load the house rules",
+      "order": 3,
+      "predicate_general": "Only files in the places the harness looks are read.",
+      "rows": [
+        "F03.auto-loaded-files",
+        "F03.import-syntax",
+        "F03.precedence-scoping",
+        "F03.path-scoped-rules",
+        "F03.user-vs-project-scope"
+      ],
+      "stage": "A",
+      "typical_after": [
+        "org-policy"
+      ],
+      "what_it_does": "The harness reads plain text files in your project and home folder that tell the model how you want it to work. Their text is added to what the model reads, and more specific files usually win over general ones.",
+      "who_normally_does_it": "harness code"
+    },
+    {
+      "depends_on": [],
+      "gap": null,
+      "id": "memory-sessions",
+      "jargon": [
+        "session",
+        "prompt"
+      ],
+      "matters_for_model_choice": "A harness that remembers saves you re-explaining. One that does not starts every run cold, whatever model you pick.",
+      "name_plain": "Load memory and earlier sessions",
+      "order": 4,
+      "predicate_general": "Memory and resume exist only where the harness stores them, often per folder or per account.",
+      "rows": [
+        "F02.persistent-memory",
+        "F02.memory-scope-loading",
+        "F13.resume-continue",
+        "F13.fork-branch",
+        "F13.transcript-storage",
+        "F13.session-listing",
+        "F13.cross-surface-handoff"
+      ],
+      "stage": "A",
+      "typical_after": [
+        "house-rules"
+      ],
+      "what_it_does": "Some harnesses keep notes between runs, and can resume, branch or hand off an earlier conversation. Whatever is reloaded becomes part of what the model reads.",
+      "who_normally_does_it": "harness code"
+    },
+    {
+      "depends_on": [],
+      "gap": null,
+      "id": "built-in-tools",
+      "jargon": [
+        "tool",
+        "model"
+      ],
+      "matters_for_model_choice": "Two harnesses can give the same model different tools. What a model can do is bounded by this list, not by how clever it is.",
+      "name_plain": "Stock the built-in tools",
+      "order": 5,
+      "predicate_general": "Web tools and some others can be switched off or limited.",
+      "rows": [
+        "F01.tool-inventory",
+        "F01.shell-tool",
+        "F01.file-edit-tools",
+        "F01.web-tools"
+      ],
+      "stage": "A",
+      "typical_after": [
+        "memory-sessions"
+      ],
+      "what_it_does": "A model cannot touch your files or run commands by itself. The harness gives it a fixed set of tools, such as read a file, edit a file, run a shell command or search the web, and tells the model what each one does.",
+      "who_normally_does_it": "harness code"
+    },
+    {
+      "depends_on": [],
+      "gap": null,
+      "id": "skills-commands",
+      "jargon": [
+        "skill",
+        "slash command"
+      ],
+      "matters_for_model_choice": "These are how a team teaches an agent its own routines. If your team relies on them, check that the harness supports your format before comparing models.",
+      "name_plain": "Load skills and custom commands",
+      "order": 6,
+      "predicate_general": "Only folders the harness searches are read, and the file format rules differ between harnesses.",
+      "rows": [
+        "F08.skill-format",
+        "F08.discovery-paths",
+        "F08.invocation",
+        "F08.resource-loading",
+        "F08.skill-overrides",
+        "F10.built-in-commands",
+        "F10.custom-command-format",
+        "F10.arguments",
+        "F10.discovery-paths",
+        "F10.command-skill-relation"
+      ],
+      "stage": "A",
+      "typical_after": [
+        "built-in-tools"
+      ],
+      "what_it_does": "You can add reusable instructions: skills the model can pick up when a task fits, and commands you type yourself. The harness finds them in set folders and loads their text only when needed.",
+      "who_normally_does_it": "both"
+    },
+    {
+      "depends_on": [],
+      "gap": null,
+      "id": "outside-tools",
+      "jargon": [
+        "MCP",
+        "tool"
+      ],
+      "matters_for_model_choice": "More connections give any model more reach, and more ways to cause harm. Check how each harness approves and filters them.",
+      "name_plain": "Connect outside tools",
+      "order": 7,
+      "predicate_general": "Each connection needs setting up and usually your approval before it is trusted.",
+      "rows": [
+        "F12.client-support",
+        "F12.transports",
+        "F12.config-scope",
+        "F12.auth",
+        "F12.tool-filtering",
+        "F12.server-trust"
+      ],
+      "stage": "A",
+      "typical_after": [
+        "skills-commands"
+      ],
+      "what_it_does": "A standard plug-in socket lets the harness connect other programs, such as a database or an issue tracker, and offer them to the model as extra tools.",
+      "who_normally_does_it": "harness code"
+    },
+    {
+      "depends_on": [
+        "org-policy"
+      ],
+      "gap": null,
+      "id": "safety-posture",
+      "jargon": [
+        "approval mode",
+        "plan mode"
+      ],
+      "matters_for_model_choice": "This choice, not the model, decides how often you are interrupted and how much damage a mistake can do. Pick the mode first, then the model.",
+      "name_plain": "Set the safety posture",
+      "order": 8,
+      "predicate_general": "Mode names and what they allow differ between harnesses, and organization policy can limit the choices.",
+      "rows": [
+        "F04.approval-modes",
+        "F04.trust-prompt",
+        "F04.bypass-mode",
+        "F04.config-scope-precedence",
+        "F19.named-modes",
+        "F19.entering-modes",
+        "F19.autonomy-mode",
+        "F19.read-only-mode",
+        "F19.mode-defaults"
+      ],
+      "stage": "A",
+      "typical_after": [
+        "outside-tools"
+      ],
+      "what_it_does": "Before anything runs, the harness settles how much the model may do without asking: ask every time, accept edits, plan only, or run freely. A folder you have not trusted before usually triggers a question.",
+      "who_normally_does_it": "harness code"
+    },
+    {
+      "depends_on": [
+        "org-policy"
+      ],
+      "gap": null,
+      "id": "model-effort",
+      "jargon": [
+        "model",
+        "effort"
+      ],
+      "matters_for_model_choice": "This is the one place where you steer cost and quality directly. Compare which controls each harness gives you, not only which models it lists.",
+      "name_plain": "Pick the model and thinking effort",
+      "order": 9,
+      "predicate_general": "Which models and effort levels are offered depends on your plan and on the model.",
+      "rows": [
+        "F17.model-picker",
+        "F17.model-flag-env",
+        "F17.provider-byok",
+        "F17.model-catalog",
+        "F18.effort-values",
+        "F18.where-set",
+        "F21.shared-model-selection"
+      ],
+      "stage": "A",
+      "typical_after": [
+        "safety-posture"
+      ],
+      "what_it_does": "The harness chooses which model answers and how much it should think, from your choice, a default, an automatic router or an administrator's limits. Some harnesses let you bring your own key or provider.",
+      "who_normally_does_it": "harness code"
+    },
+    {
+      "depends_on": [],
+      "gap": null,
+      "id": "workspace",
+      "jargon": [
+        "worktree"
+      ],
+      "matters_for_model_choice": "Isolation lets you run many attempts and keep the best one. It is a harness feature, so no model can stand in for it.",
+      "name_plain": "Prepare an isolated workspace",
+      "order": 10,
+      "predicate_general": "Only where the harness supports it, and usually only when you turn it on.",
+      "rows": [
+        "F14.worktree-isolation"
+      ],
+      "stage": "A",
+      "typical_after": [
+        "model-effort"
+      ],
+      "what_it_does": "To keep a risky run away from your working copy, a harness can give the agent its own copy of the project so several agents can work side by side without colliding.",
+      "who_normally_does_it": "harness code"
+    },
+    {
+      "depends_on": [
+        "house-rules",
+        "memory-sessions"
+      ],
+      "gap": "partial",
+      "id": "assemble-prompt",
+      "jargon": [
+        "prompt",
+        "context window"
+      ],
+      "matters_for_model_choice": "What a model never sees it cannot use. Controls over this vary a lot between harnesses and are only partly covered here.",
+      "name_plain": "Assemble the prompt",
+      "order": 1,
+      "predicate_general": "Everything must fit the context window. What does not fit is dropped or summarised.",
+      "rows": [
+        "F02.context-window-size",
+        "F02.context-inclusion"
+      ],
+      "stage": "B",
+      "typical_after": [
+        "workspace"
+      ],
+      "what_it_does": "Each turn the harness builds what the model will actually read: its own instructions, your house rules, memory, the conversation so far and relevant file contents, trimmed to fit the model's reading limit.",
+      "who_normally_does_it": "harness code"
+    },
+    {
+      "depends_on": [],
+      "gap": null,
+      "id": "hooks",
+      "jargon": [
+        "hook",
+        "tool"
+      ],
+      "matters_for_model_choice": "Hooks are the strongest guard you control, and they work with any model. Check which moments each harness exposes and whether a failing hook blocks the action.",
+      "name_plain": "Run your own code at set moments",
+      "order": 2,
+      "predicate_general": "Hooks run only if configured and trusted, and a broken hook may fail without blocking anything.",
+      "rows": [
+        "F06.event-catalog",
+        "F06.handler-types",
+        "F06.input-contract",
+        "F06.output-blocking",
+        "F06.matchers",
+        "F06.config-locations",
+        "F06.trust-enable"
+      ],
+      "stage": "B",
+      "typical_after": [
+        "assemble-prompt"
+      ],
+      "what_it_does": "Hooks attach your own scripts to moments such as before a tool runs, after it finishes, or when a session starts or stops. A script can log, change or block what happens, with no model involved.",
+      "who_normally_does_it": "harness code"
+    },
+    {
+      "depends_on": [],
+      "gap": "partial",
+      "id": "send-retry",
+      "jargon": [
+        "rate limit",
+        "model"
+      ],
+      "matters_for_model_choice": "When the service is busy, how the harness waits or falls back decides whether your task stalls. Only partly covered here.",
+      "name_plain": "Send the request and handle trouble",
+      "order": 1,
+      "predicate_general": "Retry and fallback behaviour depends on your plan's limits and your settings.",
+      "rows": [
+        "F17.auto-routing",
+        "F22.rate-limits"
+      ],
+      "stage": "C",
+      "typical_after": [
+        "hooks"
+      ],
+      "what_it_does": "The harness sends the prompt to the model service and shows the answer as it arrives. When it is rate-limited or the service is busy it may wait and retry, or switch to another model if allowed.",
+      "who_normally_does_it": "harness code"
+    },
+    {
+      "depends_on": [
+        "model-effort"
+      ],
+      "gap": null,
+      "id": "thinking",
+      "jargon": [
+        "effort",
+        "model"
+      ],
+      "matters_for_model_choice": "More thinking costs more and takes longer. The levels that exist depend on the model, so changing models can change what you can ask for.",
+      "name_plain": "Set the thinking budget",
+      "order": 2,
+      "predicate_general": "The effort levels available depend on the model.",
+      "rows": [
+        "F18.model-dependence",
+        "F18.thinking-budget-visibility"
+      ],
+      "stage": "C",
+      "typical_after": [
+        "send-retry"
+      ],
+      "what_it_does": "Some models can spend extra effort reasoning before they answer. The harness passes along your effort setting, and some harnesses show or hide the reasoning.",
+      "who_normally_does_it": "both"
+    },
+    {
+      "depends_on": [],
+      "gap": "full",
+      "id": "caching",
+      "jargon": [
+        "caching",
+        "prompt"
+      ],
+      "matters_for_model_choice": "Caching changes cost and speed on long sessions. The atlas has not researched it yet.",
+      "name_plain": "Reuse the unchanged part of the prompt",
+      "order": 3,
+      "predicate_general": "Only for services that support it, and the harness may offer no control over it.",
+      "rows": [],
+      "stage": "C",
+      "typical_after": [
+        "thinking"
+      ],
+      "what_it_does": "Many harnesses ask the model service to remember the unchanged start of a long prompt, so later turns are cheaper and faster.",
+      "who_normally_does_it": "harness code"
+    },
+    {
+      "depends_on": [],
+      "gap": "full",
+      "id": "read-request",
+      "jargon": [
+        "tool",
+        "model"
+      ],
+      "matters_for_model_choice": "A harness that recovers well from a model's slips can make a weaker model usable. The atlas has not researched it yet.",
+      "name_plain": "Read what the model asked for",
+      "order": 1,
+      "predicate_general": "What happens to a malformed request differs between harnesses.",
+      "rows": [],
+      "stage": "D",
+      "typical_after": [
+        "caching"
+      ],
+      "what_it_does": "The model's reply is text. The harness reads it for requests such as run this command or edit that file, and deals with a request that is malformed or incomplete.",
+      "who_normally_does_it": "harness code"
+    },
+    {
+      "depends_on": [
+        "safety-posture",
+        "org-policy"
+      ],
+      "gap": null,
+      "id": "permission-check",
+      "jargon": [
+        "tool",
+        "model"
+      ],
+      "matters_for_model_choice": "This is where a harness stops a model's mistake before it happens. Compare how finely you can write rules; do not count on a model to police itself.",
+      "name_plain": "Decide whether it is allowed",
+      "order": 2,
+      "predicate_general": "Rules only cover what the harness can recognise, such as a tool, a folder or a command pattern.",
+      "rows": [
+        "F04.per-tool-rules",
+        "F04.path-scoping",
+        "F04.command-scoping",
+        "F04.auto-review"
+      ],
+      "stage": "D",
+      "typical_after": [
+        "read-request"
+      ],
+      "what_it_does": "Before running anything the model asked for, the harness checks it against your rules: allow, ask you, or refuse, by tool, by folder or by command. Some harnesses also use a second model to review risky requests.",
+      "who_normally_does_it": "both"
+    },
+    {
+      "depends_on": [
+        "built-in-tools"
+      ],
+      "gap": null,
+      "id": "undo-point",
+      "jargon": [
+        "checkpoint"
+      ],
+      "matters_for_model_choice": "An undo point is what makes it safe to let a model try bold changes. It does not depend on the model.",
+      "name_plain": "Save an undo point",
+      "order": 3,
+      "predicate_general": "Often limited to the edits the harness itself made.",
+      "rows": [
+        "F13.checkpoint-rewind"
+      ],
+      "stage": "D",
+      "typical_after": [
+        "permission-check"
+      ],
+      "what_it_does": "Before changing files, a harness can take a snapshot so you can rewind a bad edit, resume later, or branch from an earlier point.",
+      "who_normally_does_it": "harness code"
+    },
+    {
+      "depends_on": [
+        "safety-posture"
+      ],
+      "gap": null,
+      "id": "fence",
+      "jargon": [
+        "sandbox"
+      ],
+      "matters_for_model_choice": "A fence limits the harm from any model's actions. Not every harness has one, and some have it only on some systems.",
+      "name_plain": "Run it inside the fence",
+      "order": 4,
+      "predicate_general": "A sandbox may be optional, limited to some operating systems, or switchable by you.",
+      "rows": [
+        "F05.os-sandbox",
+        "F05.fs-write-scope",
+        "F05.network-policy",
+        "F05.subprocess-containment",
+        "F05.sandbox-override"
+      ],
+      "stage": "D",
+      "typical_after": [
+        "undo-point"
+      ],
+      "what_it_does": "Approved commands can run inside a sandbox: a restricted area that limits which files they can change and which network addresses they can reach, so a mistake stays contained. It is set up at the start.",
+      "who_normally_does_it": "harness code"
+    },
+    {
+      "depends_on": [],
+      "gap": "full",
+      "id": "output-handling",
+      "jargon": [
+        "tool",
+        "model"
+      ],
+      "matters_for_model_choice": "How output is trimmed affects what the model can notice, which matters more for weaker models. The atlas has not researched it yet.",
+      "name_plain": "Tidy the tool's output",
+      "order": 5,
+      "predicate_general": "Unknown here: the atlas has not researched truncation or hiding of output.",
+      "rows": [],
+      "stage": "D",
+      "typical_after": [
+        "fence"
+      ],
+      "what_it_does": "Tool output can be huge or sensitive. A harness may cut it down, hide secrets or summarise it before the model reads it.",
+      "who_normally_does_it": "harness code"
+    },
+    {
+      "depends_on": [],
+      "gap": null,
+      "id": "loop",
+      "jargon": [
+        "model",
+        "tool"
+      ],
+      "matters_for_model_choice": "Long tasks are many turns. Whether a turn limit exists changes whether a stuck model can run up a large bill.",
+      "name_plain": "Feed the result back and go round again",
+      "order": 6,
+      "predicate_general": "Limits on turns or steps, where they exist, stop the loop.",
+      "rows": [
+        "F01.loop-shape",
+        "F01.turn-limits"
+      ],
+      "stage": "D",
+      "typical_after": [
+        "output-handling"
+      ],
+      "what_it_does": "The harness gives the tool's result to the model, which replies again, and so on until the model says it is done or a limit is reached. One trip round is a turn.",
+      "who_normally_does_it": "both"
+    },
+    {
+      "depends_on": [
+        "built-in-tools",
+        "model-effort"
+      ],
+      "gap": null,
+      "id": "subagents",
+      "jargon": [
+        "subagent",
+        "effort"
+      ],
+      "matters_for_model_choice": "Helpers let you use a cheaper model for simple jobs and a stronger one for hard ones, but only if the harness lets you choose per helper.",
+      "name_plain": "Hand work to helpers",
+      "order": 7,
+      "predicate_general": "Caps and nesting rules differ, and some harnesses have no helpers.",
+      "rows": [
+        "F09.definition-format",
+        "F09.tool-allowlist",
+        "F09.per-agent-model",
+        "F09.per-agent-effort",
+        "F09.nesting-rules",
+        "F09.built-in-agents",
+        "F14.concurrency-caps",
+        "F14.parallel-subagents",
+        "F14.total-agent-caps",
+        "F14.multi-session-coordination"
+      ],
+      "stage": "D",
+      "typical_after": [
+        "loop"
+      ],
+      "what_it_does": "The main agent can start helper agents with their own instructions, tools and sometimes models, run several at once, and gather their results. Limits cap how many run together and how deeply helpers can nest.",
+      "who_normally_does_it": "both"
+    },
+    {
+      "depends_on": [
+        "assemble-prompt"
+      ],
+      "gap": null,
+      "id": "shrink-context",
+      "jargon": [
+        "compaction",
+        "context window"
+      ],
+      "matters_for_model_choice": "Summaries lose detail. On long tasks the quality of this step can matter as much as the model, and models that read more at once need it less.",
+      "name_plain": "Shrink the context when it fills",
+      "order": 8,
+      "predicate_general": "When it triggers and what is kept differ between harnesses.",
+      "rows": [
+        "F02.auto-compaction",
+        "F02.manual-compaction"
+      ],
+      "stage": "D",
+      "typical_after": [
+        "subagents"
+      ],
+      "what_it_does": "The model can only read so much at once. When the conversation nears the limit, the harness summarises older parts, sometimes by asking the model to write the summary, or lets you do it by hand.",
+      "who_normally_does_it": "both"
+    },
+    {
+      "depends_on": [
+        "safety-posture"
+      ],
+      "gap": null,
+      "id": "plan-and-ask",
+      "jargon": [
+        "plan mode"
+      ],
+      "matters_for_model_choice": "Where and how you are asked decides how much you can delegate. It is the difference between babysitting and reviewing.",
+      "name_plain": "Show the answer or ask you",
+      "order": 9,
+      "predicate_general": "Plan-only and other modes change when you are asked.",
+      "rows": [
+        "F19.plan-mode",
+        "F22.status-display"
+      ],
+      "stage": "D",
+      "typical_after": [
+        "shrink-context"
+      ],
+      "what_it_does": "When the model has an answer, or a plan that needs your approval, the harness shows it, and this is where it asks your permission. Many harnesses also show a status line with progress.",
+      "who_normally_does_it": "harness code"
+    },
+    {
+      "depends_on": [
+        "hooks"
+      ],
+      "gap": null,
+      "id": "wrap-up",
+      "jargon": [
+        "telemetry"
+      ],
+      "matters_for_model_choice": "Cost visibility and caps are what stop a run from surprising you. They live in the harness, not in the model.",
+      "name_plain": "Wrap up and keep score",
+      "order": 10,
+      "predicate_general": "Spending caps and exports depend on your plan and configuration.",
+      "rows": [
+        "F22.usage-visibility",
+        "F22.budget-caps",
+        "F22.telemetry-otel",
+        "F22.logs-debug"
+      ],
+      "stage": "D",
+      "typical_after": [
+        "plan-and-ask"
+      ],
+      "what_it_does": "When a task ends, hooks can run and notifications can go out, and the harness can add up what the run cost and write logs or telemetry for later review.",
+      "who_normally_does_it": "harness code"
+    },
+    {
+      "depends_on": [],
+      "gap": null,
+      "id": "unattended",
+      "jargon": [
+        "sandbox",
+        "approval mode"
+      ],
+      "matters_for_model_choice": "Unattended work needs strong permission and fence controls. Check those before you let anything run while you are away.",
+      "name_plain": "Run without you watching",
+      "order": 1,
+      "predicate_general": "Needs account features or infrastructure that vary by product.",
+      "rows": [
+        "F15.background-tasks",
+        "F15.scheduled-routines",
+        "F15.cloud-agents",
+        "F15.remote-sessions",
+        "F15.event-triggers",
+        "F15.delegation"
+      ],
+      "stage": "E",
+      "typical_after": [],
+      "what_it_does": "Some harnesses can run in the background, on a schedule, or on a cloud machine, react to events such as a new issue, and hand work to other agents.",
+      "who_normally_does_it": "harness code"
+    },
+    {
+      "depends_on": [
+        "skills-commands",
+        "hooks",
+        "outside-tools"
+      ],
+      "gap": null,
+      "id": "extend-share",
+      "jargon": [
+        "plugin",
+        "marketplace",
+        "skill",
+        "hook",
+        "MCP"
+      ],
+      "matters_for_model_choice": "A rich add-on ecosystem lets a team share working setups across models. It is a reason to prefer one harness whatever the model.",
+      "name_plain": "Extend and share",
+      "order": 2,
+      "predicate_general": "Only some harnesses have plug-ins, and trust and signing differ.",
+      "rows": [
+        "F11.packaging-format",
+        "F11.component-types",
+        "F11.install-sources",
+        "F11.versioning-update",
+        "F11.trust-signing",
+        "F11.marketplace-hosting"
+      ],
+      "stage": "E",
+      "typical_after": [],
+      "what_it_does": "Plug-ins bundle skills, commands, hooks and tool connections so a team can install them together, usually from a marketplace or repository, with versions and sometimes signatures.",
+      "who_normally_does_it": "harness code"
+    },
+    {
+      "depends_on": [],
+      "gap": null,
+      "id": "updates",
+      "jargon": [
+        "changelog"
+      ],
+      "matters_for_model_choice": "Because harnesses change fast, a comparison is a dated snapshot, not a permanent fact. Recheck before you rely on a feature.",
+      "name_plain": "Updates and releases",
+      "order": 3,
+      "predicate_general": "The update path depends on how you installed it.",
+      "rows": [
+        "F20.version-at-retrieval",
+        "F20.release-channels",
+        "F20.update-mechanism",
+        "F20.changelog-source",
+        "F20.deprecation-policy"
+      ],
+      "stage": "E",
+      "typical_after": [],
+      "what_it_does": "Harnesses update often, through release channels, with changelogs and deprecation notices. What the docs describe can change between versions.",
+      "who_normally_does_it": "harness code"
+    },
+    {
+      "depends_on": [],
+      "gap": null,
+      "id": "host-platform",
+      "jargon": [
+        "harness"
+      ],
+      "matters_for_model_choice": "If two agents share a runtime, differences you see between them come from settings or front doors rather than from separate engines.",
+      "name_plain": "Where it runs and who runs it",
+      "order": 4,
+      "predicate_general": "What is shared depends on the product and the plan.",
+      "rows": [
+        "F21.host-platform",
+        "F21.shared-account-billing",
+        "F21.shared-execution-infrastructure",
+        "F21.shared-agent-runtime",
+        "F21.delegates-to",
+        "F21.distinct-harness-features"
+      ],
+      "stage": "E",
+      "typical_after": [],
+      "what_it_does": "Some agents are separate products. Others are part of a larger platform and share its account, billing, servers or model choices.",
+      "who_normally_does_it": "harness code"
+    },
+    {
+      "depends_on": [
+        "org-policy"
+      ],
+      "gap": null,
+      "id": "org-oversight",
+      "jargon": [
+        "managed settings"
+      ],
+      "matters_for_model_choice": "These matter to a company before any quality comparison: a model you cannot approve for data handling is off the table.",
+      "name_plain": "Identity, retention and audit",
+      "order": 5,
+      "predicate_general": "Mostly for team or enterprise plans.",
+      "rows": [
+        "F07.identity-sso",
+        "F07.data-retention",
+        "F07.admin-audit"
+      ],
+      "stage": "E",
+      "typical_after": [],
+      "what_it_does": "Organizations can require single sign-on, set how long data is kept, and read audit and usage reports.",
+      "who_normally_does_it": "harness code"
+    }
+  ],
+  "glossary": {
+    "CLI": "A command-line program you run in a terminal.",
+    "IDE": "An editor such as VS Code, where the agent can run as a plug-in.",
+    "MCP": "A standard plug-in socket (Model Context Protocol) for connecting outside programs, such as a database, as extra tools.",
+    "SDK": "A code library for starting and controlling the agent from your own programs.",
+    "approval mode": "A setting for how much the agent may do without asking you first.",
+    "caching": "Keeping the unchanged start of a long prompt so later requests are cheaper and faster.",
+    "changelog": "The vendor's dated list of what changed in each release.",
+    "checkpoint": "A saved snapshot you can return to after a bad edit.",
+    "compaction": "Summarising older parts of a conversation to free up space in the context window.",
+    "context window": "How much text the model can read at once. Anything beyond it must be dropped or summarised.",
+    "effort": "How much thinking a model is asked to spend before it answers. Higher effort usually costs more and takes longer.",
+    "harness": "The program around a model. It builds the prompt, offers tools, checks permissions, runs commands and shows you the result. The model itself only reads text and writes text.",
+    "headless": "Running the agent from a script with no one at the keyboard.",
+    "hook": "Your own script that the harness runs at a set moment, such as before a tool runs or when a session ends.",
+    "instruction file": "A plain text file, such as AGENTS.md or CLAUDE.md, that tells the model how you want it to work.",
+    "managed settings": "Rules an administrator installs for a whole organization, which override personal choices.",
+    "marketplace": "A place, often a code repository, from which plugins can be installed.",
+    "model": "The AI that reads the prompt and writes a reply. It cannot open files or run anything on its own.",
+    "plan mode": "A mode where the agent proposes a plan and waits for your approval before changing anything.",
+    "plugin": "An add-on that bundles skills, commands, hooks and tool connections so they can be installed together.",
+    "prompt": "All the text the model reads for one reply: instructions, your request, earlier messages and file contents.",
+    "rate limit": "A cap on how many requests you can send in a period. When you hit it you must wait or switch.",
+    "sandbox": "A restricted area for running commands, limiting which files they can change and where they can connect.",
+    "session": "One continuous conversation with the agent, which can often be resumed later.",
+    "skill": "A reusable set of instructions the model can pick up when a task calls for it.",
+    "slash command": "A shortcut you type, such as /help, that starts a built-in or custom action.",
+    "subagent": "A helper agent started by the main agent, with its own instructions and sometimes its own model.",
+    "telemetry": "Measurements the program sends out about its own use, such as timings and counts.",
+    "tool": "An action the harness lets the model ask for, such as reading a file, editing a file or running a command.",
+    "worktree": "A separate working copy of a project, so an agent can make changes without touching your main copy."
+  },
+  "note": "Authored by the Team Lead. what_it_does, predicate_general and matters_for_model_choice are general explanations or editorial, never vendor claims; vendor facts live in the per-agent lines.",
+  "schema_version": 1,
+  "stages": [
+    {
+      "blurb": "The harness gets ready: it finds your rules, your tools and your permissions. No model is involved yet.",
+      "id": "A",
+      "name": "Setup, before the first model call"
+    },
+    {
+      "blurb": "For every request the harness decides what the model will read, and runs any code you asked it to run first.",
+      "id": "B",
+      "name": "Each turn, before sending"
+    },
+    {
+      "blurb": "The harness sends the request and waits. This is the only step where the model itself does any work.",
+      "id": "C",
+      "name": "The model call"
+    },
+    {
+      "blurb": "The model's answer is only a request. The harness checks it, runs it if allowed, and feeds the result back.",
+      "id": "D",
+      "name": "After the model answers, every turn"
+    },
+    {
+      "blurb": "Things that sit outside a single turn: unattended runs, add-ons, updates and who runs the service.",
+      "id": "E",
+      "name": "Around the session"
+    }
+  ],
+  "uncovered": []
+}

@@ -35,6 +35,7 @@ from pathlib import Path
 from typing import NamedTuple
 from urllib.parse import urlsplit
 
+import validate_lifecycle
 from atlas_common import DATA_DIR, SCHEMA_DIR
 from quotes import INSTALL_DESCRIPTION, install_text
 from render import lever_key, ref_key
@@ -1017,7 +1018,11 @@ class Validator:
             self.error(R_TASK, where, "lever_settings must be a list")
         for position, setting in enumerate(settings if isinstance(settings, list) else []):
             self._check_lever_setting(f"{where}.lever_settings[{position}]", setting)
-        for key, allowed in (("tier", MATRIX_TIERS), ("interaction_mode", MATRIX_MODES), ("blast_radius", MATRIX_BLAST)):
+        for key, allowed in (
+            ("tier", MATRIX_TIERS),
+            ("interaction_mode", MATRIX_MODES),
+            ("blast_radius", MATRIX_BLAST),
+        ):
             if key in row and row[key] not in allowed:
                 self.error(R_TASK, where, f"{key} {row[key]!r} is not one of {list(allowed)}")
         if "rank" in row and not (_is_int(row["rank"]) and row["rank"] >= 1):
@@ -1130,11 +1135,17 @@ class Validator:
         except (OSError, subprocess.SubprocessError, ValueError):
             doc = None
         if doc is None:
-            self.error(R_REFERENCE, where, f"matrix_sha {sha!r} is not a JSON blob in the repository")
+            self.error(
+                R_REFERENCE, where, f"matrix_sha {sha!r} is not a JSON blob in the repository"
+            )
             return
         rec = resolve_matrix_pointer(doc, pointer.get("path"))
         if rec is None:
-            self.error(R_REFERENCE, where, f"path {pointer.get('path')!r} names no recommendation at matrix_sha")
+            self.error(
+                R_REFERENCE,
+                where,
+                f"path {pointer.get('path')!r} names no recommendation at matrix_sha",
+            )
             return
         for key in matrix_mismatches(row, rec):
             self.error(R_TASK, where, f"{key} differs from the matrix recommendation at matrix_sha")
@@ -1325,7 +1336,9 @@ def validate(
     validator = Validator(
         data_dir or DATA_DIR, require_complete, html_dir, schema_dir, check_repo_paths
     )
-    return validator.run(), validator.summary
+    findings = validator.run()
+    findings += [Finding(*f) for f in validate_lifecycle.check(data_dir or DATA_DIR)]
+    return findings, validator.summary
 
 
 # --- self-test and CLI ------------------------------------------------------------------

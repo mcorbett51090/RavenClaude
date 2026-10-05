@@ -17,6 +17,8 @@ import sys
 from collections import Counter
 from pathlib import Path
 
+import lifecycle_common as lc
+import render_lifecycle as rl
 from atlas_common import ATLAS_DIR, DATA_DIR, assert_worktree
 from neutralize import CLOSE_MARK, INSTRUCTION_RES, OPEN_MARK
 from render import STATES, Atlas, RenderError, as_dict, as_list, clean, ordered
@@ -507,6 +509,16 @@ def render_readme(ctx, pages):
     lines.append(
         "- Where to set model, effort, mode, parallelism: `levers/<class>.md`; per-task advice: `levers/task-shapes.md`."
     )
+    if atlas.life:
+        lines.append(
+            "- What a harness does before and after a model call, step by step, per agent in plain words: `lifecycle.md`; words used: `glossary.md`."
+        )
+        lines.append(
+            "- What each agent documents, side by side, with a computed direction: `compare.md`."
+        )
+        lines.append(
+            "- One agent's request flow, decision points and where to set model, effort and mode: `trees/<id>.md`."
+        )
     lines.append("- Proposed RavenClaude updates, ranked: `register.md`.")
     lines.append("- How it was verified and what is not covered: `known-gaps.md`.")
     lines.append(
@@ -555,6 +567,194 @@ def render_readme(ctx, pages):
     return page(lines)
 
 
+# --- the lifecycle layer ---------------------------------------------------------------------
+
+
+def badge_line(layer, sid, concept):
+    agg = layer.agg(sid, concept)
+    label = lc.badge(agg)
+    return label + (", unverified" if agg["unverified"] else ""), agg
+
+
+def render_lifecycle_md(layer):
+    lines = [GENERATED, "# How a coding agent works, step by step", "", BANNER, ""]
+    lines.append(
+        "A harness is the program around a model: it builds the prompt, offers tools, checks permissions, "
+        "runs commands and shows the result. Steps are in the typical order, which vendors seldom "
+        "document. Each agent line is tied to its cells by a hash; general text and editorial views "
+        "are labelled."
+    )
+    gaps = [c["name_plain"] for c in layer.concepts if c["gap"] == "full"]
+    parts = [c["name_plain"] for c in layer.concepts if c["gap"] == "partial"]
+    lines.append(
+        f"Not yet researched: {text(', '.join(gaps))}. Only partly covered: {text(', '.join(parts))}."
+    )
+    lines.append(text(rl.caveat(layer)))
+    for stage in layer.stages:
+        lines += ["", f"## {text(stage['id'])}. {text(stage['name'])}", "", text(stage["blurb"])]
+        for c in layer.concepts:
+            if c["stage"] != stage["id"]:
+                continue
+            lines += ["", f"### {c['order']}. {text(c['name_plain'])} (`{text(c['id'])}`)", ""]
+            lines.append(f"- {rl.GENERAL_LABEL}: {text(c['what_it_does'])}")
+            after = text(", ".join(c["typical_after"]) or "none")
+            needs = text(", ".join(c["depends_on"]) or "none")
+            lines.append(f"- Typically after: {after}; depends on: {needs}")
+            lines.append(f"- Only if: {text(c['predicate_general'])}")
+            lines.append(f"- Who normally does the work: {text(c['who_normally_does_it'])}")
+            lines.append(f"- {rl.EDITORIAL_LABEL}: {text(c['matters_for_model_choice'])}")
+            if c["gap"] == "full":
+                lines.append("- Not yet researched for any agent.")
+                continue
+            if c["gap"] == "partial":
+                lines.append("- Only partly covered by the atlas.")
+            for sid in layer.atlas.surface_ids:
+                entry = layer.line(sid, c)
+                label, _agg = badge_line(layer, sid, c)
+                row = f"  - {text(sid)} [{label}] "
+                if not entry:
+                    lines.append(row + "no line")
+                    continue
+                row += f"{text(entry.get('plain'))} | detail: {text(entry.get('technical'))}"
+                note = as_dict(entry.get("order_note"))
+                if note:
+                    row += f" | documented order: {text(note.get('text'))}"
+                conditions, _gaps = lc.derived_conditions(layer.cells(sid, c))
+                if conditions:
+                    row += " | conditions: " + " ".join(
+                        text(sentence) for _cid, sentence in conditions
+                    )
+                lines.append(row)
+    return page(lines)
+
+
+def render_compare_md(layer):
+    atlas = layer.atlas
+    lines = [
+        GENERATED,
+        "# Compare: what each agent can do, whichever model you use",
+        "",
+        BANNER,
+        "",
+    ]
+    lines += [
+        text(rl.SCORE_NOTE),
+        "",
+        f"Read this first: {text(rl.caveat(layer))}",
+        "",
+        "## The grid",
+        "",
+    ]
+    lines.append(
+        "| Step | " + " | ".join(text(atlas.surface_name(s)) for s in atlas.surface_ids) + " |"
+    )
+    lines.append("|---|" + "---|" * len(atlas.surface_ids))
+    for c in layer.concepts:
+        cells = []
+        for sid in atlas.surface_ids:
+            if not c["rows"]:
+                cells.append("not yet researched")
+                continue
+            label, agg = badge_line(layer, sid, c)
+            cells.append(f"{label} {rl.pct(agg['fraction'])}")
+        lines.append(f"| {text(c['name_plain'])} | " + " | ".join(text(x) for x in cells) + " |")
+    lines += ["", "## Step by step: who documents most, and why it matters", ""]
+    for c in layer.concepts:
+        direction = rl.direction_text(layer, c) if c["rows"] else "No agent can be compared."
+        if c["gap"] == "full":
+            gap = " Not yet researched for any agent."
+        elif c["gap"] == "partial":
+            gap = " Only partly covered by the atlas."
+        else:
+            gap = ""
+        lines.append(
+            f"- {text(c['name_plain'])}: {text(direction)}{text(gap)} "
+            f"{rl.EDITORIAL_LABEL}: {text(c['matters_for_model_choice'])}"
+        )
+    lines += ["", "## Where the model comes into it", ""]
+    lines.append(
+        "Cells that tie a harness to a model. No documented model dependence means the documentation "
+        "does not describe one, not that there is none."
+    )
+    for sid in atlas.surface_ids:
+        parts = []
+        for row in rl.MODEL_ROWS:
+            cell = atlas.cells.get((sid, row))
+            parts.append(f"{row.split('.', 1)[1]} {tag(cell) if cell else '[no cell]'}")
+        lines.append(f"- {text(sid)}: " + "; ".join(parts))
+    lines += ["", "## What this cannot tell you", ""]
+    lines += [
+        "- How well any agent does a step: this is what the vendor documents, not a measurement.",
+        "- How much of an agent's quality comes from the harness and how much from the model: the atlas "
+        "cannot measure that, so no share is given.",
+        "- Anything the vendor changed since the snapshot date.",
+        "- Steps nobody has researched yet: caching, how malformed requests are handled, how tool "
+        "output is trimmed.",
+    ]
+    return page(lines)
+
+
+def render_glossary_md(layer):
+    lines = [GENERATED, "# Words used in the lifecycle pages", "", BANNER, ""]
+    for term, defn in sorted(layer.glossary.items(), key=lambda kv: kv[0].lower()):
+        lines.append(f"- **{text(term)}**: {text(defn)}")
+    return page(lines)
+
+
+def render_tree_md(layer, sid):
+    atlas = layer.atlas
+    lines = [
+        GENERATED,
+        f"# {text(atlas.surface_name(sid))}: request flow and controls",
+        "",
+        BANNER,
+        "",
+    ]
+    lines.append(
+        "Steps run in the typical order. A documented order appears only where a cell states it; a "
+        "decision point appears only where the documentation describes a branch (each branch quotes "
+        "it). Many agents have few or none."
+    )
+    points = rl.decision_points_for(layer, sid)
+    for stage in layer.stages:
+        lines += ["", f"## {text(stage['id'])}. {text(stage['name'])}", ""]
+        for c in layer.concepts:
+            if c["stage"] != stage["id"]:
+                continue
+            if not c["rows"]:
+                lines.append(f"- {text(c['name_plain'])} [not researched]")
+                continue
+            label, _agg = badge_line(layer, sid, c)
+            entry = layer.line(sid, c)
+            plain = text(entry.get("plain")) if entry else "no line"
+            lines.append(f"- {text(c['name_plain'])} [{label}] {plain}")
+            note = as_dict(entry.get("order_note"))
+            if note:
+                lines.append(f"  - documented order: {text(note.get('text'))}")
+            for dp in points.get(c["id"], []):
+                lines.append(
+                    f"  - decision point ({text(dp.get('cell'))}): {text(dp.get('question'))}"
+                )
+                for b in as_list(dp.get("branches")):
+                    lines.append(
+                        f"    - {text(b.get('answer'))} -> {text(b.get('outcome'))} | "
+                        f"quote: “{text(b.get('clause'))}”"
+                    )
+    lines += ["", "## Where to set the model, effort and mode", ""]
+    records = [lv for lv in atlas.levers if lv.get("surface") == sid]
+    classes = list(rl.LEVER_ORDER) + sorted(
+        {lv.get("lever") for lv in records} - set(rl.LEVER_ORDER)
+    )
+    for cls in classes:
+        group = [lv for lv in records if lv.get("lever") == cls]
+        if group:
+            lines += [f"### {text(cls)}"] + [lever_line(lv) for lv in group] + [""]
+    lines += ["## Appendix: RavenClaude routing advice (not vendor guidance)", ""]
+    task = [t for t in atlas.task_rows if t.get("surface") == sid]
+    lines += [_task_line(t) for t in task] or ["- none"]
+    return page(lines)
+
+
 def render_all(data_dir):
     """Every file as {path relative to md/: text}, in a fixed order."""
     ctx = Context(data_dir)
@@ -574,6 +774,13 @@ def render_all(data_dir):
     pages["levers/task-shapes.md"] = render_task_shapes(ctx)
     pages["register.md"] = render_register(ctx)
     pages["known-gaps.md"] = render_known_gaps(ctx)
+    if atlas.life:
+        layer = rl.Layer(atlas)
+        pages["lifecycle.md"] = render_lifecycle_md(layer)
+        pages["compare.md"] = render_compare_md(layer)
+        pages["glossary.md"] = render_glossary_md(layer)
+        for sid in atlas.surface_ids:
+            pages[f"trees/{sid}.md"] = render_tree_md(layer, sid)
     return {"README.md": render_readme(ctx, pages), **pages}
 
 
