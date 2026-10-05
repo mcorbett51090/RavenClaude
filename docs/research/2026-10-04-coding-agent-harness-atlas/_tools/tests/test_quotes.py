@@ -1184,6 +1184,31 @@ class CliTests(unittest.TestCase):
             )
 
 
+class LinkMarkupTierTests(unittest.TestCase):
+    RAW = "Intro line.\nBackground subagents run with a [smaller built-in tool set](#available-tools) than foreground ones.\nTail line.\n"
+
+    def test_link_text_without_its_target_matches_in_the_markup_tier(self):
+        quote = "run with a smaller built-in tool set than foreground ones"
+        found = verify_quote(quote, self.RAW)
+        self.assertEqual((found["found"], found["tier"], found["start_line"]), (True, "markup", 2))
+        self.assertIn("(#available-tools)", found["raw_span"])
+
+    def test_link_text_in_brackets_without_its_target_matches_too(self):
+        found = verify_quote("with a [smaller built-in tool set] than foreground", self.RAW)
+        self.assertEqual((found["found"], found["tier"]), (True, "markup"))
+
+    def test_the_whole_link_is_still_an_exact_match(self):
+        found = verify_quote("a [smaller built-in tool set](#available-tools) than", self.RAW)
+        self.assertEqual((found["found"], found["tier"]), (True, "exact"))
+
+    def test_a_different_link_target_does_not_matter_but_different_words_do(self):
+        self.assertFalse(verify_quote("run with a larger built-in tool set than foreground", self.RAW)["found"])
+
+    def test_blanking_keeps_every_character_in_place(self):
+        line = "a [text](https://x.example/a) b"
+        self.assertEqual(len(quotes._translate(line, "markup")), len(line))
+
+
 class LoadScoutJsonTests(unittest.TestCase):
     def test_valid_json_is_returned_unchanged_and_not_marked_repaired(self):
         data, repaired = load_scout_json(r'{"quote": "a\\|b \"x\" \u00e9"}')

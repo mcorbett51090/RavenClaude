@@ -47,7 +47,7 @@ CONTEXT_SCRUBBED = "[install command line omitted]"
 # turned into a space in every needle and every haystack line, so it cannot occur in a needle.
 BOUNDARY = "\x00"
 
-_MARKUP_CHARS = "`*_|\\#>"
+_MARKUP_CHARS = "`*_|\\#>[]"
 _WS_TABLE = {0: " "}
 _NEUTRAL_TABLE = {**_WS_TABLE, ord("‹"): "<", ord("›"): ">"}
 # In the markup tier the right substitute maps to ">", which is itself markup: one pass.
@@ -62,13 +62,26 @@ _TOKEN_RE = re.compile(r"\S+")
 _HARD_RE = re.compile(r"^\s*(?:[|#]|`{3}|~{3})")
 
 
+# The (target) of a Markdown link, right after its closing bracket. The markup tier blanks it
+# with spaces of the same length, so a phrase copied as plain link text still matches, and a
+# normalized index still maps straight back to the raw character.
+_LINK_TARGET = re.compile(r"(?<=\])\([^)\s]*\)")
+
+
+def _translate(s, tier):
+    """One character in, one character out: the tier's table, after blanking link targets."""
+    if tier == "markup":
+        s = _LINK_TARGET.sub(lambda m: " " * len(m.group()), s)
+    return s.translate(_TABLES[tier])
+
+
 def norm(s, tier):
     """Normalize s for comparison at the given tier (see the module docstring)."""
     if tier == "exact":
         return s
     if tier not in _TABLES:
         raise ValueError(f"unknown tier {tier!r}")
-    return " ".join(s.translate(_TABLES[tier]).split())
+    return " ".join(_translate(s, tier).split())
 
 
 @lru_cache(maxsize=8)
@@ -91,7 +104,7 @@ def _line_starts(raw_text):
     return [0, *(m.end() for m in _BREAK_RE.finditer(raw_text))]
 
 
-def _segments(lines, table):
+def _segments(lines, tier):
     """Yield (line index, translated line, separator) for each line that has text.
 
     The separator goes before the segment: "" for the first, BOUNDARY where a blank (or
@@ -102,7 +115,7 @@ def _segments(lines, table):
     prev_hard = False
     first = True
     for index, line in enumerate(lines):
-        translated = line.translate(table)
+        translated = _translate(line, tier)
         if not translated.strip():
             gap = True
             continue
@@ -125,7 +138,7 @@ def _norm_map(raw_text, tier):
     """
     parts, seg_starts, seg_lines = [], [], []
     pos = 0
-    for index, translated, sep in _segments(_content_lines(raw_text), _TABLES[tier]):
+    for index, translated, sep in _segments(_content_lines(raw_text), tier):
         seg = " ".join(translated.split())
         parts.append(sep)
         parts.append(seg)
@@ -182,14 +195,13 @@ def _local_norm(lines, tier):
     The raw offset is into "\\n".join(lines). Translation is one character for one character,
     so a token keeps its length and an index inside a token maps straight back.
     """
-    table = _TABLES[tier]
     bases, offset = [], 0
     for line in lines:
         bases.append(offset)
         offset += len(line) + 1
     parts, tok_norm, tok_raw = [], [], []
     pos = 0
-    for index, translated, sep in _segments(lines, table):
+    for index, translated, sep in _segments(lines, tier):
         parts.append(sep)
         pos += len(sep)
         for k, m in enumerate(_TOKEN_RE.finditer(translated)):
