@@ -252,6 +252,43 @@ class CliTests(unittest.TestCase):
         self.assertTrue((verified / f"{new_id}.json").is_file())
         self.assertFalse((verified / f"{multi['id']}.json").exists())
 
+    def test_clones_of_two_batch_series_with_one_surface_and_number_do_not_collide(self):
+        multi = next(b for b in self.plan["batches"] if len(b["chunks"]) > 1)
+        kind, _, rest = multi["id"].partition("-")
+        other = "X" if kind != "X" else "L"
+        twin = {**multi, "id": f"{other}-{rest}"}
+        plan_path = self.run_dir / "extract" / "plan.json"
+        plan = json.loads(plan_path.read_text())
+        plan["batches"].append(twin)
+        plan_path.write_text(json.dumps(plan))
+        args = ("clone", "--run-dir", str(self.run_dir), "--cap", "3", "--batches")
+        code, out, _e = self.cli(*args, multi["id"], twin["id"])
+        self.assertEqual(code, 0)
+        ids = out.split()
+        self.assertEqual(len(set(ids)), 2, ids)
+        plan = json.loads(plan_path.read_text())
+        by_id = {b["id"]: b for b in plan["batches"]}
+        self.assertEqual({by_id[i]["test_of"] for i in ids}, {multi["id"], twin["id"]})
+        # running it again adds nothing and prints the same ids
+        _c, again, _e = self.cli(*args, multi["id"], twin["id"])
+        self.assertEqual(again.split(), ids)
+        self.assertEqual(len(json.loads(plan_path.read_text())["batches"]), len(plan["batches"]))
+
+    def test_collecting_a_capped_batch_twice_queues_its_halves_once(self):
+        multi = next(b for b in self.plan["batches"] if len(b["chunks"]) > 1)
+        self.write_out(multi["id"], [self.record() for _ in range(4)])
+        args = ("collect", "--run-dir", str(self.run_dir), "--batches", multi["id"])
+        _c, first, _e = self.cli(*args)
+        _c, second, _e = self.cli(*args)
+        first, second = (json.loads(o.strip().splitlines()[0]) for o in (first, second))
+        self.assertEqual(first["queued"], [f"{multi['id']}a", f"{multi['id']}b"])
+        self.assertEqual(second["queued"], [])
+        self.assertEqual(second["note"], "split children already queued")
+        plan = json.loads((self.run_dir / "extract" / "plan.json").read_text())
+        queued = [b for wave in plan["waves"] for b in wave["batches"]]
+        self.assertEqual(queued.count(f"{multi['id']}a"), 1)
+        self.assertEqual(sum(1 for b in plan["batches"] if b["id"] == f"{multi['id']}a"), 1)
+
     def test_status_counts_collected_and_pending_batches(self):
         batch = self.plan["batches"][0]
         self.write_out(batch["id"], [self.record()])

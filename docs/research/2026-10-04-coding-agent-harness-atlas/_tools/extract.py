@@ -222,7 +222,11 @@ def _cmd_clone(args):
     plan = load_json(paths["plan"])
     for batch_id in args.batches:
         source = _plan_batch(plan, batch_id)
-        new_id = "K-" + batch_id.split("-", 1)[1]
+        kind, _, rest = batch_id.partition("-")
+        new_id = "K-" + rest
+        held = next((b for b in plan["batches"] if b["id"] == new_id), None)
+        if held is not None and held.get("test_of") != batch_id:
+            new_id = f"K{kind}-{rest}"  # another series' clone already holds K-<rest>
         clone = {k: v for k, v in source.items() if k not in ("parent", "cap")}
         clone.update({"id": new_id, "cap": args.cap, "test_of": batch_id})
         if not any(b["id"] == new_id for b in plan["batches"]):
@@ -237,7 +241,7 @@ def _append_split_children(plan, batch, rows):
     if halves is None:
         return []
     sizes = {c["id"]: c["bytes"] for c in rows}
-    children = []
+    children = []  # only children added now: a re-run must not queue the same halves again
     for suffix, ids in zip("ab", halves):
         child = {
             "id": f"{batch['id']}{suffix}",
@@ -249,7 +253,7 @@ def _append_split_children(plan, batch, rows):
         }
         if not any(b["id"] == child["id"] for b in plan["batches"]):
             plan["batches"].append(child)
-        children.append(child["id"])
+            children.append(child["id"])
     return children
 
 
@@ -305,7 +309,10 @@ def _cmd_collect(args):
             )
         children = _append_split_children(plan, batch, rows) if action == "split" else []
         if action == "split" and not children:
-            summary["note"] = "single chunk: accepted as returned"
+            single = split_ids(batch["chunks"]) is None
+            summary["note"] = (
+                "single chunk: accepted as returned" if single else "split children already queued"
+            )
             action = None
         summary["queued"] = children
         queued.extend(children)
