@@ -1265,8 +1265,53 @@ class TaskShapeTests(ValidatorCase):
             ),
             ("pointer of the wrong type", lambda fx: fx.task_row(0, pointer="m.json"), ()),
             ("lever_settings not a list", lambda fx: fx.task_row(0, lever_settings={}), ()),
+            ("tier outside the matrix tiers", lambda fx: fx.task_row(0, tier="turbo"), ()),
+            ("interaction_mode outside the set", lambda fx: fx.task_row(0, interaction_mode="x"), ()),
+            ("blast_radius outside the set", lambda fx: fx.task_row(0, blast_radius="maybe"), ()),
+            ("rank below 1", lambda fx: fx.task_row(0, rank=0), ()),
+            ("agent empty", lambda fx: fx.task_row(0, agent=""), ()),
         ]
         self.cases(self.R, table)
+
+    def test_matrix_pointer_resolution_and_copied_fields(self):
+        doc = {
+            "task_classes": {
+                "coding-implementation": {
+                    "recommendations": [
+                        {
+                            "agent": "claude-code",
+                            "model_ref": {"host": "claude", "tier": "fast"},
+                            "rank": 1,
+                            "interaction_mode": "inline",
+                            "blast_radius": "reversible",
+                            "basis": "framework-rule",
+                        }
+                    ]
+                }
+            }
+        }
+        path = "$.task_classes.coding-implementation.recommendations[0]"
+        rec = validate.resolve_matrix_pointer(doc, path)
+        self.assertEqual(rec["agent"], "claude-code")
+        for bad in (
+            "$.task_classes.coding-implementation.recommendations[1]",
+            "$.task_classes.nope.recommendations[0]",
+            "$.rules[0]",
+            "$.task_classes.coding-implementation.recommendations[0].rank",
+            None,
+        ):
+            self.assertIsNone(validate.resolve_matrix_pointer(doc, bad), bad)
+        row = {
+            "agent": "claude-code",
+            "tier": "fast",
+            "rank": 1,
+            "interaction_mode": "inline",
+            "blast_radius": "reversible",
+            "basis": "framework-rule",
+        }
+        self.assertEqual(validate.matrix_mismatches(row, rec), [])
+        self.assertEqual(validate.matrix_mismatches({**row, "tier": "top", "rank": 2}, rec), ["tier", "rank"])
+        self.assertEqual(validate.matrix_mismatches({"agent": "claude-code"}, rec), [])
 
     def test_task_shape_rows_that_meet_the_rules_pass(self):
         def pending(fx):
@@ -1947,6 +1992,84 @@ class PointerFileTests(ValidatorCase):
         code, out = self.run_validator(fx, repo_paths=True)
         self.assertNotEqual(code, 0, out)
         self.assertIn("--no-repo-paths", out)
+
+    def real_matrix_repo(self):
+        """A real git repository holding one matrix blob; returns (fixture, blob sha)."""
+        fx = self.repo_fixture(dot_git=False)
+        repo = fx.root.parent
+        subprocess.run(["git", "init", "-q", str(repo)], check=True)
+        matrix = {
+            "task_classes": {
+                "coding-implementation": {
+                    "recommendations": [
+                        {
+                            "agent": "claude-code",
+                            "model_ref": {"host": "claude", "tier": "fast"},
+                            "rank": 1,
+                            "interaction_mode": "inline",
+                            "blast_radius": "reversible",
+                            "basis": "framework-rule",
+                        }
+                    ]
+                }
+            }
+        }
+        path = repo / "agent-routing-matrix.json"
+        path.write_text(json.dumps(matrix), encoding="utf-8")
+        run = subprocess.run(
+            ["git", "-C", str(repo), "hash-object", "-w", str(path)],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        sha = run.stdout.strip()
+        fx.snapshot(matrix_sha=sha)
+        fx.task_row(
+            0,
+            pointer={
+                "file": "agent-routing-matrix.json",
+                "path": "$.task_classes.coding-implementation.recommendations[0]",
+            },
+            agent="claude-code",
+            tier="fast",
+            rank=1,
+            interaction_mode="inline",
+            blast_radius="reversible",
+            basis="framework-rule",
+        )
+        return fx, sha
+
+    def test_a_pointer_that_resolves_to_a_matching_recommendation_passes(self):
+        fx, _ = self.real_matrix_repo()
+        code, out = self.run_validator(fx, repo_paths=True)
+        self.assertEqual(self.error_lines(out), [], out)
+
+    def test_a_copied_field_that_differs_from_the_matrix_is_an_error(self):
+        fx, _ = self.real_matrix_repo()
+        fx.task_row(0, tier="top")
+        code, out = self.run_validator(fx, repo_paths=True)
+        self.assertNotEqual(code, 0, out)
+        self.assertIn("tier differs", out)
+
+    def test_a_path_that_names_no_recommendation_is_an_error(self):
+        fx, _ = self.real_matrix_repo()
+        fx.task_row(
+            0,
+            pointer={
+                "file": "agent-routing-matrix.json",
+                "path": "$.task_classes.coding-implementation.recommendations[3]",
+            },
+        )
+        code, out = self.run_validator(fx, repo_paths=True)
+        self.assertNotEqual(code, 0, out)
+        self.assertIn("names no recommendation", out)
+
+    def test_a_matrix_sha_that_is_not_in_the_repository_is_an_error(self):
+        fx, _ = self.real_matrix_repo()
+        fx.snapshot(matrix_sha="c" * 40)
+        code, out = self.run_validator(fx, repo_paths=True)
+        self.assertNotEqual(code, 0, out)
+        self.assertIn("is not a JSON blob", out)
 
     def test_pending_rows_have_no_file_to_resolve(self):
         fx = self.repo_fixture(with_matrix=False)

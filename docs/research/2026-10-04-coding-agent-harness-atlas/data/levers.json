@@ -7735,5 +7735,709 @@
    ]
   }
  ],
- "task_shape_rows": []
+ "task_shape_rows": [
+  {
+   "surface": "claude-code",
+   "task_class": "coding-implementation",
+   "pointer": {
+    "file": "plugins/ravenclaude-core/knowledge/agent-routing-matrix.json",
+    "path": "$.task_classes.coding-implementation.recommendations[0]"
+   },
+   "basis": "framework-rule",
+   "agent": "claude-code",
+   "tier": "fast",
+   "rank": 1,
+   "interaction_mode": "inline",
+   "blast_radius": "reversible",
+   "lever_settings": [
+    "claude-code|model|",
+    "claude-code|effort|"
+   ]
+  },
+  {
+   "surface": "claude-code",
+   "task_class": "coding-implementation",
+   "pointer": {
+    "file": "plugins/ravenclaude-core/knowledge/agent-routing-matrix.json",
+    "path": "$.task_classes.coding-implementation.recommendations[2]"
+   },
+   "basis": "framework-rule",
+   "agent": "claude-code",
+   "tier": "balanced",
+   "rank": 1,
+   "interaction_mode": "chat",
+   "blast_radius": "reversible",
+   "lever_settings": [
+    "claude-code|model|",
+    "claude-code|effort|"
+   ]
+  },
+  {
+   "surface": "claude-code",
+   "task_class": "coding-implementation",
+   "pointer": {
+    "file": "plugins/ravenclaude-core/knowledge/agent-routing-matrix.json",
+    "path": "$.task_classes.coding-implementation.recommendations[4]"
+   },
+   "basis": "framework-rule",
+   "agent": "claude-code",
+   "tier": "balanced",
+   "rank": 1,
+   "interaction_mode": "agent",
+   "blast_radius": "reversible",
+   "lever_settings": [
+    "claude-code|model|",
+    "claude-code|effort|",
+    "claude-code|mode|"
+   ]
+  },
+  {
+   "surface": "claude-code",
+   "task_class": "coding-implementation",
+   "pointer": {
+    "file": "plugins/ravenclaude-core/knowledge/agent-routing-matrix.json",
+    "path": "$.task_classes.coding-implementation.recommendations[7]"
+   },
+   "basis": "framework-rule",
+   "agent": "claude-code",
+   "tier": "top",
+   "rank": 1,
+   "interaction_mode": "agent",
+   "blast_radius": "irreversible",
+   "lever_settings": [
+    "claude-code|model|",
+    "claude-code|effort|",
+    "claude-code|mode|"
+   ]
+  },
+  {
+   "surface": "claude-code",
+   "task_class": "coding-debugging-design",
+   "pointer": {
+    "file": "plugins/ravenclaude-core/knowledge/agent-routing-matrix.json",
+    "path": "$.task_classes.coding-debugging-design.recommendations[0]"
+   },
+   "basis": "framework-rule",
+   "agent": "claude-code",
+   "tier": "fast",
+   "rank": 1,
+   "interaction_mode": "inline",
+   "blast_radius": "reversible",
+   "lever_settings": [
+    "claude-code|model|",
+    "claude-code|effort|"
+   ]
+  },
+  {
+   "surface": "claude-code",
+   "task_class": "coding-debugging-design",
+   "pointer": {
+    "file": "plugins/ravenclaude-core/knowledge/agent-routing-matrix.json",
+    "path": "$.task_classes.coding-debugging-design.recommendations[1]"
+   },
+   "basis": "framework-rule",
+   "agent": "claude-code",
+   "tier": "top",
+   "rank": 1,
+   "interaction_mode": "chat",
+   "blast_radius": "reversible",
+   "lever_settings": [
+    "claude-code|model|",
+    "claude-code|effort|"
+   ]
+  },
+  {
+   "surface": "claude-code",
+   "task_class": "coding-debugging-design",
+   "pointer": {
+    "file": "plugins/ravenclaude-core/knowledge/agent-routing-matrix.json",
+    "path": "$.task_classes.coding-debugging-design.recommendations[2]"
+   },
+   "basis": "cost-heuristic",
+   "agent": "claude-code",
+   "tier": "top",
+   "rank": 1,
+   "interaction_mode": "agent",
+   "blast_radius": "reversible",
+   "lever_settings": [
+    "claude-code|model|",
+    "claude-code|effort|",
+    "claude-code|mode|"
+   ]
+  },
+  {
+   "surface": "claude-code",
+   "task_class": "coding-debugging-design",
+   "pointer": {
+    "file": "plugins/ravenclaude-core/knowledge/agent-routing-matrix.json",
+    "path": "$.task_classes.coding-debugging-design.recommendations[3]"
+   },
+   "basis": "framework-rule",
+   "agent": "claude-code",
+   "tier": "top",
+   "rank": 1,
+   "interaction_mode": "agent",
+   "blast_radius": "irreversible",
+   "lever_settings": [
+    "claude-code|model|",
+    "claude-code|effort|",
+    "claude-code|mode|"
+   ]
+  },
+  {
+   "surface": "claude-code",
+   "task_class": "research-deep",
+   "pointer": {
+    "file": "plugins/ravenclaude-core/knowledge/agent-routing-matrix.json",
+    "path": "$.task_classes.research-deep.recommendations[0]"
+   },
+   "basis": "cost-heuristic",
+   "agent": "claude-code",
+   "tier": "fast",
+   "rank": 1,
+   "interaction_mode": "inline",
+   "blast_radius": "reversible",
+   "lever_settings": [
+    "claude-code|model|",
+    "claude-code|effort|"
+   ]
+  },
+  {
+   "surface": "claude-code",
+   "task_class": "research-deep",
+   "pointer": {
+    "file": "plugins/ravenclaude-core/knowledge/agent-routing-matrix.json",
+    "path": "$.task_classes.research-deep.recommendations[1]"
+   },
+   "basis": "cost-heuristic",
+   "agent": "claude-code",
+   "tier": "balanced",
+   "rank": 1,
+   "interaction_mode": "chat",
+   "blast_radius": "reversible",
+   "lever_settings": [
+    "claude-code|model|",
+    "claude-code|effort|"
+   ]
+  },
+  {
+   "surface": "claude-code",
+   "task_class": "research-deep",
+   "pointer": {
+    "file": "plugins/ravenclaude-core/knowledge/agent-routing-matrix.json",
+    "path": "$.task_classes.research-deep.recommendations[2]"
+   },
+   "basis": "cost-heuristic",
+   "agent": "claude-code",
+   "tier": "top",
+   "rank": 1,
+   "interaction_mode": "agent",
+   "blast_radius": "reversible",
+   "lever_settings": [
+    "claude-code|model|",
+    "claude-code|effort|",
+    "claude-code|mode|"
+   ]
+  },
+  {
+   "surface": "claude-code",
+   "task_class": "research-deep",
+   "pointer": {
+    "file": "plugins/ravenclaude-core/knowledge/agent-routing-matrix.json",
+    "path": "$.task_classes.research-deep.recommendations[3]"
+   },
+   "basis": "framework-rule",
+   "agent": "claude-code",
+   "tier": "top",
+   "rank": 1,
+   "interaction_mode": "agent",
+   "blast_radius": "irreversible",
+   "lever_settings": [
+    "claude-code|model|",
+    "claude-code|effort|",
+    "claude-code|mode|"
+   ]
+  },
+  {
+   "surface": "claude-code",
+   "task_class": "writing-documentation",
+   "pointer": {
+    "file": "plugins/ravenclaude-core/knowledge/agent-routing-matrix.json",
+    "path": "$.task_classes.writing-documentation.recommendations[0]"
+   },
+   "basis": "cost-heuristic",
+   "agent": "claude-code",
+   "tier": "fast",
+   "rank": 1,
+   "interaction_mode": "inline",
+   "blast_radius": "reversible",
+   "lever_settings": [
+    "claude-code|model|",
+    "claude-code|effort|"
+   ]
+  },
+  {
+   "surface": "claude-code",
+   "task_class": "writing-documentation",
+   "pointer": {
+    "file": "plugins/ravenclaude-core/knowledge/agent-routing-matrix.json",
+    "path": "$.task_classes.writing-documentation.recommendations[1]"
+   },
+   "basis": "cost-heuristic",
+   "agent": "claude-code",
+   "tier": "balanced",
+   "rank": 1,
+   "interaction_mode": "chat",
+   "blast_radius": "reversible",
+   "lever_settings": [
+    "claude-code|model|",
+    "claude-code|effort|"
+   ]
+  },
+  {
+   "surface": "claude-code",
+   "task_class": "writing-documentation",
+   "pointer": {
+    "file": "plugins/ravenclaude-core/knowledge/agent-routing-matrix.json",
+    "path": "$.task_classes.writing-documentation.recommendations[3]"
+   },
+   "basis": "cost-heuristic",
+   "agent": "claude-code",
+   "tier": "balanced",
+   "rank": 1,
+   "interaction_mode": "agent",
+   "blast_radius": "reversible",
+   "lever_settings": [
+    "claude-code|model|",
+    "claude-code|effort|",
+    "claude-code|mode|"
+   ]
+  },
+  {
+   "surface": "claude-code",
+   "task_class": "writing-documentation",
+   "pointer": {
+    "file": "plugins/ravenclaude-core/knowledge/agent-routing-matrix.json",
+    "path": "$.task_classes.writing-documentation.recommendations[4]"
+   },
+   "basis": "framework-rule",
+   "agent": "claude-code",
+   "tier": "top",
+   "rank": 1,
+   "interaction_mode": "agent",
+   "blast_radius": "irreversible",
+   "lever_settings": [
+    "claude-code|model|",
+    "claude-code|effort|",
+    "claude-code|mode|"
+   ]
+  },
+  {
+   "surface": "claude-code",
+   "task_class": "data-analysis",
+   "pointer": {
+    "file": "plugins/ravenclaude-core/knowledge/agent-routing-matrix.json",
+    "path": "$.task_classes.data-analysis.recommendations[1]"
+   },
+   "basis": "cost-heuristic",
+   "agent": "claude-code",
+   "tier": "balanced",
+   "rank": 1,
+   "interaction_mode": "chat",
+   "blast_radius": "reversible",
+   "lever_settings": [
+    "claude-code|model|",
+    "claude-code|effort|"
+   ]
+  },
+  {
+   "surface": "claude-code",
+   "task_class": "data-analysis",
+   "pointer": {
+    "file": "plugins/ravenclaude-core/knowledge/agent-routing-matrix.json",
+    "path": "$.task_classes.data-analysis.recommendations[2]"
+   },
+   "basis": "cost-heuristic",
+   "agent": "claude-code",
+   "tier": "top",
+   "rank": 1,
+   "interaction_mode": "agent",
+   "blast_radius": "reversible",
+   "lever_settings": [
+    "claude-code|model|",
+    "claude-code|effort|",
+    "claude-code|mode|"
+   ]
+  },
+  {
+   "surface": "claude-code",
+   "task_class": "data-analysis",
+   "pointer": {
+    "file": "plugins/ravenclaude-core/knowledge/agent-routing-matrix.json",
+    "path": "$.task_classes.data-analysis.recommendations[3]"
+   },
+   "basis": "framework-rule",
+   "agent": "claude-code",
+   "tier": "top",
+   "rank": 1,
+   "interaction_mode": "agent",
+   "blast_radius": "irreversible",
+   "lever_settings": [
+    "claude-code|model|",
+    "claude-code|effort|",
+    "claude-code|mode|"
+   ]
+  },
+  {
+   "surface": "codex-cli",
+   "task_class": "coding-implementation",
+   "pointer": {
+    "file": "plugins/ravenclaude-core/knowledge/agent-routing-matrix.json",
+    "path": "$.task_classes.coding-implementation.recommendations[1]"
+   },
+   "basis": "framework-rule",
+   "agent": "codex-cli",
+   "tier": "fast",
+   "rank": 2,
+   "interaction_mode": "inline",
+   "blast_radius": "reversible",
+   "lever_settings": [
+    "codex-cli|model|",
+    "codex-cli|effort|"
+   ]
+  },
+  {
+   "surface": "codex-cli",
+   "task_class": "coding-implementation",
+   "pointer": {
+    "file": "plugins/ravenclaude-core/knowledge/agent-routing-matrix.json",
+    "path": "$.task_classes.coding-implementation.recommendations[5]"
+   },
+   "basis": "framework-rule",
+   "agent": "codex-cli",
+   "tier": "balanced",
+   "rank": 2,
+   "interaction_mode": "agent",
+   "blast_radius": "reversible",
+   "lever_settings": [
+    "codex-cli|model|",
+    "codex-cli|effort|",
+    "codex-cli|mode|"
+   ]
+  },
+  {
+   "surface": "codex-cli",
+   "task_class": "coding-implementation",
+   "pointer": {
+    "file": "plugins/ravenclaude-core/knowledge/agent-routing-matrix.json",
+    "path": "$.task_classes.coding-implementation.recommendations[8]"
+   },
+   "basis": "framework-rule",
+   "agent": "codex-cli",
+   "tier": "top",
+   "rank": 2,
+   "interaction_mode": "agent",
+   "blast_radius": "irreversible",
+   "lever_settings": [
+    "codex-cli|model|",
+    "codex-cli|effort|",
+    "codex-cli|mode|"
+   ]
+  },
+  {
+   "surface": "codex-cli",
+   "task_class": "coding-debugging-design",
+   "pointer": {
+    "file": "plugins/ravenclaude-core/knowledge/agent-routing-matrix.json",
+    "path": "$.task_classes.coding-debugging-design.recommendations[4]"
+   },
+   "basis": "framework-rule",
+   "agent": "codex-cli",
+   "tier": "top",
+   "rank": 2,
+   "interaction_mode": "agent",
+   "blast_radius": "irreversible",
+   "lever_settings": [
+    "codex-cli|model|",
+    "codex-cli|effort|",
+    "codex-cli|mode|"
+   ]
+  },
+  {
+   "surface": "codex-cli",
+   "task_class": "research-deep",
+   "pointer": null,
+   "pending_label": "no recommendation: the routing matrix has no row for this agent in this task class",
+   "lever_settings": []
+  },
+  {
+   "surface": "codex-cli",
+   "task_class": "writing-documentation",
+   "pointer": null,
+   "pending_label": "no recommendation: the routing matrix has no row for this agent in this task class",
+   "lever_settings": []
+  },
+  {
+   "surface": "codex-cli",
+   "task_class": "data-analysis",
+   "pointer": {
+    "file": "plugins/ravenclaude-core/knowledge/agent-routing-matrix.json",
+    "path": "$.task_classes.data-analysis.recommendations[0]"
+   },
+   "basis": "cost-heuristic",
+   "agent": "codex-cli",
+   "tier": "fast",
+   "rank": 1,
+   "interaction_mode": "inline",
+   "blast_radius": "reversible",
+   "lever_settings": [
+    "codex-cli|model|",
+    "codex-cli|effort|"
+   ]
+  },
+  {
+   "surface": "copilot-cli",
+   "task_class": "coding-implementation",
+   "pointer": null,
+   "pending_label": "no recommendation: the routing matrix has no rows for this column yet (matrix rows pending)",
+   "lever_settings": []
+  },
+  {
+   "surface": "copilot-cli",
+   "task_class": "coding-debugging-design",
+   "pointer": null,
+   "pending_label": "no recommendation: the routing matrix has no rows for this column yet (matrix rows pending)",
+   "lever_settings": []
+  },
+  {
+   "surface": "copilot-cli",
+   "task_class": "research-deep",
+   "pointer": null,
+   "pending_label": "no recommendation: the routing matrix has no rows for this column yet (matrix rows pending)",
+   "lever_settings": []
+  },
+  {
+   "surface": "copilot-cli",
+   "task_class": "writing-documentation",
+   "pointer": null,
+   "pending_label": "no recommendation: the routing matrix has no rows for this column yet (matrix rows pending)",
+   "lever_settings": []
+  },
+  {
+   "surface": "copilot-cli",
+   "task_class": "data-analysis",
+   "pointer": null,
+   "pending_label": "no recommendation: the routing matrix has no rows for this column yet (matrix rows pending)",
+   "lever_settings": []
+  },
+  {
+   "surface": "copilot-vscode",
+   "task_class": "coding-implementation",
+   "pointer": {
+    "file": "plugins/ravenclaude-core/knowledge/agent-routing-matrix.json",
+    "path": "$.task_classes.coding-implementation.recommendations[3]"
+   },
+   "basis": "framework-rule",
+   "agent": "copilot-chat",
+   "tier": "balanced",
+   "rank": 2,
+   "interaction_mode": "chat",
+   "blast_radius": "reversible",
+   "lever_settings": [
+    "copilot-vscode|model|",
+    "copilot-vscode|effort|"
+   ]
+  },
+  {
+   "surface": "copilot-vscode",
+   "task_class": "coding-debugging-design",
+   "pointer": null,
+   "pending_label": "no recommendation: the routing matrix has no row for this agent in this task class",
+   "lever_settings": []
+  },
+  {
+   "surface": "copilot-vscode",
+   "task_class": "research-deep",
+   "pointer": null,
+   "pending_label": "no recommendation: the routing matrix has no row for this agent in this task class",
+   "lever_settings": []
+  },
+  {
+   "surface": "copilot-vscode",
+   "task_class": "writing-documentation",
+   "pointer": null,
+   "pending_label": "no recommendation: the routing matrix has no row for this agent in this task class",
+   "lever_settings": []
+  },
+  {
+   "surface": "copilot-vscode",
+   "task_class": "data-analysis",
+   "pointer": null,
+   "pending_label": "no recommendation: the routing matrix has no row for this agent in this task class",
+   "lever_settings": []
+  },
+  {
+   "surface": "cursor",
+   "task_class": "coding-implementation",
+   "pointer": null,
+   "pending_label": "no recommendation: the routing matrix has no rows for this column yet (matrix rows pending)",
+   "lever_settings": []
+  },
+  {
+   "surface": "cursor",
+   "task_class": "coding-debugging-design",
+   "pointer": null,
+   "pending_label": "no recommendation: the routing matrix has no rows for this column yet (matrix rows pending)",
+   "lever_settings": []
+  },
+  {
+   "surface": "cursor",
+   "task_class": "research-deep",
+   "pointer": null,
+   "pending_label": "no recommendation: the routing matrix has no rows for this column yet (matrix rows pending)",
+   "lever_settings": []
+  },
+  {
+   "surface": "cursor",
+   "task_class": "writing-documentation",
+   "pointer": null,
+   "pending_label": "no recommendation: the routing matrix has no rows for this column yet (matrix rows pending)",
+   "lever_settings": []
+  },
+  {
+   "surface": "cursor",
+   "task_class": "data-analysis",
+   "pointer": null,
+   "pending_label": "no recommendation: the routing matrix has no rows for this column yet (matrix rows pending)",
+   "lever_settings": []
+  },
+  {
+   "surface": "gemini-cli",
+   "task_class": "coding-implementation",
+   "pointer": null,
+   "pending_label": "no recommendation: the routing matrix has no rows for this column yet (matrix rows pending)",
+   "lever_settings": []
+  },
+  {
+   "surface": "gemini-cli",
+   "task_class": "coding-debugging-design",
+   "pointer": null,
+   "pending_label": "no recommendation: the routing matrix has no rows for this column yet (matrix rows pending)",
+   "lever_settings": []
+  },
+  {
+   "surface": "gemini-cli",
+   "task_class": "research-deep",
+   "pointer": null,
+   "pending_label": "no recommendation: the routing matrix has no rows for this column yet (matrix rows pending)",
+   "lever_settings": []
+  },
+  {
+   "surface": "gemini-cli",
+   "task_class": "writing-documentation",
+   "pointer": null,
+   "pending_label": "no recommendation: the routing matrix has no rows for this column yet (matrix rows pending)",
+   "lever_settings": []
+  },
+  {
+   "surface": "gemini-cli",
+   "task_class": "data-analysis",
+   "pointer": null,
+   "pending_label": "no recommendation: the routing matrix has no rows for this column yet (matrix rows pending)",
+   "lever_settings": []
+  },
+  {
+   "surface": "grok-build",
+   "task_class": "coding-implementation",
+   "pointer": {
+    "file": "plugins/ravenclaude-core/knowledge/agent-routing-matrix.json",
+    "path": "$.task_classes.coding-implementation.recommendations[6]"
+   },
+   "basis": "capability-fact",
+   "agent": "grok-build-cli",
+   "tier": "balanced",
+   "rank": 3,
+   "interaction_mode": "agent",
+   "blast_radius": "reversible",
+   "lever_settings": [
+    "grok-build|model|",
+    "grok-build|effort|",
+    "grok-build|mode|"
+   ]
+  },
+  {
+   "surface": "grok-build",
+   "task_class": "coding-debugging-design",
+   "pointer": null,
+   "pending_label": "no recommendation: the routing matrix has no row for this agent in this task class",
+   "lever_settings": []
+  },
+  {
+   "surface": "grok-build",
+   "task_class": "research-deep",
+   "pointer": null,
+   "pending_label": "no recommendation: the routing matrix has no row for this agent in this task class",
+   "lever_settings": []
+  },
+  {
+   "surface": "grok-build",
+   "task_class": "writing-documentation",
+   "pointer": {
+    "file": "plugins/ravenclaude-core/knowledge/agent-routing-matrix.json",
+    "path": "$.task_classes.writing-documentation.recommendations[2]"
+   },
+   "basis": "cost-heuristic",
+   "agent": "grok-build-cli",
+   "tier": "balanced",
+   "rank": 2,
+   "interaction_mode": "chat",
+   "blast_radius": "reversible",
+   "lever_settings": [
+    "grok-build|model|",
+    "grok-build|effort|"
+   ]
+  },
+  {
+   "surface": "grok-build",
+   "task_class": "data-analysis",
+   "pointer": null,
+   "pending_label": "no recommendation: the routing matrix has no row for this agent in this task class",
+   "lever_settings": []
+  },
+  {
+   "surface": "grok-bot",
+   "task_class": "coding-implementation",
+   "pointer": null,
+   "pending_label": "no recommendation: the routing matrix has no rows for this column yet (matrix rows pending)",
+   "lever_settings": []
+  },
+  {
+   "surface": "grok-bot",
+   "task_class": "coding-debugging-design",
+   "pointer": null,
+   "pending_label": "no recommendation: the routing matrix has no rows for this column yet (matrix rows pending)",
+   "lever_settings": []
+  },
+  {
+   "surface": "grok-bot",
+   "task_class": "research-deep",
+   "pointer": null,
+   "pending_label": "no recommendation: the routing matrix has no rows for this column yet (matrix rows pending)",
+   "lever_settings": []
+  },
+  {
+   "surface": "grok-bot",
+   "task_class": "writing-documentation",
+   "pointer": null,
+   "pending_label": "no recommendation: the routing matrix has no rows for this column yet (matrix rows pending)",
+   "lever_settings": []
+  },
+  {
+   "surface": "grok-bot",
+   "task_class": "data-analysis",
+   "pointer": null,
+   "pending_label": "no recommendation: the routing matrix has no rows for this column yet (matrix rows pending)",
+   "lever_settings": []
+  }
+ ]
 }

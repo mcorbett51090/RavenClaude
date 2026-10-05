@@ -30,6 +30,13 @@ EXTRA_HOSTS = ("github.com",)
 REPO_BLOB_BASE = "https://github.com/mcorbett51090/RavenClaude/blob/main/"
 PRODUCT_NAMES = {"copilot": "GitHub Copilot"}
 NULL_MODEL_TOKENS = ("", "null", "none", "*", "all")
+LEVER_GUIDE_INTRO = (
+    "Lever locations are documented facts: a flag, key, command or picker, with a citation. Task-shape "
+    "rows are the routing matrix's own recommendations (agent, tier, rank, basis), copied from one "
+    "matrix file pinned by SHA, beside the lever settings that realise them. Everything except a "
+    "capability-fact is a judgment, not measured. A task class or column the matrix has no row for "
+    "shows that, not a guess."
+)
 GROK_BOT_NOTE = (
     "Grok Bot is covered as its own column; its relationship to the Cursor platform "
     "is recorded in row F21.shared-agent-runtime."
@@ -114,6 +121,12 @@ overflow-wrap:anywhere}
 th{background:var(--surface);overflow-wrap:normal}
 th[scope=row]{font-weight:400}
 table.matrix td{min-width:7.5rem;font-size:.85rem;overflow-wrap:break-word}
+table.tasks{min-width:1100px}
+table.tasks th:nth-child(2),table.tasks td:nth-child(2){min-width:9.5rem}
+table.tasks th:nth-child(3),table.tasks td:nth-child(3){min-width:7.5rem}
+table.tasks th:nth-child(4),table.tasks td:nth-child(4){min-width:7rem}
+table.tasks th:nth-child(5),table.tasks td:nth-child(5){min-width:14rem}
+table.tasks th:nth-child(7),table.tasks td:nth-child(7){min-width:14rem}
 table.levers{min-width:1000px}
 table.levers th:nth-child(1),table.levers td:nth-child(1){min-width:9rem}
 table.levers th:nth-child(2),table.levers td:nth-child(2){min-width:8rem}
@@ -365,11 +378,17 @@ class Atlas:
             scan_forbidden(task, f"task-shape row {task.get('surface')}/{task.get('task_class')}")
         self.levers_by_cell = {}
         self.lever_anchor = {}
+        self.lever_literals = {}
         for index, lever in enumerate(self.levers):
             cell_key = (lever.get("surface"), lever.get("row"))
             self.levers_by_cell.setdefault(cell_key, []).append(lever)
             key = lever_key(lever.get("surface"), lever.get("lever"), lever.get("model"))
             self.lever_anchor.setdefault(key, f"lever-{index}")
+            literal = lever.get("literal")
+            if isinstance(literal, str) and literal:
+                found = self.lever_literals.setdefault(key, [])
+                if literal not in found:
+                    found.append(literal)
 
         register_path = data_dir / "register.json"
         entries = _records(_read(register_path, False), "entries", register_path)
@@ -800,6 +819,7 @@ def render_harness(atlas, pid):
 def render_levers(atlas):
     page = "levers.html"
     title = "Lever guide: documented controls, editorial routing"
+    intro = [f"<p>{esc(LEVER_GUIDE_INTRO)}</p>"]
     body = []
     by_surface = {}
     for index, lever in enumerate(atlas.levers):
@@ -823,6 +843,7 @@ def render_levers(atlas):
             body.append(table(f"{name}: {klass} lever locations", head, rows, "levers"))
     if not atlas.levers:
         body.append(nodata_block())
+    split = len(body)
     body.append(heading(2, "Task-shape rows"))
     tasks = sorted(
         atlas.task_rows,
@@ -847,25 +868,42 @@ def render_levers(atlas):
         else:
             where = NODATA_INLINE
         basis = esc(task.get("basis")) if task.get("basis") else NODATA_INLINE
-        if task.get("basis") != "capability-fact":
+        if task.get("basis") != "capability-fact" and (task.get("basis") or isinstance(pointer, dict)):
             basis += ' <span class="badge">judgment, not measured</span>'
         refs = []
         for ref in as_list(task.get("lever_settings")):
-            anchor = atlas.lever_anchor.get(ref_key(ref))
-            text = f"<code>{esc(ref)}</code>"
-            refs.append(f'<a href="{href(page, page, anchor)}">{text}</a>' if anchor else text)
+            key = ref_key(ref)
+            anchor = atlas.lever_anchor.get(key)
+            parts = str(ref).split("|")
+            label = esc(parts[1]) if len(parts) == 3 else esc(ref)
+            text = f'<a href="{href(page, page, anchor)}">{label}</a>' if anchor else label
+            literals = atlas.lever_literals.get(key, [])[:3]
+            if literals:
+                text += ": " + ", ".join(f"<code>{esc(lit)}</code>" for lit in literals)
+            refs.append(text)
+        mode = " / ".join(esc(task[k]) for k in ("interaction_mode", "blast_radius") if task.get(k))
+        tier = esc(task.get("tier")) if task.get("tier") else NODATA_INLINE
+        if task.get("tier") and task.get("rank") is not None:
+            tier += f" (rank {esc(task.get('rank'))})"
+        if task.get("agent"):
+            tier += f"<br>{esc(task.get('agent'))}"
         sid = task.get("surface")
         cells = [
             th(esc(atlas.surface_name(sid)) if sid else NODATA_INLINE, "row"),
             td(esc(task.get("task_class"))),
+            td(mode if mode else NODATA_INLINE),
+            td(tier),
             td(where),
             td(basis),
             td("<br>".join(refs) if refs else NODATA_INLINE),
         ]
         rows.append((None, cells))
-    head = [th(c) for c in ("Surface", "Task class", "Matrix pointer or pending", "Basis")]
+    head = [th(c) for c in ("Surface", "Task class", "Mode / blast radius", "Matrix tier")]
+    head += [th(c) for c in ("Matrix pointer or pending", "Basis")]
     head.append(th("Lever settings"))
-    body.append(table("Task-shape rows", head, rows) if rows else nodata_block())
+    body.append(table("Task-shape rows", head, rows, "tasks") if rows else nodata_block())
+    # the answer to "what do I set for this task" comes first; the per-column reference follows
+    body = intro + body[split:] + [heading(2, "Lever locations by column")] + body[:split]
     return document(page, title, title, "\n".join(body))
 
 

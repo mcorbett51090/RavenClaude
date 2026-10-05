@@ -409,3 +409,15 @@ An opus reviewer checked 42 lever facts that the routing matrix and its cited kn
 **Spend.** About 5.4M subagent tokens since the P8 entry (lever drafts 0.88M, lever checks 0.74M, register drafts 3.43M, reviewer 0.14M, re-checks 0.21M). That puts the total near 78.4M, which is past the 78M line I set for re-asking the owner. The remaining work (lever guide, landing, and the matrix PR if it runs) is not in that figure.
 
 **Open.** The matrix precursor PR (P6) has no recorded run shape or trigger date; the plan requires both before it starts. P11 (lever guide with task-shape pointers), P12 (landing, owner merge question). The dod-gate trust prompt remains declined: `definition_of_done` is the owner's call.
+
+## Owner answer on the matrix update, and P11 result (2026-10-05)
+
+**Owner answer.** On the matrix question the owner chose "Land atlas first (Recommended)" (logged in owner-decisions.md): finish the lever guide with the matrix as it stands, merge the atlas, run the matrix update afterwards as its own job. No trigger date is needed because the pending state is the landed state.
+
+**Correction to what the owner was told.** I put the matrix coverage to the owner as 5 of 8 columns with Cursor, Gemini CLI and Grok Bot pending. The matrix file shows otherwise: it maps five agent ids to hosts, but it holds 27 ranked recommendations for only four of them. Claude Code has 19, Codex CLI 5, Grok Build 2, Copilot Chat (VS Code) 1, and **Copilot CLI has none**. So the lever guide is matrix-backed for **4 of 8** columns, and Copilot CLI joins the three the owner already knew were pending. The index page states "4 of 8"; the README says the same.
+
+**What P11 built.** `levers.json` now has 56 task-shape rows: 27 pointers into the matrix, each copying the matrix's own agent, tier, rank, interaction mode, blast radius and basis, plus 29 rows that say there is no recommendation (20 for the four pending columns, 9 for a covered column's task classes the matrix does not rank). The pins: `snapshot.matrix_sha` is the blob SHA of `agent-routing-matrix.json` on this branch (e891bd4, the same on origin/main when fetched). The validator now loads that blob, resolves each `$.task_classes.<class>.recommendations[<i>]` path and checks that every copied field matches; a planted wrong tier and a planted out-of-range path both fail with the rule named, and the real data passes. Each row lists the lever classes that realise its tier on that column (model and effort, plus mode for agent runs) with their literals, taken from the lever records. The guide page now opens with the task-shape rows and puts the per-column lever locations after them. A row with no recommendation carries no basis (the validator only requires basis on a pointer row), so no guess is badged as one.
+
+**Not claimed.** The lever settings beside a row say where the tier's levers live and what they are called, not which value maps to a tier: that mapping (for instance which model name is a column's "fast") stays in the matrix and its tier map, and the atlas does not restate it.
+
+**Open.** P12: landing. The matrix update is a follow-up job after the merge.

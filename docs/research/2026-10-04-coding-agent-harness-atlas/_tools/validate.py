@@ -68,7 +68,23 @@ TASK_BASES = (
     "editorial-judgment",
     "vendor-guidance",
 )
-TASK_ROW_KEYS = ("surface", "task_class", "pointer", "basis", "pending_label", "lever_settings")
+TASK_ROW_KEYS = (
+    "surface",
+    "task_class",
+    "pointer",
+    "basis",
+    "pending_label",
+    "lever_settings",
+    "agent",
+    "tier",
+    "rank",
+    "interaction_mode",
+    "blast_radius",
+)
+MATRIX_TIERS = ("fast", "balanced", "top")
+MATRIX_MODES = ("inline", "chat", "agent")
+MATRIX_BLAST = ("reversible", "irreversible")
+_MATRIX_PATH = re.compile(r"^\$\.task_classes\.([A-Za-z0-9_-]+)\.recommendations\[([0-9]+)\]$")
 POINTER_KEYS = ("file", "path")
 POSITIVE_LOCATION_KINDS = ("vendor_managed", "not_applicable")
 NEW_FILE_TYPES = ("extend", "new-lane")
@@ -985,9 +1001,11 @@ class Validator:
             return
         self._check_numeric(where, row)
         self._reject_unknown_keys(where, row, TASK_ROW_KEYS, R_TASK)
-        for key in ("surface", "task_class", "pointer", "basis"):
+        for key in ("surface", "task_class", "pointer"):
             if key not in row:
                 self.error(R_TASK, where, f"missing key '{key}'")
+        if "basis" not in row and row.get("pointer") is not None:
+            self.error(R_TASK, where, "missing key 'basis'")
         if "surface" in row:
             self._check_surface(where, row["surface"])
         if "task_class" in row and not _nonempty(row["task_class"]):
@@ -999,6 +1017,13 @@ class Validator:
             self.error(R_TASK, where, "lever_settings must be a list")
         for position, setting in enumerate(settings if isinstance(settings, list) else []):
             self._check_lever_setting(f"{where}.lever_settings[{position}]", setting)
+        for key, allowed in (("tier", MATRIX_TIERS), ("interaction_mode", MATRIX_MODES), ("blast_radius", MATRIX_BLAST)):
+            if key in row and row[key] not in allowed:
+                self.error(R_TASK, where, f"{key} {row[key]!r} is not one of {list(allowed)}")
+        if "rank" in row and not (_is_int(row["rank"]) and row["rank"] >= 1):
+            self.error(R_TASK, where, "rank must be an integer of 1 or more")
+        if "agent" in row and not _nonempty(row["agent"]):
+            self.error(R_TASK, where, "agent must be a non-empty string")
         pointer, pending = row.get("pointer"), row.get("pending_label")
         if pointer is not None and not (
             isinstance(pointer, dict)
@@ -1009,6 +1034,7 @@ class Validator:
         elif isinstance(pointer, dict):
             self._reject_unknown_keys(f"{where}.pointer", pointer, POINTER_KEYS, R_TASK)
             self._check_pointer_file(f"{where}.pointer", pointer["file"])
+            self._check_pointer_resolves(where, row, pointer)
         if pending is not None and not isinstance(pending, str):
             self.error(R_TASK, where, "pending_label must be a string or null")
         if pointer is None and not _nonempty(pending):
@@ -1072,6 +1098,46 @@ class Validator:
             self.error(R_REFERENCE, where, f"file {file!r} resolves outside the repository")
         elif not target.is_file():
             self.error(R_REFERENCE, where, f"file {file!r} does not exist in the repository")
+
+    def _check_pointer_resolves(self, where, row, pointer):
+        """The pointer names a recommendation in the matrix blob at the pinned SHA, and the copies match."""
+        sha = (self.snapshot or {}).get("matrix_sha")
+        if not (self.check_repo_paths and self._root and _nonempty(sha)):
+            return
+        try:
+            probe = subprocess.run(
+                ["git", "rev-parse", "--git-dir"],
+                cwd=self._root,
+                capture_output=True,
+                text=True,
+                check=False,
+                timeout=30,
+            )
+        except (OSError, subprocess.SubprocessError):
+            return
+        if probe.returncode != 0:
+            return  # not a real git repository (a test stub): no blob to read
+        try:
+            run = subprocess.run(
+                ["git", "cat-file", "blob", str(sha)],
+                cwd=self._root,
+                capture_output=True,
+                text=True,
+                check=False,
+                timeout=30,
+            )
+            doc = json.loads(run.stdout) if run.returncode == 0 else None
+        except (OSError, subprocess.SubprocessError, ValueError):
+            doc = None
+        if doc is None:
+            self.error(R_REFERENCE, where, f"matrix_sha {sha!r} is not a JSON blob in the repository")
+            return
+        rec = resolve_matrix_pointer(doc, pointer.get("path"))
+        if rec is None:
+            self.error(R_REFERENCE, where, f"path {pointer.get('path')!r} names no recommendation at matrix_sha")
+            return
+        for key in matrix_mismatches(row, rec):
+            self.error(R_TASK, where, f"{key} differs from the matrix recommendation at matrix_sha")
 
     def _check_register_entry(self, index, entry, ranks):
         where = self._where("register.json", entry, index)
@@ -1308,6 +1374,32 @@ def _selftest():
         if not any(f.rule == R_STRUCTURE and f.where == "facets.json" for f in findings):
             raise AssertionError("an empty data directory did not report facets.json")
     print("OK")
+
+
+def resolve_matrix_pointer(doc, path):
+    """The recommendation a ``$.task_classes.<class>.recommendations[<i>]`` path names, or None."""
+    match = _MATRIX_PATH.match(path) if isinstance(path, str) else None
+    if match is None or not isinstance(doc, dict):
+        return None
+    task_class = (doc.get("task_classes") or {}).get(match.group(1))
+    recs = task_class.get("recommendations") if isinstance(task_class, dict) else None
+    index = int(match.group(2))
+    if isinstance(recs, list) and index < len(recs) and isinstance(recs[index], dict):
+        return recs[index]
+    return None
+
+
+def matrix_mismatches(row, rec):
+    """Fields a task-shape row copies from the matrix that differ from the recommendation."""
+    expected = {
+        "agent": rec.get("agent"),
+        "tier": (rec.get("model_ref") or {}).get("tier"),
+        "rank": rec.get("rank"),
+        "interaction_mode": rec.get("interaction_mode"),
+        "blast_radius": rec.get("blast_radius"),
+        "basis": rec.get("basis"),
+    }
+    return [k for k, v in expected.items() if k in row and row[k] != v]
 
 
 def main(argv=None):

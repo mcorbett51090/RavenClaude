@@ -230,5 +230,7 @@
   "Unverified cells by column": "claude-code 53, codex-cli 0, copilot-cli 50, copilot-vscode 38, cursor 48, gemini-cli 52, grok-build 47, grok-bot 33. Each is a supported cell outside the sample, carries a settles_by line and shows the unverified marker.",
   "Lever records": "497 records (27 lever rows x 8 columns). A script checks that every literal, value, default and model name appears in a cited quote or its URL; a tester pass with 2 planted errors per column found 2 real records with a location kind the quotes do not show; both were corrected.",
   "Register": "55 entries. Every repo quote, blob SHA, path and ceiling quote is script-checked; the evidence factor and score are derived. An opus reviewer fact-checked the top 22 and ordered the top 15: 21 of 22 held, one became a probe."
- }
+ },
+ "matrix_pending": true,
+ "matrix_sha": "e891bd4652e3011bba7f883d600ecb7d82a18731"
 }

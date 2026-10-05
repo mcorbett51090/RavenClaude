@@ -22,7 +22,9 @@ Gemini CLI, Grok Build CLI and Grok Bot. 127 frozen rows by 8 columns is 1016 ce
 - `undocumented` means a sweep of the mirrored docs found nothing, with a positive control. It is not
   proof the vendor publishes nothing.
 - 321 supported cells are `unverified` (outside the 30% verification sample). They show a marker.
-- The lever guide shows documented controls only. Task-shape routing waits on the routing-matrix update.
+- The lever guide's routing advice is the routing matrix's own, so it covers 4 of 8 columns (Claude Code,
+  Codex CLI, Copilot in VS Code, Grok Build). Copilot CLI, Cursor, Gemini CLI and Grok Bot show where each
+  lever lives but "no recommendation" until the matrix is extended.
 
 ## Re-render and re-check
 
