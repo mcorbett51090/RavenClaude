@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "atlas/scout-record.schema.json",
+  "title": "Scout batch output",
+  "description": "What one extraction scout writes for one batch. Read with json.load and validated; never executed. The quote verifier locates each quote in the raw bytes and assigns the line range itself: a scout's own line number is a hint, not evidence.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["batch_id", "records", "pages_no_facts"],
+  "properties": {
+    "batch_id": { "type": "string" },
+    "records": {
+      "type": "array",
+      "maxItems": 200,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["page_id", "chunk_id", "rows", "claim", "quote"],
+        "properties": {
+          "page_id": { "type": "string" },
+          "chunk_id": { "type": "string" },
+          "rows": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 3,
+            "items": { "type": "string", "pattern": "^(F[0-9]{2}\\.[a-z0-9-]+|U00)$" }
+          },
+          "claim": { "type": "string", "maxLength": 200 },
+          "quote": { "type": "string", "maxLength": 300 },
+          "line_hint": { "type": "integer", "minimum": 1 },
+          "instruction_shaped": {
+            "type": "boolean",
+            "description": "Set when the source text reads like an instruction to an agent."
+          }
+        }
+      }
+    },
+    "pages_no_facts": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Pages in the batch with nothing relevant, each an explicit marker."
+    }
+  }
+}

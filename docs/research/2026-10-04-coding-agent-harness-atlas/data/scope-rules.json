@@ -1,0 +1,113 @@
+{
+  "schema_version": 1,
+  "note": "The path rules P3 used to decide which vendor documentation URLs belong to each atlas column. Each rule is a regular expression tested with re.search against the URL path (discover.py apply_scope). A URL is kept when it is https, on the surface's docs host allow-list, matches at least one include, and matches no exclude. Rules were written after reading each vendor index and sitemap; a rule that dropped something relevant is a defect, so every surface's drop list is saved beside its origins file.",
+  "surfaces": {
+    "claude-code": {
+      "include": ["^/docs/en/"],
+      "exclude": [],
+      "sections": [],
+      "reason": "English pages only; 218 pages exist in each of 17 other languages and the localised llms files under /docs/_llms/ are indexes, not pages. claude-tag.md redirects to claude.com and is refused by the host allow-list.",
+      "index_files": ["https://code.claude.com/docs/llms.txt"]
+    },
+    "codex-cli": {
+      "include": ["^/docs/", "^/guides/"],
+      "exclude": ["llms-full\\.txt$"],
+      "sections": [],
+      "reason": "The Codex index is a ChatGPT-and-Codex mix on learn.chatgpt.com. All /docs pages are fetched and mirrored; the ChatGPT-versus-Codex decision is made after fetching, per page, in the scope table (P3 stage 3), so that nothing Codex-relevant is lost to a path guess. /use-cases pages (about 100 workflow examples in the sitemap) are out of scope.",
+      "index_files": ["https://developers.openai.com/codex/llms.txt"],
+      "aggregates": ["https://learn.chatgpt.com/docs/codex-manual.md"],
+      "post_fetch_scope": {
+        "allow_paths": [],
+        "deny_paths": [
+          "^/docs/(dots|space|get-started-with-work|migrate-custom-gpts)(/|\\.md|$)",
+          "^/docs/enterprise/(dots-admin-guide|chatgpt-space|gpts-and-sharing|groups-and-provisioning|shared-connections|teams|chatgpt-work-)",
+          "^/docs/features/voice",
+          "^/docs/security/cli/ci/gitlab\\.yml$"
+        ],
+        "mention": {
+          "pattern": "codex",
+          "min": 1
+        },
+        "note": "Fetched pages are kept unless their path is a pure ChatGPT product area (denied: dots, Space, ChatGPT Work, GPT migration, voice, workspace administration with no Codex content) or the page never says 'codex' (mention rule). Pages kept only by a low mention count form the residual triage list in the coverage table. personalize.md was first denied and then restored after its text showed that Codex stores personal instructions in the global AGENTS.md: a path guess had hidden a harness fact."
+      },
+      "excluded_urls": [
+        {
+          "url": "https://learn.chatgpt.com/docs/config-schema.json",
+          "reason": "JSON schema source: scouts' quotes of JSON lines break their own JSON output (pilot batch S-X32 unparseable); the keys are documented in config-reference.md; a scripted key listing can replace it later"
+        }
+      ]
+    },
+    "copilot-cli": {
+      "include": [
+        "^/en/copilot/(.*/)?[^/]*cli",
+        "^/en/copilot/concepts/agents(/|$)",
+        "^/en/copilot/concepts/(models|context|tools|prompting|security-governance-and-network-settings|billing-and-usage)(/|$)",
+        "^/en/copilot/reference/ai-models(/|$)",
+        "^/en/copilot/how-tos/use-copilot-agents(/|$)",
+        "^/en/copilot/how-tos/configure-content-exclusion(/|$)",
+        "^/en/copilot/how-tos/cloud-and-local-sandboxes(/|$)"
+      ],
+      "exclude": ["/copilot-sdk/"],
+      "sections": [],
+      "reason": "Applied to the Page List API paths (3,191 docs paths). Pages whose path names the CLI, plus the shared agent, model, context, tool, billing, policy and sandbox concepts the CLI inherits. The Copilot SDK is a separate product. Each page is fetched through the documented Article Body API.",
+      "index_files": [
+        "https://docs.github.com/api/pagelist/en/free-pro-team@latest",
+        "https://docs.github.com/llms.txt"
+      ]
+    },
+    "copilot-vscode": {
+      "include": [
+        "^/docs/agents(/|\\.md|$)",
+        "^/docs/agent-customization(/|\\.md|$)",
+        "^/docs/chat(/|\\.md|$)",
+        "copilot",
+        "^/api/extension-guides/ai/",
+        "^/docs/enterprise/(policies|manage-ai-settings)",
+        "^/learn/(customizations|foundations)/"
+      ],
+      "exclude": [],
+      "sections": [],
+      "reason": "The plan's rule (paths containing /docs/agents, /chat or copilot; 52 pages) missed the whole /docs/agent-customization tree (instructions, skills, custom agents, models, MCP, hooks, plugins, prompt files), the enterprise AI policies and the agent-first learning series. All were added after reading the index sections. Sitemap-only pages are fetched through their .md twins.",
+      "index_files": ["https://code.visualstudio.com/llms.txt"]
+    },
+    "cursor": {
+      "include": ["^/docs", "^/help/", "^/changelog"],
+      "exclude": [
+        "^/docs/api(/|\\.md$)",
+        "^/docs/origin",
+        "^/docs/grok-bot",
+        "^/help/grok-bot",
+        "^/help/account-and-billing",
+        "^/docs/account/(teams/(setup|pricing|members|sso|dashboard|analytics|scim|admin-api|analytics-api|ai-code-tracking-api)|organizations/organization-admin-api|enterprise/(service-accounts|billing-groups))",
+        "(llms|llms-full)\\.txt$",
+        "openapi\\.yaml$",
+        "^/docs/enterprise/(admin-setup-guide|organizations|organization-groups|identity-and-access-management|baa)"
+      ],
+      "sections": [],
+      "reason": "Cursor's own harness: agent, rules, skills, subagents, hooks, MCP, plugins, cloud agents, CLI, SDK, models, integrations, security and agent-governance enterprise pages, the help centre's AI, customization, models, security and troubleshooting sections, and the changelog. Out: the Origin git forge, the API reference, account billing and member administration, and the Grok Bot pages (which belong to the grok-bot column).",
+      "index_files": ["https://cursor.com/llms.txt"]
+    },
+    "gemini-cli": {
+      "include": ["^/docs/"],
+      "exclude": [],
+      "sections": [],
+      "reason": "One aggregate file (llms.txt) split into 97 pages; the 97 page URLs equal the 97 /docs/ URLs of sitemap-0.xml.",
+      "index_files": [],
+      "gemini_split": ["https://geminicli.com/llms.txt"]
+    },
+    "grok-build": {
+      "include": ["^/build(/|$)", "^/developers/models/"],
+      "exclude": [],
+      "sections": ["Grok Build"],
+      "reason": "The Grok Build section of the xAI index (24 pages) plus the model pages Build links to. Model pages are fetched as the vendor's .md twin because the HTML form is an app shell.",
+      "index_files": ["https://docs.x.ai/llms.txt"]
+    },
+    "grok-bot": {
+      "include": ["^/grok-bot(/|$)", "^/docs/grok-bot", "^/help/grok-bot", "^/bot(/|$)"],
+      "exclude": [],
+      "sections": ["Grok Bot", "grok-bot"],
+      "reason": "The 21 xAI pages are canonical; the 13 Cursor docs pages and 18 Cursor help pages are mirrors and supplements. cursor.com/bot/slack-auto-approve redirects to slack.com and is refused by the host allow-list.",
+      "index_files": ["https://docs.x.ai/llms.txt", "https://cursor.com/llms.txt"]
+    }
+  }
+}

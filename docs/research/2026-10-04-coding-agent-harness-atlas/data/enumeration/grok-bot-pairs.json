@@ -1,0 +1,173 @@
+{
+  "note": "For each of the 21 canonical xAI Grok Bot pages, the Cursor-hosted page that shares the most normalized lines with it, by line containment in each direction. xAI is canonical; a Cursor page is a mirror when both numbers are high and a supplement otherwise.",
+  "pairs": [
+    {
+      "xai": "https://docs.x.ai/grok-bot/approvals-security-and-privacy.md",
+      "cursor": "https://cursor.com/docs/grok-bot/work.md",
+      "xai_in_cursor": 0.01,
+      "cursor_in_xai": 0.01,
+      "xai_bytes": 7844,
+      "cursor_bytes": 18447
+    },
+    {
+      "xai": "https://docs.x.ai/grok-bot/bots.md",
+      "cursor": "https://cursor.com/docs/grok-bot.md",
+      "xai_in_cursor": 0.0,
+      "cursor_in_xai": 0.0,
+      "xai_bytes": 5418,
+      "cursor_bytes": 5472
+    },
+    {
+      "xai": "https://docs.x.ai/grok-bot/chat-and-collaboration.md",
+      "cursor": "https://cursor.com/docs/grok-bot.md",
+      "xai_in_cursor": 0.0,
+      "cursor_in_xai": 0.0,
+      "xai_bytes": 6708,
+      "cursor_bytes": 5472
+    },
+    {
+      "xai": "https://docs.x.ai/grok-bot/computer-and-apps.md",
+      "cursor": "https://cursor.com/docs/grok-bot.md",
+      "xai_in_cursor": 0.0,
+      "cursor_in_xai": 0.0,
+      "xai_bytes": 4310,
+      "cursor_bytes": 5472
+    },
+    {
+      "xai": "https://docs.x.ai/grok-bot/computers.md",
+      "cursor": "https://cursor.com/docs/grok-bot/computers.md",
+      "xai_in_cursor": 0.18,
+      "cursor_in_xai": 0.28,
+      "xai_bytes": 9288,
+      "cursor_bytes": 12124
+    },
+    {
+      "xai": "https://docs.x.ai/grok-bot/faq.md",
+      "cursor": "https://cursor.com/docs/grok-bot.md",
+      "xai_in_cursor": 0.0,
+      "cursor_in_xai": 0.0,
+      "xai_bytes": 6877,
+      "cursor_bytes": 5472
+    },
+    {
+      "xai": "https://docs.x.ai/grok-bot/files-and-results.md",
+      "cursor": "https://cursor.com/docs/grok-bot/work.md",
+      "xai_in_cursor": 0.04,
+      "cursor_in_xai": 0.03,
+      "xai_bytes": 3573,
+      "cursor_bytes": 18447
+    },
+    {
+      "xai": "https://docs.x.ai/grok-bot/get-started.md",
+      "cursor": "https://cursor.com/help/grok-bot/onboarding.md",
+      "xai_in_cursor": 0.01,
+      "cursor_in_xai": 0.02,
+      "xai_bytes": 6516,
+      "cursor_bytes": 3549
+    },
+    {
+      "xai": "https://docs.x.ai/grok-bot/identity-and-access.md",
+      "cursor": "https://cursor.com/docs/grok-bot/identity.md",
+      "xai_in_cursor": 0.12,
+      "cursor_in_xai": 0.23,
+      "xai_bytes": 10697,
+      "cursor_bytes": 10269
+    },
+    {
+      "xai": "https://docs.x.ai/grok-bot/mobile.md",
+      "cursor": "https://cursor.com/docs/grok-bot.md",
+      "xai_in_cursor": 0.0,
+      "cursor_in_xai": 0.0,
+      "xai_bytes": 4541,
+      "cursor_bytes": 5472
+    },
+    {
+      "xai": "https://docs.x.ai/grok-bot/overview.md",
+      "cursor": "https://cursor.com/docs/grok-bot.md",
+      "xai_in_cursor": 0.29,
+      "cursor_in_xai": 0.35,
+      "xai_bytes": 5404,
+      "cursor_bytes": 5472
+    },
+    {
+      "xai": "https://docs.x.ai/grok-bot/private-networks.md",
+      "cursor": "https://cursor.com/docs/grok-bot/private-networks.md",
+      "xai_in_cursor": 0.16,
+      "cursor_in_xai": 0.29,
+      "xai_bytes": 18186,
+      "cursor_bytes": 18226
+    },
+    {
+      "xai": "https://docs.x.ai/grok-bot/proxies.md",
+      "cursor": "https://cursor.com/docs/grok-bot/proxies.md",
+      "xai_in_cursor": 0.3,
+      "cursor_in_xai": 0.39,
+      "xai_bytes": 8825,
+      "cursor_bytes": 10174
+    },
+    {
+      "xai": "https://docs.x.ai/grok-bot/security-faq.md",
+      "cursor": "https://cursor.com/docs/grok-bot/security-faq.md",
+      "xai_in_cursor": 0.28,
+      "cursor_in_xai": 0.29,
+      "xai_bytes": 8696,
+      "cursor_bytes": 8304
+    },
+    {
+      "xai": "https://docs.x.ai/grok-bot/security.md",
+      "cursor": "https://cursor.com/docs/grok-bot/security.md",
+      "xai_in_cursor": 0.06,
+      "cursor_in_xai": 0.19,
+      "xai_bytes": 17874,
+      "cursor_bytes": 16823
+    },
+    {
+      "xai": "https://docs.x.ai/grok-bot/settings-and-notifications.md",
+      "cursor": "https://cursor.com/docs/grok-bot/settings.md",
+      "xai_in_cursor": 0.07,
+      "cursor_in_xai": 0.2,
+      "xai_bytes": 7371,
+      "cursor_bytes": 6937
+    },
+    {
+      "xai": "https://docs.x.ai/grok-bot/skills-routines-and-automations.md",
+      "cursor": "https://cursor.com/docs/grok-bot/work.md",
+      "xai_in_cursor": 0.03,
+      "cursor_in_xai": 0.03,
+      "xai_bytes": 5439,
+      "cursor_bytes": 18447
+    },
+    {
+      "xai": "https://docs.x.ai/grok-bot/team-bots.md",
+      "cursor": "https://cursor.com/docs/grok-bot/settings.md",
+      "xai_in_cursor": 0.0,
+      "cursor_in_xai": 0.02,
+      "xai_bytes": 18894,
+      "cursor_bytes": 6937
+    },
+    {
+      "xai": "https://docs.x.ai/grok-bot/teams-and-enterprises.md",
+      "cursor": "https://cursor.com/docs/grok-bot/teams.md",
+      "xai_in_cursor": 0.12,
+      "cursor_in_xai": 0.3,
+      "xai_bytes": 29125,
+      "cursor_bytes": 30896
+    },
+    {
+      "xai": "https://docs.x.ai/grok-bot/troubleshooting.md",
+      "cursor": "https://cursor.com/docs/grok-bot.md",
+      "xai_in_cursor": 0.0,
+      "cursor_in_xai": 0.0,
+      "xai_bytes": 6464,
+      "cursor_bytes": 5472
+    },
+    {
+      "xai": "https://docs.x.ai/grok-bot/use-cases.md",
+      "cursor": "https://cursor.com/docs/grok-bot/use-cases.md",
+      "xai_in_cursor": 0.17,
+      "cursor_in_xai": 0.23,
+      "xai_bytes": 5489,
+      "cursor_bytes": 5611
+    }
+  ]
+}

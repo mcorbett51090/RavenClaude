@@ -28,3 +28,7 @@
 #   warn union leaves lines "in random order" — hence the total-order sort in the
 #   projection, never reliance on file order.
 .ravenclaude/ledger/*.jsonl merge=union
+
+# The harness atlas is generated and byte-compared by its own validator, so its committed bytes stay LF
+# regardless of a contributor's core.autocrlf.
+docs/research/2026-10-04-coding-agent-harness-atlas/** text eol=lf

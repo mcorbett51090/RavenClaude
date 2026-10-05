@@ -1,0 +1,91 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "atlas/register.schema.json",
+  "title": "Enhancement register entry",
+  "description": "A proposed RavenClaude update, ranked and linked to evidence. Every entry ships status proposed. An entry that rests on an unverified cell is a probe, never a feature.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "title",
+    "type",
+    "surfaces",
+    "cells",
+    "proposal",
+    "value",
+    "reach",
+    "effort",
+    "risk",
+    "basis",
+    "status"
+  ],
+  "properties": {
+    "id": { "type": "string", "pattern": "^ENH-[0-9]{3}$" },
+    "title": { "type": "string", "maxLength": 120 },
+    "type": {
+      "enum": ["extend", "improve", "correct", "new-lane", "reconcile", "en-route-defect", "probe"]
+    },
+    "surfaces": { "type": "array", "items": { "type": "string" } },
+    "rows": { "type": "array", "items": { "type": "string" } },
+    "cells": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Cell ids; each verified, or the entry is a probe."
+    },
+    "repo_files": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["path", "exists"],
+        "properties": { "path": { "type": "string" }, "exists": { "type": "boolean" } }
+      }
+    },
+    "repo_claim": {
+      "type": "object",
+      "description": "R tier, required for correct and reconcile entries; script-checked against git show <blob>:<path>.",
+      "additionalProperties": false,
+      "required": ["blob_sha", "path", "line", "quote"],
+      "properties": {
+        "blob_sha": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+        "path": { "type": "string" },
+        "line": { "type": "integer", "minimum": 1 },
+        "quote": { "type": "string", "maxLength": 300 }
+      }
+    },
+    "proposal": { "type": "string", "maxLength": 900 },
+    "ceiling": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["cell", "quote"],
+      "properties": {
+        "cell": { "type": "string" },
+        "quote": { "type": "string", "maxLength": 300 }
+      }
+    },
+    "value": { "enum": [1, 2, 3] },
+    "reach": { "enum": [1, 2, 3] },
+    "effort": { "enum": [1, 2, 3] },
+    "risk": { "enum": [1, 2, 3] },
+    "evidence_strength": {
+      "enum": [0, 1, 2, 3],
+      "description": "E in the score, derived by script from the supporting cells, never typed."
+    },
+    "basis": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind"],
+      "properties": {
+        "kind": { "enum": ["observation", "inference"] },
+        "falsified_by": { "type": "string" }
+      }
+    },
+    "score": { "type": "number" },
+    "rank": { "type": "integer", "minimum": 1 },
+    "rationale": {
+      "type": "string",
+      "description": "Top-15 reorder rationale, labelled editorial-judgment."
+    },
+    "status": { "enum": ["proposed"] }
+  }
+}

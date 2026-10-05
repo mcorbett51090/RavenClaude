@@ -1,0 +1,632 @@
+{
+ "title": "Five-host re-verification of the routing matrix's lever facts against the atlas lever cells",
+ "atlas_snapshot": "2026-10-04",
+ "checks": {
+  "rows": 42,
+  "cells_exist_and_not_undocumented": true,
+  "quotes_found_in_cited_evidence": "39 of 42 verbatim after ignoring markup; the other 3 differ only by a markdown link target or an ellipsis",
+  "verdicts_readjudicated": false
+ },
+ "summary": {
+  "changed": 11,
+  "holds": 15,
+  "not-covered": 14,
+  "contradicted": 2
+ },
+ "rows": [
+  {
+   "host": "claude-code",
+   "fact": "Claude tier map: fast claude-haiku-4-5-20251001, balanced claude-sonnet-5, top claude-opus-4-8",
+   "source": "plugins/ravenclaude-core/knowledge/substrate-tier-map.json:8",
+   "status": "changed",
+   "atlas_cells": [
+    "claude-code/F17.model-catalog"
+   ],
+   "evidence": [
+    "E-claude-code-01997"
+   ],
+   "quote": "Without ANTHROPIC_DEFAULT_OPUS_MODEL, the opus alias on Amazon Bedrock resolves to Opus 5.5, and without ANTHROPIC_DEFAULT_SONNET_MODEL, the sonnet alias resolves to Sonnet 4.5.",
+   "note": "Newer Opus is the alias target (the quote covers Bedrock only). The full ids are pinned, so they may still work; the first-party default is not quoted.",
+   "reviewer_caveat": ""
+  },
+  {
+   "host": "claude-code",
+   "fact": "Current Claude opus id is claude-opus-4-8 and fable is claude-fable-5",
+   "source": "plugins/ravenclaude-core/knowledge/model-catalog.json:6",
+   "status": "changed",
+   "atlas_cells": [
+    "claude-code/F17.model-catalog"
+   ],
+   "evidence": [
+    "E-claude-code-01997"
+   ],
+   "quote": "Without ANTHROPIC_DEFAULT_OPUS_MODEL, the opus alias on Amazon Bedrock resolves to Opus 5.5",
+   "note": "Bedrock-scoped quote. The sibling capability map already calls Opus 4.8 and Fable 5 Legacy.",
+   "reviewer_caveat": ""
+  },
+  {
+   "host": "claude-code",
+   "fact": "Claude Code has a native effort dial for non-default effort",
+   "source": "plugins/ravenclaude-core/knowledge/agent-routing-matrix.md:154",
+   "status": "holds",
+   "atlas_cells": [
+    "claude-code/F18.where-set"
+   ],
+   "evidence": [
+    "E-claude-code-07046",
+    "E-claude-code-00122"
+   ],
+   "quote": "--effort | Set the effort level for the current session. Options: low, medium, high, xhigh, max, or ultracode.",
+   "note": "Also the /effort selector slider (E-claude-code-00122).",
+   "reviewer_caveat": ""
+  },
+  {
+   "host": "claude-code",
+   "fact": "Dynamic Workflows in Claude Code orchestrate hundreds of parallel subagents",
+   "source": "plugins/claude-app-engineering/knowledge/model-selection-and-2026-capability-map.md:39",
+   "status": "holds",
+   "atlas_cells": [
+    "claude-code/F14.parallel-subagents",
+    "claude-code/F14.total-agent-caps"
+   ],
+   "evidence": [
+    "E-claude-code-01274",
+    "E-claude-code-15872"
+   ],
+   "quote": "Runs a dynamic workflow: a script that orchestrates many subagents in the background and returns one consolidated result.",
+   "note": "A run is capped at 1,000 agents (E-claude-code-15872).",
+   "reviewer_caveat": "holds for orchestration of many subagents; the atlas states a 1,000-agent cap per run, not a parallel count"
+  },
+  {
+   "host": "claude-code",
+   "fact": "Opus 5 effort defaults to high in Claude Code",
+   "source": "plugins/claude-app-engineering/knowledge/model-selection-and-2026-capability-map.md:16",
+   "status": "not-covered",
+   "atlas_cells": [
+    "claude-code/F18.effort-values"
+   ],
+   "evidence": [],
+   "quote": "",
+   "note": "Atlas quotes only a Projects default ('a new project runs every thread on Opus at high effort') without naming Opus 5. Per-model session defaults are not quoted.",
+   "reviewer_caveat": ""
+  },
+  {
+   "host": "codex-cli",
+   "fact": "Raising the Codex reasoning level costs latency, not dollars",
+   "source": "plugins/ai-coding-model-guidance/knowledge/ai-coding-right-size-cost-decision-tree.md:22",
+   "status": "contradicted",
+   "atlas_cells": [
+    "codex-cli/F18.thinking-budget-visibility"
+   ],
+   "evidence": [
+    "E-codex-cli-00172"
+   ],
+   "quote": "Higher reasoning effort increases response time and token usage, but it can improve quality for complex work.",
+   "note": "More tokens cost more. Line 48 ('latency only') says the same thing. Line 37 ('no change in per-token cost') is not contradicted.",
+   "reviewer_caveat": ""
+  },
+  {
+   "host": "codex-cli",
+   "fact": "Codex tier map: fast gpt-5.6-luna, balanced gpt-5.6-terra, top gpt-5.6-sol",
+   "source": "plugins/ravenclaude-core/knowledge/substrate-tier-map.json:28",
+   "status": "changed",
+   "atlas_cells": [
+    "codex-cli/F17.model-picker"
+   ],
+   "evidence": [
+    "E-codex-cli-01182"
+   ],
+   "quote": "/model | Choose the active model (and reasoning effort, when available). | Use gpt-6-luna or gpt-6.1-sol if shown.",
+   "note": "Codex docs now point to gpt-6-luna and gpt-6.1-sol. There is no Terra tier in the quote.",
+   "reviewer_caveat": ""
+  },
+  {
+   "host": "codex-cli",
+   "fact": "Codex pro is a reasoning mode on Sol, not a separate slug",
+   "source": "plugins/ravenclaude-core/knowledge/substrate-tier-map.json:40",
+   "status": "changed",
+   "atlas_cells": [
+    "codex-cli/F18.effort-values",
+    "codex-cli/F18.model-dependence"
+   ],
+   "evidence": [
+    "E-codex-cli-00649",
+    "E-codex-cli-01886"
+   ],
+   "quote": "Reasoning effort advertised by the selected model, such as low, medium, high, xhigh, max, or ultra.",
+   "note": "Atlas gives Sol's effort as Light to Ultra and never names a pro mode. It is possibly renamed; treat it as unconfirmed.",
+   "reviewer_caveat": ""
+  },
+  {
+   "host": "codex-cli",
+   "fact": "Codex balanced default is GPT-6 Sol",
+   "source": "plugins/ai-coding-model-guidance/knowledge/cross-tool-model-lineup-2026.md:33",
+   "status": "changed",
+   "atlas_cells": [
+    "codex-cli/F17.model-picker",
+    "codex-cli/F18.model-dependence"
+   ],
+   "evidence": [
+    "E-codex-cli-01182"
+   ],
+   "quote": "Use gpt-6-luna or gpt-6.1-sol if shown.",
+   "note": "Docs name gpt-6.1-sol, not GPT-6 Sol, so the model was renamed or bumped.",
+   "reviewer_caveat": ""
+  },
+  {
+   "host": "codex-cli",
+   "fact": "Codex cheapest fast tier is GPT-6 Luna",
+   "source": "plugins/ai-coding-model-guidance/knowledge/cross-tool-model-lineup-2026.md:28",
+   "status": "holds",
+   "atlas_cells": [
+    "codex-cli/F17.model-picker"
+   ],
+   "evidence": [
+    "E-codex-cli-01182"
+   ],
+   "quote": "Use gpt-6-luna or gpt-6.1-sol if shown.",
+   "note": "The quote confirms the model is offered. That it is the cheapest is pricing and was not checked.",
+   "reviewer_caveat": "holds only that the model exists; the pricing claim was not checked"
+  },
+  {
+   "host": "codex-cli",
+   "fact": "Codex /model switches both the model and its reasoning level",
+   "source": "plugins/ai-coding-model-guidance/knowledge/cross-tool-model-lineup-2026.md:136",
+   "status": "holds",
+   "atlas_cells": [
+    "codex-cli/F17.model-picker"
+   ],
+   "evidence": [
+    "E-codex-cli-01182"
+   ],
+   "quote": "/model | Choose the active model (and reasoning effort, when available).",
+   "note": "It sets effort only when the model supports it.",
+   "reviewer_caveat": ""
+  },
+  {
+   "host": "codex-cli",
+   "fact": "Reasoning level on Codex is a dial on the same model, separate from changing the model",
+   "source": "plugins/ai-coding-model-guidance/knowledge/cross-tool-model-lineup-2026.md:154",
+   "status": "holds",
+   "atlas_cells": [
+    "codex-cli/F18.where-set"
+   ],
+   "evidence": [
+    "E-codex-cli-02084",
+    "E-codex-cli-00649"
+   ],
+   "quote": "/reasoning | Choose the reasoning effort for the current chat.",
+   "note": "Also config model_reasoning_effort. The cost advice is not covered.",
+   "reviewer_caveat": ""
+  },
+  {
+   "host": "codex-cli",
+   "fact": "Effort override on Codex CLI goes through an --effort flag (named with cheap-lane's flag)",
+   "source": "plugins/ravenclaude-core/knowledge/agent-routing-matrix.md:153",
+   "status": "not-covered",
+   "atlas_cells": [
+    "codex-cli/F18.where-set"
+   ],
+   "evidence": [],
+   "quote": "",
+   "note": "Atlas puts effort in config model_reasoning_effort, /reasoning, the app control and the GitHub action. Only Codex Security CLI has --effort. cheap-lane has no codex agent.",
+   "reviewer_caveat": ""
+  },
+  {
+   "host": "codex-cli",
+   "fact": "Codex long-run agent and top tier is GPT-6 Astra",
+   "source": "plugins/ai-coding-model-guidance/knowledge/cross-tool-model-lineup-2026.md:30",
+   "status": "not-covered",
+   "atlas_cells": [
+    "codex-cli/F17.model-catalog"
+   ],
+   "evidence": [],
+   "quote": "",
+   "note": "No cited quote names Astra. The catalog cell describes discovery (model/list, codex debug models), not a model list.",
+   "reviewer_caveat": ""
+  },
+  {
+   "host": "copilot-cli",
+   "fact": "Copilot CLI's only confirmed-working --model value is auto; six pinned slugs (incl. claude-haiku-4.5) were rejected at the API level",
+   "source": "plugins/ravenclaude-core/knowledge/agent-routing-matrix.md:55",
+   "status": "contradicted",
+   "atlas_cells": [
+    "copilot-cli/F17.model-flag-env"
+   ],
+   "evidence": [
+    "E-copilot-cli-01391"
+   ],
+   "quote": "--model=MODEL | Choose the AI model (for example, gpt-5.4 or claude-haiku-4.5). Useful for pinning a model in reproducible workflows.",
+   "note": "Docs document pinning by slug. The file's rejections were a v0.305.0 probe; enterprise model enablement (E-copilot-cli-00353) could explain them, so re-probe.",
+   "reviewer_caveat": ""
+  },
+  {
+   "host": "copilot-cli",
+   "fact": "Copilot --effort choices are none|minimal|low|medium|high|xhigh|max",
+   "source": "plugins/ravenclaude-core/skills/cheap-lane-delegation/SKILL.md:136",
+   "status": "changed",
+   "atlas_cells": [
+    "copilot-cli/F18.effort-values"
+   ],
+   "evidence": [
+    "E-copilot-cli-00962"
+   ],
+   "quote": "Set the reasoning effort level (low, medium, high, xhigh, max).",
+   "note": "The docs list five values, without none or minimal. The settings effortLevel accepts low..xhigh, default medium (E-copilot-cli-03753).",
+   "reviewer_caveat": ""
+  },
+  {
+   "host": "copilot-cli",
+   "fact": "Copilot CLI takes an --effort flag for non-default effort",
+   "source": "plugins/ravenclaude-core/knowledge/agent-routing-matrix.md:153",
+   "status": "holds",
+   "atlas_cells": [
+    "copilot-cli/F18.effort-values"
+   ],
+   "evidence": [
+    "E-copilot-cli-00962"
+   ],
+   "quote": "--effort=LEVEL, --reasoning-effort=LEVEL | Set the reasoning effort level (low, medium, high, xhigh, max).",
+   "note": "The sentence refers to cheap-lane's wrapper flag. The host flag exists.",
+   "reviewer_caveat": ""
+  },
+  {
+   "host": "copilot-cli",
+   "fact": "Copilot Auto has named tiers efficiency / balance / intelligence, available in Copilot CLI",
+   "source": "plugins/ai-coding-model-guidance/knowledge/cross-tool-model-lineup-2026.md:100",
+   "status": "holds",
+   "atlas_cells": [
+    "copilot-cli/F17.auto-routing"
+   ],
+   "evidence": [
+    "E-copilot-cli-00900"
+   ],
+   "quote": "Use /model auto TIER (efficiency, balance, or intelligence) to select a specific Auto routing tier directly",
+   "note": "The file marks this [verify-at-use].",
+   "reviewer_caveat": ""
+  },
+  {
+   "host": "copilot-cli",
+   "fact": "Copilot CLI has task-based auto model selection (Auto routes by task)",
+   "source": "plugins/ai-coding-model-guidance/knowledge/cross-tool-model-lineup-2026.md:122",
+   "status": "holds",
+   "atlas_cells": [
+    "copilot-cli/F17.auto-routing"
+   ],
+   "evidence": [
+    "E-copilot-cli-00369"
+   ],
+   "quote": "Auto intelligently chooses models based on real-time system health and model performance ... and the complexity of the task you have given Copilot.",
+   "note": "",
+   "reviewer_caveat": ""
+  },
+  {
+   "host": "copilot-cli",
+   "fact": "Copilot model availability varies by plan and org policy; admins must enable models",
+   "source": "plugins/ai-coding-model-guidance/knowledge/cross-tool-model-lineup-2026.md:106",
+   "status": "holds",
+   "atlas_cells": [
+    "copilot-cli/F17.model-catalog"
+   ],
+   "evidence": [
+    "E-copilot-cli-00353"
+   ],
+   "quote": "Users can only access AI models that are enabled at the enterprise level.",
+   "note": "The five-vendor picker claim in the same sentence is not covered.",
+   "reviewer_caveat": ""
+  },
+  {
+   "host": "copilot-cli",
+   "fact": "Copilot tier models as display names: Claude Haiku 4.5, Claude Sonnet 5, Claude Opus 5",
+   "source": "plugins/ravenclaude-core/knowledge/substrate-tier-map.json:33",
+   "status": "not-covered",
+   "atlas_cells": [
+    "copilot-cli/F17.model-flag-env"
+   ],
+   "evidence": [],
+   "quote": "",
+   "note": "Atlas lists no Copilot model set. Its --model examples are slugs (claude-haiku-4.5), not the display names this map uses.",
+   "reviewer_caveat": ""
+  },
+  {
+   "host": "copilot-cli",
+   "fact": "Copilot CLI offers Claude Fable 5.1, Opus 5.5, GPT-6 Astra, Grok 4.6 and others as of 2026-09",
+   "source": "plugins/ai-coding-model-guidance/knowledge/cross-tool-model-lineup-2026.md:130",
+   "status": "not-covered",
+   "atlas_cells": [
+    "copilot-cli/F17.model-catalog"
+   ],
+   "evidence": [],
+   "quote": "",
+   "note": "Atlas has no model list for Copilot, only example slugs (gpt-5.4, claude-haiku-4.5).",
+   "reviewer_caveat": ""
+  },
+  {
+   "host": "copilot-cli",
+   "fact": "Copilot --model auto rejects --effort; effort applies only with a pinned effort-capable model",
+   "source": "plugins/ravenclaude-core/skills/cheap-lane-delegation/SKILL.md:122",
+   "status": "not-covered",
+   "atlas_cells": [
+    "copilot-cli/F18.model-dependence",
+    "copilot-cli/F17.auto-routing"
+   ],
+   "evidence": [],
+   "quote": "",
+   "note": "Atlas says only that some models support reasoning levels. It does not address Auto combined with --effort.",
+   "reviewer_caveat": ""
+  },
+  {
+   "host": "copilot-cli",
+   "fact": "No valid pinned Copilot --model slug is discoverable non-interactively",
+   "source": "plugins/ravenclaude-core/skills/cheap-lane-delegation/SKILL.md:121",
+   "status": "not-covered",
+   "atlas_cells": [
+    "copilot-cli/F17.model-catalog",
+    "copilot-cli/F17.model-flag-env"
+   ],
+   "evidence": [],
+   "quote": "",
+   "note": "Atlas cites a Supported AI models docs page and example slugs, and lists available models via /model. Non-interactive enumeration is not addressed.",
+   "reviewer_caveat": ""
+  },
+  {
+   "host": "copilot-chat",
+   "fact": "Models are selectable in VS Code across all modes: chat / ask / edit / agent",
+   "source": "plugins/ai-coding-model-guidance/knowledge/cross-tool-model-lineup-2026.md:117",
+   "status": "changed",
+   "atlas_cells": [
+    "copilot-vscode/F19.named-modes"
+   ],
+   "evidence": [
+    "E-copilot-vscode-00291"
+   ],
+   "quote": "Which instructions, tools, and behavior apply to a task. Examples include Agent, Plan, Ask, and custom agents.",
+   "note": "The atlas lists the roles as Agent, Plan, Ask and custom. There is no Edit mode, and Plan is new.",
+   "reviewer_caveat": ""
+  },
+  {
+   "host": "copilot-chat",
+   "fact": "Copilot Chat's chat-mode surface is 'Copilot Chat / edit'",
+   "source": "plugins/ai-coding-model-guidance/knowledge/ai-coding-mode-selection-decision-tree.md:41",
+   "status": "changed",
+   "atlas_cells": [
+    "copilot-vscode/F19.named-modes"
+   ],
+   "evidence": [
+    "E-copilot-vscode-00291"
+   ],
+   "quote": "Examples include Agent, Plan, Ask, and custom agents.",
+   "note": "No Edit mode is named. The supervised read/answer role is now Ask (no edits) or Plan.",
+   "reviewer_caveat": ""
+  },
+  {
+   "host": "copilot-chat",
+   "fact": "VS Code Copilot Chat exposes an interactive model picker directly",
+   "source": "plugins/ravenclaude-core/knowledge/agent-routing-matrix.md:57",
+   "status": "holds",
+   "atlas_cells": [
+    "copilot-vscode/F17.model-picker"
+   ],
+   "evidence": [
+    "E-copilot-vscode-00165"
+   ],
+   "quote": "Use the language model picker in the chat input field to change the model for chat conversations and code editing.",
+   "note": "The file calls it the /model picker; the atlas describes a picker in the chat input field, not a /model command.",
+   "reviewer_caveat": ""
+  },
+  {
+   "host": "copilot-chat",
+   "fact": "Copilot Auto routing tiers roll out in VS Code",
+   "source": "plugins/ai-coding-model-guidance/knowledge/cross-tool-model-lineup-2026.md:100",
+   "status": "holds",
+   "atlas_cells": [
+    "copilot-vscode/F17.auto-routing"
+   ],
+   "evidence": [
+    "E-copilot-vscode-01056"
+   ],
+   "quote": "When the default model is Auto, set the autoTier Copilot managed setting to choose how new chats initially optimize model routing",
+   "note": "VS Code has an autoTier setting. The three tier names are quoted only from the CLI docs.",
+   "reviewer_caveat": ""
+  },
+  {
+   "host": "copilot-chat",
+   "fact": "Copilot offers Auto; let it pick the model unless you have a reason to override",
+   "source": "plugins/ai-coding-model-guidance/knowledge/cross-tool-model-lineup-2026.md:119",
+   "status": "holds",
+   "atlas_cells": [
+    "copilot-vscode/F17.auto-routing"
+   ],
+   "evidence": [
+    "E-copilot-vscode-00175"
+   ],
+   "quote": "With auto model selection, VS Code evaluates task complexity and real-time model availability to route each request to the optimal model.",
+   "note": "The when-to-override advice is editorial and was not checked.",
+   "reviewer_caveat": ""
+  },
+  {
+   "host": "copilot-chat",
+   "fact": "Enterprise admins can set model=auto as the default for new conversations",
+   "source": "plugins/ai-coding-model-guidance/knowledge/cross-tool-model-lineup-2026.md:113",
+   "status": "holds",
+   "atlas_cells": [
+    "copilot-vscode/F17.model-flag-env"
+   ],
+   "evidence": [
+    "E-copilot-vscode-01178"
+   ],
+   "quote": "Sets the default chat model for new conversations. Accepts 'auto', a model family name (such as 'opus' or 'gemini'), or a full model id.",
+   "note": "The policy is chat.defaultModel and needs VS Code 1.127 or later.",
+   "reviewer_caveat": ""
+  },
+  {
+   "host": "copilot-chat",
+   "fact": "GitHub tracks Copilot model availability per client (VS Code, Copilot CLI), not per Chat vs CLI, so both resolve through one copilot row",
+   "source": "plugins/ravenclaude-core/knowledge/agent-routing-matrix.md:53",
+   "status": "not-covered",
+   "atlas_cells": [
+    "copilot-vscode/F17.model-catalog",
+    "copilot-cli/F17.model-catalog"
+   ],
+   "evidence": [],
+   "quote": "",
+   "note": "Catalog cells say availability depends on harness, account and policy; neither mentions a per-client availability table.",
+   "reviewer_caveat": ""
+  },
+  {
+   "host": "copilot-chat",
+   "fact": "Copilot top tier is Claude Opus 5.5 and the balanced default is Claude Sonnet 5",
+   "source": "plugins/ai-coding-model-guidance/knowledge/cross-tool-model-lineup-2026.md:32",
+   "status": "not-covered",
+   "atlas_cells": [
+    "copilot-vscode/F17.model-catalog"
+   ],
+   "evidence": [],
+   "quote": "",
+   "note": "Atlas names no specific Copilot models in VS Code.",
+   "reviewer_caveat": ""
+  },
+  {
+   "host": "grok-build-cli",
+   "fact": "Grok tier map: fast and balanced use grok-4.5, top uses grok-4.6",
+   "source": "plugins/ravenclaude-core/knowledge/substrate-tier-map.json:12",
+   "status": "changed",
+   "atlas_cells": [
+    "grok-build/F17.model-catalog"
+   ],
+   "evidence": [
+    "E-grok-build-00144"
+   ],
+   "quote": "grok-4.7, SpaceXAI's latest model, is available directly on the xAI API.",
+   "note": "Atlas names grok-4.7 as the latest model. It does not mention 4.5 or 4.6 or say they are gone.",
+   "reviewer_caveat": ""
+  },
+  {
+   "host": "grok-build-cli",
+   "fact": "Each Grok Build sub-agent runs in an isolated Git worktree/branch",
+   "source": "plugins/ai-coding-model-guidance/knowledge/cross-tool-model-lineup-2026.md:171",
+   "status": "changed",
+   "atlas_cells": [
+    "grok-build/F14.parallel-subagents"
+   ],
+   "evidence": [
+    "E-grok-build-00044",
+    "E-grok-build-00066"
+   ],
+   "quote": "Subagents can also request worktree isolation when the parent delegates parallel work.",
+   "note": "Worktree isolation is opt-in per request, not automatic. GROK_SUBAGENTS also defaults to 0 (E-grok-build-00066).",
+   "reviewer_caveat": ""
+  },
+  {
+   "host": "grok-build-cli",
+   "fact": "Grok CLI --effort accepts low|medium|high and rejects xhigh",
+   "source": "plugins/ravenclaude-core/skills/cheap-lane-delegation/SKILL.md:136",
+   "status": "changed",
+   "atlas_cells": [
+    "grok-build/F18.effort-values"
+   ],
+   "evidence": [
+    "E-grok-build-00344"
+   ],
+   "quote": "Reasoning efforts (supported): low, medium, high, xhigh",
+   "note": "xhigh is supported on Grok 4.7. The rejection was probed against the 4.5/4.6 tier models, which have no documented levels.",
+   "reviewer_caveat": ""
+  },
+  {
+   "host": "grok-build-cli",
+   "fact": "Grok 4.7 is the current Grok flagship, superseding 4.6, and is used in Grok Build",
+   "source": "plugins/ai-coding-model-guidance/knowledge/cross-tool-model-lineup-2026.md:161",
+   "status": "holds",
+   "atlas_cells": [
+    "grok-build/F17.model-catalog"
+   ],
+   "evidence": [
+    "E-grok-build-00144"
+   ],
+   "quote": "grok-4.7, SpaceXAI's latest model, is available directly on the xAI API. Drop it into your own agent loop, IDE integration, or coding tool.",
+   "note": "Latest-model holds. The quote is from the Grok Build overview page but speaks of the API; Grok Build CLI availability is not stated directly.",
+   "reviewer_caveat": "holds for the latest-model claim; the quote is about the xAI API and does not state Grok Build CLI availability"
+  },
+  {
+   "host": "grok-build-cli",
+   "fact": "Grok Build has a plan mode",
+   "source": "plugins/ai-coding-model-guidance/knowledge/cross-tool-model-lineup-2026.md:171",
+   "status": "holds",
+   "atlas_cells": [
+    "grok-build/F19.plan-mode"
+   ],
+   "evidence": [
+    "E-grok-build-00029"
+   ],
+   "quote": "Only the session plan file may be edited until you approve. Other edit tools are rejected, including under auto or always-approve.",
+   "note": "The file's 'sub-task graph in a TUI' detail is not quoted. Plan mode gates edit tools, not the shell.",
+   "reviewer_caveat": ""
+  },
+  {
+   "host": "grok-build-cli",
+   "fact": "Grok effort per tier: fast=low, balanced/top=high on grok-4.5/grok-4.6",
+   "source": "plugins/ravenclaude-core/knowledge/substrate-tier-map.json:13",
+   "status": "not-covered",
+   "atlas_cells": [
+    "grok-build/F18.model-dependence"
+   ],
+   "evidence": [],
+   "quote": "",
+   "note": "Atlas lists effort levels for Grok 4.7 only (low, medium, high, xhigh). It gives none for 4.5 or 4.6.",
+   "reviewer_caveat": ""
+  },
+  {
+   "host": "grok-build-cli",
+   "fact": "Grok 4.6 is the balanced/mid Grok option and still selectable",
+   "source": "plugins/ai-coding-model-guidance/knowledge/cross-tool-model-lineup-2026.md:33",
+   "status": "not-covered",
+   "atlas_cells": [
+    "grok-build/F17.model-catalog"
+   ],
+   "evidence": [],
+   "quote": "",
+   "note": "Atlas names only grok-4.7.",
+   "reviewer_caveat": ""
+  },
+  {
+   "host": "grok-build-cli",
+   "fact": "Grok 4.6 is the Grok Build CLI default model; 4.5 remains selectable (2026-08-14)",
+   "source": "plugins/ai-coding-model-guidance/knowledge/cross-tool-model-lineup-2026.md:5",
+   "status": "not-covered",
+   "atlas_cells": [
+    "grok-build/F17.model-flag-env"
+   ],
+   "evidence": [],
+   "quote": "",
+   "note": "Atlas documents GROK_DEFAULT_MODEL and -m but gives no default value.",
+   "reviewer_caveat": ""
+  },
+  {
+   "host": "grok-build-cli",
+   "fact": "grok-build-0.1, grok-build, grok-4.3 and grok-4.20 are unknown model ids in the Grok Build CLI",
+   "source": "plugins/ai-coding-model-guidance/knowledge/cross-tool-model-lineup-2026.md:167",
+   "status": "not-covered",
+   "atlas_cells": [
+    "grok-build/F17.model-catalog"
+   ],
+   "evidence": [],
+   "quote": "",
+   "note": "Atlas does not list rejected ids.",
+   "reviewer_caveat": ""
+  },
+  {
+   "host": "grok-build-cli",
+   "fact": "Grok Build runs up to 8 parallel sub-agents",
+   "source": "plugins/ai-coding-model-guidance/knowledge/cross-tool-model-lineup-2026.md:171",
+   "status": "not-covered",
+   "atlas_cells": [
+    "grok-build/F14.concurrency-caps",
+    "grok-build/F14.total-agent-caps"
+   ],
+   "evidence": [],
+   "quote": "",
+   "note": "The concurrency cell quotes only a 50 scheduled-task cap, and total-agent-caps is undocumented.",
+   "reviewer_caveat": ""
+  }
+ ]
+}

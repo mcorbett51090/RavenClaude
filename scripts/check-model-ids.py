@@ -64,6 +64,7 @@ CARVE_SUBSTR = (
     "/tests/",  # ditto
     "plugins/claude-app-engineering/",  # illustrative routing-ladder narrative
     "/docs/",  # plans/research/follow-ups + historical prose
+    "docs/research/2026-10-04-coding-agent-harness-atlas/data/",  # vendor quotes name other vendors' model ids verbatim
     "CHANGELOG.md",
 )
 

@@ -1,0 +1,86 @@
+{
+  "gaps": [
+    {
+      "outcome": "negative",
+      "reason": "status_404",
+      "status": 404,
+      "url": "https://code.claude.com/docs/en/architecture.md"
+    },
+    {
+      "outcome": "negative",
+      "reason": "status_404",
+      "status": 404,
+      "url": "https://code.claude.com/docs/en/build-and-test.md"
+    },
+    {
+      "outcome": "refused",
+      "reason": "off_allow_list:claude.com",
+      "status": 307,
+      "url": "https://code.claude.com/docs/en/claude-tag.md"
+    },
+    {
+      "outcome": "negative",
+      "reason": "status_404",
+      "status": 404,
+      "url": "https://code.claude.com/docs/en/debugging.md"
+    }
+  ],
+  "index_files": {
+    "https://code.claude.com/docs/llms.txt": {
+      "entries": 231,
+      "sha256": "7e9771cb417a2fb7a1200ee9413958b28d34714b4ca276c918816672642cd0e0"
+    },
+    "https://code.claude.com/docs/sitemap.xml": {
+      "entries": 2617,
+      "sha256": "fc94d375109cd77f35bc0001011ce6931a44a580e5977559f5ab6b72aab59434"
+    },
+    "https://code.claude.com/sitemap.xml": {
+      "entries": 2617,
+      "sha256": "fc94d375109cd77f35bc0001011ce6931a44a580e5977559f5ab6b72aab59434"
+    }
+  },
+  "origins_by_source": {
+    "closure": 6,
+    "index": 222,
+    "sitemap": 0
+  },
+  "out_of_scope": [],
+  "retrieved": "2026-10-04",
+  "roles": {
+    "aggregate": {
+      "bytes": 0,
+      "pages": 0
+    },
+    "excluded": {
+      "bytes": 0,
+      "pages": 0
+    },
+    "extract": {
+      "bytes": 9151572,
+      "pages": 222
+    },
+    "html": {
+      "bytes": 0,
+      "pages": 0
+    },
+    "index": {
+      "bytes": 741126,
+      "pages": 3
+    },
+    "out-of-scope": {
+      "bytes": 0,
+      "pages": 0
+    },
+    "secondary": {
+      "bytes": 145765,
+      "pages": 4
+    }
+  },
+  "secondary": {
+    "https://code.claude.com/docs/en/microsoft-foundry.md": "claude-code__code-claude-com__docs__en__azure-ai-foundry",
+    "https://code.claude.com/docs/en/plugins/overview.md": "claude-code__code-claude-com__docs__en__plugins",
+    "https://code.claude.com/docs/en/slash-commands.md": "claude-code__code-claude-com__docs__en__skills",
+    "https://code.claude.com/docs/en/whats-new/index.md": "claude-code__code-claude-com__docs__en__whats-new"
+  },
+  "surface": "claude-code"
+}

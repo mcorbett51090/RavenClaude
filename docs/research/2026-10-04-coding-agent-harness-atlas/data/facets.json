@@ -1,0 +1,1064 @@
+{
+  "schema_version": 1,
+  "status": "frozen-2026-10-04",
+  "note": "Frozen row list of the harness atlas. 22 core facets, each with named sub-feature rows, plus the unmapped bucket U00. Every row has a cell in every column. Comparison claims are made only on a named row (plan, Design, Facet taxonomy and frozen rows). lever: the lever class a row belongs to, or null. slice: P5 rows are researched first, for the lever guide and the routing-matrix precursor.",
+  "lever_classes": ["model", "effort", "mode", "parallelism", "other"],
+  "facets": [
+    {
+      "id": "F01",
+      "name": "Loop and built-in tools",
+      "definition": "The agent loop shape and the native tool inventory.",
+      "rows": [
+        {
+          "id": "F01.loop-shape",
+          "label": "Loop shape",
+          "definition": "How a turn runs: plan, tool call, result, stop.",
+          "lever": null,
+          "slice": null
+        },
+        {
+          "id": "F01.turn-limits",
+          "label": "Turn and step limits",
+          "definition": "Caps on turns, steps or tokens per run, and stop conditions.",
+          "lever": null,
+          "slice": null
+        },
+        {
+          "id": "F01.tool-inventory",
+          "label": "Native tool inventory",
+          "definition": "The built-in tools the agent can call.",
+          "lever": null,
+          "slice": null
+        },
+        {
+          "id": "F01.shell-tool",
+          "label": "Shell execution tool",
+          "definition": "How commands run: shell, working directory, timeouts, output handling.",
+          "lever": null,
+          "slice": null
+        },
+        {
+          "id": "F01.file-edit-tools",
+          "label": "File read, edit and write tools",
+          "definition": "Native file tools and how edits are applied.",
+          "lever": null,
+          "slice": null
+        },
+        {
+          "id": "F01.web-tools",
+          "label": "Web search and fetch tools",
+          "definition": "Built-in web search or page fetch, and their controls.",
+          "lever": null,
+          "slice": null
+        }
+      ]
+    },
+    {
+      "id": "F02",
+      "name": "Context and memory",
+      "definition": "Window management, compaction, persistent or auto memory.",
+      "rows": [
+        {
+          "id": "F02.context-window-size",
+          "label": "Context window size",
+          "definition": "Window sizes available and how to choose one.",
+          "lever": "other",
+          "slice": null
+        },
+        {
+          "id": "F02.auto-compaction",
+          "label": "Automatic compaction",
+          "definition": "When and how history is summarized without a command.",
+          "lever": "other",
+          "slice": null
+        },
+        {
+          "id": "F02.manual-compaction",
+          "label": "Manual compaction",
+          "definition": "A user command or setting that compacts or clears context.",
+          "lever": null,
+          "slice": null
+        },
+        {
+          "id": "F02.context-inclusion",
+          "label": "Context inclusion controls",
+          "definition": "Mentions, attachments, ignore files and what enters the window.",
+          "lever": null,
+          "slice": null
+        },
+        {
+          "id": "F02.persistent-memory",
+          "label": "Persistent memory",
+          "definition": "Memory that survives sessions: files, notes or an auto-memory store.",
+          "lever": null,
+          "slice": null
+        },
+        {
+          "id": "F02.memory-scope-loading",
+          "label": "Memory scope and loading",
+          "definition": "Where memory lives, who sees it, and when it is loaded.",
+          "lever": null,
+          "slice": null
+        }
+      ]
+    },
+    {
+      "id": "F03",
+      "name": "Instruction files",
+      "definition": "Auto-loaded instruction files, import syntax, precedence.",
+      "rows": [
+        {
+          "id": "F03.auto-loaded-files",
+          "label": "Auto-loaded files",
+          "definition": "File names loaded without being asked (AGENTS.md, CLAUDE.md, GEMINI.md, rules).",
+          "lever": null,
+          "slice": null
+        },
+        {
+          "id": "F03.import-syntax",
+          "label": "Import syntax",
+          "definition": "How one instruction file pulls in another.",
+          "lever": null,
+          "slice": null
+        },
+        {
+          "id": "F03.precedence-scoping",
+          "label": "Precedence and scoping",
+          "definition": "Which file wins and how directories nest.",
+          "lever": null,
+          "slice": null
+        },
+        {
+          "id": "F03.path-scoped-rules",
+          "label": "Path-scoped rules",
+          "definition": "Rules that apply only to matching paths or file types.",
+          "lever": null,
+          "slice": null
+        },
+        {
+          "id": "F03.user-vs-project-scope",
+          "label": "User and project scope",
+          "definition": "Personal versus repository instruction locations.",
+          "lever": null,
+          "slice": null
+        }
+      ]
+    },
+    {
+      "id": "F04",
+      "name": "Permission engine",
+      "definition": "Allow, deny and ask rules, scopes, precedence and prompt behaviour.",
+      "rows": [
+        {
+          "id": "F04.approval-modes",
+          "label": "Approval modes",
+          "definition": "Named levels of how much the agent may do without asking.",
+          "lever": "mode",
+          "slice": "P5"
+        },
+        {
+          "id": "F04.per-tool-rules",
+          "label": "Per-tool rules",
+          "definition": "Allow, ask or deny a named tool.",
+          "lever": null,
+          "slice": null
+        },
+        {
+          "id": "F04.path-scoping",
+          "label": "Path scoping",
+          "definition": "Rules limited to files or directories.",
+          "lever": null,
+          "slice": null
+        },
+        {
+          "id": "F04.command-scoping",
+          "label": "Command scoping",
+          "definition": "Rules limited to shell command patterns.",
+          "lever": null,
+          "slice": null
+        },
+        {
+          "id": "F04.trust-prompt",
+          "label": "Trust prompt",
+          "definition": "The first-run or per-folder trust decision.",
+          "lever": null,
+          "slice": null
+        },
+        {
+          "id": "F04.bypass-mode",
+          "label": "Bypass mode",
+          "definition": "A mode or flag that skips permission prompts.",
+          "lever": "mode",
+          "slice": "P5"
+        },
+        {
+          "id": "F04.auto-review",
+          "label": "Auto review",
+          "definition": "A model or classifier that approves or denies actions instead of the user.",
+          "lever": "mode",
+          "slice": "P5"
+        },
+        {
+          "id": "F04.config-scope-precedence",
+          "label": "Config scope and precedence",
+          "definition": "Where permission rules live and which scope wins.",
+          "lever": null,
+          "slice": null
+        }
+      ]
+    },
+    {
+      "id": "F05",
+      "name": "Sandbox and network isolation",
+      "definition": "OS sandbox, container or VM isolation, network allow-lists.",
+      "rows": [
+        {
+          "id": "F05.os-sandbox",
+          "label": "OS or container sandbox",
+          "definition": "The isolation mechanism around commands or the whole agent.",
+          "lever": null,
+          "slice": null
+        },
+        {
+          "id": "F05.fs-write-scope",
+          "label": "Filesystem write scope",
+          "definition": "Where the agent may write.",
+          "lever": null,
+          "slice": null
+        },
+        {
+          "id": "F05.network-policy",
+          "label": "Network policy",
+          "definition": "Allowed hosts, proxies and offline modes.",
+          "lever": null,
+          "slice": null
+        },
+        {
+          "id": "F05.subprocess-containment",
+          "label": "Subprocess containment",
+          "definition": "Whether child processes inherit the restrictions.",
+          "lever": null,
+          "slice": null
+        },
+        {
+          "id": "F05.sandbox-override",
+          "label": "Sandbox override",
+          "definition": "How a command runs outside the sandbox, and who may allow it.",
+          "lever": null,
+          "slice": null
+        }
+      ]
+    },
+    {
+      "id": "F06",
+      "name": "Hooks and lifecycle events",
+      "definition": "Event catalog, handler types, contract, blocking semantics.",
+      "rows": [
+        {
+          "id": "F06.event-catalog",
+          "label": "Event catalog",
+          "definition": "The lifecycle events a hook can attach to.",
+          "lever": null,
+          "slice": null
+        },
+        {
+          "id": "F06.handler-types",
+          "label": "Handler types",
+          "definition": "Command, HTTP, prompt or agent handlers.",
+          "lever": null,
+          "slice": null
+        },
+        {
+          "id": "F06.input-contract",
+          "label": "Input contract",
+          "definition": "What a hook receives: fields, format, channel.",
+          "lever": null,
+          "slice": null
+        },
+        {
+          "id": "F06.output-blocking",
+          "label": "Output and blocking semantics",
+          "definition": "Exit codes or JSON that allow, deny, ask or modify.",
+          "lever": null,
+          "slice": null
+        },
+        {
+          "id": "F06.matchers",
+          "label": "Matcher semantics",
+          "definition": "How a hook selects the tool or event it fires on.",
+          "lever": null,
+          "slice": null
+        },
+        {
+          "id": "F06.config-locations",
+          "label": "Configuration locations",
+          "definition": "Files, scopes and plugin-provided hooks.",
+          "lever": null,
+          "slice": null
+        },
+        {
+          "id": "F06.trust-enable",
+          "label": "Trust and enable controls",
+          "definition": "How hooks are trusted, reviewed, disabled or locked by policy.",
+          "lever": null,
+          "slice": null
+        }
+      ]
+    },
+    {
+      "id": "F07",
+      "name": "Managed and enterprise controls",
+      "definition": "Org policy, admin settings, data retention, identity.",
+      "rows": [
+        {
+          "id": "F07.managed-settings",
+          "label": "Managed settings delivery",
+          "definition": "How an admin pushes settings: file, server or MDM.",
+          "lever": null,
+          "slice": null
+        },
+        {
+          "id": "F07.policy-lockdown",
+          "label": "Policy lockdown",
+          "definition": "Settings or features an admin can force or disable.",
+          "lever": null,
+          "slice": null
+        },
+        {
+          "id": "F07.model-allowlist",
+          "label": "Model allow and deny lists",
+          "definition": "Admin control over which models may be used.",
+          "lever": null,
+          "slice": null
+        },
+        {
+          "id": "F07.identity-sso",
+          "label": "Identity and SSO",
+          "definition": "Sign-in methods, SSO and seat management.",
+          "lever": null,
+          "slice": null
+        },
+        {
+          "id": "F07.data-retention",
+          "label": "Data retention and privacy",
+          "definition": "Retention terms, training use, zero-retention options.",
+          "lever": null,
+          "slice": null
+        },
+        {
+          "id": "F07.admin-audit",
+          "label": "Admin audit and reporting",
+          "definition": "Audit logs and usage reports for admins.",
+          "lever": null,
+          "slice": null
+        }
+      ]
+    },
+    {
+      "id": "F08",
+      "name": "Skills",
+      "definition": "Skill format, discovery path, invocation, resource loading.",
+      "rows": [
+        {
+          "id": "F08.skill-format",
+          "label": "Skill format",
+          "definition": "File layout and frontmatter of a skill.",
+          "lever": null,
+          "slice": null
+        },
+        {
+          "id": "F08.discovery-paths",
+          "label": "Discovery paths",
+          "definition": "Where skills are found, by scope.",
+          "lever": null,
+          "slice": null
+        },
+        {
+          "id": "F08.invocation",
+          "label": "Invocation",
+          "definition": "Automatic selection versus explicit invocation.",
+          "lever": null,
+          "slice": null
+        },
+        {
+          "id": "F08.resource-loading",
+          "label": "Resource loading",
+          "definition": "How a skill's supporting files load into context.",
+          "lever": null,
+          "slice": null
+        },
+        {
+          "id": "F08.skill-overrides",
+          "label": "Per-skill tool and model overrides",
+          "definition": "Frontmatter that restricts tools or sets a model or effort.",
+          "lever": null,
+          "slice": null
+        }
+      ]
+    },
+    {
+      "id": "F09",
+      "name": "Subagents and custom agents",
+      "definition": "Definition format, tool scoping, per-agent model and effort, nesting.",
+      "rows": [
+        {
+          "id": "F09.definition-format",
+          "label": "Definition format",
+          "definition": "File layout and frontmatter fields of a custom agent.",
+          "lever": null,
+          "slice": null
+        },
+        {
+          "id": "F09.tool-allowlist",
+          "label": "Tool allow-list",
+          "definition": "How an agent's tools are restricted.",
+          "lever": null,
+          "slice": null
+        },
+        {
+          "id": "F09.per-agent-model",
+          "label": "Per-agent model",
+          "definition": "Setting a model on a single agent.",
+          "lever": "model",
+          "slice": "P5"
+        },
+        {
+          "id": "F09.per-agent-effort",
+          "label": "Per-agent effort",
+          "definition": "Setting reasoning effort on a single agent.",
+          "lever": "effort",
+          "slice": "P5"
+        },
+        {
+          "id": "F09.nesting-rules",
+          "label": "Nesting rules",
+          "definition": "Whether and how deep agents can spawn agents.",
+          "lever": "parallelism",
+          "slice": "P5"
+        },
+        {
+          "id": "F09.built-in-agents",
+          "label": "Built-in agent types",
+          "definition": "Agents shipped with the product and their defaults.",
+          "lever": null,
+          "slice": null
+        }
+      ]
+    },
+    {
+      "id": "F10",
+      "name": "Slash and custom commands",
+      "definition": "Built-in commands, user-defined commands, arguments.",
+      "rows": [
+        {
+          "id": "F10.built-in-commands",
+          "label": "Built-in commands",
+          "definition": "The shipped command set.",
+          "lever": null,
+          "slice": null
+        },
+        {
+          "id": "F10.custom-command-format",
+          "label": "Custom command format",
+          "definition": "File layout and frontmatter of a user command.",
+          "lever": null,
+          "slice": null
+        },
+        {
+          "id": "F10.arguments",
+          "label": "Arguments",
+          "definition": "How a command receives arguments.",
+          "lever": null,
+          "slice": null
+        },
+        {
+          "id": "F10.discovery-paths",
+          "label": "Discovery paths",
+          "definition": "Where custom commands are found, by scope.",
+          "lever": null,
+          "slice": null
+        },
+        {
+          "id": "F10.command-skill-relation",
+          "label": "Relation to skills",
+          "definition": "Whether commands and skills are the same mechanism.",
+          "lever": null,
+          "slice": null
+        }
+      ]
+    },
+    {
+      "id": "F11",
+      "name": "Plugins and marketplaces",
+      "definition": "Packaging, source types, versioning, trust.",
+      "rows": [
+        {
+          "id": "F11.packaging-format",
+          "label": "Packaging format",
+          "definition": "Manifest and directory layout of a plugin or extension.",
+          "lever": null,
+          "slice": null
+        },
+        {
+          "id": "F11.component-types",
+          "label": "Component types",
+          "definition": "What a package can ship: commands, agents, hooks, MCP, skills.",
+          "lever": null,
+          "slice": null
+        },
+        {
+          "id": "F11.install-sources",
+          "label": "Install sources",
+          "definition": "Where packages come from: marketplace, git, path, archive.",
+          "lever": null,
+          "slice": null
+        },
+        {
+          "id": "F11.versioning-update",
+          "label": "Versioning and update",
+          "definition": "How versions are pinned and updated.",
+          "lever": null,
+          "slice": null
+        },
+        {
+          "id": "F11.trust-signing",
+          "label": "Trust and signing",
+          "definition": "Review, signing and policy controls on installs.",
+          "lever": null,
+          "slice": null
+        },
+        {
+          "id": "F11.marketplace-hosting",
+          "label": "Marketplace hosting",
+          "definition": "How a team publishes its own marketplace.",
+          "lever": null,
+          "slice": null
+        }
+      ]
+    },
+    {
+      "id": "F12",
+      "name": "MCP",
+      "definition": "Transports, config location, scoping, auth.",
+      "rows": [
+        {
+          "id": "F12.client-support",
+          "label": "Client support",
+          "definition": "Whether the harness is an MCP client, and which primitives it uses.",
+          "lever": null,
+          "slice": null
+        },
+        {
+          "id": "F12.transports",
+          "label": "Transports",
+          "definition": "stdio, HTTP, SSE and similar.",
+          "lever": null,
+          "slice": null
+        },
+        {
+          "id": "F12.config-scope",
+          "label": "Config location and scope",
+          "definition": "Files and scopes where servers are declared.",
+          "lever": null,
+          "slice": null
+        },
+        {
+          "id": "F12.auth",
+          "label": "Authentication",
+          "definition": "OAuth, tokens and headers for servers.",
+          "lever": null,
+          "slice": null
+        },
+        {
+          "id": "F12.tool-filtering",
+          "label": "Tool filtering and naming",
+          "definition": "How MCP tools are named, allowed or hidden.",
+          "lever": null,
+          "slice": null
+        },
+        {
+          "id": "F12.server-trust",
+          "label": "Server trust and approval",
+          "definition": "Approval prompts and policy for servers.",
+          "lever": null,
+          "slice": null
+        }
+      ]
+    },
+    {
+      "id": "F13",
+      "name": "Sessions, checkpoints, rewind",
+      "definition": "Resume, fork, undo, transcript location.",
+      "rows": [
+        {
+          "id": "F13.resume-continue",
+          "label": "Resume and continue",
+          "definition": "Reopening a past session.",
+          "lever": null,
+          "slice": null
+        },
+        {
+          "id": "F13.fork-branch",
+          "label": "Fork or branch a session",
+          "definition": "Starting a new line from an existing session.",
+          "lever": null,
+          "slice": null
+        },
+        {
+          "id": "F13.checkpoint-rewind",
+          "label": "Checkpoint and rewind",
+          "definition": "Undoing edits or conversation to an earlier point.",
+          "lever": null,
+          "slice": null
+        },
+        {
+          "id": "F13.transcript-storage",
+          "label": "Transcript storage",
+          "definition": "Where session history is stored and in what format.",
+          "lever": null,
+          "slice": null
+        },
+        {
+          "id": "F13.session-listing",
+          "label": "Session naming and listing",
+          "definition": "Finding and naming sessions.",
+          "lever": null,
+          "slice": null
+        },
+        {
+          "id": "F13.cross-surface-handoff",
+          "label": "Cross-surface handoff",
+          "definition": "Moving a session between CLI, IDE, web or cloud.",
+          "lever": null,
+          "slice": null
+        }
+      ]
+    },
+    {
+      "id": "F14",
+      "name": "Worktrees and parallel execution",
+      "definition": "Worktree isolation, concurrency caps, parallel-agent controls.",
+      "rows": [
+        {
+          "id": "F14.worktree-isolation",
+          "label": "Worktree isolation",
+          "definition": "Git worktrees or equivalent per session or agent.",
+          "lever": null,
+          "slice": null
+        },
+        {
+          "id": "F14.concurrency-caps",
+          "label": "Concurrency caps",
+          "definition": "Limits on agents or sessions running at once.",
+          "lever": "parallelism",
+          "slice": "P5"
+        },
+        {
+          "id": "F14.parallel-subagents",
+          "label": "Parallel subagents",
+          "definition": "Running several subagents in one turn.",
+          "lever": "parallelism",
+          "slice": "P5"
+        },
+        {
+          "id": "F14.total-agent-caps",
+          "label": "Total agent caps",
+          "definition": "Limits on the total agents or calls in a run.",
+          "lever": "parallelism",
+          "slice": "P5"
+        },
+        {
+          "id": "F14.multi-session-coordination",
+          "label": "Multi-session coordination",
+          "definition": "Several independent sessions on one repository.",
+          "lever": null,
+          "slice": null
+        }
+      ]
+    },
+    {
+      "id": "F15",
+      "name": "Background, scheduled and cloud-delegated work",
+      "definition": "Background tasks, routines, cloud agents, delegation.",
+      "rows": [
+        {
+          "id": "F15.background-tasks",
+          "label": "Background tasks",
+          "definition": "Commands or agents that keep running while you work.",
+          "lever": "parallelism",
+          "slice": "P5"
+        },
+        {
+          "id": "F15.scheduled-routines",
+          "label": "Scheduled routines",
+          "definition": "Recurring or one-off scheduled runs.",
+          "lever": null,
+          "slice": null
+        },
+        {
+          "id": "F15.cloud-agents",
+          "label": "Cloud agents",
+          "definition": "Agents that run on the vendor's machines.",
+          "lever": null,
+          "slice": null
+        },
+        {
+          "id": "F15.remote-sessions",
+          "label": "Remote sessions",
+          "definition": "Driving a session running elsewhere.",
+          "lever": null,
+          "slice": null
+        },
+        {
+          "id": "F15.event-triggers",
+          "label": "Event triggers",
+          "definition": "Webhooks, PR events or messages that start a run.",
+          "lever": null,
+          "slice": null
+        },
+        {
+          "id": "F15.delegation",
+          "label": "Delegation to other agents",
+          "definition": "Handing work to another harness or agent product.",
+          "lever": null,
+          "slice": null
+        }
+      ]
+    },
+    {
+      "id": "F16",
+      "name": "Surfaces and programmatic control",
+      "definition": "CLI, IDE, desktop, web, cloud, headless, SDK, CI.",
+      "rows": [
+        {
+          "id": "F16.interactive-cli",
+          "label": "Interactive CLI",
+          "definition": "The terminal interface.",
+          "lever": null,
+          "slice": null
+        },
+        {
+          "id": "F16.headless-mode",
+          "label": "Headless mode",
+          "definition": "Non-interactive runs and output formats.",
+          "lever": null,
+          "slice": null
+        },
+        {
+          "id": "F16.ide-integration",
+          "label": "IDE integration",
+          "definition": "Editor extensions and their relation to the CLI.",
+          "lever": null,
+          "slice": null
+        },
+        {
+          "id": "F16.desktop-web-app",
+          "label": "Desktop and web apps",
+          "definition": "Standalone apps and browser surfaces.",
+          "lever": null,
+          "slice": null
+        },
+        {
+          "id": "F16.sdk-api",
+          "label": "SDK and API",
+          "definition": "Libraries or APIs to drive the agent.",
+          "lever": null,
+          "slice": null
+        },
+        {
+          "id": "F16.ci-chat",
+          "label": "CI and chat surfaces",
+          "definition": "GitHub Actions, Slack and similar entry points.",
+          "lever": null,
+          "slice": null
+        }
+      ]
+    },
+    {
+      "id": "F17",
+      "name": "Model selection and routing",
+      "definition": "Picker, flag, setting, auto-router, vendor-managed.",
+      "rows": [
+        {
+          "id": "F17.model-picker",
+          "label": "Model picker",
+          "definition": "An interactive way to choose the model.",
+          "lever": "model",
+          "slice": "P5"
+        },
+        {
+          "id": "F17.model-flag-env",
+          "label": "Flag, setting and environment",
+          "definition": "Non-interactive ways to set the model.",
+          "lever": "model",
+          "slice": "P5"
+        },
+        {
+          "id": "F17.auto-routing",
+          "label": "Automatic routing",
+          "definition": "The product choosing or switching models itself.",
+          "lever": "model",
+          "slice": "P5"
+        },
+        {
+          "id": "F17.provider-byok",
+          "label": "Providers and bring-your-own-key",
+          "definition": "Other providers, gateways and custom endpoints.",
+          "lever": "model",
+          "slice": "P5"
+        },
+        {
+          "id": "F17.model-catalog",
+          "label": "Model catalog and availability",
+          "definition": "Which models exist, by plan and surface.",
+          "lever": "model",
+          "slice": "P5"
+        }
+      ]
+    },
+    {
+      "id": "F18",
+      "name": "Reasoning effort and thinking",
+      "definition": "Controls, allowed values, per-agent override.",
+      "rows": [
+        {
+          "id": "F18.effort-values",
+          "label": "Effort values and defaults",
+          "definition": "The allowed levels and the default.",
+          "lever": "effort",
+          "slice": "P5"
+        },
+        {
+          "id": "F18.where-set",
+          "label": "Where effort is set",
+          "definition": "Flag, setting, environment, command or UI.",
+          "lever": "effort",
+          "slice": "P5"
+        },
+        {
+          "id": "F18.model-dependence",
+          "label": "Model dependence",
+          "definition": "Which levels each model accepts.",
+          "lever": "effort",
+          "slice": "P5"
+        },
+        {
+          "id": "F18.thinking-budget-visibility",
+          "label": "Thinking budget and visibility",
+          "definition": "Token budgets and whether reasoning is shown.",
+          "lever": "effort",
+          "slice": "P5"
+        }
+      ]
+    },
+    {
+      "id": "F19",
+      "name": "Modes and autonomy levels",
+      "definition": "Named modes, how each is entered, what each changes.",
+      "rows": [
+        {
+          "id": "F19.named-modes",
+          "label": "Named modes",
+          "definition": "The modes the product defines.",
+          "lever": "mode",
+          "slice": "P5"
+        },
+        {
+          "id": "F19.entering-modes",
+          "label": "How modes are entered",
+          "definition": "Keys, flags, commands or settings that switch mode.",
+          "lever": "mode",
+          "slice": "P5"
+        },
+        {
+          "id": "F19.plan-mode",
+          "label": "Plan mode",
+          "definition": "A read-only planning mode, and how it exits.",
+          "lever": "mode",
+          "slice": "P5"
+        },
+        {
+          "id": "F19.autonomy-mode",
+          "label": "Auto-accept and autonomous modes",
+          "definition": "Modes that act without per-step approval.",
+          "lever": "mode",
+          "slice": "P5"
+        },
+        {
+          "id": "F19.read-only-mode",
+          "label": "Read-only or ask mode",
+          "definition": "A mode that cannot change files.",
+          "lever": "mode",
+          "slice": "P5"
+        },
+        {
+          "id": "F19.mode-defaults",
+          "label": "Mode defaults and persistence",
+          "definition": "The default mode and whether a choice persists.",
+          "lever": "mode",
+          "slice": "P5"
+        }
+      ]
+    },
+    {
+      "id": "F20",
+      "name": "Version, release channel, update path",
+      "definition": "Version at retrieval, cadence, channel, changelog.",
+      "rows": [
+        {
+          "id": "F20.version-at-retrieval",
+          "label": "Version at retrieval",
+          "definition": "The current version on the retrieval date, and its source.",
+          "lever": null,
+          "slice": null
+        },
+        {
+          "id": "F20.release-channels",
+          "label": "Release channels",
+          "definition": "Stable, preview or nightly tracks.",
+          "lever": null,
+          "slice": null
+        },
+        {
+          "id": "F20.update-mechanism",
+          "label": "Update mechanism",
+          "definition": "How the product updates itself or is updated.",
+          "lever": null,
+          "slice": null
+        },
+        {
+          "id": "F20.changelog-source",
+          "label": "Changelog source",
+          "definition": "Where release notes live and their format.",
+          "lever": null,
+          "slice": null
+        },
+        {
+          "id": "F20.deprecation-policy",
+          "label": "Deprecation policy",
+          "definition": "How removals and renames are announced.",
+          "lever": null,
+          "slice": null
+        }
+      ]
+    },
+    {
+      "id": "F21",
+      "name": "Relationship to host platform",
+      "definition": "What the surface runs on and what it shares with its siblings.",
+      "rows": [
+        {
+          "id": "F21.host-platform",
+          "label": "Host platform",
+          "definition": "The platform this surface runs on.",
+          "lever": null,
+          "slice": "P5"
+        },
+        {
+          "id": "F21.shared-account-billing",
+          "label": "Shared account and billing",
+          "definition": "Whether account and billing are shared with a sibling.",
+          "lever": null,
+          "slice": "P5"
+        },
+        {
+          "id": "F21.shared-execution-infrastructure",
+          "label": "Shared execution infrastructure",
+          "definition": "Whether machines or VMs are shared with a sibling.",
+          "lever": null,
+          "slice": "P5"
+        },
+        {
+          "id": "F21.shared-model-selection",
+          "label": "Shared model selection",
+          "definition": "Whether model choice is made by the same system.",
+          "lever": null,
+          "slice": "P5"
+        },
+        {
+          "id": "F21.shared-agent-runtime",
+          "label": "Shared agent runtime",
+          "definition": "Whether the agent loop is the same code as a sibling's.",
+          "lever": null,
+          "slice": "P5"
+        },
+        {
+          "id": "F21.delegates-to",
+          "label": "Delegates to",
+          "definition": "Which other surface it hands work to.",
+          "lever": null,
+          "slice": "P5"
+        },
+        {
+          "id": "F21.distinct-harness-features",
+          "label": "Distinct harness features",
+          "definition": "Documented features that no sibling has.",
+          "lever": null,
+          "slice": "P5"
+        }
+      ]
+    },
+    {
+      "id": "F22",
+      "name": "Usage, cost, limits and observability",
+      "definition": "Usage and cost visibility, budgets, rate limits, telemetry, logs.",
+      "rows": [
+        {
+          "id": "F22.usage-visibility",
+          "label": "Usage and cost visibility",
+          "definition": "Where a user sees tokens or spend.",
+          "lever": null,
+          "slice": null
+        },
+        {
+          "id": "F22.budget-caps",
+          "label": "Budgets and caps",
+          "definition": "Spend or token limits a user or admin can set.",
+          "lever": null,
+          "slice": null
+        },
+        {
+          "id": "F22.rate-limits",
+          "label": "Rate-limit behaviour",
+          "definition": "Plan limits, windows and what happens at the limit.",
+          "lever": null,
+          "slice": null
+        },
+        {
+          "id": "F22.telemetry-otel",
+          "label": "Telemetry and OpenTelemetry",
+          "definition": "Metrics and traces the harness emits.",
+          "lever": null,
+          "slice": null
+        },
+        {
+          "id": "F22.logs-debug",
+          "label": "Logs and debug output",
+          "definition": "Log files and debug switches.",
+          "lever": null,
+          "slice": null
+        },
+        {
+          "id": "F22.status-display",
+          "label": "Status line and display",
+          "definition": "On-screen status of model, cost and context.",
+          "lever": null,
+          "slice": null
+        }
+      ]
+    }
+  ],
+  "optional_facets": [
+    {
+      "id": "O1",
+      "name": "Editor and LSP integration",
+      "definition": "Diagnostics, selection context, IDE protocol. Researched where the corpus speaks to it; a missing cell renders as not researched.",
+      "rows": []
+    }
+  ],
+  "unmapped": {
+    "id": "U00",
+    "name": "Unmapped",
+    "definition": "Documented features that fit no frozen row. Each record keeps its quote, is listed on the sources pages and never counts toward complete. Three or more records across two or more columns become an owner Update item."
+  }
+}

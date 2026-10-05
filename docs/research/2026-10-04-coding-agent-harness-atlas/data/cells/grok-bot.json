@@ -1,0 +1,2057 @@
+{
+ "surface": "grok-bot",
+ "cells": [
+  {
+   "id": "grok-bot/F01.loop-shape",
+   "surface": "grok-bot",
+   "row": "F01.loop-shape",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-grok-bot-00033",
+    "E-grok-bot-00065",
+    "E-grok-bot-00742"
+   ],
+   "value": "Grok Bot is a computer-use agent that operates applications, browsers, and development environments. A direct message takes priority over background work and can redirect the current turn; \"Stop now\" ends work immediately, but stopping doesn't undo actions the Bot already completed.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "grok-bot/F01.turn-limits",
+   "surface": "grok-bot",
+   "row": "F01.turn-limits",
+   "state": "undocumented",
+   "verification": "verified",
+   "evidence": [],
+   "sweep_report": {
+    "terms": [
+     "max(imum)?.{0,15}(turns|steps|iterations)",
+     "(turn|step|iteration) limit",
+     "stop condition",
+     "max[-_ ]turns"
+    ],
+    "corpus_sha256": "16c6504d83165720852f3854483b6598f81fb15aff47f3799d5ab54e567e593a",
+    "hits": 0,
+    "hits_reviewed": 0,
+    "positive_control_term": "grok",
+    "positive_control_hits": 1365
+   }
+  },
+  {
+   "id": "grok-bot/F01.tool-inventory",
+   "surface": "grok-bot",
+   "row": "F01.tool-inventory",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-grok-bot-00111",
+    "E-grok-bot-00233",
+    "E-grok-bot-00858"
+   ],
+   "value": "Shell, browser, and computer use inside the hosted computer, which is a persistent cloud computer with a browser, filesystem, and terminal. Bots use plugins where available and computer use for everything else.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "grok-bot/F01.shell-tool",
+   "surface": "grok-bot",
+   "row": "F01.shell-tool",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-grok-bot-00111",
+    "E-grok-bot-00494",
+    "E-grok-bot-00031",
+    "E-grok-bot-00961"
+   ],
+   "value": "Shell, browser, and computer use run inside the hosted computer. Through the desktop app a Bot can also run commands on a member's local machine, only under the local execution policy: per-command approval by default, settable to always allow, ask every time, or never. The setting applies to that desktop alone.",
+   "limitation": "A Bot runs commands on your local computer only under the local execution policy: per-command approval by default, settable to always allow, ask every time, or never."
+  },
+  {
+   "id": "grok-bot/F01.file-edit-tools",
+   "surface": "grok-bot",
+   "row": "F01.file-edit-tools",
+   "state": "undocumented",
+   "verification": "verified",
+   "evidence": [],
+   "sweep_report": {
+    "terms": [
+     "edit(s|ing)? (a |the )?(file|code)",
+     "file (edit|write|read)",
+     "apply(ing)? (a )?(patch|diff|edit)",
+     "str_replace",
+     "(write|create)s? (a |the )?files?"
+    ],
+    "corpus_sha256": "16c6504d83165720852f3854483b6598f81fb15aff47f3799d5ab54e567e593a",
+    "hits": 0,
+    "hits_reviewed": 0,
+    "positive_control_term": "grok",
+    "positive_control_hits": 1365
+   }
+  },
+  {
+   "id": "grok-bot/F01.web-tools",
+   "surface": "grok-bot",
+   "row": "F01.web-tools",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-grok-bot-00799",
+    "E-grok-bot-00245"
+   ],
+   "value": "Grok Bot can use many browser-based tools. A site can still block automation or expire a session.",
+   "limitation": "A site can still block automation or expire a session."
+  },
+  {
+   "id": "grok-bot/F02.context-window-size",
+   "surface": "grok-bot",
+   "row": "F02.context-window-size",
+   "state": "undocumented",
+   "verification": "verified",
+   "evidence": [],
+   "sweep_report": {
+    "terms": [
+     "context window",
+     "\\d+ ?[kKmM] (tokens|context)",
+     "token limit"
+    ],
+    "corpus_sha256": "16c6504d83165720852f3854483b6598f81fb15aff47f3799d5ab54e567e593a",
+    "hits": 0,
+    "hits_reviewed": 0,
+    "positive_control_term": "grok",
+    "positive_control_hits": 1365
+   }
+  },
+  {
+   "id": "grok-bot/F02.auto-compaction",
+   "surface": "grok-bot",
+   "row": "F02.auto-compaction",
+   "state": "undocumented",
+   "verification": "verified",
+   "evidence": [],
+   "sweep_report": {
+    "terms": [
+     "compact",
+     "summariz\\w+ (the )?(conversation|history|context)",
+     "context (is|gets) (full|summarized)"
+    ],
+    "corpus_sha256": "16c6504d83165720852f3854483b6598f81fb15aff47f3799d5ab54e567e593a",
+    "hits": 2,
+    "hits_reviewed": 2,
+    "positive_control_term": "grok",
+    "positive_control_hits": 1365
+   }
+  },
+  {
+   "id": "grok-bot/F02.manual-compaction",
+   "surface": "grok-bot",
+   "row": "F02.manual-compaction",
+   "state": "undocumented",
+   "verification": "verified",
+   "evidence": [],
+   "sweep_report": {
+    "terms": [
+     "/compact",
+     "/clear",
+     "compact (the )?(context|conversation)",
+     "clear (the )?(context|conversation|history)"
+    ],
+    "corpus_sha256": "16c6504d83165720852f3854483b6598f81fb15aff47f3799d5ab54e567e593a",
+    "hits": 0,
+    "hits_reviewed": 0,
+    "positive_control_term": "grok",
+    "positive_control_hits": 1365
+   }
+  },
+  {
+   "id": "grok-bot/F02.context-inclusion",
+   "surface": "grok-bot",
+   "row": "F02.context-inclusion",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-grok-bot-00064",
+    "E-grok-bot-00818",
+    "E-grok-bot-00819"
+   ],
+   "value": "In a conversation you can paste text, links and images, attach files, reference a saved skill with /, and mention a Bot, group, routine or plugin with @. The desktop composer accepts up to six attachments at a time; documents, images and audio can be up to 25 MB each and videos up to 200 MB."
+  },
+  {
+   "id": "grok-bot/F02.persistent-memory",
+   "surface": "grok-bot",
+   "row": "F02.persistent-memory",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-grok-bot-00237",
+    "E-grok-bot-00475",
+    "E-grok-bot-00664",
+    "E-grok-bot-01034"
+   ],
+   "value": "A named Bot keeps its memory, files, browser sessions, and preferences across sessions instead of resetting on every task. A Bot retains stable preferences, important facts, and summaries from its work. A Team Bot can save things it learns for the whole team and tells you when it does.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "grok-bot/F02.memory-scope-loading",
+   "surface": "grok-bot",
+   "row": "F02.memory-scope-loading",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-grok-bot-00244",
+    "E-grok-bot-00664",
+    "E-grok-bot-01034",
+    "E-grok-bot-00468"
+   ],
+   "value": "Learned context stays separate per Bot. Team memory is read by every teammate's conversation; a Team Bot tells you when it saves something for the team, and what it remembers about working with you stays between you and the Bot. Duplicating a Bot copies no conversation history, learned memory, or attachments.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "grok-bot/F03.auto-loaded-files",
+   "surface": "grok-bot",
+   "row": "F03.auto-loaded-files",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-grok-bot-00467",
+    "E-grok-bot-00540",
+    "E-grok-bot-00572",
+    "E-grok-bot-00725"
+   ],
+   "value": "Each Bot has a description that tells it what to work on, which sources to use, and when to ask you first. Use the description for rules that should remain true and the conversation for task-specific instructions. Bots in a group read the group's description when they reply.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "grok-bot/F03.import-syntax",
+   "surface": "grok-bot",
+   "row": "F03.import-syntax",
+   "state": "undocumented",
+   "verification": "verified",
+   "evidence": [],
+   "sweep_report": {
+    "terms": [
+     "@import",
+     "imports? (another|other|a) (file|instruction)",
+     "(include|reference) (another|other) (file|instruction|rules)"
+    ],
+    "corpus_sha256": "16c6504d83165720852f3854483b6598f81fb15aff47f3799d5ab54e567e593a",
+    "hits": 0,
+    "hits_reviewed": 0,
+    "positive_control_term": "grok",
+    "positive_control_hits": 1365
+   }
+  },
+  {
+   "id": "grok-bot/F03.precedence-scoping",
+   "surface": "grok-bot",
+   "row": "F03.precedence-scoping",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-grok-bot-00052",
+    "E-grok-bot-00211",
+    "E-grok-bot-00568",
+    "E-grok-bot-00569"
+   ],
+   "value": "Team Rules apply to every member's Bots and can be scoped to Cursor, Grok Bot, or both; rules applied to Grok Bot are always required, so members can't turn them off. A group's description applies to every Bot in that group, and a Bot's own description applies everywhere that Bot works.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "grok-bot/F03.path-scoped-rules",
+   "surface": "grok-bot",
+   "row": "F03.path-scoped-rules",
+   "state": "undocumented",
+   "verification": "verified",
+   "evidence": [],
+   "sweep_report": {
+    "terms": [
+     "\\bglob",
+     "paths?:",
+     "applies? to (files|paths) matching",
+     "file pattern",
+     "\\*\\*/"
+    ],
+    "corpus_sha256": "16c6504d83165720852f3854483b6598f81fb15aff47f3799d5ab54e567e593a",
+    "hits": 0,
+    "hits_reviewed": 0,
+    "positive_control_term": "grok",
+    "positive_control_hits": 1365
+   }
+  },
+  {
+   "id": "grok-bot/F03.user-vs-project-scope",
+   "surface": "grok-bot",
+   "row": "F03.user-vs-project-scope",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-grok-bot-00052",
+    "E-grok-bot-00540"
+   ],
+   "value": "Team Rules apply to every member's Bots and can be scoped to Cursor, Grok Bot, or both; rules applied to Grok Bot are always required, so members can't turn them off. Each Bot also has its own description, which tells it what to work on, which sources to use, and when to ask you first; only the Bot's owner can change it.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "grok-bot/F04.approval-modes",
+   "surface": "grok-bot",
+   "row": "F04.approval-modes",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-grok-bot-00017",
+    "E-grok-bot-00031",
+    "E-grok-bot-00079"
+   ],
+   "value": "Approval prompts offer Allow once, Always allow (can save a matching rule) and Deny. Execution on Local Computer defaults to per-command approval, per desktop. A Team Bot asks for approval only in its owner's own chat; in other chats it works within the permissions its owner set up.",
+   "limitation": "per-command approval is the default, and the setting applies to that desktop alone"
+  },
+  {
+   "id": "grok-bot/F04.per-tool-rules",
+   "surface": "grok-bot",
+   "row": "F04.per-tool-rules",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-grok-bot-00021",
+    "E-grok-bot-00083",
+    "E-grok-bot-00156"
+   ],
+   "value": "Members can add personal Auto-review rules under Settings > General > Auto-review: Ask first rules always stop matching actions, and Allow automatically rules let matching actions proceed only when the reviewer finds no other reason to stop. In an approval prompt, Always allow can save a matching rule and Deny blocks it."
+  },
+  {
+   "id": "grok-bot/F04.path-scoping",
+   "surface": "grok-bot",
+   "row": "F04.path-scoping",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-grok-bot-00085"
+   ],
+   "value": "The docs give an example Auto Review rule: Allow automatically when running `git status` in `/workspace/reports`.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "grok-bot/F04.command-scoping",
+   "surface": "grok-bot",
+   "row": "F04.command-scoping",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-grok-bot-00085",
+    "E-grok-bot-00411"
+   ],
+   "value": "The docs give an example Auto Review rule: Allow automatically when running `git status` in `/workspace/reports`. Local execution defaults to per-command approval, and the approval card shows the exact command.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "grok-bot/F04.trust-prompt",
+   "surface": "grok-bot",
+   "row": "F04.trust-prompt",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-grok-bot-00709"
+   ],
+   "value": "In the section 'Control access to your local computer', a prompt offers Always allow, Allow once, Never, and Deny once (Esc).",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "grok-bot/F04.bypass-mode",
+   "surface": "grok-bot",
+   "row": "F04.bypass-mode",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-grok-bot-00493",
+    "E-grok-bot-00706",
+    "E-grok-bot-00710",
+    "E-grok-bot-00049"
+   ],
+   "value": "A Bot runs commands on your local computer only under the local execution policy: per-command approval by default, settable to always allow, ask every time, or never. A team admin can cap the setting; under a stricter ceiling, Always allow is unavailable.",
+   "limitation": "This policy covers commands on your local computer and is separate from the approvals that govern work on the cloud computer."
+  },
+  {
+   "id": "grok-bot/F04.auto-review",
+   "surface": "grok-bot",
+   "row": "F04.auto-review",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-grok-bot-00018",
+    "E-grok-bot-00006",
+    "E-grok-bot-00179",
+    "E-grok-bot-00080"
+   ],
+   "value": "Auto Review is an independent review model that evaluates risky Bot actions before they run, covering shell commands, plugin calls, computer use, automation writes and delegation.",
+   "limitation": "Described as applying 'With enforcement on'. Where nobody can answer an approval card, the Bot runs without Auto-review (E-grok-bot-00179); if an Enterprise admin enforces Auto-review, it still checks actions in those chats (E-grok-bot-00080)."
+  },
+  {
+   "id": "grok-bot/F04.config-scope-precedence",
+   "surface": "grok-bot",
+   "row": "F04.config-scope-precedence",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-grok-bot-00020",
+    "E-grok-bot-00077",
+    "E-grok-bot-00082",
+    "E-grok-bot-00981"
+   ],
+   "value": "Auto-review rules are added under Settings → General → Auto-review; personal rules are stored on each desktop. Admins can add team Auto-review rules (Enterprise only) that apply to every member's Bots and show as locked rows in member settings. Ask first wins if two rules conflict; if the switch says Required by your admin, it cannot be turned off.",
+   "limitation": "Admins can add team Auto-review rules. Enterprise only."
+  },
+  {
+   "id": "grok-bot/F05.os-sandbox",
+   "surface": "grok-bot",
+   "row": "F05.os-sandbox",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-grok-bot-00034",
+    "E-grok-bot-00190",
+    "E-grok-bot-00016",
+    "E-grok-bot-00239"
+   ],
+   "value": "Each user's work runs in a dedicated Firecracker microVM with hardware-level separation from other users, with its own kernel, memory, and virtual devices. The computer belongs to the account, not to an individual Bot, so anything on it is available to every Bot. Grok Bot runs only on Cursor-hosted cloud computers.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "grok-bot/F05.fs-write-scope",
+   "surface": "grok-bot",
+   "row": "F05.fs-write-scope",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-grok-bot-00489"
+   ],
+   "value": "The computer has a shared workspace at `/workspace` for durable project files in clear project folders. Files, browser state, and supported sign-ins survive normal computer updates and recovery.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "grok-bot/F05.network-policy",
+   "surface": "grok-bot",
+   "row": "F05.network-policy",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-grok-bot-00487",
+    "E-grok-bot-00316",
+    "E-grok-bot-00051",
+    "E-grok-bot-00361"
+   ],
+   "value": "Blocking a plugin doesn't block that service's website; closing that path takes Network Controls (Enterprise only). Grok Bot computers reach the internet through shared static egress IP addresses. The Allow Local Egress switch is on by default and lets members route web traffic through their own computer; routed traffic is subject to that device's gateway policy.",
+   "limitation": "Closing that second path takes Network Controls, which is Enterprise only."
+  },
+  {
+   "id": "grok-bot/F05.subprocess-containment",
+   "surface": "grok-bot",
+   "row": "F05.subprocess-containment",
+   "state": "undocumented",
+   "verification": "verified",
+   "evidence": [],
+   "sweep_report": {
+    "terms": [
+     "child process",
+     "subprocess",
+     "spawned (process|command)",
+     "inherit"
+    ],
+    "corpus_sha256": "16c6504d83165720852f3854483b6598f81fb15aff47f3799d5ab54e567e593a",
+    "hits": 9,
+    "hits_reviewed": 9,
+    "positive_control_term": "grok",
+    "positive_control_hits": 1365
+   }
+  },
+  {
+   "id": "grok-bot/F05.sandbox-override",
+   "surface": "grok-bot",
+   "row": "F05.sandbox-override",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-grok-bot-00049",
+    "E-grok-bot-00050",
+    "E-grok-bot-00555"
+   ],
+   "value": "A Bot runs a command on the user's desktop only if the user allows it (Settings > Computer > Execution on this computer). The team ceiling, picked on the Grok Bot page, is Always allow (the default; leaves the choice to each member), Ask every time, or Never allow; a member's own setting still applies when it is stricter than the team's.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "grok-bot/F06.event-catalog",
+   "surface": "grok-bot",
+   "row": "F06.event-catalog",
+   "state": "undocumented",
+   "verification": "verified",
+   "evidence": [],
+   "sweep_report": {
+    "terms": [
+     "(pre|post)-?(tool|session|prompt)",
+     "session ?(start|end)",
+     "lifecycle event",
+     "hook events?"
+    ],
+    "corpus_sha256": "16c6504d83165720852f3854483b6598f81fb15aff47f3799d5ab54e567e593a",
+    "hits": 6,
+    "hits_reviewed": 6,
+    "positive_control_term": "grok",
+    "positive_control_hits": 1365
+   }
+  },
+  {
+   "id": "grok-bot/F06.handler-types",
+   "surface": "grok-bot",
+   "row": "F06.handler-types",
+   "state": "undocumented",
+   "verification": "verified",
+   "evidence": [],
+   "sweep_report": {
+    "terms": [
+     "hooks?\\b.{0,40}(command|http|prompt|agent|script)",
+     "(command|http) hook"
+    ],
+    "corpus_sha256": "16c6504d83165720852f3854483b6598f81fb15aff47f3799d5ab54e567e593a",
+    "hits": 4,
+    "hits_reviewed": 4,
+    "positive_control_term": "grok",
+    "positive_control_hits": 1365
+   }
+  },
+  {
+   "id": "grok-bot/F06.input-contract",
+   "surface": "grok-bot",
+   "row": "F06.input-contract",
+   "state": "undocumented",
+   "verification": "verified",
+   "evidence": [],
+   "sweep_report": {
+    "terms": [
+     "hooks?\\b.{0,60}(stdin|json|payload|receives|input|environment variable)"
+    ],
+    "corpus_sha256": "16c6504d83165720852f3854483b6598f81fb15aff47f3799d5ab54e567e593a",
+    "hits": 0,
+    "hits_reviewed": 0,
+    "positive_control_term": "grok",
+    "positive_control_hits": 1365
+   }
+  },
+  {
+   "id": "grok-bot/F06.output-blocking",
+   "surface": "grok-bot",
+   "row": "F06.output-blocking",
+   "state": "undocumented",
+   "verification": "verified",
+   "evidence": [],
+   "sweep_report": {
+    "terms": [
+     "hooks?\\b.{0,60}(exit code|block|deny|allow|modify|decision)",
+     "exit code 2"
+    ],
+    "corpus_sha256": "16c6504d83165720852f3854483b6598f81fb15aff47f3799d5ab54e567e593a",
+    "hits": 0,
+    "hits_reviewed": 0,
+    "positive_control_term": "grok",
+    "positive_control_hits": 1365
+   }
+  },
+  {
+   "id": "grok-bot/F06.matchers",
+   "surface": "grok-bot",
+   "row": "F06.matchers",
+   "state": "undocumented",
+   "verification": "verified",
+   "evidence": [],
+   "sweep_report": {
+    "terms": [
+     "matcher",
+     "hooks?\\b.{0,40}(match|filter|tool name|pattern)"
+    ],
+    "corpus_sha256": "16c6504d83165720852f3854483b6598f81fb15aff47f3799d5ab54e567e593a",
+    "hits": 0,
+    "hits_reviewed": 0,
+    "positive_control_term": "grok",
+    "positive_control_hits": 1365
+   }
+  },
+  {
+   "id": "grok-bot/F06.config-locations",
+   "surface": "grok-bot",
+   "row": "F06.config-locations",
+   "state": "undocumented",
+   "verification": "verified",
+   "evidence": [],
+   "sweep_report": {
+    "terms": [
+     "hooks?\\b.{0,60}(config|settings|file|\\.json|\\.toml|dir)",
+     "hooks\\.json",
+     "plugin.{0,30}hooks?"
+    ],
+    "corpus_sha256": "16c6504d83165720852f3854483b6598f81fb15aff47f3799d5ab54e567e593a",
+    "hits": 0,
+    "hits_reviewed": 0,
+    "positive_control_term": "grok",
+    "positive_control_hits": 1365
+   }
+  },
+  {
+   "id": "grok-bot/F06.trust-enable",
+   "surface": "grok-bot",
+   "row": "F06.trust-enable",
+   "state": "undocumented",
+   "verification": "verified",
+   "evidence": [],
+   "sweep_report": {
+    "terms": [
+     "hooks?\\b.{0,60}(trust|enable|disable|review|policy|approve)"
+    ],
+    "corpus_sha256": "16c6504d83165720852f3854483b6598f81fb15aff47f3799d5ab54e567e593a",
+    "hits": 0,
+    "hits_reviewed": 0,
+    "positive_control_term": "grok",
+    "positive_control_hits": 1365
+   }
+  },
+  {
+   "id": "grok-bot/F07.managed-settings",
+   "surface": "grok-bot",
+   "row": "F07.managed-settings",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-grok-bot-00043",
+    "E-grok-bot-00422",
+    "E-grok-bot-00270"
+   ],
+   "value": "Most settings sit on the admin-only Grok Bot page of the Cursor dashboard; a few live in Team Settings, Team Marketplace or the identity provider. An Enterprise admin can provide a managed setup (Team Setup), configured from the dashboard via manifests. IT can push a versioned desktop installer with tools it already uses for other software.",
+   "limitation": "Several controls are available only on the Enterprise plan. Team Setup is Enterprise only."
+  },
+  {
+   "id": "grok-bot/F07.policy-lockdown",
+   "surface": "grok-bot",
+   "row": "F07.policy-lockdown",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-grok-bot-00019",
+    "E-grok-bot-00037",
+    "E-grok-bot-00417"
+   ],
+   "value": "Team admins can set Team Rules, Cloud Agent delegation, template sharing and the local execution ceiling. Enterprise admins can enforce Auto-review (members can't turn it off unless a group they belong to lifts the lock with Don't enforce for this group) and can turn off Allow Local Egress, which locks the member's toggle.",
+   "limitation": "Team admins can enforce Auto-review. Enterprise only."
+  },
+  {
+   "id": "grok-bot/F07.model-allowlist",
+   "surface": "grok-bot",
+   "row": "F07.model-allowlist",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-grok-bot-00025",
+    "E-grok-bot-00014"
+   ],
+   "value": "A team model allowlist exists. The list is honored by default; onboarding presents an acknowledgement that Grok Bot may not follow it, so enforcement is configuration dependent.",
+   "limitation": "The team model allowlist is Enterprise only, and enforcement is not guaranteed."
+  },
+  {
+   "id": "grok-bot/F07.identity-sso",
+   "surface": "grok-bot",
+   "row": "F07.identity-sso",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-grok-bot-00389",
+    "E-grok-bot-00045",
+    "E-grok-bot-00280"
+   ],
+   "value": "Members sign in with their Cursor account through the normal SSO flow; Grok Bot has no separate login. SAML 2.0 single sign-on works with Okta, Microsoft Entra, Google Workspace and OneLogin, and SSO can be required for all members (which blocks password login). SCIM 2.0 provisioning and deprovisioning runs through the identity provider.",
+   "limitation": "SCIM is Enterprise only."
+  },
+  {
+   "id": "grok-bot/F07.data-retention",
+   "surface": "grok-bot",
+   "row": "F07.data-retention",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-grok-bot-00026",
+    "E-grok-bot-00112",
+    "E-grok-bot-00296"
+   ],
+   "value": "While a member is on the team, the team's privacy mode governs them, and with Privacy Mode enabled, customer data is not used for training. Cursor enforces this on its servers; when the setting can't be verified, the system defaults to not training. Privacy Mode (Legacy) blocks Grok Bot entirely.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "grok-bot/F07.admin-audit",
+   "surface": "grok-bot",
+   "row": "F07.admin-audit",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-grok-bot-00061",
+    "E-grok-bot-00011",
+    "E-grok-bot-00396"
+   ],
+   "value": "Audit logs cover admin, security and authentication events plus Grok Bot control-plane events (Bot creation, member access changes, Team Setup manifests, MCP authentication, Slack account links, routines). Action Recording captures Bot actions, and OpenTelemetry Export sends those events to your collector when configured.",
+   "limitation": "Audit logs are Enterprise only."
+  },
+  {
+   "id": "grok-bot/F08.skill-format",
+   "surface": "grok-bot",
+   "row": "F08.skill-format",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-grok-bot-00068",
+    "E-grok-bot-00989",
+    "E-grok-bot-00813"
+   ],
+   "value": "A skill is a reusable set of instructions for how to do a task. Skills capture steps, decision rules, expected output and safety boundaries. Teach a task turns a demonstration into a draft skill that you can review."
+  },
+  {
+   "id": "grok-bot/F08.discovery-paths",
+   "surface": "grok-bot",
+   "row": "F08.discovery-paths",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-grok-bot-00418",
+    "E-grok-bot-00068",
+    "E-grok-bot-00994",
+    "E-grok-bot-00680",
+    "E-grok-bot-00069"
+   ],
+   "value": "Marketplace discovers plugins and packaged skills; Yours reviews installed plugins and private skills. Skills are available across your Bots, and private skills are one library shared by all your Bots. On a Team Bot, Plugins, Secrets, Skills and Files hold what the Bot uses for everyone. Type / in the composer to reference a skill.",
+   "limitation": "A Bot may still need the relevant plugin or login. A private skill missing from the / menu must be enabled for the current Bot under Settings > Plugins > Yours."
+  },
+  {
+   "id": "grok-bot/F08.invocation",
+   "surface": "grok-bot",
+   "row": "F08.invocation",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-grok-bot-00064",
+    "E-grok-bot-00993",
+    "E-grok-bot-00069"
+   ],
+   "value": "Reference a saved skill with / in the composer. If a private skill doesn't appear in the / menu, enable it for the current Bot under Settings > Plugins > Yours.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "grok-bot/F08.resource-loading",
+   "surface": "grok-bot",
+   "row": "F08.resource-loading",
+   "state": "undocumented",
+   "verification": "verified",
+   "evidence": [],
+   "sweep_report": {
+    "terms": [
+     "skills?\\b.{0,80}(reference|resource|supporting|bundled|load|script)",
+     "progressive disclosure"
+    ],
+    "corpus_sha256": "16c6504d83165720852f3854483b6598f81fb15aff47f3799d5ab54e567e593a",
+    "hits": 1,
+    "hits_reviewed": 1,
+    "positive_control_term": "grok",
+    "positive_control_hits": 1365
+   }
+  },
+  {
+   "id": "grok-bot/F08.skill-overrides",
+   "surface": "grok-bot",
+   "row": "F08.skill-overrides",
+   "state": "undocumented",
+   "verification": "verified",
+   "evidence": [],
+   "sweep_report": {
+    "terms": [
+     "skills?\\b.{0,100}(allowed-tools|model|effort|frontmatter)",
+     "allowed-tools"
+    ],
+    "corpus_sha256": "16c6504d83165720852f3854483b6598f81fb15aff47f3799d5ab54e567e593a",
+    "hits": 0,
+    "hits_reviewed": 0,
+    "positive_control_term": "grok",
+    "positive_control_hits": 1365
+   }
+  },
+  {
+   "id": "grok-bot/F09.definition-format",
+   "surface": "grok-bot",
+   "row": "F09.definition-format",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-grok-bot-00465",
+    "E-grok-bot-00540",
+    "E-grok-bot-00604"
+   ],
+   "value": "A Bot has a name, a label and a description, set under Bot settings. The description is the Bot's job: it tells the Bot what to work on, which sources to use, and when to ask you first. Only the Bot's owner can change these.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "grok-bot/F09.tool-allowlist",
+   "surface": "grok-bot",
+   "row": "F09.tool-allowlist",
+   "state": "undocumented",
+   "verification": "verified",
+   "evidence": [],
+   "sweep_report": {
+    "terms": [
+     "(sub-?)?agents?.{0,80}(allowed-tools|allowlist|disallowed|tools?:)"
+    ],
+    "corpus_sha256": "16c6504d83165720852f3854483b6598f81fb15aff47f3799d5ab54e567e593a",
+    "hits": 0,
+    "hits_reviewed": 0,
+    "positive_control_term": "grok",
+    "positive_control_hits": 1365
+   }
+  },
+  {
+   "id": "grok-bot/F09.per-agent-model",
+   "surface": "grok-bot",
+   "row": "F09.per-agent-model",
+   "state": "undocumented",
+   "verification": "verified",
+   "evidence": [],
+   "sweep_report": {
+    "terms": [
+     "(sub-?agents?|custom agents?|agent definitions?|per-agent|each agent|specialist).{0,100}\\bmodel\\b",
+     "\\bmodel\\b.{0,100}(sub-?agents?|per-agent|custom agents?)"
+    ],
+    "corpus_sha256": "16c6504d83165720852f3854483b6598f81fb15aff47f3799d5ab54e567e593a",
+    "hits": 0,
+    "hits_reviewed": 0,
+    "positive_control_term": "grok",
+    "positive_control_hits": 1365
+   }
+  },
+  {
+   "id": "grok-bot/F09.per-agent-effort",
+   "surface": "grok-bot",
+   "row": "F09.per-agent-effort",
+   "state": "undocumented",
+   "verification": "verified",
+   "evidence": [],
+   "sweep_report": {
+    "terms": [
+     "(sub-?agents?|custom agents?|agent definitions?|per-agent|each agent).{0,100}(effort|reasoning|thinking)",
+     "(effort|reasoning|thinking).{0,100}(sub-?agents?|per-agent|custom agents?)"
+    ],
+    "corpus_sha256": "16c6504d83165720852f3854483b6598f81fb15aff47f3799d5ab54e567e593a",
+    "hits": 0,
+    "hits_reviewed": 0,
+    "positive_control_term": "grok",
+    "positive_control_hits": 1365
+   }
+  },
+  {
+   "id": "grok-bot/F09.nesting-rules",
+   "surface": "grok-bot",
+   "row": "F09.nesting-rules",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-grok-bot-00466",
+    "E-grok-bot-00597"
+   ],
+   "value": "Existing Bots can suggest or create a focused Bot when a job should have a long-lived owner. A helper Bot is a Bot that one of the user's Bots created to help with its work; it shows up in the sidebar and notifies like any other Bot."
+  },
+  {
+   "id": "grok-bot/F09.built-in-agents",
+   "surface": "grok-bot",
+   "row": "F09.built-in-agents",
+   "state": "undocumented",
+   "verification": "verified",
+   "evidence": [],
+   "sweep_report": {
+    "terms": [
+     "built-in (sub-?)?agents?",
+     "default (sub-?)?agents?",
+     "(explore|plan|general-purpose|general) (sub-?)?agent",
+     "bundled agents?"
+    ],
+    "corpus_sha256": "16c6504d83165720852f3854483b6598f81fb15aff47f3799d5ab54e567e593a",
+    "hits": 0,
+    "hits_reviewed": 0,
+    "positive_control_term": "grok",
+    "positive_control_hits": 1365
+   }
+  },
+  {
+   "id": "grok-bot/F10.built-in-commands",
+   "surface": "grok-bot",
+   "row": "F10.built-in-commands",
+   "state": "undocumented",
+   "verification": "verified",
+   "evidence": [],
+   "sweep_report": {
+    "terms": [
+     "(built-in|available) (slash )?commands",
+     "slash commands?",
+     "/\\w+ command"
+    ],
+    "corpus_sha256": "16c6504d83165720852f3854483b6598f81fb15aff47f3799d5ab54e567e593a",
+    "hits": 0,
+    "hits_reviewed": 0,
+    "positive_control_term": "grok",
+    "positive_control_hits": 1365
+   }
+  },
+  {
+   "id": "grok-bot/F10.custom-command-format",
+   "surface": "grok-bot",
+   "row": "F10.custom-command-format",
+   "state": "undocumented",
+   "verification": "verified",
+   "evidence": [],
+   "sweep_report": {
+    "terms": [
+     "custom (slash )?commands?",
+     "command.{0,30}(markdown|frontmatter|\\.md|file)",
+     "/commands"
+    ],
+    "corpus_sha256": "16c6504d83165720852f3854483b6598f81fb15aff47f3799d5ab54e567e593a",
+    "hits": 8,
+    "hits_reviewed": 8,
+    "positive_control_term": "grok",
+    "positive_control_hits": 1365
+   }
+  },
+  {
+   "id": "grok-bot/F10.arguments",
+   "surface": "grok-bot",
+   "row": "F10.arguments",
+   "state": "undocumented",
+   "verification": "verified",
+   "evidence": [],
+   "sweep_report": {
+    "terms": [
+     "\\$ARGUMENTS",
+     "argument-hint",
+     "(slash )?command.{0,40}arguments?",
+     "placeholder"
+    ],
+    "corpus_sha256": "16c6504d83165720852f3854483b6598f81fb15aff47f3799d5ab54e567e593a",
+    "hits": 1,
+    "hits_reviewed": 1,
+    "positive_control_term": "grok",
+    "positive_control_hits": 1365
+   }
+  },
+  {
+   "id": "grok-bot/F10.discovery-paths",
+   "surface": "grok-bot",
+   "row": "F10.discovery-paths",
+   "state": "undocumented",
+   "verification": "verified",
+   "evidence": [],
+   "sweep_report": {
+    "terms": [
+     "commands?.{0,40}(director|folder|path|~/)",
+     "~/\\.\\w+/commands"
+    ],
+    "corpus_sha256": "16c6504d83165720852f3854483b6598f81fb15aff47f3799d5ab54e567e593a",
+    "hits": 0,
+    "hits_reviewed": 0,
+    "positive_control_term": "grok",
+    "positive_control_hits": 1365
+   }
+  },
+  {
+   "id": "grok-bot/F10.command-skill-relation",
+   "surface": "grok-bot",
+   "row": "F10.command-skill-relation",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-grok-bot-00064"
+   ],
+   "value": "In a conversation, a saved skill is referenced with `/`, while `@` mentions a Bot, group, routine, or plugin.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "grok-bot/F11.packaging-format",
+   "surface": "grok-bot",
+   "row": "F11.packaging-format",
+   "state": "undocumented",
+   "verification": "verified",
+   "evidence": [],
+   "sweep_report": {
+    "terms": [
+     "plugin\\.json",
+     "package\\.json",
+     "manifest.{0,40}(plugin|extension)",
+     "(plugin|extension)s? .{0,20}(directory|layout|structure|package format)",
+     "gemini-extension\\.json",
+     "\\.mcp\\.json"
+    ],
+    "corpus_sha256": "16c6504d83165720852f3854483b6598f81fb15aff47f3799d5ab54e567e593a",
+    "hits": 1,
+    "hits_reviewed": 1,
+    "positive_control_term": "grok",
+    "positive_control_hits": 1365
+   }
+  },
+  {
+   "id": "grok-bot/F11.component-types",
+   "surface": "grok-bot",
+   "row": "F11.component-types",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-grok-bot-00419",
+    "E-grok-bot-00763"
+   ],
+   "value": "Plugins and packaged skills are distinguished from installed plugins and private skills. Connectors are installed as plugins, and individual plugin tools can be enabled or disabled.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "grok-bot/F11.install-sources",
+   "surface": "grok-bot",
+   "row": "F11.install-sources",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-grok-bot-00420",
+    "E-grok-bot-00763",
+    "E-grok-bot-00832"
+   ],
+   "value": "Connectors are installed as plugins from Marketplace, and for supported services you can also install a plugin from Marketplace. An installed plugin may still need browser authentication.",
+   "limitation": "On the Teams plan and the Enterprise plan, team-provided plugins may be required or restricted by an admin."
+  },
+  {
+   "id": "grok-bot/F11.versioning-update",
+   "surface": "grok-bot",
+   "row": "F11.versioning-update",
+   "state": "undocumented",
+   "verification": "verified",
+   "evidence": [],
+   "sweep_report": {
+    "terms": [
+     "(plugin|extension)s?.{0,60}(version|update|upgrade|pin)",
+     "update (the )?(plugin|extension)",
+     "semver"
+    ],
+    "corpus_sha256": "16c6504d83165720852f3854483b6598f81fb15aff47f3799d5ab54e567e593a",
+    "hits": 0,
+    "hits_reviewed": 0,
+    "positive_control_term": "grok",
+    "positive_control_hits": 1365
+   }
+  },
+  {
+   "id": "grok-bot/F11.trust-signing",
+   "surface": "grok-bot",
+   "row": "F11.trust-signing",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-grok-bot-00515",
+    "E-grok-bot-00445"
+   ],
+   "value": "If you use Grok Bot through a Cursor team, your Cursor team admin controls which marketplace plugins are available; a disabled plugin needs the admin to enable it. Any connector permitted in Teams Marketplace is available to every Bot a member runs."
+  },
+  {
+   "id": "grok-bot/F11.marketplace-hosting",
+   "surface": "grok-bot",
+   "row": "F11.marketplace-hosting",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-grok-bot-00445",
+    "E-grok-bot-00515"
+   ],
+   "value": "Connector policy is audited in Teams Marketplace, and a Cursor team admin controls which marketplace plugins are available to team members. Any permitted connector is available to every Bot a member runs.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "grok-bot/F12.client-support",
+   "surface": "grok-bot",
+   "row": "F12.client-support",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-grok-bot-00224",
+    "E-grok-bot-00484"
+   ],
+   "value": "Hosted connector calls are MCP calls that Cursor runs. Plugins give Bots a structured way to work with services like Gmail, Notion, and Slack.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "grok-bot/F12.transports",
+   "surface": "grok-bot",
+   "row": "F12.transports",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-grok-bot-01018",
+    "E-grok-bot-01020"
+   ],
+   "value": "A Command server runs on whichever computer the conversation uses. For a custom server that needs secrets, the docs say to choose Remote HTTPS."
+  },
+  {
+   "id": "grok-bot/F12.config-scope",
+   "surface": "grok-bot",
+   "row": "F12.config-scope",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-grok-bot-00047",
+    "E-grok-bot-00485",
+    "E-grok-bot-00048"
+   ],
+   "value": "Grok Bot inherits the team's Cursor connector policy; there is no separate Grok Bot connector list, and connectors appear as plugins. Servers members can use are set from the Team Marketplace on the dashboard's Plugins & MCPs page. An installed plugin is account-wide, available to every Bot you run.",
+   "limitation": "Pushing connectors to members, whether mandatory or default-on, is not available."
+  },
+  {
+   "id": "grok-bot/F12.auth",
+   "surface": "grok-bot",
+   "row": "F12.auth",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-grok-bot-00513",
+    "E-grok-bot-00486",
+    "E-grok-bot-00393"
+   ],
+   "value": "When Grok Bot asks you to Authorize or Authenticate, you finish the provider login in your browser. OAuth tokens are held on Cursor's connector backend, and Bots invoke tools without receiving them; tokens are never stored on the computer.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "grok-bot/F12.tool-filtering",
+   "surface": "grok-bot",
+   "row": "F12.tool-filtering",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-grok-bot-00419",
+    "E-grok-bot-00040",
+    "E-grok-bot-00206"
+   ],
+   "value": "Individual plugin tools can be enabled or disabled, and the team's Cursor MCP policy applies in full, allowing or blocking each connector.",
+   "limitation": "The MCP allowlist is Enterprise only."
+  },
+  {
+   "id": "grok-bot/F12.server-trust",
+   "surface": "grok-bot",
+   "row": "F12.server-trust",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-grok-bot-00040",
+    "E-grok-bot-00488",
+    "E-grok-bot-00176",
+    "E-grok-bot-00931"
+   ],
+   "value": "Your team's Cursor MCP (Model Context Protocol) policy applies in full, allowing or blocking each connector. A plugin blocked by your team's connector policy shows Disabled by team admin. The Team Bots page adds that it \"asks before it uses one of your own connectors.\"",
+   "limitation": "The MCP allowlist is Enterprise only (with OpenTelemetry Export and SCIM). Blocking a plugin doesn't block that service's website; closing that second path takes Network Controls, which is Enterprise only."
+  },
+  {
+   "id": "grok-bot/F13.resume-continue",
+   "surface": "grok-bot",
+   "row": "F13.resume-continue",
+   "state": "undocumented",
+   "verification": "verified",
+   "evidence": [],
+   "sweep_report": {
+    "terms": [
+     "\\bresume\\b",
+     "continue (a |the )?(previous|last|past) (session|conversation)",
+     "--continue",
+     "session history",
+     "reopen"
+    ],
+    "corpus_sha256": "16c6504d83165720852f3854483b6598f81fb15aff47f3799d5ab54e567e593a",
+    "hits": 28,
+    "hits_reviewed": 28,
+    "positive_control_term": "grok",
+    "positive_control_hits": 1365
+   }
+  },
+  {
+   "id": "grok-bot/F13.fork-branch",
+   "surface": "grok-bot",
+   "row": "F13.fork-branch",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-grok-bot-00468"
+   ],
+   "value": "A Bot can be duplicated to reuse a role for a different scope: the copy carries the profile, settings, enabled skills, routines, and avatar.",
+   "limitation": "the copy does not carry conversation history, learned memory, or attachments"
+  },
+  {
+   "id": "grok-bot/F13.checkpoint-rewind",
+   "surface": "grok-bot",
+   "row": "F13.checkpoint-rewind",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-grok-bot-00769"
+   ],
+   "value": "Reset rebuilds the computer from your last saved snapshot.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "grok-bot/F13.transcript-storage",
+   "surface": "grok-bot",
+   "row": "F13.transcript-storage",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-grok-bot-00492",
+    "E-grok-bot-00505",
+    "E-grok-bot-00739",
+    "E-grok-bot-00697"
+   ],
+   "value": "Conversations are stored outside the computer, so they survive even a reset; deleting files inside it, including `rm -rf`, does not delete chats. The transcript shows items including tool activity, computer use, created files, and questions. After a voice chat, a Voice chat card appears in that Bot's chat; open it to read the full transcript.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "grok-bot/F13.session-listing",
+   "surface": "grok-bot",
+   "row": "F13.session-listing",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-grok-bot-00751",
+    "E-grok-bot-00750"
+   ],
+   "value": "Press Cmd/Ctrl+K for the search palette, or Cmd/Ctrl+Shift+F to search.",
+   "limitation": "Search availability can vary during rollout."
+  },
+  {
+   "id": "grok-bot/F13.cross-surface-handoff",
+   "surface": "grok-bot",
+   "row": "F13.cross-surface-handoff",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-grok-bot-00299",
+    "E-grok-bot-00508",
+    "E-grok-bot-00843",
+    "E-grok-bot-00792"
+   ],
+   "value": "The iPhone app (iOS 18 or later) connects to the same Bots, conversations, routines, and cloud computer as desktop, signed in with the same Cursor account. Bots and conversations are shared across devices signed into that account.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "grok-bot/F14.worktree-isolation",
+   "surface": "grok-bot",
+   "row": "F14.worktree-isolation",
+   "state": "undocumented",
+   "verification": "verified",
+   "evidence": [],
+   "sweep_report": {
+    "terms": [
+     "worktree",
+     "isolated (checkout|branch|copy)",
+     "separate (branch|checkout)"
+    ],
+    "corpus_sha256": "16c6504d83165720852f3854483b6598f81fb15aff47f3799d5ab54e567e593a",
+    "hits": 2,
+    "hits_reviewed": 2,
+    "positive_control_term": "grok",
+    "positive_control_hits": 1365
+   }
+  },
+  {
+   "id": "grok-bot/F14.concurrency-caps",
+   "surface": "grok-bot",
+   "row": "F14.concurrency-caps",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-grok-bot-00479",
+    "E-grok-bot-00260",
+    "E-grok-bot-00242",
+    "E-grok-bot-00262"
+   ],
+   "value": "Each Bot gets its own screen, so several Bots can use browser and desktop tools in parallel, with one computer-use task per screen at a time. Only one bulk computer operation can run per team at a time, and the API and the dashboard share that limit."
+  },
+  {
+   "id": "grok-bot/F14.parallel-subagents",
+   "surface": "grok-bot",
+   "row": "F14.parallel-subagents",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-grok-bot-00235",
+    "E-grok-bot-00478"
+   ],
+   "value": "Bots can run in parallel, message each other, share context in group chats and pass ownership of a task. Each Bot gets its own screen, so several Bots can use browser and desktop tools in parallel.",
+   "limitation": "one computer-use task per screen at a time"
+  },
+  {
+   "id": "grok-bot/F14.total-agent-caps",
+   "surface": "grok-bot",
+   "row": "F14.total-agent-caps",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-grok-bot-00744"
+   ],
+   "value": "Starting a group chat takes a selection of two to six Bots.",
+   "limitation": "In New chat, select two to six Bots."
+  },
+  {
+   "id": "grok-bot/F14.multi-session-coordination",
+   "surface": "grok-bot",
+   "row": "F14.multi-session-coordination",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-grok-bot-00235",
+    "E-grok-bot-00039",
+    "E-grok-bot-00822",
+    "E-grok-bot-00565"
+   ],
+   "value": "Your Bots can run in parallel, message each other, share context in group chats, and pass ownership of a task. One persistent Firecracker microVM per user is shared by every Bot that user runs, and Bots can read files other Bots save in `/workspace`.",
+   "limitation": "A group chat can add a teammate's published Team Bot, but not alongside Bots that run on your own computer."
+  },
+  {
+   "id": "grok-bot/F15.background-tasks",
+   "surface": "grok-bot",
+   "row": "F15.background-tasks",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-grok-bot-00476",
+    "E-grok-bot-00864",
+    "E-grok-bot-00502",
+    "E-grok-bot-00560"
+   ],
+   "value": "Bots work from a persistent cloud computer with a browser, command line and filesystem, and work continues while the laptop is closed. Reconnecting and Recover usually take a few minutes, and Continue in Background is offered.",
+   "limitation": "Approvals from work that started without you, like a routine or a message from another Bot, expire after about 10 minutes."
+  },
+  {
+   "id": "grok-bot/F15.scheduled-routines",
+   "surface": "grok-bot",
+   "row": "F15.scheduled-routines",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-grok-bot-00623",
+    "E-grok-bot-00171",
+    "E-grok-bot-00460"
+   ],
+   "value": "A routine tells one Bot when to run a workflow. It can run on a schedule, or when something happens. Routines run in the cloud while your laptop is closed. A Timezone setting is what routines use for schedules, and a nightly research routine is given as an example.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "grok-bot/F15.cloud-agents",
+   "surface": "grok-bot",
+   "row": "F15.cloud-agents",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-grok-bot-00033",
+    "E-grok-bot-00230",
+    "E-grok-bot-00414"
+   ],
+   "value": "Grok Bot is a computer-use agent that runs in Cursor's cloud, and each user's work executes on a dedicated cloud computer. Each Bot works on a persistent cloud computer with a browser, filesystem, and terminal. It runs only on Cursor-hosted cloud computers; on-premises and bring-your-own-image deployment are not supported today."
+  },
+  {
+   "id": "grok-bot/F15.remote-sessions",
+   "surface": "grok-bot",
+   "row": "F15.remote-sessions",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-grok-bot-00300",
+    "E-grok-bot-00481"
+   ],
+   "value": "From your phone you can message Bots, watch and take over the computer, approve actions, and pause or resume routines. Click the computer preview in the right-hand panel of a conversation to watch clicks, typing, navigation, and current status; closing the app doesn't stop cloud work.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "grok-bot/F15.event-triggers",
+   "surface": "grok-bot",
+   "row": "F15.event-triggers",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-grok-bot-00623",
+    "E-grok-bot-00072",
+    "E-grok-bot-00998"
+   ],
+   "value": "A routine can run when something happens, such as a Slack message, a GitHub, Linear, Sentry, or PagerDuty event, an email, or a webhook call. Cursor account integrations can also start a routine from an event, and they are separate from the Slack or GitHub plugins.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "grok-bot/F15.delegation",
+   "surface": "grok-bot",
+   "row": "F15.delegation",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-grok-bot-00041",
+    "E-grok-bot-00046",
+    "E-grok-bot-00066"
+   ],
+   "value": "Grok Bot can delegate coding tasks to separate computers under your existing Cloud Agent controls. Admins can disable spawning; the switch applies to the whole team and is on by default. A Bot can also send an asynchronous message to another Bot, which wakes, handles the request, and can reply later."
+  },
+  {
+   "id": "grok-bot/F16.interactive-cli",
+   "surface": "grok-bot",
+   "row": "F16.interactive-cli",
+   "state": "undocumented",
+   "verification": "verified",
+   "evidence": [],
+   "sweep_report": {
+    "terms": [
+     "interactive (mode|session|cli|terminal)",
+     "terminal (ui|interface)",
+     "\\btui\\b",
+     "\\brepl\\b"
+    ],
+    "corpus_sha256": "16c6504d83165720852f3854483b6598f81fb15aff47f3799d5ab54e567e593a",
+    "hits": 0,
+    "hits_reviewed": 0,
+    "positive_control_term": "grok",
+    "positive_control_hits": 1365
+   }
+  },
+  {
+   "id": "grok-bot/F16.headless-mode",
+   "surface": "grok-bot",
+   "row": "F16.headless-mode",
+   "state": "undocumented",
+   "verification": "verified",
+   "evidence": [],
+   "sweep_report": {
+    "terms": [
+     "headless",
+     "non-?interactive",
+     "--print",
+     "--prompt",
+     "--output-format",
+     "batch mode",
+     "json output"
+    ],
+    "corpus_sha256": "16c6504d83165720852f3854483b6598f81fb15aff47f3799d5ab54e567e593a",
+    "hits": 4,
+    "hits_reviewed": 4,
+    "positive_control_term": "grok",
+    "positive_control_hits": 1365
+   }
+  },
+  {
+   "id": "grok-bot/F16.ide-integration",
+   "surface": "grok-bot",
+   "row": "F16.ide-integration",
+   "state": "undocumented",
+   "verification": "verified",
+   "evidence": [],
+   "sweep_report": {
+    "terms": [
+     "\\b(vs ?code|jetbrains|intellij|neovim|zed)\\b.{0,40}(extension|plugin|integration)",
+     "extension.{0,30}(vs ?code|ide)"
+    ],
+    "corpus_sha256": "16c6504d83165720852f3854483b6598f81fb15aff47f3799d5ab54e567e593a",
+    "hits": 0,
+    "hits_reviewed": 0,
+    "positive_control_term": "grok",
+    "positive_control_hits": 1365
+   }
+  },
+  {
+   "id": "grok-bot/F16.desktop-web-app",
+   "surface": "grok-bot",
+   "row": "F16.desktop-web-app",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-grok-bot-00271",
+    "E-grok-bot-00563",
+    "E-grok-bot-00600",
+    "E-grok-bot-00033"
+   ],
+   "value": "The desktop app runs on macOS (Apple silicon and Intel), Windows (x64 and Arm64), and Linux (x64 and Arm64). The phone app runs on iPhone and Android with the same account and cloud computer as desktop. The desktop and mobile apps are thin clients for chat, review, and approvals.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "grok-bot/F16.sdk-api",
+   "surface": "grok-bot",
+   "row": "F16.sdk-api",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-grok-bot-00261",
+    "E-grok-bot-00441",
+    "E-grok-bot-00443"
+   ],
+   "value": "The Organization API starts computer operations from a script: you send a team, a list of members, and an action, then poll the operation. The Admin API enables Grok Bot and manages capabilities, Enforce Auto-Review, group access, network policy, team rules, and setup scripts.",
+   "limitation": "The Organization API takes an Organization API key with the `admin:*` scope, because one computer serves every team a member belongs to."
+  },
+  {
+   "id": "grok-bot/F16.ci-chat",
+   "surface": "grok-bot",
+   "row": "F16.ci-chat",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-grok-bot-00677",
+    "E-grok-bot-00180",
+    "E-grok-bot-00181",
+    "E-grok-bot-00678"
+   ],
+   "value": "Team Bots can be added to Slack: once connected, teammates can message the Bot directly or mention it in channels. A published Team Bot can have its own Slack app, named after the Bot.",
+   "limitation": "Only the owner adds a Team Bot to Slack, and the Bot must be published first. Each teammate needs to link their Slack account first."
+  },
+  {
+   "id": "grok-bot/F17.model-picker",
+   "surface": "grok-bot",
+   "row": "F17.model-picker",
+   "state": "not-exposed",
+   "verification": "verified",
+   "evidence": [
+    "E-grok-bot-00024",
+    "E-grok-bot-00106",
+    "E-grok-bot-00562",
+    "E-grok-bot-00172"
+   ],
+   "value": "Cursor manages model selection. There is no customer-facing model picker, and settings have no model picker.",
+   "vendor_statement": "E-grok-bot-00024"
+  },
+  {
+   "id": "grok-bot/F17.model-flag-env",
+   "surface": "grok-bot",
+   "row": "F17.model-flag-env",
+   "state": "undocumented",
+   "verification": "verified",
+   "evidence": [],
+   "sweep_report": {
+    "terms": [
+     "--model",
+     "\\s-m\\s",
+     "model.{0,30}(flag|env(ironment)?|variable|setting|config)",
+     "[A-Z_]*MODEL[A-Z_]*=",
+     "(set|change|select|choose)\\w* the model"
+    ],
+    "corpus_sha256": "16c6504d83165720852f3854483b6598f81fb15aff47f3799d5ab54e567e593a",
+    "hits": 0,
+    "hits_reviewed": 0,
+    "positive_control_term": "grok",
+    "positive_control_hits": 1365
+   }
+  },
+  {
+   "id": "grok-bot/F17.auto-routing",
+   "surface": "grok-bot",
+   "row": "F17.auto-routing",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-grok-bot-00562",
+    "E-grok-bot-00024"
+   ],
+   "value": "Cursor picks the model for the specific task under the hood. The serving model mix can change over time with no fixed vendor set guaranteed, and usage analytics show the model that served each request, including failovers."
+  },
+  {
+   "id": "grok-bot/F17.provider-byok",
+   "surface": "grok-bot",
+   "row": "F17.provider-byok",
+   "state": "undocumented",
+   "verification": "verified",
+   "evidence": [],
+   "sweep_report": {
+    "terms": [
+     "bring your own",
+     "byok",
+     "own (api )?key",
+     "custom (endpoint|provider|base)",
+     "openai-compatible",
+     "base.?url",
+     "gateway",
+     "third-party (model|provider)",
+     "other (model )?providers?"
+    ],
+    "corpus_sha256": "16c6504d83165720852f3854483b6598f81fb15aff47f3799d5ab54e567e593a",
+    "hits": 58,
+    "hits_reviewed": 58,
+    "positive_control_term": "grok",
+    "positive_control_hits": 1365
+   }
+  },
+  {
+   "id": "grok-bot/F17.model-catalog",
+   "surface": "grok-bot",
+   "row": "F17.model-catalog",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-grok-bot-00024",
+    "E-grok-bot-00164"
+   ],
+   "value": "Cursor manages model selection with no customer-facing model picker. Usage analytics show the model that served each request, including failovers, and billing follows the serving model.",
+   "limitation": "the serving mix can change over time with no fixed vendor set guaranteed"
+  },
+  {
+   "id": "grok-bot/F18.effort-values",
+   "surface": "grok-bot",
+   "row": "F18.effort-values",
+   "state": "undocumented",
+   "verification": "verified",
+   "evidence": [],
+   "sweep_report": {
+    "terms": [
+     "effort",
+     "reasoning[_ -]?(effort|level|mode)",
+     "thinking[_ -]?(level|budget|mode|effort)"
+    ],
+    "corpus_sha256": "16c6504d83165720852f3854483b6598f81fb15aff47f3799d5ab54e567e593a",
+    "hits": 0,
+    "hits_reviewed": 0,
+    "positive_control_term": "grok",
+    "positive_control_hits": 1365
+   }
+  },
+  {
+   "id": "grok-bot/F18.where-set",
+   "surface": "grok-bot",
+   "row": "F18.where-set",
+   "state": "undocumented",
+   "verification": "verified",
+   "evidence": [],
+   "sweep_report": {
+    "terms": [
+     "effort",
+     "reasoning[_ -]?(effort|level|mode)",
+     "thinking[_ -]?(level|budget|mode|effort)"
+    ],
+    "corpus_sha256": "16c6504d83165720852f3854483b6598f81fb15aff47f3799d5ab54e567e593a",
+    "hits": 0,
+    "hits_reviewed": 0,
+    "positive_control_term": "grok",
+    "positive_control_hits": 1365
+   }
+  },
+  {
+   "id": "grok-bot/F18.model-dependence",
+   "surface": "grok-bot",
+   "row": "F18.model-dependence",
+   "state": "undocumented",
+   "verification": "verified",
+   "evidence": [],
+   "sweep_report": {
+    "terms": [
+     "effort",
+     "reasoning[_ -]?(effort|level|mode)",
+     "thinking[_ -]?(level|budget|mode|effort)"
+    ],
+    "corpus_sha256": "16c6504d83165720852f3854483b6598f81fb15aff47f3799d5ab54e567e593a",
+    "hits": 0,
+    "hits_reviewed": 0,
+    "positive_control_term": "grok",
+    "positive_control_hits": 1365
+   }
+  },
+  {
+   "id": "grok-bot/F18.thinking-budget-visibility",
+   "surface": "grok-bot",
+   "row": "F18.thinking-budget-visibility",
+   "state": "undocumented",
+   "verification": "verified",
+   "evidence": [],
+   "sweep_report": {
+    "terms": [
+     "thinking",
+     "reasoning (trace|token|summar|content|output)",
+     "chain.of.thought",
+     "token budget",
+     "(show|hide)\\w*.{0,25}(reasoning|thinking)"
+    ],
+    "corpus_sha256": "16c6504d83165720852f3854483b6598f81fb15aff47f3799d5ab54e567e593a",
+    "hits": 0,
+    "hits_reviewed": 0,
+    "positive_control_term": "grok",
+    "positive_control_hits": 1365
+   }
+  },
+  {
+   "id": "grok-bot/F19.named-modes",
+   "surface": "grok-bot",
+   "row": "F19.named-modes",
+   "state": "undocumented",
+   "verification": "verified",
+   "evidence": [],
+   "sweep_report": {
+    "terms": [
+     "\\b(plan|ask|agent|auto|edit|build|code|chat|read-only|autonomous|yolo|debug) mode\\b",
+     "approval mode",
+     "permission mode"
+    ],
+    "corpus_sha256": "16c6504d83165720852f3854483b6598f81fb15aff47f3799d5ab54e567e593a",
+    "hits": 3,
+    "hits_reviewed": 3,
+    "positive_control_term": "grok",
+    "positive_control_hits": 1365
+   }
+  },
+  {
+   "id": "grok-bot/F19.entering-modes",
+   "surface": "grok-bot",
+   "row": "F19.entering-modes",
+   "state": "undocumented",
+   "verification": "verified",
+   "evidence": [],
+   "sweep_report": {
+    "terms": [
+     "(switch|enter|toggle|change|cycle|press|shift).{0,40}\\bmode\\b",
+     "\\bmode\\b.{0,40}(shift\\+tab|--[a-z]|/[a-z]+)"
+    ],
+    "corpus_sha256": "16c6504d83165720852f3854483b6598f81fb15aff47f3799d5ab54e567e593a",
+    "hits": 5,
+    "hits_reviewed": 5,
+    "positive_control_term": "grok",
+    "positive_control_hits": 1365
+   }
+  },
+  {
+   "id": "grok-bot/F19.plan-mode",
+   "surface": "grok-bot",
+   "row": "F19.plan-mode",
+   "state": "undocumented",
+   "verification": "verified",
+   "evidence": [],
+   "sweep_report": {
+    "terms": [
+     "plan mode",
+     "planning mode",
+     "plan only",
+     "/plan\\b",
+     "--plan"
+    ],
+    "corpus_sha256": "16c6504d83165720852f3854483b6598f81fb15aff47f3799d5ab54e567e593a",
+    "hits": 3,
+    "hits_reviewed": 3,
+    "positive_control_term": "grok",
+    "positive_control_hits": 1365
+   }
+  },
+  {
+   "id": "grok-bot/F19.autonomy-mode",
+   "surface": "grok-bot",
+   "row": "F19.autonomy-mode",
+   "state": "undocumented",
+   "verification": "verified",
+   "evidence": [],
+   "sweep_report": {
+    "terms": [
+     "auto-?accept",
+     "autonomous",
+     "auto-?run",
+     "auto mode",
+     "full.?auto",
+     "auto-?approv",
+     "\\byolo\\b"
+    ],
+    "corpus_sha256": "16c6504d83165720852f3854483b6598f81fb15aff47f3799d5ab54e567e593a",
+    "hits": 1,
+    "hits_reviewed": 1,
+    "positive_control_term": "grok",
+    "positive_control_hits": 1365
+   }
+  },
+  {
+   "id": "grok-bot/F19.read-only-mode",
+   "surface": "grok-bot",
+   "row": "F19.read-only-mode",
+   "state": "undocumented",
+   "verification": "verified",
+   "evidence": [],
+   "sweep_report": {
+    "terms": [
+     "read-only",
+     "readonly",
+     "\\bask mode\\b",
+     "cannot (change|modify|edit)",
+     "without (modifying|editing|changing)"
+    ],
+    "corpus_sha256": "16c6504d83165720852f3854483b6598f81fb15aff47f3799d5ab54e567e593a",
+    "hits": 11,
+    "hits_reviewed": 11,
+    "positive_control_term": "grok",
+    "positive_control_hits": 1365
+   }
+  },
+  {
+   "id": "grok-bot/F19.mode-defaults",
+   "surface": "grok-bot",
+   "row": "F19.mode-defaults",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-grok-bot-00707"
+   ],
+   "value": "For access to your local computer, the default is Ask every time. The quote advises Never allow unless a Bot has a (the quote is cut off there).",
+   "limitation": "Gives the default for one setting only (access to your local computer); it does not state a default mode or whether a choice persists."
+  },
+  {
+   "id": "grok-bot/F20.version-at-retrieval",
+   "surface": "grok-bot",
+   "row": "F20.version-at-retrieval",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-grok-bot-00580",
+    "E-grok-bot-00283",
+    "E-grok-bot-00276",
+    "E-grok-bot-00029"
+   ],
+   "value": "The account menu shows the installed version. Choosing About shows Version, and Copy version info copies the version, release track, and OS. In the release feed, the commitSha field names the build the release comes from, and Linux download URLs include it.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "grok-bot/F20.release-channels",
+   "surface": "grok-bot",
+   "row": "F20.release-channels",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-grok-bot-00275",
+    "E-grok-bot-00825",
+    "E-grok-bot-00580"
+   ],
+   "value": "Each platform has a JSON feed at `https://api2.cursor.sh/updates/api/download/stable/{platform}/sand`. Linux builds publish with every stable release. Copy version info copies the version, release track, and OS."
+  },
+  {
+   "id": "grok-bot/F20.update-mechanism",
+   "surface": "grok-bot",
+   "row": "F20.update-mechanism",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-grok-bot-00581",
+    "E-grok-bot-00423",
+    "E-grok-bot-00490",
+    "E-grok-bot-00270"
+   ],
+   "value": "The desktop app checks for updates on its own; when one is ready the account menu shows New update available, then Install and Restart to update. Check for Updates and Restart to Update update the desktop app. The app and the computer update separately. A versioned installer can be downloaded and pushed, with the timing of the move to a new release decided.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "grok-bot/F20.changelog-source",
+   "surface": "grok-bot",
+   "row": "F20.changelog-source",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-grok-bot-00583"
+   ],
+   "value": "Product changes are listed on the changelog at https://cursor.com/changelog. Phone updates come from the App Store or Google Play.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "grok-bot/F20.deprecation-policy",
+   "surface": "grok-bot",
+   "row": "F20.deprecation-policy",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-grok-bot-00287",
+    "E-grok-bot-00584",
+    "E-grok-bot-00282"
+   ],
+   "value": "When Cursor stops supporting a build, the app covers its whole window with Update required until the member updates. A build loses support when it falls below Cursor's minimum version, or when it passes a maximum age and a newer release is available. Grok Bot requires an update when a version is more than 14 days old and a newer version is out.",
+   "limitation": "Cursor doesn't publish how long older installers stay available for download, and a pinned build works only until Cursor stops supporting it."
+  },
+  {
+   "id": "grok-bot/F21.host-platform",
+   "surface": "grok-bot",
+   "row": "F21.host-platform",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-grok-bot-00414",
+    "E-grok-bot-00247",
+    "E-grok-bot-00016",
+    "E-grok-bot-00966"
+   ],
+   "value": "Grok Bot runs only on Cursor-hosted cloud computers, and the computers Bots work on run in Cursor's cloud. On-premises deployment, deployment inside your own perimeter, and bring-your-own-image deployment are not supported today."
+  },
+  {
+   "id": "grok-bot/F21.shared-account-billing",
+   "surface": "grok-bot",
+   "row": "F21.shared-account-billing",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-grok-bot-00646",
+    "E-grok-bot-00612",
+    "E-grok-bot-00649"
+   ],
+   "value": "Grok Bot uses your Cursor account. There is no separate Grok Bot login. Access is included on every paid individual Cursor plan and on Cursor Teams, and usage can also be granted by linking an individual SuperGrok, SuperGrok Plus, SuperGrok Heavy, or X Premium+ subscription."
+  },
+  {
+   "id": "grok-bot/F21.shared-execution-infrastructure",
+   "surface": "grok-bot",
+   "row": "F21.shared-execution-infrastructure",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-grok-bot-00238",
+    "E-grok-bot-00033",
+    "E-grok-bot-00251",
+    "E-grok-bot-00849"
+   ],
+   "value": "All of a user's Bots use the same cloud computer, sharing its files, browser sessions, and app logins. Each user's work executes on a dedicated cloud computer in Cursor's cloud, and each team member gets one hosted computer where every Bot they run does its work.",
+   "limitation": "Quotes show one dedicated computer per user, shared across that user's Bots and hosted in Cursor's cloud. None states whether machines or VMs are shared with a sibling product."
+  },
+  {
+   "id": "grok-bot/F21.shared-model-selection",
+   "surface": "grok-bot",
+   "row": "F21.shared-model-selection",
+   "state": "undocumented",
+   "verification": "verified",
+   "evidence": [],
+   "sweep_report": {
+    "terms": [
+     "same (model|models)\\b",
+     "(shared|same) model",
+     "model (selection|picker|choice).{0,60}(shared|same|across)",
+     "models? .{0,40}(shared|same) (across|between|with)"
+    ],
+    "corpus_sha256": "16c6504d83165720852f3854483b6598f81fb15aff47f3799d5ab54e567e593a",
+    "hits": 0,
+    "hits_reviewed": 0,
+    "positive_control_term": "grok",
+    "positive_control_hits": 1365
+   }
+  },
+  {
+   "id": "grok-bot/F21.shared-agent-runtime",
+   "surface": "grok-bot",
+   "row": "F21.shared-agent-runtime",
+   "state": "undocumented",
+   "verification": "verified",
+   "evidence": [],
+   "sweep_report": {
+    "terms": [
+     "same (agent|harness|runtime|engine|code|loop)",
+     "powered by",
+     "built on",
+     "shares? (the )?(same )?(agent|harness|runtime|engine)",
+     "underlying (agent|harness|runtime|engine)",
+     "runs? the same"
+    ],
+    "corpus_sha256": "16c6504d83165720852f3854483b6598f81fb15aff47f3799d5ab54e567e593a",
+    "hits": 2,
+    "hits_reviewed": 2,
+    "positive_control_term": "grok",
+    "positive_control_hits": 1365
+   }
+  },
+  {
+   "id": "grok-bot/F21.delegates-to",
+   "surface": "grok-bot",
+   "row": "F21.delegates-to",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-grok-bot-00116",
+    "E-grok-bot-00346",
+    "E-grok-bot-00898"
+   ],
+   "value": "Bots can delegate coding tasks to Cursor Cloud Agents. The switch is on the Grok Bot page, applies to the whole team, and is on by default. Delegated work runs on separate computers under your existing Cloud Agent controls and Cloud Agent network settings."
+  },
+  {
+   "id": "grok-bot/F21.distinct-harness-features",
+   "surface": "grok-bot",
+   "row": "F21.distinct-harness-features",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-grok-bot-00033",
+    "E-grok-bot-00187",
+    "E-grok-bot-00915",
+    "E-grok-bot-00433"
+   ],
+   "value": "Grok Bot is a computer-use agent that operates applications, browsers, and development environments. It gives each team member standing Bots for research, operations, documents, browsing, and automations. The editor's chat and Tab work without the cursorvm.com patterns.",
+   "limitation": "No cited quote states that these features are absent from a sibling. The only comparison shown is a network requirement: the editor's chat and Tab features work without the `cursorvm.com` patterns."
+  },
+  {
+   "id": "grok-bot/F22.usage-visibility",
+   "surface": "grok-bot",
+   "row": "F22.usage-visibility",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-grok-bot-00421",
+    "E-grok-bot-00010",
+    "E-grok-bot-00024"
+   ],
+   "value": "Usage & Billing shows weekly included usage and on-demand usage for eligible accounts, and the account menu can show weekly usage at a glance. Spend and usage are on the dashboard usage page, broken down by product. Usage analytics show the model that served each request, including failovers."
+  },
+  {
+   "id": "grok-bot/F22.budget-caps",
+   "surface": "grok-bot",
+   "row": "F22.budget-caps",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-grok-bot-00552",
+    "E-grok-bot-00455",
+    "E-grok-bot-00614"
+   ],
+   "value": "An on-demand cap can be set in Grok Bot under Settings > On-demand monthly limit, or on the web at cursor.com/dashboard > Spending > Monthly Limit. Extra usage after Weekly usage runs out is billed through Cursor and counts toward the On-demand monthly limit.",
+   "limitation": "A separate Grok Bot spend cap is not available today. The cap does not stop a Bot in the middle of a run, so a running task can go a little past it."
+  },
+  {
+   "id": "grok-bot/F22.rate-limits",
+   "surface": "grok-bot",
+   "row": "F22.rate-limits",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-grok-bot-00622",
+    "E-grok-bot-00614",
+    "E-grok-bot-00550"
+   ],
+   "value": "Paid Grok Bot access includes Weekly usage, which resets weekly. When it runs out, extra usage can continue as On-demand usage if on-demand is enabled. If on-demand is off, Grok Bot stops when weekly usage runs out, and the screen says you have reached your Grok Bot usage limit.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "grok-bot/F22.telemetry-otel",
+   "surface": "grok-bot",
+   "row": "F22.telemetry-otel",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-grok-bot-00062",
+    "E-grok-bot-00397",
+    "E-grok-bot-00013"
+   ],
+   "value": "OpenTelemetry Export streams Cursor usage metrics and logs, including recorded Grok Bot actions, to a collector you run, configured under Team Settings > OpenTelemetry Export. When configured, Action Recording events are sent to your collector tagged `cursor.surface=grok_bot`.",
+   "limitation": "OpenTelemetry Export is Enterprise only."
+  },
+  {
+   "id": "grok-bot/F22.logs-debug",
+   "surface": "grok-bot",
+   "row": "F22.logs-debug",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-grok-bot-00399",
+    "E-grok-bot-00432",
+    "E-grok-bot-00579"
+   ],
+   "value": "When a team enables Action Recording, Cursor records Bot actions, including scrubbed shell commands, in an internal store with a 90 day retention. In-app errors appear above the composer under Notifications; some include Copy request ID for support. Right-click a message and choose Copy request ID.",
+   "limitation": "Action Recording is a setting on the Grok Bot page, off by default. Action Recording events don't appear on the Audit Log page."
+  },
+  {
+   "id": "grok-bot/F22.status-display",
+   "surface": "grok-bot",
+   "row": "F22.status-display",
+   "state": "supported",
+   "verification": "unverified",
+   "evidence": [
+    "E-grok-bot-00428",
+    "E-grok-bot-00982",
+    "E-grok-bot-00429"
+   ],
+   "value": "The sidebar distinguishes Bots that need attention (a question, approval, or handoff), unread activity (a new result), and working status. Turning on Notifications in a Bot's settings gives a system or mobile notification when that Bot finishes or needs input.",
+   "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  }
+ ]
+}

@@ -1,0 +1,65 @@
+{
+  "gaps": [
+    {
+      "outcome": "negative",
+      "reason": "status_404",
+      "status": 404,
+      "url": "https://code.visualstudio.com/docs/chat/chat-debug-view.md"
+    },
+    {
+      "outcome": "negative",
+      "reason": "status_404",
+      "status": 404,
+      "url": "https://code.visualstudio.com/updates.md"
+    }
+  ],
+  "index_files": {
+    "https://code.visualstudio.com/llms.txt": {
+      "entries": 373,
+      "sha256": "37a91824be7b14ac50820a16c2fa82063c6690ebb5e4d059ee54f87466d024ea"
+    },
+    "https://code.visualstudio.com/sitemap.xml": {
+      "entries": 476,
+      "sha256": "cc0d272b4ca0b681783043d9203ef58bf014bf632b1425225799599f29cb4bc4"
+    }
+  },
+  "origins_by_source": {
+    "closure": 0,
+    "index": 72,
+    "sitemap": 30
+  },
+  "out_of_scope": [],
+  "retrieved": "2026-10-04",
+  "roles": {
+    "aggregate": {
+      "bytes": 0,
+      "pages": 0
+    },
+    "excluded": {
+      "bytes": 0,
+      "pages": 0
+    },
+    "extract": {
+      "bytes": 1381742,
+      "pages": 100
+    },
+    "html": {
+      "bytes": 103532,
+      "pages": 1
+    },
+    "index": {
+      "bytes": 150932,
+      "pages": 2
+    },
+    "out-of-scope": {
+      "bytes": 0,
+      "pages": 0
+    },
+    "secondary": {
+      "bytes": 0,
+      "pages": 0
+    }
+  },
+  "secondary": {},
+  "surface": "copilot-vscode"
+}

@@ -1,0 +1,56 @@
+{
+  "gaps": [],
+  "index_files": {
+    "https://docs.github.com/api/pagelist/en/free-pro-team@latest": {
+      "entries": 3191,
+      "sha256": "e60ff996561f67cc6dfd1da02237c57ae927ef1946e88ad1fc6a17ce1cd6eed1"
+    },
+    "https://docs.github.com/llms.txt": {
+      "entries": 117,
+      "sha256": "e2c6c7291dd1dc6c8bea2ba174facfe2f0a5129646c3e11eb27804895589ac50"
+    }
+  },
+  "origins_by_source": {
+    "closure": 4,
+    "index": 2,
+    "sitemap": 155
+  },
+  "out_of_scope": [],
+  "retrieved": "2026-10-04",
+  "roles": {
+    "aggregate": {
+      "bytes": 0,
+      "pages": 0
+    },
+    "excluded": {
+      "bytes": 0,
+      "pages": 0
+    },
+    "extract": {
+      "bytes": 2362901,
+      "pages": 156
+    },
+    "html": {
+      "bytes": 0,
+      "pages": 0
+    },
+    "index": {
+      "bytes": 260142,
+      "pages": 2
+    },
+    "out-of-scope": {
+      "bytes": 0,
+      "pages": 0
+    },
+    "secondary": {
+      "bytes": 59634,
+      "pages": 3
+    }
+  },
+  "secondary": {
+    "https://docs.github.com/api/article/body?pathname=/en/copilot/concepts/security-governance-and-network-settings/content-exclusion": "copilot-cli__docs-github-com__en__copilot__concepts__context__content-exclusion",
+    "https://docs.github.com/api/article/body?pathname=/en/copilot/concepts/security-governance-and-network-settings/risks-and-mitigations": "copilot-cli__docs-github-com__en__copilot__concepts__agents__cloud-agent__risks-and-mitigations",
+    "https://docs.github.com/api/article/body?pathname=/en/copilot/how-tos/use-copilot-agents/use-code-review": "copilot-cli__docs-github-com__en__copilot__how-tos__use-copilot-agents__request-a-code-review__use-code-review"
+  },
+  "surface": "copilot-cli"
+}
