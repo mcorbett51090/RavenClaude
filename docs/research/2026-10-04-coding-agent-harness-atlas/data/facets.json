@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "status": "frozen-2026-10-04",
-  "note": "Frozen row list of the harness atlas. 22 core facets, each with named sub-feature rows, plus the unmapped bucket U00. Every row has a cell in every column. Comparison claims are made only on a named row (plan, Design, Facet taxonomy and frozen rows). lever: the lever class a row belongs to, or null. slice: P5 rows are researched first, for the lever guide and the routing-matrix precursor.",
+  "note": "Frozen row list of the harness atlas. 22 core facets, each with named sub-feature rows, plus the unmapped bucket U00. Every row has a cell in every column. Comparison claims are made only on a named row (plan, Design, Facet taxonomy and frozen rows). Extended on 2026-10-05, by owner decision, with facet F23 (six rows) to cover the steps the lifecycle layer listed as not yet researched. lever: the lever class a row belongs to, or null. slice: P5 rows are researched first, for the lever guide and the routing-matrix precursor.",
   "lever_classes": ["model", "effort", "mode", "parallelism", "other"],
   "facets": [
     {
@@ -1042,6 +1042,55 @@
           "id": "F22.status-display",
           "label": "Status line and display",
           "definition": "On-screen status of model, cost and context.",
+          "lever": null,
+          "slice": null
+        }
+      ]
+    },
+    {
+      "id": "F23",
+      "name": "Request and response handling",
+      "definition": "What the harness does around each model call: how the request is assembled, cached and retried, and how the model's tool calls and the tool results are checked and limited.",
+      "rows": [
+        {
+          "id": "F23.prompt-assembly",
+          "label": "Prompt assembly",
+          "definition": "What goes into each model request and in what order (system prompt, instruction files, tool definitions, history, attachments), and what a user can see or change.",
+          "lever": null,
+          "slice": null
+        },
+        {
+          "id": "F23.prompt-caching",
+          "label": "Prompt caching",
+          "definition": "Whether the harness reuses the unchanged start of a prompt across turns, how long it is kept, what invalidates it, and any setting to turn it on, off or tune it.",
+          "lever": null,
+          "slice": null
+        },
+        {
+          "id": "F23.retry-backoff",
+          "label": "Retry and back-off",
+          "definition": "What the harness does when a model call fails or is throttled: automatic retries, waiting, limits on attempts, and the message shown.",
+          "lever": null,
+          "slice": null
+        },
+        {
+          "id": "F23.malformed-call-recovery",
+          "label": "Malformed call recovery",
+          "definition": "What happens when the model asks for a tool that does not exist, gives invalid arguments or returns output that cannot be parsed: error returned to the model, retry or stop.",
+          "lever": null,
+          "slice": null
+        },
+        {
+          "id": "F23.tool-output-limits",
+          "label": "Tool output limits",
+          "definition": "Limits on how much tool output enters the context and how it is cut (truncated, summarized or saved to a file), and any setting that changes them.",
+          "lever": null,
+          "slice": null
+        },
+        {
+          "id": "F23.output-redaction",
+          "label": "Output redaction",
+          "definition": "Whether secrets or sensitive text are removed from tool output, transcripts, logs or telemetry, and how.",
           "lever": null,
           "slice": null
         }
