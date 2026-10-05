@@ -2061,7 +2061,14 @@ backup() {
 }
 
 cleanup() {
-  for entry in "${BACKUPS[@]}"; do
+  # ⛔ `${BACKUPS[@]+"${BACKUPS[@]}"}`, NOT a bare `"${BACKUPS[@]}"`. Under `set -u`, bash < 4.4
+  # (macOS ships 3.2) treats expanding an EMPTY array as an unbound variable — this EXIT trap
+  # then printed "BACKUPS[@]: unbound variable" and the script exited non-zero AFTER every gate
+  # had passed ("19 pass, 0 fail"). The full run never hit it because some gate always calls
+  # backup(); a `--suite` that backs nothing up does, which is exactly what the sharded macOS
+  # lane runs (Validate macOS, PR #1279). The `+` form expands to nothing when unset/empty and to
+  # the elements otherwise, on every bash version.
+  for entry in ${BACKUPS[@]+"${BACKUPS[@]}"}; do
     local f=${entry%%|*}
     local b=${entry#*|}
     [[ -f "$b" ]] && cp -p "$b" "$f"

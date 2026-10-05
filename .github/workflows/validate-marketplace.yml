@@ -150,7 +150,7 @@ jobs:
   # is untouched and unconditional.
   # ────────────────────────────────────────────────────────────────────────────────
   core:
-    name: Core manifest/hook checks + full gate audit (always runs)
+    name: Core manifest/hook checks (always runs)
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -429,60 +429,11 @@ jobs:
           fi
           exit $status
 
-      - name: Install ruff (needed for audit-gates Gate 9b fixtures)
-        # Installed UNCONDITIONALLY: this job is not gated on `detect`, and Gate
-        # 9b's behavioral fixture requires `ruff` on PATH regardless of whether
-        # the real full-tree lint (now the standalone `lint_ruff` job) runs at
-        # all — skipping this install would turn the always-on meta-test below
-        # into an "UNRUNNABLE in CI" hard failure (scripts/audit-gates.sh's
-        # `_skip_or_fail`). Pinned for determinism. Duplicated in `lint_ruff`'s
-        # own job because the two run on separate runners with no shared
-        # filesystem — that duplication is the cost of the parallelism.
-        run: python3 -m pip install --quiet 'ruff==0.15.8'
-
-      - name: Install jsonschema (for audit-gates Gate 47 validate-schemas fixtures)
-        # audit-gates Gate 47 shells out to `python3 -m jsonschema` against the
-        # {good,bad}-{plugin,marketplace}.json fixtures. Without the module on
-        # PATH the gate's _skip_or_fail guard now HARD-FAILS in CI (a skip is not
-        # a pass), so install it here — same pre-stage pattern as ruff above and
-        # mirroring validate-schemas.yml, which owns the real per-plugin run.
-        run: python3 -m pip install --quiet jsonschema
-
-      - name: Audit every gate (meta-test — prove each gate fails on bad input AND passes on good)
-        # Codifies docs/best-practices/ci-gate-audit.md. If any CI gate
-        # stops gating (or starts gating the wrong thing), this step catches
-        # it on the next PR, not in the next real incident. See
-        # scripts/audit-gates.sh for per-gate fixtures.
-        #
-        # PR-C: runs every named suite via `--suite` (enumerated through
-        # `--list-suites` so this step never hard-codes its own copy of the
-        # suite list) rather than one bare invocation. The union of every
-        # suite's gates is the full gate set — enforced as its own gate
-        # (267, "suite-dispatcher union completeness") so this loop can never
-        # silently drop coverage the bare invocation used to guarantee simply
-        # by running everything unconditionally. `core`/`security`/`ratchet`
-        # are three of the iterations below, inside THIS always-on job (no
-        # `needs: [detect]`, no skip condition) — satisfying "the always-on
-        # path never drops Gate 242 / the security suite" without a separate
-        # job or a second copy of the always-on set.
-        run: |
-          set -euo pipefail
-          # Capture the suite list into a variable FIRST. `for x in $(cmd)` does NOT
-          # propagate a failed/empty command substitution under `set -e` (bash does
-          # not abort on a failed $() used as a for-loop word-list), so a broken or
-          # empty --list-suites would silently run ZERO suites while this required
-          # check still reported success. An assignment DOES abort on a failed $(),
-          # and the explicit emptiness guard closes the "succeeded-but-empty" case.
-          suites="$(scripts/audit-gates.sh --list-suites)"
-          if [ -z "${suites}" ]; then
-            echo "::error::audit-gates.sh --list-suites returned no suites — refusing to report success" >&2
-            exit 1
-          fi
-          for suite in ${suites}; do
-            echo "::group::Suite: ${suite}"
-            scripts/audit-gates.sh --suite "${suite}"
-            echo "::endgroup::"
-          done
+      # The gate audit (`scripts/audit-gates.sh`, ~600 gates) is NOT a step of this job
+      # any more: it runs as the sharded `suites` -> `gate_audit` jobs below, in parallel,
+      # because as one serial step it was ~95% of this PR's critical path (527s of a
+      # ~570s job; the macOS twin took 836s). The `ruff` / `jsonschema` installs it
+      # needed moved with it — nothing else in this job uses either.
 
       # NOTE: repo-guide.html was RETIRED — its role (the browsable marketplace
       # catalog / repo guide) was folded into the index.html portal, whose
@@ -712,6 +663,150 @@ jobs:
   # job's comment above.
   # ─────────────────────────────────────────────────────────────────────────────────
 
+  # ────────────────────────────────────────────────────────────────────────────────
+  # The gate audit, SHARDED. This used to be one serial `for suite in …` step inside
+  # `core` (527s on a runner, 95% of the job). Measured 2026-10-05 by running every
+  # `--suite` on its own: the 18 suites sum to the same work, `hooks` (~138s) and
+  # `ratchet` (~121s) are by far the largest, and nothing else exceeds ~50s — so four
+  # shards finish in about the time of the single biggest suite (~160s) instead of the
+  # sum of all of them. Wall-clock only: this repo is public, so standard-runner
+  # minutes are unmetered; the speed is what is being bought.
+  #
+  # ⛔ COVERAGE IS STRUCTURAL, NOT A MAINTAINED LIST. `suites` asks the script for its
+  # own suite list (`--list-suites`, exactly what the old loop did), packs whatever it
+  # returns, and ASSERTS the packed set equals that list before emitting a matrix. The
+  # weights below only balance the shards: a suite missing from the table is still
+  # scheduled (DEFAULT), so a new suite can never be dropped by forgetting to edit this
+  # file. Gate 267 still proves the suites' union is the full gate set.
+  #
+  # ⛔ SEPARATE RUNNERS, NOT BACKGROUND PROCESSES. The gates temporarily mutate files in
+  # the working tree and restore them ("idempotent: backs up any file it temporarily
+  # mutates"), so two suites sharing one checkout would race. Each shard has its own.
+  #
+  # ⛔ A FAILING SUITE DOES NOT HIDE THE REST. The old loop was `set -e`: the first red
+  # suite aborted every later one. A shard now runs all of its suites and goes red at the
+  # end naming each failure.
+  # ────────────────────────────────────────────────────────────────────────────────
+  suites:
+    name: Plan gate-audit shards
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      # Four shards ~ the size of the biggest suite (see the block comment above). One
+      # line to change; SHARDS=1 reproduces the old single serial run.
+      SHARDS: "4"
+    outputs:
+      matrix: ${{ steps.plan.outputs.matrix }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Pack suites into balanced shards
+        id: plan
+        run: |
+          set -euo pipefail
+          # Capture first: `for x in $(cmd)` does not propagate a failed substitution
+          # under `set -e`, and an empty list must refuse rather than plan zero shards.
+          suites="$(scripts/audit-gates.sh --list-suites)"
+          if [ -z "${suites}" ]; then
+            echo "::error::audit-gates.sh --list-suites returned no suites — refusing to plan an empty audit" >&2
+            exit 1
+          fi
+          SUITES="${suites}" python3 - <<'PY' >> "$GITHUB_OUTPUT"
+          import json, os, sys
+
+          SHARDS = int(os.environ["SHARDS"])
+          # Seconds per suite on a CI runner (a local run of each suite, scaled so the
+          # total matches the 527s the serial loop measured). BALANCE ONLY — see above.
+          WEIGHT = {
+              "hooks": 138, "ratchet": 121, "tribunal": 48, "portal": 46,
+              "inventory": 30, "claims": 27, "security": 27, "handoff": 26,
+              "core": 13, "hosts": 13, "forge": 10, "format": 10, "streams": 7,
+              "convergence": 3, "forms": 3, "lint": 2, "macos": 2, "wireframe": 1,
+          }
+          DEFAULT = 30  # an unmeasured suite is still scheduled
+
+          suites = os.environ["SUITES"].split()
+          shards = [[0, []] for _ in range(SHARDS)]
+          for s in sorted(suites, key=lambda s: (-WEIGHT.get(s, DEFAULT), s)):
+              target = min(shards, key=lambda b: b[0])
+              target[0] += WEIGHT.get(s, DEFAULT)
+              target[1].append(s)
+          shards = [b for b in shards if b[1]]
+
+          planned = sorted(s for _, ss in shards for s in ss)
+          if planned != sorted(suites):
+              sys.exit(f"::error::shard plan {planned} != --list-suites {sorted(suites)}")
+
+          include = [{"shard": str(i + 1), "suites": " ".join(ss)} for i, (_, ss) in enumerate(shards)]
+          print("matrix=" + json.dumps({"include": include}))
+          for i, (w, ss) in enumerate(shards, 1):
+              print(f"shard {i}: ~{w}s  {' '.join(ss)}", file=sys.stderr)
+          PY
+
+  gate_audit:
+    name: "Gate audit — shard ${{ matrix.shard }}"
+    needs: suites
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.suites.outputs.matrix) }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # ⛔ 2, not the default 1 — identical to `core`, for the same reason: three
+          # gates (inception-coverage, changed-concept-renders, ratchet-freshness) diff
+          # against the PR base via scripts/_base_ref.py, and on a push to main that
+          # base is HEAD^1, which a depth-1 clone cannot resolve. Do NOT lower it.
+          fetch-depth: 2
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "20"
+
+      # Installed UNCONDITIONALLY: without them the fixtures that need these tools
+      # HARD-FAIL in CI via `_skip_or_fail` (a skip is not a pass). Pinned for
+      # determinism. Moved here from `core` with the audit — nothing else used them.
+      - name: Install ruff (audit-gates Gate 9b fixtures)
+        run: python3 -m pip install --quiet 'ruff==0.15.8'
+
+      - name: Install jsonschema (audit-gates Gate 47 validate-schemas fixtures)
+        run: python3 -m pip install --quiet jsonschema
+
+      - name: Audit gates — shard ${{ matrix.shard }}
+        # Codifies docs/best-practices/ci-gate-audit.md: prove each gate fails on bad
+        # input AND passes on good. See scripts/audit-gates.sh for per-gate fixtures.
+        env:
+          SHARD: ${{ matrix.shard }}
+          SUITES: ${{ matrix.suites }}
+        run: |
+          # No `-e`: a red suite must not stop the next one (see the block comment above).
+          set -uo pipefail
+          if [ -z "${SUITES// /}" ]; then
+            echo "::error::shard ${SHARD} was handed no suites — refusing to report success" >&2
+            exit 1
+          fi
+          failed=""
+          for suite in ${SUITES}; do
+            echo "::group::Suite: ${suite}"
+            if scripts/audit-gates.sh --suite "${suite}"; then
+              echo "suite ${suite}: pass"
+            else
+              echo "::error::suite ${suite} FAILED"
+              failed="${failed} ${suite}"
+            fi
+            echo "::endgroup::"
+          done
+          if [ -n "${failed}" ]; then
+            echo "::error::shard ${SHARD}: failing suite(s):${failed}"
+            exit 1
+          fi
+
   lint_prettier:
     name: "Suite: Prettier format check"
     needs: [detect]
@@ -826,7 +921,17 @@ jobs:
   # ─────────────────────────────────────────────────────────────────────────────────
   validate:
     name: Validate manifests and hooks
-    needs: [detect, core, lint_prettier, lint_actionlint, lint_ruff, lint_macos_portability]
+    needs:
+      [
+        detect,
+        core,
+        suites,
+        gate_audit,
+        lint_prettier,
+        lint_actionlint,
+        lint_ruff,
+        lint_macos_portability,
+      ]
     if: always()
     runs-on: ubuntu-latest
     steps:
@@ -834,6 +939,8 @@ jobs:
         env:
           DETECT_RESULT: ${{ needs.detect.result }}
           CORE_RESULT: ${{ needs.core.result }}
+          SUITES_RESULT: ${{ needs.suites.result }}
+          GATE_AUDIT_RESULT: ${{ needs.gate_audit.result }}
           LINT_PRETTIER_RESULT: ${{ needs.lint_prettier.result }}
           LINT_ACTIONLINT_RESULT: ${{ needs.lint_actionlint.result }}
           LINT_RUFF_RESULT: ${{ needs.lint_ruff.result }}
@@ -857,6 +964,21 @@ jobs:
             esac
           }
           check "core" "${CORE_RESULT}"
+
+          # ⛔ STRICT: success ONLY, never "skipped". `check` above accepts skipped (right for
+          # the docs-only lint lanes), but these two have no skip condition — so `skipped`
+          # here can only mean the planner failed and took the whole audit down with it
+          # (a failed `suites` skips `gate_audit`). Accepting that would turn "the audit
+          # never ran" into a green required check.
+          strict() { # $1=label $2=result
+            echo "$1: $2"
+            if [ "$2" != "success" ]; then
+              echo "::error::$1 reported '$2' (required: success — this job is never legitimately skipped)"
+              status=1
+            fi
+          }
+          strict "suites (shard planner)" "${SUITES_RESULT}"
+          strict "gate_audit (sharded)" "${GATE_AUDIT_RESULT}"
           check "lint_prettier" "${LINT_PRETTIER_RESULT}"
           check "lint_actionlint" "${LINT_ACTIONLINT_RESULT}"
           check "lint_ruff" "${LINT_RUFF_RESULT}"

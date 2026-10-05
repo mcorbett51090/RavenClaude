@@ -140,9 +140,84 @@ jobs:
           python3 scripts/check-verdict-default-nonpermissive.py --self-test
           python3 scripts/check-verdict-default-nonpermissive.py
 
+  # ⛔ SHARDED FOR WALL-CLOCK, ONLY WHILE THIS REPO IS PUBLIC. The audit below used to be
+  # one serial 836s step (macOS) — the longest job on any PR here. It now runs as
+  # `SHARDS` parallel jobs, each running whole `--suite`s of `scripts/audit-gates.sh`
+  # (the same slicing validate-marketplace.yml's `suites`/`gate_audit` jobs use — see
+  # the long note there for the measurements, why coverage is structural, and why each
+  # shard needs its own checkout). Standard runners are unmetered on a public repo, so
+  # the extra per-shard startup (~35s x 3) costs nothing today.
+  #
+  # ⛔ IF THIS REPO IS EVER MADE PRIVATE, set SHARDS to 1. macOS bills ~10x Linux there,
+  # and three shards cost ~30% more macOS minutes than one serial job (per-job startup
+  # plus per-job round-up). SHARDS=1 packs every suite into one shard — the old
+  # behaviour, still running every suite.
+  #
+  # 3, not 4: macOS allows 5 concurrent jobs, and `macos-portability` plus the macOS
+  # leg of `hook-failclosed` already hold two of them.
+  audit-suites:
+    name: Plan macOS gate-audit shards
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    if: github.event_name != 'push'
+    env:
+      SHARDS: "3"
+    outputs:
+      matrix: ${{ steps.plan.outputs.matrix }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Pack suites into balanced shards
+        id: plan
+        run: |
+          set -euo pipefail
+          suites="$(scripts/audit-gates.sh --list-suites)"
+          if [ -z "${suites}" ]; then
+            echo "::error::audit-gates.sh --list-suites returned no suites — refusing to plan an empty audit" >&2
+            exit 1
+          fi
+          SUITES="${suites}" python3 - <<'PY' >> "$GITHUB_OUTPUT"
+          import json, os, sys
+
+          SHARDS = int(os.environ["SHARDS"])
+          # Balance only — a suite missing here is still scheduled (DEFAULT). Seconds
+          # on a Linux runner; macOS is slower by a roughly uniform factor.
+          WEIGHT = {
+              "hooks": 138, "ratchet": 121, "tribunal": 48, "portal": 46,
+              "inventory": 30, "claims": 27, "security": 27, "handoff": 26,
+              "core": 13, "hosts": 13, "forge": 10, "format": 10, "streams": 7,
+              "convergence": 3, "forms": 3, "lint": 2, "macos": 2, "wireframe": 1,
+          }
+          DEFAULT = 30
+
+          suites = os.environ["SUITES"].split()
+          shards = [[0, []] for _ in range(SHARDS)]
+          for s in sorted(suites, key=lambda s: (-WEIGHT.get(s, DEFAULT), s)):
+              target = min(shards, key=lambda b: b[0])
+              target[0] += WEIGHT.get(s, DEFAULT)
+              target[1].append(s)
+          shards = [b for b in shards if b[1]]
+
+          planned = sorted(s for _, ss in shards for s in ss)
+          if planned != sorted(suites):
+              sys.exit(f"::error::shard plan {planned} != --list-suites {sorted(suites)}")
+
+          include = [{"shard": str(i + 1), "suites": " ".join(ss)} for i, (_, ss) in enumerate(shards)]
+          print("matrix=" + json.dumps({"include": include}))
+          for i, (w, ss) in enumerate(shards, 1):
+              print(f"shard {i}: ~{w}s  {' '.join(ss)}", file=sys.stderr)
+          PY
+
   audit-gates-macos:
-    name: Every gate passes on a stock macOS toolchain
+    name: "Every gate passes on a stock macOS toolchain (shard ${{ matrix.shard }})"
+    needs: audit-suites
     runs-on: macos-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.audit-suites.outputs.matrix) }}
     # ⛔ NOT ON `push`. Measured 2026-08-24: this ONE job is 10.6 min average and
     # 232.6 of the workflow's 247.5 sampled minutes — 94% of the whole macOS lane,
     # on a runner billed at ~10x Linux. The other three jobs are 0.2-0.3 min each.
@@ -220,7 +295,31 @@ jobs:
             || python3 -m pip install --quiet --break-system-packages pyyaml jsonschema tomli
           python3 -c 'import yaml, jsonschema; print("yaml", yaml.__version__)'
 
-      - name: Audit every gate on macOS
-        # Same command validate-marketplace.yml runs on ubuntu. The POINT is the
+      - name: Audit gates on macOS — shard ${{ matrix.shard }}
+        # Same suites validate-marketplace.yml runs on ubuntu. The POINT is the
         # runner, not the command: bash 3.2, BSD grep/sed, absent GNU timeout.
-        run: scripts/audit-gates.sh
+        env:
+          SHARD: ${{ matrix.shard }}
+          SUITES: ${{ matrix.suites }}
+        run: |
+          # No `-e`: a red suite must not stop the next one from running.
+          set -uo pipefail
+          if [ -z "${SUITES// /}" ]; then
+            echo "::error::shard ${SHARD} was handed no suites — refusing to report success" >&2
+            exit 1
+          fi
+          failed=""
+          for suite in ${SUITES}; do
+            echo "::group::Suite: ${suite}"
+            if scripts/audit-gates.sh --suite "${suite}"; then
+              echo "suite ${suite}: pass"
+            else
+              echo "::error::suite ${suite} FAILED"
+              failed="${failed} ${suite}"
+            fi
+            echo "::endgroup::"
+          done
+          if [ -n "${failed}" ]; then
+            echo "::error::shard ${SHARD}: failing suite(s):${failed}"
+            exit 1
+          fi
