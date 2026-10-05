@@ -183,3 +183,28 @@ Against the approved envelope (about 380 calls and 35M input tokens; re-ask abov
 - At the plan's 80 KB batches the scout line is about 274 calls (plan: 180 to 235), and with the plan's other lines (65 to 145 calls) the total is about 340 to 420 calls and 7M to 29M scout input tokens: inside the envelope and inside 1.5x. **No re-ask is owed before P4.**
 - The envelope does not survive small batches. P1's capacity probes saw scout dispatches fail on large inputs (cause not isolated; recorded in the P1 notes), so 80 KB is not yet shown to work. If P4 measures a safe batch below about 48 KB, the recomputed scout line alone passes 570 calls and may pass 52M tokens: **that triggers the owner re-ask at the P4 gate**, with these options: proceed at the higher figure, cut the corpus (the largest low-yield pages: Claude changelog 942 KB, errors 482 KB, 25 weekly what's-new digests 179 KB, Copilot supported-models 415 KB, Codex config-schema.json 229 KB, Agent SDK reference 1.1 MB), or stop and report.
 - `omitClaudeMd` removes about 17.6K tokens per dispatch if the field works; P4 measures whether it does.
+
+## P4 — pilot findings so far (2026-10-04/05) [observations unless marked inference]
+**Dispatch shape.** A trivial shipped-scout dispatch costs 32,001 tokens, 4 tool uses, 70 s (matches P0). Giving a scout ONE combined batch file (`briefs.py brief --combined`, chunk texts under `[[[CHUNK id= page= lines=A-B]]]` headers) completed at every size tried, 12 to 77 KB; P0's "autocompact thrashing" on 16-25 KB reads did not recur. Cause of the P0 failures not isolated (inference: many separate Reads or a large single Read of a repo file; untested). Tokens per haiku dispatch: 42K (12 KB), 50K (20 KB), 54K (32 KB), 61K (48 KB), 74K (77 KB); wall 60 to 111 s.
+**omitClaudeMd arm: not measurable.** `Agent type 'atlas-scout-nomd' not found`: this session's agent list is fixed at start, so a mid-session copy cannot be dispatched. The copy was deleted; `git status` clean of it. Claims row 35 stays unsettled.
+
+**Quote-pass (script check against raw bytes; failures dropped, never repaired). Gate: 95% per corpus.**
+| batch | model | size | records | pass (final verifier) | tokens | wall |
+|---|---|---|---|---|---|---|
+| Gemini L12 / L20 / L32 / L48 / L80 | haiku | 12/20/32/48/77 KB | 27/48/68/51/67 | 88.9% / 100% / 95.6% / 72.5% / 76.1% | 42K/50K/54K/61K/74K | 60/81/86/104/111 s |
+| Gemini R48 / R80 (brief v2) | haiku | 48/77 KB | 53/57 | 84.9% / 75.4% | 64K/91K | 128/167 s |
+| Grok Build K48 | haiku | 48 KB | 66 | 100% (JSON needed backslash repair) | 80K | 215 s |
+| Claude 4 largest chunks C48 / S48 / T-C48 | haiku | 48 KB | 65/62/38 | 93.8% / 82.3% / 84.2% | 89K/60K/52K | 278/139/71 s |
+| Cursor S-U48 / T-U48 | haiku | 47 KB | 42/47 | 52.4% / 70.2% | 56K/61K | 88/127 s |
+| Copilot CLI S-P48 / T-P48 | haiku | 40 KB | 41/27 | 75.6% / 77.8% | 58K/55K | 89/72 s |
+| Gemini S-G48 / T-G48 | haiku | 48 KB | 53/56 | 77.4% / 82.1% | 59K/61K | 87/104 s |
+| Codex S-X32 (config-schema.json) | haiku | 26 KB | 48 | unparseable JSON | 63K | 160 s |
+| Copilot CLI W-P24 / Cursor W-U24 / Gemini W-G24 | haiku | 24 KB | 30/19/36 | 93.3% / 94.7% / unparseable JSON | 53K/54K/56K | 100/119/139 s |
+| **Cursor V-U48 / Gemini V-G48 / Copilot CLI V-P48** | **sonnet** | 48 KB | 53/60/49 | **100% / 100% / 100%** (every quote exact) | 89K/90K/82K | 155/158/121 s |
+(Several haiku rows were first scored with an earlier verifier; the table shows the final one. The verifier was changed after seeing the drops, so haiku numbers are on data the changes were designed from; the sonnet runs were verified by the final verifier only.)
+
+**What fails (haiku).** Scouts quote several lines or a whole list as one sentence, join two places with `...`, strip `**`, link targets and list markers, and type straight apostrophes for curly ones. Raw quote-pass is worst on hard-wrapped corpora (Gemini 55% of long lines are 70-82 columns, Grok Bot 47%, Codex 42%) and on multi-block pages (Cursor). A brief rewrite to short single-line phrases did not close the gap (T-* rows). Malformed JSON: 3 of about 25 haiku batches (K48 recovered by the loader; S-X32 and W-G24 not), 0 of 3 sonnet.
+**Verifier/tool changes made because of the pilot (all tested, in the branch):** combined batch files; `line_offset` for pages cut from an aggregate; `load_scout_json` (doubles lone backslashes, admits raw control characters); markup tier ignores Markdown link targets and square brackets and maps curly quotes and dashes to straight forms (length-preserving, so line numbers and the stored raw span are unchanged); brief rules.
+**Decision (inference, owner informed at the P4 gate).** Haiku does not meet the 95% gate at 48 KB on any corpus except short-line Grok Build, and at 24 KB only borderline (93-95%) with one unparseable batch. The plan's own fallback applies ("that corpus moves to sonnet before P5"): extraction moves to sonnet at about 48 KB per batch, pending the 77 KB probe.
+**Cost at that operating point [estimate from measured tokens].** About 87K tokens per 48 KB batch: 18.8 MB / 48 KB = 392 batches, about 431 with 10% retries, about 37M tokens for extraction; plus the plan's other lines (about 100 calls, 7M to 10M tokens) is about 530 calls and 45M tokens against the approved 380 calls and 35M tokens: 1.4x and 1.3x, inside the 1.5x re-ask line. The price per token of sonnet versus the plan's mostly-haiku mix is not in the envelope's units; the owner is told.
+**Not yet done in P4:** hook probe (can a PreToolUse hook tell a subagent Write from the parent's), planted-cell test on haiku, Claude/Codex sonnet confirmation (V-C48, V-X48 running), sonnet at 77 KB (V-G80 running).
