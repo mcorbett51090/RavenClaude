@@ -5,6 +5,9 @@ The sweep scans the whole raw mirror, excluded pages included, line by line for 
 that vendor's pages. An empty search from a blind probe and from an empty subject look the
 same, so a sweep whose control finds nothing raises instead of returning "zero hits".
 
+A hit's text is the line, or for a line longer than 200 characters a 200-character window that
+starts 60 characters before the first match, so a match deep inside a long line stays visible.
+
 Terms match one line at a time; a pattern that needs to span a line break cannot hit. Lines
 end at a line feed; a carriage return before it is not part of the line, so a pattern anchored
 with $ matches a page with CRLF line breaks as it does one with LF.
@@ -23,6 +26,7 @@ from atlas_common import assert_worktree, dump_json
 
 MAX_HITS = 200
 MAX_TEXT = 200
+CONTEXT = 60
 
 
 class SweepBlindError(RuntimeError):
@@ -61,10 +65,14 @@ def sweep(pages, terms, positive_control):
             line = line.rstrip("\r")
             if control_re.search(line):
                 control_hits += 1
-            if any(r.search(line) for r in term_res):
+            starts = [m.start() for m in (r.search(line) for r in term_res) if m]
+            if starts:
                 hit_count += 1
                 if len(hits) < MAX_HITS:
-                    hits.append({"page": pid, "line": number, "text": line[:MAX_TEXT]})
+                    begin = max(0, min(starts) - CONTEXT)
+                    hits.append(
+                        {"page": pid, "line": number, "text": line[begin : begin + MAX_TEXT]}
+                    )
     if control_hits == 0:
         raise SweepBlindError(
             f"positive control {positive_control!r} matched no line in {len(pages)} pages: "

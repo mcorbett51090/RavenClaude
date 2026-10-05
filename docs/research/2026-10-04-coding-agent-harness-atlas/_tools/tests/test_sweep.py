@@ -82,6 +82,14 @@ class SweepTests(unittest.TestCase):
         result = sweep({"p": "needle " + "x" * 500 + "\ncontrol\n"}, ["needle"], "control")
         self.assertEqual(len(result["hits"][0]["text"]), 200)
 
+    def test_a_match_deep_in_a_long_line_stays_in_the_hit_text(self):
+        line = "x" * 1000 + " needle " + "y" * 1000
+        result = sweep({"p": line + "\ncontrol\n"}, ["needle"], "control")
+        text = result["hits"][0]["text"]
+        self.assertEqual(len(text), 200)
+        self.assertIn("needle", text)
+        self.assertEqual(text.index("needle"), 60)
+
     def test_a_crlf_page_matches_a_dollar_anchored_term(self):
         crlf = sweep({"p": "vendor docs\r\nfeature sandbox\r\n"}, ["sandbox$"], "vendor")
         lf = sweep({"p": "vendor docs\nfeature sandbox\n"}, ["sandbox$"], "vendor")
