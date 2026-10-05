@@ -1,6 +1,6 @@
 """Assemble the verified extraction batches into one deduplicated evidence set per surface.
 
-Evidence ids are local to a batch (``E-claude-code-00001`` exists in hundreds of batches), so every
+Evidence ids are local to a batch (``E-cursor-00001`` exists in hundreds of batches), so every
 record is keyed on ``(batch, local id)`` and only gets a global id here. Each verified evidence
 record is joined to its scout record through ``pairs``, deduplicated within its surface, numbered
 ``E-<surface>-NNNNN`` and filed under the rows the scouts named. ``rows`` that are not in
