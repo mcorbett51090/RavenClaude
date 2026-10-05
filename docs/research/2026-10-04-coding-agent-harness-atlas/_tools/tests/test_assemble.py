@@ -914,6 +914,66 @@ class PackTests(AssembleCase):
             ["## cursor/F01.r3 | Row three", "## cursor/F01.r4 | Row four"],
         )
 
+    ADJACENT_LINE = (
+        "Adjacent: {} records filed under sibling rows of this facet; "
+        "cite one only if its quote states this row's definition."
+    )
+
+    def test_adjacent_gives_a_thin_cell_records_filed_under_its_sibling_rows(self):
+        self.run_pack("--adjacent", "3")
+        cell = cells_of(self.text("cursor-01.md"))["## cursor/F01.r3 | Row three"]
+        self.assertEqual(
+            cell[:5],
+            [
+                "## cursor/F01.r3 | Row three",
+                "Definition: Def three.",
+                "Bucket: 0 records. EMPTY CELL: needs an absence sweep.",
+                self.ADJACENT_LINE.format(3),
+                "- E-cursor-00002 | E1 | page:Pb | heading:h | flags:adjacent-row:F01.r1",
+            ],
+        )
+        ids = [line.split(" | ")[0][2:] for line in cell if line.startswith("- E-")]
+        self.assertEqual(ids, ["E-cursor-00002", "E-cursor-00004", "E-cursor-00006"])
+        self.assertIn("flags:2,5,adjacent-row:F01.r2", cell[-4])
+
+    def test_a_cell_with_enough_own_records_gets_none(self):
+        self.run_pack("--adjacent", "3")
+        cell = cells_of(self.text("cursor-01.md"))["## cursor/F01.r1 | Row one"]
+        self.assertFalse([line for line in cell if line.startswith("Adjacent:")])
+        self.assertFalse([line for line in cell if "adjacent-row" in line])
+
+    def test_adjacent_never_repeats_the_cells_own_record_and_keeps_it_first(self):
+        self.run_pack("--adjacent", "2")
+        cell = cells_of(self.text("cursor-01.md"))["## cursor/F01.r2 | Row two"]
+        ids = [line.split(" | ")[0][2:] for line in cell if line.startswith("- E-")]
+        self.assertEqual(ids[0], "E-cursor-00006")
+        self.assertEqual(len(ids), 3)
+        self.assertEqual(len(set(ids)), 3)
+
+    def test_without_adjacent_a_pack_has_no_adjacent_lines(self):
+        self.run_pack()
+        self.assertNotIn("Adjacent:", self.text("cursor-01.md"))
+        self.assertNotIn("adjacent-row", self.text("cursor-01.md"))
+
+    def test_adjacent_stays_inside_the_facet(self):
+        two_facets = json.loads(json.dumps(PACK_FACETS))
+        rows = two_facets["facets"][0]["rows"]
+        two_facets["facets"] = [
+            {"id": "F01", "rows": [r for r in rows if r["id"] != "F01.r5"]},
+            {"id": "F02", "rows": [dict(rows[4], id="F02.r5")]},
+        ]
+        self.facets_path.write_text(json.dumps(two_facets))
+        self.run_pack("--adjacent", "10", "--rows", "F01.r3")
+        cell = cells_of(self.text("cursor-01.md"))["## cursor/F01.r3 | Row three"]
+        ids = [line.split(" | ")[0][2:] for line in cell if line.startswith("- E-")]
+        self.assertEqual(len(ids), 6)
+        self.assertNotIn("E-cursor-00007", ids)
+
+    def test_a_negative_adjacent_is_refused(self):
+        with self.assertRaises(SystemExit) as raised:
+            self.pack("--adjacent", "-1")
+        self.assertEqual(raised.exception.code, 2)
+
     def test_the_slice_keeps_only_that_slices_rows_in_facets_order(self):
         self.run_pack("--slice", "P5")
         self.assertEqual(

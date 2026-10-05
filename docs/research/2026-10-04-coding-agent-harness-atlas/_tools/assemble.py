@@ -58,6 +58,8 @@ PACK_HEADER = (
 )
 DEFAULT_PACK_N = 12
 DEFAULT_CELLS_PER_PACK = 18
+# A row with fewer own records than this gets adjacent-row candidates when --adjacent asks for them.
+THIN_BUCKET = 3
 
 
 class AssembleError(Exception):
@@ -543,10 +545,13 @@ def _quote_line(record):
     return quote
 
 
-def _candidate_lines(item_id, record):
+def _candidate_lines(item_id, record, extra_flag=None):
     if record.get("quote_verified") is not True:
         raise AssembleError(f"{item_id} is not quote_verified; refusing to pack it")
-    flags = ",".join(str(f) for f in record.get("neutralizer_flags") or []) or "none"
+    flags = [str(f) for f in record.get("neutralizer_flags") or []]
+    if extra_flag:
+        flags.append(extra_flag)
+    flags = ",".join(flags) or "none"
     heading = one_line((record.get("locator") or {}).get("heading")) or "none"
     page = one_line(record.get("page_id")) or "none"
     return [
@@ -556,27 +561,77 @@ def _candidate_lines(item_id, record):
     ]
 
 
-def render_cell(surface, entry, surface_buckets, evidence_by_id, n):
-    """The markdown lines of one cell: its heading, bucket summary and top ``n`` candidates."""
+def facet_siblings(facets):
+    """``{row id: [the other row ids of its facet, in facets.json order]}``."""
+    siblings = {}
+    for facet in facets.get("facets") or []:
+        ids = [row["id"] for row in facet.get("rows") or []]
+        for row in ids:
+            siblings[row] = [other for other in ids if other != row]
+    return siblings
+
+
+def adjacent_ids(surface_buckets, evidence_by_id, row, siblings, limit):
+    """Up to ``limit`` ``(evidence id, source row)`` pairs filed under the other rows of ``row``'s facet.
+
+    A scout files a record under the row it judged best, so a record that answers this row can sit
+    under a neighbour. The pairs are ranked like any bucket, skip the row's own records, and name the
+    sibling row that first holds each id.
+    """
+    rows = surface_buckets["rows"]
+    own = set(rows[row])
+    pool, source = [], {}
+    for other in siblings.get(row, []):
+        for item_id in rows.get(other, []):
+            if item_id not in own and item_id not in source:
+                source[item_id] = other
+                pool.append(item_id)
+    return [(item_id, source[item_id]) for item_id in rank_ids(pool, evidence_by_id)[:limit]]
+
+
+def render_cell(surface, entry, surface_buckets, evidence_by_id, n, adjacent=()):
+    """The markdown lines of one cell: its heading, bucket summary and top ``n`` candidates.
+
+    ``adjacent`` is a list of ``(evidence id, source row)`` pairs rendered after the row's own
+    candidates, each flagged ``adjacent-row:<source row>``.
+    """
     row, label, definition = entry
     lines = [f"## {surface}/{row} | {one_line(label)}", f"Definition: {one_line(definition)}"]
     ranked = surface_buckets["rows"][row]
     if not ranked:
         lines.append("Bucket: 0 records. EMPTY CELL: needs an absence sweep.")
-        return lines
-    absent = [i for i in ranked if i not in evidence_by_id]
-    if absent:
-        raise AssembleError(f"{surface}/{row}: bucket names {absent[0]}, which is not evidence")
-    shown = candidates(surface_buckets, evidence_by_id, row, n)
-    pages = len({diversity_key(evidence_by_id[i]) for i in ranked})
-    lines.append(f"Bucket: {len(ranked)} records, {pages} distinct pages; showing {len(shown)}.")
-    for item_id in shown:
-        lines.extend(_candidate_lines(item_id, evidence_by_id[item_id]))
+    else:
+        absent = [i for i in ranked if i not in evidence_by_id]
+        if absent:
+            raise AssembleError(f"{surface}/{row}: bucket names {absent[0]}, which is not evidence")
+        shown = candidates(surface_buckets, evidence_by_id, row, n)
+        pages = len({diversity_key(evidence_by_id[i]) for i in ranked})
+        lines.append(
+            f"Bucket: {len(ranked)} records, {pages} distinct pages; showing {len(shown)}."
+        )
+        for item_id in shown:
+            lines.extend(_candidate_lines(item_id, evidence_by_id[item_id]))
+    if adjacent:
+        lines.append(
+            f"Adjacent: {len(adjacent)} records filed under sibling rows of this facet; "
+            "cite one only if its quote states this row's definition."
+        )
+        for item_id, source_row in adjacent:
+            lines.extend(
+                _candidate_lines(item_id, evidence_by_id[item_id], f"adjacent-row:{source_row}")
+            )
     return lines
 
 
-def build_packs(surface, cells, surface_buckets, evidence_by_id, n, cells_per_pack):
-    """``[{"name", "text", "cells"}]``: ``cells_per_pack`` cells to a pack, numbered from 01."""
+def build_packs(
+    surface, cells, surface_buckets, evidence_by_id, n, cells_per_pack, siblings=None, adjacent=0
+):
+    """``[{"name", "text", "cells"}]``: ``cells_per_pack`` cells to a pack, numbered from 01.
+
+    With ``adjacent`` above zero, a cell whose own bucket holds fewer than ``THIN_BUCKET`` records
+    also gets up to ``adjacent`` records filed under the other rows of its facet (``siblings`` is
+    ``facet_siblings``).
+    """
     missing = [row for row, _label, _definition in cells if row not in surface_buckets["rows"]]
     if missing:
         raise AssembleError(f"{surface}: the buckets have no row {missing[:5]}; rebuild them")
@@ -585,8 +640,12 @@ def build_packs(surface, cells, surface_buckets, evidence_by_id, n, cells_per_pa
         chunk = cells[start : start + cells_per_pack]
         lines = list(PACK_HEADER)
         for entry in chunk:
+            row = entry[0]
+            extra = ()
+            if adjacent and len(surface_buckets["rows"][row]) < THIN_BUCKET:
+                extra = adjacent_ids(surface_buckets, evidence_by_id, row, siblings or {}, adjacent)
             lines.append("")
-            lines.extend(render_cell(surface, entry, surface_buckets, evidence_by_id, n))
+            lines.extend(render_cell(surface, entry, surface_buckets, evidence_by_id, n, extra))
         packs.append(
             {
                 "name": f"{surface}-{number:02d}.md",
@@ -646,14 +705,32 @@ def _positive_int(text):
     return value
 
 
+def _non_negative_int(text):
+    try:
+        value = int(text)
+    except ValueError:
+        raise argparse.ArgumentTypeError(f"{text!r} is not an integer")
+    if value < 0:
+        raise argparse.ArgumentTypeError("must be at least 0")
+    return value
+
+
 def _cmd_pack(args):
     assembled = run_dir(args.run_dir) / "assembled"
     out_dir = Path(args.out) if args.out else assembled / "packs"
     rows = [r.strip() for r in args.rows.split(",") if r.strip()] if args.rows else None
-    cells = select_cells(load_json(args.facets), args.slice, rows)
+    facets = load_json(args.facets)
+    cells = select_cells(facets, args.slice, rows)
     evidence_by_id, surface_buckets = load_surface(assembled, args.surface)
     packs = build_packs(
-        args.surface, cells, surface_buckets, evidence_by_id, args.n, args.cells_per_pack
+        args.surface,
+        cells,
+        surface_buckets,
+        evidence_by_id,
+        args.n,
+        args.cells_per_pack,
+        facet_siblings(facets),
+        args.adjacent,
     )
     write_packs(out_dir, args.surface, packs)
     empty = sum(1 for row, _label, _definition in cells if not surface_buckets["rows"][row])
@@ -712,6 +789,12 @@ def main(argv=None):
     pack.add_argument("--rows", help="comma-separated row ids; overrides --slice")
     pack.add_argument("--n", type=_positive_int, default=DEFAULT_PACK_N)
     pack.add_argument("--cells-per-pack", type=_positive_int, default=DEFAULT_CELLS_PER_PACK)
+    pack.add_argument(
+        "--adjacent",
+        type=_non_negative_int,
+        default=0,
+        help="give a cell with fewer than 3 own records up to this many records from sibling rows",
+    )
     pack.add_argument("--out", help="packs directory (default: <run-dir>/assembled/packs)")
     pack.set_defaults(handler=_cmd_pack)
     args = parser.parse_args(argv)
