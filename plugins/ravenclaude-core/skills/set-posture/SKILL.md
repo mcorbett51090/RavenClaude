@@ -262,7 +262,7 @@ at one layer — the key round-trips in YAML but is a documented no-op there.
 Gate 289 still forbids shipped agents from granting `Agent` in `tools:`.
 
 **See:** Pipeline stage `nested-dispatch`; Gate 293;
-[`docs/decisions/2026-09-14-nested-dispatch-determination.md`](../../../docs/decisions/2026-09-14-nested-dispatch-determination.md) § 8.
+[`docs/decisions/2026-09-14-nested-dispatch-determination.md`](../../../../docs/decisions/2026-09-14-nested-dispatch-determination.md) § 8.
 
 ## See also
 
