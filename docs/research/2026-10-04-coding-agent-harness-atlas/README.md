@@ -59,6 +59,15 @@ line, and [data/trees.json](data/trees.json) the decision points.
   documents, not how well the agent does it. "Not documented" is never "cannot".
 - The atlas cannot measure how much of an agent's quality comes from the harness and how much from the model, so no
   share is given. The model panel says "no documented model dependence", never "regardless of model".
+- How it was checked (2026-10-05). Mechanical rules: every line passes `validate.py` (rule R14). Planted errors: 44
+  deliberately wrong lines in 11 classes were mixed with 42 real ones; the mechanical rules caught 37 (84%),
+  independent reviewers caught 41 (93%), together 44 of 44, with no false alarm from the rules on the real lines.
+  Independent review of all 216 plain lines found 12 more defects the rules had passed (an over-broad claim, a list
+  shown as complete, a dropped scope, an invented detail), and a re-review of the fixes found 2 more; all are fixed.
+  Of the 48 decision points, 11 were flagged: 3 were removed (45 remain) and 8 reworded; a re-review of the
+  reworded ones flagged 1 more, also fixed. The last 2 line fixes and that decision-point fix were checked against their
+  cells by the author, not re-reviewed by a second reader. A reader given only the page text answered 20 of 20
+  scenario questions correctly, including 5 the pages should say they cannot answer.
 - Five steps are not researched yet and say so on the pages: prompt caching, how tool output is trimmed, how a
   malformed model request is handled, retry and back-off, and prompt assembly (partly covered). They would need new
   rows, which changes the frozen row list, so they are a separate piece of work.
