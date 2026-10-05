@@ -3062,7 +3062,7 @@
         "scripts/inventory-nuance-judge.py",
         "plugins/ravenclaude-core/scripts/forge-receipt.py"
       ],
-      "covers_digest": "sha256:c3383a20796fe8f791b316b0f08622ddb2f10d3e634b20a1de7f32d339594dae",
+      "covers_digest": "sha256:09603f83df0a1f1c5f0164197364e8c8e91159047368b3bbf6f62ed5f6c21d9f",
       "nuance": "The teeth bit is the exit a tool own CHECK returns on a planted defect, never the exit `--must-fail` itself returns: `premise-gate.py` denies at `exit 0` while `sync-plugin-versions.py` reddens at `exit 2`, so an auditor that hard-codes one number can never be right for both.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -3469,7 +3469,7 @@
         "scripts/generate-dashboards.py",
         "scripts/generate-index-dashboard.py"
       ],
-      "covers_digest": "sha256:9304f1d4084774bca50bd518fe70411fcef548fa67bdb01b73fcbf0ae73ad721",
+      "covers_digest": "sha256:2ad4fc91a456b2a3fdb14bfc24d6f018dc9390a4a6c86b1f9adbaed84364a8e8",
       "nuance": "`ISLANDED_PANEL_COST` is a flat 2 because the parser reads the payload as CDATA, so `check-dom-budget.py` cannot fire on `learn-payload` no matter how far past 23,861 elements it grows.",
       "nuance_evidence": {
         "measured": "2026-08-19",

@@ -1204,6 +1204,7 @@ _PIPELINE_STAGE_HOOKS = {
     "memory-compaction": "guard-memory-compaction.sh",
     "guard-premise": "guard-premise.sh",
     "route-decision-review": "route-decision-review.sh",
+    "nested-dispatch": None,  # behavioral: apply-comfort-posture pins CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH — no hook
     "guard-web-access": "guard-web-access.sh",
     "claude-orchestrator": None,  # behavioral: spawn-team reads `orchestrator:` — no hook
     "cheap-lane-delegation": None,  # behavioral: cheap-lane-delegation skill reads `cheap_lane:` — no hook

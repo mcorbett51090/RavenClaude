@@ -26,8 +26,9 @@ hooks/hooks.json bidirectionally:
   5. the RENDERED artifact (dashboard.html) exposes a `data-stage` for exactly the
      lane stage ids  (the map that ships == the map in source).
 
-Two stages map to None on purpose: `parallel-workers` and `claude-orchestrator`
-are BEHAVIORAL guardrails (comfort-posture knobs read by spawn-team, not hooks).
+Several stages map to None on purpose — BEHAVIORAL comfort-posture knobs with
+no hook (`parallel-workers`, `claude-orchestrator`, `cheap-lane-delegation`,
+`nested-dispatch`). They are still first-class Pipeline cards.
 
 Stdlib only — no node, no new dependency. Python 3.9 compatible.
 

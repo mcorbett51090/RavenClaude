@@ -6762,6 +6762,18 @@ echo "── Gate 292: hooks work on a python3 with no PyYAML (vendored fallback
 rc=0; bash plugins/ravenclaude-core/hooks/tests/test-gate292-yaml-vendor-fallback.sh >/dev/null 2>&1 || rc=$?
 gate "no-PyYAML python3: read-only not denied + hard rule still denied + catalog parity + vendor-removed teeth" must_pass "$rc"
 
+# nested_dispatch comfort-posture knob (core 0.328.0): pins
+# CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH from nested_dispatch: off|on (default off;
+# on requires Claude Code auth). Covers apply-comfort-posture.py, both
+# serve-dashboards.py copies (/__auth-status + Save 403), and a mutant that
+# skips the auth check. Registered in the --check dispatcher, this main
+# sequence, the Supported: string and the `hooks` suite; after adding a gate,
+# GREP THE SUITE OUTPUT FOR "Gate 293".
+echo "── Gate 293: nested_dispatch comfort-posture knob (apply + server auth gate) ──"
+rc=0; bash plugins/ravenclaude-core/hooks/tests/test-gate293-nested-dispatch-knob.sh >/dev/null 2>&1 || rc=$?
+gate "nested_dispatch: absent→depth 1 + fail-closed without auth + provenance + spellings + server 403/200 + mutant teeth" must_pass "$rc"
+
+
 echo "── Gate 285: handoff-tax-meter.sh (model-tier delegation — the measurement leg) ──"
 # knowledge/model-tier-delegation.md says delegation saves MONEY only when the
 # volume moves to a cheaper tier AND the handoff (brief + report) stays small.
