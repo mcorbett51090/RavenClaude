@@ -87,7 +87,8 @@ CSS = """
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--text);
 font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif}
-header,main{max-width:1100px;margin:0 auto;padding:0 var(--s4)}
+header,main{max-width:1400px;margin:0 auto;padding:0 var(--s4)}
+main>p,main>ul,main>ol{max-width:75ch}
 main{padding-bottom:var(--s6)}
 h1{font-size:1.75rem;line-height:1.2;margin:var(--s5) 0 var(--s4)}
 h2{font-size:1.35rem;margin:var(--s6) 0 var(--s3)}
@@ -110,7 +111,27 @@ table.matrix{min-width:960px}
 caption{text-align:left;font-weight:600;padding:var(--s2)}
 th,td{border:1px solid var(--border);padding:var(--s2);text-align:left;vertical-align:top;
 overflow-wrap:anywhere}
-th{background:var(--surface)}
+th{background:var(--surface);overflow-wrap:normal}
+th[scope=row]{font-weight:400}
+table.matrix td{min-width:7.5rem;font-size:.85rem;overflow-wrap:break-word}
+table.levers{min-width:1000px}
+table.levers th:nth-child(1),table.levers td:nth-child(1){min-width:9rem}
+table.levers th:nth-child(2),table.levers td:nth-child(2){min-width:8rem}
+table.levers th:nth-child(3),table.levers td:nth-child(3){min-width:8rem}
+table.levers th:nth-child(4),table.levers td:nth-child(4){min-width:16rem}
+table.levers th:nth-child(5),table.levers td:nth-child(5){min-width:7rem}
+table.levers th:nth-child(6),table.levers td:nth-child(6){min-width:5rem}
+table.levers th:nth-child(7),table.levers td:nth-child(7){min-width:4.5rem}
+table.levers th:nth-child(8),table.levers td:nth-child(8){min-width:6.5rem}
+table.levers th:nth-child(9),table.levers td:nth-child(9){min-width:9rem}
+table.register{min-width:1080px}
+table.register th:nth-child(1),table.register td:nth-child(1){width:3.5rem}
+table.register th:nth-child(2),table.register td:nth-child(2){min-width:22rem}
+table.register th:nth-child(3),table.register td:nth-child(3),table.register th:nth-child(5),
+table.register td:nth-child(5),table.register th:nth-child(6),table.register td:nth-child(6){white-space:nowrap}
+table.register th:nth-child(4),table.register td:nth-child(4){min-width:7rem}
+table.register th:nth-child(7),table.register td:nth-child(7){min-width:12rem}
+table.register th:nth-child(8),table.register td:nth-child(8){min-width:10rem}
 .s-supported{background:var(--t-supported)}
 .s-partial{background:var(--t-partial)}
 .s-not-exposed{background:var(--t-not-exposed)}
@@ -724,6 +745,8 @@ def harness_cell(atlas, sid, row_id, page, show_name):
             for e in entries
         )
         out.append(f"<p><strong>Register entries:</strong></p><ul>{items}</ul>")
+    else:
+        out.append('<p class="muted"><strong>Register entries:</strong> none cite this cell.</p>')
     out.append("</div>")
     return "\n".join(out)
 
@@ -797,7 +820,7 @@ def render_levers(atlas):
                 cells = [td(parts[k]) for k in ("row", "kind", "literal", "scope", "values")]
                 cells += [td(parts[k]) for k in ("default", "model", "state", "citation")]
                 rows.append((f"lever-{index}", cells))
-            body.append(table(f"{name}: {klass} lever locations", head, rows))
+            body.append(table(f"{name}: {klass} lever locations", head, rows, "levers"))
     if not atlas.levers:
         body.append(nodata_block())
     body.append(heading(2, "Task-shape rows"))
@@ -903,7 +926,7 @@ def render_register(atlas):
             td("<br>".join(links) if links else NODATA_INLINE),
         ]
         rows.append((clean(entry.get("id")), cells))
-    body = table("Enhancement register by rank", head, rows) if rows else nodata_block()
+    body = table("Enhancement register by rank", head, rows, "register") if rows else nodata_block()
     return document(page, "Register", "Enhancement register", body)
 
 
@@ -1188,12 +1211,13 @@ def extra_pages(out, rendered):
 
 
 def main(argv=None):
-    assert_worktree()
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--data-dir", default=str(DATA_DIR))
     parser.add_argument("--out", default=str(ATLAS_DIR))
     parser.add_argument("--check", action="store_true")
     args = parser.parse_args(argv)
+    if not args.check:  # --check only reads, so it also runs on main after the branch lands
+        assert_worktree()
     try:
         encoded = encode_pages(render_all(args.data_dir))
         check_sizes(encoded)

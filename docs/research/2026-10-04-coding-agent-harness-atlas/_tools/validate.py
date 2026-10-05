@@ -35,7 +35,7 @@ from pathlib import Path
 from typing import NamedTuple
 from urllib.parse import urlsplit
 
-from atlas_common import DATA_DIR, SCHEMA_DIR, assert_worktree
+from atlas_common import DATA_DIR, SCHEMA_DIR
 from quotes import INSTALL_DESCRIPTION, install_text
 from render import lever_key, ref_key
 
@@ -1311,7 +1311,7 @@ def _selftest():
 
 
 def main(argv=None):
-    assert_worktree()
+    # read-only: it needs no tree pin, so it also runs on main after the branch lands
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--data-dir", default=str(DATA_DIR))
     parser.add_argument("--require-complete", action="store_true")

@@ -486,21 +486,27 @@ class GoodFixtureTests(ValidatorCase):
         )
         self.assertEqual((run.returncode, run.stdout.strip()), (0, "OK"), run.stderr)
 
-    def test_the_worktree_assertion_runs_before_anything_else(self):
+    def test_the_validator_is_read_only_and_runs_in_any_tree(self):
+        """It carries no worktree pin, so the landing check can run it on main."""
         fx = self.fresh()
         env = {k: v for k, v in os.environ.items() if k != "ATLAS_TEST_ALLOW_ANY_TREE"}
         with tempfile.TemporaryDirectory() as elsewhere:
             run = subprocess.run(
-                [sys.executable, str(TOOLS / "validate.py"), "--data-dir", str(fx.root)],
+                [
+                    sys.executable,
+                    str(TOOLS / "validate.py"),
+                    "--data-dir",
+                    str(fx.root),
+                    "--no-repo-paths",
+                ],
                 capture_output=True,
                 text=True,
                 cwd=elsewhere,
                 env=env,
                 check=False,
             )
-        self.assertNotEqual(run.returncode, 0)
-        self.assertIn("atlas:", run.stderr)
-        self.assertNotIn("summary", run.stdout)
+        self.assertEqual(run.returncode, 0, run.stdout + run.stderr)
+        self.assertNotIn("atlas: ", run.stderr)
 
 
 class StructureTests(ValidatorCase):

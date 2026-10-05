@@ -38,8 +38,8 @@ def assert_worktree():
 
     An empty branch name (detached HEAD) is a failure, not a pass.
     """
-    if os.environ.get(_TEST_BYPASS_ENV) == "1":
-        return
+    if os.environ.get(_TEST_BYPASS_ENV) == "1" or os.environ.get("ATLAS_ANY_TREE") == "1":
+        return  # ATLAS_ANY_TREE=1: render from a normal checkout once the branch has landed
     rc, top = _git("rev-parse", "--show-toplevel")
     if rc != 0 or not top:
         sys.exit("atlas: not inside a git work tree; refusing to run")

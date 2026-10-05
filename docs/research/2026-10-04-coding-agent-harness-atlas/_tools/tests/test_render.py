@@ -806,7 +806,7 @@ class AccessibilityTests(RenderTestCase):
         self.assertRegex(css, r"@media \(prefers-reduced-motion: reduce\)\{[^}]*transition:none")
         self.assertIn("@media (prefers-color-scheme: dark)", css)
         self.assertIn("system-ui", css)
-        self.assertIn("max-width:1100px", css)
+        self.assertIn("max-width:1400px", css)
         self.assertIn("padding:0 var(--s4)", css)
         self.assertIn("--s1:4px", css)
 
