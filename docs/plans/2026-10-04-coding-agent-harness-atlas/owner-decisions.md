@@ -31,3 +31,6 @@ What the owner chose is more than a content addition. Observed in the repo this 
 **Contingency, flagged, not silent.** If the matrix PR has not merged when the atlas is otherwise ready, the lever guide ships lever locations for the three columns plus "no recommendation — matrix rows pending", and the plan states that the success signal is then met for 5 of 8 columns. That is a sequencing fallback, not the owner's preferred outcome (the owner declined the "lever locations only" option as the end state). The owner can veto it at plan approval.
 
 **Open design question for the matrix PR.** Grok Bot is a general-purpose agent with a vendor-managed model, not a coding CLI. Whether it belongs in coding task-class rankings, or needs a "not rankable" entry the schema does not yet have, is unresolved.
+
+## P4 cost gate (2026-10-05)
+Question (4 options): how to proceed after the pilot. **Owner answer: "Proceed with sonnet (Recommended)"**: sonnet scouts at 48 KB per batch with a higher record cap, about 565 calls and 50M to 53M input tokens against the approved 380 calls and 35M. Recompute from actuals after the lever slice (P5); ask again only if the total passes 1.5x (570 calls or 52.5M tokens). Every page stays in scope.
