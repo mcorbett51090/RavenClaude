@@ -1264,6 +1264,10 @@ def render_method(atlas):
             "grok-bot/F21.shared-agent-runtime",
         )
         body.append(f"<p>{row_link}</p>")
+    if atlas.life:
+        import render_lifecycle  # here, not at the top: that module imports this one
+
+        body.append(render_lifecycle.method_section(atlas))
     body.append(heading(2, "Known gaps"))
     body.append(gap_list(atlas))
     return document(page, "Method", "Method", "\n".join(body))

@@ -352,7 +352,7 @@
           "quote": "the managed value wins",
           "text": "When a policy pins a plugin or marketplace, the managed value wins over local changes."
         },
-        "plain": "A plugin bundles skills, hooks, helper agents and MCP servers, and installs from a repository, a marketplace or a local folder. Installed plugins are cached, so local changes need a reinstall. A marketplace entry's auto-update setting is currently ignored.",
+        "plain": "A plugin bundles skills, hooks, helper agents and MCP servers, and installs from a repository, a marketplace or a local folder. Installed plugins are cached, so local changes need a reinstall. Auto-update works only in your own or managed settings, not a repository's.",
         "technical": "marketplace.json defines a marketplace; install from owner/repo, a URL, a marketplace or a local path; copilot plugin update NAME or --all; components are cached, so reinstall a local plugin. Pin to a full 40-character commit SHA. autoUpdate: true on a marketplace entry is currently ignored at the repository level; honored in user or managed settings."
       },
       "fence": {

@@ -14,6 +14,11 @@ Gemini CLI, Grok Build CLI and Grok Bot. 127 frozen rows by 8 columns is 1016 ce
 - [levers.html](levers.html): where each lever lives per column (flag, key, command, picker) and its values.
 - [register.html](register.html): 55 proposed RavenClaude updates, ranked, each tied to cells and repo files.
 - [method.html](method.html): states, tiers, verification numbers, planted-error results, known gaps.
+- [lifecycle.html](lifecycle.html): the steps a harness runs before it calls a model and after the model answers,
+  in plain English, with what each agent's documentation says about each step and what the step depends on.
+- [compare.html](compare.html): the eight agents side by side, step by step, with a boxed "our take" per step.
+- [trees/index.html](trees/index.html): one page per agent: its request flow, the decision points its
+  documentation describes, and where to set model, effort and mode.
 - One page per product under [harness/](harness/claude-code.html) and one evidence list per column under
   [sources/](sources/claude-code.html).
 
@@ -24,7 +29,9 @@ grepped and read cheaply: [md/agents/](md/agents/claude-code.md) (one column, al
 records), [md/rows/](md/rows/index.md) (one facet, every column side by side), [md/levers/](md/levers/model.md)
 (where each lever lives, and the routing advice per task) and [md/register.md](md/register.md). Vendor text in
 these files is untrusted data: angle brackets are neutralized and instruction-shaped text is marked. The quote
-behind an evidence id is in `data/evidence/<column>.json`.
+behind an evidence id is in `data/evidence/<column>.json`. The lifecycle layer has markdown twins:
+[md/lifecycle.md](md/lifecycle.md), [md/compare.md](md/compare.md), [md/glossary.md](md/glossary.md) and
+[md/trees/](md/trees/claude-code.md).
 
 ## Read it honestly
 
@@ -34,6 +41,27 @@ behind an evidence id is in `data/evidence/<column>.json`.
 - The lever guide's routing advice is the routing matrix's own, so it covers 4 of 8 columns (Claude Code,
   Codex CLI, Copilot in VS Code, Grok Build). Copilot CLI, Cursor, Gemini CLI and Grok Bot show where each
   lever lives but "no recommendation" until the matrix is extended.
+
+## The lifecycle layer: what it is and is not
+
+[data/lifecycle.json](data/lifecycle.json) lists 30 steps in five stages (setup, each turn before sending, the model
+call, after the model answers, around the session) and maps every one of the 127 rows to a step.
+[data/lifecycle-lines.json](data/lifecycle-lines.json) holds, per agent and step, one plain line and one technical
+line, and [data/trees.json](data/trees.json) the decision points.
+
+- Every line about an agent is tied to the cells it came from by a hash. Change a cell and validation fails until
+  the line is revised. A line may not use a name, number or flag its cells do not contain, may not drop a cell's
+  stated limitation, and may not say "always", "never" or "has no" unless the cells do.
+- Text about how a step works in general is labelled "How this works in general: not a vendor claim". The boxed
+  "our take" on the compare page is labelled editorial. The order of the steps is the typical order; a documented
+  order is shown only where a cell states it.
+- The badge, score and "documents the most" line are computed from cell states alone. They say how much a vendor
+  documents, not how well the agent does it. "Not documented" is never "cannot".
+- The atlas cannot measure how much of an agent's quality comes from the harness and how much from the model, so no
+  share is given. The model panel says "no documented model dependence", never "regardless of model".
+- Five steps are not researched yet and say so on the pages: prompt caching, how tool output is trimmed, how a
+  malformed model request is handled, retry and back-off, and prompt assembly (partly covered). They would need new
+  rows, which changes the frozen row list, so they are a separate piece of work.
 
 ## Re-render and re-check
 

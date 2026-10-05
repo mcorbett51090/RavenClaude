@@ -594,6 +594,40 @@ def render_trees_index(layer):
     return document(page, "Decision trees", "Decision trees, one per agent", "\n".join(body))
 
 
+METHOD_RULES = (
+    "Every line about an agent is tied to the cells it came from by a hash; changing a cell fails "
+    "validation until the line is revised.",
+    "A line may not use a name, number or flag its cells do not contain, may not drop a cell's stated "
+    "limitation, and may not say always, never or has no unless the cells do.",
+    "How a step works in general is labelled as not a vendor claim; the boxed view on the compare page "
+    "is labelled editorial. Step order is the typical order unless a cell states one.",
+    "Badges, scores and the documents-the-most line are computed from cell states alone. They say how "
+    "much a vendor documents, not how well the agent does it.",
+    "No share of an agent's quality is attributed to the harness or to the model: the atlas cannot "
+    "measure that.",
+)
+
+
+def method_section(atlas):
+    """The method page's paragraph on the lifecycle layer: its rules, its size and its gaps."""
+    concepts = [c for c in as_list(as_dict(atlas.life).get("concepts")) if isinstance(c, dict)]
+    gaps = [c.get("name_plain", "") for c in concepts if c.get("gap") == "full"]
+    parts = [c.get("name_plain", "") for c in concepts if c.get("gap") == "partial"]
+    stages = len(as_list(as_dict(atlas.life).get("stages")))
+    out = [
+        heading(2, "Lifecycle layer"),
+        f"<p>{len(concepts)} steps in {stages} stages, each row of the matrix mapped to a step. How the "
+        "plain lines are kept honest:</p>",
+        "<ul>" + "".join(f"<li>{esc(rule)}</li>" for rule in METHOD_RULES) + "</ul>",
+    ]
+    if gaps or parts:
+        out.append(
+            f"<p>Not researched for any agent: {esc(', '.join(gaps) or 'none')}. Only partly "
+            f"covered: {esc(', '.join(parts) or 'none')}.</p>"
+        )
+    return "\n".join(out)
+
+
 def render_pages(atlas):
     """Every lifecycle page as {relative path: text}; empty when there is no lifecycle data."""
     if not atlas.life:
