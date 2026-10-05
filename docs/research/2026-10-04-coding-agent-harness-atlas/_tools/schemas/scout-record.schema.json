@@ -10,7 +10,7 @@
     "batch_id": { "type": "string" },
     "records": {
       "type": "array",
-      "maxItems": 60,
+      "maxItems": 90,
       "items": {
         "type": "object",
         "additionalProperties": false,

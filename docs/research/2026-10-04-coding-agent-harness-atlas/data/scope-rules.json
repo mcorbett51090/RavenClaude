@@ -29,7 +29,13 @@
           "min": 1
         },
         "note": "Fetched pages are kept unless their path is a pure ChatGPT product area (denied: dots, Space, ChatGPT Work, GPT migration, voice, workspace administration with no Codex content) or the page never says 'codex' (mention rule). Pages kept only by a low mention count form the residual triage list in the coverage table. personalize.md was first denied and then restored after its text showed that Codex stores personal instructions in the global AGENTS.md: a path guess had hidden a harness fact."
-      }
+      },
+      "excluded_urls": [
+        {
+          "url": "https://learn.chatgpt.com/docs/config-schema.json",
+          "reason": "JSON schema source: scouts' quotes of JSON lines break their own JSON output (pilot batch S-X32 unparseable); the keys are documented in config-reference.md; a scripted key listing can replace it later"
+        }
+      ]
     },
     "copilot-cli": {
       "include": [

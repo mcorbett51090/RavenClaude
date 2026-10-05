@@ -19,6 +19,8 @@ from pathlib import Path
 
 from atlas_common import DATA_DIR, assert_worktree, load_json
 
+DEFAULT_CAP = 90  # records per batch; the pilot hit the old cap of 60 on dense pages
+
 INSTRUCTIONS = """\
 # Extraction batch brief: {batch_id}
 
@@ -70,7 +72,7 @@ holds a table row with `\\|` must be written with the backslash doubled.
               "claim": "<your words, at most 200 characters>", "quote": "<copied>"}}],
  "pages_no_facts": ["<page_id of a page in this batch with nothing relevant>"]}}
 
-At most 60 records. Every page in the batch must appear in a record's `page_id` or
+At most {cap} records. Every page in the batch must appear in a record's `page_id` or
 in `pages_no_facts`.
 
 ## Row catalog
@@ -122,7 +124,7 @@ def combine_chunks(chunk_rows, read_text):
     return "\n".join(parts) + "\n"
 
 
-def make_brief(batch_id, chunk_rows, catalog_path, out_json, combined_path=None):
+def make_brief(batch_id, chunk_rows, catalog_path, out_json, combined_path=None, cap=DEFAULT_CAP):
     """chunk_rows: list of dicts with id, page_id, path, product.
 
     With ``combined_path`` the scout reads one batch file (see ``combine_chunks``) instead of one
@@ -148,6 +150,7 @@ def make_brief(batch_id, chunk_rows, catalog_path, out_json, combined_path=None)
     return INSTRUCTIONS.format(
         batch_id=batch_id,
         out_json=out_json,
+        cap=cap,
         catalog=catalog_path,
         chunk_table="\n".join(table),
     )

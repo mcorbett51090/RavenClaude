@@ -9,8 +9,8 @@
       "version_source": "https://registry.npmjs.org/@anthropic-ai/claude-code/latest (dist-tags {'stable': '2.1.285', 'latest': '2.1.289', 'next': '2.1.289'})"
     },
     {
-      "bytes": 2391060,
-      "pages": 155,
+      "bytes": 2161592,
+      "pages": 154,
       "retrieved": "2026-10-04",
       "surface": "codex-cli",
       "version": "0.160.0",
@@ -84,16 +84,16 @@
     "codex-cli": {
       "HTML app shells not extracted": 0,
       "aggregate files not extracted": 1,
-      "chunks": 1240,
-      "extraction text (KB)": 2335,
+      "chunks": 1220,
+      "extraction text (KB)": 2110,
       "fetches that returned nothing usable": 7,
       "index and sitemap files mirrored": 2,
       "lines flagged by the neutralizer": 0,
       "pages excluded as out of scope": 28,
       "pages found by index": 176,
-      "pages found only by link closure": 7,
+      "pages found only by link closure": 6,
       "pages found only by sitemap or page list": 0,
-      "pages read by extraction": 155,
+      "pages read by extraction": 154,
       "pages skipped as near-duplicates": 0
     },
     "copilot-cli": {

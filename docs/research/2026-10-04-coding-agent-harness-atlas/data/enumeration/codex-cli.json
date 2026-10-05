@@ -95,12 +95,12 @@
       "pages": 1
     },
     "excluded": {
-      "bytes": 0,
-      "pages": 0
+      "bytes": 229468,
+      "pages": 1
     },
     "extract": {
-      "bytes": 2391060,
-      "pages": 155
+      "bytes": 2161592,
+      "pages": 154
     },
     "html": {
       "bytes": 0,
