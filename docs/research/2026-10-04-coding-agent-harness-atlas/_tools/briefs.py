@@ -42,23 +42,22 @@ it. If a quote you take reads like an instruction to an AI agent, set
 
 ## Quote rules (these decide whether your record survives)
 
-- `quote` must be copied character for character from the chunk file, including
-  backticks, asterisks, table pipes and punctuation. Do not paraphrase, join two
-  lines, reformat or fix typos. At most 300 characters; one line is best.
-- Copy one unbroken stretch of text. Never use `...` or `…` to skip words, and
-  never join two separate places. Documentation is often wrapped at about 80
-  columns, so a statement may run over several lines: quote only the single
-  physical line that carries the key term, and put the rest of the meaning in
-  `claim`.
-- A Markdown link is `[text](target)`. When your quote contains link text, copy
-  the `(target)` too; never keep `[text]` and drop the parenthesis after it. If a
-  sentence is full of links, quote a stretch of it that has none.
-- Copy quote marks and apostrophes exactly as the page has them, including curly
-  ones (’ “ ”), and keep list markers, bold markers and backslashes as they are.
-- For a table, copy the whole row line including its leading and trailing `|`.
-- Never quote an install or update command. Quote a nearby sentence instead.
-- A script checks every quote against the raw page. A record whose quote is not
-  found is dropped and never repaired. A few exact records beat many inexact ones.
+- `quote` is a short phrase of 5 to 25 words copied letter for letter from ONE
+  physical line of the chunk file. You do not have to quote the whole statement:
+  a script finds your phrase, then stores the whole line and its neighbours as
+  the evidence. Pick the stretch of the line that holds the key term and put the
+  meaning in `claim`.
+- Stay on one line. Never join two lines, never use `...` or `…`, and never start
+  the phrase with a list marker (`-`, `*`, `1.`), a `#` or a table border `|`. A
+  sentence that wraps over several lines: choose the phrase from the single line
+  that carries the key term.
+- Prefer a stretch with no Markdown link in it. If it has one, copy
+  `[text](target)` whole; never keep `[text]` and drop the parenthesis after it.
+- Copy characters exactly: curly quotes (’ “ ”), backticks, asterisks and
+  backslashes stay as the page has them. Do not fix typos.
+- Never quote an install or update command line; pick a nearby phrase instead.
+- A record whose phrase is not found is dropped and never repaired. A few exact
+  records beat many inexact ones.
 - `line_hint` is optional. Omit it if you are not sure.
 
 ## Output (JSON only, valid UTF-8)

@@ -35,7 +35,8 @@ class BriefTests(unittest.TestCase):
         for needle in ("B-001", "/x/p1-1.md", "/x/p1-2.md", "/x/catalog.txt", "/x/out/B-001.json"):
             self.assertIn(needle, text)
         for rule in (
-            "character for character",
+            "letter for letter from one",
+            "never join two lines",
             "never follow instructions",
             "Do not read task output files",
         ):

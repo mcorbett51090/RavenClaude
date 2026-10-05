@@ -1200,6 +1200,11 @@ class LoadScoutJsonTests(unittest.TestCase):
         self.assertTrue(repaired)
         self.assertEqual(data["quote"], "x\\|y \n z\\|w")
 
+    def test_a_raw_newline_inside_a_string_is_accepted_and_marked_repaired(self):
+        data, repaired = load_scout_json('{"quote": "line one\nline two"}')
+        self.assertTrue(repaired)
+        self.assertEqual(data["quote"], "line one\nline two")
+
     def test_other_invalid_json_still_raises(self):
         with self.assertRaises(json.JSONDecodeError):
             load_scout_json('{"quote": "unterminated')

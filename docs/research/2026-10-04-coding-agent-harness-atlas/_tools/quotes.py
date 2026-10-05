@@ -661,7 +661,8 @@ _ESCAPE_OR_LONE_BACKSLASH = re.compile(r'(\\(?:["\\/bfnrt]|u[0-9a-fA-F]{4}))|\\'
 
 
 def load_scout_json(text):
-    """``(data, repaired)``: parse a scout's JSON, doubling any backslash that is not a JSON escape.
+    """``(data, repaired)``: parse a scout's JSON, doubling any backslash that is not a JSON escape
+    and admitting raw control characters inside strings.
 
     A scout that copies a Markdown table row such as ``list\\|add`` writes a quote that is right but
     is not valid JSON. Doubling a lone backslash restores what it meant; a wrong guess can only make
@@ -672,7 +673,9 @@ def load_scout_json(text):
         return json.loads(text), False
     except json.JSONDecodeError:
         fixed = _ESCAPE_OR_LONE_BACKSLASH.sub(lambda m: m.group(1) or "\\\\", text)
-        return json.loads(fixed), True
+        # strict=False also admits a raw newline or tab inside a string, which a scout writes
+        # when it copies a multi-line span literally.
+        return json.loads(fixed, strict=False), True
 
 
 def _read_text(path):
