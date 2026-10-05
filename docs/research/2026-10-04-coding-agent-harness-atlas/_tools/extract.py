@@ -300,7 +300,7 @@ def _cmd_status(args):
 
 def _selftest():
     rows = {
-        "claude-code": [
+        "cursor": [
             {"id": "a#1", "page_id": "a", "bytes": 30000},
             {"id": "a#2", "page_id": "a", "bytes": 30000},
         ]
@@ -308,7 +308,7 @@ def _selftest():
     texts = {"a#1": "model effort thinking permission", "a#2": "nothing here"}
     plan = build_plan(rows, texts)
     kinds = [(b["id"], b["lever"]) for b in plan["batches"]]
-    if kinds != [("L-claude-code-001", True), ("X-claude-code-001", False)]:
+    if kinds != [("L-cursor-001", True), ("X-cursor-001", False)]:
         raise AssertionError(f"unexpected plan {kinds}")
     if classify_result([1] * 89, None, 90) != ("capped", "split"):
         raise AssertionError("cap rule")
