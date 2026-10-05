@@ -357,3 +357,17 @@ The first 19 batches briefed at cap 150 and collected: **1,775 records, 1,775 ve
 **Spend.** Since the last entry: re-verification 228K subagent tokens, flip verification 103K, hit review 186K; about 0.52M more, so about 65.1M against the accepted 64M to 67M, plus a rate-limited tester attempt that returned nothing and cost a little.
 
 **Open.** Five-host re-verification table; Grok Bot probes are done. The owner re-ask on the other 760 cells comes next, with the sweep finding in its numbers.
+
+## Five-host re-verification (2026-10-05)
+
+An opus reviewer checked 42 lever facts that the routing matrix and its cited knowledge files state for claude-code, codex-cli, copilot-cli, copilot-chat and grok-build-cli against the atlas lever cells: **15 hold, 11 changed, 2 contradicted, 14 not covered.** I checked that every cited cell exists and is not undocumented, and that every quote is in the cited evidence (39 of 42 verbatim once markup is ignored; the other 3 differ by a link target or an ellipsis). I did not re-adjudicate each verdict, and three `holds` rows carry a caveat (Codex "cheapest" tier not checked; Grok 4.7 quote is about the API; Dynamic Workflows cap is 1,000 agents per run, not a parallel count). The table is `data/five-host-reverification.md` with the structured `.json` beside it.
+
+**Contradicted (register `correct` seeds).** (1) The matrix says Copilot CLI's only confirmed-working `--model` value is `auto` and six pinned slugs were rejected; the Copilot CLI reference documents `--model=MODEL` with slug examples. This pits a documented flag against an observed probe (v0.305.0), and enterprise model enablement (E-copilot-cli-00353) could explain the rejections, so it needs a re-probe rather than a rewrite. (2) The cost tree says raising Codex reasoning effort costs latency, not dollars; the Codex docs say higher effort increases response time and token usage.
+
+**Changed (inputs to the routing-matrix precursor PR).** The model names in `substrate-tier-map.json`, `model-catalog.json` and the lineup file lag the vendor docs: Codex now points at `gpt-6-luna` and `gpt-6.1-sol` (no Terra tier quoted), the Claude docs resolve the opus alias to Opus 5.5 on Bedrock, and Grok 4.7 is the latest xAI model with `xhigh` effort supported. Copilot Chat's modes are Agent, Plan, Ask and custom (no Edit mode); Copilot CLI documents five `--effort` values and no `none` or `minimal`; Grok Build sub-agent worktree isolation is opt-in per request, not automatic. The Codex "pro is a reasoning mode on Sol" claim could not be confirmed and is possibly renamed.
+
+**Not covered, worth a lever-guide caveat.** The atlas names no Copilot model set (only slug examples), no Grok 4.5 or 4.6 effort levels, no Grok Build default model value, and nothing on whether `--model auto` rejects `--effort` in Copilot CLI. Those stay `[unverified]` in the guide unless a later probe settles them.
+
+**Spend.** The table cost 441K subagent tokens (more than my 150K to 250K guess, since the reviewer read about 140 KB of knowledge files plus the cells). Subagent total is now about 65.6M against the accepted 64M to 67M.
+
+**Open.** The owner scope and budget question for the other 760 cells is next; then P6 (routing-matrix precursor, own run), P9 to P12.
