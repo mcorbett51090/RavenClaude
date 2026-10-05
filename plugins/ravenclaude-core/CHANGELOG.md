@@ -2,6 +2,28 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.328.0 — 2026-10-05
+
+### Added
+
+- **`nested_dispatch` comfort-posture knob (default off; Claude-auth-gated on).**
+  Pipeline stage + Settings schema pin `CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH` in
+  the project's `.claude/settings.json` env: `off` / absent → `"1"`, `on` → `"3"`.
+  Turning on requires `claude auth login` on this machine — dashboard Save returns
+  `403 nested_dispatch_auth_required` otherwise; `apply-comfort-posture.py` fails
+  closed to off with a WARN. Claude Code only; Cursor and Grok Build already
+  hard-cap nesting at one layer (documented no-op). Gate 289 still forbids shipped
+  agents from granting `Agent` in `tools:`. **Gate 293** covers the translator,
+  the auth probe (`GET /__auth-status`, `--nested-dispatch-auth`), the Save gate,
+  and a mutant that skips the auth check. Host matrix:
+  [`docs/decisions/2026-09-14-nested-dispatch-determination.md`](../../docs/decisions/2026-09-14-nested-dispatch-determination.md) § 8.
+
+### Migration
+
+- None for existing installs — the key is absent by default (= off / depth 1),
+  which is stricter than Claude Code's platform default of depth 3. Consumers who
+  want nesting opt in via Pipeline → Nested dispatch while signed in, then Save.
+
 ## 0.327.0 — 2026-10-02
 
 ### Added

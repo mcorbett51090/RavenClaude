@@ -152,3 +152,19 @@ The live harness is committed as [`hooks/tests/live-nested-dispatch.sh`](../../p
 4. **`sonnet` resolves to `claude-sonnet-5`, `haiku` to `claude-haiku-4-5-20251001`** on 2.1.271 — the meter's tier classifier placed both correctly (`mid`, `fast`) with no change.
 
 None of these change the verdict in § 4. They sharpen § 3: the observability cost is now measured (the depth had to be reconstructed post hoc; the in-flight advisory cannot reach the orchestrator at all), and the correctness cost has a new line (background children outliving their caller).
+
+## 8. Host matrix — the comfort-posture knob (v0.328.0)
+
+The determination above is about the **roster** (Gate 289) and the **meter**.
+A separate, consumer-facing control now pins the platform env itself from
+`.ravenclaude/comfort-posture.yaml`:
+
+| Host | Nesting today | What `nested_dispatch` does |
+| --- | --- | --- |
+| **Claude Code** | Platform default depth **3** (`CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH`) | **Honoured.** `off` (default / absent) → pin `"1"`; `on` → pin `"3"`. Turning `on` requires `claude auth login` on this machine — dashboard Save returns `403 nested_dispatch_auth_required` otherwise; `apply-comfort-posture.py` fails closed to `off` with a WARN and writes no provenance. |
+| **Cursor** | Hard-caps nesting at one layer | **Documented no-op.** The checkbox still round-trips in the YAML; apply does not change Cursor's ceiling. |
+| **Grok Build** | Hard-caps nesting at one layer | **Documented no-op.** Same as Cursor. |
+
+**What this knob is not.** It does not loosen Gate 289. A shipped agent still may not grant `Agent` / `Task` / `"*"` in `tools:` without a reasoned exemption. The knob only changes whether a subagent *that already has* `Agent` (built-in `general-purpose` / `claude`, a fork, a consumer project-local agent) is allowed to use it.
+
+**Where it lives.** Pipeline stage `nested-dispatch` in the dashboard; translator in `apply-comfort-posture.py` (project layer only); auth probe `GET /__auth-status` + Save gate in both `serve-dashboards.py` copies; Gate 293 (`hooks/tests/test-gate293-nested-dispatch-knob.sh`). Provenance of each successful `off→on` lands under `.ravenclaude/runs/nested-dispatch/` (gitignored).

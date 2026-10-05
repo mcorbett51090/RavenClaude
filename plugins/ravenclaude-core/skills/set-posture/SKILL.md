@@ -238,6 +238,32 @@ Each extension should:
 3. Add a row to the dashboard's category list if user-visible.
 4. Test by hand (`--dry-run` on a sample YAML).
 
+
+## Nested dispatch env pin (v0.328.0)
+
+`nested_dispatch: off | on` is a **top-level posture key** (not a permission
+category). On the **project** layer only, `apply-comfort-posture.py` pins
+`CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH` in `.claude/settings.json` `env`:
+
+| YAML | Env value | Effect |
+|---|---|---|
+| absent / `off` / `false` | `"1"` | A subagent has no `Agent` tool |
+| `on` / `true` | `"3"` | Platform default nesting depth |
+
+**Auth gate.** `on` requires a signed-in Claude Code account
+(`claude auth status --json` → logged in; override binary with
+`RAVENCLAUDE_CLAUDE_BIN`). Without auth the translator applies as `off` with a
+WARN and writes no provenance; the dashboard Save refuses with
+`403 nested_dispatch_auth_required`. Probe-only: `--nested-dispatch-auth`
+(exit 0 signed in, 3 signed out / unknown).
+
+**Host scope.** Claude Code only. Cursor and Grok Build already hard-cap nesting
+at one layer — the key round-trips in YAML but is a documented no-op there.
+Gate 289 still forbids shipped agents from granting `Agent` in `tools:`.
+
+**See:** Pipeline stage `nested-dispatch`; Gate 293;
+[`docs/decisions/2026-09-14-nested-dispatch-determination.md`](../../../docs/decisions/2026-09-14-nested-dispatch-determination.md) § 8.
+
 ## See also
 
 - `commands/set-posture.md` — the slash-command entry that invokes the script.
