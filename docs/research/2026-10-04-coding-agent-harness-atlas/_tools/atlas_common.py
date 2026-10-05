@@ -15,8 +15,8 @@ import subprocess
 import sys
 from pathlib import Path
 
-EXPECTED_BRANCH = "forge/coding-agent-harness-atlas"
-WORKTREE_MARKER = ".claude/worktrees/forge-coding-agent-harness-atlas"
+WORKTREE_SEGMENT = "/.claude/worktrees/"
+PROTECTED_BRANCHES = ("main", "master")
 ATLAS_DIR = (
     Path(__file__).resolve().parents[1]
 )  # .../docs/research/<date>-coding-agent-harness-atlas
@@ -34,9 +34,11 @@ def _git(*args, cwd=None):
 
 
 def assert_worktree():
-    """Exit 2 unless the cwd is the forge worktree on the forge branch.
+    """Exit 2 unless the cwd is a linked worktree under .claude/worktrees/ on a non-main branch.
 
-    An empty branch name (detached HEAD) is a failure, not a pass.
+    Any worktree qualifies, so each job runs in its own; the primary checkout (the shared
+    anchor) and main/master are refused. An empty branch name (detached HEAD) is a failure,
+    not a pass.
     """
     if os.environ.get(_TEST_BYPASS_ENV) == "1" or os.environ.get("ATLAS_ANY_TREE") == "1":
         return  # ATLAS_ANY_TREE=1: render from a normal checkout once the branch has landed
@@ -46,10 +48,10 @@ def assert_worktree():
     rc, branch = _git("branch", "--show-current")
     if rc != 0 or not branch:
         sys.exit("atlas: empty branch name (detached HEAD?); refusing to run")
-    if not top.endswith(WORKTREE_MARKER):
-        sys.exit(f"atlas: cwd toplevel is {top}, not the forge worktree; refusing to run")
-    if branch != EXPECTED_BRANCH:
-        sys.exit(f"atlas: branch is {branch}, expected {EXPECTED_BRANCH}; refusing to run")
+    if WORKTREE_SEGMENT not in top + "/":
+        sys.exit(f"atlas: cwd toplevel is {top}, not a worktree under .claude/worktrees/; refusing")
+    if branch in PROTECTED_BRANCHES:
+        sys.exit(f"atlas: branch is {branch}; work on a feature branch, refusing to run")
     tool_top = _git("rev-parse", "--show-toplevel", cwd=str(Path(__file__).resolve().parent))[1]
     if tool_top != top:
         sys.exit("atlas: the tool file and the cwd are in different trees; refusing to run")
