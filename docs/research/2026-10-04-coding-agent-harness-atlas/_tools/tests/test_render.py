@@ -1494,7 +1494,7 @@ class QuoteBudgetTests(RenderTestCase):
 
 
 def synthetic_dataset():
-    """127 frozen rows by 8 surfaces, six 300-character quotes per cell, 400-character values."""
+    """Every frozen row by 8 surfaces, six 300-character quotes per cell, 400-character values."""
     facets = load_json(DATA_DIR / "facets.json")["facets"]
     rows = [r["id"] for facet in facets for r in facet["rows"]]
     data = {"cells": {}, "evidence": {}}
@@ -1525,7 +1525,8 @@ def synthetic_dataset():
 class WorstCaseSizeTests(RenderTestCase):
     def test_a_full_dataset_leaves_headroom_under_both_limits(self):
         data = synthetic_dataset()
-        self.assertEqual(sum(len(v) for v in data["cells"].values()), 127 * 8)
+        rows = sum(len(f["rows"]) for f in load_json(DATA_DIR / "facets.json")["facets"])
+        self.assertEqual(sum(len(v) for v in data["cells"].values()), rows * 8)
         base = write_data(self.root / "big", data)
         encoded = render.encode_pages(render_pages(base))
         render.check_sizes(encoded)

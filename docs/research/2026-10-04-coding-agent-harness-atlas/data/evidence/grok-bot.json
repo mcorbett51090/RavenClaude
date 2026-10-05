@@ -5945,6 +5945,354 @@
    ],
    "quote_verified": true,
    "neutralizer_flags": []
+  },
+  {
+   "id": "E-grok-bot-80001",
+   "surface": "grok-bot",
+   "tier": "E1",
+   "url": "https://docs.x.ai/grok-bot/team-bots.md",
+   "url_effective": "https://docs.x.ai/grok-bot/team-bots.md",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 18894,
+   "sha256": "1d06833fdc48f86ee791897e85431ddfbf7a95da931c86909dca9c67ec212f40",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "Secrets",
+    "raw_line_start": 146,
+    "raw_line_end": 148
+   },
+   "quote": "* The Bot can't see a value either. It uses a secret by name, and the value is\n  replaced with `[REDACTED]` in the output of the commands it runs, the files it\n  reads, and its plugin calls.",
+   "context_before": [
+    "* Values are encrypted when stored, and the app shows only each secret's name",
+    "  and description. Teammates never see a value."
+   ],
+   "context_after": [
+    "* The Bot can use every secret in any teammate's conversation, so treat a",
+    "  secret as access you are giving the whole team."
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-grok-bot-80002",
+   "surface": "grok-bot",
+   "tier": "E1",
+   "url": "https://docs.x.ai/grok-bot/team-bots.md",
+   "url_effective": "https://docs.x.ai/grok-bot/team-bots.md",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 18894,
+   "sha256": "1d06833fdc48f86ee791897e85431ddfbf7a95da931c86909dca9c67ec212f40",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "Secrets",
+    "raw_line_start": 152,
+    "raw_line_end": 153
+   },
+   "quote": "* A Team Bot holds up to 25 secrets. Each value is at least 8 characters, so\n  it can be redacted reliably, and at most 4,096 bytes.",
+   "context_before": [
+    "  secret as access you are giving the whole team.",
+    "* Use scoped, read-only service-account keys instead of personal credentials."
+   ],
+   "context_after": [
+    "",
+    "When the Bot needs a key it doesn't have, it asks the owner with a secret"
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-grok-bot-80004",
+   "surface": "grok-bot",
+   "tier": "E1",
+   "url": "https://docs.x.ai/grok-bot/teams-and-enterprises.md",
+   "url_effective": "https://docs.x.ai/grok-bot/teams-and-enterprises.md",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 29125,
+   "sha256": "9aae8115ed7660a4709910149a4bb954ce5f609b7dce86df54730e31c9bc497a",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "Team Secrets",
+    "raw_line_start": 307,
+    "raw_line_end": 308
+   },
+   "quote": "* Script output is checked for secret values before it is logged, and matches\n  are redacted.",
+   "context_before": [
+    "  nothing on the computer that you do not want every Bot that member runs to",
+    "  reach."
+   ],
+   "context_after": [
+    "* A computer receives secrets only when its Team Setup comes from exactly one",
+    "  team. A member whose computer applies setup from two or more teams gets no"
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-grok-bot-80005",
+   "surface": "grok-bot",
+   "tier": "E1",
+   "url": "https://docs.x.ai/grok-bot/teams-and-enterprises.md",
+   "url_effective": "https://docs.x.ai/grok-bot/teams-and-enterprises.md",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 29125,
+   "sha256": "9aae8115ed7660a4709910149a4bb954ce5f609b7dce86df54730e31c9bc497a",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "Action Recording",
+    "raw_line_start": 356,
+    "raw_line_end": 357
+   },
+   "quote": "sanitized before they are stored or exported. Shell commands are\nsecret-scrubbed; browser navigations keep each page as `scheme://host/path`",
+   "context_before": [
+    "transfers, messages the Bot sent, routine runs, guardrail interventions, skills",
+    "it read, and work it handed to subagents or cloud agents. Events are metadata,"
+   ],
+   "context_after": [
+    "with the title but strip query strings and credentials; computer use sessions",
+    "record action and screenshot counts and the session duration, without the"
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-grok-bot-80008",
+   "surface": "grok-bot",
+   "tier": "E1",
+   "url": "https://docs.x.ai/grok-bot/teams-and-enterprises.md",
+   "url_effective": "https://docs.x.ai/grok-bot/teams-and-enterprises.md",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 29125,
+   "sha256": "9aae8115ed7660a4709910149a4bb954ce5f609b7dce86df54730e31c9bc497a",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "Conversation content export",
+    "raw_line_start": 391,
+    "raw_line_end": 392
+   },
+   "quote": "Cursor scrubs the content before export: known credential shapes, PEM blocks,\nand email addresses become `[REDACTED: ...]` markers. Pattern matching cannot",
+   "context_before": [
+    "tools report no payloads yet.",
+    ""
+   ],
+   "context_after": [
+    "recognize every secret or every piece of personal data, and your team owns that",
+    "residual risk. Teams on Privacy Mode (Legacy) cannot turn on conversation"
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-grok-bot-80009",
+   "surface": "grok-bot",
+   "tier": "E1",
+   "url": "https://docs.x.ai/grok-bot/teams-and-enterprises.md",
+   "url_effective": "https://docs.x.ai/grok-bot/teams-and-enterprises.md",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 29125,
+   "sha256": "9aae8115ed7660a4709910149a4bb954ce5f609b7dce86df54730e31c9bc497a",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "Conversation content export",
+    "raw_line_start": 392,
+    "raw_line_end": 394
+   },
+   "quote": "and email addresses become `[REDACTED: ...]` markers. Pattern matching cannot\nrecognize every secret or every piece of personal data, and your team owns that\nresidual risk. Teams on Privacy Mode (Legacy) cannot turn on conversation",
+   "context_before": [
+    "",
+    "Cursor scrubs the content before export: known credential shapes, PEM blocks,"
+   ],
+   "context_after": [
+    "content export. See",
+    "[Conversation content](https://cursor.com/docs/enterprise/opentelemetry-export#conversation-content)"
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-grok-bot-80011",
+   "surface": "grok-bot",
+   "tier": "E1",
+   "url": "https://docs.x.ai/grok-bot/security.md",
+   "url_effective": "https://docs.x.ai/grok-bot/security.md",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 17874,
+   "sha256": "917b179235c240ae2250fcafc8666a59cd0eb7666a251e0d882b13cf9c134494",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "Logging and audit",
+    "raw_line_start": 184,
+    "raw_line_end": 186
+   },
+   "quote": "* **Action Recording. Enterprise only.** It is a setting on the Grok Bot page,\n  off by default. When a team enables it, Cursor records Bot actions, including\n  scrubbed shell commands, in an internal store with a 90-day retention. Action",
+   "context_before": [
+    "  account links, and routines. Filter them by application in the dashboard, or",
+    "  stream them to your SIEM. Self-serve Teams do not get this log."
+   ],
+   "context_after": [
+    "  Recording events do not appear on the Audit Log page. To receive the",
+    "  sanitized events in your own collector, configure"
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-grok-bot-80014",
+   "surface": "grok-bot",
+   "tier": "E1",
+   "url": "https://docs.x.ai/grok-bot/security.md",
+   "url_effective": "https://docs.x.ai/grok-bot/security.md",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 17874,
+   "sha256": "917b179235c240ae2250fcafc8666a59cd0eb7666a251e0d882b13cf9c134494",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "Logging and audit",
+    "raw_line_start": 196,
+    "raw_line_end": 198
+   },
+   "quote": "  allows it for the team and turns it on for the destination. Known credential\n  shapes, PEM blocks, and email addresses are redacted before export, but\n  pattern matching cannot catch every secret. See",
+   "context_before": [
+    "  Export can also send the text of user prompts and assistant responses, and",
+    "  the arguments and results of hosted MCP tool calls. It is off until an admin"
+   ],
+   "context_after": [
+    "  [Conversation content export](/grok-bot/teams-and-enterprises#logging-and-audit).",
+    ""
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-grok-bot-80016",
+   "surface": "grok-bot",
+   "tier": "E1",
+   "url": "https://cursor.com/docs/grok-bot/teams.md",
+   "url_effective": "https://cursor.com/docs/grok-bot/teams.md",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 30896,
+   "sha256": "561d5143769e06c39c19a09c6796e4e6776cd5947b48e12d2c4b662855c0fccd",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "Team Secrets",
+    "raw_line_start": 159,
+    "raw_line_end": 159
+   },
+   "quote": "- Script output is checked for secret values before it's logged, and matches are redacted.",
+   "context_before": [
+    "- Every Setup Script and Check Script in your Team Setup manifests, and in group [Setup Scripts](https://cursor.com/docs/grok-bot/teams.md#group-settings), runs with the team's secrets in its environment. Reference a secret by name, for example `\"$MY_LICENSE_KEY\"`.",
+    "- Secrets exist only in the script's process environment. Once the script finishes, the value is gone unless the script wrote it somewhere, so store nothing on the computer that you don't want every Bot that member runs to reach."
+   ],
+   "context_after": [
+    "- A computer receives secrets only when its Team Setup comes from exactly one team. A member whose computer applies setup from two or more teams gets no secrets from any of them, since scripts from different teams share one computer user.",
+    "- Changes, including rotated values, take effect the next time the scripts run: when a computer starts, on the periodic refresh, or when you recreate it. See [Roll out to existing computers](https://cursor.com/docs/grok-bot/private-networks.md#roll-out-to-existing-computers)."
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-grok-bot-80017",
+   "surface": "grok-bot",
+   "tier": "E1",
+   "url": "https://docs.x.ai/grok-bot/approvals-security-and-privacy.md",
+   "url_effective": "https://docs.x.ai/grok-bot/approvals-security-and-privacy.md",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 7844,
+   "sha256": "37a876b1ff2f73367634adc569ca8bf1b9c50f9c2d914358627850ab02a580f9",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "Enter passwords and verification codes yourself",
+    "raw_line_start": 83,
+    "raw_line_end": 83
+   },
+   "quote": "value is masked, excluded from the transcript, and not shown to the model.",
+   "context_before": [
+    "If the Bot presents a secure secret request for a supported connection, enter",
+    "the value in that request. It is not a general-purpose password manager. The"
+   ],
+   "context_after": [
+    "",
+    "When a web page needs you to type something yourself, such as a login, a"
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-grok-bot-80018",
+   "surface": "grok-bot",
+   "tier": "E1",
+   "url": "https://docs.x.ai/grok-bot/security.md",
+   "url_effective": "https://docs.x.ai/grok-bot/security.md",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 17874,
+   "sha256": "917b179235c240ae2250fcafc8666a59cd0eb7666a251e0d882b13cf9c134494",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "Logging and audit",
+    "raw_line_start": 193,
+    "raw_line_end": 193
+   },
+   "quote": "* **Conversation content export. Enterprise only, opt-in.** OpenTelemetry",
+   "context_before": [
+    "  email; it is not exported for teams on Privacy Mode (Legacy), which also",
+    "  forces recording off."
+   ],
+   "context_after": [
+    "  Export can also send the text of user prompts and assistant responses, and",
+    "  the arguments and results of hosted MCP tool calls. It is off until an admin"
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-grok-bot-80019",
+   "surface": "grok-bot",
+   "tier": "E1",
+   "url": "https://docs.x.ai/grok-bot/teams-and-enterprises.md",
+   "url_effective": "https://docs.x.ai/grok-bot/teams-and-enterprises.md",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 29125,
+   "sha256": "9aae8115ed7660a4709910149a4bb954ce5f609b7dce86df54730e31c9bc497a",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "Team Secrets",
+    "raw_line_start": 324,
+    "raw_line_end": 326
+   },
+   "quote": "They are not available through the Admin API.\n\nAvailable on the Enterprise plan.",
+   "context_before": [
+    "They do not make a value available to Bots directly, and they are separate from",
+    "the [secrets members store on a Bot](https://cursor.com/help/grok-bot/secrets)."
+   ],
+   "context_after": [
+    "",
+    "#### Manage Bot Computers"
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
   }
  ]
 }

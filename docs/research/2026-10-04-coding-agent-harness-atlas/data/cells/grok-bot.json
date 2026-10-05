@@ -2052,6 +2052,128 @@
    ],
    "value": "The sidebar distinguishes Bots that need attention (a question, approval, or handoff), unread activity (a new result), and working status. Turning on Notifications in a Bot's settings gives a system or mobile notification when that Bot finishes or needs input.",
    "settles_by": "A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample."
+  },
+  {
+   "id": "grok-bot/F23.prompt-assembly",
+   "surface": "grok-bot",
+   "row": "F23.prompt-assembly",
+   "state": "undocumented",
+   "verification": "verified",
+   "evidence": [],
+   "sweep_report": {
+    "terms": [
+     "system prompt",
+     "--system-prompt|append-system-prompt|system_prompt|systemPrompt",
+     "prompt assembl|assembled prompt|what (is|gets) sent to the model|request payload"
+    ],
+    "corpus_sha256": "926780a88b18e76d20d24a1534b4e7e26085c9d20badc20b9bddf7516479a0b4",
+    "hits": 0,
+    "hits_reviewed": 0,
+    "positive_control_term": "grok",
+    "positive_control_hits": 1281
+   }
+  },
+  {
+   "id": "grok-bot/F23.prompt-caching",
+   "surface": "grok-bot",
+   "row": "F23.prompt-caching",
+   "state": "undocumented",
+   "verification": "verified",
+   "evidence": [],
+   "sweep_report": {
+    "terms": [
+     "prompt[ -]?cach",
+     "cache[_ -]?control|cache (hit|read|write|miss|breakpoint|prefix)|cached (input|token)"
+    ],
+    "corpus_sha256": "926780a88b18e76d20d24a1534b4e7e26085c9d20badc20b9bddf7516479a0b4",
+    "hits": 0,
+    "hits_reviewed": 0,
+    "positive_control_term": "grok",
+    "positive_control_hits": 1281
+   }
+  },
+  {
+   "id": "grok-bot/F23.retry-backoff",
+   "surface": "grok-bot",
+   "row": "F23.retry-backoff",
+   "state": "undocumented",
+   "verification": "verified",
+   "evidence": [],
+   "sweep_report": {
+    "terms": [
+     "\\bretr(y|ies|ying)\\b.{0,80}(model|request|api|rate|error|fail|overload|429|5\\d\\d)",
+     "(model|request|api|rate|error|fail|overload|429|5\\d\\d).{0,80}\\bretr(y|ies|ying)\\b",
+     "back-?off|exponential"
+    ],
+    "corpus_sha256": "926780a88b18e76d20d24a1534b4e7e26085c9d20badc20b9bddf7516479a0b4",
+    "hits": 9,
+    "hits_reviewed": 9,
+    "positive_control_term": "grok",
+    "positive_control_hits": 1281
+   }
+  },
+  {
+   "id": "grok-bot/F23.malformed-call-recovery",
+   "surface": "grok-bot",
+   "row": "F23.malformed-call-recovery",
+   "state": "undocumented",
+   "verification": "verified",
+   "evidence": [],
+   "sweep_report": {
+    "terms": [
+     "malformed",
+     "invalid (tool|json|argument|parameter|input)|unknown tool|tool (call|use) (error|fail|invalid)",
+     "schema validation|failed to parse|could not parse|unparseable"
+    ],
+    "corpus_sha256": "926780a88b18e76d20d24a1534b4e7e26085c9d20badc20b9bddf7516479a0b4",
+    "hits": 0,
+    "hits_reviewed": 0,
+    "positive_control_term": "grok",
+    "positive_control_hits": 1281
+   }
+  },
+  {
+   "id": "grok-bot/F23.tool-output-limits",
+   "surface": "grok-bot",
+   "row": "F23.tool-output-limits",
+   "state": "undocumented",
+   "verification": "verified",
+   "evidence": [],
+   "sweep_report": {
+    "terms": [
+     "truncat",
+     "output (limit|cap)|too (large|long) (output|result)|first \\d+ (lines|characters|bytes)",
+     "max(imum)? (output|result)s?.{0,30}(size|length|bytes|characters|lines|tokens)"
+    ],
+    "corpus_sha256": "926780a88b18e76d20d24a1534b4e7e26085c9d20badc20b9bddf7516479a0b4",
+    "hits": 0,
+    "hits_reviewed": 0,
+    "positive_control_term": "grok",
+    "positive_control_hits": 1281
+   }
+  },
+  {
+   "id": "grok-bot/F23.output-redaction",
+   "surface": "grok-bot",
+   "row": "F23.output-redaction",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-grok-bot-80001",
+    "E-grok-bot-80004",
+    "E-grok-bot-80005",
+    "E-grok-bot-80008",
+    "E-grok-bot-80009",
+    "E-grok-bot-80011",
+    "E-grok-bot-80014",
+    "E-grok-bot-80016",
+    "E-grok-bot-80002",
+    "E-grok-bot-80017",
+    "E-grok-bot-80018",
+    "E-grok-bot-80019"
+   ],
+   "value": "A Team Bot uses secrets by name; the value is replaced with [REDACTED] in command output, files it reads and plugin calls. Script output is redacted before logging. Action Recording scrubs shell commands. Conversation content export redacts known credential shapes, PEM blocks and email addresses ([REDACTED: ...]).",
+   "limitation": "Script-output redaction belongs to Team Secrets, Enterprise plan only, as are Action Recording and conversation content export (not for Privacy Mode (Legacy) teams). Pattern matching cannot recognize every secret. Team Bot secrets: up to 25, each at least 8 characters and at most 4,096 bytes."
   }
  ]
 }

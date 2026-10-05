@@ -11239,6 +11239,528 @@
    ],
    "quote_verified": true,
    "neutralizer_flags": []
+  },
+  {
+   "id": "E-codex-cli-80001",
+   "surface": "codex-cli",
+   "tier": "E1",
+   "url": "https://learn.chatgpt.com/docs/hooks.md",
+   "url_effective": "https://learn.chatgpt.com/docs/hooks.md",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 46965,
+   "sha256": "724881d81f1a9fdb35ea42d4851a11b1f6606bbc6e9d2d05c1e8c466fc25c630",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "Large hook output",
+    "raw_line_start": 529,
+    "raw_line_end": 530
+   },
+   "quote": "By default, Codex limits each model-visible hook-output message to roughly\n2,500 tokens. If a hook returns more, Codex saves the full text under",
+   "context_before": [
+    "### Large hook output",
+    ""
+   ],
+   "context_after": [
+    "`<temp_dir>/hook_outputs/<session_id>/<uuid>.txt` and gives the model a",
+    "head-and-tail preview with the saved-file path. This behavior is called"
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-codex-cli-80002",
+   "surface": "codex-cli",
+   "tier": "E1",
+   "url": "https://learn.chatgpt.com/docs/hooks.md",
+   "url_effective": "https://learn.chatgpt.com/docs/hooks.md",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 46965,
+   "sha256": "724881d81f1a9fdb35ea42d4851a11b1f6606bbc6e9d2d05c1e8c466fc25c630",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "Large hook output",
+    "raw_line_start": 530,
+    "raw_line_end": 532
+   },
+   "quote": "2,500 tokens. If a hook returns more, Codex saves the full text under\n`<temp_dir>/hook_outputs/<session_id>/<uuid>.txt` and gives the model a\nhead-and-tail preview with the saved-file path. This behavior is called",
+   "context_before": [
+    "",
+    "By default, Codex limits each model-visible hook-output message to roughly"
+   ],
+   "context_after": [
+    "**spilling**: Codex stores oversized output on disk and replaces it with a",
+    "shorter, model-visible preview. If the file can't be written, the model still"
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-codex-cli-80010",
+   "surface": "codex-cli",
+   "tier": "E1",
+   "url": "https://learn.chatgpt.com/docs/customization/memories.md",
+   "url_effective": "https://learn.chatgpt.com/docs/customization/memories.md",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 5712,
+   "sha256": "7dd55f174448e6092c33e0d5532ebc11abf45abd305e74cbb1407ab8fe958217",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "How local Codex memories work",
+    "raw_line_start": 71,
+    "raw_line_end": 72
+   },
+   "quote": "chats into local memory files. Codex skips active or short-lived sessions,\nredacts secrets from generated memory fields, and updates memories in the",
+   "context_before": [
+    "",
+    "After you enable memories, Codex can turn useful context from eligible prior"
+   ],
+   "context_after": [
+    "background instead of immediately at the end of every chat.",
+    ""
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-codex-cli-80011",
+   "surface": "codex-cli",
+   "tier": "E1",
+   "url": "https://learn.chatgpt.com/docs/security/cli/reference.md",
+   "url_effective": "https://learn.chatgpt.com/docs/security/cli/reference.md",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 44924,
+   "sha256": "970577ae34877d176cebdced13f5884486a83e3f6c0e51083767c9277ab316c3",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "Inspect saved scan logs",
+    "raw_line_start": 567,
+    "raw_line_end": 568
+   },
+   "quote": "Read the complete saved session events for a scan and its workers. These logs\naren't redacted and can contain source code or credentials, so review them",
+   "context_before": [
+    "### Inspect saved scan logs",
+    ""
+   ],
+   "context_after": [
+    "before sharing:",
+    ""
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-codex-cli-80013",
+   "surface": "codex-cli",
+   "tier": "E1",
+   "url": "https://learn.chatgpt.com/docs/agent-configuration/agents-md.md",
+   "url_effective": "https://learn.chatgpt.com/docs/agent-configuration/agents-md.md",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 9149,
+   "sha256": "9d1f87a2d1cb55b4782b95abe710692b35b9659789c2db31a22c7074a3383e8e",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "How Codex discovers guidance",
+    "raw_line_start": 15,
+    "raw_line_end": 15
+   },
+   "quote": "Codex skips empty files and stops adding files once the combined size reaches the limit defined by `project_doc_max_bytes` (32 KiB by default). For details on these knobs, see [Project instructions discovery](https://learn.chatgpt.com/docs/config-file/config-advanced#project-instructions-discovery).",
+   "context_before": [
+    "3. **Merge order:** Codex concatenates files from the root down, joining them with blank lines. Files closer to your current directory override earlier guidance because they appear later in the combined prompt.",
+    ""
+   ],
+   "context_after": [
+    "",
+    "## Create global guidance"
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-codex-cli-80014",
+   "surface": "codex-cli",
+   "tier": "E1",
+   "url": "https://learn.chatgpt.com/docs/agent-configuration/agents-md.md",
+   "url_effective": "https://learn.chatgpt.com/docs/agent-configuration/agents-md.md",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 9149,
+   "sha256": "9d1f87a2d1cb55b4782b95abe710692b35b9659789c2db31a22c7074a3383e8e",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "How Codex discovers guidance",
+    "raw_line_start": 13,
+    "raw_line_end": 13
+   },
+   "quote": "3. **Merge order:** Codex concatenates files from the root down, joining them with blank lines. Files closer to your current directory override earlier guidance because they appear later in the combined prompt.",
+   "context_before": [
+    "1. **Global scope:** In your Codex home directory (defaults to `~/.codex`, unless you set `CODEX_HOME`), Codex reads `AGENTS.override.md` if it exists. Otherwise, Codex reads `AGENTS.md`. Codex uses only the first non-empty file at this level.",
+    "2. **Project scope:** Starting at the project root (typically the Git root), Codex walks down to your current working directory. If Codex cannot find a project root, it only checks the current directory. In each directory along the path, it checks for `AGENTS.override.md`, then `AGENTS.md`, then any"
+   ],
+   "context_after": [
+    "",
+    "Codex skips empty files and stops adding files once the combined size reaches the limit defined by `project_doc_max_bytes` (32 KiB by default). For details on these knobs, see [Project instructions discovery](https://learn.chatgpt.com/docs/config-file/config-advanced#project-instructions-discovery)."
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-codex-cli-80015",
+   "surface": "codex-cli",
+   "tier": "E1",
+   "url": "https://learn.chatgpt.com/docs/agent-configuration/agents-md.md",
+   "url_effective": "https://learn.chatgpt.com/docs/agent-configuration/agents-md.md",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 9149,
+   "sha256": "9d1f87a2d1cb55b4782b95abe710692b35b9659789c2db31a22c7074a3383e8e",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "How Codex discovers guidance",
+    "raw_line_start": 9,
+    "raw_line_end": 9
+   },
+   "quote": "Codex builds an instruction chain when it starts (once per run; in the TUI this usually means once per launched session). Discovery follows this precedence order:",
+   "context_before": [
+    "## How Codex discovers guidance",
+    ""
+   ],
+   "context_after": [
+    "",
+    "1. **Global scope:** In your Codex home directory (defaults to `~/.codex`, unless you set `CODEX_HOME`), Codex reads `AGENTS.override.md` if it exists. Otherwise, Codex reads `AGENTS.md`. Codex uses only the first non-empty file at this level."
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-codex-cli-80016",
+   "surface": "codex-cli",
+   "tier": "E1",
+   "url": "https://learn.chatgpt.com/docs/agent-approvals-security.md",
+   "url_effective": "https://learn.chatgpt.com/docs/agent-approvals-security.md",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 37249,
+   "sha256": "bb78bd122fc94a9871630e39d74d38fc3aa204deddbc3ead74da9b76f99e2afb",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "Overview",
+    "raw_line_start": 517,
+    "raw_line_end": 517
+   },
+   "quote": "- When enabled, Codex emits structured log events covering chats, API requests, SSE/WebSocket stream activity, user prompts (redacted by default), tool approval decisions, and tool results.",
+   "context_before": [
+    "",
+    "- Codex turns off OTel export by default to keep local runs self-contained."
+   ],
+   "context_after": [
+    "- Codex tags exported events with `service.name` (originator), CLI version, and an environment label to separate dev/staging/prod traffic.",
+    ""
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-codex-cli-80017",
+   "surface": "codex-cli",
+   "tier": "E1",
+   "url": "https://learn.chatgpt.com/docs/agent-approvals-security.md",
+   "url_effective": "https://learn.chatgpt.com/docs/agent-approvals-security.md",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 37249,
+   "sha256": "bb78bd122fc94a9871630e39d74d38fc3aa204deddbc3ead74da9b76f99e2afb",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "Security and privacy guidance",
+    "raw_line_start": 571,
+    "raw_line_end": 571
+   },
+   "quote": "- Keep `log_user_prompt = false` unless policy explicitly permits storing prompt contents. Prompts can include source code and sensitive data.",
+   "context_before": [
+    "### Security and privacy guidance",
+    ""
+   ],
+   "context_after": [
+    "- Route telemetry only to collectors you control; apply retention limits and access controls aligned with your compliance requirements.",
+    "- Treat tool arguments and outputs as sensitive. Favor redaction at the collector or SIEM when possible."
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-codex-cli-80018",
+   "surface": "codex-cli",
+   "tier": "E1",
+   "url": "https://learn.chatgpt.com/docs/agent-approvals-security.md",
+   "url_effective": "https://learn.chatgpt.com/docs/agent-approvals-security.md",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 37249,
+   "sha256": "bb78bd122fc94a9871630e39d74d38fc3aa204deddbc3ead74da9b76f99e2afb",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "Security and privacy guidance",
+    "raw_line_start": 573,
+    "raw_line_end": 573
+   },
+   "quote": "- Treat tool arguments and outputs as sensitive. Favor redaction at the collector or SIEM when possible.",
+   "context_before": [
+    "- Keep `log_user_prompt = false` unless policy explicitly permits storing prompt contents. Prompts can include source code and sensitive data.",
+    "- Route telemetry only to collectors you control; apply retention limits and access controls aligned with your compliance requirements."
+   ],
+   "context_after": [
+    "- Review local data retention settings (for example, `history.persistence` / `history.max_bytes`) if you don't want Codex to save session transcripts under `CODEX_HOME`. See [Advanced Config](https://learn.chatgpt.com/docs/config-file/config-advanced#history-persistence) and [Configuration Reference",
+    "- If you run the CLI with network access turned off, OTel export can't reach your collector. To export, allow network access in `workspace-write` mode for the OTel endpoint, or export from Codex cloud with the collector domain on your approved list."
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-codex-cli-80019",
+   "surface": "codex-cli",
+   "tier": "E1",
+   "url": "https://learn.chatgpt.com/docs/developer-commands.md?surface=cli",
+   "url_effective": "https://learn.chatgpt.com/docs/developer-commands.md?surface=cli",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 49129,
+   "sha256": "6dec20e0f916ad689f9fe6dde8f259835725ca5e3fd07c8bf6222b9bc5659ef7",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "`codex debug prompt-input`",
+    "raw_line_start": 102,
+    "raw_line_end": 102
+   },
+   "quote": "Render the exact model-visible prompt input list as JSON. Use this when",
+   "context_before": [
+    "### `codex debug prompt-input`",
+    ""
+   ],
+   "context_after": [
+    "debugging instruction discovery, session context, or prompt construction.",
+    ""
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-codex-cli-80025",
+   "surface": "codex-cli",
+   "tier": "E1",
+   "url": "https://learn.chatgpt.com/docs/codex-manual.md",
+   "url_effective": "https://learn.chatgpt.com/docs/codex-manual.md",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 2887160,
+   "sha256": "a4215ccf519d338a8bc0a7640e360d3cb0f0bb2e41b1e093d139443a0d71261e",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "`config.toml`",
+    "raw_line_start": 13242,
+    "raw_line_end": 13242
+   },
+   "quote": "|         | Token budget for one MCP tool's output, before the standard 20% serialization allowance. Overrides the model's default output truncation budget for that tool.",
+   "context_before": [
+    "| `mcp_servers..tool_timeout_sec`                               | `number`                                                                                                                                                      |         | Override the default 60s per-tool timeout for an MCP server.    ",
+    "| `mcp_servers..tools..approval_mode`                           | `auto \\| prompt \\| writes \\| approve`                                                                                                                         |         | Per-tool approval behavior override for one MCP tool on this ser"
+   ],
+   "context_after": [
+    "| `mcp_servers..url`                                            | `string`                                                                                                                                                      |         | Endpoint for an MCP streamable HTTP server.                     ",
+    "| `memories.consolidation_model`                                | `string`                                                                                                                                                      |         | Optional model override for global memory consolidation.        "
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-codex-cli-80028",
+   "surface": "codex-cli",
+   "tier": "E1",
+   "url": "https://learn.chatgpt.com/docs/codex-manual.md",
+   "url_effective": "https://learn.chatgpt.com/docs/codex-manual.md",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 2887160,
+   "sha256": "a4215ccf519d338a8bc0a7640e360d3cb0f0bb2e41b1e093d139443a0d71261e",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "`config.toml`",
+    "raw_line_start": 13260,
+    "raw_line_end": 13260
+   },
+   "quote": "|         | Replacement for built-in instructions instead of `AGENTS.md`.",
+   "context_before": [
+    "| `model_catalog_json`                                          | `string (path)`                                                                                                                                               |         | Optional path to a JSON model catalog loaded on startup. A selec",
+    "| `model_context_window`                                        | `number`                                                                                                                                                      |         | Context window tokens available to the active model.            "
+   ],
+   "context_after": [
+    "| `model_provider`                                              | `string`                                                                                                                                                      |         | Provider id from `model_providers` (default: `openai`).         ",
+    "| `model_providers.`                                            | `table`                                                                                                                                                       |         | Custom provider definition. Built-in provider IDs (`openai`, `ol"
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-codex-cli-80029",
+   "surface": "codex-cli",
+   "tier": "E1",
+   "url": "https://learn.chatgpt.com/docs/codex-manual.md",
+   "url_effective": "https://learn.chatgpt.com/docs/codex-manual.md",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 2887160,
+   "sha256": "a4215ccf519d338a8bc0a7640e360d3cb0f0bb2e41b1e093d139443a0d71261e",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "`config.toml`",
+    "raw_line_start": 13277,
+    "raw_line_end": 13277
+   },
+   "quote": "|         | Retry count for HTTP requests to the provider (default: 4).",
+   "context_before": [
+    "| `model_providers..name`                                       | `string`                                                                                                                                                      |         | Display name for a custom model provider.                       ",
+    "| `model_providers..query_params`                               | `map`                                                                                                                                                         |         | Extra query parameters appended to provider requests.           "
+   ],
+   "context_after": [
+    "| `model_providers..requires_openai_auth`                       | `boolean`                                                                                                                                                     |         | The provider uses OpenAI authentication (defaults to false).    ",
+    "| `model_providers..stream_idle_timeout_ms`                     | `number`                                                                                                                                                      |         | Idle timeout for SSE streams in milliseconds (default: 300000). "
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-codex-cli-80030",
+   "surface": "codex-cli",
+   "tier": "E1",
+   "url": "https://learn.chatgpt.com/docs/codex-manual.md",
+   "url_effective": "https://learn.chatgpt.com/docs/codex-manual.md",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 2887160,
+   "sha256": "a4215ccf519d338a8bc0a7640e360d3cb0f0bb2e41b1e093d139443a0d71261e",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "`config.toml`",
+    "raw_line_start": 13280,
+    "raw_line_end": 13280
+   },
+   "quote": "|         | Retry count for SSE streaming interruptions (default: 5).",
+   "context_before": [
+    "| `model_providers..requires_openai_auth`                       | `boolean`                                                                                                                                                     |         | The provider uses OpenAI authentication (defaults to false).    ",
+    "| `model_providers..stream_idle_timeout_ms`                     | `number`                                                                                                                                                      |         | Idle timeout for SSE streams in milliseconds (default: 300000). "
+   ],
+   "context_after": [
+    "| `model_providers..supports_standalone_web_search`             | `boolean`                                                                                                                                                     |         | Advertise support for a compatible standalone web search endpoin",
+    "| `model_providers..supports_websockets`                        | `boolean`                                                                                                                                                     |         | Whether that provider supports the Responses API WebSocket trans"
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-codex-cli-80032",
+   "surface": "codex-cli",
+   "tier": "E1",
+   "url": "https://learn.chatgpt.com/docs/config-schema.json",
+   "url_effective": "https://learn.chatgpt.com/docs/config-schema.json",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 229468,
+   "sha256": "7ce31bde1ed6ef15c53a96ba460bb1d0fb7b99fd9ab719b567c94c474f62b023",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "",
+    "raw_line_start": 2710,
+    "raw_line_end": 2710
+   },
+   "quote": "          \"description\": \"Maximum number of times to retry a failed HTTP request to this provider.\",",
+   "context_before": [
+    "        },",
+    "        \"request_max_retries\": {"
+   ],
+   "context_after": [
+    "          \"format\": \"uint64\",",
+    "          \"minimum\": 0.0,"
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-codex-cli-80033",
+   "surface": "codex-cli",
+   "tier": "E1",
+   "url": "https://learn.chatgpt.com/docs/config-schema.json",
+   "url_effective": "https://learn.chatgpt.com/docs/config-schema.json",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 229468,
+   "sha256": "7ce31bde1ed6ef15c53a96ba460bb1d0fb7b99fd9ab719b567c94c474f62b023",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "",
+    "raw_line_start": 2727,
+    "raw_line_end": 2727
+   },
+   "quote": "          \"description\": \"Number of times to retry reconnecting a dropped streaming response before failing.\",",
+   "context_before": [
+    "        },",
+    "        \"stream_max_retries\": {"
+   ],
+   "context_after": [
+    "          \"format\": \"uint64\",",
+    "          \"minimum\": 0.0,"
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-codex-cli-80034",
+   "surface": "codex-cli",
+   "tier": "E1",
+   "url": "https://learn.chatgpt.com/docs/use-chatgpt.md",
+   "url_effective": "https://learn.chatgpt.com/docs/use-chatgpt.md",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 14472,
+   "sha256": "53cc375d4167155c9c915f755ba2325be231dffb90f714d3e5670536eec69a8c",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "Share a read-only snapshot of a Codex thread",
+    "raw_line_start": 252,
+    "raw_line_end": 252
+   },
+   "quote": "Codex redacts known secret patterns before uploading a snapshot. Review the",
+   "context_before": [
+    "shell commands, or tool input or output.",
+    ""
+   ],
+   "context_after": [
+    "shared view before sending its link because sensitive content, including file",
+    "paths, may remain in messages, images, or diffs."
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
   }
  ]
 }

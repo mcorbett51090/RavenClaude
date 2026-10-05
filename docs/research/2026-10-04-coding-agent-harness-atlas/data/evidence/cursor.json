@@ -11484,6 +11484,876 @@
    ],
    "quote_verified": true,
    "neutralizer_flags": []
+  },
+  {
+   "id": "E-cursor-80001",
+   "surface": "cursor",
+   "tier": "E1",
+   "url": "https://cursor.com/docs/cli/changelog.md",
+   "url_effective": "https://cursor.com/docs/cli/changelog.md",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 41239,
+   "sha256": "0b0189af89605b81b51016f12eec6b6019f2952aba4dd0815060835213e30877",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "Reliability",
+    "raw_line_start": 236,
+    "raw_line_end": 236
+   },
+   "quote": "- **HTTP/2 keepalive pings.** Silent connection stalls mid-stream are detected in seconds and retried.",
+   "context_before": [
+    "### Reliability",
+    ""
+   ],
+   "context_after": [
+    "- **Transport interruptions retry automatically.** Network-level cancels and aborts no longer end the turn as if Ctrl+C had been pressed.",
+    "- **Freeze fixes.** Eliminated hard UI freezes caused by layout feedback loops, an input freeze after first-run onboarding, and swallowed or reordered keystrokes while pasting."
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-cursor-80002",
+   "surface": "cursor",
+   "tier": "E1",
+   "url": "https://cursor.com/docs/cli/changelog.md",
+   "url_effective": "https://cursor.com/docs/cli/changelog.md",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 41239,
+   "sha256": "0b0189af89605b81b51016f12eec6b6019f2952aba4dd0815060835213e30877",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "Reliability",
+    "raw_line_start": 237,
+    "raw_line_end": 237
+   },
+   "quote": "- **Transport interruptions retry automatically.** Network-level cancels and aborts no longer end the turn as if Ctrl+C had been pressed.",
+   "context_before": [
+    "",
+    "- **HTTP/2 keepalive pings.** Silent connection stalls mid-stream are detected in seconds and retried."
+   ],
+   "context_after": [
+    "- **Freeze fixes.** Eliminated hard UI freezes caused by layout feedback loops, an input freeze after first-run onboarding, and swallowed or reordered keystrokes while pasting.",
+    "- **Faster first paint on slow networks.** Team settings lookups no longer block interactive startup (about 2 seconds on high-latency connections)."
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-cursor-80003",
+   "surface": "cursor",
+   "tier": "E1",
+   "url": "https://cursor.com/docs/cli/changelog.md",
+   "url_effective": "https://cursor.com/docs/cli/changelog.md",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 41239,
+   "sha256": "0b0189af89605b81b51016f12eec6b6019f2952aba4dd0815060835213e30877",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "Reliability",
+    "raw_line_start": 108,
+    "raw_line_end": 108
+   },
+   "quote": "- **Subagents survive transient failures.** A momentary network error no longer kills a running subagent with a terminal error. Subagent turns retry with the same policy as regular turns, resuming from their last checkpoint when one exists.",
+   "context_before": [
+    "- **Resuming chats is faster.** The resume picker shows your current workspace's chats immediately and fills in other workspaces in the background, and selecting a chat no longer waits on a model-catalog fetch when your stored model is already cached.",
+    "- **Network blips no longer kill runs.** DNS failures and network-unreachable errors, like those during a VPN transition, retry with backoff like other transport errors. If the network stays down, the CLI shows an actionable hint covering network, VPN, DNS, and proxy configuration instead of a raw n"
+   ],
+   "context_after": [
+    "- **Updates no longer break running sessions.** Auto-update cleanup could delete the installed version a long-running session was launched from, crashing it mid-turn. Running processes now mark their install directory as in use so cleanup skips it, and if install files still disappear, such as after",
+    "- **`/btw` fixes.** Side questions no longer fail with an internal blob error in long or compacted sessions, and the slash palette no longer pops up over your question while you type it."
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-cursor-80004",
+   "surface": "cursor",
+   "tier": "E1",
+   "url": "https://cursor.com/docs/sdk/typescript.md",
+   "url_effective": "https://cursor.com/docs/sdk/typescript.md",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 124215,
+   "sha256": "70535b80db2e8fa5e03668c545c5252b113e53c60a164179aa5e4a42bb394566",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "Replacing the system prompt",
+    "raw_line_start": 385,
+    "raw_line_end": 385
+   },
+   "quote": "`systemPrompt` replaces Cursor's built-in system prompt for the main agent loop with your own text. The model loses the coding-assistant identity, tool-use protocol, and communication guidance, so restate whatever the agent still needs. Tool schemas, rules, and skills still load, and subagents keep",
+   "context_before": [
+    "### Replacing the system prompt",
+    ""
+   ],
+   "context_after": [
+    "",
+    "```typescript"
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-cursor-80005",
+   "surface": "cursor",
+   "tier": "E1",
+   "url": "https://cursor.com/docs/sdk/typescript.md",
+   "url_effective": "https://cursor.com/docs/sdk/typescript.md",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 124215,
+   "sha256": "70535b80db2e8fa5e03668c545c5252b113e53c60a164179aa5e4a42bb394566",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "Replacing the system prompt",
+    "raw_line_start": 398,
+    "raw_line_end": 398
+   },
+   "quote": "- Must be non-empty. Whitespace-only text throws a `ConfigurationError` at `Agent.create()` or `Agent.resume()`.",
+   "context_before": [
+    "",
+    "- Local agents only. Combining `systemPrompt` with `cloud` throws a `ConfigurationError`."
+   ],
+   "context_after": [
+    "- Not persisted on the agent. Pass `systemPrompt` again on `Agent.resume()` to keep it for follow-up runs.",
+    "- Access is enabled per account. Without it, the first `send()` fails with an error naming `--system-prompt`."
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-cursor-80006",
+   "surface": "cursor",
+   "tier": "E1",
+   "url": "https://cursor.com/docs/sdk/typescript.md",
+   "url_effective": "https://cursor.com/docs/sdk/typescript.md",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 124215,
+   "sha256": "70535b80db2e8fa5e03668c545c5252b113e53c60a164179aa5e4a42bb394566",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "Replacing the system prompt",
+    "raw_line_start": 397,
+    "raw_line_end": 397
+   },
+   "quote": "- Local agents only. Combining `systemPrompt` with `cloud` throws a `ConfigurationError`.",
+   "context_before": [
+    "```",
+    ""
+   ],
+   "context_after": [
+    "- Must be non-empty. Whitespace-only text throws a `ConfigurationError` at `Agent.create()` or `Agent.resume()`.",
+    "- Not persisted on the agent. Pass `systemPrompt` again on `Agent.resume()` to keep it for follow-up runs."
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-cursor-80007",
+   "surface": "cursor",
+   "tier": "E1",
+   "url": "https://cursor.com/docs/sdk/typescript.md",
+   "url_effective": "https://cursor.com/docs/sdk/typescript.md",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 124215,
+   "sha256": "70535b80db2e8fa5e03668c545c5252b113e53c60a164179aa5e4a42bb394566",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "Message types",
+    "raw_line_start": 907,
+    "raw_line_end": 907
+   },
+   "quote": "`SDKToolUseMessage` is emitted twice for most tool calls: first with `status: \"running\"` and `args` populated, then again on completion with `status: \"completed\"` (or `\"error\"`) and `result` populated. `truncated` flags whether the SDK truncated `args` or `result` because the payload was too large.",
+   "context_before": [
+    "```",
+    ""
+   ],
+   "context_after": [
+    "",
+    "`SDKStatusMessage` covers cloud-side lifecycle transitions. `CREATING` covers VM provisioning and repo cloning; `RUNNING` is the agent doing work; the rest are terminal."
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-cursor-80009",
+   "surface": "cursor",
+   "tier": "E1",
+   "url": "https://cursor.com/docs/cloud-agent/api/endpoints.md",
+   "url_effective": "https://cursor.com/docs/cloud-agent/api/endpoints.md",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 62949,
+   "sha256": "e32e17f6da32e7064da243f3bca2f6499d2e1b341240cfe9f800aa37d9c4bb35",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "Tool call payloads",
+    "raw_line_start": 642,
+    "raw_line_end": 642
+   },
+   "quote": "one tool invocation across updates. `name` is the public tool name, such as `read_file`, `run_terminal_cmd`, or `mcp`. `args` and `result` are tool-specific JSON values. If `args` or `result` is too large to include in the stream, Cursor omits that field and sets the matching `truncated` flag.",
+   "context_before": [
+    "```",
+    ""
+   ],
+   "context_after": [
+    "",
+    "#### Resuming a stream"
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-cursor-80014",
+   "surface": "cursor",
+   "tier": "E1",
+   "url": "https://cursor.com/docs/sdk/typescript.md",
+   "url_effective": "https://cursor.com/docs/sdk/typescript.md",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 124215,
+   "sha256": "70535b80db2e8fa5e03668c545c5252b113e53c60a164179aa5e4a42bb394566",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "Replacing the system prompt",
+    "raw_line_start": 399,
+    "raw_line_end": 399
+   },
+   "quote": "- Not persisted on the agent. Pass `systemPrompt` again on `Agent.resume()` to keep it for follow-up runs.",
+   "context_before": [
+    "- Local agents only. Combining `systemPrompt` with `cloud` throws a `ConfigurationError`.",
+    "- Must be non-empty. Whitespace-only text throws a `ConfigurationError` at `Agent.create()` or `Agent.resume()`."
+   ],
+   "context_after": [
+    "- Access is enabled per account. Without it, the first `send()` fails with an error naming `--system-prompt`.",
+    ""
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-cursor-80015",
+   "surface": "cursor",
+   "tier": "E1",
+   "url": "https://cursor.com/docs/sdk/typescript.md",
+   "url_effective": "https://cursor.com/docs/sdk/typescript.md",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 124215,
+   "sha256": "70535b80db2e8fa5e03668c545c5252b113e53c60a164179aa5e4a42bb394566",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "Replacing the system prompt",
+    "raw_line_start": 385,
+    "raw_line_end": 385
+   },
+   "quote": "Cursor's built-in system prompt for the main agent loop with your own text. The model loses the coding-assistant identity, tool-use protocol, and communication guidance, so restate whatever the agent still needs. Tool schemas, rules, and skills still load, and subagents keep their own prompts.",
+   "context_before": [
+    "### Replacing the system prompt",
+    ""
+   ],
+   "context_after": [
+    "",
+    "```typescript"
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-cursor-80023",
+   "surface": "cursor",
+   "tier": "E1",
+   "url": "https://cursor.com/docs/enterprise/opentelemetry-export.md",
+   "url_effective": "https://cursor.com/docs/enterprise/opentelemetry-export.md",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 30508,
+   "sha256": "6e34aabb750c3855983326e0a88ec037afc23ec2eb9fd3deb08c74826db0e82c",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "Turn on Tool I/O (optional)",
+    "raw_line_start": 159,
+    "raw_line_end": 159
+   },
+   "quote": "- **Scrubbed and capped.** Cursor scrubs message text before export and caps each message body at 32 KiB. `cursor.conversation.content_truncated` is true when the exported body is a prefix of the redacted text.",
+   "context_before": [
+    "",
+    "- **Two log events.** `cursor.conversation.user_message` carries a user prompt and `cursor.conversation.assistant_message` carries the final assistant response. The event name identifies the role. The body is the message text."
+   ],
+   "context_after": [
+    "- **Tool I/O is separate.** With its toggle on, `cursor.conversation.tool_io` adds the arguments and results of Grok Bot MCP calls, capped at 8 KiB per side. See [MCP tool I/O](https://cursor.com/docs/enterprise/opentelemetry-export.md#mcp-tool-io).",
+    "- **Same identity as other logs.** Records carry the same ids as every other log, including the optional `cursor.user.*` [resource attributes](https://cursor.com/docs/enterprise/opentelemetry-export/wire.md#resource-attributes)."
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-cursor-80026",
+   "surface": "cursor",
+   "tier": "E1",
+   "url": "https://cursor.com/docs/enterprise/opentelemetry-export.md",
+   "url_effective": "https://cursor.com/docs/enterprise/opentelemetry-export.md",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 30508,
+   "sha256": "6e34aabb750c3855983326e0a88ec037afc23ec2eb9fd3deb08c74826db0e82c",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "MCP tool I/O",
+    "raw_line_start": 174,
+    "raw_line_end": 174
+   },
+   "quote": "- **Secrets redacted, best effort.** Cursor runs the same pattern-based scrubber as shell commands and message text: known credential shapes, PEM blocks, US social security numbers, and email addresses become `[REDACTED: ...]` markers, so an `assignee` address exports as `[REDACTED: Email]` and a",
+   "context_before": [
+    "- **Excerpts, not full payloads.** Each side is capped at 8 KiB. A body over the cap is a prefix of the redacted text and does not parse as JSON. `cursor.conversation.content_truncated` flags it, and also flags a body that is still valid JSON but lost the tail of a document the connector had already",
+    "- **Result contents.** On success the result record carries the tool's text and structured content. On failure it carries the error, rejection, or denial message. Cursor replaces image bytes with their MIME type."
+   ],
+   "context_after": [
+    "- **Hosted connector calls only.** Grok Bot MCP calls Cursor runs (Jira, Slack, Linear, and other hosted servers; their `mcp_tool_call` rows show `cursor.grok_bot.mcp.transport=http`) produce tool I/O. `stdio` servers on the Bot's computer, builtin tools, and Cloud Agent, IDE, and CLI tool calls rep",
+    ""
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-cursor-80028",
+   "surface": "cursor",
+   "tier": "E1",
+   "url": "https://cursor.com/docs/enterprise/opentelemetry-export.md",
+   "url_effective": "https://cursor.com/docs/enterprise/opentelemetry-export.md",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 30508,
+   "sha256": "6e34aabb750c3855983326e0a88ec037afc23ec2eb9fd3deb08c74826db0e82c",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "MCP tool I/O",
+    "raw_line_start": 174,
+    "raw_line_end": 174
+   },
+   "quote": "`assignee` address exports as `[REDACTED: Email]` and a `123-45-6789` in a ticket body as `[REDACTED: SSN]`. It also redacts the value of any JSON member whose key names a credential (`password`, `token`, `auth`, `pin`, `api_key`, and similar; the [Wire",
+   "context_before": [
+    "- **Excerpts, not full payloads.** Each side is capped at 8 KiB. A body over the cap is a prefix of the redacted text and does not parse as JSON. `cursor.conversation.content_truncated` flags it, and also flags a body that is still valid JSON but lost the tail of a document the connector had already",
+    "- **Result contents.** On success the result record carries the tool's text and structured content. On failure it carries the error, rejection, or denial message. Cursor replaces image bytes with their MIME type."
+   ],
+   "context_after": [
+    "- **Hosted connector calls only.** Grok Bot MCP calls Cursor runs (Jira, Slack, Linear, and other hosted servers; their `mcp_tool_call` rows show `cursor.grok_bot.mcp.transport=http`) produce tool I/O. `stdio` servers on the Bot's computer, builtin tools, and Cloud Agent, IDE, and CLI tool calls rep",
+    ""
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-cursor-80030",
+   "surface": "cursor",
+   "tier": "E1",
+   "url": "https://cursor.com/docs/enterprise/opentelemetry-export.md",
+   "url_effective": "https://cursor.com/docs/enterprise/opentelemetry-export.md",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 30508,
+   "sha256": "6e34aabb750c3855983326e0a88ec037afc23ec2eb9fd3deb08c74826db0e82c",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "What Cursor exports",
+    "raw_line_start": 218,
+    "raw_line_end": 218
+   },
+   "quote": "[`cursor.conversation.tool_io`](https://cursor.com/docs/enterprise/opentelemetry-export.md#mcp-tool-io) record. Shell command text is exported after secret scrubbing and capped at 8 KiB; browser URLs are stripped of query strings, fragments, and credentials, and a webhook token or share-link token",
+   "context_before": [
+    "The `cursor.grok_bot.*` events, and `cursor.skill.activated` when a Bot reads a skill, carry [Action Recording](https://cursor.com/docs/grok-bot/security.md#logging-and-audit) data. They flow only after a team admin turns on Action Recording on the dashboard Grok Bot page; it is a team setting, off ",
+    ""
+   ],
+   "context_after": [
+    "",
+    "The `cursor.conversation.*` events carry message text or tool payloads and flow only after the team opts in and the destination turns on the toggle for that kind. See [Conversation content](https://cursor.com/docs/enterprise/opentelemetry-export.md#conversation-content) and [MCP tool I/O](https://cu"
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-cursor-80039",
+   "surface": "cursor",
+   "tier": "E1",
+   "url": "https://cursor.com/docs/agent/tools/browser.md",
+   "url_effective": "https://cursor.com/docs/agent/tools/browser.md",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 10388,
+   "sha256": "bdd6f305af999c703e11598552d6e05b882513e0ec78475dc312900f38dbe2b6",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "Native integration",
+    "raw_line_start": 13,
+    "raw_line_end": 13
+   },
+   "quote": "- **Efficient log handling**: Browser logs are written to files that Agent can grep and selectively read. Instead of summarizing verbose output after every action, Agent reads only the relevant lines it needs. This preserves full context while minimizing token usage.",
+   "context_before": [
+    "We've optimized the browser tools to be more efficient and reduce token usage, as well as:",
+    ""
+   ],
+   "context_after": [
+    "- **Visual feedback with images**: Screenshots are integrated directly with the file reading tool, so Agent actually sees the browser state as images rather than relying on text descriptions. This enables better understanding of visual layouts and UI elements.",
+    "- **Smart prompting**: Agent receives additional context about browser logs, including total line counts and preview snippets, helping it make informed decisions about what to inspect."
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-cursor-80043",
+   "surface": "cursor",
+   "tier": "E1",
+   "url": "https://cursor.com/docs/enterprise/opentelemetry-export/wire.md",
+   "url_effective": "https://cursor.com/docs/enterprise/opentelemetry-export/wire.md",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 88841,
+   "sha256": "4103c8105d0a34e39fe51febbb7c3170d79a60b44c09a03cf7dadc179574d4b0",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "Shared `grok_bot.*` attributes",
+    "raw_line_start": 204,
+    "raw_line_end": 204
+   },
+   "quote": "per event: the shell command text (secret-scrubbed and capped at 8 KiB), the normalized browser URL and page title, and bare hostnames. Every free-text field is scrubbed for credential shapes, payment card numbers, US social security numbers, and OAuth tokens before it can reach your collector.",
+   "context_before": [
+    "The bot itself is identified by [`cursor.conversation.id`](https://cursor.com/docs/enterprise/opentelemetry-export/wire.md#common-log-attributes) on every `grok_bot.*` record, and that value is the Bot's conversation id; `cursor.grok_bot.subagent.id` names a subagent when one acted. The `grok_bot.*`",
+    ""
+   ],
+   "context_after": [
+    "",
+    "Each event also carries these attributes:"
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-cursor-80046",
+   "surface": "cursor",
+   "tier": "E1",
+   "url": "https://cursor.com/docs/agent/overview.md",
+   "url_effective": "https://cursor.com/docs/agent/overview.md",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 7519,
+   "sha256": "2b474c20c095efbc1280b9d6d6f8d7670da88a35e82ff66560282f97a90bbc91",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "How Agent works",
+    "raw_line_start": 13,
+    "raw_line_end": 13
+   },
+   "quote": "1. **Instructions**: The system prompt and [rules](https://cursor.com/docs/rules.md) that guide agent behavior",
+   "context_before": [
+    "An agent is built on three components:",
+    ""
+   ],
+   "context_after": [
+    "2. **Tools**: File editing, codebase search, terminal execution, and more",
+    "3. **Model**: The agent model you pick for the task"
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-cursor-80047",
+   "surface": "cursor",
+   "tier": "E1",
+   "url": "https://cursor.com/docs/agent/prompting.md",
+   "url_effective": "https://cursor.com/docs/agent/prompting.md",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 4485,
+   "sha256": "438f77bf7295d28002c81ce0658134ce7debe6dfa76bae926058b918ed378410",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "Context usage",
+    "raw_line_start": 46,
+    "raw_line_end": 46
+   },
+   "quote": "- **System prompt**: Cursor's built-in instructions for the model",
+   "context_before": [
+    "The context ring next to your prompt input shows how full the window is at a glance. Click the ring to open the breakdown tray, which shows the total tokens used split by category:",
+    ""
+   ],
+   "context_after": [
+    "- **Tools**: definitions of every tool available to the agent",
+    "- **Rules**: project and user rules included in the prompt"
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-cursor-80048",
+   "surface": "cursor",
+   "tier": "E1",
+   "url": "https://cursor.com/docs/sdk/typescript.md",
+   "url_effective": "https://cursor.com/docs/sdk/typescript.md",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 124215,
+   "sha256": "70535b80db2e8fa5e03668c545c5252b113e53c60a164179aa5e4a42bb394566",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "Token usage",
+    "raw_line_start": 647,
+    "raw_line_end": 647
+   },
+   "quote": "| `cacheReadTokens`  | Tokens served from the prompt cache.                                                              |",
+   "context_before": [
+    "| `inputTokens`      | Prompt tokens sent to the model.                                                                  |",
+    "| `outputTokens`     | Tokens generated by the model.                                                                    |"
+   ],
+   "context_after": [
+    "| `cacheWriteTokens` | Tokens written to the prompt cache.                                                               |",
+    "| `totalTokens`      | `inputTokens + outputTokens + cacheReadTokens + cacheWriteTokens`. Excludes `reasoningTokens`.    |"
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-cursor-80049",
+   "surface": "cursor",
+   "tier": "E1",
+   "url": "https://cursor.com/docs/sdk/typescript.md",
+   "url_effective": "https://cursor.com/docs/sdk/typescript.md",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 124215,
+   "sha256": "70535b80db2e8fa5e03668c545c5252b113e53c60a164179aa5e4a42bb394566",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "Token usage",
+    "raw_line_start": 648,
+    "raw_line_end": 648
+   },
+   "quote": "| `cacheWriteTokens` | Tokens written to the prompt cache.                                                               |",
+   "context_before": [
+    "| `outputTokens`     | Tokens generated by the model.                                                                    |",
+    "| `cacheReadTokens`  | Tokens served from the prompt cache.                                                              |"
+   ],
+   "context_after": [
+    "| `totalTokens`      | `inputTokens + outputTokens + cacheReadTokens + cacheWriteTokens`. Excludes `reasoningTokens`.    |",
+    "| `reasoningTokens`  | Reasoning tokens, a subset of `outputTokens`. Omitted when the model or runtime didn't report it. |"
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-cursor-80050",
+   "surface": "cursor",
+   "tier": "E1",
+   "url": "https://cursor.com/docs/sdk/python.md",
+   "url_effective": "https://cursor.com/docs/sdk/python.md",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 91201,
+   "sha256": "62bb82a6870c57f9b996a8da69a5d8758bc31969b41bbc62730ffe4d3d441c5f",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "Token usage",
+    "raw_line_start": 695,
+    "raw_line_end": 695
+   },
+   "quote": "| `cache_read_tokens`  | Tokens served from the prompt cache.                                                                  |",
+   "context_before": [
+    "| `input_tokens`       | Prompt tokens sent to the model.                                                                      |",
+    "| `output_tokens`      | Tokens generated by the model.                                                                        |"
+   ],
+   "context_after": [
+    "| `cache_write_tokens` | Tokens written to the prompt cache.                                                                   |",
+    "| `total_tokens`       | `input_tokens + output_tokens + cache_read_tokens + cache_write_tokens`. Excludes `reasoning_tokens`. |"
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-cursor-80051",
+   "surface": "cursor",
+   "tier": "E1",
+   "url": "https://cursor.com/docs/models/claude-fable-5-1.md",
+   "url_effective": "https://cursor.com/docs/models/claude-fable-5-1.md",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 5006,
+   "sha256": "0f9eed4959567f5538e83eeb7b4f2038843afc35c59e72cdf393882a34b11c8b",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "Pricing",
+    "raw_line_start": 58,
+    "raw_line_end": 58
+   },
+   "quote": "Fable 5.1 bills at $10 per million input tokens and $50 per million output tokens, the same as Fable 5. Prompt-cache reads are $0.25 per million tokens, 75% below Fable 5's $1.00 cache-read rate. Cache writes stay at $12.50 per million tokens.",
+   "context_before": [
+    "Cursor [plans](https://cursor.com/docs/models-and-pricing.md) include two usage pools. Fable 5.1 draws from the third-party **Other Models** pool, which charges at the rates below. All prices are per million tokens.",
+    ""
+   ],
+   "context_after": [
+    "",
+    "Fable 5.1 supports a thinking variant for deeper reasoning. We recommend the high thinking variant for the strongest results."
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-cursor-80052",
+   "surface": "cursor",
+   "tier": "E1",
+   "url": "https://cursor.com/docs/cli/changelog.md",
+   "url_effective": "https://cursor.com/docs/cli/changelog.md",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 41239,
+   "sha256": "0b0189af89605b81b51016f12eec6b6019f2952aba4dd0815060835213e30877",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "Reliability",
+    "raw_line_start": 107,
+    "raw_line_end": 107
+   },
+   "quote": "- **Network blips no longer kill runs.** DNS failures and network-unreachable errors, like those during a VPN transition, retry with backoff like other transport errors. If the network stays down, the CLI shows an actionable hint covering network, VPN, DNS, and proxy configuration instead of a raw",
+   "context_before": [
+    "",
+    "- **Resuming chats is faster.** The resume picker shows your current workspace's chats immediately and fills in other workspaces in the background, and selecting a chat no longer waits on a model-catalog fetch when your stored model is already cached."
+   ],
+   "context_after": [
+    "- **Subagents survive transient failures.** A momentary network error no longer kills a running subagent with a terminal error. Subagent turns retry with the same policy as regular turns, resuming from their last checkpoint when one exists.",
+    "- **Updates no longer break running sessions.** Auto-update cleanup could delete the installed version a long-running session was launched from, crashing it mid-turn. Running processes now mark their install directory as in use so cleanup skips it, and if install files still disappear, such as after"
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-cursor-80053",
+   "surface": "cursor",
+   "tier": "E1",
+   "url": "https://cursor.com/docs/cli/changelog.md",
+   "url_effective": "https://cursor.com/docs/cli/changelog.md",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 41239,
+   "sha256": "0b0189af89605b81b51016f12eec6b6019f2952aba4dd0815060835213e30877",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "March 2026",
+    "raw_line_start": 320,
+    "raw_line_end": 320
+   },
+   "quote": "- **Retries on by default.** Dropped and stalled streams retry automatically in all modes, and classified server errors (like rate limits) render with their real message.",
+   "context_before": [
+    "- **Run Everything is its own toggle.** Auto-approval is controlled by `/auto-run` (and `--force`/`--yolo`) separately from the Shift+Tab mode cycle, and team-configured approval modes are respected in headless runs.",
+    "- **Plugins arrived.** Browse the marketplace and install or uninstall plugins at user or project scope from `/plugin`; plugin skills, slash commands, subagents, and MCP servers all load into the session."
+   ],
+   "context_after": [
+    "- **`permissions.json` support.** The CLI reads the same terminal/MCP allowlist file as the IDE.",
+    "- **Corporate proxy support for auth.** Login and API-key validation route through `HTTPS_PROXY`, unblocking Zscaler-style networks."
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-cursor-80054",
+   "surface": "cursor",
+   "tier": "E1",
+   "url": "https://cursor.com/docs/cli/changelog.md",
+   "url_effective": "https://cursor.com/docs/cli/changelog.md",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 41239,
+   "sha256": "0b0189af89605b81b51016f12eec6b6019f2952aba4dd0815060835213e30877",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "February 2026",
+    "raw_line_start": 340,
+    "raw_line_end": 340
+   },
+   "quote": "- **Automatic reconnection.** Transport errors retry with a visible \"Reconnecting…\" indicator.",
+   "context_before": [
+    "- **`--yolo`.** Fully autonomous runs that auto-approve consistently across trust, MCP, and command approvals.",
+    "- **AWS Bedrock with your own credentials.** `agent bedrock` configures access keys or a team IAM role; works across interactive, headless, and editor sessions."
+   ],
+   "context_after": [
+    "- **Review UI.** Unified `/changes` (Ctrl+R) with a Session tab showing only this session's edits, `o`/`O` to open diffs in your editor, and a zen toggle while reviewing.",
+    "- **Token usage for scripts.** Per-turn input/output/cache token totals and a `request_id` in `stream-json` output; headless transcripts write Claude Code-compatible JSONL."
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-cursor-80055",
+   "surface": "cursor",
+   "tier": "E1",
+   "url": "https://cursor.com/docs/sdk/typescript.md",
+   "url_effective": "https://cursor.com/docs/sdk/typescript.md",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 124215,
+   "sha256": "70535b80db2e8fa5e03668c545c5252b113e53c60a164179aa5e4a42bb394566",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "LocalAgentOptions",
+    "raw_line_start": 2084,
+    "raw_line_end": 2084
+   },
+   "quote": "| `enableAgentRetries` | `boolean`                       | `true`               | Enable transport and stall auto-retry for local agent runs. Set `false` to surface transport errors on the first failure.                                |",
+   "context_before": [
+    "| `customTools`        | `Record<string, SDKCustomTool>` |                      | [Custom tools](https://cursor.com/docs/sdk/typescript.md#custom-tools) exposed as the `custom-user-tools` MCP server.                                    |",
+    "| `store`              | `LocalAgentStore`               | SDK default store    | [Local agent store](https://cursor.com/docs/sdk/typescript.md#local-agent-stores) backing persistence.                                                   |"
+   ],
+   "context_after": [
+    "",
+    "### CloudAgentOptions"
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-cursor-80056",
+   "surface": "cursor",
+   "tier": "E1",
+   "url": "https://cursor.com/docs/cli/changelog.md",
+   "url_effective": "https://cursor.com/docs/cli/changelog.md",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 41239,
+   "sha256": "0b0189af89605b81b51016f12eec6b6019f2952aba4dd0815060835213e30877",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "Terminal experience",
+    "raw_line_start": 222,
+    "raw_line_end": 222
+   },
+   "quote": "- **Long shell output truncates from the top.** You see the latest output of a streaming command, not the oldest.",
+   "context_before": [
+    "- **Faster, richer resume picker.** Session metadata is cached so `/resume` (Ctrl+Y) opens quickly even on network filesystems, with Created and Last updated columns and reliable ordering.",
+    "- **Working status pinned above the prompt.** Progress, token counts (with an optional elapsed-time display), and hints stay in one stable place."
+   ],
+   "context_after": [
+    "- **Wrapped URLs stay clickable.** Long links re-emit hyperlink codes on every wrapped line.",
+    "- **Model picker shows Max Mode state**, and the footer model summary drops redundant labels."
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-cursor-80057",
+   "surface": "cursor",
+   "tier": "E1",
+   "url": "https://cursor.com/docs/cli/shell-mode.md",
+   "url_effective": "https://cursor.com/docs/cli/shell-mode.md",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 2320,
+   "sha256": "7acca7788419524ddc8f677930401a10d3413a760f830b33d5bc42c9353bc0c7",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "Output",
+    "raw_line_start": 17,
+    "raw_line_end": 17
+   },
+   "quote": "Large outputs are truncated automatically and long-running processes timeout to maintain performance.",
+   "context_before": [
+    "## Output",
+    ""
+   ],
+   "context_after": [
+    "",
+    "## Limitations"
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-cursor-80058",
+   "surface": "cursor",
+   "tier": "E1",
+   "url": "https://cursor.com/docs/cloud-agent/security-network.md",
+   "url_effective": "https://cursor.com/docs/cloud-agent/security-network.md",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 18835,
+   "sha256": "7870ae40b8ea3ab53d04edf56cbe2a651644703b135ad7ad325af8f51bdeee2d",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "Runtime secrets",
+    "raw_line_start": 26,
+    "raw_line_end": 26
+   },
+   "quote": "Secrets set with type `Runtime Secret` are still loaded as environment variables, but their contents are redacted from the agent's tool call results, chat transcript, commits, and commit messages, and replaced with the placeholder string `[REDACTED]`. These are best used for sensitive credentials",
+   "context_before": [
+    "Previously, Runtime Secrets were called Redacted Secrets.",
+    ""
+   ],
+   "context_after": [
+    "",
+    "Because Runtime Secrets still function internally as environment variables, while they are not shown to the agent, they are still visible to users interacting with the agent's environment via the Terminal."
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-cursor-80059",
+   "surface": "cursor",
+   "tier": "E1",
+   "url": "https://cursor.com/help/ai-features/shared-transcripts.md",
+   "url_effective": "https://cursor.com/help/ai-features/shared-transcripts.md",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 2003,
+   "sha256": "33c4cdfe78922d1e1e4098068d3b9d92bc4d2b0d772cc4eacfba77d8620bd84a",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "What gets shared?",
+    "raw_line_start": 27,
+    "raw_line_end": 27
+   },
+   "quote": "Before sharing, Cursor applies best-effort redaction for known secret patterns, such as common API key formats, tokens, and passwords. Redaction is not guaranteed and can miss secrets, especially custom values or values without recognizable prefixes.",
+   "context_before": [
+    "The full conversation history is shared, including code snippets, tool calls, and their results.",
+    ""
+   ],
+   "context_after": [
+    "",
+    "Review transcripts before you share them. Do not share content that includes secrets you cannot expose."
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
   }
  ]
 }

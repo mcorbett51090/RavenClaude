@@ -11568,6 +11568,499 @@
    ],
    "quote_verified": true,
    "neutralizer_flags": []
+  },
+  {
+   "id": "E-copilot-vscode-80001",
+   "surface": "copilot-vscode",
+   "tier": "E1",
+   "url": "https://code.visualstudio.com/docs/agents/agent-troubleshooting/faq.md",
+   "url_effective": "https://code.visualstudio.com/docs/agents/agent-troubleshooting/faq.md",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 18663,
+   "sha256": "94616d0f87ade1f75acdd7b06471eec1751acdcae9d7147a67f48819bfb1048a",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "My request is rate-limited",
+    "raw_line_start": 101,
+    "raw_line_end": 101
+   },
+   "quote": "This error means that the service is temporarily limiting requests. A rate limit can occur even when your monthly AI credits allowance is not exhausted. Wait a few minutes and retry the request.",
+   "context_before": [
+    "### My request is rate-limited",
+    ""
+   ],
+   "context_after": [
+    "",
+    "See [Rate limits for GitHub Copilot](https://docs.github.com/en/copilot/troubleshooting-github-copilot/rate-limits-for-github-copilot) for more information about rate limits and what to do if you are rate limited."
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-copilot-vscode-80005",
+   "surface": "copilot-vscode",
+   "tier": "E1",
+   "url": "https://code.visualstudio.com/docs/agents/agent-troubleshooting/cache-explorer.md",
+   "url_effective": "https://code.visualstudio.com/docs/agents/agent-troubleshooting/cache-explorer.md",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 5578,
+   "sha256": "aa39612fd0df8d77b22b107d8efc6ef0cb56fd409f603abb00dccceb230ce265",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "Understand prompt caching",
+    "raw_line_start": 11,
+    "raw_line_end": 11
+   },
+   "quote": "Prompt caching is provider and model dependent. When it is supported, the provider might reuse the beginning of a request that matches cached content. A change early in the request can reduce how much of that prefix is reusable.",
+   "context_before": [
+    "## Understand prompt caching",
+    ""
+   ],
+   "context_after": [
+    "",
+    "The Cache Explorer shows a diff between consecutive requests and identifies their first divergence. The diff helps explain a reported cache metric, but it does not prove how the model provider processed or billed the request."
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-copilot-vscode-80012",
+   "surface": "copilot-vscode",
+   "tier": "E1",
+   "url": "https://code.visualstudio.com/docs/agents/guides/optimize-usage.md",
+   "url_effective": "https://code.visualstudio.com/docs/agents/guides/optimize-usage.md",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 12942,
+   "sha256": "e8e1ed4ba5fdedf63fe6d7720e942732ef24d6b4a200a45bd9e769a09c73a365",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "Keep the tool catalog focused",
+    "raw_line_start": 63,
+    "raw_line_end": 63
+   },
+   "quote": "* Use the **Configure Tools** button in the chat input field to select individual tools or MCP servers for the current request. Search the tools picker and add another tool when the task needs it.",
+   "context_before": [
+    "Large tool catalogs increase the input context and make tool selection more complex. Tool calls also add their output to the [context window](/docs/agents/concepts/language-models.md#context-window). Expose only the tools relevant to the current task:",
+    ""
+   ],
+   "context_after": [
+    "* In [custom agents](/docs/agent-customization/custom-agents.md), use the `tools` property to give each agent a narrow, task-specific tool set.",
+    ""
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-copilot-vscode-80013",
+   "surface": "copilot-vscode",
+   "tier": "E1",
+   "url": "https://code.visualstudio.com/docs/agents/guides/optimize-usage.md",
+   "url_effective": "https://code.visualstudio.com/docs/agents/guides/optimize-usage.md",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 12942,
+   "sha256": "e8e1ed4ba5fdedf63fe6d7720e942732ef24d6b4a200a45bd9e769a09c73a365",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "Keep the tool catalog focused",
+    "raw_line_start": 64,
+    "raw_line_end": 64
+   },
+   "quote": "* In [custom agents](/docs/agent-customization/custom-agents.md), use the `tools` property to give each agent a narrow, task-specific tool set.",
+   "context_before": [
+    "",
+    "* Use the **Configure Tools** button in the chat input field to select individual tools or MCP servers for the current request. Search the tools picker and add another tool when the task needs it."
+   ],
+   "context_after": [
+    "",
+    "For organizations with a large internal tool catalog, consider providing a curated command-line interface for common workflows. The agent can invoke the commands through the terminal tool without loading every operation as a separate MCP tool. This approach requires your organization to maintain and"
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-copilot-vscode-80015",
+   "surface": "copilot-vscode",
+   "tier": "E1",
+   "url": "https://code.visualstudio.com/docs/agents/agent-troubleshooting/troubleshooting.md",
+   "url_effective": "https://code.visualstudio.com/docs/agents/agent-troubleshooting/troubleshooting.md",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 9182,
+   "sha256": "7dcced2055fba4067286c968d3856c0b37ef477144a49a822e6095b15532fd4a",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "Check customization diagnostics",
+    "raw_line_start": 41,
+    "raw_line_end": 41
+   },
+   "quote": "* **The file is loaded but not applied**: For a `*.instructions.md` file, verify that its `applyTo` pattern matches the file you are working on. Also check the **References** section of the chat response to see which instructions were used.",
+   "context_before": [
+    "* **The file is missing**: Verify its file name, location, and the settings that control instruction discovery.",
+    "* **The file has an error**: Fix the reported frontmatter or content error, and then reopen the diagnostics view."
+   ],
+   "context_after": [
+    "* **A prompt file is missing from the request**: Invoke the prompt file manually in chat. Prompt files do not use `applyTo`, and agents that run on the Agent Host do not use prompt files.",
+    ""
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-copilot-vscode-80017",
+   "surface": "copilot-vscode",
+   "tier": "E1",
+   "url": "https://code.visualstudio.com/docs/agents/agent-troubleshooting/troubleshooting.md",
+   "url_effective": "https://code.visualstudio.com/docs/agents/agent-troubleshooting/troubleshooting.md",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 9182,
+   "sha256": "7dcced2055fba4067286c968d3856c0b37ef477144a49a822e6095b15532fd4a",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "Inspect chat interactions",
+    "raw_line_start": 54,
+    "raw_line_end": 54
+   },
+   "quote": "| **Chat Debug view** | Inspect the exact system prompt, user prompt, context, tool definitions, and tool payloads for a request. |",
+   "context_before": [
+    "| `/troubleshoot` | Ask the AI to analyze captured session events and answer a specific question. |",
+    "| **Agent Debug Logs** panel (Preview) | Follow the sequence of model requests, tool calls, customization discovery, errors, and agent activity. |"
+   ],
+   "context_after": [
+    "| **Cache Explorer** | Compare consecutive model requests after session metrics indicate low cache reuse. |",
+    ""
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-copilot-vscode-80018",
+   "surface": "copilot-vscode",
+   "tier": "E1",
+   "url": "https://code.visualstudio.com/docs/agents/agent-troubleshooting/troubleshooting.md",
+   "url_effective": "https://code.visualstudio.com/docs/agents/agent-troubleshooting/troubleshooting.md",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 9182,
+   "sha256": "7dcced2055fba4067286c968d3856c0b37ef477144a49a822e6095b15532fd4a",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "Report an unresolved issue",
+    "raw_line_start": 116,
+    "raw_line_end": 116
+   },
+   "quote": "> Agent Debug Log exports, Chat Debug output, and Copilot logs can contain prompts, source code, file paths, tool inputs and outputs, and other sensitive data. Review and remove sensitive content before sharing a report. Never include credentials or secrets.",
+   "context_before": [
+    "",
+    "> [!CAUTION]"
+   ],
+   "context_after": [
+    "",
+    "* **Ghost text suggestions**: Hover over a suggestion and select **Send Copilot Completion Feedback**."
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-copilot-vscode-80021",
+   "surface": "copilot-vscode",
+   "tier": "E1",
+   "url": "https://code.visualstudio.com/api/extension-guides/ai/tools.md",
+   "url_effective": "https://code.visualstudio.com/api/extension-guides/ai/tools.md",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 15949,
+   "sha256": "4d33488e5327f200099ad58d35e4566f23fb20212eaaaf6c85629a85924a20f6",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "Tool-calling flow",
+    "raw_line_start": 247,
+    "raw_line_end": 247
+   },
+   "quote": "1. Copilot sends the request to the LLM and provides it with the prompt, chat context, and the list of tool definitions to consider.",
+   "context_before": [
+    "    The list of tools consists of built-in tools, tools registered by extensions, and tools from [MCP servers](/docs/agent-customization/mcp-servers.md). You can contribute to agent mode via extensions or MCP servers (shown in green in the diagram).",
+    ""
+   ],
+   "context_after": [
+    "",
+    "    The LLM generates a response, which might include one or more requests to invoke a tool."
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-copilot-vscode-80025",
+   "surface": "copilot-vscode",
+   "tier": "E1",
+   "url": "https://code.visualstudio.com/docs/agents/guides/monitoring-agents.md",
+   "url_effective": "https://code.visualstudio.com/docs/agents/guides/monitoring-agents.md",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 27717,
+   "sha256": "c5469b5a9b37e27e66ddb1b133ec0f8294c373a51bc2fd67d755f567e6df365f",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "VS Code settings",
+    "raw_line_start": 247,
+    "raw_line_end": 247
+   },
+   "quote": "| `setting(github.copilot.chat.otel.captureContent)` | boolean | `false` | Capture full prompt and response content |",
+   "context_before": [
+    "| `setting(github.copilot.chat.otel.exporterType)` | string | `\"otlp-http\"` | `otlp-http`, `otlp-grpc`, `console`, or `file` |",
+    "| `setting(github.copilot.chat.otel.otlpEndpoint)` | string | `\"http://localhost:4318\"` | OTLP collector endpoint |"
+   ],
+   "context_after": [
+    "| `setting(github.copilot.chat.otel.captureIdentity)` | boolean | `false` | Capture the authenticated account name, operating system username, and machine hostname for Local harness sessions |",
+    "| `setting(github.copilot.chat.otel.maxAttributeSizeChars)` | integer | `0` | Maximum characters per content attribute (prompts, tool args, tool results). `0` disables truncation. Set a positive value to match your backend's per-attribute size limit. |"
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-copilot-vscode-80026",
+   "surface": "copilot-vscode",
+   "tier": "E1",
+   "url": "https://code.visualstudio.com/docs/agents/guides/monitoring-agents.md",
+   "url_effective": "https://code.visualstudio.com/docs/agents/guides/monitoring-agents.md",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 27717,
+   "sha256": "c5469b5a9b37e27e66ddb1b133ec0f8294c373a51bc2fd67d755f567e6df365f",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "VS Code settings",
+    "raw_line_start": 248,
+    "raw_line_end": 248
+   },
+   "quote": "| `setting(github.copilot.chat.otel.captureIdentity)` | boolean | `false` | Capture the authenticated account name, operating system username, and machine hostname for Local harness sessions |",
+   "context_before": [
+    "| `setting(github.copilot.chat.otel.otlpEndpoint)` | string | `\"http://localhost:4318\"` | OTLP collector endpoint |",
+    "| `setting(github.copilot.chat.otel.captureContent)` | boolean | `false` | Capture full prompt and response content |"
+   ],
+   "context_after": [
+    "| `setting(github.copilot.chat.otel.maxAttributeSizeChars)` | integer | `0` | Maximum characters per content attribute (prompts, tool args, tool results). `0` disables truncation. Set a positive value to match your backend's per-attribute size limit. |",
+    "| `setting(github.copilot.chat.otel.outfile)` | string | `\"\"` | File path for JSON-lines output |"
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-copilot-vscode-80028",
+   "surface": "copilot-vscode",
+   "tier": "E1",
+   "url": "https://code.visualstudio.com/docs/agents/guides/monitoring-agents.md",
+   "url_effective": "https://code.visualstudio.com/docs/agents/guides/monitoring-agents.md",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 27717,
+   "sha256": "c5469b5a9b37e27e66ddb1b133ec0f8294c373a51bc2fd67d755f567e6df365f",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "Security and privacy",
+    "raw_line_start": 456,
+    "raw_line_end": 456
+   },
+   "quote": "| **No content by default** | Prompts, responses, and tool arguments require opt-in with `captureContent`. |",
+   "context_before": [
+    "|---|---|",
+    "| **Off by default** | No OTel data is emitted unless you explicitly enable it. The OTel SDK is not loaded when disabled, resulting in zero runtime overhead. |"
+   ],
+   "context_after": [
+    "| **No PII in default attributes** | Session IDs, model names, and token counts are not personally identifiable. |",
+    "| **User-configured endpoints** | Data goes only where you point it. There is no phone-home behavior. |"
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-copilot-vscode-80030",
+   "surface": "copilot-vscode",
+   "tier": "E1",
+   "url": "https://code.visualstudio.com/docs/agents/agent-troubleshooting/chat-debug-view.md",
+   "url_effective": "https://code.visualstudio.com/docs/agents/agent-troubleshooting/chat-debug-view.md",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 11122,
+   "sha256": "2c452c59a34ba38b62eb076de26607c58ce7b01dba2bf81ea1f5a70baf86696d",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "Read the debug output",
+    "raw_line_start": 181,
+    "raw_line_end": 181
+   },
+   "quote": "| **System prompt** | Instructions that define the model's behavior, capabilities, and constraints. | Verify that expected custom instructions and agent definitions appear. |",
+   "context_before": [
+    "| Section | What it shows | What to check |",
+    "|---------|---------------|---------------|"
+   ],
+   "context_after": [
+    "| **User prompt** | The prompt sent to the model. | Confirm that prompt text and resolved references are present. |",
+    "| **Context** | Files, symbols, and other attached context. | Check whether the task's required context is present and relevant. |"
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-copilot-vscode-80032",
+   "surface": "copilot-vscode",
+   "tier": "E1",
+   "url": "https://code.visualstudio.com/docs/agents/agent-troubleshooting/chat-debug-view.md",
+   "url_effective": "https://code.visualstudio.com/docs/agents/agent-troubleshooting/chat-debug-view.md",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 11122,
+   "sha256": "2c452c59a34ba38b62eb076de26607c58ce7b01dba2bf81ea1f5a70baf86696d",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "Read the debug output",
+    "raw_line_start": 183,
+    "raw_line_end": 183
+   },
+   "quote": "| **Context** | Files, symbols, and other attached context. | Check whether the task's required context is present and relevant. |",
+   "context_before": [
+    "| **System prompt** | Instructions that define the model's behavior, capabilities, and constraints. | Verify that expected custom instructions and agent definitions appear. |",
+    "| **User prompt** | The prompt sent to the model. | Confirm that prompt text and resolved references are present. |"
+   ],
+   "context_after": [
+    "| **Response** | The response returned by the model. | Determine whether the model returned complete content or an error. |",
+    "| **Tool responses** | Inputs and outputs for tools invoked during the request. | Verify that each tool received the expected input and returned a usable result. |"
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-copilot-vscode-80037",
+   "surface": "copilot-vscode",
+   "tier": "E1",
+   "url": "https://code.visualstudio.com/docs/agents/run/sessions/manage-sessions.md",
+   "url_effective": "https://code.visualstudio.com/docs/agents/run/sessions/manage-sessions.md",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 32261,
+   "sha256": "e1cff84965cca3f0d683683319b5a6a517e875bd929a599c53d255c7493b5755",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "Manage session context",
+    "raw_line_start": 33,
+    "raw_line_end": 33
+   },
+   "quote": "How context changes across turns also affects prompt caching. Stable context lets the model provider reuse tokens from earlier requests, which lowers cost and latency. Use the [Cache Explorer](/docs/agents/agent-troubleshooting/cache-explorer.md) to check your cache hit rate.",
+   "context_before": [
+    "As the conversation grows, the control updates to reflect increasing context usage. The available context depends on the selected model.",
+    ""
+   ],
+   "context_after": [
+    "",
+    "### Compact conversation context"
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-copilot-vscode-80039",
+   "surface": "copilot-vscode",
+   "tier": "E1",
+   "url": "https://code.visualstudio.com/docs/agents/run/sessions/manage-sessions.md",
+   "url_effective": "https://code.visualstudio.com/docs/agents/run/sessions/manage-sessions.md",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 32261,
+   "sha256": "e1cff84965cca3f0d683683319b5a6a517e875bd929a599c53d255c7493b5755",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "Fork a chat session",
+    "raw_line_start": 298,
+    "raw_line_end": 298
+   },
+   "quote": "> A forked session inherits the conversation history of the original, which preserves the prompt cache and reduces cost on the next request. Use the [Cache Explorer](/docs/agents/agent-troubleshooting/cache-explorer.md) to compare cache hit rates across sessions.",
+   "context_before": [
+    "",
+    "> [!TIP]"
+   ],
+   "context_after": [
+    "",
+    "## Orchestrate sessions from agent host sessions"
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-copilot-vscode-80040",
+   "surface": "copilot-vscode",
+   "tier": "E1",
+   "url": "https://code.visualstudio.com/docs/agents/concepts/language-models.md",
+   "url_effective": "https://code.visualstudio.com/docs/agents/concepts/language-models.md",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 10070,
+   "sha256": "12b0af670587a4b47d356b225d0f6246a68acedcbbf1a144befeab26517e3e6f",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "Context window",
+    "raw_line_start": 29,
+    "raw_line_end": 29
+   },
+   "quote": "The context window is the total amount of information a model can process in a single request. It includes everything: the system prompt, custom instructions, conversation history, file contents, tool outputs, and your current message. Different models have different context window sizes.",
+   "context_before": [
+    "## Context window",
+    ""
+   ],
+   "context_after": [
+    "",
+    "When the context window fills up, VS Code automatically summarizes older parts of the conversation to make room. This means important details from early in a long conversation might be compressed or lost. You can also type `/compact` in the chat input to manually trigger compaction at any time. Opti"
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-copilot-vscode-80041",
+   "surface": "copilot-vscode",
+   "tier": "E1",
+   "url": "https://code.visualstudio.com/docs/agents/agent-troubleshooting/cache-explorer.md",
+   "url_effective": "https://code.visualstudio.com/docs/agents/agent-troubleshooting/cache-explorer.md",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 5578,
+   "sha256": "aa39612fd0df8d77b22b107d8efc6ef0cb56fd409f603abb00dccceb230ce265",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "Read the comparison",
+    "raw_line_start": 38,
+    "raw_line_end": 38
+   },
+   "quote": "The side panel lists model turns grouped by user request. Each turn can show the cache hit percentage, duration, model name, and timestamp. Select a turn to compare its request with the preceding request.",
+   "context_before": [
+    "## Read the comparison",
+    ""
+   ],
+   "context_after": [
+    "",
+    "The main area contains:"
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
   }
  ]
 }

@@ -155,7 +155,7 @@ class FixtureStructureTests(unittest.TestCase):
         pages = self.pages()
         expected = {"README.md", "register.md", "known-gaps.md", "rows/index.md"}
         expected |= {f"agents/{s}.md" for s in render_md.Atlas(self.base).surface_ids}
-        expected |= {f"rows/F{n:02d}.md" for n in range(1, 23)}
+        expected |= {f"rows/{facet['id']}.md" for facet in render_md.Atlas(self.base).facets}
         expected |= {f"levers/{c}.md" for c in ("model", "effort", "mode", "parallelism", "other")}
         expected |= {"levers/task-shapes.md"}
         self.assertEqual(set(pages), expected)

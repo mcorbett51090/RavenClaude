@@ -144,6 +144,7 @@ animation:none!important}}
 <li><a href="#F19">F19 Modes and autonomy levels</a></li>
 <li><a href="#F20">F20 Version, release channel, update path</a></li>
 <li><a href="#F22">F22 Usage, cost, limits and observability</a></li>
+<li><a href="#F23">F23 Request and response handling</a></li>
 </ul>
 <section id="F21">
 <h2>F21 Relationship to host platform</h2>
@@ -1519,6 +1520,68 @@ animation:none!important}}
 <p class="st"><span class="g" role="img" aria-label="supported">●</span> <span class="w">supported</span> <span class="uv" role="img" aria-label="unverified">!</span> <span class="w">unverified</span> <span class="marker">[unverified: no verified evidence record; settles by A tester pass of this supported cell against its cited quotes. It was outside the 30% verification sample.]</span></p>
 <p><strong>Value:</strong> The sidebar distinguishes Bots that need attention (a question, approval, or handoff), unread activity (a new result), and working status. Turning on Notifications in a Bot&#x27;s settings gives a system or mobile notification when that Bot finishes or needs input.</p>
 <p><strong>Evidence:</strong></p><ul><li><a class="mono" href="../sources/grok-bot.html#E-grok-bot-00428">E-grok-bot-00428</a><blockquote><p>The sidebar distinguishes Bots that need attention (a question, approval, or handoff), unread activity (a new result), and working status. Opening a conversation marks its current activity as read, and the Bot menu can mark a conversation read or unread manually.</p></blockquote><p class="cite">Source: <a href="https://cursor.com/docs/grok-bot/settings.md">https://cursor.com/docs/grok-bot/settings.md</a>; retrieved <time datetime="2026-10-04">2026-10-04</time>; version not recorded; tier E1</p></li><li><a class="mono" href="../sources/grok-bot.html#E-grok-bot-00982">E-grok-bot-00982</a><blockquote><p>* **Needs attention** for a question, approval, or handoff</p></blockquote><p class="cite">Source: <a href="https://docs.x.ai/grok-bot/settings-and-notifications.md">https://docs.x.ai/grok-bot/settings-and-notifications.md</a>; retrieved <time datetime="2026-10-04">2026-10-04</time>; version not recorded; tier E1</p></li><li><a href="../sources/grok-bot.html#grok-bot/F22.status-display">1 more on the sources page</a></li></ul>
+<p class="muted"><strong>Register entries:</strong> none cite this cell.</p>
+</div>
+</div>
+</section>
+<section id="F23">
+<h2>F23 Request and response handling</h2>
+<div id="F23.prompt-assembly">
+<h3>Prompt assembly</h3>
+<p class="muted"><code>F23.prompt-assembly</code> What goes into each model request and in what order (system prompt, instruction files, tool definitions, history, attachments), and what a user can see or change.</p>
+<div class="cell s-undocumented" id="grok-bot/F23.prompt-assembly">
+<p class="st"><span class="g" role="img" aria-label="undocumented">?</span> <span class="w">undocumented</span></p>
+<p class="muted">Sweep: terms system prompt, --system-prompt|append-system-prompt|system_prompt|systemPrompt, prompt assembl|assembled prompt|what (is|gets) sent to the model|request payload; hits 0, reviewed 0; positive control grok (1281 hits); corpus sha256 926780a88b18e76d20d24a1534b4e7e26085c9d20badc20b9bddf7516479a0b4</p>
+<p class="muted"><strong>Register entries:</strong> none cite this cell.</p>
+</div>
+</div>
+<div id="F23.prompt-caching">
+<h3>Prompt caching</h3>
+<p class="muted"><code>F23.prompt-caching</code> Whether the harness reuses the unchanged start of a prompt across turns, how long it is kept, what invalidates it, and any setting to turn it on, off or tune it.</p>
+<div class="cell s-undocumented" id="grok-bot/F23.prompt-caching">
+<p class="st"><span class="g" role="img" aria-label="undocumented">?</span> <span class="w">undocumented</span></p>
+<p class="muted">Sweep: terms prompt[ -]?cach, cache[_ -]?control|cache (hit|read|write|miss|breakpoint|prefix)|cached (input|token); hits 0, reviewed 0; positive control grok (1281 hits); corpus sha256 926780a88b18e76d20d24a1534b4e7e26085c9d20badc20b9bddf7516479a0b4</p>
+<p class="muted"><strong>Register entries:</strong> none cite this cell.</p>
+</div>
+</div>
+<div id="F23.retry-backoff">
+<h3>Retry and back-off</h3>
+<p class="muted"><code>F23.retry-backoff</code> What the harness does when a model call fails or is throttled: automatic retries, waiting, limits on attempts, and the message shown.</p>
+<div class="cell s-undocumented" id="grok-bot/F23.retry-backoff">
+<p class="st"><span class="g" role="img" aria-label="undocumented">?</span> <span class="w">undocumented</span></p>
+<p class="muted">Sweep: terms \bretr(y|ies|ying)\b.{0,80}(model|request|api|rate|error|fail|overload|429|5\d\d), (model|request|api|rate|error|fail|overload|429|5\d\d).{0,80}\bretr(y|ies|ying)\b, back-?off|exponential; hits 9, reviewed 9; positive control grok (1281 hits); corpus sha256 926780a88b18e76d20d24a1534b4e7e26085c9d20badc20b9bddf7516479a0b4</p>
+<p class="muted"><strong>Register entries:</strong> none cite this cell.</p>
+</div>
+</div>
+<div id="F23.malformed-call-recovery">
+<h3>Malformed call recovery</h3>
+<p class="muted"><code>F23.malformed-call-recovery</code> What happens when the model asks for a tool that does not exist, gives invalid arguments or returns output that cannot be parsed: error returned to the model, retry or stop.</p>
+<div class="cell s-undocumented" id="grok-bot/F23.malformed-call-recovery">
+<p class="st"><span class="g" role="img" aria-label="undocumented">?</span> <span class="w">undocumented</span></p>
+<p class="muted">Sweep: terms malformed, invalid (tool|json|argument|parameter|input)|unknown tool|tool (call|use) (error|fail|invalid), schema validation|failed to parse|could not parse|unparseable; hits 0, reviewed 0; positive control grok (1281 hits); corpus sha256 926780a88b18e76d20d24a1534b4e7e26085c9d20badc20b9bddf7516479a0b4</p>
+<p class="muted"><strong>Register entries:</strong> none cite this cell.</p>
+</div>
+</div>
+<div id="F23.tool-output-limits">
+<h3>Tool output limits</h3>
+<p class="muted"><code>F23.tool-output-limits</code> Limits on how much tool output enters the context and how it is cut (truncated, summarized or saved to a file), and any setting that changes them.</p>
+<div class="cell s-undocumented" id="grok-bot/F23.tool-output-limits">
+<p class="st"><span class="g" role="img" aria-label="undocumented">?</span> <span class="w">undocumented</span></p>
+<p class="muted">Sweep: terms truncat, output (limit|cap)|too (large|long) (output|result)|first \d+ (lines|characters|bytes), max(imum)? (output|result)s?.{0,30}(size|length|bytes|characters|lines|tokens); hits 0, reviewed 0; positive control grok (1281 hits); corpus sha256 926780a88b18e76d20d24a1534b4e7e26085c9d20badc20b9bddf7516479a0b4</p>
+<p class="muted"><strong>Register entries:</strong> none cite this cell.</p>
+</div>
+</div>
+<div id="F23.output-redaction">
+<h3>Output redaction</h3>
+<p class="muted"><code>F23.output-redaction</code> Whether secrets or sensitive text are removed from tool output, transcripts, logs or telemetry, and how.</p>
+<div class="cell s-partial" id="grok-bot/F23.output-redaction">
+<p class="st"><span class="g" role="img" aria-label="partial">◐</span> <span class="w">partial</span></p>
+<p><strong>Value:</strong> A Team Bot uses secrets by name; the value is replaced with [REDACTED] in command output, files it reads and plugin calls. Script output is redacted before logging. Action Recording scrubs shell commands. Conversation content export redacts known credential shapes, PEM blocks and email addresses ([REDACTED: ...]).</p>
+<p><strong>Limitation:</strong> Script-output redaction belongs to Team Secrets, Enterprise plan only, as are Action Recording and conversation content export (not for Privacy Mode (Legacy) teams). Pattern matching cannot recognize every secret. Team Bot secrets: up to 25, each at least 8 characters and at most 4,096 bytes.</p>
+<p><strong>Evidence:</strong></p><ul><li><a class="mono" href="../sources/grok-bot.html#E-grok-bot-80001">E-grok-bot-80001</a><blockquote><p>* The Bot can&#x27;t see a value either. It uses a secret by name, and the value is
+  replaced with `[REDACTED]` in the output of the commands it runs, the files it
+  reads, and its plugin calls.</p></blockquote><p class="cite">Source: <a href="https://docs.x.ai/grok-bot/team-bots.md">https://docs.x.ai/grok-bot/team-bots.md</a>; retrieved <time datetime="2026-10-05">2026-10-05</time>; version not recorded; tier E1</p></li><li><a class="mono" href="../sources/grok-bot.html#E-grok-bot-80004">E-grok-bot-80004</a><blockquote><p>* Script output is checked for secret values before it is logged, and matches
+  are redacted.</p></blockquote><p class="cite">Source: <a href="https://docs.x.ai/grok-bot/teams-and-enterprises.md">https://docs.x.ai/grok-bot/teams-and-enterprises.md</a>; retrieved <time datetime="2026-10-05">2026-10-05</time>; version not recorded; tier E1</p></li><li><a href="../sources/grok-bot.html#grok-bot/F23.output-redaction">10 more on the sources page</a></li></ul>
 <p class="muted"><strong>Register entries:</strong> none cite this cell.</p>
 </div>
 </div>

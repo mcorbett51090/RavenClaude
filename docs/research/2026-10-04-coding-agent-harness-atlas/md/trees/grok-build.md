@@ -28,7 +28,8 @@ Steps run in the typical order. A documented order appears only where a cell sta
 
 ## B. Each turn, before sending
 
-- Assemble the prompt [documented, unverified] A context window setting gives the size in tokens and drives when automatic compaction happens. Rule files are loaded in full with no size cap. One option adds text to the system prompt for a run, and another replaces it entirely.
+- Assemble the prompt [documented, unverified] You can set the context window size, which drives when compaction happens. Rule files load in full, and deeper ones win conflicts. Extra rules can be added to the system prompt for a single run, or the system prompt replaced entirely.
+  - documented order: Project rule files load in a documented order, and when rules conflict the deeper files take precedence.
 - Run your own code at set moments [documented, with limits, unverified] Hooks run a command, or send the event to a web address, at tool and session events. The hook that runs before a tool is the one that can block it; timeouts, crashes and malformed output let the tool call go ahead. Project hooks need trust before they run.
   - decision point (grok-build/F06.output-blocking): What happens when a hook says no, or when a hook breaks?
     - The hook script exits with code 0 or code 2 -> Code 0 lets the tool call go ahead and code 2 blocks it. | quote: “Exit code 0 allows, exit code 2 denies”
@@ -36,13 +37,13 @@ Steps run in the typical order. A documented order appears only where a cell sta
 
 ## C. The model call
 
-- Send the request and handle trouble [not documented] The documentation does not mention automatic model routing, or how it behaves when it is rate-limited or the service is busy.
+- Send the request and handle trouble [partly documented] The documentation does not mention automatic model routing or what happens when it is rate-limited. For retries it documents one setting, a global default for retrying model requests; nothing more about retries is described.
 - Set the thinking budget [documented, with limits] Reasoning controls apply when the chosen model supports them, and levels are listed for Grok 4.7. The documentation covers showing or hiding thinking blocks and the width of the thoughts panel, but does not state a token budget.
-- Reuse the unchanged part of the prompt [not researched]
+- Reuse the unchanged part of the prompt [not documented] The documentation does not mention prompt caching, where a tool asks the model service to remember the unchanged start of a long prompt.
 
 ## D. After the model answers, every turn
 
-- Read what the model asked for [not researched]
+- Read what the model asked for [not documented] The documentation does not mention how it handles a request from the model that is malformed or incomplete.
 - Decide whether it is allowed [documented, with limits, unverified] Rules can allow, deny or ask by tool, by path pattern or by shell command pattern, and a deny rule beats an allow rule. Auto mode uses a classifier to auto-approve safe tools; dangerous ones may still prompt, and it is toggled when the feature is enabled.
   - documented order: A deny rule wins over an allow rule.
   - decision point (grok-build/F04.command-scoping): Does an allow grant still ask before risky commands such as removing files?
@@ -53,7 +54,7 @@ Steps run in the typical order. A documented order appears only where a cell sta
     - Dangerous tools -> They may still prompt you for approval. | quote: “dangerous ones may still prompt”
 - Save an undo point [documented, unverified] A rewind command lists a rewind point per prompt, and picking one restores the files and trims the conversation to match. Rewinding changes files on disk, so reverted changes are lost unless they were committed to git.
 - Run it inside the fence [partly documented, unverified] The sandbox is off by default; once on, it limits what the agent and its child processes can read, write and reach. Built-in profiles do not permanently protect paths like the SSH folder, and the network limits on child processes are enforced on Linux.
-- Tidy the tool's output [not researched]
+- Tidy the tool's output [not documented] The documentation does not mention limits on how large a tool's output can be, or hiding sensitive details in that output.
 - Feed the result back and go round again [partly documented, unverified] You can cap the number of agent turns, and shell commands have their own timeout. The documentation does not mention the loop's shape.
 - Hand work to helpers [partly documented, unverified] Helpers include a read-only explorer and a planner, can get their own model, and run as parallel child sessions. The documentation does not settle whether subagents are on out of the box, and the one cap it states is for scheduled tasks. It does not mention nesting.
 - Shrink the context when it fills [documented, unverified] It compacts the conversation automatically as the context window fills, at a set percent of usage, and you can compact by hand with optional notes on what to keep. Hooks can run before and after compaction.

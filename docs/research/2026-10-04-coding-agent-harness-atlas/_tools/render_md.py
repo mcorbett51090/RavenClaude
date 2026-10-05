@@ -586,9 +586,13 @@ def render_lifecycle_md(layer):
     )
     gaps = [c["name_plain"] for c in layer.concepts if c["gap"] == "full"]
     parts = [c["name_plain"] for c in layer.concepts if c["gap"] == "partial"]
-    lines.append(
-        f"Not yet researched: {text(', '.join(gaps))}. Only partly covered: {text(', '.join(parts))}."
-    )
+    notes = []
+    if gaps:
+        notes.append(f"Not yet researched: {text(', '.join(gaps))}.")
+    if parts:
+        notes.append(f"Only partly covered: {text(', '.join(parts))}.")
+    if notes:
+        lines.append(" ".join(notes))
     lines.append(text(rl.caveat(layer)))
     for stage in layer.stages:
         lines += ["", f"## {text(stage['id'])}. {text(stage['name'])}", "", text(stage["blurb"])]

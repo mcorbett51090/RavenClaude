@@ -11506,6 +11506,615 @@
    ],
    "quote_verified": true,
    "neutralizer_flags": []
+  },
+  {
+   "id": "E-copilot-cli-80005",
+   "surface": "copilot-cli",
+   "tier": "E1",
+   "url": "https://docs.github.com/api/article/body?pathname=/en/copilot/reference/copilot-cli-reference/cli-command-reference",
+   "url_effective": "https://docs.github.com/api/article/body?pathname=/en/copilot/reference/copilot-cli-reference/cli-command-reference",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 441029,
+   "sha256": "66198ea49c0f2f223d9466474f30c4a2a714c79a376a6022127d640996f9dd4d",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "Command-line options",
+    "raw_line_start": 596,
+    "raw_line_end": 596
+   },
+   "quote": "| `--allow-all-mcp-server-instructions`        | Include initialization instructions from all MCP servers in the system prompt. By default, only allowlisted server instructions are included up front; other servers' instructions are retrieved on demand.",
+   "context_before": [
+    "| `--agent=AGENT`                              | Specify a custom agent to use. See [About custom agents](/en/copilot/concepts/agents/copilot-cli/about-custom-agents).                                                                                                                                     ",
+    "| `--allow-all`                                | Enable all permissions (equivalent to `--allow-all-tools --allow-all-paths --allow-all-urls`).                                                                                                                                                             "
+   ],
+   "context_after": [
+    "| `--allow-all-paths`                          | Disable file path verification and allow access to any path.                                                                                                                                                                                               ",
+    "| `--allow-all-tools`                          | Allow all tools to run automatically without confirmation. Required when using the CLI programmatically (env: `COPILOT_ALLOW_ALL`).                                                                                                                        "
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-copilot-cli-80012",
+   "surface": "copilot-cli",
+   "tier": "E1",
+   "url": "https://docs.github.com/api/article/body?pathname=/en/copilot/reference/copilot-cli-reference/cli-command-reference",
+   "url_effective": "https://docs.github.com/api/article/body?pathname=/en/copilot/reference/copilot-cli-reference/cli-command-reference",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 441029,
+   "sha256": "66198ea49c0f2f223d9466474f30c4a2a714c79a376a6022127d640996f9dd4d",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "Command-line options",
+    "raw_line_start": 641,
+    "raw_line_end": 641
+   },
+   "quote": "| `--no-custom-instructions`                   | Disable loading of custom instructions from `AGENTS.md` and related files.",
+   "context_before": [
+    "| `--no-bash-env`                              | Disable `BASH_ENV` support for bash shells.                                                                                                                                                                                                                ",
+    "| `--no-color`                                 | Disable all color output.                                                                                                                                                                                                                                  "
+   ],
+   "context_after": [
+    "| `--no-experimental`                          | Disable experimental features.                                                                                                                                                                                                                             ",
+    "| `--no-mouse`                                 | Disable mouse support.                                                                                                                                                                                                                                     "
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-copilot-cli-80013",
+   "surface": "copilot-cli",
+   "tier": "E1",
+   "url": "https://docs.github.com/api/article/body?pathname=/en/copilot/reference/copilot-cli-reference/cli-command-reference",
+   "url_effective": "https://docs.github.com/api/article/body?pathname=/en/copilot/reference/copilot-cli-reference/cli-command-reference",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 441029,
+   "sha256": "66198ea49c0f2f223d9466474f30c4a2a714c79a376a6022127d640996f9dd4d",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "Command-line options",
+    "raw_line_start": 656,
+    "raw_line_end": 656
+   },
+   "quote": "(can be used multiple times). For multiple variables, use a quoted, comma-separated list. The values in the `GITHUB_TOKEN` and `COPILOT_GITHUB_TOKEN` environment variables are redacted from output by default.",
+   "context_before": [
+    "| `-s`, `--silent`                             | Output only the agent response (without usage statistics), useful for scripting with `-p`.                                                                                                                                                                 ",
+    "| `--screen-reader`                            | Enable screen reader optimizations.                                                                                                                                                                                                                        "
+   ],
+   "context_after": [
+    "| `--session-id ID`                            | Use an exact session or task ID when you do not want `--resume`'s broader matching by ID prefix or session name. If the ID matches an existing session or task, that session or task is resumed. If nothing matches, a new session is created only when the",
+    "| `--sandbox`                                  | Enable the OS-level shell sandbox for this session only, without changing your saved sandbox setting. Useful with `-p`. Only available in experimental mode.                                                                                               "
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-copilot-cli-80018",
+   "surface": "copilot-cli",
+   "tier": "E1",
+   "url": "https://docs.github.com/api/article/body?pathname=/en/copilot/reference/copilot-cli-reference/cli-command-reference",
+   "url_effective": "https://docs.github.com/api/article/body?pathname=/en/copilot/reference/copilot-cli-reference/cli-command-reference",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 441029,
+   "sha256": "66198ea49c0f2f223d9466474f30c4a2a714c79a376a6022127d640996f9dd4d",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "`invoke_agent` span attributes",
+    "raw_line_start": 1664,
+    "raw_line_end": 1664
+   },
+   "quote": "| `gen_ai.usage.cache_read.input_tokens`     | Cached input tokens read                                                                       | Both           |",
+   "context_before": [
+    "| `gen_ai.usage.input_tokens`                | Total input tokens (all turns)                                                                 | Both           |",
+    "| `gen_ai.usage.output_tokens`               | Total output tokens (all turns)                                                                | Both           |"
+   ],
+   "context_after": [
+    "| `gen_ai.usage.cache_creation.input_tokens` | Cached input tokens created                                                                    | Both           |",
+    "| `github.copilot.turn_count`                | Number of LLM round-trips                                                                      | Both           |"
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-copilot-cli-80019",
+   "surface": "copilot-cli",
+   "tier": "E1",
+   "url": "https://docs.github.com/api/article/body?pathname=/en/copilot/reference/copilot-cli-reference/cli-command-reference",
+   "url_effective": "https://docs.github.com/api/article/body?pathname=/en/copilot/reference/copilot-cli-reference/cli-command-reference",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 441029,
+   "sha256": "66198ea49c0f2f223d9466474f30c4a2a714c79a376a6022127d640996f9dd4d",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "`invoke_agent` span attributes",
+    "raw_line_start": 1665,
+    "raw_line_end": 1665
+   },
+   "quote": "| `gen_ai.usage.cache_creation.input_tokens` | Cached input tokens created                                                                    | Both           |",
+   "context_before": [
+    "| `gen_ai.usage.output_tokens`               | Total output tokens (all turns)                                                                | Both           |",
+    "| `gen_ai.usage.cache_read.input_tokens`     | Cached input tokens read                                                                       | Both           |"
+   ],
+   "context_after": [
+    "| `github.copilot.turn_count`                | Number of LLM round-trips                                                                      | Both           |",
+    "| `github.copilot.cost`                      | Per-request model multiplier used for billing. **Not a monetary value.**                       | Both           |"
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-copilot-cli-80025",
+   "surface": "copilot-cli",
+   "tier": "E1",
+   "url": "https://docs.github.com/api/article/body?pathname=/en/copilot/reference/ai-models/model-hosting",
+   "url_effective": "https://docs.github.com/api/article/body?pathname=/en/copilot/reference/ai-models/model-hosting",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 10563,
+   "sha256": "a44c676b08e537828fd01c3eed858c6f2af7e0deb7216311ea064f25831afcd5",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "Anthropic models",
+    "raw_line_start": 71,
+    "raw_line_end": 71
+   },
+   "quote": "To provide better service quality and reduce latency, GitHub uses [prompt caching](https://platform.claude.com/docs/en/build-with-claude/prompt-caching). You can read more about prompt caching on [Anthropic PBC](https://docs.anthropic.com/en/docs/build-with-claude/prompt-caching), [Amazon",
+   "context_before": [
+    "* Google Cloud: [Google commits to not training on GitHub data as part of their service terms](https://cloud.google.com/vertex-ai/generative-ai/docs/data-governance). GitHub is additionally not subject to prompt logging for abuse monitoring.",
+    ""
+   ],
+   "context_after": [
+    "",
+    "When using Claude, input prompts and output completions continue to run through GitHub Copilot's content filters for public code matching, when applied, along with those for harmful or offensive content."
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-copilot-cli-80027",
+   "surface": "copilot-cli",
+   "tier": "E1",
+   "url": "https://docs.github.com/api/article/body?pathname=/en/copilot/reference/ai-models/model-hosting",
+   "url_effective": "https://docs.github.com/api/article/body?pathname=/en/copilot/reference/ai-models/model-hosting",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 10563,
+   "sha256": "a44c676b08e537828fd01c3eed858c6f2af7e0deb7216311ea064f25831afcd5",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "Google models",
+    "raw_line_start": 84,
+    "raw_line_end": 84
+   },
+   "quote": "To provide better service quality and reduce latency, GitHub uses [prompt caching](https://cloud.google.com/vertex-ai/generative-ai/docs/data-governance#customer_data_retention_and_achieving_zero_data_retention).",
+   "context_before": [
+    "GitHub Copilot uses Gemini models hosted on Google Cloud Platform (GCP). When using Gemini models, prompts and metadata are sent to GCP, which makes the [following data commitment](https://cloud.google.com/vertex-ai/generative-ai/docs/data-governance): *Gemini doesn't use your prompts, or its respon",
+    ""
+   ],
+   "context_after": [
+    "",
+    "When using Gemini models, input prompts and output completions continue to run through GitHub Copilot's content filters for public code matching, when applied, along with those for harmful or offensive content."
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-copilot-cli-80033",
+   "surface": "copilot-cli",
+   "tier": "E1",
+   "url": "https://docs.github.com/api/article/body?pathname=/en/copilot/reference/copilot-cli-reference/cli-programmatic-reference",
+   "url_effective": "https://docs.github.com/api/article/body?pathname=/en/copilot/reference/copilot-cli-reference/cli-programmatic-reference",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 26284,
+   "sha256": "41add277f218d8b462fc7aaa73709f95edd02ab0687be8bc2c467d2f92d6c91d",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "Command line options",
+    "raw_line_start": 40,
+    "raw_line_end": 40
+   },
+   "quote": "variables, use a quoted, comma-separated list. Essential for preventing secrets being exposed in logs. The values in the `GITHUB_TOKEN` and `COPILOT_GITHUB_TOKEN` environment variables are redacted by default.                                                                                          |",
+   "context_before": [
+    "| `--no-ask-user`              | Prevent the agent from pausing to seek additional user input.                                                                                                                                                                                                              ",
+    "| `--output-format=FORMAT`     | Set the output format: `text` (the default) or `json`. With `json`, the CLI emits JSONL (one JSON object per line), which is convenient for parsing the agent's output in scripts.                                                                                         "
+   ],
+   "context_after": [
+    "| `--share=PATH`               | Export the session transcript to a markdown file after non-interactive completion (defaults to `./copilot-session-<ID>.md`). Useful for auditing or archiving what the agent did. Note that session transcripts may contain sensitive information.                         ",
+    "| `--share-gist`               | Publish the session transcript as a secret GitHub gist after completion. Convenient for sharing results from CI. Note that session transcripts may contain sensitive information.                                                                                          "
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-copilot-cli-80035",
+   "surface": "copilot-cli",
+   "tier": "E1",
+   "url": "https://docs.github.com/api/article/body?pathname=/en/copilot/reference/copilot-cli-reference/cli-programmatic-reference",
+   "url_effective": "https://docs.github.com/api/article/body?pathname=/en/copilot/reference/copilot-cli-reference/cli-programmatic-reference",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 26284,
+   "sha256": "41add277f218d8b462fc7aaa73709f95edd02ab0687be8bc2c467d2f92d6c91d",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "Command line options",
+    "raw_line_start": 40,
+    "raw_line_end": 40
+   },
+   "quote": "| `--secret-env-vars=VAR ...`  | An environment variable whose value you want redacted in output. For multiple variables, use a quoted, comma-separated list. Essential for preventing secrets being exposed in logs. The values in the `GITHUB_TOKEN` and `COPILOT_GITHUB_TOKEN` environment variables are",
+   "context_before": [
+    "| `--no-ask-user`              | Prevent the agent from pausing to seek additional user input.                                                                                                                                                                                                              ",
+    "| `--output-format=FORMAT`     | Set the output format: `text` (the default) or `json`. With `json`, the CLI emits JSONL (one JSON object per line), which is convenient for parsing the agent's output in scripts.                                                                                         "
+   ],
+   "context_after": [
+    "| `--share=PATH`               | Export the session transcript to a markdown file after non-interactive completion (defaults to `./copilot-session-<ID>.md`). Useful for auditing or archiving what the agent did. Note that session transcripts may contain sensitive information.                         ",
+    "| `--share-gist`               | Publish the session transcript as a secret GitHub gist after completion. Convenient for sharing results from CI. Note that session transcripts may contain sensitive information.                                                                                          "
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-copilot-cli-80044",
+   "surface": "copilot-cli",
+   "tier": "E1",
+   "url": "https://docs.github.com/api/article/body?pathname=/en/copilot/tutorials/copilot-cli-hooks",
+   "url_effective": "https://docs.github.com/api/article/body?pathname=/en/copilot/tutorials/copilot-cli-hooks",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 24841,
+   "sha256": "7a6cdc17f30fe21343c821ea21a07fc483857f07a0a2aa0df82e3f024b72188b",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "Example script (Bash)",
+    "raw_line_start": 356,
+    "raw_line_end": 356
+   },
+   "quote": "# GitHub does not currently provide built-in secret redaction for hooks.",
+   "context_before": [
+    "",
+    "# Example redaction logic."
+   ],
+   "context_after": [
+    "# This example shows one possible approach; many organizations prefer to",
+    "# forward events to a centralized logging system that handles redaction."
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-copilot-cli-80046",
+   "surface": "copilot-cli",
+   "tier": "E1",
+   "url": "https://docs.github.com/api/article/body?pathname=/en/copilot/concepts/agents/copilot-cli/context-management",
+   "url_effective": "https://docs.github.com/api/article/body?pathname=/en/copilot/concepts/agents/copilot-cli/context-management",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 9837,
+   "sha256": "82e56a068cb1ad49b1ffa9e7db750b0735538f14e0525b5a096ce922f4d068f1",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "Managing large tool output",
+    "raw_line_start": 20,
+    "raw_line_end": 20
+   },
+   "quote": "To prevent a single tool response from consuming too much of the context window, tool output larger than 20 KiB is saved to a temporary file by default. The model receives the file path and a preview instead of the full output. This applies to all tools, including tools provided by MCP servers.",
+   "context_before": [
+    "### Managing large tool output",
+    ""
+   ],
+   "context_after": [
+    "",
+    "To change the limit, set `COPILOT_LARGE_OUTPUT_THRESHOLD_BYTES` to a positive number of UTF-8 bytes before starting the CLI. Increasing the limit leaves less context available for the conversation and subsequent tool calls."
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-copilot-cli-80047",
+   "surface": "copilot-cli",
+   "tier": "E1",
+   "url": "https://docs.github.com/api/article/body?pathname=/en/copilot/concepts/agents/copilot-cli/context-management",
+   "url_effective": "https://docs.github.com/api/article/body?pathname=/en/copilot/concepts/agents/copilot-cli/context-management",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 9837,
+   "sha256": "82e56a068cb1ad49b1ffa9e7db750b0735538f14e0525b5a096ce922f4d068f1",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "Managing large tool output",
+    "raw_line_start": 22,
+    "raw_line_end": 22
+   },
+   "quote": "To change the limit, set `COPILOT_LARGE_OUTPUT_THRESHOLD_BYTES` to a positive number of UTF-8 bytes before starting the CLI. Increasing the limit leaves less context available for the conversation and subsequent tool calls.",
+   "context_before": [
+    "To prevent a single tool response from consuming too much of the context window, tool output larger than 20 KiB is saved to a temporary file by default. The model receives the file path and a preview instead of the full output. This applies to all tools, including tools provided by MCP servers.",
+    ""
+   ],
+   "context_after": [
+    "",
+    "## Why the context window matters"
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-copilot-cli-80048",
+   "surface": "copilot-cli",
+   "tier": "E1",
+   "url": "https://docs.github.com/api/article/body?pathname=/en/copilot/concepts/agents/copilot-cli/context-management",
+   "url_effective": "https://docs.github.com/api/article/body?pathname=/en/copilot/concepts/agents/copilot-cli/context-management",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 9837,
+   "sha256": "82e56a068cb1ad49b1ffa9e7db750b0735538f14e0525b5a096ce922f4d068f1",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "About the context window",
+    "raw_line_start": 7,
+    "raw_line_end": 7
+   },
+   "quote": "When you use GitHub Copilot CLI, every message you send, every response from Copilot, every tool call and its result, and the system instructions that define Copilot's behavior are all held in a **context window**. The context window is the total amount of information that the AI model can consider",
+   "context_before": [
+    "## About the context window",
+    ""
+   ],
+   "context_after": [
+    "",
+    "The context window has a fixed size, measured in tokens, that varies by model. Tokens typically consist of short, commonly used words, and fragments of multi-syllable words. As your conversation progresses, the context window fills up with:"
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-copilot-cli-80049",
+   "surface": "copilot-cli",
+   "tier": "E1",
+   "url": "https://docs.github.com/api/article/body?pathname=/en/copilot/concepts/agents/copilot-cli/context-management",
+   "url_effective": "https://docs.github.com/api/article/body?pathname=/en/copilot/concepts/agents/copilot-cli/context-management",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 9837,
+   "sha256": "82e56a068cb1ad49b1ffa9e7db750b0735538f14e0525b5a096ce922f4d068f1",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "About the context window",
+    "raw_line_start": 11,
+    "raw_line_end": 11
+   },
+   "quote": "* **System instructions and tool definitions**: The built-in instructions that tell Copilot how to behave, plus the schemas of all available tools. These are always present and take up a fixed portion of the context window.",
+   "context_before": [
+    "The context window has a fixed size, measured in tokens, that varies by model. Tokens typically consist of short, commonly used words, and fragments of multi-syllable words. As your conversation progresses, the context window fills up with:",
+    ""
+   ],
+   "context_after": [
+    "* **Your messages**: Every prompt you send.",
+    "* **Copilot's responses**: Everything Copilot says back to you."
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-copilot-cli-80051",
+   "surface": "copilot-cli",
+   "tier": "E1",
+   "url": "https://docs.github.com/api/article/body?pathname=/en/copilot/concepts/agents/copilot-cli/context-management",
+   "url_effective": "https://docs.github.com/api/article/body?pathname=/en/copilot/concepts/agents/copilot-cli/context-management",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 9837,
+   "sha256": "82e56a068cb1ad49b1ffa9e7db750b0735538f14e0525b5a096ce922f4d068f1",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "Checking your context usage",
+    "raw_line_start": 32,
+    "raw_line_end": 32
+   },
+   "quote": "You can use the `/context` slash command to visualize your current context window usage. The first line of the output shows the active model and the number of tokens currently in use out of the model's total context window capacity. The remainder of the output shows token usage, and context window",
+   "context_before": [
+    "## Checking your context usage",
+    ""
+   ],
+   "context_after": [
+    "",
+    "* **System Prompt**: the base system prompt."
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-copilot-cli-80062",
+   "surface": "copilot-cli",
+   "tier": "E1",
+   "url": "https://docs.github.com/api/article/body?pathname=/en/copilot/concepts/agents/copilot-cli/context-management",
+   "url_effective": "https://docs.github.com/api/article/body?pathname=/en/copilot/concepts/agents/copilot-cli/context-management",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 9837,
+   "sha256": "82e56a068cb1ad49b1ffa9e7db750b0735538f14e0525b5a096ce922f4d068f1",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "Checking your context usage",
+    "raw_line_start": 34,
+    "raw_line_end": 34
+   },
+   "quote": "* **System Prompt**: the base system prompt.",
+   "context_before": [
+    "You can use the `/context` slash command to visualize your current context window usage. The first line of the output shows the active model and the number of tokens currently in use out of the model's total context window capacity. The remainder of the output shows token usage, and context window p",
+    ""
+   ],
+   "context_after": [
+    "* **Custom Instructions**: your loaded custom instructions (shown only when present).",
+    "* **System Tools**: built-in tool definitions."
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-copilot-cli-80063",
+   "surface": "copilot-cli",
+   "tier": "E1",
+   "url": "https://docs.github.com/api/article/body?pathname=/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference",
+   "url_effective": "https://docs.github.com/api/article/body?pathname=/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 170370,
+   "sha256": "25543cafbdee5add265a7d2e2d90312d48e7ad8fb622e747fe614b9a6ca07319",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "User settings (`~/.copilot/settings.json`)",
+    "raw_line_start": 455,
+    "raw_line_end": 455
+   },
+   "quote": "| Automatically switch to auto mode when rate-limited. When `true`, eligible rate limit errors trigger an automatic switch to auto mode and retry. Does not apply to global rate limits or BYOK providers.",
+   "context_before": [
+    "| `companyAnnouncements`                         | `string[]`                                                                              | `[]`                            | Custom messages shown randomly on startup. One message is randomly selected each time the CLI starts. Useful for team announc",
+    "| `connectors`                                   | `boolean`                                                                               | `true`                          | Enable Copilot Connectors when available. Set to `false` to disable.                                                         "
+   ],
+   "context_after": [
+    "| `copyOnSelect`                                 | `boolean`                                                                               | `true` (macOS), `false` (other) | Automatically copy mouse-selected text to the system clipboard.                                                              ",
+    "| `customAgents.defaultLocalOnly`                | `boolean`                                                                               | `false`                         | Only use local custom agents (no remote organization or enterprise agents).                                                  "
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-copilot-cli-80064",
+   "surface": "copilot-cli",
+   "tier": "E1",
+   "url": "https://docs.github.com/api/article/body?pathname=/en/copilot/concepts/agents/copilot-cli/comparing-cli-features",
+   "url_effective": "https://docs.github.com/api/article/body?pathname=/en/copilot/concepts/agents/copilot-cli/comparing-cli-features",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 18489,
+   "sha256": "4b58c4cbf79a5f900db4d28258f4542455da7872d5ebbd16a1b6117db556a36f",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "What problem do hooks solve?",
+    "raw_line_start": 225,
+    "raw_line_end": 225
+   },
+   "quote": "* **Customizing retry/abort behavior on recoverable errors**",
+   "context_before": [
+    "* **Enforcing guardrails**—block or warn before certain tools run.",
+    "* **Adding logging/telemetry**"
+   ],
+   "context_after": [
+    "* **Adding \"policy\" checks**—for example, to prevent edits to protected paths.",
+    "* **Intercepting the moment a subagent finishes**—before results return to the parent agent."
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-copilot-cli-80065",
+   "surface": "copilot-cli",
+   "tier": "E1",
+   "url": "https://docs.github.com/api/article/body?pathname=/en/copilot/concepts/agents/copilot-cli/comparing-cli-features",
+   "url_effective": "https://docs.github.com/api/article/body?pathname=/en/copilot/concepts/agents/copilot-cli/comparing-cli-features",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 18489,
+   "sha256": "4b58c4cbf79a5f900db4d28258f4542455da7872d5ebbd16a1b6117db556a36f",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "When should you usehooks?",
+    "raw_line_start": 246,
+    "raw_line_end": 246
+   },
+   "quote": "  * Example: on rate limit errors, automatically choose \"retry\" with a capped retry count.",
+   "context_before": [
+    "* **Error handling policy**",
+    ""
+   ],
+   "context_after": [
+    "",
+    "* **Subagent workflow control**"
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-copilot-cli-80066",
+   "surface": "copilot-cli",
+   "tier": "E1",
+   "url": "https://docs.github.com/api/article/body?pathname=/en/copilot/reference/copilot-cli-reference/cli-command-reference",
+   "url_effective": "https://docs.github.com/api/article/body?pathname=/en/copilot/reference/copilot-cli-reference/cli-command-reference",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 441029,
+   "sha256": "66198ea49c0f2f223d9466474f30c4a2a714c79a376a6022127d640996f9dd4d",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "Command-line options",
+    "raw_line_start": 656,
+    "raw_line_end": 656
+   },
+   "quote": "| `--secret-env-vars=VAR ...`                  | Redact an environment variable from shell and MCP server environments (can be used multiple times). For multiple variables, use a quoted, comma-separated list. The values in the `GITHUB_TOKEN` and `COPILOT_GITHUB_TOKEN` environment variables are",
+   "context_before": [
+    "| `-s`, `--silent`                             | Output only the agent response (without usage statistics), useful for scripting with `-p`.                                                                                                                                                                 ",
+    "| `--screen-reader`                            | Enable screen reader optimizations.                                                                                                                                                                                                                        "
+   ],
+   "context_after": [
+    "| `--session-id ID`                            | Use an exact session or task ID when you do not want `--resume`'s broader matching by ID prefix or session name. If the ID matches an existing session or task, that session or task is resumed. If nothing matches, a new session is created only when the",
+    "| `--sandbox`                                  | Enable the OS-level shell sandbox for this session only, without changing your saved sandbox setting. Useful with `-p`. Only available in experimental mode.                                                                                               "
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-copilot-cli-80067",
+   "surface": "copilot-cli",
+   "tier": "E1",
+   "url": "https://docs.github.com/api/article/body?pathname=/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference",
+   "url_effective": "https://docs.github.com/api/article/body?pathname=/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 170370,
+   "sha256": "25543cafbdee5add265a7d2e2d90312d48e7ad8fb622e747fe614b9a6ca07319",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "User settings (`~/.copilot/settings.json`)",
+    "raw_line_start": 455,
+    "raw_line_end": 455
+   },
+   "quote": "| `continueOnAutoMode`                           | `boolean`                                                                               | `false`                         | Automatically switch to auto mode when rate-limited. When `true`, eligible rate limit errors trigger an automatic switch to",
+   "context_before": [
+    "| `companyAnnouncements`                         | `string[]`                                                                              | `[]`                            | Custom messages shown randomly on startup. One message is randomly selected each time the CLI starts. Useful for team announc",
+    "| `connectors`                                   | `boolean`                                                                               | `true`                          | Enable Copilot Connectors when available. Set to `false` to disable.                                                         "
+   ],
+   "context_after": [
+    "| `copyOnSelect`                                 | `boolean`                                                                               | `true` (macOS), `false` (other) | Automatically copy mouse-selected text to the system clipboard.                                                              ",
+    "| `customAgents.defaultLocalOnly`                | `boolean`                                                                               | `false`                         | Only use local custom agents (no remote organization or enterprise agents).                                                  "
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
   }
  ]
 }

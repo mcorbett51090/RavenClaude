@@ -6494,6 +6494,238 @@
    ],
    "quote_verified": true,
    "neutralizer_flags": []
+  },
+  {
+   "id": "E-grok-build-80001",
+   "surface": "grok-build",
+   "tier": "E1",
+   "url": "https://docs.x.ai/build/cli/reference.md",
+   "url_effective": "https://docs.x.ai/build/cli/reference.md",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 3844,
+   "sha256": "d6c944c885ac72a4f4d6036c1796537b795f805bff512c8a31a5f5f10932ee6e",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "Common flags",
+    "raw_line_start": 49,
+    "raw_line_end": 49
+   },
+   "quote": "| `--rules <TEXT>` | Extra rules appended to the system prompt |",
+   "context_before": [
+    "| `--allow <RULE>`, `--deny <RULE>` | Permission rules — see [Permissions](/build/features/permissions) |",
+    "| `--sandbox <PROFILE>` | Sandbox profile — see [Sandbox](/build/features/sandbox) |"
+   ],
+   "context_after": [
+    "| `--system-prompt-override <TEXT>` | Replace the system prompt entirely |",
+    "| `--tools <LIST>`, `--disallowed-tools <LIST>` | Allow or remove built-in tools |"
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-grok-build-80002",
+   "surface": "grok-build",
+   "tier": "E1",
+   "url": "https://docs.x.ai/build/cli/reference.md",
+   "url_effective": "https://docs.x.ai/build/cli/reference.md",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 3844,
+   "sha256": "d6c944c885ac72a4f4d6036c1796537b795f805bff512c8a31a5f5f10932ee6e",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "Common flags",
+    "raw_line_start": 50,
+    "raw_line_end": 50
+   },
+   "quote": "| `--system-prompt-override <TEXT>` | Replace the system prompt entirely |",
+   "context_before": [
+    "| `--sandbox <PROFILE>` | Sandbox profile — see [Sandbox](/build/features/sandbox) |",
+    "| `--rules <TEXT>` | Extra rules appended to the system prompt |"
+   ],
+   "context_after": [
+    "| `--tools <LIST>`, `--disallowed-tools <LIST>` | Allow or remove built-in tools |",
+    "| `--max-turns <N>` | Maximum number of agent turns |"
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-grok-build-80003",
+   "surface": "grok-build",
+   "tier": "E1",
+   "url": "https://docs.x.ai/build/features/project-rules.md",
+   "url_effective": "https://docs.x.ai/build/features/project-rules.md",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 1798,
+   "sha256": "1077d4bf3497f8c2a9022d82c251876e091f621e98f85e0b1c4eb1d5fceab383",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "Discovery",
+    "raw_line_start": 9,
+    "raw_line_end": 9
+   },
+   "quote": "Grok loads rules in this order, with deeper files taking precedence on conflicts:",
+   "context_before": [
+    "## Discovery",
+    ""
+   ],
+   "context_after": [
+    "",
+    "1. Global rules in `~/.grok/`"
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-grok-build-80004",
+   "surface": "grok-build",
+   "tier": "E1",
+   "url": "https://docs.x.ai/build/features/project-rules.md",
+   "url_effective": "https://docs.x.ai/build/features/project-rules.md",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 1798,
+   "sha256": "1077d4bf3497f8c2a9022d82c251876e091f621e98f85e0b1c4eb1d5fceab383",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "Discovery",
+    "raw_line_start": 26,
+    "raw_line_end": 26
+   },
+   "quote": "Files are loaded in full, with no size cap; short, specific instructions are followed more reliably than long ones.",
+   "context_before": [
+    "```",
+    ""
+   ],
+   "context_after": [
+    "",
+    "## Session rules"
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-grok-build-80005",
+   "surface": "grok-build",
+   "tier": "E1",
+   "url": "https://docs.x.ai/build/features/project-rules.md",
+   "url_effective": "https://docs.x.ai/build/features/project-rules.md",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 1798,
+   "sha256": "1077d4bf3497f8c2a9022d82c251876e091f621e98f85e0b1c4eb1d5fceab383",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "Session rules",
+    "raw_line_start": 30,
+    "raw_line_end": 30
+   },
+   "quote": "To add rules for a single run without editing files, pass `--rules` (Grok appends the text to the system prompt), or `--system-prompt-override` to replace the system prompt entirely:",
+   "context_before": [
+    "## Session rules",
+    ""
+   ],
+   "context_after": [
+    "",
+    "```bash customLanguage=\"bash\""
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-grok-build-80006",
+   "surface": "grok-build",
+   "tier": "E1",
+   "url": "https://docs.x.ai/build/features/project-rules.md",
+   "url_effective": "https://docs.x.ai/build/features/project-rules.md",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 1798,
+   "sha256": "1077d4bf3497f8c2a9022d82c251876e091f621e98f85e0b1c4eb1d5fceab383",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "Session rules",
+    "raw_line_start": 30,
+    "raw_line_end": 30
+   },
+   "quote": "To add rules for a single run without editing files, pass `--rules` (Grok appends the text to the system prompt), or `--system-prompt-override` to replace the system prompt entirely:",
+   "context_before": [
+    "## Session rules",
+    ""
+   ],
+   "context_after": [
+    "",
+    "```bash customLanguage=\"bash\""
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-grok-build-80007",
+   "surface": "grok-build",
+   "tier": "E1",
+   "url": "https://docs.x.ai/build/settings/reference.md",
+   "url_effective": "https://docs.x.ai/build/settings/reference.md",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 20292,
+   "sha256": "0248ff1ea5e6879e277b714daed82a3dc7c255bcda4a8c800fc35bcc2750430a",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "`[models]`",
+    "raw_line_start": 102,
+    "raw_line_end": 102
+   },
+   "quote": "| `max_retries` | number | Global inference retry default. |",
+   "context_before": [
+    "| `extra_headers` | map | Headers applied to every model (per-model keys win). |",
+    "| `temperature` / `top_p` / `max_completion_tokens` | numbers | Global sampling defaults. |"
+   ],
+   "context_after": [
+    "| `stream_tool_calls` | `true` / `false` | Global tool-call streaming request shape (some BYOK endpoints need `false`). |",
+    "| `allowed_models` | glob list | Restrict model picker / default / `-m` selection. |"
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-grok-build-80014",
+   "surface": "grok-build",
+   "tier": "E1",
+   "url": "https://docs.x.ai/build/enterprise.md",
+   "url_effective": "https://docs.x.ai/build/enterprise.md",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 12698,
+   "sha256": "293a82de2c28c9067056f5f3ad9b47b017cfaf9ce78aa5c927fdcb1799fb9ec7",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "Data lifecycle",
+    "raw_line_start": 218,
+    "raw_line_end": 218
+   },
+   "quote": "1. **User input** — prompt and file content assembled locally.",
+   "context_before": [
+    "A session moves data through six phases:",
+    ""
+   ],
+   "context_after": [
+    "2. **Transport** — sent over TLS 1.2/1.3 to the inference proxy.",
+    "3. **Inference** — the proxy forwards to the model. ZDR organizations route through a dedicated service identity that skips logging."
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
   }
  ]
 }

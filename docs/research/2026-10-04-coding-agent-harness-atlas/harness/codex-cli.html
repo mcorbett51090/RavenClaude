@@ -144,6 +144,7 @@ animation:none!important}}
 <li><a href="#F19">F19 Modes and autonomy levels</a></li>
 <li><a href="#F20">F20 Version, release channel, update path</a></li>
 <li><a href="#F22">F22 Usage, cost, limits and observability</a></li>
+<li><a href="#F23">F23 Request and response handling</a></li>
 </ul>
 <section id="F21">
 <h2>F21 Relationship to host platform</h2>
@@ -1559,6 +1560,71 @@ animation:none!important}}
 <p class="st"><span class="g" role="img" aria-label="supported">●</span> <span class="w">supported</span></p>
 <p><strong>Value:</strong> /status displays session configuration and token usage: it confirms the active model, approval policy, writable roots, and remaining context capacity, and shows the chat ID, context usage, and rate limits. The TUI footer status line is an ordered list of status-line item identifiers; null disables it.</p>
 <p><strong>Evidence:</strong></p><ul><li><a class="mono" href="../sources/codex-cli.html#E-codex-cli-01186">E-codex-cli-01186</a><blockquote><p>| [`/status`](#inspect-the-session-with-status)                                               | Display session configuration and token usage.                  | Confirm the active model, approval policy, writable roots, and remaining context capacity.                 |</p></blockquote><p class="cite">Source: <a href="https://learn.chatgpt.com/docs/developer-commands.md?surface=cli">https://learn.chatgpt.com/docs/developer-commands.md?surface=cli</a>; retrieved <time datetime="2026-10-04">2026-10-04</time>; version not recorded; tier E1</p></li><li><a class="mono" href="../sources/codex-cli.html#E-codex-cli-00765">E-codex-cli-00765</a><blockquote><p>        &quot;Ordered list of TUI footer status-line item identifiers. `null` disables the status line.&quot;,</p></blockquote><p class="cite">Source: <a href="https://learn.chatgpt.com/docs/config-file/config-reference.md">https://learn.chatgpt.com/docs/config-file/config-reference.md</a>; retrieved <time datetime="2026-10-04">2026-10-04</time>; version not recorded; tier E1</p></li><li><a href="../sources/codex-cli.html#codex-cli/F22.status-display">1 more on the sources page</a></li></ul>
+<p class="muted"><strong>Register entries:</strong> none cite this cell.</p>
+</div>
+</div>
+</section>
+<section id="F23">
+<h2>F23 Request and response handling</h2>
+<div id="F23.prompt-assembly">
+<h3>Prompt assembly</h3>
+<p class="muted"><code>F23.prompt-assembly</code> What goes into each model request and in what order (system prompt, instruction files, tool definitions, history, attachments), and what a user can see or change.</p>
+<div class="cell s-supported" id="codex-cli/F23.prompt-assembly">
+<p class="st"><span class="g" role="img" aria-label="supported">●</span> <span class="w">supported</span></p>
+<p><strong>Value:</strong> Codex builds an AGENTS.md instruction chain once per run, concatenating files root-down with blank lines; later (nearer) files override earlier ones. Adding stops at project_doc_max_bytes (32 KiB default). Another setting is described as a &quot;Replacement for built-in instructions instead of `AGENTS.md`&quot;. `codex debug prompt-input` renders the exact model-visible prompt input as JSON.</p>
+<p><strong>Evidence:</strong></p><ul><li><a class="mono" href="../sources/codex-cli.html#E-codex-cli-80013">E-codex-cli-80013</a><blockquote><p>Codex skips empty files and stops adding files once the combined size reaches the limit defined by `project_doc_max_bytes` (32 KiB by default). For details on these knobs, see [Project instructions discovery](https://learn.chatgpt.com/docs/config-file/config-advanced#project-instructions-discovery).</p></blockquote><p class="cite">Source: <a href="https://learn.chatgpt.com/docs/agent-configuration/agents-md.md">https://learn.chatgpt.com/docs/agent-configuration/agents-md.md</a>; retrieved <time datetime="2026-10-05">2026-10-05</time>; version not recorded; tier E1</p></li><li><a class="mono" href="../sources/codex-cli.html#E-codex-cli-80014">E-codex-cli-80014</a><blockquote><p>3. **Merge order:** Codex concatenates files from the root down, joining them with blank lines. Files closer to your current directory override earlier guidance because they appear later in the combined prompt.</p></blockquote><p class="cite">Source: <a href="https://learn.chatgpt.com/docs/agent-configuration/agents-md.md">https://learn.chatgpt.com/docs/agent-configuration/agents-md.md</a>; retrieved <time datetime="2026-10-05">2026-10-05</time>; version not recorded; tier E1</p></li><li><a href="../sources/codex-cli.html#codex-cli/F23.prompt-assembly">3 more on the sources page</a></li></ul>
+<p class="muted"><strong>Register entries:</strong> none cite this cell.</p>
+</div>
+</div>
+<div id="F23.prompt-caching">
+<h3>Prompt caching</h3>
+<p class="muted"><code>F23.prompt-caching</code> Whether the harness reuses the unchanged start of a prompt across turns, how long it is kept, what invalidates it, and any setting to turn it on, off or tune it.</p>
+<div class="cell s-undocumented" id="codex-cli/F23.prompt-caching">
+<p class="st"><span class="g" role="img" aria-label="undocumented">?</span> <span class="w">undocumented</span></p>
+<p class="muted">Sweep: terms prompt[ -]?cach, cache[_ -]?control|cache (hit|read|write|miss|breakpoint|prefix)|cached (input|token); hits 17, reviewed 17; positive control codex (8612 hits); corpus sha256 6381721e5ba703ec664def652b965ad69d323b8806628b3dd2a4075c3f43751c</p>
+<p class="muted"><strong>Register entries:</strong> none cite this cell.</p>
+</div>
+</div>
+<div id="F23.retry-backoff">
+<h3>Retry and back-off</h3>
+<p class="muted"><code>F23.retry-backoff</code> What the harness does when a model call fails or is throttled: automatic retries, waiting, limits on attempts, and the message shown.</p>
+<div class="cell s-partial" id="codex-cli/F23.retry-backoff">
+<p class="st"><span class="g" role="img" aria-label="partial">◐</span> <span class="w">partial</span></p>
+<p><strong>Value:</strong> Two per-provider settings: retry count for HTTP requests to the provider (default 4), and retry count for SSE streaming interruptions (default 5). The schema describes them as retrying a failed HTTP request to the provider and reconnecting a dropped streaming response before failing.</p>
+<p><strong>Limitation:</strong> Only the two retry counts are documented. Waiting between attempts and the message shown are outside the cited text.</p>
+<p><strong>Evidence:</strong></p><ul><li><a class="mono" href="../sources/codex-cli.html#E-codex-cli-80029">E-codex-cli-80029</a><blockquote><p>|         | Retry count for HTTP requests to the provider (default: 4).</p></blockquote><p class="cite">Source: <a href="https://learn.chatgpt.com/docs/codex-manual.md">https://learn.chatgpt.com/docs/codex-manual.md</a>; retrieved <time datetime="2026-10-05">2026-10-05</time>; version not recorded; tier E1</p></li><li><a class="mono" href="../sources/codex-cli.html#E-codex-cli-80030">E-codex-cli-80030</a><blockquote><p>|         | Retry count for SSE streaming interruptions (default: 5).</p></blockquote><p class="cite">Source: <a href="https://learn.chatgpt.com/docs/codex-manual.md">https://learn.chatgpt.com/docs/codex-manual.md</a>; retrieved <time datetime="2026-10-05">2026-10-05</time>; version not recorded; tier E1</p></li><li><a href="../sources/codex-cli.html#codex-cli/F23.retry-backoff">2 more on the sources page</a></li></ul>
+<p class="muted"><strong>Register entries:</strong> none cite this cell.</p>
+</div>
+</div>
+<div id="F23.malformed-call-recovery">
+<h3>Malformed call recovery</h3>
+<p class="muted"><code>F23.malformed-call-recovery</code> What happens when the model asks for a tool that does not exist, gives invalid arguments or returns output that cannot be parsed: error returned to the model, retry or stop.</p>
+<div class="cell s-undocumented" id="codex-cli/F23.malformed-call-recovery">
+<p class="st"><span class="g" role="img" aria-label="undocumented">?</span> <span class="w">undocumented</span></p>
+<p class="muted">Sweep: terms malformed, invalid (tool|json|argument|parameter|input)|unknown tool|tool (call|use) (error|fail|invalid), schema validation|failed to parse|could not parse|unparseable; hits 28, reviewed 28; positive control codex (8612 hits); corpus sha256 6381721e5ba703ec664def652b965ad69d323b8806628b3dd2a4075c3f43751c</p>
+<p class="muted"><strong>Register entries:</strong> none cite this cell.</p>
+</div>
+</div>
+<div id="F23.tool-output-limits">
+<h3>Tool output limits</h3>
+<p class="muted"><code>F23.tool-output-limits</code> Limits on how much tool output enters the context and how it is cut (truncated, summarized or saved to a file), and any setting that changes them.</p>
+<div class="cell s-partial" id="codex-cli/F23.tool-output-limits">
+<p class="st"><span class="g" role="img" aria-label="partial">◐</span> <span class="w">partial</span></p>
+<p><strong>Value:</strong> MCP: a configuration setting gives a token budget for one MCP tool&#x27;s output, before the standard 20% serialization allowance, overriding the model&#x27;s default output truncation budget. Hooks: by default hook output shown to the model is limited to roughly 2,500 tokens; more is saved to `&lt;temp_dir&gt;/hook_outputs/&lt;session_id&gt;/&lt;uuid&gt;.txt`, with a head-and-tail preview.</p>
+<p><strong>Limitation:</strong> The token budget is per MCP tool; the roughly 2,500-token default with saving to disk is documented for model-visible hook output.</p>
+<p><strong>Evidence:</strong></p><ul><li><a class="mono" href="../sources/codex-cli.html#E-codex-cli-80025">E-codex-cli-80025</a><blockquote><p>|         | Token budget for one MCP tool&#x27;s output, before the standard 20% serialization allowance. Overrides the model&#x27;s default output truncation budget for that tool.</p></blockquote><p class="cite">Source: <a href="https://learn.chatgpt.com/docs/codex-manual.md">https://learn.chatgpt.com/docs/codex-manual.md</a>; retrieved <time datetime="2026-10-05">2026-10-05</time>; version not recorded; tier E1</p></li><li><a class="mono" href="../sources/codex-cli.html#E-codex-cli-80001">E-codex-cli-80001</a><blockquote><p>By default, Codex limits each model-visible hook-output message to roughly
+2,500 tokens. If a hook returns more, Codex saves the full text under</p></blockquote><p class="cite">Source: <a href="https://learn.chatgpt.com/docs/hooks.md">https://learn.chatgpt.com/docs/hooks.md</a>; retrieved <time datetime="2026-10-05">2026-10-05</time>; version not recorded; tier E1</p></li><li><a href="../sources/codex-cli.html#codex-cli/F23.tool-output-limits">1 more on the sources page</a></li></ul>
+<p class="muted"><strong>Register entries:</strong> none cite this cell.</p>
+</div>
+</div>
+<div id="F23.output-redaction">
+<h3>Output redaction</h3>
+<p class="muted"><code>F23.output-redaction</code> Whether secrets or sensitive text are removed from tool output, transcripts, logs or telemetry, and how.</p>
+<div class="cell s-partial" id="codex-cli/F23.output-redaction">
+<p class="st"><span class="g" role="img" aria-label="partial">◐</span> <span class="w">partial</span></p>
+<p><strong>Value:</strong> OTel telemetry exports user prompts redacted by default; docs say keep `log_user_prompt = false` unless policy permits storing prompt contents. Codex redacts secrets from generated memory fields and known secret patterns before uploading a snapshot. For tool arguments and outputs, docs favour redaction at the collector or SIEM.</p>
+<p><strong>Limitation:</strong> Documented for user prompts in telemetry, generated memory fields and uploaded snapshots. Saved scan logs (security CLI) &quot;aren&#x27;t redacted&quot;; docs advise redacting tool arguments and outputs at the collector or SIEM.</p>
+<p><strong>Evidence:</strong></p><ul><li><a class="mono" href="../sources/codex-cli.html#E-codex-cli-80016">E-codex-cli-80016</a><blockquote><p>- When enabled, Codex emits structured log events covering chats, API requests, SSE/WebSocket stream activity, user prompts (redacted by default), tool approval decisions, and tool results.</p></blockquote><p class="cite">Source: <a href="https://learn.chatgpt.com/docs/agent-approvals-security.md">https://learn.chatgpt.com/docs/agent-approvals-security.md</a>; retrieved <time datetime="2026-10-05">2026-10-05</time>; version not recorded; tier E1</p></li><li><a class="mono" href="../sources/codex-cli.html#E-codex-cli-80017">E-codex-cli-80017</a><blockquote><p>- Keep `log_user_prompt = false` unless policy explicitly permits storing prompt contents. Prompts can include source code and sensitive data.</p></blockquote><p class="cite">Source: <a href="https://learn.chatgpt.com/docs/agent-approvals-security.md">https://learn.chatgpt.com/docs/agent-approvals-security.md</a>; retrieved <time datetime="2026-10-05">2026-10-05</time>; version not recorded; tier E1</p></li><li><a href="../sources/codex-cli.html#codex-cli/F23.output-redaction">4 more on the sources page</a></li></ul>
 <p class="muted"><strong>Register entries:</strong> none cite this cell.</p>
 </div>
 </div>

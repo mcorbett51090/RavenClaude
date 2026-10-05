@@ -310,9 +310,12 @@ class SkeletonTests(unittest.TestCase):
         self.assertIn("is over 15%", messages(self.check(life)))
 
     def test_gap_concepts_have_no_rows_and_only_they_do(self):
+        # No step is fully unresearched in the shipped data any more, so make one both ways.
         life = copy.deepcopy(self.life)
-        gap = next(c for c in life["concepts"] if c["gap"] == "full")
-        gap["rows"] = ["F01.loop-shape"]
+        life["concepts"][0]["gap"] = "full"
+        self.assertIn("no rows exactly when its gap is 'full'", messages(self.check(life)))
+        life = copy.deepcopy(self.life)
+        life["concepts"][0]["rows"] = []
         self.assertIn("no rows exactly when its gap is 'full'", messages(self.check(life)))
 
     def test_general_text_must_not_carry_code_and_must_fit(self):
@@ -354,10 +357,16 @@ class LinesAndTreesTests(unittest.TestCase):
         self.assertIn("missing line", text)
         self.assertIn("line for an unknown concept", text)
         self.assertIn("no lines for this agent", text)
-        gap = next(c for c in self.life["concepts"] if not c["rows"])
-        text = messages(
-            vl.check(self.data(lines={"agents": {"claude-code": {gap["id"]: {"plain": "x"}}}}))
+        life = copy.deepcopy(self.life)
+        gap = life["concepts"][0]
+        gap["rows"], gap["gap"] = [], "full"
+        self.n += 1
+        base = mini_data(
+            Path(self._tmp.name) / str(self.n),
+            life,
+            {"agents": {"claude-code": {gap["id"]: {"plain": "x"}}}},
         )
+        text = messages(vl.check(base))
         self.assertIn("a gap concept (no rows) must not have an authored line", text)
 
     def test_a_stale_or_ungrounded_line_is_reported_against_its_cells(self):

@@ -32,7 +32,7 @@ Steps run in the typical order. A documented order appears only where a cell sta
 
 ## B. Each turn, before sending
 
-- Assemble the prompt [documented, with limits, unverified] Cloud agents let you choose the context window size, and a larger window can cost more. Automations use each model's maximum window with no toggle. Sensitive paths can be kept out of what the model reads, and a hook can block a file before it is sent.
+- Assemble the prompt [documented, with limits, unverified] Cloud agents let you pick the context window size, and a larger one can cost more; automations use each model's maximum. Sensitive files can be kept out of what the model reads. An SDK option, if enabled for your account, can replace the built-in instructions for local agents.
 - Run your own code at set moments [documented, with limits, unverified] Hooks run your scripts at moments such as before a tool or shell command, after a file edit, or when a session starts or ends. A script can block an action. Hooks are set per user or per project, and project hooks run when the workspace is trusted.
   - decision point (cursor/F06.trust-enable): Will a project's hooks run when I open the project?
     - The workspace is trusted -> Project hooks load and run automatically when team members open the project. | quote: “Project hooks load and run automatically when team members open the project in a trusted workspace”
@@ -40,13 +40,13 @@ Steps run in the typical order. A documented order appears only where a cell sta
 
 ## C. The model call
 
-- Send the request and handle trouble [documented, with limits, unverified] At the usage limit you see a notice and can switch on pay-as-you-go or upgrade. Auto uses a router that sends simple requests to fast models and complex work to the most capable ones. The documentation advises backing off with growing delays when rate limited.
+- Send the request and handle trouble [documented, with limits, unverified] Auto sends simple requests to fast models and complex work to the most capable. At the usage limit you get a notice and can pay as you go. The CLI retries dropped connections; attempt counts and delays are not stated, and rate-limit errors are shown, not retried.
 - Set the thinking budget [documented, with limits] Which thinking options exist depends on the model. The command line can show the model's thinking blocks, and the cloud agent run stream sends thinking text. The documentation says thinking events are suppressed in print mode.
-- Reuse the unchanged part of the prompt [not researched]
+- Reuse the unchanged part of the prompt [documented, with limits] The SDK reports how much of the prompt was served from the cache and how much was saved to it, and model pages list cache prices. The documentation does not mention how long the cache lasts, when it is cleared, or a setting to control it.
 
 ## D. After the model answers, every turn
 
-- Read what the model asked for [not researched]
+- Read what the model asked for [not documented] The documentation does not mention how Cursor handles a malformed or incomplete request from the model, such as a broken command or file edit.
 - Decide whether it is allowed [documented, with limits] Rules decide what runs without a prompt, by tool, file pattern or command, and an automatic reviewer can check calls outside the sandbox. Allow lists are a convenience, not a security guarantee, and terminal commands can still read ignored files.
   - documented order: A terminal allow list, when set, overrides the in-app terminal allow list.
 - Save an undo point [documented, with limits] Restoring a checkpoint on an earlier message rolls back the files the agent changed after that point, but the conversation keeps its messages. The command line can jump back to a previous message, and forking a chat from an earlier message shortens the conversation.
@@ -55,7 +55,7 @@ Steps run in the typical order. A documented order appears only where a cell sta
   - decision point (cursor/F05.sandbox-override): What happens if the sandbox blocks a command the agent wants to run?
     - It fails on a sandbox restriction -> The agent can rerun it outside the sandbox, and an automatic reviewer checks that rerun. | quote: “the agent can rerun it outside the sandbox, and the classifier reviews that rerun”
     - It needs full system access -> It bypasses the sandbox; Cursor indicates this and asks for approval. | quote: “Cursor indicates when a command runs outside the sandbox and asks for approval”
-- Tidy the tool's output [not researched]
+- Tidy the tool's output [documented, with limits] Long tool output is trimmed on some surfaces: the CLI cuts shell output from the top, and SDK and cloud messages mark what was truncated. Cloud agent secrets are hidden, and shared transcripts get best-effort hiding. Redaction of local agent tool output is not described.
 - Feed the result back and go round again [documented, unverified] The agent calls a tool, reads the result and decides its next step. The documentation says there is no limit on the number of tool calls in a task. A stop hook can send a follow-up message to keep it going, with a default limit of 5.
 - Hand work to helpers [documented, with limits, unverified] Helper agents are set up as text files with their own model, tools and read-only choice, and several can run at once in their own context. The main agent and its direct helpers can start helpers; one started by another helper cannot start more.
 - Shrink the context when it fills [documented, unverified] When the window nears full, Cursor summarises older parts of the conversation to make room, and you can do it by hand with a command. A hook runs before compaction but cannot block or change it.

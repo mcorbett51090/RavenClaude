@@ -6,7 +6,7 @@
 - Column id `grok-bot`; vendor xAI on Cursor's platform; docs host docs.x.ai, cursor.com.
 - Snapshot 2026-10-04; version not recorded; 52 pages mirrored.
 - Version source: hosted service; documentation as of the retrieval date
-- Cells: 48 supported (15 verified, 33 unverified); 33 partial (33 verified); 1 not exposed (1 verified); 45 undocumented (45 verified).
+- Cells: 48 supported (15 verified, 33 unverified); 34 partial (34 verified); 1 not exposed (1 verified); 50 undocumented (50 verified).
 - Quote and URL behind an evidence id: `data/evidence/grok-bot.json` (grep the id).
 - The same row in other columns: `rows/<facet>.md`. Where this column's controls live: below.
 
@@ -213,6 +213,15 @@ Key: each cell is `[state, verification]`.
 - F22.telemetry-otel — Telemetry and OpenTelemetry [partial, verified] OpenTelemetry Export streams Cursor usage metrics and logs, including recorded Grok Bot actions, to a collector you run, configured under Team Settings › OpenTelemetry Export. When configured, Action Recording events are sent to your collector tagged `cursor.surface=grok_bot`. | limit: OpenTelemetry Export is Enterprise only. | ev: E-grok-bot-00062, E-grok-bot-00397, E-grok-bot-00013
 - F22.logs-debug — Logs and debug output [partial, verified] When a team enables Action Recording, Cursor records Bot actions, including scrubbed shell commands, in an internal store with a 90 day retention. In-app errors appear above the composer under Notifications; some include Copy request ID for support. Right-click a message and choose Copy request ID. | limit: Action Recording is a setting on the Grok Bot page, off by default. Action Recording events don't appear on the Audit Log page. | ev: E-grok-bot-00399, E-grok-bot-00432, E-grok-bot-00579
 - F22.status-display — Status line and display [supported, unverified] The sidebar distinguishes Bots that need attention (a question, approval, or handoff), unread activity (a new result), and working status. Turning on Notifications in a Bot's settings gives a system or mobile notification when that Bot finishes or needs input. | ev: E-grok-bot-00428, E-grok-bot-00982, E-grok-bot-00429
+
+## F23 Request and response handling
+
+- F23.prompt-assembly — Prompt assembly [undocumented, verified] swept for: system prompt; --system-prompt|append-system-prompt|system_prompt|systemPrompt; prompt assembl|assembled prompt|what (is|gets) sent to the model|request payload; hits 0, reviewed 0; positive control `grok`: 1281 hits
+- F23.prompt-caching — Prompt caching [undocumented, verified] swept for: prompt[ -]?cach; cache[_ -]?control|cache (hit|read|write|miss|breakpoint|prefix)|cached (input|token); hits 0, reviewed 0; positive control `grok`: 1281 hits
+- F23.retry-backoff — Retry and back-off [undocumented, verified] swept for: \bretr(y|ies|ying)\b.{0,80}(model|request|api|rate|error|fail|overload|429|5\d\d); (model|request|api|rate|error|fail|overload|429|5\d\d).{0,80}\bretr(y|ies|ying)\b; back-?off|exponential; hits 9, reviewed 9; positive control `grok`: 1281 hits
+- F23.malformed-call-recovery — Malformed call recovery [undocumented, verified] swept for: malformed; invalid (tool|json|argument|parameter|input)|unknown tool|tool (call|use) (error|fail|invalid); schema validation|failed to parse|could not parse|unparseable; hits 0, reviewed 0; positive control `grok`: 1281 hits
+- F23.tool-output-limits — Tool output limits [undocumented, verified] swept for: truncat; output (limit|cap)|too (large|long) (output|result)|first \d+ (lines|characters|bytes); max(imum)? (output|result)s?.{0,30}(size|length|bytes|characters|lines|tokens); hits 0, reviewed 0; positive control `grok`: 1281 hits
+- F23.output-redaction — Output redaction [partial, verified] A Team Bot uses secrets by name; the value is replaced with [REDACTED] in command output, files it reads and plugin calls. Script output is redacted before logging. Action Recording scrubs shell commands. Conversation content export redacts known credential shapes, PEM blocks and email addresses ([REDACTED: ...]). | limit: Script-output redaction belongs to Team Secrets, Enterprise plan only, as are Action Recording and conversation content export (not for Privacy Mode (Legacy) teams). Pattern matching cannot recognize every secret. Team Bot secrets: up to 25, each at least 8 characters and at most 4,096 bytes. | ev: E-grok-bot-80001, E-grok-bot-80004, E-grok-bot-80005, E-grok-bot-80008, E-grok-bot-80009, E-grok-bot-80011, E-grok-bot-80014, E-grok-bot-80016, E-grok-bot-80002, E-grok-bot-80017, E-grok-bot-80018, E-grok-bot-80019
 
 ## Lever records (33)
 

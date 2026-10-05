@@ -33,19 +33,19 @@ Steps run in the typical order. A documented order appears only where a cell sta
 
 ## B. Each turn, before sending
 
-- Assemble the prompt [documented, unverified] Each time the agent sends a request, the editor builds a prompt from multiple sources. You can add MCP resources, a selected page element or referenced files as context. Models differ in context window size, and a chat-input control shows how much of the window is used.
+- Assemble the prompt [documented, unverified] Each request, the editor builds a prompt from the system prompt, your custom instructions, the conversation, file contents, tool outputs and your message. A debug view shows what was sent, and a chat control shows how much of the context window is used.
 - Run your own code at set moments [documented, with limits, unverified] Hooks run your own shell commands at points in an agent session, such as before a tool runs, and can block or change the action. They apply to the Local agent, not automatically to Agent Host sessions, and Claude-style hook files need a setting that is off by default.
   - documented order: For a PreToolUse event, a deny decision wins over ask, and ask wins over allow.
 
 ## C. The model call
 
-- Send the request and handle trouble [documented, unverified] Auto model selection routes each request to a model based on task complexity and availability. For a temporary rate limit the documentation says to wait a few minutes and retry. Monthly allowances reset each month, and a status dashboard shows when one is reached.
+- Send the request and handle trouble [documented, with limits, unverified] Auto mode picks a model for each request from how hard the task is and which models are available. For a temporary rate limit, the documentation says to wait a few minutes and retry yourself. It does not state automatic retries, wait times or attempt limits.
 - Set the thinking budget [documented, with limits] Models that support it show a thinking effort choice, and higher effort uses more thinking tokens and more AI credits. Thinking tokens count toward the context window. The thinking itself is typically summarized or left out, and the display setting is experimental.
-- Reuse the unchanged part of the prompt [not researched]
+- Reuse the unchanged part of the prompt [documented, with limits] Prompt caching depends on the provider and model. When it is supported, the provider might reuse the unchanged start of a request, and a change early on can shrink what is reused. A Cache Explorer shows hit rates. The documentation does not state a cache lifetime.
 
 ## D. After the model answers, every turn
 
-- Read what the model asked for [not researched]
+- Read what the model asked for [not documented] The documentation does not mention what the agent does when the model's request to run a command or edit a file is malformed or incomplete.
 - Decide whether it is allowed [documented, with limits, unverified] Approval can be set by tool, by file path pattern and by terminal command, and an automatic reviewer model can judge risk. Command rules use best-effort parsing that shell tricks can slip past, and the permission rules apply to enterprise-managed users and Agent Host sessions.
 - Save an undo point [documented, with limits] You can hover over an earlier request and restore a checkpoint, which brings back affected workspace files and the chat to that point. It does not undo terminal commands, network requests, deployments or changes to outside services, and it is described for supported sessions.
 - Run it inside the fence [documented, with limits, unverified] Terminal commands can run inside an operating-system sandbox that limits files and network access, and child processes inherit it. It is in preview or experimental depending on the system, and it does not restrict the built-in file tools or replace approval controls.
@@ -53,7 +53,7 @@ Steps run in the typical order. A documented order appears only where a cell sta
   - decision point (copilot-vscode/F05.sandbox-override): What happens if a command cannot run inside the sandbox?
     - The outside-sandbox setting is on -> The agent can ask you to confirm running the command outside the sandbox. | quote: “the agent can ask for confirmation to run it outside”
     - The outside-sandbox setting is false -> The Allow Outside Sandbox choice is not offered and the request fails. | quote: “Allow Outside Sandbox is not offered and such requests fail”
-- Tidy the tool's output [not researched]
+- Tidy the tool's output [partly documented] The documentation does not mention limits on tool output size. Telemetry leaves out prompts, responses and tool arguments unless you turn on content capture. Logs and exports can hold sensitive data, so review them before sharing; secret masking is not described.
 - Feed the result back and go round again [documented, unverified] The agent repeats reasoning, tool use and checking: it runs a requested tool, feeds the result back, and goes again. You can steer, queue a follow-up or stop a request, though stopping does not undo finished actions. A setting caps how many requests it makes.
 - Hand work to helpers [partly documented, unverified] Custom agents can have their own tools and model, and helpers can run in parallel when the harness supports concurrent subagents. Nesting is off by default and capped at five levels when on. The documentation does not mention per-agent effort.
   - documented order: A custom agent can list several models; they are tried in order until one is available.

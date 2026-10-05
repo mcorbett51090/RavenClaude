@@ -103,7 +103,8 @@ def caveat(layer):
     }
     ranked = sorted(counts, key=lambda sid: (-counts[sid], sid))
     detail = ", ".join(f"{layer.name(sid)} {counts[sid]}" for sid in ranked)
-    return f"{CAVEAT_HEAD} Checks, out of 127, where the vendor's documentation says nothing, most first: {detail}."
+    total = len(layer.atlas.row_ids)
+    return f"{CAVEAT_HEAD} Checks, out of {total}, where the vendor's documentation says nothing, most first: {detail}."
 
 
 def concept_link(page, concept):
@@ -199,6 +200,19 @@ def render_concept(layer, page, concept):
     return "\n".join(body)
 
 
+def gap_note(gaps_full, gaps_part):
+    """The sentence naming steps the atlas has not (fully) researched; empty when there are none."""
+    parts = []
+    if gaps_full:
+        parts.append(f"<strong>Not yet researched:</strong> {esc(', '.join(gaps_full))}.")
+    if gaps_part:
+        parts.append(f"<strong>Only partly covered:</strong> {esc(', '.join(gaps_part))}.")
+    if not parts:
+        return ""
+    parts.append("These are steps where a harness often makes up for a weaker model, so a gap matters.")
+    return "<p>" + " ".join(parts) + "</p>"
+
+
 def intro_block(layer):
     gaps_full = [c["name_plain"] for c in layer.concepts if c["gap"] == "full"]
     gaps_part = [c["name_plain"] for c in layer.concepts if c["gap"] == "partial"]
@@ -225,9 +239,7 @@ def intro_block(layer):
             f"<p><strong>The badges</strong> summarise how well a vendor documents the step:</p><ul>{legend}</ul>",
             '<p>A <span class="uv" role="img" aria-label="unverified">!</span> means at least one of '
             "the checks behind it was outside the sample we double-checked.</p>",
-            f"<p><strong>Not yet researched:</strong> {esc(', '.join(gaps_full))}. "
-            f"<strong>Only partly covered:</strong> {esc(', '.join(gaps_part))}. These are the steps "
-            "where a harness often makes up for a weaker model, so the gap matters.</p>",
+            gap_note(gaps_full, gaps_part),
             f"<p>{esc(caveat(layer))}</p>",
         ]
     )
@@ -343,7 +355,7 @@ def render_compare(layer):
     head = [th("Agent")] + [
         th(label) for label in ("documented", "with limits", "partly documented", "not documented")
     ]
-    head += [th("Average score"), th("Checks with no documentation (of 127)")]
+    head += [th("Average score"), th(f"Checks with no documentation (of {len(layer.atlas.row_ids)})")]
     body.append(
         table("Concepts per agent by how well they are documented", head, totals_rows(layer, page))
     )

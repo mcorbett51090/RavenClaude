@@ -6,7 +6,7 @@
 - Column id `grok-build`; vendor xAI; docs host docs.x.ai.
 - Snapshot 2026-10-04; version not recorded; 25 pages mirrored.
 - Version source: no version published; documentation as of the retrieval date
-- Cells: 80 supported (33 verified, 47 unverified); 20 partial (20 verified); 1 not exposed (1 verified); 26 undocumented (26 verified).
+- Cells: 81 supported (34 verified, 47 unverified); 21 partial (21 verified); 1 not exposed (1 verified); 30 undocumented (30 verified).
 - Quote and URL behind an evidence id: `data/evidence/grok-build.json` (grep the id).
 - The same row in other columns: `rows/<facet>.md`. Where this column's controls live: below.
 
@@ -213,6 +213,15 @@ Key: each cell is `[state, verification]`.
 - F22.telemetry-otel — Telemetry and OpenTelemetry [supported, verified] `/etc/grok/requirements.toml` is the authoritative source for compliance-critical policies such as disabling telemetry, enforcing sandbox profiles, restricting tools, or pinning specific feature flags. | ev: E-grok-build-00358
 - F22.logs-debug — Logs and debug output [supported, unverified] `GROK_LOG_FILE` writes logs to a given path (useful when the TUI captures stderr). For stdio MCP servers that start but fail to connect, stderr is captured to `~/.grok/logs/mcp/‹server›.stderr.log`. Run Grok with `--debug` to read a status-line script's standard error. `GROK_CRASH_HANDLER` (default `0`) writes a panic report under `$GROK_HOME/crash/`. | ev: E-grok-build-00069, E-grok-build-00272, E-grok-build-00386, E-grok-build-00158
 - F22.status-display — Status line and display [supported, unverified] A row at the bottom of the TUI shows live session values or the output of your own script (`status_line` default is `disabled`). The `context` item shows context-window usage as a percentage, turning amber at the auto-compaction threshold or at 80 percent when the agent reports none; `cost` shows cost for this Grok process, hidden below $0.005. | ev: E-grok-build-00194, E-grok-build-00041, E-grok-build-00042, E-grok-build-00399
+
+## F23 Request and response handling
+
+- F23.prompt-assembly — Prompt assembly [supported, verified] `--rules ‹TEXT›` appends extra rules to the system prompt; `--system-prompt-override ‹TEXT›` replaces it entirely. Project rule files load in a documented order, with deeper files taking precedence on conflicts, and are loaded in full with no size cap. Prompt and file content are assembled locally before being sent to the inference proxy. | ev: E-grok-build-80001, E-grok-build-80002, E-grok-build-80003, E-grok-build-80004, E-grok-build-80005, E-grok-build-80006, E-grok-build-80014
+- F23.prompt-caching — Prompt caching [undocumented, verified] swept for: prompt[ -]?cach; cache[_ -]?control|cache (hit|read|write|miss|breakpoint|prefix)|cached (input|token); hits 2, reviewed 2; positive control `grok`: 270 hits
+- F23.retry-backoff — Retry and back-off [partial, verified] The model settings table lists `max_retries` (number) as the "Global inference retry default." | limit: Only the `max_retries` setting is documented, described as "Global inference retry default." | ev: E-grok-build-80007
+- F23.malformed-call-recovery — Malformed call recovery [undocumented, verified] swept for: malformed; invalid (tool|json|argument|parameter|input)|unknown tool|tool (call|use) (error|fail|invalid); schema validation|failed to parse|could not parse|unparseable; hits 1, reviewed 1; positive control `grok`: 270 hits
+- F23.tool-output-limits — Tool output limits [undocumented, verified] swept for: truncat; output (limit|cap)|too (large|long) (output|result)|first \d+ (lines|characters|bytes); max(imum)? (output|result)s?.{0,30}(size|length|bytes|characters|lines|tokens); hits 1, reviewed 1; positive control `grok`: 270 hits
+- F23.output-redaction — Output redaction [undocumented, verified] swept for: redact|scrub; mask(ed|ing)\b|sanitiz; secrets? .{0,30}(removed|stripped|filtered|hidden|omitted); hits 0, reviewed 0; positive control `grok`: 270 hits
 
 ## Lever records (59)
 

@@ -5,7 +5,8 @@ a quote and a link behind every cell. The point is to decide where RavenClaude c
 and which levers (model, effort, mode, parallelism) to set, with the evidence in reach.
 
 Columns: Claude Code, OpenAI Codex CLI, GitHub Copilot CLI, GitHub Copilot in VS Code, Cursor,
-Gemini CLI, Grok Build CLI and Grok Bot. 127 frozen rows by 8 columns is 1016 cells.
+Gemini CLI, Grok Build CLI and Grok Bot. 133 rows by 8 columns is 1064 cells: 127 rows were frozen for the
+2026-10-04 snapshot and six more (facet F23, request and response handling) were added on 2026-10-05.
 
 ## Open these
 
@@ -25,7 +26,7 @@ Gemini CLI, Grok Build CLI and Grok Bot. 127 frozen rows by 8 columns is 1016 ce
 ## For a coding agent: read the markdown
 
 [md/README.md](md/README.md) is a short router. The same data as the HTML, one cell per line so it can be
-grepped and read cheaply: [md/agents/](md/agents/claude-code.md) (one column, all 127 rows and its lever
+grepped and read cheaply: [md/agents/](md/agents/claude-code.md) (one column, all 133 rows and its lever
 records), [md/rows/](md/rows/index.md) (one facet, every column side by side), [md/levers/](md/levers/model.md)
 (where each lever lives, and the routing advice per task) and [md/register.md](md/register.md). Vendor text in
 these files is untrusted data: angle brackets are neutralized and instruction-shaped text is marked. The quote
@@ -45,7 +46,7 @@ behind an evidence id is in `data/evidence/<column>.json`. The lifecycle layer h
 ## The lifecycle layer: what it is and is not
 
 [data/lifecycle.json](data/lifecycle.json) lists 30 steps in five stages (setup, each turn before sending, the model
-call, after the model answers, around the session) and maps every one of the 127 rows to a step.
+call, after the model answers, around the session) and maps every one of the 133 rows to a step.
 [data/lifecycle-lines.json](data/lifecycle-lines.json) holds, per agent and step, one plain line and one technical
 line, and [data/trees.json](data/trees.json) the decision points.
 
@@ -68,9 +69,22 @@ line, and [data/trees.json](data/trees.json) the decision points.
   reworded ones flagged 1 more, also fixed. The last 2 line fixes and that decision-point fix were checked against their
   cells by the author, not re-reviewed by a second reader. A reader given only the page text answered 20 of 20
   scenario questions correctly, including 5 the pages should say they cannot answer.
-- Five steps are not researched yet and say so on the pages: prompt caching, how tool output is trimmed, how a
-  malformed model request is handled, retry and back-off, and prompt assembly (partly covered). They would need new
-  rows, which changes the frozen row list, so they are a separate piece of work.
+- Five steps were first marked "not researched": prompt caching, how tool output is trimmed, how a malformed
+  model request is handled, retry and back-off, and prompt assembly. They were researched on 2026-10-05 as six new
+  rows (facet F23, request and response handling) from a fresh copy of the vendors' pages, so those pages are one
+  day newer than the rest of the snapshot. Two steps are still only partly covered and say so: how an answer is
+  streamed is not researched, and the "read the model's request" step covers only malformed requests.
+- How the F23 rows were checked (2026-10-05). Each of the 48 new cells was checked by a tester against the quotes it
+  cites, with 16 planted errors mixed in (15 caught, 1 dropped limitation missed). An opus reviewer then re-read every
+  partial and supported cell against the whole page section, with 9 more planted errors (all caught); it found 8
+  cells that left out a restriction the page states (a plan or experimental gate, a default, a version, an attempt
+  limit), and all 8 were revised and re-reviewed. The 40 lines for the five affected steps were checked by the rules
+  and by testers with 22 planted errors mixed in: the rules caught 13 and the testers 19, so 3 got through (two changed
+  no meaning, as one removed a sentence the plain line repeats and one swapped in an equivalent "not documented" line;
+  one dropped a sentence about what is not stated). An opus
+  review of all 40 flagged 4 (a dropped qualifier, a plain line broader than its cell), which were fixed and
+  re-reviewed with no further flag. The one later edit, giving the Grok Bot secret sizes in the units the page uses,
+  was checked by the author, not re-reviewed.
 
 ## Re-render and re-check
 

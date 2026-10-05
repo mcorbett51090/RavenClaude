@@ -277,19 +277,20 @@
         "house-rules",
         "memory-sessions"
       ],
-      "gap": "partial",
+      "gap": null,
       "id": "assemble-prompt",
       "jargon": [
         "prompt",
         "context window"
       ],
-      "matters_for_model_choice": "What a model never sees it cannot use. Controls over this vary a lot between harnesses and are only partly covered here.",
+      "matters_for_model_choice": "What a model never sees it cannot use. Controls over this vary between harnesses: compare which let you see or replace what is sent.",
       "name_plain": "Assemble the prompt",
       "order": 1,
       "predicate_general": "Everything must fit the context window. What does not fit is dropped or summarised.",
       "rows": [
         "F02.context-window-size",
-        "F02.context-inclusion"
+        "F02.context-inclusion",
+        "F23.prompt-assembly"
       ],
       "stage": "B",
       "typical_after": [
@@ -334,13 +335,14 @@
         "rate limit",
         "model"
       ],
-      "matters_for_model_choice": "When the service is busy, how the harness waits or falls back decides whether your task stalls. Only partly covered here.",
+      "matters_for_model_choice": "When the service is busy, how the harness waits or falls back decides whether your task stalls. How the answer is streamed is not covered here.",
       "name_plain": "Send the request and handle trouble",
       "order": 1,
       "predicate_general": "Retry and fallback behaviour depends on your plan's limits and your settings.",
       "rows": [
         "F17.auto-routing",
-        "F22.rate-limits"
+        "F22.rate-limits",
+        "F23.retry-backoff"
       ],
       "stage": "C",
       "typical_after": [
@@ -376,17 +378,19 @@
     },
     {
       "depends_on": [],
-      "gap": "full",
+      "gap": null,
       "id": "caching",
       "jargon": [
         "caching",
         "prompt"
       ],
-      "matters_for_model_choice": "Caching changes cost and speed on long sessions. The atlas has not researched it yet.",
+      "matters_for_model_choice": "Caching changes cost and speed on long sessions. Compare whether you can turn it off or tune how long it lasts, and what breaks it.",
       "name_plain": "Reuse the unchanged part of the prompt",
       "order": 3,
       "predicate_general": "Only for services that support it, and the harness may offer no control over it.",
-      "rows": [],
+      "rows": [
+        "F23.prompt-caching"
+      ],
       "stage": "C",
       "typical_after": [
         "thinking"
@@ -396,17 +400,19 @@
     },
     {
       "depends_on": [],
-      "gap": "full",
+      "gap": "partial",
       "id": "read-request",
       "jargon": [
         "tool",
         "model"
       ],
-      "matters_for_model_choice": "A harness that recovers well from a model's slips can make a weaker model usable. The atlas has not researched it yet.",
+      "matters_for_model_choice": "A harness that recovers well from a model's slips can make a weaker model usable. Only recovery from malformed requests is covered here.",
       "name_plain": "Read what the model asked for",
       "order": 1,
       "predicate_general": "What happens to a malformed request differs between harnesses.",
-      "rows": [],
+      "rows": [
+        "F23.malformed-call-recovery"
+      ],
       "stage": "D",
       "typical_after": [
         "caching"
@@ -494,17 +500,20 @@
     },
     {
       "depends_on": [],
-      "gap": "full",
+      "gap": null,
       "id": "output-handling",
       "jargon": [
         "tool",
         "model"
       ],
-      "matters_for_model_choice": "How output is trimmed affects what the model can notice, which matters more for weaker models. The atlas has not researched it yet.",
+      "matters_for_model_choice": "How output is trimmed affects what the model can notice, which matters more for weaker models. Hiding secrets is a separate control.",
       "name_plain": "Tidy the tool's output",
       "order": 5,
-      "predicate_general": "Unknown here: the atlas has not researched truncation or hiding of output.",
-      "rows": [],
+      "predicate_general": "Limits and hiding differ between harnesses, and a vendor may document one without the other.",
+      "rows": [
+        "F23.tool-output-limits",
+        "F23.output-redaction"
+      ],
       "stage": "D",
       "typical_after": [
         "fence"

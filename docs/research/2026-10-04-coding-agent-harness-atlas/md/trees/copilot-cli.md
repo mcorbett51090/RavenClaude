@@ -30,8 +30,8 @@ Steps run in the typical order. A documented order appears only where a cell sta
 
 ## B. Each turn, before sending
 
-- Assemble the prompt [documented, unverified] The latest models support a very large context window, and you can choose a default or longer size. Naming a file adds it to the prompt, organization exclusion rules are respected, and large tool output is saved to a file with a preview sent to the model.
-  - documented order: A repository context size setting pins the default tier and takes precedence.
+- Assemble the prompt [documented, unverified] The latest models support a very large context window, in a default or longer size. Naming a file adds it to the prompt, a command shows window use, and large tool output goes to a file with a preview. Copilot Business and Enterprise content exclusion rules are respected.
+  - documented order: A repository setting that pins the default tier takes precedence.
 - Run your own code at set moments [partly documented, unverified] Hooks are shell commands that run at points such as session start or before a tool runs, and can allow or deny a tool call. The documentation does not mention matcher rules for choosing which tools a hook covers. A setting can turn hooks off.
   - decision point (copilot-cli/F06.trust-enable): When do repository hooks run in one-off prompt mode?
     - The prompt-mode hooks variable is set to true -> Repository hooks load in prompt mode. | quote: “Repository hooks load in prompt mode (-p) when GITHUB_COPILOT_PROMPT_MODE_REPO_HOOKS is set to true”
@@ -40,20 +40,20 @@ Steps run in the typical order. A documented order appears only where a cell sta
 
 ## C. The model call
 
-- Send the request and handle trouble [documented, with limits] Auto mode picks a model from system health, performance and task difficulty, and you can ask for a tier. When a setting is on, a rate limit error switches to auto mode and retries, but not for global limits or your own provider. Included credits reset monthly.
+- Send the request and handle trouble [documented, with limits] Auto mode picks a model by system health, performance and task difficulty. A setting, off by default, makes an eligible rate limit error switch to auto mode and retry, but not for global limits or your own provider. A default limit or wait time is not stated.
 - Set the thinking budget [documented, with limits] Some models offer a choice of reasoning depth, and the documentation does not list the levels per model. A key shows or hides the model's reasoning. Summaries appear for supporting OpenAI models, and the documentation does not describe a token budget control.
-- Reuse the unchanged part of the prompt [not researched]
+- Reuse the unchanged part of the prompt [documented, with limits] GitHub says it uses prompt caching for Claude and Google Gemini models to improve service quality and cut delay. The documentation does not mention how long cached text is kept or a way to switch caching on or off.
 
 ## D. After the model answers, every turn
 
-- Read what the model asked for [not researched]
+- Read what the model asked for [not documented] The documentation does not mention what happens when the model's request to run a command or edit a file is badly formed or incomplete.
 - Decide whether it is allowed [documented, with limits, unverified] Rules can allow or deny tools, folders and shell commands by name. Command matching is literal, with no regular expressions or general wildcards. Assisted approval still asks each time but adds a model's safety recommendation, so the CLI can approve requests it judges acceptable.
 - Save an undo point [documented] It tracks the file changes it makes for each prompt. Pressing the escape key twice while it is idle rewinds the session to an earlier prompt and can restore your files.
 - Run it inside the fence [documented, with limits, unverified] Shell commands and searches can run in a local sandbox that limits where they write and whether they reach the network. It is experimental. File tools follow it on a best-effort basis, remote MCP servers stay outside it, and enterprise settings can require it.
   - decision point (copilot-cli/F05.sandbox-override): Can I switch the sandbox off for a session?
     - The effective policy permits sandbox bypass -> You can turn sandboxing off for the rest of the current session. | quote: “a user can explicitly disable sandboxing for the rest of the current session”
     - Enterprise managed settings require sandboxing -> Ordinary configuration and the no-sandbox startup option do not switch it off. | quote: “If enterprise managed settings require sandboxing”
-- Tidy the tool's output [not researched]
+- Tidy the tool's output [documented, with limits] Large tool output is saved to a file; the model gets its location and a preview, and the size limit can be changed. Two GitHub token variables are hidden by default; you can name others. GitHub says it does not currently provide built-in secret hiding for hooks.
 - Feed the result back and go round again [documented, with limits, unverified] It works through a prompt in rounds of model reply and tool use, and a prompt you send while it is thinking is treated as steering. In autopilot a setting caps the follow-on messages, and the documentation disagrees on the default.
 - Hand work to helpers [documented, with limits, unverified] Custom helper agents are described in Markdown files with their own tools, and can have their own model and effort. Several run at once under limits on depth and number. The documentation disagrees on the default depth and cap, and the research helper uses a fixed model.
   - documented order: For helper effort, a per-call value wins, then a settings override, then the agent's own definition.

@@ -28,21 +28,21 @@ Steps run in the typical order. A documented order appears only where a cell sta
 
 ## B. Each turn, before sending
 
-- Assemble the prompt [partly documented] In a conversation you can paste text, links and images, attach files, and mention Bots or plugins. The desktop composer takes up to six attachments at a time. The documentation does not mention the size of the context window.
+- Assemble the prompt [partly documented] In a conversation you can paste text, links and images, attach files, and mention Bots, groups, routines or plugins. The desktop composer takes up to six attachments at a time. The documentation does not mention the context window size or how the prompt is put together.
 - Run your own code at set moments [not documented] The documentation does not mention hooks: which moments they cover, what kinds of handler they run, how they can block an action, or where they are set up.
 
 ## C. The model call
 
-- Send the request and handle trouble [documented, unverified] Cursor picks the model for each task, and the mix of serving models can change over time. Paid access includes weekly usage; when it runs out, extra usage continues as on-demand usage if that is turned on, and otherwise Grok Bot stops and says the limit was reached.
+- Send the request and handle trouble [partly documented, unverified] Cursor picks the model for each task, and the mix of models can change over time. Paid access includes weekly usage; if on-demand is on, extra usage continues after it runs out, otherwise Grok Bot stops. The documentation does not mention retrying after trouble.
   - decision point (grok-bot/F22.rate-limits): What happens when my weekly Grok Bot usage runs out?
     - On-demand usage is turned on -> Extra usage continues as on-demand usage. | quote: “extra usage can continue as On-demand usage if on-demand is enabled”
     - On-demand usage is turned off -> Grok Bot stops, and the screen says you reached the usage limit. | quote: “If on-demand is off, Grok Bot stops when weekly usage runs out”
 - Set the thinking budget [not documented] The documentation does not mention how thinking effort depends on the model, or whether the reasoning budget is shown or hidden.
-- Reuse the unchanged part of the prompt [not researched]
+- Reuse the unchanged part of the prompt [not documented] The documentation does not mention whether the unchanged start of a prompt is reused to make later turns cheaper and faster.
 
 ## D. After the model answers, every turn
 
-- Read what the model asked for [not researched]
+- Read what the model asked for [not documented] The documentation does not mention how a malformed or incomplete request from the model is handled.
 - Decide whether it is allowed [documented, with limits, unverified] Members can add Auto-review rules: ask-first rules stop matching actions, allow rules proceed only if the reviewer finds no other reason. A review model checks risky actions, but is skipped where nobody can answer an approval card unless an Enterprise admin enforces it.
   - documented order: Ask-first rules stop matching actions; allow rules let them proceed only if the reviewer finds no other reason to stop.
   - decision point (grok-bot/F04.auto-review): Does Auto-review check actions where no one can answer an approval card?
@@ -54,7 +54,7 @@ Steps run in the typical order. A documented order appears only where a cell sta
   - decision point (grok-bot/F05.sandbox-override): Who decides whether a Bot may run commands on my own desktop?
     - The team ceiling is left at its default -> The choice is left to each member. | quote: “Always allow (the default; leaves the choice to each member)”
     - A member's setting is stricter than the team's -> The member's own setting still applies. | quote: “a member's own setting still applies when it is stricter than the team's”
-- Tidy the tool's output [not researched]
+- Tidy the tool's output [partly documented] A Team Bot's secrets are replaced with a placeholder in command output, files it reads and plugin calls. Some of the redaction is for the Enterprise plan only, and pattern matching can miss some secrets. The documentation does not mention limits on tool output size.
 - Feed the result back and go round again [partly documented, unverified] Grok Bot is a computer-use agent that operates apps, browsers and development environments. A direct message takes priority and can redirect the turn; Stop now ends work at once but does not undo actions already done. The documentation does not mention turn or step limits.
 - Hand work to helpers [partly documented, unverified] A Bot has a name, label and description set by its owner, and Bots can create helper Bots. Bots run in parallel, each with its own screen and one computer-use task at a time; a group chat takes two to six Bots. The documentation does not mention tool lists or built-in types.
 - Shrink the context when it fills [not documented] The documentation does not mention automatic or manual compaction of a long conversation.

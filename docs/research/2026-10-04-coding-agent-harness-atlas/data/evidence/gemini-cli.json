@@ -10410,6 +10410,731 @@
    ],
    "quote_verified": true,
    "neutralizer_flags": []
+  },
+  {
+   "id": "E-gemini-cli-80001",
+   "surface": "gemini-cli",
+   "tier": "E1",
+   "url": "https://geminicli.com/llms.txt",
+   "url_effective": "https://geminicli.com/llms.txt",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 959932,
+   "sha256": "eec99f2a992b246f54bb490f291fd2d0f5e6612b0aaddae5855d4feccdffa23c",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "Announcements: v0.5.0 - 2025-09-08",
+    "raw_line_start": 1333,
+    "raw_line_end": 1334
+   },
+   "quote": "- **Experimental Tool output truncation:** Enable truncating shell tool outputs\n  and saving full output to a file by setting",
+   "context_before": [
+    "  [pr](https://github.com/google-gemini/gemini-cli/pull/7668) by",
+    "  [@allenhutchison](https://github.com/allenhutchison))"
+   ],
+   "context_after": [
+    "  `\"enableToolOutputTruncation\": true `([pr](https://github.com/google-gemini/gemini-cli/pull/8039)",
+    "  by [@SandyTao520](https://github.com/SandyTao520))"
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-gemini-cli-80003",
+   "surface": "gemini-cli",
+   "tier": "E1",
+   "url": "https://geminicli.com/llms.txt",
+   "url_effective": "https://geminicli.com/llms.txt",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 959932,
+   "sha256": "eec99f2a992b246f54bb490f291fd2d0f5e6612b0aaddae5855d4feccdffa23c",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "Data and privacy",
+    "raw_line_start": 2708,
+    "raw_line_end": 2709
+   },
+   "quote": "- The extraction agent is instructed to redact secrets, tokens, and credentials\n  it encounters and to never copy large tool outputs verbatim.",
+   "context_before": [
+    "  during extraction. No candidates are applied automatically, but transcript",
+    "  excerpts may be sent to the configured model as part of those calls."
+   ],
+   "context_after": [
+    "- Drafted skills and memory patches live in your project's memory directory",
+    "  until you promote, apply, dismiss, or discard them. They are not automatically"
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-gemini-cli-80004",
+   "surface": "gemini-cli",
+   "tier": "E1",
+   "url": "https://geminicli.com/llms.txt",
+   "url_effective": "https://geminicli.com/llms.txt",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 959932,
+   "sha256": "eec99f2a992b246f54bb490f291fd2d0f5e6612b0aaddae5855d4feccdffa23c",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "Overview",
+    "raw_line_start": 7970,
+    "raw_line_end": 7971
+   },
+   "quote": "The `GEMINI_SYSTEM_MD` variable instructs the CLI to use an external Markdown\nfile for its system prompt, completely overriding the built-in default. This is",
+   "context_before": [
+    "## Overview",
+    ""
+   ],
+   "context_after": [
+    "a full replacement, not a merge. If you use a custom file, none of the original",
+    "core instructions will apply unless you include them yourself."
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-gemini-cli-80005",
+   "surface": "gemini-cli",
+   "tier": "E1",
+   "url": "https://geminicli.com/llms.txt",
+   "url_effective": "https://geminicli.com/llms.txt",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 959932,
+   "sha256": "eec99f2a992b246f54bb490f291fd2d0f5e6612b0aaddae5855d4feccdffa23c",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "Variable Substitution",
+    "raw_line_start": 8029,
+    "raw_line_end": 8030
+   },
+   "quote": "- `${AgentSkills}`: Injects a complete section (including header) of all\n  available agent skills.",
+   "context_before": [
+    "dynamically include built-in content:",
+    ""
+   ],
+   "context_after": [
+    "- `${SubAgents}`: Injects a complete section (including header) of available",
+    "  sub-agents."
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-gemini-cli-80006",
+   "surface": "gemini-cli",
+   "tier": "E1",
+   "url": "https://geminicli.com/llms.txt",
+   "url_effective": "https://geminicli.com/llms.txt",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 959932,
+   "sha256": "eec99f2a992b246f54bb490f291fd2d0f5e6612b0aaddae5855d4feccdffa23c",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "Variable Substitution",
+    "raw_line_start": 8033,
+    "raw_line_end": 8034
+   },
+   "quote": "- `${AvailableTools}`: Injects a bulleted list of all currently enabled tool\n  names.",
+   "context_before": [
+    "- `${SubAgents}`: Injects a complete section (including header) of available",
+    "  sub-agents."
+   ],
+   "context_after": [
+    "- Tool Name Variables: Injects the actual name of a tool using the pattern:",
+    "  `${toolName}_ToolName` (for example, `${write_file_ToolName}`,"
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-gemini-cli-80007",
+   "surface": "gemini-cli",
+   "tier": "E1",
+   "url": "https://geminicli.com/llms.txt",
+   "url_effective": "https://geminicli.com/llms.txt",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 959932,
+   "sha256": "eec99f2a992b246f54bb490f291fd2d0f5e6612b0aaddae5855d4feccdffa23c",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "How it works",
+    "raw_line_start": 9391,
+    "raw_line_end": 9392
+   },
+   "quote": "1.  **Discovery**: At the start of a session, Gemini CLI scans the discovery\n    tiers and injects the name and description of all enabled skills into the",
+   "context_before": [
+    "resource access.",
+    ""
+   ],
+   "context_after": [
+    "    system prompt.",
+    "2.  **Activation**: When Gemini identifies a task matching a skill's"
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-gemini-cli-80008",
+   "surface": "gemini-cli",
+   "tier": "E1",
+   "url": "https://geminicli.com/llms.txt",
+   "url_effective": "https://geminicli.com/llms.txt",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 959932,
+   "sha256": "eec99f2a992b246f54bb490f291fd2d0f5e6612b0aaddae5855d4feccdffa23c",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "How it works",
+    "raw_line_start": 9399,
+    "raw_line_end": 9400
+   },
+   "quote": "    - The `SKILL.md` body and folder structure is added to the conversation\n      history.",
+   "context_before": [
+    "    skill's name, purpose, and the directory path it will gain access to.",
+    "4.  **Injection**: Upon your approval:"
+   ],
+   "context_after": [
+    "    - The skill's directory is added to the agent's allowed file paths, granting",
+    "      it permission to read any bundled assets."
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-gemini-cli-80009",
+   "surface": "gemini-cli",
+   "tier": "E1",
+   "url": "https://geminicli.com/llms.txt",
+   "url_effective": "https://geminicli.com/llms.txt",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 959932,
+   "sha256": "eec99f2a992b246f54bb490f291fd2d0f5e6612b0aaddae5855d4feccdffa23c",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "[Token caching and cost optimization](http://geminicli.com/docs/cli/token-caching.md)",
+    "raw_line_start": 9807,
+    "raw_line_end": 9808
+   },
+   "quote": "Gemini CLI automatically optimizes API costs through token caching when using\nAPI key authentication (Gemini API key or Vertex AI). This feature reuses",
+   "context_before": [
+    "",
+    ""
+   ],
+   "context_after": [
+    "previous system instructions and context to reduce the number of tokens",
+    "processed in subsequent requests."
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-gemini-cli-80010",
+   "surface": "gemini-cli",
+   "tier": "E1",
+   "url": "https://geminicli.com/llms.txt",
+   "url_effective": "https://geminicli.com/llms.txt",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 959932,
+   "sha256": "eec99f2a992b246f54bb490f291fd2d0f5e6612b0aaddae5855d4feccdffa23c",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "[Token caching and cost optimization](http://geminicli.com/docs/cli/token-caching.md)",
+    "raw_line_start": 9808,
+    "raw_line_end": 9810
+   },
+   "quote": "API key authentication (Gemini API key or Vertex AI). This feature reuses\nprevious system instructions and context to reduce the number of tokens\nprocessed in subsequent requests.",
+   "context_before": [
+    "",
+    "Gemini CLI automatically optimizes API costs through token caching when using"
+   ],
+   "context_after": [
+    "",
+    "**Token caching is available for:**"
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-gemini-cli-80012",
+   "surface": "gemini-cli",
+   "tier": "E1",
+   "url": "https://geminicli.com/llms.txt",
+   "url_effective": "https://geminicli.com/llms.txt",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 959932,
+   "sha256": "eec99f2a992b246f54bb490f291fd2d0f5e6612b0aaddae5855d4feccdffa23c",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "Capacity errors",
+    "raw_line_start": 13288,
+    "raw_line_end": 13289
+   },
+   "quote": "Gemini CLI will ask you to decide whether you want to keep trying Gemini 3 Pro\nor fallback to Gemini 2.5 Pro.",
+   "context_before": [
+    "",
+    "There may be times when the Gemini 3 Pro model is overloaded. When that happens,"
+   ],
+   "context_after": [
+    "",
+    "<!-- prettier-ignore -->"
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-gemini-cli-80013",
+   "surface": "gemini-cli",
+   "tier": "E1",
+   "url": "https://geminicli.com/llms.txt",
+   "url_effective": "https://geminicli.com/llms.txt",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 959932,
+   "sha256": "eec99f2a992b246f54bb490f291fd2d0f5e6612b0aaddae5855d4feccdffa23c",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "Capacity errors",
+    "raw_line_start": 13293,
+    "raw_line_end": 13294
+   },
+   "quote": "> The **Keep trying** option uses exponential backoff, in which Gemini\n> CLI waits longer between each retry, when the system is busy. If the retry",
+   "context_before": [
+    "<!-- prettier-ignore -->",
+    "> [!NOTE]"
+   ],
+   "context_after": [
+    "> doesn't happen immediately, wait a few minutes for the request to",
+    "> process."
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-gemini-cli-80014",
+   "surface": "gemini-cli",
+   "tier": "E1",
+   "url": "https://geminicli.com/llms.txt",
+   "url_effective": "https://geminicli.com/llms.txt",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 959932,
+   "sha256": "eec99f2a992b246f54bb490f291fd2d0f5e6612b0aaddae5855d4feccdffa23c",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "Use appropriate events",
+    "raw_line_start": 16012,
+    "raw_line_end": 16013
+   },
+   "quote": "- **`AfterModel`**: Fires after **every chunk** of LLM output. Use this for\n  real-time redaction, PII filtering, or monitoring output as it streams.",
+   "context_before": [
+    "- **`AfterAgent`**: Fires **once** per turn after the model finishes its final",
+    "  response. Use this for quality validation (Retries) or final logging."
+   ],
+   "context_after": [
+    "",
+    "If you only need to check the final completion, use `AfterAgent` to save"
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-gemini-cli-80016",
+   "surface": "gemini-cli",
+   "tier": "E1",
+   "url": "https://geminicli.com/llms.txt",
+   "url_effective": "https://geminicli.com/llms.txt",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 959932,
+   "sha256": "eec99f2a992b246f54bb490f291fd2d0f5e6612b0aaddae5855d4feccdffa23c",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "Environment variables and `.env` files",
+    "raw_line_start": 19437,
+    "raw_line_end": 19437
+   },
+   "quote": "  - Replaces the built‑in system prompt with content from a Markdown file.",
+   "context_before": [
+    "  - Accepts `true`, `false`, `docker`, `podman`, or a custom command string.",
+    "- **`GEMINI_SYSTEM_MD`**:"
+   ],
+   "context_after": [
+    "  - `true`/`1`: Use project default path `./.gemini/system.md`.",
+    "  - Any other string: Treat as a path (relative/absolute supported, `~`"
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-gemini-cli-80017",
+   "surface": "gemini-cli",
+   "tier": "E1",
+   "url": "https://geminicli.com/llms.txt",
+   "url_effective": "https://geminicli.com/llms.txt",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 959932,
+   "sha256": "eec99f2a992b246f54bb490f291fd2d0f5e6612b0aaddae5855d4feccdffa23c",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "Why don't I see cached token counts in my stats output?",
+    "raw_line_start": 20966,
+    "raw_line_end": 20966
+   },
+   "quote": "Cached token information is only displayed when cached tokens are being used.",
+   "context_before": [
+    "### Why don't I see cached token counts in my stats output?",
+    ""
+   ],
+   "context_after": [
+    "This feature is available for API key users (Gemini API key or Google Cloud",
+    "Vertex AI) but not for OAuth users (such as Google Personal/Enterprise accounts"
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-gemini-cli-80018",
+   "surface": "gemini-cli",
+   "tier": "E1",
+   "url": "https://geminicli.com/llms.txt",
+   "url_effective": "https://geminicli.com/llms.txt",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 959932,
+   "sha256": "eec99f2a992b246f54bb490f291fd2d0f5e6612b0aaddae5855d4feccdffa23c",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "Tools",
+    "raw_line_start": 7820,
+    "raw_line_end": 7820
+   },
+   "quote": "| Tool Output Truncation Threshold | `tools.truncateToolOutputThreshold`  | Maximum characters to show when truncating large tool outputs. Set to 0 or negative to disable truncation.                                                                 | `40000` |",
+   "context_before": [
+    "| Show Color                       | `tools.shell.showColor`              | Show color in shell output.                                                                                                                                                | `true`  |",
+    "| Use Ripgrep                      | `tools.useRipgrep`                   | Use ripgrep for file content search instead of the fallback implementation. Provides faster search performance.                                                            | `true`  |"
+   ],
+   "context_after": [
+    "| Disable LLM Correction           | `tools.disableLLMCorrection`         | Disable LLM-based error correction for edit tools. When enabled, tools will fail immediately if exact string matches are not found, instead of attempting to self-correct. | `true`  |",
+    ""
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-gemini-cli-80021",
+   "surface": "gemini-cli",
+   "tier": "E1",
+   "url": "https://geminicli.com/llms.txt",
+   "url_effective": "https://geminicli.com/llms.txt",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 959932,
+   "sha256": "eec99f2a992b246f54bb490f291fd2d0f5e6612b0aaddae5855d4feccdffa23c",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "`contextManagement`",
+    "raw_line_start": 19067,
+    "raw_line_end": 19068
+   },
+   "quote": "  - **Description:** Maximum tokens to show to the model when truncating large\n    tool outputs.",
+   "context_before": [
+    "- **`contextManagement.tools.distillation.maxOutputTokens`** (number):",
+    ""
+   ],
+   "context_after": [
+    "  - **Default:** `10000`",
+    "  - **Requires restart:** Yes"
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-gemini-cli-80022",
+   "surface": "gemini-cli",
+   "tier": "E1",
+   "url": "https://geminicli.com/llms.txt",
+   "url_effective": "https://geminicli.com/llms.txt",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 959932,
+   "sha256": "eec99f2a992b246f54bb490f291fd2d0f5e6612b0aaddae5855d4feccdffa23c",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "`contextManagement`",
+    "raw_line_start": 19075,
+    "raw_line_end": 19076
+   },
+   "quote": "  - **Description:** Threshold above which truncated tool outputs will be\n    summarized by an LLM.",
+   "context_before": [
+    "  (number):",
+    ""
+   ],
+   "context_after": [
+    "  - **Default:** `20000`",
+    "  - **Requires restart:** Yes"
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-gemini-cli-80033",
+   "surface": "gemini-cli",
+   "tier": "E1",
+   "url": "https://geminicli.com/llms.txt",
+   "url_effective": "https://geminicli.com/llms.txt",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 959932,
+   "sha256": "eec99f2a992b246f54bb490f291fd2d0f5e6612b0aaddae5855d4feccdffa23c",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "Overview",
+    "raw_line_start": 7980,
+    "raw_line_end": 7980
+   },
+   "quote": "> You can export the current default system prompt to a file first, review",
+   "context_before": [
+    "<!-- prettier-ignore -->",
+    "> [!TIP]"
+   ],
+   "context_after": [
+    "> it, and then selectively modify or replace it (see",
+    "> [“Export the default prompt”](#export-the-default-prompt-recommended))."
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-gemini-cli-80034",
+   "surface": "gemini-cli",
+   "tier": "E1",
+   "url": "https://geminicli.com/llms.txt",
+   "url_effective": "https://geminicli.com/llms.txt",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 959932,
+   "sha256": "eec99f2a992b246f54bb490f291fd2d0f5e6612b0aaddae5855d4feccdffa23c",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "[Token caching and cost optimization](http://geminicli.com/docs/cli/token-caching.md)",
+    "raw_line_start": 9822,
+    "raw_line_end": 9822
+   },
+   "quote": "You can view your token usage and cached token savings using the `/stats`",
+   "context_before": [
+    "  not support cached content creation at this time",
+    ""
+   ],
+   "context_after": [
+    "command. When cached tokens are available, they will be displayed in the stats",
+    "output."
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-gemini-cli-80035",
+   "surface": "gemini-cli",
+   "tier": "E1",
+   "url": "https://geminicli.com/llms.txt",
+   "url_effective": "https://geminicli.com/llms.txt",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 959932,
+   "sha256": "eec99f2a992b246f54bb490f291fd2d0f5e6612b0aaddae5855d4feccdffa23c",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "General",
+    "raw_line_start": 7718,
+    "raw_line_end": 7718
+   },
+   "quote": "| Retry Fetch Errors            | `general.retryFetchErrors`         | Retry on \"exception TypeError: fetch failed sending request\" errors.",
+   "context_before": [
+    "| Plan Directory                | `general.plan.directory`           | The directory where planning artifacts are stored. If not specified, defaults to the system temporary directory. A custom directory requires a policy to allow write access in Plan Mode.                                            ",
+    "| Plan Model Routing            | `general.plan.modelRouting`        | Automatically switch between Pro and Flash models based on Plan Mode status. Uses Pro for the planning phase and Flash for the implementation phase.                                                                                 "
+   ],
+   "context_after": [
+    "| Max Chat Model Attempts       | `general.maxAttempts`              | Maximum number of attempts for requests to the main chat model. Cannot exceed 10.                                                                                                                                                    ",
+    "| Debug Keystroke Logging       | `general.debugKeystrokeLogging`    | Enable debug logging of keystrokes to the console.                                                                                                                                                                                   "
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-gemini-cli-80036",
+   "surface": "gemini-cli",
+   "tier": "E1",
+   "url": "https://geminicli.com/llms.txt",
+   "url_effective": "https://geminicli.com/llms.txt",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 959932,
+   "sha256": "eec99f2a992b246f54bb490f291fd2d0f5e6612b0aaddae5855d4feccdffa23c",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "`gemini_cli.chat.content_retry`",
+    "raw_line_start": 8736,
+    "raw_line_end": 8736
+   },
+   "quote": "Logs retries due to content errors.",
+   "context_before": [
+    "##### `gemini_cli.chat.content_retry`",
+    ""
+   ],
+   "context_after": [
+    "",
+    "<details>"
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-gemini-cli-80037",
+   "surface": "gemini-cli",
+   "tier": "E1",
+   "url": "https://geminicli.com/llms.txt",
+   "url_effective": "https://geminicli.com/llms.txt",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 959932,
+   "sha256": "eec99f2a992b246f54bb490f291fd2d0f5e6612b0aaddae5855d4feccdffa23c",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "`gemini_cli.tool_output_masking`",
+    "raw_line_start": 8984,
+    "raw_line_end": 8984
+   },
+   "quote": "Logs when tool output is masked for privacy.",
+   "context_before": [
+    "##### `gemini_cli.tool_output_masking`",
+    ""
+   ],
+   "context_after": [
+    "",
+    "<details>"
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-gemini-cli-80038",
+   "surface": "gemini-cli",
+   "tier": "E1",
+   "url": "https://geminicli.com/llms.txt",
+   "url_effective": "https://geminicli.com/llms.txt",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 959932,
+   "sha256": "eec99f2a992b246f54bb490f291fd2d0f5e6612b0aaddae5855d4feccdffa23c",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "Experimental",
+    "raw_line_start": 7864,
+    "raw_line_end": 7864
+   },
+   "quote": "| Enable Context Management                            | `experimental.contextManagement`                | Enable logic for context management.                                                                                                                                                             ",
+   "context_before": [
+    "| Auto Memory                                          | `experimental.autoMemory`                       | Automatically extract memory patches and skills from past sessions in the background. Every change is written as a unified diff `.patch` file under `<projectMemoryDir>/.inbox/<kind>/` and held ",
+    "| Use the generalist profile to manage agent contexts. | `experimental.generalistProfile`                | Suitable for general coding and software development tasks.                                                                                                                                      "
+   ],
+   "context_after": [
+    "",
+    "### Skills"
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-gemini-cli-80039",
+   "surface": "gemini-cli",
+   "tier": "E1",
+   "url": "https://geminicli.com/llms.txt",
+   "url_effective": "https://geminicli.com/llms.txt",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 959932,
+   "sha256": "eec99f2a992b246f54bb490f291fd2d0f5e6612b0aaddae5855d4feccdffa23c",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "How to enable Auto Memory",
+    "raw_line_start": 2615,
+    "raw_line_end": 2615
+   },
+   "quote": "Auto Memory is off by default. Enable it in your settings file:",
+   "context_before": [
+    "## How to enable Auto Memory",
+    ""
+   ],
+   "context_after": [
+    "",
+    "1.  Open your global settings file at `~/.gemini/settings.json`. If you only"
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
+  },
+  {
+   "id": "E-gemini-cli-80040",
+   "surface": "gemini-cli",
+   "tier": "E1",
+   "url": "https://geminicli.com/llms.txt",
+   "url_effective": "https://geminicli.com/llms.txt",
+   "retrieved": "2026-10-05",
+   "http_status": 200,
+   "bytes": 959932,
+   "sha256": "eec99f2a992b246f54bb490f291fd2d0f5e6612b0aaddae5855d4feccdffa23c",
+   "product_version": null,
+   "version_source": null,
+   "locator": {
+    "heading": "General",
+    "raw_line_start": 7719,
+    "raw_line_end": 7719
+   },
+   "quote": "| Max Chat Model Attempts       | `general.maxAttempts`              | Maximum number of attempts for requests to the main chat model. Cannot exceed 10.                                                                                                                                                    ",
+   "context_before": [
+    "| Plan Model Routing            | `general.plan.modelRouting`        | Automatically switch between Pro and Flash models based on Plan Mode status. Uses Pro for the planning phase and Flash for the implementation phase.                                                                                 ",
+    "| Retry Fetch Errors            | `general.retryFetchErrors`         | Retry on \"exception TypeError: fetch failed sending request\" errors.                                                                                                                                                                 "
+   ],
+   "context_after": [
+    "| Debug Keystroke Logging       | `general.debugKeystrokeLogging`    | Enable debug logging of keystrokes to the console.                                                                                                                                                                                   ",
+    "| Enable Session Cleanup        | `general.sessionRetention.enabled` | Enable automatic session cleanup                                                                                                                                                                                                     "
+   ],
+   "quote_verified": true,
+   "neutralizer_flags": []
   }
  ]
 }

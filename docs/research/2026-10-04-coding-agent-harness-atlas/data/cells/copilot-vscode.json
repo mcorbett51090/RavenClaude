@@ -1826,6 +1826,106 @@
     "E-copilot-vscode-01211"
    ],
    "value": "Hovering over or selecting the context window control in the chat input shows the session's total cost in credits and cumulative context token usage. The Copilot status dashboard in the Status Bar shows the percentage of the monthly allowance used. A token usage indicator in the chat panel shows a live breakdown of the context budget."
+  },
+  {
+   "id": "copilot-vscode/F23.prompt-assembly",
+   "surface": "copilot-vscode",
+   "row": "F23.prompt-assembly",
+   "state": "supported",
+   "verification": "verified",
+   "evidence": [
+    "E-copilot-vscode-80017",
+    "E-copilot-vscode-80021",
+    "E-copilot-vscode-80030",
+    "E-copilot-vscode-80032",
+    "E-copilot-vscode-80015",
+    "E-copilot-vscode-80012",
+    "E-copilot-vscode-80013",
+    "E-copilot-vscode-80040"
+   ],
+   "value": "A request includes the system prompt, custom instructions, conversation history, file contents, tool outputs and the current message. The Chat Debug view shows the exact system prompt, user prompt, context, tool definitions and tool payloads. Users change it with instructions files (applyTo), the Configure Tools picker and a custom agent's tools property."
+  },
+  {
+   "id": "copilot-vscode/F23.prompt-caching",
+   "surface": "copilot-vscode",
+   "row": "F23.prompt-caching",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-copilot-vscode-80005",
+    "E-copilot-vscode-80037",
+    "E-copilot-vscode-80039",
+    "E-copilot-vscode-80041"
+   ],
+   "value": "Prompt caching is provider and model dependent. When supported, the provider might reuse the beginning of a request that matches cached content; a change early in the request can reduce the reusable prefix. Stable context across turns lets the provider reuse tokens, and forking a session preserves the prompt cache. The Cache Explorer shows cache hit rates.",
+   "limitation": "Provider and model dependent: applies only when it is supported, and the provider 'might' reuse the matching prefix. No cache lifetime or on/off setting appears in the quotes."
+  },
+  {
+   "id": "copilot-vscode/F23.retry-backoff",
+   "surface": "copilot-vscode",
+   "row": "F23.retry-backoff",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-copilot-vscode-80001"
+   ],
+   "value": "The FAQ explains the rate-limit error: the service is temporarily limiting requests, which can happen even when the monthly AI credits allowance is not exhausted. The guidance is to wait a few minutes and retry the request.",
+   "limitation": "Only the message and a manual wait-and-retry instruction are documented; no automatic model-request retry, back-off timing or attempt limit is stated in the quotes."
+  },
+  {
+   "id": "copilot-vscode/F23.malformed-call-recovery",
+   "surface": "copilot-vscode",
+   "row": "F23.malformed-call-recovery",
+   "state": "undocumented",
+   "verification": "verified",
+   "evidence": [],
+   "sweep_report": {
+    "terms": [
+     "malformed",
+     "invalid (tool|json|argument|parameter|input)|unknown tool|tool (call|use) (error|fail|invalid)",
+     "schema validation|failed to parse|could not parse|unparseable"
+    ],
+    "corpus_sha256": "2e220feabeba00ffef75df5c1eac43384354b76f0ff178b74412d846b4203c9f",
+    "hits": 6,
+    "hits_reviewed": 6,
+    "positive_control_term": "copilot",
+    "positive_control_hits": 1010
+   }
+  },
+  {
+   "id": "copilot-vscode/F23.tool-output-limits",
+   "surface": "copilot-vscode",
+   "row": "F23.tool-output-limits",
+   "state": "undocumented",
+   "verification": "verified",
+   "evidence": [],
+   "sweep_report": {
+    "terms": [
+     "truncat",
+     "output (limit|cap)|too (large|long) (output|result)|first \\d+ (lines|characters|bytes)",
+     "max(imum)? (output|result)s?.{0,30}(size|length|bytes|characters|lines|tokens)"
+    ],
+    "corpus_sha256": "2e220feabeba00ffef75df5c1eac43384354b76f0ff178b74412d846b4203c9f",
+    "hits": 10,
+    "hits_reviewed": 10,
+    "positive_control_term": "copilot",
+    "positive_control_hits": 1010
+   }
+  },
+  {
+   "id": "copilot-vscode/F23.output-redaction",
+   "surface": "copilot-vscode",
+   "row": "F23.output-redaction",
+   "state": "partial",
+   "verification": "verified",
+   "evidence": [
+    "E-copilot-vscode-80025",
+    "E-copilot-vscode-80026",
+    "E-copilot-vscode-80028",
+    "E-copilot-vscode-80018"
+   ],
+   "value": "OTel telemetry does not capture prompts, responses or tool arguments unless github.copilot.chat.otel.captureContent is enabled (default false). captureIdentity (account name, OS username, machine hostname) is also off by default. Debug log exports, Chat Debug output and Copilot logs can contain sensitive data.",
+   "limitation": "Telemetry content is opt-in capture, not scrubbing. Logs and exports 'can contain' tool inputs and outputs and other sensitive data; the user must review and remove it before sharing. No secret masking is described."
   }
  ]
 }
