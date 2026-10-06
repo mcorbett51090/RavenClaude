@@ -99,7 +99,8 @@ def measure(root: Path) -> dict:
 
     tier_none = [e for e in entries if (e.get("verify") or {}).get("tier") == "none"]
     unprobed = [
-        e for e in entries
+        e
+        for e in entries
         if str((e.get("nuance_evidence") or {}).get("probe") or "").startswith("unprobed: ")
     ]
 
@@ -198,6 +199,41 @@ def ledger_verdict(root: Path, current_ids: list[str]) -> tuple[bool, list[str]]
     newest_graded = bool(newest.get("verdicts"))
     uncovered = [e for e in current_ids if e not in covered_by_batches]
 
+    def _grade(b: dict) -> None:
+        """Accumulate block reasons for one GRADED batch's freshness + score."""
+        bid = b.get("batch_id", "?")
+        sampled = b.get("entry_ids_sampled") or []
+        verdicts = b.get("verdicts") or {}
+        if not sampled:
+            reasons.append(f"batch {bid}: no entries sampled — an empty sample is not a review")
+            return
+        if verdicts and b.get("reviewer_context") != "fresh":
+            # A reviewer that authored the batch rubber-stamps its own summary.
+            reasons.append(
+                f"batch {bid}: reviewer_context is not 'fresh' — a reviewer who authored"
+                " the batch reviews their own summary"
+            )
+        graded = [v for v in verdicts.values() if v in ("nuance", "restatement")]
+        if len(graded) < len(sampled):
+            reasons.append(f"batch {bid}: {len(sampled)} sampled but only {len(graded)} graded")
+            return
+        score = sum(1 for v in graded if v == "nuance") / len(graded)
+        if score < REVIEW_BAR:
+            reasons.append(f"batch {bid}: scored {score:.0%}, below the {REVIEW_BAR:.0%} bar")
+
+    # Every batch BEFORE the newest must ALREADY be fully reviewed (§9.3: batch N+1 may
+    # not land before batch N is reviewed). Evaluate them FIRST — an ungraded or under-bar
+    # earlier batch blocks — so an ungraded NEWEST batch can no longer short-circuit past
+    # an earlier batch that failed review or was never graded (the false-pass this closes).
+    for b in batches[:-1]:
+        if not b.get("verdicts"):
+            reasons.append(
+                f"batch {b.get('batch_id', '?')} landed before the newest batch but was "
+                "never graded — batch N+1 may not land before batch N is reviewed"
+            )
+            continue
+        _grade(b)
+
     if not newest_graded:
         if uncovered:
             reasons.append(
@@ -205,6 +241,9 @@ def ledger_verdict(root: Path, current_ids: list[str]) -> tuple[bool, list[str]]
                 "entr(ies) outside it are already published — batch N+1 may not land "
                 "before batch N is reviewed"
             )
+        # The newest batch may land ONLY if every earlier batch is clean; it may not
+        # defer past an earlier failed or unreviewed batch.
+        if reasons:
             return False, reasons
         # The batch under review is landing. Warn loudly; do not deadlock it.
         return True, [
@@ -213,32 +252,8 @@ def ledger_verdict(root: Path, current_ids: list[str]) -> tuple[bool, list[str]]
             f"{REVIEW_BAR:.0%}. This is not a pass — it is a deferral with a deadline."
         ]
 
-    for b in batches:
-        bid = b.get("batch_id", "?")
-        sampled = b.get("entry_ids_sampled") or []
-        verdicts = b.get("verdicts") or {}
-        if not sampled:
-            reasons.append(f"batch {bid}: no entries sampled — an empty sample is not a review")
-            continue
-        if verdicts and b.get("reviewer_context") != "fresh":
-            # A reviewer that authored the batch rubber-stamps its own summary.
-            reasons.append(
-                f"batch {bid}: reviewer_context is not 'fresh' — a reviewer who authored"
-                " the batch reviews their own summary"
-            )
-        if not verdicts:
-            continue  # handled by the batch-N+1 rule above
-        graded = [v for v in verdicts.values() if v in ("nuance", "restatement")]
-        if len(graded) < len(sampled):
-            reasons.append(
-                f"batch {bid}: {len(sampled)} sampled but only {len(graded)} graded"
-            )
-            continue
-        score = sum(1 for v in graded if v == "nuance") / len(graded)
-        if score < REVIEW_BAR:
-            reasons.append(
-                f"batch {bid}: scored {score:.0%}, below the {REVIEW_BAR:.0%} bar"
-            )
+    # Newest is graded — grade it alongside the earlier reasons already gathered.
+    _grade(newest)
     return (not reasons), reasons
 
 
@@ -273,18 +288,37 @@ def main() -> int:
         with tempfile.TemporaryDirectory() as td:
             fake = Path(td)
             (fake / "tests" / "fixtures").mkdir(parents=True)
-            low = {"batches": [{"batch_id": "t1", "reviewer_context": "fresh",
-                                "entry_ids_sampled": ["a", "b", "c", "d", "e"],
-                                "verdicts": {"a": "nuance", "b": "nuance", "c": "nuance",
-                                             "d": "restatement", "e": "restatement"}}]}
+            low = {
+                "batches": [
+                    {
+                        "batch_id": "t1",
+                        "reviewer_context": "fresh",
+                        "entry_ids_sampled": ["a", "b", "c", "d", "e"],
+                        "verdicts": {
+                            "a": "nuance",
+                            "b": "nuance",
+                            "c": "nuance",
+                            "d": "restatement",
+                            "e": "restatement",
+                        },
+                    }
+                ]
+            }
             (fake / LEDGER).write_text(json.dumps(low), encoding="utf-8")
             blocked, why = ledger_verdict(fake, ["a"])
             if blocked:
                 print("✗ must-fail: a 60% batch was permitted; the bar is not enforced.")
                 return 0
-            high = {"batches": [{"batch_id": "t2", "reviewer_context": "fresh",
-                                 "entry_ids_sampled": ["a", "b", "c", "d", "e"],
-                                 "verdicts": dict.fromkeys("abcde", "nuance")}]}
+            high = {
+                "batches": [
+                    {
+                        "batch_id": "t2",
+                        "reviewer_context": "fresh",
+                        "entry_ids_sampled": ["a", "b", "c", "d", "e"],
+                        "verdicts": dict.fromkeys("abcde", "nuance"),
+                    }
+                ]
+            }
             (fake / LEDGER).write_text(json.dumps(high), encoding="utf-8")
             passed, why2 = ledger_verdict(fake, ["a"])
             if not passed:
@@ -307,13 +341,17 @@ def main() -> int:
 
     print("── inventory coverage ──")
     print(f"  published entries   : {m['published_entries']}")
-    print(f"  covered / total     : {m['covered_artifacts']} / {m['total_artifacts']}"
-          f"  ({m['coverage']:.1%})")
+    print(
+        f"  covered / total     : {m['covered_artifacts']} / {m['total_artifacts']}"
+        f"  ({m['coverage']:.1%})"
+    )
     print(f"  tier: none          : {m['tier_none']}   (reported, NOT blocking — see header)")
     print(f"  unprobed            : {m['unprobed']}   (allowed and honest; ratcheted down)")
     if restamps:
-        print(f"  restamps            : {restamps}, of which {unchanged} moved no digest"
-              f"  ({unchanged / restamps:.0%} — a HIGH ratio is the rubber-stamp tell)")
+        print(
+            f"  restamps            : {restamps}, of which {unchanged} moved no digest"
+            f"  ({unchanged / restamps:.0%} — a HIGH ratio is the rubber-stamp tell)"
+        )
     else:
         print("  restamps            : 0")
     print(f"  stale drafts (>{DRAFT_MAX_AGE_DAYS}d): {len(stale)}")
@@ -324,8 +362,10 @@ def main() -> int:
     print()
     print("── ratchet invariants ──")
     if prev:
-        for key, label in (("published_entries", "published entries"),
-                           ("covered_artifacts", "covered artifacts")):
+        for key, label in (
+            ("published_entries", "published entries"),
+            ("covered_artifacts", "covered artifacts"),
+        ):
             before, now = prev.get(key, 0), m[key]
             if now < before:
                 print(f"  ✗ {label} DECREASED {before} -> {now}. Coverage is monotonic;")
@@ -354,8 +394,10 @@ def main() -> int:
         print()
         print("── tier: none growth RATE (§10.3, the rationale-mill tell) ──")
         if d_entries > 0:
-            print(f"  since the baseline: +{d_entries} entries, of which +{d_none} are"
-                  f" tier: none ({d_none / d_entries:.0%})")
+            print(
+                f"  since the baseline: +{d_entries} entries, of which +{d_none} are"
+                f" tier: none ({d_none / d_entries:.0%})"
+            )
             print("  ⛔ Compare against the rate observed during the dedicated authoring")
             print("     phase. A higher rate afterwards means the gate has become a")
             print("     rationale mill. Signal only — never a block.")
@@ -372,8 +414,10 @@ def main() -> int:
         for r in reasons:
             print(f"  {r}")
     elif ok:
-        print("  ✓ every recorded batch carries a fresh-context sample at or above"
-              f" the {REVIEW_BAR:.0%} bar.")
+        print(
+            "  ✓ every recorded batch carries a fresh-context sample at or above"
+            f" the {REVIEW_BAR:.0%} bar."
+        )
     else:
         for r in reasons:
             print(f"  ✗ {r}")

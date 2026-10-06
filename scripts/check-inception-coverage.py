@@ -74,7 +74,11 @@ def added_artifacts(root: Path, base: str) -> tuple[list[str], str | None]:
     mb, how = _resolve_merge_base(root, base)
     if not mb:
         return [], f"{how} — the added set is UNKNOWN, not empty"
-    rc, out = _git(root, "diff", "--name-only", "--diff-filter=A", mb)
+    # --no-renames: without it, `git mv old new` into a gated dir shows as a
+    # rename (R) not an addition (A), so --diff-filter=A misses it and the new
+    # shipped artifact lands with no inventory covers[] entry. Forcing D+A makes
+    # the new path appear as added and therefore require coverage.
+    rc, out = _git(root, "diff", "--no-renames", "--name-only", "--diff-filter=A", mb)
     if rc != 0:
         return [], "git diff failed — the added set is UNKNOWN, not empty"
     hits = []
@@ -190,8 +194,11 @@ def main() -> int:
         # one commit, no remote, no merge commit, and GITHUB_BASE_REF cleared.
         with tempfile.TemporaryDirectory() as _td:
             _r = Path(_td)
-            for _cmd in (["init", "-q"], ["config", "user.email", "t@t"],
-                         ["config", "user.name", "t"]):
+            for _cmd in (
+                ["init", "-q"],
+                ["config", "user.email", "t@t"],
+                ["config", "user.name", "t"],
+            ):
                 subprocess.run(["git", "-C", str(_r), *_cmd], check=False, timeout=60)
             (_r / "seed.txt").write_text("x\n", encoding="utf-8")
             subprocess.run(["git", "-C", str(_r), "add", "-A"], check=False, timeout=60)

@@ -135,7 +135,15 @@ printf '%s\n' "$listing" | while IFS= read -r cmd; do
   # ($CLAUDE_*, ${CLAUDE_PLUGIN_ROOT}) resolve to nothing under env -i, which is
   # exactly the empty-arg case the hooks must already survive.
   set -- $cmd
+  # Drop a leading interpreter so $1 is the actual hook script, not "bash": 4
+  # PreToolUse guards are declared `bash "${CLAUDE_PLUGIN_ROOT}/scripts/<x>.sh" …`
+  # and were silently skipped ([ -f bash ] failed -> continue), so the audit drove
+  # 15 of 19 PreToolUse hooks and still reported clean.
+  if [ "$1" = "bash" ] || [ "$1" = "sh" ]; then shift; fi
   script="$1"; shift
+  # Word-splitting unquoted $cmd keeps the literal quotes a `"${CLAUDE_PLUGIN_ROOT}/…"`
+  # token carries; strip one leading/trailing double-quote before resolving.
+  script="${script#\"}"; script="${script%\"}"
   script="$(printf '%s' "$script" | sed 's|\${CLAUDE_PLUGIN_ROOT}|'"$REPO/plugins/ravenclaude-core"'|; s|\$CLAUDE_PLUGIN_ROOT|'"$REPO/plugins/ravenclaude-core"'|')"
   [ -f "$script" ] || continue
   _audit_one "$(basename "$script")" "$script" "$@"
@@ -149,6 +157,17 @@ n="$((PASS + FAIL))"
 
 if [ "$n" -eq 0 ]; then
   echo "  FAIL-CLOSED: zero hooks were driven — the audit measured nothing" >&2
+  exit 2
+fi
+
+# Every DECLARED PreToolUse hook must be driven. A declared hook the audit cannot
+# resolve to a script (an unresolvable `bash <path>`, a renamed file) is a COVERAGE
+# GAP, not a silent skip — the exact class that let 4 `bash <script>`-form guards go
+# unaudited while the summary still read clean. Fail closed on audited != declared.
+declared="$(printf '%s\n' "$listing" | grep -c '[^[:space:]]')" || declared=0
+if [ "$n" -ne "$declared" ]; then
+  echo "  FAIL-CLOSED: audited $n of $declared declared PreToolUse hook(s) — one or more" >&2
+  echo "  could not be resolved to a script and was silently skipped." >&2
   exit 2
 fi
 

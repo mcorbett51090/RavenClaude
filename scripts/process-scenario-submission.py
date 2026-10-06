@@ -239,18 +239,20 @@ def main() -> int:
         _write_decision("reject", None, None, f"missing required field(s): {', '.join(missing)}")
         return 0
 
-    # --- Secret / PII gate: reject (never stage) on any match across all free text. ---
-    # Gate on the SAME normalized text the staged file is built from (see
-    # _normalize_intake) so an obfuscated secret can't pass the gate and then be
-    # reconstructed into the quarantine file by the strip's own normalization.
-    # NB: `plugin` is included — it is a REQUIRED field whose only other check is a
-    # slug regex ([A-Za-z0-9._-]{1,64}), and common secret shapes (ghp_+36, npm_+36,
-    # AKIA+16, github_pat_) fit that charset+length, so a credential smuggled into the
-    # `### Plugin` field would otherwise pass unscanned and be written verbatim into the
-    # staged frontmatter (2026-07-13 review). scope_guess/confidence are constrained to
-    # tiny enums downstream, but are cheap to gate here too.
+    # --- Secret / PII gate: reject (never stage) on the FINAL stripped text. ---
+    # Scan exactly what lands in the staged file — the _strip_injection output, NOT the
+    # pre-strip _normalize_intake text. Gating on _normalize_intake closed only the
+    # unicode-ordering bypass (ghp_<ZWSP>… / fullwidth ＡＫＩＡ…); it still MISSED an
+    # injection-SPAN split (ghp_<system-reminder>x</system-reminder> + 36 chars): the
+    # span leaves SECRET_RE unmatched on the normalized field (gate passes), yet
+    # _strip_injection then removes the span and reassembles the intact secret into the
+    # quarantine file. _strip_injection runs _normalize_intake first, so scanning its
+    # output closes BOTH orderings. (`plugin` is included — it is a REQUIRED field whose
+    # only other check is a slug regex ([A-Za-z0-9._-]{1,64}), and common secret shapes
+    # (ghp_+36, npm_+36, AKIA+16, github_pat_) fit that charset+length — 2026-07-13 +
+    # 2026-10-06 reviews.) scope_guess/confidence are tiny enums but are cheap to gate.
     combined = "\n".join(
-        _normalize_intake(fields.get(f, ""))
+        _strip_injection(fields.get(f, ""))
         for f in (
             "scenario_title",
             "plugin",
