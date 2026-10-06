@@ -132,6 +132,13 @@ jobs:
               - '**/*.json'
               - '**/*.css'
               - '**/*.html'
+              # Lint config files the suite jobs READ: a PR touching only these is
+              # NOT docs-only (ruff.toml / .prettierignore match no extension glob
+              # above, so without these a config-only change skipped lint_ruff /
+              # lint_prettier on the PR and main went red post-merge).
+              - 'ruff.toml'
+              - '.prettierignore'
+              - '.prettierrc.json'
               - '.github/**'
               - 'scripts/**'
               - 'plugins/**'

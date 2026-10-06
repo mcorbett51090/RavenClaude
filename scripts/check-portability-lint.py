@@ -63,9 +63,9 @@ SCOPE_DIR_ANY = ["plugins/*/bin"]
 # job, so linting them would be the self-non-recursion failure: a guard that
 # denies its own fix and its own test.
 EXEMPT_NAMES = {
-    "_portable.sh",             # the shims themselves
+    "_portable.sh",  # the shims themselves
     "check-macos-portability.sh",  # the runtime runner; drives the real thing
-    "check-portability-lint.py",   # this file
+    "check-portability-lint.py",  # this file
 }
 EXEMPT_PATH_PARTS = ("/tests/", "/fixtures/", "/test/")
 SENTINEL = re.compile(r"#\s*noport\b")
@@ -95,21 +95,27 @@ def load_tokens(table: Path = TABLE):
         raise SystemExit(f"portability-lint: {table} is not valid JSON: {exc}") from exc
     toks = data.get("tokens") or []
     if not toks:
-        raise SystemExit(f"portability-lint: {table} declares no tokens — refusing to pass vacuously")
+        raise SystemExit(
+            f"portability-lint: {table} declares no tokens — refusing to pass vacuously"
+        )
     out = []
     for t in toks:
         try:
             pair = t.get("portable_pair")
-            out.append((
-                t["id"],
-                re.compile(t["pattern"]),
-                t.get("why", ""),
-                t.get("shim", ""),
-                t.get("mode", "command"),
-                re.compile(pair) if pair else None,
-            ))
+            out.append(
+                (
+                    t["id"],
+                    re.compile(t["pattern"]),
+                    t.get("why", ""),
+                    t.get("shim", ""),
+                    t.get("mode", "command"),
+                    re.compile(pair) if pair else None,
+                )
+            )
         except re.error as exc:
-            raise SystemExit(f"portability-lint: token {t.get('id')!r} has an uncompilable pattern: {exc}")
+            raise SystemExit(
+                f"portability-lint: token {t.get('id')!r} has an uncompilable pattern: {exc}"
+            )
         except KeyError as exc:
             raise SystemExit(f"portability-lint: token entry missing {exc}")
     return out
@@ -150,8 +156,15 @@ def _blank(m) -> str:
 
 
 def _strip_comment(line: str) -> str:
-    h = line.find("#")
-    return line if h == -1 else line[:h] + " " * (len(line) - h)
+    # A '#' starts a shell comment only at line start or after whitespace. A '#'
+    # preceded by any other char is NOT a comment — notably `$#` (positional-param
+    # count) and `${#arr[@]}` (length expansion). Truncating at the first '#'
+    # blindly dropped everything after those, hiding a non-portable token that
+    # happened to sit on the same line. Length is preserved so nothing shifts.
+    for h, ch in enumerate(line):
+        if ch == "#" and (h == 0 or line[h - 1].isspace()):
+            return line[:h] + " " * (len(line) - h)
+    return line
 
 
 def _preprocess(line: str, mode: str) -> str:
@@ -229,18 +242,18 @@ def self_test() -> int:
     # future scan, and a literal here would be a finding about the linter.
     D, I = "-", "i"
     fixtures = {
-        "assoc-array":      "declare " + D + "A m",
-        "mapfile":          "mapfile " + D + "t arr < f",
-        "case-expansion":   "echo ${v^^}",
-        "globstar":         "shopt " + D + "s globstar",
-        "gnu-timeout":      "timeout 5 sleep 1",
-        "pcre-grep":        "grep " + D + "P 'x' f",
-        "sed-in-place":     "sed " + D + I + " 's/a/b/' f",
-        "gnu-find":         "find . " + D + "printf '%p'",
-        "readlink-f":       "readlink " + D + "f /x",
-        "gnu-date":         "date " + D + "d yesterday",
-        "gnu-stat":         "stat " + D + "c '%s' f",
-        "gnu-base64-wrap":  "base64 " + D + "w 0 f",
+        "assoc-array": "declare " + D + "A m",
+        "mapfile": "mapfile " + D + "t arr < f",
+        "case-expansion": "echo ${v^^}",
+        "globstar": "shopt " + D + "s globstar",
+        "gnu-timeout": "timeout 5 sleep 1",
+        "pcre-grep": "grep " + D + "P 'x' f",
+        "sed-in-place": "sed " + D + I + " 's/a/b/' f",
+        "gnu-find": "find . " + D + "printf '%p'",
+        "readlink-f": "readlink " + D + "f /x",
+        "gnu-date": "date " + D + "d yesterday",
+        "gnu-stat": "stat " + D + "c '%s' f",
+        "gnu-base64-wrap": "base64 " + D + "w 0 f",
     }
     declared = {t[0] for t in tokens}
     missing_fixture = declared - set(fixtures)
@@ -260,14 +273,14 @@ def self_test() -> int:
     # Anti-flood companions. A linter that fires on the shimmed form, on prose,
     # or on a sentinel-marked line would be turned off within a day.
     clean = [
-        ("shimmed timeout",        '_rc_timeout 5 sleep 1'),
-        ("shimmed pcre match",     '_rc_pcre_match "$pat" "$f"'),
-        ("shimmed upper",          'u="$(_rc_upper "$v")"'),
+        ("shimmed timeout", "_rc_timeout 5 sleep 1"),
+        ("shimmed pcre match", '_rc_pcre_match "$pat" "$f"'),
+        ("shimmed upper", 'u="$(_rc_upper "$v")"'),
         ("a comment naming a banned token", "# never use " + D + "P here; it is GNU-only"),
-        ("sentinel-marked line",   "grep " + D + "P 'x' f  # noport: documented example"),
-        ("portable read loop",     'while IFS= read -r l; do :; done < f'),
+        ("sentinel-marked line", "grep " + D + "P 'x' f  # noport: documented example"),
+        ("portable read loop", "while IFS= read -r l; do :; done < f"),
         ("a plain word 'timeout'", 'echo "the timeout was reached"'),
-        ("stat with no -c",        "stat " + D + "f '%z' f"),
+        ("stat with no -c", "stat " + D + "f '%z' f"),
     ]
     for label, snippet in clean:
         hits = scan_text(snippet, tokens)
@@ -297,15 +310,17 @@ def self_test() -> int:
     # relative TABLE path, so the self-test's cwd is the repo root by contract.)
     scoped = {p.as_posix() for p in scoped_files(Path("."))}
     for probe in (
-        "plugins/ravenclaude-core/scripts/thing-seat.sh",    # the closed gap: plugins/*/scripts/
+        "plugins/ravenclaude-core/scripts/thing-seat.sh",  # the closed gap: plugins/*/scripts/
         "plugins/ravenclaude-core/hooks/enforce-layout.sh",  # plugins/*/hooks/ (still covered)
-        "scripts/audit-gates.sh",                            # scripts/*.sh (still covered)
+        "scripts/audit-gates.sh",  # scripts/*.sh (still covered)
     ):
         if probe in scoped:
             print(f"  ✓ in scope: {probe}")
         else:
             ok = False
-            print(f"  ✗ OUT OF SCOPE: {probe} — the CI backstop must cover it (drift from the in-loop hook)")
+            print(
+                f"  ✗ OUT OF SCOPE: {probe} — the CI backstop must cover it (drift from the in-loop hook)"
+            )
 
     print("\nteeth verified" if ok else "\nTEETH BROKEN")
     return 0 if ok else 2

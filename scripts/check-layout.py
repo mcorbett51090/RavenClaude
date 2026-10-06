@@ -44,8 +44,9 @@ def _matches(path: str, glob: str) -> bool:
     return fnmatchcase(path, glob)
 
 
-def check_paths(paths: list[str], allowed: list[str], forbidden: list[str],
-                suggestions: dict) -> list[str]:
+def check_paths(
+    paths: list[str], allowed: list[str], forbidden: list[str], suggestions: dict
+) -> list[str]:
     failures: list[str] = []
     for path in paths:
         path = path.strip()
@@ -80,23 +81,45 @@ def main() -> int:
     suggestions = layout.get("suggestions", {})
 
     if args.all:
-        out = subprocess.run(["git", "-C", str(root), "ls-files"],
-                             capture_output=True, text=True)
+        # -c core.quotepath=false: without it git octal-quotes non-ASCII paths
+        # (docs/résumé.md -> "docs/r\303\251sum\303\251.md"), which then match no
+        # allowed_glob and fail the layout gate with a misleading message.
+        out = subprocess.run(
+            ["git", "-c", "core.quotepath=false", "-C", str(root), "ls-files"],
+            capture_output=True,
+            text=True,
+        )
         if out.returncode != 0:
-            print(f"check-layout: `git ls-files` failed (exit {out.returncode}): "
-                  f"{out.stderr.strip()}", file=sys.stderr)
+            print(
+                f"check-layout: `git ls-files` failed (exit {out.returncode}): "
+                f"{out.stderr.strip()}",
+                file=sys.stderr,
+            )
             return 2
         paths = out.stdout.splitlines()
         scope = f"all {len(paths)} tracked files"
     else:
         out = subprocess.run(
-            ["git", "-C", str(root), "diff", "--name-only", "--diff-filter=ACR",
-             f"{args.diff}...HEAD"],
-            capture_output=True, text=True)
+            [
+                "git",
+                "-c",
+                "core.quotepath=false",
+                "-C",
+                str(root),
+                "diff",
+                "--name-only",
+                "--diff-filter=ACR",
+                f"{args.diff}...HEAD",
+            ],
+            capture_output=True,
+            text=True,
+        )
         if out.returncode != 0:
-            print(f"check-layout: `git diff ...{args.diff}` failed (exit {out.returncode}) "
-                  f"— base ref unresolvable, refusing to pass silently: {out.stderr.strip()}",
-                  file=sys.stderr)
+            print(
+                f"check-layout: `git diff ...{args.diff}` failed (exit {out.returncode}) "
+                f"— base ref unresolvable, refusing to pass silently: {out.stderr.strip()}",
+                file=sys.stderr,
+            )
             return 2
         paths = out.stdout.splitlines()
         scope = f"{len(paths)} added/copied/renamed file(s) vs {args.diff}"

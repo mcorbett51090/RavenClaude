@@ -423,7 +423,15 @@ def audit(path: Path) -> list[Finding]:
             mf = MUST_FAIL_RE.match(line)
             if mf and pending and pending[-1][0] == mf.group(1):
                 pending[-1][2] = True
-            if pending and EXIT_TWO_RE.search(line) and pending[-1][0] in line:
+            if (
+                pending
+                and EXIT_TWO_RE.search(line)
+                and re.search(r"\$\{?" + re.escape(pending[-1][0]) + r"\b", line)
+            ):
+                # Require a real shell reference to the captured rc var ($rc / ${rc}),
+                # not a bare substring: "rc" is a substring of "archive"/"src", so an
+                # unrelated `[ "$archive_count" -eq 2 ]` line used to satisfy the
+                # exit-2 assertion and let a hook that only asserts must_fail pass.
                 pending[-1][3] = True
         for var, j, saw_must_fail, saw_exit_two in pending:
             if saw_must_fail and not saw_exit_two:

@@ -79,8 +79,16 @@ _HEAD_BYTES = 1500
 
 
 def tracked_files() -> list[str]:
-    out = subprocess.run(["git", "ls-files"], cwd=REPO_ROOT, capture_output=True, text=True)
-    return out.stdout.split()
+    # -c core.quotepath=false: don't octal-quote non-ASCII paths. splitlines() (not
+    # .split()): a path may contain a space, which whitespace-split would break into
+    # two bogus tokens — ls-files emits one path per line.
+    out = subprocess.run(
+        ["git", "-c", "core.quotepath=false", "ls-files"],
+        cwd=REPO_ROOT,
+        capture_output=True,
+        text=True,
+    )
+    return out.stdout.splitlines()
 
 
 def generated_files() -> list[str]:
