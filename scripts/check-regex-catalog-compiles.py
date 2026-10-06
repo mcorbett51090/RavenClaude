@@ -127,7 +127,7 @@ def extract_md_yaml_triggers(text: str, selector: str) -> list[Found]:
             if not isinstance(entry, dict):
                 continue
             ident = entry.get("id") or entry.get("name") or "?"
-            for rx in ((entry.get("triggers") or {}).get(field) or []):
+            for rx in (entry.get("triggers") or {}).get(field) or []:
                 out.append(Found(f"{group}/{ident}", rx))
 
     collect(data.get("cross_cutting"), "cross_cutting")
@@ -190,6 +190,16 @@ def compile_catalog(path: Path, extractor: str, selector: str) -> list[str]:
 
     failures = []
     for where, pattern in found:
+        if not isinstance(pattern, str):
+            # A bare YAML scalar like `- yes` / `- 1.0` parses as bool/float, and
+            # re.compile(True) raises TypeError (not re.error), which used to escape
+            # the except below and crash the script with exit 1 — a code the hook
+            # harness treats as non-blocking. Report it as a real failure (exit 2).
+            failures.append(
+                f"{path} [{where}]: trigger is not a string "
+                f"({type(pattern).__name__}: {pattern!r}) — quote it in the catalog"
+            )
+            continue
         try:
             re.compile(pattern)
         except re.error as exc:
@@ -232,8 +242,10 @@ def run(catalogs) -> int:
             print(f"  {f}", file=sys.stderr)
         return 2
 
-    print(f"check-regex-catalog-compiles: {total} regex(es) across "
-          f"{len(catalogs) - len(unrunnable)} catalog(s) all compile")
+    print(
+        f"check-regex-catalog-compiles: {total} regex(es) across "
+        f"{len(catalogs) - len(unrunnable)} catalog(s) all compile"
+    )
     return 0
 
 
@@ -294,8 +306,12 @@ def self_test() -> int:
             # Corrupt the FIRST trigger regex line inside the yaml block.
             lines = text.splitlines()
             hit = next(
-                (i for i, ln in enumerate(lines) if re.match(r"^\s+-\s+'.*'\s*$", ln)
-                 and "regex" in "\n".join(lines[max(0, i - 4):i])),
+                (
+                    i
+                    for i, ln in enumerate(lines)
+                    if re.match(r"^\s+-\s+'.*'\s*$", ln)
+                    and "regex" in "\n".join(lines[max(0, i - 4) : i])
+                ),
                 None,
             )
             if hit is None:

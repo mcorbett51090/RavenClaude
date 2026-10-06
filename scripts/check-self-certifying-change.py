@@ -133,7 +133,9 @@ _ROOTS = (
     ".claude",
 )
 PATH_LITERAL_RE = re.compile(
-    r"(?<![A-Za-z0-9_./-])(" + "|".join(re.escape(r) for r in _ROOTS) + r")/[A-Za-z0-9_*?./-]*[A-Za-z0-9_*?]"
+    r"(?<![A-Za-z0-9_./-])("
+    + "|".join(re.escape(r) for r in _ROOTS)
+    + r")/[A-Za-z0-9_*?./-]*[A-Za-z0-9_*?]"
 )
 # Committed top-level artifacts that gates assert over by bare name.
 TOP_LEVEL_RE = re.compile(
@@ -170,7 +172,7 @@ _BLOCK_COMMENT_RE = re.compile(r"/\*.*?\*/", re.S)
 _TRIPLE_RE = re.compile(r'"""(?:.|\n)*?"""|\'\'\'(?:.|\n)*?\'\'\'')
 
 
-def strip_commentary(text: str) -> str:
+def strip_commentary(text: str, is_js: bool = False) -> str:
     """Remove comments and docstrings before looking for path literals.
 
     ⛔ A PATH NAMED IN PROSE IS NOT A TARGET — the source-scan-matches-prose trap
@@ -181,7 +183,12 @@ def strip_commentary(text: str) -> str:
     scanning raw source makes every explained cross-reference look like a
     dependency.
     """
-    text = _BLOCK_COMMENT_RE.sub(" ", text)
+    # ⛔ C-style /* … */ block comments exist only in JS/MJS. Applying this strip to a
+    # .py/.sh source silently eats real path targets: a glob literal "a/*/b" opens a
+    # fake comment that a later "c/**" closes, swallowing every target between (the dry
+    # run's 4-checker target-loss class). Gate it on the real file type.
+    if is_js:
+        text = _BLOCK_COMMENT_RE.sub(" ", text)
     text = _TRIPLE_RE.sub(" ", text)
     out: list[str] = []
     for line in text.splitlines():
@@ -257,7 +264,7 @@ def _whole(text: str) -> str | None:
     return s if m else None
 
 
-def _literals(text: str) -> set[str]:
+def _literals(text: str, is_js: bool = False) -> set[str]:
     """Path literals a checker uses AS PATHS, not ones it merely mentions.
 
     ⛔ A PATH INSIDE A MESSAGE IS STILL PROSE — the dry run's third false-positive
@@ -272,7 +279,7 @@ def _literals(text: str) -> set[str]:
     `const ROOT = "scripts/serve-dashboards.py"`) or a standalone unquoted token
     in shell. A path a program TALKS ABOUT is one word inside a sentence.
     """
-    text = strip_commentary(text)
+    text = strip_commentary(text, is_js=is_js)
     out: set[str] = set()
     for line in text.splitlines():
         inside, outside = _split_strings(line)
@@ -345,7 +352,9 @@ class GitTree(Tree):
 
     def paths(self) -> set[str]:
         if self._paths is None:
-            self._paths = set(_git(["ls-tree", "-r", "--name-only", self.rev], self.root).splitlines())
+            self._paths = set(
+                _git(["ls-tree", "-r", "--name-only", self.rev], self.root).splitlines()
+            )
         return self._paths
 
     def read(self, path: str) -> str:
@@ -388,7 +397,7 @@ def _resolve(literal: str, tree: Tree) -> set[str]:
 def targets_of(checker: str, source: str, tree: Tree) -> set[str]:
     """The tree paths `checker`'s source claims to read, minus the checker itself."""
     resolved: set[str] = set()
-    for lit in _literals(source):
+    for lit in _literals(source, is_js=checker.endswith((".js", ".mjs"))):
         resolved |= _resolve(lit, tree)
     resolved.discard(checker)
     return resolved
@@ -470,7 +479,9 @@ def verify_manifest(root: Path) -> list[str]:
                 problems.append(f"{where}: oracle {op} unreadable: {exc}")
                 continue
             if base not in otext:
-                problems.append(f"{where}: oracle {op} never references {base} — it is not an oracle for it")
+                problems.append(
+                    f"{where}: oracle {op} never references {base} — it is not an oracle for it"
+                )
 
     waivers = data.get("waivers")
     if not isinstance(waivers, list):
@@ -487,7 +498,9 @@ def verify_manifest(root: Path) -> list[str]:
                 problems.append(f"{where}: `{key}` must be a non-empty string")
         reason = w.get("reason") or ""
         if isinstance(reason, str) and reason.strip() and len(reason.strip()) < 30:
-            problems.append(f"{where}: reason is too short to be a reason ({len(reason.strip())} chars)")
+            problems.append(
+                f"{where}: reason is too short to be a reason ({len(reason.strip())} chars)"
+            )
         checker = w.get("checker")
         if isinstance(checker, str) and checker and not (root / checker).is_file():
             problems.append(f"{where}: checker {checker} does not exist in the tree")
@@ -499,7 +512,9 @@ def verify_manifest(root: Path) -> list[str]:
 
 def analyze(changes: list[Change], tree: Tree, manifest: dict) -> list[Finding]:
     if not changes:
-        raise Ambiguity("the diff contains no paths — the detector had nothing to read (UNWIRED, not clean)")
+        raise Ambiguity(
+            "the diff contains no paths — the detector had nothing to read (UNWIRED, not clean)"
+        )
 
     by_path = {c.path: c for c in changes}
     changed_paths = set(by_path)
@@ -588,7 +603,9 @@ def _git(args: list[str], root: Path) -> str:
     return proc.stdout
 
 
-def collect_changes(root: Path, *, commit: str | None, rng: str | None, staged: bool) -> list[Change]:
+def collect_changes(
+    root: Path, *, commit: str | None, rng: str | None, staged: bool
+) -> list[Change]:
     if commit:
         name_status = ["show", "--name-status", "--format=", "-m", "--first-parent", commit]
         hunk_args = ["show", "-U0", "--format=", "--first-parent", commit, "--", HUNK_SCOPED]
@@ -659,10 +676,15 @@ def _fixture_names() -> tuple[str, str, str, str]:
     return checker, target, oracle, unrelated
 
 
-def _fixture_manifest(checker: str, oracle: str, *, with_oracle: bool, waiver: str | None, reason: str) -> dict:
+def _fixture_manifest(
+    checker: str, oracle: str, *, with_oracle: bool, waiver: str | None, reason: str
+) -> dict:
     m: dict = {"schema_version": 1, "oracles": {}, "waivers": []}
     if with_oracle:
-        m["oracles"][checker] = {"oracles": [oracle], "reason": "fixture oracle, " + "declared for the self-test"}
+        m["oracles"][checker] = {
+            "oracles": [oracle],
+            "reason": "fixture oracle, " + "declared for the self-test",
+        }
     if waiver:
         m["waivers"].append({"checker": checker, "target": waiver, "reason": reason})
     return m
@@ -702,42 +724,72 @@ def _run_self_test() -> int:
 
         # 1. MUST FAIL — the checker and the artifact it names, both modified.
         co_change = [Change("M", checker, ""), Change("M", target, "")]
-        check("must-fail: checker + its named target modified together is flagged", len(analyze(co_change, tree, bare)) == 1)
+        check(
+            "must-fail: checker + its named target modified together is flagged",
+            len(analyze(co_change, tree, bare)) == 1,
+        )
 
         # 2. SILENT-ON-GOOD — the target moves alone.
-        check("silent-on-good: the target alone is not a finding", analyze([Change("M", target, "")], tree, bare) == [])
+        check(
+            "silent-on-good: the target alone is not a finding",
+            analyze([Change("M", target, "")], tree, bare) == [],
+        )
 
         # 3. SILENT-ON-GOOD — the checker moves alone.
-        check("silent-on-good: the checker alone is not a finding", analyze([Change("M", checker, "")], tree, bare) == [])
+        check(
+            "silent-on-good: the checker alone is not a finding",
+            analyze([Change("M", checker, "")], tree, bare) == [],
+        )
 
         # 4. SILENT-ON-GOOD — an unchanged declared oracle clears it (the Gate 51 remedy).
         with_oracle = _fixture_manifest(checker, oracle, with_oracle=True, waiver=None, reason="")
-        check("silent-on-good: an UNCHANGED declared external oracle clears the co-change", analyze(co_change, tree, with_oracle) == [])
+        check(
+            "silent-on-good: an UNCHANGED declared external oracle clears the co-change",
+            analyze(co_change, tree, with_oracle) == [],
+        )
 
         # 5. MUST FAIL — the same oracle, itself in the diff, suppresses nothing.
         touched = co_change + [Change("M", oracle, "")]
-        check("must-fail: an oracle that is ITSELF in the diff suppresses nothing", len(analyze(touched, tree, with_oracle)) == 1)
+        check(
+            "must-fail: an oracle that is ITSELF in the diff suppresses nothing",
+            len(analyze(touched, tree, with_oracle)) == 1,
+        )
 
         # 6. SILENT-ON-GOOD — a newly ADDED checker (every new-gate PR) is not a re-authoring.
         added = [Change("A", checker, ""), Change("M", target, "")]
-        check("silent-on-good: a newly ADDED checker is not a re-authoring", analyze(added, tree, bare) == [])
+        check(
+            "silent-on-good: a newly ADDED checker is not a re-authoring",
+            analyze(added, tree, bare) == [],
+        )
 
         # 7. SILENT-ON-GOOD — a newly ADDED target cannot have been certified around.
         added_target = [Change("M", checker, ""), Change("A", target, "")]
-        check("silent-on-good: a newly ADDED target is not a re-authoring", analyze(added_target, tree, bare) == [])
+        check(
+            "silent-on-good: a newly ADDED target is not a re-authoring",
+            analyze(added_target, tree, bare) == [],
+        )
 
         # 8. SILENT-ON-GOOD — a reasoned waiver clears exactly its own pair.
         reason = "a fixture waiver whose reason is long enough to be a real reason"
         waived = _fixture_manifest(checker, oracle, with_oracle=False, waiver=target, reason=reason)
-        check("silent-on-good: a reasoned waiver clears its own pair", analyze(co_change, tree, waived) == [])
+        check(
+            "silent-on-good: a reasoned waiver clears its own pair",
+            analyze(co_change, tree, waived) == [],
+        )
 
         # 9. MUST FAIL — a waiver with an EMPTY reason is a silenced finding, not a waiver.
         silent = _fixture_manifest(checker, oracle, with_oracle=False, waiver=target, reason="")
-        check("must-fail: an EMPTY-reason waiver suppresses nothing", len(analyze(co_change, tree, silent)) == 1)
+        check(
+            "must-fail: an EMPTY-reason waiver suppresses nothing",
+            len(analyze(co_change, tree, silent)) == 1,
+        )
 
         # 10. MUST FAIL — a path the checker does NOT name is not its target.
         pair = [Change("M", checker, ""), Change("M", unrelated, "")]
-        check("silent-on-good: a co-changed path the checker never names is not a target", analyze(pair, tree, bare) == [])
+        check(
+            "silent-on-good: a co-changed path the checker never names is not a target",
+            analyze(pair, tree, bare) == [],
+        )
 
         # 11. UNWIRED — an empty diff must be loud, never green.
         unwired = False
@@ -763,16 +815,42 @@ def _run_self_test() -> int:
         )
 
         # 13. MANIFEST INTEGRITY — a rotted oracle path is caught.
-        _mk_tree(root, {MANIFEST_PATH.as_posix(): json.dumps(_fixture_manifest(checker, oracle, with_oracle=True, waiver=None, reason=""))})
+        _mk_tree(
+            root,
+            {
+                MANIFEST_PATH.as_posix(): json.dumps(
+                    _fixture_manifest(checker, oracle, with_oracle=True, waiver=None, reason="")
+                )
+            },
+        )
         check("manifest: a live, well-formed manifest verifies clean", verify_manifest(root) == [])
-        gone = _fixture_manifest(checker, _seg("scripts", "does-not-exist" + ".selftest" + ".mjs"), with_oracle=True, waiver=None, reason="")
+        gone = _fixture_manifest(
+            checker,
+            _seg("scripts", "does-not-exist" + ".selftest" + ".mjs"),
+            with_oracle=True,
+            waiver=None,
+            reason="",
+        )
         _mk_tree(root, {MANIFEST_PATH.as_posix(): json.dumps(gone)})
-        check("manifest must-fail: an oracle path that no longer exists is caught", verify_manifest(root) != [])
+        check(
+            "manifest must-fail: an oracle path that no longer exists is caught",
+            verify_manifest(root) != [],
+        )
 
         # 14. MANIFEST INTEGRITY — an oracle that never names its checker is inert.
         _mk_tree(root, {oracle: "// unrelated file that names nothing\n"})
-        _mk_tree(root, {MANIFEST_PATH.as_posix(): json.dumps(_fixture_manifest(checker, oracle, with_oracle=True, waiver=None, reason=""))})
-        check("manifest must-fail: an oracle that never references its checker is caught", verify_manifest(root) != [])
+        _mk_tree(
+            root,
+            {
+                MANIFEST_PATH.as_posix(): json.dumps(
+                    _fixture_manifest(checker, oracle, with_oracle=True, waiver=None, reason="")
+                )
+            },
+        )
+        check(
+            "manifest must-fail: an oracle that never references its checker is caught",
+            verify_manifest(root) != [],
+        )
 
         # 15. MANIFEST INTEGRITY — an empty waiver reason is caught.
         _mk_tree(root, {oracle: oracle_body})
@@ -781,11 +859,20 @@ def _run_self_test() -> int:
         check("manifest must-fail: a blank waiver reason is caught", verify_manifest(root) != [])
 
         # 16. RANGE HEAD — three-dot `A...B` is not two-dot `A..B` with a leading dot.
-        check("range-head: three-dot range resolves to the right-hand rev", _range_head("origin/main...HEAD") == "HEAD")
-        check("range-head: two-dot range resolves to the right-hand rev", _range_head("abc..def") == "def")
+        check(
+            "range-head: three-dot range resolves to the right-hand rev",
+            _range_head("origin/main...HEAD") == "HEAD",
+        )
+        check(
+            "range-head: two-dot range resolves to the right-hand rev",
+            _range_head("abc..def") == "def",
+        )
 
     if failures:
-        print(f"\nself-test FAILED — {len(failures)} fixture(s) did not behave as specified:", file=sys.stderr)
+        print(
+            f"\nself-test FAILED — {len(failures)} fixture(s) did not behave as specified:",
+            file=sys.stderr,
+        )
         for f in failures:
             print(f"  - {f}", file=sys.stderr)
         return 2
@@ -848,7 +935,9 @@ def _run_must_fail() -> int:
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
     ap.add_argument("--self-test", action="store_true", help="run the fixture pairs and exit")
     ap.add_argument(
         "--must-fail",
@@ -881,7 +970,9 @@ def main() -> int:
                     file=sys.stderr,
                 )
                 return 2
-            print(f"self-certifying-change: {MANIFEST_PATH} is intact (every declared oracle and waiver resolves).")
+            print(
+                f"self-certifying-change: {MANIFEST_PATH} is intact (every declared oracle and waiver resolves)."
+            )
             return 0
 
         manifest = load_manifest(root)
@@ -900,10 +991,15 @@ def main() -> int:
         return 2
 
     if not findings:
-        print(f"self-certifying-change: no gate was re-authored alongside its own target ({len(changes)} path(s) scanned).")
+        print(
+            f"self-certifying-change: no gate was re-authored alongside its own target ({len(changes)} path(s) scanned)."
+        )
         return 0
 
-    print("self-certifying-change: a gate moved in the same diff as the thing it gates\n", file=sys.stderr)
+    print(
+        "self-certifying-change: a gate moved in the same diff as the thing it gates\n",
+        file=sys.stderr,
+    )
     for f in findings:
         print(f"  ✗ {f.checker}\n      asserts over  {f.target}\n      {f.why}", file=sys.stderr)
     print(

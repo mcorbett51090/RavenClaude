@@ -70,7 +70,10 @@ CARVE_SUBSTR = (
 
 
 def is_carved(rel: str) -> bool:
-    return any(c in rel for c in CARVE_SUBSTR)
+    # Match against a leading-slash-normalized path so the "/tests/" and "/docs/"
+    # carve-outs also cover repo-ROOT tests/ and docs/ (git ls-files paths have no
+    # leading slash, so "/tests/" would otherwise only match NESTED tests/ dirs).
+    return any(c in ("/" + rel) for c in CARVE_SUBSTR)
 
 
 def scan_text(text: str, current: set) -> list:

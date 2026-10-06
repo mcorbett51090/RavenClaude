@@ -104,6 +104,13 @@ def render_value(key: str, val: str) -> str:
 
 _SIMPLE_KV = re.compile(r"^\s*([A-Za-z0-9_-]+)\s*=\s*(.+?)\s*$")
 _TABLE = re.compile(r"^\s*\[([^\]]+)\]\s*$")
+# Matches ANY table header, INCLUDING an array-of-tables `[[x]]`. _TABLE above
+# deliberately does not match `[[x]]` (it captures a single table's name), but using
+# it to find "where the first table begins" placed root-level keys BELOW a leading
+# `[[hooks.pre]]`, binding sandbox_mode/approval_policy to hooks.pre[0] instead of
+# root — the silent-weakening the root-anchor comment below warns about. Use this
+# for the anchor only; keep _TABLE for name matching.
+_ANY_TABLE = re.compile(r"^\s*\[\[?[^\]]+\]\]?\s*$")
 _LEVEL = re.compile(r"^\s*(user|local|project)\s*:\s*([A-Za-z]+)\s*$")
 
 
@@ -343,7 +350,7 @@ def emit(project: Path, dry_run: bool = False) -> int:
     # below is the fix.
     if appended_root:
         anchor = next(
-            (i for i, ln in enumerate(lines) if _TABLE.match(ln.split("#", 1)[0].rstrip())),
+            (i for i, ln in enumerate(lines) if _ANY_TABLE.match(ln.split("#", 1)[0].rstrip())),
             len(lines),
         )
         block = MANAGED_HEADER.rstrip("\n").splitlines() + appended_root

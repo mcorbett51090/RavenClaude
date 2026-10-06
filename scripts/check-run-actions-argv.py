@@ -131,6 +131,58 @@ def check(path: Path) -> int:
     if not isinstance(run_actions, ast.Dict) or not run_actions.keys:
         return _fail("RUN_ACTIONS is not a non-empty dict literal")
 
+    # No write to RUN_ACTIONS beyond that single dict literal. The walk above keeps only
+    # the LAST `RUN_ACTIONS = {...}`, so a subscript assign (RUN_ACTIONS["x"] = [...]), an
+    # augmented assign (|=), a second plain assignment, or a mutating method call
+    # (.update/.setdefault/…) would inject an argv that serve-dashboards._handle_run runs
+    # but this gate never inspected. Fail on any of them.
+    _MUTATORS = {"update", "setdefault", "__setitem__", "pop", "popitem", "clear"}
+    plain_assigns = 0
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Assign):
+            for t in node.targets:
+                if isinstance(t, ast.Name) and t.id == "RUN_ACTIONS":
+                    plain_assigns += 1
+                if (
+                    isinstance(t, ast.Subscript)
+                    and isinstance(t.value, ast.Name)
+                    and t.value.id == "RUN_ACTIONS"
+                ):
+                    return _fail(
+                        "RUN_ACTIONS mutated by subscript assignment (RUN_ACTIONS[...] = ...) "
+                        "— only a single dict-literal assignment is allowed"
+                    )
+        elif isinstance(node, ast.AnnAssign):
+            if isinstance(node.target, ast.Name) and node.target.id == "RUN_ACTIONS":
+                plain_assigns += 1
+        elif isinstance(node, ast.AugAssign):
+            tgt = node.target
+            if (isinstance(tgt, ast.Name) and tgt.id == "RUN_ACTIONS") or (
+                isinstance(tgt, ast.Subscript)
+                and isinstance(tgt.value, ast.Name)
+                and tgt.value.id == "RUN_ACTIONS"
+            ):
+                return _fail(
+                    "RUN_ACTIONS mutated by augmented assignment (e.g. |=) "
+                    "— only a single dict-literal assignment is allowed"
+                )
+        elif isinstance(node, ast.Call):
+            fn = node.func
+            if (
+                isinstance(fn, ast.Attribute)
+                and isinstance(fn.value, ast.Name)
+                and fn.value.id == "RUN_ACTIONS"
+                and fn.attr in _MUTATORS
+            ):
+                return _fail(
+                    f"RUN_ACTIONS mutated by .{fn.attr}() "
+                    "— only a single dict-literal assignment is allowed"
+                )
+    if plain_assigns != 1:
+        return _fail(
+            f"RUN_ACTIONS has {plain_assigns} top-level assignments — expected exactly 1 dict literal"
+        )
+
     for key, val in zip(run_actions.keys, run_actions.values):
         kname = _const_str(key) or "<non-literal-key>"
         if _const_str(key) is None:

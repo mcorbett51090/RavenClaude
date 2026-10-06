@@ -213,7 +213,7 @@ RavenClaude/
 │   └── power-platform/                ← Microsoft Power Platform specialists
 ├── .claude/                           ← settings for working ON the marketplace
 ├── docs/                              ← meta-repo docs
-├── checklists/                        ← release / new-plugin / incident checklists
+├── checklists/                        ← release / new-plugin checklists
 └── CLAUDE.md                          ← meta-repo dev guide
 ```
 

@@ -46,9 +46,7 @@ LINK_RE = re.compile(r"\[(?:[^\]]*)\]\(((?:[^()]|\([^()]*\))*)\)")
 FENCE_RE = re.compile(r"```.*?```", re.DOTALL)
 INLINE_CODE_RE = re.compile(r"`[^`]*`")
 EXTERNAL_SCHEME_RE = re.compile(r"^(?:[a-z][a-z0-9+.-]*:)?//", re.IGNORECASE)
-KNOWN_SCHEME_RE = re.compile(
-    r"^(?:https?|mailto|tel|ftps?|data|file):", re.IGNORECASE
-)
+KNOWN_SCHEME_RE = re.compile(r"^(?:https?|mailto|tel|ftps?|data|file):", re.IGNORECASE)
 
 failures = []
 
@@ -84,7 +82,18 @@ def is_excluded(p: Path) -> bool:
 
 
 def iter_markdown_files():
-    for name in ("README.md", "AGENTS.md", "CLAUDE.md", "GETTING_STARTED.md", "STRATEGY.md"):
+    # CHANGELOG/CONTRIBUTING/SECURITY were excluded, so a broken link in them shipped
+    # green (CHANGELOG.md's `[portal](../index.html)` escaped the repo for months).
+    for name in (
+        "README.md",
+        "AGENTS.md",
+        "CLAUDE.md",
+        "GETTING_STARTED.md",
+        "STRATEGY.md",
+        "CHANGELOG.md",
+        "CONTRIBUTING.md",
+        "SECURITY.md",
+    ):
         p = ROOT / name
         if p.is_file() and not is_excluded(p):
             yield p

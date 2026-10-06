@@ -361,17 +361,28 @@ def print_invocation(fixture: dict, arm: str) -> None:
 
 # ─── Phase B: read run artifacts ────────────────────────────────────────────────
 def _encode_project_key(project_root: str) -> str:
-    """Documented encoded-path algorithm (mimir/SKILL.md §encoded-path): strip the
-    leading '/', replace every '/' with '-'. Used verbatim — NEVER normalized."""
-    return project_root.lstrip("/").replace("/", "-")
+    """Canonical encoded-path algorithm (serve-dashboards._mimir_encode_key + the mimir
+    skill): replace every '/' AND every '.' with '-'. The leading '/' encodes like any
+    other char, so an absolute path yields a LEADING '-' (/home/user/x -> -home-user-x).
+    The prior lstrip('/') form produced 'home-user-x', which matched nothing on a real
+    machine — verified 2026-10-06: ~/.claude/projects holds '-home-user-RavenClaude',
+    and 'home-user-RavenClaude' does not exist."""
+    return str(project_root).replace("/", "-").replace(".", "-")
+
+
+def _encode_project_key_legacy(project_root: str) -> str:
+    """The pre-fix stripped form, kept as a second candidate so a host that really uses
+    it keeps resolving rather than silently zeroing out transcript stats."""
+    return str(project_root).lstrip("/").replace("/", "-")
 
 
 def _resolve_project_transcript_dir(project_root: str) -> Path | None:
     """Locate ~/.claude/projects/<encoded>/ for project_root, with the mimir
     reverse-decode fallback against Anthropic ABI drift (mimir/SKILL.md Stage 2)."""
-    computed = PROJECTS_DIR / _encode_project_key(project_root)
-    if computed.exists():
-        return computed
+    for key in (_encode_project_key(project_root), _encode_project_key_legacy(project_root)):
+        computed = PROJECTS_DIR / key
+        if computed.exists():
+            return computed
     if not PROJECTS_DIR.exists():
         return None
     # Fallback for Anthropic ABI drift (the forward-encoded dir name changed). The
