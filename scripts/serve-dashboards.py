@@ -2125,9 +2125,9 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             return
         if path == "/__spectate/nodes":
             session = (qs.get("session") or [""])[0]
-            code, body = spectate_store.nodes_response(REPO_ROOT, session, caps)
+            code, body, resp_etag = spectate_store.nodes_response(REPO_ROOT, session, caps)
             if code == 200:
-                etag = body.get("etag")
+                etag = resp_etag or (body.get("etag") if body else None)
                 inm = self.headers.get("If-None-Match")
                 since = (qs.get("since_etag") or [None])[0]
                 if etag and ((inm and inm == etag) or (since and since == etag)):
@@ -3489,6 +3489,7 @@ def main() -> int:
     # — where "Save & apply" actually works, because it POSTs back to THIS server
     # (unlike the static README/Pages link, which 405s on the save POST).
     local_url = f"http://127.0.0.1:{actual_port}{dash_path}"
+    print(f"  local URL: {local_url}")
     phone_url = None
     security_note = None
     if codespace:

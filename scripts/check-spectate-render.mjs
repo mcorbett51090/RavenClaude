@@ -409,7 +409,7 @@ check('ArrowUp clamps at the top', app.navTarget(nav, 'step:main:0:assemble', 'A
   check('fetch failure: overlay visible with relaunch command', appDoc.byId.get('graph-overlay').hidden === false && textOf(appDoc.byId.get('graph-overlay')).includes('rc spectate'));
   check('fetch failure: no idle-success state', findAll(graph, (n) => n.getAttribute('data-status') === 'idle').length === 0);
   failing = false;
-  await advance(2500);
+  await advance(2 * app.POLL_SESSIONS_MS + 200);
   check('recovery: overlay hidden again', appDoc.byId.get('graph-overlay').hidden === true);
 }
 

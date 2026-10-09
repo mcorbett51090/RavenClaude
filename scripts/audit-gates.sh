@@ -407,7 +407,7 @@ _suite_gate_tokens() { # $1=suite name -> echoes space-separated gate tokens; re
       # nudge), 216/228/229 (worktree/session/update hygiene cluster), 217
       # (managed-solution-import — same plugins/power-platform/hooks/tests/
       # home as 124/125).
-      echo "3 3b 4 5 5b 6 14 15 16 17 21 22 30 33 36 52 53 90 91 122 123 124 125 126 128 133 135 136 137 138 139 140 162 182 184 186 189 197 201 216 217 225 227 228 229 231 235 247 251 252 253 254 259 285 286 290 291 292 293 294"
+      echo "3 3b 4 5 5b 6 14 15 16 17 21 22 30 33 36 52 53 90 91 122 123 124 125 126 128 133 135 136 137 138 139 140 162 182 184 186 189 197 201 216 217 225 227 228 229 231 235 247 251 252 253 254 259 285 286 290 291 292 293"
       ;;
     portal)
       # Gap: 27 (consumer-dashboard repo-scoped guard — serve-dashboards.py,
@@ -415,7 +415,7 @@ _suite_gate_tokens() { # $1=suite name -> echoes space-separated gate tokens; re
       # — no such gate exists (the main sequence goes straight from "Gate
       # 38" to "Gate 40"; inventing 39 would violate the PR-C brief's "do not
       # invent gate numbers" constraint).
-      echo "13 23 27 32 35 37 38 40 41 42 43 44 49 51 93 97 99 100 104 105 113 141 144 151 168 174 200 205"
+      echo "13 23 27 32 35 37 38 40 41 42 43 44 49 51 93 97 99 100 104 105 113 141 144 151 168 174 200 205 294"
       ;;
     claims)
       # Gaps: 19 (capability-orientation banner — same "claim a capability

@@ -1,0 +1,2 @@
+# Append-only Spectate event stream (one JSON object per line).
+# schema: rc.spectate.v1 — see knowledge/spectate-event-schema-v1.json

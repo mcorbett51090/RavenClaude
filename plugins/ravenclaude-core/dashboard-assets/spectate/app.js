@@ -679,8 +679,9 @@ export function statusChip(doc, statusId, opts = {}) {
   return chip;
 }
 
-export function sourceBadge(doc, desc) {
-  const badge = h(doc, 'span', 'badge', { 'data-source': desc.value });
+export function sourceBadge(doc, desc, mount) {
+  const badge = mount || h(doc, 'span', 'badge');
+  badge.setAttribute('data-source', desc.value);
   if (desc.value === 'live') badge.appendChild(h(doc, 'span', 'live-dot', { 'aria-hidden': 'true' }));
   badge.appendChild(textEl(doc, 'span', 'badge-label', desc.label));
   if (desc.detail) badge.appendChild(textEl(doc, 'span', 'badge-detail', desc.detail));
@@ -1080,11 +1081,7 @@ function createApp(env) {
       sigs.source = srcSig;
       clearNode(refs.source);
       refs.source.hidden = !src;
-      if (src) {
-        const badge = sourceBadge(doc, src);
-        refs.source.setAttribute('data-source', src.value);
-        while (badge.firstChild) refs.source.appendChild(badge.firstChild);
-      }
+      if (src) sourceBadge(doc, src, refs.source);
     }
     const conn = describeConnection(state, mn);
     const connSig = JSON.stringify(conn);
@@ -1127,6 +1124,7 @@ function createApp(env) {
     }
     refs.graph.hidden = model.agents.length === 0;
     refs.graphEmpty.hidden = !kind;
+    if (kind) refs.graphEmpty.setAttribute('data-kind', kind);
     if (kind) renderEmpty(doc, refs.graphEmpty, kind, state, { onCopy: copy, onFollow });
     else clearNode(refs.graphEmpty);
     return model;

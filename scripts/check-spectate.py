@@ -135,7 +135,7 @@ def check_reducer() -> list[str]:
         demo.write_demo(root)
         # unknown ↛ unavailable for grok-bot
         sid = "demo-grok-bot"
-        code, body = store.nodes_response(root, sid, caps)
+        code, body, _etag = store.nodes_response(root, sid, caps)
         if code != 200:
             errs.append(f"grok-bot nodes HTTP {code}")
         else:
@@ -158,18 +158,18 @@ def check_reducer() -> list[str]:
         ed = root / ".ravenclaude" / "runs" / empty_id
         ed.mkdir(parents=True)
         (ed / "spectate-events.jsonl").write_text("", encoding="utf-8")
-        code, body = store.nodes_response(root, empty_id, caps)
+        code, body, _etag = store.nodes_response(root, empty_id, caps)
         if code != 200 or not body.get("nodes"):
             errs.append("empty file should 200 with seeded nodes")
         # no stream
         ns = root / ".ravenclaude" / "runs" / "hooksonly1"
         ns.mkdir(parents=True)
         (ns / "hook-events.jsonl").write_text("{}\n", encoding="utf-8")
-        code, body = store.nodes_response(root, "hooksonly1", caps)
+        code, body, _etag = store.nodes_response(root, "hooksonly1", caps)
         if code != 404 or body.get("error") != "no_spectate_stream":
             errs.append(f"expected no_spectate_stream, got {code} {body}")
         # missing session
-        code, body = store.nodes_response(root, "nosuchsession99", caps)
+        code, body, _etag = store.nodes_response(root, "nosuchsession99", caps)
         if code != 404 or body.get("error") != "session_not_found":
             errs.append(f"expected session_not_found, got {code} {body}")
         # deny beats

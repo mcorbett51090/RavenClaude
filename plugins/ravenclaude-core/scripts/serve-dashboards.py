@@ -2083,9 +2083,9 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             return
         if path == "/__spectate/nodes":
             session = (qs.get("session") or [""])[0]
-            code, body = spectate_store.nodes_response(PROJECT_ROOT, session, caps)
+            code, body, resp_etag = spectate_store.nodes_response(PROJECT_ROOT, session, caps)
             if code == 200:
-                etag = body.get("etag")
+                etag = resp_etag or (body.get("etag") if body else None)
                 inm = self.headers.get("If-None-Match")
                 since = (qs.get("since_etag") or [None])[0]
                 if etag and ((inm and inm == etag) or (since and since == etag)):

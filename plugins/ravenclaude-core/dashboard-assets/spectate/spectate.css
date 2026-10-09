@@ -1129,6 +1129,21 @@ select:hover {
   user-select: all;
 }
 
+.graph-toolbar {
+  order: -3;
+}
+
+.notice {
+  order: -2;
+}
+
+.empty[data-kind="no_spectate_stream"] {
+  order: -1;
+  flex: none;
+  place-items: start;
+  padding: var(--space-2) var(--density-panel-pad) 0;
+}
+
 .overlay {
   position: absolute;
   inset: 0;

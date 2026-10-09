@@ -2,6 +2,15 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.330.0 — 2026-10-09
+
+### Harness Spectate v0.1
+
+- Observe-only Spectate surface at `/spectate` + `/__spectate/*` on both dashboard servers.
+- Schema, capability matrix, reducer store, demo writer, `rc spectate` launcher, stub-DOM render gate.
+- Gate 294 (`check-spectate.py` + `check-spectate-render.mjs`).
+- Honesty: empty stream → idle + cause-not-established; unknown capability cells never become unavailable-harness. Emit hooks deferred to v0.2.
+
 ## 0.329.1 — 2026-10-09
 
 ### Atlas ENH follow-through (remaining 8)
