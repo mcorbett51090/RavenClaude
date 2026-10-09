@@ -2007,7 +2007,7 @@ PY
       exit $?
       ;;
     296)
-      echo "── Gate 296: spectate-steer.sh pause-as-deny + note (per-gate run) ──"
+      echo "── Gate 296: spectate-steer.sh pause/note + PermissionRequest approve/deny (per-gate run) ──"
       bash plugins/ravenclaude-core/hooks/tests/test-spectate-steer.sh
       exit $?
       ;;
@@ -6815,10 +6815,10 @@ echo "── Gate 295: spectate-emit.sh (observe-only emitter + corr_id deny joi
 rc=0; bash plugins/ravenclaude-core/hooks/tests/test-spectate-emit.sh >/dev/null 2>&1 || rc=$?
 gate "spectate-emit (kinds + corr_id + no prompt leak + teeth)" must_pass "$rc"
 
-echo "── Gate 296: spectate-steer.sh (pause-as-deny + note injection) ──"
+echo "── Gate 296: spectate-steer.sh (pause/note + PermissionRequest approve/deny) ──"
 # v0.3 steer consumer: posture-gated pause deny + capped note additionalContext.
 rc=0; bash plugins/ravenclaude-core/hooks/tests/test-spectate-steer.sh >/dev/null 2>&1 || rc=$?
-gate "spectate-steer (pause deny + note + off)" must_pass "$rc"
+gate "spectate-steer (pause/note/approve/deny/timeout + off)" must_pass "$rc"
 
 
 echo "── Gate 285: handoff-tax-meter.sh (model-tier delegation — the measurement leg) ──"

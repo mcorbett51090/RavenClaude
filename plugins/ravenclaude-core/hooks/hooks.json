@@ -291,7 +291,7 @@
             "type": "command",
             "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/spectate-steer.sh\"",
             "timeout": 5,
-            "comment": "Spectate steer consumer (v0.3). OPT-IN via comfort-posture `spectate_steer: on` (absent => off; one grep). PreToolUse: pause-as-deny when spectate-steer.json says paused. UserPromptSubmit/PreToolUse: inject capped additionalContext for a pending note, then clear it. Fail-open; never blocks when posture is off."
+            "comment": "Spectate steer consumer (v0.4). OPT-IN via comfort-posture `spectate_steer: on` (absent => off; one grep). PreToolUse: pause-as-deny when spectate-steer.json says paused. UserPromptSubmit/PreToolUse: inject capped additionalContext for a pending note, then clear it. PermissionRequest lane is registered separately. Fail-open; never blocks when posture is off."
           }
         ]
       }
@@ -389,7 +389,7 @@
             "type": "command",
             "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/spectate-steer.sh\"",
             "timeout": 5,
-            "comment": "Spectate steer consumer (v0.3). OPT-IN via comfort-posture `spectate_steer: on` (absent => off; one grep). PreToolUse: pause-as-deny when spectate-steer.json says paused. UserPromptSubmit/PreToolUse: inject capped additionalContext for a pending note, then clear it. Fail-open; never blocks when posture is off."
+            "comment": "Spectate steer consumer (v0.4). OPT-IN via comfort-posture `spectate_steer: on` (absent => off; one grep). PreToolUse: pause-as-deny when spectate-steer.json says paused. UserPromptSubmit/PreToolUse: inject capped additionalContext for a pending note, then clear it. PermissionRequest lane is registered separately. Fail-open; never blocks when posture is off."
           }
         ]
       }
@@ -545,6 +545,25 @@
             "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/emit-permission-denied.sh\"",
             "timeout": 5,
             "comment": "PermissionDenied substrate (ENH-006). After auto mode (or the permission system) denies a tool call, append ONE derived deny line to hook-events.jsonl via _emit-event.sh (tool name + fixed/sanitized rule token only \u2014 never command text) so Heimdall and workaround-exhaustion.sh anchor on classifier denials, not only RavenClaude PreToolUse guards. Fail-safe: always exit 0; never blocks or alters the denial."
+          }
+        ]
+      }
+    ],
+    "PermissionRequest": [
+      {
+        "matcher": "Bash|Read|Write|Edit|MultiEdit|WebFetch|WebSearch|Agent|Task|mcp__.*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/spectate-emit.sh\"",
+            "timeout": 5,
+            "comment": "Spectate observe-only emitter (v0.4). On PermissionRequest appends permission.request (asserted_status waiting-approval) so the UI can surface Approve/Deny. DERIVED VALUES ONLY. Fail-safe: always exit 0; empty stdout; never blocks."
+          },
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/spectate-steer.sh\"",
+            "timeout": 50,
+            "comment": "Spectate steer consumer (v0.4). OPT-IN via comfort-posture `spectate_steer: on`. On PermissionRequest waits \u226445s for browser approve/deny (POST /__spectate/steer), then emits hookSpecificOutput.decision.behavior \u2208 {allow,deny}. Pause \u2192 deny. Timeout \u2192 empty stdout (fail-open to the human prompt). Fail-open when posture is off."
           }
         ]
       }

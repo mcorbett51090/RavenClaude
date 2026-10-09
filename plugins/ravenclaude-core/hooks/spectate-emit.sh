@@ -76,6 +76,7 @@ KIND_BY_EVENT = {
     "stop": "turn.end",
     "subagentstart": "subagent.start",
     "precompact": "compact.pre",
+    "permissionrequest": "permission.request",
 }
 
 
@@ -263,7 +264,7 @@ def main() -> None:
         prompt = payload.get("prompt")
         if isinstance(prompt, str):
             metrics = {"prompt_chars": min(len(prompt), 1_000_000_000_000)}
-    elif kind in {"tool.pre", "tool.post"}:
+    elif kind in {"tool.pre", "tool.post", "permission.request"}:
         if not tool_name:
             return
         node_id = corr or sanitize_id(f"tool-{tool_name}", f"tool-{tool_name[:40]}")
@@ -287,7 +288,12 @@ def main() -> None:
             t = url_target(tool_input.get("url"))
             if t:
                 tool_obj["target"] = t
-        asserted = "running" if kind == "tool.pre" else "succeeded"
+        if kind == "tool.pre":
+            asserted = "running"
+        elif kind == "tool.post":
+            asserted = "succeeded"
+        else:
+            asserted = "waiting-approval"
     elif kind == "subagent.start":
         node_id = sanitize_id(
             payload.get("agent_id")
@@ -319,7 +325,7 @@ def main() -> None:
     }
     if kind not in {"session.start", "session.end", "stream.truncated", "emitter.truncated"}:
         event_out["node_id"] = node_id
-    if kind in {"tool.pre", "tool.post", "tool.fail"}:
+    if kind in {"tool.pre", "tool.post", "tool.fail", "permission.request"}:
         event_out["step"] = "execute-tools"
     if kind == "prompt.submit":
         event_out["step"] = "assemble"

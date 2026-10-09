@@ -4,7 +4,7 @@
 
 **Goal:** Ship a gold-standard, multi-harness livestream Spectate surface so users can see, understand, and (later) direct coding-agent harness activity in real time — familiar to Cursor / Claude Code / Codex, simple, highly customizable.
 
-**Architecture:** Local loopback web app under `plugins/ravenclaude-core/dashboard-assets/spectate/`, served by `serve-dashboards.py`. Event bus is append-only `.ravenclaude/runs/<id>/spectate-events.jsonl`. Statuses are *derived on the server* from events + capability matrix + hook-deny join — never inferred from silence. One observe-only emitter hook (v0.2) rides existing host adapters. Steering (v0.3) is opt-in via comfort posture; ACP process-ownership is deferred.
+**Architecture:** Local loopback web app under `plugins/ravenclaude-core/dashboard-assets/spectate/`, served by `serve-dashboards.py`. Event bus is append-only `.ravenclaude/runs/<id>/spectate-events.jsonl`. Statuses are *derived on the server* from events + capability matrix + hook-deny join — never inferred from silence. One observe-only emitter hook (v0.2) rides existing host adapters. Steering (v0.3) is opt-in via comfort posture; ACP process-ownership remains deferred past v0.4 approve/deny.
 
 **Tech Stack:** Vanilla HTML/CSS/JS (no framework, no build step), Python 3 (`spectate_store.py`), existing dashboard server + CSRF, IBM Plex Sans/Mono (vendored woff2 from v0.2), JSON Schema gate.
 
@@ -372,7 +372,7 @@ Complete, beautiful, customizable Spectate on synthetic + fixture data; polls re
 
 ### v0.3 — SSE + steer MVP
 
-SSE stream, comfort-posture `spectate_steer`, pause-as-deny + note injection; ACP deferred to v0.4+.
+SSE stream, comfort-posture `spectate_steer`, pause-as-deny + note injection; ACP deferred past v0.4.
 
 ---
 
@@ -525,9 +525,15 @@ Endpoints (GET, read-only, Host/Origin-checked) — **no write routes in v0.1** 
 - [x] Pause-as-deny + capped note injection where `steer_context` supported
 - [x] Bump to next minor after v0.2
 
-## Deferred (v0.4+)
+## Tasks — v0.4 (approve/deny)
 
-- Approve/deny waiting-approval from browser
+- [x] Browser Approve/Deny → `POST /__spectate/steer` arms `decision`
+- [x] `PermissionRequest` wait ≤45s → `decision.behavior` allow/deny; timeout fail-open
+- [x] Emit `permission.request` + `permission.resolve` on resolve
+- [x] UI Approve/Deny buttons; Gate 296 S5–S7
+
+## Deferred (v0.5+)
+
 - True interrupt
 - ACP control channel (process ownership)
 - IDE `openExternal` to the same `/spectate` URL (only if alt-tab is the measured failure; not Simple Browser, not a second UI)

@@ -105,12 +105,16 @@
       "properties": {
         "action": {
           "type": "string",
-          "enum": ["pause", "resume", "note"]
+          "enum": ["pause", "resume", "note", "approve", "deny"]
         },
         "note_chars": {
           "type": "integer",
           "minimum": 0,
           "maximum": 500
+        },
+        "decision": {
+          "type": "string",
+          "enum": ["allow", "deny"]
         }
       }
     }

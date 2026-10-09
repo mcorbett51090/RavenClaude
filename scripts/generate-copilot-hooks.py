@@ -107,6 +107,11 @@ _EVENT_MODE = {
     # stdout + exit code). Needed so multi-event observe hooks like
     # spectate-emit.sh can register under SubagentStart without a full skip.
     "SubagentStart": "subagentstart",
+    # PermissionRequest — Claude Code permission-prompt lane (Spectate v0.4).
+    # Adapter mode is fail-safe (discards stdout + exit). Copilot has no verified
+    # PermissionRequest event; projecting keeps multi-event spectate-* scripts
+    # accounted without a basename skip that would drop PreToolUse/UserPromptSubmit.
+    "PermissionRequest": "permissionrequest",
     # PreToolUse resolves to bash-pretool / file-pretool per-hook (see above).
 }
 

@@ -145,6 +145,10 @@ _SKIP = {
     # which has no PreCompact-adjacent event documented at all, so an honest
     # skip is correct, not a downgrade.
     "precompact-digest.sh": _EVENT_UNWIRED_REASON,
+    "spectate-emit.sh": _EVENT_UNWIRED_REASON,
+    "spectate-steer.sh": _EVENT_UNWIRED_REASON,
+    "emit-permission-denied.sh": _EVENT_UNWIRED_REASON,
+    "prompt-optimizer-gate.sh": _EVENT_UNWIRED_REASON,
     # The routine token reserve protects claude.ai cloud Routines and reads the weekly
     # cap from Claude Code's statusline `rate_limits`; neither exists on Codex, so the
     # SessionStart fetch would be network work for nothing and the prompt lane silent.

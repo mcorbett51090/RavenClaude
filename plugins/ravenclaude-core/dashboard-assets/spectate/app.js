@@ -1,4 +1,4 @@
-// Harness Spectate UI (v0.3). Polls GET /__spectate/*; prefers SSE /stream; opt-in steer POST.
+// Harness Spectate UI (v0.4). Polls GET /__spectate/*; prefers SSE /stream; opt-in steer POST.
 // Everything above the bootstrap guard is pure or takes an injected `doc`, so
 // scripts/check-spectate-render.mjs can import this module under a stub DOM.
 // DOM text is set via textContent / text nodes only.
@@ -1136,6 +1136,8 @@ function createApp(env) {
     steerPanel: $("steer-panel"),
     steerPause: $("steer-pause"),
     steerResume: $("steer-resume"),
+    steerApprove: $("steer-approve"),
+    steerDeny: $("steer-deny"),
     steerNote: $("steer-note"),
     steerSend: $("steer-send-note"),
     steerStatus: $("steer-status"),
@@ -1550,6 +1552,8 @@ function createApp(env) {
           const bits = [];
           if (steerPending.paused) bits.push("paused");
           if (steerPending.note_pending) bits.push(`note (${steerPending.note_chars || 0})`);
+          if (steerPending.decision === "allow") bits.push("approve armed");
+          else if (steerPending.decision === "deny") bits.push("deny armed");
           refs.steerStatus.textContent = bits.join(" · ");
         }
       }
@@ -1677,6 +1681,9 @@ function createApp(env) {
         postSteer("pause", refs.steerNote && refs.steerNote.value),
       );
     if (refs.steerResume) refs.steerResume.addEventListener("click", () => postSteer("resume", ""));
+    if (refs.steerApprove)
+      refs.steerApprove.addEventListener("click", () => postSteer("approve", ""));
+    if (refs.steerDeny) refs.steerDeny.addEventListener("click", () => postSteer("deny", ""));
     if (refs.steerSend)
       refs.steerSend.addEventListener("click", () => {
         const note = refs.steerNote ? refs.steerNote.value : "";

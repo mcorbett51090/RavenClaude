@@ -113,7 +113,7 @@ _SKIP = {
         "On Cursor, pick the model tier in the dispatch call itself."
     ),
     "spectate-steer.sh": (
-        "Opt-in Spectate steer consumer (v0.3; spectate_steer: on). Pause-as-deny + "
+        "Opt-in Spectate steer consumer (v0.4; spectate_steer: on). Pause-as-deny + PermissionRequest approve/deny + "
         "additionalContext note injection. Cursor's verified PreToolUse deny shape "
         "differs from Claude Code's hookSpecificOutput.permissionDecision envelope; "
         "skip is script-keyed until a Cursor adapter path is probed. Claude Code "
