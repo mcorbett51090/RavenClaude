@@ -1251,10 +1251,11 @@ def events_response(
     project_root: Path | str,
     session_id: str,
     *,
-    cursor: int | None = None,
+    cursor: int | str | None = None,
     limit: int = 100,
 ) -> tuple[int, dict]:
     """``/__spectate/events`` — inspector timeline over absolute byte-offset cursors."""
+    cursor = parse_query_int(cursor, None)
     state, run = open_run(project_root, session_id)
     if run is None:
         return _missing_body(state, None, None)
@@ -1316,10 +1317,18 @@ def _session_item(
         snap.close()
 
 
+def parse_query_int(value: Any, default: int | None) -> int | None:
+    """Unsigned-int query value → int; absent/blank → ``default``; malformed → None."""
+    if value is None or value == "":
+        return default
+    text = str(value)
+    return int(text) if UINT_RE.fullmatch(text) else None
+
+
 def list_sessions(
     project_root: Path | str,
     *,
-    cursor: int = 0,
+    cursor: int | str | None = 0,
     limit: int = 50,
     harness: str | None = None,
     capabilities: dict | None = None,
@@ -1330,6 +1339,7 @@ def list_sessions(
     Ranking (G3-8): non-synthetic with stream > non-synthetic without stream > synthetic,
     each by mtime descending. ``harness`` filters the list."""
     limit = max(1, min(int(limit), 200))
+    cursor = parse_query_int(cursor, 0) or 0
     root = runs_root(project_root)
     caps = capabilities if capabilities is not None else load_capabilities(capabilities_path)
     caps_mtime = capabilities_mtime_ns(capabilities_path)

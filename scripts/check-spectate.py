@@ -93,7 +93,9 @@ def check_bad_fixtures(schema: dict) -> list[str]:
                 if path.name.startswith("bad-"):
                     # If schema still accepts, ensure recursive scrub would strip
                     store = _load(STORE, "spectate_store")
-                    scrubbed = store.scrub_obj(obj)
+                    scrubbed = store.scrub_event(obj)
+                    if scrubbed is None:
+                        continue  # rejected entirely — expected for bad fixtures
                     blob = json.dumps(scrubbed)
                     if "SECRET" in blob or "rm -rf" in blob or "password" in blob.lower():
                         errs.append(f"{path.name}: scrub left sensitive material")
