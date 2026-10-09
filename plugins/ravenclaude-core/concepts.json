@@ -3001,7 +3001,7 @@
         "scripts/sync-plugin-versions.py",
         "scripts/generate-copilot-plugin.py"
       ],
-      "covers_digest": "sha256:b23caab43fcf61d02e109a5272185fe1f0f8bac2e37082ee553ec670ca967af6",
+      "covers_digest": "sha256:dba862a78d20b8bced1a8f6530d1205b367e82e910ddf4789e372961e25cd708",
       "nuance": "The cache key is the `version` string, never a content hash, so `sync-plugin-versions.py` can report clean while every installed session keeps running the old `hooks/` code.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -3063,7 +3063,7 @@
         "scripts/inventory-nuance-judge.py",
         "plugins/ravenclaude-core/scripts/forge-receipt.py"
       ],
-      "covers_digest": "sha256:c2efa3ceeff5155f8b421e2fcbc8182c1b1888a61753ad7a6bf58d9328f57dbd",
+      "covers_digest": "sha256:e3cfc427cf9605e8b69c6b125906290bec4a0199a073679866f04b914f0de7a1",
       "nuance": "The teeth bit is the exit a tool own CHECK returns on a planted defect, never the exit `--must-fail` itself returns: `premise-gate.py` denies at `exit 0` while `sync-plugin-versions.py` reddens at `exit 2`, so an auditor that hard-codes one number can never be right for both.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -3435,6 +3435,56 @@
         "class": "script-selftest",
         "probe": "scripts/inventory-census.py",
         "teeth_exit": 1
+      },
+      "strength_badge": "Probed"
+    },
+    {
+      "id": "harness-spectate",
+      "title": "Harness Spectate — observe-only agent loop livestream",
+      "category": "Inventory — measured mechanisms",
+      "kind": "ravenclaude-built",
+      "order": 910,
+      "summary": "Spectate reduces scrubbed JSONL into a loop graph; empty streams stay idle with cause-not-established, and unknown capability cells never upgrade to unavailable-harness.",
+      "see_also": [],
+      "widget": null,
+      "try_it": null,
+      "node_links": {},
+      "last_verified": "2026-10-09",
+      "refresh_when": null,
+      "sources": [
+        {
+          "label": "Harness Spectate BUILD-PLAN",
+          "url": "docs/plans/2026-10-09-harness-spectate/BUILD-PLAN.md"
+        }
+      ],
+      "body_md": "## What a reader would have assumed instead\n\nThat a missing stream meant the harness lacked the step (`unavailable-harness`), or that idle without a cause phrase was enough.\n\n## The discriminator\n\ncontrol: grok-bot and grok-build gallery fixtures keep unknown cells while a seeded empty stream yields idle + cause-not-established\nMeasured 2026-10-09: An empty Spectate stream reduces every node to idle with cause-not-established; a capability cell whose state is unknown never reduces to unavailable-harness.\n\n## Why it matters\n\nSpectate is observe-only honesty infrastructure. Collapsing unknown into unavailable-harness would invent evidence; dropping the cause phrase on idle would hide that the absence was never explained.",
+      "diagram": null,
+      "diagram_mini": null,
+      "steps": [],
+      "svg": null,
+      "svg_mini": null,
+      "entry_class": "inventory",
+      "covers": [
+        "plugins/ravenclaude-core/scripts/spectate_store.py",
+        "plugins/ravenclaude-core/scripts/spectate_demo.py",
+        "plugins/ravenclaude-core/commands/spectate.md",
+        "scripts/check-spectate.py"
+      ],
+      "covers_digest": "sha256:3d2c47c86ca33030d6184171c4c340b63c58abe377f38a04e274120b7c9e1eba",
+      "nuance": "An empty Spectate stream reduces every node to idle with cause-not-established; a capability cell whose state is unknown never reduces to unavailable-harness.",
+      "nuance_evidence": {
+        "measured": "2026-10-09",
+        "control": "grok-bot and grok-build gallery fixtures keep unknown cells while a seeded empty stream yields idle + cause-not-established",
+        "falsifier": "an unknown cell rendered as unavailable-harness, or an empty stream upgrading idle without the cause phrase",
+        "probe": "scripts/check-spectate.py"
+      },
+      "nuance_source": "scripts/check-spectate.py",
+      "verify": {
+        "tier": "effect",
+        "strength": "executed",
+        "class": "script-selftest",
+        "probe": "scripts/check-spectate.py --must-fail",
+        "teeth_exit": 3
       },
       "strength_badge": "Probed"
     },

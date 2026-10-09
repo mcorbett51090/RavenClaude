@@ -2703,6 +2703,30 @@ _Last verified: 2026-09-21_
 
 ---
 
+### Harness Spectate — observe-only agent loop livestream · _RavenClaude-built_
+
+> Spectate reduces scrubbed JSONL into a loop graph; empty streams stay idle with cause-not-established, and unknown capability cells never upgrade to unavailable-harness.
+
+## What a reader would have assumed instead
+
+That a missing stream meant the harness lacked the step (`unavailable-harness`), or that idle without a cause phrase was enough.
+
+## The discriminator
+
+control: grok-bot and grok-build gallery fixtures keep unknown cells while a seeded empty stream yields idle + cause-not-established
+Measured 2026-10-09: An empty Spectate stream reduces every node to idle with cause-not-established; a capability cell whose state is unknown never reduces to unavailable-harness.
+
+## Why it matters
+
+Spectate is observe-only honesty infrastructure. Collapsing unknown into unavailable-harness would invent evidence; dropping the cause phrase on idle would hide that the absence was never explained.
+
+**Sources:** [Harness Spectate BUILD-PLAN](../docs/plans/2026-10-09-harness-spectate/BUILD-PLAN.md)
+
+_Last verified: 2026-10-09_
+
+
+---
+
 ### An islanded panel costs two · _RavenClaude-built_
 
 > What the DOM budget measures, and the far larger number it does not.

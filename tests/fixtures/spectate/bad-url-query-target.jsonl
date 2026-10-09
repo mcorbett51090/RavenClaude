@@ -1,0 +1,1 @@
+{"schema":"rc.spectate.v1","ts":"2026-10-09T12:00:00.800Z","session_id":"demo-fixture1","harness":"claude-code","source":"demo","kind":"tool.pre","agent_id":"main","synthetic":true,"detail":"minimal","node_id":"read-1","tool":{"name":"WebFetch","family":"url","target":"https://example.com/x?token=abc"},"step":"execute-tools","corr_id":"c-read"}

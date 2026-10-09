@@ -1,0 +1,207 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "rc.spectate.v1",
+  "title": "RavenClaude Spectate Event v1",
+  "description": "One line of .ravenclaude/runs/<session_id>/spectate-events.jsonl. No raw prompts, tool arguments or tool output ever ride this schema; every object is closed (additionalProperties false). Keywords used are the subset spectate_store.py interprets itself, so the store and a stock JSON Schema validator read one source of truth.",
+  "x-sensitive-keys": [
+    "args",
+    "input",
+    "output",
+    "result",
+    "prompt",
+    "content",
+    "messages",
+    "secret",
+    "token",
+    "password",
+    "authorization",
+    "raw"
+  ],
+  "x-statuses": [
+    "available",
+    "unavailable-harness",
+    "denied-org",
+    "denied-plugin",
+    "denied-user",
+    "denied-harness",
+    "running",
+    "succeeded",
+    "failed",
+    "waiting-approval",
+    "idle"
+  ],
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "ts", "session_id", "harness", "source", "kind"],
+  "properties": {
+    "schema": { "const": "rc.spectate.v1" },
+    "ts": { "$ref": "#/$defs/ts" },
+    "session_id": { "$ref": "#/$defs/session_id" },
+    "harness": {
+      "type": "string",
+      "enum": [
+        "claude-code",
+        "codex-cli",
+        "copilot-cli",
+        "copilot-vscode",
+        "cursor",
+        "gemini-cli",
+        "grok-build",
+        "grok-bot",
+        "unknown"
+      ]
+    },
+    "source": { "type": "string", "enum": ["hook", "demo", "steer", "recorded"] },
+    "kind": { "$ref": "#/$defs/kind" },
+    "step": { "$ref": "#/$defs/step" },
+    "node_id": { "$ref": "#/$defs/id" },
+    "parent_id": { "$ref": "#/$defs/id" },
+    "agent_id": { "$ref": "#/$defs/id" },
+    "corr_id": { "$ref": "#/$defs/id" },
+    "tool": { "$ref": "#/$defs/tool" },
+    "asserted_status": { "$ref": "#/$defs/status" },
+    "deny": { "$ref": "#/$defs/deny" },
+    "metrics": { "$ref": "#/$defs/metrics" },
+    "detail": { "type": "string", "enum": ["minimal", "standard"] },
+    "synthetic": { "type": "boolean" }
+  },
+  "if": {
+    "required": ["kind"],
+    "properties": {
+      "kind": {
+        "enum": ["session.start", "session.end", "stream.truncated", "emitter.truncated"]
+      }
+    }
+  },
+  "else": { "required": ["node_id"] },
+  "$defs": {
+    "ts": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.[0-9]{3}Z$"
+    },
+    "session_id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,63}$"
+    },
+    "short_token": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9._:/-]{1,64}$"
+    },
+    "safe_string": {
+      "type": "string",
+      "maxLength": 256,
+      "pattern": "^[^\\u0000-\\u0008\\u000b\\u000c\\u000e-\\u001f]*$"
+    },
+    "kind": {
+      "type": "string",
+      "enum": [
+        "session.start",
+        "session.end",
+        "prompt.submit",
+        "turn.end",
+        "tool.pre",
+        "tool.post",
+        "tool.fail",
+        "permission.request",
+        "permission.resolve",
+        "subagent.start",
+        "subagent.stop",
+        "compact.pre",
+        "steer.applied",
+        "stream.truncated",
+        "emitter.truncated",
+        "step.seed"
+      ]
+    },
+    "step": {
+      "type": "string",
+      "enum": ["assemble", "call-model", "classify", "execute-tools", "package", "update-context"]
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "available",
+        "unavailable-harness",
+        "denied-org",
+        "denied-plugin",
+        "denied-user",
+        "denied-harness",
+        "running",
+        "succeeded",
+        "failed",
+        "waiting-approval",
+        "idle"
+      ]
+    },
+    "tool": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "family"],
+      "properties": {
+        "name": { "$ref": "#/$defs/id" },
+        "family": { "type": "string", "enum": ["shell", "url", "path", "other"] },
+        "target": { "$ref": "#/$defs/safe_string" }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "family": { "const": "shell" } }, "required": ["family"] },
+          "then": {
+            "properties": {
+              "target": { "type": "string", "pattern": "^[A-Za-z0-9._+@/-]{1,128}$" }
+            }
+          }
+        },
+        {
+          "if": { "properties": { "family": { "const": "url" } }, "required": ["family"] },
+          "then": {
+            "properties": {
+              "target": {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9+.-]{0,15}://[A-Za-z0-9.-]{1,253}(:[0-9]{1,5})?$"
+              }
+            }
+          }
+        },
+        {
+          "if": { "properties": { "family": { "const": "path" } }, "required": ["family"] },
+          "then": {
+            "properties": {
+              "target": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9._@+-][A-Za-z0-9._@+/-]{0,255}$",
+                "not": { "pattern": "(^|/)\\.\\.(/|$)" }
+              }
+            }
+          }
+        },
+        {
+          "if": { "properties": { "family": { "const": "other" } }, "required": ["family"] },
+          "then": { "not": { "required": ["target"] } }
+        }
+      ]
+    },
+    "deny": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "required": ["by"],
+      "properties": {
+        "by": { "type": "string", "enum": ["org", "plugin", "user", "harness"] },
+        "source": { "$ref": "#/$defs/short_token" },
+        "rule": { "$ref": "#/$defs/short_token" }
+      }
+    },
+    "metrics": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "duration_ms": { "type": "number", "minimum": 0, "maximum": 1000000000000 },
+        "out_bytes": { "type": "number", "minimum": 0, "maximum": 1000000000000 },
+        "prompt_chars": { "type": "number", "minimum": 0, "maximum": 1000000000000 }
+      }
+    }
+  }
+}

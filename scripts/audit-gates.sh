@@ -415,7 +415,7 @@ _suite_gate_tokens() { # $1=suite name -> echoes space-separated gate tokens; re
       # — no such gate exists (the main sequence goes straight from "Gate
       # 38" to "Gate 40"; inventing 39 would violate the PR-C brief's "do not
       # invent gate numbers" constraint).
-      echo "13 23 27 32 35 37 38 40 41 42 43 44 49 51 93 97 99 100 104 105 113 141 144 151 168 174 200 205"
+      echo "13 23 27 32 35 37 38 40 41 42 43 44 49 51 93 97 99 100 104 105 113 141 144 151 168 174 200 205 294"
       ;;
     claims)
       # Gaps: 19 (capability-orientation banner — same "claim a capability
@@ -1991,6 +1991,16 @@ PY
       bash plugins/ravenclaude-core/hooks/tests/test-gate285-handoff-tax-meter.sh
       exit $?
       ;;
+    294)
+      echo "── Gate 294: check-spectate (schema, fixtures, reducer + render; teeth exit 3) (per-gate run) ──"
+      rc=0
+      python3 scripts/check-spectate.py --check || rc=$?
+      rc_mustfail python3 scripts/check-spectate.py || rc=$?
+      if command -v node >/dev/null 2>&1; then
+        node scripts/check-spectate-render.mjs || rc=$?
+      fi
+      exit $rc
+      ;;
     286)
       echo "── Gate 286: explore-tier-pin.sh (model-tier delegation prevention leg) (per-gate run) ──"
       bash plugins/ravenclaude-core/hooks/tests/test-gate286-explore-tier-pin.sh
@@ -2035,10 +2045,11 @@ PY
     293)
       echo "── Gate 293: nested_dispatch comfort-posture knob (apply + server auth gate; per-gate run) ──"
       bash plugins/ravenclaude-core/hooks/tests/test-gate293-nested-dispatch-knob.sh
+      exit $?
       ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254, 255, 256, 257, 258, 259, 260, 261, 262, 263, 264, 265, 266, 267, 268, 269, 280, 281, 282, 283, 284, 285, 286, 287, 288, 289, 290, 291, 292, 293. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254, 255, 256, 257, 258, 259, 260, 261, 262, 263, 264, 265, 266, 267, 268, 269, 280, 281, 282, 283, 284, 285, 286, 287, 288, 289, 290, 291, 292, 293, 294. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -6772,6 +6783,20 @@ gate "no-PyYAML python3: read-only not denied + hard rule still denied + catalog
 echo "── Gate 293: nested_dispatch comfort-posture knob (apply + server auth gate) ──"
 rc=0; bash plugins/ravenclaude-core/hooks/tests/test-gate293-nested-dispatch-knob.sh >/dev/null 2>&1 || rc=$?
 gate "nested_dispatch: absent→depth 1 + fail-closed without auth + provenance + spellings + server 403/200 + mutant teeth" must_pass "$rc"
+
+echo "── Gate 294: check-spectate (schema, fixtures, reducer + stub-DOM render) ──"
+# Spectate v0.1: schema/fixtures/capabilities/reducer + UI helper exports under stub DOM.
+# Teeth: --must-fail plants a raw-prompt event and must exit 3 (declared via --must-fail-convention).
+rc=0; python3 scripts/check-spectate.py --check >/dev/null 2>&1 || rc=$?
+gate "check-spectate (--check on wired tree)" must_pass "$rc"
+rc=0; rc_mustfail python3 scripts/check-spectate.py || rc=$?
+gate "check-spectate (--must-fail teeth exit 3)" must_pass "$rc"
+if command -v node >/dev/null 2>&1; then
+  rc=0; node scripts/check-spectate-render.mjs >/dev/null 2>&1 || rc=$?
+  gate "check-spectate-render (stub DOM helpers)" must_pass "$rc"
+else
+  _skip_or_fail "Gate 294 (spectate render)" node
+fi
 
 
 echo "── Gate 285: handoff-tax-meter.sh (model-tier delegation — the measurement leg) ──"

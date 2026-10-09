@@ -65,6 +65,7 @@ CARVE_SUBSTR = (
     "plugins/claude-app-engineering/",  # illustrative routing-ladder narrative
     "/docs/",  # plans/research/follow-ups + historical prose
     "docs/research/2026-10-04-coding-agent-harness-atlas/data/",  # vendor quotes name other vendors' model ids verbatim
+    "plugins/ravenclaude-core/knowledge/spectate-capabilities.json",  # atlas evidence tokens E-claude-code-<n> (not model ids)
     "CHANGELOG.md",
 )
 

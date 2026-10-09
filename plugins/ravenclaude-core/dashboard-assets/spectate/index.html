@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en" data-theme="dark" data-density="comfortable" data-layout="default">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="dark light" />
+    <title>Harness Spectate</title>
+    <link rel="stylesheet" href="/spectate/spectate.css" />
+    <script type="module" src="/spectate/app.js"></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#graph-region">Skip to live graph</a>
+
+    <div id="spectate-app" class="app" data-drawer="closed">
+      <header class="chrome">
+        <div class="brand">
+          <h1 class="brand-name">Harness Spectate</h1>
+          <p id="observe-only" class="brand-sub">observe-only &middot; steering unavailable until v0.3</p>
+        </div>
+
+        <div class="chrome-status">
+          <span id="source-badge" class="badge" hidden></span>
+          <span id="connection-status" class="conn" data-connection="connecting" role="status"></span>
+        </div>
+
+        <div class="chrome-controls">
+          <label class="field field-filter" for="session-filter">
+            <span class="field-label">Filter</span>
+            <input id="session-filter" type="search" autocomplete="off" spellcheck="false" maxlength="64" placeholder="session or harness" />
+          </label>
+
+          <label class="field" for="density-select">
+            <span class="field-label">Density</span>
+            <select id="density-select">
+              <option value="compact">compact</option>
+              <option value="comfortable">comfortable</option>
+              <option value="spacious">spacious</option>
+            </select>
+          </label>
+
+          <label class="field" for="layout-select">
+            <span class="field-label">Layout</span>
+            <select id="layout-select">
+              <option value="default">default</option>
+              <option value="graph-focus">graph-focus</option>
+              <option value="inspector-focus">inspector-focus</option>
+              <option value="sessions-focus">sessions-focus</option>
+            </select>
+          </label>
+
+          <label class="field" for="legend-select">
+            <span class="field-label">Legend</span>
+            <select id="legend-select">
+              <option value="footer">footer</option>
+              <option value="inspector">inspector</option>
+            </select>
+          </label>
+
+          <details id="columns-menu" class="menu">
+            <summary>Columns</summary>
+            <div id="columns-list" class="menu-panel"></div>
+          </details>
+
+          <button id="theme-toggle" class="btn" type="button" aria-label="Switch theme">Theme: dark</button>
+        </div>
+      </header>
+
+      <aside id="sessions-region" class="rail" aria-label="Sessions">
+        <div class="rail-head">
+          <h2 class="pane-title">Sessions</h2>
+        </div>
+        <ul id="session-list" class="session-list"></ul>
+        <p id="session-list-empty" class="rail-empty" hidden></p>
+      </aside>
+
+      <main id="graph-region" class="graph-pane" aria-label="Live graph">
+        <div class="graph-toolbar">
+          <button id="follow-toggle" class="btn btn-small" type="button" aria-pressed="true">Follow latest</button>
+          <p id="follow-banner" class="banner" hidden>following latest &mdash; session not pinned</p>
+          <button id="earlier-turns" class="link-btn" type="button" hidden>show earlier turns</button>
+        </div>
+        <div id="graph-notice" class="notice" hidden></div>
+        <div id="graph" class="graph" role="group" aria-label="Loop graph by agent"></div>
+        <div id="graph-empty" class="empty" hidden></div>
+        <div id="graph-overlay" class="overlay" hidden></div>
+      </main>
+
+      <div id="drawer-scrim" class="drawer-scrim" aria-hidden="true"></div>
+
+      <aside id="inspector" class="inspector" aria-label="Inspector" data-drawer="closed">
+        <div class="inspector-head">
+          <h2 class="pane-title">Inspector</h2>
+          <button id="inspector-close" class="btn btn-small" type="button" aria-label="Close inspector" title="Close inspector">&times;</button>
+        </div>
+        <div id="inspector-tabs" class="tabs" role="tablist" aria-label="Inspector sections"></div>
+        <div id="inspector-body" class="inspector-scroll"></div>
+      </aside>
+
+      <footer id="legend-footer" class="legend-footer" aria-label="Status legend"></footer>
+    </div>
+
+    <noscript>
+      <p class="noscript">Harness Spectate needs JavaScript to poll the local spectate API. Nothing is sent anywhere.</p>
+    </noscript>
+  </body>
+</html>

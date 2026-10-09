@@ -82,6 +82,11 @@ _BODY_DIFF_NAMES = (
     "_reclaim_port",
     "_default_bind",
     "_idle_reaper",
+    "_spectate_peer_ok",
+    "_spectate_asset_allowlist",
+    "_read_spectate_asset",
+    "_bind_server",
+    "_open_browser",
 )
 
 # NOT compared — `main()` legitimately DIVERGES between the two copies in seven
@@ -90,8 +95,8 @@ _BODY_DIFF_NAMES = (
 # a landing path while the plugin serves PLUGIN_DIR/DASH_PATH; (2) the root accepts
 # --project-root/--validate, the plugin does not; (3) the root carries the
 # marketplace-write refusal guard; (4) root-only LAN/QR `_lan_ip` phone-URL block;
-# (5) plugin-only `_bind_server` helper; (6) the `/__run` banner wording differs;
-# (7) Codespace-refusal wording differs. New drift-prone logic goes in a named
+# (5) the `/__run` banner wording differs; (6) Codespace-refusal wording differs.
+# `_bind_server` and Spectate helpers are body-diffed via _BODY_DIFF_NAMES. New drift-prone logic goes in a named
 # function above, never inline in main().
 
 _DEF_RE = re.compile(r"^def\s+(\w+)\s*\(", re.MULTILINE)
@@ -191,9 +196,23 @@ def unguarded_get_handlers(path: Path) -> list[str]:
         if not m:
             unguarded.append(f"{endpoint} -> {handler} (handler not found)")
             continue
-        if "_local_request_ok()" not in m.group(0):
+        body = m.group(0)
+        if "_local_request_ok()" not in body and "_spectate_gate()" not in body:
             unguarded.append(f"{endpoint} -> {handler}")
     return unguarded
+
+
+def check_top_level_routes(path: Path) -> list[str]:
+    """Both copies must dispatch guarded `/spectate` (not only `/__spectate/*`)."""
+    text = path.read_text(encoding="utf-8")
+    errs: list[str] = []
+    if '"/spectate"' not in text and "'/spectate'" not in text:
+        errs.append("missing /spectate route token")
+    if "_handle_spectate_asset" not in text:
+        errs.append("missing _handle_spectate_asset handler")
+    if "_handle_spectate_api" not in text:
+        errs.append("missing _handle_spectate_api handler")
+    return errs
 
 
 def main() -> int:
@@ -219,9 +238,12 @@ def main() -> int:
 
     # MH-33 — enforce the do_GET invariant the server only documented.
     guard_failures = []
+    route_failures = []
     for label, sp in (("root", root_path), ("plugin", plugin_path)):
         for bad in unguarded_get_handlers(sp):
             guard_failures.append(f"{label}: {bad}")
+        for bad in check_top_level_routes(sp):
+            route_failures.append(f"{label}: {bad}")
 
     root = endpoints(root_path)
     plugin = endpoints(plugin_path)
@@ -242,6 +264,15 @@ def main() -> int:
             "`/__csrf`).",
             file=sys.stderr,
         )
+        return 1
+
+    if route_failures:
+        print(
+            "SPECTATE ROUTE DRIFT: a serve-dashboards.py copy is missing the /spectate surface.",
+            file=sys.stderr,
+        )
+        for g in route_failures:
+            print(f"  - {g}", file=sys.stderr)
         return 1
 
     if guard_failures:
