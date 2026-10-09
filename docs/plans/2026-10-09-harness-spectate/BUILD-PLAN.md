@@ -268,6 +268,12 @@ Tool child nodes seed from `tool_pre` / `tool_post` / `tool_fail` / `permission_
 
 **Precedence (highest wins):** joined deny (`denied-org` > `denied-plugin` > `denied-user` > `denied-harness`) > `failed` > `succeeded` > `waiting-approval` > `running` > `available` > `idle`. `unavailable-harness` only from explicit `unsupported` seed.
 
+**HTTP status contracts (G6-3)** for `/__spectate/nodes` and `/__spectate/events`:
+- Missing `?session=` or regex fail → **400** `{"error":"invalid_session_id"}`
+- Valid id but no run dir / no `spectate-events.jsonl` → **404** `{"error":"session_not_found"}`
+- Exists, empty file → **200** G5-8 envelope with `nodes: []`, spine seeded idle, `last_event_ts: null`
+- UI: pinned 404 → G5-11 session-not-found empty state; network/5xx → disconnected overlay (retain nodes); never idle-success
+
 **Nodes response bounds (G2-16):** reduce over the same 5 MiB tail window; orphan parents → `parent_truncated: true`; cap 2,000 nodes newest-first with `nodes_truncated`; graph shows latest N turns (default 3) + “show earlier turns”. `/__spectate/nodes?session=&since_etag=` supports 304. `/__spectate/events` is inspector timeline only.
 
 **Dedup:** last-writer for non-terminal; terminal states sticky. Golden: `expected-reduce.json` includes available, deny maps, unterminated, unknown↛unavailable.
@@ -388,7 +394,8 @@ Endpoints (GET, read-only, Host/Origin-checked):
 - [ ] Implement `reduce(...)` per Reducer contract (G1-3)
 - [ ] Golden test: fixtures → `expected-reduce.json`
 - [ ] Add thin routes to plugin server; mirror in root server; set `Cache-Control: no-store`, `nosniff`, Spectate CSP on HTML (G1-13); explicit Content-Type map (G2-17)
-- [ ] Serve `/spectate` assets via `_read_spectate_*` helpers (Gate 32 body-diff) + extend parity checker to assert `/spectate` dispatch; `/__spectate` via `startswith("/__spectate")` for MH-33 (G2-5)
+- [ ] Serve `/spectate` assets via `_read_spectate_*` helpers (Gate 32 body-diff); `/__spectate` via `startswith("/__spectate")` for MH-33 (G2-5)
+- [ ] Extend `check-dashboard-server-parity.py` with `check_top_level_routes()` asserting both copies dispatch `/spectate`; wire into `main()` + docstring; audit-gates must_fail if one copy drops it (G6-4)
 - [ ] Add `--no-reclaim` / `--open-path` via **module-level** named helpers in both copies, listed in Gate 32 `_BODY_DIFF_NAMES` (e.g. arg on shared `_bind_server` + `_open_browser(path)`) — never inline-only in `main()` (G3-6)
 - [ ] Must-pass: same-project listener on 8000 + `--no-reclaim` binds another port and 8000 pid still alive, on **both** copies
 - [ ] Behavioral smoke both servers: `/spectate?follow=latest` HTML 200; `/__spectate/sessions` JSON (G1-7, G1-14, G3-1)
@@ -594,7 +601,11 @@ Endpoints (GET, read-only, Host/Origin-checked):
 | G4-3 | Session-summary reducer for `latest_status` |
 | G4-4 | `mkdir -p` before spectate-server.log redirect |
 | G4-5 | SURFACE narrow upgrade-coexistence second-port exception |
-| G5-1…G5-13 | G5 closes section (version, bind helper, peer_ok, open ownership, validation, probe range, kind→step, nodes shape, deny join, read cache, demo first-sight, test homes, design tokens) |
+| G5-1…G5-13 | G5 closes section |
+| G6-1 | Identical `_bind_server(bind,port,handler,*,reclaim,span=10)` in `_BODY_DIFF_NAMES` |
+| G6-2 | Probe window matches bind span=10 for `rc spectate` |
+| G6-3 | nodes/events HTTP 400/404/200 empty contracts |
+| G6-4 | `check_top_level_routes()` for `/spectate` parity |
 
 ---
 
