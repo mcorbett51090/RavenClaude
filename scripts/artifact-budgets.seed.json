@@ -382,8 +382,13 @@
         "atlas ENH disposition follow-through (core 0.329.1, 2026-10-09)",
         9580000,
         "Atlas ENH disposition follow-through (core 0.329.1): host-support grok matrix, hook_error_posture, concept restamps, PermissionDenied skip maps, routing-matrix quote sync to Opus 5.5 / Codex effort wording. Regenerated index.html + concepts. Island payload 7,322 > prior 7,320 by 2; bytes 9,576,175 > prior 9,575,000 by 1,175. Pure content-size raise. Appended, never edited."
+      ],
+      [
+        "Harness Spectate v0.3 SSE + steer (core 0.333.0, 2026-10-09)",
+        9581000,
+        "Spectate v0.3 (core 0.333.0): SSE stream + opt-in steer MVP regenerates the portal after concept restamps (harness-spectate + adjacent covers digests). index.html 9,580,413 bytes > prior 9,580,000 by 413 (0.00 MB). Island payload 7,335 <= 7,350 unchanged under ceiling. Pure content-size raise. Re-measured on this branch head; appended, never edited."
       ]
     ]
   },
-  "measured_against": "38b336dac46e7e5872caa73bb7ed3b08e5214ff8"
+  "measured_against": "c0f8f404b63fc249775a4a686d07d4f1f781f126"
 }

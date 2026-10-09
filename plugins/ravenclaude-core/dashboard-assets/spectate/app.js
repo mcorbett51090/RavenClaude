@@ -1,4 +1,4 @@
-// Harness Spectate UI (v0.1). Observe-only: polls GET /__spectate/* and never writes.
+// Harness Spectate UI (v0.3). Polls GET /__spectate/*; prefers SSE /stream; opt-in steer POST.
 // Everything above the bootstrap guard is pure or takes an injected `doc`, so
 // scripts/check-spectate-render.mjs can import this module under a stub DOM.
 // DOM text is set via textContent / text nodes only.
@@ -1133,8 +1133,18 @@ function createApp(env) {
     legendSel: $("legend-select"),
     theme: $("theme-toggle"),
     columns: $("columns-list"),
+    steerPanel: $("steer-panel"),
+    steerPause: $("steer-pause"),
+    steerResume: $("steer-resume"),
+    steerNote: $("steer-note"),
+    steerSend: $("steer-send-note"),
+    steerStatus: $("steer-status"),
+    observeOnly: $("observe-only"),
   };
-  if (Object.values(refs).some((r) => !r)) return null;
+  const required = Object.entries(refs).filter(
+    ([k]) => !k.startsWith("steer") && k !== "observeOnly",
+  );
+  if (required.some(([, r]) => !r)) return null;
 
   const html = doc.documentElement;
   const prefs = loadPrefs(storage);
@@ -1144,6 +1154,10 @@ function createApp(env) {
   const sigs = {};
   let generation = 0;
   const timers = {};
+  let eventSource = null;
+  let csrfToken = null;
+  let steerEnabled = false;
+  let steerPending = null;
 
   const wide = win.matchMedia ? win.matchMedia("(min-width: 80em)") : { matches: true };
 
@@ -1220,13 +1234,19 @@ function createApp(env) {
     pushUrl();
     render();
     pollNodes();
+    startEventSource();
+    refreshSteerStatus();
   }
 
   function onFollow() {
     state = followLatest(state);
     pushUrl();
     render();
-    if (state.target) pollNodes();
+    if (state.target) {
+      pollNodes();
+      startEventSource();
+      refreshSteerStatus();
+    }
   }
 
   function renderChrome() {
@@ -1462,6 +1482,118 @@ function createApp(env) {
     run();
   }
 
+  function stopEventSource() {
+    if (eventSource) {
+      try {
+        eventSource.close();
+      } catch (_err) {
+        /* ignore */
+      }
+      eventSource = null;
+    }
+  }
+
+  function startEventSource() {
+    stopEventSource();
+    if (!state.visible || !state.target || typeof win.EventSource !== "function") return;
+    const url = `/__spectate/stream?session=${encodeURIComponent(state.target)}`;
+    try {
+      eventSource = new win.EventSource(url);
+    } catch (_err) {
+      return;
+    }
+    eventSource.addEventListener("spectate", () => {
+      pollNodes();
+    });
+    eventSource.addEventListener("ready", () => {
+      pollNodes();
+    });
+    eventSource.onerror = () => {
+      /* keep poll loop as fallback; EventSource auto-reconnects */
+    };
+  }
+
+  async function ensureCsrf() {
+    if (csrfToken) return csrfToken;
+    try {
+      const res = await fetchFn("/__csrf", { credentials: "same-origin", cache: "no-store" });
+      if (!res.ok) return null;
+      const body = await res.json();
+      csrfToken = body && body.token ? body.token : null;
+      return csrfToken;
+    } catch (_err) {
+      return null;
+    }
+  }
+
+  async function refreshSteerStatus() {
+    if (!refs.steerPanel) return;
+    try {
+      const q = state.target ? `?session=${encodeURIComponent(state.target)}` : "";
+      const raw = await getJson(`/__spectate/steer${q}`, null);
+      if (raw.status !== 200 || !raw.body) {
+        steerEnabled = false;
+        refs.steerPanel.hidden = true;
+        return;
+      }
+      steerEnabled = !!raw.body.enabled;
+      steerPending = raw.body.pending || null;
+      refs.steerPanel.hidden = !steerEnabled;
+      if (refs.observeOnly) {
+        refs.observeOnly.textContent = steerEnabled
+          ? "live stream · steer enabled"
+          : "live stream · steer opt-in via spectate_steer";
+      }
+      if (refs.steerStatus) {
+        if (!steerPending) refs.steerStatus.textContent = "";
+        else {
+          const bits = [];
+          if (steerPending.paused) bits.push("paused");
+          if (steerPending.note_pending) bits.push(`note (${steerPending.note_chars || 0})`);
+          refs.steerStatus.textContent = bits.join(" · ");
+        }
+      }
+    } catch (_err) {
+      /* ignore */
+    }
+  }
+
+  async function postSteer(action, note) {
+    const token = await ensureCsrf();
+    if (!token || !state.target) {
+      if (refs.steerStatus) refs.steerStatus.textContent = "steer unavailable";
+      return;
+    }
+    try {
+      const res = await fetchFn("/__spectate/steer", {
+        method: "POST",
+        credentials: "same-origin",
+        cache: "no-store",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+          "X-CSRF-Token": token,
+        },
+        body: JSON.stringify({
+          session: state.target,
+          action,
+          note: note || "",
+        }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        if (refs.steerStatus)
+          refs.steerStatus.textContent = (body && body.error) || `steer ${res.status}`;
+        return;
+      }
+      steerPending = body.pending || null;
+      await refreshSteerStatus();
+      pollNodes();
+    } catch (_err) {
+      if (refs.steerStatus) refs.steerStatus.textContent = "steer failed";
+    }
+  }
+
   function startPolling() {
     generation += 1;
     const gen = generation;
@@ -1469,6 +1601,8 @@ function createApp(env) {
     loop("nodes", pollNodes, POLL_NODES_MS, gen);
     loop("sessions", pollSessions, POLL_SESSIONS_MS, gen);
     timers.chrome = win.setInterval(renderChrome, 1000);
+    startEventSource();
+    refreshSteerStatus();
   }
 
   function stopTimers() {
@@ -1479,6 +1613,7 @@ function createApp(env) {
       }
       timers[key] = null;
     }
+    stopEventSource();
   }
 
   function onVisibility() {
@@ -1537,6 +1672,17 @@ function createApp(env) {
         onFollow();
       }
     });
+    if (refs.steerPause)
+      refs.steerPause.addEventListener("click", () =>
+        postSteer("pause", refs.steerNote && refs.steerNote.value),
+      );
+    if (refs.steerResume) refs.steerResume.addEventListener("click", () => postSteer("resume", ""));
+    if (refs.steerSend)
+      refs.steerSend.addEventListener("click", () => {
+        const note = refs.steerNote ? refs.steerNote.value : "";
+        postSteer("note", note);
+        if (refs.steerNote) refs.steerNote.value = "";
+      });
     refs.earlier.addEventListener("click", () => {
       state = { ...state, turnsShown: state.turnsShown + DEFAULT_TURNS_SHOWN };
       render();

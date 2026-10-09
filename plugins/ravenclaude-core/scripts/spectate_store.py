@@ -30,6 +30,7 @@ import math
 import os
 import re
 import stat as stat_mod
+import tempfile
 import urllib.parse
 from collections.abc import Mapping
 from datetime import datetime, timezone
@@ -1491,3 +1492,328 @@ def http_nodes(
         headers["X-Spectate-Server-Now"] = now_rfc3339(now)
         headers.pop("Content-Type")
     return code, headers, body
+
+
+# --------------------------------------------------------------------------------------
+# v0.3 — SSE stream slots + opt-in steer (pause-as-deny / capped note)
+# --------------------------------------------------------------------------------------
+
+STEER_FILE = "spectate-steer.json"
+POSTURE_REL = Path(".ravenclaude") / "comfort-posture.yaml"
+MAX_STEER_NOTE = 500
+MAX_SSE_STREAMS = 4
+SSE_HEARTBEAT_S = 15.0
+SSE_POLL_S = 0.35
+STEER_ACTIONS = frozenset({"pause", "resume", "note"})
+
+_SSE_LOCK = __import__("threading").Lock()
+_SSE_ACTIVE = 0
+
+
+def spectate_steer_enabled(project_root: Path | str) -> bool:
+    """``spectate_steer: on`` in comfort-posture.yaml (absent ⇒ off)."""
+    path = Path(project_root) / POSTURE_REL
+    try:
+        text = path.read_text(encoding="utf-8")
+    except OSError:
+        return False
+    for raw in text.splitlines():
+        line = raw.split("#", 1)[0].strip()
+        if not line.lower().startswith("spectate_steer"):
+            continue
+        if ":" not in line:
+            continue
+        val = line.split(":", 1)[1].strip().strip("\"'").lower()
+        return val == "on"
+    return False
+
+
+def acquire_sse_slot() -> bool:
+    global _SSE_ACTIVE
+    with _SSE_LOCK:
+        if _SSE_ACTIVE >= MAX_SSE_STREAMS:
+            return False
+        _SSE_ACTIVE += 1
+        return True
+
+
+def release_sse_slot() -> None:
+    global _SSE_ACTIVE
+    with _SSE_LOCK:
+        if _SSE_ACTIVE > 0:
+            _SSE_ACTIVE -= 1
+
+
+def sse_active_count() -> int:
+    with _SSE_LOCK:
+        return _SSE_ACTIVE
+
+
+def _harness_of_stream(project_root: Path | str, session_id: str) -> str | None:
+    state, run = open_run(project_root, session_id)
+    if state != "ok" or run is None:
+        return None
+    snap = _Snapshot(run)
+    try:
+        if not snap.has_stream:
+            return None
+        size = snap.s_stat[1]
+        return _stream_harness(snap, session_id, size)
+    finally:
+        snap.close()
+
+
+def read_steer_pending(project_root: Path | str, session_id: str) -> dict | None:
+    if not validate_session_id(session_id):
+        return None
+    path = runs_root(project_root) / session_id / STEER_FILE
+    try:
+        raw = path.read_bytes()
+    except OSError:
+        return None
+    if len(raw) > MAX_META_BYTES:
+        return None
+    try:
+        obj = json.loads(raw.decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError):
+        return None
+    return obj if isinstance(obj, dict) else None
+
+
+def write_steer_pending(project_root: Path | str, session_id: str, payload: dict) -> None:
+    root = runs_root(project_root)
+    root.mkdir(parents=True, exist_ok=True)
+    d = root / session_id
+    d.mkdir(parents=True, exist_ok=True)
+    target = d / STEER_FILE
+    data = json.dumps(payload, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
+    fd, tmp = tempfile.mkstemp(prefix=".steer-", suffix=".tmp", dir=str(d))
+    try:
+        with os.fdopen(fd, "wb") as fh:
+            fh.write(data)
+            fh.flush()
+            os.fsync(fh.fileno())
+        os.replace(tmp, target)
+    except Exception:
+        try:
+            os.unlink(tmp)
+        except OSError:
+            pass
+        raise
+
+
+def append_spectate_event(project_root: Path | str, event: dict) -> tuple[bool, str | None]:
+    """Validate + append one event. Refuses harness mismatch with the stream head."""
+    if not isinstance(event, dict):
+        return False, "invalid_event"
+    sid = event.get("session_id")
+    if not validate_session_id(sid):
+        return False, "invalid_session_id"
+    errs = check_event(event)
+    if errs:
+        return False, "schema:" + errs[0]
+    existing = _harness_of_stream(project_root, sid)
+    if existing and event.get("harness") not in (None, existing):
+        return False, "harness_mismatch"
+    root = runs_root(project_root)
+    root.mkdir(parents=True, exist_ok=True)
+    d = root / sid
+    d.mkdir(parents=True, exist_ok=True)
+    path = d / SPECTATE_FILE
+    line = json.dumps(event, separators=(",", ":"), ensure_ascii=False).encode("utf-8") + b"\n"
+    if len(line) > MAX_LINE_BYTES:
+        return False, "line_too_long"
+    flags = os.O_WRONLY | os.O_CREAT | os.O_APPEND | _O_CLOEXEC
+    if _O_NOFOLLOW:
+        flags |= _O_NOFOLLOW
+    try:
+        fd = os.open(str(path), flags, 0o644)
+    except OSError:
+        return False, "open_failed"
+    try:
+        os.write(fd, line)
+        os.fsync(fd)
+    finally:
+        os.close(fd)
+    return True, None
+
+
+def apply_steer(
+    project_root: Path | str,
+    *,
+    session_id: str,
+    action: str,
+    note: str | None = None,
+    agent_id: str = "main",
+) -> tuple[int, dict]:
+    """Apply a steer action. Requires ``spectate_steer: on``."""
+    if action not in STEER_ACTIONS:
+        return 400, {"error": "invalid_action"}
+    if not spectate_steer_enabled(project_root):
+        return 403, {"error": "spectate_steer_off"}
+    if not validate_session_id(session_id):
+        return 400, {"error": "invalid_session_id"}
+    if agent_id is None or not ID_RE.match(str(agent_id)):
+        agent_id = "main"
+    note_text = (note or "").strip()
+    if len(note_text) > MAX_STEER_NOTE:
+        note_text = note_text[:MAX_STEER_NOTE]
+    if action == "note" and not note_text:
+        return 400, {"error": "note_required"}
+
+    state, run = open_run(project_root, session_id)
+    if state == "invalid":
+        return 400, {"error": "invalid_session_id"}
+    if state == "missing" or run is None:
+        return 404, {"error": "session_not_found"}
+    snap = _Snapshot(run)
+    try:
+        if not snap.has_stream:
+            return 404, {
+                "error": "no_spectate_stream",
+                "has_hook_events": snap.h_stat[1] > 0,
+            }
+        harness = _stream_harness(snap, session_id, snap.s_stat[1]) or "unknown"
+    finally:
+        snap.close()
+
+    pending = read_steer_pending(project_root, session_id) or {}
+    ts = now_rfc3339()
+    if action == "pause":
+        pending = {
+            "paused": True,
+            "ts": ts,
+            "note": note_text,
+            "note_chars": len(note_text),
+            "note_pending": bool(note_text),
+        }
+    elif action == "resume":
+        pending = {
+            "paused": False,
+            "ts": ts,
+            "note": pending.get("note") if pending.get("note_pending") else "",
+            "note_chars": int(pending.get("note_chars") or 0)
+            if pending.get("note_pending")
+            else 0,
+            "note_pending": bool(pending.get("note_pending")),
+        }
+    else:  # note
+        pending = {
+            "paused": bool(pending.get("paused")),
+            "ts": ts,
+            "note": note_text,
+            "note_chars": len(note_text),
+            "note_pending": True,
+        }
+    write_steer_pending(project_root, session_id, pending)
+
+    node_id = f"steer-{action}-{ts.replace(':', '').replace('.', '')[-12:]}"
+    if not ID_RE.match(node_id):
+        node_id = f"steer-{action}"
+    event = {
+        "schema": "rc.spectate.v1",
+        "ts": ts,
+        "session_id": session_id,
+        "harness": harness if harness in HARNESS_ENUM else "unknown",
+        "source": "steer",
+        "kind": "steer.applied",
+        "node_id": node_id,
+        "agent_id": agent_id,
+        "detail": "minimal",
+        "steer": {
+            "action": action,
+            "note_chars": len(note_text) if action == "note" or note_text else 0,
+        },
+    }
+    ok, err = append_spectate_event(project_root, event)
+    if not ok:
+        return 500, {"error": "append_failed", "detail": err}
+    return 200, {
+        "ok": True,
+        "session_id": session_id,
+        "action": action,
+        "pending": {
+            "paused": bool(pending.get("paused")),
+            "note_pending": bool(pending.get("note_pending")),
+            "note_chars": int(pending.get("note_chars") or 0),
+            "ts": pending.get("ts"),
+        },
+        "event": event,
+    }
+
+
+def steer_status(project_root: Path | str, session_id: str | None = None) -> dict:
+    out: dict[str, Any] = {
+        "enabled": spectate_steer_enabled(project_root),
+        "pending": None,
+    }
+    if session_id and validate_session_id(session_id):
+        pending = read_steer_pending(project_root, session_id)
+        if pending:
+            out["pending"] = {
+                "paused": bool(pending.get("paused")),
+                "note_pending": bool(pending.get("note_pending")),
+                "note_chars": int(pending.get("note_chars") or 0),
+                "ts": pending.get("ts"),
+            }
+    return out
+
+
+def consume_steer_note(project_root: Path | str, session_id: str) -> str | None:
+    """Return pending note text (capped) and clear note_pending. Pause state kept."""
+    pending = read_steer_pending(project_root, session_id)
+    if not pending or not pending.get("note_pending"):
+        return None
+    note = str(pending.get("note") or "")[:MAX_STEER_NOTE]
+    pending["note_pending"] = False
+    pending["note"] = ""
+    pending["note_chars"] = 0
+    write_steer_pending(project_root, session_id, pending)
+    return note or None
+
+
+def spectate_file_size(project_root: Path | str, session_id: str) -> tuple[str, int]:
+    """→ ``(state, size)`` where state is invalid|missing|no_stream|ok."""
+    state, run = open_run(project_root, session_id)
+    if state != "ok" or run is None:
+        return state if state != "ok" else "missing", 0
+    snap = _Snapshot(run)
+    try:
+        if not snap.has_stream:
+            return "no_stream", 0
+        return "ok", snap.s_stat[1]
+    finally:
+        snap.close()
+
+
+def iter_new_spectate_lines(
+    project_root: Path | str, session_id: str, cursor: int
+) -> tuple[str, list[tuple[dict, int]], int]:
+    """Read complete lines after absolute ``cursor``.
+
+    → ``(state, [(event, end_offset), ...], next_cursor)``.
+    """
+    state, run = open_run(project_root, session_id)
+    if state != "ok" or run is None:
+        return state if state != "ok" else "missing", [], cursor
+    snap = _Snapshot(run)
+    try:
+        if not snap.has_stream or snap.sfd is None:
+            return "no_stream", [], cursor
+        size = snap.s_stat[1]
+        if cursor < 0:
+            cursor = 0
+        if cursor > size:
+            # resume past EOF → reset to tail (live)
+            cursor = size
+        lines, next_cur = _complete_lines(snap.sfd, cursor, size)
+        out: list[tuple[dict, int]] = []
+        for raw, end in lines:
+            ev, _err = parse_event_line(raw.strip(b" \t\r"), session_id)
+            if ev is not None:
+                out.append((ev, end))
+        return "ok", out, next_cur
+    finally:
+        snap.close()
+
+

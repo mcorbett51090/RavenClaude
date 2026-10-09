@@ -34,9 +34,15 @@
   "additionalProperties": false,
   "required": ["schema", "ts", "session_id", "harness", "source", "kind"],
   "properties": {
-    "schema": { "const": "rc.spectate.v1" },
-    "ts": { "$ref": "#/$defs/ts" },
-    "session_id": { "$ref": "#/$defs/session_id" },
+    "schema": {
+      "const": "rc.spectate.v1"
+    },
+    "ts": {
+      "$ref": "#/$defs/ts"
+    },
+    "session_id": {
+      "$ref": "#/$defs/session_id"
+    },
     "harness": {
       "type": "string",
       "enum": [
@@ -51,19 +57,63 @@
         "unknown"
       ]
     },
-    "source": { "type": "string", "enum": ["hook", "demo", "steer", "recorded"] },
-    "kind": { "$ref": "#/$defs/kind" },
-    "step": { "$ref": "#/$defs/step" },
-    "node_id": { "$ref": "#/$defs/id" },
-    "parent_id": { "$ref": "#/$defs/id" },
-    "agent_id": { "$ref": "#/$defs/id" },
-    "corr_id": { "$ref": "#/$defs/id" },
-    "tool": { "$ref": "#/$defs/tool" },
-    "asserted_status": { "$ref": "#/$defs/status" },
-    "deny": { "$ref": "#/$defs/deny" },
-    "metrics": { "$ref": "#/$defs/metrics" },
-    "detail": { "type": "string", "enum": ["minimal", "standard"] },
-    "synthetic": { "type": "boolean" }
+    "source": {
+      "type": "string",
+      "enum": ["hook", "demo", "steer", "recorded"]
+    },
+    "kind": {
+      "$ref": "#/$defs/kind"
+    },
+    "step": {
+      "$ref": "#/$defs/step"
+    },
+    "node_id": {
+      "$ref": "#/$defs/id"
+    },
+    "parent_id": {
+      "$ref": "#/$defs/id"
+    },
+    "agent_id": {
+      "$ref": "#/$defs/id"
+    },
+    "corr_id": {
+      "$ref": "#/$defs/id"
+    },
+    "tool": {
+      "$ref": "#/$defs/tool"
+    },
+    "asserted_status": {
+      "$ref": "#/$defs/status"
+    },
+    "deny": {
+      "$ref": "#/$defs/deny"
+    },
+    "metrics": {
+      "$ref": "#/$defs/metrics"
+    },
+    "detail": {
+      "type": "string",
+      "enum": ["minimal", "standard"]
+    },
+    "synthetic": {
+      "type": "boolean"
+    },
+    "steer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["action"],
+      "properties": {
+        "action": {
+          "type": "string",
+          "enum": ["pause", "resume", "note"]
+        },
+        "note_chars": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 500
+        }
+      }
+    }
   },
   "if": {
     "required": ["kind"],
@@ -73,7 +123,9 @@
       }
     }
   },
-  "else": { "required": ["node_id"] },
+  "else": {
+    "required": ["node_id"]
+  },
   "$defs": {
     "ts": {
       "type": "string",
@@ -142,21 +194,45 @@
       "additionalProperties": false,
       "required": ["name", "family"],
       "properties": {
-        "name": { "$ref": "#/$defs/id" },
-        "family": { "type": "string", "enum": ["shell", "url", "path", "other"] },
-        "target": { "$ref": "#/$defs/safe_string" }
+        "name": {
+          "$ref": "#/$defs/id"
+        },
+        "family": {
+          "type": "string",
+          "enum": ["shell", "url", "path", "other"]
+        },
+        "target": {
+          "$ref": "#/$defs/safe_string"
+        }
       },
       "allOf": [
         {
-          "if": { "properties": { "family": { "const": "shell" } }, "required": ["family"] },
+          "if": {
+            "properties": {
+              "family": {
+                "const": "shell"
+              }
+            },
+            "required": ["family"]
+          },
           "then": {
             "properties": {
-              "target": { "type": "string", "pattern": "^[A-Za-z0-9._+@/-]{1,128}$" }
+              "target": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9._+@/-]{1,128}$"
+              }
             }
           }
         },
         {
-          "if": { "properties": { "family": { "const": "url" } }, "required": ["family"] },
+          "if": {
+            "properties": {
+              "family": {
+                "const": "url"
+              }
+            },
+            "required": ["family"]
+          },
           "then": {
             "properties": {
               "target": {
@@ -167,20 +243,40 @@
           }
         },
         {
-          "if": { "properties": { "family": { "const": "path" } }, "required": ["family"] },
+          "if": {
+            "properties": {
+              "family": {
+                "const": "path"
+              }
+            },
+            "required": ["family"]
+          },
           "then": {
             "properties": {
               "target": {
                 "type": "string",
                 "pattern": "^[A-Za-z0-9._@+-][A-Za-z0-9._@+/-]{0,255}$",
-                "not": { "pattern": "(^|/)\\.\\.(/|$)" }
+                "not": {
+                  "pattern": "(^|/)\\.\\.(/|$)"
+                }
               }
             }
           }
         },
         {
-          "if": { "properties": { "family": { "const": "other" } }, "required": ["family"] },
-          "then": { "not": { "required": ["target"] } }
+          "if": {
+            "properties": {
+              "family": {
+                "const": "other"
+              }
+            },
+            "required": ["family"]
+          },
+          "then": {
+            "not": {
+              "required": ["target"]
+            }
+          }
         }
       ]
     },
@@ -189,18 +285,37 @@
       "additionalProperties": false,
       "required": ["by"],
       "properties": {
-        "by": { "type": "string", "enum": ["org", "plugin", "user", "harness"] },
-        "source": { "$ref": "#/$defs/short_token" },
-        "rule": { "$ref": "#/$defs/short_token" }
+        "by": {
+          "type": "string",
+          "enum": ["org", "plugin", "user", "harness"]
+        },
+        "source": {
+          "$ref": "#/$defs/short_token"
+        },
+        "rule": {
+          "$ref": "#/$defs/short_token"
+        }
       }
     },
     "metrics": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "duration_ms": { "type": "number", "minimum": 0, "maximum": 1000000000000 },
-        "out_bytes": { "type": "number", "minimum": 0, "maximum": 1000000000000 },
-        "prompt_chars": { "type": "number", "minimum": 0, "maximum": 1000000000000 }
+        "duration_ms": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1000000000000
+        },
+        "out_bytes": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1000000000000
+        },
+        "prompt_chars": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1000000000000
+        }
       }
     }
   }

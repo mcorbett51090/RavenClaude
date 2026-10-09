@@ -111,6 +111,12 @@ _SKIP = {
     "stream-session-close.sh": ("Stop — same unverified lifecycle mapping."),
     "thing-denial-kb-sync.sh": ("Stop — same unverified lifecycle mapping."),
     "handoff-nudge.sh": ("Stop — same unverified lifecycle mapping as dod-gate.sh."),
+    "spectate-steer.sh": (
+        "Opt-in Spectate steer consumer (v0.3; spectate_steer: on). Uses Claude Code "
+        "hookSpecificOutput.permissionDecision / additionalContext. Gemini PreToolUse "
+        "deny envelope is not verified for this path; skip is script-keyed. Claude "
+        "Code carries the steer path."
+    ),
     "spectate-emit.sh": (
         "Multi-event observe hook (SessionStart/UserPromptSubmit/PreToolUse/"
         "PostToolUse/Stop/SubagentStart/PreCompact). Gemini only maps "

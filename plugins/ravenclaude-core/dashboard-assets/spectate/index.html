@@ -36,7 +36,7 @@
       <header class="chrome">
         <div class="brand">
           <h1 class="brand-name">Harness Spectate</h1>
-          <p id="observe-only" class="brand-sub">observe-only &middot; steering unavailable until v0.3</p>
+          <p id="observe-only" class="brand-sub">live stream &middot; steer opt-in via spectate_steer</p>
         </div>
 
         <div class="chrome-status">
@@ -84,6 +84,17 @@
 
           <button id="theme-toggle" class="btn" type="button" aria-label="Switch theme">Theme: dark</button>
         </div>
+
+        <div id="steer-panel" class="steer-panel" hidden>
+          <button id="steer-pause" class="btn btn-small" type="button">Pause</button>
+          <button id="steer-resume" class="btn btn-small" type="button">Resume</button>
+          <label class="field field-steer" for="steer-note">
+            <span class="field-label">Note</span>
+            <input id="steer-note" type="text" maxlength="500" autocomplete="off" spellcheck="false" placeholder="capped steer note" />
+          </label>
+          <button id="steer-send-note" class="btn btn-small" type="button">Send note</button>
+          <span id="steer-status" class="steer-status" role="status"></span>
+        </div>
       </header>
 
       <aside id="sessions-region" class="rail" aria-label="Sessions">
@@ -121,7 +132,7 @@
     </div>
 
     <noscript>
-      <p class="noscript">Harness Spectate needs JavaScript to poll the local spectate API. Nothing is sent anywhere.</p>
+      <p class="noscript">Harness Spectate needs JavaScript for the local spectate API (poll + SSE). Nothing is sent anywhere.</p>
     </noscript>
   </body>
 </html>

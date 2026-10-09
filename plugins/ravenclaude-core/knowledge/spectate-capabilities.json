@@ -308,7 +308,7 @@
         "state": "unknown",
         "source_row": null,
         "evidence": [],
-        "note": "steer_context: v0.3 feature, no atlas row; unknown until probed"
+        "note": "v0.3 ships pause-as-deny + capped note via spectate-steer.sh when spectate_steer: on; atlas F06 has no steer_context row \u2014 keep unknown until a measured probe upgrades the cell"
       }
     },
     "codex-cli": {

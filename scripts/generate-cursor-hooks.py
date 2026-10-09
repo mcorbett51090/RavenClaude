@@ -112,6 +112,13 @@ _SKIP = {
         "shell command and has no input-rewrite field, so the pin cannot bind here. "
         "On Cursor, pick the model tier in the dispatch call itself."
     ),
+    "spectate-steer.sh": (
+        "Opt-in Spectate steer consumer (v0.3; spectate_steer: on). Pause-as-deny + "
+        "additionalContext note injection. Cursor's verified PreToolUse deny shape "
+        "differs from Claude Code's hookSpecificOutput.permissionDecision envelope; "
+        "skip is script-keyed until a Cursor adapter path is probed. Claude Code "
+        "carries the steer path."
+    ),
     "spectate-emit.sh": (
         "Registered under PreCompact and SubagentStart (Claude Code observe path). "
         "Cursor has no verified compaction or subagentStart lane on the pages "
