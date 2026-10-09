@@ -441,7 +441,7 @@ Endpoints (GET, read-only, Host/Origin-checked):
   - If `lsof` absent: fail closed → start second server; never kill
   - Always pass `--no-reclaim` when starting; never call `_reclaim_port` on the open path
   - Audit-gates must-pass: an old-style live server survives `rc spectate`
-- [ ] Detach by default (G2-3 / G4-4): `mkdir -p .ravenclaude/runs` **before** redirect; then `nohup python3 serve-dashboards.py --no-reclaim --open-path '/spectate?…' … >.ravenclaude/runs/spectate-server.log 2>&1 &`, wait ≤5s for port, print URL, exit 0. `--foreground` keeps blocking. Clean-project launcher test: empty project (no prior `.ravenclaude/runs`) still starts
+- [ ] Detach by default (G2-3 / G4-4 / G5-4 / G7-2): `mkdir -p .ravenclaude/runs` **before** redirect; then `nohup python3 serve-dashboards.py --no-reclaim --no-open … >.ravenclaude/runs/spectate-server.log 2>&1 &` (truncate log if >2MiB). Wait ≤5s probing `GET /__spectate/capabilities` for the bound port. Print URL; `rc` opens browser only per G5-4. Never pass `--open-path` to detached server. `--foreground` may use `--open-path` for debug. Clean-project launcher test included.
 - [ ] Open browser rule (G3-12): `webbrowser` **only** for local attach with a TTY and without `--no-open`. Codespaces, no TTY, and `--no-open` **only print** the URL (forwarded `/spectate?...` in Codespaces). Never both print-and-launch in Codespaces
 - [ ] Open URL `http://127.0.0.1:<port>/spectate?session=<id>` when an id is known, else `?follow=latest` (+ optional `&harness=`). `--no-open` prints URL + `session_id` / `harness` / `latest_status` for the session follow would select (G3-8)
 - [ ] Session id order (G2-6 / G3-11): explicit `--session`, else `CLAUDE_SESSION_ID` when set, else `follow=latest`. Before writing `commands/spectate.md`, probe whether slash/command env expands a session id; **do not claim absence until that probe output is pasted into the doc**. Fallback if unavailable: `?follow=latest&harness=claude-code` + “following latest — session not pinned”
@@ -606,6 +606,11 @@ Endpoints (GET, read-only, Host/Origin-checked):
 | G6-2 | Probe window matches bind span=10 for `rc spectate` |
 | G6-3 | nodes/events HTTP 400/404/200 empty contracts |
 | G6-4 | `check_top_level_routes()` for `/spectate` parity |
+| G7-1 | Normative `_bind_server` replaces contradictory drafts |
+| G7-2 | Detached start uses `--no-open`, not `--open-path` |
+| G7-3 | step/turn node_id scheme + empty-file seeded nodes |
+| G7-4 | Composite etag + X-Spectate-Server-Now on 304 |
+| G7-5 | Light-theme status borders/fg + available≠teal |
 
 ---
 
@@ -614,11 +619,32 @@ Endpoints (GET, read-only, Host/Origin-checked):
 ### G5-1 Version
 See Global Constraints — next minor above `origin/main` at implement time (not hard-coded `0.329.0`).
 
-### G5-2 `--no-reclaim` / root bind helper
-- Extract root server's inline bind into a module-level `_bind_server(port, *, reclaim: bool, span: int)` present in **both** copies.
-- Root keeps `span=6` (ports PORT..PORT+5); plugin may keep `span=10`. Helper takes `span` so they stay intentional.
-- Add `_bind_server` and `_open_browser` to Gate 32 `_BODY_DIFF_NAMES` explicitly.
-- Update `open-dashboard.sh` `WALK` to match the root span (`span-1`) when changing root; document the mirror.
+### G5-2 / G6-1 / G6-2 / G7-1 — `_bind_server` (normative; replaces prior drafts)
+
+Byte-identical in both server copies; listed in Gate 32 `_BODY_DIFF_NAMES`:
+
+```python
+def _bind_server(
+    bind: str,
+    port: int,
+    handler: type,
+    *,
+    reclaim: bool = True,
+    span: int = 10,
+) -> tuple[ThreadingHTTPServer, int]:
+    """Try `port`, then the next `span` ports (total span+1 candidates).
+    On EADDRINUSE: if reclaim, call _reclaim_port then retry once; else advance.
+    Never reclaim when reclaim=False. Returns (server, bound_port).
+    """
+```
+
+Semantics of `span`: number of **fallback** ports after `port` (candidates = `port` .. `port+span` inclusive → 11 ports when span=10, i.e. 8000–8010).
+
+Call sites (`main()`, not byte-compared):
+- `rc spectate` / spectate path: `_bind_server(..., reclaim=False, span=10)`
+- `rc dashboard` may keep reclaim=True; if it shares the helper, pass the same span=10 and set `open-dashboard.sh` `WALK=10` (comment: mirrors span)
+
+`_open_browser(url: str) -> None` also in `_BODY_DIFF_NAMES`, byte-identical.
 
 ### G5-3 G4-1 mechanism (Task 2 checklist + matrix)
 - Spectate GET/HEAD handlers call `_spectate_peer_ok()` after `_local_request_ok()`: peer `client_address[0]` must be loopback (`127.0.0.1` / `::1`) **or** the request Host must be the exact Codespace forward host. LAN IP Host/Origin alone is insufficient when peer is non-loopback.
@@ -653,6 +679,12 @@ See Global Constraints — next minor above `origin/main` at implement time (not
 
 Unobservable steps stay `available` (or capability-unknown) — never inferred from silence.
 
+**Step / turn identity (G7-3):**
+- Turn boundary: `prompt.submit` starts turn N; `turn.end` ends it (if absent, next `prompt.submit` or `session.end` closes).
+- Synthesized spine `node_id` = `step:<agent_id>:<turn_idx>:<step>` (e.g. `step:main:0:execute-tools`). Tool children keep emitter `node_id` with `parent_id` pointing at that step node.
+- Each node in `/nodes` includes `turn` (int). Response may omit separate `spine` array — seeded step nodes **always appear in `nodes`** (including empty-file 200 with one turn-0 spine all idle / unavailable / unknown per seed precedence).
+
+
 ### G5-8 `/__spectate/nodes` response shape
 ```json
 {
@@ -663,9 +695,10 @@ Unobservable steps stay `available` (or capability-unknown) — never inferred f
   "last_event_ts": "RFC3339|null",
   "session_ended": false,
   "source_hint": "demo|recorded|live",
+  "etag": "...",
   "nodes_truncated": false,
   "skipped_malformed": 0,
-  "nodes": [ {"node_id","parent_id","agent_id","step","kind","status","capability_state","unterminated","deny","metrics","ts"} ]
+  "nodes": [ {"node_id","parent_id","agent_id","turn","step","kind","status","capability_state","unterminated","deny","metrics","ts"} ]
 }
 ```
 UI computes live badge from `source_hint` / `server_now` vs `last_event_ts` (server clock), never browser clock alone.
@@ -678,7 +711,8 @@ UI computes live badge from `source_hint` / `server_now` vs `last_event_ts` (ser
 
 ### G5-10 Read-path cost
 - Sessions summary cache keyed by `(path, mtime_ns, size)` → `{harness, synthetic, latest_status}`; invalidate on stat change.
-- `/nodes` `etag` = `mtime_ns-size` from `stat` **before** reduce; 304 skips reduce.
+- `/nodes` returns `ETag` header **and** body field `etag`. Value = fingerprint of `(events_mtime_ns, events_size, hook_events_mtime_ns, hook_events_size, capabilities_mtime_ns)` from `stat` **before** reduce; 304 skips reduce (G7-4).
+- On 304: send `X-Spectate-Server-Now: <RFC3339>`; UI advances live→recorded using that header (or last `server_now` + monotonic elapsed) — never browser wall clock alone.
 - UI polls `/sessions` every 5s (rail / follow); `/nodes` every 2s while visible.
 
 ### G5-11 Fresh-project first sight

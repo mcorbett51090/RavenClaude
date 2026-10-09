@@ -242,8 +242,8 @@ Components consume these — never raw primitives.
   --color-border-focus:     #0d9488;
 
   --color-text-primary:     #1f2328;
-  --color-text-secondary:   #656d76;
-  --color-text-tertiary:    #57606a;
+  --color-text-secondary:   #57606a; /* ≥ tertiary contrast (G7-5) */
+  --color-text-tertiary:    #656d76;
   --color-text-disabled:    #8b949e;
   --color-text-inverse:     #ffffff;
   --color-text-link:        #0969da;
@@ -264,7 +264,7 @@ Components consume these — never raw primitives.
   --status-denied-plugin-fg:      #9a6700; /* was #bf8700 @ 2.95:1 — fail; darkened */
   --status-denied-user-fg:        #cf222e;
   --status-denied-harness-fg:     #a04000; /* distinct from denied-org #bc4c00; shape still hexagon */
-  --status-available-fg:          #0d9488;
+  --status-available-fg:          #656d76; /* slate, not accent teal (G7-5) */
   --status-unavailable-harness-fg:#656d76;
   --status-idle-fg:               #6e7681; /* was #8b949e @ 2.89:1 — fail; raised */
 
@@ -275,6 +275,20 @@ Components consume these — never raw primitives.
   --status-denied-org-bg:         color-mix(in srgb, var(--status-denied-org-fg) 12%, transparent);
   --status-denied-harness-bg:     color-mix(in srgb, var(--status-denied-harness-fg) 12%, transparent);
   --status-denied-plugin-bg:      color-mix(in srgb, var(--status-denied-plugin-fg) 12%, transparent);
+
+  /* Light status borders (G7-5) — ≥3:1 on #f6f8fa */
+  --status-available-border:      #656d76;
+  --status-unavailable-harness-border: #57606a;
+  --status-unavailable-harness-fg: #57606a;
+  --status-running-fg:            #0550ae;
+  --status-running-border:        #0550ae;
+  --status-succeeded-fg:          #1a7f37;
+  --status-succeeded-border:      #1a7f37;
+  --status-waiting-approval-fg:   #9a6700;
+  --status-waiting-approval-border:#9a6700;
+  --status-denied-user-fg:        #cf222e;
+  --status-denied-user-border:    #cf222e;
+  --status-failed-border:         #cf222e;
 }
 ```
 
@@ -557,7 +571,8 @@ Exact ship labels (string constants). Visual = **fill/stroke color + geometric s
 |---|---|---|
 | text-primary `#E6EDF3` | 16.02:1 | AA body |
 | text-secondary `#8B949E` | 6.15:1 | AA body |
-| accent / available UI `#2DD4BF` | 10.17:1 | AA UI |
+| accent UI `#2DD4BF` | 10.17:1 | AA UI |
+| available (slate) `#B1BAC4` | 9.63:1 | AA UI |
 | running `#79C0FF` | 9.73:1 | AA UI |
 | succeeded `#3FB950` | 7.45:1 | AA UI |
 | failed `#F85149` | 5.65:1 | AA UI |
