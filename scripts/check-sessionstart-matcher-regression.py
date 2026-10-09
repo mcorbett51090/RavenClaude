@@ -1218,10 +1218,12 @@ def self_test(must_fail: bool = False) -> int:
         #    direction G4b/G5 flagged as most likely to be skipped -- do not
         #    skip it.
         src8 = cursor_gen.read_text(encoding="utf-8")
+        # Anchor on the entry dict construction (failClosed for beforeShellExecution
+        # was added later; the inverse mutant still injects a matcher where none is
+        # declared — MATCHER-FIDELITY for cursor must fire).
         mutant8 = src8.replace(
-            'out.setdefault(cursor_event, []).append({"command": cmd, "timeout": 90})',
-            "out.setdefault(cursor_event, []).append("
-            '{"command": cmd, "timeout": 90, "matcher": "mutant-a2-4"})',
+            'entry: dict = {"command": cmd, "timeout": 90}',
+            'entry: dict = {"command": cmd, "timeout": 90, "matcher": "mutant-a2-4"}',
             1,
         )
         if mutant8 == src8:

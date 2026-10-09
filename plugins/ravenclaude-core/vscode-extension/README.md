@@ -55,6 +55,24 @@ non-participant extension has no visibility into an ongoing Copilot Chat session
 `@`-mentioned participant) — so it does not try. It's one click away, always; it never
 auto-fires.
 
+## Opt-in: turn off automatic compaction (workspace setting)
+
+This extension steers **explicit** `/compact` only. To make that the *only* compaction
+path, set the Experimental workspace setting
+`github.copilot.chat.summarizeAgentConversationHistory.enabled` to **`false`**
+(default is `true`). With automatic compaction off, you or the agent must trigger
+`/compact` (via this extension or the slash command) before the window fills.
+
+**Never ship this as a default** in the extension's contributed configuration — it is
+an operator opt-in for lanes that want steered compaction only. Add it to a worktree's
+`.vscode/settings.json` when you want that posture:
+
+```json
+{
+  "github.copilot.chat.summarizeAgentConversationHistory.enabled": false
+}
+```
+
 ## Install
 
 Not published to the VS Code Marketplace yet (that needs the repo owner's own publisher

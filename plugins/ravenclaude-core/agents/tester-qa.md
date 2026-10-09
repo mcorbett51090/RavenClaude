@@ -4,7 +4,7 @@ description: Use this agent to design test plans, hunt flakes, plug coverage gap
 tools: Read, Edit, Write, Grep, Glob, Bash
 model: sonnet
 maxTurns: 40
-effort: normal
+effort: medium
 audience: [dev]
 works_with: [backend-coder, frontend-coder, code-reviewer, architect]
 scenarios:

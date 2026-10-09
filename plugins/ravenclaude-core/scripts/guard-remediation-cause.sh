@@ -475,7 +475,15 @@ for r in open_rows:
         continue
     sb = subject_body(s)
     # Conjunct 2: the pending command touches S.
-    if sb == subject_b or (len(sb) > 4 and sb in cmd) or (len(subject_b) > 4 and subject_b in sb):
+    if s == subject or sb == subject_b:
+        match = r
+        break
+    if s.startswith("cmd:"):
+        if len(sb) > 4 and sb in cmd:
+            match = r
+            break
+        continue
+    if len(sb) > 4 and sb in cmd:
         match = r
         break
 

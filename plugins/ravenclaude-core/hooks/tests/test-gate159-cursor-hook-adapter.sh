@@ -127,6 +127,20 @@ else
   bad "missing hook script: rc=$rc_missing out=${out_missing:0:40}"
 fi
 
+
+# Adapter internal failure (no jq/python3) must exit 2 unless lenient — fail-closed hook entry.
+bash_only="$(dirname "$(command -v bash)")"
+rc_if=$(
+  env PATH="$bash_only" HOME="$HOME" RC_OUT="$TMP" RC_RC=0     bash "$AD" shell-pretool "$TMP/stub.sh" <<<"$BENIGN" 2>/dev/null; echo $?
+)
+if [ "$rc_if" -eq 2 ]; then
+  ok "internal stdin-build failure exits 2 (fail-closed)"
+elif command -v python3 >/dev/null 2>&1 && command -v jq >/dev/null 2>&1; then
+  ok "internal fail-closed test skipped (python3+jq on PATH — cannot strip both)"
+else
+  bad "expected exit 2 on internal adapter failure, got rc=$rc_if"
+fi
+
 # ── TEETH ───────────────────────────────────────────────────────────────────
 # 1. If the exit-2 translation is removed, the deny must disappear — proving the
 #    deny assertion is not passing for some incidental reason.

@@ -117,15 +117,16 @@ the installed Copilot CLI this session -- see `copilot-delegate.sh`'s own header
 for the full, live-probed record. Reusing that map here would have been the
 exact "looks like one source of truth, isn't verified for this use" trap.
 
-⛔ **Honest limit, stated because it was measured, not assumed:** Copilot's
-`--model auto` (the default -- no valid PINNED slug was discoverable
-non-interactively) **rejects `--effort` outright at the API level**
-(`"Model \"auto\" does not support reasoning effort configuration"`, a real
-runtime error, not a guess). So out of the box, **the Copilot lane's tier
-ladder differentiates by timeout budget only** -- the UMM Copilot effort
-column is what `--effort` WOULD carry if a caller pins a real, effort-capable model via
-`copilot-delegate.sh --model <slug>` (confirmed via the interactive `/model`
-picker on your own account), at which point `--effort` is sent for real.
+⛔ **Dated probe, not a platform law (Copilot CLI v0.305.0, one account):** with
+`--model auto` (default when no pinned slug was discoverable non-interactively) the API
+**rejects `--effort` outright**
+(`"Model \"auto\" does not support reasoning effort configuration"` — measured, not assumed).
+That probe did **not** prove slug pinning is impossible: GitHub documents `--model=MODEL`, and
+`/model` lists what your org enables — **re-probe** a listed slug on your CLI version before
+automation depends on it. Out of the box on that probe, **the Copilot lane's tier ladder
+differentiates by timeout budget only** — the UMM Copilot effort column is what `--effort` WOULD
+carry once a caller pins an effort-capable model via `copilot-delegate.sh --model <slug>` (use the
+interactive `/model` picker to pick a slug), at which point `--effort` is sent for real.
 
 Plus the levers that are orthogonal to tier and always available:
 
@@ -133,7 +134,7 @@ Plus the levers that are orthogonal to tier and always available:
 |---|---|---|
 | `--agent` | `grok` (default) \| `copilot` | `cheap_lane.agent` in `comfort-posture.yaml`, or the dispatcher flag directly -- the coding-agent-selection lever |
 | `mode` | `advise` (suggestion only) \| `agent` (disposable worktree, human reviews the diff) | `cheap_lane.mode` in `comfort-posture.yaml` -- the containment lever |
-| `--effort` | Grok: `low`\|`medium`\|`high` (CLI rejects `xhigh`). Copilot: `none`\|`minimal`\|`low`\|`medium`\|`high`\|`xhigh`\|`max`, sent ONLY with a pinned `--model` (see above) | An explicit CLI override -- wins over the tier-resolved effort |
+| `--effort` | Grok: `low`\|`medium`\|`high` (CLI rejects `xhigh` on grok-4.5/4.6 in tested builds; Grok 4.7 documents `xhigh` — verify-at-use). Copilot: `none`\|`minimal`\|`low`\|`medium`\|`high`\|`xhigh`\|`max`, sent ONLY with a pinned `--model` (see above) | An explicit CLI override -- wins over the tier-resolved effort |
 | `--model <slug>` | Copilot only; Grok's model comes from the tier map, unoverridable here | An explicit CLI override for a caller who has confirmed their own valid slug |
 | `--timeout <secs>` / `--max-turns <n>` (Grok only -- no verified Copilot turn-count flag) | any positive int | An explicit CLI override -- wins over the UMM tier budget row |
 

@@ -49,6 +49,16 @@ _RC_DENY='{"permission":"deny","user_message":"Blocked by a RavenClaude guardrai
 
 _rc_deny() { printf '%s\n' "$_RC_DENY"; exit 0; }
 
+_rc_adapter_internal_fail() {
+  # Cursor documents exit 2 on beforeShellExecution as permission: deny. Used when the
+  # adapter cannot build a safe verdict (stdin translation failure). Opt out with
+  # RAVENCLAUDE_CURSOR_ADAPTER_LENIENT=1 — blocks every shell command when mis-set.
+  if [ "${RAVENCLAUDE_CURSOR_ADAPTER_LENIENT:-}" = "1" ]; then
+    exit 0
+  fi
+  exit 2
+}
+
 mode="${1:-}"
 real="${2:-}"
 if [ -z "$mode" ] || [ -z "$real" ] || [ ! -f "$real" ]; then
@@ -133,7 +143,7 @@ case "$mode" in
   shell-pretool)
     cmd="$(_field command)"
     [ -z "$cmd" ] && exit 0
-    stdin_json="$(_claude_stdin Bash "$cmd")" || exit 0
+    stdin_json="$(_claude_stdin Bash "$cmd")" || _rc_adapter_internal_fail
     # ⛔ stdout suppressed, stderr preserved (was `2>&1` until 2026-08-12, which
     # discarded the guard's deny reason entirely — same defect as the Gemini
     # adapter, found the same way). The JSON verdict below stays a FIXED literal:

@@ -2,6 +2,40 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.329.1 — 2026-10-09
+
+### Atlas ENH follow-through (remaining 8)
+
+- **ENH-010** — Top-level `hook_error_posture` replaces the old blanket
+  "every other host fails CLOSED" claim; Codex caveat names explicit-deny-only + exit-0 success.
+- **ENH-013** — Copilot SessionStart Tier A mechanism text records held-constant env vars
+  (`GITHUB_COPILOT_PROMPT_MODE_REPO_HOOKS` / `COPILOT_ALLOW_ALL` unset on A7.5).
+- **ENH-017** — `allowed-tools` already adopted on `scenario-retrieval` (docs match).
+- **ENH-023** — `ravenclaude-precompact-guard` README offers opt-in
+  `summarizeAgentConversationHistory.enabled: false` (never a default).
+- **ENH-024** — `rcwt new` pins `chat.agent.sandbox.enabled` by default; opt out with
+  `RCWT_NO_CHAT_SANDBOX=1`.
+- **ENH-039** — AfterAgent contract documented; Stop-lane wiring held until stdin payload verified.
+- **ENH-040** — `gemini-extension.json` packaging kept; skills/agents stay `supported: false`
+  until a live install probe.
+- **ENH-050** — Keep `claude-opus-4-8` pin; add `notes.claude_aliases` for Bedrock/Copilot alias skew.
+- **ENH-042 residual** — Complete Grok host matrix + `blocked_by` on unsupported cells (Gate 154).
+
+## 0.329.0 — 2026-10-09
+
+### Fixed / reconciled (harness atlas enhancement register)
+
+- Codex: stop emitting retired `approval_policy=untrusted`; project `model_reasoning_effort` from tier; document non-uniform tool names and 32 KiB AGENTS.md cap.
+- Copilot Chat/CLI and Cursor/Gemini/Grok host-support + customization docs aligned to the 2026-10-04 atlas (hook setting names, Local harness scope, modes, failClosed, Grok Build host row).
+- Ten agents: `effort: normal` → `medium`; frontmatter gate allow-lists effort values.
+- FORGE: receipt allowlist keeps `model`/`subagent_type`/`effort`; worktree secret scan is pending-only; premise-gate / sanitize-webfetch / cause-triage defects fixed.
+- New: `PermissionDenied` hook → hook-events; Cursor skills/agents/BUGBOT/`.cursorignore`; `failClosed` on enforcing Cursor hooks; Gemini extension scaffold + `emit-gemini-config.py`; Codex `agents/openai.yaml` for forge-pipeline/spawn-team.
+
+### Migration
+
+- Legacy Codex configs with `approval_policy = "untrusted"` must be edited by hand (emitter refuses to preserve the retired value).
+- Cursor installs get `failClosed` on enforcing shell hooks — adapter internal failures deny (exit 2) unless `RAVENCLAUDE_CURSOR_ADAPTER_LENIENT=1`.
+
 ## 0.328.0 — 2026-10-05
 
 ### Added

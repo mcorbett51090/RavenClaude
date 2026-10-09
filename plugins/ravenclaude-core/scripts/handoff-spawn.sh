@@ -20,7 +20,7 @@ Usage: handoff-spawn.sh --task-id <id> [--dry-run] [--host HOST] [--recipe copy-
 
   --host  claude-code | grok | cli (Copilot CLI) | chat (Copilot Chat)
             -> that host's own launch recipe.
-          codex | cursor | gemini | aider | windsurf   (knowledge/host-support.json)
+          codex | cursor | gemini | aider | windsurf | grok   (knowledge/host-support.json)
           other | generic
             -> host-neutral copy-paste block, exit 0. No launch command is invented.
           anything else
@@ -201,7 +201,7 @@ normalize_host() {
   esac
 }
 
-# The seven hosts the marketplace officially declares in
+# The eight hosts the marketplace officially declares in
 # knowledge/host-support.json. Duplicated as a literal ON PURPOSE: Gate 230 and
 # Gate 234 drive this script under `env -i PATH=/usr/bin:/bin`, so it may not
 # shell out to python3/jq to read the JSON. Gate 234 asserts this list and the
@@ -209,7 +209,7 @@ normalize_host() {
 # _read_heimdall / _read_mimir elsewhere in this plugin.
 is_registry_host() {
   case "$(_lc "$1")" in
-    claude-code|copilot|codex|cursor|gemini|aider|windsurf) return 0 ;;
+    claude-code|copilot|codex|cursor|gemini|aider|windsurf|grok) return 0 ;;
     *) return 1 ;;
   esac
 }
@@ -499,7 +499,7 @@ if [ "$host_flag_bad" -eq 1 ]; then
   exit 2
 fi
 if [ "$host_flag_seen" -eq 1 ] && [ "$(classify_host_flag "$host_flag")" = "reject" ]; then
-  echo "handoff-spawn: unrecognised --host '$host_flag'. Use claude-code | grok | cli | chat, a host from knowledge/host-support.json (codex|cursor|gemini|aider|windsurf), or 'other' for a host-neutral handoff. Do NOT substitute a host you are not." >&2
+  echo "handoff-spawn: unrecognised --host '$host_flag'. Use claude-code | grok | cli | chat, a host from knowledge/host-support.json (codex|cursor|gemini|aider|windsurf|grok), or 'other' for a host-neutral handoff. Do NOT substitute a host you are not." >&2
   copy_paste_block
   exit 2
 fi

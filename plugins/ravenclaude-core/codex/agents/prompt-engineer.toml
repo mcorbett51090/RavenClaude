@@ -8,11 +8,11 @@
 # Derived from the canonical tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 #
 # Canonical model tier: opus. `model` is NOT emitted — it takes a Codex
-# model id, and the canonical value is a Claude tier alias. Until you pin
-# one, this agent runs on the session's model.
+# model id. `model_reasoning_effort` is projected from the tier alias below.
 name = "prompt-engineer"
 description = "Use this agent to author, critique, refine, or refactor agent definitions, skill files, and prompt patterns across RavenClaude and any Expert repo (PowerPlatformExpert, SalesforceExpert, etc.)."
 sandbox_mode = "workspace-write"
+model_reasoning_effort = "high"
 developer_instructions = '''
 # Role: Prompt Engineer
 

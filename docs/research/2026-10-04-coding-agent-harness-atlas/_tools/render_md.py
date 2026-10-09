@@ -520,6 +520,10 @@ def render_readme(ctx, pages):
             "- One agent's request flow, decision points and where to set model, effort and mode: `trees/<id>.md`."
         )
     lines.append("- Proposed RavenClaude updates, ranked: `register.md`.")
+    lines.append(
+        "- Follow-on update/deprecate triage of that register: "
+        "`../feature-disposition-2026-10-09.md` and `../data/register-dispositions.json`."
+    )
     lines.append("- How it was verified and what is not covered: `known-gaps.md`.")
     lines.append(
         "- The quote or URL behind an evidence id `E-<id>`: grep it in `../data/evidence/<column>.json`."

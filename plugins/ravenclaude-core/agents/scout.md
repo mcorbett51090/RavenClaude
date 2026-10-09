@@ -4,7 +4,7 @@ description: "Haiku-tier worker for high-volume, low-judgment work — search, g
 tools: Read, Grep, Glob, Write
 model: haiku
 maxTurns: 25
-effort: normal
+effort: medium
 audience: [dev, consultant]
 works_with: [architect, code-reviewer, deep-researcher, tester-qa]
 scenarios:

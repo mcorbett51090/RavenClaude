@@ -509,6 +509,30 @@ def build_manifest(canonical: dict) -> str:
     return json.dumps(manifest, indent=2, ensure_ascii=False) + "\n"
 
 
+
+TIER_EFFORT = {"haiku": "low", "sonnet": "medium", "opus": "high", "fable": "high"}
+
+
+def build_settings_snippet() -> str:
+    """Suggested Copilot agent model pins (not auto-applied)."""
+    agents = {}
+    for agent_path in sorted(AGENTS_DIR.glob("*.md"), key=lambda x: x.name):
+        fm, _ = split_frontmatter(read_text(agent_path))
+        name, description, _tools, model = parse_agent_frontmatter(fm, agent_path.stem)
+        tier = (model or "").strip().lower()
+        agents[name] = {
+            "model": "<your-plan-picker-id>",
+            "effortLevel": TIER_EFFORT.get(tier, "medium"),
+            "_canonical_tier": tier or "inherit",
+        }
+    payload = {
+        "_generated_by": "scripts/generate-copilot-plugin.py — copy values into your Copilot settings; not loaded automatically.",
+        "_note": "Replace model with your org picker id. effortLevel follows docs.github.com agent settings where supported.",
+        "agents": agents,
+    }
+    return json.dumps(payload, indent=2, ensure_ascii=False) + "\n"
+
+
 def build_readme() -> str:
     return (
         "# ravenclaude-core — GitHub Copilot CLI package\n"
@@ -805,6 +829,7 @@ def generate() -> dict[str, str]:
     tree[f"{rel_root}/README.md"] = build_readme()
     tree[f"{rel_root}/AGENTS.md"] = build_agents_md()
     tree[f"{rel_root}/mcp-catalog.json"] = build_mcp_catalog()
+    tree[f"{rel_root}/settings.snippet.json"] = build_settings_snippet()
 
     for agent_path in sorted(AGENTS_DIR.glob("*.md"), key=lambda p: p.name):
         if not agent_path.is_file():

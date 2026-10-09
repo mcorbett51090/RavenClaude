@@ -54,8 +54,13 @@ the reason, turn continues · **anything else** = non-fatal warning, CLI continu
 
 ### Where hooks are configured
 
-`.gemini/settings.json` (project) · `~/.gemini/settings.json` (user) ·
-`/etc/gemini-cli/settings.json` (system). Shape:
+Gemini merges settings from **four** documented layers (precedence for single-value keys is in the
+[settings reference](https://geminicli.com/docs/cli/settings/) — do not restate a closed three-file
+list here; vendor FAQ text sometimes says "two files"). Typical paths include **project**
+`<project>/.gemini/settings.json`**, **user** `~/.gemini/settings.json`, **system**
+`/etc/gemini-cli/settings.json`, and **extension**-contributed settings — hooks in any layer merge
+with what `ravenclaude install --host gemini` writes into the project file, so read every layer
+before declaring a guardrail unwired. Shape:
 
 ```json
 { "hooks": { "BeforeTool": [ { "matcher": "write_file|replace",
@@ -91,10 +96,11 @@ file.**
    on `Bash` sees `run_shell_command` and falls through to "no decision, proceed".
 3. **Do NOT translate blocking.** `exit 2` is already the contract. Leave it alone.
 4. **`GEMINI.md` imports `AGENTS.md`** — do not generate a copy.
-5. **Claude's `Stop` and `UserPromptSubmit` are NOT wired.** `AfterAgent` / `BeforeAgent` /
-   `SessionEnd` are plausible counterparts, but their payload schemas were not published on the
-   pages verified, and mapping a lifecycle event by name-similarity is how a lane ends up asserting
-   coverage it does not have. Wire them when their schemas are read, not before.
+5. **Claude's `Stop` and `UserPromptSubmit` are NOT wired on Gemini.** The documented
+   **`AfterAgent`** hook is the post-turn counterpart for retry/stop semantics: vendor exit code
+   **`2` = system block / retry** (same blocking contract as `BeforeTool` exit 2). **`BeforeAgent`**
+   and **`SessionEnd`** remain unwired until their payload shapes are verified on a live CLI — do
+   not map lifecycle events by name alone. (**Hold wiring — ENH-039:** do not attach `dod-gate.sh` or other Stop-lane guardrails to `AfterAgent` until the AfterAgent stdin payload is read from the hooks reference and a self-limit for exit-2 retry loops is designed. UserPromptSubmit stays unwired.)
 
 ## Gemini CLI 0.60 — host-security alignment (DOC adapt 2026-09-20 — UNVERIFIED)
 [verify-at-use · angle release-gemini-cli-0.60.0 · KEEP sandbox/path gates]
@@ -116,3 +122,19 @@ stays a thin shim (tool-name normalize + `THING_HOST` + exit-2 passthrough). Do
 - Re-implementing Gemini's OAuth issuer checks inside bash.
 - Softening exit-2 deny into JSON-allow on parse failure (Cursor fail-open class — Gemini is exit-2 safe).
 - Treating envelope metadata as authenticated identity.
+
+---
+
+## Comfort posture projection (2026-10-09)
+
+`scripts/emit-gemini-config.py` (called from `ravenclaude install --host gemini` when `.ravenclaude/comfort-posture.yaml` exists) merges **tighten-only** values into `<project>/.gemini/settings.json`:
+
+- `general.defaultApprovalMode` — `default`, `auto_edit`, or `plan` (never `yolo`; CLI-only per vendor docs).
+- `tools.sandboxNetworkAccess` — boolean; tightening to `false` is allowed; loosening is refused.
+
+Gemini's OS sandbox remains **opt-in** (`--sandbox` defaults off); this projection does not enable the sandbox by itself.
+
+## Extension manifest (2026-10-09)
+
+`plugins/ravenclaude-core/gemini-extension.json` + `GEMINI.md` (`@AGENTS.md`) support `gemini extensions install <path>` packaging. Skills/agents via extension are **not** marked supported in `host-support.json` until a live install probe confirms they load.
+

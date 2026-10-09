@@ -4,7 +4,7 @@ description: Use this agent only for changes that genuinely cross the client/ser
 tools: Read, Edit, Write, Grep, Glob, Bash
 model: sonnet
 maxTurns: 40
-effort: normal
+effort: medium
 audience: [dev]
 works_with: [architect, code-reviewer, tester-qa, backend-coder, frontend-coder]
 scenarios:

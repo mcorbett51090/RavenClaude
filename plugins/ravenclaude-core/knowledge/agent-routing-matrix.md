@@ -51,11 +51,7 @@ correctly forbids adding a `copilot-chat` key there — a different file, a diff
 `copilot-cli` and `copilot-chat` resolve through the **same** `copilot` row in
 `substrate-tier-map.json`, because GitHub's own docs (verified this build, 2026-09-01 — see the
 `copilot-chat-c8` source entry) track model **availability** per **client** (VS Code, Copilot CLI,
-etc.), not per Chat-vs-CLI. They are **not equivalent for model selectability**, though: Copilot
-CLI's only confirmed-working `--model` value is `auto` — six pinned slugs were rejected at the API
-level (`cheap-lane-delegation/SKILL.md`, v0.305.0 probing) — while VS Code Chat exposes the
-interactive `/model` picker directly. State that distinction if you're building a consumer that
-cares about selectability, not just availability.
+etc.), not per Chat-vs-CLI. They are **not equivalent for model selectability**, though: on **one account + Copilot CLI v0.305.0** a non-interactive probe could not discover a valid pinned slug (`--model auto` was the default that worked; six guessed slugs were rejected at the API — see `cheap-lane-delegation/SKILL.md`) **without** implying the CLI cannot pin models. GitHub documents **`--model=MODEL`** (e.g. `claude-haiku-4.5`) for reproducible workflows; only models your enterprise enables and **`/model`** lists are valid — **re-probe** on your account before baking a slug into automation. VS Code Chat exposes its own interactive `/model` picker. State that distinction if you're building a consumer that cares about selectability, not just availability.
 
 ## The axes
 

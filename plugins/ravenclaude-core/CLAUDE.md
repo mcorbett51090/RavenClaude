@@ -1187,7 +1187,7 @@ This **supersedes** the "Monitors / background jobs — N-A" row of the Value-ad
 
 > **⛔ SUPERSEDED IN PART by v0.273.0 — read that milestone, not this sentence, for what `absent` means.** The semantics sentence below states `block absent → unchanged`. That is **no longer true**: absent now means **MAXIMUM**. Every *explicit* form (`enabled: false`, `max_workers: N`, `max_workers: unlimited`) is unchanged. Kept as the dated v0.138.0 record per this file's supersession convention — a stale claim in a file every session loads is an active defect, not a bookkeeping lag.
 
-The Pipeline page's **parallelism** control (toggle + max-workers + an "unlimited" option, shipped in v0.137.0 — now under **Configure → Pipeline**) gains its first **behavioral consumer**: [`skills/spawn-team/SKILL.md`](skills/spawn-team/SKILL.md) Step 5 reads the `parallelism:` block from `.ravenclaude/comfort-posture.yaml` and caps how wide the Team Lead fans independent agents out. It is a **behavioral commitment, not a hard gate** — like `design_checkins` / `decision_review`, the agent honors it (no hook tracks a live concurrency count). The cap bounds **breadth** (workers at once) where the runaway brake bounds **depth** (total tool calls). Semantics: block **absent → unchanged** (existing parallel-fan-out judgment); `enabled: false` → sequential; `enabled: true` + `max_workers: N` → batches of ≤N; `enabled: true` + `max_workers: unlimited` → uncapped. The enforcement approach (behavioral vs. a new SubagentStart concurrency-counter hook) was a routed decision — behavioral was chosen as the smaller-blast-radius leaf. **Migration:** none — absent ⇒ default, so nothing changes on `/plugin marketplace update` unless a consumer sets the block.
+The Pipeline page's **parallelism** control (toggle + max-workers + an "unlimited" option, shipped in v0.137.0 — now under **Configure → Pipeline**) gains its first **behavioral consumer**: [`skills/spawn-team/SKILL.md`](skills/spawn-team/SKILL.md) Step 5 reads the `parallelism:` block from `.ravenclaude/comfort-posture.yaml` and caps how wide the Team Lead fans independent agents out. It is a **behavioral commitment, not a hard gate** — like `design_checkins` / `decision_review`, the agent honors it (no hook tracks a live concurrency count). The cap bounds **breadth** (workers at once) where the runaway brake bounds **depth** (total tool calls). Semantics: block **absent → unchanged** (existing parallel-fan-out judgment); `enabled: false` → sequential; `enabled: true` + `max_workers: N` → batches of ≤N; `enabled: true` + `max_workers: unlimited` → uncapped **within RavenClaude's posture only** (Claude Code still enforces its own concurrent-subagent ceiling — default ~20; see v0.274.0 milestone). The enforcement approach (behavioral vs. a new SubagentStart concurrency-counter hook) was a routed decision — behavioral was chosen as the smaller-blast-radius leaf. **Migration:** none — absent ⇒ default, so nothing changes on `/plugin marketplace update` unless a consumer sets the block.
 
 ## Visual feedback loop — render→see→iterate for visual-output agents (added 2026-06-09, v0.141.0)
 
@@ -2878,6 +2878,8 @@ rather than a concession:
 
 **1 — The default.** `PARALLELISM_DEFAULT` is now `{enabled: true, max_workers: 4, unlimited: true}`.
 
+**Host ceiling (Claude Code).** `max_workers: unlimited` lifts only RavenClaude's own configured cap. Claude Code refuses a 21st concurrent subagent by default (harness atlas / platform limit ~20). Honor the posture for batching breadth, but expect the host to stop accepting additional parallel dispatches before an artificial "unlimited" fan-out completes.
+
 **⛔ The `absent` decision, and its migration cost — stated rather than assumed (House Rule 3).**
 `absent` now means **MAXIMUM**, not "unchanged". The alternative — keep `absent ⇒ unchanged` and only
 re-seed the dashboard's default — was rejected because it reaches **only** consumers who open the
@@ -2892,7 +2894,7 @@ Simulating `/plugin marketplace update` on a real consumer, case by case:
 | no `parallelism:` block | "unchanged" (in practice: the agent's own judgment) | **maximum fan-out** | **YES — the only case that moves** |
 | `parallelism: {enabled: false, …}` | sequential | sequential | no |
 | `parallelism: {enabled: true, max_workers: N}` | batches of ≤N | batches of ≤N | no |
-| `parallelism: {enabled: true, max_workers: unlimited}` | uncapped | uncapped | no |
+| `parallelism: {enabled: true, max_workers: unlimited}` | uncapped (RavenClaude cap lifted; host ceiling still applies) | same | no |
 | scalar `parallelism: on` | enabled | enabled | no |
 | scalar `parallelism: off` | **silently ignored** (fell through every branch) | **sequential** | YES — a bug fix, and one the default flip made urgent: unhandled, `off` would now have meant MAX |
 

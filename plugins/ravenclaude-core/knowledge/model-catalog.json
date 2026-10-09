@@ -14,5 +14,8 @@
     "haiku": 200000,
     "fable": 1000000
   },
-  "stale": ["claude-opus-4-7", "claude-sonnet-4-6", "claude-haiku-4-5"]
+  "stale": ["claude-opus-4-7", "claude-sonnet-4-6", "claude-haiku-4-5"],
+  "freshness_notes": {
+    "opus_pin_2026-10-09": "current.opus (claude-opus-4-8) stays the governed pin for drift gates and Claude Code first-party references; the live first-party/Bedrock `opus` alias may resolve newer. Copilot coding-agent top Claude was Opus 5.5 per the 2026-09 lineup — see substrate-tier-map.json hosts.claude._note and ai-coding-model-guidance cross-tool-model-lineup-2026.md."
+  }
 }

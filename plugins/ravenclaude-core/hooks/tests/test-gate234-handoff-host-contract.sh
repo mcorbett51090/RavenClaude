@@ -264,8 +264,8 @@ MUTATE
 import sys
 src, dst = sys.argv[1], sys.argv[2]
 text = open(src, encoding="utf-8").read()
-old = "    claude-code|copilot|codex|cursor|gemini|aider|windsurf) return 0 ;;"
-new = "    claude-code|copilot|cursor|gemini|aider|windsurf) return 0 ;;"
+old = "    claude-code|copilot|codex|cursor|gemini|aider|windsurf|grok) return 0 ;;"
+new = "    claude-code|copilot|cursor|gemini|aider|windsurf|grok) return 0 ;;"
 if old not in text:
     sys.stderr.write("anchor not found: is_registry_host literal\n")
     raise SystemExit(1)

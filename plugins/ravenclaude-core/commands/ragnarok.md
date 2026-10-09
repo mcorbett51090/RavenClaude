@@ -1,4 +1,5 @@
 ---
+disable-model-invocation: true
 description: Themed alias for /reset-plugin-cache — the high-blast-radius plugin-cache disaster-recovery command (dry-run by default, user-only execute, atomic + snapshotted + SHA-pinned, MEMORY.md survives). See /reset-plugin-cache for the full flow.
 ---
 

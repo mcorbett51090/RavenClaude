@@ -6,7 +6,7 @@ kind: ravenclaude-built
 entry_class: inventory
 order: 913
 summary: "A rule about how a command turned out cannot run before the command."
-last_verified: 2026-08-25
+last_verified: 2026-10-09
 covers:
   - plugins/ravenclaude-core/scripts/build-outcome-corpus.py
   - plugins/ravenclaude-core/scripts/audit-fired-count.py
@@ -16,7 +16,7 @@ covers:
   - plugins/ravenclaude-core/scripts/guard-remediation-cause.sh
   - plugins/ravenclaude-core/scripts/preflight-command-review.sh
   - plugins/ravenclaude-core/scripts/replay-outcome-rules.py
-covers_digest: "sha256:55b29fa3a6a8b5337a08526b0d51e4ac89939d5cafc8bbbd9b9a793d9429d98e"
+covers_digest: "sha256:cddcf638730ab7883b25c2c00d979968898210bcbae7a970cae6253558b75234"
 nuance: "Two of five drafted pre-flight rules name a result that CAME BACK EMPTY — which a `PreToolUse` hook cannot know — so their offline fire rates scored a field absent at fire time; re-measured lexically, one went from 1.43% to 8.28%."
 nuance_evidence:
   measured: "2026-08-25"

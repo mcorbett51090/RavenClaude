@@ -4,7 +4,7 @@ description: "Use this agent for stakeholder-facing written deliverables — exe
 tools: Read, Edit, Write, Grep, Glob, Bash
 model: sonnet
 maxTurns: 40
-effort: normal
+effort: medium
 audience: [consultant, psm, analyst, compliance]
 works_with: [deep-researcher, project-manager, partner-success-manager]
 scenarios:

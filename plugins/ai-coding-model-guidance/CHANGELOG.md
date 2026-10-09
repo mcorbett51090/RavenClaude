@@ -7,6 +7,13 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.3.21] — 2026-10-09
+
+### Changed
+
+- Codex cost tree: reasoning effort raises latency and token usage (per-token price unchanged) — atlas ENH-051.
+- Copilot Chat modes → Agent / Plan / Ask + custom agents; Grok Build worktree isolation described as opt-in; Codex strategist / lineup wording for GPT-6 and Grok 4.7.
+
 ## [0.3.20] — 2026-09-23
 
 ### Changed

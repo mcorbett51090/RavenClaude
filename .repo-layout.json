@@ -80,7 +80,9 @@
     "plugins/*/scripts/**",
     "plugins/*/bin/**",
     "plugins/*/.lsp.json",
-    "plugins/ravenclaude-core/vscode-extension/**"
+    "plugins/ravenclaude-core/vscode-extension/**",
+    "plugins/*/gemini-extension.json",
+    "plugins/*/GEMINI.md"
   ],
   "forbidden_globs": [".ravenclaude/runs/thing/**", ".ravenclaude/runs/*/hook-events.jsonl"],
   "suggestions": {

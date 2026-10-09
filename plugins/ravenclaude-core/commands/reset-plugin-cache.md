@@ -1,4 +1,5 @@
 ---
+disable-model-invocation: true
 description: Disaster-recovery reset of a broken plugin cache (Ragnarök). Dry-run by default; --execute performs an atomic, snapshotted, SHA-pinned reinstall with the original preserved. High blast radius — user-invoked only, with mandatory interactive confirmation. MEMORY.md always survives.
 ---
 

@@ -2352,7 +2352,7 @@ Probe: `unprobed: the delivery fact is a host-platform property; it is modelled 
 
 **Sources:** [measured in the FORGE product-inventory run](https://github.com/mcorbett51090/RavenClaude/pull/997)
 
-_Last verified: 2026-09-23_
+_Last verified: 2026-10-09_
 
 
 ---
@@ -2378,7 +2378,7 @@ Probe: `unprobed: needs a live two-hook host session; scheduled for the T2 sampl
 
 **Sources:** [measured in the FORGE product-inventory run](https://github.com/mcorbett51090/RavenClaude/pull/997)
 
-_Last verified: 2026-09-24_
+_Last verified: 2026-10-09_
 
 
 ---
@@ -2422,7 +2422,7 @@ visible in the matrix.
 
 **Sources:** [verified live against the installed grok and copilot CLIs, this session](https://github.com/mcorbett51090/RavenClaude/pull/1030)
 
-_Last verified: 2026-09-16_
+_Last verified: 2026-10-09_
 
 
 ---
@@ -2448,7 +2448,7 @@ Probe: `unprobed: requires a real consumer install cycle, which no CI job perfor
 
 **Sources:** [measured in the FORGE product-inventory run](https://github.com/mcorbett51090/RavenClaude/pull/997)
 
-_Last verified: 2026-10-05_
+_Last verified: 2026-10-09_
 
 
 ---
@@ -2474,7 +2474,7 @@ Probe: `scripts/audit-gates.sh`
 
 **Sources:** [measured in the FORGE product-inventory run](https://github.com/mcorbett51090/RavenClaude/pull/997)
 
-_Last verified: 2026-10-05_
+_Last verified: 2026-10-09_
 
 
 ---
@@ -2568,7 +2568,7 @@ Probe: `unprobed: the payload shape is host-supplied and cannot be synthesised f
 
 **Sources:** [measured in the FORGE product-inventory run](https://github.com/mcorbett51090/RavenClaude/pull/997)
 
-_Last verified: 2026-08-25_
+_Last verified: 2026-10-09_
 
 
 ---
@@ -2724,7 +2724,7 @@ Probe: `scripts/check-artifact-budgets.py`
 
 **Sources:** [measured in the FORGE product-inventory run](https://github.com/mcorbett51090/RavenClaude/pull/997)
 
-_Last verified: 2026-10-05_
+_Last verified: 2026-10-09_
 
 
 ---
@@ -2796,7 +2796,7 @@ predicate names anything the command has not done yet.
 
 **Sources:** [measured in the verify-before-assert Phase 1 corpus run](https://github.com/mcorbett51090/RavenClaude/blob/main/docs/plans/archive/2026-08-19-verify-before-assert/plan.md)
 
-_Last verified: 2026-08-25_
+_Last verified: 2026-10-09_
 
 
 ---
@@ -3008,7 +3008,7 @@ than widened.
 
 **Sources:** [this build's own G4a critic (correlated-error pass) and G5 red-team, PR](https://github.com/mcorbett51090/RavenClaude/pull/1067)
 
-_Last verified: 2026-09-03_
+_Last verified: 2026-10-09_
 
 
 ---
@@ -3317,7 +3317,7 @@ remove `skill-index` from its own index, defeating the "still shows the way back
 
 **Sources:** [FORGE run dynamic-skill-context, plan.md phase P0](https://github.com/mcorbett51090/RavenClaude)
 
-_Last verified: 2026-09-24_
+_Last verified: 2026-10-09_
 
 
 ---
@@ -3473,7 +3473,7 @@ check; the three role-crossed payloads are named `Explore on opus`, `plugin-scop
 
 **Sources:** [knowledge/model-tier-delegation.md — the doctrine this meter measures](https://github.com/mcorbett51090/RavenClaude/blob/main/plugins/ravenclaude-core/knowledge/model-tier-delegation.md) · [Claude Code sub-agents — "Choose a model" (Explore inherits the main model since v2.1.198)](https://code.claude.com/docs/en/sub-agents)
 
-_Last verified: 2026-09-15_
+_Last verified: 2026-10-09_
 
 
 ---

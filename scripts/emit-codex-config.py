@@ -33,7 +33,8 @@ VERIFIED CONTRACT `[docs-verified 2026-07-28 — learn.chatgpt.com/docs/config-f
 --------------------------------------------------------------------------------
   * `sandbox_mode` and `approval_policy` are TOP-LEVEL keys (not under a table).
   * `sandbox_mode`    : "read-only" | "workspace-write" | "danger-full-access"
-  * `approval_policy` : "untrusted" | "on-request" | "never" | granular object
+  * `approval_policy` : "on-request" | "never" | granular object
+      ("untrusted" is retired — we never emit it; fix legacy values by hand)
   * `[sandbox_workspace_write]` carries `network_access`, `writable_roots`,
     `exclude_slash_tmp`, `exclude_tmpdir_env_var`.
   * Project config lives at `<project>/.codex/config.toml` and layers OVER
@@ -82,7 +83,9 @@ except ModuleNotFoundError:  # pragma: no cover
 # Higher rank == stricter. The never-weaken rule is a rank comparison, so these
 # orderings ARE the security policy; changing one changes what can be loosened.
 SANDBOX_RANK = {"danger-full-access": 0, "workspace-write": 1, "read-only": 2}
-APPROVAL_RANK = {"never": 0, "on-request": 1, "untrusted": 2}
+APPROVAL_RANK = {"never": 0, "on-request": 1}
+# Legacy configs may still carry "untrusted"; decide() refuses to preserve it.
+RETIRED_APPROVAL_POLICY = frozenset({"untrusted"})
 # network_access: False is stricter than True.
 NETWORK_RANK = {"true": 0, "false": 1}
 
@@ -194,7 +197,7 @@ def map_posture(cats: dict) -> dict:
         }
     return {
         "sandbox_mode": "read-only",
-        "approval_policy": "untrusted",
+        "approval_policy": "on-request",
         "network_access": "false",
     }
 
@@ -247,6 +250,11 @@ def decide(key: str, table: str, want: str, existing: dict, ranks: dict) -> tupl
         )
     if val == want:
         return ("skip-absent-ok", None)
+    if key == "approval_policy" and val in RETIRED_APPROVAL_POLICY:
+        raise Refuse(
+            f"approval_policy = {val!r} is retired (line {lineno + 1}). "
+            f"Change it by hand to {want!r}, then re-run install."
+        )
     cur_rank = ranks.get(val)
     if cur_rank is None:
         raise Refuse(
@@ -275,6 +283,16 @@ def emit(project: Path, dry_run: bool = False) -> int:
         print(f"  no categories in {posture} — nothing to project", file=sys.stderr)
         return 0
     want = map_posture(cats)
+
+    agents_md = project / "AGENTS.md"
+    if agents_md.is_file():
+        _size = agents_md.stat().st_size
+        if _size > 32768:
+            print(
+                f"  warning: {agents_md} is {_size} bytes — exceeds Codex "
+                f"project_doc_max_bytes default (32768); instruction files may be truncated",
+                file=sys.stderr,
+            )
 
     text = cfg_path.read_text(encoding="utf-8") if cfg_path.is_file() else ""
     existing = scan_toml(text)
@@ -478,13 +496,20 @@ def self_test() -> int:
     t = cfg(d)
     check("never-weaken: stricter sandbox_mode preserved", 'sandbox_mode = "read-only"' in t)
     check("never-weaken: workspace-write NOT written", 'sandbox_mode = "workspace-write"' not in t)
-    check("never-weaken: stricter approval_policy preserved", 'approval_policy = "untrusted"' in t)
+    check(
+        "retired untrusted: left unchanged (fix by hand)",
+        'approval_policy = "untrusted"' in t,
+    )
 
     # 3. Tightening IS allowed — the rule is one-directional, not inert.
     d = setup(_POSTURE_READS_ONLY, 'sandbox_mode = "workspace-write"\n')
     emit(d)
     t = cfg(d)
     check("tighten: workspace-write -> read-only", 'sandbox_mode = "read-only"' in t)
+    check(
+        "read-only posture emits on-request (not retired untrusted)",
+        'approval_policy = "on-request"' in t,
+    )
 
     # 4. THE BUG THIS CAUGHT: a root key appended after a [table] silently becomes
     #    a member of that table. Valid TOML, wrong meaning, invisible in a diff.

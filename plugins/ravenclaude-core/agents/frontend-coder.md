@@ -4,7 +4,7 @@ description: Use this agent to implement UI work — components, pages, client-s
 tools: Read, Edit, Write, Grep, Glob, Bash
 model: sonnet
 maxTurns: 40
-effort: normal
+effort: medium
 audience: [dev]
 works_with: [designer, architect, code-reviewer, tester-qa]
 scenarios:

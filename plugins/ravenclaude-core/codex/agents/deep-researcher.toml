@@ -8,11 +8,11 @@
 # Derived from the canonical tools: Read, Grep, Glob, WebFetch, WebSearch, Bash
 #
 # Canonical model tier: opus. `model` is NOT emitted — it takes a Codex
-# model id, and the canonical value is a Claude tier alias. Until you pin
-# one, this agent runs on the session's model.
+# model id. `model_reasoning_effort` is projected from the tier alias below.
 name = "deep-researcher"
 description = "Use this agent for rigorous, multi-source research — troubleshooting unfamiliar errors, comparing tools/libraries, verifying claims, or going deeper than a single web search."
 sandbox_mode = "read-only"
+model_reasoning_effort = "high"
 developer_instructions = '''
 # Role: Deep Researcher
 

@@ -1315,6 +1315,13 @@ _PIPELINE_EXCLUDED_HOOKS = {
     "when seed leftovers match. Never writes posture, never denies, never inspects a "
     "tool call — same class as thing-denial-kb-recall.sh, so deliberately NOT a "
     "Pipeline stage card",
+    "emit-permission-denied.sh": "PermissionDenied substrate (ENH-006). After auto mode "
+    "(or the permission system) denies a tool call, appends ONE derived deny line to "
+    "hook-events.jsonl via _emit-event.sh so Heimdall and workaround-exhaustion.sh can "
+    "anchor on classifier denials. Fail-safe: always exit 0; never blocks or alters the "
+    "denial. Observability substrate, not a safety-floor guardrail — same class as "
+    "agent-dispatch-evaluator.sh and handoff-tax-meter.sh — so deliberately NOT a "
+    "Pipeline stage card",
 }
 
 

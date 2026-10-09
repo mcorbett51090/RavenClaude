@@ -20,7 +20,7 @@ Use after research or when fleet usage is tight / on-demand pressure is up. Comp
 
 ## Do / don’t
 
-Do: lean Bot descriptions; enable skills only where needed; file-back large outputs; fresh thread per distinct task; set account on-demand limits.
+Do: lean Bot descriptions; enable skills only where needed; file-back large outputs; fresh thread per distinct task; cap spend in **Settings → On-demand monthly limit** (or the account equivalent). A run can overshoot mid-flight before the cap bites — re-verify the live UI label.
 
 Don’t: assume API cache/compaction knobs in Bot UI; fan out for “more reasoning”; synthesizer-only bots after specialists already answered; leave image-heavy threads open.
 

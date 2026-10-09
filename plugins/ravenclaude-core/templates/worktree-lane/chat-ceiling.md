@@ -7,7 +7,7 @@ optional settings snippet. **It is not Chat enforcement.**
 
 VS Code Copilot Chat built-in file tools are **not** OS-sandboxed. Terminal
 sandbox (`chat.agent.sandbox.enabled`) does **not** cover those tools. Preview
-hooks *may* load `.github/hooks` when org policy / `chat.hooks.enabled` allows
+hooks *may* load `.github/hooks` when org policy / `chat.useHooks` allows
 it; live fire on a given machine is `[unverified]` until the probes below run.
 
 Do not claim this file covers the Chat surface. It is not Chat enforcement.
@@ -43,7 +43,7 @@ Until that table is filled, do not claim Chat can or cannot land sibling Write.
 ### Procedure — CL-19 Preview hook fire
 
 1. Projected `.github/hooks` present (`ravenclaude install` if needed).
-2. `chat.hooks.enabled` on. Org policy allows Preview hooks.
+2. `chat.useHooks` on. Org policy allows Preview hooks.
 3. One mutating Chat tool call (Write/edit of a path **inside** the opened
    folder is enough).
 4. Dump one raw PreToolUse stdin (redact secrets / home paths).
@@ -94,9 +94,10 @@ dump-derived map. Do not ship RC_CHAT_PREVIEW_MAP.
 
 ## Optional settings snippet
 
-`rcwt` merges `chat.agent.sandbox.enabled: true` **only** when
-`RCWT_CHAT_CEILING=1`. Default is off. Sandbox still does **not** cover
-built-in file tools.
+`rcwt new` pins `chat.agent.sandbox.enabled: true` in the worktree's
+`.vscode/settings.json` by default (add-absent-keys only). Opt out with
+`RCWT_NO_CHAT_SANDBOX=1` or `RCWT_CHAT_CEILING=0`. Sandbox still does **not**
+cover built-in file tools (Preview on macOS/Linux/WSL2; Experimental on Windows).
 
 ```json
 {

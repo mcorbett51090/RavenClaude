@@ -19,7 +19,7 @@ Copilot CLI **automatically adds** these to every request at session start — *
 | `$HOME/.copilot/copilot-instructions.md` | personal (all repos) |
 | `CLAUDE.md` / `GEMINI.md` | repo root — read as alternatives |
 
-**Nuance `[verify-at-use]`:** the docs say the *instruction files* are auto-included; they do **not** state that a *path reference inside* one (e.g. "read `.ravenclaude/environment-context.md`") auto-loads that referenced file's content. Treat a reference as a pointer the agent reads on demand — put must-have content directly in an auto-loaded file. Convention: keep `copilot-instructions.md` short and point it at `AGENTS.md`.
+**Path mention vs `@` import `[docs-verified 2026-10-04]`:** the auto-loaded instruction files themselves are always included; a *plain* path mention inside prose (e.g. "read `.ravenclaude/environment-context.md`") is only a **pointer** the agent must follow with a read tool. By contrast, **`@relative/path` on its own line** in `.github/copilot-instructions.md`, `AGENTS.md`, or `CLAUDE.md` **inlines that file immediately** (recursive; referenced files must stay inside the repo or the custom-instructions directory; **not** expanded in `*.instructions.md` or `GEMINI.md`). Probe once in a live session before relying on a new `@` import. Convention: keep `copilot-instructions.md` short — `@AGENTS.md` or a pointer at the projected copy.
 
 ## 2. Custom agents
 
@@ -41,7 +41,7 @@ Copilot CLI **automatically adds** these to every request at session start — *
 | `~/.copilot/skills/`, `~/.agents/skills/` | personal |
 
 - Each skill is its own subdirectory (lowercase, hyphenated) with a `SKILL.md`.
-- **`SKILL.md` frontmatter:** `name` (required, lowercase-hyphenated) · `description` (required — what it does + *when* Copilot should use it) · optional `license` · optional **`allowed-tools`** (pre-approves tools, e.g. `shell`, without per-use confirmation).
+- **`SKILL.md` frontmatter:** `name` (required, lowercase-hyphenated) · `description` (required — what it does + *when* Copilot should use it) · optional `license` · optional **`allowed-tools`** (pre-approves tools without per-use confirmation — comma-separated Copilot tool names such as `read`, `view`, `grep`, `search`, `glob`, `shell`).
 - **Discovery/invocation:** auto-discovered; Copilot decides from the prompt + `description`, or the user forces it with `/skill-name`. When invoked, **all** files in the skill dir become available to the agent.
 - **Instructions vs. skills (the docs' own guidance):** custom instructions for simple guidance relevant to *almost every* task; skills for detailed guidance Copilot should load *only when relevant*.
 - **VS Code Copilot Chat / agent mode** can *load* project skills from `.claude/skills` (`[docs-verified 2026-08-14]` — [VS Code Agent Skills](https://code.visualstudio.com/docs/agent-customization/agent-skills)). That is **not** this file's `copilot` host row (GitHub Copilot CLI). FORGE helpers resolve via `scripts/resolve-plugin-root.sh`, not `${CLAUDE_PLUGIN_ROOT}`. Chat is not a first-class RavenClaude host.
@@ -185,6 +185,9 @@ Two consequences, and RavenClaude was bitten by both **while running matcher-fre
 
 ## 5. Runtime & config
 
+
+- **Experimental local OS sandbox `[docs-verified 2026-10-04]`:** Copilot CLI can run **shell commands and built-in searches** as sandboxed child processes (`--experimental` local OS sandbox) so the OS enforces policy directly. **Built-in file read and edit tools are not sandboxed** — layout and FOREIGN-TREE hooks still guard edits. RavenClaude does **not** enable this from the installer until it leaves experimental; record only in docs/host-support for now.
+
 - **`settings.json`** and **`mcp-config.json`** live in **`~/.copilot/`** by default; **`COPILOT_HOME`** overrides that directory (so all of settings / MCP / hooks move with it).
 - **`COPILOT_CUSTOM_INSTRUCTIONS_DIRS`** — comma-separated dirs Copilot also scans for `AGENTS.md`.
 - **Permissions:** Copilot asks before a tool that modifies/executes (e.g. `touch`, `chmod`, `node`, `sed`); approve per-op / per-session / deny. `--allow-all` and `--yolo` enable everything (use with care).
@@ -195,7 +198,8 @@ Two consequences, and RavenClaude was bitten by both **while running matcher-fre
 |---|---|
 | **Custom instructions** | Root `AGENTS.md` carries the cross-tool discipline; `scripts/generate-copilot-plugin.py` projects it into `copilot/AGENTS.md` so it travels with the agents (wired via `COPILOT_CUSTOM_INSTRUCTIONS_DIRS`). Consumers keep a short `.github/copilot-instructions.md` pointing at `AGENTS.md`. |
 | **Custom agents** | `copilot/agents/*.agent.md` (frontmatter = `name` + `description`, body verbatim), loaded **live** via `copilot --plugin-dir copilot/` `[verify-at-use — --plugin-dir is owner-verified; not in the customization docs reviewed 2026-06-09]`. The native `.github/agents/` + `~/.copilot/agents/` dirs are an alternative path RavenClaude does not currently use. |
-| **Agent skills** | `scripts/ravenclaude install` wires skills → the consumer's `.claude/skills/` (a docs-confirmed project-skills dir), read live. RavenClaude `SKILL.md` files use `name` + `description`; Copilot's `allowed-tools` is available as a future friction-reducer (not yet adopted). |
+| **Agent skills** | `scripts/ravenclaude install` wires skills → the consumer's `.claude/skills/` (a docs-confirmed project-skills dir), read live. RavenClaude `SKILL.md` files use `name` + `description`; Adopted on `scenario-retrieval` (`allowed-tools: read, view, grep, search, glob`) as the read-only probe skill; extend to others after live CLI verification. |
+| **Slash commands** | `scripts/ravenclaude install --host copilot` symlinks `plugins/ravenclaude-core/commands/*.md` into `<project>/.claude/commands/` (same idempotent pattern as skills). Copilot discovers custom commands from that tree; agent skills also surface as `/SKILL-NAME`. |
 | **Hooks** | Wired **repo-level** to `.github/hooks/ravenclaude.json` via [`hooks/copilot-hook-adapter.sh`](../hooks/copilot-hook-adapter.sh), which translates Copilot's I/O envelopes (`toolName`/`toolArgs` ⇄ `tool_name`/`tool_input`; top-level `permissionDecision`; `sessionStart` `additionalContext`) so the **existing, unmodified** Claude hook scripts run. Repo-level because of #2540. |
 | **MCP** | Bundled MCP → `${COPILOT_HOME:-~/.copilot}/mcp-config.json` by `scripts/ravenclaude`. |
 | **Update model** | Everything is read **live from disk**, so an update is `git pull` (`ravenclaude update` / the `rc` alias) — no Copilot re-install/cache. |
@@ -210,6 +214,7 @@ Two consequences, and RavenClaude was bitten by both **while running matcher-fre
 |---|---|---|
 | **Inline** the topic→path table directly into an already-auto-loaded file (`AGENTS.md` / `.github/copilot-instructions.md`) | Standing prompt tokens every request; **0** extra tool calls | The index is small enough to sit in the instruction file — the **preferred** shape |
 | **Standalone `DOCUMENT-MAP.md`** + one line in an auto-loaded file telling the agent to read it first | **1** `read` call per session; no standing token cost | The index is too large to inline |
+| **`@relative/path` on its own line** in `.github/copilot-instructions.md`, `AGENTS.md`, or `CLAUDE.md` | Inlined immediately every request (recursive) | Pull `.ravenclaude/environment-context.md` or a small map without a standing read call — not valid in `*.instructions.md` / `GEMINI.md` |
 
 The standalone file is the *fallback*, not the default — a bare `DOCUMENT-MAP.md` that nothing auto-loads and nothing points at is invisible (the §1 not-auto-loaded rule again).
 

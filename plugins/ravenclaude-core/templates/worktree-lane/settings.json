@@ -1,3 +1,4 @@
 {
-  "chat.useCustomizationsInParentRepositories": false
+  "chat.useCustomizationsInParentRepositories": false,
+  "chat.agent.sandbox.enabled": true
 }

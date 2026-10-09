@@ -292,9 +292,105 @@ PY2
   ok "wired 2 Cursor rules into .cursor/rules/*.mdc (incl. the glob-scoped layout rule)"
   note "NOT enforced under Cursor: the layout gate and web-access guard have no"
   note "  verified enforcement event there. CI is the backstop; the rules say so."
+  # ENH-026
+  python3 - "$project/.cursorignore" <<'PYIGN'
+import sys
+from pathlib import Path
+path = Path(sys.argv[1])
+BEGIN, END = "# BEGIN RAVENCLAUDE", "# END RAVENCLAUDE"
+block = """# BEGIN RAVENCLAUDE
+# Managed by ravenclaude install --host cursor. Re-run install to refresh.
+.env
+.env.*
+.env.local
+*.pem
+*.key
+*.p12
+*.pfx
+id_rsa
+id_rsa.*
+id_dsa
+id_ecdsa
+id_ed25519
+credentials.json
+secrets.yml
+secrets.yaml
+**/secrets/**
+**/*secret*
+**/*credentials*
+# END RAVENCLAUDE
+"""
+text = path.read_text(encoding="utf-8") if path.is_file() else ""
+if BEGIN in text:
+    pre, rest = text.split(BEGIN, 1)
+    _, post = rest.split(END, 1)
+    merged = pre.rstrip() + "\n\n" + block + post.lstrip("\n")
+else:
+    merged = (text.rstrip() + "\n\n" if text.strip() else "") + block
+path.write_text(merged, encoding="utf-8")
+PYIGN
+  ok "upserted RavenClaude secret globs into .cursorignore"
+  n_cursor_skills="$(wire_cursor_skills "$project" "ravenclaude-core")"
+  ok "wired $n_cursor_skills skills into .cursor/skills/"
+  cagents="$MARKET/scripts/generate-cursor-agents.py"
+  if [ -f "$cagents" ]; then python3 "$cagents" --out "$project/.cursor/agents" && ok "projected .cursor/agents/" || warn "cursor agents FAILED"; fi
+
+  bugbot="$project/.cursor/BUGBOT.md"
+  mkdir -p "$project/.cursor"
+  if [ -f "$bugbot" ] && ! grep -q 'BEGIN RAVENCLAUDE' "$bugbot" 2>/dev/null; then
+    note ".cursor/BUGBOT.md exists without a RavenClaude marker — left unchanged"
+  else
+    python3 - "$bugbot" <<'PYBB'
+import sys
+from pathlib import Path
+path = Path(sys.argv[1])
+BEGIN, END = "<!-- BEGIN RAVENCLAUDE -->", "<!-- END RAVENCLAUDE -->"
+body = """<!-- BEGIN RAVENCLAUDE -->
+# RavenClaude Bugbot hints
+
+Before adding files, match a glob in `.repo-layout.json` `allowed_globs` (CI enforces via `validate-layout.yml`). Read `AGENTS.md` for cross-tool discipline, testing, and where work files go.
+
+The layout rule also lives in `.cursor/rules/repo-layout.mdc`; CI is the backstop when Cursor has no path guard.
+<!-- END RAVENCLAUDE -->
+"""
+text = path.read_text(encoding="utf-8") if path.is_file() else ""
+if BEGIN in text:
+    pre, rest = text.split(BEGIN, 1)
+    _, post = rest.split(END, 1)
+    merged = pre.rstrip() + "\n\n" + body.strip() + "\n\n" + post.lstrip("\n")
+else:
+    merged = (text.rstrip() + "\n\n" if text.strip() else "") + body
+path.write_text(merged, encoding="utf-8")
+PYBB
+    ok "upserted RavenClaude block into .cursor/BUGBOT.md"
+  fi
+
+
   note "⚠ Cursor FAILS OPEN on a malformed hook response — do not hand-edit"
   note "  .cursor/hooks.json; re-run this installer instead."
 }
+
+# wire_cursor_skills <project> <plugin-name>
+wire_cursor_skills() {
+  local project="$1" plugin_name="$2"
+  local skills_src="$MARKET/plugins/$plugin_name/skills"
+  if [ ! -d "$skills_src" ]; then echo 0; return 0; fi
+  mkdir -p "$project/.cursor/skills"
+  local n=0
+  for d in "$skills_src"/*/; do
+    [ -d "$d" ] || continue
+    local name dest old
+    name="$(basename "$d")"
+    dest="$project/.cursor/skills/$name"
+    old="${dest}.rc-old"
+    [ -e "$dest" ] || [ -L "$dest" ] && mv "$dest" "$old" 2>/dev/null || true
+    ln -s "$d" "$dest" 2>/dev/null || cp -r "$d" "$dest"
+    [ -e "$old" ] && mv "$old" "${old}.trash" 2>/dev/null || true
+    n=$((n + 1))
+  done
+  echo "$n"
+}
+
 
 # wire_codex_skills <project> <plugin-name>
 #
@@ -761,6 +857,30 @@ PY
 # Echoes the count of skills wired. A missing plugin name (no skills dir), or a
 # plugin denied via skills.deny_plugins in comfort-posture.yaml, prints a note
 # and echoes 0 — never fails the install either way.
+
+# Symlink one plugin's slash commands into <project>/.claude/commands. Same idempotent
+# pattern as wire_plugin_skills — live symlinks so marketplace updates propagate.
+wire_plugin_commands() {
+  local project="$1" plugin_name="$2"
+  local commands_src="$MARKET/plugins/$plugin_name/commands"
+  if [ ! -d "$commands_src" ]; then
+    echo 0
+    return 0
+  fi
+  mkdir -p "$project/.claude/commands"
+  local n=0
+  for f in "$commands_src"/*.md; do
+    [ -f "$f" ] || continue
+    local name
+    name="$(basename "$f")"
+    local dest="$project/.claude/commands/$name"
+    rm -f "$dest"
+    ln -s "$f" "$dest" 2>/dev/null || cp "$f" "$dest"
+    n=$((n + 1))
+  done
+  echo "$n"
+}
+
 wire_plugin_skills() {
   local project="$1" plugin_name="$2"
   local skills_src="$MARKET/plugins/$plugin_name/skills"
@@ -985,6 +1105,12 @@ PY2
     note "  Gemini's tool_input path FIELD NAME is unverified — wiring it would look"
     note "  enforced while silently no-opping. CI is the backstop; see the skip list"
     note "  in .gemini/settings.json (_ravenclaude_not_wired)."
+    gem_emit="$MARKET/scripts/emit-gemini-config.py"
+    if [ -f "$gem_emit" ] && [ -f "$project/.ravenclaude/comfort-posture.yaml" ]; then
+      python3 "$gem_emit" --project "$project" || true
+      ok "projected comfort posture onto .gemini/settings.json (tighten-only)"
+    fi
+
     wire_dashboard_launchers "$project"
     _rc_finish_host_install "$host" "$project"
     if [ -z "${RC_FROM_SETUP:-}" ]; then
@@ -1148,6 +1274,10 @@ PY2
   local n_core
   n_core="$(wire_plugin_skills "$project" "ravenclaude-core")"
   ok "wired $n_core skills from ravenclaude-core into .claude/skills"
+  local n_cmds
+  n_cmds="$(wire_plugin_commands "$project" "ravenclaude-core")"
+  ok "wired $n_cmds slash commands from ravenclaude-core into .claude/commands"
+
 
   # 1a. Is the running Copilot new enough for the guardrails below to actually
   #     fire? Checked BEFORE wiring, so the warning is the first thing seen rather
