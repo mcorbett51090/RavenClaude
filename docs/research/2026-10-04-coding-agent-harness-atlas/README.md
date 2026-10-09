@@ -14,6 +14,7 @@ Gemini CLI, Grok Build CLI and Grok Bot. 133 rows by 8 columns is 1064 cells: 12
 - [matrix.html](matrix.html): every row by every column, grouped by facet.
 - [levers.html](levers.html): where each lever lives per column (flag, key, command, picker) and its values.
 - [register.html](register.html): 55 proposed RavenClaude updates, ranked, each tied to cells and repo files.
+- [feature-disposition-2026-10-09.md](feature-disposition-2026-10-09.md): follow-on triage of that register (**update** / **deprecate** / done) against HEAD; machine twin [`data/register-dispositions.json`](data/register-dispositions.json). Register `status` stays `proposed` for the atlas validator.
 - [method.html](method.html): states, tiers, verification numbers, planted-error results, known gaps.
 - [lifecycle.html](lifecycle.html): the steps a harness runs before it calls a model and after the model answers,
   in plain English, with what each agent's documentation says about each step and what the step depends on.

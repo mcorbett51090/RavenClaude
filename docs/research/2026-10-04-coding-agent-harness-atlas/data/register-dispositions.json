@@ -1,0 +1,892 @@
+{
+  "schema_version": 1,
+  "source_register": "docs/research/2026-10-04-coding-agent-harness-atlas/data/register.json",
+  "atlas_snapshot": "2026-10-04",
+  "checked": "2026-10-09",
+  "method": "For each ENH-* entry: re-read repo_claim / repo_files against HEAD on cursor/harness-feature-disposition-b608; cross-check five-host-reverification.md where it seeds the same fact. Atlas register status stays proposed (validator R_REGISTER). Disposition is the follow-on keep/update/deprecate decision.",
+  "summary": {
+    "update": 55
+  },
+  "legend": {
+    "update": "Claim or gap still present; implement (or refresh then implement) the proposal.",
+    "deprecate": "Do not implement; obsolete, wrong, or superseded. Leave register status proposed for audit; disposition is authoritative for backlog triage.",
+    "done": "Proposal already landed in HEAD; close when implementing a status enum expansion."
+  },
+  "entries": [
+    {
+      "id": "ENH-007",
+      "rank": 1,
+      "type": "correct",
+      "title": "Stop emitting retired approval_policy = \"untrusted\" in the Codex sandbox projection",
+      "surfaces": [
+        "codex-cli"
+      ],
+      "disposition": "update",
+      "claim_still_present": true,
+      "missing_target_files": [],
+      "refresh_proposal": false,
+      "checked": "2026-10-09",
+      "basis": "observation",
+      "note": "emit-codex-config.py still emits approval_policy=untrusted on the restrictive branch (line 197). Atlas: vendor retired untrusted."
+    },
+    {
+      "id": "ENH-008",
+      "rank": 2,
+      "type": "reconcile",
+      "title": "Narrow 'identical tool-name values' for Codex: edits are apply_patch, and hosted WebSearch has no hook path",
+      "surfaces": [
+        "codex-cli"
+      ],
+      "disposition": "update",
+      "claim_still_present": true,
+      "missing_target_files": [],
+      "refresh_proposal": false,
+      "checked": "2026-10-09",
+      "basis": "observation",
+      "note": "codex-cli-customization.md and host-support.json still claim identical PascalCase tool-name values; atlas: apply_patch + hosted WebSearch have no Claude-shaped path."
+    },
+    {
+      "id": "ENH-020",
+      "rank": 3,
+      "type": "correct",
+      "title": "host-support.json calls the Chat hooks switch `chat.hooks.enabled`; VS Code documents `chat.useHooks`",
+      "surfaces": [
+        "copilot-vscode"
+      ],
+      "disposition": "update",
+      "claim_still_present": true,
+      "missing_target_files": [],
+      "refresh_proposal": false,
+      "checked": "2026-10-09",
+      "basis": "observation",
+      "note": "host-support.json:62 still says chat.hooks.enabled; atlas/VS Code: chat.useHooks."
+    },
+    {
+      "id": "ENH-021",
+      "rank": 4,
+      "type": "reconcile",
+      "title": "Chat doc says `.claude/settings.json` hooks load; VS Code needs `chat.useClaudeHooks`, default off",
+      "surfaces": [
+        "copilot-vscode"
+      ],
+      "disposition": "update",
+      "claim_still_present": true,
+      "missing_target_files": [],
+      "refresh_proposal": false,
+      "checked": "2026-10-09",
+      "basis": "observation",
+      "note": "copilot-chat-customization.md:18 still says .claude/settings.json hooks load without chat.useClaudeHooks gate."
+    },
+    {
+      "id": "ENH-051",
+      "rank": 5,
+      "type": "correct",
+      "title": "Correct 'Codex reasoning level costs latency, not dollars': Codex docs say higher effort also raises token usage",
+      "surfaces": [
+        "codex-cli"
+      ],
+      "disposition": "update",
+      "claim_still_present": true,
+      "missing_target_files": [],
+      "refresh_proposal": false,
+      "checked": "2026-10-09",
+      "basis": "observation",
+      "note": "ai-coding-right-size-cost-decision-tree.md:22 and :48 still say latency-only; five-host re-verification marks this contradicted. Line 37 (per-token) can stay with a total-tokens rider."
+    },
+    {
+      "id": "ENH-011",
+      "rank": 6,
+      "type": "correct",
+      "title": "Correct 'model_reasoning_effort takes a Codex model id' and map agent tier to effort on Codex",
+      "surfaces": [
+        "codex-cli"
+      ],
+      "disposition": "update",
+      "claim_still_present": true,
+      "missing_target_files": [],
+      "refresh_proposal": false,
+      "checked": "2026-10-09",
+      "basis": "observation",
+      "note": "host-support.json:232 still says model_reasoning_effort takes a Codex model id; generator does not emit effort from tier."
+    },
+    {
+      "id": "ENH-025",
+      "rank": 7,
+      "type": "reconcile",
+      "title": "Reconcile 'malformed hook response silently allows' with Cursor's documented block on invalid JSON",
+      "surfaces": [
+        "cursor"
+      ],
+      "disposition": "update",
+      "claim_still_present": true,
+      "missing_target_files": [],
+      "refresh_proposal": true,
+      "checked": "2026-10-09",
+      "basis": "observation",
+      "note": "Repo still states silent allow on malformed JSON (cursor-customization.md:34; host-support.json:94). Atlas: docs split invalid-JSON block vs crash/timeout fail-open. Update knowledge to that split; keep live probe."
+    },
+    {
+      "id": "ENH-001",
+      "rank": 8,
+      "type": "reconcile",
+      "title": "Permissions note says auto is default from v2.1.228 on paid plans; docs now say v2.1.283 in terminal and VS Code",
+      "surfaces": [
+        "claude-code"
+      ],
+      "disposition": "update",
+      "claim_still_present": true,
+      "missing_target_files": [],
+      "refresh_proposal": false,
+      "checked": "2026-10-09",
+      "basis": "observation",
+      "note": "claude-code-permissions.md:81 still cites v2.1.228+/v2.1.233+; atlas: v2.1.283 for terminal and VS Code."
+    },
+    {
+      "id": "ENH-009",
+      "rank": 9,
+      "type": "reconcile",
+      "title": "Disclose Codex's 32 KiB AGENTS.md limit: this repo's root AGENTS.md is 49,679 bytes",
+      "surfaces": [
+        "codex-cli"
+      ],
+      "disposition": "update",
+      "claim_still_present": true,
+      "missing_target_files": [],
+      "refresh_proposal": false,
+      "checked": "2026-10-09",
+      "basis": "observation",
+      "note": "AGENTS.md still 49,679 bytes; host-support.json:306 has no 32 KiB caveat; emit-codex-config.py does not warn."
+    },
+    {
+      "id": "ENH-049",
+      "rank": 10,
+      "type": "reconcile",
+      "title": "Scope 'CLI rejects xhigh' in the cheap-lane table to the Grok models tested: Grok 4.7 documents xhigh",
+      "surfaces": [
+        "grok-build"
+      ],
+      "disposition": "update",
+      "claim_still_present": true,
+      "missing_target_files": [],
+      "refresh_proposal": false,
+      "checked": "2026-10-09",
+      "basis": "observation",
+      "note": "cheap-lane-delegation/SKILL.md:136 still says CLI rejects xhigh for Grok; atlas: Grok 4.7 documents xhigh. Scope the rejection note to 4.5/4.6 probe models."
+    },
+    {
+      "id": "ENH-016",
+      "rank": 11,
+      "type": "correct",
+      "title": "host-support.json denies Copilot CLI user slash commands; docs list .claude/commands/ and /SKILL-NAME",
+      "surfaces": [
+        "copilot-cli"
+      ],
+      "disposition": "update",
+      "claim_still_present": true,
+      "missing_target_files": [],
+      "refresh_proposal": false,
+      "checked": "2026-10-09",
+      "basis": "observation",
+      "note": "host-support.json:184 still denies Copilot CLI user slash commands; installer does not link commands/."
+    },
+    {
+      "id": "ENH-004",
+      "rank": 12,
+      "type": "correct",
+      "title": "Ten agents declare `effort: normal`, a value outside the documented low/medium/high/xhigh/max set",
+      "surfaces": [
+        "claude-code"
+      ],
+      "disposition": "update",
+      "claim_still_present": true,
+      "missing_target_files": [],
+      "refresh_proposal": false,
+      "checked": "2026-10-09",
+      "basis": "observation",
+      "note": "Ten core agents still carry effort: normal; check-frontmatter.py has no effort allow-list."
+    },
+    {
+      "id": "ENH-031",
+      "rank": 13,
+      "type": "en-route-defect",
+      "title": "forge-receipt.py drops model, subagent_type and effort from every receipt, so the run log cannot say how a gate ran",
+      "surfaces": [],
+      "disposition": "update",
+      "claim_still_present": true,
+      "missing_target_files": [],
+      "refresh_proposal": false,
+      "checked": "2026-10-09",
+      "basis": "observation",
+      "note": "RECEIPT_KEY_ALLOWLIST still omits model, subagent_type, effort \u2014 forge-pipeline SKILL claims they are stored."
+    },
+    {
+      "id": "ENH-019",
+      "rank": 14,
+      "type": "reconcile",
+      "title": "Chat doc's instruction and hook claims are not scoped to the Local harness; Agent Host harnesses differ",
+      "surfaces": [
+        "copilot-vscode"
+      ],
+      "disposition": "update",
+      "claim_still_present": true,
+      "missing_target_files": [],
+      "refresh_proposal": false,
+      "checked": "2026-10-09",
+      "basis": "observation",
+      "note": "copilot-chat-customization.md still lacks Local vs Agent Host harness scoping."
+    },
+    {
+      "id": "ENH-005",
+      "rank": 15,
+      "type": "reconcile",
+      "title": "Parallelism 'unlimited' reads as uncapped, but Claude Code refuses a 21st concurrent subagent by default",
+      "surfaces": [
+        "claude-code"
+      ],
+      "disposition": "update",
+      "claim_still_present": true,
+      "missing_target_files": [],
+      "refresh_proposal": false,
+      "checked": "2026-10-09",
+      "basis": "observation",
+      "note": "CLAUDE.md parallelism table still reads unlimited as uncapped; no Claude Code 20-concurrent caveat beside it."
+    },
+    {
+      "id": "ENH-048",
+      "rank": 16,
+      "type": "reconcile",
+      "title": "Reconcile 'only confirmed-working Copilot CLI --model value is auto' with documented --model pinning by slug",
+      "surfaces": [
+        "copilot-cli"
+      ],
+      "disposition": "update",
+      "claim_still_present": true,
+      "missing_target_files": [],
+      "refresh_proposal": false,
+      "checked": "2026-10-09",
+      "basis": "observation",
+      "note": "agent-routing-matrix.md:55 still states only confirmed-working --model is auto; five-host marks contradicted by docs that allow slug pinning \u2014 reframe as dated probe + re-probe."
+    },
+    {
+      "id": "ENH-050",
+      "rank": 17,
+      "type": "probe",
+      "title": "Probe whether the Claude tier map's claude-opus-4-8 pin lags the Opus 5.5 that the Bedrock opus alias resolves to",
+      "surfaces": [
+        "claude-code"
+      ],
+      "disposition": "update",
+      "claim_still_present": true,
+      "missing_target_files": [],
+      "refresh_proposal": false,
+      "checked": "2026-10-09",
+      "basis": "observation",
+      "note": "substrate-tier-map / model-catalog still pin claude-opus-4-8; lineup and atlas note Opus 5.5 on Copilot/Bedrock \u2014 probe still open."
+    },
+    {
+      "id": "ENH-042",
+      "rank": 18,
+      "type": "new-lane",
+      "title": "Record Grok Build in host-support.json: reads CLAUDE.md and Claude hook matchers, but hook failures fail open",
+      "surfaces": [
+        "grok-build"
+      ],
+      "disposition": "update",
+      "claim_still_present": null,
+      "missing_target_files": [],
+      "refresh_proposal": false,
+      "checked": "2026-10-09",
+      "basis": "observation",
+      "note": "host-support.json hosts list has no grok-build (only claude-code, copilot, codex, cursor, gemini, aider, windsurf). New lane still absent."
+    },
+    {
+      "id": "ENH-022",
+      "rank": 19,
+      "type": "reconcile",
+      "title": "Ceiling table marks Chat sibling-path Write `[unverified]`; VS Code documents built-in tools as workspace-folder-only",
+      "surfaces": [
+        "copilot-vscode"
+      ],
+      "disposition": "update",
+      "claim_still_present": true,
+      "missing_target_files": [],
+      "refresh_proposal": false,
+      "checked": "2026-10-09",
+      "basis": "observation",
+      "note": "Chat sibling-path Write ceiling still marked unverified in knowledge; atlas cites workspace-folder-only for built-in tools."
+    },
+    {
+      "id": "ENH-013",
+      "rank": 20,
+      "type": "reconcile",
+      "title": "Copilot CLI SessionStart tier A predates the documented prompt-mode repo-hook gate (-p needs an env var)",
+      "surfaces": [
+        "copilot-cli"
+      ],
+      "disposition": "update",
+      "claim_still_present": true,
+      "missing_target_files": [],
+      "refresh_proposal": false,
+      "checked": "2026-10-09",
+      "basis": "observation",
+      "note": "SessionStart tier-A claim predates prompt-mode repo-hook gate; reconcile still needed."
+    },
+    {
+      "id": "ENH-014",
+      "rank": 21,
+      "type": "reconcile",
+      "title": "Customization doc says path references never auto-load; Copilot CLI documents @path imports that do",
+      "surfaces": [
+        "copilot-cli"
+      ],
+      "disposition": "update",
+      "claim_still_present": true,
+      "missing_target_files": [],
+      "refresh_proposal": false,
+      "checked": "2026-10-09",
+      "basis": "observation",
+      "note": "Customization doc still says path references never auto-load; atlas: Copilot CLI @path imports do."
+    },
+    {
+      "id": "ENH-010",
+      "rank": 22,
+      "type": "probe",
+      "title": "Probe whether Codex local hooks fail open on error or timeout; host-support.json:94 says every other host fails closed",
+      "surfaces": [
+        "codex-cli"
+      ],
+      "disposition": "update",
+      "claim_still_present": true,
+      "missing_target_files": [],
+      "refresh_proposal": false,
+      "checked": "2026-10-09",
+      "basis": "observation",
+      "note": "Probe still open: Codex local hook fail-open vs host-support fail-closed claim for every other host."
+    },
+    {
+      "id": "ENH-043",
+      "rank": 23,
+      "type": "reconcile",
+      "title": "Reconcile 'batch into quieter check-ins' with the 10-minute expiry of approvals on Bot-to-Bot work",
+      "surfaces": [
+        "grok-bot"
+      ],
+      "disposition": "update",
+      "claim_still_present": true,
+      "missing_target_files": [],
+      "refresh_proposal": false,
+      "checked": "2026-10-09",
+      "basis": "observation",
+      "note": "Grok Bot quieter check-ins advice still needs 10-minute approval expiry caveat."
+    },
+    {
+      "id": "ENH-044",
+      "rank": 24,
+      "type": "extend",
+      "title": "Route coding tasks to Cursor Cloud Agents through Grok Bot delegation in the delegate-via-expert-bots loop",
+      "surfaces": [
+        "grok-bot"
+      ],
+      "disposition": "update",
+      "claim_still_present": null,
+      "missing_target_files": [],
+      "refresh_proposal": false,
+      "checked": "2026-10-09",
+      "basis": "observation",
+      "note": "delegate-via-expert-bots has no Cursor Cloud Agents routing lane yet."
+    },
+    {
+      "id": "ENH-023",
+      "rank": 25,
+      "type": "extend",
+      "title": "Chat doc says automatic compaction cannot be steered; VS Code documents a setting that turns it off",
+      "surfaces": [
+        "copilot-vscode"
+      ],
+      "disposition": "update",
+      "claim_still_present": true,
+      "missing_target_files": [],
+      "refresh_proposal": false,
+      "checked": "2026-10-09",
+      "basis": "observation",
+      "note": "Chat doc still says compaction cannot be steered; atlas: setting can turn it off."
+    },
+    {
+      "id": "ENH-002",
+      "rank": 26,
+      "type": "extend",
+      "title": "Warn when MEMORY.md nears the documented 200-line / 25 KB load cap, not only when it shrinks",
+      "surfaces": [
+        "claude-code"
+      ],
+      "disposition": "update",
+      "claim_still_present": null,
+      "missing_target_files": [],
+      "refresh_proposal": false,
+      "checked": "2026-10-09",
+      "basis": "observation",
+      "note": "guard-memory-compaction.sh still only blocks shrink; no near-cap (200-line / 25 KB) warn path."
+    },
+    {
+      "id": "ENH-026",
+      "rank": 27,
+      "type": "extend",
+      "title": "Write a marker-delimited .cursorignore block for secret paths so Cursor's Agent and search cannot read them",
+      "surfaces": [
+        "cursor"
+      ],
+      "disposition": "update",
+      "claim_still_present": null,
+      "missing_target_files": [],
+      "refresh_proposal": false,
+      "checked": "2026-10-09",
+      "basis": "observation",
+      "note": "wire_cursor does not write a .cursorignore secret-path block."
+    },
+    {
+      "id": "ENH-003",
+      "rank": 28,
+      "type": "improve",
+      "title": "Use disable-model-invocation: true as a documented user-only gate on /reset-plugin-cache and setup skills",
+      "surfaces": [
+        "claude-code"
+      ],
+      "disposition": "update",
+      "claim_still_present": null,
+      "missing_target_files": [],
+      "refresh_proposal": false,
+      "checked": "2026-10-09",
+      "basis": "observation",
+      "note": "No disable-model-invocation: true on /reset-plugin-cache or setup skills (only unrelated power-platform skill mentions the key)."
+    },
+    {
+      "id": "ENH-015",
+      "rank": 29,
+      "type": "new-lane",
+      "title": "Record Copilot CLI's experimental local OS sandbox as a containment lane; no repo file mentions it",
+      "surfaces": [
+        "copilot-cli"
+      ],
+      "disposition": "update",
+      "claim_still_present": null,
+      "missing_target_files": [],
+      "refresh_proposal": false,
+      "checked": "2026-10-09",
+      "basis": "observation",
+      "note": "No repo mention of Copilot CLI experimental local OS sandbox as a containment lane."
+    },
+    {
+      "id": "ENH-037",
+      "rank": 30,
+      "type": "extend",
+      "title": "Project the comfort posture onto Gemini's approval mode and sandbox network setting, tighten-only",
+      "surfaces": [
+        "gemini-cli"
+      ],
+      "disposition": "update",
+      "claim_still_present": null,
+      "missing_target_files": [
+        "scripts/emit-gemini-config.py"
+      ],
+      "refresh_proposal": false,
+      "checked": "2026-10-09",
+      "basis": "observation",
+      "note": "scripts/emit-gemini-config.py missing; Gemini posture projection not shipped."
+    },
+    {
+      "id": "ENH-024",
+      "rank": 31,
+      "type": "extend",
+      "title": "Chat doc lists sandbox only as a limit; VS Code documents `chat.agent.sandbox.enabled` OS-level containment",
+      "surfaces": [
+        "copilot-vscode"
+      ],
+      "disposition": "update",
+      "claim_still_present": true,
+      "missing_target_files": [],
+      "refresh_proposal": false,
+      "checked": "2026-10-09",
+      "basis": "observation",
+      "note": "Chat sandbox still documented only as a limit; chat.agent.sandbox.enabled not reflected."
+    },
+    {
+      "id": "ENH-027",
+      "rank": 32,
+      "type": "extend",
+      "title": "Wire RavenClaude skills into Cursor: install --host cursor should link skills into .cursor/skills/",
+      "surfaces": [
+        "cursor"
+      ],
+      "disposition": "update",
+      "claim_still_present": null,
+      "missing_target_files": [],
+      "refresh_proposal": false,
+      "checked": "2026-10-09",
+      "basis": "observation",
+      "note": "wire_cursor wires hooks + rules only; no .cursor/skills/ linking."
+    },
+    {
+      "id": "ENH-045",
+      "rank": 33,
+      "type": "improve",
+      "title": "Back the money, deletion and social-post safeguards with Auto-review 'Ask first' rules, not persona text alone",
+      "surfaces": [
+        "grok-bot"
+      ],
+      "disposition": "update",
+      "claim_still_present": true,
+      "missing_target_files": [],
+      "refresh_proposal": false,
+      "checked": "2026-10-09",
+      "basis": "observation",
+      "note": "Grok Bot money/deletion/social safeguards still persona-text only; Auto-review Ask-first rules not wired."
+    },
+    {
+      "id": "ENH-028",
+      "rank": 34,
+      "type": "improve",
+      "title": "Set failClosed on Cursor enforcing hooks and exit 2 on adapter failure so crashes stop failing open",
+      "surfaces": [
+        "cursor"
+      ],
+      "disposition": "update",
+      "claim_still_present": null,
+      "missing_target_files": [],
+      "refresh_proposal": false,
+      "checked": "2026-10-09",
+      "basis": "observation",
+      "note": "Cursor enforcing hooks still lack failClosed / exit-2-on-adapter-failure hardening in installer projection."
+    },
+    {
+      "id": "ENH-052",
+      "rank": 35,
+      "type": "reconcile",
+      "title": "Reconcile Codex tier ids (gpt-5.6-luna/terra/sol) with the gpt-6-luna and gpt-6.1-sol names Codex docs now give",
+      "surfaces": [
+        "codex-cli"
+      ],
+      "disposition": "update",
+      "claim_still_present": true,
+      "missing_target_files": [],
+      "refresh_proposal": true,
+      "checked": "2026-10-09",
+      "basis": "observation",
+      "note": "substrate-tier-map.json still gpt-5.6-luna/terra/sol; lineup already documents GPT-6 Luna/Sol (and gpt-6.1-sol naming). Prefer aligning the map to current Codex docs, not deprecating the ENH."
+    },
+    {
+      "id": "ENH-053",
+      "rank": 36,
+      "type": "reconcile",
+      "title": "Reconcile the Grok tier map (grok-4.5/4.6) with the atlas's grok-4.7 latest model and the lineup file",
+      "surfaces": [
+        "grok-build"
+      ],
+      "disposition": "update",
+      "claim_still_present": true,
+      "missing_target_files": [],
+      "refresh_proposal": true,
+      "checked": "2026-10-09",
+      "basis": "observation",
+      "note": "substrate-tier-map still grok-4.5/4.6; lineup + atlas name grok-4.7 as flagship. Update the map; do not drop the ENH."
+    },
+    {
+      "id": "ENH-032",
+      "rank": 37,
+      "type": "en-route-defect",
+      "title": "forge-worktree.sh checkpoint refuses whenever any .env-shaped file is tracked, even if unchanged",
+      "surfaces": [],
+      "disposition": "update",
+      "claim_still_present": true,
+      "missing_target_files": [],
+      "refresh_proposal": false,
+      "checked": "2026-10-09",
+      "basis": "observation",
+      "note": "forge-worktree.sh:400 still scans ls-files -co (whole tree); tracked .env.example still blocks checkpoint."
+    },
+    {
+      "id": "ENH-054",
+      "rank": 38,
+      "type": "reconcile",
+      "title": "Reconcile 'each Grok Build sub-agent runs in an isolated worktree' with opt-in per-request isolation",
+      "surfaces": [
+        "grok-build"
+      ],
+      "disposition": "update",
+      "claim_still_present": true,
+      "missing_target_files": [],
+      "refresh_proposal": false,
+      "checked": "2026-10-09",
+      "basis": "observation",
+      "note": "cross-tool-model-lineup-2026.md:171 still says each sub-agent runs in an isolated worktree; atlas: opt-in per request."
+    },
+    {
+      "id": "ENH-046",
+      "rank": 39,
+      "type": "reconcile",
+      "title": "Reconcile 'skills are GLOBAL' with per-Bot enablement of private skills in the Grok Bot plugins",
+      "surfaces": [
+        "grok-bot"
+      ],
+      "disposition": "update",
+      "claim_still_present": true,
+      "missing_target_files": [],
+      "refresh_proposal": false,
+      "checked": "2026-10-09",
+      "basis": "observation",
+      "note": "create-grok-bot/SKILL.md:28 still says skills are GLOBAL."
+    },
+    {
+      "id": "ENH-055",
+      "rank": 40,
+      "type": "reconcile",
+      "title": "Reconcile Copilot Chat modes (chat/ask/edit/agent) with the Agent, Plan, Ask and custom roles VS Code documents",
+      "surfaces": [
+        "copilot-vscode"
+      ],
+      "disposition": "update",
+      "claim_still_present": true,
+      "missing_target_files": [],
+      "refresh_proposal": false,
+      "checked": "2026-10-09",
+      "basis": "observation",
+      "note": "lineup still lists chat/ask/edit/agent; atlas: Agent, Plan, Ask + custom."
+    },
+    {
+      "id": "ENH-038",
+      "rank": 41,
+      "type": "reconcile",
+      "title": "Reconcile the three settings locations in gemini-customization.md with Gemini's four merged settings files",
+      "surfaces": [
+        "gemini-cli"
+      ],
+      "disposition": "update",
+      "claim_still_present": true,
+      "missing_target_files": [],
+      "refresh_proposal": false,
+      "checked": "2026-10-09",
+      "basis": "observation",
+      "note": "gemini-customization.md still lists three settings locations; atlas: four merged files."
+    },
+    {
+      "id": "ENH-029",
+      "rank": 42,
+      "type": "extend",
+      "title": "Project RavenClaude agents to .cursor/agents/ with readonly: true on review-only agents, as the Codex lane does",
+      "surfaces": [
+        "cursor"
+      ],
+      "disposition": "update",
+      "claim_still_present": null,
+      "missing_target_files": [
+        "scripts/generate-cursor-agents.py"
+      ],
+      "refresh_proposal": false,
+      "checked": "2026-10-09",
+      "basis": "observation",
+      "note": "scripts/generate-cursor-agents.py does not exist; no .cursor/agents/ projection."
+    },
+    {
+      "id": "ENH-006",
+      "rank": 43,
+      "type": "extend",
+      "title": "Register a PermissionDenied hook so auto-mode denials reach hook-events and the blocked-exhaustion gate",
+      "surfaces": [
+        "claude-code"
+      ],
+      "disposition": "update",
+      "claim_still_present": null,
+      "missing_target_files": [],
+      "refresh_proposal": false,
+      "checked": "2026-10-09",
+      "basis": "observation",
+      "note": "hooks.json has no PermissionDenied entry; auto-mode denials still invisible to hook-events."
+    },
+    {
+      "id": "ENH-039",
+      "rank": 44,
+      "type": "extend",
+      "title": "Wire Gemini AfterAgent (exit 2 = automatic retry turn) as the Stop-lane counterpart",
+      "surfaces": [
+        "gemini-cli"
+      ],
+      "disposition": "update",
+      "claim_still_present": null,
+      "missing_target_files": [],
+      "refresh_proposal": false,
+      "checked": "2026-10-09",
+      "basis": "observation",
+      "note": "Gemini AfterAgent (exit 2 = retry) not wired as Stop-lane counterpart."
+    },
+    {
+      "id": "ENH-017",
+      "rank": 45,
+      "type": "extend",
+      "title": "Adopt Copilot's skill allowed-tools frontmatter, currently marked 'not yet adopted'",
+      "surfaces": [
+        "copilot-cli"
+      ],
+      "disposition": "update",
+      "claim_still_present": true,
+      "missing_target_files": [],
+      "refresh_proposal": false,
+      "checked": "2026-10-09",
+      "basis": "observation",
+      "note": "copilot-cli-customization.md:198 still marks allowed-tools as not yet adopted."
+    },
+    {
+      "id": "ENH-012",
+      "rank": 46,
+      "type": "extend",
+      "title": "Ship agents/openai.yaml with allow_implicit_invocation: false for explicit-only skills on Codex",
+      "surfaces": [
+        "codex-cli"
+      ],
+      "disposition": "update",
+      "claim_still_present": null,
+      "missing_target_files": [
+        "plugins/ravenclaude-core/skills/forge-pipeline/agents/openai.yaml",
+        "plugins/ravenclaude-core/skills/spawn-team/agents/openai.yaml"
+      ],
+      "refresh_proposal": false,
+      "checked": "2026-10-09",
+      "basis": "observation",
+      "note": "forge-pipeline and spawn-team agents/openai.yaml files are absent; allow_implicit_invocation not shipped."
+    },
+    {
+      "id": "ENH-018",
+      "rank": 47,
+      "type": "improve",
+      "title": "Pin projected agents' model and effort through Copilot's per-agent settings.json entry, not just a header note",
+      "surfaces": [
+        "copilot-cli"
+      ],
+      "disposition": "update",
+      "claim_still_present": null,
+      "missing_target_files": [],
+      "refresh_proposal": false,
+      "checked": "2026-10-09",
+      "basis": "observation",
+      "note": "generate-copilot-plugin.py still states model/effort in headers only; no per-agent settings.json snippet."
+    },
+    {
+      "id": "ENH-047",
+      "rank": 48,
+      "type": "improve",
+      "title": "Name the on-demand cap path and its mid-run overshoot in grok-bot-token-spend",
+      "surfaces": [
+        "grok-bot"
+      ],
+      "disposition": "update",
+      "claim_still_present": true,
+      "missing_target_files": [],
+      "refresh_proposal": false,
+      "checked": "2026-10-09",
+      "basis": "observation",
+      "note": "grok-bot-token-spend still says set account on-demand limits without the Settings path / mid-run overshoot."
+    },
+    {
+      "id": "ENH-030",
+      "rank": 49,
+      "type": "new-lane",
+      "title": "Add a .cursor/BUGBOT.md lane: the layout .mdc rule never reaches Cursor Bugbot PR reviews",
+      "surfaces": [
+        "cursor"
+      ],
+      "disposition": "update",
+      "claim_still_present": null,
+      "missing_target_files": [],
+      "refresh_proposal": false,
+      "checked": "2026-10-09",
+      "basis": "observation",
+      "note": "No .cursor/BUGBOT.md lane from install --host cursor."
+    },
+    {
+      "id": "ENH-033",
+      "rank": 50,
+      "type": "en-route-defect",
+      "title": "premise-gate.py reads 'unsettled' and 'falsified' as settled, and its blast floor misses .md work",
+      "surfaces": [],
+      "disposition": "update",
+      "claim_still_present": true,
+      "missing_target_files": [],
+      "refresh_proposal": false,
+      "checked": "2026-10-09",
+      "basis": "observation",
+      "note": "premise-gate.py:163 still uses substring settle match (unsettled contains settled)."
+    },
+    {
+      "id": "ENH-034",
+      "rank": 51,
+      "type": "en-route-defect",
+      "title": "sanitize-webfetch-body.py deletes the rest of a page after a closing code fence followed by the word 'system'",
+      "surfaces": [],
+      "disposition": "update",
+      "claim_still_present": true,
+      "missing_target_files": [],
+      "refresh_proposal": false,
+      "checked": "2026-10-09",
+      "basis": "observation",
+      "note": "sanitize-webfetch-body.py still has ```\\s*system\\b.*\\Z pattern that can eat post-fence content."
+    },
+    {
+      "id": "ENH-035",
+      "rank": 52,
+      "type": "en-route-defect",
+      "title": "cause-triage opens negatives on successful read-only commands and cause-gate matches unrelated ones on a 40-char prefix",
+      "surfaces": [],
+      "disposition": "update",
+      "claim_still_present": true,
+      "missing_target_files": [],
+      "refresh_proposal": false,
+      "checked": "2026-10-09",
+      "basis": "observation",
+      "note": "triage-outcome.sh still truncates compound subjects to 40 chars; cause-gate prefix match hazard remains."
+    },
+    {
+      "id": "ENH-036",
+      "rank": 53,
+      "type": "en-route-defect",
+      "title": "premise-gate.py parses numbered headings as phases, so a numbered sub-heading can make an over-floor phase pass",
+      "surfaces": [],
+      "disposition": "update",
+      "claim_still_present": true,
+      "missing_target_files": [],
+      "refresh_proposal": false,
+      "checked": "2026-10-09",
+      "basis": "observation",
+      "note": "_PHASE_RE still optionalizes the word Phase, so numbered headings open phases."
+    },
+    {
+      "id": "ENH-040",
+      "rank": 54,
+      "type": "probe",
+      "title": "Package ravenclaude-core as a Gemini extension to carry the skills and agents the installer cannot wire",
+      "surfaces": [
+        "gemini-cli"
+      ],
+      "disposition": "update",
+      "claim_still_present": null,
+      "missing_target_files": [],
+      "refresh_proposal": false,
+      "checked": "2026-10-09",
+      "basis": "observation",
+      "note": "gemini-extension.json absent; probe to package skills/agents as a Gemini extension still open."
+    },
+    {
+      "id": "ENH-041",
+      "rank": 55,
+      "type": "probe",
+      "title": "Reconcile host-support.json gemini activation_gate 'none' with Gemini's untrusted-by-default project hooks",
+      "surfaces": [
+        "gemini-cli"
+      ],
+      "disposition": "update",
+      "claim_still_present": true,
+      "missing_target_files": [],
+      "refresh_proposal": false,
+      "checked": "2026-10-09",
+      "basis": "observation",
+      "note": "host-support.json gemini activation_gate still none; atlas: project hooks untrusted-by-default."
+    }
+  ]
+}

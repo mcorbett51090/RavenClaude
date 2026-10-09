@@ -14,6 +14,7 @@ Snapshot 2026-10-04. What each vendor documents about its coding-agent harness: 
 - What each agent documents, side by side, with a computed direction: `compare.md`.
 - One agent's request flow, decision points and where to set model, effort and mode: `trees/<id>.md`.
 - Proposed RavenClaude updates, ranked: `register.md`.
+- Follow-on update/deprecate triage of that register: `../feature-disposition-2026-10-09.md` and `../data/register-dispositions.json`.
 - How it was verified and what is not covered: `known-gaps.md`.
 - The quote or URL behind an evidence id `E-<id>`: grep it in `../data/evidence/<column>.json`.
 
