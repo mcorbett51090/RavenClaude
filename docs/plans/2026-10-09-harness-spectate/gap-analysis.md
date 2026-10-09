@@ -13,16 +13,17 @@
 | Plan G6 | gemini-3.8-flash-high | GAPS_FOUND (4) → closed |
 | Plan G7 | claude-opus-5-5-medium | GAPS_FOUND (5) → closed |
 | Plan G8 | composer-2.5 | GAPS_FOUND (7) → closed |
-| Plan G9 | TBD | — |
+| Plan G9 | claude-fable-5-1-thinking-high | GAPS_FOUND (13) → closed |
+| Plan G10 | TBD | — |
 
 ## Surface lock
 
 > Spectate is one loopback page. `rc spectate` and `/spectate` open it on the current session. The Activity tab is a link, not a home.
 
-## G8 — CLOSED
+## G9 — CLOSED
 
-Agent: [Plan G8](bc-01b9a061-59b4-5c10-9062-a5eff85eef3b). Seven gaps closed: MiB byte cap, `step.seed` kind, If-None-Match, API envelopes, demo task binding, open-dashboard WALK=10, capability_state omit-vs-unknown.
+Agent: [Plan G9](bc-a1c60597-bc4c-5356-b1f6-02535bc60ef6). Thirteen gaps closed: Load-demo CLI-only (no write route), `session_not_found` vs `no_spectate_stream`, inventory frontmatter checklist, design §7a chrome tokens, Codespace peer must-pass, module-level helpers, check-spectate exit 0/1/3, hook-events path/tail, id charset + query 400, no `Access-Control` in comments, atlas unverified→unknown, light-token dedupe, ESM `app.js`.
 
 ## Next
 
-Plan G9 → seeking first `NO_GAPS`.
+Plan G10 → seeking first `NO_GAPS`.

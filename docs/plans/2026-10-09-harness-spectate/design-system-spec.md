@@ -249,50 +249,49 @@ Components consume these — never raw primitives.
   --color-text-link:        #0969da;
   --color-text-on-accent:   #0d1117;
 
+  /* Semantic chrome (G9-12) — ≥3:1 UI on #f6f8fa; do not inherit dark greens */
+  --color-success:          #1a7f37;
+  --color-warning:          #9a6700;
+  --color-danger:           #cf222e;
+  --color-info:             #0550ae;
+
   --color-accent:           #0d9488;
   --color-accent-hover:     #0f766e;
   --color-graph-edge:       #d0d7de;
   --color-graph-edge-active:#0d9488;
   --color-graph-grid:       color-mix(in srgb, #d0d7de 55%, transparent);
 
-  /* Status hues — verified ≥3:1 UI on #f6f8fa (G2-13). Labels use text-primary/secondary, not these fgs. */
-  --status-running-fg:            #0969da; /* ~4.6:1 */
-  --status-succeeded-fg:          #1a7f37;
-  --status-failed-fg:             #cf222e;
-  --status-waiting-approval-fg:   #9a6700; /* distinct from denied-org */
-  --status-denied-org-fg:         #bc4c00;
-  --status-denied-plugin-fg:      #9a6700; /* was #bf8700 @ 2.95:1 — fail; darkened */
-  --status-denied-user-fg:        #cf222e;
-  --status-denied-harness-fg:     #a04000; /* distinct from denied-org #bc4c00; shape still hexagon */
-  --status-available-fg:          #656d76; /* slate, not accent teal (G7-5) */
-  --status-unavailable-harness-fg:#656d76;
-  --status-idle-fg:               #6e7681; /* was #8b949e @ 2.89:1 — fail; raised */
-
-  --status-denied-org-border:     var(--status-denied-org-fg);
-  --status-denied-harness-border: var(--status-denied-harness-fg);
-  --status-denied-plugin-border:  var(--status-denied-plugin-fg);
-  --status-idle-border:           var(--status-idle-fg);
-  --status-denied-org-bg:         color-mix(in srgb, var(--status-denied-org-fg) 12%, transparent);
-  --status-denied-harness-bg:     color-mix(in srgb, var(--status-denied-harness-fg) 12%, transparent);
-  --status-denied-plugin-bg:      color-mix(in srgb, var(--status-denied-plugin-fg) 12%, transparent);
-
-  /* Light status borders (G7-5) — ≥3:1 on #f6f8fa */
-  --status-available-border:      #656d76;
-  --status-unavailable-harness-border: #57606a;
-  --status-unavailable-harness-fg: #57606a;
+  /* Status hues — one declaration each (G7-5 / G9-12). Labels use text-primary/secondary, not these fgs. */
   --status-running-fg:            #0550ae;
   --status-running-border:        #0550ae;
   --status-succeeded-fg:          #1a7f37;
   --status-succeeded-border:      #1a7f37;
+  --status-failed-fg:             #cf222e;
+  --status-failed-border:         #cf222e;
   --status-waiting-approval-fg:   #9a6700;
   --status-waiting-approval-border:#9a6700;
+  --status-denied-org-fg:         #bc4c00;
+  --status-denied-org-border:     var(--status-denied-org-fg);
+  --status-denied-plugin-fg:      #9a6700;
+  --status-denied-plugin-border:  var(--status-denied-plugin-fg);
   --status-denied-user-fg:        #cf222e;
   --status-denied-user-border:    #cf222e;
-  --status-failed-border:         #cf222e;
+  --status-denied-harness-fg:     #a04000;
+  --status-denied-harness-border: var(--status-denied-harness-fg);
+  --status-available-fg:          #656d76;
+  --status-available-border:      #656d76;
+  --status-unavailable-harness-fg:#57606a;
+  --status-unavailable-harness-border: #57606a;
+  --status-idle-fg:               #6e7681;
+  --status-idle-border:           var(--status-idle-fg);
+
+  --status-denied-org-bg:         color-mix(in srgb, var(--status-denied-org-fg) 12%, transparent);
+  --status-denied-harness-bg:     color-mix(in srgb, var(--status-denied-harness-fg) 12%, transparent);
+  --status-denied-plugin-bg:      color-mix(in srgb, var(--status-denied-plugin-fg) 12%, transparent);
 }
 ```
 
-**Light-theme contrast (G2-13, computed this session on `#f6f8fa`):** idle `#6e7681` ≥3:1 UI; denied-plugin `#9a6700` ≥3:1 UI; waiting-approval and denied-harness use distinct dark ambers so they do not share one `#bc4c00` with denied-org. Re-run `contrast_ratio.py` after any token edit.
+**Light-theme contrast (G2-13 / G9-12, on `#f6f8fa`):** idle `#6e7681` ≥3:1 UI; running `#0550ae` ≥3:1; unavailable-harness `#57606a` ≥3:1; denied-plugin / waiting-approval `#9a6700` ≥3:1; chrome success/warning/danger/info ≥3:1. Labels never use status fg. Re-run `contrast_ratio.py` after any token edit.
 
 ### 2.5 Typography tokens
 
@@ -469,8 +468,8 @@ Components consume these — never raw primitives.
 │ ● run-a    │   [assemble]──[model]──[classify]──┐      │  Node: Bash     │
 │ ○ run-b    │                        │           │      │  status:running │
 │ ○ run-c    │                   [tool:Bash]──[pkg]──…   │  ─────────────  │
-│            │                   [tool:Read]  …          │  args / result  │
-│            │                                           │  deny reason    │
+│            │                   [tool:Read]  …          │  scrubbed fields│
+│            │                                           │  deny {by,rule} │
 │            │   · faint graph grid (not card chrome)    │  timing         │
 │            │                                           │                 │
 │ 240px      │   flex (min 360px)                        │  320px          │
@@ -640,6 +639,24 @@ Only three easings site-wide: `--ease-out` (enter), `--ease-in` (exit), `--ease-
 
 - Shape icon 12–14px + label caption; padding `--space-1` `--space-2`.
 - Never color-only; icon + text required.
+
+### 7a. Chrome, badges & empty states (G9-4)
+
+Do **not** invent hues that collide with the status band (no red “disconnected” that reads as `failed`; no green “live” that reads as `succeeded`).
+
+| Element | Visual contract |
+|---|---|
+| Source badge (`demo` / `recorded` / `live`) | Neutral outline chip, mono label. `live` adds a 6px `--status-running-fg` dot only (no green fill). |
+| Connection (`connecting` / `ok` / `stale` / `disconnected`) | Text label + icon. `stale` = `--color-warning` ring. `disconnected` = scrim `--color-surface-overlay` + `--color-danger` icon + exact `rc spectate` command in mono — not a failed-status node. |
+| Observe-only subtitle | Secondary caption under product name; no badge color. |
+| Capability unknown | Idle shape + small `?` glyph at node corner; label `idle · capability unknown`. |
+| Unterminated | Keep status shape; pulse stopped; dashed outer hairline; label suffix `· no completion observed`. |
+| Empty states (no-session / session-not-found / no-stream) | Centered mono copy on `--color-surface-sunken`; no illustration. no-stream copy names emitter arrival in v0.2. |
+| DEMO marking | Mono `DEMO` caption on synthetic rail rows. |
+| “Show earlier turns” | Text control, secondary; not a status chip. |
+| Follow-unpinned banner | Secondary bar: “following latest — session not pinned”. |
+
+Add matching “shape+label / chrome present in DOM” rows to `check-spectate-render.mjs`.
 
 ---
 
