@@ -14,7 +14,7 @@
 - Atlas: `docs/research/2026-10-04-coding-agent-harness-atlas/`
 - Loop concept: `plugins/ravenclaude-core/knowledge/concepts/agent-harness-loop.md`
 
-**Plan gap status:** G1 (15) + G2 (20) closed in this revision (2026-10-09). Streak for `NO_GAPS` restarts at Plan G3.
+**Plan gap status:** G1 (15) + G2 (20) + G3 (12) closed in this revision (2026-10-09). Streak for `NO_GAPS` restarts at Plan G4.
 
 premise-ok: serve-dashboards Host/Origin guard + Gate 142 + Cache-Control no-store (control.md under premise run scopes)
 
@@ -52,12 +52,14 @@ Source of truth: [`SURFACE-DECISION.md`](./SURFACE-DECISION.md) (Pass C, 2026-10
 
 **Canonical URL (G1-7 / G2-4):** both servers expose a guarded **serve** (not 302) for `/spectate`, `/spectate/`, and `/spectate/<allow-listed name>` via one `_handle_spectate_asset` / `_read_spectate_*` helper. It maps to `plugins/ravenclaude-core/dashboard-assets/spectate/` regardless of plugin vs root server. Do **not** 302 to `/dashboard-assets/spectate/` (404 under root server). Activity discovery links use `/spectate`.
 
-Route rules (G2-4, G2-17):
-- Dispatch is exact `/spectate` / `/spectate/` or prefix `/spectate/` — never bare `startswith("/spectate")` (would match `/spectatex`).
-- Allow-list filenames to the spectate asset directory listing + `fonts/*.woff2`; resolve under `PLUGIN_SPECTATE_DIR`; refuse escapes.
-- `_local_request_ok()` on every spectate GET/HEAD; same routes in `do_HEAD`.
+Route rules (G2-4, G2-17, G3-1, G3-7):
+- Match on `path.split("?", 1)[0]` only (query must not break the match). Exact `/spectate` / `/spectate/` or prefix `/spectate/` — never bare `startswith("/spectate")` (would match `/spectatex`). Keep the raw query for the page.
+- Smoke: `GET /spectate?follow=latest` and `GET /spectate?session=<id>` return HTML 200, not 404.
+- Allow-list filenames to the spectate asset directory listing + `fonts/*.woff2`; resolve under `PLUGIN_SPECTATE_DIR`; refuse escapes. Strip query before filename allow-list.
+- `_local_request_ok()` on every spectate GET/HEAD. Spectate HEAD is a **guarded** branch that calls the same handler (or 405) — do **not** append `/spectate` or `/__spectate` to the ungated `do_HEAD` 200/`Allow` list.
 - Set G1-13 headers + explicit `Content-Type` map: `.html` → `text/html; charset=utf-8`, `.js` → `text/javascript`, `.css` → `text/css`, `.svg` → `image/svg+xml`, `.woff2` → `font/woff2`.
 - `index.html` references assets as absolute `/spectate/app.js` (relative URLs break when served at `/spectate` without trailing slash).
+- While touching servers: fix stale `do_GET` comments that still say “static GETs are intentionally ungated” (fallback already guards).
 
 Query: `?session=<id>` when the opener has one, else `?follow=latest`. Guardrails stay Heimdall / Víðarr.
 
@@ -137,7 +139,7 @@ Each JSONL line:
 | `session_id` | sanitized — see Path & identity |
 | `harness` | enum of 8 + `unknown` |
 | `source` | `hook` \| `demo` \| `steer` \| `recorded` |
-| `kind` | `session.start/end`, `prompt.submit`, `turn.end`, `tool.pre/post/fail`, `permission.request/resolve`, `subagent.start/stop`, `compact.pre`, `steer.applied`, `emitter.truncated` |
+| `kind` | `session.start/end`, `prompt.submit`, `turn.end`, `tool.pre/post/fail`, `permission.request/resolve`, `subagent.start/stop`, `compact.pre`, `steer.applied`, `stream.truncated`, `emitter.truncated` |
 | `step` | `assemble` \| `call-model` \| `classify` \| `execute-tools` \| `package` \| `update-context` |
 | `node_id` / `parent_id` / `agent_id` | stable IDs (see Correlation) |
 | `corr_id` | shared correlation id when joining deny/hook rows; omit rather than invent |
@@ -179,7 +181,7 @@ UI-only (not reducer statuses): **capability unknown**, connection chrome, sourc
 | Identity | Uniqueness / rules |
 |---|---|
 | `session_id` | Key for `.ravenclaude/runs/<session_id>/`. Sanitized per Path rules. Groups one spectate stream. |
-| `harness` | Column / chip identity within a session. Composite graph key includes harness. |
+| `harness` | **Session-rail chip only** (G2-9 / G3-4). Composite node key includes harness for uniqueness; it is not a graph column. |
 | `agent_id` | Stable within session; default `"main"` when absent. **Graph columns = `agent_id`** (main + subagents). Harness is a session-rail chip, not a graph column (G2-9). |
 | `node_id` | Unique within `(session_id, harness, agent_id)`. Required on every non-session event. |
 | `parent_id` | Optional; when set must reference an existing `node_id` in the same session+harness+agent (else `parent_truncated: true`). Tool nodes parent to the `execute-tools` step node. |
@@ -206,8 +208,8 @@ Endpoints (GET, read-only, `_local_request_ok`):
 
 | Route | Contract |
 |---|---|
-| `/__spectate/sessions?cursor=&limit=` | Paginated. Default `limit=50`, max `200`. Opaque `next_cursor`. Ordered by mtime desc of `spectate-events.jsonl`. |
-| `/__spectate/events?session=&cursor=&limit=` | Opaque **byte-offset** cursor into the session file. Default `limit=100`, max `500`. |
+| `/__spectate/sessions?cursor=&limit=&harness=` | Paginated. Default `limit=50`, max `200`. Opaque `next_cursor`. Each item: `{session_id, harness, synthetic, mtime, latest_status}` (G3-8). Follow ranking: non-synthetic first, then mtime desc; synthetic only if nothing else matches. Optional `harness=` filters ranking + rail (not graph columns). |
+| `/__spectate/events?session=&cursor=&limit=` | Opaque **absolute byte-offset** cursor into the session file. Default `limit=100`, max `500`. |
 | `/__spectate/capabilities` | Full matrix JSON. |
 | `/__spectate/nodes?session=` | Reduced node list for the session. |
 
@@ -215,10 +217,9 @@ Endpoints (GET, read-only, `_local_request_ok`):
 - Snapshot file size at open; never read past that snapshot in one response (concurrent appends appear on the next poll).
 - Skip incomplete trailing lines (no final `\n`); do not advance cursor past a partial line.
 - Malformed JSONL lines: skip, increment `skipped_malformed`, continue.
-- File > 5 MiB: serve from the **tail** window, set `truncated: true` + `truncate_marker` event synthetic at window start.
-- Stale cursor (> size): reset to `0` and set `cursor_reset: true` (client must replace, not append-dedupe blindly).
-- Response includes `next_cursor` (byte offset after last complete line delivered) and `etag`/`file_mtime` for stale detection.
-- Client dedupe: key = `(session_id, node_id, kind, ts)` when replaying after reset.
+- Cursors are **absolute file offsets** (G3-9). First response range is `[max(0, size-5MiB), size_snapshot]`, with one synthetic `stream.truncated` at the window start when truncated. `next_cursor` = absolute offset after last complete line. Cursor `0` is valid only when `size ≤ 5 MiB`. Cursor `> size` → `cursor_reset: true` and restart at **tail start** (not byte 0).
+- Response includes `next_cursor`, `truncated`, `etag`/`file_mtime`.
+- Client dedupe on events (inspector only): key = `(session_id, node_id, kind, ts)` when replaying after reset.
 
 ---
 
@@ -228,16 +229,23 @@ Endpoints (GET, read-only, `_local_request_ok`):
 
 **Step ↔ capability seed map (G2-7):**
 
-| Spine step | Capability key | unsupported → | unknown → | supported/partial, session has ≥1 event, step not started → | session has 0 events → |
-|---|---|---|---|---|---|
-| `assemble` | `session` | `unavailable-harness` | idle + `capability_state:unknown` | `available` | `idle` |
-| `call-model` | `prompt` | same | same | `available` | `idle` |
-| `classify` | `prompt` | same | same | `available` | `idle` |
-| `execute-tools` | `tool_pre` | same | same | `available` | `idle` |
-| `package` | `tool_post` | same | same | `available` | `idle` |
-| `update-context` | `compact` | same | same | `available` | `idle` |
+| Spine step | Capability key | Seed when step not started |
+|---|---|---|
+| `assemble` | `session` | see precedence |
+| `call-model` | `prompt` | see precedence |
+| `classify` | `prompt` | see precedence |
+| `execute-tools` | `tool_pre` | see precedence |
+| `package` | `tool_post` | see precedence |
+| `update-context` | `compact` | see precedence |
 
-Tool child nodes seed from `tool_pre` / `tool_post` / `tool_fail` / `permission_request` / `subagent` as applicable. `available` is only for supported/partial steps in a session that has received ≥1 event but has not started that step. `idle` is reserved for never-seen (0 events) or capability-unknown companion.
+**Seed precedence (G3-2)** — apply first match:
+1. capability `unsupported` → `unavailable-harness` (matrix is the evidence; **even at 0 events**)
+2. capability `unknown` → `idle` + `capability_state: unknown` (even at 0 events; never upgrade to unavailable)
+3. capability supported/partial + session event count = 0 → `idle` (“never seen — cause not established”)
+4. capability supported/partial + ≥1 event + step not started → `available`
+5. otherwise follow transition table
+
+Tool child nodes seed from `tool_pre` / `tool_post` / `tool_fail` / `permission_request` / `subagent` as applicable.
 
 **Ordering:** sort by `ts` ascending; tie-break `kind` order covering the full enum: `session.start` < `prompt.submit` < `*.pre` / `subagent.start` / `compact.pre` < `permission.request` < `tool.post` / `tool.fail` / `permission.resolve` / `turn.end` / `subagent.stop` / `steer.applied` < `session.end` < `stream.truncated` < `emitter.truncated`. Same-ts same-kind: stable by file order.
 
@@ -343,7 +351,7 @@ SSE stream, comfort-posture `spectate_steer`, pause-as-deny + note injection; AC
 
 - [ ] Write schema JSON (required fields, enums, `additionalProperties: false` on root **and nested**; length + control-char rules)
 - [ ] Write capabilities matrix for all 8 harnesses with atlas evidence ids; states `supported|partial|unsupported|unknown` (G1-1)
-- [ ] Write demo-session.jsonl covering all 11 statuses + multi-harness columns + capability-unknown column for grok-bot
+- [ ] Write demo-session.jsonl covering all 11 statuses; one session file; several harness chips on the rail; graph columns = `agent_id`; capability-unknown for grok-bot (G3-4)
 - [ ] Write bad fixtures: raw prompt, nested args smuggle, illegal status, session traversal ids
 - [ ] Write `expected-reduce.json` golden (never-seen → `idle`; unknown ↛ unavailable; deny beats asserted success)
 - [ ] Implement `check-spectate.py --check` (pass demo; fail bad fixtures; fail missing evidence; **must_flag_unwired** canary)
@@ -382,6 +390,7 @@ Endpoints (GET, read-only, Host/Origin-checked):
 **Files:**
 - Create `plugins/ravenclaude-core/dashboard-assets/spectate/{index.html,app.js,spectate.css,status-icons.svg}`
 - Modify `scripts/generate-dashboards.py` Activity tab → Spectate entry card (`href=/spectate`)
+- Modify `plugins/ravenclaude-core/dashboard-assets/README.md` — list Spectate as surface #3; estate surfaces inline `--rc-*`; Spectate is the runtime-`spectate.css` exception (G3-10 / G2-14)
 - **Do not commit** regenerated `dashboard.html` / portal outputs (G1-15); exercise generator locally only
 
 - [ ] CSS tokens from design-system-spec (dark default + light mirror) including **`denied-harness`** (G1-9)
@@ -407,15 +416,16 @@ Endpoints (GET, read-only, Host/Origin-checked):
 - Modify both `serve-dashboards.py` copies — `GET /spectate` maps to plugin spectate assets (G1-7). Do not retarget bare `/`
 - Create `plugins/ravenclaude-core/commands/spectate.md`
 
-- [ ] `rc spectate [--session ID] [--no-open] [--port N] [--foreground]` — **attach, don't kill** (G2-2):
-  - Probe = `open-dashboard.sh` `find_our_live_port` identity (lsof/ps cwd match) over 8000–8010, then `GET /__spectate/capabilities` must return 200
+- [ ] `rc spectate [--session ID] [--no-open] [--port N] [--foreground]` — **attach, don't kill** (G2-2 / G3-5):
+  - Probe: walk ports **8000–8010**; identity = lsof LISTEN + `ps` cmdline contains `serve-dashboards.py` + cwd equals this project; then `GET /__spectate/capabilities` must return 200. **Do not** call `open-dashboard.sh` `find_our_live_port` (it curls `/index.html` without following redirects and only walks `WALK=5`)
   - If live same-project server lacks `/__spectate`: leave it running; start a new server on the next free port with `--no-reclaim`; print one line that an older dashboard was left alone
   - If `lsof` absent: fail closed → start second server; never kill
   - Always pass `--no-reclaim` when starting; never call `_reclaim_port` on the open path
   - Audit-gates must-pass: an old-style live server survives `rc spectate`
-- [ ] Detach by default (G2-3): `nohup python3 serve-dashboards.py --no-reclaim --open-path '/spectate?…' … >.ravenclaude/runs/spectate-server.log 2>&1 &`, wait ≤5s for port, print URL, exit 0. `--foreground` keeps blocking. On attach, `rc` opens via `python3 -m webbrowser -t URL`
-- [ ] Open `http://127.0.0.1:<port>/spectate?session=<id>` when an id is known, else `?follow=latest` (+ optional `&harness=`). `--no-open` prints the URL plus one status line from the store
-- [ ] Session id order (G2-6): explicit `--session`, else `CLAUDE_SESSION_ID` when set, else `follow=latest`. Record in `commands/spectate.md` that native Claude Code often does **not** export `CLAUDE_SESSION_ID` to hooks/commands — probe slash substitution this session and document; if unavailable, `/spectate` opens `?follow=latest&harness=claude-code` and the page shows “following latest — session not pinned”
+- [ ] Detach by default (G2-3): `nohup python3 serve-dashboards.py --no-reclaim --open-path '/spectate?…' … >.ravenclaude/runs/spectate-server.log 2>&1 &`, wait ≤5s for port, print URL, exit 0. `--foreground` keeps blocking
+- [ ] Open browser rule (G3-12): `webbrowser` **only** for local attach with a TTY and without `--no-open`. Codespaces, no TTY, and `--no-open` **only print** the URL (forwarded `/spectate?...` in Codespaces). Never both print-and-launch in Codespaces
+- [ ] Open URL `http://127.0.0.1:<port>/spectate?session=<id>` when an id is known, else `?follow=latest` (+ optional `&harness=`). `--no-open` prints URL + `session_id` / `harness` / `latest_status` for the session follow would select (G3-8)
+- [ ] Session id order (G2-6 / G3-11): explicit `--session`, else `CLAUDE_SESSION_ID` when set, else `follow=latest`. Before writing `commands/spectate.md`, probe whether slash/command env expands a session id; **do not claim absence until that probe output is pasted into the doc**. Fallback if unavailable: `?follow=latest&harness=claude-code` + “following latest — session not pinned”
 - [ ] `/spectate` slash is a thin sibling of `/dashboard` (Claude Code only). Same URL. Copilot/Codex/Cursor/Gemini use `rc spectate`
 - [ ] Codespaces: print the forwarded `/spectate` URL. `onAutoForward` still opens `/` → dashboard; do not hijack `DASH_PATH`
 - [ ] Activity entry card links to `/spectate`. It is not the smoke path
@@ -555,6 +565,18 @@ Endpoints (GET, read-only, Host/Origin-checked):
 | G2-18 | Event-file symlink refuse |
 | G2-19 | follow=latest pin semantics |
 | G2-20 | CSP tighten, kind split, Gate 142 plugin, glyph/handoff notes in design spec |
+| G3-1 | Query-strip before `/spectate` match + smoke |
+| G3-2 | Seed precedence (unsupported/unknown beat 0-event idle) |
+| G3-3 | `stream.truncated` in schema enum; drop `truncate_marker` name |
+| G3-4 | Harness = rail chip; Task 1 demo wording |
+| G3-5 | Probe without `find_our_live_port` /index.html |
+| G3-6 | `--no-reclaim` / `--open-path` as Gate-32-named helpers |
+| G3-7 | Guarded spectate HEAD; no ungated Allow list |
+| G3-8 | Sessions payload fields + harness= filter |
+| G3-9 | Absolute cursor + tail-start reset |
+| G3-10 | README Task 3 file + surface #3 exception |
+| G3-11 | Probe-before-claim for CLAUDE_SESSION_ID |
+| G3-12 | Codespaces/no-TTY print-only open rule |
 
 ---
 
