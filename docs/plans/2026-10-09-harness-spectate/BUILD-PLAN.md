@@ -532,9 +532,15 @@ Endpoints (GET, read-only, Host/Origin-checked) — **no write routes in v0.1** 
 - [x] Emit `permission.request` + `permission.resolve` on resolve
 - [x] UI Approve/Deny buttons; Gate 296 S5–S7
 
-## Deferred (v0.5+)
+## Tasks — v0.5 (true interrupt)
 
-- True interrupt
+- [x] Browser Interrupt → `POST /__spectate/steer` arms `interrupt_pending`
+- [x] `spectate-steer.sh` emits `{"continue": false, "stopReason": "..."}` on PreToolUse / PostToolUse / UserPromptSubmit / PermissionRequest
+- [x] PreToolUse also denies; PermissionRequest denies + `permission.resolve`
+- [x] UI Interrupt button; Gate 296 S8–S10
+
+## Deferred (v0.6+)
+
 - ACP control channel (process ownership)
 - IDE `openExternal` to the same `/spectate` URL (only if alt-tab is the measured failure; not Simple Browser, not a second UI)
 - Claude monitor push mirror

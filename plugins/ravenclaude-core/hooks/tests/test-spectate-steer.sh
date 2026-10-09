@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# test-spectate-steer.sh — Spectate v0.4 pause/note + PermissionRequest approve/deny
+# test-spectate-steer.sh — Spectate v0.5 pause/note + PermissionRequest + interrupt
 #
 # Proves:
 #   S1  posture off → empty stdout
@@ -9,6 +9,9 @@
 #   S5  approve → PermissionRequest decision.behavior allow
 #   S6  deny → PermissionRequest decision.behavior deny
 #   S7  PermissionRequest timeout (no armed decision) → empty stdout
+#   S8  interrupt → PreToolUse continue:false + deny
+#   S9  interrupt → PostToolUse continue:false
+#   S10 interrupt → PermissionRequest continue:false + deny
 #
 # Run: bash plugins/ravenclaude-core/hooks/tests/test-spectate-steer.sh
 
@@ -224,6 +227,112 @@ if [ -z "$out" ]; then
   pass "timeout => empty stdout (fail-open)"
 else
   fail "timeout leaked stdout: $out"
+fi
+
+echo "── S8: interrupt → PreToolUse continue:false + deny ───────────────────────"
+T8="$(mktemp -d)"
+mkdir -p "$T8/.ravenclaude/runs/s1"
+printf '%s\n' 'spectate_steer: on' >"$T8/.ravenclaude/comfort-posture.yaml"
+_seed_stream "$T8" s1
+python3 - "$T8" "$STORE" <<'PY'
+import sys
+from pathlib import Path
+
+sys.path.insert(0, sys.argv[2])
+import spectate_store as s
+
+code, body = s.apply_steer(Path(sys.argv[1]), session_id="s1", action="interrupt")
+assert code == 200, body
+assert body.get("pending", {}).get("interrupt_pending") is True, body
+PY
+out="$(
+  printf '{}' | CLAUDE_PROJECT_DIR="$T8" CLAUDE_PLUGIN_ROOT="$PLUGIN_ROOT" \
+    CLAUDE_SESSION_ID=s1 CLAUDE_HOOK_EVENT=PreToolUse bash "$HOOK" 2>/dev/null || true
+)"
+if printf '%s' "$out" | python3 -c '
+import json,sys
+o=json.load(sys.stdin)
+assert o.get("continue") is False
+assert "Spectate interrupt" in (o.get("stopReason") or "")
+h=o.get("hookSpecificOutput") or {}
+assert h.get("permissionDecision")=="deny"
+' 2>/dev/null; then
+  pass "interrupt => PreToolUse continue:false + deny"
+else
+  fail "interrupt PreToolUse missing/wrong: $out"
+fi
+# second fire should be a no-op (interrupt consumed)
+out2="$(
+  printf '{}' | CLAUDE_PROJECT_DIR="$T8" CLAUDE_PLUGIN_ROOT="$PLUGIN_ROOT" \
+    CLAUDE_SESSION_ID=s1 CLAUDE_HOOK_EVENT=PreToolUse bash "$HOOK" 2>/dev/null || true
+)"
+if [ -z "$out2" ]; then
+  pass "interrupt consumed (second PreToolUse empty)"
+else
+  fail "interrupt leaked on second fire: $out2"
+fi
+
+echo "── S9: interrupt → PostToolUse continue:false ─────────────────────────────"
+T9="$(mktemp -d)"
+mkdir -p "$T9/.ravenclaude/runs/s1"
+printf '%s\n' 'spectate_steer: on' >"$T9/.ravenclaude/comfort-posture.yaml"
+_seed_stream "$T9" s1
+python3 - "$T9" "$STORE" <<'PY'
+import sys
+from pathlib import Path
+
+sys.path.insert(0, sys.argv[2])
+import spectate_store as s
+
+code, body = s.apply_steer(Path(sys.argv[1]), session_id="s1", action="interrupt")
+assert code == 200, body
+PY
+out="$(
+  printf '{}' | CLAUDE_PROJECT_DIR="$T9" CLAUDE_PLUGIN_ROOT="$PLUGIN_ROOT" \
+    CLAUDE_SESSION_ID=s1 CLAUDE_HOOK_EVENT=PostToolUse bash "$HOOK" 2>/dev/null || true
+)"
+if printf '%s' "$out" | python3 -c '
+import json,sys
+o=json.load(sys.stdin)
+assert o.get("continue") is False
+assert "Spectate interrupt" in (o.get("stopReason") or "")
+' 2>/dev/null; then
+  pass "interrupt => PostToolUse continue:false"
+else
+  fail "interrupt PostToolUse missing/wrong: $out"
+fi
+
+echo "── S10: interrupt → PermissionRequest continue:false + deny ───────────────"
+T10="$(mktemp -d)"
+mkdir -p "$T10/.ravenclaude/runs/s1"
+printf '%s\n' 'spectate_steer: on' >"$T10/.ravenclaude/comfort-posture.yaml"
+_seed_stream "$T10" s1
+python3 - "$T10" "$STORE" <<'PY'
+import sys
+from pathlib import Path
+
+sys.path.insert(0, sys.argv[2])
+import spectate_store as s
+
+code, body = s.apply_steer(Path(sys.argv[1]), session_id="s1", action="interrupt")
+assert code == 200, body
+PY
+out="$(
+  printf '{"tool_name":"Bash"}' \
+    | CLAUDE_PROJECT_DIR="$T10" CLAUDE_PLUGIN_ROOT="$PLUGIN_ROOT" \
+      CLAUDE_SESSION_ID=s1 CLAUDE_HOOK_EVENT=PermissionRequest \
+      SPECTATE_PERMISSION_WAIT_S=0.5 bash "$HOOK" 2>/dev/null || true
+)"
+if printf '%s' "$out" | python3 -c '
+import json,sys
+o=json.load(sys.stdin)
+assert o.get("continue") is False
+d=(o.get("hookSpecificOutput") or {}).get("decision") or {}
+assert d.get("behavior")=="deny"
+' 2>/dev/null; then
+  pass "interrupt => PermissionRequest continue:false + deny"
+else
+  fail "interrupt PermissionRequest missing/wrong: $out"
 fi
 
 if [ "$FAILED" -ne 0 ]; then

@@ -1322,7 +1322,7 @@ _PIPELINE_EXCLUDED_HOOKS = {
     "denial. Observability substrate, not a safety-floor guardrail — same class as "
     "agent-dispatch-evaluator.sh and handoff-tax-meter.sh — so deliberately NOT a "
     "Pipeline stage card",
-    "spectate-steer.sh": "Spectate steer consumer (v0.4). OPT-IN via comfort-posture `spectate_steer: on` (absent => off). Pause-as-deny on PreToolUse + capped note injection + PermissionRequest approve/deny wait. Governed by a posture scalar, not a Pipeline stage card — same class as enforce-git-protocol.sh / spectate-emit.sh",
+    "spectate-steer.sh": "Spectate steer consumer (v0.5). OPT-IN via comfort-posture `spectate_steer: on` (absent => off). True interrupt (continue:false) + pause-as-deny + capped note injection + PermissionRequest approve/deny wait. Governed by a posture scalar, not a Pipeline stage card — same class as enforce-git-protocol.sh / spectate-emit.sh",
     "spectate-emit.sh": "Spectate observe-only emitter (v0.2). Appends ONE scrubbed "
     "rc.spectate.v1 line to .ravenclaude/runs/<session>/spectate-events.jsonl for "
     "SessionStart / UserPromptSubmit / PreToolUse / PostToolUse / Stop / SubagentStart / "

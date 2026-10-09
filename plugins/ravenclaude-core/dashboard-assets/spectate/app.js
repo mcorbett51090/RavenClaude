@@ -1136,6 +1136,7 @@ function createApp(env) {
     steerPanel: $("steer-panel"),
     steerPause: $("steer-pause"),
     steerResume: $("steer-resume"),
+    steerInterrupt: $("steer-interrupt"),
     steerApprove: $("steer-approve"),
     steerDeny: $("steer-deny"),
     steerNote: $("steer-note"),
@@ -1551,6 +1552,7 @@ function createApp(env) {
         else {
           const bits = [];
           if (steerPending.paused) bits.push("paused");
+          if (steerPending.interrupt_pending) bits.push("interrupt armed");
           if (steerPending.note_pending) bits.push(`note (${steerPending.note_chars || 0})`);
           if (steerPending.decision === "allow") bits.push("approve armed");
           else if (steerPending.decision === "deny") bits.push("deny armed");
@@ -1681,6 +1683,8 @@ function createApp(env) {
         postSteer("pause", refs.steerNote && refs.steerNote.value),
       );
     if (refs.steerResume) refs.steerResume.addEventListener("click", () => postSteer("resume", ""));
+    if (refs.steerInterrupt)
+      refs.steerInterrupt.addEventListener("click", () => postSteer("interrupt", ""));
     if (refs.steerApprove)
       refs.steerApprove.addEventListener("click", () => postSteer("approve", ""));
     if (refs.steerDeny) refs.steerDeny.addEventListener("click", () => postSteer("deny", ""));

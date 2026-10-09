@@ -1,14 +1,17 @@
 #!/usr/bin/env bash
-# spectate-steer.sh — v0.4 pause-as-deny + note + PermissionRequest approve/deny
+# spectate-steer.sh — v0.5 pause-as-deny + note + PermissionRequest + true interrupt
 #
 # Reads .ravenclaude/runs/<session>/spectate-steer.json written by
 # POST /__spectate/steer. Only active when comfort-posture has
 # `spectate_steer: on` (absent => off).
 #
+# Interrupt (v0.5): if interrupt_pending → top-level
+#   {"continue": false, "stopReason": "..."} (docs-verified; takes precedence).
+#   Also denies PreToolUse / PermissionRequest as belt-and-suspenders.
 # PreToolUse: if paused -> deny (permissionDecision) — pause-as-deny MVP.
 # UserPromptSubmit / PreToolUse: if note_pending -> additionalContext (capped),
 # then clear the note.
-# PermissionRequest: wait ≤45s for browser approve/deny; emit
+# PermissionRequest: wait ≤45s for browser approve/deny/interrupt; emit
 # hookSpecificOutput.decision.behavior ∈ {allow,deny}. Pause → deny.
 # Timeout → empty stdout (fail-open to the human permission prompt).
 # Fail-open on any error.
@@ -86,6 +89,70 @@ event_key = event.replace("_", "").replace("-", "")
 paused = bool(pending.get("paused"))
 note_pending = bool(pending.get("note_pending"))
 
+
+def _agent_id() -> str:
+    agent = "main"
+    try:
+        raw = os.environ.get("SPECTATE_PAYLOAD") or ""
+        obj = json.loads(raw) if raw.strip() else {}
+        if isinstance(obj, dict):
+            cand = (
+                obj.get("agent_id")
+                or obj.get("agentId")
+                or obj.get("subagent_id")
+                or "main"
+            )
+            if store.ID_RE.match(str(cand)):
+                agent = str(cand)
+    except Exception:
+        pass
+    return agent
+
+
+def _harness() -> str:
+    harness = "claude-code"
+    try:
+        existing = store._harness_of_stream(project, sid)  # noqa: SLF001
+        if existing:
+            harness = existing
+    except Exception:
+        pass
+    return harness
+
+
+def _emit_interrupt() -> None:
+    """Top-level continue:false — docs-verified stop of the agentic loop."""
+    reason = store.STOP_REASON_INTERRUPT
+    out: dict = {
+        "continue": False,
+        "stopReason": reason,
+    }
+    if "pretooluse" in event_key:
+        out["hookSpecificOutput"] = {
+            "hookEventName": "PreToolUse",
+            "permissionDecision": "deny",
+            "permissionDecisionReason": reason,
+        }
+    elif "permissionrequest" in event_key:
+        store.append_permission_resolve(
+            project,
+            session_id=sid,
+            harness=_harness(),
+            decision="deny",
+            agent_id=_agent_id(),
+        )
+        out["hookSpecificOutput"] = {
+            "hookEventName": "PermissionRequest",
+            "decision": {"behavior": "deny"},
+        }
+    print(json.dumps(out))
+
+
+# v0.5 true interrupt — check before pause / PermissionRequest wait.
+if pending.get("interrupt_pending") and store.consume_steer_interrupt(project, sid):
+    _emit_interrupt()
+    raise SystemExit(0)
+
 if "permissionrequest" in event_key:
     # Pause-as-deny also applies at the permission prompt.
     decision = None
@@ -102,35 +169,16 @@ if "permissionrequest" in event_key:
             except ValueError:
                 wait_s = store.PERMISSION_WAIT_S
         decision = store.wait_for_steer_decision(project, sid, timeout_s=wait_s)
+        if decision == store.INTERRUPT_ACTION:
+            _emit_interrupt()
+            raise SystemExit(0)
     if decision in store.STEER_DECISIONS:
-        harness = "claude-code"
-        try:
-            existing = store._harness_of_stream(project, sid)  # noqa: SLF001
-            if existing:
-                harness = existing
-        except Exception:
-            pass
-        agent = "main"
-        try:
-            raw = os.environ.get("SPECTATE_PAYLOAD") or ""
-            obj = json.loads(raw) if raw.strip() else {}
-            if isinstance(obj, dict):
-                cand = (
-                    obj.get("agent_id")
-                    or obj.get("agentId")
-                    or obj.get("subagent_id")
-                    or "main"
-                )
-                if store.ID_RE.match(str(cand)):
-                    agent = str(cand)
-        except Exception:
-            pass
         store.append_permission_resolve(
             project,
             session_id=sid,
-            harness=harness,
+            harness=_harness(),
             decision=decision,
-            agent_id=agent,
+            agent_id=_agent_id(),
         )
         print(
             json.dumps(
