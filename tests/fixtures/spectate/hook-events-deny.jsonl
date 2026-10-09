@@ -1,1 +1,2 @@
-{"ts":"2026-10-09T12:00:01.000Z","corr_id":"corr-x","verdict":"deny","hook":"guard-destructive","rule":"rm-block","by":"plugin"}
+{"ts":"2026-10-09T12:00:02.800Z","hook":"guard-destructive.sh","verdict":"warn","rule":"x"}
+{"schema_version":1,"ts":"2026-10-09T12:00:02.400Z","hook":"guard-destructive.sh","verdict":"deny","tool":"Bash","path":"rm -rf ./build","rule":"rm-recursive","session_id":"demo-fixture1","exit_code":2,"corr_id":"c-rm"}

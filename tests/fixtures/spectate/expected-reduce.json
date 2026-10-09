@@ -1,45 +1,61 @@
 {
-  "deny_beats_success": {
-    "events": [
-      {
-        "schema": "rc.spectate.v1",
-        "ts": "2026-10-09T12:00:00.000Z",
-        "session_id": "g1",
-        "harness": "claude-code",
-        "source": "demo",
-        "kind": "tool.pre",
-        "step": "execute-tools",
-        "node_id": "tool:x",
-        "agent_id": "main",
-        "corr_id": "corr-x",
-        "tool": { "name": "Bash", "family": "shell", "target": "rm" },
-        "synthetic": true
+  "_comment": "Golden for demo-session.jsonl + hook-events-deny.jsonl reduced against spectate-capabilities.json (claude-code). Regenerate deliberately; a change here is a reducer contract change.",
+  "demo_session": {
+    "harness": "claude-code",
+    "session_ended": true,
+    "latest_status": "failed",
+    "event_count": 10,
+    "nodes": {
+      "step:main:0:assemble": {
+        "status": "succeeded",
+        "kind": "step.seed"
       },
-      {
-        "schema": "rc.spectate.v1",
-        "ts": "2026-10-09T12:00:01.000Z",
-        "session_id": "g1",
-        "harness": "claude-code",
-        "source": "demo",
-        "kind": "tool.post",
-        "step": "execute-tools",
-        "node_id": "tool:x",
-        "agent_id": "main",
-        "corr_id": "corr-x",
-        "asserted_status": "succeeded",
-        "synthetic": true
+      "step:main:0:call-model": {
+        "status": "available",
+        "kind": "step.seed"
+      },
+      "step:main:0:classify": {
+        "status": "available",
+        "kind": "step.seed"
+      },
+      "step:main:0:execute-tools": {
+        "status": "denied-plugin",
+        "kind": "step.seed",
+        "deny_by": "plugin"
+      },
+      "step:main:0:package": {
+        "status": "succeeded",
+        "kind": "step.seed"
+      },
+      "step:main:0:update-context": {
+        "status": "available",
+        "kind": "step.seed"
+      },
+      "read-1": {
+        "status": "succeeded",
+        "parent_id": "step:main:0:execute-tools",
+        "kind": "tool.pre"
+      },
+      "edit-1": {
+        "status": "failed",
+        "parent_id": "step:main:0:execute-tools",
+        "kind": "tool.pre"
+      },
+      "rm-1": {
+        "status": "denied-plugin",
+        "parent_id": "step:main:0:execute-tools",
+        "kind": "tool.pre",
+        "deny_by": "plugin"
       }
-    ],
-    "hooks": [
-      {
-        "ts": "2026-10-09T12:00:00.500Z",
-        "corr_id": "corr-x",
-        "verdict": "deny",
-        "hook": "guard-destructive",
-        "rule": "rm-block",
-        "by": "plugin"
-      }
-    ],
-    "expect_status": "denied-plugin"
+    }
+  },
+  "deny_join": {
+    "deny_node": "rm-1",
+    "deny_corr_id": "c-rm",
+    "unrelated_node": "read-1",
+    "expect": {
+      "rm-1": "denied-plugin",
+      "read-1": "succeeded"
+    }
   }
 }
