@@ -126,8 +126,9 @@ Every launcher deep-links repo + active session. Never open a generic landing wh
 
 **Distinction vs “dual IDE+web”:** one app, one interaction model, multiple shells — not two products that drift.
 
-## Pass C — web-architect — COMPLETE (locked)
+## Pass C — web-architect (grok-4.7-high) — COMPLETE (locked)
 
+**Agent:** [web-architect](bc-ed95ba74-af5f-5209-8171-70410eeb9449)  
 **Verdict:** The prior lean (Activity tab as the door) is the second home. Keep the vehicle. Change the door.
 
 **Primary vehicle:** one static page, `plugins/ravenclaude-core/dashboard-assets/spectate/`, served by the existing `serve-dashboards.py`. No new process, no new port, no framework. Poll `GET /__spectate/*` (SSE in v0.3).
