@@ -14,7 +14,7 @@
 - Atlas: `docs/research/2026-10-04-coding-agent-harness-atlas/`
 - Loop concept: `plugins/ravenclaude-core/knowledge/concepts/agent-harness-loop.md`
 
-**Plan gap status:** G1–G4 closed in this revision (2026-10-09). Streak for `NO_GAPS` restarts at Plan G5.
+**Plan gap status:** G1–G5 closed in this revision (2026-10-09). Streak for `NO_GAPS` restarts at Plan G6.
 
 premise-ok: serve-dashboards Host/Origin guard + Gate 142 + Cache-Control no-store (control.md under premise run scopes)
 
@@ -30,7 +30,7 @@ premise-ok: serve-dashboards Host/Origin guard + Gate 142 + Cache-Control no-sto
 - Status never color-only: **color + shape + exact label** (11 statuses including `denied-harness`).
 - Silence ≠ unavailable. Empty feed → `idle` + “never seen — cause not established” (`cause-taxonomy.md`). Capability `unknown` ≠ `unavailable-harness` (G1-1).
 - Layout globs already cover all paths; do not invent top-level dirs.
-- Version: bump `ravenclaude-core` from `0.328.0` → `0.329.0` for v0.1; then `sync-plugin-versions.py` + `generate-copilot-plugin.py`.
+- Version: rebase onto `origin/main` before bumping. Bump `ravenclaude-core` to the **next minor above** the current `origin/main` plugin.json (today that is already `0.329.1` — so v0.1 is `0.330.0`, not a downgrade to `0.329.0`) (G5-1). Then `sync-plugin-versions.py` + `generate-copilot-plugin.py`. Do not hard-code stale versions in later task text — always read plugin.json at implement time.
 - Docs under `docs/plans/` land with the PR that ships product code (this feature is not docs-only).
 - **Do not commit** regenerated `dashboard.html` in the feature PR (G1-15). Modify the generator; exercise locally; leave `dashboard.html` regen to post-merge self-heal.
 - **Do commit** Gate 242 inventory concept + regenerated `docs/concepts.md` (and any structural `index.html` freshness required by `check-artifact-freshness`) in this PR (G2-1). `dashboard.html` is the only generated artifact deferred to post-merge.
@@ -448,7 +448,7 @@ Endpoints (GET, read-only, Host/Origin-checked):
 **Files:**
 - Create `plugins/ravenclaude-core/knowledge/spectate.md`
 - Create `plugins/ravenclaude-core/templates/run-artifacts/spectate-events.jsonl.template`
-- Bump `plugins/ravenclaude-core/.claude-plugin/plugin.json` → `0.329.0`
+- Bump `plugins/ravenclaude-core/.claude-plugin/plugin.json` → next minor above origin/main (expect `0.330.0` if main is `0.329.1`) (G5-1)
 - Update CHANGELOG if present
 - Run sync + copilot generate
 
@@ -460,7 +460,7 @@ Endpoints (GET, read-only, Host/Origin-checked):
 - [ ] `npx prettier@3.9.4 --write .` then `--check .`; `ruff check .` (whole tree)
 - [ ] `python3 scripts/ci-preflight.py`
 - [ ] Full `scripts/audit-gates.sh` (not targeted-only) (G1-14)
-- [ ] Commit: `chore(spectate): docs, template, bump core 0.329.0`
+- [ ] Commit: `chore(spectate): docs, template, bump core` (version from plugin.json)
 
 ### Task 5: Manual walkthrough evidence
 
@@ -479,14 +479,14 @@ Endpoints (GET, read-only, Host/Origin-checked):
 - [ ] Grok-build env detection override; upgrade capability cells from measured probes; record per-harness `tool_use_id` support
 - [ ] Add `spectate-emit.sh` to Gate 242 inventory `covers:` and regenerate concepts-doc
 - [ ] Vendor IBM Plex OFL fonts
-- [ ] Bump to `0.330.0`
+- [ ] Bump to next minor after v0.1
 
 ## Tasks — v0.3 (follow-up PR)
 
 - [ ] `GET /__spectate/stream` SSE (≤4 streams, 15s heartbeat, Last-Event-ID)
 - [ ] `POST /__spectate/steer` CSRF+Origin; posture `spectate_steer: on`
 - [ ] Pause-as-deny + capped note injection where `steer_context` supported
-- [ ] Bump to `0.331.0`
+- [ ] Bump to next minor after v0.2
 
 ## Deferred (v0.4+)
 
@@ -594,8 +594,97 @@ Endpoints (GET, read-only, Host/Origin-checked):
 | G4-3 | Session-summary reducer for `latest_status` |
 | G4-4 | `mkdir -p` before spectate-server.log redirect |
 | G4-5 | SURFACE narrow upgrade-coexistence second-port exception |
+| G5-1…G5-13 | G5 closes section (version, bind helper, peer_ok, open ownership, validation, probe range, kind→step, nodes shape, deny join, read cache, demo first-sight, test homes, design tokens) |
 
 ---
+
+## G5 closes (folded)
+
+### G5-1 Version
+See Global Constraints — next minor above `origin/main` at implement time (not hard-coded `0.329.0`).
+
+### G5-2 `--no-reclaim` / root bind helper
+- Extract root server's inline bind into a module-level `_bind_server(port, *, reclaim: bool, span: int)` present in **both** copies.
+- Root keeps `span=6` (ports PORT..PORT+5); plugin may keep `span=10`. Helper takes `span` so they stay intentional.
+- Add `_bind_server` and `_open_browser` to Gate 32 `_BODY_DIFF_NAMES` explicitly.
+- Update `open-dashboard.sh` `WALK` to match the root span (`span-1`) when changing root; document the mirror.
+
+### G5-3 G4-1 mechanism (Task 2 checklist + matrix)
+- Spectate GET/HEAD handlers call `_spectate_peer_ok()` after `_local_request_ok()`: peer `client_address[0]` must be loopback (`127.0.0.1` / `::1`) **or** the request Host must be the exact Codespace forward host. LAN IP Host/Origin alone is insufficient when peer is non-loopback.
+- In Codespaces the TCP peer is the forwarder — allow when Host matches the exact Codespace hostname:port already in `_ALLOWED_HOSTS`.
+- Must-fail Gate 142-style: `--bind 0.0.0.0` + LAN-IP Host + non-loopback peer → 403 on `/spectate` and `/__spectate/*`.
+
+### G5-4 Browser open ownership
+- **`rc` owns open.** Always start the server with `--no-open`. After bind/attach succeeds, `rc` opens via `python3 -m webbrowser` only when local TTY and user did not pass `--no-open`. Codespaces / no TTY / `--no-open` → print only.
+- Never pass `--open-path` to a detached nohup server for the purpose of opening a browser (server may still accept `--open-path` for foreground/debug).
+- Discover bound port by probe (`GET /__spectate/capabilities` on candidate ports), not by parsing the log.
+- Cap `spectate-server.log` at 2 MiB with truncate-on-start (or rotate once); document.
+
+### G5-5 Launcher input validation
+- `rc` validates `--session` / `CLAUDE_SESSION_ID` against the session_id regex; on mismatch print note and fall back to `follow=latest`.
+- Server accepts `--open-path` only if it matches `^/spectate(/|\?|$)`; else refuse start.
+
+### G5-6 Probe range
+- Probe range is `[--port, --port+10]` (default base 8000). Gate tests for attach-don't-kill / clean-project use base ≥8015 so they never touch a developer dashboard on 8000.
+
+### G5-7 kind → step map
+| kind | step started/affected |
+|---|---|
+| `session.start` | seeds spine; no step running |
+| `prompt.submit` | `assemble` then `call-model` (model call unobservable → leave `call-model`/`classify` as `available` if capability supported; never invent model tokens) |
+| `tool.pre` | `execute-tools` + tool child |
+| `tool.post` / `tool.fail` | tool child terminal; may advance toward `package` |
+| `permission.request/resolve` | tool child / waiting-approval |
+| `subagent.start/stop` | agent column lifecycle |
+| `compact.pre` | `update-context` |
+| `turn.end` / `session.end` | package/context complete or session terminal |
+| `stream.truncated` / `emitter.truncated` | annotations only |
+
+Unobservable steps stay `available` (or capability-unknown) — never inferred from silence.
+
+### G5-8 `/__spectate/nodes` response shape
+```json
+{
+  "session_id": "...",
+  "harness": "...",
+  "synthetic": false,
+  "server_now": "RFC3339",
+  "last_event_ts": "RFC3339|null",
+  "session_ended": false,
+  "source_hint": "demo|recorded|live",
+  "nodes_truncated": false,
+  "skipped_malformed": 0,
+  "nodes": [ {"node_id","parent_id","agent_id","step","kind","status","capability_state","unterminated","deny","metrics","ts"} ]
+}
+```
+UI computes live badge from `source_hint` / `server_now` vs `last_event_ts` (server clock), never browser clock alone.
+
+### G5-9 Hook-deny join (v0.1 fixtures + v0.2)
+- Map `hook`/`verdict` → `deny.by`: plugin-hook deny → `plugin`; user permission deny → `user`; harness-native → `harness`; org policy (when present) → `org`. Default `plugin` for marketplace hook denies.
+- Joined `rule` = scrubbed, charset `[A-Za-z0-9._:/-]`, max 64 chars.
+- Without `corr_id`: no join (status from spectate events only).
+- Store refuses to append into a stream whose first event harness differs; session dir literally named `unknown` is listed but never auto-followed; demo never uses `unknown`.
+
+### G5-10 Read-path cost
+- Sessions summary cache keyed by `(path, mtime_ns, size)` → `{harness, synthetic, latest_status}`; invalidate on stat change.
+- `/nodes` `etag` = `mtime_ns-size` from `stat` **before** reduce; 304 skips reduce.
+- UI polls `/sessions` every 5s (rail / follow); `/nodes` every 2s while visible.
+
+### G5-11 Fresh-project first sight
+- `rc spectate --demo` (and in-page “Load demo” when sessions empty) runs `spectate_demo.py` writing synthetic per-harness dirs under `.ravenclaude/runs/`.
+- Demo data ships inside the plugin (or is generated by `spectate_demo.py`); fixtures under `tests/fixtures/` are CI-only.
+- Pinned `?session=` missing/invalid/empty → empty-state “session not found / no events yet” + button to follow-latest or load demo — never a blank graph pretending live.
+- `/__runs` Activity feed skips dirs whose only artifact is `spectate-events.jsonl` with `synthetic: true` (or mark them DEMO so they don’t pollute posture Activity).
+
+### G5-12 Executable test homes
+- Wire `check-spectate-render.mjs` into `audit-gates.sh` (must_pass / must_fail) + CI node step; skip loud if `node` absent locally.
+- Behavioral smoke + header assertions: `scripts/check-spectate-http.sh` (or python) hitting both servers; in audit-gates.
+- Hidden-tab: stub-DOM fake clock / visibilityState toggle — **no sleep-based timing**.
+- Attach-don't-kill + clean-project: gate script with base port ≥8015; skip loud if `lsof` absent.
+
+### G5-13 Design tokens
+- Swap tertiary/secondary hierarchy: tertiary must be lower contrast than secondary (use `neutral-400` for tertiary if needed).
+- `available` stroke uses `--color-neutral-200` / blue-info — **not** accent teal. Teal remains selection/focus/active-edge only. Update design-system-spec status tokens accordingly.
 
 ## Success criteria (v0.1 gold bar)
 

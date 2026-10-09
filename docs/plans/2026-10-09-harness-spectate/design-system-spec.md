@@ -112,7 +112,7 @@ Spectate is a **third surface** (IDE-tool livestream), deliberately not estate c
 
   --color-text-primary:     var(--color-neutral-50);    /* 16.02:1 on page */
   --color-text-secondary:   var(--color-neutral-300);   /* 6.15:1 on page */
-  --color-text-tertiary:    var(--color-neutral-200);   /* 9.63:1 — captions OK as body */
+  --color-text-tertiary:    var(--color-neutral-400);   /* below secondary; captions/meta (G5-13) */
   --color-text-disabled:    var(--color-neutral-400);   /* UI/large only — 4.12:1 UI PASS; not body */
   --color-text-inverse:     var(--color-neutral-900);
   --color-text-link:        var(--color-blue-400);
@@ -145,9 +145,9 @@ Components consume these — never raw primitives.
 ```css
 :root {
   /* available — capability exposed, not yet in flight */
-  --status-available-fg:          var(--color-teal-600);
+  --status-available-fg:          var(--color-neutral-200); /* not accent teal — focus only (G5-13) */
   --status-available-bg:          transparent;
-  --status-available-border:      var(--color-teal-600);
+  --status-available-border:      var(--color-neutral-200);
   --status-available-shape:       "circle-outline";
   --status-available-label:       "available";
 
@@ -521,7 +521,7 @@ Exact ship labels (string constants). Visual = **fill/stroke color + geometric s
 
 | Token / label | Color (dark) | Shape | Meaning |
 |---|---|---|---|
-| `available` | Teal stroke `#14B8A6` | ○ hollow circle | Capability exposed; not started |
+| `available` | Slate stroke `#B1BAC4` | ○ hollow circle | Capability exposed; not started (not accent teal) |
 | `unavailable-harness` | Slate `#8B949E` | ◌ dashed hollow circle | Harness does not expose this step/tool |
 | `denied-org` | Burnt orange `#DB6D28` | octagon (8 sides) | Blocked by organization policy |
 | `denied-plugin` | Amber-orange `#F0883E` | ◇ diamond | Blocked by plugin / marketplace / hook |
