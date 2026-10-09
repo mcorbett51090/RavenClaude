@@ -2,6 +2,14 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.336.0 — 2026-10-09
+
+### Added
+- **Spectate v0.6 Claude monitor push mirror** — `monitors/watch-spectate.sh` + `skills/spectate` arm `spectate-push-mirror` (`when: on-skill-invoke:spectate`). Tails `.ravenclaude/runs/*/spectate-events.jsonl` and emits **derived-label** notifications only (kind / asserted_status / tool.name / tool.family / steer.action) for high-signal kinds — never session_id, paths, prompts, or note text. Gate 297 (`test-watch-spectate.sh` M1–M5). Ordinary sessions that never invoke the skill never start the monitor.
+
+### Changed
+- Skills 68 → 69 (`skills/spectate`).
+
 ## 0.335.0 — 2026-10-09
 
 ### Added

@@ -61,7 +61,10 @@ const RC_BASELINE = {
   //   merge/CI-triage handoff via the task ledger). COUNTED, not inferred:
   //   `ls plugins/ravenclaude-core/agents | wc -l` -> 16 on this tree.
   agents: 17,
-  skills: 68, // 67 -> 68: skills/routine-reserve (routine token reserve PR 1, core 0.325.0 —
+  skills: 69, // 68 -> 69: skills/spectate (Harness Spectate v0.6 push mirror — arms
+  //   monitors/watch-spectate.sh via on-skill-invoke:spectate). COUNTED, not inferred:
+  //   `ls plugins/ravenclaude-core/skills | wc -l` -> 69 on this tree.
+  //        67 -> 68: skills/routine-reserve (routine token reserve PR 1, core 0.325.0 —
   //   setup/status/override for the weekly-cap reserve held for claude.ai Routines).
   //   COUNTED, not inferred: `ls plugins/ravenclaude-core/skills | wc -l` -> 68 on this tree.
   //        66 -> 67: skills/routine-review-tribunal (the routine-review-tribunal

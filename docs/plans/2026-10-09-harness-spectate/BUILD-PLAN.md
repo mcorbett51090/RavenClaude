@@ -539,11 +539,16 @@ Endpoints (GET, read-only, Host/Origin-checked) — **no write routes in v0.1** 
 - [x] PreToolUse also denies; PermissionRequest denies + `permission.resolve`
 - [x] UI Interrupt button; Gate 296 S8–S10
 
-## Deferred (v0.6+)
+## Tasks — v0.6 (Claude monitor push mirror)
+
+- [x] `monitors/watch-spectate.sh` — derived-label emit from spectate-events.jsonl (interesting kinds only)
+- [x] `skills/spectate` + `monitors.json` entry `spectate-push-mirror` (`when: on-skill-invoke:spectate`)
+- [x] Gate 297 (`test-watch-spectate.sh` M1–M5); core 0.336.0
+
+## Deferred (v0.7+)
 
 - ACP control channel (process ownership)
 - IDE `openExternal` to the same `/spectate` URL (only if alt-tab is the measured failure; not Simple Browser, not a second UI)
-- Claude monitor push mirror
 
 ---
 

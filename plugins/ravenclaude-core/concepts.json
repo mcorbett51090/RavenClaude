@@ -3001,7 +3001,7 @@
         "scripts/sync-plugin-versions.py",
         "scripts/generate-copilot-plugin.py"
       ],
-      "covers_digest": "sha256:195eb83b9dcff93e3c1b3c7243357f4977dfbf3c04e191ceaacc4f98403b16ef",
+      "covers_digest": "sha256:e3b2fe4be426258f9ad8f6aefd70c7f90b2385c3115e9d60213e0af36445f0a7",
       "nuance": "The cache key is the `version` string, never a content hash, so `sync-plugin-versions.py` can report clean while every installed session keeps running the old `hooks/` code.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -3063,7 +3063,7 @@
         "scripts/inventory-nuance-judge.py",
         "plugins/ravenclaude-core/scripts/forge-receipt.py"
       ],
-      "covers_digest": "sha256:107a2af7cd072ecdbf318e5a8aa342f732d5eca992444e79343bae5f0a852dfc",
+      "covers_digest": "sha256:7e29def211cad37699630f25b733640d921fe9c721f70625db5fc2ba31861acb",
       "nuance": "The teeth bit is the exit a tool own CHECK returns on a planted defect, never the exit `--must-fail` itself returns: `premise-gate.py` denies at `exit 0` while `sync-plugin-versions.py` reddens at `exit 2`, so an auditor that hard-codes one number can never be right for both.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -3470,9 +3470,11 @@
         "plugins/ravenclaude-core/commands/spectate.md",
         "scripts/check-spectate.py",
         "plugins/ravenclaude-core/hooks/spectate-emit.sh",
-        "plugins/ravenclaude-core/hooks/spectate-steer.sh"
+        "plugins/ravenclaude-core/hooks/spectate-steer.sh",
+        "plugins/ravenclaude-core/monitors/watch-spectate.sh",
+        "plugins/ravenclaude-core/skills/spectate/SKILL.md"
       ],
-      "covers_digest": "sha256:a3908f8a928bbbf89d0e8661125c9324e27e80d4717532669f13039add1f8e75",
+      "covers_digest": "sha256:3198359678f8bd5a5cc2c16263ea08aed134c19e2a58c063df50df20ebb16d4b",
       "nuance": "An empty Spectate stream reduces every node to idle with cause-not-established; a capability cell whose state is unknown never reduces to unavailable-harness.",
       "nuance_evidence": {
         "measured": "2026-10-09",
@@ -4310,7 +4312,7 @@
         "plugins/ravenclaude-core/skills/forge-pipeline/agents/openai.yaml",
         "plugins/ravenclaude-core/skills/spawn-team/agents/openai.yaml"
       ],
-      "covers_digest": "sha256:5468bdb6a966d4acbaa20fffb8f2c9bd84154c7aa60bd96b9352fc5b1272f828",
+      "covers_digest": "sha256:66d9133372a09c02eea6bcdf071b4f0c1d77c8d59c416607a8192574e15a9500",
       "nuance": "The generator discovers skills by globbing plugins/*/skills/*/SKILL.md, and its own output file matches that glob. On a fresh repo the first write cannot see itself (the file does not exist yet), so it writes N entries; running it again now finds N+1 (itself included) and writes THAT count -- a fixed point reached on the second pass, never the first.",
       "nuance_evidence": {
         "measured": "2026-09-08",
