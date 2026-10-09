@@ -4,7 +4,7 @@ description: Open Harness Spectate (live agent loop viewer) in the browser. Host
 
 # /spectate
 
-Opens the Spectate surface served by `serve-dashboards.py` at `/spectate`.
+Opens the Spectate surface served by `serve-dashboards.py` at `/spectate`. On Claude Code, prefer the `spectate` skill — it opens the same URL and arms the v0.6 push mirror (`watch-spectate.sh`).
 
 **Copilot / Codex / Cursor / terminal:** use the host-agnostic launcher instead:
 

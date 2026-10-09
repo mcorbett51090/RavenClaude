@@ -1,4 +1,4 @@
-# Harness Spectate (v0.5)
+# Harness Spectate (v0.6)
 
 Observe-only livestream of atlas harness agent loops: see / understand / direct (direct is out of scope for v0.1).
 
@@ -11,8 +11,11 @@ bash plugins/ravenclaude-core/bin/rc spectate --demo
 
 Or, with a dashboard server already running on loopback: open `/spectate`.
 
-## Honesty (v0.5)
+On Claude Code, the `spectate` skill opens the UI and arms the push mirror (`monitors/watch-spectate.sh`) for the rest of the session.
 
+## Honesty (v0.6)
+
+- **v0.6 Claude monitor push mirror.** Skill `spectate` starts `spectate-push-mirror` (`on-skill-invoke:spectate`). Derived labels only (kind / status / tool name / steer action) for permission.*, steer.applied, tool.fail, session.*, subagent.*, *.truncated — never paths, prompts, or note text. Claude Code only; other hosts keep the pull `/spectate` UI.
 - **v0.5 true interrupt.** With `spectate_steer: on`, browser Interrupt arms `interrupt_pending`; the next PreToolUse/PostToolUse/UserPromptSubmit/PermissionRequest emits top-level `continue: false` + `stopReason` (docs-verified agentic-loop stop). Pause-as-deny and Approve/Deny remain.
 - **v0.4 approve/deny.** Browser Approve/Deny arm PermissionRequest wait ≤45s.
 - **v0.3 SSE + steer.** EventSource stream + opt-in pause/note.

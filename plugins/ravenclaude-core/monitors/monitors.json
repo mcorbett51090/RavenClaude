@@ -4,5 +4,11 @@
     "command": "\"${CLAUDE_PLUGIN_ROOT}\"/monitors/watch-run-state.sh",
     "description": "Guardrail/run-state alerts during multi-agent runs (derived labels only)",
     "when": "on-skill-invoke:spawn-team"
+  },
+  {
+    "name": "spectate-push-mirror",
+    "command": "\"${CLAUDE_PLUGIN_ROOT}\"/monitors/watch-spectate.sh",
+    "description": "Spectate loop push mirror — permission waits, steer, failures (derived labels only)",
+    "when": "on-skill-invoke:spectate"
   }
 ]

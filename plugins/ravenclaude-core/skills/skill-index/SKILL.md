@@ -25,7 +25,7 @@ Every entry below names its owning plugin. To bring a disabled plugin's skills b
 /reload-plugins
 ```
 
-## Index (958 skills across 184 plugins)
+## Index (959 skills across 184 plugins)
 
 | Skill | Plugin | Description |
 |---|---|---|
@@ -767,6 +767,7 @@ Every entry below names its owning plugin. To bring a disabled plugin's skills b
 | `skill-index` | `ravenclaude-core` | Look up any skill in the marketplace by name or topic, including a disabled one, and get its exact re-enable command. Reach for this when you suspect a skill exists for the current task but it is not in your listing. |
 | `spawn-team` | `ravenclaude-core` | Team Lead dispatch playbook. Pick the surface first (slash command vs skill vs specialist agent vs orchestration shape — Step 1.25), then whether to delegate (Step 1.5), then which agents and order. Load whenever choosing skill vs agent vs slash, weighing delegation, or about to dispatch more than one agent. Keeps routing consistent; platform description-match alone is not the router. |
 | `spec-reread-ritual` | `ravenclaude-core` | Before writing any code for a task in a multi-task build, the agent MUST re-read the relevant spec section verbatim, paste it into the work log, and quote the prior. NO work from memory. Counters the "100% spec drift" failure mode from the Claude Code bug study (issue #19739) — where 11/11 sessions drifted from the spec and exact-match format compliance was 0%. |
+| `spectate` | `ravenclaude-core` | Open Harness Spectate (/spectate loopback livestream) and arm the Claude-only push mirror for permission waits, steer actions, and tool failures. Use when the user wants live loop visibility or native notifications of spectate events. |
 | `structured-output` | `ravenclaude-core` | Enforce the Structured Output Protocol — every sub-agent handoff ends with a `---RESULT_START--- ... ---RESULT_END---` JSON block alongside the human-readable Markdown. Team Lead parses the JSON for routing; Markdown stays for human review. Active across all 14 core specialists. |
 | `svg-report-lint` | `ravenclaude-core` | Lint a standalone SVG file for geometry soundness, legibility, and security before committing to a report or embedding in Power BI/Tableau. Checks viewBox presence and aspect ratio, minimum text font-size, and the security floor: no <script>, no on* handlers, no <foreignObject>, no remote href/use. Gate 103. Complements declarative-visualization (Vega-Lite/JSON spec lint, Gate 101) and pbir-layout-engine (coordinate arithmetic). NOT for Vega-Lite JSON specs (use declarative-visualization) or coordinate layout arithmetic (pbir-layout-engine). |
 | `terminal-status-indicators` | `ravenclaude-core` | Make VS Code terminal tabs show 🔔 + chime the moment an agent session needs you, across many parallel Copilot/Claude terminals. Installs three layers: workspace settings (tab bell icon + audio cue), a shell prompt hook (bell on command completion), and a background /proc-io watcher that rings a terminal's PTY bell when its agent process goes idle after responding. Use in a Codespace / VS Code setup where you run multiple background agent sessions and can't tell which one is waiting for input without clicking through each tab. |
