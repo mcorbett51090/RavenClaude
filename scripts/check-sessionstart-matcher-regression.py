@@ -74,13 +74,14 @@ _SOURCE_HOOKS = frozenset(
         "plugin-lifecycle-sweep.sh",
         "alias-deprecation-advisory.sh",
         "routine-reserve-hook.sh",  # matched by basename; "--event session" stripped
+        "spectate-emit.sh",  # observe-only Spectate emitter (v0.2)
     }
 )
 _COMPACT_HOOK = "compact-anchor.sh"
 
 # The full canonical SessionStart hook set, across ALL matcher lanes (the
 # `startup|resume|clear|fork` group, the `startup`-only group, and the
-# `compact` group) -- 11 hooks as of this writing, read directly off
+# `compact` group) -- 15 hooks as of this writing, read directly off
 # hooks.json's own SessionStart block (see check_a_canonical_matcher's
 # _SOURCE_HOOKS/_COMPACT_HOOK, which only cover two of the three groups).
 _HANDOFF_HOOK = "handoff-successor-ack.sh"
@@ -98,17 +99,29 @@ _GEMINI_HOST_EXEMPT = frozenset(
         # generate-gemini-hooks.py's _SKIP entry for the same hook.
         "routine-reserve-hook.sh",  # claude.ai Routines + Claude Code statusline
         # data only; see the same generator's _SKIP entry.
+        "spectate-emit.sh",  # script-keyed _SKIP — Gemini has no verified
+        # PreCompact/SubagentStart lanes for the full emit path; see
+        # generate-gemini-hooks.py's _SKIP entry.
     }
 )
 
 # Same exemption, independently declared by generate-copilot-hooks.py's own
 # `_SKIP` map ("routes a Claude-Code-only third-party plugin; the target mode
 # store does not exist on this host" -- identical reasoning to Gemini's).
+# spectate-emit.sh is NOT exempt here: Copilot wires it (SubagentStart mode
+# remapped; other events project).
 _COPILOT_HOST_EXEMPT = frozenset({"caveman-route-hook.sh", "routine-reserve-hook.sh"})
 
 # Same exemption again, independently declared by generate-cursor-hooks.py's
-# own `_SKIP` map (identical reasoning).
-_CURSOR_HOST_EXEMPT = frozenset({"caveman-route-hook.sh", "routine-reserve-hook.sh"})
+# own `_SKIP` map (identical reasoning for caveman/routine-reserve;
+# spectate-emit is a full script-keyed skip — Cursor probe is a follow-up).
+_CURSOR_HOST_EXEMPT = frozenset(
+    {
+        "caveman-route-hook.sh",
+        "routine-reserve-hook.sh",
+        "spectate-emit.sh",
+    }
+)
 
 # The declared per-host WIRED-SET ledger. Each entry:
 #   "required"          -- must be wired, regardless of matcher precision
