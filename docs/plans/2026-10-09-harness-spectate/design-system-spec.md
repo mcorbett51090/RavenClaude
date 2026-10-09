@@ -164,6 +164,13 @@ Components consume these — never raw primitives.
   --status-denied-user-shape:     "square-x";
   --status-denied-user-label:     "denied-user";
 
+  /* denied-harness — harness-native deny (distinct from unavailable-harness) */
+  --status-denied-harness-fg:     var(--color-orange-600);
+  --status-denied-harness-bg:     color-mix(in srgb, var(--color-orange-600) 14%, transparent);
+  --status-denied-harness-border: var(--color-orange-600);
+  --status-denied-harness-shape:  "hexagon";
+  --status-denied-harness-label:  "denied-harness";
+
   /* running */
   --status-running-fg:            var(--color-blue-400);
   --status-running-bg:            color-mix(in srgb, var(--color-blue-400) 16%, transparent);
@@ -241,6 +248,7 @@ Components consume these — never raw primitives.
   --status-denied-org-fg:         #bc4c00;
   --status-denied-plugin-fg:      #bf8700;
   --status-denied-user-fg:        #cf222e;
+  --status-denied-harness-fg:     #bc4c00;
   --status-available-fg:          #0d9488;
   --status-unavailable-harness-fg:#656d76;
   --status-idle-fg:               #8b949e;
@@ -444,7 +452,9 @@ Components consume these — never raw primitives.
 |---|---|---|
 | **Session list** | Chronological sessions; live dot; agent host badge (mono caption) | Width via `--layout-session-w`; collapse to icons |
 | **Live graph** | Harness loop spine + tool-call nodes; multi-agent as parallel columns | `data-layout`; agent column fr tracks; density |
-| **Detail inspector** | Selected node: status label, payload, permission/deny provenance, timing | Width via `--layout-inspector-w`; tabs: Overview / Payload / Policy |
+| **Detail inspector** | Selected node: status label, scrubbed fields, permission/deny provenance, timing | Width via `--layout-inspector-w`; tabs: Overview / Payload / Policy |
+
+**Payload tab override (BUILD-PLAN G1-10):** any companion wireframe that shows “args / result” is **void**. Payload may render only schema-approved scrubbed fields (`tool.name` / `family` / `target`, numeric `metrics`, deny `{by, source, rule}`, timing). Never raw prompts, arguments, tool results, transcript content, or deny-message bodies.
 
 ### 4.3 Graph structure (domain)
 
@@ -491,6 +501,7 @@ Exact ship labels (string constants). Visual = **fill/stroke color + geometric s
 | `denied-org` | Burnt orange `#DB6D28` | ⬡ octagon (stop) | Blocked by organization policy |
 | `denied-plugin` | Amber-orange `#F0883E` | ◇ diamond | Blocked by plugin / marketplace / hook |
 | `denied-user` | Coral `#FF7B72` | ▢ square + geometric X | Denied by user / local permission |
+| `denied-harness` | Burnt orange `#DB6D28` | ⬡ hexagon | Denied by harness-native policy (not “capability missing”) |
 | `running` | Sky `#79C0FF` | ● filled circle + pulse ring | In flight |
 | `succeeded` | Green `#3FB950` | ● filled circle + check notch | Completed successfully |
 | `failed` | Red `#F85149` | ● filled circle + cross | Errored |
@@ -508,6 +519,7 @@ Exact ship labels (string constants). Visual = **fill/stroke color + geometric s
 | `circle-check` | solid fill; 2-stroke check in `--color-text-on-accent` |
 | `circle-cross` | solid fill; 2-stroke X in `--color-text-on-accent` |
 | `octagon` | regular octagon; stroke + light fill |
+| `hexagon` | regular hexagon; stroke + light fill (denied-harness) |
 | `diamond` | rotated square 45°; stroke + light fill |
 | `square-x` | axis-aligned square; X inset |
 | `rounded-square-pause` | `rx=3`; two vertical pause bars |
@@ -526,13 +538,12 @@ Exact ship labels (string constants). Visual = **fill/stroke color + geometric s
 | failed `#F85149` | 5.65:1 | AA UI |
 | waiting `#FFA657` | 9.77:1 | AA UI |
 | denied-org `#DB6D28` | 5.61:1 | AA UI |
+| denied-harness `#DB6D28` | 5.61:1 | AA UI (shape differs: hexagon vs octagon) |
 | denied-plugin `#F0883E` | 7.48:1 | AA UI |
 | denied-user `#FF7B72` | 7.51:1 | AA UI |
 | unavailable / idle UI `#8B949E` / `#6E7681` | 6.15:1 / 4.12:1 | AA UI |
 
-**Denied family differentiation:** three shapes (octagon / diamond / square-x) + three hues in the orange→coral band. Never rely on hue alone. Do **not** use purple for any deny state.
-
-**Extension note:** if a future `denied-harness` (active harness deny, distinct from `unavailable-harness`) is needed, twin `denied-org` tokens with shape `hexagon` and label `denied-harness` — do not invent a purple lane.
+**Denied family differentiation:** four shapes (octagon / hexagon / diamond / square-x) + hues in the orange→coral band. Never rely on hue alone. Do **not** use purple for any deny state. `denied-harness` is a **shipped** status (not a future extension); it twins `denied-org` color tokens with shape `hexagon` so grayscale still separates them from octagon.
 
 ---
 
@@ -583,6 +594,7 @@ Only three easings site-wide: `--ease-out` (enter), `--ease-in` (exit), `--ease-
 
 - Section titles `--font-size-h2`; payload in mono block on `--color-surface-sunken`.
 - Deny provenance shows exact status label chip + policy source string.
+- Payload body lists scrubbed key/value rows only (see Payload tab override). Empty scrubbed payload → “no scrubbed fields” copy, never a fake args dump.
 
 ### Status chip
 
