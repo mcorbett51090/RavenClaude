@@ -595,10 +595,8 @@ for (const v of ["connecting", "ok", "stale", "disconnected"]) {
   );
 }
 check(
-  "observe-only subtitle is in index.html",
-  /observe-only[\s\S]*steering unavailable until v0\.3/.test(
-    readFileSync(join(assetDir, "index.html"), "utf8"),
-  ),
+  "v0.3 stream subtitle is in index.html",
+  /live stream[\s\S]*spectate_steer/.test(readFileSync(join(assetDir, "index.html"), "utf8")),
 );
 
 const unknownNode = {
@@ -855,8 +853,16 @@ check(
   !/#[0-9a-fA-F]{3,8}\b(?![-\w])/.test(code.replace(/'#[a-z-]+'|`#[^`]*`/g, "")),
 );
 check(
-  "app.js never issues a write request",
-  !/method\s*:\s*['"](POST|PUT|PATCH|DELETE)/i.test(code),
+  "app.js write requests are only opt-in /__spectate/steer",
+  (() => {
+    const methods = [...code.matchAll(/method\s*:\s*['"](POST|PUT|PATCH|DELETE)['"]/gi)];
+    if (!methods.length) return true;
+    // Allow a single POST used by postSteer → /__spectate/steer
+    if (methods.length === 1 && /POST/i.test(methods[0][1]) && code.includes("/__spectate/steer")) {
+      return /fetchFn\(\s*["']\/__spectate\/steer["']/.test(code);
+    }
+    return false;
+  })(),
 );
 check(
   "app.js guards DOM bootstrap on typeof document",

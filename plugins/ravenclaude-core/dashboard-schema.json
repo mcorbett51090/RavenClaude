@@ -216,6 +216,13 @@
       "title": "Nested dispatch",
       "description": "Behavioral flag (not a permission \u2014 marked \u2699). Pins CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH in the project's .claude/settings.json env: off \u2192 \"1\" (a subagent has no Agent tool), on \u2192 \"3\". Default off; absent = off. Turning on requires a signed-in Claude Code account (`claude auth login`) \u2014 the dashboard Save refuses otherwise, and apply-comfort-posture.py fails closed to off with a WARN. Claude Code only: Cursor and Grok Build already hard-cap nesting at one layer, so this flag is a documented no-op there. Gate 289 still forbids shipped agents from granting Agent/Task/\"*\" in tools:."
     },
+    "spectate_steer": {
+      "type": "string",
+      "enum": ["off", "on"],
+      "default": "off",
+      "title": "Spectate steer",
+      "description": "Behavioral flag (not a permission). When on, the Spectate UI may POST /__spectate/steer (CSRF+Origin) to pause (PreToolUse deny) or inject a capped note (additionalContext) for the followed session. Absent = off. Claude Code path in v0.3; ACP deferred."
+    },
     "orchestrator": {
       "type": "string",
       "enum": ["off", "decide", "full"],

@@ -1518,3 +1518,25 @@ select:hover {
     display: none;
   }
 }
+
+/* v0.3 steer chrome */
+.steer-panel {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-left: auto;
+  padding: 0.25rem 0;
+}
+.steer-panel[hidden] {
+  display: none !important;
+}
+.field-steer {
+  min-width: 12rem;
+  flex: 1 1 12rem;
+}
+.steer-status {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}

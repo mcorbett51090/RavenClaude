@@ -2086,6 +2086,114 @@ class DashboardHandler(SimpleHTTPRequestHandler):
         if self.command != "HEAD":
             self.wfile.write(data)
 
+
+    def _handle_spectate_stream(self, session: str):
+        """GET /__spectate/stream — SSE tail (≤4 concurrent, 15s heartbeat, Last-Event-ID)."""
+        if self.command == "HEAD":
+            self.send_response(200)
+            self.send_header("Content-Type", "text/event-stream; charset=utf-8")
+            self.send_header("Cache-Control", "no-store")
+            self.send_header("X-Content-Type-Options", "nosniff")
+            self.end_headers()
+            return
+        root = REPO_ROOT
+        state, size = spectate_store.spectate_file_size(root, session)
+        if state == "invalid":
+            self._spectate_json(400, {"error": "invalid_session_id"})
+            return
+        if state == "missing":
+            self._spectate_json(404, {"error": "session_not_found"})
+            return
+        if state == "no_stream":
+            self._spectate_json(404, {"error": "no_spectate_stream"})
+            return
+        last = self.headers.get("Last-Event-ID") or self.headers.get("Last-Event-Id")
+        cursor = size
+        if last not in (None, ""):
+            parsed = spectate_store.parse_query_int(last, None)
+            if parsed is None:
+                self._spectate_json(400, {"error": "invalid_query"})
+                return
+            cursor = parsed
+        if not spectate_store.acquire_sse_slot():
+            self._spectate_json(
+                503, {"error": "too_many_streams", "max": spectate_store.MAX_SSE_STREAMS}
+            )
+            return
+        try:
+            self.send_response(200)
+            self.send_header("Content-Type", "text/event-stream; charset=utf-8")
+            self.send_header("Cache-Control", "no-store")
+            self.send_header("X-Content-Type-Options", "nosniff")
+            self.send_header("Connection", "keep-alive")
+            self.end_headers()
+
+            def _write(chunk: str) -> bool:
+                try:
+                    self.wfile.write(chunk.encode("utf-8"))
+                    self.wfile.flush()
+                    return True
+                except (BrokenPipeError, ConnectionResetError, OSError):
+                    return False
+
+            ready = json.dumps({"session_id": session, "cursor": cursor})
+            if not _write("event: ready\ndata: " + ready + "\n\n"):
+                return
+            last_beat = time.monotonic()
+            while True:
+                st, rows, cursor = spectate_store.iter_new_spectate_lines(
+                    root, session, cursor
+                )
+                if st != "ok":
+                    err = json.dumps({"error": st})
+                    _write("event: error\ndata: " + err + "\n\n")
+                    break
+                for ev, end in rows:
+                    payload = json.dumps(ev, separators=(",", ":"), ensure_ascii=False)
+                    if not _write("id: " + str(end) + "\nevent: spectate\ndata: " + payload + "\n\n"):
+                        return
+                    cursor = end
+                now = time.monotonic()
+                if now - last_beat >= spectate_store.SSE_HEARTBEAT_S:
+                    if not _write(": heartbeat\n\n"):
+                        return
+                    last_beat = now
+                time.sleep(spectate_store.SSE_POLL_S)
+        finally:
+            spectate_store.release_sse_slot()
+
+
+    def _handle_spectate_steer_post(self):
+        """POST /__spectate/steer — CSRF+Origin already enforced by do_POST."""
+        peer = self.client_address[0] if self.client_address else ""
+        host = self.headers.get("Host", "")
+        if not _spectate_peer_ok(peer, host or ""):
+            self.send_error(403, "refused: non-loopback Spectate peer")
+            return
+        length = self._parse_content_length(8 * 1024)
+        if length is None:
+            return
+        try:
+            body = json.loads(self.rfile.read(length).decode("utf-8"))
+        except (UnicodeDecodeError, json.JSONDecodeError, TypeError) as e:
+            self.send_error(400, f"invalid JSON body: {e}")
+            return
+        if not isinstance(body, dict):
+            self.send_error(400, "invalid JSON body")
+            return
+        session = body.get("session") or body.get("session_id") or ""
+        action = body.get("action") or ""
+        note = body.get("note")
+        agent = body.get("agent_id") or "main"
+        code, payload = spectate_store.apply_steer(
+            REPO_ROOT,
+            session_id=session,
+            action=action,
+            note=note if isinstance(note, str) else None,
+            agent_id=agent if isinstance(agent, str) else "main",
+        )
+        self._spectate_json(code, payload)
+
     def _handle_spectate_api(self):
         if not self._spectate_gate():
             return
@@ -2152,6 +2260,17 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                 REPO_ROOT, session, cursor=cursor, limit=limit
             )
             self._spectate_json(code, body)
+            return
+        if path == "/__spectate/stream":
+            session = (qs.get("session") or [""])[0]
+            if not spectate_store.validate_session_id(session):
+                self._spectate_json(400, {"error": "invalid_session_id"})
+                return
+            self._handle_spectate_stream(session)
+            return
+        if path == "/__spectate/steer":
+            session = (qs.get("session") or [None])[0]
+            self._spectate_json(200, spectate_store.steer_status(REPO_ROOT, session))
             return
         self.send_error(404, "unknown spectate endpoint")
 
@@ -2783,6 +2902,9 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             return
         if not self._csrf_ok():
             self.send_error(403, "missing or invalid CSRF token")
+            return
+        if self.path.split("?", 1)[0] == "/__spectate/steer":
+            self._handle_spectate_steer_post()
             return
         if self.path == "/__run":
             self._handle_run()

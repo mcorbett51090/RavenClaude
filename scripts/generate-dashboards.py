@@ -1322,6 +1322,7 @@ _PIPELINE_EXCLUDED_HOOKS = {
     "denial. Observability substrate, not a safety-floor guardrail — same class as "
     "agent-dispatch-evaluator.sh and handoff-tax-meter.sh — so deliberately NOT a "
     "Pipeline stage card",
+    "spectate-steer.sh": "Spectate steer consumer (v0.3). OPT-IN via comfort-posture `spectate_steer: on` (absent => off). Pause-as-deny on PreToolUse + capped note injection via additionalContext. Governed by a posture scalar, not a Pipeline stage card — same class as enforce-git-protocol.sh / spectate-emit.sh",
     "spectate-emit.sh": "Spectate observe-only emitter (v0.2). Appends ONE scrubbed "
     "rc.spectate.v1 line to .ravenclaude/runs/<session>/spectate-events.jsonl for "
     "SessionStart / UserPromptSubmit / PreToolUse / PostToolUse / Stop / SubagentStart / "
@@ -9264,6 +9265,8 @@ _JS = r"""
    * OPT-IN — default off; emitYaml writes only when on. Auth-gated on save. */
   const NESTED_DISPATCH_VALUES = ["off", "on"];
   const NESTED_DISPATCH_DEFAULT = "off";
+  const SPECTATE_STEER_VALUES = ["off", "on"];
+  const SPECTATE_STEER_DEFAULT = "off";
   /* Worktree-hygiene guard (read by hooks/worktree-guard.sh). Behavioral flag —
    * default `warn` (all repos, not opt-in), so emitYaml writes it only when the
    * user picks off or block, preserving "absent ⇒ warn". */
@@ -9514,6 +9517,7 @@ _JS = r"""
     conserve_tokens_auto_pct: CONSERVE_AUTO_PCT_DEFAULT,
     decision_review: DECISION_REVIEW_DEFAULT,
     nested_dispatch: NESTED_DISPATCH_DEFAULT,
+    spectate_steer: SPECTATE_STEER_DEFAULT,
     worktree_guard: WORKTREE_GUARD_DEFAULT,
     worktree_bound: WORKTREE_BOUND_DEFAULT,
     /* Session lease + sleep-assertion hold — both were entirely unmodelled
@@ -10009,6 +10013,15 @@ _JS = r"""
       if (NESTED_DISPATCH_VALUES.includes(nd)) {
         state.nested_dispatch = nd; touched = true;
       }
+      let ss = src.spectate_steer;
+      if (ss === true) ss = "on";
+      else if (ss === false) ss = "off";
+      if (typeof ss === "string") ss = ss.trim().toLowerCase();
+      if (ss === "true" || ss === "yes" || ss === "1") ss = "on";
+      if (ss === "false" || ss === "no" || ss === "0") ss = "off";
+      if (SPECTATE_STEER_VALUES.includes(ss)) {
+        state.spectate_steer = ss; touched = true;
+      }
     }
     if (WORKTREE_GUARD_VALUES.includes(src.worktree_guard)) {
       state.worktree_guard = src.worktree_guard; touched = true;
@@ -10352,6 +10365,11 @@ _JS = r"""
       lines.push(`nested_dispatch: ${state.nested_dispatch}`);
       lines.push("");
     }
+    if (SPECTATE_STEER_VALUES.includes(state.spectate_steer)
+        && state.spectate_steer !== SPECTATE_STEER_DEFAULT) {
+      lines.push(`spectate_steer: ${state.spectate_steer}`);
+    }
+
 
     if (WORKTREE_GUARD_VALUES.includes(state.worktree_guard)
         && state.worktree_guard !== WORKTREE_GUARD_DEFAULT) {
@@ -10659,6 +10677,7 @@ _JS = r"""
         conserve_tokens_auto_pct: state.conserve_tokens_auto_pct,
         decision_review: state.decision_review,
       nested_dispatch: state.nested_dispatch,
+      spectate_steer: state.spectate_steer,
         worktree_guard: state.worktree_guard,
         worktree_bound: state.worktree_bound,
         dashboard_autostart: state.dashboard_autostart,

@@ -2,6 +2,17 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.333.0 — 2026-10-09
+
+### Added
+- **Spectate v0.3 SSE** — `GET /__spectate/stream` (≤4 concurrent streams, 15s heartbeat, `Last-Event-ID` resume) on both dashboard servers.
+- **Spectate v0.3 steer** — `POST /__spectate/steer` (CSRF+Origin) gated by comfort-posture `spectate_steer: on` (absent ⇒ off). Pause-as-deny + capped note injection via `spectate-steer.sh` where `steer_context` is partial (Claude Code).
+- **Gate 296** — `test-spectate-steer.sh` (off no-op, pause deny, note context, store 403).
+
+### Changed
+- Spectate UI prefers EventSource for live updates (poll remains fallback); steer chrome when posture is on.
+- `claude-code` `steer_context` remains `unknown` (no atlas row); v0.3 ships the pause/note path under `spectate_steer: on`.
+
 ## 0.332.0 — 2026-10-09
 
 ### Added

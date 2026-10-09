@@ -200,7 +200,10 @@ const RC_BASELINE = {
   //        19 -> 22: premise-gate.py + classify_claim.py + check-design-schema.py
   //                  (v0.263.0, PR 3b packaging move)
   scenarios: 4,
-  hooks: 70, // 63 -> 70: spectate-emit.sh WIRED on 7 events (SessionStart /
+  hooks: 72, // 70 -> 72: spectate-steer.sh WIRED on PreToolUse + UserPromptSubmit
+  //   (Spectate v0.3 opt-in steer; posture spectate_steer: on). COUNTED, not
+  //   inferred: hooks.json on this tree holds 72 registrations.
+  //        63 -> 70: spectate-emit.sh WIRED on 7 events (SessionStart /
   //   UserPromptSubmit / PreToolUse / PostToolUse / Stop / SubagentStart /
   //   PreCompact — Spectate v0.2 observe-only emitter; always exit 0). COUNTED,
   //   not inferred: hooks.json on this tree holds 70 registrations.

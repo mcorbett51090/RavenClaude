@@ -478,3 +478,8 @@ cause_closure: warn
 # Turning on requires `claude auth login` on this machine. Absent = off.
 # No-op on Cursor and Grok Build (those hosts already cap nesting at one layer).
 # nested_dispatch: off | on                            # default: off
+
+# Spectate steer (off | on; default off / absent). OPT-IN.
+# When on, /spectate may pause the session (PreToolUse deny) or inject a capped
+# note via additionalContext. CSRF+Origin required on POST /__spectate/steer.
+# spectate_steer: on

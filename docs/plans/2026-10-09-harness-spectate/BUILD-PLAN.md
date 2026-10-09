@@ -520,10 +520,10 @@ Endpoints (GET, read-only, Host/Origin-checked) — **no write routes in v0.1** 
 
 ## Tasks — v0.3 (follow-up PR)
 
-- [ ] `GET /__spectate/stream` SSE (≤4 streams, 15s heartbeat, Last-Event-ID)
-- [ ] `POST /__spectate/steer` CSRF+Origin; posture `spectate_steer: on`
-- [ ] Pause-as-deny + capped note injection where `steer_context` supported
-- [ ] Bump to next minor after v0.2
+- [x] `GET /__spectate/stream` SSE (≤4 streams, 15s heartbeat, Last-Event-ID)
+- [x] `POST /__spectate/steer` CSRF+Origin; posture `spectate_steer: on`
+- [x] Pause-as-deny + capped note injection where `steer_context` supported
+- [x] Bump to next minor after v0.2
 
 ## Deferred (v0.4+)
 

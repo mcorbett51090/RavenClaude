@@ -2907,7 +2907,7 @@
         "plugins/ravenclaude-core/hooks/alias-deprecation-advisory.sh",
         "plugins/ravenclaude-core/scripts/alias-deprecation-advisory.py"
       ],
-      "covers_digest": "sha256:693a03fdff5a0a6d98727df77bd59b8a0d700929fc13c3c2bbcc11a037be8904",
+      "covers_digest": "sha256:872179c6ba1a31f32b28b59979998affd9ed0602dee2bdad91125f67d0dfa930",
       "nuance": "Two `additionalContext` emitters on one event concatenate rather than last-write-wins, but two `updatedToolOutput` emitters replace, so the second silently discards the first.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -3001,7 +3001,7 @@
         "scripts/sync-plugin-versions.py",
         "scripts/generate-copilot-plugin.py"
       ],
-      "covers_digest": "sha256:f8f3db2844c97e01d0817b415a10b9261e87add96e1cc12e497e42ccbf49aff3",
+      "covers_digest": "sha256:560934f9a4e18c6dba80e241717b9c56c300bcd625c545e0bcb348f8a2674787",
       "nuance": "The cache key is the `version` string, never a content hash, so `sync-plugin-versions.py` can report clean while every installed session keeps running the old `hooks/` code.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -3063,7 +3063,7 @@
         "scripts/inventory-nuance-judge.py",
         "plugins/ravenclaude-core/scripts/forge-receipt.py"
       ],
-      "covers_digest": "sha256:6303902cbcb3bf8f057bbae070b4b63a7cac91005e8ca78cbe46b03a40e4eff6",
+      "covers_digest": "sha256:518932fb7bd021cd7c664fb0d61ae01aeed5abe379dde1d81c7a76c94fdd79fe",
       "nuance": "The teeth bit is the exit a tool own CHECK returns on a planted defect, never the exit `--must-fail` itself returns: `premise-gate.py` denies at `exit 0` while `sync-plugin-versions.py` reddens at `exit 2`, so an auditor that hard-codes one number can never be right for both.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -3469,9 +3469,10 @@
         "plugins/ravenclaude-core/scripts/spectate_demo.py",
         "plugins/ravenclaude-core/commands/spectate.md",
         "scripts/check-spectate.py",
-        "plugins/ravenclaude-core/hooks/spectate-emit.sh"
+        "plugins/ravenclaude-core/hooks/spectate-emit.sh",
+        "plugins/ravenclaude-core/hooks/spectate-steer.sh"
       ],
-      "covers_digest": "sha256:07cc47b8eddf341b42620e6547465db4f7197858c99d9c269c61f632c06af5c2",
+      "covers_digest": "sha256:1cb5bfe9c93668c60a09a1cb075f4b0d45b921107db721a87494176ea0e4bcc6",
       "nuance": "An empty Spectate stream reduces every node to idle with cause-not-established; a capability cell whose state is unknown never reduces to unavailable-harness.",
       "nuance_evidence": {
         "measured": "2026-10-09",
@@ -3521,7 +3522,7 @@
         "scripts/generate-dashboards.py",
         "scripts/generate-index-dashboard.py"
       ],
-      "covers_digest": "sha256:6432f9ee4b74fdc46faf185a06a1587f70437e4550ff6ceb10da984ca0aacaf1",
+      "covers_digest": "sha256:621889b83600dfd9bb7f64329ba7a075415d67bf2964e0d307449a775b885e47",
       "nuance": "`ISLANDED_PANEL_COST` is a flat 2 because the parser reads the payload as CDATA, so `check-dom-budget.py` cannot fire on `learn-payload` no matter how far past 23,861 elements it grows.",
       "nuance_evidence": {
         "measured": "2026-08-19",
