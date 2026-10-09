@@ -262,7 +262,7 @@ Endpoints (GET, read-only, Host-checked):
 - Approve/deny waiting-approval from browser
 - True interrupt
 - ACP control channel (process ownership)
-- VS Code extension deep-link
+- IDE `openExternal` to the same `/spectate` URL (only if alt-tab is the measured failure; not Simple Browser, not a second UI)
 - Claude monitor push mirror
 
 ---
