@@ -1322,6 +1322,14 @@ _PIPELINE_EXCLUDED_HOOKS = {
     "denial. Observability substrate, not a safety-floor guardrail — same class as "
     "agent-dispatch-evaluator.sh and handoff-tax-meter.sh — so deliberately NOT a "
     "Pipeline stage card",
+    "spectate-emit.sh": "Spectate observe-only emitter (v0.2). Appends ONE scrubbed "
+    "rc.spectate.v1 line to .ravenclaude/runs/<session>/spectate-events.jsonl for "
+    "SessionStart / UserPromptSubmit / PreToolUse / PostToolUse / Stop / SubagentStart / "
+    "PreCompact. DERIVED VALUES ONLY — never writes prompt text, tool args, or secrets. "
+    "Fail-safe: always exit 0; empty stdout; never blocks. Observability substrate for "
+    "the Spectate store/UI, not a safety-floor guardrail — same class as "
+    "emit-permission-denied.sh and handoff-tax-meter.sh — so deliberately NOT a "
+    "Pipeline stage card",
 }
 
 

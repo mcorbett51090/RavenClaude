@@ -103,6 +103,10 @@ _EVENT_MODE = {
     # about it), switch this to the literal `_SKIP` with that finding as the
     # reason, and file the resulting Chat-coverage loss as a follow-up.
     "PreCompact": "precompact",
+    # SubagentStart — observe/audit only. Adapter mode is fail-safe (discards
+    # stdout + exit code). Needed so multi-event observe hooks like
+    # spectate-emit.sh can register under SubagentStart without a full skip.
+    "SubagentStart": "subagentstart",
     # PreToolUse resolves to bash-pretool / file-pretool per-hook (see above).
 }
 

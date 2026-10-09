@@ -111,6 +111,13 @@ _SKIP = {
     "stream-session-close.sh": ("Stop — same unverified lifecycle mapping."),
     "thing-denial-kb-sync.sh": ("Stop — same unverified lifecycle mapping."),
     "handoff-nudge.sh": ("Stop — same unverified lifecycle mapping as dod-gate.sh."),
+    "spectate-emit.sh": (
+        "Multi-event observe hook (SessionStart/UserPromptSubmit/PreToolUse/"
+        "PostToolUse/Stop/SubagentStart/PreCompact). Gemini only maps "
+        "PreToolUse/PostToolUse/SessionStart; skip is script-keyed so the "
+        "unmapped events would raise. Claude Code + Copilot carry emit; Gemini "
+        "probe is a follow-up once per-event skip exists."
+    ),
     "emit-permission-denied.sh": (
         "PermissionDenied is Claude Code auto-mode only — Copilot/Gemini have no "
         "equivalent event. Projecting it would ship a silent no-op that reads as "

@@ -131,6 +131,17 @@
             "comment": "Routine token reserve, guard-mode consent (OPT-IN, `routine_reserve: guard`). The guarded tool ran, so the ask raised for it was approved: records consent for this session and week. A declined ask never reaches PostToolUse, so a refusal is never recorded as consent. FAIL-SAFE: always exits 0, prints nothing."
           }
         ]
+      },
+      {
+        "matcher": "Bash|Read|Write|Edit|MultiEdit|WebFetch|WebSearch|Agent|Task|mcp__.*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PROJECT_DIR}/plugins/ravenclaude-core/hooks/spectate-emit.sh\"",
+            "timeout": 5,
+            "comment": "Spectate observe-only emitter (v0.2). Marketplace-dev mirror of plugin hooks.json. Appends scrubbed rc.spectate.v1 lines; always exit 0; never blocks."
+          }
+        ]
       }
     ],
     "PreToolUse": [
@@ -267,6 +278,17 @@
             "comment": "Routine token reserve, guard mode (OPT-IN: no-op unless .ravenclaude/comfort-posture.yaml sets `routine_reserve: guard`). Before autonomous work (a Workflow, ScheduleWakeup, CronCreate, a background Agent; an explicit run_in_background=false is not guarded; or a Remote session/Routine call) it ASKS when weekly usage is past the line held for your claude.ai Routines, but only in an attended interactive session (not a subagent) on a live statusline reading; everywhere else it warns once per band. A headless ask is a denial, so it never asks where no person can answer and never stalls a Routine. Parallel calls raise ONE ask (a locked per-session record); a declined or pending ask denies further guarded calls for 90s. FAIL-SAFE: always exits 0. Reference: knowledge/routine-token-reserve.md."
           }
         ]
+      },
+      {
+        "matcher": "Bash|Read|Write|Edit|MultiEdit|WebFetch|WebSearch|Agent|Task|mcp__.*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PROJECT_DIR}/plugins/ravenclaude-core/hooks/spectate-emit.sh\"",
+            "timeout": 5,
+            "comment": "Spectate observe-only emitter (v0.2). Marketplace-dev mirror of plugin hooks.json. Appends scrubbed rc.spectate.v1 lines; always exit 0; never blocks."
+          }
+        ]
       }
     ],
     "Stop": [
@@ -303,6 +325,12 @@
             "command": "${CLAUDE_PROJECT_DIR}/plugins/ravenclaude-core/hooks/workaround-exhaustion.sh stop",
             "timeout": 10,
             "comment": "Marketplace-dev hook (dev-mirror). Blocked-exhaustion gate, stop lane: no-op unless `workaround_exhaustion: warn|block` is set. After a RavenClaude guard denied a tool call this session, a final message shaped like a hand-back ('I'm blocked', 'you'll need to', 'run it manually') is blocked (block) or annotated (warn) until the workaround ledger meets the floor or blocked-ok has been declared; force-allows after workaround_exhaustion_max_blocks consecutive blocks so it can never deadlock a session. Reads last_assistant_message + stop_hook_active off the Stop payload; derived values only; exit 0 on every error path."
+          },
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PROJECT_DIR}/plugins/ravenclaude-core/hooks/spectate-emit.sh\"",
+            "timeout": 5,
+            "comment": "Spectate observe-only emitter (v0.2). Marketplace-dev mirror of plugin hooks.json. Appends scrubbed rc.spectate.v1 lines; always exit 0; never blocks."
           }
         ]
       }
@@ -350,6 +378,12 @@
             "command": "bash \"${CLAUDE_PROJECT_DIR}/plugins/ravenclaude-core/scripts/routine-reserve-hook.sh\" --event prompt",
             "timeout": 10,
             "comment": "Marketplace-dev hook (dev-mirror). Routine token reserve advisory (OPT-IN via routine_reserve: advise|guard; one grep when off; never blocks). The plugin's hooks/hooks.json registers the same script for consumers via ${CLAUDE_PLUGIN_ROOT}."
+          },
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PROJECT_DIR}/plugins/ravenclaude-core/hooks/spectate-emit.sh\"",
+            "timeout": 5,
+            "comment": "Spectate observe-only emitter (v0.2). Marketplace-dev mirror of plugin hooks.json. Appends scrubbed rc.spectate.v1 lines; always exit 0; never blocks."
           }
         ]
       }
@@ -362,6 +396,12 @@
             "command": "${CLAUDE_PROJECT_DIR}/plugins/ravenclaude-core/hooks/agent-dispatch-evaluator.sh",
             "timeout": 10,
             "comment": "Marketplace-dev hook (dev-mirror). Agent-dispatch evaluator, Phase 3 \u2014 AUDIT-ONLY. No-ops (single grep) unless .ravenclaude/dispatch-config.json has enabled:true (this repo has none, so it no-ops). When opted in, shadow-logs a model-right-sizing verdict for the about-to-start subagent; it NEVER denies or redispatches (RM1 \u2014 SubagentStart fires post-spawn, deny-is-pre-commit unverified). The plugin's hooks/hooks.json registers the same script for consumers via ${CLAUDE_PLUGIN_ROOT}; both paths are safe because the hook is fail-open and inert when dispatch-config is absent or disabled."
+          },
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PROJECT_DIR}/plugins/ravenclaude-core/hooks/spectate-emit.sh\"",
+            "timeout": 5,
+            "comment": "Spectate observe-only emitter (v0.2). Marketplace-dev mirror of plugin hooks.json. Appends scrubbed rc.spectate.v1 lines; always exit 0; never blocks."
           }
         ]
       }
@@ -441,6 +481,12 @@
             "command": "bash \"${CLAUDE_PROJECT_DIR}/plugins/ravenclaude-core/scripts/routine-reserve-hook.sh\" --event session",
             "timeout": 10,
             "comment": "Marketplace-dev hook (dev-mirror). Routine token reserve background refresh (OPT-IN via routine_reserve: advise|guard; returns immediately). The plugin's hooks/hooks.json registers the same script for consumers via ${CLAUDE_PLUGIN_ROOT}."
+          },
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PROJECT_DIR}/plugins/ravenclaude-core/hooks/spectate-emit.sh\"",
+            "timeout": 5,
+            "comment": "Spectate observe-only emitter (v0.2). Marketplace-dev mirror of plugin hooks.json. Appends scrubbed rc.spectate.v1 lines; always exit 0; never blocks."
           }
         ]
       },
@@ -481,6 +527,12 @@
             "command": "${CLAUDE_PROJECT_DIR}/plugins/ravenclaude-core/hooks/precompact-digest.sh",
             "timeout": 10,
             "comment": "Marketplace-dev hook (dev-mirror of the plugin's hooks/hooks.json entry). Pre-compaction critical-info archive (P2, precompact-critical-context FORGE plan). Reads the PreCompact payload's optional `transcript_path` and, if present, calls scripts/precompact-digest.py to write a curated digest to .ravenclaude/runs/<session>/precompact-digest-<timestamp>.md BEFORE the transcript is summarized away. Fire-and-forget, archival only \u2014 never gating; deliberately never exits non-zero (PreCompact CAN block on Claude Code via exit 2, and this hook never does). Same script the plugin distributes to consumers via ${CLAUDE_PLUGIN_ROOT}."
+          },
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PROJECT_DIR}/plugins/ravenclaude-core/hooks/spectate-emit.sh\"",
+            "timeout": 5,
+            "comment": "Spectate observe-only emitter (v0.2). Marketplace-dev mirror of plugin hooks.json. Appends scrubbed rc.spectate.v1 lines; always exit 0; never blocks."
           }
         ]
       }

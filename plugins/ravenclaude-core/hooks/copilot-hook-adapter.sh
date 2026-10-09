@@ -19,7 +19,7 @@
 # Usage (from a Copilot hooks.json `bash` entry):
 #   copilot-hook-adapter.sh <mode> <real-hook> [real-hook-args...]
 #     mode = bash-pretool | file-pretool | sessionstart | posttool | stop |
-#            userpromptsubmit | precompact
+#            userpromptsubmit | precompact | subagentstart
 #
 # Fail-open is Copilot's default on hook error; for the PreToolUse command hooks
 # we translate a Claude `exit 2` (block) into a Copilot `deny` so the block still
@@ -344,6 +344,13 @@ case "$mode" in
     printf '%s' "$payload" | CLAUDE_PROJECT_DIR="$cw" bash "$real" "$@" >/dev/null 2>&1 || true
     exit 0
     ;;
+  subagentstart)
+    # SubagentStart observe/audit hooks (spectate-emit.sh) — never block.
+    # Discard wrapped stdout/exit; always exit 0. Mirrors precompact fail-safe.
+    run_hook >/dev/null 2>&1 || true
+    exit 0
+    ;;
+
   *)
     exit 0
     ;;
