@@ -197,7 +197,10 @@ const RC_BASELINE = {
   //        19 -> 22: premise-gate.py + classify_claim.py + check-design-schema.py
   //                  (v0.263.0, PR 3b packaging move)
   scenarios: 4,
-  hooks: 62, // 60 -> 62: routine-reserve-hook.sh WIRED twice more — PreToolUse `--event guard`
+  hooks: 63, // 62 -> 63: emit-permission-denied.sh WIRED on PermissionDenied (ENH-006
+  //   substrate; always exit 0; never alters the denial). COUNTED, not inferred:
+  //   hooks.json on this tree holds 63 registrations.
+  //        60 -> 62: routine-reserve-hook.sh WIRED twice more — PreToolUse `--event guard`
   //   ask lane + PostToolUse `--event consent` (guard mode, core 0.327.0; inert unless
   //   `routine_reserve: guard`). COUNTED, not inferred: hooks.json on this tree holds 62 registrations.
   //        58 -> 60: routine-reserve-hook.sh WIRED twice — UserPromptSubmit `--event prompt`

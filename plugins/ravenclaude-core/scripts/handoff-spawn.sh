@@ -201,7 +201,7 @@ normalize_host() {
   esac
 }
 
-# The seven hosts the marketplace officially declares in
+# The eight hosts the marketplace officially declares in
 # knowledge/host-support.json. Duplicated as a literal ON PURPOSE: Gate 230 and
 # Gate 234 drive this script under `env -i PATH=/usr/bin:/bin`, so it may not
 # shell out to python3/jq to read the JSON. Gate 234 asserts this list and the
