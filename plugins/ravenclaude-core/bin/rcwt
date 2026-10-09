@@ -4,6 +4,7 @@
 # worked in.
 #
 #   rcwt new <task> [base]   create <wt-root>/<task> on branch forge/<task> off origin/<base>
+#                            (pins chat.agent.sandbox.enabled; RCWT_NO_CHAT_SANDBOX=1 to skip)
 #   rcwt ls                  list worktrees
 #   rcwt rm <task>           remove the worktree AND delete its branch if fully merged
 #   rcwt done <task>         alias for rm (keeps merged-only safety)
@@ -67,22 +68,24 @@ fi
 _rcwt_realpath() { ( cd "$1" 2>/dev/null && pwd -P ) 2>/dev/null; }
 
 # Merge lane VS Code settings add-absent-keys only. Never overwrite a key the
-# consumer already set. Parent-walk pin always; sandbox only if RCWT_CHAT_CEILING=1.
+# consumer already set. Parent-walk + chat.agent.sandbox.enabled pin by default;
+# opt out with RCWT_NO_CHAT_SANDBOX=1 (or RCWT_CHAT_CEILING=0).
 _rcwt_merge_lane_settings() {
   local dest="$1" snippet
   snippet="$PLUGIN_ROOT/templates/worktree-lane/settings.json"
   [ -f "$snippet" ] || return 0
   mkdir -p "$dest/.vscode"
   SETTINGS_SRC="$snippet" SETTINGS_FILE="$dest/.vscode/settings.json" \
-    RCWT_CHAT_CEILING="${RCWT_CHAT_CEILING:-}" python3 - <<'PY'
+    RCWT_CHAT_CEILING="${RCWT_CHAT_CEILING:-}" RCWT_NO_CHAT_SANDBOX="${RCWT_NO_CHAT_SANDBOX:-}" python3 - <<'PY'
 import json, os, sys
 
 src_path = os.environ["SETTINGS_SRC"]
 dst_path = os.environ["SETTINGS_FILE"]
 with open(src_path) as f:
     wanted = json.load(f)
-if os.environ.get("RCWT_CHAT_CEILING") == "1":
-    wanted["chat.agent.sandbox.enabled"] = True
+# Sandbox is in the template (default on). Opt-out strips it before merge.
+if os.environ.get("RCWT_NO_CHAT_SANDBOX") == "1" or os.environ.get("RCWT_CHAT_CEILING") == "0":
+    wanted.pop("chat.agent.sandbox.enabled", None)
 
 existing = {}
 if os.path.exists(dst_path):

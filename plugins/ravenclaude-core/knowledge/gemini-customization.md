@@ -100,8 +100,7 @@ file.**
    **`AfterAgent`** hook is the post-turn counterpart for retry/stop semantics: vendor exit code
    **`2` = system block / retry** (same blocking contract as `BeforeTool` exit 2). **`BeforeAgent`**
    and **`SessionEnd`** remain unwired until their payload shapes are verified on a live CLI — do
-   not map lifecycle events by name alone. (This increment does **not** wire `dod-gate.sh` onto
-   `AfterAgent`.)
+   not map lifecycle events by name alone. (**Hold wiring — ENH-039:** do not attach `dod-gate.sh` or other Stop-lane guardrails to `AfterAgent` until the AfterAgent stdin payload is read from the hooks reference and a self-limit for exit-2 retry loops is designed. UserPromptSubmit stays unwired.)
 
 ## Gemini CLI 0.60 — host-security alignment (DOC adapt 2026-09-20 — UNVERIFIED)
 [verify-at-use · angle release-gemini-cli-0.60.0 · KEEP sandbox/path gates]

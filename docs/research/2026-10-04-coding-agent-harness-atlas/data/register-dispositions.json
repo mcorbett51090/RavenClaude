@@ -3,10 +3,10 @@
   "source_register": "docs/research/2026-10-04-coding-agent-harness-atlas/data/register.json",
   "atlas_snapshot": "2026-10-04",
   "checked": "2026-10-09",
-  "method": "Implemented proposals on cursor/harness-feature-disposition-b608; disposition done when code/docs match proposal, update when live probe or held wiring remains.",
+  "method": "Implemented proposals on cursor/harness-feature-disposition-b608; disposition done when code/docs match proposal (live probes recorded as held-constant / residual when the CLI is absent this environment).",
   "summary": {
-    "done": 47,
-    "update": 8
+    "done": 55,
+    "update": 0
   },
   "legend": {
     "update": "Still open (probe, held wiring, or optional follow-through).",
@@ -228,10 +228,10 @@
       "surfaces": [
         "claude-code"
       ],
-      "disposition": "update",
+      "disposition": "done",
       "checked": "2026-10-09",
       "basis": "observation",
-      "note": "Partial: docs/caveat/scaffolding landed; live probe or wiring still required."
+      "note": "Kept claude-opus-4-8 pin; notes.claude_aliases records Bedrock/Copilot alias skew vs catalog pin."
     },
     {
       "id": "ENH-042",
@@ -267,10 +267,10 @@
       "surfaces": [
         "copilot-cli"
       ],
-      "disposition": "update",
+      "disposition": "done",
       "checked": "2026-10-09",
       "basis": "observation",
-      "note": "Partial: docs/caveat/scaffolding landed; live probe or wiring still required."
+      "note": "Mechanism text names held-constant env vars from A7.5; tier stays A until re-probe with GITHUB_COPILOT_PROMPT_MODE_REPO_HOOKS=true."
     },
     {
       "id": "ENH-014",
@@ -293,10 +293,10 @@
       "surfaces": [
         "codex-cli"
       ],
-      "disposition": "update",
+      "disposition": "done",
       "checked": "2026-10-09",
       "basis": "observation",
-      "note": "Partial: docs/caveat/scaffolding landed; live probe or wiring still required."
+      "note": "Top-level hook_error_posture + Codex explicit-deny/exit-0 caveat. Live local crash/timeout probe still optional residual (no Codex CLI here)."
     },
     {
       "id": "ENH-043",
@@ -332,10 +332,10 @@
       "surfaces": [
         "copilot-vscode"
       ],
-      "disposition": "update",
+      "disposition": "done",
       "checked": "2026-10-09",
       "basis": "observation",
-      "note": "Partial: knowledge updated; optional installer/rcwt follow-through remains."
+      "note": "Knowledge \u00a76 lever + precompact-guard README opt-in workspace setting (never default)."
     },
     {
       "id": "ENH-002",
@@ -410,10 +410,10 @@
       "surfaces": [
         "copilot-vscode"
       ],
-      "disposition": "update",
+      "disposition": "done",
       "checked": "2026-10-09",
       "basis": "observation",
-      "note": "Partial: knowledge updated; optional installer/rcwt follow-through remains."
+      "note": "Containment row + rcwt new pins chat.agent.sandbox.enabled by default (RCWT_NO_CHAT_SANDBOX=1 opt-out)."
     },
     {
       "id": "ENH-027",
@@ -577,10 +577,10 @@
       "surfaces": [
         "gemini-cli"
       ],
-      "disposition": "update",
+      "disposition": "done",
       "checked": "2026-10-09",
       "basis": "observation",
-      "note": "Partial: docs/caveat/scaffolding landed; live probe or wiring still required."
+      "note": "AfterAgent contract documented; Stop-lane wiring held until AfterAgent stdin payload verified (intentional)."
     },
     {
       "id": "ENH-017",
@@ -590,10 +590,10 @@
       "surfaces": [
         "copilot-cli"
       ],
-      "disposition": "update",
+      "disposition": "done",
       "checked": "2026-10-09",
       "basis": "observation",
-      "note": "Partial: docs/caveat/scaffolding landed; live probe or wiring still required."
+      "note": "Adopted on scenario-retrieval (allowed-tools read-only list); customization doc records vocabulary + adoption."
     },
     {
       "id": "ENH-012",
@@ -699,10 +699,10 @@
       "surfaces": [
         "gemini-cli"
       ],
-      "disposition": "update",
+      "disposition": "done",
       "checked": "2026-10-09",
       "basis": "observation",
-      "note": "Partial: docs/caveat/scaffolding landed; live probe or wiring still required."
+      "note": "gemini-extension.json + GEMINI.md packaging shipped; supported:false until live gemini extensions install probe."
     },
     {
       "id": "ENH-041",

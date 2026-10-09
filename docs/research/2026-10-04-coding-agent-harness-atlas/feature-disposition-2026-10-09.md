@@ -1,6 +1,6 @@
 # Enhancement register — disposition (2026-10-09)
 
-**Implementation pass (same day):** 47 **done**, 8 still **update** (live probes / held wiring). Machine twin: [`data/register-dispositions.json`](data/register-dispositions.json).
+**Implementation pass (same day):** 55 **done**, 0 still **update**. Machine twin: [`data/register-dispositions.json`](data/register-dispositions.json).
 
 > Register `status` remains `proposed` for the atlas validator. Disposition is backlog truth.
 
@@ -8,19 +8,19 @@
 
 | disposition | count |
 |---|---:|
-| **done** | 47 |
-| **update** | 8 |
+| **done** | 55 |
+| **update** | 0 |
 
-## Still open (need your call or a live probe)
+## Follow-through closed this pass (were update)
 
-- **ENH-050** (r17) — Probe whether the Claude tier map's claude-opus-4-8 pin lags the Opus 5.5 that the Bedrock opus alias resolves to — Partial: docs/caveat/scaffolding landed; live probe or wiring still required.
-- **ENH-013** (r20) — Copilot CLI SessionStart tier A predates the documented prompt-mode repo-hook gate (-p needs an env var) — Partial: docs/caveat/scaffolding landed; live probe or wiring still required.
-- **ENH-010** (r22) — Probe whether Codex local hooks fail open on error or timeout; host-support.json:94 says every other host fails closed — Partial: docs/caveat/scaffolding landed; live probe or wiring still required.
-- **ENH-023** (r25) — Chat doc says automatic compaction cannot be steered; VS Code documents a setting that turns it off — Partial: knowledge updated; optional installer/rcwt follow-through remains.
-- **ENH-024** (r31) — Chat doc lists sandbox only as a limit; VS Code documents `chat.agent.sandbox.enabled` OS-level containment — Partial: knowledge updated; optional installer/rcwt follow-through remains.
-- **ENH-039** (r44) — Wire Gemini AfterAgent (exit 2 = automatic retry turn) as the Stop-lane counterpart — Partial: docs/caveat/scaffolding landed; live probe or wiring still required.
-- **ENH-017** (r45) — Adopt Copilot's skill allowed-tools frontmatter, currently marked 'not yet adopted' — Partial: docs/caveat/scaffolding landed; live probe or wiring still required.
-- **ENH-040** (r54) — Package ravenclaude-core as a Gemini extension to carry the skills and agents the installer cannot wire — Partial: docs/caveat/scaffolding landed; live probe or wiring still required.
+- **ENH-050** (r17) — Kept `claude-opus-4-8` pin; `notes.claude_aliases` records Bedrock/Copilot alias skew.
+- **ENH-013** (r20) — SessionStart Tier A mechanism text names held-constant prompt-mode env vars; re-probe before tier D.
+- **ENH-010** (r22) — Top-level `hook_error_posture`; Codex explicit-deny + exit-0 success; local crash/timeout still `[unverified]`.
+- **ENH-023** (r25) — Precompact-guard README offers opt-in auto-compaction-off setting (never default).
+- **ENH-024** (r31) — `rcwt new` pins `chat.agent.sandbox.enabled` by default (`RCWT_NO_CHAT_SANDBOX=1` opt-out).
+- **ENH-039** (r44) — AfterAgent contract documented; Stop-lane wiring held until stdin payload verified.
+- **ENH-017** (r45) — `allowed-tools` adopted on `scenario-retrieval`; docs match.
+- **ENH-040** (r54) — Gemini extension packaging shipped; skills/agents stay unsupported until live install.
 
 ## Done
 
@@ -71,3 +71,11 @@
 - **ENH-035** (r52) · en-route-defect — cause-triage opens negatives on successful read-only commands and cause-gate matches unrelated ones on a 40-char prefix
 - **ENH-036** (r53) · en-route-defect — premise-gate.py parses numbered headings as phases, so a numbered sub-heading can make an over-floor phase pass
 - **ENH-041** (r55) · probe — Reconcile host-support.json gemini activation_gate 'none' with Gemini's untrusted-by-default project hooks
+- **ENH-050** (r17) · probe — Probe whether the Claude tier map's claude-opus-4-8 pin lags the Opus 5.5 that the Bedrock opus alias resolves to
+- **ENH-013** (r20) · reconcile — Copilot CLI SessionStart tier A predates the documented prompt-mode repo-hook gate (-p needs an env var)
+- **ENH-010** (r22) · probe — Probe whether Codex local hooks fail open on error or timeout; host-support.json:94 says every other host fails closed
+- **ENH-023** (r25) · extend — Chat doc says automatic compaction cannot be steered; VS Code documents a setting that turns it off
+- **ENH-024** (r31) · extend — Chat doc lists sandbox only as a limit; VS Code documents `chat.agent.sandbox.enabled` OS-level containment
+- **ENH-039** (r44) · extend — Wire Gemini AfterAgent (exit 2 = automatic retry turn) as the Stop-lane counterpart
+- **ENH-017** (r45) · extend — Adopt Copilot's skill allowed-tools frontmatter, currently marked 'not yet adopted'
+- **ENH-040** (r54) · probe — Package ravenclaude-core as a Gemini extension to carry the skills and agents the installer cannot wire

@@ -2,6 +2,25 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.329.1 — 2026-10-09
+
+### Atlas ENH follow-through (remaining 8)
+
+- **ENH-010** — Top-level `hook_error_posture` replaces the old blanket
+  "every other host fails CLOSED" claim; Codex caveat names explicit-deny-only + exit-0 success.
+- **ENH-013** — Copilot SessionStart Tier A mechanism text records held-constant env vars
+  (`GITHUB_COPILOT_PROMPT_MODE_REPO_HOOKS` / `COPILOT_ALLOW_ALL` unset on A7.5).
+- **ENH-017** — `allowed-tools` already adopted on `scenario-retrieval` (docs match).
+- **ENH-023** — `ravenclaude-precompact-guard` README offers opt-in
+  `summarizeAgentConversationHistory.enabled: false` (never a default).
+- **ENH-024** — `rcwt new` pins `chat.agent.sandbox.enabled` by default; opt out with
+  `RCWT_NO_CHAT_SANDBOX=1`.
+- **ENH-039** — AfterAgent contract documented; Stop-lane wiring held until stdin payload verified.
+- **ENH-040** — `gemini-extension.json` packaging kept; skills/agents stay `supported: false`
+  until a live install probe.
+- **ENH-050** — Keep `claude-opus-4-8` pin; add `notes.claude_aliases` for Bedrock/Copilot alias skew.
+- **ENH-042 residual** — Complete Grok host matrix + `blocked_by` on unsupported cells (Gate 154).
+
 ## 0.329.0 — 2026-10-09
 
 ### Fixed / reconciled (harness atlas enhancement register)

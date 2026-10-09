@@ -38,8 +38,9 @@
   },
   "notes": {
     "grok_distinct": "fast=grok-4.5/low/scanner balanced=grok-4.6/high/architect top=grok-4.7/high/critic",
-    "codex_pro_mode": "reasoning.mode pro on gpt-6.1-sol (GPT-6 Sol family) — not a separate slug; no Terra tier in current Codex GPT-6 docs naming",
+    "codex_pro_mode": "reasoning.mode pro on gpt-6.1-sol (GPT-6 Sol family) \u2014 not a separate slug; no Terra tier in current Codex GPT-6 docs naming",
     "copilot_balanced": "Sonnet 5 primary; Auto footnote",
-    "seats": "Thing seats stay Claude; not this map"
+    "seats": "Thing seats stay Claude; not this map",
+    "claude_aliases": "Tier ids under hosts.claude are full catalog pins for Claude Code drift gates, not live alias resolution. The Bedrock `opus` alias (without ANTHROPIC_DEFAULT_OPUS_MODEL) resolves to Opus 5.5 per atlas ceiling; first-party API `opus` resolution was not re-probed this pass \u2014 keep the pin and re-verify at use. Copilot hosts.copilot.top is Claude Opus 5.5 (display name) and must not be read as the Claude Code pin."
   }
 }
