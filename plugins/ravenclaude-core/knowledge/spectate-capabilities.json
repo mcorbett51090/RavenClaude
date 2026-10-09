@@ -962,22 +962,25 @@
         "note": "G9-11: seeded unknown until a v0.2 probe; atlas F06 cells for this harness are mixed (unverified/partial)"
       },
       "deny_plugin": {
-        "state": "unknown",
+        "state": "partial",
         "source_row": "F06.output-blocking",
         "evidence": ["E-grok-build-00261", "E-grok-build-00257"],
-        "note": "G9-11: seeded unknown until a v0.2 probe; atlas F06 cells for this harness are mixed (unverified/partial)"
+        "note": "v0.2 probe: spectate-emit.sh harness detection under GROK_BUILD/GROK_SESSION_ID/GROK_HOME/GROK_HOOK_EVENT + atlas F06.output-blocking partial/verified (E-grok-build-00261, E-grok-build-00257). Event-catalog cells stay unknown \u2014 atlas row is unverified.",
+        "probe": "spectate-emit-harness-detect-2026-10-09"
       },
       "deny_harness_visible": {
-        "state": "unknown",
+        "state": "partial",
         "source_row": "F06.output-blocking",
         "evidence": ["E-grok-build-00261", "E-grok-build-00257"],
-        "note": "G9-11: seeded unknown until a v0.2 probe; atlas F06 cells for this harness are mixed (unverified/partial)"
+        "note": "v0.2 probe: spectate-emit.sh harness detection under GROK_BUILD/GROK_SESSION_ID/GROK_HOME/GROK_HOOK_EVENT + atlas F06.output-blocking partial/verified (E-grok-build-00261, E-grok-build-00257). Event-catalog cells stay unknown \u2014 atlas row is unverified.",
+        "probe": "spectate-emit-harness-detect-2026-10-09"
       },
       "deny_user_visible": {
-        "state": "unknown",
+        "state": "partial",
         "source_row": "F06.output-blocking",
         "evidence": ["E-grok-build-00261", "E-grok-build-00257"],
-        "note": "G9-11: seeded unknown until a v0.2 probe; atlas F06 cells for this harness are mixed (unverified/partial)"
+        "note": "v0.2 probe: spectate-emit.sh harness detection under GROK_BUILD/GROK_SESSION_ID/GROK_HOME/GROK_HOOK_EVENT + atlas F06.output-blocking partial/verified (E-grok-build-00261, E-grok-build-00257). Event-catalog cells stay unknown \u2014 atlas row is unverified.",
+        "probe": "spectate-emit-harness-detect-2026-10-09"
       },
       "deny_org_visible": {
         "state": "unknown",
@@ -1065,6 +1068,53 @@
         "evidence": [],
         "note": "steer_context: v0.3 feature, no atlas row; unknown until probed"
       }
+    }
+  },
+  "tool_use_id": {
+    "description": "Whether the harness payload (or adapter) supplies a stable tool_use_id that spectate-emit.sh can copy into corr_id for deny join. States: supported | unsupported | unknown.",
+    "harnesses": {
+      "claude-code": {
+        "state": "supported",
+        "evidence": "hooks/tests/test-spectate-emit.sh S2 (tool_use_id \u2192 corr_id)"
+      },
+      "codex-cli": {
+        "state": "unknown",
+        "evidence": "No this-session Codex hook payload dump for tool_use_id"
+      },
+      "copilot-cli": {
+        "state": "supported",
+        "evidence": "copilot-hook-adapter.sh forwards stdin JSON; tool_use_id passes through when present"
+      },
+      "copilot-vscode": {
+        "state": "unknown",
+        "evidence": "Chat surface; no measured PreToolUse tool_use_id this session"
+      },
+      "cursor": {
+        "state": "unsupported",
+        "evidence": "generate-cursor-hooks.py script-keyed _SKIP for spectate-emit.sh"
+      },
+      "gemini-cli": {
+        "state": "unsupported",
+        "evidence": "generate-gemini-hooks.py script-keyed _SKIP for spectate-emit.sh"
+      },
+      "grok-build": {
+        "state": "unknown",
+        "evidence": "Harness detection probed; payload tool_use_id field not yet dumped on a live Grok Build session"
+      },
+      "grok-bot": {
+        "state": "unknown",
+        "evidence": "Atlas F06 undocumented; no live probe"
+      }
+    }
+  },
+  "probes": {
+    "spectate-emit-harness-detect-2026-10-09": {
+      "measured": "2026-10-09",
+      "method": "Gate 295 S8: CLAUDE_PROJECT_DIR + GROK_BUILD=1 (and separately GROK_SESSION_ID / GROK_HOME / GROK_HOOK_EVENT) on SessionStart \u2192 spectate-events.jsonl harness field is grok-build",
+      "upgrades": {
+        "grok-build": ["deny_plugin", "deny_harness_visible", "deny_user_visible"]
+      },
+      "notes": "Does not upgrade event-catalog cells (atlas unverified) or grok-bot (atlas undocumented). Absence of events never upgrades unknown\u2192unsupported."
     }
   }
 }

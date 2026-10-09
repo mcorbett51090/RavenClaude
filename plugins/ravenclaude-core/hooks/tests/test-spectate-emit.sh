@@ -131,6 +131,29 @@ else
 fi
 rm -rf "$T6"
 
+echo "── S8: Grok-build env detection override ─────────────────────────────────"
+# v0.2: GROK_BUILD / GROK_SESSION_ID / GROK_HOME / GROK_HOOK_EVENT → harness=grok-build
+# (even when CLAUDECODE is unset). Proves the capability-matrix probe substrate.
+for env_kv in "GROK_BUILD=1" "GROK_SESSION_ID=gs1" "GROK_HOME=/tmp/gh" "GROK_HOOK_EVENT=SessionStart"; do
+  T8="$(mktemp -d)"
+  key="${env_kv%%=*}"
+  val="${env_kv#*=}"
+  out="$(
+    printf '%s' '{"session_id":"s8","source":"startup"}' \
+      | env -u CLAUDECODE -u CLAUDE_CODE_ENTRYPOINT \
+        CLAUDE_PROJECT_DIR="$T8" CLAUDE_SESSION_ID="s8" CLAUDE_HOOK_EVENT=SessionStart \
+        "$key=$val" \
+        bash "$HOOK" 2>/dev/null
+  )"
+  log="$T8/.ravenclaude/runs/s8/spectate-events.jsonl"
+  if [ -f "$log" ] && [ "$(jq -r '.harness // empty' "$log")" = "grok-build" ] && [ -z "$out" ]; then
+    pass "S8: $key → harness=grok-build"
+  else
+    fail "S8: $key → harness=$(jq -r '.harness // empty' "$log" 2>/dev/null) out_len=${#out}"
+  fi
+  rm -rf "$T8"
+done
+
 echo "── S7: must-fail teeth — prompt leak mutant is caught ────────────────────"
 T7="$(mktemp -d)"
 MUT="$T7/mutant"

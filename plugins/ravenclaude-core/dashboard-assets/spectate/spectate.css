@@ -2,6 +2,61 @@
    Spectate is the runtime-CSS exception among dashboard surfaces: tokens live here,
    not in shared-tokens.css. Components consume semantic tokens only. */
 
+/* ------------------------------------------------------------------ 2.0 vendored IBM Plex (OFL; fonts/) */
+@font-face {
+  font-family: "IBM Plex Sans";
+  src: url("/spectate/fonts/IBMPlexSans-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "IBM Plex Sans";
+  src: url("/spectate/fonts/IBMPlexSans-Medium.woff2") format("woff2");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "IBM Plex Sans";
+  src: url("/spectate/fonts/IBMPlexSans-SemiBold.woff2") format("woff2");
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "IBM Plex Mono";
+  src: url("/spectate/fonts/IBMPlexMono-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "IBM Plex Mono";
+  src: url("/spectate/fonts/IBMPlexMono-Medium.woff2") format("woff2");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Metric-matched fallbacks limit CLS before woff2 arrives (design-system §3). */
+@font-face {
+  font-family: "IBM Plex Sans Fallback";
+  src: local("Segoe UI");
+  size-adjust: 103%;
+  ascent-override: 95%;
+  descent-override: 25%;
+  line-gap-override: 0%;
+}
+@font-face {
+  font-family: "IBM Plex Mono Fallback";
+  src: local("Cascadia Code"), local("Consolas");
+  size-adjust: 100%;
+  ascent-override: 95%;
+  descent-override: 25%;
+  line-gap-override: 0%;
+}
+
 /* ------------------------------------------------------------------ 2.1 primitives */
 :root {
   --color-neutral-950: #010409;
