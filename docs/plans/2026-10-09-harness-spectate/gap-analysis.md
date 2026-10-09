@@ -12,16 +12,17 @@
 | Plan G5 | claude-sonnet-5-5-high | GAPS_FOUND (13) → closed |
 | Plan G6 | gemini-3.8-flash-high | GAPS_FOUND (4) → closed |
 | Plan G7 | claude-opus-5-5-medium | GAPS_FOUND (5) → closed |
-| Plan G8 | TBD | — |
+| Plan G8 | composer-2.5 | GAPS_FOUND (7) → closed |
+| Plan G9 | TBD | — |
 
 ## Surface lock
 
 > Spectate is one loopback page. `rc spectate` and `/spectate` open it on the current session. The Activity tab is a link, not a home.
 
-## G7 — CLOSED
+## G8 — CLOSED
 
-Agent: [Plan G7](bc-f6f2c3ef-7f63-5338-b341-0a95101daadb). Five gaps closed: normative `_bind_server` (span=10 fallback count), detached `--no-open`, step/turn node ids, composite etag + Server-Now on 304, light-theme status contrast.
+Agent: [Plan G8](bc-01b9a061-59b4-5c10-9062-a5eff85eef3b). Seven gaps closed: MiB byte cap, `step.seed` kind, If-None-Match, API envelopes, demo task binding, open-dashboard WALK=10, capability_state omit-vs-unknown.
 
 ## Next
 
-Plan G8 → seeking first `NO_GAPS` of the streak.
+Plan G9 → seeking first `NO_GAPS`.

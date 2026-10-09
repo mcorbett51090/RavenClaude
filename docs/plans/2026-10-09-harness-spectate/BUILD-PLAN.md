@@ -139,7 +139,7 @@ Each JSONL line:
 | `session_id` | sanitized — see Path & identity |
 | `harness` | enum of 8 + `unknown` |
 | `source` | `hook` \| `demo` \| `steer` \| `recorded` |
-| `kind` | `session.start/end`, `prompt.submit`, `turn.end`, `tool.pre/post/fail`, `permission.request/resolve`, `subagent.start/stop`, `compact.pre`, `steer.applied`, `stream.truncated`, `emitter.truncated` |
+| `kind` | `session.start/end`, `prompt.submit`, `turn.end`, `tool.pre/post/fail`, `permission.request/resolve`, `subagent.start/stop`, `compact.pre`, `steer.applied`, `stream.truncated`, `emitter.truncated`, `step.seed` |
 | `step` | `assemble` \| `call-model` \| `classify` \| `execute-tools` \| `package` \| `update-context` |
 | `node_id` / `parent_id` / `agent_id` | stable IDs (see Correlation) |
 | `corr_id` | shared correlation id when joining deny/hook rows; omit rather than invent |
@@ -240,7 +240,7 @@ Endpoints (GET, read-only, `_local_request_ok`):
 
 **Seed precedence (G3-2)** — apply first match:
 1. capability `unsupported` → `unavailable-harness` (matrix is the evidence; **even at 0 events**)
-2. capability `unknown` → `idle` + `capability_state: unknown` (even at 0 events; never upgrade to unavailable)
+2. capability `unknown` → `idle` + `capability_state: "unknown"` (even at 0 events; never upgrade to unavailable). Field present **only** when `"unknown"`; otherwise omitted (not null) (G8-7)
 3. capability supported/partial + session event count = 0 → `idle` (“never seen — cause not established”)
 4. capability supported/partial + ≥1 event + step not started → `available`
 5. otherwise follow transition table
@@ -267,6 +267,12 @@ Tool child nodes seed from `tool_pre` / `tool_post` / `tool_fail` / `permission_
 | `session.end` or session not live | non-terminal nodes keep status + `unterminated: true` (UI: stop pulse; “no completion observed — cause not established”) (G2-8) |
 
 **Precedence (highest wins):** joined deny (`denied-org` > `denied-plugin` > `denied-user` > `denied-harness`) > `failed` > `succeeded` > `waiting-approval` > `running` > `available` > `idle`. `unavailable-harness` only from explicit `unsupported` seed.
+
+**Response envelopes (G8-4):**
+- `/__spectate/sessions` → `{"sessions":[...], "next_cursor": null|string}`
+- `/__spectate/events` → `{"session_id","events":[<schema objects>], "next_cursor", "cursor_reset": bool, "truncated": bool, "skipped_malformed": int}`
+- `/__spectate/capabilities` → the matrix object root (no wrapper)
+- `/__spectate/nodes` → G5-8 shape
 
 **HTTP status contracts (G6-3)** for `/__spectate/nodes` and `/__spectate/events`:
 - Missing `?session=` or regex fail → **400** `{"error":"invalid_session_id"}`
@@ -389,7 +395,7 @@ Endpoints (GET, read-only, Host/Origin-checked):
 - `/__spectate/capabilities`
 - `/__spectate/nodes?session=`
 
-- [ ] Implement allow-list parse + recursive re-scrub + 5 MB tail/truncate semantics (G1-2, G1-6)
+- [ ] Implement allow-list parse + recursive re-scrub + 5 MiB (5 * 1024 * 1024) tail/truncate semantics (G1-2, G1-6)
 - [ ] Implement session path resolve (G1-5) + correlation rules (G1-4)
 - [ ] Implement `reduce(...)` per Reducer contract (G1-3)
 - [ ] Golden test: fixtures → `expected-reduce.json`
@@ -611,6 +617,13 @@ Endpoints (GET, read-only, Host/Origin-checked):
 | G7-3 | step/turn node_id scheme + empty-file seeded nodes |
 | G7-4 | Composite etag + X-Spectate-Server-Now on 304 |
 | G7-5 | Light-theme status borders/fg + available≠teal |
+| G8-1 | Tail cap = 5242880 bytes (MiB) everywhere |
+| G8-2 | Synthesized spine `kind: step.seed` |
+| G8-3 | If-None-Match primary; since_etag alias |
+| G8-4 | sessions/events/capabilities envelopes |
+| G8-5 | Demo / Load demo / __runs skip in tasks |
+| G8-6 | open-dashboard.sh WALK=10 task |
+| G8-7 | capability_state only when unknown |
 
 ---
 
@@ -681,7 +694,7 @@ Unobservable steps stay `available` (or capability-unknown) — never inferred f
 
 **Step / turn identity (G7-3):**
 - Turn boundary: `prompt.submit` starts turn N; `turn.end` ends it (if absent, next `prompt.submit` or `session.end` closes).
-- Synthesized spine `node_id` = `step:<agent_id>:<turn_idx>:<step>` (e.g. `step:main:0:execute-tools`). Tool children keep emitter `node_id` with `parent_id` pointing at that step node.
+- Synthesized spine `node_id` = `step:<agent_id>:<turn_idx>:<step>` (e.g. `step:main:0:execute-tools`). Synthesized nodes use `kind: "step.seed"` (add to schema enum). Tool children keep emitter `node_id` with `parent_id` pointing at that step node. (G8-2)
 - Each node in `/nodes` includes `turn` (int). Response may omit separate `spine` array — seeded step nodes **always appear in `nodes`** (including empty-file 200 with one turn-0 spine all idle / unavailable / unknown per seed precedence).
 
 
@@ -712,6 +725,7 @@ UI computes live badge from `source_hint` / `server_now` vs `last_event_ts` (ser
 ### G5-10 Read-path cost
 - Sessions summary cache keyed by `(path, mtime_ns, size)` → `{harness, synthetic, latest_status}`; invalidate on stat change.
 - `/nodes` returns `ETag` header **and** body field `etag`. Value = fingerprint of `(events_mtime_ns, events_size, hook_events_mtime_ns, hook_events_size, capabilities_mtime_ns)` from `stat` **before** reduce; 304 skips reduce (G7-4).
+- Revalidation: UI sends `If-None-Match: <etag>` (primary). Query `since_etag=` is accepted as an alias of the same value for clients that cannot set headers; server treats them equivalently (G8-3).
 - On 304: send `X-Spectate-Server-Now: <RFC3339>`; UI advances live→recorded using that header (or last `server_now` + monotonic elapsed) — never browser wall clock alone.
 - UI polls `/sessions` every 5s (rail / follow); `/nodes` every 2s while visible.
 
