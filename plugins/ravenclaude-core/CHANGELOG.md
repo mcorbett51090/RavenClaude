@@ -2,6 +2,16 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.332.0 — 2026-10-09
+
+### Added
+- **Spectate fonts** — vendored IBM Plex Sans (Regular/Medium/SemiBold) + Mono (Regular/Medium) woff2 under `dashboard-assets/spectate/fonts/` (OFL; `@font-face` + preload).
+- **Grok Build harness detection** — `spectate-emit.sh` maps `GROK_BUILD` / `XAI_GROK_BUILD` / `GROK_SESSION_ID` / `GROK_HOME` / `GROK_HOOK_EVENT` → `harness=grok-build` (Gate 295 S8).
+- **Capability probe + `tool_use_id` map** — grok-build `deny_*` cells upgrade unknown→partial from the measured detect probe + atlas F06.output-blocking verified row; per-harness `tool_use_id` support recorded for corr_id honesty.
+
+### Changed
+- Gate 294: Grok non-unknown cells require a `probe` id; `tool_use_id.harnesses` must cover all 8.
+
 ## 0.331.0 — 2026-10-09
 
 ### Added

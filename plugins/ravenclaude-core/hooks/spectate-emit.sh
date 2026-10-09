@@ -110,7 +110,16 @@ def detect_harness() -> str:
         return "codex-cli"
     if th == "copilot":
         return "copilot-cli"
-    if os.environ.get("GROK_BUILD") or os.environ.get("XAI_GROK_BUILD"):
+    # Grok Build — env detection override (v0.2). Prefer explicit build markers,
+    # then session/home markers shared with handoff-spawn.sh. GROK_AGENT alone
+    # is not enough to distinguish grok-bot from grok-build.
+    if (
+        os.environ.get("GROK_BUILD")
+        or os.environ.get("XAI_GROK_BUILD")
+        or os.environ.get("GROK_SESSION_ID")
+        or os.environ.get("GROK_HOME")
+        or os.environ.get("GROK_HOOK_EVENT")
+    ):
         return "grok-build"
     if os.environ.get("CLAUDECODE") or os.environ.get("CLAUDE_CODE_ENTRYPOINT"):
         return "claude-code"

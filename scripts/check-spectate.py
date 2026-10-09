@@ -8,7 +8,8 @@ What it proves (each section fails independently, every failure is named):
   fixtures      ``demo-session.jsonl`` is accepted; every ``bad-*.jsonl`` line is rejected
                 *for the tagged reason*, not merely rejected
   capabilities  8 harnesses x 14 keys; a cell is non-``unknown`` only when the frozen atlas
-                row is *verified* and carries evidence; both Grok lanes are all ``unknown``
+                row is *verified* and carries evidence; Grok non-unknown cells also require
+                a measured ``probe`` id (v0.2); ``tool_use_id.harnesses`` covers all 8
   parity        when ``jsonschema`` is importable, it and the store's interpreter agree on
                 every fixture line (the store is the single source of truth at runtime)
   store         path safety (traversal, symlink), 404/400 envelopes, ETag/304, byte cursors,
@@ -215,7 +216,7 @@ HARNESS_ORDER = (
 )
 
 
-GROK_LANES = ("grok-bot", "grok-build")  # pinned all-unknown until a v0.2 probe (G9-11)
+GROK_LANES = ("grok-bot", "grok-build")  # gallery fixtures still require ≥1 unknown cell
 
 
 def mapped_state(cell: dict | None) -> str:
@@ -250,17 +251,30 @@ def check_capabilities() -> list[str]:
                 errs.append(f"capabilities: {h}.{key} has invalid state {st!r}")
             row = cell.get("source_row")
             atlas = caps.get("atlas_cells", {}).get(h, {}).get(row) if row else None
-            want = "unknown" if h in GROK_LANES else mapped_state(atlas)
+            # v0.2: Grok lanes use the same atlas map; a non-unknown cell on a
+            # previously-pinned lane must cite a probe id (measured upgrade).
+            want = mapped_state(atlas)
             if st != want:
                 errs.append(f"capabilities: {h}.{key} is {st} but the atlas row maps to {want}")
             if st != "unknown" and not cell.get("evidence"):
                 errs.append(f"capabilities: {h}.{key} is {st} with no evidence ids")
             if st != "unknown" and atlas and cell.get("evidence") != atlas.get("evidence"):
                 errs.append(f"capabilities: {h}.{key} evidence differs from its atlas row")
-    for h in GROK_LANES:
-        for key, cell in caps.get("harnesses", {}).get(h, {}).items():
-            if cell.get("state") != "unknown":
-                errs.append(f"capabilities: {h}.{key} must be unknown, got {cell.get('state')}")
+            if h in GROK_LANES and st != "unknown" and not cell.get("probe"):
+                errs.append(
+                    f"capabilities: {h}.{key} is {st} without a probe id "
+                    "(Grok non-unknown cells require a measured v0.2 probe)"
+                )
+    # Per-harness tool_use_id support (corr_id source) — required from v0.2.
+    tui = caps.get("tool_use_id") or {}
+    tui_h = tui.get("harnesses") or {}
+    if set(tui_h) != set(HARNESS_ORDER):
+        errs.append("capabilities: tool_use_id.harnesses must cover all 8 harnesses")
+    for h, cell in tui_h.items():
+        if cell.get("state") not in ("supported", "unsupported", "unknown"):
+            errs.append(f"capabilities: tool_use_id.{h} has invalid state {cell.get('state')!r}")
+        if not cell.get("evidence"):
+            errs.append(f"capabilities: tool_use_id.{h} needs an evidence note")
     return errs
 
 
