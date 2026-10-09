@@ -14,7 +14,7 @@
 - Atlas: `docs/research/2026-10-04-coding-agent-harness-atlas/`
 - Loop concept: `plugins/ravenclaude-core/knowledge/concepts/agent-harness-loop.md`
 
-**Plan gap status:** G1 (15 gaps) closed in this revision (2026-10-09). Streak for `NO_GAPS` restarts at Plan G2.
+**Plan gap status:** G1 (15) + G2 (20) closed in this revision (2026-10-09). Streak for `NO_GAPS` restarts at Plan G3.
 
 premise-ok: serve-dashboards Host/Origin guard + Gate 142 + Cache-Control no-store (control.md under premise run scopes)
 
@@ -32,7 +32,8 @@ premise-ok: serve-dashboards Host/Origin guard + Gate 142 + Cache-Control no-sto
 - Layout globs already cover all paths; do not invent top-level dirs.
 - Version: bump `ravenclaude-core` from `0.328.0` → `0.329.0` for v0.1; then `sync-plugin-versions.py` + `generate-copilot-plugin.py`.
 - Docs under `docs/plans/` land with the PR that ships product code (this feature is not docs-only).
-- **Do not commit** regenerated `dashboard.html` / portal artifacts in the feature PR (G1-15). Modify the generator; exercise locally; leave committed regen to post-merge self-heal.
+- **Do not commit** regenerated `dashboard.html` in the feature PR (G1-15). Modify the generator; exercise locally; leave `dashboard.html` regen to post-merge self-heal.
+- **Do commit** Gate 242 inventory concept + regenerated `docs/concepts.md` (and any structural `index.html` freshness required by `check-artifact-freshness`) in this PR (G2-1). `dashboard.html` is the only generated artifact deferred to post-merge.
 
 ---
 
@@ -49,7 +50,14 @@ Source of truth: [`SURFACE-DECISION.md`](./SURFACE-DECISION.md) (Pass C, 2026-10
 | Claude plugin slash alone | Insufficient for multi-host. `/spectate` is one door; `rc spectate` is the host-agnostic one |
 | Electron, new backend, ACP spectator client, TUI product | Rejected for v0.1–v0.3 |
 
-**Canonical URL (G1-7):** both servers expose a guarded `GET /spectate` (and `GET /spectate/`) that serves (or 302s to) assets from `plugins/ravenclaude-core/dashboard-assets/spectate/` regardless of whether the process was started as the plugin server (`directory=PLUGIN_DIR`) or the root marketplace server (`directory=REPO_ROOT`). Do **not** rely on `/dashboard-assets/spectate/` alone — that path only resolves under the plugin server. Activity discovery links use `/spectate`, not a plugin-relative static path.
+**Canonical URL (G1-7 / G2-4):** both servers expose a guarded **serve** (not 302) for `/spectate`, `/spectate/`, and `/spectate/<allow-listed name>` via one `_handle_spectate_asset` / `_read_spectate_*` helper. It maps to `plugins/ravenclaude-core/dashboard-assets/spectate/` regardless of plugin vs root server. Do **not** 302 to `/dashboard-assets/spectate/` (404 under root server). Activity discovery links use `/spectate`.
+
+Route rules (G2-4, G2-17):
+- Dispatch is exact `/spectate` / `/spectate/` or prefix `/spectate/` — never bare `startswith("/spectate")` (would match `/spectatex`).
+- Allow-list filenames to the spectate asset directory listing + `fonts/*.woff2`; resolve under `PLUGIN_SPECTATE_DIR`; refuse escapes.
+- `_local_request_ok()` on every spectate GET/HEAD; same routes in `do_HEAD`.
+- Set G1-13 headers + explicit `Content-Type` map: `.html` → `text/html; charset=utf-8`, `.js` → `text/javascript`, `.css` → `text/css`, `.svg` → `image/svg+xml`, `.woff2` → `font/woff2`.
+- `index.html` references assets as absolute `/spectate/app.js` (relative URLs break when served at `/spectate` without trailing slash).
 
 Query: `?session=<id>` when the opener has one, else `?follow=latest`. Guardrails stay Heimdall / Víðarr.
 
@@ -62,10 +70,11 @@ plugins/ravenclaude-core/
   knowledge/spectate-event-schema-v1.json
   knowledge/spectate-capabilities.json
   knowledge/spectate.md
+  knowledge/concepts/harness-spectate.md   # Gate 242 inventory (G2-1)
   scripts/spectate_store.py
   scripts/spectate_demo.py
   scripts/serve-dashboards.py              # /spectate + /__spectate/* wrappers
-  hooks/spectate-emit.sh                   # v0.2
+  hooks/spectate-emit.sh                   # v0.2 (add to concept covers then)
   hooks/tests/test-spectate-emit.sh        # v0.2
   dashboard-assets/spectate/
     index.html
@@ -78,12 +87,15 @@ plugins/ravenclaude-core/
 scripts/
   serve-dashboards.py                      # parity wrappers + same /spectate map
   check-spectate.py                        # new gate
+  check-spectate-render.mjs                # stub-DOM UI checks (G2-15)
   generate-dashboards.py                   # Activity entry card (href=/spectate)
 tests/fixtures/spectate/
   demo-session.jsonl
   hook-events-deny.jsonl
   bad-raw-prompt.jsonl
   bad-nested-args.jsonl
+  bad-secret-in-target.jsonl
+  bad-url-query-target.jsonl
   bad-status.jsonl
   bad-session-traversal.jsonl
   expected-reduce.json
@@ -92,6 +104,7 @@ docs/plans/2026-10-09-harness-spectate/
   design-system-spec.md
   gap-analysis.md
   SURFACE-DECISION.md
+docs/concepts.md                           # regenerated + committed (G2-1)
 ```
 
 ---
@@ -130,7 +143,7 @@ Each JSONL line:
 | `corr_id` | shared correlation id when joining deny/hook rows; omit rather than invent |
 | `tool` | `{name, family, target}` only — scrubbed; **no** `args` / `input` / `output` / `result` / `prompt` |
 | `asserted_status` | optional harness-stated status (never overrides observed deny/fail) |
-| `deny` | `{by, source, rule}` or null — short rule id only, not deny-message body |
+| `deny` | `{by, source, rule}` or null — `by` enum below; short rule id only, not deny-message body or path |
 | `metrics` | numbers only (`duration_ms`, `out_bytes`, `prompt_chars`) — no nested freeform |
 | `detail` | `minimal` \| `standard` |
 | `synthetic` | bool |
@@ -139,11 +152,25 @@ Each JSONL line:
 - Root and every nested object: `additionalProperties: false`.
 - String length caps on all string fields; reject control characters (`\x00`–`\x08`, `\x0b`, `\x0c`, `\x0e`–`\x1f`).
 - Write-path and read-path both run recursive sensitive-key reject (`args`, `input`, `output`, `result`, `prompt`, `content`, `messages`, `secret`, `token`, `password`, `authorization`, `raw`).
-- Fixtures: `bad-raw-prompt.jsonl`, `bad-nested-args.jsonl` must fail `check-spectate.py`.
+- **Value scrub (G2-10):** every string field also runs the existing value scrubber (`_scrub.sh` / `_mimir_*` equivalent) so secrets in *values* cannot ride `tool.target`.
+- Fixtures: `bad-raw-prompt.jsonl`, `bad-nested-args.jsonl`, `bad-secret-in-target.jsonl`, `bad-url-query-target.jsonl` must fail `check-spectate.py`.
+
+**Target derivation (G2-10)** — both `minimal` and `standard` detail levels:
+
+| `tool.family` | Stored `target` |
+|---|---|
+| `shell` | first token / binary name only |
+| `url` | scheme + host only (strip path, query, fragment) |
+| `path` | repo-relative path when under project root; else omitted |
+| other | omit `target` |
+
+Deny join copies only `{by, source, rule}` — never hook-event `path`.
+
+**`deny.by` enum (G2-7):** `org` → `denied-org`; `plugin` → `denied-plugin`; `user` → `denied-user`; `harness` → `denied-harness`. `permission.resolve` with deny uses the same map from the resolve payload's `by` (default `user` if absent).
 
 **Reducer statuses (11):** `available`, `unavailable-harness`, `denied-org`, `denied-plugin`, `denied-user`, `denied-harness`, `running`, `succeeded`, `failed`, `waiting-approval`, `idle`.
 
-UI-only (not reducer statuses): **capability unknown**, **disconnected**, **stale**, source badges (`demo` / `recorded` / `live`) — see Source-mode UI.
+UI-only (not reducer statuses): **capability unknown**, connection chrome, source badges — see Source-mode UI.
 
 ---
 
@@ -153,10 +180,12 @@ UI-only (not reducer statuses): **capability unknown**, **disconnected**, **stal
 |---|---|
 | `session_id` | Key for `.ravenclaude/runs/<session_id>/`. Sanitized per Path rules. Groups one spectate stream. |
 | `harness` | Column / chip identity within a session. Composite graph key includes harness. |
-| `agent_id` | Stable within session; default `"main"` when absent. Parallel columns = distinct `agent_id`. |
+| `agent_id` | Stable within session; default `"main"` when absent. **Graph columns = `agent_id`** (main + subagents). Harness is a session-rail chip, not a graph column (G2-9). |
 | `node_id` | Unique within `(session_id, harness, agent_id)`. Required on every non-session event. |
-| `parent_id` | Optional; when set must reference an existing `node_id` in the same session+harness+agent (or be dropped with `emitter.truncated`). Tool nodes parent to the `execute-tools` step node. |
-| `corr_id` | When joining `hook-events.jsonl` denies: both sides must share `corr_id`. **No heuristic join** (tool-name+timestamp fuzzy match) when `corr_id` is absent — leave deny unjoined and show status from spectate events only. |
+| `parent_id` | Optional; when set must reference an existing `node_id` in the same session+harness+agent (else `parent_truncated: true`). Tool nodes parent to the `execute-tools` step node. |
+| `corr_id` | When joining `hook-events.jsonl` denies: both sides must share `corr_id`. **No heuristic join** when absent. v0.2 source: payload `tool_use_id` (G2-12). |
+
+**Multi-harness view (G2-9):** sessions from all harnesses appear together in the session rail (chips). The graph shows **one session at a time**. Cross-session multi-harness graph deferred to v0.4+. Demo JSONL may fabricate multi-harness in one file for status gallery only.
 
 ---
 
@@ -166,7 +195,8 @@ UI-only (not reducer statuses): **capability unknown**, **disconnected**, **stal
 - Reject: `.`, `..`, empty, pure-dot, any `/` or `\`, URL-encoded separators (`%2e`, `%2f`, `%5c`), NUL.
 - Resolve path as: `runs_root = <project>/.ravenclaude/runs` → `candidate = (runs_root / session_id).resolve()` → require `candidate` is under `runs_root.resolve()` and is a directory → open only the fixed file `spectate-events.jsonl` (name constant, not caller-supplied).
 - Refuse if `candidate` is a symlink escape (final resolved path must remain under `runs_root`).
-- Fixture `bad-session-traversal.jsonl` + store unit tests cover `..`, encoded separators, symlink escape.
+- Also resolve `event_file = (candidate / "spectate-events.jsonl").resolve()`; require it stays under `runs_root` and is a regular file (or open with `O_NOFOLLOW`) (G2-18).
+- Fixture `bad-session-traversal.jsonl` + store unit tests cover `..`, encoded separators, dir symlink escape, **file** symlink escape.
 
 ---
 
@@ -192,50 +222,64 @@ Endpoints (GET, read-only, `_local_request_ok`):
 
 ---
 
-## Reducer contract (G1-3)
+## Reducer contract (G1-3 / G2-7 / G2-8 / G2-16)
 
-`reduce(events, hook_denies, capabilities) → nodes`
+`reduce(events, hook_denies, capabilities) → nodes` — **server-only**. The UI never reduces; it polls `/__spectate/nodes` (G2-16).
 
-**Ordering:** sort by `ts` ascending; tie-break `kind` order: `session.start` < `*.pre` < `permission.request` < `*.post`/`*.fail`/`permission.resolve` < `session.end` < `emitter.truncated`. Same-ts same-kind: stable by file order.
+**Step ↔ capability seed map (G2-7):**
 
-**Per-node state machine (terminal wins):**
+| Spine step | Capability key | unsupported → | unknown → | supported/partial, session has ≥1 event, step not started → | session has 0 events → |
+|---|---|---|---|---|---|
+| `assemble` | `session` | `unavailable-harness` | idle + `capability_state:unknown` | `available` | `idle` |
+| `call-model` | `prompt` | same | same | `available` | `idle` |
+| `classify` | `prompt` | same | same | `available` | `idle` |
+| `execute-tools` | `tool_pre` | same | same | `available` | `idle` |
+| `package` | `tool_post` | same | same | `available` | `idle` |
+| `update-context` | `compact` | same | same | `available` | `idle` |
+
+Tool child nodes seed from `tool_pre` / `tool_post` / `tool_fail` / `permission_request` / `subagent` as applicable. `available` is only for supported/partial steps in a session that has received ≥1 event but has not started that step. `idle` is reserved for never-seen (0 events) or capability-unknown companion.
+
+**Ordering:** sort by `ts` ascending; tie-break `kind` order covering the full enum: `session.start` < `prompt.submit` < `*.pre` / `subagent.start` / `compact.pre` < `permission.request` < `tool.post` / `tool.fail` / `permission.resolve` / `turn.end` / `subagent.stop` / `steer.applied` < `session.end` < `stream.truncated` < `emitter.truncated`. Same-ts same-kind: stable by file order.
+
+**Kind split (G2-20):** `stream.truncated` = file-tail window marker; `emitter.truncated` = dropped/invalid field annotation from the emitter. Do not overload one kind.
+
+**Per-node transitions (terminal wins):**
 
 | From \ Event | Effect |
 |---|---|
-| (missing) + capability `unsupported` | seed `unavailable-harness` |
-| (missing) + capability `unknown` | seed UI **capability unknown** (status field `idle` + `capability_state: unknown` — never `unavailable-harness`) |
-| (missing) + capability supported/partial, no events | `idle` (“never seen — cause not established”) |
-| * → `tool.pre` / step start | `running` (unless already terminal deny/fail/succeeded) |
-| * → `tool.post` / success end | `succeeded` (terminal for that node) |
+| seed per table above | as mapped |
+| * → `tool.pre` / step start | `running` (unless already terminal) |
+| * → `tool.post` / success end | `succeeded` (terminal) |
 | * → `tool.fail` | `failed` (terminal) |
-| * → deny join (`denied-*`) | that deny status (terminal; **deny beats** later `succeeded`/`asserted_status`) |
+| * → deny join (`denied-*` via `deny.by`) | that deny status (terminal; **deny beats** later success/`asserted_status`) |
 | * → `permission.request` open | `waiting-approval` |
 | waiting-approval → resolve allow | `running` or `succeeded` per following events |
 | waiting-approval → resolve deny | matching `denied-*` |
-| any + `asserted_status` | apply **only if** current is non-terminal and no observed deny/fail evidence |
+| any + `asserted_status` | apply **only if** non-terminal and no observed deny/fail |
+| `session.end` or session not live | non-terminal nodes keep status + `unterminated: true` (UI: stop pulse; “no completion observed — cause not established”) (G2-8) |
 
-**Precedence (highest wins):** joined deny (`denied-org` > `denied-plugin` > `denied-user` > `denied-harness`) > `failed` > `succeeded` > `waiting-approval` > `running` > `available` > `idle`. `unavailable-harness` only from explicit `unsupported` capability seed.
+**Precedence (highest wins):** joined deny (`denied-org` > `denied-plugin` > `denied-user` > `denied-harness`) > `failed` > `succeeded` > `waiting-approval` > `running` > `available` > `idle`. `unavailable-harness` only from explicit `unsupported` seed.
 
-**Dedup:** last-writer for non-terminal; terminal states are sticky (ignore contradictory later success/`asserted_status`). Golden: `expected-reduce.json`.
+**Nodes response bounds (G2-16):** reduce over the same 5 MiB tail window; orphan parents → `parent_truncated: true`; cap 2,000 nodes newest-first with `nodes_truncated`; graph shows latest N turns (default 3) + “show earlier turns”. `/__spectate/nodes?session=&since_etag=` supports 304. `/__spectate/events` is inspector timeline only.
+
+**Dedup:** last-writer for non-terminal; terminal states sticky. Golden: `expected-reduce.json` includes available, deny maps, unterminated, unknown↛unavailable.
 
 ---
 
-## Source-mode UI (G1-8)
+## Source + connection chrome (G1-8 / G2-8)
 
-Chrome badge + state machine (mutually exclusive primary badge):
+Two independent axes (not one mutually exclusive badge):
 
-| Mode | When | Badge |
+| Axis | Values | Rule |
 |---|---|---|
-| `demo` | session `synthetic: true` / demo writer | `DEMO` |
-| `recorded` | JSONL present, no live emitter this process | `RECORDED` |
-| `live` | v0.2+ emitter heartbeats within threshold | `LIVE` |
-| `observe-only` | any non-demo session in v0.1–v0.2 | subtitle: “Observe only — steering unavailable until v0.3” |
-| `connecting` | first poll in flight | spinner + “connecting” |
-| `disconnected` | fetch network/HTTP failure | **disconnected** (retry). **Never** render as `idle` or empty success |
-| `stale` | last successful poll older than 3× interval while tab visible | `STALE` |
-| `no-session` | sessions list empty | empty-state copy, not a fake graph |
+| `source` | `demo` \| `recorded` \| `live` | `demo` = synthetic; `live` = last event `ts` ≤ 60s ago and no `session.end` (show “last event Ns ago”); else `recorded` |
+| `connection` | `connecting` \| `ok` \| `stale` \| `disconnected` | first poll / success / last success >3× interval while **visible** / fetch failure |
 
-Poll failure must not clear existing nodes; overlay disconnected chrome instead.
+Also: `observe-only` subtitle in v0.1–v0.2 (“steering unavailable until v0.3”); `no-session` empty state.
+
+Poll failure must not clear existing nodes; overlay disconnected chrome. After N consecutive failures, show relaunch command `rc spectate` (G2-11).
+
+**Visibility (G2-11):** stop polling when `document.visibilityState === "hidden"`; resume on visible. `stale` only while visible. Hidden tab → zero requests (test row).
 
 ---
 
@@ -244,7 +288,8 @@ Poll failure must not clear existing nodes; overlay disconnected chrome instead.
 - Three panes: Sessions (240) · Live graph (flex) · Inspector (320).
 - Chrome: product name, density, columns, theme, **source badge**, **status legend placement**, **session filter**.
 - Loop spine: Assemble → Model → Classify → Tools → Package → Context; tools branch from Execute.
-- Customizable (persisted `localStorage`, namespaced `rc.spectate.v1.*`): `data-theme`, `data-density`, layout presets (`default` \| `graph-focus` \| `inspector-focus` \| `sessions-focus`), agent-column visibility, legend placement (`footer` \| `inspector`), session filter query. Corrupt/missing storage → safe defaults (no throw).
+- Customizable (persisted `localStorage`, namespaced `rc.spectate.v1.*`): `data-theme`, `data-density`, layout presets (`default` \| `graph-focus` \| `inspector-focus` \| `sessions-focus`), **agent-column** visibility (`agent_id` tracks, all on by default — no host-off defaults) (G2-9), legend placement (`footer` \| `inspector`), session filter query. Corrupt/missing storage → safe defaults (no throw).
+- **`follow=latest` (G2-19):** re-targets only while no node is selected; non-synthetic sessions rank above synthetic; selecting a session pins via `history.replaceState(?session=)`; rail toggle restores follow. Show “following latest — session not pinned” when unpinned.
 - Motions: running pulse, edge draw + node enter, inspector cross-fade; honor `prefers-reduced-motion`.
 - Type: IBM Plex Sans + Mono (fallback stack in v0.1; vendored fonts v0.2).
 - **`denied-harness`:** first-class tokens in design-system-spec (hexagon, orange-band twin of `denied-org`, light theme + contrast). Not an “extension note.”
@@ -265,9 +310,7 @@ On every `/__spectate/*` JSON response and on `/spectate` HTML/JS/CSS assets:
 
 - `Cache-Control: no-store`
 - `X-Content-Type-Options: nosniff`
-- Spectate CSP (HTML document): `default-src 'self'; connect-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'`
-
-(Inline style allowance is temporary for token attributes in v0.1; tighten when fonts vendor in v0.2 if feasible.)
+- Spectate CSP (HTML document): `default-src 'self'; connect-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'none'` (G2-20 — no `'unsafe-inline'`; token theming uses CSS variables / `el.style` from script, which CSP does not block)
 
 ---
 
@@ -325,9 +368,12 @@ Endpoints (GET, read-only, Host/Origin-checked):
 - [ ] Implement session path resolve (G1-5) + correlation rules (G1-4)
 - [ ] Implement `reduce(...)` per Reducer contract (G1-3)
 - [ ] Golden test: fixtures → `expected-reduce.json`
-- [ ] Add thin routes to plugin server; mirror in root server; set `Cache-Control: no-store`, `nosniff`, Spectate CSP on HTML (G1-13)
+- [ ] Add thin routes to plugin server; mirror in root server; set `Cache-Control: no-store`, `nosniff`, Spectate CSP on HTML (G1-13); explicit Content-Type map (G2-17)
+- [ ] Serve `/spectate` assets via `_read_spectate_*` helpers (Gate 32 body-diff) + extend parity checker to assert `/spectate` dispatch; `/__spectate` via `startswith("/__spectate")` for MH-33 (G2-5)
+- [ ] Add `--no-reclaim` and `--open-path PATH` to both servers (G2-2, G2-3)
 - [ ] Behavioral smoke both servers: `/spectate` serves UI; `/__spectate/sessions` JSON (G1-7, G1-14) — Gate 32 alone is insufficient
-- [ ] Run Gate 32 parity check
+- [ ] Run Gate 32 parity check + must-fail: mutated `_read_spectate_*` in one copy is caught
+- [ ] Gate 142: forged-Host case against **plugin** server too (G2-20)
 - [ ] `spectate_demo.py` writes a synthetic session under `.ravenclaude/runs/`
 - [ ] Commit: `feat(spectate): store, demo writer, /__spectate poll API`
 
@@ -346,11 +392,12 @@ Endpoints (GET, read-only, Host/Origin-checked):
 - [ ] Inspector: Overview / Policy / Payload — Payload scrubbed fields only (G1-10)
 - [ ] Customization chrome: theme, density, layout preset, columns, legend placement → `localStorage` with safe defaults (G1-12)
 - [ ] Source-mode badges + disconnected/stale/connecting/observe-only (G1-8)
-- [ ] Poll `/__spectate/*` every 2s; never map poll failure → idle
-- [ ] Keyboard/a11y contracts (G1-11); reduced-motion
-- [ ] Grep gate / assert: no `innerHTML` in spectate assets
-- [ ] Smoke: open via both server entrypoints, load demo, verify all statuses + capability-unknown
-- [ ] On load: `session=` pins; otherwise `follow=latest`. Never empty picker while a run file exists
+- [ ] Poll `/__spectate/nodes?session=&since_etag=` every 2s while visible; events endpoint for inspector only (G2-16); never map poll failure → idle
+- [ ] Pause polling when tab hidden (G2-11)
+- [ ] Keyboard/a11y contracts (G1-11); reduced-motion — **manual** Task 5 evidence for breakpoints/focus-trap/reduced-motion (G2-15)
+- [ ] Expose pure view/state helpers from `app.js` for Node stub checks; add `scripts/check-spectate-render.mjs` (disconnected+nodes kept, corrupt storage, all 11 statuses shape+label, no `innerHTML`) (G2-15)
+- [ ] Smoke: open via both server entrypoints, load demo, verify all 11 statuses + capability-unknown
+- [ ] On load: `session=` pins; otherwise `follow=latest` per G2-19. Never empty picker while a run file exists
 - [ ] Commit: `feat(spectate): Spectate UI shell` (assets + generator source only)
 
 ### Task 3b: Launchers (`rc spectate`, `/spectate`)
@@ -360,9 +407,15 @@ Endpoints (GET, read-only, Host/Origin-checked):
 - Modify both `serve-dashboards.py` copies — `GET /spectate` maps to plugin spectate assets (G1-7). Do not retarget bare `/`
 - Create `plugins/ravenclaude-core/commands/spectate.md`
 
-- [ ] `rc spectate [--session ID] [--no-open] [--port N]` starts the server only when this project has none. If one is already listening, open against that port. Do **not** call `_reclaim_port` on a live server
-- [ ] Open `http://127.0.0.1:<port>/spectate?session=<id>` when an id is known, else `?follow=latest`. `--no-open` prints the URL plus one status line from the store
-- [ ] Session id order: explicit `--session`, else `CLAUDE_SESSION_ID`, else `follow=latest`
+- [ ] `rc spectate [--session ID] [--no-open] [--port N] [--foreground]` — **attach, don't kill** (G2-2):
+  - Probe = `open-dashboard.sh` `find_our_live_port` identity (lsof/ps cwd match) over 8000–8010, then `GET /__spectate/capabilities` must return 200
+  - If live same-project server lacks `/__spectate`: leave it running; start a new server on the next free port with `--no-reclaim`; print one line that an older dashboard was left alone
+  - If `lsof` absent: fail closed → start second server; never kill
+  - Always pass `--no-reclaim` when starting; never call `_reclaim_port` on the open path
+  - Audit-gates must-pass: an old-style live server survives `rc spectate`
+- [ ] Detach by default (G2-3): `nohup python3 serve-dashboards.py --no-reclaim --open-path '/spectate?…' … >.ravenclaude/runs/spectate-server.log 2>&1 &`, wait ≤5s for port, print URL, exit 0. `--foreground` keeps blocking. On attach, `rc` opens via `python3 -m webbrowser -t URL`
+- [ ] Open `http://127.0.0.1:<port>/spectate?session=<id>` when an id is known, else `?follow=latest` (+ optional `&harness=`). `--no-open` prints the URL plus one status line from the store
+- [ ] Session id order (G2-6): explicit `--session`, else `CLAUDE_SESSION_ID` when set, else `follow=latest`. Record in `commands/spectate.md` that native Claude Code often does **not** export `CLAUDE_SESSION_ID` to hooks/commands — probe slash substitution this session and document; if unavailable, `/spectate` opens `?follow=latest&harness=claude-code` and the page shows “following latest — session not pinned”
 - [ ] `/spectate` slash is a thin sibling of `/dashboard` (Claude Code only). Same URL. Copilot/Codex/Cursor/Gemini use `rc spectate`
 - [ ] Codespaces: print the forwarded `/spectate` URL. `onAutoForward` still opens `/` → dashboard; do not hijack `DASH_PATH`
 - [ ] Activity entry card links to `/spectate`. It is not the smoke path
@@ -378,6 +431,8 @@ Endpoints (GET, read-only, Host/Origin-checked):
 - Run sync + copilot generate
 
 - [ ] Operator doc: how to open Spectate, demo mode, honesty about v0.1 (no hooks; observe-only)
+- [ ] Author `knowledge/concepts/harness-spectate.md` (`entry_class: inventory`) covering `spectate_store.py`, `spectate_demo.py`, `commands/spectate.md` (and v0.2 `spectate-emit.sh` when added) (G2-1)
+- [ ] `python3 scripts/generate-concepts-doc.py` and **commit** `docs/concepts.md`; `python3 scripts/check-artifact-freshness.py --check --surface index.html` — commit structural index drift if required. `dashboard.html` alone stays post-merge (G2-1)
 - [ ] Version bump + `python3 scripts/sync-plugin-versions.py`
 - [ ] `python3 scripts/generate-copilot-plugin.py`
 - [ ] `npx prettier@3.9.4 --write .` then `--check .`; `ruff check .` (whole tree)
@@ -395,12 +450,13 @@ Endpoints (GET, read-only, Host/Origin-checked):
 
 ## Tasks — v0.2 (follow-up PR)
 
-- [ ] `hooks/spectate-emit.sh` — exit 0, empty stdout, scrubbed JSONL append; write `corr_id` into deny-joinable events
+- [ ] `hooks/spectate-emit.sh` — exit 0, empty stdout, scrubbed JSONL append; set `corr_id` from payload `tool_use_id` (G2-12)
+- [ ] Extend `_emit_hook_event` with optional 7th arg `corr_id` (backward-compatible); deny join via `corr_id` only
 - [ ] Register in `hooks/hooks.json` on SessionStart, UserPromptSubmit, PreToolUse, PostToolUse, Stop, SubagentStart, PreCompact
 - [ ] Ensure projectors place or skip; pass `check-crosshost-hook-coverage.py`
-- [ ] Grok-build env detection override; upgrade capability cells from measured probes
-- [ ] Deny join from `hook-events.jsonl` via `corr_id` only
-- [ ] Vendor IBM Plex OFL fonts; tighten CSP if inline styles removable
+- [ ] Grok-build env detection override; upgrade capability cells from measured probes; record per-harness `tool_use_id` support
+- [ ] Add `spectate-emit.sh` to Gate 242 inventory `covers:` and regenerate concepts-doc
+- [ ] Vendor IBM Plex OFL fonts
 - [ ] Bump to `0.330.0`
 
 ## Tasks — v0.3 (follow-up PR)
@@ -432,13 +488,16 @@ Endpoints (GET, read-only, Host/Origin-checked):
 | Server **behavior** parity | hit `/spectate` + `/__spectate/sessions` on both entrypoints |
 | No CORS / Host refuse | Gate 142 cases for `/__spectate` |
 | Headers | assert `Cache-Control: no-store`, `nosniff`, CSP on spectate HTML |
-| Poll failure UI | mock fetch fail → disconnected badge, nodes retained |
+| Poll failure UI | stub-DOM: disconnected badge, nodes retained |
+| Hidden tab | zero poll requests over 10s while hidden |
 | Customization persistence | set theme/density/legend/filter; reload; corrupt key → defaults |
-| Responsive + a11y | desktop/tablet/mobile + reduced-motion checks |
+| Stub UI gate | `node scripts/check-spectate-render.mjs` |
+| Responsive + a11y | **manual** Task 5 at 3 widths + reduced-motion (not CI Chromium) |
+| Attach-don't-kill | old live server survives `rc spectate` |
 | Lint | whole-tree prettier + ruff |
 | Preflight | `python3 scripts/ci-preflight.py` |
 | Full gate audit | `scripts/audit-gates.sh` |
-| Manual | demo session walkthrough recording (both servers) |
+| Manual | demo walkthrough recording (both servers) |
 
 ---
 
@@ -471,25 +530,31 @@ Endpoints (GET, read-only, Host/Origin-checked):
 
 ---
 
-## G1 close index
+## G1 / G2 close index
 
 | ID | Close location |
 |---|---|
-| G1-1 | Capability matrix section |
-| G1-2 | Event schema nested scrub + fixtures |
-| G1-3 | Reducer contract |
-| G1-4 | Correlation identities |
-| G1-5 | Path & session resolution |
-| G1-6 | Poll / cursor / sessions API |
-| G1-7 | Surface decision canonical URL + Task 2/3b |
-| G1-8 | Source-mode UI |
-| G1-9 | Visual/UX + design-system-spec |
-| G1-10 | Payload tab override + design-system-spec |
-| G1-11 | Keyboard / a11y acceptance |
-| G1-12 | Customization axes (filter/legend/storage) |
-| G1-13 | Response headers v0.1 |
-| G1-14 | Testing matrix + Task 4 full audit |
-| G1-15 | Global Constraints + Task 3 no-commit generated artifacts |
+| G1-1…G1-15 | Prior revision (capability, scrub, reducer, correlation, path, cursor, `/spectate`, source UI, design, Payload, a11y, customization, headers, tests, no dashboard.html commit) |
+| G2-1 | File tree + Task 4 inventory concept + commit concepts-doc |
+| G2-2 | Task 3b `--no-reclaim` + probe |
+| G2-3 | Task 3b detach + `--open-path` |
+| G2-4 | Canonical URL serve-not-302 + SURFACE amend |
+| G2-5 | Task 2 `_read_spectate_*` + parity extend |
+| G2-6 | Task 3b CLAUDE_SESSION_ID honesty + harness filter |
+| G2-7 | Reducer seed map + deny.by + available rule |
+| G2-8 | Source/connection axes + unterminated |
+| G2-9 | Session-rail multi-harness; graph columns = agent_id |
+| G2-10 | Target derivation + value scrub |
+| G2-11 | Visibility-gated polling |
+| G2-12 | v0.2 corr_id = tool_use_id |
+| G2-13 | design-system-spec light contrast |
+| G2-14 | design-system-spec relationship section |
+| G2-15 | check-spectate-render.mjs + manual a11y |
+| G2-16 | UI polls nodes only; bounds/turns |
+| G2-17 | Explicit Content-Type map |
+| G2-18 | Event-file symlink refuse |
+| G2-19 | follow=latest pin semantics |
+| G2-20 | CSP tighten, kind split, Gate 142 plugin, glyph/handoff notes in design spec |
 
 ---
 

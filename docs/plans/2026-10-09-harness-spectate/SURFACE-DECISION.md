@@ -186,7 +186,7 @@ Codespaces: `webbrowser.open` is skipped, and `onAutoForward` opens `DASH_PATH`.
 
 Yes, Claude Code only. Same shape as `commands/dashboard.md`: Bash, start or reuse the server, open the spectate URL with `?session=$CLAUDE_SESSION_ID` when that variable is set, else `?follow=latest`. Copilot has no user slash commands; Copilot, Codex, Cursor, and Gemini use `rc spectate`. A slash-only surface fails multi-host, which the old lock already said.
 
-Add `GET /spectate` as a 302 to `/dashboard-assets/spectate/`. Leave `GET /` → `/dashboard.html`.
+Add `GET /spectate` and `GET /spectate/` **as a served route** (not a 302) that maps to `plugins/ravenclaude-core/dashboard-assets/spectate/` on **both** server copies. A 302 to `/dashboard-assets/spectate/` 404s under the root marketplace server (`directory=REPO_ROOT`). Leave `GET /` → `/dashboard.html`. Asset URLs inside the page are absolute (`/spectate/app.js`). Query strings (`?session=` / `?follow=latest`) are preserved because there is no redirect.
 
 ### 4. ACP spectator vs JSONL tail
 

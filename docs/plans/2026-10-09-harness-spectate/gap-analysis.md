@@ -8,8 +8,9 @@
 | Surface A | claude-opus-5-5-high (product-strategist) | Surface only | LOCKED (agree) | SURFACE-DECISION + BUILD-PLAN |
 | Surface B | gpt-5.6-sol-high (ux-designer) | Surface only | LOCKED (agree; IDE panel deferred by C) | SURFACE-DECISION |
 | Surface C | grok-4.7-high (web-architect) | Surface only | LOCKED | SURFACE-DECISION + BUILD-PLAN Task 3b |
-| Plan G1 | gpt-5.6-sol-high (code-reviewer) | Full BUILD-PLAN | GAPS_FOUND (15) | BUILD-PLAN + design-system-spec (2026-10-09) |
-| Plan G2 | TBD (≠ gpt-5.6-sol-high) | Full BUILD-PLAN after G1 closes | — | — |
+| Plan G1 | gpt-5.6-sol-high (code-reviewer) | Full BUILD-PLAN | GAPS_FOUND (15) | BUILD-PLAN + design-system-spec |
+| Plan G2 | claude-opus-5-5-high (code-reviewer) | Full BUILD-PLAN after G1 | GAPS_FOUND (20) | BUILD-PLAN + design-system-spec + SURFACE §3 |
+| Plan G3 | TBD (≠ G1/G2 models) | Full plan after G2 closes | — | — |
 
 ## Surface lock (done)
 
@@ -17,29 +18,38 @@
 
 ## Plan gap Pass G1 — CLOSED
 
-Agent: [Gap analysis pass 1](bc-7d73d562-a471-55e4-a837-070c83d5c280) (code-reviewer). All 15 closed into BUILD-PLAN (+ design-system-spec for G1-9/G1-10):
+Agent: [Gap analysis pass 1](bc-7d73d562-a471-55e4-a837-070c83d5c280). Fifteen gaps closed (capability unknown, nested scrub, reducer, correlation, path, cursor, `/spectate` map, source UI, denied-harness, Payload override, a11y, filter/legend, headers, tests, no dashboard.html commit).
 
-| ID | Severity | Title | Close |
-|---|---|---|---|
-| G1-1 | blocker | Undocumented → unavailable-harness | Capability states `supported\|partial\|unsupported\|unknown`; only `unsupported` → `unavailable-harness` |
-| G1-2 | blocker | Nested schema privacy smuggling | Nested `additionalProperties: false` + recursive sensitive-key scrub + fixtures |
-| G1-3 | blocker | Reducer transition/conflict missing | Full reducer table + precedence + sticky terminals |
-| G1-4 | blocker | Correlation identities | Composite uniqueness + `corr_id`; no heuristic deny join |
-| G1-5 | blocker | Session-ID path traversal | Reject dots/separators; resolve under runs root; tests |
-| G1-6 | major | Cursor/stream/sessions bounds | Snapshot cursor, partial lines, truncate, paginated sessions |
-| G1-7 | blocker | Asset URL root vs plugin | Guarded `/spectate` maps to plugin assets on both servers |
-| G1-8 | blocker | Observe-only / disconnected UI | Source-mode state machine + badges |
-| G1-9 | major | `denied-harness` design incomplete | First-class tokens + hexagon in design-system-spec |
-| G1-10 | blocker | Payload vs no-raw-args | Wireframe override; scrubbed fields only |
-| G1-11 | major | Keyboard / a11y acceptance | Interaction contracts + breakpoint checks |
-| G1-12 | minor | Filter / legend / panel ratios | localStorage axes + safe defaults |
-| G1-13 | major | Cache-Control / CSP deferred | Required in v0.1 on `/__spectate` + spectate assets |
-| G1-14 | major | Test / gate coverage holes | Behavioral parity, unwired canary, full audit-gates |
-| G1-15 | major | Commit generated dashboard.html | Generator source only; no committed regen in feature PR |
+## Plan gap Pass G2 — CLOSED
+
+Agent: [Plan G2 gap analysis](bc-0373c006-2c42-5361-8ebc-b0a3dad88927). Twenty gaps closed into plan + design + SURFACE:
+
+| ID | Severity | Title |
+|---|---|---|
+| G2-1 | blocker | Gate 242 inventory + commit concepts-doc |
+| G2-2 | blocker | `--no-reclaim` + attach probe |
+| G2-3 | major | `--open-path` + detach `rc spectate` |
+| G2-4 | blocker | Serve `/spectate` (not 302); SURFACE amended |
+| G2-5 | major | `_read_spectate_*` parity + MH-33 |
+| G2-6 | major | CLAUDE_SESSION_ID honesty + harness filter |
+| G2-7 | blocker | available seed map + deny.by |
+| G2-8 | major | source/connection axes + unterminated |
+| G2-9 | major | rail multi-harness; columns = agent_id |
+| G2-10 | major | target derivation + value scrub |
+| G2-11 | major | visibility-gated polling |
+| G2-12 | major | corr_id = tool_use_id |
+| G2-13 | major | light-theme contrast tokens |
+| G2-14 | major | design-system relationship recorded |
+| G2-15 | major | stub-DOM gate + manual a11y |
+| G2-16 | major | UI polls nodes only; bounds |
+| G2-17 | minor | explicit Content-Type |
+| G2-18 | minor | event-file symlink refuse |
+| G2-19 | minor | follow=latest pin semantics |
+| G2-20 | minor | CSP, kind split, Gate 142 plugin, glyph/handoff |
 
 ## Next
 
-1. ~~Close G1-* into BUILD-PLAN + design-system-spec.~~  
-2. Re-run plan gap analysis with a *different* model than G1 (`gpt-5.6-sol-high`).  
+1. ~~Close G1 / G2.~~  
+2. Re-run plan gap analysis with a model **different from** G1 (`gpt-5.6-sol-high`) and G2 (`claude-opus-5-5-high`).  
 3. Repeat until 3 consecutive `NO_GAPS`.  
 4. Implement v0.1.

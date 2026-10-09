@@ -26,6 +26,21 @@
 
 **Accent locked first:** teal cyan-green `#2DD4BF` — terminal-adjacent, distinct from Cursor purple and Claude warm amber clichés, WCAG AA on canvas for UI (≥10:1).
 
+### Design-system relationship (G2-14)
+
+RavenClaude estate chrome (`dashboard-assets/shared-tokens.css`) uses commerce **green** for the posture dashboard and **teal** for `index.html`, with Inter + Space Grotesk, tokens **inlined at generate time**.
+
+Spectate is a **third surface** (IDE-tool livestream), deliberately not estate chrome:
+
+| Choice | Spectate | Estate dashboards |
+|---|---|---|
+| Accent | Teal `#2DD4BF` (focus only) | Green (dashboard) / teal (index) |
+| Body font | IBM Plex Sans (+ Mono) | Inter + Space Grotesk display |
+| Token load | Runtime `spectate.css` | Generate-time inline |
+| Cards / bento | Forbidden in first viewport | `.rc-card` patterns OK |
+
+**Reason recorded:** Spectate must read as a Cursor/Claude/Codex *tool*, dense and calm; importing Inter + green CTA language would pull it toward marketing/dashboard chrome and fight the status-shape system. Neutrals may borrow graphite values from Primer-adjacent ramps without importing `--rc-*` wholesale. Update `dashboard-assets/README.md` when implementing to list Spectate as surface #3 with its own accent + runtime CSS.
+
 ---
 
 ## 2. Design token CSS variables
@@ -240,20 +255,30 @@ Components consume these — never raw primitives.
   --color-graph-edge-active:#0d9488;
   --color-graph-grid:       color-mix(in srgb, #d0d7de 55%, transparent);
 
-  /* Status hues shift one step darker for AA on light canvas — implementer re-verifies */
-  --status-running-fg:            #0969da;
+  /* Status hues — verified ≥3:1 UI on #f6f8fa (G2-13). Labels use text-primary/secondary, not these fgs. */
+  --status-running-fg:            #0969da; /* ~4.6:1 */
   --status-succeeded-fg:          #1a7f37;
   --status-failed-fg:             #cf222e;
-  --status-waiting-approval-fg:   #bc4c00;
+  --status-waiting-approval-fg:   #9a6700; /* distinct from denied-org */
   --status-denied-org-fg:         #bc4c00;
-  --status-denied-plugin-fg:      #bf8700;
+  --status-denied-plugin-fg:      #9a6700; /* was #bf8700 @ 2.95:1 — fail; darkened */
   --status-denied-user-fg:        #cf222e;
-  --status-denied-harness-fg:     #bc4c00;
+  --status-denied-harness-fg:     #a04000; /* distinct from denied-org #bc4c00; shape still hexagon */
   --status-available-fg:          #0d9488;
   --status-unavailable-harness-fg:#656d76;
-  --status-idle-fg:               #8b949e;
+  --status-idle-fg:               #6e7681; /* was #8b949e @ 2.89:1 — fail; raised */
+
+  --status-denied-org-border:     var(--status-denied-org-fg);
+  --status-denied-harness-border: var(--status-denied-harness-fg);
+  --status-denied-plugin-border:  var(--status-denied-plugin-fg);
+  --status-idle-border:           var(--status-idle-fg);
+  --status-denied-org-bg:         color-mix(in srgb, var(--status-denied-org-fg) 12%, transparent);
+  --status-denied-harness-bg:     color-mix(in srgb, var(--status-denied-harness-fg) 12%, transparent);
+  --status-denied-plugin-bg:      color-mix(in srgb, var(--status-denied-plugin-fg) 12%, transparent);
 }
 ```
+
+**Light-theme contrast (G2-13, computed this session on `#f6f8fa`):** idle `#6e7681` ≥3:1 UI; denied-plugin `#9a6700` ≥3:1 UI; waiting-approval and denied-harness use distinct dark ambers so they do not share one `#bc4c00` with denied-org. Re-run `contrast_ratio.py` after any token edit.
 
 ### 2.5 Typography tokens
 
@@ -378,11 +403,11 @@ Components consume these — never raw primitives.
   --layout-min-graph-w: 360px;
 
   /* Agent columns — toggle visibility; width collapses to 0 when hidden */
-  --col-claude-code: 1fr;
-  --col-cursor:      1fr;
-  --col-codex:       1fr;
-  --col-copilot:     0fr; /* off by default example */
-  --col-gemini:      0fr;
+  /* Graph columns are agent_id tracks (G2-9), not host toggles.
+     Host identity lives on the session rail. All agent columns default visible. */
+  --col-main:     1fr;
+  --col-agent-2:  1fr;
+  --col-agent-3:  1fr;
 }
 
 [data-layout="graph-focus"] {
@@ -485,7 +510,7 @@ At `--bp-md` and below, keep **one** primary surface visible at a time for the g
 | Theme | `dark` (default), `light` | `data-theme` |
 | Density | `compact`, `comfortable`, `spacious` | `data-density` |
 | Panel layout | `default`, `graph-focus`, `inspector-focus`, `sessions-focus` | `data-layout` |
-| Agent columns | per-host on/off | `--col-*` → `0fr` / `1fr` |
+| Agent columns | per-`agent_id` on/off (all on by default) | `--col-<agent_id>` → `0fr` / `1fr` |
 | Status legend | docked footer vs inspector tab | UI preference, not a color token |
 
 ---
@@ -498,10 +523,10 @@ Exact ship labels (string constants). Visual = **fill/stroke color + geometric s
 |---|---|---|---|
 | `available` | Teal stroke `#14B8A6` | ○ hollow circle | Capability exposed; not started |
 | `unavailable-harness` | Slate `#8B949E` | ◌ dashed hollow circle | Harness does not expose this step/tool |
-| `denied-org` | Burnt orange `#DB6D28` | ⬡ octagon (stop) | Blocked by organization policy |
+| `denied-org` | Burnt orange `#DB6D28` | octagon (8 sides) | Blocked by organization policy |
 | `denied-plugin` | Amber-orange `#F0883E` | ◇ diamond | Blocked by plugin / marketplace / hook |
 | `denied-user` | Coral `#FF7B72` | ▢ square + geometric X | Denied by user / local permission |
-| `denied-harness` | Burnt orange `#DB6D28` | ⬡ hexagon | Denied by harness-native policy (not “capability missing”) |
+| `denied-harness` | Burnt orange `#DB6D28` | hexagon (6 sides) | Denied by harness-native policy (not “capability missing”) |
 | `running` | Sky `#79C0FF` | ● filled circle + pulse ring | In flight |
 | `succeeded` | Green `#3FB950` | ● filled circle + check notch | Completed successfully |
 | `failed` | Red `#F85149` | ● filled circle + cross | Errored |
@@ -524,7 +549,7 @@ Exact ship labels (string constants). Visual = **fill/stroke color + geometric s
 | `square-x` | axis-aligned square; X inset |
 | `rounded-square-pause` | `rx=3`; two vertical pause bars |
 
-**Label presentation:** monospace caption, `--letter-spacing-label`, lowercase exact token string as shown (e.g. `waiting-approval`, not “Waiting”). Tooltip may expand to sentence form (“Waiting for approval”).
+**Label presentation:** monospace caption, `--letter-spacing-label`, lowercase exact token string as shown (e.g. `waiting-approval`, not “Waiting”). Tooltip may expand to sentence form (“Waiting for approval”). **Label text color always uses `--color-text-primary` / `--color-text-secondary`** — status hue lives only in the icon (G2-13). Never paint the label string in the status fg color (fails AA for idle / light denied-plugin).
 
 **Contrast (dark canvas `#0D1117`, verified this session)**
 
@@ -622,7 +647,7 @@ Only three easings site-wide: `--ease-out` (enter), `--ease-in` (exit), `--ease-
 
 | Next | Why |
 |---|---|
-| `ux-designer` | Interaction details: keyboard graph nav, column picker, approval actions in inspector |
+| `ux-designer` | Interaction details: keyboard graph nav, column picker (approval actions deferred to v0.4+) |
 | `frontend-implementer` | Wire tokens → CSS / theme provider; SVG status icon set; three-pane shell |
 | `accessibility-auditor` | Full WCAG pass on light theme + focus order in graph |
 
