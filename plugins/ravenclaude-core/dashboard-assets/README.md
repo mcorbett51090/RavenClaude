@@ -1,15 +1,22 @@
 # Design system — RavenClaude shared dashboard assets
 
-This directory holds the single source of truth for the visual design of the two web surfaces RavenClaude ships:
+This directory holds the visual design assets for the web surfaces RavenClaude ships. Surfaces #1 and #2 share [`shared-tokens.css`](shared-tokens.css); surface #3 (Spectate) is a deliberate exception with its own runtime stylesheet.
 
-| Surface | Generator | Accent |
-|---|---|---|
-| `index.html` (landing) | `scripts/generate-index-dashboard.py` + `scripts/_index_dashboard_template.py` | teal |
-| `plugins/ravenclaude-core/dashboard.html` (posture editor + Norse panels) | `scripts/generate-dashboards.py` | green |
+| # | Surface | Generator | Accent |
+|---|---|---|---|
+| 1 | `index.html` (landing) | `scripts/generate-index-dashboard.py` + `scripts/_index_dashboard_template.py` | teal |
+| 2 | `plugins/ravenclaude-core/dashboard.html` (posture editor + Norse panels) | `scripts/generate-dashboards.py` | green |
+| 3 | `/spectate` — Harness Spectate livestream (`spectate/`), served by `serve-dashboards.py` | none — hand-authored static assets | teal (focus / selection only) |
 
 > The catalog surface `repo-guide.html` (and its `scripts/generate-repo-guide.py` generator) was folded into `index.html` and **removed in v0.124.0** — it is no longer a shipped surface.
 
 Each generator reads [`shared-tokens.css`](shared-tokens.css) at generate-time and inlines the tokens into the surface's `<style>` block. **There is no runtime load** — every HTML artifact stays self-contained, consistent with the existing static-page discipline.
+
+### Surface #3 — Spectate is the runtime-CSS exception
+
+`spectate/` (`index.html`, `app.js`, `spectate.css`, `status-icons.svg`) is **not** generated and **does not** inline `--rc-*` tokens. Estate surfaces (#1, #2) inline `shared-tokens.css` at generate time; Spectate loads `/spectate/spectate.css` at runtime, with its own `--color-*` / `--status-*` token set (dark default + light mirror) from [`docs/plans/2026-10-09-harness-spectate/design-system-spec.md`](../../../docs/plans/2026-10-09-harness-spectate/design-system-spec.md). The CSP on the Spectate document forbids inline `<style>` / `<script>`, so runtime CSS is also the only shape that works.
+
+It differs from the estate chrome on purpose: IBM Plex Sans + Mono instead of Space Grotesk + Inter, a single teal accent reserved for focus / selection / active edges (never success), and a hairline IDE layout (session rail, loop graph, inspector) instead of `.rc-card` tiles. Every status is colour + shape + exact label (11 statuses, including the `denied-harness` hexagon). Do not add `--rc-*` tokens or `.rc-*` classes to it, and do not import its tokens into the estate generators. `scripts/check-spectate-render.mjs` is its stub-DOM gate (`node scripts/check-spectate-render.mjs`).
 
 ## Aesthetic
 

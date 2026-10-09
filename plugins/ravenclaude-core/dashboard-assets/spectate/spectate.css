@@ -1387,7 +1387,9 @@ select:hover {
 /* ------------------------------------------------------------------ lg: three panes */
 @media (min-width: 80em) {
   .app {
-    grid-template-columns: var(--layout-session-w) minmax(var(--layout-min-graph-w), 1fr) var(--layout-inspector-w);
+    grid-template-columns: var(--layout-session-w) minmax(var(--layout-min-graph-w), 1fr) var(
+        --layout-inspector-w
+      );
     grid-template-rows: auto minmax(0, 1fr) auto;
     grid-template-areas:
       "chrome chrome    chrome"
