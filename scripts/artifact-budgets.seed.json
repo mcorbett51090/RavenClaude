@@ -119,6 +119,11 @@
         "people-operations-hr craft-candidate-materials skill+command (0.1.3) + skill-index restamp (PR #1215)",
         7320,
         "people-operations-hr 0.1.3 adds craft-candidate-materials skill+command; Gate 283 regen skill-index and Gate 237 restamp of skill-index-self-reference-convergence regenerate index.html. Island payload 7,306 > prior 7,300 by 6 (largest panel commands-payload). Same no-diagrams-for-inventory-entries shape; pure content-size raise. Re-measured on this branch head; appended, never edited."
+      ],
+      [
+        "atlas ENH disposition follow-through (core 0.329.1, 2026-10-09)",
+        7350,
+        "Atlas ENH disposition follow-through (core 0.329.1): host-support grok matrix, hook_error_posture, concept restamps, PermissionDenied skip maps, routing-matrix quote sync to Opus 5.5 / Codex effort wording. Regenerated index.html + concepts. Island payload 7,322 > prior 7,320 by 2; bytes 9,576,175 > prior 9,575,000 by 1,175. Pure content-size raise. Appended, never edited."
       ]
     ]
   },
@@ -362,8 +367,13 @@
         "nested_dispatch comfort-posture knob (core 0.328.0, Gate 293, 2026-10-05)",
         9575000,
         "Same nested_dispatch release: regenerating index.html after generate-dashboards.py Pipeline-stage churn + concept restamps. index.html 9,569,483 bytes > prior 9,564,000 by 5,483 (0.01 MB). Island payload unchanged (7,319 <= 7,320). Pure content-size raise. Re-measured on this branch head; appended, never edited."
+      ],
+      [
+        "atlas ENH disposition follow-through (core 0.329.1, 2026-10-09)",
+        9580000,
+        "Atlas ENH disposition follow-through (core 0.329.1): host-support grok matrix, hook_error_posture, concept restamps, PermissionDenied skip maps, routing-matrix quote sync to Opus 5.5 / Codex effort wording. Regenerated index.html + concepts. Island payload 7,322 > prior 7,320 by 2; bytes 9,576,175 > prior 9,575,000 by 1,175. Pure content-size raise. Appended, never edited."
       ]
     ]
   },
-  "measured_against": "34bb344ccc9db53388992c4ebeadf56ff1470028"
+  "measured_against": "1417da997675fe135868408b83ead35586fe9645"
 }

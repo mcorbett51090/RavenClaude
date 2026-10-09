@@ -22,8 +22,6 @@
     "model-routing"
   ],
   "requires": {
-    "plugins": [
-      "ravenclaude-core@>=0.7.0"
-    ]
+    "plugins": ["ravenclaude-core@>=0.7.0"]
   }
 }

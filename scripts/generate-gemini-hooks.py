@@ -111,6 +111,11 @@ _SKIP = {
     "stream-session-close.sh": ("Stop — same unverified lifecycle mapping."),
     "thing-denial-kb-sync.sh": ("Stop — same unverified lifecycle mapping."),
     "handoff-nudge.sh": ("Stop — same unverified lifecycle mapping as dod-gate.sh."),
+    "emit-permission-denied.sh": (
+        "PermissionDenied is Claude Code auto-mode only — Copilot/Gemini have no "
+        "equivalent event. Projecting it would ship a silent no-op that reads as "
+        "coverage. Claude Code lane remains wired via hooks.json."
+    ),
     "workaround-exhaustion.sh": (
         "Two lanes, neither reachable here: the PreToolUse lane matches "
         "AskUserQuestion, a Claude Code tool with no Gemini equivalent (same as "

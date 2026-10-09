@@ -6,13 +6,13 @@ kind: ravenclaude-built
 entry_class: inventory
 order: 916
 summary: "Gate 255's vendor-fact ban-list is a scoped projection, not every leaf string in the cited files -- the wider version bans ordinary words and the source's own retrieval date."
-last_verified: 2026-09-03
+last_verified: 2026-10-09
 covers:
   - plugins/ravenclaude-core/scripts/check-agent-routing-matrix.py
   - plugins/ravenclaude-core/knowledge/agent-routing-matrix.json
   - plugins/ravenclaude-core/knowledge/agent-routing-matrix.schema.json
   - plugins/ravenclaude-core/knowledge/agent-routing-matrix.md
-covers_digest: "sha256:a6a9f2e1384fbc6dccf7d04da94f73685da15b2b9a898fda091e0db8d145023c"
+covers_digest: "sha256:18b6d98198e92c7207bb7a3a006e67f4475d5c3416be217a4e82b4a075211652"
 nuance: "Deriving the ban-list from every leaf string in the cited files bans ordinary English words (the grok lane's own 'high'/'low'/'architect'/'scanner') and the source's own retrieval date -- contradicting the artifact's own citation requirement."
 nuance_evidence:
   measured: 2026-09-01

@@ -155,6 +155,11 @@ _SKIP = {
         "on this host, so both lanes would be silent by construction. Projecting them "
         "would ship a no-op that reads as coverage."
     ),
+    "emit-permission-denied.sh": (
+        "PermissionDenied is Claude Code auto-mode only — Copilot/Gemini have no "
+        "equivalent event. Projecting it would ship a silent no-op that reads as "
+        "coverage. Claude Code lane remains wired via hooks.json."
+    ),
 }
 
 

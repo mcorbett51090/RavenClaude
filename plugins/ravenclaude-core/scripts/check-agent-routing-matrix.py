@@ -526,11 +526,11 @@ def must_fail() -> int:
         return data, schema, doc, sub, cat
 
     def m_b_oneline(data, schema, doc, sub, cat):
-        doc += "\nA rationale mentioning Claude Opus 5 directly.\n"
+        doc += "\nA rationale mentioning Claude Opus 5.5 directly.\n"
         return data, schema, doc, sub, cat
 
     def m_b_wrapped(data, schema, doc, sub, cat):
-        doc += "\nA rationale mentioning Claude\nOpus 5 across a wrap.\n"
+        doc += "\nA rationale mentioning Claude\nOpus 5.5 across a wrap.\n"
         return data, schema, doc, sub, cat
 
     def m_b_emptyban(data, schema, doc, sub, cat):
