@@ -14,16 +14,17 @@
 | Plan G7 | claude-opus-5-5-medium | GAPS_FOUND (5) → closed |
 | Plan G8 | composer-2.5 | GAPS_FOUND (7) → closed |
 | Plan G9 | claude-fable-5-1-thinking-high | GAPS_FOUND (13) → closed |
-| Plan G10 | TBD | — |
+| Plan G10 | claude-sonnet-5-thinking-high | **NO_GAPS** (1/3) |
+| Plan G11 | TBD | — |
 
 ## Surface lock
 
 > Spectate is one loopback page. `rc spectate` and `/spectate` open it on the current session. The Activity tab is a link, not a home.
 
-## G9 — CLOSED
+## G10 — NO_GAPS
 
-Agent: [Plan G9](bc-a1c60597-bc4c-5356-b1f6-02535bc60ef6). Thirteen gaps closed: Load-demo CLI-only (no write route), `session_not_found` vs `no_spectate_stream`, inventory frontmatter checklist, design §7a chrome tokens, Codespace peer must-pass, module-level helpers, check-spectate exit 0/1/3, hook-events path/tail, id charset + query 400, no `Access-Control` in comments, atlas unverified→unknown, light-token dedupe, ESM `app.js`.
+Agent: [Plan G10](bc-3caa990e-8675-5f03-b622-b1b693b410b4). First clean pass. Cross-checked plan docs against live `serve-dashboards.py`, Gate 32 parity extractor, `concepts.py` inventory schema, `.repo-layout.json`, §5.9, loop/cause docs, and atlas F06. One non-blocking note (inventory `tier`/`strength` precedent) pinned into Task 4 without opening a numbered gap.
 
 ## Next
 
-Plan G10 → seeking first `NO_GAPS`.
+Plan G11 → seeking second consecutive `NO_GAPS`.

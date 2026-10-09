@@ -14,7 +14,7 @@
 - Atlas: `docs/research/2026-10-04-coding-agent-harness-atlas/`
 - Loop concept: `plugins/ravenclaude-core/knowledge/concepts/agent-harness-loop.md`
 
-**Plan gap status:** G1–G9 closed in this revision (2026-10-09). Streak for `NO_GAPS` restarts at Plan G10.
+**Plan gap status:** G1–G9 closed; G10 = `NO_GAPS` (1/3). Seeking G11–G12 clean passes before implement.
 
 premise-ok: serve-dashboards Host/Origin guard + Gate 142 + Cache-Control no-store (control.md under premise run scopes)
 
@@ -488,7 +488,7 @@ Endpoints (GET, read-only, Host/Origin-checked) — **no write routes in v0.1** 
 - [ ] Author `knowledge/concepts/harness-spectate.md` inventory entry (G2-1 / G9-3) — sub-checklist:
   1. Frontmatter per `docs/best-practices/inventory-authoring.md`: `nuance` (≤ layout line cap), `nuance_evidence{measured,control,falsifier,probe}`, `verify{tier,strength,probe,teeth_exit}`, `last_verified`, `covers`
   2. `nuance` = measured fact: empty stream → `idle` + cause-not-established; `unknown` capability cells never reduce to `unavailable-harness`. `control` = grok-bot (and grok-build) gallery fixture; `probe` = `scripts/check-spectate.py`
-  3. `verify.probe` = `scripts/check-spectate.py --must-fail`; `teeth_exit` = `3` (G9-7)
+  3. `verify.tier` = `effect`, `verify.strength` = `executed`, `verify.probe` = `scripts/check-spectate.py --must-fail`, `teeth_exit` = `3` (G9-7 / G10 note)
   4. Stamp `covers_digest` via `python3 scripts/concepts.py --restamp-cosmetic harness-spectate` as the **last** step before the Task 4 commit; re-run `python3 scripts/concepts.py --check`
   5. Covers `spectate_store.py`, `spectate_demo.py`, `commands/spectate.md` (v0.2 must restamp when `spectate-emit.sh` is added)
 - [ ] `python3 scripts/generate-concepts-doc.py` and **commit** `docs/concepts.md`; `python3 scripts/check-artifact-freshness.py --check --surface index.html` — commit structural index drift if required. `dashboard.html` alone stays post-merge (G2-1)
