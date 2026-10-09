@@ -64,6 +64,8 @@ const pieces = [
   app.match(/const DECISION_REVIEW_DEFAULT = [^;]*;/)[0],
   app.match(/const NESTED_DISPATCH_VALUES = \[[^\]]*\];/)[0],
   app.match(/const NESTED_DISPATCH_DEFAULT = [^;]*;/)[0],
+  app.match(/const SPECTATE_STEER_VALUES = \[[^\]]*\];/)[0],
+  app.match(/const SPECTATE_STEER_DEFAULT = [^;]*;/)[0],
   app.match(/const WORKTREE_GUARD_VALUES = \[[^\]]*\];/)[0],
   app.match(/const WORKTREE_GUARD_DEFAULT = [^;]*;/)[0],
   app.match(/const WORKTREE_BOUND_VALUES = \[[^\]]*\];/)[0],
@@ -172,6 +174,7 @@ function _freshState() {
     conserve_tokens_auto_pct: CONSERVE_AUTO_PCT_DEFAULT,
     decision_review: DECISION_REVIEW_DEFAULT,
     nested_dispatch: NESTED_DISPATCH_DEFAULT,
+    spectate_steer: SPECTATE_STEER_DEFAULT,
     worktree_guard: WORKTREE_GUARD_DEFAULT,
     worktree_bound: WORKTREE_BOUND_DEFAULT,
     worktree_lease: WORKTREE_LEASE_DEFAULT,
@@ -221,6 +224,7 @@ function check(name, cond) {
   s.parallelism = { enabled: true, max_workers: 6, unlimited: false };
   s.decision_review = "binding";
   s.nested_dispatch = "on";
+  s.spectate_steer = "on";
   s.worktree_guard = "block";
   s.worktree_bound = "off";
   s.worktree_lease = "warn";
@@ -264,6 +268,7 @@ function check(name, cond) {
   check("parallelism.max_workers emitted", /^  max_workers: 6$/m.test(yaml));
   check("decision_review emitted", /^decision_review: binding$/m.test(yaml));
   check("nested_dispatch emitted", /^nested_dispatch: on$/m.test(yaml));
+  check("spectate_steer emitted", /^spectate_steer: on$/m.test(yaml));
   check("worktree_guard emitted", /^worktree_guard: block$/m.test(yaml));
   check("worktree_bound emitted", /^worktree_bound: off$/m.test(yaml));
   check("worktree_lease emitted", /^worktree_lease: warn$/m.test(yaml));
@@ -310,6 +315,7 @@ function check(name, cond) {
     parallelism: { enabled: true, max_workers: 6 },
     decision_review: "binding",
     nested_dispatch: "on",
+    spectate_steer: "on",
     worktree_guard: "block",
     worktree_bound: "off",
     worktree_lease: "warn",
@@ -340,6 +346,7 @@ function check(name, cond) {
   check("hydrate parallelism.enabled", h.parallelism.enabled === true);
   check("hydrate decision_review", h.decision_review === "binding");
   check("hydrate nested_dispatch", h.nested_dispatch === "on");
+  check("hydrate spectate_steer", h.spectate_steer === "on");
   check("hydrate worktree_guard", h.worktree_guard === "block");
   check("hydrate worktree_bound", h.worktree_bound === "off");
   check("hydrate worktree_lease", h.worktree_lease === "warn");
@@ -386,6 +393,7 @@ function check(name, cond) {
   check("no parallelism block at default", !/parallelism:/.test(yaml));
   check("no decision_review at default", !/decision_review:/.test(yaml));
   check("no nested_dispatch at default", !/^nested_dispatch:/m.test(yaml));
+  check("no spectate_steer at default", !/^spectate_steer:/m.test(yaml));
   check("no worktree_guard at default", !/^worktree_guard:/m.test(yaml));
   check("no worktree_bound at default", !/^worktree_bound:/m.test(yaml));
   check("no worktree_lease at default", !/^worktree_lease:/m.test(yaml));
@@ -899,4 +907,25 @@ console.log("dashboard round-trip: all guardrail keys survive emit/hydrate; defa
     process.exit(1);
   }
   console.log("ok — nested_dispatch boolean / invalid spellings");
+}
+
+// spectate_steer boolean spellings + invalid → default (same shape as nested_dispatch)
+{
+  api._set(api._freshState());
+  api.applyGuardrailConfig({ spectate_steer: true });
+  check("spectate_steer true → on", api._get().spectate_steer === "on");
+
+  api._set(api._freshState());
+  api.applyGuardrailConfig({ spectate_steer: false });
+  check("spectate_steer false → off", api._get().spectate_steer === "off");
+
+  api._set(api._freshState());
+  api.applyGuardrailConfig({ spectate_steer: "maybe" });
+  check("spectate_steer garbage keeps default", api._get().spectate_steer === "off");
+
+  if (failures) {
+    console.error(`spectate_steer spellings: ${failures} FAILED`);
+    process.exit(1);
+  }
+  console.log("ok — spectate_steer boolean / invalid spellings");
 }

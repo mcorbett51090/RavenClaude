@@ -10014,7 +10014,12 @@ _JS = r"""
         state.nested_dispatch = nd; touched = true;
       }
       let ss = src.spectate_steer;
-      if (typeof ss === "string" && SPECTATE_STEER_VALUES.includes(ss)) {
+      if (ss === true) ss = "on";
+      else if (ss === false) ss = "off";
+      if (typeof ss === "string") ss = ss.trim().toLowerCase();
+      if (ss === "true" || ss === "yes" || ss === "1") ss = "on";
+      if (ss === "false" || ss === "no" || ss === "0") ss = "off";
+      if (SPECTATE_STEER_VALUES.includes(ss)) {
         state.spectate_steer = ss; touched = true;
       }
     }

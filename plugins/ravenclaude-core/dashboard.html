@@ -10330,7 +10330,7 @@ footer.page-footer a:hover { text-decoration: underline; }
         "scripts/inventory-nuance-judge.py",
         "plugins/ravenclaude-core/scripts/forge-receipt.py"
       ],
-      "covers_digest": "sha256:4f33e91010271f499c8d31e4f0609be531d43770beafc8f97f2bd9aa8b9deffb",
+      "covers_digest": "sha256:518932fb7bd021cd7c664fb0d61ae01aeed5abe379dde1d81c7a76c94fdd79fe",
       "nuance": "The teeth bit is the exit a tool own CHECK returns on a planted defect, never the exit `--must-fail` itself returns: `premise-gate.py` denies at `exit 0` while `sync-plugin-versions.py` reddens at `exit 2`, so an auditor that hard-codes one number can never be right for both.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -10789,7 +10789,7 @@ footer.page-footer a:hover { text-decoration: underline; }
         "scripts/generate-dashboards.py",
         "scripts/generate-index-dashboard.py"
       ],
-      "covers_digest": "sha256:b52b82e07ff9c442c2e13edf8482bdc69e9196eb974e7b351fb5c0d136012046",
+      "covers_digest": "sha256:621889b83600dfd9bb7f64329ba7a075415d67bf2964e0d307449a775b885e47",
       "nuance": "`ISLANDED_PANEL_COST` is a flat 2 because the parser reads the payload as CDATA, so `check-dom-budget.py` cannot fire on `learn-payload` no matter how far past 23,861 elements it grows.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -14111,7 +14111,12 @@ footer.page-footer a:hover { text-decoration: underline; }
         state.nested_dispatch = nd; touched = true;
       }
       let ss = src.spectate_steer;
-      if (typeof ss === "string" && SPECTATE_STEER_VALUES.includes(ss)) {
+      if (ss === true) ss = "on";
+      else if (ss === false) ss = "off";
+      if (typeof ss === "string") ss = ss.trim().toLowerCase();
+      if (ss === "true" || ss === "yes" || ss === "1") ss = "on";
+      if (ss === "false" || ss === "no" || ss === "0") ss = "off";
+      if (SPECTATE_STEER_VALUES.includes(ss)) {
         state.spectate_steer = ss; touched = true;
       }
     }
