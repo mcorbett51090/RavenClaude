@@ -60,6 +60,13 @@ from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
+
+PLUGIN_SPECTATE_DIR = REPO_ROOT / "plugins" / "ravenclaude-core" / "dashboard-assets" / "spectate"
+SPECTATE_CAPABILITIES_PATH = (
+    REPO_ROOT / "plugins" / "ravenclaude-core" / "knowledge" / "spectate-capabilities.json"
+)
+sys.path.insert(0, str(REPO_ROOT / "plugins" / "ravenclaude-core" / "scripts"))
+
 # PyYAML fallback (stock macOS python3 has none): the plugin's vendored pure-Python
 # copy. APPENDED, so an installed PyYAML still wins. See its vendor/README.md.
 sys.path.append(str(REPO_ROOT / "plugins" / "ravenclaude-core" / "scripts" / "vendor"))
@@ -2035,7 +2042,129 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             return None
         return length
 
+    def _spectate_gate(self) -> bool:
+        if not self._local_request_ok():
+            self.send_error(403, "refused: cross-origin or non-local Origin/Host")
+            return False
+        peer = self.client_address[0] if self.client_address else ""
+        host = self.headers.get("Host", "")
+        if not _spectate_peer_ok(peer, host or ""):
+            self.send_error(403, "refused: non-loopback Spectate peer")
+            return False
+        return True
+
+    def _spectate_json(self, code: int, body: dict, extra_headers: dict | None = None) -> None:
+        raw = json.dumps(body).encode("utf-8")
+        self.send_response(code)
+        self.send_header("Content-Type", "application/json; charset=utf-8")
+        self.send_header("Content-Length", str(len(raw)))
+        self.send_header("Cache-Control", "no-store")
+        self.send_header("X-Content-Type-Options", "nosniff")
+        if extra_headers:
+            for k, v in extra_headers.items():
+                self.send_header(k, v)
+        self.end_headers()
+        if self.command != "HEAD":
+            self.wfile.write(raw)
+
+    def _handle_spectate_asset(self):
+        if not self._spectate_gate():
+            return
+        rel = self.path.split("?", 1)[0]
+        data, ctype = _read_spectate_bytes(rel)
+        if data is None:
+            self.send_error(404, "spectate asset not found")
+            return
+        self.send_response(200)
+        self.send_header("Content-Type", ctype)
+        self.send_header("Content-Length", str(len(data)))
+        self.send_header("Cache-Control", "no-store")
+        self.send_header("X-Content-Type-Options", "nosniff")
+        if ctype.startswith("text/html"):
+            self.send_header("Content-Security-Policy", SPECTATE_CSP)
+        self.end_headers()
+        if self.command != "HEAD":
+            self.wfile.write(data)
+
+    def _handle_spectate_api(self):
+        if not self._spectate_gate():
+            return
+        from urllib.parse import parse_qs, urlparse
+
+        u = urlparse(self.path)
+        path = u.path
+        qs = parse_qs(u.query)
+        caps = spectate_store.load_capabilities(SPECTATE_CAPABILITIES_PATH)
+
+        if path == "/__spectate/capabilities":
+            self._spectate_json(200, caps)
+            return
+        if path == "/__spectate/sessions":
+            limit = spectate_store.parse_query_int((qs.get("limit") or [None])[0], 50)
+            cursor = (qs.get("cursor") or [None])[0]
+            harness = (qs.get("harness") or [None])[0]
+            if limit is None:
+                self._spectate_json(400, {"error": "invalid_query"})
+                return
+            if cursor not in (None, "") and spectate_store.parse_query_int(cursor, 0) is None:
+                self._spectate_json(400, {"error": "invalid_query"})
+                return
+            if harness and harness not in spectate_store.HARNESSES:
+                self._spectate_json(400, {"error": "invalid_query"})
+                return
+            self._spectate_json(
+                200,
+                spectate_store.list_sessions(
+                    REPO_ROOT,
+                    cursor=cursor,
+                    limit=limit,
+                    harness=harness,
+                    capabilities=caps,
+                ),
+            )
+            return
+        if path == "/__spectate/nodes":
+            session = (qs.get("session") or [""])[0]
+            code, body = spectate_store.nodes_response(REPO_ROOT, session, caps)
+            if code == 200:
+                etag = body.get("etag")
+                inm = self.headers.get("If-None-Match")
+                since = (qs.get("since_etag") or [None])[0]
+                if etag and ((inm and inm == etag) or (since and since == etag)):
+                    self.send_response(304)
+                    self.send_header("ETag", etag)
+                    self.send_header("X-Spectate-Server-Now", spectate_store.now_rfc3339())
+                    self.send_header("Cache-Control", "no-store")
+                    self.end_headers()
+                    return
+                self._spectate_json(code, body, {"ETag": etag} if etag else None)
+                return
+            self._spectate_json(code, body)
+            return
+        if path == "/__spectate/events":
+            session = (qs.get("session") or [""])[0]
+            limit = spectate_store.parse_query_int((qs.get("limit") or [None])[0], 100)
+            cursor = (qs.get("cursor") or [None])[0]
+            if limit is None:
+                self._spectate_json(400, {"error": "invalid_query"})
+                return
+            code, body = spectate_store.events_response(
+                REPO_ROOT, session, cursor=cursor, limit=limit
+            )
+            self._spectate_json(code, body)
+            return
+        self.send_error(404, "unknown spectate endpoint")
+
     def do_HEAD(self):
+        path_base = self.path.split("?", 1)[0]
+        if path_base.startswith("/__spectate"):
+            self._handle_spectate_api()
+            return
+        if path_base in ("/spectate", "/spectate/") or (
+            path_base.startswith("/spectate/") and not path_base.startswith("/spectatex")
+        ):
+            self._handle_spectate_asset()
+            return
         if (
             self.path in ("/__save", "/__run", "/__classify", "/__csrf", "/__auth-status")
             or self.path.startswith("/__read")
@@ -2065,11 +2194,8 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             return
         super().do_HEAD()
 
-
     # ── nested_dispatch auth gate (Gate 293) ────────────────────────────────
-    _ND_LINE_RE = re.compile(
-        r"^[ \t]*nested_dispatch:[ \t]*([^#\n]+)", re.MULTILINE
-    )
+    _ND_LINE_RE = re.compile(r"^[ \t]*nested_dispatch:[ \t]*([^#\n]+)", re.MULTILINE)
 
     @staticmethod
     def _nested_dispatch_requested(content: str) -> str:
@@ -2102,7 +2228,12 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                 cwd=str(REPO_ROOT),
             )
         except (OSError, subprocess.TimeoutExpired) as exc:
-            return {"logged_in": False, "account": None, "error": f"probe_failed:{exc}", "bin": None}
+            return {
+                "logged_in": False,
+                "account": None,
+                "error": f"probe_failed:{exc}",
+                "bin": None,
+            }
         raw = (proc.stdout or "").strip()
         try:
             data = json.loads(raw) if raw else {}
@@ -2131,9 +2262,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
         prev = "off"
         if cur_path.is_file():
             try:
-                prev = self._nested_dispatch_requested(
-                    cur_path.read_text(encoding="utf-8")
-                )
+                prev = self._nested_dispatch_requested(cur_path.read_text(encoding="utf-8"))
             except OSError:
                 prev = "off"
         if prev == "on":
@@ -2156,7 +2285,6 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             self.send_error(403, "refused: cross-origin or non-local Origin/Host")
             return
         self._json(200, self._nested_dispatch_auth())
-
 
     def do_GET(self):
         # NOTE: static GETs are intentionally ungated. Any NEW data-returning GET
@@ -2195,6 +2323,13 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             return
         if self.path.startswith("/__streams"):
             self._handle_streams()
+            return
+        if self.path.startswith("/__spectate"):
+            self._handle_spectate_api()
+            return
+        _sp = self.path.split("?", 1)[0]
+        if _sp == "/spectate" or _sp.startswith("/spectate/"):
+            self._handle_spectate_asset()
             return
         if self.path.split("?", 1)[0] == "/__reserve":
             self._handle_reserve()
@@ -3046,6 +3181,82 @@ def _is_our_dashboard(pid: int) -> bool:
         return False
 
 
+SPECTATE_CSP = (
+    "default-src 'self'; connect-src 'self'; img-src 'self' data:; "
+    "style-src 'self'; script-src 'self'; object-src 'none'; "
+    "base-uri 'none'; frame-ancestors 'none'; form-action 'none'"
+)
+
+# --- Spectate (v0.1) module-level helpers; Gate 32 body-diffed ---
+try:
+    import spectate_store as _spectate_store  # noqa: E402
+except ImportError:
+    import importlib.util as _ilu
+
+    _ss = Path(__file__).resolve().parent / "spectate_store.py"
+    if not _ss.is_file():
+        _ss = (
+            Path(__file__).resolve().parent.parent.parent
+            / "plugins/ravenclaude-core/scripts/spectate_store.py"
+        )
+    _spec = _ilu.spec_from_file_location("spectate_store", _ss)
+    _spectate_store = _ilu.module_from_spec(_spec)
+    assert _spec.loader
+    _spec.loader.exec_module(_spectate_store)
+
+# Handler methods below still use the unprefixed name (pre-existing call sites).
+spectate_store = _spectate_store
+
+_SPECTATE_CT = {
+    ".html": "text/html; charset=utf-8",
+    ".js": "text/javascript; charset=utf-8",
+    ".css": "text/css; charset=utf-8",
+    ".svg": "image/svg+xml",
+    ".woff2": "font/woff2",
+    ".json": "application/json",
+}
+
+
+def _spectate_peer_ok(peer_ip: str, host: str) -> bool:
+    """Fail-closed Spectate peer check (loopback or exact Codespace Host)."""
+    if peer_ip in ("127.0.0.1", "::1", "localhost"):
+        return True
+    host_only = (host or "").split(":")[0].lower()
+    if host_only in ("127.0.0.1", "localhost"):
+        return peer_ip in ("127.0.0.1", "::1")
+    # Codespace forwarder peer: Host must already be in _ALLOWED_HOSTS
+    h = (host or "").lower()
+    return h in {x.lower() for x in _ALLOWED_HOSTS}
+
+
+def _read_spectate_bytes(rel: str) -> tuple[bytes | None, str]:
+    """Read an allow-listed file under PLUGIN_SPECTATE_DIR. Returns (bytes, ctype)."""
+    name = rel.split("?", 1)[0].lstrip("/")
+    if name in ("", "spectate"):
+        name = "index.html"
+    if name.startswith("spectate/"):
+        name = name[len("spectate/") :]
+    if ".." in name.split("/") or name.startswith("/"):
+        return None, ""
+    root = PLUGIN_SPECTATE_DIR.resolve()
+    path = (root / name).resolve()
+    try:
+        path.relative_to(root)
+    except ValueError:
+        return None, ""
+    if not path.is_file():
+        return None, ""
+    ctype = _SPECTATE_CT.get(path.suffix.lower(), "application/octet-stream")
+    return path.read_bytes(), ctype
+
+
+def _open_browser(url: str) -> None:
+    try:
+        webbrowser.open(url)
+    except Exception:
+        pass
+
+
 def _reclaim_port(port: int) -> bool:
     """SIGTERM our own stale dashboard server(s) on `port` and wait for the
     socket to free. False if the holder isn't ours (or won't let go) — the
@@ -3063,6 +3274,42 @@ def _reclaim_port(port: int) -> bool:
         if not _port_holder_pids(port):
             return True
     return False
+
+
+def _bind_server(
+    bind: str,
+    port: int,
+    handler: type,
+    *,
+    reclaim: bool = True,
+    span: int = 10,
+) -> tuple[ThreadingHTTPServer, int]:
+    """Try `port`, then the next `span` ports (total span+1 candidates).
+    On EADDRINUSE: if reclaim, call _reclaim_port then retry once; else advance.
+    Never reclaim when reclaim=False. Returns (server, bound_port).
+    """
+    for candidate in range(port, port + span + 1):
+        try:
+            return ThreadingHTTPServer((bind, candidate), handler), candidate
+        except OSError as exc:
+            if exc.errno != errno.EADDRINUSE:
+                raise
+            if reclaim and candidate == port and _reclaim_port(port):
+                try:
+                    srv = ThreadingHTTPServer((bind, port), handler)
+                    print(
+                        f"  port {port} was held by a stale RavenClaude dashboard — "
+                        f"stopped it, rebound {port}"
+                    )
+                    return srv, port
+                except OSError as exc2:
+                    if exc2.errno != errno.EADDRINUSE:
+                        raise
+            if candidate < port + span:
+                continue
+    raise SystemExit(
+        f"serve-dashboards: ports {port}-{port + span} are all in use. Free one, or pass --port N."
+    )
 
 
 def _default_bind() -> str:
@@ -3119,7 +3366,21 @@ def main() -> int:
         default=120,
         help="minutes of inactivity after which the server self-exits (bounds the detached /__save listener's lifetime); 0 disables. Default 120.",
     )
+    p.add_argument(
+        "--no-reclaim",
+        action="store_true",
+        help="never SIGTERM a stale dashboard on the requested port; walk to the next free port instead",
+    )
+    p.add_argument(
+        "--open-path",
+        default=None,
+        help="browser path to open on start (must match ^/spectate); default is the dashboard path",
+    )
     args = p.parse_args()
+
+    if args.open_path is not None and not re.match(r"^/spectate(/|\?|$)", args.open_path):
+        sys.stderr.write("ERROR: --open-path must target /spectate (Spectate surface only).\n")
+        return 2
 
     codespace = os.environ.get("CODESPACE_NAME")
     domain = os.environ.get("GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN", "app.github.dev")
@@ -3152,32 +3413,9 @@ def main() -> int:
 
     os.chdir(REPO_ROOT)
 
-    # Stable port: try the requested port, reclaim it from one of our OWN stale
-    # servers if that's what holds it (keeps the URL stable across relaunches),
-    # then fall back to up to 5 successive ports. This avoids "address already
-    # in use" errors when the server is relaunched quickly or another process
-    # holds the default port.
-    server = None
-    actual_port = args.port
-    if _port_holder_pids(args.port):
-        if _reclaim_port(args.port):
-            print(
-                f"  port {args.port} was held by a stale dashboard server — stopped it, rebinding"
-            )
-    for candidate in range(args.port, args.port + 6):
-        try:
-            server = ThreadingHTTPServer((bind, candidate), DashboardHandler)
-            actual_port = candidate
-            break
-        except OSError as exc:
-            if exc.errno == errno.EADDRINUSE:
-                continue
-            raise
-    if server is None:
-        sys.exit(
-            f"serve-dashboards: could not bind on ports {args.port}–{args.port + 5} "
-            f"(all in use). Free one of those ports and retry."
-        )
+    server, actual_port = _bind_server(
+        bind, args.port, DashboardHandler, reclaim=not args.no_reclaim, span=10
+    )
 
     # Generate the per-process CSRF token before the server can serve a single
     # request. The Origin/Host guard is set up alongside it; together they form
@@ -3287,11 +3525,10 @@ def main() -> int:
     # devcontainer.json) handles the open via the forwarded port — so we skip it
     # there.  The --no-open flag lets scripts/CI suppress this behaviour.
     if not args.no_open and not codespace:
-        print(f"\n  Opening your browser at {local_url} …")
-        try:
-            webbrowser.open(local_url)
-        except Exception:
-            pass  # silently fall back to the printed URL
+        open_path = args.open_path or dash_path
+        open_url = f"http://127.0.0.1:{actual_port}{open_path}"
+        print(f"\n  Opening your browser at {open_url} …")
+        _open_browser(open_url)
 
     print("\n  Ctrl+C to stop.")
     sys.stdout.flush()  # ensure the banner (incl. the QR) appears even when piped/redirected
