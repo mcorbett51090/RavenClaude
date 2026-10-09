@@ -220,12 +220,21 @@ def main() -> int:
         help="print teeth exit code for audit-gates",
     )
     args = p.parse_args()
-    if args.must_fail or args.must_fail_convention:
+    if args.must_fail_convention:
         print(f"must-fail-teeth-exit: {TEETH_EXIT}")
-        # prove unwired path: temporarily rename is not done here — audit-gates
-        # uses a renamed-fixture fixture. This mode just documents teeth exit.
+        return 0
+    if args.must_fail:
+        # Planted canary: a raw-prompt event must be rejected. Exit TEETH_EXIT
+        # when the gate catches it; exit 0 would mean the canary went green.
         if unwired():
             return TEETH_EXIT
+        schema = json.loads(SCHEMA.read_text(encoding="utf-8"))
+        bad = {"schema": "rc.spectate.v1", "ts": "2026-01-01T00:00:00Z", "prompt": "leak"}
+        errs = validate_with_jsonschema(schema, bad)
+        if errs:
+            print("must-fail: schema rejects raw prompt (teeth exit 3)")
+            return TEETH_EXIT
+        print("must-fail: bad fixture passed schema — teeth missing", file=sys.stderr)
         return 0
     return run_check()
 

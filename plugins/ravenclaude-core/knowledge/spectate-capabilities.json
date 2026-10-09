@@ -1,5 +1,6 @@
 {
   "schema": "rc.spectate.capabilities.v1",
+  "states": ["supported", "partial", "unsupported", "unknown"],
   "keys": [
     "session",
     "prompt",
@@ -16,134 +17,1054 @@
     "deny_org_visible",
     "steer_context"
   ],
-  "harnesses": {
+  "state_map": {
+    "supported/verified": "supported",
+    "partial/verified": "partial",
+    "unsupported/verified": "unsupported",
+    "any unverified": "unknown",
+    "undocumented": "unknown"
+  },
+  "source_rows": {
+    "events": "F06.event-catalog",
+    "deny": "F06.output-blocking"
+  },
+  "atlas": {
+    "path": "docs/research/2026-10-04-coding-agent-harness-atlas",
+    "facet": "F06",
+    "frozen": "frozen-2026-10-04"
+  },
+  "atlas_cells": {
     "claude-code": {
-      "session": { "state": "supported", "evidence": ["F06.event-catalog"] },
-      "prompt": { "state": "supported", "evidence": ["F06.event-catalog"] },
-      "tool_pre": { "state": "supported", "evidence": ["F06.event-catalog"] },
-      "tool_post": { "state": "supported", "evidence": ["F06.event-catalog"] },
-      "tool_fail": { "state": "partial", "evidence": ["F06.event-catalog"] },
-      "permission_request": { "state": "supported", "evidence": ["F06.output-blocking"] },
-      "subagent": { "state": "supported", "evidence": ["F06.event-catalog"] },
-      "compact": { "state": "supported", "evidence": ["F06.event-catalog"] },
-      "stop": { "state": "supported", "evidence": ["F06.event-catalog"] },
-      "deny_plugin": { "state": "supported", "evidence": ["F06.output-blocking"] },
-      "deny_harness_visible": { "state": "partial", "evidence": ["F06.output-blocking"] },
-      "deny_user_visible": { "state": "supported", "evidence": ["F06.output-blocking"] },
-      "deny_org_visible": { "state": "unknown", "evidence": ["F06.output-blocking"] },
-      "steer_context": { "state": "unsupported", "evidence": ["v0.1-product"] }
+      "F06.event-catalog": {
+        "state": "partial",
+        "verification": "verified",
+        "evidence": [
+          "E-claude-code-00335",
+          "E-claude-code-00199",
+          "E-claude-code-01524",
+          "E-claude-code-07214"
+        ]
+      },
+      "F06.output-blocking": {
+        "state": "partial",
+        "verification": "verified",
+        "evidence": [
+          "E-claude-code-01463",
+          "E-claude-code-00434",
+          "E-claude-code-00271",
+          "E-claude-code-01524"
+        ]
+      }
     },
     "codex-cli": {
-      "session": { "state": "supported", "evidence": ["F06.event-catalog"] },
-      "prompt": { "state": "supported", "evidence": ["F06.event-catalog"] },
-      "tool_pre": { "state": "supported", "evidence": ["F06.event-catalog"] },
-      "tool_post": { "state": "supported", "evidence": ["F06.event-catalog"] },
-      "tool_fail": { "state": "partial", "evidence": ["F06.event-catalog"] },
-      "permission_request": { "state": "supported", "evidence": ["F06.event-catalog"] },
-      "subagent": { "state": "supported", "evidence": ["F06.event-catalog"] },
-      "compact": { "state": "supported", "evidence": ["F06.event-catalog"] },
-      "stop": { "state": "supported", "evidence": ["F06.event-catalog"] },
-      "deny_plugin": { "state": "partial", "evidence": ["F06.output-blocking"] },
-      "deny_harness_visible": { "state": "partial", "evidence": ["F06.output-blocking"] },
-      "deny_user_visible": { "state": "supported", "evidence": ["F06.output-blocking"] },
-      "deny_org_visible": { "state": "unknown", "evidence": ["F06.output-blocking"] },
-      "steer_context": { "state": "unsupported", "evidence": ["v0.1-product"] }
+      "F06.event-catalog": {
+        "state": "supported",
+        "verification": "verified",
+        "evidence": ["E-codex-cli-00582", "E-codex-cli-01693"]
+      },
+      "F06.output-blocking": {
+        "state": "partial",
+        "verification": "verified",
+        "evidence": [
+          "E-codex-cli-01775",
+          "E-codex-cli-01830",
+          "E-codex-cli-01259",
+          "E-codex-cli-01782"
+        ]
+      }
     },
     "copilot-cli": {
-      "session": { "state": "supported", "evidence": ["F06.event-catalog"] },
-      "prompt": { "state": "supported", "evidence": ["F06.event-catalog"] },
-      "tool_pre": { "state": "supported", "evidence": ["F06.event-catalog"] },
-      "tool_post": { "state": "partial", "evidence": ["F06.event-catalog"] },
-      "tool_fail": { "state": "partial", "evidence": ["F06.event-catalog"] },
-      "permission_request": { "state": "supported", "evidence": ["F06.output-blocking"] },
-      "subagent": { "state": "unknown", "evidence": ["F06.event-catalog"] },
-      "compact": { "state": "unknown", "evidence": ["F06.event-catalog"] },
-      "stop": { "state": "supported", "evidence": ["F06.event-catalog"] },
-      "deny_plugin": { "state": "supported", "evidence": ["F06.output-blocking"] },
-      "deny_harness_visible": { "state": "partial", "evidence": ["F06.output-blocking"] },
-      "deny_user_visible": { "state": "supported", "evidence": ["F06.output-blocking"] },
-      "deny_org_visible": { "state": "unknown", "evidence": ["F06.output-blocking"] },
-      "steer_context": { "state": "unsupported", "evidence": ["v0.1-product"] }
+      "F06.event-catalog": {
+        "state": "supported",
+        "verification": "verified",
+        "evidence": [
+          "E-copilot-cli-02515",
+          "E-copilot-cli-00081",
+          "E-copilot-cli-01939",
+          "E-copilot-cli-03914"
+        ]
+      },
+      "F06.output-blocking": {
+        "state": "supported",
+        "verification": "unverified",
+        "evidence": [
+          "E-copilot-cli-01406",
+          "E-copilot-cli-01939",
+          "E-copilot-cli-02584",
+          "E-copilot-cli-01951"
+        ]
+      }
     },
     "copilot-vscode": {
-      "session": { "state": "partial", "evidence": ["F06.event-catalog"] },
-      "prompt": { "state": "partial", "evidence": ["F06.event-catalog"] },
-      "tool_pre": { "state": "supported", "evidence": ["F06.event-catalog"] },
-      "tool_post": { "state": "partial", "evidence": ["F06.event-catalog"] },
-      "tool_fail": { "state": "partial", "evidence": ["F06.event-catalog"] },
-      "permission_request": { "state": "supported", "evidence": ["F06.output-blocking"] },
-      "subagent": { "state": "supported", "evidence": ["F06.event-catalog"] },
-      "compact": { "state": "unknown", "evidence": ["F06.event-catalog"] },
-      "stop": { "state": "supported", "evidence": ["F06.event-catalog"] },
-      "deny_plugin": { "state": "supported", "evidence": ["F06.output-blocking"] },
-      "deny_harness_visible": { "state": "partial", "evidence": ["F06.output-blocking"] },
-      "deny_user_visible": { "state": "supported", "evidence": ["F06.output-blocking"] },
-      "deny_org_visible": { "state": "unknown", "evidence": ["F06.output-blocking"] },
-      "steer_context": { "state": "unsupported", "evidence": ["v0.1-product"] }
+      "F06.event-catalog": {
+        "state": "partial",
+        "verification": "verified",
+        "evidence": [
+          "E-copilot-vscode-01196",
+          "E-copilot-vscode-00148",
+          "E-copilot-vscode-00610",
+          "E-copilot-vscode-00479"
+        ]
+      },
+      "F06.output-blocking": {
+        "state": "supported",
+        "verification": "unverified",
+        "evidence": ["E-copilot-vscode-00157", "E-copilot-vscode-00924", "E-copilot-vscode-01496"]
+      }
     },
     "cursor": {
-      "session": { "state": "supported", "evidence": ["F06.event-catalog"] },
-      "prompt": { "state": "supported", "evidence": ["F06.event-catalog"] },
-      "tool_pre": { "state": "supported", "evidence": ["F06.event-catalog"] },
-      "tool_post": { "state": "supported", "evidence": ["F06.event-catalog"] },
-      "tool_fail": { "state": "supported", "evidence": ["F06.event-catalog"] },
-      "permission_request": { "state": "supported", "evidence": ["F06.output-blocking"] },
-      "subagent": { "state": "supported", "evidence": ["F06.event-catalog"] },
-      "compact": { "state": "supported", "evidence": ["F06.event-catalog"] },
-      "stop": { "state": "supported", "evidence": ["F06.event-catalog"] },
-      "deny_plugin": { "state": "supported", "evidence": ["F06.output-blocking"] },
-      "deny_harness_visible": { "state": "supported", "evidence": ["F06.output-blocking"] },
-      "deny_user_visible": { "state": "supported", "evidence": ["F06.output-blocking"] },
-      "deny_org_visible": { "state": "partial", "evidence": ["F06.output-blocking"] },
-      "steer_context": { "state": "unsupported", "evidence": ["v0.1-product"] }
+      "F06.event-catalog": {
+        "state": "supported",
+        "verification": "verified",
+        "evidence": ["E-cursor-00520", "E-cursor-00800", "E-cursor-01921", "E-cursor-02489"]
+      },
+      "F06.output-blocking": {
+        "state": "supported",
+        "verification": "verified",
+        "evidence": ["E-cursor-00816", "E-cursor-00817", "E-cursor-01077", "E-cursor-00786"]
+      }
     },
     "gemini-cli": {
-      "session": { "state": "partial", "evidence": ["F06.event-catalog"] },
-      "prompt": { "state": "partial", "evidence": ["F06.event-catalog"] },
-      "tool_pre": { "state": "supported", "evidence": ["F06.event-catalog"] },
-      "tool_post": { "state": "partial", "evidence": ["F06.event-catalog"] },
-      "tool_fail": { "state": "partial", "evidence": ["F06.event-catalog"] },
-      "permission_request": { "state": "partial", "evidence": ["F06.output-blocking"] },
-      "subagent": { "state": "unknown", "evidence": ["F06.event-catalog"] },
-      "compact": { "state": "unknown", "evidence": ["F06.event-catalog"] },
-      "stop": { "state": "partial", "evidence": ["F06.event-catalog"] },
-      "deny_plugin": { "state": "partial", "evidence": ["F06.output-blocking"] },
-      "deny_harness_visible": { "state": "partial", "evidence": ["F06.output-blocking"] },
-      "deny_user_visible": { "state": "partial", "evidence": ["F06.output-blocking"] },
-      "deny_org_visible": { "state": "unknown", "evidence": ["F06.output-blocking"] },
-      "steer_context": { "state": "unsupported", "evidence": ["v0.1-product"] }
+      "F06.event-catalog": {
+        "state": "supported",
+        "verification": "verified",
+        "evidence": [
+          "E-gemini-cli-01809",
+          "E-gemini-cli-00452",
+          "E-gemini-cli-00455",
+          "E-gemini-cli-01896"
+        ]
+      },
+      "F06.output-blocking": {
+        "state": "partial",
+        "verification": "verified",
+        "evidence": [
+          "E-gemini-cli-01901",
+          "E-gemini-cli-01900",
+          "E-gemini-cli-00454",
+          "E-gemini-cli-00456"
+        ]
+      }
     },
     "grok-build": {
-      "session": { "state": "unknown", "evidence": ["F06.event-catalog"] },
-      "prompt": { "state": "unknown", "evidence": ["F06.event-catalog"] },
-      "tool_pre": { "state": "unknown", "evidence": ["F06.event-catalog"] },
-      "tool_post": { "state": "unknown", "evidence": ["F06.event-catalog"] },
-      "tool_fail": { "state": "unknown", "evidence": ["F06.event-catalog"] },
-      "permission_request": { "state": "unknown", "evidence": ["F06.output-blocking"] },
-      "subagent": { "state": "unknown", "evidence": ["F06.event-catalog"] },
-      "compact": { "state": "unknown", "evidence": ["F06.event-catalog"] },
-      "stop": { "state": "unknown", "evidence": ["F06.event-catalog"] },
-      "deny_plugin": { "state": "unknown", "evidence": ["F06.output-blocking"] },
-      "deny_harness_visible": { "state": "unknown", "evidence": ["F06.output-blocking"] },
-      "deny_user_visible": { "state": "unknown", "evidence": ["F06.output-blocking"] },
-      "deny_org_visible": { "state": "unknown", "evidence": ["F06.output-blocking"] },
-      "steer_context": { "state": "unsupported", "evidence": ["v0.1-product"] }
+      "F06.event-catalog": {
+        "state": "supported",
+        "verification": "unverified",
+        "evidence": [
+          "E-grok-build-00257",
+          "E-grok-build-00259",
+          "E-grok-build-00364",
+          "E-grok-build-00383"
+        ]
+      },
+      "F06.output-blocking": {
+        "state": "partial",
+        "verification": "verified",
+        "evidence": ["E-grok-build-00261", "E-grok-build-00257"]
+      }
     },
     "grok-bot": {
-      "session": { "state": "unknown", "evidence": ["F06.event-catalog"] },
-      "prompt": { "state": "unknown", "evidence": ["F06.event-catalog"] },
-      "tool_pre": { "state": "unknown", "evidence": ["F06.event-catalog"] },
-      "tool_post": { "state": "unknown", "evidence": ["F06.event-catalog"] },
-      "tool_fail": { "state": "unknown", "evidence": ["F06.event-catalog"] },
-      "permission_request": { "state": "unknown", "evidence": ["F06.output-blocking"] },
-      "subagent": { "state": "unknown", "evidence": ["F06.event-catalog"] },
-      "compact": { "state": "unknown", "evidence": ["F06.event-catalog"] },
-      "stop": { "state": "unknown", "evidence": ["F06.event-catalog"] },
-      "deny_plugin": { "state": "unknown", "evidence": ["F06.output-blocking"] },
-      "deny_harness_visible": { "state": "unknown", "evidence": ["F06.output-blocking"] },
-      "deny_user_visible": { "state": "unknown", "evidence": ["F06.output-blocking"] },
-      "deny_org_visible": { "state": "unknown", "evidence": ["F06.output-blocking"] },
-      "steer_context": { "state": "unsupported", "evidence": ["v0.1-product"] }
+      "F06.event-catalog": {
+        "state": "undocumented",
+        "verification": "verified",
+        "evidence": []
+      },
+      "F06.output-blocking": {
+        "state": "undocumented",
+        "verification": "verified",
+        "evidence": []
+      }
+    }
+  },
+  "harnesses": {
+    "claude-code": {
+      "session": {
+        "state": "partial",
+        "source_row": "F06.event-catalog",
+        "evidence": [
+          "E-claude-code-00335",
+          "E-claude-code-00199",
+          "E-claude-code-01524",
+          "E-claude-code-07214"
+        ]
+      },
+      "prompt": {
+        "state": "partial",
+        "source_row": "F06.event-catalog",
+        "evidence": [
+          "E-claude-code-00335",
+          "E-claude-code-00199",
+          "E-claude-code-01524",
+          "E-claude-code-07214"
+        ]
+      },
+      "tool_pre": {
+        "state": "partial",
+        "source_row": "F06.event-catalog",
+        "evidence": [
+          "E-claude-code-00335",
+          "E-claude-code-00199",
+          "E-claude-code-01524",
+          "E-claude-code-07214"
+        ]
+      },
+      "tool_post": {
+        "state": "partial",
+        "source_row": "F06.event-catalog",
+        "evidence": [
+          "E-claude-code-00335",
+          "E-claude-code-00199",
+          "E-claude-code-01524",
+          "E-claude-code-07214"
+        ]
+      },
+      "tool_fail": {
+        "state": "partial",
+        "source_row": "F06.event-catalog",
+        "evidence": [
+          "E-claude-code-00335",
+          "E-claude-code-00199",
+          "E-claude-code-01524",
+          "E-claude-code-07214"
+        ]
+      },
+      "permission_request": {
+        "state": "partial",
+        "source_row": "F06.event-catalog",
+        "evidence": [
+          "E-claude-code-00335",
+          "E-claude-code-00199",
+          "E-claude-code-01524",
+          "E-claude-code-07214"
+        ]
+      },
+      "subagent": {
+        "state": "partial",
+        "source_row": "F06.event-catalog",
+        "evidence": [
+          "E-claude-code-00335",
+          "E-claude-code-00199",
+          "E-claude-code-01524",
+          "E-claude-code-07214"
+        ]
+      },
+      "compact": {
+        "state": "partial",
+        "source_row": "F06.event-catalog",
+        "evidence": [
+          "E-claude-code-00335",
+          "E-claude-code-00199",
+          "E-claude-code-01524",
+          "E-claude-code-07214"
+        ]
+      },
+      "stop": {
+        "state": "partial",
+        "source_row": "F06.event-catalog",
+        "evidence": [
+          "E-claude-code-00335",
+          "E-claude-code-00199",
+          "E-claude-code-01524",
+          "E-claude-code-07214"
+        ]
+      },
+      "deny_plugin": {
+        "state": "partial",
+        "source_row": "F06.output-blocking",
+        "evidence": [
+          "E-claude-code-01463",
+          "E-claude-code-00434",
+          "E-claude-code-00271",
+          "E-claude-code-01524"
+        ]
+      },
+      "deny_harness_visible": {
+        "state": "partial",
+        "source_row": "F06.output-blocking",
+        "evidence": [
+          "E-claude-code-01463",
+          "E-claude-code-00434",
+          "E-claude-code-00271",
+          "E-claude-code-01524"
+        ]
+      },
+      "deny_user_visible": {
+        "state": "partial",
+        "source_row": "F06.output-blocking",
+        "evidence": [
+          "E-claude-code-01463",
+          "E-claude-code-00434",
+          "E-claude-code-00271",
+          "E-claude-code-01524"
+        ]
+      },
+      "deny_org_visible": {
+        "state": "unknown",
+        "source_row": null,
+        "evidence": [],
+        "note": "deny_org_visible: reserved, no atlas row; unknown until probed"
+      },
+      "steer_context": {
+        "state": "unknown",
+        "source_row": null,
+        "evidence": [],
+        "note": "steer_context: v0.3 feature, no atlas row; unknown until probed"
+      }
+    },
+    "codex-cli": {
+      "session": {
+        "state": "supported",
+        "source_row": "F06.event-catalog",
+        "evidence": ["E-codex-cli-00582", "E-codex-cli-01693"]
+      },
+      "prompt": {
+        "state": "supported",
+        "source_row": "F06.event-catalog",
+        "evidence": ["E-codex-cli-00582", "E-codex-cli-01693"]
+      },
+      "tool_pre": {
+        "state": "supported",
+        "source_row": "F06.event-catalog",
+        "evidence": ["E-codex-cli-00582", "E-codex-cli-01693"]
+      },
+      "tool_post": {
+        "state": "supported",
+        "source_row": "F06.event-catalog",
+        "evidence": ["E-codex-cli-00582", "E-codex-cli-01693"]
+      },
+      "tool_fail": {
+        "state": "supported",
+        "source_row": "F06.event-catalog",
+        "evidence": ["E-codex-cli-00582", "E-codex-cli-01693"]
+      },
+      "permission_request": {
+        "state": "supported",
+        "source_row": "F06.event-catalog",
+        "evidence": ["E-codex-cli-00582", "E-codex-cli-01693"]
+      },
+      "subagent": {
+        "state": "supported",
+        "source_row": "F06.event-catalog",
+        "evidence": ["E-codex-cli-00582", "E-codex-cli-01693"]
+      },
+      "compact": {
+        "state": "supported",
+        "source_row": "F06.event-catalog",
+        "evidence": ["E-codex-cli-00582", "E-codex-cli-01693"]
+      },
+      "stop": {
+        "state": "supported",
+        "source_row": "F06.event-catalog",
+        "evidence": ["E-codex-cli-00582", "E-codex-cli-01693"]
+      },
+      "deny_plugin": {
+        "state": "partial",
+        "source_row": "F06.output-blocking",
+        "evidence": [
+          "E-codex-cli-01775",
+          "E-codex-cli-01830",
+          "E-codex-cli-01259",
+          "E-codex-cli-01782"
+        ]
+      },
+      "deny_harness_visible": {
+        "state": "partial",
+        "source_row": "F06.output-blocking",
+        "evidence": [
+          "E-codex-cli-01775",
+          "E-codex-cli-01830",
+          "E-codex-cli-01259",
+          "E-codex-cli-01782"
+        ]
+      },
+      "deny_user_visible": {
+        "state": "partial",
+        "source_row": "F06.output-blocking",
+        "evidence": [
+          "E-codex-cli-01775",
+          "E-codex-cli-01830",
+          "E-codex-cli-01259",
+          "E-codex-cli-01782"
+        ]
+      },
+      "deny_org_visible": {
+        "state": "unknown",
+        "source_row": null,
+        "evidence": [],
+        "note": "deny_org_visible: reserved, no atlas row; unknown until probed"
+      },
+      "steer_context": {
+        "state": "unknown",
+        "source_row": null,
+        "evidence": [],
+        "note": "steer_context: v0.3 feature, no atlas row; unknown until probed"
+      }
+    },
+    "copilot-cli": {
+      "session": {
+        "state": "supported",
+        "source_row": "F06.event-catalog",
+        "evidence": [
+          "E-copilot-cli-02515",
+          "E-copilot-cli-00081",
+          "E-copilot-cli-01939",
+          "E-copilot-cli-03914"
+        ]
+      },
+      "prompt": {
+        "state": "supported",
+        "source_row": "F06.event-catalog",
+        "evidence": [
+          "E-copilot-cli-02515",
+          "E-copilot-cli-00081",
+          "E-copilot-cli-01939",
+          "E-copilot-cli-03914"
+        ]
+      },
+      "tool_pre": {
+        "state": "supported",
+        "source_row": "F06.event-catalog",
+        "evidence": [
+          "E-copilot-cli-02515",
+          "E-copilot-cli-00081",
+          "E-copilot-cli-01939",
+          "E-copilot-cli-03914"
+        ]
+      },
+      "tool_post": {
+        "state": "supported",
+        "source_row": "F06.event-catalog",
+        "evidence": [
+          "E-copilot-cli-02515",
+          "E-copilot-cli-00081",
+          "E-copilot-cli-01939",
+          "E-copilot-cli-03914"
+        ]
+      },
+      "tool_fail": {
+        "state": "supported",
+        "source_row": "F06.event-catalog",
+        "evidence": [
+          "E-copilot-cli-02515",
+          "E-copilot-cli-00081",
+          "E-copilot-cli-01939",
+          "E-copilot-cli-03914"
+        ]
+      },
+      "permission_request": {
+        "state": "supported",
+        "source_row": "F06.event-catalog",
+        "evidence": [
+          "E-copilot-cli-02515",
+          "E-copilot-cli-00081",
+          "E-copilot-cli-01939",
+          "E-copilot-cli-03914"
+        ]
+      },
+      "subagent": {
+        "state": "supported",
+        "source_row": "F06.event-catalog",
+        "evidence": [
+          "E-copilot-cli-02515",
+          "E-copilot-cli-00081",
+          "E-copilot-cli-01939",
+          "E-copilot-cli-03914"
+        ]
+      },
+      "compact": {
+        "state": "supported",
+        "source_row": "F06.event-catalog",
+        "evidence": [
+          "E-copilot-cli-02515",
+          "E-copilot-cli-00081",
+          "E-copilot-cli-01939",
+          "E-copilot-cli-03914"
+        ]
+      },
+      "stop": {
+        "state": "supported",
+        "source_row": "F06.event-catalog",
+        "evidence": [
+          "E-copilot-cli-02515",
+          "E-copilot-cli-00081",
+          "E-copilot-cli-01939",
+          "E-copilot-cli-03914"
+        ]
+      },
+      "deny_plugin": {
+        "state": "unknown",
+        "source_row": "F06.output-blocking",
+        "evidence": [
+          "E-copilot-cli-01406",
+          "E-copilot-cli-01939",
+          "E-copilot-cli-02584",
+          "E-copilot-cli-01951"
+        ]
+      },
+      "deny_harness_visible": {
+        "state": "unknown",
+        "source_row": "F06.output-blocking",
+        "evidence": [
+          "E-copilot-cli-01406",
+          "E-copilot-cli-01939",
+          "E-copilot-cli-02584",
+          "E-copilot-cli-01951"
+        ]
+      },
+      "deny_user_visible": {
+        "state": "unknown",
+        "source_row": "F06.output-blocking",
+        "evidence": [
+          "E-copilot-cli-01406",
+          "E-copilot-cli-01939",
+          "E-copilot-cli-02584",
+          "E-copilot-cli-01951"
+        ]
+      },
+      "deny_org_visible": {
+        "state": "unknown",
+        "source_row": null,
+        "evidence": [],
+        "note": "deny_org_visible: reserved, no atlas row; unknown until probed"
+      },
+      "steer_context": {
+        "state": "unknown",
+        "source_row": null,
+        "evidence": [],
+        "note": "steer_context: v0.3 feature, no atlas row; unknown until probed"
+      }
+    },
+    "copilot-vscode": {
+      "session": {
+        "state": "partial",
+        "source_row": "F06.event-catalog",
+        "evidence": [
+          "E-copilot-vscode-01196",
+          "E-copilot-vscode-00148",
+          "E-copilot-vscode-00610",
+          "E-copilot-vscode-00479"
+        ]
+      },
+      "prompt": {
+        "state": "partial",
+        "source_row": "F06.event-catalog",
+        "evidence": [
+          "E-copilot-vscode-01196",
+          "E-copilot-vscode-00148",
+          "E-copilot-vscode-00610",
+          "E-copilot-vscode-00479"
+        ]
+      },
+      "tool_pre": {
+        "state": "partial",
+        "source_row": "F06.event-catalog",
+        "evidence": [
+          "E-copilot-vscode-01196",
+          "E-copilot-vscode-00148",
+          "E-copilot-vscode-00610",
+          "E-copilot-vscode-00479"
+        ]
+      },
+      "tool_post": {
+        "state": "partial",
+        "source_row": "F06.event-catalog",
+        "evidence": [
+          "E-copilot-vscode-01196",
+          "E-copilot-vscode-00148",
+          "E-copilot-vscode-00610",
+          "E-copilot-vscode-00479"
+        ]
+      },
+      "tool_fail": {
+        "state": "partial",
+        "source_row": "F06.event-catalog",
+        "evidence": [
+          "E-copilot-vscode-01196",
+          "E-copilot-vscode-00148",
+          "E-copilot-vscode-00610",
+          "E-copilot-vscode-00479"
+        ]
+      },
+      "permission_request": {
+        "state": "partial",
+        "source_row": "F06.event-catalog",
+        "evidence": [
+          "E-copilot-vscode-01196",
+          "E-copilot-vscode-00148",
+          "E-copilot-vscode-00610",
+          "E-copilot-vscode-00479"
+        ]
+      },
+      "subagent": {
+        "state": "partial",
+        "source_row": "F06.event-catalog",
+        "evidence": [
+          "E-copilot-vscode-01196",
+          "E-copilot-vscode-00148",
+          "E-copilot-vscode-00610",
+          "E-copilot-vscode-00479"
+        ]
+      },
+      "compact": {
+        "state": "partial",
+        "source_row": "F06.event-catalog",
+        "evidence": [
+          "E-copilot-vscode-01196",
+          "E-copilot-vscode-00148",
+          "E-copilot-vscode-00610",
+          "E-copilot-vscode-00479"
+        ]
+      },
+      "stop": {
+        "state": "partial",
+        "source_row": "F06.event-catalog",
+        "evidence": [
+          "E-copilot-vscode-01196",
+          "E-copilot-vscode-00148",
+          "E-copilot-vscode-00610",
+          "E-copilot-vscode-00479"
+        ]
+      },
+      "deny_plugin": {
+        "state": "unknown",
+        "source_row": "F06.output-blocking",
+        "evidence": ["E-copilot-vscode-00157", "E-copilot-vscode-00924", "E-copilot-vscode-01496"]
+      },
+      "deny_harness_visible": {
+        "state": "unknown",
+        "source_row": "F06.output-blocking",
+        "evidence": ["E-copilot-vscode-00157", "E-copilot-vscode-00924", "E-copilot-vscode-01496"]
+      },
+      "deny_user_visible": {
+        "state": "unknown",
+        "source_row": "F06.output-blocking",
+        "evidence": ["E-copilot-vscode-00157", "E-copilot-vscode-00924", "E-copilot-vscode-01496"]
+      },
+      "deny_org_visible": {
+        "state": "unknown",
+        "source_row": null,
+        "evidence": [],
+        "note": "deny_org_visible: reserved, no atlas row; unknown until probed"
+      },
+      "steer_context": {
+        "state": "unknown",
+        "source_row": null,
+        "evidence": [],
+        "note": "steer_context: v0.3 feature, no atlas row; unknown until probed"
+      }
+    },
+    "cursor": {
+      "session": {
+        "state": "supported",
+        "source_row": "F06.event-catalog",
+        "evidence": ["E-cursor-00520", "E-cursor-00800", "E-cursor-01921", "E-cursor-02489"]
+      },
+      "prompt": {
+        "state": "supported",
+        "source_row": "F06.event-catalog",
+        "evidence": ["E-cursor-00520", "E-cursor-00800", "E-cursor-01921", "E-cursor-02489"]
+      },
+      "tool_pre": {
+        "state": "supported",
+        "source_row": "F06.event-catalog",
+        "evidence": ["E-cursor-00520", "E-cursor-00800", "E-cursor-01921", "E-cursor-02489"]
+      },
+      "tool_post": {
+        "state": "supported",
+        "source_row": "F06.event-catalog",
+        "evidence": ["E-cursor-00520", "E-cursor-00800", "E-cursor-01921", "E-cursor-02489"]
+      },
+      "tool_fail": {
+        "state": "supported",
+        "source_row": "F06.event-catalog",
+        "evidence": ["E-cursor-00520", "E-cursor-00800", "E-cursor-01921", "E-cursor-02489"]
+      },
+      "permission_request": {
+        "state": "supported",
+        "source_row": "F06.event-catalog",
+        "evidence": ["E-cursor-00520", "E-cursor-00800", "E-cursor-01921", "E-cursor-02489"]
+      },
+      "subagent": {
+        "state": "supported",
+        "source_row": "F06.event-catalog",
+        "evidence": ["E-cursor-00520", "E-cursor-00800", "E-cursor-01921", "E-cursor-02489"]
+      },
+      "compact": {
+        "state": "supported",
+        "source_row": "F06.event-catalog",
+        "evidence": ["E-cursor-00520", "E-cursor-00800", "E-cursor-01921", "E-cursor-02489"]
+      },
+      "stop": {
+        "state": "supported",
+        "source_row": "F06.event-catalog",
+        "evidence": ["E-cursor-00520", "E-cursor-00800", "E-cursor-01921", "E-cursor-02489"]
+      },
+      "deny_plugin": {
+        "state": "supported",
+        "source_row": "F06.output-blocking",
+        "evidence": ["E-cursor-00816", "E-cursor-00817", "E-cursor-01077", "E-cursor-00786"]
+      },
+      "deny_harness_visible": {
+        "state": "supported",
+        "source_row": "F06.output-blocking",
+        "evidence": ["E-cursor-00816", "E-cursor-00817", "E-cursor-01077", "E-cursor-00786"]
+      },
+      "deny_user_visible": {
+        "state": "supported",
+        "source_row": "F06.output-blocking",
+        "evidence": ["E-cursor-00816", "E-cursor-00817", "E-cursor-01077", "E-cursor-00786"]
+      },
+      "deny_org_visible": {
+        "state": "unknown",
+        "source_row": null,
+        "evidence": [],
+        "note": "deny_org_visible: reserved, no atlas row; unknown until probed"
+      },
+      "steer_context": {
+        "state": "unknown",
+        "source_row": null,
+        "evidence": [],
+        "note": "steer_context: v0.3 feature, no atlas row; unknown until probed"
+      }
+    },
+    "gemini-cli": {
+      "session": {
+        "state": "supported",
+        "source_row": "F06.event-catalog",
+        "evidence": [
+          "E-gemini-cli-01809",
+          "E-gemini-cli-00452",
+          "E-gemini-cli-00455",
+          "E-gemini-cli-01896"
+        ]
+      },
+      "prompt": {
+        "state": "supported",
+        "source_row": "F06.event-catalog",
+        "evidence": [
+          "E-gemini-cli-01809",
+          "E-gemini-cli-00452",
+          "E-gemini-cli-00455",
+          "E-gemini-cli-01896"
+        ]
+      },
+      "tool_pre": {
+        "state": "supported",
+        "source_row": "F06.event-catalog",
+        "evidence": [
+          "E-gemini-cli-01809",
+          "E-gemini-cli-00452",
+          "E-gemini-cli-00455",
+          "E-gemini-cli-01896"
+        ]
+      },
+      "tool_post": {
+        "state": "supported",
+        "source_row": "F06.event-catalog",
+        "evidence": [
+          "E-gemini-cli-01809",
+          "E-gemini-cli-00452",
+          "E-gemini-cli-00455",
+          "E-gemini-cli-01896"
+        ]
+      },
+      "tool_fail": {
+        "state": "supported",
+        "source_row": "F06.event-catalog",
+        "evidence": [
+          "E-gemini-cli-01809",
+          "E-gemini-cli-00452",
+          "E-gemini-cli-00455",
+          "E-gemini-cli-01896"
+        ]
+      },
+      "permission_request": {
+        "state": "supported",
+        "source_row": "F06.event-catalog",
+        "evidence": [
+          "E-gemini-cli-01809",
+          "E-gemini-cli-00452",
+          "E-gemini-cli-00455",
+          "E-gemini-cli-01896"
+        ]
+      },
+      "subagent": {
+        "state": "supported",
+        "source_row": "F06.event-catalog",
+        "evidence": [
+          "E-gemini-cli-01809",
+          "E-gemini-cli-00452",
+          "E-gemini-cli-00455",
+          "E-gemini-cli-01896"
+        ]
+      },
+      "compact": {
+        "state": "supported",
+        "source_row": "F06.event-catalog",
+        "evidence": [
+          "E-gemini-cli-01809",
+          "E-gemini-cli-00452",
+          "E-gemini-cli-00455",
+          "E-gemini-cli-01896"
+        ]
+      },
+      "stop": {
+        "state": "supported",
+        "source_row": "F06.event-catalog",
+        "evidence": [
+          "E-gemini-cli-01809",
+          "E-gemini-cli-00452",
+          "E-gemini-cli-00455",
+          "E-gemini-cli-01896"
+        ]
+      },
+      "deny_plugin": {
+        "state": "partial",
+        "source_row": "F06.output-blocking",
+        "evidence": [
+          "E-gemini-cli-01901",
+          "E-gemini-cli-01900",
+          "E-gemini-cli-00454",
+          "E-gemini-cli-00456"
+        ]
+      },
+      "deny_harness_visible": {
+        "state": "partial",
+        "source_row": "F06.output-blocking",
+        "evidence": [
+          "E-gemini-cli-01901",
+          "E-gemini-cli-01900",
+          "E-gemini-cli-00454",
+          "E-gemini-cli-00456"
+        ]
+      },
+      "deny_user_visible": {
+        "state": "partial",
+        "source_row": "F06.output-blocking",
+        "evidence": [
+          "E-gemini-cli-01901",
+          "E-gemini-cli-01900",
+          "E-gemini-cli-00454",
+          "E-gemini-cli-00456"
+        ]
+      },
+      "deny_org_visible": {
+        "state": "unknown",
+        "source_row": null,
+        "evidence": [],
+        "note": "deny_org_visible: reserved, no atlas row; unknown until probed"
+      },
+      "steer_context": {
+        "state": "unknown",
+        "source_row": null,
+        "evidence": [],
+        "note": "steer_context: v0.3 feature, no atlas row; unknown until probed"
+      }
+    },
+    "grok-build": {
+      "session": {
+        "state": "unknown",
+        "source_row": "F06.event-catalog",
+        "evidence": [
+          "E-grok-build-00257",
+          "E-grok-build-00259",
+          "E-grok-build-00364",
+          "E-grok-build-00383"
+        ],
+        "note": "G9-11: seeded unknown until a v0.2 probe; atlas F06 cells for this harness are mixed (unverified/partial)"
+      },
+      "prompt": {
+        "state": "unknown",
+        "source_row": "F06.event-catalog",
+        "evidence": [
+          "E-grok-build-00257",
+          "E-grok-build-00259",
+          "E-grok-build-00364",
+          "E-grok-build-00383"
+        ],
+        "note": "G9-11: seeded unknown until a v0.2 probe; atlas F06 cells for this harness are mixed (unverified/partial)"
+      },
+      "tool_pre": {
+        "state": "unknown",
+        "source_row": "F06.event-catalog",
+        "evidence": [
+          "E-grok-build-00257",
+          "E-grok-build-00259",
+          "E-grok-build-00364",
+          "E-grok-build-00383"
+        ],
+        "note": "G9-11: seeded unknown until a v0.2 probe; atlas F06 cells for this harness are mixed (unverified/partial)"
+      },
+      "tool_post": {
+        "state": "unknown",
+        "source_row": "F06.event-catalog",
+        "evidence": [
+          "E-grok-build-00257",
+          "E-grok-build-00259",
+          "E-grok-build-00364",
+          "E-grok-build-00383"
+        ],
+        "note": "G9-11: seeded unknown until a v0.2 probe; atlas F06 cells for this harness are mixed (unverified/partial)"
+      },
+      "tool_fail": {
+        "state": "unknown",
+        "source_row": "F06.event-catalog",
+        "evidence": [
+          "E-grok-build-00257",
+          "E-grok-build-00259",
+          "E-grok-build-00364",
+          "E-grok-build-00383"
+        ],
+        "note": "G9-11: seeded unknown until a v0.2 probe; atlas F06 cells for this harness are mixed (unverified/partial)"
+      },
+      "permission_request": {
+        "state": "unknown",
+        "source_row": "F06.event-catalog",
+        "evidence": [
+          "E-grok-build-00257",
+          "E-grok-build-00259",
+          "E-grok-build-00364",
+          "E-grok-build-00383"
+        ],
+        "note": "G9-11: seeded unknown until a v0.2 probe; atlas F06 cells for this harness are mixed (unverified/partial)"
+      },
+      "subagent": {
+        "state": "unknown",
+        "source_row": "F06.event-catalog",
+        "evidence": [
+          "E-grok-build-00257",
+          "E-grok-build-00259",
+          "E-grok-build-00364",
+          "E-grok-build-00383"
+        ],
+        "note": "G9-11: seeded unknown until a v0.2 probe; atlas F06 cells for this harness are mixed (unverified/partial)"
+      },
+      "compact": {
+        "state": "unknown",
+        "source_row": "F06.event-catalog",
+        "evidence": [
+          "E-grok-build-00257",
+          "E-grok-build-00259",
+          "E-grok-build-00364",
+          "E-grok-build-00383"
+        ],
+        "note": "G9-11: seeded unknown until a v0.2 probe; atlas F06 cells for this harness are mixed (unverified/partial)"
+      },
+      "stop": {
+        "state": "unknown",
+        "source_row": "F06.event-catalog",
+        "evidence": [
+          "E-grok-build-00257",
+          "E-grok-build-00259",
+          "E-grok-build-00364",
+          "E-grok-build-00383"
+        ],
+        "note": "G9-11: seeded unknown until a v0.2 probe; atlas F06 cells for this harness are mixed (unverified/partial)"
+      },
+      "deny_plugin": {
+        "state": "unknown",
+        "source_row": "F06.output-blocking",
+        "evidence": ["E-grok-build-00261", "E-grok-build-00257"],
+        "note": "G9-11: seeded unknown until a v0.2 probe; atlas F06 cells for this harness are mixed (unverified/partial)"
+      },
+      "deny_harness_visible": {
+        "state": "unknown",
+        "source_row": "F06.output-blocking",
+        "evidence": ["E-grok-build-00261", "E-grok-build-00257"],
+        "note": "G9-11: seeded unknown until a v0.2 probe; atlas F06 cells for this harness are mixed (unverified/partial)"
+      },
+      "deny_user_visible": {
+        "state": "unknown",
+        "source_row": "F06.output-blocking",
+        "evidence": ["E-grok-build-00261", "E-grok-build-00257"],
+        "note": "G9-11: seeded unknown until a v0.2 probe; atlas F06 cells for this harness are mixed (unverified/partial)"
+      },
+      "deny_org_visible": {
+        "state": "unknown",
+        "source_row": null,
+        "evidence": [],
+        "note": "deny_org_visible: reserved, no atlas row; unknown until probed"
+      },
+      "steer_context": {
+        "state": "unknown",
+        "source_row": null,
+        "evidence": [],
+        "note": "steer_context: v0.3 feature, no atlas row; unknown until probed"
+      }
+    },
+    "grok-bot": {
+      "session": {
+        "state": "unknown",
+        "source_row": "F06.event-catalog",
+        "evidence": []
+      },
+      "prompt": {
+        "state": "unknown",
+        "source_row": "F06.event-catalog",
+        "evidence": []
+      },
+      "tool_pre": {
+        "state": "unknown",
+        "source_row": "F06.event-catalog",
+        "evidence": []
+      },
+      "tool_post": {
+        "state": "unknown",
+        "source_row": "F06.event-catalog",
+        "evidence": []
+      },
+      "tool_fail": {
+        "state": "unknown",
+        "source_row": "F06.event-catalog",
+        "evidence": []
+      },
+      "permission_request": {
+        "state": "unknown",
+        "source_row": "F06.event-catalog",
+        "evidence": []
+      },
+      "subagent": {
+        "state": "unknown",
+        "source_row": "F06.event-catalog",
+        "evidence": []
+      },
+      "compact": {
+        "state": "unknown",
+        "source_row": "F06.event-catalog",
+        "evidence": []
+      },
+      "stop": {
+        "state": "unknown",
+        "source_row": "F06.event-catalog",
+        "evidence": []
+      },
+      "deny_plugin": {
+        "state": "unknown",
+        "source_row": "F06.output-blocking",
+        "evidence": []
+      },
+      "deny_harness_visible": {
+        "state": "unknown",
+        "source_row": "F06.output-blocking",
+        "evidence": []
+      },
+      "deny_user_visible": {
+        "state": "unknown",
+        "source_row": "F06.output-blocking",
+        "evidence": []
+      },
+      "deny_org_visible": {
+        "state": "unknown",
+        "source_row": null,
+        "evidence": [],
+        "note": "deny_org_visible: reserved, no atlas row; unknown until probed"
+      },
+      "steer_context": {
+        "state": "unknown",
+        "source_row": null,
+        "evidence": [],
+        "note": "steer_context: v0.3 feature, no atlas row; unknown until probed"
+      }
     }
   }
 }

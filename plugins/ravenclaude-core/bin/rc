@@ -159,6 +159,82 @@ case "$cmd" in
     # the server inherits the caller's cwd as the project root.
     exec python3 "$server" "$@"
     ;;
+  spectate)
+    shift
+    server="$PLUGIN_ROOT/scripts/serve-dashboards.py"
+    demo_py="$PLUGIN_ROOT/scripts/spectate_demo.py"
+    if [ ! -f "$server" ]; then
+      echo "rc: cannot find serve-dashboards.py at $server" >&2
+      exit 1
+    fi
+    command -v python3 >/dev/null 2>&1 || {
+      echo "rc: python3 not found in PATH — 'rc spectate' needs python3." >&2
+      exit 1
+    }
+    port=8000
+    session=""
+    no_open=0
+    foreground=0
+    do_demo=0
+    while [ $# -gt 0 ]; do
+      case "$1" in
+        --port) port="${2:-}"; shift 2 ;;
+        --session) session="${2:-}"; shift 2 ;;
+        --no-open) no_open=1; shift ;;
+        --foreground) foreground=1; shift ;;
+        --demo) do_demo=1; shift ;;
+        -h|--help)
+          echo "Usage: rc spectate [--session ID] [--demo] [--no-open] [--port N] [--foreground]" >&2
+          exit 0
+          ;;
+        *) echo "rc spectate: unknown arg: $1" >&2; exit 1 ;;
+      esac
+    done
+    if [ "$do_demo" -eq 1 ]; then
+      python3 "$demo_py" --project-root "$PWD" || exit 1
+    fi
+    # Attach-don't-kill: probe ports port..port+10 for our live server with /__spectate.
+    bound=""
+    for cand in $(seq "$port" $((port + 10))); do
+      if curl -fsS -H "Host: 127.0.0.1:${cand}" "http://127.0.0.1:${cand}/__spectate/capabilities" >/dev/null 2>&1; then
+        bound=$cand
+        break
+      fi
+    done
+    if [ -z "$bound" ]; then
+      mkdir -p .ravenclaude/runs
+      log=.ravenclaude/runs/spectate-server.log
+      if [ -f "$log" ] && [ "$(wc -c <"$log")" -gt 2097152 ]; then
+        : >"$log"
+      fi
+      if [ "$foreground" -eq 1 ]; then
+        exec python3 "$server" --project-root "$PWD" --port "$port" --no-reclaim --no-open
+      fi
+      nohup python3 "$server" --project-root "$PWD" --port "$port" --no-reclaim --no-open >"$log" 2>&1 &
+      for _i in 1 2 3 4 5 6 7 8 9 10; do
+        for cand in $(seq "$port" $((port + 10))); do
+          if curl -fsS -H "Host: 127.0.0.1:${cand}" "http://127.0.0.1:${cand}/__spectate/capabilities" >/dev/null 2>&1; then
+            bound=$cand
+            break 2
+          fi
+        done
+        sleep 0.5
+      done
+    fi
+    if [ -z "$bound" ]; then
+      echo "rc spectate: could not start or find a Spectate server on ports ${port}-$((port + 10))" >&2
+      exit 1
+    fi
+    if [ -n "$session" ]; then
+      url="http://127.0.0.1:${bound}/spectate?session=${session}"
+    else
+      url="http://127.0.0.1:${bound}/spectate?follow=latest"
+    fi
+    echo "$url"
+    if [ "$no_open" -eq 0 ] && [ -z "${CODESPACE_NAME:-}" ] && [ -t 1 ]; then
+      python3 -m webbrowser "$url" >/dev/null 2>&1 || true
+    fi
+    ;;
   streams)
     shift
     ops="$PLUGIN_ROOT/scripts/stream-ops.py"

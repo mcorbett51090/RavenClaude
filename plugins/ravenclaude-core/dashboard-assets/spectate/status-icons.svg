@@ -1,0 +1,83 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="0" height="0" focusable="false" aria-hidden="true">
+  <title>Harness Spectate status and chrome icons</title>
+  <defs>
+    <mask id="mask-check" maskUnits="userSpaceOnUse" x="0" y="0" width="20" height="20">
+      <rect width="20" height="20" fill="white" />
+      <path d="M6 10.4l2.8 2.8L14.2 7.4" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+    </mask>
+    <mask id="mask-cross" maskUnits="userSpaceOnUse" x="0" y="0" width="20" height="20">
+      <rect width="20" height="20" fill="white" />
+      <path d="M6.8 6.8l6.4 6.4M13.2 6.8l-6.4 6.4" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" />
+    </mask>
+  </defs>
+
+  <!-- 11 reducer statuses. Hue comes from the consumer's `color` (currentColor); shape carries meaning. -->
+
+  <symbol id="s-available" viewBox="0 0 20 20">
+    <circle cx="10" cy="10" r="7.25" fill="none" stroke="currentColor" stroke-width="1.5" />
+  </symbol>
+
+  <symbol id="s-unavailable-harness" viewBox="0 0 20 20">
+    <circle cx="10" cy="10" r="7.25" fill="none" stroke="currentColor" stroke-width="1.5" stroke-dasharray="3 2" />
+  </symbol>
+
+  <symbol id="s-denied-org" viewBox="0 0 20 20">
+    <polygon points="17.85,13.25 13.25,17.85 6.75,17.85 2.15,13.25 2.15,6.75 6.75,2.15 13.25,2.15 17.85,6.75" fill="currentColor" fill-opacity="0.14" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" />
+  </symbol>
+
+  <symbol id="s-denied-plugin" viewBox="0 0 20 20">
+    <polygon points="10,1.5 18.5,10 10,18.5 1.5,10" fill="currentColor" fill-opacity="0.14" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" />
+  </symbol>
+
+  <symbol id="s-denied-user" viewBox="0 0 20 20">
+    <rect x="2.5" y="2.5" width="15" height="15" rx="1" fill="currentColor" fill-opacity="0.14" stroke="currentColor" stroke-width="1.5" />
+    <path d="M6.8 6.8l6.4 6.4M13.2 6.8l-6.4 6.4" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+  </symbol>
+
+  <symbol id="s-denied-harness" viewBox="0 0 20 20">
+    <polygon points="18.5,10 14.25,17.36 5.75,17.36 1.5,10 5.75,2.64 14.25,2.64" fill="currentColor" fill-opacity="0.14" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" />
+  </symbol>
+
+  <symbol id="s-running" viewBox="0 0 20 20">
+    <circle cx="10" cy="10" r="6" fill="currentColor" />
+  </symbol>
+
+  <symbol id="s-succeeded" viewBox="0 0 20 20">
+    <circle cx="10" cy="10" r="7.5" fill="currentColor" mask="url(#mask-check)" />
+  </symbol>
+
+  <symbol id="s-failed" viewBox="0 0 20 20">
+    <circle cx="10" cy="10" r="7.5" fill="currentColor" mask="url(#mask-cross)" />
+  </symbol>
+
+  <symbol id="s-waiting-approval" viewBox="0 0 20 20">
+    <rect x="2.5" y="2.5" width="15" height="15" rx="3" fill="currentColor" fill-opacity="0.16" stroke="currentColor" stroke-width="1.5" />
+    <rect x="7" y="6.5" width="2" height="7" rx="0.5" fill="currentColor" />
+    <rect x="11" y="6.5" width="2" height="7" rx="0.5" fill="currentColor" />
+  </symbol>
+
+  <symbol id="s-idle" viewBox="0 0 20 20">
+    <circle cx="10" cy="10" r="7.25" fill="none" stroke="currentColor" stroke-width="1.5" stroke-opacity="0.8" />
+  </symbol>
+
+  <!-- Connection chrome (design-system-spec 7a): neutral / warning / danger tokens only, never a status hue. -->
+
+  <symbol id="c-connecting" viewBox="0 0 20 20">
+    <path d="M10 2.75a7.25 7.25 0 1 0 7.25 7.25" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+  </symbol>
+
+  <symbol id="c-ok" viewBox="0 0 20 20">
+    <circle cx="10" cy="10" r="7.25" fill="none" stroke="currentColor" stroke-width="1.5" />
+    <path d="M6.5 10.2l2.4 2.4 4.6-5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+  </symbol>
+
+  <symbol id="c-stale" viewBox="0 0 20 20">
+    <circle cx="10" cy="10" r="7.25" fill="none" stroke="currentColor" stroke-width="1.5" />
+    <path d="M10 5.75V10.5l3 1.75" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+  </symbol>
+
+  <symbol id="c-disconnected" viewBox="0 0 20 20">
+    <path d="M4 4l12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+    <path d="M7.2 7.2A5.5 5.5 0 0 0 4.9 9.9M12.8 12.8A5.5 5.5 0 0 0 15.1 10.1M10 15.25h.01" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+  </symbol>
+</svg>
