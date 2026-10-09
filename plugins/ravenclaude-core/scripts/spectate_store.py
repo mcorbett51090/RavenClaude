@@ -1504,7 +1504,10 @@ MAX_STEER_NOTE = 500
 MAX_SSE_STREAMS = 4
 SSE_HEARTBEAT_S = 15.0
 SSE_POLL_S = 0.35
-STEER_ACTIONS = frozenset({"pause", "resume", "note"})
+STEER_ACTIONS = frozenset({"pause", "resume", "note", "approve", "deny"})
+STEER_DECISIONS = frozenset({"allow", "deny"})
+PERMISSION_WAIT_S = 45.0
+PERMISSION_POLL_S = 0.25
 
 _SSE_LOCK = __import__("threading").Lock()
 _SSE_ACTIVE = 0
@@ -1679,6 +1682,7 @@ def apply_steer(
 
     pending = read_steer_pending(project_root, session_id) or {}
     ts = now_rfc3339()
+    decision = pending.get("decision") if pending.get("decision") in STEER_DECISIONS else None
     if action == "pause":
         pending = {
             "paused": True,
@@ -1686,24 +1690,35 @@ def apply_steer(
             "note": note_text,
             "note_chars": len(note_text),
             "note_pending": bool(note_text),
+            "decision": decision,
         }
     elif action == "resume":
         pending = {
             "paused": False,
             "ts": ts,
             "note": pending.get("note") if pending.get("note_pending") else "",
-            "note_chars": int(pending.get("note_chars") or 0)
-            if pending.get("note_pending")
-            else 0,
+            "note_chars": int(pending.get("note_chars") or 0) if pending.get("note_pending") else 0,
             "note_pending": bool(pending.get("note_pending")),
+            "decision": decision,
         }
-    else:  # note
+    elif action == "note":
         pending = {
             "paused": bool(pending.get("paused")),
             "ts": ts,
             "note": note_text,
             "note_chars": len(note_text),
             "note_pending": True,
+            "decision": decision,
+        }
+    else:  # approve / deny — arms PermissionRequest wait (v0.4)
+        pending = {
+            "paused": bool(pending.get("paused")),
+            "ts": ts,
+            "note": pending.get("note") if pending.get("note_pending") else "",
+            "note_chars": int(pending.get("note_chars") or 0) if pending.get("note_pending") else 0,
+            "note_pending": bool(pending.get("note_pending")),
+            "decision": "allow" if action == "approve" else "deny",
+            "decision_ts": ts,
         }
     write_steer_pending(project_root, session_id, pending)
 
@@ -1725,6 +1740,8 @@ def apply_steer(
             "note_chars": len(note_text) if action == "note" or note_text else 0,
         },
     }
+    if pending.get("decision") in STEER_DECISIONS:
+        event["steer"]["decision"] = pending["decision"]
     ok, err = append_spectate_event(project_root, event)
     if not ok:
         return 500, {"error": "append_failed", "detail": err}
@@ -1736,6 +1753,9 @@ def apply_steer(
             "paused": bool(pending.get("paused")),
             "note_pending": bool(pending.get("note_pending")),
             "note_chars": int(pending.get("note_chars") or 0),
+            "decision": pending.get("decision")
+            if pending.get("decision") in STEER_DECISIONS
+            else None,
             "ts": pending.get("ts"),
         },
         "event": event,
@@ -1754,9 +1774,84 @@ def steer_status(project_root: Path | str, session_id: str | None = None) -> dic
                 "paused": bool(pending.get("paused")),
                 "note_pending": bool(pending.get("note_pending")),
                 "note_chars": int(pending.get("note_chars") or 0),
+                "decision": pending.get("decision")
+                if pending.get("decision") in STEER_DECISIONS
+                else None,
                 "ts": pending.get("ts"),
             }
     return out
+
+
+def consume_steer_decision(project_root: Path | str, session_id: str) -> str | None:
+    """Return pending allow/deny and clear it. Pause/note state kept."""
+    pending = read_steer_pending(project_root, session_id)
+    if not pending:
+        return None
+    decision = pending.get("decision")
+    if decision not in STEER_DECISIONS:
+        return None
+    pending["decision"] = None
+    pending["decision_ts"] = None
+    write_steer_pending(project_root, session_id, pending)
+    return decision
+
+
+def wait_for_steer_decision(
+    project_root: Path | str,
+    session_id: str,
+    *,
+    timeout_s: float | None = None,
+    poll_s: float | None = None,
+) -> str | None:
+    """Poll for a browser approve/deny; consume when present. Timeout → None."""
+    import time
+
+    wait = PERMISSION_WAIT_S if timeout_s is None else float(timeout_s)
+    step = PERMISSION_POLL_S if poll_s is None else float(poll_s)
+    if wait < 0:
+        wait = 0.0
+    if step <= 0:
+        step = PERMISSION_POLL_S
+    deadline = time.monotonic() + wait
+    while True:
+        decision = consume_steer_decision(project_root, session_id)
+        if decision is not None:
+            return decision
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            return None
+        time.sleep(min(step, remaining))
+
+
+def append_permission_resolve(
+    project_root: Path | str,
+    *,
+    session_id: str,
+    harness: str,
+    decision: str,
+    agent_id: str = "main",
+    node_id: str | None = None,
+) -> None:
+    """Append permission.resolve so the reducer leaves waiting-approval."""
+    if decision not in STEER_DECISIONS:
+        return
+    ts = now_rfc3339()
+    nid = node_id or f"perm-resolve-{ts.replace(':', '').replace('.', '')[-12:]}"
+    if not ID_RE.match(str(nid)):
+        nid = "perm-resolve"
+    event = {
+        "schema": "rc.spectate.v1",
+        "ts": ts,
+        "session_id": session_id,
+        "harness": harness if harness in HARNESS_ENUM else "unknown",
+        "source": "steer",
+        "kind": "permission.resolve",
+        "node_id": nid,
+        "agent_id": agent_id if ID_RE.match(str(agent_id)) else "main",
+        "detail": "minimal",
+        "asserted_status": "succeeded" if decision == "allow" else "failed",
+    }
+    append_spectate_event(project_root, event)
 
 
 def consume_steer_note(project_root: Path | str, session_id: str) -> str | None:
@@ -1815,5 +1910,3 @@ def iter_new_spectate_lines(
         return "ok", out, next_cur
     finally:
         snap.close()
-
-

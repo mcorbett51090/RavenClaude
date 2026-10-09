@@ -1519,7 +1519,7 @@ select:hover {
   }
 }
 
-/* v0.3 steer chrome */
+/* v0.3–v0.4 steer chrome */
 .steer-panel {
   display: flex;
   flex-wrap: wrap;
@@ -1539,4 +1539,12 @@ select:hover {
   font-family: var(--font-mono);
   font-size: 0.75rem;
   color: var(--color-text-muted);
+}
+.btn-approve {
+  border-color: var(--color-success, #3fb950);
+  color: var(--color-success, #3fb950);
+}
+.btn-deny {
+  border-color: var(--color-danger, #f85149);
+  color: var(--color-danger, #f85149);
 }

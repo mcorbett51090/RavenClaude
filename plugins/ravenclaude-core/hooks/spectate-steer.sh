@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# spectate-steer.sh — v0.3 pause-as-deny + capped note injection
+# spectate-steer.sh — v0.4 pause-as-deny + note + PermissionRequest approve/deny
 #
 # Reads .ravenclaude/runs/<session>/spectate-steer.json written by
 # POST /__spectate/steer. Only active when comfort-posture has
@@ -7,7 +7,11 @@
 #
 # PreToolUse: if paused -> deny (permissionDecision) — pause-as-deny MVP.
 # UserPromptSubmit / PreToolUse: if note_pending -> additionalContext (capped),
-# then clear the note. Fail-open on any error.
+# then clear the note.
+# PermissionRequest: wait ≤45s for browser approve/deny; emit
+# hookSpecificOutput.decision.behavior ∈ {allow,deny}. Pause → deny.
+# Timeout → empty stdout (fail-open to the human permission prompt).
+# Fail-open on any error.
 
 set -uo pipefail
 
@@ -81,6 +85,64 @@ event_key = event.replace("_", "").replace("-", "")
 
 paused = bool(pending.get("paused"))
 note_pending = bool(pending.get("note_pending"))
+
+if "permissionrequest" in event_key:
+    # Pause-as-deny also applies at the permission prompt.
+    decision = None
+    if paused:
+        decision = "deny"
+        # Clear any armed browser decision so it cannot leak to a later request.
+        store.consume_steer_decision(project, sid)
+    else:
+        wait_s = store.PERMISSION_WAIT_S
+        raw_wait = (os.environ.get("SPECTATE_PERMISSION_WAIT_S") or "").strip()
+        if raw_wait:
+            try:
+                wait_s = float(raw_wait)
+            except ValueError:
+                wait_s = store.PERMISSION_WAIT_S
+        decision = store.wait_for_steer_decision(project, sid, timeout_s=wait_s)
+    if decision in store.STEER_DECISIONS:
+        harness = "claude-code"
+        try:
+            existing = store._harness_of_stream(project, sid)  # noqa: SLF001
+            if existing:
+                harness = existing
+        except Exception:
+            pass
+        agent = "main"
+        try:
+            raw = os.environ.get("SPECTATE_PAYLOAD") or ""
+            obj = json.loads(raw) if raw.strip() else {}
+            if isinstance(obj, dict):
+                cand = (
+                    obj.get("agent_id")
+                    or obj.get("agentId")
+                    or obj.get("subagent_id")
+                    or "main"
+                )
+                if store.ID_RE.match(str(cand)):
+                    agent = str(cand)
+        except Exception:
+            pass
+        store.append_permission_resolve(
+            project,
+            session_id=sid,
+            harness=harness,
+            decision=decision,
+            agent_id=agent,
+        )
+        print(
+            json.dumps(
+                {
+                    "hookSpecificOutput": {
+                        "hookEventName": "PermissionRequest",
+                        "decision": {"behavior": decision},
+                    }
+                }
+            )
+        )
+    raise SystemExit(0)
 
 if paused and "pretooluse" in event_key:
     reason = "Spectate steer: paused from /spectate (POST /__spectate/steer)."

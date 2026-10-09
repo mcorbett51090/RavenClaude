@@ -2,6 +2,17 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.334.0 — 2026-10-09
+
+### Added
+- **Spectate v0.4 approve/deny** — browser `POST /__spectate/steer` actions `approve`/`deny` arm a PermissionRequest wait (≤45s). `spectate-steer.sh` returns `hookSpecificOutput.decision.behavior` ∈ {allow,deny}; timeout fail-opens to the human prompt. Pause-as-deny also denies on PermissionRequest.
+- **permission.request emit** — `spectate-emit.sh` maps PermissionRequest → `permission.request` (`asserted_status: waiting-approval`) so the UI can surface waiting tools.
+- **Gate 296** — extended for S5–S7 (approve/deny/timeout).
+
+### Changed
+- Spectate UI gains Approve/Deny steer buttons; status shows armed decision.
+- Hook registrations 72 → 74 (PermissionRequest emit + steer).
+
 ## 0.333.0 — 2026-10-09
 
 ### Added
