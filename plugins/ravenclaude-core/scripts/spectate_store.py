@@ -970,13 +970,14 @@ def _complete_lines(fd: int, start: int, size: int) -> tuple[list[tuple[bytes, i
             raw = raw[1:]
     lines: list[tuple[bytes, int]] = []
     first = pos
+    at = 0
     while True:
-        nl = raw.find(b"\n")
+        nl = raw.find(b"\n", at)
         if nl < 0:
             break
-        lines.append((raw[:nl], pos + nl + 1))
-        pos += nl + 1
-        raw = raw[nl + 1 :]
+        lines.append((raw[at:nl], pos + (nl + 1 - at)))
+        pos += nl + 1 - at
+        at = nl + 1
     return lines, first
 
 

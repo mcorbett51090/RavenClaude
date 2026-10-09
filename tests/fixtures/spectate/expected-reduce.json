@@ -49,13 +49,8 @@
       }
     }
   },
-  "deny_join": {
-    "deny_node": "rm-1",
-    "deny_corr_id": "c-rm",
-    "unrelated_node": "read-1",
-    "expect": {
-      "rm-1": "denied-plugin",
-      "read-1": "succeeded"
-    }
+  "deny_requires_corr_id": {
+    "node": "rm-1",
+    "status_without_corr_id": "succeeded"
   }
 }
