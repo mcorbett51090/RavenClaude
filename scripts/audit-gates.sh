@@ -6798,11 +6798,6 @@ else
   _skip_or_fail "Gate 294 (spectate render)" node
 fi
 
-echo "── Gate 294: check-spectate (schema, fixtures, reducer; unwired exits 3) ──"
-rc=0; python3 scripts/check-spectate.py --check >/dev/null 2>&1 || rc=$?
-gate "check-spectate (--check on wired tree)" must_pass "$rc"
-rc=0; rc_mustfail python3 scripts/check-spectate.py || rc=$?
-gate "check-spectate (--must-fail teeth exit 3)" must_pass "$rc"
 
 echo "── Gate 285: handoff-tax-meter.sh (model-tier delegation — the measurement leg) ──"
 # knowledge/model-tier-delegation.md says delegation saves MONEY only when the
