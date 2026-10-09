@@ -1,5 +1,10 @@
 # VS Code Copilot Chat — the customization surface (not Copilot CLI)
 
+## Harness scope
+
+**Local harness vs Agent Host.** §1 instruction loading and §2 hooks describe the **Local** harness (the in-editor Chat / Local agent). An **Agent Host** session follows the discovery rules, hook implementation, and settings of whichever harness you chose there (Copilot, Claude, or Codex) — Local hook events and Local-only settings do **not** automatically apply. VS Code documents that the **Local agent will be removed in a future release**; treat Local-harness facts as provisional and re-verify per Agent Host harness before designing on them.
+
+
 **Last reviewed:** 2026-09-01 (§6 added, §2 corrected) · previously 2026-08-14 · **Confidence:** high for docs-verified rows; live Preview hook fire and sibling built-in Write are `[unverified]` until the owner's probes (CL-3, CL-19).
 **Owner:** worktree-lane isolation. This file is Chat-only. CLI lives in [`copilot-cli-customization.md`](copilot-cli-customization.md). **Do not merge the two files.**
 
@@ -13,9 +18,11 @@ Sources: [custom-instructions](https://code.visualstudio.com/docs/agent-customiz
 
 Shared committed `AGENTS.md` across worktrees is **intentional**. The leak to stop is the other tree's dirty files, open editors, conversation, or `.ravenclaude/runs/<other-task>/`.
 
-## 2. Preview hooks
+## 2. Preview hooks (Local harness — re-verify per Agent Host harness)
 
-Chat **Preview** can load agent hooks from workspace `.github/hooks/*.json` and `.claude/settings.json`, plus `~/.copilot/hooks`. Format is the Claude / Copilot CLI hook format (`PreToolUse` can deny). Orgs can disable it. Matchers are currently **ignored** — hooks run on every tool.
+Workspace **`.github/hooks/*.json`** is the native hook location for the Local harness. **`.claude/settings.json`** and **`.claude/settings.local.json`** load only when **`chat.useClaudeHooks`** is enabled (default **off**); when they do load, the Local harness parses Claude-format matchers but **ignores** matcher values, so every command registered for the event runs. Personal hooks may also live under **`~/.copilot/hooks`**. Enable hook execution generally with **`chat.useHooks`** (default on; enterprise policy `ChatHooks` can disable — Local harness only). Format is the Claude / Copilot CLI hook format (`PreToolUse` can deny). Orgs can disable hooks entirely.
+
+**Rely on `.github/hooks/`** — `ravenclaude install --host copilot` writes `ravenclaude.json` there — rather than expecting Claude-format `.claude/settings.json` hooks to reach Chat without `chat.useClaudeHooks`.
 
 **Eight events**, PascalCase, Claude-compatible: `SessionStart`, `UserPromptSubmit`, `PreToolUse`, `PostToolUse`, `PreCompact`, `SubagentStart`, `SubagentStop`, `Stop`. `[docs-verified 2026-09-01 — code.visualstudio.com/docs/agent-customization/hooks]`
 
@@ -45,11 +52,19 @@ Sources: [agents overview](https://code.visualstudio.com/docs/agents/overview), 
 
 | Lane | What we can enforce | What we cannot |
 |---|---|---|
-| **Write** | FOREIGN-TREE on hooked hosts (Claude, Copilot CLI, Codex, Gemini). Chat built-in Write to a sibling path is `[unverified]` (CL-3). Sandbox does **not** cover built-in file tools. | Shared `~/.copilot`. Agent Host session reuse. |
+| **Write** | FOREIGN-TREE on hooked hosts (Claude, Copilot CLI, Codex, Gemini). VS Code documents built-in agent read/write tools as **workspace-folder-only** `[docs-verified 2026-10-04]` — with one folder per worktree window, a sibling worktree path is outside that boundary (a worktree is not a security boundary). Live built-in Write to a sibling path remains `[unverified]` (CL-3). Terminal commands and **Agent Host** sessions are **not** bounded by the built-in-tool workspace-folder rule; sandbox settings do **not** cover built-in file tools. | Shared `~/.copilot`. Agent Host session reuse. |
 | **Context** | Operator layout (`code -n`, no multi-root, new session). SessionStart LANE pin when hooks fire. | Agents-window session share. Open-editor / conversation bleed inside one window. |
+| **Containment lever** | Optional OS-level isolation: `chat.agent.sandbox.enabled` applies kernel-enforced file-system and network boundaries to **agent terminal commands and their child processes** (Preview on macOS/Linux/WSL2; Experimental on Windows). Built-in file tools unaffected. | Does not replace FOREIGN-TREE on shell paths; built-in tools still need the Write row's workspace-folder discipline. |
 | **Git** | FOREIGN-TREE on `git -C` / `GIT_WORK_TREE` into a sibling. Git already refuses a branch checked out elsewhere. | A human running git in the wrong window on purpose. |
 
-## 6. Programmatic compaction — the extension seam (added 2026-09-01)
+## 6. Programmatic compaction — the extension seam (Local harness — re-verify per Agent Host harness; added 2026-09-01)
+
+
+**Automatic compaction off (documented lever).** Setting
+`github.copilot.chat.summarizeAgentConversationHistory.enabled` to **`false`** turns off
+automatic/background compaction (Experimental; default **true**). With it off, only explicit
+`/compact` (including the extension seam below) compacts — plan proactively so the window does not
+fill silently.
 
 Repo-level hooks (§2) cannot trigger, gate, or shape Copilot Chat's context compaction — §2's
 `PreCompact` finding rules that out. A **VS Code extension** (a real installed/published

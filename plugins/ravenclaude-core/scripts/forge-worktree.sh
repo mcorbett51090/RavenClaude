@@ -397,7 +397,13 @@ cmd_checkpoint() {
   # AppSec F7: refuse unbounded `git add -A` when secret-shaped paths are present.
   # Dry-run secret globs; stage with pathspecs excluding common secret names.
   local secret_hit
-  secret_hit="$(git -C "$wt_abs" ls-files -co --exclude-standard 2>/dev/null | grep -E '(^|/)(\.env|\.env\..*|.*\.pem|.*\.key|id_rsa|id_ed25519|credentials\.json|secrets?\.ya?ml)(/|$)' || true)"
+  secret_hit="$(
+    {
+      git -C "$wt_abs" diff --name-only 2>/dev/null
+      git -C "$wt_abs" diff --cached --name-only 2>/dev/null
+      git -C "$wt_abs" ls-files --others --exclude-standard 2>/dev/null
+    } | sort -u | grep -E '(^|/)(\.env|\.env\..*|.*\.pem|.*\.key|id_rsa|id_ed25519|credentials\.json|secrets?\.ya?ml)(/|$)' || true
+  )"
   if [ -n "$secret_hit" ]; then
     _receipt "skipped" "$wt_abs" "$branch" "$slug" "secret-glob-blocked"
     echo "forge-worktree.sh: checkpoint refused — secret-shaped paths present:" >&2
@@ -637,8 +643,22 @@ cmd_self_test() {
     rm -f ".claude/worktrees/forge-alpha/.env"
   ) || _st_fail "secret-glob checkpoint block failed ($?)"
 
+  # Fixture 16 (F7): tracked unchanged secret-shaped paths do not block checkpoint.
+  (
+    cd "$repo"
+    wt=".claude/worktrees/forge-alpha"
+    printf 'EXAMPLE=1\n' > "$wt/.env.example"
+    git -C "$wt" add .env.example
+    git -C "$wt" commit -m "fixture: track .env.example" >/dev/null 2>&1 || true
+    echo "touch" >> "$wt/plan.md"
+    out="$(bash "$script_abs" checkpoint alpha 'tracked-env-example' 2>&1)"
+    rc=$?
+    printf '%s' "$out" | grep -q 'secret-glob-blocked' && exit 56
+    [ "$rc" -ne 2 ] || exit 57
+  ) || _st_fail "tracked unchanged .env.example blocked checkpoint ($?)"
+
   if [ "$ST_RC" -eq 0 ]; then
-    echo "SELF-TEST PASS: forge-worktree.sh (15 fixtures)"
+    echo "SELF-TEST PASS: forge-worktree.sh (16 fixtures)"
   fi
   return "$ST_RC"
 }

@@ -116,7 +116,10 @@ INJECTION_PATTERNS = [
     #    (fixed 2026-09-02 /repo-review — see the pattern-1 comment above): a
     #    decoy closing fence before the real payload's own closing fence would
     #    otherwise leave the real payload as bare, unwrapped text.
-    re.compile(r"```\s*system\b[^\n]*\n.*```", re.DOTALL | re.IGNORECASE),
+    re.compile(
+        r"(?m)^[ \t]*```[ \t]*system\b[^\n]*\n.*```",
+        re.DOTALL | re.IGNORECASE,
+    ),
     # 6-9. UNTERMINATED opening tags. Patterns 1-3/5 all require a matching
     #   closing delimiter, so an attacker bypasses them completely by simply
     #   omitting the close (e.g. `<system-reminder>…<EOF>` with no
@@ -132,7 +135,7 @@ INJECTION_PATTERNS = [
     re.compile(r"<system-reminder\b[^>]*>.*\Z", re.DOTALL | re.IGNORECASE),
     re.compile(r"<system-instruction\b[^>]*>.*\Z", re.DOTALL | re.IGNORECASE),
     re.compile(r"<important\b[^>]*>\s*(?:IMPORTANT|MUST|NEVER|ALWAYS)[:\s].*\Z", re.DOTALL | re.IGNORECASE),
-    re.compile(r"```\s*system\b.*\Z", re.DOTALL | re.IGNORECASE),
+    re.compile(r"(?m)^[ \t]*```[ \t]*system\b.*\Z", re.DOTALL | re.IGNORECASE),
 ]
 
 

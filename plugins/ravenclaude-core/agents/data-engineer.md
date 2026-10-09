@@ -4,7 +4,7 @@ description: "Use for domain-neutral data work — pipeline design, data modelin
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: sonnet
 maxTurns: 40
-effort: normal
+effort: medium
 audience: [data-engineer, dev, analyst]
 works_with: [architect, code-reviewer, backend-coder]
 scenarios:

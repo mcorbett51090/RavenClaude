@@ -761,6 +761,30 @@ PY
 # Echoes the count of skills wired. A missing plugin name (no skills dir), or a
 # plugin denied via skills.deny_plugins in comfort-posture.yaml, prints a note
 # and echoes 0 — never fails the install either way.
+
+# Symlink one plugin's slash commands into <project>/.claude/commands. Same idempotent
+# pattern as wire_plugin_skills — live symlinks so marketplace updates propagate.
+wire_plugin_commands() {
+  local project="$1" plugin_name="$2"
+  local commands_src="$MARKET/plugins/$plugin_name/commands"
+  if [ ! -d "$commands_src" ]; then
+    echo 0
+    return 0
+  fi
+  mkdir -p "$project/.claude/commands"
+  local n=0
+  for f in "$commands_src"/*.md; do
+    [ -f "$f" ] || continue
+    local name
+    name="$(basename "$f")"
+    local dest="$project/.claude/commands/$name"
+    rm -f "$dest"
+    ln -s "$f" "$dest" 2>/dev/null || cp "$f" "$dest"
+    n=$((n + 1))
+  done
+  echo "$n"
+}
+
 wire_plugin_skills() {
   local project="$1" plugin_name="$2"
   local skills_src="$MARKET/plugins/$plugin_name/skills"
@@ -1148,6 +1172,10 @@ PY2
   local n_core
   n_core="$(wire_plugin_skills "$project" "ravenclaude-core")"
   ok "wired $n_core skills from ravenclaude-core into .claude/skills"
+  local n_cmds
+  n_cmds="$(wire_plugin_commands "$project" "ravenclaude-core")"
+  ok "wired $n_cmds slash commands from ravenclaude-core into .claude/commands"
+
 
   # 1a. Is the running Copilot new enough for the guardrails below to actually
   #     fire? Checked BEFORE wiring, so the warning is the first thing seen rather

@@ -28,14 +28,13 @@ https://learn.chatgpt.com/docs/agent-configuration/subagents]`:
     "workspace-write"; omitted ⇒ inherits the parent turn
   * applies to local Codex clients, the CLI among them
 
-This projection deliberately emits only `name`, `description`, `sandbox_mode` and
-`developer_instructions`:
-  * `model` / `model_reasoning_effort` — the canonical agents pin a Claude TIER
-    alias (`haiku` / `sonnet` / `opus`), not a Codex model id, and inventing an
-    alias→id map would silently override the consumer's own default with one
-    tenant's lineup. The tier is carried into the TOML header as a comment so
-    the consumer can pin the matching rung themselves (model-tier-delegation.md
-    § "Cross-host honesty").
+This projection emits `name`, `description`, `sandbox_mode`, `developer_instructions`,
+and `model_reasoning_effort` (from the canonical tier alias):
+  * `model` — NOT emitted; canonical agents pin Claude tier aliases, not Codex
+    model ids (model-tier-delegation.md § "Cross-host honesty").
+  * `model_reasoning_effort` — takes a reasoning *level* (low/medium/high/…) the
+    selected model advertises; mapped haiku→low, sonnet→medium, opus/fable→high.
+    Tier is also stated in the TOML header comment.
   * `mcp_servers` — MCP on Codex is a separate, deliberately-deferred piece (the
     TOML merge risk); wiring it here would smuggle it in.
 
@@ -81,6 +80,13 @@ _WRITE_TOOLS = {"Edit", "Write", "MultiEdit", "NotebookEdit"}
 
 SANDBOX_READ_ONLY = "read-only"
 SANDBOX_WORKSPACE_WRITE = "workspace-write"
+
+TIER_TO_REASONING_EFFORT = {
+    "haiku": "low",
+    "sonnet": "medium",
+    "opus": "high",
+    "fable": "high",
+}
 
 
 def split_frontmatter(text: str) -> tuple[str, str]:
@@ -175,25 +181,22 @@ def build_agent_toml(agent: dict) -> str:
         f"# Derived from the canonical tools: {', '.join(agent['tools']) or '(none)'}\n"
     )
     tier = agent.get("model") or ""
+    effort = TIER_TO_REASONING_EFFORT.get(tier) if tier and tier != "inherit" else None
     if tier and tier != "inherit":
-        # Codex's `model` key is real (see the module docstring) but takes a
-        # Codex model id, not a Claude tier alias; the alias is stated so the
-        # consumer can pin the equivalent rung on their own lineup, and so an
-        # un-pinned haiku-class worker running on the session default is a
-        # visible fact in the file rather than a surprise on the bill.
         header += (
             f"#\n# Canonical model tier: {tier}. `model` is NOT emitted — it takes a Codex\n"
-            "# model id, and the canonical value is a Claude tier alias. Until you pin\n"
-            "# one, this agent runs on the session's model.\n"
+            "# model id. `model_reasoning_effort` is projected from the tier alias below.\n"
         )
-    return (
+    body = (
         header
         + f"name = {toml_basic(agent['name'])}\n"
         + f"description = {toml_basic(agent['description'])}\n"
         + f"sandbox_mode = {toml_basic(sandbox)}\n"
-        + f"developer_instructions = {toml_literal_block(agent['body'])}\n"
     )
-
+    if effort:
+        body += f"model_reasoning_effort = {toml_basic(effort)}\n"
+    body += f"developer_instructions = {toml_literal_block(agent['body'])}\n"
+    return body
 
 # The agent `name` becomes a FILENAME. Canonical agents are trusted and gated by
 # check-frontmatter.py, so this is defence in depth rather than a live hole — but

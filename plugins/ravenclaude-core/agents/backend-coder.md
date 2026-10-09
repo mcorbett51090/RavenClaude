@@ -4,7 +4,7 @@ description: Use this agent to implement server-side code — API handlers, busi
 tools: Read, Edit, Write, Grep, Glob, Bash
 model: sonnet
 maxTurns: 40
-effort: normal
+effort: medium
 audience: [dev, data-engineer]
 works_with: [architect, code-reviewer, tester-qa, security-reviewer]
 scenarios:

@@ -102,6 +102,9 @@ _AGENT_DESCRIPTION_MAX_CHARS = 300
 # rotting in 600+ agent files when a SKU is superseded.
 _AGENT_MODEL_ALIASES = frozenset({"opus", "sonnet", "haiku", "fable", "inherit"})
 
+# Documented effort tiers for agent frontmatter (Claude Code subagent effort).
+_AGENT_EFFORT_VALUES = frozenset({"low", "medium", "high", "xhigh", "max"})
+
 
 def _agent_scenario_violations(data: dict) -> list[str]:
     """Return the scenario-authoring-schema problems for one agent's frontmatter."""
@@ -248,6 +251,17 @@ def _violations(root: Path) -> list[tuple[str, str]]:
                         "with knowledge/model-catalog.json.",
                     )
                 )
+
+            effort = data.get("effort")
+            if effort is not None and not _is_blank(effort):
+                if not isinstance(effort, str) or effort.strip() not in _AGENT_EFFORT_VALUES:
+                    bad.append(
+                        (
+                            rel,
+                            f"'effort: {effort}' is not an allowed value — use one of "
+                            f"{', '.join(sorted(_AGENT_EFFORT_VALUES))}.",
+                        )
+                    )
             desc = data.get("description")
             if isinstance(desc, str) and len(desc) > _AGENT_DESCRIPTION_MAX_CHARS:
                 bad.append(
@@ -293,7 +307,7 @@ def main() -> int:
     print(
         "Frontmatter OK — every skill/agent parses as strict YAML with a description, "
         "every agent carries the scenario-authoring schema, declares an explicit tools "
-        "allowlist, pins a model-tier alias, and has a description within the "
+        "allowlist, pins a model-tier alias, uses an allowed effort value when set, and has a description within the "
         f"{_AGENT_DESCRIPTION_MAX_CHARS}-char cap."
     )
     return 0

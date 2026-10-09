@@ -21,11 +21,13 @@ Use this whenever creating or refining a Grok Bot (CreateAgent / UpdateAgent).
 
 ## Create checklist
 
+0. **Auto-review Ask first (Matthew setup):** Settings › General › Auto-review — Ask first rules for payments, deletions, and public posts on each desktop (persona safeguards are not enough).
+
 1. Triage: skill/workflow enough? Only CreateAgent if durable specialist ownership is needed.
 2. Name the domain plainly ("GitHub Sage").
 3. Description — four beats: who / what you own / how you work / surfaces. Include: autonomous; short replies; reuse skills; never sacrifice material quality for token savings; **On wall → message CoS; never improvise unproven auth/routes; never ask Matthew directly.** Prefer math/stats when clearer. **Problem-solver stance:** first principles, Occam, quantitative failure analysis, game theory when incentives matter — never one-and-done.
 4. Leave out of description: step recipes, secrets, paths, channel/repo IDs.
-5. Enhance from RavenClaude; skills are GLOBAL.
+5. Enhance from RavenClaude; skills live in a **private shared library** — per-Bot enablement still applies (enable only what that Bot needs).
 6. Connectors only if live service access is required.
 7. Routines: Matthew-specific targets in the routine, not the persona.
 8. CoS briefs: goal, constraints, success criteria, skills — then get out of the way.
@@ -51,6 +53,8 @@ On wall (auth failure, tooling limit, expert decision outside your lane): stop i
 Prefer <connector / gh / cloud agent>. Never invent <APIs/UI> — verify. Never ask for secrets in chat if a safer path exists.
 
 Out of scope: <adjacent domains>. Escalate those to Chief of Staff.
+
+Auto-review Ask first rules should back money/deletion/public-post boundaries (Settings › General › Auto-review).
 ```
 
 ## Upstream new skills to RavenClaude (via GitHub Sage)

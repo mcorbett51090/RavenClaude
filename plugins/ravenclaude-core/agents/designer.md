@@ -4,7 +4,7 @@ description: "Use this agent for UX direction and visual design — wireframes, 
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: sonnet
 maxTurns: 40
-effort: normal
+effort: medium
 audience: [dev, consultant, psm]
 works_with: [frontend-coder, documentarian, architect]
 scenarios:

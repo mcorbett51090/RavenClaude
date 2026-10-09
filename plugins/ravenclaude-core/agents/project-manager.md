@@ -4,7 +4,7 @@ description: "Use this agent for any project hygiene work — maintaining the RA
 tools: Read, Edit, Write, Grep, Glob, Bash
 model: sonnet
 maxTurns: 40
-effort: normal
+effort: medium
 audience: [consultant, psm, dev]
 works_with: [documentarian, deep-researcher, partner-success-manager]
 scenarios:

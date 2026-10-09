@@ -21,7 +21,7 @@ was built on (`{Claude Code} ∪ {everything else = Copilot}`).
 |---|---|---|---|
 | Event names | `PreToolUse`, `SessionStart`, … | **identical, PascalCase** | `preToolUse`, `sessionStart` (camelCase) |
 | stdin fields | `tool_name`, `tool_input`, `cwd`, `session_id` | **identical** | `toolName`, `toolArgs` (JSON *string*) |
-| Tool-name values | `Bash`, `Read`, … | **identical PascalCase** (`"Bash"`) | lowercase `bash`, `edit`, `view` |
+| Tool-name values | `Bash`, `Read`, … | **varies by tool** — shell/unified exec → `Bash`; `apply_patch` → `apply_patch`, `Edit`, or `Write`; MCP → `mcp__…`; other function tools → tool name. Hosted tools (e.g. `WebSearch`) have **no PreToolUse path** — `web-access-guard` cannot gate Codex web search. | lowercase `bash`, `edit`, `view` |
 | Block mechanism | `exit 2` + stderr | **identical** (also JSON `permissionDecision`) | JSON `permissionDecision` |
 | Output envelope | `hookSpecificOutput` | **identical** | top-level `permissionDecision` |
 | Plugin hooks | reads `hooks/hooks.json` | **reads `hooks/hooks.json` directly** | plugin hooks **do not fire** (#2540) |
@@ -133,9 +133,11 @@ configuration in which RavenClaude's guardrails survive an update unattended on 
 ## What this means for the Codex lane (supersedes the Copilot-shaped plan)
 
 1. **No adapter.** Do not build a `codex-hook-adapter.sh`. The contract already matches.
-2. **No tool-name map.** Codex sends `"Bash"`, PascalCase — the same value
-   `thing-orchestrator.sh:113-116` already dispatches on. The Copilot normalisation (`f55039ec`) is
-   **Copilot-specific** and must not be generalised to Codex.
+2. **No Copilot-style tool-name map.** Shell/unified exec hooks see `Bash`; patch/edit paths may
+   arrive as `apply_patch`, `Edit`, or `Write`; MCP tools use their `mcp__` name. Do not assume every
+   tool uses identical PascalCase values. Hosted tools such as `WebSearch` are not on the PreToolUse
+   hook path, so posture hooks cannot gate Codex web search. Copilot normalisation (`f55039ec`) stays
+   **Copilot-specific**.
 3. ~~**The real gap is the installer.**~~ ✅ **CLOSED 2026-07-28 (MH-07).**
    `ravenclaude install --host codex` now wires the lane: all 50 skills symlinked into
    `<project>/.agents/skills/` `[docs-verified — learn.chatgpt.com/docs/build-skills]`, and
@@ -159,8 +161,9 @@ configuration in which RavenClaude's guardrails survive an update unattended on 
    sandbox using the same primitives Claude Code's optional one does — **Seatbelt** (macOS),
    **bubblewrap** (Linux/WSL2), native Windows sandbox — governed by
    `sandbox_mode` ∈ `read-only` | `workspace-write` | `danger-full-access` (**default
-   `workspace-write`**, sandboxing applied automatically) × `approval_policy` ∈ `untrusted` |
-   `on-request` | `never`. The docs are explicit that *"The sandbox applies to spawned commands, not
+   `workspace-write`**, sandboxing applied automatically) × `approval_policy` ∈ `on-request` |
+   `never` (`untrusted` is **retired** — RavenClaude never emits it; strict read-only uses
+   `on-request` plus `sandbox_mode = read-only`). The docs are explicit that *"The sandbox applies to spawned commands, not
    just to built-in file operations"* — so it closes the **subprocess** gap that no tool-layer deny
    can. The plugin `CLAUDE.md` guidance that "the OS sandbox is Claude-only, use a container" was
    generalised from Copilot and is **wrong for Codex**; corrected in that file 2026-07-28 (MH-16
@@ -180,7 +183,7 @@ configuration in which RavenClaude's guardrails survive an update unattended on 
 | Key | Where | Values |
 |---|---|---|
 | `sandbox_mode` | **top-level** | `read-only` · `workspace-write` · `danger-full-access` |
-| `approval_policy` | **top-level** | `untrusted` · `on-request` · `never` · granular object |
+| `approval_policy` | **top-level** | `on-request` · `never` · granular object (`untrusted` retired — not emitted) |
 | `network_access` | `[sandbox_workspace_write]` | boolean |
 
 ### The governing rule: NEVER SILENTLY WEAKEN (owner decision)

@@ -1,8 +1,9 @@
 {
   "schema_version": 1,
-  "retrieved": "2026-08-14",
+  "retrieved": "2026-10-09",
   "hosts": {
     "claude": {
+      "_note": "Pinned ids are catalog anchors for Claude Code first-party drift gates; the live first-party or Bedrock `opus` alias may resolve newer than claude-opus-4-8. Re-verify at use. Copilot top Claude was Opus 5.5 in the 2026-09 lineup (see cross-tool-model-lineup).",
       "fast": "claude-haiku-4-5-20251001",
       "balanced": "claude-sonnet-5",
       "top": "claude-opus-4-8"
@@ -14,30 +15,30 @@
         "perspective": "scanner"
       },
       "balanced": {
-        "model": "grok-4.5",
+        "model": "grok-4.6",
         "effort": "high",
         "perspective": "architect"
       },
       "top": {
-        "model": "grok-4.6",
+        "model": "grok-4.7",
         "effort": "high",
         "perspective": "critic"
       }
     },
     "codex": {
-      "fast": "gpt-5.6-luna",
-      "balanced": "gpt-5.6-terra",
-      "top": "gpt-5.6-sol"
+      "fast": "gpt-6-luna",
+      "balanced": "gpt-6.1-sol",
+      "top": "gpt-6.1-sol"
     },
     "copilot": {
       "fast": "Claude Haiku 4.5",
       "balanced": "Claude Sonnet 5",
-      "top": "Claude Opus 5"
+      "top": "Claude Opus 5.5"
     }
   },
   "notes": {
-    "grok_distinct": "fast=grok-4.5/low/scanner balanced=grok-4.5/high/architect top=grok-4.6/high/critic",
-    "codex_pro_mode": "reasoning.mode pro on sol — not a separate slug",
+    "grok_distinct": "fast=grok-4.5/low/scanner balanced=grok-4.6/high/architect top=grok-4.7/high/critic",
+    "codex_pro_mode": "reasoning.mode pro on gpt-6.1-sol (GPT-6 Sol family) — not a separate slug; no Terra tier in current Codex GPT-6 docs naming",
     "copilot_balanced": "Sonnet 5 primary; Auto footnote",
     "seats": "Thing seats stay Claude; not this map"
   }

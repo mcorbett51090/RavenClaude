@@ -182,6 +182,7 @@ RECEIPT_KEY_ALLOWLIST = frozenset({
     "gate", "status", "artifact", "bytes", "bytes_verified",
     "artifact_outside_run_dir", "digest", "blockers", "confidence",
     "ts", "outcome", "waiver", "waived_reason", "note",
+    "model", "subagent_type", "effort",
 })
 
 # Secret-shaped strings scrubbed before durable run-log write (AppSec F3).
@@ -212,10 +213,18 @@ def _scrub_value(v):
 def _allowlist_receipt(rec):
     """Drop non-allowlisted keys; scrub secret-shaped strings (F3)."""
     cleaned = {}
+    dropped = []
     for k, v in rec.items():
         if k not in RECEIPT_KEY_ALLOWLIST:
+            dropped.append(k)
             continue
         cleaned[k] = _scrub_value(v)
+    if dropped:
+        print(
+            "forge-receipt: dropped non-allowlisted keys: %s"
+            % ", ".join(sorted(dropped)),
+            file=sys.stderr,
+        )
     return cleaned
 
 
@@ -742,6 +751,31 @@ def self_test(broken=False):
                 is_disabled(proj), True)
             _write(posture, "design_checkins: true\nforge_receipt: on\n")
             chk("(h2) `forge_receipt: on` does NOT disable", is_disabled(proj), False)
+
+            # (l) allowlisted dispatch metadata survives append + scrub.
+            rd_l = os.path.join(tmp, "l")
+            os.makedirs(rd_l)
+            art_l = _write(os.path.join(rd_l, "plan.md"), "plan body\n")
+            r_l = _receipt_file(
+                tmp,
+                "l.json",
+                {
+                    "gate": "G2",
+                    "status": "pass",
+                    "artifact": art_l,
+                    "model": "sonnet",
+                    "subagent_type": "backend-coder",
+                    "effort": "high",
+                    "extra_key": "drop-me",
+                },
+            )
+            code, _ = append("G2", r_l, rd_l)
+            chk("(l) append with dispatch keys clean (0)", code, 0)
+            lines_l = _log_lines(rd_l)
+            chk("(l) model stored", lines_l[0].get("model"), "sonnet")
+            chk("(l) subagent_type stored", lines_l[0].get("subagent_type"), "backend-coder")
+            chk("(l) effort stored", lines_l[0].get("effort"), "high")
+            chk("(l) extra_key dropped", "extra_key" not in lines_l[0], True)
     finally:
         if prior_kill is not None:
             os.environ["FORGE_RECEIPT"] = prior_kill

@@ -376,6 +376,24 @@ candidates = enumerate_causes(
 if not candidates:
     sys.exit(0)
 
+# ── COMPOUND COMMANDS (`;` / `&&`). Attribute failure to one segment or skip.
+# Avoid opening a ledger row on a successful read-only prefix when a later
+# segment produced the error-shaped text in the merged streams.
+if re.search(r"(?:;|&&)", cmd):
+    _segs = [s.strip() for s in re.split(r"(?:;|&&|\|\||\|)", cmd) if s.strip()]
+    if len(_segs) > 1:
+        _attributed = None
+        for _seg in reversed(_segs):
+            for _tok in re.findall(r"[/~\w.-]{3,}", _seg):
+                if len(_tok) >= 3 and _tok in both:
+                    _attributed = _seg
+                    break
+            if _attributed:
+                break
+        if not _attributed:
+            sys.exit(0)
+        cmd = _attributed
+
 # ── SUBJECT: a derived label. Never the raw command. ────────────────────────
 # ⛔ Redirect OPERANDS are stripped first. Caught by running the hook, not by
 # reading it: `grep -rn needle src/ 2>/dev/null` derived the subject `fs:/dev/null`

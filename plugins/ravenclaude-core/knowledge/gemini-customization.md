@@ -54,8 +54,13 @@ the reason, turn continues · **anything else** = non-fatal warning, CLI continu
 
 ### Where hooks are configured
 
-`.gemini/settings.json` (project) · `~/.gemini/settings.json` (user) ·
-`/etc/gemini-cli/settings.json` (system). Shape:
+Gemini merges settings from **four** documented layers (precedence for single-value keys is in the
+[settings reference](https://geminicli.com/docs/cli/settings/) — do not restate a closed three-file
+list here; vendor FAQ text sometimes says "two files"). Typical paths include **project**
+`<project>/.gemini/settings.json`**, **user** `~/.gemini/settings.json`, **system**
+`/etc/gemini-cli/settings.json`, and **extension**-contributed settings — hooks in any layer merge
+with what `ravenclaude install --host gemini` writes into the project file, so read every layer
+before declaring a guardrail unwired. Shape:
 
 ```json
 { "hooks": { "BeforeTool": [ { "matcher": "write_file|replace",
@@ -91,10 +96,12 @@ file.**
    on `Bash` sees `run_shell_command` and falls through to "no decision, proceed".
 3. **Do NOT translate blocking.** `exit 2` is already the contract. Leave it alone.
 4. **`GEMINI.md` imports `AGENTS.md`** — do not generate a copy.
-5. **Claude's `Stop` and `UserPromptSubmit` are NOT wired.** `AfterAgent` / `BeforeAgent` /
-   `SessionEnd` are plausible counterparts, but their payload schemas were not published on the
-   pages verified, and mapping a lifecycle event by name-similarity is how a lane ends up asserting
-   coverage it does not have. Wire them when their schemas are read, not before.
+5. **Claude's `Stop` and `UserPromptSubmit` are NOT wired on Gemini.** The documented
+   **`AfterAgent`** hook is the post-turn counterpart for retry/stop semantics: vendor exit code
+   **`2` = system block / retry** (same blocking contract as `BeforeTool` exit 2). **`BeforeAgent`**
+   and **`SessionEnd`** remain unwired until their payload shapes are verified on a live CLI — do
+   not map lifecycle events by name alone. (This increment does **not** wire `dod-gate.sh` onto
+   `AfterAgent`.)
 
 ## Gemini CLI 0.60 — host-security alignment (DOC adapt 2026-09-20 — UNVERIFIED)
 [verify-at-use · angle release-gemini-cli-0.60.0 · KEEP sandbox/path gates]

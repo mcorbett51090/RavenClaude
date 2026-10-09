@@ -323,10 +323,10 @@ The user tunes this from the dashboard's **Pipeline** page (Configure section), 
 
 | Posture | Meaning | What you do |
 |---|---|---|
-| block **absent** (default, v0.273.0+) | **maximum** | Fan out as wide as the independent work allows — no concurrency cap. Same as `enabled: true` + `max_workers: unlimited`. |
+| block **absent** (default, v0.273.0+) | **maximum** | Same as `enabled: true` + `max_workers: unlimited` — RavenClaude cap lifted; Claude Code host ceiling still applies (~20 concurrent subagents). |
 | `enabled: false`, or the scalar `parallelism: off` | parallel workers turned off | Run independent agents **sequentially**, one at a time. |
 | `enabled: true` + `max_workers: N` | capped fan-out | Dispatch independent agents in **batches of at most N** concurrent workers; queue the rest until a slot frees. |
-| `enabled: true` + `max_workers: unlimited` | uncapped | Fan out as wide as the independent work allows — no concurrency cap. |
+| `enabled: true` + `max_workers: unlimited` | uncapped (RavenClaude only) | Fan out as wide as independent work allows — no RavenClaude concurrency cap, but honor Claude Code's ~20 concurrent subagent ceiling. |
 
 > **⛔ `absent` changed meaning in v0.273.0** — it used to mean "unchanged / use your own judgment" and now means **maximum**. Every *explicit* setting is unchanged, so a consumer who ever tuned the block sees no difference; only the untouched case moves, and it moves toward more parallelism, never less. See the CLAUDE.md milestone for the migration note.
 

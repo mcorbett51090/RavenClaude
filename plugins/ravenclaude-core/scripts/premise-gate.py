@@ -54,10 +54,36 @@ CHEAP_FLOOR_SECONDS = 300
 BLAST_FLOOR_FILES = 3
 
 # `kind: inference` rows are unsettled unless the settling column says otherwise.
-_SETTLED = ("settled", "falsified", "partially-settled", "owner-gated")
+_SETTLED_WORDS = (
+    "partially-settled",
+    "owner-gated",
+    "falsified",
+    "settled",
+)
+_UNSETTLED_PHRASES = (
+    re.compile(r"\bnot\s+yet\s+settled\b", re.I),
+    re.compile(r"\bunsettled\b", re.I),
+)
 
 _EDGE_RE = re.compile(r"depends_on_claims\s*:\s*\[([^\]]*)\]", re.I)
-_PHASE_RE = re.compile(r"^\s{0,3}#{2,4}\s*(?:Phase\s*)?(P?-?\d+[a-z]?)\b(.*)$", re.I | re.M)
+# Phase headings must name Phase or a P-prefix id — bare numbered sections are not phases.
+_PHASE_RE = re.compile(
+    r"^\s{0,3}#{2,4}\s*(?:Phase\s+(?:P)?-?\d+[a-z]?|P-?\d+[a-z]?)\b(.*)$",
+    re.I | re.M,
+)
+
+
+def _settling_is_settled(settle: str) -> bool:
+    """Whole-word / token match; 'unsettled' and 'not yet settled' stay unsettled."""
+    if not settle:
+        return False
+    for rx in _UNSETTLED_PHRASES:
+        if rx.search(settle):
+            return False
+    for word in _SETTLED_WORDS:
+        if re.search(r"\b" + re.escape(word) + r"\b", settle, re.I):
+            return True
+    return False
 
 
 # ⛔ TWO DEFECTS FIXED HERE 2026-08-20, both measured with fixtures before the change.
@@ -160,7 +186,7 @@ def parse_claims(path: str):
             )
         claims[rid] = {
             "kind": kind or "observation",
-            "settled": any(s in settle for s in _SETTLED),
+            "settled": _settling_is_settled(settle),
             "text": cells[1][:120] if len(cells) > 1 else "",
         }
     # ⛔ A header with ZERO parsed rows is unreadable, not empty-and-clean. Without this
@@ -363,6 +389,48 @@ def self_test(broken=False):
             fh.write(_PLAN_TRIP)
         code, _ = run(d4)
         chk("an unreadable claims table is could-not-run (1), never clean", code, 1)
+
+        claims_unsettled = """# claims
+
+| # | claim | kind | tier | source | settling gate |
+|---|---|---|---|---|---|
+| 1 | GET /cdn-cgi/l/email-protection returned 404 | observation | WARN | in-session curl | unsettled |
+| 5 | the decoder is broken, every visitor affected | inference | — | drawn from #1 | not yet settled |
+| 7 | /cdn-cgi/trace returned 200 | observation | WARN | in-session curl | falsified |
+"""
+        d5 = _mkrun(tmp, claims_unsettled, _PLAN_TRIP)
+        c5 = parse_claims(os.path.join(d5, "claims-table.md"))
+        chk(
+            "'unsettled' in settling column is not settled",
+            c5.get("1", {}).get("settled") is False,
+            True,
+        )
+        chk(
+            "'not yet settled' stays unsettled",
+            c5.get("5", {}).get("settled") is False,
+            True,
+        )
+        chk(
+            "'falsified' is settled",
+            c5.get("7", {}).get("settled") is True,
+            True,
+        )
+
+        plan_no_false_phase = """## 1. Goal
+Create a new component `Email.astro`.
+depends_on_claims: [5]
+
+## Phase P1
+Create wiring only.
+depends_on_claims: [5]
+"""
+        d6 = _mkrun(tmp, _CLAIMS_FIX, plan_no_false_phase)
+        _, res6 = run(d6, blast_floor=floor)
+        chk(
+            "numbered section headings are not phases (only Phase P1 counts)",
+            res6.get("phases") == 1,
+            True,
+        )
 
     print()
     print("  premise-gate self-test: " + ("PASS" if ok else "FAIL"))

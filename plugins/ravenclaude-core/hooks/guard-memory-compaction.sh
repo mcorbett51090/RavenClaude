@@ -130,6 +130,15 @@ old_bytes="$(wc -c < "$file_path" 2>/dev/null | tr -d ' ' || echo 0)"
 case "$old_bytes" in '' | *[!0-9]*) exit 0 ;; esac
 [ "$old_bytes" -lt 1024 ] && exit 0 # too small for a shrink ratio to mean anything
 
+# --- ENH-002: near-cap advisory (does not block) -----------------------------
+# Claude Code loads MEMORY.md with a ~25KB / ~200-line cap; warn early on stderr.
+_old_lines="$(wc -l < "$file_path" 2>/dev/null | tr -d ' ' || echo 0)"
+case "$_old_lines" in '' | *[!0-9]*) _old_lines=0 ;; esac
+if [ "$old_bytes" -ge 20480 ] || [ "$_old_lines" -ge 180 ]; then
+  echo "[guard-memory-compaction] ADVISORY (ENH-002): MEMORY.md is near the load cap (~25KB / ~200 lines): ${old_bytes} bytes, ${_old_lines} lines. Plan compaction or topic-file promotion before the index stops loading fully." >&2
+fi
+
+
 # --- 1. SNAPSHOT (best-effort, never blocks) --------------------------------
 # This is the half that matters most: it exists so a lossy rewrite is always
 # recoverable, independent of whether the deny below fires.

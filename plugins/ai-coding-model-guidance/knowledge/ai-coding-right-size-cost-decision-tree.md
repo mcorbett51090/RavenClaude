@@ -19,7 +19,7 @@ flowchart TD
     START[A model choice is suspected of over- or under-spending] --> Q0{Is the task latency-bound? inline completion / autocomplete / interactive edit}
     Q0 -->|Yes - latency is the binding constraint| FAST[Fast/cheap tier - a frontier model on a one-liner wastes latency AND money for no quality gain]
     Q0 -->|No| Q1{Has the cheapest adequate lever been tried first? default model, and on Codex the reasoning DIAL before a model upgrade}
-    Q1 -->|No| CHEAPLEVER[Try the default model first; on Codex raise the reasoning level before upgrading the model - reasoning level costs latency, not dollars - verify-at-use 2026-06-05]
+    Q1 -->|No| CHEAPLEVER[Try the default model first; on Codex raise the reasoning level before upgrading the model - higher effort lengthens response time AND uses more tokens so total spend or usage-limit draw can rise even though per-token price is unchanged - verify-at-use 2026-10-09]
     Q1 -->|Yes - default/dial exhausted, still insufficient| Q2{Is this the genuine hard tail? hard reasoning, long unsupervised agentic run, or high-blast irreversible action}
     Q2 -->|Yes| FRONTIER[Frontier tier is justified FOR THIS TASK - the cost of a wrong output exceeds the model premium; pin it only for the bounded hard session, then drop back]
     Q2 -->|No - routine or moderate| Q3{Is the SAME model serving multiple task shapes with opposite constraints? e.g. one pin for both autocomplete and a 12-file refactor}
@@ -34,7 +34,7 @@ A frontier model that resolves a task and a balanced model that resolves the **s
 ## Rationale per leaf (cheap → expensive)
 
 - **Fast/cheap tier (latency-bound)** — on a single-line completion the quality gap vs. a frontier model is small, and the frontier model adds latency *and* cost for no resolved-task benefit. Latency-bound ⇒ cheapest fast tier, always.
-- **Cheap lever first** — the default model resolves a large fraction of everyday work; on Codex specifically, raising the **reasoning dial** trades latency for depth at **no change in per-token model cost** (`[verify-at-use — 2026-06-05]`, [OpenAI Codex models](https://developers.openai.com/codex/models)) — so the dial is strictly cheaper than a model upgrade for a latency-tolerant task.
+- **Cheap lever first** — the default model resolves a large fraction of everyday work; on Codex specifically, raising the **reasoning dial** trades latency for depth at **no change in per-token model cost, but total tokens rise** (`[verify-at-use — 2026-10-09]`, [OpenAI Codex models](https://developers.openai.com/codex/models)) — so the dial is still the cheaper lever than a model upgrade for a latency-tolerant task, not a free depth boost.
 - **Frontier (hard tail)** — justified when the task is genuinely hard, unsupervised, or high-blast and the cost of a wrong output exceeds the premium — but pin it for the **bounded session**, not as a standing default.
 - **Split by task shape** — one pin cannot right-size two task shapes with opposite constraints; default to an **`Auto`/router** mode for the mixed day (verify the current Auto routing + billing at use) and pin the top tier only for the bounded hard task.
 - **Balanced default** — the right standing choice for most single-shape routine work; re-evaluate by measuring cost-per-*resolved*-task over a week, not by gut feel.
@@ -45,7 +45,7 @@ A frontier model that resolves a task and a balanced model that resolves the **s
 |---|---|---|---|---|
 | Fast / cheap inline | Lowest | Lowest | Autocomplete, one-liners | Frontier pinned on completions `[verify-at-use]` |
 | Balanced default | Medium | Baseline | Most daily coding | Top tier pinned for routine edits `[verify-at-use]` |
-| Raised reasoning (same model) | Higher | Same model cost; latency↑ only (Codex) `[verify-at-use — 2026-06-05]` | Latency-tolerant hard bug | Jumping to a bigger model before trying the dial `[verify-at-use]` |
+| Raised reasoning (same model) | Higher | Per-token price unchanged; latency↑ and token usage↑ (Codex) `[verify-at-use — 2026-10-09]` | Latency-tolerant hard bug | Jumping to a bigger model before trying the dial `[verify-at-use]` |
 | Frontier | Highest | Premium `[verify-at-use]` | Hard tail; unsupervised; high-blast | Standing default for everyday work `[verify-at-use]` |
 
-> **Volatility note:** the cost *relationships* above are stable methodology; the absolute prices, the `Auto` routing/billing behavior, and the Codex cost-by-model-not-by-reasoning-level nuance are volatile — re-verify against the cited primary sources and [`cross-tool-model-lineup-2026.md`](cross-tool-model-lineup-2026.md) before quoting. Sources: [OpenAI Codex models](https://developers.openai.com/codex/models) · [GitHub Copilot auto model selection](https://docs.github.com/en/copilot/concepts/auto-model-selection) (retrieved 2026-06-05 `[verify-at-use]`).
+> **Volatility note:** the cost *relationships* above are stable methodology; the absolute prices, the `Auto` routing/billing behavior, and how Codex bills reasoning effort (per-token rate vs total tokens consumed) are volatile — re-verify against the cited primary sources and [`cross-tool-model-lineup-2026.md`](cross-tool-model-lineup-2026.md) before quoting. Sources: [OpenAI Codex models](https://developers.openai.com/codex/models) · [GitHub Copilot auto model selection](https://docs.github.com/en/copilot/concepts/auto-model-selection) (retrieved 2026-10-09 `[verify-at-use]`).

@@ -4,7 +4,7 @@ description: "Use this agent for any Partner Success Manager work — maintainin
 tools: Read, Edit, Write, Grep, Glob, Bash
 model: sonnet
 maxTurns: 40
-effort: normal
+effort: medium
 audience: [psm, consultant]
 works_with: [project-manager, documentarian, deep-researcher]
 scenarios:
