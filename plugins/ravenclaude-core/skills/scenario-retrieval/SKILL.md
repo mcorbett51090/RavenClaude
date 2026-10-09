@@ -1,5 +1,6 @@
 ---
 name: scenario-retrieval
+allowed-tools: read, view, grep, search, glob
 description: Consult the unverified scenarios bank (`plugins/<plugin>/scenarios/*.md`) before answering plugin-domain questions. Glob + tag-filter + recency-weight, surface top 2-3 with mandatory unverified-scenario preamble ("Based on N unverified scenarios from YYYY-MM tagged [scope] — verify in your environment"). Secondary source — never replaces canonical knowledge files.
 ---
 

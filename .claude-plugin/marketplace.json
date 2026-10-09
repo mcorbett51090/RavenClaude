@@ -13,7 +13,7 @@
       "name": "grok-bot-creation",
       "source": "./plugins/grok-bot-creation",
       "description": "Grok Bot creation specialist \u2014 design token-efficient, mostly autonomous Grok Bot personas (CreateAgent / UpdateAgent) with statistically insignificant quality loss: create checklist, gold description template, safe token hygiene, and the recipe for upstreaming net-new skills into RavenClaude via GitHub Sage. Distinct from ai-agent-engineering (building production agentic systems / frameworks) and ravenclaude-core (Claude Code orchestration). Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "author": {
         "name": "Matt Corbett"
       },
@@ -32,7 +32,7 @@
       "name": "grok-bot-delegation",
       "source": "./plugins/grok-bot-delegation",
       "description": "Grok Bot delegation SOP for Chief of Staff \u2014 on every Matthew ask: match or create purpose-built expert bots (via grok-bot-creation), port or upstream RavenClaude skills, SendToAgent with a tight brief, then coordinate; escalate to Matthew only for decisions, auth, or irreversible actions. Also carries the fleet token-spend playbook: condensed returns, an effort ladder before spawn, routine hygiene, connectors over browser, CPCT measurement. Distinct from ravenclaude-core Team Lead orchestration (Claude Code) and ai-agent-engineering (building agentic products). Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.2.0",
+      "version": "0.2.1",
       "author": {
         "name": "Matt Corbett"
       },
@@ -314,7 +314,7 @@
       "displayName": "RavenClaude Core",
       "source": "./plugins/ravenclaude-core",
       "description": "Domain-neutral Claude Code foundation: specialist agents, skills, gates, hooks, rules, templates. Capability Grounding Protocol, Structured Output Protocol, Researcher meta-skill, comfort-posture dashboard, opt-in command-review tribunal (the Thing), WebFetch sanitizer, branch-archive escape hatch, brand-extraction (homepage \u2192 brand kit), /wireframe (describe anything \u2192 validated model + high-fi Artifact + Mermaid), Problems & Resolutions view, declarative-visualization (Vega-Lite/Deneb/SVG, Gate 101 + Gate 103 svg-report-lint, viz-spec-reviewer), and Claude orchestrator escape hatch (/claude-orchestrate). Slash commands: /init-agent-ready, /wrap, /set-posture, /dashboard, /forge, /wireframe, /reset-plugin-cache, /handoff.",
-      "version": "0.328.0",
+      "version": "0.329.0",
       "author": {
         "name": "Matt Corbett"
       },
@@ -743,7 +743,7 @@
       "name": "ai-coding-model-guidance",
       "source": "./plugins/ai-coding-model-guidance",
       "description": "Cross-tool AI-coding model guidance \u2014 three strategist agents that help you reason about model selection in the non-Claude coding ecosystems: GitHub Copilot's model picker (completions / chat / coding agent / cloud agent + org model rules), OpenAI Codex (CLI + cloud model lineup, reasoning levels, /model), and xAI Grok (Grok 4.x lineup + the coding-tool surface). Teaches the DURABLE reasoning \u2014 task-complexity \u2192 reasoning-level \u2192 cost-tier \u2192 surface \u2014 over a single citation-grounded, dated lineup that is the marketplace's freshness anchor for non-Claude model facts. Volatile specifics (prices, context windows, picker availability) carry retrieval dates + a re-verify-at-use rider, and the agents fetch live before quoting. Seam: when the answer is a CLAUDE model or a Claude-app build, escalate to claude-app-engineering/claude-solution-architect \u2014 this plugin owns the non-Claude tools. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.3.20",
+      "version": "0.3.21",
       "author": {
         "name": "Matt Corbett"
       },

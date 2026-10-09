@@ -1,0 +1,91 @@
+{
+  "_generated_by": "scripts/generate-copilot-plugin.py — copy values into your Copilot settings; not loaded automatically.",
+  "_note": "Replace model with your org picker id. effortLevel follows docs.github.com agent settings where supported.",
+  "agents": {
+    "architect": {
+      "model": "<your-plan-picker-id>",
+      "effortLevel": "high",
+      "_canonical_tier": "opus"
+    },
+    "backend-coder": {
+      "model": "<your-plan-picker-id>",
+      "effortLevel": "medium",
+      "_canonical_tier": "sonnet"
+    },
+    "code-reviewer": {
+      "model": "<your-plan-picker-id>",
+      "effortLevel": "high",
+      "_canonical_tier": "opus"
+    },
+    "data-engineer": {
+      "model": "<your-plan-picker-id>",
+      "effortLevel": "medium",
+      "_canonical_tier": "sonnet"
+    },
+    "deep-researcher": {
+      "model": "<your-plan-picker-id>",
+      "effortLevel": "high",
+      "_canonical_tier": "opus"
+    },
+    "designer": {
+      "model": "<your-plan-picker-id>",
+      "effortLevel": "medium",
+      "_canonical_tier": "sonnet"
+    },
+    "documentarian": {
+      "model": "<your-plan-picker-id>",
+      "effortLevel": "medium",
+      "_canonical_tier": "sonnet"
+    },
+    "frontend-coder": {
+      "model": "<your-plan-picker-id>",
+      "effortLevel": "medium",
+      "_canonical_tier": "sonnet"
+    },
+    "fullstack-coder": {
+      "model": "<your-plan-picker-id>",
+      "effortLevel": "medium",
+      "_canonical_tier": "sonnet"
+    },
+    "partner-success-manager": {
+      "model": "<your-plan-picker-id>",
+      "effortLevel": "medium",
+      "_canonical_tier": "sonnet"
+    },
+    "project-manager": {
+      "model": "<your-plan-picker-id>",
+      "effortLevel": "medium",
+      "_canonical_tier": "sonnet"
+    },
+    "prompt-engineer": {
+      "model": "<your-plan-picker-id>",
+      "effortLevel": "high",
+      "_canonical_tier": "opus"
+    },
+    "scout": {
+      "model": "<your-plan-picker-id>",
+      "effortLevel": "low",
+      "_canonical_tier": "haiku"
+    },
+    "security-reviewer": {
+      "model": "<your-plan-picker-id>",
+      "effortLevel": "high",
+      "_canonical_tier": "opus"
+    },
+    "source-control-coordinator": {
+      "model": "<your-plan-picker-id>",
+      "effortLevel": "medium",
+      "_canonical_tier": "sonnet"
+    },
+    "tester-qa": {
+      "model": "<your-plan-picker-id>",
+      "effortLevel": "medium",
+      "_canonical_tier": "sonnet"
+    },
+    "viz-spec-reviewer": {
+      "model": "<your-plan-picker-id>",
+      "effortLevel": "high",
+      "_canonical_tier": "opus"
+    }
+  }
+}

@@ -3,7 +3,7 @@
   "_contract": "`supported` is a claim about whether the component RUNS on that host today, in this repo, as wired by `scripts/ravenclaude`. It is NOT a claim about whether the host is capable in principle \u2014 a host can speak a contract perfectly and still be unsupported here because nothing wires it, in which case `supported` is false and `blocked_by` says exactly that. Codex WAS this file's worked example of that distinction until 2026-07-28, when `--host codex` shipped and flipped its hooks + skills cells to true; Cursor is the current example. When a host gains an install path, update this file; do not add a second list somewhere else. `activation_gate` is the per-host silent-disarm class (`hash_trust` | `version_floor` | `none`), consumed by the shared `_rc_rearm_notice` helper at install/update/status (PR 10 / Gate 207). Codex is hash_trust (MH-17); Copilot is version_floor (MH-23). A host whose canary cannot be confirmed to fire ships as unsupported, not silently assumed working.",
   "_provenance": "verified = confirmed in-repo this session by a visible tool call. docs-verified = read from the host's own documentation this session, url given. inferred = neither; MUST be verified before anything is built on it.",
   "schema_version": 1,
-  "updated": "2026-09-15",
+  "updated": "2026-10-09",
   "_schema_note_2026_09_03": "sessionstart-safeguards-multihost (FORGE run) added a `sessionstart_verification` sub-field to every components.hooks.<host> row that has a SessionStart lane at all \u2014 {tier: D|A|S|not-applicable, basis: measured|declared|not-applicable, mechanism, note}. This is a genuine schema addition, not a value edit: other tooling that reads components.hooks rows (rc hooks selftest, Gate 259/264, the dashboard) should treat an absent sessionstart_verification key on a NEW future host row as unclassified, not as tier S by default. See plugins/ravenclaude-core/knowledge/sessionstart-hook-safeguards.md for the full ladder + per-host reasoning.",
   "hosts": {
     "claude-code": {
@@ -164,14 +164,15 @@
         "basis": "docs-verified 2026-07-28 (https://learn.chatgpt.com/docs/build-skills) + verified (installer wires it; 50 skills confirmed in a scratch install). NOTE: multiple third-party guides claim `.codex/skills`; the primary source says `.agents/skills`. Trust this row, not a blog."
       },
       "cursor": {
-        "supported": false,
-        "blocked_by": "no skills mechanism wired",
-        "basis": "verified"
+        "supported": true,
+        "how": "`ravenclaude install --host cursor` symlinks plugins/ravenclaude-core/skills into <project>/.cursor/skills/ (live symlink, cp fallback)",
+        "basis": "verified (installer wiring) + docs-verified (Cursor skills path)"
       },
       "gemini": {
         "supported": false,
         "blocked_by": "no skills mechanism wired",
-        "basis": "verified"
+        "basis": "verified",
+        "note": "Extension packaging path exists (plugins/ravenclaude-core/gemini-extension.json + GEMINI.md); skills/agents via extension install are not flipped to supported:true until a live `gemini extensions install` probe."
       },
       "aider": {
         "supported": false,
@@ -233,7 +234,7 @@
         "supported": true,
         "how": "generated projection at plugins/ravenclaude-core/copilot/agents/*.agent.md",
         "caveat": "The least-privilege `tools:` allowlist IS projected since MH-10 (2026-07-29) \u2014 see the block of that name in copilot/README.md for the vocabulary mapping and the running-session probe that verified it. Remaining honest gap is the model tier (next field).",
-        "model_tier": "NOT projected as a field, STATED in each generated header. Copilot custom agents honour a `model` property (\"If unset, inherits the default model\" \u2014 docs.github.com/en/copilot/reference/custom-agents-configuration, docs-verified 2026-09-14) but its value is a plan/org-specific picker id, not a tier alias; inventing an alias\u2192id map would hard-code one tenant's lineup into every consumer. So every projected agent inherits the session default until the consumer pins it \u2014 scout included, which means the haiku saving does NOT arrive on this host by itself.",
+        "model_tier": "NOT projected as a field, STATED in each generated header. Copilot custom agents honour a `model` property (\"If unset, inherits the default model\" \u2014 docs.github.com/en/copilot/reference/custom-agents-configuration, docs-verified 2026-09-14) but its value is a plan/org-specific picker id, not a tier alias; inventing an alias\u2192id map would hard-code one tenant's lineup into every consumer. So every projected agent inherits the session default until the consumer pins it \u2014 scout included, which means the haiku saving does NOT arrive on this host by itself. Suggested picker ids + effortLevel per agent ship in `copilot/settings.snippet.json` (generated; not auto-applied).",
         "basis": "verified"
       },
       "codex": {
@@ -244,9 +245,10 @@
         "model_tier": "`model` takes a Codex model id (NOT emitted \u2014 canonical agents pin Claude tier aliases). `model_reasoning_effort` takes a reasoning level (low/medium/high/\u2026) the selected model advertises; projected from tier alias (haiku\u2192low, sonnet\u2192medium, opus/fable\u2192high). Tier also STATED in the TOML header comment. Until the consumer pins `model`, agents run on the session default."
       },
       "cursor": {
-        "supported": false,
-        "blocked_by": "no generated agent projection exists for this host",
-        "basis": "verified"
+        "supported": true,
+        "how": "scripts/generate-cursor-agents.py projects canonical agents to <project>/.cursor/agents/*.md; wired by install --host cursor",
+        "caveat": "readonly:true on the five review-only agents (same set as Codex read-only sandbox). Model tier stated in header comment only; not live-verified in Cursor here.",
+        "basis": "verified (generator + installer wiring)"
       },
       "gemini": {
         "supported": false,
@@ -322,7 +324,7 @@
       "cursor": {
         "supported": true,
         "how": "`ravenclaude install --host cursor` writes .cursor/rules/*.mdc \u2014 Cursor's OWN convention, which its docs describe as the scoped alternative to AGENTS.md rather than a superset. Two rules: an always-on discipline pointer, and a glob-scoped layout-allow-list rule (MH-25).",
-        "caveat": "AGENTS.md auto-load by Cursor remains unconfirmed; the .mdc rules are what this repo actually wires, so do not rely on AGENTS.md reaching a Cursor session on its own.",
+        "caveat": "AGENTS.md auto-load by Cursor remains unconfirmed; the .mdc rules are what this repo actually wires, so do not rely on AGENTS.md reaching a Cursor session on its own. BUGBOT: install upserts .cursor/BUGBOT.md only when the file is absent or already carries a RavenClaude marker \u2014 an existing user BUGBOT without the marker is left unchanged.",
         "basis": "docs-verified 2026-07-28 (cursor.com/docs, rules) + verified (installer wires it)"
       },
       "gemini": {

@@ -123,3 +123,19 @@ stays a thin shim (tool-name normalize + `THING_HOST` + exit-2 passthrough). Do
 - Re-implementing Gemini's OAuth issuer checks inside bash.
 - Softening exit-2 deny into JSON-allow on parse failure (Cursor fail-open class — Gemini is exit-2 safe).
 - Treating envelope metadata as authenticated identity.
+
+---
+
+## Comfort posture projection (2026-10-09)
+
+`scripts/emit-gemini-config.py` (called from `ravenclaude install --host gemini` when `.ravenclaude/comfort-posture.yaml` exists) merges **tighten-only** values into `<project>/.gemini/settings.json`:
+
+- `general.defaultApprovalMode` — `default`, `auto_edit`, or `plan` (never `yolo`; CLI-only per vendor docs).
+- `tools.sandboxNetworkAccess` — boolean; tightening to `false` is allowed; loosening is refused.
+
+Gemini's OS sandbox remains **opt-in** (`--sandbox` defaults off); this projection does not enable the sandbox by itself.
+
+## Extension manifest (2026-10-09)
+
+`plugins/ravenclaude-core/gemini-extension.json` + `GEMINI.md` (`@AGENTS.md`) support `gemini extensions install <path>` packaging. Skills/agents via extension are **not** marked supported in `host-support.json` until a live install probe confirms they load.
+

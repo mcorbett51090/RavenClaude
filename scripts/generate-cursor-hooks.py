@@ -112,6 +112,9 @@ _SKIP = {
         "shell command and has no input-rewrite field, so the pin cannot bind here. "
         "On Cursor, pick the model tier in the dispatch call itself."
     ),
+    "emit-permission-denied.sh": (
+        "PermissionDenied. Cursor has no verified lane for Claude Code PermissionDenied hooks."
+    ),
     "precompact-digest.sh": (
         "PreCompact. Cursor has no verified compaction-hook event (nothing analogous "
         "to Claude Code's PreCompact is published on the pages verified), so wiring "
@@ -228,7 +231,10 @@ def project(manifest: dict, adapter: str, hooks_dir: str) -> tuple:
                 cmd = f'bash "{adapter}" {mode} "{hooks_dir}/{script}"'
                 if args:
                     cmd += f" {args}"
-                out.setdefault(cursor_event, []).append({"command": cmd, "timeout": 90})
+                entry: dict = {"command": cmd, "timeout": 90}
+                if cursor_event == "beforeShellExecution":
+                    entry["failClosed"] = True
+                out.setdefault(cursor_event, []).append(entry)
                 wired.append((script, event, cursor_event, mode))
     return out, wired, skipped
 

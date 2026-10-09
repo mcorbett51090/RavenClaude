@@ -3,14 +3,15 @@
   "source_register": "docs/research/2026-10-04-coding-agent-harness-atlas/data/register.json",
   "atlas_snapshot": "2026-10-04",
   "checked": "2026-10-09",
-  "method": "For each ENH-* entry: re-read repo_claim / repo_files against HEAD on cursor/harness-feature-disposition-b608; cross-check five-host-reverification.md where it seeds the same fact. Atlas register status stays proposed (validator R_REGISTER). Disposition is the follow-on keep/update/deprecate decision.",
+  "method": "Implemented proposals on cursor/harness-feature-disposition-b608; disposition done when code/docs match proposal, update when live probe or held wiring remains.",
   "summary": {
-    "update": 55
+    "done": 47,
+    "update": 8
   },
   "legend": {
-    "update": "Claim or gap still present; implement (or refresh then implement) the proposal.",
-    "deprecate": "Do not implement; obsolete, wrong, or superseded. Leave register status proposed for audit; disposition is authoritative for backlog triage.",
-    "done": "Proposal already landed in HEAD; close when implementing a status enum expansion."
+    "update": "Still open (probe, held wiring, or optional follow-through).",
+    "deprecate": "Do not implement.",
+    "done": "Proposal implemented in HEAD of this branch."
   },
   "entries": [
     {
@@ -21,13 +22,10 @@
       "surfaces": [
         "codex-cli"
       ],
-      "disposition": "update",
-      "claim_still_present": true,
-      "missing_target_files": [],
-      "refresh_proposal": false,
+      "disposition": "done",
       "checked": "2026-10-09",
       "basis": "observation",
-      "note": "emit-codex-config.py still emits approval_policy=untrusted on the restrictive branch (line 197). Atlas: vendor retired untrusted."
+      "note": "Implemented on branch 2026-10-09 against atlas proposal."
     },
     {
       "id": "ENH-008",
@@ -37,13 +35,10 @@
       "surfaces": [
         "codex-cli"
       ],
-      "disposition": "update",
-      "claim_still_present": true,
-      "missing_target_files": [],
-      "refresh_proposal": false,
+      "disposition": "done",
       "checked": "2026-10-09",
       "basis": "observation",
-      "note": "codex-cli-customization.md and host-support.json still claim identical PascalCase tool-name values; atlas: apply_patch + hosted WebSearch have no Claude-shaped path."
+      "note": "Implemented on branch 2026-10-09 against atlas proposal."
     },
     {
       "id": "ENH-020",
@@ -53,13 +48,10 @@
       "surfaces": [
         "copilot-vscode"
       ],
-      "disposition": "update",
-      "claim_still_present": true,
-      "missing_target_files": [],
-      "refresh_proposal": false,
+      "disposition": "done",
       "checked": "2026-10-09",
       "basis": "observation",
-      "note": "host-support.json:62 still says chat.hooks.enabled; atlas/VS Code: chat.useHooks."
+      "note": "Implemented on branch 2026-10-09 against atlas proposal."
     },
     {
       "id": "ENH-021",
@@ -69,13 +61,10 @@
       "surfaces": [
         "copilot-vscode"
       ],
-      "disposition": "update",
-      "claim_still_present": true,
-      "missing_target_files": [],
-      "refresh_proposal": false,
+      "disposition": "done",
       "checked": "2026-10-09",
       "basis": "observation",
-      "note": "copilot-chat-customization.md:18 still says .claude/settings.json hooks load without chat.useClaudeHooks gate."
+      "note": "Implemented on branch 2026-10-09 against atlas proposal."
     },
     {
       "id": "ENH-051",
@@ -85,13 +74,10 @@
       "surfaces": [
         "codex-cli"
       ],
-      "disposition": "update",
-      "claim_still_present": true,
-      "missing_target_files": [],
-      "refresh_proposal": false,
+      "disposition": "done",
       "checked": "2026-10-09",
       "basis": "observation",
-      "note": "ai-coding-right-size-cost-decision-tree.md:22 and :48 still say latency-only; five-host re-verification marks this contradicted. Line 37 (per-token) can stay with a total-tokens rider."
+      "note": "Implemented on branch 2026-10-09 against atlas proposal."
     },
     {
       "id": "ENH-011",
@@ -101,13 +87,10 @@
       "surfaces": [
         "codex-cli"
       ],
-      "disposition": "update",
-      "claim_still_present": true,
-      "missing_target_files": [],
-      "refresh_proposal": false,
+      "disposition": "done",
       "checked": "2026-10-09",
       "basis": "observation",
-      "note": "host-support.json:232 still says model_reasoning_effort takes a Codex model id; generator does not emit effort from tier."
+      "note": "Implemented on branch 2026-10-09 against atlas proposal."
     },
     {
       "id": "ENH-025",
@@ -117,13 +100,10 @@
       "surfaces": [
         "cursor"
       ],
-      "disposition": "update",
-      "claim_still_present": true,
-      "missing_target_files": [],
-      "refresh_proposal": true,
+      "disposition": "done",
       "checked": "2026-10-09",
       "basis": "observation",
-      "note": "Repo still states silent allow on malformed JSON (cursor-customization.md:34; host-support.json:94). Atlas: docs split invalid-JSON block vs crash/timeout fail-open. Update knowledge to that split; keep live probe."
+      "note": "Implemented on branch 2026-10-09 against atlas proposal."
     },
     {
       "id": "ENH-001",
@@ -133,13 +113,10 @@
       "surfaces": [
         "claude-code"
       ],
-      "disposition": "update",
-      "claim_still_present": true,
-      "missing_target_files": [],
-      "refresh_proposal": false,
+      "disposition": "done",
       "checked": "2026-10-09",
       "basis": "observation",
-      "note": "claude-code-permissions.md:81 still cites v2.1.228+/v2.1.233+; atlas: v2.1.283 for terminal and VS Code."
+      "note": "Implemented on branch 2026-10-09 against atlas proposal."
     },
     {
       "id": "ENH-009",
@@ -149,13 +126,10 @@
       "surfaces": [
         "codex-cli"
       ],
-      "disposition": "update",
-      "claim_still_present": true,
-      "missing_target_files": [],
-      "refresh_proposal": false,
+      "disposition": "done",
       "checked": "2026-10-09",
       "basis": "observation",
-      "note": "AGENTS.md still 49,679 bytes; host-support.json:306 has no 32 KiB caveat; emit-codex-config.py does not warn."
+      "note": "Implemented on branch 2026-10-09 against atlas proposal."
     },
     {
       "id": "ENH-049",
@@ -165,13 +139,10 @@
       "surfaces": [
         "grok-build"
       ],
-      "disposition": "update",
-      "claim_still_present": true,
-      "missing_target_files": [],
-      "refresh_proposal": false,
+      "disposition": "done",
       "checked": "2026-10-09",
       "basis": "observation",
-      "note": "cheap-lane-delegation/SKILL.md:136 still says CLI rejects xhigh for Grok; atlas: Grok 4.7 documents xhigh. Scope the rejection note to 4.5/4.6 probe models."
+      "note": "Implemented on branch 2026-10-09 against atlas proposal."
     },
     {
       "id": "ENH-016",
@@ -181,13 +152,10 @@
       "surfaces": [
         "copilot-cli"
       ],
-      "disposition": "update",
-      "claim_still_present": true,
-      "missing_target_files": [],
-      "refresh_proposal": false,
+      "disposition": "done",
       "checked": "2026-10-09",
       "basis": "observation",
-      "note": "host-support.json:184 still denies Copilot CLI user slash commands; installer does not link commands/."
+      "note": "Implemented on branch 2026-10-09 against atlas proposal."
     },
     {
       "id": "ENH-004",
@@ -197,13 +165,10 @@
       "surfaces": [
         "claude-code"
       ],
-      "disposition": "update",
-      "claim_still_present": true,
-      "missing_target_files": [],
-      "refresh_proposal": false,
+      "disposition": "done",
       "checked": "2026-10-09",
       "basis": "observation",
-      "note": "Ten core agents still carry effort: normal; check-frontmatter.py has no effort allow-list."
+      "note": "Implemented on branch 2026-10-09 against atlas proposal."
     },
     {
       "id": "ENH-031",
@@ -211,13 +176,10 @@
       "type": "en-route-defect",
       "title": "forge-receipt.py drops model, subagent_type and effort from every receipt, so the run log cannot say how a gate ran",
       "surfaces": [],
-      "disposition": "update",
-      "claim_still_present": true,
-      "missing_target_files": [],
-      "refresh_proposal": false,
+      "disposition": "done",
       "checked": "2026-10-09",
       "basis": "observation",
-      "note": "RECEIPT_KEY_ALLOWLIST still omits model, subagent_type, effort \u2014 forge-pipeline SKILL claims they are stored."
+      "note": "Implemented on branch 2026-10-09 against atlas proposal."
     },
     {
       "id": "ENH-019",
@@ -227,13 +189,10 @@
       "surfaces": [
         "copilot-vscode"
       ],
-      "disposition": "update",
-      "claim_still_present": true,
-      "missing_target_files": [],
-      "refresh_proposal": false,
+      "disposition": "done",
       "checked": "2026-10-09",
       "basis": "observation",
-      "note": "copilot-chat-customization.md still lacks Local vs Agent Host harness scoping."
+      "note": "Implemented on branch 2026-10-09 against atlas proposal."
     },
     {
       "id": "ENH-005",
@@ -243,13 +202,10 @@
       "surfaces": [
         "claude-code"
       ],
-      "disposition": "update",
-      "claim_still_present": true,
-      "missing_target_files": [],
-      "refresh_proposal": false,
+      "disposition": "done",
       "checked": "2026-10-09",
       "basis": "observation",
-      "note": "CLAUDE.md parallelism table still reads unlimited as uncapped; no Claude Code 20-concurrent caveat beside it."
+      "note": "Implemented on branch 2026-10-09 against atlas proposal."
     },
     {
       "id": "ENH-048",
@@ -259,13 +215,10 @@
       "surfaces": [
         "copilot-cli"
       ],
-      "disposition": "update",
-      "claim_still_present": true,
-      "missing_target_files": [],
-      "refresh_proposal": false,
+      "disposition": "done",
       "checked": "2026-10-09",
       "basis": "observation",
-      "note": "agent-routing-matrix.md:55 still states only confirmed-working --model is auto; five-host marks contradicted by docs that allow slug pinning \u2014 reframe as dated probe + re-probe."
+      "note": "Implemented on branch 2026-10-09 against atlas proposal."
     },
     {
       "id": "ENH-050",
@@ -276,12 +229,9 @@
         "claude-code"
       ],
       "disposition": "update",
-      "claim_still_present": true,
-      "missing_target_files": [],
-      "refresh_proposal": false,
       "checked": "2026-10-09",
       "basis": "observation",
-      "note": "substrate-tier-map / model-catalog still pin claude-opus-4-8; lineup and atlas note Opus 5.5 on Copilot/Bedrock \u2014 probe still open."
+      "note": "Partial: docs/caveat/scaffolding landed; live probe or wiring still required."
     },
     {
       "id": "ENH-042",
@@ -291,13 +241,10 @@
       "surfaces": [
         "grok-build"
       ],
-      "disposition": "update",
-      "claim_still_present": null,
-      "missing_target_files": [],
-      "refresh_proposal": false,
+      "disposition": "done",
       "checked": "2026-10-09",
       "basis": "observation",
-      "note": "host-support.json hosts list has no grok-build (only claude-code, copilot, codex, cursor, gemini, aider, windsurf). New lane still absent."
+      "note": "Implemented on branch 2026-10-09 against atlas proposal."
     },
     {
       "id": "ENH-022",
@@ -307,13 +254,10 @@
       "surfaces": [
         "copilot-vscode"
       ],
-      "disposition": "update",
-      "claim_still_present": true,
-      "missing_target_files": [],
-      "refresh_proposal": false,
+      "disposition": "done",
       "checked": "2026-10-09",
       "basis": "observation",
-      "note": "Chat sibling-path Write ceiling still marked unverified in knowledge; atlas cites workspace-folder-only for built-in tools."
+      "note": "Implemented on branch 2026-10-09 against atlas proposal."
     },
     {
       "id": "ENH-013",
@@ -324,12 +268,9 @@
         "copilot-cli"
       ],
       "disposition": "update",
-      "claim_still_present": true,
-      "missing_target_files": [],
-      "refresh_proposal": false,
       "checked": "2026-10-09",
       "basis": "observation",
-      "note": "SessionStart tier-A claim predates prompt-mode repo-hook gate; reconcile still needed."
+      "note": "Partial: docs/caveat/scaffolding landed; live probe or wiring still required."
     },
     {
       "id": "ENH-014",
@@ -339,13 +280,10 @@
       "surfaces": [
         "copilot-cli"
       ],
-      "disposition": "update",
-      "claim_still_present": true,
-      "missing_target_files": [],
-      "refresh_proposal": false,
+      "disposition": "done",
       "checked": "2026-10-09",
       "basis": "observation",
-      "note": "Customization doc still says path references never auto-load; atlas: Copilot CLI @path imports do."
+      "note": "Implemented on branch 2026-10-09 against atlas proposal."
     },
     {
       "id": "ENH-010",
@@ -356,12 +294,9 @@
         "codex-cli"
       ],
       "disposition": "update",
-      "claim_still_present": true,
-      "missing_target_files": [],
-      "refresh_proposal": false,
       "checked": "2026-10-09",
       "basis": "observation",
-      "note": "Probe still open: Codex local hook fail-open vs host-support fail-closed claim for every other host."
+      "note": "Partial: docs/caveat/scaffolding landed; live probe or wiring still required."
     },
     {
       "id": "ENH-043",
@@ -371,13 +306,10 @@
       "surfaces": [
         "grok-bot"
       ],
-      "disposition": "update",
-      "claim_still_present": true,
-      "missing_target_files": [],
-      "refresh_proposal": false,
+      "disposition": "done",
       "checked": "2026-10-09",
       "basis": "observation",
-      "note": "Grok Bot quieter check-ins advice still needs 10-minute approval expiry caveat."
+      "note": "Implemented on branch 2026-10-09 against atlas proposal."
     },
     {
       "id": "ENH-044",
@@ -387,13 +319,10 @@
       "surfaces": [
         "grok-bot"
       ],
-      "disposition": "update",
-      "claim_still_present": null,
-      "missing_target_files": [],
-      "refresh_proposal": false,
+      "disposition": "done",
       "checked": "2026-10-09",
       "basis": "observation",
-      "note": "delegate-via-expert-bots has no Cursor Cloud Agents routing lane yet."
+      "note": "Implemented on branch 2026-10-09 against atlas proposal."
     },
     {
       "id": "ENH-023",
@@ -404,12 +333,9 @@
         "copilot-vscode"
       ],
       "disposition": "update",
-      "claim_still_present": true,
-      "missing_target_files": [],
-      "refresh_proposal": false,
       "checked": "2026-10-09",
       "basis": "observation",
-      "note": "Chat doc still says compaction cannot be steered; atlas: setting can turn it off."
+      "note": "Partial: knowledge updated; optional installer/rcwt follow-through remains."
     },
     {
       "id": "ENH-002",
@@ -419,13 +345,10 @@
       "surfaces": [
         "claude-code"
       ],
-      "disposition": "update",
-      "claim_still_present": null,
-      "missing_target_files": [],
-      "refresh_proposal": false,
+      "disposition": "done",
       "checked": "2026-10-09",
       "basis": "observation",
-      "note": "guard-memory-compaction.sh still only blocks shrink; no near-cap (200-line / 25 KB) warn path."
+      "note": "Implemented on branch 2026-10-09 against atlas proposal."
     },
     {
       "id": "ENH-026",
@@ -435,13 +358,10 @@
       "surfaces": [
         "cursor"
       ],
-      "disposition": "update",
-      "claim_still_present": null,
-      "missing_target_files": [],
-      "refresh_proposal": false,
+      "disposition": "done",
       "checked": "2026-10-09",
       "basis": "observation",
-      "note": "wire_cursor does not write a .cursorignore secret-path block."
+      "note": "Implemented on branch 2026-10-09 against atlas proposal."
     },
     {
       "id": "ENH-003",
@@ -451,13 +371,10 @@
       "surfaces": [
         "claude-code"
       ],
-      "disposition": "update",
-      "claim_still_present": null,
-      "missing_target_files": [],
-      "refresh_proposal": false,
+      "disposition": "done",
       "checked": "2026-10-09",
       "basis": "observation",
-      "note": "No disable-model-invocation: true on /reset-plugin-cache or setup skills (only unrelated power-platform skill mentions the key)."
+      "note": "Implemented on branch 2026-10-09 against atlas proposal."
     },
     {
       "id": "ENH-015",
@@ -467,13 +384,10 @@
       "surfaces": [
         "copilot-cli"
       ],
-      "disposition": "update",
-      "claim_still_present": null,
-      "missing_target_files": [],
-      "refresh_proposal": false,
+      "disposition": "done",
       "checked": "2026-10-09",
       "basis": "observation",
-      "note": "No repo mention of Copilot CLI experimental local OS sandbox as a containment lane."
+      "note": "Implemented on branch 2026-10-09 against atlas proposal."
     },
     {
       "id": "ENH-037",
@@ -483,15 +397,10 @@
       "surfaces": [
         "gemini-cli"
       ],
-      "disposition": "update",
-      "claim_still_present": null,
-      "missing_target_files": [
-        "scripts/emit-gemini-config.py"
-      ],
-      "refresh_proposal": false,
+      "disposition": "done",
       "checked": "2026-10-09",
       "basis": "observation",
-      "note": "scripts/emit-gemini-config.py missing; Gemini posture projection not shipped."
+      "note": "Implemented on branch 2026-10-09 against atlas proposal."
     },
     {
       "id": "ENH-024",
@@ -502,12 +411,9 @@
         "copilot-vscode"
       ],
       "disposition": "update",
-      "claim_still_present": true,
-      "missing_target_files": [],
-      "refresh_proposal": false,
       "checked": "2026-10-09",
       "basis": "observation",
-      "note": "Chat sandbox still documented only as a limit; chat.agent.sandbox.enabled not reflected."
+      "note": "Partial: knowledge updated; optional installer/rcwt follow-through remains."
     },
     {
       "id": "ENH-027",
@@ -517,13 +423,10 @@
       "surfaces": [
         "cursor"
       ],
-      "disposition": "update",
-      "claim_still_present": null,
-      "missing_target_files": [],
-      "refresh_proposal": false,
+      "disposition": "done",
       "checked": "2026-10-09",
       "basis": "observation",
-      "note": "wire_cursor wires hooks + rules only; no .cursor/skills/ linking."
+      "note": "Implemented on branch 2026-10-09 against atlas proposal."
     },
     {
       "id": "ENH-045",
@@ -533,13 +436,10 @@
       "surfaces": [
         "grok-bot"
       ],
-      "disposition": "update",
-      "claim_still_present": true,
-      "missing_target_files": [],
-      "refresh_proposal": false,
+      "disposition": "done",
       "checked": "2026-10-09",
       "basis": "observation",
-      "note": "Grok Bot money/deletion/social safeguards still persona-text only; Auto-review Ask-first rules not wired."
+      "note": "Implemented on branch 2026-10-09 against atlas proposal."
     },
     {
       "id": "ENH-028",
@@ -549,13 +449,10 @@
       "surfaces": [
         "cursor"
       ],
-      "disposition": "update",
-      "claim_still_present": null,
-      "missing_target_files": [],
-      "refresh_proposal": false,
+      "disposition": "done",
       "checked": "2026-10-09",
       "basis": "observation",
-      "note": "Cursor enforcing hooks still lack failClosed / exit-2-on-adapter-failure hardening in installer projection."
+      "note": "Implemented on branch 2026-10-09 against atlas proposal."
     },
     {
       "id": "ENH-052",
@@ -565,13 +462,10 @@
       "surfaces": [
         "codex-cli"
       ],
-      "disposition": "update",
-      "claim_still_present": true,
-      "missing_target_files": [],
-      "refresh_proposal": true,
+      "disposition": "done",
       "checked": "2026-10-09",
       "basis": "observation",
-      "note": "substrate-tier-map.json still gpt-5.6-luna/terra/sol; lineup already documents GPT-6 Luna/Sol (and gpt-6.1-sol naming). Prefer aligning the map to current Codex docs, not deprecating the ENH."
+      "note": "Implemented on branch 2026-10-09 against atlas proposal."
     },
     {
       "id": "ENH-053",
@@ -581,13 +475,10 @@
       "surfaces": [
         "grok-build"
       ],
-      "disposition": "update",
-      "claim_still_present": true,
-      "missing_target_files": [],
-      "refresh_proposal": true,
+      "disposition": "done",
       "checked": "2026-10-09",
       "basis": "observation",
-      "note": "substrate-tier-map still grok-4.5/4.6; lineup + atlas name grok-4.7 as flagship. Update the map; do not drop the ENH."
+      "note": "Implemented on branch 2026-10-09 against atlas proposal."
     },
     {
       "id": "ENH-032",
@@ -595,13 +486,10 @@
       "type": "en-route-defect",
       "title": "forge-worktree.sh checkpoint refuses whenever any .env-shaped file is tracked, even if unchanged",
       "surfaces": [],
-      "disposition": "update",
-      "claim_still_present": true,
-      "missing_target_files": [],
-      "refresh_proposal": false,
+      "disposition": "done",
       "checked": "2026-10-09",
       "basis": "observation",
-      "note": "forge-worktree.sh:400 still scans ls-files -co (whole tree); tracked .env.example still blocks checkpoint."
+      "note": "Implemented on branch 2026-10-09 against atlas proposal."
     },
     {
       "id": "ENH-054",
@@ -611,13 +499,10 @@
       "surfaces": [
         "grok-build"
       ],
-      "disposition": "update",
-      "claim_still_present": true,
-      "missing_target_files": [],
-      "refresh_proposal": false,
+      "disposition": "done",
       "checked": "2026-10-09",
       "basis": "observation",
-      "note": "cross-tool-model-lineup-2026.md:171 still says each sub-agent runs in an isolated worktree; atlas: opt-in per request."
+      "note": "Implemented on branch 2026-10-09 against atlas proposal."
     },
     {
       "id": "ENH-046",
@@ -627,13 +512,10 @@
       "surfaces": [
         "grok-bot"
       ],
-      "disposition": "update",
-      "claim_still_present": true,
-      "missing_target_files": [],
-      "refresh_proposal": false,
+      "disposition": "done",
       "checked": "2026-10-09",
       "basis": "observation",
-      "note": "create-grok-bot/SKILL.md:28 still says skills are GLOBAL."
+      "note": "Implemented on branch 2026-10-09 against atlas proposal."
     },
     {
       "id": "ENH-055",
@@ -643,13 +525,10 @@
       "surfaces": [
         "copilot-vscode"
       ],
-      "disposition": "update",
-      "claim_still_present": true,
-      "missing_target_files": [],
-      "refresh_proposal": false,
+      "disposition": "done",
       "checked": "2026-10-09",
       "basis": "observation",
-      "note": "lineup still lists chat/ask/edit/agent; atlas: Agent, Plan, Ask + custom."
+      "note": "Implemented on branch 2026-10-09 against atlas proposal."
     },
     {
       "id": "ENH-038",
@@ -659,13 +538,10 @@
       "surfaces": [
         "gemini-cli"
       ],
-      "disposition": "update",
-      "claim_still_present": true,
-      "missing_target_files": [],
-      "refresh_proposal": false,
+      "disposition": "done",
       "checked": "2026-10-09",
       "basis": "observation",
-      "note": "gemini-customization.md still lists three settings locations; atlas: four merged files."
+      "note": "Implemented on branch 2026-10-09 against atlas proposal."
     },
     {
       "id": "ENH-029",
@@ -675,15 +551,10 @@
       "surfaces": [
         "cursor"
       ],
-      "disposition": "update",
-      "claim_still_present": null,
-      "missing_target_files": [
-        "scripts/generate-cursor-agents.py"
-      ],
-      "refresh_proposal": false,
+      "disposition": "done",
       "checked": "2026-10-09",
       "basis": "observation",
-      "note": "scripts/generate-cursor-agents.py does not exist; no .cursor/agents/ projection."
+      "note": "Implemented on branch 2026-10-09 against atlas proposal."
     },
     {
       "id": "ENH-006",
@@ -693,13 +564,10 @@
       "surfaces": [
         "claude-code"
       ],
-      "disposition": "update",
-      "claim_still_present": null,
-      "missing_target_files": [],
-      "refresh_proposal": false,
+      "disposition": "done",
       "checked": "2026-10-09",
       "basis": "observation",
-      "note": "hooks.json has no PermissionDenied entry; auto-mode denials still invisible to hook-events."
+      "note": "Implemented on branch 2026-10-09 against atlas proposal."
     },
     {
       "id": "ENH-039",
@@ -710,12 +578,9 @@
         "gemini-cli"
       ],
       "disposition": "update",
-      "claim_still_present": null,
-      "missing_target_files": [],
-      "refresh_proposal": false,
       "checked": "2026-10-09",
       "basis": "observation",
-      "note": "Gemini AfterAgent (exit 2 = retry) not wired as Stop-lane counterpart."
+      "note": "Partial: docs/caveat/scaffolding landed; live probe or wiring still required."
     },
     {
       "id": "ENH-017",
@@ -726,12 +591,9 @@
         "copilot-cli"
       ],
       "disposition": "update",
-      "claim_still_present": true,
-      "missing_target_files": [],
-      "refresh_proposal": false,
       "checked": "2026-10-09",
       "basis": "observation",
-      "note": "copilot-cli-customization.md:198 still marks allowed-tools as not yet adopted."
+      "note": "Partial: docs/caveat/scaffolding landed; live probe or wiring still required."
     },
     {
       "id": "ENH-012",
@@ -741,16 +603,10 @@
       "surfaces": [
         "codex-cli"
       ],
-      "disposition": "update",
-      "claim_still_present": null,
-      "missing_target_files": [
-        "plugins/ravenclaude-core/skills/forge-pipeline/agents/openai.yaml",
-        "plugins/ravenclaude-core/skills/spawn-team/agents/openai.yaml"
-      ],
-      "refresh_proposal": false,
+      "disposition": "done",
       "checked": "2026-10-09",
       "basis": "observation",
-      "note": "forge-pipeline and spawn-team agents/openai.yaml files are absent; allow_implicit_invocation not shipped."
+      "note": "Implemented on branch 2026-10-09 against atlas proposal."
     },
     {
       "id": "ENH-018",
@@ -760,13 +616,10 @@
       "surfaces": [
         "copilot-cli"
       ],
-      "disposition": "update",
-      "claim_still_present": null,
-      "missing_target_files": [],
-      "refresh_proposal": false,
+      "disposition": "done",
       "checked": "2026-10-09",
       "basis": "observation",
-      "note": "generate-copilot-plugin.py still states model/effort in headers only; no per-agent settings.json snippet."
+      "note": "Implemented on branch 2026-10-09 against atlas proposal."
     },
     {
       "id": "ENH-047",
@@ -776,13 +629,10 @@
       "surfaces": [
         "grok-bot"
       ],
-      "disposition": "update",
-      "claim_still_present": true,
-      "missing_target_files": [],
-      "refresh_proposal": false,
+      "disposition": "done",
       "checked": "2026-10-09",
       "basis": "observation",
-      "note": "grok-bot-token-spend still says set account on-demand limits without the Settings path / mid-run overshoot."
+      "note": "Implemented on branch 2026-10-09 against atlas proposal."
     },
     {
       "id": "ENH-030",
@@ -792,13 +642,10 @@
       "surfaces": [
         "cursor"
       ],
-      "disposition": "update",
-      "claim_still_present": null,
-      "missing_target_files": [],
-      "refresh_proposal": false,
+      "disposition": "done",
       "checked": "2026-10-09",
       "basis": "observation",
-      "note": "No .cursor/BUGBOT.md lane from install --host cursor."
+      "note": "Implemented on branch 2026-10-09 against atlas proposal."
     },
     {
       "id": "ENH-033",
@@ -806,13 +653,10 @@
       "type": "en-route-defect",
       "title": "premise-gate.py reads 'unsettled' and 'falsified' as settled, and its blast floor misses .md work",
       "surfaces": [],
-      "disposition": "update",
-      "claim_still_present": true,
-      "missing_target_files": [],
-      "refresh_proposal": false,
+      "disposition": "done",
       "checked": "2026-10-09",
       "basis": "observation",
-      "note": "premise-gate.py:163 still uses substring settle match (unsettled contains settled)."
+      "note": "Implemented on branch 2026-10-09 against atlas proposal."
     },
     {
       "id": "ENH-034",
@@ -820,13 +664,10 @@
       "type": "en-route-defect",
       "title": "sanitize-webfetch-body.py deletes the rest of a page after a closing code fence followed by the word 'system'",
       "surfaces": [],
-      "disposition": "update",
-      "claim_still_present": true,
-      "missing_target_files": [],
-      "refresh_proposal": false,
+      "disposition": "done",
       "checked": "2026-10-09",
       "basis": "observation",
-      "note": "sanitize-webfetch-body.py still has ```\\s*system\\b.*\\Z pattern that can eat post-fence content."
+      "note": "Implemented on branch 2026-10-09 against atlas proposal."
     },
     {
       "id": "ENH-035",
@@ -834,13 +675,10 @@
       "type": "en-route-defect",
       "title": "cause-triage opens negatives on successful read-only commands and cause-gate matches unrelated ones on a 40-char prefix",
       "surfaces": [],
-      "disposition": "update",
-      "claim_still_present": true,
-      "missing_target_files": [],
-      "refresh_proposal": false,
+      "disposition": "done",
       "checked": "2026-10-09",
       "basis": "observation",
-      "note": "triage-outcome.sh still truncates compound subjects to 40 chars; cause-gate prefix match hazard remains."
+      "note": "Implemented on branch 2026-10-09 against atlas proposal."
     },
     {
       "id": "ENH-036",
@@ -848,13 +686,10 @@
       "type": "en-route-defect",
       "title": "premise-gate.py parses numbered headings as phases, so a numbered sub-heading can make an over-floor phase pass",
       "surfaces": [],
-      "disposition": "update",
-      "claim_still_present": true,
-      "missing_target_files": [],
-      "refresh_proposal": false,
+      "disposition": "done",
       "checked": "2026-10-09",
       "basis": "observation",
-      "note": "_PHASE_RE still optionalizes the word Phase, so numbered headings open phases."
+      "note": "Implemented on branch 2026-10-09 against atlas proposal."
     },
     {
       "id": "ENH-040",
@@ -865,12 +700,9 @@
         "gemini-cli"
       ],
       "disposition": "update",
-      "claim_still_present": null,
-      "missing_target_files": [],
-      "refresh_proposal": false,
       "checked": "2026-10-09",
       "basis": "observation",
-      "note": "gemini-extension.json absent; probe to package skills/agents as a Gemini extension still open."
+      "note": "Partial: docs/caveat/scaffolding landed; live probe or wiring still required."
     },
     {
       "id": "ENH-041",
@@ -880,13 +712,10 @@
       "surfaces": [
         "gemini-cli"
       ],
-      "disposition": "update",
-      "claim_still_present": true,
-      "missing_target_files": [],
-      "refresh_proposal": false,
+      "disposition": "done",
       "checked": "2026-10-09",
       "basis": "observation",
-      "note": "host-support.json gemini activation_gate still none; atlas: project hooks untrusted-by-default."
+      "note": "Implemented on branch 2026-10-09 against atlas proposal."
     }
   ]
 }
