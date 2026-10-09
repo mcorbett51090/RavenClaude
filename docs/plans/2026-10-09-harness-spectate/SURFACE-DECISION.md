@@ -69,7 +69,7 @@ Rationale: one codebase (static Spectate SPA + `/__spectate` API); many doors. F
 
 ## Pass A — product-strategist (claude-opus-5-5-high) — COMPLETE
 
-**Agent:** [product-strategist](bc-9ecae830-b072-5d8e-9126-473e7ed73814)  
+**Agent:** product-strategist (`bc-9ecae830-b072-5d8e-9126-473e7ed73814`)  
 **Verdict:** Keep the web UI; kill dashboard-tab primacy. Highest scored option (37/40).
 
 **Primary (v0.1):** Option 9 — one web UI, many entry points.
@@ -95,7 +95,7 @@ Rationale: one codebase (static Spectate SPA + `/__spectate` API); many doors. F
 
 ## Pass B — ux-designer (gpt-5.6-sol-high) — COMPLETE
 
-**Agent:** [ux-designer](bc-b5473010-dbde-57e4-9c8a-6f180574031a)  
+**Agent:** ux-designer (`bc-b5473010-dbde-57e4-9c8a-6f180574031a`)  
 **Verdict:** Aligns with Pass 0. Strengthens chrome placement.
 
 **Primary:** One local-first Spectate app with host-native entry points. Canonical experience = direct full-page `/spectate` on existing local runtime. Same responsive UI can render as a narrow IDE panel.
@@ -128,7 +128,7 @@ Every launcher deep-links repo + active session. Never open a generic landing wh
 
 ## Pass C — web-architect (grok-4.7-high) — COMPLETE (locked)
 
-**Agent:** [web-architect](bc-ed95ba74-af5f-5209-8171-70410eeb9449)  
+**Agent:** web-architect (`bc-ed95ba74-af5f-5209-8171-70410eeb9449`)  
 **Verdict:** The prior lean (Activity tab as the door) is the second home. Keep the vehicle. Change the door.
 
 **Primary vehicle:** one static page, `plugins/ravenclaude-core/dashboard-assets/spectate/`, served by the existing `serve-dashboards.py`. No new process, no new port, no framework. Poll `GET /__spectate/*` (SSE in v0.3).

@@ -23,7 +23,7 @@
 
 ## G10 — NO_GAPS
 
-Agent: [Plan G10](bc-3caa990e-8675-5f03-b622-b1b693b410b4). First clean pass. Cross-checked plan docs against live `serve-dashboards.py`, Gate 32 parity extractor, `concepts.py` inventory schema, `.repo-layout.json`, §5.9, loop/cause docs, and atlas F06. One non-blocking note (inventory `tier`/`strength` precedent) pinned into Task 4 without opening a numbered gap.
+Agent: Plan G10 (`bc-3caa990e-8675-5f03-b622-b1b693b410b4`). First clean pass. Cross-checked plan docs against live `serve-dashboards.py`, Gate 32 parity extractor, `concepts.py` inventory schema, `.repo-layout.json`, §5.9, loop/cause docs, and atlas F06. One non-blocking note (inventory `tier`/`strength` precedent) pinned into Task 4 without opening a numbered gap.
 
 ## Next
 

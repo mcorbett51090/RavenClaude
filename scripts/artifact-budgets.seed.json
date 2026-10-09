@@ -96,6 +96,11 @@
         "routine-reserve-errs-toward-a-larger-reserve inventory entry (routine token reserve PR 1, core 0.325.0, Gate 291 inception, 2026-09-24)",
         33000,
         "The routine token reserve build (core 0.325.0) added a new inventory concept (routine-reserve-errs-toward-a-larger-reserve -- the %-per-dollar calibration counts only metered spend, so unseen spend enlarges the reserve) covering routine-reserve.py, routine-reserve-hook.sh, the routine-reserve skill and command. Island payload 32,958 > prior 32,950 by 8 (largest panel learn-payload at 25,639). Same no-diagrams-for-inventory shape as prior entries. Re-measured on this branch head; appended, never edited."
+      ],
+      [
+        "harness-spectate inventory entry (PR #1290 Gate 242/240/294, 2026-10-09)",
+        33100,
+        "PR #1290 Harness Spectate v0.1 adds inventory concept harness-spectate covering spectate_store.py, spectate_demo.py, spectate schema/capabilities, and check-spectate.py (Gate 294). Regenerating dashboard.html for Learn-tab parity measured island payload at 33,037 (over prior 33,000 by 37; largest panel learn-payload at 25,702) and 10,938,004 bytes (over prior 10,930,000 by 8,004). Same no-diagrams-for-inventory-entries shape as every prior wave \u2014 pure content-size raise, not a DOM control. Re-measured on this branch head; appended, never edited."
       ]
     ],
     "index.html": [
@@ -289,6 +294,11 @@
         "nested_dispatch comfort-posture knob (core 0.328.0, Gate 293, 2026-10-05)",
         10930000,
         "core 0.328.0 adds the nested_dispatch Pipeline stage (checkbox + auth hint + emit/hydrate/save-403 JS) and restamps three inventory concepts whose covers drifted (plugin.json / audit-gates.sh / generate-dashboards.py). dashboard.html 10,923,116 bytes > prior 10,920,000 by 3,116 (0.00 MB). Island payload unchanged (32,992 <= 33,000). Pure content-size raise, not a DOM control. Re-measured on this branch head; appended, never edited."
+      ],
+      [
+        "harness-spectate inventory entry (PR #1290 Gate 242/240/294, 2026-10-09)",
+        10950000,
+        "PR #1290 Harness Spectate v0.1 inventory concept harness-spectate + Gate 294 regenerates dashboard.html to 10,938,004 bytes (over prior 10,930,000 by 8,004). Same inventory content-size raise as the companion payload row; appended, never edited."
       ]
     ],
     "index.html": [
@@ -375,5 +385,5 @@
       ]
     ]
   },
-  "measured_against": "1417da997675fe135868408b83ead35586fe9645"
+  "measured_against": "38b336dac46e7e5872caa73bb7ed3b08e5214ff8"
 }

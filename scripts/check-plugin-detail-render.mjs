@@ -92,7 +92,10 @@ const RC_BASELINE = {
   //        53 -> 54: skills/session-handoff (v0.266.0, context-quality reset)
   //        52 -> 53: skills/design-clone (v0.253.0, design-schema capture+apply)
   //        51 -> 52: skills/github-gold-standard (v0.246.0, the gold-standard scorecard)
-  tools: 61, // 60 -> 61: scripts/routine-reserve.py (routine token reserve engine, core 0.325.0).
+  tools: 63, // 61 -> 63: scripts/spectate_store.py + scripts/spectate_demo.py (Harness Spectate
+  //   v0.1 poll API + demo writer). COUNTED, not inferred: the plugin-detail island's
+  //   scripts_index for ravenclaude-core -> 63 after generate-index-dashboard.py regen.
+  //        60 -> 61: scripts/routine-reserve.py (routine token reserve engine, core 0.325.0).
   //   COUNTED, not inferred: the plugin-detail island's scripts_index for ravenclaude-core -> 61
   //   (check-plugin-detail-render.mjs on this tree reported "tools": 61).
   //        59 -> 60: scripts/alias-deprecation-advisory.py (Phase D alias soak, core 0.323.14 —
