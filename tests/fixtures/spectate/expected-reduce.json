@@ -1,0 +1,45 @@
+{
+  "deny_beats_success": {
+    "events": [
+      {
+        "schema": "rc.spectate.v1",
+        "ts": "2026-10-09T12:00:00.000Z",
+        "session_id": "g1",
+        "harness": "claude-code",
+        "source": "demo",
+        "kind": "tool.pre",
+        "step": "execute-tools",
+        "node_id": "tool:x",
+        "agent_id": "main",
+        "corr_id": "corr-x",
+        "tool": { "name": "Bash", "family": "shell", "target": "rm" },
+        "synthetic": true
+      },
+      {
+        "schema": "rc.spectate.v1",
+        "ts": "2026-10-09T12:00:01.000Z",
+        "session_id": "g1",
+        "harness": "claude-code",
+        "source": "demo",
+        "kind": "tool.post",
+        "step": "execute-tools",
+        "node_id": "tool:x",
+        "agent_id": "main",
+        "corr_id": "corr-x",
+        "asserted_status": "succeeded",
+        "synthetic": true
+      }
+    ],
+    "hooks": [
+      {
+        "ts": "2026-10-09T12:00:00.500Z",
+        "corr_id": "corr-x",
+        "verdict": "deny",
+        "hook": "guard-destructive",
+        "rule": "rm-block",
+        "by": "plugin"
+      }
+    ],
+    "expect_status": "denied-plugin"
+  }
+}

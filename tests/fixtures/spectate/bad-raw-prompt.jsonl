@@ -1,0 +1,1 @@
+{"schema":"rc.spectate.v1","ts":"2026-10-09T12:00:00.000Z","session_id":"demo-fixture1","harness":"claude-code","source":"demo","kind":"prompt.submit","node_id":"p1","agent_id":"main","prompt":"SECRET raw prompt text","synthetic":true,"detail":"minimal"}

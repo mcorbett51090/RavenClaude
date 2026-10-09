@@ -1,0 +1,1 @@
+{"schema":"rc.spectate.v1","ts":"2026-10-09T12:00:00.000Z","session_id":"demo-fixture1","harness":"claude-code","source":"demo","kind":"tool.pre","step":"execute-tools","node_id":"t1","agent_id":"main","tool":{"name":"Bash","family":"shell","target":"bash","args":"SMUGGLE_PAYLOAD_HERE"},"synthetic":true,"detail":"minimal"}
