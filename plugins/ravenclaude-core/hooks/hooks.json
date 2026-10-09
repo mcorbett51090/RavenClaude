@@ -119,6 +119,17 @@
             "comment": "Routine token reserve, guard-mode consent (OPT-IN, `routine_reserve: guard`). The guarded tool ran, so the ask raised for it was approved: records consent for this session and week. A declined ask never reaches PostToolUse, so a refusal is never recorded as consent. FAIL-SAFE: always exits 0, prints nothing."
           }
         ]
+      },
+      {
+        "matcher": "Bash|Read|Write|Edit|MultiEdit|WebFetch|WebSearch|Agent|Task|mcp__.*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/spectate-emit.sh\"",
+            "timeout": 5,
+            "comment": "Spectate observe-only emitter (v0.2). Appends ONE scrubbed rc.spectate.v1 line to .ravenclaude/runs/<session>/spectate-events.jsonl (kinds from the hook event; corr_id from tool_use_id). DERIVED VALUES ONLY \u2014 never writes prompt text, tool args, or secrets. Fail-safe: always exit 0; empty stdout; never blocks."
+          }
+        ]
       }
     ],
     "PreToolUse": [
@@ -266,6 +277,17 @@
             "comment": "Routine token reserve, guard mode (OPT-IN: no-op unless .ravenclaude/comfort-posture.yaml sets `routine_reserve: guard`). Before autonomous work (a Workflow, ScheduleWakeup, CronCreate, a background Agent; an explicit run_in_background=false is not guarded; or a Remote session/Routine call) it ASKS when weekly usage is past the line held for your claude.ai Routines, but only in an attended interactive session (not a subagent) on a live statusline reading; everywhere else it warns once per band. A headless ask is a denial, so it never asks where no person can answer and never stalls a Routine. Parallel calls raise ONE ask (a locked per-session record); a declined or pending ask denies further guarded calls for 90s. FAIL-SAFE: always exits 0. Reference: knowledge/routine-token-reserve.md."
           }
         ]
+      },
+      {
+        "matcher": "Bash|Read|Write|Edit|MultiEdit|WebFetch|WebSearch|Agent|Task|mcp__.*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/spectate-emit.sh\"",
+            "timeout": 5,
+            "comment": "Spectate observe-only emitter (v0.2). Appends ONE scrubbed rc.spectate.v1 line to .ravenclaude/runs/<session>/spectate-events.jsonl (kinds from the hook event; corr_id from tool_use_id). DERIVED VALUES ONLY \u2014 never writes prompt text, tool args, or secrets. Fail-safe: always exit 0; empty stdout; never blocks."
+          }
+        ]
       }
     ],
     "Stop": [
@@ -302,6 +324,12 @@
             "command": "${CLAUDE_PLUGIN_ROOT}/hooks/workaround-exhaustion.sh stop",
             "timeout": 10,
             "comment": "Blocked-exhaustion gate, stop lane. No-op unless `workaround_exhaustion: warn|block` is set (absent -> off). After a RavenClaude guard denied a tool call this session, a final message shaped like a hand-back ('I'm blocked', 'you'll need to', 'run it manually', 'no way to') is BLOCKED (block) or annotated (warn) until the workaround ledger meets the floor or blocked-ok has been declared; force-allows after `workaround_exhaustion_max_blocks` (default 4) consecutive blocks so it can never deadlock a session. Reads last_assistant_message + stop_hook_active off the Stop payload (a host without last_assistant_message is silent by construction). Derived values only; exit 0 on every error path."
+          },
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/spectate-emit.sh\"",
+            "timeout": 5,
+            "comment": "Spectate observe-only emitter (v0.2). Appends ONE scrubbed rc.spectate.v1 line to .ravenclaude/runs/<session>/spectate-events.jsonl (kinds from the hook event; corr_id from tool_use_id). DERIVED VALUES ONLY \u2014 never writes prompt text, tool args, or secrets. Fail-safe: always exit 0; empty stdout; never blocks."
           }
         ]
       }
@@ -344,6 +372,12 @@
             "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/routine-reserve-hook.sh\" --event prompt",
             "timeout": 10,
             "comment": "Routine token reserve (ADVISORY, OPT-IN, FAIL-OPEN). No-ops after one grep unless .ravenclaude/comfort-posture.yaml sets `routine_reserve: advise|guard`. When on, reads the cached projection (~/.ravenclaude/usage/reserve.json) and, once per state band per session, tells the user (systemMessage) and the model (additionalContext) that interactive use is nearing or inside the weekly-cap reserve held for their claude.ai Routines. Never blocks. Lives under scripts/ for the same executable-bit reason as ask-on-ambiguity.sh. See knowledge/routine-token-reserve.md."
+          },
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/spectate-emit.sh\"",
+            "timeout": 5,
+            "comment": "Spectate observe-only emitter (v0.2). Appends ONE scrubbed rc.spectate.v1 line to .ravenclaude/runs/<session>/spectate-events.jsonl (kinds from the hook event; corr_id from tool_use_id). DERIVED VALUES ONLY \u2014 never writes prompt text, tool args, or secrets. Fail-safe: always exit 0; empty stdout; never blocks."
           }
         ]
       }
@@ -356,6 +390,12 @@
             "command": "${CLAUDE_PLUGIN_ROOT}/hooks/agent-dispatch-evaluator.sh",
             "timeout": 10,
             "comment": "Agent-dispatch evaluator (Phase 3 \u2014 AUDIT-ONLY). No-ops (single grep) unless .ravenclaude/dispatch-config.json has `enabled: true` (default false). When opted in, fires a Haiku classifier on the about-to-start subagent and SHADOW-LOGS a model-right-sizing verdict to hook-events.jsonl + .ravenclaude/runs/dispatch-eval/ \u2014 it NEVER denies or redispatches. Ships audit-only because SubagentStart fires post-spawn (RM1): a DENY may be a late cancel, not a pre-dispatch intercept, and this session could not verify deny-is-pre-commit live. The Phase-2 workflow wrapper (evaluate-dispatch.js) is the sole binding path. Fail-open on missing jq/claude/timeout."
+          },
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/spectate-emit.sh\"",
+            "timeout": 5,
+            "comment": "Spectate observe-only emitter (v0.2). Appends ONE scrubbed rc.spectate.v1 line to .ravenclaude/runs/<session>/spectate-events.jsonl (kinds from the hook event; corr_id from tool_use_id). DERIVED VALUES ONLY \u2014 never writes prompt text, tool args, or secrets. Fail-safe: always exit 0; empty stdout; never blocks."
           }
         ]
       }
@@ -435,6 +475,12 @@
             "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/routine-reserve-hook.sh\" --event session",
             "timeout": 10,
             "comment": "Routine token reserve refresh (OPT-IN, FAIL-OPEN). No-ops after one grep unless `routine_reserve: advise|guard`. When on, starts a BACKGROUND refresh (fetch the meter's data branch from the private home repo into ~/.ravenclaude/usage/mirror/, then recompute the projection) and returns immediately \u2014 a session never waits on the network. See knowledge/routine-token-reserve.md."
+          },
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/spectate-emit.sh\"",
+            "timeout": 5,
+            "comment": "Spectate observe-only emitter (v0.2). Appends ONE scrubbed rc.spectate.v1 line to .ravenclaude/runs/<session>/spectate-events.jsonl (kinds from the hook event; corr_id from tool_use_id). DERIVED VALUES ONLY \u2014 never writes prompt text, tool args, or secrets. Fail-safe: always exit 0; empty stdout; never blocks."
           }
         ]
       },
@@ -469,6 +515,12 @@
             "command": "${CLAUDE_PLUGIN_ROOT}/hooks/precompact-digest.sh",
             "timeout": 10,
             "comment": "Pre-compaction critical-info archive (P2 of the precompact-critical-context FORGE plan). Reads the PreCompact stdin payload's `transcript_path` (optional on the documented schema) and, if present, launches scripts/precompact-digest.py DETACHED (backgrounded + disowned, no `_rc_timeout` wrap, no synchronous wait) to extract a curated digest (open decisions, TODOs, key facts, file paths, unresolved questions) before the compaction boundary, writing it to .ravenclaude/runs/<session>/precompact-digest-<timestamp>.md. Gated by B1 (`cheap_lane.mode` absent/off => fully inert, no engine call at all) and a fail-closed egress floor enforced inside the engine (`orchestrator_repo_pii: false` OR `cheap_lane_zdr_confirmed: true`) \u2014 see the P4 security review (security-review-p4.md). This hook's own `timeout: 10` bounds only its SYNCHRONOUS return (which is near-instant, well under 1s in practice) \u2014 the detached worker is bounded solely by the ENGINE's own internal budgets (60s cheap-lane / 90s claude-fallback), never by this hook. FIRE-AND-FORGET BY DESIGN: this is archival, never gating \u2014 claim 20 of the precompact-critical-context claims-table proves PreCompact's systemMessage/stopReason/exit-code are a verified no-op on VS Code Copilot Chat (and PreCompact never fires there on manual /compact at all), while on Claude Code `PreCompact` CAN block via exit 2 (CLAUDE.md v0.244.1) \u2014 this hook deliberately never does, on either host. A `precompact-digest.py` exit 3 (both extraction paths exhausted) is an expected non-fatal outcome: no digest, never a block. EXIT trap armed first, no `set -e`, bash 3.2-safe, no GNU-only tools."
+          },
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/spectate-emit.sh\"",
+            "timeout": 5,
+            "comment": "Spectate observe-only emitter (v0.2). Appends ONE scrubbed rc.spectate.v1 line to .ravenclaude/runs/<session>/spectate-events.jsonl (kinds from the hook event; corr_id from tool_use_id). DERIVED VALUES ONLY \u2014 never writes prompt text, tool args, or secrets. Fail-safe: always exit 0; empty stdout; never blocks."
           }
         ]
       }

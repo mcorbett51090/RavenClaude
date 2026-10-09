@@ -20,7 +20,7 @@
 #
 # Contract (intentionally minimal so callers can't get it wrong):
 #
-#   _emit_hook_event <hook> <verdict> <tool> <path> <rule> <exit_code>
+#   _emit_hook_event <hook> <verdict> <tool> <path> <rule> <exit_code> [corr_id]
 #
 #     hook       basename of the firing hook, e.g. "enforce-layout.sh"
 #     verdict    one of: deny | warn | allow
@@ -28,6 +28,9 @@
 #     path       the file path or command the verdict applies to ("" if n/a)
 #     rule       short machine token naming WHY, e.g. "off-allow-list"
 #     exit_code  the exit code the hook is about to use (0 / 2 / ...)
+#     corr_id    optional (v0.2+); join key for Spectate deny join. When set and
+#                matching ^[A-Za-z0-9][A-Za-z0-9._:-]{0,63}$, written as corr_id.
+#                Absent/invalid → field omitted (pre-v0.2 lines stay join-inert).
 #
 # Design invariants:
 #   * SOURCED, not executed — defines a function and returns. It carries NO
@@ -128,6 +131,22 @@ _emit_hook_event() {
     local path="${4:-}"
     local rule="${5:-}"
     local exit_code="${6:-}"
+    local corr_id="${7:-}"
+
+    # Optional Spectate join key (v0.2). Sanitize to the same charset as
+    # spectate-event-schema-v1 `$defs/id`; drop silently when empty/invalid so
+    # every pre-v0.2 6-arg caller stays byte-compatible.
+    if [ -n "$corr_id" ]; then
+      corr_id="$(printf '%s' "$corr_id" | tr -dc 'A-Za-z0-9._:-' | cut -c1-64)"
+      case "$corr_id" in
+        ''|.[^A-Za-z0-9]*|[._:-]*) corr_id="" ;;
+      esac
+      # Must start with alnum after sanitize.
+      case "$corr_id" in
+        [A-Za-z0-9]*) ;;
+        *) corr_id="" ;;
+      esac
+    fi
 
     # Substrate-wide invariant (Phase 0): scrub secret-shaped tokens from the
     # reason/rule field before it is written to the JSONL log. This is done
@@ -161,17 +180,32 @@ _emit_hook_event() {
     local line=""
     if command -v jq >/dev/null 2>&1; then
       # jq does the JSON escaping correctly for arbitrary path/command content.
-      line="$(jq -cn \
-        --arg ts "$ts" \
-        --arg hook "$hook" \
-        --arg verdict "$verdict" \
-        --arg tool "$tool" \
-        --arg path "$path" \
-        --arg rule "$rule" \
-        --arg session "$session" \
-        --argjson exit_code "${exit_code:-null}" \
-        '{schema_version: 1, ts: $ts, hook: $hook, verdict: $verdict, tool: $tool, path: $path, rule: $rule, session_id: $session, exit_code: $exit_code}' \
-        2>/dev/null || true)"
+      if [ -n "$corr_id" ]; then
+        line="$(jq -cn \
+          --arg ts "$ts" \
+          --arg hook "$hook" \
+          --arg verdict "$verdict" \
+          --arg tool "$tool" \
+          --arg path "$path" \
+          --arg rule "$rule" \
+          --arg session "$session" \
+          --arg corr_id "$corr_id" \
+          --argjson exit_code "${exit_code:-null}" \
+          '{schema_version: 1, ts: $ts, hook: $hook, verdict: $verdict, tool: $tool, path: $path, rule: $rule, session_id: $session, exit_code: $exit_code, corr_id: $corr_id}' \
+          2>/dev/null || true)"
+      else
+        line="$(jq -cn \
+          --arg ts "$ts" \
+          --arg hook "$hook" \
+          --arg verdict "$verdict" \
+          --arg tool "$tool" \
+          --arg path "$path" \
+          --arg rule "$rule" \
+          --arg session "$session" \
+          --argjson exit_code "${exit_code:-null}" \
+          '{schema_version: 1, ts: $ts, hook: $hook, verdict: $verdict, tool: $tool, path: $path, rule: $rule, session_id: $session, exit_code: $exit_code}' \
+          2>/dev/null || true)"
+      fi
     fi
 
     # Fallback if jq is missing or failed: hand-escape the fields we control.
@@ -180,7 +214,11 @@ _emit_hook_event() {
       case "$ec" in
         ''|*[!0-9-]*) ec="null" ;;
       esac
-      line="{\"schema_version\":1,\"ts\":\"$(_ee_json_escape "$ts")\",\"hook\":\"$(_ee_json_escape "$hook")\",\"verdict\":\"$(_ee_json_escape "$verdict")\",\"tool\":\"$(_ee_json_escape "$tool")\",\"path\":\"$(_ee_json_escape "$path")\",\"rule\":\"$(_ee_json_escape "$rule")\",\"session_id\":\"$(_ee_json_escape "$session")\",\"exit_code\":$ec}"
+      if [ -n "$corr_id" ]; then
+        line="{\"schema_version\":1,\"ts\":\"$(_ee_json_escape "$ts")\",\"hook\":\"$(_ee_json_escape "$hook")\",\"verdict\":\"$(_ee_json_escape "$verdict")\",\"tool\":\"$(_ee_json_escape "$tool")\",\"path\":\"$(_ee_json_escape "$path")\",\"rule\":\"$(_ee_json_escape "$rule")\",\"session_id\":\"$(_ee_json_escape "$session")\",\"exit_code\":$ec,\"corr_id\":\"$(_ee_json_escape "$corr_id")\"}"
+      else
+        line="{\"schema_version\":1,\"ts\":\"$(_ee_json_escape "$ts")\",\"hook\":\"$(_ee_json_escape "$hook")\",\"verdict\":\"$(_ee_json_escape "$verdict")\",\"tool\":\"$(_ee_json_escape "$tool")\",\"path\":\"$(_ee_json_escape "$path")\",\"rule\":\"$(_ee_json_escape "$rule")\",\"session_id\":\"$(_ee_json_escape "$session")\",\"exit_code\":$ec}"
+      fi
     fi
 
     [ -z "$line" ] && return 0

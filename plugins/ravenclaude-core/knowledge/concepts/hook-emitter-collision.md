@@ -11,7 +11,7 @@ covers:
   - plugins/ravenclaude-core/hooks/hooks.json
   - plugins/ravenclaude-core/hooks/alias-deprecation-advisory.sh
   - plugins/ravenclaude-core/scripts/alias-deprecation-advisory.py
-covers_digest: "sha256:e607c3a9709f5c6b1872a8722efa886fb02d0042982255f5b9742ee14a1e870c"
+covers_digest: "sha256:693a03fdff5a0a6d98727df77bd59b8a0d700929fc13c3c2bbcc11a037be8904"
 nuance: "Two `additionalContext` emitters on one event concatenate rather than last-write-wins, but two `updatedToolOutput` emitters replace, so the second silently discards the first."
 nuance_evidence:
   measured: 2026-08-19

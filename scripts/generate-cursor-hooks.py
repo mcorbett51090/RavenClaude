@@ -112,6 +112,13 @@ _SKIP = {
         "shell command and has no input-rewrite field, so the pin cannot bind here. "
         "On Cursor, pick the model tier in the dispatch call itself."
     ),
+    "spectate-emit.sh": (
+        "Registered under PreCompact and SubagentStart (Claude Code observe path). "
+        "Cursor has no verified compaction or subagentStart lane on the pages "
+        "checked, and skip is script-keyed — projecting the SessionStart/PreToolUse "
+        "lanes alone is not possible without dropping those events from hooks.json. "
+        "Claude Code + Copilot carry the emit path; Cursor probe is a follow-up."
+    ),
     "emit-permission-denied.sh": (
         "PermissionDenied. Cursor has no verified lane for Claude Code PermissionDenied hooks."
     ),

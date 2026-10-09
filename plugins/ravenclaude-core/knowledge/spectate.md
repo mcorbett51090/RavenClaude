@@ -13,7 +13,7 @@ Or, with a dashboard server already running on loopback: open `/spectate`.
 
 ## Honesty (v0.1)
 
-- **No emit hooks yet.** Streams come from demo writers or future `spectate-emit.sh` (v0.2).
+- **v0.2 emit hooks.** `hooks/spectate-emit.sh` appends scrubbed `rc.spectate.v1` lines on SessionStart / UserPromptSubmit / PreToolUse / PostToolUse / Stop / SubagentStart / PreCompact. Observe-only (always exit 0). Deny join uses `corr_id` from `tool_use_id` on both spectate-events and hook-events.
 - **Observe-only.** The UI never POSTs; the server never accepts Spectate writes except CLI demo.
 - **Capability cells stay `unknown` until measured.** Empty / missing streams reduce to `idle` with cause-not-established — never to `unavailable-harness`.
 - **localStorage is per-origin.** Changing the bind port loses prefs.

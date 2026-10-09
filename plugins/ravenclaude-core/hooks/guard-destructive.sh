@@ -1882,7 +1882,11 @@ deny_patterns=(
 
 _deny() {
   local reason="$1"
-  _emit_hook_event "guard-destructive.sh" "deny" "Bash" "$cmd" "$reason" 2
+  local _corr=""
+  if [ -n "${payload:-}" ] && command -v jq >/dev/null 2>&1; then
+    _corr="$(printf '%s' "$payload" | jq -r '.tool_use_id // .toolUseId // empty' 2>/dev/null || true)"
+  fi
+  _emit_hook_event "guard-destructive.sh" "deny" "Bash" "$cmd" "$reason" 2 "${_corr:-}"
   # Scrub secret-shaped tokens before echoing the command to stderr — the stderr
   # of a blocked tool call is captured into the conversation transcript, so a
   # credential embedded in a destructive command would otherwise leak there

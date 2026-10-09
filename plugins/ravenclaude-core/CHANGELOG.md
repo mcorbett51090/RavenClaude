@@ -2,6 +2,17 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.331.0 — 2026-10-09
+
+### Added
+- **Harness Spectate v0.2 emit** — `hooks/spectate-emit.sh` appends scrubbed `rc.spectate.v1` lines on SessionStart / UserPromptSubmit / PreToolUse / PostToolUse / Stop / SubagentStart / PreCompact (observe-only, always exit 0).
+- **`corr_id` on hook-events** — optional 7th arg to `_emit_hook_event` for Spectate deny join; `guard-destructive.sh` passes `tool_use_id` when present.
+- **Gate 295** — `test-spectate-emit.sh` (kinds, corr_id, prompt non-leak, teeth).
+
+### Changed
+- Copilot projector gains `SubagentStart` → `subagentstart` fail-safe adapter mode so multi-event observe hooks can register without a full skip.
+- Cursor/Gemini projectors explicitly skip `spectate-emit.sh` (script-keyed skip; those hosts lack verified PreCompact/SubagentStart / Stop+UserPromptSubmit lanes for this multi-event hook).
+
 ## 0.330.0 — 2026-10-09
 
 ### Harness Spectate v0.1
