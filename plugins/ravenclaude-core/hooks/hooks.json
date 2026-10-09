@@ -128,6 +128,12 @@
             "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/spectate-emit.sh\"",
             "timeout": 5,
             "comment": "Spectate observe-only emitter (v0.2). Appends ONE scrubbed rc.spectate.v1 line to .ravenclaude/runs/<session>/spectate-events.jsonl (kinds from the hook event; corr_id from tool_use_id). DERIVED VALUES ONLY \u2014 never writes prompt text, tool args, or secrets. Fail-safe: always exit 0; empty stdout; never blocks."
+          },
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/spectate-steer.sh\"",
+            "timeout": 5,
+            "comment": "Spectate steer consumer (v0.5). OPT-IN via comfort-posture `spectate_steer: on`. PostToolUse: if interrupt_pending, emit top-level continue:false + stopReason (docs-verified agentic-loop stop). Fail-open when posture is off."
           }
         ]
       }
@@ -291,7 +297,7 @@
             "type": "command",
             "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/spectate-steer.sh\"",
             "timeout": 5,
-            "comment": "Spectate steer consumer (v0.4). OPT-IN via comfort-posture `spectate_steer: on` (absent => off; one grep). PreToolUse: pause-as-deny when spectate-steer.json says paused. UserPromptSubmit/PreToolUse: inject capped additionalContext for a pending note, then clear it. PermissionRequest lane is registered separately. Fail-open; never blocks when posture is off."
+            "comment": "Spectate steer consumer (v0.5). OPT-IN via comfort-posture `spectate_steer: on` (absent => off; one grep). PreToolUse: interrupt (continue:false) or pause-as-deny. UserPromptSubmit/PreToolUse: inject capped additionalContext for a pending note, then clear it. PermissionRequest lane is registered separately. Fail-open; never blocks when posture is off."
           }
         ]
       }
@@ -389,7 +395,7 @@
             "type": "command",
             "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/spectate-steer.sh\"",
             "timeout": 5,
-            "comment": "Spectate steer consumer (v0.4). OPT-IN via comfort-posture `spectate_steer: on` (absent => off; one grep). PreToolUse: pause-as-deny when spectate-steer.json says paused. UserPromptSubmit/PreToolUse: inject capped additionalContext for a pending note, then clear it. PermissionRequest lane is registered separately. Fail-open; never blocks when posture is off."
+            "comment": "Spectate steer consumer (v0.5). OPT-IN via comfort-posture `spectate_steer: on` (absent => off; one grep). UserPromptSubmit: interrupt (continue:false) or capped note injection. Fail-open; never blocks when posture is off."
           }
         ]
       }
@@ -563,7 +569,7 @@
             "type": "command",
             "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/spectate-steer.sh\"",
             "timeout": 50,
-            "comment": "Spectate steer consumer (v0.4). OPT-IN via comfort-posture `spectate_steer: on`. On PermissionRequest waits \u226445s for browser approve/deny (POST /__spectate/steer), then emits hookSpecificOutput.decision.behavior \u2208 {allow,deny}. Pause \u2192 deny. Timeout \u2192 empty stdout (fail-open to the human prompt). Fail-open when posture is off."
+            "comment": "Spectate steer consumer (v0.5). OPT-IN via comfort-posture `spectate_steer: on`. On PermissionRequest waits \u226445s for browser approve/deny/interrupt (POST /__spectate/steer). Interrupt \u2192 continue:false + deny. Pause \u2192 deny. Timeout \u2192 empty stdout (fail-open to the human prompt). Fail-open when posture is off."
           }
         ]
       }

@@ -105,7 +105,7 @@
       "properties": {
         "action": {
           "type": "string",
-          "enum": ["pause", "resume", "note", "approve", "deny"]
+          "enum": ["pause", "resume", "note", "approve", "deny", "interrupt"]
         },
         "note_chars": {
           "type": "integer",

@@ -1519,7 +1519,7 @@ select:hover {
   }
 }
 
-/* v0.3–v0.4 steer chrome */
+/* v0.3–v0.5 steer chrome */
 .steer-panel {
   display: flex;
   flex-wrap: wrap;
@@ -1547,4 +1547,9 @@ select:hover {
 .btn-deny {
   border-color: var(--color-danger, #f85149);
   color: var(--color-danger, #f85149);
+}
+.btn-interrupt {
+  border-color: var(--color-danger, #f85149);
+  color: var(--color-danger, #f85149);
+  font-weight: 600;
 }

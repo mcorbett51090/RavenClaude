@@ -1,4 +1,4 @@
-# Harness Spectate (v0.2)
+# Harness Spectate (v0.5)
 
 Observe-only livestream of atlas harness agent loops: see / understand / direct (direct is out of scope for v0.1).
 
@@ -11,7 +11,12 @@ bash plugins/ravenclaude-core/bin/rc spectate --demo
 
 Or, with a dashboard server already running on loopback: open `/spectate`.
 
-## Honesty (v0.2)
+## Honesty (v0.5)
+
+- **v0.5 true interrupt.** With `spectate_steer: on`, browser Interrupt arms `interrupt_pending`; the next PreToolUse/PostToolUse/UserPromptSubmit/PermissionRequest emits top-level `continue: false` + `stopReason` (docs-verified agentic-loop stop). Pause-as-deny and Approve/Deny remain.
+- **v0.4 approve/deny.** Browser Approve/Deny arm PermissionRequest wait ≤45s.
+- **v0.3 SSE + steer.** EventSource stream + opt-in pause/note.
+
 
 - **v0.2 emit hooks.** `hooks/spectate-emit.sh` appends scrubbed `rc.spectate.v1` lines on SessionStart / UserPromptSubmit / PreToolUse / PostToolUse / Stop / SubagentStart / PreCompact. Observe-only (always exit 0). Deny join uses `corr_id` from `tool_use_id` on both spectate-events and hook-events.
 - **Observe-only.** The UI never POSTs; the server never accepts Spectate writes except CLI demo.

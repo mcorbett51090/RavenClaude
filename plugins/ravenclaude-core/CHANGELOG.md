@@ -2,6 +2,17 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.335.0 — 2026-10-09
+
+### Added
+- **Spectate v0.5 true interrupt** — browser `POST /__spectate/steer` action `interrupt` arms `interrupt_pending`. On the next PreToolUse / PostToolUse / UserPromptSubmit / PermissionRequest, `spectate-steer.sh` emits top-level `{"continue": false, "stopReason": "Spectate interrupt from /spectate"}` (Claude Code hooks docs: takes precedence over event-specific fields). PreToolUse also denies; PermissionRequest denies + `permission.resolve`.
+- **Gate 296** — S8–S10 (interrupt PreToolUse / PostToolUse / PermissionRequest).
+
+### Changed
+- Spectate UI gains Interrupt button; status shows `interrupt armed`.
+- Hook registrations 74 → 75 (`spectate-steer` on PostToolUse).
+- Steer schema action enum adds `interrupt`.
+
 ## 0.334.0 — 2026-10-09
 
 ### Added

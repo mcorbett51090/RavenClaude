@@ -1504,10 +1504,12 @@ MAX_STEER_NOTE = 500
 MAX_SSE_STREAMS = 4
 SSE_HEARTBEAT_S = 15.0
 SSE_POLL_S = 0.35
-STEER_ACTIONS = frozenset({"pause", "resume", "note", "approve", "deny"})
+STEER_ACTIONS = frozenset({"pause", "resume", "note", "approve", "deny", "interrupt"})
 STEER_DECISIONS = frozenset({"allow", "deny"})
+INTERRUPT_ACTION = "interrupt"
 PERMISSION_WAIT_S = 45.0
 PERMISSION_POLL_S = 0.25
+STOP_REASON_INTERRUPT = "Spectate interrupt from /spectate"
 
 _SSE_LOCK = __import__("threading").Lock()
 _SSE_ACTIVE = 0
@@ -1683,6 +1685,7 @@ def apply_steer(
     pending = read_steer_pending(project_root, session_id) or {}
     ts = now_rfc3339()
     decision = pending.get("decision") if pending.get("decision") in STEER_DECISIONS else None
+    interrupt_pending = bool(pending.get("interrupt_pending"))
     if action == "pause":
         pending = {
             "paused": True,
@@ -1691,6 +1694,7 @@ def apply_steer(
             "note_chars": len(note_text),
             "note_pending": bool(note_text),
             "decision": decision,
+            "interrupt_pending": interrupt_pending,
         }
     elif action == "resume":
         pending = {
@@ -1700,6 +1704,7 @@ def apply_steer(
             "note_chars": int(pending.get("note_chars") or 0) if pending.get("note_pending") else 0,
             "note_pending": bool(pending.get("note_pending")),
             "decision": decision,
+            "interrupt_pending": interrupt_pending,
         }
     elif action == "note":
         pending = {
@@ -1709,6 +1714,20 @@ def apply_steer(
             "note_chars": len(note_text),
             "note_pending": True,
             "decision": decision,
+            "interrupt_pending": interrupt_pending,
+        }
+    elif action == INTERRUPT_ACTION:
+        # v0.5 — arm continue:false on the next PreToolUse/PostToolUse/…
+        pending = {
+            "paused": bool(pending.get("paused")),
+            "ts": ts,
+            "note": pending.get("note") if pending.get("note_pending") else "",
+            "note_chars": int(pending.get("note_chars") or 0) if pending.get("note_pending") else 0,
+            "note_pending": bool(pending.get("note_pending")),
+            "decision": None,
+            "decision_ts": None,
+            "interrupt_pending": True,
+            "interrupt_ts": ts,
         }
     else:  # approve / deny — arms PermissionRequest wait (v0.4)
         pending = {
@@ -1719,6 +1738,7 @@ def apply_steer(
             "note_pending": bool(pending.get("note_pending")),
             "decision": "allow" if action == "approve" else "deny",
             "decision_ts": ts,
+            "interrupt_pending": interrupt_pending,
         }
     write_steer_pending(project_root, session_id, pending)
 
@@ -1749,16 +1769,21 @@ def apply_steer(
         "ok": True,
         "session_id": session_id,
         "action": action,
-        "pending": {
-            "paused": bool(pending.get("paused")),
-            "note_pending": bool(pending.get("note_pending")),
-            "note_chars": int(pending.get("note_chars") or 0),
-            "decision": pending.get("decision")
-            if pending.get("decision") in STEER_DECISIONS
-            else None,
-            "ts": pending.get("ts"),
-        },
+        "pending": _steer_pending_public(pending),
         "event": event,
+    }
+
+
+def _steer_pending_public(pending: dict | None) -> dict | None:
+    if not pending:
+        return None
+    return {
+        "paused": bool(pending.get("paused")),
+        "note_pending": bool(pending.get("note_pending")),
+        "note_chars": int(pending.get("note_chars") or 0),
+        "decision": pending.get("decision") if pending.get("decision") in STEER_DECISIONS else None,
+        "interrupt_pending": bool(pending.get("interrupt_pending")),
+        "ts": pending.get("ts"),
     }
 
 
@@ -1770,20 +1795,12 @@ def steer_status(project_root: Path | str, session_id: str | None = None) -> dic
     if session_id and validate_session_id(session_id):
         pending = read_steer_pending(project_root, session_id)
         if pending:
-            out["pending"] = {
-                "paused": bool(pending.get("paused")),
-                "note_pending": bool(pending.get("note_pending")),
-                "note_chars": int(pending.get("note_chars") or 0),
-                "decision": pending.get("decision")
-                if pending.get("decision") in STEER_DECISIONS
-                else None,
-                "ts": pending.get("ts"),
-            }
+            out["pending"] = _steer_pending_public(pending)
     return out
 
 
 def consume_steer_decision(project_root: Path | str, session_id: str) -> str | None:
-    """Return pending allow/deny and clear it. Pause/note state kept."""
+    """Return pending allow/deny and clear it. Pause/note/interrupt state kept."""
     pending = read_steer_pending(project_root, session_id)
     if not pending:
         return None
@@ -1796,6 +1813,19 @@ def consume_steer_decision(project_root: Path | str, session_id: str) -> str | N
     return decision
 
 
+def consume_steer_interrupt(project_root: Path | str, session_id: str) -> bool:
+    """Return True and clear interrupt_pending when armed. Clears armed approve/deny too."""
+    pending = read_steer_pending(project_root, session_id)
+    if not pending or not pending.get("interrupt_pending"):
+        return False
+    pending["interrupt_pending"] = False
+    pending["interrupt_ts"] = None
+    pending["decision"] = None
+    pending["decision_ts"] = None
+    write_steer_pending(project_root, session_id, pending)
+    return True
+
+
 def wait_for_steer_decision(
     project_root: Path | str,
     session_id: str,
@@ -1803,7 +1833,11 @@ def wait_for_steer_decision(
     timeout_s: float | None = None,
     poll_s: float | None = None,
 ) -> str | None:
-    """Poll for a browser approve/deny; consume when present. Timeout → None."""
+    """Poll for approve/deny/interrupt; consume when present. Timeout → None.
+
+    Returns ``allow`` / ``deny`` / ``interrupt`` (interrupt wins over a concurrent
+    approve/deny arm).
+    """
     import time
 
     wait = PERMISSION_WAIT_S if timeout_s is None else float(timeout_s)
@@ -1814,6 +1848,8 @@ def wait_for_steer_decision(
         step = PERMISSION_POLL_S
     deadline = time.monotonic() + wait
     while True:
+        if consume_steer_interrupt(project_root, session_id):
+            return INTERRUPT_ACTION
         decision = consume_steer_decision(project_root, session_id)
         if decision is not None:
             return decision
