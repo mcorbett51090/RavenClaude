@@ -14,13 +14,13 @@
 - Atlas: `docs/research/2026-10-04-coding-agent-harness-atlas/`
 - Loop concept: `plugins/ravenclaude-core/knowledge/concepts/agent-harness-loop.md`
 
-**Plan gap status:** G1 (15) + G2 (20) + G3 (12) closed in this revision (2026-10-09). Streak for `NO_GAPS` restarts at Plan G4.
+**Plan gap status:** G1–G4 closed in this revision (2026-10-09). Streak for `NO_GAPS` restarts at Plan G5.
 
 premise-ok: serve-dashboards Host/Origin guard + Gate 142 + Cache-Control no-store (control.md under premise run scopes)
 
 ## Global Constraints
 
-- Surface is **loopback-only** (127.0.0.1 / Codespaces); no Electron; no new backend service (`docs/dashboard-buildout-plan.md` §5.9).
+- Surface is **loopback-only** for Spectate (127.0.0.1 / exact Codespace host); no Electron; no new backend service (SURFACE lock / proposal 003). Even when the root server is started with `--bind 0.0.0.0`, Spectate routes refuse non-loopback peer/Host/Origin except the exact Codespace forward host (G4-1).
 - Ship inside **`ravenclaude-core`** (domain-neutral Observe infrastructure). No premature plugin split.
 - Support harnesses: `claude-code`, `codex-cli`, `copilot-cli`, `copilot-vscode`, `cursor`, `gemini-cli`, `grok-build`, `grok-bot`.
 - **No raw prompts / tool output / secrets** in spectate payloads (Streams Gate 110 discipline). Nested objects scrub recursively (G1-2).
@@ -187,7 +187,7 @@ UI-only (not reducer statuses): **capability unknown**, connection chrome, sourc
 | `parent_id` | Optional; when set must reference an existing `node_id` in the same session+harness+agent (else `parent_truncated: true`). Tool nodes parent to the `execute-tools` step node. |
 | `corr_id` | When joining `hook-events.jsonl` denies: both sides must share `corr_id`. **No heuristic join** when absent. v0.2 source: payload `tool_use_id` (G2-12). |
 
-**Multi-harness view (G2-9):** sessions from all harnesses appear together in the session rail (chips). The graph shows **one session at a time**. Cross-session multi-harness graph deferred to v0.4+. Demo JSONL may fabricate multi-harness in one file for status gallery only.
+**Multi-harness view (G2-9 / G4-2):** sessions from all harnesses appear together in the session rail (chips). The graph shows **one session at a time**. Each `spectate-events.jsonl` stream has **exactly one** `harness` value (enforced by store + gate). Cross-session multi-harness graph deferred to v0.4+. Demo mode writes **separate** run directories per harness for the gallery (not one file with many harnesses).
 
 ---
 
@@ -208,7 +208,7 @@ Endpoints (GET, read-only, `_local_request_ok`):
 
 | Route | Contract |
 |---|---|
-| `/__spectate/sessions?cursor=&limit=&harness=` | Paginated. Default `limit=50`, max `200`. Opaque `next_cursor`. Each item: `{session_id, harness, synthetic, mtime, latest_status}` (G3-8). Follow ranking: non-synthetic first, then mtime desc; synthetic only if nothing else matches. Optional `harness=` filters ranking + rail (not graph columns). |
+| `/__spectate/sessions?cursor=&limit=&harness=` | Paginated. Default `limit=50`, max `200`. Opaque `next_cursor`. Each item: `{session_id, harness, synthetic, mtime, latest_status}` (G3-8). `latest_status` from session-summary reducer (G4-3). Follow ranking: non-synthetic first, then mtime desc; synthetic only if nothing else matches. Optional `harness=` filters ranking + rail (not graph columns). |
 | `/__spectate/events?session=&cursor=&limit=` | Opaque **absolute byte-offset** cursor into the session file. Default `limit=100`, max `500`. |
 | `/__spectate/capabilities` | Full matrix JSON. |
 | `/__spectate/nodes?session=` | Reduced node list for the session. |
@@ -271,6 +271,17 @@ Tool child nodes seed from `tool_pre` / `tool_post` / `tool_fail` / `permission_
 **Nodes response bounds (G2-16):** reduce over the same 5 MiB tail window; orphan parents → `parent_truncated: true`; cap 2,000 nodes newest-first with `nodes_truncated`; graph shows latest N turns (default 3) + “show earlier turns”. `/__spectate/nodes?session=&since_etag=` supports 304. `/__spectate/events` is inspector timeline only.
 
 **Dedup:** last-writer for non-terminal; terminal states sticky. Golden: `expected-reduce.json` includes available, deny maps, unterminated, unknown↛unavailable.
+
+**Session-summary reducer (G4-3)** → `latest_status` for sessions list / `--no-open`:
+1. If any node `failed` → `failed`
+2. Else if any joined deny → that deny status (org > plugin > user > harness)
+3. Else if any `waiting-approval` → `waiting-approval`
+4. Else if any `running` or `unterminated` → `running`
+5. Else if any `succeeded` and `session.end` present → `succeeded`
+6. Else if only `session.start` (or empty after start) → `idle`
+7. Else → `idle`
+
+Golden cases: start-only, completed, failed, denied, unterminated.
 
 ---
 
@@ -351,7 +362,7 @@ SSE stream, comfort-posture `spectate_steer`, pause-as-deny + note injection; AC
 
 - [ ] Write schema JSON (required fields, enums, `additionalProperties: false` on root **and nested**; length + control-char rules)
 - [ ] Write capabilities matrix for all 8 harnesses with atlas evidence ids; states `supported|partial|unsupported|unknown` (G1-1)
-- [ ] Write demo-session.jsonl covering all 11 statuses; one session file; several harness chips on the rail; graph columns = `agent_id`; capability-unknown for grok-bot (G3-4)
+- [ ] Write demo fixtures as **separate run dirs per harness** covering all 11 statuses across the gallery; rail shows several harness chips; each stream one harness; graph columns = `agent_id`; grok-bot capability-unknown (G3-4 / G4-2)
 - [ ] Write bad fixtures: raw prompt, nested args smuggle, illegal status, session traversal ids
 - [ ] Write `expected-reduce.json` golden (never-seen → `idle`; unknown ↛ unavailable; deny beats asserted success)
 - [ ] Implement `check-spectate.py --check` (pass demo; fail bad fixtures; fail missing evidence; **must_flag_unwired** canary)
@@ -378,8 +389,9 @@ Endpoints (GET, read-only, Host/Origin-checked):
 - [ ] Golden test: fixtures → `expected-reduce.json`
 - [ ] Add thin routes to plugin server; mirror in root server; set `Cache-Control: no-store`, `nosniff`, Spectate CSP on HTML (G1-13); explicit Content-Type map (G2-17)
 - [ ] Serve `/spectate` assets via `_read_spectate_*` helpers (Gate 32 body-diff) + extend parity checker to assert `/spectate` dispatch; `/__spectate` via `startswith("/__spectate")` for MH-33 (G2-5)
-- [ ] Add `--no-reclaim` and `--open-path PATH` to both servers (G2-2, G2-3)
-- [ ] Behavioral smoke both servers: `/spectate` serves UI; `/__spectate/sessions` JSON (G1-7, G1-14) — Gate 32 alone is insufficient
+- [ ] Add `--no-reclaim` / `--open-path` via **module-level** named helpers in both copies, listed in Gate 32 `_BODY_DIFF_NAMES` (e.g. arg on shared `_bind_server` + `_open_browser(path)`) — never inline-only in `main()` (G3-6)
+- [ ] Must-pass: same-project listener on 8000 + `--no-reclaim` binds another port and 8000 pid still alive, on **both** copies
+- [ ] Behavioral smoke both servers: `/spectate?follow=latest` HTML 200; `/__spectate/sessions` JSON (G1-7, G1-14, G3-1)
 - [ ] Run Gate 32 parity check + must-fail: mutated `_read_spectate_*` in one copy is caught
 - [ ] Gate 142: forged-Host case against **plugin** server too (G2-20)
 - [ ] `spectate_demo.py` writes a synthetic session under `.ravenclaude/runs/`
@@ -418,11 +430,11 @@ Endpoints (GET, read-only, Host/Origin-checked):
 
 - [ ] `rc spectate [--session ID] [--no-open] [--port N] [--foreground]` — **attach, don't kill** (G2-2 / G3-5):
   - Probe: walk ports **8000–8010**; identity = lsof LISTEN + `ps` cmdline contains `serve-dashboards.py` + cwd equals this project; then `GET /__spectate/capabilities` must return 200. **Do not** call `open-dashboard.sh` `find_our_live_port` (it curls `/index.html` without following redirects and only walks `WALK=5`)
-  - If live same-project server lacks `/__spectate`: leave it running; start a new server on the next free port with `--no-reclaim`; print one line that an older dashboard was left alone
+  - If live same-project server lacks `/__spectate`: leave it running; start a new server on the next free port with `--no-reclaim`; print the **new** URL and that the older server was left untouched (narrow upgrade-coexistence exception to SURFACE “no second port” — G4-5)
   - If `lsof` absent: fail closed → start second server; never kill
   - Always pass `--no-reclaim` when starting; never call `_reclaim_port` on the open path
   - Audit-gates must-pass: an old-style live server survives `rc spectate`
-- [ ] Detach by default (G2-3): `nohup python3 serve-dashboards.py --no-reclaim --open-path '/spectate?…' … >.ravenclaude/runs/spectate-server.log 2>&1 &`, wait ≤5s for port, print URL, exit 0. `--foreground` keeps blocking
+- [ ] Detach by default (G2-3 / G4-4): `mkdir -p .ravenclaude/runs` **before** redirect; then `nohup python3 serve-dashboards.py --no-reclaim --open-path '/spectate?…' … >.ravenclaude/runs/spectate-server.log 2>&1 &`, wait ≤5s for port, print URL, exit 0. `--foreground` keeps blocking. Clean-project launcher test: empty project (no prior `.ravenclaude/runs`) still starts
 - [ ] Open browser rule (G3-12): `webbrowser` **only** for local attach with a TTY and without `--no-open`. Codespaces, no TTY, and `--no-open` **only print** the URL (forwarded `/spectate?...` in Codespaces). Never both print-and-launch in Codespaces
 - [ ] Open URL `http://127.0.0.1:<port>/spectate?session=<id>` when an id is known, else `?follow=latest` (+ optional `&harness=`). `--no-open` prints URL + `session_id` / `harness` / `latest_status` for the session follow would select (G3-8)
 - [ ] Session id order (G2-6 / G3-11): explicit `--session`, else `CLAUDE_SESSION_ID` when set, else `follow=latest`. Before writing `commands/spectate.md`, probe whether slash/command env expands a session id; **do not claim absence until that probe output is pasted into the doc**. Fallback if unavailable: `?follow=latest&harness=claude-code` + “following latest — session not pinned”
@@ -577,6 +589,11 @@ Endpoints (GET, read-only, Host/Origin-checked):
 | G3-10 | README Task 3 file + surface #3 exception |
 | G3-11 | Probe-before-claim for CLAUDE_SESSION_ID |
 | G3-12 | Codespaces/no-TTY print-only open rule |
+| G4-1 | Spectate refuses non-loopback even on `--bind 0.0.0.0` |
+| G4-2 | One harness per stream; demo = separate run dirs |
+| G4-3 | Session-summary reducer for `latest_status` |
+| G4-4 | `mkdir -p` before spectate-server.log redirect |
+| G4-5 | SURFACE narrow upgrade-coexistence second-port exception |
 
 ---
 

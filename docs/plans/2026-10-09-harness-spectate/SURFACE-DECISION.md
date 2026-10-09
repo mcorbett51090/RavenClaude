@@ -212,7 +212,7 @@ v0.1 CLI-only behavior is the `--no-open` print. A later `rc spectate --tail` (p
 ### Hard no
 
 - Electron, or any new dashboard backend (`docs/dashboard-buildout-plan.md` §5.9).
-- A second port or a second server process for Spectate.
+- A second port or a second server process for Spectate — **except** the narrow v0.1 upgrade path: when a same-project live `serve-dashboards.py` lacks `/__spectate`, leave it running and start a new `--no-reclaim` listener on the next free port, printing the new URL (BUILD-PLAN G4-5). Never reclaim/kill the old process.
 - React, a bundler, or a copied three-pane inside `vscode-extension/`.
 - CORS, or adding `vscode-webview://` / `*` to `_ALLOWED_ORIGINS`.
 - Simple Browser, Live Preview, or an embedded webview as a supported host.
