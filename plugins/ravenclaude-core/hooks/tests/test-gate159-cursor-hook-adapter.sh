@@ -278,6 +278,35 @@ else
   bad "file-posttool missing tool_use_id: $(cat "$TMP/stdin.json" 2>/dev/null | head -c 200)"
 fi
 
+# ── v0.9 preCompact observe + subagentStart permission-allow ─────────────────
+PC_PAYLOAD='{"conversation_id":"conv-pc","generation_id":"gen-pc","hook_event_name":"preCompact","workspace_roots":["/ws/proj"],"trigger":"auto","context_usage_percent":85}'
+rm -f "$TMP/stdin.json" "$TMP/env.txt"
+RC_OUT="$TMP" RC_RC=0 _run_ad bash "$AD" precompact "$TMP/stub.sh" <<<"$PC_PAYLOAD" >/dev/null 2>&1
+if [ -s "$TMP/stdin.json" ] && grep -q 'HOOK_EVENT=PreCompact' "$TMP/env.txt"; then
+  ok "precompact forwards payload stdin + CLAUDE_HOOK_EVENT=PreCompact"
+else
+  bad "precompact did not forward payload/event"
+fi
+
+SA_PAYLOAD='{"conversation_id":"conv-sa","generation_id":"gen-must-not-be-corr","hook_event_name":"subagentStart","workspace_roots":["/ws/proj"],"subagent_id":"sa-1","subagent_type":"explore","task":"SECRET_TASK_TEXT do not forward","parent_conversation_id":"conv-parent","tool_call_id":"tc-sa-9"}'
+rm -f "$TMP/stdin.json" "$TMP/env.txt"
+sa_out="$(RC_OUT="$TMP" RC_RC=0 _run_ad bash "$AD" subagentstart "$TMP/stub.sh" <<<"$SA_PAYLOAD" 2>/dev/null)"
+if printf '%s' "$sa_out" | python3 -c 'import json,sys; d=json.load(sys.stdin); assert d.get("permission")=="allow", d' 2>/dev/null \
+  && grep -q 'HOOK_EVENT=SubagentStart' "$TMP/env.txt" \
+  && python3 -c '
+import json
+d=json.load(open("'"$TMP"'/stdin.json"))
+assert d.get("tool_use_id")=="tc-sa-9", d
+assert d.get("agent_id")=="sa-1" or d.get("subagent_id")=="sa-1", d
+assert d.get("subagent_type")=="explore", d
+assert "task" not in d and "SECRET_TASK" not in json.dumps(d)
+assert "gen-must-not-be-corr" not in json.dumps(d)
+' 2>/dev/null; then
+  ok "subagentstart emits permission=allow; Claude-shaped stdin; no task leak; tool_call_id→tool_use_id"
+else
+  bad "subagentstart shape wrong (out=$sa_out stdin=$(cat "$TMP/stdin.json" 2>/dev/null | head -c 200))"
+fi
+
 # ── TEETH ───────────────────────────────────────────────────────────────────
 # 1. If the exit-2 translation is removed, the deny must disappear — proving the
 #    deny assertion is not passing for some incidental reason.

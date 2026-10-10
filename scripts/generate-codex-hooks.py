@@ -145,7 +145,10 @@ _SKIP = {
     # which has no PreCompact-adjacent event documented at all, so an honest
     # skip is correct, not a downgrade.
     "precompact-digest.sh": _EVENT_UNWIRED_REASON,
-    "spectate-emit.sh": _EVENT_UNWIRED_REASON,
+    # spectate-emit.sh is wired via SessionStart derivation + fixed
+    # PreToolUse/PostToolUse/Stop (Spectate v0.9). SubagentStart / PreCompact /
+    # PermissionRequest / UserPromptSubmit have no Codex lane in this generator
+    # yet — by-basename accounting covers the script once any lane wires it.
     "spectate-steer.sh": _EVENT_UNWIRED_REASON,
     "emit-permission-denied.sh": _EVENT_UNWIRED_REASON,
     "prompt-optimizer-gate.sh": _EVENT_UNWIRED_REASON,
@@ -173,15 +176,34 @@ _FIXED_PRETOOLUSE = (
     ),
     ("Edit|Write|MultiEdit", (("enforce-layout.sh", ""),)),
     ("WebFetch", (("guard-web-access.sh", ""),)),
+    # Spectate v0.9 — observe-only emit on the Codex tool lane (native Claude
+    # contract; payload carries hook_event_name + tool_use_id). Matcher mirrors
+    # hooks.json PreToolUse spectate-emit group.
+    (
+        "Bash|Read|Write|Edit|MultiEdit|WebFetch|WebSearch|Agent|Task|mcp__.*",
+        (("spectate-emit.sh", ""),),
+    ),
 )
 _FIXED_POSTTOOLUSE = (
     (
         "Edit|Write|MultiEdit",
         (("format-on-write.sh", _ARGV_TOKEN), ("claim-grounding-lint.sh", _ARGV_TOKEN)),
     ),
+    (
+        "Bash|Read|Write|Edit|MultiEdit|WebFetch|WebSearch|Agent|Task|mcp__.*",
+        (("spectate-emit.sh", ""),),
+    ),
 )
 _FIXED_STOP = (
-    (None, (("dod-gate.sh", ""), ("remind-tests.sh", ""), ("stream-session-close.sh", ""))),
+    (
+        None,
+        (
+            ("dod-gate.sh", ""),
+            ("remind-tests.sh", ""),
+            ("stream-session-close.sh", ""),
+            ("spectate-emit.sh", ""),
+        ),
+    ),
 )
 
 
@@ -401,6 +423,25 @@ def main(argv: list) -> int:
                 file=sys.stderr,
             )
             return 1
+        # Spectate v0.9 floor: spectate-emit must ride PreToolUse / PostToolUse /
+        # Stop (SessionStart already derives it). A regression that drops those
+        # fixed-list entries would still "account" the script via SessionStart
+        # alone — catch that explicitly when not on the legacy kill-switch.
+        if not legacy:
+            by_event = {e: set() for e in ("PreToolUse", "PostToolUse", "Stop")}
+            for script, event in wired:
+                if event in by_event:
+                    by_event[event].add(script)
+            missing_emit = [
+                ev for ev, scripts in by_event.items() if "spectate-emit.sh" not in scripts
+            ]
+            if missing_emit:
+                print(
+                    f"codex-hooks: spectate-emit.sh missing from fixed lanes: "
+                    f"{missing_emit} (Spectate v0.9)",
+                    file=sys.stderr,
+                )
+                return 1
         print(
             f"Codex hooks OK — {len(wired)} wired, {len(skipped)} explicitly "
             f"skipped, {len(canonical)} canonical hooks all accounted for."

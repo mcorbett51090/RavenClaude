@@ -1,4 +1,4 @@
-# Harness Spectate (v0.8)
+# Harness Spectate (v0.9)
 
 Observe-only livestream of atlas harness agent loops: see / understand / direct (direct is out of scope for v0.1).
 
@@ -13,10 +13,11 @@ Or, with a dashboard server already running on loopback: open `/spectate`.
 
 On Claude Code, the `spectate` skill opens the UI and arms the push mirror (`monitors/watch-spectate.sh`) for the rest of the session. <!-- delegation-nudge-ok: documents the skill surface, not a hand-back -->
 
-## Honesty (v0.8)
+## Honesty (v0.9)
 
-- **v0.8 Cursor PostToolUse + tool_use_id forward.** `cursor-hook-adapter.sh` `file-posttool` builds Claude-shaped stdin (`tool_name=Edit`, `tool_input.file_path` only — never `edits[]` content) and wires `spectate-emit.sh` on Cursor `afterFileEdit` `[docs-verified 2026-10-10 — cursor.com/docs/hooks]`. Both Cursor and Gemini adapters forward host `tool_use_id` / `toolUseId` into Claude stdin when present; they do **not** mint from `generation_id`. Host docs still publish no per-tool id on those lanes — `corr_id` join remains unsupported until a live payload carries one — see `host-support.json` `hooks.cursor` / `hooks.gemini`.
-- **v0.7 Cursor/Gemini partial emit.** Per-event skip wires SessionStart / UserPromptSubmit / Stop / Bash-PreToolUse (Cursor) and SessionStart / PreToolUse / PostToolUse (Gemini). PreCompact / SubagentStart / PermissionRequest stay explicitly skipped.
+- **v0.9 Codex tool/stop emit + Cursor PreCompact/SubagentStart.** Codex fixed lists wire `spectate-emit.sh` on PreToolUse / PostToolUse / Stop (SessionStart already derived; native Claude contract). Cursor `preCompact` / `subagentStart` schemas are docs-verified (`[docs-verified 2026-10-10 — cursor.com/docs/agent/hooks]`); adapter modes forward observe stdin; SubagentStart always returns `{"permission":"allow"}` (empty stdout would block), never forwards `task`, maps `tool_call_id` → `tool_use_id`. PermissionRequest stays skipped on Cursor/Gemini.
+- **v0.8 Cursor PostToolUse + tool_use_id forward.** `cursor-hook-adapter.sh` `file-posttool` builds Claude-shaped stdin (`tool_name=Edit`, `tool_input.file_path` only — never `edits[]` content) and wires `spectate-emit.sh` on Cursor `afterFileEdit`. Both Cursor and Gemini adapters forward host `tool_use_id` / `toolUseId` into Claude stdin when present; they do **not** mint from `generation_id`. Host docs still publish no per-tool id on those lanes — `corr_id` join remains unsupported until a live payload carries one — see `host-support.json` `hooks.cursor` / `hooks.gemini`.
+- **v0.7 Cursor/Gemini partial emit.** Per-event skip wires SessionStart / UserPromptSubmit / Stop / Bash-PreToolUse (Cursor) and SessionStart / PreToolUse / PostToolUse (Gemini).
 - **v0.7 launcher hygiene.** `scripts/open-dashboard.sh` `WALK=10` mirrors `_bind_server` span=10 (8000–8010).
 - **v0.6 Claude monitor push mirror.** Skill `spectate` starts `spectate-push-mirror` (`on-skill-invoke:spectate`). Derived labels only (kind / status / tool name / steer action) for permission.*, steer.applied, tool.fail, session.*, subagent.*, *.truncated — never paths, prompts, or note text. Claude Code only; other hosts keep the pull `/spectate` UI.
 - **v0.5 true interrupt.** With `spectate_steer: on`, browser Interrupt arms `interrupt_pending`; the next PreToolUse/PostToolUse/UserPromptSubmit/PermissionRequest emits top-level `continue: false` + `stopReason` (docs-verified agentic-loop stop). Pause-as-deny and Approve/Deny remain.

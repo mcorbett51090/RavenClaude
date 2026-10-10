@@ -545,12 +545,19 @@ Endpoints (GET, read-only, Host/Origin-checked) — **no write routes in v0.1** 
 - [x] `skills/spectate` + `monitors.json` entry `spectate-push-mirror` (`when: on-skill-invoke:spectate`)
 - [x] Gate 297 (`test-watch-spectate.sh` M1–M5); core 0.336.0
 
-## Deferred (v0.9+)
+## Deferred (v0.10+)
 
 - ACP control channel (process ownership)
 - IDE `openExternal` to the same `/spectate` URL (only if alt-tab is the measured failure; not Simple Browser, not a second UI)
-- Cursor/Gemini PermissionRequest / PreCompact / SubagentStart emit (host lanes unverified)
+- Cursor/Gemini PermissionRequest emit (host lane still unverified)
+- Cursor `preToolUse` / `postToolUse` enforcement wiring (schemas published; live payload probe still required before replacing beforeShellExecution)
 - Live Cursor/Gemini `tool_use_id` probe to flip `tool_use_id` capability cells from unsupported → supported
+
+## Shipped in v0.9
+
+- Codex: `spectate-emit.sh` on fixed PreToolUse / PostToolUse / Stop (native Claude contract; SessionStart already derived)
+- Cursor: `preCompact` + `subagentStart` adapter modes; spectate-emit wired (SubagentStart always emits `{"permission":"allow"}`; never forwards `task`; `tool_call_id` → `tool_use_id`)
+- PermissionRequest remains explicitly skipped on Cursor/Gemini
 
 ## Shipped in v0.8
 
