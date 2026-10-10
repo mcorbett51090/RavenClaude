@@ -216,6 +216,68 @@ else
   bad "shell-pretool missing CLAUDE_HOOK_EVENT=PreToolUse"
 fi
 
+# ── v0.8 afterFileEdit Claude-shaped stdin + tool_use_id forward ─────────────
+FILE_PAYLOAD='{"conversation_id":"conv-fe","generation_id":"gen-should-not-be-corr","hook_event_name":"afterFileEdit","workspace_roots":["/ws/proj"],"file_path":"/ws/proj/a.ts","edits":[{"old_string":"SECRET_OLD","new_string":"SECRET_NEW"}]}'
+rm -f "$TMP/stdin.json" "$TMP/env.txt" "$TMP/argv.txt"
+# Extend stub to record argv[1] (path) when present
+cat >"$TMP/stub.sh" <<'STUB'
+#!/usr/bin/env bash
+{ cat; } >"$RC_OUT/stdin.json" 2>/dev/null
+{ printf 'PROJECT_DIR=%s\n' "${CLAUDE_PROJECT_DIR:-}"
+  printf 'SESSION_ID=%s\n'  "${CLAUDE_SESSION_ID:-}"
+  printf 'THING_HOST=%s\n'  "${THING_HOST:-}"
+  printf 'HOOK_EVENT=%s\n'  "${CLAUDE_HOOK_EVENT:-}"; } >"$RC_OUT/env.txt"
+{ printf '%s\n' "${1:-}"; } >"$RC_OUT/argv.txt"
+exit "${RC_RC:-0}"
+STUB
+chmod +x "$TMP/stub.sh"
+RC_OUT="$TMP" RC_RC=0 _run_ad bash "$AD" file-posttool "$TMP/stub.sh" <<<"$FILE_PAYLOAD" >/dev/null 2>&1
+if [ -s "$TMP/stdin.json" ] && grep -q 'HOOK_EVENT=PostToolUse' "$TMP/env.txt" \
+  && [ "$(cat "$TMP/argv.txt")" = "/ws/proj/a.ts" ]; then
+  if python3 -c '
+import json
+d=json.load(open("'"$TMP"'/stdin.json"))
+assert d.get("tool_name")=="Edit", d
+assert d.get("tool_input",{}).get("file_path")=="/ws/proj/a.ts", d
+assert "edits" not in d and "SECRET_OLD" not in json.dumps(d)
+assert "tool_use_id" not in d  # generation_id must NOT become corr_id
+assert d.get("session_id")=="conv-fe"
+' 2>/dev/null; then
+    ok "file-posttool Claude-shaped stdin (Edit+file_path); no edits leak; no minted corr_id"
+  else
+    bad "file-posttool stdin shape wrong: $(cat "$TMP/stdin.json" 2>/dev/null | head -c 200)"
+  fi
+else
+  bad "file-posttool did not forward stdin/event/argv"
+fi
+
+SHELL_WITH_ID='{"conversation_id":"conv-1","hook_event_name":"beforeShellExecution","workspace_roots":["/ws/proj"],"command":"echo hello","cwd":"/ws/proj","sandbox":false,"tool_use_id":"tu-cursor-1"}'
+rm -f "$TMP/stdin.json"
+RC_OUT="$TMP" RC_RC=0 _run_ad bash "$AD" shell-pretool "$TMP/stub.sh" <<<"$SHELL_WITH_ID" >/dev/null 2>&1
+if python3 -c '
+import json
+d=json.load(open("'"$TMP"'/stdin.json"))
+assert d.get("tool_use_id")=="tu-cursor-1", d
+assert d.get("tool_name")=="Bash"
+' 2>/dev/null; then
+  ok "shell-pretool forwards host tool_use_id when present"
+else
+  bad "shell-pretool did not forward tool_use_id: $(cat "$TMP/stdin.json" 2>/dev/null | head -c 200)"
+fi
+
+FILE_WITH_ID='{"conversation_id":"conv-fe2","hook_event_name":"afterFileEdit","workspace_roots":["/ws/proj"],"file_path":"/ws/proj/b.ts","toolUseId":"tu-file-2","edits":[{"old_string":"a","new_string":"b"}]}'
+rm -f "$TMP/stdin.json"
+RC_OUT="$TMP" RC_RC=0 _run_ad bash "$AD" file-posttool "$TMP/stub.sh" <<<"$FILE_WITH_ID" >/dev/null 2>&1
+if python3 -c '
+import json
+d=json.load(open("'"$TMP"'/stdin.json"))
+assert d.get("tool_use_id")=="tu-file-2", d
+' 2>/dev/null; then
+  ok "file-posttool forwards toolUseId → tool_use_id"
+else
+  bad "file-posttool missing tool_use_id: $(cat "$TMP/stdin.json" 2>/dev/null | head -c 200)"
+fi
+
 # ── TEETH ───────────────────────────────────────────────────────────────────
 # 1. If the exit-2 translation is removed, the deny must disappear — proving the
 #    deny assertion is not passing for some incidental reason.

@@ -205,6 +205,34 @@ else
   bad "posttool did not forward payload/event"
 fi
 
+# v0.8: camelCase toolUseId → tool_use_id (do not mint when absent)
+POST_ID='{"session_id":"sess-id","cwd":"/ws/p","hook_event_name":"AfterTool","tool_name":"replace","tool_input":{"file_path":"/ws/p/b.txt"},"file_path":"/ws/p/b.txt","toolUseId":"tu-gem-1"}'
+rm -f "$TMP/stdin.json"
+RC_OUT="$TMP" RC_RC=0 _run_ad bash "$AD" posttool "$TMP/stub.sh" <<<"$POST_ID" >/dev/null 2>&1
+if python3 -c '
+import json
+d=json.load(open("'"$TMP"'/stdin.json"))
+assert d.get("tool_use_id")=="tu-gem-1", d
+assert d.get("tool_name")=="Edit", d
+' 2>/dev/null; then
+  ok "posttool normalises toolUseId → tool_use_id"
+else
+  bad "posttool tool_use_id normalise failed: $(cat "$TMP/stdin.json" 2>/dev/null | head -c 200)"
+fi
+
+PRE_NO_ID='{"session_id":"sess-noid","cwd":"/ws/p","hook_event_name":"BeforeTool","tool_name":"run_shell_command","tool_input":{"command":"true"}}'
+rm -f "$TMP/stdin.json"
+RC_OUT="$TMP" RC_RC=0 _run_ad bash "$AD" pretool "$TMP/stub.sh" <<<"$PRE_NO_ID" >/dev/null 2>&1
+if python3 -c '
+import json
+d=json.load(open("'"$TMP"'/stdin.json"))
+assert "tool_use_id" not in d, d
+' 2>/dev/null; then
+  ok "pretool does not mint tool_use_id when host omits it"
+else
+  bad "pretool invented tool_use_id: $(cat "$TMP/stdin.json" 2>/dev/null | head -c 200)"
+fi
+
 rm -f "$TMP/env.txt"
 RC_OUT="$TMP" RC_RC=0 _run_ad bash "$AD" pretool "$TMP/stub.sh" <<<"$(payload run_shell_command)" >/dev/null 2>&1
 grep -q 'HOOK_EVENT=PreToolUse' "$TMP/env.txt" \

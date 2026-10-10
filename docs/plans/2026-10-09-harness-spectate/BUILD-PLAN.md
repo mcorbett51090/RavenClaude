@@ -545,12 +545,17 @@ Endpoints (GET, read-only, Host/Origin-checked) — **no write routes in v0.1** 
 - [x] `skills/spectate` + `monitors.json` entry `spectate-push-mirror` (`when: on-skill-invoke:spectate`)
 - [x] Gate 297 (`test-watch-spectate.sh` M1–M5); core 0.336.0
 
-## Deferred (v0.8+)
+## Deferred (v0.9+)
 
 - ACP control channel (process ownership)
 - IDE `openExternal` to the same `/spectate` URL (only if alt-tab is the measured failure; not Simple Browser, not a second UI)
-- Cursor PostToolUse emit (afterFileEdit Claude-shaped stdin) + Cursor/Gemini `tool_use_id` → `corr_id`
 - Cursor/Gemini PermissionRequest / PreCompact / SubagentStart emit (host lanes unverified)
+- Live Cursor/Gemini `tool_use_id` probe to flip `tool_use_id` capability cells from unsupported → supported
+
+## Shipped in v0.8
+
+- Cursor `afterFileEdit` → Claude-shaped PostToolUse stdin (`Edit` + `file_path`; never `edits[]` content); `spectate-emit.sh` wired on that lane
+- Cursor/Gemini adapters forward host `tool_use_id` / `toolUseId` when present (no mint from `generation_id`)
 
 ## Shipped in v0.7
 

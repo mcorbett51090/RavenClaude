@@ -183,7 +183,8 @@ _SKIP = {
 # observe hook can wire on some Cursor lanes but not others. Script-keyed
 # `_SKIP` would drop every event; this map lets SessionStart / UserPromptSubmit /
 # Stop / Bash-PreToolUse project while PreCompact / SubagentStart /
-# PermissionRequest / PostToolUse stay explicitly skipped.
+# PermissionRequest / PreCompact / SubagentStart stay explicitly skipped.
+# PostToolUse wires via afterFileEdit + Claude-shaped stdin (Spectate v0.8).
 _SKIP_EVENT = {
     ("spectate-emit.sh", "PreCompact"): (
         "PreCompact. Cursor has no verified compaction-hook event on the pages "
@@ -198,12 +199,6 @@ _SKIP_EVENT = {
     ("spectate-emit.sh", "PermissionRequest"): (
         "PermissionRequest. Cursor has no verified permission-prompt hook lane "
         "on the pages checked. Claude Code + Copilot carry permission.request emit."
-    ),
-    ("spectate-emit.sh", "PostToolUse"): (
-        "PostToolUse → afterFileEdit. The Cursor file-posttool adapter passes a "
-        "path as argv and does not build Claude-shaped stdin with tool_name / "
-        "tool_use_id; wiring emit there would register a silent no-op that reads "
-        "as coverage. Bash-PreToolUse (beforeShellExecution) carries the tool lane."
     ),
 }
 
