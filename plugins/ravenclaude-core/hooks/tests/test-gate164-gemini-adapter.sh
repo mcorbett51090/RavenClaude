@@ -91,6 +91,18 @@ out="$(RC_OUT="$TMP" RC_RC=2 _run_ad bash "$AD" pretool "$TMP/stub.sh" <<<"$(pay
 [ -z "$out" ] && ok "emits NO stdout JSON — nothing to get wrong on the deny path" \
   || bad "emitted stdout on deny: ${out:0:60}"
 
+# JSON deny at exit 0 (tribunal / SH-F1) — must become Gemini exit 2.
+cat >"$TMP/json-deny.sh" <<'JDS'
+#!/usr/bin/env bash
+cat >/dev/null
+printf '%s' '{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"deny","permissionDecisionReason":"tribunal stub"}}'
+exit 0
+JDS
+chmod +x "$TMP/json-deny.sh"
+RC_OUT="$TMP" _run_ad bash "$AD" pretool "$TMP/json-deny.sh" <<<"$(payload run_shell_command)" >/dev/null 2>&1
+[ "$?" -eq 2 ] && ok "JSON permissionDecision=deny at exit 0 becomes Gemini exit 2" \
+  || bad "JSON deny at exit 0 did not block (rc=$?)"
+
 # ── env lift ────────────────────────────────────────────────────────────────
 run run_shell_command
 grep -q '^PROJECT_DIR=/ws/p$' "$TMP/env.txt" && ok "cwd -> CLAUDE_PROJECT_DIR" || bad "CLAUDE_PROJECT_DIR unset"
@@ -131,19 +143,18 @@ RC_OUT="$TMP" RC_RC=0 _run_ad bash "$AD" pretool "$TMP/stub.sh" <<<"$(payload ru
 # ── TEETH ───────────────────────────────────────────────────────────────────
 MUT="$TMP/mutant.sh"
 # Strip the normalisation: the guard then sees snake_case and MH-01 returns.
-# ⛔ This sed is anchored to the adapter's exact pretool line. If you change that
-# line, update this pattern IN THE SAME COMMIT — when it stops matching, the gate
-# FAILS LOUD ("adapter shape changed?") rather than silently skipping its teeth.
-# That is by design and it fired correctly on 2026-08-12 when the `2>&1` was
-# removed; do not "fix" it by loosening the anchor to a substring match.
-sed 's/^    _normalise | bash "$real" "$@" >\/dev\/null$/    printf %s "$payload" | bash "$real" "$@" >\/dev\/null/' "$AD" >"$MUT"
+# ⛔ Anchored to the adapter's exact pretool capture line
+# (`out="$(_normalise | bash …)"`, SH-F1). If you change that line, update this
+# pattern IN THE SAME COMMIT — when it stops matching, the gate FAILS LOUD
+# ("adapter shape changed?") rather than silently skipping its teeth.
+sed 's/^    out="$(_normalise | bash "$real" "$@")"$/    out="$(printf %s "$payload" | bash "$real" "$@")"/' "$AD" >"$MUT"
 
-# Teeth for the reason-preservation assertion: restore the `2>&1` and the
-# sentinel must vanish. Without this, "233 bytes arrived" proves nothing about
-# whether the adapter is what let them through.
+# Teeth for the reason-preservation assertion: fold stderr into the capture
+# (`2>&1`) so the sentinel vanishes from the adapter's stderr. Without this,
+# "bytes arrived" proves nothing about whether the adapter is what let them through.
 MUT2="$TMP/mutant-quiet.sh"
-sed 's/^    _normalise | bash "$real" "$@" >\/dev\/null$/    _normalise | bash "$real" "$@" >\/dev\/null 2>\&1/' "$AD" >"$MUT2"
-if grep -q '_normalise | bash "$real" "$@" >/dev/null 2>&1' "$MUT2"; then
+sed 's/^    out="$(_normalise | bash "$real" "$@")"$/    out="$(_normalise | bash "$real" "$@" 2>\&1)"/' "$AD" >"$MUT2"
+if grep -q '_normalise | bash "$real" "$@" 2>&1' "$MUT2"; then
   RC_OUT="$TMP" bash "$MUT2" pretool "$TMP/loud.sh" <<<"$(payload run_shell_command)" >/dev/null 2>"$TMP/err2.txt"
   grep -q 'DENY_REASON_SENTINEL' "$TMP/err2.txt" \
     && bad "teeth: the 2>&1 mutant STILL carried the reason — the assertion is vacuous" \
@@ -158,6 +169,17 @@ if grep -q 'printf %s "$payload" | bash' "$MUT"; then
     || bad "teeth: mutant still normalised — the assertions may be vacuous"
 else
   bad "teeth: could not build the no-normalisation mutant (adapter shape changed?)"
+fi
+
+# Teeth for SH-F1 JSON-deny: strip the permissionDecision==deny → exit 2 branch.
+MUT3="$TMP/mutant-json.sh"
+sed 's/^      \[ "$dec" = "deny" \] && exit 2$/      :/' "$AD" >"$MUT3"
+if grep -q '^      :$' "$MUT3"; then
+  RC_OUT="$TMP" bash "$MUT3" pretool "$TMP/json-deny.sh" <<<"$(payload run_shell_command)" >/dev/null 2>&1
+  [ "$?" -ne 2 ] && ok "teeth: removing JSON-deny branch stops the exit-2 translation" \
+    || bad "teeth: JSON-deny mutant still blocked — assertion may be vacuous"
+else
+  bad "teeth: could not build the no-JSON-deny mutant (adapter shape changed?)"
 fi
 
 # ── v0.7 observe-lane forwarding (spectate-emit needs stdin + CLAUDE_HOOK_EVENT) ─

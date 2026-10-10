@@ -104,6 +104,37 @@ printf '%s' "$outh" | grep -q 'echo {' \
   && bad "the command string LEAKED into the deny payload" \
   || ok "no payload content leaks into the deny literal"
 
+# ── JSON deny at exit 0 (tribunal / SH-F1) ───────────────────────────────────
+# thing-orchestrator emits permissionDecision:deny with exit 0. Exit-code-only
+# translation left that inert on Cursor.
+cat >"$TMP/json-deny.sh" <<'JDS'
+#!/usr/bin/env bash
+cat >/dev/null
+printf '%s' '{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"deny","permissionDecisionReason":"tribunal stub"}}'
+exit 0
+JDS
+chmod +x "$TMP/json-deny.sh"
+outj="$(RC_OUT="$TMP" _run_ad bash "$AD" shell-pretool "$TMP/json-deny.sh" <<<"$BENIGN" 2>/dev/null)"
+if printf '%s' "$outj" | python3 -c '
+import json,sys
+d=json.load(sys.stdin)
+assert d.get("permission")=="deny", d
+' 2>/dev/null; then
+  ok "JSON permissionDecision=deny at exit 0 translates to Cursor deny"
+else
+  bad "JSON deny at exit 0 was ignored (got: ${outj:0:80})"
+fi
+cat >"$TMP/json-allow.sh" <<'JAS'
+#!/usr/bin/env bash
+cat >/dev/null
+printf '%s' '{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"allow"}}'
+exit 0
+JAS
+chmod +x "$TMP/json-allow.sh"
+outa="$(RC_OUT="$TMP" _run_ad bash "$AD" shell-pretool "$TMP/json-allow.sh" <<<"$BENIGN" 2>/dev/null)"
+[ -z "$outa" ] && ok "JSON permissionDecision=allow at exit 0 stays silent" \
+  || bad "JSON allow fabricated a verdict: ${outa:0:60}"
+
 # ── envelope translation ────────────────────────────────────────────────────
 run 0 "$BENIGN" >/dev/null
 if python3 -c '
@@ -206,6 +237,18 @@ if printf '%s' "$out2" | python3 -c 'import json,sys; json.load(sys.stdin)' 2>/d
   bad "teeth: corrupted literal still parsed as JSON — validity check is vacuous"
 else
   ok "teeth: a corrupted deny literal IS caught by the validity check"
+fi
+
+# 3. SH-F1: strip the permissionDecision==deny → _rc_deny branch; JSON deny
+#    at exit 0 must then stay silent (proves the new assertion is not vacuous).
+MUT3="$TMP/mutant-json.sh"
+sed 's/^      \[ "$dec" = "deny" \] && _rc_deny$/      :/' "$AD" >"$MUT3"
+if grep -q '^      :$' "$MUT3"; then
+  outmj="$(RC_OUT="$TMP" _run_ad bash "$MUT3" shell-pretool "$TMP/json-deny.sh" <<<"$BENIGN" 2>/dev/null)"
+  [ -z "$outmj" ] && ok "teeth: removing JSON-deny branch removes the deny" \
+    || bad "teeth: JSON-deny mutant still denied — assertion may be vacuous"
+else
+  bad "teeth: could not build the no-JSON-deny mutant (adapter shape changed?)"
 fi
 
 printf '\n  %d pass, %d fail\n' "$PASS" "$FAIL"
