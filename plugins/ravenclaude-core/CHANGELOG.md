@@ -2,6 +2,11 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.338.5 — 2026-10-10
+
+### Fixed
+- **`guard-destructive` no longer fail-opens on oversized / E2BIG preprocessor failures.** A command > ~128 KiB made `python3 -c` + `__GUARD_RAW_CMD=…` hit `E2BIG`; the `||` swallowed it, anti-obfuscation was skipped, and an ANSI-C-obfuscated destructive payload was allowed (reproduced: padded `rm` → exit 0). Command now feeds the preprocessor on stdin; empty/failed preprocess on non-empty input denies (exit 2); commands over 64 KiB deny up-front. Gate 5 SH-F3 cases.
+
 ## 0.338.4 — 2026-10-10
 
 ### Fixed

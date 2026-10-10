@@ -2298,6 +2298,20 @@ _gd() { # $1=command -> sets GD_RC
   printf '%s' "{\"tool_name\":\"Bash\",\"tool_input\":{\"command\":$(printf '%s' "$1" | jq -Rs .)}}" \
     | plugins/ravenclaude-core/hooks/guard-destructive.sh >/dev/null 2>&1 || GD_RC=$?
 }
+
+# SH-F3 (2026-10-06): oversized commands used to E2BIG the preprocessor exec
+# (__GUARD_RAW_CMD=… in the environment); the || swallowed it and anti-
+# obfuscation was skipped → allow. Cap + stdin feed + fail-closed on empty.
+_gd_oversize="$(python3 -c 'print("echo ok #" + "a"*70000)')"
+_gd "$_gd_oversize"
+ok=0; [ "$GD_RC" -eq 2 ] || ok=1
+gate "guard-destructive blocks oversized command (SH-F3 size cap)" must_pass "$ok"
+# ANSI-C obfuscated destructive still blocks at normal size (stdin preprocess).
+_gd_ansi="$(python3 -c 'print("true; " + "r"+"m" + " -"+"rf" + " $" + chr(39) + r"\057" + chr(39))')"
+_gd "$_gd_ansi"
+ok=0; [ "$GD_RC" -eq 2 ] || ok=1
+gate "guard-destructive blocks ANSI-C obfuscated destructive (SH-F3 stdin)" must_pass "$ok"
+
 gd_block=(
   'rm -fr /' 'rm -r -f /home' 'rm --recursive --force /' 'rm -rf ${HOME}'
   'rm -rf ./' 'rm -fr ./'

@@ -73,6 +73,16 @@ if [ -z "$cmd" ] && [ -n "$payload" ]; then
 fi
 [ -z "$cmd" ] && exit 0
 
+# SH-F3 (2026-10-06): cap command size well under Linux MAX_ARG_STRLEN (~128 KiB).
+# An oversized padded command used to E2BIG the preprocessor exec and then burn
+# minutes in bash regex on a 200 KiB haystack while allowing the payload. Deny
+# up-front; legitimate tool calls are nowhere near this bound.
+_GUARD_CMD_MAX=65536
+if [ "${#cmd}" -gt "$_GUARD_CMD_MAX" ]; then
+  printf '%s\n' "[guard-destructive] BLOCKED: command exceeds ${_GUARD_CMD_MAX}-byte scan limit (oversized / possible obfuscation pad)" >&2
+  exit 2
+fi
+
 # --- Normalization ---------------------------------------------------------
 # Canonicalize so flag-order / quoting / brace-expansion variants converge on
 # one form before matching. We match against the NORMALIZED string.
@@ -118,11 +128,12 @@ if command -v python3 >/dev/null 2>&1; then
   # OPEN where a failed mktemp/cat would silently drop the ANSI-C ($'...') anti-
   # obfuscation layer and let an obfuscated destructive command through. `read -d ''`
   # returns non-zero at EOF (no NUL) but still assigns; `|| :` keeps that from
-  # tripping `set -e`. The command under inspection travels via the __GUARD_RAW_CMD
-  # env var, never through this program text.
+  # tripping `set -e`. The command under inspection travels on stdin (NOT an env
+  # var): putting a >128 KiB command in __GUARD_RAW_CMD made execve hit E2BIG,
+  # the `||` swallowed it, and anti-obfuscation was skipped (2026-10-06 SH-F3).
   IFS= read -r -d '' __GUARD_PY <<'PY' || :
-import re, sys, os
-s = os.environ.get("__GUARD_RAW_CMD", "")
+import re, sys
+s = sys.stdin.read()
 # A quoted body "executes" only if it carries command substitution — $(...) or a
 # backtick. Parameter expansion (${VAR}) does not run a command in the common case,
 # and the exotic bash-5.2 funsub ${ ...;} is out of scope for this defense-in-depth
@@ -274,14 +285,17 @@ def _ansi_c_decode(m):
 s = re.sub(r"\$'((?:\\.|[^'\\])*)'", _ansi_c_decode, s)
 sys.stdout.write(s)
 PY
-  __preproc="$(__GUARD_RAW_CMD="$norm" python3 -c "$__GUARD_PY" 2>/dev/null)" || __preproc=""
-  # Only apply the preprocessed form if Python succeeded and produced output.
-  # NB: the `|| __preproc=""` above is load-bearing — without it, a non-zero
-  # exit from the `python3 -c` call (e.g. an exotic UnicodeEncodeError) would trip
-  # `set -e` and ABORT the whole guard before the deny checks run, and Claude
-  # Code treats a non-2 hook exit as non-blocking → the destructive command
-  # would run unchecked. Failing the substitution just falls back to `norm`.
-  [ -n "$__preproc" ] && norm="$__preproc"
+  # Pipe the command on stdin so a large payload cannot E2BIG the execve.
+  # Fail CLOSED on any preprocessor failure or empty output for non-empty
+  # input — falling back to un-decoded `norm` re-opened the SH-F3 bypass
+  # (obfuscated destructive + pad → allow). Claude Code only blocks on exit 2.
+  __pre_rc=0
+  __preproc="$(printf '%s' "$norm" | python3 -c "$__GUARD_PY" 2>/dev/null)" || __pre_rc=$?
+  if [ "$__pre_rc" -ne 0 ] || { [ -n "$norm" ] && [ -z "$__preproc" ]; }; then
+    printf '%s\n' "[guard-destructive] BLOCKED: anti-obfuscation preprocessor failed (fail-closed; refusing to scan un-decoded command)" >&2
+    exit 2
+  fi
+  norm="$__preproc"
 fi
 norm="${norm//\"/}"                 # drop double quotes:  rm -rf "/"  -> rm -rf /
 norm="${norm//\'/}"                 # drop single quotes
