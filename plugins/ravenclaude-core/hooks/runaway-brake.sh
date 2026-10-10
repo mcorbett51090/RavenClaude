@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 #
-# rc-state-key: "${project_root}/.ravenclaude/runs/thing/runaway" + session_id
-#   (project_root = walk-up from payload cwd, else CLAUDE_PROJECT_DIR; SH-F4)
+# rc-state-key: "${cwd}/.ravenclaude/runs/thing/runaway" + session_id
+#   (cwd is the worktree/project root after SH-F4 walk-up from payload cwd /
+#   CLAUDE_PROJECT_DIR fallback — still a cwd-derived worktree key)
 # rc-state-scope: worktree
 # rc-state-rationale: the counter answers "is THIS working tree in a loop", so the
 #   cwd component is what makes it correct. Two agents in two worktrees under one

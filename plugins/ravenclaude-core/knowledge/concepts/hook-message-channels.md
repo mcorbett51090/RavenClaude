@@ -57,7 +57,7 @@ covers:
   - plugins/ravenclaude-core/hooks/triage-outcome.sh
   - plugins/ravenclaude-core/hooks/worktree-guard.sh
   - plugins/ravenclaude-core/hooks/emit-permission-denied.sh
-covers_digest: "sha256:db9839621941e0c1fec3e9f1ff54f1ef5ffcb724558c857e4d5416d5dc1be31e"
+covers_digest: "sha256:1f686c9472cfa7f3ca68b02304b6a9e20a12976f2ff0a72747e6130d87db3c77"
 nuance: "A hook writing to stderr at `exit 0` reaches the model on no event; only `hookSpecificOutput.additionalContext` and `updatedToolOutput` are delivered, so `_advise.sh` advised the terminal for its entire service life."
 nuance_evidence:
   measured: 2026-08-19
