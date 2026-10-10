@@ -570,7 +570,9 @@ if [[ "${1:-}" == "--check" && -n "${2:-}" ]]; then
       ;;
     53)
       echo "── Gate 53: runaway read-only carve-out (per-gate run) ───────────────────"
-      bash plugins/ravenclaude-core/hooks/tests/test-runaway-readonly-carveout.sh
+      bash plugins/ravenclaude-core/hooks/tests/test-runaway-readonly-carveout.sh || exit $?
+      echo "── Gate 53b: runaway SH-F4/SH-F5 (per-gate run) ─────────────────────────"
+      bash plugins/ravenclaude-core/hooks/tests/test-runaway-shf4-shf5.sh
       exit $?
       ;;
     54)
@@ -6084,6 +6086,11 @@ echo "── Gate 53: runaway brake read-only carve-out ────────
 # and a must-fail half (carve-out stripped) makes the read-only burst trip again.
 rc=0; bash plugins/ravenclaude-core/hooks/tests/test-runaway-readonly-carveout.sh >/dev/null 2>&1 || rc=$?
 gate "runaway read-only carve-out (read-only exempt from consec, not from total; mutating loop unchanged)" must_pass "$rc"
+
+# SH-F4 / SH-F5 (2026-10-06): subdirectory cwd still arms the brake; flock
+# open must not permanently silence stderr (trip reason must reach the agent).
+rc=0; bash plugins/ravenclaude-core/hooks/tests/test-runaway-shf4-shf5.sh >/dev/null 2>&1 || rc=$?
+gate "runaway SH-F4 project-root walk-up + SH-F5 stderr survives flock" must_pass "$rc"
 
 # ─────────────────────────────────────────────────────────────────────────────
 echo "── Gate 93: Learn-tab step-by-step diagram (stepper) render ──────────────"

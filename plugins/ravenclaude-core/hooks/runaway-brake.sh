@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 #
 # rc-state-key: "${cwd}/.ravenclaude/runs/thing/runaway" + session_id
+#   (cwd is the worktree/project root after SH-F4 walk-up from payload cwd /
+#   CLAUDE_PROJECT_DIR fallback — still a cwd-derived worktree key)
 # rc-state-scope: worktree
 # rc-state-rationale: the counter answers "is THIS working tree in a loop", so the
 #   cwd component is what makes it correct. Two agents in two worktrees under one
@@ -40,6 +42,25 @@ payload=""
 
 cwd="$(printf '%s' "$payload" | jq -r '.cwd // empty' 2>/dev/null)"
 [ -z "$cwd" ] && cwd="$PWD"
+# SH-F4 (2026-10-06): posture + state are project/worktree-scoped. Payload cwd
+# may be a subdirectory after `cd`. Walk up from that cwd for `.ravenclaude/`
+# FIRST (preserves per-worktree isolation), then fall back to CLAUDE_PROJECT_DIR
+# (SessionStart / adapters), else keep the payload cwd.
+_payload_cwd="$cwd"
+root=""
+_d="$_payload_cwd"
+while [ -n "$_d" ] && [ "$_d" != "/" ]; do
+  if [ -d "${_d}/.ravenclaude" ]; then
+    root="$_d"
+    break
+  fi
+  _d="$(dirname "$_d")"
+done
+if [ -z "$root" ] && [ -n "${CLAUDE_PROJECT_DIR:-}" ] && [ -d "${CLAUDE_PROJECT_DIR}/.ravenclaude" ]; then
+  root="$CLAUDE_PROJECT_DIR"
+fi
+[ -n "$root" ] || root="$_payload_cwd"
+cwd="$root"
 posture="${cwd}/.ravenclaude/comfort-posture.yaml"
 [ -f "$posture" ] || exit 0   # not opted in -> zero cost
 
@@ -166,7 +187,10 @@ if is_read_only "$tn" "$cmd"; then read_only=1; fi
 # best-effort write) rather than hanging the hook if the lock is stuck; flock absent
 # (non-Linux) → skip locking and keep the prior best-effort behavior unchanged.
 if command -v flock >/dev/null 2>&1; then
-  exec 9>"${f}.lock" 2>/dev/null && flock -x -w 2 9 2>/dev/null || true
+  # SH-F5 (2026-10-06): `exec 9>file 2>/dev/null` permanently redirected the
+  # hook's stderr to /dev/null, so a tripped brake's reason never reached the
+  # agent. Brace-scope the open so only the open's own stderr is silenced.
+  { exec 9>"${f}.lock"; } 2>/dev/null && flock -x -w 2 9 2>/dev/null || true
 fi
 
 total=0; last="-"; consec=0

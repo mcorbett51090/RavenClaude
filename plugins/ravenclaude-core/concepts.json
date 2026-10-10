@@ -2858,7 +2858,7 @@
         "plugins/ravenclaude-core/hooks/worktree-guard.sh",
         "plugins/ravenclaude-core/hooks/emit-permission-denied.sh"
       ],
-      "covers_digest": "sha256:1b0f1badd956399e49ea068763e99c003a1739ad123c286b754013efe1a6843c",
+      "covers_digest": "sha256:1f686c9472cfa7f3ca68b02304b6a9e20a12976f2ff0a72747e6130d87db3c77",
       "nuance": "A hook writing to stderr at `exit 0` reaches the model on no event; only `hookSpecificOutput.additionalContext` and `updatedToolOutput` are delivered, so `_advise.sh` advised the terminal for its entire service life.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -3001,7 +3001,7 @@
         "scripts/sync-plugin-versions.py",
         "scripts/generate-copilot-plugin.py"
       ],
-      "covers_digest": "sha256:68764e29a75423aefb0ab69bfd35cf3fc072ad77f2b768fc63829c6ceff12295",
+      "covers_digest": "sha256:ef4528064f68e917c874c772ff0401ed441306965ce64fab4acd14b8778747d1",
       "nuance": "The cache key is the `version` string, never a content hash, so `sync-plugin-versions.py` can report clean while every installed session keeps running the old `hooks/` code.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -3063,7 +3063,7 @@
         "scripts/inventory-nuance-judge.py",
         "plugins/ravenclaude-core/scripts/forge-receipt.py"
       ],
-      "covers_digest": "sha256:950f44b7ebe4a254ae181617754ea92fb02e622365f9e7ef0d06efaa1eae4322",
+      "covers_digest": "sha256:b9932e780b3d995e5cfdf80e3f5f990be375f008fa20da9d33196b28157d6815",
       "nuance": "The teeth bit is the exit a tool own CHECK returns on a planted defect, never the exit `--must-fail` itself returns: `premise-gate.py` denies at `exit 0` while `sync-plugin-versions.py` reddens at `exit 2`, so an auditor that hard-codes one number can never be right for both.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -4643,7 +4643,7 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-09-18",
+      "last_verified": "2026-10-10",
       "refresh_when": null,
       "sources": [
         {
@@ -4666,7 +4666,7 @@
         "plugins/ravenclaude-core/scripts/thing-harden.py",
         "plugins/ravenclaude-core/hooks/thing-orchestrator.sh"
       ],
-      "covers_digest": "sha256:2941019948309e8e9f0a7a8ff33787fba637ea99e9ee95c70ece51cfe81837c2",
+      "covers_digest": "sha256:16e54e815ddf99470e2ef2b24383eba02d9bf1f6b4c6b68f5b9c70640e197de1",
       "nuance": "AppSec enable GO flipped seed/default hardening_edit ON (2026-09-16); with explicit false, empty-cited EDIT outside the orchestrator discriminator is DENY rather than ask, while a cited EDIT still allows byte-identical — OFF remains shape-sensitive, not a uniform no-op.",
       "nuance_evidence": {
         "measured": "2026-09-16",

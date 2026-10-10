@@ -129,6 +129,25 @@ esac
 
 cwd="$(printf '%s' "$payload" | jq -r '.cwd // empty')"
 [ -z "$cwd" ] && cwd="$PWD"
+# SH-F4 (2026-10-06): posture + state are project/worktree-scoped. Payload cwd
+# may be a subdirectory after `cd`. Walk up from that cwd for `.ravenclaude/`
+# FIRST (preserves per-worktree isolation), then fall back to CLAUDE_PROJECT_DIR
+# (SessionStart / adapters), else keep the payload cwd.
+_payload_cwd="$cwd"
+root=""
+_d="$_payload_cwd"
+while [ -n "$_d" ] && [ "$_d" != "/" ]; do
+  if [ -d "${_d}/.ravenclaude" ]; then
+    root="$_d"
+    break
+  fi
+  _d="$(dirname "$_d")"
+done
+if [ -z "$root" ] && [ -n "${CLAUDE_PROJECT_DIR:-}" ] && [ -d "${CLAUDE_PROJECT_DIR}/.ravenclaude" ]; then
+  root="$CLAUDE_PROJECT_DIR"
+fi
+[ -n "$root" ] || root="$_payload_cwd"
+cwd="$root"
 session_id="$(printf '%s' "$payload" | jq -r '.session_id // empty')"
 
 # ── Fast short-circuit: if no category is toggled on, do nothing. Runs BEFORE any
