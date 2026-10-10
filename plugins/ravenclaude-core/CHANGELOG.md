@@ -2,6 +2,19 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.339.2 — 2026-10-10
+
+### Fixed
+- **`keep-awake` no longer leaks rc_advise's saved stderr via background caffeinate (SH-F7).**
+  After `rc_advise_init` does `exec 3>&2`, the AC-path `nohup caffeinate … &` inherited
+  fd 3 and held the terminal/socket open for the session. Spawn now closes fd 3
+  (`3>&-`). Gate 189b companion + teeth.
+- **`enforce-git-protocol` no longer false-positive-warns on idiomatic heredoc commits (SH-F8).**
+  Agents send `git commit -m "$(cat <<EOF … EOF)"` before the shell expands it; the
+  hook treated the literal `$(cat <<EOF` opener as the subject. Resolve unexpanded
+  `$(cat <<…)` wrappers to the first non-empty heredoc body line (still warn when
+  that body is non-Conventional). Gate 189 cases.
+
 ## 0.339.1 — 2026-10-10
 
 ### Fixed

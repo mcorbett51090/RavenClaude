@@ -12,9 +12,13 @@
 #      `type(scope): subject` (types: feat|fix|chore|docs|refactor|test|build|ci|
 #      perf|style|revert). Default warn; blocks (exit 2) ONLY when the knob is
 #      `block`. A commit with no inline message (editor, or -F <file>) is not
-#      inspected — there is no subject to see. Git's OWN generated subjects
-#      (Revert "…" / Merge … / fixup! / squash!) are EXEMPT — they are produced by
-#      git (revert/merge/autosquash), not authored, so they never warn or block.
+#      inspected — there is no subject to see. An unexpanded
+#      `-m "$(cat <<EOF … EOF)"` wrapper (the idiomatic multi-line commit the
+#      Bash tool sends before the shell expands it) is resolved to the first
+#      non-empty heredoc body line — not the literal `$(cat <<EOF` opener
+#      (SH-F8). Git's OWN generated subjects (Revert "…" / Merge … / fixup! /
+#      squash!) are EXEMPT — they are produced by git (revert/merge/autosquash),
+#      not authored, so they never warn or block.
 #   2. branch-name — on a NEW-BRANCH creation (checkout -b <name> / switch -c
 #      <name> / plain `branch <name>`), WARN when <name> does not match the repo's
 #      prefix convention `^(feat|fix|chore|docs|refactor|agent)/` (rules/git-workflow.md).
@@ -171,6 +175,35 @@ def commit_subject(args):
     return None
 
 
+# SH-F8: agents author multi-line commits as
+#   git commit -m "$(cat <<'EOF'
+#   feat(scope): subject
+#   EOF
+#   )"
+# The Bash tool ships that string BEFORE the shell expands it, so shlex sees the
+# literal `$(cat <<EOF\n…\nEOF\n)` as the -m value. The first line is then
+# `$(cat <<EOF`, which fails Conventional Commits and false-positive-warns on
+# every idiomatic heredoc commit. Resolve the wrapper to the first non-empty
+# body line; if the body is empty, treat as no inspectable subject (same as -F).
+_HEREDOC_CAT_RE = re.compile(
+    r"^\$\(\s*cat\s*<<(['\"]?)(\w+)\1\r?\n([\s\S]*?)\r?\n\2\s*\)\s*$"
+)
+
+
+def effective_subject(raw):
+    if raw is None:
+        return None
+    m = _HEREDOC_CAT_RE.match(raw)
+    if m:
+        for line in m.group(3).splitlines():
+            line = line.strip()
+            if line:
+                return line
+        return None
+    first = raw.split("\n", 1)[0].strip()
+    return first if first else None
+
+
 def new_branch_name(sub, args):
     positional = [a for a in args if not a.startswith("-")]
     flags = [a for a in args if a.startswith("-")]
@@ -228,11 +261,10 @@ except ValueError:
 if tokens:
     for sub, args in git_invocations(tokens):
         if sub == "commit":
-            subj = commit_subject(args)
+            subj = effective_subject(commit_subject(args))
             if subj is not None:
-                first = subj.split("\n", 1)[0].strip()
-                if first and not CC_RE.match(first) and not GIT_GENERATED_RE.match(first):
-                    findings.append(("commit-message", first))
+                if not CC_RE.match(subj) and not GIT_GENERATED_RE.match(subj):
+                    findings.append(("commit-message", subj))
         elif sub in ("checkout", "switch", "branch"):
             name = new_branch_name(sub, args)
             if name is not None and not BR_RE.match(name):

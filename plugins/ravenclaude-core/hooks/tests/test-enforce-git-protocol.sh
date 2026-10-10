@@ -60,6 +60,17 @@ _assert_stderr_has "commit non-CC @warn nudge"     "Conventional Commits"
 _run "$HOOK" "$PROJ" 'git commit -m "fix(hooks): correct the regex"'
 _assert_silent "commit CC @warn"
 
+# SH-F8: idiomatic unexpanded $(cat <<EOF) multi-line commit — subject is the
+# heredoc body, not the literal `$(cat <<EOF` opener. Without the fix this
+# false-positive-warns on every agent-authored heredoc commit.
+_run "$HOOK" "$PROJ" "$(printf '%s\n' 'git commit -m "$(cat <<EOF' 'feat(hooks): heredoc subject' '' 'body line' 'EOF' ')"')"
+_assert_silent "heredoc CC commit @warn (SH-F8)"
+
+# Quoted delimiter form (`<<'EOF'`) — same resolution; body still checked.
+_run "$HOOK" "$PROJ" $'git commit -m "$(cat <<\'EOF\'\nfixed stuff in heredoc\nEOF\n)"'
+_assert_exit "heredoc non-CC @warn (SH-F8 still checks body)" 0
+_assert_stderr_has "heredoc non-CC @warn nudge" "Conventional Commits"
+
 _run "$HOOK" "$PROJ" 'git checkout -b random-name'
 _assert_exit "checkout -b off-convention @warn"    0
 _assert_stderr_has "branch @warn nudge"            "prefix convention"
