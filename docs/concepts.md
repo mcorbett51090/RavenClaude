@@ -2636,7 +2636,7 @@ the human-reverify marker replays as survivable while an unmarked line replays a
 ## The discriminator
 
 control: the human-reverify marker replays as survivable while an unmarked line replays as fatal
-Measured 2026-08-19: `regenerate-artifacts.yml` greps the sentence `staleness gate FAILED`, never a status, so an unrecognised class runs `exit "$_crc"` and every later self-heal step is skipped.
+Measured 2026-08-19 (re-verified 2026-10-10 after CI-05 `add-paths`): the self-heal greps `RC-CONCEPTS-CLASS: human-reverify-required` (with a one-release OR-fallback on the prose `staleness gate FAILED`); an unmarked class still runs `exit "$_crc"` and every later self-heal step is skipped. `add-paths` does not touch this contract.
 
 ## Why it matters
 
@@ -2646,7 +2646,7 @@ Probe: `scripts/spike-selfheal-contract.sh`
 
 **Sources:** [measured in the FORGE product-inventory run](https://github.com/mcorbett51090/RavenClaude/pull/997)
 
-_Last verified: 2026-08-20_
+_Last verified: 2026-10-10_
 
 
 ---
