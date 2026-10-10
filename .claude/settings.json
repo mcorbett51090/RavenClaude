@@ -64,12 +64,12 @@
           {
             "type": "command",
             "command": "\"${CLAUDE_PROJECT_DIR}/plugins/ravenclaude-core/hooks/delegation-nudge.sh\" \"$CLAUDE_TOOL_FILE_PATH\"",
-            "comment": "Marketplace-dev hook (dev-mirror of the plugin's hooks/hooks.json entry). Advisory (Capability Grounding — consult-your-access-inventory): nudges on a 'tell the user to manually check / open the portal' phrasing written into a knowledge/ or docs/ markdown file. Opt-in, skips frontmatter/code/blockquotes/headings, suppresses a hand-back reason or a line citing the held route, honors `delegation-nudge-ok`. Exit 0 always; cannot see the chat answer (written-artifact subset only)."
+            "comment": "Marketplace-dev hook (dev-mirror of the plugin's hooks/hooks.json entry). Advisory (Capability Grounding \u2014 consult-your-access-inventory): nudges on a 'tell the user to manually check / open the portal' phrasing written into a knowledge/ or docs/ markdown file. Opt-in, skips frontmatter/code/blockquotes/headings, suppresses a hand-back reason or a line citing the held route, honors `delegation-nudge-ok`. Exit 0 always; cannot see the chat answer (written-artifact subset only)."
           },
           {
             "type": "command",
             "command": "\"${CLAUDE_PROJECT_DIR}/plugins/ravenclaude-core/hooks/regen-on-manifest-change.sh\" \"$CLAUDE_TOOL_FILE_PATH\"",
-            "comment": "Marketplace-dev hook (dev-mirror of the plugin's hooks/hooks.json entry). When a plugin.json or marketplace.json version changes inside this marketplace clone, regenerates the Copilot package + dashboard.html + repo-guide.html — the artifacts CI freshness gates check. No-op on non-manifest edits and when version is unchanged."
+            "comment": "Marketplace-dev hook (dev-mirror of the plugin's hooks/hooks.json entry). When a plugin.json or marketplace.json version changes inside this marketplace clone, regenerates the Copilot package + dashboard.html + repo-guide.html \u2014 the artifacts CI freshness gates check. No-op on non-manifest edits and when version is unchanged."
           },
           {
             "type": "command",
@@ -83,12 +83,40 @@
           {
             "type": "command",
             "command": "\"${CLAUDE_PROJECT_DIR}/plugins/ravenclaude-core/hooks/mark-web-domain-seen.sh\"",
-            "comment": "Marketplace-dev mirror of the plugin's PostToolUse WebFetch entry. Records the per-session 'seen' marker for a whitelisted domain ONLY after the fetch actually proceeded (PostToolUse doesn't fire on a blocked call) — the consent-ordering complement to guard-web-access.sh so a denied first fetch re-prompts instead of silently auto-allowing. Fail-safe; never blocks."
+            "comment": "Marketplace-dev mirror of the plugin's PostToolUse WebFetch entry. Records the per-session 'seen' marker for a whitelisted domain ONLY after the fetch actually proceeded (PostToolUse doesn't fire on a blocked call) \u2014 the consent-ordering complement to guard-web-access.sh so a denied first fetch re-prompts instead of silently auto-allowing. Fail-safe; never blocks."
           },
           {
             "type": "command",
             "command": "\"${CLAUDE_PROJECT_DIR}/plugins/ravenclaude-core/hooks/sanitize-webfetch-output.sh\"",
             "comment": "Marketplace-dev mirror of the plugin's PostToolUse WebFetch sanitizer (v0.266.0). Rewrites the fetched body via updatedToolOutput. Fail-open; WebFetch only."
+          }
+        ]
+      },
+      {
+        "matcher": "Agent|Task",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PROJECT_DIR}/plugins/ravenclaude-core/hooks/handoff-tax-meter.sh\"",
+            "timeout": 10,
+            "comment": "Marketplace-dev mirror of plugin hooks.json. Handoff-tax meter (model-tier delegation, measurement leg). ADVISORY, never blocks. On every subagent dispatch it reads the PostToolUse payload (brief = tool_input.prompt, report = tool_response.content, tier from resolvedModel) and appends one counts-only line to .ravenclaude/runs/<session>/dispatch-ledger.jsonl \u2014 never the prompt or report text. Speaks (additionalContext) only when a threshold trips: report_over_cap (worker returned more than the Team Lead would have pasted itself; default 400 words), brief_over_cap (transcript-forwarding shape; default 600), or frontier_readonly (Explore/scout ran on an opus-class model \u2014 since v2.1.198 an un-pinned Explore inherits the main model). Opt-in (no-op without .ravenclaude/comfort-posture.yaml); `handoff_tax: off` silences the advisory but keeps the ledger; caps under `handoff_tax: { report_cap_words, brief_cap_words }`. Fail-safe: no python3/jq, malformed payload, background (async_launched) dispatch -> exit 0. HONEST LIMIT: totalTokens covers the subagent's FINAL request only (lower bound); word counts are exact. Reference: knowledge/model-tier-delegation.md."
+          },
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PROJECT_DIR}/plugins/ravenclaude-core/scripts/plugin-lifecycle-telemetry.sh\"",
+            "timeout": 5,
+            "comment": "Marketplace-dev mirror of plugin hooks.json. Plugin-lifecycle telemetry (P1). Bumps last_used_at when a plugin-namespaced Agent/Task subagent is spawned (subagent_type prefix before ':'). Built-ins without a namespace are a no-op. Does NOT count SessionStart presence. Fail-open; always exits 0."
+          }
+        ]
+      },
+      {
+        "matcher": "Skill",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PROJECT_DIR}/plugins/ravenclaude-core/scripts/plugin-lifecycle-telemetry.sh\"",
+            "timeout": 5,
+            "comment": "Marketplace-dev mirror of plugin hooks.json. Plugin-lifecycle telemetry (P1). Bumps last_used_at when a plugin-namespaced Skill is invoked (prefix before ':'). Does NOT count SessionStart presence or dashboard open. Fail-open; always exits 0. Lives under scripts/ (executable-bit constraint on new hooks/*.sh)."
           }
         ]
       },
@@ -140,11 +168,28 @@
             "command": "bash \"${CLAUDE_PROJECT_DIR}/plugins/ravenclaude-core/hooks/spectate-emit.sh\"",
             "timeout": 5,
             "comment": "Spectate observe-only emitter (v0.2). Marketplace-dev mirror of plugin hooks.json. Appends scrubbed rc.spectate.v1 lines; always exit 0; never blocks."
+          },
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PROJECT_DIR}/plugins/ravenclaude-core/hooks/spectate-steer.sh\"",
+            "timeout": 5,
+            "comment": "Marketplace-dev mirror of plugin hooks.json. Spectate steer consumer (v0.5). OPT-IN via comfort-posture `spectate_steer: on`. PostToolUse: if interrupt_pending, emit top-level continue:false + stopReason (docs-verified agentic-loop stop). Fail-open when posture is off."
           }
         ]
       }
     ],
     "PreToolUse": [
+      {
+        "matcher": "Agent|Task",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PROJECT_DIR}/plugins/ravenclaude-core/hooks/explore-tier-pin.sh\"",
+            "timeout": 10,
+            "comment": "Marketplace-dev mirror of plugin hooks.json. Explore tier pin (model-tier delegation, prevention leg). REWRITES INPUT, never gates: when the built-in `Explore` is dispatched without `model`, returns hookSpecificOutput.updatedInput with `model: haiku` (posture `handoff_tax: { pin_explore: haiku | sonnet | off }`; `handoff_tax: off` also disables) plus an additionalContext explaining the pin. Emits NO permissionDecision, so the posture's `subagent_dispatch` category still gates the call unchanged. Why: since v2.1.198 an un-pinned Explore inherits the main model, so on an Opus session every 'go find X' is an Opus dispatch whose whole job is reading; handoff-tax-meter.sh names that `frontier_readonly` only AFTER the tokens are spent. Stands down on: any explicit `model` (including `inherit`), any type but Explore (scout pins haiku in frontmatter; general-purpose/Plan do real work), CLAUDE_CODE_SUBAGENT_MODEL set (the fleet-wide route would be overridden), no comfort-posture (opt-in), or any error (exit 0, no stdout -> Claude's input runs unchanged). Reference: knowledge/model-tier-delegation.md."
+          }
+        ]
+      },
       {
         "matcher": "Bash|Read|Write|Edit|MultiEdit|WebFetch|WebSearch|mcp__.*",
         "hooks": [
@@ -157,12 +202,12 @@
             "type": "command",
             "command": "\"${CLAUDE_PROJECT_DIR}/plugins/ravenclaude-core/hooks/thing-orchestrator.sh\"",
             "timeout": 90,
-            "comment": "Marketplace-dev hook. Command review (the Thing) — T3 panel tribunal. No-ops (fast grep) unless a category has `thing: on` in .ravenclaude/comfort-posture.yaml. The internal panel deadline (~75s) stays under this 90s hook timeout. The plugin's hooks/hooks.json registers the same script for consumers via ${CLAUDE_PLUGIN_ROOT}; both paths are safe because the script is idempotent and short-circuits when no toggle is set."
+            "comment": "Marketplace-dev hook. Command review (the Thing) \u2014 T3 panel tribunal. No-ops (fast grep) unless a category has `thing: on` in .ravenclaude/comfort-posture.yaml. The internal panel deadline (~75s) stays under this 90s hook timeout. The plugin's hooks/hooks.json registers the same script for consumers via ${CLAUDE_PLUGIN_ROOT}; both paths are safe because the script is idempotent and short-circuits when no toggle is set."
           },
           {
             "type": "command",
             "command": "\"${CLAUDE_PROJECT_DIR}/plugins/ravenclaude-core/hooks/runaway-brake.sh\"",
-            "comment": "Marketplace-dev hook (dev-mirror of the plugin's hooks/hooks.json entry). Runaway/rabbit-hole brake — portable replacement for native auto-mode's 3/20 brake. No-ops unless .ravenclaude/comfort-posture.yaml exists (this repo has none, so it no-ops); exits 2 when the agent thrashes (default 8 identical calls in a row) or blows a total-call ceiling (default 200). Deterministic, no model."
+            "comment": "Marketplace-dev hook (dev-mirror of the plugin's hooks/hooks.json entry). Runaway/rabbit-hole brake \u2014 portable replacement for native auto-mode's 3/20 brake. No-ops unless .ravenclaude/comfort-posture.yaml exists (this repo has none, so it no-ops); exits 2 when the agent thrashes (default 8 identical calls in a row) or blows a total-call ceiling (default 200). Deterministic, no model."
           }
         ]
       },
@@ -172,7 +217,7 @@
           {
             "type": "command",
             "command": "\"${CLAUDE_PROJECT_DIR}/plugins/ravenclaude-core/hooks/guard-probe-validity.sh\"",
-            "comment": "Marketplace-dev hook (dev-mirror of the plugin's hooks/hooks.json PreToolUse(Bash) entry). Probe-validity advisory (default WARN, and WARN is the ONLY verdict). Reads the `probe_validity: off|warn` knob from .ravenclaude/comfort-posture.yaml (this repo dogfoods `probe_validity: warn`); an ABSENT posture file is a no-op. ONE rule: `grep -v` used in QUIET MODE, where the exit status stops answering \"is there a line that does NOT match?\" and starts reporting whether the PATTERN is ABSENT — an inverted answer that reads as clean. Quiet is entered two ways: a -q/--quiet/--silent flag (possibly bundled: -qv, -vq, -rqv, -qvE), and stdout redirected to /dev/null SPECIFICALLY (no -q required). ⛔ No host probe and no deny path, deliberately — a hook-side probe measures the wrong shell's grep, which makes a probe-gated deny branch unreachable in production and testable-green. Never exits 2. Same script the plugin distributes to consumers via ${CLAUDE_PLUGIN_ROOT}."
+            "comment": "Marketplace-dev hook (dev-mirror of the plugin's hooks/hooks.json PreToolUse(Bash) entry). Probe-validity advisory (default WARN, and WARN is the ONLY verdict). Reads the `probe_validity: off|warn` knob from .ravenclaude/comfort-posture.yaml (this repo dogfoods `probe_validity: warn`); an ABSENT posture file is a no-op. ONE rule: `grep -v` used in QUIET MODE, where the exit status stops answering \"is there a line that does NOT match?\" and starts reporting whether the PATTERN is ABSENT \u2014 an inverted answer that reads as clean. Quiet is entered two ways: a -q/--quiet/--silent flag (possibly bundled: -qv, -vq, -rqv, -qvE), and stdout redirected to /dev/null SPECIFICALLY (no -q required). \u26d4 No host probe and no deny path, deliberately \u2014 a hook-side probe measures the wrong shell's grep, which makes a probe-gated deny branch unreachable in production and testable-green. Never exits 2. Same script the plugin distributes to consumers via ${CLAUDE_PLUGIN_ROOT}."
           },
           {
             "type": "command",
@@ -214,7 +259,7 @@
           {
             "type": "command",
             "command": "\"${CLAUDE_PROJECT_DIR}/plugins/ravenclaude-core/hooks/worktree-guard.sh\" check",
-            "comment": "Marketplace-dev hook (dev-mirror of the plugin's hooks/hooks.json PreToolUse entry). Worktree-hygiene guard (check): reads `worktree_guard: off|warn|block` from .ravenclaude/comfort-posture.yaml (default warn; this repo dogfoods `worktree_guard: warn`, so it nudges but never blocks). On `block` DENIES (exit 2) ONLY a mutating op (git commit/add/checkout/switch/merge/rebase/cherry-pick/revert/stash/rm/mv, or a Write/Edit/MultiEdit under the tree) when another live session shares this working tree or this is anchor-work — never a read / git status / rcwt. Escape hatch: RC_WORKTREE_GUARD_ACK=1. `off` short-circuits before any git shell-out; fail-open on missing git/jq. Same script the plugin distributes to consumers via ${CLAUDE_PLUGIN_ROOT}."
+            "comment": "Marketplace-dev hook (dev-mirror of the plugin's hooks/hooks.json PreToolUse entry). Worktree-hygiene guard (check): reads `worktree_guard: off|warn|block` from .ravenclaude/comfort-posture.yaml (default warn; this repo dogfoods `worktree_guard: warn`, so it nudges but never blocks). On `block` DENIES (exit 2) ONLY a mutating op (git commit/add/checkout/switch/merge/rebase/cherry-pick/revert/stash/rm/mv, or a Write/Edit/MultiEdit under the tree) when another live session shares this working tree or this is anchor-work \u2014 never a read / git status / rcwt. Escape hatch: RC_WORKTREE_GUARD_ACK=1. `off` short-circuits before any git shell-out; fail-open on missing git/jq. Same script the plugin distributes to consumers via ${CLAUDE_PLUGIN_ROOT}."
           }
         ]
       },
@@ -287,6 +332,12 @@
             "command": "bash \"${CLAUDE_PROJECT_DIR}/plugins/ravenclaude-core/hooks/spectate-emit.sh\"",
             "timeout": 5,
             "comment": "Spectate observe-only emitter (v0.2). Marketplace-dev mirror of plugin hooks.json. Appends scrubbed rc.spectate.v1 lines; always exit 0; never blocks."
+          },
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PROJECT_DIR}/plugins/ravenclaude-core/hooks/spectate-steer.sh\"",
+            "timeout": 5,
+            "comment": "Marketplace-dev mirror of plugin hooks.json. Spectate steer consumer (v0.5). OPT-IN via comfort-posture `spectate_steer: on` (absent => off; one grep). PreToolUse: interrupt (continue:false) or pause-as-deny. UserPromptSubmit/PreToolUse: inject capped additionalContext for a pending note, then clear it. PermissionRequest lane is registered separately. Fail-open; never blocks when posture is off."
           }
         ]
       }
@@ -312,7 +363,7 @@
           {
             "type": "command",
             "command": "\"${CLAUDE_PROJECT_DIR}/plugins/ravenclaude-core/hooks/thing-denial-kb-sync.sh\"",
-            "comment": "Marketplace-dev hook (dev-mirror of the plugin's hooks/hooks.json entry). Thing-denial KB (Muninn): on session end, materialise new command/decision-tribunal denials/defers into .ravenclaude/runs/thing/denial-kb.jsonl by reading the existing Sága audit records (hot-path-safe). No-op unless a comfort-posture exists; never writes stdout; always exits 0."
+            "comment": "Marketplace-dev hook (dev-mirror of the plugin's hooks/hooks.json entry). Thing-denial KB (Muninn): on session end, materialise new command/decision-tribunal denials/defers into .ravenclaude/runs/thing/denial-kb.jsonl by reading the existing S\u00e1ga audit records (hot-path-safe). No-op unless a comfort-posture exists; never writes stdout; always exits 0."
           },
           {
             "type": "command",
@@ -359,19 +410,25 @@
             "type": "command",
             "command": "bash \"${CLAUDE_PROJECT_DIR}/plugins/ravenclaude-core/scripts/caveman-route-hook.sh\" --event prompt",
             "timeout": 10,
-            "comment": "Marketplace-dev hook (dev-mirror). Caveman auto-routing (FORGE P3 — SHADOW ONLY). No-ops (test -f + one anchored grep) unless .ravenclaude/comfort-posture.yaml sets `caveman_routing: shadow|live` (absent/off => zero file writes). SHADOW is what \"enabled\" means in this phase: decide + record, NEVER call caveman-apply-mode.sh. The plugin's hooks/hooks.json registers the same script for consumers via ${CLAUDE_PLUGIN_ROOT}."
+            "comment": "Marketplace-dev hook (dev-mirror). Caveman auto-routing (FORGE P3 \u2014 SHADOW ONLY). No-ops (test -f + one anchored grep) unless .ravenclaude/comfort-posture.yaml sets `caveman_routing: shadow|live` (absent/off => zero file writes). SHADOW is what \"enabled\" means in this phase: decide + record, NEVER call caveman-apply-mode.sh. The plugin's hooks/hooks.json registers the same script for consumers via ${CLAUDE_PLUGIN_ROOT}."
           },
           {
             "type": "command",
             "command": "\"${CLAUDE_PROJECT_DIR}/plugins/ravenclaude-core/hooks/stream-prompt-attribute.sh\"",
             "timeout": 10,
-            "comment": "Marketplace-dev hook (dev-mirror). Agentic Work-Streams P4 (OPT-IN, FAIL-OPEN): no-ops unless .ravenclaude/comfort-posture.yaml sets stream_hook: per_prompt (this repo doesn't, so it no-ops). When opted in, attributes the prompt to the active stream as a derived event (sticky — no reclassify) or auto-sets on a confident match. NEVER blocks/alters the prompt; NO-EGRESS (only derived labels persist)."
+            "comment": "Marketplace-dev hook (dev-mirror). Agentic Work-Streams P4 (OPT-IN, FAIL-OPEN): no-ops unless .ravenclaude/comfort-posture.yaml sets stream_hook: per_prompt (this repo doesn't, so it no-ops). When opted in, attributes the prompt to the active stream as a derived event (sticky \u2014 no reclassify) or auto-sets on a confident match. NEVER blocks/alters the prompt; NO-EGRESS (only derived labels persist)."
+          },
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PROJECT_DIR}/plugins/ravenclaude-core/scripts/plugin-lifecycle-telemetry.sh\"",
+            "timeout": 5,
+            "comment": "Marketplace-dev mirror of plugin hooks.json. Plugin-lifecycle telemetry (P1, slash). On UserPromptSubmit, if the prompt starts with a plugin-namespaced slash (`/ns:cmd`), bump last_used_at for that plugin. Bare built-in slashes (`/clear`) are a no-op. Does NOT count SessionStart or dashboard open. Fail-open; always exits 0."
           },
           {
             "type": "command",
             "command": "bash \"${CLAUDE_PROJECT_DIR}/plugins/ravenclaude-core/scripts/prompt-optimizer-gate.sh\"",
             "timeout": 90,
-            "comment": "Marketplace-dev hook (dev-mirror). Prompt optimizer (Phases 2-6 — OPT-IN, FAIL-OPEN, ships default OFF). Config-gated by the YAML-block-scoped prompt_optimizer.enabled in .ravenclaude/comfort-posture.yaml (this repo doesn't set it, so it no-ops). When enabled: Tier-0 pre-filter + Tier-1 Haiku classifier decide skip/rewrite/dispatch_plan; a non-skip verdict dispatches to prompt-optimizer-rewrite.sh / prompt-optimizer-dispatch.sh, then prompt-optimizer-format.py (semantic screen + delivery shape + its own audit artifact). Final emission gated on prompt_optimizer.mode: shadow (default) writes the audit artifact but emits an EMPTY additionalContext; advisory/binding-context emit the composed text. Fails open at every stage; never blocks. The plugin's hooks/hooks.json registers the same script for consumers via ${CLAUDE_PLUGIN_ROOT}."
+            "comment": "Marketplace-dev hook (dev-mirror). Prompt optimizer (Phases 2-6 \u2014 OPT-IN, FAIL-OPEN, ships default OFF). Config-gated by the YAML-block-scoped prompt_optimizer.enabled in .ravenclaude/comfort-posture.yaml (this repo doesn't set it, so it no-ops). When enabled: Tier-0 pre-filter + Tier-1 Haiku classifier decide skip/rewrite/dispatch_plan; a non-skip verdict dispatches to prompt-optimizer-rewrite.sh / prompt-optimizer-dispatch.sh, then prompt-optimizer-format.py (semantic screen + delivery shape + its own audit artifact). Final emission gated on prompt_optimizer.mode: shadow (default) writes the audit artifact but emits an EMPTY additionalContext; advisory/binding-context emit the composed text. Fails open at every stage; never blocks. The plugin's hooks/hooks.json registers the same script for consumers via ${CLAUDE_PLUGIN_ROOT}."
           },
           {
             "type": "command",
@@ -384,6 +441,12 @@
             "command": "bash \"${CLAUDE_PROJECT_DIR}/plugins/ravenclaude-core/hooks/spectate-emit.sh\"",
             "timeout": 5,
             "comment": "Spectate observe-only emitter (v0.2). Marketplace-dev mirror of plugin hooks.json. Appends scrubbed rc.spectate.v1 lines; always exit 0; never blocks."
+          },
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PROJECT_DIR}/plugins/ravenclaude-core/hooks/spectate-steer.sh\"",
+            "timeout": 5,
+            "comment": "Marketplace-dev mirror of plugin hooks.json. Spectate steer consumer (v0.5). OPT-IN via comfort-posture `spectate_steer: on` (absent => off; one grep). UserPromptSubmit: interrupt (continue:false) or capped note injection. Fail-open; never blocks when posture is off."
           }
         ]
       }
@@ -395,7 +458,7 @@
             "type": "command",
             "command": "\"${CLAUDE_PROJECT_DIR}/plugins/ravenclaude-core/hooks/agent-dispatch-evaluator.sh\"",
             "timeout": 10,
-            "comment": "Marketplace-dev hook (dev-mirror). Agent-dispatch evaluator, Phase 3 — AUDIT-ONLY. No-ops (single grep) unless .ravenclaude/dispatch-config.json has enabled:true (this repo has none, so it no-ops). When opted in, shadow-logs a model-right-sizing verdict for the about-to-start subagent; it NEVER denies or redispatches (RM1 — SubagentStart fires post-spawn, deny-is-pre-commit unverified). The plugin's hooks/hooks.json registers the same script for consumers via ${CLAUDE_PLUGIN_ROOT}; both paths are safe because the hook is fail-open and inert when dispatch-config is absent or disabled."
+            "comment": "Marketplace-dev hook (dev-mirror). Agent-dispatch evaluator, Phase 3 \u2014 AUDIT-ONLY. No-ops (single grep) unless .ravenclaude/dispatch-config.json has enabled:true (this repo has none, so it no-ops). When opted in, shadow-logs a model-right-sizing verdict for the about-to-start subagent; it NEVER denies or redispatches (RM1 \u2014 SubagentStart fires post-spawn, deny-is-pre-commit unverified). The plugin's hooks/hooks.json registers the same script for consumers via ${CLAUDE_PLUGIN_ROOT}; both paths are safe because the hook is fail-open and inert when dispatch-config is absent or disabled."
           },
           {
             "type": "command",
@@ -456,13 +519,13 @@
             "type": "command",
             "command": "bash \"${CLAUDE_PROJECT_DIR}/plugins/ravenclaude-core/scripts/caveman-route-hook.sh\" --event session",
             "timeout": 10,
-            "comment": "Marketplace-dev hook (dev-mirror). Caveman auto-routing (FORGE P3 — SHADOW ONLY), SessionStart half of the same hook body registered under UserPromptSubmit above. Joins this EXISTING startup|resume|clear|fork matcher group deliberately — no `compact` entry, no new matcher block. The plugin's hooks/hooks.json registers the same script for consumers via ${CLAUDE_PLUGIN_ROOT}."
+            "comment": "Marketplace-dev hook (dev-mirror). Caveman auto-routing (FORGE P3 \u2014 SHADOW ONLY), SessionStart half of the same hook body registered under UserPromptSubmit above. Joins this EXISTING startup|resume|clear|fork matcher group deliberately \u2014 no `compact` entry, no new matcher block. The plugin's hooks/hooks.json registers the same script for consumers via ${CLAUDE_PLUGIN_ROOT}."
           },
           {
             "type": "command",
             "command": "\"${CLAUDE_PROJECT_DIR}/plugins/ravenclaude-core/hooks/oath-hook.sh\"",
             "timeout": 10,
-            "comment": "Marketplace-dev hook (dev-mirror of the plugin's hooks/hooks.json entry). Oath-hook (GUPP): if ledger-backed Runes hang on this actor's hook, inject MUST-RUN additionalContext. Fail-silent; SessionStart cannot block. Longship land-request never merges — Sage sole SCM."
+            "comment": "Marketplace-dev hook (dev-mirror of the plugin's hooks/hooks.json entry). Oath-hook (GUPP): if ledger-backed Runes hang on this actor's hook, inject MUST-RUN additionalContext. Fail-silent; SessionStart cannot block. Longship land-request never merges \u2014 Sage sole SCM."
           },
           {
             "type": "command",
@@ -503,7 +566,7 @@
             "type": "command",
             "command": "\"${CLAUDE_PROJECT_DIR}/scripts/ensure-plugin-installed.sh\"",
             "timeout": 30,
-            "comment": "Marketplace-ONLY hook (deliberately NOT in any plugin hooks.json — same precedent as scripts/notify.sh — and deliberately in the `startup`-only lane, NOT the `startup|resume|clear|fork` source group Gate 259 (check_b_parity) exact-matches against hooks.json). This environment's container is ephemeral and re-cloned fresh on each new session, so `claude plugin install`'s user-scope state (~/.claude.json) does not survive. Re-wires the ravenclaude marketplace + ravenclaude-core/devops-cicd/api-engineering/team-portfolio plugins at every fresh container startup via a dynamically-resolved ${CLAUDE_PROJECT_DIR} path (never a committed absolute path). Fast-path exits immediately once already installed. Fail-safe: never blocks SessionStart, always exits 0."
+            "comment": "Marketplace-ONLY hook (deliberately NOT in any plugin hooks.json \u2014 same precedent as scripts/notify.sh \u2014 and deliberately in the `startup`-only lane, NOT the `startup|resume|clear|fork` source group Gate 259 (check_b_parity) exact-matches against hooks.json). This environment's container is ephemeral and re-cloned fresh on each new session, so `claude plugin install`'s user-scope state (~/.claude.json) does not survive. Re-wires the ravenclaude marketplace + ravenclaude-core/devops-cicd/api-engineering/team-portfolio plugins at every fresh container startup via a dynamically-resolved ${CLAUDE_PROJECT_DIR} path (never a committed absolute path). Fast-path exits immediately once already installed. Fail-safe: never blocks SessionStart, always exits 0."
           }
         ]
       },
@@ -514,7 +577,7 @@
             "type": "command",
             "command": "\"${CLAUDE_PROJECT_DIR}/plugins/ravenclaude-core/hooks/compact-anchor.sh\"",
             "timeout": 10,
-            "comment": "Marketplace-dev hook (dev-mirror of the plugin's hooks/hooks.json entry). Post-compaction addressability pointer, scoped `matcher: \"compact\"`. Injects the transcript path + boundary line + how to grep it — plus the newest PreCompact digest file for this session's run-dir, if precompact-digest.sh wrote one — so the post-compaction agent knows its own pre-compaction record is still on disk. DERIVED VALUES ONLY — never transcript or digest content (Gate 186). Fail-safe; always exits 0."
+            "comment": "Marketplace-dev hook (dev-mirror of the plugin's hooks/hooks.json entry). Post-compaction addressability pointer, scoped `matcher: \"compact\"`. Injects the transcript path + boundary line + how to grep it \u2014 plus the newest PreCompact digest file for this session's run-dir, if precompact-digest.sh wrote one \u2014 so the post-compaction agent knows its own pre-compaction record is still on disk. DERIVED VALUES ONLY \u2014 never transcript or digest content (Gate 186). Fail-safe; always exits 0."
           }
         ]
       }
@@ -526,7 +589,7 @@
             "type": "command",
             "command": "\"${CLAUDE_PROJECT_DIR}/plugins/ravenclaude-core/hooks/precompact-digest.sh\"",
             "timeout": 10,
-            "comment": "Marketplace-dev hook (dev-mirror of the plugin's hooks/hooks.json entry). Pre-compaction critical-info archive (P2, precompact-critical-context FORGE plan). Reads the PreCompact payload's optional `transcript_path` and, if present, calls scripts/precompact-digest.py to write a curated digest to .ravenclaude/runs/<session>/precompact-digest-<timestamp>.md BEFORE the transcript is summarized away. Fire-and-forget, archival only — never gating; deliberately never exits non-zero (PreCompact CAN block on Claude Code via exit 2, and this hook never does). Same script the plugin distributes to consumers via ${CLAUDE_PLUGIN_ROOT}."
+            "comment": "Marketplace-dev hook (dev-mirror of the plugin's hooks/hooks.json entry). Pre-compaction critical-info archive (P2, precompact-critical-context FORGE plan). Reads the PreCompact payload's optional `transcript_path` and, if present, calls scripts/precompact-digest.py to write a curated digest to .ravenclaude/runs/<session>/precompact-digest-<timestamp>.md BEFORE the transcript is summarized away. Fire-and-forget, archival only \u2014 never gating; deliberately never exits non-zero (PreCompact CAN block on Claude Code via exit 2, and this hook never does). Same script the plugin distributes to consumers via ${CLAUDE_PLUGIN_ROOT}."
           },
           {
             "type": "command",
@@ -545,6 +608,25 @@
             "command": "bash \"${CLAUDE_PROJECT_DIR}/plugins/ravenclaude-core/hooks/emit-permission-denied.sh\"",
             "timeout": 5,
             "comment": "Marketplace-dev hook (dev-mirror of the plugin's hooks/hooks.json PermissionDenied entry). Records auto-mode permission denials into hook-events.jsonl (derived values only). Fail-safe; always exit 0."
+          }
+        ]
+      }
+    ],
+    "PermissionRequest": [
+      {
+        "matcher": "Bash|Read|Write|Edit|MultiEdit|WebFetch|WebSearch|Agent|Task|mcp__.*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PROJECT_DIR}/plugins/ravenclaude-core/hooks/spectate-emit.sh\"",
+            "timeout": 5,
+            "comment": "Marketplace-dev mirror of plugin hooks.json. Spectate observe-only emitter (v0.4). On PermissionRequest appends permission.request (asserted_status waiting-approval) so the UI can surface Approve/Deny. DERIVED VALUES ONLY. Fail-safe: always exit 0; empty stdout; never blocks."
+          },
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PROJECT_DIR}/plugins/ravenclaude-core/hooks/spectate-steer.sh\"",
+            "timeout": 50,
+            "comment": "Marketplace-dev mirror of plugin hooks.json. Spectate steer consumer (v0.5). OPT-IN via comfort-posture `spectate_steer: on`. On PermissionRequest waits \u226445s for browser approve/deny/interrupt (POST /__spectate/steer). Interrupt \u2192 continue:false + deny. Pause \u2192 deny. Timeout \u2192 empty stdout (fail-open to the human prompt). Fail-open when posture is off."
           }
         ]
       }
