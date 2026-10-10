@@ -2,6 +2,12 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.338.6 — 2026-10-10
+
+### Fixed
+- **Posture + brake/tribunal/DoD state resolve from project root, not a subdirectory cwd (SH-F4).** `thing-orchestrator`, `runaway-brake`, `dod-gate`, and `guard-probe-validity` walked only the payload `cwd`; after `cd subdir` the comfort-posture file was missed and those gates no-op'd. Walk up for `.ravenclaude/` first (worktree-safe), then `CLAUDE_PROJECT_DIR`.
+- **`runaway-brake` trip reason reaches stderr again (SH-F5).** `exec 9>lock 2>/dev/null` permanently redirected the hook's stderr; brace-scoping the open restores the reason channel. Gate 53 companion test + teeth.
+
 ## 0.338.5 — 2026-10-10
 
 ### Fixed

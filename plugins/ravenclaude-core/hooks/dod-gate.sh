@@ -41,6 +41,25 @@ if command -v jq >/dev/null 2>&1 && [ -n "$payload" ]; then
   c="$(printf '%s' "$payload" | jq -r '.cwd // empty' 2>/dev/null)"; [ -n "$c" ] && cwd="$c"
   s="$(printf '%s' "$payload" | jq -r '.session_id // empty' 2>/dev/null)"; [ -n "$s" ] && sid="$s"
 fi
+# SH-F4 (2026-10-06): posture + state are project/worktree-scoped. Payload cwd
+# may be a subdirectory after `cd`. Walk up from that cwd for `.ravenclaude/`
+# FIRST (preserves per-worktree isolation), then fall back to CLAUDE_PROJECT_DIR
+# (SessionStart / adapters), else keep the payload cwd.
+_payload_cwd="$cwd"
+root=""
+_d="$_payload_cwd"
+while [ -n "$_d" ] && [ "$_d" != "/" ]; do
+  if [ -d "${_d}/.ravenclaude" ]; then
+    root="$_d"
+    break
+  fi
+  _d="$(dirname "$_d")"
+done
+if [ -z "$root" ] && [ -n "${CLAUDE_PROJECT_DIR:-}" ] && [ -d "${CLAUDE_PROJECT_DIR}/.ravenclaude" ]; then
+  root="$CLAUDE_PROJECT_DIR"
+fi
+[ -n "$root" ] || root="$_payload_cwd"
+cwd="$root"
 
 posture="${cwd}/.ravenclaude/comfort-posture.yaml"
 [ -f "$posture" ] || exit 0

@@ -3614,7 +3614,7 @@ Probe: `plugins/ravenclaude-core/hooks/tests/test-thing-hardening-edit.sh`.
 
 **Sources:** [PE DIGEST ship Thing hardening EDIT (0.323.5), 2026-09-15](https://github.com/mcorbett51090/RavenClaude/blob/feat/thing-hardening-edit/plugins/ravenclaude-core/knowledge/thing-harden-transforms.yaml) · [knowledge/thing-harden-transforms.yaml](https://github.com/mcorbett51090/RavenClaude/blob/feat/thing-hardening-edit/plugins/ravenclaude-core/knowledge/thing-harden-transforms.yaml)
 
-_Last verified: 2026-09-18_
+_Last verified: 2026-10-10_
 
 
 ---
